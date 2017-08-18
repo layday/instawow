@@ -11,7 +11,7 @@ Assuming you have Python 3.6 or higher:
 pip3 install --process-dependency-links git+https://github.com/layday/instawow
 ```
 
-## Basic operation
+## Usage
 
 ### Installing add-ons
 
