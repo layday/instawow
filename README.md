@@ -1,5 +1,5 @@
 
-_instawow_ is a fledgling \*nix package manager for World of Warcraft written
+_instawow_ is a fledgling package manager for World of Warcraft written
 in Python.  It can be used to install, remove and update add-ons
 from Curse and WoWInterface.
 
