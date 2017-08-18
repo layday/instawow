@@ -48,7 +48,16 @@ individual add-on the same way you'd install or remove it:
 
 Uninstalling an add-on is as simple as `instawow remove <add-on>`.
 
-For the full list of available commands, run `instawow`.
+### Other operations
+
+You may list installed add-ons with `instawow list installed`; outdated add-ons
+with `instawow list outdated`; and pre-existing add-ons with
+`instawow list preexisting`.  The latter command will attempt to reconcile
+add-on folders with their corresponding Curse IDs, where available.
+
+To see information about an installed add-on, execute `instawow info <add-on>`.
+To visit its homepage, execute `instawow hearth <add-on>`.  And to open its
+main folder in your file manager, run `instawow reveal <add-on>`.
 
 ## Caveats
 
