@@ -194,11 +194,19 @@ def installed(manager, column, columns):
 @click.pass_obj
 def outdated(manager):
     """List outdated add-ons."""
-    old = manager.db.query(Pkg).order_by(Pkg.slug).all()
+    def is_not_up_to_date(p, r):
+        try:
+            if isinstance(r, Exception):
+                raise r
+        except manager.PkgNonexistent:
+            return False
+        else:
+            return p.file_id != r.file_id
+
+    installed = manager.db.query(Pkg).order_by(Pkg.slug).all()
     new = manager.run(manager.resolve_many((p.origin, p.id, p.options.strategy)
-                                           for p in old))
-    outdated = [(p, r) for p, r in zip(old, new)
-                if not isinstance(r, Exception) and p.file_id != str(r.file_id)]
+                                           for p in installed))
+    outdated = [(p, r) for p, r in zip(installed, new) if is_not_up_to_date(p, r)]
     if outdated:
         click.echo(_tabulate(([_compose_addon_defn(r),
                                p.version, r.version, r.options.strategy]
