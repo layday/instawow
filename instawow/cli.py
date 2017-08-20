@@ -105,7 +105,8 @@ def install(manager, addons, overwrite, strategy):
         except manager.PkgNonexistent:
             click.echo(MESSAGES['any_failure__non_existent'](id=addon))
         except manager.PkgConflictsWithPreexisting:
-            click.echo(MESSAGES['any_failure__preexisting_folder_conflict'](id=addon))
+            click.echo(MESSAGES['install_failure__preexisting_'
+                                'folder_conflict'](id=addon))
         except manager.PkgConflictsWithInstalled as e:
             click.echo(MESSAGES['any_failure__installed_folder_conflict'](
                 id=addon, other=_compose_addon_defn(e.conflicting_pkg)))
@@ -137,7 +138,8 @@ def update(manager, addons):
         except manager.PkgUpToDate:
             pass
         else:
-            click.echo(MESSAGES['update_success'](id=addon, old_version=result[0].version,
+            click.echo(MESSAGES['update_success'](id=addon,
+                                                  old_version=result[0].version,
                                                   new_version=result[1].version))
 
 

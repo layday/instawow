@@ -10,9 +10,6 @@ MESSAGES = {k: v.format for k, v in {
         f'{_FAILURE} {{id}}: no such project id or slug',
     'any_failure__not_installed':
         f'{_FAILURE} {{id}}: not installed',
-    'any_failure__preexisting_folder_conflict':
-        f'{_FAILURE} {{id}}: conflicts with an add-on not installed by instawow\n'
-        f'pass `-o` to `install` if you do actually wish to overwrite this add-on',
     'any_failure__installed_folder_conflict':
         f'{_FAILURE} {{id}}: conflicts with {{other}}',
     'install_success':
@@ -21,6 +18,9 @@ MESSAGES = {k: v.format for k, v in {
         f'{_FAILURE} {{id}}: already installed',
     'install_failure__invalid_origin':
         f'{_FAILURE} {{id}}: invalid origin',
+    'install_failure__preexisting_folder_conflict':
+        f'{_FAILURE} {{id}}: conflicts with an add-on not installed by instawow\n'
+         'pass `-o` to `install` if you do actually wish to overwrite this add-on',
     'update_success':
         f'{_SUCCESS} {{id}}: updated from {{old_version}} to {{new_version}}',
     'remove_success':

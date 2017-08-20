@@ -31,7 +31,6 @@ class BaseResolver:
 
     def load(self):
         """Preload any data from the cache here."""
-        raise NotImplementedError
 
     async def resolve(self, id_or_slug, *, strategy) -> Pkg:
         """Turn an ID or slug into a `models.Pkg`."""

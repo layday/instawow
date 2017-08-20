@@ -131,8 +131,8 @@ class Manager(_AsyncUtilsMixin):
 
         conflicts = {f.path for f in new_pkg.folders} & \
                     {f.path for f in self.db.query(PkgFolder).all()}
-        conflicts = list(conflicts)
         if conflicts:
+            conflicts = list(conflicts)
             raise PkgConflictsWithInstalled(self.db.query(PkgFolder)
                                                 .filter(PkgFolder.path.in_(conflicts))
                                                 .first().pkg)
@@ -161,11 +161,11 @@ class Manager(_AsyncUtilsMixin):
 
         conflicts = {f.path for f in new_pkg.folders} & \
                     {f.path for f in self.db.query(PkgFolder)
-                                            .filter(Pkg.origin != old_pkg.origin,
-                                                    Pkg.id != old_pkg.id)
-                                            .all()}
-        conflicts = list(conflicts)
+                                         .filter(Pkg.origin != old_pkg.origin,
+                                                 Pkg.id != old_pkg.id)
+                                         .all()}
         if conflicts:
+            conflicts = list(conflicts)
             raise PkgConflictsWithInstalled(self.db.query(PkgFolder)
                                                 .filter(PkgFolder.path.in_(conflicts))
                                                 .first().pkg)
