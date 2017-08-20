@@ -12,7 +12,7 @@ from . import __version__
 from .config import UserConfig
 from .constants import MESSAGES
 from .manager import run
-from .models import Pkg
+from .models import Pkg, PkgFolder
 from .utils import TocReader, format_columns
 
 
@@ -211,16 +211,16 @@ def outdated(manager):
 @click.pass_obj
 def preexisting(manager):
     """List add-ons not installed by instawow."""
-    folders = sorted({f.name
-                      for f in manager.config.addon_dir.iterdir() if f.is_dir()}
-                     - {f.path.name
-                        for p in manager.db.query(Pkg).all() for f in p.folders})
+    folders = {f.name
+               for f in manager.config.addon_dir.iterdir() if f.is_dir()} - \
+              {f.path.name for f in manager.db.query(PkgFolder).all()}
+    folders = ((n, manager.config.addon_dir/n/f'{n}.toc') for n in folders)
+    folders = {(n, TocReader(t)) for n, t in folders if t.exists()}
     if folders:
-        folders = ((a, TocReader(manager.config.addon_dir/a/f'{a}.toc'))
-                   for a in folders)
-        click.echo(_tabulate(([a, t['X-Curse-Project-ID'].value,
+        click.echo(_tabulate(([n,
+                               t['X-Curse-Project-ID'].value,
                                t['X-Curse-Packaged-Version', 'X-Packaged-Version',
-                                 'Version'].value] for a, t in folders),
+                                 'Version'].value] for n, t in sorted(folders)),
                              headers=['folder', 'curse id or slug', 'version']))
 
 
