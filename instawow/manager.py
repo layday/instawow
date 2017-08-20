@@ -14,34 +14,38 @@ from .resolvers import BaseResolver
 from .utils import Archive
 
 
-class PkgAlreadyInstalled(Exception):
+class ManagerException(Exception):
     pass
 
 
-class PkgConflictsWithInstalled(Exception):
+class PkgAlreadyInstalled(ManagerException):
+    pass
+
+
+class PkgConflictsWithInstalled(ManagerException):
 
     def __init__(self, conflicting_pkg):
         super().__init__()
         self.conflicting_pkg = conflicting_pkg
 
 
-class PkgConflictsWithPreexisting(Exception):
+class PkgConflictsWithPreexisting(ManagerException):
     pass
 
 
-class PkgNonexistent(Exception):
+class PkgNonexistent(ManagerException):
     pass
 
 
-class PkgNotInstalled(Exception):
+class PkgNotInstalled(ManagerException):
     pass
 
 
-class PkgOriginInvalid(Exception):
+class PkgOriginInvalid(ManagerException):
     pass
 
 
-class PkgUpToDate(Exception):
+class PkgUpToDate(ManagerException):
     pass
 
 
@@ -67,6 +71,7 @@ class _AsyncUtilsMixin:
 
 class Manager(_AsyncUtilsMixin):
 
+    ManagerException = ManagerException
     PkgAlreadyInstalled = PkgAlreadyInstalled
     PkgConflictsWithPreexisting = PkgConflictsWithPreexisting
     PkgConflictsWithInstalled = PkgConflictsWithInstalled
