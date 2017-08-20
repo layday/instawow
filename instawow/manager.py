@@ -45,13 +45,6 @@ class PkgUpToDate(Exception):
     pass
 
 
-async def _prepare_resolver(manager, resolver):
-    r = resolver(manager=manager)
-    await r.sync()
-    r.load()
-    return r
-
-
 class _AsyncUtilsMixin:
 
     def __init__(self,
@@ -90,10 +83,6 @@ class Manager(_AsyncUtilsMixin):
         super().__init__(loop=loop)
         self.config = config
 
-        self._resolve_lock = asyncio.Lock(loop=loop)
-        self._synced_resolvers = False
-        self.resolvers = BaseResolver.__members__
-
         _engine = create_engine(f'''sqlite:///{self.config.config_dir/
                                                self.config.db_name}''',
                                 echo=debug)
@@ -104,12 +93,18 @@ class Manager(_AsyncUtilsMixin):
             ClientSession(connector=TCPConnector(limit_per_host=10, loop=loop),
                           loop=loop)
 
-    async def _prepare_resolvers(self):
-        async with self._resolve_lock:
-            if not self._synced_resolvers:
-                self.resolvers = {n: await _prepare_resolver(self, r)
-                                  for n, r in self.resolvers.items()}
-                self._synced_resolvers = True
+        self._prepare_lock = asyncio.Lock(loop=loop)
+        self.resolvers = {n: r(manager=self)
+                          for n, r in BaseResolver.__members__.items()}
+
+    async def _prepare_resolver(self, origin):
+        resolver = self.resolvers[origin]
+        async with self._prepare_lock:
+            if not resolver.synced:
+                await resolver.sync()
+                resolver.load()
+                resolver.synced = True
+        return resolver
 
     def close(self):
         self.client.close()
@@ -117,8 +112,8 @@ class Manager(_AsyncUtilsMixin):
     async def resolve(self, origin, id_or_slug, strategy):
         if origin not in self.resolvers:
             raise PkgOriginInvalid
-        await self._prepare_resolvers()
-        return await self.resolvers[origin].resolve(id_or_slug, strategy=strategy)
+        return await (await self._prepare_resolver(origin))\
+            .resolve(id_or_slug, strategy=strategy)
 
     async def resolve_many(self, triplets):
         return await self.gather((self.resolve(*t) for t in triplets),

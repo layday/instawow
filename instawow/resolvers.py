@@ -20,6 +20,7 @@ class BaseResolver:
 
     def __init__(self, *, manager):
         self.manager = manager
+        self.synced = False
 
     def __init_subclass__(cls, origin):
         cls.__members__[origin] = cls
