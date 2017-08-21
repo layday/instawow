@@ -303,3 +303,47 @@ def reveal(manager, addon):
         webbrowser.open(f'file://{pkg.folders[0].path}')
     else:
         click.echo(MESSAGES['any_failure__not_installed'](id=addon[0]))
+
+
+@main.group()
+@click.pass_obj
+def debug(manager):
+    """Debugging funcionality."""
+
+
+@debug.command(name='shell')
+@click.pass_obj
+def shell(manager):
+    """Drop into an interactive shell.
+
+    The shell is created in context and provides access to the
+    currently-active manager.
+    """
+    try:
+        from IPython import embed
+    except ImportError:
+        click.echo('ipython is not installed')
+    else:
+        embed()
+
+
+@debug.group()
+def cache():
+    """Manager the resolver cache."""
+
+
+@cache.command()
+@click.pass_obj
+def invalidate(manager):
+    from datetime import datetime
+    from .models import CacheEntry
+    manager.db.query(CacheEntry).update({'date_retrieved': datetime.fromtimestamp(0)})
+    manager.db.commit()
+
+
+@cache.command()
+@click.pass_obj
+def clear(manager):
+    from .models import CacheEntry
+    manager.db.query(CacheEntry).delete()
+    manager.db.commit()
