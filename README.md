@@ -70,13 +70,27 @@ reverse-engineered, I'd be loath to adopt it.  The fingerprint was born of a
 desire to monopolise the add-on distribution market – or it would've
 been made a community standard.
 
-### Data completeness
+### Add-on metadata
 
-There are sometimes gaps in the Curse data dump and _instawow_ might report
-that existing add-ons do not exist.  This could be mitigated by using the
-Curse SOAP&nbsp;API.  However the API does require users log into
-Curse: an unnecessary burden complicated by the ongoing account migration to
-Twitch.
+The Twitch client uses a closed metadata API internally.  I chose not to
+reuse it here primarily because it requires authentication.  I believe this
+places an unncessary burden on the user; a burden that is amplified by the
+ongoing migration of Curse accounts to Twitch.  Instead, _instawow_ relies
+solely on official data dumps or 'feeds'.  This approach is not without its
+drawbacks.  Notably:
+
+- There can be temporary gaps in the data dumps leading _instawow_ to report
+  that some existing add-ons do not exist.
+
+- The most frequent data dump provided by Curse is an hourly one.  Therefore
+  you might receive add-on updates with some delay as opposed to the Twitch
+  client.
+
+WoWI does not appear to suffer from either of these issues.  Do note
+that, because it has a much shorter execution cycle than a desktop app,
+_instawow_ caches add-on metadata for one hour.
+If you do for whatever reason need to force an early resync you can do so with
+`instawow debug cache invalidate`.
 
 ### Discovery
 
