@@ -1,7 +1,7 @@
 
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
-from contextlib import contextmanager, closing
+from functools import partial
 import shutil
 
 from aiohttp import ClientSession, TCPConnector
@@ -82,17 +82,14 @@ class Manager(_AsyncUtilsMixin):
 
     def __init__(self,
                  *,
-                 loop,
                  config,
-                 debug=False):
+                 loop=uvloop.new_event_loop()):
         super().__init__(loop=loop)
         self.config = config
 
-        _engine = create_engine(f'''sqlite:///{self.config.config_dir/
-                                               self.config.db_name}''',
-                                echo=debug)
-        ModelBase.metadata.create_all(_engine)
-        self.db = sessionmaker(bind=_engine)()
+        db_engine = create_engine(f'sqlite:///{config.config_dir/config.db_name}')
+        ModelBase.metadata.create_all(db_engine)
+        self.db = sessionmaker(bind=db_engine)()
 
         self.client = \
             ClientSession(connector=TCPConnector(limit_per_host=10, loop=loop),
@@ -140,8 +137,9 @@ class Manager(_AsyncUtilsMixin):
         async with self.client.get(new_pkg.download_url) as resp:
             payload = await resp.read()
         try:
-            await self.block_in_thread(lambda: Archive(payload).extract(self.config.addon_dir,
-                                                                        overwrite=overwrite))
+            await self.block_in_thread(partial(Archive(payload).extract,
+                                               self.config.addon_dir,
+                                               overwrite=overwrite))
         except Archive.ExtractConflict:
             raise PkgConflictsWithPreexisting
         else:
@@ -172,8 +170,9 @@ class Manager(_AsyncUtilsMixin):
 
         async with self.client.get(new_pkg.download_url) as resp:
             payload = await resp.read()
-        await self.block_in_thread(lambda: Archive(payload).extract(self.config.addon_dir,
-                                                                    overwrite=True))
+        await self.block_in_thread(partial(Archive(payload).extract,
+                                           self.config.addon_dir,
+                                           overwrite=True))
         return old_pkg, new_pkg.replace(old_pkg, self.db)
 
     async def update_many(self, pairs):
@@ -188,9 +187,3 @@ class Manager(_AsyncUtilsMixin):
         for folder in pkg.folders:
             shutil.rmtree(folder.path)
         pkg.delete(self.db)
-
-
-@contextmanager
-def run(config, loop=uvloop.new_event_loop()):
-    with closing(Manager(loop=loop, config=config)) as manager:
-        yield manager

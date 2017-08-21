@@ -11,7 +11,7 @@ from tabulate import tabulate
 from . import __version__
 from .config import UserConfig
 from .constants import MESSAGES
-from .manager import run
+from .manager import Manager
 from .models import Pkg, PkgFolder
 from .utils import TocReader, format_columns
 
@@ -44,18 +44,6 @@ def _decompose_addon_defn(ctx, param, value):
     return value, parts
 
 
-def cli():
-    while True:
-        try:
-            config = UserConfig.read()
-        except (FileNotFoundError, ValueError):
-            _init()
-        else:
-            break
-    with run(config) as manager:
-        main(obj=manager)
-
-
 def _init():
     addon_dir = UserConfig.default_addon_dir
     while True:
@@ -74,8 +62,21 @@ init = click.Command(name='instawow-init', callback=_init,
 
 @click.group(context_settings=_CONTEXT_SETTINGS)
 @click.version_option(__version__)
-def main():
+@click.pass_context
+def main(ctx):
     """Add-on manager for World of Warcraft."""
+    if not ctx.obj:
+        while True:
+            try:
+                config = UserConfig.read()
+            except (FileNotFoundError, ValueError):
+                _init()
+            else:
+                break
+        ctx.obj = manager = Manager(config=config)
+        ctx.call_on_close(manager.close)
+
+cli = main
 
 
 @main.command()
@@ -158,8 +159,7 @@ def remove(manager, addons):
 
 
 @main.group('list')
-@click.pass_obj
-def list_(manager):
+def list_():
     """List add-ons."""
 
 

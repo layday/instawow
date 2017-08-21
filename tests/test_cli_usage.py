@@ -4,8 +4,9 @@ import re
 from click.testing import CliRunner
 import pytest
 
-from instawow import cli, config
-from instawow.manager import run
+from instawow.cli import main
+from instawow.config import Config
+from instawow.manager import Manager
 
 
 @pytest.fixture(autouse=True,
@@ -18,16 +19,11 @@ def mktmpdir(tmpdir_factory, request):
 
 
 @pytest.fixture(scope='class')
-def manager(mktmpdir):
-    with run(config.Config(addon_dir=mktmpdir.join('addons'),
-                           config_dir=mktmpdir.join('config'))) \
-            as manager:
-        yield manager
-
-
-@pytest.fixture(scope='class')
-def invoke_runner(manager):
-    return lambda args: CliRunner().invoke(cli.main, args, obj=manager)
+def invoke_runner(mktmpdir):
+    manager = Manager(config=Config(
+        addon_dir=mktmpdir.join('addons'),config_dir=mktmpdir.join('config')))
+    yield lambda args: CliRunner().invoke(main, args=args, obj=manager)
+    manager.close()
 
 
 class TestSingleValidCursePkgLifecycle:
@@ -108,7 +104,7 @@ class TestFolderConflictLifecycle:
 
 class TestPreexistingFolderConflictOnInstall:
 
-    def test_preexisting_folder_conflict_on_install(self, invoke_runner, manager,
+    def test_preexisting_folder_conflict_on_install(self, invoke_runner,
                                                     mktmpdir):
         mktmpdir.mkdir('addons', 'Molinari')
         assert invoke_runner(['install', 'curse:molinari']).output == \
@@ -166,6 +162,6 @@ class TestStrategySwitchAndUpdateLifecycle:
                                str.__eq__,
                                '✓ curse:transcriptor: removed\n'),])
     def test_strategy_switch_and_update_lifecycle(self, invoke_runner,
-                                                   test_input, cmp_fn,
-                                                   expected_output):
+                                                  test_input, cmp_fn,
+                                                  expected_output):
         assert cmp_fn(invoke_runner(test_input).output, expected_output)

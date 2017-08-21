@@ -23,7 +23,7 @@ class Config(pydantic.BaseSettings):
 
     addon_dir: Path
     config_dir: Path = click.get_app_dir('instawow')
-    db_name = 'db.sqlite'
+    db_name: str = 'db.sqlite'
 
     def _process_values(self, values_dict):
         values = super()._process_values(values_dict)
