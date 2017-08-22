@@ -74,7 +74,7 @@ been made a community standard.
 
 The Twitch client uses a closed metadata API internally.  I chose not to
 reuse it here primarily because it requires authentication.  I believe this
-places an unncessary burden on the user; a burden that is amplified by the
+places an unnecessary burden on the user; a burden that is amplified by the
 ongoing migration of Curse accounts to Twitch.  Instead, _instawow_ relies
 solely on official data dumps or 'feeds'.  This approach is not without its
 drawbacks.  Notably:

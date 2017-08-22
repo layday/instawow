@@ -329,7 +329,7 @@ def shell(manager):
 
 @debug.group()
 def cache():
-    """Manager the resolver cache."""
+    """Manage the resolver cache."""
 
 
 @cache.command()
