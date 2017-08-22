@@ -265,7 +265,7 @@ def info(manager, addon):
                 ('slug', pkg.slug),
                 ('name', click.style(pkg.name, bold=True)),
                 ('id', pkg.id),
-                ('description', fill(pkg.description)),
+                ('description', fill(pkg.description, max_lines=5)),
                 ('homepage', click.style(pkg.url, underline=True)),
                 ('version', pkg.version),
                 ('release date', pkg.date_published),
