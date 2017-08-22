@@ -165,3 +165,51 @@ class TestStrategySwitchAndUpdateLifecycle:
                                                   test_input, cmp_fn,
                                                   expected_output):
         assert cmp_fn(invoke_runner(test_input).output, expected_output)
+
+
+class TestInstallWithAlias:
+
+    @pytest.mark.parametrize(
+        'test_input, cmp_fn, expected_output',
+        [(['install', 'curse:molinari'],
+          str.startswith,
+          '✓ curse:molinari: installed'),
+         (['install', 'curse:20338'],
+          str.__eq__,
+          '✗ curse:20338: already installed\n'),
+         (['install', 'https://wow.curseforge.com/projects/molinari'],
+          str.__eq__,
+          '✗ https://wow.curseforge.com/projects/molinari: already installed\n'),
+         (['install', 'https://mods.curse.com/project/20338'],
+          str.__eq__,
+          '✗ https://mods.curse.com/project/20338: already installed\n'),
+         (['install', 'https://mods.curse.com/addons/wow/molinari'],
+          str.__eq__,
+          '✗ https://mods.curse.com/addons/wow/molinari: already installed\n'),
+         (['install', 'https://mods.curse.com/addons/wow/molinari/download'],
+          str.__eq__,
+          '✗ https://mods.curse.com/addons/wow/molinari/download: already installed\n'),
+         (['remove', 'curse:molinari'],
+          str.__eq__,
+          '✓ curse:molinari: removed\n'),])
+    def test_install_with_curse_alias(self, invoke_runner,
+                                      test_input, cmp_fn, expected_output):
+        assert cmp_fn(invoke_runner(test_input).output, expected_output)
+
+    @pytest.mark.parametrize(
+        'test_input, cmp_fn, expected_output',
+        [(['install', 'wowi:10783'],
+          str.startswith,
+          '✓ wowi:10783: installed'),
+         (['install', 'https://www.wowinterface.com/downloads/info10783-Prat3.0.html'],
+          str.__eq__,
+          '✗ https://www.wowinterface.com/downloads/info10783-Prat3.0.html: already installed\n'),
+         (['install', 'https://www.wowinterface.com/downloads/download10783-Prat3'],
+          str.__eq__,
+          '✗ https://www.wowinterface.com/downloads/download10783-Prat3: already installed\n'),
+         (['remove', 'wowi:10783'],
+          str.__eq__,
+          '✓ wowi:10783: removed\n'),])
+    def test_install_with_wowi_alias(self, invoke_runner,
+                                     test_input, cmp_fn, expected_output):
+        assert cmp_fn(invoke_runner(test_input).output, expected_output)

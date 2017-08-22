@@ -121,16 +121,19 @@ class _CurseResolver(BaseResolver, origin='curse'):
         url = URL(url)
         if url.host in {'wow.curseforge.com', 'www.wowace.com'} and \
                 len(url.parts) > 2 and \
-                url.parts[1:2] == ('projects',):
+                url.parts[1] == 'projects':
             return ('curse', url.parts[2])
-        elif url.host == 'mods.curse.com' and \
-                len(url.parts) > 3 and \
-                url.parts[1:3] == ('addons', 'wow'):
-            slug = url.parts[3]
-            match = cls._re_curse_url.match(slug)
-            if match:
-                slug, = match.groups()
-            return ('curse', slug)
+        elif url.host == 'mods.curse.com':
+            if len(url.parts) > 3 and \
+                    url.parts[1:3] == ('addons', 'wow'):
+                slug = url.parts[3]
+                match = cls._re_curse_url.match(slug)
+                if match:
+                    slug, = match.groups()
+                return ('curse', slug)
+            elif len(url.parts) == 3 and \
+                    url.parts[1] == 'project':
+                return ('curse', url.parts[2])
 
 
 class _WowiResolver(BaseResolver, origin='wowi'):
@@ -143,7 +146,7 @@ class _WowiResolver(BaseResolver, origin='wowi'):
     _re_head = re.compile(r'^info')
     _re_tail = re.compile(r'\.html$')
 
-    _re_url = re.compile(r'info(\d+)-\w+\.html')
+    _re_url = re.compile(r'(?:download|info)(\d+)-.*')
 
     @classmethod
     def _slugify(cls, url):
@@ -188,7 +191,9 @@ class _WowiResolver(BaseResolver, origin='wowi'):
     @classmethod
     def decompose_url(cls, url):
         url = URL(url)
-        if url.host in {'wowinterface.com', 'www.wowinterface.com'}:
+        if url.host in {'wowinterface.com', 'www.wowinterface.com'} and \
+                len(url.parts) == 3 and \
+                url.parts[1] == 'downloads':
             match = cls._re_url.match(url.name)
             if match:
                 return ('wowi', *match.groups())
