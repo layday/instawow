@@ -131,7 +131,7 @@ class PkgFolder(ModelBase):
     __table_args__ = (ForeignKeyConstraint(['pkg_origin', 'pkg_id'],
                                            ['pkg.origin', 'pkg.id']),)
 
-    path = Column(_PathType, primary_key=True)
+    path = Column(_PathType, primary_key=True)  # TODO: migrate paths to basenames
     pkg_origin = Column(String, nullable=False)
     pkg_id = Column(String, nullable=False)
 
