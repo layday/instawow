@@ -94,10 +94,11 @@ class Manager(_AsyncUtilsMixin):
         self.client = \
             ClientSession(connector=TCPConnector(limit_per_host=10, loop=loop),
                           loop=loop)
-
-        self._prepare_lock = asyncio.Lock(loop=loop)
         self.resolvers = {n: r(manager=self)
                           for n, r in BaseResolver.__members__.items()}
+
+        self._prepare_lock = asyncio.Lock(loop=loop)
+        self._install_lock = asyncio.Lock(loop=loop)
 
     async def _prepare_resolver(self, origin):
         resolver = self.resolvers[origin]
@@ -124,26 +125,26 @@ class Manager(_AsyncUtilsMixin):
     async def install(self, origin, id_or_slug, strategy, overwrite):
         if Pkg.unique(origin, id_or_slug, self.db):
             raise PkgAlreadyInstalled
+
         new_pkg = await self.resolve(origin, id_or_slug, strategy)
-
-        conflicts = {f.path for f in new_pkg.folders} & \
-                    {f.path for f in self.db.query(PkgFolder).all()}
-        if conflicts:
-            conflicts = list(conflicts)
-            raise PkgConflictsWithInstalled(self.db.query(PkgFolder)
-                                                .filter(PkgFolder.path.in_(conflicts))
-                                                .first().pkg)
-
         async with self.client.get(new_pkg.download_url) as resp:
             payload = await resp.read()
-        try:
-            await self.block_in_thread(partial(Archive(payload).extract,
-                                               self.config.addon_dir,
-                                               overwrite=overwrite))
-        except Archive.ExtractConflict:
-            raise PkgConflictsWithPreexisting
-        else:
-            return new_pkg.insert(self.db)
+
+        async with self._install_lock:
+            folder_conflict = self.db\
+                .query(PkgFolder)\
+                .filter(PkgFolder.path.in_([f.path for f in new_pkg.folders]))\
+                .first()
+            if folder_conflict:
+                raise PkgConflictsWithInstalled(folder_conflict.pkg)
+            try:
+                await self.block_in_thread(partial(Archive(payload).extract,
+                                                   self.config.addon_dir,
+                                                   overwrite=overwrite))
+            except Archive.ExtractConflict:
+                raise PkgConflictsWithPreexisting
+            else:
+                return new_pkg.insert(self.db)
 
     async def install_many(self, quadruplets):
         return await self.gather((self.install(*q) for q in quadruplets),
@@ -153,27 +154,28 @@ class Manager(_AsyncUtilsMixin):
         old_pkg = Pkg.unique(origin, id_or_slug, self.db)
         if not old_pkg:
             raise PkgNotInstalled
+
         new_pkg = await self.resolve(origin, id_or_slug, old_pkg.options.strategy)
         if old_pkg.file_id == new_pkg.file_id:
             raise PkgUpToDate
 
-        conflicts = {f.path for f in new_pkg.folders} & \
-                    {f.path for f in self.db.query(PkgFolder)
-                                         .filter(Pkg.origin != old_pkg.origin,
-                                                 Pkg.id != old_pkg.id)
-                                         .all()}
-        if conflicts:
-            conflicts = list(conflicts)
-            raise PkgConflictsWithInstalled(self.db.query(PkgFolder)
-                                                .filter(PkgFolder.path.in_(conflicts))
-                                                .first().pkg)
-
         async with self.client.get(new_pkg.download_url) as resp:
             payload = await resp.read()
-        await self.block_in_thread(partial(Archive(payload).extract,
-                                           self.config.addon_dir,
-                                           overwrite=True))
-        return old_pkg, new_pkg.replace(old_pkg, self.db)
+
+        async with self._install_lock:
+            folder_conflict = self.db\
+                .query(PkgFolder)\
+                .filter(PkgFolder.path.in_([f.path for f in new_pkg.folders]),
+                        PkgFolder.pkg_origin != new_pkg.origin,
+                        PkgFolder.pkg_id != new_pkg.id)\
+                .first()
+            if folder_conflict:
+                raise PkgConflictsWithInstalled(folder_conflict.pkg)
+
+            await self.block_in_thread(partial(Archive(payload).extract,
+                                               self.config.addon_dir,
+                                               overwrite=True))
+            return old_pkg, new_pkg.replace(old_pkg, self.db)
 
     async def update_many(self, pairs):
         return await self.gather((self.update(*p) for p in pairs),
