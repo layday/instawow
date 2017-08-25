@@ -1,6 +1,6 @@
 
 from collections import namedtuple
-from functools import partial
+from functools import partial, reduce
 from textwrap import fill
 import webbrowser
 
@@ -13,7 +13,7 @@ from .config import UserConfig
 from .constants import MESSAGES
 from .manager import Manager
 from .models import Pkg, PkgFolder
-from .utils import TocReader, format_columns
+from .utils import TocReader
 
 
 _CONTEXT_SETTINGS = {'help_option_names': ['-h', '--help']}
@@ -174,6 +174,17 @@ def list_():
 @click.pass_obj
 def installed(manager, column, columns):
     """List installed add-ons."""
+    def _format_columns(pkg, columns):
+        def _parse_field(name, value):
+            if name == 'folders':
+                value = '\n'.join(f.path.name for f in value)
+            elif name == 'description':
+                value = fill(value, width=40)
+            return value
+
+        return (_parse_field(c, reduce(getattr, [pkg] + c.split('.')))
+                for c in columns)
+
     if columns:
         # TODO: include relationships in output
         click.echo(_tabulate(([c] for c in inspect(Pkg).columns.keys()),
@@ -184,7 +195,7 @@ def installed(manager, column, columns):
             return
         try:
             click.echo(_tabulate(([_compose_addon_defn(p),
-                                   *format_columns(p, column)] for p in pkgs),
+                                   *_format_columns(p, column)] for p in pkgs),
                                  headers=['add-on', *column]))
         except AttributeError as e:
             raise click.BadParameter(e.args)
@@ -194,7 +205,7 @@ def installed(manager, column, columns):
 @click.pass_obj
 def outdated(manager):
     """List outdated add-ons."""
-    def is_not_up_to_date(p, r):
+    def _is_not_up_to_date(p, r):
         try:
             if isinstance(r, Exception):
                 raise r
@@ -206,7 +217,7 @@ def outdated(manager):
     installed = manager.db.query(Pkg).order_by(Pkg.slug).all()
     new = manager.run(manager.resolve_many((p.origin, p.id, p.options.strategy)
                                            for p in installed))
-    outdated = [(p, r) for p, r in zip(installed, new) if is_not_up_to_date(p, r)]
+    outdated = [(p, r) for p, r in zip(installed, new) if _is_not_up_to_date(p, r)]
     if outdated:
         click.echo(_tabulate(([_compose_addon_defn(r),
                                p.version, r.version, r.options.strategy]

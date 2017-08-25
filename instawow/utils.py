@@ -1,64 +1,59 @@
 
 from collections import OrderedDict, namedtuple
-from functools import reduce
 import io
 from pathlib import Path
-from textwrap import fill
 import typing
 import zipfile
 
 
-class _ExtractConflict(Exception):
-    pass
+class ExtractConflict(Exception):
+
+    def __init__(self, conflicting_folders):
+        super().__init__()
+        self.conflicting_folders = conflicting_folders
 
 
 class Archive:
 
-    ExtractConflict = _ExtractConflict
+    ExtractConflict = ExtractConflict
 
-    def __init__(self, payload: bytes):
+    def __init__(self,
+                 payload: bytes):
         self._archive = zipfile.ZipFile(io.BytesIO(payload))
 
-    @property
-    def members(self) -> typing.Set[str]:
-        return {i.partition('/')[0] for i in self._archive.namelist()}
-
-    def extract(self, parent_folder: Path, *, overwrite: bool=False):
-        if not overwrite:
-            conflicting_folders = self.members & {f.name for f in
-                                                  parent_folder.iterdir()}
+    def extract(self,
+                parent_folder: Path,
+                *,
+                overwrite: typing.Union[bool, typing.Set[str]]=False):
+        if overwrite is not True:
+            conflicting_folders = \
+                ({Path(p).parts[0] for p in self._archive.namelist()} &
+                 ({f.name for f in parent_folder.iterdir()} -
+                  (overwrite or set())))
             if conflicting_folders:
-                raise _ExtractConflict(conflicting_folders)
+                raise ExtractConflict(conflicting_folders)
         self._archive.extractall(parent_folder)
 
+
+_TocEntry = namedtuple('_TocEntry', 'key value')
 
 class TocReader:
     """Extracts key–value pairs from TOC files."""
 
-    _TocEntry = namedtuple('_TocEntry', 'key value')
-
-    def __init__(self, toc_file_path: Path):
+    def __init__(self,
+                 toc_file_path: Path):
         entries = (e.lstrip('# ').partition(': ')
                    for e in toc_file_path.read_text().splitlines()
                    if e.startswith('## '))
         entries = ((e[0], e[2]) for e in entries)
         self.entries = OrderedDict(entries)
 
-    def __getitem__(self, keys: typing.Union[str, typing.Tuple[str]]) \
-            -> '[_TocEntry]':
+    def __getitem__(self,
+                    keys: typing.Union[str, typing.Tuple[str]]) -> _TocEntry:
         if isinstance(keys, tuple):
-            return next(filter(lambda i: i.value,
-                               (self.__getitem__(k) for k in keys)),
-                        self.__getitem__(keys[0]))
-        return self._TocEntry(keys, self.entries.get(keys))
-
-
-def format_columns(pkg, columns):
-    def _parse_field(name, value):
-        if name == 'folders':
-            value = '\n'.join(f.path.name for f in value)
-        elif name == 'description':
-            value = fill(value, width=40)
-        return value
-    return (_parse_field(c, reduce(getattr, [pkg] + c.split('.')))
-            for c in columns)
+            try:
+                return next(filter(lambda i: i.value,
+                                   (self.__getitem__(k) for k in keys)))
+            except StopIteration:
+                keys = keys[0]
+        return _TocEntry(keys, self.entries.get(keys))
