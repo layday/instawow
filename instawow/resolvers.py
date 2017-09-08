@@ -5,7 +5,6 @@ from datetime import datetime as dt, timedelta
 import re
 import typing
 
-from lxml.html import document_fromstring as parse_html
 from yarl import URL
 
 from .models import CacheEntry, Pkg, PkgFolder, PkgOptions
@@ -49,18 +48,28 @@ class _CurseResolver(BaseResolver, origin='curse'):
 
     _json_dump_url = 'https://clientupdate-v6.cursecdn.com/feed/addons/1/v10/'\
                      '{freq}.json.bz2'
+    _json_date_url = 'https://clientupdate-v6.cursecdn.com/feed/addons/1/v10/'\
+                     '{freq}.json.bz2.txt'
 
     _freqs = {'hourly', 'daily', 'weekly', 'complete'}
 
-    _re_curse_url = re.compile(r'(\d+)[a-z_-]+')
+    _re_curse_url = re.compile(r'(?P<id>\d+)-(?P<slug>[a-z_-]+)')
+
+    @classmethod
+    def _slug_from_url(cls, url: str) -> str:
+        name = URL(url).name
+        match = cls._re_curse_url.match(name)
+        if match:
+            return match.group('slug')
+        return name
 
     async def sync(self):
         async def _sync(freq):
             entry = self.manager.db.query(CacheEntry).get(('curse', freq))
             if not entry or ((entry.date_retrieved + timedelta(seconds=EXPIRY)) <
                              dt.now()):
-                async with self.manager.client.get(
-                        f'{self._json_dump_url.format(freq=freq)}.txt') as resp:
+                async with self.manager.client.get(self._json_date_url
+                                                   .format(freq=freq)) as resp:
                     dt_ = dt.fromtimestamp(int(await resp.text()) / 1000)
                 if not entry or entry.date_updated != dt_:
                     async with self.manager.client.get(self._json_dump_url
@@ -68,35 +77,28 @@ class _CurseResolver(BaseResolver, origin='curse'):
                         payload = await resp.read()
                     payload = await self.manager.block_in_thread(
                         lambda: bz2.decompress(payload).decode())
-                    new_entry = CacheEntry(origin='curse', id=freq, date_retrieved=dt.now(),
-                                           date_updated=dt_, contents=payload)
-                    new_entry.replace(entry, self.manager.db) \
-                        if entry else new_entry.insert(self.manager.db)
-        await self.manager.gather(_sync(f) for f in self._freqs)
+                    new_entry = CacheEntry(origin=self.origin,
+                                           id=freq,
+                                           date_retrieved=dt.now(),
+                                           date_updated=dt_,
+                                           contents=payload)
+                    entry = new_entry.replace(self.manager.db, entry)
+            return entry
 
-    def load(self):
-        data = self.manager.db.query(CacheEntry).filter_by(origin='curse')\
-                                                .order_by(CacheEntry.date_updated.desc())\
-                                                .all()
-        self._data = ChainMap(*({e['Id']: e for e in c.contents['data']
-                                 if e['PackageType'] == 1} for c in data))
+        data = await self.manager.gather((_sync(f) for f in self._freqs),
+                                         show_progress=self.manager.show_progress)
+        data = sorted(data, key=lambda e: e.date_updated, reverse=True)
+        data = ChainMap(*({str(e['Id']): e
+                           for e in c.contents['data'] if e['PackageType'] == 1}
+                          for c in data),
+                        *({self._slug_from_url(e['WebSiteURL']): e
+                           for e in c.contents['data'] if e['PackageType'] == 1}
+                          for c in data))
+        self._data = data
 
     async def resolve(self, id_or_slug, *, strategy):
-        # Slugs are not found in the JSON dumps so we're resorting to scraping
-        async with self.manager.client.get(f'https://wow.curseforge.com'
-                                           f'/projects/{id_or_slug}') as resp:
-            if (resp.status == 404 or
-                    # IDs and slugs are shared by all CurseForges - if an ID
-                    # redirects to a CF other than WoW(Ace), we know to
-                    # discard it
-                    resp.url.host not in {'wow.curseforge.com',
-                                          'www.wowace.com'}):
-                raise self.manager.PkgNonexistent
-            text = await resp.read()
-        p_id = int(parse_html(text).xpath('string(//div[text() = "Project ID "]'
-                                          '       /following-sibling::div)'))
         try:
-            proj = self._data[p_id]
+            proj = self._data[id_or_slug]
         except KeyError:
             # This really shouldn't happen but projects are sometimes missing
             # from the data dumps - maybe there's another dump we're yet to
