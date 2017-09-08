@@ -74,9 +74,10 @@ class _ConvenienceMethodsMixin:
         session.commit()
         return self
 
-    def replace(self, other, session):
-        session.delete(other)
-        session.commit()
+    def replace(self, session, other=None):
+        if other:
+            session.delete(other)
+            session.commit()
         return self.insert(session)
 
     def delete(self, session):
