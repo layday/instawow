@@ -16,6 +16,11 @@ from .resolvers import BaseResolver
 from .utils import Archive, ProgressBar
 
 
+def _dedupe(it):
+    list_ = list(it)
+    return sorted(set(list_), key=list_.index)
+
+
 async def _intercept_coro(index, future):
     try:
         result = await future
@@ -142,7 +147,7 @@ class Manager(_AsyncUtilsMixin):
 
     async def resolve_many(self,
                            triplets: typing.Iterable) -> typing.List[Pkg]:
-        return await self.gather((self.resolve(*t) for t in triplets),
+        return await self.gather((self.resolve(*t) for t in _dedupe(triplets)),
                                  show_progress=self.show_progress)
 
     async def install(self, origin, id_or_slug, strategy, overwrite):
@@ -171,7 +176,7 @@ class Manager(_AsyncUtilsMixin):
 
     async def install_many(self,
                            quadruplets: typing.Iterable) -> typing.List[Pkg]:
-        return await self.gather((self.install(*q) for q in quadruplets),
+        return await self.gather((self.install(*q) for q in _dedupe(quadruplets)),
                                  show_progress=self.show_progress)
 
     async def update(self, origin, id_or_slug):
@@ -203,7 +208,7 @@ class Manager(_AsyncUtilsMixin):
 
     async def update_many(self,
                           pairs: typing.Iterable) -> typing.List[typing.Tuple[Pkg, Pkg]]:
-        return await self.gather((self.update(*p) for p in pairs),
+        return await self.gather((self.update(*p) for p in _dedupe(pairs)),
                                  show_progress=self.show_progress)
 
     def remove(self, origin, id_or_slug):
