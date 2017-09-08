@@ -1,5 +1,4 @@
 
-import re
 
 from click.testing import CliRunner
 import pytest
@@ -9,24 +8,27 @@ from instawow.config import Config
 from instawow.manager import Manager
 
 
-@pytest.fixture(autouse=True,
-                scope='class')
-def mktmpdir(tmpdir_factory, request):
-    factory = tmpdir_factory.mktemp('.'.join((__name__, request.cls.__name__)))
-    factory.mkdir('addons')
-    factory.mkdir('config')
-    return factory
 
 
-@pytest.fixture(scope='class')
-def invoke_runner(mktmpdir):
-    manager = Manager(config=Config(
-        addon_dir=mktmpdir.join('addons'),config_dir=mktmpdir.join('config')))
-    yield lambda args: CliRunner().invoke(main, args=args, obj=manager)
-    manager.close()
+class _CliTest:
+
+    @pytest.fixture(autouse=True,
+                    scope='class')
+    def temp_dirs(self, tmpdir_factory, request):
+        factory = tmpdir_factory.mktemp('.'.join((__name__, request.cls.__name__)))
+        self.addons = factory.mkdir('addons')
+        self.config = factory.mkdir('config')
+        return factory
 
 
-class TestSingleValidCursePkgLifecycle:
+    @pytest.fixture(scope='class')
+    def invoke_runner(self, temp_dirs):
+        with Manager(config=Config(addon_dir=self.addons, config_dir=self.config),
+                    show_progress=False) as manager:
+            yield lambda args: CliRunner().invoke(main, args=args, obj=manager)
+
+
+class TestSingleValidCursePkgLifecycle(_CliTest):
 
     @pytest.mark.parametrize('test_input, cmp_fn, expected_output',
                              [(['install', 'curse:molinari'],
@@ -58,7 +60,7 @@ class TestSingleValidCursePkgLifecycle:
         assert cmp_fn(invoke_runner(test_input).output, expected_output)
 
 
-class TestSingleValidWowiPkgLifecycle:
+class TestSingleValidWowiPkgLifecycle(_CliTest):
 
     @pytest.mark.parametrize('test_input, cmp_fn, expected_output',
                              [(['install', 'wowi:13188-Molinari'],
@@ -84,7 +86,7 @@ class TestSingleValidWowiPkgLifecycle:
         assert cmp_fn(invoke_runner(test_input).output, expected_output)
 
 
-class TestFolderConflictLifecycle:
+class TestFolderConflictLifecycle(_CliTest):
 
     @pytest.mark.parametrize('test_input, cmp_fn, expected_output',
                              [(['install', 'curse:molinari'],
@@ -102,17 +104,17 @@ class TestFolderConflictLifecycle:
         assert cmp_fn(invoke_runner(test_input).output, expected_output)
 
 
-class TestPreexistingFolderConflictOnInstall:
+class TestPreexistingFolderConflictOnInstall(_CliTest):
 
     def test_preexisting_folder_conflict_on_install(self, invoke_runner,
-                                                    mktmpdir):
-        mktmpdir.mkdir('addons', 'Molinari')
+                                                    temp_dirs):
+        temp_dirs.mkdir('addons', 'Molinari')
         assert invoke_runner(['install', 'curse:molinari']).output == \
             '✗ curse:molinari: conflicts with an add-on not installed by instawow\n'\
             'pass `-o` to `install` if you do actually wish to overwrite this add-on\n'
 
 
-class TestInvalidAddonNameLifecycle:
+class TestInvalidAddonNameLifecycle(_CliTest):
 
     @pytest.mark.parametrize('test_input, expected_output',
                              [(['install', 'curse:gargantuan-wigs'],
@@ -126,7 +128,7 @@ class TestInvalidAddonNameLifecycle:
         assert invoke_runner(test_input).output == expected_output
 
 
-class TestInvalidOriginLifecycle:
+class TestInvalidOriginLifecycle(_CliTest):
 
     @pytest.mark.parametrize('test_input, expected_output',
                              [(['install', 'foo:bar'],
@@ -140,7 +142,7 @@ class TestInvalidOriginLifecycle:
         assert invoke_runner(test_input).output == expected_output
 
 
-class TestStrategySwitchAndUpdateLifecycle:
+class TestStrategySwitchAndUpdateLifecycle(_CliTest):
 
     @pytest.mark.parametrize('test_input, cmp_fn, expected_output',
                              [(['install', 'curse:transcriptor'],
@@ -167,7 +169,7 @@ class TestStrategySwitchAndUpdateLifecycle:
         assert cmp_fn(invoke_runner(test_input).output, expected_output)
 
 
-class TestInstallWithAlias:
+class TestInstallWithAlias(_CliTest):
 
     @pytest.mark.parametrize(
         'test_input, cmp_fn, expected_output',

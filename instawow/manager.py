@@ -3,15 +3,25 @@ import asyncio
 from concurrent.futures import ThreadPoolExecutor
 from functools import partial
 import shutil
+import typing
 
 from aiohttp import ClientSession, TCPConnector
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 import uvloop
 
+from .config import Config
 from .models import ModelBase, Pkg, PkgFolder
 from .resolvers import BaseResolver
-from .utils import Archive
+from .utils import Archive, ProgressBar
+
+
+async def _intercept_coro(index, future):
+    try:
+        result = await future
+    except Exception as e:
+        result = e
+    return index, result
 
 
 class ManagerException(Exception):
@@ -60,13 +70,25 @@ class _AsyncUtilsMixin:
                               _tpe=ThreadPoolExecutor(max_workers=1)):
         return await self._loop.run_in_executor(_tpe, *args)
 
-    async def gather(self, iterable, **kwargs):
-        return await asyncio.gather(*iterable,
-                                    loop=self._loop,
-                                    **kwargs)
-
     def run(self, *args, **kwargs):
         return self._loop.run_until_complete(*args, **kwargs)
+
+    async def gather(self, it, *,
+                     show_progress: bool=False) -> typing.List[typing.Any]:
+        """Execute coroutines concurrently and gather their results, including
+        exceptions.  This displays a progress bar in the command line if
+        `show_process=True`.
+        """
+        if not show_progress:
+            return await asyncio.gather(*it, loop=self._loop)
+
+        futures = [_intercept_coro(i, f) for i, f in enumerate(it)]
+        results = [None] * len(futures)
+        with ProgressBar(length=len(futures)) as bar:
+            for result in asyncio.as_completed(futures, loop=self._loop):
+                results.__setitem__(*(await result))
+                bar.update(1)
+        return results
 
 
 class Manager(_AsyncUtilsMixin):
@@ -82,10 +104,12 @@ class Manager(_AsyncUtilsMixin):
 
     def __init__(self,
                  *,
-                 config,
-                 loop=uvloop.new_event_loop()):
+                 config: Config,
+                 loop: asyncio.BaseEventLoop=uvloop.new_event_loop(),
+                 show_progress: bool=True):
         super().__init__(loop=loop)
         self.config = config
+        self.show_progress = show_progress
 
         db_engine = create_engine(f'sqlite:///{config.config_dir/config.db_name}')
         ModelBase.metadata.create_all(db_engine)
@@ -116,9 +140,10 @@ class Manager(_AsyncUtilsMixin):
         return await (await self._prepare_resolver(origin))\
             .resolve(id_or_slug, strategy=strategy)
 
-    async def resolve_many(self, triplets):
+    async def resolve_many(self,
+                           triplets: typing.Iterable) -> typing.List[Pkg]:
         return await self.gather((self.resolve(*t) for t in triplets),
-                                 return_exceptions=True)
+                                 show_progress=self.show_progress)
 
     async def install(self, origin, id_or_slug, strategy, overwrite):
         if Pkg.unique(origin, id_or_slug, self.db):
@@ -144,9 +169,10 @@ class Manager(_AsyncUtilsMixin):
             else:
                 return new_pkg.insert(self.db)
 
-    async def install_many(self, quadruplets):
+    async def install_many(self,
+                           quadruplets: typing.Iterable) -> typing.List[Pkg]:
         return await self.gather((self.install(*q) for q in quadruplets),
-                                 return_exceptions=True)
+                                 show_progress=self.show_progress)
 
     async def update(self, origin, id_or_slug):
         old_pkg = Pkg.unique(origin, id_or_slug, self.db)
@@ -175,9 +201,10 @@ class Manager(_AsyncUtilsMixin):
                                                overwrite=True))
             return old_pkg, new_pkg.replace(old_pkg, self.db)
 
-    async def update_many(self, pairs):
+    async def update_many(self,
+                          pairs: typing.Iterable) -> typing.List[typing.Tuple[Pkg, Pkg]]:
         return await self.gather((self.update(*p) for p in pairs),
-                                 return_exceptions=True)
+                                 show_progress=self.show_progress)
 
     def remove(self, origin, id_or_slug):
         pkg = Pkg.unique(origin, id_or_slug, self.db)

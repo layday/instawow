@@ -1,9 +1,13 @@
 
 from collections import OrderedDict, namedtuple
 import io
+import os
 from pathlib import Path
 import typing
 import zipfile
+
+from click._termui_impl import ProgressBar as _ProgressBar, \
+                               BEFORE_BAR, AFTER_BAR
 
 
 class ExtractConflict(Exception):
@@ -57,3 +61,20 @@ class TocReader:
             except StopIteration:
                 keys = keys[0]
         return _TocEntry(keys, self.entries.get(keys))
+
+
+class ProgressBar(_ProgressBar):
+    """A `ProgressBar` subclass that clears its output upon completion."""
+
+    def __init__(self, **kwargs):
+        super().__init__(iterable=None,
+                         bar_template='[%(bar)s]  %(info)s',
+                         **kwargs)
+
+    def render_finish(self) -> None:
+        if self.is_hidden:
+            return
+
+        self.file.write(BEFORE_BAR + (' ' * self.max_width) + AFTER_BAR +
+                        ('' if os.name == 'nt' else '\x1b[A'))
+        self.file.flush()
