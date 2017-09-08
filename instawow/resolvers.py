@@ -17,32 +17,40 @@ class BaseResolver:
 
     __members__ = {}
 
-    def __init__(self, *, manager):
+    def __init__(self,
+                 *,
+                 manager):
         self.manager = manager
         self.synced = False
 
-    def __init_subclass__(cls, origin):
+    def __init_subclass__(cls,
+                          origin: str):
         cls.__members__[origin] = cls
+        cls.origin = origin
 
-    async def sync(self):
+    async def _sync(self) -> None:
+        await self.sync()
+        self.synced = True
+
+    @classmethod
+    def decompose_url(cls, url: str) -> typing.Optional[typing.Tuple[str, str]]:
+        """Break a URL down into its component `origin` and `id`."""
+
+    async def sync(self) -> None:
         """Serves as a deferred, asynchronous `__init__`.  Do any
         preprocessing here if necessary, including writing to the cache.
         """
 
-    def load(self):
-        """Preload any data from the cache here."""
-
-    async def resolve(self, id_or_slug, *, strategy) -> Pkg:
+    async def resolve(self,
+                      id_or_slug: str,
+                      *,
+                      strategy: str) -> Pkg:
         """Turn an ID or slug into a `models.Pkg`."""
         raise NotImplementedError
 
-    @classmethod
-    def decompose_url(cls, url) -> typing.Tuple[str, str]:
-        """Take an add-on page URL and return its corresponding origin and ID."""
-        raise NotImplementedError
 
-
-class _CurseResolver(BaseResolver, origin='curse'):
+class _CurseResolver(BaseResolver,
+                     origin='curse'):
 
     _data: dict
 
@@ -63,9 +71,28 @@ class _CurseResolver(BaseResolver, origin='curse'):
             return match.group('slug')
         return name
 
-    async def sync(self):
+    @classmethod
+    def decompose_url(cls, url: str) -> typing.Optional[typing.Tuple[str, str]]:
+        url = URL(url)
+        if url.host in {'wow.curseforge.com', 'www.wowace.com'} \
+                and len(url.parts) > 2 \
+                and url.parts[1] == 'projects':
+            return (cls.origin, url.parts[2])
+        elif url.host == 'mods.curse.com':
+            if len(url.parts) > 3 \
+                    and url.parts[1:3] == ('addons', 'wow'):
+                slug = url.parts[3]
+                match = cls._re_curse_url.match(slug)
+                if match:
+                    slug = match.group('id')
+                return (cls.origin, slug)
+            elif len(url.parts) == 3 \
+                    and url.parts[1] == 'project':
+                return (cls.origin, url.parts[2])
+
+    async def sync(self) -> None:
         async def _sync(freq):
-            entry = self.manager.db.query(CacheEntry).get(('curse', freq))
+            entry = self.manager.db.query(CacheEntry).get((self.origin, freq))
             if not entry or ((entry.date_retrieved + timedelta(seconds=EXPIRY)) <
                              dt.now()):
                 async with self.manager.client.get(self._json_date_url
@@ -96,7 +123,10 @@ class _CurseResolver(BaseResolver, origin='curse'):
                           for c in data))
         self._data = data
 
-    async def resolve(self, id_or_slug, *, strategy):
+    async def resolve(self,
+                      id_or_slug: str,
+                      *,
+                      strategy: str) -> Pkg:
         try:
             proj = self._data[id_or_slug]
         except KeyError:
@@ -104,13 +134,21 @@ class _CurseResolver(BaseResolver, origin='curse'):
             # from the data dumps - maybe there's another dump we're yet to
             # uncover?
             raise self.manager.PkgNonexistent
-        file = next(f for f in proj['LatestFiles']
-                    if f['Id'] == (proj['DefaultFileId'] if strategy == 'canonical' else
-                                   max(f['Id'] for f in proj['LatestFiles']
-                                       if f['IsAlternate'] is False)))
-        return Pkg(origin='curse', id=proj['Id'], slug=resp.url.name,
-                   name=proj['Name'], description=proj['Summary'],
-                   url=proj['WebSiteURL'], file_id=file['Id'],
+
+        if strategy == 'canonical':
+            file_id = proj['DefaultFileId']
+        elif strategy == 'latest':
+            file_id = max(f['Id'] for f in proj['LatestFiles']
+                          if f['IsAlternate'] is False)
+        file = next(f for f in proj['LatestFiles'] if f['Id'] == file_id)
+
+        return Pkg(origin=self.origin,
+                   id=proj['Id'],
+                   slug=self._slug_from_url(proj['WebSiteURL']),
+                   name=proj['Name'],
+                   description=proj['Summary'],
+                   url=proj['WebSiteURL'],
+                   file_id=file['Id'],
                    download_url=file['DownloadURL'],
                    date_published=file['FileDate'],
                    folders=[PkgFolder(path=self.manager.config.addon_dir/m['Foldername'])
@@ -118,27 +156,9 @@ class _CurseResolver(BaseResolver, origin='curse'):
                    version=file['FileName'],
                    options=PkgOptions(strategy=strategy))
 
-    @classmethod
-    def decompose_url(cls, url):
-        url = URL(url)
-        if url.host in {'wow.curseforge.com', 'www.wowace.com'} and \
-                len(url.parts) > 2 and \
-                url.parts[1] == 'projects':
-            return ('curse', url.parts[2])
-        elif url.host == 'mods.curse.com':
-            if len(url.parts) > 3 and \
-                    url.parts[1:3] == ('addons', 'wow'):
-                slug = url.parts[3]
-                match = cls._re_curse_url.match(slug)
-                if match:
-                    slug, = match.groups()
-                return ('curse', slug)
-            elif len(url.parts) == 3 and \
-                    url.parts[1] == 'project':
-                return ('curse', url.parts[2])
 
-
-class _WowiResolver(BaseResolver, origin='wowi'):
+class _WowiResolver(BaseResolver,
+                    origin='wowi'):
 
     _data: dict
 
@@ -148,41 +168,56 @@ class _WowiResolver(BaseResolver, origin='wowi'):
     _re_head = re.compile(r'^info')
     _re_tail = re.compile(r'\.html$')
 
-    _re_url = re.compile(r'(?:download|info)(\d+)-.*')
+    _re_addon_url = re.compile(r'(?:download|info)(\d+)')
 
     @classmethod
-    def _slugify(cls, url):
+    def _slugify(cls, url: str) -> str:
         return cls._re_tail.sub('', cls._re_head.sub('', URL(url).name))
 
-    async def sync(self):
-        entry = self.manager.db.query(CacheEntry).get(('wowi', 'wowi'))
+    @classmethod
+    def decompose_url(cls, url: str) -> typing.Optional[typing.Tuple[str, str]]:
+        url = URL(url)
+        if url.host in {'wowinterface.com', 'www.wowinterface.com'} \
+                and len(url.parts) == 3 \
+                and url.parts[1] == 'downloads':
+            match = cls._re_addon_url.match(url.name)
+            if match:
+                return (cls.origin, *match.groups())
+
+    async def sync(self) -> None:
+        entry = self.manager.db.query(CacheEntry).get((self.origin, self.origin))
         if not entry or ((entry.date_retrieved + timedelta(seconds=EXPIRY)) <
                          dt.now()):
             async with self.manager.client.get(self._json_dump_url) as resp:
                 data = await resp.read()
-            new_entry = CacheEntry(origin='wowi', id='wowi',
+            new_entry = CacheEntry(origin=self.origin, id=self.origin,
                                    date_retrieved=dt.now(), contents=data)
-            new_entry.replace(entry, self.manager.db) \
-                if entry else new_entry.insert(self.manager.db)
+            entry = new_entry.replace(self.manager.db, entry)
 
-    def load(self):
-        data = self.manager.db.query(CacheEntry).get(('wowi', 'wowi')).contents
-        self._data = {e['UID']: e for e in data}
+        self._data = {e['UID']: e for e in entry.contents}
 
-    async def resolve(self, id_or_slug, *, strategy):
-        f_id = (id_or_slug if id_or_slug.isnumeric() else
-                id_or_slug.partition('-')[0])
+    async def resolve(self,
+                      id_or_slug: str,
+                      *,
+                      strategy: str) -> Pkg:
+        file_id = id_or_slug if id_or_slug.isnumeric() else \
+            id_or_slug.partition('-')[0]
         try:
-            file = self._data[f_id]
+            file = self._data[file_id]
         except KeyError:
             raise self.manager.PkgNonexistent
+
         async with self.manager.client.get(f'{self._details_api_endpoint}'
-                                           f'/{f_id}.json') as resp:
+                                           f'/{file_id}.json') as resp:
             details, = await resp.json()
-        return Pkg(origin='wowi', id=file['UID'],
+
+        return Pkg(origin=self.origin,
+                   id=file['UID'],
                    slug=self._slugify(file['UIFileInfoURL']),
-                   name=file['UIName'], description=details['UIDescription'],
-                   url=file['UIFileInfoURL'], file_id=details['UIMD5'],
+                   name=file['UIName'],
+                   description=details['UIDescription'],
+                   url=file['UIFileInfoURL'],
+                   file_id=details['UIMD5'],
                    download_url=details['UIDownload'],
                    date_published=details['UIDate'],
                    folders=[PkgFolder(path=self.manager.config.addon_dir/f)
@@ -190,12 +225,3 @@ class _WowiResolver(BaseResolver, origin='wowi'):
                    version=details['UIVersion'],
                    options=PkgOptions(strategy=strategy))
 
-    @classmethod
-    def decompose_url(cls, url):
-        url = URL(url)
-        if url.host in {'wowinterface.com', 'www.wowinterface.com'} and \
-                len(url.parts) == 3 and \
-                url.parts[1] == 'downloads':
-            match = cls._re_url.match(url.name)
-            if match:
-                return ('wowi', *match.groups())

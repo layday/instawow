@@ -104,9 +104,7 @@ class Manager(_AsyncUtilsMixin):
         resolver = self.resolvers[origin]
         async with self._prepare_lock:
             if not resolver.synced:
-                await resolver.sync()
-                resolver.load()
-                resolver.synced = True
+                await resolver._sync()
         return resolver
 
     def close(self):
