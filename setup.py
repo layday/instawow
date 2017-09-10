@@ -1,15 +1,11 @@
 
-from importlib.machinery import SourceFileLoader
-from pathlib import Path
 from setuptools import setup
 
+from instawow import __version__
 
-version = SourceFileLoader('', str(Path(__file__).parent
-                                   /'instawow'
-                                   /'__init__.py')).load_module().__version__
 
 setup(name='instawow',
-      version=version,
+      version=__version__,
       url='http://github.com/layday/instawow',
       author='layday',
       author_email='layday@protonmail.com',
