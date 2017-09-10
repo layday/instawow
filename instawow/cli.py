@@ -17,16 +17,20 @@ from .utils import TocReader
 
 
 _CONTEXT_SETTINGS = {'help_option_names': ['-h', '--help']}
+_SEP = ':'
 
 _tabulate = partial(tabulate, showindex=True, tablefmt='fancy_grid')
 
 
-def _compose_addon_defn(pkg):
-    return ':'.join((pkg.origin, pkg.slug))
+def _compose_addon_defn(val):
+    try:
+        origin, slug = val.origin, val.slug
+    except AttributeError:
+        origin, slug = val
+    return _SEP.join((origin, slug))
 
 
 _parts = namedtuple('Parts', 'origin id_or_slug')
-
 
 def _decompose_addon_defn(ctx, param, value):
     if isinstance(value, tuple):
@@ -37,11 +41,11 @@ def _decompose_addon_defn(ctx, param, value):
             parts = _parts(*parts)
             break
     else:
-        if ':' not in value:
+        if _SEP not in value:
             raise click.BadParameter(value)
-        parts = value.partition(':')
+        parts = value.partition(_SEP)
         parts = _parts(parts[0], parts[-1])
-    return value, parts
+    return _compose_addon_defn(parts), parts
 
 
 def _init():
