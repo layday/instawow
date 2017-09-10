@@ -1,5 +1,5 @@
 
-from collections import OrderedDict, namedtuple
+from collections import namedtuple
 import io
 import os
 from pathlib import Path
@@ -49,8 +49,8 @@ class TocReader:
         entries = (e.lstrip('# ').partition(': ')
                    for e in toc_file_path.read_text().splitlines()
                    if e.startswith('## '))
-        entries = ((e[0], e[2]) for e in entries)
-        self.entries = OrderedDict(entries)
+        entries = {e[0]: e[2] for e in entries}
+        self.entries = entries
 
     def __getitem__(self,
                     keys: typing.Union[str, typing.Tuple[str]]) -> _TocEntry:

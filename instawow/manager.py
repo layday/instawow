@@ -82,7 +82,7 @@ class _AsyncUtilsMixin:
                      show_progress: bool=False) -> typing.List[typing.Any]:
         """Execute coroutines concurrently and gather their results, including
         exceptions.  This displays a progress bar in the command line if
-        `show_process=True`.
+        `show_progress=True`.
         """
         if not show_progress:
             return await asyncio.gather(*it, loop=self._loop)

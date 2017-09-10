@@ -315,7 +315,7 @@ def reveal(manager, addon):
     pkg = addon[1]
     pkg = Pkg.unique(pkg.origin, pkg.id_or_slug, manager.db)
     if pkg:
-        webbrowser.open(f'file://{pkg.folders[0].path}')
+        webbrowser.open(pkg.folders[0].path.as_uri())
     else:
         click.echo(MESSAGES['any_failure__not_installed'](id=addon[0]))
 
