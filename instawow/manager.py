@@ -204,7 +204,7 @@ class Manager(_AsyncUtilsMixin):
             await self.block_in_thread(partial(Archive(payload).extract,
                                                self.config.addon_dir,
                                                overwrite=True))
-            return old_pkg, new_pkg.replace(old_pkg, self.db)
+            return old_pkg, new_pkg.replace(self.db, old_pkg)
 
     async def update_many(self,
                           pairs: typing.Iterable) -> typing.List[typing.Tuple[Pkg, Pkg]]:
