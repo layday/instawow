@@ -1,6 +1,7 @@
 
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
+from contextlib import ExitStack
 from functools import partial
 import shutil
 from typing import Any, Iterable, List, Tuple, Union
@@ -251,7 +252,9 @@ class Manager(_AsyncUtilsMixin):
                                       for q in _dedupe(values)),
                                      return_exceptions=True,
                                      show_progress=self.show_progress)
-        with ProgressBar(iterable=results) as results:
+        with ExitStack() as stack:
+            if self.show_progress:
+                results = stack.enter_context(ProgressBar(iterable=results))
             return [_intercept(r) for r in results]
 
     def update_many(self, values: Iterable[Tuple[str, str]]) \
@@ -260,7 +263,9 @@ class Manager(_AsyncUtilsMixin):
                                       for p in _dedupe(values)),
                                      return_exceptions=True,
                                      show_progress=self.show_progress)
-        with ProgressBar(iterable=results) as results:
+        with ExitStack() as stack:
+            if self.show_progress:
+                results = stack.enter_context(ProgressBar(iterable=results))
             return [_intercept(r) for r in results]
 
     def remove(self, origin: str, id_or_slug: str) -> None:
