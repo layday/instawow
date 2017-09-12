@@ -21,11 +21,14 @@ def _dedupe(it):
     return sorted(set(list_), key=list_.index)
 
 
-async def _intercept_fut(index, fut):
+async def _intercept_fut(index, fut, return_exceptions):
     try:
         result = await fut
     except Exception as e:
-        result = e
+        if return_exceptions:
+            result = e
+        else:
+            raise
     return index, result
 
 
@@ -85,25 +88,24 @@ class _Runner:
 
 class _AsyncUtilsMixin:
 
-    def __init__(self,
-                 *,
-                 loop: asyncio.BaseEventLoop):
-        self._loop = loop
 
     async def block_in_thread(self, fn,
                               _tpe=ThreadPoolExecutor(max_workers=1)):
         return await self._loop.run_in_executor(_tpe, fn)
 
     async def gather(self, it, *,
+                     return_exceptions: bool=False,
                      show_progress: bool=False) -> List[Any]:
         """Execute coroutines concurrently and gather their results, including
         exceptions.  This displays a progress bar in the command line if
         `show_progress=True`.
         """
         if not show_progress:
-            return await asyncio.gather(*it, loop=self._loop)
+            return await asyncio.gather(*it, loop=self._loop,
+                                        return_exceptions=return_exceptions)
 
-        futures = [_intercept_fut(i, f) for i, f in enumerate(it)]
+        futures = [_intercept_fut(i, f, return_exceptions)
+                   for i, f in enumerate(it)]
         results = [None] * len(futures)
         with ProgressBar(length=len(futures)) as bar:
             for result in asyncio.as_completed(futures, loop=self._loop):
@@ -136,9 +138,6 @@ class Manager(_AsyncUtilsMixin):
                  config: Config,
                  loop: asyncio.BaseEventLoop=uvloop.new_event_loop(),
                  show_progress: bool=True):
-        super().__init__(loop=loop)
-        self.config = config
-        self.show_progress = show_progress
 
         db_engine = create_engine(f'sqlite:///{config.config_dir/config.db_name}')
         ModelBase.metadata.create_all(db_engine)
@@ -149,6 +148,9 @@ class Manager(_AsyncUtilsMixin):
                           for n, r in BaseResolver.__members__.items()}
         self.runner = _Runner(self)
 
+        self.config = config
+        self.show_progress = show_progress
+        self._loop = loop
         self._prepare_lock = asyncio.Lock(loop=loop)
 
     def __enter__(self) -> 'Manager':
@@ -240,12 +242,14 @@ class Manager(_AsyncUtilsMixin):
     def resolve_many(self, values: Iterable[Tuple[str, str, str]]) \
             -> List[Union[Exception, Pkg]]:
         return self.runner.gather((self._resolve(*t) for t in _dedupe(values)),
+                                  return_exceptions=True,
                                   show_progress=self.show_progress)
 
     def install_many(self, values: Iterable[Tuple[str, str, str, bool]]) \
             -> List[Union[Exception, Pkg]]:
         results = self.runner.gather((self._prepare_install(*q)
                                       for q in _dedupe(values)),
+                                     return_exceptions=True,
                                      show_progress=self.show_progress)
         with ProgressBar(iterable=results) as results:
             return [_intercept(r) for r in results]
@@ -254,6 +258,7 @@ class Manager(_AsyncUtilsMixin):
             -> List[Union[Exception, Tuple[Pkg, Pkg]]]:
         results = self.runner.gather((self._prepare_update(*p)
                                       for p in _dedupe(values)),
+                                     return_exceptions=True,
                                      show_progress=self.show_progress)
         with ProgressBar(iterable=results) as results:
             return [_intercept(r) for r in results]
