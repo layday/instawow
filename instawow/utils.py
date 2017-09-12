@@ -67,9 +67,9 @@ class ProgressBar(_ProgressBar):
     """A `ProgressBar` subclass that clears its output upon completion."""
 
     def __init__(self, **kwargs):
-        super().__init__(iterable=None,
-                         bar_template='[%(bar)s]  %(info)s',
-                         **kwargs)
+        super().__init__(**{'iterable': None,
+                            'bar_template': '[%(bar)s]  %(info)s',
+                            **kwargs})
 
     def render_finish(self) -> None:
         if self.is_hidden:

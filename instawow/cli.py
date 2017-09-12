@@ -96,10 +96,9 @@ cli = main
 @click.pass_obj
 def install(manager, addons, overwrite, strategy):
     """Install add-ons."""
-    for addon, result in \
-            zip((d for d, _ in addons),
-                manager.run(manager.install_many((*p, strategy, overwrite)
-                                                 for _, p in addons))):
+    for addon, result in zip((d for d, _ in addons),
+                             manager.install_many((*p, strategy, overwrite)
+                                                  for _, p in addons)):
         try:
             if isinstance(result, Exception):
                 raise result
@@ -127,9 +126,8 @@ def update(manager, addons):
     if not addons:
         addons = [(_compose_addon_defn(p), (p.origin, p.id))
                   for p in manager.db.query(Pkg).order_by(Pkg.slug).all()]
-    for addon, result in \
-            zip((d for d, _ in addons),
-                manager.run(manager.update_many(p for _, p in addons))):
+    for addon, result in zip((d for d, _ in addons),
+                             manager.update_many(p for _, p in addons)):
         try:
             if isinstance(result, Exception):
                 raise result
@@ -219,8 +217,8 @@ def outdated(manager):
             return p.file_id != r.file_id
 
     installed = manager.db.query(Pkg).order_by(Pkg.slug).all()
-    new = manager.run(manager.resolve_many((p.origin, p.id, p.options.strategy)
-                                           for p in installed))
+    new = manager.resolve_many((p.origin, p.id, p.options.strategy)
+                               for p in installed)
     outdated = [(p, r) for p, r in zip(installed, new) if _is_not_up_to_date(p, r)]
     if outdated:
         click.echo(_tabulate(([_compose_addon_defn(r),
