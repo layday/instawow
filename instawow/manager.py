@@ -245,17 +245,20 @@ class Manager:
             -> List[Union[Exception, Pkg]]:
         return self.runner.gather((self._resolve(*t) for t in _dedupe(values)),
                                   return_exceptions=True,
-                                  show_progress=self.show_progress)
+                                  show_progress=self.show_progress,
+                                  label='Resolving')
 
     def install_many(self, values: Iterable[Tuple[str, str, str, bool]]) \
             -> List[Union[Exception, Pkg]]:
         results = self.runner.gather((self._prepare_install(*q)
                                       for q in _dedupe(values)),
                                      return_exceptions=True,
-                                     show_progress=self.show_progress)
+                                     show_progress=self.show_progress,
+                                     label='Resolving add-ons')
         with ExitStack() as stack:
             if self.show_progress:
-                results = stack.enter_context(ProgressBar(iterable=results))
+                results = stack.enter_context(ProgressBar(iterable=results,
+                                                          label='Installing'))
             return [_intercept(r) for r in results]
 
     def update_many(self, values: Iterable[Tuple[str, str]]) \
@@ -263,10 +266,12 @@ class Manager:
         results = self.runner.gather((self._prepare_update(*p)
                                       for p in _dedupe(values)),
                                      return_exceptions=True,
-                                     show_progress=self.show_progress)
+                                     show_progress=self.show_progress,
+                                     label='Resolving add-ons')
         with ExitStack() as stack:
             if self.show_progress:
-                results = stack.enter_context(ProgressBar(iterable=results))
+                results = stack.enter_context(ProgressBar(iterable=results,
+                                                          label='Updating'))
             return [_intercept(r) for r in results]
 
     def remove(self, origin: str, id_or_slug: str) -> None:

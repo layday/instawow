@@ -64,11 +64,16 @@ class TocReader:
 
 
 class ProgressBar(_ProgressBar):
-    """A `ProgressBar` subclass that clears its output upon completion."""
+    """A `ProgressBar` subclass that clears its output upon completion.
+
+    Only use this if you expect an operation to take a _perceptibly_
+    long time (e.g. network transfers) -- not every single thing we do
+    merits a progress bar.
+    """
 
     def __init__(self, **kwargs):
         super().__init__(**{'iterable': None,
-                            'bar_template': '[%(bar)s]  %(info)s',
+                            'bar_template': '%(label)s  |%(bar)s|  %(info)s',
                             **kwargs})
 
     def render_finish(self) -> None:
