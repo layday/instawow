@@ -87,34 +87,6 @@ class _Runner:
                                  (getattr(self.manager, name)(*a, **kw)))
 
 
-class _AsyncUtilsMixin:
-
-
-    async def block_in_thread(self, fn,
-                              _tpe=ThreadPoolExecutor(max_workers=1)):
-        return await self._loop.run_in_executor(_tpe, fn)
-
-    async def gather(self, it, *,
-                     return_exceptions: bool=False,
-                     show_progress: bool=False) -> List[Any]:
-        """Execute coroutines concurrently and gather their results, including
-        exceptions.  This displays a progress bar in the command line if
-        `show_progress=True`.
-        """
-        if not show_progress:
-            return await asyncio.gather(*it, loop=self._loop,
-                                        return_exceptions=return_exceptions)
-
-        futures = [_intercept_fut(i, f, return_exceptions)
-                   for i, f in enumerate(it)]
-        results = [None] * len(futures)
-        with ProgressBar(length=len(futures)) as bar:
-            for result in asyncio.as_completed(futures, loop=self._loop):
-                results.__setitem__(*(await result))
-                bar.update(1)
-        return results
-
-
 class _PendingResult:
 
     def __init__(self, fn):
@@ -124,7 +96,7 @@ class _PendingResult:
         return self._fn()
 
 
-class Manager(_AsyncUtilsMixin):
+class Manager:
 
     PkgAlreadyInstalled = PkgAlreadyInstalled
     PkgConflictsWithPreexisting = PkgConflictsWithPreexisting
@@ -139,6 +111,8 @@ class Manager(_AsyncUtilsMixin):
                  config: Config,
                  loop: asyncio.BaseEventLoop=uvloop.new_event_loop(),
                  show_progress: bool=True):
+        self.config = config
+        self.show_progress = show_progress
 
         db_engine = create_engine(f'sqlite:///{config.config_dir/config.db_name}')
         ModelBase.metadata.create_all(db_engine)
@@ -149,10 +123,37 @@ class Manager(_AsyncUtilsMixin):
                           for n, r in BaseResolver.__members__.items()}
         self.runner = _Runner(self)
 
-        self.config = config
-        self.show_progress = show_progress
         self._loop = loop
+        self._tpes = [ThreadPoolExecutor(max_workers=1),
+                      ThreadPoolExecutor(max_workers=1)]
         self._prepare_lock = asyncio.Lock(loop=loop)
+
+    async def block_in_thread(self, fn, *, channel=0):
+        """Execute a coroutine in a separate thread.  Successive calls to this
+        method are queued by virtue of reusing the same thread.
+        """
+        return await self._loop.run_in_executor(self._tpes[channel], fn)
+
+    async def gather(self, it, *,
+                     return_exceptions: bool=False,
+                     show_progress: bool=False,
+                     **kwargs) -> List[Any]:
+        """Execute coroutines concurrently and gather their results, including
+        exceptions.  This displays a progress bar in the command line when
+        `show_progress=True`.
+        """
+        if not show_progress:
+            return await asyncio.gather(*it, loop=self._loop,
+                                        return_exceptions=return_exceptions)
+
+        futures = [_intercept_fut(i, f, return_exceptions)
+                   for i, f in enumerate(it)]
+        results = [None] * len(futures)
+        with ProgressBar(length=len(futures), **kwargs) as bar:
+            for result in asyncio.as_completed(futures, loop=self._loop):
+                results.__setitem__(*(await result))
+                bar.update(1)
+        return results
 
     def __enter__(self) -> 'Manager':
         return self
