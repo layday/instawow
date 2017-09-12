@@ -8,8 +8,6 @@ from instawow.config import Config
 from instawow.manager import Manager
 
 
-
-
 class _CliTest:
 
     @pytest.fixture(autouse=True,
@@ -181,16 +179,16 @@ class TestInstallWithAlias(_CliTest):
           '✗ curse:20338: already installed\n'),
          (['install', 'https://wow.curseforge.com/projects/molinari'],
           str.__eq__,
-          '✗ https://wow.curseforge.com/projects/molinari: already installed\n'),
+          '✗ curse:molinari: already installed\n'),
          (['install', 'https://mods.curse.com/project/20338'],
           str.__eq__,
-          '✗ https://mods.curse.com/project/20338: already installed\n'),
+          '✗ curse:20338: already installed\n'),
          (['install', 'https://mods.curse.com/addons/wow/molinari'],
           str.__eq__,
-          '✗ https://mods.curse.com/addons/wow/molinari: already installed\n'),
+          '✗ curse:molinari: already installed\n'),
          (['install', 'https://mods.curse.com/addons/wow/molinari/download'],
           str.__eq__,
-          '✗ https://mods.curse.com/addons/wow/molinari/download: already installed\n'),
+          '✗ curse:molinari: already installed\n'),
          (['remove', 'curse:molinari'],
           str.__eq__,
           '✓ curse:molinari: removed\n'),])
@@ -205,10 +203,10 @@ class TestInstallWithAlias(_CliTest):
           '✓ wowi:10783: installed'),
          (['install', 'https://www.wowinterface.com/downloads/info10783-Prat3.0.html'],
           str.__eq__,
-          '✗ https://www.wowinterface.com/downloads/info10783-Prat3.0.html: already installed\n'),
+          '✗ wowi:10783: already installed\n'),
          (['install', 'https://www.wowinterface.com/downloads/download10783-Prat3'],
           str.__eq__,
-          '✗ https://www.wowinterface.com/downloads/download10783-Prat3: already installed\n'),
+          '✗ wowi:10783: already installed\n'),
          (['remove', 'wowi:10783'],
           str.__eq__,
           '✓ wowi:10783: removed\n'),])
