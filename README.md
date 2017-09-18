@@ -8,7 +8,7 @@ from Curse and WoWInterface.
 Assuming you have Python 3.6 or higher:
 
 ```
-pip3 install --process-dependency-links git+https://github.com/layday/instawow
+pip3 install git+https://github.com/layday/instawow
 ```
 
 ## Usage
@@ -108,7 +108,7 @@ Fork and clone the repo, `cd` and:
 ```
 python3 -m venv venv
 source venv/bin/active
-python3 -m pip install --process-dependency-links -e .[dev,test]
+python3 -m pip install -e .
 ```
 
 Happy hacking.
