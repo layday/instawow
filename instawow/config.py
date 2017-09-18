@@ -34,7 +34,7 @@ class Config(pydantic.BaseSettings):
             raise ValueError
         return values
 
-    def mk_app_dirs(self):
+    def create_dirs(self):
         """Create the requisite application directories."""
         self.config_dir.mkdir(exist_ok=True)
         return self
@@ -43,7 +43,7 @@ class Config(pydantic.BaseSettings):
 class _UserConfigMeta(Config.__class__):
 
     @property
-    def default_addon_dir(self):
+    def default_addon_dir(cls):
         return next((v() for k, v in _addon_dirs if k and v().is_dir()),
                     None)
 

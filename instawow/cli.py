@@ -23,8 +23,8 @@ _SEP = ':'
 _parts = namedtuple('Parts', 'origin id_or_slug')
 
 
-def _tabulate(rows: List[Tuple[str]], *,
-              head: Tuple[str]=(), show_index: bool=True) -> str:
+def _tabulate(rows: List[Tuple[str, ...]], *,
+              head: Tuple[str, ...]=(), show_index: bool=True) -> str:
     table = Texttable(max_width=0)
     table.set_chars('   -')
     table.set_deco(Texttable.HEADER | Texttable.VLINES)
@@ -65,7 +65,7 @@ def _init():
     addon_dir = UserConfig.default_addon_dir
     while True:
         try:
-            UserConfig(addon_dir=addon_dir).mk_app_dirs().write()
+            UserConfig(addon_dir=addon_dir).create_dirs().write()
         except ValueError:
             if addon_dir:
                 click.echo(f'{addon_dir!r} not found')
@@ -105,7 +105,7 @@ cli = main
                    "('canonical') or the very latest upload ('latest').")
 @click.option('--overwrite', '-o',
               is_flag=True, default=False,
-              help='Whether to overwrite existing add-ons.')
+              help='Overwrite existing add-ons.')
 @click.pass_obj
 def install(manager, addons, overwrite, strategy):
     """Install add-ons."""
@@ -190,15 +190,13 @@ def list_():
 def installed(manager, column, columns):
     """List installed add-ons."""
     def _format_columns(pkg, columns):
-        def _parse_field(name, value):
-            if name == 'folders':
+        for column in columns:
+            value = reduce(getattr, [pkg] + column.split('.'))
+            if column == 'folders':
                 value = '\n'.join(f.path.name for f in value)
-            elif name == 'description':
+            elif column == 'description':
                 value = fill(value, width=40)
-            return value
-
-        return (_parse_field(c, reduce(getattr, [pkg] + c.split('.')))
-                for c in columns)
+            yield value
 
     if columns:
         # TODO: include relationships in output
@@ -220,19 +218,11 @@ def installed(manager, column, columns):
 @click.pass_obj
 def outdated(manager):
     """List outdated add-ons."""
-    def _is_not_up_to_date(p, r):
-        try:
-            if isinstance(r, Exception):
-                raise r
-        except manager.PkgNonexistent:
-            return False
-        else:
-            return p.file_id != r.file_id
-
     installed = manager.db.query(Pkg).order_by(Pkg.slug).all()
     new = manager.resolve_many((p.origin, p.id, p.options.strategy)
                                for p in installed)
-    outdated = [(p, r) for p, r in zip(installed, new) if _is_not_up_to_date(p, r)]
+    outdated = [(p, r) for p, r in zip(installed, new)
+                if isinstance(p, Pkg) and p.file_id != r.file_id]
     if outdated:
         click.echo(_tabulate([(_compose_addon_defn(r),
                                p.version, r.version, r.options.strategy)

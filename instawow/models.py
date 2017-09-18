@@ -153,7 +153,6 @@ class PkgOptions(ModelBase):
     pkg_id = Column(String, primary_key=True)
 
 
-
 class _PkgOptionsCoercer(_BaseCoercer, coerces=PkgOptions):
 
     strategy: str

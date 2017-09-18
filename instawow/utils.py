@@ -3,7 +3,7 @@ from collections import namedtuple
 import io
 import os
 from pathlib import Path
-import typing
+from typing import Set, Tuple, Union
 import zipfile
 
 from click._termui_impl import ProgressBar as _ProgressBar, \
@@ -21,21 +21,18 @@ class Archive:
 
     ExtractConflict = ExtractConflict
 
-    def __init__(self,
-                 payload: bytes):
+    def __init__(self, payload: bytes):
         self._archive = zipfile.ZipFile(io.BytesIO(payload))
 
-    def extract(self,
-                parent_folder: Path,
+    def extract(self, parent_folder: Path,
                 *,
-                overwrite: typing.Union[bool, typing.Set[str]]=False):
+                overwrite: Union[bool, Set[str]]=False) -> None:
         if overwrite is not True:
-            conflicting_folders = \
-                ({Path(p).parts[0] for p in self._archive.namelist()} &
-                 ({f.name for f in parent_folder.iterdir()} -
-                  (overwrite or set())))
-            if conflicting_folders:
-                raise ExtractConflict(conflicting_folders)
+            conflicts = ({Path(p).parts[0] for p in self._archive.namelist()} &
+                         ({f.name for f in parent_folder.iterdir()} -
+                          (overwrite or set())))
+            if conflicts:
+                raise ExtractConflict(conflicts)
         self._archive.extractall(parent_folder)
 
 
@@ -44,16 +41,14 @@ _TocEntry = namedtuple('_TocEntry', 'key value')
 class TocReader:
     """Extracts key–value pairs from TOC files."""
 
-    def __init__(self,
-                 toc_file_path: Path):
+    def __init__(self, toc_file_path: Path):
         entries = (e.lstrip('# ').partition(': ')
                    for e in toc_file_path.read_text().splitlines()
                    if e.startswith('## '))
         entries = {e[0]: e[2] for e in entries}
         self.entries = entries
 
-    def __getitem__(self,
-                    keys: typing.Union[str, typing.Tuple[str]]) -> _TocEntry:
+    def __getitem__(self, keys: Union[str, Tuple[str]]) -> _TocEntry:
         if isinstance(keys, tuple):
             try:
                 return next(filter(lambda i: i.value,
@@ -73,7 +68,7 @@ class ProgressBar(_ProgressBar):
 
     def __init__(self, **kwargs):
         super().__init__(**{'iterable': None,
-                            'bar_template': '%(label)s  |%(bar)s|  %(info)s',
+                            'bar_template': '%(label)s  [%(bar)s]  %(info)s',
                             **kwargs})
 
     def render_finish(self) -> None:
