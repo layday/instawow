@@ -1,12 +1,13 @@
 
 from collections import namedtuple
-from functools import partial, reduce
+from functools import reduce
 from textwrap import fill
+from typing import List, Tuple
 import webbrowser
 
 import click
 from sqlalchemy import inspect
-from tabulate import tabulate
+from texttable import Texttable
 
 from . import __version__
 from .config import UserConfig
@@ -19,7 +20,21 @@ from .utils import TocReader
 _CONTEXT_SETTINGS = {'help_option_names': ['-h', '--help']}
 _SEP = ':'
 
-_tabulate = partial(tabulate, showindex=True, tablefmt='fancy_grid')
+_parts = namedtuple('Parts', 'origin id_or_slug')
+
+
+def _tabulate(rows: List[Tuple[str]], *,
+              head: Tuple[str]=(), show_index: bool=True) -> str:
+    table = Texttable(max_width=0)
+    table.set_chars('   -')
+    table.set_deco(Texttable.HEADER | Texttable.VLINES)
+
+    if show_index:
+        table.set_cols_align(('r', *('l' for _ in rows[0])))
+        head = ('', *head)
+        rows = [(i, *v) for i, v in enumerate(rows, start=1)]
+    table.add_rows([head, *rows])
+    return table.draw()
 
 
 def _compose_addon_defn(val):
@@ -29,8 +44,6 @@ def _compose_addon_defn(val):
         origin, slug = val
     return _SEP.join((origin, slug))
 
-
-_parts = namedtuple('Parts', 'origin id_or_slug')
 
 def _decompose_addon_defn(ctx, param, value):
     if isinstance(value, tuple):
@@ -189,16 +202,16 @@ def installed(manager, column, columns):
 
     if columns:
         # TODO: include relationships in output
-        click.echo(_tabulate(([c] for c in inspect(Pkg).columns.keys()),
-                             headers=['field']))
+        click.echo(_tabulate([(c,) for c in inspect(Pkg).columns.keys()],
+                             head=('field',)))
     else:
         pkgs = manager.db.query(Pkg).order_by(Pkg.slug).all()
         if not pkgs:
             return
         try:
-            click.echo(_tabulate(([_compose_addon_defn(p),
-                                   *_format_columns(p, column)] for p in pkgs),
-                                 headers=['add-on', *column]))
+            click.echo(_tabulate([(_compose_addon_defn(p),
+                                   *_format_columns(p, column)) for p in pkgs],
+                                 head=('add-on', *column)))
         except AttributeError as e:
             raise click.BadParameter(e.args)
 
@@ -221,11 +234,11 @@ def outdated(manager):
                                for p in installed)
     outdated = [(p, r) for p, r in zip(installed, new) if _is_not_up_to_date(p, r)]
     if outdated:
-        click.echo(_tabulate(([_compose_addon_defn(r),
-                               p.version, r.version, r.options.strategy]
-                              for p, r in outdated),
-                             headers=['add-on', 'current version',
-                                      'new version', 'strategy']))
+        click.echo(_tabulate([(_compose_addon_defn(r),
+                               p.version, r.version, r.options.strategy)
+                              for p, r in outdated],
+                             head=('add-on', 'current version',
+                                   'new version', 'strategy')))
 
 
 @list_.command()
@@ -238,11 +251,11 @@ def preexisting(manager):
     folders = ((n, manager.config.addon_dir/n/f'{n}.toc') for n in folders)
     folders = {(n, TocReader(t)) for n, t in folders if t.exists()}
     if folders:
-        click.echo(_tabulate(([n,
+        click.echo(_tabulate([(n,
                                t['X-Curse-Project-ID'].value,
                                t['X-Curse-Packaged-Version', 'X-Packaged-Version',
-                                 'Version'].value] for n, t in sorted(folders)),
-                             headers=['folder', 'curse id or slug', 'version']))
+                                 'Version'].value) for n, t in sorted(folders)],
+                             head=('folder', 'curse id or slug', 'version')))
 
 
 @main.command('set')
@@ -287,7 +300,7 @@ def info(manager, addon):
                            [' ├─ ' + f.path.name for f in pkg.folders[:-1]] +
                            [' └─ ' + pkg.folders[-1].path.name])),
                 ('strategy', pkg.options.strategy),]
-        click.echo(_tabulate(rows, showindex=False))
+        click.echo(_tabulate(rows, show_index=False))
     else:
         click.echo(MESSAGES['any_failure__not_installed'](id=addon[0]))
 
