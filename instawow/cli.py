@@ -216,7 +216,7 @@ def installed(manager, column, columns):
                                              *inspect(Pkg).relationships.keys())],
                              head=('field',), show_index=False))
     else:
-        pkgs = manager.db.query(Pkg).order_by(Pkg.slug).all()
+        pkgs = manager.db.query(Pkg).order_by(Pkg.origin, Pkg.slug).all()
         if not pkgs:
             return
         try:
@@ -231,11 +231,11 @@ def installed(manager, column, columns):
 @click.pass_obj
 def outdated(manager):
     """List outdated add-ons."""
-    installed = manager.db.query(Pkg).order_by(Pkg.slug).all()
+    installed = manager.db.query(Pkg).order_by(Pkg.origin, Pkg.slug).all()
     new = manager.resolve_many((p.origin, p.id, p.options.strategy)
                                for p in installed)
     outdated = [(p, r) for p, r in zip(installed, new)
-                if isinstance(p, Pkg) and p.file_id != r.file_id]
+                if p.file_id != getattr(r, 'file_id', p.file_id)]
     if outdated:
         click.echo(_tabulate([(_compose_addon_defn(r),
                                p.version, r.version, r.options.strategy)
