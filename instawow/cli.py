@@ -2,7 +2,7 @@
 from collections import namedtuple
 from functools import reduce
 from textwrap import fill
-from typing import List, Tuple
+import typing as T
 import webbrowser
 
 import click
@@ -50,8 +50,8 @@ _SEP = ':'
 _parts = namedtuple('Parts', 'origin id_or_slug')
 
 
-def _tabulate(rows: List[Tuple[str, ...]], *,
-              head: Tuple[str, ...]=(), show_index: bool=True) -> str:
+def _tabulate(rows: T.List[T.Tuple[str, ...]], *,
+              head: T.Tuple[str, ...]=(), show_index: bool=True) -> str:
     table = Texttable(max_width=0)
     table.set_chars('   -')
     table.set_deco(Texttable.HEADER | Texttable.VLINES)
@@ -321,8 +321,7 @@ def reveal(manager, addon):
 
 
 @main.group()
-@click.pass_obj
-def debug(manager):
+def debug():
     """Debugging funcionality."""
 
 
@@ -350,6 +349,9 @@ def cache():
 @cache.command()
 @click.pass_obj
 def invalidate(manager):
+    """Invalidate the cache.  This sets the date retrieved for every
+    cache entry to 1970 to trigger a recheck on the next run.
+    """
     from datetime import datetime
     from .models import CacheEntry
     manager.db.query(CacheEntry).update({'date_retrieved': datetime.fromtimestamp(0)})
@@ -359,6 +361,7 @@ def invalidate(manager):
 @cache.command()
 @click.pass_obj
 def clear(manager):
+    """Nuke the cache from orbit."""
     from .models import CacheEntry
     manager.db.query(CacheEntry).delete()
     manager.db.commit()
