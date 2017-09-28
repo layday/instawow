@@ -1,4 +1,6 @@
+__pycache__
 /.cache
 /.tox
-__pycache__
-*.egg-info
+
+/*.egg-info
+/dist

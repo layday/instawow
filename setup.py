@@ -1,4 +1,5 @@
 
+from pathlib import Path
 from setuptools import setup
 
 from instawow import __version__
@@ -6,13 +7,16 @@ from instawow import __version__
 
 setup(name='instawow',
       version=__version__,
+      description='Add-on manager for World of Warcraft.',
       url='http://github.com/layday/instawow',
       author='layday',
       author_email='layday@protonmail.com',
-      classifiers=['Development Status :: 3 - Alpha',
+      license='GPLv3',
+      long_description=(Path(__file__).parent/'README.rst').read_text(),
+      classifiers=['Development Status :: 4 - Beta',
                    'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
                    'Programming Language :: Python :: 3.6'],
-      description='Add-on manager for World of Warcraft.',
+      python_requires='~=3.6',
       packages=['instawow'],
       install_requires=['aiohttp   >=2.2.5, <3',
                         'click     >=6.7,   <7',
