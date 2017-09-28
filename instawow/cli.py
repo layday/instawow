@@ -2,6 +2,7 @@
 from collections import namedtuple
 from functools import reduce
 from textwrap import fill
+import traceback
 import typing as T
 import webbrowser
 
@@ -143,6 +144,8 @@ def install(manager, addons, overwrite, strategy):
             raise result
         except Manager.ManagerResult as result:
             click.echo(MESSAGES[result.__class__](addon, result))
+        except Exception:
+            click.echo(traceback.format_exc())
 
 
 @main.command()
@@ -159,6 +162,8 @@ def update(manager, addons):
             raise result
         except Manager.ManagerResult as result:
             click.echo(MESSAGES[result.__class__](addon, result))
+        except Exception:
+            click.echo(traceback.format_exc())
 
 
 @main.command()
@@ -171,6 +176,8 @@ def remove(manager, addons):
             raise manager.remove(*parts)
         except Manager.ManagerResult as result:
             click.echo(MESSAGES[result.__class__](addon, result))
+        except Exception:
+            click.echo(traceback.format_exc())
 
 
 @main.group('list')
