@@ -326,8 +326,8 @@ def debug():
 
 
 @debug.command(name='shell')
-@click.pass_obj
-def shell(manager):
+@click.pass_context
+def shell(ctx):
     """Drop into an interactive shell.
 
     The shell is created in context and provides access to the
