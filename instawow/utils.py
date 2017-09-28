@@ -3,7 +3,7 @@ from collections import namedtuple
 import io
 import os
 from pathlib import Path
-from typing import Set, Tuple, Union
+import typing as T
 import zipfile
 
 from click._termui_impl import ProgressBar as _ProgressBar, \
@@ -26,7 +26,7 @@ class Archive:
 
     def extract(self, parent_folder: Path,
                 *,
-                overwrite: Union[bool, Set[str]]=False) -> None:
+                overwrite: T.Union[bool, T.Set[str]]=False) -> None:
         if overwrite is not True:
             conflicts = ({Path(p).parts[0] for p in self._archive.namelist()} &
                          ({f.name for f in parent_folder.iterdir()} -
@@ -48,7 +48,7 @@ class TocReader:
         entries = {e[0]: e[2] for e in entries}
         self.entries = entries
 
-    def __getitem__(self, keys: Union[str, Tuple[str]]) -> _TocEntry:
+    def __getitem__(self, keys: T.Union[str, T.Tuple[str]]) -> _TocEntry:
         if isinstance(keys, tuple):
             try:
                 return next(filter(lambda i: i.value,

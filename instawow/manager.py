@@ -2,7 +2,6 @@
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import ExitStack
-from functools import partial
 import shutil
 import typing as T
 

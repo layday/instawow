@@ -3,7 +3,7 @@ import bz2
 from collections import ChainMap
 from datetime import datetime as dt, timedelta
 import re
-import typing
+import typing as T
 
 from yarl import URL
 
@@ -17,14 +17,11 @@ class BaseResolver:
 
     __members__ = {}
 
-    def __init__(self,
-                 *,
-                 manager):
+    def __init__(self, *, manager: 'Manager'):
         self.manager = manager
         self.synced = False
 
-    def __init_subclass__(cls,
-                          origin: str):
+    def __init_subclass__(cls, origin: str):
         cls.__members__[origin] = cls
         cls.origin = origin
 
@@ -33,17 +30,14 @@ class BaseResolver:
         self.synced = True
 
     @classmethod
-    def decompose_url(cls, url: str) -> typing.Optional[typing.Tuple[str, str]]:
+    def decompose_url(cls, url: str) -> T.Optional[T.Tuple[str, str]]:
         """Break a URL down into its component `origin` and `id`."""
 
     async def sync(self) -> None:
         """Serves as a deferred, asynchronous `__init__`.  Do any
         preprocessing here if necessary, including writing to the cache.
         """
-
-    async def resolve(self,
-                      id_or_slug: str,
-                      *,
+    async def resolve(self, id_or_slug: str, *,
                       strategy: str) -> Pkg:
         """Turn an ID or slug into a `models.Pkg`."""
         raise NotImplementedError
@@ -72,7 +66,7 @@ class _CurseResolver(BaseResolver,
         return name
 
     @classmethod
-    def decompose_url(cls, url: str) -> typing.Optional[typing.Tuple[str, str]]:
+    def decompose_url(cls, url: str) -> T.Optional[T.Tuple[str, str]]:
         url = URL(url)
         if url.host in {'wow.curseforge.com', 'www.wowace.com'} \
                 and len(url.parts) > 2 \
@@ -176,7 +170,7 @@ class _WowiResolver(BaseResolver,
         return cls._re_tail.sub('', cls._re_head.sub('', URL(url).name))
 
     @classmethod
-    def decompose_url(cls, url: str) -> typing.Optional[typing.Tuple[str, str]]:
+    def decompose_url(cls, url: str) -> T.Optional[T.Tuple[str, str]]:
         url = URL(url)
         if url.host in {'wowinterface.com', 'www.wowinterface.com'} \
                 and len(url.parts) == 3 \
@@ -225,4 +219,3 @@ class _WowiResolver(BaseResolver,
                             for f in file['UIDir']],
                    version=details['UIVersion'],
                    options=PkgOptions(strategy=strategy))
-
