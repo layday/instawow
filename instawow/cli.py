@@ -185,7 +185,7 @@ def list_():
                    'dot-delimited.  Can be repeated.')
 @click.option('--columns', '-C',
               is_flag=True, default=False,
-              help='Whether to print a list of all possible column values.')
+              help='Print a list of all possible column values.')
 @click.pass_obj
 def installed(manager, column, columns):
     """List installed add-ons."""
@@ -194,14 +194,16 @@ def installed(manager, column, columns):
             value = reduce(getattr, [pkg] + column.split('.'))
             if column == 'folders':
                 value = '\n'.join(f.path.name for f in value)
+            elif column == 'options':
+                value = f'strategy = {value.strategy}'
             elif column == 'description':
-                value = fill(value, width=40)
+                value = fill(value, width=50)
             yield value
 
     if columns:
-        # TODO: include relationships in output
-        click.echo(_tabulate([(c,) for c in inspect(Pkg).columns.keys()],
-                             head=('field',)))
+        click.echo(_tabulate([(c,) for c in (*inspect(Pkg).columns.keys(),
+                                             *inspect(Pkg).relationships.keys())],
+                             head=('field',), show_index=False))
     else:
         pkgs = manager.db.query(Pkg).order_by(Pkg.slug).all()
         if not pkgs:
