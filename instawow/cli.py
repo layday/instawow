@@ -11,11 +11,38 @@ from texttable import Texttable
 
 from . import __version__
 from .config import UserConfig
-from .constants import MESSAGES
 from .manager import Manager
 from .models import Pkg, PkgFolder
 from .utils import TocReader
 
+
+_SUCCESS = click.style('✓', fg='green')
+_FAILURE = click.style('✗', fg='red')
+
+MESSAGES = {
+    Manager.PkgNonexistent:
+        f'{_FAILURE} {{}}: no such project id or slug'.format,
+    Manager.PkgNotInstalled:
+        f'{_FAILURE} {{}}: not installed'.format,
+    Manager.PkgConflictsWithInstalled:
+        lambda a, r: f'{_FAILURE} {a}: conflicts with installed '
+                     f'add-on {_compose_addon_defn(r.conflicting_pkg)}',
+    Manager.PkgInstalled:
+        f'{_SUCCESS} {{}}: installed {{.new_pkg.version}}'.format,
+    Manager.PkgAlreadyInstalled:
+        f'{_FAILURE} {{}}: already installed'.format,
+    Manager.PkgOriginInvalid:
+        f'{_FAILURE} {{}}: invalid origin'.format,
+    Manager.PkgConflictsWithPreexisting:
+        f'{_FAILURE} {{}}: conflicts with an add-on not installed by instawow\n'
+         '  pass `-o` to `install` if you do actually wish to overwrite this add-on'
+        .format,
+    Manager.PkgUpdated:
+        f'{_SUCCESS} {{}}: updated from {{.old_pkg.version}} to {{.new_pkg.version}}'.format,
+    Manager.PkgRemoved:
+        f'{_SUCCESS} {{}}: removed'.format,
+    Manager.PkgModified:
+        f'{_SUCCESS} {{}}: {{}} set to {{}}'.format,}
 
 _CONTEXT_SETTINGS = {'help_option_names': ['-h', '--help']}
 _SEP = ':'
@@ -113,22 +140,9 @@ def install(manager, addons, overwrite, strategy):
                              manager.install_many((*p, strategy, overwrite)
                                                   for _, p in addons)):
         try:
-            if isinstance(result, Exception):
-                raise result
-        except manager.PkgAlreadyInstalled:
-            click.echo(MESSAGES['install_failure__installed'](id=addon))
-        except manager.PkgOriginInvalid:
-            click.echo(MESSAGES['install_failure__invalid_origin'](id=addon))
-        except manager.PkgNonexistent:
-            click.echo(MESSAGES['any_failure__non_existent'](id=addon))
-        except manager.PkgConflictsWithPreexisting:
-            click.echo(MESSAGES['install_failure__preexisting_'
-                                'folder_conflict'](id=addon))
-        except manager.PkgConflictsWithInstalled as e:
-            click.echo(MESSAGES['any_failure__installed_folder_conflict'](
-                id=addon, other=_compose_addon_defn(e.conflicting_pkg)))
-        else:
-            click.echo(MESSAGES['install_success'](id=addon, version=result.version))
+            raise result
+        except Manager.ManagerResult as result:
+            click.echo(MESSAGES[result.__class__](addon, result))
 
 
 @main.command()
@@ -142,21 +156,9 @@ def update(manager, addons):
     for addon, result in zip((d for d, _ in addons),
                              manager.update_many(p for _, p in addons)):
         try:
-            if isinstance(result, Exception):
-                raise result
-        except manager.PkgNonexistent:
-            click.echo(MESSAGES['any_failure__non_existent'](id=addon))
-        except manager.PkgNotInstalled:
-            click.echo(MESSAGES['any_failure__not_installed'](id=addon))
-        except manager.PkgConflictsWithInstalled as e:
-            click.echo(MESSAGES['any_failure__installed_folder_conflict'](
-                id=addon, other=_compose_addon_defn(e.conflicting_pkg)))
-        except manager.PkgUpToDate:
-            pass
-        else:
-            click.echo(MESSAGES['update_success'](id=addon,
-                                                  old_version=result[0].version,
-                                                  new_version=result[1].version))
+            raise result
+        except Manager.ManagerResult as result:
+            click.echo(MESSAGES[result.__class__](addon, result))
 
 
 @main.command()
@@ -166,11 +168,9 @@ def remove(manager, addons):
     """Uninstall add-ons."""
     for addon, parts in addons:
         try:
-            manager.remove(*parts)
-        except manager.PkgNotInstalled:
-            click.echo(MESSAGES['any_failure__not_installed'](id=addon))
-        else:
-            click.echo(MESSAGES['remove_success'](id=addon))
+            raise manager.remove(*parts)
+        except Manager.ManagerResult as result:
+            click.echo(MESSAGES[result.__class__](addon, result))
 
 
 @main.group('list')
@@ -263,10 +263,9 @@ def set_(manager, addons, strategy):
         if pkg:
             pkg.options.strategy = strategy
             manager.db.commit()
-            click.echo(MESSAGES['set_success'](id=addon[0], var='strategy',
-                                               new_strategy=strategy))
+            click.echo(MESSAGES[Manager.PkgModified](addon[0], 'strategy', strategy))
         else:
-            click.echo(MESSAGES['any_failure__not_installed'](id=addon[0]))
+            click.echo(MESSAGES[Manager.PkgNotInstalled](addon[0]))
 
 
 @main.command()
@@ -292,7 +291,7 @@ def info(manager, addon):
                 ('strategy', pkg.options.strategy),]
         click.echo(_tabulate(rows, show_index=False))
     else:
-        click.echo(MESSAGES['any_failure__not_installed'](id=addon[0]))
+        click.echo(MESSAGES[Manager.PkgNotInstalled](addon[0]))
 
 
 @main.command()
@@ -305,7 +304,7 @@ def hearth(manager, addon):
     if pkg:
         webbrowser.open(pkg.url)
     else:
-        click.echo(MESSAGES['any_failure__not_installed'](id=addon[0]))
+        click.echo(MESSAGES[Manager.PkgNotInstalled](addon[0]))
 
 
 @main.command()
@@ -318,7 +317,7 @@ def reveal(manager, addon):
     if pkg:
         webbrowser.open(pkg.folders[0].path.as_uri())
     else:
-        click.echo(MESSAGES['any_failure__not_installed'](id=addon[0]))
+        click.echo(MESSAGES[Manager.PkgNotInstalled](addon[0]))
 
 
 @main.group()
