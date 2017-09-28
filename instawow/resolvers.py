@@ -208,6 +208,8 @@ class _WowiResolver(BaseResolver,
         async with self.manager.client.get(f'{self._details_api_endpoint}'
                                            f'/{file_id}.json') as resp:
             details, = await resp.json()
+        if file['UIDate'] != details['UIDate']:
+            raise self.manager.CacheObsolete
 
         return Pkg(origin=self.origin,
                    id=file['UID'],

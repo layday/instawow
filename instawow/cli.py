@@ -28,6 +28,10 @@ MESSAGES = {
     Manager.PkgConflictsWithInstalled:
         lambda a, r: f'{_FAILURE} {a}: conflicts with installed '
                      f'add-on {_compose_addon_defn(r.conflicting_pkg)}',
+    Manager.CacheObsolete:
+        f'{_FAILURE} {{}}: the internal resolver cache is obsolete\n'
+         '  run `instawow debug cache invalidate` and try again'
+        .format,
     Manager.PkgInstalled:
         f'{_SUCCESS} {{}}: installed {{.new_pkg.version}}'.format,
     Manager.PkgAlreadyInstalled:

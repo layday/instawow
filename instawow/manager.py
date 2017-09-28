@@ -102,6 +102,10 @@ class PkgRemoved(ManagerResult):
     pass
 
 
+class CacheObsolete(ManagerResult):
+    pass
+
+
 class _Runner:
 
     def __init__(self, manager):
@@ -126,6 +130,7 @@ class Manager:
     PkgNotInstalled             = PkgNotInstalled
     PkgOriginInvalid            = PkgOriginInvalid
     PkgUpToDate                 = PkgUpToDate
+    CacheObsolete               = CacheObsolete
 
     def __init__(self,
                  *,
