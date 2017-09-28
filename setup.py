@@ -26,5 +26,6 @@ setup(name='instawow',
                         'texttable >=0.9.1, <1',
                         'uvloop    >=0.8.1, <1',
                         'yarl      >=0.12.0,<1'],
+      package_data={'instawow': ['assets/*']},
       entry_points={'console_scripts': ['instawow = instawow.cli:cli',
                                         'instawow-init = instawow.cli:init']})

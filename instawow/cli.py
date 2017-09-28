@@ -111,8 +111,9 @@ init = click.Command(name='instawow-init', callback=_init,
 
 @click.group(context_settings=_CONTEXT_SETTINGS)
 @click.version_option(__version__)
+@click.option('--hide-progress', '-n', is_flag=True, default=False)
 @click.pass_context
-def main(ctx):
+def main(ctx, hide_progress):
     """Add-on manager for World of Warcraft."""
     if not ctx.obj:
         while True:
@@ -122,7 +123,7 @@ def main(ctx):
                 _init()
             else:
                 break
-        ctx.obj = manager = Manager(config=config)
+        ctx.obj = manager = Manager(config=config, show_progress=not hide_progress)
         ctx.call_on_close(manager.close)
 
 cli = main
@@ -378,3 +379,73 @@ def clear(manager):
     from .models import CacheEntry
     manager.db.query(CacheEntry).delete()
     manager.db.commit()
+
+
+@main.group()
+def extras():
+    pass
+
+
+@extras.group()
+def bitbar():
+    """Mini update GUI implemented as a BitBar plug-in.
+
+    BitBar <https://getbitbar.com/> is a menu-bar app host for macOS.
+    """
+
+
+@bitbar.command(help='[internal]')
+@click.argument('caller')
+@click.argument('version')
+@click.pass_obj
+def _generate(manager, caller, version):
+    from base64 import b64encode
+    from pathlib import Path
+
+    outdated = manager.db.query(Pkg).order_by(Pkg.name).all()
+    outdated = zip(outdated,
+                   manager.resolve_many((p.origin, p.id, p.options.strategy)
+                                        for p in outdated))
+    outdated = [(p, r) for p, r in outdated
+                if p.file_id != getattr(r, 'file_id', p.file_id)]
+
+    icon = Path(__file__).parent/'assets'/\
+           f'NSStatusItem-icon__{"has-updates" if outdated else "clear"}.png'
+    icon = b64encode(icon.read_bytes()).decode()
+
+    click.echo(f'| templateImage="{icon}"\n---')
+    if outdated:
+        if len(outdated) > 1:
+            click.echo(f'''\
+Update all | bash={caller} param1=update terminal=false refresh=true''')
+        for p, r in outdated:
+            click.echo(f'''\
+Update {r.name} ({p.version} ➞ {r.version}) | \
+  bash={caller} param1=update param2={_compose_addon_defn(r)} \
+  terminal=false refresh=true''')
+    else:
+        click.echo('No add-on updates available')
+
+
+@bitbar.command()
+def install():
+    """Install the instawow BitBar plug-in."""
+    from pathlib import Path
+    import tempfile
+    import sys
+
+    with tempfile.TemporaryDirectory() as name:
+        path = Path(name, 'instawow.1h.py')
+        path.write_text(f'''\
+#!/usr/bin/env LC_ALL=en_US.UTF-8 {sys.executable}
+
+__version__ = {__version__!r}
+
+import sys
+
+from instawow.cli import main
+
+main(['-n', *(sys.argv[1:] or ['extras', 'bitbar', '_generate', sys.argv[0], __version__])])
+''')
+        webbrowser.open(f'bitbar://openPlugin?src={path.as_uri()}')
+        input('Press any key to exit after installing the plug-in')
