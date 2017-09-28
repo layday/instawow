@@ -4,7 +4,7 @@ from concurrent.futures import ThreadPoolExecutor
 from contextlib import ExitStack
 from functools import partial
 import shutil
-from typing import Any, Iterable, List, Tuple, Union
+import typing as T
 
 from aiohttp import ClientSession, TCPConnector
 from sqlalchemy import create_engine
@@ -33,8 +33,8 @@ async def _intercept_fut(index, fut, return_exceptions):
     return index, result
 
 
-def _intercept(result):
-    if isinstance(result, _PendingResult):
+def _intercept_result(result):
+    if callable(result):
         try:
             result = result()
         except Exception as e:
@@ -42,38 +42,64 @@ def _intercept(result):
     return result
 
 
-class ManagerException(Exception):
+class ManagerResult(Exception):
     pass
 
 
-class PkgAlreadyInstalled(ManagerException):
+class PkgAlreadyInstalled(ManagerResult):
     pass
 
 
-class PkgConflictsWithInstalled(ManagerException):
+class PkgConflictsWithInstalled(ManagerResult):
 
-    def __init__(self, conflicting_pkg):
+    def __init__(self, pkg):
         super().__init__()
-        self.conflicting_pkg = conflicting_pkg
+        self.conflicting_pkg = pkg
 
 
-class PkgConflictsWithPreexisting(ManagerException):
+class PkgConflictsWithPreexisting(ManagerResult):
     pass
 
 
-class PkgNonexistent(ManagerException):
+class PkgNonexistent(ManagerResult):
     pass
 
 
-class PkgNotInstalled(ManagerException):
+class PkgNotInstalled(ManagerResult):
     pass
 
 
-class PkgOriginInvalid(ManagerException):
+class PkgOriginInvalid(ManagerResult):
     pass
 
 
-class PkgUpToDate(ManagerException):
+class PkgUpToDate(ManagerResult):
+    pass
+
+
+class PkgInstalled(ManagerResult):
+
+    def __init__(self, pkg):
+        super().__init__()
+        self.new_pkg = pkg
+
+
+class PkgUpdated(ManagerResult):
+
+    def __init__(self, pkgs):
+        super().__init__()
+        self.old_pkg, self.new_pkg = pkgs
+
+
+class PkgModified(ManagerResult):
+
+    def __init__(self, key, value):
+        super().__init__()
+        self.key = key
+        self.value = value
+
+
+class PkgRemoved(ManagerResult):
     pass
 
 
@@ -87,24 +113,20 @@ class _Runner:
                                  (getattr(self.manager, name)(*a, **kw)))
 
 
-class _PendingResult:
-
-    def __init__(self, fn):
-        self._fn = fn
-
-    def __call__(self):
-        return self._fn()
-
-
 class Manager:
 
-    PkgAlreadyInstalled = PkgAlreadyInstalled
+    ManagerResult               = ManagerResult
+    PkgInstalled                = PkgInstalled
+    PkgUpdated                  = PkgUpdated
+    PkgModified                 = PkgModified
+    PkgRemoved                  = PkgRemoved
+    PkgAlreadyInstalled         = PkgAlreadyInstalled
     PkgConflictsWithPreexisting = PkgConflictsWithPreexisting
-    PkgConflictsWithInstalled = PkgConflictsWithInstalled
-    PkgNonexistent = PkgNonexistent
-    PkgNotInstalled = PkgNotInstalled
-    PkgOriginInvalid = PkgOriginInvalid
-    PkgUpToDate = PkgUpToDate
+    PkgConflictsWithInstalled   = PkgConflictsWithInstalled
+    PkgNonexistent              = PkgNonexistent
+    PkgNotInstalled             = PkgNotInstalled
+    PkgOriginInvalid            = PkgOriginInvalid
+    PkgUpToDate                 = PkgUpToDate
 
     def __init__(self,
                  *,
@@ -124,22 +146,20 @@ class Manager:
         self.runner = _Runner(self)
 
         self._loop = loop
-        self._tpes = [ThreadPoolExecutor(max_workers=1),
-                      ThreadPoolExecutor(max_workers=1)]
-        self._prepare_lock = asyncio.Lock(loop=loop)
+        self._resolver_lock = asyncio.Lock(loop=loop)
+        self._tpes = [ThreadPoolExecutor(max_workers=1), ThreadPoolExecutor(max_workers=1)]
 
-    async def block_in_thread(self, fn, *, channel=0):
-        """Execute a coroutine in a separate thread.  Successive calls to this
+    async def block_in_thread(self, fn: T.Callable, *, channel: int=0) -> T.Any:
+        """Execute a function in a separate thread.  Successive calls to this
         method are queued by virtue of reusing the same thread.
         """
         return await self._loop.run_in_executor(self._tpes[channel], fn)
 
     async def gather(self, it, *,
-                     return_exceptions: bool=False,
-                     show_progress: bool=False,
-                     **kwargs) -> List[Any]:
-        """Execute coroutines concurrently and gather their results, including
-        exceptions.  This displays a progress bar in the command line when
+                     return_exceptions: bool=False, show_progress: bool=False,
+                     **kwargs) -> list:
+        """Execute coroutines concurrently and gather their results.
+        This displays a progress bar in the command line when
         `show_progress=True`.
         """
         if not show_progress:
@@ -171,20 +191,15 @@ class Manager:
                 await resolver._sync()
         return resolver
 
-    async def _resolve(self,
-                       origin: str,
-                       id_or_slug: str,
-                       strategy: str) -> Pkg:
+    async def _resolve(self, origin: str, id_or_slug: str,
+                       strategy: str) -> T.Union[ManagerResult, Pkg]:
         if origin not in self.resolvers:
             raise PkgOriginInvalid
         return await (await self._prepare_resolver(origin))\
             .resolve(id_or_slug, strategy=strategy)
 
-    async def _prepare_install(self,
-                      origin: str,
-                      id_or_slug: str,
-                      strategy: str,
-                      overwrite: bool) -> _PendingResult:
+    async def _prepare_install(self, origin: str, id_or_slug: str,
+                               strategy: str, overwrite: bool) -> T.Callable:
         if Pkg.unique(origin, id_or_slug, self.db):
             raise PkgAlreadyInstalled
 
@@ -192,7 +207,7 @@ class Manager:
         async with self.client.get(new_pkg.download_url) as resp:
             payload = await resp.read()
 
-        def finalise() -> Pkg:
+        def _finalise():
             folder_conflict = \
                 self.db.query(PkgFolder)\
                        .filter(PkgFolder.path.in_([f.path for f in new_pkg.folders]))\
@@ -205,12 +220,10 @@ class Manager:
             except Archive.ExtractConflict:
                 raise PkgConflictsWithPreexisting
             else:
-                return new_pkg.insert(self.db)
-        return _PendingResult(finalise)
+                return PkgInstalled(new_pkg.insert(self.db))
+        return _finalise
 
-    async def _prepare_update(self,
-                     origin: str,
-                     id_or_slug: str) -> _PendingResult:
+    async def _prepare_update(self, origin: str, id_or_slug: str) -> T.Callable:
         old_pkg = Pkg.unique(origin, id_or_slug, self.db)
         if not old_pkg:
             raise PkgNotInstalled
@@ -221,7 +234,7 @@ class Manager:
         async with self.client.get(new_pkg.download_url) as resp:
             payload = await resp.read()
 
-        def finalise() -> Tuple[Pkg, Pkg]:
+        def _finalise():
             folders = [f.path for f in new_pkg.folders]
             folder_conflict = \
                 self.db.query(PkgFolder)\
@@ -238,18 +251,16 @@ class Manager:
             except Archive.ExtractConflict:
                 raise PkgConflictsWithPreexisting
             else:
-                return old_pkg, new_pkg.replace(self.db, old_pkg)
-        return _PendingResult(finalise)
+                return PkgUpdated((old_pkg, new_pkg.replace(self.db, old_pkg)))
+        return _finalise
 
-    def resolve_many(self, values: Iterable[Tuple[str, str, str]]) \
-            -> List[Union[Exception, Pkg]]:
+    def resolve_many(self, values: T.Iterable[tuple]) -> T.List[T.Union[ManagerResult, Pkg]]:
         return self.runner.gather((self._resolve(*t) for t in _dedupe(values)),
                                   return_exceptions=True,
                                   show_progress=self.show_progress,
                                   label='Resolving')
 
-    def install_many(self, values: Iterable[Tuple[str, str, str, bool]]) \
-            -> List[Union[Exception, Pkg]]:
+    def install_many(self, values: T.Iterable[tuple]) -> T.List[ManagerResult]:
         results = self.runner.gather((self._prepare_install(*q)
                                       for q in _dedupe(values)),
                                      return_exceptions=True,
@@ -259,10 +270,9 @@ class Manager:
             if self.show_progress:
                 results = stack.enter_context(ProgressBar(iterable=results,
                                                           label='Installing'))
-            return [_intercept(r) for r in results]
+            return [_intercept_result(r) for r in results]
 
-    def update_many(self, values: Iterable[Tuple[str, str]]) \
-            -> List[Union[Exception, Tuple[Pkg, Pkg]]]:
+    def update_many(self, values: T.Iterable[tuple]) -> T.List[ManagerResult]:
         results = self.runner.gather((self._prepare_update(*p)
                                       for p in _dedupe(values)),
                                      return_exceptions=True,
@@ -272,13 +282,13 @@ class Manager:
             if self.show_progress:
                 results = stack.enter_context(ProgressBar(iterable=results,
                                                           label='Updating'))
-            return [_intercept(r) for r in results]
+            return [_intercept_result(r) for r in results]
 
-    def remove(self, origin: str, id_or_slug: str) -> None:
+    def remove(self, origin: str, id_or_slug: str) -> PkgRemoved:
         pkg = Pkg.unique(origin, id_or_slug, self.db)
         if not pkg:
             raise PkgNotInstalled
 
         for folder in pkg.folders:
             shutil.rmtree(folder.path)
-        pkg.delete(self.db)
+        return PkgRemoved(pkg.delete(self.db))
