@@ -25,9 +25,12 @@ class BaseResolver:
         cls.__members__[origin] = cls
         cls.origin = origin
 
-    async def _sync(self) -> None:
-        await self.sync()
-        self.synced = True
+        orig_sync = cls.sync
+        async def _sync(self) -> None:
+            if not self.synced:
+                await orig_sync(self)
+                self.synced = True
+        cls.sync = _sync
 
     @classmethod
     def decompose_url(cls, url: str) -> T.Optional[T.Tuple[str, str]]:

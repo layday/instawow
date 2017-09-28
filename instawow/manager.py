@@ -183,19 +183,15 @@ class Manager:
     def close(self) -> None:
         self.client.close()
 
-    async def _prepare_resolver(self, origin: str) -> BaseResolver:
-        resolver = self.resolvers[origin]
-        async with self._prepare_lock:
-            if not resolver.synced:
-                await resolver._sync()
-        return resolver
-
     async def _resolve(self, origin: str, id_or_slug: str,
                        strategy: str) -> T.Union[ManagerResult, Pkg]:
         if origin not in self.resolvers:
             raise PkgOriginInvalid
-        return await (await self._prepare_resolver(origin))\
-            .resolve(id_or_slug, strategy=strategy)
+
+        async with self._resolver_lock:
+            await self.resolvers[origin].sync()
+        return await self.resolvers[origin].resolve(id_or_slug,
+                                                    strategy=strategy)
 
     async def _prepare_install(self, origin: str, id_or_slug: str,
                                strategy: str, overwrite: bool) -> T.Callable:
