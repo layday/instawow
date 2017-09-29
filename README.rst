@@ -15,8 +15,8 @@ Usage
 Installing add-ons
 ~~~~~~~~~~~~~~~~~~
 
-You can install add-ons by their Curse project|nbsp|ID or slug, or their
-WoWInterface|nbsp|ID, or even by their URL. All of the following will install
+You can install add-ons by their Curse project ID or slug, or their
+WoWInterface ID, or even by their URL. All of the following will install
 Molinari::
 
     instawow install curse:20338
@@ -67,9 +67,9 @@ manager, run ``instawow reveal <add-on>``.
 Extras
 ------
 
-*instawow* ships with a
-`BitBar <https://getbitbar.com/>`__ plug-in for macOS.
-To install it run ``instawow extras bitbar install``.
+*instawow* ships with a `BitBar <https://getbitbar.com/>`__ plug-in
+for macOS, which you can use to update add-ons from the menu bar.
+To install the plug-in run ``instawow extras bitbar install``.
 
 Caveats
 -------
@@ -84,7 +84,7 @@ that nobody (that I know) has been able to figure out how is calculated.
 Even if the fingerprint had been reverse-engineered, I'd be loath to adopt it.
 The fingerprint was born of a desire to monopolise the add-on distribution
 market – or it would've been made a community standard. WoWI's Minion app
-implements a similar though less sophisticated fingerprinting algo.
+implements a similar though less sophisticated fingerprinting technique.
 
 Metadata freshness
 ~~~~~~~~~~~~~~~~~~
@@ -143,6 +143,3 @@ Contributing
 
 Bug reports and fixes are welcome. Do open an issue before committing to
 making any significant changes.
-
-
-.. |nbsp| unicode:: 0xA0
