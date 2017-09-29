@@ -1,5 +1,4 @@
 
-
 from click.testing import CliRunner
 import pytest
 
@@ -18,11 +17,10 @@ class _CliTest:
         self.config = factory.mkdir('config')
         return factory
 
-
     @pytest.fixture(scope='class')
     def invoke_runner(self, temp_dirs):
         with Manager(config=Config(addon_dir=self.addons, config_dir=self.config),
-                    show_progress=False) as manager:
+                     show_progress=False) as manager:
             yield lambda args: CliRunner().invoke(main, args=args, obj=manager)
 
 
@@ -40,7 +38,7 @@ class TestSingleValidCursePkgLifecycle(_CliTest):
                                ''),
                               (['set', '--strategy=latest', 'curse:molinari'],
                                str.__eq__,
-                               "✓ curse:molinari: 'strategy' set to 'latest'\n"),
+                               "✓ curse:molinari: strategy set to latest\n"),
                               (['remove', 'curse:molinari'],
                                str.__eq__,
                                '✓ curse:molinari: removed\n'),
@@ -92,7 +90,7 @@ class TestFolderConflictLifecycle(_CliTest):
                                '✓ curse:molinari: installed'),
                               (['install', 'wowi:13188-Molinari'],
                                str.__eq__,
-                               '✗ wowi:13188-Molinari: conflicts with '
+                               '✗ wowi:13188-Molinari: conflicts with installed add-on '
                                'curse:molinari\n'),
                               (['remove', 'curse:molinari'],
                                str.__eq__,
@@ -109,7 +107,7 @@ class TestPreexistingFolderConflictOnInstall(_CliTest):
         temp_dirs.mkdir('addons', 'Molinari')
         assert invoke_runner(['install', 'curse:molinari']).output == \
             '✗ curse:molinari: conflicts with an add-on not installed by instawow\n'\
-            'pass `-o` to `install` if you do actually wish to overwrite this add-on\n'
+            '  pass `-o` to `install` if you do actually wish to overwrite this add-on\n'
 
 
 class TestInvalidAddonNameLifecycle(_CliTest):
@@ -148,13 +146,13 @@ class TestStrategySwitchAndUpdateLifecycle(_CliTest):
                                '✓ curse:transcriptor: installed'),
                               (['set', '--strategy=latest', 'curse:transcriptor'],
                                str.__eq__,
-                               "✓ curse:transcriptor: 'strategy' set to 'latest'\n"),
+                               "✓ curse:transcriptor: strategy set to latest\n"),
                               (['update', 'curse:transcriptor'],
                                str.startswith,
                                '✓ curse:transcriptor: updated from'),
                               (['set', '--strategy=canonical', 'curse:transcriptor'],
                                str.__eq__,
-                               "✓ curse:transcriptor: 'strategy' set to 'canonical'\n"),
+                               "✓ curse:transcriptor: strategy set to canonical\n"),
                               (['update'],
                                str.startswith,
                                '✓ curse:transcriptor: updated from'),
