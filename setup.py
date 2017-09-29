@@ -7,7 +7,7 @@ from instawow import __version__
 
 setup(name='instawow',
       version=__version__,
-      description='Add-on manager for World of Warcraft.',
+      description='A CLI for managing World of Warcraft add-ons.',
       url='http://github.com/layday/instawow',
       author='layday',
       author_email='layday@protonmail.com',
