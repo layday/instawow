@@ -448,4 +448,4 @@ from instawow.cli import main
 main(['-n', *(sys.argv[1:] or ['extras', 'bitbar', '_generate', sys.argv[0], __version__])])
 ''')
         webbrowser.open(f'bitbar://openPlugin?src={path.as_uri()}')
-        input('Press any key to exit after installing the plug-in')
+        click.pause('Press any key to exit after installing the plug-in')
