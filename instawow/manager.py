@@ -16,6 +16,9 @@ from .resolvers import BaseResolver
 from .utils import Archive, ProgressBar
 
 
+_UA_STRING = 'instawow (https://github.com/layday/instawow)'
+
+
 def _dedupe(it):
     list_ = list(it)
     return sorted(set(list_), key=list_.index)
@@ -144,7 +147,7 @@ class Manager:
         ModelBase.metadata.create_all(db_engine)
         self.db = sessionmaker(bind=db_engine)()
         self.client = ClientSession(connector=TCPConnector(limit_per_host=10, loop=loop),
-                                    loop=loop)
+                                    headers={'User-Agent': _UA_STRING}, loop=loop)
         self.resolvers = {n: r(manager=self)
                           for n, r in BaseResolver.__members__.items()}
         self.runner = _Runner(self)
