@@ -180,7 +180,7 @@ class _WowiResolver(BaseResolver,
                 and url.parts[1] == 'downloads':
             match = cls._re_addon_url.match(url.name)
             if match:
-                return (cls.origin, *match.groups())
+                return (cls.origin, match.group(1))
 
     async def sync(self) -> None:
         entry = self.manager.db.query(CacheEntry).get((self.origin, self.origin))
