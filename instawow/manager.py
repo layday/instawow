@@ -8,7 +8,6 @@ import typing as T
 from aiohttp import ClientSession, TCPConnector
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-import uvloop
 
 from .config import Config
 from .models import ModelBase, Pkg, PkgFolder
@@ -17,6 +16,15 @@ from .utils import Archive, ProgressBar
 
 
 _UA_STRING = 'instawow (https://github.com/layday/instawow)'
+
+
+def _init_loop():
+    try:
+        import uvloop
+    except ImportError:
+        return asyncio.get_event_loop()
+    else:
+        return uvloop.new_event_loop()
 
 
 def _dedupe(it):
@@ -138,7 +146,7 @@ class Manager:
     def __init__(self,
                  *,
                  config: Config,
-                 loop: asyncio.BaseEventLoop=uvloop.new_event_loop(),
+                 loop: asyncio.BaseEventLoop=_init_loop(),
                  show_progress: bool=True):
         self.config = config
         self.show_progress = show_progress
