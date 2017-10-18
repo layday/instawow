@@ -100,7 +100,7 @@ def _init():
             UserConfig(addon_dir=addon_dir).create_dirs().write()
         except ValueError:
             if addon_dir:
-                click.echo(f'{addon_dir!r} not found')
+                print(f'{addon_dir!r} not found')
             addon_dir = click.prompt('Please enter the path to your add-on folder')
         else:
             break
@@ -148,9 +148,9 @@ def install(manager, addons, overwrite, strategy):
         try:
             raise result
         except Manager.ManagerResult as result:
-            click.echo(MESSAGES[result.__class__](addon, result))
+            print(MESSAGES[result.__class__](addon, result))
         except Exception:
-            click.echo(traceback.format_exc())
+            print(traceback.format_exc())
 
 
 @main.command()
@@ -166,9 +166,9 @@ def update(manager, addons):
         try:
             raise result
         except Manager.ManagerResult as result:
-            click.echo(MESSAGES[result.__class__](addon, result))
+            print(MESSAGES[result.__class__](addon, result))
         except Exception:
-            click.echo(traceback.format_exc())
+            print(traceback.format_exc())
 
 
 @main.command()
@@ -180,9 +180,9 @@ def remove(manager, addons):
         try:
             raise manager.remove(*parts)
         except Manager.ManagerResult as result:
-            click.echo(MESSAGES[result.__class__](addon, result))
+            print(MESSAGES[result.__class__](addon, result))
         except Exception:
-            click.echo(traceback.format_exc())
+            print(traceback.format_exc())
 
 
 @main.group('list')
@@ -213,17 +213,17 @@ def installed(manager, column, columns):
             yield value
 
     if columns:
-        click.echo(_tabulate([(c,) for c in (*inspect(Pkg).columns.keys(),
-                                             *inspect(Pkg).relationships.keys())],
-                             head=('field',), show_index=False))
+        print(_tabulate([(c,) for c in (*inspect(Pkg).columns.keys(),
+                                        *inspect(Pkg).relationships.keys())],
+                         head=('field',), show_index=False))
     else:
         pkgs = manager.db.query(Pkg).order_by(Pkg.origin, Pkg.slug).all()
         if not pkgs:
             return
         try:
-            click.echo(_tabulate([(_compose_addon_defn(p),
-                                   *_format_columns(p, column)) for p in pkgs],
-                                 head=('add-on', *column)))
+            print(_tabulate([(_compose_addon_defn(p),
+                              *_format_columns(p, column)) for p in pkgs],
+                             head=('add-on', *column)))
         except AttributeError as e:
             raise click.BadParameter(e.args)
 
@@ -238,11 +238,11 @@ def outdated(manager):
     outdated = [(p, r) for p, r in zip(installed, new)
                 if p.file_id != getattr(r, 'file_id', p.file_id)]
     if outdated:
-        click.echo(_tabulate([(_compose_addon_defn(r),
-                               p.version, r.version, r.options.strategy)
-                              for p, r in outdated],
-                             head=('add-on', 'current version',
-                                   'new version', 'strategy')))
+        print(_tabulate([(_compose_addon_defn(r),
+                          p.version, r.version, r.options.strategy)
+                         for p, r in outdated],
+                        head=('add-on', 'current version',
+                              'new version', 'strategy')))
 
 
 @list_.command()
@@ -255,11 +255,11 @@ def preexisting(manager):
     folders = ((n, manager.config.addon_dir/n/f'{n}.toc') for n in folders)
     folders = {(n, TocReader(t)) for n, t in folders if t.exists()}
     if folders:
-        click.echo(_tabulate([(n,
-                               t['X-Curse-Project-ID'].value,
-                               t['X-Curse-Packaged-Version', 'X-Packaged-Version',
-                                 'Version'].value) for n, t in sorted(folders)],
-                             head=('folder', 'curse id or slug', 'version')))
+        print(_tabulate([(n,
+                          t['X-Curse-Project-ID'].value,
+                          t['X-Curse-Packaged-Version', 'X-Packaged-Version',
+                            'Version'].value) for n, t in sorted(folders)],
+                        head=('folder', 'curse id or slug', 'version')))
 
 
 @main.command('set')
@@ -277,9 +277,9 @@ def set_(manager, addons, strategy):
         if pkg:
             pkg.options.strategy = strategy
             manager.db.commit()
-            click.echo(MESSAGES[Manager.PkgModified](addon[0], 'strategy', strategy))
+            print(MESSAGES[Manager.PkgModified](addon[0], 'strategy', strategy))
         else:
-            click.echo(MESSAGES[Manager.PkgNotInstalled](addon[0]))
+            print(MESSAGES[Manager.PkgNotInstalled](addon[0]))
 
 
 @main.command()
@@ -303,9 +303,9 @@ def info(manager, addon):
                            [' ├─ ' + f.path.name for f in pkg.folders[:-1]] +
                            [' └─ ' + pkg.folders[-1].path.name])),
                 ('strategy', pkg.options.strategy),]
-        click.echo(_tabulate(rows, show_index=False))
+        print(_tabulate(rows, show_index=False))
     else:
-        click.echo(MESSAGES[Manager.PkgNotInstalled](addon[0]))
+        print(MESSAGES[Manager.PkgNotInstalled](addon[0]))
 
 
 @main.command()
@@ -318,7 +318,7 @@ def hearth(manager, addon):
     if pkg:
         webbrowser.open(pkg.url)
     else:
-        click.echo(MESSAGES[Manager.PkgNotInstalled](addon[0]))
+        print(MESSAGES[Manager.PkgNotInstalled](addon[0]))
 
 
 @main.command()
@@ -331,7 +331,7 @@ def reveal(manager, addon):
     if pkg:
         webbrowser.open(pkg.folders[0].path.as_uri())
     else:
-        click.echo(MESSAGES[Manager.PkgNotInstalled](addon[0]))
+        print(MESSAGES[Manager.PkgNotInstalled](addon[0]))
 
 
 @main.group()
@@ -350,7 +350,7 @@ def shell(ctx):
     try:
         from IPython import embed
     except ImportError:
-        click.echo('ipython is not installed')
+        print('ipython is not installed')
     else:
         embed()
 
@@ -413,18 +413,18 @@ def _generate(manager, caller, version):
            f'NSStatusItem-icon__{"has-updates" if outdated else "clear"}.png'
     icon = b64encode(icon.read_bytes()).decode()
 
-    click.echo(f'| templateImage="{icon}"\n---')
+    print(f'| templateImage="{icon}"\n---')
     if outdated:
         if len(outdated) > 1:
-            click.echo(f'''\
+            print(f'''\
 Update all | bash={caller} param1=update terminal=false refresh=true''')
         for p, r in outdated:
-            click.echo(f'''\
+            print(f'''\
 Update {r.name} ({p.version} ➞ {r.version}) | \
   bash={caller} param1=update param2={_compose_addon_defn(r)} \
   terminal=false refresh=true''')
     else:
-        click.echo('No add-on updates available')
+        print('No add-on updates available')
 
 
 @bitbar.command()
