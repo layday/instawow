@@ -43,7 +43,7 @@ MESSAGES = {
          '  pass `-o` to `install` if you do actually wish to overwrite this add-on'
         .format,
     Manager.PkgUpdated:
-        f'{_SUCCESS} {{}}: updated from {{.old_pkg.version}} to {{.new_pkg.version}}'.format,
+        f'{_SUCCESS} {{0}}: updated from {{1.old_pkg.version}} to {{1.new_pkg.version}}'.format,
     Manager.PkgRemoved:
         f'{_SUCCESS} {{}}: removed'.format,
     Manager.PkgModified:
