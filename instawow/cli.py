@@ -165,6 +165,8 @@ def update(manager, addons):
                              manager.update_many(p for _, p in addons)):
         try:
             raise result
+        except Manager.PkgUpToDate:
+            pass
         except Manager.ManagerResult as result:
             print(MESSAGES[result.__class__](addon, result))
         except Exception:
