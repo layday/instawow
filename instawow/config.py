@@ -56,8 +56,9 @@ class UserConfig(Config, metaclass=_UserConfigMeta):
         instance of the class.
         """
         return cls(addon_dir=Path(cls.__fields__['config_dir'].default,
-                                  'addon_dir.txt').read_text())
+                                  'addon_dir.txt').read_text(encoding='utf-8'))
 
     def write(self):
         """Write the active config to the default path."""
-        (self.config_dir/'addon_dir.txt').write_text(str(self.addon_dir))
+        (self.config_dir/'addon_dir.txt').write_text(str(self.addon_dir),
+                                                     encoding='utf-8')

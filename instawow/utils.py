@@ -43,7 +43,7 @@ class TocReader:
 
     def __init__(self, toc_file_path: Path):
         entries = (e.lstrip('# ').partition(': ')
-                   for e in toc_file_path.read_text().splitlines()
+                   for e in toc_file_path.read_text(encoding='utf-8').splitlines()
                    if e.startswith('## '))
         entries = {e[0]: e[2] for e in entries}
         self.entries = entries
