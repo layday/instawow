@@ -75,17 +75,14 @@ class _CurseResolver(BaseResolver,
                 and len(url.parts) > 2 \
                 and url.parts[1] == 'projects':
             return (cls.origin, url.parts[2])
-        elif url.host == 'mods.curse.com':
-            if len(url.parts) > 3 \
-                    and url.parts[1:3] == ('addons', 'wow'):
-                slug = url.parts[3]
-                match = cls._re_curse_url.match(slug)
-                if match:
-                    slug = match.group('id')
-                return (cls.origin, slug)
-            elif len(url.parts) == 3 \
-                    and url.parts[1] == 'project':
-                return (cls.origin, url.parts[2])
+        elif url.host == 'www.curseforge.com' \
+                and len(url.parts) > 3 \
+                and url.parts[1:3] == ('wow', 'addons'):
+            slug = url.parts[3]
+            match = cls._re_curse_url.match(slug)
+            if match:
+                slug = match.group('id')
+            return (cls.origin, slug)
 
     async def sync(self) -> None:
         async def _sync(freq):

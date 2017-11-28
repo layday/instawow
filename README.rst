@@ -21,7 +21,7 @@ Molinari::
 
     instawow install curse:20338
     instawow install curse:molinari
-    instawow install https://mods.curse.com/addons/wow/molinari
+    instawow install https://www.curseforge.com/wow/addons/molinari
     instawow install https://wow.curseforge.com/projects/molinari
     instawow install wowi:13188
     instawow install https://www.wowinterface.com/downloads/info13188-Molinari.html
