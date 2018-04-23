@@ -56,25 +56,3 @@ class TocReader:
             except StopIteration:
                 keys = keys[0]
         return _TocEntry(keys, self.entries.get(keys))
-
-
-class ProgressBar(_ProgressBar):
-    """A `ProgressBar` subclass that clears its output upon completion.
-
-    Only use this if you expect an operation to take a _perceptibly_
-    long time (e.g. network transfers) -- not every single thing we do
-    merits a progress bar.
-    """
-
-    def __init__(self, **kwargs):
-        super().__init__(**{'iterable': None,
-                            'bar_template': '%(label)s  [%(bar)s]  %(info)s',
-                            **kwargs})
-
-    def render_finish(self) -> None:
-        if self.is_hidden:
-            return
-
-        self.file.write(BEFORE_BAR + (' ' * self.max_width) + AFTER_BAR +
-                        ('' if os.name == 'nt' else '\x1b[A'))
-        self.file.flush()

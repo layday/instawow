@@ -2,20 +2,24 @@
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import ExitStack
+from functools import partial
 import shutil
 import typing as T
 
 from aiohttp import ClientSession, TCPConnector
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from tqdm import tqdm as _tqdm
 
 from .config import Config
 from .models import ModelBase, Pkg, PkgFolder
 from .resolvers import BaseResolver
-from .utils import Archive, ProgressBar
+from .utils import Archive
 
 
 _UA_STRING = 'instawow (https://github.com/layday/instawow)'
+
+tqdm = partial(_tqdm, leave=False, ascii=True)
 
 
 def _init_loop():
@@ -43,12 +47,13 @@ async def _intercept_fut(index, fut, return_exceptions):
     return index, result
 
 
-def _intercept_result(result):
+def _intercept_result(result, upd):
     if callable(result):
         try:
             result = result()
         except Exception as e:
             result = e
+    upd()
     return result
 
 
@@ -117,16 +122,6 @@ class CacheObsolete(ManagerResult):
     pass
 
 
-class _Runner:
-
-    def __init__(self, manager):
-        self.manager = manager
-
-    def __getattr__(self, name):
-        return lambda *a, **kw: (self.manager._loop.run_until_complete
-                                 (getattr(self.manager, name)(*a, **kw)))
-
-
 class Manager:
 
     ManagerResult               = ManagerResult
@@ -158,7 +153,6 @@ class Manager:
                                     headers={'User-Agent': _UA_STRING}, loop=loop)
         self.resolvers = {n: r(manager=self)
                           for n, r in BaseResolver.__members__.items()}
-        self.runner = _Runner(self)
 
         self._loop = loop
         self._resolver_lock = asyncio.Lock(loop=loop)
@@ -184,7 +178,7 @@ class Manager:
         futures = [_intercept_fut(i, f, return_exceptions)
                    for i, f in enumerate(it)]
         results = [None] * len(futures)
-        with ProgressBar(length=len(futures), **kwargs) as bar:
+        with tqdm(total=len(futures), **kwargs) as bar:
             for result in asyncio.as_completed(futures, loop=self._loop):
                 results.__setitem__(*(await result))
                 bar.update(1)
@@ -197,7 +191,7 @@ class Manager:
         self.close()
 
     def close(self) -> None:
-        self.client.close()
+        self._loop.run_until_complete(self.client.close())
 
     async def _resolve(self, origin: str, id_or_slug: str,
                        strategy: str) -> T.Union[ManagerResult, Pkg]:
@@ -266,34 +260,28 @@ class Manager:
         return _finalise
 
     def resolve_many(self, values: T.Iterable[tuple]) -> T.List[T.Union[ManagerResult, Pkg]]:
-        return self.runner.gather((self._resolve(*t) for t in _dedupe(values)),
-                                  return_exceptions=True,
-                                  show_progress=self.show_progress,
-                                  label='Resolving')
+        return self._loop.run_until_complete(self.gather((self._resolve(*t) for t in _dedupe(values)),
+                                                         return_exceptions=True,
+                                                         show_progress=self.show_progress,
+                                                         desc='Resolving'))
 
     def install_many(self, values: T.Iterable[tuple]) -> T.List[ManagerResult]:
-        results = self.runner.gather((self._prepare_install(*q)
-                                      for q in _dedupe(values)),
-                                     return_exceptions=True,
-                                     show_progress=self.show_progress,
-                                     label='Resolving add-ons')
-        with ExitStack() as stack:
-            if self.show_progress:
-                results = stack.enter_context(ProgressBar(iterable=results,
-                                                          label='Installing'))
-            return [_intercept_result(r) for r in results]
+        results = self._loop.run_until_complete(self.gather((self._prepare_install(*q)
+                                                             for q in _dedupe(values)),
+                                                            return_exceptions=True,
+                                                            show_progress=self.show_progress,
+                                                            desc='Resolving add-ons'))
+        with tqdm(total=len(results), desc='Installing') as bar:
+            return [_intercept_result(r, lambda: bar.update(1)) for r in results]
 
     def update_many(self, values: T.Iterable[tuple]) -> T.List[ManagerResult]:
-        results = self.runner.gather((self._prepare_update(*p)
-                                      for p in _dedupe(values)),
-                                     return_exceptions=True,
-                                     show_progress=self.show_progress,
-                                     label='Resolving add-ons')
-        with ExitStack() as stack:
-            if self.show_progress:
-                results = stack.enter_context(ProgressBar(iterable=results,
-                                                          label='Updating'))
-            return [_intercept_result(r) for r in results]
+        results = self._loop.run_until_complete(self.gather((self._prepare_update(*p)
+                                                             for p in _dedupe(values)),
+                                                            return_exceptions=True,
+                                                            show_progress=self.show_progress,
+                                                            desc='Resolving add-ons'))
+        with tqdm(total=len(results), desc='Updating') as bar:
+            return [_intercept_result(r, lambda: bar.update(1)) for r in results]
 
     def remove(self, origin: str, id_or_slug: str) -> PkgRemoved:
         pkg = Pkg.unique(origin, id_or_slug, self.db)
