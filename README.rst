@@ -82,8 +82,9 @@ because it has no registry from which to derive add-on fingerprings.
 The Twitch (née Curse) client uses a proprietary fingerprinting algo
 that nobody (that I know) has been able to figure out how is calculated.
 Even if the fingerprint had been reverse-engineered, I'd be loath to adopt it.
-The fingerprint was born of a desire to monopolise the add-on distribution
-market – or it would've been made a community standard. WoWI's Minion app
+Ideologically because it was born of a desire to monopolise the add-on distribution
+market and practically because we could never know when Curse might pull
+the rug from under our feet. WoWI's Minion app also
 implements a similar though less sophisticated fingerprinting technique.
 
 Metadata freshness
