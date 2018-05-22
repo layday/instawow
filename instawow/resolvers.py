@@ -107,7 +107,6 @@ class _CurseResolver(BaseResolver,
             return entry
 
         data = await self.manager.gather((_sync(f) for f in self._freqs),
-                                         show_progress=self.manager.show_progress,
                                          desc='Updating Curse cache')
         data = sorted(data, key=lambda e: e.date_updated, reverse=True)
         data = ChainMap(*({str(e['Id']): e

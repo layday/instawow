@@ -200,13 +200,13 @@ class Manager:
         return await self._loop.run_in_executor(self._tpes[channel], fn)
 
     async def gather(self, it, *,
-                     return_exceptions: bool=False, show_progress: bool=False,
+                     return_exceptions: bool=False,
                      **kwargs) -> list:
-        """Execute coroutines concurrently and gather their results.
+        """Convenience wrapper around ``asyncio.gather``.
         This displays a progress bar in the command line when
         `show_progress=True`.
         """
-        if not show_progress:
+        if not self.show_progress:
             return await asyncio.gather(*it, loop=self._loop,
                                         return_exceptions=return_exceptions)
 
