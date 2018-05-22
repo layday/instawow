@@ -275,7 +275,7 @@ def set_(manager, addons, strategy):
     """Modify add-on settings."""
     for addon in addons:
         pkg = addon[1]
-        pkg = Pkg.unique(pkg.origin, pkg.id_or_slug, manager.db)
+        pkg = manager.db.x_unique(pkg.origin, pkg.id_or_slug)
         if pkg:
             pkg.options.strategy = strategy
             manager.db.commit()
@@ -290,7 +290,7 @@ def set_(manager, addons, strategy):
 def info(manager, addon):
     """Display installed add-on information."""
     pkg = addon[1]
-    pkg = Pkg.unique(pkg.origin, pkg.id_or_slug, manager.db)
+    pkg = manager.db.x_unique(pkg.origin, pkg.id_or_slug)
     if pkg:
         rows = [('origin', pkg.origin),
                 ('slug', pkg.slug),
@@ -316,7 +316,7 @@ def info(manager, addon):
 def hearth(manager, addon):
     """Open the add-on's homepage in your browser."""
     pkg = addon[1]
-    pkg = Pkg.unique(pkg.origin, pkg.id_or_slug, manager.db)
+    pkg = manager.db.x_unique(pkg.origin, pkg.id_or_slug)
     if pkg:
         webbrowser.open(pkg.url)
     else:
@@ -329,7 +329,7 @@ def hearth(manager, addon):
 def reveal(manager, addon):
     """Open the add-on folder in your file manager."""
     pkg = addon[1]
-    pkg = Pkg.unique(pkg.origin, pkg.id_or_slug, manager.db)
+    pkg = manager.db.x_unique(pkg.origin, pkg.id_or_slug)
     if pkg:
         webbrowser.open(pkg.folders[0].path.as_uri())
     else:

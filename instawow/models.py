@@ -4,8 +4,8 @@ import json
 from pathlib import Path
 
 import pydantic
-from sqlalchemy import Column, String, DateTime, Enum, ForeignKeyConstraint, \
-                       TypeDecorator, or_
+from sqlalchemy import Column, String, DateTime, Enum, \
+                       ForeignKeyConstraint, TypeDecorator
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 
@@ -67,26 +67,7 @@ class _JsonType(TypeDecorator):
             return json.loads(value)
 
 
-class _ConvenienceMethodsMixin:
-
-    def insert(self, session):
-        session.add(self)
-        session.commit()
-        return self
-
-    def replace(self, session, other=None):
-        if other:
-            session.delete(other)
-            session.commit()
-        return self.insert(session)
-
-    def delete(self, session):
-        session.delete(self)
-        session.commit()
-
-
-class Pkg(ModelBase,
-          _ConvenienceMethodsMixin):
+class Pkg(ModelBase):
 
     __tablename__ = 'pkg'
 
@@ -104,12 +85,6 @@ class Pkg(ModelBase,
                            backref='pkg')
     options = relationship('PkgOptions', cascade='all, delete-orphan',
                            uselist=False)
-
-    @classmethod
-    def unique(cls, origin, id_or_slug, session):
-        return session.query(cls).filter(cls.origin == origin,
-                                         or_(cls.id == id_or_slug, cls.slug == id_or_slug))\
-                      .first()
 
 
 class _PkgCoercer(_BaseCoercer, coerces=Pkg):
@@ -158,8 +133,7 @@ class _PkgOptionsCoercer(_BaseCoercer, coerces=PkgOptions):
     strategy: str
 
 
-class CacheEntry(ModelBase,
-                 _ConvenienceMethodsMixin):
+class CacheEntry(ModelBase):
 
     __tablename__ = 'cache'
 

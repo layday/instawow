@@ -103,7 +103,7 @@ class _CurseResolver(BaseResolver,
                                            date_retrieved=dt.now(),
                                            date_updated=dt_,
                                            contents=payload)
-                    entry = new_entry.replace(self.manager.db, entry)
+                    entry = self.manager.db.x_replace(new_entry, entry)
             return entry
 
         data = await self.manager.gather((_sync(f) for f in self._freqs),
@@ -187,7 +187,7 @@ class _WowiResolver(BaseResolver,
                 data = await resp.read()
             new_entry = CacheEntry(origin=self.origin, id=self.origin,
                                    date_retrieved=dt.now(), contents=data)
-            entry = new_entry.replace(self.manager.db, entry)
+            entry = self.manager.db.x_replace(new_entry, entry)
 
         self._data = {e['UID']: e for e in entry.contents}
 

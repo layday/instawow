@@ -7,7 +7,7 @@ import shutil
 import typing as T
 
 from aiohttp import ClientSession, TCPConnector
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, or_
 from sqlalchemy.orm import sessionmaker
 from tqdm import tqdm as _tqdm
 
@@ -55,6 +55,40 @@ def _intercept_result(result, upd):
             result = e
     upd()
     return result
+
+
+class _DbOverlay:
+    "Convenience methods for working with the database."
+
+    def __init__(self, session):
+        self._session = session
+
+    def x_insert(self, obj):
+        self._session.add(obj)
+        self._session.commit()
+        return obj
+
+    def x_replace(self, obj, other=None):
+        if other:
+            self._session.delete(other)
+            self._session.commit()
+        return self.x_insert(obj)
+
+    def x_delete(self, obj):
+        self._session.delete(obj)
+        self._session.commit()
+        return obj
+
+    def x_unique(self, origin, id_or_slug, kls=Pkg):
+        return self._session.query(kls)\
+                            .filter(kls.origin == origin,
+                                    or_(kls.id == id_or_slug, kls.slug == id_or_slug))\
+                            .first()
+
+
+    def __getattr__(self, name):
+        "Pass any other method call on to ye olde database session."
+        return getattr(self._session, name)
 
 
 class ManagerResult(Exception):
@@ -148,7 +182,8 @@ class Manager:
 
         db_engine = create_engine(f'sqlite:///{config.config_dir/config.db_name}')
         ModelBase.metadata.create_all(db_engine)
-        self.db = sessionmaker(bind=db_engine)()
+        self.db = _DbOverlay(sessionmaker(bind=db_engine)())
+
         self.client = ClientSession(connector=TCPConnector(limit_per_host=10, loop=loop),
                                     headers={'User-Agent': _UA_STRING}, loop=loop)
         self.resolvers = {n: r(manager=self)
@@ -205,7 +240,7 @@ class Manager:
 
     async def _prepare_install(self, origin: str, id_or_slug: str,
                                strategy: str, overwrite: bool) -> T.Callable:
-        if Pkg.unique(origin, id_or_slug, self.db):
+        if self.db.x_unique(origin, id_or_slug):
             raise PkgAlreadyInstalled
 
         new_pkg = await self._resolve(origin, id_or_slug, strategy)
@@ -224,12 +259,11 @@ class Manager:
                                          overwrite=overwrite)
             except Archive.ExtractConflict:
                 raise PkgConflictsWithPreexisting
-            else:
-                return PkgInstalled(new_pkg.insert(self.db))
+            return PkgInstalled(self.db.x_insert(new_pkg))
         return _finalise
 
     async def _prepare_update(self, origin: str, id_or_slug: str) -> T.Callable:
-        old_pkg = Pkg.unique(origin, id_or_slug, self.db)
+        old_pkg = self.db.x_unique(origin, id_or_slug)
         if not old_pkg:
             raise PkgNotInstalled
 
@@ -255,8 +289,7 @@ class Manager:
                                          overwrite={f.name for f in folders})
             except Archive.ExtractConflict:
                 raise PkgConflictsWithPreexisting
-            else:
-                return PkgUpdated((old_pkg, new_pkg.replace(self.db, old_pkg)))
+            return PkgUpdated((old_pkg, self.db.x_replace(new_pkg, old_pkg)))
         return _finalise
 
     def resolve_many(self, values: T.Iterable[tuple]) -> T.List[T.Union[ManagerResult, Pkg]]:
@@ -284,10 +317,10 @@ class Manager:
             return [_intercept_result(r, lambda: bar.update(1)) for r in results]
 
     def remove(self, origin: str, id_or_slug: str) -> PkgRemoved:
-        pkg = Pkg.unique(origin, id_or_slug, self.db)
+        pkg = self.db.x_unique(origin, id_or_slug)
         if not pkg:
             raise PkgNotInstalled
 
         for folder in pkg.folders:
             shutil.rmtree(folder.path)
-        return PkgRemoved(pkg.delete(self.db))
+        return PkgRemoved(self.db.x_delete(pkg))
