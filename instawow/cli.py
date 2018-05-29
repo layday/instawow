@@ -58,7 +58,6 @@ _parts = namedtuple('Parts', 'origin id_or_slug')
 def _tabulate(rows: T.List[T.Tuple[str, ...]], *,
               head: T.Tuple[str, ...]=(), show_index: bool=True) -> str:
     table = Texttable(max_width=0)
-    table.set_chars('   -')
     table.set_deco(Texttable.HEADER | Texttable.VLINES)
 
     if show_index:
