@@ -1,13 +1,9 @@
 
 from collections import namedtuple
 import io
-import os
 from pathlib import Path
 import typing as T
 import zipfile
-
-from click._termui_impl import ProgressBar as _ProgressBar, \
-                               BEFORE_BAR, AFTER_BAR
 
 
 class ExtractConflict(Exception):
