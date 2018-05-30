@@ -12,6 +12,7 @@ from sqlalchemy.orm import sessionmaker
 from tqdm import tqdm as _tqdm
 
 from .config import Config
+from . import exceptions as E
 from .models import ModelBase, Pkg, PkgFolder
 from .resolvers import BaseResolver
 from .utils import Archive
@@ -91,89 +92,24 @@ class _DbOverlay:
         return getattr(self._session, name)
 
 
-class ManagerResult(Exception):
-    pass
 
 
-class PkgAlreadyInstalled(ManagerResult):
-    pass
 
-
-class PkgConflictsWithInstalled(ManagerResult):
-
-    def __init__(self, pkg):
-        super().__init__()
-        self.conflicting_pkg = pkg
-
-
-class PkgConflictsWithPreexisting(ManagerResult):
-    pass
-
-
-class PkgNonexistent(ManagerResult):
-    pass
-
-
-class PkgNotInstalled(ManagerResult):
-    pass
-
-
-class PkgOriginInvalid(ManagerResult):
-    pass
-
-
-class PkgUpToDate(ManagerResult):
-    pass
-
-
-class PkgInstalled(ManagerResult):
-
-    def __init__(self, pkg):
-        super().__init__()
-        self.new_pkg = pkg
-
-
-class PkgUpdated(ManagerResult):
-
-    def __init__(self, pkgs):
-        super().__init__()
-        self.old_pkg, self.new_pkg = pkgs
-
-
-class PkgModified(ManagerResult):
-
-    def __init__(self, key, value):
-        super().__init__()
-        self.key = key
-        self.value = value
-
-
-class PkgRemoved(ManagerResult):
-    pass
-
-
-class CacheObsolete(ManagerResult):
-    pass
 
 
 class Manager:
 
-    ManagerResult               = ManagerResult
-    PkgInstalled                = PkgInstalled
-    PkgUpdated                  = PkgUpdated
-    PkgModified                 = PkgModified
-    PkgRemoved                  = PkgRemoved
-    PkgAlreadyInstalled         = PkgAlreadyInstalled
-    PkgConflictsWithPreexisting = PkgConflictsWithPreexisting
-    PkgConflictsWithInstalled   = PkgConflictsWithInstalled
-    PkgNonexistent              = PkgNonexistent
-    PkgNotInstalled             = PkgNotInstalled
-    PkgOriginInvalid            = PkgOriginInvalid
-    PkgUpToDate                 = PkgUpToDate
-    CacheObsolete               = CacheObsolete
+    from .exceptions import (ManagerResult,
+                             PkgInstalled, PkgUpdated,
+                             PkgModified, PkgRemoved,
+                             ManagerError,
+                             PkgAlreadyInstalled, PkgConflictsWithInstalled,
+                             PkgConflictsWithPreexisting, PkgNonexistent,
+                             PkgNotInstalled, PkgOriginInvalid,
+                             PkgUpToDate, CacheObsolete,
+                             InternalError)
 
-    def __init__(self,
-                 *,
+    def __init__(self, *,
                  config: Config,
                  loop: asyncio.BaseEventLoop=_init_loop(),
                  show_progress: bool=True):
