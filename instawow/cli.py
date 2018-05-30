@@ -12,7 +12,7 @@ from texttable import Texttable
 
 from . import __version__
 from .config import UserConfig
-from .manager import Manager
+from .manager import CliManager as Manager
 from .models import Pkg, PkgFolder
 from .utils import TocReader
 
@@ -21,38 +21,49 @@ _SUCCESS = click.style('✓', fg='green')
 _FAILURE = click.style('✗', fg='red')
 
 MESSAGES = {
-    Manager.PkgNonexistent:
-        f'{_FAILURE} {{}}: no such project id or slug'.format,
-    Manager.PkgNotInstalled:
-        f'{_FAILURE} {{}}: not installed'.format,
-    Manager.PkgConflictsWithInstalled:
-        lambda a, r: f'{_FAILURE} {a}: conflicts with installed '
-                     f'add-on {_compose_addon_defn(r.conflicting_pkg)}',
-    Manager.CacheObsolete:
-        f'{_FAILURE} {{}}: the internal resolver cache is obsolete\n'
-         '  run `instawow debug cache invalidate` and try again'
-        .format,
     Manager.PkgInstalled:
         f'{_SUCCESS} {{}}: installed {{.new_pkg.version}}'.format,
-    Manager.PkgAlreadyInstalled:
-        f'{_FAILURE} {{}}: already installed'.format,
-    Manager.PkgOriginInvalid:
-        f'{_FAILURE} {{}}: invalid origin'.format,
-    Manager.PkgConflictsWithPreexisting:
-        f'{_FAILURE} {{}}: conflicts with an add-on not installed by instawow\n'
-         '  pass `-o` to `install` if you do actually wish to overwrite this add-on'
-        .format,
     Manager.PkgUpdated:
         f'{_SUCCESS} {{0}}: updated from {{1.old_pkg.version}} to {{1.new_pkg.version}}'.format,
     Manager.PkgRemoved:
         f'{_SUCCESS} {{}}: removed'.format,
     Manager.PkgModified:
-        f'{_SUCCESS} {{}}: {{}} set to {{}}'.format,}
+        f'{_SUCCESS} {{0}}: {{1.key}} set to {{1.value}}'.format,
+    Manager.PkgAlreadyInstalled:
+        f'{_FAILURE} {{}}: already installed'.format,
+    Manager.PkgConflictsWithInstalled:
+        lambda a, r: f'{_FAILURE} {a}: conflicts with installed '
+                     f'add-on {_compose_addon_defn(r.conflicting_pkg)}',
+    Manager.PkgConflictsWithPreexisting:
+        f'{_FAILURE} {{}}: conflicts with an add-on not installed by instawow\n'
+         '  pass `-o` to `install` if you do actually wish to overwrite this add-on'
+        .format,
+    Manager.PkgNonexistent:
+        f'{_FAILURE} {{}}: no such project id or slug'.format,
+    Manager.PkgNotInstalled:
+        f'{_FAILURE} {{}}: not installed'.format,
+    Manager.PkgOriginInvalid:
+        f'{_FAILURE} {{}}: invalid origin'.format,
+    Manager.PkgUpToDate:   # IGNORE
+        ...,
+    Manager.CacheObsolete:
+        f'{_FAILURE} {{}}: the internal resolver cache is obsolete\n'
+         '  run `instawow debug cache invalidate` and try again'
+        .format,
+    Manager.InternalError:
+        lambda _, r: ''.join(traceback.format_exception(r.error.__class__,
+                                                        r.error,
+                                                        r.error.__traceback__)).rstrip(),}
 
 _CONTEXT_SETTINGS = {'help_option_names': ['-h', '--help']}
 _SEP = ':'
 
 _parts = namedtuple('Parts', 'origin id_or_slug')
+
+
+def _format_message(addon, result) -> str:
+    return MESSAGES[result if isinstance(result, type) else result.__class__
+                    ](addon, result)
 
 
 def _tabulate(rows: T.List[T.Tuple[str, ...]], *,
@@ -79,6 +90,7 @@ def _compose_addon_defn(val):
 def _decompose_addon_defn(ctx, param, value):
     if isinstance(value, tuple):
         return [_decompose_addon_defn(ctx, param, v) for v in value]
+
     for resolver in ctx.obj.resolvers.values():
         parts = resolver.decompose_url(value)
         if parts:
@@ -144,12 +156,7 @@ def install(manager, addons, overwrite, strategy):
     for addon, result in zip((d for d, _ in addons),
                              manager.install_many((*p, strategy, overwrite)
                                                   for _, p in addons)):
-        try:
-            raise result
-        except Manager.ManagerResult as result:
-            click.echo(MESSAGES[result.__class__](addon, result))
-        except Exception:
-            click.echo(traceback.format_exc())
+        click.echo(_format_message(addon, result))
 
 
 @main.command()
@@ -162,14 +169,8 @@ def update(manager, addons):
                   for p in manager.db.query(Pkg).order_by(Pkg.slug).all()]
     for addon, result in zip((d for d, _ in addons),
                              manager.update_many(p for _, p in addons)):
-        try:
-            raise result
-        except Manager.PkgUpToDate:
-            pass
-        except Manager.ManagerResult as result:
-            click.echo(MESSAGES[result.__class__](addon, result))
-        except Exception:
-            click.echo(traceback.format_exc())
+        if not isinstance(result, Manager.PkgUpToDate):
+            click.echo(_format_message(addon, result))
 
 
 @main.command()
@@ -179,11 +180,10 @@ def remove(manager, addons):
     """Uninstall add-ons."""
     for addon, parts in addons:
         try:
-            raise manager.remove(*parts)
-        except Manager.ManagerResult as result:
-            click.echo(MESSAGES[result.__class__](addon, result))
-        except Exception:
-            click.echo(traceback.format_exc())
+            result = manager.remove(*parts)
+        except (Manager.ManagerError, Manager.InternalError) as error:
+            result = error
+        click.echo(_format_message(addon, result))
 
 
 @main.group('list')
@@ -208,7 +208,7 @@ def installed(manager, column, columns):
             if column == 'folders':
                 value = '\n'.join(f.path.name for f in value)
             elif column == 'options':
-                value = f'strategy = {value.strategy}'
+                value = {'strategy': value.strategy}
             elif column == 'description':
                 value = fill(value, width=50)
             yield value
@@ -278,9 +278,10 @@ def set_(manager, addons, strategy):
         if pkg:
             pkg.options.strategy = strategy
             manager.db.commit()
-            click.echo(MESSAGES[Manager.PkgModified](addon[0], 'strategy', strategy))
+            click.echo(_format_message(addon[0],
+                                       Manager.PkgModified('strategy', strategy)))
         else:
-            click.echo(MESSAGES[Manager.PkgNotInstalled](addon[0]))
+            click.echo(_format_message(addon[0], Manager.PkgNotInstalled))
 
 
 @main.command()
@@ -306,7 +307,7 @@ def info(manager, addon):
                 ('strategy', pkg.options.strategy),]
         click.echo(_tabulate(rows, show_index=False))
     else:
-        click.echo(MESSAGES[Manager.PkgNotInstalled](addon[0]))
+        click.echo(_format_message(addon[0], Manager.PkgNotInstalled))
 
 
 @main.command()
@@ -319,7 +320,7 @@ def hearth(manager, addon):
     if pkg:
         webbrowser.open(pkg.url)
     else:
-        click.echo(MESSAGES[Manager.PkgNotInstalled](addon[0]))
+        click.echo(_format_message(addon[0], Manager.PkgNotInstalled))
 
 
 @main.command()
@@ -332,7 +333,7 @@ def reveal(manager, addon):
     if pkg:
         webbrowser.open(pkg.folders[0].path.as_uri())
     else:
-        click.echo(MESSAGES[Manager.PkgNotInstalled](addon[0]))
+        click.echo(_format_message(addon[0], Manager.PkgNotInstalled))
 
 
 @main.group()
