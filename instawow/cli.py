@@ -396,13 +396,14 @@ def bitbar():
     """
 
 
-@bitbar.command(help='[internal]')
+@bitbar.command()
 @click.argument('caller')
 @click.argument('version')
 @click.pass_obj
 def _generate(manager, caller, version):
     from base64 import b64encode
     from pathlib import Path
+    from subprocess import run, PIPE
 
     outdated = manager.db.query(Pkg).order_by(Pkg.name).all()
     outdated = zip(outdated,
@@ -411,22 +412,29 @@ def _generate(manager, caller, version):
     outdated = [(p, r) for p, r in outdated
                 if p.file_id != getattr(r, 'file_id', p.file_id)]
 
-    icon = Path(__file__).parent/'assets'/\
-           f'NSStatusItem-icon__{"has-updates" if outdated else "clear"}.png'
+    icon = Path(__file__).parent/'assets'/f'''\
+NSStatusItem-icon__\
+{"has-updates" if outdated else "clear"}\
+{"@2x" if b"Retina" in run(("system_profiler", "SPDisplaysDataType"),
+                           stdout=PIPE).stdout else ""}\
+.png'''
     icon = b64encode(icon.read_bytes()).decode()
 
-    click.echo(f'| templateImage="{icon}"\n---')
+    click.echo(f'''| templateImage="{icon}"
+---
+instawow ({__version__}:{version})''')
     if outdated:
         if len(outdated) > 1:
             click.echo(f'''\
 Update all | bash={caller} param1=update terminal=false refresh=true''')
         for p, r in outdated:
             click.echo(f'''\
-Update {r.name} ({p.version} ➞ {r.version}) | \
-  bash={caller} param1=update param2={_compose_addon_defn(r)} \
-  terminal=false refresh=true''')
-    else:
-        click.echo('No add-on updates available')
+Update “{r.name}” ({p.version} ➞ {r.version}) | \
+  refresh=true \
+  bash={caller} param1=update param2={_compose_addon_defn(r)} terminal=false
+View “{r.name}” on {manager.resolvers[r.origin].name} | \
+  alternate=true \
+  bash={caller} param1=hearth param2={_compose_addon_defn(r)} terminal=false''')
 
 
 @bitbar.command()
