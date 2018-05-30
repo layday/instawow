@@ -4,7 +4,7 @@ import pytest
 
 from instawow.cli import main
 from instawow.config import Config
-from instawow.manager import Manager
+from instawow.manager import CliManager
 
 
 class _CliTest:
@@ -19,9 +19,9 @@ class _CliTest:
 
     @pytest.fixture(scope='class')
     def invoke_runner(self, temp_dirs):
-        with Manager(config=Config(addon_dir=self.addons, config_dir=self.config),
-                     show_progress=False) as manager:
-            yield lambda args: CliRunner().invoke(main, args=args, obj=manager)
+        config = Config(addon_dir=self.addons, config_dir=self.config)
+        with CliManager(config=config, show_progress=False) as obj:
+            yield lambda args: CliRunner().invoke(main, args=args, obj=obj)
 
 
 class TestSingleValidCursePkgLifecycle(_CliTest):
@@ -141,24 +141,24 @@ class TestInvalidOriginLifecycle(_CliTest):
 class TestStrategySwitchAndUpdateLifecycle(_CliTest):
 
     @pytest.mark.parametrize('test_input, cmp_fn, expected_output',
-                             [(['install', 'curse:transcriptor'],
+                             [(['install', 'curse:simulationcraft'],
                                str.startswith,
-                               '✓ curse:transcriptor: installed'),
-                              (['set', '--strategy=latest', 'curse:transcriptor'],
+                               '✓ curse:simulationcraft: installed'),
+                              (['set', '--strategy=latest', 'curse:simulationcraft'],
                                str.__eq__,
-                               "✓ curse:transcriptor: strategy set to latest\n"),
-                              (['update', 'curse:transcriptor'],
+                               "✓ curse:simulationcraft: strategy set to latest\n"),
+                              (['update', 'curse:simulationcraft'],
                                str.startswith,
-                               '✓ curse:transcriptor: updated from'),
-                              (['set', '--strategy=canonical', 'curse:transcriptor'],
+                               '✓ curse:simulationcraft: updated from'),
+                              (['set', '--strategy=canonical', 'curse:simulationcraft'],
                                str.__eq__,
-                               "✓ curse:transcriptor: strategy set to canonical\n"),
+                               "✓ curse:simulationcraft: strategy set to canonical\n"),
                               (['update'],
                                str.startswith,
-                               '✓ curse:transcriptor: updated from'),
-                              (['remove', 'curse:transcriptor'],
+                               '✓ curse:simulationcraft: updated from'),
+                              (['remove', 'curse:simulationcraft'],
                                str.__eq__,
-                               '✓ curse:transcriptor: removed\n'),])
+                               '✓ curse:simulationcraft: removed\n'),])
     def test_strategy_switch_and_update_lifecycle(self, invoke_runner,
                                                   test_input, cmp_fn,
                                                   expected_output):
