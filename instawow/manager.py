@@ -2,10 +2,10 @@
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
 from functools import partial
-import shutil
 import typing as T
 
 from aiohttp import ClientSession, TCPConnector
+from send2trash import send2trash
 from sqlalchemy import create_engine, or_
 from sqlalchemy.orm import sessionmaker
 from tqdm import tqdm as _tqdm
@@ -205,7 +205,7 @@ class Manager:
             raise self.PkgNotInstalled
 
         for folder in pkg.folders:
-            shutil.rmtree(folder.path)
+            send2trash(str(folder.path))
         return self.PkgRemoved(self.db.x_delete(pkg))
 
     async def block_in_thread(self, fn: T.Callable, *, channel: int=0) -> T.Any:
