@@ -56,6 +56,32 @@ class TestSingleValidCursePkgLifecycle(_CliTest):
         assert cmp_fn(invoke_runner(test_input).output, expected_output)
 
 
+class TestSingleValidTukuiPkgLifecycle(_CliTest):
+
+    @pytest.mark.parametrize('test_input, cmp_fn, expected_output',
+                             [(['install', 'tukui:3'],
+                               str.startswith,
+                               '✓ tukui:3: installed'),
+                              (['install', 'tukui:3'],
+                               str.__eq__,
+                               '✗ tukui:3: already installed\n'),
+                              (['update', 'tukui:3'],
+                               str.__eq__,
+                               ''),
+                              (['remove', 'tukui:3'],
+                               str.__eq__,
+                               '✓ tukui:3: removed\n'),
+                              (['update', 'tukui:3'],
+                               str.__eq__,
+                               '✗ tukui:3: not installed\n'),
+                              (['remove', 'tukui:3'],
+                               str.__eq__,
+                               '✗ tukui:3: not installed\n'),])
+    def test_single_valid_tukui_pkg_lifecycle(self, invoke_runner,
+                                              test_input, cmp_fn, expected_output):
+        assert cmp_fn(invoke_runner(test_input).output, expected_output)
+
+
 class TestSingleValidWowiPkgLifecycle(_CliTest):
 
     @pytest.mark.parametrize('test_input, cmp_fn, expected_output',

@@ -211,3 +211,37 @@ class _WowiResolver(BaseResolver,
                    date_published=details['UIDate'],
                    version=details['UIVersion'],
                    options=PkgOptions(strategy=strategy))
+
+
+class _TukuiResolver(BaseResolver,
+                     origin='tukui', name='Tukui'):
+
+    _re_addon_url = re.compile(re.escape('https://www.tukui.org/addons.php?id=') +
+                               r'(?P<id>\d+)')
+
+    @classmethod
+    def decompose_url(cls, url: str) -> T.Optional[T.Tuple[str, str]]:
+        match = cls._re_addon_url.match(url)
+        if match:
+            return (cls.origin, match.group('id'))
+
+    async def resolve(self, id_or_slug: str, *,
+                      strategy: str) -> Pkg:
+        addon_id = id_or_slug.partition('-')[0]
+        async with self.wc.get(f'https://www.tukui.org/api.php?addon={addon_id}') \
+                as resp:
+            if not resp.content_length:
+                raise self.PkgNonexistent
+            addon = await resp.json(content_type='text/html')
+
+        return Pkg(origin=self.origin,
+                   id=addon['id'],
+                   slug=f'{addon["id"]}-{addon["name"]}',
+                   name=addon['name'],
+                   description=addon['small_desc'],
+                   url=addon['web_url'],
+                   file_id=addon['lastupdate'],
+                   download_url=addon['url'],
+                   date_published=addon['lastupdate'],
+                   version=addon['version'],
+                   options=PkgOptions(strategy=strategy))
