@@ -103,8 +103,6 @@ class Manager:
         self.db = DbOverlay(config)
         self.resolvers = _MemberDict((n, r(manager=self))
                                      for n, r in BaseResolver.__members__.items())
-        self._tpes = [ThreadPoolExecutor(max_workers=1), ThreadPoolExecutor(max_workers=1)]
-
         # ``uvloop`` raises ``RuntimeError`` when client started outside async context
         self.wc = self.loop.run_until_complete(_init_client(self.loop))
 
@@ -208,11 +206,12 @@ class Manager:
             send2trash(str(folder.path))
         return self.PkgRemoved(self.db.x_delete(pkg))
 
-    async def block_in_thread(self, fn: T.Callable, *, channel: int=0) -> T.Any:
+    async def block_in_thread(self, fn: T.Callable, *,
+                              _EXEC=ThreadPoolExecutor(max_workers=1)) -> T.Any:
         """Execute a function in a separate thread.  Successive calls to this
         method are queued by virtue of reusing the same thread.
         """
-        return await self.loop.run_in_executor(self._tpes[channel], fn)
+        return await self.loop.run_in_executor(_EXEC, fn)
 
     async def gather(self, it, **kwargs) -> list:
         "Overload for bespoke ``gather``ing."
