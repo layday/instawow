@@ -1,6 +1,6 @@
 *instawow* is a fledgling package manager for World of Warcraft written
 in Python. It can be used to install, remove and update add-ons from
-Curse and WoWInterface.
+Curse, WoWInterface and Tukui.
 
 Installation
 ------------
