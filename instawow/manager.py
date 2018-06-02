@@ -141,16 +141,19 @@ class Manager:
             payload = await resp.read()
 
         def _finalise() -> E.PkgInstalled:
+            archive = Archive(payload)
+            new_pkg.folders = [PkgFolder(path=self.config.addon_dir/f)
+                               for f in archive.root_folders]
             folder_conflict = self.db.query(PkgFolder)\
                                      .filter(PkgFolder.path.in_([f.path for f in new_pkg.folders]))\
                                      .first()
             if folder_conflict:
                 raise self.PkgConflictsWithInstalled(folder_conflict.pkg)
             try:
-                Archive(payload).extract(parent_folder=self.config.addon_dir,
-                                         overwrite=overwrite)
+                archive.extract(parent_folder=self.config.addon_dir, overwrite=overwrite)
             except Archive.ExtractConflict:
                 raise self.PkgConflictsWithPreexisting
+
             return self.PkgInstalled(self.db.x_insert(new_pkg))
         return _finalise
 
@@ -172,6 +175,9 @@ class Manager:
             payload = await resp.read()
 
         def _finalise() -> E.PkgUpdated:
+            archive = Archive(payload)
+            new_pkg.folders = [PkgFolder(path=self.config.addon_dir/f)
+                               for f in archive.root_folders]
             folder_conflict = self.db.query(PkgFolder)\
                                      .filter(PkgFolder.path.in_([f.path for f in new_pkg.folders]),
                                              PkgFolder.pkg_origin != new_pkg.origin,
@@ -181,10 +187,11 @@ class Manager:
                 raise self.PkgConflictsWithInstalled(folder_conflict.pkg)
 
             try:
-                Archive(payload).extract(parent_folder=self.config.addon_dir,
-                                         overwrite={f.path.name for f in new_pkg.folders})
+                archive.extract(parent_folder=self.config.addon_dir,
+                                overwrite={f.path.name for f in new_pkg.folders})
             except Archive.ExtractConflict:
                 raise self.PkgConflictsWithPreexisting
+
             return self.PkgUpdated((old_pkg, self.db.x_replace(new_pkg, old_pkg)))
         return _finalise
 

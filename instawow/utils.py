@@ -20,16 +20,22 @@ class Archive:
     def __init__(self, payload: bytes):
         self._archive = zipfile.ZipFile(io.BytesIO(payload))
 
-    def extract(self, parent_folder: Path,
-                *,
+    def extract(self, parent_folder: Path, *,
                 overwrite: T.Union[bool, T.Set[str]]=False) -> None:
+        "Extract the archive contents under ``parent_folder``."
         if overwrite is not True:
-            conflicts = ({Path(p).parts[0] for p in self._archive.namelist()} &
+            conflicts = ({f.name for f in self.root_folders} &
                          ({f.name for f in parent_folder.iterdir()} -
                           (overwrite or set())))
             if conflicts:
                 raise ExtractConflict(conflicts)
         self._archive.extractall(parent_folder)
+
+    @property
+    def root_folders(self) -> T.List[Path]:
+        folders = sorted({Path(p).parts[0] for p in self._archive.namelist()})
+        folders = [Path(p) for p in folders]
+        return folders
 
 
 _TocEntry = namedtuple('_TocEntry', 'key value')

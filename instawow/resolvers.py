@@ -150,8 +150,6 @@ class _CurseResolver(BaseResolver,
                    file_id=file['Id'],
                    download_url=file['DownloadURL'],
                    date_published=file['FileDate'],
-                   folders=[PkgFolder(path=self.config.addon_dir/m['Foldername'])
-                            for m in file['Modules']],
                    version=file['FileName'],
                    options=PkgOptions(strategy=strategy))
 
@@ -212,7 +210,5 @@ class _WowiResolver(BaseResolver,
                    file_id=details['UIMD5'],
                    download_url=details['UIDownload'],
                    date_published=details['UIDate'],
-                   folders=[PkgFolder(path=self.config.addon_dir/f)
-                            for f in file['UIDir']],
                    version=details['UIVersion'],
                    options=PkgOptions(strategy=strategy))
