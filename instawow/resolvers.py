@@ -5,9 +5,10 @@ from datetime import datetime as dt, timedelta
 import re
 import typing as T
 
+from parsel import Selector
 from yarl import URL
 
-from .models import CacheEntry, Pkg, PkgFolder, PkgOptions
+from .models import CacheEntry, Pkg, PkgOptions
 
 
 EXPIRY = 3600
@@ -61,13 +62,6 @@ class BaseResolver:
 class _CurseResolver(BaseResolver,
                      origin='curse', name='CurseForge'):
 
-    _data: dict
-
-    _json_dump_url = 'https://clientupdate-v6.cursecdn.com/feed/addons/1/v10/'\
-                     '{freq}.json.bz2'
-    _json_date_url = f'{_json_dump_url}.txt'
-    _freqs = {'hourly', 'daily', 'weekly', 'complete'}
-
     _re_curse_url = re.compile(r'(?P<id>\d+)-(?P<slug>[a-z_-]+)')
 
     @classmethod
@@ -94,63 +88,40 @@ class _CurseResolver(BaseResolver,
                 slug = match.group('id')
             return (cls.origin, slug)
 
-    async def sync(self) -> None:
-        async def _sync(freq):
-            entry = self.db.query(CacheEntry).get((self.origin, freq))
-            if not entry or ((entry.date_retrieved + timedelta(seconds=EXPIRY)) <
-                             dt.now()):
-                async with self.wc.get(self._json_date_url
-                                           .format(freq=freq)) as resp:
-                    dt_ = dt.fromtimestamp(int(await resp.text()) / 1000)
-                if not entry or entry.date_updated != dt_:
-                    async with self.wc.get(self._json_dump_url
-                                               .format(freq=freq)) as resp:
-                        payload = await resp.read()
-                    payload = await self.block_in_thread(lambda: bz2.decompress(payload)
-                                                                    .decode())
-                    new_entry = CacheEntry(origin=self.origin, id=freq,
-                                           date_retrieved=dt.now(),
-                                           date_updated=dt_, contents=payload)
-                    entry = self.db.x_replace(new_entry, entry)
-            return entry
-
-        data = await self.gather((_sync(f) for f in self._freqs),
-                                 desc='Updating Curse cache')
-        data = sorted(data, key=lambda e: e.date_updated, reverse=True)
-        data = {k: v
-                for c in data
-                for e in c.contents['data'] if e['PackageType'] == 1
-                for k, v in ((str(e['Id']), e),
-                             (self._slug_from_url(e['WebSiteURL']), e))}
-        self._data = data
-
     async def resolve(self, id_or_slug: str, *,
                       strategy: str) -> Pkg:
-        try:
-            proj = self._data[id_or_slug]
-        except KeyError:
-            # This really shouldn't happen but projects are sometimes missing
-            # from the data dumps - maybe there's another dump we're yet to
-            # uncover?
-            raise self.PkgNonexistent
+        async with self.wc.get(f'https://wow.curseforge.com/projects/{id_or_slug}') \
+                as response:
+            if response.status != 200:
+                raise self.PkgNonexistent
+            content = await response.text()
+        content = Selector(text=content, base_url=str(response.url))
+        content.root.make_links_absolute()
 
         if strategy == 'canonical':
-            file_id = proj['DefaultFileId']
-        elif strategy == 'latest':
-            file_id = max(f['Id'] for f in proj['LatestFiles']
-                          if f['IsAlternate'] is False)
-        file = next(f for f in proj['LatestFiles'] if f['Id'] == file_id)
+            file = content.css('.cf-recentfiles > li:first-child '
+                               '.cf-recentfiles-credits-wrapper')
+        else:
+            file = max(map(int, content.css('.cf-recentfiles abbr::attr(data-epoch)')
+                                       .extract()))
+            file = content.xpath(f'//*[@class = "cf-recentfiles"]'
+                                 f'//abbr[@data-epoch = "{file}"]/..')
 
         return Pkg(origin=self.origin,
-                   id=proj['Id'],
-                   slug=self._slug_from_url(proj['WebSiteURL']),
-                   name=proj['Name'],
-                   description=proj['Summary'],
-                   url=proj['WebSiteURL'],
-                   file_id=file['Id'],
-                   download_url=file['DownloadURL'],
-                   date_published=file['FileDate'],
-                   version=file['FileName'],
+                   id=content.xpath('''\
+//div[@class = "info-label" and text() = "Project ID"]/following-sibling::div/text()'''
+                                    ).extract_first().strip(),
+                   slug=URL(response.url).name,
+                   name=content.css('meta[property="og:title"]::attr(content)')
+                               .extract_first(),
+                   description=content.css('meta[property="og:description"]::attr(content)')
+                                      .extract_first(),
+                   url=content.css('.view-on-curse > a::attr(href)').extract_first(),
+                   file_id=URL(file.css('.overflow-tip::attr(href)')
+                                   .extract_first()).name,
+                   download_url=file.css('.fa-icon-download::attr(href)').extract_first(),
+                   date_published=file.css('abbr::attr(data-epoch)').extract_first(),
+                   version=file.css('.overflow-tip::attr(data-name)').extract_first(),
                    options=PkgOptions(strategy=strategy))
 
 
