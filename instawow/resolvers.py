@@ -84,7 +84,8 @@ class _CurseResolver(BaseResolver,
                       strategy: str) -> Pkg:
         async with self.wc.get(f'https://wow.curseforge.com/projects/{id_or_slug}') \
                 as response:
-            if response.status != 200:
+            if response.status != 200 \
+                    or response.url.host not in {'wow.curseforge.com', 'www.wowace.com'}:
                 raise self.PkgNonexistent
             content = await response.text()
         content = Selector(text=content, base_url=str(response.url))
