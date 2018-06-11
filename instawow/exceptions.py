@@ -19,14 +19,6 @@ class PkgUpdated(ManagerResult):
         self.old_pkg, self.new_pkg = pkgs
 
 
-class PkgModified(ManagerResult):
-
-    def __init__(self, key, value):
-        super().__init__()
-        self.key = key
-        self.value = value
-
-
 class PkgRemoved(ManagerResult):
 
     def __init__(self, pkg):

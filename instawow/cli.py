@@ -22,13 +22,13 @@ _FAILURE = click.style('✗', fg='red')
 
 MESSAGES = {
     Manager.PkgInstalled:
-        f'{_SUCCESS} {{}}: installed {{.new_pkg.version}}'.format,
+        f'{_SUCCESS} {{0}}: installed {{1.new_pkg.version}}'
+        f' from {{1.new_pkg.options.strategy}}'.format,
     Manager.PkgUpdated:
-        f'{_SUCCESS} {{0}}: updated from {{1.old_pkg.version}} to {{1.new_pkg.version}}'.format,
+        f'{_SUCCESS} {{0}}: updated {{1.old_pkg.version}} to {{1.new_pkg.version}}'
+        f' from {{1.new_pkg.options.strategy}}'.format,
     Manager.PkgRemoved:
         f'{_SUCCESS} {{}}: removed'.format,
-    Manager.PkgModified:
-        f'{_SUCCESS} {{0}}: {{1.key}} set to {{1.value}}'.format,
     Manager.PkgAlreadyInstalled:
         f'{_FAILURE} {{}}: already installed'.format,
     Manager.PkgConflictsWithInstalled:
@@ -122,7 +122,8 @@ init = click.Command(name='instawow-init', callback=_init,
 
 @click.group(context_settings=_CONTEXT_SETTINGS)
 @click.version_option(__version__)
-@click.option('--hide-progress', '-n', is_flag=True, default=False)
+@click.option('--hide-progress', '-n', is_flag=True, default=False,
+              help='Hide the progress bar.')
 @click.pass_context
 def main(ctx, hide_progress):
     """Add-on manager for World of Warcraft."""
@@ -141,7 +142,7 @@ cli = main
 
 
 @main.command()
-@click.argument('addons', nargs=-1, callback=_decompose_addon_defn)
+@click.argument('addons', nargs=-1, required=True, callback=_decompose_addon_defn)
 @click.option('--strategy', '-s',
               type=click.Choice(['canonical', 'latest']),
               default='canonical',
@@ -161,20 +162,24 @@ def install(manager, addons, overwrite, strategy):
 
 @main.command()
 @click.argument('addons', nargs=-1, callback=_decompose_addon_defn)
+@click.option('--strategy', '-s',
+              type=click.Choice(['canonical', 'latest']), default=None,
+              help="Whether to update to the latest published version "
+                   "('canonical') or the very latest upload ('latest').")
 @click.pass_obj
-def update(manager, addons):
+def update(manager, addons, strategy):
     """Update installed add-ons."""
     if not addons:
         addons = [(_compose_addon_defn(p), (p.origin, p.id))
                   for p in manager.db.query(Pkg).order_by(Pkg.slug).all()]
     for addon, result in zip((d for d, _ in addons),
-                             manager.update_many(p for _, p in addons)):
+                             manager.update_many((*p, strategy) for _, p in addons)):
         if not isinstance(result, Manager.PkgUpToDate):
             click.echo(_format_message(addon, result))
 
 
 @main.command()
-@click.argument('addons', nargs=-1, callback=_decompose_addon_defn)
+@click.argument('addons', nargs=-1, required=True, callback=_decompose_addon_defn)
 @click.pass_obj
 def remove(manager, addons):
     """Uninstall add-ons."""
@@ -263,27 +268,6 @@ def preexisting(manager):
                              head=('folder', 'curse id or slug', 'version')))
 
 
-@main.command('set')
-@click.argument('addons', nargs=-1, callback=_decompose_addon_defn)
-@click.option('--strategy', '-s',
-              type=click.Choice(['canonical', 'latest']),
-              help="Whether to fetch the latest published version "
-                   "('canonical') or the very latest upload ('latest').")
-@click.pass_obj
-def set_(manager, addons, strategy):
-    """Modify add-on settings."""
-    for addon in addons:
-        pkg = addon[1]
-        pkg = manager.db.x_unique(pkg.origin, pkg.id_or_slug)
-        if pkg:
-            pkg.options.strategy = strategy
-            manager.db.commit()
-            click.echo(_format_message(addon[0],
-                                       Manager.PkgModified('strategy', strategy)))
-        else:
-            click.echo(_format_message(addon[0], Manager.PkgNotInstalled))
-
-
 @main.command()
 @click.argument('addon', callback=_decompose_addon_defn)
 @click.pass_obj
@@ -341,7 +325,7 @@ def debug():
     """Debugging funcionality."""
 
 
-@debug.command(name='shell')
+@debug.command()
 @click.pass_context
 def shell(ctx):
     """Drop into an interactive shell.
@@ -385,7 +369,7 @@ def clear(manager):
 
 @main.group()
 def extras():
-    pass
+    """Additional functionality."""
 
 
 @extras.group()

@@ -86,8 +86,7 @@ async def _init_client(loop):
 class Manager:
 
     from .exceptions import (ManagerResult,
-                             PkgInstalled, PkgUpdated,
-                             PkgModified, PkgRemoved,
+                             PkgInstalled, PkgUpdated, PkgRemoved,
                              ManagerError,
                              PkgAlreadyInstalled, PkgConflictsWithInstalled,
                              PkgConflictsWithPreexisting, PkgNonexistent,
@@ -155,7 +154,8 @@ class Manager:
             return self.PkgInstalled(self.db.x_insert(new_pkg))
         return _finalise
 
-    async def prepare_update(self, origin: str, id_or_slug: str) -> T.Callable:
+    async def prepare_update(self, origin: str, id_or_slug: str,
+                             strategy: str=None) -> T.Callable:
         """Retrieve a package to update.
 
         :raises: PkgOriginInvalid, PkgNonexistent, PkgNotInstalled, PkgUpToDate,
@@ -166,9 +166,15 @@ class Manager:
         if not old_pkg:
             raise self.PkgNotInstalled
 
-        new_pkg = await self.resolve(origin, id_or_slug, old_pkg.options.strategy)
+        strategy = strategy or old_pkg.options.strategy
+        new_pkg = await self.resolve(origin, id_or_slug, strategy)
         if old_pkg.file_id == new_pkg.file_id:
-            raise self.PkgUpToDate
+            def _finalise() -> None:
+                if strategy != old_pkg.options.strategy:
+                    old_pkg.options.strategy = strategy
+                    self.db.commit()
+                raise self.PkgUpToDate
+            return _finalise
         async with self.wc.get(new_pkg.download_url) as resp:
             payload = await resp.read()
 
