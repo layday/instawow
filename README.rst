@@ -27,16 +27,9 @@ Molinari::
     instawow install https://www.wowinterface.com/downloads/info13188-Molinari.html
 
 By default *instawow* will install the latest file to have been
-officially published. You may also install the latest file to have been
-uploaded (on the CurseForge or WowAce), be it stable, or beta or alpha
-quality, by passing ``--strategy=latest``.
-
-Configuring add-ons
-~~~~~~~~~~~~~~~~~~~
-
-You can opt into alpha updates anytime with
-``instawow set --strategy=latest <add-on>`` and revert to receiving
-stable updates with ``instawow set --strategy=canonical <add-on>``.
+*released*. You may also install the latest file that has been
+uploaded (be it stable, or beta or alpha quality) by
+passing ``--strategy=latest``. This option only applies to CurseForge packages.
 
 Updating
 ~~~~~~~~
@@ -64,8 +57,8 @@ To see information about an installed add-on, execute
 ``instawow hearth <add-on>``. And to open its main folder in your file
 manager, run ``instawow reveal <add-on>``.
 
-Extras
-------
+Goodies
+-------
 
 *instawow* ships with a `BitBar <https://getbitbar.com/>`__ plug-in
 for macOS, which you can use to update add-ons from the menu bar.
@@ -87,8 +80,8 @@ market and practically because we could never know when Curse might pull
 the rug from under our feet. WoWI's Minion app also
 implements a similar though less sophisticated fingerprinting technique.
 
-Metadata freshness
-~~~~~~~~~~~~~~~~~~
+Metadata extraction
+~~~~~~~~~~~~~~~~~~~
 
 The Twitch client uses a closed metadata API internally.
 Because the API was not built for third-party use it has not been
@@ -97,23 +90,15 @@ If users were to log into the API *instawow* would acquire full
 access to their account. Authentication is also complicated
 by the ongoing Curse account migration to Twitch and is (or should be)
 unnecessary for the simple use case of installing and updating add-ons.
-Instead, *instawow* relies solely on official data dumps or 'feeds'.
-This approach is not without its drawbacks:
-
-- There are sometimes gaps in the Curse feeds with multiple add-ons
-  being lost in the Twisting Nether until they invariably reappear
-  a few hours later, ostensibly unharmed.
-
-- The feeds are updated at least once hourly.
-  Therefore you might receive add-on updates with up to an hour's delay
-  depending on the Δt between a new file being uploaded and the feed
-  being updated.
+Until recently *instawow* used to rely on the official feeds.  These
+were apparently sunsetted by Curse on 8 June 2018,
+completing the migration to the internal API, leaving us with
+no choice but to scrape CurseForge pages.
 
 By contrast Minion uses an undocumented but open JSON API, which
 *instawow* does communicate with.
-
 Because it has a much shorter execution cycle than a desktop app,
-*instawow* caches add-on metadata for one hour. If you do for whatever
+*instawow* caches (some) add-on metadata for one hour. If you do for whatever
 reason need to force an early resync you can do so with
 ``instawow debug cache invalidate``.
 
@@ -125,7 +110,10 @@ does not seek to drive users away from add-on portals; but to make
 installing, updating and removing add-ons found on portals hassle-free
 for those of us who are (ever so slightly) proficient with the command
 line and do not particularly relish in using bloatware or inhabiting
-walled gardens.
+walled gardens.  It is also important to note that the Twitch client
+communicates with Google Analytics, Scorecard Research and Nielsen
+without user consent, which is unacceptable to me and my European
+brethren.
 
 Development
 -----------
