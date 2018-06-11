@@ -65,14 +65,6 @@ class _CurseResolver(BaseResolver,
     _re_curse_url = re.compile(r'(?P<id>\d+)-(?P<slug>[a-z_-]+)')
 
     @classmethod
-    def _slug_from_url(cls, url: str) -> str:
-        name = URL(url).name
-        match = cls._re_curse_url.match(name)
-        if match:
-            return match.group('slug')
-        return name
-
-    @classmethod
     def decompose_url(cls, url: str) -> T.Optional[T.Tuple[str, str]]:
         url = URL(url)
         if url.host in {'wow.curseforge.com', 'www.wowace.com'} \
