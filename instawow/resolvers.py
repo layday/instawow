@@ -104,7 +104,7 @@ class _CurseResolver(BaseResolver,
                    id=content.xpath('''\
 //div[@class = "info-label" and text() = "Project ID"]/following-sibling::div/text()'''
                                     ).extract_first().strip(),
-                   slug=URL(response.url).name,
+                   slug=response.url.name,
                    name=content.css('meta[property="og:title"]::attr(content)')
                                .extract_first(),
                    description=content.css('meta[property="og:description"]::attr(content)')
