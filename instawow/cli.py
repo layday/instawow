@@ -106,7 +106,7 @@ def _decompose_addon_defn(ctx, param, value):
 
 
 def _init():
-    addon_dir = UserConfig.default_addon_dir
+    addon_dir = UserConfig.detect_addon_dir()
     while True:
         try:
             UserConfig(addon_dir=addon_dir).create_dirs().write()
