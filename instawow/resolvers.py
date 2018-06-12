@@ -166,7 +166,8 @@ class _WowiResolver(BaseResolver,
 
         return Pkg(origin=self.origin,
                    id=file['UID'],
-                   slug=f'{file["UID"]}-{file["UIName"]}',
+                   slug=self._re_addon_url.search(file['UIFileInfoURL'])
+                                          .group('slug'),
                    name=file['UIName'],
                    description=details['UIDescription'],
                    url=file['UIFileInfoURL'],
