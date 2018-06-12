@@ -7,6 +7,7 @@ import typing as T
 import webbrowser
 
 import click
+from outdated import check_outdated
 from sqlalchemy import inspect
 from texttable import Texttable
 
@@ -135,8 +136,15 @@ def main(ctx, hide_progress):
                 _init()
             else:
                 break
-        ctx.obj = manager = Manager(config=config, show_progress=not hide_progress)
+        ctx.obj = manager = Manager(config=config,
+                                    show_progress=not hide_progress)
         ctx.call_on_close(manager.close)
+
+        is_outdated, _latest_version = check_outdated('instawow',
+                                                      __version__)
+        if is_outdated:
+            click.echo(f'{click.style("!", fg="blue")} instawow is out of date:\n'
+                       f'  run `python3 -m pip install -U instawow` to upgrade')
 
 cli = main
 
