@@ -112,8 +112,8 @@ def _init():
             UserConfig(addon_dir=addon_dir).create_dirs().write()
         except ValueError:
             if addon_dir:
-                click.echo(f'{addon_dir!r} not found')
-            addon_dir = click.prompt('Please enter the path to your add-on folder')
+                click.echo(f'{addon_dir} not found')
+            addon_dir = click.prompt('Enter the path to your add-on folder')
         else:
             break
 
@@ -215,9 +215,13 @@ def list_():
 @click.pass_obj
 def installed(manager, column, columns):
     """List installed add-ons."""
-    def _format_columns(pkg, columns):
+    def format_columns(pkg, columns):
         for column in columns:
-            value = reduce(getattr, [pkg] + column.split('.'))
+            try:
+                value = reduce(getattr, [pkg] + column.split('.'))
+            except AttributeError:
+                raise click.BadParameter(column,
+                                         param_hint=['--column', '-c'])
             if column == 'folders':
                 value = '\n'.join(f.path.name for f in value)
             elif column == 'options':
@@ -231,15 +235,9 @@ def installed(manager, column, columns):
                                              *inspect(Pkg).relationships.keys())],
                              head=('field',), show_index=False))
     else:
-        pkgs = manager.db.query(Pkg).order_by(Pkg.origin, Pkg.slug).all()
-        if not pkgs:
-            return
-        try:
-            click.echo(_tabulate([(_compose_addon_defn(p),
-                                   *_format_columns(p, column)) for p in pkgs],
-                                 head=('add-on', *column)))
-        except AttributeError as e:
-            raise click.BadParameter(e.args)
+        click.echo(_tabulate([(_compose_addon_defn(p), *format_columns(p, column))
+                              for p in manager.db.query(Pkg).order_by(Pkg.name).all()],
+                             head=('add-on', *column)))
 
 
 @list_.command()
@@ -255,8 +253,7 @@ def outdated(manager):
         click.echo(_tabulate([(_compose_addon_defn(r),
                                p.version, r.version, r.options.strategy)
                               for p, r in outdated],
-                             head=('add-on', 'current version',
-                                   'new version', 'strategy')))
+                             head=('add-on', 'installed', 'new', 'strategy')))
 
 
 @list_.command()
@@ -270,10 +267,12 @@ def preexisting(manager):
     folders = {(n, TocReader(t)) for n, t in folders if t.exists()}
     if folders:
         click.echo(_tabulate([(n,
-                               t['X-Curse-Project-ID'].value,
+                               t['X-Curse-Project-ID'].value or '',
+                               t['X-WoWI-ID'].value or '',
                                t['X-Curse-Packaged-Version', 'X-Packaged-Version',
-                                 'Version'].value) for n, t in sorted(folders)],
-                             head=('folder', 'curse id or slug', 'version')))
+                                 'Version'].value or '')
+                              for n, t in sorted(folders)],
+                             head=('folder', 'Curse ID', 'WoWI ID', 'version')))
 
 
 @main.command()
