@@ -105,6 +105,12 @@ def _decompose_addon_defn(ctx, param, value):
     return _compose_addon_defn(parts), parts
 
 
+class _OrigCmdOrderGroup(click.Group):
+
+    def list_commands(self, ctx):
+        return self.commands    # The default is ``sorted(self.commands)``
+
+
 def _init():
     addon_dir = UserConfig.detect_addon_dir()
     while True:
@@ -121,7 +127,7 @@ init = click.Command(name='instawow-init', callback=_init,
                      context_settings=_CONTEXT_SETTINGS)
 
 
-@click.group(context_settings=_CONTEXT_SETTINGS)
+@click.group(cls=_OrigCmdOrderGroup, context_settings=_CONTEXT_SETTINGS)
 @click.version_option(__version__)
 @click.option('--hide-progress', '-n', is_flag=True, default=False,
               help='Hide the progress bar.')
