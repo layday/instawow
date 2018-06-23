@@ -1,6 +1,5 @@
 
 import asyncio
-import bz2
 from datetime import datetime as dt, timedelta
 import re
 import typing as T
@@ -11,7 +10,7 @@ from yarl import URL
 from .models import CacheEntry, Pkg, PkgOptions
 
 
-EXPIRY = 3600
+_EXPIRY = 3600
 
 
 class BaseResolver:
@@ -82,7 +81,8 @@ class _CurseResolver(BaseResolver,
 
     async def resolve(self, id_or_slug: str, *,
                       strategy: str) -> Pkg:
-        async with self.wc.get(f'https://wow.curseforge.com/projects/{id_or_slug}') \
+        async with self.client.get()\
+                              .get(f'https://wow.curseforge.com/projects/{id_or_slug}') \
                 as response:
             if response.status != 200 \
                     or response.url.host not in {'wow.curseforge.com', 'www.wowace.com'}:
@@ -123,8 +123,8 @@ class _WowiResolver(BaseResolver,
 
     _data: dict
 
-    _json_dump_url = 'https://api.mmoui.com/v3/game/WOW/filelist.json'
-    _details_api_endpoint = 'https://api.mmoui.com/v3/game/WOW/filedetails/'
+    _api_list = 'https://api.mmoui.com/v3/game/WOW/filelist.json'
+    _api_details = 'https://api.mmoui.com/v3/game/WOW/filedetails/{}.json'
 
     _re_addon_url = re.compile(r'(?:download|info)(?P<slug>(?P<id>\d+)[^.]+)')
 
@@ -140,27 +140,26 @@ class _WowiResolver(BaseResolver,
 
     async def sync(self) -> None:
         entry = self.db.query(CacheEntry).get((self.origin, self.origin))
-        if not entry or ((entry.date_retrieved + timedelta(seconds=EXPIRY)) <
+        if not entry or ((entry.date_retrieved + timedelta(seconds=_EXPIRY)) <
                          dt.now()):
-            async with self.wc.get(self._json_dump_url) as resp:
-                data = await resp.read()
+            async with self.client.get()\
+                                  .get(self._api_list) as response:
+                data = await response.read()
             new_entry = CacheEntry(origin=self.origin, id=self.origin,
                                    date_retrieved=dt.now(), contents=data)
             entry = self.db.x_replace(new_entry, entry)
-
         self._data = {e['UID']: e for e in entry.contents}
 
     async def resolve(self, id_or_slug: str, *,
                       strategy: str) -> Pkg:
-        file_id = id_or_slug.partition('-')[0]
         try:
-            file = self._data[file_id]
+            file = self._data[id_or_slug.partition('-')[0]]
         except KeyError:
             raise self.PkgNonexistent
 
-        async with self.wc.get(f'{self._details_api_endpoint}/{file_id}.json') \
-                as resp:
-            details, = await resp.json()
+        async with self.client.get()\
+                              .get(self._api_details.format(file['UID'])) as response:
+            details, = await response.json()
         if file['UIDate'] != details['UIDate']:
             raise self.CacheObsolete
 
@@ -193,11 +192,12 @@ class _TukuiResolver(BaseResolver,
     async def resolve(self, id_or_slug: str, *,
                       strategy: str) -> Pkg:
         addon_id = id_or_slug.partition('-')[0]
-        async with self.wc.get(f'https://www.tukui.org/api.php?addon={addon_id}') \
-                as resp:
-            if not resp.content_length:
+        async with self.client.get()\
+                              .get(f'https://www.tukui.org/api.php?addon={addon_id}') \
+                as response:
+            if not response.content_length:
                 raise self.PkgNonexistent
-            addon = await resp.json(content_type='text/html')
+            addon = await response.json(content_type='text/html')
 
         return Pkg(origin=self.origin,
                    id=addon['id'],

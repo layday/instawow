@@ -142,9 +142,8 @@ def main(ctx, hide_progress):
                 _init()
             else:
                 break
-        ctx.obj = manager = Manager(config=config,
-                                    show_progress=not hide_progress)
-        ctx.call_on_close(manager.close)
+        ctx.obj = Manager(config=config,
+                          show_progress=not hide_progress)
 
         is_outdated, _latest_version = check_outdated('instawow',
                                                       __version__)

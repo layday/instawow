@@ -43,7 +43,10 @@ class PkgConflictsWithInstalled(ManagerError):
 
 
 class PkgConflictsWithPreexisting(ManagerError):
-    pass
+
+    def __init__(self, folders):
+        super().__init__()
+        self.folders = folders
 
 
 class PkgNonexistent(ManagerError):

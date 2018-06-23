@@ -19,86 +19,89 @@ class _CliTest:
 
     @pytest.fixture(scope='class')
     def invoke_runner(self, temp_dirs):
-        config = Config(addon_dir=self.addons, config_dir=self.config)
-        with CliManager(config=config, show_progress=False) as obj:
-            yield lambda args: CliRunner().invoke(main, args=args, obj=obj)
+        obj = CliManager(config=Config(addon_dir=self.addons, config_dir=self.config),
+                         show_progress=False)
+        yield lambda args: CliRunner().invoke(main, args=args, obj=obj)
 
 
-class TestSingleValidCursePkgLifecycle(_CliTest):
+class TestValidCursePkgLifecycle(_CliTest):
 
-    @pytest.mark.parametrize('test_input, cmp_fn, expected_output',
-                             [(['install', 'curse:molinari'],
-                               str.startswith,
-                               '✓ curse:molinari: installed'),
-                              (['install', 'curse:molinari'],
-                               str.__eq__,
-                               '✗ curse:molinari: already installed\n'),
-                              (['update', 'curse:molinari'],
-                               str.__eq__,
-                               ''),
-                              (['remove', 'curse:molinari'],
-                               str.__eq__,
-                               '✓ curse:molinari: removed\n'),
-                              (['update', 'curse:molinari'],
-                               str.__eq__,
-                               '✗ curse:molinari: not installed\n'),
-                              (['remove', 'curse:molinari'],
-                               str.__eq__,
-                               '✗ curse:molinari: not installed\n'),])
-    def test_single_valid_curse_pkg_lifecycle(self, invoke_runner,
-                                              test_input, cmp_fn, expected_output):
+    @pytest.mark.parametrize(
+        'test_input, cmp_fn, expected_output',
+        [(['install', 'curse:molinari'],
+          str.startswith,
+          '✓ curse:molinari: installed'),
+         (['install', 'curse:molinari'],
+          str.__eq__,
+          '✗ curse:molinari: already installed\n'),
+         (['update', 'curse:molinari'],
+          str.__eq__,
+          ''),
+         (['remove', 'curse:molinari'],
+          str.__eq__,
+          '✓ curse:molinari: removed\n'),
+         (['update', 'curse:molinari'],
+          str.__eq__,
+          '✗ curse:molinari: not installed\n'),
+         (['remove', 'curse:molinari'],
+          str.__eq__,
+          '✗ curse:molinari: not installed\n'),])
+    def test_valid_curse_pkg_lifecycle(self, invoke_runner,
+                                       test_input, cmp_fn, expected_output):
         assert cmp_fn(invoke_runner(test_input).output, expected_output)
 
 
-class TestSingleValidTukuiPkgLifecycle(_CliTest):
+class TestValidTukuiPkgLifecycle(_CliTest):
 
-    @pytest.mark.parametrize('test_input, cmp_fn, expected_output',
-                             [(['install', 'tukui:3'],
-                               str.startswith,
-                               '✓ tukui:3: installed'),
-                              (['install', 'tukui:3'],
-                               str.__eq__,
-                               '✗ tukui:3: already installed\n'),
-                              (['update', 'tukui:3'],
-                               str.__eq__,
-                               ''),
-                              (['remove', 'tukui:3'],
-                               str.__eq__,
-                               '✓ tukui:3: removed\n'),
-                              (['update', 'tukui:3'],
-                               str.__eq__,
-                               '✗ tukui:3: not installed\n'),
-                              (['remove', 'tukui:3'],
-                               str.__eq__,
-                               '✗ tukui:3: not installed\n'),])
-    def test_single_valid_tukui_pkg_lifecycle(self, invoke_runner,
-                                              test_input, cmp_fn, expected_output):
+    @pytest.mark.parametrize(
+        'test_input, cmp_fn, expected_output',
+        [(['install', 'tukui:3'],
+          str.startswith,
+          '✓ tukui:3: installed'),
+         (['install', 'tukui:3'],
+          str.__eq__,
+          '✗ tukui:3: already installed\n'),
+         (['update', 'tukui:3'],
+          str.__eq__,
+          ''),
+         (['remove', 'tukui:3'],
+          str.__eq__,
+          '✓ tukui:3: removed\n'),
+         (['update', 'tukui:3'],
+          str.__eq__,
+          '✗ tukui:3: not installed\n'),
+         (['remove', 'tukui:3'],
+          str.__eq__,
+          '✗ tukui:3: not installed\n'),])
+    def test_valid_tukui_pkg_lifecycle(self, invoke_runner,
+                                       test_input, cmp_fn, expected_output):
         assert cmp_fn(invoke_runner(test_input).output, expected_output)
 
 
-class TestSingleValidWowiPkgLifecycle(_CliTest):
+class TestValidWowiPkgLifecycle(_CliTest):
 
-    @pytest.mark.parametrize('test_input, cmp_fn, expected_output',
-                             [(['install', 'wowi:13188-Molinari'],
-                               str.startswith,
-                               '✓ wowi:13188-Molinari: installed'),
-                              (['install', 'wowi:13188-Molinari'],
-                               str.__eq__,
-                               '✗ wowi:13188-Molinari: already installed\n'),
-                              (['update', 'wowi:13188-Molinari'],
-                               str.__eq__,
-                               ''),
-                              (['remove', 'wowi:13188-Molinari'],
-                               str.__eq__,
-                               '✓ wowi:13188-Molinari: removed\n'),
-                              (['update', 'wowi:13188-Molinari'],
-                               str.__eq__,
-                               '✗ wowi:13188-Molinari: not installed\n'),
-                              (['remove', 'wowi:13188-Molinari'],
-                               str.__eq__,
-                               '✗ wowi:13188-Molinari: not installed\n'),])
-    def test_single_valid_wowi_pkg_lifecycle(self, invoke_runner,
-                                             test_input, cmp_fn, expected_output):
+    @pytest.mark.parametrize(
+        'test_input, cmp_fn, expected_output',
+        [(['install', 'wowi:13188-Molinari'],
+          str.startswith,
+          '✓ wowi:13188-Molinari: installed'),
+         (['install', 'wowi:13188-Molinari'],
+          str.__eq__,
+          '✗ wowi:13188-Molinari: already installed\n'),
+         (['update', 'wowi:13188-Molinari'],
+          str.__eq__,
+          ''),
+         (['remove', 'wowi:13188-Molinari'],
+          str.__eq__,
+          '✓ wowi:13188-Molinari: removed\n'),
+         (['update', 'wowi:13188-Molinari'],
+          str.__eq__,
+          '✗ wowi:13188-Molinari: not installed\n'),
+         (['remove', 'wowi:13188-Molinari'],
+          str.__eq__,
+          '✗ wowi:13188-Molinari: not installed\n'),])
+    def test_valid_wowi_pkg_lifecycle(self, invoke_runner,
+                                      test_input, cmp_fn, expected_output):
         assert cmp_fn(invoke_runner(test_input).output, expected_output)
 
 
@@ -204,6 +207,11 @@ class TestInstallWithAlias(_CliTest):
     def test_install_with_curse_alias(self, invoke_runner,
                                       test_input, cmp_fn, expected_output):
         assert cmp_fn(invoke_runner(test_input).output, expected_output)
+
+    def test_install_with_tukui_alias(self, invoke_runner):
+        assert invoke_runner(['install', 'https://www.tukui.org/addons.php?id=3'])\
+            .output\
+            .startswith('✓ tukui:3: installed')
 
     @pytest.mark.parametrize(
         'test_input, cmp_fn, expected_output',
