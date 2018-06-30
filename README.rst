@@ -70,17 +70,17 @@ Caveats
 Auto-detection
 ~~~~~~~~~~~~~~
 
-*instawow* will only manage add-ons it itself installed
-because it has no registry from which to derive add-on fingerprings.
-The Twitch (née Curse) client uses a proprietary fingerprinting algo
-that nobody (that I know) has been able to figure out how is calculated.
+*instawow* has no way to know about add-ons it did not itself install.
+The Twitch (née Curse) client uses a proprietary fingerprinting algorithm
+to reconcile add-ons installed locally with add-ons they keep on their servers.
 Even if the fingerprint had been reverse-engineered, I'd be loath to adopt it.
-Ideologically because it was born of a desire to monopolise the add-on distribution
-market and practically because we could never know when Curse might pull
-the rug from under our feet. WoWI's Minion app also
-implements a similar though less sophisticated fingerprinting technique.
+Ideologically, because it was born of a desire to monopolise the add-on distribution
+market; and, practically, because we could never know when Curse might pull
+the rug from under our feet.
+The Minion app also implements a similar though less sophisticated
+fingerprinting technique.
 
-Metadata extraction
+Metadata harvesting
 ~~~~~~~~~~~~~~~~~~~
 
 The Twitch client uses a closed metadata API internally.
@@ -90,13 +90,15 @@ If users were to log into the API *instawow* would acquire full
 access to their account. Authentication is also complicated
 by the ongoing Curse account migration to Twitch and is (or should be)
 unnecessary for the simple use case of installing and updating add-ons.
-Until recently *instawow* used to rely on the official feeds.  These
-were apparently sunsetted by Curse on 8 June 2018,
-completing the migration to the internal API, leaving us with
-no choice but to scrape CurseForge pages.
-
+Until recently *instawow* used to rely on the official feeds.
+These were apparently sunsetted by Curse on 8 June 2018, leaving us with
+no choice but to scrape the website.
+Scraping is a delicate art.  The slightest variation in the HTML output
+might very easily trip up *instawow* and the code will need to be updated
+whenever Curse decide to change parts of *their* code.
 By contrast Minion uses an undocumented but open JSON API, which
-*instawow* does communicate with.
+*instawow* does communicate with.  Tukui provides an API for public use.
+
 Because it has a much shorter execution cycle than a desktop app,
 *instawow* caches (some) add-on metadata for one hour. If you do for whatever
 reason need to force an early resync you can do so with
@@ -105,11 +107,11 @@ reason need to force an early resync you can do so with
 Discovery
 ~~~~~~~~~
 
-*instawow* aims to facilitate add-on management and not discovery. It
-does not seek to drive users away from add-on portals; but to make
+*instawow*'s purpose is to facilitate add-on management and not discovery.
+It does not seek to drive people away from add-on portals; but to make
 installing, updating and removing add-ons found on portals hassle-free
 for those of us who are (ever so slightly) proficient with the command
-line and do not particularly relish in using bloatware or inhabiting
+line and do not particularly revel in using bloatware or inhabiting
 walled gardens.  It is also important to note that the Twitch client
 communicates with Google Analytics, Scorecard Research and Nielsen
 without user consent, which is unacceptable to me and my European
