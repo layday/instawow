@@ -246,18 +246,25 @@ def installed(manager, column, columns):
 
 
 @list_.command()
+@click.option('--flip', '-f', 'should_flip',
+              is_flag=True, help='Check against the opposing strategy.')
 @click.pass_obj
-def outdated(manager):
+def outdated(manager, should_flip):
     """List outdated add-ons."""
-    installed = manager.db.query(Pkg).order_by(Pkg.origin, Pkg.slug).all()
-    new = manager.resolve_many((p.origin, p.id, p.options.strategy)
-                               for p in installed)
-    outdated = [(p, r) for p, r in zip(installed, new)
-                if p.file_id != getattr(r, 'file_id', p.file_id)]
+    def flip(strategy):
+        if should_flip:
+            strategy = 'latest' if strategy == 'canonical' else 'canonical'
+        return strategy
+
+    outdated = manager.db.query(Pkg).order_by(Pkg.name).all()
+    outdated = zip(outdated, manager.resolve_many((p.origin, p.id,
+                                                   flip(p.options.strategy))
+                                                  for p in outdated))
+    outdated = [(i, n) for i, n in outdated if i.file_id != n.file_id]
     if outdated:
-        click.echo(_tabulate([(_compose_addon_defn(r),
-                               p.version, r.version, r.options.strategy)
-                              for p, r in outdated],
+        click.echo(_tabulate([(_compose_addon_defn(n),
+                               i.version, n.version, n.options.strategy)
+                              for i, n in outdated],
                              head=('add-on', 'installed', 'new', 'strategy')))
 
 
