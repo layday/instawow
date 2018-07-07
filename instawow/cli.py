@@ -1,6 +1,6 @@
 
 from collections import namedtuple
-from functools import reduce
+from functools import partial, reduce
 from textwrap import fill
 import traceback
 import typing as T
@@ -88,7 +88,8 @@ def _compose_addon_defn(val):
     return _SEP.join((origin, slug))
 
 
-def _decompose_addon_defn(ctx, param, value):
+def _decompose_addon_defn(ctx, param, value, *,
+                          raise_for_invalid_defn=True):
     if isinstance(value, tuple):
         return tuple(_decompose_addon_defn(ctx, param, v)
                      for v in sorted(set(value), key=value.index))
@@ -100,9 +101,12 @@ def _decompose_addon_defn(ctx, param, value):
             break
     else:
         if _SEP not in value:
-            raise click.BadParameter(value)
-        parts = value.partition(_SEP)
-        parts = _parts(parts[0], parts[-1])
+            if raise_for_invalid_defn:
+                raise click.BadParameter(value)
+            parts = _parts('*', value)
+        else:
+            parts = value.partition(_SEP)
+            parts = _parts(parts[0], parts[-1])
     return _compose_addon_defn(parts), parts
 
 
@@ -289,12 +293,17 @@ def preexisting(manager):
 
 
 @main.command()
-@click.argument('addon', callback=_decompose_addon_defn)
+@click.argument('addon', callback=partial(_decompose_addon_defn,
+                                          raise_for_invalid_defn=False))
 @click.pass_obj
 def info(manager, addon):
-    """Display installed add-on information."""
+    """Show the details of an installed add-on."""
     pkg = addon[1]
-    pkg = manager.db.x_unique(pkg.origin, pkg.id_or_slug)
+    pkg = (manager.db.x_unique(*pkg) or
+           manager.db.query(Pkg)
+                     .filter(Pkg.slug.contains(pkg.id_or_slug))
+                     .order_by(Pkg.name)
+                     .first())
     if pkg:
         rows = [('origin', pkg.origin),
                 ('slug', pkg.slug),
@@ -315,12 +324,17 @@ def info(manager, addon):
 
 
 @main.command()
-@click.argument('addon', callback=_decompose_addon_defn)
+@click.argument('addon', callback=partial(_decompose_addon_defn,
+                                          raise_for_invalid_defn=False))
 @click.pass_obj
 def hearth(manager, addon):
     """Open the add-on's homepage in your browser."""
     pkg = addon[1]
-    pkg = manager.db.x_unique(pkg.origin, pkg.id_or_slug)
+    pkg = (manager.db.x_unique(*pkg) or
+           manager.db.query(Pkg)
+                     .filter(Pkg.slug.contains(pkg.id_or_slug))
+                     .order_by(Pkg.name)
+                     .first())
     if pkg:
         webbrowser.open(pkg.url)
     else:
@@ -328,12 +342,17 @@ def hearth(manager, addon):
 
 
 @main.command()
-@click.argument('addon', callback=_decompose_addon_defn)
+@click.argument('addon', callback=partial(_decompose_addon_defn,
+                                          raise_for_invalid_defn=False))
 @click.pass_obj
 def reveal(manager, addon):
     """Open the add-on folder in your file manager."""
     pkg = addon[1]
-    pkg = manager.db.x_unique(pkg.origin, pkg.id_or_slug)
+    pkg = (manager.db.x_unique(*pkg) or
+           manager.db.query(Pkg)
+                     .filter(Pkg.slug.contains(pkg.id_or_slug))
+                     .order_by(Pkg.name)
+                     .first())
     if pkg:
         webbrowser.open(pkg.folders[0].path.as_uri())
     else:
