@@ -90,7 +90,8 @@ def _compose_addon_defn(val):
 
 def _decompose_addon_defn(ctx, param, value):
     if isinstance(value, tuple):
-        return [_decompose_addon_defn(ctx, param, v) for v in value]
+        return tuple(_decompose_addon_defn(ctx, param, v)
+                     for v in sorted(set(value), key=value.index))
 
     for resolver in ctx.obj.resolvers.values():
         parts = resolver.decompose_url(value)
