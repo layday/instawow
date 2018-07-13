@@ -82,24 +82,24 @@ class TestValidWowiPkgLifecycle(_CliTest):
 
     @pytest.mark.parametrize(
         'test_input, cmp_fn, expected_output',
-        [(['install', 'wowi:13188-Molinari'],
+        [(['install', 'wowi:13188-molinari'],
           str.startswith,
-          '✓ wowi:13188-Molinari: installed'),
-         (['install', 'wowi:13188-Molinari'],
+          '✓ wowi:13188-molinari: installed'),
+         (['install', 'wowi:13188-molinari'],
           str.__eq__,
-          '✗ wowi:13188-Molinari: already installed\n'),
-         (['update', 'wowi:13188-Molinari'],
+          '✗ wowi:13188-molinari: already installed\n'),
+         (['update', 'wowi:13188-molinari'],
           str.__eq__,
           ''),
-         (['remove', 'wowi:13188-Molinari'],
+         (['remove', 'wowi:13188-molinari'],
           str.__eq__,
-          '✓ wowi:13188-Molinari: removed\n'),
-         (['update', 'wowi:13188-Molinari'],
+          '✓ wowi:13188-molinari: removed\n'),
+         (['update', 'wowi:13188-molinari'],
           str.__eq__,
-          '✗ wowi:13188-Molinari: not installed\n'),
-         (['remove', 'wowi:13188-Molinari'],
+          '✗ wowi:13188-molinari: not installed\n'),
+         (['remove', 'wowi:13188-molinari'],
           str.__eq__,
-          '✗ wowi:13188-Molinari: not installed\n'),])
+          '✗ wowi:13188-molinari: not installed\n'),])
     def test_valid_wowi_pkg_lifecycle(self, invoke_runner,
                                       test_input, cmp_fn, expected_output):
         assert cmp_fn(invoke_runner(test_input).output, expected_output)
@@ -111,9 +111,9 @@ class TestFolderConflictLifecycle(_CliTest):
                              [(['install', 'curse:molinari'],
                                str.startswith,
                                '✓ curse:molinari: installed'),
-                              (['install', 'wowi:13188-Molinari'],
+                              (['install', 'wowi:13188-molinari'],
                                str.__eq__,
-                               '✗ wowi:13188-Molinari: conflicts with installed add-on '
+                               '✗ wowi:13188-molinari: conflicts with installed add-on '
                                'curse:molinari\n'),
                               (['remove', 'curse:molinari'],
                                str.__eq__,

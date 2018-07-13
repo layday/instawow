@@ -2,6 +2,7 @@
 from collections import namedtuple
 import io
 from pathlib import Path
+import re
 import typing as T
 import zipfile
 
@@ -58,3 +59,9 @@ class TocReader:
             except StopIteration:
                 keys = keys[0]
         return _TocEntry(keys, self.entries.get(keys))
+
+
+def slugify(text: str, *,
+            _re_lc=re.compile(r'[^0-9a-z ]')) -> str:
+    "Convert an add-on name into a lower-alphanumeric slug."
+    return '-'.join(_re_lc.sub(' ', text.casefold()).split())

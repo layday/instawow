@@ -8,6 +8,7 @@ from parsel import Selector
 from yarl import URL
 
 from .models import CacheEntry, Pkg, PkgOptions
+from .utils import slugify
 
 
 _EXPIRY = 3600
@@ -165,8 +166,7 @@ class _WowiResolver(BaseResolver,
 
         return Pkg(origin=self.origin,
                    id=file['UID'],
-                   slug=self._re_addon_url.search(file['UIFileInfoURL'])
-                                          .group('slug'),
+                   slug=slugify(f'{file["UID"]} {file["UIName"]}'),
                    name=file['UIName'],
                    description=details['UIDescription'],
                    url=file['UIFileInfoURL'],
@@ -201,7 +201,7 @@ class _TukuiResolver(BaseResolver,
 
         return Pkg(origin=self.origin,
                    id=addon['id'],
-                   slug=f'{addon["id"]}-{addon["name"]}',
+                   slug=slugify(f'{addon["id"]} {addon["name"]}'),
                    name=addon['name'],
                    description=addon['small_desc'],
                    url=addon['web_url'],
