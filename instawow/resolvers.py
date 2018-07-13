@@ -97,25 +97,23 @@ class _CurseResolver(BaseResolver,
                                '.cf-recentfiles-credits-wrapper')
         else:
             file = max(map(int, content.css('.cf-recentfiles abbr::attr(data-epoch)')
-                                       .extract()))
+                                       .getall()))
             file = content.xpath(f'//*[@class = "cf-recentfiles"]'
                                  f'//abbr[@data-epoch = "{file}"]/..')
 
         return Pkg(origin=self.origin,
                    id=content.xpath('''\
 //div[@class = "info-label" and text() = "Project ID"]/following-sibling::div/text()'''
-                                    ).extract_first().strip(),
+                                    ).get().strip(),
                    slug=response.url.name,
-                   name=content.css('meta[property="og:title"]::attr(content)')
-                               .extract_first(),
-                   description=content.css('meta[property="og:description"]::attr(content)')
-                                      .extract_first(),
-                   url=content.css('.view-on-curse > a::attr(href)').extract_first(),
-                   file_id=URL(file.css('.overflow-tip::attr(href)')
-                                   .extract_first()).name,
-                   download_url=file.css('.fa-icon-download::attr(href)').extract_first(),
-                   date_published=file.css('abbr::attr(data-epoch)').extract_first(),
-                   version=file.css('.overflow-tip::attr(data-name)').extract_first(),
+                   name=content.css('meta[property="og:title"]::attr(content)').get(),
+                   description=content.css('meta[property="og:description"]'
+                                           '::attr(content)').get(),
+                   url=content.css('.view-on-curse > a::attr(href)').get(),
+                   file_id=URL(file.css('.overflow-tip::attr(href)').get()).name,
+                   download_url=file.css('.fa-icon-download::attr(href)').get(),
+                   date_published=file.css('abbr::attr(data-epoch)').get(),
+                   version=file.css('.overflow-tip::attr(data-name)').get(),
                    options=PkgOptions(strategy=strategy))
 
 
