@@ -99,11 +99,6 @@ whenever Curse decide to change parts of *their* code.
 By contrast Minion uses an undocumented but open JSON API, which
 *instawow* does communicate with.  Tukui provides an API for public use.
 
-Because it has a much shorter execution cycle than a desktop app,
-*instawow* caches (some) add-on metadata for one hour. If you do for whatever
-reason need to force an early resync you can do so with
-``instawow debug cache invalidate``.
-
 Discovery
 ~~~~~~~~~
 

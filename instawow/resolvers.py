@@ -1,46 +1,40 @@
 
 import asyncio
-from datetime import datetime as dt, timedelta
 import re
 import typing as T
 
 from parsel import Selector
 from yarl import URL
 
-from .models import CacheEntry, Pkg, PkgOptions
+from .models import Pkg, PkgOptions
 from .utils import slugify
 
 
 _EXPIRY = 3600
 
 
-class BaseResolver:
+class _BaseResolver:
 
-    __members__ = {}
-
-    synced: bool = False
     origin: str
     name: str
 
-    def __init__(self, *, manager: 'Manager'):
-        self.manager = manager
+    def __init__(self, *, manager: 'Manager') -> None:
+        self._synced = False
         self._sync_lock = asyncio.Lock(loop=manager.loop)
 
-    def __init_subclass__(cls, origin: str, name: str):
-        cls.__members__[origin] = cls
-        cls.origin = origin
-        cls.name = name
+        self.manager = manager
 
+    def __init_subclass__(cls) -> None:
         orig_resolve = cls.resolve
         async def _resolve(self, *args, **kwargs):
             async with self._sync_lock:
-                if not self.synced:
+                if not self._synced:
                     await self.sync()
-                    self.synced = True
+                    self._synced = True
             return await orig_resolve(self, *args, **kwargs)
         cls.resolve = _resolve
 
-    def __getattr__(self, name):
+    def __getattr__(self, name: str) -> T.Any:
         # Delegate attribute access to the ``Manager``
         return getattr(self.manager, name)
 
@@ -59,13 +53,15 @@ class BaseResolver:
         raise NotImplementedError
 
 
-class _CurseResolver(BaseResolver,
-                     origin='curse', name='CurseForge'):
+class CurseResolver(_BaseResolver):
+
+    origin = 'curse'
+    name = 'CurseForge'
 
     _re_curse_url = re.compile(r'(?P<id>\d+)-(?P<slug>[a-z_-]+)')
 
     @classmethod
-    def decompose_url(cls, url: str) -> T.Optional[T.Tuple[str, str]]:
+    def decompose_url(cls, url):
         url = URL(url)
         if url.host in {'wow.curseforge.com', 'www.wowace.com'} \
                 and len(url.parts) > 2 \
@@ -80,8 +76,7 @@ class _CurseResolver(BaseResolver,
                 slug = match.group('id')
             return (cls.origin, slug)
 
-    async def resolve(self, id_or_slug: str, *,
-                      strategy: str) -> Pkg:
+    async def resolve(self, id_or_slug, *, strategy):
         async with self.client.get()\
                               .get(f'https://wow.curseforge.com/projects/{id_or_slug}') \
                 as response:
@@ -117,18 +112,20 @@ class _CurseResolver(BaseResolver,
                    options=PkgOptions(strategy=strategy))
 
 
-class _WowiResolver(BaseResolver,
-                    origin='wowi', name='WoWInterface'):
+class WowiResolver(_BaseResolver):
+
+    origin = 'wowi'
+    name = 'WoWInterface'
 
     _data: dict
 
     _api_list = 'https://api.mmoui.com/v3/game/WOW/filelist.json'
     _api_details = 'https://api.mmoui.com/v3/game/WOW/filedetails/{}.json'
 
-    _re_addon_url = re.compile(r'(?:download|info)(?P<slug>(?P<id>\d+)[^.]+)')
+    _re_addon_url = re.compile(r'(?:download|info)(?P<id>\d+)')
 
     @classmethod
-    def decompose_url(cls, url: str) -> T.Optional[T.Tuple[str, str]]:
+    def decompose_url(cls, url):
         url = URL(url)
         if url.host in {'wowinterface.com', 'www.wowinterface.com'} \
                 and len(url.parts) == 3 \
@@ -137,30 +134,19 @@ class _WowiResolver(BaseResolver,
             if match:
                 return (cls.origin, match.group('id'))
 
-    async def sync(self) -> None:
-        entry = self.db.query(CacheEntry).get((self.origin, self.origin))
-        if not entry or ((entry.date_retrieved + timedelta(seconds=_EXPIRY)) <
-                         dt.now()):
-            async with self.client.get()\
-                                  .get(self._api_list) as response:
-                data = await response.read()
-            new_entry = CacheEntry(origin=self.origin, id=self.origin,
-                                   date_retrieved=dt.now(), contents=data)
-            entry = self.db.x_replace(new_entry, entry)
-        self._data = {e['UID']: e for e in entry.contents}
+    async def sync(self):
+        async with self.client.get().get(self._api_list) as response:
+            data = await response.json()
+        self._data = {i['UID']: i for i in data}
 
-    async def resolve(self, id_or_slug: str, *,
-                      strategy: str) -> Pkg:
+    async def resolve(self, id_or_slug, *, strategy):
         try:
             file = self._data[id_or_slug.partition('-')[0]]
         except KeyError:
             raise self.PkgNonexistent
-
         async with self.client.get()\
                               .get(self._api_details.format(file['UID'])) as response:
             details, = await response.json()
-        if file['UIDate'] != details['UIDate']:
-            raise self.CacheObsolete
 
         return Pkg(origin=self.origin,
                    id=file['UID'],
@@ -175,20 +161,21 @@ class _WowiResolver(BaseResolver,
                    options=PkgOptions(strategy=strategy))
 
 
-class _TukuiResolver(BaseResolver,
-                     origin='tukui', name='Tukui'):
+class TukuiResolver(_BaseResolver):
+
+    origin = 'tukui'
+    name = 'Tukui'
 
     _re_addon_url = re.compile(re.escape('https://www.tukui.org/addons.php?id=') +
                                r'(?P<id>\d+)')
 
     @classmethod
-    def decompose_url(cls, url: str) -> T.Optional[T.Tuple[str, str]]:
+    def decompose_url(cls, url):
         match = cls._re_addon_url.match(url)
         if match:
             return (cls.origin, match.group('id'))
 
-    async def resolve(self, id_or_slug: str, *,
-                      strategy: str) -> Pkg:
+    async def resolve(self, id_or_slug, *, strategy):
         addon_id = id_or_slug.partition('-')[0]
         async with self.client.get()\
                               .get(f'https://www.tukui.org/api.php?addon={addon_id}') \

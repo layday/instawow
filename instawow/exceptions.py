@@ -68,10 +68,6 @@ class PkgUpToDate(ManagerError):
     pass
 
 
-class CacheObsolete(ManagerError):
-    pass
-
-
 class InternalError(ManagerResult,
                     Exception):
 

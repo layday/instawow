@@ -47,10 +47,6 @@ MESSAGES = {
         f'{_FAILURE} {{}}: invalid origin'.format,
     Manager.PkgUpToDate:   # IGNORE
         ...,
-    Manager.CacheObsolete:
-        f'{_FAILURE} {{}}: the internal resolver cache is obsolete\n'
-         '  run `instawow debug cache invalidate` and try again'
-        .format,
     Manager.InternalError:
         lambda _, r: ''.join(traceback.format_exception(r.error.__class__,
                                                         r.error,
@@ -62,9 +58,9 @@ _SEP = ':'
 _parts = namedtuple('Parts', 'origin id_or_slug')
 
 
-def _format_message(addon, result) -> str:
-    return MESSAGES[result if isinstance(result, type) else result.__class__
-                    ](addon, result)
+def _format_message(addon, result):
+    return MESSAGES[result if isinstance(result, type)
+                    else result.__class__](addon, result)
 
 
 def _tabulate(rows: T.List[T.Tuple[str, ...]], *,
@@ -357,53 +353,6 @@ def reveal(manager, addon):
         webbrowser.open(pkg.folders[0].path.as_uri())
     else:
         click.echo(_format_message(addon[0], Manager.PkgNotInstalled))
-
-
-@main.group()
-def debug():
-    """Debugging funcionality."""
-
-
-@debug.command()
-@click.pass_context
-def shell(ctx):
-    """Drop into an interactive shell.
-
-    The shell is created in context and provides access to the
-    currently-active manager.
-    """
-    try:
-        from IPython import embed
-    except ImportError:
-        click.echo('ipython is not installed')
-    else:
-        embed()
-
-
-@debug.group()
-def cache():
-    """Manage the resolver cache."""
-
-
-@cache.command()
-@click.pass_obj
-def invalidate(manager):
-    """Invalidate the cache.  This sets the date retrieved for every
-    cache entry to 1970 to trigger a recheck on the next run.
-    """
-    from datetime import datetime
-    from .models import CacheEntry
-    manager.db.query(CacheEntry).update({'date_retrieved': datetime.fromtimestamp(0)})
-    manager.db.commit()
-
-
-@cache.command()
-@click.pass_obj
-def clear(manager):
-    """Nuke the cache from orbit."""
-    from .models import CacheEntry
-    manager.db.query(CacheEntry).delete()
-    manager.db.commit()
 
 
 @main.group()

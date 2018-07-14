@@ -13,7 +13,7 @@ from tqdm import tqdm as _tqdm
 from .config import Config
 from . import exceptions as E
 from .models import ModelBase, Pkg, PkgFolder
-from .resolvers import BaseResolver
+from .resolvers import CurseResolver, WowiResolver, TukuiResolver
 from .utils import Archive
 
 
@@ -89,8 +89,7 @@ class Manager:
                              ManagerError,
                              PkgAlreadyInstalled, PkgConflictsWithInstalled,
                              PkgConflictsWithPreexisting, PkgNonexistent,
-                             PkgNotInstalled, PkgOriginInvalid,
-                             PkgUpToDate, CacheObsolete,
+                             PkgNotInstalled, PkgOriginInvalid, PkgUpToDate,
                              InternalError)
 
     def __init__(self, *,
@@ -101,8 +100,8 @@ class Manager:
         self.client_factory = client_factory or _init_client
         self.client = _client
         self.db = DbOverlay(config)
-        self.resolvers = _MemberDict((n, r(manager=self))
-                                     for n, r in BaseResolver.__members__.items())
+        self.resolvers = _MemberDict((r.origin, r(manager=self))
+                                     for r in (CurseResolver, WowiResolver, TukuiResolver))
 
     def run(self, awaitable: T.Awaitable) -> T.Any:
         "Run ``awaitable`` inside an explicit context."
@@ -117,7 +116,7 @@ class Manager:
     async def resolve(self, origin: str, id_or_slug: str, strategy: str) -> Pkg:
         """Resolve an ID or slug into a ``Pkg``.
 
-        :raises: PkgOriginInvalid, PkgNonexistent, CacheObsolete
+        :raises: PkgOriginInvalid, PkgNonexistent
         """
         return await self.resolvers[origin].resolve(id_or_slug, strategy=strategy)
 
@@ -126,8 +125,7 @@ class Manager:
         """Retrieve a package to install.
 
         :raises: PkgOriginInvalid, PkgNonexistent, PkgAlreadyInstalled,
-                 PkgConflictsWithInstalled, PkgConflictsWithPreexisting,
-                 CacheObsolete
+                 PkgConflictsWithInstalled, PkgConflictsWithPreexisting
         """
         if self.db.x_unique(origin, id_or_slug):
             raise self.PkgAlreadyInstalled
@@ -163,8 +161,7 @@ class Manager:
 
         :raises: PkgOriginInvalid, PkgNonexistent,
                  PkgNotInstalled, PkgUpToDate,
-                 PkgConflictsWithInstalled, PkgConflictsWithPreexisting,
-                 CacheObsolete
+                 PkgConflictsWithInstalled, PkgConflictsWithPreexisting
         """
         old_pkg = self.db.x_unique(origin, id_or_slug)
         if not old_pkg:
