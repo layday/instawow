@@ -51,14 +51,14 @@ class TocReader:
         entries = {e[0]: e[2] for e in entries}
         self.entries = entries
 
-    def __getitem__(self, keys: T.Union[str, T.Tuple[str]]) -> _TocEntry:
-        if isinstance(keys, tuple):
+    def __getitem__(self, key: T.Union[str, T.Tuple[str]]) -> _TocEntry:
+        if isinstance(key, tuple):
             try:
                 return next(filter(lambda i: i.value,
-                                   (self.__getitem__(k) for k in keys)))
+                                   (self.__getitem__(k) for k in key)))
             except StopIteration:
-                keys = keys[0]
-        return _TocEntry(keys, self.entries.get(keys))
+                key = key[0]
+        return _TocEntry(key, self.entries.get(key))
 
 
 def slugify(text: str, *,

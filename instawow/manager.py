@@ -217,10 +217,6 @@ class Manager:
             send2trash(str(folder.path))
         return self.PkgRemoved(self.db.x_delete(pkg))
 
-    async def gather(self, it: T.Iterable, **kwargs) -> list:
-        "Overload for bespoke ``gather``ing."
-        raise NotImplementedError
-
 
 tqdm = partial(_tqdm, leave=False, ascii=True)
 

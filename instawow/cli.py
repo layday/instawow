@@ -66,7 +66,8 @@ def _format_message(addon, result):
 def _tabulate(rows: T.List[T.Tuple[str, ...]], *,
               head: T.Tuple[str, ...]=(), show_index: bool=True) -> str:
     table = Texttable(max_width=0)
-    table.set_deco(Texttable.HEADER | Texttable.VLINES)
+    table.set_deco(Texttable.VLINES | Texttable.BORDER |
+                   Texttable.HEADER)
 
     if show_index:
         table.set_cols_align(('r', *('l' for _ in rows[0])))
@@ -301,20 +302,19 @@ def info(manager, addon):
                      .order_by(Pkg.name)
                      .first())
     if pkg:
-        rows = [('origin', pkg.origin),
-                ('slug', pkg.slug),
-                ('name', click.style(pkg.name, bold=True)),
-                ('id', pkg.id),
-                ('description', fill(pkg.description, max_lines=5)),
-                ('homepage', click.style(pkg.url, underline=True)),
-                ('version', pkg.version),
-                ('release date', pkg.date_published),
-                ('folders',
-                 '\n'.join([str(pkg.folders[0].path.parent)] +
-                           [' ├─ ' + f.path.name for f in pkg.folders[:-1]] +
-                           [' └─ ' + pkg.folders[-1].path.name])),
-                ('strategy', pkg.options.strategy),]
-        click.echo(_tabulate(rows, show_index=False))
+        rows = {'name': pkg.name,
+                'source': pkg.origin,
+                'id': pkg.id,
+                'slug': pkg.slug,
+                'description': fill(pkg.description, max_lines=5),
+                'homepage': pkg.url,
+                'version': pkg.version,
+                'release date': pkg.date_published,
+                'folders': '\n'.join([str(pkg.folders[0].path.parent)] +
+                                     [' ├─ ' + f.path.name for f in pkg.folders[:-1]] +
+                                     [' └─ ' + pkg.folders[-1].path.name]),
+                'strategy': pkg.options.strategy,}
+        click.echo(_tabulate(rows.items(), show_index=False))
     else:
         click.echo(_format_message(addon[0], Manager.PkgNotInstalled))
 
