@@ -234,8 +234,11 @@ async def _init_cli_client(*, loop):
         if (params.response.content_length and
                 # Ignore files smaller than a megabyte
                 params.response.content_length > 2**20):
+            filename = params.response.headers.get('Content-Disposition', '')
+            filename = filename[(filename.find('"') + 1):filename.rfind('"')] or \
+                       params.response.url.name
             bar = tqdm(total=params.response.content_length,
-                       desc=f'Downloading {params.response.url.name}',
+                       desc=f'Downloading {filename}',
                        miniters=1, unit='B', unit_scale=True,
                        position=_post_increment_dl_counter())
 
