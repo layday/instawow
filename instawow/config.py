@@ -14,19 +14,19 @@ class Config(pydantic.BaseSettings):
 
     addon_dir: Path
     config_dir: Path = _DEFAULT_CONFIG_DIR
-    db_name: str     = 'db.sqlite'
+    db_name: str = 'db.sqlite'
 
-    @pydantic.validator('addon_dir', 'config_dir')
-    def _validate_paths(cls, value) -> Path:
+    @pydantic.validator('addon_dir')
+    def _prepare_addon_dir(cls, value: Path) -> Path:
         value = value.expanduser().resolve()
         if not value.is_dir():
             raise ValueError
         return value
 
-    def create_dirs(self):  # -> Config
-        "Create the necessary folders."
-        self.config_dir.mkdir(exist_ok=True)
-        return self
+    @pydantic.validator('config_dir')
+    def _prepare_config_dir(cls, value: Path) -> Path:
+        value.mkdir(exist_ok=True)
+        return value
 
 
 class UserConfig(Config):

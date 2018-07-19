@@ -117,7 +117,7 @@ def _init():
     addon_dir = UserConfig.detect_addon_dir()
     while True:
         try:
-            UserConfig(addon_dir=addon_dir).create_dirs().write()
+            UserConfig(addon_dir=addon_dir).write()
         except ValueError:
             if addon_dir:
                 click.echo(f'{addon_dir} not found')
