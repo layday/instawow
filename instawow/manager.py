@@ -193,9 +193,10 @@ class Manager:
             if folder_conflict:
                 raise self.PkgConflictsWithInstalled(folder_conflict.pkg)
 
+            for folder in old_pkg.folders:
+                send2trash(str(folder.path))
             try:
-                archive.extract(parent_folder=self.config.addon_dir,
-                                overwrite={f.path.name for f in new_pkg.folders})
+                archive.extract(parent_folder=self.config.addon_dir)
             except Archive.ExtractConflict as conflict:
                 raise self.PkgConflictsWithPreexisting(
                     folders=conflict.conflicting_folders)
