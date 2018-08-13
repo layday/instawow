@@ -8,7 +8,7 @@ import webbrowser
 
 import click
 from outdated import check_outdated
-from sqlalchemy import inspect
+from sqlalchemy import inspect, text
 from texttable import Texttable
 
 from . import __version__
@@ -216,18 +216,24 @@ def list_():
     """List add-ons."""
 
 
-@list_.command()
-@click.option('--column', '-c',
+@list_.command('installed')
+@click.option('--column', '-c', 'columns',
               multiple=True,
               help='A field to show in a column.  Nested fields are '
-                   'dot-delimited.  Can be repeated.')
-@click.option('--columns', '-C',
+                   'dot-delimited.  Repeatable.')
+@click.option('--columns', '-C', 'print_columns',
               is_flag=True, default=False,
               help='Print a list of all possible column values.')
+@click.option('--sort-by', '-s', 'sort_key',
+              default='name',
+              help='A key to sort the table by.  '
+                   'You can chain multiple keys by separating them with a comma '
+                   'just as you would in SQL, '
+                   'e.g. `--sort-by="origin, date_published DESC"`.')
 @click.pass_obj
-def installed(manager, column, columns):
+def list_installed(manager, columns, print_columns, sort_key):
     """List installed add-ons."""
-    def format_columns(pkg, columns):
+    def format_columns(pkg):
         for column in columns:
             try:
                 value = reduce(getattr, [pkg] + column.split('.'))
@@ -239,24 +245,26 @@ def installed(manager, column, columns):
             elif column == 'options':
                 value = {'strategy': value.strategy}
             elif column == 'description':
-                value = fill(value, width=50)
+                value = fill(value, width=50, max_lines=3)
             yield value
 
-    if columns:
+    if print_columns:
         click.echo(_tabulate([(c,) for c in (*inspect(Pkg).columns.keys(),
                                              *inspect(Pkg).relationships.keys())],
                              head=('field',), show_index=False))
     else:
-        click.echo(_tabulate([(_compose_addon_defn(p), *format_columns(p, column))
-                              for p in manager.db.query(Pkg).order_by(Pkg.name).all()],
-                             head=('add-on', *column)))
+        click.echo(_tabulate([(_compose_addon_defn(p), *format_columns(p))
+                              for p in manager.db.query(Pkg)
+                                                 .order_by(text(sort_key))
+                                                 .all()],
+                             head=('add-on', *columns)))
 
 
-@list_.command()
+@list_.command('outdated')
 @click.option('--flip', '-f', 'should_flip',
               is_flag=True, help='Check against the opposing strategy.')
 @click.pass_obj
-def outdated(manager, should_flip):
+def list_outdated(manager, should_flip):
     """List outdated add-ons."""
     def flip(strategy):
         if should_flip:
@@ -275,9 +283,9 @@ def outdated(manager, should_flip):
                              head=('add-on', 'installed', 'new', 'strategy')))
 
 
-@list_.command()
+@list_.command('preexisting')
 @click.pass_obj
-def preexisting(manager):
+def list_preexisting(manager):
     """List add-ons not installed by instawow."""
     folders = {f.name
                for f in manager.config.addon_dir.iterdir() if f.is_dir()} - \
@@ -370,11 +378,11 @@ def bitbar():
     """
 
 
-@bitbar.command()
+@bitbar.command('_generate')
 @click.argument('caller')
 @click.argument('version')
 @click.pass_obj
-def _generate(manager, caller, version):
+def bitbar_generate(manager, caller, version):
     from base64 import b64encode
     from pathlib import Path
     from subprocess import run, PIPE
@@ -411,8 +419,8 @@ View “{r.name}” on {manager.resolvers[r.origin].name} | \
   bash={caller} param1=hearth param2={_compose_addon_defn(r)} terminal=false''')
 
 
-@bitbar.command()
-def install():
+@bitbar.command('install')
+def bitbar_install():
     """Install the instawow BitBar plug-in."""
     from pathlib import Path
     import tempfile
