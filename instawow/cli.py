@@ -185,10 +185,15 @@ def install(manager, addons, overwrite, strategy):
 def update(manager, addons, strategy):
     """Update installed add-ons."""
     if not addons:
-        addons = [(_compose_addon_defn(p), (p.origin, p.id))
-                  for p in manager.db.query(Pkg).order_by(Pkg.slug).all()]
+        addons = [(_compose_addon_defn(p), (p.origin, p.slug))
+                  for p in manager.db.query(Pkg).all()]
+    if strategy:
+        for pkg in (manager.get(*p) for _, p in addons):
+            pkg.options.strategy = strategy
+        manager.db.commit()
+
     for addon, result in zip((d for d, _ in addons),
-                             manager.update_many((*p, strategy) for _, p in addons)):
+                             manager.update_many(p for _, p in addons)):
         if not isinstance(result, Manager.PkgUpToDate):
             click.echo(_format_message(addon, result))
 
@@ -296,11 +301,10 @@ def preexisting(manager):
 def info(manager, addon):
     """Show the details of an installed add-on."""
     pkg = addon[1]
-    pkg = (manager.db.x_unique(*pkg) or
-           manager.db.query(Pkg)
-                     .filter(Pkg.slug.contains(pkg.id_or_slug))
-                     .order_by(Pkg.name)
-                     .first())
+    pkg = (manager.get(*pkg) or manager.db.query(Pkg)
+                                          .filter(Pkg.slug.contains(pkg.id_or_slug))
+                                          .order_by(Pkg.name)
+                                          .first())
     if pkg:
         rows = {'name': pkg.name,
                 'source': pkg.origin,
@@ -326,11 +330,10 @@ def info(manager, addon):
 def hearth(manager, addon):
     """Open the add-on's homepage in your browser."""
     pkg = addon[1]
-    pkg = (manager.db.x_unique(*pkg) or
-           manager.db.query(Pkg)
-                     .filter(Pkg.slug.contains(pkg.id_or_slug))
-                     .order_by(Pkg.name)
-                     .first())
+    pkg = (manager.get(*pkg) or manager.db.query(Pkg)
+                                          .filter(Pkg.slug.contains(pkg.id_or_slug))
+                                          .order_by(Pkg.name)
+                                          .first())
     if pkg:
         webbrowser.open(pkg.url)
     else:
@@ -344,11 +347,10 @@ def hearth(manager, addon):
 def reveal(manager, addon):
     """Open the add-on folder in your file manager."""
     pkg = addon[1]
-    pkg = (manager.db.x_unique(*pkg) or
-           manager.db.query(Pkg)
-                     .filter(Pkg.slug.contains(pkg.id_or_slug))
-                     .order_by(Pkg.name)
-                     .first())
+    pkg = (manager.get(*pkg) or manager.db.query(Pkg)
+                                          .filter(Pkg.slug.contains(pkg.id_or_slug))
+                                          .order_by(Pkg.name)
+                                          .first())
     if pkg:
         webbrowser.open(pkg.folders[0].path.as_uri())
     else:

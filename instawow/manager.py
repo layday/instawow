@@ -1,20 +1,23 @@
 
 import asyncio
+from contextlib import ExitStack
 import contextvars
 from functools import partial
+import io
+from pathlib import Path
 import typing as T
+import zipfile
 
 from aiohttp import ClientSession, TCPConnector, TraceConfig
 from send2trash import send2trash
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from tqdm import tqdm as _tqdm
+from tqdm import tqdm
 
 from .config import Config
 from . import exceptions as E
 from .models import ModelBase, Pkg, PkgFolder
 from .resolvers import CurseResolver, WowiResolver, TukuiResolver
-from .utils import Archive
 
 
 _UA_STRING = 'instawow (https://github.com/layday/instawow)'
@@ -37,43 +40,29 @@ async def _init_client(*, loop, **kwargs):
                          **kwargs)
 
 
-class DbOverlay:
-    "Convenience wrapper for working with the database."
+class PkgArchive:
 
-    def __init__(self, config: Config):
-        db_engine = create_engine(f'sqlite:///{config.config_dir/config.db_name}')
-        ModelBase.metadata.create_all(db_engine)
-        self._session = sessionmaker(bind=db_engine)()
+    __slots__ = ('archive', 'root_folders')
 
-    def x_insert(self, obj):
-        self._session.add(obj)
-        self._session.commit()
-        return obj
+    def __init__(self, payload: bytes) -> None:
+        self.archive = zipfile.ZipFile(io.BytesIO(payload))
 
-    def x_replace(self, obj, other=None):
-        if other:
-            self._session.delete(other)
-            self._session.commit()
-        return self.x_insert(obj)
+        folders = sorted({Path(p).parts[0] for p in self.archive.namelist()})
+        folders = [Path(p) for p in folders]
+        self.root_folders = folders
 
-    def x_delete(self, obj):
-        self._session.delete(obj)
-        self._session.commit()
-        return obj
-
-    def x_unique(self, origin, id_or_slug, kls=Pkg):
-        return self._session.query(kls)\
-                            .filter(kls.origin == origin,
-                                    (kls.id == id_or_slug) |
-                                    (kls.slug == id_or_slug))\
-                            .first()
-
-    def __getattr__(self, name):
-        # Pass any other method call on to ye olde database session
-        return getattr(self._session, name)
+    def extract(self, parent_folder: Path, *,
+                overwrite: bool=False) -> None:
+        "Extract the archive contents under ``parent_folder``."
+        if not overwrite:
+            conflicts = {f.name for f in self.root_folders} & \
+                        {f.name for f in parent_folder.iterdir()}
+            if conflicts:
+                raise E.PkgConflictsWithPreexisting(conflicts)
+        self.archive.extractall(parent_folder)
 
 
-class _MemberDict(dict):
+class MemberDict(dict):
 
     def __missing__(self, key):
         raise E.PkgOriginInvalid(origin=key)
@@ -93,133 +82,116 @@ class Manager:
                              InternalError)
 
     def __init__(self, *,
-                 config: Config, loop: asyncio.BaseEventLoop=None,
-                 client_factory: T.Callable=None):
+                 config: Config, loop: asyncio.AbstractEventLoop=None,
+                 client_factory: T.Callable=None) -> None:
         self.config = config
         self.loop = loop or init_loop()
-        self.client_factory = client_factory or _init_client
+        self.client_factory = partial(client_factory or _init_client,
+                                      loop=self.loop)
         self.client = _client
-        self.db = DbOverlay(config)
-        self.resolvers = _MemberDict((r.origin, r(manager=self))
-                                     for r in (CurseResolver, WowiResolver, TukuiResolver))
+        self.resolvers = MemberDict((r.origin, r(manager=self))
+                                    for r in (CurseResolver, WowiResolver, TukuiResolver))
 
-    def run(self, awaitable: T.Awaitable) -> T.Any:
-        "Run ``awaitable`` inside an explicit context."
-        async def runner():
-            async with (await self.client_factory(loop=self.loop)) as client:
-                _client.set(client)
-                return await awaitable
+        engine = create_engine(f'sqlite:///{config.config_dir/config.db_name}')
+        ModelBase.metadata.create_all(engine)
+        self.db = sessionmaker(bind=engine)()
 
-        return contextvars.copy_context().run(partial(self.loop.run_until_complete,
-                                                      runner()))
+    def get(self, origin: str, id_or_slug: str) -> Pkg:
+        "Retrieve a ``Pkg`` from the database."
+        return self.db.query(Pkg)\
+                      .filter(Pkg.origin == origin,
+                              (Pkg.id == id_or_slug) | (Pkg.slug == id_or_slug))\
+                      .first()
 
     async def resolve(self, origin: str, id_or_slug: str, strategy: str) -> Pkg:
-        """Resolve an ID or slug into a ``Pkg``.
+        "Resolve an ID or slug into a ``Pkg``."
+        return await self.resolvers[origin].resolve(id_or_slug,
+                                                    strategy=strategy)
 
-        :raises: PkgOriginInvalid, PkgNonexistent
-        """
-        return await self.resolvers[origin].resolve(id_or_slug, strategy=strategy)
+    async def to_install(self, origin: str, id_or_slug: str, strategy: str,
+                         overwrite: bool) -> T.Callable[[], E.PkgInstalled]:
+        "Retrieve a package to install."
+        def install():
+            archive = PkgArchive(payload)
+            pkg.folders = [PkgFolder(path=self.config.addon_dir/f)
+                           for f in archive.root_folders]
 
-    async def prepare_new(self, origin: str, id_or_slug: str,
-                          strategy: str, overwrite: bool) -> T.Callable:
-        """Retrieve a package to install.
+            conflicts = self.db.query(PkgFolder)\
+                               .filter(PkgFolder.path.in_
+                                        ([f.path for f in pkg.folders]))\
+                               .first()
+            if conflicts:
+                raise self.PkgConflictsWithInstalled(conflicts.pkg)
 
-        :raises: PkgOriginInvalid, PkgNonexistent, PkgAlreadyInstalled,
-                 PkgConflictsWithInstalled, PkgConflictsWithPreexisting
-        """
-        if self.db.x_unique(origin, id_or_slug):
+            if overwrite:
+                for path in (f.path for f in pkg.folders if f.path.exists()):
+                    send2trash(str(path))
+            archive.extract(parent_folder=self.config.addon_dir,
+                            overwrite=overwrite)
+            self.db.add(pkg)
+            self.db.commit()
+            return self.PkgInstalled(pkg)
+
+        if self.get(origin, id_or_slug):
             raise self.PkgAlreadyInstalled
-
-        new_pkg = await self.resolve(origin, id_or_slug, strategy)
+        pkg = await self.resolve(origin, id_or_slug, strategy)
         async with self.client.get()\
-                              .get(new_pkg.download_url) as response:
+                              .get(pkg.download_url) as response:
             payload = await response.read()
+        return install
 
-        def finalise() -> E.PkgInstalled:
-            archive = Archive(payload)
+    async def to_update(self, origin: str,
+                        id_or_slug: str) -> T.Callable[[], E.PkgUpdated]:
+        "Retrieve a package to update."
+        def update():
+            archive = PkgArchive(payload)
             new_pkg.folders = [PkgFolder(path=self.config.addon_dir/f)
                                for f in archive.root_folders]
-            folder_conflict = self.db.query(PkgFolder)\
-                                     .filter(PkgFolder.path.in_
-                                              ([f.path for f in new_pkg.folders]))\
-                                     .first()
-            if folder_conflict:
-                raise self.PkgConflictsWithInstalled(folder_conflict.pkg)
-            try:
-                archive.extract(parent_folder=self.config.addon_dir,
-                                overwrite=overwrite)
-            except Archive.ExtractConflict as conflict:
-                raise self.PkgConflictsWithPreexisting(
-                    folders=conflict.conflicting_folders)
 
-            return self.PkgInstalled(self.db.x_insert(new_pkg))
-        return finalise
+            conflicts = self.db.query(PkgFolder)\
+                               .filter(PkgFolder.path.in_
+                                        ([f.path for f in new_pkg.folders]),
+                                       PkgFolder.pkg_origin != new_pkg.origin,
+                                       PkgFolder.pkg_id != new_pkg.id)\
+                               .first()
+            if conflicts:
+                raise self.PkgConflictsWithInstalled(conflicts.pkg)
 
-    async def prepare_update(self, origin: str, id_or_slug: str,
-                             strategy: str=None) -> T.Callable:
-        """Retrieve a package to update.
+            with ExitStack() as stack:
+                stack.callback(self.db.commit)
+                for folder in old_pkg.folders:
+                    send2trash(str(folder.path))
+                self.db.delete(old_pkg)
+                archive.extract(parent_folder=self.config.addon_dir)
+                self.db.add(new_pkg)
+            return self.PkgUpdated(old_pkg, new_pkg)
 
-        :raises: PkgOriginInvalid, PkgNonexistent,
-                 PkgNotInstalled, PkgUpToDate,
-                 PkgConflictsWithInstalled, PkgConflictsWithPreexisting
-        """
-        old_pkg = self.db.x_unique(origin, id_or_slug)
+        old_pkg = self.get(origin, id_or_slug)
         if not old_pkg:
             raise self.PkgNotInstalled
-        new_pkg = await self.resolve(origin, id_or_slug,
-                                     (strategy or old_pkg.options.strategy))
+        new_pkg = await self.resolve(origin, id_or_slug, old_pkg.options.strategy)
         if old_pkg.file_id == new_pkg.file_id:
-            def finalise() -> None:
-                if old_pkg.options.strategy != new_pkg.options.strategy:
-                    old_pkg.options.strategy = new_pkg.options.strategy
-                    self.db.commit()
-                raise self.PkgUpToDate
-            return finalise
+            raise self.PkgUpToDate
 
         async with self.client.get()\
                               .get(new_pkg.download_url) as response:
             payload = await response.read()
-
-        def finalise() -> E.PkgUpdated:
-            archive = Archive(payload)
-            new_pkg.folders = [PkgFolder(path=self.config.addon_dir/f)
-                               for f in archive.root_folders]
-            folder_conflict = self.db.query(PkgFolder)\
-                                     .filter(PkgFolder.path.in_
-                                              ([f.path for f in new_pkg.folders]),
-                                             PkgFolder.pkg_origin != new_pkg.origin,
-                                             PkgFolder.pkg_id != new_pkg.id)\
-                                     .first()
-            if folder_conflict:
-                raise self.PkgConflictsWithInstalled(folder_conflict.pkg)
-
-            for folder in old_pkg.folders:
-                send2trash(str(folder.path))
-            try:
-                archive.extract(parent_folder=self.config.addon_dir)
-            except Archive.ExtractConflict as conflict:
-                raise self.PkgConflictsWithPreexisting(
-                    folders=conflict.conflicting_folders)
-
-            return self.PkgUpdated((old_pkg,
-                                    self.db.x_replace(new_pkg, old_pkg)))
-        return finalise
+        return update
 
     def remove(self, origin: str, id_or_slug: str) -> E.PkgRemoved:
-        """Remove a package.
-
-        :raises: PkgNotInstalled
-        """
-        pkg = self.db.x_unique(origin, id_or_slug)
+        "Remove a package."
+        pkg = self.get(origin, id_or_slug)
         if not pkg:
             raise self.PkgNotInstalled
 
         for folder in pkg.folders:
             send2trash(str(folder.path))
-        return self.PkgRemoved(self.db.x_delete(pkg))
+        self.db.delete(pkg)
+        self.db.commit()
+        return self.PkgRemoved(pkg)
 
 
-tqdm = partial(_tqdm, leave=False, ascii=True)
+Bar = partial(tqdm, leave=False, ascii=True)
 
 _dl_counter = contextvars.ContextVar('_dl_counter', default=0)
 
@@ -238,12 +210,12 @@ async def _init_cli_client(*, loop):
             filename = params.response.headers.get('Content-Disposition', '')
             filename = filename[(filename.find('"') + 1):filename.rfind('"')] or \
                        params.response.url.name
-            bar = tqdm(total=params.response.content_length,
-                       desc=f'Downloading {filename}',
-                       miniters=1, unit='B', unit_scale=True,
-                       position=_post_increment_dl_counter())
+            bar = Bar(total=params.response.content_length,
+                      desc=f'Downloading {filename}',
+                      miniters=1, unit='B', unit_scale=True,
+                      position=_post_increment_dl_counter())
 
-            async def ticker():
+            async def ticker(bar=bar, params=params):
                 while True:
                     if params.response.content._cursor == bar.total:
                         bar.close()
@@ -287,35 +259,42 @@ def _intercept_exc(callable_):
 class CliManager(Manager):
 
     def __init__(self, *,
-                 config: Config, loop: asyncio.BaseEventLoop=None,
-                 show_progress: bool=True):
-        self.show_progress = show_progress
+                 config: Config, loop: asyncio.AbstractEventLoop=None,
+                 show_progress: bool=True) -> None:
         super().__init__(config=config, loop=loop,
                          client_factory=_init_cli_client if show_progress else None)
+        self.show_progress = show_progress
+
+    def run(self, awaitable: T.Awaitable) -> T.Any:
+        "Run ``awaitable`` inside an explicit context."
+        async def runner():
+            async with (await self.client_factory()) as client:
+                _client.set(client)
+                return await awaitable
+
+        return contextvars.copy_context().run(partial(self.loop.run_until_complete,
+                                                      runner()))
 
     async def gather(self, it: T.Iterable, **kwargs) -> list:
         futures = [_intercept_exc_async(*i) for i in enumerate(it)]
         results = [None] * len(futures)
-        with tqdm(total=len(futures), disable=not self.show_progress,
-                  position=_post_increment_dl_counter(), **kwargs) as bar:
+        with Bar(total=len(futures), disable=not self.show_progress,
+                 position=_post_increment_dl_counter(), **kwargs) as bar:
             for result in asyncio.as_completed(futures, loop=self.loop):
                 results.__setitem__(*await result)
                 bar.update(1)
         return results
 
     def resolve_many(self, values: T.Iterable) -> list:
-        return self.run(self.gather((self.resolve(*a)
-                                     for a in values),
+        return self.run(self.gather((self.resolve(*a) for a in values),
                                     desc='Resolving'))
 
     def install_many(self, values: T.Iterable) -> list:
-        result = self.run(self.gather((self.prepare_new(*a)
-                                       for a in values),
+        result = self.run(self.gather((self.to_install(*a) for a in values),
                                       desc='Fetching'))
         return [_intercept_exc(i) for i in result]
 
     def update_many(self,  values: T.Iterable) -> list:
-        result = self.run(self.gather((self.prepare_update(*a)
-                                       for a in values),
+        result = self.run(self.gather((self.to_update(*a) for a in values),
                                       desc='Checking'))
         return [_intercept_exc(i) for i in result]

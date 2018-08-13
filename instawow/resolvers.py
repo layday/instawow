@@ -10,55 +10,35 @@ from .models import Pkg, PkgOptions
 from .utils import slugify
 
 
-_EXPIRY = 3600
+__all__ = ('CurseResolver', 'WowiResolver', 'TukuiResolver')
 
 
-class _BaseResolver:
+class Resolver:
 
     origin: str
     name: str
 
     def __init__(self, *, manager: 'Manager') -> None:
-        self._synced = False
-        self._sync_lock = asyncio.Lock(loop=manager.loop)
-
         self.manager = manager
 
-    def __init_subclass__(cls) -> None:
-        orig_resolve = cls.resolve
-        async def _resolve(self, *args, **kwargs):
-            async with self._sync_lock:
-                if not self._synced:
-                    await self.sync()
-                    self._synced = True
-            return await orig_resolve(self, *args, **kwargs)
-        cls.resolve = _resolve
-
     def __getattr__(self, name: str) -> T.Any:
-        # Delegate attribute access to the ``Manager``
+        # Delegate attribute access to the manager
         return getattr(self.manager, name)
 
     @classmethod
     def decompose_url(cls, url: str) -> T.Optional[T.Tuple[str, str]]:
-        "Break a URL down into its component `origin` and `id`."
+        "Break a URL down to its component `origin` and `id`."
+        raise NotImplementedError
 
-    async def sync(self) -> None:
-        """Serves as a deferred, asynchronous `__init__`.  Do any
-        preprocessing here if necessary, including writing to the cache.
-        """
-
-    async def resolve(self, id_or_slug: str, *,
-                      strategy: str) -> Pkg:
+    async def resolve(self, id_or_slug: str, *, strategy: str) -> Pkg:
         "Turn an ID or slug into a `models.Pkg`."
         raise NotImplementedError
 
 
-class CurseResolver(_BaseResolver):
+class CurseResolver(Resolver):
 
     origin = 'curse'
     name = 'CurseForge'
-
-    _re_curse_url = re.compile(r'(?P<id>\d+)-(?P<slug>[a-z_-]+)')
 
     @classmethod
     def decompose_url(cls, url):
@@ -70,16 +50,12 @@ class CurseResolver(_BaseResolver):
         elif url.host == 'www.curseforge.com' \
                 and len(url.parts) > 3 \
                 and url.parts[1:3] == ('wow', 'addons'):
-            slug = url.parts[3]
-            match = cls._re_curse_url.match(slug)
-            if match:
-                slug = match.group('id')
-            return (cls.origin, slug)
+            return (cls.origin, url.parts[3])
 
     async def resolve(self, id_or_slug, *, strategy):
         async with self.client.get()\
-                              .get(f'https://wow.curseforge.com/projects/{id_or_slug}') \
-                as response:
+                              .get('https://wow.curseforge.com/projects/' +
+                                   id_or_slug) as response:
             if response.status != 200 \
                     or response.url.host not in {'wow.curseforge.com', 'www.wowace.com'}:
                 raise self.PkgNonexistent
@@ -112,17 +88,18 @@ class CurseResolver(_BaseResolver):
                    options=PkgOptions(strategy=strategy))
 
 
-class WowiResolver(_BaseResolver):
+class WowiResolver(Resolver):
 
     origin = 'wowi'
     name = 'WoWInterface'
 
-    _data: dict
-
     _api_list = 'https://api.mmoui.com/v3/game/WOW/filelist.json'
     _api_details = 'https://api.mmoui.com/v3/game/WOW/filedetails/{}.json'
 
-    _re_addon_url = re.compile(r'(?:download|info)(?P<id>\d+)')
+    def __init__(self, *, manager):
+        super().__init__(manager=manager)
+        self._sync_lock = asyncio.Lock(loop=self.loop)
+        self._sync_data = None
 
     @classmethod
     def decompose_url(cls, url):
@@ -130,38 +107,41 @@ class WowiResolver(_BaseResolver):
         if url.host in {'wowinterface.com', 'www.wowinterface.com'} \
                 and len(url.parts) == 3 \
                 and url.parts[1] == 'downloads':
-            match = cls._re_addon_url.match(url.name)
-            if match:
-                return (cls.origin, match.group('id'))
+            id_ = ''.join(c for c in url.name.split('-')[0] if c.isdigit())
+            if id_:
+                return (cls.origin, id_)
 
-    async def sync(self):
-        async with self.client.get().get(self._api_list) as response:
-            data = await response.json()
-        self._data = {i['UID']: i for i in data}
+    async def _sync(self):
+        async with self._sync_lock:
+            if not self._sync_data:
+                async with self.client.get()\
+                                      .get(self._api_list) as response:
+                    self._sync_data = {i['UID']: i for i in (await response.json())}
+            return self._sync_data
 
     async def resolve(self, id_or_slug, *, strategy):
         try:
-            file = self._data[id_or_slug.partition('-')[0]]
+            addon = (await self._sync())[id_or_slug.partition('-')[0]]
         except KeyError:
             raise self.PkgNonexistent
         async with self.client.get()\
-                              .get(self._api_details.format(file['UID'])) as response:
-            details, = await response.json()
+                              .get(self._api_details.format(addon['UID'])) as response:
+            addon_details, = await response.json()
 
         return Pkg(origin=self.origin,
-                   id=file['UID'],
-                   slug=slugify(f'{file["UID"]} {file["UIName"]}'),
-                   name=file['UIName'],
-                   description=details['UIDescription'],
-                   url=file['UIFileInfoURL'],
-                   file_id=details['UIMD5'],
-                   download_url=details['UIDownload'],
-                   date_published=details['UIDate'],
-                   version=details['UIVersion'],
+                   id=addon['UID'],
+                   slug=slugify(f'{addon["UID"]} {addon["UIName"]}'),
+                   name=addon['UIName'],
+                   description=addon_details['UIDescription'],
+                   url=addon['UIFileInfoURL'],
+                   file_id=addon_details['UIMD5'],
+                   download_url=addon_details['UIDownload'],
+                   date_published=addon_details['UIDate'],
+                   version=addon_details['UIVersion'],
                    options=PkgOptions(strategy=strategy))
 
 
-class TukuiResolver(_BaseResolver):
+class TukuiResolver(Resolver):
 
     origin = 'tukui'
     name = 'Tukui'
@@ -176,10 +156,9 @@ class TukuiResolver(_BaseResolver):
             return (cls.origin, match.group('id'))
 
     async def resolve(self, id_or_slug, *, strategy):
-        addon_id = id_or_slug.partition('-')[0]
         async with self.client.get()\
-                              .get(f'https://www.tukui.org/api.php?addon={addon_id}') \
-                as response:
+                              .get('https://www.tukui.org/api.php?addon=' +
+                                   id_or_slug.partition('-')[0]) as response:
             if not response.content_length:
                 raise self.PkgNonexistent
             addon = await response.json(content_type='text/html')

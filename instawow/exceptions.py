@@ -14,9 +14,10 @@ class PkgInstalled(ManagerResult):
 
 class PkgUpdated(ManagerResult):
 
-    def __init__(self, pkgs):
+    def __init__(self, old_pkg, new_pkg):
         super().__init__()
-        self.old_pkg, self.new_pkg = pkgs
+        self.old_pkg = old_pkg
+        self.new_pkg = new_pkg
 
 
 class PkgRemoved(ManagerResult):
