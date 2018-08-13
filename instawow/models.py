@@ -1,6 +1,5 @@
 
 from datetime import datetime
-import json
 from pathlib import Path
 
 import pydantic
@@ -56,15 +55,6 @@ class _PathType(TypeDecorator):
     def process_result_value(self, value, dialect):
         if value is not None:
             return Path(value)
-
-
-class _JsonType(TypeDecorator):
-
-    impl = String
-
-    def process_result_value(self, value, dialect):
-        if value is not None:
-            return json.loads(value)
 
 
 class Pkg(ModelBase):
@@ -131,23 +121,3 @@ class PkgOptions(ModelBase):
 class _PkgOptionsCoercer(_BaseCoercer, coerces=PkgOptions):
 
     strategy: str
-
-
-class CacheEntry(ModelBase):
-
-    __tablename__ = 'cache'
-
-    origin = Column(String, primary_key=True)
-    id = Column(String, primary_key=True)
-    date_updated = Column(DateTime)
-    date_retrieved = Column(DateTime, nullable=False)
-    contents = Column(_JsonType, nullable=False)
-
-
-class _CacheEntryCoercer(_BaseCoercer, coerces=CacheEntry):
-
-    origin: str
-    id: str
-    date_updated: datetime = None
-    date_retrieved: datetime
-    contents: str
