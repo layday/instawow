@@ -3,45 +3,44 @@ from datetime import datetime
 from pathlib import Path
 
 import pydantic
-from sqlalchemy import Column, String, DateTime, Enum, \
-                       ForeignKeyConstraint, TypeDecorator
+from sqlalchemy import (Column, String, DateTime, Enum,
+                        ForeignKeyConstraint, TypeDecorator)
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 
 
 def _declarative_constructor(self, **kwargs):
-    for k, v in _BaseCoercer.__members__[self.__class__]\
-                            .parse_obj(kwargs):
+    for k, v in _coerces.coercers[self.__class__]\
+                        .parse_obj(kwargs):
         setattr(self, k, v)
 
 
 ModelBase = declarative_base(constructor=_declarative_constructor)
 
 
-class _MetaBase(pydantic.BaseModel.__class__):
-
-    __members__ = {}
-
-    def __new__(mcs, name, bases, namespace, **kwargs):
-        cls = super().__new__(mcs, name, bases, namespace)
-        if 'coerces' in kwargs:
-            mcs.__members__[kwargs['coerces']] = cls
-        return cls
-
-
-class _BaseCoercer(pydantic.BaseModel, metaclass=_MetaBase):
+class _BaseCoercer(pydantic.BaseModel):
     """The coercer is used inside the declarative constructor to type-cast
     values _prior to_ inserts.  SQLAlchemy delegates this function to
-    the DB API - see https://stackoverflow.com/a/8980982.  We need this to
+    the DB API -- see https://stackoverflow.com/a/8980982.  We need this to
     happen in advance to be able to compare values with their in-database
-    equivalents without having to wrap every single one of them inside
-    `str()` (yuck).  It also saves us the trouble of having to manually
+    counterparts.  It also saves us the trouble of having to manually
     parse dates and the like.
     """
 
     class Config:
         allow_extra = True
         max_anystr_length = 2 ** 32
+
+
+class _coerces:
+
+    coercers = {}
+
+    def __new__(cls, model):
+        def wrapper(coercer):
+            cls.coercers[model] = coercer
+            return coercer
+        return wrapper
 
 
 class _PathType(TypeDecorator):
@@ -77,7 +76,8 @@ class Pkg(ModelBase):
                            uselist=False)
 
 
-class _PkgCoercer(_BaseCoercer, coerces=Pkg):
+@_coerces(Pkg)
+class _PkgCoercer(_BaseCoercer):
 
     origin: str
     id: str
@@ -102,7 +102,8 @@ class PkgFolder(ModelBase):
     pkg_id = Column(String, nullable=False)
 
 
-class _PkgFolderCoercer(_BaseCoercer, coerces=PkgFolder):
+@_coerces(PkgFolder)
+class _PkgFolderCoercer(_BaseCoercer):
 
     path: Path
 
@@ -118,6 +119,7 @@ class PkgOptions(ModelBase):
     pkg_id = Column(String, primary_key=True)
 
 
-class _PkgOptionsCoercer(_BaseCoercer, coerces=PkgOptions):
+@_coerces(PkgOptions)
+class _PkgOptionsCoercer(_BaseCoercer):
 
     strategy: str

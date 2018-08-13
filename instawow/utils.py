@@ -5,26 +5,26 @@ import re
 import typing as T
 
 
-_TocEntry = namedtuple('_TocEntry', 'key value')
-
 class TocReader:
     """Extracts key–value pairs from TOC files."""
 
-    def __init__(self, toc_file_path: Path):
+    Entry = namedtuple('_TocEntry', 'key value')
+
+    def __init__(self, path: Path) -> None:
         entries = (e.lstrip('# ').partition(': ')
-                   for e in toc_file_path.read_text(encoding='utf-8-sig').splitlines()
+                   for e in path.read_text(encoding='utf-8-sig').splitlines()
                    if e.startswith('## '))
         entries = {e[0]: e[2] for e in entries}
         self.entries = entries
 
-    def __getitem__(self, key: T.Union[str, T.Tuple[str]]) -> _TocEntry:
+    def __getitem__(self, key: T.Union[str, T.Tuple[str]]) -> Entry:
         if isinstance(key, tuple):
             try:
                 return next(filter(lambda i: i.value,
                                    (self.__getitem__(k) for k in key)))
             except StopIteration:
                 key = key[0]
-        return _TocEntry(key, self.entries.get(key))
+        return self.Entry(key, self.entries.get(key))
 
 
 def slugify(text: str, *,
