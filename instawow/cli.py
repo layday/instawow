@@ -224,6 +224,9 @@ def list_():
 @click.option('--columns', '-C', 'print_columns',
               is_flag=True, default=False,
               help='Print a list of all possible column values.')
+@click.option('--toc-entry', '-t', 'toc_entries',
+              multiple=True,
+              help='An entry to extract from the TOC.  Repeatable.')
 @click.option('--sort-by', '-s', 'sort_key',
               default='name',
               help='A key to sort the table by.  '
@@ -231,7 +234,9 @@ def list_():
                    'just as you would in SQL, '
                    'e.g. `--sort-by="origin, date_published DESC"`.')
 @click.pass_obj
-def list_installed(manager, columns, print_columns, sort_key):
+def list_installed(manager,
+                   columns, print_columns, toc_entries,
+                   sort_key):
     """List installed add-ons."""
     def format_columns(pkg):
         for column in columns:
@@ -248,16 +253,30 @@ def list_installed(manager, columns, print_columns, sort_key):
                 value = fill(value, width=50, max_lines=3)
             yield value
 
+    def format_toc_entries(pkg):
+        toc_readers = [TocReader(f.path/f'{f.path.name}.toc')
+                       for f in pkg.folders]
+        for toc_entry in toc_entries:
+            value = [fill(r[toc_entry].value or '', width=50)
+                     for r in toc_readers]
+            value = sorted(set(value), key=value.index)
+            value = '\n'.join(value)
+            yield value
+
     if print_columns:
         click.echo(_tabulate([(c,) for c in (*inspect(Pkg).columns.keys(),
                                              *inspect(Pkg).relationships.keys())],
                              head=('field',), show_index=False))
     else:
-        click.echo(_tabulate([(_compose_addon_defn(p), *format_columns(p))
+        click.echo(_tabulate([(_compose_addon_defn(p),
+                               *format_columns(p),
+                               *format_toc_entries(p))
                               for p in manager.db.query(Pkg)
                                                  .order_by(text(sort_key))
                                                  .all()],
-                             head=('add-on', *columns)))
+                             head=('add-on',
+                                   *columns,
+                                   *(f'[{e}]' for e in toc_entries))))
 
 
 @list_.command('outdated')
@@ -305,8 +324,11 @@ def list_preexisting(manager):
 @main.command()
 @click.argument('addon', callback=partial(_decompose_addon_defn,
                                           raise_for_invalid_defn=False))
+@click.option('--toc-entry', '-t', 'toc_entries',
+              multiple=True,
+              help='An entry to extract from the TOC.  Repeatable.')
 @click.pass_obj
-def info(manager, addon):
+def info(manager, addon, toc_entries):
     """Show the details of an installed add-on."""
     pkg = addon[1]
     pkg = (manager.get(*pkg) or manager.db.query(Pkg)
@@ -326,6 +348,13 @@ def info(manager, addon):
                                      [' ├─ ' + f.path.name for f in pkg.folders[:-1]] +
                                      [' └─ ' + pkg.folders[-1].path.name]),
                 'strategy': pkg.options.strategy,}
+
+        if toc_entries:
+            for path, toc_reader in ((f.path,
+                                      TocReader(f.path/f'{f.path.name}.toc'))
+                                     for f in pkg.folders):
+                rows.update({f'[{path.name} {k}]': fill(toc_reader[k].value or '')
+                             for k in toc_entries})
         click.echo(_tabulate(rows.items(), show_index=False))
     else:
         click.echo(_format_message(addon[0], Manager.PkgNotInstalled))
