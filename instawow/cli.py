@@ -15,7 +15,7 @@ from . import __version__
 from .config import UserConfig
 from .manager import CliManager as Manager
 from .models import Pkg, PkgFolder
-from .utils import TocReader, slugify
+from .utils import TocReader
 
 
 _SUCCESS = click.style('✓', fg='green')
@@ -103,7 +103,7 @@ def _decompose_addon_defn(ctx, param, value, *,
             parts = _parts('*', value)
         else:
             parts = value.partition(_SEP)
-            parts = _parts(parts[0], slugify(parts[2]))
+            parts = _parts(parts[0], parts[2])
     return _compose_addon_defn(parts), parts
 
 
