@@ -407,7 +407,7 @@ def bitbar():
     """
 
 
-@bitbar.command('_generate')
+@bitbar.command('_generate', hidden=True)
 @click.argument('caller')
 @click.argument('version')
 @click.pass_obj
