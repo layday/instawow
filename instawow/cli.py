@@ -1,6 +1,8 @@
 
 from collections import namedtuple
 from functools import partial, reduce
+from itertools import count
+from pathlib import Path
 from textwrap import fill
 import traceback
 import typing as T
@@ -133,15 +135,20 @@ def _init():
 def main(ctx, hide_progress):
     """Add-on manager for World of Warcraft."""
     if not ctx.obj:
-        while True:
+        for attempt in count():
             try:
                 config = UserConfig.read()
             except (FileNotFoundError, ValueError):
                 _init()
             else:
                 break
-        ctx.obj = Manager(config=config,
-                          show_progress=not hide_progress)
+        ctx.obj = manager = Manager(config=config,
+                                    show_progress=not hide_progress)
+        if attempt:
+            # Migrate add-on paths after redefining ``addon_dir``
+            for f in manager.db.query(PkgFolder).all():
+                f.path = Path(manager.config.addon_dir/f.path.name)
+            manager.db.commit()
 
         is_outdated, _latest_version = check_outdated('instawow',
                                                       __version__)
