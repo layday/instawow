@@ -32,21 +32,6 @@ class Config(pydantic.BaseSettings):
 class UserConfig(Config):
 
     @classmethod
-    def detect_addon_dir(cls) -> T.Optional[Path]:
-        "Attempt to detect the location of the add-on folder."
-        paths = [('Public' in environ and
-                  Path(environ['Public'],
-                       'Games\\World of Warcraft\\Interface\\AddOns')),
-                 ('ProgramFiles(x86)' in environ and
-                  Path(environ['ProgramFiles(x86)'],
-                       'World of Warcraft\\Interface\\AddOns')),
-                 ('ProgramFiles' in environ and
-                  Path(environ['ProgramFiles'],
-                       'World of Warcraft\\Interface\\AddOns')),
-                 Path('/Applications/World of Warcraft/Interface/AddOns')]
-        return next(filter(Path.is_dir, filter(None, paths)), None)
-
-    @classmethod
     def read(cls):  # -> UserConfig
         "Attempt to read the config from the default path."
         return cls(addon_dir=(_DEFAULT_CONFIG_DIR/'addon_dir.txt')

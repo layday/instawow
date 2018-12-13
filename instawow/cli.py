@@ -114,14 +114,13 @@ class _OrigCmdOrderGroup(click.Group):
 
 
 def _init():
-    addon_dir = UserConfig.detect_addon_dir()
+    addon_dir = click.prompt('Enter the path to your add-on folder')
     while True:
         try:
             UserConfig(addon_dir=addon_dir).write()
         except ValueError:
-            if addon_dir:
-                click.echo(f'{addon_dir} not found')
-            addon_dir = click.prompt('Enter the path to your add-on folder')
+            addon_dir = click.prompt(f'{addon_dir} not found\n'
+                                      'Enter the path to your add-on folder')
         else:
             break
 
