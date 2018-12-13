@@ -124,9 +124,6 @@ def _init():
         else:
             break
 
-init = click.Command(name='instawow-init', callback=_init,
-                     context_settings=_CONTEXT_SETTINGS)
-
 
 @click.group(cls=_OrigCmdOrderGroup, context_settings=_CONTEXT_SETTINGS)
 @click.version_option(__version__)

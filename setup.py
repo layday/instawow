@@ -28,5 +28,4 @@ setup(name='instawow',
                         'yarl==1.2.6',
                         'uvloop==0.11.2; platform_system != "Windows"',],
       package_data={'instawow': ['assets/*']},
-      entry_points={'console_scripts': ['instawow = instawow.cli:cli',
-                                        'instawow-init = instawow.cli:init']})
+      entry_points={'console_scripts': ['instawow = instawow.cli:cli']})
