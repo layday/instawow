@@ -191,33 +191,34 @@ class Manager:
         return self.PkgRemoved(pkg)
 
 
-Bar = partial(tqdm, leave=False, ascii=True)
+class Bar(tqdm):
 
-_dl_counter = contextvars.ContextVar('_dl_counter', default=0)
+    def __init__(self, *args, **kwargs) -> None:
+        kwargs['position'], self._reset_position = kwargs['position']
+        super().__init__(*args, **{'leave': False, 'ascii': True, **kwargs})
+
+    def close(self) -> None:
+        super().close()
+        self._reset_position()
 
 
-def _post_increment_dl_counter():
-    val = _dl_counter.get()
-    _dl_counter.set(val + 1)
-    return val
-
-
-async def _init_cli_client(*, loop):
+async def _init_cli_client(*, loop, manager):
     async def do_on_request_end(session, context, params):
-        if (params.response.content_length and
-                # Ignore files smaller than a megabyte
-                params.response.content_length > 2**20):
+        if params.response.content_type in {
+                'application/zip',
+                # Curse at it again
+                'application/x-amz-json-1.0'}:
             filename = params.response.headers.get('Content-Disposition', '')
             filename = filename[(filename.find('"') + 1):filename.rfind('"')] or \
                        params.response.url.name
             bar = Bar(total=params.response.content_length,
                       desc=f'Downloading {filename}',
                       miniters=1, unit='B', unit_scale=True,
-                      position=_post_increment_dl_counter())
+                      position=manager.bar_position)
 
             async def ticker(bar=bar, params=params):
                 while True:
-                    if params.response.content._cursor == bar.total:
+                    if params.response.content._eof:
                         bar.close()
                         break
                     bar.update(params.response.content._cursor - bar.n)
@@ -262,8 +263,21 @@ class CliManager(Manager):
                  config: Config, loop: asyncio.AbstractEventLoop=None,
                  show_progress: bool=True) -> None:
         super().__init__(config=config, loop=loop,
-                         client_factory=_init_cli_client if show_progress else None)
+                         client_factory=(partial(_init_cli_client, manager=self)
+                                         if show_progress else None))
         self.show_progress = show_progress
+        self._bar_position = []
+
+    @property
+    def bar_position(self) -> T.Tuple[int, T.Callable]:
+        "Get the first available bar slot."
+        try:
+            b = self._bar_position.index(False)
+            self._bar_position[b] = True
+        except ValueError:
+            b = len(self._bar_position)
+            self._bar_position.append(True)
+        return (b, lambda b=b: self._bar_position.__setitem__(b, False))
 
     def run(self, awaitable: T.Awaitable) -> T.Any:
         "Run ``awaitable`` inside an explicit context."
@@ -279,7 +293,7 @@ class CliManager(Manager):
         futures = [_intercept_exc_async(*i) for i in enumerate(it)]
         results = [None] * len(futures)
         with Bar(total=len(futures), disable=not self.show_progress,
-                 position=_post_increment_dl_counter(), **kwargs) as bar:
+                 position=self.bar_position, **kwargs) as bar:
             for result in asyncio.as_completed(futures, loop=self.loop):
                 results.__setitem__(*await result)
                 bar.update(1)
