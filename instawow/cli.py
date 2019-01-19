@@ -4,11 +4,11 @@ from functools import partial, reduce
 from itertools import count
 from pathlib import Path
 from textwrap import fill
-import traceback
 import typing as T
 import webbrowser
 
 import click
+import logbook
 from outdated import check_outdated
 from sqlalchemy import inspect, text
 from texttable import Texttable
@@ -53,9 +53,7 @@ MESSAGES = {
     Manager.PkgUpToDate:   # IGNORE
         ...,
     Manager.InternalError:
-        lambda _, r: ''.join(traceback.format_exception(r.error.__class__,
-                                                        r.error,
-                                                        r.error.__traceback__)).rstrip(),}
+        f'{_FAILURE} {{}}: encountered {{.error.__class__.__name__}}'.format,}
 
 _CONTEXT_SETTINGS = {'help_option_names': ['-h', '--help']}
 _SEP = ':'
@@ -152,6 +150,9 @@ def main(ctx, hide_progress):
             for f in manager.db.query(PkgFolder).all():
                 f.path = Path(manager.config.addon_dir/f.path.name)
             manager.db.commit()
+
+        logbook.FileHandler(manager.config.config_dir/'error.log')\
+               .push_application()
 
         is_outdated, _latest_version = check_outdated('instawow',
                                                       __version__)

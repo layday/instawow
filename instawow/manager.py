@@ -9,6 +9,7 @@ import typing as T
 import zipfile
 
 from aiohttp import ClientSession, TCPConnector, TraceConfig
+import logbook
 from send2trash import send2trash
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -18,6 +19,9 @@ from .config import Config
 from . import exceptions as E
 from .models import ModelBase, Pkg, PkgFolder
 from .resolvers import CurseResolver, WowiResolver, TukuiResolver
+
+
+logger = logbook.Logger(__name__)
 
 
 _UA_STRING = 'instawow (https://github.com/layday/instawow)'
@@ -238,26 +242,6 @@ async def _init_cli_client(*, loop, manager):
     return await _init_client(loop=loop, trace_configs=[trace_conf])
 
 
-async def _intercept_exc_async(index, awaitable):
-    try:
-        result = await awaitable
-    except E.ManagerError as error:
-        result = error
-    except Exception as error:
-        result = E.InternalError(error=error)
-    return index, result
-
-
-def _intercept_exc(callable_):
-    try:
-        result = callable_()
-    except E.ManagerError as error:
-        result = error
-    except Exception as error:
-        result = E.InternalError(error=error)
-    return result
-
-
 class CliManager(Manager):
 
     def __init__(self, *,
@@ -291,7 +275,17 @@ class CliManager(Manager):
                                                       runner()))
 
     async def gather(self, it: T.Iterable, **kwargs) -> list:
-        futures = [_intercept_exc_async(*i) for i in enumerate(it)]
+        async def intercept_exc(position, awaitable):
+            try:
+                result = await awaitable
+            except E.ManagerError as error:
+                result = error
+            except Exception as error:
+                logger.exception()
+                result = E.InternalError(error=error)
+            return position, result
+
+        futures = [intercept_exc(*i) for i in enumerate(it)]
         results = [None] * len(futures)
         with Bar(total=len(futures), disable=not self.show_progress,
                  position=self.bar_position, **kwargs) as bar:
@@ -300,16 +294,28 @@ class CliManager(Manager):
                 bar.update(1)
         return results
 
+    @staticmethod
+    def _intercept_exc(callable_):
+        try:
+            result = callable_()
+        except E.ManagerError as error:
+            result = error
+        except Exception as error:
+            logger.exception()
+            result = E.InternalError(error=error)
+        return result
+
     def resolve_many(self, values: T.Iterable) -> list:
-        return self.run(self.gather((self.resolve(*a) for a in values),
-                                    desc='Resolving'))
+        results = self.run(self.gather((self.resolve(*a) for a in values),
+                                       desc='Resolving'))
+        return results
 
     def install_many(self, values: T.Iterable) -> list:
-        result = self.run(self.gather((self.to_install(*a) for a in values),
-                                      desc='Fetching'))
-        return [_intercept_exc(i) for i in result]
+        results = self.run(self.gather((self.to_install(*a) for a in values),
+                                       desc='Fetching'))
+        return [self._intercept_exc(i) for i in results]
 
     def update_many(self,  values: T.Iterable) -> list:
-        result = self.run(self.gather((self.to_update(*a) for a in values),
-                                      desc='Checking'))
-        return [_intercept_exc(i) for i in result]
+        results = self.run(self.gather((self.to_update(*a) for a in values),
+                                       desc='Checking'))
+        return [self._intercept_exc(i) for i in results]
