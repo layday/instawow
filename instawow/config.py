@@ -14,7 +14,6 @@ class Config(pydantic.BaseSettings):
 
     addon_dir: Path
     config_dir: Path = _DEFAULT_CONFIG_DIR
-    db_name: str = 'db.sqlite'
 
     @pydantic.validator('addon_dir')
     def _prepare_addon_dir(cls, value: Path) -> Path:

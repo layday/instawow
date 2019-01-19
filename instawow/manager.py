@@ -26,9 +26,10 @@ logger = logbook.Logger(__name__)
 
 _UA_STRING = 'instawow (https://github.com/layday/instawow)'
 
+_client = contextvars.ContextVar('_client')
 
-def init_loop():
-    "Get a loop running."
+
+def _init_loop():
     try:
         import uvloop
     except ImportError:
@@ -37,7 +38,13 @@ def init_loop():
         return uvloop.new_event_loop()
 
 
-async def _init_client(*, loop, **kwargs):
+def _init_db_session(*, config):
+    engine = create_engine(f'sqlite:///{config.config_dir/"db.sqlite"}')
+    ModelBase.metadata.create_all(engine)
+    return sessionmaker(bind=engine)()
+
+
+async def _init_web_client(*, loop, **kwargs):
     return ClientSession(loop=loop,
                          connector=TCPConnector(loop=loop, limit_per_host=10),
                          headers={'User-Agent': _UA_STRING},
@@ -72,9 +79,6 @@ class MemberDict(dict):
         raise E.PkgOriginInvalid(origin=key)
 
 
-_client = contextvars.ContextVar('_client')
-
-
 class Manager:
 
     from .exceptions import (ManagerResult,
@@ -90,16 +94,13 @@ class Manager:
                  config: Config, loop: asyncio.AbstractEventLoop=None,
                  client_factory: T.Callable=None) -> None:
         self.config = config
-        self.loop = loop or init_loop()
-        self.client_factory = partial(client_factory or _init_client,
+        self.loop = loop or _init_loop()
+        self.client_factory = partial(client_factory or _init_web_client,
                                       loop=self.loop)
         self.client = _client
+        self.db = _init_db_session(config=self.config)
         self.resolvers = MemberDict((r.origin, r(manager=self))
                                     for r in (CurseResolver, WowiResolver, TukuiResolver))
-
-        engine = create_engine(f'sqlite:///{config.config_dir/config.db_name}')
-        ModelBase.metadata.create_all(engine)
-        self.db = sessionmaker(bind=engine)()
 
     def get(self, origin: str, id_or_slug: str) -> Pkg:
         "Retrieve a ``Pkg`` from the database."
@@ -207,7 +208,7 @@ class Bar(tqdm):
         self._reset_position()
 
 
-async def _init_cli_client(*, loop, manager):
+async def _init_cli_web_client(*, loop, manager):
     async def do_on_request_end(session, context, params):
         if params.response.content_type in {
                 'application/zip',
@@ -239,7 +240,7 @@ async def _init_cli_client(*, loop, manager):
     trace_conf = TraceConfig()
     trace_conf.on_request_end.append(do_on_request_end)
     trace_conf.freeze()
-    return await _init_client(loop=loop, trace_configs=[trace_conf])
+    return await _init_web_client(loop=loop, trace_configs=[trace_conf])
 
 
 class CliManager(Manager):
@@ -248,7 +249,7 @@ class CliManager(Manager):
                  config: Config, loop: asyncio.AbstractEventLoop=None,
                  show_progress: bool=True) -> None:
         super().__init__(config=config, loop=loop,
-                         client_factory=(partial(_init_cli_client, manager=self)
+                         client_factory=(partial(_init_cli_web_client, manager=self)
                                          if show_progress else None))
         self.show_progress = show_progress
         self._bar_position = []
