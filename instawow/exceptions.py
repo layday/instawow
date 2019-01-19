@@ -54,6 +54,10 @@ class PkgNonexistent(ManagerError):
     pass
 
 
+class PkgTemporarilyUnavailable(ManagerError):
+    pass
+
+
 class PkgNotInstalled(ManagerError):
     pass
 

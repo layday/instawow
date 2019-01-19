@@ -78,6 +78,7 @@ class Manager:
                              ManagerError,
                              PkgAlreadyInstalled, PkgConflictsWithInstalled,
                              PkgConflictsWithPreexisting, PkgNonexistent,
+                             PkgTemporarilyUnavailable,
                              PkgNotInstalled, PkgOriginInvalid, PkgUpToDate,
                              InternalError)
 

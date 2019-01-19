@@ -127,6 +127,8 @@ class WowiResolver(Resolver):
         async with self.client.get()\
                               .get(self._api_details.format(addon['UID'])) as response:
             addon_details, = await response.json()
+        if addon_details['UIPending'] == '1':
+            raise self.PkgTemporarilyUnavailable
 
         return Pkg(origin=self.origin,
                    id=addon['UID'],

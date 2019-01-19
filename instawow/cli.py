@@ -43,6 +43,9 @@ MESSAGES = {
         .format,
     Manager.PkgNonexistent:
         f'{_FAILURE} {{}}: no such project id or slug'.format,
+    Manager.PkgTemporarilyUnavailable:
+        f'{_FAILURE} {{0}}: temporarily unavailable\n'
+        f'  this usually means a new version of {{0}} is under review'.format,
     Manager.PkgNotInstalled:
         f'{_FAILURE} {{}}: not installed'.format,
     Manager.PkgOriginInvalid:
