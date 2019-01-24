@@ -19,8 +19,9 @@ class _CliTest:
 
     @pytest.fixture(scope='class')
     def invoke_runner(self, temp_dirs):
-        obj = CliManager(config=Config(addon_dir=self.addons, config_dir=self.config),
-                         show_progress=False)
+        obj = CliManager(
+            config=Config(addon_dir=self.addons, config_dir=self.config),
+            show_progress=False)
         yield lambda args: CliRunner().invoke(main, args=args, obj=obj)
 
 
@@ -72,7 +73,25 @@ class TestValidTukuiPkgLifecycle(_CliTest):
           '✗ tukui:3: not installed\n'),
          (['remove', 'tukui:3'],
           str.__eq__,
-          '✗ tukui:3: not installed\n'),])
+          '✗ tukui:3: not installed\n'),
+         (['install', 'tukui:tukui'],
+          str.startswith,
+          '✓ tukui:tukui: installed'),
+         (['install', 'tukui:tukui'],
+          str.__eq__,
+          '✗ tukui:tukui: already installed\n'),
+         (['update', 'tukui:tukui'],
+          str.__eq__,
+          ''),
+         (['remove', 'tukui:tukui'],
+          str.__eq__,
+          '✓ tukui:tukui: removed\n'),
+         (['update', 'tukui:tukui'],
+          str.__eq__,
+          '✗ tukui:tukui: not installed\n'),
+         (['remove', 'tukui:tukui'],
+          str.__eq__,
+          '✗ tukui:tukui: not installed\n'),])
     def test_valid_tukui_pkg_lifecycle(self, invoke_runner,
                                        test_input, cmp_fn, expected_output):
         assert cmp_fn(invoke_runner(test_input).output, expected_output)
@@ -208,10 +227,15 @@ class TestInstallWithAlias(_CliTest):
                                       test_input, cmp_fn, expected_output):
         assert cmp_fn(invoke_runner(test_input).output, expected_output)
 
-    def test_install_with_tukui_alias(self, invoke_runner):
+    def test_install_with_tukui_addon_alias(self, invoke_runner):
         assert invoke_runner(['install', 'https://www.tukui.org/addons.php?id=3'])\
             .output\
             .startswith('✓ tukui:3: installed')
+
+    def test_install_with_tukui_ui_alias(self, invoke_runner):
+        assert invoke_runner(['install', 'https://www.tukui.org/download.php?ui=tukui'])\
+            .output\
+            .startswith('✓ tukui:tukui: installed')
 
     @pytest.mark.parametrize(
         'test_input, cmp_fn, expected_output',

@@ -1,9 +1,9 @@
 
 import asyncio
-import re
 import typing as T
 
 from parsel import Selector
+from pydantic.datetime_parse import parse_date
 from yarl import URL
 
 from .models import Pkg, PkgOptions
@@ -148,31 +148,37 @@ class TukuiResolver(Resolver):
     origin = 'tukui'
     name = 'Tukui'
 
-    _re_addon_url = re.compile(re.escape('https://www.tukui.org/addons.php?id=') +
-                               r'(?P<id>\d+)')
-
     @classmethod
     def decompose_url(cls, url):
-        match = cls._re_addon_url.match(url)
-        if match:
-            return (cls.origin, match.group('id'))
+        url = URL(url)
+        if url.host == 'www.tukui.org' \
+                and url.path in {'/addons.php', '/download.php'}:
+            id_or_slug = url.query.get('id') or url.query.get('ui')
+            if id_or_slug:
+                return (cls.origin, id_or_slug)
 
     async def resolve(self, id_or_slug, *, strategy):
+        id_or_slug = id_or_slug.partition('-')[0]
+        is_ui = id_or_slug in {'elvui', 'tukui'}
+
         async with self.client.get()\
-                              .get('https://www.tukui.org/api.php?addon=' +
-                                   id_or_slug.partition('-')[0]) as response:
+                              .get(f'https://www.tukui.org/api.php?'
+                                   f'{"ui" if is_ui else "addon"}={id_or_slug}') as response:
             if not response.content_length:
                 raise self.PkgNonexistent
             addon = await response.json(content_type='text/html')
 
         return Pkg(origin=self.origin,
                    id=addon['id'],
-                   slug=slugify(f'{addon["id"]} {addon["name"]}'),
+                   slug=id_or_slug if is_ui else
+                        slugify(f'{addon["id"]} {addon["name"]}'),
                    name=addon['name'],
                    description=addon['small_desc'],
                    url=addon['web_url'],
                    file_id=addon['lastupdate'],
                    download_url=addon['url'],
-                   date_published=addon['lastupdate'],
+                   date_published=parse_date(addon['lastupdate']).toordinal()
+                                  if is_ui else
+                                  addon['lastupdate'],
                    version=addon['version'],
                    options=PkgOptions(strategy=strategy))
