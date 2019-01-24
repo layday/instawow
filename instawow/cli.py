@@ -201,7 +201,8 @@ def update(manager, addons, strategy):
 
     for addon, result in zip((d for d, _ in addons),
                              manager.update_many(p for _, p in addons)):
-        if not isinstance(result, Manager.PkgUpToDate):
+        if not isinstance(result, (Manager.PkgUpToDate,
+                                   Manager.PkgTemporarilyUnavailable)):
             click.echo(_format_message(addon, result))
 
 
