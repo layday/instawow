@@ -154,7 +154,8 @@ def main(ctx, hide_progress):
                 folder.path = manager.config.addon_dir/folder.path.name
             manager.db.commit()
 
-        logbook.FileHandler(manager.config.config_dir/'error.log')\
+        logbook.RotatingFileHandler(manager.config.config_dir/'error.log',
+                                    delay=True)\
                .push_application()
 
         if is_outdated(manager):
