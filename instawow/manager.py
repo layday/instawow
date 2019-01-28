@@ -21,6 +21,9 @@ from .models import ModelBase, Pkg, PkgFolder
 from .resolvers import CurseResolver, WowiResolver, TukuiResolver
 
 
+__all__ = ('Manager', 'CliManager')
+
+
 logger = logbook.Logger(__name__)
 
 
@@ -59,8 +62,7 @@ class PkgArchive:
         self.archive = zipfile.ZipFile(io.BytesIO(payload))
 
         folders = sorted({Path(p).parts[0] for p in self.archive.namelist()})
-        folders = [Path(p) for p in folders]
-        self.root_folders = folders
+        self.root_folders = [Path(p) for p in folders]
 
     def extract(self, parent_folder: Path, *,
                 overwrite: bool=False) -> None:
@@ -80,15 +82,6 @@ class MemberDict(dict):
 
 
 class Manager:
-
-    from .exceptions import (ManagerResult,
-                             PkgInstalled, PkgUpdated, PkgRemoved,
-                             ManagerError,
-                             PkgAlreadyInstalled, PkgConflictsWithInstalled,
-                             PkgConflictsWithPreexisting, PkgNonexistent,
-                             PkgTemporarilyUnavailable,
-                             PkgNotInstalled, PkgOriginInvalid, PkgUpToDate,
-                             InternalError)
 
     def __init__(self, *,
                  config: Config, loop: asyncio.AbstractEventLoop=None,
@@ -127,7 +120,7 @@ class Manager:
                                         ([f.path for f in pkg.folders]))\
                                .first()
             if conflicts:
-                raise self.PkgConflictsWithInstalled(conflicts.pkg)
+                raise E.PkgConflictsWithInstalled(conflicts.pkg)
 
             if overwrite:
                 for path in (f.path for f in pkg.folders if f.path.exists()):
@@ -136,10 +129,10 @@ class Manager:
                             overwrite=overwrite)
             self.db.add(pkg)
             self.db.commit()
-            return self.PkgInstalled(pkg)
+            return E.PkgInstalled(pkg)
 
         if self.get(origin, id_or_slug):
-            raise self.PkgAlreadyInstalled
+            raise E.PkgAlreadyInstalled
         pkg = await self.resolve(origin, id_or_slug, strategy)
         async with self.client.get()\
                               .get(pkg.download_url) as response:
@@ -161,7 +154,7 @@ class Manager:
                                        PkgFolder.pkg_id != new_pkg.id)\
                                .first()
             if conflicts:
-                raise self.PkgConflictsWithInstalled(conflicts.pkg)
+                raise E.PkgConflictsWithInstalled(conflicts.pkg)
 
             with ExitStack() as stack:
                 stack.callback(self.db.commit)
@@ -170,14 +163,14 @@ class Manager:
                 self.db.delete(old_pkg)
                 archive.extract(parent_folder=self.config.addon_dir)
                 self.db.add(new_pkg)
-            return self.PkgUpdated(old_pkg, new_pkg)
+            return E.PkgUpdated(old_pkg, new_pkg)
 
         old_pkg = self.get(origin, id_or_slug)
         if not old_pkg:
-            raise self.PkgNotInstalled
+            raise E.PkgNotInstalled
         new_pkg = await self.resolve(origin, id_or_slug, old_pkg.options.strategy)
         if old_pkg.file_id == new_pkg.file_id:
-            raise self.PkgUpToDate
+            raise E.PkgUpToDate
 
         async with self.client.get()\
                               .get(new_pkg.download_url) as response:
@@ -188,24 +181,24 @@ class Manager:
         "Remove a package."
         pkg = self.get(origin, id_or_slug)
         if not pkg:
-            raise self.PkgNotInstalled
+            raise E.PkgNotInstalled
 
         for folder in pkg.folders:
             send2trash(str(folder.path))
         self.db.delete(pkg)
         self.db.commit()
-        return self.PkgRemoved(pkg)
+        return E.PkgRemoved(pkg)
 
 
 class Bar(tqdm):
 
     def __init__(self, *args, **kwargs) -> None:
-        kwargs['position'], self._reset_position = kwargs['position']
+        kwargs['position'], self.__reset_position = kwargs['position']
         super().__init__(*args, **{'leave': False, 'ascii': True, **kwargs})
 
     def close(self) -> None:
         super().close()
-        self._reset_position()
+        self.__reset_position()
 
 
 async def _init_cli_web_client(*, loop, manager):
@@ -218,7 +211,7 @@ async def _init_cli_web_client(*, loop, manager):
             filename = filename[(filename.find('"') + 1):filename.rfind('"')] or \
                        params.response.url.name
             bar = Bar(total=params.response.content_length,
-                      desc=f'Downloading {filename}',
+                      desc=f'  Downloading {filename}',
                       miniters=1, unit='B', unit_scale=True,
                       position=manager.bar_position)
 
@@ -228,13 +221,7 @@ async def _init_cli_web_client(*, loop, manager):
                         bar.close()
                         break
                     bar.update(params.response.content._cursor - bar.n)
-                    # The polling frequency's gotta be high
-                    # (higher than the ``tqdm.mininterval`` default)
-                    # so this bar gets to flush itself down the proverbial
-                    # drain before ``CliManager.gather``'s bar or it's gonna
-                    # leave behind an empty line which would be, truly,
-                    # devastating
-                    await asyncio.sleep(.01)
+                    await asyncio.sleep(bar.mininterval)
             loop.create_task(ticker())
 
     trace_conf = TraceConfig()
@@ -293,6 +280,10 @@ class CliManager(Manager):
             for result in asyncio.as_completed(futures, loop=self.loop):
                 results.__setitem__(*await result)
                 bar.update(1)
+            # Wait for ``ticker``s to complete so all bars get to wipe
+            # their pretty selves off the screen
+            while len(asyncio.all_tasks(self.loop)) > 1:
+                await asyncio.sleep(bar.mininterval)
         return results
 
     @staticmethod

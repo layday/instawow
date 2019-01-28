@@ -8,17 +8,19 @@ import typing as T
 from . import __version__
 
 
+__all__ = ('TocReader', 'slugify', 'is_outdated')
+
+
 class TocReader:
     """Extracts key–value pairs from TOC files."""
 
     Entry = namedtuple('_TocEntry', 'key value')
 
     def __init__(self, path: Path) -> None:
-        entries = (e.lstrip('# ').partition(': ')
+        entries = (e.lstrip('# ').partition(': ')[::2]
                    for e in path.read_text(encoding='utf-8-sig').splitlines()
                    if e.startswith('## '))
-        entries = {e[0]: e[2] for e in entries}
-        self.entries = entries
+        self.entries = dict(entries)
 
     def __getitem__(self, key: T.Union[str, T.Tuple[str]]) -> Entry:
         if isinstance(key, tuple):

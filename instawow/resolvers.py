@@ -6,6 +6,7 @@ from parsel import Selector
 from pydantic.datetime_parse import parse_date
 from yarl import URL
 
+from . import exceptions as E
 from .models import Pkg, PkgOptions
 from .utils import slugify
 
@@ -18,7 +19,7 @@ class Resolver:
     origin: str
     name: str
 
-    def __init__(self, *, manager: 'Manager') -> None:
+    def __init__(self, *, manager) -> None:
         self.manager = manager
 
     def __getattr__(self, name: str) -> T.Any:
@@ -58,7 +59,7 @@ class CurseResolver(Resolver):
                                    id_or_slug) as response:
             if response.status != 200 \
                     or response.url.host not in {'wow.curseforge.com', 'www.wowace.com'}:
-                raise self.PkgNonexistent
+                raise E.PkgNonexistent
             content = await response.text()
         content = Selector(text=content, base_url=str(response.url))
         content.root.make_links_absolute()
@@ -116,19 +117,19 @@ class WowiResolver(Resolver):
             if not self._sync_data:
                 async with self.client.get()\
                                       .get(self._api_list) as response:
-                    self._sync_data = {i['UID']: i for i in (await response.json())}
+                    self._sync_data = {i['UID']: i for i in await response.json()}
             return self._sync_data
 
     async def resolve(self, id_or_slug, *, strategy):
         try:
             addon = (await self._sync())[id_or_slug.partition('-')[0]]
         except KeyError:
-            raise self.PkgNonexistent
+            raise E.PkgNonexistent
         async with self.client.get()\
                               .get(self._api_details.format(addon['UID'])) as response:
             addon_details, = await response.json()
         if addon_details['UIPending'] == '1':
-            raise self.PkgTemporarilyUnavailable
+            raise E.PkgTemporarilyUnavailable
 
         return Pkg(origin=self.origin,
                    id=addon['UID'],
@@ -165,7 +166,7 @@ class TukuiResolver(Resolver):
                               .get(f'https://www.tukui.org/api.php?'
                                    f'{"ui" if is_ui else "addon"}={id_or_slug}') as response:
             if not response.content_length:
-                raise self.PkgNonexistent
+                raise E.PkgNonexistent
             addon = await response.json(content_type='text/html')
 
         return Pkg(origin=self.origin,

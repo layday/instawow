@@ -3,10 +3,13 @@ from datetime import datetime
 from pathlib import Path
 
 import pydantic
-from sqlalchemy import (Column, String, DateTime, Enum,
-                        ForeignKeyConstraint, TypeDecorator)
+from sqlalchemy import (Column, ForeignKeyConstraint,
+                        DateTime, Enum, String, TypeDecorator)
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
+
+
+__all__ = ('ModelBase', 'Pkg', 'PkgFolder', 'PkgOptions')
 
 
 def _declarative_constructor(self, **kwargs):
@@ -43,7 +46,7 @@ class _coerces:
         return wrapper
 
 
-class _PathType(TypeDecorator):
+class PathType(TypeDecorator):
 
     impl = String
 
@@ -97,7 +100,7 @@ class PkgFolder(ModelBase):
     __table_args__ = (ForeignKeyConstraint(['pkg_origin', 'pkg_id'],
                                            ['pkg.origin', 'pkg.id']),)
 
-    path = Column(_PathType, primary_key=True)
+    path = Column(PathType, primary_key=True)
     pkg_origin = Column(String, nullable=False)
     pkg_id = Column(String, nullable=False)
 

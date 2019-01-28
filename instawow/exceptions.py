@@ -1,4 +1,20 @@
 
+__all__ = ('ManagerResult',
+           'PkgInstalled',
+           'PkgUpdated',
+           'PkgRemoved',
+           'ManagerError',
+           'PkgAlreadyInstalled',
+           'PkgConflictsWithInstalled',
+           'PkgConflictsWithPreexisting',
+           'PkgNonexistent',
+           'PkgTemporarilyUnavailable',
+           'PkgNotInstalled',
+           'PkgOriginInvalid',
+           'PkgUpToDate',
+           'InternalError')
+
+
 class ManagerResult:
 
     def __call__(self):

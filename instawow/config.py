@@ -5,6 +5,9 @@ import click
 import pydantic
 
 
+__all__ = ('DEFAULT_CONFIG_DIR', 'Config', 'UserConfig')
+
+
 DEFAULT_CONFIG_DIR = Path(click.get_app_dir('instawow'))
 
 

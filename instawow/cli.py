@@ -1,8 +1,6 @@
 
-from collections import namedtuple
 from functools import partial, reduce
 from itertools import count
-from pathlib import Path
 from textwrap import fill
 import typing as T
 import webbrowser
@@ -14,50 +12,59 @@ from texttable import Texttable
 
 from . import __version__
 from .config import UserConfig
-from .manager import CliManager as Manager
+from . import exceptions as E
+from .manager import CliManager
 from .models import Pkg, PkgFolder
 from .utils import TocReader, is_outdated
 
 
-_SUCCESS = click.style('✓', fg='green')
-_FAILURE = click.style('✗', fg='red')
+__all__ = ('cli',)
+
+
+_success = click.style('✓', fg='green')
+_failure = click.style('✗', fg='red')
+_warning = click.style('!', fg='blue')
 
 MESSAGES = {
-    Manager.PkgInstalled:
-        f'{_SUCCESS} {{0}}: installed {{1.new_pkg.version}}'
+    E.PkgInstalled:
+        f'{_success} {{0}}: installed {{1.new_pkg.version}}'
         f' from {{1.new_pkg.options.strategy}}'.format,
-    Manager.PkgUpdated:
-        f'{_SUCCESS} {{0}}: updated {{1.old_pkg.version}} to {{1.new_pkg.version}}'
+    E.PkgUpdated:
+        f'{_success} {{0}}: updated {{1.old_pkg.version}} to {{1.new_pkg.version}}'
         f' from {{1.new_pkg.options.strategy}}'.format,
-    Manager.PkgRemoved:
-        f'{_SUCCESS} {{}}: removed'.format,
-    Manager.PkgAlreadyInstalled:
-        f'{_FAILURE} {{}}: already installed'.format,
-    Manager.PkgConflictsWithInstalled:
-        lambda a, r: f'{_FAILURE} {a}: conflicts with installed '
+    E.PkgRemoved:
+        f'{_success} {{}}: removed'.format,
+    E.PkgAlreadyInstalled:
+        f'{_failure} {{}}: already installed'.format,
+    E.PkgConflictsWithInstalled:
+        lambda a, r: f'{_failure} {a}: conflicts with installed '
                      f'add-on {_compose_addon_defn(r.conflicting_pkg)}',
-    Manager.PkgConflictsWithPreexisting:
-        f'{_FAILURE} {{}}: conflicts with an add-on not installed by instawow\n'
+    E.PkgConflictsWithPreexisting:
+        f'{_failure} {{}}: conflicts with an add-on not installed by instawow\n'
          '  pass `-o` to `install` if you do actually wish to overwrite this add-on'
         .format,
-    Manager.PkgNonexistent:
-        f'{_FAILURE} {{}}: no such project id or slug'.format,
-    Manager.PkgTemporarilyUnavailable:
-        f'{_FAILURE} {{0}}: temporarily unavailable\n'
+    E.PkgNonexistent:
+        f'{_failure} {{}}: no such project id or slug'.format,
+    E.PkgTemporarilyUnavailable:
+        f'{_failure} {{0}}: temporarily unavailable\n'
         f'  this usually means a new version of {{0}} is under review'.format,
-    Manager.PkgNotInstalled:
-        f'{_FAILURE} {{}}: not installed'.format,
-    Manager.PkgOriginInvalid:
-        f'{_FAILURE} {{}}: invalid origin'.format,
-    Manager.PkgUpToDate:   # IGNORE
-        ...,
-    Manager.InternalError:
-        f'{_FAILURE} {{}}: encountered {{.error.__class__.__name__}}'.format,}
+    E.PkgNotInstalled:
+        f'{_failure} {{}}: not installed'.format,
+    E.PkgOriginInvalid:
+        f'{_failure} {{}}: invalid origin'.format,
+    E.PkgUpToDate:   # ignore
+        None,
+    E.InternalError:
+        f'{_warning} {{}}: encountered {{.error.__class__.__name__}}'.format,}
 
 _CONTEXT_SETTINGS = {'help_option_names': ['-h', '--help']}
 _SEP = ':'
 
-_parts = namedtuple('Parts', 'origin id_or_slug')
+
+class _Parts(T.NamedTuple):
+
+    origin: str
+    id_or_slug: str
 
 
 def _format_message(addon, result):
@@ -67,19 +74,17 @@ def _format_message(addon, result):
 
 def _tabulate(rows: T.List[T.Tuple[str, ...]], *,
               head: T.Tuple[str, ...]=(), show_index: bool=True) -> str:
-    table = Texttable(max_width=0)
-    table.set_deco(Texttable.VLINES | Texttable.BORDER |
-                   Texttable.HEADER)
-
+    table = Texttable(max_width=0).set_deco(Texttable.VLINES |
+                                            Texttable.BORDER |
+                                            Texttable.HEADER)
     if show_index:
-        table.set_cols_align(('r', *('l' for _ in rows[0])))
+        table.set_cols_align(f'r{"l" * len(rows[0])}')
         head = ('', *head)
         rows = [(i, *v) for i, v in enumerate(rows, start=1)]
-    table.add_rows([head, *rows])
-    return table.draw()
+    return table.add_rows([head, *rows]).draw()
 
 
-def _compose_addon_defn(val):
+def _compose_addon_defn(val: T.Union[Pkg, _Parts, tuple]) -> str:
     try:
         origin, slug = val.origin, val.slug
     except AttributeError:
@@ -96,16 +101,15 @@ def _decompose_addon_defn(ctx, param, value, *,
     for resolver in ctx.obj.resolvers.values():
         parts = resolver.decompose_url(value)
         if parts:
-            parts = _parts(*parts)
+            parts = _Parts(*parts)
             break
     else:
         if _SEP not in value:
             if raise_for_invalid_defn:
                 raise click.BadParameter(value)
-            parts = _parts('*', value)
+            parts = _Parts('*', value)
         else:
-            parts = value.partition(_SEP)
-            parts = _parts(parts[0], parts[2])
+            parts = _Parts(*value.partition(_SEP)[::2])
     return _compose_addon_defn(parts), parts
 
 
@@ -129,7 +133,7 @@ def _init():
 
 @click.group(cls=_OrigCmdOrderGroup, context_settings=_CONTEXT_SETTINGS)
 @click.version_option(__version__)
-@click.option('--hide-progress', '-n', is_flag=True, default=False,
+@click.option('--hide-progress', '-n', is_flag=True, default=False, hidden=True,
               help='Hide the progress bar.')
 @click.pass_context
 def main(ctx, hide_progress):
@@ -142,19 +146,19 @@ def main(ctx, hide_progress):
                 _init()
             else:
                 break
-        ctx.obj = manager = Manager(config=config,
-                                    show_progress=not hide_progress)
+        ctx.obj = manager = CliManager(config=config,
+                                       show_progress=not hide_progress)
         if attempt:
             # Migrate add-on paths after redefining ``addon_dir``
-            for f in manager.db.query(PkgFolder).all():
-                f.path = Path(manager.config.addon_dir/f.path.name)
+            for folder in manager.db.query(PkgFolder).all():
+                folder.path = manager.config.addon_dir/folder.path.name
             manager.db.commit()
 
         logbook.FileHandler(manager.config.config_dir/'error.log')\
                .push_application()
 
         if is_outdated(manager):
-            click.echo(f'{click.style("!", fg="blue")} instawow is out of date:\n'
+            click.echo(f'{_warning} instawow is out of date:\n'
                        f'  run `python3 -m pip install -U instawow` to upgrade')
 
 cli = main
@@ -198,8 +202,8 @@ def update(manager, addons, strategy):
 
     for addon, result in zip((d for d, _ in addons),
                              manager.update_many(p for _, p in addons)):
-        if not isinstance(result, (Manager.PkgUpToDate,
-                                   Manager.PkgTemporarilyUnavailable)):
+        if not isinstance(result, (E.PkgUpToDate,
+                                   E.PkgTemporarilyUnavailable)):
             click.echo(_format_message(addon, result))
 
 
@@ -211,7 +215,7 @@ def remove(manager, addons):
     for addon, parts in addons:
         try:
             result = manager.remove(*parts)
-        except (Manager.ManagerError, Manager.InternalError) as error:
+        except (E.ManagerError, E.InternalError) as error:
             result = error
         click.echo(_format_message(addon, result))
 
@@ -362,7 +366,7 @@ def info(manager, addon, toc_entries):
                              for k in toc_entries})
         click.echo(_tabulate(rows.items(), show_index=False))
     else:
-        click.echo(_format_message(addon[0], Manager.PkgNotInstalled))
+        click.echo(_format_message(addon[0], E.PkgNotInstalled))
 
 
 @main.command()
@@ -379,7 +383,7 @@ def hearth(manager, addon):
     if pkg:
         webbrowser.open(pkg.url)
     else:
-        click.echo(_format_message(addon[0], Manager.PkgNotInstalled))
+        click.echo(_format_message(addon[0], E.PkgNotInstalled))
 
 
 @main.command()
@@ -396,7 +400,7 @@ def reveal(manager, addon):
     if pkg:
         webbrowser.open(pkg.folders[0].path.as_uri())
     else:
-        click.echo(_format_message(addon[0], Manager.PkgNotInstalled))
+        click.echo(_format_message(addon[0], E.PkgNotInstalled))
 
 
 @main.group()
