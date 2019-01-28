@@ -9,7 +9,6 @@ import webbrowser
 
 import click
 import logbook
-from outdated import check_outdated
 from sqlalchemy import inspect, text
 from texttable import Texttable
 
@@ -17,7 +16,7 @@ from . import __version__
 from .config import UserConfig
 from .manager import CliManager as Manager
 from .models import Pkg, PkgFolder
-from .utils import TocReader
+from .utils import TocReader, is_outdated
 
 
 _SUCCESS = click.style('✓', fg='green')
@@ -154,9 +153,7 @@ def main(ctx, hide_progress):
         logbook.FileHandler(manager.config.config_dir/'error.log')\
                .push_application()
 
-        is_outdated, _latest_version = check_outdated('instawow',
-                                                      __version__)
-        if is_outdated:
+        if is_outdated(manager):
             click.echo(f'{click.style("!", fg="blue")} instawow is out of date:\n'
                        f'  run `python3 -m pip install -U instawow` to upgrade')
 
