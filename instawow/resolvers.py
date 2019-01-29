@@ -1,5 +1,6 @@
 
 import asyncio
+from datetime import datetime
 import typing as T
 
 from parsel import Selector
@@ -178,7 +179,8 @@ class TukuiResolver(Resolver):
                    url=addon['web_url'],
                    file_id=addon['lastupdate'],
                    download_url=addon['url'],
-                   date_published=parse_date(addon['lastupdate']).toordinal()
+                   date_published=datetime.fromordinal(parse_date(addon['lastupdate'])
+                                                       .toordinal())
                                   if is_ui else
                                   addon['lastupdate'],
                    version=addon['version'],
