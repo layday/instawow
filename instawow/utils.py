@@ -43,6 +43,9 @@ def is_outdated(manager) -> bool:
 
     The response is cached for 24 hours.
     """
+    def parse_version(version):
+        return tuple(map(int, version.split('.')))
+
     cache_file = manager.config.config_dir/'.pypi_version'
     if cache_file.exists() and \
             (datetime.now() -
@@ -62,4 +65,8 @@ def is_outdated(manager) -> bool:
             version = __version__
         else:
             cache_file.write_text(version, encoding='utf-8')
+    # Make ``False``` if installed version is greater than version
+    # from PyPI (cache is stale)
+    if parse_version(__version__) > parse_version(version):
+        version = __version__
     return __version__ != version
