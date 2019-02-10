@@ -95,6 +95,17 @@ class Manager:
         self.resolvers = MemberDict((r.origin, r(manager=self))
                                     for r in (CurseResolver, WowiResolver, TukuiResolver))
 
+    async def _download_file(self, url: str) -> bytes:
+        if url[:7] == 'file://':
+            from urllib.parse import unquote
+
+            file = Path(unquote(url[7:]))
+            return await self.loop.run_in_executor(None,
+                                                   lambda: file.read_bytes())
+        async with self.client.get()\
+                              .get(url) as response:
+            return await response.read()
+
     def get(self, origin: str, id_or_slug: str) -> Pkg:
         "Retrieve a ``Pkg`` from the database."
         return self.db.query(Pkg)\
@@ -134,9 +145,8 @@ class Manager:
         if self.get(origin, id_or_slug):
             raise E.PkgAlreadyInstalled
         pkg = await self.resolve(origin, id_or_slug, strategy)
-        async with self.client.get()\
-                              .get(pkg.download_url) as response:
-            payload = await response.read()
+
+        payload = await self._download_file(pkg.download_url)
         return install
 
     async def to_update(self, origin: str,
@@ -172,9 +182,7 @@ class Manager:
         if old_pkg.file_id == new_pkg.file_id:
             raise E.PkgUpToDate
 
-        async with self.client.get()\
-                              .get(new_pkg.download_url) as response:
-            payload = await response.read()
+        payload = await self._download_file(new_pkg.download_url)
         return update
 
     def remove(self, origin: str, id_or_slug: str) -> E.PkgRemoved:
