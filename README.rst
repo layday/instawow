@@ -1,5 +1,5 @@
-*instawow* is a fledgling package manager for World of Warcraft written
-in Python. It can be used to install, remove and update add-ons from
+*instawow* is a package manager for World of Warcraft written
+in Python.  It can be used to install, remove and update add-ons from
 Curse, WoWInterface and Tukui.
 
 Installation
@@ -11,9 +11,6 @@ Assuming you have Python 3.7 or higher::
 
 Usage
 -----
-
-Installing add-ons
-~~~~~~~~~~~~~~~~~~
 
 You can install add-ons by their Curse project ID or slug, or their
 WoWInterface ID, or even by their URL. All of the following will install
@@ -29,40 +26,53 @@ Molinari::
 By default *instawow* will install the latest file to have been
 *released*. You may also install the latest file that has been
 uploaded (be it stable, or beta or alpha quality) by
-passing ``--strategy=latest``. This option only applies to CurseForge packages.
+passing ``--strategy=latest``. This option only affects CurseForge packages.
 
-Updating
-~~~~~~~~
+You can uninstall add-ons with::
 
-You can update all of your add-ons in one go with ``instawow update`` or
-any individual add-on the same way you'd install or remove it:
-``instawow update <add-on>``.
+    instawow remove <add-on>
 
-Uninstalling
-~~~~~~~~~~~~
+You can update all of your add-ons in one go with::
 
-Uninstalling an add-on is as simple as ``instawow remove <add-on>``.
+    instawow update
 
-Other operations
-~~~~~~~~~~~~~~~~
+... or any individual add-on the same way you'd install or remove it::
 
-You may list installed add-ons with ``instawow list installed``;
-outdated add-ons with ``instawow list outdated``; and pre-existing
-add-ons with ``instawow list preexisting``. The latter command will
-attempt to reconcile add-on folders with their corresponding Curse IDs,
-where available.
+    instawow update <add-on>
 
-To see information about an installed add-on, execute
-``instawow info <add-on>``. To visit its homepage, execute
-``instawow hearth <add-on>``. And to open its main folder in your file
-manager, run ``instawow reveal <add-on>``.
+You can list installed add-ons with ``instawow list installed``,
+outdated add-ons with ``instawow list outdated`` and add-ons that
+predate the venerable *instawow* with ``instawow list preexisting``.
+``preexisting`` will attempt to extract Curse and WoWI IDs from TOC files
+to put you on a path towards instalightment.
+
+To get the full list of available commands, run ``instawow``.
 
 Goodies
 -------
 
+BitBar plug-in
+~~~~~~~~~~~~~~
+
 *instawow* ships with a `BitBar <https://getbitbar.com/>`__ plug-in
 for macOS, which you can use to update add-ons from the menu bar.
 To install the plug-in run ``instawow extras bitbar install``.
+
+Updating WeakAuras auras
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+*instawow* contains a WeakAuras updater modelled after
+`WeakAuras Companion <https://weakauras.wtf/>`__.  To use the updater
+and provided that you have WeakAuras installed::
+
+    instawow extras weakauras build-companion
+    instawow install instawow:weakauras-companion
+
+Building the companion add-on is expensive, which is why the operation
+is not baked into the normal workflow.  (For reference, parsing WeakAuras'
+saved variables takes about 15 seconds on my machine.)
+Therefore you will have to run ``instawow extras weakauras build-companion`` prior to
+``instawow update`` to receive aura updates.
 
 Caveats
 -------
@@ -119,7 +129,7 @@ Fork and clone the `repo <https://github.com/layday/instawow>`__, ``cd``
 and::
 
     python3 -m venv venv
-    source venv/bin/active
+    source venv/bin/activate
     python3 -m pip install -e .
 
 Happy hacking.
