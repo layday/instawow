@@ -12,7 +12,7 @@ from .models import Pkg, PkgOptions
 from .utils import ManagerAttrAccessMixin, slugify
 
 
-__all__ = ('CurseResolver', 'WowiResolver', 'TukuiResolver')
+__all__ = ('CurseResolver', 'WowiResolver', 'TukuiResolver', 'InstawowResolver')
 
 
 _T_DecomposeUrl = T.Optional[T.Tuple[str, str]]
@@ -183,4 +183,33 @@ class TukuiResolver(Resolver):
                                   if is_ui else
                                   addon['lastupdate'],
                    version=addon['version'],
+                   options=PkgOptions(strategy=strategy))
+
+
+class InstawowResolver(Resolver):
+
+    origin = 'instawow'
+    name = 'instawow'
+
+    @classmethod
+    def decompose_url(cls, value: str) -> None:
+        return
+
+    async def resolve(self, id_or_slug: str, *, strategy: str) -> Pkg:
+        if id_or_slug not in {'weakauras-companion'}:
+            raise E.PkgNonexistent
+
+        from .wa_updater import WaCompanionBuilder
+        builder = WaCompanionBuilder(self.manager)
+
+        return Pkg(origin=self.origin,
+                   id='0',
+                   slug='weakauras-companion',
+                   name=self.name,
+                   description='A WeakAuras Companion wannabe.',
+                   url='https://github.com/layday/instawow',
+                   file_id=await self.loop.run_in_executor(None, builder.checksum),
+                   download_url=builder.file_out.as_uri(),
+                   date_published=datetime.now().isoformat(),
+                   version='1.0.0',
                    options=PkgOptions(strategy=strategy))

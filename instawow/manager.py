@@ -18,7 +18,8 @@ from tqdm import tqdm
 from .config import Config
 from . import exceptions as E
 from .models import ModelBase, Pkg, PkgFolder
-from .resolvers import CurseResolver, WowiResolver, TukuiResolver
+from .resolvers import (CurseResolver, WowiResolver, TukuiResolver,
+                        InstawowResolver)
 
 
 __all__ = ('Manager', 'CliManager')
@@ -93,7 +94,10 @@ class Manager:
         self.client = _client
         self.db = _init_db_session(config=self.config)
         self.resolvers = MemberDict((r.origin, r(manager=self))
-                                    for r in (CurseResolver, WowiResolver, TukuiResolver))
+                                    for r in (CurseResolver,
+                                              WowiResolver,
+                                              TukuiResolver,
+                                              InstawowResolver))
 
     async def _download_file(self, url: str) -> bytes:
         if url[:7] == 'file://':
