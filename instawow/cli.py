@@ -52,8 +52,8 @@ MESSAGES = {
         f'{_failure} {{}}: not installed'.format,
     E.PkgOriginInvalid:
         f'{_failure} {{}}: invalid origin'.format,
-    E.PkgUpToDate:   # ignore
-        None,
+    E.PkgUpToDate:
+        f'{_failure} {{}}: no update available'.format,
     E.InternalError:
         f'{_warning} {{}}: encountered {{.error.__class__.__name__}}'.format,}
 
@@ -193,6 +193,7 @@ def install(manager, addons, overwrite, strategy):
 @click.pass_obj
 def update(manager, addons, strategy):
     """Update installed add-ons."""
+    orig_addons = addons
     if not addons:
         addons = [(_compose_addon_defn(p), (p.origin, p.slug))
                   for p in manager.db.query(Pkg).all()]
@@ -203,8 +204,8 @@ def update(manager, addons, strategy):
 
     for addon, result in zip((d for d, _ in addons),
                              manager.update_many(p for _, p in addons)):
-        if not isinstance(result, (E.PkgUpToDate,
-                                   E.PkgTemporarilyUnavailable)):
+        if not (not orig_addons and
+                isinstance(result, (E.PkgUpToDate, E.PkgTemporarilyUnavailable))):
             click.echo(_format_message(addon, result))
 
 
