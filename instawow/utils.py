@@ -8,7 +8,13 @@ import typing as T
 from . import __version__
 
 
-__all__ = ('TocReader', 'slugify', 'is_outdated')
+__all__ = ('ManagerAttrAccessMixin', 'TocReader', 'slugify', 'is_outdated')
+
+
+class ManagerAttrAccessMixin:
+
+    def __getattr__(self, name: str) -> T.Any:
+        return getattr(self.manager, name)
 
 
 class TocReader:

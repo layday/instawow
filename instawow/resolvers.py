@@ -9,23 +9,19 @@ from yarl import URL
 
 from . import exceptions as E
 from .models import Pkg, PkgOptions
-from .utils import slugify
+from .utils import ManagerAttrAccessMixin, slugify
 
 
 __all__ = ('CurseResolver', 'WowiResolver', 'TukuiResolver')
 
 
-class Resolver:
+class Resolver(ManagerAttrAccessMixin):
 
     origin: str
     name: str
 
     def __init__(self, *, manager) -> None:
         self.manager = manager
-
-    def __getattr__(self, name: str) -> T.Any:
-        # Delegate attribute access to the manager
-        return getattr(self.manager, name)
 
     @classmethod
     def decompose_url(cls, url: str) -> T.Optional[T.Tuple[str, str]]:
