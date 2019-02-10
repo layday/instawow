@@ -6,7 +6,7 @@ from functools import partial
 import io
 from pathlib import Path
 import typing as T
-import zipfile
+from zipfile import ZipFile
 
 from aiohttp import ClientSession, TCPConnector, TraceConfig
 import logbook
@@ -59,7 +59,7 @@ class PkgArchive:
     __slots__ = ('archive', 'root_folders')
 
     def __init__(self, payload: bytes) -> None:
-        self.archive = zipfile.ZipFile(io.BytesIO(payload))
+        self.archive = ZipFile(io.BytesIO(payload))
 
         folders = sorted({Path(p).parts[0] for p in self.archive.namelist()})
         self.root_folders = [Path(p) for p in folders]
@@ -216,12 +216,10 @@ async def _init_cli_web_client(*, loop, manager):
                       position=manager.bar_position)
 
             async def ticker(bar=bar, params=params):
-                while True:
-                    if params.response.content._eof:
-                        bar.close()
-                        break
+                while not params.response.content._eof:
                     bar.update(params.response.content._cursor - bar.n)
                     await asyncio.sleep(bar.mininterval)
+                bar.close()
             loop.create_task(ticker())
 
     trace_conf = TraceConfig()
