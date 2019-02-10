@@ -31,7 +31,7 @@ class _BaseCoercer(pydantic.BaseModel):
     """
 
     class Config:
-        allow_extra = True
+        extra = pydantic.Extra.allow
         max_anystr_length = 2 ** 32
 
 
