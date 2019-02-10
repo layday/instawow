@@ -1,0 +1,12 @@
+## Interface: 80100
+## Title: WeakAuras Companion
+## Author: The WeakAuras Team
+## Version: 1.0.0
+## Notes: Keep your WeakAuras updated!
+## X-Category: Interface Enhancements
+## X-Generator: instawow
+## DefaultState: Enabled
+## Dependencies: WeakAuras, WeakAurasOptions
+
+data.lua
+init.lua
