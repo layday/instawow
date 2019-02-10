@@ -5,7 +5,7 @@ Curse, WoWInterface and Tukui.
 Installation
 ------------
 
-Assuming you have Python 3.6 or higher::
+Assuming you have Python 3.7 or higher::
 
     pip3 install instawow
 
