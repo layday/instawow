@@ -481,3 +481,16 @@ main(['-n', *(sys.argv[1:] or ['extras', 'bitbar', '_generate', sys.argv[0], __v
 ''')
         webbrowser.open(f'bitbar://openPlugin?src={path.as_uri()}')
         click.pause('Press any key to exit after installing the plug-in')
+
+
+@extras.group()
+def weakauras():
+    """Manage your WeakAuras."""
+
+
+@weakauras.command()
+@click.pass_obj
+def build_companion(manager):
+    """Build the WeakAuras Companion add-on."""
+    from .wa_updater import WaCompanionBuilder
+    manager.run(WaCompanionBuilder(manager).build())
