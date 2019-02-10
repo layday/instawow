@@ -1,4 +1,6 @@
 
+from __future__ import annotations
+
 from pathlib import Path
 
 import click
@@ -36,7 +38,7 @@ class UserConfig(Config):
     config_dir: Path = DEFAULT_CONFIG_DIR
 
     @classmethod
-    def read(cls):  # -> UserConfig
+    def read(cls) -> UserConfig:
         "Attempt to read ``addon_dir`` from disk."
         return cls(addon_dir=(cls(addon_dir='').config_dir/'addon_dir.txt')
                              .read_text(encoding='utf-8'))

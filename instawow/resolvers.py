@@ -15,6 +15,9 @@ from .utils import ManagerAttrAccessMixin, slugify
 __all__ = ('CurseResolver', 'WowiResolver', 'TukuiResolver')
 
 
+_T_DecomposeUrl = T.Optional[T.Tuple[str, str]]
+
+
 class Resolver(ManagerAttrAccessMixin):
 
     origin: str
@@ -24,7 +27,7 @@ class Resolver(ManagerAttrAccessMixin):
         self.manager = manager
 
     @classmethod
-    def decompose_url(cls, url: str) -> T.Optional[T.Tuple[str, str]]:
+    def decompose_url(cls, value: str) -> _T_DecomposeUrl:
         "Break a URL down to its component `origin` and `id`."
         raise NotImplementedError
 
@@ -39,8 +42,8 @@ class CurseResolver(Resolver):
     name = 'CurseForge'
 
     @classmethod
-    def decompose_url(cls, url):
-        url = URL(url)
+    def decompose_url(cls, value: str) -> _T_DecomposeUrl:
+        url = URL(value)
         if url.host in {'wow.curseforge.com', 'www.wowace.com'} \
                 and len(url.parts) > 2 \
                 and url.parts[1] == 'projects':
@@ -50,7 +53,7 @@ class CurseResolver(Resolver):
                 and url.parts[1:3] == ('wow', 'addons'):
             return (cls.origin, url.parts[3])
 
-    async def resolve(self, id_or_slug, *, strategy):
+    async def resolve(self, id_or_slug: str, *, strategy: str) -> Pkg:
         async with self.client.get()\
                               .get('https://wow.curseforge.com/projects/' +
                                    id_or_slug) as response:
@@ -100,8 +103,8 @@ class WowiResolver(Resolver):
         self._sync_data = None
 
     @classmethod
-    def decompose_url(cls, url):
-        url = URL(url)
+    def decompose_url(cls, value: str) -> _T_DecomposeUrl:
+        url = URL(value)
         if url.host in {'wowinterface.com', 'www.wowinterface.com'} \
                 and len(url.parts) == 3 \
                 and url.parts[1] == 'downloads':
@@ -117,7 +120,7 @@ class WowiResolver(Resolver):
                     self._sync_data = {i['UID']: i for i in await response.json()}
             return self._sync_data
 
-    async def resolve(self, id_or_slug, *, strategy):
+    async def resolve(self, id_or_slug: str, *, strategy: str) -> Pkg:
         try:
             addon = (await self._sync())[id_or_slug.partition('-')[0]]
         except KeyError:
@@ -147,15 +150,15 @@ class TukuiResolver(Resolver):
     name = 'Tukui'
 
     @classmethod
-    def decompose_url(cls, url):
-        url = URL(url)
+    def decompose_url(cls, value: str) -> _T_DecomposeUrl:
+        url = URL(value)
         if url.host == 'www.tukui.org' \
                 and url.path in {'/addons.php', '/download.php'}:
             id_or_slug = url.query.get('id') or url.query.get('ui')
             if id_or_slug:
                 return (cls.origin, id_or_slug)
 
-    async def resolve(self, id_or_slug, *, strategy):
+    async def resolve(self, id_or_slug: str, *, strategy: str) -> Pkg:
         id_or_slug = id_or_slug.partition('-')[0]
         is_ui = id_or_slug in {'elvui', 'tukui'}
 
