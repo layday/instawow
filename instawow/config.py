@@ -25,9 +25,14 @@ class Config(pydantic.BaseSettings):
             raise ValueError(f'{value} is not a directory')
         return value
 
+    def __init__(self, **values: dict) -> None:
+        super().__init__(**values)
+        object.__setattr__(self, 'plugin_dir', self.config_dir/'plugins')
+
     def write(self) -> None:
         "Create the profile."
         self.config_dir.mkdir(exist_ok=True)
+        self.plugin_dir.mkdir(exist_ok=True)
 
     class Config:
         env_prefix = 'INSTAWOW_'
@@ -40,8 +45,8 @@ class UserConfig(Config):
     @classmethod
     def read(cls) -> UserConfig:
         "Attempt to read ``addon_dir`` from disk."
-        return cls(addon_dir=(cls(addon_dir='').config_dir/'addon_dir.txt')
-                             .read_text(encoding='utf-8'))
+        addon_dir = cls(addon_dir='').config_dir/'addon_dir.txt'
+        return cls(addon_dir=addon_dir.read_text(encoding='utf-8'))
 
     def write(self) -> None:
         "Create the profile and write ``addon_dir`` on disk."
