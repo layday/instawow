@@ -3,7 +3,6 @@ import asyncio
 from datetime import datetime
 import typing as T
 
-from parsel import Selector
 from pydantic.datetime_parse import parse_date
 from yarl import URL
 
@@ -54,6 +53,8 @@ class CurseResolver(Resolver):
             return (cls.origin, url.parts[3])
 
     async def resolve(self, id_or_slug: str, *, strategy: str) -> Pkg:
+        from parsel import Selector
+
         async with self.client.get()\
                               .get('https://wow.curseforge.com/projects/' +
                                    id_or_slug) as response:

@@ -3,7 +3,6 @@ from functools import partial, reduce
 from itertools import count
 from textwrap import fill
 import typing as T
-import webbrowser
 
 import click
 import logbook
@@ -383,6 +382,7 @@ def hearth(manager, addon):
                                           .order_by(Pkg.name)
                                           .first())
     if pkg:
+        import webbrowser
         webbrowser.open(pkg.url)
     else:
         click.echo(_format_message(addon[0], E.PkgNotInstalled))
@@ -400,6 +400,7 @@ def reveal(manager, addon):
                                           .order_by(Pkg.name)
                                           .first())
     if pkg:
+        import webbrowser
         webbrowser.open(pkg.folders[0].path.as_uri())
     else:
         click.echo(_format_message(addon[0], E.PkgNotInstalled))
@@ -465,6 +466,7 @@ def bitbar_install():
     from pathlib import Path
     import tempfile
     import sys
+    import webbrowser
 
     with tempfile.TemporaryDirectory() as name:
         path = Path(name, 'instawow.1h.py')

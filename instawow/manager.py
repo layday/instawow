@@ -6,9 +6,7 @@ from functools import partial
 import io
 from pathlib import Path
 import typing as T
-from zipfile import ZipFile
 
-from aiohttp import ClientSession, TCPConnector, TraceConfig
 import logbook
 from send2trash import send2trash
 from sqlalchemy import create_engine
@@ -49,6 +47,7 @@ def _init_db_session(*, config):
 
 
 async def _init_web_client(*, loop, **kwargs):
+    from aiohttp import ClientSession, TCPConnector
     return ClientSession(loop=loop,
                          connector=TCPConnector(loop=loop, limit_per_host=10),
                          headers={'User-Agent': _UA_STRING},
@@ -60,6 +59,7 @@ class PkgArchive:
     __slots__ = ('archive', 'root_folders')
 
     def __init__(self, payload: bytes) -> None:
+        from zipfile import ZipFile
         self.archive = ZipFile(io.BytesIO(payload))
 
         folders = sorted({Path(p).parts[0] for p in self.archive.namelist()})
@@ -214,6 +214,8 @@ class Bar(tqdm):
 
 
 async def _init_cli_web_client(*, loop, manager):
+    from aiohttp import TraceConfig
+
     async def do_on_request_end(session, context, params):
         if params.response.content_type in {
                 'application/zip',
