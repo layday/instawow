@@ -9,20 +9,19 @@ from instawow.manager import CliManager
 
 class _CliTest:
 
-    @pytest.fixture(autouse=True,
-                    scope='class')
-    def temp_dirs(self, tmpdir_factory, request):
-        factory = tmpdir_factory.mktemp('.'.join((__name__, request.cls.__name__)))
-        self.addons = factory.mkdir('addons')
-        self.config = factory.mkdir('config')
-        return factory
+    @pytest.fixture(scope='class')
+    def manager(self, tmp_path_factory, request):
+        tmp_path = tmp_path_factory.mktemp('.'.join((__name__,
+                                                     request.cls.__name__)))
+        addons = tmp_path/'addons'
+        addons.mkdir()
+        config = Config(config_dir=tmp_path/'config', addon_dir=addons)
+        config.write()
+        yield CliManager(config=config, show_progress=False)
 
     @pytest.fixture(scope='class')
-    def invoke_runner(self, temp_dirs):
-        obj = CliManager(
-            config=Config(addon_dir=self.addons, config_dir=self.config),
-            show_progress=False)
-        yield lambda args: CliRunner().invoke(main, args=args, obj=obj)
+    def invoke_runner(self, manager):
+        yield lambda args: CliRunner().invoke(main, args=args, obj=manager)
 
 
 class TestValidCursePkgLifecycle(_CliTest):
@@ -144,9 +143,8 @@ class TestFolderConflictLifecycle(_CliTest):
 
 class TestPreexistingFolderConflictOnInstall(_CliTest):
 
-    def test_preexisting_folder_conflict_on_install(self, invoke_runner,
-                                                    temp_dirs):
-        temp_dirs.mkdir('addons', 'Molinari')
+    def test_preexisting_folder_conflict_on_install(self, invoke_runner, manager):
+        (manager.config.addon_dir/'Molinari').mkdir()
         assert invoke_runner(['install', 'curse:molinari']).output == \
             '✗ curse:molinari: conflicts with an add-on not installed by instawow\n'\
             '  pass `-o` to `install` if you do actually wish to overwrite this add-on\n'
@@ -183,18 +181,18 @@ class TestInvalidOriginLifecycle(_CliTest):
 class TestStrategySwitchAndUpdateLifecycle(_CliTest):
 
     @pytest.mark.parametrize('test_input, cmp_fn, expected_output',
-                             [(['install', 'curse:simulationcraft'],
+                             [(['install', 'curse:kuinameplates'],
                                str.startswith,
-                               '✓ curse:simulationcraft: installed'),
-                              (['update', '--strategy=latest', 'curse:simulationcraft'],
+                               '✓ curse:kuinameplates: installed'),
+                              (['update', '--strategy=latest', 'curse:kuinameplates'],
                                str.startswith,
-                               '✓ curse:simulationcraft: updated'),
+                               '✓ curse:kuinameplates: updated'),
                               (['update', '--strategy=canonical'],
                                str.startswith,
-                               '✓ curse:simulationcraft: updated'),
-                              (['remove', 'curse:simulationcraft'],
+                               '✓ curse:kuinameplates: updated'),
+                              (['remove', 'curse:kuinameplates'],
                                str.__eq__,
-                               '✓ curse:simulationcraft: removed\n'),])
+                               '✓ curse:kuinameplates: removed\n'),])
     def test_strategy_switch_and_update_lifecycle(self, invoke_runner,
                                                   test_input, cmp_fn,
                                                   expected_output):
