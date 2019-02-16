@@ -197,7 +197,7 @@ class InstawowResolver(Resolver):
         return
 
     async def resolve(self, id_or_slug: str, *, strategy: str) -> Pkg:
-        if id_or_slug not in {'weakauras-companion'}:
+        if id_or_slug not in {'0', 'weakauras-companion'}:
             raise E.PkgNonexistent
 
         from .wa_updater import WaCompanionBuilder
