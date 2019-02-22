@@ -158,8 +158,7 @@ def main(ctx, hide_progress):
                .push_application()
 
         if is_outdated(manager):
-            click.echo(f'{_warning} instawow is out of date:\n'
-                       f'  run `python3 -m pip install -U instawow` to upgrade')
+            click.echo(f'{_warning} instawow is out of date')
 
 cli = main
 
