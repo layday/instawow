@@ -1,3 +1,6 @@
+*instawow*
+==========
+
 *instawow* is a package manager for World of Warcraft written
 in Python.  It can be used to install, remove and update add-ons from
 Curse, WoWInterface and Tukui.
@@ -5,7 +8,12 @@ Curse, WoWInterface and Tukui.
 Installation
 ------------
 
-Assuming you have Python 3.7 or higher::
+It is recommended to install *instawow* in an isolated environment.
+One option is `pipx <https://github.com/pipxproject/pipx>`__::
+
+    pipx install instawow
+
+Installing with `pip` is also supported::
 
     pip3 install instawow
 
@@ -58,8 +66,8 @@ BitBar plug-in
 for macOS, which you can use to update add-ons from the menu bar.
 To install the plug-in run ``instawow extras bitbar install``.
 
-Updating WeakAuras auras
-~~~~~~~~~~~~~~~~~~~~~~~~
+WeakAuras aura updater
+~~~~~~~~~~~~~~~~~~~~~~
 
 *instawow* contains a WeakAuras updater modelled after
 `WeakAuras Companion <https://weakauras.wtf/>`__.  To use the updater
