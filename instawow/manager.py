@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import asyncio
-from contextlib import ExitStack
 import contextvars
 from functools import partial
 import io
@@ -55,6 +54,11 @@ async def _init_web_client(*, loop: asyncio.AbstractEventLoop,
                          connector=TCPConnector(loop=loop, limit_per_host=10),
                          headers={'User-Agent': _UA_STRING},
                          **kwargs)
+
+
+def trash(paths: Iterable[Path]) -> None:
+    for path in paths:
+        send2trash(str(path))
 
 
 class PkgArchive:
@@ -126,23 +130,24 @@ class Manager:
     async def to_install(self, origin: str, id_or_slug: str,
                          strategy: str, overwrite: bool) -> Callable[[], E.PkgInstalled]:
         "Retrieve a package to install."
-        def install():
+        async def install():
             archive = PkgArchive(payload)
-            pkg.folders = [PkgFolder(path=self.config.addon_dir/f)
+            pkg.folders = [PkgFolder(path=self.config.addon_dir / f)
                            for f in archive.root_folders]
 
             conflicts = self.db.query(PkgFolder)\
-                               .filter(PkgFolder.path.in_
-                                        ([f.path for f in pkg.folders]))\
+                               .filter(PkgFolder.path.in_([f.path for f in pkg.folders]))\
                                .first()
             if conflicts:
                 raise E.PkgConflictsWithInstalled(conflicts.pkg)
 
             if overwrite:
-                for path in (f.path for f in pkg.folders if f.path.exists()):
-                    send2trash(str(path))
-            archive.extract(parent_folder=self.config.addon_dir,
-                            overwrite=overwrite)
+                trash_ = partial(trash, (f.path for f in pkg.folders
+                                         if f.path.exists()))
+                await self.loop.run_in_executor(None, trash_)
+            extract = partial(archive.extract, self.config.addon_dir,
+                              overwrite=overwrite)
+            await self.loop.run_in_executor(None, extract)
             self.db.add(pkg)
             self.db.commit()
             return E.PkgInstalled(pkg)
@@ -156,47 +161,49 @@ class Manager:
 
     async def to_update(self, origin: str, id_or_slug: str) -> Callable[[], E.PkgUpdated]:
         "Retrieve a package to update."
-        def update():
+        async def update():
             archive = PkgArchive(payload)
-            new_pkg.folders = [PkgFolder(path=self.config.addon_dir/f)
+            new_pkg.folders = [PkgFolder(path=self.config.addon_dir / f)
                                for f in archive.root_folders]
 
             conflicts = self.db.query(PkgFolder)\
-                               .filter(PkgFolder.path.in_
-                                        ([f.path for f in new_pkg.folders]),
+                               .filter(PkgFolder.path.in_([f.path for f in new_pkg.folders]),
                                        PkgFolder.pkg_origin != new_pkg.origin,
                                        PkgFolder.pkg_id != new_pkg.id)\
                                .first()
             if conflicts:
                 raise E.PkgConflictsWithInstalled(conflicts.pkg)
 
-            with ExitStack() as stack:
-                stack.callback(self.db.commit)
-                for folder in old_pkg.folders:
-                    send2trash(str(folder.path))
-                self.db.delete(old_pkg)
-                archive.extract(parent_folder=self.config.addon_dir)
+            try:
+                trash_ = partial(trash, (f.path for f in cur_pkg.folders))
+                await self.loop.run_in_executor(None, trash_)
+                self.db.delete(cur_pkg)
+                extract = partial(archive.extract,
+                                  parent_folder=self.config.addon_dir)
+                await self.loop.run_in_executor(None, extract)
                 self.db.add(new_pkg)
-            return E.PkgUpdated(old_pkg, new_pkg)
+            finally:
+                self.db.commit()
+            return E.PkgUpdated(cur_pkg, new_pkg)
 
-        old_pkg = self.get(origin, id_or_slug)
-        if not old_pkg:
+        cur_pkg = self.get(origin, id_or_slug)
+        if not cur_pkg:
             raise E.PkgNotInstalled
-        new_pkg = await self.resolve(origin, id_or_slug, old_pkg.options.strategy)
-        if old_pkg.file_id == new_pkg.file_id:
+        new_pkg = await self.resolve(origin, id_or_slug, cur_pkg.options.strategy)
+        if cur_pkg.file_id == new_pkg.file_id:
             raise E.PkgUpToDate
 
         payload = await self._download_file(new_pkg.download_url)
         return update
 
-    def remove(self, origin: str, id_or_slug: str) -> E.PkgRemoved:
+    async def remove(self, origin: str, id_or_slug: str) -> E.PkgRemoved:
         "Remove a package."
         pkg = self.get(origin, id_or_slug)
         if not pkg:
             raise E.PkgNotInstalled
 
-        for folder in pkg.folders:
-            send2trash(str(folder.path))
+        trash_ = partial(trash, (f.path for f in pkg.folders))
+        await self.loop.run_in_executor(None, trash_)
         self.db.delete(pkg)
         self.db.commit()
         return E.PkgRemoved(pkg)
@@ -244,6 +251,22 @@ async def _init_cli_web_client(*, loop: asyncio.AbstractEventLoop,
     return await _init_web_client(loop=loop, trace_configs=[trace_config])
 
 
+class SafeFuture(asyncio.Future):
+
+    def result(self) -> Any:
+        return self.exception() or super().result()
+
+    async def intercept(self, awaitable: Awaitable) -> SafeFuture:
+        try:
+            self.set_result(await awaitable)
+        except E.ManagerError as error:
+            self.set_exception(error)
+        except Exception as error:
+            logger.exception()
+            self.set_exception(E.InternalError(error=error))
+        return self
+
+
 class CliManager(Manager):
 
     def __init__(self, *,
@@ -279,52 +302,53 @@ class CliManager(Manager):
         return contextvars.copy_context().run(partial(self.loop.run_until_complete,
                                                       runner()))
 
-    async def gather(self, it: T.Iterable, **kwargs) -> list:
-        async def intercept_exc(position, awaitable):
-            try:
-                result = await awaitable
-            except E.ManagerError as error:
-                result = error
-            except Exception as error:
-                logger.exception()
-                result = E.InternalError(error=error)
-            return position, result
+    async def gather(self, it: Iterable, *, desc=None) -> List[SafeFuture]:
+        async def intercept(coro, index, bar):
+            future = await SafeFuture(loop=self.loop).intercept(coro)
+            bar.update(1)
+            return index, future
 
-        futures = [intercept_exc(*i) for i in enumerate(it)]
-        results = [None] * len(futures)
-        with Bar(total=len(futures), disable=not self.show_progress,
-                 position=self.bar_position, **kwargs) as bar:
-            for result in asyncio.as_completed(futures, loop=self.loop):
-                results.__setitem__(*await result)
-                bar.update(1)
+        coros = list(it)
+        with self.Bar(total=len(coros), disable=not self.show_progress,
+                      position=self.bar_position, desc=desc) as bar:
+            futures = [intercept(c, i, bar) for i, c in enumerate(coros)]
+            results = [v for _, v in
+                       sorted([await r for r in
+                               asyncio.as_completed(futures, loop=self.loop)])]
+
             # Wait for ``ticker``s to complete so all bars get to wipe
-            # their pretty selves off the screen
+            # their pretty faces off the face of the screen
             while len(asyncio.all_tasks(self.loop)) > 1:
                 await asyncio.sleep(bar.mininterval)
         return results
 
-    @staticmethod
-    def _intercept_exc(callable_):
-        try:
-            result = callable_()
-        except E.ManagerError as error:
-            result = error
-        except Exception as error:
-            logger.exception()
-            result = E.InternalError(error=error)
-        return result
+    def resolve_many(self, values: Iterable) -> List[E.ManagerResult]:
+        async def resolve_many():
+            return [r.result() for r in
+                    (await self.gather((self.resolve(*a) for a in values),
+                                       desc='Resolving'))]
 
-    def resolve_many(self, values: T.Iterable) -> list:
-        results = self.run(self.gather((self.resolve(*a) for a in values),
-                                       desc='Resolving'))
-        return results
+        return self.run(resolve_many())
 
-    def install_many(self, values: T.Iterable) -> list:
-        results = self.run(self.gather((self.to_install(*a) for a in values),
-                                       desc='Fetching'))
-        return [self._intercept_exc(i) for i in results]
+    def install_many(self, values: Iterable) -> List[E.ManagerResult]:
+        async def install_many():
+            return [(r if r.exception() else
+                     await SafeFuture(loop=self.loop).intercept(r.result()())
+                     ).result()
+                    for r in (await self.gather((self.to_install(*a) for a in values),
+                                                desc='Fetching'))]
 
-    def update_many(self,  values: T.Iterable) -> list:
-        results = self.run(self.gather((self.to_update(*a) for a in values),
-                                       desc='Checking'))
-        return [self._intercept_exc(i) for i in results]
+        return self.run(install_many())
+
+    def update_many(self, values: Iterable) -> List[E.ManagerResult]:
+        async def update_many():
+            return [(r if r.exception() else
+                     await SafeFuture(loop=self.loop).intercept(r.result()())
+                     ).result()
+                    for r in (await self.gather((self.to_update(*a) for a in values),
+                                                desc='Checking'))]
+
+        return self.run(update_many())
+
+
+
