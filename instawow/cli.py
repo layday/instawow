@@ -10,7 +10,7 @@ from sqlalchemy import inspect, text
 from texttable import Texttable
 
 from . import __version__
-from .config import UserConfig
+from .config import Config
 from . import exceptions as E
 from .manager import CliManager
 from .models import Pkg, PkgFolder
@@ -122,7 +122,7 @@ def _init():
     addon_dir = click.prompt('Enter the path to your add-on folder')
     while True:
         try:
-            UserConfig(addon_dir=addon_dir).write()
+            Config(addon_dir=addon_dir).write()
         except ValueError:
             addon_dir = click.prompt(f'{addon_dir} not found\n'
                                       'Enter the path to your add-on folder')
@@ -140,7 +140,7 @@ def main(ctx, hide_progress):
     if not ctx.obj:
         for attempt in count():
             try:
-                config = UserConfig.read()
+                config = Config()
             except (FileNotFoundError, ValueError):
                 _init()
             else:
