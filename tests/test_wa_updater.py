@@ -9,9 +9,9 @@ from instawow.wa_updater import (AuraEntry, ApiMetadata, WaCompanionBuilder,
 
 @pytest.fixture
 def builder(tmp_path):
-    addons = tmp_path/'World of Warcraft'/'Interface'/'AddOns'
+    addons = tmp_path / 'World of Warcraft/Interface/AddOns'
     addons.mkdir(parents=True)
-    config = Config(config_dir=tmp_path/'config', addon_dir=addons)
+    config = Config(config_dir=tmp_path / 'config', addon_dir=addons)
     config.write()
     yield WaCompanionBuilder(Manager(config=config))
 
@@ -64,6 +64,13 @@ WeakAurasSaved = {
 
 
 def test_can_parse_minimal_wago_display(builder):
+    aura = {'id': 'foo',
+            'uid': 'foo',
+            'parent': None,
+            'url': URL('https://wago.io/foo/1'),
+            'version': 1,
+            'semver': None,
+            'ignore_wago_update': False}
     assert builder.extract_auras_from_lua(['''\
 WeakAurasSaved = {
     ["displays"] = {
@@ -76,13 +83,23 @@ WeakAurasSaved = {
         },
     },
 }
-''']) == {'foo': [AuraEntry.construct(id='foo',
-                                      uid='foo',
-                                      parent=None,
-                                      url=URL('https://wago.io/foo/1'),
-                                      version=1,
-                                      semver=None,
-                                      ignore_wago_update=False)]}
+''']) == {'foo': [AuraEntry.construct(aura, set(aura))]}
+
+
+def test_url_host_not_wago_display_is_discarded(builder):
+    assert builder.extract_auras_from_lua(['''\
+WeakAurasSaved = {
+    ["displays"] = {
+        ["Foo"] = {
+            ["bar"] = "baz",
+            ["url"] = "https://wafo.io/foo/1",
+            ["version"] = 1,
+            ["id"] = "foo",
+            ["uid"] = "foo",
+        },
+    },
+}
+''']) == {}
 
 
 def test_can_build_addon_without_updates(builder, request):
