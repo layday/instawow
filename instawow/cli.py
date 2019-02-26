@@ -465,3 +465,15 @@ def build_companion(manager):
     "Build the WeakAuras Companion add-on."
     from .wa_updater import WaCompanionBuilder
     manager.run(WaCompanionBuilder(manager).build())
+
+
+@main.command()
+@click.option('--port', default=55437, help='The server port.')
+@click.pass_obj
+def serve(cli_manager, port):
+    "Run the WebSocket server."
+    from .manager import WsManager
+
+    click.echo(f'Listening at http://0.0.0.0:{port}/')
+    ws_manager = WsManager(config=cli_manager.config)
+    ws_manager.serve(port=port)

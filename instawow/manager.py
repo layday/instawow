@@ -351,4 +351,108 @@ class CliManager(Manager):
         return self.run(update_many())
 
 
+class WsManager(Manager):
 
+    async def poll(self, web_request: aiohttp.web.Request) -> None:
+        import aiohttp
+        from .api import (ApiError, ErrorCodes, parse_request, jsonify,
+                          Request, InstallRequest, UpdateRequest, RemoveRequest,
+                          SuccessResponse, ErrorResponse)
+
+        async def respond(request: Request, awaitable: Awaitable) -> None:
+            try:
+                result = await awaitable
+            except ApiError as error:
+                response = ErrorResponse.from_api_error(error)
+            except E.ManagerError as error:
+                response = ErrorResponse(**{'id': request.id,
+                                            'error': {'code': ErrorCodes[type(error).__name__],
+                                                      'message': error.message}})
+            except Exception:
+                logger.exception()
+                response = ErrorResponse(**{'id': request.id,
+                                            'error': {'code': ErrorCodes.INTERNAL_ERROR,
+                                                      'message': 'encountered internal error'}})
+            else:
+                response = request.consume_result(result)
+
+            await websocket.send_json(response, dumps=jsonify)
+
+        async def receiver() -> None:
+            async for message in websocket:
+                if message.type == aiohttp.WSMsgType.TEXT:
+                    try:
+                        request = parse_request(message.data)
+                    except ApiError as error:
+                        async def schedule_error(error=error) -> NoReturn:
+                            raise error
+                        self.loop.create_task(respond(None, schedule_error()))  # type: ignore
+                    else:
+                        if request.__class__ in {InstallRequest, UpdateRequest, RemoveRequest}:
+                            # Here we're wrapping the coroutine in a future
+                            # that the consumer will `wait_for` to complete therefore
+                            # preserving the order of (would-be) synchronous operations
+                            future = self.loop.create_future()
+                            consumer_queue.put_nowait((request, future))
+
+                            async def schedule(request=request, future=future) -> None:
+                                try:
+                                    future.set_result(await request.prepare_response(self))
+                                except Exception as error:
+                                    future.set_exception(error)
+                            self.loop.create_task(schedule())
+                        else:
+                            self.loop.create_task(respond(request,
+                                                          request.prepare_response(self)))
+
+        async def consumer() -> None:
+            while True:
+                request, future = await consumer_queue.get()
+
+                async def consume(request=request, future=future) -> Any:
+                    result = await asyncio.wait_for(future, None)
+                    if request.__class__ in {InstallRequest, UpdateRequest}:
+                        result = await result()
+                    return result
+                await respond(request, consume())
+                consumer_queue.task_done()
+
+        consumer_queue: asyncio.Queue[Tuple[Request,
+                                            asyncio.Future]] = asyncio.Queue()
+        websocket = aiohttp.web.WebSocketResponse()
+
+        await websocket.prepare(web_request)
+        self.loop.create_task(consumer())
+
+        async with (await self.client_factory()) as client:
+            _client.set(client)
+            await receiver()
+
+    def serve(self, host: Optional[str]=None, port: Optional[int]=None) -> None:
+        def runner() -> None:
+            from aiohttp import web
+
+            app_runner = None
+
+            async def build():
+                nonlocal app_runner
+
+                app = web.Application()
+                app.router.add_routes([web.get('/', self.poll)])    # type: ignore
+                app_runner = web.AppRunner(app)
+                await app_runner.setup()
+                site = web.TCPSite(app_runner, host, port)
+                await site.start()
+
+            async def destroy():
+                await app_runner.cleanup()
+
+            self.loop.run_until_complete(build())
+            try:
+                self.loop.run_forever()
+            except (KeyboardInterrupt, web.GracefulExit):
+                pass
+            finally:
+                self.loop.run_until_complete(destroy())
+
+        contextvars.copy_context().run(runner)
