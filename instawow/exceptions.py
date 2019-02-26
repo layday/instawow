@@ -1,4 +1,9 @@
 
+from __future__ import annotations
+
+from typing import ClassVar
+
+
 __all__ = ('ManagerResult',
            'PkgInstalled',
            'PkgUpdated',
@@ -17,20 +22,32 @@ __all__ = ('ManagerResult',
 
 class ManagerResult:
 
-    def __call__(self):
+    fmt_message: ClassVar[str]
+
+    def __call__(self) -> ManagerResult:
         return self
+
+    @property
+    def message(self) -> str:
+        return self.fmt_message.format(self=self)
 
 
 class PkgInstalled(ManagerResult):
 
-    def __init__(self, pkg):
+    fmt_message = 'installed {self.new_pkg.version} '\
+                  'from {self.new_pkg.options.strategy}'
+
+    def __init__(self, new_pkg) -> None:
         super().__init__()
-        self.new_pkg = pkg
+        self.new_pkg = new_pkg
 
 
 class PkgUpdated(ManagerResult):
 
-    def __init__(self, old_pkg, new_pkg):
+    fmt_message = 'updated {self.old_pkg.version} to {self.new_pkg.version} '\
+                  'from {self.new_pkg.options.strategy}'
+
+    def __init__(self, old_pkg, new_pkg) -> None:
         super().__init__()
         self.old_pkg = old_pkg
         self.new_pkg = new_pkg
@@ -38,9 +55,11 @@ class PkgUpdated(ManagerResult):
 
 class PkgRemoved(ManagerResult):
 
-    def __init__(self, pkg):
+    fmt_message = 'removed'
+
+    def __init__(self, old_pkg) -> None:
         super().__init__()
-        self.old_pkg = pkg
+        self.old_pkg = old_pkg
 
 
 class ManagerError(ManagerResult,
@@ -49,49 +68,60 @@ class ManagerError(ManagerResult,
 
 
 class PkgAlreadyInstalled(ManagerError):
-    pass
+
+    fmt_message = 'package already installed'
 
 
 class PkgConflictsWithInstalled(ManagerError):
 
-    def __init__(self, pkg):
+    fmt_message = "package folders conflict with installed package's "\
+                  '{self.conflicting_pkg.origin}:{self.conflicting_pkg.slug}'
+
+    def __init__(self, conflicting_pkg) -> None:
         super().__init__()
-        self.conflicting_pkg = pkg
+        self.conflicting_pkg = conflicting_pkg
 
 
 class PkgConflictsWithPreexisting(ManagerError):
 
-    def __init__(self, folders):
+    fmt_message = "package folders conflict with an add-on's"\
+                  ' not installed by instawow'
+
+    def __init__(self, folders) -> None:
         super().__init__()
         self.folders = folders
 
 
 class PkgNonexistent(ManagerError):
-    pass
+
+    fmt_message = 'package does not exist'
 
 
 class PkgTemporarilyUnavailable(ManagerError):
-    pass
+
+    fmt_message = 'package is temporarily unavailable'
 
 
 class PkgNotInstalled(ManagerError):
-    pass
+
+    fmt_message = 'package is not installed'
 
 
 class PkgOriginInvalid(ManagerError):
 
-    def __init__(self, origin):
-        super().__init__()
-        self.origin = origin
+    fmt_message = 'package origin is invalid'
 
 
 class PkgUpToDate(ManagerError):
-    pass
+
+    fmt_message = 'package is up to date'
 
 
 class InternalError(ManagerResult,
                     Exception):
 
-    def __init__(self, error):
+    fmt_message = 'encountered {self.error.__class__.__name__}'
+
+    def __init__(self, error) -> None:
         super().__init__()
         self.error = error

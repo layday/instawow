@@ -20,42 +20,6 @@ from .utils import TocReader, is_outdated
 __all__ = ('cli',)
 
 
-_success = click.style('✓', fg='green')
-_failure = click.style('✗', fg='red')
-_warning = click.style('!', fg='blue')
-
-MESSAGES = {
-    E.PkgInstalled:
-        f'{_success} {{0}}: installed {{1.new_pkg.version}}'
-        f' from {{1.new_pkg.options.strategy}}'.format,
-    E.PkgUpdated:
-        f'{_success} {{0}}: updated {{1.old_pkg.version}} to {{1.new_pkg.version}}'
-        f' from {{1.new_pkg.options.strategy}}'.format,
-    E.PkgRemoved:
-        f'{_success} {{}}: removed'.format,
-    E.PkgAlreadyInstalled:
-        f'{_failure} {{}}: already installed'.format,
-    E.PkgConflictsWithInstalled:
-        lambda a, r: f'{_failure} {a}: conflicts with installed '
-                     f'add-on {_compose_addon_defn(r.conflicting_pkg)}',
-    E.PkgConflictsWithPreexisting:
-        f'{_failure} {{}}: conflicts with an add-on not installed by instawow\n'
-         '  pass `-o` to `install` if you do actually wish to overwrite this add-on'
-        .format,
-    E.PkgNonexistent:
-        f'{_failure} {{}}: no such project id or slug'.format,
-    E.PkgTemporarilyUnavailable:
-        f'{_failure} {{0}}: temporarily unavailable\n'
-        f'  this usually means a new version of {{0}} is under review'.format,
-    E.PkgNotInstalled:
-        f'{_failure} {{}}: not installed'.format,
-    E.PkgOriginInvalid:
-        f'{_failure} {{}}: invalid origin'.format,
-    E.PkgUpToDate:
-        f'{_failure} {{}}: no update available'.format,
-    E.InternalError:
-        f'{_warning} {{}}: encountered {{.error.__class__.__name__}}'.format,}
-
 _CONTEXT_SETTINGS = {'help_option_names': ['-h', '--help']}
 _SEP = ':'
 
@@ -66,9 +30,19 @@ class _Parts(T.NamedTuple):
     id_or_slug: str
 
 
-def _format_message(addon, result):
-    return MESSAGES[result if isinstance(result, type)
-                    else result.__class__](addon, result)
+_SUCCESS = click.style('✓', fg='green')
+_FAILURE = click.style('✗', fg='red')
+_WARNING = click.style('!', fg='blue')
+
+
+def _format_result(addon: str, result: E.ManagerResult) -> str:
+    return f'''\
+{next(s for t, s in [(E.InternalError, _WARNING),
+                     (E.ManagerError,  _FAILURE),
+                     (E.ManagerResult, _SUCCESS)]
+      if isinstance(result, t))} \
+{click.style(addon, bold=True)}
+  {result.message}'''
 
 
 def _tabulate(rows: T.List[T.Tuple[str, ...]], *,
@@ -158,7 +132,7 @@ def main(ctx, hide_progress):
                .push_application()
 
         if is_outdated(manager):
-            click.echo(f'{_warning} instawow is out of date')
+            click.echo(f'{_WARNING} instawow is out of date')
 
 cli = main
 
@@ -179,7 +153,7 @@ def install(manager, addons, overwrite, strategy):
     for addon, result in zip((d for d, _ in addons),
                              manager.install_many((*p, strategy, overwrite)
                                                   for _, p in addons)):
-        click.echo(_format_message(addon, result))
+        click.echo(_format_result(addon, result))
 
 
 @main.command()
@@ -204,7 +178,7 @@ def update(manager, addons, strategy):
                              manager.update_many(p for _, p in addons)):
         if not (not orig_addons and
                 isinstance(result, (E.PkgUpToDate, E.PkgTemporarilyUnavailable))):
-            click.echo(_format_message(addon, result))
+            click.echo(_format_result(addon, result))
 
 
 @main.command()
@@ -217,7 +191,7 @@ def remove(manager, addons):
             result = manager.remove(*parts)
         except (E.ManagerError, E.InternalError) as error:
             result = error
-        click.echo(_format_message(addon, result))
+        click.echo(_format_result(addon, result))
 
 
 @main.group('list')
@@ -366,7 +340,7 @@ def info(manager, addon, toc_entries):
                              for k in toc_entries})
         click.echo(_tabulate(rows.items(), show_index=False))
     else:
-        click.echo(_format_message(addon[0], E.PkgNotInstalled))
+        click.echo(_format_result(addon[0], E.PkgNotInstalled()))
 
 
 @main.command()
@@ -384,7 +358,7 @@ def hearth(manager, addon):
         import webbrowser
         webbrowser.open(pkg.url)
     else:
-        click.echo(_format_message(addon[0], E.PkgNotInstalled))
+        click.echo(_format_result(addon[0], E.PkgNotInstalled()))
 
 
 @main.command()
@@ -402,7 +376,7 @@ def reveal(manager, addon):
         import webbrowser
         webbrowser.open(pkg.folders[0].path.as_uri())
     else:
-        click.echo(_format_message(addon[0], E.PkgNotInstalled))
+        click.echo(_format_result(addon[0], E.PkgNotInstalled()))
 
 
 @main.group()
