@@ -1,0 +1,15 @@
+wheel
+fastentrypoints
+pip-tools
+twine
+
+mypy
+sqlalchemy-stubs
+
+pytest
+pytest-asyncio
+tox
+
+ipython
+
+-e .

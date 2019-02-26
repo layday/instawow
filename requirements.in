@@ -1,0 +1,13 @@
+aiohttp
+click
+jinja2
+Logbook
+luaparser
+parsel
+pydantic
+Send2Trash
+SQLAlchemy
+texttable
+tqdm
+uvloop ; platform_system != 'Windows'
+yarl
