@@ -1,4 +1,6 @@
 
+from __future__ import annotations
+
 from datetime import datetime
 from pathlib import Path
 
@@ -9,14 +11,17 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 
 
-__all__ = ('ModelBase', 'Pkg', 'PkgFolder', 'PkgOptions')
+__all__ = ('ModelBase',
+           'Pkg', 'PkgFolder', 'PkgOptions',
+           'PkgCoercer', 'PkgFolderCoercer', 'PkgOptionsCoercer')
 
 
 def _declarative_constructor(self, **kwargs):
-    for k, v in _coerces.coercers[self.__class__]\
-                        .parse_obj(kwargs):
+    for k, v in _COERCERS[self.__class__].parse_obj(kwargs):
         setattr(self, k, v)
 
+
+_declarative_constructor.__name__ = '__init__'
 
 ModelBase = declarative_base(constructor=_declarative_constructor)
 
@@ -33,17 +38,6 @@ class _BaseCoercer(pydantic.BaseModel):
     class Config:
         extra = pydantic.Extra.allow
         max_anystr_length = 2 ** 32
-
-
-class _coerces:
-
-    coercers = {}
-
-    def __new__(cls, model):
-        def wrapper(coercer):
-            cls.coercers[model] = coercer
-            return coercer
-        return wrapper
 
 
 class PathType(TypeDecorator):
@@ -79,8 +73,7 @@ class Pkg(ModelBase):
                            uselist=False)
 
 
-@_coerces(Pkg)
-class _PkgCoercer(_BaseCoercer):
+class PkgCoercer(_BaseCoercer):
 
     origin: str
     id: str
@@ -105,8 +98,7 @@ class PkgFolder(ModelBase):
     pkg_id = Column(String, nullable=False)
 
 
-@_coerces(PkgFolder)
-class _PkgFolderCoercer(_BaseCoercer):
+class PkgFolderCoercer(_BaseCoercer):
 
     path: Path
 
@@ -122,7 +114,11 @@ class PkgOptions(ModelBase):
     pkg_id = Column(String, primary_key=True)
 
 
-@_coerces(PkgOptions)
-class _PkgOptionsCoercer(_BaseCoercer):
+class PkgOptionsCoercer(_BaseCoercer):
 
     strategy: str
+
+
+_COERCERS = {Pkg: PkgCoercer,
+             PkgFolder: PkgFolderCoercer,
+             PkgOptions: PkgOptionsCoercer}

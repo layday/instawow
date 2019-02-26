@@ -4,17 +4,17 @@ from __future__ import annotations
 import asyncio
 from functools import partial, reduce
 from pathlib import Path
-import time
-import typing as T
+from typing import TYPE_CHECKING
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 import logbook
-import pydantic
+from pydantic import BaseModel, validator
 from yarl import URL
 
 from .manager import Manager
 from .utils import ManagerAttrAccessMixin
 
-if T.TYPE_CHECKING:
+if TYPE_CHECKING:
     from luaparser import astnodes as lua_nodes
 
 
@@ -26,11 +26,13 @@ logger = logbook.Logger(__name__)
 metadata_api = URL('https://data.wago.io/api/check/weakauras')
 raw_api = URL('https://data.wago.io/api/raw/encoded')
 
+_EMPTY_URL = URL()
 
-def bucketise(iterable: T.Iterable, key=T.Callable[[T.Any], T.Any]) -> dict:
+
+def bucketise(iterable: Iterable, key=Callable[[Any], Any]) -> dict:
     from collections import defaultdict
 
-    bucket = defaultdict(list)
+    bucket = defaultdict(list)      # type: ignore
     for value in iterable:
         bucket[key(value)].append(value)
     return dict(bucket)
@@ -44,36 +46,40 @@ class AuraURLNotWago(Exception):
     pass
 
 
-class AuraEntry(pydantic.BaseModel):
+class AuraEntry(BaseModel):
 
     id: str
     uid: str
-    parent: T.Optional[str]
-    url: T.Optional[URL]
+    parent: Optional[str]
+    url: URL = _EMPTY_URL
     version: int
-    semver: T.Optional[str]
-    ignore_wago_update: bool = pydantic.Schema(False, alias='ignoreWagoUpdate')
+    semver: Optional[str]
+    ignore_wago_update: bool = False
 
-    @pydantic.validator('url', always=True, pre=True)
-    def __prep_url(cls, value: T.Any) -> T.Any:
-        if value is None:
+    class Config:
+        arbitrary_types_allowed = True
+        fields = {'ignore_wago_update' : {'alias': 'ignoreWagoUpdate'}}
+
+    @validator('url', always=True, pre=True)
+    def __prep_url(cls, value: Any) -> Any:
+        if value == _EMPTY_URL:
             raise AuraHasNoURL
         return value
 
-    @pydantic.validator('id', 'uid', 'parent', 'url', 'semver', pre=True)
+    @validator('id', 'uid', 'parent', 'url', 'semver', pre=True)
     def __convert_str(cls, value: lua_nodes.String) -> str:
         return value.s
 
-    @pydantic.validator('version', pre=True)
+    @validator('version', pre=True)
     def __convert_int(cls, value: lua_nodes.Number) -> int:
         return value.n
 
-    @pydantic.validator('ignore_wago_update', pre=True)
-    def __convert_bool(cls, value: T.Union[lua_nodes.TrueExpr, lua_nodes.FalseExpr]
+    @validator('ignore_wago_update', pre=True)
+    def __convert_bool(cls, value: Union[lua_nodes.TrueExpr, lua_nodes.FalseExpr]
                        ) -> bool:
         return value.display_name == 'True'
 
-    @pydantic.validator('url', pre=True)
+    @validator('url', pre=True)
     def __postp_url(cls, value: str) -> URL:
         url = URL(value)
         if url.host != 'wago.io':
@@ -81,25 +87,22 @@ class AuraEntry(pydantic.BaseModel):
         return url
 
     @classmethod
-    def from_lua_ast(cls, tree: lua_nodes.Field) -> T.Optional[AuraEntry]:
+    def from_lua_ast(cls, tree: lua_nodes.Field) -> Optional[AuraEntry]:
         try:
             return cls(**{f.key.s: f.value for f in tree.value.fields})
         except (AuraHasNoURL, AuraURLNotWago):
             return
 
-    class Config:
-        arbitrary_types_allowed = True
 
+class ApiMetadata__Changelog(BaseModel):
 
-class ApiMetadata__Changelog(pydantic.BaseModel):
-
-    format: T.Optional[str]
+    format: Optional[str]
     text: str = ''
 
 
-class ApiMetadata(pydantic.BaseModel):
+class ApiMetadata(BaseModel):
 
-    id: str = pydantic.Schema(..., alias='_id')     # Pydantic won't accept underscored attrs
+    id: str
     name: str
     slug: str
     url: str
@@ -107,11 +110,15 @@ class ApiMetadata(pydantic.BaseModel):
     modified: str
     username: str
     version: int
-    version_string: str = pydantic.Schema(..., alias='versionString')
+    version_string: str
     changelog: ApiMetadata__Changelog
 
+    class Config:
+        fields = {'id': {'alias': '_id'},   # Pydantic won't accept underscored attrs
+                  'version_string' : {'alias': 'versionString'}}
 
-_T_Outdated = T.List[T.Tuple[str, T.List[AuraEntry], ApiMetadata, str]]
+
+_T_Outdated = List[Tuple[str, List[AuraEntry], ApiMetadata, str]]
 
 
 class WaCompanionBuilder(ManagerAttrAccessMixin):
@@ -119,12 +126,12 @@ class WaCompanionBuilder(ManagerAttrAccessMixin):
 
     def __init__(self, manager: Manager) -> None:
         self.manager = manager
-        self.builder_dir = self.manager.config.plugin_dir/__name__
-        self.file_out = self.builder_dir/'WeakAurasCompanion.zip'
+        self.builder_dir = self.manager.config.plugin_dir / __name__
+        self.file_out = self.builder_dir / 'WeakAurasCompanion.zip'
 
     @staticmethod
-    def extract_auras_from_lua(sources: T.Iterator[str]
-                               ) -> T.Dict[str, T.List[AuraEntry]]:
+    def extract_auras_from_lua(sources: Iterable[str]
+                               ) -> Dict[str, List[AuraEntry]]:
         def extract(source):
             from luaparser import ast as lua_ast
 
@@ -139,8 +146,8 @@ class WaCompanionBuilder(ManagerAttrAccessMixin):
 
         return reduce(lambda p, n: {**p, **n}, (extract(s) for s in sources))
 
-    async def get_wago_aura_metadata(self, aura_ids: T.List[str]
-                                     ) -> T.List[T.Optional[ApiMetadata]]:
+    async def get_wago_aura_metadata(self, aura_ids: List[str]
+                                     ) -> List[ApiMetadata]:
         url = metadata_api.with_query({'ids': ','.join(aura_ids)})
         async with self.client.get()\
                               .get(url) as response:
@@ -158,10 +165,11 @@ class WaCompanionBuilder(ManagerAttrAccessMixin):
             return await response.text()
 
     async def get_outdated(self) -> _T_Outdated:
+        import time
+
         def extract_auras_from_lua():
-            saved_vars = self.config.addon_dir.parents[1]
-            saved_vars = saved_vars.glob('WTF/Account/*/'
-                                         'SavedVariables/WeakAuras.lua')
+            saved_vars = Path.glob(self.config.addon_dir.parents[1],
+                                   'WTF/Account/*/SavedVariables/WeakAuras.lua')
             return self.extract_auras_from_lua(f.read_text(encoding='utf-8')
                                                for f in saved_vars)
 
@@ -190,7 +198,7 @@ class WaCompanionBuilder(ManagerAttrAccessMixin):
         from jinja2 import Environment, FileSystemLoader
         from zipfile import ZipFile, ZipInfo
 
-        jinja_env = Environment(loader=FileSystemLoader(str(Path(__file__).parent/'wa_templates')),
+        jinja_env = Environment(loader=FileSystemLoader(str(Path(__file__).parent / 'wa_templates')),
                                 trim_blocks=True, lstrip_blocks=True)
 
         with ZipFile(self.file_out, 'w') as addon_zip:

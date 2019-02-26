@@ -1,7 +1,9 @@
 
+from __future__ import annotations
+
 import asyncio
 from datetime import datetime
-import typing as T
+from typing import TYPE_CHECKING, ClassVar, Optional, Tuple
 
 from pydantic.datetime_parse import parse_date
 from yarl import URL
@@ -10,23 +12,23 @@ from . import exceptions as E
 from .models import Pkg, PkgOptions
 from .utils import ManagerAttrAccessMixin, slugify
 
+if TYPE_CHECKING:
+    from .manager import Manager
+
 
 __all__ = ('CurseResolver', 'WowiResolver', 'TukuiResolver', 'InstawowResolver')
 
 
-_T_DecomposeUrl = T.Optional[T.Tuple[str, str]]
-
-
 class Resolver(ManagerAttrAccessMixin):
 
-    origin: str
-    name: str
+    origin: ClassVar[str]
+    name: ClassVar[str]
 
-    def __init__(self, *, manager) -> None:
+    def __init__(self, *, manager: Manager) -> None:
         self.manager = manager
 
     @classmethod
-    def decompose_url(cls, value: str) -> _T_DecomposeUrl:
+    def decompose_url(cls, uri: str) -> Optional[Tuple[str, str]]:
         "Break a URL down to its component `origin` and `id`."
         raise NotImplementedError
 
@@ -41,8 +43,8 @@ class CurseResolver(Resolver):
     name = 'CurseForge'
 
     @classmethod
-    def decompose_url(cls, value: str) -> _T_DecomposeUrl:
-        url = URL(value)
+    def decompose_url(cls, uri: str) -> Optional[Tuple[str, str]]:
+        url = URL(uri)
         if url.host in {'wow.curseforge.com', 'www.wowace.com'} \
                 and len(url.parts) > 2 \
                 and url.parts[1] == 'projects':
@@ -95,17 +97,28 @@ class WowiResolver(Resolver):
     origin = 'wowi'
     name = 'WoWInterface'
 
-    _api_list = 'https://api.mmoui.com/v3/game/WOW/filelist.json'
-    _api_details = 'https://api.mmoui.com/v3/game/WOW/filedetails/{}.json'
+    list_api = 'https://api.mmoui.com/v3/game/WOW/filelist.json'
+    details_api = 'https://api.mmoui.com/v3/game/WOW/filedetails/{}.json'
 
-    def __init__(self, *, manager):
+    def __init__(self, *, manager: Manager) -> None:
         super().__init__(manager=manager)
+        self.files = None
         self._sync_lock = asyncio.Lock(loop=self.loop)
-        self._sync_data = None
+
+    async def _sync(self) -> None:
+        async with self._sync_lock:
+            if not self.files:
+                async with self.client.get()\
+                                      .get(self.list_api) as response:
+                    self.files = {i['UID']: i for i in await response.json()}
+
+                async def noop() -> None:
+                    pass
+                setattr(self, '_sync', noop)
 
     @classmethod
-    def decompose_url(cls, value: str) -> _T_DecomposeUrl:
-        url = URL(value)
+    def decompose_url(cls, uri: str) -> Optional[Tuple[str, str]]:
+        url = URL(uri)
         if url.host in {'wowinterface.com', 'www.wowinterface.com'} \
                 and len(url.parts) == 3 \
                 and url.parts[1] == 'downloads':
@@ -113,21 +126,15 @@ class WowiResolver(Resolver):
             if id_:
                 return (cls.origin, id_)
 
-    async def _sync(self):
-        async with self._sync_lock:
-            if not self._sync_data:
-                async with self.client.get()\
-                                      .get(self._api_list) as response:
-                    self._sync_data = {i['UID']: i for i in await response.json()}
-            return self._sync_data
-
     async def resolve(self, id_or_slug: str, *, strategy: str) -> Pkg:
+        await self._sync()
+
         try:
-            addon = (await self._sync())[id_or_slug.partition('-')[0]]
+            addon = self.files[id_or_slug.partition('-')[0]]
         except KeyError:
             raise E.PkgNonexistent
         async with self.client.get()\
-                              .get(self._api_details.format(addon['UID'])) as response:
+                              .get(self.details_api.format(addon['UID'])) as response:
             addon_details, = await response.json()
         if addon_details['UIPending'] == '1':
             raise E.PkgTemporarilyUnavailable
@@ -151,8 +158,8 @@ class TukuiResolver(Resolver):
     name = 'Tukui'
 
     @classmethod
-    def decompose_url(cls, value: str) -> _T_DecomposeUrl:
-        url = URL(value)
+    def decompose_url(cls, uri: str) -> Optional[Tuple[str, str]]:
+        url = URL(uri)
         if url.host == 'www.tukui.org' \
                 and url.path in {'/addons.php', '/download.php'}:
             id_or_slug = url.query.get('id') or url.query.get('ui')
@@ -193,7 +200,7 @@ class InstawowResolver(Resolver):
     name = 'instawow'
 
     @classmethod
-    def decompose_url(cls, value: str) -> None:
+    def decompose_url(cls, uri: str) -> None:
         return
 
     async def resolve(self, id_or_slug: str, *, strategy: str) -> Pkg:
@@ -211,6 +218,6 @@ class InstawowResolver(Resolver):
                    url='https://github.com/layday/instawow',
                    file_id=await self.loop.run_in_executor(None, builder.checksum),
                    download_url=builder.file_out.as_uri(),
-                   date_published=datetime.now().isoformat(),
+                   date_published=datetime.now(),
                    version='1.0.0',
                    options=PkgOptions(strategy=strategy))

@@ -1,23 +1,34 @@
 
+from __future__ import annotations
+
 import asyncio
 from contextlib import ExitStack
 import contextvars
 from functools import partial
 import io
 from pathlib import Path
-import typing as T
+from typing import TYPE_CHECKING
+from typing import (Any, Awaitable, Callable, Iterable, List,
+                    NoReturn, Optional, Tuple, Type)
 
 import logbook
 from send2trash import send2trash
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from tqdm import tqdm
 
 from .config import Config
 from . import exceptions as E
 from .models import ModelBase, Pkg, PkgFolder
-from .resolvers import (CurseResolver, WowiResolver, TukuiResolver,
-                        InstawowResolver)
+from .resolvers import *
+
+try:
+    import uvloop
+    asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
+except ImportError:
+    pass
+
+if TYPE_CHECKING:
+    import aiohttp
 
 
 __all__ = ('Manager', 'CliManager')
@@ -31,22 +42,14 @@ _UA_STRING = 'instawow (https://github.com/layday/instawow)'
 _client = contextvars.ContextVar('_client')
 
 
-def _init_loop():
-    try:
-        import uvloop
-    except ImportError:
-        return asyncio.get_event_loop()
-    else:
-        return uvloop.new_event_loop()
-
-
-def _init_db_session(*, config):
-    engine = create_engine(f'sqlite:///{config.config_dir/"db.sqlite"}')
+def _init_db_session(*, config: Config):
+    engine = create_engine(f'sqlite:///{config.config_dir / "db.sqlite"}')
     ModelBase.metadata.create_all(engine)
     return sessionmaker(bind=engine)()
 
 
-async def _init_web_client(*, loop, **kwargs):
+async def _init_web_client(*, loop: asyncio.AbstractEventLoop,
+                           **kwargs) -> aiohttp.ClientSession:
     from aiohttp import ClientSession, TCPConnector
     return ClientSession(loop=loop,
                          connector=TCPConnector(loop=loop, limit_per_host=10),
@@ -60,10 +63,10 @@ class PkgArchive:
 
     def __init__(self, payload: bytes) -> None:
         from zipfile import ZipFile
-        self.archive = ZipFile(io.BytesIO(payload))
 
-        folders = sorted({Path(p).parts[0] for p in self.archive.namelist()})
-        self.root_folders = [Path(p) for p in folders]
+        self.archive = ZipFile(io.BytesIO(payload))
+        self.root_folders = sorted({Path(Path(p).parts[0])
+                                    for p in self.archive.namelist()})
 
     def extract(self, parent_folder: Path, *,
                 overwrite: bool=False) -> None:
@@ -79,25 +82,23 @@ class PkgArchive:
 class MemberDict(dict):
 
     def __missing__(self, key):
-        raise E.PkgOriginInvalid(origin=key)
+        raise E.PkgOriginInvalid
 
 
 class Manager:
 
     def __init__(self, *,
-                 config: Config, loop: asyncio.AbstractEventLoop=None,
-                 client_factory: T.Callable=None) -> None:
+                 config: Config, loop: Optional[asyncio.AbstractEventLoop]=None,
+                 client_factory: Optional[Callable]=None) -> None:
         self.config = config
-        self.loop = loop or _init_loop()
+        self.loop = loop or asyncio.get_event_loop()
         self.client_factory = partial(client_factory or _init_web_client,
                                       loop=self.loop)
         self.client = _client
         self.db = _init_db_session(config=self.config)
         self.resolvers = MemberDict((r.origin, r(manager=self))
-                                    for r in (CurseResolver,
-                                              WowiResolver,
-                                              TukuiResolver,
-                                              InstawowResolver))
+                                    for r in (CurseResolver, WowiResolver,
+                                              TukuiResolver, InstawowResolver))
 
     async def _download_file(self, url: str) -> bytes:
         if url[:7] == 'file://':
@@ -122,8 +123,8 @@ class Manager:
         return await self.resolvers[origin].resolve(id_or_slug,
                                                     strategy=strategy)
 
-    async def to_install(self, origin: str, id_or_slug: str, strategy: str,
-                         overwrite: bool) -> T.Callable[[], E.PkgInstalled]:
+    async def to_install(self, origin: str, id_or_slug: str,
+                         strategy: str, overwrite: bool) -> Callable[[], E.PkgInstalled]:
         "Retrieve a package to install."
         def install():
             archive = PkgArchive(payload)
@@ -153,8 +154,7 @@ class Manager:
         payload = await self._download_file(pkg.download_url)
         return install
 
-    async def to_update(self, origin: str,
-                        id_or_slug: str) -> T.Callable[[], E.PkgUpdated]:
+    async def to_update(self, origin: str, id_or_slug: str) -> Callable[[], E.PkgUpdated]:
         "Retrieve a package to update."
         def update():
             archive = PkgArchive(payload)
@@ -202,21 +202,23 @@ class Manager:
         return E.PkgRemoved(pkg)
 
 
-class Bar(tqdm):
+class Bar:
 
     def __init__(self, *args, **kwargs) -> None:
         kwargs['position'], self.__reset_position = kwargs['position']
-        super().__init__(*args, **{'leave': False, 'ascii': True, **kwargs})
+        super().__init__(*args, **{'leave': False, 'ascii': True, **kwargs})    # type: ignore
 
     def close(self) -> None:
-        super().close()
+        super().close()     # type: ignore
         self.__reset_position()
 
 
-async def _init_cli_web_client(*, loop, manager):
+async def _init_cli_web_client(*, loop: asyncio.AbstractEventLoop,
+                               manager: CliManager) -> aiohttp.ClientSession:
     from aiohttp import TraceConfig
 
-    async def do_on_request_end(session, context, params):
+    async def do_on_request_end(_session, _ctx,
+                                params: aiohttp.TraceRequestEndParams) -> None:
         if params.response.content_type in {
                 'application/zip',
                 # Curse at it again
@@ -224,47 +226,50 @@ async def _init_cli_web_client(*, loop, manager):
             filename = params.response.headers.get('Content-Disposition', '')
             filename = filename[(filename.find('"') + 1):filename.rfind('"')] or \
                        params.response.url.name
-            bar = Bar(total=params.response.content_length,
-                      desc=f'  Downloading {filename}',
-                      miniters=1, unit='B', unit_scale=True,
-                      position=manager.bar_position)
+            bar = manager.Bar(total=params.response.content_length,
+                              desc=f'  Downloading {filename}',
+                              miniters=1, unit='B', unit_scale=True,
+                              position=manager.bar_position)
 
-            async def ticker(bar=bar, params=params):
+            async def ticker(bar=bar, params=params) -> None:
                 while not params.response.content._eof:
                     bar.update(params.response.content._cursor - bar.n)
                     await asyncio.sleep(bar.mininterval)
                 bar.close()
             loop.create_task(ticker())
 
-    trace_conf = TraceConfig()
-    trace_conf.on_request_end.append(do_on_request_end)
-    trace_conf.freeze()
-    return await _init_web_client(loop=loop, trace_configs=[trace_conf])
+    trace_config = TraceConfig()
+    trace_config.on_request_end.append(do_on_request_end)
+    trace_config.freeze()
+    return await _init_web_client(loop=loop, trace_configs=[trace_config])
 
 
 class CliManager(Manager):
 
     def __init__(self, *,
-                 config: Config, loop: asyncio.AbstractEventLoop=None,
+                 config: Config, loop: Optional[asyncio.AbstractEventLoop]=None,
                  show_progress: bool=True) -> None:
         super().__init__(config=config, loop=loop,
                          client_factory=(partial(_init_cli_web_client, manager=self)
                                          if show_progress else None))
         self.show_progress = show_progress
-        self._bar_position = []
+        self.bar_positions = [False]
+
+        from tqdm import tqdm
+        self.Bar = type('Bar', (Bar, tqdm), {})
 
     @property
-    def bar_position(self) -> T.Tuple[int, T.Callable]:
+    def bar_position(self) -> Tuple[int, Callable]:
         "Get the first available bar slot."
         try:
-            b = self._bar_position.index(False)
-            self._bar_position[b] = True
+            b = self.bar_positions.index(False)
+            self.bar_positions[b] = True
         except ValueError:
-            b = len(self._bar_position)
-            self._bar_position.append(True)
-        return (b, lambda b=b: self._bar_position.__setitem__(b, False))
+            b = len(self.bar_positions)
+            self.bar_positions.append(True)
+        return (b, lambda b=b: self.bar_positions.__setitem__(b, False))
 
-    def run(self, awaitable: T.Awaitable) -> T.Any:
+    def run(self, awaitable: Awaitable) -> Any:
         "Run ``awaitable`` inside an explicit context."
         async def runner():
             async with (await self.client_factory()) as client:
