@@ -91,7 +91,7 @@ class AuraEntry(BaseModel):
         try:
             return cls(**{f.key.s: f.value for f in tree.value.fields})
         except (AuraHasNoURL, AuraURLNotWago):
-            return
+            return None
 
 
 class ApiMetadata__Changelog(BaseModel):
@@ -210,7 +210,7 @@ class WaCompanionBuilder(ManagerAttrAccessMixin):
                                 trim_blocks=True, lstrip_blocks=True)
 
         with ZipFile(self.file_out, 'w') as addon_zip:
-            def write_tpl(tpl, ctx):
+            def write_tpl(tpl: str, ctx: dict) -> None:
                 # Not using a plain string as the first argument to ``writestr``
                 # 'cause the timestamp is set dynamically by default, which
                 # renders the build rather - shall we say - unreproducible

@@ -5,9 +5,12 @@ from collections import namedtuple
 from datetime import datetime
 from pathlib import Path
 import re
-from typing import Any, Callable, Iterator, Tuple, Union
+from typing import TYPE_CHECKING, Any, Callable, Iterator, Tuple, Union
 
 from . import __version__
+
+if TYPE_CHECKING:
+    from .manager import Manager
 
 
 __all__ = ('ManagerAttrAccessMixin', 'TocReader', 'slugify', 'is_outdated')
@@ -47,7 +50,7 @@ def slugify(text: str) -> str:
     return '-'.join(_match_loweralphanum.sub(' ', text.casefold()).split())
 
 
-def is_outdated(manager) -> bool:
+def is_outdated(manager: Manager) -> bool:
     """Check against PyPI to see if `instawow` is outdated.
 
     The response is cached for 24 hours.
@@ -63,7 +66,7 @@ def is_outdated(manager) -> bool:
     else:
         from aiohttp.client import ClientError
 
-        async def get_metadata():
+        async def get_metadata() -> dict:
             async with (await manager.client_factory()) as session, \
                        session.get('https://pypi.org/pypi/instawow/json') as response:
                 return await response.json()

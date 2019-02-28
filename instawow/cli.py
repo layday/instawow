@@ -40,7 +40,7 @@ def _format_result(addon: str, result: E.ManagerResult) -> str:
 
 
 def _tabulate(rows: List[tuple], *,
-              head: tuple=(), show_index: bool=True) -> str:
+              head: tuple = (), show_index: bool = True) -> str:
     table = Texttable(max_width=0).set_deco(Texttable.VLINES |
                                             Texttable.BORDER |
                                             Texttable.HEADER)
@@ -65,8 +65,8 @@ def _compose_pkg_uri(val: Any) -> str:
     return ':'.join((origin, slug))
 
 
-def _decompose_pkg_uri(ctx: click.Context, param: click.Parameter, value: Any, *,
-                       raise_for_invalid_uri: bool=True) -> tuple:
+def _decompose_pkg_uri(ctx: click.Context, param: click.Parameter, value: str, *,
+                       raise_for_invalid_uri: bool = True) -> tuple:
     if isinstance(value, tuple):
         return tuple(_decompose_pkg_uri(ctx, param, v)
                      for v in sorted(set(value), key=value.index))
@@ -95,11 +95,11 @@ def _get_pkg_from_substr(manager: CliManager, pkg: _Parts) -> Optional[Pkg]:
 
 class _OrigCmdOrderGroup(click.Group):
 
-    def list_commands(self, ctx):
+    def list_commands(self, ctx: click.Context) -> List[str]:
         return list(self.commands)    # The default is ``sorted(self.commands)``
 
 
-def _init():
+def _init() -> None:
     addon_dir = click.prompt('Enter the path to your add-on folder')
     while True:
         try:

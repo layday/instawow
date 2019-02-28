@@ -7,7 +7,7 @@ from functools import partial
 import io
 from pathlib import Path
 from typing import TYPE_CHECKING
-from typing import (Any, Awaitable, Callable, Iterable, List,
+from typing import (Any, Awaitable, Callable, Coroutine, Iterable, List,
                     NoReturn, Optional, Tuple, Type)
 
 import logbook
@@ -85,15 +85,15 @@ class PkgArchive:
 
 class MemberDict(dict):
 
-    def __missing__(self, key):
+    def __missing__(self, key: str) -> NoReturn:
         raise E.PkgOriginInvalid
 
 
 class Manager:
 
     def __init__(self, *,
-                 config: Config, loop: Optional[asyncio.AbstractEventLoop]=None,
-                 client_factory: Optional[Callable]=None) -> None:
+                 config: Config, loop: Optional[asyncio.AbstractEventLoop] = None,
+                 client_factory: Optional[Callable] = None) -> None:
         self.config = config
         self.loop = loop or asyncio.get_event_loop()
         self.client_factory = partial(client_factory or _init_web_client,
@@ -253,7 +253,7 @@ async def _init_cli_web_client(*, loop: asyncio.AbstractEventLoop,
 
 class SafeFuture(asyncio.Future):
 
-    def result(self) -> Any:
+    def result(self) -> object:
         return self.exception() or super().result()
 
     async def intercept(self, awaitable: Awaitable) -> SafeFuture:
@@ -270,8 +270,8 @@ class SafeFuture(asyncio.Future):
 class CliManager(Manager):
 
     def __init__(self, *,
-                 config: Config, loop: Optional[asyncio.AbstractEventLoop]=None,
-                 show_progress: bool=True) -> None:
+                 config: Config, loop: Optional[asyncio.AbstractEventLoop] = None,
+                 show_progress: bool = True) -> None:
         super().__init__(config=config, loop=loop,
                          client_factory=(partial(_init_cli_web_client, manager=self)
                                          if show_progress else None))
@@ -302,8 +302,9 @@ class CliManager(Manager):
         return contextvars.copy_context().run(partial(self.loop.run_until_complete,
                                                       runner()))
 
-    async def gather(self, it: Iterable, *, desc=None) -> List[SafeFuture]:
-        async def intercept(coro, index, bar):
+    async def gather(self, it: Iterable, *, desc: Optional[str] = None) -> List[SafeFuture]:
+        async def intercept(coro: Coroutine, index: int, bar: Any
+                            ) -> Tuple[int, SafeFuture]:
             future = await SafeFuture(loop=self.loop).intercept(coro)
             bar.update(1)
             return index, future
@@ -428,7 +429,7 @@ class WsManager(Manager):
             _client.set(client)
             await receiver()
 
-    def serve(self, host: Optional[str]=None, port: Optional[int]=None) -> None:
+    def serve(self, host: Optional[str] = None, port: Optional[int] = None) -> None:
         def runner() -> None:
             from aiohttp import web
 
