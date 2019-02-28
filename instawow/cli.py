@@ -284,8 +284,8 @@ def list_outdated(manager, should_flip):
     outdated = zip(all_pkgs,
                    manager.resolve_many((p.origin, p.id, flip(p.options.strategy))
                                         for p in all_pkgs))
-    outdated = [(i, n) for i, n in outdated if i.file_id != n.file_id
-                if isinstance(n, Pkg)]
+    outdated = [(i, n) for i, n in outdated
+                if isinstance(n, Pkg) and i.file_id != n.file_id]
     if outdated:
         click.echo(_tabulate([(_compose_pkg_uri(n),
                                i.version, n.version, n.options.strategy)
@@ -397,12 +397,12 @@ def bitbar_generate(manager, caller, version):
     from pathlib import Path
     from subprocess import run, PIPE
 
-    outdated = manager.db.query(Pkg).order_by(Pkg.name).all()
-    outdated = zip(outdated,
+    all_pkgs = manager.db.query(Pkg).order_by(Pkg.name).all()
+    outdated = zip(all_pkgs,
                    manager.resolve_many((p.origin, p.id, p.options.strategy)
-                                        for p in outdated))
-    outdated = [(p, r) for p, r in outdated
-                if p.file_id != getattr(r, 'file_id', p.file_id)]
+                                        for p in all_pkgs))
+    outdated = [(i, n) for i, n in outdated
+                if isinstance(n, Pkg) and i.file_id != n.file_id]
 
     icon = Path(__file__).parent / 'assets' / f'''\
 NSStatusItem-icon__\
