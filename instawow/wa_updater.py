@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 import logbook
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, Extra, validator
 from yarl import URL
 
 from .manager import Manager
@@ -99,6 +99,9 @@ class ApiMetadata__Changelog(BaseModel):
     format: Optional[str]
     text: str = ''
 
+    class Config:
+        extra = Extra.forbid
+
 
 class ApiMetadata(BaseModel):
 
@@ -108,14 +111,19 @@ class ApiMetadata(BaseModel):
     url: str
     created: str
     modified: str
+    fork_of: Optional[str]
     username: str
     version: int
     version_string: str
     changelog: ApiMetadata__Changelog
+    region_type: Optional[str]
 
     class Config:
-        fields = {'id': {'alias': '_id'},   # Pydantic won't accept underscored attrs
-                  'version_string' : {'alias': 'versionString'}}
+        extra = Extra.forbid
+        fields = {'id': {'alias': '_id'},
+                  'fork_of': {'alias': 'forkOf'},
+                  'version_string': {'alias': 'versionString'},
+                  'region_type': {'alias': 'regionType'}}
 
 
 _T_Outdated = List[Tuple[str, List[AuraEntry], ApiMetadata, str]]
