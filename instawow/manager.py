@@ -222,6 +222,7 @@ class Bar:
 
 async def _init_cli_web_client(*, loop: asyncio.AbstractEventLoop,
                                manager: CliManager) -> aiohttp.ClientSession:
+    from cgi import parse_header
     from aiohttp import TraceConfig
 
     async def do_on_request_end(_session, _ctx,
@@ -230,9 +231,10 @@ async def _init_cli_web_client(*, loop: asyncio.AbstractEventLoop,
                 'application/zip',
                 # Curse at it again
                 'application/x-amz-json-1.0'}:
-            filename = params.response.headers.get('Content-Disposition', '')
-            filename = filename[(filename.find('"') + 1):filename.rfind('"')] or \
-                       params.response.url.name
+            cd = params.response.headers.get('Content-Disposition', '')
+            _, cd_params = parse_header(cd)
+            filename = cd_params.get('filename') or params.response.url.name
+
             bar = manager.Bar(total=params.response.content_length,
                               desc=f'  Downloading {filename}',
                               miniters=1, unit='B', unit_scale=True,
