@@ -14,6 +14,7 @@ __all__ = ('ManagerResult',
            'PkgNotInstalled',
            'PkgOriginInvalid',
            'PkgUpToDate',
+           'PkgStrategyInvalid',
            'InternalError')
 
 from typing import TYPE_CHECKING, ClassVar, Set
@@ -115,6 +116,15 @@ class PkgOriginInvalid(ManagerError):
 class PkgUpToDate(ManagerError):
 
     fmt_message = 'package is up to date'
+
+
+class PkgStrategyInvalid(ManagerError):
+
+    fmt_message = '{self.strategy!r} is not a valid strategy'
+
+    def __init__(self, strategy: str) -> None:
+        super().__init__()
+        self.strategy = strategy
 
 
 class InternalError(ManagerResult,
