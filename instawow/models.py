@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pydantic
 from sqlalchemy import (Column, ForeignKeyConstraint,
-                        DateTime, Enum, String, TypeDecorator)
+                        DateTime, String, TypeDecorator)
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 
@@ -109,7 +109,7 @@ class PkgOptions(ModelBase):
     __table_args__ = (ForeignKeyConstraint(['pkg_origin', 'pkg_id'],
                                            ['pkg.origin', 'pkg.id']),)
 
-    strategy = Column(Enum('canonical', 'latest'), nullable=False)
+    strategy = Column(String, nullable=False)
     pkg_origin = Column(String, primary_key=True)
     pkg_id = Column(String, primary_key=True)
 

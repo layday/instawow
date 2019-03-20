@@ -3,7 +3,8 @@ from __future__ import annotations
 
 import asyncio
 from datetime import datetime
-from typing import TYPE_CHECKING, ClassVar, Optional, Tuple
+from enum import Enum
+from typing import TYPE_CHECKING, Callable, ClassVar, Optional, Set, Tuple
 
 from pydantic.datetime_parse import parse_date
 from yarl import URL
@@ -19,10 +20,32 @@ if TYPE_CHECKING:
 __all__ = ('CurseResolver', 'WowiResolver', 'TukuiResolver', 'InstawowResolver')
 
 
+class Strategies(str, Enum):
+
+    default = 'default'
+    latest = 'latest'
+    canonical = 'default'   #: alias
+
+    @classmethod
+    def validate(cls, method: Callable) -> Callable:
+        def wrapper(self, id_or_slug: str, *, strategy: str) -> Callable:
+            try:
+                strategy_enum = cls[strategy]
+            except KeyError:
+                pass
+            else:
+                if strategy_enum in self.strategies:
+                    return method(self, id_or_slug, strategy=strategy_enum)
+            raise E.PkgStrategyInvalid(strategy)
+
+        return wrapper
+
+
 class Resolver(ManagerAttrAccessMixin):
 
     origin: ClassVar[str]
     name: ClassVar[str]
+    strategies: ClassVar[Set[Strategies]]
 
     def __init__(self, *, manager: Manager) -> None:
         self.manager = manager
@@ -32,7 +55,7 @@ class Resolver(ManagerAttrAccessMixin):
         "Break a URL down to its component `origin` and `id`."
         raise NotImplementedError
 
-    async def resolve(self, id_or_slug: str, *, strategy: str) -> Pkg:
+    async def resolve(self, id_or_slug: str, *, strategy: Strategies) -> Pkg:
         "Turn an ID or slug into a `models.Pkg`."
         raise NotImplementedError
 
@@ -41,6 +64,7 @@ class CurseResolver(Resolver):
 
     origin = 'curse'
     name = 'CurseForge'
+    strategies = {Strategies.default, Strategies.latest}
 
     @classmethod
     def decompose_url(cls, uri: str) -> Optional[Tuple[str, str]]:
@@ -54,7 +78,8 @@ class CurseResolver(Resolver):
                 and url.parts[1:3] == ('wow', 'addons'):
             return (cls.origin, url.parts[3])
 
-    async def resolve(self, id_or_slug: str, *, strategy: str) -> Pkg:
+    @Strategies.validate
+    async def resolve(self, id_or_slug: str, *, strategy: Strategies) -> Pkg:
         from parsel import Selector
 
         async with self.client.get()\
@@ -67,10 +92,10 @@ class CurseResolver(Resolver):
         content = Selector(text=content, base_url=str(response.url))
         content.root.make_links_absolute()
 
-        if strategy == 'canonical':
+        if strategy is Strategies.default:
             file = content.css('.cf-recentfiles > li:first-child '
                                '.cf-recentfiles-credits-wrapper')
-        else:
+        elif strategy is Strategies.latest:
             file = max(map(int, content.css('.cf-recentfiles abbr::attr(data-epoch)')
                                        .getall()))
             file = content.xpath(f'//*[@class = "cf-recentfiles"]'
@@ -89,13 +114,14 @@ class CurseResolver(Resolver):
                    download_url=file.css('.fa-icon-download::attr(href)').get(),
                    date_published=file.css('abbr::attr(data-epoch)').get(),
                    version=file.css('.overflow-tip::attr(data-name)').get(),
-                   options=PkgOptions(strategy=strategy))
+                   options=PkgOptions(strategy=strategy.name))
 
 
 class WowiResolver(Resolver):
 
     origin = 'wowi'
     name = 'WoWInterface'
+    strategies = {Strategies.default}
 
     list_api = 'https://api.mmoui.com/v3/game/WOW/filelist.json'
     details_api = 'https://api.mmoui.com/v3/game/WOW/filedetails/{}.json'
@@ -126,9 +152,9 @@ class WowiResolver(Resolver):
             if id_:
                 return (cls.origin, id_)
 
-    async def resolve(self, id_or_slug: str, *, strategy: str) -> Pkg:
+    @Strategies.validate
+    async def resolve(self, id_or_slug: str, *, strategy: Strategies) -> Pkg:
         await self._sync()
-
         try:
             addon = self.files[id_or_slug.partition('-')[0]]
         except KeyError:
@@ -149,13 +175,14 @@ class WowiResolver(Resolver):
                    download_url=addon_details['UIDownload'],
                    date_published=addon_details['UIDate'],
                    version=addon_details['UIVersion'],
-                   options=PkgOptions(strategy=strategy))
+                   options=PkgOptions(strategy=strategy.name))
 
 
 class TukuiResolver(Resolver):
 
     origin = 'tukui'
     name = 'Tukui'
+    strategies = {Strategies.default}
 
     @classmethod
     def decompose_url(cls, uri: str) -> Optional[Tuple[str, str]]:
@@ -166,7 +193,8 @@ class TukuiResolver(Resolver):
             if id_or_slug:
                 return (cls.origin, id_or_slug)
 
-    async def resolve(self, id_or_slug: str, *, strategy: str) -> Pkg:
+    @Strategies.validate
+    async def resolve(self, id_or_slug: str, *, strategy: Strategies) -> Pkg:
         id_or_slug = id_or_slug.partition('-')[0]
         is_ui = id_or_slug in {'elvui', 'tukui'}
 
@@ -191,19 +219,21 @@ class TukuiResolver(Resolver):
                                   if is_ui else
                                   addon['lastupdate'],
                    version=addon['version'],
-                   options=PkgOptions(strategy=strategy))
+                   options=PkgOptions(strategy=strategy.name))
 
 
 class InstawowResolver(Resolver):
 
     origin = 'instawow'
     name = 'instawow'
+    strategies = {Strategies.default}
 
     @classmethod
     def decompose_url(cls, uri: str) -> None:
         return
 
-    async def resolve(self, id_or_slug: str, *, strategy: str) -> Pkg:
+    @Strategies.validate
+    async def resolve(self, id_or_slug: str, *, strategy: Strategies) -> Pkg:
         if id_or_slug not in {'0', 'weakauras-companion'}:
             raise E.PkgNonexistent
 
@@ -220,4 +250,4 @@ class InstawowResolver(Resolver):
                    download_url=builder.file_out.as_uri(),
                    date_published=datetime.now(),
                    version='1.0.0',
-                   options=PkgOptions(strategy=strategy))
+                   options=PkgOptions(strategy=strategy.name))
