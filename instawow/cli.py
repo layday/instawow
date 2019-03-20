@@ -152,10 +152,10 @@ cli = main
 @main.command()
 @click.argument('addons', nargs=-1, required=True, callback=_decompose_pkg_uri)
 @click.option('--strategy', '-s',
-              type=click.Choice(['canonical', 'latest']),
-              default='canonical',
+              type=click.Choice(['default', 'latest']),
+              default='default',
               help="Whether to install the latest published version "
-                   "('canonical') or the very latest upload ('latest').")
+                   "('default') or the very latest upload ('latest').")
 @click.option('--overwrite', '-o',
               is_flag=True, default=False,
               help='Overwrite existing add-ons.')
@@ -171,9 +171,9 @@ def install(manager, addons, overwrite, strategy):
 @main.command()
 @click.argument('addons', nargs=-1, callback=_decompose_pkg_uri)
 @click.option('--strategy', '-s',
-              type=click.Choice(['canonical', 'latest']), default=None,
+              type=click.Choice(['default', 'latest']), default=None,
               help="Whether to update to the latest published version "
-                   "('canonical') or the very latest upload ('latest').")
+                   "('default') or the very latest upload ('latest').")
 @click.pass_obj
 def update(manager, addons, strategy):
     "Update installed add-ons."
@@ -277,9 +277,9 @@ def list_installed(manager,
 @click.pass_obj
 def list_outdated(manager, should_flip):
     "List outdated add-ons."
-    def flip(strategy):
+    def flip(strategy: str) -> str:
         if should_flip:
-            strategy = 'latest' if strategy == 'canonical' else 'canonical'
+            strategy = 'latest' if strategy == 'default' else 'default'
         return strategy
 
     local = manager.db.query(Pkg).order_by(Pkg.name).all()
