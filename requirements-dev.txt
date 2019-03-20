@@ -1,3 +1,5 @@
+pip
+setuptools
 wheel
 fastentrypoints
 pip-tools
