@@ -90,6 +90,15 @@ def _decompose_pkg_uri(ctx: click.Context,
     return _compose_pkg_uri(parts), parts
 
 
+def _validate_strategy(ctx: click.Context,
+                       param: click.Parameter,
+                       value: Optional[str]) -> Optional[str]:
+    if value and not ctx.params['addons']:
+        raise click.UsageError(f'{param.get_error_hint(ctx)} must be used'
+                               ' in conjunction with "ADDONS"')
+    return value
+
+
 def _get_pkg_from_substr(manager: CliManager, parts: _Parts) -> Optional[Pkg]:
     from .models import Pkg
     return manager.get(*parts) or (manager.db.query(Pkg)
@@ -169,8 +178,9 @@ def install(manager, addons, overwrite, strategy):
 
 
 @main.command()
-@click.argument('addons', nargs=-1, callback=_decompose_pkg_uri)
+@click.argument('addons', nargs=-1, callback=_decompose_pkg_uri, is_eager=True)
 @click.option('--strategy', '-s',
+              callback=_validate_strategy,
               type=click.Choice(['default', 'latest']), default=None,
               help="Whether to update to the latest published version "
                    "('default') or the very latest upload ('latest').")
