@@ -148,9 +148,15 @@ class WowiResolver(Resolver):
         if url.host in {'wowinterface.com', 'www.wowinterface.com'} \
                 and len(url.parts) == 3 \
                 and url.parts[1] == 'downloads':
-            id_ = ''.join(c for c in url.name.split('-')[0] if c.isdigit())
-            if id_:
-                return (cls.origin, id_)
+            if url.name == 'landing.php':
+                id_ = url.query.get('fileid')
+                if id_:
+                    return (cls.origin, id_)
+            elif url.name.startswith('info'):
+                from itertools import takewhile
+                id_ = ''.join(takewhile(str.isdigit, url.name[4:]))
+                if id_:
+                    return (cls.origin, id_)
 
     @Strategies.validate
     async def resolve(self, id_or_slug: str, *, strategy: Strategies) -> Pkg:
