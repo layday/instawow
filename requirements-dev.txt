@@ -8,7 +8,6 @@ sqlalchemy-stubs
 
 pytest
 pytest-asyncio
-tox
 
 ipython
 
