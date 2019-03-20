@@ -43,16 +43,16 @@ async def test_id_length_is_retained_in_aura_metadata(builder):
 
 
 def test_can_parse_empty_displays_table(builder):
-    assert builder.extract_auras_from_lua(['''\
+    assert builder.extract_auras_from_lua('''\
 WeakAurasSaved = {
     ["displays"] = {
     },
 }
-''']) == {}
+''') == {}
 
 
 def test_urlless_display_is_discarded(builder):
-    assert builder.extract_auras_from_lua(['''\
+    assert builder.extract_auras_from_lua('''\
 WeakAurasSaved = {
     ["displays"] = {
         ["Foo"] = {
@@ -60,7 +60,7 @@ WeakAurasSaved = {
         },
     },
 }
-''']) == {}
+''') == {}
 
 
 def test_can_parse_minimal_wago_display(builder):
@@ -71,7 +71,7 @@ def test_can_parse_minimal_wago_display(builder):
             'version': 1,
             'semver': None,
             'ignore_wago_update': False}
-    assert builder.extract_auras_from_lua(['''\
+    assert builder.extract_auras_from_lua('''\
 WeakAurasSaved = {
     ["displays"] = {
         ["Foo"] = {
@@ -83,11 +83,11 @@ WeakAurasSaved = {
         },
     },
 }
-''']) == {'foo': [AuraEntry.construct(aura, set(aura))]}
+''') == {'foo': [AuraEntry.construct(aura, set(aura))]}
 
 
 def test_url_host_not_wago_display_is_discarded(builder):
-    assert builder.extract_auras_from_lua(['''\
+    assert builder.extract_auras_from_lua('''\
 WeakAurasSaved = {
     ["displays"] = {
         ["Foo"] = {
@@ -99,7 +99,7 @@ WeakAurasSaved = {
         },
     },
 }
-''']) == {}
+''') == {}
 
 
 def test_can_build_addon_without_updates(builder, request):
@@ -108,7 +108,7 @@ def test_can_build_addon_without_updates(builder, request):
     request.config.cache.set('orig_checksum', builder.checksum())
 
 
-def test_can_build_addon_deterministically(builder, request):
+def test_build_is_reproducible(builder, request):
     builder.builder_dir.mkdir()
     builder.make_addon([])
     assert request.config.cache.get('orig_checksum', None) == builder.checksum()

@@ -1,9 +1,6 @@
 
 from __future__ import annotations
 
-from typing import ClassVar
-
-
 __all__ = ('ManagerResult',
            'PkgInstalled',
            'PkgUpdated',
@@ -18,6 +15,11 @@ __all__ = ('ManagerResult',
            'PkgOriginInvalid',
            'PkgUpToDate',
            'InternalError')
+
+from typing import TYPE_CHECKING, ClassVar, Set
+
+if TYPE_CHECKING:
+    from .models import Pkg
 
 
 class ManagerResult:
@@ -34,20 +36,18 @@ class ManagerResult:
 
 class PkgInstalled(ManagerResult):
 
-    fmt_message = 'installed {self.new_pkg.version} '\
-                  'from {self.new_pkg.options.strategy}'
+    fmt_message = 'installed {self.new_pkg.version}'
 
-    def __init__(self, new_pkg) -> None:
+    def __init__(self, new_pkg: Pkg) -> None:
         super().__init__()
         self.new_pkg = new_pkg
 
 
 class PkgUpdated(ManagerResult):
 
-    fmt_message = 'updated {self.old_pkg.version} to {self.new_pkg.version} '\
-                  'from {self.new_pkg.options.strategy}'
+    fmt_message = 'updated {self.old_pkg.version} to {self.new_pkg.version}'
 
-    def __init__(self, old_pkg, new_pkg) -> None:
+    def __init__(self, old_pkg: Pkg, new_pkg: Pkg) -> None:
         super().__init__()
         self.old_pkg = old_pkg
         self.new_pkg = new_pkg
@@ -57,7 +57,7 @@ class PkgRemoved(ManagerResult):
 
     fmt_message = 'removed'
 
-    def __init__(self, old_pkg) -> None:
+    def __init__(self, old_pkg: Pkg) -> None:
         super().__init__()
         self.old_pkg = old_pkg
 
@@ -77,7 +77,7 @@ class PkgConflictsWithInstalled(ManagerError):
     fmt_message = "package folders conflict with installed package's "\
                   '{self.conflicting_pkg.origin}:{self.conflicting_pkg.slug}'
 
-    def __init__(self, conflicting_pkg) -> None:
+    def __init__(self, conflicting_pkg: Pkg) -> None:
         super().__init__()
         self.conflicting_pkg = conflicting_pkg
 
@@ -87,7 +87,7 @@ class PkgConflictsWithPreexisting(ManagerError):
     fmt_message = "package folders conflict with an add-on's"\
                   ' not installed by instawow'
 
-    def __init__(self, folders) -> None:
+    def __init__(self, folders: Set[str]) -> None:
         super().__init__()
         self.folders = folders
 
@@ -122,6 +122,6 @@ class InternalError(ManagerResult,
 
     fmt_message = 'encountered {self.error.__class__.__name__}'
 
-    def __init__(self, error) -> None:
+    def __init__(self, error: BaseException) -> None:
         super().__init__()
         self.error = error

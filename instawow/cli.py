@@ -1,15 +1,17 @@
 
 from __future__ import annotations
 
+__all__ = ('main',)
+
 from functools import partial, reduce
 from itertools import count
 from textwrap import fill
-from typing import Any, List, NamedTuple, Optional, Tuple, Union
+from typing import (TYPE_CHECKING, Any, List, NamedTuple, Optional,
+                    Sequence, Tuple, Union, cast)
 
 import click
 import logbook
 from sqlalchemy import inspect, text
-from texttable import Texttable
 
 from . import __version__
 from .config import Config
@@ -18,8 +20,6 @@ from .manager import CliManager
 from .models import Pkg, PkgFolder
 from .utils import TocReader, is_outdated
 
-
-__all__ = ('cli',)
 
 
 _CONTEXT_SETTINGS = {'help_option_names': ['-h', '--help']}
@@ -39,15 +39,16 @@ def _format_result(addon: str, result: E.ManagerResult) -> str:
   {result.message}'''
 
 
-def _tabulate(rows: List[tuple], *,
-              head: tuple = (), show_index: bool = True) -> str:
-    table = Texttable(max_width=0).set_deco(Texttable.VLINES |
-                                            Texttable.BORDER |
-                                            Texttable.HEADER)
+def _tabulate(rows: Sequence[Sequence[str]], *,
+              head: Sequence[str] = (), show_index: bool = True) -> str:
+    from texttable import Texttable, Texttable as c
+
+    table = Texttable(max_width=0).set_deco(c.BORDER | c.HEADER | c.VLINES)
     if show_index:
         table.set_cols_align(f'r{"l" * len(rows[0])}')
+
         head = ('', *head)
-        rows = [(i, *v) for i, v in enumerate(rows, start=1)]
+        rows = [(cast(str, i), *v) for i, v in enumerate(rows, start=1)]
     return table.add_rows([head, *rows]).draw()
 
 
@@ -65,8 +66,11 @@ def _compose_pkg_uri(val: Any) -> str:
     return ':'.join((origin, slug))
 
 
-def _decompose_pkg_uri(ctx: click.Context, param: click.Parameter, value: str, *,
-                       raise_for_invalid_uri: bool = True) -> tuple:
+def _decompose_pkg_uri(ctx: click.Context,
+                       param: click.Parameter,
+                       value: Union[str, Tuple[str, ...]],
+                       *,
+                       raise_for_invalid_uri: bool = True) -> Tuple[str, _Parts]:
     if isinstance(value, tuple):
         return tuple(_decompose_pkg_uri(ctx, param, v)
                      for v in sorted(set(value), key=value.index))
@@ -86,11 +90,12 @@ def _decompose_pkg_uri(ctx: click.Context, param: click.Parameter, value: str, *
     return _compose_pkg_uri(parts), parts
 
 
-def _get_pkg_from_substr(manager: CliManager, pkg: _Parts) -> Optional[Pkg]:
-    return manager.get(*pkg) or \
-        manager.db.query(Pkg).filter(Pkg.slug.contains(pkg.id_or_slug))\
-                             .order_by(Pkg.name)\
-                             .first()
+def _get_pkg_from_substr(manager: CliManager, parts: _Parts) -> Optional[Pkg]:
+    from .models import Pkg
+    return manager.get(*parts) or (manager.db.query(Pkg)
+                                   .filter(Pkg.slug.contains(parts.id_or_slug))
+                                   .order_by(Pkg.name)
+                                   .first())
 
 
 class _OrigCmdOrderGroup(click.Group):
@@ -183,8 +188,10 @@ def update(manager, addons, strategy):
 
     for addon, result in zip((d for d, _ in addons),
                              manager.update_many(p for _, p in addons)):
-        if not (not orig_addons and
-                isinstance(result, (E.PkgUpToDate, E.PkgTemporarilyUnavailable))):
+        # Hide if ``update`` was invoked without arguments and
+        # the add-on is up-to-date or temporarily unavailable
+        if not (not orig_addons
+                and isinstance(result, (E.PkgUpToDate, E.PkgTemporarilyUnavailable))):
             click.echo(_format_result(addon, result))
 
 
@@ -233,12 +240,11 @@ def list_installed(manager,
             try:
                 value = reduce(getattr, [pkg] + column.split('.'))
             except AttributeError:
-                raise click.BadParameter(column,
-                                         param_hint=['--column', '-c'])
+                raise click.BadParameter(column, param_hint=['--column', '-c'])
             if column == 'folders':
                 value = '\n'.join(f.path.name for f in value)
             elif column == 'options':
-                value = {'strategy': value.strategy}
+                value = f'strategy = {value.strategy}'
             elif column == 'description':
                 value = fill(value, width=50, max_lines=3)
             yield value
@@ -247,26 +253,22 @@ def list_installed(manager,
         toc_readers = [TocReader(f.path / f'{f.path.name}.toc')
                        for f in pkg.folders]
         for toc_entry in toc_entries:
-            value = [fill(r[toc_entry].value or '', width=50)
-                     for r in toc_readers]
+            value = [fill(r[toc_entry].value or '', width=50) for r in toc_readers]
             value = sorted(set(value), key=value.index)
-            value = '\n'.join(value)
-            yield value
+            yield '\n'.join(value)
 
     if print_columns:
-        click.echo(_tabulate([(c,) for c in (*inspect(Pkg).columns.keys(),
-                                             *inspect(Pkg).relationships.keys())],
-                             head=('field',), show_index=False))
+        rows = [(c,) for c in (*inspect(Pkg).columns.keys(),
+                               *inspect(Pkg).relationships.keys())]
+        click.echo(_tabulate(rows, head=('field',), show_index=False))
     else:
-        click.echo(_tabulate([(_compose_pkg_uri(p),
-                               *format_columns(p),
-                               *format_toc_entries(p))
-                              for p in manager.db.query(Pkg)
-                                                 .order_by(text(sort_key))
-                                                 .all()],
-                             head=('add-on',
-                                   *columns,
-                                   *(f'[{e}]' for e in toc_entries))))
+        pkgs = manager.db.query(Pkg).order_by(text(sort_key)).all()
+        rows = [(_compose_pkg_uri(p),
+                 *format_columns(p),
+                 *format_toc_entries(p)) for p in pkgs]
+        click.echo(_tabulate(rows, head=('add-on',
+                                         *columns,
+                                         *(f'[{e}]' for e in toc_entries))))
 
 
 @list_.command('outdated')
@@ -280,36 +282,33 @@ def list_outdated(manager, should_flip):
             strategy = 'latest' if strategy == 'canonical' else 'canonical'
         return strategy
 
-    all_pkgs = manager.db.query(Pkg).order_by(Pkg.name).all()
-    outdated = zip(all_pkgs,
-                   manager.resolve_many((p.origin, p.id, flip(p.options.strategy))
-                                        for p in all_pkgs))
-    outdated = [(i, n) for i, n in outdated
-                if isinstance(n, Pkg) and i.file_id != n.file_id]
+    local = manager.db.query(Pkg).order_by(Pkg.name).all()
+    remote = manager.resolve_many((p.origin, p.id, flip(p.options.strategy))
+                                  for p in local)
+    outdated = [(l, r) for l, r in zip(local, remote)
+                if isinstance(r, Pkg) and l.file_id != r.file_id]
     if outdated:
-        click.echo(_tabulate([(_compose_pkg_uri(n),
-                               i.version, n.version, n.options.strategy)
-                              for i, n in outdated],
-                             head=('add-on', 'installed', 'new', 'strategy')))
+        rows = [(_compose_pkg_uri(n), i.version, n.version, n.options.strategy)
+                for i, n in outdated]
+        click.echo(_tabulate(rows, head=('add-on', 'installed', 'new', 'strategy')))
 
 
 @list_.command('preexisting')
 @click.pass_obj
 def list_preexisting(manager):
-    "List add-ons not installed by instawow."
-    folders = {f.name
-               for f in manager.config.addon_dir.iterdir() if f.is_dir()} - \
-              {f.path.name for f in manager.db.query(PkgFolder).all()}
-    folders = ((n, manager.config.addon_dir / n / f'{n}.toc') for n in folders)
-    folders = {(n, TocReader(t)) for n, t in folders if t.exists()}
+    "List add-ons not managed by instawow."
+    folders = ({f for f in manager.config.addon_dir.iterdir() if f.is_dir()}
+               - {f.path for f in manager.db.query(PkgFolder).all()})
+    folders_and_tocs = ((n, n / f'{n.name}.toc') for n in folders)
+    folders_and_readers = sorted((n, TocReader(t))
+                                 for n, t in folders_and_tocs if t.exists())
     if folders:
-        click.echo(_tabulate([(n,
-                               t['X-Curse-Project-ID'].value or '',
-                               t['X-WoWI-ID'].value or '',
-                               t['X-Curse-Packaged-Version', 'X-Packaged-Version',
-                                 'Version'].value or '')
-                              for n, t in sorted(folders)],
-                             head=('folder', 'Curse ID', 'WoWI ID', 'version')))
+        rows = [(n.name,
+                 t['X-Curse-Project-ID'].value or '',
+                 t['X-WoWI-ID'].value or '',
+                 t['X-Curse-Packaged-Version', 'X-Packaged-Version', 'Version'].value or '')
+                for n, t in folders_and_readers]
+        click.echo(_tabulate(rows, head=('folder', 'Curse ID', 'WoWI ID', 'version')))
 
 
 @main.command()
@@ -322,29 +321,29 @@ def list_preexisting(manager):
 def info(manager, addon, toc_entries):
     "Show the details of an installed add-on."
     pkg = _get_pkg_from_substr(manager, addon[1])
-    if pkg:
-        rows = {'name': pkg.name,
-                'source': pkg.origin,
-                'id': pkg.id,
-                'slug': pkg.slug,
-                'description': fill(pkg.description, max_lines=5),
-                'homepage': pkg.url,
-                'version': pkg.version,
-                'release date': pkg.date_published,
-                'folders': '\n'.join([str(pkg.folders[0].path.parent)] +
-                                     [' ├─ ' + f.path.name for f in pkg.folders[:-1]] +
-                                     [' └─ ' + pkg.folders[-1].path.name]),
-                'strategy': pkg.options.strategy,}
-
-        if toc_entries:
-            for path, toc_reader in ((f.path,
-                                      TocReader(f.path / f'{f.path.name}.toc'))
-                                     for f in pkg.folders):
-                rows.update({f'[{path.name} {k}]': fill(toc_reader[k].value or '')
-                             for k in toc_entries})
-        click.echo(_tabulate(rows.items(), show_index=False))
-    else:
+    if not pkg:
         click.echo(_format_result(addon[0], E.PkgNotInstalled()))
+        return
+
+    rows = {'name': pkg.name,
+            'source': pkg.origin,
+            'id': pkg.id,
+            'slug': pkg.slug,
+            'description': fill(pkg.description, max_lines=5),
+            'homepage': pkg.url,
+            'version': pkg.version,
+            'release date': pkg.date_published,
+            'folders': '\n'.join([str(pkg.folders[0].path.parent)]
+                                 + [' ├─ ' + f.path.name for f in pkg.folders[:-1]]
+                                 + [' └─ ' + pkg.folders[-1].path.name]),
+            'strategy': pkg.options.strategy}
+
+    if toc_entries:
+        for path in (f.path for f in pkg.folders):
+            toc_reader = TocReader(path / f'{path.name}.toc')
+            rows.update({f'[{path.name} {k}]': fill(toc_reader[k].value or '')
+                         for k in toc_entries})
+    click.echo(_tabulate(rows.items(), show_index=False))
 
 
 @main.command()
@@ -375,8 +374,9 @@ def reveal(manager, addon):
         click.echo(_format_result(addon[0], E.PkgNotInstalled()))
 
 
-@main.group()
-def extras():
+@main.group('extras',
+            cls=_OrigCmdOrderGroup)
+def _extras_group():
     "Additional functionality."
 
 
@@ -454,14 +454,15 @@ main(['-n', *(sys.argv[1:] or ['extras', 'bitbar', '_generate', sys.argv[0], __v
         click.pause('Press any key to exit after installing the plug-in')
 
 
-@extras.group()
-def weakauras():
+@_extras_group.group('weakauras',
+                     cls=_OrigCmdOrderGroup)
+def _weakauras_group():
     "Manage your WeakAuras."
 
 
-@weakauras.command()
+@_weakauras_group.command('build-companion')
 @click.pass_obj
-def build_companion(manager):
+def build_weakauras_companion(manager):
     "Build the WeakAuras Companion add-on."
     from .wa_updater import WaCompanionBuilder
     manager.run(WaCompanionBuilder(manager).build())

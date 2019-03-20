@@ -1,6 +1,7 @@
 
 import asyncio
 from multiprocessing import Process
+from typing import List
 from unittest.mock import patch
 
 import aiohttp
@@ -13,6 +14,12 @@ from instawow.models import PkgCoercer, PkgFolderCoercer, PkgOptionsCoercer
 
 
 PORT = 55439
+
+
+class Pkg(PkgCoercer):
+
+    folders: List[PkgFolderCoercer]
+    options: PkgOptionsCoercer
 
 
 class FailRequest(api.Request):
@@ -113,7 +120,7 @@ async def test_internal_error_error_response(ws_client):
     response = {'jsonrpc': '2.0',
                 'id': 'test_internal_error_error_response',
                 'error': {'code': -32603,
-                          'message': 'encountered internal error',
+                          'message': 'encountered an internal error',
                           'data': None}}
     await ws_client.send_json(request)
     assert (await ws_client.receive_json()) == response
@@ -157,10 +164,9 @@ async def test_resolve_method_response(ws_client):
     await ws_client.send_json(request)
     response = await ws_client.receive_json()
     assert response['id'] == request['id']
-    assert api.SuccessResponse.parse_obj(response)
-    PkgCoercer.parse_obj(response['result'])
-    PkgOptionsCoercer.parse_obj(response['result']['options'])
-    assert response['result']['folders'] == []
+    api.SuccessResponse.parse_obj(response)
+    pkg = Pkg.parse_obj(response['result'])
+    assert pkg.folders == []
 
 
 @pytest.mark.asyncio
@@ -203,10 +209,8 @@ async def test_get_method_response(ws_client):
     response = await ws_client.receive_json()
     assert response['id'] == request['id']
     assert len(api.SuccessResponse.parse_obj(response).result) == 1
-    PkgCoercer.parse_obj(response['result'][0])
-    PkgOptionsCoercer.parse_obj(response['result'][0]['options'])
-    assert len(response['result'][0]['folders']) > 0
-    [PkgFolderCoercer.parse_obj(f) for f in response['result'][0]['folders']]
+    pkg = Pkg.parse_obj(response['result'][0])
+    assert len(pkg.folders) > 0
 
 
 @pytest.mark.asyncio

@@ -1,6 +1,8 @@
 
 from __future__ import annotations
 
+__all__ = ('ManagerAttrAccessMixin', 'TocReader', 'slugify', 'is_outdated')
+
 from collections import namedtuple
 from datetime import datetime
 from pathlib import Path
@@ -11,9 +13,6 @@ from . import __version__
 
 if TYPE_CHECKING:
     from .manager import Manager
-
-
-__all__ = ('ManagerAttrAccessMixin', 'TocReader', 'slugify', 'is_outdated')
 
 
 class ManagerAttrAccessMixin:
@@ -33,7 +32,7 @@ class TocReader:
                    if e.startswith('## '))
         self.entries = dict(entries)
 
-    def __getitem__(self, key: Union[str, Tuple[str]]) -> Entry:
+    def __getitem__(self, key: Union[str, Tuple[str, ...]]) -> Entry:
         if isinstance(key, tuple):
             try:
                 return next(filter(lambda i: i.value,
@@ -68,7 +67,7 @@ def is_outdated(manager: Manager) -> bool:
 
         async def get_metadata() -> dict:
             async with (await manager.client_factory()) as session, \
-                       session.get('https://pypi.org/pypi/instawow/json') as response:
+                    session.get('https://pypi.org/pypi/instawow/json') as response:
                 return await response.json()
 
         try:

@@ -1,6 +1,18 @@
 
 from __future__ import annotations
 
+__all__ = ('ErrorCodes',
+           'ApiError',
+           'ResolveRequest',
+           'InstallRequest',
+           'UpdateRequest',
+           'RemoveRequest',
+           'GetRequest',
+           'SuccessResponse',
+           'ErrorResponse',
+           'jsonify',
+           'parse_request')
+
 import abc
 from datetime import datetime
 from enum import Enum, IntEnum
@@ -8,20 +20,13 @@ from functools import partial
 from json import JSONDecodeError, JSONEncoder, loads
 from pathlib import Path
 from typing import (Any, Awaitable, Callable, ClassVar, Dict, Generator,
-                    List, Optional, Tuple, Union)
+                    List, Optional, Tuple, TypeVar, Union)
 
 from pydantic import BaseModel, Extra, StrictStr, ValidationError, validator
 from pydantic.errors import IntegerError
 
-from .manager import Manager
+from .manager import WsManager
 from .models import *
-
-
-__all__ = ('ErrorCodes', 'ApiError',
-           'Request', 'ResolveRequest', 'InstallRequest', 'UpdateRequest',
-           'RemoveRequest', 'GetRequest',
-           'SuccessResponse', 'ErrorResponse',
-           'jsonify', 'parse_request')
 
 
 JSONRPC_VERSION = '2.0'
@@ -96,11 +101,13 @@ def validate_const(const):
     return is_equal
 
 
-def decompose_pkg_uri(manager: Manager, uri: str) -> Tuple[str, str]:
+def decompose_pkg_uri(manager: WsManager, uri: str) -> Tuple[str, str]:
     "Turn a URI into an origin–slug pair."
-    return next(filter(None, (r.decompose_url(uri)
-                              for r in manager.resolvers.values())),
-                uri.partition(':')[::2])
+    resolvers = manager.resolvers.values()
+    try:
+        return next(filter(None, (r.decompose_url(uri) for r in resolvers)))
+    except StopIteration:
+        return uri.partition(':')[::2]
 
 
 class Message(BaseModel,
@@ -137,7 +144,7 @@ class Request(Message,
     method: str
     params: RequestParams
 
-    def prepare_response(self, manager: Manager) -> Awaitable:
+    def prepare_response(self, manager: WsManager) -> Awaitable:
         raise NotImplementedError
 
     def consume_result(self, result: Any) -> SuccessResponse:
@@ -174,7 +181,7 @@ class ResolveRequest(Request):
 
     __is_method_const = validator('method')(validate_const('resolve'))
 
-    def prepare_response(self, manager: Manager) -> Awaitable:
+    def prepare_response(self, manager: WsManager) -> Awaitable:
         return manager.resolve(*decompose_pkg_uri(manager, self.params.uri),
                                self.params.resolution_strategy)
 
@@ -200,7 +207,7 @@ class InstallRequest(Request):
 
     __is_method_const = validator('method')(validate_const('install'))
 
-    def prepare_response(self, manager: Manager) -> Awaitable:
+    def prepare_response(self, manager: WsManager) -> Awaitable:
         return manager.to_install(*decompose_pkg_uri(manager, self.params.uri),
                                   self.params.resolution_strategy,
                                   self.params.overwrite)
@@ -222,7 +229,7 @@ class UpdateRequest(Request):
 
     __is_method_const = validator('method')(validate_const('update'))
 
-    def prepare_response(self, manager: Manager) -> Awaitable:
+    def prepare_response(self, manager: WsManager) -> Awaitable:
         return manager.to_update(*decompose_pkg_uri(manager, self.params.uri))
 
     def consume_result(self, result: Any) -> SuccessResponse:
@@ -242,7 +249,7 @@ class RemoveRequest(Request):
 
     __is_method_const = validator('method')(validate_const('remove'))
 
-    def prepare_response(self, manager: Manager) -> Awaitable:
+    def prepare_response(self, manager: WsManager) -> Awaitable:
         return manager.remove(*decompose_pkg_uri(manager, self.params.uri))
 
     def consume_result(self, result: Any) -> SuccessResponse:
@@ -262,7 +269,7 @@ class GetRequest(Request):
 
     __is_method_const = validator('method')(validate_const('get'))
 
-    def prepare_response(self, manager: Manager) -> Awaitable:
+    def prepare_response(self, manager: WsManager) -> Awaitable:
         async def get() -> list:
             if self.params.uris:
                 return [manager.get(*decompose_pkg_uri(manager, u))
@@ -317,29 +324,34 @@ def _convert_sqla_obj(obj: Union[Pkg, PkgFolder, PkgOptions]) -> dict:
     return coercer.parse_obj({f: getattr(obj, f) for f in fields}).dict()
 
 
+_CONVERTERS = [(Pkg, _convert_sqla_obj),
+               (PkgFolder, _convert_sqla_obj),
+               (PkgOptions, _convert_sqla_obj),
+               (Message, Message.dict),
+               (Path, str),
+               (datetime, datetime.isoformat),]
+
+
 class Encoder(JSONEncoder):
 
     def default(self, value: Any) -> Any:
-        for type_, typecast in [(Pkg, _convert_sqla_obj),
-                                (PkgFolder, _convert_sqla_obj),
-                                (PkgOptions, _convert_sqla_obj),
-                                (Message, BaseModel.dict),
-                                (Path, str),
-                                (datetime, datetime.isoformat),]:
-            if isinstance(value, type_):
-                return typecast(value)
-        return super().default(value)
+        try:
+            return next(c(value) for t, c in _CONVERTERS if isinstance(value, t))
+        except StopIteration:
+            return super().default(value)
 
 
 jsonify = Encoder().encode
 
 
+TR = TypeVar('TR', bound=Request)
+
 _REQUESTS = {r._name: r for r in  {ResolveRequest, InstallRequest, UpdateRequest,
                                    RemoveRequest, GetRequest}}
 
 
-def parse_request(message: str) -> Request:
-    "Parse a JSON request into a ``Request`` object."
+def parse_request(message: str) -> TR:
+    "Parse a JSON string into a sub-``Request`` object."
     try:
         base_request = BaseRequest.parse_obj(loads(message))
     except JSONDecodeError as error:

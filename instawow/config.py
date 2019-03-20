@@ -1,14 +1,13 @@
 
 from __future__ import annotations
 
+__all__ = ('Config',)
+
 import os
 from pathlib import Path
 from typing import Union
 
 import click
-
-
-__all__ = ('Config',)
 
 
 MaybePath = Union[None, Path, str]

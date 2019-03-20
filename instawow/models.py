@@ -1,6 +1,9 @@
 
 from __future__ import annotations
 
+__all__ = ('ModelBase', 'Pkg', 'PkgFolder', 'PkgOptions',
+           'PkgCoercer', 'PkgFolderCoercer', 'PkgOptionsCoercer')
+
 from datetime import datetime
 from pathlib import Path
 
@@ -9,11 +12,6 @@ from sqlalchemy import (Column, ForeignKeyConstraint,
                         DateTime, String, TypeDecorator)
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
-
-
-__all__ = ('ModelBase',
-           'Pkg', 'PkgFolder', 'PkgOptions',
-           'PkgCoercer', 'PkgFolderCoercer', 'PkgOptionsCoercer')
 
 
 def _declarative_constructor(self, **kwargs):

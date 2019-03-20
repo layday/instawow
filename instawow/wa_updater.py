@@ -1,24 +1,23 @@
 
 from __future__ import annotations
 
+__all__ = ('WaCompanionBuilder',)
+
 import asyncio
 from functools import partial, reduce
 from pathlib import Path
 from typing import TYPE_CHECKING
-from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Tuple, Union
 
 import logbook
 from pydantic import BaseModel, Extra, validator
 from yarl import URL
 
-from .manager import Manager
 from .utils import ManagerAttrAccessMixin
 
 if TYPE_CHECKING:
     from luaparser import astnodes as lua_nodes
-
-
-__all__ = ('WaCompanionBuilder',)
+    from .manager import Manager
 
 
 logger = logbook.Logger(__name__)
@@ -38,11 +37,7 @@ def bucketise(iterable: Iterable, key=Callable[[Any], Any]) -> dict:
     return dict(bucket)
 
 
-class AuraHasNoURL(Exception):
-    pass
-
-
-class AuraURLNotWago(Exception):
+class AuraURLInvalid(Exception):
     pass
 
 
@@ -63,7 +58,7 @@ class AuraEntry(BaseModel):
     @validator('url', always=True, pre=True)
     def __prep_url(cls, value: Any) -> Any:
         if value == _EMPTY_URL:
-            raise AuraHasNoURL
+            raise AuraURLInvalid
         return value
 
     @validator('id', 'uid', 'parent', 'url', 'semver', pre=True)
@@ -83,14 +78,17 @@ class AuraEntry(BaseModel):
     def __postp_url(cls, value: str) -> URL:
         url = URL(value)
         if url.host != 'wago.io':
-            raise AuraURLNotWago
+            logger.info(f'discarding aura with URL: {url}')
+            raise AuraURLInvalid
         return url
 
     @classmethod
     def from_lua_ast(cls, tree: lua_nodes.Field) -> Optional[AuraEntry]:
         try:
             return cls(**{f.key.s: f.value for f in tree.value.fields})
-        except (AuraHasNoURL, AuraURLNotWago):
+        # The URL validators raise an exception not derived from ValueError
+        # so that they won't be wrapped by Pydantic and we can catch them here
+        except AuraURLInvalid:
             return None
 
 
@@ -138,23 +136,20 @@ class WaCompanionBuilder(ManagerAttrAccessMixin):
         self.file_out = self.builder_dir / 'WeakAurasCompanion.zip'
 
     @staticmethod
-    def extract_auras_from_lua(sources: Iterable[str]
-                               ) -> Dict[str, List[AuraEntry]]:
-        def extract(source):
-            from luaparser import ast as lua_ast
+    def extract_auras_from_lua(source: str) -> Dict[str, List[AuraEntry]]:
+        from luaparser import ast as lua_ast
 
-            auras = next(i for i in lua_ast.walk(lua_ast.parse(source))
-                         if reduce(lambda p, n: getattr(p, n, None),
-                                   [i, 'key', 's']) == 'displays').value.fields
-            auras = filter(None, map(AuraEntry.from_lua_ast, auras))
-            auras = bucketise(auras, key=lambda a: a.url.parts[1])
-            auras = {k: v for k, v in auras.items()
-                     if not any(i for i in v if i.ignore_wago_update)}
-            return auras
+        lua_tree = lua_ast.walk(lua_ast.parse(source))
+        aura_table = next(i for i in lua_tree
+                          if reduce(lambda p, n: getattr(p, n, None),
+                                    [i, 'key', 's']) == 'displays').value.fields
+        auras = filter(None, map(AuraEntry.from_lua_ast, aura_table))
+        aura_groups = bucketise(auras, key=lambda a: a.url.parts[1])
+        aura_groups = {k: v for k, v in aura_groups.items()
+                       if not any(i for i in v if i.ignore_wago_update)}
+        return aura_groups
 
-        return reduce(lambda p, n: {**p, **n}, (extract(s) for s in sources))
-
-    async def get_wago_aura_metadata(self, aura_ids: List[str]
+    async def get_wago_aura_metadata(self, aura_ids: Sequence[str]
                                      ) -> List[ApiMetadata]:
         url = metadata_api.with_query({'ids': ','.join(aura_ids)})
         async with self.client.get()\
@@ -163,7 +158,8 @@ class WaCompanionBuilder(ManagerAttrAccessMixin):
 
         results = dict.fromkeys(aura_ids)
         for item in (ApiMetadata(**i) for i in metadata):
-            results[item.slug] = item
+            if item.slug in results:
+                results[item.slug] = item
         return list(results.values())
 
     async def get_wago_aura(self, aura_id: str) -> str:
@@ -178,20 +174,21 @@ class WaCompanionBuilder(ManagerAttrAccessMixin):
         def extract_auras_from_lua():
             saved_vars = Path.glob(self.config.addon_dir.parents[1],
                                    'WTF/Account/*/SavedVariables/WeakAuras.lua')
-            return self.extract_auras_from_lua(f.read_text(encoding='utf-8')
-                                               for f in saved_vars)
+            auras = (self.extract_auras_from_lua(f.read_text(encoding='utf-8'))
+                     for f in saved_vars)
+            return reduce(lambda p, n: {**p, **n}, auras)
 
         start = time.perf_counter()
         aura_groups = await self.loop.run_in_executor(None,
                                                       extract_auras_from_lua)
-        logger.debug(f'Auras extracted in {time.perf_counter() - start}s')
+        logger.debug(f'auras extracted in {time.perf_counter() - start}s')
         if not aura_groups:
             return []
 
-        outdated_auras = zip(aura_groups.items(),
-                             await self.get_wago_aura_metadata(list(aura_groups)))
-        outdated_auras = filter(lambda v: v[1], outdated_auras)
-        outdated_auras = [((s, w), r) for (s, w), r in outdated_auras
+        aura_metadata = await self.get_wago_aura_metadata(list(aura_groups))
+        auras_with_metadata = filter(lambda v: v[1],
+                                     zip(aura_groups.items(), aura_metadata))
+        outdated_auras = [((s, w), r) for (s, w), r in auras_with_metadata
                           if r.version > next((a for a in w if not a.parent),
                                               w[0]).version]
         if not outdated_auras:
@@ -206,7 +203,8 @@ class WaCompanionBuilder(ManagerAttrAccessMixin):
         from jinja2 import Environment, FileSystemLoader
         from zipfile import ZipFile, ZipInfo
 
-        jinja_env = Environment(loader=FileSystemLoader(str(Path(__file__).parent / 'wa_templates')),
+        tpl_dir = Path(__file__).parent / 'wa_templates'
+        jinja_env = Environment(loader=FileSystemLoader(str(tpl_dir)),
                                 trim_blocks=True, lstrip_blocks=True)
 
         with ZipFile(self.file_out, 'w') as addon_zip:

@@ -2,6 +2,7 @@
 local versionTarget = "2.11.0"
 local buildTimeTarget = 20190123023201
 if not WeakAuras.versionString then return end
+
 local function needUpdate(actual, target)
    if actual == target then return false end
 
@@ -33,6 +34,7 @@ local function needUpdate(actual, target)
       c = c + 1
    end
 end
+
 if (WeakAuras.buildTime and not (WeakAuras.buildTime == "Dev" or tonumber(WeakAuras.buildTime) >= buildTimeTarget))
 or (not WeakAuras.buildTime and needUpdate(WeakAuras.versionString, versionTarget))
 then
@@ -40,8 +42,10 @@ then
   WeakAurasCompanion = nil
   return
 end
+
 local L = WeakAuras.L
 local count = WeakAuras.CountWagoUpdates()
+
 if count > 0 then
   C_Timer.After(1, function() WeakAuras.prettyPrint((L["There are %i updates to your auras ready to be installed!"]):format(count)) end)
 end

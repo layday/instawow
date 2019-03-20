@@ -1,12 +1,13 @@
 
 from __future__ import annotations
 
+__all__ = ('CurseResolver', 'WowiResolver', 'TukuiResolver', 'InstawowResolver')
+
 import asyncio
 from datetime import datetime
 from enum import Enum
-from typing import TYPE_CHECKING, Callable, ClassVar, Optional, Set, Tuple
+from typing import TYPE_CHECKING, Any, Callable, ClassVar, Optional, Set, Tuple
 
-from pydantic.datetime_parse import parse_date
 from yarl import URL
 
 from . import exceptions as E
@@ -17,7 +18,7 @@ if TYPE_CHECKING:
     from .manager import Manager
 
 
-__all__ = ('CurseResolver', 'WowiResolver', 'TukuiResolver', 'InstawowResolver')
+_DecomposeParts = Optional[Tuple[str, str]]
 
 
 class Strategies(str, Enum):
@@ -51,7 +52,7 @@ class Resolver(ManagerAttrAccessMixin):
         self.manager = manager
 
     @classmethod
-    def decompose_url(cls, uri: str) -> Optional[Tuple[str, str]]:
+    def decompose_url(cls, uri: str) -> _DecomposeParts:
         "Break a URL down to its component `origin` and `id`."
         raise NotImplementedError
 
@@ -66,8 +67,10 @@ class CurseResolver(Resolver):
     name = 'CurseForge'
     strategies = {Strategies.default, Strategies.latest}
 
+    cf_url = URL('https://wow.curseforge.com/projects/')
+
     @classmethod
-    def decompose_url(cls, uri: str) -> Optional[Tuple[str, str]]:
+    def decompose_url(cls, uri: str) -> _DecomposeParts:
         url = URL(uri)
         if url.host in {'wow.curseforge.com', 'www.wowace.com'} \
                 and len(url.parts) > 2 \
@@ -83,8 +86,7 @@ class CurseResolver(Resolver):
         from parsel import Selector
 
         async with self.client.get()\
-                              .get('https://wow.curseforge.com/projects/' +
-                                   id_or_slug) as response:
+                              .get(self.cf_url.with_name(id_or_slug)) as response:
             if response.status != 200 \
                     or response.url.host not in {'wow.curseforge.com', 'www.wowace.com'}:
                 raise E.PkgNonexistent
@@ -123,19 +125,20 @@ class WowiResolver(Resolver):
     name = 'WoWInterface'
     strategies = {Strategies.default}
 
-    list_api = 'https://api.mmoui.com/v3/game/WOW/filelist.json'
-    details_api = 'https://api.mmoui.com/v3/game/WOW/filedetails/{}.json'
+    # https://api.mmoui.com/v3/globalconfig.json
+    list_api_url = URL('https://api.mmoui.com/v3/game/WOW/filelist.json')
+    details_api_url = URL('https://api.mmoui.com/v3/game/WOW/filedetails/')
 
     def __init__(self, *, manager: Manager) -> None:
         super().__init__(manager=manager)
-        self.files = None
+        self.files: Any = None
         self._sync_lock = asyncio.Lock(loop=self.loop)
 
     async def _sync(self) -> None:
         async with self._sync_lock:
             if not self.files:
                 async with self.client.get()\
-                                      .get(self.list_api) as response:
+                                      .get(self.list_api_url) as response:
                     self.files = {i['UID']: i for i in await response.json()}
 
                 async def noop() -> None:
@@ -143,7 +146,7 @@ class WowiResolver(Resolver):
                 setattr(self, '_sync', noop)
 
     @classmethod
-    def decompose_url(cls, uri: str) -> Optional[Tuple[str, str]]:
+    def decompose_url(cls, uri: str) -> _DecomposeParts:
         url = URL(uri)
         if url.host in {'wowinterface.com', 'www.wowinterface.com'} \
                 and len(url.parts) == 3 \
@@ -165,8 +168,10 @@ class WowiResolver(Resolver):
             addon = self.files[id_or_slug.partition('-')[0]]
         except KeyError:
             raise E.PkgNonexistent
+
+        url = self.details_api_url.with_name(f'{addon["UID"]}.json')
         async with self.client.get()\
-                              .get(self.details_api.format(addon['UID'])) as response:
+                              .get(url) as response:
             addon_details, = await response.json()
         if addon_details['UIPending'] == '1':
             raise E.PkgTemporarilyUnavailable
@@ -190,8 +195,10 @@ class TukuiResolver(Resolver):
     name = 'Tukui'
     strategies = {Strategies.default}
 
+    api_url = URL('https://www.tukui.org/api.php')
+
     @classmethod
-    def decompose_url(cls, uri: str) -> Optional[Tuple[str, str]]:
+    def decompose_url(cls, uri: str) -> _DecomposeParts:
         url = URL(uri)
         if url.host == 'www.tukui.org' \
                 and url.path in {'/addons.php', '/download.php'}:
@@ -204,26 +211,23 @@ class TukuiResolver(Resolver):
         id_or_slug = id_or_slug.partition('-')[0]
         is_ui = id_or_slug in {'elvui', 'tukui'}
 
+        url = self.api_url.with_query({'ui' if is_ui else 'addon': id_or_slug})
         async with self.client.get()\
-                              .get(f'https://www.tukui.org/api.php?'
-                                   f'{"ui" if is_ui else "addon"}={id_or_slug}') as response:
+                              .get(url) as response:
             if not response.content_length:
                 raise E.PkgNonexistent
             addon = await response.json(content_type='text/html')
 
         return Pkg(origin=self.origin,
                    id=addon['id'],
-                   slug=id_or_slug if is_ui else
-                        slugify(f'{addon["id"]} {addon["name"]}'),
+                   slug=id_or_slug if is_ui else slugify(f'{addon["id"]} {addon["name"]}'),
                    name=addon['name'],
                    description=addon['small_desc'],
                    url=addon['web_url'],
                    file_id=addon['lastupdate'],
                    download_url=addon['url'],
-                   date_published=datetime.fromordinal(parse_date(addon['lastupdate'])
-                                                       .toordinal())
-                                  if is_ui else
-                                  addon['lastupdate'],
+                   date_published=(datetime.fromisoformat(addon['lastupdate'])
+                                   if is_ui else addon['lastupdate']),
                    version=addon['version'],
                    options=PkgOptions(strategy=strategy.name))
 

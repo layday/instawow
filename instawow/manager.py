@@ -1,14 +1,16 @@
 
 from __future__ import annotations
 
+__all__ = ('Manager', 'CliManager', 'WsManager')
+
 import asyncio
 import contextvars
 from functools import partial
 import io
 from pathlib import Path
 from typing import TYPE_CHECKING
-from typing import (Any, Awaitable, Callable, Coroutine, Iterable, List,
-                    NoReturn, Optional, Tuple, Type)
+from typing import (Any, Awaitable, Callable, Coroutine, Dict, Iterable, List,
+                    NoReturn, Optional, Sequence, Tuple, Type, TypeVar, Union)
 
 import logbook
 from send2trash import send2trash
@@ -28,9 +30,6 @@ except ImportError:
 
 if TYPE_CHECKING:
     import aiohttp
-
-
-__all__ = ('Manager', 'CliManager')
 
 
 logger = logbook.Logger(__name__)
@@ -63,21 +62,18 @@ def trash(paths: Iterable[Path]) -> None:
 
 class PkgArchive:
 
-    __slots__ = ('archive', 'root_folders')
-
     def __init__(self, payload: bytes) -> None:
         from zipfile import ZipFile
 
         self.archive = ZipFile(io.BytesIO(payload))
-        self.root_folders = sorted({Path(Path(p).parts[0])
-                                    for p in self.archive.namelist()})
+        self.root_folders = {Path(p).parts[0] for p in self.archive.namelist()}
 
     def extract(self, parent_folder: Path, *,
                 overwrite: bool=False) -> None:
         "Extract the archive contents under ``parent_folder``."
         if not overwrite:
-            conflicts = {f.name for f in self.root_folders} & \
-                        {f.name for f in parent_folder.iterdir()}
+            conflicts = self.root_folders \
+                        & {f.name for f in parent_folder.iterdir()}
             if conflicts:
                 raise E.PkgConflictsWithPreexisting(conflicts)
         self.archive.extractall(parent_folder)
@@ -105,7 +101,7 @@ class Manager:
                                               TukuiResolver, InstawowResolver))
 
     async def _download_file(self, url: str) -> bytes:
-        if url[:7] == 'file://':
+        if url.startswith('file://'):
             from urllib.parse import unquote
 
             file = Path(unquote(url[7:]))
@@ -117,15 +113,15 @@ class Manager:
 
     def get(self, origin: str, id_or_slug: str) -> Pkg:
         "Retrieve a ``Pkg`` from the database."
-        return self.db.query(Pkg)\
-                      .filter(Pkg.origin == origin,
-                              (Pkg.id == id_or_slug) | (Pkg.slug == id_or_slug))\
-                      .first()
+        return (self.db.query(Pkg)
+                .filter(Pkg.origin == origin,
+                        (Pkg.id == id_or_slug) | (Pkg.slug == id_or_slug))
+                .first())
 
     async def resolve(self, origin: str, id_or_slug: str, strategy: str) -> Pkg:
         "Resolve an ID or slug into a ``Pkg``."
-        return await self.resolvers[origin].resolve(id_or_slug,
-                                                    strategy=strategy)
+        return await (self.resolvers[origin]
+                      .resolve(id_or_slug, strategy=strategy))
 
     async def to_install(self, origin: str, id_or_slug: str,
                          strategy: str, overwrite: bool) -> Callable[[], E.PkgInstalled]:
@@ -135,9 +131,9 @@ class Manager:
             pkg.folders = [PkgFolder(path=self.config.addon_dir / f)
                            for f in archive.root_folders]
 
-            conflicts = self.db.query(PkgFolder)\
-                               .filter(PkgFolder.path.in_([f.path for f in pkg.folders]))\
-                               .first()
+            conflicts = (self.db.query(PkgFolder)
+                         .filter(PkgFolder.path.in_([f.path for f in pkg.folders]))
+                         .first())
             if conflicts:
                 raise E.PkgConflictsWithInstalled(conflicts.pkg)
 
@@ -166,11 +162,11 @@ class Manager:
             new_pkg.folders = [PkgFolder(path=self.config.addon_dir / f)
                                for f in archive.root_folders]
 
-            conflicts = self.db.query(PkgFolder)\
-                               .filter(PkgFolder.path.in_([f.path for f in new_pkg.folders]),
-                                       PkgFolder.pkg_origin != new_pkg.origin,
-                                       PkgFolder.pkg_id != new_pkg.id)\
-                               .first()
+            conflicts = (self.db.query(PkgFolder)
+                         .filter(PkgFolder.path.in_([f.path for f in new_pkg.folders]),
+                                 PkgFolder.pkg_origin != new_pkg.origin,
+                                 PkgFolder.pkg_id != new_pkg.id)
+                         .first())
             if conflicts:
                 raise E.PkgConflictsWithInstalled(conflicts.pkg)
 
@@ -301,8 +297,8 @@ class CliManager(Manager):
                 _client.set(client)
                 return await awaitable
 
-        return contextvars.copy_context().run(partial(self.loop.run_until_complete,
-                                                      runner()))
+        context = contextvars.copy_context()
+        return context.run(lambda: self.loop.run_until_complete(runner()))
 
     async def gather(self, it: Iterable, *, desc: Optional[str] = None) -> List[SafeFuture]:
         async def intercept(coro: Coroutine, index: int, bar: Any
@@ -325,7 +321,7 @@ class CliManager(Manager):
                 await asyncio.sleep(bar.mininterval)
         return results
 
-    def resolve_many(self, values: Iterable) -> List[E.ManagerResult]:
+    def resolve_many(self, values: Iterable) -> List[Union[E.ManagerResult, Pkg]]:
         async def resolve_many():
             return [r.result() for r in
                     (await self.gather((self.resolve(*a) for a in values),
@@ -358,27 +354,31 @@ class WsManager(Manager):
 
     async def poll(self, web_request: aiohttp.web.Request) -> None:
         import aiohttp
-        from .api import (ApiError, ErrorCodes, parse_request, jsonify,
+        from .api import (ErrorCodes, ApiError,
                           Request, InstallRequest, UpdateRequest, RemoveRequest,
-                          SuccessResponse, ErrorResponse)
+                          SuccessResponse, ErrorResponse,
+                          jsonify, parse_request)
 
-        async def respond(request: Request, awaitable: Awaitable) -> None:
+        TR = TypeVar('TR', bound=Request)
+
+        async def respond(request: TR, awaitable: Awaitable) -> None:
             try:
                 result = await awaitable
             except ApiError as error:
                 response = ErrorResponse.from_api_error(error)
             except E.ManagerError as error:
-                response = ErrorResponse(**{'id': request.id,
-                                            'error': {'code': ErrorCodes[type(error).__name__],
-                                                      'message': error.message}})
+                values = {'id': request.id,
+                          'error': {'code': ErrorCodes[type(error).__name__],
+                                    'message': error.message}}
+                response = ErrorResponse(**values)
             except Exception:
-                logger.exception()
-                response = ErrorResponse(**{'id': request.id,
-                                            'error': {'code': ErrorCodes.INTERNAL_ERROR,
-                                                      'message': 'encountered internal error'}})
+                logger.exception('internal error')
+                values = {'id': request.id,
+                          'error': {'code': ErrorCodes.INTERNAL_ERROR,
+                                    'message': 'encountered an internal error'}}
+                response = ErrorResponse(**values)
             else:
                 response = request.consume_result(result)
-
             await websocket.send_json(response, dumps=jsonify)
 
         async def receiver() -> None:
