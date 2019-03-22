@@ -27,6 +27,7 @@ from pydantic.errors import IntegerError
 
 from .manager import WsManager
 from .models import *
+from .resolvers import Strategies
 
 
 JSONRPC_VERSION = '2.0'
@@ -59,12 +60,6 @@ class ErrorCodes(IntEnum):
     PkgNotInstalled                = +10006
     PkgOriginInvalid               = +10007
     PkgUpToDate                    = +10008
-
-
-class ResolutionStrategies(str, Enum):
-
-    canonical = 'canonical'
-    latest = 'latest'
 
 
 class _ApiErrorMeta(type):
@@ -167,7 +162,7 @@ class BaseRequest(Request):
 class ResolveRequestParams(RequestParams):
 
     uri: str
-    resolution_strategy: ResolutionStrategies
+    resolution_strategy: Strategies
 
     class Config:
         use_enum_values = True
@@ -192,7 +187,7 @@ class ResolveRequest(Request):
 class InstallRequestParams(RequestParams):
 
     uri: str
-    resolution_strategy: ResolutionStrategies
+    resolution_strategy: Strategies
     overwrite: bool
 
     class Config:
