@@ -17,9 +17,10 @@ from send2trash import send2trash
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
+from . import __db_version__
 from .config import Config
 from . import exceptions as E
-from .models import ModelBase, Pkg, PkgFolder
+from .models import ModelBase, Pkg, PkgFolder, should_migrate
 from .resolvers import *
 
 try:
@@ -40,10 +41,20 @@ _UA_STRING = 'instawow (https://github.com/layday/instawow)'
 _client = contextvars.ContextVar('_client')
 
 
-def _init_db_session(*, config: Config):
-    engine = create_engine(f'sqlite:///{config.config_dir / "db.sqlite"}')
+def _prepare_db_session(*, config: Config) -> sessionmaker:
+    url = f"sqlite:///{config.config_dir / 'db.sqlite'}"
+    engine = create_engine(url)
     ModelBase.metadata.create_all(engine)
-    return sessionmaker(bind=engine)()
+
+    # Attempt to extract the database version without the aid of Alembic
+    # to save (processing) time
+    if should_migrate(engine, __db_version__):
+        from .migrations import make_config, upgrade
+        alembic_config = make_config(url)
+        logger.info(f'migrating database to {__db_version__}')
+        upgrade(alembic_config, __db_version__)
+
+    return sessionmaker(bind=engine)
 
 
 async def _init_web_client(*, loop: asyncio.AbstractEventLoop,
@@ -95,10 +106,10 @@ class Manager:
         self.client_factory = partial(client_factory or _init_web_client,
                                       loop=self.loop)
         self.client = _client
-        self.db = _init_db_session(config=self.config)
         self.resolvers = MemberDict((r.origin, r(manager=self))
                                     for r in (CurseResolver, WowiResolver,
                                               TukuiResolver, InstawowResolver))
+        self.db = _prepare_db_session(config=self.config)()
 
     async def _download_file(self, url: str) -> bytes:
         if url.startswith('file://'):

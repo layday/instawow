@@ -1,17 +1,28 @@
 
 from __future__ import annotations
 
-__all__ = ('ModelBase', 'Pkg', 'PkgFolder', 'PkgOptions',
-           'PkgCoercer', 'PkgFolderCoercer', 'PkgOptionsCoercer')
+__all__ = ('ModelBase',
+           'Pkg',
+           'PkgFolder',
+           'PkgOptions',
+           'PkgCoercer',
+           'PkgFolderCoercer',
+           'PkgOptionsCoercer',
+           'should_migrate')
 
 from datetime import datetime
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pydantic
 from sqlalchemy import (Column, ForeignKeyConstraint,
                         DateTime, String, TypeDecorator)
+import sqlalchemy.exc
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
+
+if TYPE_CHECKING:
+    import sqlalchemy.base
 
 
 def _declarative_constructor(self, **kwargs):
@@ -120,3 +131,20 @@ class PkgOptionsCoercer(_BaseCoercer):
 _COERCERS = {Pkg: PkgCoercer,
              PkgFolder: PkgFolderCoercer,
              PkgOptions: PkgOptionsCoercer}
+
+
+def should_migrate(engine: sqlalchemy.base.Engine, version: str) -> bool:
+    """Check if the database version is the same as `version`;
+    if not a migration would be required.
+    """
+    with engine.begin() as conn:
+        try:
+            current = conn.execute('SELECT version_num '
+                                   'FROM alembic_version '
+                                   'WHERE version_num = (?)', version).scalar()
+        except sqlalchemy.exc.OperationalError:
+            return True
+        else:
+            if not current:
+                return True
+    return False
