@@ -25,7 +25,6 @@ class Strategies(str, Enum):
 
     default = 'default'
     latest = 'latest'
-    canonical = 'default'   #: alias
 
     @classmethod
     def validate(cls, method: Callable) -> Callable:
