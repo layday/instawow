@@ -431,31 +431,36 @@ class WsManager(Manager):
             _client.set(client)
             await receiver()
 
-    def serve(self, host: Optional[str] = None, port: Optional[int] = None) -> None:
-        def runner() -> None:
+    def serve(self, host: str = '127.0.0.1', port: Optional[int] = None) -> None:
+        async def runner() -> None:
+            import os
+            import socket
             from aiohttp import web
 
-            app_runner = None
+            app = web.Application()
+            app.router.add_routes([web.get('/', self.poll)])    # type: ignore
+            app_runner = web.AppRunner(app)
+            await app_runner.setup()
 
-            async def build():
-                nonlocal app_runner
-
-                app = web.Application()
-                app.router.add_routes([web.get('/', self.poll)])    # type: ignore
-                app_runner = web.AppRunner(app)
-                await app_runner.setup()
-                site = web.TCPSite(app_runner, host, port)
-                await site.start()
-
-            async def destroy():
-                await app_runner.cleanup()
-
-            self.loop.run_until_complete(build())
+            server = await self.loop.create_server(app_runner.server, host, port,
+                                                   family=socket.AF_INET)
+            sock = server.sockets[0]
+            message = ('{{"address": "ws://{}:{}/"}}\n'
+                       .format(*sock.getsockname()).encode())
             try:
-                self.loop.run_forever()
-            except (KeyboardInterrupt, web.GracefulExit):
+                # Try sending message over fd 3 for IPC with Node
+                # and if that fails...
+                os.write(3, message)
+            except OSError:
+                # ... write to stdout
+                os.write(1, message)
+
+            try:
+                await server.serve_forever()
+            except (KeyboardInterrupt, SystemExit):
                 pass
             finally:
-                self.loop.run_until_complete(destroy())
+                await app_runner.cleanup()
 
-        contextvars.copy_context().run(runner)
+        context = contextvars.copy_context()
+        context.run(lambda: self.loop.run_until_complete(runner()))
