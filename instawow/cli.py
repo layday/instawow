@@ -3,6 +3,7 @@ from __future__ import annotations
 
 __all__ = ('main',)
 
+from enum import Enum
 from functools import partial, reduce
 from itertools import count
 from textwrap import fill
@@ -21,21 +22,22 @@ from .utils import TocReader, is_outdated
 
 
 
-_CONTEXT_SETTINGS = {'help_option_names': ['-h', '--help']}
+class _Symbols(str, Enum):
 
-_SUCCESS = click.style('✓', fg='green')
-_FAILURE = click.style('✗', fg='red')
-_WARNING = click.style('!', fg='blue')
+    SUCCESS = click.style('✓', fg='green')
+    FAILURE = click.style('✗', fg='red')
+    WARNING = click.style('!', fg='blue')
 
 
 def _format_result(addon: str, result: E.ManagerResult) -> str:
-    return f'''\
-{next(s for t, s in [(E.InternalError, _WARNING),
-                     (E.ManagerError,  _FAILURE),
-                     (E.ManagerResult, _SUCCESS)]
-      if isinstance(result, t))} \
-{click.style(addon, bold=True)}
-  {result.message}'''
+    if isinstance(result, E.InternalError):
+        symbol = _Symbols.WARNING
+    elif isinstance(result, E.ManagerError):
+        symbol = _Symbols.FAILURE
+    else:
+        symbol = _Symbols.SUCCESS
+    return (f'{symbol.value} {click.style(addon, bold=True)}\n'
+            f'  {result.message}')
 
 
 def _tabulate(rows: Sequence[Sequence[str]], *,
@@ -112,19 +114,33 @@ class _OrigCmdOrderGroup(click.Group):
         return list(self.commands)    # The default is ``sorted(self.commands)``
 
 
-def _init() -> None:
-    addon_dir = click.prompt('Enter the path to your add-on folder')
+def _create_config(orig_error: E.ConfigError) -> None:
+    # readline is used by ``input`` to undumbify line editing
+    import readline
+
+    # Don't bother if Python was built without GNU readline - we'd have to
+    # reimplement path completion
+    if 'GNU readline' in readline.__doc__:
+        readline.parse_and_bind('tab: complete')
+        readline.set_completer_delims('')   # Do not split up the string
+
+    message = (
+        f'{_Symbols.WARNING.value} {{.message}}\n'
+        f'  {click.style(">", fg="yellow")} enter the path to your add-on folder: '
+        )
+
+    addon_dir = input(message.format(orig_error))
     while True:
         try:
             Config(addon_dir=addon_dir).write()
         except E.ConfigError as error:
-            addon_dir = click.prompt(f'{addon_dir} not found\n'
-                                      'Enter the path to your add-on folder')
+            addon_dir = input(message.format(error))
         else:
             break
 
 
-@click.group(cls=_OrigCmdOrderGroup, context_settings=_CONTEXT_SETTINGS)
+@click.group(cls=_OrigCmdOrderGroup,
+             context_settings={'help_option_names': ['-h', '--help']})
 @click.version_option(__version__, prog_name='instawow')
 @click.option('--hide-progress', '-n', is_flag=True, default=False, hidden=True,
               help='Hide the progress bar.')
@@ -144,7 +160,7 @@ def main(ctx, hide_progress):
             try:
                 config = Config()
             except E.ConfigError as error:
-                _init()
+                _create_config(error)
             else:
                 break
         ctx.obj = manager = CliManager(config=config,
@@ -157,7 +173,7 @@ def main(ctx, hide_progress):
             manager.db.commit()
 
         if is_outdated(manager):
-            click.echo(f'{_WARNING} instawow is out of date')
+            click.echo(f'{_Symbols.WARNING.value} instawow is out of date')
 
 cli = main
 
