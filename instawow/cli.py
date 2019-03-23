@@ -10,7 +10,6 @@ from typing import (TYPE_CHECKING, Any, List, NamedTuple, Optional,
                     Sequence, Tuple, Union, cast)
 
 import click
-import logbook
 from sqlalchemy import inspect, text
 
 from . import __version__
@@ -142,15 +141,12 @@ def main(ctx, hide_progress):
                 break
         ctx.obj = manager = CliManager(config=config,
                                        show_progress=not hide_progress)
+        setup_logging(config)
         if attempt:
             # Migrate add-on paths after redefining ``addon_dir``
             for folder in manager.db.query(PkgFolder).all():
                 folder.path = manager.config.addon_dir / folder.path.name
             manager.db.commit()
-
-        logbook.RotatingFileHandler(manager.config.config_dir / 'error.log',
-                                    delay=True)\
-               .push_application()
 
         if is_outdated(manager):
             click.echo(f'{_WARNING} instawow is out of date')

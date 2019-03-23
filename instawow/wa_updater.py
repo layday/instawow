@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Tuple, Union
 
-import logbook
+from loguru import logger
 from pydantic import BaseModel, Extra, validator
 from yarl import URL
 
@@ -19,8 +19,6 @@ if TYPE_CHECKING:
     from luaparser import astnodes as lua_nodes
     from .manager import Manager
 
-
-logger = logbook.Logger(__name__)
 
 metadata_api = URL('https://data.wago.io/api/check/weakauras')
 raw_api = URL('https://data.wago.io/api/raw/encoded')

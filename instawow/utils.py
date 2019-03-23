@@ -1,7 +1,11 @@
 
 from __future__ import annotations
 
-__all__ = ('ManagerAttrAccessMixin', 'TocReader', 'slugify', 'is_outdated')
+__all__ = ('ManagerAttrAccessMixin',
+           'TocReader',
+           'slugify',
+           'is_outdated',
+           'setup_logging')
 
 from collections import namedtuple
 from datetime import datetime
@@ -12,6 +16,7 @@ from typing import TYPE_CHECKING, Any, Callable, Iterator, Tuple, Union
 from . import __version__
 
 if TYPE_CHECKING:
+    from .config import Config
     from .manager import Manager
 
 
@@ -81,3 +86,14 @@ def is_outdated(manager: Manager) -> bool:
     if parse_version(__version__) > parse_version(version):
         version = __version__
     return __version__ != version
+
+
+def setup_logging(config: Config, level: Union[int, str] = 'INFO') -> int:
+    from loguru import logger
+
+    handler = {'sink': config.config_dir / 'error.log',
+               'level': level,
+               'rotation': '1 MB',
+               'enqueue': True}
+    handler_id, = logger.configure(handlers=(handler,))
+    return handler_id

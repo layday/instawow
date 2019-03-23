@@ -2,7 +2,7 @@ aiohttp
 alembic
 click
 jinja2
-Logbook
+loguru
 luaparser
 parsel
 pydantic

@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING
 from typing import (Any, Awaitable, Callable, Coroutine, Dict, Iterable, List,
                     NoReturn, Optional, Sequence, Tuple, Type, TypeVar, Union)
 
-import logbook
+from loguru import logger
 from send2trash import send2trash
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -31,9 +31,6 @@ except ImportError:
 
 if TYPE_CHECKING:
     import aiohttp
-
-
-logger = logbook.Logger(__name__)
 
 
 _UA_STRING = 'instawow (https://github.com/layday/instawow)'
@@ -271,7 +268,7 @@ class SafeFuture(asyncio.Future):
         except E.ManagerError as error:
             self.set_exception(error)
         except Exception as error:
-            logger.exception()
+            logger.exception('internal error')
             self.set_exception(E.InternalError(error=error))
         return self
 
