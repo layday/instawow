@@ -132,6 +132,14 @@ def _init() -> None:
 def main(ctx, hide_progress):
     "Add-on manager for World of Warcraft."
     if not ctx.obj:
+        try:
+            import uvloop
+        except ImportError:
+            pass
+        else:
+            import asyncio
+            asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
+
         for attempt in count():
             try:
                 config = Config()

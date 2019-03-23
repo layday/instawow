@@ -23,12 +23,6 @@ from . import exceptions as E
 from .models import ModelBase, Pkg, PkgFolder, should_migrate
 from .resolvers import *
 
-try:
-    import uvloop
-    asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
-except ImportError:
-    pass
-
 if TYPE_CHECKING:
     import aiohttp
 
