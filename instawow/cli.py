@@ -118,7 +118,7 @@ def _init() -> None:
     while True:
         try:
             Config(addon_dir=addon_dir).write()
-        except ValueError:
+        except E.ConfigError as error:
             addon_dir = click.prompt(f'{addon_dir} not found\n'
                                       'Enter the path to your add-on folder')
         else:
@@ -136,7 +136,7 @@ def main(ctx, hide_progress):
         for attempt in count():
             try:
                 config = Config()
-            except (FileNotFoundError, ValueError):
+            except E.ConfigError as error:
                 _init()
             else:
                 break

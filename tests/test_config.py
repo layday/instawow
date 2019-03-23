@@ -7,6 +7,7 @@ from unittest.mock import patch
 import pytest
 
 from instawow.config import Config
+from instawow.exceptions import ConfigError
 
 
 @pytest.fixture
@@ -23,11 +24,11 @@ def test_strs_are_coerced_to_paths(folders):
     assert config.addon_dir == folders['addon_dir']
 
 
-def test_env_var_has_precedence_over_kwarg(folders):
-    with patch.dict(os.environ,
-                    {'INSTAWOW_CONFIG_DIR': str(folders['config_dir'])}):
+def test_env_vars_have_precedence_over_kwargs(folders, tmp_path):
+    config1 = tmp_path / 'config1'
+    with patch.dict(os.environ, {'INSTAWOW_CONFIG_DIR': str(config1)}):
         config = Config(**folders)
-        assert config.config_dir == folders['config_dir']
+        assert config.config_dir == config1
         assert config.addon_dir == folders['addon_dir']
 
 
@@ -39,14 +40,14 @@ def test_config_dir_is_populated(folders):
                             folders['config_dir'] / 'plugins'}
 
 
-def test_nonexistent_addon_folder_is_rejected(folders):
-    addons = folders['config_dir'].parent / 'addons1'
-    with pytest.raises(ValueError):
-        Config(config_dir=folders['config_dir'], addon_dir=addons)
+def test_nonexistent_addon_folder_is_rejected(folders, tmp_path):
+    addons1 = tmp_path / 'addons1'
+    with pytest.raises(ConfigError, match=f"'{addons1}' is not a directory"):
+        Config(config_dir=folders['config_dir'], addon_dir=addons1)
 
 
 def test_reading_addon_folder_from_uninstantiated_profile(folders):
-    with pytest.raises(FileNotFoundError):
+    with pytest.raises(ConfigError, match='configuration not written on disk'):
         Config(config_dir=folders['config_dir'])
 
 
@@ -61,9 +62,9 @@ def test_default_config_dir_is_xdg_compliant(folders):
         assert config_dir == Path('~').expanduser()\
                                       .joinpath('.config/instawow')
 
-        with patch.dict(os.environ, {'XDG_CONFIG_HOME': 'foo'}):
+        with patch.dict(os.environ, {'XDG_CONFIG_HOME': '/foo'}):
             config_dir = Config(addon_dir=folders['addon_dir']).config_dir
-            assert config_dir == Path('foo') / 'instawow'
+            assert config_dir == Path('/foo/instawow')
 
     with patch('sys.platform', 'darwin'):
         config_dir = Config(addon_dir=folders['addon_dir']).config_dir

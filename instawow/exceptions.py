@@ -6,6 +6,7 @@ __all__ = ('ManagerResult',
            'PkgUpdated',
            'PkgRemoved',
            'ManagerError',
+           'ConfigError',
            'PkgAlreadyInstalled',
            'PkgConflictsWithInstalled',
            'PkgConflictsWithPreexisting',
@@ -66,6 +67,15 @@ class PkgRemoved(ManagerResult):
 class ManagerError(ManagerResult,
                    Exception):
     pass
+
+
+class ConfigError(ManagerError):
+
+    fmt_message = '{self._message}'
+
+    def __init__(self, message: str) -> None:
+        super().__init__(message)
+        self._message = message
 
 
 class PkgAlreadyInstalled(ManagerError):
