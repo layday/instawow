@@ -1,3 +1,9 @@
+{#
+   The contents of this file were taken verbatim from
+   WeakAuras-Companion <https://github.com/WeakAuras/WeakAuras-Companion>
+   which is licensed under the GPLv2.  A copy of the licence is included
+   in the enclosing folder.
+#}
 -- file generated automatically
 local versionTarget = "2.11.0"
 local buildTimeTarget = 20190123023201
