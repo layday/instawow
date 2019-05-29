@@ -98,6 +98,7 @@ class ApiMetadata(BaseModel):
     url: str
     created: str
     modified: str
+    game: str
     fork_of: Optional[str]
     username: str
     version: int
