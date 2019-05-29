@@ -33,11 +33,12 @@ class TocReader:
 
     Entry = namedtuple('_TocEntry', 'key value')
 
-    def __init__(self, path: Path) -> None:
+    def __init__(self, path: Path, default: Union[None, str] = '') -> None:
         entries = (e.lstrip('# ').partition(': ')[::2]
                    for e in path.read_text(encoding='utf-8-sig').splitlines()
                    if e.startswith('## '))
         self.entries = dict(entries)
+        self.default = default
 
     def __getitem__(self, key: Union[str, Tuple[str, ...]]) -> Entry:
         if isinstance(key, tuple):
@@ -46,7 +47,7 @@ class TocReader:
                                    (self.__getitem__(k) for k in key)))
             except StopIteration:
                 key = key[0]
-        return self.Entry(key, self.entries.get(key))
+        return self.Entry(key, self.entries.get(key, self.default))
 
 
 def bucketise(iterable: Iterable, key: Callable = (lambda v: v)) -> dict:
