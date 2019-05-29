@@ -184,7 +184,7 @@ class WaCompanionBuilder(ManagerAttrAccessMixin):
         if not outdated_auras:
             return []
 
-        new_auras = await asyncio.gather(*(self.get_wago_aura(r.slug)
+        new_auras = await asyncio.gather(*(self.get_wago_aura(r.id)
                                            for _, r in outdated_auras))
         return [(s, w, r, p)
                 for ((s, w), r), p in zip(outdated_auras, new_auras)]
