@@ -3,15 +3,17 @@ from __future__ import annotations
 
 __all__ = ('ManagerAttrAccessMixin',
            'TocReader',
+           'bucketise',
            'slugify',
            'is_outdated',
            'setup_logging')
 
-from collections import namedtuple
+from collections import defaultdict, namedtuple
 from datetime import datetime
 from pathlib import Path
 import re
-from typing import TYPE_CHECKING, Any, Callable, Iterator, Tuple, Union
+from typing import TYPE_CHECKING
+from typing import Any, Callable, Iterable, Optional, Tuple, Union
 
 from . import __version__
 
@@ -45,6 +47,14 @@ class TocReader:
             except StopIteration:
                 key = key[0]
         return self.Entry(key, self.entries.get(key))
+
+
+def bucketise(iterable: Iterable, key: Callable = (lambda v: v)) -> dict:
+    "Place the elements of `iterable` into a bucket according to `key`."
+    bucket = defaultdict(list)      # type: ignore
+    for value in iterable:
+        bucket[key(value)].append(value)
+    return dict(bucket)
 
 
 _match_loweralphanum = re.compile(r'[^0-9a-z ]')

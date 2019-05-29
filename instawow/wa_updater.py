@@ -13,7 +13,7 @@ from loguru import logger
 from pydantic import BaseModel, Extra, validator
 from yarl import URL
 
-from .utils import ManagerAttrAccessMixin
+from .utils import ManagerAttrAccessMixin, bucketise
 
 if TYPE_CHECKING:
     from luaparser import astnodes as lua_nodes
@@ -24,15 +24,6 @@ metadata_api = URL('https://data.wago.io/api/check/weakauras')
 raw_api = URL('https://data.wago.io/api/raw/encoded')
 
 _EMPTY_URL = URL()
-
-
-def bucketise(iterable: Iterable, key=Callable[[Any], Any]) -> dict:
-    from collections import defaultdict
-
-    bucket = defaultdict(list)      # type: ignore
-    for value in iterable:
-        bucket[key(value)].append(value)
-    return dict(bucket)
 
 
 class AuraURLInvalid(Exception):
