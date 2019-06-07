@@ -11,12 +11,10 @@ __all__ = ('ModelBase',
            'should_migrate')
 
 from datetime import datetime
-from pathlib import Path
 from typing import TYPE_CHECKING
 
 import pydantic
-from sqlalchemy import (Column, ForeignKeyConstraint,
-                        DateTime, String, TypeDecorator)
+from sqlalchemy import Column, ForeignKeyConstraint, DateTime, String
 import sqlalchemy.exc
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
@@ -47,19 +45,6 @@ class _BaseCoercer(pydantic.BaseModel):
     class Config:
         extra = pydantic.Extra.allow
         max_anystr_length = 2 ** 32
-
-
-class PathType(TypeDecorator):
-
-    impl = String
-
-    def process_bind_param(self, value, dialect):
-        if value is not None:
-            return str(value)
-
-    def process_result_value(self, value, dialect):
-        if value is not None:
-            return Path(value)
 
 
 class Pkg(ModelBase):
@@ -102,14 +87,14 @@ class PkgFolder(ModelBase):
     __table_args__ = (ForeignKeyConstraint(['pkg_origin', 'pkg_id'],
                                            ['pkg.origin', 'pkg.id']),)
 
-    path = Column(PathType, primary_key=True)
+    name = Column(String, primary_key=True)
     pkg_origin = Column(String, nullable=False)
     pkg_id = Column(String, nullable=False)
 
 
 class PkgFolderCoercer(_BaseCoercer):
 
-    path: Path
+    name: str
 
 
 class PkgOptions(ModelBase):
