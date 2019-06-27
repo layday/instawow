@@ -4,7 +4,7 @@ click
 jinja2
 loguru
 luaparser
-parsel
+lxml
 pydantic
 Send2Trash
 SQLAlchemy

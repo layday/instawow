@@ -66,12 +66,14 @@ class CurseResolver(Resolver):
     name = 'CurseForge'
     strategies = {Strategies.default, Strategies.latest}
 
-    cf_url = URL('https://wow.curseforge.com/projects/')
+    curse_url = URL('https://www.curseforge.com/wow/addons')
+    # https://twitchappapi.docs.apiary.io/
+    addon_api_url = URL('https://addons-ecs.forgesvc.net/api/v2/addon')
 
     @classmethod
     def decompose_url(cls, uri: str) -> _DecomposeParts:
         url = URL(uri)
-        if url.host in {'wow.curseforge.com', 'www.wowace.com'} \
+        if url.host == 'www.wowace.com' \
                 and len(url.parts) > 2 \
                 and url.parts[1] == 'projects':
             return (cls.origin, url.parts[2])
@@ -82,39 +84,43 @@ class CurseResolver(Resolver):
 
     @Strategies.validate
     async def resolve(self, id_or_slug: str, *, strategy: Strategies) -> Pkg:
-        from parsel import Selector
+        from lxml.html import document_fromstring
 
-        async with self.client.get()\
-                              .get(self.cf_url.with_name(id_or_slug)) as response:
-            if response.status != 200 \
-                    or response.url.host not in {'wow.curseforge.com', 'www.wowace.com'}:
+        project_url = self.curse_url / id_or_slug
+        async with self.web_client.get()\
+                                  .get(project_url) as response:
+            if response.status == 404:
+                addon_id = id_or_slug
+            else:
+                html = document_fromstring(await response.text())
+                addon_id, = html.xpath('//span[text() = "Project ID"]'
+                                       '/following-sibling::span'
+                                       '/text()')
+
+        url = self.addon_api_url / addon_id
+        async with self.web_client.get()\
+                                  .get(url) as response:
+            if response.status == 404:
                 raise E.PkgNonexistent
-            content = await response.text()
-        content = Selector(text=content, base_url=str(response.url))
-        content.root.make_links_absolute()
+            addon_metadata = await response.json()
 
         if strategy is Strategies.default:
-            file = content.css('.cf-recentfiles > li:first-child '
-                               '.cf-recentfiles-credits-wrapper')
+            file = next(f for f in addon_metadata['latestFiles']
+                        if f['id'] == addon_metadata['defaultFileId'])
         elif strategy is Strategies.latest:
-            file = max(map(int, content.css('.cf-recentfiles abbr::attr(data-epoch)')
-                                       .getall()))
-            file = content.xpath(f'//*[@class = "cf-recentfiles"]'
-                                 f'//abbr[@data-epoch = "{file}"]/..')
+            _, file = max((f['id'], f) for f in addon_metadata['latestFiles']
+                          if not f['isAlternate'])
 
         return Pkg(origin=self.origin,
-                   id=content.xpath('''\
-//div[@class = "info-label" and text() = "Project ID"]/following-sibling::div/text()'''
-                                    ).get().strip(),
-                   slug=response.url.name,
-                   name=content.css('meta[property="og:title"]::attr(content)').get(),
-                   description=content.css('meta[property="og:description"]'
-                                           '::attr(content)').get(),
-                   url=content.css('.view-on-curse > a::attr(href)').get(),
-                   file_id=URL(file.css('.overflow-tip::attr(href)').get()).name,
-                   download_url=file.css('.fa-icon-download::attr(href)').get(),
-                   date_published=file.css('abbr::attr(data-epoch)').get(),
-                   version=file.css('.overflow-tip::attr(data-name)').get(),
+                   id=addon_metadata['id'],
+                   slug=addon_metadata['slug'],
+                   name=addon_metadata['name'],
+                   description=addon_metadata['summary'],
+                   url=addon_metadata['websiteUrl'],
+                   file_id=file['id'],
+                   download_url=file['downloadUrl'],
+                   date_published=file['fileDate'],
+                   version=file['displayName'],
                    options=PkgOptions(strategy=strategy.name))
 
 
