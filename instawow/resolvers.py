@@ -87,8 +87,8 @@ class CurseResolver(Resolver):
         from lxml.html import document_fromstring
 
         project_url = self.curse_url / id_or_slug
-        async with self.web_client.get()\
-                                  .get(project_url) as response:
+        async with self.client.get()\
+                              .get(project_url) as response:
             if response.status == 404:
                 addon_id = id_or_slug
             else:
@@ -98,8 +98,8 @@ class CurseResolver(Resolver):
                                        '/text()')
 
         url = self.addon_api_url / addon_id
-        async with self.web_client.get()\
-                                  .get(url) as response:
+        async with self.client.get()\
+                              .get(url) as response:
             if response.status == 404:
                 raise E.PkgNonexistent
             addon_metadata = await response.json()

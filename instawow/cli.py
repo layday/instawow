@@ -419,7 +419,7 @@ def _extras_group():
     "Additional functionality."
 
 
-@extras.group()
+@_extras_group.group()
 def bitbar():
     """Mini update GUI implemented as a BitBar plug-in.
 
