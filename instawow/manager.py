@@ -33,17 +33,25 @@ _client = contextvars.ContextVar('_client')
 
 
 def _prepare_db_session(*, config: Config) -> sessionmaker:
-    url = f"sqlite:///{config.config_dir / 'db.sqlite'}"
-    engine = create_engine(url)
+    db_url = f"sqlite:///{config.config_dir / 'db.sqlite'}"
+    engine = create_engine(db_url)
     ModelBase.metadata.create_all(engine)
 
-    # Attempt to extract the database version without the aid of Alembic
-    # to save (processing) time
     if should_migrate(engine, __db_version__):
-        from .migrations import make_config, upgrade
-        alembic_config = make_config(url)
-        logger.info(f'migrating database to {__db_version__}')
-        upgrade(alembic_config, __db_version__)
+        from alembic.autogenerate import compare_metadata
+        from alembic.migration import MigrationContext
+        from .migrations import make_config, stamp, upgrade
+
+        with engine.begin() as conn:
+            alembic_config = make_config(db_url)
+            diff = compare_metadata(MigrationContext.configure(conn),
+                                    ModelBase.metadata)
+            if diff:
+                logger.info(f'migrating database to {__db_version__}')
+                upgrade(alembic_config, __db_version__)
+            else:
+                logger.info(f'stamping database with {__db_version__}')
+                stamp(alembic_config, __db_version__)
 
     return sessionmaker(bind=engine)
 
