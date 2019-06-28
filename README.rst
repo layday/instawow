@@ -82,6 +82,14 @@ saved variables takes about 15 seconds on my machine.)
 Therefore you will have to run ``instawow extras weakauras build-companion`` prior to
 ``instawow update`` to receive aura updates.
 
+WebSocket server
+~~~~~~~~~~~~~~~~
+
+A WebSocket client can be used to operate *instawow* in lieu of the command line
+through a JSON-RPC API. To start the WebSocket server, run ``instawow serve``.
+The API does not implement JSON-RPC batch calls; request grouping must be
+done client-side.
+
 Caveats
 -------
 
