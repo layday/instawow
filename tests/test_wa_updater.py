@@ -13,7 +13,7 @@ def builder(tmp_path):
     addons.mkdir(parents=True)
     config = Config(config_dir=tmp_path / 'config', addon_dir=addons)
     config.write()
-    yield WaCompanionBuilder(Manager(config=config))
+    yield WaCompanionBuilder(Manager(config))
 
 
 @pytest.fixture

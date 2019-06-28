@@ -59,8 +59,7 @@ def test_reading_addon_folder_from_instantiated_profile(folders):
 def test_default_config_dir_is_xdg_compliant(folders):
     with patch('sys.platform', 'linux'):
         config_dir = Config(addon_dir=folders['addon_dir']).config_dir
-        assert config_dir == Path('~').expanduser()\
-                                      .joinpath('.config/instawow')
+        assert config_dir == Path.home() / '.config/instawow'
 
         with patch.dict(os.environ, {'XDG_CONFIG_HOME': '/foo'}):
             config_dir = Config(addon_dir=folders['addon_dir']).config_dir
@@ -68,8 +67,7 @@ def test_default_config_dir_is_xdg_compliant(folders):
 
     with patch('sys.platform', 'darwin'):
         config_dir = Config(addon_dir=folders['addon_dir']).config_dir
-        assert config_dir == Path('~').expanduser()\
-                                      .joinpath('Library/Application Support/instawow')
+        assert config_dir == Path.home() / 'Library/Application Support/instawow'
 
         # with patch.dict(os.environ, {'XDG_CONFIG_HOME': 'foo'}):
         #     config_dir = Config(addon_dir=folders['addon_dir']).config_dir

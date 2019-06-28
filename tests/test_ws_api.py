@@ -1,6 +1,7 @@
 
 import asyncio
 from multiprocessing import Process
+import os
 from typing import List
 from unittest.mock import patch
 
@@ -34,15 +35,24 @@ class FailRequest(api.Request):
 
 
 @pytest.fixture(scope='module', autouse=True)
-def ws_server(tmp_path_factory):
+def config(tmp_path_factory):
     config = Config(config_dir=tmp_path_factory.mktemp(f'{__name__}_config'),
-                    addon_dir=tmp_path_factory.mktemp(f'{__name__}_addons'))
+                    addon_dir= tmp_path_factory.mktemp(f'{__name__}_addons'))
     config.write()
+    yield config
 
+
+@pytest.fixture(scope='module', autouse=True)
+def environ(config):
+    with patch.dict(os.environ, {'INSTAWOW_CONFIG_DIR': str(config.config_dir)}):
+        yield
+
+
+
+@pytest.fixture(scope='module', autouse=True)
+def ws_server(config):
     with patch.dict(api._REQUESTS, {FailRequest._name: FailRequest}):
-        process = Process(daemon=True,
-                          target=lambda: WsManager(config=config, loop=asyncio.new_event_loop()
-                                                   ).serve(None, PORT))
+        process = Process(daemon=True, target=lambda: WsManager().serve(port=PORT))
         process.start()
         process.join(3)         # Effectively ``time.sleep(3)``
         yield
@@ -50,9 +60,9 @@ def ws_server(tmp_path_factory):
 
 @pytest.fixture
 @pytest.mark.asyncio
-async def ws_client():
+async def ws_client(ws_server):
     async with aiohttp.ClientSession() as client, \
-            client.ws_connect(f'ws://0.0.0.0:{PORT}') as ws:
+            client.ws_connect(f'ws://127.0.0.1:{PORT}') as ws:
         yield ws
 
 
@@ -127,14 +137,27 @@ async def test_internal_error_error_response(ws_client):
 
 
 @pytest.mark.asyncio
+async def test_setup_request_response(ws_client, config):
+    request = {'jsonrpc': '2.0',
+               'id': 'test_setup_request_response',
+               'method': 'setup',
+               'params': {'addon_dir': str(config.addon_dir)}}
+    response = {'jsonrpc': '2.0',
+                'id': 'test_setup_request_response',
+                'result': {'config': {k: str(v) for k, v in config.__dict__.items()}}}
+    await ws_client.send_json(request)
+    assert (await ws_client.receive_json()) == response
+
+
+@pytest.mark.asyncio
 async def test_any_manager_error_error_response(ws_client):
     request = {'jsonrpc': '2.0',
                'id': 'test_any_manager_error_error_response',
                'method': 'resolve',
-               'params': {'uri': 'foo:bar', 'resolution_strategy': 'canonical'}}
+               'params': {'uri': 'foo:bar', 'resolution_strategy': 'default'}}
     response = {'jsonrpc': '2.0',
                 'id': 'test_any_manager_error_error_response',
-                'error': {'code': 10007,
+                'error': {'code': 10027,
                           'message': 'package origin is invalid',
                           'data': None}}
     await ws_client.send_json(request)
@@ -159,7 +182,7 @@ async def test_resolve_method_response(ws_client):
     request = {'jsonrpc': '2.0',
                'id': 'test_resolve_method_response',
                'method': 'resolve',
-               'params': {'uri': 'curse:molinari', 'resolution_strategy': 'canonical'}}
+               'params': {'uri': 'curse:molinari', 'resolution_strategy': 'default'}}
 
     await ws_client.send_json(request)
     response = await ws_client.receive_json()
@@ -175,7 +198,7 @@ async def test_resolve_method_with_url_in_uri_param_response(ws_client):
                'id': 'test_resolve_method_with_url_in_uri_param_response',
                'method': 'resolve',
                'params': {'uri': 'https://www.curseforge.com/wow/addons/molinari',
-                          'resolution_strategy': 'canonical'}}
+                          'resolution_strategy': 'default'}}
 
     await ws_client.send_json(request)
     response = await ws_client.receive_json()
@@ -189,13 +212,13 @@ async def test_install_method_response(ws_client):
     request = {'jsonrpc': '2.0',
                'id': 'test_install_method_response',
                'method': 'install',
-               'params': {'uri': 'curse:molinari', 'resolution_strategy': 'canonical',
+               'params': {'uri': 'curse:molinari', 'resolution_strategy': 'default',
                           'overwrite': False}}
 
     await ws_client.send_json(request)
     response = api.SuccessResponse.parse_obj(await ws_client.receive_json())
     assert response.id == request['id']
-    assert response.result is None
+    Pkg.parse_obj(response.result)
 
 
 @pytest.mark.asyncio
