@@ -6,7 +6,6 @@ loguru
 luaparser
 lxml
 pydantic
-Send2Trash
 SQLAlchemy
 texttable
 tqdm
