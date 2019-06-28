@@ -8,6 +8,7 @@ from contextlib import asynccontextmanager
 import contextvars as cv
 from functools import partial
 from pathlib import Path, PurePath
+from shutil import move as _move
 from tempfile import NamedTemporaryFile, mkdtemp
 from typing import *
 from zipfile import ZipFile
@@ -40,6 +41,7 @@ AsyncZipFile = run_in_thread(ZipFile)
 AsyncNamedTemporaryFile = partial(run_in_thread(NamedTemporaryFile),
                                   prefix='instawow-')
 async_mkdtemp = partial(run_in_thread(mkdtemp), prefix='instawow-')
+amove = run_in_thread(_move)
 
 
 @asynccontextmanager
@@ -57,12 +59,9 @@ async def new_temp_dir(delete: bool = False) -> AsyncGenerator[PurePath, None]:
 
 
 async def move(paths: Iterable[Path], dest: PurePath) -> None:
-    def move_():
-        for path in paths:
-            logger.debug(f'moving {path} to {dest / path.name}')
-            path.rename(dest / path.name)
-
-    await run_in_thread(move_)()
+    for path in paths:
+        logger.debug(f'moving {path} to {dest / path.name}')
+        await amove(str(path), str(dest))
 
 
 class _Archive:
