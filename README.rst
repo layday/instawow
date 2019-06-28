@@ -48,19 +48,19 @@ You can update all of your add-ons in one go with::
 
     instawow update <add-on>
 
-You can list installed add-ons with ``instawow list installed``,
-outdated add-ons with ``instawow list outdated`` and add-ons that
-predate the venerable *instawow* with ``instawow list preexisting``.
-``preexisting`` will attempt to extract Curse and WoWI IDs from TOC files
+You can list installed add-ons with ``instawow list`` and add-ons that
+predate the venerable *instawow* with ``instawow list-uncontrolled``.
+``list-uncontrolled`` will attempt to extract Curse and WoWI IDs from TOC files
 to put you on a path towards instalightment.
 
-To get the full list of available commands, run ``instawow``.
+Non-destructive operations can be invoked with partial package slugs,
+e.g. ``instawow info moli`` will attempt to match 'moli' with ``curse:molinari``.
 
-Goodies
--------
+Extras
+------
 
-BitBar plug-in
-~~~~~~~~~~~~~~
+BitBar integration
+~~~~~~~~~~~~~~~~~~
 
 *instawow* ships with a `BitBar <https://getbitbar.com/>`__ plug-in
 for macOS, which you can use to update add-ons from the menu bar.
@@ -73,7 +73,7 @@ WeakAuras aura updater
 `WeakAuras Companion <https://weakauras.wtf/>`__.  To use the updater
 and provided that you have WeakAuras installed::
 
-    instawow extras weakauras build-companion
+    instawow extras weakauras build-companion -a <your account name>
     instawow install instawow:weakauras-companion
 
 Building the companion add-on is expensive, which is why the operation
