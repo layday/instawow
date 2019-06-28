@@ -22,4 +22,4 @@ setup(name='instawow',
       packages=['instawow'],
       install_requires=Path('requirements.txt').read_text(),
       include_package_data=True,
-      entry_points={'console_scripts': ['instawow = instawow.cli:cli']})
+      entry_points={'console_scripts': ['instawow = instawow.cli:main']})

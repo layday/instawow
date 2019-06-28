@@ -4,16 +4,15 @@ from __future__ import annotations
 __all__ = ('Manager', 'CliManager', 'WsManager')
 
 import asyncio
-import contextvars
+from contextlib import asynccontextmanager
+import contextvars as cv
 from functools import partial
-import io
-from pathlib import Path
-from typing import TYPE_CHECKING
-from typing import (Any, Awaitable, Callable, Coroutine, Dict, Iterable, List,
-                    NoReturn, Optional, Sequence, Tuple, Type, TypeVar, Union)
+from pathlib import Path, PurePath
+from tempfile import NamedTemporaryFile, mkdtemp
+from typing import *
+from zipfile import ZipFile
 
 from loguru import logger
-from send2trash import send2trash
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
@@ -21,7 +20,7 @@ from . import __db_version__
 from .config import Config
 from . import exceptions as E
 from .models import ModelBase, Pkg, PkgFolder, should_migrate
-from .resolvers import *
+from .resolvers import Pkg_, CurseResolver, WowiResolver, TukuiResolver, InstawowResolver
 
 if TYPE_CHECKING:
     import aiohttp
@@ -29,10 +28,79 @@ if TYPE_CHECKING:
 
 _UA_STRING = 'instawow (https://github.com/layday/instawow)'
 
-_client = contextvars.ContextVar('_client')
+_loop: cv.ContextVar[asyncio.AbstractEventLoop] = cv.ContextVar('_loop')
+_web_client: cv.ContextVar[aiohttp.ClientSession] = cv.ContextVar('_web_client')
 
 
-def _prepare_db_session(*, config: Config) -> sessionmaker:
+def run_in_thread(fn: Callable) -> Callable[..., Awaitable]:
+    return lambda *a, **k: _loop.get().run_in_executor(None, partial(fn, *a, **k))
+
+
+AsyncZipFile = run_in_thread(ZipFile)
+AsyncNamedTemporaryFile = partial(run_in_thread(NamedTemporaryFile),
+                                  prefix='instawow-')
+async_mkdtemp = partial(run_in_thread(mkdtemp), prefix='instawow-')
+
+
+@asynccontextmanager
+async def open_temp_writer() -> AsyncGenerator[Tuple[Path, Callable], None]:
+    fh = await AsyncNamedTemporaryFile(delete=False, suffix='.zip')
+    try:
+        yield (Path(fh.name), run_in_thread(fh.write))
+    finally:
+        await run_in_thread(fh.close)()
+
+
+@asynccontextmanager
+async def new_temp_dir(delete: bool = False) -> AsyncGenerator[PurePath, None]:
+    yield PurePath(await async_mkdtemp())
+
+
+async def move(paths: Iterable[Path], dest: PurePath) -> None:
+    def move_():
+        for path in paths:
+            logger.debug(f'moving {path} to {dest / path.name}')
+            path.rename(dest / path.name)
+
+    await run_in_thread(move_)()
+
+
+class _Archive:
+
+    def __init__(self, archive: ZipFile, callback: Callable):
+        self._zip_file = archive
+        self._callback = callback
+
+        self.folders = {PurePath(p).parts[0] for p in self._zip_file.namelist()}
+
+    async def extract(self, parent_folder: Path) -> None:
+        def extract_() -> None:
+            conflicts = self.folders & {f.name for f in parent_folder.iterdir()}
+            if conflicts:
+                raise E.PkgConflictsWithUncontrolled(conflicts)
+
+            self._zip_file.extractall(parent_folder)
+            self._callback()
+
+        return await run_in_thread(extract_)()
+
+
+async def download_archive(url: str, *, chunk_size: int = 4096) -> _Archive:
+    if url.startswith('file://'):
+        from urllib.parse import unquote
+
+        path = Path(unquote(url[7:]))
+        return _Archive(await AsyncZipFile(path), (lambda: ...))
+    else:
+        async with _web_client.get().get(url) as response, \
+                   open_temp_writer() as (path, write):
+            async for chunk in response.content.iter_chunked(chunk_size):
+                await write(chunk)
+
+        return _Archive(await AsyncZipFile(path), path.unlink)
+
+
+def prepare_db_session(*, config: Config) -> sessionmaker:
     db_url = f"sqlite:///{config.config_dir / 'db.sqlite'}"
     engine = create_engine(db_url)
     ModelBase.metadata.create_all(engine)
@@ -56,70 +124,53 @@ def _prepare_db_session(*, config: Config) -> sessionmaker:
     return sessionmaker(bind=engine)
 
 
-async def _init_web_client(*, loop: asyncio.AbstractEventLoop,
-                           **kwargs) -> aiohttp.ClientSession:
+async def _init_web_client(**kwargs: Any) -> aiohttp.ClientSession:
     from aiohttp import ClientSession, TCPConnector
-    return ClientSession(loop=loop,
-                         connector=TCPConnector(loop=loop, limit_per_host=10),
+
+    connector = TCPConnector(limit_per_host=10)
+    return ClientSession(connector=connector,
                          headers={'User-Agent': _UA_STRING},
                          **kwargs)
 
 
-def trash(paths: Iterable[Path]) -> None:
-    for path in paths:
-        send2trash(str(path))
+class _ResolverDict(dict):
 
+    def __init__(self, manager: Manager, resolvers: Set[Any]) -> None:
+        super().__init__((r.origin, r(manager=manager)) for r in resolvers)
 
-class PkgArchive:
-
-    def __init__(self, payload: bytes) -> None:
-        from zipfile import ZipFile
-
-        self.archive = ZipFile(io.BytesIO(payload))
-        self.root_folders = {Path(p).parts[0] for p in self.archive.namelist()}
-
-    def extract(self, parent_folder: Path, *,
-                overwrite: bool=False) -> None:
-        "Extract the archive contents under ``parent_folder``."
-        if not overwrite:
-            conflicts = self.root_folders \
-                        & {f.name for f in parent_folder.iterdir()}
-            if conflicts:
-                raise E.PkgConflictsWithPreexisting(conflicts)
-        self.archive.extractall(parent_folder)
-
-
-class MemberDict(dict):
-
-    def __missing__(self, key: str) -> NoReturn:
+    def __missing__(self, key: Hashable) -> NoReturn:
         raise E.PkgOriginInvalid
 
 
 class Manager:
 
-    def __init__(self, *,
-                 config: Config, loop: Optional[asyncio.AbstractEventLoop] = None,
-                 client_factory: Optional[Callable] = None) -> None:
+    RESOLVERS = {CurseResolver, WowiResolver, TukuiResolver, InstawowResolver}
+
+    def __init__(self, config: Config,
+                 web_client_factory: Optional[Callable] = None) -> None:
+        self.web_client_factory = web_client_factory or _init_web_client
+        self.resolvers = _ResolverDict(self, self.RESOLVERS)
+
         self.config = config
-        self.loop = loop or asyncio.get_event_loop()
-        self.client_factory = partial(client_factory or _init_web_client,
-                                      loop=self.loop)
-        self.client = _client
-        self.resolvers = MemberDict((r.origin, r(manager=self))
-                                    for r in (CurseResolver, WowiResolver,
-                                              TukuiResolver, InstawowResolver))
-        self.db = _prepare_db_session(config=self.config)()
+        Session = prepare_db_session(config=self.config)
+        self.db = Session()
 
-    async def _download_file(self, url: str) -> bytes:
-        if url.startswith('file://'):
-            from urllib.parse import unquote
+    @property
+    def web_client(self) -> aiohttp.ClientSession:
+        return _web_client.get()
 
-            file = Path(unquote(url[7:]))
-            return await self.loop.run_in_executor(None,
-                                                   lambda: file.read_bytes())
-        async with self.client.get()\
-                              .get(url) as response:
-            return await response.read()
+    def run(self, awaitable: Awaitable) -> Any:
+        "Run ``awaitable`` inside an explicit context."
+        def runner():
+            async def arunner():
+                async with (await self.web_client_factory()) as client:
+                    _web_client.set(client)
+                    return await awaitable
+
+            _loop.set(asyncio.get_event_loop())
+            return _loop.get().run_until_complete(arunner())
+
+        return cv.copy_context().run(runner)
 
     def get(self, origin: str, id_or_slug: str) -> Pkg:
         "Retrieve a ``Pkg`` from the database."
@@ -128,78 +179,71 @@ class Manager:
                         (Pkg.id == id_or_slug) | (Pkg.slug == id_or_slug))
                 .first())
 
-    async def resolve(self, origin: str, id_or_slug: str, strategy: str) -> Pkg:
+    async def resolve(self, origin: str, id_or_slug: str, strategy: str) -> Pkg_:
         "Resolve an ID or slug into a ``Pkg``."
-        return await (self.resolvers[origin]
-                      .resolve(id_or_slug, strategy=strategy))
+        return await self.resolvers[origin].resolve(id_or_slug, strategy=strategy)
 
     async def to_install(self, origin: str, id_or_slug: str,
-                         strategy: str, overwrite: bool) -> Callable[[], E.PkgInstalled]:
+                         strategy: str, replace: bool) -> Callable:
         "Retrieve a package to install."
-        async def install():
-            archive = PkgArchive(payload)
-            pkg.folders = [PkgFolder(path=self.config.addon_dir / f)
-                           for f in archive.root_folders]
-
+        async def install() -> E.PkgInstalled:
+            pkg = pkg_(folders=[PkgFolder(name=f) for f in sorted(archive.folders)])
             conflicts = (self.db.query(PkgFolder)
-                         .filter(PkgFolder.path.in_([f.path for f in pkg.folders]))
+                         .filter(PkgFolder.name.in_([f.name for f in pkg.folders]))
                          .first())
             if conflicts:
                 raise E.PkgConflictsWithInstalled(conflicts.pkg)
 
-            if overwrite:
-                trash_ = partial(trash, (f.path for f in pkg.folders
-                                         if f.path.exists()))
-                await self.loop.run_in_executor(None, trash_)
-            extract = partial(archive.extract, self.config.addon_dir,
-                              overwrite=overwrite)
-            await self.loop.run_in_executor(None, extract)
+            if replace:
+                async with new_temp_dir() as dir_name:
+                    await move((self.config.addon_dir / f.name
+                                for f in pkg.folders), dir_name)
+
+            await archive.extract(self.config.addon_dir)
             self.db.add(pkg)
             self.db.commit()
             return E.PkgInstalled(pkg)
 
         if self.get(origin, id_or_slug):
             raise E.PkgAlreadyInstalled
-        pkg = await self.resolve(origin, id_or_slug, strategy)
+        pkg_ = await self.resolve(origin, id_or_slug, strategy)
 
-        payload = await self._download_file(pkg.download_url)
+        archive = await download_archive(pkg_.download_url)
         return install
 
-    async def to_update(self, origin: str, id_or_slug: str) -> Callable[[], E.PkgUpdated]:
+    async def to_update(self, origin: str, id_or_slug: str) -> Callable:
         "Retrieve a package to update."
-        async def update():
-            archive = PkgArchive(payload)
-            new_pkg.folders = [PkgFolder(path=self.config.addon_dir / f)
-                               for f in archive.root_folders]
-
+        async def update() -> E.PkgUpdated:
+            new_pkg = new_pkg_(folders=[PkgFolder(name=f)
+                                        for f in sorted(archive.folders)])
             conflicts = (self.db.query(PkgFolder)
-                         .filter(PkgFolder.path.in_([f.path for f in new_pkg.folders]),
+                         .filter(PkgFolder.name.in_([f.name for f in new_pkg.folders]),
                                  PkgFolder.pkg_origin != new_pkg.origin,
                                  PkgFolder.pkg_id != new_pkg.id)
                          .first())
             if conflicts:
                 raise E.PkgConflictsWithInstalled(conflicts.pkg)
 
-            try:
-                trash_ = partial(trash, (f.path for f in cur_pkg.folders))
-                await self.loop.run_in_executor(None, trash_)
-                self.db.delete(cur_pkg)
-                extract = partial(archive.extract,
-                                  parent_folder=self.config.addon_dir)
-                await self.loop.run_in_executor(None, extract)
-                self.db.add(new_pkg)
-            finally:
-                self.db.commit()
-            return E.PkgUpdated(cur_pkg, new_pkg)
+            async with new_temp_dir() as dir_name:
+                await move((self.config.addon_dir / f.name
+                            for f in pkg.folders), dir_name)
+            await archive.extract(self.config.addon_dir)
 
-        cur_pkg = self.get(origin, id_or_slug)
-        if not cur_pkg:
+            with self.db.begin_nested():
+                self.db.delete(pkg)
+                self.db.add(new_pkg)
+
+            return E.PkgUpdated(pkg, new_pkg)
+
+        pkg = self.get(origin, id_or_slug)
+        if not pkg:
             raise E.PkgNotInstalled
-        new_pkg = await self.resolve(origin, id_or_slug, cur_pkg.options.strategy)
-        if cur_pkg.file_id == new_pkg.file_id:
+
+        new_pkg_ = await self.resolve(origin, id_or_slug, pkg.options.strategy)
+        if pkg.file_id == new_pkg_.file_id:
             raise E.PkgUpToDate
 
-        payload = await self._download_file(new_pkg.download_url)
+        archive = await download_archive(new_pkg_.download_url)
         return update
 
     async def remove(self, origin: str, id_or_slug: str) -> E.PkgRemoved:
@@ -208,8 +252,10 @@ class Manager:
         if not pkg:
             raise E.PkgNotInstalled
 
-        trash_ = partial(trash, (f.path for f in pkg.folders))
-        await self.loop.run_in_executor(None, trash_)
+        async with new_temp_dir() as dir_name:
+            await move((self.config.addon_dir / f.name
+                        for f in pkg.folders), dir_name)
+
         self.db.delete(pkg)
         self.db.commit()
         return E.PkgRemoved(pkg)
@@ -226,13 +272,11 @@ class Bar:
         self.__reset_position()
 
 
-async def _init_cli_web_client(*, loop: asyncio.AbstractEventLoop,
-                               manager: CliManager) -> aiohttp.ClientSession:
+async def _init_cli_web_client(*, manager: CliManager) -> aiohttp.ClientSession:
     from cgi import parse_header
     from aiohttp import TraceConfig
 
-    async def do_on_request_end(_session, _ctx,
-                                params: aiohttp.TraceRequestEndParams) -> None:
+    async def do_on_request_end(_session, _ctx, params: aiohttp.TraceRequestEndParams) -> None:
         if params.response.content_type in {
                 'application/zip',
                 # Curse at it again
@@ -244,19 +288,19 @@ async def _init_cli_web_client(*, loop: asyncio.AbstractEventLoop,
             bar = manager.Bar(total=params.response.content_length,
                               desc=f'  Downloading {filename}',
                               miniters=1, unit='B', unit_scale=True,
-                              position=manager.bar_position)
+                              position=manager._get_bar_position())
 
             async def ticker(bar=bar, params=params) -> None:
                 while not params.response.content._eof:
                     bar.update(params.response.content._cursor - bar.n)
                     await asyncio.sleep(bar.mininterval)
                 bar.close()
-            loop.create_task(ticker())
+            _loop.get().create_task(ticker())
 
     trace_config = TraceConfig()
     trace_config.on_request_end.append(do_on_request_end)
     trace_config.freeze()
-    return await _init_web_client(loop=loop, trace_configs=[trace_config])
+    return await _init_web_client(trace_configs=[trace_config])
 
 
 class SafeFuture(asyncio.Future):
@@ -277,57 +321,43 @@ class SafeFuture(asyncio.Future):
 
 class CliManager(Manager):
 
-    def __init__(self, *,
-                 config: Config, loop: Optional[asyncio.AbstractEventLoop] = None,
-                 show_progress: bool = True) -> None:
-        super().__init__(config=config, loop=loop,
-                         client_factory=(partial(_init_cli_web_client, manager=self)
-                                         if show_progress else None))
+    def __init__(self, config: Config, show_progress: bool = True) -> None:
+        super().__init__(config=config,
+                         web_client_factory=(partial(_init_cli_web_client, manager=self)
+                                             if show_progress else None))
         self.show_progress = show_progress
-        self.bar_positions = [False]
+        self._bar_positions = [False]
 
         from tqdm import tqdm
         self.Bar = type('Bar', (Bar, tqdm), {})
 
-    @property
-    def bar_position(self) -> Tuple[int, Callable]:
-        "Get the first available bar slot."
+    def _get_bar_position(self) -> Tuple[int, Callable]:
+        # Get the first available bar slot
         try:
-            b = self.bar_positions.index(False)
-            self.bar_positions[b] = True
+            b = self._bar_positions.index(False)
+            self._bar_positions[b] = True
         except ValueError:
-            b = len(self.bar_positions)
-            self.bar_positions.append(True)
-        return (b, lambda b=b: self.bar_positions.__setitem__(b, False))
+            b = len(self._bar_positions)
+            self._bar_positions.append(True)
+        return (b, lambda b=b: self._bar_positions.__setitem__(b, False))
 
-    def run(self, awaitable: Awaitable) -> Any:
-        "Run ``awaitable`` inside an explicit context."
-        async def runner():
-            async with (await self.client_factory()) as client:
-                _client.set(client)
-                return await awaitable
-
-        context = contextvars.copy_context()
-        return context.run(lambda: self.loop.run_until_complete(runner()))
-
-    async def gather(self, it: Iterable, *, desc: Optional[str] = None) -> List[SafeFuture]:
-        async def intercept(coro: Coroutine, index: int, bar: Any
-                            ) -> Tuple[int, SafeFuture]:
-            future = await SafeFuture(loop=self.loop).intercept(coro)
+    async def gather(self, it: Iterable, *,
+                     desc: Optional[str] = None) -> List[SafeFuture]:
+        async def intercept(coro, index, bar):
+            future = await SafeFuture().intercept(coro)
             bar.update(1)
             return index, future
 
         coros = list(it)
         with self.Bar(total=len(coros), disable=not self.show_progress,
-                      position=self.bar_position, desc=desc) as bar:
+                      position=self._get_bar_position(), desc=desc) as bar:
             futures = [intercept(c, i, bar) for i, c in enumerate(coros)]
-            results = [v for _, v in
-                       sorted([await r for r in
-                               asyncio.as_completed(futures, loop=self.loop)])]
+            results = [v for _, v in sorted([await r for r in
+                                             asyncio.as_completed(futures)])]
 
             # Wait for ``ticker``s to complete so all bars get to wipe
             # their pretty faces off the face of the screen
-            while len(asyncio.all_tasks(self.loop)) > 1:
+            while len(asyncio.all_tasks()) > 1:
                 await asyncio.sleep(bar.mininterval)
         return results
 
@@ -342,7 +372,7 @@ class CliManager(Manager):
     def install_many(self, values: Iterable) -> List[E.ManagerResult]:
         async def install_many():
             return [(r if r.exception() else
-                     await SafeFuture(loop=self.loop).intercept(r.result()())
+                     await SafeFuture().intercept(r.result()())
                      ).result()
                     for r in (await self.gather((self.to_install(*a) for a in values),
                                                 desc='Fetching'))]
@@ -352,7 +382,7 @@ class CliManager(Manager):
     def update_many(self, values: Iterable) -> List[E.ManagerResult]:
         async def update_many():
             return [(r if r.exception() else
-                     await SafeFuture(loop=self.loop).intercept(r.result()())
+                     await SafeFuture().intercept(r.result()())
                      ).result()
                     for r in (await self.gather((self.to_update(*a) for a in values),
                                                 desc='Checking'))]
@@ -362,7 +392,17 @@ class CliManager(Manager):
 
 class WsManager(Manager):
 
-    async def poll(self, web_request: aiohttp.web.Request) -> None:
+    def __init__(self, loop: Optional[asyncio.AbstractEventLoop] = None) -> None:
+        self.web_client_factory = _init_web_client
+        self.resolvers = _ResolverDict(self, self.RESOLVERS)
+
+    def finalise(self, config: Config) -> WsManager:
+        self.config = config
+        Session = prepare_db_session(config=self.config)
+        self.db = Session()
+        return self
+
+    async def _poll(self, web_request: aiohttp.web.Request) -> None:
         import aiohttp
         from .api import (ErrorCodes, ApiError,
                           Request, InstallRequest, UpdateRequest, RemoveRequest,
@@ -397,32 +437,32 @@ class WsManager(Manager):
                     try:
                         request = parse_request(message.data)
                     except ApiError as error:
-                        async def schedule_error(error=error) -> NoReturn:
+                        async def schedule_error(error=error):
                             raise error
-                        self.loop.create_task(respond(None, schedule_error()))  # type: ignore
+                        _loop.get().create_task(respond(None, schedule_error()))  # type: ignore
                     else:
                         if request.__class__ in {InstallRequest, UpdateRequest, RemoveRequest}:
                             # Here we're wrapping the coroutine in a future
                             # that the consumer will `wait_for` to complete therefore
                             # preserving the order of (would-be) synchronous operations
-                            future = self.loop.create_future()
+                            future = _loop.get().create_future()
                             consumer_queue.put_nowait((request, future))
 
-                            async def schedule(request=request, future=future) -> None:
+                            async def schedule(request=request, future=future):
                                 try:
                                     future.set_result(await request.prepare_response(self))
                                 except Exception as error:
                                     future.set_exception(error)
-                            self.loop.create_task(schedule())
+                            _loop.get().create_task(schedule())
                         else:
-                            self.loop.create_task(respond(request,
-                                                          request.prepare_response(self)))
+                            _loop.get().create_task(respond(request,
+                                                            request.prepare_response(self)))
 
         async def consumer() -> None:
             while True:
                 request, future = await consumer_queue.get()
 
-                async def consume(request=request, future=future) -> Any:
+                async def consume(request=request, future=future):
                     result = await asyncio.wait_for(future, None)
                     if request.__class__ in {InstallRequest, UpdateRequest}:
                         result = await result()
@@ -435,25 +475,22 @@ class WsManager(Manager):
         websocket = aiohttp.web.WebSocketResponse()
 
         await websocket.prepare(web_request)
-        self.loop.create_task(consumer())
-
-        async with (await self.client_factory()) as client:
-            _client.set(client)
-            await receiver()
+        _loop.get().create_task(consumer())
+        await receiver()
 
     def serve(self, host: str = '127.0.0.1', port: Optional[int] = None) -> None:
-        async def runner() -> None:
+        async def aserve():
             import os
             import socket
             from aiohttp import web
 
             app = web.Application()
-            app.router.add_routes([web.get('/', self.poll)])    # type: ignore
+            app.router.add_routes([web.get('/', self._poll)])    # type: ignore
             app_runner = web.AppRunner(app)
             await app_runner.setup()
 
-            server = await self.loop.create_server(app_runner.server, host, port,
-                                                   family=socket.AF_INET)
+            server = await _loop.get().create_server(app_runner.server, host, port,
+                                                     family=socket.AF_INET)
             sock = server.sockets[0]
             message = ('{{"address": "ws://{}:{}/"}}\n'
                        .format(*sock.getsockname()).encode())
@@ -472,5 +509,4 @@ class WsManager(Manager):
             finally:
                 await app_runner.cleanup()
 
-        context = contextvars.copy_context()
-        context.run(lambda: self.loop.run_until_complete(runner()))
+        self.run(aserve())

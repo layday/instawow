@@ -24,7 +24,8 @@ if TYPE_CHECKING:
 
 
 def _declarative_constructor(self, **kwargs):
-    for k, v in _COERCERS[self.__class__].parse_obj(kwargs):
+    intermediate_obj = _COERCERS[self.__class__].parse_obj(kwargs)
+    for k, v in intermediate_obj:
         setattr(self, k, v)
 
 

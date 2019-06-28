@@ -114,6 +114,7 @@ class ApiMetadata(BaseModel):
                   'region_type': {'alias': 'regionType'}}
 
 
+_T_Installed = Dict[str, List[AuraEntry]]
 _T_Outdated = List[Tuple[str, List[AuraEntry], ApiMetadata, str]]
 
 
@@ -126,7 +127,7 @@ class WaCompanionBuilder(ManagerAttrAccessMixin):
         self.file_out = self.builder_dir / 'WeakAurasCompanion.zip'
 
     @staticmethod
-    def extract_auras_from_lua(source: str) -> Dict[str, List[AuraEntry]]:
+    def extract_auras(source: str) -> _T_Installed:
         from luaparser import ast as lua_ast
 
         lua_tree = lua_ast.walk(lua_ast.parse(source))
@@ -139,11 +140,20 @@ class WaCompanionBuilder(ManagerAttrAccessMixin):
                        if not any(i for i in v if i.ignore_wago_update)}
         return aura_groups
 
-    async def get_wago_aura_metadata(self, aura_ids: Sequence[str]
-                                     ) -> List[ApiMetadata]:
+    def extract_installed_auras(self, account: str) -> _T_Installed:
+        import time
+
+        accounts = self.config.addon_dir.parents[1] / 'WTF/Account'
+        saved_vars = accounts / account / 'SavedVariables/WeakAuras.lua'
+
+        start = time.perf_counter()
+        aura_groups = self.extract_auras(saved_vars.read_text(encoding='utf-8'))
+        logger.debug(f'auras extracted in {time.perf_counter() - start}s')
+        return aura_groups
+
+    async def get_wago_aura_metadata(self, aura_ids: Sequence[str]) -> List[ApiMetadata]:
         url = metadata_api.with_query({'ids': ','.join(aura_ids)})
-        async with self.client.get()\
-                              .get(url) as response:
+        async with self.web_client.get(url) as response:
             metadata = await response.json()
 
         results = dict.fromkeys(aura_ids)
@@ -154,24 +164,10 @@ class WaCompanionBuilder(ManagerAttrAccessMixin):
 
     async def get_wago_aura(self, aura_id: str) -> str:
         url = raw_api.with_query({'id': aura_id})
-        async with self.client.get()\
-                              .get(url) as response:
+        async with self.web_client.get(url) as response:
             return await response.text()
 
-    async def get_outdated(self) -> _T_Outdated:
-        import time
-
-        def extract_auras_from_lua():
-            saved_vars = Path.glob(self.config.addon_dir.parents[1],
-                                   'WTF/Account/*/SavedVariables/WeakAuras.lua')
-            auras = (self.extract_auras_from_lua(f.read_text(encoding='utf-8'))
-                     for f in saved_vars)
-            return reduce(lambda p, n: {**p, **n}, auras)
-
-        start = time.perf_counter()
-        aura_groups = await self.loop.run_in_executor(None,
-                                                      extract_auras_from_lua)
-        logger.debug(f'auras extracted in {time.perf_counter() - start}s')
+    async def get_outdated(self, aura_groups: _T_Installed) -> _T_Outdated:
         if not aura_groups:
             return []
 
@@ -179,8 +175,8 @@ class WaCompanionBuilder(ManagerAttrAccessMixin):
         auras_with_metadata = filter(lambda v: v[1],
                                      zip(aura_groups.items(), aura_metadata))
         outdated_auras = [((s, w), r) for (s, w), r in auras_with_metadata
-                          if r.version > next((a for a in w if not a.parent),
-                                              w[0]).version]
+                          if r.version > next((a for a in w if not a.parent), w[0]).version
+                          ]
         if not outdated_auras:
             return []
 
@@ -198,13 +194,13 @@ class WaCompanionBuilder(ManagerAttrAccessMixin):
                                 trim_blocks=True, lstrip_blocks=True)
 
         with ZipFile(self.file_out, 'w') as addon_zip:
-            def write_tpl(tpl: str, ctx: dict) -> None:
+            def write_tpl(filename: str, ctx: dict) -> None:
                 # Not using a plain string as the first argument to ``writestr``
                 # 'cause the timestamp is set dynamically by default, which
                 # renders the build rather - shall we say - unreproducible
-                zip_info = ZipInfo(filename=f'WeakAurasCompanion/{tpl}')
-                addon_zip.writestr(zip_info,
-                                   jinja_env.get_template(tpl).render(**ctx))
+                zip_info = ZipInfo(filename=f'WeakAurasCompanion/{filename}')
+                tpl = jinja_env.get_template(filename)
+                addon_zip.writestr(zip_info, tpl.render(**ctx))
 
             write_tpl('data.lua',
                       {'was': [(m.slug,
@@ -225,10 +221,11 @@ class WaCompanionBuilder(ManagerAttrAccessMixin):
             write_tpl('init.lua', {})
             write_tpl('WeakAurasCompanion.toc', {})
 
-    async def build(self) -> None:
-        await self.loop.run_in_executor(None, lambda: self.builder_dir.mkdir(exist_ok=True))
-        make_addon = partial(self.make_addon, await self.get_outdated())
-        await self.loop.run_in_executor(None, make_addon)
+    def build(self, account: str) -> None:
+        self.builder_dir.mkdir(exist_ok=True)
+        installed = self.extract_installed_auras(account)
+        outdated = self.manager.run(self.get_outdated(installed))
+        self.make_addon(outdated)
 
     def checksum(self) -> str:
         from hashlib import sha256

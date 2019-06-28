@@ -13,6 +13,7 @@ from datetime import datetime
 from pathlib import Path
 import re
 from typing import TYPE_CHECKING
+from typing import Any, Callable, Iterable, Optional, List, Tuple, Type, TypeVar, Union
 from typing import Any, Callable, Iterable, Optional, Tuple, Union
 
 from . import __version__
@@ -20,6 +21,23 @@ from . import __version__
 if TYPE_CHECKING:
     from .config import Config
     from .manager import Manager
+
+
+O = TypeVar('O')
+
+
+class cached_property:
+
+    def __init__(self, func: Callable) -> None:
+        self.func = func
+
+    def __get__(self, obj: O, class_: Optional[Type[O]] = None) -> Any:
+        if class_ is None:
+            return self
+
+        value = self.func(obj)
+        obj.__dict__[self.func.__name__] = value
+        return value
 
 
 class ManagerAttrAccessMixin:
@@ -74,29 +92,29 @@ def is_outdated(manager: Manager) -> bool:
         return tuple(map(int, version.split('.')))
 
     cache_file = manager.config.config_dir / '.pypi_version'
-    if cache_file.exists() and \
-            (datetime.now() -
-             datetime.fromtimestamp(cache_file.stat().st_mtime)).days < 1:
+    mtime = cache_file.exists() and cache_file.stat().st_mtime
+    if mtime and (datetime.now() - datetime.fromtimestamp(mtime)).days < 1:
         version = cache_file.read_text(encoding='utf-8')
     else:
         from aiohttp.client import ClientError
 
         async def get_metadata() -> dict:
-            async with (await manager.client_factory()) as session, \
-                    session.get('https://pypi.org/pypi/instawow/json') as response:
+            url = 'https://pypi.org/pypi/instawow/json'
+            async with manager.web_client.get(url) as response:
                 return await response.json()
 
         try:
-            version = manager.loop.run_until_complete(get_metadata())['info']['version']
+            version = manager.run(get_metadata())['info']['version']
         except ClientError:
             version = __version__
         else:
             cache_file.write_text(version, encoding='utf-8')
-    # Make ``False``` if installed version is greater than version
-    # from PyPI (cache is stale)
+
+    # Assume cache is stale if installed version > version on PyPI
     if parse_version(__version__) > parse_version(version):
-        version = __version__
-    return __version__ != version
+        return False
+    else:
+        return __version__ != version
 
 
 def setup_logging(config: Config, level: Union[int, str] = 'INFO') -> int:

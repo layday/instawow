@@ -9,7 +9,7 @@ __all__ = ('ManagerResult',
            'ConfigError',
            'PkgAlreadyInstalled',
            'PkgConflictsWithInstalled',
-           'PkgConflictsWithPreexisting',
+           'PkgConflictsWithUncontrolled',
            'PkgNonexistent',
            'PkgTemporarilyUnavailable',
            'PkgNotInstalled',
@@ -93,10 +93,10 @@ class PkgConflictsWithInstalled(ManagerError):
         self.conflicting_pkg = conflicting_pkg
 
 
-class PkgConflictsWithPreexisting(ManagerError):
+class PkgConflictsWithUncontrolled(ManagerError):
 
     fmt_message = "package folders conflict with an add-on's"\
-                  ' not installed by instawow'
+                  ' not controlled by instawow'
 
     def __init__(self, folders: Set[str]) -> None:
         super().__init__()

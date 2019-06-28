@@ -25,9 +25,12 @@ from typing import (Any, Awaitable, Callable, ClassVar, Dict, Generator,
 from pydantic import BaseModel, Extra, StrictStr, ValidationError, validator
 from pydantic.errors import IntegerError
 
+from .config import Config
+from . import exceptions as E
 from .manager import WsManager
 from .models import *
 from .resolvers import Strategies
+from .utils import setup_logging
 
 
 JSONRPC_VERSION = '2.0'
@@ -35,31 +38,35 @@ JSONRPC_VERSION = '2.0'
 
 class ErrorCodes(IntEnum):
 
-    PARSE_ERROR                    = -32700
-    INVALID_REQUEST                = -32600
-    METHOD_NOT_FOUND               = -32601
-    INVALID_PARAMS                 = -32602
-    INTERNAL_ERROR                 = -32603
+    PARSE_ERROR                     = -32700
+    INVALID_REQUEST                 = -32600
+    METHOD_NOT_FOUND                = -32601
+    INVALID_PARAMS                  = -32602
+    INTERNAL_ERROR                  = -32603
 
-    MANAGER_ERROR                  = +10000
-    PKG_ALREADY_INSTALLED          = +10001
-    PKG_CONFLICTS_WITH_INSTALLED   = +10002
-    PKG_CONFLICTS_WITH_PREEXISTING = +10003
-    PKG_NONEXISTENT                = +10004
-    PKG_TEMPORARILY_UNAVAILABLE    = +10005
-    PKG_NOT_INSTALLED              = +10006
-    PKG_ORIGIN_INVALID             = +10007
-    PKG_UP_TO_DATE                 = +10008
+    MANAGER_ERROR                   = +10000
+    CONFIG_ERROR                    = +10010
+    PKG_ALREADY_INSTALLED           = +10021
+    PKG_CONFLICTS_WITH_INSTALLED    = +10022
+    PKG_CONFLICTS_WITH_UNCONTROLLED = +10023
+    PKG_NONEXISTENT                 = +10024
+    PKG_TEMPORARILY_UNAVAILABLE     = +10025
+    PKG_NOT_INSTALLED               = +10026
+    PKG_ORIGIN_INVALID              = +10027
+    PKG_UP_TO_DATE                  = +10028
+    PKG_STRATEGY_INVALID            = +10029
 
-    ManagerError                   = +10000
-    PkgAlreadyInstalled            = +10001
-    PkgConflictsWithInstalled      = +10002
-    PkgConflictsWithPreexisting    = +10003
-    PkgNonexistent                 = +10004
-    PkgTemporarilyUnavailable      = +10005
-    PkgNotInstalled                = +10006
-    PkgOriginInvalid               = +10007
-    PkgUpToDate                    = +10008
+    ManagerError                    = +10000
+    ConfigError                     = +10010
+    PkgAlreadyInstalled             = +10021
+    PkgConflictsWithInstalled       = +10022
+    PkgConflictsWithUncontrolled    = +10023
+    PkgNonexistent                  = +10024
+    PkgTemporarilyUnavailable       = +10025
+    PkgNotInstalled                 = +10026
+    PkgOriginInvalid                = +10027
+    PkgUpToDate                     = +10028
+    PkgStrategyInvalid              = +10029
 
 
 class _ApiErrorMeta(type):
@@ -159,6 +166,32 @@ class BaseRequest(Request):
     params: BaseRequestParams = BaseRequestParams()
 
 
+class SetupRequestParams(RequestParams):
+
+    addon_dir: Path
+
+
+class SetupRequest(Request):
+
+    _name = 'setup'
+
+    params: SetupRequestParams
+
+    __is_method_const = validator('method')(validate_const('setup'))
+
+    def prepare_response(self, manager: WsManager) -> Awaitable:
+        async def setup() -> Config:
+            config = Config(addon_dir=self.params.addon_dir).write()
+            setup_logging(config)
+            manager.finalise(config)
+            return config
+
+        return setup()
+
+    def consume_result(self, result: Config) -> SuccessResponse:
+        return SuccessResponse(result={'config': result.__dict__}, id=self.id)
+
+
 class ResolveRequestParams(RequestParams):
 
     uri: str
@@ -188,7 +221,7 @@ class InstallRequestParams(RequestParams):
 
     uri: str
     resolution_strategy: Strategies
-    overwrite: bool
+    replace: bool
 
     class Config:
         use_enum_values = True
@@ -205,10 +238,10 @@ class InstallRequest(Request):
     def prepare_response(self, manager: WsManager) -> Awaitable:
         return manager.to_install(*decompose_pkg_uri(manager, self.params.uri),
                                   self.params.resolution_strategy,
-                                  self.params.overwrite)
+                                  self.params.replace)
 
     def consume_result(self, result: Any) -> SuccessResponse:
-        return SuccessResponse(result=None, id=self.id)
+        return SuccessResponse(result=result.new_pkg, id=self.id)
 
 
 class UpdateRequestParams(RequestParams):
@@ -228,7 +261,7 @@ class UpdateRequest(Request):
         return manager.to_update(*decompose_pkg_uri(manager, self.params.uri))
 
     def consume_result(self, result: Any) -> SuccessResponse:
-        return SuccessResponse(result=None, id=self.id)
+        return SuccessResponse(result=result.new_pkg, id=self.id)
 
 
 class RemoveRequestParams(RequestParams):
@@ -341,8 +374,12 @@ jsonify = Encoder().encode
 
 TR = TypeVar('TR', bound=Request)
 
-_REQUESTS = {r._name: r for r in  {ResolveRequest, InstallRequest, UpdateRequest,
-                                   RemoveRequest, GetRequest}}
+_REQUESTS = {r._name: r for r in {SetupRequest,
+                                  ResolveRequest,
+                                  InstallRequest,
+                                  UpdateRequest,
+                                  RemoveRequest,
+                                  GetRequest}}
 
 
 def parse_request(message: str) -> TR:
