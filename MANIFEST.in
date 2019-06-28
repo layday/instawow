@@ -1,4 +1,1 @@
-include COPYING \
-        instawow/assets/* \
-        instawow/wa_templates/* \
-        requirements.txt
+include COPYING requirements.txt

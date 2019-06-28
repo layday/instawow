@@ -1,6 +1,6 @@
 
 from pathlib import Path
-from setuptools import setup
+from setuptools import find_packages, setup
 
 try:
     import fastentrypoints
@@ -19,7 +19,7 @@ setup(name='instawow',
       license='GPL-3.0-or-later',
       long_description=Path('README.rst').read_text(),
       python_requires='~=3.7',
-      packages=['instawow'],
+      packages=find_packages(),
       install_requires=Path('requirements.txt').read_text(),
       include_package_data=True,
       entry_points={'console_scripts': ['instawow = instawow.cli:main']})
