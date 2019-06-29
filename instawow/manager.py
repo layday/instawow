@@ -41,7 +41,7 @@ AsyncZipFile = run_in_thread(ZipFile)
 AsyncNamedTemporaryFile = partial(run_in_thread(NamedTemporaryFile),
                                   prefix='instawow-')
 async_mkdtemp = partial(run_in_thread(mkdtemp), prefix='instawow-')
-amove = run_in_thread(_move)
+async_move = run_in_thread(_move)
 
 
 @asynccontextmanager
@@ -61,27 +61,28 @@ async def new_temp_dir(delete: bool = False) -> AsyncGenerator[PurePath, None]:
 async def move(paths: Iterable[Path], dest: PurePath) -> None:
     for path in paths:
         logger.debug(f'moving {path} to {dest / path.name}')
-        await amove(str(path), str(dest))
+        await async_move(str(path), str(dest))
 
 
 class _Archive:
 
-    def __init__(self, archive: ZipFile, callback: Callable):
-        self._zip_file = archive
-        self._callback = callback
-
-        self.folders = {PurePath(p).parts[0] for p in self._zip_file.namelist()}
+    def __init__(self, archive: ZipFile, delete_after: bool = False):
+        self.archive = archive
+        self.delete_after = delete_after
+        self.folders = {PurePath(p).parts[0] for p in self.archive.namelist()}
 
     async def extract(self, parent_folder: Path) -> None:
-        def extract_() -> None:
+        def extract() -> None:
             conflicts = self.folders & {f.name for f in parent_folder.iterdir()}
             if conflicts:
                 raise E.PkgConflictsWithUncontrolled(conflicts)
 
-            self._zip_file.extractall(parent_folder)
-            self._callback()
+            self.archive.extractall(parent_folder)
+            self.archive.close()
+            if self.delete_after:
+                Path(self.archive.filename).unlink()
 
-        return await run_in_thread(extract_)()
+        return await run_in_thread(extract)()
 
 
 async def download_archive(url: str, *, chunk_size: int = 4096) -> _Archive:
@@ -89,14 +90,14 @@ async def download_archive(url: str, *, chunk_size: int = 4096) -> _Archive:
         from urllib.parse import unquote
 
         path = Path(unquote(url[7:]))
-        return _Archive(await AsyncZipFile(path), (lambda: ...))
+        return _Archive(await AsyncZipFile(path))
     else:
         async with _web_client.get().get(url) as response, \
                    open_temp_writer() as (path, write):
             async for chunk in response.content.iter_chunked(chunk_size):
                 await write(chunk)
 
-        return _Archive(await AsyncZipFile(path), path.unlink)
+        return _Archive(await AsyncZipFile(path), delete_after=True)
 
 
 def prepare_db_session(*, config: Config) -> sessionmaker:
