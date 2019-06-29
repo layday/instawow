@@ -6,24 +6,20 @@
 #
 aiohttp==3.5.4
 alembic==1.0.11
-ansimarkup==1.4.0         # via better-exceptions-fork, loguru
 antlr4-python3-runtime==4.7.2  # via luaparser
 async-timeout==3.0.1      # via aiohttp
 attrs==19.1.0             # via aiohttp
-better-exceptions-fork==0.2.1.post6  # via loguru
 chardet==3.0.4            # via aiohttp
 click==7.0
-colorama==0.4.1           # via ansimarkup, loguru
 idna==2.8                 # via yarl
 jinja2==2.10.1
-loguru==0.2.5
+loguru==0.3.0
 luaparser==2.1.2
 lxml==4.3.4
 mako==1.0.12              # via alembic
 markupsafe==1.1.1         # via jinja2, mako
 multidict==4.5.2          # via aiohttp, yarl
 pydantic==0.29
-pygments==2.4.2           # via better-exceptions-fork
 python-dateutil==2.8.0    # via alembic
 python-editor==1.0.4      # via alembic
 six==1.12.0               # via python-dateutil
