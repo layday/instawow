@@ -138,6 +138,19 @@ communicates with Google Analytics, Scorecard Research and Nielsen
 without user consent, which is unacceptable to me and my European
 brethren.
 
+Migration
+---------
+
+lcurse
+~~~~~~
+
+You can migrate your AddOn management setup from
+[lcurse](https://github.com/ephraim/lcurse/) by running the following command
+(this will overwrite your installed addons)::
+
+    cat ~/.lcurse/addons.json | jq --raw-output '.addons[].uri' |
+        tr 'A-Z' 'a-z' | xargs instawow install -o
+
 Development
 -----------
 
