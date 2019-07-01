@@ -216,6 +216,33 @@ def install(manager, addons, strategy, replace) -> None:
 
 
 @main.command()
+@click.argument('search_pattern', nargs=-1, required=True)
+@click.pass_context
+def search(ctx, search_pattern) -> None:
+    "Search add-ons."
+    manager = ctx.obj
+    search_pattern = ' '.join(search_pattern)
+    addons = manager.search(search_pattern)
+    for i, addon in reversed(list(enumerate(addons, 1))):
+        print('{i}. {name} (by {author})\n     {desc}'.format(i=i, **addon))
+    print("==> AddOns to install (eg: 1 2 3 or 1-3)")
+    to_install_specs = input("==> ").split()
+    to_install = set()
+    for spec in to_install_specs:
+        try:
+            to_install.add(int(spec))
+        except ValueError:
+            try:
+                start, end = spec.split('-', 1)
+                to_install |= set(range(int(start), int(end) + 1))
+            except ValueError:
+                continue
+    addon_params = [decompose_pkg_uri(ctx, None, addons[i - 1]['url'])
+                    for i in to_install]
+    ctx.invoke(install, addons=addon_params)
+
+
+@main.command()
 @click.argument('addons', nargs=-1, callback=decompose_pkg_uri, is_eager=True)
 @click.option('--strategy', '-s',
               callback=validate_strategy,

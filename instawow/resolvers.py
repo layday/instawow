@@ -63,6 +63,10 @@ class Resolver(ManagerAttrAccessMixin):
         "Turn an ID or slug into a `Pkg_`."
         raise NotImplementedError
 
+    async def list(self):
+        "Crawl the service and yield a list of `Pkg_`."
+        raise NotImplementedError
+
 
 class CurseResolver(Resolver):
 
@@ -124,6 +128,33 @@ class CurseResolver(Resolver):
                     date_published=file['fileDate'],
                     version=file['displayName'],
                     options=PkgOptions(strategy=strategy.name))
+
+    async def search(self, search_pattern: str):
+        from lxml.html import document_fromstring
+
+        search_url = self.curse_url / 'search'
+        params = {'search': search_pattern}
+        async with self.web_client.get(search_url, params=params) as response:
+            page_text = await response.text()
+
+            if "No results for" in page_text:
+                return []
+
+            html = document_fromstring(page_text)
+            rows = html.xpath(
+                '//div[contains(@class, "project-listing-row")]')
+            addons = []
+            for row in rows:
+                name = row.xpath('.//a/h3')[0].text
+                path = (row.xpath('.//a[contains(@href, "wow/addons")]')[0]
+                        .attrib.get('href').lstrip('/'))
+                url = URL('https://www.curseforge.com') / path
+                author = (row.xpath('.//a[contains(@href, "members/")]')[0]
+                          .text)
+                desc = (row.xpath('.//p')[0].text).strip()
+                addons.append({'name': name, 'url': str(url), 'author': author,
+                               'desc': desc})
+            return addons
 
 
 class WowiResolver(Resolver):

@@ -145,11 +145,13 @@ class _ResolverDict(dict):
 class Manager:
 
     RESOLVERS = {CurseResolver, WowiResolver, TukuiResolver, InstawowResolver}
+    SEARCH_RESOLVERS = {CurseResolver}
 
     def __init__(self, config: Config,
                  web_client_factory: Optional[Callable] = None) -> None:
         self.web_client_factory = web_client_factory or _init_web_client
         self.resolvers = _ResolverDict(self, self.RESOLVERS)
+        self.search_resolvers = _ResolverDict(self, self.SEARCH_RESOLVERS)
 
         self.config = config
         Session = prepare_db_session(config=self.config)
@@ -388,6 +390,17 @@ class CliManager(Manager):
                                                 desc='Checking'))]
 
         return self.run(update_many())
+
+    def search(self, search_string: str):
+        async def search_():
+            results = []
+            for resolver in self.search_resolvers.values():
+                try:
+                    results += await resolver.search(search_string)
+                except NotImplementedError:
+                    continue
+            return results
+        return self.run(search_())
 
 
 class WsManager(Manager):
