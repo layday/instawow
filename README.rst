@@ -144,9 +144,9 @@ Migration
 lcurse
 ~~~~~~
 
-You can migrate your AddOn management setup from
-[lcurse](https://github.com/ephraim/lcurse/) by running the following command
-(this will overwrite your installed addons)::
+You can migrate your add-on management setup from
+`lcurse <https://github.com/ephraim/lcurse>`__ by running the following command
+(this will overwrite your installed add-ons)::
 
     cat ~/.lcurse/addons.json | jq --raw-output '.addons[].uri' |
         tr 'A-Z' 'a-z' | xargs instawow install -o
