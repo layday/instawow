@@ -259,7 +259,7 @@ class InstawowResolver(Resolver):
         return Pkg_(origin=self.origin,
                     id='0',
                     slug='weakauras-companion',
-                    name=self.name,
+                    name='WeakAuras Companion',
                     description='A WeakAuras Companion wannabe.',
                     url='https://github.com/layday/instawow',
                     file_id=await run_in_thread(builder.checksum)(),
