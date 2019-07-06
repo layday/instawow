@@ -46,7 +46,8 @@ class Report:
     @property
     def code(self) -> int:
         return any(r for _, r in self.results
-                   if isinstance(r, (E.ManagerError, E.InternalError)))
+                   if (isinstance(r, (E.ManagerError, E.InternalError))
+                       and self.filter_fn(r)))
 
     def __str__(self) -> str:
         return '\n'.join(
