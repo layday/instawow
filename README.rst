@@ -106,24 +106,22 @@ the rug from under our feet.
 The Minion app also implements a similar though less sophisticated
 fingerprinting technique.
 
-Metadata harvesting
-~~~~~~~~~~~~~~~~~~~
+Metadata sourcing
+~~~~~~~~~~~~~~~~~
 
-The Twitch client uses a closed metadata API internally.
-Because the API was not built for third-party use it has not been
+Originally, *instawow* relied on the official feeds provided by Curse.
+Curse retired the feeds on 8 June 2018 and – for a period – *instawow* would
+scrape the CurseForge website.  The alternative would have been to use the
+old XML-like API.  Because the API was not built for third-party use, it had not been
 isolated from user accounts (cf. GitHub integrations).
-If users were to log into the API *instawow* would acquire full
-access to their account. Authentication is also complicated
+If users were to log into the API, *instawow* would acquire full
+access to their account.  Authentication was also complicated
 by the ongoing Curse account migration to Twitch and is (or should be)
 unnecessary for the simple use case of installing and updating add-ons.
-Until recently *instawow* used to rely on the official feeds.
-These were apparently sunsetted by Curse on 8 June 2018, leaving us with
-no choice but to scrape the website.
-Scraping is a delicate art.  The slightest variation in the HTML output
-might very easily trip up *instawow* and the code will need to be updated
-whenever Curse decide to change parts of *their* code.
-By contrast Minion uses an undocumented but open JSON API, which
-*instawow* does communicate with.  Tukui provides an API for public use.
+Thankfully, Twitch migrated to an unauthenticated
+API interally in Q2 2019, which we have adopted for our own use.
+This is similar to what Minion, the WoWInterface-branded add-on manager, has been
+doing for years.  The good people at Tukui provide an API for public use.
 
 Discovery
 ~~~~~~~~~
