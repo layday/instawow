@@ -127,10 +127,11 @@ def prepare_db_session(*, config: Config) -> sessionmaker:
 async def _init_web_client(**kwargs: Any) -> aiohttp.ClientSession:
     from aiohttp import ClientSession, TCPConnector
 
-    connector = TCPConnector(limit_per_host=10)
-    return ClientSession(connector=connector,
-                         headers={'User-Agent': _UA_STRING},
-                         **kwargs)
+    kwargs = {'connector': TCPConnector(limit_per_host=10),
+              'headers': {'User-Agent': _UA_STRING},
+              'trust_env': True,
+              **kwargs}
+    return ClientSession(**kwargs)
 
 
 class _ResolverDict(dict):
