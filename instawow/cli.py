@@ -153,7 +153,7 @@ def create_config() -> Config:
 
         # Don't bother if Python was built without GNU readline - we'd have to
         # reimplement path completion
-        if 'GNU readline' in readline.__doc__:
+        if 'GNU readline' in getattr(readline, '__doc__', ''):
             readline.parse_and_bind('tab: complete')
             readline.set_completer_delims('')   # Do not split up the string
 
