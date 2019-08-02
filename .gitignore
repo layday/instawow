@@ -1,6 +1,8 @@
 __pycache__
-/.pytest_cache
-/.tox
 
+/.mypy_cache
+/.pytest_cache
+/.venv
 /*.egg-info
 /dist
+/shell.nix
