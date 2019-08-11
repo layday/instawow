@@ -131,10 +131,7 @@ It does not seek to drive people away from add-on portals; but to make
 installing, updating and removing add-ons found on portals hassle-free
 for those of us who are (ever so slightly) proficient with the command
 line and do not particularly revel in using bloatware or inhabiting
-walled gardens.  It is also important to note that the Twitch client
-communicates with Google Analytics, Scorecard Research and Nielsen
-without user consent, which is unacceptable to me and my European
-brethren.
+walled gardens.
 
 World of Warcraft Classic
 -------------------------
