@@ -140,33 +140,38 @@ World of Warcraft Classic
 -------------------------
 
 *instawow* does not have tailored support for Classic.
-The easiest way to manage your classic add-ons is to use a separate
+The easiest way to manage your classic add-ons is to create a separate
 *instawow* profile.  For instance::
 
     env INSTAWOW_CONFIG_DIR=~/.config/instawow-classic instawow
 
-For ease of use, you might want to set up an alias.  In your Bash profile
+For ease of use, you might want to set up an alias.  In your Bash profile,
 add::
 
-    alias instawow-classic='env INSTAWOW_CONFIG_DIR=~/.config/instawow-classic instawow'
+    alias instawow-classic='INSTAWOW_CONFIG_DIR=~/.config/instawow-classic instawow'
 
 You would then invoke *instawow* for Classic using ``instawow-classic``.
 CurseForge support for Classic is lacking.  Currently, you can only
 reliably install classic add-ons from WoWInterface where these are listed
 separately from their retail counterparts.
 
-Migration
----------
+Related work
+------------
 
-lcurse
-~~~~~~
+The author of *wowman* maintains a list of similar software in their
+`comrades.csv <https://github.com/ogri-la/wowman/blob/develop/comrades.csv>`__.
 
-You can migrate your add-on management setup from
-`lcurse <https://github.com/ephraim/lcurse>`__ by running the following command
-(this will overwrite your installed add-ons)::
+Migrating from lcurse
+~~~~~~~~~~~~~~~~~~~~~
+
+`lcurse <https://github.com/ephraim/lcurse>`__ has not seen updates in a while.
+If you wish, you can migrate your add-ons from *lcurse* to *instawow*
+by running the following command::
 
     cat ~/.lcurse/addons.json | jq --raw-output '.addons[].uri' |
         tr 'A-Z' 'a-z' | xargs instawow install -o
+
+Do note that this will overwrite your add-ons.
 
 Development
 -----------
