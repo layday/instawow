@@ -136,6 +136,25 @@ communicates with Google Analytics, Scorecard Research and Nielsen
 without user consent, which is unacceptable to me and my European
 brethren.
 
+World of Warcraft Classic
+-------------------------
+
+*instawow* does not have tailored support for Classic.
+The easiest way to manage your classic add-ons is to use a separate
+*instawow* profile.  For instance::
+
+    env INSTAWOW_CONFIG_DIR=~/.config/instawow-classic instawow
+
+For ease of use, you might want to set up an alias.  In your Bash profile
+add::
+
+    alias instawow-classic='env INSTAWOW_CONFIG_DIR=~/.config/instawow-classic instawow'
+
+You would then invoke *instawow* for Classic using ``instawow-classic``.
+CurseForge support for Classic is lacking.  Currently, you can only
+reliably install classic add-ons from WoWInterface where these are listed
+separately from their retail counterparts.
+
 Migration
 ---------
 
