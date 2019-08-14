@@ -51,6 +51,33 @@ class TestValidCursePkgLifecycle(_CliTest):
         assert cmp_fn(invoke_runner(test_input).output, expected_output)
 
 
+class TestValidClassicCursePkgLifecycle(_CliTest):
+
+    @pytest.mark.parametrize(
+        'test_input, cmp_fn, expected_output',
+        [('install curse+classic:details',
+          str.startswith,
+          '✓ curse+classic:details\n  installed'),
+         ('install curse+classic:details',
+          str.__eq__,
+          '✗ curse+classic:details\n  package already installed\n'),
+         ('update curse+classic:details',
+          str.__eq__,
+          '✗ curse+classic:details\n  package is up to date\n'),
+         ('remove curse+classic:details',
+          str.__eq__,
+          '✓ curse+classic:details\n  removed\n'),
+         ('update curse+classic:details',
+          str.__eq__,
+          '✗ curse+classic:details\n  package is not installed\n'),
+         ('remove curse+classic:details',
+          str.__eq__,
+          '✗ curse+classic:details\n  package is not installed\n'),])
+    def test_valid_curse_pkg_lifecycle(self, invoke_runner,
+                                       test_input, cmp_fn, expected_output):
+        assert cmp_fn(invoke_runner(test_input).output, expected_output)
+
+
 class TestValidTukuiPkgLifecycle(_CliTest):
 
     @pytest.mark.parametrize(
@@ -92,7 +119,7 @@ class TestValidTukuiPkgLifecycle(_CliTest):
           str.__eq__,
           '✗ tukui:tukui\n  package is not installed\n'),
         ])
-    @pytest.mark.skip(reason='corrupted zip files')
+    # @pytest.mark.skip(reason='corrupted zip files')
     def test_valid_tukui_pkg_lifecycle(self, invoke_runner,
                                        test_input, cmp_fn, expected_output):
         assert cmp_fn(invoke_runner(test_input).output, expected_output)
@@ -232,14 +259,14 @@ class TestInstallWithAlias(_CliTest):
                                       test_input, cmp_fn, expected_output):
         assert cmp_fn(invoke_runner(test_input).output, expected_output)
 
-    @pytest.mark.skip(reason='corrupted zip files')
+    # @pytest.mark.skip(reason='corrupted zip files')
     def test_install_with_tukui_addon_alias(self, invoke_runner):
         assert invoke_runner('install https://www.tukui.org/addons.php?id=3')\
             .output\
             .startswith('✓ tukui:3\n  installed')
 
 
-    @pytest.mark.skip(reason='corrupted zip files')
+    # @pytest.mark.skip(reason='corrupted zip files')
     def test_install_with_tukui_ui_alias(self, invoke_runner):
         assert invoke_runner('install https://www.tukui.org/download.php?ui=tukui')\
             .output\

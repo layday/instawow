@@ -2,7 +2,8 @@
 from __future__ import annotations
 
 __all__ = ('Strategies', 'Pkg_',
-           'CurseResolver', 'WowiResolver', 'TukuiResolver', 'InstawowResolver')
+           'CurseResolver', 'ClassicCurseResolver', 'WowiResolver',
+           'TukuiResolver', 'InstawowResolver')
 
 import asyncio
 from datetime import datetime
@@ -26,15 +27,15 @@ class Strategies(str, Enum):
 
     @classmethod
     def validate(cls, method: Callable) -> Callable:
-        def wrapper(self, id_or_slug: str, *, strategy: str) -> Callable:
+        def wrapper(self, id_or_slug: str, *, strategy: str, **kwargs) -> Callable:
             try:
                 strategy_enum = cls[strategy]
             except KeyError:
                 pass
             else:
                 if strategy_enum in self.strategies:
-                    return method(self, id_or_slug, strategy=strategy_enum)
-            raise E.PkgStrategyInvalid(strategy)
+                    return method(self, id_or_slug, strategy=strategy_enum, **kwargs)
+            raise E.PkgStrategyUnsupported(strategy)
 
         return wrapper
 
@@ -72,7 +73,7 @@ class CurseResolver(Resolver):
 
     curse_url = URL('https://www.curseforge.com/wow/addons')
     # https://twitchappapi.docs.apiary.io/
-    addon_api_url = URL('https://addons-ecs.forgesvc.net/api/v2/addon')
+    addon_api_url = URL('https://addons-ecs.forgesvc.net/api/v2/addon/')
 
     @classmethod
     def decompose_url(cls, uri: str) -> Optional[Tuple[str, str]]:
@@ -87,7 +88,8 @@ class CurseResolver(Resolver):
             return (cls.origin, url.parts[3])
 
     @Strategies.validate
-    async def resolve(self, id_or_slug: str, *, strategy: Strategies) -> Pkg_:
+    async def resolve(self, id_or_slug: str, *, strategy: Strategies,
+                      _classic: bool = False) -> Pkg_:
         from lxml.html import document_fromstring
 
         project_url = self.curse_url / id_or_slug
@@ -106,12 +108,22 @@ class CurseResolver(Resolver):
                 raise E.PkgNonexistent
             addon_metadata = await response.json()
 
-        if strategy is Strategies.default:
-            file = next(f for f in addon_metadata['latestFiles']
-                        if f['id'] == addon_metadata['defaultFileId'])
-        elif strategy is Strategies.latest:
-            _, file = max((f['id'], f) for f in addon_metadata['latestFiles']
-                          if not f['isAlternate'])
+        if _classic:
+            files_url = ((self.addon_api_url / addon_id / 'files')
+                         .with_query({'gameVersionFlavor': 'wow_classic'}))
+            async with self.web_client.get(files_url) as files_response:
+                files = await files_response.json()
+
+            if strategy is Strategies.default:
+                files = (f for f in files if f['releaseType'] == 1)
+            _, file = max((f['id'], f) for f in files if not f['isAlternate'])
+        else:
+            if strategy is Strategies.default:
+                file = next(f for f in addon_metadata['latestFiles']
+                            if f['id'] == addon_metadata['defaultFileId'])
+            elif strategy is Strategies.latest:
+                _, file = max((f['id'], f) for f in addon_metadata['latestFiles']
+                            if not f['isAlternate'])
 
         return Pkg_(origin=self.origin,
                     id=addon_metadata['id'],
@@ -124,6 +136,16 @@ class CurseResolver(Resolver):
                     date_published=file['fileDate'],
                     version=file['displayName'],
                     options=PkgOptions(strategy=strategy.name))
+
+
+class ClassicCurseResolver(CurseResolver):
+
+    origin = 'curse+classic'
+    name = 'Curse for Classic'
+
+    @Strategies.validate
+    async def resolve(self, id_or_slug: str, *, strategy: Strategies) -> Pkg_:
+        return await super().resolve(id_or_slug, strategy=strategy, _classic=True)
 
 
 class WowiResolver(Resolver):

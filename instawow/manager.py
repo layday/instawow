@@ -21,7 +21,9 @@ from . import __db_version__
 from .config import Config
 from . import exceptions as E
 from .models import ModelBase, Pkg, PkgFolder, should_migrate
-from .resolvers import Pkg_, CurseResolver, WowiResolver, TukuiResolver, InstawowResolver
+from .resolvers import (Pkg_,
+                        CurseResolver, ClassicCurseResolver, WowiResolver,
+                        TukuiResolver, InstawowResolver)
 
 if TYPE_CHECKING:
     import aiohttp
@@ -145,7 +147,8 @@ class _ResolverDict(dict):
 
 class Manager:
 
-    RESOLVERS = {CurseResolver, WowiResolver, TukuiResolver, InstawowResolver}
+    RESOLVERS = {CurseResolver, ClassicCurseResolver, WowiResolver,
+                 TukuiResolver, InstawowResolver}
 
     def __init__(self, config: Config,
                  web_client_factory: Optional[Callable] = None) -> None:
