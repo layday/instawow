@@ -148,9 +148,8 @@ add::
     alias instawow-classic='INSTAWOW_CONFIG_DIR=~/.config/instawow-classic instawow'
 
 You would then invoke *instawow* for Classic using ``instawow-classic``.
-CurseForge support for Classic is lacking.  Currently, you can only
-reliably install classic add-ons from WoWInterface where these are listed
-separately from their retail counterparts.
+To install classic add-ons from CurseForge, use the ``curse+classic`` specifier, e.g.
+``instawow-classic install curse+classic:details``.
 
 Related work
 ------------
