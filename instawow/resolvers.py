@@ -116,7 +116,10 @@ class CurseResolver(Resolver):
 
             if strategy is Strategies.default:
                 files = (f for f in files if f['releaseType'] == 1)
-            _, file = max((f['id'], f) for f in files if not f['isAlternate'])
+            try:
+                _, file = max((f['id'], f) for f in files if not f['isAlternate'])
+            except ValueError:
+                raise E.PkgNonexistent
         else:
             if strategy is Strategies.default:
                 file = next(f for f in addon_metadata['latestFiles']
