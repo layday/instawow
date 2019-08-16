@@ -108,25 +108,19 @@ class CurseResolver(Resolver):
                 raise E.PkgNonexistent
             addon_metadata = await response.json()
 
-        if _classic:
-            files_url = ((self.addon_api_url / addon_id / 'files')
-                         .with_query({'gameVersionFlavor': 'wow_classic'}))
-            async with self.web_client.get(files_url) as files_response:
-                files = await files_response.json()
-
-            if strategy is Strategies.default:
-                files = (f for f in files if f['releaseType'] == 1)
-            try:
-                _, file = max((f['id'], f) for f in files if not f['isAlternate'])
-            except ValueError:
-                raise E.PkgNonexistent
-        else:
-            if strategy is Strategies.default:
-                file = next(f for f in addon_metadata['latestFiles']
-                            if f['id'] == addon_metadata['defaultFileId'])
-            elif strategy is Strategies.latest:
-                _, file = max((f['id'], f) for f in addon_metadata['latestFiles']
-                            if not f['isAlternate'])
+        flavor = 'wow_classic' if _classic else 'wow_retail'
+        files = (f for f in addon_metadata['latestFiles']
+                 if not f['isAlternate']    # nolib file if true
+                 and f['gameVersionFlavor'] == flavor)
+        if strategy is Strategies.default:
+            # 1 = stable
+            # 2 = beta
+            # 3 = alpha
+            files = (f for f in files if f['releaseType'] == 1)
+        try:
+            _, file = max((f['id'], f) for f in files)
+        except ValueError as error:
+            raise E.PkgNonexistent from error
 
         return Pkg_(origin=self.origin,
                     id=addon_metadata['id'],
@@ -144,7 +138,7 @@ class CurseResolver(Resolver):
 class ClassicCurseResolver(CurseResolver):
 
     origin = 'curse+classic'
-    name = 'Curse for Classic'
+    name = 'CurseForge for Classic'
 
     @Strategies.validate
     async def resolve(self, id_or_slug: str, *, strategy: Strategies) -> Pkg_:
