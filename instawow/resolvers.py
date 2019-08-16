@@ -140,6 +140,10 @@ class ClassicCurseResolver(CurseResolver):
     origin = 'curse+classic'
     name = 'CurseForge for Classic'
 
+    @classmethod
+    def decompose_url(cls, uri: str) -> None:
+        return
+
     @Strategies.validate
     async def resolve(self, id_or_slug: str, *, strategy: Strategies) -> Pkg_:
         return await super().resolve(id_or_slug, strategy=strategy, _classic=True)
