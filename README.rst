@@ -31,10 +31,10 @@ Molinari::
     instawow install wowi:13188
     instawow install https://www.wowinterface.com/downloads/info13188-Molinari.html
 
-By default *instawow* will install the latest file to have been
-*released*. You may also install the latest file that has been
+By default, *instawow* will install the latest file that was *released*.
+You can choose to install the latest file that has been
 uploaded (be it stable, or beta or alpha quality) by
-passing ``--strategy=latest``. This option only affects CurseForge packages.
+passing ``--strategy=latest``.  This option only works with CurseForge packages.
 
 You can uninstall add-ons with::
 
@@ -59,13 +59,6 @@ e.g. ``instawow info moli`` will attempt to match 'moli' with ``curse:molinari``
 Extras
 ------
 
-BitBar integration
-~~~~~~~~~~~~~~~~~~
-
-*instawow* ships with a `BitBar <https://getbitbar.com/>`__ plug-in
-for macOS, which you can use to update add-ons from the menu bar.
-To install the plug-in run ``instawow extras bitbar install``.
-
 WeakAuras aura updater
 ~~~~~~~~~~~~~~~~~~~~~~
 
@@ -76,16 +69,16 @@ and provided that you have WeakAuras installed::
     instawow extras weakauras build-companion -a <your account name>
     instawow install instawow:weakauras-companion
 
-Building the companion add-on is expensive, which is why the operation
-is not baked into the normal workflow.  (For reference, parsing WeakAuras'
-saved variables takes about 15 seconds on my machine.)
-Therefore you will have to run ``instawow extras weakauras build-companion`` prior to
+Parsing the the WeakAuras saved variables file can take quite a bit of time
+which is why the operation is not baked into the normal workflow;
+you will have to run ``instawow extras weakauras build-companion`` prior to
 ``instawow update`` to receive aura updates.
 
 WebSocket server
 ~~~~~~~~~~~~~~~~
 
-A WebSocket client can be used to operate *instawow* in lieu of the command line
+Of interest only to developers: a WebSocket client can be used to
+operate *instawow* in lieu of the command line
 through a JSON-RPC API. To start the WebSocket server, run ``instawow serve``.
 The API does not implement JSON-RPC batch calls; request grouping must be
 done client-side.
@@ -93,24 +86,33 @@ done client-side.
 Caveats
 -------
 
-Auto-detection
-~~~~~~~~~~~~~~
+Detecting existing add-ons
+~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-*instawow* has no way to know about add-ons it did not itself install.
-The Twitch (née Curse) client uses a proprietary fingerprinting algorithm
-to reconcile add-ons installed locally with add-ons they keep on their servers.
-Even if the fingerprint had been reverse-engineered, I'd be loath to adopt it.
-Ideologically, because it was born of a desire to monopolise the add-on distribution
-market; and, practically, because we could never know when Curse might pull
-the rug from under our feet.
-The Minion app also implements a similar though less sophisticated
-fingerprinting technique.
+The Twitch and Minion clients each use their own, proprietary
+fingerprinting algorithm to reconcile add-ons you have installed with add-ons
+they keep on their servers.  Though the details of their implementation
+elude me, *instawow* could accomplish something similar by combining a variety
+of cues (e.g. folders, TOC entries).  However, *instawow* tries very hard to be
+source-agnostic and will not default to installing an add-on from one host
+over another.  The alternative would require some degree of interactivity
+which I feel is better suited to a desktop client.
+
+Searching for add-ons
+~~~~~~~~~~~~~~~~~~~~~
+
+*instawow* tries to make installing, updating and removing
+add-ons quick and painless for those of us who are
+(ever so slightly) proficient with the command line
+and do not revel in using bloatware which infringe on our privacy
+or inhabiting walled gardens.
+It does not try to circumvent add-on portals entirely.
 
 Metadata sourcing
 ~~~~~~~~~~~~~~~~~
 
 Originally, *instawow* relied on the official feeds provided by Curse.
-Curse retired the feeds on 8 June 2018 and – for a period – *instawow* would
+Curse retired the feeds in June 2018 and – for a period – *instawow* would
 scrape the CurseForge website.  The alternative would have been to use the
 old XML-like API.  Because the API was not built for third-party use, it had not been
 isolated from user accounts (cf. GitHub integrations).
@@ -122,16 +124,8 @@ Thankfully, Twitch migrated to an unauthenticated
 API interally in Q2 2019, which we have adopted for our own use.
 This is similar to what Minion, the WoWInterface-branded add-on manager, has been
 doing for years.  The good people at Tukui provide an API for public use.
-
-Discovery
-~~~~~~~~~
-
-*instawow*'s purpose is to facilitate add-on management and not discovery.
-It does not seek to drive people away from add-on portals; but to make
-installing, updating and removing add-ons found on portals hassle-free
-for those of us who are (ever so slightly) proficient with the command
-line and do not particularly revel in using bloatware or inhabiting
-walled gardens.
+*instawow* might break whenever one of our sources introduces
+a change to their website or API (though only temporarily).
 
 World of Warcraft Classic
 -------------------------
