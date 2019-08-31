@@ -219,7 +219,8 @@ class WaCompanionBuilder(ManagerAttrAccessMixin):
                                 for a in w],
                        'stash': []})    # Send to WAC not supported - always empty
             write_tpl('init.lua', {})
-            write_tpl('WeakAurasCompanion.toc', {})
+            write_tpl('WeakAurasCompanion.toc',
+                      {'interface': '11302' if self.config.is_classic else '80200'})
 
     def build(self, account: str) -> None:
         self.builder_dir.mkdir(exist_ok=True)
