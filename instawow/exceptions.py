@@ -10,14 +10,14 @@ __all__ = ('ManagerResult',
            'PkgConflictsWithInstalled',
            'PkgConflictsWithUncontrolled',
            'PkgNonexistent',
-           'PkgTemporarilyUnavailable',
+           'PkgFileUnavailable',
            'PkgNotInstalled',
            'PkgOriginInvalid',
            'PkgUpToDate',
-           'PkgStrategyInvalid',
+           'PkgStrategyUnsupported',
            'InternalError')
 
-from typing import TYPE_CHECKING, ClassVar, Set
+from typing import TYPE_CHECKING, ClassVar, Optional, Set
 
 if TYPE_CHECKING:
     from .models import Pkg
@@ -98,9 +98,17 @@ class PkgNonexistent(ManagerError):
     fmt_message = 'package does not exist'
 
 
-class PkgTemporarilyUnavailable(ManagerError):
+class PkgFileUnavailable(ManagerError):
 
-    fmt_message = 'package is temporarily unavailable'
+    fmt_message = 'package file is not available for download'
+
+    def __init__(self, detailed_message: Optional[str] = None) -> None:
+        super().__init__()
+        self.detailed_message = detailed_message
+
+    @property
+    def message(self) -> str:
+        return self.detailed_message or super().message
 
 
 class PkgNotInstalled(ManagerError):
@@ -118,9 +126,9 @@ class PkgUpToDate(ManagerError):
     fmt_message = 'package is up to date'
 
 
-class PkgStrategyInvalid(ManagerError):
+class PkgStrategyUnsupported(ManagerError):
 
-    fmt_message = '{self.strategy!r} is not a valid strategy'
+    fmt_message = '{self.strategy!r} is not a supported strategy'
 
     def __init__(self, strategy: str) -> None:
         super().__init__()

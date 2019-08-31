@@ -6,6 +6,7 @@ loguru
 luaparser
 lxml
 pydantic
+singledispatchmethod ; python_version < '3.8'
 SQLAlchemy
 texttable
 tqdm
