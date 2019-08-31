@@ -7,7 +7,7 @@ import asyncio
 from functools import partial, reduce
 from pathlib import Path
 from typing import TYPE_CHECKING
-from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Tuple, Union
+from typing import Any, Dict, List, NamedTuple, Optional, Sequence, Union
 
 from loguru import logger
 from pydantic import BaseModel, Extra, validator
@@ -16,14 +16,14 @@ from yarl import URL
 from .utils import ManagerAttrAccessMixin, bucketise
 
 if TYPE_CHECKING:
-    from luaparser import astnodes as lua_nodes
+    from luaparser import astnodes
     from .manager import Manager
 
 
 metadata_api = URL('https://data.wago.io/api/check/weakauras')
 raw_api = URL('https://data.wago.io/api/raw/encoded')
 
-_EMPTY_URL = URL()
+_my_path = URL()
 
 
 class AuraURLInvalid(Exception):
@@ -35,7 +35,7 @@ class AuraEntry(BaseModel):
     id: str
     uid: str
     parent: Optional[str]
-    url: URL = _EMPTY_URL
+    url: URL = _my_path
     version: int
     semver: Optional[str]
     ignore_wago_update: bool = False
@@ -46,21 +46,20 @@ class AuraEntry(BaseModel):
 
     @validator('url', always=True, pre=True)
     def __prep_url(cls, value: Any) -> Any:
-        if value == _EMPTY_URL:
+        if value == _my_path:
             raise AuraURLInvalid
         return value
 
     @validator('id', 'uid', 'parent', 'url', 'semver', pre=True)
-    def __convert_str(cls, value: lua_nodes.String) -> str:
+    def __convert_str(cls, value: astnodes.String) -> str:
         return value.s
 
     @validator('version', pre=True)
-    def __convert_int(cls, value: lua_nodes.Number) -> int:
+    def __convert_int(cls, value: astnodes.Number) -> int:
         return value.n
 
     @validator('ignore_wago_update', pre=True)
-    def __convert_bool(cls, value: Union[lua_nodes.TrueExpr, lua_nodes.FalseExpr]
-                       ) -> bool:
+    def __convert_bool(cls, value: Union[astnodes.TrueExpr, astnodes.FalseExpr]) -> bool:
         return value.display_name == 'True'
 
     @validator('url', pre=True)
@@ -72,7 +71,7 @@ class AuraEntry(BaseModel):
         return url
 
     @classmethod
-    def from_lua_ast(cls, tree: lua_nodes.Field) -> Optional[AuraEntry]:
+    def from_lua_ast(cls, tree: astnodes.Field) -> Optional[AuraEntry]:
         try:
             return cls(**{f.key.s: f.value for f in tree.value.fields})
         # The URL validators raise an exception not derived from ValueError
@@ -114,8 +113,12 @@ class ApiMetadata(BaseModel):
                   'region_type': {'alias': 'regionType'}}
 
 
-_T_Installed = Dict[str, List[AuraEntry]]
-_T_Outdated = List[Tuple[str, List[AuraEntry], ApiMetadata, str]]
+class _OutdatedAura(NamedTuple):
+
+    slug: str
+    existing_auras: List[AuraEntry]
+    metadata: ApiMetadata
+    import_string: str
 
 
 class WaCompanionBuilder(ManagerAttrAccessMixin):
@@ -127,20 +130,21 @@ class WaCompanionBuilder(ManagerAttrAccessMixin):
         self.file_out = self.builder_dir / 'WeakAurasCompanion.zip'
 
     @staticmethod
-    def extract_auras(source: str) -> _T_Installed:
-        from luaparser import ast as lua_ast
+    def extract_auras(source: str) -> Dict[str, List[AuraEntry]]:
+        from luaparser import ast
 
-        lua_tree = lua_ast.walk(lua_ast.parse(source))
-        aura_table = next(i for i in lua_tree
-                          if reduce(lambda p, n: getattr(p, n, None),
-                                    [i, 'key', 's']) == 'displays').value.fields
+        def is_aura_table(entry: Any) -> bool:
+            return reduce(lambda p, n: getattr(p, n, None), [entry, 'key', 's']) == 'displays'
+
+        lua_tree = ast.walk(ast.parse(source))
+        aura_table = next(filter(is_aura_table, lua_tree)).value.fields
         auras = filter(None, map(AuraEntry.from_lua_ast, aura_table))
-        aura_groups = bucketise(auras, key=lambda a: a.url.parts[1])
-        aura_groups = {k: v for k, v in aura_groups.items()
+        aura_groups = {k: v
+                       for k, v in bucketise(auras, key=lambda a: a.url.parts[1]).items()
                        if not any(i for i in v if i.ignore_wago_update)}
         return aura_groups
 
-    def extract_installed_auras(self, account: str) -> _T_Installed:
+    def extract_installed_auras(self, account: str) -> Dict[str, List[AuraEntry]]:
         import time
 
         accounts = self.config.addon_dir.parents[1] / 'WTF/Account'
@@ -160,32 +164,31 @@ class WaCompanionBuilder(ManagerAttrAccessMixin):
         for item in (ApiMetadata(**i) for i in metadata):
             if item.slug in results:
                 results[item.slug] = item
+            else:
+                logger.info(f'extraneous {item.slug!r} slug in metadata')
         return list(results.values())
 
-    async def get_wago_aura(self, aura_id: str) -> str:
+    async def get_wago_aura_import_string(self, aura_id: str) -> str:
         url = raw_api.with_query({'id': aura_id})
         async with self.web_client.get(url) as response:
             return await response.text()
 
-    async def get_outdated(self, aura_groups: _T_Installed) -> _T_Outdated:
+    async def get_outdated(self, aura_groups: Dict[str, List[AuraEntry]]) -> List[_OutdatedAura]:
         if not aura_groups:
             return []
 
         aura_metadata = await self.get_wago_aura_metadata(list(aura_groups))
         auras_with_metadata = filter(lambda v: v[1],
                                      zip(aura_groups.items(), aura_metadata))
-        outdated_auras = [((s, w), r) for (s, w), r in auras_with_metadata
-                          if r.version > next((a for a in w if not a.parent), w[0]).version
-                          ]
-        if not outdated_auras:
-            return []
-
-        new_auras = await asyncio.gather(*(self.get_wago_aura(r.id)
+        outdated_auras = [((s, w), r)
+                          for (s, w), r in auras_with_metadata
+                          if r.version > next((a for a in w if not a.parent), w[0]).version]
+        new_auras = await asyncio.gather(*(self.get_wago_aura_import_string(r.id)
                                            for _, r in outdated_auras))
-        return [(s, w, r, p)
+        return [_OutdatedAura(s, w, r, p)
                 for ((s, w), r), p in zip(outdated_auras, new_auras)]
 
-    def make_addon(self, outdated: _T_Outdated) -> None:
+    def make_addon(self, outdated: List[_OutdatedAura]) -> None:
         from jinja2 import Environment, FileSystemLoader
         from zipfile import ZipFile, ZipInfo
 
@@ -203,20 +206,20 @@ class WaCompanionBuilder(ManagerAttrAccessMixin):
                 addon_zip.writestr(zip_info, tpl.render(**ctx))
 
             write_tpl('data.lua',
-                      {'was': [(m.slug,
-                                {'name': m.name,
-                                 'author': m.username,
-                                 'encoded': p,
-                                 'wagoVersion': m.version,
-                                 'wagoSemver': m.version_string,
-                                 'versionNote': m.changelog.text})
-                               for _, _, m, p, in outdated],
+                      {'was': [(o.metadata.slug,
+                                {'name': o.metadata.name,
+                                 'author': o.metadata.username,
+                                 'encoded': o.import_string,
+                                 'wagoVersion': o.metadata.version,
+                                 'wagoSemver': o.metadata.version_string,
+                                 'versionNote': o.metadata.changelog.text})
+                               for o in outdated],
                        'uids': [(a.uid, a.url.parts[1])
-                                for _, w, _, _ in outdated
-                                for a in w],
+                                for o in outdated
+                                for a in o.existing_auras],
                        'ids':  [(a.id, a.url.parts[1])
-                                for _, w, _, _ in outdated
-                                for a in w],
+                                for o in outdated
+                                for a in o.existing_auras],
                        'stash': []})    # Send to WAC not supported - always empty
             write_tpl('init.lua', {})
             write_tpl('WeakAurasCompanion.toc',
