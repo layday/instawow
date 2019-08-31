@@ -17,20 +17,25 @@ import abc
 from datetime import datetime
 from enum import Enum, IntEnum
 from functools import partial
-from json import JSONDecodeError, JSONEncoder, loads
+from json import JSONDecodeError, JSONEncoder, loads as json_loads
 from pathlib import Path
-from typing import (Any, Awaitable, Callable, ClassVar, Dict, Generator,
+from typing import (Any, Awaitable, Callable, Generator,
                     List, Optional, Tuple, TypeVar, Union)
 
-from pydantic import BaseModel, Extra, StrictStr, ValidationError, validator
+from pydantic import BaseModel, StrictStr, ValidationError
 from pydantic.errors import IntegerError
 
 from .config import Config
-from . import exceptions as E
 from .manager import WsManager
-from .models import *
+from .models import (Pkg, PkgFolder, PkgOptions,
+                     PkgCoercer, PkgFolderCoercer, PkgOptionsCoercer)
 from .resolvers import Strategies
 from .utils import setup_logging
+
+try:
+    from typing import Literal      # type: ignore
+except ImportError:
+    from typing_extensions import Literal
 
 
 JSONRPC_VERSION = '2.0'
@@ -88,22 +93,7 @@ class ApiError(Exception, metaclass=_ApiErrorMeta):
         self.request_id = request_id
 
 
-class _IncompatibleMethodError(ValueError):
-    pass
-
-
-def validate_const(const):
-    "A validator mirroring JSON Schema's ``const``."
-    def is_equal(cls, value):
-        if value != const:
-            raise _IncompatibleMethodError
-        return value
-
-    is_equal.__qualname__ = f'is_equal_{id(is_equal)}'    # Needed to fool pydantic's validator registry
-    return is_equal
-
-
-def decompose_pkg_uri(manager: WsManager, uri: str) -> Tuple[str, str]:
+def split_uri(manager: WsManager, uri: str) -> Tuple[str, str]:
     "Turn a URI into an origin–slug pair."
     resolvers = manager.resolvers.values()
     try:
@@ -115,9 +105,7 @@ def decompose_pkg_uri(manager: WsManager, uri: str) -> Tuple[str, str]:
 class Message(BaseModel,
               abc.ABC):
 
-    jsonrpc: str
-
-    __is_jsonrpc_const = validator('jsonrpc')(validate_const(JSONRPC_VERSION))
+    jsonrpc: Literal['2.0']
 
 
 class StrictInt(int):
@@ -140,8 +128,6 @@ class RequestParams(BaseModel):
 class Request(Message,
               abc.ABC):
 
-    _name: ClassVar[str]
-
     id: Union[StrictInt, StrictStr]
     method: str
     params: RequestParams
@@ -153,35 +139,20 @@ class Request(Message,
         raise NotImplementedError
 
 
-class BaseRequestParams(RequestParams):
-
-    class Config:
-        extra = Extra.allow
-
-
-class BaseRequest(Request):
-
-    _name = '!base_request'
-
-    params: BaseRequestParams = BaseRequestParams()
-
-
 class SetupRequestParams(RequestParams):
 
     addon_dir: Path
+    game_flavour: Literal['retail', 'classic']
 
 
 class SetupRequest(Request):
 
-    _name = 'setup'
-
+    method: Literal['setup']
     params: SetupRequestParams
-
-    __is_method_const = validator('method')(validate_const('setup'))
 
     def prepare_response(self, manager: WsManager) -> Awaitable:
         async def setup() -> Config:
-            config = Config(addon_dir=self.params.addon_dir).write()
+            config = Config(**dict(self.params)).write()
             setup_logging(config)
             manager.finalise(config)
             return config
@@ -189,7 +160,7 @@ class SetupRequest(Request):
         return setup()
 
     def consume_result(self, result: Config) -> SuccessResponse:
-        return SuccessResponse(result={'config': result.__dict__}, id=self.id)
+        return SuccessResponse(result={'config': json_loads(result.json())}, id=self.id)
 
 
 class ResolveRequestParams(RequestParams):
@@ -203,14 +174,11 @@ class ResolveRequestParams(RequestParams):
 
 class ResolveRequest(Request):
 
-    _name = 'resolve'
-
+    method: Literal['resolve']
     params: ResolveRequestParams
 
-    __is_method_const = validator('method')(validate_const('resolve'))
-
     def prepare_response(self, manager: WsManager) -> Awaitable:
-        return manager.resolve(*decompose_pkg_uri(manager, self.params.uri),
+        return manager.resolve([split_uri(manager, self.params.uri)],
                                self.params.resolution_strategy)
 
     def consume_result(self, result: Any) -> SuccessResponse:
@@ -229,16 +197,13 @@ class InstallRequestParams(RequestParams):
 
 class InstallRequest(Request):
 
-    _name = 'install'
-
+    method: Literal['install']
     params: InstallRequestParams
 
-    __is_method_const = validator('method')(validate_const('install'))
-
     def prepare_response(self, manager: WsManager) -> Awaitable:
-        return manager.to_install(*decompose_pkg_uri(manager, self.params.uri),
-                                  self.params.resolution_strategy,
-                                  self.params.replace)
+        return manager.prep_install([split_uri(manager, self.params.uri)],
+                                    self.params.resolution_strategy,
+                                    self.params.replace)
 
     def consume_result(self, result: Any) -> SuccessResponse:
         return SuccessResponse(result=result.new_pkg, id=self.id)
@@ -251,14 +216,11 @@ class UpdateRequestParams(RequestParams):
 
 class UpdateRequest(Request):
 
-    _name = 'update'
-
+    method: Literal['update']
     params: UpdateRequestParams
 
-    __is_method_const = validator('method')(validate_const('update'))
-
     def prepare_response(self, manager: WsManager) -> Awaitable:
-        return manager.to_update(*decompose_pkg_uri(manager, self.params.uri))
+        return manager.prep_update([split_uri(manager, self.params.uri)])
 
     def consume_result(self, result: Any) -> SuccessResponse:
         return SuccessResponse(result=result.new_pkg, id=self.id)
@@ -271,14 +233,11 @@ class RemoveRequestParams(RequestParams):
 
 class RemoveRequest(Request):
 
-    _name = 'remove'
-
+    method: Literal['remove']
     params: RemoveRequestParams
 
-    __is_method_const = validator('method')(validate_const('remove'))
-
     def prepare_response(self, manager: WsManager) -> Awaitable:
-        return manager.remove(*decompose_pkg_uri(manager, self.params.uri))
+        return manager.remove(*split_uri(manager, self.params.uri))
 
     def consume_result(self, result: Any) -> SuccessResponse:
         return SuccessResponse(result=None, id=self.id)
@@ -291,16 +250,13 @@ class GetRequestParams(RequestParams):
 
 class GetRequest(Request):
 
-    _name = 'get'
-
+    method: Literal['get']
     params: GetRequestParams
-
-    __is_method_const = validator('method')(validate_const('get'))
 
     def prepare_response(self, manager: WsManager) -> Awaitable:
         async def get() -> list:
             if self.params.uris:
-                return [manager.get(*decompose_pkg_uri(manager, u))
+                return [manager.get(*split_uri(manager, u))
                         for u in self.params.uris]
             return manager.db.query(Pkg).all()
 
@@ -313,7 +269,7 @@ class GetRequest(Request):
 class Response(Message,
                abc.ABC):
 
-    jsonrpc = JSONRPC_VERSION
+    jsonrpc = '2.0'
     id: Union[None, StrictInt, StrictStr]
 
 
@@ -343,18 +299,16 @@ class ErrorResponse(Response):
                                                         data=api_error.data))
 
 
-def _convert_sqla_obj(obj: Union[Pkg, PkgFolder, PkgOptions]) -> dict:
-    models = {Pkg: (PkgCoercer, [*PkgCoercer.__fields__, 'folders', 'options']),
-              PkgFolder: (PkgFolderCoercer, ['path']),
-              PkgOptions: (PkgOptionsCoercer, ['strategy'])}
+class _PkgConverter(PkgCoercer):
 
-    coercer, fields = models[obj.__class__]
-    return coercer.parse_obj({f: getattr(obj, f) for f in fields}).dict()
+    folders: List[PkgFolderCoercer]
+    options: PkgOptionsCoercer
+
+    class Config:
+        orm_mode = True
 
 
-_CONVERTERS = [(Pkg, _convert_sqla_obj),
-               (PkgFolder, _convert_sqla_obj),
-               (PkgOptions, _convert_sqla_obj),
+_CONVERTERS = [(Pkg, lambda v: _PkgConverter.from_orm(v).dict()),
                (Message, Message.dict),
                (Path, str),
                (datetime, datetime.isoformat),]
@@ -374,28 +328,37 @@ jsonify = Encoder().encode
 
 TR = TypeVar('TR', bound=Request)
 
-_REQUESTS = {r._name: r for r in {SetupRequest,
-                                  ResolveRequest,
-                                  InstallRequest,
-                                  UpdateRequest,
-                                  RemoveRequest,
-                                  GetRequest}}
+_methods = {'setup': SetupRequest,
+            'resolve': ResolveRequest,
+            'install': InstallRequest,
+            'update': UpdateRequest,
+            'remove': RemoveRequest,
+            'get': GetRequest,}
 
 
 def parse_request(message: str) -> TR:
     "Parse a JSON string into a sub-``Request`` object."
     try:
-        base_request = BaseRequest.parse_obj(loads(message))
+        data = json_loads(message)
     except JSONDecodeError as error:
         raise ApiError.PARSE_ERROR('request is not valid JSON', str(error))
+    try:
+        Request(**data)
+    except TypeError as error:
+        raise ApiError.INVALID_REQUEST('request is malformed',
+                                       *error.args, None)
     except ValidationError as error:
         raise ApiError.INVALID_REQUEST('request is malformed',
-                                       error.json(indent=None))
-    try:
-        return _REQUESTS[base_request.method].parse_obj(base_request.dict())
-    except KeyError:
+                                       error.json(indent=None),
+                                       getattr(data, 'get', lambda _: None)('id'))
+
+    cls = _methods.get(data['method'])
+    if cls:
+        try:
+            return cls(**data)
+        except ValidationError as error:
+            raise ApiError.INVALID_PARAMS('request params are invalid',
+                                          error.json(indent=None), data.get('id'))
+    else:
         raise ApiError.METHOD_NOT_FOUND('request method not found',
-                                        None, base_request.id)
-    except ValidationError as error:
-        raise ApiError.INVALID_PARAMS('request params are invalid',
-                                      error.json(indent=None), base_request.id)
+                                        None, data.get('id'))
