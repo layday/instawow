@@ -143,11 +143,11 @@ class _OrigCmdOrderGroup(click.Group):
 
 def create_config() -> Config:
     """Create the configuration.  This prompts the user for their add-on folder
-    on first run or if the folder can't be found.
+    on first run.
     """
     try:
-        return Config().write()
-    except E.ConfigError as error:
+        return Config.read().write()
+    except FileNotFoundError:
         # readline is picked up by ``input`` to undumbify line editing
         import readline
 
@@ -157,19 +157,17 @@ def create_config() -> Config:
             readline.parse_and_bind('tab: complete')
             readline.set_completer_delims('')   # Do not split up the string
 
-        message = (
-            f'{Symbols.WARNING.value} {{.message}}\n'
-            f'  {click.style(">", fg="yellow")} enter the path to your add-on folder: ')
+        def prompt(error: str) -> Config:
+            addon_dir = input(f'{Symbols.WARNING.value} {error}\n'
+                              f'  {click.style(">", fg="yellow")} add-on folder: ')
 
-        def prompt(error: E.ConfigError) -> Config:
             try:
-                addon_dir = input(message.format(error))
-            except E.ConfigError as error:
-                return prompt(error)
-            else:
                 return Config(addon_dir=addon_dir).write()
+            except Config.ValidationError as error:
+                message = next(iter(error.errors()))['msg']
+                return prompt(message)
 
-        return prompt(error)
+        return prompt('configuration not found')
 
 
 @click.group(cls=_OrigCmdOrderGroup,
