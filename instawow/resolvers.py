@@ -2,8 +2,7 @@
 from __future__ import annotations
 
 __all__ = ('Strategies', 'Pkg_',
-           'CurseResolver', 'ClassicCurseResolver', 'WowiResolver',
-           'TukuiResolver', 'InstawowResolver')
+           'CurseResolver', 'WowiResolver', 'TukuiResolver', 'InstawowResolver')
 
 import asyncio
 from datetime import datetime
@@ -133,20 +132,6 @@ class CurseResolver(Resolver):
                     date_published=file['fileDate'],
                     version=file['displayName'],
                     options=PkgOptions(strategy=strategy.name))
-
-
-class ClassicCurseResolver(CurseResolver):
-
-    origin = 'curse+classic'
-    name = 'CurseForge for Classic'
-
-    @classmethod
-    def decompose_url(cls, uri: str) -> None:
-        return
-
-    @Strategies.validate
-    async def resolve(self, id_or_slug: str, *, strategy: Strategies) -> Pkg_:
-        return await super().resolve(id_or_slug, strategy=strategy, _classic=True)
 
 
 class WowiResolver(Resolver):
