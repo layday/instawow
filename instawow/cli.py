@@ -147,14 +147,16 @@ def create_config() -> Config:
     try:
         return Config.read().write()
     except FileNotFoundError:
-        # readline is picked up by ``input`` to undumbify line editing
-        import readline
-
-        # Don't bother if Python was built without GNU readline - we'd have to
-        # reimplement path completion
-        if 'GNU readline' in getattr(readline, '__doc__', ''):
-            readline.parse_and_bind('tab: complete')
-            readline.set_completer_delims('')   # Do not split up the string
+        try:
+            import readline
+        except ImportError:
+            pass
+        else:
+            # Don't bother if Python was built without GNU readline -
+            # we'd have to reimplement path completion
+            if 'GNU readline' in getattr(readline, '__doc__', ''):
+                readline.parse_and_bind('tab: complete')
+                readline.set_completer_delims('')   # Do not split up the string
 
         def prompt(error: str) -> Config:
             addon_dir = input(f'{Symbols.WARNING.value} {error}\n'
