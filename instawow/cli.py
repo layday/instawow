@@ -185,7 +185,7 @@ def main(ctx):
         import asyncio
         asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 
-    if not ctx.obj and ctx.invoked_subcommand != 'serve':
+    if not ctx.obj and ctx.invoked_subcommand != 'web-serve':
         config = create_config()
         setup_logging(config)
 
@@ -403,7 +403,7 @@ def reveal(manager, addon) -> None:
 
 @main.command()
 @click.option('--port', type=int, help='The server port.')
-def serve(port) -> None:
+def web_serve(port) -> None:
     "Run the WebSocket server."
     from .manager import WsManager
     WsManager().serve(port=port)
