@@ -1,9 +1,9 @@
 *instawow*
 ==========
 
-*instawow* is a package manager for World of Warcraft written
+*instawow* is a package manager for World of Warcraft, written
 in Python.  It can be used to install, remove and update add-ons from
-Curse, WoWInterface and Tukui.
+WoWInterface, CurseForge and Tukui.
 
 Installation
 ------------
@@ -21,13 +21,12 @@ Usage
 -----
 
 You can install add-ons by their Curse project ID or slug, or their
-WoWInterface ID, or even by their URL. All of the following will install
+WoWInterface ID, or even by their URL.  All of the following will install
 Molinari::
 
     instawow install curse:20338
     instawow install curse:molinari
     instawow install https://www.curseforge.com/wow/addons/molinari
-    instawow install https://wow.curseforge.com/projects/molinari
     instawow install wowi:13188
     instawow install https://www.wowinterface.com/downloads/info13188-Molinari.html
 
@@ -49,15 +48,32 @@ You can update all of your add-ons in one go with::
     instawow update <add-on>
 
 You can list installed add-ons with ``instawow list`` and add-ons that
-predate the venerable *instawow* with ``instawow list-uncontrolled``.
-``list-uncontrolled`` will attempt to extract Curse and WoWI IDs from TOC files
+predate the venerable *instawow* with ``instawow list-folders -e``.
+``list-folders`` will attempt to extract Curse and WoWI IDs from TOC files
 to put you on a path towards instalightment.
 
 Non-destructive operations can be invoked with partial package slugs,
-e.g. ``instawow info moli`` will attempt to match 'moli' with ``curse:molinari``.
+e.g. ``instawow info moli`` will attempt to retrieve ``curse:molinari``.
 
-Extras
-------
+World of Warcraft Classic
+-------------------------
+
+*instawow* supports Classic – it will correctly install Classic versions
+of add-ons from CurseForge and Tukui depending on the value of the
+``game_flavour`` configuration setting.
+If you are already using *instawow* for retail,
+you will need to create a separate profile for Classic.  On Linux, this might be::
+
+    env INSTAWOW_CONFIG_DIR=~/.config/instawow-classic instawow
+
+For ease of use, you might want to set up an alias.  In your Bash profile, add::
+
+    alias instawow-classic='INSTAWOW_CONFIG_DIR=~/.config/instawow-classic instawow'
+
+You would then be able to invoke *instawow* using ``instawow-classic``.
+
+Additional functionality
+------------------------
 
 WeakAuras aura updater
 ~~~~~~~~~~~~~~~~~~~~~~
@@ -69,19 +85,17 @@ and provided that you have WeakAuras installed::
     instawow extras weakauras build-companion -a <your account name>
     instawow install instawow:weakauras-companion
 
-Parsing the the WeakAuras saved variables file can take quite a bit of time
+Parsing the WeakAuras saved variables file can take quite a bit of time
 which is why the operation is not baked into the normal workflow;
-you will have to run ``instawow extras weakauras build-companion`` prior to
+you will have to rebuild the companion add-on prior to
 ``instawow update`` to receive aura updates.
 
 WebSocket server
 ~~~~~~~~~~~~~~~~
 
 Of interest only to developers: a WebSocket client can be used to
-operate *instawow* in lieu of the command line
-through a JSON-RPC API. To start the WebSocket server, run ``instawow serve``.
-The API does not implement JSON-RPC batch calls; request grouping must be
-done client-side.
+operate *instawow* in lieu of the command line through a JSON-RPC API.
+To start the WebSocket server, run ``instawow web-serve``.
 
 Caveats
 -------
@@ -127,44 +141,14 @@ doing for years.  The good people at Tukui provide an API for public use.
 *instawow* might break whenever one of our sources introduces
 a change to their website or API (though only temporarily).
 
-World of Warcraft Classic
--------------------------
-
-*instawow* does not have tailored support for Classic.
-The easiest way to manage your classic add-ons is to create a separate
-*instawow* profile.  For instance::
-
-    env INSTAWOW_CONFIG_DIR=~/.config/instawow-classic instawow
-
-For ease of use, you might want to set up an alias.  In your Bash profile,
-add::
-
-    alias instawow-classic='INSTAWOW_CONFIG_DIR=~/.config/instawow-classic instawow'
-
-You would then invoke *instawow* for Classic using ``instawow-classic``.
-To install classic add-ons from CurseForge, use the ``curse+classic`` specifier, e.g.
-``instawow-classic install curse+classic:details``.
-
 Related work
 ------------
 
 The author of *wowman* maintains a list of similar software in their
 `comrades.csv <https://github.com/ogri-la/wowman/blob/develop/comrades.csv>`__.
 
-Development
------------
-
-Fork and clone the `repo <https://github.com/layday/instawow>`__, ``cd``
-and::
-
-    python3 -m venv venv
-    source venv/bin/activate
-    python3 -m pip install -e .
-
-Happy hacking.
-
 Contributing
 ------------
 
-Bug reports and fixes are welcome. Do open an issue before committing to
+Bug reports and fixes are welcome.  Do open an issue before committing to
 making any significant changes.
