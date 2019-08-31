@@ -36,6 +36,10 @@ class _Config(pydantic.BaseSettings):
         return value
 
     @property
+    def logger_dir(self) -> Path:
+        return self.config_dir / 'logs'
+
+    @property
     def plugin_dir(self) -> Path:
         return self.config_dir / 'plugins'
 

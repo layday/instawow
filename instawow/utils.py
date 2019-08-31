@@ -119,7 +119,7 @@ def is_outdated(manager: Manager) -> bool:
 def setup_logging(config: Config, level: Union[int, str] = 'INFO') -> int:
     from loguru import logger
 
-    handler = {'sink': config.config_dir / 'error.log',
+    handler = {'sink': config.logger_dir / 'error.log',
                'level': level,
                'rotation': '1 MB',
                'enqueue': True}
