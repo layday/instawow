@@ -8,8 +8,10 @@ __all__ = ('ManagerAttrAccessMixin',
            'is_outdated',
            'setup_logging')
 
+import asyncio
 from collections import defaultdict, namedtuple
 from datetime import datetime
+from functools import reduce
 from pathlib import Path
 import re
 from typing import TYPE_CHECKING
@@ -51,14 +53,24 @@ class TocReader:
 
 
 def bucketise(iterable: Iterable, key: Callable = (lambda v: v)) -> dict:
-    "Place the elements of `iterable` into a bucket according to `key`."
+    "Place the elements of ``iterable`` into a bucket according to ``key``."
     bucket = defaultdict(list)      # type: ignore
     for value in iterable:
         bucket[key(value)].append(value)
     return dict(bucket)
 
 
+def dict_merge(*args: dict) -> dict:
+    "Right merge any number of ``dict``s."
+    return reduce(lambda p, n: {**p, **n}, args, {})
+
+
+async def gather(it: Iterable, return_exceptions: bool = True) -> List[Any]:
+    return await asyncio.gather(*it, return_exceptions=return_exceptions)
+
+
 _match_loweralphanum = re.compile(r'[^0-9a-z ]')
+
 
 def slugify(text: str) -> str:
     "Convert an add-on name into a lower-alphanumeric slug."
