@@ -217,24 +217,13 @@ def install(manager, addons, strategy, replace) -> None:
 
 @main.command()
 @click.argument('addons', nargs=-1, callback=decompose_pkg_uri, is_eager=True)
-@click.option('--strategy', '-s',
-              callback=validate_strategy,
-              type=click.Choice({s.value for s in Strategies}),
-              default=None,
-              help="Whether to update to the latest published version "
-                   "('default') or the very latest upload ('latest').")
 @click.pass_obj
-def update(manager, addons, strategy) -> None:
+def update(manager, addons) -> None:
     "Update installed add-ons."
     orig_addons = addons
     if not addons:
         addons = [(compose_pkg_uri(p), (p.origin, p.slug))
                   for p in manager.db.query(Pkg).all()]
-
-    if strategy:
-        with manager.db.begin_nested():
-            for pkg in (manager.get(*p) for _, p in addons):
-                pkg.options.strategy = strategy
 
     results = zip((d for d, _ in addons),
                   manager.update_many(p for _, p in addons))
