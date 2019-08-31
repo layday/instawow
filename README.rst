@@ -151,18 +151,6 @@ Related work
 The author of *wowman* maintains a list of similar software in their
 `comrades.csv <https://github.com/ogri-la/wowman/blob/develop/comrades.csv>`__.
 
-Migrating from lcurse
-~~~~~~~~~~~~~~~~~~~~~
-
-`lcurse <https://github.com/ephraim/lcurse>`__ has not seen updates in a while.
-If you wish, you can migrate your add-ons from *lcurse* to *instawow*
-by running the following command::
-
-    cat ~/.lcurse/addons.json | jq --raw-output '.addons[].uri' |
-        tr 'A-Z' 'a-z' | xargs instawow install -o
-
-Do note that this will overwrite your add-ons.
-
 Development
 -----------
 
