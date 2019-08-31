@@ -4,7 +4,7 @@ from __future__ import annotations
 __all__ = ('main',)
 
 from enum import Enum
-from functools import partial, reduce
+from functools import partial
 from textwrap import fill
 from typing import (TYPE_CHECKING, Any, Callable, Generator, Iterable, List,
                     NamedTuple, Optional, Sequence, Tuple, Union)
@@ -268,9 +268,6 @@ def remove(manager, addons) -> None:
 @click.option('--columns', '-C', 'print_columns',
               is_flag=True, default=False,
               help='Print a list of all possible column values.')
-@click.option('--toc-entry', '-t', 'toc_entries',
-              multiple=True,
-              help='An entry to extract from the TOC.  Repeatable.')
 @click.option('--sort-by', '-s', 'sort_key',
               default='name',
               help='A key to sort the table by.  '
@@ -278,65 +275,65 @@ def remove(manager, addons) -> None:
                    'just as you would in SQL, '
                    'e.g. `--sort-by="origin, date_published DESC"`.')
 @click.pass_obj
-def list_installed(manager, columns, print_columns, toc_entries, sort_key) -> None:
+def list_installed(manager, columns, print_columns, sort_key) -> None:
     "List installed add-ons."
+    from operator import attrgetter
     from sqlalchemy import inspect, text
 
     def format_columns(pkg):
         for column in columns:
             try:
-                value = reduce(getattr, [pkg] + column.split('.'))
+                value = attrgetter(column)(pkg)
             except AttributeError:
                 raise click.BadParameter(column, param_hint=['--column', '-c'])
             if column == 'folders':
-                value = '\n'.join(f.name for f in value)
+                yield '\n'.join(f.name for f in value)
             elif column == 'options':
-                value = f'strategy = {value.strategy}'
+                yield f'strategy = {value.strategy}'
             elif column == 'description':
-                value = fill(value, width=50, max_lines=3)
-            yield value
-
-    def format_toc_entries(pkg):
-        if toc_entries:
-            toc_readers = [TocReader(manager.config.addon_dir
-                                     / f.name
-                                     / f'{f.name}.toc') for f in pkg.folders]
-            for toc_entry in toc_entries:
-                value = [fill(r[toc_entry].value, width=50) for r in toc_readers]
-                value = sorted(set(value), key=value.index)
-                yield '\n'.join(value)
+                yield fill(value, width=50, max_lines=3)
+            else:
+                yield value
 
     if print_columns:
-        rows = [('field',),
-                *((c,) for c in (*inspect(Pkg).columns.keys(),
-                                 *inspect(Pkg).relationships.keys()))]
-        click.echo(tabulate(rows, show_index=False))
+        columns = [('field',),
+                   *((c,) for c in (*inspect(Pkg).columns.keys(),
+                                    *inspect(Pkg).relationships.keys()))]
+        click.echo(tabulate(columns, show_index=False))
     else:
         pkgs = manager.db.query(Pkg).order_by(text(sort_key)).all()
         if pkgs:
-            rows = [('add-on', *columns, *(f'[{e}]' for e in toc_entries)),
-                     *((compose_pkg_uri(p), *format_columns(p), *format_toc_entries(p))
-                    for p in pkgs)]
+            rows = [('add-on', *columns),
+                    *((compose_pkg_uri(p), *format_columns(p)) for p in pkgs)]
             click.echo(tabulate(rows))
 
 
 @main.command()
+@click.option('--exclude-own', '-e',
+              is_flag=True, default=False,
+              help='Exclude folders managed by instawow.')
+@click.option('--toc-entry', '-t', 'toc_entries',
+              multiple=True,
+              help='An entry to extract from the TOC.  Repeatable.')
 @click.pass_obj
-def list_uncontrolled(manager) -> None:
-    "List add-ons not managed by instawow."
-    folders = ({f for f in manager.config.addon_dir.iterdir() if f.is_dir()}
-               - {manager.config.addon_dir / f.name
-                  for f in manager.db.query(PkgFolder).all()})
-    folders_and_tocs = ((n, n / f'{n.name}.toc') for n in folders)
-    folders_and_readers = sorted((n, TocReader(t))
-                                 for n, t in folders_and_tocs if t.exists())
-    if folders:
-        rows = [('folder', 'Curse ID', 'WoWI ID', 'version'),
+def list_folders(manager, exclude_own, toc_entries) -> None:
+    "List add-on folders."
+    folders = {f for f in manager.config.addon_dir.iterdir() if f.is_dir()}
+    if exclude_own:
+        folders -= {manager.config.addon_dir / f.name
+                    for f in manager.db.query(PkgFolder).all()}
+
+    folder_tocs = ((n, n / f'{n.name}.toc') for n in folders)
+    folder_readers = sorted((n, TocReader(t))
+                            for n, t in folder_tocs if t.exists())
+    if folder_readers:
+        rows = [('folder', 'Curse ID', 'WoWI ID',
+                 *(f'[{e}]' for e in toc_entries)),
                 *((n.name,
                    t['X-Curse-Project-ID'].value,
                    t['X-WoWI-ID'].value,
-                   t['X-Curse-Packaged-Version', 'X-Packaged-Version', 'Version'].value)
-                  for n, t in folders_and_readers)]
+                   *(fill(t[e].value, width=50) for e in toc_entries))
+                  for n, t in folder_readers)]
         click.echo(tabulate(rows))
 
 
