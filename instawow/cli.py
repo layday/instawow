@@ -6,7 +6,7 @@ __all__ = ('main',)
 from enum import Enum
 from functools import partial
 from textwrap import fill
-from typing import (TYPE_CHECKING, Any, Callable, Generator, Iterable, List,
+from typing import (TYPE_CHECKING, Any, Callable, Iterable, List,
                     NamedTuple, Optional, Sequence, Tuple, Union)
 
 import click
@@ -100,8 +100,7 @@ def decompose_pkg_uri(ctx: click.Context,
                       *,
                       raise_for_invalid_uri: bool = True) -> Tuple[str, _Parts]:
     if isinstance(value, tuple):
-        return list(bucketise(decompose_pkg_uri(ctx, param, v)
-                              for v in value).keys())
+        return list(bucketise(decompose_pkg_uri(ctx, param, v) for v in value))
 
     if ':' not in value:
         if raise_for_invalid_uri:
@@ -329,7 +328,7 @@ def list_folders(manager, exclude_own, toc_entries) -> None:
               help='An entry to extract from the TOC.  Repeatable.')
 @click.pass_obj
 def info(manager, addon, toc_entries) -> None:
-    "Show the details of an installed add-on."
+    "Show detailed add-on information."
     pkg = get_pkg_from_substr(manager, addon[1])
     if pkg:
         rows = {'name': pkg.name,
