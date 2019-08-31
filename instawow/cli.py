@@ -210,8 +210,8 @@ def main(ctx):
 @click.pass_obj
 def install(manager, addons, strategy, replace) -> None:
     "Install add-ons."
-    results = zip((d for d, _ in addons),
-                  manager.install_many((*p, strategy, replace) for _, p in addons))
+    results = zip((a for a, _ in addons),
+                  manager.install((p for _, p in addons), strategy, replace))
     Report(list(results)).generate_and_exit()
 
 
@@ -225,12 +225,11 @@ def update(manager, addons) -> None:
         addons = [(compose_pkg_uri(p), (p.origin, p.slug))
                   for p in manager.db.query(Pkg).all()]
 
-    results = zip((d for d, _ in addons),
-                  manager.update_many(p for _, p in addons))
-    # Hide if ``update`` was invoked without arguments and the package is
-    # up-to-date or temporarily unavailable
-    filter_fn = lambda r: (orig_addons
-                           or not isinstance(r, (E.PkgUpToDate, E.PkgTemporarilyUnavailable)))
+    results = zip((a for a, _ in addons),
+                  manager.update(p for _, p in addons))
+    # Hide if ``update`` was invoked without arguments
+    # and the package is up-to-date
+    filter_fn = lambda r: orig_addons or not isinstance(r, E.PkgUpToDate)
     Report(list(results), filter_fn).generate_and_exit()
 
 
