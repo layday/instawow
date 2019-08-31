@@ -15,8 +15,9 @@ class _CliTest:
                                                      request.cls.__name__)))
         addons = tmp_path / 'addons'
         addons.mkdir()
-        config = Config(config_dir=tmp_path / 'config', addon_dir=addons)
-        config.write()
+        config = Config(config_dir=tmp_path / 'config',
+                        addon_dir=addons,
+                        game_flavour='retail').write()
         yield CliManager(config, show_progress=False)
 
     @pytest.fixture(scope='class')
@@ -46,33 +47,6 @@ class TestValidCursePkgLifecycle(_CliTest):
          ('remove curse:molinari',
           str.__eq__,
           '✗ curse:molinari\n  package is not installed\n'),])
-    def test_valid_curse_pkg_lifecycle(self, invoke_runner,
-                                       test_input, cmp_fn, expected_output):
-        assert cmp_fn(invoke_runner(test_input).output, expected_output)
-
-
-class TestValidClassicCursePkgLifecycle(_CliTest):
-
-    @pytest.mark.parametrize(
-        'test_input, cmp_fn, expected_output',
-        [('install curse+classic:details',
-          str.startswith,
-          '✓ curse+classic:details\n  installed'),
-         ('install curse+classic:details',
-          str.__eq__,
-          '✗ curse+classic:details\n  package already installed\n'),
-         ('update curse+classic:details',
-          str.__eq__,
-          '✗ curse+classic:details\n  package is up to date\n'),
-         ('remove curse+classic:details',
-          str.__eq__,
-          '✓ curse+classic:details\n  removed\n'),
-         ('update curse+classic:details',
-          str.__eq__,
-          '✗ curse+classic:details\n  package is not installed\n'),
-         ('remove curse+classic:details',
-          str.__eq__,
-          '✗ curse+classic:details\n  package is not installed\n'),])
     def test_valid_curse_pkg_lifecycle(self, invoke_runner,
                                        test_input, cmp_fn, expected_output):
         assert cmp_fn(invoke_runner(test_input).output, expected_output)
@@ -212,6 +186,7 @@ class TestInvalidOriginLifecycle(_CliTest):
 
 class TestStrategySwitchAndUpdateLifecycle(_CliTest):
 
+    @pytest.mark.skip(reason='unsupported')
     @pytest.mark.parametrize('test_input, cmp_fn, expected_output',
                              [('install curse:kuinameplates',
                                str.startswith,
@@ -259,14 +234,11 @@ class TestInstallWithAlias(_CliTest):
                                       test_input, cmp_fn, expected_output):
         assert cmp_fn(invoke_runner(test_input).output, expected_output)
 
-    # @pytest.mark.skip(reason='corrupted zip files')
     def test_install_with_tukui_addon_alias(self, invoke_runner):
         assert invoke_runner('install https://www.tukui.org/addons.php?id=3')\
             .output\
             .startswith('✓ tukui:3\n  installed')
 
-
-    # @pytest.mark.skip(reason='corrupted zip files')
     def test_install_with_tukui_ui_alias(self, invoke_runner):
         assert invoke_runner('install https://www.tukui.org/download.php?ui=tukui')\
             .output\

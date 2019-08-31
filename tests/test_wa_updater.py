@@ -1,49 +1,42 @@
 
 import pytest
+from yarl import URL
 
 from instawow.config import Config
 from instawow.manager import Manager
-from instawow.wa_updater import (AuraEntry, ApiMetadata, WaCompanionBuilder,
-                                 URL, bucketise)
+from instawow.wa_updater import WaCompanionBuilder, AuraEntry, ApiMetadata
 
 
 @pytest.fixture
-def builder(tmp_path):
-    addons = tmp_path / 'World of Warcraft/Interface/AddOns'
-    addons.mkdir(parents=True)
-    config = Config(config_dir=tmp_path / 'config', addon_dir=addons)
-    config.write()
-    yield WaCompanionBuilder(Manager(config))
+def builder(full_config):
+    manager = Manager(config=Config(**full_config).write())
+    yield WaCompanionBuilder(manager)
 
 
 @pytest.fixture
-def event_loop(builder):
-    yield builder.loop
-
-
-def test_bucketise_bucketises_by_putting_things_in_a_bucketing_bucket():
-    assert bucketise(iter([1, 1, 0, 1]), bool) == {True: [1, 1, 1], False: [0]}
+async def web_client(builder):
+    builder.web_client = await builder.web_client_factory()
+    yield
+    await builder.web_client.close()
 
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize('ids', [['RaidCDs', 'bfaraid2'],
                                  ['bfaraid2', 'RaidCDs'],])
-async def test_id_order_is_retained_in_aura_metadata(builder, ids):
-    builder.client.set(await builder.client_factory())
+async def test_id_order_is_retained_in_aura_metadata(builder, web_client, ids):
     results = await builder.get_wago_aura_metadata(ids)
     assert ids == [r.slug for r in results]
 
 
 @pytest.mark.asyncio
-async def test_id_length_is_retained_in_aura_metadata(builder):
-    builder.client.set(await builder.client_factory())
+async def test_id_length_is_retained_in_aura_metadata(builder, web_client):
     ids = ['bfaraid2', 'foobar', 'RaidCDs']    # Invalid ID flanked by two valid IDs
     results = await builder.get_wago_aura_metadata(ids)
     assert [ApiMetadata, type(None), ApiMetadata] == [type(r) for r in results]
 
 
 def test_can_parse_empty_displays_table(builder):
-    assert builder.extract_auras_from_lua('''\
+    assert builder.extract_auras('''\
 WeakAurasSaved = {
     ["displays"] = {
     },
@@ -52,7 +45,7 @@ WeakAurasSaved = {
 
 
 def test_urlless_display_is_discarded(builder):
-    assert builder.extract_auras_from_lua('''\
+    assert builder.extract_auras('''\
 WeakAurasSaved = {
     ["displays"] = {
         ["Foo"] = {
@@ -71,7 +64,7 @@ def test_can_parse_minimal_wago_display(builder):
             'version': 1,
             'semver': None,
             'ignore_wago_update': False}
-    assert builder.extract_auras_from_lua('''\
+    assert builder.extract_auras('''\
 WeakAurasSaved = {
     ["displays"] = {
         ["Foo"] = {
@@ -87,7 +80,7 @@ WeakAurasSaved = {
 
 
 def test_url_host_not_wago_display_is_discarded(builder):
-    assert builder.extract_auras_from_lua('''\
+    assert builder.extract_auras('''\
 WeakAurasSaved = {
     ["displays"] = {
         ["Foo"] = {
