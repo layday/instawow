@@ -188,13 +188,9 @@ def main(ctx):
     if not ctx.obj and ctx.invoked_subcommand != 'web-serve':
         config = create_config()
         setup_logging(config)
-
-        if ctx.invoked_subcommand == 'extras':
-            ctx.obj = CliManager(config, show_progress=False)
-        else:
-            ctx.obj = manager = CliManager(config)
-            if is_outdated(manager):
-                click.echo(f'{Symbols.WARNING.value} instawow is out of date')
+        ctx.obj = manager = CliManager(config)
+        if is_outdated(manager):
+            click.echo(f'{Symbols.WARNING.value} instawow is out of date')
 
 
 @main.command()
@@ -414,79 +410,6 @@ def _extras_group() -> None:
                      cls=_OrigCmdOrderGroup)
 def _weakauras_group() -> None:
     "Manage your WeakAuras."
-
-
-@_extras_group.group('bitbar',
-                     cls=_OrigCmdOrderGroup)
-def _bitbar_group() -> None:
-    """Mini update GUI implemented as a BitBar plug-in.
-
-    BitBar <https://getbitbar.com/> is a menu-bar app host for macOS.
-    """
-
-
-@_bitbar_group.command('_generate', hidden=True)
-@click.argument('caller')
-@click.argument('version')
-@click.pass_obj
-def generate_bitbar_output(manager, caller, version):
-    from base64 import b64encode
-    from pathlib import Path
-    from subprocess import run, PIPE
-
-    installed = manager.db.query(Pkg).order_by(Pkg.name).all()
-    latest = manager.resolve_many((p.origin, p.id, p.options.strategy) for p in installed)
-    outdated = [(l, r) for l, r in zip(installed, latest)
-                if l.file_id != getattr(r, 'file_id', l.file_id)]
-
-    icon = Path(__file__).parent / 'assets' / f'''\
-NSStatusItem-icon__\
-{"has-updates" if outdated else "clear"}\
-{"@2x" if b"Retina" in run(("system_profiler", "SPDisplaysDataType"),
-                           stdout=PIPE).stdout else ""}\
-.png'''
-    icon = b64encode(icon.read_bytes()).decode()
-
-    click.echo(f'''| templateImage="{icon}"
----
-instawow ({__version__}:{version})''')
-    if outdated:
-        if len(outdated) > 1:
-            click.echo(f'''\
-Update all | bash={caller} param1=update terminal=false refresh=true''')
-        for p, r in outdated:
-            click.echo(f'''\
-Update “{r.name}” ({p.version} ➞ {r.version}) | \
-  refresh=true \
-  bash={caller} param1=update param2={_compose_pkg_uri(r)} terminal=false
-View “{r.name}” on {manager.resolvers[r.origin].name} | \
-  alternate=true \
-  bash={caller} param1=hearth param2={_compose_pkg_uri(r)} terminal=false''')
-
-
-@_bitbar_group.command('install')
-def install_bitbar_plugin():
-    "Install the instawow BitBar plug-in."
-    from pathlib import Path
-    import sys
-    import tempfile
-    import webbrowser
-
-    with tempfile.TemporaryDirectory() as name:
-        path = Path(name, 'instawow.1h.py')
-        path.write_text(f'''\
-#!/usr/bin/env LC_ALL=en_US.UTF-8 {sys.executable}
-
-__version__ = {__version__!r}
-
-import sys
-
-from instawow.cli import main
-
-main(['-n', *(sys.argv[1:] or ['extras', 'bitbar', '_generate', sys.argv[0], __version__])])
-''')
-        webbrowser.open(f'bitbar://openPlugin?src={path.as_uri()}')
-        click.pause('Press any key to exit after installing the plug-in')
 
 
 @_weakauras_group.command('build-companion')
