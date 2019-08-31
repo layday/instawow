@@ -160,9 +160,10 @@ def create_config() -> Config:
         def prompt(error: str) -> Config:
             addon_dir = input(f'{Symbols.WARNING.value} {error}\n'
                               f'  {click.style(">", fg="yellow")} add-on folder: ')
+            game_flavour = 'classic' if '_classic_' in addon_dir else 'retail'
 
             try:
-                return Config(addon_dir=addon_dir).write()
+                return Config(addon_dir=addon_dir, game_flavour=game_flavour).write()
             except Config.ValidationError as error:
                 message = next(iter(error.errors()))['msg']
                 return prompt(message)

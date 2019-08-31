@@ -9,6 +9,10 @@ from typing import Optional
 import click
 import pydantic
 
+try:
+    from typing import Literal      # type: ignore
+except ImportError:
+    from typing_extensions import Literal
 
 
 _my_path = Path(__file__)
@@ -21,6 +25,7 @@ class _Config(pydantic.BaseSettings):
 
     config_dir: Path = _my_path
     addon_dir: Path
+    game_flavour: Literal['retail', 'classic']
 
     @pydantic.validator('config_dir', always=True, pre=True)
     def __ensure_config_dir(cls, value: Path) -> Path:
@@ -34,6 +39,10 @@ class _Config(pydantic.BaseSettings):
         if not value.is_dir():
             raise ValueError('folder does not exist')
         return value
+
+    @property
+    def is_classic(self) -> bool:
+        return self.game_flavour == 'classic'
 
     @property
     def logger_dir(self) -> Path:
