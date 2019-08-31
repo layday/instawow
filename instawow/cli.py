@@ -398,6 +398,13 @@ def web_serve(port) -> None:
     WsManager().serve(port=port)
 
 
+@main.command()
+@click.pass_obj
+def show_config(manager) -> None:
+    "Show the active configuration."
+    click.echo(manager.config.json())
+
+
 @main.group('extras',
             cls=_OrigCmdOrderGroup)
 def _extras_group() -> None:
