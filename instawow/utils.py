@@ -13,30 +13,13 @@ from datetime import datetime
 from pathlib import Path
 import re
 from typing import TYPE_CHECKING
-from typing import Any, Callable, Iterable, Optional, List, Tuple, Type, TypeVar, Union
+from typing import Any, Callable, Iterable, List, Tuple, Union
 
 from . import __version__
 
 if TYPE_CHECKING:
     from .config import Config
     from .manager import Manager
-
-
-O = TypeVar('O')
-
-
-class cached_property:
-
-    def __init__(self, func: Callable) -> None:
-        self.func = func
-
-    def __get__(self, obj: O, class_: Optional[Type[O]] = None) -> Any:
-        if class_ is None:
-            return self
-
-        value = self.func(obj)
-        obj.__dict__[self.func.__name__] = value
-        return value
 
 
 class ManagerAttrAccessMixin:
