@@ -63,6 +63,7 @@ class _Config(pydantic.BaseSettings):
 
     def write(self) -> _Config:
         for dir_ in (self.config_dir,
+                     self.logger_dir,
                      self.plugin_dir):
             dir_.mkdir(exist_ok=True)
 
