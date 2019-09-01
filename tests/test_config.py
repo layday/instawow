@@ -33,8 +33,9 @@ def test_config_dir_is_populated(full_config):
 
 
 def test_reading_config_missing(full_config):
-    with pytest.raises(FileNotFoundError):
-        Config.read(config_dir=full_config['config_dir'])
+    with patch.dict(os.environ, {'INSTAWOW_CONFIG_DIR': str(full_config['config_dir'])}):
+        with pytest.raises(FileNotFoundError):
+                Config.read()
 
 
 def test_reading_config_existing(full_config):
