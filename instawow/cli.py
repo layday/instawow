@@ -175,8 +175,11 @@ def create_config() -> Config:
 @click.group(cls=_OrigCmdOrderGroup,
              context_settings={'help_option_names': ['-h', '--help']})
 @click.version_option(__version__, prog_name='instawow')
+@click.option('--debug',
+              is_flag=True, default=False, flag_value='DEBUG',
+              help='Log more things.')
 @click.pass_context
-def main(ctx):
+def main(ctx, debug):
     "Add-on manager for World of Warcraft."
     try:
         import uvloop
@@ -188,7 +191,7 @@ def main(ctx):
 
     if not ctx.obj and ctx.invoked_subcommand != 'web-serve':
         config = create_config()
-        setup_logging(config)
+        setup_logging(config, debug or 'INFO')
         ctx.obj = manager = CliManager(config)
         if is_outdated(manager):
             click.echo(f'{Symbols.WARNING.value} instawow is out of date')
