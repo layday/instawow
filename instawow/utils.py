@@ -77,6 +77,50 @@ def slugify(text: str) -> str:
     return '-'.join(_match_loweralphanum.sub(' ', text.casefold()).split())
 
 
+_match_bbcode = re.compile(r'''
+(\[(?:(?:font
+        |size
+        |color
+        |list
+        |url
+        |email
+        |highlight)="[^"]*"
+     |(?:b
+        |i
+        |u
+        |left
+        |center
+        |right
+        |list
+        |\*
+        |url
+        |quote
+        |code))\]
+ |\[/(?:font
+       |size
+       |color
+       |b
+       |i
+       |u
+       |left
+       |center
+       |right
+       |list
+       |list
+       |url
+       |email
+       |quote
+       |code
+       |highlight)\]
+|\[img\][^\[]*\[/img\])
+''', re.IGNORECASE | re.VERBOSE)
+
+
+def bbegone(text: str) -> str:
+    "Naïvely remove BBCode from package descriptions."
+    return _match_bbcode.sub('', text).strip()
+
+
 def is_outdated(manager: Manager) -> bool:
     """Check against PyPI to see if `instawow` is outdated.
 

@@ -17,7 +17,7 @@ from yarl import URL
 
 from . import exceptions as E
 from .models import Pkg, PkgOptions
-from .utils import ManagerAttrAccessMixin, gather, slugify
+from .utils import ManagerAttrAccessMixin, gather, slugify, bbegone
 
 try:
     from functools import singledispatchmethod      # type: ignore
@@ -250,20 +250,20 @@ class WowiResolver(Resolver):
 
         if not metadata:
             raise E.PkgNonexistent
-        elif metadata['UIPending'] == '1':
+        if metadata['UIPending'] == '1':
             raise E.PkgFileUnavailable('new file awaiting approval')
-        else:
-            return Pkg(origin=self.origin,
-                       id=metadata['UID'],
-                       slug=slugify(f'{metadata["UID"]} {metadata["UIName"]}'),
-                       name=metadata['UIName'],
-                       description=metadata['UIDescription'],
-                       url=metadata['UIFileInfoURL'],
-                       file_id=metadata['UIMD5'],
-                       download_url=metadata['UIDownload'],
-                       date_published=metadata['UIDate'],
-                       version=metadata['UIVersion'],
-                       options=PkgOptions(strategy=strategy.name))
+
+        return Pkg(origin=self.origin,
+                   id=metadata['UID'],
+                   slug=slugify(f'{metadata["UID"]} {metadata["UIName"]}'),
+                   name=metadata['UIName'],
+                   description=bbegone(metadata['UIDescription']),
+                   url=metadata['UIFileInfoURL'],
+                   file_id=metadata['UIMD5'],
+                   download_url=metadata['UIDownload'],
+                   date_published=metadata['UIDate'],
+                   version=metadata['UIVersion'],
+                   options=PkgOptions(strategy=strategy.name))
 
 
 class TukuiResolver(Resolver):
