@@ -4,9 +4,11 @@ from __future__ import annotations
 __all__ = ('main',)
 
 from enum import Enum
-from functools import partial
+from functools import partial, update_wrapper
+import os
+from pathlib import Path
 from textwrap import fill
-from typing import (TYPE_CHECKING, Any, Callable, Iterable, List,
+from typing import (TYPE_CHECKING, Any, Callable, Generator, Iterable, List,
                     NamedTuple, Optional, Sequence, Tuple, Union)
 
 import click
@@ -18,6 +20,9 @@ from .manager import CliManager
 from .models import Pkg, PkgFolder
 from .resolvers import Strategies
 from .utils import TocReader, bucketise, is_outdated, setup_logging
+
+if TYPE_CHECKING:
+    from prompt_toolkit.document import Document
 
 
 class Symbols(str, Enum):
@@ -35,6 +40,9 @@ class Symbols(str, Enum):
         else:
             return cls.SUCCESS
 
+    def __str__(self) -> str:
+        return self.value
+
 
 class Report:
 
@@ -51,7 +59,7 @@ class Report:
 
     def __str__(self) -> str:
         return '\n'.join(
-            (f'{Symbols.from_result(r).value} {click.style(a, bold=True)}\n'
+            (f'{Symbols.from_result(r)} {click.style(a, bold=True)}\n'
              f'  {r.message}')
             for a, r in self.results
             if self.filter_fn(r)
@@ -108,7 +116,7 @@ def decompose_pkg_uri(ctx: click.Context,
 
         parts = _Parts('*', value)
     else:
-        for resolver in ctx.obj.resolvers.values():
+        for resolver in ctx.obj().resolvers.values():
             parts = resolver.decompose_url(value)
             if parts:
                 parts = _Parts(*parts)
@@ -137,39 +145,15 @@ def get_pkg_from_substr(manager: CliManager, parts: _Parts) -> Optional[Pkg]:
 class _OrigCmdOrderGroup(click.Group):
 
     def list_commands(self, ctx: click.Context) -> List[str]:
-        return list(self.commands)    # The default is ``sorted(self.commands)``
+        # The default is ``sorted(self.commands)``
+        return list(self.commands)
 
 
-def create_config() -> Config:
-    """Create the configuration.  This prompts the user for their add-on folder
-    on first run.
-    """
-    try:
-        return Config.read().write()
-    except FileNotFoundError:
-        try:
-            import readline
-        except ImportError:
-            pass
-        else:
-            # Don't bother if Python was built without GNU readline -
-            # we'd have to reimplement path completion
-            if 'GNU readline' in getattr(readline, '__doc__', ''):
-                readline.parse_and_bind('tab: complete')
-                readline.set_completer_delims('')   # Do not split up the string
-
-        def prompt(error: str) -> Config:
-            addon_dir = input(f'{Symbols.WARNING.value} {error}\n'
-                              f'  {click.style(">", fg="yellow")} add-on folder: ')
-            game_flavour = 'classic' if '_classic_' in addon_dir else 'retail'
-
-            try:
-                return Config(addon_dir=addon_dir, game_flavour=game_flavour).write()
-            except Config.ValidationError as error:
-                message = next(iter(error.errors()))['msg']
-                return prompt(message)
-
-        return prompt('configuration not found')
+def _pass_manager(f: Callable) -> Callable:
+    # Like ``click.pass_obj`` but calls ``obj`` before passing it on
+    def new_func(*args: Any, **kwargs: Any) -> Callable:
+        return f(click.get_current_context().obj(), *args, **kwargs)
+    return update_wrapper(new_func, f)
 
 
 @click.group(cls=_OrigCmdOrderGroup,
@@ -189,12 +173,23 @@ def main(ctx, debug):
         import asyncio
         asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 
-    if not ctx.obj and ctx.invoked_subcommand != 'web-serve':
-        config = create_config()
-        setup_logging(config, debug or 'INFO')
-        ctx.obj = manager = CliManager(config)
-        if is_outdated(manager):
-            click.echo(f'{Symbols.WARNING.value} instawow is out of date')
+    if not ctx.obj:
+        def prepare_state() -> CliManager:
+            while True:
+                try:
+                    config = Config.read().write()
+                except FileNotFoundError:
+                    ctx.invoke(write_config)
+                else:
+                    break
+
+            setup_logging(config, debug or 'INFO')
+            manager = CliManager(config)
+            if is_outdated(manager):
+                click.echo(f'{Symbols.WARNING} instawow is out of date')
+            return manager
+
+        ctx.obj = prepare_state
 
 
 @main.command()
@@ -207,7 +202,7 @@ def main(ctx, debug):
 @click.option('--replace', '-o',
               is_flag=True, default=False,
               help='Replace existing add-ons.')
-@click.pass_obj
+@_pass_manager
 def install(manager, addons, strategy, replace) -> None:
     "Install add-ons."
     results = zip((a for a, _ in addons),
@@ -217,7 +212,7 @@ def install(manager, addons, strategy, replace) -> None:
 
 @main.command()
 @click.argument('addons', nargs=-1, callback=decompose_pkg_uri, is_eager=True)
-@click.pass_obj
+@_pass_manager
 def update(manager, addons) -> None:
     "Update installed add-ons."
     orig_addons = addons
@@ -235,7 +230,7 @@ def update(manager, addons) -> None:
 
 @main.command()
 @click.argument('addons', nargs=-1, required=True, callback=decompose_pkg_uri)
-@click.pass_obj
+@_pass_manager
 def remove(manager, addons) -> None:
     "Uninstall add-ons."
     def remove_():
@@ -262,7 +257,7 @@ def remove(manager, addons) -> None:
                    'You can chain multiple keys by separating them with a comma '
                    'just as you would in SQL, '
                    'e.g. `--sort-by="origin, date_published DESC"`.')
-@click.pass_obj
+@_pass_manager
 def list_installed(manager, columns, print_columns, sort_key) -> None:
     "List installed add-ons."
     from operator import attrgetter
@@ -303,7 +298,7 @@ def list_installed(manager, columns, print_columns, sort_key) -> None:
 @click.option('--toc-entry', '-t', 'toc_entries',
               multiple=True,
               help='An entry to extract from the TOC.  Repeatable.')
-@click.pass_obj
+@_pass_manager
 def list_folders(manager, exclude_own, toc_entries) -> None:
     "List add-on folders."
     folders = {f for f in manager.config.addon_dir.iterdir() if f.is_dir()}
@@ -331,7 +326,7 @@ def list_folders(manager, exclude_own, toc_entries) -> None:
 @click.option('--toc-entry', '-t', 'toc_entries',
               multiple=True,
               help='An entry to extract from the TOC.  Repeatable.')
-@click.pass_obj
+@_pass_manager
 def info(manager, addon, toc_entries) -> None:
     "Show detailed add-on information."
     pkg = get_pkg_from_substr(manager, addon[1])
@@ -364,9 +359,9 @@ def info(manager, addon, toc_entries) -> None:
 @main.command()
 @click.argument('addon', callback=partial(decompose_pkg_uri,
                                           raise_for_invalid_uri=False))
-@click.pass_obj
+@_pass_manager
 def visit(manager, addon) -> None:
-    "Open the add-on's homepage in your browser."
+    "Open an add-on's homepage in your browser."
     pkg = get_pkg_from_substr(manager, addon[1])
     if pkg:
         import webbrowser
@@ -378,9 +373,9 @@ def visit(manager, addon) -> None:
 @main.command()
 @click.argument('addon', callback=partial(decompose_pkg_uri,
                                           raise_for_invalid_uri=False))
-@click.pass_obj
+@_pass_manager
 def reveal(manager, addon) -> None:
-    "Open the add-on folder in your file manager."
+    "Open an add-on folder in your file manager."
     pkg = get_pkg_from_substr(manager, addon[1])
     if pkg:
         import webbrowser
@@ -398,10 +393,52 @@ def web_serve(port) -> None:
 
 
 @main.command()
-@click.pass_obj
+@click.pass_context
+def write_config(ctx) -> None:
+    "Configure instawow."
+    from prompt_toolkit.completion import PathCompleter, WordCompleter
+    from prompt_toolkit.shortcuts  import CompleteStyle, prompt
+    from prompt_toolkit.validation import Validator
+
+    prompt_ = partial(prompt, complete_style=CompleteStyle.READLINE_LIKE)
+
+    class DirectoryCompleter(PathCompleter):
+
+        def __init__(self, *args: Any, **kwargs: Any) -> None:
+            super().__init__(*args,
+                             expanduser=True, only_directories=True, **kwargs)
+
+        def get_completions(self, document: Document, complete_event: Any) -> Generator:
+            # Append slash to every completion
+            for completion in super().get_completions(document, complete_event):
+                completion.text += '/'
+                yield completion
+
+    def validate_addon_dir(value: str) -> bool:
+        path = Path(value).expanduser()
+        return path.is_dir() and os.access(path, os.W_OK)
+
+    completer = DirectoryCompleter()
+    validator = Validator.from_callable(validate_addon_dir,
+                                        error_message='must be a writable directory')
+    addon_dir = prompt_('Add-on directory: ',
+                        completer=completer, validator=validator)
+
+    completer = WordCompleter(['retail', 'classic'])
+    validator = Validator.from_callable(lambda v: v in {'retail', 'classic'},
+                                        error_message='must be one of: retail, classic')
+    game_flavour = prompt_('Game flavour: ',
+                           completer=completer, validator=validator)
+
+    config = Config(addon_dir=addon_dir, game_flavour=game_flavour).write()
+    click.echo(f'Configuration written to: {config.config_file}')
+
+
+@main.command()
+@_pass_manager
 def show_config(manager) -> None:
     "Show the active configuration."
-    click.echo(manager.config.json())
+    click.echo(manager.config.json(exclude=set()))
 
 
 @main.group('extras',
@@ -421,7 +458,7 @@ def _weakauras_group() -> None:
               required=True,
               help='Your account name.  This is used to locate '
                    'the WeakAuras data file.')
-@click.pass_obj
+@_pass_manager
 def build_weakauras_companion(manager, account) -> None:
     "Build the WeakAuras Companion add-on."
     from .wa_updater import WaCompanionBuilder
@@ -433,7 +470,7 @@ def build_weakauras_companion(manager, account) -> None:
               required=True,
               help='Your account name.  This is used to locate '
                    'the WeakAuras data file.')
-@click.pass_obj
+@_pass_manager
 def list_installed_wago_auras(manager, account) -> None:
     "List WeakAuras installed from Wago."
     from .wa_updater import WaCompanionBuilder
