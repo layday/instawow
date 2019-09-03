@@ -4,7 +4,7 @@ from __future__ import annotations
 __all__ = ('Config',)
 
 from pathlib import Path
-from typing import Optional, Union
+from typing import Any
 
 import click
 import pydantic
@@ -15,38 +15,52 @@ except ImportError:
     from typing_extensions import Literal
 
 
-_my_path = Path(__file__)
 _default_config_dir = lambda: click.get_app_dir('instawow')
-
-
-def _expand_path(value: Union[str, Path]) -> Path:
-    return Path(value).expanduser().resolve()
 
 
 class _Config(pydantic.BaseSettings):
 
     ValidationError = pydantic.ValidationError
 
-    config_dir: Path = _my_path
+    config_dir: Path
     addon_dir: Path
     game_flavour: Literal['retail', 'classic']
 
-    @pydantic.validator('config_dir', always=True, pre=True)
-    def __ensure_config_dir(cls, value: Union[str, Path]) -> Path:
-        if value == _my_path:
-            value = _default_config_dir()
-        return _expand_path(value)
+    @pydantic.validator('config_dir', 'addon_dir')
+    def __expand_paths(cls, value: Path) -> Path:
+        return Path(value).expanduser().resolve()
 
-    @pydantic.validator('addon_dir')
-    def __transform_addon_dir(cls, value: Path) -> Path:
-        value = _expand_path(value)
-        if not value.is_dir():
-            raise ValueError('folder does not exist')
-        return value
+    @classmethod
+    def read(cls) -> _Config:
+        dummy_config = cls(addon_dir='', game_flavour='retail')
+        return cls.parse_raw(dummy_config.config_file.read_text(encoding='utf-8'))
+
+    def __init__(__pydantic_self__, **values: Any) -> None:
+        values = __pydantic_self__._build_values(values)
+        if not values.get('config_dir'):
+            values = {**values, 'config_dir': _default_config_dir()}
+        super(pydantic.BaseSettings, __pydantic_self__).__init__(**values)
+
+    def json(self, **kwargs: Any) -> str:
+        kwargs = {'exclude': {'config_dir'}, 'indent': 2, **kwargs}
+        return super().json(**kwargs)
+
+    def write(self) -> _Config:
+        for dir_ in (self.config_dir,
+                     self.logger_dir,
+                     self.plugin_dir):
+            dir_.mkdir(exist_ok=True)
+
+        self.config_file.write_text(self.json(), encoding='utf-8')
+        return self
 
     @property
     def is_classic(self) -> bool:
         return self.game_flavour == 'classic'
+
+    @property
+    def config_file(self) -> Path:
+        return self.config_dir / 'config.json'
 
     @property
     def logger_dir(self) -> Path:
@@ -55,25 +69,6 @@ class _Config(pydantic.BaseSettings):
     @property
     def plugin_dir(self) -> Path:
         return self.config_dir / 'plugins'
-
-    def json(self, **kwargs) -> str:
-        return super().json(exclude={'config_dir'}, indent=2)
-
-    @classmethod
-    def read(cls) -> _Config:
-        dummy_config = cls(addon_dir='', game_flavour='retail')
-        return cls.parse_raw((dummy_config.config_dir / 'config.json')
-                             .read_text(encoding='utf-8'))
-
-    def write(self) -> _Config:
-        for dir_ in (self.config_dir,
-                     self.logger_dir,
-                     self.plugin_dir):
-            dir_.mkdir(exist_ok=True)
-
-        (self.config_dir / 'config.json').write_text(self.json(),
-                                                     encoding='utf-8')
-        return self
 
     class Config:
         env_prefix = 'INSTAWOW_'

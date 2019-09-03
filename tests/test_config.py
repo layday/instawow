@@ -21,12 +21,6 @@ def test_config_from_env_var(simple_config, tmp_path):
         assert Config(**simple_config).config_dir == config1
 
 
-def test_nonexistent_addon_folder_is_rejected(full_config, tmp_path):
-    addons1 = tmp_path / 'addons1'
-    with pytest.raises(Config.ValidationError, match='folder does not exist'):
-        Config(**{**full_config, 'addon_dir': addons1})
-
-
 def test_config_dir_is_populated(full_config):
     config = Config(**full_config).write()
     assert {i.name for i in config.config_dir.iterdir()} == {'config.json', 'logs', 'plugins'}
