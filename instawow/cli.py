@@ -477,6 +477,9 @@ def list_installed_wago_auras(manager, account) -> None:
     from .wa_updater import WaCompanionBuilder
 
     aura_groups = WaCompanionBuilder(manager).extract_installed_auras(account)
-    installed_auras = [(a.url, str(a.ignore_wago_update).lower())
-                       for a, *_ in aura_groups.values()]
-    click.echo(tabulate([('url', 'ignore updates'), *installed_auras]))
+    installed_auras = sorted((a.id, a.url, str(a.ignore_wago_update).lower())
+                             for v in aura_groups.values()
+                             for a in v
+                             if not a.parent)
+    click.echo(tabulate([('name', 'url', 'ignore updates'),
+                         *installed_auras]))
