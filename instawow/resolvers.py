@@ -278,7 +278,7 @@ class TukuiResolver(Resolver):
     def decompose_url(cls, uri: str) -> Optional[Tuple[str, str]]:
         url = URL(uri)
         if url.host == 'www.tukui.org' \
-                and url.path in {'/addons.php', '/download.php'}:
+                and url.path in {'/addons.php', '/classic-addons.php', '/download.php'}:
             id_or_slug = url.query.get('id') or url.query.get('ui')
             if id_or_slug:
                 return (cls.origin, id_or_slug)
