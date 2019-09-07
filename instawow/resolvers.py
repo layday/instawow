@@ -97,18 +97,16 @@ class CurseResolver(Resolver):
             return (cls.origin, url.parts[3])
 
     async def _fetch(self, ids: List[str]) -> dict:
-        from lxml.html import document_fromstring
+        from xml.etree import ElementTree
 
         async def extract_id(id_or_slug) -> str:
-            url = self.addon_url / id_or_slug
+            url = self.addon_url / id_or_slug / 'download-client'
             async with self.web_client.get(url) as response:
                 if response.status == 404:
-                    id_ = id_or_slug
+                    id_ = id_or_slug    # Assume id_ is an id and not a slug
                 else:
-                    html = document_fromstring(await response.text())
-                    id_, = html.xpath('//span[text() = "Project ID"]'
-                                      '/following-sibling::span'
-                                      '/text()')
+                    xml = ElementTree.fromstring(await response.text())
+                    id_ = xml.find('project').attrib['id']
                 return id_
 
         extracted = await gather((extract_id(i) for i in ids), False)

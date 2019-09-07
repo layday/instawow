@@ -4,7 +4,6 @@ click
 jinja2
 loguru
 luaparser
-lxml
 prompt_toolkit
 pydantic
 singledispatchmethod ; python_version < '3.8'
