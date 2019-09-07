@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING
 from typing import Any, Dict, List, NamedTuple, Optional, Sequence, Union
 
 from loguru import logger
-from pydantic import BaseModel, Extra, validator
+from pydantic import BaseModel, BaseSettings, Extra, validator
 from yarl import URL
 
 from .utils import ManagerAttrAccessMixin, bucketise
@@ -21,6 +21,14 @@ if TYPE_CHECKING:
 
 metadata_api = URL('https://data.wago.io/api/check/weakauras')
 raw_api = URL('https://data.wago.io/api/raw/encoded')
+
+
+class BuilderConfig(BaseSettings):
+
+    account: Optional[str]
+
+    class Config:
+        fields = {'account': {'alias': 'WAC_ACCOUNT'}}
 
 
 class AuraEntry(BaseModel):
@@ -99,10 +107,10 @@ class WaCompanionBuilder(ManagerAttrAccessMixin):
     def extract_auras(source: str) -> Dict[str, List[AuraEntry]]:
         from lupa import LuaRuntime
 
-        lua = LuaRuntime()
-        root_table = lua.eval(source[source.find('=') + 1:])
-        aura_table = root_table['displays'].values()
-        auras = filter(None, (AuraEntry.from_lua_ast(dict(a)) for a in aura_table))
+        lua_runtime = LuaRuntime()
+        table = lua_runtime.eval(source[source.find('=') + 1:])
+        raw_auras = (dict(a) for a in table['displays'].values())
+        auras = filter(None, map(AuraEntry.from_lua_ast, raw_auras))
         aura_groups = {k: v
                        for k, v in bucketise(auras, key=lambda a: a.url.parts[1]).items()
                        if not any(i for i in v if i.ignore_wago_update)}
@@ -189,11 +197,17 @@ class WaCompanionBuilder(ManagerAttrAccessMixin):
             write_tpl('WeakAurasCompanion.toc',
                       {'interface': '11302' if self.config.is_classic else '80200'})
 
-    def build(self, account: str) -> None:
-        self.builder_dir.mkdir(exist_ok=True)
-        installed = self.extract_installed_auras(account)
-        outdated = self.manager.run(self.get_outdated(installed))
-        self.make_addon(outdated)
+    async def build(self, account: Optional[str] = None) -> None:
+        from .manager import run_in_thread
+
+        account = account or BuilderConfig().account
+        if not account:
+            raise ValueError('account name is required to extract installed auras')
+
+        auras = await run_in_thread(self.extract_installed_auras)(account)
+        outdated = await self.get_outdated(auras)
+        await run_in_thread(self.builder_dir.mkdir)(exist_ok=True)
+        await run_in_thread(self.make_addon)(outdated)
 
     def checksum(self) -> str:
         from hashlib import sha256

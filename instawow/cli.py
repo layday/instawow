@@ -462,7 +462,8 @@ def _weakauras_group() -> None:
 def build_weakauras_companion(manager, account) -> None:
     "Build the WeakAuras Companion add-on."
     from .wa_updater import WaCompanionBuilder
-    WaCompanionBuilder(manager).build(account)
+
+    manager.run(WaCompanionBuilder(manager).build(account))
 
 
 @_weakauras_group.command('list')

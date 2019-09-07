@@ -324,6 +324,9 @@ class InstawowResolver(Resolver):
     name = 'instawow'
     strategies = {Strategies.default}
 
+    _addons = {('0', 'weakauras-companion'),
+               ('1', 'weakauras-companion-autoupdate')}
+
     @classmethod
     def decompose_url(cls, uri: str) -> None:
         return
@@ -336,19 +339,23 @@ class InstawowResolver(Resolver):
     @resolve.register
     @Strategies.validate
     async def _(self, id_or_slug: str, *, strategy: Strategies) -> Pkg:
-        if id_or_slug not in {'0', 'weakauras-companion'}:
+        try:
+            id_, slug = next(p for p in self._addons if id_or_slug in p)
+        except StopIteration:
             raise E.PkgNonexistent
 
         from .manager import run_in_thread
         from .wa_updater import WaCompanionBuilder
 
         builder = WaCompanionBuilder(self.manager)
+        if id_ == '1':
+            await builder.build()
 
         return Pkg(origin=self.origin,
-                   id='0',
-                   slug='weakauras-companion',
+                   id=id_,
+                   slug=slug,
                    name='WeakAuras Companion',
-                   description='A WeakAuras Companion wannabe.',
+                   description='A WeakAuras Companion clone.',
                    url='https://github.com/layday/instawow',
                    file_id=await run_in_thread(builder.checksum)(),
                    download_url=builder.file_out.as_uri(),

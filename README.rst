@@ -85,10 +85,16 @@ and provided that you have WeakAuras installed::
     instawow extras weakauras build-companion -a <your account name>
     instawow install instawow:weakauras-companion
 
-Parsing the WeakAuras saved variables file can take quite a bit of time
-which is why the operation is not baked into the normal workflow;
-you will have to rebuild the companion add-on prior to
-``instawow update`` to receive aura updates.
+You will have to rebuild the companion add-on prior to updating
+to receive aura updates.  If you would like to check for updates on
+every invocation of ``instawow update``, install the
+``instawow:weakauras-companion-autoupdate`` variant, exposing your account
+name as an env var::
+
+    env WAC_ACCOUNT=<your account name> instawow install instawow:weakauras-companion
+    env WAC_ACCOUNT=<your account name> instawow update
+
+You may then choose to bypass the companion add-on simply by ommitting the env var.
 
 WebSocket server
 ~~~~~~~~~~~~~~~~
