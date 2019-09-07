@@ -3,7 +3,7 @@ alembic
 click
 jinja2
 loguru
-luaparser
+lupa
 prompt_toolkit
 pydantic
 singledispatchmethod ; python_version < '3.8'

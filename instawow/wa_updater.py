@@ -16,18 +16,11 @@ from yarl import URL
 from .utils import ManagerAttrAccessMixin, bucketise
 
 if TYPE_CHECKING:
-    from luaparser import astnodes
     from .manager import Manager
 
 
 metadata_api = URL('https://data.wago.io/api/check/weakauras')
 raw_api = URL('https://data.wago.io/api/raw/encoded')
-
-_my_path = URL()
-
-
-class AuraURLInvalid(Exception):
-    pass
 
 
 class AuraEntry(BaseModel):
@@ -35,7 +28,7 @@ class AuraEntry(BaseModel):
     id: str
     uid: str
     parent: Optional[str]
-    url: URL = _my_path
+    url: URL
     version: int
     semver: Optional[str]
     ignore_wago_update: bool = False
@@ -44,40 +37,13 @@ class AuraEntry(BaseModel):
         arbitrary_types_allowed = True
         fields = {'ignore_wago_update' : {'alias': 'ignoreWagoUpdate'}}
 
-    @validator('url', always=True, pre=True)
-    def __prep_url(cls, value: Any) -> Any:
-        if value == _my_path:
-            raise AuraURLInvalid
-        return value
-
-    @validator('id', 'uid', 'parent', 'url', 'semver', pre=True)
-    def __convert_str(cls, value: astnodes.String) -> str:
-        return value.s
-
-    @validator('version', pre=True)
-    def __convert_int(cls, value: astnodes.Number) -> int:
-        return value.n
-
-    @validator('ignore_wago_update', pre=True)
-    def __convert_bool(cls, value: Union[astnodes.TrueExpr, astnodes.FalseExpr]) -> bool:
-        return value.display_name == 'True'
-
     @validator('url', pre=True)
-    def __postp_url(cls, value: str) -> URL:
-        url = URL(value)
-        if url.host != 'wago.io':
-            logger.info(f'discarding aura with URL: {url}')
-            raise AuraURLInvalid
-        return url
+    def __convert_url(cls, value: Any) -> URL:
+        return URL(value)
 
     @classmethod
-    def from_lua_ast(cls, tree: astnodes.Field) -> Optional[AuraEntry]:
-        try:
-            return cls(**{f.key.s: f.value for f in tree.value.fields})
-        # The URL validators raise an exception not derived from ValueError
-        # so that they won't be wrapped by Pydantic and we can catch them here
-        except AuraURLInvalid:
-            return None
+    def from_lua_ast(cls, values: Any) -> Optional[AuraEntry]:
+        return cls(**values) if values.get('url') else None
 
 
 class ApiMetadata__Changelog(BaseModel):
@@ -131,14 +97,12 @@ class WaCompanionBuilder(ManagerAttrAccessMixin):
 
     @staticmethod
     def extract_auras(source: str) -> Dict[str, List[AuraEntry]]:
-        from luaparser import ast
+        from lupa import LuaRuntime
 
-        def is_aura_table(entry: Any) -> bool:
-            return reduce(lambda p, n: getattr(p, n, None), [entry, 'key', 's']) == 'displays'
-
-        lua_tree = ast.walk(ast.parse(source))
-        aura_table = next(filter(is_aura_table, lua_tree)).value.fields
-        auras = filter(None, map(AuraEntry.from_lua_ast, aura_table))
+        lua = LuaRuntime()
+        root_table = lua.eval(source[source.find('=') + 1:])
+        aura_table = root_table['displays'].values()
+        auras = filter(None, (AuraEntry.from_lua_ast(dict(a)) for a in aura_table))
         aura_groups = {k: v
                        for k, v in bucketise(auras, key=lambda a: a.url.parts[1]).items()
                        if not any(i for i in v if i.ignore_wago_update)}
