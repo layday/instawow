@@ -91,7 +91,7 @@ every invocation of ``instawow update``, install the
 ``instawow:weakauras-companion-autoupdate`` variant, exposing your account
 name as an env var::
 
-    env WAC_ACCOUNT=<your account name> instawow install instawow:weakauras-companion
+    env WAC_ACCOUNT=<your account name> instawow install instawow:weakauras-companion-autoupdate
     env WAC_ACCOUNT=<your account name> instawow update
 
 You may then choose to bypass the companion add-on simply by ommitting the env var.
