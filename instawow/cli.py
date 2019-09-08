@@ -233,14 +233,8 @@ def update(manager, addons) -> None:
 @_pass_manager
 def remove(manager, addons) -> None:
     "Uninstall add-ons."
-    def remove_():
-        for addon, parts in addons:
-            try:
-                yield (addon, manager.run(manager.remove(*parts)))
-            except (E.ManagerError, E.InternalError) as error:
-                yield (addon, error)
-
-    Report(list(remove_())).generate_and_exit()
+    results = zip((a for a, _ in addons), manager.remove(p for _, p in addons))
+    Report(list(results)).generate_and_exit()
 
 
 @main.command('list')

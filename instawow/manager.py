@@ -288,19 +288,23 @@ class Manager:
                      for (k, p), a in zip(updatables, archives)}}.items()}
         return coros
 
-    async def remove(self, origin: str, id_or_slug: str) -> E.PkgRemoved:
-        "Remove a package."
-        pkg = self.get(origin, id_or_slug)
-        if not pkg:
-            raise E.PkgNotInstalled
+    async def prep_remove(self, uris: Sequence[_Uri]) -> Dict[_Uri, Coroutine]:
+        "Prepare packages to remove."
+        async def remove(pkg: Pkg) -> E.PkgRemoved:
+            temp_dir = await new_temp_dir()
+            await move((self.config.addon_dir / f.name for f in pkg.folders),
+                    temp_dir)
 
-        temp_dir = await new_temp_dir()
-        await move((self.config.addon_dir / f.name for f in pkg.folders),
-                   temp_dir)
+            self.db.delete(pkg)
+            self.db.commit()
+            return E.PkgRemoved(pkg)
 
-        self.db.delete(pkg)
-        self.db.commit()
-        return E.PkgRemoved(pkg)
+        coros = {k: v() for k, v in
+                 dict_merge(dict.fromkeys(uris, _error_wrapper(E.PkgNotInstalled())),
+                            {u: (lambda p=p: remove(p))
+                             for u, p in ((u, self.get(*u)) for u in uris) if p}
+                            ).items()}
+        return coros
 
 
 _tick_interval = .1
@@ -380,6 +384,10 @@ class CliManager(Manager):
     @property
     def update(self) -> Callable:
         return partial(self._process, self.prep_update)
+
+    @property
+    def remove(self) -> Callable:
+        return partial(self._process, self.prep_remove)
 
 
 class WsManager(Manager):
