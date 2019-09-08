@@ -9,7 +9,6 @@ pydantic
 singledispatchmethod ; python_version < '3.8'
 SQLAlchemy
 texttable
-tqdm
 typing_extensions ; python_version < '3.8'
 uvloop ; platform_system != 'Windows'
 yarl

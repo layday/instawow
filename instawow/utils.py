@@ -3,8 +3,10 @@ from __future__ import annotations
 
 __all__ = ('ManagerAttrAccessMixin',
            'TocReader',
+           'cached_property',
            'bucketise',
            'slugify',
+           'make_progress_bar',
            'is_outdated',
            'setup_logging')
 
@@ -15,11 +17,12 @@ from functools import reduce
 from pathlib import Path
 import re
 from typing import TYPE_CHECKING
-from typing import Any, Callable, Iterable, List, Tuple, Union
-
-from . import __version__
+from typing import (Any, Callable, Iterable, List,
+                    Optional, Tuple, Type, TypeVar, Union)
 
 if TYPE_CHECKING:
+    import prompt_toolkit.shortcuts.progress_bar.base as pbb
+
     from .config import Config
     from .manager import Manager
 
@@ -50,6 +53,22 @@ class TocReader:
             except StopIteration:
                 key = key[0]
         return self.Entry(key, self.entries.get(key, self.default))
+
+
+O = TypeVar('O')
+
+
+class cached_property:
+
+    def __init__(self, f: Callable) -> None:
+        self.f = f
+
+    def __get__(self, o: Optional[O], t: Type[O]) -> Any:
+        if o is None:
+            return self.f
+        else:
+            o.__dict__[self.f.__name__] = v = self.f(o)
+            return v
 
 
 def bucketise(iterable: Iterable, key: Callable = (lambda v: v)) -> dict:
@@ -121,11 +140,94 @@ def bbegone(text: str) -> str:
     return _match_bbcode.sub('', text).strip()
 
 
+def make_progress_bar(**kwargs: Any) -> pbb.ProgressBar:
+    "A ``ProgressBar`` with download progress expressed in megabytes."
+    from contextlib import contextmanager
+    from prompt_toolkit.formatted_text import HTML
+    import prompt_toolkit.shortcuts.progress_bar.base as pbb
+    from prompt_toolkit.shortcuts.progress_bar import formatters
+
+    # There is a race condition in the bar's shutdown logic
+    # where the bar-drawing thread is left to run indefinitely
+    # if the prompt_toolkit app is not (yet) running
+    # but is scheduled to run when ``__exit__``ing the bar.
+    # If an exception occurs early in the execution cycle or if execution
+    # finishes before prompt_toolkit is able to crank the app,
+    # instawow will hang.  This is my ham-fisted attempt to work
+    # around all that by relocating the ``.exit()`` call.  The progress bar
+    # 'signals' to the thread that the app is ready to exit
+    # and the app is exited from inside the thread.
+    # To avoid having to monkey-patch ``run`` which is nested
+    # inside ``__enter__``, we overwrite ``pbb._auto_refresh_context``.
+
+    class ProgressBar(pbb.ProgressBar):
+        def __exit__(self, *args):
+            # Clear bars during final cycle of ``_auto_refresh_context``
+            self.counters = []
+
+            if self._has_sigwinch:
+                self._loop.add_signal_handler(pbb.signal.SIGWINCH, self._previous_winch_handler)
+
+            # Signal to ``_auto_refresh_context`` that it should exit the app
+            self.app._should_exit = True
+            self._thread.join()
+            del self.app._should_exit
+
+    _bar_refresh_interval = .1
+
+    @contextmanager
+    def _auto_refresh_context(app, _refresh_interval=None):
+        done = [False]
+
+        def run():
+            while not done[0]:
+                pbb.time.sleep(_bar_refresh_interval)
+                app.invalidate()
+                if getattr(app, '_should_exit', False) and app.is_running:
+                    app.exit()
+
+        t = pbb.threading.Thread(target=run)
+        t.daemon = True
+        t.start()
+
+        try:
+            yield
+        finally:
+            done[0] = True
+
+    pbb._auto_refresh_context = _auto_refresh_context
+
+    class ProgressInMB(formatters.Progress):
+        template = f'{formatters.Progress.template}MB'
+
+        def format(self, _bar, counter, _width):
+            html = HTML(self.template)
+            return html.format(**{f: f'{getattr(counter, f) / 2 ** 20:.1f}'
+                                  for f in ('current', 'total')})
+
+    formatters = [formatters.Label(),
+                  formatters.Text(' '),
+                  formatters.Percentage(),
+                  formatters.Text(' '),
+                  formatters.Bar(),
+                  formatters.Text(' '),
+                  ProgressInMB(),
+                  formatters.Text(' '),
+                  formatters.Text('eta [', style='class:time-left'),
+                  formatters.TimeLeft(),
+                  formatters.Text(']', style='class:time-left'),
+                  formatters.Text(' '),]
+    progress_bar = ProgressBar(formatters=formatters, **kwargs)
+    return progress_bar
+
+
 def is_outdated(manager: Manager) -> bool:
     """Check against PyPI to see if `instawow` is outdated.
 
     The response is cached for 24 hours.
     """
+    from . import __version__
+
     def parse_version(version: str) -> Tuple[int, ...]:
         return tuple(map(int, version.split('.')))
 

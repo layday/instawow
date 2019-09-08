@@ -22,9 +22,10 @@ from . import __db_version__
 from . import exceptions as E
 from .models import ModelBase, Pkg, PkgFolder, should_migrate
 from .resolvers import CurseResolver, WowiResolver, TukuiResolver, InstawowResolver
-from .utils import bucketise, dict_merge, gather
+from .utils import bucketise, cached_property, dict_merge, gather, make_progress_bar
 
 if TYPE_CHECKING:
+    from types import SimpleNamespace
     import aiohttp
     from .config import Config
 
@@ -100,8 +101,8 @@ async def download_archive(url: str, *, chunk_size: int = 4096) -> _Archive:
         path = Path(unquote(url[7:]))
         return _Archive(path, False)
     else:
-        async with _web_client.get().get(url) as response, \
-                   open_temp_writer() as (path, write):
+        async with _web_client.get().get(url, trace_request_ctx={'progress': True}) as response, \
+                open_temp_writer() as (path, write):
             async for chunk in response.content.iter_chunked(chunk_size):
                 await write(chunk)
         return _Archive(path, True)
@@ -131,7 +132,7 @@ def prepare_db_session(*, config: Config) -> sessionmaker:
     return sessionmaker(bind=engine)
 
 
-async def _init_web_client(**kwargs: Any) -> aiohttp.ClientSession:
+async def init_web_client(**kwargs: Any) -> aiohttp.ClientSession:
     from aiohttp import ClientSession, TCPConnector
 
     kwargs = {'connector': TCPConnector(limit_per_host=10),
@@ -167,7 +168,7 @@ class Manager:
                  config: Config,
                  web_client_factory: Optional[Callable] = None) -> None:
         self.config = config
-        self.web_client_factory = web_client_factory or _init_web_client
+        self.web_client_factory = web_client_factory or init_web_client
         self.resolvers = _ResolverDict(self)
         self.db = prepare_db_session(config=self.config)()
 
@@ -302,102 +303,83 @@ class Manager:
         return E.PkgRemoved(pkg)
 
 
-class Bar:
-
-    MININTERVAL = .1
-
-    def __init__(self, *args, **kwargs) -> None:
-        kwargs['position'], self.__reset_position = kwargs['position']
-        super().__init__(*args, **{'leave': False,       # type: ignore
-                                   'ascii': True,
-                                   'mininterval': self.MININTERVAL,
-                                   **kwargs})
-
-    def close(self) -> None:
-        super().close()     # type: ignore
-        self.__reset_position()
+_tick_interval = .1
 
 
-async def _init_cli_web_client(*, manager: CliManager) -> aiohttp.ClientSession:
+async def init_cli_web_client(*, manager: CliManager) -> aiohttp.ClientSession:
+    "A web client that interfaces with the manager's progress bar."
     from cgi import parse_header
     from aiohttp import TraceConfig
 
-    async def do_on_request_end(_session, _ctx, params: aiohttp.TraceRequestEndParams) -> None:
-        if params.response.content_type in {
-                'application/zip',
-                # Curse at it again
-                'application/x-amz-json-1.0'}:
-            cd = params.response.headers.get('Content-Disposition', '')
-            _, cd_params = parse_header(cd)
-            filename = cd_params.get('filename') or params.response.url.name
+    def extract_filename(params: aiohttp.TraceRequestEndParams) -> str:
+        cd = params.response.headers.get('Content-Disposition', '')
+        _, cd_params = parse_header(cd)
+        filename = cd_params.get('filename') or params.response.url.name
+        return filename
 
-            bar = manager.Bar(total=params.response.content_length,
-                              desc=f'Downloading {filename}',
-                              miniters=1, unit='B', unit_scale=True,
-                              position=manager._get_bar_position())
+    async def do_on_request_end(_session, ctx: SimpleNamespace,
+                                params: aiohttp.TraceRequestEndParams) -> None:
+        # Requests don't have a context unless they
+        # originate from ``download_archive``
+        if ctx.trace_request_ctx is None:
+            return
 
-            async def ticker(bar=bar, params=params) -> None:
-                while not params.response.content._eof:
-                    bar.update(params.response.content._cursor - bar.n)
-                    await asyncio.sleep(bar.mininterval)
-                bar.close()
-            _loop.get().create_task(ticker())
+        bar = manager.bar(label=f'Downloading {extract_filename(params)}',
+                          total=params.response.content_length)
+
+        async def ticker(bar=bar, params=params) -> None:
+            while not params.response.content._eof:
+                bar.current = params.response.content._cursor
+                await asyncio.sleep(_tick_interval)
+            bar.progress_bar.counters.remove(bar)
+
+        loop = _loop.get()
+        loop.create_task(ticker())
 
     trace_config = TraceConfig()
     trace_config.on_request_end.append(do_on_request_end)
     trace_config.freeze()
-    return await _init_web_client(trace_configs=[trace_config])
+    return await init_web_client(trace_configs=[trace_config])
+
+
+async def _intercept(coro: Coroutine) -> E.ManagerResult:
+    try:
+        return await coro
+    except E.ManagerError as error:
+        return error
+    except Exception as error:
+        logger.exception('internal error')
+        return E.InternalError(error=error)
 
 
 class CliManager(Manager):
 
-    def __init__(self, config: Config, show_progress: bool = True) -> None:
-        super().__init__(config=config,
-                         web_client_factory=(partial(_init_cli_web_client, manager=self)
-                                             if show_progress else None))
-        self.show_progress = show_progress
-        self._bar_positions = [False]
+    def __init__(self, config: Config,
+                 progress_bar_factory: Optional[Callable] = None) -> None:
+        super().__init__(config, partial(init_cli_web_client, manager=self))
+        self.progress_bar_factory = progress_bar_factory or make_progress_bar
 
-        from tqdm import tqdm
-        self.Bar = type('Bar', (Bar, tqdm), {})
+    @logger.catch(reraise=True)
+    def _process(self, prepper: Callable,
+                 uris: Sequence[_Uri], *args: Any) -> List[E.ManagerResult]:
+        async def do_process():
+            coros = await prepper(list(uris), *args)
+            return [await _intercept(c) for c in coros.values()]
 
-    def _get_bar_position(self) -> Tuple[int, Callable]:
-        # Get the first available bar slot
-        try:
-            b = self._bar_positions.index(False)
-            self._bar_positions[b] = True
-        except ValueError:
-            b = len(self._bar_positions)
-            self._bar_positions.append(True)
-        return (b, lambda b=b: self._bar_positions.__setitem__(b, False))
+        with self.bar:
+            return self.run(do_process())
 
-    async def gather(self, it: Iterable) -> List[E.ManagerResult]:
-        async def intercept(coro: Coroutine) -> E.ManagerResult:
-            try:
-                return await coro
-            except E.ManagerError as error:
-                return error
-            except Exception as error:
-                logger.exception('internal error')
-                return E.InternalError(error=error)
+    @cached_property
+    def bar(self) -> Callable:
+        return self.progress_bar_factory()
 
-        while self.show_progress and any(self._bar_positions):
-            await asyncio.sleep(Bar.MININTERVAL)
-        return [await intercept(c) for c in it]
+    @property
+    def install(self) -> Callable:
+        return partial(self._process, self.prep_install)
 
-    def install(self, values: Iterable, strategy: str, replace: bool) -> List[E.ManagerResult]:
-        async def install():
-            results = await self.prep_install(list(values), strategy, replace)
-            return await self.gather(results.values())
-
-        return self.run(install())
-
-    def update(self, values: Iterable) -> List[E.ManagerResult]:
-        async def update():
-            results = await self.prep_update(list(values))
-            return await self.gather(results.values())
-
-        return self.run(update())
+    @property
+    def update(self) -> Callable:
+        return partial(self._process, self.prep_update)
 
 
 class WsManager(Manager):
