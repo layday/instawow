@@ -301,8 +301,7 @@ def list_folders(manager, exclude_own, toc_entries) -> None:
                     for f in manager.db.query(PkgFolder).all()}
 
     folder_tocs = ((n, n / f'{n.name}.toc') for n in folders)
-    folder_readers = sorted((n, TocReader(t))
-                            for n, t in folder_tocs if t.exists())
+    folder_readers = sorted((n, TocReader.from_path(t)) for n, t in folder_tocs if t.exists())
     if folder_readers:
         rows = [('folder', 'Curse ID', 'WoWI ID',
                  *(f'[{e}]' for e in toc_entries)),
@@ -340,9 +339,7 @@ def info(manager, addon, toc_entries) -> None:
 
         if toc_entries:
             for folder in pkg.folders:
-                toc_reader = TocReader(manager.config.addon_dir
-                                       / folder.name
-                                       / f'{folder.name}.toc')
+                toc_reader = TocReader.from_path_name(manager.config.addon_dir / folder.name)
                 rows.update({f'[{folder.name} {k}]': fill(toc_reader[k].value)
                              for k in toc_entries})
         click.echo(tabulate(rows.items(), show_index=False))

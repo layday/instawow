@@ -5,19 +5,22 @@ __all__ = ('ManagerAttrAccessMixin',
            'TocReader',
            'cached_property',
            'bucketise',
+           'dict_merge',
+           'gather',
            'slugify',
+           'bbegone',
            'make_progress_bar',
            'is_outdated',
            'setup_logging')
 
 import asyncio
-from collections import defaultdict, namedtuple
+from collections import defaultdict
 from datetime import datetime
 from functools import reduce
 from pathlib import Path
 import re
 from typing import TYPE_CHECKING
-from typing import (Any, Callable, Iterable, List,
+from typing import (Any, Callable, Iterable, List, NamedTuple,
                     Optional, Tuple, Type, TypeVar, Union)
 
 if TYPE_CHECKING:
@@ -33,26 +36,38 @@ class ManagerAttrAccessMixin:
         return getattr(self.manager, name)
 
 
+class _TocEntry(NamedTuple):
+
+    key: str
+    value: Optional[str]
+
+
 class TocReader:
     """Extracts key–value pairs from TOC files."""
 
-    Entry = namedtuple('_TocEntry', 'key value')
-
-    def __init__(self, path: Path, default: Union[None, str] = '') -> None:
-        entries = (e.lstrip('# ').partition(': ')[::2]
-                   for e in path.read_text(encoding='utf-8-sig').splitlines()
-                   if e.startswith('## '))
-        self.entries = dict(entries)
+    def __init__(self, contents: str, default: Optional[str] = '') -> None:
+        possible_entries = (map(str.strip, e.lstrip('#').partition(':')[::2])
+                            for e in contents.splitlines()
+                            if e.startswith('##'))
+        self.entries = {k: v for k, v in possible_entries if k}
         self.default = default
 
-    def __getitem__(self, key: Union[str, Tuple[str, ...]]) -> Entry:
+    def __getitem__(self, key: Union[str, Tuple[str, ...]]) -> _TocEntry:
         if isinstance(key, tuple):
             try:
                 return next(filter(lambda i: i.value,
                                    (self.__getitem__(k) for k in key)))
             except StopIteration:
                 key = key[0]
-        return self.Entry(key, self.entries.get(key, self.default))
+        return _TocEntry(key, self.entries.get(key, self.default))
+
+    @classmethod
+    def from_path(cls, path: Path, *args: Any, **kwargs: Any) -> TocReader:
+        return cls(path.read_text(encoding='utf-8-sig'), *args, **kwargs)
+
+    @classmethod
+    def from_path_name(cls, path: Path, *args: Any, **kwargs: Any) -> TocReader:
+        return cls.from_path(path / f'{path.name}.toc', *args, **kwargs)
 
 
 O = TypeVar('O')
