@@ -9,10 +9,10 @@ import contextvars as cv
 from functools import partial
 from itertools import chain, repeat
 from pathlib import Path, PurePath
+import posixpath
 from shutil import move as _move
 from tempfile import NamedTemporaryFile, mkdtemp
 from typing import *
-from zipfile import ZipFile
 
 from loguru import logger
 from sqlalchemy import create_engine
@@ -40,7 +40,6 @@ def run_in_thread(fn: Callable) -> Callable[..., Awaitable]:
     return lambda *a, **k: _loop.get().run_in_executor(None, partial(fn, *a, **k))
 
 
-AsyncZipFile = run_in_thread(ZipFile)
 AsyncNamedTemporaryFile = partial(run_in_thread(NamedTemporaryFile),
                                   prefix='instawow-')
 async_mkdtemp = partial(run_in_thread(mkdtemp), prefix='instawow-')
@@ -66,46 +65,66 @@ async def move(paths: Iterable[Path], dest: PurePath) -> None:
         await async_move(str(path), str(dest))
 
 
-class _Archive:
+# macOS 'resource forks' are sometimes included in download zips - these
+# violate our one add-on per folder contract-thing, and serve absolutely
+# no purpose.  They won't be extracted and they won't be added to the database
+_EXCLUDES = {'__MACOSX'}
 
-    def __init__(self, path: Path, delete_after: bool) -> None:
-        self.path = path
-        self.delete_after = delete_after
 
-    async def __aenter__(self) -> None:
-        self.zipfile = await AsyncZipFile(self.path)
-        self.folders = {PurePath(p).parts[0] for p in self.zipfile.namelist()}
+def _find_base_dirs(names):
+    return {n for n in (posixpath.dirname(n) for n in names)
+            if n and posixpath.sep not in n} - _EXCLUDES
 
-    async def __aexit__(self, *args) -> None:
-        def exit():
-            self.zipfile.close()
-            if self.delete_after:
-                self.path.unlink()
 
-        await run_in_thread(exit)()
+def _should_extract(base_dirs):
+    def is_member(name):
+        head, sep, _ = name.partition(posixpath.sep)
+        return sep and head in base_dirs
 
-    async def extract(self, parent: Path) -> None:
-        def extract() -> None:
-            conflicts = self.folders & {f.name for f in parent.iterdir()}
+    return is_member
+
+
+def Archive(path: PurePath, delete_after: bool) -> Callable:
+    from zipfile import ZipFile
+
+    @asynccontextmanager
+    async def enter() -> AsyncGenerator[Tuple[List[str], Callable], None]:
+        zip_file = await run_in_thread(ZipFile)(path)
+        names = zip_file.namelist()
+        base_dirs = _find_base_dirs(names)
+
+        def extract(parent: Path) -> None:
+            conflicts = base_dirs & {f.name for f in parent.iterdir()}
             if conflicts:
                 raise E.PkgConflictsWithUncontrolled(conflicts)
-            self.zipfile.extractall(parent)
+            else:
+                members = filter(_should_extract(base_dirs), names)
+                zip_file.extractall(parent, members=members)
 
-        await run_in_thread(extract)()
+        def exit_() -> None:
+            zip_file.close()
+            if delete_after:
+                path.unlink()   # type: ignore
 
+        try:
+            yield (sorted(base_dirs), run_in_thread(extract))
+        finally:
+            await run_in_thread(exit_)()
+
+    return enter
 
 async def download_archive(url: str, *, chunk_size: int = 4096) -> _Archive:
     if url.startswith('file://'):
         from urllib.parse import unquote
 
-        path = Path(unquote(url[7:]))
-        return _Archive(path, False)
+        path = PurePath(unquote(url[7:]))
+        return Archive(path, delete_after=False)
     else:
         async with _web_client.get().get(url, trace_request_ctx={'progress': True}) as response, \
                 open_temp_writer() as (path, write):
             async for chunk in response.content.iter_chunked(chunk_size):
                 await write(chunk)
-        return _Archive(path, True)
+        return Archive(path, delete_after=True)
 
 
 def prepare_db_session(*, config: Config) -> sessionmaker:
@@ -212,9 +231,9 @@ class Manager:
     async def prep_install(self, uris: Sequence[_Uri],
                            strategy: str, replace: bool) -> Dict[_Uri, Coroutine]:
         "Retrieve packages to install."
-        async def install(pkg: Pkg, archive: _Archive, replace: bool) -> E.PkgInstalled:
-            async with archive:
-                pkg.folders = [PkgFolder(name=f) for f in sorted(archive.folders)]
+        async def install(pkg: Pkg, open_archive: Callable, replace: bool) -> E.PkgInstalled:
+            async with open_archive() as (folders, extract):
+                pkg.folders = [PkgFolder(name=f) for f in folders]
                 conflicts = (self.db.query(PkgFolder)
                              .filter(PkgFolder.name.in_([f.name for f in pkg.folders]))
                              .first())
@@ -223,11 +242,9 @@ class Manager:
 
                 if replace:
                     temp_dir = await new_temp_dir()
-                    await move((self.config.addon_dir / f.name
-                                for f in pkg.folders),
+                    await move((self.config.addon_dir / f.name for f in pkg.folders),
                                temp_dir)
-
-                await archive.extract(self.config.addon_dir)
+                await extract(self.config.addon_dir)
 
             self.db.add(pkg)
             self.db.commit()
@@ -248,9 +265,9 @@ class Manager:
 
     async def prep_update(self, uris: Sequence[_Uri]) -> Dict[_Uri, Coroutine]:
         "Retrieve packages to update."
-        async def update(old_pkg: Pkg, new_pkg: Pkg, archive: _Archive) -> E.PkgUpdated:
-            async with archive:
-                new_pkg.folders = [PkgFolder(name=f) for f in sorted(archive.folders)]
+        async def update(old_pkg: Pkg, new_pkg: Pkg, open_archive: Callable) -> E.PkgUpdated:
+            async with open_archive() as (folders, extract):
+                new_pkg.folders = [PkgFolder(name=f) for f in folders]
                 filter_ = (PkgFolder.name.in_([f.name for f in new_pkg.folders]),
                            PkgFolder.pkg_origin != new_pkg.origin,
                            PkgFolder.pkg_id != new_pkg.id)
@@ -259,11 +276,9 @@ class Manager:
                     raise E.PkgConflictsWithInstalled(conflicts.pkg)
 
                 temp_dir = await new_temp_dir()
-                await move((self.config.addon_dir / f.name
-                            for f in old_pkg.folders),
+                await move((self.config.addon_dir / f.name for f in old_pkg.folders),
                            temp_dir)
-
-                await archive.extract(self.config.addon_dir)
+                await extract(self.config.addon_dir)
 
             with self.db.begin_nested():
                 self.db.delete(old_pkg)
