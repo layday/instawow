@@ -362,7 +362,10 @@ class InstawowResolver(Resolver):
 
         builder = WaCompanionBuilder(self.manager)
         if id_ == '1':
-            await builder.build()
+            try:
+                await builder.build()
+            except ValueError as error:
+                raise E.PkgFileUnavailable from error
 
         return Pkg(origin=self.origin,
                    id=id_,
