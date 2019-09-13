@@ -118,7 +118,7 @@ class PkgNotInstalled(ManagerError):
 
 class PkgOriginInvalid(ManagerError):
 
-    fmt_message = 'package origin is invalid'
+    fmt_message = 'package source is invalid'
 
 
 class PkgUpToDate(ManagerError):
@@ -128,7 +128,7 @@ class PkgUpToDate(ManagerError):
 
 class PkgStrategyUnsupported(ManagerError):
 
-    fmt_message = '{self.strategy!r} is not a supported strategy'
+    fmt_message = 'strategy {self.strategy!r} is not valid for source'
 
     def __init__(self, strategy: str) -> None:
         super().__init__()
@@ -138,7 +138,7 @@ class PkgStrategyUnsupported(ManagerError):
 class InternalError(ManagerResult,
                     Exception):
 
-    fmt_message = 'encountered {self.error.__class__.__name__}'
+    fmt_message = 'instawow encountered an error'
 
     def __init__(self, error: BaseException) -> None:
         super().__init__()
