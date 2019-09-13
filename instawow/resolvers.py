@@ -304,12 +304,13 @@ class TukuiResolver(Resolver):
         id_or_slug, *_ = id_or_slug.partition('-')
         is_ui = id_or_slug in {'elvui', 'tukui'}
 
-        if is_ui:
-            query = 'ui'
-        elif self.config.is_classic:
+        if self.config.is_classic:
             query = 'classic-addon'
         else:
-            query = 'addon'
+            if is_ui:
+                query = 'ui'
+            else:
+                query = 'addon'
         url = self.api_url.with_query({query: id_or_slug})
         async with self.web_client.get(url) as response:
             if not response.content_length:
