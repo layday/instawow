@@ -5,8 +5,6 @@ __all__ = ('main',)
 
 from enum import Enum
 from functools import partial, update_wrapper
-import os
-from pathlib import Path
 from textwrap import fill
 from typing import (TYPE_CHECKING, Any, Callable, Generator, Iterable, List,
                     NamedTuple, Optional, Sequence, Tuple, Union)
@@ -20,9 +18,6 @@ from .manager import CliManager
 from .models import Pkg, PkgFolder
 from .resolvers import Strategies
 from .utils import TocReader, bucketise, is_outdated, setup_logging
-
-if TYPE_CHECKING:
-    from prompt_toolkit.document import Document
 
 
 class Symbols(str, Enum):
@@ -379,27 +374,28 @@ def reveal(manager, addon) -> None:
 @click.pass_context
 def write_config(ctx) -> None:
     "Configure instawow."
+    import os.path
     from prompt_toolkit.completion import PathCompleter, WordCompleter
-    from prompt_toolkit.shortcuts  import CompleteStyle, prompt
+    from prompt_toolkit.shortcuts import CompleteStyle, prompt
     from prompt_toolkit.validation import Validator
 
     prompt_ = partial(prompt, complete_style=CompleteStyle.READLINE_LIKE)
 
     class DirectoryCompleter(PathCompleter):
 
-        def __init__(self, *args: Any, **kwargs: Any) -> None:
+        def __init__(self, *args, **kwargs):
             super().__init__(*args,
                              expanduser=True, only_directories=True, **kwargs)
 
-        def get_completions(self, document: Document, complete_event: Any) -> Generator:
+        def get_completions(self, document, complete_event):
             # Append slash to every completion
             for completion in super().get_completions(document, complete_event):
                 completion.text += '/'
                 yield completion
 
     def validate_addon_dir(value: str) -> bool:
-        path = Path(value).expanduser()
-        return path.is_dir() and os.access(path, os.W_OK)
+        path = os.path.expanduser(value)
+        return os.path.isdir(path) and os.access(path, os.W_OK)
 
     completer = DirectoryCompleter()
     validator = Validator.from_callable(validate_addon_dir,
@@ -407,8 +403,9 @@ def write_config(ctx) -> None:
     addon_dir = prompt_('Add-on directory: ',
                         completer=completer, validator=validator)
 
-    completer = WordCompleter(['retail', 'classic'])
-    validator = Validator.from_callable(lambda v: v in {'retail', 'classic'},
+    game_flavours = ('retail', 'classic')
+    completer = WordCompleter(game_flavours)
+    validator = Validator.from_callable(game_flavours.__contains__,
                                         error_message='must be one of: retail, classic')
     game_flavour = prompt_('Game flavour: ',
                            completer=completer, validator=validator)
