@@ -251,6 +251,18 @@ class WowiResolver(Resolver):
         if metadata['UIPending'] == '1':
             raise E.PkgFileUnavailable('new file awaiting approval')
 
+        # The file is only assumed to be compatible with classic if 'WoW Classic'
+        # is listed under compatibility, and incompatible with retail if
+        # 'WoW Classic' is the sole element in the array.  I'm not sure
+        # when 'UICompatibility' was added but it's very often not populated
+        # for retail add-ons *shrugsies*
+        compatibility = {e['name'] for e in metadata['UICompatibility'] or ()}
+        if self.config.is_classic:
+            if 'WoW Classic' not in compatibility:
+                raise E.PkgFileUnavailable('file is not compatible with classic')
+        elif compatibility and not compatibility - {'WoW Classic'}:
+            raise E.PkgFileUnavailable('file is only compatible with classic')
+
         return Pkg(origin=self.origin,
                    id=metadata['UID'],
                    slug=slugify(f'{metadata["UID"]} {metadata["UIName"]}'),
