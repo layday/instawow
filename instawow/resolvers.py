@@ -200,8 +200,14 @@ class WowiResolver(Resolver):
                 id_ = url.query.get('fileid')
                 if id_:
                     return (cls.origin, id_)
+
+            prefix = None
+            if url.name.startswith('download'):
+                prefix = 'download'
             elif url.name.startswith('info'):
-                id_ = ''.join(takewhile(str.isdigit, url.name[4:]))
+                prefix = 'info'
+            if prefix:
+                id_ = ''.join(takewhile(str.isdigit, url.name[len(prefix) :]))
                 if id_:
                     return (cls.origin, id_)
 
