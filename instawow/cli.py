@@ -158,14 +158,6 @@ def _pass_manager(f: Callable) -> Callable:
 @click.pass_context
 def main(ctx, debug):
     "Add-on manager for World of Warcraft."
-    try:
-        import uvloop
-    except ImportError:
-        pass
-    else:
-        import asyncio
-        asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
-
     if not ctx.obj:
         def prepare_state() -> CliManager:
             while True:
