@@ -366,7 +366,7 @@ class InstawowResolver(Resolver):
             try:
                 await builder.build()
             except ValueError as error:
-                raise E.PkgFileUnavailable from error
+                raise E.PkgFileUnavailable('account name not provided') from error
 
         return Pkg(origin=self.origin,
                    id=id_,
