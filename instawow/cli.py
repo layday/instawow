@@ -650,11 +650,3 @@ def list_installed_wago_auras(manager, account) -> None:
                              if not a.parent)
     click.echo(tabulate([('name', 'url', 'ignore updates'),
                          *installed_auras]))
-
-
-@main.command(hidden=True)
-@click.option('--port', type=int, help='The server port.')
-def web_serve(port) -> None:
-    "Run the WebSocket server."
-    from .manager import WsManager
-    WsManager().serve(port=port)
