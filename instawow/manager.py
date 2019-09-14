@@ -190,9 +190,12 @@ class Manager:
         self.resolvers = _ResolverDict(self)
         self.db = prepare_db_session(config=self.config)()
 
+    def _web_client(self) -> aiohttp.ClientSession:
+        return _web_client.get()
+
     @property
     def web_client(self) -> aiohttp.ClientSession:
-        return _web_client.get()
+        return self._web_client()
 
     def run(self, awaitable: Awaitable) -> Any:
         "Run ``awaitable`` inside an explicit context."
