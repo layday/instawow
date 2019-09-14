@@ -426,9 +426,7 @@ class WsManager(Manager):
                           SuccessResponse, ErrorResponse,
                           jsonify, parse_request)
 
-        TR = TypeVar('TR', bound=Request)
-
-        async def respond(request: TR, awaitable: Awaitable) -> None:
+        async def respond(request: Request, awaitable: Awaitable) -> None:
             try:
                 result = await awaitable
             except ApiError as error:
@@ -496,21 +494,23 @@ class WsManager(Manager):
         await receiver()
 
     def serve(self, host: str = '127.0.0.1', port: Optional[int] = None) -> None:
-        async def aserve():
+        async def do_serve():
             import os
             import socket
             from aiohttp import web
+            from .api import API_VERSION
 
             app = web.Application()
-            app.router.add_routes([web.get('/', self._poll)])    # type: ignore
+            app.router.add_routes([web.get(f'/api/v{API_VERSION}', self._poll)])
             app_runner = web.AppRunner(app)
             await app_runner.setup()
 
-            server = await _loop.get().create_server(app_runner.server, host, port,
-                                                     family=socket.AF_INET)
+            loop = _loop.get()
+            server = await loop.create_server(app_runner.server, host, port,
+                                              family=socket.AF_INET)
             sock = server.sockets[0]
-            message = ('{{"address": "ws://{}:{}/"}}\n'
-                       .format(*sock.getsockname()).encode())
+            message = ('{{"address": "ws://{}:{}/api/v{}"}}\n'
+                       .format(*sock.getsockname(), API_VERSION).encode())
             try:
                 # Try sending message over fd 3 for IPC with Node
                 # and if that fails...
@@ -526,4 +526,4 @@ class WsManager(Manager):
             finally:
                 await app_runner.cleanup()
 
-        self.run(aserve())
+        self.run(do_serve())

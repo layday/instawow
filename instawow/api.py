@@ -19,8 +19,7 @@ from enum import Enum, IntEnum
 from functools import partial
 from json import JSONDecodeError, JSONEncoder, loads as json_loads
 from pathlib import Path
-from typing import (Any, Awaitable, Callable, Generator,
-                    List, Optional, Tuple, TypeVar, Union)
+from typing import Any, Awaitable, Callable, Generator, List, Optional, Tuple, Union
 
 from pydantic import BaseModel, StrictStr, ValidationError
 from pydantic.errors import IntegerError
@@ -39,6 +38,7 @@ except ImportError:
 
 
 JSONRPC_VERSION = '2.0'
+API_VERSION = '0'
 
 
 class ErrorCodes(IntEnum):
@@ -94,7 +94,7 @@ class ApiError(Exception, metaclass=_ApiErrorMeta):
 
 
 def split_uri(manager: WsManager, uri: str) -> Tuple[str, str]:
-    "Turn a URI into an origin–slug pair."
+    "Turn a URI into a source and slug pair."
     resolvers = manager.resolvers.values()
     try:
         return next(filter(None, (r.decompose_url(uri) for r in resolvers)))
@@ -165,7 +165,7 @@ class SetupRequest(Request):
 
 class ResolveRequestParams(RequestParams):
 
-    uri: str
+    uris: List[str]
     resolution_strategy: Strategies
 
     class Config:
@@ -178,16 +178,16 @@ class ResolveRequest(Request):
     params: ResolveRequestParams
 
     def prepare_response(self, manager: WsManager) -> Awaitable:
-        return manager.resolve([split_uri(manager, self.params.uri)],
+        return manager.resolve([split_uri(manager, u) for u in self.params.uris],
                                self.params.resolution_strategy)
 
     def consume_result(self, result: Any) -> SuccessResponse:
-        return SuccessResponse(result=result, id=self.id)
+        return SuccessResponse(result=list(result.values()), id=self.id)
 
 
 class InstallRequestParams(RequestParams):
 
-    uri: str
+    uris: List[str]
     resolution_strategy: Strategies
     replace: bool
 
@@ -201,7 +201,7 @@ class InstallRequest(Request):
     params: InstallRequestParams
 
     def prepare_response(self, manager: WsManager) -> Awaitable:
-        return manager.prep_install([split_uri(manager, self.params.uri)],
+        return manager.prep_install([split_uri(manager, u) for u in self.params.uris],
                                     self.params.resolution_strategy,
                                     self.params.replace)
 
@@ -211,7 +211,7 @@ class InstallRequest(Request):
 
 class UpdateRequestParams(RequestParams):
 
-    uri: str
+    uris: List[str]
 
 
 class UpdateRequest(Request):
@@ -220,7 +220,7 @@ class UpdateRequest(Request):
     params: UpdateRequestParams
 
     def prepare_response(self, manager: WsManager) -> Awaitable:
-        return manager.prep_update([split_uri(manager, self.params.uri)])
+        return manager.prep_update([split_uri(manager, u) for u in self.params.uris])
 
     def consume_result(self, result: Any) -> SuccessResponse:
         return SuccessResponse(result=result.new_pkg, id=self.id)
@@ -228,7 +228,7 @@ class UpdateRequest(Request):
 
 class RemoveRequestParams(RequestParams):
 
-    uri: str
+    uris: List[str]
 
 
 class RemoveRequest(Request):
@@ -237,7 +237,7 @@ class RemoveRequest(Request):
     params: RemoveRequestParams
 
     def prepare_response(self, manager: WsManager) -> Awaitable:
-        return manager.remove(*split_uri(manager, self.params.uri))
+        return manager.prep_remove([split_uri(manager, u) for u in self.params.uris])
 
     def consume_result(self, result: Any) -> SuccessResponse:
         return SuccessResponse(result=None, id=self.id)
@@ -256,9 +256,9 @@ class GetRequest(Request):
     def prepare_response(self, manager: WsManager) -> Awaitable:
         async def get() -> list:
             if self.params.uris:
-                return [manager.get(*split_uri(manager, u))
-                        for u in self.params.uris]
-            return manager.db.query(Pkg).all()
+                return [manager.get(*split_uri(manager, u)) for u in self.params.uris]
+            else:
+                return manager.db.query(Pkg).all()
 
         return get()
 
@@ -304,9 +304,6 @@ class _PkgConverter(PkgCoercer):
     folders: List[PkgFolderCoercer]
     options: PkgOptionsCoercer
 
-    class Config:
-        orm_mode = True
-
 
 _CONVERTERS = [(Pkg, lambda v: _PkgConverter.from_orm(v).dict()),
                (Message, Message.dict),
@@ -326,8 +323,6 @@ class Encoder(JSONEncoder):
 jsonify = Encoder().encode
 
 
-TR = TypeVar('TR', bound=Request)
-
 _methods = {'setup': SetupRequest,
             'resolve': ResolveRequest,
             'install': InstallRequest,
@@ -336,7 +331,7 @@ _methods = {'setup': SetupRequest,
             'get': GetRequest,}
 
 
-def parse_request(message: str) -> TR:
+def parse_request(message: str) -> Request:
     "Parse a JSON string into a sub-``Request`` object."
     try:
         data = json_loads(message)

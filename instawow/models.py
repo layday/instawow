@@ -46,6 +46,7 @@ class _BaseCoercer(pydantic.BaseModel):
     class Config:
         extra = pydantic.Extra.allow
         max_anystr_length = 2 ** 32
+        orm_mode = True
 
 
 class Pkg(ModelBase):
