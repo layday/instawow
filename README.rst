@@ -9,7 +9,7 @@ Installation
 ------------
 
 It is recommended to install *instawow* in an isolated environment.
-One option is `pipx <https://github.com/pipxproject/pipx>`__::
+One option is to use `pipx <https://github.com/pipxproject/pipx>`__::
 
     pipx install instawow
 
@@ -17,51 +17,52 @@ Installing with `pip` is also supported::
 
     pip3 install instawow
 
-Usage
------
+Getting started
+---------------
 
-You can install add-ons by their Curse project ID or slug, or their
-WoWInterface ID, or even by their URL.  All of the following will install
-Molinari::
+*instawow* is able to interpret add-on URLs, slugs and IDs.
+All of the following will install Molinari::
 
-    instawow install curse:20338
-    instawow install curse:molinari
     instawow install https://www.curseforge.com/wow/addons/molinari
-    instawow install wowi:13188
+    instawow install curse:molinari
+    instawow install curse:20338
     instawow install https://www.wowinterface.com/downloads/info13188-Molinari.html
+    instawow install wowi:13188
 
-By default, *instawow* will install the latest file that was *released*.
-You can choose to install the latest file that has been
-uploaded (be it stable, or beta or alpha quality) by
-passing ``--strategy=latest``.  This option only works with CurseForge packages.
+* The ``update`` and ``remove`` commands work in the same way, and ``update``
+  can be run without arguments to update all add-ons.
+* You can opt into alpha and beta quality add-ons by
+  using the ``strategy`` option on ``install``.  This option is only
+  supported by CurseForge.
+* Use ``list`` to list add-ons managed by *instawow*; ``list-folders -e`` to
+  list unmanaged add-ons; ``info`` to display add-on information,
+  ``visit`` to open an add-on homepage in your browser and ``reveal`` to
+  open the primary add-on folder in your file manager.
+* Non-destructive operations accept partial URIs, e.g.
+  ``instawow info moli`` will display information about Molinari.
 
-You can uninstall add-ons with::
+instafying add-ons
+----------------------
 
-    instawow remove <add-on>
+*instawow* does not know about add-ons it did not itself install.
+The Twitch and Minion clients each use their own, proprietary
+fingerprinting algorithm to reconcile add-ons you have installed with add-ons
+their respective hosts keep on their servers.  Though the details of their implementation
+elude me, *instawow* tries to accomplish something similar by combining a variety
+of cues (e.g. folders and TOC entries).  This is not done automatically;
+you will need to execute ``instawow reconcile`` to absorb add-ons installed
+by other means.
 
-You can update all of your add-ons in one go with::
-
-    instawow update
-
-... or any individual add-on the same way you'd install or remove it::
-
-    instawow update <add-on>
-
-You can list installed add-ons with ``instawow list`` and add-ons that
-predate the venerable *instawow* with ``instawow list-folders -e``.
-``list-folders`` will attempt to extract Curse and WoWI IDs from TOC files
-to put you on a path towards instalightment.
-
-Non-destructive operations can be invoked with partial package slugs,
-e.g. ``instawow info moli`` will attempt to retrieve ``curse:molinari``.
-
-World of Warcraft Classic
--------------------------
+WoW Classic
+-----------
 
 *instawow* supports Classic – it will correctly install Classic versions
-of add-ons from CurseForge and Tukui depending on the value of the
+of add-ons from sources depending on the value of the
 ``game_flavour`` configuration setting.
-If you are already using *instawow* for retail,
+What *instawow* does not have is a switch you can flick to go from managing
+your retail add-ons to managing your classic add-ons and vice versa.
+This was a conscious design decision, the merits of which (I should admit)
+are open to debate.  If you are already using *instawow* for retail,
 you will need to create a separate profile for Classic.  On Linux, this might be::
 
     env INSTAWOW_CONFIG_DIR=~/.config/instawow-classic instawow
@@ -82,7 +83,7 @@ WeakAuras aura updater
 `WeakAuras Companion <https://weakauras.wtf/>`__.  To use the updater
 and provided that you have WeakAuras installed::
 
-    instawow extras weakauras build-companion -a <your account name>
+    instawow weakauras-companion build -a <your account name>
     instawow install instawow:weakauras-companion
 
 You will have to rebuild the companion add-on prior to updating
@@ -96,27 +97,8 @@ name as an env var::
 
 You may then choose to bypass the companion add-on simply by ommitting the env var.
 
-WebSocket server
-~~~~~~~~~~~~~~~~
-
-Of interest only to developers: a WebSocket client can be used to
-operate *instawow* in lieu of the command line through a JSON-RPC API.
-To start the WebSocket server, run ``instawow web-serve``.
-
 Caveats
 -------
-
-Detecting existing add-ons
-~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-The Twitch and Minion clients each use their own, proprietary
-fingerprinting algorithm to reconcile add-ons you have installed with add-ons
-they keep on their servers.  Though the details of their implementation
-elude me, *instawow* could accomplish something similar by combining a variety
-of cues (e.g. folders, TOC entries).  However, *instawow* tries very hard to be
-source-agnostic and will not default to installing an add-on from one host
-over another.  The alternative would require some degree of interactivity
-which I feel is better suited to a desktop client.
 
 Searching for add-ons
 ~~~~~~~~~~~~~~~~~~~~~
