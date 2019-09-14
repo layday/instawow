@@ -2,22 +2,12 @@
 import pytest
 from yarl import URL
 
-from instawow.config import Config
-from instawow.manager import Manager
 from instawow.wa_updater import WaCompanionBuilder, AuraEntry, ApiMetadata
 
 
 @pytest.fixture
-def builder(full_config):
-    manager = Manager(config=Config(**full_config).write())
+def builder(manager):
     yield WaCompanionBuilder(manager)
-
-
-@pytest.fixture
-async def web_client(builder):
-    builder.web_client = await builder.web_client_factory()
-    yield
-    await builder.web_client.close()
 
 
 @pytest.mark.asyncio
@@ -79,6 +69,7 @@ WeakAurasSaved = {
 ''') == {'foo': [AuraEntry.construct(aura, set(aura))]}
 
 
+@pytest.mark.xfail
 def test_url_host_not_wago_display_is_discarded(builder):
     assert builder.extract_auras('''\
 WeakAurasSaved = {
@@ -95,13 +86,14 @@ WeakAurasSaved = {
 ''') == {}
 
 
-def test_can_build_addon_without_updates(builder, request):
+def test_can_build_addon_without_updates(builder):
     builder.builder_dir.mkdir()
     builder.make_addon([])
-    request.config.cache.set('orig_checksum', builder.checksum())
 
 
-def test_build_is_reproducible(builder, request):
+def test_build_is_reproducible(builder):
     builder.builder_dir.mkdir()
     builder.make_addon([])
-    assert request.config.cache.get('orig_checksum', None) == builder.checksum()
+    checksum = builder.checksum()
+    builder.make_addon([])
+    assert checksum == builder.checksum()
