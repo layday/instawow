@@ -55,8 +55,8 @@ async def open_temp_writer() -> AsyncGenerator[Tuple[Path, Callable], None]:
         await run_in_thread(fh.close)()
 
 
-async def new_temp_dir() -> PurePath:
-    return PurePath(await async_mkdtemp())
+async def new_temp_dir(*args: Any, **kwargs: Any) -> PurePath:
+    return PurePath(await async_mkdtemp(*args, **kwargs))
 
 
 async def move(paths: Iterable[Path], dest: PurePath) -> None:

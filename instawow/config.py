@@ -4,6 +4,7 @@ from __future__ import annotations
 __all__ = ('Config',)
 
 from pathlib import Path
+from tempfile import gettempdir
 from typing import Any
 
 import click
@@ -14,6 +15,8 @@ try:
 except ImportError:
     from typing_extensions import Literal
 
+
+_TEMP_DIR = Path(gettempdir())
 
 _default_config_dir = lambda: click.get_app_dir('instawow')
 
@@ -48,7 +51,8 @@ class _Config(pydantic.BaseSettings):
     def write(self) -> _Config:
         for dir_ in (self.config_dir,
                      self.logger_dir,
-                     self.plugin_dir):
+                     self.plugin_dir,
+                     self.temp_dir,):
             dir_.mkdir(exist_ok=True)
 
         self.config_file.write_text(self.json(), encoding='utf-8')
@@ -69,6 +73,10 @@ class _Config(pydantic.BaseSettings):
     @property
     def plugin_dir(self) -> Path:
         return self.config_dir / 'plugins'
+
+    @property
+    def temp_dir(self) -> Path:
+        return _TEMP_DIR / 'instawow'
 
     class Config:
         env_prefix = 'INSTAWOW_'
