@@ -6,8 +6,9 @@ __all__ = ('main',)
 from enum import Enum
 from functools import partial, update_wrapper
 from textwrap import fill
-from typing import (TYPE_CHECKING, Any, Callable, Generator, Iterable, List,
-                    NamedTuple, Optional, Sequence, Tuple, Union)
+from typing import TYPE_CHECKING
+from typing import (Any, Callable, Dict, Generator, Iterable, List, NamedTuple,
+                    Optional, Sequence, Set, Tuple, Union)
 
 import click
 
@@ -17,23 +18,27 @@ from . import exceptions as E
 from .manager import CliManager
 from .models import Pkg, PkgFolder
 from .resolvers import Strategies
-from .utils import TocReader, bucketise, is_outdated, setup_logging
+from .utils import TocReader, bucketise, cached_property, is_outdated, setup_logging
+
+
+_green_tick = click.style('✓', fg='green')
+_red_cross = click.style('✗', fg='red')
+_blue_excl = click.style('!', fg='blue')
 
 
 class Symbols(str, Enum):
 
-    SUCCESS = click.style('✓', fg='green')
-    FAILURE = click.style('✗', fg='red')
-    WARNING = click.style('!', fg='blue')
+    SUCCESS = _green_tick
+    FAILURE = _red_cross
+    WARNING = _blue_excl
 
     @classmethod
     def from_result(cls, result: E.ManagerResult) -> Symbols:
-        if isinstance(result, E.InternalError):
-            return cls.WARNING
-        elif isinstance(result, E.ManagerError):
-            return cls.FAILURE
-        else:
-            return cls.SUCCESS
+        for type_, symbol in ((E.InternalError,  cls.WARNING),
+                              (E.ManagerError,   cls.FAILURE),
+                              (E.ManagerResult,  cls.SUCCESS)):
+            if isinstance(result, type_):
+                return symbol
 
     def __str__(self) -> str:
         return self.value
@@ -81,12 +86,6 @@ def tabulate(rows: Iterable, *, show_index: bool = True) -> str:
     return table.add_rows(rows).draw()
 
 
-class _Parts(NamedTuple):
-
-    origin: str
-    id_or_slug: str
-
-
 def compose_pkg_uri(val: Any) -> str:
     try:
         origin, slug = val.origin, val.slug
@@ -96,43 +95,33 @@ def compose_pkg_uri(val: Any) -> str:
 
 
 def decompose_pkg_uri(ctx: click.Context,
-                      param: click.Parameter,
+                      param: Any,
                       value: Union[str, Tuple[str, ...]],
                       *,
-                      raise_for_invalid_uri: bool = True) -> Tuple[str, _Parts]:
-    if isinstance(value, tuple):
+                      raise_for_invalid_uri: bool = True) -> Any:
+    if isinstance(value, (list, tuple)):
         return list(bucketise(decompose_pkg_uri(ctx, param, v) for v in value))
 
     if ':' not in value:
         if raise_for_invalid_uri:
             raise click.BadParameter(value)
 
-        parts = _Parts('*', value)
+        parts = ('*', value)
     else:
-        for resolver in ctx.obj().resolvers.values():
+        for resolver in ctx.obj.m.resolvers.values():
             parts = resolver.decompose_url(value)
             if parts:
-                parts = _Parts(*parts)
                 break
         else:
-            parts = _Parts(*value.partition(':')[::2])
+            parts = value.partition(':')[::2]
     return compose_pkg_uri(parts), parts
 
 
-def validate_strategy(ctx: click.Context,
-                      param: click.Parameter,
-                      value: Optional[str]) -> Optional[str]:
-    if value and not ctx.params['addons']:
-        raise click.UsageError(f'{param.get_error_hint(ctx)} must be used'
-                               ' in conjunction with "ADDONS"')
-    return value
-
-
-def get_pkg_from_substr(manager: CliManager, parts: _Parts) -> Optional[Pkg]:
-    return manager.get(*parts) or (manager.db.query(Pkg)
-                                   .filter(Pkg.slug.contains(parts.id_or_slug))
-                                   .order_by(Pkg.name)
-                                   .first())
+def get_pkg_from_substr(manager: CliManager, parts: Tuple[str, str]) -> Optional[Pkg]:
+    pkg = manager.get(*parts)
+    pkg = pkg or (manager.db.query(Pkg).filter(Pkg.slug.contains(parts[1]))
+                  .order_by(Pkg.name).first())
+    return pkg
 
 
 class _OrigCmdOrderGroup(click.Group):
@@ -143,9 +132,8 @@ class _OrigCmdOrderGroup(click.Group):
 
 
 def _pass_manager(f: Callable) -> Callable:
-    # Like ``click.pass_obj`` but calls ``obj`` before passing it on
     def new_func(*args: Any, **kwargs: Any) -> Callable:
-        return f(click.get_current_context().obj(), *args, **kwargs)
+        return f(click.get_current_context().obj.m, *args, **kwargs)
     return update_wrapper(new_func, f)
 
 
@@ -159,22 +147,27 @@ def _pass_manager(f: Callable) -> Callable:
 def main(ctx, debug):
     "Add-on manager for World of Warcraft."
     if not ctx.obj:
-        def prepare_state() -> CliManager:
-            while True:
-                try:
-                    config = Config.read().write()
-                except FileNotFoundError:
-                    ctx.invoke(write_config)
-                else:
-                    break
+        @object.__new__
+        class ManagerSingleton:
+            @cached_property
+            def manager(self) -> CliManager:
+                while True:
+                    try:
+                        config = Config.read().write()
+                    except FileNotFoundError:
+                        ctx.invoke(write_config)
+                    else:
+                        break
 
-            setup_logging(config, debug or 'INFO')
-            manager = CliManager(config)
-            if is_outdated(manager):
-                click.echo(f'{Symbols.WARNING} instawow is out of date')
-            return manager
+                setup_logging(config, debug or 'INFO')
+                manager = CliManager(config)
+                if is_outdated(manager):
+                    click.echo(f'{Symbols.WARNING} instawow is out of date')
+                return manager
 
-        ctx.obj = prepare_state
+            m = manager
+
+        ctx.obj = ManagerSingleton
 
 
 @main.command()
@@ -196,20 +189,17 @@ def install(manager, addons, strategy, replace) -> None:
 
 
 @main.command()
-@click.argument('addons', nargs=-1, callback=decompose_pkg_uri, is_eager=True)
+@click.argument('addons', nargs=-1, callback=decompose_pkg_uri)
 @_pass_manager
 def update(manager, addons) -> None:
     "Update installed add-ons."
-    orig_addons = addons
-    if not addons:
-        addons = [(compose_pkg_uri(p), (p.origin, p.slug))
-                  for p in manager.db.query(Pkg).all()]
-
-    results = zip((a for a, _ in addons),
-                  manager.update(p for _, p in addons))
-    # Hide if ``update`` was invoked without arguments
-    # and the package is up-to-date
-    filter_fn = lambda r: orig_addons or not isinstance(r, E.PkgUpToDate)
+    if addons:
+        values = addons
+    else:
+        values = [(compose_pkg_uri(p), (p.origin, p.slug)) for p in manager.db.query(Pkg).all()]
+    results = zip((a for a, _ in values), manager.update(p for _, p in values))
+    # Hide package from output if up to date and ``update`` was invoked without args
+    filter_fn = lambda r: addons or not isinstance(r, E.PkgUpToDate)
     Report(list(results), filter_fn).generate_and_exit()
 
 
@@ -220,6 +210,221 @@ def remove(manager, addons) -> None:
     "Uninstall add-ons."
     results = zip((a for a, _ in addons), manager.remove(p for _, p in addons))
     Report(list(results)).generate_and_exit()
+
+
+@main.command()
+@click.pass_context
+def reconcile(ctx) -> None:
+    "Reconcile add-ons."
+    from functools import reduce
+    from itertools import chain, repeat, starmap, tee
+
+    from prompt_toolkit.styles import Style
+    from questionary import Choice as _Choice, confirm
+    from questionary.question import Question
+
+    from .utils import gather
+
+    class Choice(_Choice):
+        def __init__(self, *args: Any, pkg: Optional[Pkg] = None, **kwargs: Any) -> None:
+            super().__init__(*args, **kwargs)
+            self.pkg = pkg
+
+    class _Addon(NamedTuple):
+        name: str
+        reader: TocReader
+
+        @property
+        def version(self) -> str:
+            return self.reader['Version'].value
+
+    manager = ctx.obj.m
+    resolve_ = partial(manager.resolve, strategy='default')
+    install_ = partial(ctx.invoke, install, replace=True)
+    TocReader_ = lambda n: TocReader.from_path_name(manager.config.addon_dir / n)
+
+    qstyle = Style([('qmark', 'fg:ansicyan'),
+                    ('question', ''),
+                    ('answer', 'fg: nobold'),
+                    ('hilite', 'fg:ansimagenta'),
+                    ('skipped', 'fg:ansiyellow')])
+    confirm_ = partial(confirm, style=qstyle)
+    skip = Choice([('', 'skip')], ())
+
+    def select(message: str, choices: List[Choice]) -> Question:
+        from prompt_toolkit.application import Application
+        from prompt_toolkit.key_binding import KeyBindings
+        from prompt_toolkit.keys import Keys
+        from questionary.prompts.common import InquirerControl, create_inquirer_layout
+
+        def get_prompt_tokens():
+            tokens = [('class:qmark', '-'),
+                      ('class:x-question', f' {message} ')]
+            if ic.is_answered:
+                answer = ''.join(t for _, t in ic.get_pointed_at().title)
+                tokens += [('', '  '),
+                           ('class:skipped' if answer == 'skip' else '', answer)]
+            return tokens
+
+        ic = InquirerControl(choices, None,
+                             use_indicator=False, use_shortcuts=False, use_pointer=True)
+        bindings = KeyBindings()
+
+        @bindings.add(Keys.ControlQ, eager=True)
+        @bindings.add(Keys.ControlC, eager=True)
+        def _(event):
+            event.app.exit(exception=KeyboardInterrupt, style='class:aborting')
+
+        @bindings.add(Keys.Down, eager=True)
+        @bindings.add('j', eager=True)
+        def move_cursor_down(event):
+            ic.select_next()
+            while not ic.is_selection_valid():
+                ic.select_next()
+
+        @bindings.add(Keys.Up, eager=True)
+        @bindings.add('k', eager=True)
+        def move_cursor_up(event):
+            ic.select_previous()
+            while not ic.is_selection_valid():
+                ic.select_previous()
+
+        @bindings.add(Keys.ControlM, eager=True)
+        def set_answer(event):
+            ic.is_answered = True
+            event.app.exit(result=ic.get_pointed_at().value)
+
+        @bindings.add('o', eager=True)
+        def open_url(event):
+            pkg = ic.get_pointed_at().pkg
+            if pkg:
+                import webbrowser
+                webbrowser.open(pkg.url)
+
+        @bindings.add(Keys.Any)
+        def other(event):
+            # Disallow inserting other text
+            pass
+
+        layout = create_inquirer_layout(ic, get_prompt_tokens)
+        app = Application(layout=layout, key_bindings=bindings, style=qstyle)
+        return Question(app)
+
+    def _prompt(addons: Sequence[_Addon], pkgs: Sequence[Pkg]) -> Tuple[Sequence[_Addons], str]:
+        def create_choice(pkg):
+            uri = compose_pkg_uri(pkg)
+            title = [('', uri),
+                     ('', '=='),
+                     ('class:hilite' if highlight_version else '', pkg.version),]
+            return Choice(title, (addons, uri), pkg=pkg)
+
+        # Highlight version if there's multiple of them
+        highlight_version = len(bucketise(i.version for i in chain(addons, pkgs))) > 1
+        choices = list(chain(map(create_choice, pkgs), (skip,)))
+        addon = addons[0]
+        # Use 'unsafe_ask' to let ^C bubble up
+        selection = select(f'{addon.name} [{addon.version or "?"}]', choices).unsafe_ask()
+        return selection
+
+    def prompt(groups: Iterable[Tuple[Sequence[_Addon], Sequence[Pkg]]]) -> Generator[str, None, None]:
+        for addons, results in groups:
+            shortlist = [r for r in results if isinstance(r, Pkg)]
+            if shortlist:
+                selection = _prompt(addons, shortlist)
+                selection and (yield selection)
+
+    def match_toc_ids_from_sources(leftovers: Set[str]):
+        "Attempt to match add-ons from host IDs contained in TOC files."
+        ids_to_sources = {'X-WoWI-ID': 'wowi',
+                          'X-Tukui-ProjectID': 'tukui',
+                          'X-Curse-Project-ID': 'curse',}
+
+        def merge_ids_and_dirs(buckets, match):
+            dirs, ids = match
+            for index, (old_dirs, old_ids) in enumerate(buckets):
+                if ids & old_ids:
+                    buckets[index] = (old_dirs + dirs, old_ids | ids)
+                    break
+            else:
+                buckets.append(match)
+            return buckets
+
+        dir_tocs = ((n, TocReader_(n)) for n in sorted(leftovers))
+        maybe_ids = (((n, r), (r[i] for i in ids_to_sources)) for n, r in dir_tocs)
+        buckets = reduce(merge_ids_and_dirs,
+                         (([t], {(ids_to_sources[v.key], v.value) for v in i if v})
+                          for t, i in maybe_ids),
+                         [])
+        results = manager.run(resolve_(set(chain.from_iterable(i for _, i in buckets))))
+        groups = ((list(starmap(_Addon, k)), list(map(results.__getitem__, v)))
+                  for k, v in buckets)
+        return groups
+
+    def match_dir_names_from_wowi_catalogue(leftovers: Set[str]):
+        "Attempt to match folders against the WoWInterface catalogue."
+        async def fetch_catalogue():
+            url = manager.resolvers['wowi'].list_api_url
+            async with manager.web_client.get(url) as response:
+                return await response.json()
+
+        def merge_dirs_and_ids(buckets, match):
+            dirs, id_ = match
+            for index, (old_dirs, old_ids) in enumerate(buckets):
+                if old_dirs & dirs:
+                    buckets[index] = (old_dirs | dirs, old_ids | {id_})
+                    break
+            else:
+                buckets.append((dirs, {id_}))
+            return buckets
+
+        catalogue = manager.run(fetch_catalogue())
+        matches = ((d & leftovers, u) for d, u in
+                   ((set(e['UIDir']), e['UID']) for e in catalogue)
+                   if d & leftovers)
+        buckets = reduce(merge_dirs_and_ids, matches, [])
+        results = manager.run(resolve_(zip(repeat('wowi'),
+                                           set(chain.from_iterable(i for _, i in buckets)))))
+        groups = ((sorted(_Addon(n, TocReader_(n)) for n in k),
+                   [results['wowi', i] for i in v])
+                  for k, v in buckets)
+        return groups
+
+    def match_all(leftovers: Set[str]):
+        # Match in order of increasing heuristicitivenessitude
+        for fn in (match_toc_ids_from_sources,
+                   match_dir_names_from_wowi_catalogue):
+            groups = fn(leftovers)
+            dirs, uris = tee(prompt(groups))
+            yield from (u for _, u in uris)
+            leftovers -= {a.name for d, _ in dirs for a in d}
+
+    addons = {f.name for f in manager.config.addon_dir.iterdir() if f.is_dir()}
+    leftovers = addons - {f.name for f in manager.db.query(PkgFolder).all()}
+    if not leftovers:
+        click.echo('No add-ons left to reconcile.')
+        return
+
+    click.echo('''\
+- Use the arrow keys to navigate, 'o' (Oscar) to open an
+  add-on in your browser and enter to make a selection.
+- Versions that differ from the installed version
+  or differ between choices are highlighted in purple.
+- instawow will do a first pass of all of your add-ons
+  looking for source IDs in TOC files, e.g. X-Curse-Project-ID.
+- If it is unable to reconcile all of your add-ons
+  it will perform a second pass to match add-on folders
+  against the WoWInterface catalogue.
+- Selected add-ons will be reinstalled.
+- This feature is experimental and mostly untested.
+  More reconciliation options may become available later.\
+''')
+    selections = list(match_all(leftovers))
+    try:
+        if selections and confirm_('Install selected add-ons?').unsafe_ask():
+            install_(addons=decompose_pkg_uri(ctx, None, selections))
+    finally:
+        click.echo(f'- Unreconciled add-ons can be listed with '
+                   '`instawow list-folders -e`.')
 
 
 @main.command('list')
@@ -288,12 +493,10 @@ def list_folders(manager, exclude_own, toc_entries) -> None:
     folder_tocs = ((n, n / f'{n.name}.toc') for n in folders)
     folder_readers = sorted((n, TocReader.from_path(t)) for n, t in folder_tocs if t.exists())
     if folder_readers:
-        rows = [('folder', 'Curse ID', 'WoWI ID',
+        rows = [('folder',
                  *(f'[{e}]' for e in toc_entries)),
                 *((n.name,
-                   t['X-Curse-Project-ID'].value,
-                   t['X-WoWI-ID'].value,
-                   *(fill(t[e].value, width=50) for e in toc_entries))
+                  *(fill(t[e].value, width=50) for e in toc_entries))
                   for n, t in folder_readers)]
         click.echo(tabulate(rows))
 
