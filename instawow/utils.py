@@ -6,6 +6,7 @@ __all__ = ('ManagerAttrAccessMixin',
            'cached_property',
            'bucketise',
            'dict_merge',
+           'iter_or_repeat',
            'gather',
            'slugify',
            'bbegone',
@@ -17,6 +18,7 @@ import asyncio
 from collections import defaultdict
 from datetime import datetime
 from functools import reduce
+from itertools import repeat
 from pathlib import Path
 import re
 from typing import TYPE_CHECKING
@@ -40,6 +42,9 @@ class _TocEntry(NamedTuple):
 
     key: str
     value: Optional[str]
+
+    def __bool__(self) -> bool:
+        return bool(self.value)
 
 
 class TocReader:
@@ -97,6 +102,14 @@ def bucketise(iterable: Iterable, key: Callable = (lambda v: v)) -> dict:
 def dict_merge(*args: dict) -> dict:
     "Right merge any number of ``dict``s."
     return reduce(lambda p, n: {**p, **n}, args, {})
+
+
+def iter_or_repeat(value: Any) -> Iterable:
+    "Repeat ``value`` if it is not iterable."
+    try:
+        return iter(value)
+    except TypeError:
+        return repeat(value)
 
 
 async def gather(it: Iterable, return_exceptions: bool = True) -> List[Any]:

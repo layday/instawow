@@ -65,12 +65,9 @@ class Resolver(ManagerAttrAccessMixin):
 
     @classmethod
     def decompose_url(cls, uri: str) -> Optional[Tuple[str, str]]:
-        "Break a URL down to its component `origin` and `id`."
         raise NotImplementedError
 
-    async def resolve(self, id_or_slug: Union[List[str], str], *,
-                      strategy: Any) -> Union[Pkg, List[Pkg]]:
-        "Turn an ID or slug into a `Pkg`."
+    async def resolve(self, ids: List[str], *, strategy: Strategies) -> List[Pkg]:
         raise NotImplementedError
 
 
@@ -135,8 +132,7 @@ class CurseResolver(Resolver):
 
     @resolve.register
     @Strategies.validate
-    async def _(self, id_or_slug: str, *, strategy: Strategies,
-                _metadata: Any = _sentinel) -> Pkg:
+    async def _(self, id_or_slug: str, *, strategy: Strategies, _metadata: Any = _sentinel) -> Pkg:
         if _metadata is _sentinel:
             pkg, = await self.resolve([id_or_slug], strategy=strategy)
             return pkg
@@ -244,8 +240,7 @@ class WowiResolver(Resolver):
 
     @resolve.register
     @Strategies.validate
-    async def _(self, id_or_slug: str, *, strategy: Strategies,
-                _metadata: Any = _sentinel) -> Pkg:
+    async def _(self, id_or_slug: str, *, strategy: Strategies, _metadata: Any = _sentinel) -> Pkg:
         if _metadata is _sentinel:
             pkg, = await self.resolve([id_or_slug], strategy=strategy)
             return pkg

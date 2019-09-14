@@ -7,7 +7,6 @@ import asyncio
 from contextlib import asynccontextmanager
 import contextvars as cv
 from functools import partial
-from itertools import chain, repeat
 from pathlib import Path, PurePath
 import posixpath
 from shutil import move as _move
@@ -22,13 +21,16 @@ from . import __db_version__
 from . import exceptions as E
 from .models import ModelBase, Pkg, PkgFolder, should_migrate
 from .resolvers import CurseResolver, WowiResolver, TukuiResolver, InstawowResolver
-from .utils import bucketise, cached_property, dict_merge, gather, make_progress_bar
+from .utils import (bucketise, cached_property, dict_merge, gather,
+                    iter_or_repeat, make_progress_bar)
 
 if TYPE_CHECKING:
     from types import SimpleNamespace
     import aiohttp
     from .config import Config
 
+
+_Uri = Tuple[str, str]
 
 _UA_STRING = 'instawow (https://github.com/layday/instawow)'
 
@@ -40,8 +42,7 @@ def run_in_thread(fn: Callable) -> Callable[..., Awaitable]:
     return lambda *a, **k: _loop.get().run_in_executor(None, partial(fn, *a, **k))
 
 
-AsyncNamedTemporaryFile = partial(run_in_thread(NamedTemporaryFile),
-                                  prefix='instawow-')
+AsyncNamedTemporaryFile = partial(run_in_thread(NamedTemporaryFile), prefix='instawow-')
 async_mkdtemp = partial(run_in_thread(mkdtemp), prefix='instawow-')
 async_move = run_in_thread(_move)
 
@@ -61,8 +62,7 @@ async def new_temp_dir(*args: Any, **kwargs: Any) -> PurePath:
 
 async def move(paths: Iterable[Path], dest: PurePath) -> None:
     for path in paths:
-        logger.debug(f'moving {path} to {dest / path.name}')
-        await async_move(str(path), str(dest))
+        await async_move(str(path), dest)
 
 
 # macOS 'resource forks' are sometimes included in download zips - these
@@ -113,7 +113,9 @@ def Archive(path: PurePath, delete_after: bool) -> Callable:
 
     return enter
 
-async def download_archive(url: str, *, chunk_size: int = 4096) -> _Archive:
+
+async def download_archive(pkg: Pkg, *, chunk_size: int = 4096) -> Callable:
+    url = pkg.download_url
     if url.startswith('file://'):
         from urllib.parse import unquote
 
@@ -154,7 +156,7 @@ def prepare_db_session(*, config: Config) -> sessionmaker:
 async def init_web_client(**kwargs: Any) -> aiohttp.ClientSession:
     from aiohttp import ClientSession, TCPConnector
 
-    kwargs = {'connector': TCPConnector(limit_per_host=10),
+    kwargs = {'connector': TCPConnector(force_close=True),
               'headers': {'User-Agent': _UA_STRING},
               'trust_env': True,
               **kwargs}
@@ -170,9 +172,6 @@ class _ResolverDict(dict):
 
     def __missing__(self, key: Hashable) -> NoReturn:
         raise E.PkgOriginInvalid
-
-
-_Uri = Tuple[str, str]
 
 
 def _error_wrapper(error: E.ManagerError) -> Callable:
@@ -198,125 +197,126 @@ class Manager:
     def run(self, awaitable: Awaitable) -> Any:
         "Run ``awaitable`` inside an explicit context."
         def runner():
-            async def arunner():
+            async def do_run():
                 async with (await self.web_client_factory()) as client:
                     _web_client.set(client)
                     return await awaitable
 
-            _loop.set(asyncio.get_event_loop())
-            return _loop.get().run_until_complete(arunner())
+            loop = asyncio.new_event_loop()
+            _loop.set(loop)
+            return loop.run_until_complete(do_run())
 
         return cv.copy_context().run(runner)
 
     def get(self, origin: str, id_or_slug: str) -> Pkg:
-        "Retrieve a ``Pkg`` from the database."
+        "Retrieve a package from the database."
         return (self.db.query(Pkg)
                 .filter(Pkg.origin == origin,
                         (Pkg.id == id_or_slug) | (Pkg.slug == id_or_slug))
                 .first())
 
     async def resolve(self, uris: Sequence[_Uri], strategy: str) -> Dict[_Uri, Any]:
-        "Resolve a sequence of ``_Uri``s into packages."
-        async def resolve(origin: str, ids: List[str], strategy: str) -> Any:
-            return await self.resolvers[origin].resolve(ids, strategy=strategy)
+        "Resolve a sequence of URIs into packages."
+        async def resolve(source, values, strategy):
+            return await self.resolvers[source].resolve(values, strategy=strategy)
 
-        buckets = bucketise(uris, key=lambda v: v[0])
-        results = await gather(resolve(o, [i[1] for i in v], strategy=strategy)
-                               for o, v in buckets.items())
-        pairs = chain.from_iterable(zip(d, r if isinstance(r, list) else repeat(r))
-                                    for d, r in zip(buckets.values(), results))
-        sorted_pairs = dict(sorted(pairs, key=lambda v: uris.index(v[0])))
-        return sorted_pairs
+        source_buckets = bucketise(uris, key=lambda v: v[0])
+        results = await gather(resolve(s, [u[1] for u in b], strategy=strategy)
+                               for s, b in source_buckets.items())
+        matched = dict_merge(dict.fromkeys(uris),
+                             {u: v
+                              for d, r in zip(source_buckets.values(), results)
+                              for u, v in zip(d, iter_or_repeat(r))})
+        return matched
 
-    async def prep_install(self, uris: Sequence[_Uri],
-                           strategy: str, replace: bool) -> Dict[_Uri, Coroutine]:
+    async def _install(self, pkg: Pkg, open_archive: Callable, replace: bool) -> E.PkgInstalled:
+        async with open_archive() as (folders, extract):
+            pkg.folders = [PkgFolder(name=f) for f in folders]
+            conflicts = (self.db.query(PkgFolder)
+                         .filter(PkgFolder.name.in_([f.name for f in pkg.folders]))
+                         .first())
+            if conflicts:
+                raise E.PkgConflictsWithInstalled(conflicts.pkg)
+
+            if replace:
+                temp_dir = await new_temp_dir(dir=self.config.temp_dir)
+                await move((self.config.addon_dir / f.name for f in pkg.folders), temp_dir)
+            await extract(self.config.addon_dir)
+
+        self.db.add(pkg)
+        self.db.commit()
+        return E.PkgInstalled(pkg)
+
+    async def prep_install(self,
+                           uris: Sequence[_Uri],
+                           strategy: str,
+                           replace: bool) -> Dict[_Uri, Coroutine]:
         "Retrieve packages to install."
-        async def install(pkg: Pkg, open_archive: Callable, replace: bool) -> E.PkgInstalled:
-            async with open_archive() as (folders, extract):
-                pkg.folders = [PkgFolder(name=f) for f in folders]
-                conflicts = (self.db.query(PkgFolder)
-                             .filter(PkgFolder.name.in_([f.name for f in pkg.folders]))
-                             .first())
-                if conflicts:
-                    raise E.PkgConflictsWithInstalled(conflicts.pkg)
-
-                if replace:
-                    temp_dir = await new_temp_dir()
-                    await move((self.config.addon_dir / f.name for f in pkg.folders),
-                               temp_dir)
-                await extract(self.config.addon_dir)
-
-            self.db.add(pkg)
-            self.db.commit()
-            return E.PkgInstalled(pkg)
-
         candidates = [u for u in uris if not self.get(*u)]
         packages = await self.resolve(candidates, strategy)
-        installables = [(k, v) for k, v in packages.items() if isinstance(v, Pkg)]
-        archives = await gather(download_archive(p.download_url)
-                                for _, p in installables)
+        installables = [(u, p) for u, p in packages.items() if type(p) is Pkg]
+        archives = await gather(download_archive(p) for _, p in installables)
 
         coros = {k: v() for k, v in
-                 {**dict.fromkeys(uris, _error_wrapper(E.PkgAlreadyInstalled())),
-                  **{k: _error_wrapper(v) for k, v in packages.items()},
-                  **{k: (lambda p=p, a=a: install(p, a, replace))
-                     for (k, p), a in zip(installables, archives)}}.items()}
+                 dict_merge(dict.fromkeys(uris, _error_wrapper(E.PkgAlreadyInstalled())),
+                            {k: _error_wrapper(v) for k, v in packages.items()},
+                            {k: (lambda p=p, a=a: self._install(p, a, replace))
+                             for (k, p), a in zip(installables, archives)}
+                            ).items()}
         return coros
+
+    async def _update(self, old_pkg: Pkg, new_pkg: Pkg, open_archive: Callable) -> E.PkgUpdated:
+        async with open_archive() as (folders, extract):
+            new_pkg.folders = [PkgFolder(name=f) for f in folders]
+            filter_ = (PkgFolder.name.in_([f.name for f in new_pkg.folders]),
+                       PkgFolder.pkg_origin != new_pkg.origin,
+                       PkgFolder.pkg_id != new_pkg.id)
+            conflicts = self.db.query(PkgFolder).filter(*filter_).first()
+            if conflicts:
+                raise E.PkgConflictsWithInstalled(conflicts.pkg)
+
+            temp_dir = await new_temp_dir(dir=self.config.temp_dir)
+            await move((self.config.addon_dir / f.name for f in old_pkg.folders), temp_dir)
+            await extract(self.config.addon_dir)
+
+        self.db.delete(old_pkg)
+        self.db.add(new_pkg)
+        self.db.commit()
+        return E.PkgUpdated(old_pkg, new_pkg)
 
     async def prep_update(self, uris: Sequence[_Uri]) -> Dict[_Uri, Coroutine]:
         "Retrieve packages to update."
-        async def update(old_pkg: Pkg, new_pkg: Pkg, open_archive: Callable) -> E.PkgUpdated:
-            async with open_archive() as (folders, extract):
-                new_pkg.folders = [PkgFolder(name=f) for f in folders]
-                filter_ = (PkgFolder.name.in_([f.name for f in new_pkg.folders]),
-                           PkgFolder.pkg_origin != new_pkg.origin,
-                           PkgFolder.pkg_id != new_pkg.id)
-                conflicts = self.db.query(PkgFolder).filter(*filter_).first()
-                if conflicts:
-                    raise E.PkgConflictsWithInstalled(conflicts.pkg)
-
-                temp_dir = await new_temp_dir()
-                await move((self.config.addon_dir / f.name for f in old_pkg.folders),
-                           temp_dir)
-                await extract(self.config.addon_dir)
-
-            with self.db.begin_nested():
-                self.db.delete(old_pkg)
-                self.db.add(new_pkg)
-            return E.PkgUpdated(old_pkg, new_pkg)
-
         candidates = {u: p for u, p in ((u, self.get(*u)) for u in uris) if p}
-        strategy_buckets = bucketise(candidates.items(),
-                                     key=lambda v: v[1].options.strategy)
+        cand_by_strat = bucketise(candidates.items(),
+                                  key=lambda v: v[1].options.strategy)
         packages = dict_merge(*await gather(self.resolve([u for u, _ in c], s)
-                                            for s, c in strategy_buckets.items()))
-        installables = [(k, v) for k, v in packages.items() if isinstance(v, Pkg)]
-        updatables = [(k, v) for k, v in installables if v.file_id != candidates[k].file_id]
-        archives = await gather(download_archive(p.download_url)
-                                for _, p in updatables)
-
-        coros = {k: v() for k, v in
-                 {**dict.fromkeys(uris, _error_wrapper(E.PkgNotInstalled())),
-                  **{k: _error_wrapper(v) for k, v in packages.items()},
-                  **{k: _error_wrapper(E.PkgUpToDate()) for k, _ in installables},
-                  **{k: (lambda k=k, p=p, a=a: update(candidates[k], p, a))
-                     for (k, p), a in zip(updatables, archives)}}.items()}
-        return coros
-
-    async def prep_remove(self, uris: Sequence[_Uri]) -> Dict[_Uri, Coroutine]:
-        "Prepare packages to remove."
-        async def remove(pkg: Pkg) -> E.PkgRemoved:
-            temp_dir = await new_temp_dir()
-            await move((self.config.addon_dir / f.name for f in pkg.folders),
-                    temp_dir)
-
-            self.db.delete(pkg)
-            self.db.commit()
-            return E.PkgRemoved(pkg)
+                                            for s, c in cand_by_strat.items()))
+        installables = [(u, p) for u, p in packages.items() if isinstance(p, Pkg)]
+        updatables = [(u, p) for u, p in installables if p.file_id != candidates[u].file_id]
+        archives = await gather(download_archive(p) for _, p in updatables)
 
         coros = {k: v() for k, v in
                  dict_merge(dict.fromkeys(uris, _error_wrapper(E.PkgNotInstalled())),
-                            {u: (lambda p=p: remove(p))
+                            {k: _error_wrapper(v) for k, v in packages.items()},
+                            {k: _error_wrapper(E.PkgUpToDate()) for k, _ in installables},
+                            {k: (lambda k=k, p=p, a=a: self._update(candidates[k], p, a))
+                             for (k, p), a in zip(updatables, archives)}
+                            ).items()}
+        return coros
+
+    async def _remove(self, pkg: Pkg) -> E.PkgRemoved:
+        temp_dir = await new_temp_dir(dir=self.config.temp_dir)
+        await move((self.config.addon_dir / f.name for f in pkg.folders), temp_dir)
+
+        self.db.delete(pkg)
+        self.db.commit()
+        return E.PkgRemoved(pkg)
+
+    async def prep_remove(self, uris: Sequence[_Uri]) -> Dict[_Uri, Coroutine]:
+        "Prepare packages to remove."
+        coros = {k: v() for k, v in
+                 dict_merge(dict.fromkeys(uris, _error_wrapper(E.PkgNotInstalled())),
+                            {u: (lambda p=p: self._remove(p))
                              for u, p in ((u, self.get(*u)) for u in uris) if p}
                             ).items()}
         return coros
@@ -408,7 +408,7 @@ class CliManager(Manager):
 class WsManager(Manager):
 
     def __init__(self, loop: Optional[asyncio.AbstractEventLoop] = None) -> None:
-        self.web_client_factory = _init_web_client
+        self.web_client_factory = init_web_client
 
     def finalise(self, config: Config) -> WsManager:
         self.config = config
