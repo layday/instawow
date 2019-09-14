@@ -419,19 +419,13 @@ def show_config(manager) -> None:
     click.echo(manager.config.json(exclude=set()))
 
 
-@main.group('extras',
+@main.group('weakauras-companion',
             cls=_OrigCmdOrderGroup)
-def _extras_group() -> None:
-    "Additional functionality."
-
-
-@_extras_group.group('weakauras',
-                     cls=_OrigCmdOrderGroup)
 def _weakauras_group() -> None:
     "Manage your WeakAuras."
 
 
-@_weakauras_group.command('build-companion')
+@_weakauras_group.command('build')
 @click.option('--account', '-a',
               required=True,
               help='Your account name.  This is used to locate '
