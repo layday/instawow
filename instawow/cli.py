@@ -74,12 +74,10 @@ def tabulate(rows: Iterable, *, show_index: bool = True) -> str:
 
     table = Texttable(max_width=0).set_deco(c.BORDER | c.HEADER | c.VLINES)
     if show_index:
-        rows = iter(rows)
-        rows = [('', *next(rows)), *((i, *v) for i, v in enumerate(rows, start=1))]
-        table.set_cols_align(('r', *('l' for _ in rows[0]))[:-1])
-    else:
-        rows = [(), *rows]
-
+        iter_rows = iter(rows)
+        header = next(iter_rows)
+        rows = [('', *header), *((i, *v) for i, v in enumerate(iter_rows, start=1))]
+        table.set_cols_align(('r', *('l' for _ in header)))
     return table.add_rows(rows).draw()
 
 
@@ -337,7 +335,7 @@ def info(manager, addon, toc_entries) -> None:
                 toc_reader = TocReader.from_path_name(manager.config.addon_dir / folder.name)
                 rows.update({f'[{folder.name} {k}]': fill(toc_reader[k].value)
                              for k in toc_entries})
-        click.echo(tabulate(rows.items(), show_index=False))
+        click.echo(tabulate([(), *rows.items()], show_index=False))
     else:
         Report([(addon[0], E.PkgNotInstalled())]).generate_and_exit()
 
