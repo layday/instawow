@@ -190,9 +190,6 @@ def make_progress_bar(**kwargs: Any) -> pbb.ProgressBar:
 
     class ProgressBar(pbb.ProgressBar):
         def __exit__(self, *args):
-            # Clear bars during final cycle of ``_auto_refresh_context``
-            self.counters = []
-
             if self._has_sigwinch:
                 self._loop.add_signal_handler(pbb.signal.SIGWINCH, self._previous_winch_handler)
 

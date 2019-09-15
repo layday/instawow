@@ -326,6 +326,16 @@ class Manager:
 
 
 _tick_interval = .1
+_tickers: cv.ContextVar[Set[asyncio.Task]] = cv.ContextVar('_tickers', default=set())
+
+
+@asynccontextmanager
+async def cancel_tickers() -> AsyncGenerator[None, None]:
+    try:
+        yield
+    finally:
+        for ticker in _tickers.get():
+            ticker.cancel()
 
 
 async def init_cli_web_client(*, manager: CliManager) -> aiohttp.ClientSession:
@@ -350,13 +360,15 @@ async def init_cli_web_client(*, manager: CliManager) -> aiohttp.ClientSession:
                           total=params.response.content_length)
 
         async def ticker(bar=bar, params=params) -> None:
-            while not params.response.content._eof:
-                bar.current = params.response.content._cursor
-                await asyncio.sleep(_tick_interval)
-            bar.progress_bar.counters.remove(bar)
+            try:
+                while not params.response.content._eof:
+                    bar.current = params.response.content._cursor
+                    await asyncio.sleep(_tick_interval)
+            finally:
+                bar.progress_bar.counters.remove(bar)
 
-        loop = _loop.get()
-        loop.create_task(ticker())
+        tickers = _tickers.get()
+        tickers.add(asyncio.create_task(ticker()))
 
     trace_config = TraceConfig()
     trace_config.on_request_end.append(do_on_request_end)
@@ -385,8 +397,9 @@ class CliManager(Manager):
     def _process(self, prepper: Callable,
                  uris: Sequence[_Uri], *args: Any) -> List[E.ManagerResult]:
         async def do_process():
-            coros = await prepper(list(uris), *args)
-            return [await _intercept(c) for c in coros.values()]
+            async with cancel_tickers():
+                coros = await prepper(list(uris), *args)
+                return [await _intercept(c) for c in coros.values()]
 
         with self.bar:
             return self.run(do_process())
