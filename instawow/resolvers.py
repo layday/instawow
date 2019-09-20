@@ -87,11 +87,11 @@ class CurseResolver(Resolver):
         if url.host == 'www.wowace.com' \
                 and len(url.parts) > 2 \
                 and url.parts[1] == 'projects':
-            return (cls.origin, url.parts[2])
+            return (cls.origin, url.parts[2].lower())
         elif url.host == 'www.curseforge.com' \
                 and len(url.parts) > 3 \
                 and url.parts[1:3] == ('wow', 'addons'):
-            return (cls.origin, url.parts[3])
+            return (cls.origin, url.parts[3].lower())
 
     async def _fetch(self, ids: List[str]) -> dict:
         from xml.etree import ElementTree
