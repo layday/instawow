@@ -27,6 +27,7 @@ class _Config(pydantic.BaseSettings):
 
     config_dir: Path
     addon_dir: Path
+    temp_dir: Path = _TEMP_DIR / 'instawow'
     game_flavour: Literal['retail', 'classic']
 
     @pydantic.validator('config_dir', 'addon_dir')
@@ -73,10 +74,6 @@ class _Config(pydantic.BaseSettings):
     @property
     def plugin_dir(self) -> Path:
         return self.config_dir / 'plugins'
-
-    @property
-    def temp_dir(self) -> Path:
-        return _TEMP_DIR / 'instawow'
 
     class Config:
         env_prefix = 'INSTAWOW_'
