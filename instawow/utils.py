@@ -246,6 +246,12 @@ def make_progress_bar(**kwargs: Any) -> pbb.ProgressBar:
     return progress_bar
 
 
+def is_not_stale(path: Path, ttl: int, unit: str = 'seconds') -> bool:
+    "Check if a file is older than ``ttl``."
+    mtime = path.exists() and path.stat().st_mtime
+    return mtime > 0 and (datetime.now() - datetime.fromtimestamp(mtime)) < timedelta(**{unit: ttl})
+
+
 def is_outdated(manager: Manager) -> bool:
     """Check against PyPI to see if `instawow` is outdated.
 
@@ -257,8 +263,7 @@ def is_outdated(manager: Manager) -> bool:
         return tuple(map(int, version.split('.')))
 
     cache_file = manager.config.config_dir / '.pypi_version'
-    mtime = cache_file.exists() and cache_file.stat().st_mtime
-    if mtime and (datetime.now() - datetime.fromtimestamp(mtime)).days < 1:
+    if is_not_stale(cache_file, 1, 'days'):
         version = cache_file.read_text(encoding='utf-8')
     else:
         from aiohttp.client import ClientError
@@ -275,7 +280,8 @@ def is_outdated(manager: Manager) -> bool:
         else:
             cache_file.write_text(version, encoding='utf-8')
 
-    # Assume cache is stale if installed version > version on PyPI
+    # Installed version > version on PyPI if running in dev or
+    # user upgraded without being prompted
     if parse_version(__version__) > parse_version(version):
         return False
     else:
