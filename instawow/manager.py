@@ -219,6 +219,7 @@ class Manager:
             return await self.resolvers[source].resolve(values, strategy=strategy)
 
         source_buckets = bucketise(uris, key=lambda v: v[0])
+        for source in source_buckets: await self.resolvers[source].synchronise()     # placeholder
         results = await gather(resolve(s, [u[1] for u in b], strategy=strategy)
                                for s, b in source_buckets.items())
         matched = dict_merge(dict.fromkeys(uris),

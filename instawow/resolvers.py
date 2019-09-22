@@ -91,6 +91,9 @@ class Resolver(ManagerAttrAccessMixin):
     def decompose_url(cls, uri: str) -> Optional[Tuple[str, str]]:
         raise NotImplementedError
 
+    async def synchronise(self) -> Resolver:
+        return self
+
     async def resolve(self, ids: List[str], *, strategy: Strategies) -> List[Pkg]:
         raise NotImplementedError
 
@@ -195,20 +198,17 @@ class CurseResolver(Resolver):
                    options=PkgOptions(strategy=strategy.name))
 
 
-class WowiResolver(Resolver):
+class WowiResolver(Resolver, _FileCacheMixin):
 
     origin = 'wowi'
     name = 'WoWInterface'
     strategies = {Strategies.default}
 
     # https://api.mmoui.com/v3/globalconfig.json
-    list_api_url = URL('https://api.mmoui.com/v3/game/WOW/filelist.json')
+    list_api_url = 'https://api.mmoui.com/v3/game/WOW/filelist.json'
     details_api_url = URL('https://api.mmoui.com/v3/game/WOW/filedetails/')
 
-    def __init__(self, *, manager: Manager) -> None:
-        super().__init__(manager=manager)
-        self._sync_lock = asyncio.Lock()
-        self._files: Dict[str, dict] = {}
+    _files: Optional[Dict[str, dict]] = None
 
     @classmethod
     def decompose_url(cls, uri: str) -> Optional[Tuple[str, str]]:
@@ -229,13 +229,13 @@ class WowiResolver(Resolver):
                         id_ = slugify(f'{id_} {slug}')
                     return (cls.origin, id_)
 
-    async def _fetch(self, ids: List[str]) -> dict:
-        async with self._sync_lock:
-            if not self._files:
-                async with self.web_client.get(self.list_api_url) as response:
-                    files = await response.json()
-                self._files = {i['UID']: i for i in files}
+    async def synchronise(self) -> WowiResolver:
+        if self._files is None:
+            files = await self._cache_json_response(self.list_api_url, 3600)
+            self._files = {i['UID']: i for i in files}
+        return self
 
+    async def _fetch(self, ids: List[str]) -> dict:
         strict_ids = [''.join(takewhile(str.isdigit, i)) for i in ids]
         url = self.details_api_url / f'{",".join(strict_ids)}.json'
         async with self.web_client.get(url) as response:
