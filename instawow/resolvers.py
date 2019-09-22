@@ -9,6 +9,7 @@ from datetime import datetime
 from enum import Enum
 from functools import wraps
 from itertools import takewhile
+import re
 from typing import TYPE_CHECKING
 from typing import Any, Callable, ClassVar, Dict, List, Optional, Set, Tuple, Union
 
@@ -196,15 +197,13 @@ class WowiResolver(Resolver):
                 id_ = url.query.get('fileid')
                 if id_:
                     return (cls.origin, id_)
-
-            prefix = None
-            if url.name.startswith('download'):
-                prefix = 'download'
-            elif url.name.startswith('info'):
-                prefix = 'info'
-            if prefix:
-                id_ = ''.join(takewhile(str.isdigit, url.name[len(prefix) :]))
-                if id_:
+            else:
+                match = re.match(r'^(?:download|info)(?P<id>\d+)(?:-(?P<name>[^\.]+))?',
+                                 url.name)
+                if match:
+                    id_, slug = match.groups()
+                    if slug:
+                        id_ = slugify(f'{id_} {slug}')
                     return (cls.origin, id_)
 
     async def _fetch(self, ids: List[str]) -> dict:
