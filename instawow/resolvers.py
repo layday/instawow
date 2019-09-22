@@ -98,15 +98,17 @@ class Resolver(ManagerAttrAccessMixin):
         raise NotImplementedError
 
 
-class CurseResolver(Resolver):
+class CurseResolver(Resolver, _FileCacheMixin):
 
     origin = 'curse'
     name = 'CurseForge'
     strategies = {Strategies.default, Strategies.latest}
 
-    addon_url = URL('https://www.curseforge.com/wow/addons')
     # https://twitchappapi.docs.apiary.io/
     addon_api_url = URL('https://addons-ecs.forgesvc.net/api/v2/addon/')
+    slugs_url = 'https://raw.githubusercontent.com/layday/instascrape/data/curseforge-slugs.json'
+
+    _slugs: Optional[Dict[str, str]] = None
 
     @classmethod
     def decompose_url(cls, uri: str) -> Optional[Tuple[str, str]]:
@@ -120,20 +122,14 @@ class CurseResolver(Resolver):
                 and url.parts[1:3] == ('wow', 'addons'):
             return (cls.origin, url.parts[3].lower())
 
+    async def synchronise(self) -> CurseResolver:
+        if self._slugs is None:
+            slugs = await self._cache_json_response(self.slugs_url, 8, 'hours')
+            self._slugs = {k: str(v) for k, v in slugs.items()}
+        return self
+
     async def _fetch(self, ids: List[str]) -> dict:
-        from xml.etree import ElementTree
-
-        async def extract_id(id_or_slug) -> str:
-            url = self.addon_url / id_or_slug / 'download-client'
-            async with self.web_client.get(url) as response:
-                if response.status == 404:
-                    id_ = id_or_slug    # Assume id_ is an id and not a slug
-                else:
-                    xml = ElementTree.fromstring(await response.text())
-                    id_ = xml.find('project').attrib['id']
-                return id_
-
-        extracted = await gather((extract_id(i) for i in ids), False)
+        extracted = [self._slugs.get(i, i) for i in ids]   # placeholder
         shortlist = list(filter(str.isdigit, extracted))
         async with self.web_client.post(self.addon_api_url, json=shortlist) as response:
             if response.status == 404:
