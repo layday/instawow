@@ -4,8 +4,8 @@
 #
 #    pip-compile requirements.in
 #
-aiohttp==3.6.0
-alembic==1.1.0
+aiohttp==3.6.1
+alembic==1.2.0
 async-timeout==3.0.1      # via aiohttp
 attrs==19.1.0             # via aiohttp
 chardet==3.0.4            # via aiohttp
