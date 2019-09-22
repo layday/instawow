@@ -22,7 +22,7 @@ from itertools import repeat
 from pathlib import Path
 import re
 from typing import TYPE_CHECKING
-from typing import (Any, Callable, Iterable, List, NamedTuple,
+from typing import (Any, Awaitable, Callable, Iterable, List, NamedTuple,
                     Optional, Tuple, Type, TypeVar, Union)
 
 if TYPE_CHECKING:
@@ -114,6 +114,10 @@ def iter_or_repeat(value: Any) -> Iterable:
 
 async def gather(it: Iterable, return_exceptions: bool = True) -> List[Any]:
     return await asyncio.gather(*it, return_exceptions=return_exceptions)
+
+
+def run_in_thread(fn: Callable) -> Callable[..., Awaitable]:
+    return lambda *a, **k: asyncio.get_running_loop().run_in_executor(None, partial(fn, *a, **k))
 
 
 _match_loweralphanum = re.compile(r'[^0-9a-z ]')

@@ -22,7 +22,7 @@ from . import exceptions as E
 from .models import ModelBase, Pkg, PkgFolder, should_migrate
 from .resolvers import CurseResolver, WowiResolver, TukuiResolver, InstawowResolver
 from .utils import (bucketise, cached_property, dict_merge, gather,
-                    iter_or_repeat, make_progress_bar)
+                    iter_or_repeat, make_progress_bar, run_in_thread)
 
 if TYPE_CHECKING:
     from types import SimpleNamespace
@@ -36,11 +36,6 @@ _UA_STRING = 'instawow (https://github.com/layday/instawow)'
 
 _loop: cv.ContextVar[asyncio.AbstractEventLoop] = cv.ContextVar('_loop')
 _web_client: cv.ContextVar[aiohttp.ClientSession] = cv.ContextVar('_web_client')
-
-
-def run_in_thread(fn: Callable) -> Callable[..., Awaitable]:
-    return lambda *a, **k: _loop.get().run_in_executor(None, partial(fn, *a, **k))
-
 
 AsyncNamedTemporaryFile = partial(run_in_thread(NamedTemporaryFile), prefix='instawow-')
 async_mkdtemp = partial(run_in_thread(mkdtemp), prefix='instawow-')

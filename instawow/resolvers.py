@@ -18,7 +18,7 @@ from yarl import URL
 
 from . import exceptions as E
 from .models import Pkg, PkgOptions
-from .utils import ManagerAttrAccessMixin, gather, slugify, bbegone
+from .utils import ManagerAttrAccessMixin, gather, run_in_thread, slugify, bbegone
 
 try:
     from functools import singledispatchmethod      # type: ignore
@@ -357,7 +357,6 @@ class InstawowResolver(Resolver):
         except StopIteration:
             raise E.PkgNonexistent
 
-        from .manager import run_in_thread
         from .wa_updater import WaCompanionBuilder
 
         builder = WaCompanionBuilder(self.manager)

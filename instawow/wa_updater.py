@@ -13,7 +13,7 @@ from loguru import logger
 from pydantic import BaseModel, BaseSettings, Extra, validator
 from yarl import URL
 
-from .utils import ManagerAttrAccessMixin, bucketise
+from .utils import ManagerAttrAccessMixin, bucketise, run_in_thread
 
 if TYPE_CHECKING:
     from .manager import Manager
@@ -198,8 +198,6 @@ class WaCompanionBuilder(ManagerAttrAccessMixin):
                       {'interface': '11302' if self.config.is_classic else '80200'})
 
     async def build(self, account: Optional[str] = None) -> None:
-        from .manager import run_in_thread
-
         account = account or BuilderConfig().account
         if not account:
             raise ValueError('account name is required to extract installed auras')
