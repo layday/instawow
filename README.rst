@@ -15,7 +15,7 @@ One option is to use `pipx <https://github.com/pipxproject/pipx>`__::
 
 Installing with `pip` is also supported::
 
-    pip3 install instawow
+    pip3 install --upgrade instawow
 
 Getting started
 ---------------
