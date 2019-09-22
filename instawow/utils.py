@@ -250,7 +250,7 @@ def is_outdated(manager: CliManager) -> bool:
     from . import __version__
 
     def parse_version(version: str) -> Tuple[int, ...]:
-        return tuple(map(int, version.split('.')))
+        return tuple(map(int, version.split('.')[:3]))
 
     cache_file = manager.config.config_dir / '.pypi_version'
     if is_not_stale(cache_file, 1, 'days'):

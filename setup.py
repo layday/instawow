@@ -1,17 +1,14 @@
-
+import os
 from pathlib import Path
 from setuptools import find_packages, setup
 
-try:
+if os.environ.get('INSTAWOW_DEV'):
     import fastentrypoints
-except ImportError:
-    pass
-
-from instawow import __version__
 
 
 setup(name='instawow',
-      version=__version__,
+      use_scm_version={'write_to': 'instawow/_version.py',
+                       'write_to_template': "__version__ = '{version}'\n",},
       description='A CLI for managing World of Warcraft add-ons.',
       url='http://github.com/layday/instawow',
       author='layday',
@@ -20,6 +17,6 @@ setup(name='instawow',
       long_description=Path('README.rst').read_text(),
       python_requires='~=3.7',
       packages=find_packages(),
+      setup_requires=['wheel', 'setuptools_scm'],
       install_requires=Path('requirements.txt').read_text(),
-      include_package_data=True,
-      entry_points={'console_scripts': ['instawow = instawow.cli:main']})
+      entry_points={'console_scripts': ['instawow = instawow.cli:main']},)

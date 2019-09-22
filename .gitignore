@@ -1,8 +1,11 @@
 __pycache__
 
+/.eggs
 /.mypy_cache
 /.pytest_cache
 /.venv
 /*.egg-info
 /dist
 /shell.nix
+
+/instawow/_version.py

@@ -5,7 +5,6 @@ let
 in mkShell {
   buildInputs = [
     ctags
-    nodejs-12_x
     python37
   ];
 
@@ -15,5 +14,6 @@ in mkShell {
     unset SOURCE_DATE_EPOCH
 
     export PYTHONBREAKPOINT="IPython.terminal.debugger.set_trace"
+    export INSTAWOW_DEV=1
   '';
 }
