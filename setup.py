@@ -19,4 +19,5 @@ setup(name='instawow',
       packages=find_packages(),
       setup_requires=['wheel', 'setuptools_scm'],
       install_requires=Path('requirements.txt').read_text(),
+      include_package_data=True,
       entry_points={'console_scripts': ['instawow = instawow.cli:main']},)
