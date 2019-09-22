@@ -7,8 +7,10 @@ __all__ = ('Strategies',
 import asyncio
 from datetime import datetime
 from enum import Enum
-from functools import wraps
+from functools import partial, wraps
 from itertools import takewhile
+import json
+from pathlib import Path
 import re
 from typing import TYPE_CHECKING
 from typing import Any, Callable, ClassVar, Dict, List, Optional, Set, Tuple, Union
@@ -18,7 +20,7 @@ from yarl import URL
 
 from . import exceptions as E
 from .models import Pkg, PkgOptions
-from .utils import ManagerAttrAccessMixin, gather, run_in_thread, slugify, bbegone
+from .utils import ManagerAttrAccessMixin, gather, run_in_thread, slugify, bbegone, is_not_stale
 
 try:
     from functools import singledispatchmethod      # type: ignore
@@ -30,6 +32,10 @@ if TYPE_CHECKING:
 
 
 _sentinel = object()
+
+async_is_not_stale = run_in_thread(is_not_stale)
+async_read = partial(run_in_thread(Path.read_text), encoding='utf-8')
+async_write = partial(run_in_thread(Path.write_text), encoding='utf-8')
 
 
 class Strategies(str, Enum):
@@ -53,6 +59,23 @@ class Strategies(str, Enum):
             raise E.PkgStrategyUnsupported(strategy)
 
         return wrapper
+
+
+class _FileCacheMixin:
+
+    async def _cache_json_response(self: Any, url: str, *args: Any) -> Any:
+        from hashlib import md5
+
+        filename = md5(url.encode()).hexdigest()
+        path = self.config.temp_dir / f'{filename}.json'
+        if await async_is_not_stale(path, *args):
+            text = await async_read(path)
+        else:
+            async with self.web_client.get(url) as response:
+                text = await response.text()
+            await async_write(path, text)
+
+        return json.loads(text)
 
 
 class Resolver(ManagerAttrAccessMixin):
