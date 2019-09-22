@@ -1,4 +1,3 @@
-
 from enum import IntEnum, auto
 from functools import partial
 from unittest.mock import patch
@@ -10,7 +9,7 @@ import pytest
 
 from instawow.cli import main
 from instawow.config import Config
-from instawow.manager import CliManager
+from instawow.manager import CliManager, prepare_db_session
 from instawow.utils import make_progress_bar
 
 
@@ -22,17 +21,20 @@ class Flavour(IntEnum):
 @pytest.fixture(scope='class', params=('retail', 'classic'))
 def full_config(tmp_path_factory, request):
     path = tmp_path_factory.mktemp(f'{__name__}.{request.cls.__name__}')
-    config = path / 'config'
     addons = path / 'addons'
     addons.mkdir()
-    return {'config_dir': config, 'addon_dir': addons, 'game_flavour': request.param}
+    return {'config_dir': path / 'config',
+            'addon_dir': addons,
+            'temp_dir': path / 'temp',
+            'game_flavour': request.param}
 
 
 @pytest.fixture(scope='class')
 def obj(full_config):
     config = Config(**full_config).write()
+    db_session = prepare_db_session(config=config)
     progress_bar_factory = lambda: make_progress_bar(input=DummyInput(), output=DummyOutput())
-    manager = CliManager(config, progress_bar_factory)
+    manager = CliManager(config, db_session, progress_bar_factory)
     yield type('Manager', (), {'manager': manager, 'm': manager})
 
 
@@ -269,11 +271,11 @@ class TestInstallWithAlias:
         [('install wowi:21654',
           lambda v: v.startswith('✓ wowi:21654\n  installed')),
          ('install https://www.wowinterface.com/downloads/info21654-DejaMark.html',
-          '✗ wowi:21654\n  package already installed\n'.__eq__),
+          '✗ wowi:21654-dejamark\n  package already installed\n'.__eq__),
          ('install https://www.wowinterface.com/downloads/landing.php?fileid=21654',
           '✗ wowi:21654\n  package already installed\n'.__eq__),
          ('install https://www.wowinterface.com/downloads/download21654-DejaMark',
-          '✗ wowi:21654\n  package already installed\n'.__eq__),
+          '✗ wowi:21654-dejamark\n  package already installed\n'.__eq__),
          ('remove wowi:21654',
           '✓ wowi:21654\n  removed\n'.__eq__)],)
     def test_install_with_wowi_alias(self, run, input, cmp):

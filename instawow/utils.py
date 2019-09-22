@@ -1,23 +1,9 @@
-
 from __future__ import annotations
-
-__all__ = ('ManagerAttrAccessMixin',
-           'TocReader',
-           'cached_property',
-           'bucketise',
-           'dict_merge',
-           'iter_or_repeat',
-           'gather',
-           'slugify',
-           'bbegone',
-           'make_progress_bar',
-           'is_outdated',
-           'setup_logging')
 
 import asyncio
 from collections import defaultdict
-from datetime import datetime
-from functools import reduce
+from datetime import datetime, timedelta
+from functools import partial, reduce
 from itertools import repeat
 from pathlib import Path
 import re
@@ -29,7 +15,7 @@ if TYPE_CHECKING:
     import prompt_toolkit.shortcuts.progress_bar.base as pbb
 
     from .config import Config
-    from .manager import Manager
+    from .manager import CliManager
 
 
 class ManagerAttrAccessMixin:
@@ -91,12 +77,12 @@ class cached_property:
             return v
 
 
-def bucketise(iterable: Iterable, key: Callable = (lambda v: v)) -> dict:
+def bucketise(iterable: Iterable, key: Callable = (lambda v: v)) -> defaultdict:
     "Place the elements of ``iterable`` into a bucket according to ``key``."
     bucket = defaultdict(list)      # type: ignore
     for value in iterable:
         bucket[key(value)].append(value)
-    return dict(bucket)
+    return bucket
 
 
 def dict_merge(*args: dict) -> dict:
@@ -256,7 +242,7 @@ def is_not_stale(path: Path, ttl: int, unit: str = 'seconds') -> bool:
     return mtime > 0 and (datetime.now() - datetime.fromtimestamp(mtime)) < timedelta(**{unit: ttl})
 
 
-def is_outdated(manager: Manager) -> bool:
+def is_outdated(manager: CliManager) -> bool:
     """Check against PyPI to see if `instawow` is outdated.
 
     The response is cached for 24 hours.

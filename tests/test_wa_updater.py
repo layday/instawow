@@ -1,4 +1,3 @@
-
 import pytest
 from yarl import URL
 
@@ -13,13 +12,13 @@ def builder(manager):
 @pytest.mark.asyncio
 @pytest.mark.parametrize('ids', [['RaidCDs', 'bfaraid2'],
                                  ['bfaraid2', 'RaidCDs'],])
-async def test_id_order_is_retained_in_aura_metadata(builder, web_client, ids):
+async def test_id_order_is_retained_in_aura_metadata(builder, ids):
     results = await builder.get_wago_aura_metadata(ids)
     assert ids == [r.slug for r in results]
 
 
 @pytest.mark.asyncio
-async def test_id_length_is_retained_in_aura_metadata(builder, web_client):
+async def test_id_length_is_retained_in_aura_metadata(builder):
     ids = ['bfaraid2', 'foobar', 'RaidCDs']    # Invalid ID flanked by two valid IDs
     results = await builder.get_wago_aura_metadata(ids)
     assert [ApiMetadata, type(None), ApiMetadata] == [type(r) for r in results]

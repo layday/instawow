@@ -1,4 +1,3 @@
-
 import json
 import os
 from pathlib import Path
@@ -12,7 +11,8 @@ from instawow.config import Config
 def test_strs_are_coerced_to_paths(full_config):
     config = Config(**{k: str(v) for k, v in full_config.items()})
     assert config.config_dir == full_config['config_dir']
-    assert config.addon_dir  == full_config['addon_dir']
+    assert config.addon_dir == full_config['addon_dir']
+    assert config.temp_dir == full_config['temp_dir']
 
 
 def test_config_from_env_var(partial_config, tmp_path):
@@ -34,7 +34,9 @@ def test_reading_config_missing(full_config):
 
 def test_reading_config_existing(full_config):
     config = Config(**full_config).write()
-    config_json = {'addon_dir': str(full_config['addon_dir']), 'game_flavour': config.game_flavour}
+    config_json = {'addon_dir': str(full_config['addon_dir']),
+                   'temp_dir': str(full_config['temp_dir']),
+                   'game_flavour': config.game_flavour}
     assert config_json == json.loads((full_config['config_dir'] / 'config.json').read_text())
 
 

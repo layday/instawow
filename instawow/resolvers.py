@@ -1,10 +1,5 @@
-
 from __future__ import annotations
 
-__all__ = ('Strategies',
-           'CurseResolver', 'WowiResolver', 'TukuiResolver', 'InstawowResolver')
-
-import asyncio
 from datetime import datetime
 from enum import Enum
 from functools import partial, wraps
@@ -13,7 +8,7 @@ import json
 from pathlib import Path
 import re
 from typing import TYPE_CHECKING
-from typing import Any, Callable, ClassVar, Dict, List, Optional, Set, Tuple, Union
+from typing import Any, Callable, ClassVar, Dict, List, NamedTuple, Optional, Set, Tuple, Union
 
 from loguru import logger
 from yarl import URL
@@ -38,27 +33,30 @@ async_read = partial(run_in_thread(Path.read_text), encoding='utf-8')
 async_write = partial(run_in_thread(Path.write_text), encoding='utf-8')
 
 
+class Defn(NamedTuple):
+
+    source: str
+    name: str
+
+    def __str__(self) -> str:
+        return ':'.join(self)
+
+
 class Strategies(str, Enum):
 
     default = 'default'
     latest = 'latest'
 
-    @classmethod
-    def validate(cls, method: Callable) -> Callable:
-        @wraps(method)
-        def wrapper(self, *args, **kwargs) -> Callable:
-            strategy = kwargs.pop('strategy')
 
-            try:
-                strategy_enum = cls[strategy]
-            except KeyError:
-                pass
-            else:
-                if strategy_enum in self.strategies:
-                    return method(self, *args, **{**kwargs, 'strategy': strategy_enum})
-            raise E.PkgStrategyUnsupported(strategy)
+def validate_strategy(method: Callable) -> Callable:
+    @wraps(method)
+    async def wrapper(self, defns: Any, strategy_value: str, **kwargs: Any) -> Any:
+        strategy = Strategies.__members__.get(strategy_value)
+        if strategy in self.strategies:
+            return await method(self, defns, strategy, **kwargs)
+        raise E.PkgStrategyUnsupported(strategy_value)
 
-        return wrapper
+    return wrapper
 
 
 class _FileCacheMixin:
@@ -80,7 +78,7 @@ class _FileCacheMixin:
 
 class Resolver(ManagerAttrAccessMixin):
 
-    origin: ClassVar[str]
+    source: ClassVar[str]
     name: ClassVar[str]
     strategies: ClassVar[Set[Strategies]]
 
@@ -94,18 +92,18 @@ class Resolver(ManagerAttrAccessMixin):
     async def synchronise(self) -> Resolver:
         return self
 
-    async def resolve(self, ids: List[str], *, strategy: Strategies) -> List[Pkg]:
+    async def resolve(self, defns: List[Defn], strategy: Strategies) -> List[Pkg]:
         raise NotImplementedError
 
 
 class CurseResolver(Resolver, _FileCacheMixin):
 
-    origin = 'curse'
+    source = 'curse'
     name = 'CurseForge'
     strategies = {Strategies.default, Strategies.latest}
 
     # https://twitchappapi.docs.apiary.io/
-    addon_api_url = URL('https://addons-ecs.forgesvc.net/api/v2/addon/')
+    addon_api_url = 'https://addons-ecs.forgesvc.net/api/v2/addon'
     slugs_url = 'https://raw.githubusercontent.com/layday/instascrape/data/curseforge-slugs.json'
 
     _slugs: Optional[Dict[str, str]] = None
@@ -116,11 +114,11 @@ class CurseResolver(Resolver, _FileCacheMixin):
         if url.host == 'www.wowace.com' \
                 and len(url.parts) > 2 \
                 and url.parts[1] == 'projects':
-            return (cls.origin, url.parts[2].lower())
+            return (cls.source, url.parts[2].lower())
         elif url.host == 'www.curseforge.com' \
                 and len(url.parts) > 3 \
                 and url.parts[1:3] == ('wow', 'addons'):
-            return (cls.origin, url.parts[3].lower())
+            return (cls.source, url.parts[3].lower())
 
     async def synchronise(self) -> CurseResolver:
         if self._slugs is None:
@@ -128,36 +126,28 @@ class CurseResolver(Resolver, _FileCacheMixin):
             self._slugs = {k: str(v) for k, v in slugs.items()}
         return self
 
-    async def _fetch(self, ids: List[str]) -> dict:
-        extracted = [self._slugs.get(i, i) for i in ids]   # placeholder
-        shortlist = list(filter(str.isdigit, extracted))
-        async with self.web_client.post(self.addon_api_url, json=shortlist) as response:
-            if response.status == 404:
-                metadata = []       # type: ignore
-            else:
-                metadata = await response.json()
-
-        results = dict.fromkeys(extracted)
-        for r in metadata:
-            id_ = str(r['id'])
-            if id_ in results:
-                results[id_] = r
-            else:
-                logger.info(f'extraneous id {id_!r} in results')
-        return dict(zip(ids, results.values()))
-
     @singledispatchmethod
-    @Strategies.validate
-    async def resolve(self, ids: List[str], *, strategy: Strategies) -> List[Pkg]:
-        results = await gather(self.resolve(k, strategy=strategy, _metadata=v)
-                               for k, v in (await self._fetch(ids)).items())
-        return results
+    @validate_strategy
+    async def resolve(self, defns: List[Defn], strategy: Strategies) -> List[Pkg]:
+        assert self._slugs is not None, f'{self.source} has not been synchronised'
+
+        ids_from_defns = [self._slugs.get(d.name, d.name) for d in defns]
+        numeric_ids = list({i for i in ids_from_defns if i.isdigit()})
+        async with self.web_client.post(self.addon_api_url, json=numeric_ids) as response:
+            if response.status == 404:
+                api_results = []       # type: ignore
+            else:
+                api_results = await response.json()
+
+        results = {str(r['id']): r for r in api_results}
+        return await gather(self.resolve(d, strategy, _metadata=results.get(i))
+                            for d, i in zip(defns, ids_from_defns))
 
     @resolve.register
-    @Strategies.validate
-    async def _(self, id_or_slug: str, *, strategy: Strategies, _metadata: Any = _sentinel) -> Pkg:
+    @validate_strategy
+    async def _(self, defn: Defn, strategy: Strategies, *, _metadata: Any = _sentinel) -> Pkg:
         if _metadata is _sentinel:
-            pkg, = await self.resolve([id_or_slug], strategy=strategy)
+            pkg, = await self.resolve([defn], strategy)
             return pkg
         else:
             metadata = _metadata
@@ -181,7 +171,7 @@ class CurseResolver(Resolver, _FileCacheMixin):
         except ValueError as error:
             raise E.PkgFileUnavailable('no files meet criteria')
 
-        return Pkg(origin=self.origin,
+        return Pkg(origin=self.source,
                    id=metadata['id'],
                    slug=metadata['slug'],
                    name=metadata['name'],
@@ -196,7 +186,7 @@ class CurseResolver(Resolver, _FileCacheMixin):
 
 class WowiResolver(Resolver, _FileCacheMixin):
 
-    origin = 'wowi'
+    source = 'wowi'
     name = 'WoWInterface'
     strategies = {Strategies.default}
 
@@ -215,7 +205,7 @@ class WowiResolver(Resolver, _FileCacheMixin):
             if url.name == 'landing.php':
                 id_ = url.query.get('fileid')
                 if id_:
-                    return (cls.origin, id_)
+                    return (cls.source, id_)
             else:
                 match = re.match(r'^(?:download|info)(?P<id>\d+)(?:-(?P<name>[^\.]+))?',
                                  url.name)
@@ -223,7 +213,7 @@ class WowiResolver(Resolver, _FileCacheMixin):
                     id_, slug = match.groups()
                     if slug:
                         id_ = slugify(f'{id_} {slug}')
-                    return (cls.origin, id_)
+                    return (cls.source, id_)
 
     async def synchronise(self) -> WowiResolver:
         if self._files is None:
@@ -231,36 +221,29 @@ class WowiResolver(Resolver, _FileCacheMixin):
             self._files = {i['UID']: i for i in files}
         return self
 
-    async def _fetch(self, ids: List[str]) -> dict:
-        strict_ids = [''.join(takewhile(str.isdigit, i)) for i in ids]
-        url = self.details_api_url / f'{",".join(strict_ids)}.json'
+    @singledispatchmethod
+    @validate_strategy
+    async def resolve(self, defns: List[Defn], strategy: Strategies) -> List[Pkg]:
+        assert self._files is not None, f'{self.source} has not been synchronised'
+
+        ids_from_defns = [''.join(takewhile(str.isdigit, d.name)) for d in defns]
+        numeric_ids = {i for i in ids_from_defns if i.isdigit()}
+        url = self.details_api_url / f'{",".join(numeric_ids)}.json'
         async with self.web_client.get(url) as response:
             if response.status == 404:
-                metadata = []       # type: ignore
+                api_results = []       # type: ignore
             else:
-                metadata = await response.json()
+                api_results = await response.json()
 
-        results = dict.fromkeys(strict_ids)
-        for r in metadata:
-            if r['UID'] in results:
-                file = self._files[r['UID']]
-                results[r['UID']] = {**file, **r}
-            else:
-                logger.info(f'extraneous id {r["UID"]!r} in results')
-        return dict(zip(ids, results.values()))
-
-    @singledispatchmethod
-    @Strategies.validate
-    async def resolve(self, ids: List[str], *, strategy: Strategies) -> List[Pkg]:
-        results = await gather(self.resolve(k, strategy=strategy, _metadata=v)
-                               for k, v in (await self._fetch(ids)).items())
-        return results
+        results = {r['UID']: {**self._files[r['UID']], **r} for r in api_results}
+        return await gather(self.resolve(d, strategy, _metadata=results.get(i))
+                            for d, i in zip(defns, ids_from_defns))
 
     @resolve.register
-    @Strategies.validate
-    async def _(self, id_or_slug: str, *, strategy: Strategies, _metadata: Any = _sentinel) -> Pkg:
+    @validate_strategy
+    async def _(self, defn: Defn, strategy: Strategies, *, _metadata: Any = _sentinel) -> Pkg:
         if _metadata is _sentinel:
-            pkg, = await self.resolve([id_or_slug], strategy=strategy)
+            pkg, = await self.resolve([defn], strategy)
             return pkg
         else:
             metadata = _metadata
@@ -282,7 +265,7 @@ class WowiResolver(Resolver, _FileCacheMixin):
         elif compatibility and not compatibility - {'WoW Classic'}:
             raise E.PkgFileUnavailable('file is only compatible with classic')
 
-        return Pkg(origin=self.origin,
+        return Pkg(origin=self.source,
                    id=metadata['UID'],
                    slug=slugify(f'{metadata["UID"]} {metadata["UIName"]}'),
                    name=metadata['UIName'],
@@ -297,7 +280,7 @@ class WowiResolver(Resolver, _FileCacheMixin):
 
 class TukuiResolver(Resolver):
 
-    origin = 'tukui'
+    source = 'tukui'
     name = 'Tukui'
     strategies = {Strategies.default}
 
@@ -310,18 +293,18 @@ class TukuiResolver(Resolver):
                 and url.path in {'/addons.php', '/classic-addons.php', '/download.php'}:
             id_or_slug = url.query.get('id') or url.query.get('ui')
             if id_or_slug:
-                return (cls.origin, id_or_slug)
+                return (cls.source, id_or_slug)
 
     @singledispatchmethod
-    @Strategies.validate
-    async def resolve(self, ids: List[str], *, strategy: Strategies) -> List[Pkg]:
-        return await gather(self.resolve(i, strategy=strategy) for i in ids)
+    @validate_strategy
+    async def resolve(self, defns: List[Defn], strategy: Strategies) -> List[Pkg]:
+        return await gather(self.resolve(d, strategy) for d in defns)
 
     @resolve.register
-    @Strategies.validate
-    async def _(self, id_or_slug: str, *, strategy: Strategies) -> Pkg:
-        id_or_slug, *_ = id_or_slug.partition('-')
-        is_ui = id_or_slug in {'elvui', 'tukui'}
+    @validate_strategy
+    async def _(self, defn: Defn, strategy: Strategies) -> Pkg:
+        id_, *_ = defn.name.partition('-')
+        is_ui = id_ in {'elvui', 'tukui'}
 
         if self.config.is_classic:
             query = 'classic-addon'
@@ -330,29 +313,35 @@ class TukuiResolver(Resolver):
                 query = 'ui'
             else:
                 query = 'addon'
-        url = self.api_url.with_query({query: id_or_slug})
+        url = self.api_url.with_query({query: id_})
         async with self.web_client.get(url) as response:
             if not response.content_length:
                 raise E.PkgNonexistent
             addon = await response.json(content_type='text/html')
 
-        return Pkg(origin=self.origin,
+        if is_ui:
+            slug = id_
+            date_published = datetime.fromisoformat(addon['lastupdate'])
+        else:
+            slug = slugify(f'{addon["id"]} {addon["name"]}')
+            date_published = addon['lastupdate']
+
+        return Pkg(origin=self.source,
                    id=addon['id'],
-                   slug=id_or_slug if is_ui else slugify(f'{addon["id"]} {addon["name"]}'),
+                   slug=slug,
                    name=addon['name'],
                    description=addon['small_desc'],
                    url=addon['web_url'],
                    file_id=addon['lastupdate'],
                    download_url=addon['url'],
-                   date_published=(datetime.fromisoformat(addon['lastupdate'])
-                                   if is_ui else addon['lastupdate']),
+                   date_published=date_published,
                    version=addon['version'],
                    options=PkgOptions(strategy=strategy.name))
 
 
 class InstawowResolver(Resolver):
 
-    origin = 'instawow'
+    source = 'instawow'
     name = 'instawow'
     strategies = {Strategies.default}
 
@@ -364,15 +353,15 @@ class InstawowResolver(Resolver):
         return
 
     @singledispatchmethod
-    @Strategies.validate
-    async def resolve(self, ids: List[str], *, strategy: Strategies) -> List[Pkg]:
-        return await gather(self.resolve(i, strategy=strategy) for i in ids)
+    @validate_strategy
+    async def resolve(self, defns: List[Defn], strategy: Strategies) -> List[Pkg]:
+        return await gather(self.resolve(d, strategy) for d in defns)
 
     @resolve.register
-    @Strategies.validate
-    async def _(self, id_or_slug: str, *, strategy: Strategies) -> Pkg:
+    @validate_strategy
+    async def _(self, defn: Defn, strategy: Strategies) -> Pkg:
         try:
-            id_, slug = next(p for p in self._addons if id_or_slug in p)
+            id_, slug = next(p for p in self._addons if defn.name in p)
         except StopIteration:
             raise E.PkgNonexistent
 
@@ -385,7 +374,7 @@ class InstawowResolver(Resolver):
             except ValueError as error:
                 raise E.PkgFileUnavailable('account name not provided') from error
 
-        return Pkg(origin=self.origin,
+        return Pkg(origin=self.source,
                    id=id_,
                    slug=slug,
                    name='WeakAuras Companion',

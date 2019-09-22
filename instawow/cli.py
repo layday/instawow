@@ -1,13 +1,10 @@
-
 from __future__ import annotations
-
-__all__ = ('main',)
 
 from enum import Enum
 from functools import partial, update_wrapper
 from textwrap import fill
 from typing import TYPE_CHECKING
-from typing import (Any, Callable, Dict, Generator, Iterable, List, NamedTuple,
+from typing import (Any, Callable, Generator, Iterable, List, NamedTuple,
                     Optional, Sequence, Set, Tuple, Union)
 
 import click
@@ -15,28 +12,23 @@ import click
 from . import __version__
 from .config import Config
 from . import exceptions as E
-from .manager import CliManager
+from .manager import CliManager, prepare_db_session
 from .models import Pkg, PkgFolder
-from .resolvers import Strategies
+from .resolvers import Defn, Strategies
 from .utils import TocReader, bucketise, cached_property, is_outdated, setup_logging
-
-
-_green_tick = click.style('✓', fg='green')
-_red_cross = click.style('✗', fg='red')
-_blue_excl = click.style('!', fg='blue')
 
 
 class Symbols(str, Enum):
 
-    SUCCESS = _green_tick
-    FAILURE = _red_cross
-    WARNING = _blue_excl
+    SUCCESS = click.style('✓', fg='green')
+    FAILURE = click.style('✗', fg='red')
+    WARNING = click.style('!', fg='blue')
 
     @classmethod
     def from_result(cls, result: E.ManagerResult) -> Symbols:
-        for type_, symbol in ((E.InternalError,  cls.WARNING),
-                              (E.ManagerError,   cls.FAILURE),
-                              (E.ManagerResult,  cls.SUCCESS)):
+        for type_, symbol in ((E.InternalError, cls.WARNING),
+                              (E.ManagerError,  cls.FAILURE),
+                              (E.ManagerResult, cls.SUCCESS)):
             if isinstance(result, type_):
                 return symbol
 
@@ -59,7 +51,7 @@ class Report:
 
     def __str__(self) -> str:
         return '\n'.join(
-            (f'{Symbols.from_result(r)} {click.style(a, bold=True)}\n'
+            (f'{Symbols.from_result(r)} {click.style(str(a), bold=True)}\n'
              f'  {r.message}')
             for a, r in self.results
             if self.filter_fn(r)
@@ -88,10 +80,10 @@ def tabulate(rows: Iterable, *, show_index: bool = True) -> str:
 
 def compose_pkg_uri(val: Any) -> str:
     try:
-        origin, slug = val.origin, val.slug
+        source, slug = val.origin, val.slug
     except AttributeError:
-        origin, slug = val
-    return ':'.join((origin, slug))
+        source, slug = val
+    return str(Defn(source, slug))
 
 
 def decompose_pkg_uri(ctx: click.Context,
@@ -114,12 +106,12 @@ def decompose_pkg_uri(ctx: click.Context,
                 break
         else:
             parts = value.partition(':')[::2]
-    return compose_pkg_uri(parts), parts
+    return Defn(*parts)
 
 
-def get_pkg_from_substr(manager: CliManager, parts: Tuple[str, str]) -> Optional[Pkg]:
-    pkg = manager.get(*parts)
-    pkg = pkg or (manager.db.query(Pkg).filter(Pkg.slug.contains(parts[1]))
+def get_pkg_from_substr(manager: CliManager, defn: Defn) -> Optional[Pkg]:
+    pkg = manager.get(defn)
+    pkg = pkg or (manager.db_session.query(Pkg).filter(Pkg.slug.contains(defn.name))
                   .order_by(Pkg.name).first())
     return pkg
 
@@ -160,7 +152,8 @@ def main(ctx, debug):
                         break
 
                 setup_logging(config, debug or 'INFO')
-                manager = CliManager(config)
+                db_session = prepare_db_session(config)
+                manager = CliManager(config, db_session)
                 if is_outdated(manager):
                     click.echo(f'{Symbols.WARNING} instawow is out of date')
                 return manager
@@ -174,7 +167,7 @@ def main(ctx, debug):
 @click.argument('addons', nargs=-1, required=True, callback=decompose_pkg_uri)
 @click.option('--strategy', '-s',
               type=click.Choice({s.value for s in Strategies}),
-              default='default',
+              default=Strategies.default.value,
               help="Whether to install the latest published version "
                    "('default') or the very latest upload ('latest').")
 @click.option('--replace', '-o',
@@ -183,9 +176,8 @@ def main(ctx, debug):
 @_pass_manager
 def install(manager, addons, strategy, replace) -> None:
     "Install add-ons."
-    results = zip((a for a, _ in addons),
-                  manager.install((p for _, p in addons), strategy, replace))
-    Report(list(results)).generate_and_exit()
+    results = list(zip(addons, manager.install(addons, strategy, replace)))
+    Report(results).generate_and_exit()
 
 
 @main.command()
@@ -196,11 +188,11 @@ def update(manager, addons) -> None:
     if addons:
         values = addons
     else:
-        values = [(compose_pkg_uri(p), (p.origin, p.slug)) for p in manager.db.query(Pkg).all()]
-    results = zip((a for a, _ in values), manager.update(p for _, p in values))
+        values = [Defn(p.origin, p.slug) for p in manager.db_session.query(Pkg).all()]
+    results = list(zip(values, manager.update(values)))
     # Hide package from output if up to date and ``update`` was invoked without args
     filter_fn = lambda r: addons or not isinstance(r, E.PkgUpToDate)
-    Report(list(results), filter_fn).generate_and_exit()
+    Report(results, filter_fn).generate_and_exit()
 
 
 @main.command()
@@ -208,8 +200,8 @@ def update(manager, addons) -> None:
 @_pass_manager
 def remove(manager, addons) -> None:
     "Uninstall add-ons."
-    results = zip((a for a, _ in addons), manager.remove(p for _, p in addons))
-    Report(list(results)).generate_and_exit()
+    results = list(zip(addons, manager.remove(addons)))
+    Report(results).generate_and_exit()
 
 
 @main.command()
@@ -222,8 +214,6 @@ def reconcile(ctx) -> None:
     from prompt_toolkit.styles import Style
     from questionary import Choice as _Choice, confirm
     from questionary.question import Question
-
-    from .utils import gather
 
     class Choice(_Choice):
         def __init__(self, *args: Any, pkg: Optional[Pkg] = None, **kwargs: Any) -> None:
@@ -352,7 +342,7 @@ def reconcile(ctx) -> None:
         dir_tocs = ((n, TocReader_(n)) for n in sorted(leftovers))
         maybe_ids = (((n, r), (r[i] for i in ids_to_sources)) for n, r in dir_tocs)
         buckets = reduce(merge_ids_and_dirs,
-                         (([t], {(ids_to_sources[v.key], v.value) for v in i if v})
+                         (([t], {Defn(ids_to_sources[v.key], v.value) for v in i if v})
                           for t, i in maybe_ids),
                          [])
         results = manager.run(resolve_(set(chain.from_iterable(i for _, i in buckets))))
@@ -382,8 +372,9 @@ def reconcile(ctx) -> None:
                    ((set(e['UIDir']), e['UID']) for e in catalogue)
                    if d & leftovers)
         buckets = reduce(merge_dirs_and_ids, matches, [])
-        results = manager.run(resolve_(zip(repeat('wowi'),
-                                           set(chain.from_iterable(i for _, i in buckets)))))
+        uris = [Defn('wowi', u)
+                for u in set(chain.from_iterable(i for _, i in buckets))]
+        results = manager.run(resolve_(uris))
         groups = ((sorted(_Addon(n, TocReader_(n)) for n in k),
                    [results['wowi', i] for i in v])
                   for k, v in buckets)
@@ -392,14 +383,14 @@ def reconcile(ctx) -> None:
     def match_all(leftovers: Set[str]):
         # Match in order of increasing heuristicitivenessitude
         for fn in (match_toc_ids_from_sources,
-                   match_dir_names_from_wowi_catalogue):
+                   match_dir_names_from_wowi_catalogue,):
             groups = fn(leftovers)
             dirs, uris = tee(prompt(groups))
             yield from (u for _, u in uris)
             leftovers -= {a.name for d, _ in dirs for a in d}
 
     addons = {f.name for f in manager.config.addon_dir.iterdir() if f.is_dir()}
-    leftovers = addons - {f.name for f in manager.db.query(PkgFolder).all()}
+    leftovers = addons - {f.name for f in manager.db_session.query(PkgFolder).all()}
     if not leftovers:
         click.echo('No add-ons left to reconcile.')
         return
@@ -468,7 +459,7 @@ def list_installed(manager, columns, print_columns, sort_key) -> None:
                                     *inspect(Pkg).relationships.keys()))]
         click.echo(tabulate(columns, show_index=False))
     else:
-        pkgs = manager.db.query(Pkg).order_by(text(sort_key)).all()
+        pkgs = manager.db_session.query(Pkg).order_by(text(sort_key)).all()
         if pkgs:
             rows = [('add-on', *columns),
                     *((compose_pkg_uri(p), *format_columns(p)) for p in pkgs)]
@@ -488,7 +479,7 @@ def list_folders(manager, exclude_own, toc_entries) -> None:
     folders = {f for f in manager.config.addon_dir.iterdir() if f.is_dir()}
     if exclude_own:
         folders -= {manager.config.addon_dir / f.name
-                    for f in manager.db.query(PkgFolder).all()}
+                    for f in manager.db_session.query(PkgFolder).all()}
 
     folder_tocs = ((n, n / f'{n.name}.toc') for n in folders)
     folder_readers = sorted((n, TocReader.from_path(t)) for n, t in folder_tocs if t.exists())
@@ -510,7 +501,7 @@ def list_folders(manager, exclude_own, toc_entries) -> None:
 @_pass_manager
 def info(manager, addon, toc_entries) -> None:
     "Show detailed add-on information."
-    pkg = get_pkg_from_substr(manager, addon[1])
+    pkg = get_pkg_from_substr(manager, addon)
     if pkg:
         rows = {'name': pkg.name,
                 'source': pkg.origin,
@@ -532,7 +523,7 @@ def info(manager, addon, toc_entries) -> None:
                              for k in toc_entries})
         click.echo(tabulate([(), *rows.items()], show_index=False))
     else:
-        Report([(addon[0], E.PkgNotInstalled())]).generate_and_exit()
+        Report([(addon, E.PkgNotInstalled())]).generate_and_exit()
 
 
 @main.command()
@@ -541,12 +532,12 @@ def info(manager, addon, toc_entries) -> None:
 @_pass_manager
 def visit(manager, addon) -> None:
     "Open an add-on's homepage in your browser."
-    pkg = get_pkg_from_substr(manager, addon[1])
+    pkg = get_pkg_from_substr(manager, addon)
     if pkg:
         import webbrowser
         webbrowser.open(pkg.url)
     else:
-        Report([(addon[0], E.PkgNotInstalled())]).generate_and_exit()
+        Report([(addon, E.PkgNotInstalled())]).generate_and_exit()
 
 
 @main.command()
@@ -555,12 +546,12 @@ def visit(manager, addon) -> None:
 @_pass_manager
 def reveal(manager, addon) -> None:
     "Open an add-on folder in your file manager."
-    pkg = get_pkg_from_substr(manager, addon[1])
+    pkg = get_pkg_from_substr(manager, addon)
     if pkg:
         import webbrowser
         webbrowser.open((manager.config.addon_dir / pkg.folders[0].name).as_uri())
     else:
-        Report([(addon[0], E.PkgNotInstalled())]).generate_and_exit()
+        Report([(addon, E.PkgNotInstalled())]).generate_and_exit()
 
 
 @main.command()

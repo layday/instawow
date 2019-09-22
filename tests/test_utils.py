@@ -1,4 +1,3 @@
-
 from pathlib import Path
 
 import pytest
@@ -30,7 +29,7 @@ def test_find_base_dirs_discards_files_in_root():
 
 def test_should_extract_discards_names_with_prefix_not_in_dirs():
     is_member = _should_extract({'b'})
-    assert list(map(is_member, ['a/', 'b/', 'aaa/'])) == [False, True, False]
+    assert list(map(is_member, ['a/', 'b/', 'aa/', 'bb/'])) == [False, True, False, False]
 
 
 def test_loading_toc_from_path(fake_addon):

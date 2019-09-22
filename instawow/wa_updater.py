@@ -1,19 +1,15 @@
-
 from __future__ import annotations
 
-__all__ = ('WaCompanionBuilder',)
-
 import asyncio
-from functools import partial, reduce
 from pathlib import Path
 from typing import TYPE_CHECKING
-from typing import Any, Dict, List, NamedTuple, Optional, Sequence, Union
+from typing import Any, Dict, List, NamedTuple, Optional, Sequence
 
 from loguru import logger
 from pydantic import BaseModel, BaseSettings, Extra, validator
 from yarl import URL
 
-from .utils import ManagerAttrAccessMixin, bucketise, run_in_thread
+from .utils import ManagerAttrAccessMixin, bucketise, run_in_thread as t
 
 if TYPE_CHECKING:
     from .manager import Manager
@@ -25,10 +21,14 @@ raw_api = URL('https://data.wago.io/api/raw/encoded')
 
 class BuilderConfig(BaseSettings):
 
-    account: Optional[str]
+    account: str
 
     class Config:
-        fields = {'account': {'alias': 'WAC_ACCOUNT'}}
+        case_insensitive = True
+        env_prefix = 'WAC_'
+
+    def _build_values(self, init_kwargs: Dict[str, Any]) -> Dict[str, Any]:
+        return {**init_kwargs, **self._build_environ()}     # Prioritise env vars
 
 
 class AuraEntry(BaseModel):
@@ -198,14 +198,12 @@ class WaCompanionBuilder(ManagerAttrAccessMixin):
                       {'interface': '11302' if self.config.is_classic else '80200'})
 
     async def build(self, account: Optional[str] = None) -> None:
-        account = account or BuilderConfig().account
-        if not account:
-            raise ValueError('account name is required to extract installed auras')
+        config = BuilderConfig(account=account)
+        auras = await t(self.extract_installed_auras)(config.account)
+        outdated_auras = await self.get_outdated(auras)
 
-        auras = await run_in_thread(self.extract_installed_auras)(account)
-        outdated = await self.get_outdated(auras)
-        await run_in_thread(self.builder_dir.mkdir)(exist_ok=True)
-        await run_in_thread(self.make_addon)(outdated)
+        await t(self.builder_dir.mkdir)(exist_ok=True)
+        await t(self.make_addon)(outdated_auras)
 
     def checksum(self) -> str:
         from hashlib import sha256

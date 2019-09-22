@@ -1,23 +1,6 @@
-
 from __future__ import annotations
 
-__all__ = ('ManagerResult',
-           'PkgInstalled',
-           'PkgUpdated',
-           'PkgRemoved',
-           'ManagerError',
-           'PkgAlreadyInstalled',
-           'PkgConflictsWithInstalled',
-           'PkgConflictsWithUncontrolled',
-           'PkgNonexistent',
-           'PkgFileUnavailable',
-           'PkgNotInstalled',
-           'PkgOriginInvalid',
-           'PkgUpToDate',
-           'PkgStrategyUnsupported',
-           'InternalError')
-
-from typing import TYPE_CHECKING, ClassVar, Optional, Set
+from typing import TYPE_CHECKING, ClassVar, Sequence, Optional, Set
 
 if TYPE_CHECKING:
     from .models import Pkg
@@ -76,11 +59,11 @@ class PkgAlreadyInstalled(ManagerError):
 class PkgConflictsWithInstalled(ManagerError):
 
     fmt_message = "package folders conflict with installed package's "\
-                  '{self.conflicting_pkg.origin}:{self.conflicting_pkg.slug}'
+                  '{self.conflicts[0].origin}:{self.conflicts[0].slug}'
 
-    def __init__(self, conflicting_pkg: Pkg) -> None:
+    def __init__(self, conflicts: Sequence[Pkg]) -> None:
         super().__init__()
-        self.conflicting_pkg = conflicting_pkg
+        self.conflicts = conflicts
 
 
 class PkgConflictsWithUncontrolled(ManagerError):

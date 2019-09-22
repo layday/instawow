@@ -1,4 +1,3 @@
-
 """
 Change the `pkg_options` table's `strategy` column to be
 one of 'default', 'latest'.

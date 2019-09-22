@@ -1,7 +1,4 @@
-
 from __future__ import annotations
-
-__all__ = ('Config',)
 
 from pathlib import Path
 from tempfile import gettempdir
@@ -22,8 +19,6 @@ _default_config_dir = lambda: click.get_app_dir('instawow')
 
 
 class _Config(pydantic.BaseSettings):
-
-    ValidationError = pydantic.ValidationError
 
     config_dir: Path
     addon_dir: Path
@@ -76,6 +71,7 @@ class _Config(pydantic.BaseSettings):
         return self.config_dir / 'plugins'
 
     class Config:
+        case_insensitive = True
         env_prefix = 'INSTAWOW_'
 
 

@@ -1,4 +1,3 @@
-
 from instawow.cli import main
 
 
