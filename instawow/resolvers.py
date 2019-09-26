@@ -104,7 +104,10 @@ class CurseResolver(Resolver, _FileCacheMixin):
 
     # https://twitchappapi.docs.apiary.io/
     addon_api_url = 'https://addons-ecs.forgesvc.net/api/v2/addon'
-    slugs_url = 'https://raw.githubusercontent.com/layday/instascrape/data/curseforge-slugs.json'
+    slugs_url = ('https://raw.githubusercontent.com/layday/instascrape/data/'
+                 'curseforge-slugs.json')   # v1
+    folders_url = ('https://raw.githubusercontent.com/layday/instascrape/data/'
+                   'curseforge-folders.json')   # v1
 
     _slugs: Optional[Dict[str, str]] = None
 
@@ -168,7 +171,7 @@ class CurseResolver(Resolver, _FileCacheMixin):
             files = (f for f in files if f['releaseType'] == 1)
         try:
             _, file = max((f['id'], f) for f in files)
-        except ValueError as error:
+        except ValueError:
             raise E.PkgFileUnavailable('no files meet criteria')
 
         return Pkg(origin=self.source,

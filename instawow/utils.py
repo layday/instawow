@@ -11,6 +11,11 @@ from typing import TYPE_CHECKING
 from typing import (Any, Awaitable, Callable, Iterable, List, NamedTuple,
                     Optional, Tuple, Type, TypeVar, Union)
 
+try:
+    from typing import Literal      # type: ignore
+except ImportError:
+    from typing_extensions import Literal
+
 if TYPE_CHECKING:
     import prompt_toolkit.shortcuts.progress_bar.base as pbb
 
@@ -36,7 +41,7 @@ class _TocEntry(NamedTuple):
 class TocReader:
     """Extracts key–value pairs from TOC files."""
 
-    def __init__(self, contents: str, default: Optional[str] = '') -> None:
+    def __init__(self, contents: str, default: Literal[None, ''] = '') -> None:
         possible_entries = (map(str.strip, e.lstrip('#').partition(':')[::2])
                             for e in contents.splitlines()
                             if e.startswith('##'))
@@ -46,8 +51,7 @@ class TocReader:
     def __getitem__(self, key: Union[str, Tuple[str, ...]]) -> _TocEntry:
         if isinstance(key, tuple):
             try:
-                return next(filter(lambda i: i.value,
-                                   (self.__getitem__(k) for k in key)))
+                return next(filter(lambda i: i.value, (self[k] for k in key)))
             except StopIteration:
                 key = key[0]
         return _TocEntry(key, self.entries.get(key, self.default))

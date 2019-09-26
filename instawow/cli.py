@@ -57,11 +57,13 @@ class Report:
             if self.filter_fn(r)
             )
 
-    def generate_and_exit(self) -> None:
+    def generate(self) -> None:
         report = str(self)
         if report:
             click.echo(report)
 
+    def generate_and_exit(self) -> None:
+        self.generate()
         ctx = click.get_current_context()
         ctx.exit(self.code)
 
@@ -76,14 +78,6 @@ def tabulate(rows: Iterable, *, show_index: bool = True) -> str:
         rows = [('', *header), *((i, *v) for i, v in enumerate(iter_rows, start=1))]
         table.set_cols_align(('r', *('l' for _ in header)))
     return table.add_rows(rows).draw()
-
-
-def compose_pkg_uri(val: Any) -> str:
-    try:
-        source, slug = val.origin, val.slug
-    except AttributeError:
-        source, slug = val
-    return str(Defn(source, slug))
 
 
 def decompose_pkg_uri(ctx: click.Context,
@@ -208,8 +202,9 @@ def remove(manager, addons) -> None:
 @click.pass_context
 def reconcile(ctx) -> None:
     "Reconcile add-ons."
+    from asyncio import gather
     from functools import reduce
-    from itertools import chain, repeat, starmap, tee
+    from itertools import chain, repeat, starmap
 
     from prompt_toolkit.styles import Style
     from questionary import Choice as _Choice, confirm
@@ -226,11 +221,11 @@ def reconcile(ctx) -> None:
 
         @property
         def version(self) -> str:
-            return self.reader['Version'].value
+            return self.reader['Version', 'X-Packaged-Version'].value
 
     manager = ctx.obj.m
-    resolve_ = partial(manager.resolve, strategy='default')
-    install_ = partial(ctx.invoke, install, replace=True)
+    resolve = partial(manager.resolve, strategy='default')
+    install = partial(manager.install, strategy='default', replace=True)
     TocReader_ = lambda n: TocReader.from_path_name(manager.config.addon_dir / n)
 
     qstyle = Style([('qmark', 'fg:ansicyan'),
@@ -300,13 +295,13 @@ def reconcile(ctx) -> None:
         app = Application(layout=layout, key_bindings=bindings, style=qstyle)
         return Question(app)
 
-    def _prompt(addons: Sequence[_Addon], pkgs: Sequence[Pkg]) -> Tuple[Sequence[_Addons], str]:
+    def _prompt(addons: Sequence[_Addon], pkgs: Sequence[Pkg]) -> Tuple[Sequence[_Addon], Defn]:
         def create_choice(pkg):
-            uri = compose_pkg_uri(pkg)
-            title = [('', uri),
+            defn = Defn(pkg.origin, pkg.slug)
+            title = [('', str(defn)),
                      ('', '=='),
                      ('class:hilite' if highlight_version else '', pkg.version),]
-            return Choice(title, (addons, uri), pkg=pkg)
+            return Choice(title, (addons, defn), pkg=pkg)
 
         # Highlight version if there's multiple of them
         highlight_version = len(bucketise(i.version for i in chain(addons, pkgs))) > 1
@@ -316,14 +311,14 @@ def reconcile(ctx) -> None:
         selection = select(f'{addon.name} [{addon.version or "?"}]', choices).unsafe_ask()
         return selection
 
-    def prompt(groups: Iterable[Tuple[Sequence[_Addon], Sequence[Pkg]]]) -> Generator[str, None, None]:
+    def prompt(groups: Iterable[Tuple[Sequence[_Addon], Sequence[Pkg]]]) -> Generator[Tuple[Sequence[_Addon], Defn], None, None]:
         for addons, results in groups:
             shortlist = [r for r in results if isinstance(r, Pkg)]
             if shortlist:
                 selection = _prompt(addons, shortlist)
                 selection and (yield selection)
 
-    def match_toc_ids_from_sources(leftovers: Set[str]):
+    def match_toc_ids_from_sources(leftovers: Set[str]) -> Iterable[Tuple[List[_Addon], Any]]:
         "Attempt to match add-ons from host IDs contained in TOC files."
         ids_to_sources = {'X-WoWI-ID': 'wowi',
                           'X-Tukui-ProjectID': 'tukui',
@@ -345,17 +340,21 @@ def reconcile(ctx) -> None:
                          (([t], {Defn(ids_to_sources[v.key], v.value) for v in i if v})
                           for t, i in maybe_ids),
                          [])
-        results = manager.run(resolve_(set(chain.from_iterable(i for _, i in buckets))))
+        results = manager.run(resolve(set(chain.from_iterable(i for _, i in buckets))))
         groups = ((list(starmap(_Addon, k)), list(map(results.__getitem__, v)))
                   for k, v in buckets)
         return groups
 
-    def match_dir_names_from_wowi_catalogue(leftovers: Set[str]):
+    def match_dir_names(leftovers: Set[str]) -> Iterable[Tuple[List[_Addon], Any]]:
         "Attempt to match folders against the WoWInterface catalogue."
-        async def fetch_catalogue():
-            url = manager.resolvers['wowi'].list_api_url
-            async with manager.web_client.get(url) as response:
-                return await response.json()
+        async def fetch_catalogues(*urls):
+            async def fetch(url):
+                async with manager.web_client.get(url) as response:
+                    # The CurseForge catalogue has a content type of 'text/plain' -
+                    # aiohttp's default behaviour is to raise when it's not application/json
+                    return await response.json(content_type=None)
+
+            return await gather(*map(fetch, urls))
 
         def merge_dirs_and_ids(buckets, match):
             dirs, id_ = match
@@ -367,31 +366,36 @@ def reconcile(ctx) -> None:
                 buckets.append((dirs, {id_}))
             return buckets
 
-        catalogue = manager.run(fetch_catalogue())
-        matches = ((d & leftovers, u) for d, u in
-                   ((set(e['UIDir']), e['UID']) for e in catalogue)
-                   if d & leftovers)
-        buckets = reduce(merge_dirs_and_ids, matches, [])
-        uris = [Defn('wowi', u)
-                for u in set(chain.from_iterable(i for _, i in buckets))]
-        results = manager.run(resolve_(uris))
+        urls = (manager.resolvers['curse'].folders_url,
+                manager.resolvers['wowi'].list_api_url,)
+        curse_catalogue, wowi_catalogue = manager.run(fetch_catalogues(*urls))
+        dirs = chain(((set(e['UIDir']), Defn('wowi', e['UID']))
+                      for e in wowi_catalogue),
+                     ((set(i[2]), Defn('curse', str(i[0])))
+                      for i in curse_catalogue
+                      if manager.config.game_flavour in i[1]))
+        buckets = reduce(merge_dirs_and_ids,
+                         ((d & leftovers, u) for d, u in dirs if d & leftovers),
+                         [])
+        results = manager.run(resolve(list({u for _, i in buckets for u in i})))
         groups = ((sorted(_Addon(n, TocReader_(n)) for n in k),
-                   [results['wowi', i] for i in v])
+                   [results[i] for i in v])
                   for k, v in buckets)
         return groups
 
-    def match_all(leftovers: Set[str]):
+    def get_leftovers() -> Set[str]:
+        addons = {f.name for f in manager.config.addon_dir.iterdir() if f.is_dir()}
+        leftovers = addons - {f.name for f in manager.db_session.query(PkgFolder).all()}
+        return leftovers
+
+    def match_all():
         # Match in order of increasing heuristicitivenessitude
         for fn in (match_toc_ids_from_sources,
-                   match_dir_names_from_wowi_catalogue,):
-            groups = fn(leftovers)
-            dirs, uris = tee(prompt(groups))
-            yield from (u for _, u in uris)
-            leftovers -= {a.name for d, _ in dirs for a in d}
+                   match_dir_names,):
+            groups = fn(get_leftovers())
+            yield [u for _, u in prompt(groups)]
 
-    addons = {f.name for f in manager.config.addon_dir.iterdir() if f.is_dir()}
-    leftovers = addons - {f.name for f in manager.db_session.query(PkgFolder).all()}
-    if not leftovers:
+    if not get_leftovers():
         click.echo('No add-ons left to reconcile.')
         return
 
@@ -409,13 +413,12 @@ def reconcile(ctx) -> None:
 - This feature is experimental and mostly untested.
   More reconciliation options may become available later.\
 ''')
-    selections = list(match_all(leftovers))
-    try:
+    for selections in match_all():
         if selections and confirm_('Install selected add-ons?').unsafe_ask():
-            install_(addons=decompose_pkg_uri(ctx, None, selections))
-    finally:
-        click.echo(f'- Unreconciled add-ons can be listed with '
-                   '`instawow list-folders -e`.')
+            results = list(zip(selections, install(selections)))
+            Report(results).generate()
+    click.echo('- Unreconciled add-ons can be listed with '
+                '`instawow list-folders -e`.')
 
 
 @main.command('list')
@@ -462,7 +465,7 @@ def list_installed(manager, columns, print_columns, sort_key) -> None:
         pkgs = manager.db_session.query(Pkg).order_by(text(sort_key)).all()
         if pkgs:
             rows = [('add-on', *columns),
-                    *((compose_pkg_uri(p), *format_columns(p)) for p in pkgs)]
+                    *((Defn(p.origin, p.slug), *format_columns(p)) for p in pkgs)]
             click.echo(tabulate(rows))
 
 
@@ -555,8 +558,7 @@ def reveal(manager, addon) -> None:
 
 
 @main.command()
-@click.pass_context
-def write_config(ctx) -> None:
+def write_config() -> None:
     "Configure instawow."
     import os.path
     from prompt_toolkit.completion import PathCompleter, WordCompleter

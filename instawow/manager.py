@@ -373,10 +373,10 @@ class CliManager(Manager):
 
     @logger.catch(reraise=True)
     def _process(self, prepper: Callable,
-                 uris: Sequence[Defn], *args: Any) -> List[E.ManagerResult]:
+                 uris: Sequence[Defn], *args: Any, **kwargs: Any) -> List[E.ManagerResult]:
         async def do_process():
             async with cancel_tickers():
-                coros = await prepper(list(uris), *args)
+                coros = await prepper(list(uris), *args, **kwargs)
                 return [await _intercept(c) for c in coros.values()]
 
         with self.bar:
