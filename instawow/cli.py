@@ -408,10 +408,9 @@ def reconcile(ctx) -> None:
   looking for source IDs in TOC files, e.g. X-Curse-Project-ID.
 - If it is unable to reconcile all of your add-ons
   it will perform a second pass to match add-on folders
-  against the WoWInterface catalogue.
+  against the CurseForge and WoWInterface catalogues.
 - Selected add-ons will be reinstalled.
-- This feature is experimental and mostly untested.
-  More reconciliation options may become available later.\
+- This feature is experimental and very much untested.\
 ''')
     for selections in match_all():
         if selections and confirm_('Install selected add-ons?').unsafe_ask():
