@@ -209,6 +209,10 @@ class WowiResolver(Resolver, _FileCacheMixin):
                 id_ = url.query.get('fileid')
                 if id_:
                     return (cls.source, id_)
+            elif url.name == 'fileinfo.php':
+                id_ = url.query.get('id')
+                if id_:
+                    return (cls.source, id_)
             else:
                 match = re.match(r'^(?:download|info)(?P<id>\d+)(?:-(?P<name>[^\.]+))?',
                                  url.name)
