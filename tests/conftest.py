@@ -1,7 +1,14 @@
+from pathlib import Path
+
 import pytest
+import vcr
 
 from instawow.config import Config
 from instawow.manager import Manager, prepare_db_session, init_web_client
+
+
+def pytest_addoption(parser):
+    parser.addoption('--vcrpy-mode', action='store', default='none')
 
 
 @pytest.fixture(params=('retail', 'classic'))
@@ -14,6 +21,14 @@ def partial_config(tmp_path, request):
 @pytest.fixture
 def full_config(tmp_path, partial_config):
     return {**partial_config, 'config_dir': tmp_path / 'config'}
+
+
+@pytest.fixture(autouse=True, scope='module')
+def cassette(request):
+    path = Path(__file__).parent / 'cassettes' / f'{request.node.name}.yaml'
+    record_mode = request.config.getoption('--vcrpy-mode')
+    with vcr.use_cassette(str(path), record_mode=record_mode):
+        yield
 
 
 @pytest.fixture
