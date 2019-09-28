@@ -125,7 +125,7 @@ _match_bbcode = re.compile(r'''
         |list
         |url
         |email
-        |highlight)="[^"]*"
+        |highlight)=[^\]]*
      |(?:b
         |i
         |u
