@@ -10,9 +10,6 @@ class ManagerResult:
 
     fmt_message: ClassVar[str]
 
-    def __call__(self) -> ManagerResult:
-        return self
-
     @property
     def message(self) -> str:
         return self.fmt_message.format(self=self)

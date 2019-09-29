@@ -46,11 +46,11 @@ class AuraEntry(BaseModel):
         fields = {'ignore_wago_update' : {'alias': 'ignoreWagoUpdate'}}
 
     @validator('url', pre=True)
-    def __convert_url(cls, value: Any) -> URL:
+    def __convert_url(cls, value: str) -> URL:
         return URL(value)
 
     @classmethod
-    def from_lua_ast(cls, values: Any) -> Optional[AuraEntry]:
+    def from_lua_ast(cls, values: dict) -> Optional[AuraEntry]:
         return cls(**values) if values.get('url') else None
 
 
@@ -108,12 +108,12 @@ class WaCompanionBuilder(ManagerAttrAccessMixin):
         from lupa import LuaRuntime
 
         lua_runtime = LuaRuntime()
-        table = lua_runtime.eval(source[source.find('=') + 1:])
-        raw_auras = (dict(a) for a in table['displays'].values())
+        table = lua_runtime.eval(source[source.find('= ') + 1 :])
+        raw_auras = map(dict, table['displays'].values())
         auras = filter(None, map(AuraEntry.from_lua_ast, raw_auras))
         aura_groups = {k: v
                        for k, v in bucketise(auras, key=lambda a: a.url.parts[1]).items()
-                       if not any(i for i in v if i.ignore_wago_update)}
+                       if not any(i.ignore_wago_update for i in v)}
         return aura_groups
 
     def extract_installed_auras(self, account: str) -> Dict[str, List[AuraEntry]]:
