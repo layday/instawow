@@ -5,11 +5,12 @@
 #    pip-compile requirements.in
 #
 aiohttp==3.6.1
-alembic==1.2.0
+alembic==1.2.1
 async-timeout==3.0.1      # via aiohttp
 attrs==19.1.0             # via aiohttp
 chardet==3.0.4            # via aiohttp
 click==7.0
+fuzzywuzzy==0.17.0
 idna==2.8                 # via yarl
 jinja2==2.10.1
 loguru==0.3.2
