@@ -513,9 +513,7 @@ def info(manager, addon, toc_entries) -> None:
                 'homepage': pkg.url,
                 'version': pkg.version,
                 'release date': pkg.date_published,
-                'folders': '\n'.join([str(manager.config.addon_dir)]
-                                     + [' ├─ ' + f.name for f in pkg.folders[:-1]]
-                                     + [' └─ ' + pkg.folders[-1].name]),
+                'folders': '\n'.join(f.name for f in pkg.folders),
                 'strategy': pkg.options.strategy}
 
         if toc_entries:
