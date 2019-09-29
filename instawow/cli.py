@@ -205,15 +205,7 @@ def reconcile(ctx) -> None:
     from asyncio import gather
     from functools import reduce
     from itertools import chain, repeat, starmap
-
-    from prompt_toolkit.styles import Style
-    from questionary import Choice as _Choice, confirm
-    from questionary.question import Question
-
-    class Choice(_Choice):
-        def __init__(self, *args: Any, pkg: Optional[Pkg] = None, **kwargs: Any) -> None:
-            super().__init__(*args, **kwargs)
-            self.pkg = pkg
+    from .prompts import Choice, confirm, select, skip
 
     class _Addon(NamedTuple):
         name: str
@@ -227,73 +219,6 @@ def reconcile(ctx) -> None:
     resolve = partial(manager.resolve, strategy='default')
     install = partial(manager.install, strategy='default', replace=True)
     TocReader_ = lambda n: TocReader.from_path_name(manager.config.addon_dir / n)
-
-    qstyle = Style([('qmark', 'fg:ansicyan'),
-                    ('question', ''),
-                    ('answer', 'fg: nobold'),
-                    ('hilite', 'fg:ansimagenta'),
-                    ('skipped', 'fg:ansiyellow')])
-    confirm_ = partial(confirm, style=qstyle)
-    skip = Choice([('', 'skip')], ())
-
-    def select(message: str, choices: List[Choice]) -> Question:
-        from prompt_toolkit.application import Application
-        from prompt_toolkit.key_binding import KeyBindings
-        from prompt_toolkit.keys import Keys
-        from questionary.prompts.common import InquirerControl, create_inquirer_layout
-
-        def get_prompt_tokens():
-            tokens = [('class:qmark', '-'),
-                      ('class:x-question', f' {message} ')]
-            if ic.is_answered:
-                answer = ''.join(t for _, t in ic.get_pointed_at().title)
-                tokens += [('', '  '),
-                           ('class:skipped' if answer == 'skip' else '', answer)]
-            return tokens
-
-        ic = InquirerControl(choices, None,
-                             use_indicator=False, use_shortcuts=False, use_pointer=True)
-        bindings = KeyBindings()
-
-        @bindings.add(Keys.ControlQ, eager=True)
-        @bindings.add(Keys.ControlC, eager=True)
-        def _(event):
-            event.app.exit(exception=KeyboardInterrupt, style='class:aborting')
-
-        @bindings.add(Keys.Down, eager=True)
-        @bindings.add('j', eager=True)
-        def move_cursor_down(event):
-            ic.select_next()
-            while not ic.is_selection_valid():
-                ic.select_next()
-
-        @bindings.add(Keys.Up, eager=True)
-        @bindings.add('k', eager=True)
-        def move_cursor_up(event):
-            ic.select_previous()
-            while not ic.is_selection_valid():
-                ic.select_previous()
-
-        @bindings.add(Keys.ControlM, eager=True)
-        def set_answer(event):
-            ic.is_answered = True
-            event.app.exit(result=ic.get_pointed_at().value)
-
-        @bindings.add('o', eager=True)
-        def open_url(event):
-            pkg = ic.get_pointed_at().pkg
-            if pkg:
-                import webbrowser
-                webbrowser.open(pkg.url)
-
-        @bindings.add(Keys.Any)
-        def other(event):
-            # Disallow inserting other text
-            pass
-
-        layout = create_inquirer_layout(ic, get_prompt_tokens)
-        app = Application(layout=layout, key_bindings=bindings, style=qstyle)
-        return Question(app)
 
     def _prompt(addons: Sequence[_Addon], pkgs: Sequence[Pkg]) -> Tuple[Sequence[_Addon], Defn]:
         def create_choice(pkg):
@@ -346,7 +271,7 @@ def reconcile(ctx) -> None:
         return groups
 
     def match_dir_names(leftovers: Set[str]) -> Iterable[Tuple[List[_Addon], Any]]:
-        "Attempt to match folders against the WoWInterface catalogue."
+        "Attempt to match folders against the CurseForge and WoWInterface catalogue."
         async def fetch_catalogues(*urls):
             async def fetch(url):
                 async with manager.web_client.get(url) as response:
@@ -400,7 +325,7 @@ def reconcile(ctx) -> None:
         return
 
     click.echo('''\
-- Use the arrow keys to navigate, 'o' (Oscar) to open an
+- Use the arrow keys to navigate, <o> to open an
   add-on in your browser and enter to make a selection.
 - Versions that differ from the installed version
   or differ between choices are highlighted in purple.
@@ -413,7 +338,7 @@ def reconcile(ctx) -> None:
 - This feature is experimental and very much untested.\
 ''')
     for selections in match_all():
-        if selections and confirm_('Install selected add-ons?').unsafe_ask():
+        if selections and confirm('Install selected add-ons?').unsafe_ask():
             results = list(zip(selections, install(selections)))
             Report(results).generate()
     click.echo('- Unreconciled add-ons can be listed with '
