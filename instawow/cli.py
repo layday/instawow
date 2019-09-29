@@ -345,6 +345,28 @@ def reconcile(ctx) -> None:
                 '`instawow list-folders -e`.')
 
 
+@main.command()
+@click.option('--limit', '-l',
+              default=5, type=click.IntRange(1, 20, clamp=True),
+              help='A number to limit results to.')
+@click.argument('search-terms',
+                nargs=-1, required=True, callback=lambda _, __, v: ' '.join(v))
+@click.pass_context
+def search(ctx, limit, search_terms):
+    "Search for add-ons."
+    from .prompts import Choice, checkbox, confirm
+
+    manager = ctx.obj.m
+
+    pkgs = manager.run(manager.search(search_terms, limit))
+    if pkgs:
+        choices = [Choice(f'{p.name}  ({d}=={p.version})', d, pkg=p)
+                   for d, p in pkgs.items()]
+        selections = checkbox('Select add-ons to install', choices=choices).unsafe_ask()
+        if selections and confirm('Install selected add-ons?').unsafe_ask():
+            ctx.invoke(install, addons=selections)
+
+
 @main.command('list')
 @click.option('--column', '-c', 'columns',
               multiple=True,

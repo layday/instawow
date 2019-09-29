@@ -1,6 +1,7 @@
 aiohttp
 alembic
 click
+fuzzywuzzy
 jinja2
 loguru
 lupa

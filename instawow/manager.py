@@ -213,6 +213,28 @@ class Manager:
                               for d, r in zip(ds, iter_or_repeat(rs))})
         return matched
 
+    async def search(self, search_terms: str, limit: int, *,
+                     scorer: str = 'partial_ratio') -> Dict[Defn, Pkg]:
+        from fuzzywuzzy import fuzz, process
+        from .resolvers import _FileCacheMixin as cache
+
+        url = ('https://raw.githubusercontent.com/layday/instascrape/data/'
+               'combined-names.json')   # v1
+        combined_names = await cache._cache_json_response(self, url, 8, 'hours')
+        defns_for_names = bucketise(((n, Defn(*map(str, d))) for n, d, f in combined_names
+                                     if self.config.game_flavour in f),
+                                    key=lambda v: v[0])
+
+        matches = process.extract(search_terms, defns_for_names.keys(),
+                                  limit=limit, scorer=getattr(fuzz, scorer))
+        defns = [d
+                 for m, _ in matches
+                 for _, d in defns_for_names[m]]
+        results = await self.resolve(defns, 'default')
+        pkgs = {Defn(r.origin, r.slug): r for r in results.values()
+                if isinstance(r, Pkg)}
+        return pkgs
+
     async def _install(self, pkg: Pkg, open_archive: Callable, replace: bool) -> E.PkgInstalled:
         async with open_archive() as (folders, extract):
             conflicts = (self.db_session.query(PkgFolder)

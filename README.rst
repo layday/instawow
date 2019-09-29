@@ -5,6 +5,12 @@
 in Python.  It can be used to install, remove and update add-ons from
 WoWInterface, CurseForge and Tukui.
 
+*instawow* tries to make installing, updating and removing
+add-ons quick and painless for those of us who are
+(ever so slightly) proficient with the command line
+and do not revel in using bloatware which infringe on our privacy
+or inhabiting walled gardens.
+
 Installation
 ------------
 
@@ -53,6 +59,15 @@ of cues (e.g. folders and TOC entries).  This is not done automatically;
 you will need to execute ``instawow reconcile`` to absorb add-ons installed
 by other means.
 
+Searching for add-ons
+~~~~~~~~~~~~~~~~~~~~~
+
+*instawow* comes with a rudimentary ``search`` command which allows you to
+select add-ons to install.  The search does not display add-on details
+other than the name and source; pressing ``<o>`` will bring the add-on page up
+in your browser.  The search uses a collated add-on name catalogue internally
+which is updated once daily.
+
 WoW Classic
 -----------
 
@@ -99,16 +114,6 @@ You may then choose to bypass the companion add-on simply by ommitting the env v
 
 Caveats
 -------
-
-Searching for add-ons
-~~~~~~~~~~~~~~~~~~~~~
-
-*instawow* tries to make installing, updating and removing
-add-ons quick and painless for those of us who are
-(ever so slightly) proficient with the command line
-and do not revel in using bloatware which infringe on our privacy
-or inhabiting walled gardens.
-It does not try to circumvent add-on portals entirely.
 
 Metadata sourcing
 ~~~~~~~~~~~~~~~~~
