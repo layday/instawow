@@ -5,6 +5,7 @@ let
 in mkShell {
   buildInputs = [
     ctags
+    libyaml
     python37
   ];
 
