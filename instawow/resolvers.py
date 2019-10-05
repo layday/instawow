@@ -5,6 +5,7 @@ from enum import Enum
 from functools import partial, wraps
 from itertools import repeat, takewhile
 import json
+from operator import itemgetter
 from pathlib import Path
 import re
 from typing import TYPE_CHECKING, cast
@@ -144,19 +145,43 @@ class CurseResolver(Resolver, _FileCacheMixin):
         elif not metadata['latestFiles']:
             raise E.PkgFileUnavailable('no files available for download')
 
+        def is_not_libless(file: dict) -> bool:
+            # There's also an 'isAlternate' field that's missing some
+            # 50 lib-less files from c. 2008.  'exposeAsAlternative' is
+            # absent from the /file endpoint
+            return not file['exposeAsAlternative']
+
+        classic_version_prefix = '1.13'
         flavor = 'wow_classic' if self.config.is_classic else 'wow_retail'
-        files = (f for f in metadata['latestFiles']
-                 if not f['isAlternate']    # nolib file if true
-                 and f['gameVersionFlavor'] == flavor)
+
+        def is_compatible_with_game_version(file: dict) -> bool:
+            # Files can belong both to retail and classic
+            # but ``gameVersionFlavor`` can only be one of
+            # 'wow_retail' or 'wow_classic'.  To spice things up,
+            # ``gameVersion`` might not be populated so we still have to check
+            # the value of ``gameVersionFlavor``
+            return (file['gameVersionFlavor'] == flavor
+                    or any(v.startswith(classic_version_prefix) is self.config.is_classic
+                           for v in file['gameVersion']))
+
         if strategy is Strategies.default:
-            # 1 = stable
-            # 2 = beta
-            # 3 = alpha
-            files = (f for f in files if f['releaseType'] == 1)
+            def is_of_certain_strategy(file: dict) -> bool:
+                # 1 = stable; 2 = beta; 3 = alpha
+                return file['releaseType'] == 1
+        else:
+            def is_of_certain_strategy(file: dict) -> bool:
+                return True
+
+        files = (f for f in metadata['latestFiles']
+                 if is_not_libless(f)
+                 and is_compatible_with_game_version(f)
+                 and is_of_certain_strategy(f))
         try:
-            _, file = max((f['id'], f) for f in files)
+            # The ``id`` is just a counter so we don't have to go digging around dates
+            file = max(files, key=itemgetter('id'))
         except ValueError:
-            raise E.PkgFileUnavailable('no files meet criteria')
+            raise E.PkgFileUnavailable(f'no files compatible with {self.config.game_flavour} '
+                                       f'using {strategy.name!r} strategy')
 
         return Pkg(origin=self.source,
                    id=metadata['id'],

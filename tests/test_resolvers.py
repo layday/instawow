@@ -6,7 +6,7 @@ from instawow.resolvers import Defn, Strategies
 
 
 @pytest.mark.asyncio
-async def test_curse(manager):
+async def test_curse(manager, request):
     either, retail, classic = (await manager.resolve([Defn('curse', 'tomcats'),
                                                       Defn('curse', 'method-dungeon-tools'),
                                                       Defn('curse', 'classiccastbars')],
@@ -15,13 +15,20 @@ async def test_curse(manager):
     if manager.config.is_classic:
         assert 'classic' in either.version
         assert (isinstance(retail, E.PkgFileUnavailable)
-                and retail.message == 'no files meet criteria')
+                and retail.message == "no files compatible with classic using 'default' strategy")
         assert isinstance(classic, Pkg)
     else:
         assert 'classic' not in either.version
         assert isinstance(retail, Pkg)
         assert (isinstance(classic, E.PkgFileUnavailable)
-                and classic.message == 'no files meet criteria')
+                and classic.message == "no files compatible with retail using 'default' strategy")
+
+    flavour_explosion, = (await manager.resolve([Defn('curse', 'elkbuffbars')],
+                                                strategy=Strategies.default)).values()
+    versions = {*request.config.cache.get('flavour_explosion', ()),
+                flavour_explosion.version}
+    assert len(versions) == 1
+    request.config.cache.set('flavour_explosion', tuple(versions))
 
     latest, = (await manager.resolve([Defn('curse', 'tomcats')], strategy=Strategies.latest)).values()
     assert isinstance(latest, Pkg)
