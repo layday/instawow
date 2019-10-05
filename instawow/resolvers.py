@@ -61,7 +61,7 @@ class _FileCacheMixin:
         if await async_is_not_stale(path, *args):
             text = await async_read(path)
         else:
-            async with self.web_client.get(url) as response:
+            async with self.web_client.get(url, raise_for_status=True) as response:
                 text = await response.text()
             await async_write(path, text)
 
