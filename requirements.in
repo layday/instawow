@@ -8,7 +8,6 @@ lupa
 prompt_toolkit
 pydantic
 questionary
-singledispatchmethod ; python_version < '3.8'
 SQLAlchemy
 texttable
 typing_extensions ; python_version < '3.8'

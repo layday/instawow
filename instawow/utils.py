@@ -94,14 +94,6 @@ def dict_merge(*args: dict) -> dict:
     return reduce(lambda p, n: {**p, **n}, args, {})
 
 
-def iter_or_repeat(value: Any) -> Iterable:
-    "Repeat ``value`` if it is not iterable."
-    try:
-        return iter(value)
-    except TypeError:
-        return repeat(value)
-
-
 async def gather(it: Iterable, return_exceptions: bool = True) -> List[Any]:
     return await asyncio.gather(*it, return_exceptions=return_exceptions)
 

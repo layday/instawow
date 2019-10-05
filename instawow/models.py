@@ -124,3 +124,7 @@ def should_migrate(engine: sqlalchemy.base.Engine, version: str) -> bool:
             if not current:
                 return True
     return False
+
+
+def is_pkg(value: Any) -> bool:
+    return isinstance(value, Pkg)

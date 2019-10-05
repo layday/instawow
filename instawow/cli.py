@@ -13,8 +13,8 @@ from . import __version__
 from .config import Config
 from . import exceptions as E
 from .manager import CliManager, prepare_db_session
-from .models import Pkg, PkgFolder
-from .resolvers import Defn, Strategies
+from .models import Pkg, PkgFolder, is_pkg
+from .resolvers import Strategies, Defn
 from .utils import TocReader, bucketise, cached_property, is_outdated, setup_logging
 
 
@@ -160,18 +160,21 @@ def main(ctx, debug):
 @main.command()
 @click.argument('addons', nargs=-1, required=True, callback=decompose_pkg_uri)
 @click.option('--strategy', '-s',
-              type=click.Choice({s.value for s in Strategies}),
-              default=Strategies.default.value,
-              help="Whether to install the latest published version "
-                   "('default') or the very latest upload ('latest').")
+              type=click.Choice({s.name for s in Strategies}),
+              default=Strategies.default.name,
+              callback=lambda _, __, v: Strategies[v],
+              help="Use 'latest' to install the most recent file available.  "
+                   "This has the effect of installing alpha and beta quality "
+                   "add-ons from CurseForge, but only if they are newer "
+                   "than the latest stable add-on file.")
 @click.option('--replace', '-o',
               is_flag=True, default=False,
               help='Replace existing add-ons.')
 @_pass_manager
 def install(manager, addons, strategy, replace) -> None:
     "Install add-ons."
-    results = list(zip(addons, manager.install(addons, strategy, replace)))
-    Report(results).generate_and_exit()
+    results = manager.install(addons, strategy, replace)
+    Report(results.items()).generate_and_exit()
 
 
 @main.command()
@@ -183,10 +186,10 @@ def update(manager, addons) -> None:
         values = addons
     else:
         values = [Defn(p.origin, p.slug) for p in manager.db_session.query(Pkg).all()]
-    results = list(zip(values, manager.update(values)))
+    results = manager.update(values)
     # Hide package from output if up to date and ``update`` was invoked without args
     filter_fn = lambda r: addons or not isinstance(r, E.PkgUpToDate)
-    Report(results, filter_fn).generate_and_exit()
+    Report(results.items(), filter_fn).generate_and_exit()
 
 
 @main.command()
@@ -194,8 +197,8 @@ def update(manager, addons) -> None:
 @_pass_manager
 def remove(manager, addons) -> None:
     "Uninstall add-ons."
-    results = list(zip(addons, manager.remove(addons)))
-    Report(results).generate_and_exit()
+    results = manager.remove(addons)
+    Report(results.items()).generate_and_exit()
 
 
 @main.command()
@@ -216,11 +219,11 @@ def reconcile(ctx) -> None:
             return self.reader['Version', 'X-Packaged-Version'].value
 
     manager = ctx.obj.m
-    resolve = partial(manager.resolve, strategy='default')
-    install = partial(manager.install, strategy='default', replace=True)
+    resolve = partial(manager.resolve, strategy=Strategies.default)
+    install = partial(manager.install, strategy=Strategies.default, replace=True)
     TocReader_ = lambda n: TocReader.from_path_name(manager.config.addon_dir / n)
 
-    def _prompt(addons: Sequence[_Addon], pkgs: Sequence[Pkg]) -> Tuple[Sequence[_Addon], Defn]:
+    def _prompt(addons: Sequence[_Addon], pkgs: Sequence[Pkg]) -> Union[Tuple[()], Tuple[Sequence[_Addon], Defn]]:
         def create_choice(pkg):
             defn = Defn(pkg.origin, pkg.slug)
             title = [('', str(defn)),
@@ -238,7 +241,7 @@ def reconcile(ctx) -> None:
 
     def prompt(groups: Iterable[Tuple[Sequence[_Addon], Sequence[Pkg]]]) -> Generator[Tuple[Sequence[_Addon], Defn], None, None]:
         for addons, results in groups:
-            shortlist = [r for r in results if isinstance(r, Pkg)]
+            shortlist = [r for r in results if is_pkg(r)]
             if shortlist:
                 selection = _prompt(addons, shortlist)
                 selection and (yield selection)
@@ -252,7 +255,7 @@ def reconcile(ctx) -> None:
         def merge_ids_and_dirs(buckets, match):
             dirs, ids = match
             for index, (old_dirs, old_ids) in enumerate(buckets):
-                if ids & old_ids:
+                if old_ids & ids:
                     buckets[index] = (old_dirs + dirs, old_ids | ids)
                     break
             else:
@@ -339,8 +342,8 @@ def reconcile(ctx) -> None:
 ''')
     for selections in match_all():
         if selections and confirm('Install selected add-ons?').unsafe_ask():
-            results = list(zip(selections, install(selections)))
-            Report(results).generate()
+            results = install(selections)
+            Report(results.items()).generate()
     click.echo('- Unreconciled add-ons can be listed with '
                 '`instawow list-folders -e`.')
 

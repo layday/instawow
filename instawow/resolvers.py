@@ -3,11 +3,11 @@ from __future__ import annotations
 from datetime import datetime
 from enum import Enum
 from functools import partial, wraps
-from itertools import takewhile
+from itertools import repeat, takewhile
 import json
 from pathlib import Path
 import re
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 from typing import Any, Callable, ClassVar, Dict, List, NamedTuple, Optional, Set, Tuple, Union
 
 from loguru import logger
@@ -17,29 +17,13 @@ from . import exceptions as E
 from .models import Pkg, PkgOptions
 from .utils import ManagerAttrAccessMixin, gather, run_in_thread, slugify, bbegone, is_not_stale
 
-try:
-    from functools import singledispatchmethod      # type: ignore
-except ImportError:
-    from singledispatchmethod import singledispatchmethod
-
 if TYPE_CHECKING:
     from .manager import Manager
 
 
-_sentinel = object()
-
 async_is_not_stale = run_in_thread(is_not_stale)
 async_read = partial(run_in_thread(Path.read_text), encoding='utf-8')
 async_write = partial(run_in_thread(Path.write_text), encoding='utf-8')
-
-
-class Defn(NamedTuple):
-
-    source: str
-    name: str
-
-    def __str__(self) -> str:
-        return ':'.join(self)
 
 
 class Strategies(str, Enum):
@@ -48,13 +32,21 @@ class Strategies(str, Enum):
     latest = 'latest'
 
 
+class Defn(NamedTuple):
+
+    source: str
+    name: str
+
+    def __str__(self) -> str:
+        return f'{self.source}:{self.name}'
+
+
 def validate_strategy(method: Callable) -> Callable:
     @wraps(method)
-    async def wrapper(self, defns: Any, strategy_value: str, **kwargs: Any) -> Any:
-        strategy = Strategies.__members__.get(strategy_value)
+    async def wrapper(self, defns: List[Defn], strategy: Strategies, **kwargs: Any) -> Dict[Defn, Any]:
         if strategy in self.strategies:
             return await method(self, defns, strategy, **kwargs)
-        raise E.PkgStrategyUnsupported(strategy_value)
+        return dict(zip(defns, repeat(E.PkgStrategyUnsupported(strategy))))
 
     return wrapper
 
@@ -86,13 +78,13 @@ class Resolver(ManagerAttrAccessMixin):
         self.manager = manager
 
     @classmethod
-    def decompose_url(cls, uri: str) -> Optional[Tuple[str, str]]:
+    def decompose_url(cls, value: str) -> Optional[Tuple[str, str]]:
         raise NotImplementedError
 
     async def synchronise(self) -> Resolver:
         return self
 
-    async def resolve(self, defns: List[Defn], strategy: Strategies) -> List[Pkg]:
+    async def resolve(self, defns: List[Defn], strategy: Strategies) -> Dict[Defn, Any]:
         raise NotImplementedError
 
 
@@ -112,15 +104,15 @@ class CurseResolver(Resolver, _FileCacheMixin):
     _slugs: Optional[Dict[str, str]] = None
 
     @classmethod
-    def decompose_url(cls, uri: str) -> Optional[Tuple[str, str]]:
-        url = URL(uri)
-        if url.host == 'www.wowace.com' \
-                and len(url.parts) > 2 \
-                and url.parts[1] == 'projects':
+    def decompose_url(cls, value: str) -> Optional[Tuple[str, str]]:
+        url = URL(value)
+        if (url.host == 'www.wowace.com'
+                and len(url.parts) > 2
+                and url.parts[1] == 'projects'):
             return (cls.source, url.parts[2].lower())
-        elif url.host == 'www.curseforge.com' \
-                and len(url.parts) > 3 \
-                and url.parts[1:3] == ('wow', 'addons'):
+        elif (url.host == 'www.curseforge.com'
+                and len(url.parts) > 3
+                and url.parts[1:3] == ('wow', 'addons')):
             return (cls.source, url.parts[3].lower())
 
     async def synchronise(self) -> CurseResolver:
@@ -129,32 +121,24 @@ class CurseResolver(Resolver, _FileCacheMixin):
             self._slugs = {k: str(v) for k, v in slugs.items()}
         return self
 
-    @singledispatchmethod
     @validate_strategy
-    async def resolve(self, defns: List[Defn], strategy: Strategies) -> List[Pkg]:
-        assert self._slugs is not None, f'{self.source} has not been synchronised'
-
-        ids_from_defns = [self._slugs.get(d.name, d.name) for d in defns]
+    async def resolve(self, defns: List[Defn], strategy: Strategies) -> Dict[Defn, Any]:
+        slugs = cast(dict, self._slugs)
+        ids_from_defns = [slugs.get(d.name, d.name) for d in defns]
         numeric_ids = list({i for i in ids_from_defns if i.isdigit()})
         async with self.web_client.post(self.addon_api_url, json=numeric_ids) as response:
             if response.status == 404:
-                api_results = []       # type: ignore
+                json_response = []       # type: ignore
             else:
-                api_results = await response.json()
+                json_response = await response.json()
 
-        results = {str(r['id']): r for r in api_results}
-        return await gather(self.resolve(d, strategy, _metadata=results.get(i))
-                            for d, i in zip(defns, ids_from_defns))
+        api_results = {str(r['id']): r for r in json_response}
+        coros = (self.resolve_one(strategy, api_results.get(i))
+                 for i in ids_from_defns)
+        results = dict(zip(defns, await gather(coros)))
+        return results
 
-    @resolve.register
-    @validate_strategy
-    async def _(self, defn: Defn, strategy: Strategies, *, _metadata: Any = _sentinel) -> Pkg:
-        if _metadata is _sentinel:
-            pkg, = await self.resolve([defn], strategy)
-            return pkg
-        else:
-            metadata = _metadata
-
+    async def resolve_one(self, strategy: Strategies, metadata: Optional[dict]) -> Pkg:
         if not metadata:
             raise E.PkgNonexistent
         elif not metadata['latestFiles']:
@@ -200,11 +184,11 @@ class WowiResolver(Resolver, _FileCacheMixin):
     _files: Optional[Dict[str, dict]] = None
 
     @classmethod
-    def decompose_url(cls, uri: str) -> Optional[Tuple[str, str]]:
-        url = URL(uri)
-        if url.host in {'wowinterface.com', 'www.wowinterface.com'} \
-                and len(url.parts) == 3 \
-                and url.parts[1] == 'downloads':
+    def decompose_url(cls, value: str) -> Optional[Tuple[str, str]]:
+        url = URL(value)
+        if (url.host in {'wowinterface.com', 'www.wowinterface.com'}
+                and len(url.parts) == 3
+                and url.parts[1] == 'downloads'):
             if url.name == 'landing.php':
                 id_ = url.query.get('fileid')
                 if id_:
@@ -228,33 +212,25 @@ class WowiResolver(Resolver, _FileCacheMixin):
             self._files = {i['UID']: i for i in files}
         return self
 
-    @singledispatchmethod
     @validate_strategy
-    async def resolve(self, defns: List[Defn], strategy: Strategies) -> List[Pkg]:
-        assert self._files is not None, f'{self.source} has not been synchronised'
-
+    async def resolve(self, defns: List[Defn], strategy: Strategies) -> Dict[Defn, Any]:
+        files = cast(dict, self._files)
         ids_from_defns = [''.join(takewhile(str.isdigit, d.name)) for d in defns]
         numeric_ids = {i for i in ids_from_defns if i.isdigit()}
         url = self.details_api_url / f'{",".join(numeric_ids)}.json'
         async with self.web_client.get(url) as response:
             if response.status == 404:
-                api_results = []       # type: ignore
+                json_response = []       # type: ignore
             else:
-                api_results = await response.json()
+                json_response = await response.json()
 
-        results = {r['UID']: {**self._files[r['UID']], **r} for r in api_results}
-        return await gather(self.resolve(d, strategy, _metadata=results.get(i))
-                            for d, i in zip(defns, ids_from_defns))
+        api_results = {r['UID']: {**files[r['UID']], **r} for r in json_response}
+        coros = (self.resolve_one(strategy, api_results.get(i))
+                 for i in ids_from_defns)
+        results = dict(zip(defns, await gather(coros)))
+        return results
 
-    @resolve.register
-    @validate_strategy
-    async def _(self, defn: Defn, strategy: Strategies, *, _metadata: Any = _sentinel) -> Pkg:
-        if _metadata is _sentinel:
-            pkg, = await self.resolve([defn], strategy)
-            return pkg
-        else:
-            metadata = _metadata
-
+    async def resolve_one(self, strategy: Strategies, metadata: Optional[dict]) -> Pkg:
         if not metadata:
             raise E.PkgNonexistent
         if metadata['UIPending'] == '1':
@@ -294,22 +270,20 @@ class TukuiResolver(Resolver):
     api_url = URL('https://www.tukui.org/api.php')
 
     @classmethod
-    def decompose_url(cls, uri: str) -> Optional[Tuple[str, str]]:
-        url = URL(uri)
-        if url.host == 'www.tukui.org' \
-                and url.path in {'/addons.php', '/classic-addons.php', '/download.php'}:
+    def decompose_url(cls, value: str) -> Optional[Tuple[str, str]]:
+        url = URL(value)
+        if (url.host == 'www.tukui.org'
+                and url.path in {'/addons.php', '/classic-addons.php', '/download.php'}):
             id_or_slug = url.query.get('id') or url.query.get('ui')
             if id_or_slug:
                 return (cls.source, id_or_slug)
 
-    @singledispatchmethod
     @validate_strategy
-    async def resolve(self, defns: List[Defn], strategy: Strategies) -> List[Pkg]:
-        return await gather(self.resolve(d, strategy) for d in defns)
+    async def resolve(self, defns: List[Defn], strategy: Strategies) -> Dict[Defn, Any]:
+        results = await gather(self.resolve_one(d, strategy) for d in defns)
+        return dict(zip(defns, results))
 
-    @resolve.register
-    @validate_strategy
-    async def _(self, defn: Defn, strategy: Strategies) -> Pkg:
+    async def resolve_one(self, defn: Defn, strategy: Strategies) -> Pkg:
         id_, *_ = defn.name.partition('-')
         is_ui = id_ in {'elvui', 'tukui'}
 
@@ -356,17 +330,15 @@ class InstawowResolver(Resolver):
                ('1', 'weakauras-companion-autoupdate')}
 
     @classmethod
-    def decompose_url(cls, uri: str) -> None:
+    def decompose_url(cls, value: str) -> None:
         return
 
-    @singledispatchmethod
     @validate_strategy
-    async def resolve(self, defns: List[Defn], strategy: Strategies) -> List[Pkg]:
-        return await gather(self.resolve(d, strategy) for d in defns)
+    async def resolve(self, defns: List[Defn], strategy: Strategies) -> Dict[Defn, Any]:
+        results = await gather(self.resolve_one(d, strategy) for d in defns)
+        return dict(zip(defns, results))
 
-    @resolve.register
-    @validate_strategy
-    async def _(self, defn: Defn, strategy: Strategies) -> Pkg:
+    async def resolve_one(self, defn: Defn, strategy: Strategies) -> Pkg:
         try:
             id_, slug = next(p for p in self._addons if defn.name in p)
         except StopIteration:
