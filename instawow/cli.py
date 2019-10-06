@@ -227,8 +227,8 @@ def reconcile(ctx) -> None:
             return self.reader['Version', 'X-Packaged-Version'].value
 
     manager = ctx.obj.m
-    resolve = partial(manager.resolve, strategy=Strategies.default)
-    install = partial(manager.install, strategy=Strategies.default, replace=True)
+    resolve = partial(manager.resolve)
+    install = partial(manager.install, replace=True)
     TocReader_ = lambda n: TocReader.from_path_name(manager.config.addon_dir / n)
 
     def _prompt(addons: Sequence[_Addon], pkgs: Sequence[Pkg]) -> Union[Tuple[()], Tuple[Sequence[_Addon], Defn]]:
