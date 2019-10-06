@@ -122,25 +122,25 @@ async def download_archive(pkg: Pkg, *, chunk_size: int = 4096) -> Callable:
 
 
 def prepare_db_session(config: Config) -> scoped_session:
-    db_url = f"sqlite:///{config.config_dir / 'db.sqlite'}"
+    db_path = config.config_dir / 'db.sqlite'
+    db_url = f'sqlite:///{db_path}'
+    # We need to distinguish between newly-created databases and
+    # databases predating alembic in instawow - attempting to migrate a
+    # new database will throw an error
+    db_exists = db_path.exists()
+
     engine = create_engine(db_url)
     ModelBase.metadata.create_all(engine)
-
     if should_migrate(engine, db_version):
-        from alembic.autogenerate import compare_metadata
-        from alembic.migration import MigrationContext
         from .migrations import make_config, stamp, upgrade
 
-        with engine.begin() as conn:
-            alembic_config = make_config(db_url)
-            diff = compare_metadata(MigrationContext.configure(conn),
-                                    ModelBase.metadata)
-            if diff:
-                logger.info(f'migrating database to {db_version}')
-                upgrade(alembic_config, db_version)
-            else:
-                logger.info(f'stamping database with {db_version}')
-                stamp(alembic_config, db_version)
+        alembic_config = make_config(db_url)
+        if db_exists:
+            logger.info(f'migrating database to {db_version}')
+            upgrade(alembic_config, db_version)
+        else:
+            logger.info(f'stamping database with {db_version}')
+            stamp(alembic_config, db_version)
 
     return scoped_session(sessionmaker(bind=engine))
 
