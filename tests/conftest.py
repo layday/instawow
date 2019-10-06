@@ -25,7 +25,8 @@ def full_config(tmp_path, partial_config):
 
 @pytest.fixture(autouse=True, scope='module')
 def cassette(request):
-    path = Path(__file__).parent / 'cassettes' / f'{request.node.name}.yaml'
+    path = ((Path(__file__).parent / 'cassettes' / f'{request.node.name}')
+            .with_suffix('.yaml'))
     record_mode = request.config.getoption('--vcrpy-mode')
     with vcr.use_cassette(str(path), record_mode=record_mode):
         yield

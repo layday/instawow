@@ -1,0 +1,374 @@
+interactions:
+- request:
+    body: null
+    headers:
+      User-Agent:
+      - instawow (https://github.com/layday/instawow)
+    method: GET
+    uri: https://data.wago.io/api/check/weakauras?ids=RaidCDs,bfaraid2
+  response:
+    body:
+      string: '[{"_id":"NyJLsr8PW","name":"Tehr''s CDs","slug":"RaidCDs","url":"https://wago.io/RaidCDs","created":"2016-07-18T22:46:06.255Z","modified":"2018-11-01T22:36:56.757Z","game":"bfa","username":"Tehr","version":105,"versionString":"1.0.0","changelog":{"format":"bbcode","text":""},"regionType":"group"},{"_id":"rJg6SAC_G","name":"T23
+        Battle of Dazar''alor Auras (9/9 Bosses, all difficulties, both factions)","slug":"bfaraid2","url":"https://wago.io/bfaraid2","created":"2018-03-08T15:24:39.897Z","modified":"2019-03-18T08:29:51.179Z","forkOf":"ryJJQAAOf","game":"bfa","username":"Causese","version":119,"versionString":"2.0.50","changelog":{"format":"bbcode","text":"added
+        \"08 Crackling Lightning\" since it can be tracked now. (Stormwall Blockade)\nThanks
+        Fawn#12441 for pointing it out."},"regionType":"dynamicgroup"}]'
+    headers:
+      ? !!python/object/new:multidict._istr.istr
+      - Access-Control-Allow-Credentials
+      : 'true'
+      ? !!python/object/new:multidict._istr.istr
+      - Access-Control-Allow-Origin
+      : '*'
+      ? !!python/object/new:multidict._istr.istr
+      - Access-Control-Expose-Headers
+      : set-cookie,wotm
+      CF-RAY: 51d63e27cc1c9e07-ATH
+      ? !!python/object/new:multidict._istr.istr
+      - Connection
+      : keep-alive
+      ? !!python/object/new:multidict._istr.istr
+      - Content-Encoding
+      : gzip
+      ? !!python/object/new:multidict._istr.istr
+      - Content-Type
+      : application/json; charset=utf-8
+      ? !!python/object/new:multidict._istr.istr
+      - Date
+      : Sat, 28 Sep 2019 14:00:18 GMT
+      Expect-CT: max-age=604800, report-uri="https://report-uri.cloudflare.com/cdn-cgi/beacon/expect-ct"
+      ? !!python/object/new:multidict._istr.istr
+      - Server
+      : cloudflare
+      ? !!python/object/new:multidict._istr.istr
+      - Set-Cookie
+      : __cfduid=d872d138cd363a0d06db376b4930689411569679217; expires=Sun, 27-Sep-20
+        14:00:17 GMT; path=/; domain=.wago.io; HttpOnly; Secure
+      ? !!python/object/new:multidict._istr.istr
+      - Transfer-Encoding
+      : chunked
+      ? !!python/object/new:multidict._istr.istr
+      - Vary
+      : Origin
+      wotm: '%7B%22name%22%3A%22%F0%9F%94%8A%5BALERT%5D%20Health%20%3C30%25%20(with%20sound)%F0%9F%94%8A%22%2C%22slug%22%3A%22HJp1KxT3m%22%2C%22screenshot%22%3A%22https%3A%2F%2Fmedia.wago.io%2Fscreenshots%2FHJp1KxT3m%2F5cc0706cea2597041aebd199.gif%22%7D'
+    status:
+      code: 200
+      message: OK
+    url: !!python/object/new:yarl.URL
+      state: !!python/tuple
+      - !!python/object/new:urllib.parse.SplitResult
+        - https
+        - data.wago.io
+        - /api/check/weakauras
+        - ids=RaidCDs,bfaraid2
+        - ''
+- request:
+    body: null
+    headers:
+      User-Agent:
+      - instawow (https://github.com/layday/instawow)
+    method: GET
+    uri: https://data.wago.io/api/check/weakauras?ids=bfaraid2,RaidCDs
+  response:
+    body:
+      string: '[{"_id":"NyJLsr8PW","name":"Tehr''s CDs","slug":"RaidCDs","url":"https://wago.io/RaidCDs","created":"2016-07-18T22:46:06.255Z","modified":"2018-11-01T22:36:56.757Z","game":"bfa","username":"Tehr","version":105,"versionString":"1.0.0","changelog":{"format":"bbcode","text":""},"regionType":"group"},{"_id":"rJg6SAC_G","name":"T23
+        Battle of Dazar''alor Auras (9/9 Bosses, all difficulties, both factions)","slug":"bfaraid2","url":"https://wago.io/bfaraid2","created":"2018-03-08T15:24:39.897Z","modified":"2019-03-18T08:29:51.179Z","forkOf":"ryJJQAAOf","game":"bfa","username":"Causese","version":119,"versionString":"2.0.50","changelog":{"format":"bbcode","text":"added
+        \"08 Crackling Lightning\" since it can be tracked now. (Stormwall Blockade)\nThanks
+        Fawn#12441 for pointing it out."},"regionType":"dynamicgroup"}]'
+    headers:
+      ? !!python/object/new:multidict._istr.istr
+      - Access-Control-Allow-Credentials
+      : 'true'
+      ? !!python/object/new:multidict._istr.istr
+      - Access-Control-Allow-Origin
+      : '*'
+      ? !!python/object/new:multidict._istr.istr
+      - Access-Control-Expose-Headers
+      : set-cookie,wotm
+      CF-RAY: 51d63e2b1d6d9de3-ATH
+      ? !!python/object/new:multidict._istr.istr
+      - Connection
+      : keep-alive
+      ? !!python/object/new:multidict._istr.istr
+      - Content-Encoding
+      : gzip
+      ? !!python/object/new:multidict._istr.istr
+      - Content-Type
+      : application/json; charset=utf-8
+      ? !!python/object/new:multidict._istr.istr
+      - Date
+      : Sat, 28 Sep 2019 14:00:18 GMT
+      Expect-CT: max-age=604800, report-uri="https://report-uri.cloudflare.com/cdn-cgi/beacon/expect-ct"
+      ? !!python/object/new:multidict._istr.istr
+      - Server
+      : cloudflare
+      ? !!python/object/new:multidict._istr.istr
+      - Set-Cookie
+      : __cfduid=dba12082cdf9dfab73a7a5eccfdbf23a31569679218; expires=Sun, 27-Sep-20
+        14:00:18 GMT; path=/; domain=.wago.io; HttpOnly; Secure
+      ? !!python/object/new:multidict._istr.istr
+      - Transfer-Encoding
+      : chunked
+      ? !!python/object/new:multidict._istr.istr
+      - Vary
+      : Origin
+      wotm: '%7B%22name%22%3A%22%F0%9F%94%8A%5BALERT%5D%20Health%20%3C30%25%20(with%20sound)%F0%9F%94%8A%22%2C%22slug%22%3A%22HJp1KxT3m%22%2C%22screenshot%22%3A%22https%3A%2F%2Fmedia.wago.io%2Fscreenshots%2FHJp1KxT3m%2F5cc0706cea2597041aebd199.gif%22%7D'
+    status:
+      code: 200
+      message: OK
+    url: !!python/object/new:yarl.URL
+      state: !!python/tuple
+      - !!python/object/new:urllib.parse.SplitResult
+        - https
+        - data.wago.io
+        - /api/check/weakauras
+        - ids=bfaraid2,RaidCDs
+        - ''
+- request:
+    body: null
+    headers:
+      User-Agent:
+      - instawow (https://github.com/layday/instawow)
+    method: GET
+    uri: https://data.wago.io/api/check/weakauras?ids=RaidCDs,bfaraid2
+  response:
+    body:
+      string: '[{"_id":"NyJLsr8PW","name":"Tehr''s CDs","slug":"RaidCDs","url":"https://wago.io/RaidCDs","created":"2016-07-18T22:46:06.255Z","modified":"2018-11-01T22:36:56.757Z","game":"bfa","username":"Tehr","version":105,"versionString":"1.0.0","changelog":{"format":"bbcode","text":""},"regionType":"group"},{"_id":"rJg6SAC_G","name":"T23
+        Battle of Dazar''alor Auras (9/9 Bosses, all difficulties, both factions)","slug":"bfaraid2","url":"https://wago.io/bfaraid2","created":"2018-03-08T15:24:39.897Z","modified":"2019-03-18T08:29:51.179Z","forkOf":"ryJJQAAOf","game":"bfa","username":"Causese","version":119,"versionString":"2.0.50","changelog":{"format":"bbcode","text":"added
+        \"08 Crackling Lightning\" since it can be tracked now. (Stormwall Blockade)\nThanks
+        Fawn#12441 for pointing it out."},"regionType":"dynamicgroup"}]'
+    headers:
+      ? !!python/object/new:multidict._istr.istr
+      - Access-Control-Allow-Credentials
+      : 'true'
+      ? !!python/object/new:multidict._istr.istr
+      - Access-Control-Allow-Origin
+      : '*'
+      ? !!python/object/new:multidict._istr.istr
+      - Access-Control-Expose-Headers
+      : set-cookie,wotm
+      CF-RAY: 51d63e2e49049ddd-ATH
+      ? !!python/object/new:multidict._istr.istr
+      - Connection
+      : keep-alive
+      ? !!python/object/new:multidict._istr.istr
+      - Content-Encoding
+      : gzip
+      ? !!python/object/new:multidict._istr.istr
+      - Content-Type
+      : application/json; charset=utf-8
+      ? !!python/object/new:multidict._istr.istr
+      - Date
+      : Sat, 28 Sep 2019 14:00:19 GMT
+      Expect-CT: max-age=604800, report-uri="https://report-uri.cloudflare.com/cdn-cgi/beacon/expect-ct"
+      ? !!python/object/new:multidict._istr.istr
+      - Server
+      : cloudflare
+      ? !!python/object/new:multidict._istr.istr
+      - Set-Cookie
+      : __cfduid=d1921264a45e63148943a0c227e9e4a211569679218; expires=Sun, 27-Sep-20
+        14:00:18 GMT; path=/; domain=.wago.io; HttpOnly; Secure
+      ? !!python/object/new:multidict._istr.istr
+      - Transfer-Encoding
+      : chunked
+      ? !!python/object/new:multidict._istr.istr
+      - Vary
+      : Origin
+      wotm: '%7B%22name%22%3A%22%F0%9F%94%8A%5BALERT%5D%20Health%20%3C30%25%20(with%20sound)%F0%9F%94%8A%22%2C%22slug%22%3A%22HJp1KxT3m%22%2C%22screenshot%22%3A%22https%3A%2F%2Fmedia.wago.io%2Fscreenshots%2FHJp1KxT3m%2F5cc0706cea2597041aebd199.gif%22%7D'
+    status:
+      code: 200
+      message: OK
+    url: !!python/object/new:yarl.URL
+      state: !!python/tuple
+      - !!python/object/new:urllib.parse.SplitResult
+        - https
+        - data.wago.io
+        - /api/check/weakauras
+        - ids=RaidCDs,bfaraid2
+        - ''
+- request:
+    body: null
+    headers:
+      User-Agent:
+      - instawow (https://github.com/layday/instawow)
+    method: GET
+    uri: https://data.wago.io/api/check/weakauras?ids=bfaraid2,RaidCDs
+  response:
+    body:
+      string: '[{"_id":"NyJLsr8PW","name":"Tehr''s CDs","slug":"RaidCDs","url":"https://wago.io/RaidCDs","created":"2016-07-18T22:46:06.255Z","modified":"2018-11-01T22:36:56.757Z","game":"bfa","username":"Tehr","version":105,"versionString":"1.0.0","changelog":{"format":"bbcode","text":""},"regionType":"group"},{"_id":"rJg6SAC_G","name":"T23
+        Battle of Dazar''alor Auras (9/9 Bosses, all difficulties, both factions)","slug":"bfaraid2","url":"https://wago.io/bfaraid2","created":"2018-03-08T15:24:39.897Z","modified":"2019-03-18T08:29:51.179Z","forkOf":"ryJJQAAOf","game":"bfa","username":"Causese","version":119,"versionString":"2.0.50","changelog":{"format":"bbcode","text":"added
+        \"08 Crackling Lightning\" since it can be tracked now. (Stormwall Blockade)\nThanks
+        Fawn#12441 for pointing it out."},"regionType":"dynamicgroup"}]'
+    headers:
+      ? !!python/object/new:multidict._istr.istr
+      - Access-Control-Allow-Credentials
+      : 'true'
+      ? !!python/object/new:multidict._istr.istr
+      - Access-Control-Allow-Origin
+      : '*'
+      ? !!python/object/new:multidict._istr.istr
+      - Access-Control-Expose-Headers
+      : set-cookie,wotm
+      CF-RAY: 51d63e31becf5ce5-ATH
+      ? !!python/object/new:multidict._istr.istr
+      - Connection
+      : keep-alive
+      ? !!python/object/new:multidict._istr.istr
+      - Content-Encoding
+      : gzip
+      ? !!python/object/new:multidict._istr.istr
+      - Content-Type
+      : application/json; charset=utf-8
+      ? !!python/object/new:multidict._istr.istr
+      - Date
+      : Sat, 28 Sep 2019 14:00:19 GMT
+      Expect-CT: max-age=604800, report-uri="https://report-uri.cloudflare.com/cdn-cgi/beacon/expect-ct"
+      ? !!python/object/new:multidict._istr.istr
+      - Server
+      : cloudflare
+      ? !!python/object/new:multidict._istr.istr
+      - Set-Cookie
+      : __cfduid=d104ecfd9b43b52595eabfb68e8f6e94a1569679219; expires=Sun, 27-Sep-20
+        14:00:19 GMT; path=/; domain=.wago.io; HttpOnly; Secure
+      ? !!python/object/new:multidict._istr.istr
+      - Transfer-Encoding
+      : chunked
+      ? !!python/object/new:multidict._istr.istr
+      - Vary
+      : Origin
+      wotm: '%7B%22name%22%3A%22%F0%9F%94%8A%5BALERT%5D%20Health%20%3C30%25%20(with%20sound)%F0%9F%94%8A%22%2C%22slug%22%3A%22HJp1KxT3m%22%2C%22screenshot%22%3A%22https%3A%2F%2Fmedia.wago.io%2Fscreenshots%2FHJp1KxT3m%2F5cc0706cea2597041aebd199.gif%22%7D'
+    status:
+      code: 200
+      message: OK
+    url: !!python/object/new:yarl.URL
+      state: !!python/tuple
+      - !!python/object/new:urllib.parse.SplitResult
+        - https
+        - data.wago.io
+        - /api/check/weakauras
+        - ids=bfaraid2,RaidCDs
+        - ''
+- request:
+    body: null
+    headers:
+      User-Agent:
+      - instawow (https://github.com/layday/instawow)
+    method: GET
+    uri: https://data.wago.io/api/check/weakauras?ids=bfaraid2,foobar,RaidCDs
+  response:
+    body:
+      string: '[{"_id":"NyJLsr8PW","name":"Tehr''s CDs","slug":"RaidCDs","url":"https://wago.io/RaidCDs","created":"2016-07-18T22:46:06.255Z","modified":"2018-11-01T22:36:56.757Z","game":"bfa","username":"Tehr","version":105,"versionString":"1.0.0","changelog":{"format":"bbcode","text":""},"regionType":"group"},{"_id":"rJg6SAC_G","name":"T23
+        Battle of Dazar''alor Auras (9/9 Bosses, all difficulties, both factions)","slug":"bfaraid2","url":"https://wago.io/bfaraid2","created":"2018-03-08T15:24:39.897Z","modified":"2019-03-18T08:29:51.179Z","forkOf":"ryJJQAAOf","game":"bfa","username":"Causese","version":119,"versionString":"2.0.50","changelog":{"format":"bbcode","text":"added
+        \"08 Crackling Lightning\" since it can be tracked now. (Stormwall Blockade)\nThanks
+        Fawn#12441 for pointing it out."},"regionType":"dynamicgroup"}]'
+    headers:
+      ? !!python/object/new:multidict._istr.istr
+      - Access-Control-Allow-Credentials
+      : 'true'
+      ? !!python/object/new:multidict._istr.istr
+      - Access-Control-Allow-Origin
+      : '*'
+      ? !!python/object/new:multidict._istr.istr
+      - Access-Control-Expose-Headers
+      : set-cookie,wotm
+      CF-RAY: 51d63e34bf455cc7-ATH
+      ? !!python/object/new:multidict._istr.istr
+      - Connection
+      : keep-alive
+      ? !!python/object/new:multidict._istr.istr
+      - Content-Encoding
+      : gzip
+      ? !!python/object/new:multidict._istr.istr
+      - Content-Type
+      : application/json; charset=utf-8
+      ? !!python/object/new:multidict._istr.istr
+      - Date
+      : Sat, 28 Sep 2019 14:00:20 GMT
+      Expect-CT: max-age=604800, report-uri="https://report-uri.cloudflare.com/cdn-cgi/beacon/expect-ct"
+      ? !!python/object/new:multidict._istr.istr
+      - Server
+      : cloudflare
+      ? !!python/object/new:multidict._istr.istr
+      - Set-Cookie
+      : __cfduid=d2e083e1e3b01a623db04a6c268bd57141569679219; expires=Sun, 27-Sep-20
+        14:00:19 GMT; path=/; domain=.wago.io; HttpOnly; Secure
+      ? !!python/object/new:multidict._istr.istr
+      - Transfer-Encoding
+      : chunked
+      ? !!python/object/new:multidict._istr.istr
+      - Vary
+      : Origin
+      wotm: '%7B%22name%22%3A%22%F0%9F%94%8A%5BALERT%5D%20Health%20%3C30%25%20(with%20sound)%F0%9F%94%8A%22%2C%22slug%22%3A%22HJp1KxT3m%22%2C%22screenshot%22%3A%22https%3A%2F%2Fmedia.wago.io%2Fscreenshots%2FHJp1KxT3m%2F5cc0706cea2597041aebd199.gif%22%7D'
+    status:
+      code: 200
+      message: OK
+    url: !!python/object/new:yarl.URL
+      state: !!python/tuple
+      - !!python/object/new:urllib.parse.SplitResult
+        - https
+        - data.wago.io
+        - /api/check/weakauras
+        - ids=bfaraid2,foobar,RaidCDs
+        - ''
+- request:
+    body: null
+    headers:
+      User-Agent:
+      - instawow (https://github.com/layday/instawow)
+    method: GET
+    uri: https://data.wago.io/api/check/weakauras?ids=bfaraid2,foobar,RaidCDs
+  response:
+    body:
+      string: '[{"_id":"NyJLsr8PW","name":"Tehr''s CDs","slug":"RaidCDs","url":"https://wago.io/RaidCDs","created":"2016-07-18T22:46:06.255Z","modified":"2018-11-01T22:36:56.757Z","game":"bfa","username":"Tehr","version":105,"versionString":"1.0.0","changelog":{"format":"bbcode","text":""},"regionType":"group"},{"_id":"rJg6SAC_G","name":"T23
+        Battle of Dazar''alor Auras (9/9 Bosses, all difficulties, both factions)","slug":"bfaraid2","url":"https://wago.io/bfaraid2","created":"2018-03-08T15:24:39.897Z","modified":"2019-03-18T08:29:51.179Z","forkOf":"ryJJQAAOf","game":"bfa","username":"Causese","version":119,"versionString":"2.0.50","changelog":{"format":"bbcode","text":"added
+        \"08 Crackling Lightning\" since it can be tracked now. (Stormwall Blockade)\nThanks
+        Fawn#12441 for pointing it out."},"regionType":"dynamicgroup"}]'
+    headers:
+      ? !!python/object/new:multidict._istr.istr
+      - Access-Control-Allow-Credentials
+      : 'true'
+      ? !!python/object/new:multidict._istr.istr
+      - Access-Control-Allow-Origin
+      : '*'
+      ? !!python/object/new:multidict._istr.istr
+      - Access-Control-Expose-Headers
+      : set-cookie,wotm
+      CF-RAY: 51d63e37d8209e3d-ATH
+      ? !!python/object/new:multidict._istr.istr
+      - Connection
+      : keep-alive
+      ? !!python/object/new:multidict._istr.istr
+      - Content-Encoding
+      : gzip
+      ? !!python/object/new:multidict._istr.istr
+      - Content-Type
+      : application/json; charset=utf-8
+      ? !!python/object/new:multidict._istr.istr
+      - Date
+      : Sat, 28 Sep 2019 14:00:20 GMT
+      Expect-CT: max-age=604800, report-uri="https://report-uri.cloudflare.com/cdn-cgi/beacon/expect-ct"
+      ? !!python/object/new:multidict._istr.istr
+      - Server
+      : cloudflare
+      ? !!python/object/new:multidict._istr.istr
+      - Set-Cookie
+      : __cfduid=dd5ddbd9babc917caea26312e0acd61bf1569679220; expires=Sun, 27-Sep-20
+        14:00:20 GMT; path=/; domain=.wago.io; HttpOnly; Secure
+      ? !!python/object/new:multidict._istr.istr
+      - Transfer-Encoding
+      : chunked
+      ? !!python/object/new:multidict._istr.istr
+      - Vary
+      : Origin
+      wotm: '%7B%22name%22%3A%22%F0%9F%94%8A%5BALERT%5D%20Health%20%3C30%25%20(with%20sound)%F0%9F%94%8A%22%2C%22slug%22%3A%22HJp1KxT3m%22%2C%22screenshot%22%3A%22https%3A%2F%2Fmedia.wago.io%2Fscreenshots%2FHJp1KxT3m%2F5cc0706cea2597041aebd199.gif%22%7D'
+    status:
+      code: 200
+      message: OK
+    url: !!python/object/new:yarl.URL
+      state: !!python/tuple
+      - !!python/object/new:urllib.parse.SplitResult
+        - https
+        - data.wago.io
+        - /api/check/weakauras
+        - ids=bfaraid2,foobar,RaidCDs
+        - ''
+version: 1
