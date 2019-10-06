@@ -31,6 +31,8 @@ class Strategies(str, Enum):
 
     default = 'default'
     latest = 'latest file available'
+    curse_latest_beta = 'latest beta quality file available from CurseForge'
+    curse_latest_alpha = 'latest alpha quality file available from CurseForge'
 
 
 class Defn(NamedTuple):
@@ -94,7 +96,9 @@ class CurseResolver(Resolver, _FileCacheMixin):
 
     source = 'curse'
     name = 'CurseForge'
-    strategies = {Strategies.default, Strategies.latest}
+    strategies = {Strategies.default, Strategies.latest,
+                  Strategies.curse_latest_beta,
+                  Strategies.curse_latest_alpha}
 
     # https://twitchappapi.docs.apiary.io/
     addon_api_url = 'https://addons-ecs.forgesvc.net/api/v2/addon'
@@ -165,18 +169,20 @@ class CurseResolver(Resolver, _FileCacheMixin):
                     or any(v.startswith(classic_version_prefix) is self.config.is_classic
                            for v in file['gameVersion']))
 
+        # 1 = stable; 2 = beta; 3 = alpha
         if defn.strategy is Strategies.default:
-            def is_of_certain_strategy(file: dict) -> bool:
-                # 1 = stable; 2 = beta; 3 = alpha
-                return file['releaseType'] == 1
+            def has_release_type(f: dict) -> bool: return f['releaseType'] == 1
+        elif defn.strategy is Strategies.curse_latest_beta:
+            def has_release_type(f: dict) -> bool: return f['releaseType'] == 2
+        elif defn.strategy is Strategies.curse_latest_alpha:
+            def has_release_type(f: dict) -> bool: return f['releaseType'] == 3
         else:
-            def is_of_certain_strategy(file: dict) -> bool:
-                return True
+            def has_release_type(f: dict) -> bool: return True
 
         files = (f for f in metadata['latestFiles']
                  if is_not_libless(f)
                  and is_compatible_with_game_version(f)
-                 and is_of_certain_strategy(f))
+                 and has_release_type(f))
         try:
             # The ``id`` is just a counter so we don't have to go digging around dates
             file = max(files, key=itemgetter('id'))
