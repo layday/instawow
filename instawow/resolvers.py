@@ -9,7 +9,7 @@ from operator import itemgetter
 from pathlib import Path
 import re
 from typing import TYPE_CHECKING, cast
-from typing import Any, Callable, ClassVar, Dict, List, NamedTuple, Optional, Set, Tuple, Union
+from typing import Any, Callable, ClassVar, Dict, List, NamedTuple, Optional, Set, Tuple
 
 from loguru import logger
 from yarl import URL
@@ -30,13 +30,14 @@ async_write = partial(run_in_thread(Path.write_text), encoding='utf-8')
 class Strategies(str, Enum):
 
     default = 'default'
-    latest = 'latest'
+    latest = 'latest file available'
 
 
 class Defn(NamedTuple):
 
     source: str
     name: str
+    strategy: Strategies = Strategies.default
 
     def __str__(self) -> str:
         return f'{self.source}:{self.name}'
@@ -44,10 +45,10 @@ class Defn(NamedTuple):
 
 def validate_strategy(method: Callable) -> Callable:
     @wraps(method)
-    async def wrapper(self, defns: List[Defn], strategy: Strategies, **kwargs: Any) -> Dict[Defn, Any]:
-        if strategy in self.strategies:
-            return await method(self, defns, strategy, **kwargs)
-        return dict(zip(defns, repeat(E.PkgStrategyUnsupported(strategy))))
+    async def wrapper(self, defn: Defn, *args: Any, **kwargs: Any) -> Pkg:
+        if defn.strategy in self.strategies:
+            return await method(self, defn, *args, **kwargs)
+        raise E.PkgStrategyUnsupported(defn.strategy)
 
     return wrapper
 
@@ -85,7 +86,7 @@ class Resolver(ManagerAttrAccessMixin):
     async def synchronise(self) -> Resolver:
         return self
 
-    async def resolve(self, defns: List[Defn], strategy: Strategies) -> Dict[Defn, Any]:
+    async def resolve(self, defns: List[Defn]) -> Dict[Defn, Any]:
         raise NotImplementedError
 
 
@@ -122,11 +123,10 @@ class CurseResolver(Resolver, _FileCacheMixin):
             self._slugs = {k: str(v) for k, v in slugs.items()}
         return self
 
-    @validate_strategy
-    async def resolve(self, defns: List[Defn], strategy: Strategies) -> Dict[Defn, Any]:
+    async def resolve(self, defns: List[Defn]) -> Dict[Defn, Any]:
         slugs = cast(dict, self._slugs)
-        ids_from_defns = [slugs.get(d.name, d.name) for d in defns]
-        numeric_ids = list({i for i in ids_from_defns if i.isdigit()})
+        ids_from_defns = {d: slugs.get(d.name, d.name) for d in defns}
+        numeric_ids = list({i for i in ids_from_defns.values() if i.isdigit()})
         async with self.web_client.post(self.addon_api_url, json=numeric_ids) as response:
             if response.status == 404:
                 json_response = []       # type: ignore
@@ -134,12 +134,13 @@ class CurseResolver(Resolver, _FileCacheMixin):
                 json_response = await response.json()
 
         api_results = {str(r['id']): r for r in json_response}
-        coros = (self.resolve_one(strategy, api_results.get(i))
-                 for i in ids_from_defns)
+        coros = (self.resolve_one(d, api_results.get(i))
+                 for d, i in ids_from_defns.items())
         results = dict(zip(defns, await gather(coros)))
         return results
 
-    async def resolve_one(self, strategy: Strategies, metadata: Optional[dict]) -> Pkg:
+    @validate_strategy
+    async def resolve_one(self, defn: Defn, metadata: Optional[dict]) -> Pkg:
         if not metadata:
             raise E.PkgNonexistent
         elif not metadata['latestFiles']:
@@ -164,7 +165,7 @@ class CurseResolver(Resolver, _FileCacheMixin):
                     or any(v.startswith(classic_version_prefix) is self.config.is_classic
                            for v in file['gameVersion']))
 
-        if strategy is Strategies.default:
+        if defn.strategy is Strategies.default:
             def is_of_certain_strategy(file: dict) -> bool:
                 # 1 = stable; 2 = beta; 3 = alpha
                 return file['releaseType'] == 1
@@ -181,7 +182,7 @@ class CurseResolver(Resolver, _FileCacheMixin):
             file = max(files, key=itemgetter('id'))
         except ValueError:
             raise E.PkgFileUnavailable(f'no files compatible with {self.config.game_flavour} '
-                                       f'using {strategy.name!r} strategy')
+                                       f'using {defn.strategy.name!r} strategy')
 
         return Pkg(origin=self.source,
                    id=metadata['id'],
@@ -193,7 +194,7 @@ class CurseResolver(Resolver, _FileCacheMixin):
                    download_url=file['downloadUrl'],
                    date_published=file['fileDate'],
                    version=file['displayName'],
-                   options=PkgOptions(strategy=strategy.name))
+                   options=PkgOptions(strategy=defn.strategy.name))
 
 
 class WowiResolver(Resolver, _FileCacheMixin):
@@ -237,11 +238,10 @@ class WowiResolver(Resolver, _FileCacheMixin):
             self._files = {i['UID']: i for i in files}
         return self
 
-    @validate_strategy
-    async def resolve(self, defns: List[Defn], strategy: Strategies) -> Dict[Defn, Any]:
+    async def resolve(self, defns: List[Defn]) -> Dict[Defn, Any]:
         files = cast(dict, self._files)
-        ids_from_defns = [''.join(takewhile(str.isdigit, d.name)) for d in defns]
-        numeric_ids = {i for i in ids_from_defns if i.isdigit()}
+        ids_from_defns = {d: ''.join(takewhile(str.isdigit, d.name)) for d in defns}
+        numeric_ids = {i for i in ids_from_defns.values() if i.isdigit()}
         url = self.details_api_url / f'{",".join(numeric_ids)}.json'
         async with self.web_client.get(url) as response:
             if response.status == 404:
@@ -250,12 +250,13 @@ class WowiResolver(Resolver, _FileCacheMixin):
                 json_response = await response.json()
 
         api_results = {r['UID']: {**files[r['UID']], **r} for r in json_response}
-        coros = (self.resolve_one(strategy, api_results.get(i))
-                 for i in ids_from_defns)
+        coros = (self.resolve_one(d, api_results.get(i))
+                 for d, i in ids_from_defns.items())
         results = dict(zip(defns, await gather(coros)))
         return results
 
-    async def resolve_one(self, strategy: Strategies, metadata: Optional[dict]) -> Pkg:
+    @validate_strategy
+    async def resolve_one(self, defn: Defn, metadata: Optional[dict]) -> Pkg:
         if not metadata:
             raise E.PkgNonexistent
         if metadata['UIPending'] == '1':
@@ -283,7 +284,7 @@ class WowiResolver(Resolver, _FileCacheMixin):
                    download_url=metadata['UIDownload'],
                    date_published=metadata['UIDate'],
                    version=metadata['UIVersion'],
-                   options=PkgOptions(strategy=strategy.name))
+                   options=PkgOptions(strategy=defn.strategy.name))
 
 
 class TukuiResolver(Resolver):
@@ -303,12 +304,12 @@ class TukuiResolver(Resolver):
             if id_or_slug:
                 return (cls.source, id_or_slug)
 
-    @validate_strategy
-    async def resolve(self, defns: List[Defn], strategy: Strategies) -> Dict[Defn, Any]:
-        results = await gather(self.resolve_one(d, strategy) for d in defns)
+    async def resolve(self, defns: List[Defn]) -> Dict[Defn, Any]:
+        results = await gather(self.resolve_one(d) for d in defns)
         return dict(zip(defns, results))
 
-    async def resolve_one(self, defn: Defn, strategy: Strategies) -> Pkg:
+    @validate_strategy
+    async def resolve_one(self, defn: Defn) -> Pkg:
         id_, *_ = defn.name.partition('-')
         is_ui = id_ in {'elvui', 'tukui'}
 
@@ -342,7 +343,7 @@ class TukuiResolver(Resolver):
                    download_url=addon['url'],
                    date_published=date_published,
                    version=addon['version'],
-                   options=PkgOptions(strategy=strategy.name))
+                   options=PkgOptions(strategy=defn.strategy.name))
 
 
 class InstawowResolver(Resolver):
@@ -358,12 +359,12 @@ class InstawowResolver(Resolver):
     def decompose_url(cls, value: str) -> None:
         return
 
-    @validate_strategy
-    async def resolve(self, defns: List[Defn], strategy: Strategies) -> Dict[Defn, Any]:
-        results = await gather(self.resolve_one(d, strategy) for d in defns)
+    async def resolve(self, defns: List[Defn]) -> Dict[Defn, Any]:
+        results = await gather(self.resolve_one(d) for d in defns)
         return dict(zip(defns, results))
 
-    async def resolve_one(self, defn: Defn, strategy: Strategies) -> Pkg:
+    @validate_strategy
+    async def resolve_one(self, defn: Defn) -> Pkg:
         try:
             id_, slug = next(p for p in self._addons if defn.name in p)
         except StopIteration:
@@ -388,4 +389,4 @@ class InstawowResolver(Resolver):
                    download_url=builder.file_out.as_uri(),
                    date_published=datetime.now(),
                    version='1.0.0',
-                   options=PkgOptions(strategy=strategy.name))
+                   options=PkgOptions(strategy=defn.strategy.name))

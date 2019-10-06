@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from enum import Enum
 from functools import partial, update_wrapper
+from itertools import chain, islice
+from operator import itemgetter
 from textwrap import fill
 from typing import TYPE_CHECKING
 from typing import (Any, Callable, Generator, Iterable, List, NamedTuple,
@@ -80,16 +82,14 @@ def tabulate(rows: Iterable, *, show_index: bool = True) -> str:
     return table.add_rows(rows).draw()
 
 
-def decompose_pkg_uri(ctx: click.Context,
-                      param: Any,
-                      value: Union[str, Tuple[str, ...]],
-                      *,
-                      raise_for_invalid_uri: bool = True) -> Any:
+def decompose_pkg_defn(ctx: click.Context, param: Any,
+                       value: Union[str, List[str], Tuple[str, ...]], *,
+                       raise_when_invalid: bool = True) -> Any:
     if isinstance(value, (list, tuple)):
-        return list(bucketise(decompose_pkg_uri(ctx, param, v) for v in value))
+        return list(bucketise(decompose_pkg_defn(ctx, param, v) for v in value))    # Remove dupes
 
     if ':' not in value:
-        if raise_for_invalid_uri:
+        if raise_when_invalid:
             raise click.BadParameter(value)
 
         parts = ('*', value)
@@ -101,6 +101,12 @@ def decompose_pkg_uri(ctx: click.Context,
         else:
             parts = value.partition(':')[::2]
     return Defn(*parts)
+
+
+def decompose_pkg_defn_with_strat(ctx, param, value):
+    defns = decompose_pkg_defn(ctx, param, [d for _, d in value])
+    strategies = (Strategies[s] for s, _ in value)
+    return [Defn(o, n, s) for (o, n, _), s in zip(defns, strategies)]
 
 
 def get_pkg_from_substr(manager: CliManager, defn: Defn) -> Optional[Pkg]:
@@ -121,6 +127,12 @@ def _pass_manager(f: Callable) -> Callable:
     def new_func(*args: Any, **kwargs: Any) -> Callable:
         return f(click.get_current_context().obj.m, *args, **kwargs)
     return update_wrapper(new_func, f)
+
+
+class _AddonType(str):
+    "Dummy class used to customise the help text in Click."
+
+_AddonType.__name__ = 'ADDON'
 
 
 @click.group(cls=_OrigCmdOrderGroup,
@@ -158,27 +170,30 @@ def main(ctx, debug):
 
 
 @main.command()
-@click.argument('addons', nargs=-1, required=True, callback=decompose_pkg_uri)
-@click.option('--strategy', '-s',
-              type=click.Choice({s.name for s in Strategies}),
-              default=Strategies.default.name,
-              callback=lambda _, __, v: Strategies[v],
-              help="Use 'latest' to install the most recent file available.  "
-                   "This has the effect of installing alpha and beta quality "
-                   "add-ons from CurseForge, but only if they are newer "
-                   "than the latest stable add-on file.")
+@click.option('--strategy', '-s', 'strategic_addons',
+              multiple=True,
+              type=(click.Choice({s.name for s in Strategies}), _AddonType),
+              callback=decompose_pkg_defn_with_strat,
+              help=('One of '
+                    + ', '.join(f"'{s.name}'" for s in islice(Strategies, 1, None))
+                    + '; and followed by an add-on definition.'))
 @click.option('--replace', '-o',
               is_flag=True, default=False,
               help='Replace existing add-ons.')
+@click.argument('addons',
+                nargs=-1, callback=decompose_pkg_defn)
 @_pass_manager
-def install(manager, addons, strategy, replace) -> None:
+def install(manager, addons, strategic_addons, replace) -> None:
     "Install add-ons."
-    results = manager.install(addons, strategy, replace)
+    deduped_addons = bucketise(chain(strategic_addons, addons), key=itemgetter(0, 1))
+    values = [v for v, *_ in deduped_addons.values()]
+    results = manager.install(values, replace)
     Report(results.items()).generate_and_exit()
 
 
 @main.command()
-@click.argument('addons', nargs=-1, callback=decompose_pkg_uri)
+@click.argument('addons',
+                nargs=-1, callback=decompose_pkg_defn)
 @_pass_manager
 def update(manager, addons) -> None:
     "Update installed add-ons."
@@ -193,7 +208,8 @@ def update(manager, addons) -> None:
 
 
 @main.command()
-@click.argument('addons', nargs=-1, required=True, callback=decompose_pkg_uri)
+@click.argument('addons',
+                nargs=-1, required=True, callback=decompose_pkg_defn)
 @_pass_manager
 def remove(manager, addons) -> None:
     "Uninstall add-ons."
@@ -445,11 +461,11 @@ def list_folders(manager, exclude_own, toc_entries) -> None:
 
 
 @main.command()
-@click.argument('addon', callback=partial(decompose_pkg_uri,
-                                          raise_for_invalid_uri=False))
 @click.option('--toc-entry', '-t', 'toc_entries',
               multiple=True,
               help='An entry to extract from the TOC.  Repeatable.')
+@click.argument('addon', callback=partial(decompose_pkg_defn,
+                                          raise_when_invalid=False))
 @_pass_manager
 def info(manager, addon, toc_entries) -> None:
     "Show detailed add-on information."
@@ -477,8 +493,8 @@ def info(manager, addon, toc_entries) -> None:
 
 
 @main.command()
-@click.argument('addon', callback=partial(decompose_pkg_uri,
-                                          raise_for_invalid_uri=False))
+@click.argument('addon', callback=partial(decompose_pkg_defn,
+                                          raise_when_invalid=False))
 @_pass_manager
 def visit(manager, addon) -> None:
     "Open an add-on's homepage in your browser."
@@ -491,8 +507,8 @@ def visit(manager, addon) -> None:
 
 
 @main.command()
-@click.argument('addon', callback=partial(decompose_pkg_uri,
-                                          raise_for_invalid_uri=False))
+@click.argument('addon', callback=partial(decompose_pkg_defn,
+                                          raise_when_invalid=False))
 @_pass_manager
 def reveal(manager, addon) -> None:
     "Open an add-on folder in your file manager."
@@ -515,7 +531,6 @@ def write_config() -> None:
     prompt_ = partial(prompt, complete_style=CompleteStyle.READLINE_LIKE)
 
     class DirectoryCompleter(PathCompleter):
-
         def __init__(self, *args, **kwargs):
             super().__init__(*args,
                              expanduser=True, only_directories=True, **kwargs)
