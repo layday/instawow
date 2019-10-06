@@ -335,7 +335,6 @@ async def cancel_tickers() -> AsyncGenerator[None, None]:
 
 
 async def init_cli_web_client(*, manager: CliManager) -> aiohttp.ClientSession:
-    "A web client that interfaces with the manager's progress bar."
     from cgi import parse_header
     from aiohttp import TraceConfig
 
@@ -348,24 +347,20 @@ async def init_cli_web_client(*, manager: CliManager) -> aiohttp.ClientSession:
     async def do_on_request_end(session: aiohttp.ClientSession,
                                 ctx: SimpleNamespace,
                                 params: aiohttp.TraceRequestEndParams) -> None:
-        # Requests don't have a context unless they
-        # originate from ``download_archive``
-        if ctx.trace_request_ctx is None:
-            return
+        if ctx.trace_request_ctx and ctx.trace_request_ctx.get('show_progress'):
+            bar = manager.bar(label=f'Downloading {extract_filename(params)}',
+                              total=params.response.content_length)
 
-        bar = manager.bar(label=f'Downloading {extract_filename(params)}',
-                          total=params.response.content_length)
+            async def ticker(bar=bar, params=params) -> None:
+                try:
+                    while not params.response.content._eof:
+                        bar.current = params.response.content._cursor
+                        await asyncio.sleep(_tick_interval)
+                finally:
+                    bar.progress_bar.counters.remove(bar)
 
-        async def ticker(bar=bar, params=params) -> None:
-            try:
-                while not params.response.content._eof:
-                    bar.current = params.response.content._cursor
-                    await asyncio.sleep(_tick_interval)
-            finally:
-                bar.progress_bar.counters.remove(bar)
-
-        tickers = _tickers.get()
-        tickers.add(asyncio.create_task(ticker()))
+            tickers = _tickers.get()
+            tickers.add(asyncio.create_task(ticker()))
 
     trace_config = TraceConfig()
     trace_config.on_request_end.append(do_on_request_end)

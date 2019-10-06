@@ -28,11 +28,11 @@ class Symbols(str, Enum):
 
     @classmethod
     def from_result(cls, result: E.ManagerResult) -> Symbols:
-        for type_, symbol in ((E.InternalError, cls.WARNING),
-                              (E.ManagerError,  cls.FAILURE),
-                              (E.ManagerResult, cls.SUCCESS)):
-            if isinstance(result, type_):
-                return symbol
+        if isinstance(result, E.InternalError):
+            return cls.WARNING
+        elif isinstance(result, E.ManagerError):
+            return cls.FAILURE
+        return cls.SUCCESS
 
     def __str__(self) -> str:
         return self.value
@@ -116,13 +116,6 @@ def get_pkg_from_substr(manager: CliManager, defn: Defn) -> Optional[Pkg]:
     return pkg
 
 
-class _OrigCmdOrderGroup(click.Group):
-
-    def list_commands(self, ctx: click.Context) -> List[str]:
-        # The default is ``sorted(self.commands)``
-        return list(self.commands)
-
-
 def _pass_manager(f: Callable) -> Callable:
     def new_func(*args: Any, **kwargs: Any) -> Callable:
         return f(click.get_current_context().obj.m, *args, **kwargs)
@@ -135,11 +128,10 @@ class _AddonType(str):
 _AddonType.__name__ = 'ADDON'
 
 
-@click.group(cls=_OrigCmdOrderGroup,
-             context_settings={'help_option_names': ['-h', '--help']})
+@click.group(context_settings={'help_option_names': ('-h', '--help')})
 @click.version_option(__version__, prog_name='instawow')
 @click.option('--debug',
-              is_flag=True, default=False, flag_value='DEBUG',
+              is_flag=True, default=False,
               help='Log more things.')
 @click.pass_context
 def main(ctx, debug):
@@ -157,7 +149,7 @@ def main(ctx, debug):
                     else:
                         break
 
-                setup_logging(config, debug or 'INFO')
+                setup_logging(config.logger_dir, 'DEBUG' if debug else 'INFO')
                 db_session = prepare_db_session(config)
                 manager = CliManager(config, db_session)
                 if is_outdated(manager):
@@ -569,8 +561,7 @@ def show_config(manager) -> None:
     click.echo(manager.config.json(exclude=set()))
 
 
-@main.group('weakauras-companion',
-            cls=_OrigCmdOrderGroup)
+@main.group('weakauras-companion')
 def _weakauras_group() -> None:
     "Manage your WeakAuras."
 

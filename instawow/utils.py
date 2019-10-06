@@ -19,7 +19,6 @@ except ImportError:
 if TYPE_CHECKING:
     import prompt_toolkit.shortcuts.progress_bar.base as pbb
 
-    from .config import Config
     from .manager import CliManager
 
 
@@ -275,10 +274,10 @@ def is_outdated(manager: CliManager) -> bool:
         return __version__ != version
 
 
-def setup_logging(config: Config, level: Union[int, str] = 'INFO') -> int:
+def setup_logging(logger_dir: Path, level: Union[int, str] = 'INFO') -> int:
     from loguru import logger
 
-    handler = {'sink': config.logger_dir / 'error.log',
+    handler = {'sink': logger_dir / 'error.log',
                'level': level,
                'rotation': '1 MB',
                'enqueue': True}

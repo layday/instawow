@@ -2,11 +2,10 @@ from __future__ import annotations
 
 from datetime import datetime
 from enum import Enum
-from functools import partial, wraps
-from itertools import repeat, takewhile
+from functools import wraps
+from itertools import takewhile
 import json
 from operator import itemgetter
-from pathlib import Path
 import re
 from typing import TYPE_CHECKING, cast
 from typing import Any, Callable, ClassVar, Dict, List, NamedTuple, Optional, Set, Tuple
@@ -16,15 +15,10 @@ from yarl import URL
 
 from . import exceptions as E
 from .models import Pkg, PkgOptions
-from .utils import ManagerAttrAccessMixin, gather, run_in_thread, slugify, bbegone, is_not_stale
+from .utils import ManagerAttrAccessMixin, gather, run_in_thread as t, slugify, bbegone, is_not_stale
 
 if TYPE_CHECKING:
     from .manager import Manager
-
-
-async_is_not_stale = run_in_thread(is_not_stale)
-async_read = partial(run_in_thread(Path.read_text), encoding='utf-8')
-async_write = partial(run_in_thread(Path.write_text), encoding='utf-8')
 
 
 class Strategies(str, Enum):
@@ -62,13 +56,13 @@ class _FileCacheMixin:
 
         filename = md5(url.encode()).hexdigest()
         path = self.config.temp_dir / f'{filename}.json'
-        if await async_is_not_stale(path, *args):
-            text = await async_read(path)
+
+        if await t(is_not_stale)(path, *args):
+            text = await t(path.read_text)(encoding='utf-8')
         else:
             async with self.web_client.get(url, raise_for_status=True) as response:
                 text = await response.text()
-            await async_write(path, text)
-
+            await t(path.write_text)(text, encoding='utf-8')
         return json.loads(text)
 
 
@@ -104,8 +98,6 @@ class CurseResolver(Resolver, _FileCacheMixin):
     addon_api_url = 'https://addons-ecs.forgesvc.net/api/v2/addon'
     slugs_url = ('https://raw.githubusercontent.com/layday/instascrape/data/'
                  'curseforge-slugs.json')   # v1
-    folders_url = ('https://raw.githubusercontent.com/layday/instascrape/data/'
-                   'curseforge-folders.json')   # v1
 
     _slugs: Optional[Dict[str, str]] = None
 
@@ -391,7 +383,7 @@ class InstawowResolver(Resolver):
                    name='WeakAuras Companion',
                    description='A WeakAuras Companion clone.',
                    url='https://github.com/layday/instawow',
-                   file_id=await run_in_thread(builder.checksum)(),
+                   file_id=await t(builder.checksum)(),
                    download_url=builder.file_out.as_uri(),
                    date_published=datetime.now(),
                    version='1.0.0',
