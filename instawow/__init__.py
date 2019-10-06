@@ -1,3 +1,3 @@
 from ._version import __version__
 
-db_version = '58a8306c3a5b'
+db_version = '2bfcfe824fe0'
