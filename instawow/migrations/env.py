@@ -16,6 +16,10 @@ def run_offline() -> None:
 
 def run_online() -> None:
     alembic_config = context.config.get_section(context.config.config_ini_section)
+    if not alembic_config.get('sqlalchemy.url'):
+        url = context.get_x_argument(as_dictionary=True).get('url')
+        alembic_config['sqlalchemy.url'] = url
+
     engine = engine_from_config(alembic_config,
                                 prefix='sqlalchemy.',
                                 poolclass=pool.NullPool)
