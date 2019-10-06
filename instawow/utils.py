@@ -58,7 +58,8 @@ class TocReader:
 
     @classmethod
     def from_path(cls, path: Path, *args: Any, **kwargs: Any) -> TocReader:
-        return cls(path.read_text(encoding='utf-8-sig'), *args, **kwargs)
+        return cls(path.read_text(encoding='utf-8-sig', errors='replace'),
+                   *args, **kwargs)
 
     @classmethod
     def from_path_name(cls, path: Path, *args: Any, **kwargs: Any) -> TocReader:
