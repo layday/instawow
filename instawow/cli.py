@@ -302,7 +302,8 @@ def reconcile(ctx) -> None:
                 buckets.append((dirs, {id_}))
             return buckets
 
-        urls = (manager.resolvers['curse'].folders_url,
+        urls = (('https://raw.githubusercontent.com/layday/instascrape/data/'
+                 'curseforge-folders.json'),   # v1,
                 manager.resolvers['wowi'].list_api_url,)
         curse_catalogue, wowi_catalogue = manager.run(fetch_catalogues(*urls))
         dirs = chain(((set(e['UIDir']), Defn('wowi', e['UID']))
