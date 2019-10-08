@@ -122,10 +122,15 @@ def _pass_manager(f: Callable) -> Callable:
     return update_wrapper(new_func, f)
 
 
-class _AddonType(str):
-    "Dummy class used to customise the help text in Click."
+class _FreeFormEpilogCommand(click.Command):
 
-_AddonType.__name__ = 'ADDON'
+    def format_epilog(self, ctx, formatter):
+        self.epilog(formatter)
+
+
+def _make_install_epilog(formatter):
+    with formatter.section('Strategies'):
+        formatter.write_dl((s.name, s.value) for s in islice(Strategies, 1, None))
 
 
 @click.group(context_settings={'help_option_names': ('-h', '--help')})
@@ -161,14 +166,16 @@ def main(ctx, debug):
         ctx.obj = ManagerSingleton
 
 
-@main.command()
+@main.command(cls=_FreeFormEpilogCommand, epilog=_make_install_epilog)
 @click.option('--strategy', '-s', 'strategic_addons',
               multiple=True,
-              type=(click.Choice({s.name for s in Strategies}), _AddonType),
+              type=(click.Choice([s.name for s in Strategies]), str),
               callback=decompose_pkg_defn_with_strat,
-              help=('One of '
-                    + ', '.join(f"'{s.name}'" for s in islice(Strategies, 1, None))
-                    + '; and followed by an add-on definition.'))
+              metavar='<STRATEGY ADDON>...',
+              help='A strategy followed by an add-on definition.  '
+                   'Use this if you want to install an add-on with a '
+                   'strategy other than the default one.  '
+                   'Repeatable.')
 @click.option('--replace', '-o',
               is_flag=True, default=False,
               help='Replace existing add-ons.')
