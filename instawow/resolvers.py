@@ -97,7 +97,7 @@ class CurseResolver(Resolver, _FileCacheMixin):
     # https://twitchappapi.docs.apiary.io/
     addon_api_url = 'https://addons-ecs.forgesvc.net/api/v2/addon'
     slugs_url = ('https://raw.githubusercontent.com/layday/instascrape/data/'
-                 'curseforge-slugs.json')   # v1
+                 'curseforge-slugs-v2.json')   # v2
 
     _slugs: Optional[Dict[str, str]] = None
 
@@ -115,8 +115,7 @@ class CurseResolver(Resolver, _FileCacheMixin):
 
     async def synchronise(self) -> CurseResolver:
         if self._slugs is None:
-            slugs = await self._cache_json_response(self.slugs_url, 8, 'hours')
-            self._slugs = {k: str(v) for k, v in slugs.items()}
+            self._slugs = await self._cache_json_response(self.slugs_url, 8, 'hours')
         return self
 
     async def resolve(self, defns: List[Defn]) -> Dict[Defn, Any]:
