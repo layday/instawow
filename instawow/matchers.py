@@ -60,7 +60,7 @@ async def match_dir_names(manager: Manager, leftovers: Set[str]) -> Iterable[Tup
     "Attempt to match folders against the CurseForge and WoWInterface catalogue."
     async def fetch_combined_folders():
         url = ('https://raw.githubusercontent.com/layday/instascrape/data/'
-               'combined-folders.json')   # v1
+               'combined-folders.compact.json')   # v1
         async with manager.web_client.get(url) as response:
             return await response.json(content_type='text/plain')
 
@@ -89,7 +89,7 @@ async def match_dir_names(manager: Manager, leftovers: Set[str]) -> Iterable[Tup
     buckets = merge_dirs_and_ids((d & leftovers, u) for d, u in dirs
                                  if d & leftovers)
     results = await manager.resolve(list({u for _, i in buckets for u in i}))
-    dir_tocs = [await make_toc(d) for (d, _) in buckets]
+    dir_tocs = [await make_toc(d) for d, _ in buckets]
     groups = ((d, [results[i] for i in v])
               for d, (_, v) in zip(dir_tocs, buckets))
     return groups

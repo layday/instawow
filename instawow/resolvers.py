@@ -97,7 +97,7 @@ class CurseResolver(Resolver, _FileCacheMixin):
     # https://twitchappapi.docs.apiary.io/
     addon_api_url = 'https://addons-ecs.forgesvc.net/api/v2/addon'
     slugs_url = ('https://raw.githubusercontent.com/layday/instascrape/data/'
-                 'curseforge-slugs-v2.json')   # v2
+                 'curseforge-slugs-v2.compact.json')   # v2
 
     _slugs: Optional[Dict[str, str]] = None
 

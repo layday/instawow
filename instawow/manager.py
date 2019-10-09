@@ -220,7 +220,7 @@ class Manager:
         from .resolvers import _FileCacheMixin as cache
 
         url = ('https://raw.githubusercontent.com/layday/instascrape/data/'
-               'combined-names-v2.json')   # v2
+               'combined-names-v2.compact.json')   # v2
         combined_names = await cache._cache_json_response(self, url, 8, 'hours')
         defns_for_names = bucketise(((n, Defn(*d)) for n, d, f in combined_names
                                      if self.config.game_flavour in f),
