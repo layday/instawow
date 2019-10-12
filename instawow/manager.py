@@ -51,9 +51,12 @@ async def new_temp_dir(*args: Any, **kwargs: Any) -> PurePath:
     return PurePath(await async_mkdtemp(*args, **kwargs))
 
 
-async def move(paths: Iterable[Path], dest: PurePath) -> None:
+async def move(paths: Iterable[Path], dest: PurePath, *, missing_ok: bool = False) -> None:
     for path in paths:
-        await async_move(str(path), dest)
+        try:
+            await async_move(str(path), dest)
+        except (FileNotFoundError if missing_ok else ()):       # type: ignore
+            logger.opt(exception=True).info('source missing')
 
 
 # macOS 'resource forks' are sometimes included in download zips - these
@@ -307,7 +310,8 @@ class Manager:
     async def _remove(self, pkg: Pkg) -> E.PkgRemoved:
         temp_dir = await new_temp_dir(dir=self.config.temp_dir,
                                       prefix=f'{pkg.folders[0].name}-')
-        await move((self.config.addon_dir / f.name for f in pkg.folders), temp_dir)
+        await move((self.config.addon_dir / f.name for f in pkg.folders),
+                   temp_dir, missing_ok=True)
 
         self.db_session.delete(pkg)
         self.db_session.commit()

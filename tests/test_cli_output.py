@@ -284,6 +284,13 @@ class TestInstallWithAlias:
         assert cmp(run(input).output)
 
 
+class TestMissingDirOnRemove:
+
+    def test_missing_dir_on_remove(self, obj, run_moli_run):
+        (obj.m.config.addon_dir / 'Molinari').rename(obj.m.config.addon_dir / 'NotMolinari')
+        assert run_moli_run('remove curse:molinari').output == '✓ curse:molinari\n  removed\n'
+
+
 class TestNonDestructiveOps:
 
     @pytest.mark.parametrize('command, exit_code',
