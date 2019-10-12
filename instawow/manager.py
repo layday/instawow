@@ -133,7 +133,6 @@ def prepare_db_session(config: Config) -> scoped_session:
     db_exists = db_path.exists()
 
     engine = create_engine(db_url)
-    ModelBase.metadata.create_all(engine)
     if should_migrate(engine, db_version):
         from .migrations import make_config, stamp, upgrade
 
@@ -142,6 +141,7 @@ def prepare_db_session(config: Config) -> scoped_session:
             logger.info(f'migrating database to {db_version}')
             upgrade(alembic_config, db_version)
         else:
+            ModelBase.metadata.create_all(engine)
             logger.info(f'stamping database with {db_version}')
             stamp(alembic_config, db_version)
 
