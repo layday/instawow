@@ -35,6 +35,12 @@ class Defn(NamedTuple):
     name: str
     strategy: Strategies = Strategies.default
 
+    def with_name(self, name: str) -> Defn:
+        return self.__class__(self.source, name, self.strategy)
+
+    def with_strategy(self, strategy: Strategies) -> Defn:
+        return self.__class__(self.source, self.name, strategy)
+
     def __str__(self) -> str:
         return f'{self.source}:{self.name}'
 
