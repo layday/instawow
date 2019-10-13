@@ -15,7 +15,7 @@ from yarl import URL
 
 from . import exceptions as E
 from .models import Pkg, PkgOptions, PkgDep
-from .utils import ManagerAttrAccessMixin, gather, run_in_thread as t, slugify, bbegone, is_not_stale
+from .utils import ManagerAttrAccessMixin, gather, run_in_thread as t, slugify, is_not_stale
 
 if TYPE_CHECKING:
     from .manager import Manager
@@ -291,7 +291,7 @@ class WowiResolver(Resolver, _FileCacheMixin):
                    id=metadata['UID'],
                    slug=slugify(f'{metadata["UID"]} {metadata["UIName"]}'),
                    name=metadata['UIName'],
-                   description=bbegone(metadata['UIDescription']),
+                   description=metadata['UIDescription'],
                    url=metadata['UIFileInfoURL'],
                    file_id=metadata['UIMD5'],
                    download_url=metadata['UIDownload'],

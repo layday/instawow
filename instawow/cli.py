@@ -16,7 +16,7 @@ from . import exceptions as E
 from .manager import CliManager, prepare_db_session
 from .models import Pkg, PkgFolder, is_pkg
 from .resolvers import Strategies, Defn
-from .utils import TocReader, bucketise, cached_property, is_outdated, setup_logging
+from .utils import TocReader, bucketise, cached_property, is_outdated, setup_logging, bbegone
 
 
 class Symbols(str, Enum):
@@ -388,7 +388,7 @@ def info(manager, addon, toc_entries) -> None:
                 'source': pkg.origin,
                 'id': pkg.id,
                 'slug': pkg.slug,
-                'description': fill(pkg.description, max_lines=5),
+                'description': fill(bbegone(pkg.description), max_lines=5),
                 'homepage': pkg.url,
                 'version': pkg.version,
                 'release date': pkg.date_published,
