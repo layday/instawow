@@ -1,3 +1,4 @@
-exclude .* *.nix *.ini requirements-dev.txt requirements.in
+exclude .* *.in *.ini my.shell.nix requirements-dev.txt
+include fastentrypoints.py
 prune alembic
 prune tests
