@@ -37,9 +37,9 @@ All of the following will install Molinari::
 
 * The ``update`` and ``remove`` commands work in the same way, and ``update``
   can be run without arguments to update all add-ons.
-* You can opt into alpha and beta quality add-ons by
-  using the ``strategy`` option on ``install``.  This option is only
-  supported by CurseForge.
+* You can opt into alpha and beta quality add-ons from CurseForge,
+  and bypass the game flavour selection by
+  using the ``--with-strategy`` option on ``install``.
 * Use ``list`` to list add-ons managed by *instawow*; ``list-folders -e`` to
   list unmanaged add-ons; ``info`` to display add-on information,
   ``visit`` to open an add-on homepage in your browser and ``reveal`` to

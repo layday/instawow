@@ -166,7 +166,7 @@ def main(ctx, debug):
 
 
 @main.command(cls=_FreeFormEpilogCommand, epilog=_make_install_epilog)
-@click.option('--strategy', '-s', 'strategic_addons',
+@click.option('--with-strategy', '-s', 'strategic_addons',
               multiple=True,
               type=(click.Choice([s.name for s in Strategies]), str),
               callback=decompose_pkg_defn_with_strat,
