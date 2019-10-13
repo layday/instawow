@@ -59,6 +59,10 @@ class _Config(pydantic.BaseSettings):
         return self.game_flavour == 'classic'
 
     @property
+    def is_retail(self) -> bool:
+        return self.game_flavour == 'retail'
+
+    @property
     def config_file(self) -> Path:
         return self.config_dir / 'config.json'
 

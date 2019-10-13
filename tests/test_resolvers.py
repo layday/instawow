@@ -6,37 +6,54 @@ from instawow.resolvers import Defn, Strategies
 
 
 @pytest.mark.asyncio
-async def test_curse(manager, request):
-    either, retail, classic = (await manager.resolve(
-        [Defn('curse', 'tomcats'),
-         Defn('curse', 'method-dungeon-tools'),
-         Defn('curse', 'classiccastbars')])).values()
-    assert isinstance(either, Pkg)
-    if manager.config.is_classic:
-        assert 'classic' in either.version
-        assert (isinstance(retail, E.PkgFileUnavailable)
-                and retail.message == "no files compatible with classic using 'default' strategy")
-        assert isinstance(classic, Pkg)
-    else:
-        assert 'classic' not in either.version
-        assert isinstance(retail, Pkg)
-        assert (isinstance(classic, E.PkgFileUnavailable)
-                and classic.message == "no files compatible with retail using 'default' strategy")
+@pytest.mark.parametrize('strategy', [Strategies.default, Strategies.latest])
+async def test_curse(manager, request, strategy):
+    (separate,
+     retail_only,
+     classic_only,
+     flavour_explosion) = (await manager.resolve([Defn('curse', 'tomcats', strategy),
+                                                  Defn('curse', 'method-dungeon-tools', strategy),
+                                                  Defn('curse', 'classiccastbars', strategy),
+                                                  Defn('curse', 'elkbuffbars', strategy)])).values()
 
-    flavour_explosion, = (await manager.resolve([Defn('curse', 'elkbuffbars')])).values()
+    assert isinstance(separate, Pkg)
+
+    if manager.config.is_classic:
+        assert 'classic' in separate.version
+        assert (isinstance(retail_only, E.PkgFileUnavailable)
+                and retail_only.message == f"no files compatible with classic using '{strategy.name}' strategy")
+        assert isinstance(classic_only, Pkg)
+    else:
+        assert 'classic' not in separate.version
+        assert isinstance(retail_only, Pkg)
+        assert (isinstance(classic_only, E.PkgFileUnavailable)
+                and classic_only.message == f"no files compatible with retail using '{strategy.name}' strategy")
+
     versions = {*request.config.cache.get('flavour_explosion', ()),
                 flavour_explosion.version}
     assert len(versions) == 1
     request.config.cache.set('flavour_explosion', tuple(versions))
 
+
+@pytest.mark.asyncio
+async def test_curse_latest(manager):
     latest, = (await manager.resolve([Defn('curse', 'tomcats', Strategies.latest)])).values()
     assert isinstance(latest, Pkg)
 
 
 @pytest.mark.asyncio
+async def test_curse_deps(manager):
+    if manager.config.is_retail:
+        with_deps = (await manager.resolve([Defn('curse', 'mechagon-rare-share', Strategies.default)],
+                                           with_deps=True)).values()
+        assert ['mechagon-rare-share', 'rare-share'] == [d.slug for d in with_deps]
+
+
+@pytest.mark.asyncio
 async def test_tukui(manager):
-    either, retail = (await manager.resolve([Defn('tukui', '1'),
-                                             Defn('tukui', 'tukui')])).values()
+    either, retail, invalid = (await manager.resolve([Defn('tukui', '1'),
+                                                      Defn('tukui', 'tukui'),
+                                                      Defn('tukui', '1', Strategies.latest)])).values()
     assert isinstance(either, Pkg)
     if manager.config.is_classic:
         assert either.name == 'Tukui'
@@ -44,18 +61,17 @@ async def test_tukui(manager):
     else:
         assert either.name == 'MerathilisUI'
         assert isinstance(retail, Pkg) and retail.name == 'Tukui'
-
-    latest, = (await manager.resolve([Defn('tukui', '1', Strategies.latest)])).values()
-    assert (isinstance(latest, E.PkgStrategyUnsupported)
-            and latest.message == "'latest' strategy is not valid for source")
+    assert (isinstance(invalid, E.PkgStrategyUnsupported)
+            and invalid.message == "'latest' strategy is not valid for source")
 
 
 @pytest.mark.asyncio
 async def test_wowi(manager):
-    either, retail, classic = (await manager.resolve(
+    either, retail, classic, invalid = (await manager.resolve(
         [Defn('wowi', '21654-dejamark'),
          Defn('wowi', '21656'),    # -dejachat
-         Defn('wowi', '25180-dejachatclassic')])).values()
+         Defn('wowi', '25180-dejachatclassic'),
+         Defn('wowi', '21654', Strategies.latest)])).values()
     assert isinstance(either, Pkg)
     if manager.config.is_classic:
         assert (isinstance(retail, E.PkgFileUnavailable)
@@ -65,7 +81,5 @@ async def test_wowi(manager):
         assert isinstance(retail, Pkg)
         assert (isinstance(classic, E.PkgFileUnavailable)
                 and classic.message == 'file is only compatible with classic')
-
-    latest, = (await manager.resolve([Defn('wowi', '21654', Strategies.latest)])).values()
-    assert (isinstance(latest, E.PkgStrategyUnsupported)
-            and latest.message == "'latest' strategy is not valid for source")
+    assert (isinstance(invalid, E.PkgStrategyUnsupported)
+            and invalid.message == "'latest' strategy is not valid for source")

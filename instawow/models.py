@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import pydantic
-from sqlalchemy import Column, ForeignKeyConstraint, DateTime, String
+from sqlalchemy import Column, ForeignKeyConstraint, DateTime, Integer, String
 import sqlalchemy.exc
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
@@ -56,6 +56,8 @@ class Pkg(ModelBase):
                            backref='pkg')
     options = relationship('PkgOptions', cascade='all, delete-orphan',
                            uselist=False)
+    deps = relationship('PkgDep', cascade='all, delete-orphan',
+                        backref='pkg')
 
 
 class PkgCoercer(_BaseCoercer):
@@ -104,9 +106,27 @@ class PkgOptionsCoercer(_BaseCoercer):
     strategy: str
 
 
+class PkgDep(ModelBase):
+
+    __tablename__ = 'pkg_dep'
+    __table_args__ = (ForeignKeyConstraint(['pkg_origin', 'pkg_id'],
+                                           ['pkg.origin', 'pkg.id']),)
+
+    _id = Column(Integer, primary_key=True)
+    id = Column(String, nullable=False)
+    pkg_origin = Column(String, nullable=False)
+    pkg_id = Column(String, nullable=False)
+
+
+class PkgDepCoercer(_BaseCoercer):
+
+    id: str
+
+
 _COERCERS = {Pkg: PkgCoercer,
              PkgFolder: PkgFolderCoercer,
-             PkgOptions: PkgOptionsCoercer}
+             PkgOptions: PkgOptionsCoercer,
+             PkgDep: PkgDepCoercer,}
 
 
 def should_migrate(engine: sqlalchemy.base.Engine, version: str) -> bool:

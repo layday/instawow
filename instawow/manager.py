@@ -4,7 +4,7 @@ import asyncio
 from contextlib import asynccontextmanager
 import contextvars as cv
 from functools import partial
-from itertools import repeat
+from itertools import filterfalse, repeat, starmap
 from pathlib import Path, PurePath
 import posixpath
 from shutil import move as _move
@@ -207,13 +207,35 @@ class Manager:
                         (Pkg.id == defn.name) | (Pkg.slug == defn.name))
                 .first())
 
-    async def resolve(self, defns: Sequence[Defn]) -> Dict[Defn, Any]:
+    async def _resolve_deps(self, results: Iterable[Any]) -> Dict[Defn, Any]:
+        """
+        Resolve package dependencies.
+
+        The resolver will not follow dependencies
+        more than one level deep.  This is to avoid unnecessary
+        complexity for something that I would never expect to
+        encounter in the wild.
+        """
+        pkgs = list(filter(is_pkg, results))
+        dep_defns = list(filterfalse({(p.origin, p.id) for p in pkgs}.__contains__,
+                                     # Using a dict to maintain dep appearance order
+                                     {(p.origin, d.id): ... for p in pkgs for d in p.deps}))
+        if not dep_defns:
+            return {}
+
+        deps = await self.resolve(list(starmap(Defn, dep_defns)))
+        pretty_deps = {d.with_name(r.slug) if is_pkg(r) else d: r for d, r in deps.items()}
+        return pretty_deps
+
+    async def resolve(self, defns: Sequence[Defn], with_deps: bool = False) -> Dict[Defn, Any]:
         "Resolve definitions into packages."
         defns_by_source = bucketise(defns, key=lambda v: v.source)
         results = await gather([((await self.resolvers[s].synchronise())
                                  .resolve(list(b)))
                                 for s, b in defns_by_source.items()])
         results_by_defn = dict_merge(dict.fromkeys(defns), *results)
+        if with_deps:
+            results_by_defn.update(await self._resolve_deps(results_by_defn.values()))
         return results_by_defn
 
     async def search(self, search_terms: str, limit: int, *,
@@ -257,9 +279,12 @@ class Manager:
 
     async def prep_install(self, defns: Sequence[Defn], replace: bool) -> Dict[Defn, Callable]:
         "Retrieve packages to install."
-        results = await self.resolve([d for d in defns if not self.get(d)])
-        installables = {(d, r): download_archive(r) for d, r in results.items()
-                        if is_pkg(r)}
+        prelim_results = await self.resolve([d for d in defns if not self.get(d)],
+                                            with_deps=True)
+        # Weed out installed deps - this isn't super efficient but
+        # avoids having to deal with local state in resolver
+        results = {d: r for d, r in prelim_results.items() if not self.get(d)}
+        installables = {(d, r): download_archive(r) for d, r in results.items() if is_pkg(r)}
         archives = await gather(installables.values())
 
         coros = (dict.fromkeys(defns, _error_wrapper(E.PkgAlreadyInstalled())),

@@ -14,7 +14,7 @@ from loguru import logger
 from yarl import URL
 
 from . import exceptions as E
-from .models import Pkg, PkgOptions
+from .models import Pkg, PkgOptions, PkgDep
 from .utils import ManagerAttrAccessMixin, gather, run_in_thread as t, slugify, bbegone, is_not_stale
 
 if TYPE_CHECKING:
@@ -187,6 +187,15 @@ class CurseResolver(Resolver, _FileCacheMixin):
             raise E.PkgFileUnavailable(f'no files compatible with {self.config.game_flavour} '
                                        f'using {defn.strategy.name!r} strategy')
 
+        # 1 = embedded library
+        # 2 = optional dependency
+        # 3 = required dependency
+        # 4 = tool
+        # 5 = incompatible
+        # 6 = include (wat)
+        deps = [PkgDep(id=d['addonId']) for d in file['dependencies']
+                if d['type'] == 3]
+
         return Pkg(origin=self.source,
                    id=metadata['id'],
                    slug=metadata['slug'],
@@ -197,7 +206,8 @@ class CurseResolver(Resolver, _FileCacheMixin):
                    download_url=file['downloadUrl'],
                    date_published=file['fileDate'],
                    version=file['displayName'],
-                   options=PkgOptions(strategy=defn.strategy.name))
+                   options=PkgOptions(strategy=defn.strategy.name),
+                   deps=deps)
 
 
 class WowiResolver(Resolver, _FileCacheMixin):
