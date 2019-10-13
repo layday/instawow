@@ -1,20 +1,20 @@
 from __future__ import annotations
 
 from enum import Enum
-from functools import partial, update_wrapper
-from itertools import chain, islice
+from functools import partial, wraps
+from itertools import chain, count, islice
 from operator import itemgetter
 from textwrap import fill
-from typing import TYPE_CHECKING
 from typing import Any, Callable, Generator, Iterable, List, Optional, Sequence, Tuple, Union
 
 import click
+import sqlalchemy
 
 from . import __version__
 from .config import Config
 from . import exceptions as E
 from .manager import CliManager, prepare_db_session
-from .models import Pkg, PkgFolder, is_pkg
+from .models import Pkg, PkgCoercer, PkgFolder, is_pkg
 from .resolvers import Strategies, Defn
 from .utils import TocReader, bucketise, cached_property, is_outdated, setup_logging, bbegone
 
@@ -69,15 +69,18 @@ class Report:
         ctx.exit(self.code)
 
 
-def tabulate(rows: Iterable, *, show_index: bool = True) -> str:
-    from texttable import Texttable, Texttable as c
+def tabulate(rows: Sequence, *, dl: bool = False, max_width: int = 0) -> str:
+    from texttable import Texttable
 
-    table = Texttable(max_width=0).set_deco(c.BORDER | c.HEADER | c.VLINES)
-    if show_index:
-        iter_rows = iter(rows)
-        header = next(iter_rows)
-        rows = [('', *header), *((i, *v) for i, v in enumerate(iter_rows, start=1))]
-        table.set_cols_align(('r', *('l' for _ in header)))
+    table = Texttable(max_width=max_width)
+    if dl:
+        table.set_deco(False)
+        rows = [(), *rows]
+    else:
+        table.set_cols_align('r' + 'l' * len(rows[1]))
+        table.set_deco(Texttable.BORDER | Texttable.HEADER | Texttable.VLINES)
+        rows = list(map(lambda c, r: (c, *r), chain(('',), count(start=1)), rows))
+
     return table.add_rows(rows).draw()
 
 
@@ -102,12 +105,28 @@ def decompose_pkg_defn(ctx: click.Context, param: Any,
     return Defn(*parts)
 
 
-def decompose_pkg_defn_with_strat(ctx, param, value):
+def decompose_pkg_defn_with_strategy(ctx, param, value):
     defns = decompose_pkg_defn(ctx, param, [d for _, d in value])
     strategies = (Strategies[s] for s, _ in value)
-    return [Defn(o, n, s) for (o, n, _), s in zip(defns, strategies)]
+    return list(map(Defn.with_strategy, defns, strategies))
 
 
+def _pass_manager(fn: Callable) -> Callable:
+    @wraps(fn)
+    def new_fn(*args: Any, **kwargs: Any) -> Callable:
+        return fn(click.get_current_context().obj.m, *args, **kwargs)
+
+    return new_fn
+
+
+@_pass_manager
+def format_deps(manager: CliManager, pkg: Pkg) -> List[str]:
+    deps = (Defn(pkg.origin, d.id) for d in pkg.deps)
+    deps = (d.with_name(getattr(manager.get(d), 'slug', d.name)) for d in deps)
+    return list(map(str, deps))
+
+
+@_pass_manager
 def get_pkg_from_substr(manager: CliManager, defn: Defn) -> Optional[Pkg]:
     pkg = manager.get(defn)
     pkg = pkg or (manager.db_session.query(Pkg).filter(Pkg.slug.contains(defn.name))
@@ -115,21 +134,10 @@ def get_pkg_from_substr(manager: CliManager, defn: Defn) -> Optional[Pkg]:
     return pkg
 
 
-def _pass_manager(f: Callable) -> Callable:
-    def new_func(*args: Any, **kwargs: Any) -> Callable:
-        return f(click.get_current_context().obj.m, *args, **kwargs)
-    return update_wrapper(new_func, f)
-
-
 class _FreeFormEpilogCommand(click.Command):
 
     def format_epilog(self, ctx, formatter):
         self.epilog(formatter)
-
-
-def _make_install_epilog(formatter):
-    with formatter.section('Strategies'):
-        formatter.write_dl((s.name, s.value) for s in islice(Strategies, 1, None))
 
 
 @click.group(context_settings={'help_option_names': ('-h', '--help')})
@@ -165,11 +173,16 @@ def main(ctx, debug):
         ctx.obj = ManagerSingleton
 
 
+def _make_install_epilog(formatter):
+    with formatter.section('Strategies'):
+        formatter.write_dl((s.name, s.value) for s in islice(Strategies, 1, None))
+
+
 @main.command(cls=_FreeFormEpilogCommand, epilog=_make_install_epilog)
 @click.option('--with-strategy', '-s', 'strategic_addons',
               multiple=True,
               type=(click.Choice([s.name for s in Strategies]), str),
-              callback=decompose_pkg_defn_with_strat,
+              callback=decompose_pkg_defn_with_strategy,
               metavar='<STRATEGY ADDON>...',
               help='A strategy followed by an add-on definition.  '
                    'Use this if you want to install an add-on with a '
@@ -302,49 +315,44 @@ def search(ctx, limit, search_terms):
 @main.command('list')
 @click.option('--column', '-c', 'columns',
               multiple=True,
+              type=click.Choice((*sqlalchemy.inspect(Pkg).columns.keys(),
+                                 *sqlalchemy.inspect(Pkg).relationships.keys(),)),
               help='A field to show in a column.  Nested fields are '
                    'dot-delimited.  Repeatable.')
-@click.option('--columns', '-C', 'print_columns',
-              is_flag=True, default=False,
-              help='Print a list of all possible column values.')
-@click.option('--sort-by', '-s', 'sort_key',
+@click.option('--filter-by',
+              default='',
+              help="A 'WHERE' clause in SQL to filter the table by, "
+                   'e.g. `--filter-by="origin = \'curse\'"`.  '
+                   'Input is not sanitised so do be careful.')
+@click.option('--order-by',
               default='name',
-              help='A key to sort the table by.  '
-                   'You can chain multiple keys by separating them with a comma '
-                   'just as you would in SQL, '
-                   'e.g. `--sort-by="origin, date_published DESC"`.')
+              help="An 'ORDER BY' clause to order the table by, "
+                   'e.g. `--order-by="origin, date_published DESC"`.  '
+                   'Input is not sanitised.')
 @_pass_manager
-def list_installed(manager, columns, print_columns, sort_key) -> None:
+def list_installed(manager, columns, filter_by, order_by) -> None:
     "List installed add-ons."
-    from operator import attrgetter
-    from sqlalchemy import inspect, text
-
     def format_columns(pkg):
         for column in columns:
-            try:
-                value = attrgetter(column)(pkg)
-            except AttributeError:
-                raise click.BadParameter(column, param_hint=['--column', '-c'])
-            if column == 'folders':
+            value = getattr(pkg, column)
+            if column == 'description':
+                yield fill(bbegone(value), max_lines=2, width=50)
+            elif column == 'folders':
                 yield '\n'.join(f.name for f in value)
+            elif column == 'deps':
+                yield '\n'.join(format_deps(pkg))
             elif column == 'options':
-                yield f'strategy = {value.strategy}'
-            elif column == 'description':
-                yield fill(value, width=50, max_lines=3)
+                yield tabulate([('strategy', pkg.options.strategy)], dl=True)
             else:
                 yield value
 
-    if print_columns:
-        columns = [('field',),
-                   *((c,) for c in (*inspect(Pkg).columns.keys(),
-                                    *inspect(Pkg).relationships.keys()))]
-        click.echo(tabulate(columns, show_index=False))
-    else:
-        pkgs = manager.db_session.query(Pkg).order_by(text(sort_key)).all()
-        if pkgs:
-            rows = [('add-on', *columns),
-                    *((Defn(p.origin, p.slug), *format_columns(p)) for p in pkgs)]
-            click.echo(tabulate(rows))
+    pkgs = (manager.db_session.query(Pkg)
+            .filter(sqlalchemy.text(filter_by)).order_by(sqlalchemy.text(order_by))
+            .all())
+    if pkgs:
+        rows = [('add-on', *columns),
+                *((Defn(p.origin, p.slug), *format_columns(p)) for p in pkgs)]
+        click.echo(tabulate(rows))
 
 
 @main.command()
@@ -382,7 +390,13 @@ def list_folders(manager, exclude_own, toc_entries) -> None:
 @_pass_manager
 def info(manager, addon, toc_entries) -> None:
     "Show detailed add-on information."
-    pkg = get_pkg_from_substr(manager, addon)
+    def format_toc_rows(folders):
+        for folder in folders:
+            toc_reader = TocReader.from_path_name(manager.config.addon_dir / folder)
+            for k in toc_entries:
+                yield f'[{folder} {k}]', fill(toc_reader[k].value)
+
+    pkg = get_pkg_from_substr(addon)
     if pkg:
         rows = {'name': pkg.name,
                 'source': pkg.origin,
@@ -392,15 +406,13 @@ def info(manager, addon, toc_entries) -> None:
                 'homepage': pkg.url,
                 'version': pkg.version,
                 'release date': pkg.date_published,
-                'folders': '\n'.join(f.name for f in pkg.folders),
-                'strategy': pkg.options.strategy}
-
+                'folders': fill(', '.join(f.name for f in pkg.folders)),
+                'dependencies': fill(', '.join(format_deps(pkg))) or 'none',
+                'options': tabulate([('strategy', pkg.options.strategy)], dl=True),}
         if toc_entries:
-            for folder in pkg.folders:
-                toc_reader = TocReader.from_path_name(manager.config.addon_dir / folder.name)
-                rows.update({f'[{folder.name} {k}]': fill(toc_reader[k].value)
-                             for k in toc_entries})
-        click.echo(tabulate([(), *rows.items()], show_index=False))
+            rows.update(format_toc_rows(f.name for f in pkg.folders))
+
+        click.echo(tabulate(rows.items(), dl=True))
     else:
         Report([(addon, E.PkgNotInstalled())]).generate_and_exit()
 
@@ -411,7 +423,7 @@ def info(manager, addon, toc_entries) -> None:
 @_pass_manager
 def visit(manager, addon) -> None:
     "Open an add-on's homepage in your browser."
-    pkg = get_pkg_from_substr(manager, addon)
+    pkg = get_pkg_from_substr(addon)
     if pkg:
         import webbrowser
         webbrowser.open(pkg.url)
@@ -425,7 +437,7 @@ def visit(manager, addon) -> None:
 @_pass_manager
 def reveal(manager, addon) -> None:
     "Open an add-on folder in your file manager."
-    pkg = get_pkg_from_substr(manager, addon)
+    pkg = get_pkg_from_substr(addon)
     if pkg:
         import webbrowser
         webbrowser.open((manager.config.addon_dir / pkg.folders[0].name).as_uri())
@@ -445,8 +457,7 @@ def write_config() -> None:
 
     class DirectoryCompleter(PathCompleter):
         def __init__(self, *args, **kwargs):
-            super().__init__(*args,
-                             expanduser=True, only_directories=True, **kwargs)
+            super().__init__(*args, expanduser=True, only_directories=True, **kwargs)
 
         def get_completions(self, document, complete_event):
             # Append slash to every completion
@@ -458,18 +469,19 @@ def write_config() -> None:
         path = os.path.expanduser(value)
         return os.path.isdir(path) and os.access(path, os.W_OK)
 
-    completer = DirectoryCompleter()
-    validator = Validator.from_callable(validate_addon_dir,
-                                        error_message='must be a writable directory')
+    ad_completer = DirectoryCompleter()
+    ad_validator = Validator.from_callable(validate_addon_dir,
+                                           error_message='must be a writable directory')
     addon_dir = prompt_('Add-on directory: ',
-                        completer=completer, validator=validator)
+                        completer=ad_completer, validator=ad_validator)
 
     game_flavours = ('retail', 'classic')
-    completer = WordCompleter(game_flavours)
-    validator = Validator.from_callable(game_flavours.__contains__,
-                                        error_message='must be one of: retail, classic')
+    gf_completer = WordCompleter(game_flavours)
+    gf_validator = Validator.from_callable(
+        game_flavours.__contains__,
+        error_message=f'must be one of: {", ".join(game_flavours)}')
     game_flavour = prompt_('Game flavour: ',
-                           completer=completer, validator=validator)
+                           completer=gf_completer, validator=gf_validator)
 
     config = Config(addon_dir=addon_dir, game_flavour=game_flavour).write()
     click.echo(f'Configuration written to: {config.config_file}')

@@ -21,12 +21,12 @@ if TYPE_CHECKING:
     from .manager import Manager
 
 
-class Strategies(str, Enum):
+class Strategies(Enum):
 
     default = 'default'
-    latest = 'latest file available'
-    curse_latest_beta = 'latest beta quality file available from CurseForge'
-    curse_latest_alpha = 'latest alpha quality file available from CurseForge'
+    latest = 'most recent file available'
+    curse_latest_beta = 'most recent beta quality file available from CurseForge'
+    curse_latest_alpha = 'most recent alpha quality file available from CurseForge'
 
 
 class Defn(NamedTuple):
@@ -96,7 +96,8 @@ class CurseResolver(Resolver, _FileCacheMixin):
 
     source = 'curse'
     name = 'CurseForge'
-    strategies = {Strategies.default, Strategies.latest,
+    strategies = {Strategies.default,
+                  Strategies.latest,
                   Strategies.curse_latest_beta,
                   Strategies.curse_latest_alpha}
 
@@ -147,34 +148,34 @@ class CurseResolver(Resolver, _FileCacheMixin):
         elif not metadata['latestFiles']:
             raise E.PkgFileUnavailable('no files available for download')
 
-        def is_not_libless(file: dict) -> bool:
+        def is_not_libless(f: dict) -> bool:
             # There's also an 'isAlternate' field that's missing some
             # 50 lib-less files from c. 2008.  'exposeAsAlternative' is
             # absent from the /file endpoint
-            return not file['exposeAsAlternative']
+            return not f['exposeAsAlternative']
 
         classic_version_prefix = '1.13'
         flavor = 'wow_classic' if self.config.is_classic else 'wow_retail'
 
-        def is_compatible_with_game_version(file: dict) -> bool:
+        def is_compatible_with_game_version(f: dict) -> bool:
             # Files can belong both to retail and classic
             # but ``gameVersionFlavor`` can only be one of
             # 'wow_retail' or 'wow_classic'.  To spice things up,
-            # ``gameVersion`` might not be populated so we still have to check
-            # the value of ``gameVersionFlavor``
-            return (file['gameVersionFlavor'] == flavor
+            # ``gameVersion`` might not be populated so we still have to
+            # check the value of ``gameVersionFlavor``
+            return (f['gameVersionFlavor'] == flavor
                     or any(v.startswith(classic_version_prefix) is self.config.is_classic
-                           for v in file['gameVersion']))
+                           for v in f['gameVersion']))
 
         # 1 = stable; 2 = beta; 3 = alpha
-        if defn.strategy is Strategies.default:
-            def has_release_type(f: dict) -> bool: return f['releaseType'] == 1
+        if defn.strategy is Strategies.latest:
+            def has_release_type(f: dict) -> bool: return True
         elif defn.strategy is Strategies.curse_latest_beta:
             def has_release_type(f: dict) -> bool: return f['releaseType'] == 2
         elif defn.strategy is Strategies.curse_latest_alpha:
             def has_release_type(f: dict) -> bool: return f['releaseType'] == 3
         else:
-            def has_release_type(f: dict) -> bool: return True
+            def has_release_type(f: dict) -> bool: return f['releaseType'] == 1
 
         files = (f for f in metadata['latestFiles']
                  if is_not_libless(f)
@@ -280,11 +281,11 @@ class WowiResolver(Resolver, _FileCacheMixin):
         # 'WoW Classic' is the sole element in the array.  I'm not sure
         # when 'UICompatibility' was added but it's very often not populated
         # for retail add-ons *shrugsies*
-        compatibility = {e['name'] for e in metadata['UICompatibility'] or ()}
+        compatibility = {e['name'].lower() for e in metadata['UICompatibility'] or ()}
         if self.config.is_classic:
-            if 'WoW Classic' not in compatibility:
+            if 'wow classic' not in compatibility:
                 raise E.PkgFileUnavailable('file is not compatible with classic')
-        elif compatibility and not compatibility - {'WoW Classic'}:
+        elif compatibility and not compatibility - {'wow classic'}:
             raise E.PkgFileUnavailable('file is only compatible with classic')
 
         return Pkg(origin=self.source,

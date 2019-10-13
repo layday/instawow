@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING, ClassVar, Sequence, Optional, Set
 
 if TYPE_CHECKING:
     from .models import Pkg
+    from .resolvers import Strategies
 
 
 class ManagerResult:
@@ -110,7 +111,7 @@ class PkgStrategyUnsupported(ManagerError):
 
     fmt_message = '{self.strategy.name!r} strategy is not valid for source'
 
-    def __init__(self, strategy: str) -> None:
+    def __init__(self, strategy: Strategies) -> None:
         super().__init__()
         self.strategy = strategy
 

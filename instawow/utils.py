@@ -18,7 +18,6 @@ except ImportError:
 
 if TYPE_CHECKING:
     import prompt_toolkit.shortcuts.progress_bar.base as pbb
-
     from .manager import CliManager
 
 
@@ -31,7 +30,7 @@ class ManagerAttrAccessMixin:
 class _TocEntry(NamedTuple):
 
     key: str
-    value: Optional[str]
+    value: str
 
     def __bool__(self) -> bool:
         return bool(self.value)
@@ -50,7 +49,7 @@ class TocReader:
     def __getitem__(self, key: Union[str, Tuple[str, ...]]) -> _TocEntry:
         if isinstance(key, tuple):
             try:
-                return next(filter(lambda i: i.value, (self[k] for k in key)))
+                return next(filter(None, (self[k] for k in key)))
             except StopIteration:
                 key = key[0]
         return _TocEntry(key, self.entries.get(key, self.default))

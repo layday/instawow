@@ -182,6 +182,7 @@ class _ResolverDict(dict):
 def _error_wrapper(error: E.ManagerError) -> Callable:
     async def error_out() -> NoReturn:
         raise error
+
     return error_out
 
 
@@ -257,8 +258,7 @@ class Manager:
                  for m, _ in matches
                  for _, d in defns_for_names[m]]
         results = await self.resolve(defns)
-        pkgs_by_defn = {Defn(r.origin, r.slug): r
-                        for r in results.values() if is_pkg(r)}
+        pkgs_by_defn = {d.with_name(r.slug): r for d, r in results.items() if is_pkg(r)}
         return pkgs_by_defn
 
     async def _install(self, pkg: Pkg, open_archive: Callable, replace: bool) -> E.PkgInstalled:
@@ -289,7 +289,7 @@ class Manager:
 
         coros = (dict.fromkeys(defns, _error_wrapper(E.PkgAlreadyInstalled())),
                  {d: _error_wrapper(r) for d, r in results.items()},
-                 {d: (lambda p=p, a=a: self._install(p, a, replace))
+                 {d: partial(self._install, p, a, replace)
                   for (d, p), a in zip(installables, archives)})
         return dict_merge(*coros)
 
@@ -313,22 +313,20 @@ class Manager:
     async def prep_update(self, defns: Sequence[Defn]) -> Dict[Defn, Callable]:
         "Retrieve packages to update."
         def rebuild_defn(defn: Defn, pkg: Optional[Pkg]) -> Defn:
-            return Defn(*defn[:2], Strategies[pkg.options.strategy]) if pkg else defn
+            return defn.with_strategy(Strategies[pkg.options.strategy]) if pkg else defn
 
-        checked_defns = {rebuild_defn(c, p): p
-                         for c, p in ((d, self.get(d)) for d in defns)}
+        checked_defns = {rebuild_defn(c, p): p for c, p in ((d, self.get(d)) for d in defns)}
         candidates = {d: p for d, p in checked_defns.items() if p}
         results = await self.resolve(list(candidates.keys()))
         installables = {d: r for d, r in results.items() if is_pkg(r)}
-        updatables = {(d, candidates[d], p): download_archive(p)
-                      for d, p in installables.items()
+        updatables = {(d, candidates[d], p): download_archive(p) for d, p in installables.items()
                       if p.file_id != candidates[d].file_id}
         archives = await gather(updatables.values())
 
         coros = (dict.fromkeys(checked_defns, _error_wrapper(E.PkgNotInstalled())),
                  {d: _error_wrapper(r) for d, r in results.items()},
                  {d: _error_wrapper(E.PkgUpToDate()) for d in installables},
-                 {d: (lambda o=o, p=p, a=a: self._update(o, p, a))
+                 {d: partial(self._update, o, p, a)
                   for (d, o, p), a in zip(updatables, archives)})
         return dict_merge(*coros)
 
@@ -344,9 +342,9 @@ class Manager:
 
     async def prep_remove(self, defns: Sequence[Defn]) -> Dict[Defn, Callable]:
         "Prepare packages to remove."
+        pkgs_by_defn = ((d, self.get(d)) for d in defns)
         coros = (dict.fromkeys(defns, _error_wrapper(E.PkgNotInstalled())),
-                 {d: (lambda p=p: self._remove(p))
-                  for d, p in ((d, self.get(d)) for d in defns) if p})
+                 {d: partial(self._remove, p) for d, p in pkgs_by_defn if p})
         return dict_merge(*coros)
 
 
