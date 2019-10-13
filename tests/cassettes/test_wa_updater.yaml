@@ -13,54 +13,26 @@ interactions:
         \"08 Crackling Lightning\" since it can be tracked now. (Stormwall Blockade)\nThanks
         Fawn#12441 for pointing it out."},"regionType":"dynamicgroup"}]'
     headers:
-      ? !!python/object/new:multidict._istr.istr
-      - Access-Control-Allow-Credentials
-      : 'true'
-      ? !!python/object/new:multidict._istr.istr
-      - Access-Control-Allow-Origin
-      : '*'
-      ? !!python/object/new:multidict._istr.istr
-      - Access-Control-Expose-Headers
-      : set-cookie,wotm
-      CF-RAY: 51d63e27cc1c9e07-ATH
-      ? !!python/object/new:multidict._istr.istr
-      - Connection
-      : keep-alive
-      ? !!python/object/new:multidict._istr.istr
-      - Content-Encoding
-      : gzip
-      ? !!python/object/new:multidict._istr.istr
-      - Content-Type
-      : application/json; charset=utf-8
-      ? !!python/object/new:multidict._istr.istr
-      - Date
-      : Sat, 28 Sep 2019 14:00:18 GMT
+      Access-Control-Allow-Credentials: 'true'
+      Access-Control-Allow-Origin: '*'
+      Access-Control-Expose-Headers: set-cookie,wotm
+      CF-Cache-Status: DYNAMIC
+      CF-RAY: 524cbd1d9ea89c27-AMS
+      Connection: keep-alive
+      Content-Encoding: gzip
+      Content-Type: application/json; charset=utf-8
+      Date: Sat, 12 Oct 2019 23:08:58 GMT
       Expect-CT: max-age=604800, report-uri="https://report-uri.cloudflare.com/cdn-cgi/beacon/expect-ct"
-      ? !!python/object/new:multidict._istr.istr
-      - Server
-      : cloudflare
-      ? !!python/object/new:multidict._istr.istr
-      - Set-Cookie
-      : __cfduid=d872d138cd363a0d06db376b4930689411569679217; expires=Sun, 27-Sep-20
-        14:00:17 GMT; path=/; domain=.wago.io; HttpOnly; Secure
-      ? !!python/object/new:multidict._istr.istr
-      - Transfer-Encoding
-      : chunked
-      ? !!python/object/new:multidict._istr.istr
-      - Vary
-      : Origin
-      wotm: '%7B%22name%22%3A%22%F0%9F%94%8A%5BALERT%5D%20Health%20%3C30%25%20(with%20sound)%F0%9F%94%8A%22%2C%22slug%22%3A%22HJp1KxT3m%22%2C%22screenshot%22%3A%22https%3A%2F%2Fmedia.wago.io%2Fscreenshots%2FHJp1KxT3m%2F5cc0706cea2597041aebd199.gif%22%7D'
+      Server: cloudflare
+      Set-Cookie: __cfduid=d61315d846454be62b72af44013ca662c1570921737; expires=Sun,
+        11-Oct-20 23:08:57 GMT; path=/; domain=.wago.io; HttpOnly; Secure
+      Transfer-Encoding: chunked
+      Vary: Origin
+      wotm: '%7B%22name%22%3A%22Erbagatta''s%20Balance%20Rotation%208.1.x%22%2C%22slug%22%3A%22Mufb62VTK%22%2C%22screenshot%22%3A%22https%3A%2F%2Fmedia.wago.io%2Fscreenshots%2FMufb62VTK%2F5c6c30bacd18c843c6adb771.png%22%7D'
     status:
       code: 200
       message: OK
-    url: !!python/object/new:yarl.URL
-      state: !!python/tuple
-      - !!python/object/new:urllib.parse.SplitResult
-        - https
-        - data.wago.io
-        - /api/check/weakauras
-        - ids=RaidCDs,bfaraid2
-        - ''
+    url: https://data.wago.io/api/check/weakauras?ids=RaidCDs,bfaraid2
 - request:
     body: null
     headers:
@@ -75,54 +47,26 @@ interactions:
         \"08 Crackling Lightning\" since it can be tracked now. (Stormwall Blockade)\nThanks
         Fawn#12441 for pointing it out."},"regionType":"dynamicgroup"}]'
     headers:
-      ? !!python/object/new:multidict._istr.istr
-      - Access-Control-Allow-Credentials
-      : 'true'
-      ? !!python/object/new:multidict._istr.istr
-      - Access-Control-Allow-Origin
-      : '*'
-      ? !!python/object/new:multidict._istr.istr
-      - Access-Control-Expose-Headers
-      : set-cookie,wotm
-      CF-RAY: 51d63e2b1d6d9de3-ATH
-      ? !!python/object/new:multidict._istr.istr
-      - Connection
-      : keep-alive
-      ? !!python/object/new:multidict._istr.istr
-      - Content-Encoding
-      : gzip
-      ? !!python/object/new:multidict._istr.istr
-      - Content-Type
-      : application/json; charset=utf-8
-      ? !!python/object/new:multidict._istr.istr
-      - Date
-      : Sat, 28 Sep 2019 14:00:18 GMT
+      Access-Control-Allow-Credentials: 'true'
+      Access-Control-Allow-Origin: '*'
+      Access-Control-Expose-Headers: set-cookie,wotm
+      CF-Cache-Status: DYNAMIC
+      CF-RAY: 524cbd23eec89c33-AMS
+      Connection: keep-alive
+      Content-Encoding: gzip
+      Content-Type: application/json; charset=utf-8
+      Date: Sat, 12 Oct 2019 23:08:59 GMT
       Expect-CT: max-age=604800, report-uri="https://report-uri.cloudflare.com/cdn-cgi/beacon/expect-ct"
-      ? !!python/object/new:multidict._istr.istr
-      - Server
-      : cloudflare
-      ? !!python/object/new:multidict._istr.istr
-      - Set-Cookie
-      : __cfduid=dba12082cdf9dfab73a7a5eccfdbf23a31569679218; expires=Sun, 27-Sep-20
-        14:00:18 GMT; path=/; domain=.wago.io; HttpOnly; Secure
-      ? !!python/object/new:multidict._istr.istr
-      - Transfer-Encoding
-      : chunked
-      ? !!python/object/new:multidict._istr.istr
-      - Vary
-      : Origin
-      wotm: '%7B%22name%22%3A%22%F0%9F%94%8A%5BALERT%5D%20Health%20%3C30%25%20(with%20sound)%F0%9F%94%8A%22%2C%22slug%22%3A%22HJp1KxT3m%22%2C%22screenshot%22%3A%22https%3A%2F%2Fmedia.wago.io%2Fscreenshots%2FHJp1KxT3m%2F5cc0706cea2597041aebd199.gif%22%7D'
+      Server: cloudflare
+      Set-Cookie: __cfduid=dd3126612c3b6ee12b62b054331adebd31570921738; expires=Sun,
+        11-Oct-20 23:08:58 GMT; path=/; domain=.wago.io; HttpOnly; Secure
+      Transfer-Encoding: chunked
+      Vary: Origin
+      wotm: '%7B%22name%22%3A%22Erbagatta''s%20Balance%20Rotation%208.1.x%22%2C%22slug%22%3A%22Mufb62VTK%22%2C%22screenshot%22%3A%22https%3A%2F%2Fmedia.wago.io%2Fscreenshots%2FMufb62VTK%2F5c6c30bacd18c843c6adb771.png%22%7D'
     status:
       code: 200
       message: OK
-    url: !!python/object/new:yarl.URL
-      state: !!python/tuple
-      - !!python/object/new:urllib.parse.SplitResult
-        - https
-        - data.wago.io
-        - /api/check/weakauras
-        - ids=bfaraid2,RaidCDs
-        - ''
+    url: https://data.wago.io/api/check/weakauras?ids=bfaraid2,RaidCDs
 - request:
     body: null
     headers:
@@ -137,54 +81,26 @@ interactions:
         \"08 Crackling Lightning\" since it can be tracked now. (Stormwall Blockade)\nThanks
         Fawn#12441 for pointing it out."},"regionType":"dynamicgroup"}]'
     headers:
-      ? !!python/object/new:multidict._istr.istr
-      - Access-Control-Allow-Credentials
-      : 'true'
-      ? !!python/object/new:multidict._istr.istr
-      - Access-Control-Allow-Origin
-      : '*'
-      ? !!python/object/new:multidict._istr.istr
-      - Access-Control-Expose-Headers
-      : set-cookie,wotm
-      CF-RAY: 51d63e2e49049ddd-ATH
-      ? !!python/object/new:multidict._istr.istr
-      - Connection
-      : keep-alive
-      ? !!python/object/new:multidict._istr.istr
-      - Content-Encoding
-      : gzip
-      ? !!python/object/new:multidict._istr.istr
-      - Content-Type
-      : application/json; charset=utf-8
-      ? !!python/object/new:multidict._istr.istr
-      - Date
-      : Sat, 28 Sep 2019 14:00:19 GMT
+      Access-Control-Allow-Credentials: 'true'
+      Access-Control-Allow-Origin: '*'
+      Access-Control-Expose-Headers: set-cookie,wotm
+      CF-Cache-Status: DYNAMIC
+      CF-RAY: 524cbd279f35d909-AMS
+      Connection: keep-alive
+      Content-Encoding: gzip
+      Content-Type: application/json; charset=utf-8
+      Date: Sat, 12 Oct 2019 23:08:59 GMT
       Expect-CT: max-age=604800, report-uri="https://report-uri.cloudflare.com/cdn-cgi/beacon/expect-ct"
-      ? !!python/object/new:multidict._istr.istr
-      - Server
-      : cloudflare
-      ? !!python/object/new:multidict._istr.istr
-      - Set-Cookie
-      : __cfduid=d1921264a45e63148943a0c227e9e4a211569679218; expires=Sun, 27-Sep-20
-        14:00:18 GMT; path=/; domain=.wago.io; HttpOnly; Secure
-      ? !!python/object/new:multidict._istr.istr
-      - Transfer-Encoding
-      : chunked
-      ? !!python/object/new:multidict._istr.istr
-      - Vary
-      : Origin
-      wotm: '%7B%22name%22%3A%22%F0%9F%94%8A%5BALERT%5D%20Health%20%3C30%25%20(with%20sound)%F0%9F%94%8A%22%2C%22slug%22%3A%22HJp1KxT3m%22%2C%22screenshot%22%3A%22https%3A%2F%2Fmedia.wago.io%2Fscreenshots%2FHJp1KxT3m%2F5cc0706cea2597041aebd199.gif%22%7D'
+      Server: cloudflare
+      Set-Cookie: __cfduid=d1f614a8f2e1a7efdcb8b07259a583e9b1570921739; expires=Sun,
+        11-Oct-20 23:08:59 GMT; path=/; domain=.wago.io; HttpOnly; Secure
+      Transfer-Encoding: chunked
+      Vary: Origin
+      wotm: '%7B%22name%22%3A%22Erbagatta''s%20Balance%20Rotation%208.1.x%22%2C%22slug%22%3A%22Mufb62VTK%22%2C%22screenshot%22%3A%22https%3A%2F%2Fmedia.wago.io%2Fscreenshots%2FMufb62VTK%2F5c6c30bacd18c843c6adb771.png%22%7D'
     status:
       code: 200
       message: OK
-    url: !!python/object/new:yarl.URL
-      state: !!python/tuple
-      - !!python/object/new:urllib.parse.SplitResult
-        - https
-        - data.wago.io
-        - /api/check/weakauras
-        - ids=RaidCDs,bfaraid2
-        - ''
+    url: https://data.wago.io/api/check/weakauras?ids=RaidCDs,bfaraid2
 - request:
     body: null
     headers:
@@ -199,54 +115,26 @@ interactions:
         \"08 Crackling Lightning\" since it can be tracked now. (Stormwall Blockade)\nThanks
         Fawn#12441 for pointing it out."},"regionType":"dynamicgroup"}]'
     headers:
-      ? !!python/object/new:multidict._istr.istr
-      - Access-Control-Allow-Credentials
-      : 'true'
-      ? !!python/object/new:multidict._istr.istr
-      - Access-Control-Allow-Origin
-      : '*'
-      ? !!python/object/new:multidict._istr.istr
-      - Access-Control-Expose-Headers
-      : set-cookie,wotm
-      CF-RAY: 51d63e31becf5ce5-ATH
-      ? !!python/object/new:multidict._istr.istr
-      - Connection
-      : keep-alive
-      ? !!python/object/new:multidict._istr.istr
-      - Content-Encoding
-      : gzip
-      ? !!python/object/new:multidict._istr.istr
-      - Content-Type
-      : application/json; charset=utf-8
-      ? !!python/object/new:multidict._istr.istr
-      - Date
-      : Sat, 28 Sep 2019 14:00:19 GMT
+      Access-Control-Allow-Credentials: 'true'
+      Access-Control-Allow-Origin: '*'
+      Access-Control-Expose-Headers: set-cookie,wotm
+      CF-Cache-Status: DYNAMIC
+      CF-RAY: 524cbd2a8912c837-AMS
+      Connection: keep-alive
+      Content-Encoding: gzip
+      Content-Type: application/json; charset=utf-8
+      Date: Sat, 12 Oct 2019 23:09:00 GMT
       Expect-CT: max-age=604800, report-uri="https://report-uri.cloudflare.com/cdn-cgi/beacon/expect-ct"
-      ? !!python/object/new:multidict._istr.istr
-      - Server
-      : cloudflare
-      ? !!python/object/new:multidict._istr.istr
-      - Set-Cookie
-      : __cfduid=d104ecfd9b43b52595eabfb68e8f6e94a1569679219; expires=Sun, 27-Sep-20
-        14:00:19 GMT; path=/; domain=.wago.io; HttpOnly; Secure
-      ? !!python/object/new:multidict._istr.istr
-      - Transfer-Encoding
-      : chunked
-      ? !!python/object/new:multidict._istr.istr
-      - Vary
-      : Origin
-      wotm: '%7B%22name%22%3A%22%F0%9F%94%8A%5BALERT%5D%20Health%20%3C30%25%20(with%20sound)%F0%9F%94%8A%22%2C%22slug%22%3A%22HJp1KxT3m%22%2C%22screenshot%22%3A%22https%3A%2F%2Fmedia.wago.io%2Fscreenshots%2FHJp1KxT3m%2F5cc0706cea2597041aebd199.gif%22%7D'
+      Server: cloudflare
+      Set-Cookie: __cfduid=ddbcb3994847d30a9bf95c78a2df9b8eb1570921739; expires=Sun,
+        11-Oct-20 23:08:59 GMT; path=/; domain=.wago.io; HttpOnly; Secure
+      Transfer-Encoding: chunked
+      Vary: Origin
+      wotm: '%7B%22name%22%3A%22Erbagatta''s%20Balance%20Rotation%208.1.x%22%2C%22slug%22%3A%22Mufb62VTK%22%2C%22screenshot%22%3A%22https%3A%2F%2Fmedia.wago.io%2Fscreenshots%2FMufb62VTK%2F5c6c30bacd18c843c6adb771.png%22%7D'
     status:
       code: 200
       message: OK
-    url: !!python/object/new:yarl.URL
-      state: !!python/tuple
-      - !!python/object/new:urllib.parse.SplitResult
-        - https
-        - data.wago.io
-        - /api/check/weakauras
-        - ids=bfaraid2,RaidCDs
-        - ''
+    url: https://data.wago.io/api/check/weakauras?ids=bfaraid2,RaidCDs
 - request:
     body: null
     headers:
@@ -261,54 +149,26 @@ interactions:
         \"08 Crackling Lightning\" since it can be tracked now. (Stormwall Blockade)\nThanks
         Fawn#12441 for pointing it out."},"regionType":"dynamicgroup"}]'
     headers:
-      ? !!python/object/new:multidict._istr.istr
-      - Access-Control-Allow-Credentials
-      : 'true'
-      ? !!python/object/new:multidict._istr.istr
-      - Access-Control-Allow-Origin
-      : '*'
-      ? !!python/object/new:multidict._istr.istr
-      - Access-Control-Expose-Headers
-      : set-cookie,wotm
-      CF-RAY: 51d63e34bf455cc7-ATH
-      ? !!python/object/new:multidict._istr.istr
-      - Connection
-      : keep-alive
-      ? !!python/object/new:multidict._istr.istr
-      - Content-Encoding
-      : gzip
-      ? !!python/object/new:multidict._istr.istr
-      - Content-Type
-      : application/json; charset=utf-8
-      ? !!python/object/new:multidict._istr.istr
-      - Date
-      : Sat, 28 Sep 2019 14:00:20 GMT
+      Access-Control-Allow-Credentials: 'true'
+      Access-Control-Allow-Origin: '*'
+      Access-Control-Expose-Headers: set-cookie,wotm
+      CF-Cache-Status: DYNAMIC
+      CF-RAY: 524cbd2d5d49bdc3-AMS
+      Connection: keep-alive
+      Content-Encoding: gzip
+      Content-Type: application/json; charset=utf-8
+      Date: Sat, 12 Oct 2019 23:09:00 GMT
       Expect-CT: max-age=604800, report-uri="https://report-uri.cloudflare.com/cdn-cgi/beacon/expect-ct"
-      ? !!python/object/new:multidict._istr.istr
-      - Server
-      : cloudflare
-      ? !!python/object/new:multidict._istr.istr
-      - Set-Cookie
-      : __cfduid=d2e083e1e3b01a623db04a6c268bd57141569679219; expires=Sun, 27-Sep-20
-        14:00:19 GMT; path=/; domain=.wago.io; HttpOnly; Secure
-      ? !!python/object/new:multidict._istr.istr
-      - Transfer-Encoding
-      : chunked
-      ? !!python/object/new:multidict._istr.istr
-      - Vary
-      : Origin
-      wotm: '%7B%22name%22%3A%22%F0%9F%94%8A%5BALERT%5D%20Health%20%3C30%25%20(with%20sound)%F0%9F%94%8A%22%2C%22slug%22%3A%22HJp1KxT3m%22%2C%22screenshot%22%3A%22https%3A%2F%2Fmedia.wago.io%2Fscreenshots%2FHJp1KxT3m%2F5cc0706cea2597041aebd199.gif%22%7D'
+      Server: cloudflare
+      Set-Cookie: __cfduid=db8929b97e362d0959268934ce10ed4c51570921740; expires=Sun,
+        11-Oct-20 23:09:00 GMT; path=/; domain=.wago.io; HttpOnly; Secure
+      Transfer-Encoding: chunked
+      Vary: Origin
+      wotm: '%7B%22name%22%3A%22Erbagatta''s%20Balance%20Rotation%208.1.x%22%2C%22slug%22%3A%22Mufb62VTK%22%2C%22screenshot%22%3A%22https%3A%2F%2Fmedia.wago.io%2Fscreenshots%2FMufb62VTK%2F5c6c30bacd18c843c6adb771.png%22%7D'
     status:
       code: 200
       message: OK
-    url: !!python/object/new:yarl.URL
-      state: !!python/tuple
-      - !!python/object/new:urllib.parse.SplitResult
-        - https
-        - data.wago.io
-        - /api/check/weakauras
-        - ids=bfaraid2,foobar,RaidCDs
-        - ''
+    url: https://data.wago.io/api/check/weakauras?ids=bfaraid2,foobar,RaidCDs
 - request:
     body: null
     headers:
@@ -323,52 +183,24 @@ interactions:
         \"08 Crackling Lightning\" since it can be tracked now. (Stormwall Blockade)\nThanks
         Fawn#12441 for pointing it out."},"regionType":"dynamicgroup"}]'
     headers:
-      ? !!python/object/new:multidict._istr.istr
-      - Access-Control-Allow-Credentials
-      : 'true'
-      ? !!python/object/new:multidict._istr.istr
-      - Access-Control-Allow-Origin
-      : '*'
-      ? !!python/object/new:multidict._istr.istr
-      - Access-Control-Expose-Headers
-      : set-cookie,wotm
-      CF-RAY: 51d63e37d8209e3d-ATH
-      ? !!python/object/new:multidict._istr.istr
-      - Connection
-      : keep-alive
-      ? !!python/object/new:multidict._istr.istr
-      - Content-Encoding
-      : gzip
-      ? !!python/object/new:multidict._istr.istr
-      - Content-Type
-      : application/json; charset=utf-8
-      ? !!python/object/new:multidict._istr.istr
-      - Date
-      : Sat, 28 Sep 2019 14:00:20 GMT
+      Access-Control-Allow-Credentials: 'true'
+      Access-Control-Allow-Origin: '*'
+      Access-Control-Expose-Headers: set-cookie,wotm
+      CF-Cache-Status: DYNAMIC
+      CF-RAY: 524cbd30ad80bf55-AMS
+      Connection: keep-alive
+      Content-Encoding: gzip
+      Content-Type: application/json; charset=utf-8
+      Date: Sat, 12 Oct 2019 23:09:01 GMT
       Expect-CT: max-age=604800, report-uri="https://report-uri.cloudflare.com/cdn-cgi/beacon/expect-ct"
-      ? !!python/object/new:multidict._istr.istr
-      - Server
-      : cloudflare
-      ? !!python/object/new:multidict._istr.istr
-      - Set-Cookie
-      : __cfduid=dd5ddbd9babc917caea26312e0acd61bf1569679220; expires=Sun, 27-Sep-20
-        14:00:20 GMT; path=/; domain=.wago.io; HttpOnly; Secure
-      ? !!python/object/new:multidict._istr.istr
-      - Transfer-Encoding
-      : chunked
-      ? !!python/object/new:multidict._istr.istr
-      - Vary
-      : Origin
-      wotm: '%7B%22name%22%3A%22%F0%9F%94%8A%5BALERT%5D%20Health%20%3C30%25%20(with%20sound)%F0%9F%94%8A%22%2C%22slug%22%3A%22HJp1KxT3m%22%2C%22screenshot%22%3A%22https%3A%2F%2Fmedia.wago.io%2Fscreenshots%2FHJp1KxT3m%2F5cc0706cea2597041aebd199.gif%22%7D'
+      Server: cloudflare
+      Set-Cookie: __cfduid=d19a3a756d7a05d94f000cfc4ea6b818e1570921740; expires=Sun,
+        11-Oct-20 23:09:00 GMT; path=/; domain=.wago.io; HttpOnly; Secure
+      Transfer-Encoding: chunked
+      Vary: Origin
+      wotm: '%7B%22name%22%3A%22Erbagatta''s%20Balance%20Rotation%208.1.x%22%2C%22slug%22%3A%22Mufb62VTK%22%2C%22screenshot%22%3A%22https%3A%2F%2Fmedia.wago.io%2Fscreenshots%2FMufb62VTK%2F5c6c30bacd18c843c6adb771.png%22%7D'
     status:
       code: 200
       message: OK
-    url: !!python/object/new:yarl.URL
-      state: !!python/tuple
-      - !!python/object/new:urllib.parse.SplitResult
-        - https
-        - data.wago.io
-        - /api/check/weakauras
-        - ids=bfaraid2,foobar,RaidCDs
-        - ''
+    url: https://data.wago.io/api/check/weakauras?ids=bfaraid2,foobar,RaidCDs
 version: 1
