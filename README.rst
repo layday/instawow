@@ -14,14 +14,17 @@ or inhabiting walled gardens.
 Installation
 ------------
 
-It is recommended to install *instawow* in an isolated environment.
-One option is to use `pipx <https://github.com/pipxproject/pipx>`__::
+I recommend installing *instawow* in an isolated environment.
+|pipx|_ makes this easy::
 
     pipx install instawow
 
-Installing with `pip` is also supported::
+Installing with ``pip`` is also supported::
 
     pip3 install --upgrade instawow
+
+.. |pipx| replace:: ``pipx``
+.. _pipx: https://github.com/pipxproject/pipx
 
 Getting started
 ---------------
@@ -35,20 +38,19 @@ All of the following will install Molinari::
     instawow install https://www.wowinterface.com/downloads/info13188-Molinari.html
     instawow install wowi:13188
 
-* The ``update`` and ``remove`` commands work in the same way, and ``update``
+- The ``update`` and ``remove`` commands work in the same way, and ``update``
   can be run without arguments to update all add-ons.
-* You can opt into alpha and beta quality add-ons from CurseForge,
-  and bypass the game flavour selection by
+- You can opt into alpha and beta quality add-ons from CurseForge
   using the ``--with-strategy`` option on ``install``.
-* Use ``list`` to list add-ons managed by *instawow*; ``list-folders -e`` to
+- Use ``list`` to list add-ons managed by *instawow*; ``list-folders -e`` to
   list unmanaged add-ons; ``info`` to display add-on information,
   ``visit`` to open an add-on homepage in your browser and ``reveal`` to
   open the primary add-on folder in your file manager.
-* Non-destructive operations accept partial URIs, e.g.
-  ``instawow info moli`` will display information about Molinari.
+- Non-destructive operations accept partial definitions,
+  e.g. ``instawow info moli`` will display information about Molinari.
 
-instafying add-ons
-----------------------
+*instafying* add-ons
+~~~~~~~~~~~~~~~~~~~~
 
 *instawow* does not know about add-ons it did not itself install.
 The Twitch and Minion clients each use their own, proprietary
@@ -57,7 +59,7 @@ their respective hosts keep on their servers.  Though the details of their imple
 elude me, *instawow* tries to accomplish something similar by combining a variety
 of cues (e.g. folders and TOC entries).  This is not done automatically;
 you will need to execute ``instawow reconcile`` to absorb add-ons installed
-by other means.
+through other means.
 
 Searching for add-ons
 ~~~~~~~~~~~~~~~~~~~~~
@@ -66,10 +68,10 @@ Searching for add-ons
 select add-ons to install.  The search does not display add-on details
 other than the name and source; pressing ``<o>`` will bring the add-on page up
 in your browser.  The search uses a collated add-on name catalogue internally
-which is updated once daily.
+which is updated `once daily <https://github.com/layday/instascrape>`__.
 
 WoW Classic
------------
+~~~~~~~~~~~
 
 *instawow* supports Classic – it will correctly install Classic versions
 of add-ons from sources depending on the value of the
@@ -94,7 +96,7 @@ Additional functionality
 WeakAuras aura updater
 ~~~~~~~~~~~~~~~~~~~~~~
 
-*instawow* contains a WeakAuras updater modelled after
+*instawow* contains a WeakAuras updater modelled on
 `WeakAuras Companion <https://weakauras.wtf/>`__.  To use the updater
 and provided that you have WeakAuras installed::
 
@@ -112,11 +114,8 @@ name as an env var::
 
 You may then choose to bypass the companion add-on simply by ommitting the env var.
 
-Caveats
--------
-
 Metadata sourcing
-~~~~~~~~~~~~~~~~~
+-----------------
 
 Originally, *instawow* relied on the official feeds provided by Curse.
 Curse retired the feeds in June 2018 and – for a period – *instawow* would
@@ -134,11 +133,30 @@ doing for years.  The good people at Tukui provide an API for public use.
 *instawow* might break whenever one of our sources introduces
 a change to their website or API (though only temporarily).
 
+Remote hosts
+------------
+
+When installing, updating or searching for add-ons, *instawow* will retrieve
+scraped add-on metadata from https://raw.githubusercontent.com,
+CurseForge add-on metadata from https://addons-ecs.forgesvc.net,
+WoWInterface add-on metadata from https://api.mmoui.com,
+Tukui add-on metadata from https://www.tukui.org, and
+aura data from https://data.wago.io;
+and will follow file URLs contained in metadata.
+
+Every 24 hours, on launch, *instawow* will query PyPI (https://pypi.org) – the
+canonical Python package repository – to suggest updating *instawow* to the
+latest version.
+
+Requests made by *instawow* can be identified by its user agent string.
+
 Related work
 ------------
 
-The author of *wowman* maintains a list of similar software in their
-`comrades.csv <https://github.com/ogri-la/wowman/blob/develop/comrades.csv>`__.
+The author of *wowman* has been cataloguing similar software
+`here <https://ogri-la.github.io/wow-addon-managers/>`__.  If you are unhappy
+with *instawow*, you might find one of these other add-on managers more
+to your liking.
 
 Contributing
 ------------
