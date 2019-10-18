@@ -5,18 +5,21 @@ from functools import partial, wraps
 from itertools import chain, count, islice
 from operator import itemgetter
 from textwrap import fill
+from typing import TYPE_CHECKING
 from typing import Any, Callable, Generator, Iterable, List, Optional, Sequence, Tuple, Union
 
 import click
-import sqlalchemy
 
 from . import __version__
 from .config import Config
 from . import exceptions as E
-from .manager import CliManager, prepare_db_session
-from .models import Pkg, PkgCoercer, PkgFolder, is_pkg
+from . import _models as models
 from .resolvers import Strategies, Defn
 from .utils import TocReader, bucketise, cached_property, is_outdated, setup_logging, bbegone
+
+if TYPE_CHECKING:
+    from .manager import CliManager
+    from .models import Pkg
 
 
 class Symbols(str, Enum):
@@ -128,6 +131,7 @@ def format_deps(manager: CliManager, pkg: Pkg) -> List[str]:
 
 @_pass_manager
 def get_pkg_from_substr(manager: CliManager, defn: Defn) -> Optional[Pkg]:
+    Pkg = models.Pkg
     pkg = manager.get(defn)
     pkg = pkg or (manager.db_session.query(Pkg).filter(Pkg.slug.contains(defn.name))
                   .order_by(Pkg.name).first())
@@ -153,6 +157,8 @@ def main(ctx, debug):
         class ManagerSingleton:
             @cached_property
             def manager(self) -> CliManager:
+                from .manager import CliManager, prepare_db_session
+
                 while True:
                     try:
                         config = Config.read().write()
@@ -211,7 +217,7 @@ def update(manager, addons) -> None:
     if addons:
         values = addons
     else:
-        values = [Defn(p.origin, p.slug) for p in manager.db_session.query(Pkg).all()]
+        values = [Defn(p.origin, p.slug) for p in manager.db_session.query(models.Pkg).all()]
     results = manager.update(values)
     # Hide package from output if up to date and ``update`` was invoked without args
     filter_fn = lambda r: addons or not isinstance(r, E.PkgUpToDate)
@@ -233,6 +239,7 @@ def remove(manager, addons) -> None:
 def reconcile(manager) -> None:
     "Reconcile add-ons."
     from .matchers import _Addon, match_toc_ids, match_dir_names, get_leftovers
+    from .models import is_pkg
     from .prompts import Choice, confirm, select, skip
 
     def _prompt(addons: Sequence[_Addon], pkgs: Sequence[Pkg]) -> Union[Tuple[()], Defn]:
@@ -312,11 +319,28 @@ def search(ctx, limit, search_terms):
             ctx.invoke(install, addons=selections)
 
 
+# >>> import sqlalchemy
+# >>> (*sqlalchemy.inspect(Pkg).columns.keys(),
+# ...  *sqlalchemy.inspect(Pkg).relationships.keys(),)
+_cols = ('origin',
+         'id',
+         'slug',
+         'name',
+         'description',
+         'url',
+         'file_id',
+         'download_url',
+         'date_published',
+         'version',
+         'folders',
+         'options',
+         'deps',)
+
+
 @main.command('list')
 @click.option('--column', '-c', 'columns',
               multiple=True,
-              type=click.Choice((*sqlalchemy.inspect(Pkg).columns.keys(),
-                                 *sqlalchemy.inspect(Pkg).relationships.keys(),)),
+              type=click.Choice(_cols),
               help='A field to show in a column.  Nested fields are '
                    'dot-delimited.  Repeatable.')
 @click.option('--filter-by',
@@ -332,6 +356,8 @@ def search(ctx, limit, search_terms):
 @_pass_manager
 def list_installed(manager, columns, filter_by, order_by) -> None:
     "List installed add-ons."
+    from sqlalchemy import text
+
     def format_columns(pkg):
         for column in columns:
             value = getattr(pkg, column)
@@ -346,8 +372,8 @@ def list_installed(manager, columns, filter_by, order_by) -> None:
             else:
                 yield value
 
-    pkgs = (manager.db_session.query(Pkg)
-            .filter(sqlalchemy.text(filter_by)).order_by(sqlalchemy.text(order_by))
+    pkgs = (manager.db_session.query(models.Pkg)
+            .filter(text(filter_by)).order_by(text(order_by))
             .all())
     if pkgs:
         rows = [('add-on', *columns),
@@ -368,7 +394,7 @@ def list_folders(manager, exclude_own, toc_entries) -> None:
     folders = {f for f in manager.config.addon_dir.iterdir() if f.is_dir()}
     if exclude_own:
         folders -= {manager.config.addon_dir / f.name
-                    for f in manager.db_session.query(PkgFolder).all()}
+                    for f in manager.db_session.query(models.PkgFolder).all()}
 
     folder_tocs = ((n, n / f'{n.name}.toc') for n in folders)
     folder_readers = sorted((n, TocReader.from_path(t)) for n, t in folder_tocs if t.exists())

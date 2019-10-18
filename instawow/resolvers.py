@@ -14,11 +14,12 @@ from loguru import logger
 from yarl import URL
 
 from . import exceptions as E
-from .models import Pkg, PkgOptions, PkgDep
+from . import _models as M
 from .utils import ManagerAttrAccessMixin, gather, run_in_thread as t, slugify, is_not_stale
 
 if TYPE_CHECKING:
     from .manager import Manager
+    from .models import Pkg
 
 
 class Strategies(Enum):
@@ -194,21 +195,21 @@ class CurseResolver(Resolver, _FileCacheMixin):
         # 4 = tool
         # 5 = incompatible
         # 6 = include (wat)
-        deps = [PkgDep(id=d['addonId']) for d in file['dependencies']
+        deps = [M.PkgDep(id=d['addonId']) for d in file['dependencies']
                 if d['type'] == 3]
 
-        return Pkg(origin=self.source,
-                   id=metadata['id'],
-                   slug=metadata['slug'],
-                   name=metadata['name'],
-                   description=metadata['summary'],
-                   url=metadata['websiteUrl'],
-                   file_id=file['id'],
-                   download_url=file['downloadUrl'],
-                   date_published=file['fileDate'],
-                   version=file['displayName'],
-                   options=PkgOptions(strategy=defn.strategy.name),
-                   deps=deps)
+        return M.Pkg(origin=self.source,
+                     id=metadata['id'],
+                     slug=metadata['slug'],
+                     name=metadata['name'],
+                     description=metadata['summary'],
+                     url=metadata['websiteUrl'],
+                     file_id=file['id'],
+                     download_url=file['downloadUrl'],
+                     date_published=file['fileDate'],
+                     version=file['displayName'],
+                     options=M.PkgOptions(strategy=defn.strategy.name),
+                     deps=deps)
 
 
 class WowiResolver(Resolver, _FileCacheMixin):
@@ -288,17 +289,17 @@ class WowiResolver(Resolver, _FileCacheMixin):
         elif compatibility and not compatibility - {'wow classic'}:
             raise E.PkgFileUnavailable('file is only compatible with classic')
 
-        return Pkg(origin=self.source,
-                   id=metadata['UID'],
-                   slug=slugify(f'{metadata["UID"]} {metadata["UIName"]}'),
-                   name=metadata['UIName'],
-                   description=metadata['UIDescription'],
-                   url=metadata['UIFileInfoURL'],
-                   file_id=metadata['UIMD5'],
-                   download_url=metadata['UIDownload'],
-                   date_published=metadata['UIDate'],
-                   version=metadata['UIVersion'],
-                   options=PkgOptions(strategy=defn.strategy.name))
+        return M.Pkg(origin=self.source,
+                     id=metadata['UID'],
+                     slug=slugify(f'{metadata["UID"]} {metadata["UIName"]}'),
+                     name=metadata['UIName'],
+                     description=metadata['UIDescription'],
+                     url=metadata['UIFileInfoURL'],
+                     file_id=metadata['UIMD5'],
+                     download_url=metadata['UIDownload'],
+                     date_published=metadata['UIDate'],
+                     version=metadata['UIVersion'],
+                     options=M.PkgOptions(strategy=defn.strategy.name))
 
 
 class TukuiResolver(Resolver):
@@ -324,7 +325,7 @@ class TukuiResolver(Resolver):
 
     @validate_strategy
     async def resolve_one(self, defn: Defn) -> Pkg:
-        id_, *_ = defn.name.partition('-')
+        id_ = ''.join(takewhile('-'.__ne__, defn.name))
         is_ui = id_ in {'elvui', 'tukui'}
 
         if self.config.is_classic:
@@ -341,23 +342,23 @@ class TukuiResolver(Resolver):
             addon = await response.json(content_type='text/html')
 
         if is_ui:
-            slug = id_
-            date_published = datetime.fromisoformat(addon['lastupdate'])
+            divergent_args = {'slug': id_,
+                              'date_published': datetime.fromisoformat(addon['lastupdate']),
+                              'file_id': addon['version']}
         else:
-            slug = slugify(f'{addon["id"]} {addon["name"]}')
-            date_published = addon['lastupdate']
+            divergent_args = {'slug': slugify(f'{addon["id"]} {addon["name"]}'),
+                              'date_published': addon['lastupdate'],
+                              'file_id': addon['lastupdate']}
 
-        return Pkg(origin=self.source,
-                   id=addon['id'],
-                   slug=slug,
-                   name=addon['name'],
-                   description=addon['small_desc'],
-                   url=addon['web_url'],
-                   file_id=addon['lastupdate'],
-                   download_url=addon['url'],
-                   date_published=date_published,
-                   version=addon['version'],
-                   options=PkgOptions(strategy=defn.strategy.name))
+        return M.Pkg(origin=self.source,
+                     id=addon['id'],
+                     name=addon['name'],
+                     description=addon['small_desc'],
+                     url=addon['web_url'],
+                     download_url=addon['url'],
+                     version=addon['version'],
+                     options=M.PkgOptions(strategy=defn.strategy.name),
+                     **divergent_args)
 
 
 class InstawowResolver(Resolver):
@@ -393,14 +394,14 @@ class InstawowResolver(Resolver):
             except ValueError as error:
                 raise E.PkgFileUnavailable('account name not provided') from error
 
-        return Pkg(origin=self.source,
-                   id=id_,
-                   slug=slug,
-                   name='WeakAuras Companion',
-                   description='A WeakAuras Companion clone.',
-                   url='https://github.com/layday/instawow',
-                   file_id=await t(builder.checksum)(),
-                   download_url=builder.file_out.as_uri(),
-                   date_published=datetime.now(),
-                   version='1.0.0',
-                   options=PkgOptions(strategy=defn.strategy.name))
+        return M.Pkg(origin=self.source,
+                     id=id_,
+                     slug=slug,
+                     name='WeakAuras Companion',
+                     description='A WeakAuras Companion clone.',
+                     url='https://github.com/layday/instawow',
+                     file_id=await t(builder.checksum)(),
+                     download_url=builder.file_out.as_uri(),
+                     date_published=datetime.now(),
+                     version='1.0.0',
+                     options=M.PkgOptions(strategy=defn.strategy.name))
