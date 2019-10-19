@@ -235,8 +235,11 @@ def remove(manager, addons) -> None:
 
 
 @main.command()
+@click.option('--auto', '-a',
+              is_flag=True, default=False,
+              help='Do not ask for user confirmation.')
 @_pass_manager
-def reconcile(manager) -> None:
+def reconcile(manager, auto: bool) -> None:
     "Reconcile add-ons."
     from .matchers import _Addon, match_toc_ids, match_dir_names, get_leftovers
     from .models import is_pkg
@@ -262,6 +265,11 @@ def reconcile(manager) -> None:
         for addons, results in groups:
             shortlist = list(filter(is_pkg, results))
             if shortlist:
+                if auto:
+                    pkg = shortlist[0]
+                    yield Defn(pkg.origin, pkg.slug)
+                    continue
+
                 selection = _prompt(addons, shortlist)
                 selection and (yield selection)
 
@@ -275,6 +283,12 @@ def reconcile(manager) -> None:
 
     if not get_leftovers(manager):
         click.echo('No add-ons left to reconcile.')
+        return
+
+    if auto:
+        for matches in match_all():
+            results = manager.install(matches, replace=True)
+            Report(results.items()).generate()
         return
 
     click.echo('''\
