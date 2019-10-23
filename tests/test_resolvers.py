@@ -8,16 +8,13 @@ from instawow.resolvers import Defn, Strategies
 @pytest.mark.asyncio
 @pytest.mark.parametrize('strategy', [Strategies.default, Strategies.latest])
 async def test_curse(manager, request, strategy):
-    (separate,
-     retail_only,
-     classic_only,
-     flavour_explosion) = (await manager.resolve([Defn('curse', 'tomcats', strategy),
-                                                  Defn('curse', 'method-dungeon-tools', strategy),
-                                                  Defn('curse', 'classiccastbars', strategy),
-                                                  Defn('curse', 'elkbuffbars', strategy)])).values()
+    (separate, retail_only, classic_only, flavour_explosion) = (
+        await manager.resolve([Defn('curse', 'tomcats', strategy),
+                               Defn('curse', 'method-dungeon-tools', strategy),
+                               Defn('curse', 'classiccastbars', strategy),
+                               Defn('curse', 'elkbuffbars', strategy)])).values()
 
     assert isinstance(separate, Pkg)
-
     if manager.config.is_classic:
         assert 'classic' in separate.version
         assert (isinstance(retail_only, E.PkgFileUnavailable)
@@ -29,8 +26,7 @@ async def test_curse(manager, request, strategy):
         assert (isinstance(classic_only, E.PkgFileUnavailable)
                 and classic_only.message == f"no files compatible with retail using '{strategy.name}' strategy")
 
-    versions = {*request.config.cache.get('flavour_explosion', ()),
-                flavour_explosion.version}
+    versions = {*request.config.cache.get('flavour_explosion', ()), flavour_explosion.version}
     assert len(versions) == 1
     request.config.cache.set('flavour_explosion', tuple(versions))
 
@@ -73,13 +69,7 @@ async def test_wowi(manager):
          Defn('wowi', '25180-dejachatclassic'),
          Defn('wowi', '21654', Strategies.latest)])).values()
     assert isinstance(either, Pkg)
-    if manager.config.is_classic:
-        assert (isinstance(retail, E.PkgFileUnavailable)
-                and retail.message == 'file is not compatible with classic')
-        assert isinstance(classic, Pkg)
-    else:
-        assert isinstance(retail, Pkg)
-        assert (isinstance(classic, E.PkgFileUnavailable)
-                and classic.message == 'file is only compatible with classic')
+    assert isinstance(retail, Pkg)
+    assert isinstance(classic, Pkg)
     assert (isinstance(invalid, E.PkgStrategyUnsupported)
             and invalid.message == "'latest' strategy is not valid for source")

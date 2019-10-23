@@ -218,7 +218,12 @@ class WowiResolver(Resolver, _FileCacheMixin):
     name = 'WoWInterface'
     strategies = {Strategies.default}
 
-    # https://api.mmoui.com/v3/globalconfig.json
+    # Reference: https://api.mmoui.com/v3/globalconfig.json
+    # There's also a v4 API for the as yet unreleased Minion v4 which I
+    # would assume is unstable.  From a cursory glance it looks like they've
+    # renamed all fields in camelCase; change the type of
+    # some numeric-only fields to a number; and removed 'UISiblings'
+    # which was always empty
     list_api_url = 'https://api.mmoui.com/v3/game/WOW/filelist.json'
     details_api_url = URL('https://api.mmoui.com/v3/game/WOW/filedetails/')
 
@@ -277,17 +282,20 @@ class WowiResolver(Resolver, _FileCacheMixin):
         if metadata['UIPending'] == '1':
             raise E.PkgFileUnavailable('new file awaiting approval')
 
-        # The file is only assumed to be compatible with classic if 'WoW Classic'
-        # is listed under compatibility, and incompatible with retail if
-        # 'WoW Classic' is the sole element in the array.  I'm not sure
-        # when 'UICompatibility' was added but it's very often not populated
-        # for retail add-ons *shrugsies*
-        compatibility = {e['name'].lower() for e in metadata['UICompatibility'] or ()}
-        if self.config.is_classic:
-            if 'wow classic' not in compatibility:
-                raise E.PkgFileUnavailable('file is not compatible with classic')
-        elif compatibility and not compatibility - {'wow classic'}:
-            raise E.PkgFileUnavailable('file is only compatible with classic')
+        # WoWInterface has recently moved to a multi-file setup like CurseForge
+        # and they botched it, like, completely.  Classic add-on files aren't
+        # included in the API response and 'UICompatibility' can include either
+        # retail or classic or both (!) but the file linked to from the API
+        # is always the retail version.  You can have an add-on that is
+        # nominally compatible with classic but if you were to install it
+        # for classic you'd get the retail version and if you were to attempt
+        # to install it for retail instawow might report that it's
+        # incompatible.  The way they rushed this out without an ounce of
+        # thought or care for their own add-on manager and considering it
+        # hasn't received a proper update closing in on 3 years makes me
+        # doubt that a fix is on the horizon.  There isn't a sensible way for
+        # instawow to discern what version of the game a file's compatible with
+        # so it opts to not opt to do anything at all.  Good luck and godspeed.
 
         return M.Pkg(origin=self.source,
                      id=metadata['UID'],
