@@ -15,10 +15,14 @@ def test_strs_are_coerced_to_paths(full_config):
     assert config.temp_dir == full_config['temp_dir']
 
 
-def test_config_from_env_var(partial_config, tmp_path):
+def test_env_vars_have_prio(full_config, tmp_path):
     config1 = tmp_path / 'config1'
-    with patch.dict(os.environ, {'INSTAWOW_CONFIG_DIR': str(config1)}):
-        assert Config(**partial_config).config_dir == config1
+    flavour = 'classic'
+    env_overrides = {'INSTAWOW_CONFIG_DIR': str(config1), 'INSTAWOW_GAME_FLAVOUR': flavour}
+    with patch.dict(os.environ, env_overrides):
+        config = Config(**full_config)
+        assert config.config_dir == config1
+        assert config.game_flavour == flavour
 
 
 def test_config_dir_is_populated(full_config):

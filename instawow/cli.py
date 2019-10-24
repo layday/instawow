@@ -161,7 +161,7 @@ def main(ctx, debug):
 
                 while True:
                     try:
-                        config = Config.read().write()
+                        config = Config.read()
                     except FileNotFoundError:
                         ctx.invoke(write_config)
                     else:
