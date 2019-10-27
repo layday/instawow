@@ -500,8 +500,8 @@ def write_config() -> None:
             super().__init__(*args, expanduser=True, only_directories=True, **kwargs)
 
         def get_completions(self, document, complete_event):
-            # Append slash to every completion
             for completion in super().get_completions(document, complete_event):
+                # Append slash to completions so we don't have to insert a '/' after every <tab>
                 completion.text += '/'
                 yield completion
 
@@ -516,11 +516,15 @@ def write_config() -> None:
                         completer=ad_completer, validator=ad_validator)
 
     game_flavours = ('retail', 'classic')
+    folders_to_flavours = [('_classic_', 'classic'),
+                           ('_retail_', 'retail'), ('_ptr_', 'retail')]
     gf_completer = WordCompleter(game_flavours)
     gf_validator = Validator.from_callable(
         game_flavours.__contains__,
         error_message=f'must be one of: {", ".join(game_flavours)}')
-    game_flavour = prompt_('Game flavour: ',
+    # Crude but the user's able to change the selection
+    gf_default = next((f for s, f in folders_to_flavours if s in addon_dir), '')
+    game_flavour = prompt_('Game flavour: ', default=gf_default,
                            completer=gf_completer, validator=gf_validator)
 
     config = Config(addon_dir=addon_dir, game_flavour=game_flavour).write()
