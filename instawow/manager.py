@@ -148,12 +148,12 @@ def prepare_db_session(config: Config) -> scoped_session:
     return scoped_session(sessionmaker(bind=engine))
 
 
-async def init_web_client(**kwargs: Any) -> aiohttp.ClientSession:
+def init_web_client(**kwargs: Any) -> aiohttp.ClientSession:
     from aiohttp import ClientSession, TCPConnector
 
     kwargs = {'connector': TCPConnector(force_close=True, limit_per_host=10),
               'headers': {'User-Agent': USER_AGENT},
-              'trust_env': True,
+              'trust_env': True,    # Respect http_proxy env var
               **kwargs}
     return ClientSession(**kwargs)
 
@@ -361,7 +361,7 @@ async def cancel_tickers() -> AsyncGenerator[None, None]:
             ticker.cancel()
 
 
-async def init_cli_web_client(*, manager: CliManager) -> aiohttp.ClientSession:
+def init_cli_web_client(*, manager: CliManager) -> aiohttp.ClientSession:
     from cgi import parse_header
     from aiohttp import TraceConfig
 
@@ -394,7 +394,7 @@ async def init_cli_web_client(*, manager: CliManager) -> aiohttp.ClientSession:
     trace_config = TraceConfig()
     trace_config.on_request_end.append(do_on_request_end)
     trace_config.freeze()
-    return await init_web_client(trace_configs=[trace_config])
+    return init_web_client(trace_configs=[trace_config])
 
 
 async def _intercept(fn: Callable) -> E.ManagerResult:
@@ -429,7 +429,7 @@ class CliManager(Manager):
     def run(self, awaitable: Awaitable) -> Any:
         "Run ``awaitable`` inside an explicit context."
         async def do_run():
-            async with (await init_cli_web_client(manager=self)) as self.web_client:
+            async with init_cli_web_client(manager=self) as self.web_client:
                 return await awaitable
 
         runner = lambda: self.loop.run_until_complete(do_run())

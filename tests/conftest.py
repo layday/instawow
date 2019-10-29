@@ -34,7 +34,7 @@ def cassette(request):
 
 @pytest.fixture
 async def web_client():
-    async with (await init_web_client()) as web_client:
+    async with init_web_client() as web_client:
         yield web_client
 
 
