@@ -21,7 +21,7 @@ class _Addon(NamedTuple):
 
     @property
     def version(self) -> str:
-        return self.reader['Version', 'X-Packaged-Version'].value
+        return self.reader['Version', 'X-Packaged-Version', 'X-Curse-Packaged-Version'].value
 
 
 async def match_toc_ids(manager: Manager, leftovers: Set[str]) -> Iterable[Tuple[List[_Addon], List[Any]]]:
