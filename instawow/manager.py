@@ -375,7 +375,9 @@ async def init_cli_web_client(*, manager: CliManager) -> aiohttp.ClientSession:
                                 ctx: SimpleNamespace,
                                 params: aiohttp.TraceRequestEndParams) -> None:
         if ctx.trace_request_ctx and ctx.trace_request_ctx.get('show_progress'):
-            bar = manager.bar(label=f'Downloading {extract_filename(params)}',
+            label = (ctx.trace_request_ctx.get('label')
+                     or f'Downloading {extract_filename(params)}')
+            bar = manager.bar(label=label,
                               total=(params.response.content_length or 0))
 
             async def ticker(bar=bar, params=params) -> None:
