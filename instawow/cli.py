@@ -112,7 +112,24 @@ def parse_into_defn_with_strategy(manager, value: List[Tuple[str, str]]) -> List
     return list(map(Defn.with_strategy, defns, strategies))
 
 
+def export_to_csv(pkgs: List[models.Pkg]) -> str:
+    "Export packages to CSV."
+    import csv
+    import io
 
+    buffer = io.StringIO()
+    writer = csv.writer(buffer)
+    writer.writerow(('defn', 'strategy'))
+    writer.writerows((Defn(p.origin, p.slug), p.options.strategy) for p in pkgs)
+    return buffer.getvalue()
+
+
+def import_from_csv(manager, value: Iterable[str]) -> List[Defn]:
+    "Import definitions from CSV."
+    import csv
+
+    rows = [(b, a) for a, b in islice(csv.reader(value), 1, None)]
+    return parse_into_defn_with_strategy(manager, rows)
 
 
 def format_deps(manager, pkg: models.Pkg) -> List[str]:
@@ -183,6 +200,9 @@ def _make_install_epilog(formatter):
 
 
 @main.command(cls=_FreeFormEpilogCommand, epilog=_make_install_epilog)
+@click.option('--replace', '-o',
+              is_flag=True, default=False,
+              help='Replace existing add-ons.')
 @click.option('--with-strategy', '-s', 'strategic_addons',
               multiple=True,
               type=(click.Choice([s.name for s in Strategies]), str),
@@ -192,18 +212,25 @@ def _make_install_epilog(formatter):
                    'Use this if you want to install an add-on with a '
                    'strategy other than the default one.  '
                    'Repeatable.')
-@click.option('--replace', '-o',
-              is_flag=True, default=False,
-              help='Replace existing add-ons.')
+@click.option('--import', '-i', 'imported_addons',
+              type=click.File(encoding='utf-8'),
+              callback=import_from_csv_cb,
+              help='Install add-ons from CSV.')
 @click.argument('addons',
                 nargs=-1,
                 callback=parse_into_defn_cb)
 @pass_manager
-def install(manager, addons: Sequence[Defn], strategic_addons: Sequence[Defn], replace: bool) -> None:
+def install(manager, replace: bool,
+            addons: Sequence[Defn], strategic_addons: Sequence[Defn],
+            imported_addons: Sequence[Defn]) -> None:
     "Install add-ons."
-    deduped_addons = bucketise(chain(strategic_addons, addons), key=itemgetter(0, 1))
-    values = [v for v, *_ in deduped_addons.values()]
-    results = manager.install(values, replace)
+    if not any((addons, strategic_addons, imported_addons)):
+        raise click.UsageError('No add-ons given.')
+
+    # imported_addons > strategic_addons > addons
+    defn_buckets = bucketise(chain(imported_addons, strategic_addons, addons), key=itemgetter(0, 1))
+    deduped_addons = [v for v, *_ in defn_buckets.values()]
+    results = manager.install(deduped_addons, replace)
     Report(results.items()).generate_and_exit()
 
 
@@ -365,10 +392,14 @@ _cols = ('origin',
               help="An 'ORDER BY' clause to order the table by, "
                    'e.g. `--order-by="origin, date_published DESC"`.  '
                    'Input is not sanitised.')
+@click.option('--export', '-e',
+              is_flag=True, default=False,
+              help='Export listed add-ons to CSV.')
 @pass_manager
-def list_installed(manager, columns: Sequence[str], filter_by: str, order_by: str) -> None:
+def list_installed(manager, columns: Sequence[str],
+                   filter_by: str, order_by: str, export: bool) -> None:
     "List installed add-ons."
-    from sqlalchemy import text
+    from sqlalchemy import text as sql_text
 
     def format_columns(pkg):
         for column, value in ((c, getattr(pkg, c)) for c in columns):
@@ -384,12 +415,14 @@ def list_installed(manager, columns: Sequence[str], filter_by: str, order_by: st
                 yield value
 
     pkgs = (manager.db_session.query(models.Pkg)
-            .filter(text(filter_by)).order_by(text(order_by))
-            .all())
+            .filter(sql_text(filter_by)).order_by(sql_text(order_by)).all())
     if pkgs:
-        rows = [('add-on', *columns),
-                *((Defn(p.origin, p.slug), *format_columns(p)) for p in pkgs)]
-        click.echo(tabulate(rows))
+        if export:
+            click.echo(export_to_csv(pkgs), nl=False)
+        else:
+            rows = [('add-on', *columns),
+                    *((Defn(p.origin, p.slug), *format_columns(p)) for p in pkgs)]
+            click.echo(tabulate(rows))
 
 
 @main.command()

@@ -49,14 +49,13 @@ def run(obj, request):
 
 
 @pytest.fixture(scope='class')
-def run_moli_run(run):
+def molinari_and_run(run):
     run('install curse:molinari')
     yield run
 
 
 @pytest.mark.curse
 class TestValidCursePkgLifecycle:
-
     @pytest.mark.parametrize(
         'input, cmp',
         [('install curse:molinari',
@@ -77,7 +76,6 @@ class TestValidCursePkgLifecycle:
 
 @pytest.mark.tukui
 class TestValidTukuiPkgLifecycle:
-
     @pytest.mark.parametrize(
         'input, cmp, run',
         [('install tukui:3',
@@ -126,7 +124,6 @@ class TestValidTukuiPkgLifecycle:
 
 @pytest.mark.wowi
 class TestValidWowiPkgLifecycle:
-
     @pytest.mark.parametrize(
         'input, cmp, run',
         [('install wowi:13188-molinari',
@@ -174,7 +171,6 @@ class TestValidWowiPkgLifecycle:
 
 
 class TestFolderConflictLifecycle:
-
     @pytest.mark.parametrize('input, cmp, run',
                              [('install curse:molinari',
                                lambda v: v.startswith('✓ curse:molinari\n  installed'),
@@ -192,7 +188,6 @@ class TestFolderConflictLifecycle:
 
 
 class TestPreexistingFolderConflictOnInstall:
-
     def test_preexisting_folder_conflict_on_install(self, obj, run):
         (obj.m.config.addon_dir / 'Molinari').mkdir()
         assert (run('install curse:molinari').output
@@ -201,7 +196,6 @@ class TestPreexistingFolderConflictOnInstall:
 
 
 class TestInvalidAddonNameLifecycle:
-
     @pytest.mark.parametrize('input, output',
                              [('install curse:gargantuan-wigs',
                                '✗ curse:gargantuan-wigs\n  package does not exist\n'),
@@ -214,7 +208,6 @@ class TestInvalidAddonNameLifecycle:
 
 
 class TestInvalidOriginLifecycle:
-
     @pytest.mark.parametrize('input, output',
                              [('install foo:bar',
                                '✗ foo:bar\n  package source is invalid\n'),
@@ -227,7 +220,6 @@ class TestInvalidOriginLifecycle:
 
 
 class TestInstallWithAlias:
-
     @pytest.mark.curse
     @pytest.mark.parametrize(
         'input, cmp',
@@ -285,18 +277,36 @@ class TestInstallWithAlias:
 
 
 class TestMissingDirOnRemove:
-
-    def test_missing_dir_on_remove(self, obj, run_moli_run):
-        (obj.m.config.addon_dir / 'Molinari').rename(obj.m.config.addon_dir / 'NotMolinari')
-        assert run_moli_run('remove curse:molinari').output == '✓ curse:molinari\n  removed\n'
+    def test_missing_dir_on_remove(self, obj, molinari_and_run):
+        addon_dir = obj.m.config.addon_dir
+        (addon_dir / 'Molinari').rename(addon_dir / 'NotMolinari')
+        assert molinari_and_run('remove curse:molinari').output == '✓ curse:molinari\n  removed\n'
 
 
 class TestNonDestructiveOps:
-
     @pytest.mark.parametrize('command, exit_code',
                              [('info mol', 0), ('info foo', 1),
                               ('visit mol', 0), ('visit foo', 1),
                               ('reveal mol', 0), ('reveal foo', 1),])
     @patch('webbrowser.open', lambda v: ...)
-    def test_substr_op_exit_codes(self, run_moli_run, command, exit_code):
-        assert run_moli_run(command).exit_code == exit_code
+    def test_substr_op_exit_codes(self, molinari_and_run, command, exit_code):
+        assert molinari_and_run(command).exit_code == exit_code
+
+
+class TestCsvExportImport:
+    @pytest.fixture(autouse=True)
+    def export(self, molinari_and_run, tmp_path):
+        self.export_csv = tmp_path / 'export.csv'
+        self.export_csv.write_text(molinari_and_run('list -e').output, encoding='utf-8')
+
+    def test_export_to_csv(self):
+        assert self.export_csv.read_text(encoding='utf-8') == '''\
+defn,strategy
+curse:molinari,default
+'''
+
+    def test_import_from_csv(self, molinari_and_run):
+        assert molinari_and_run(f'install -i {self.export_csv}').output == '''\
+✗ curse:molinari
+  package already installed
+'''
