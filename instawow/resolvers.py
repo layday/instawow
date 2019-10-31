@@ -7,8 +7,8 @@ from itertools import takewhile
 import json
 from operator import itemgetter
 import re
-from typing import TYPE_CHECKING, cast
-from typing import Any, Callable, ClassVar, Dict, List, NamedTuple, Optional, Set, Tuple
+from typing import (TYPE_CHECKING, cast,
+                    Any, Callable, ClassVar, Dict, List, NamedTuple, Optional, Set, Tuple)
 
 from loguru import logger
 from yarl import URL

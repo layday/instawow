@@ -12,7 +12,7 @@ from typing import (Any, Awaitable, Callable, Iterable, List, NamedTuple,
                     Optional, Tuple, Type, TypeVar, Union)
 
 try:
-    from typing import Literal      # type: ignore
+    from typing import Literal
 except ImportError:
     from typing_extensions import Literal
 

@@ -8,7 +8,7 @@ import click
 import pydantic
 
 try:
-    from typing import Literal      # type: ignore
+    from typing import Literal
 except ImportError:
     from typing_extensions import Literal
 

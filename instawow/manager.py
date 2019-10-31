@@ -12,12 +12,10 @@ from tempfile import NamedTemporaryFile, mkdtemp
 from typing import *
 
 from loguru import logger
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, scoped_session
 
-from . import db_version
+from . import DB_REVISION
 from . import exceptions as E
-from .models import ModelBase, Pkg, PkgFolder, should_migrate, is_pkg
+from .models import Pkg, PkgFolder, is_pkg
 from .resolvers import (Defn, Strategies,
                         CurseResolver, WowiResolver, TukuiResolver, InstawowResolver)
 from .utils import (bucketise, cached_property, dict_merge, gather,
@@ -26,6 +24,7 @@ from .utils import (bucketise, cached_property, dict_merge, gather,
 if TYPE_CHECKING:
     from types import SimpleNamespace
     import aiohttp
+    from sqlalchemy.orm import scoped_session
     from .config import Config
 
 
@@ -78,7 +77,7 @@ def _should_extract(base_dirs):
     return is_member
 
 
-def Archive(path: PurePath, delete_after: bool) -> Callable:
+def Archive(path: Path, delete_after: bool) -> Callable:
     from zipfile import ZipFile
 
     @asynccontextmanager
@@ -98,7 +97,7 @@ def Archive(path: PurePath, delete_after: bool) -> Callable:
         def exit_() -> None:
             zip_file.close()
             if delete_after:
-                path.unlink()   # type: ignore
+                path.unlink()
 
         try:
             yield (sorted(base_dirs), run_in_thread(extract))
@@ -114,7 +113,7 @@ async def download_archive(pkg: Pkg, *, chunk_size: int = 4096) -> Callable:
         from urllib.parse import unquote
 
         path = PurePath(unquote(url[7:]))
-        return Archive(path, delete_after=False)
+        return Archive(path, delete_after=False)    # type: ignore
     else:
         async with (_web_client.get()
                     .get(url, trace_request_ctx={'show_progress': True})) as response, \
@@ -125,6 +124,10 @@ async def download_archive(pkg: Pkg, *, chunk_size: int = 4096) -> Callable:
 
 
 def prepare_db_session(config: Config) -> scoped_session:
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import sessionmaker, scoped_session
+    from .models import ModelBase, should_migrate
+
     db_path = config.config_dir / 'db.sqlite'
     db_url = f'sqlite:///{db_path}'
     # We need to distinguish between newly-created databases and
@@ -133,17 +136,17 @@ def prepare_db_session(config: Config) -> scoped_session:
     db_exists = db_path.exists()
 
     engine = create_engine(db_url)
-    if should_migrate(engine, db_version):
+    if should_migrate(engine, DB_REVISION):
         from .migrations import make_config, stamp, upgrade
 
         alembic_config = make_config(db_url)
         if db_exists:
-            logger.info(f'migrating database to {db_version}')
-            upgrade(alembic_config, db_version)
+            logger.info(f'migrating database to {DB_REVISION}')
+            upgrade(alembic_config, DB_REVISION)
         else:
             ModelBase.metadata.create_all(engine)
-            logger.info(f'stamping database with {db_version}')
-            stamp(alembic_config, db_version)
+            logger.info(f'stamping database with {DB_REVISION}')
+            stamp(alembic_config, DB_REVISION)
 
     return scoped_session(sessionmaker(bind=engine))
 
@@ -201,7 +204,7 @@ class Manager:
     def web_client(self, value: aiohttp.ClientSession) -> None:
         _web_client.set(value)
 
-    def get(self, defn: Defn) -> Pkg:
+    def get(self, defn: Defn) -> Optional[Pkg]:
         "Retrieve a package from the database."
         return (self.db_session.query(Pkg)
                 .filter(Pkg.origin == defn.source,
@@ -209,8 +212,7 @@ class Manager:
                 .first())
 
     async def _resolve_deps(self, results: Iterable[Any]) -> Dict[Defn, Any]:
-        """
-        Resolve package dependencies.
+        """Resolve package dependencies.
 
         The resolver will not follow dependencies
         more than one level deep.  This is to avoid unnecessary
@@ -382,7 +384,7 @@ def init_cli_web_client(*, manager: CliManager) -> aiohttp.ClientSession:
 
             async def ticker(bar=bar, params=params) -> None:
                 try:
-                    while not params.response.content._eof:
+                    while not params.response.content.is_eof():
                         bar.current = params.response.content._cursor
                         await asyncio.sleep(_tick_interval)
                 finally:
@@ -397,16 +399,6 @@ def init_cli_web_client(*, manager: CliManager) -> aiohttp.ClientSession:
     return init_web_client(trace_configs=[trace_config])
 
 
-async def _intercept(fn: Callable) -> E.ManagerResult:
-    try:
-        return await fn()
-    except E.ManagerError as error:
-        return error
-    except Exception as error:
-        logger.exception('internal error')
-        return E.InternalError(error)
-
-
 class CliManager(Manager):
 
     def __init__(self, config: Config, db_session: scoped_session,
@@ -415,13 +407,29 @@ class CliManager(Manager):
         self.progress_bar_factory = progress_bar_factory or make_progress_bar
         self.loop = asyncio.new_event_loop()
 
-    @logger.catch(reraise=True)
+    def get_from_substr(self, defn: Defn) -> Optional[Pkg]:
+        pkg = self.get(defn)
+        if not pkg:
+            pkg = (self.db_session.query(Pkg)
+                   .filter(Pkg.slug.contains(defn.name)).order_by(Pkg.name)
+                   .first())
+        return pkg
+
     def _process(self, prepper: Callable, uris: Sequence[Defn],
                  *args: Any, **kwargs: Any) -> Dict[Defn, E.ManagerResult]:
+        async def intercept(fn: Callable) -> E.ManagerResult:
+            try:
+                return await fn()
+            except E.ManagerError as error:
+                return error
+            except Exception as error:
+                logger.exception('internal error')
+                return E.InternalError(error)
+
         async def do_process():
             async with cancel_tickers():
                 coros = await prepper(list(uris), *args, **kwargs)
-                return {d: await _intercept(c) for d, c in coros.items()}
+                return {d: await intercept(c) for d, c in coros.items()}
 
         with self.bar:
             return self.run(do_process())
