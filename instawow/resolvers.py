@@ -14,12 +14,11 @@ from loguru import logger
 from yarl import URL
 
 from . import exceptions as E
-from . import _models as M
+from . import models as m
 from .utils import ManagerAttrAccessMixin, gather, run_in_thread as t, slugify, is_not_stale
 
 if TYPE_CHECKING:
     from .manager import Manager
-    from .models import Pkg
 
 
 class Strategies(Enum):
@@ -48,7 +47,7 @@ class Defn(NamedTuple):
 
 def validate_strategy(method: Callable) -> Callable:
     @wraps(method)
-    async def wrapper(self, defn: Defn, *args: Any, **kwargs: Any) -> Pkg:
+    async def wrapper(self, defn: Defn, *args: Any, **kwargs: Any) -> m.Pkg:
         if defn.strategy in self.strategies:
             return await method(self, defn, *args, **kwargs)
         raise E.PkgStrategyUnsupported(defn.strategy)
@@ -143,7 +142,7 @@ class CurseResolver(Resolver, _FileCacheMixin):
         return results
 
     @validate_strategy
-    async def resolve_one(self, defn: Defn, metadata: Optional[dict]) -> Pkg:
+    async def resolve_one(self, defn: Defn, metadata: Optional[dict]) -> m.Pkg:
         if not metadata:
             raise E.PkgNonexistent
         elif not metadata['latestFiles']:
@@ -195,10 +194,10 @@ class CurseResolver(Resolver, _FileCacheMixin):
         # 4 = tool
         # 5 = incompatible
         # 6 = include (wat)
-        deps = [M.PkgDep(id=d['addonId']) for d in file['dependencies']
+        deps = [m.PkgDep(id=d['addonId']) for d in file['dependencies']
                 if d['type'] == 3]
 
-        return M.Pkg(origin=self.source,
+        return m.Pkg(origin=self.source,
                      id=metadata['id'],
                      slug=metadata['slug'],
                      name=metadata['name'],
@@ -208,7 +207,7 @@ class CurseResolver(Resolver, _FileCacheMixin):
                      download_url=file['downloadUrl'],
                      date_published=file['fileDate'],
                      version=file['displayName'],
-                     options=M.PkgOptions(strategy=defn.strategy.name),
+                     options=m.PkgOptions(strategy=defn.strategy.name),
                      deps=deps)
 
 
@@ -276,7 +275,7 @@ class WowiResolver(Resolver, _FileCacheMixin):
         return results
 
     @validate_strategy
-    async def resolve_one(self, defn: Defn, metadata: Optional[dict]) -> Pkg:
+    async def resolve_one(self, defn: Defn, metadata: Optional[dict]) -> m.Pkg:
         if not metadata:
             raise E.PkgNonexistent
         if metadata['UIPending'] == '1':
@@ -297,7 +296,7 @@ class WowiResolver(Resolver, _FileCacheMixin):
         # instawow to discern what version of the game a file's compatible with
         # so it opts to not opt to do anything at all.  Good luck and godspeed.
 
-        return M.Pkg(origin=self.source,
+        return m.Pkg(origin=self.source,
                      id=metadata['UID'],
                      slug=slugify(f'{metadata["UID"]} {metadata["UIName"]}'),
                      name=metadata['UIName'],
@@ -307,7 +306,7 @@ class WowiResolver(Resolver, _FileCacheMixin):
                      download_url=metadata['UIDownload'],
                      date_published=metadata['UIDate'],
                      version=metadata['UIVersion'],
-                     options=M.PkgOptions(strategy=defn.strategy.name))
+                     options=m.PkgOptions(strategy=defn.strategy.name))
 
 
 class TukuiResolver(Resolver):
@@ -332,7 +331,7 @@ class TukuiResolver(Resolver):
         return dict(zip(defns, results))
 
     @validate_strategy
-    async def resolve_one(self, defn: Defn) -> Pkg:
+    async def resolve_one(self, defn: Defn) -> m.Pkg:
         id_ = ''.join(takewhile('-'.__ne__, defn.name))
         is_ui = id_ in {'elvui', 'tukui'}
 
@@ -358,14 +357,14 @@ class TukuiResolver(Resolver):
                               'date_published': addon['lastupdate'],
                               'file_id': addon['lastupdate']}
 
-        return M.Pkg(origin=self.source,
+        return m.Pkg(origin=self.source,
                      id=addon['id'],
                      name=addon['name'],
                      description=addon['small_desc'],
                      url=addon['web_url'],
                      download_url=addon['url'],
                      version=addon['version'],
-                     options=M.PkgOptions(strategy=defn.strategy.name),
+                     options=m.PkgOptions(strategy=defn.strategy.name),
                      **divergent_args)
 
 
@@ -387,7 +386,7 @@ class InstawowResolver(Resolver):
         return dict(zip(defns, results))
 
     @validate_strategy
-    async def resolve_one(self, defn: Defn) -> Pkg:
+    async def resolve_one(self, defn: Defn) -> m.Pkg:
         try:
             id_, slug = next(p for p in self._addons if defn.name in p)
         except StopIteration:
@@ -402,7 +401,7 @@ class InstawowResolver(Resolver):
             except ValueError as error:
                 raise E.PkgFileUnavailable('account name not provided') from error
 
-        return M.Pkg(origin=self.source,
+        return m.Pkg(origin=self.source,
                      id=id_,
                      slug=slug,
                      name='WeakAuras Companion',
@@ -412,4 +411,4 @@ class InstawowResolver(Resolver):
                      download_url=builder.file_out.as_uri(),
                      date_published=datetime.now(),
                      version='1.0.0',
-                     options=M.PkgOptions(strategy=defn.strategy.name))
+                     options=m.PkgOptions(strategy=defn.strategy.name))

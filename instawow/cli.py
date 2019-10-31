@@ -13,7 +13,7 @@ import click
 from . import __version__
 from .config import Config
 from . import exceptions as E
-from . import _models as models
+from . import models
 from .resolvers import Strategies, Defn
 from .utils import TocReader, bucketise, cached_property, is_outdated, setup_logging, bbegone
 
