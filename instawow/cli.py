@@ -4,9 +4,10 @@ from enum import Enum
 from functools import partial, wraps
 from itertools import chain, count, islice
 from operator import itemgetter
+from pathlib import Path
 from textwrap import fill
 from typing import (TYPE_CHECKING, cast,
-                     Any, Callable, Generator, Iterable, List, Sequence, Tuple, Union)
+                    Any, Callable, Generator, Iterable, List, Optional, Sequence, Tuple, Union)
 
 import click
 
@@ -393,11 +394,11 @@ _cols = ('origin',
                    'e.g. `--order-by="origin, date_published DESC"`.  '
                    'Input is not sanitised.')
 @click.option('--export', '-e',
-              is_flag=True, default=False,
+              default=None, type=click.Path(dir_okay=False),
               help='Export listed add-ons to CSV.')
 @pass_manager
 def list_installed(manager, columns: Sequence[str],
-                   filter_by: str, order_by: str, export: bool) -> None:
+                   filter_by: str, order_by: str, export: Optional[str]) -> None:
     "List installed add-ons."
     from sqlalchemy import text as sql_text
 
@@ -418,7 +419,7 @@ def list_installed(manager, columns: Sequence[str],
             .filter(sql_text(filter_by)).order_by(sql_text(order_by)).all())
     if pkgs:
         if export:
-            click.echo(export_to_csv(pkgs), nl=False)
+            Path(export).write_text(export_to_csv(pkgs), encoding='utf-8')
         else:
             rows = [('add-on', *columns),
                     *((Defn(p.origin, p.slug), *format_columns(p)) for p in pkgs)]

@@ -297,7 +297,7 @@ class TestCsvExportImport:
     @pytest.fixture(autouse=True)
     def export(self, molinari_and_run, tmp_path):
         self.export_csv = tmp_path / 'export.csv'
-        self.export_csv.write_text(molinari_and_run('list -e').output, encoding='utf-8')
+        molinari_and_run(f'list -e {self.export_csv}')
 
     def test_export_to_csv(self):
         assert self.export_csv.read_text(encoding='utf-8') == '''\
