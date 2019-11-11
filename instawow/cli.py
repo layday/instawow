@@ -150,13 +150,19 @@ def pass_manager(fn: Callable) -> Callable:
 
 parse_into_defn_cb = lambda c, _, v, **k: parse_into_defn(c.obj.m, v, **k)
 parse_into_defn_with_strategy_cb = lambda c, _, v: parse_into_defn_with_strategy(c.obj.m, v)
-import_from_csv_cb = lambda c, _, v: import_from_csv(c.obj.m, v) if v else []
+import_from_csv_cb = lambda c, _, v: import_from_csv(c.obj.m, v)
 
 
 class _FreeFormEpilogCommand(click.Command):
 
     def format_epilog(self, ctx, formatter):
         self.epilog(formatter)      # type: ignore
+
+
+class _AlwaysIterFile(click.File):
+
+    def __call__(self, value, param=None, ctx=None):
+        return self.convert(value, param, ctx) if value else ()
 
 
 @click.group(context_settings={'help_option_names': ('-h', '--help')})
@@ -214,7 +220,7 @@ def _make_install_epilog(formatter):
                    'strategy other than the default one.  '
                    'Repeatable.')
 @click.option('--import', '-i', 'imported_addons',
-              type=click.File(encoding='utf-8'),
+              type=_AlwaysIterFile(encoding='utf-8'),
               callback=import_from_csv_cb,
               help='Install add-ons from CSV.')
 @click.argument('addons',
