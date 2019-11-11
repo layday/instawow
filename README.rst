@@ -11,6 +11,11 @@ add-ons quick and painless for those of us who are
 and do not revel in using bloatware which infringe on our privacy
 or inhabiting walled gardens.
 
+.. image:: https://asciinema.org/a/NfIonzvUn65jEl9v0D2WQJdLl.svg
+   :width: 640
+   :alt: Asciicast demonstrating the operation of instawow.
+   :target: https://asciinema.org/a/NfIonzvUn65jEl9v0D2WQJdLl?autoplay=1
+
 Installation
 ------------
 
