@@ -44,13 +44,14 @@ class _Config(pydantic.BaseSettings):
         kwargs = {'exclude': {'config_dir'}, 'indent': 2, **kwargs}
         return super().json(**kwargs)
 
-    def write(self) -> _Config:
-        for dir_ in (self.config_dir,
-                     self.logger_dir,
-                     self.plugin_dir,
-                     self.temp_dir,):
+    def ensure_dirs(self) -> _Config:
+        self.config_dir.mkdir(exist_ok=True, parents=True)
+        for dir_ in self.logger_dir, self.plugin_dir, self.temp_dir:
             dir_.mkdir(exist_ok=True)
+        return self
 
+    def write(self) -> _Config:
+        self.ensure_dirs()
         self.config_file.write_text(self.json(), encoding='utf-8')
         return self
 

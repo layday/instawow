@@ -183,7 +183,7 @@ def main(ctx, debug: bool) -> None:
 
                 while True:
                     try:
-                        config = Config.read()
+                        config = Config.read().ensure_dirs()
                     except FileNotFoundError:
                         ctx.invoke(write_config)
                     else:
