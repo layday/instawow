@@ -2,10 +2,9 @@ from __future__ import annotations
 
 from enum import Enum
 from functools import partial, wraps
-from itertools import chain, count, islice
+from itertools import chain, islice
 from operator import itemgetter
 from pathlib import Path
-from textwrap import fill
 from typing import (TYPE_CHECKING, cast,
                     Any, Callable, Generator, Iterable, List, Optional, Sequence, Tuple, Union)
 
@@ -15,7 +14,7 @@ from . import __version__
 from . import exceptions as E
 from . import models
 from .resolvers import Strategies, Defn
-from .utils import TocReader, bucketise, cached_property, is_outdated, setup_logging, bbegone
+from .utils import TocReader, bucketise, cached_property, is_outdated, setup_logging, tabulate
 
 if TYPE_CHECKING:
     from .manager import CliManager
@@ -57,8 +56,7 @@ class Report:
             (f'{Symbols.from_result(r)} {click.style(str(a), bold=True)}\n'
              f'  {r.message}')
             for a, r in self.results
-            if self.filter_fn(r)
-            )
+            if self.filter_fn(r))
 
     def generate(self) -> None:
         report = str(self)
@@ -71,29 +69,16 @@ class Report:
         ctx.exit(self.code)
 
 
-def tabulate(rows: Sequence, *, dl: bool = False, max_width: int = 0) -> str:
-    from texttable import Texttable
-
-    table = Texttable(max_width=max_width)
-    if dl:
-        table.set_deco(False)
-        rows = [(), *rows]
-    else:
-        table.set_cols_align('r' + 'l' * len(rows[1]))
-        table.set_deco(Texttable.BORDER | Texttable.HEADER | Texttable.VLINES)
-        rows = list(map(lambda c, r: (c, *r), chain(('',), count(start=1)), rows))
-
-    return table.add_rows(rows).draw()
-
-
 def parse_into_defn(manager, value: Union[str, Sequence[str]], *,
-                    raise_when_invalid: bool = True) -> Union[Defn, List[Defn]]:
+                    raise_invalid: bool = True) -> Union[Defn, List[Defn]]:
     if isinstance(value, (list, tuple)):
-        return list(bucketise(parse_into_defn(manager, v) for v in value))   # Remove dupes
+        # Bucketise to remove dupes
+        return list(bucketise(parse_into_defn(manager, v, raise_invalid=raise_invalid)
+                              for v in value))
 
     value = cast(str, value)
     if ':' not in value:
-        if raise_when_invalid:
+        if raise_invalid:
             raise click.BadParameter(value)
 
         parts = ('*', value)
@@ -131,12 +116,6 @@ def import_from_csv(manager, value: Iterable[str]) -> List[Defn]:
 
     rows = [(b, a) for a, b in islice(csv.reader(value), 1, None)]
     return parse_into_defn_with_strategy(manager, rows)
-
-
-def format_deps(manager, pkg: models.Pkg) -> List[str]:
-    deps = (Defn(pkg.origin, d.id) for d in pkg.deps)
-    deps = (d.with_name(getattr(manager.get(d), 'slug', d.name)) for d in deps)
-    return list(map(str, deps))
 
 
 def pass_manager(fn: Callable) -> Callable:
@@ -234,10 +213,10 @@ def install(manager, replace: bool,
     if not any((addons, strategic_addons, imported_addons)):
         raise click.UsageError('No add-ons given.')
 
-    # imported_addons > strategic_addons > addons
-    defn_buckets = bucketise(chain(imported_addons, strategic_addons, addons), key=itemgetter(0, 1))
-    deduped_addons = [v for v, *_ in defn_buckets.values()]
-    results = manager.install(deduped_addons, replace)
+    all_addons = chain(imported_addons, strategic_addons, addons)
+    defn_buckets = bucketise(all_addons, key=itemgetter(0, 1))
+    deduped_defns = [v for v, *_ in defn_buckets.values()]
+    results = manager.install(deduped_defns, replace)
     Report(results.items()).generate_and_exit()
 
 
@@ -341,7 +320,7 @@ def reconcile(manager, auto: bool) -> None:
             results = manager.install(selections, replace=True)
             Report(results.items()).generate()
     click.echo('- Unreconciled add-ons can be listed with '
-                '`instawow list-folders -e`.')
+               '`instawow list-folders -e`.')
 
 
 @main.command()
@@ -352,7 +331,7 @@ def reconcile(manager, auto: bool) -> None:
                 nargs=-1, required=True, callback=lambda _, __, v: ' '.join(v))
 @click.pass_context
 def search(ctx, limit: int, search_terms: str) -> None:
-    "Search for add-ons."
+    "Search for add-ons to install."
     from .prompts import Choice, checkbox, confirm
 
     manager = ctx.obj.m
@@ -366,70 +345,62 @@ def search(ctx, limit: int, search_terms: str) -> None:
             ctx.invoke(install, addons=selections)
 
 
-# >>> import sqlalchemy
-# >>> (*sqlalchemy.inspect(Pkg).columns.keys(),
-# ...  *sqlalchemy.inspect(Pkg).relationships.keys(),)
-_cols = ('origin',
-         'id',
-         'slug',
-         'name',
-         'description',
-         'url',
-         'file_id',
-         'download_url',
-         'date_published',
-         'version',
-         'folders',
-         'options',
-         'deps',)
-
-
 @main.command('list')
-@click.option('--column', '-c', 'columns',
-              multiple=True,
-              type=click.Choice(_cols),
-              help='A field to show in a column.  Repeatable.')
-@click.option('--filter-by',
-              default='',
-              help="A 'WHERE' clause in SQL to filter the table by, "
-                   'e.g. `--filter-by="origin = \'curse\'"`.  '
-                   'Input is not sanitised so do be careful.')
-@click.option('--order-by',
-              default='name',
-              help="An 'ORDER BY' clause to order the table by, "
-                   'e.g. `--order-by="origin, date_published DESC"`.  '
-                   'Input is not sanitised.')
 @click.option('--export', '-e',
               default=None, type=click.Path(dir_okay=False),
               help='Export listed add-ons to CSV.')
+@click.option('--format', '-f', 'output_format',
+              type=click.Choice(('simple', 'detailed', 'json')),
+              default='simple', show_default=True,
+              help='Change the output format.')
+@click.argument('addons',
+                nargs=-1,
+                callback=partial(parse_into_defn_cb, raise_invalid=False))
 @pass_manager
-def list_installed(manager, columns: Sequence[str],
-                   filter_by: str, order_by: str, export: Optional[str]) -> None:
+def list_installed(manager, addons: Sequence[Defn], export: Optional[str], output_format: str) -> None:
     "List installed add-ons."
-    from sqlalchemy import text as sql_text
+    from sqlalchemy import and_, or_
 
-    def format_columns(pkg):
-        for column, value in ((c, getattr(pkg, c)) for c in columns):
-            if column == 'description':
-                yield fill(bbegone(value), max_lines=2, width=50)
-            elif column == 'folders':
-                yield '\n'.join(f.name for f in value)
-            elif column == 'deps':
-                yield '\n'.join(format_deps(manager, pkg))
-            elif column == 'options':
-                yield tabulate([('strategy', pkg.options.strategy)], dl=True)
-            else:
-                yield value
+    def format_deps(pkg):
+        deps = (Defn(pkg.origin, d.id) for d in pkg.deps)
+        deps = (d.with_name(getattr(manager.get(d), 'slug', d.name)) for d in deps)
+        return map(str, deps)
+
+    def get_desc_from_toc(folders):
+        toc_reader = TocReader.from_path_name(manager.config.addon_dir / pkg.folders[0].name)
+        return toc_reader['Notes'].value
 
     pkgs = (manager.db_session.query(models.Pkg)
-            .filter(sql_text(filter_by)).order_by(sql_text(order_by)).all())
-    if pkgs:
-        if export:
-            Path(export).write_text(export_to_csv(pkgs), encoding='utf-8')
+            .filter(or_(models.Pkg.slug.contains(d.name) if d.source == '*' else
+                        and_(models.Pkg.origin == d.source,
+                             or_(models.Pkg.id == d.name, models.Pkg.slug == d.name))
+                        for d in addons))
+            .order_by(models.Pkg.origin, models.Pkg.name)
+            .all())
+    if export:
+        Path(export).write_text(export_to_csv(pkgs), encoding='utf-8')
+    elif pkgs:
+        if output_format == 'json':
+            from .models import MultiPkgModel
+
+            click.echo(MultiPkgModel.from_orm(pkgs).json(indent=2))
+        elif output_format == 'detailed':
+            formatter = click.HelpFormatter(max_width=99)
+
+            for pkg in pkgs:
+                with formatter.section(Defn(pkg.origin, pkg.slug)):
+                    formatter.write_dl((
+                        ('Name', pkg.name),
+                        ('Description', get_desc_from_toc(pkg) if pkg.origin == 'wowi' else pkg.description),
+                        ('URL', pkg.url),
+                        ('Version', pkg.version),
+                        ('Date published', pkg.date_published.isoformat(' ', 'minutes')),
+                        ('Folders', ', '.join(f.name for f in pkg.folders)),
+                        ('Dependencies', ', '.join(format_deps(pkg)) or ''),
+                        ('Options', f'{{"strategy": "{pkg.options.strategy}"}}'),))
+            click.echo(formatter.getvalue(), nl=False)
         else:
-            rows = [('add-on', *columns),
-                    *((Defn(p.origin, p.slug), *format_columns(p)) for p in pkgs)]
-            click.echo(tabulate(rows))
+            click.echo('\n'.join(str(Defn(p.origin, p.slug)) for p in pkgs))
 
 
 @main.command()
@@ -451,50 +422,20 @@ def list_folders(manager, exclude_own: bool, toc_entries: Sequence[str]) -> None
     folder_readers = sorted((n, TocReader.from_path(t)) for n, t in folder_tocs if t.exists())
     if folder_readers:
         rows = [('folder', *(f'[{e}]' for e in toc_entries)),
-                *((n.name, *(fill(t[e].value, width=50) for e in toc_entries))
-                  for n, t in folder_readers)]
+                *((n.name, *(t[e].value for e in toc_entries)) for n, t in folder_readers)]
         click.echo(tabulate(rows))
 
 
-@main.command()
-@click.option('--toc-entry', '-t', 'toc_entries',
-              multiple=True,
-              help='An entry to extract from the TOC.  Repeatable.')
-@click.argument('addon', callback=partial(parse_into_defn_cb,
-                                          raise_when_invalid=False))
-@pass_manager
-def info(manager, addon: Defn, toc_entries: Sequence[str]) -> None:
-    "Show detailed add-on information."
-    def format_toc_rows(folders):
-        for folder in folders:
-            toc_reader = TocReader.from_path_name(manager.config.addon_dir / folder)
-            for k in toc_entries:
-                yield f'[{folder} {k}]', fill(toc_reader[k].value)
-
-    pkg = manager.get_from_substr(addon)
-    if pkg:
-        rows = {'name': pkg.name,
-                'source': pkg.origin,
-                'id': pkg.id,
-                'slug': pkg.slug,
-                'description': fill(bbegone(pkg.description), max_lines=5),
-                'homepage': pkg.url,
-                'version': pkg.version,
-                'release date': pkg.date_published,
-                'folders': fill(', '.join(f.name for f in pkg.folders)),
-                'dependencies': fill(', '.join(format_deps(manager, pkg))) or 'none',
-                'options': tabulate([('strategy', pkg.options.strategy)], dl=True),}
-        if toc_entries:
-            rows.update(format_toc_rows(f.name for f in pkg.folders))
-
-        click.echo(tabulate(rows.items(), dl=True))
-    else:
-        Report([(addon, E.PkgNotInstalled())]).generate_and_exit()
+@main.command(hidden=True)
+@click.argument('addon', callback=partial(parse_into_defn_cb, raise_invalid=False))
+@click.pass_context
+def info(ctx, addon: Defn) -> None:
+    "Alias for `list -f detailed`."
+    ctx.invoke(list_installed, addons=(addon,), output_format='detailed')
 
 
 @main.command()
-@click.argument('addon', callback=partial(parse_into_defn_cb,
-                                          raise_when_invalid=False))
+@click.argument('addon', callback=partial(parse_into_defn_cb, raise_invalid=False))
 @pass_manager
 def visit(manager, addon: Defn) -> None:
     "Open an add-on's homepage in your browser."
@@ -507,8 +448,7 @@ def visit(manager, addon: Defn) -> None:
 
 
 @main.command()
-@click.argument('addon', callback=partial(parse_into_defn_cb,
-                                          raise_when_invalid=False))
+@click.argument('addon', callback=partial(parse_into_defn_cb, raise_invalid=False))
 @pass_manager
 def reveal(manager, addon: Defn) -> None:
     "Open an add-on folder in your file manager."

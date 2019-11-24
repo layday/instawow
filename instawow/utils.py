@@ -9,7 +9,7 @@ from pathlib import Path
 import re
 from typing import TYPE_CHECKING
 from typing import (Any, Awaitable, Callable, Iterable, List, NamedTuple,
-                    Optional, Tuple, Type, TypeVar, Union)
+                    Optional, Sequence, Tuple, Type, TypeVar, Union)
 
 try:
     from typing import Literal
@@ -109,48 +109,27 @@ def slugify(text: str) -> str:
     return '-'.join(_match_loweralphanum.sub(' ', text.casefold()).split())
 
 
-_match_bbcode = re.compile(r'''
-(\[(?:(?:font
-        |size
-        |color
-        |list
-        |url
-        |email
-        |highlight)=[^\]]*
-     |(?:b
-        |i
-        |u
-        |left
-        |center
-        |right
-        |list
-        |\*
-        |url
-        |quote
-        |code))\]
- |\[/(?:font
-       |size
-       |color
-       |b
-       |i
-       |u
-       |left
-       |center
-       |right
-       |list
-       |list
-       |url
-       |email
-       |quote
-       |code
-       |highlight)\]
-|\[img\][^\[]*\[/img\])
-''', re.IGNORECASE | re.VERBOSE)
+def tabulate(rows: Sequence, *, max_col_width: int = 60) -> str:
+    "Produce an ASCII table from equal-length elements in a sequence."
+    from textwrap import fill
 
+    def apply_max_col_width(value):
+        return fill(str(value), width=max_col_width, max_lines=1)
 
-def bbegone(text: str) -> str:
-    "Naïvely remove BBCode from package descriptions."
-    return _match_bbcode.sub('', text).strip()
+    def calc_resultant_col_widths(rows):
+        cols = zip(*rows)
+        return [max(map(len, c)) for c in cols]
+
+    rows = [tuple(map(apply_max_col_width, r)) for r in rows]
+    head, *tail = rows
+
+    base_template = ' '.join(f'{{{{{{0}}{w}}}}}'
+                             for w in calc_resultant_col_widths(rows))
+    row_template = base_template.format(':<')
+    table = '\n'.join((base_template.format(':^').format(*head),
+                       base_template.format(f'0:-<').format(''),
+                       *(row_template.format(*r) for r in tail),))
+    return table
 
 
 def make_progress_bar(**kwargs: Any) -> pbb.ProgressBar:

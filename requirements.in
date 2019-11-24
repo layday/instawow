@@ -9,6 +9,5 @@ prompt_toolkit
 pydantic
 questionary
 SQLAlchemy
-texttable
 typing_extensions ; python_version < '3.8'
 yarl

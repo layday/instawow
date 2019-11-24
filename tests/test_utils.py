@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 
 from instawow.manager import _find_base_dirs, _should_extract
-from instawow.utils import TocReader, bucketise
+from instawow.utils import TocReader, bucketise, tabulate
 
 
 @pytest.fixture
@@ -69,3 +69,14 @@ def test_multiindexing_toc_entries(fake_addon):
 
 def test_bucketise_bucketises_by_putting_things_in_a_bucketing_bucket():
     assert bucketise(iter([1, 1, 0, 1]), bool) == {True: [1, 1, 1], False: [0]}
+
+
+def test_tabulate(fake_addon):
+    toc_reader = TocReader.from_path_name(fake_addon)
+    data = [('key', 'value'), *toc_reader.entries.items()]
+    assert tabulate(data) == '''\
+  key       value    \n\
+------- -------------
+Normal  Normal entry \n\
+Compact Compact entry\
+'''

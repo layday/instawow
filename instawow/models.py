@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, List
 
 import pydantic
 from sqlalchemy import Column, ForeignKeyConstraint, DateTime, Integer, String
@@ -36,6 +36,7 @@ class _BaseCoercer(pydantic.BaseModel):
     class Config:
         extra = pydantic.Extra.allow
         max_anystr_length = 2 ** 32
+        orm_mode = True
 
 
 class Pkg(ModelBase):
@@ -127,6 +128,22 @@ _COERCERS = {Pkg: PkgCoercer,
              PkgFolder: PkgFolderCoercer,
              PkgOptions: PkgOptionsCoercer,
              PkgDep: PkgDepCoercer,}
+
+
+class PkgModel(PkgCoercer):
+
+    folders: List[PkgFolderCoercer]
+    deps: List[PkgDepCoercer]
+    options: PkgOptionsCoercer
+
+
+class MultiPkgModel(pydantic.BaseModel):
+
+    __root__: List[PkgModel]
+
+    @classmethod
+    def from_orm(cls, values: List[Pkg]) -> MultiPkgModel:
+        return cls.parse_obj(list(map(PkgModel.from_orm, values)))
 
 
 def should_migrate(engine: sqlalchemy.base.Engine, version: str) -> bool:

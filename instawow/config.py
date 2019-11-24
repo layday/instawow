@@ -76,7 +76,6 @@ class _Config(pydantic.BaseSettings):
         return self.config_dir / 'plugins'
 
     class Config:
-        case_insensitive = True
         env_prefix = 'INSTAWOW_'
 
 

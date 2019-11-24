@@ -24,7 +24,6 @@ class BuilderConfig(BaseSettings):
     account: str
 
     class Config:
-        case_insensitive = True
         env_prefix = 'WAC_'
 
     def _build_values(self, init_kwargs: Dict[str, Any]) -> Dict[str, Any]:
