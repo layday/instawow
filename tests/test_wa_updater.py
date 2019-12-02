@@ -65,7 +65,7 @@ WeakAurasSaved = {
         },
     },
 }
-''') == {'foo': [AuraEntry.construct(aura, set(aura))]}
+''') == {'foo': [AuraEntry(**aura)]}
 
 
 @pytest.mark.xfail
