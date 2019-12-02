@@ -14,7 +14,7 @@ from typing import (Any, Awaitable, Callable, Iterable, List, NamedTuple,
 try:
     from typing import Literal
 except ImportError:
-    from typing_extensions import Literal
+    from typing_extensions import Literal       # type: ignore
 
 if TYPE_CHECKING:
     import prompt_toolkit.shortcuts.progress_bar.base as pbb
@@ -98,7 +98,7 @@ async def gather(it: Iterable, return_exceptions: bool = True) -> List[Any]:
 
 
 def run_in_thread(fn: Callable) -> Callable[..., Awaitable]:
-    return lambda *a, **k: asyncio.get_running_loop().run_in_executor(None, partial(fn, *a, **k))
+    return lambda *a, **k: asyncio.get_running_loop().run_in_executor(None, lambda: fn(*a, **k))
 
 
 _match_loweralphanum = re.compile(r'[^0-9a-z ]')
@@ -216,12 +216,26 @@ def is_not_stale(path: Path, ttl: int, unit: str = 'seconds') -> bool:
     return mtime > 0 and (datetime.now() - datetime.fromtimestamp(mtime)) < timedelta(**{unit: ttl})
 
 
+def get_version() -> str:
+    try:
+        import importlib.metadata as importlib_metadata
+    except ImportError:
+        import importlib_metadata       # type: ignore
+
+    try:
+        return importlib_metadata.version(__package__)
+    except importlib_metadata.PackageNotFoundError:
+        return 'dev'
+
+
 def is_outdated(manager: CliManager) -> bool:
     """Check against PyPI to see if `instawow` is outdated.
 
     The response is cached for 24 hours.
     """
-    from . import __version__
+    __version__ = get_version()
+    if __version__ == 'dev':
+        return False
 
     def parse_version(version: str) -> Tuple[int, ...]:
         return tuple(map(int, version.split('.')[:3]))
@@ -244,12 +258,7 @@ def is_outdated(manager: CliManager) -> bool:
         else:
             cache_file.write_text(version, encoding='utf-8')
 
-    # Installed version > version on PyPI if running in dev or
-    # user upgraded without being prompted
-    if parse_version(__version__) > parse_version(version):
-        return False
-    else:
-        return __version__ != version
+    return parse_version(version) > parse_version(__version__)
 
 
 def setup_logging(logger_dir: Path, level: Union[int, str] = 'INFO') -> int:

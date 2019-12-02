@@ -8,8 +8,7 @@ read_text = lambda p: Path(p).read_text(encoding='utf-8')
 
 
 setup(name='instawow',
-      use_scm_version={'write_to': 'instawow/_version.py',
-                       'write_to_template': "__version__ = '{version}'\n",},
+      use_scm_version=True,
       description='A CLI for managing World of Warcraft add-ons.',
       url='http://github.com/layday/instawow',
       author='layday',

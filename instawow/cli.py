@@ -10,11 +10,10 @@ from typing import (TYPE_CHECKING, cast,
 
 import click
 
-from . import __version__
 from . import exceptions as E
 from . import models
 from .resolvers import Strategies, Defn
-from .utils import TocReader, bucketise, cached_property, is_outdated, setup_logging, tabulate
+from .utils import TocReader, bucketise, cached_property, is_outdated, setup_logging, tabulate, get_version
 
 if TYPE_CHECKING:
     from .manager import CliManager
@@ -118,7 +117,7 @@ def import_from_csv(manager, value: Iterable[str]) -> List[Defn]:
     return parse_into_defn_with_strategy(manager, rows)
 
 
-def pass_manager(fn: Callable) -> Callable:
+def _pass_manager(fn: Callable) -> Callable:
     @wraps(fn)
     def wrapper(*args, **kwargs):
         ctx = click.get_current_context()
@@ -127,15 +126,24 @@ def pass_manager(fn: Callable) -> Callable:
     return wrapper
 
 
-parse_into_defn_cb = lambda c, _, v, **k: parse_into_defn(c.obj.m, v, **k)
-parse_into_defn_with_strategy_cb = lambda c, _, v: parse_into_defn_with_strategy(c.obj.m, v)
-import_from_csv_cb = lambda c, _, v: import_from_csv(c.obj.m, v)
+def _callbackify(fn: Callable) -> Callable:
+    return lambda c, p, v: fn(c.obj.m, v)
 
 
-class _FreeFormEpilogCommand(click.Command):
+def _show_version(ctx: click.Context, _, value: bool) -> None:
+    if not value:
+        return
+
+    __version__ = get_version()
+    click.echo(f'instawow, {__version__}')
+    ctx.exit()
+
+
+class _InstallCommand(click.Command):
 
     def format_epilog(self, ctx, formatter):
-        self.epilog(formatter)      # type: ignore
+        with formatter.section('Strategies'):
+            formatter.write_dl((s.name, s.value) for s in islice(Strategies, 1, None))
 
 
 class _AlwaysIterFile(click.File):
@@ -145,7 +153,11 @@ class _AlwaysIterFile(click.File):
 
 
 @click.group(context_settings={'help_option_names': ('-h', '--help')})
-@click.version_option(__version__, prog_name='instawow')
+@click.option('--version',
+              is_flag=True, default=False,
+              expose_value=False, is_eager=True,
+              callback=_show_version,
+              help='Show the version and exit.')
 @click.option('--debug',
               is_flag=True, default=False,
               help='Log more things.')
@@ -180,19 +192,14 @@ def main(ctx, debug: bool) -> None:
         ctx.obj = ManagerSingleton
 
 
-def _make_install_epilog(formatter):
-    with formatter.section('Strategies'):
-        formatter.write_dl((s.name, s.value) for s in islice(Strategies, 1, None))
-
-
-@main.command(cls=_FreeFormEpilogCommand, epilog=_make_install_epilog)
+@main.command(cls=_InstallCommand)
 @click.option('--replace', '-o',
               is_flag=True, default=False,
               help='Replace existing add-ons.')
 @click.option('--with-strategy', '-s', 'strategic_addons',
               multiple=True,
               type=(click.Choice([s.name for s in Strategies]), str),
-              callback=parse_into_defn_with_strategy_cb,
+              callback=_callbackify(parse_into_defn_with_strategy),
               metavar='<STRATEGY ADDON>...',
               help='A strategy followed by an add-on definition.  '
                    'Use this if you want to install an add-on with a '
@@ -200,12 +207,11 @@ def _make_install_epilog(formatter):
                    'Repeatable.')
 @click.option('--import', '-i', 'imported_addons',
               type=_AlwaysIterFile(encoding='utf-8'),
-              callback=import_from_csv_cb,
+              callback=_callbackify(import_from_csv),
               help='Install add-ons from CSV.')
 @click.argument('addons',
-                nargs=-1,
-                callback=parse_into_defn_cb)
-@pass_manager
+                nargs=-1, callback=_callbackify(parse_into_defn))
+@_pass_manager
 def install(manager, replace: bool,
             addons: Sequence[Defn], strategic_addons: Sequence[Defn],
             imported_addons: Sequence[Defn]) -> None:
@@ -222,8 +228,8 @@ def install(manager, replace: bool,
 
 @main.command()
 @click.argument('addons',
-                nargs=-1, callback=parse_into_defn_cb)
-@pass_manager
+                nargs=-1, callback=_callbackify(parse_into_defn))
+@_pass_manager
 def update(manager, addons: Sequence[Defn]) -> None:
     "Update installed add-ons."
     if addons:
@@ -238,8 +244,8 @@ def update(manager, addons: Sequence[Defn]) -> None:
 
 @main.command()
 @click.argument('addons',
-                nargs=-1, required=True, callback=parse_into_defn_cb)
-@pass_manager
+                nargs=-1, required=True, callback=_callbackify(parse_into_defn))
+@_pass_manager
 def remove(manager, addons: Sequence[Defn]) -> None:
     "Uninstall add-ons."
     results = manager.remove(addons)
@@ -250,7 +256,7 @@ def remove(manager, addons: Sequence[Defn]) -> None:
 @click.option('--auto', '-a',
               is_flag=True, default=False,
               help='Do not ask for user confirmation.')
-@pass_manager
+@_pass_manager
 def reconcile(manager, auto: bool) -> None:
     "Reconcile add-ons."
     from .matchers import _Addon, match_toc_ids, match_dir_names, get_leftovers
@@ -355,8 +361,8 @@ def search(ctx, limit: int, search_terms: str) -> None:
               help='Change the output format.')
 @click.argument('addons',
                 nargs=-1,
-                callback=partial(parse_into_defn_cb, raise_invalid=False))
-@pass_manager
+                callback=_callbackify(partial(parse_into_defn, raise_invalid=False)))
+@_pass_manager
 def list_installed(manager, addons: Sequence[Defn], export: Optional[str], output_format: str) -> None:
     "List installed add-ons."
     from sqlalchemy import and_, or_
@@ -410,7 +416,7 @@ def list_installed(manager, addons: Sequence[Defn], export: Optional[str], outpu
 @click.option('--toc-entry', '-t', 'toc_entries',
               multiple=True,
               help='An entry to extract from the TOC.  Repeatable.')
-@pass_manager
+@_pass_manager
 def list_folders(manager, exclude_own: bool, toc_entries: Sequence[str]) -> None:
     "List add-on folders."
     folders = {f for f in manager.config.addon_dir.iterdir() if f.is_dir()}
@@ -427,7 +433,7 @@ def list_folders(manager, exclude_own: bool, toc_entries: Sequence[str]) -> None
 
 
 @main.command(hidden=True)
-@click.argument('addon', callback=partial(parse_into_defn_cb, raise_invalid=False))
+@click.argument('addon', callback=_callbackify(partial(parse_into_defn, raise_invalid=False)))
 @click.pass_context
 def info(ctx, addon: Defn) -> None:
     "Alias for `list -f detailed`."
@@ -435,8 +441,8 @@ def info(ctx, addon: Defn) -> None:
 
 
 @main.command()
-@click.argument('addon', callback=partial(parse_into_defn_cb, raise_invalid=False))
-@pass_manager
+@click.argument('addon', callback=_callbackify(partial(parse_into_defn, raise_invalid=False)))
+@_pass_manager
 def visit(manager, addon: Defn) -> None:
     "Open an add-on's homepage in your browser."
     pkg = manager.get_from_substr(addon)
@@ -448,8 +454,8 @@ def visit(manager, addon: Defn) -> None:
 
 
 @main.command()
-@click.argument('addon', callback=partial(parse_into_defn_cb, raise_invalid=False))
-@pass_manager
+@click.argument('addon', callback=_callbackify(partial(parse_into_defn, raise_invalid=False)))
+@_pass_manager
 def reveal(manager, addon: Defn) -> None:
     "Open an add-on folder in your file manager."
     pkg = manager.get_from_substr(addon)
@@ -508,7 +514,7 @@ def write_config() -> None:
 
 
 @main.command()
-@pass_manager
+@_pass_manager
 def show_config(manager) -> None:
     "Show the active configuration."
     click.echo(manager.config.json(exclude=set()))
@@ -524,7 +530,7 @@ def _weakauras_group() -> None:
               required=True,
               help='Your account name.  This is used to locate '
                    'the WeakAuras data file.')
-@pass_manager
+@_pass_manager
 def build_weakauras_companion(manager, account: str) -> None:
     "Build the WeakAuras Companion add-on."
     from .wa_updater import WaCompanionBuilder
@@ -537,7 +543,7 @@ def build_weakauras_companion(manager, account: str) -> None:
               required=True,
               help='Your account name.  This is used to locate '
                    'the WeakAuras data file.')
-@pass_manager
+@_pass_manager
 def list_installed_wago_auras(manager, account: str) -> None:
     "List WeakAuras installed from Wago."
     from .wa_updater import WaCompanionBuilder

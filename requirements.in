@@ -2,6 +2,9 @@ aiohttp
 alembic
 click
 fuzzywuzzy
+importlib_metadata ; python_version < '3.8'
+# Required by importlib_metadata - see https://github.com/jazzband/pip-tools/issues/563
+zipp ; python_version < '3.8'
 jinja2
 loguru
 lupa
