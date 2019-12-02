@@ -4,10 +4,11 @@ from datetime import datetime
 from typing import TYPE_CHECKING, Any, List
 
 import pydantic
-from sqlalchemy import Column, ForeignKeyConstraint, DateTime, Integer, String
 import sqlalchemy.exc
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
+from sqlalchemy.schema import Column, ForeignKeyConstraint, UniqueConstraint
+from sqlalchemy.types import DateTime, Integer, String
 
 if TYPE_CHECKING:
     import sqlalchemy.base
@@ -111,7 +112,9 @@ class PkgDep(ModelBase):
 
     __tablename__ = 'pkg_dep'
     __table_args__ = (ForeignKeyConstraint(['pkg_origin', 'pkg_id'],
-                                           ['pkg.origin', 'pkg.id']),)
+                                           ['pkg.origin', 'pkg.id']),
+                      UniqueConstraint('id', 'pkg_origin', 'pkg_id',
+                                       name='uq_id_per_foreign_key_constr'))
 
     _id = Column(Integer, primary_key=True)
     id = Column(String, nullable=False)
