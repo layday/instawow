@@ -26,9 +26,9 @@ class _Addon(NamedTuple):
 
 async def match_toc_ids(manager: Manager, leftovers: Set[str]) -> Iterable[Tuple[List[_Addon], List[Any]]]:
     "Attempt to match add-ons from host IDs contained in TOC files."
-    ids_to_sources = {'X-WoWI-ID': 'wowi',
+    ids_to_sources = {'X-Curse-Project-ID': 'curse',
                       'X-Tukui-ProjectID': 'tukui',
-                      'X-Curse-Project-ID': 'curse',}
+                      'X-WoWI-ID': 'wowi',}
 
     def merge_ids_and_dirs(matches, *, buckets=[]):
         try:
