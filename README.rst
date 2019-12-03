@@ -24,6 +24,10 @@ I recommend installing *instawow* in an isolated environment.
 
     pipx install instawow
 
+Or using `Nix <https://nixos.org/>`__::
+
+    nix-env -if https://github.com/layday/instawow-nix/tarball/master
+
 Installing with ``pip`` is also supported::
 
     pip3 install --upgrade instawow
