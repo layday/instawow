@@ -1,13 +1,13 @@
 __pycache__
 
-/.eggs
+/.cargo
 /.mypy_cache
+/.nox
 /.pytest_cache
-/.venv
+/.venvs
 /*.egg-info
 /build
 /dist
 /fastentrypoints.py
-/shell.nix
 
 /instawow/_version.py

@@ -1,0 +1,4 @@
+pytest
+pytest-asyncio
+# See https://github.com/kevin1024/vcrpy/issues/481
+vcrpy @ git+https://github.com/kevin1024/vcrpy@a17624a4649308c2f5f9255391fad8ee4c0a351f
