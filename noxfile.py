@@ -1,9 +1,4 @@
-import os
-
 import nox
-
-
-on_ga = os.environ.get('GITHUB_ACTIONS')
 
 
 @nox.session(python='3.7')
@@ -41,15 +36,14 @@ def publish(session):
 
 @nox.session
 def nixify(session):
+    location, = session.posargs
+
     session.install('pypi2nix')
-    if not on_ga:
-        session.cd('../instawow-nix')
+    session.cd(location)
     session.run('rm', '-f', 'requirements.nix',
                             'requirements_overrides.nix',
                             'requirements_frozen.txt')
     session.run('pypi2nix', '-e', 'instawow')
-    session.run('git', 'add', '.')
-    session.run('git', 'commit', '-m', 'Update')
 
 
 @nox.session
