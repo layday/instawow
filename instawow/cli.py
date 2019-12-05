@@ -168,7 +168,7 @@ def main(ctx, debug: bool) -> None:
         @object.__new__
         class ManagerSingleton:
             @cached_property
-            def manager(self) -> CliManager:
+            def m(self) -> CliManager:
                 from .config import Config
                 from .manager import CliManager, prepare_db_session
 
@@ -186,8 +186,6 @@ def main(ctx, debug: bool) -> None:
                 if is_outdated(manager):
                     click.echo(f'{Symbols.WARNING} instawow is out of date')
                 return manager
-
-            m = manager
 
         ctx.obj = ManagerSingleton
 
