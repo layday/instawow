@@ -40,9 +40,11 @@ class Symbols(str, Enum):
 class Report:
 
     def __init__(self, results: Sequence[Tuple[Defn, E.ManagerResult]],
-                 filter_fn: Callable = (lambda _: True)) -> None:
+                 filter_fn: Callable = (lambda _: True),
+                 report_outdated: bool = True) -> None:
         self.results = results
         self.filter_fn = filter_fn
+        self.report_outdated = report_outdated
 
     @property
     def code(self) -> int:
@@ -58,6 +60,11 @@ class Report:
             if self.filter_fn(r))
 
     def generate(self) -> None:
+        if self.report_outdated:
+            manager = click.get_current_context().obj.m
+            if is_outdated(manager):
+                click.echo(f'{Symbols.WARNING} instawow is out of date')
+
         report = str(self)
         if report:
             click.echo(report)
@@ -183,8 +190,6 @@ def main(ctx, debug: bool) -> None:
                 setup_logging(config.logger_dir, 'DEBUG' if debug else 'INFO')
                 db_session = prepare_db_session(config)
                 manager = CliManager(config, db_session)
-                if is_outdated(manager):
-                    click.echo(f'{Symbols.WARNING} instawow is out of date')
                 return manager
 
         ctx.obj = ManagerSingleton
