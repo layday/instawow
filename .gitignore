@@ -8,6 +8,3 @@ __pycache__
 /*.egg-info
 /build
 /dist
-/fastentrypoints.py
-
-/instawow/_version.py

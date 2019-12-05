@@ -1,3 +1,7 @@
-exclude .* *.in *.ini requirements-*.txt
+exclude .envrc .gitignore
+exclude MANIFEST.in
+exclude alembic.ini mypy.ini
+exclude noxfile.py
+exclude requirements-*.txt requirements.in
 prune nix
 prune tests
