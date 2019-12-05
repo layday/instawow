@@ -10,7 +10,7 @@ loguru
 lupa
 prompt_toolkit
 pydantic
-questionary
+questionary==1.3.0
 SQLAlchemy
 typing_extensions ; python_version < '3.8'
 yarl
