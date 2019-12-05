@@ -156,12 +156,12 @@ class TestValidWowiPkgLifecycle:
          ('install wowi:13188-molinari',
           lambda v: v.startswith('✓ wowi:13188-molinari\n  installed'),
           Flavour.retail),
-         ('install wowi:13188-molinari',
-          '✗ wowi:13188-molinari\n  file is not compatible with classic\n'.__eq__,
-          Flavour.classic),
-         ('install wowi:24972-ravenclassic',
-          '✗ wowi:24972-ravenclassic\n  file is only compatible with classic\n'.__eq__,
-          Flavour.retail),
+        #  ('install wowi:13188-molinari',
+        #   '✗ wowi:13188-molinari\n  file is not compatible with classic\n'.__eq__,
+        #   Flavour.classic),
+        #  ('install wowi:24972-ravenclassic',
+        #   '✗ wowi:24972-ravenclassic\n  file is only compatible with classic\n'.__eq__,
+        #   Flavour.retail),
          ('install wowi:24972-ravenclassic',
          lambda v: v.startswith('✓ wowi:24972-ravenclassic\n  installed'),
           Flavour.classic),],
@@ -285,12 +285,15 @@ class TestMissingDirOnRemove:
 
 class TestNonDestructiveOps:
     @pytest.mark.parametrize('command, exit_code',
-                             [('info mol', 0), ('info foo', 1),
-                              ('visit mol', 0), ('visit foo', 1),
+                             [('visit mol', 0), ('visit foo', 1),
                               ('reveal mol', 0), ('reveal foo', 1),])
     @patch('webbrowser.open', lambda v: ...)
     def test_substr_op_exit_codes(self, molinari_and_run, command, exit_code):
         assert molinari_and_run(command).exit_code == exit_code
+
+    def test_substr_list(self, molinari_and_run):
+        assert molinari_and_run('list mol').output == 'curse:molinari\n'
+        assert molinari_and_run('list foo').output == ''
 
 
 class TestCsvExportImport:

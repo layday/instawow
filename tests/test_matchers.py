@@ -15,7 +15,7 @@ def addons(manager):
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize('test_func', [match_toc_ids, match_dir_names])
-async def test_match_toc_ids(manager, test_func):
+async def test_match_on_toc_id_or_dir_name(manager, test_func):
     (folders, results), = await test_func(manager, get_leftovers(manager))
     matches = {(r.origin, r.id) for r in results if is_pkg(r)}
     if manager.config.is_classic:

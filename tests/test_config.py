@@ -8,13 +8,6 @@ import pytest
 from instawow.config import Config
 
 
-def test_strs_are_coerced_to_paths(full_config):
-    config = Config(**{k: str(v) for k, v in full_config.items()})
-    assert config.config_dir == full_config['config_dir']
-    assert config.addon_dir == full_config['addon_dir']
-    assert config.temp_dir == full_config['temp_dir']
-
-
 def test_env_vars_have_prio(full_config, tmp_path):
     config1 = tmp_path / 'config1'
     flavour = 'classic'
