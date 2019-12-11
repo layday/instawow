@@ -5,15 +5,15 @@ from functools import partial, wraps
 from itertools import chain, islice
 from operator import itemgetter
 from pathlib import Path
-from typing import (TYPE_CHECKING, cast,
-                    Any, Callable, Generator, Iterable, List, Optional, Sequence, Tuple, Union)
+from typing import (TYPE_CHECKING, Any, Callable, Iterable, List, Optional, Sequence, Tuple, Union,
+                    cast)
 
 import click
 
-from . import exceptions as E
-from . import models
-from .resolvers import Strategies, Defn
-from .utils import TocReader, bucketise, cached_property, is_outdated, setup_logging, tabulate, get_version
+from . import exceptions as E, models
+from .resolvers import Defn, Strategies
+from .utils import (TocReader, bucketise, cached_property, get_version, is_outdated, setup_logging,
+                    tabulate)
 
 if TYPE_CHECKING:
     from .manager import CliManager
@@ -262,37 +262,36 @@ def remove(manager, addons: Sequence[Defn]) -> None:
 @_pass_manager
 def reconcile(manager, auto: bool) -> None:
     "Reconcile add-ons."
-    from .matchers import _Addon, match_toc_ids, match_dir_names, get_leftovers
-    from .models import is_pkg
+    from .matchers import AddonFolder, match_toc_ids, match_dir_names, get_leftovers
+    from .models import Pkg, is_pkg
     from .prompts import Choice, confirm, select, skip
 
-    def _prompt(addons: Sequence[_Addon], pkgs: Sequence[models.Pkg]) -> Union[Tuple[()], Defn]:
+    def prompt_one(addons: Sequence[AddonFolder], pkgs: Sequence[Pkg]) -> Union[Tuple[()], Defn]:
         def create_choice(pkg):
             defn = Defn(pkg.origin, pkg.slug)
             title = [('', str(defn)),
                      ('', '=='),
-                     ('class:hilite' if highlight_version else '', pkg.version),]
+                     ('class:highlight-sub' if highlight_version else '', pkg.version),]
             return Choice(title, defn, pkg=pkg)
 
         # Highlight version if there's multiple of them
-        highlight_version = len(bucketise(i.version for i in chain(addons, pkgs))) > 1
+        highlight_version = len({i.version for i in chain(addons, pkgs)}) > 1
         choices = list(chain(map(create_choice, pkgs), (skip,)))
         addon = addons[0]
-        # Use 'unsafe_ask' to let ^C bubble up
+        # Using 'unsafe_ask' to let ^C bubble up
         selection = select(f'{addon.name} [{addon.version or "?"}]', choices).unsafe_ask()
         return selection
 
-    def prompt(groups: Iterable[Tuple[Sequence[_Addon], Sequence[Any]]]) -> Generator[Defn, None, None]:
+    def prompt(groups: Iterable[Tuple[Sequence[AddonFolder], Sequence[Any]]]) -> Iterable[Defn]:
         for addons, results in groups:
             shortlist = list(filter(is_pkg, results))
             if shortlist:
                 if auto:
                     pkg = shortlist[0]
                     yield Defn(pkg.origin, pkg.slug)
-                    continue
-
-                selection = _prompt(addons, shortlist)
-                selection and (yield selection)
+                else:
+                    selection = prompt_one(addons, shortlist)
+                    selection and (yield selection)
 
     def match_all():
         # Match in order of increasing heuristicitivenessitude
@@ -313,23 +312,25 @@ def reconcile(manager, auto: bool) -> None:
         return
 
     click.echo('''\
-- Use the arrow keys to navigate, <o> to open an
-  add-on in your browser and enter to make a selection.
-- Versions that differ from the installed version
-  or differ between choices are highlighted in purple.
-- instawow will do a first pass of all of your add-ons
-  looking for source IDs in TOC files, e.g. X-Curse-Project-ID.
-- If it is unable to reconcile all of your add-ons
-  it will perform a second pass to match add-on folders
-  against the CurseForge and WoWInterface catalogues.
-- Selected add-ons will be reinstalled.\
+Use the arrow keys to navigate, <o> to open an add-on in your browser,
+enter to make a selection and <s> to skip to the next item.
+
+Versions that differ from the installed version or differ between choices
+are highlighted in purple.
+
+The reconciler will do a first pass of all of your add-ons looking for
+source IDs in TOC files.  If it is unable to reconcile all of your add-ons
+it will perform a second pass to match add-on folders against the CurseForge
+and WoWInterface catalogues.
+
+Unreconciled add-ons can be listed with `instawow list-folders -e`.
+
+Selected add-ons _will_ be reinstalled.
 ''')
     for selections in match_all():
         if selections and confirm('Install selected add-ons?').unsafe_ask():
             results = manager.install(selections, replace=True)
             Report(results.items()).generate()
-    click.echo('- Unreconciled add-ons can be listed with '
-               '`instawow list-folders -e`.')
 
 
 @main.command()

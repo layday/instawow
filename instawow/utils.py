@@ -1,20 +1,13 @@
 from __future__ import annotations
 
 import asyncio
-from collections import defaultdict
+from collections import defaultdict, deque
 from datetime import datetime, timedelta
-from functools import partial, reduce
-from itertools import repeat
+from functools import reduce
 from pathlib import Path
 import re
-from typing import TYPE_CHECKING
-from typing import (Any, Awaitable, Callable, Iterable, List, NamedTuple,
-                    Optional, Sequence, Tuple, Type, TypeVar, Union)
-
-try:
-    from typing import Literal
-except ImportError:
-    from typing_extensions import Literal       # type: ignore
+from typing import (TYPE_CHECKING, AbstractSet, Any, Awaitable, Callable, Iterable, List,
+                    NamedTuple, Optional, Sequence, Tuple, Type, TypeVar, Union)
 
 if TYPE_CHECKING:
     import prompt_toolkit.shortcuts.progress_bar.base as pbb
@@ -39,12 +32,12 @@ class _TocEntry(NamedTuple):
 class TocReader:
     """Extracts key–value pairs from TOC files."""
 
-    def __init__(self, contents: str, default: Literal[None, ''] = '') -> None:
+    def __init__(self, contents: str) -> None:
         possible_entries = (map(str.strip, e.lstrip('#').partition(':')[::2])
                             for e in contents.splitlines()
                             if e.startswith('##'))
         self.entries = {k: v for k, v in possible_entries if k}
-        self.default = default
+        self.default = ''
 
     def __getitem__(self, key: Union[str, Tuple[str, ...]]) -> _TocEntry:
         if isinstance(key, tuple):
@@ -55,13 +48,12 @@ class TocReader:
         return _TocEntry(key, self.entries.get(key, self.default))
 
     @classmethod
-    def from_path(cls, path: Path, *args: Any, **kwargs: Any) -> TocReader:
-        return cls(path.read_text(encoding='utf-8-sig', errors='replace'),
-                   *args, **kwargs)
+    def from_path(cls, path: Path) -> TocReader:
+        return cls(path.read_text(encoding='utf-8-sig', errors='replace'))
 
     @classmethod
-    def from_path_name(cls, path: Path, *args: Any, **kwargs: Any) -> TocReader:
-        return cls.from_path(path / f'{path.name}.toc', *args, **kwargs)
+    def from_path_name(cls, path: Path) -> TocReader:
+        return cls.from_path(path / f'{path.name}.toc')
 
 
 O = TypeVar('O')
@@ -91,6 +83,26 @@ def bucketise(iterable: Iterable, key: Callable = (lambda v: v)) -> defaultdict:
 def dict_merge(*args: dict) -> dict:
     "Right merge any number of ``dict``s."
     return reduce(lambda p, n: {**p, **n}, args, {})
+
+
+def merge_intersecting_sets(it: Iterable[AbstractSet]) -> Iterable[AbstractSet]:
+    "Recursively merge intersecting sets in a collection."
+    many_sets = deque(it)
+    while True:
+        try:
+            this_set = many_sets.popleft()
+        except IndexError:
+            return
+        while True:
+            for other_set in many_sets:
+                if this_set & other_set:
+                    # The in-place operator will mutate unfrozen sets in the original collection
+                    this_set = this_set | other_set
+                    many_sets.remove(other_set)
+                    break
+            else:
+                break
+        yield this_set
 
 
 async def gather(it: Iterable, return_exceptions: bool = True) -> List[Any]:

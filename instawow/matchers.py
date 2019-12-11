@@ -1,101 +1,86 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Iterable, List, Set, Tuple
-from typing import NamedTuple
+from typing import TYPE_CHECKING, FrozenSet, Iterable, List, Tuple
 
 from .models import PkgFolder
 from .resolvers import Defn
-from .utils import TocReader, run_in_thread as t
+from .utils import (TocReader, bucketise, cached_property, merge_intersecting_sets,
+                    run_in_thread as t)
 
 if TYPE_CHECKING:
+    from .exceptions import ManagerResult
     from .manager import Manager
 
+    _Groups = Iterable[Tuple[List[AddonFolder], List[ManagerResult]]]
 
-_TocReader = t(TocReader.from_path_name)
+
+_ids_to_sources = {'X-Curse-Project-ID': 'curse',
+                   'X-Tukui-ProjectID': 'tukui',
+                   'X-WoWI-ID': 'wowi',}
+
+_make_reader = t(TocReader.from_path_name)
 
 
-class _Addon(NamedTuple):
+class AddonFolder:
+    def __init__(self, name: str, toc_reader: TocReader) -> None:
+        self.name = name
+        self.toc_reader = toc_reader
 
-    name: str
-    reader: TocReader
+    def __repr__(self) -> str:
+        return f'<{self.__class__.__name__}: {self.name}>'
 
-    @property
+    @cached_property
+    def defns_from_toc(self) -> FrozenSet[Defn]:
+        return frozenset(Defn(s, i) for s, i in
+                         ((s, self.toc_reader[k].value) for k, s in _ids_to_sources.items())
+                         if i)
+
+    @cached_property
     def version(self) -> str:
-        return self.reader['Version', 'X-Packaged-Version', 'X-Curse-Packaged-Version'].value
+        return self.toc_reader['Version',
+                              'X-Packaged-Version',
+                              'X-Curse-Packaged-Version'].value
 
 
-async def match_toc_ids(manager: Manager, leftovers: Set[str]) -> Iterable[Tuple[List[_Addon], List[Any]]]:
-    "Attempt to match add-ons from host IDs contained in TOC files."
-    ids_to_sources = {'X-Curse-Project-ID': 'curse',
-                      'X-Tukui-ProjectID': 'tukui',
-                      'X-WoWI-ID': 'wowi',}
-
-    def merge_ids_and_dirs(matches, *, buckets=[]):
-        try:
-            match = next(matches)
-        except StopIteration:
-            return buckets
-        else:
-            dirs, ids = match
-            for index, (ex_dirs, ex_ids) in enumerate(buckets):
-                if ex_ids & ids:
-                    buckets[index] = (ex_dirs + dirs, ex_ids | ids)
-                    break
-            else:
-                buckets.append(match)
-            return merge_ids_and_dirs(matches)
-
-    dir_tocs = [(n, await _TocReader(manager.config.addon_dir / n))
-                for n in sorted(leftovers)]
-    maybe_ids = (((n, r), (r[i] for i in ids_to_sources)) for n, r in dir_tocs)
-    buckets = merge_ids_and_dirs(([t], {Defn(ids_to_sources[v.key], v.value) for v in i if v})
-                                 for t, i in maybe_ids)
-    results = await manager.resolve(list({u for _, i in buckets for u in i}))
-    groups = (([_Addon(*i) for i in k], [results[i] for i in v])
-              for k, v in buckets)
-    return groups
+def get_leftovers(manager: Manager) -> FrozenSet[str]:
+    addons = {f.name for f in manager.config.addon_dir.iterdir() if f.is_dir()}
+    leftovers = addons - {f.name for f in manager.db_session.query(PkgFolder).all()}
+    return frozenset(leftovers)
 
 
-async def match_dir_names(manager: Manager, leftovers: Set[str]) -> Iterable[Tuple[List[_Addon], List[Any]]]:
-    "Attempt to match folders against the CurseForge and WoWInterface catalogue."
+async def wrap_addons(manager: Manager, folders: FrozenSet[str]) -> List[AddonFolder]:
+    return [AddonFolder(f, await _make_reader(manager.config.addon_dir / f))
+            for f in sorted(folders)]
+
+
+async def match_toc_ids(manager: Manager, leftovers: FrozenSet[str]) -> _Groups:
+    "Attempt to match add-ons from source IDs contained in TOC files."
+    def keyer(value):
+        return next(d for d in defns if value.defns_from_toc & d)
+
+    matches = [a for a in await wrap_addons(manager, leftovers) if a.defns_from_toc]
+    defns = list(merge_intersecting_sets(a.defns_from_toc for a in matches))
+    results = await manager.resolve(list(frozenset.union(*defns, frozenset())))      # type: ignore
+    return [(f, [results[d] for d in sorted(b)])
+            for b, f in bucketise(matches, keyer).items()]
+
+
+async def match_dir_names(manager: Manager, leftovers: FrozenSet[str]) -> _Groups:
+    "Attempt to match folders against the CurseForge and WoWInterface catalogues."
     async def fetch_combined_folders():
         url = ('https://raw.githubusercontent.com/layday/instascrape/data/'
                'combined-folders.compact.json')   # v1
         async with manager.web_client.get(url) as response:
-            return await response.json(content_type='text/plain')
+            return await response.json(content_type=None)
 
-    def merge_dirs_and_ids(matches, *, buckets=[]):
-        try:
-            match = next(matches)
-        except StopIteration:
-            return buckets
-        else:
-            dirs, id_ = match
-            for index, (ex_dirs, ex_ids) in enumerate(buckets):
-                if ex_dirs & dirs:
-                    buckets[index] = (ex_dirs | dirs, ex_ids | {id_})
-                    break
-            else:
-                buckets.append((dirs, {id_}))
-            return merge_dirs_and_ids(matches)
+    def keyer(value):
+        return next(f for f in folders if value[0] & f)
 
-    async def make_toc(dirs):
-        return [_Addon(d, await _TocReader(manager.config.addon_dir / d))
-                for d in sorted(dirs)]
-
-    combined_folders = await fetch_combined_folders()
-    dirs = ((set(f), Defn(*d)) for d, c, f in combined_folders
-            if manager.config.game_flavour in c)
-    buckets = merge_dirs_and_ids((d & leftovers, u) for d, u in dirs
-                                 if d & leftovers)
-    results = await manager.resolve(list({u for _, i in buckets for u in i}))
-    dir_tocs = [await make_toc(d) for d, _ in buckets]
-    groups = ((d, [results[i] for i in v])
-              for d, (_, v) in zip(dir_tocs, buckets))
-    return groups
-
-
-def get_leftovers(manager: Manager) -> Set[str]:
-    addons = {f.name for f in manager.config.addon_dir.iterdir() if f.is_dir()}
-    leftovers = addons - {f.name for f in manager.db_session.query(PkgFolder).all()}
-    return leftovers
+    matches = [(frozenset(f) & leftovers, Defn(*d))
+               for d, c, f in await fetch_combined_folders()
+               if manager.config.game_flavour in c
+               and frozenset(f) <= leftovers]
+    folders = list(merge_intersecting_sets(f for f, _ in matches))
+    results = await manager.resolve(list({d for _, d in matches}))
+    return [(await wrap_addons(manager, f),
+             [results[d] for _, d in sorted(b)]) for f, b in bucketise(matches, keyer).items()]

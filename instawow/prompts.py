@@ -24,7 +24,7 @@ class Choice(_Choice):
 
 qstyle = Style([('qmark', 'fg:ansicyan'),
                 ('answer', 'fg: nobold'),
-                ('hilite', 'fg:ansimagenta'),
+                ('highlight-sub', 'fg:ansimagenta'),
                 ('skipped', 'fg:ansiyellow'),
                 ('question', 'nobold'),
                 ('x-question', 'bold'),])
@@ -154,6 +154,12 @@ def select(message: str, choices: List[Choice]) -> Question:
         if pkg:
             import webbrowser
             webbrowser.open(pkg.url)
+
+    @bindings.add('s', eager=True)
+    def skip(event):
+        ic.pointed_at = -1
+        ic.is_answered = True
+        event.app.exit(result=ic.get_pointed_at().value)
 
     @bindings.add(Keys.Any)
     def other(event):

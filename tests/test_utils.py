@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 
 from instawow.manager import _find_base_dirs, _should_extract
-from instawow.utils import TocReader, bucketise, tabulate
+from instawow.utils import TocReader, bucketise, merge_intersecting_sets, tabulate
 
 
 @pytest.fixture
@@ -80,3 +80,16 @@ def test_tabulate(fake_addon):
 Normal  Normal entry \n\
 Compact Compact entry\
 '''
+
+
+def test_merge_intersecting_sets_in_noncontiguous_collection():
+    collection = [{'a'},
+                  {'b', 'c'},
+                  {'a', 'd'},
+                  {'e'},
+                  {'c', 'f'},
+                  {'g', 'a'},]
+    output = [{'a', 'd', 'g'},
+              {'b', 'c', 'f'},
+              {'e'},]
+    assert sorted(merge_intersecting_sets(collection)) == output
