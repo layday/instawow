@@ -5,8 +5,7 @@ from functools import partial, wraps
 from itertools import chain, islice
 from operator import itemgetter
 from pathlib import Path
-from typing import (TYPE_CHECKING, Any, Callable, Iterable, List, Optional, Sequence, Tuple, Union,
-                    cast)
+from typing import TYPE_CHECKING, Callable, Iterable, List, Optional, Sequence, Tuple, Union, cast
 
 import click
 
@@ -259,14 +258,31 @@ def remove(manager, addons: Sequence[Defn]) -> None:
 @click.option('--auto', '-a',
               is_flag=True, default=False,
               help='Do not ask for user confirmation.')
-@_pass_manager
-def reconcile(manager, auto: bool) -> None:
+@click.pass_context
+def reconcile(ctx, auto: bool) -> None:
     "Reconcile add-ons."
-    from .matchers import AddonFolder, match_toc_ids, match_dir_names, get_leftovers
+    from .matchers import match_toc_ids, match_dir_names, get_folders
     from .models import Pkg, is_pkg
     from .prompts import Choice, confirm, select, skip
 
-    def prompt_one(addons: Sequence[AddonFolder], pkgs: Sequence[Pkg]) -> Union[Tuple[()], Defn]:
+    preamble = '''\
+Use the arrow keys to navigate, <o> to open an add-on in your browser,
+enter to make a selection and <s> to skip to the next item.
+
+Versions that differ from the installed version or differ between choices
+are highlighted in purple.
+
+The reconciler will do a first pass of all of your add-ons looking for
+source IDs in TOC files.  If it is unable to reconcile all of your add-ons
+it will perform a second pass to match add-on folders against the CurseForge
+and WoWInterface catalogues.
+
+Selected add-ons _will_ be reinstalled.
+'''
+
+    manager = ctx.obj.m
+
+    def prompt_one(addons, pkgs):
         def create_choice(pkg):
             defn = Defn(pkg.origin, pkg.slug)
             title = [('', str(defn)),
@@ -282,55 +298,45 @@ def reconcile(manager, auto: bool) -> None:
         selection = select(f'{addon.name} [{addon.version or "?"}]', choices).unsafe_ask()
         return selection
 
-    def prompt(groups: Iterable[Tuple[Sequence[AddonFolder], Sequence[Any]]]) -> Iterable[Defn]:
+    def prompt(groups):
         for addons, results in groups:
             shortlist = list(filter(is_pkg, results))
             if shortlist:
+                selection: Union[Defn, Tuple[()]]
                 if auto:
-                    pkg = shortlist[0]
-                    yield Defn(pkg.origin, pkg.slug)
+                    pkg = shortlist[0]      # TODO: something more sophisticated
+                    selection = Defn(pkg.origin, pkg.slug)
                 else:
                     selection = prompt_one(addons, shortlist)
-                    selection and (yield selection)
+                selection and (yield selection)
 
     def match_all():
         # Match in order of increasing heuristicitivenessitude
         for fn in (match_toc_ids,
                    match_dir_names,):
-            leftovers = get_leftovers(manager)
-            groups = manager.run(fn(manager, leftovers))
+            groups = manager.run(fn(manager, (yield)))
             yield list(prompt(groups))
+            leftovers = get_folders(manager)
 
-    if not get_leftovers(manager):
+    leftovers = get_folders(manager)
+    if not leftovers:
         click.echo('No add-ons left to reconcile.')
         return
+    if not auto:
+        click.echo(preamble)
 
-    if auto:
-        for matches in match_all():
-            results = manager.install(matches, replace=True)
-            Report(results.items()).generate()
-        return
-
-    click.echo('''\
-Use the arrow keys to navigate, <o> to open an add-on in your browser,
-enter to make a selection and <s> to skip to the next item.
-
-Versions that differ from the installed version or differ between choices
-are highlighted in purple.
-
-The reconciler will do a first pass of all of your add-ons looking for
-source IDs in TOC files.  If it is unable to reconcile all of your add-ons
-it will perform a second pass to match add-on folders against the CurseForge
-and WoWInterface catalogues.
-
-Unreconciled add-ons can be listed with `instawow list-folders -e`.
-
-Selected add-ons _will_ be reinstalled.
-''')
-    for selections in match_all():
-        if selections and confirm('Install selected add-ons?').unsafe_ask():
+    matcher = match_all()
+    for _ in matcher:
+        selections = matcher.send(leftovers)
+        if selections and (auto or confirm('Install selected add-ons?').unsafe_ask()):
             results = manager.install(selections, replace=True)
             Report(results.items()).generate()
+
+        leftovers = get_folders(manager)
+
+    if not auto and leftovers:
+        click.echo()
+        ctx.invoke(list_folders, exclude_own=True)
 
 
 @main.command()
@@ -423,16 +429,14 @@ def list_installed(manager, addons: Sequence[Defn], export: Optional[str], outpu
 @_pass_manager
 def list_folders(manager, exclude_own: bool, toc_entries: Sequence[str]) -> None:
     "List add-on folders."
-    folders = {f for f in manager.config.addon_dir.iterdir() if f.is_dir()}
-    if exclude_own:
-        folders -= {manager.config.addon_dir / f.name
-                    for f in manager.db_session.query(models.PkgFolder).all()}
+    from .matchers import get_folders
 
-    folder_tocs = ((n, n / f'{n.name}.toc') for n in folders)
-    folder_readers = sorted((n, TocReader.from_path(t)) for n, t in folder_tocs if t.exists())
-    if folder_readers:
-        rows = [('folder', *(f'[{e}]' for e in toc_entries)),
-                *((n.name, *(t[e].value for e in toc_entries)) for n, t in folder_readers)]
+    folders = sorted(get_folders(manager, exclude_own=exclude_own))
+    if folders:
+        rows = [('unreconciled' if exclude_own else 'folder',
+                 *(f'[{e}]' for e in toc_entries)),
+                *((f.name,
+                  *(f.toc_reader[e].value for e in toc_entries)) for f in folders)]
         click.echo(tabulate(rows))
 
 
