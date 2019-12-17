@@ -61,7 +61,7 @@ class PkgConflictsWithInstalled(ManagerError):
 
     def __init__(self, conflicts: Sequence[Pkg]) -> None:
         super().__init__()
-        self.conflicts = conflicts
+        self.conflicts = [c.to_defn() for c in conflicts]
 
 
 class PkgConflictsWithUncontrolled(ManagerError):

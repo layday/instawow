@@ -111,7 +111,7 @@ def export_to_csv(pkgs: List[models.Pkg]) -> str:
     buffer = io.StringIO()
     writer = csv.writer(buffer)
     writer.writerow(('defn', 'strategy'))
-    writer.writerows((Defn(p.origin, p.slug), p.options.strategy) for p in pkgs)
+    writer.writerows((p.to_defn(), p.options.strategy) for p in pkgs)
     return buffer.getvalue()
 
 
@@ -234,14 +234,16 @@ def install(manager, replace: bool,
 @_pass_manager
 def update(manager, addons: Sequence[Defn]) -> None:
     "Update installed add-ons."
-    if addons:
-        values = addons
-    else:
-        values = [Defn(p.origin, p.slug) for p in manager.db_session.query(models.Pkg).all()]
-    results = manager.update(values)
-    # Hide package from output if up to date and ``update`` was invoked without args
-    filter_fn = lambda r: addons or not isinstance(r, E.PkgUpToDate)
-    Report(results.items(), filter_fn).generate_and_exit()
+    def report_filter(result):
+        # Hide package from output if up to date and ``update`` was invoked without args
+        return addons or not isinstance(result, E.PkgUpToDate)
+
+    defns = addons
+    if not defns:
+        defns = [p.to_defn() for p in manager.db_session.query(models.Pkg).all()]
+
+    results = manager.update(defns)
+    Report(results, report_filter).generate_and_exit()
 
 
 @main.command()
@@ -284,7 +286,7 @@ Selected add-ons _will_ be reinstalled.
 
     def prompt_one(addons, pkgs):
         def create_choice(pkg):
-            defn = Defn(pkg.origin, pkg.slug)
+            defn = pkg.to_defn()
             title = [('', str(defn)),
                      ('', '=='),
                      ('class:highlight-sub' if highlight_version else '', pkg.version),]
@@ -305,7 +307,7 @@ Selected add-ons _will_ be reinstalled.
                 selection: Union[Defn, Tuple[()]]
                 if auto:
                     pkg = shortlist[0]      # TODO: something more sophisticated
-                    selection = Defn(pkg.origin, pkg.slug)
+                    selection = pkg.to_defn()
                 else:
                     selection = prompt_one(addons, shortlist)
                 selection and (yield selection)
@@ -404,7 +406,7 @@ def list_installed(manager, addons: Sequence[Defn], export: Optional[str], outpu
             formatter = click.HelpFormatter(max_width=99)
 
             for pkg in pkgs:
-                with formatter.section(Defn(pkg.origin, pkg.slug)):
+                with formatter.section(pkg.to_defn()):
                     formatter.write_dl((
                         ('Name', pkg.name),
                         ('Description', get_desc_from_toc(pkg) if pkg.origin == 'wowi' else pkg.description),
@@ -416,7 +418,7 @@ def list_installed(manager, addons: Sequence[Defn], export: Optional[str], outpu
                         ('Options', f'{{"strategy": "{pkg.options.strategy}"}}'),))
             click.echo(formatter.getvalue(), nl=False)
         else:
-            click.echo('\n'.join(str(Defn(p.origin, p.slug)) for p in pkgs))
+            click.echo('\n'.join(str(p.to_defn()) for p in pkgs))
 
 
 @main.command()

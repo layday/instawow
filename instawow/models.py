@@ -1,11 +1,12 @@
 from __future__ import annotations
 
-from datetime import datetime
-from typing import TYPE_CHECKING, Any, List
+from typing import TYPE_CHECKING, Any, ClassVar, List
 
 import pydantic
+from pydantic import create_model
 import sqlalchemy.exc
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.ext.declarative import DeclarativeMeta, as_declarative
+from sqlalchemy.inspection import inspect
 from sqlalchemy.orm import relationship
 from sqlalchemy.schema import Column, ForeignKeyConstraint, UniqueConstraint
 from sqlalchemy.types import DateTime, Integer, String
@@ -13,16 +14,7 @@ from sqlalchemy.types import DateTime, Integer, String
 if TYPE_CHECKING:
     import sqlalchemy.base
 
-
-def _declarative_constructor(self, **kwargs):
-    intermediate_obj = _COERCERS[self.__class__].parse_obj(kwargs)
-    for k, v in intermediate_obj:
-        setattr(self, k, v)
-
-
-_declarative_constructor.__name__ = '__init__'
-
-ModelBase = declarative_base(constructor=_declarative_constructor)
+    from .resolvers import Defn
 
 
 class _BaseCoercer(pydantic.BaseModel):
@@ -40,8 +32,34 @@ class _BaseCoercer(pydantic.BaseModel):
         orm_mode = True
 
 
-class Pkg(ModelBase):
+class _BaseTableMeta(DeclarativeMeta):
+    def __init__(cls, *args: Any) -> None:
+        super().__init__(*args)
+        try:
+            columns = inspect(cls).columns
+        except sqlalchemy.exc.NoInspectionAvailable:
+            pass
+        else:
+            cls.Coercer = create_model(
+                f'{cls.__name__}Coercer',
+                __base__=_BaseCoercer,
+                **{c.name: (c.type.python_type, ...) for c in columns    # type: ignore
+                   if not c.foreign_keys and not c.name.startswith('_')})
 
+
+@as_declarative(constructor=None, metaclass=_BaseTableMeta)
+class _BaseTable:
+    Coercer: ClassVar
+
+    def __init__(self, **kwargs: Any) -> None:
+        intermediate_obj = self.Coercer.parse_obj(kwargs)
+        for k, v in intermediate_obj:
+            setattr(self, k, v)
+
+ModelBase = _BaseTable
+
+
+class Pkg(_BaseTable):
     __tablename__ = 'pkg'
 
     origin = Column(String, primary_key=True)
@@ -54,30 +72,17 @@ class Pkg(ModelBase):
     download_url = Column(String, nullable=False)
     date_published = Column(DateTime, nullable=False)
     version = Column(String, nullable=False)
-    folders = relationship('PkgFolder', cascade='all, delete-orphan',
-                           backref='pkg')
-    options = relationship('PkgOptions', cascade='all, delete-orphan',
-                           uselist=False)
-    deps = relationship('PkgDep', cascade='all, delete-orphan',
-                        backref='pkg')
+    folders = relationship('PkgFolder', cascade='all, delete-orphan', backref='pkg')
+    options = relationship('PkgOptions', cascade='all, delete-orphan', uselist=False)
+    deps = relationship('PkgDep', cascade='all, delete-orphan', backref='pkg')
+
+    def to_defn(self) -> Defn:
+        from .resolvers import Defn, Strategies
+
+        return Defn(self.origin, self.slug, Strategies[self.options.strategy])
 
 
-class PkgCoercer(_BaseCoercer):
-
-    origin: str
-    id: str
-    slug: str
-    name: str
-    description: str
-    url: str
-    file_id: str
-    download_url: str
-    date_published: datetime
-    version: str
-
-
-class PkgFolder(ModelBase):
-
+class PkgFolder(_BaseTable):
     __tablename__ = 'pkg_folder'
     __table_args__ = (ForeignKeyConstraint(['pkg_origin', 'pkg_id'],
                                            ['pkg.origin', 'pkg.id']),)
@@ -87,13 +92,7 @@ class PkgFolder(ModelBase):
     pkg_id = Column(String, nullable=False)
 
 
-class PkgFolderCoercer(_BaseCoercer):
-
-    name: str
-
-
-class PkgOptions(ModelBase):
-
+class PkgOptions(_BaseTable):
     __tablename__ = 'pkg_options'
     __table_args__ = (ForeignKeyConstraint(['pkg_origin', 'pkg_id'],
                                            ['pkg.origin', 'pkg.id']),)
@@ -103,13 +102,7 @@ class PkgOptions(ModelBase):
     pkg_id = Column(String, primary_key=True)
 
 
-class PkgOptionsCoercer(_BaseCoercer):
-
-    strategy: str
-
-
-class PkgDep(ModelBase):
-
+class PkgDep(_BaseTable):
     __tablename__ = 'pkg_dep'
     __table_args__ = (ForeignKeyConstraint(['pkg_origin', 'pkg_id'],
                                            ['pkg.origin', 'pkg.id']),
@@ -122,31 +115,18 @@ class PkgDep(ModelBase):
     pkg_id = Column(String, nullable=False)
 
 
-class PkgDepCoercer(_BaseCoercer):
-
-    id: str
-
-
-_COERCERS = {Pkg: PkgCoercer,
-             PkgFolder: PkgFolderCoercer,
-             PkgOptions: PkgOptionsCoercer,
-             PkgDep: PkgDepCoercer,}
-
-
-class PkgModel(PkgCoercer):
-
-    folders: List[PkgFolderCoercer]
-    deps: List[PkgDepCoercer]
-    options: PkgOptionsCoercer
+class _PkgModel(Pkg.Coercer):
+    folders: List[PkgFolder.Coercer]
+    options: PkgOptions.Coercer
+    deps: List[PkgDep.Coercer]
 
 
 class MultiPkgModel(pydantic.BaseModel):
-
-    __root__: List[PkgModel]
+    __root__: List[_PkgModel]
 
     @classmethod
     def from_orm(cls, values: List[Pkg]) -> MultiPkgModel:
-        return cls.parse_obj(list(map(PkgModel.from_orm, values)))
+        return cls.parse_obj([_PkgModel.from_orm(v) for v in values])
 
 
 def should_migrate(engine: sqlalchemy.base.Engine, version: str) -> bool:

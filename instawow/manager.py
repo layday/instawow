@@ -205,11 +205,16 @@ class Manager:
         _web_client.set(value)
 
     def get(self, defn: Defn) -> Optional[Pkg]:
-        "Retrieve a package from the database."
         return (self.db_session.query(Pkg)
                 .filter(Pkg.origin == defn.source,
-                        (Pkg.id == defn.name) | (Pkg.slug == defn.name))
-                .first())
+                        (Pkg.id == defn.name) | (Pkg.slug == defn.name)).first())
+
+    def get_from_substr(self, defn: Defn) -> Optional[Pkg]:
+        pkg = self.get(defn)
+        if not pkg:
+            pkg = (self.db_session.query(Pkg)
+                   .filter(Pkg.slug.contains(defn.name)).order_by(Pkg.name).first())
+        return pkg
 
     async def _resolve_deps(self, results: Iterable[Any]) -> Dict[Defn, Any]:
         """Resolve package dependencies.
@@ -264,10 +269,10 @@ class Manager:
 
     async def _install(self, pkg: Pkg, open_archive: Callable, replace: bool) -> E.PkgInstalled:
         async with open_archive() as (folders, extract):
-            conflicts = (self.db_session.query(PkgFolder)
+            conflicts = (self.db_session.query(Pkg).join(Pkg.folders)
                          .filter(PkgFolder.name.in_(folders)).all())
             if conflicts:
-                raise E.PkgConflictsWithInstalled([c.pkg for c in conflicts])
+                raise E.PkgConflictsWithInstalled(conflicts)
             if replace:
                 temp_dir = await new_temp_dir(dir=self.config.temp_dir, prefix=f'{folders[0]}-')
                 await move((self.config.addon_dir / f for f in folders), temp_dir)
@@ -294,34 +299,36 @@ class Manager:
                   for (d, p), a in zip(installables, archives)})
         return dict_merge(*coros)
 
-    async def _update(self, old_pkg: Pkg, new_pkg: Pkg, open_archive: Callable) -> E.PkgUpdated:
+    async def _update(self, pkg: Pkg, new_pkg: Pkg, open_archive: Callable) -> E.PkgUpdated:
         async with open_archive() as (folders, extract):
-            filter_ = (PkgFolder.name.in_(folders),
-                       PkgFolder.pkg_origin != new_pkg.origin,
-                       PkgFolder.pkg_id != new_pkg.id)
-            conflicts = self.db_session.query(PkgFolder).filter(*filter_).first()
+            conflicts = (self.db_session.query(Pkg).join(Pkg.folders)
+                         .filter(PkgFolder.pkg_origin != pkg.origin, PkgFolder.pkg_id != pkg.id)
+                         .filter(PkgFolder.name.in_(folders)).all())
             if conflicts:
-                raise E.PkgConflictsWithInstalled(conflicts.pkg)
+                raise E.PkgConflictsWithInstalled(conflicts)
 
             await self._remove(old_pkg)
             await extract(self.config.addon_dir)
 
-        new_pkg.folders = [PkgFolder(name=f) for f in folders]
-        self.db_session.add(new_pkg)
+        pkg.folders = [PkgFolder(name=f) for f in folders]
+        self.db_session.add(pkg)
         self.db_session.commit()
-        return E.PkgUpdated(old_pkg, new_pkg)
+        return E.PkgUpdated(old_pkg, pkg)
 
     async def prep_update(self, defns: Sequence[Defn]) -> Dict[Defn, Callable]:
         "Retrieve packages to update."
-        def rebuild_defn(defn: Defn, pkg: Optional[Pkg]) -> Defn:
-            return defn.with_strategy(Strategies[pkg.options.strategy]) if pkg else defn
-
-        checked_defns = {rebuild_defn(c, p): p for c, p in ((d, self.get(d)) for d in defns)}
-        candidates = {d: p for d, p in checked_defns.items() if p}
-        results = await self.resolve(list(candidates.keys()))
+        # Rebuild ``Defn`` with strategy from package for ``Defn``s
+        # with installed packages
+        checked_defns = {c.with_strategy(p.to_defn().strategy) if p else c: p
+                         for c, p in ((d, self.get(d)) for d in defns)}
+        # Results can contain errors
+        # installables are those results which are packages
+        # and updatables are packages with updates
+        results = await self.resolve([d for d, p in checked_defns.items() if p])
         installables = {d: r for d, r in results.items() if is_pkg(r)}
-        updatables = {(d, candidates[d], p): download_archive(p) for d, p in installables.items()
-                      if p.file_id != candidates[d].file_id}
+        updatables = {(d, checked_defns[d], p): download_archive(self, p)
+                      for d, p in installables.items()
+                      if p.file_id != checked_defns[d].file_id}
         archives = await gather(updatables.values())
 
         coros = (dict.fromkeys(checked_defns, _error_wrapper(E.PkgNotInstalled())),
@@ -405,14 +412,6 @@ class CliManager(Manager):
         super().__init__(config, db_session)
         self.progress_bar_factory = progress_bar_factory or make_progress_bar
         self.loop = asyncio.new_event_loop()
-
-    def get_from_substr(self, defn: Defn) -> Optional[Pkg]:
-        pkg = self.get(defn)
-        if not pkg:
-            pkg = (self.db_session.query(Pkg)
-                   .filter(Pkg.slug.contains(defn.name)).order_by(Pkg.name)
-                   .first())
-        return pkg
 
     def _process(self, prepper: Callable, uris: Sequence[Defn],
                  *args: Any, **kwargs: Any) -> Dict[Defn, E.ManagerResult]:
