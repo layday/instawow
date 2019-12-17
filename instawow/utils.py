@@ -9,6 +9,11 @@ import re
 from typing import (TYPE_CHECKING, AbstractSet, Any, Awaitable, Callable, Iterable, List,
                     NamedTuple, Optional, Sequence, Tuple, Type, TypeVar, Union)
 
+try:
+    from typing import Literal
+except ImportError:
+    from typing_extensions import Literal       # type: ignore
+
 if TYPE_CHECKING:
     import prompt_toolkit.shortcuts.progress_bar.base as pbb
     from .manager import CliManager

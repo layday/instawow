@@ -9,6 +9,7 @@ from loguru import logger
 from pydantic import BaseModel, BaseSettings, Extra, validator
 from yarl import URL
 
+from .config import BaseConfig
 from .utils import ManagerAttrAccessMixin, bucketise, run_in_thread as t
 
 if TYPE_CHECKING:
@@ -19,15 +20,11 @@ metadata_api = URL('https://data.wago.io/api/check/weakauras')
 raw_api = URL('https://data.wago.io/api/raw/encoded')
 
 
-class BuilderConfig(BaseSettings):
-
+class BuilderConfig(BaseConfig):
     account: str
 
     class Config:
         env_prefix = 'WAC_'
-
-    def _build_values(self, init_kwargs: Dict[str, Any]) -> Dict[str, Any]:
-        return {**init_kwargs, **self._build_environ()}     # Prioritise env vars
 
 
 class AuraEntry(BaseModel):

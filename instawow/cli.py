@@ -263,7 +263,7 @@ def reconcile(ctx, auto: bool) -> None:
     "Reconcile add-ons."
     from .matchers import match_toc_ids, match_dir_names, get_folders
     from .models import Pkg, is_pkg
-    from .prompts import Choice, confirm, select, skip
+    from .prompts import PkgChoice, confirm, select, skip
 
     preamble = '''\
 Use the arrow keys to navigate, <o> to open an add-on in your browser,
@@ -288,7 +288,7 @@ Selected add-ons _will_ be reinstalled.
             title = [('', str(defn)),
                      ('', '=='),
                      ('class:highlight-sub' if highlight_version else '', pkg.version),]
-            return Choice(title, defn, pkg=pkg)
+            return PkgChoice(title, defn, pkg=pkg)
 
         # Highlight version if there's multiple of them
         highlight_version = len({i.version for i in chain(addons, pkgs)}) > 1
@@ -477,46 +477,19 @@ def reveal(manager, addon: Defn) -> None:
 @main.command()
 def write_config() -> None:
     "Configure instawow."
-    import os.path
-    from prompt_toolkit.completion import PathCompleter, WordCompleter
-    from prompt_toolkit.shortcuts import CompleteStyle, prompt
-    from prompt_toolkit.validation import Validator
+    from prompt_toolkit.completion import WordCompleter
+    from prompt_toolkit.shortcuts import prompt
+
     from .config import Config
+    from .prompts import DirectoryCompleter, PydanticValidator
 
-    prompt_ = partial(prompt, complete_style=CompleteStyle.READLINE_LIKE)
-
-    class DirectoryCompleter(PathCompleter):
-        def __init__(self, *args, **kwargs):
-            super().__init__(*args, expanduser=True, only_directories=True, **kwargs)
-
-        def get_completions(self, document, complete_event):
-            for completion in super().get_completions(document, complete_event):
-                # Append slash to completions so we don't have to insert a '/' after every <tab>
-                completion.text += '/'
-                yield completion
-
-    def validate_addon_dir(value: str) -> bool:
-        path = os.path.expanduser(value)
-        return os.path.isdir(path) and os.access(path, os.W_OK)
-
-    ad_completer = DirectoryCompleter()
-    ad_validator = Validator.from_callable(validate_addon_dir,
-                                           error_message='must be a writable directory')
-    addon_dir = prompt_('Add-on directory: ',
-                        completer=ad_completer, validator=ad_validator)
-
-    game_flavours = ('retail', 'classic')
-    folders_to_flavours = [('_classic_', 'classic'),
-                           ('_retail_', 'retail'), ('_ptr_', 'retail')]
-    gf_completer = WordCompleter(game_flavours)
-    gf_validator = Validator.from_callable(
-        game_flavours.__contains__,
-        error_message=f'must be one of: {", ".join(game_flavours)}')
-    # Crude but the user's able to change the selection
-    gf_default = next((f for s, f in folders_to_flavours if s in addon_dir), '')
-    game_flavour = prompt_('Game flavour: ', default=gf_default,
-                           completer=gf_completer, validator=gf_validator)
-
+    addon_dir = prompt('Add-on directory: ',
+                       completer=DirectoryCompleter(),
+                       validator=PydanticValidator(Config, 'addon_dir'))
+    game_flavour = prompt('Game flavour: ',
+                          default='classic' if '_classic_' in addon_dir else 'retail',
+                          completer=WordCompleter(('retail', 'classic')),
+                          validator=PydanticValidator(Config, 'game_flavour'))
     config = Config(addon_dir=addon_dir, game_flavour=game_flavour).write()
     click.echo(f'Configuration written to: {config.config_file}')
 
@@ -525,7 +498,7 @@ def write_config() -> None:
 @_pass_manager
 def show_config(manager) -> None:
     "Show the active configuration."
-    click.echo(manager.config.json(exclude=set()))
+    click.echo(manager.config.json(indent=2))
 
 
 @main.group('weakauras-companion')

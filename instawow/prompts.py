@@ -1,13 +1,16 @@
 from __future__ import annotations
 
 from functools import partial
-from typing import TYPE_CHECKING, Any, List, Optional
+from typing import TYPE_CHECKING, Any, List, Optional, Type
 
 from prompt_toolkit.application import Application
+from prompt_toolkit.completion import PathCompleter
 from prompt_toolkit.key_binding import KeyBindings
 from prompt_toolkit.keys import Keys
 from prompt_toolkit.styles import Style
-from questionary import Choice as _Choice, confirm as _confirm
+from prompt_toolkit.validation import ValidationError, Validator
+import pydantic
+from questionary import Choice, confirm as _confirm
 from questionary.prompts.common import InquirerControl, Separator, create_inquirer_layout
 from questionary.question import Question
 
@@ -15,8 +18,34 @@ if TYPE_CHECKING:
     from .models import Pkg
 
 
-class Choice(_Choice):
+class DirectoryCompleter(PathCompleter):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, expanduser=True, only_directories=True, **kwargs)
 
+    def get_completions(self, document, complete_event):
+        for completion in super().get_completions(document, complete_event):
+            # Append slash to completions so we don't have to insert it manually after every <tab>
+            completion.text += '/'
+            yield completion
+
+
+class PydanticValidator(Validator):
+    "One-off validators for Pydantic model fields."
+
+    def __init__(self, model: Type[pydantic.BaseModel], field: str) -> None:
+        self.model = model
+        self.field = field
+
+    def validate(self, document) -> None:
+        try:
+            self.model.parse_obj({self.field: document.text})
+        except pydantic.ValidationError as error:
+            error_at_loc = next((e for e in error.errors() if e['loc'] == (self.field,)), None)
+            if error_at_loc:
+                raise ValidationError(0, error_at_loc['msg'])
+
+
+class PkgChoice(Choice):
     def __init__(self, *args: Any, pkg: Optional[Pkg] = None, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.pkg = pkg
