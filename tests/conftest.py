@@ -4,7 +4,7 @@ import pytest
 import vcr
 
 from instawow.config import Config
-from instawow.manager import Manager, prepare_db_session, init_web_client
+from instawow.manager import Manager, init_web_client, prepare_db_session
 
 
 def pytest_addoption(parser):
@@ -23,13 +23,13 @@ def full_config(tmp_path, partial_config):
     return {**partial_config, 'config_dir': tmp_path / 'config'}
 
 
-@pytest.fixture(autouse=True, scope='module')
-def cassette(request):
-    path = ((Path(__file__).parent / 'cassettes' / f'{request.node.module.__name__}')
-            .with_suffix('.yaml'))
-    record_mode = request.config.getoption('--vcrpy-mode')
-    with vcr.use_cassette(str(path), record_mode=record_mode):
-        yield
+# @pytest.fixture(autouse=True, scope='module')
+# def cassette(request):
+#     cassettes = Path(__file__).parent / 'cassettes'
+#     cassette = (cassettes / request.node.module.__name__).with_suffix('.yaml')
+#     record_mode = request.config.getoption('--vcrpy-mode')
+#     with vcr.use_cassette(str(cassette), record_mode=record_mode):
+#         yield
 
 
 @pytest.fixture
