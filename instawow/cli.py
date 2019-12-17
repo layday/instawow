@@ -309,7 +309,6 @@ Selected add-ons _will_ be reinstalled.
                    match_dir_names,):
             groups = manager.run(fn(manager, (yield)))
             yield list(prompt(groups))
-            leftovers = get_folders(manager)
 
     leftovers = get_folders(manager)
     if not leftovers:
@@ -341,13 +340,13 @@ Selected add-ons _will_ be reinstalled.
 @click.pass_context
 def search(ctx, limit: int, search_terms: str) -> None:
     "Search for add-ons to install."
-    from .prompts import Choice, checkbox, confirm
+    from .prompts import PkgChoice, checkbox, confirm
 
     manager = ctx.obj.m
 
     pkgs = manager.run(manager.search(search_terms, limit))
     if pkgs:
-        choices = [Choice(f'{p.name}  ({d}=={p.version})', d, pkg=p)
+        choices = [PkgChoice(f'{p.name}  ({d}=={p.version})', d, pkg=p)
                    for d, p in pkgs.items()]
         selections = checkbox('Select add-ons to install', choices=choices).unsafe_ask()
         if selections and confirm('Install selected add-ons?').unsafe_ask():
