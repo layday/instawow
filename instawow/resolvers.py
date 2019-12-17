@@ -317,6 +317,9 @@ class TukuiResolver(Resolver):
 
     api_url = URL('https://www.tukui.org/api.php')
 
+    retail_uis = {'-1': 'tukui', '-2': 'elvui',
+                  'tukui': 'tukui', 'elvui': 'elvui'}
+
     @classmethod
     def decompose_url(cls, value: str) -> Optional[Tuple[str, str]]:
         url = URL(value)
@@ -332,40 +335,34 @@ class TukuiResolver(Resolver):
 
     @validate_strategy
     async def resolve_one(self, defn: Defn) -> m.Pkg:
-        id_ = ''.join(takewhile('-'.__ne__, defn.name))
-        is_ui = id_ in {'elvui', 'tukui'}
+        name = ui_name = self.retail_uis.get(defn.name)
+        if not name:
+            name = ''.join(takewhile('-'.__ne__, defn.name))
 
         if self.config.is_classic:
             query = 'classic-addon'
+        elif ui_name:
+            query = 'ui'
         else:
-            if is_ui:
-                query = 'ui'
-            else:
-                query = 'addon'
-        url = self.api_url.with_query({query: id_})
+            query = 'addon'
+
+        url = self.api_url.with_query({query: name})
         async with self.web_client.get(url) as response:
             if not response.content_length:
                 raise E.PkgNonexistent
             addon = await response.json(content_type='text/html')
 
-        if is_ui:
-            divergent_args = {'slug': id_,
-                              'date_published': datetime.fromisoformat(addon['lastupdate']),
-                              'file_id': addon['version']}
-        else:
-            divergent_args = {'slug': slugify(f'{addon["id"]} {addon["name"]}'),
-                              'date_published': addon['lastupdate'],
-                              'file_id': addon['lastupdate']}
-
         return m.Pkg(origin=self.source,
                      id=addon['id'],
+                     slug=ui_name or slugify(f'{addon["id"]} {addon["name"]}'),
                      name=addon['name'],
                      description=addon['small_desc'],
                      url=addon['web_url'],
+                     file_id=addon['version'],
                      download_url=addon['url'],
+                     date_published=datetime.fromisoformat(addon['lastupdate']),
                      version=addon['version'],
-                     options=m.PkgOptions(strategy=defn.strategy.name),
-                     **divergent_args)
+                     options=m.PkgOptions(strategy=defn.strategy.name))
 
 
 class InstawowResolver(Resolver):

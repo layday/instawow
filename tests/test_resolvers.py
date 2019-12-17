@@ -47,16 +47,20 @@ async def test_curse_deps(manager):
 
 @pytest.mark.asyncio
 async def test_tukui(manager):
-    either, retail, invalid = (await manager.resolve([Defn('tukui', '1'),
-                                                      Defn('tukui', 'tukui'),
-                                                      Defn('tukui', '1', Strategies.latest)])).values()
+    either, retail_id, retail_slug, invalid = (await manager.resolve(
+        [Defn('tukui', '1'),
+         Defn('tukui', '-1'),
+         Defn('tukui', 'tukui'),
+         Defn('tukui', '1', Strategies.latest)])).values()
     assert isinstance(either, Pkg)
     if manager.config.is_classic:
         assert either.name == 'Tukui'
-        assert isinstance(retail, E.PkgNonexistent)
+        assert isinstance(retail_id, E.PkgNonexistent)
+        assert isinstance(retail_slug, E.PkgNonexistent)
     else:
         assert either.name == 'MerathilisUI'
-        assert isinstance(retail, Pkg) and retail.name == 'Tukui'
+        assert isinstance(retail_id, Pkg) and retail_id.name == 'Tukui'
+        assert isinstance(retail_slug, Pkg) and retail_slug.name == 'Tukui'
     assert (isinstance(invalid, E.PkgStrategyUnsupported)
             and invalid.message == "'latest' strategy is not valid for source")
 
