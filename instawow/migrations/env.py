@@ -3,7 +3,6 @@ from sqlalchemy import engine_from_config, pool
 
 from instawow.models import ModelBase
 
-
 target_metadata = ModelBase.metadata
 
 

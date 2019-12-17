@@ -10,19 +10,17 @@ import re
 from typing import (TYPE_CHECKING, cast,
                     Any, Callable, ClassVar, Dict, List, NamedTuple, Optional, Set, Tuple)
 
-from loguru import logger
 from yarl import URL
 
-from . import exceptions as E
-from . import models as m
-from .utils import ManagerAttrAccessMixin, gather, run_in_thread as t, slugify, is_not_stale
+from . import exceptions as E, models as m
+from .utils import (ManagerAttrAccessMixin, gather, is_not_stale, run_in_thread as t, shasum,
+                    slugify)
 
 if TYPE_CHECKING:
     from .manager import Manager
 
 
 class Strategies(Enum):
-
     default = 'default'
     latest = 'most recent file available'
     curse_latest_beta = 'most recent beta quality file available from CurseForge'
@@ -30,7 +28,6 @@ class Strategies(Enum):
 
 
 class Defn(NamedTuple):
-
     source: str
     name: str
     strategy: Strategies = Strategies.default
@@ -56,7 +53,6 @@ def validate_strategy(method: Callable) -> Callable:
 
 
 class _FileCacheMixin:
-
     async def _cache_json_response(self: Any, url: str, *args: Any) -> Any:
         path = self.config.temp_dir / shasum(url)
 
@@ -70,17 +66,16 @@ class _FileCacheMixin:
 
 
 class Resolver(ManagerAttrAccessMixin):
-
     source: ClassVar[str]
     name: ClassVar[str]
     strategies: ClassVar[Set[Strategies]]
 
-    def __init__(self, *, manager: Manager) -> None:
+    def __init__(self, manager: Manager) -> None:
         self.manager = manager
 
     @classmethod
     def decompose_url(cls, value: str) -> Optional[Tuple[str, str]]:
-        raise NotImplementedError
+        "Attempt to extract definition names from resolvable URLs."
 
     async def synchronise(self) -> Resolver:
         return self
@@ -90,7 +85,6 @@ class Resolver(ManagerAttrAccessMixin):
 
 
 class CurseResolver(Resolver, _FileCacheMixin):
-
     source = 'curse'
     name = 'CurseForge'
     strategies = {Strategies.default,
@@ -209,7 +203,6 @@ class CurseResolver(Resolver, _FileCacheMixin):
 
 
 class WowiResolver(Resolver, _FileCacheMixin):
-
     source = 'wowi'
     name = 'WoWInterface'
     strategies = {Strategies.default}
@@ -307,7 +300,6 @@ class WowiResolver(Resolver, _FileCacheMixin):
 
 
 class TukuiResolver(Resolver):
-
     source = 'tukui'
     name = 'Tukui'
     strategies = {Strategies.default}
@@ -363,17 +355,12 @@ class TukuiResolver(Resolver):
 
 
 class InstawowResolver(Resolver):
-
     source = 'instawow'
     name = 'instawow'
     strategies = {Strategies.default}
 
     _addons = {('0', 'weakauras-companion'),
                ('1', 'weakauras-companion-autoupdate')}
-
-    @classmethod
-    def decompose_url(cls, value: str) -> None:
-        return
 
     async def resolve(self, defns: List[Defn]) -> Dict[Defn, Any]:
         results = await gather(self.resolve_one(d) for d in defns)

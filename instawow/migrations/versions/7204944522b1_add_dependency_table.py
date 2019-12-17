@@ -4,7 +4,6 @@ Add dependency table.
 from alembic import op
 import sqlalchemy as sa
 
-
 # revision identifiers, used by Alembic.
 revision = '7204944522b1'
 down_revision = '2bfcfe824fe0'

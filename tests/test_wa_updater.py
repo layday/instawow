@@ -1,7 +1,7 @@
 import pytest
 from yarl import URL
 
-from instawow.wa_updater import WaCompanionBuilder, AuraEntry, ApiMetadata
+from instawow.wa_updater import ApiMetadata, AuraEntry, WaCompanionBuilder
 
 
 @pytest.fixture

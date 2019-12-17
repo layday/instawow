@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import asyncio
+from itertools import chain
 from pathlib import Path
-from typing import TYPE_CHECKING
-from typing import Any, Dict, List, NamedTuple, Optional, Sequence
+from typing import TYPE_CHECKING, Any, Dict, List, NamedTuple, Optional, Sequence
 
 from loguru import logger
 from pydantic import BaseModel, BaseSettings, Extra, validator
@@ -28,7 +28,6 @@ class BuilderConfig(BaseConfig):
 
 
 class AuraEntry(BaseModel):
-
     id: str
     uid: str
     parent: Optional[str]
@@ -39,7 +38,7 @@ class AuraEntry(BaseModel):
 
     class Config:
         arbitrary_types_allowed = True
-        fields = {'ignore_wago_update' : {'alias': 'ignoreWagoUpdate'}}
+        fields = {'ignore_wago_update': {'alias': 'ignoreWagoUpdate'}}
 
     @validator('url', pre=True)
     def __convert_url(cls, value: str) -> URL:
@@ -51,7 +50,6 @@ class AuraEntry(BaseModel):
 
 
 class ApiMetadata__Changelog(BaseModel):
-
     format: Optional[str]
     text: str = ''
 
@@ -60,7 +58,6 @@ class ApiMetadata__Changelog(BaseModel):
 
 
 class ApiMetadata(BaseModel):
-
     id: str
     name: str
     slug: str
@@ -84,7 +81,6 @@ class ApiMetadata(BaseModel):
 
 
 class _OutdatedAura(NamedTuple):
-
     slug: str
     existing_auras: List[AuraEntry]
     metadata: ApiMetadata
@@ -146,11 +142,10 @@ class WaCompanionBuilder(ManagerAttrAccessMixin):
             return []
 
         aura_metadata = await self.get_wago_aura_metadata(list(aura_groups))
-        auras_with_metadata = filter(lambda v: v[1],
-                                     zip(aura_groups.items(), aura_metadata))
+        auras_with_metadata = filter(lambda v: v[1], zip(aura_groups.items(), aura_metadata))
         outdated_auras = [((s, w), r)
                           for (s, w), r in auras_with_metadata
-                          if r.version > next((a for a in w if not a.parent), w[0]).version]
+                          if r.version > next(chain((a for a in w if not a.parent), w)).version]
         new_auras = await asyncio.gather(*(self.get_wago_aura_import_string(r.id)
                                            for _, r in outdated_auras))
         return [_OutdatedAura(s, w, r, p)

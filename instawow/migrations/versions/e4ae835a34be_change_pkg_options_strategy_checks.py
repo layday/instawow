@@ -6,8 +6,7 @@ from functools import partial
 
 from alembic import op
 from sqlalchemy import Enum, String
-from sqlalchemy.sql import table, column
-
+from sqlalchemy.sql import column, table
 
 # revision identifiers, used by Alembic.
 revision = 'e4ae835a34be'

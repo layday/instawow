@@ -2,7 +2,6 @@ import pytest
 
 from instawow.resolvers import Strategies
 
-
 strategy = Strategies.default
 
 

@@ -4,7 +4,6 @@ Remove ``PkgOptions`` strategy constraint.
 from alembic import op
 from sqlalchemy import Enum, String
 
-
 # revision identifiers, used by Alembic.
 revision = '2bfcfe824fe0'
 down_revision = '58a8306c3a5b'

@@ -4,8 +4,7 @@ Make basenames out of add-on paths.
 from pathlib import Path
 
 from alembic import context, op
-from sqlalchemy import String, table, column
-
+from sqlalchemy import String, column, table
 
 # revision identifiers, used by Alembic.
 revision = '58a8306c3a5b'

@@ -3,7 +3,6 @@ import pytest
 from instawow.matchers import get_folders, match_dir_names, match_toc_ids
 from instawow.models import is_pkg
 
-
 # TODO: use bespoke fixtures for catalogue
 
 

@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import importlib.util
-from typing import TYPE_CHECKING
 import sys
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     import types

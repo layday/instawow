@@ -1,6 +1,5 @@
-from alembic.command import (list_templates, init, revision, merge, upgrade,
-                             downgrade, show, history, heads, branches, current,
-                             stamp, edit)
+from alembic.command import (branches, current, downgrade, edit, heads, history, init,
+                             list_templates, merge, revision, show, stamp, upgrade)
 from alembic.config import Config as AlembicConfig
 
 
