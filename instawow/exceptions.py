@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, ClassVar, Sequence, Optional, Set
+from typing import TYPE_CHECKING, ClassVar, Optional, Sequence, Set
 
 if TYPE_CHECKING:
     from .models import Pkg
@@ -8,7 +8,6 @@ if TYPE_CHECKING:
 
 
 class ManagerResult:
-
     fmt_message: ClassVar[str]
 
     @property
@@ -17,7 +16,6 @@ class ManagerResult:
 
 
 class PkgInstalled(ManagerResult):
-
     fmt_message = 'installed {self.new_pkg.version}'
 
     def __init__(self, new_pkg: Pkg) -> None:
@@ -26,7 +24,6 @@ class PkgInstalled(ManagerResult):
 
 
 class PkgUpdated(ManagerResult):
-
     fmt_message = 'updated {self.old_pkg.version} to {self.new_pkg.version}'
 
     def __init__(self, old_pkg: Pkg, new_pkg: Pkg) -> None:
@@ -36,7 +33,6 @@ class PkgUpdated(ManagerResult):
 
 
 class PkgRemoved(ManagerResult):
-
     fmt_message = 'removed'
 
     def __init__(self, old_pkg: Pkg) -> None:
@@ -44,43 +40,35 @@ class PkgRemoved(ManagerResult):
         self.old_pkg = old_pkg
 
 
-class ManagerError(ManagerResult,
-                   Exception):
+class ManagerError(ManagerResult, Exception):
     pass
 
 
 class PkgAlreadyInstalled(ManagerError):
-
     fmt_message = 'package already installed'
 
 
 class PkgConflictsWithInstalled(ManagerError):
-
-    fmt_message = "package folders conflict with installed package's "\
-                  '{self.conflicts[0].origin}:{self.conflicts[0].slug}'
+    fmt_message = 'package folders conflict with installed package {self.conflicts[0]}'
 
     def __init__(self, conflicts: Sequence[Pkg]) -> None:
         super().__init__()
         self.conflicts = [c.to_defn() for c in conflicts]
 
 
-class PkgConflictsWithUncontrolled(ManagerError):
-
-    fmt_message = "package folders conflict with an add-on's"\
-                  ' not controlled by instawow'
+class PkgConflictsWithForeign(ManagerError):
+    fmt_message = 'package folders conflict with {self.folders}'
 
     def __init__(self, folders: Set[str]) -> None:
         super().__init__()
-        self.folders = folders
+        self.folders = ', '.join(f"'{f}'" for f in folders)
 
 
 class PkgNonexistent(ManagerError):
-
     fmt_message = 'package does not exist'
 
 
 class PkgFileUnavailable(ManagerError):
-
     fmt_message = 'package file is not available for download'
 
     def __init__(self, detailed_message: Optional[str] = None) -> None:
@@ -93,22 +81,18 @@ class PkgFileUnavailable(ManagerError):
 
 
 class PkgNotInstalled(ManagerError):
-
     fmt_message = 'package is not installed'
 
 
 class PkgOriginInvalid(ManagerError):
-
     fmt_message = 'package source is invalid'
 
 
 class PkgUpToDate(ManagerError):
-
     fmt_message = 'package is up to date'
 
 
 class PkgStrategyUnsupported(ManagerError):
-
     fmt_message = '{self.strategy.name!r} strategy is not valid for source'
 
     def __init__(self, strategy: Strategies) -> None:
@@ -116,11 +100,9 @@ class PkgStrategyUnsupported(ManagerError):
         self.strategy = strategy
 
 
-class InternalError(ManagerResult,
-                    Exception):
-
+class InternalError(ManagerResult, Exception):
     fmt_message = 'instawow encountered an error'
 
-    def __init__(self, error: BaseException) -> None:
+    def __init__(self, error: Exception) -> None:
         super().__init__()
         self.error = error

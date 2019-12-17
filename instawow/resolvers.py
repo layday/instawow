@@ -58,10 +58,7 @@ def validate_strategy(method: Callable) -> Callable:
 class _FileCacheMixin:
 
     async def _cache_json_response(self: Any, url: str, *args: Any) -> Any:
-        from hashlib import md5
-
-        filename = md5(url.encode()).hexdigest()
-        path = self.config.temp_dir / f'{filename}.json'
+        path = self.config.temp_dir / shasum(url)
 
         if await t(is_not_stale)(path, *args):
             text = await t(path.read_text)(encoding='utf-8')

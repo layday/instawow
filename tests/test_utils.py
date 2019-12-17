@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from instawow.manager import _find_base_dirs, _should_extract
+from instawow.manager import find_base_dirs, should_extract
 from instawow.utils import TocReader, bucketise, merge_intersecting_sets, tabulate
 
 
@@ -12,23 +12,23 @@ def fake_addon():
 
 
 def test_find_base_dirs_can_find_explicit_dirs():
-    assert _find_base_dirs(['b/', 'b/b.toc']) == {'b'}
+    assert find_base_dirs(['b/', 'b/b.toc']) == {'b'}
 
 
 def test_find_base_dirs_can_find_implicit_dirs():
-    assert _find_base_dirs(['b/b.toc']) == {'b'}
+    assert find_base_dirs(['b/b.toc']) == {'b'}
 
 
 def test_find_base_dirs_discards_resource_forks():
-    assert _find_base_dirs(['b/', '__MACOSX/']) == {'b'}
+    assert find_base_dirs(['b/', '__MACOSX/']) == {'b'}
 
 
 def test_find_base_dirs_discards_files_in_root():
-    assert _find_base_dirs(['a', 'b/b.toc', 'c/']) == {'b', 'c'}
+    assert find_base_dirs(['a', 'b/b.toc', 'c/']) == {'b', 'c'}
 
 
 def test_should_extract_discards_names_with_prefix_not_in_dirs():
-    is_member = _should_extract({'b'})
+    is_member = should_extract({'b'})
     assert list(map(is_member, ['a/', 'b/', 'aa/', 'bb/'])) == [False, True, False, False]
 
 

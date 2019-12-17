@@ -227,6 +227,13 @@ def make_progress_bar(**kwargs: Any) -> pbb.ProgressBar:
     return progress_bar
 
 
+def shasum(*values: str) -> str:
+    "Base-16-encode a string using SHA-256 truncated to 32 characters."
+    from hashlib import sha256
+
+    return sha256(''.join(values).encode()).hexdigest()[:32]
+
+
 def is_not_stale(path: Path, ttl: int, unit: str = 'seconds') -> bool:
     "Check if a file is older than ``ttl``."
     mtime = path.exists() and path.stat().st_mtime

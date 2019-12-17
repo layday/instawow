@@ -7,23 +7,23 @@ from functools import partial
 from itertools import filterfalse, repeat, starmap
 from pathlib import Path, PurePath
 import posixpath
-from shutil import move as _move
+from shutil import copy, move
 from tempfile import NamedTemporaryFile, mkdtemp
-from typing import *
+from typing import (TYPE_CHECKING, Any, AsyncContextManager as ACM, AsyncGenerator, Awaitable,
+                    Callable, Dict, Hashable, Iterable, List, NoReturn, Optional, Sequence, Set,
+                    Tuple)
 
 from loguru import logger
 
-from . import DB_REVISION
-from . import exceptions as E
+from . import DB_REVISION, exceptions as E
 from .models import Pkg, PkgFolder, is_pkg
-from .resolvers import (Defn, Strategies,
-                        CurseResolver, WowiResolver, TukuiResolver, InstawowResolver)
-from .utils import (bucketise, cached_property, dict_merge, gather,
-                    make_progress_bar, run_in_thread)
+from .resolvers import CurseResolver, Defn, InstawowResolver, TukuiResolver, WowiResolver
+from .utils import (bucketise, cached_property, dict_merge as merge, gather, make_progress_bar,
+                    run_in_thread as t, shasum)
 
 if TYPE_CHECKING:
-    from types import SimpleNamespace
     import aiohttp
+    from prompt_toolkit.shortcuts import ProgressBar
     from sqlalchemy.orm import scoped_session
     from .config import Config
 
@@ -32,44 +32,46 @@ USER_AGENT = 'instawow (https://github.com/layday/instawow)'
 
 _web_client: cv.ContextVar[aiohttp.ClientSession] = cv.ContextVar('_web_client')
 
-AsyncNamedTemporaryFile = partial(run_in_thread(NamedTemporaryFile), prefix='instawow-')
-async_mkdtemp = run_in_thread(mkdtemp)
-async_move = run_in_thread(_move)
+AsyncNamedTemporaryFile = t(NamedTemporaryFile)
+async_mkdtemp = t(mkdtemp)
+async_copy = t(copy)
+async_move = t(move)
 
 
 @asynccontextmanager
 async def open_temp_writer() -> AsyncGenerator[Tuple[Path, Callable], None]:
-    fh = await AsyncNamedTemporaryFile(delete=False, suffix='.zip')
+    fh = await AsyncNamedTemporaryFile(delete=False)
+    path = Path(fh.name)
     try:
-        yield (Path(fh.name), run_in_thread(fh.write))
-    finally:
-        await run_in_thread(fh.close)()
+        yield (path, t(fh.write))
+    except BaseException:
+        await t(fh.close)()
+        await t(path.unlink)()
+        raise
+    else:
+        await t(fh.close)()
 
 
-async def new_temp_dir(*args: Any, **kwargs: Any) -> PurePath:
-    return PurePath(await async_mkdtemp(*args, **kwargs))
-
-
-async def move(paths: Iterable[Path], dest: PurePath, *, missing_ok: bool = False) -> None:
-    for path in paths:
+async def trash(paths: Sequence[Path], parent_dir: PurePath, *, missing_ok: bool = False) -> None:
+    dst = await async_mkdtemp(dir=parent_dir, prefix=paths[0].name + '-')
+    for path in map(str, paths):    # https://bugs.python.org/issue32689
         try:
-            await async_move(str(path), dest)
-        except (FileNotFoundError if missing_ok else ()):       # type: ignore
+            await async_move(path, dst)
+        except (FileNotFoundError if missing_ok else ()):  # type: ignore  # https://github.com/python/mypy/issues/7356
             logger.opt(exception=True).info('source missing')
 
 
 # macOS 'resource forks' are sometimes included in download zips - these
-# violate our one add-on per folder contract-thing, and serve absolutely
-# no purpose.  They won't be extracted and they won't be added to the database
+# violate our one add-on per folder contract-thing and will be omitted
 _zip_excludes = {'__MACOSX'}
 
 
-def _find_base_dirs(names):
+def find_base_dirs(names: Sequence[str]) -> Set[str]:
     return {n for n in (posixpath.dirname(n) for n in names)
             if n and posixpath.sep not in n} - _zip_excludes
 
 
-def _should_extract(base_dirs):
+def should_extract(base_dirs: Set[str]) -> Callable[[str], bool]:
     def is_member(name):
         head, sep, _ = name.partition(posixpath.sep)
         return sep and head in base_dirs
@@ -77,50 +79,46 @@ def _should_extract(base_dirs):
     return is_member
 
 
-def Archive(path: Path, delete_after: bool) -> Callable:
+@asynccontextmanager
+async def acquire_archive(path: PurePath) -> AsyncGenerator[Tuple[List[str], Callable], None]:
     from zipfile import ZipFile
 
-    @asynccontextmanager
-    async def enter() -> AsyncGenerator[Tuple[List[str], Callable], None]:
-        zip_file = await run_in_thread(ZipFile)(path)
-        names = zip_file.namelist()
-        base_dirs = _find_base_dirs(names)
+    def extract(parent: Path) -> None:
+        conflicts = base_dirs & {f.name for f in parent.iterdir()}
+        if conflicts:
+            raise E.PkgConflictsWithForeign(conflicts)
+        else:
+            members = filter(should_extract(base_dirs), names)
+            archive.extractall(parent, members=members)
 
-        def extract(parent: Path) -> None:
-            conflicts = base_dirs & {f.name for f in parent.iterdir()}
-            if conflicts:
-                raise E.PkgConflictsWithUncontrolled(conflicts)
-            else:
-                members = filter(_should_extract(base_dirs), names)
-                zip_file.extractall(parent, members=members)
-
-        def exit_() -> None:
-            zip_file.close()
-            if delete_after:
-                path.unlink()
-
-        try:
-            yield (sorted(base_dirs), run_in_thread(extract))
-        finally:
-            await run_in_thread(exit_)()
-
-    return enter
+    archive = await t(ZipFile)(path)
+    try:
+        names = archive.namelist()
+        base_dirs = find_base_dirs(names)
+        yield (sorted(base_dirs), t(extract))
+    finally:
+        await t(archive.close)()
 
 
-async def download_archive(pkg: Pkg, *, chunk_size: int = 4096) -> Callable:
+async def download_archive(manager: Manager, pkg: Pkg, *, chunk_size: int = 4096) -> ACM:
     url = pkg.download_url
-    if url.startswith('file://'):
+    dst = manager.config.cache_dir / shasum(pkg.origin, pkg.id, pkg.file_id)
+
+    if await t(dst.exists)():
+        pass
+    elif url.startswith('file://'):
         from urllib.parse import unquote
 
-        path = PurePath(unquote(url[7:]))
-        return Archive(path, delete_after=False)    # type: ignore
+        await async_copy(unquote(url[7:]), dst)
     else:
-        async with (_web_client.get()
-                    .get(url, trace_request_ctx={'show_progress': True})) as response, \
-                   open_temp_writer() as (path, write):
+        web_client = _web_client.get()
+        async with web_client.get(url, trace_request_ctx={'show_progress': True}) as response, \
+                open_temp_writer() as (temp_path, write):
             async for chunk in response.content.iter_chunked(chunk_size):
                 await write(chunk)
-        return Archive(path, delete_after=True)
+
+        await async_move(str(temp_path), dst)
+    return acquire_archive(dst)
 
 
 def prepare_db_session(config: Config) -> scoped_session:
@@ -163,7 +161,6 @@ def init_web_client(**kwargs: Any) -> aiohttp.ClientSession:
 
 @object.__new__
 class _DummyResolver:
-
     async def synchronise(self) -> _DummyResolver:
         return self
 
@@ -172,25 +169,20 @@ class _DummyResolver:
 
 
 class _ResolverDict(dict):
-
     RESOLVERS = {CurseResolver, WowiResolver, TukuiResolver, InstawowResolver}
 
     def __init__(self, manager: Manager) -> None:
         super().__init__((r.source, r(manager=manager)) for r in self.RESOLVERS)
 
-    def __missing__(self, key: Hashable) -> Type[_DummyResolver]:
-        return _DummyResolver
+    def __missing__(self, key: Hashable) -> _DummyResolver:
+        return _DummyResolver       # type: ignore      # unreported?
 
 
-def _error_wrapper(error: E.ManagerError) -> Callable:
-    async def error_out() -> NoReturn:
-        raise error
-
-    return error_out
+async def _error_out(error: E.ManagerError) -> NoReturn:
+    raise error
 
 
 class Manager:
-
     def __init__(self, config: Config, db_session: scoped_session) -> None:
         self.config = config
         self.db_session = db_session
@@ -237,11 +229,13 @@ class Manager:
 
     async def resolve(self, defns: Sequence[Defn], with_deps: bool = False) -> Dict[Defn, Any]:
         "Resolve definitions into packages."
+        async def get_results(source, defns):
+            resolver = await self.resolvers[source].synchronise()
+            return await resolver.resolve(defns)
+
         defns_by_source = bucketise(defns, key=lambda v: v.source)
-        results = await gather([((await self.resolvers[s].synchronise())
-                                 .resolve(list(b)))
-                                for s, b in defns_by_source.items()])
-        results_by_defn = dict_merge(dict.fromkeys(defns), *results)
+        results = await gather(get_results(s, b) for s, b in defns_by_source.items())
+        results_by_defn = merge(dict.fromkeys(defns), *results)
         if with_deps:
             results_by_defn.update(await self._resolve_deps(results_by_defn.values()))
         return results_by_defn
@@ -267,15 +261,14 @@ class Manager:
         pkgs_by_defn = {d.with_name(r.slug): r for d, r in results.items() if is_pkg(r)}
         return pkgs_by_defn
 
-    async def _install(self, pkg: Pkg, open_archive: Callable, replace: bool) -> E.PkgInstalled:
-        async with open_archive() as (folders, extract):
+    async def install_one(self, pkg: Pkg, archive: ACM, replace: bool) -> E.PkgInstalled:
+        async with archive as (folders, extract):
             conflicts = (self.db_session.query(Pkg).join(Pkg.folders)
                          .filter(PkgFolder.name.in_(folders)).all())
             if conflicts:
                 raise E.PkgConflictsWithInstalled(conflicts)
             if replace:
-                temp_dir = await new_temp_dir(dir=self.config.temp_dir, prefix=f'{folders[0]}-')
-                await move((self.config.addon_dir / f for f in folders), temp_dir)
+                await trash([self.config.addon_dir / f for f in folders], self.config.temp_dir)
             await extract(self.config.addon_dir)
 
         pkg.folders = [PkgFolder(name=f) for f in folders]
@@ -290,24 +283,23 @@ class Manager:
         # Weed out installed deps - this isn't super efficient but
         # avoids having to deal with local state in resolver
         results = {d: r for d, r in prelim_results.items() if not self.get(d)}
-        installables = {(d, r): download_archive(r) for d, r in results.items() if is_pkg(r)}
+        installables = {(d, r): download_archive(self, r) for d, r in results.items() if is_pkg(r)}
         archives = await gather(installables.values())
 
-        coros = (dict.fromkeys(defns, _error_wrapper(E.PkgAlreadyInstalled())),
-                 {d: _error_wrapper(r) for d, r in results.items()},
-                 {d: partial(self._install, p, a, replace)
-                  for (d, p), a in zip(installables, archives)})
-        return dict_merge(*coros)
+        return merge(dict.fromkeys(defns, partial(_error_out, E.PkgAlreadyInstalled())),
+                     {d: partial(_error_out, r) for d, r in results.items()},
+                     {d: partial(self.install_one, p, a, replace)
+                      for (d, p), a in zip(installables, archives)})
 
-    async def _update(self, pkg: Pkg, new_pkg: Pkg, open_archive: Callable) -> E.PkgUpdated:
-        async with open_archive() as (folders, extract):
+    async def update_one(self, old_pkg: Pkg, pkg: Pkg, archive: ACM) -> E.PkgUpdated:
+        async with archive as (folders, extract):
             conflicts = (self.db_session.query(Pkg).join(Pkg.folders)
                          .filter(PkgFolder.pkg_origin != pkg.origin, PkgFolder.pkg_id != pkg.id)
                          .filter(PkgFolder.name.in_(folders)).all())
             if conflicts:
                 raise E.PkgConflictsWithInstalled(conflicts)
 
-            await self._remove(old_pkg)
+            await self.remove_one(old_pkg)
             await extract(self.config.addon_dir)
 
         pkg.folders = [PkgFolder(name=f) for f in folders]
@@ -331,19 +323,15 @@ class Manager:
                       if p.file_id != checked_defns[d].file_id}
         archives = await gather(updatables.values())
 
-        coros = (dict.fromkeys(checked_defns, _error_wrapper(E.PkgNotInstalled())),
-                 {d: _error_wrapper(r) for d, r in results.items()},
-                 {d: _error_wrapper(E.PkgUpToDate()) for d in installables},
-                 {d: partial(self._update, o, p, a)
-                  for (d, o, p), a in zip(updatables, archives)})
-        return dict_merge(*coros)
+        return merge(dict.fromkeys(checked_defns, partial(_error_out, E.PkgNotInstalled())),
+                     {d: partial(_error_out, r) for d, r in results.items()},
+                     {d: partial(_error_out, E.PkgUpToDate()) for d in installables},
+                     {d: partial(self.update_one, *p, a)
+                      for (d, *p), a in zip(updatables, archives)})
 
-    async def _remove(self, pkg: Pkg) -> E.PkgRemoved:
-        temp_dir = await new_temp_dir(dir=self.config.temp_dir,
-                                      prefix=f'{pkg.folders[0].name}-')
-        await move((self.config.addon_dir / f.name for f in pkg.folders),
-                   temp_dir, missing_ok=True)
-
+    async def remove_one(self, pkg: Pkg) -> E.PkgRemoved:
+        await trash([self.config.addon_dir / f.name for f in pkg.folders],
+                    parent_dir=self.config.temp_dir, missing_ok=True)
         self.db_session.delete(pkg)
         self.db_session.commit()
         return E.PkgRemoved(pkg)
@@ -351,9 +339,8 @@ class Manager:
     async def prep_remove(self, defns: Sequence[Defn]) -> Dict[Defn, Callable]:
         "Prepare packages to remove."
         pkgs_by_defn = ((d, self.get(d)) for d in defns)
-        coros = (dict.fromkeys(defns, _error_wrapper(E.PkgNotInstalled())),
-                 {d: partial(self._remove, p) for d, p in pkgs_by_defn if p})
-        return dict_merge(*coros)
+        return merge(dict.fromkeys(defns, partial(_error_out, E.PkgNotInstalled())),
+                     {d: partial(self.remove_one, p) for d, p in pkgs_by_defn if p})
 
 
 _tick_interval = .1
@@ -369,29 +356,26 @@ async def cancel_tickers() -> AsyncGenerator[None, None]:
             ticker.cancel()
 
 
-def init_cli_web_client(*, manager: CliManager) -> aiohttp.ClientSession:
+def init_cli_web_client(*, make_bar: ProgressBar) -> aiohttp.ClientSession:
     from cgi import parse_header
     from aiohttp import TraceConfig
 
-    def extract_filename(params: aiohttp.TraceRequestEndParams) -> str:
-        cd = params.response.headers.get('Content-Disposition', '')
-        _, cd_params = parse_header(cd)
+    def extract_filename(params) -> str:
+        _, cd_params = parse_header(params.response.headers.get('Content-Disposition', ''))
         filename = cd_params.get('filename') or params.response.url.name
         return filename
 
-    async def do_on_request_end(session: aiohttp.ClientSession,
-                                ctx: SimpleNamespace,
-                                params: aiohttp.TraceRequestEndParams) -> None:
-        if ctx.trace_request_ctx and ctx.trace_request_ctx.get('show_progress'):
-            label = (ctx.trace_request_ctx.get('label')
-                     or f'Downloading {extract_filename(params)}')
-            bar = manager.bar(label=label,
-                              total=(params.response.content_length or 0))
+    async def do_on_request_end(session, request_ctx, params) -> None:
+        ctx = request_ctx.trace_request_ctx
+        if ctx and ctx.get('show_progress'):
+            bar = make_bar(label=ctx.get('label') or f'Downloading {extract_filename(params)}',
+                           total=params.response.content_length or 0)
 
-            async def ticker(bar=bar, params=params) -> None:
+            async def ticker() -> None:
                 try:
-                    while not params.response.content.is_eof():
-                        bar.current = params.response.content._cursor
+                    content = params.response.content
+                    while not content.is_eof():
+                        bar.current = content._cursor
                         await asyncio.sleep(_tick_interval)
                 finally:
                     bar.progress_bar.counters.remove(bar)
@@ -406,16 +390,26 @@ def init_cli_web_client(*, manager: CliManager) -> aiohttp.ClientSession:
 
 
 class CliManager(Manager):
-
     def __init__(self, config: Config, db_session: scoped_session,
-                 progress_bar_factory: Optional[Callable] = None) -> None:
+                 progress_bar_factory: Callable = make_progress_bar) -> None:
         super().__init__(config, db_session)
-        self.progress_bar_factory = progress_bar_factory or make_progress_bar
-        self.loop = asyncio.new_event_loop()
+        self.progress_bar_factory = progress_bar_factory
 
-    def _process(self, prepper: Callable, uris: Sequence[Defn],
-                 *args: Any, **kwargs: Any) -> Dict[Defn, E.ManagerResult]:
-        async def intercept(fn: Callable) -> E.ManagerResult:
+    @cached_property
+    def progress_bar(self) -> Any:
+        return self.progress_bar_factory()
+
+    def run(self, awaitable: Awaitable) -> Any:
+        async def run():
+            async with init_cli_web_client(make_bar=self.progress_bar) as self.web_client, \
+                    cancel_tickers():
+                return await awaitable
+
+        with self.progress_bar:
+            return asyncio.run(run())
+
+    def _prepprocess(self, prepper: Callable, *args: Any, **kwargs: Any) -> Dict[Defn, E.ManagerResult]:
+        async def intercept(fn):
             try:
                 return await fn()
             except E.ManagerError as error:
@@ -424,35 +418,20 @@ class CliManager(Manager):
                 logger.exception('internal error')
                 return E.InternalError(error)
 
-        async def do_process():
-            async with cancel_tickers():
-                coros = await prepper(list(uris), *args, **kwargs)
-                return {d: await intercept(c) for d, c in coros.items()}
+        async def process():
+            coros_by_defn = await prepper(*args, **kwargs)
+            return {d: await intercept(c) for d, c in coros_by_defn.items()}
 
-        with self.bar:
-            return self.run(do_process())
-
-    def run(self, awaitable: Awaitable) -> Any:
-        "Run ``awaitable`` inside an explicit context."
-        async def do_run():
-            async with init_cli_web_client(manager=self) as self.web_client:
-                return await awaitable
-
-        runner = lambda: self.loop.run_until_complete(do_run())
-        return cv.copy_context().run(runner)
-
-    @cached_property
-    def bar(self) -> Any:
-        return self.progress_bar_factory()
+        return self.run(process())
 
     @property
     def install(self) -> Callable:
-        return partial(self._process, self.prep_install)
+        return partial(self._prepprocess, self.prep_install)
 
     @property
     def update(self) -> Callable:
-        return partial(self._process, self.prep_update)
+        return partial(self._prepprocess, self.prep_update)
 
     @property
     def remove(self) -> Callable:
-        return partial(self._process, self.prep_remove)
+        return partial(self._prepprocess, self.prep_remove)

@@ -177,7 +177,7 @@ class TestFolderConflictLifecycle:
                                Flavour.retail),
                               ('install wowi:13188-molinari',
                                "✗ wowi:13188-molinari\n"
-                               "  package folders conflict with installed package's curse:molinari\n".__eq__,
+                               "  package folders conflict with installed package curse:molinari\n".__eq__,
                                Flavour.retail),
                               ('remove curse:molinari',
                                '✓ curse:molinari\n  removed\n'.__eq__,
@@ -191,8 +191,7 @@ class TestPreexistingFolderConflictOnInstall:
     def test_preexisting_folder_conflict_on_install(self, obj, run):
         (obj.m.config.addon_dir / 'Molinari').mkdir()
         assert (run('install curse:molinari').output
-                == "✗ curse:molinari\n  package folders conflict with an add-on's "
-                   "not controlled by instawow\n")
+                == "✗ curse:molinari\n  package folders conflict with 'Molinari'\n")
 
 
 class TestInvalidAddonNameLifecycle:
