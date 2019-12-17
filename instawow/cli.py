@@ -1,11 +1,10 @@
 from __future__ import annotations
 
-from enum import Enum
 from functools import partial, wraps
 from itertools import chain, islice
-from operator import itemgetter
 from pathlib import Path
-from typing import TYPE_CHECKING, Callable, Iterable, List, Optional, Sequence, Tuple, Union, cast
+from typing import (TYPE_CHECKING, Callable, Dict, Iterable, List, Optional, Sequence, Tuple,
+                    Union, cast)
 
 import click
 
@@ -18,27 +17,12 @@ if TYPE_CHECKING:
     from .manager import CliManager
 
 
-class Symbols(str, Enum):
-
-    SUCCESS = click.style('✓', fg='green')
-    FAILURE = click.style('✗', fg='red')
-    WARNING = click.style('!', fg='blue')
-
-    @classmethod
-    def from_result(cls, result: E.ManagerResult) -> Symbols:
-        if isinstance(result, E.InternalError):
-            return cls.WARNING
-        elif isinstance(result, E.ManagerError):
-            return cls.FAILURE
-        return cls.SUCCESS
-
-    def __str__(self) -> str:
-        return self.value
-
-
 class Report:
+    _success = click.style('✓', fg='green')
+    _failure = click.style('✗', fg='red')
+    _warning = click.style('!', fg='blue')
 
-    def __init__(self, results: Sequence[Tuple[Defn, E.ManagerResult]],
+    def __init__(self, results: Dict[Defn, E.ManagerResult],
                  filter_fn: Callable = (lambda _: True),
                  report_outdated: bool = True) -> None:
         self.results = results
@@ -47,22 +31,28 @@ class Report:
 
     @property
     def code(self) -> int:
-        return any(r for _, r in self.results
+        return any(r for r in self.results.values()
                    if (isinstance(r, (E.ManagerError, E.InternalError))
                        and self.filter_fn(r)))
 
     def __str__(self) -> str:
-        return '\n'.join(
-            (f'{Symbols.from_result(r)} {click.style(str(a), bold=True)}\n'
-             f'  {r.message}')
-            for a, r in self.results
-            if self.filter_fn(r))
+        def _adorn_result(result: E.ManagerResult) -> str:
+            if isinstance(result, E.InternalError):
+                return self._warning
+            elif isinstance(result, E.ManagerError):
+                return self._failure
+            return self._success
+
+        return '\n'.join((f'{_adorn_result(r)} {click.style(str(a), bold=True)}\n'
+                          f'  {r.message}')
+                         for a, r in self.results.items()
+                         if self.filter_fn(r))
 
     def generate(self) -> None:
         if self.report_outdated:
             manager = click.get_current_context().obj.m
             if is_outdated(manager):
-                click.echo(f'{Symbols.WARNING} instawow is out of date')
+                click.echo(f'{self._warning} instawow is out of date')
 
         report = str(self)
         if report:
@@ -136,26 +126,26 @@ def _callbackify(fn: Callable) -> Callable:
     return lambda c, p, v: fn(c.obj.m, v)
 
 
-def _show_version(ctx: click.Context, _, value: bool) -> None:
-    if not value:
-        return
+def _combine_addons(fn: Callable) -> Callable:
+    def combine(ctx, param, value):
+        addons = ctx.params.setdefault('addons', [])
+        if value:
+            addons.extend(fn(ctx.obj.m, value))
 
-    __version__ = get_version()
-    click.echo(f'instawow, {__version__}')
-    ctx.exit()
+    return combine
+
+
+def _show_version(ctx: click.Context, param, value: bool) -> None:
+    if value:
+        __version__ = get_version()
+        click.echo(f'instawow, version {__version__}')
+        ctx.exit()
 
 
 class _InstallCommand(click.Command):
-
     def format_epilog(self, ctx, formatter):
         with formatter.section('Strategies'):
             formatter.write_dl((s.name, s.value) for s in islice(Strategies, 1, None))
-
-
-class _AlwaysIterFile(click.File):
-
-    def __call__(self, value, param=None, ctx=None):
-        return self.convert(value, param, ctx) if value else ()
 
 
 @click.group(context_settings={'help_option_names': ('-h', '--help')})
@@ -198,34 +188,35 @@ def main(ctx, debug: bool) -> None:
 @click.option('--replace', '-o',
               is_flag=True, default=False,
               help='Replace existing add-ons.')
-@click.option('--with-strategy', '-s', 'strategic_addons',
+@click.option('--import', '-i',
+              type=click.File(encoding='utf-8'),
+              callback=_combine_addons(import_from_csv),
+              expose_value=False,
+              help='Install add-ons from CSV.')
+@click.option('--with-strategy', '-s',
               multiple=True,
               type=(click.Choice([s.name for s in Strategies]), str),
-              callback=_callbackify(parse_into_defn_with_strategy),
+              callback=_combine_addons(parse_into_defn_with_strategy),
+              expose_value=False,
               metavar='<STRATEGY ADDON>...',
               help='A strategy followed by an add-on definition.  '
                    'Use this if you want to install an add-on with a '
                    'strategy other than the default one.  '
                    'Repeatable.')
-@click.option('--import', '-i', 'imported_addons',
-              type=_AlwaysIterFile(encoding='utf-8'),
-              callback=_callbackify(import_from_csv),
-              help='Install add-ons from CSV.')
 @click.argument('addons',
-                nargs=-1, callback=_callbackify(parse_into_defn))
+                nargs=-1, callback=_combine_addons(parse_into_defn),
+                expose_value=False)
 @_pass_manager
-def install(manager, replace: bool,
-            addons: Sequence[Defn], strategic_addons: Sequence[Defn],
-            imported_addons: Sequence[Defn]) -> None:
+def install(manager, addons: Sequence[Defn], replace: bool) -> None:
     "Install add-ons."
-    if not any((addons, strategic_addons, imported_addons)):
-        raise click.UsageError('No add-ons given.')
+    if not addons:
+        raise click.UsageError('Require at least one of "ADDONS", '
+                               '"--with-strategy" or "--import".')
 
-    all_addons = chain(imported_addons, strategic_addons, addons)
-    defn_buckets = bucketise(all_addons, key=itemgetter(0, 1))
-    deduped_defns = [v for v, *_ in defn_buckets.values()]
+    deduped_defns = [v for v, *_ in
+                     bucketise(addons, lambda d: (d.source, d.name)).values()]
     results = manager.install(deduped_defns, replace)
-    Report(results.items()).generate_and_exit()
+    Report(results).generate_and_exit()
 
 
 @main.command()
@@ -253,7 +244,7 @@ def update(manager, addons: Sequence[Defn]) -> None:
 def remove(manager, addons: Sequence[Defn]) -> None:
     "Uninstall add-ons."
     results = manager.remove(addons)
-    Report(results.items()).generate_and_exit()
+    Report(results).generate_and_exit()
 
 
 @main.command()
@@ -332,7 +323,7 @@ Selected add-ons _will_ be reinstalled.
         selections = matcher.send(leftovers)
         if selections and (auto or confirm('Install selected add-ons?').unsafe_ask()):
             results = manager.install(selections, replace=True)
-            Report(results.items()).generate()
+            Report(results).generate()
 
         leftovers = get_folders(manager)
 
@@ -443,7 +434,7 @@ def list_folders(manager, exclude_own: bool, toc_entries: Sequence[str]) -> None
 
 
 @main.command(hidden=True)
-@click.argument('addon', callback=_callbackify(partial(parse_into_defn, raise_invalid=False)))
+@click.argument('addons', callback=_callbackify(partial(parse_into_defn, raise_invalid=False)))
 @click.pass_context
 def info(ctx, addon: Defn) -> None:
     "Alias for `list -f detailed`."
@@ -460,7 +451,7 @@ def visit(manager, addon: Defn) -> None:
         import webbrowser
         webbrowser.open(pkg.url)
     else:
-        Report([(addon, E.PkgNotInstalled())]).generate_and_exit()
+        Report({addon: E.PkgNotInstalled()}).generate_and_exit()
 
 
 @main.command()
@@ -473,7 +464,7 @@ def reveal(manager, addon: Defn) -> None:
         import webbrowser
         webbrowser.open((manager.config.addon_dir / pkg.folders[0].name).as_uri())
     else:
-        Report([(addon, E.PkgNotInstalled())]).generate_and_exit()
+        Report({addon: E.PkgNotInstalled()}).generate_and_exit()
 
 
 @main.command()
