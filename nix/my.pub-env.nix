@@ -1,8 +1,10 @@
-{ myPythonStr, pkgs ? import <nixpkgs> {} }:
+{ myPythonStr
+, pkgs ? import <nixpkgs> {}
+}:
 
 with pkgs;
 let
-  myPython = lib.getAttrFromPath [ myPythonStr ] pkgs;
+  myPython = pkgs.${myPythonStr};
 
   nox = (
     with myPython.pkgs; buildPythonPackage rec {

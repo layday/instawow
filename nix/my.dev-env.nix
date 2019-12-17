@@ -3,7 +3,7 @@
 }:
 
 let
-  myPython = pkgs.lib.getAttrFromPath [ myPythonStr ] pkgs;
+  myPython = pkgs.${myPythonStr};
 
   pythonVenvDir = toString ./../.venvs + ("/" + myPython.pythonVersion);
   cargoHome = toString ./../.cargo;

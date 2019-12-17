@@ -1,11 +1,10 @@
 import nox
 
 
-@nox.session(python='3.7')
-def bump_dependencies(session):
-    session.install('pip-tools')
-    session.run('rm', '-f', 'requirements.txt')
-    session.run('pip-compile', 'requirements.in')
+@nox.session
+def reformat(session):
+    session.install('isort[pyproject]')
+    session.run('isort', '--recursive', 'instawow', 'tests')
 
 
 @nox.session
@@ -18,7 +17,14 @@ def test(session):
                 *session.posargs)
 
 
-@nox.session
+@nox.session(python='3.7', name='bump-dependencies')
+def bump_dependencies(session):
+    session.install('pip-tools')
+    session.run('rm', '-f', 'requirements.txt')
+    session.run('pip-compile', 'requirements.in')
+
+
+@nox.session(python=False)
 def clobber(session):
     session.run('rm', '-rf', 'build', 'dist', 'instawow.egg-info')
 
@@ -34,7 +40,6 @@ def check(session):
 def build(session):
     clobber(session)
     session.install('pep517')
-    session.run(*'rm -rf build dist instawow.egg-info'.split())
     session.run(*'python3 -m pep517.build .'.split(), *session.posargs)
 
 
@@ -46,16 +51,10 @@ def publish(session):
 
 @nox.session
 def nixify(session):
-    location, = session.posargs or ('.',)
+    if session.posargs:
+        session.cd(*session.posargs)
 
     session.install('pypi2nix')
-    session.cd(location)
-    session.run('rm', '-f', 'requirements.nix',
-                            'requirements_overrides.nix',
-                            'requirements_frozen.txt')
+    session.run('rm', '-f',
+                'requirements.nix', 'requirements_overrides.nix', 'requirements_frozen.txt')
     session.run('pypi2nix', '-e', 'instawow')
-
-
-@nox.session
-def oxidise(session):
-    raise NotImplementedError
