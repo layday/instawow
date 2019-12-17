@@ -241,8 +241,7 @@ class Manager:
             results_by_defn.update(await self._resolve_deps(results_by_defn.values()))
         return results_by_defn
 
-    async def search(self, search_terms: str, limit: int, *,
-                     scorer: str = 'partial_ratio') -> Dict[Defn, Pkg]:
+    async def search(self, search_terms: str, limit: int) -> Dict[Defn, Pkg]:
         "Search the combined names catalogue for packages."
         from fuzzywuzzy import fuzz, process
         from .resolvers import _FileCacheMixin as cache
@@ -255,7 +254,7 @@ class Manager:
                                     key=lambda v: v[0])
 
         matches = process.extract(search_terms, defns_for_names.keys(),
-                                  limit=limit, scorer=getattr(fuzz, scorer))
+                                  limit=limit, scorer=fuzz.WRatio)
         defns = [d
                  for m, _ in matches
                  for _, d in defns_for_names[m]]
