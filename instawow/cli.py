@@ -433,7 +433,7 @@ def list_folders(manager, exclude_own: bool, toc_entries: Sequence[str]) -> None
 
 
 @main.command(hidden=True)
-@click.argument('addons', callback=_callbackify(partial(parse_into_defn, raise_invalid=False)))
+@click.argument('addon', callback=_callbackify(partial(parse_into_defn, raise_invalid=False)))
 @click.pass_context
 def info(ctx, addon: Defn) -> None:
     "Alias for `list -f detailed`."
