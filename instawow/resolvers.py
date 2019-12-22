@@ -38,6 +38,10 @@ class Defn(NamedTuple):
     def with_strategy(self, strategy: Strategies) -> Defn:
         return self.__class__(self.source, self.name, strategy)
 
+    @classmethod
+    def from_pkg(cls, pkg: m.Pkg) -> Defn:
+        return cls(pkg.origin, pkg.slug, Strategies[pkg.options.strategy])
+
     def __str__(self) -> str:
         return f'{self.source}:{self.name}'
 

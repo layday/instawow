@@ -65,7 +65,6 @@ O = TypeVar('O')
 
 
 class cached_property:
-
     def __init__(self, f: Callable) -> None:
         self.f = f
 
@@ -79,7 +78,7 @@ class cached_property:
 
 def bucketise(iterable: Iterable, key: Callable = (lambda v: v)) -> defaultdict:
     "Place the elements of ``iterable`` into a bucket according to ``key``."
-    bucket = defaultdict(list)      # type: ignore
+    bucket = defaultdict(list)
     for value in iterable:
         bucket[key(value)].append(value)
     return bucket
@@ -90,7 +89,10 @@ def dict_merge(*args: dict) -> dict:
     return reduce(lambda p, n: {**p, **n}, args, {})
 
 
-def merge_intersecting_sets(it: Iterable[AbstractSet]) -> Iterable[AbstractSet]:
+_AnySet = TypeVar('_AnySet', set, frozenset)
+
+
+def merge_intersecting_sets(it: Iterable[_AnySet]) -> Iterable[_AnySet]:
     "Recursively merge intersecting sets in a collection."
     many_sets = deque(it)
     while True:
@@ -237,7 +239,8 @@ def shasum(*values: str) -> str:
 def is_not_stale(path: Path, ttl: int, unit: str = 'seconds') -> bool:
     "Check if a file is older than ``ttl``."
     mtime = path.exists() and path.stat().st_mtime
-    return mtime > 0 and (datetime.now() - datetime.fromtimestamp(mtime)) < timedelta(**{unit: ttl})
+    return mtime > 0 and ((datetime.now() - datetime.fromtimestamp(cast(float, mtime)))
+                          < timedelta(**{unit: ttl}))
 
 
 def get_version() -> str:

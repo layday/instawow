@@ -7,8 +7,7 @@ from loguru import logger
 
 from .models import PkgFolder
 from .resolvers import Defn
-from .utils import (TocReader, bucketise, cached_property, merge_intersecting_sets,
-                    run_in_thread as t)
+from .utils import TocReader, bucketise, cached_property, merge_intersecting_sets
 
 if TYPE_CHECKING:
     from .exceptions import ManagerResult
@@ -19,7 +18,7 @@ if TYPE_CHECKING:
 
 _ids_to_sources = {'X-Curse-Project-ID': 'curse',
                    'X-Tukui-ProjectID': 'tukui',
-                   'X-WoWI-ID': 'wowi',}
+                   'X-WoWI-ID': 'wowi'}
 
 
 @total_ordering
@@ -54,7 +53,7 @@ class AddonFolder:
     def __lt__(self, other: object) -> bool:
         if not isinstance(other, (self.__class__, str)):
             return NotImplemented
-        return self.name < other        # type: ignore
+        return self.name < other
 
 
 def get_folders(manager: Manager, exclude_own: bool = True) -> FrozenSet[AddonFolder]:

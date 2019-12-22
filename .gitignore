@@ -1,10 +1,8 @@
 __pycache__
 
 /.cargo
-/.mypy_cache
-/.nox
-/.pytest_cache
-/.venvs
+/.coverage
+/.py*
 /*.egg-info
 /build
 /dist

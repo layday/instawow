@@ -5,7 +5,7 @@
 let
   myPython = pkgs.${myPythonStr};
 
-  pythonVenvDir = toString ./../.venvs + ("/" + myPython.pythonVersion);
+  pythonVenvDir = toString ./../.py-venvs + ("/" + myPython.pythonVersion);
   cargoHome = toString ./../.cargo;
 in
   with pkgs; mkShell {
@@ -18,6 +18,7 @@ in
       rustc
       cargo
       myPython
+      nodejs-13_x
       (callPackage ./my.nox-script.nix {})
     ] ++ stdenv.lib.optional stdenv.isDarwin (
       with darwin.apple_sdk.frameworks; [

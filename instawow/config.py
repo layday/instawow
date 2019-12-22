@@ -29,7 +29,7 @@ class _Config(BaseConfig):
 
     @validator('config_dir', pre=True, always=True)
     def _apply_config_dir_default(cls, value: Any) -> Path:
-        return Path(value or click.get_app_dir('instawow'))
+        return Path(click.get_app_dir('instawow') if value is None else value)
 
     @validator('config_dir', 'addon_dir', 'temp_dir')
     def _expand_paths(cls, value: Path) -> Path:

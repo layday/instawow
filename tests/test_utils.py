@@ -37,8 +37,6 @@ def test_loading_toc_from_path(fake_addon):
     with pytest.raises(FileNotFoundError):
         TocReader.from_path(fake_addon / 'MissingToc.toc')
 
-
-def test_loading_toc_from_path_name(fake_addon):
     TocReader.from_path_name(fake_addon)
     with pytest.raises(FileNotFoundError):
         TocReader.from_path_name(fake_addon.parent / 'MissingAddon')

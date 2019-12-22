@@ -29,6 +29,7 @@ mkShell {
     git
     cacert
     myPython
+    nodejs-13_x
     nox
   ];
 

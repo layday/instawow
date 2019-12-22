@@ -3,8 +3,8 @@ from __future__ import annotations
 from functools import partial, wraps
 from itertools import chain, islice
 from pathlib import Path
-from typing import (TYPE_CHECKING, Callable, Dict, Iterable, List, Optional, Sequence, Tuple,
-                    Union, cast)
+from typing import (TYPE_CHECKING, Callable, FrozenSet, Generator, Iterable, List, Mapping,
+                    Optional, Sequence, Tuple, Union)
 
 import click
 
@@ -22,7 +22,7 @@ class Report:
     _failure = click.style('✗', fg='red')
     _warning = click.style('!', fg='blue')
 
-    def __init__(self, results: Dict[Defn, E.ManagerResult],
+    def __init__(self, results: Mapping[Defn, E.ManagerResult],
                  filter_fn: Callable = (lambda _: True),
                  report_outdated: bool = True) -> None:
         self.results = results
@@ -307,7 +307,7 @@ Selected add-ons _will_ be reinstalled.
         # Match in order of increasing heuristicitivenessitude
         for fn in (match_toc_ids,
                    match_dir_names,):
-            groups = manager.run(fn(manager, (yield)))
+            groups = manager.run(fn(manager, (yield [])))
             yield list(prompt(groups))
 
     leftovers = get_folders(manager)
@@ -318,7 +318,7 @@ Selected add-ons _will_ be reinstalled.
         click.echo(preamble)
 
     matcher = match_all()
-    for _ in matcher:
+    for _ in matcher:   # Skip over consumer yields
         selections = matcher.send(leftovers)
         if selections and (auto or confirm('Install selected add-ons?').unsafe_ask()):
             results = manager.install(selections, replace=True)
@@ -374,15 +374,18 @@ def list_installed(manager, addons: Sequence[Defn], export: Optional[str], outpu
         deps = (d.with_name(getattr(manager.get(d), 'slug', d.name)) for d in deps)
         return map(str, deps)
 
-    def get_desc_from_toc(folders):
-        toc_reader = TocReader.from_path_name(manager.config.addon_dir / pkg.folders[0].name)
-        return toc_reader['Notes'].value
+    def get_desc(pkg):
+        if pkg.origin == 'wowi':
+            toc_reader = TocReader.from_path_name(manager.config.addon_dir / pkg.folders[0].name)
+            return toc_reader['Notes'].value
+        else:
+            return pkg.description
 
     pkgs = (manager.db_session.query(models.Pkg)
-            .filter(or_(models.Pkg.slug.contains(d.name) if d.source == '*' else
-                        and_(models.Pkg.origin == d.source,
-                             or_(models.Pkg.id == d.name, models.Pkg.slug == d.name))
-                        for d in addons))
+            .filter(or_(*(models.Pkg.slug.contains(d.name) if d.source == '*'
+                          else and_(models.Pkg.origin == d.source,
+                                    or_(models.Pkg.id == d.name, models.Pkg.slug == d.name))
+                          for d in addons)))
             .order_by(models.Pkg.origin, models.Pkg.name)
             .all())
     if export:
@@ -394,18 +397,18 @@ def list_installed(manager, addons: Sequence[Defn], export: Optional[str], outpu
             click.echo(MultiPkgModel.from_orm(pkgs).json(indent=2))
         elif output_format == 'detailed':
             formatter = click.HelpFormatter(max_width=99)
-
             for pkg in pkgs:
                 with formatter.section(pkg.to_defn()):
                     formatter.write_dl((
                         ('Name', pkg.name),
-                        ('Description', get_desc_from_toc(pkg) if pkg.origin == 'wowi' else pkg.description),
+                        ('Description', get_desc(pkg)),
                         ('URL', pkg.url),
                         ('Version', pkg.version),
                         ('Date published', pkg.date_published.isoformat(' ', 'minutes')),
                         ('Folders', ', '.join(f.name for f in pkg.folders)),
-                        ('Dependencies', ', '.join(format_deps(pkg)) or ''),
+                        ('Dependencies', ', '.join(format_deps(pkg))),
                         ('Options', f'{{"strategy": "{pkg.options.strategy}"}}'),))
+
             click.echo(formatter.getvalue(), nl=False)
         else:
             click.echo('\n'.join(str(p.to_defn()) for p in pkgs))

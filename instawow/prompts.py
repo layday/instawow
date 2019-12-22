@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from functools import partial
-from typing import TYPE_CHECKING, Any, List, Optional, Type
+from typing import TYPE_CHECKING, Any, Optional, Sequence, Type, cast
 
 from prompt_toolkit.application import Application
 from prompt_toolkit.completion import PathCompleter
@@ -56,18 +56,19 @@ qstyle = Style([('qmark', 'fg:ansicyan'),
                 ('highlight-sub', 'fg:ansimagenta'),
                 ('skipped', 'fg:ansiyellow'),
                 ('question', 'nobold'),
-                ('x-question', 'bold'),])
-skip = Choice([('', 'skip')], ())
+                ('x-question', 'bold')])
+
+skip = Choice([('', 'skip')], ())       # type: ignore  # Wrong annotation in questionary
 
 confirm = partial(_confirm, style=qstyle)
 
 
-def checkbox(message: str, choices: List[Choice]) -> Question:
+def checkbox(message: str, choices: Sequence[Choice], **prompt_kwargs: Any) -> Question:
     # This is a cut-down version of ``questionary.checkbox`` with the addition
     # of an <o> key binding for opening package URLs
 
     def get_prompt_tokens():
-        tokens = [('class:x-question', message),]
+        tokens = [('class:x-question', message)]
         if ic.is_answered:
             tokens.append(('class:answer', '  done'))
         else:
@@ -78,7 +79,7 @@ def checkbox(message: str, choices: List[Choice]) -> Question:
                            '<i> to invert)'))
         return tokens
 
-    ic = InquirerControl(choices, None,
+    ic = InquirerControl(cast(list, choices), None,
                          use_indicator=False, use_shortcuts=False, use_pointer=True)
     bindings = KeyBindings()
 
@@ -134,22 +135,22 @@ def checkbox(message: str, choices: List[Choice]) -> Question:
         # Disallow inserting other text
         pass
 
-    layout = create_inquirer_layout(ic, get_prompt_tokens)
-    app = Application(layout=layout, key_bindings=bindings, style=qstyle)
+    layout = create_inquirer_layout(ic, get_prompt_tokens, **prompt_kwargs)
+    app = Application(layout=layout, key_bindings=bindings, style=qstyle, **prompt_kwargs)
     return Question(app)
 
 
-def select(message: str, choices: List[Choice]) -> Question:
+def select(message: str, choices: Sequence[Choice], **prompt_kwargs: Any) -> Question:
     def get_prompt_tokens():
         tokens = [('', '- '),
-                  ('class:x-question', message),]
+                  ('class:x-question', message)]
         if ic.is_answered:
             answer = ''.join(t for _, t in ic.get_pointed_at().title)
             tokens += [('', '  '),
                        ('class:skipped' if answer == 'skip' else '', answer)]
         return tokens
 
-    ic = InquirerControl(choices, None,
+    ic = InquirerControl(cast(list, choices), None,
                          use_indicator=False, use_shortcuts=False, use_pointer=True)
     bindings = KeyBindings()
 
@@ -195,6 +196,6 @@ def select(message: str, choices: List[Choice]) -> Question:
         # Disallow inserting other text
         pass
 
-    layout = create_inquirer_layout(ic, get_prompt_tokens)
-    app = Application(layout=layout, key_bindings=bindings, style=qstyle)
+    layout = create_inquirer_layout(ic, get_prompt_tokens, **prompt_kwargs)
+    app = Application(layout=layout, key_bindings=bindings, style=qstyle, **prompt_kwargs)
     return Question(app)

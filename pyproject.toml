@@ -4,7 +4,15 @@ requires = [
   "wheel",
   "setuptools_scm"
 ]
-build-backend = "setuptools.build_meta:__legacy__"
+build-backend = "setuptools.build_meta"
+
+
+[tool.coverage.run]
+source = ["instawow"]
+omit = [
+  "instawow/migrations/env.py",
+  "instawow/migrations/versions/*.py"
+]
 
 
 [tool.isort]

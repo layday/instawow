@@ -4,14 +4,14 @@ import asyncio
 from contextlib import asynccontextmanager
 import contextvars as cv
 from functools import partial
-from itertools import filterfalse, repeat, starmap
+from itertools import filterfalse, starmap
 from pathlib import Path, PurePath
 import posixpath
 from shutil import copy, move
 from tempfile import NamedTemporaryFile, mkdtemp
 from typing import (TYPE_CHECKING, Any, AsyncContextManager as ACM, AsyncGenerator, Awaitable,
                     Callable, Dict, Hashable, Iterable, List, NoReturn, Optional, Sequence, Set,
-                    Tuple)
+                    Tuple, Type)
 
 from loguru import logger
 
@@ -57,7 +57,7 @@ async def trash(paths: Sequence[Path], parent_dir: PurePath, *, missing_ok: bool
     for path in map(str, paths):    # https://bugs.python.org/issue32689
         try:
             await async_move(path, dst)
-        except (FileNotFoundError if missing_ok else ()):  # type: ignore  # https://github.com/python/mypy/issues/7356
+        except (FileNotFoundError if missing_ok else ()):
             logger.opt(exception=True).info('source missing')
 
 
@@ -165,7 +165,7 @@ class _DummyResolver:
         return self
 
     async def resolve(self, defns: List[Defn], **kwargs: Any) -> Dict[Defn, E.PkgOriginInvalid]:
-        return dict(zip(defns, repeat(E.PkgOriginInvalid())))
+        return dict.fromkeys(defns, E.PkgOriginInvalid())
 
 
 class _ResolverDict(dict):
@@ -174,8 +174,8 @@ class _ResolverDict(dict):
     def __init__(self, manager: Manager) -> None:
         super().__init__((r.source, r(manager=manager)) for r in self.RESOLVERS)
 
-    def __missing__(self, key: Hashable) -> _DummyResolver:
-        return _DummyResolver       # type: ignore      # unreported?
+    def __missing__(self, key: Hashable) -> Type[_DummyResolver]:
+        return _DummyResolver
 
 
 async def _error_out(error: E.ManagerError) -> NoReturn:

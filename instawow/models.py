@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, ClassVar, List
+from typing import TYPE_CHECKING, Any, ClassVar, List, Type
 
 import pydantic
 from pydantic import create_model
@@ -8,12 +8,10 @@ import sqlalchemy.exc
 from sqlalchemy.ext.declarative import DeclarativeMeta, as_declarative
 from sqlalchemy.inspection import inspect
 from sqlalchemy.orm import relationship
-from sqlalchemy.schema import Column, ForeignKeyConstraint, UniqueConstraint
+from sqlalchemy.schema import Column, ForeignKeyConstraint, MetaData, UniqueConstraint
 from sqlalchemy.types import DateTime, Integer, String
 
 if TYPE_CHECKING:
-    import sqlalchemy.base
-
     from .resolvers import Defn
 
 
@@ -33,7 +31,7 @@ class _BaseCoercer(pydantic.BaseModel):
 
 
 class _BaseTableMeta(DeclarativeMeta):
-    def __init__(cls, *args: Any) -> None:
+    def __init__(cls, *args: Any) -> None:      # type: ignore
         super().__init__(*args)
         try:
             columns = inspect(cls).columns
@@ -43,16 +41,17 @@ class _BaseTableMeta(DeclarativeMeta):
             cls.Coercer = create_model(
                 f'{cls.__name__}Coercer',
                 __base__=_BaseCoercer,
-                **{c.name: (c.type.python_type, ...) for c in columns    # type: ignore
+                **{c.name: (c.type.python_type, ...) for c in columns
                    if not c.foreign_keys and not c.name.startswith('_')})
 
 
 @as_declarative(constructor=None, metaclass=_BaseTableMeta)
 class _BaseTable:
-    Coercer: ClassVar
+    Coercer: ClassVar[Type[_BaseCoercer]]
+    metadata: ClassVar[MetaData]
 
     def __init__(self, **kwargs: Any) -> None:
-        intermediate_obj = self.Coercer.parse_obj(kwargs)
+        intermediate_obj = self.Coercer(**kwargs)
         for k, v in intermediate_obj:
             setattr(self, k, v)
 
@@ -77,9 +76,8 @@ class Pkg(_BaseTable):
     deps = relationship('PkgDep', cascade='all, delete-orphan', backref='pkg')
 
     def to_defn(self) -> Defn:
-        from .resolvers import Defn, Strategies
-
-        return Defn(self.origin, self.slug, Strategies[self.options.strategy])
+        from .resolvers import Defn
+        return Defn.from_pkg(self)
 
 
 class PkgFolder(_BaseTable):
@@ -125,11 +123,11 @@ class MultiPkgModel(pydantic.BaseModel):
     __root__: List[_PkgModel]
 
     @classmethod
-    def from_orm(cls, values: List[Pkg]) -> MultiPkgModel:
-        return cls.parse_obj([_PkgModel.from_orm(v) for v in values])
+    def from_orm(cls, obj: List[Pkg]) -> MultiPkgModel:
+        return cls(__root__=[_PkgModel.from_orm(v) for v in obj])
 
 
-def should_migrate(engine: sqlalchemy.base.Engine, version: str) -> bool:
+def should_migrate(engine, version: str) -> bool:
     """Check if the database version is the same as `version`;
     if not a migration would be required.
     """

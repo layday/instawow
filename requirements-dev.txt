@@ -2,7 +2,8 @@ pip
 setuptools
 wheel
 
-mypy
-sqlalchemy-stubs
+coverage[toml]
+pytest
+pytest-asyncio
 
 ipython

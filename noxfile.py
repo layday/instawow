@@ -1,20 +1,36 @@
 import nox
 
 
-@nox.session
+@nox.session(python='3.7')
 def reformat(session):
     session.install('isort[pyproject]')
     session.run('isort', '--recursive', 'instawow', 'tests')
 
 
+@nox.session(python=False, name='update-stubs')
+def update_stubs(session):
+    session.run('rm', '-rf', '.py-types')
+    session.run('git', 'clone', '--depth', '1',
+                'https://github.com/python/typeshed',
+                '.py-types/typeshed')
+    session.run('git', 'clone', '--depth', '1',
+                'https://github.com/dropbox/sqlalchemy-stubs',
+                '.py-types/stubs/_sqlalchemy-stubs')
+    session.run('mv', '.py-types/stubs/_sqlalchemy-stubs/sqlalchemy-stubs', '.py-types/stubs/sqlalchemy')
+    session.run('rm', '-rf', '.py-types/stubs/_sqlalchemy-stubs')
+
+
+@nox.session(python='3.7', name='type-check')
+def type_check(session):
+    session.install('.')
+    session.run('npx', 'pyright', '--lib')
+
+
 @nox.session
 def test(session):
-    session.install('-r', 'requirements-test.txt')
-    session.install('.')
-    session.run('pytest',
-                '-o', "'xfail_strict = True'",
-                '-o', "'testpaths = tests'",
-                *session.posargs)
+    session.install('coverage[toml]', 'pytest', 'pytest-asyncio', '.')
+    session.run('coverage', 'run', '-m', 'pytest', '-o', "'xfail_strict = True'", 'tests')
+    session.run('coverage', 'report', '-m')
 
 
 @nox.session(python='3.7', name='bump-dependencies')
@@ -24,23 +40,16 @@ def bump_dependencies(session):
     session.run('pip-compile', 'requirements.in')
 
 
-@nox.session(python=False)
-def clobber(session):
+@nox.session(python=False, name='clobber-build-artefacts')
+def clobber_build_artefacts(session):
     session.run('rm', '-rf', 'build', 'dist', 'instawow.egg-info')
 
 
 @nox.session(python='3.7')
-def check(session):
-    clobber(session)
-    session.install('pep517')
-    session.run(*'python3 -m pep517.check .'.split(), *session.posargs)
-
-
-@nox.session(python='3.7')
 def build(session):
-    clobber(session)
+    clobber_build_artefacts(session)
     session.install('pep517')
-    session.run(*'python3 -m pep517.build .'.split(), *session.posargs)
+    session.run('python3', '-m', 'pep517.build', '.', *session.posargs)
 
 
 @nox.session(python='3.7')

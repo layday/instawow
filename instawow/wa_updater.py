@@ -3,10 +3,10 @@ from __future__ import annotations
 import asyncio
 from itertools import chain
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict, List, NamedTuple, Optional, Sequence
+from typing import TYPE_CHECKING, Dict, List, NamedTuple, Optional, Sequence
 
 from loguru import logger
-from pydantic import BaseModel, BaseSettings, Extra, validator
+from pydantic import BaseModel, Extra, validator
 from yarl import URL
 
 from .config import BaseConfig
@@ -41,12 +41,8 @@ class AuraEntry(BaseModel):
         fields = {'ignore_wago_update': {'alias': 'ignoreWagoUpdate'}}
 
     @validator('url', pre=True)
-    def __convert_url(cls, value: str) -> URL:
+    def _convert_url(cls, value: str) -> URL:
         return URL(value)
-
-    @classmethod
-    def from_lua_ast(cls, values: dict) -> Optional[AuraEntry]:
-        return cls(**values) if values.get('url') else None
 
 
 class ApiMetadata__Changelog(BaseModel):
@@ -100,9 +96,10 @@ class WaCompanionBuilder(ManagerAttrAccessMixin):
         from lupa import LuaRuntime
 
         lua_runtime = LuaRuntime()
+
         table = lua_runtime.eval(source[source.find('= ') + 1 :])
         raw_auras = map(dict, table['displays'].values())
-        auras = filter(None, map(AuraEntry.from_lua_ast, raw_auras))
+        auras = (AuraEntry(**a) for a in raw_auras if a.get('url'))
         aura_groups = {k: v
                        for k, v in bucketise(auras, key=lambda a: a.url.parts[1]).items()
                        if not any(i.ignore_wago_update for i in v)}

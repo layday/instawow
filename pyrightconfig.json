@@ -1,0 +1,48 @@
+{
+  "include": [
+    "instawow"
+  ],
+  "exclude": [
+    "instawow/migrations/env.py",
+    "instawow/migrations/versions/*.py"
+  ],
+  "typeshedPath": "./.py-types/typeshed",
+  "typingsPath": "./.py-types/stubs",
+  "strict": [
+  ],
+  "strictListInference": true,
+  "strictDictionaryInference": true,
+  "strictParameterNoneValue": true,
+  "enableTypeIgnoreComments": true,
+  "reportTypeshedErrors": true,
+  "reportMissingImports": true,
+  "reportMissingTypeStubs": false,
+  "reportImportCycles": false,
+  "reportUnusedImport": true,
+  "reportUnusedClass": true,
+  "reportUnusedFunction": false,
+  "reportUnusedVariable": true,
+  "reportDuplicateImport": true,
+  "reportOptionalSubscript": true,
+  "reportOptionalMemberAccess": true,
+  "reportOptionalCall": true,
+  "reportOptionalIterable": true,
+  "reportOptionalContextManager": true,
+  "reportOptionalOperand": true,
+  "reportUntypedFunctionDecorator": false,
+  "reportUntypedClassDecorator": false,
+  "reportUntypedBaseClass": false,
+  "reportUntypedNamedTuple": false,
+  "reportPrivateUsage": false,
+  "reportConstantRedefinition": true,
+  "reportIncompatibleMethodOverride": true,
+  "reportInvalidStringEscapeSequence": true,
+  "reportUnknownParameterType": false,
+  "reportUnknownLambdaType": false,
+  "reportUnknownVariableType": false,
+  "reportUnknownMemberType": false,
+  "reportCallInDefaultInitializer": true,
+  "reportUnnecessaryIsInstance": true,
+  "reportUnnecessaryCast": true,
+  "reportAssertAlwaysTrue": true
+}
