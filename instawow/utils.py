@@ -6,27 +6,20 @@ from datetime import datetime, timedelta
 from functools import reduce
 from pathlib import Path
 import re
-from typing import (TYPE_CHECKING, AbstractSet, Any, Awaitable, Callable, Iterable, List,
-                    NamedTuple, Optional, Sequence, Tuple, Type, TypeVar, Union)
-
-try:
-    from typing import Literal
-except ImportError:
-    from typing_extensions import Literal       # type: ignore
+from typing import (TYPE_CHECKING, Any, Awaitable, Callable, Iterable, List, NamedTuple, Optional,
+                    Sequence, Tuple, TypeVar, Union, cast)
 
 if TYPE_CHECKING:
-    import prompt_toolkit.shortcuts.progress_bar.base as pbb
+    from prompt_toolkit.shortcuts.progress_bar import ProgressBar
     from .manager import CliManager
 
 
 class ManagerAttrAccessMixin:
-
     def __getattr__(self, name: str) -> Any:
         return getattr(self.manager, name)
 
 
 class _TocEntry(NamedTuple):
-
     key: str
     value: str
 
@@ -151,12 +144,12 @@ def tabulate(rows: Sequence, *, max_col_width: int = 60) -> str:
     return table
 
 
-def make_progress_bar(**kwargs: Any) -> pbb.ProgressBar:
+def make_progress_bar(**kwargs: Any) -> ProgressBar:
     "A ``ProgressBar`` with download progress expressed in megabytes."
-    from contextlib import contextmanager
+    import signal
     from prompt_toolkit.formatted_text import HTML
-    import prompt_toolkit.shortcuts.progress_bar.base as pbb
-    from prompt_toolkit.shortcuts.progress_bar import formatters
+    from prompt_toolkit.shortcuts.progress_bar import ProgressBar, formatters
+    from prompt_toolkit.utils import Event
 
     # There is a race condition in the bar's shutdown logic
     # where the bar-drawing thread is left to run indefinitely
@@ -165,53 +158,25 @@ def make_progress_bar(**kwargs: Any) -> pbb.ProgressBar:
     # If an exception occurs early in the execution cycle or if execution
     # finishes before prompt_toolkit is able to crank the app,
     # instawow will hang.  This is my ham-fisted attempt to work
-    # around all that by relocating the ``.exit()`` call.  The progress bar
-    # 'signals' to the thread that the app is ready to exit
-    # and the app is exited from inside the thread.
-    # To avoid having to monkey-patch ``run`` which is nested
-    # inside ``__enter__``, we overwrite ``pbb._auto_refresh_context``.
+    # around all that by signalling to the daemon thread to kill the app.
 
-    class ProgressBar(pbb.ProgressBar):
+    class PatchedProgressBar(ProgressBar):
         def __exit__(self, *args):
             if self._has_sigwinch:
-                self._loop.add_signal_handler(pbb.signal.SIGWINCH, self._previous_winch_handler)
+                self._loop.add_signal_handler(signal.SIGWINCH, self._previous_winch_handler)
 
-            # Signal to ``_auto_refresh_context`` that it should exit the app
-            self.app._should_exit = True
-            self._thread.join()
-            del self.app._should_exit
+            if self._thread is not None:
+                # Signal to ``_auto_refresh_context`` that it should exit the app
+                self.app.on_invalidate = Event(self.app,
+                                               lambda sender: sender.is_running and sender.exit())
+                self._thread.join()
 
-    _bar_refresh_interval = .1
-
-    @contextmanager
-    def _auto_refresh_context(app, _refresh_interval=None):
-        done = [False]
-
-        def run():
-            while not done[0]:
-                pbb.time.sleep(_bar_refresh_interval)
-                app.invalidate()
-                if getattr(app, '_should_exit', False) and app.is_running:
-                    app.exit()
-
-        t = pbb.threading.Thread(target=run)
-        t.daemon = True
-        t.start()
-
-        try:
-            yield
-        finally:
-            done[0] = True
-
-    pbb._auto_refresh_context = _auto_refresh_context
-
-    class ProgressInMB(formatters.Progress):
+    class DownloadProgress(formatters.Progress):
         template = f'{formatters.Progress.template}MB'
 
-        def format(self, _bar, counter, _width):
-            html = HTML(self.template)
-            return html.format(**{f: f'{getattr(counter, f) / 2 ** 20:.1f}'
-                                  for f in ('current', 'total')})
+        def format(self, progress_bar, progress, width):
+            values = {f: f'{getattr(progress, f) / 2 ** 20:.1f}' for f in {'current', 'total'}}
+            return HTML(self.template).format(**values)
 
     formatters = [formatters.Label(),
                   formatters.Text(' '),
@@ -219,13 +184,13 @@ def make_progress_bar(**kwargs: Any) -> pbb.ProgressBar:
                   formatters.Text(' '),
                   formatters.Bar(),
                   formatters.Text(' '),
-                  ProgressInMB(),
+                  DownloadProgress(),
                   formatters.Text(' '),
                   formatters.Text('eta [', style='class:time-left'),
                   formatters.TimeLeft(),
                   formatters.Text(']', style='class:time-left'),
-                  formatters.Text(' '),]
-    progress_bar = ProgressBar(formatters=formatters, **kwargs)
+                  formatters.Text(' ')]
+    progress_bar = PatchedProgressBar(formatters=formatters, **kwargs)
     return progress_bar
 
 

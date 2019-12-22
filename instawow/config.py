@@ -9,7 +9,10 @@ import click
 from pydantic import BaseSettings, validator
 from pydantic.utils import deep_update as _deep_update
 
-from .utils import Literal
+try:
+    from typing import Literal
+except ImportError:
+    from typing_extensions import Literal
 
 
 class BaseConfig(BaseSettings):

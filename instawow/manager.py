@@ -376,6 +376,7 @@ def init_cli_web_client(*, make_bar: ProgressBar) -> aiohttp.ClientSession:
                     content = params.response.content
                     while not content.is_eof():
                         bar.current = content._cursor
+                        make_bar.invalidate()
                         await asyncio.sleep(_tick_interval)
                 finally:
                     bar.progress_bar.counters.remove(bar)
@@ -396,7 +397,7 @@ class CliManager(Manager):
         self.progress_bar_factory = progress_bar_factory
 
     @cached_property
-    def progress_bar(self) -> Any:
+    def progress_bar(self) -> ProgressBar:
         return self.progress_bar_factory()
 
     def run(self, awaitable: Awaitable) -> Any:
