@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from functools import total_ordering
-from typing import TYPE_CHECKING, FrozenSet, Iterable, List, Tuple
+from typing import TYPE_CHECKING, FrozenSet, List, Tuple
 
 from loguru import logger
 
@@ -12,8 +12,6 @@ from .utils import TocReader, bucketise, cached_property, merge_intersecting_set
 if TYPE_CHECKING:
     from .exceptions import ManagerResult
     from .manager import Manager
-
-    _Groups = Iterable[Tuple[List[AddonFolder], List[ManagerResult]]]
 
 
 _ids_to_sources = {'X-Curse-Project-ID': 'curse',
@@ -71,6 +69,11 @@ def get_folders(manager: Manager, exclude_own: bool = True) -> FrozenSet[AddonFo
     return frozenset(filter(None, map(make_addon_folder, manager.config.addon_dir.iterdir())))
 
 
+_Groups = List[
+    Tuple[List[AddonFolder], List[ManagerResult]]
+]
+
+
 async def match_toc_ids(manager: Manager, leftovers: FrozenSet[AddonFolder]) -> _Groups:
     "Attempt to match add-ons from source IDs contained in TOC files."
     def keyer(value):
@@ -78,7 +81,7 @@ async def match_toc_ids(manager: Manager, leftovers: FrozenSet[AddonFolder]) -> 
 
     matches = [a for a in sorted(leftovers) if a.defns_from_toc]
     defns = list(merge_intersecting_sets(a.defns_from_toc for a in matches))
-    results = await manager.resolve(list(frozenset.union(*defns, frozenset())))      # type: ignore
+    results = await manager.resolve(list(frozenset.union(*defns, frozenset())))
     return [(f, [results[d] for d in b]) for b, f in bucketise(matches, keyer).items()]
 
 

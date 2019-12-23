@@ -6,11 +6,11 @@ from datetime import datetime, timedelta
 from functools import reduce
 from pathlib import Path
 import re
-from typing import (TYPE_CHECKING, Any, Awaitable, Callable, Iterable, List, NamedTuple, Optional,
-                    Sequence, Tuple, TypeVar, Union, cast)
+from typing import (TYPE_CHECKING, Any, Awaitable, Callable, Generic, Iterable, List, NamedTuple,
+                    Optional, Sequence, Tuple, TypeVar, Union, cast)
 
 if TYPE_CHECKING:
-    from prompt_toolkit.shortcuts.progress_bar import ProgressBar
+    from prompt_toolkit.shortcuts import ProgressBar
     from .manager import CliManager
 
 
@@ -54,14 +54,14 @@ class TocReader:
         return cls.from_path(path / f'{path.name}.toc')
 
 
-O = TypeVar('O')
+_RT = TypeVar('_RT')
 
 
-class cached_property:
-    def __init__(self, f: Callable) -> None:
+class cached_property(Generic[_RT]):
+    def __init__(self, f: Callable[[Any], _RT]) -> None:
         self.f = f
 
-    def __get__(self, o: Optional[O], t: Type[O]) -> Any:
+    def __get__(self, o: Any, t: Optional[type]) -> _RT:
         if o is None:
             return self.f
         else:
@@ -212,7 +212,7 @@ def get_version() -> str:
     try:
         import importlib.metadata as importlib_metadata
     except ImportError:
-        import importlib_metadata       # type: ignore
+        import importlib_metadata
 
     try:
         return importlib_metadata.version(__package__)
