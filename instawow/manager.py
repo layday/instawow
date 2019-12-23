@@ -10,8 +10,7 @@ import posixpath
 from shutil import copy, move
 from tempfile import NamedTemporaryFile, mkdtemp
 from typing import (TYPE_CHECKING, Any, AsyncContextManager as ACM, AsyncGenerator, Awaitable,
-                    Callable, Dict, Hashable, Iterable, List, NoReturn, Optional, Sequence, Set,
-                    Tuple, Type)
+                    Callable, Dict, Iterable, List, NoReturn, Optional, Sequence, Set, Tuple)
 
 from loguru import logger
 
@@ -168,14 +167,20 @@ class _DummyResolver:
         return dict.fromkeys(defns, E.PkgOriginInvalid())
 
 
-class _ResolverDict(dict):
-    RESOLVERS = {CurseResolver, WowiResolver, TukuiResolver, InstawowResolver}
+class _Resolvers(dict):
+    RESOLVERS = (CurseResolver, WowiResolver, TukuiResolver, InstawowResolver)
 
     def __init__(self, manager: Manager) -> None:
         super().__init__((r.source, r(manager=manager)) for r in self.RESOLVERS)
 
-    def __missing__(self, key: Hashable) -> Type[_DummyResolver]:
+    def __missing__(self, key: str) -> _DummyResolver:
         return _DummyResolver
+
+    def decompose_url(self, url: str) -> Optional[Tuple[str, str]]:
+        for resolver in self.values():
+            name = resolver.decompose_url(url)
+            if name:
+                return (resolver.source, name)
 
 
 async def _error_out(error: E.ManagerError) -> NoReturn:
@@ -186,7 +191,7 @@ class Manager:
     def __init__(self, config: Config, db_session: scoped_session) -> None:
         self.config = config
         self.db_session = db_session
-        self.resolvers = _ResolverDict(self)
+        self.resolvers = _Resolvers(self)
 
     @property
     def web_client(self) -> aiohttp.ClientSession:

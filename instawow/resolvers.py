@@ -77,14 +77,16 @@ class Resolver(ManagerAttrAccessMixin):
     def __init__(self, manager: Manager) -> None:
         self.manager = manager
 
-    @classmethod
-    def decompose_url(cls, value: str) -> Optional[Tuple[str, str]]:
+    @staticmethod
+    def decompose_url(value: str) -> Optional[str]:
         "Attempt to extract definition names from resolvable URLs."
 
     async def synchronise(self) -> Resolver:
+        "Bootstrap the resolver."
         return self
 
     async def resolve(self, defns: List[Defn]) -> Dict[Defn, Any]:
+        "Resolve add-on definitions into packages."
         raise NotImplementedError
 
 
@@ -103,17 +105,16 @@ class CurseResolver(Resolver, _FileCacheMixin):
 
     _slugs: Optional[Dict[str, str]] = None
 
-    @classmethod
-    def decompose_url(cls, value: str) -> Optional[Tuple[str, str]]:
+    @staticmethod
+    def decompose_url(value: str) -> Optional[str]:
         url = URL(value)
         if (url.host == 'www.wowace.com'
-                and len(url.parts) > 2
-                and url.parts[1] == 'projects'):
-            return (cls.source, url.parts[2].lower())
+                and len(url.parts) > 2 and url.parts[1] == 'projects'):
+            return url.parts[2].lower()
         elif (url.host == 'www.curseforge.com'
-                and len(url.parts) > 3
-                and url.parts[1:3] == ('wow', 'addons')):
-            return (cls.source, url.parts[3].lower())
+                and len(url.parts) > 3 and url.parts[1:3] == ('wow', 'addons')):
+            return url.parts[3].lower()
+        return None
 
     async def synchronise(self) -> CurseResolver:
         if self._slugs is None:
@@ -126,7 +127,7 @@ class CurseResolver(Resolver, _FileCacheMixin):
         numeric_ids = list({i for i in ids_from_defns.values() if i.isdigit()})
         async with self.web_client.post(self.addon_api_url, json=numeric_ids) as response:
             if response.status == 404:
-                json_response = []       # type: ignore
+                json_response = []
             else:
                 json_response = await response.json()
 
@@ -222,20 +223,19 @@ class WowiResolver(Resolver, _FileCacheMixin):
 
     _files: Optional[Dict[str, dict]] = None
 
-    @classmethod
-    def decompose_url(cls, value: str) -> Optional[Tuple[str, str]]:
+    @staticmethod
+    def decompose_url(value: str) -> Optional[str]:
         url = URL(value)
         if (url.host in {'wowinterface.com', 'www.wowinterface.com'}
-                and len(url.parts) == 3
-                and url.parts[1] == 'downloads'):
+                and len(url.parts) == 3 and url.parts[1] == 'downloads'):
             if url.name == 'landing.php':
                 id_ = url.query.get('fileid')
                 if id_:
-                    return (cls.source, id_)
+                    return id_
             elif url.name == 'fileinfo.php':
                 id_ = url.query.get('id')
                 if id_:
-                    return (cls.source, id_)
+                    return id_
             else:
                 match = re.match(r'^(?:download|info)(?P<id>\d+)(?:-(?P<name>[^\.]+))?',
                                  url.name)
@@ -243,7 +243,8 @@ class WowiResolver(Resolver, _FileCacheMixin):
                     id_, slug = match.groups()
                     if slug:
                         id_ = slugify(f'{id_} {slug}')
-                    return (cls.source, id_)
+                    return id_
+        return None
 
     async def synchronise(self) -> WowiResolver:
         if self._files is None:
@@ -258,7 +259,7 @@ class WowiResolver(Resolver, _FileCacheMixin):
         url = self.details_api_url / f'{",".join(numeric_ids)}.json'
         async with self.web_client.get(url) as response:
             if response.status == 404:
-                json_response = []       # type: ignore
+                json_response = []
             else:
                 json_response = await response.json()
 
@@ -313,14 +314,15 @@ class TukuiResolver(Resolver):
     retail_uis = {'-1': 'tukui', '-2': 'elvui',
                   'tukui': 'tukui', 'elvui': 'elvui'}
 
-    @classmethod
-    def decompose_url(cls, value: str) -> Optional[Tuple[str, str]]:
+    @staticmethod
+    def decompose_url(value: str) -> Optional[str]:
         url = URL(value)
         if (url.host == 'www.tukui.org'
                 and url.path in {'/addons.php', '/classic-addons.php', '/download.php'}):
-            id_or_slug = url.query.get('id') or url.query.get('ui')
-            if id_or_slug:
-                return (cls.source, id_or_slug)
+            name = url.query.get('id') or url.query.get('ui')
+            if name:
+                return name
+        return None
 
     async def resolve(self, defns: List[Defn]) -> Dict[Defn, Any]:
         results = await gather(self.resolve_one(d) for d in defns)

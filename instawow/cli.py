@@ -4,7 +4,7 @@ from functools import partial, wraps
 from itertools import chain, islice
 from pathlib import Path
 from typing import (TYPE_CHECKING, Callable, FrozenSet, Generator, Iterable, List, Mapping,
-                    Optional, Sequence, Tuple, Union)
+                    Optional, Sequence, Tuple, Union, overload)
 
 import click
 
@@ -64,36 +64,37 @@ class Report:
         ctx.exit(self.code)
 
 
-def parse_into_defn(manager, value: Union[str, Sequence[str]], *,
-                    raise_invalid: bool = True) -> Union[Defn, List[Defn]]:
-    if isinstance(value, (list, tuple)):
-        # Bucketise to remove dupes
-        return list(bucketise(parse_into_defn(manager, v, raise_invalid=raise_invalid)
-                              for v in value))
+@overload
+def parse_into_defn(manager, value: str, *, raise_invalid: bool) -> Defn: ...
+@overload
+def parse_into_defn(manager, value: Sequence[str], *, raise_invalid: bool) -> List[Defn]: ...
 
-    value = cast(str, value)
-    if ':' not in value:
+def parse_into_defn(manager, value: Sequence[str], *, raise_invalid: bool = True) -> Union[Defn, List[Defn]]:
+    if not isinstance(value, str):
+        defns = (parse_into_defn(manager, v, raise_invalid=raise_invalid) for v in value)
+        deduped_defns = list(dict.fromkeys(defns))
+        return deduped_defns
+
+    delim = ':'
+    any_source = '*'
+    if delim not in value:
         if raise_invalid:
             raise click.BadParameter(value)
-
-        parts = ('*', value)
+        parts = (any_source, value)
     else:
-        for resolver in manager.resolvers.values():
-            parts = resolver.decompose_url(value)
-            if parts:
-                break
-        else:
-            parts = value.partition(':')[::2]
+        parts = manager.resolvers.decompose_url(value)
+        if not parts:
+            parts = value.partition(delim)[::2]
     return Defn(*parts)
 
 
-def parse_into_defn_with_strategy(manager, value: List[Tuple[str, str]]) -> List[Defn]:
+def parse_into_defn_with_strategy(manager, value: Sequence[Tuple[str, str]]) -> List[Defn]:
     defns = parse_into_defn(manager, [d for _, d in value])
     strategies = (Strategies[s] for s, _ in value)
     return list(map(Defn.with_strategy, defns, strategies))
 
 
-def export_to_csv(pkgs: List[models.Pkg]) -> str:
+def export_to_csv(pkgs: Sequence[models.Pkg]) -> str:
     "Export packages to CSV."
     import csv
     import io
@@ -253,9 +254,9 @@ def remove(manager, addons: Sequence[Defn]) -> None:
               help='Do not ask for user confirmation.')
 @click.pass_context
 def reconcile(ctx, auto: bool) -> None:
-    "Reconcile add-ons."
-    from .matchers import match_toc_ids, match_dir_names, get_folders
-    from .models import Pkg, is_pkg
+    "Reconcile pre-installed add-ons."
+    from .matchers import AddonFolder, match_toc_ids, match_dir_names, get_folders
+    from .models import is_pkg
     from .prompts import PkgChoice, confirm, select, skip
 
     preamble = '''\
@@ -275,12 +276,12 @@ Selected add-ons _will_ be reinstalled.
 
     manager = ctx.obj.m
 
-    def prompt_one(addons, pkgs):
+    def prompt_one(addons, pkgs) -> Union[Defn, Tuple[()]]:
         def create_choice(pkg):
             defn = pkg.to_defn()
             title = [('', str(defn)),
                      ('', '=='),
-                     ('class:highlight-sub' if highlight_version else '', pkg.version),]
+                     ('class:highlight-sub' if highlight_version else '', pkg.version)]
             return PkgChoice(title, defn, pkg=pkg)
 
         # Highlight version if there's multiple of them
@@ -291,11 +292,10 @@ Selected add-ons _will_ be reinstalled.
         selection = select(f'{addon.name} [{addon.version or "?"}]', choices).unsafe_ask()
         return selection
 
-    def prompt(groups):
+    def prompt(groups) -> Iterable[Defn]:
         for addons, results in groups:
             shortlist = list(filter(is_pkg, results))
             if shortlist:
-                selection: Union[Defn, Tuple[()]]
                 if auto:
                     pkg = shortlist[0]      # TODO: something more sophisticated
                     selection = pkg.to_defn()
@@ -303,7 +303,7 @@ Selected add-ons _will_ be reinstalled.
                     selection = prompt_one(addons, shortlist)
                 selection and (yield selection)
 
-    def match_all():
+    def match_all() -> Generator[List[Defn], FrozenSet[AddonFolder], None]:
         # Match in order of increasing heuristicitivenessitude
         for fn in (match_toc_ids,
                    match_dir_names,):
