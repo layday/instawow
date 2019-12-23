@@ -5,12 +5,12 @@ from typing import TYPE_CHECKING, FrozenSet, List, Tuple
 
 from loguru import logger
 
+from .exceptions import ManagerResult
 from .models import PkgFolder
 from .resolvers import Defn
 from .utils import TocReader, bucketise, cached_property, merge_intersecting_sets
 
 if TYPE_CHECKING:
-    from .exceptions import ManagerResult
     from .manager import Manager
 
 
