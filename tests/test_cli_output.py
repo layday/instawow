@@ -286,7 +286,7 @@ class TestNonDestructiveOps:
     def test_substr_list_match(self, molinari_and_run):
         assert molinari_and_run('list mol').output == 'curse:molinari\n'
         assert molinari_and_run('list foo').output == ''
-        assert molinari_and_run('list -f detailed mol').startswith('curse:molinari')
+        assert molinari_and_run('list -f detailed mol').output.startswith('curse:molinari')
         molinari, = json.loads(molinari_and_run('list -f json mol').output)
         assert (molinari['origin'], molinari['slug']) == ('curse', 'molinari')
 
