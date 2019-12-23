@@ -11,7 +11,7 @@ def test_env_vars_have_prio(full_config, monkeypatch):
     monkeypatch.setenv('INSTAWOW_CONFIG_DIR', '/foo')
     monkeypatch.setenv('INSTAWOW_GAME_FLAVOUR', 'classic')
     config = Config(**full_config)
-    assert config.config_dir == Path('/foo')
+    assert config.config_dir == Path('/foo').resolve()
     assert config.game_flavour == 'classic'
 
 
@@ -44,7 +44,8 @@ def test_reading_existing_config_values(full_config):
     assert config_json == json.loads((full_config['config_dir'] / 'config.json').read_text())
 
 
-def test_default_config_dir_is_platform_xdg_compliant(partial_config, monkeypatch):
+@pytest.mark.skipif(sys.platform == 'win32', reason='path handling')
+def test_default_config_dir_is_platform_appropriate_and_xdg_compliant(partial_config, monkeypatch):
     with monkeypatch.context() as patcher:
         patcher.setattr(sys, 'platform', 'linux')
         config_dir = Config(**partial_config).config_dir
@@ -58,3 +59,8 @@ def test_default_config_dir_is_platform_xdg_compliant(partial_config, monkeypatc
         patcher.setattr(sys, 'platform', 'darwin')
         config_dir = Config(**partial_config).config_dir
         assert config_dir == Path.home() / 'Library/Application Support/instawow'
+
+
+@pytest.mark.skipif(sys.platform != 'win32', reason='path handling')
+def test_default_config_dir_is_platform_appropriate(partial_config):
+    assert Config(**partial_config).config_dir == Path.home() / 'AppData/Roaming/instawow'
