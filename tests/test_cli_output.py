@@ -46,7 +46,7 @@ def run(manager, request):
         pytest.skip('test is for retail only')
     elif param is Flavour.classic and not manager.config.is_classic:
         pytest.skip('test is for classic only')
-    yield partial(CliRunner().invoke, main, obj=SimpleNamespace(m=manager))
+    yield partial(CliRunner().invoke, main, catch_exceptions=False, obj=SimpleNamespace(m=manager))
 
 
 @pytest.fixture()
