@@ -90,7 +90,7 @@ class _Config(BaseConfig):
 
     @property
     def cache_dir(self) -> Path:
-        return self.temp_dir / '.cache'
+        return self.temp_dir / 'cache'
 
 
 Config = _Config

@@ -53,7 +53,7 @@ async def open_temp_writer() -> AsyncGenerator[Tuple[Path, Callable], None]:
 
 
 async def trash(paths: Sequence[Path], parent_dir: PurePath, *, missing_ok: bool = False) -> None:
-    dst = await async_mkdtemp(dir=parent_dir, prefix=paths[0].name + '-')
+    dst = await async_mkdtemp(dir=parent_dir, prefix='deleted-' + paths[0].name + '-')
     for path in map(str, paths):    # https://bugs.python.org/issue32689
         try:
             await async_move(path, dst)
