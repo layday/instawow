@@ -1,0 +1,23 @@
+---
+name: CI
+on: [push, pull_request]
+jobs:
+  test:
+    strategy:
+      matrix:
+        runner: [macos-latest, ubuntu-latest, windows-latest]
+        python-version: [3.7, 3.8]
+    runs-on: ${{ matrix.runner }}
+    steps:
+    - name: Check-out the repo
+      uses: actions/checkout@v2
+    - name: Install Python
+      uses: actions/setup-python@v1
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install test dependencies
+      run: |
+        python -m pip install nox
+    - name: Run tests
+      run: |
+        nox -s test
