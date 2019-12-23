@@ -23,7 +23,7 @@ def update_stubs(session):
 @nox.session(python='3.7', name='type-check')
 def type_check(session):
     session.install('.')
-    session.run('npx', 'pyright', '--lib')
+    session.run('npx', '--cache', '.npm', 'pyright', '--lib')
 
 
 @nox.session

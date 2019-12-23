@@ -2,6 +2,7 @@ __pycache__
 
 /.cargo
 /.coverage
+/.npm
 /.py*
 /*.egg-info
 /build
