@@ -414,7 +414,7 @@ class CliManager(Manager):
         with self.progress_bar:
             return asyncio.run(run())
 
-    def _prepprocess(self, prepper: Callable, *args: Any, **kwargs: Any) -> Dict[Defn, E.ManagerResult]:
+    def _prepprocess(self, prepper: Callable, *args: Any) -> Dict[Defn, E.ManagerResult]:
         async def intercept(fn):
             try:
                 return await fn()
@@ -425,10 +425,11 @@ class CliManager(Manager):
                 return E.InternalError(error)
 
         async def process():
-            coros_by_defn = await prepper(*args, **kwargs)
+            coros_by_defn = await prepper(*args)
             return {d: await intercept(c) for d, c in coros_by_defn.items()}
 
-        return self.run(process())
+        runner = asyncio.run if prepper.__name__ == 'prep_remove' else self.run
+        return runner(process())        # type: ignore
 
     @property
     def install(self) -> Callable:

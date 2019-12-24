@@ -243,7 +243,7 @@ def update(manager, addons: Sequence[Defn]) -> None:
                 nargs=-1, required=True, callback=_callbackify(parse_into_defn))
 @_pass_manager
 def remove(manager, addons: Sequence[Defn]) -> None:
-    "Uninstall add-ons."
+    "Remove add-ons."
     results = manager.remove(addons)
     Report(results).generate_and_exit()
 
