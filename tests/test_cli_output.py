@@ -49,7 +49,7 @@ def run(manager, request):
     yield partial(CliRunner().invoke, main, catch_exceptions=False, obj=SimpleNamespace(m=manager))
 
 
-@pytest.fixture()
+@pytest.fixture(scope='class')
 def molinari_and_run(run):
     run('install curse:molinari')
     yield run
@@ -293,18 +293,19 @@ class TestNonDestructiveOps:
 
 class TestCsvExportImport:
     @pytest.fixture(autouse=True)
-    def export(self, molinari_and_run, tmp_path):
-        self.export_csv = tmp_path / 'export.csv'
-        molinari_and_run(f'list -e {self.export_csv}')
+    def export(self, manager, molinari_and_run):
+        export_csv = manager.config.config_dir.parent / 'export.csv'
+        molinari_and_run(f'list -e {export_csv}')
+        yield export_csv
 
-    def test_export_to_csv(self):
-        assert self.export_csv.read_text(encoding='utf-8') == '''\
+    def test_export_to_csv(self, export):
+        assert export.read_text(encoding='utf-8') == '''\
 defn,strategy
 curse:molinari,default
 '''
 
-    def test_import_from_csv(self, molinari_and_run):
-        assert molinari_and_run(f'install -i {self.export_csv}').output == '''\
+    def test_import_from_csv(self, molinari_and_run, export):
+        assert molinari_and_run(f'install -i {export}').output == '''\
 ✗ curse:molinari
   package already installed
 '''
