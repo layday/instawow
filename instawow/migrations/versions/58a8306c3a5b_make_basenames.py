@@ -20,11 +20,9 @@ def upgrade():
     pkg_folder = table('pkg_folder', column('name', String))
     conn = op.get_bind()
     for folder, in conn.execute(pkg_folder.select()):
-        conn.execute(
-            pkg_folder.update()
-            .where(pkg_folder.c.name == op.inline_literal(folder))
-            .values({'name': Path(folder).name})
-            )
+        conn.execute(pkg_folder.update()
+                     .where(pkg_folder.c.name == op.inline_literal(folder))
+                     .values({'name': Path(folder).name}))
 
 
 def downgrade():
@@ -36,8 +34,6 @@ def downgrade():
     pkg_folder = table('pkg_folder', column('path', String))
     conn = op.get_bind()
     for folder, in conn.execute(pkg_folder.select()):
-        conn.execute(
-            pkg_folder.update()
-            .where(pkg_folder.c.path == op.inline_literal(folder))
-            .values({'path': str(addon_dir / folder)})
-            )
+        conn.execute(pkg_folder.update()
+                     .where(pkg_folder.c.path == op.inline_literal(folder))
+                     .values({'path': str(addon_dir / folder)}))

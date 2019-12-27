@@ -12,7 +12,8 @@ depends_on = None
 
 
 def upgrade():
-    op.create_table('pkg_dep',
+    op.create_table(
+        'pkg_dep',
         sa.Column('_id', sa.Integer(), nullable=False),
         sa.Column('id', sa.String(), nullable=False),
         sa.Column('pkg_origin', sa.String(), nullable=False),

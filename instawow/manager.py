@@ -101,7 +101,7 @@ async def acquire_archive(path: PurePath) -> AsyncGenerator[Tuple[List[str], Cal
 
 async def download_archive(manager: Manager, pkg: Pkg, *, chunk_size: int = 4096) -> ACM:
     url = pkg.download_url
-    dst = manager.config.cache_dir / shasum(pkg.origin, pkg.id, pkg.file_id)
+    dst = manager.config.cache_dir / shasum(pkg.source, pkg.id, pkg.file_id)
 
     if await t(dst.exists)():
         pass
@@ -163,8 +163,8 @@ class _DummyResolver:
     async def synchronise(self) -> _DummyResolver:
         return self
 
-    async def resolve(self, defns: List[Defn], **kwargs: Any) -> Dict[Defn, E.PkgOriginInvalid]:
-        return dict.fromkeys(defns, E.PkgOriginInvalid())
+    async def resolve(self, defns: List[Defn], **kwargs: Any) -> Dict[Defn, E.PkgSourceInvalid]:
+        return dict.fromkeys(defns, E.PkgSourceInvalid())
 
 
 class _Resolvers(dict):
@@ -203,7 +203,7 @@ class Manager:
 
     def get(self, defn: Defn) -> Optional[Pkg]:
         return (self.db_session.query(Pkg)
-                .filter(Pkg.origin == defn.source,
+                .filter(Pkg.source == defn.source,
                         (Pkg.id == defn.name) | (Pkg.slug == defn.name)).first())
 
     def get_from_substr(self, defn: Defn) -> Optional[Pkg]:
@@ -222,9 +222,9 @@ class Manager:
         encounter in the wild.
         """
         pkgs = list(filter(is_pkg, results))
-        dep_defns = list(filterfalse({(p.origin, p.id) for p in pkgs}.__contains__,
+        dep_defns = list(filterfalse({(p.source, p.id) for p in pkgs}.__contains__,
                                      # Using a dict to maintain dep appearance order
-                                     {(p.origin, d.id): ... for p in pkgs for d in p.deps}))
+                                     {(p.source, d.id): ... for p in pkgs for d in p.deps}))
         if not dep_defns:
             return {}
 
@@ -299,7 +299,7 @@ class Manager:
     async def update_one(self, old_pkg: Pkg, pkg: Pkg, archive: ACM) -> E.PkgUpdated:
         async with archive as (folders, extract):
             conflicts = (self.db_session.query(Pkg).join(Pkg.folders)
-                         .filter(PkgFolder.pkg_origin != pkg.origin, PkgFolder.pkg_id != pkg.id)
+                         .filter(PkgFolder.pkg_source != pkg.source, PkgFolder.pkg_id != pkg.id)
                          .filter(PkgFolder.name.in_(folders)).all())
             if conflicts:
                 raise E.PkgConflictsWithInstalled(conflicts)

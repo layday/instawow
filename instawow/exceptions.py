@@ -84,7 +84,7 @@ class PkgNotInstalled(ManagerError):
     fmt_message = 'package is not installed'
 
 
-class PkgOriginInvalid(ManagerError):
+class PkgSourceInvalid(ManagerError):
     fmt_message = 'package source is invalid'
 
 

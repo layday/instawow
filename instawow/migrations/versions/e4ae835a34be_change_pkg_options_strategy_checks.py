@@ -22,11 +22,9 @@ def _migrate(new_type: Enum, old_val: str, new_val: str) -> None:
     with op.batch_alter_table('pkg_options') as batch_op:
         batch_op.alter_column('strategy', type_=intermediate_type)
 
-    op.execute(
-        pkg_options.update()
-        .where(pkg_options.c.strategy == op.inline_literal(old_val))
-        .values({'strategy': op.inline_literal(new_val)})
-        )
+    op.execute(pkg_options.update()
+               .where(pkg_options.c.strategy == op.inline_literal(old_val))
+               .values({'strategy': op.inline_literal(new_val)}))
 
     with op.batch_alter_table('pkg_options') as batch_op:
         batch_op.alter_column('strategy', type_=new_type)

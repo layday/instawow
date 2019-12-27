@@ -288,7 +288,7 @@ class TestNonDestructiveOps:
         assert molinari_and_run('list foo').output == ''
         assert molinari_and_run('list -f detailed mol').output.startswith('curse:molinari')
         molinari, = json.loads(molinari_and_run('list -f json mol').output)
-        assert (molinari['origin'], molinari['slug']) == ('curse', 'molinari')
+        assert (molinari['source'], molinari['slug']) == ('curse', 'molinari')
 
 
 class TestCsvExportImport:

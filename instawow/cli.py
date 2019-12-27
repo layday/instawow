@@ -370,12 +370,12 @@ def list_installed(manager, addons: Sequence[Defn], export: Optional[str], outpu
     from sqlalchemy import and_, or_
 
     def format_deps(pkg):
-        deps = (Defn(pkg.origin, d.id) for d in pkg.deps)
+        deps = (Defn(pkg.source, d.id) for d in pkg.deps)
         deps = (d.with_name(getattr(manager.get(d), 'slug', d.name)) for d in deps)
         return map(str, deps)
 
     def get_desc(pkg):
-        if pkg.origin == 'wowi':
+        if pkg.source == 'wowi':
             toc_reader = TocReader.from_path_name(manager.config.addon_dir / pkg.folders[0].name)
             return toc_reader['Notes'].value
         else:
@@ -383,10 +383,10 @@ def list_installed(manager, addons: Sequence[Defn], export: Optional[str], outpu
 
     pkgs = (manager.db_session.query(models.Pkg)
             .filter(or_(*(models.Pkg.slug.contains(d.name) if d.source == '*'
-                          else and_(models.Pkg.origin == d.source,
+                          else and_(models.Pkg.source == d.source,
                                     or_(models.Pkg.id == d.name, models.Pkg.slug == d.name))
                           for d in addons)))
-            .order_by(models.Pkg.origin, models.Pkg.name)
+            .order_by(models.Pkg.source, models.Pkg.name)
             .all())
     if export:
         Path(export).write_text(export_to_csv(pkgs), encoding='utf-8')

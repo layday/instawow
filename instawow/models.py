@@ -31,7 +31,7 @@ class _BaseCoercer(pydantic.BaseModel):
 
 
 class _BaseTableMeta(DeclarativeMeta):
-    def __init__(cls, *args: Any) -> None:      # type: ignore
+    def __init__(cls, *args: Any) -> None:
         super().__init__(*args)
         try:
             columns = inspect(cls).columns
@@ -61,7 +61,7 @@ ModelBase = _BaseTable
 class Pkg(_BaseTable):
     __tablename__ = 'pkg'
 
-    origin = Column(String, primary_key=True)
+    source = Column(String, primary_key=True)
     id = Column(String, primary_key=True)
     slug = Column(String, nullable=False)
     name = Column(String, nullable=False)
@@ -82,34 +82,34 @@ class Pkg(_BaseTable):
 
 class PkgFolder(_BaseTable):
     __tablename__ = 'pkg_folder'
-    __table_args__ = (ForeignKeyConstraint(['pkg_origin', 'pkg_id'],
-                                           ['pkg.origin', 'pkg.id']),)
+    __table_args__ = (ForeignKeyConstraint(['pkg_source', 'pkg_id'],
+                                           ['pkg.source', 'pkg.id']),)
 
     name = Column(String, primary_key=True)
-    pkg_origin = Column(String, nullable=False)
+    pkg_source = Column(String, nullable=False)
     pkg_id = Column(String, nullable=False)
 
 
 class PkgOptions(_BaseTable):
     __tablename__ = 'pkg_options'
-    __table_args__ = (ForeignKeyConstraint(['pkg_origin', 'pkg_id'],
-                                           ['pkg.origin', 'pkg.id']),)
+    __table_args__ = (ForeignKeyConstraint(['pkg_source', 'pkg_id'],
+                                           ['pkg.source', 'pkg.id']),)
 
     strategy = Column(String, nullable=False)
-    pkg_origin = Column(String, primary_key=True)
+    pkg_source = Column(String, primary_key=True)
     pkg_id = Column(String, primary_key=True)
 
 
 class PkgDep(_BaseTable):
     __tablename__ = 'pkg_dep'
-    __table_args__ = (ForeignKeyConstraint(['pkg_origin', 'pkg_id'],
-                                           ['pkg.origin', 'pkg.id']),
-                      UniqueConstraint('id', 'pkg_origin', 'pkg_id',
+    __table_args__ = (ForeignKeyConstraint(['pkg_source', 'pkg_id'],
+                                           ['pkg.source', 'pkg.id']),
+                      UniqueConstraint('id', 'pkg_source', 'pkg_id',
                                        name='uq_id_per_foreign_key_constr'))
 
     _id = Column(Integer, primary_key=True)
     id = Column(String, nullable=False)
-    pkg_origin = Column(String, nullable=False)
+    pkg_source = Column(String, nullable=False)
     pkg_id = Column(String, nullable=False)
 
 

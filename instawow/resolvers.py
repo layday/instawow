@@ -32,15 +32,15 @@ class Defn(NamedTuple):
     name: str
     strategy: Strategies = Strategies.default
 
+    @classmethod
+    def from_pkg(cls, pkg: m.Pkg) -> Defn:
+        return cls(pkg.source, pkg.slug, Strategies[pkg.options.strategy])
+
     def with_name(self, name: str) -> Defn:
         return self.__class__(self.source, name, self.strategy)
 
     def with_strategy(self, strategy: Strategies) -> Defn:
         return self.__class__(self.source, self.name, strategy)
-
-    @classmethod
-    def from_pkg(cls, pkg: m.Pkg) -> Defn:
-        return cls(pkg.origin, pkg.slug, Strategies[pkg.options.strategy])
 
     def __str__(self) -> str:
         return f'{self.source}:{self.name}'
@@ -193,7 +193,7 @@ class CurseResolver(Resolver, _FileCacheMixin):
         deps = [m.PkgDep(id=d['addonId']) for d in file['dependencies']
                 if d['type'] == 3]
 
-        return m.Pkg(origin=self.source,
+        return m.Pkg(source=self.source,
                      id=metadata['id'],
                      slug=metadata['slug'],
                      name=metadata['name'],
@@ -291,7 +291,7 @@ class WowiResolver(Resolver, _FileCacheMixin):
         # instawow to discern what version of the game a file's compatible with
         # so it opts to not opt to do anything at all.  Good luck and godspeed.
 
-        return m.Pkg(origin=self.source,
+        return m.Pkg(source=self.source,
                      id=metadata['UID'],
                      slug=slugify(f'{metadata["UID"]} {metadata["UIName"]}'),
                      name=metadata['UIName'],
@@ -347,7 +347,7 @@ class TukuiResolver(Resolver):
                 raise E.PkgNonexistent
             addon = await response.json(content_type='text/html')
 
-        return m.Pkg(origin=self.source,
+        return m.Pkg(source=self.source,
                      id=addon['id'],
                      slug=ui_name or slugify(f'{addon["id"]} {addon["name"]}'),
                      name=addon['name'],
@@ -388,7 +388,7 @@ class InstawowResolver(Resolver):
             except ValueError as error:
                 raise E.PkgFileUnavailable('account name not provided') from error
 
-        return m.Pkg(origin=self.source,
+        return m.Pkg(source=self.source,
                      id=id_,
                      slug=slug,
                      name='WeakAuras Companion',
