@@ -9,7 +9,7 @@ strategy = Strategies.default
 async def test_search(manager):
     results = await manager.search('molinari', limit=5)
     assert (('curse', 'molinari', strategy) in results
-            and ('wowi', 'molinari', strategy) in results)
+            and ('wowi', '13188-molinari', strategy) in results)
 
 
 @pytest.mark.asyncio
