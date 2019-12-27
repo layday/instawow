@@ -259,7 +259,7 @@ class TestInstallWithAlias:
          ('install https://www.wowinterface.com/downloads/fileinfo.php?id=21654',
           '✗ wowi:21654\n  package already installed\n'.__eq__),
          ('install https://www.wowinterface.com/downloads/download21654-DejaMark',
-          '✗ wowi:21654-dejamark\n  package already installed\n'.__eq__),
+          '✗ wowi:21654\n  package already installed\n'.__eq__),
          ('remove wowi:21654',
           '✓ wowi:21654\n  removed\n'.__eq__),])
     def test_install_with_wowi_alias(self, run, input, cmp):

@@ -1,30 +1,29 @@
 from __future__ import annotations
 
 from datetime import datetime
-from enum import Enum
-from functools import wraps
-from itertools import takewhile
-import json
-from operator import itemgetter
+import enum
+from functools import update_wrapper
+from itertools import count, takewhile
 import re
-from typing import (TYPE_CHECKING, cast,
-                    Any, Callable, ClassVar, Dict, List, NamedTuple, Optional, Set, Tuple)
+from typing import (TYPE_CHECKING, Any, AsyncIterable, Callable, ClassVar, Dict, List, NamedTuple,
+                    Optional, Set)
 
+from pydantic import BaseModel
 from yarl import URL
 
 from . import exceptions as E, models as m
-from .utils import (ManagerAttrAccessMixin, gather, is_not_stale, run_in_thread as t, shasum,
-                    slugify)
+from .utils import (Literal, ManagerAttrAccessMixin, cached_property, gather, run_in_thread as t,
+                    slugify, uniq)
 
 if TYPE_CHECKING:
     from .manager import Manager
 
 
-class Strategies(Enum):
-    default = 'default'
-    latest = 'most recent file available'
-    curse_latest_beta = 'most recent beta quality file available from CurseForge'
-    curse_latest_alpha = 'most recent alpha quality file available from CurseForge'
+class Strategies(enum.Enum):
+    default = enum.auto()
+    latest = enum.auto()
+    curse_latest_beta = enum.auto()
+    curse_latest_alpha = enum.auto()
 
 
 class Defn(NamedTuple):
@@ -46,27 +45,39 @@ class Defn(NamedTuple):
         return f'{self.source}:{self.name}'
 
 
-def validate_strategy(method: Callable) -> Callable:
-    @wraps(method)
-    async def wrapper(self, defn: Defn, *args: Any, **kwargs: Any) -> m.Pkg:
-        if defn.strategy in self.strategies:
-            return await method(self, defn, *args, **kwargs)
-        raise E.PkgStrategyUnsupported(defn.strategy)
+class _CItem(BaseModel):
+    source: str
+    id: str
+    slug: str = ''
+    name: str
+    compatibility: List[Literal['retail', 'classic']]
+    folders: List[List[str]] = []
 
-    return wrapper
 
+class MasterCatalogue(BaseModel):
+    __root__: List[_CItem]
 
-class _FileCacheMixin:
-    async def _cache_json_response(self: Any, url: str, *args: Any) -> Any:
-        path = self.config.temp_dir / shasum(url)
+    class Config:
+        keep_untouched = (cached_property,)
 
-        if await t(is_not_stale)(path, *args):
-            text = await t(path.read_text)(encoding='utf-8')
-        else:
-            async with self.web_client.get(url, raise_for_status=True) as response:
-                text = await response.text()
-            await t(path.write_text)(text, encoding='utf-8')
-        return json.loads(text)
+    @classmethod
+    async def collate(cls) -> MasterCatalogue:
+        from types import SimpleNamespace
+        from .manager import init_web_client
+
+        resolvers = (CurseResolver, WowiResolver, TukuiResolver)
+
+        async with init_web_client() as web_client:
+            faux_manager = SimpleNamespace(web_client=web_client)
+            items = [a
+                     for r in resolvers
+                     async for a in r(faux_manager).collect_items()]     # type: ignore
+        catalogue = cls(__root__=items)
+        return catalogue
+
+    @cached_property
+    def curse_slugs(self) -> Dict[str, str]:
+        return {a.slug: a.id for a in self.__root__ if a.source == 'curse'}
 
 
 class Resolver(ManagerAttrAccessMixin):
@@ -77,20 +88,30 @@ class Resolver(ManagerAttrAccessMixin):
     def __init__(self, manager: Manager) -> None:
         self.manager = manager
 
+    def __init_subclass__(cls) -> None:
+        async def wrapper(self, defn, *args, **kwargs):
+            if defn.strategy in self.strategies:
+                return await resolve_one(self, defn, *args, **kwargs)
+            raise E.PkgStrategyUnsupported(defn.strategy)
+
+        resolve_one: Callable = cls.resolve_one
+        cls.resolve_one = update_wrapper(wrapper, cls.resolve_one)
+
     @staticmethod
     def decompose_url(value: str) -> Optional[str]:
         "Attempt to extract definition names from resolvable URLs."
-
-    async def synchronise(self) -> Resolver:
-        "Bootstrap the resolver."
-        return self
 
     async def resolve(self, defns: List[Defn]) -> Dict[Defn, Any]:
         "Resolve add-on definitions into packages."
         raise NotImplementedError
 
+    async def collect_items(self) -> AsyncIterable[_CItem]:
+        "Yield add-ons from source for cataloguing."
+        return
+        yield
 
-class CurseResolver(Resolver, _FileCacheMixin):
+
+class CurseResolver(Resolver):
     source = 'curse'
     name = 'CurseForge'
     strategies = {Strategies.default,
@@ -98,12 +119,8 @@ class CurseResolver(Resolver, _FileCacheMixin):
                   Strategies.curse_latest_beta,
                   Strategies.curse_latest_alpha}
 
-    # https://twitchappapi.docs.apiary.io/
-    addon_api_url = 'https://addons-ecs.forgesvc.net/api/v2/addon'
-    slugs_url = ('https://raw.githubusercontent.com/layday/instascrape/data/'
-                 'curseforge-slugs-v2.compact.json')   # v2
-
-    _slugs: Optional[Dict[str, str]] = None
+    # Reference: https://twitchappapi.docs.apiary.io/
+    addon_api_url = URL('https://addons-ecs.forgesvc.net/api/v2/addon')
 
     @staticmethod
     def decompose_url(value: str) -> Optional[str]:
@@ -114,34 +131,27 @@ class CurseResolver(Resolver, _FileCacheMixin):
         elif (url.host == 'www.curseforge.com'
                 and len(url.parts) > 3 and url.parts[1:3] == ('wow', 'addons')):
             return url.parts[3].lower()
-        return None
-
-    async def synchronise(self) -> CurseResolver:
-        if self._slugs is None:
-            self._slugs = await self._cache_json_response(self.slugs_url, 8, 'hours')
-        return self
 
     async def resolve(self, defns: List[Defn]) -> Dict[Defn, Any]:
-        slugs = cast(dict, self._slugs)
-        ids_from_defns = {d: slugs.get(d.name, d.name) for d in defns}
-        numeric_ids = list({i for i in ids_from_defns.values() if i.isdigit()})
-        async with self.web_client.post(self.addon_api_url, json=numeric_ids) as response:
+        ids_for_defns = {d: self.catalogue.curse_slugs.get(d.name) or d.name for d in defns}
+        numeric_ids = {i for i in ids_for_defns.values() if i.isdigit()}
+        async with self.web_client.post(self.addon_api_url, json=list(numeric_ids)) as response:
             if response.status == 404:
                 json_response = []
             else:
                 json_response = await response.json()
 
         api_results = {str(r['id']): r for r in json_response}
-        coros = (self.resolve_one(d, api_results.get(i))
-                 for d, i in ids_from_defns.items())
-        results = dict(zip(defns, await gather(coros)))
-        return results
+        results = await gather(self.resolve_one(d, api_results.get(i))
+                               for d, i in ids_for_defns.items())
+        return dict(zip(defns, results))
 
-    @validate_strategy
     async def resolve_one(self, defn: Defn, metadata: Optional[dict]) -> m.Pkg:
         if not metadata:
             raise E.PkgNonexistent
-        elif not metadata['latestFiles']:
+
+        files = metadata['latestFiles']
+        if not files:
             raise E.PkgFileUnavailable('no files available for download')
 
         def is_not_libless(f: dict) -> bool:
@@ -164,22 +174,23 @@ class CurseResolver(Resolver, _FileCacheMixin):
                            for v in f['gameVersion']))
 
         # 1 = stable; 2 = beta; 3 = alpha
-        if defn.strategy is Strategies.latest:
-            def has_release_type(f: dict) -> bool: return True
+        if defn.strategy is Strategies.default:
+            def has_release_type(f: dict) -> bool: return f['releaseType'] == 1
         elif defn.strategy is Strategies.curse_latest_beta:
             def has_release_type(f: dict) -> bool: return f['releaseType'] == 2
         elif defn.strategy is Strategies.curse_latest_alpha:
             def has_release_type(f: dict) -> bool: return f['releaseType'] == 3
         else:
-            def has_release_type(f: dict) -> bool: return f['releaseType'] == 1
+            def has_release_type(f: dict) -> bool: return True
 
-        files = (f for f in metadata['latestFiles']
-                 if is_not_libless(f)
-                 and is_compatible_with_game_version(f)
-                 and has_release_type(f))
         try:
-            # The ``id`` is just a counter so we don't have to go digging around dates
-            file = max(files, key=itemgetter('id'))
+            file = max((f for f in files
+                        if is_not_libless(f)
+                        and is_compatible_with_game_version(f)
+                        and has_release_type(f)),
+                       # The ``id`` is just a counter so we don't have to
+                       # go digging around dates
+                       key=lambda f: f['id'])
         except ValueError:
             raise E.PkgFileUnavailable(f'no files compatible with {self.config.game_flavour} '
                                        f'using {defn.strategy.name!r} strategy')
@@ -206,18 +217,50 @@ class CurseResolver(Resolver, _FileCacheMixin):
                      options=m.PkgOptions(strategy=defn.strategy.name),
                      deps=deps)
 
+    async def collect_items(self) -> AsyncIterable[_CItem]:
+        classic_version_prefix = '1.13'
+        flavours = ('retail', 'classic')
 
-class WowiResolver(Resolver, _FileCacheMixin):
+        def excise_compatibility(files):
+            for c in flavours:
+                if any(f['gameVersionFlavor'] == f'wow_{c}' for f in files):
+                    yield c
+                else:
+                    if any(v.startswith(classic_version_prefix) is (c == 'classic')
+                           for f in files
+                           for v in f['gameVersion']):
+                        yield c
+
+        step = 1000
+        for index in count(0, step):
+            url = ((self.addon_api_url / 'search').with_query(
+                    gameId='1', sort='3',  # Alphabetical
+                    pageSize=step, index=index))
+            async with self.web_client.get(url) as response:
+                json_response = await response.json()
+
+            if not json_response:
+                break
+            for item in json_response:
+                folders = uniq(tuple(m['foldername'] for m in f['modules'])
+                                     for f in item['latestFiles']
+                                     if not f['exposeAsAlternative'])
+                yield _CItem(source=self.source,
+                             id=item['id'],
+                             slug=item['slug'],
+                             name=item['name'],
+                             folders=folders,
+                             compatibility=list(excise_compatibility(item['latestFiles'])))
+
+
+class WowiResolver(Resolver):
     source = 'wowi'
     name = 'WoWInterface'
     strategies = {Strategies.default}
 
     # Reference: https://api.mmoui.com/v3/globalconfig.json
-    # There's also a v4 API for the as yet unreleased Minion v4 which I
-    # would assume is unstable.  From a cursory glance it looks like they've
-    # renamed all fields in camelCase; change the type of
-    # some numeric-only fields to a number; and removed 'UISiblings'
-    # which was always empty
+    # There's also a v4 API for the as yet unreleased Minion v4 which
+    # I would assume is unstable
     list_api_url = 'https://api.mmoui.com/v3/game/WOW/filelist.json'
     details_api_url = URL('https://api.mmoui.com/v3/game/WOW/filedetails/')
 
@@ -237,25 +280,21 @@ class WowiResolver(Resolver, _FileCacheMixin):
                 if id_:
                     return id_
             else:
-                match = re.match(r'^(?:download|info)(?P<id>\d+)(?:-(?P<name>[^\.]+))?',
-                                 url.name)
+                match = re.match(r'^(?:download|info)(?P<id>\d+)', url.name)
                 if match:
-                    id_, slug = match.groups()
-                    if slug:
-                        id_ = slugify(f'{id_} {slug}')
-                    return id_
-        return None
-
-    async def synchronise(self) -> WowiResolver:
-        if self._files is None:
-            files = await self._cache_json_response(self.list_api_url, 3600)
-            self._files = {i['UID']: i for i in files}
-        return self
+                    return match.group('id')
 
     async def resolve(self, defns: List[Defn]) -> Dict[Defn, Any]:
-        files = cast(dict, self._files)
-        ids_from_defns = {d: ''.join(takewhile(str.isdigit, d.name)) for d in defns}
-        numeric_ids = {i for i in ids_from_defns.values() if i.isdigit()}
+        if self._files is None:
+            from .manager import cache_json_response
+
+            files = await cache_json_response(self.manager, self.list_api_url, 3600,
+                                              label=f'Synchronising {self.source} catalogue')
+            self._files = {i['UID']: i for i in files}
+
+        ids_for_defns = {d: ''.join(takewhile(str.isdigit, d.name)) for d in defns}
+        numeric_ids = {i for i in ids_for_defns.values() if i.isdigit()}
+
         url = self.details_api_url / f'{",".join(numeric_ids)}.json'
         async with self.web_client.get(url) as response:
             if response.status == 404:
@@ -263,13 +302,11 @@ class WowiResolver(Resolver, _FileCacheMixin):
             else:
                 json_response = await response.json()
 
-        api_results = {r['UID']: {**files[r['UID']], **r} for r in json_response}
-        coros = (self.resolve_one(d, api_results.get(i))
-                 for d, i in ids_from_defns.items())
-        results = dict(zip(defns, await gather(coros)))
-        return results
+        api_results = {r['UID']: {**self._files[r['UID']], **r} for r in json_response}
+        results = await gather(self.resolve_one(d, api_results.get(i))
+                               for d, i in ids_for_defns.items())
+        return dict(zip(defns, results))
 
-    @validate_strategy
     async def resolve_one(self, defn: Defn, metadata: Optional[dict]) -> m.Pkg:
         if not metadata:
             raise E.PkgNonexistent
@@ -303,6 +340,16 @@ class WowiResolver(Resolver, _FileCacheMixin):
                      version=metadata['UIVersion'],
                      options=m.PkgOptions(strategy=defn.strategy.name))
 
+    async def collect_items(self) -> AsyncIterable[_CItem]:
+        async with self.web_client.get(self.list_api_url) as response:
+            json_response = await response.json()
+        for item in json_response:
+            yield _CItem(source=self.source,
+                         id=item['UID'],
+                         name=item['UIName'],
+                         folders=[item['UIDir']],
+                         compatibility=['retail', 'classic'])
+
 
 class TukuiResolver(Resolver):
     source = 'tukui'
@@ -322,13 +369,11 @@ class TukuiResolver(Resolver):
             name = url.query.get('id') or url.query.get('ui')
             if name:
                 return name
-        return None
 
     async def resolve(self, defns: List[Defn]) -> Dict[Defn, Any]:
         results = await gather(self.resolve_one(d) for d in defns)
         return dict(zip(defns, results))
 
-    @validate_strategy
     async def resolve_one(self, defn: Defn) -> m.Pkg:
         name = ui_name = self.retail_uis.get(defn.name)
         if not name:
@@ -359,6 +404,26 @@ class TukuiResolver(Resolver):
                      version=addon['version'],
                      options=m.PkgOptions(strategy=defn.strategy.name))
 
+    async def collect_items(self) -> AsyncIterable[_CItem]:
+        for query, param in  [('ui', 'tukui'), ('ui', 'elvui'),
+                              ('addons', 'all'), ('classic-addons', 'all'),]:
+            url = self.api_url.with_query({query: param})
+            async with self.web_client.get(url) as response:
+                metadata = await response.json(content_type=None)
+
+            if query == 'ui':
+                yield _CItem(source=self.source,
+                             id=metadata['id'],
+                             name=metadata['name'],
+                             compatibility=('retail',))
+            else:
+                compatibility = ('retail' if query == 'addons' else 'classic',)
+                for item in metadata:
+                    yield _CItem(source=self.source,
+                                 id=item['id'],
+                                 name=item['name'],
+                                 compatibility=compatibility)
+
 
 class InstawowResolver(Resolver):
     source = 'instawow'
@@ -372,30 +437,31 @@ class InstawowResolver(Resolver):
         results = await gather(self.resolve_one(d) for d in defns)
         return dict(zip(defns, results))
 
-    @validate_strategy
     async def resolve_one(self, defn: Defn) -> m.Pkg:
         try:
             id_, slug = next(p for p in self._addons if defn.name in p)
         except StopIteration:
             raise E.PkgNonexistent
 
+        from pydantic import ValidationError
         from .wa_updater import WaCompanionBuilder
 
         builder = WaCompanionBuilder(self.manager)
         if id_ == '1':
             try:
                 await builder.build()
-            except ValueError as error:
+            except ValidationError as error:
                 raise E.PkgFileUnavailable('account name not provided') from error
 
+        checksum = await t(builder.checksum)()
         return m.Pkg(source=self.source,
                      id=id_,
                      slug=slug,
                      name='WeakAuras Companion',
                      description='A WeakAuras Companion clone.',
                      url='https://github.com/layday/instawow',
-                     file_id=await t(builder.checksum)(),
+                     file_id=checksum,
                      download_url=builder.file_out.as_uri(),
                      date_published=datetime.now(),
-                     version='1.0.0',
+                     version=checksum[:7],
                      options=m.PkgOptions(strategy=defn.strategy.name))

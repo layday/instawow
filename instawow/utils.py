@@ -3,11 +3,18 @@ from __future__ import annotations
 import asyncio
 from collections import defaultdict, deque
 from datetime import datetime, timedelta
-from functools import reduce
+from itertools import chain, repeat
 from pathlib import Path
 import re
-from typing import (TYPE_CHECKING, Any, Awaitable, Callable, Generic, Iterable, List, NamedTuple,
-                    Optional, Sequence, Tuple, TypeVar, Union, cast)
+from typing import (TYPE_CHECKING, Any, Awaitable, Callable, DefaultDict, Dict, Generic, Hashable,
+                    Iterable, List, NamedTuple, Optional, Sequence, Set, Tuple, TypeVar, Union,
+                    cast, overload)
+
+try:
+    from typing import Literal as _Literal
+except ImportError:
+    from typing_extensions import Literal as _Literal
+Literal = _Literal     # ...
 
 if TYPE_CHECKING:
     from prompt_toolkit.shortcuts import ProgressBar
@@ -61,7 +68,12 @@ class cached_property(Generic[_RT]):
     def __init__(self, f: Callable[[Any], _RT]) -> None:
         self.f = f
 
-    def __get__(self, o: Any, t: Optional[type]) -> _RT:
+    @overload
+    def __get__(self, o: None, t: Optional[type] = None) -> Callable: ...
+    @overload
+    def __get__(self, o: Any, t: Optional[type] = None) -> _RT: ...
+
+    def __get__(self, o: Any, t: Optional[type] = None) -> Union[Callable, _RT]:
         if o is None:
             return self.f
         else:
@@ -69,17 +81,26 @@ class cached_property(Generic[_RT]):
             return v
 
 
-def bucketise(iterable: Iterable, key: Callable = (lambda v: v)) -> defaultdict:
-    "Place the elements of ``iterable`` into a bucket according to ``key``."
+_H = TypeVar('_H', bound=Hashable)
+_V = TypeVar('_V')
+
+
+def bucketise(iterable: Iterable[_V], key: Callable[[Any], _H] = (lambda v: v)) -> DefaultDict[_H, List[_V]]:
+    "Place the elements of an iterable in a bucket according to ``key``."
     bucket = defaultdict(list)
     for value in iterable:
         bucket[key(value)].append(value)
     return bucket
 
 
-def dict_merge(*args: dict) -> dict:
-    "Right merge any number of ``dict``s."
-    return reduce(lambda p, n: {**p, **n}, args, {})
+def dict_chain(keys: Iterable[_H], default: Any, *overrides: Iterable[Tuple[_H, Any]]) -> Dict[_H, Any]:
+    "Construct a dictionary from a series of iterables with overlapping keys."
+    return dict(chain(zip(keys, repeat(default)), *overrides))
+
+
+def uniq(it: Iterable[_H]) -> List[_H]:
+    "Deduplicate hashable items in an iterable maintaining insertion order."
+    return list(dict.fromkeys(it))
 
 
 _AnySet = TypeVar('_AnySet', set, frozenset)
@@ -113,12 +134,17 @@ def run_in_thread(fn: Callable) -> Callable[..., Awaitable]:
     return lambda *a, **k: asyncio.get_running_loop().run_in_executor(None, lambda: fn(*a, **k))
 
 
-_match_loweralphanum = re.compile(r'[^0-9a-z ]')
-
-
 def slugify(text: str) -> str:
     "Convert an add-on name into a lower-alphanumeric slug."
-    return '-'.join(_match_loweralphanum.sub(' ', text.casefold()).split())
+    return '-'.join(re.sub(r'[^0-9a-z]', ' ', text.casefold()).split())
+
+
+def slugify_uniq(text: str, set_: Set[str]) -> Tuple[str, Set[str]]:
+    "Convert an add-on name into a unique lower-alphanumeric slug."
+    slug = orig_slug = slugify(text)
+    for i, _ in enumerate(iter(lambda: slug in set_, False), start=1):
+        slug = f'{orig_slug}-{i}'
+    return slug, set_ | {slug}
 
 
 def tabulate(rows: Sequence, *, max_col_width: int = 60) -> str:
@@ -212,7 +238,7 @@ def get_version() -> str:
     try:
         import importlib.metadata as importlib_metadata
     except ImportError:
-        import importlib_metadata
+        import importlib_metadata       # type: ignore
 
     try:
         return importlib_metadata.version(__package__)

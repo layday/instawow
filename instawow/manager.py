@@ -5,20 +5,23 @@ from contextlib import asynccontextmanager
 import contextvars as cv
 from functools import partial
 from itertools import filterfalse, starmap
+import json
 from pathlib import Path, PurePath
 import posixpath
 from shutil import copy, move
 from tempfile import NamedTemporaryFile, mkdtemp
 from typing import (TYPE_CHECKING, Any, AsyncContextManager as ACM, AsyncGenerator, Awaitable,
-                    Callable, Dict, Iterable, List, NoReturn, Optional, Sequence, Set, Tuple)
+                    Callable, Dict, Iterable, List, NoReturn, Optional, Sequence, Set, Tuple,
+                    Union, cast)
 
 from loguru import logger
 
 from . import DB_REVISION, exceptions as E
 from .models import Pkg, PkgFolder, is_pkg
-from .resolvers import CurseResolver, Defn, InstawowResolver, TukuiResolver, WowiResolver
-from .utils import (bucketise, cached_property, dict_merge as merge, gather, make_progress_bar,
-                    run_in_thread as t, shasum)
+from .resolvers import (CurseResolver, Defn, InstawowResolver, MasterCatalogue, TukuiResolver,
+                        WowiResolver)
+from .utils import (bucketise, cached_property, dict_chain, gather, is_not_stale,
+                    make_progress_bar, run_in_thread as t, shasum)
 
 if TYPE_CHECKING:
     import aiohttp
@@ -51,8 +54,8 @@ async def open_temp_writer() -> AsyncGenerator[Tuple[Path, Callable], None]:
         await t(fh.close)()
 
 
-async def trash(paths: Sequence[Path], parent_dir: PurePath, *, missing_ok: bool = False) -> None:
-    dst = await async_mkdtemp(dir=parent_dir, prefix='deleted-' + paths[0].name + '-')
+async def trash(paths: Sequence[Path], dst: PurePath, *, missing_ok: bool = False) -> None:
+    dst = await async_mkdtemp(dir=dst, prefix='deleted-' + paths[0].name + '-')
     for path in map(str, paths):    # https://bugs.python.org/issue32689
         try:
             await async_move(path, dst)
@@ -110,14 +113,28 @@ async def download_archive(manager: Manager, pkg: Pkg, *, chunk_size: int = 4096
 
         await async_copy(unquote(url[7:]), dst)
     else:
-        web_client = _web_client.get()
-        async with web_client.get(url, trace_request_ctx={'show_progress': True}) as response, \
+        async with manager.web_client.get(url, trace_request_ctx={'show_progress': True}) as response, \
                 open_temp_writer() as (temp_path, write):
             async for chunk in response.content.iter_chunked(chunk_size):
                 await write(chunk)
 
         await async_move(str(temp_path), dst)
     return acquire_archive(dst)
+
+
+async def cache_json_response(manager: Manager, url: str, *args: Any, label: Optional[str] = None) -> Any:
+    path = manager.config.cache_dir / shasum(url)
+
+    if await t(is_not_stale)(path, *args):
+        text = await t(path.read_text)(encoding='utf-8')
+    else:
+        kwargs: Dict[str, Any] = {'raise_for_status': True}
+        if label:
+            kwargs.update({'trace_request_ctx': {'show_progress': True, 'label': label}})
+        async with manager.web_client.get(url, **kwargs) as response:
+            text = await response.text()
+        await t(path.write_text)(text, encoding='utf-8')
+    return json.loads(text)
 
 
 def prepare_db_session(config: Config) -> scoped_session:
@@ -171,7 +188,7 @@ class _Resolvers(dict):
     RESOLVERS = (CurseResolver, WowiResolver, TukuiResolver, InstawowResolver)
 
     def __init__(self, manager: Manager) -> None:
-        super().__init__((r.source, r(manager=manager)) for r in self.RESOLVERS)
+        super().__init__((r.source, r(manager)) for r in self.RESOLVERS)
 
     def __missing__(self, key: str) -> _DummyResolver:
         return _DummyResolver
@@ -183,7 +200,7 @@ class _Resolvers(dict):
                 return (resolver.source, name)
 
 
-async def _error_out(error: E.ManagerError) -> NoReturn:
+async def _error_out(error: Union[E.ManagerError, E.InternalError]) -> NoReturn:
     raise error
 
 
@@ -192,6 +209,7 @@ class Manager:
         self.config = config
         self.db_session = db_session
         self.resolvers = _Resolvers(self)
+        self.catalogue: MasterCatalogue = None      # type: ignore
 
     @property
     def web_client(self) -> aiohttp.ClientSession:
@@ -212,6 +230,16 @@ class Manager:
             pkg = (self.db_session.query(Pkg)
                    .filter(Pkg.slug.contains(defn.name)).order_by(Pkg.name).first())
         return pkg
+
+    async def synchronise(self) -> Manager:
+        "Fetch the master catalogue from the interwebs."
+        if self.catalogue is None:
+            label = 'Synchronising master catalogue'
+            url = ('https://raw.githubusercontent.com/layday/instascrape/test-master-catalogue/'
+                   'master-catalogue-v1.compact.json')   # v1
+            catalogue = await cache_json_response(self, url, 4, 'hours', label=label)
+            self.catalogue = MasterCatalogue.parse_obj(catalogue)
+        return self
 
     async def _resolve_deps(self, results: Iterable[Any]) -> Dict[Defn, Any]:
         """Resolve package dependencies.
@@ -234,33 +262,31 @@ class Manager:
 
     async def resolve(self, defns: Sequence[Defn], with_deps: bool = False) -> Dict[Defn, Any]:
         "Resolve definitions into packages."
-        async def get_results(source, defns):
-            resolver = await self.resolvers[source].synchronise()
-            return await resolver.resolve(defns)
-
+        await self.synchronise()
         defns_by_source = bucketise(defns, key=lambda v: v.source)
-        results = await gather(get_results(s, b) for s, b in defns_by_source.items())
-        results_by_defn = merge(dict.fromkeys(defns), *results)
+
+        results = await gather(self.resolvers[s].resolve(b) for s, b in defns_by_source.items())
+        results_by_defn = dict_chain(defns, None, *map(dict.items, results))
         if with_deps:
             results_by_defn.update(await self._resolve_deps(results_by_defn.values()))
         return results_by_defn
 
     async def search(self, search_terms: str, limit: int) -> Dict[Defn, Pkg]:
         "Search the combined names catalogue for packages."
-        from fuzzywuzzy import fuzz, process
-        from .resolvers import _FileCacheMixin as cache
+        import warnings
+        warnings.filterwarnings('ignore', category=UserWarning, module='fuzzywuzzy')
 
-        url = ('https://raw.githubusercontent.com/layday/instascrape/data/'
-               'combined-names-v2.compact.json')   # v2
-        combined_names = await cache._cache_json_response(self, url, 8, 'hours')
-        defns_for_names = bucketise(((n, Defn(*d)) for n, d, f in combined_names
-                                     if self.config.game_flavour in f),
+        from fuzzywuzzy import fuzz, process
+
+        await self.synchronise()
+        defns_for_names = bucketise(((i.name, (i.source, i.id)) for i in self.catalogue.__root__
+                                     if self.config.game_flavour in i.compatibility),
                                     key=lambda v: v[0])
 
         matches = process.extract(search_terms, defns_for_names.keys(),
-                                  limit=limit, scorer=fuzz.WRatio)
-        defns = [d
-                 for m, _ in matches
+                                  scorer=fuzz.WRatio, limit=limit)
+        defns = [Defn(*d)
+                 for m, _ in matches    # type: ignore  # Co-dependent types in ``extract`` sig
                  for _, d in defns_for_names[m]]
         results = await self.resolve(defns)
         pkgs_by_defn = {d.with_name(r.slug): r for d, r in results.items() if is_pkg(r)}
@@ -283,18 +309,17 @@ class Manager:
 
     async def prep_install(self, defns: Sequence[Defn], replace: bool) -> Dict[Defn, Callable]:
         "Retrieve packages to install."
-        prelim_results = await self.resolve([d for d in defns if not self.get(d)],
-                                            with_deps=True)
-        # Weed out installed deps - this isn't super efficient but
-        # avoids having to deal with local state in resolver
+        prelim_results = await self.resolve([d for d in defns if not self.get(d)], with_deps=True)
+        # Weed out installed deps - this isn't super efficient but avoids
+        # having to deal with local state in the resolver
         results = {d: r for d, r in prelim_results.items() if not self.get(d)}
         installables = {(d, r): download_archive(self, r) for d, r in results.items() if is_pkg(r)}
         archives = await gather(installables.values())
 
-        return merge(dict.fromkeys(defns, partial(_error_out, E.PkgAlreadyInstalled())),
-                     {d: partial(_error_out, r) for d, r in results.items()},
-                     {d: partial(self.install_one, p, a, replace)
-                      for (d, p), a in zip(installables, archives)})
+        return dict_chain(defns, partial(_error_out, E.PkgAlreadyInstalled()),
+                          ((d, partial(_error_out, r)) for d, r in results.items()),
+                          ((d, partial(self.install_one, p, a, replace))
+                           for (d, p), a in zip(installables, archives)))
 
     async def update_one(self, old_pkg: Pkg, pkg: Pkg, archive: ACM) -> E.PkgUpdated:
         async with archive as (folders, extract):
@@ -314,9 +339,8 @@ class Manager:
 
     async def prep_update(self, defns: Sequence[Defn]) -> Dict[Defn, Callable]:
         "Retrieve packages to update."
-        # Rebuild ``Defn`` with strategy from package for ``Defn``s
-        # with installed packages
-        checked_defns = {c.with_strategy(p.to_defn().strategy) if p else c: p
+        # Rebuild ``Defn`` with strategy from package for ``Defn``s with installed packages
+        checked_defns = {p.to_defn().with_name(c.name) if p else c: p
                          for c, p in ((d, self.get(d)) for d in defns)}
         # Results can contain errors
         # installables are those results which are packages
@@ -325,18 +349,18 @@ class Manager:
         installables = {d: r for d, r in results.items() if is_pkg(r)}
         updatables = {(d, checked_defns[d], p): download_archive(self, p)
                       for d, p in installables.items()
-                      if p.file_id != checked_defns[d].file_id}
+                      if p.file_id != cast(Pkg, checked_defns[d]).file_id}
         archives = await gather(updatables.values())
 
-        return merge(dict.fromkeys(checked_defns, partial(_error_out, E.PkgNotInstalled())),
-                     {d: partial(_error_out, r) for d, r in results.items()},
-                     {d: partial(_error_out, E.PkgUpToDate()) for d in installables},
-                     {d: partial(self.update_one, *p, a)
-                      for (d, *p), a in zip(updatables, archives)})
+        return dict_chain(checked_defns, partial(_error_out, E.PkgNotInstalled()),
+                          ((d, partial(_error_out, r)) for d, r in results.items()),
+                          ((d, partial(_error_out, E.PkgUpToDate())) for d in installables),
+                          ((d, partial(self.update_one, *p, a))
+                           for (d, *p), a in zip(updatables, archives)))
 
     async def remove_one(self, pkg: Pkg) -> E.PkgRemoved:
         await trash([self.config.addon_dir / f.name for f in pkg.folders],
-                    parent_dir=self.config.temp_dir, missing_ok=True)
+                    dst=self.config.temp_dir, missing_ok=True)
         self.db_session.delete(pkg)
         self.db_session.commit()
         return E.PkgRemoved(pkg)
@@ -344,8 +368,8 @@ class Manager:
     async def prep_remove(self, defns: Sequence[Defn]) -> Dict[Defn, Callable]:
         "Prepare packages to remove."
         pkgs_by_defn = ((d, self.get(d)) for d in defns)
-        return merge(dict.fromkeys(defns, partial(_error_out, E.PkgNotInstalled())),
-                     {d: partial(self.remove_one, p) for d, p in pkgs_by_defn if p})
+        return dict_chain(defns, partial(_error_out, E.PkgNotInstalled()),
+                          ((d, partial(self.remove_one, p)) for d, p in pkgs_by_defn if p))
 
 
 _tick_interval = .1
@@ -373,8 +397,8 @@ def init_cli_web_client(*, make_bar: ProgressBar) -> aiohttp.ClientSession:
     async def do_on_request_end(session, request_ctx, params) -> None:
         ctx = request_ctx.trace_request_ctx
         if ctx and ctx.get('show_progress'):
-            bar = make_bar(label=ctx.get('label') or f'Downloading {extract_filename(params)}',
-                           total=params.response.content_length or 0)
+            label = ctx.get('label') or f'Downloading {extract_filename(params)}'
+            bar = make_bar(label=label, total=params.response.content_length or 0)
 
             async def ticker() -> None:
                 try:
@@ -414,7 +438,7 @@ class CliManager(Manager):
         with self.progress_bar:
             return asyncio.run(run())
 
-    def _prepprocess(self, prepper: Callable, *args: Any) -> Dict[Defn, E.ManagerResult]:
+    def _prepprocess(self, prepper: Callable, *args: Any, **kwargs: Any) -> Dict[Defn, E.ManagerResult]:
         async def intercept(fn):
             try:
                 return await fn()
@@ -425,7 +449,7 @@ class CliManager(Manager):
                 return E.InternalError(error)
 
         async def process():
-            coros_by_defn = await prepper(*args)
+            coros_by_defn = await prepper(*args, **kwargs)
             return {d: await intercept(c) for d, c in coros_by_defn.items()}
 
         runner = asyncio.run if prepper.__name__ == 'prep_remove' else self.run

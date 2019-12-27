@@ -6,10 +6,16 @@ strategy = Strategies.default
 
 
 @pytest.mark.asyncio
-async def test_search_basic_flavour(manager):
+async def test_search(manager):
     results = await manager.search('molinari', limit=5)
-    assert ('curse', 'molinari', strategy) in results
+    assert (('curse', 'molinari', strategy) in results
+            and ('wowi', 'molinari', strategy) in results)
+
+
+@pytest.mark.asyncio
+async def test_search_with_extra_spice(manager):
+    results = await manager.search('AtlasLootClassic', limit=5)
     if manager.config.is_classic:
-        assert ('wowi', '13188-molinari', strategy) not in results
+        assert ('curse', 'atlaslootclassic', strategy) in results
     else:
-        assert ('wowi', '13188-molinari', strategy) in results
+        assert ('curse', 'atlaslootclassic', strategy) not in results

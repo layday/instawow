@@ -87,20 +87,17 @@ async def match_toc_ids(manager: Manager, leftovers: FrozenSet[AddonFolder]) -> 
 
 async def match_dir_names(manager: Manager, leftovers: FrozenSet[AddonFolder]) -> _Groups:
     "Attempt to match folders against the CurseForge and WoWInterface catalogues."
-    async def fetch_combined_folders():
-        url = ('https://raw.githubusercontent.com/layday/instascrape/data/'
-               'combined-folders.compact.json')   # v1
-        async with manager.web_client.get(url) as response:
-            return await response.json(content_type=None)
-
     def keyer(value):
         return next(f for f in folders if value[0] & f)
 
-    # We can't use an intersection here because it's not guaranteed to return ``AddonFolder``s
-    matches = [(frozenset(filter(f.__contains__, leftovers)), Defn(*d))
-               for d, c, f in await fetch_combined_folders()
-               if manager.config.game_flavour in c
-               and frozenset(f) <= leftovers]
+    await manager.synchronise()
+
+    # We can't use an intersection here because
+    # it's not guaranteed to return ``AddonFolder``s
+    matches = [(frozenset(filter(f.__contains__, leftovers)), Defn(i.source, i.id))
+               for i in manager.catalogue.__root__
+               for f in i.folders
+               if manager.config.game_flavour in i.compatibility and frozenset(f) <= leftovers]
     folders = list(merge_intersecting_sets(f for f, _ in matches))
     results = await manager.resolve(list({d for _, d in matches}))
     return [(sorted(f), [results[d] for _, d in b]) for f, b in bucketise(matches, keyer).items()]
