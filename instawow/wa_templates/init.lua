@@ -19,6 +19,19 @@ else
       if count and count > 0 then
         WeakAuras.prettyPrint(WeakAuras.L["There are %i updates to your auras ready to be installed!"]:format(count))
       end
+      if WeakAuras.ImportHistory then
+        for id, data in pairs(WeakAurasSaved.displays) do
+          if data.uid and not WeakAurasSaved.history[data.uid] then
+            local slug = WeakAurasCompanion.uids[data.uid]
+            if slug then
+              local wagoData = WeakAurasCompanion.slugs[slug]
+              if wagoData and wagoData.encoded then
+                WeakAuras.ImportHistory(wagoData.encoded)
+              end
+            end
+          end
+        end
+      end
     end
   end)
 end
