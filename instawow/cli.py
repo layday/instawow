@@ -526,12 +526,14 @@ def list_installed_wago_auras(obj: M, account: str) -> None:
 
 
 @main.command(hidden=True)
-@click.option('--style', type=click.Choice(('expanded', 'compact')), required=True)
 @click.argument('filename', type=click.Path(dir_okay=False))
 @click.pass_obj
-def generate_catalogue(obj: M, filename: str, style: str) -> None:
+def generate_catalogue(obj: M, filename: str) -> None:
     from .resolvers import MasterCatalogue
 
     catalogue = obj.m.run(MasterCatalogue.collate())
-    opts = {'separators': (',', ':')} if style == 'compact' else {'indent': 2}
-    Path(filename).write_text(catalogue.json(**opts), encoding='utf-8')
+
+    expanded = Path(filename)
+    expanded.write_text(catalogue.json(indent=2), encoding='utf-8')
+    compact = expanded.with_suffix(f'.compact{expanded.suffix}')
+    compact.write_text(catalogue.json(separators=(',', ':')), encoding='utf-8')
