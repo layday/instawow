@@ -9,7 +9,7 @@ jobs:
         runner: [macos-latest, ubuntu-latest, windows-latest]
         python-version: ['3.7', '3.8']
     runs-on: ${{ matrix.runner }}
-    if: ! (matrix.runner == 'windows-latest' && matrix.python-version == '3.8')
+    if: '!(matrix.runner == "windows-latest" && matrix.python-version == "3.8")'
     steps:
     - name: Check-out the repo
       uses: actions/checkout@v2
