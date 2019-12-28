@@ -235,7 +235,7 @@ class Manager:
         "Fetch the master catalogue from the interwebs."
         if self.catalogue is None:
             label = 'Synchronising master catalogue'
-            url = ('https://raw.githubusercontent.com/layday/instascrape/test-master-catalogue/'
+            url = ('https://raw.githubusercontent.com/layday/instascrape/data/'
                    'master-catalogue-v1.compact.json')   # v1
             catalogue = await cache_json_response(self, url, 4, 'hours', label=label)
             self.catalogue = MasterCatalogue.parse_obj(catalogue)
