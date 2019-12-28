@@ -1,3 +1,5 @@
+import os
+
 import nox
 
 
@@ -60,10 +62,9 @@ def publish(session):
 
 @nox.session
 def nixify(session):
-    if session.posargs:
-        session.cd(*session.posargs)
-
+    session.cd(os.environ.get('INSTAWOW_NIXIFY_DIR', '.'))
     session.install('pypi2nix')
-    session.run('rm', '-f',
-                'requirements.nix', 'requirements_overrides.nix', 'requirements_frozen.txt')
+    session.run('rm', '-f', 'requirements.nix',
+                            'requirements_overrides.nix',
+                            'requirements_frozen.txt')
     session.run('pypi2nix', '-e', 'instawow')
