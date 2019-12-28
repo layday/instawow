@@ -6,7 +6,7 @@ from instawow.wa_updater import ApiMetadata, AuraEntry, WaCompanionBuilder
 
 @pytest.fixture
 def builder(manager):
-    yield WaCompanionBuilder(manager)
+    yield WaCompanionBuilder(manager, 'test')
 
 
 @pytest.mark.asyncio
@@ -86,12 +86,10 @@ WeakAurasSaved = {
 
 
 def test_can_build_addon_without_updates(builder):
-    builder.builder_dir.mkdir()
     builder.make_addon([])
 
 
 def test_build_is_reproducible(builder):
-    builder.builder_dir.mkdir()
     builder.make_addon([])
     checksum = builder.checksum()
     builder.make_addon([])

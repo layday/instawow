@@ -503,7 +503,7 @@ def build_weakauras_companion(obj: M, account: str) -> None:
     "Build the WeakAuras Companion add-on."
     from .wa_updater import WaCompanionBuilder
 
-    obj.m.run(WaCompanionBuilder(obj.m).build(account))
+    obj.m.run(WaCompanionBuilder(obj.m, account).build())
 
 
 @_weakauras_group.command('list')
@@ -516,7 +516,7 @@ def list_installed_wago_auras(obj: M, account: str) -> None:
     "List WeakAuras installed from Wago."
     from .wa_updater import WaCompanionBuilder
 
-    aura_groups = WaCompanionBuilder(obj.m).extract_installed_auras(account)
+    aura_groups = WaCompanionBuilder(obj.m, account).extract_installed_auras()
     installed_auras = sorted((a.id, a.url, 'yes' if a.ignore_wago_update else 'no')
                              for v in aura_groups.values()
                              for a in v
