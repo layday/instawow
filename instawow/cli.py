@@ -527,13 +527,13 @@ def list_installed_wago_auras(obj: M, account: str) -> None:
 
 @main.command(hidden=True)
 @click.argument('filename', type=click.Path(dir_okay=False))
-@click.pass_obj
-def generate_catalogue(obj: M, filename: str) -> None:
+def generate_catalogue(filename: str) -> None:
+    import asyncio
     from .resolvers import MasterCatalogue
 
-    catalogue = obj.m.run(MasterCatalogue.collate())
-
+    catalogue = asyncio.run(MasterCatalogue.collate())
     expanded = Path(filename)
     expanded.write_text(catalogue.json(indent=2), encoding='utf-8')
+
     compact = expanded.with_suffix(f'.compact{expanded.suffix}')
     compact.write_text(catalogue.json(separators=(',', ':')), encoding='utf-8')
