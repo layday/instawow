@@ -4,10 +4,6 @@ from instawow.config import Config
 from instawow.manager import Manager, init_web_client, prepare_db_session
 
 
-def pytest_addoption(parser):
-    parser.addoption('--vcrpy-mode', action='store', default='none')
-
-
 @pytest.fixture(scope='session')
 def temp_dir(tmp_path_factory):
     yield tmp_path_factory.mktemp('temp', numbered=True)
