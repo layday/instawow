@@ -292,9 +292,9 @@ class TestNonDestructiveOps:
 
 
 class TestCsvExportImport:
-    @pytest.fixture(autouse=True)
-    def export(self, manager, molinari_and_run):
-        export_csv = manager.config.config_dir.parent / 'export.csv'
+    @pytest.fixture(autouse=True, scope='class')
+    def export(self, tmp_path_factory, molinari_and_run):
+        export_csv = tmp_path_factory.mktemp('export', numbered=True).joinpath('export.csv')
         molinari_and_run(f'list -e {export_csv}')
         yield export_csv
 
