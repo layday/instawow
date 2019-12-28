@@ -4,7 +4,7 @@ from functools import partial
 from itertools import chain, islice
 from pathlib import Path
 from typing import (TYPE_CHECKING, Callable, FrozenSet, Generator, Iterable, List, Mapping,
-                    Optional, Sequence, Tuple, Union, overload)
+                    Optional, Sequence, Tuple, Union, cast, overload)
 
 import click
 
@@ -123,23 +123,22 @@ def parse_into_defn_with_strategy(manager: CliManager, value: Sequence[Tuple[str
     return list(map(Defn.with_strategy, defns, strategies))
 
 
-def export_to_csv(pkgs: Sequence[models.Pkg]) -> str:
+def export_to_csv(pkgs: Sequence[models.Pkg], path: Path) -> None:
     "Export packages to CSV."
     import csv
-    import io
 
-    buffer = io.StringIO()
-    writer = csv.writer(buffer)
-    writer.writerow(('defn', 'strategy'))
-    writer.writerows((p.to_defn(), p.options.strategy) for p in pkgs)
-    return buffer.getvalue()
+    with Path(path).open('w', encoding='utf-8', newline='') as file:
+        writer = csv.writer(file)
+        writer.writerow(('defn', 'strategy'))
+        writer.writerows((p.to_defn(), p.options.strategy) for p in pkgs)
 
 
-def import_from_csv(manager: CliManager, value: Iterable[str]) -> List[Defn]:
+def import_from_csv(manager: CliManager, path: Path) -> List[Defn]:
     "Import definitions from CSV."
     import csv
 
-    rows = [(b, a) for a, b in islice(csv.reader(value), 1, None)]
+    with Path(path).open(encoding='utf-8', newline='') as contents:
+        rows = [(b, a) for a, b in islice(csv.reader(contents), 1, None)]
     return parse_into_defn_with_strategy(manager, rows)
 
 
@@ -183,7 +182,7 @@ def main(ctx: click.Context, debug: bool) -> None:
               is_flag=True, default=False,
               help='Replace existing add-ons.')
 @click.option('--import', '-i',
-              type=click.File(encoding='utf-8'),
+              type=click.Path(dir_okay=False, exists=True),
               callback=_combine_into('addons', import_from_csv), expose_value=False,
               help='Install add-ons from CSV.')
 @click.option('--with-strategy', '-s',
@@ -346,7 +345,7 @@ def search(ctx: click.Context, limit: int, search_terms: str) -> None:
 
 @main.command('list')
 @click.option('--export', '-e',
-              default=None, type=click.Path(dir_okay=False),
+              default=None, type=click.Path(dir_okay=False, writable=True),
               help='Export listed add-ons to CSV.')
 @click.option('--format', '-f', 'output_format',
               type=click.Choice(('simple', 'detailed', 'json')),
@@ -380,7 +379,7 @@ def list_(obj: M, addons: Sequence[Defn], export: Optional[str], output_format: 
             .order_by(models.Pkg.source, models.Pkg.name)
             .all())
     if export:
-        Path(export).write_text(export_to_csv(pkgs), encoding='utf-8')
+        export_to_csv(pkgs, cast(Path, export))
     elif pkgs:
         if output_format == 'json':
             from .models import MultiPkgModel
