@@ -1,0 +1,19 @@
+{
+  "name": "Tukui",
+  "author": "Tukz",
+  "url": "https://www.tukui.org/downloads/tukui-18.27.zip",
+  "version": "18.27",
+  "changelog": "https://www.tukui.org/ui/tukui/changelog",
+  "ticket": "https://git.tukui.org/Tukz/Tukui/issues",
+  "git": "https://git.tukui.org/Tukz/Tukui",
+  "id": -1,
+  "patch": "8.2",
+  "lastupdate": "2019-09-24",
+  "web_url": "https://www.tukui.org/download.php?ui=tukui",
+  "lastdownload": "2019-12-29 03:22:30",
+  "donate_url": "http://www.tukui.org/support.php",
+  "small_desc": "Minimalistic and lightweight world of warcraft user interface",
+  "screenshot_url": "https://www.tukui.org/images/screenshots/t4.jpg",
+  "downloads": 2147483000,
+  "category": "Full UI Replacements"
+}

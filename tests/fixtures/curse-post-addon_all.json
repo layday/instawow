@@ -1,0 +1,5042 @@
+[
+  {
+    "id": 23350,
+    "name": "AdiBags",
+    "authors": [
+      {
+        "name": "Adirelle",
+        "url": "https://www.curseforge.com/members/1096659-adirelle?username=adirelle",
+        "projectId": 23350,
+        "id": 76714,
+        "projectTitleId": null,
+        "projectTitleTitle": null,
+        "userId": 1096659,
+        "twitchId": 137106554
+      }
+    ],
+    "attachments": [
+      {
+        "id": 63000,
+        "projectId": 23350,
+        "description": "",
+        "isDefault": true,
+        "thumbnailUrl": "https://media.forgecdn.net/avatars/thumbnails/63/0/256/256/636142224551012649.jpg",
+        "title": "636142224551012649.jpg",
+        "url": "https://media.forgecdn.net/avatars/63/0/636142224551012649.jpg",
+        "status": 1
+      },
+      {
+        "id": 111088,
+        "projectId": 23350,
+        "description": "<p>Sample display of pretty full bags and bank.</p>\n",
+        "isDefault": false,
+        "thumbnailUrl": "https://media.forgecdn.net/attachments/thumbnails/111/88/310/172/adibags.jpg",
+        "title": "adibags.jpg",
+        "url": "https://media.forgecdn.net/attachments/111/88/adibags.jpg",
+        "status": 1
+      }
+    ],
+    "websiteUrl": "https://www.curseforge.com/wow/addons/adibags",
+    "gameId": 1,
+    "summary": "Adirelle's bag addon.",
+    "defaultFileId": 2774578,
+    "downloadCount": 3204396,
+    "latestFiles": [
+      {
+        "id": 837644,
+        "displayName": "v1.8.0-beta-nolib",
+        "fileName": "AdiBags-v1.8.0-beta-nolib.zip",
+        "fileDate": "2014-12-07T09:43:14.533Z",
+        "fileLength": 118235,
+        "releaseType": 2,
+        "fileStatus": 4,
+        "downloadUrl": "https://edge.forgecdn.net/files/837/644/AdiBags-v1.8.0-beta-nolib.zip",
+        "isAlternate": true,
+        "alternateFileId": 0,
+        "dependencies": [
+          {
+            "id": 4456181,
+            "addonId": 13344,
+            "type": 1,
+            "fileId": 837644
+          },
+          {
+            "id": 4456182,
+            "addonId": 13376,
+            "type": 1,
+            "fileId": 837644
+          },
+          {
+            "id": 4456185,
+            "addonId": 14320,
+            "type": 1,
+            "fileId": 837644
+          },
+          {
+            "id": 4456184,
+            "addonId": 14266,
+            "type": 1,
+            "fileId": 837644
+          },
+          {
+            "id": 4456186,
+            "addonId": 14328,
+            "type": 1,
+            "fileId": 837644
+          },
+          {
+            "id": 4456183,
+            "addonId": 13380,
+            "type": 1,
+            "fileId": 837644
+          },
+          {
+            "id": 4456187,
+            "addonId": 15049,
+            "type": 1,
+            "fileId": 837644
+          },
+          {
+            "id": 4456188,
+            "addonId": 52100,
+            "type": 1,
+            "fileId": 837644
+          }
+        ],
+        "isAvailable": true,
+        "modules": [
+          {
+            "foldername": "AdiBags_Config",
+            "fingerprint": 3007034889,
+            "type": 2
+          },
+          {
+            "foldername": "AdiBags",
+            "fingerprint": 3912657790,
+            "type": 3
+          }
+        ],
+        "packageFingerprint": 1469473878,
+        "gameVersion": [
+          "6.0.3"
+        ],
+        "sortableGameVersion": [
+          {
+            "gameVersionPadded": "0000000006.0000000000.0000000003",
+            "gameVersion": "6.0.3",
+            "gameVersionReleaseDate": "2014-10-28T00:00:00Z",
+            "gameVersionName": "6.0.3"
+          }
+        ],
+        "installMetadata": null,
+        "changelog": null,
+        "hasInstallScript": false,
+        "isCompatibleWithClient": true,
+        "categorySectionPackageType": 1,
+        "restrictProjectFileAccess": 1,
+        "projectStatus": 4,
+        "renderCacheId": 280631,
+        "fileLegacyMappingId": null,
+        "projectId": 23350,
+        "parentProjectFileId": 837645,
+        "parentFileLegacyMappingId": null,
+        "fileTypeId": 1,
+        "exposeAsAlternative": true,
+        "packageFingerprintId": 114115188,
+        "gameVersionDateReleased": "2014-10-28T00:00:00Z",
+        "gameVersionMappingId": 623841,
+        "gameVersionId": 497,
+        "gameId": 1,
+        "isServerPack": false,
+        "serverPackFileId": null,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "id": 837645,
+        "displayName": "v1.8.0-beta",
+        "fileName": "AdiBags-v1.8.0-beta.zip",
+        "fileDate": "2014-12-07T09:43:16.85Z",
+        "fileLength": 363077,
+        "releaseType": 2,
+        "fileStatus": 4,
+        "downloadUrl": "https://edge.forgecdn.net/files/837/645/AdiBags-v1.8.0-beta.zip",
+        "isAlternate": false,
+        "alternateFileId": 837644,
+        "dependencies": [
+          {
+            "id": 4456196,
+            "addonId": 52100,
+            "type": 1,
+            "fileId": 837645
+          },
+          {
+            "id": 4456195,
+            "addonId": 15049,
+            "type": 1,
+            "fileId": 837645
+          },
+          {
+            "id": 4456190,
+            "addonId": 13376,
+            "type": 1,
+            "fileId": 837645
+          },
+          {
+            "id": 4456193,
+            "addonId": 14320,
+            "type": 1,
+            "fileId": 837645
+          },
+          {
+            "id": 4456194,
+            "addonId": 14328,
+            "type": 1,
+            "fileId": 837645
+          },
+          {
+            "id": 4456192,
+            "addonId": 14266,
+            "type": 1,
+            "fileId": 837645
+          },
+          {
+            "id": 4456189,
+            "addonId": 13344,
+            "type": 1,
+            "fileId": 837645
+          },
+          {
+            "id": 4456191,
+            "addonId": 13380,
+            "type": 1,
+            "fileId": 837645
+          }
+        ],
+        "isAvailable": true,
+        "modules": [
+          {
+            "foldername": "AdiBags_Config",
+            "fingerprint": 3404345111,
+            "type": 2
+          },
+          {
+            "foldername": "AdiBags",
+            "fingerprint": 2375604760,
+            "type": 3
+          }
+        ],
+        "packageFingerprint": 1600843919,
+        "gameVersion": [
+          "6.0.3"
+        ],
+        "sortableGameVersion": [
+          {
+            "gameVersionPadded": "0000000006.0000000000.0000000003",
+            "gameVersion": "6.0.3",
+            "gameVersionReleaseDate": "2014-10-28T00:00:00Z",
+            "gameVersionName": "6.0.3"
+          }
+        ],
+        "installMetadata": null,
+        "changelog": null,
+        "hasInstallScript": false,
+        "isCompatibleWithClient": true,
+        "categorySectionPackageType": 1,
+        "restrictProjectFileAccess": 1,
+        "projectStatus": 4,
+        "renderCacheId": 43932,
+        "fileLegacyMappingId": null,
+        "projectId": 23350,
+        "parentProjectFileId": null,
+        "parentFileLegacyMappingId": null,
+        "fileTypeId": null,
+        "exposeAsAlternative": null,
+        "packageFingerprintId": 114115189,
+        "gameVersionDateReleased": "2014-10-28T00:00:00Z",
+        "gameVersionMappingId": 623842,
+        "gameVersionId": 497,
+        "gameId": 1,
+        "isServerPack": false,
+        "serverPackFileId": null,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "id": 2651687,
+        "displayName": "v1.9.11-2-g3668f91-alpha",
+        "fileName": "AdiBags-v1.9.11-2-g3668f91-alpha.zip",
+        "fileDate": "2018-12-23T18:19:36.157Z",
+        "fileLength": 333809,
+        "releaseType": 3,
+        "fileStatus": 4,
+        "downloadUrl": "https://edge.forgecdn.net/files/2651/687/AdiBags-v1.9.11-2-g3668f91-alpha.zip",
+        "isAlternate": false,
+        "alternateFileId": 2651688,
+        "dependencies": [
+          {
+            "id": 22074325,
+            "addonId": 13380,
+            "type": 1,
+            "fileId": 2651687
+          },
+          {
+            "id": 22074324,
+            "addonId": 14320,
+            "type": 1,
+            "fileId": 2651687
+          },
+          {
+            "id": 22074321,
+            "addonId": 14328,
+            "type": 1,
+            "fileId": 2651687
+          },
+          {
+            "id": 22074322,
+            "addonId": 15049,
+            "type": 1,
+            "fileId": 2651687
+          },
+          {
+            "id": 22074326,
+            "addonId": 13344,
+            "type": 1,
+            "fileId": 2651687
+          },
+          {
+            "id": 22074323,
+            "addonId": 13376,
+            "type": 1,
+            "fileId": 2651687
+          }
+        ],
+        "isAvailable": true,
+        "modules": [
+          {
+            "foldername": "AdiBags_Config",
+            "fingerprint": 1423618511,
+            "type": 2
+          },
+          {
+            "foldername": "AdiBags",
+            "fingerprint": 892794264,
+            "type": 3
+          }
+        ],
+        "packageFingerprint": 3375340812,
+        "gameVersion": [
+          "8.0.1"
+        ],
+        "sortableGameVersion": [
+          {
+            "gameVersionPadded": "0000000008.0000000000.0000000001",
+            "gameVersion": "8.0.1",
+            "gameVersionReleaseDate": "2018-07-17T00:00:00Z",
+            "gameVersionName": "8.0.1"
+          }
+        ],
+        "installMetadata": null,
+        "changelog": null,
+        "hasInstallScript": false,
+        "isCompatibleWithClient": true,
+        "categorySectionPackageType": 1,
+        "restrictProjectFileAccess": 1,
+        "projectStatus": 4,
+        "renderCacheId": 1488291,
+        "fileLegacyMappingId": null,
+        "projectId": 23350,
+        "parentProjectFileId": null,
+        "parentFileLegacyMappingId": null,
+        "fileTypeId": null,
+        "exposeAsAlternative": null,
+        "packageFingerprintId": 282056922,
+        "gameVersionDateReleased": "2018-07-17T00:00:00Z",
+        "gameVersionMappingId": 1719573,
+        "gameVersionId": 7003,
+        "gameId": 1,
+        "isServerPack": false,
+        "serverPackFileId": null,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "id": 2651688,
+        "displayName": "v1.9.11-2-g3668f91-alpha-nolib",
+        "fileName": "AdiBags-v1.9.11-2-g3668f91-alpha-nolib.zip",
+        "fileDate": "2018-12-23T18:19:37.83Z",
+        "fileLength": 140147,
+        "releaseType": 3,
+        "fileStatus": 4,
+        "downloadUrl": "https://edge.forgecdn.net/files/2651/688/AdiBags-v1.9.11-2-g3668f91-alpha-nolib.zip",
+        "isAlternate": true,
+        "alternateFileId": 0,
+        "dependencies": [],
+        "isAvailable": true,
+        "modules": [
+          {
+            "foldername": "AdiBags_Config",
+            "fingerprint": 2994821698,
+            "type": 2
+          },
+          {
+            "foldername": "AdiBags",
+            "fingerprint": 651340432,
+            "type": 3
+          }
+        ],
+        "packageFingerprint": 2442284061,
+        "gameVersion": [
+          "8.0.1"
+        ],
+        "sortableGameVersion": [
+          {
+            "gameVersionPadded": "0000000008.0000000000.0000000001",
+            "gameVersion": "8.0.1",
+            "gameVersionReleaseDate": "2018-07-17T00:00:00Z",
+            "gameVersionName": "8.0.1"
+          }
+        ],
+        "installMetadata": null,
+        "changelog": null,
+        "hasInstallScript": false,
+        "isCompatibleWithClient": true,
+        "categorySectionPackageType": 1,
+        "restrictProjectFileAccess": 1,
+        "projectStatus": 4,
+        "renderCacheId": 1488292,
+        "fileLegacyMappingId": null,
+        "projectId": 23350,
+        "parentProjectFileId": 2651687,
+        "parentFileLegacyMappingId": null,
+        "fileTypeId": 1,
+        "exposeAsAlternative": true,
+        "packageFingerprintId": 282057029,
+        "gameVersionDateReleased": "2018-07-17T00:00:00Z",
+        "gameVersionMappingId": 1719574,
+        "gameVersionId": 7003,
+        "gameId": 1,
+        "isServerPack": false,
+        "serverPackFileId": null,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "id": 2774578,
+        "displayName": "v1.9.17-classic",
+        "fileName": "AdiBags-v1.9.17-classic.zip",
+        "fileDate": "2019-08-30T16:43:28.36Z",
+        "fileLength": 324298,
+        "releaseType": 1,
+        "fileStatus": 4,
+        "downloadUrl": "https://edge.forgecdn.net/files/2774/578/AdiBags-v1.9.17-classic.zip",
+        "isAlternate": false,
+        "alternateFileId": 2774579,
+        "dependencies": [],
+        "isAvailable": true,
+        "modules": [
+          {
+            "foldername": "AdiBags_Config",
+            "fingerprint": 3081571333,
+            "type": 2
+          },
+          {
+            "foldername": "AdiBags",
+            "fingerprint": 340072316,
+            "type": 3
+          }
+        ],
+        "packageFingerprint": 3501170819,
+        "gameVersion": [
+          "1.13.2"
+        ],
+        "sortableGameVersion": [
+          {
+            "gameVersionPadded": "0000000001.0000000013.0000000002",
+            "gameVersion": "1.13.2",
+            "gameVersionReleaseDate": "2001-01-01T00:00:00Z",
+            "gameVersionName": "1.13.2"
+          }
+        ],
+        "installMetadata": null,
+        "changelog": null,
+        "hasInstallScript": false,
+        "isCompatibleWithClient": true,
+        "categorySectionPackageType": 1,
+        "restrictProjectFileAccess": 1,
+        "projectStatus": 4,
+        "renderCacheId": 1639691,
+        "fileLegacyMappingId": null,
+        "projectId": 23350,
+        "parentProjectFileId": null,
+        "parentFileLegacyMappingId": null,
+        "fileTypeId": null,
+        "exposeAsAlternative": null,
+        "packageFingerprintId": 351418972,
+        "gameVersionDateReleased": "2001-01-01T00:00:00Z",
+        "gameVersionMappingId": 1916615,
+        "gameVersionId": 7350,
+        "gameId": 1,
+        "isServerPack": false,
+        "serverPackFileId": null,
+        "gameVersionFlavor": "wow_classic"
+      },
+      {
+        "id": 2832565,
+        "displayName": "v1.9.18",
+        "fileName": "AdiBags-v1.9.18.zip",
+        "fileDate": "2019-11-26T00:07:41.33Z",
+        "fileLength": 332016,
+        "releaseType": 1,
+        "fileStatus": 4,
+        "downloadUrl": "https://edge.forgecdn.net/files/2832/565/AdiBags-v1.9.18.zip",
+        "isAlternate": false,
+        "alternateFileId": 2832566,
+        "dependencies": [],
+        "isAvailable": true,
+        "modules": [
+          {
+            "foldername": "AdiBags_Config",
+            "fingerprint": 2531941982,
+            "type": 2
+          },
+          {
+            "foldername": "AdiBags",
+            "fingerprint": 2278995348,
+            "type": 3
+          }
+        ],
+        "packageFingerprint": 747690070,
+        "gameVersion": [],
+        "sortableGameVersion": [],
+        "installMetadata": null,
+        "changelog": null,
+        "hasInstallScript": false,
+        "isCompatibleWithClient": true,
+        "categorySectionPackageType": 1,
+        "restrictProjectFileAccess": 1,
+        "projectStatus": 4,
+        "renderCacheId": 1709017,
+        "fileLegacyMappingId": null,
+        "projectId": 23350,
+        "parentProjectFileId": null,
+        "parentFileLegacyMappingId": null,
+        "fileTypeId": null,
+        "exposeAsAlternative": null,
+        "packageFingerprintId": 381730979,
+        "gameVersionDateReleased": "2019-09-23T00:00:00Z",
+        "gameVersionMappingId": 2011323,
+        "gameVersionId": 7585,
+        "gameId": 1,
+        "isServerPack": false,
+        "serverPackFileId": null,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "id": 2832566,
+        "displayName": "v1.9.18-nolib",
+        "fileName": "AdiBags-v1.9.18-nolib.zip",
+        "fileDate": "2019-11-26T00:07:43.487Z",
+        "fileLength": 140087,
+        "releaseType": 1,
+        "fileStatus": 4,
+        "downloadUrl": "https://edge.forgecdn.net/files/2832/566/AdiBags-v1.9.18-nolib.zip",
+        "isAlternate": true,
+        "alternateFileId": 0,
+        "dependencies": [],
+        "isAvailable": true,
+        "modules": [
+          {
+            "foldername": "AdiBags_Config",
+            "fingerprint": 779485845,
+            "type": 2
+          },
+          {
+            "foldername": "AdiBags",
+            "fingerprint": 1698805454,
+            "type": 3
+          }
+        ],
+        "packageFingerprint": 2435257719,
+        "gameVersion": [],
+        "sortableGameVersion": [],
+        "installMetadata": null,
+        "changelog": null,
+        "hasInstallScript": false,
+        "isCompatibleWithClient": true,
+        "categorySectionPackageType": 1,
+        "restrictProjectFileAccess": 1,
+        "projectStatus": 4,
+        "renderCacheId": 1709018,
+        "fileLegacyMappingId": null,
+        "projectId": 23350,
+        "parentProjectFileId": 2832565,
+        "parentFileLegacyMappingId": null,
+        "fileTypeId": 1,
+        "exposeAsAlternative": true,
+        "packageFingerprintId": 381731082,
+        "gameVersionDateReleased": "2019-09-23T00:00:00Z",
+        "gameVersionMappingId": 2011324,
+        "gameVersionId": 7585,
+        "gameId": 1,
+        "isServerPack": false,
+        "serverPackFileId": null,
+        "gameVersionFlavor": "wow_retail"
+      }
+    ],
+    "categories": [
+      {
+        "categoryId": 1009,
+        "name": "Bags & Inventory",
+        "url": "https://www.curseforge.com/wow/addons/bags-inventory",
+        "avatarUrl": "https://media.forgecdn.net/avatars/54/445/636135209663914354.png",
+        "parentId": 1,
+        "rootId": 1,
+        "projectId": 23350,
+        "avatarId": 54445,
+        "gameId": 1
+      }
+    ],
+    "status": 4,
+    "primaryCategoryId": 1009,
+    "categorySection": {
+      "id": 1,
+      "gameId": 1,
+      "name": "Addons",
+      "packageType": 1,
+      "path": "Interface\\Addons",
+      "initialInclusionPattern": "(?i)^([^/]+)[\\\\/]\\1\\.toc$",
+      "extraIncludePattern": "(?i)^[^/\\\\]+[/\\\\]Bindings\\.xml$",
+      "gameCategoryId": 1
+    },
+    "slug": "adibags",
+    "gameVersionLatestFiles": [
+      {
+        "gameVersion": "1.13.2",
+        "projectFileId": 2774578,
+        "projectFileName": "AdiBags-v1.9.17-classic.zip",
+        "fileType": 1,
+        "gameVersionFlavor": "wow_classic"
+      },
+      {
+        "gameVersion": "8.2.0",
+        "projectFileId": 2738272,
+        "projectFileName": "AdiBags-v1.9.17.zip",
+        "fileType": 1,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "8.1.5",
+        "projectFileId": 2688822,
+        "projectFileName": "AdiBags-v1.9.15.zip",
+        "fileType": 1,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "8.1.0",
+        "projectFileId": 2651765,
+        "projectFileName": "AdiBags-v1.9.13.zip",
+        "fileType": 1,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "8.0.1",
+        "projectFileId": 2651687,
+        "projectFileName": "AdiBags-v1.9.11-2-g3668f91-alpha.zip",
+        "fileType": 3,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "8.0.1",
+        "projectFileId": 2604579,
+        "projectFileName": "AdiBags-v1.9.11.zip",
+        "fileType": 1,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "7.3.5",
+        "projectFileId": 2584979,
+        "projectFileName": "AdiBags-v1.9.8-3-g83cd810-alpha.zip",
+        "fileType": 3,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "7.3.0",
+        "projectFileId": 2473344,
+        "projectFileName": "AdiBags-v1.9.8.zip",
+        "fileType": 1,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "7.2.0",
+        "projectFileId": 2401607,
+        "projectFileName": "AdiBags-v1.9.6-1-gaef2201-alpha.zip",
+        "fileType": 3,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "7.2.0",
+        "projectFileId": 2401502,
+        "projectFileName": "AdiBags-v1.9.6.zip",
+        "fileType": 1,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "7.1.0",
+        "projectFileId": 953738,
+        "projectFileName": "AdiBags-v1.9.4.zip",
+        "fileType": 1,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "7.1.0",
+        "projectFileId": 953353,
+        "projectFileName": "AdiBags-v1.9.3-1-g7694f4a.zip",
+        "fileType": 3,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "7.0.3",
+        "projectFileId": 946893,
+        "projectFileName": "AdiBags-v1.9.2-1-g0aac3e8.zip",
+        "fileType": 3,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "7.0.3",
+        "projectFileId": 941747,
+        "projectFileName": "AdiBags-v1.9.2.zip",
+        "fileType": 1,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "6.0.3",
+        "projectFileId": 852952,
+        "projectFileName": "AdiBags-v1.8.4.zip",
+        "fileType": 1,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "6.0.3",
+        "projectFileId": 841001,
+        "projectFileName": "AdiBags-1.8.2-4-g64c20e4.zip",
+        "fileType": 3,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "6.0.3",
+        "projectFileId": 837645,
+        "projectFileName": "AdiBags-v1.8.0-beta.zip",
+        "fileType": 2,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "6.0.2",
+        "projectFileId": 826093,
+        "projectFileName": "AdiBags-v1.7.9.zip",
+        "fileType": 1,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "6.0.2",
+        "projectFileId": 825161,
+        "projectFileName": "AdiBags-v1.7.6-1-g4ca44de.zip",
+        "fileType": 3,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "6.0.1",
+        "projectFileId": 814433,
+        "projectFileName": "AdiBags-wod-wod-beta-nolib.zip",
+        "fileType": 2,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "5.4.8",
+        "projectFileId": 814432,
+        "projectFileName": "AdiBags-wod-v1.6.16-nolib.zip",
+        "fileType": 1,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "5.4.8",
+        "projectFileId": 814427,
+        "projectFileName": "AdiBags-wod-v1.6.12-beta-1-nolib.zip",
+        "fileType": 2,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "5.3.0",
+        "projectFileId": 814421,
+        "projectFileName": "AdiBags-wod-v1.6.6-nolib.zip",
+        "fileType": 1,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "5.3.0",
+        "projectFileId": 814420,
+        "projectFileName": "AdiBags-wod-v1.6.5b-nolib.zip",
+        "fileType": 2,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "5.2.0",
+        "projectFileId": 814417,
+        "projectFileName": "AdiBags-wod-v1.6.5-beta-4-nolib.zip",
+        "fileType": 2,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "5.2.0",
+        "projectFileId": 814413,
+        "projectFileName": "AdiBags-wod-v1.6.4-nolib.zip",
+        "fileType": 1,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "5.1.0",
+        "projectFileId": 814412,
+        "projectFileName": "AdiBags-wod-v1.6.3-nolib.zip",
+        "fileType": 1,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "5.0.5",
+        "projectFileId": 814408,
+        "projectFileName": "AdiBags-wod-v1.6-beta-1-nolib.zip",
+        "fileType": 2,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "5.0.5",
+        "projectFileId": 814407,
+        "projectFileName": "AdiBags-wod-v1.5.6-nolib.zip",
+        "fileType": 1,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "4.3.4",
+        "projectFileId": 814398,
+        "projectFileName": "AdiBags-wod-v1.4.7.1-nolib.zip",
+        "fileType": 1,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "4.2.0",
+        "projectFileId": 814396,
+        "projectFileName": "AdiBags-wod-v1.4.6-nolib.zip",
+        "fileType": 1,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "4.1.0",
+        "projectFileId": 814389,
+        "projectFileName": "AdiBags-wod-v1.4-beta-2-nolib.zip",
+        "fileType": 2,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "4.1.0",
+        "projectFileId": 814387,
+        "projectFileName": "AdiBags-wod-v1.3-nolib.zip",
+        "fileType": 1,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "4.0.6",
+        "projectFileId": 814386,
+        "projectFileName": "AdiBags-wod-v1.3-beta-6-nolib.zip",
+        "fileType": 2,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "4.0.6",
+        "projectFileId": 814380,
+        "projectFileName": "AdiBags-wod-v1.2-nolib.zip",
+        "fileType": 1,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "3.3.5",
+        "projectFileId": 814370,
+        "projectFileName": "AdiBags-wod-v1.1-beta-7-nolib.zip",
+        "fileType": 2,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "3.3.5",
+        "projectFileId": 814362,
+        "projectFileName": "AdiBags-wod-v1.0-nolib.zip",
+        "fileType": 1,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "5.4.8",
+        "projectFileId": 809293,
+        "projectFileName": "AdiBags-v1.6.16-1-g0670368.zip",
+        "fileType": 3,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "5.4.2",
+        "projectFileId": 776210,
+        "projectFileName": "AdiBags-v1.6.15-1-ga968103.zip",
+        "fileType": 3,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "5.4.2",
+        "projectFileId": 764541,
+        "projectFileName": "AdiBags-v1.6.15.zip",
+        "fileType": 1,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "5.4.1",
+        "projectFileId": 758692,
+        "projectFileName": "AdiBags-v1.6.12.zip",
+        "fileType": 3,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "5.4.1",
+        "projectFileId": 758690,
+        "projectFileName": "AdiBags-v1.6.12.zip",
+        "fileType": 1,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "5.4.0",
+        "projectFileId": 747622,
+        "projectFileName": "AdiBags-v1.6.12-beta-1.zip",
+        "fileType": 2,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "5.4.0",
+        "projectFileId": 747517,
+        "projectFileName": "AdiBags-v1.6.11-1-g8c7ce54.zip",
+        "fileType": 3,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "5.4.0",
+        "projectFileId": 747419,
+        "projectFileName": "AdiBags-v1.6.11.zip",
+        "fileType": 1,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "5.3.0",
+        "projectFileId": 708390,
+        "projectFileName": "AdiBags-v1.6.6-3-g8a30860.zip",
+        "fileType": 3,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "5.2.0",
+        "projectFileId": 700734,
+        "projectFileName": "AdiBags-v1.6.5-beta-3-6-gfecc648.zip",
+        "fileType": 3,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "5.1.0",
+        "projectFileId": 664699,
+        "projectFileName": "AdiBags-v1.6.2-1-g2a2f387.zip",
+        "fileType": 3,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "5.0.5",
+        "projectFileId": 646074,
+        "projectFileName": "AdiBags-v1.6-beta-1-11-g9b216bd.zip",
+        "fileType": 3,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "5.0.4",
+        "projectFileId": 620176,
+        "projectFileName": "AdiBags-v1.5.zip",
+        "fileType": 1,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "5.0.4",
+        "projectFileId": 620172,
+        "projectFileName": "AdiBags-v1.5-beta-2-2-g9bc168a.zip",
+        "fileType": 3,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "5.0.4",
+        "projectFileId": 617898,
+        "projectFileName": "AdiBags-v1.5-beta-2.zip",
+        "fileType": 2,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "4.3.0",
+        "projectFileId": 567246,
+        "projectFileName": "AdiBags-v1.4.7.1.zip",
+        "fileType": 1,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "4.3.0",
+        "projectFileId": 561589,
+        "projectFileName": "AdiBags-v1.4.7-1-gc2e979a.zip",
+        "fileType": 3,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "4.2.0",
+        "projectFileId": 559587,
+        "projectFileName": "AdiBags-v1.4.6-6-gd86e321.zip",
+        "fileType": 3,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "4.1.0",
+        "projectFileId": 523434,
+        "projectFileName": "AdiBags-v1.4-beta-1-25-g4a17000.zip",
+        "fileType": 3,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "4.0.6",
+        "projectFileId": 512894,
+        "projectFileName": "AdiBags-v1.3-beta-6-1-g16fe415.zip",
+        "fileType": 3,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "4.0.3",
+        "projectFileId": 480778,
+        "projectFileName": "AdiBags-v1.2-beta-6-2-g675a22a.zip",
+        "fileType": 3,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "4.0.3",
+        "projectFileId": 480411,
+        "projectFileName": "AdiBags-v1.2-beta-6.zip",
+        "fileType": 2,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "4.0.1",
+        "projectFileId": 478877,
+        "projectFileName": "AdiBags-v1.2-beta-5-2-g736f46a.zip",
+        "fileType": 3,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "4.0.1",
+        "projectFileId": 478855,
+        "projectFileName": "AdiBags-v1.2-beta-5.zip",
+        "fileType": 2,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "4.0.1",
+        "projectFileId": 462249,
+        "projectFileName": "AdiBags-v1.1.zip",
+        "fileType": 1,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "3.3.5",
+        "projectFileId": 453470,
+        "projectFileName": "AdiBags-v1.1-beta-7-2-g9d59bb2.zip",
+        "fileType": 3,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "3.3.3",
+        "projectFileId": 428889,
+        "projectFileName": "AdiBags-r20100511152751.zip",
+        "fileType": 3,
+        "gameVersionFlavor": "wow_retail"
+      }
+    ],
+    "isFeatured": false,
+    "popularityScore": 8465.7490234375,
+    "gamePopularityRank": 154,
+    "primaryLanguage": "enUS",
+    "gameSlug": "wow",
+    "gameName": "World of Warcraft",
+    "portalName": "www.curseforge.com",
+    "dateModified": "2019-11-26T00:09:31.01Z",
+    "dateCreated": "2010-05-07T18:48:16.793Z",
+    "dateReleased": "2019-11-26T00:07:43.487Z",
+    "isAvailable": true,
+    "isExperiemental": false
+  },
+  {
+    "id": 345144,
+    "name": "Rare Share: Core",
+    "authors": [
+      {
+        "name": "pffScrub",
+        "url": "https://www.curseforge.com/members/100099266-pffscrub?username=pffscrub",
+        "projectId": 345144,
+        "id": 249310,
+        "projectTitleId": null,
+        "projectTitleTitle": null,
+        "userId": 100099266,
+        "twitchId": 155520710
+      }
+    ],
+    "attachments": [
+      {
+        "id": 229493,
+        "projectId": 345144,
+        "description": "",
+        "isDefault": true,
+        "thumbnailUrl": "https://media.forgecdn.net/avatars/thumbnails/229/493/256/256/637055353138518761.png",
+        "title": "637055353138518761.png",
+        "url": "https://media.forgecdn.net/avatars/229/493/637055353138518761.png",
+        "status": 1
+      }
+    ],
+    "websiteUrl": "https://www.curseforge.com/wow/addons/rare-share",
+    "gameId": 1,
+    "summary": "Core library for RareShare modules",
+    "defaultFileId": 2799730,
+    "downloadCount": 53238,
+    "latestFiles": [
+      {
+        "id": 2799730,
+        "displayName": "RareShare v1.0.0",
+        "fileName": "RareShare v1.0.0.zip",
+        "fileDate": "2019-10-01T14:35:37.5Z",
+        "fileLength": 10524,
+        "releaseType": 1,
+        "fileStatus": 4,
+        "downloadUrl": "https://edge.forgecdn.net/files/2799/730/RareShare v1.0.0.zip",
+        "isAlternate": false,
+        "alternateFileId": 0,
+        "dependencies": [],
+        "isAvailable": true,
+        "modules": [
+          {
+            "foldername": "RareShare",
+            "fingerprint": 883580700,
+            "type": 3
+          }
+        ],
+        "packageFingerprint": 3630534124,
+        "gameVersion": [
+          "8.2.5"
+        ],
+        "sortableGameVersion": [
+          {
+            "gameVersionPadded": "0000000008.0000000002.0000000005",
+            "gameVersion": "8.2.5",
+            "gameVersionReleaseDate": "2019-09-23T00:00:00Z",
+            "gameVersionName": "8.2.5"
+          }
+        ],
+        "installMetadata": null,
+        "changelog": null,
+        "hasInstallScript": false,
+        "isCompatibleWithClient": true,
+        "categorySectionPackageType": 1,
+        "restrictProjectFileAccess": 1,
+        "projectStatus": 4,
+        "renderCacheId": 1669669,
+        "fileLegacyMappingId": null,
+        "projectId": 345144,
+        "parentProjectFileId": null,
+        "parentFileLegacyMappingId": null,
+        "fileTypeId": null,
+        "exposeAsAlternative": null,
+        "packageFingerprintId": 362618779,
+        "gameVersionDateReleased": "2019-09-23T00:00:00Z",
+        "gameVersionMappingId": 1955746,
+        "gameVersionId": 7585,
+        "gameId": 1,
+        "isServerPack": false,
+        "serverPackFileId": null,
+        "gameVersionFlavor": "wow_retail"
+      }
+    ],
+    "categories": [
+      {
+        "categoryId": 1001,
+        "name": "Chat & Communication",
+        "url": "https://www.curseforge.com/wow/addons/chat-communication",
+        "avatarUrl": "https://media.forgecdn.net/avatars/54/437/636135209616124519.png",
+        "parentId": 1,
+        "rootId": 1,
+        "projectId": 345144,
+        "avatarId": 54437,
+        "gameId": 1
+      },
+      {
+        "categoryId": 1067,
+        "name": "Achievements",
+        "url": "https://www.curseforge.com/wow/addons/achievements",
+        "avatarUrl": "https://media.forgecdn.net/avatars/54/462/636135209763346389.png",
+        "parentId": 1,
+        "rootId": 1,
+        "projectId": 345144,
+        "avatarId": 54462,
+        "gameId": 1
+      },
+      {
+        "categoryId": 1010,
+        "name": "Libraries",
+        "url": "https://www.curseforge.com/wow/addons/libraries",
+        "avatarUrl": "https://media.forgecdn.net/avatars/54/446/636135209667351870.png",
+        "parentId": 1,
+        "rootId": 1,
+        "projectId": 345144,
+        "avatarId": 54446,
+        "gameId": 1
+      },
+      {
+        "categoryId": 1011,
+        "name": "Map & Minimap",
+        "url": "https://www.curseforge.com/wow/addons/map-minimap",
+        "avatarUrl": "https://media.forgecdn.net/avatars/54/447/636135209673867865.png",
+        "parentId": 1,
+        "rootId": 1,
+        "projectId": 345144,
+        "avatarId": 54447,
+        "gameId": 1
+      },
+      {
+        "categoryId": 1014,
+        "name": "Boss Encounters",
+        "url": "https://www.curseforge.com/wow/addons/boss-encounters",
+        "avatarUrl": "https://media.forgecdn.net/avatars/54/450/636135209695287536.png",
+        "parentId": 1,
+        "rootId": 1,
+        "projectId": 345144,
+        "avatarId": 54450,
+        "gameId": 1
+      }
+    ],
+    "status": 4,
+    "primaryCategoryId": 1001,
+    "categorySection": {
+      "id": 1,
+      "gameId": 1,
+      "name": "Addons",
+      "packageType": 1,
+      "path": "Interface\\Addons",
+      "initialInclusionPattern": "(?i)^([^/]+)[\\\\/]\\1\\.toc$",
+      "extraIncludePattern": "(?i)^[^/\\\\]+[/\\\\]Bindings\\.xml$",
+      "gameCategoryId": 1
+    },
+    "slug": "rare-share",
+    "gameVersionLatestFiles": [
+      {
+        "gameVersion": "8.2.5",
+        "projectFileId": 2799730,
+        "projectFileName": "RareShare v1.0.0.zip",
+        "fileType": 1,
+        "gameVersionFlavor": "wow_retail"
+      }
+    ],
+    "isFeatured": false,
+    "popularityScore": 4009.62890625,
+    "gamePopularityRank": 272,
+    "primaryLanguage": "enUS",
+    "gameSlug": "wow",
+    "gameName": "World of Warcraft",
+    "portalName": "www.curseforge.com",
+    "dateModified": "2019-10-01T18:52:14.903Z",
+    "dateCreated": "2019-10-01T14:01:53.803Z",
+    "dateReleased": "2019-10-01T14:35:37.5Z",
+    "isAvailable": true,
+    "isExperiemental": false
+  },
+  {
+    "id": 326009,
+    "name": "Rare Share: Mechagon",
+    "authors": [
+      {
+        "name": "pffScrub",
+        "url": "https://www.curseforge.com/members/100099266-pffscrub?username=pffscrub",
+        "projectId": 326009,
+        "id": 229166,
+        "projectTitleId": null,
+        "projectTitleTitle": null,
+        "userId": 100099266,
+        "twitchId": 155520710
+      }
+    ],
+    "attachments": [
+      {
+        "id": 209345,
+        "projectId": 326009,
+        "description": "",
+        "isDefault": true,
+        "thumbnailUrl": "https://media.forgecdn.net/avatars/thumbnails/209/345/256/256/636981088844022044.png",
+        "title": "636981088844022044.png",
+        "url": "https://media.forgecdn.net/avatars/209/345/636981088844022044.png",
+        "status": 1
+      },
+      {
+        "id": 208729,
+        "projectId": 326009,
+        "description": "",
+        "isDefault": false,
+        "thumbnailUrl": "https://media.forgecdn.net/avatars/thumbnails/208/729/256/256/636976966357732659.png",
+        "title": "636976966357732659.png",
+        "url": "https://media.forgecdn.net/avatars/208/729/636976966357732659.png",
+        "status": 1
+      },
+      {
+        "id": 208901,
+        "projectId": 326009,
+        "description": "",
+        "isDefault": false,
+        "thumbnailUrl": "https://media.forgecdn.net/avatars/thumbnails/208/901/256/256/636978075509833642.png",
+        "title": "636978075509833642.png",
+        "url": "https://media.forgecdn.net/avatars/208/901/636978075509833642.png",
+        "status": 1
+      },
+      {
+        "id": 208902,
+        "projectId": 326009,
+        "description": "",
+        "isDefault": false,
+        "thumbnailUrl": "https://media.forgecdn.net/avatars/thumbnails/208/902/256/256/636978077101223671.png",
+        "title": "636978077101223671.png",
+        "url": "https://media.forgecdn.net/avatars/208/902/636978077101223671.png",
+        "status": 1
+      },
+      {
+        "id": 255908,
+        "projectId": 326009,
+        "description": "TomTom Support included",
+        "isDefault": false,
+        "thumbnailUrl": "https://media.forgecdn.net/attachments/thumbnails/255/908/310/172/drill.png",
+        "title": "Drill Announcer",
+        "url": "https://media.forgecdn.net/attachments/255/908/drill.png",
+        "status": 1
+      },
+      {
+        "id": 255738,
+        "projectId": 326009,
+        "description": "",
+        "isDefault": false,
+        "thumbnailUrl": "https://media.forgecdn.net/attachments/thumbnails/255/738/310/172/alt-timeline-support.png",
+        "title": "Alternate Timeline Support",
+        "url": "https://media.forgecdn.net/attachments/255/738/alt-timeline-support.png",
+        "status": 1
+      },
+      {
+        "id": 255732,
+        "projectId": 326009,
+        "description": "",
+        "isDefault": false,
+        "thumbnailUrl": "https://media.forgecdn.net/attachments/thumbnails/255/732/310/172/example-notify.PNG",
+        "title": "Example Notification",
+        "url": "https://media.forgecdn.net/attachments/255/732/example-notify.PNG",
+        "status": 1
+      }
+    ],
+    "websiteUrl": "https://www.curseforge.com/wow/addons/mechagon-rare-share",
+    "gameId": 1,
+    "summary": "Posts a message in the General chat channel whenever you target a Mechagon rare",
+    "defaultFileId": 2799833,
+    "downloadCount": 216080,
+    "latestFiles": [
+      {
+        "id": 2799833,
+        "displayName": "RareShare: Mechagon  v1.0.0",
+        "fileName": "RareShareMechagon v1.0.0.zip",
+        "fileDate": "2019-10-01T18:27:36.063Z",
+        "fileLength": 10287,
+        "releaseType": 1,
+        "fileStatus": 4,
+        "downloadUrl": "https://edge.forgecdn.net/files/2799/833/RareShareMechagon v1.0.0.zip",
+        "isAlternate": false,
+        "alternateFileId": 0,
+        "dependencies": [
+          {
+            "id": 31468736,
+            "addonId": 345144,
+            "type": 3,
+            "fileId": 2799833
+          }
+        ],
+        "isAvailable": true,
+        "modules": [
+          {
+            "foldername": "RareShareMechagon",
+            "fingerprint": 3919845033,
+            "type": 3
+          }
+        ],
+        "packageFingerprint": 814882831,
+        "gameVersion": [
+          "8.2.5"
+        ],
+        "sortableGameVersion": [
+          {
+            "gameVersionPadded": "0000000008.0000000002.0000000005",
+            "gameVersion": "8.2.5",
+            "gameVersionReleaseDate": "2019-09-23T00:00:00Z",
+            "gameVersionName": "8.2.5"
+          }
+        ],
+        "installMetadata": null,
+        "changelog": null,
+        "hasInstallScript": false,
+        "isCompatibleWithClient": true,
+        "categorySectionPackageType": 1,
+        "restrictProjectFileAccess": 1,
+        "projectStatus": 4,
+        "renderCacheId": 1669796,
+        "fileLegacyMappingId": null,
+        "projectId": 326009,
+        "parentProjectFileId": null,
+        "parentFileLegacyMappingId": null,
+        "fileTypeId": null,
+        "exposeAsAlternative": null,
+        "packageFingerprintId": 362658646,
+        "gameVersionDateReleased": "2019-09-23T00:00:00Z",
+        "gameVersionMappingId": 1955928,
+        "gameVersionId": 7585,
+        "gameId": 1,
+        "isServerPack": false,
+        "serverPackFileId": null,
+        "gameVersionFlavor": "wow_retail"
+      }
+    ],
+    "categories": [
+      {
+        "categoryId": 1014,
+        "name": "Boss Encounters",
+        "url": "https://www.curseforge.com/wow/addons/boss-encounters",
+        "avatarUrl": "https://media.forgecdn.net/avatars/54/450/636135209695287536.png",
+        "parentId": 1,
+        "rootId": 1,
+        "projectId": 326009,
+        "avatarId": 54450,
+        "gameId": 1
+      },
+      {
+        "categoryId": 1011,
+        "name": "Map & Minimap",
+        "url": "https://www.curseforge.com/wow/addons/map-minimap",
+        "avatarUrl": "https://media.forgecdn.net/avatars/54/447/636135209673867865.png",
+        "parentId": 1,
+        "rootId": 1,
+        "projectId": 326009,
+        "avatarId": 54447,
+        "gameId": 1
+      },
+      {
+        "categoryId": 1017,
+        "name": "Miscellaneous",
+        "url": "https://www.curseforge.com/wow/addons/miscellaneous",
+        "avatarUrl": "https://media.forgecdn.net/avatars/54/453/636135209712202362.png",
+        "parentId": 1,
+        "rootId": 1,
+        "projectId": 326009,
+        "avatarId": 54453,
+        "gameId": 1
+      },
+      {
+        "categoryId": 1001,
+        "name": "Chat & Communication",
+        "url": "https://www.curseforge.com/wow/addons/chat-communication",
+        "avatarUrl": "https://media.forgecdn.net/avatars/54/437/636135209616124519.png",
+        "parentId": 1,
+        "rootId": 1,
+        "projectId": 326009,
+        "avatarId": 54437,
+        "gameId": 1
+      },
+      {
+        "categoryId": 1067,
+        "name": "Achievements",
+        "url": "https://www.curseforge.com/wow/addons/achievements",
+        "avatarUrl": "https://media.forgecdn.net/avatars/54/462/636135209763346389.png",
+        "parentId": 1,
+        "rootId": 1,
+        "projectId": 326009,
+        "avatarId": 54462,
+        "gameId": 1
+      }
+    ],
+    "status": 4,
+    "primaryCategoryId": 1001,
+    "categorySection": {
+      "id": 1,
+      "gameId": 1,
+      "name": "Addons",
+      "packageType": 1,
+      "path": "Interface\\Addons",
+      "initialInclusionPattern": "(?i)^([^/]+)[\\\\/]\\1\\.toc$",
+      "extraIncludePattern": "(?i)^[^/\\\\]+[/\\\\]Bindings\\.xml$",
+      "gameCategoryId": 1
+    },
+    "slug": "mechagon-rare-share",
+    "gameVersionLatestFiles": [
+      {
+        "gameVersion": "8.2.5",
+        "projectFileId": 2799833,
+        "projectFileName": "RareShareMechagon v1.0.0.zip",
+        "fileType": 1,
+        "gameVersionFlavor": "wow_retail"
+      }
+    ],
+    "isFeatured": false,
+    "popularityScore": 5591.79443359375,
+    "gamePopularityRank": 223,
+    "primaryLanguage": "enUS",
+    "gameSlug": "wow",
+    "gameName": "World of Warcraft",
+    "portalName": "www.curseforge.com",
+    "dateModified": "2019-10-01T18:51:24.73Z",
+    "dateCreated": "2019-07-02T20:37:15.68Z",
+    "dateReleased": "2019-10-01T18:27:36.063Z",
+    "isAvailable": true,
+    "isExperiemental": false
+  },
+  {
+    "id": 2398,
+    "name": "Elkano's BuffBars",
+    "authors": [
+      {
+        "name": "Elkano",
+        "url": "https://www.curseforge.com/members/9747-elkano?username=elkano",
+        "projectId": 2398,
+        "id": 73939,
+        "projectTitleId": null,
+        "projectTitleTitle": null,
+        "userId": 9747,
+        "twitchId": 149717937
+      }
+    ],
+    "attachments": [
+      {
+        "id": 62312,
+        "projectId": 2398,
+        "description": "",
+        "isDefault": true,
+        "thumbnailUrl": "https://media.forgecdn.net/avatars/thumbnails/62/312/256/256/636142139482253363.jpg",
+        "title": "636142139482253363.jpg",
+        "url": "https://media.forgecdn.net/avatars/62/312/636142139482253363.jpg",
+        "status": 1
+      },
+      {
+        "id": 106799,
+        "projectId": 2398,
+        "description": "<p>sample screenshot with a shaman</p>",
+        "isDefault": false,
+        "thumbnailUrl": "https://media.forgecdn.net/attachments/thumbnails/106/799/310/172/elkanos-buffbar-sample-screenshot-with-a-shaman.jpg",
+        "title": "elkanos-buffbar-sample-screenshot-with-a-shaman.jpg",
+        "url": "https://media.forgecdn.net/attachments/106/799/elkanos-buffbar-sample-screenshot-with-a-shaman.jpg",
+        "status": 1
+      },
+      {
+        "id": 106800,
+        "projectId": 2398,
+        "description": "<p>lots of buffs in action</p>",
+        "isDefault": false,
+        "thumbnailUrl": "https://media.forgecdn.net/attachments/thumbnails/106/800/310/172/ElkBuffBars_003.jpg",
+        "title": "ElkBuffBars_003.jpg",
+        "url": "https://media.forgecdn.net/attachments/106/800/ElkBuffBars_003.jpg",
+        "status": 1
+      },
+      {
+        "id": 106801,
+        "projectId": 2398,
+        "description": "<p>You don't like statusbars? You can hide them without a problem.\n</p>",
+        "isDefault": false,
+        "thumbnailUrl": "https://media.forgecdn.net/attachments/thumbnails/106/801/310/172/ebb_minimalistic.png",
+        "title": "ebb_minimalistic.png",
+        "url": "https://media.forgecdn.net/attachments/106/801/ebb_minimalistic.png",
+        "status": 1
+      }
+    ],
+    "websiteUrl": "https://www.curseforge.com/wow/addons/elkbuffbars",
+    "gameId": 1,
+    "summary": "EBB adds groups of bars to your screen showing you which (de)buffs currently affect your toon or some other units.",
+    "defaultFileId": 2606182,
+    "downloadCount": 1646520,
+    "latestFiles": [
+      {
+        "id": 2589775,
+        "displayName": "r191-alpha",
+        "fileName": "ElkBuffBars-r191-alpha.zip",
+        "fileDate": "2018-07-23T16:10:58.407Z",
+        "fileLength": 235600,
+        "releaseType": 3,
+        "fileStatus": 4,
+        "downloadUrl": "https://edge.forgecdn.net/files/2589/775/ElkBuffBars-r191-alpha.zip",
+        "isAlternate": false,
+        "alternateFileId": 2589776,
+        "dependencies": [
+          {
+            "id": 18666464,
+            "addonId": 14328,
+            "type": 1,
+            "fileId": 2589775
+          },
+          {
+            "id": 18666457,
+            "addonId": 13376,
+            "type": 1,
+            "fileId": 2589775
+          },
+          {
+            "id": 18666458,
+            "addonId": 13380,
+            "type": 1,
+            "fileId": 2589775
+          },
+          {
+            "id": 18666460,
+            "addonId": 15552,
+            "type": 1,
+            "fileId": 2589775
+          },
+          {
+            "id": 18666465,
+            "addonId": 14320,
+            "type": 1,
+            "fileId": 2589775
+          },
+          {
+            "id": 18666456,
+            "addonId": 20113,
+            "type": 4,
+            "fileId": 2589775
+          },
+          {
+            "id": 18666459,
+            "addonId": 15049,
+            "type": 1,
+            "fileId": 2589775
+          },
+          {
+            "id": 18666463,
+            "addonId": 15487,
+            "type": 1,
+            "fileId": 2589775
+          },
+          {
+            "id": 18666466,
+            "addonId": 32855,
+            "type": 1,
+            "fileId": 2589775
+          },
+          {
+            "id": 18666462,
+            "addonId": 14288,
+            "type": 1,
+            "fileId": 2589775
+          },
+          {
+            "id": 18666461,
+            "addonId": 19651,
+            "type": 1,
+            "fileId": 2589775
+          }
+        ],
+        "isAvailable": true,
+        "modules": [
+          {
+            "foldername": "ElkBuffBars",
+            "fingerprint": 3087605091,
+            "type": 3
+          }
+        ],
+        "packageFingerprint": 3791886433,
+        "gameVersion": [
+          "8.0.1"
+        ],
+        "sortableGameVersion": [
+          {
+            "gameVersionPadded": "0000000008.0000000000.0000000001",
+            "gameVersion": "8.0.1",
+            "gameVersionReleaseDate": "2018-07-17T00:00:00Z",
+            "gameVersionName": "8.0.1"
+          }
+        ],
+        "installMetadata": null,
+        "changelog": null,
+        "hasInstallScript": false,
+        "isCompatibleWithClient": true,
+        "categorySectionPackageType": 1,
+        "restrictProjectFileAccess": 1,
+        "projectStatus": 4,
+        "renderCacheId": 1415837,
+        "fileLegacyMappingId": null,
+        "projectId": 2398,
+        "parentProjectFileId": null,
+        "parentFileLegacyMappingId": null,
+        "fileTypeId": null,
+        "exposeAsAlternative": null,
+        "packageFingerprintId": 254108049,
+        "gameVersionDateReleased": "2018-07-17T00:00:00Z",
+        "gameVersionMappingId": 1625919,
+        "gameVersionId": 7003,
+        "gameId": 1,
+        "isServerPack": false,
+        "serverPackFileId": null,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "id": 2589776,
+        "displayName": "r191-alpha-nolib",
+        "fileName": "ElkBuffBars-r191-alpha-nolib.zip",
+        "fileDate": "2018-07-23T16:11:02.89Z",
+        "fileLength": 49161,
+        "releaseType": 3,
+        "fileStatus": 4,
+        "downloadUrl": "https://edge.forgecdn.net/files/2589/776/ElkBuffBars-r191-alpha-nolib.zip",
+        "isAlternate": true,
+        "alternateFileId": 0,
+        "dependencies": [],
+        "isAvailable": true,
+        "modules": [
+          {
+            "foldername": "ElkBuffBars",
+            "fingerprint": 1491695677,
+            "type": 3
+          }
+        ],
+        "packageFingerprint": 1628519421,
+        "gameVersion": [
+          "8.0.1"
+        ],
+        "sortableGameVersion": [
+          {
+            "gameVersionPadded": "0000000008.0000000000.0000000001",
+            "gameVersion": "8.0.1",
+            "gameVersionReleaseDate": "2018-07-17T00:00:00Z",
+            "gameVersionName": "8.0.1"
+          }
+        ],
+        "installMetadata": null,
+        "changelog": null,
+        "hasInstallScript": false,
+        "isCompatibleWithClient": true,
+        "categorySectionPackageType": 1,
+        "restrictProjectFileAccess": 1,
+        "projectStatus": 4,
+        "renderCacheId": 1416632,
+        "fileLegacyMappingId": null,
+        "projectId": 2398,
+        "parentProjectFileId": 2589775,
+        "parentFileLegacyMappingId": null,
+        "fileTypeId": 1,
+        "exposeAsAlternative": true,
+        "packageFingerprintId": 254108143,
+        "gameVersionDateReleased": "2018-07-17T00:00:00Z",
+        "gameVersionMappingId": 1625920,
+        "gameVersionId": 7003,
+        "gameId": 1,
+        "isServerPack": false,
+        "serverPackFileId": null,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "id": 2604114,
+        "displayName": "r192",
+        "fileName": "ElkBuffBars-r192-alpha.zip",
+        "fileDate": "2018-08-16T14:54:06.523Z",
+        "fileLength": 232730,
+        "releaseType": 2,
+        "fileStatus": 4,
+        "downloadUrl": "https://edge.forgecdn.net/files/2604/114/ElkBuffBars-r192-alpha.zip",
+        "isAlternate": false,
+        "alternateFileId": 2604115,
+        "dependencies": [
+          {
+            "id": 19240519,
+            "addonId": 15049,
+            "type": 1,
+            "fileId": 2604114
+          },
+          {
+            "id": 19240524,
+            "addonId": 14320,
+            "type": 1,
+            "fileId": 2604114
+          },
+          {
+            "id": 19240521,
+            "addonId": 15552,
+            "type": 1,
+            "fileId": 2604114
+          },
+          {
+            "id": 19240518,
+            "addonId": 13380,
+            "type": 1,
+            "fileId": 2604114
+          },
+          {
+            "id": 19240526,
+            "addonId": 32855,
+            "type": 1,
+            "fileId": 2604114
+          },
+          {
+            "id": 19240525,
+            "addonId": 14328,
+            "type": 1,
+            "fileId": 2604114
+          },
+          {
+            "id": 19240517,
+            "addonId": 13376,
+            "type": 1,
+            "fileId": 2604114
+          },
+          {
+            "id": 19240520,
+            "addonId": 20113,
+            "type": 4,
+            "fileId": 2604114
+          },
+          {
+            "id": 19240523,
+            "addonId": 15487,
+            "type": 1,
+            "fileId": 2604114
+          },
+          {
+            "id": 19240522,
+            "addonId": 19651,
+            "type": 1,
+            "fileId": 2604114
+          }
+        ],
+        "isAvailable": true,
+        "modules": [
+          {
+            "foldername": "ElkBuffBars",
+            "fingerprint": 182012136,
+            "type": 3
+          }
+        ],
+        "packageFingerprint": 1963911871,
+        "gameVersion": [
+          "8.0.1"
+        ],
+        "sortableGameVersion": [
+          {
+            "gameVersionPadded": "0000000008.0000000000.0000000001",
+            "gameVersion": "8.0.1",
+            "gameVersionReleaseDate": "2018-07-17T00:00:00Z",
+            "gameVersionName": "8.0.1"
+          }
+        ],
+        "installMetadata": null,
+        "changelog": null,
+        "hasInstallScript": false,
+        "isCompatibleWithClient": true,
+        "categorySectionPackageType": 1,
+        "restrictProjectFileAccess": 1,
+        "projectStatus": 4,
+        "renderCacheId": 1432151,
+        "fileLegacyMappingId": null,
+        "projectId": 2398,
+        "parentProjectFileId": null,
+        "parentFileLegacyMappingId": null,
+        "fileTypeId": null,
+        "exposeAsAlternative": null,
+        "packageFingerprintId": 259235134,
+        "gameVersionDateReleased": "2018-07-17T00:00:00Z",
+        "gameVersionMappingId": 1645909,
+        "gameVersionId": 7003,
+        "gameId": 1,
+        "isServerPack": false,
+        "serverPackFileId": null,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "id": 2606182,
+        "displayName": "2.5.2 - r193",
+        "fileName": "ElkBuffBars-r193-alpha.zip",
+        "fileDate": "2018-08-20T16:22:31.837Z",
+        "fileLength": 232751,
+        "releaseType": 1,
+        "fileStatus": 4,
+        "downloadUrl": "https://edge.forgecdn.net/files/2606/182/ElkBuffBars-r193-alpha.zip",
+        "isAlternate": false,
+        "alternateFileId": 2606183,
+        "dependencies": [
+          {
+            "id": 19293166,
+            "addonId": 15487,
+            "type": 1,
+            "fileId": 2606182
+          },
+          {
+            "id": 19293167,
+            "addonId": 14320,
+            "type": 1,
+            "fileId": 2606182
+          },
+          {
+            "id": 19293169,
+            "addonId": 32855,
+            "type": 1,
+            "fileId": 2606182
+          },
+          {
+            "id": 19293163,
+            "addonId": 20113,
+            "type": 4,
+            "fileId": 2606182
+          },
+          {
+            "id": 19293168,
+            "addonId": 14328,
+            "type": 1,
+            "fileId": 2606182
+          },
+          {
+            "id": 19293165,
+            "addonId": 19651,
+            "type": 1,
+            "fileId": 2606182
+          },
+          {
+            "id": 19293162,
+            "addonId": 15049,
+            "type": 1,
+            "fileId": 2606182
+          },
+          {
+            "id": 19293161,
+            "addonId": 13380,
+            "type": 1,
+            "fileId": 2606182
+          },
+          {
+            "id": 19293160,
+            "addonId": 13376,
+            "type": 1,
+            "fileId": 2606182
+          },
+          {
+            "id": 19293164,
+            "addonId": 15552,
+            "type": 1,
+            "fileId": 2606182
+          }
+        ],
+        "isAvailable": true,
+        "modules": [
+          {
+            "foldername": "ElkBuffBars",
+            "fingerprint": 3496813571,
+            "type": 3
+          }
+        ],
+        "packageFingerprint": 895503176,
+        "gameVersion": [
+          "8.0.1"
+        ],
+        "sortableGameVersion": [
+          {
+            "gameVersionPadded": "0000000008.0000000000.0000000001",
+            "gameVersion": "8.0.1",
+            "gameVersionReleaseDate": "2018-07-17T00:00:00Z",
+            "gameVersionName": "8.0.1"
+          }
+        ],
+        "installMetadata": null,
+        "changelog": null,
+        "hasInstallScript": false,
+        "isCompatibleWithClient": true,
+        "categorySectionPackageType": 1,
+        "restrictProjectFileAccess": 1,
+        "projectStatus": 4,
+        "renderCacheId": 1434554,
+        "fileLegacyMappingId": null,
+        "projectId": 2398,
+        "parentProjectFileId": null,
+        "parentFileLegacyMappingId": null,
+        "fileTypeId": null,
+        "exposeAsAlternative": null,
+        "packageFingerprintId": 260249662,
+        "gameVersionDateReleased": "2018-07-17T00:00:00Z",
+        "gameVersionMappingId": 1649012,
+        "gameVersionId": 7003,
+        "gameId": 1,
+        "isServerPack": false,
+        "serverPackFileId": null,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "id": 2777008,
+        "displayName": "2.6.0 - r195",
+        "fileName": "ElkBuffBars-r195-alpha.zip",
+        "fileDate": "2019-09-02T17:49:34.397Z",
+        "fileLength": 234316,
+        "releaseType": 2,
+        "fileStatus": 4,
+        "downloadUrl": "https://edge.forgecdn.net/files/2777/8/ElkBuffBars-r195-alpha.zip",
+        "isAlternate": false,
+        "alternateFileId": 2777009,
+        "dependencies": [
+          {
+            "id": 30350766,
+            "addonId": 19651,
+            "type": 1,
+            "fileId": 2777008
+          },
+          {
+            "id": 30350761,
+            "addonId": 13376,
+            "type": 1,
+            "fileId": 2777008
+          },
+          {
+            "id": 30350764,
+            "addonId": 20113,
+            "type": 4,
+            "fileId": 2777008
+          },
+          {
+            "id": 30350765,
+            "addonId": 15552,
+            "type": 1,
+            "fileId": 2777008
+          },
+          {
+            "id": 30350763,
+            "addonId": 15049,
+            "type": 1,
+            "fileId": 2777008
+          },
+          {
+            "id": 30350770,
+            "addonId": 32855,
+            "type": 1,
+            "fileId": 2777008
+          },
+          {
+            "id": 30350762,
+            "addonId": 13380,
+            "type": 1,
+            "fileId": 2777008
+          },
+          {
+            "id": 30350767,
+            "addonId": 15487,
+            "type": 1,
+            "fileId": 2777008
+          },
+          {
+            "id": 30350768,
+            "addonId": 14320,
+            "type": 1,
+            "fileId": 2777008
+          },
+          {
+            "id": 30350769,
+            "addonId": 14328,
+            "type": 1,
+            "fileId": 2777008
+          }
+        ],
+        "isAvailable": true,
+        "modules": [
+          {
+            "foldername": "ElkBuffBars",
+            "fingerprint": 795976028,
+            "type": 3
+          }
+        ],
+        "packageFingerprint": 2712358940,
+        "gameVersion": [
+          "1.13.2",
+          "8.2.0"
+        ],
+        "sortableGameVersion": [
+          {
+            "gameVersionPadded": "0000000001.0000000013.0000000002",
+            "gameVersion": "1.13.2",
+            "gameVersionReleaseDate": "2001-01-01T00:00:00Z",
+            "gameVersionName": "1.13.2"
+          },
+          {
+            "gameVersionPadded": "0000000008.0000000002.0000000000",
+            "gameVersion": "8.2.0",
+            "gameVersionReleaseDate": "2019-06-25T00:00:00Z",
+            "gameVersionName": "8.2.0"
+          }
+        ],
+        "installMetadata": null,
+        "changelog": null,
+        "hasInstallScript": false,
+        "isCompatibleWithClient": true,
+        "categorySectionPackageType": 1,
+        "restrictProjectFileAccess": 1,
+        "projectStatus": 4,
+        "renderCacheId": 1642633,
+        "fileLegacyMappingId": null,
+        "projectId": 2398,
+        "parentProjectFileId": null,
+        "parentFileLegacyMappingId": null,
+        "fileTypeId": null,
+        "exposeAsAlternative": null,
+        "packageFingerprintId": 352590383,
+        "gameVersionDateReleased": "2001-01-01T00:00:00Z",
+        "gameVersionMappingId": 1920906,
+        "gameVersionId": 7350,
+        "gameId": 1,
+        "isServerPack": false,
+        "serverPackFileId": null,
+        "gameVersionFlavor": "wow_classic"
+      },
+      {
+        "id": 2777009,
+        "displayName": "r195-alpha-nolib",
+        "fileName": "ElkBuffBars-r195-alpha-nolib.zip",
+        "fileDate": "2019-09-02T17:49:38.087Z",
+        "fileLength": 50195,
+        "releaseType": 3,
+        "fileStatus": 4,
+        "downloadUrl": "https://edge.forgecdn.net/files/2777/9/ElkBuffBars-r195-alpha-nolib.zip",
+        "isAlternate": true,
+        "alternateFileId": 0,
+        "dependencies": [],
+        "isAvailable": true,
+        "modules": [
+          {
+            "foldername": "ElkBuffBars",
+            "fingerprint": 876736916,
+            "type": 3
+          }
+        ],
+        "packageFingerprint": 3719940718,
+        "gameVersion": [
+          "1.13.2",
+          "8.2.0"
+        ],
+        "sortableGameVersion": [
+          {
+            "gameVersionPadded": "0000000001.0000000013.0000000002",
+            "gameVersion": "1.13.2",
+            "gameVersionReleaseDate": "2001-01-01T00:00:00Z",
+            "gameVersionName": "1.13.2"
+          },
+          {
+            "gameVersionPadded": "0000000008.0000000002.0000000000",
+            "gameVersion": "8.2.0",
+            "gameVersionReleaseDate": "2019-06-25T00:00:00Z",
+            "gameVersionName": "8.2.0"
+          }
+        ],
+        "installMetadata": null,
+        "changelog": null,
+        "hasInstallScript": false,
+        "isCompatibleWithClient": true,
+        "categorySectionPackageType": 1,
+        "restrictProjectFileAccess": 1,
+        "projectStatus": 4,
+        "renderCacheId": 1642634,
+        "fileLegacyMappingId": null,
+        "projectId": 2398,
+        "parentProjectFileId": 2777008,
+        "parentFileLegacyMappingId": null,
+        "fileTypeId": 1,
+        "exposeAsAlternative": true,
+        "packageFingerprintId": 352590474,
+        "gameVersionDateReleased": "2001-01-01T00:00:00Z",
+        "gameVersionMappingId": 1920907,
+        "gameVersionId": 7350,
+        "gameId": 1,
+        "isServerPack": false,
+        "serverPackFileId": null,
+        "gameVersionFlavor": "wow_classic"
+      },
+      {
+        "id": 2780935,
+        "displayName": "2.6.0 - r196",
+        "fileName": "ElkBuffBars-r196-alpha.zip",
+        "fileDate": "2019-09-08T12:13:45.507Z",
+        "fileLength": 234519,
+        "releaseType": 1,
+        "fileStatus": 4,
+        "downloadUrl": "https://edge.forgecdn.net/files/2780/935/ElkBuffBars-r196-alpha.zip",
+        "isAlternate": false,
+        "alternateFileId": 2780936,
+        "dependencies": [
+          {
+            "id": 31536963,
+            "addonId": 13376,
+            "type": 1,
+            "fileId": 2780935
+          },
+          {
+            "id": 31536967,
+            "addonId": 15552,
+            "type": 1,
+            "fileId": 2780935
+          },
+          {
+            "id": 31536966,
+            "addonId": 20113,
+            "type": 4,
+            "fileId": 2780935
+          },
+          {
+            "id": 31536972,
+            "addonId": 32855,
+            "type": 1,
+            "fileId": 2780935
+          },
+          {
+            "id": 31536970,
+            "addonId": 14320,
+            "type": 1,
+            "fileId": 2780935
+          },
+          {
+            "id": 31536964,
+            "addonId": 13380,
+            "type": 1,
+            "fileId": 2780935
+          },
+          {
+            "id": 31536971,
+            "addonId": 14328,
+            "type": 1,
+            "fileId": 2780935
+          },
+          {
+            "id": 31536969,
+            "addonId": 15487,
+            "type": 1,
+            "fileId": 2780935
+          },
+          {
+            "id": 31536965,
+            "addonId": 15049,
+            "type": 1,
+            "fileId": 2780935
+          },
+          {
+            "id": 31536968,
+            "addonId": 19651,
+            "type": 1,
+            "fileId": 2780935
+          }
+        ],
+        "isAvailable": true,
+        "modules": [
+          {
+            "foldername": "ElkBuffBars",
+            "fingerprint": 3680507189,
+            "type": 3
+          }
+        ],
+        "packageFingerprint": 2468563366,
+        "gameVersion": [
+          "1.13.2",
+          "8.2.5"
+        ],
+        "sortableGameVersion": [
+          {
+            "gameVersionPadded": "0000000001.0000000013.0000000002",
+            "gameVersion": "1.13.2",
+            "gameVersionReleaseDate": "2001-01-01T00:00:00Z",
+            "gameVersionName": "1.13.2"
+          },
+          {
+            "gameVersionPadded": "0000000008.0000000002.0000000005",
+            "gameVersion": "8.2.5",
+            "gameVersionReleaseDate": "2019-09-23T00:00:00Z",
+            "gameVersionName": "8.2.5"
+          }
+        ],
+        "installMetadata": null,
+        "changelog": null,
+        "hasInstallScript": false,
+        "isCompatibleWithClient": true,
+        "categorySectionPackageType": 1,
+        "restrictProjectFileAccess": 1,
+        "projectStatus": 4,
+        "renderCacheId": 1647466,
+        "fileLegacyMappingId": null,
+        "projectId": 2398,
+        "parentProjectFileId": null,
+        "parentFileLegacyMappingId": null,
+        "fileTypeId": null,
+        "exposeAsAlternative": null,
+        "packageFingerprintId": 354370370,
+        "gameVersionDateReleased": "2001-01-01T00:00:00Z",
+        "gameVersionMappingId": 1926988,
+        "gameVersionId": 7350,
+        "gameId": 1,
+        "isServerPack": false,
+        "serverPackFileId": null,
+        "gameVersionFlavor": "wow_classic"
+      },
+      {
+        "id": 2780936,
+        "displayName": "r196-alpha-nolib",
+        "fileName": "ElkBuffBars-r196-alpha-nolib.zip",
+        "fileDate": "2019-09-08T12:13:49.303Z",
+        "fileLength": 50371,
+        "releaseType": 3,
+        "fileStatus": 4,
+        "downloadUrl": "https://edge.forgecdn.net/files/2780/936/ElkBuffBars-r196-alpha-nolib.zip",
+        "isAlternate": true,
+        "alternateFileId": 0,
+        "dependencies": [],
+        "isAvailable": true,
+        "modules": [
+          {
+            "foldername": "ElkBuffBars",
+            "fingerprint": 1123246844,
+            "type": 3
+          }
+        ],
+        "packageFingerprint": 3489552054,
+        "gameVersion": [
+          "1.13.2",
+          "8.2.5"
+        ],
+        "sortableGameVersion": [
+          {
+            "gameVersionPadded": "0000000001.0000000013.0000000002",
+            "gameVersion": "1.13.2",
+            "gameVersionReleaseDate": "2001-01-01T00:00:00Z",
+            "gameVersionName": "1.13.2"
+          },
+          {
+            "gameVersionPadded": "0000000008.0000000002.0000000005",
+            "gameVersion": "8.2.5",
+            "gameVersionReleaseDate": "2019-09-23T00:00:00Z",
+            "gameVersionName": "8.2.5"
+          }
+        ],
+        "installMetadata": null,
+        "changelog": null,
+        "hasInstallScript": false,
+        "isCompatibleWithClient": true,
+        "categorySectionPackageType": 1,
+        "restrictProjectFileAccess": 1,
+        "projectStatus": 4,
+        "renderCacheId": 1647467,
+        "fileLegacyMappingId": null,
+        "projectId": 2398,
+        "parentProjectFileId": 2780935,
+        "parentFileLegacyMappingId": null,
+        "fileTypeId": 1,
+        "exposeAsAlternative": true,
+        "packageFingerprintId": 354370461,
+        "gameVersionDateReleased": "2001-01-01T00:00:00Z",
+        "gameVersionMappingId": 1926989,
+        "gameVersionId": 7350,
+        "gameId": 1,
+        "isServerPack": false,
+        "serverPackFileId": null,
+        "gameVersionFlavor": "wow_classic"
+      }
+    ],
+    "categories": [
+      {
+        "categoryId": 1005,
+        "name": "Buffs & Debuffs",
+        "url": "https://www.curseforge.com/wow/addons/buffs-debuffs",
+        "avatarUrl": "https://media.forgecdn.net/avatars/54/441/636135209641593518.png",
+        "parentId": 1,
+        "rootId": 1,
+        "projectId": 2398,
+        "avatarId": 54441,
+        "gameId": 1
+      },
+      {
+        "categoryId": 1019,
+        "name": "Combat",
+        "url": "https://www.curseforge.com/wow/addons/combat",
+        "avatarUrl": "https://media.forgecdn.net/avatars/54/455/636135209724699753.png",
+        "parentId": 1,
+        "rootId": 1,
+        "projectId": 2398,
+        "avatarId": 54455,
+        "gameId": 1
+      },
+      {
+        "categoryId": 1020,
+        "name": "Class",
+        "url": "https://www.curseforge.com/wow/addons/class",
+        "avatarUrl": "https://media.forgecdn.net/avatars/54/456/636135209731887359.png",
+        "parentId": 1,
+        "rootId": 1,
+        "projectId": 2398,
+        "avatarId": 54456,
+        "gameId": 1
+      },
+      {
+        "categoryId": 1064,
+        "name": "FuBar",
+        "url": "https://www.curseforge.com/wow/addons/plugins/fubar",
+        "avatarUrl": "https://media.forgecdn.net/avatars/54/466/636135209792486694.png",
+        "parentId": 1063,
+        "rootId": 1,
+        "projectId": 2398,
+        "avatarId": 54466,
+        "gameId": 1
+      }
+    ],
+    "status": 4,
+    "primaryCategoryId": 1005,
+    "categorySection": {
+      "id": 1,
+      "gameId": 1,
+      "name": "Addons",
+      "packageType": 1,
+      "path": "Interface\\Addons",
+      "initialInclusionPattern": "(?i)^([^/]+)[\\\\/]\\1\\.toc$",
+      "extraIncludePattern": "(?i)^[^/\\\\]+[/\\\\]Bindings\\.xml$",
+      "gameCategoryId": 1
+    },
+    "slug": "elkbuffbars",
+    "gameVersionLatestFiles": [
+      {
+        "gameVersion": "1.13.2",
+        "projectFileId": 2780935,
+        "projectFileName": "ElkBuffBars-r196-alpha.zip",
+        "fileType": 1,
+        "gameVersionFlavor": "wow_classic"
+      },
+      {
+        "gameVersion": "8.2.5",
+        "projectFileId": 2780935,
+        "projectFileName": "ElkBuffBars-r196-alpha.zip",
+        "fileType": 1,
+        "gameVersionFlavor": "wow_classic"
+      },
+      {
+        "gameVersion": "1.13.2",
+        "projectFileId": 2777008,
+        "projectFileName": "ElkBuffBars-r195-alpha.zip",
+        "fileType": 2,
+        "gameVersionFlavor": "wow_classic"
+      },
+      {
+        "gameVersion": "8.2.0",
+        "projectFileId": 2777008,
+        "projectFileName": "ElkBuffBars-r195-alpha.zip",
+        "fileType": 2,
+        "gameVersionFlavor": "wow_classic"
+      },
+      {
+        "gameVersion": "8.0.1",
+        "projectFileId": 2606182,
+        "projectFileName": "ElkBuffBars-r193-alpha.zip",
+        "fileType": 1,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "8.0.1",
+        "projectFileId": 2604114,
+        "projectFileName": "ElkBuffBars-r192-alpha.zip",
+        "fileType": 2,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "8.0.1",
+        "projectFileId": 2589775,
+        "projectFileName": "ElkBuffBars-r191-alpha.zip",
+        "fileType": 3,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "7.0.3",
+        "projectFileId": 936157,
+        "projectFileName": "ElkBuffBars-r189.zip",
+        "fileType": 3,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "7.0.3",
+        "projectFileId": 926977,
+        "projectFileName": "ElkBuffBars-r188.zip",
+        "fileType": 1,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "6.2.2",
+        "projectFileId": 898211,
+        "projectFileName": "ElkBuffBars-r187.zip",
+        "fileType": 3,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "6.2.2",
+        "projectFileId": 898105,
+        "projectFileName": "ElkBuffBars-r186.zip",
+        "fileType": 2,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "6.2.0",
+        "projectFileId": 887083,
+        "projectFileName": "ElkBuffBars-r185.zip",
+        "fileType": 1,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "6.0.3",
+        "projectFileId": 882905,
+        "projectFileName": "ElkBuffBars-r184.zip",
+        "fileType": 3,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "6.0.3",
+        "projectFileId": 827709,
+        "projectFileName": "ElkBuffBars-r183.zip",
+        "fileType": 1,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "6.0.3",
+        "projectFileId": 827141,
+        "projectFileName": "ElkBuffBars-r180.zip",
+        "fileType": 2,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "6.0.2",
+        "projectFileId": 821865,
+        "projectFileName": "ElkBuffBars-r179.zip",
+        "fileType": 1,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "6.0.2",
+        "projectFileId": 821859,
+        "projectFileName": "ElkBuffBars-r178.zip",
+        "fileType": 3,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "5.4.8",
+        "projectFileId": 817673,
+        "projectFileName": "ElkBuffBars-r176.zip",
+        "fileType": 2,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "5.4.8",
+        "projectFileId": 817599,
+        "projectFileName": "ElkBuffBars-r175.zip",
+        "fileType": 3,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "5.3.0",
+        "projectFileId": 705302,
+        "projectFileName": "ElkBuffBars-r172.zip",
+        "fileType": 1,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "5.0.5",
+        "projectFileId": 639684,
+        "projectFileName": "ElkBuffBars-r170.zip",
+        "fileType": 3,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "5.0.4",
+        "projectFileId": 618619,
+        "projectFileName": "ElkBuffBars-r169.zip",
+        "fileType": 1,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "5.0.4",
+        "projectFileId": 618331,
+        "projectFileName": "ElkBuffBars-r168.zip",
+        "fileType": 2,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "4.2.0",
+        "projectFileId": 532730,
+        "projectFileName": "ElkBuffBars-r167.zip",
+        "fileType": 2,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "4.0.1",
+        "projectFileId": 473237,
+        "projectFileName": "ElkBuffBars-r160.zip",
+        "fileType": 3,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "4.0.1",
+        "projectFileId": 469735,
+        "projectFileName": "ElkBuffBars-r159.zip",
+        "fileType": 2,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "3.3.5",
+        "projectFileId": 439018,
+        "projectFileName": "ElkBuffBars-r151.zip",
+        "fileType": 2,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "3.2.0",
+        "projectFileId": 377038,
+        "projectFileName": "ElkBuffBars-r150.zip",
+        "fileType": 1,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "3.1.0",
+        "projectFileId": 345013,
+        "projectFileName": "ElkBuffBars-r149.zip",
+        "fileType": 1,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "3.0.9",
+        "projectFileId": 325613,
+        "projectFileName": "ElkBuffBars-r148.zip",
+        "fileType": 1,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "3.0.8",
+        "projectFileId": 325563,
+        "projectFileName": "ElkBuffBars-r147.zip",
+        "fileType": 3,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "3.0.3",
+        "projectFileId": 319214,
+        "projectFileName": "ElkBuffBars-r146.zip",
+        "fileType": 2,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "3.0.3",
+        "projectFileId": 318614,
+        "projectFileName": "ElkBuffBars-r145.zip",
+        "fileType": 3,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "3.0.2",
+        "projectFileId": 305162,
+        "projectFileName": "ElkBuffBars-r140.zip",
+        "fileType": 3,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "3.0.2",
+        "projectFileId": 303932,
+        "projectFileName": "ElkBuffBars-r135.zip",
+        "fileType": 1,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "3.0.2",
+        "projectFileId": 301233,
+        "projectFileName": "ElkBuffBars-r128.zip",
+        "fileType": 2,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "2.0.12",
+        "projectFileId": 281126,
+        "projectFileName": "ElkBuffBars-r25921.zip",
+        "fileType": 2,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "2.0.1",
+        "projectFileId": 281124,
+        "projectFileName": "ElkBuffBars-r19637.zip",
+        "fileType": 2,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "2.1.3",
+        "projectFileId": 233505,
+        "projectFileName": "ElkBuffBars-r38752.zip",
+        "fileType": 2,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "2.3.3",
+        "projectFileId": 171571,
+        "projectFileName": "ElkBuffBars-r61873.zip",
+        "fileType": 2,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "2.2.3",
+        "projectFileId": 171551,
+        "projectFileName": "ElkBuffBars-r54017.zip",
+        "fileType": 2,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "2.4.3",
+        "projectFileId": 156074,
+        "projectFileName": "ElkBuffBars-r69455.zip",
+        "fileType": 2,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "2.4.0",
+        "projectFileId": 71277,
+        "projectFileName": "ElkBuffBars-r73803.zip",
+        "fileType": 1,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "2.3.0",
+        "projectFileId": 71275,
+        "projectFileName": "ElkBuffBars-r55297.zip",
+        "fileType": 1,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "2.1.1",
+        "projectFileId": 71274,
+        "projectFileName": "elkanos-buffbars-2-0-r39466.zip",
+        "fileType": 1,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "2.0.1",
+        "projectFileId": 71273,
+        "projectFileName": "elkanos-buffbar-1-3-r18941.zip",
+        "fileType": 1,
+        "gameVersionFlavor": "wow_retail"
+      }
+    ],
+    "isFeatured": false,
+    "popularityScore": 2181.0751953125,
+    "gamePopularityRank": 389,
+    "primaryLanguage": "enUS",
+    "gameSlug": "wow",
+    "gameName": "World of Warcraft",
+    "portalName": "www.curseforge.com",
+    "dateModified": "2019-10-03T09:19:03.447Z",
+    "dateCreated": "2006-06-26T03:36:51Z",
+    "dateReleased": "2019-09-08T12:13:49.303Z",
+    "isAvailable": true,
+    "isExperiemental": false
+  },
+  {
+    "id": 306085,
+    "name": "TomCat's Tours",
+    "authors": [
+      {
+        "name": "TomCat",
+        "url": "https://www.curseforge.com/members/2715008-tomcat?username=tomcat",
+        "projectId": 306085,
+        "id": 207127,
+        "projectTitleId": null,
+        "projectTitleTitle": null,
+        "userId": 2715008,
+        "twitchId": 158689116
+      }
+    ],
+    "attachments": [
+      {
+        "id": 182578,
+        "projectId": 306085,
+        "description": "",
+        "isDefault": false,
+        "thumbnailUrl": "https://media.forgecdn.net/avatars/thumbnails/182/578/256/256/636809103223820536.png",
+        "title": "636809103223820536.png",
+        "url": "https://media.forgecdn.net/avatars/182/578/636809103223820536.png",
+        "status": 1
+      },
+      {
+        "id": 182659,
+        "projectId": 306085,
+        "description": "",
+        "isDefault": false,
+        "thumbnailUrl": "https://media.forgecdn.net/avatars/thumbnails/182/659/256/256/636809566292999578.png",
+        "title": "636809566292999578.png",
+        "url": "https://media.forgecdn.net/avatars/182/659/636809566292999578.png",
+        "status": 1
+      },
+      {
+        "id": 176720,
+        "projectId": 306085,
+        "description": "",
+        "isDefault": false,
+        "thumbnailUrl": "https://media.forgecdn.net/avatars/thumbnails/176/720/256/256/636765694185769182.png",
+        "title": "636765694185769182.png",
+        "url": "https://media.forgecdn.net/avatars/176/720/636765694185769182.png",
+        "status": 1
+      },
+      {
+        "id": 184503,
+        "projectId": 306085,
+        "description": "",
+        "isDefault": true,
+        "thumbnailUrl": "https://media.forgecdn.net/avatars/thumbnails/184/503/256/256/636821919602684547.png",
+        "title": "636821919602684547.png",
+        "url": "https://media.forgecdn.net/avatars/184/503/636821919602684547.png",
+        "status": 1
+      },
+      {
+        "id": 257260,
+        "projectId": 306085,
+        "description": "Watch on Twitch",
+        "isDefault": false,
+        "thumbnailUrl": "https://media.forgecdn.net/attachments/thumbnails/257/260/310/172/liveontwitch.png",
+        "title": "Watch on Twitch",
+        "url": "https://media.forgecdn.net/attachments/257/260/liveontwitch.png",
+        "status": 1
+      },
+      {
+        "id": 257261,
+        "projectId": 306085,
+        "description": "Contribute via Streamlabs",
+        "isDefault": false,
+        "thumbnailUrl": "https://media.forgecdn.net/attachments/thumbnails/257/261/310/172/streamlabs.png",
+        "title": "Contribute via Streamlabs",
+        "url": "https://media.forgecdn.net/attachments/257/261/streamlabs.png",
+        "status": 1
+      },
+      {
+        "id": 242993,
+        "projectId": 306085,
+        "description": "TomCat's Tours Control Panel",
+        "isDefault": false,
+        "thumbnailUrl": "https://media.forgecdn.net/attachments/thumbnails/242/993/310/172/tomcatstourscontrolpanel.png",
+        "title": "Control Panel",
+        "url": "https://media.forgecdn.net/attachments/242/993/tomcatstourscontrolpanel.png",
+        "status": 1
+      },
+      {
+        "id": 257258,
+        "projectId": 306085,
+        "description": "Follow on Twitter",
+        "isDefault": false,
+        "thumbnailUrl": "https://media.forgecdn.net/attachments/thumbnails/257/258/310/172/twitter-follow.png",
+        "title": "Follow on Twitter",
+        "url": "https://media.forgecdn.net/attachments/257/258/twitter-follow.png",
+        "status": 1
+      },
+      {
+        "id": 257308,
+        "projectId": 306085,
+        "description": "Vote on the next features",
+        "isDefault": false,
+        "thumbnailUrl": "https://media.forgecdn.net/attachments/thumbnails/257/308/310/172/vote-banner.png",
+        "title": "Vote on the next features",
+        "url": "https://media.forgecdn.net/attachments/257/308/vote-banner.png",
+        "status": 1
+      }
+    ],
+    "websiteUrl": "https://www.curseforge.com/wow/addons/tomcats",
+    "gameId": 1,
+    "summary": "TomCat's Tours",
+    "defaultFileId": 2763035,
+    "downloadCount": 2742954,
+    "latestFiles": [
+      {
+        "id": 2763035,
+        "displayName": "v0.0.2-classic",
+        "fileName": "TomCats-v0.0.2classic.zip",
+        "fileDate": "2019-08-16T07:11:32.98Z",
+        "fileLength": 190836,
+        "releaseType": 1,
+        "fileStatus": 4,
+        "downloadUrl": "https://edge.forgecdn.net/files/2763/35/TomCats-v0.0.2classic.zip",
+        "isAlternate": false,
+        "alternateFileId": 0,
+        "dependencies": [],
+        "isAvailable": true,
+        "modules": [
+          {
+            "foldername": "TomCats",
+            "fingerprint": 364550529,
+            "type": 3
+          }
+        ],
+        "packageFingerprint": 4135354645,
+        "gameVersion": [
+          "1.13.2"
+        ],
+        "sortableGameVersion": [
+          {
+            "gameVersionPadded": "0000000001.0000000013.0000000002",
+            "gameVersion": "1.13.2",
+            "gameVersionReleaseDate": "2001-01-01T00:00:00Z",
+            "gameVersionName": "1.13.2"
+          }
+        ],
+        "installMetadata": null,
+        "changelog": null,
+        "hasInstallScript": false,
+        "isCompatibleWithClient": true,
+        "categorySectionPackageType": 1,
+        "restrictProjectFileAccess": 1,
+        "projectStatus": 4,
+        "renderCacheId": 1625628,
+        "fileLegacyMappingId": null,
+        "projectId": 306085,
+        "parentProjectFileId": null,
+        "parentFileLegacyMappingId": null,
+        "fileTypeId": null,
+        "exposeAsAlternative": null,
+        "packageFingerprintId": 345202239,
+        "gameVersionDateReleased": "2001-01-01T00:00:00Z",
+        "gameVersionMappingId": 1898242,
+        "gameVersionId": 7350,
+        "gameId": 1,
+        "isServerPack": false,
+        "serverPackFileId": null,
+        "gameVersionFlavor": "wow_classic"
+      },
+      {
+        "id": 2765148,
+        "displayName": "v1.3.6",
+        "fileName": "TomCats-1.3.6release.zip",
+        "fileDate": "2019-08-19T02:32:48.023Z",
+        "fileLength": 75725,
+        "releaseType": 1,
+        "fileStatus": 4,
+        "downloadUrl": "https://edge.forgecdn.net/files/2765/148/TomCats-1.3.6release.zip",
+        "isAlternate": false,
+        "alternateFileId": 0,
+        "dependencies": [
+          {
+            "id": 29753262,
+            "addonId": 18808,
+            "type": 2,
+            "fileId": 2765148
+          }
+        ],
+        "isAvailable": true,
+        "modules": [
+          {
+            "foldername": "TomCats",
+            "fingerprint": 3248849684,
+            "type": 3
+          }
+        ],
+        "packageFingerprint": 2617195049,
+        "gameVersion": [
+          "8.2.0"
+        ],
+        "sortableGameVersion": [
+          {
+            "gameVersionPadded": "0000000008.0000000002.0000000000",
+            "gameVersion": "8.2.0",
+            "gameVersionReleaseDate": "2019-06-25T00:00:00Z",
+            "gameVersionName": "8.2.0"
+          }
+        ],
+        "installMetadata": null,
+        "changelog": null,
+        "hasInstallScript": false,
+        "isCompatibleWithClient": true,
+        "categorySectionPackageType": 1,
+        "restrictProjectFileAccess": 1,
+        "projectStatus": 4,
+        "renderCacheId": 1628302,
+        "fileLegacyMappingId": null,
+        "projectId": 306085,
+        "parentProjectFileId": null,
+        "parentFileLegacyMappingId": null,
+        "fileTypeId": null,
+        "exposeAsAlternative": null,
+        "packageFingerprintId": 346308988,
+        "gameVersionDateReleased": "2019-06-25T00:00:00Z",
+        "gameVersionMappingId": 1901729,
+        "gameVersionId": 7417,
+        "gameId": 1,
+        "isServerPack": false,
+        "serverPackFileId": null,
+        "gameVersionFlavor": "wow_retail"
+      }
+    ],
+    "categories": [
+      {
+        "categoryId": 1011,
+        "name": "Map & Minimap",
+        "url": "https://www.curseforge.com/wow/addons/map-minimap",
+        "avatarUrl": "https://media.forgecdn.net/avatars/54/447/636135209673867865.png",
+        "parentId": 1,
+        "rootId": 1,
+        "projectId": 306085,
+        "avatarId": 54447,
+        "gameId": 1
+      },
+      {
+        "categoryId": 1013,
+        "name": "Quests & Leveling",
+        "url": "https://www.curseforge.com/wow/addons/quests-leveling",
+        "avatarUrl": "https://media.forgecdn.net/avatars/54/449/636135209685443713.png",
+        "parentId": 1,
+        "rootId": 1,
+        "projectId": 306085,
+        "avatarId": 54449,
+        "gameId": 1
+      },
+      {
+        "categoryId": 1014,
+        "name": "Boss Encounters",
+        "url": "https://www.curseforge.com/wow/addons/boss-encounters",
+        "avatarUrl": "https://media.forgecdn.net/avatars/54/450/636135209695287536.png",
+        "parentId": 1,
+        "rootId": 1,
+        "projectId": 306085,
+        "avatarId": 54450,
+        "gameId": 1
+      },
+      {
+        "categoryId": 1067,
+        "name": "Achievements",
+        "url": "https://www.curseforge.com/wow/addons/achievements",
+        "avatarUrl": "https://media.forgecdn.net/avatars/54/462/636135209763346389.png",
+        "parentId": 1,
+        "rootId": 1,
+        "projectId": 306085,
+        "avatarId": 54462,
+        "gameId": 1
+      }
+    ],
+    "status": 4,
+    "primaryCategoryId": 1011,
+    "categorySection": {
+      "id": 1,
+      "gameId": 1,
+      "name": "Addons",
+      "packageType": 1,
+      "path": "Interface\\Addons",
+      "initialInclusionPattern": "(?i)^([^/]+)[\\\\/]\\1\\.toc$",
+      "extraIncludePattern": "(?i)^[^/\\\\]+[/\\\\]Bindings\\.xml$",
+      "gameCategoryId": 1
+    },
+    "slug": "tomcats",
+    "gameVersionLatestFiles": [
+      {
+        "gameVersion": "8.2.0",
+        "projectFileId": 2765148,
+        "projectFileName": "TomCats-1.3.6release.zip",
+        "fileType": 1,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "1.13.2",
+        "projectFileId": 2763035,
+        "projectFileName": "TomCats-v0.0.2classic.zip",
+        "fileType": 1,
+        "gameVersionFlavor": "wow_classic"
+      },
+      {
+        "gameVersion": "8.1.5",
+        "projectFileId": 2712268,
+        "projectFileName": "TomCats-v1.0.11.zip",
+        "fileType": 1,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "8.1.0",
+        "projectFileId": 2680653,
+        "projectFileName": "TomCats-v1.0.6.zip",
+        "fileType": 1,
+        "gameVersionFlavor": "wow_retail"
+      }
+    ],
+    "isFeatured": false,
+    "popularityScore": 22267.392578125,
+    "gamePopularityRank": 51,
+    "primaryLanguage": "enUS",
+    "gameSlug": "wow",
+    "gameName": "World of Warcraft",
+    "portalName": "www.curseforge.com",
+    "dateModified": "2019-08-19T02:33:26.95Z",
+    "dateCreated": "2018-10-31T07:56:58.543Z",
+    "dateReleased": "2019-08-19T02:32:48.023Z",
+    "isAvailable": true,
+    "isExperiemental": false
+  },
+  {
+    "id": 288981,
+    "name": "Method Dungeon Tools",
+    "authors": [
+      {
+        "name": "Nnogga",
+        "url": "https://www.curseforge.com/members/24699562-nnogga?username=nnogga",
+        "projectId": 288981,
+        "id": 188024,
+        "projectTitleId": null,
+        "projectTitleTitle": null,
+        "userId": 24699562,
+        "twitchId": 63321698
+      },
+      {
+        "name": "dradux",
+        "url": "https://www.curseforge.com/members/24063220-dradux?username=dradux",
+        "projectId": 288981,
+        "id": 205840,
+        "projectTitleId": 2,
+        "projectTitleTitle": "Author",
+        "userId": 24063220,
+        "twitchId": 119985888
+      }
+    ],
+    "attachments": [
+      {
+        "id": 147486,
+        "projectId": 288981,
+        "description": "",
+        "isDefault": true,
+        "thumbnailUrl": "https://media.forgecdn.net/avatars/thumbnails/147/486/256/256/636576942347499348.jpeg",
+        "title": "636576942347499348.jpeg",
+        "url": "https://media.forgecdn.net/avatars/147/486/636576942347499348.jpeg",
+        "status": 1
+      },
+      {
+        "id": 147455,
+        "projectId": 288981,
+        "description": "",
+        "isDefault": false,
+        "thumbnailUrl": "https://media.forgecdn.net/avatars/thumbnails/147/455/256/256/636576815109461636.png",
+        "title": "636576815109461636.png",
+        "url": "https://media.forgecdn.net/avatars/147/455/636576815109461636.png",
+        "status": 1
+      },
+      {
+        "id": 236836,
+        "projectId": 288981,
+        "description": "",
+        "isDefault": false,
+        "thumbnailUrl": "https://media.forgecdn.net/attachments/thumbnails/236/836/310/172/wow_2018-09-10_03-37-48.png",
+        "title": "Main Window",
+        "url": "https://media.forgecdn.net/attachments/236/836/wow_2018-09-10_03-37-48.png",
+        "status": 1
+      },
+      {
+        "id": 259021,
+        "projectId": 288981,
+        "description": "",
+        "isDefault": false,
+        "thumbnailUrl": "https://media.forgecdn.net/attachments/thumbnails/259/21/310/172/xcxhg63.png",
+        "title": "Season 3 Update",
+        "url": "https://media.forgecdn.net/attachments/259/21/xcxhg63.png",
+        "status": 1
+      }
+    ],
+    "websiteUrl": "https://www.curseforge.com/wow/addons/method-dungeon-tools",
+    "gameId": 1,
+    "summary": "World of Warcraft AddOn for planning and optimizing Mythic+ dungeon runs",
+    "defaultFileId": 2836192,
+    "downloadCount": 6339924,
+    "latestFiles": [
+      {
+        "id": 2781420,
+        "displayName": "v2.8.2-beta",
+        "fileName": "MethodDungeonTools-v2.8.2-beta.zip",
+        "fileDate": "2019-09-08T23:38:39.937Z",
+        "fileLength": 657926,
+        "releaseType": 2,
+        "fileStatus": 4,
+        "downloadUrl": "https://edge.forgecdn.net/files/2781/420/MethodDungeonTools-v2.8.2-beta.zip",
+        "isAlternate": false,
+        "alternateFileId": 0,
+        "dependencies": [],
+        "isAvailable": true,
+        "modules": [
+          {
+            "foldername": "MethodDungeonTools",
+            "fingerprint": 2179469236,
+            "type": 3
+          }
+        ],
+        "packageFingerprint": 379746418,
+        "gameVersion": [
+          "8.2.0"
+        ],
+        "sortableGameVersion": [
+          {
+            "gameVersionPadded": "0000000008.0000000002.0000000000",
+            "gameVersion": "8.2.0",
+            "gameVersionReleaseDate": "2019-06-25T00:00:00Z",
+            "gameVersionName": "8.2.0"
+          }
+        ],
+        "installMetadata": null,
+        "changelog": null,
+        "hasInstallScript": false,
+        "isCompatibleWithClient": true,
+        "categorySectionPackageType": 1,
+        "restrictProjectFileAccess": 1,
+        "projectStatus": 4,
+        "renderCacheId": 1648045,
+        "fileLegacyMappingId": null,
+        "projectId": 288981,
+        "parentProjectFileId": null,
+        "parentFileLegacyMappingId": null,
+        "fileTypeId": null,
+        "exposeAsAlternative": null,
+        "packageFingerprintId": 354616239,
+        "gameVersionDateReleased": "2019-06-25T00:00:00Z",
+        "gameVersionMappingId": 1927792,
+        "gameVersionId": 7417,
+        "gameId": 1,
+        "isServerPack": false,
+        "serverPackFileId": null,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "id": 2836192,
+        "displayName": "v2.9.6",
+        "fileName": "MethodDungeonTools-v2.9.6.zip",
+        "fileDate": "2019-12-03T13:44:13.707Z",
+        "fileLength": 694816,
+        "releaseType": 1,
+        "fileStatus": 4,
+        "downloadUrl": "https://edge.forgecdn.net/files/2836/192/MethodDungeonTools-v2.9.6.zip",
+        "isAlternate": false,
+        "alternateFileId": 0,
+        "dependencies": [],
+        "isAvailable": true,
+        "modules": [
+          {
+            "foldername": "MethodDungeonTools",
+            "fingerprint": 1042278418,
+            "type": 3
+          }
+        ],
+        "packageFingerprint": 2778407083,
+        "gameVersion": [],
+        "sortableGameVersion": [],
+        "installMetadata": null,
+        "changelog": null,
+        "hasInstallScript": false,
+        "isCompatibleWithClient": true,
+        "categorySectionPackageType": 1,
+        "restrictProjectFileAccess": 1,
+        "projectStatus": 4,
+        "renderCacheId": 1713505,
+        "fileLegacyMappingId": null,
+        "projectId": 288981,
+        "parentProjectFileId": null,
+        "parentFileLegacyMappingId": null,
+        "fileTypeId": null,
+        "exposeAsAlternative": null,
+        "packageFingerprintId": 383934026,
+        "gameVersionDateReleased": "2019-09-23T00:00:00Z",
+        "gameVersionMappingId": 2018487,
+        "gameVersionId": 7585,
+        "gameId": 1,
+        "isServerPack": false,
+        "serverPackFileId": null,
+        "gameVersionFlavor": "wow_retail"
+      }
+    ],
+    "categories": [
+      {
+        "categoryId": 1011,
+        "name": "Map & Minimap",
+        "url": "https://www.curseforge.com/wow/addons/map-minimap",
+        "avatarUrl": "https://media.forgecdn.net/avatars/54/447/636135209673867865.png",
+        "parentId": 1,
+        "rootId": 1,
+        "projectId": 288981,
+        "avatarId": 54447,
+        "gameId": 1
+      }
+    ],
+    "status": 4,
+    "primaryCategoryId": 1011,
+    "categorySection": {
+      "id": 1,
+      "gameId": 1,
+      "name": "Addons",
+      "packageType": 1,
+      "path": "Interface\\Addons",
+      "initialInclusionPattern": "(?i)^([^/]+)[\\\\/]\\1\\.toc$",
+      "extraIncludePattern": "(?i)^[^/\\\\]+[/\\\\]Bindings\\.xml$",
+      "gameCategoryId": 1
+    },
+    "slug": "method-dungeon-tools",
+    "gameVersionLatestFiles": [
+      {
+        "gameVersion": "8.2.5",
+        "projectFileId": 2807447,
+        "projectFileName": "MethodDungeonTools-v2.9.5.zip",
+        "fileType": 1,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "8.2.0",
+        "projectFileId": 2791891,
+        "projectFileName": "MethodDungeonTools-2.9.1.zip",
+        "fileType": 1,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "8.2.0",
+        "projectFileId": 2781420,
+        "projectFileName": "MethodDungeonTools-v2.8.2-beta.zip",
+        "fileType": 2,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "8.1.5",
+        "projectFileId": 2695578,
+        "projectFileName": "MethodDungeonTools-v2.5.6.zip",
+        "fileType": 1,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "8.1.0",
+        "projectFileId": 2679835,
+        "projectFileName": "MethodDungeonTools-v2.4.1.zip",
+        "fileType": 1,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "8.0.1",
+        "projectFileId": 2639628,
+        "projectFileName": "MethodDungeonTools-v2.2.46.zip",
+        "fileType": 1,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "7.3.5",
+        "projectFileId": 2545400,
+        "projectFileName": "MethodDungeonTools-v1.5.1.zip",
+        "fileType": 1,
+        "gameVersionFlavor": "wow_retail"
+      }
+    ],
+    "isFeatured": false,
+    "popularityScore": 36914.05859375,
+    "gamePopularityRank": 29,
+    "primaryLanguage": "enUS",
+    "gameSlug": "wow",
+    "gameName": "World of Warcraft",
+    "portalName": "www.curseforge.com",
+    "dateModified": "2019-12-03T13:44:26.143Z",
+    "dateCreated": "2018-02-24T03:29:30.783Z",
+    "dateReleased": "2019-12-03T13:44:13.707Z",
+    "isAvailable": true,
+    "isExperiemental": false
+  },
+  {
+    "id": 326516,
+    "name": "AtlasLootClassic",
+    "authors": [
+      {
+        "name": "Lag123",
+        "url": "https://www.curseforge.com/members/1248646-lag123?username=lag123",
+        "projectId": 326516,
+        "id": 229701,
+        "projectTitleId": null,
+        "projectTitleTitle": null,
+        "userId": 1248646,
+        "twitchId": 111673327
+      }
+    ],
+    "attachments": [
+      {
+        "id": 209305,
+        "projectId": 326516,
+        "description": "",
+        "isDefault": true,
+        "thumbnailUrl": "https://media.forgecdn.net/avatars/thumbnails/209/305/256/256/636980888970699599.png",
+        "title": "636980888970699599.png",
+        "url": "https://media.forgecdn.net/avatars/209/305/636980888970699599.png",
+        "status": 1
+      },
+      {
+        "id": 257815,
+        "projectId": 326516,
+        "description": "",
+        "isDefault": false,
+        "thumbnailUrl": "https://media.forgecdn.net/attachments/thumbnails/257/815/310/172/craftingview.jpg",
+        "title": "Crafting",
+        "url": "https://media.forgecdn.net/attachments/257/815/craftingview.jpg",
+        "status": 1
+      },
+      {
+        "id": 260125,
+        "projectId": 326516,
+        "description": "",
+        "isDefault": false,
+        "thumbnailUrl": "https://media.forgecdn.net/attachments/thumbnails/260/125/310/172/atlasloot-fav-gui.png",
+        "title": "Favourites GUI",
+        "url": "https://media.forgecdn.net/attachments/260/125/atlasloot-fav-gui.png",
+        "status": 1
+      },
+      {
+        "id": 257816,
+        "projectId": 326516,
+        "description": "",
+        "isDefault": false,
+        "thumbnailUrl": "https://media.forgecdn.net/attachments/thumbnails/257/816/310/172/setview.jpg",
+        "title": "Sets",
+        "url": "https://media.forgecdn.net/attachments/257/816/setview.jpg",
+        "status": 1
+      },
+      {
+        "id": 260931,
+        "projectId": 326516,
+        "description": "",
+        "isDefault": false,
+        "thumbnailUrl": "https://media.forgecdn.net/attachments/thumbnails/260/931/310/172/atlasloot-fav-tt.png",
+        "title": "Favourites TT",
+        "url": "https://media.forgecdn.net/attachments/260/931/atlasloot-fav-tt.png",
+        "status": 1
+      },
+      {
+        "id": 257814,
+        "projectId": 326516,
+        "description": "",
+        "isDefault": false,
+        "thumbnailUrl": "https://media.forgecdn.net/attachments/thumbnails/257/814/310/172/bossview.jpg",
+        "title": "Bosses",
+        "url": "https://media.forgecdn.net/attachments/257/814/bossview.jpg",
+        "status": 1
+      }
+    ],
+    "websiteUrl": "https://www.curseforge.com/wow/addons/atlaslootclassic",
+    "gameId": 1,
+    "summary": "Shows the possible loot from the bosses",
+    "defaultFileId": 2849081,
+    "downloadCount": 8825013,
+    "latestFiles": [
+      {
+        "id": 2807972,
+        "displayName": "v1.3.0-beta1-classic",
+        "fileName": "AtlasLootClassic-v1.3.0-beta1-classic.zip",
+        "fileDate": "2019-10-12T19:48:43.363Z",
+        "fileLength": 676351,
+        "releaseType": 2,
+        "fileStatus": 4,
+        "downloadUrl": "https://edge.forgecdn.net/files/2807/972/AtlasLootClassic-v1.3.0-beta1-classic.zip",
+        "isAlternate": false,
+        "alternateFileId": 0,
+        "dependencies": [
+          {
+            "id": 31938736,
+            "addonId": 14320,
+            "type": 1,
+            "fileId": 2807972
+          },
+          {
+            "id": 31938735,
+            "addonId": 15552,
+            "type": 1,
+            "fileId": 2807972
+          },
+          {
+            "id": 31938738,
+            "addonId": 13380,
+            "type": 1,
+            "fileId": 2807972
+          },
+          {
+            "id": 31938739,
+            "addonId": 14328,
+            "type": 1,
+            "fileId": 2807972
+          },
+          {
+            "id": 31938740,
+            "addonId": 13376,
+            "type": 1,
+            "fileId": 2807972
+          },
+          {
+            "id": 31938737,
+            "addonId": 15049,
+            "type": 1,
+            "fileId": 2807972
+          }
+        ],
+        "isAvailable": true,
+        "modules": [
+          {
+            "foldername": "AtlasLootClassic_Crafting",
+            "fingerprint": 2541254836,
+            "type": 2
+          },
+          {
+            "foldername": "AtlasLootClassic_DungeonsAndRaids",
+            "fingerprint": 2711114989,
+            "type": 2
+          },
+          {
+            "foldername": "AtlasLootClassic_PvP",
+            "fingerprint": 185302379,
+            "type": 2
+          },
+          {
+            "foldername": "AtlasLootClassic_Collections",
+            "fingerprint": 2253136003,
+            "type": 2
+          },
+          {
+            "foldername": "AtlasLootClassic_Factions",
+            "fingerprint": 3385462311,
+            "type": 2
+          },
+          {
+            "foldername": "AtlasLootClassic_Options",
+            "fingerprint": 3215539884,
+            "type": 2
+          },
+          {
+            "foldername": "AtlasLootClassic_Data",
+            "fingerprint": 2926826172,
+            "type": 2
+          },
+          {
+            "foldername": "AtlasLootClassic",
+            "fingerprint": 2378250059,
+            "type": 3
+          }
+        ],
+        "packageFingerprint": 1901751802,
+        "gameVersion": [
+          "1.13.2"
+        ],
+        "sortableGameVersion": [
+          {
+            "gameVersionPadded": "0000000001.0000000013.0000000002",
+            "gameVersion": "1.13.2",
+            "gameVersionReleaseDate": "2001-01-01T00:00:00Z",
+            "gameVersionName": "1.13.2"
+          }
+        ],
+        "installMetadata": null,
+        "changelog": null,
+        "hasInstallScript": false,
+        "isCompatibleWithClient": true,
+        "categorySectionPackageType": 1,
+        "restrictProjectFileAccess": 1,
+        "projectStatus": 4,
+        "renderCacheId": 1679416,
+        "fileLegacyMappingId": null,
+        "projectId": 326516,
+        "parentProjectFileId": null,
+        "parentFileLegacyMappingId": null,
+        "fileTypeId": null,
+        "exposeAsAlternative": null,
+        "packageFingerprintId": 366489016,
+        "gameVersionDateReleased": "2001-01-01T00:00:00Z",
+        "gameVersionMappingId": 1968831,
+        "gameVersionId": 7350,
+        "gameId": 1,
+        "isServerPack": false,
+        "serverPackFileId": null,
+        "gameVersionFlavor": "wow_classic"
+      },
+      {
+        "id": 2818014,
+        "displayName": "v1.3.2-7-g99b4c83-classic",
+        "fileName": "AtlasLootClassic-v1.3.2-7-g99b4c83-classic.zip",
+        "fileDate": "2019-10-28T17:39:58.97Z",
+        "fileLength": 695614,
+        "releaseType": 3,
+        "fileStatus": 4,
+        "downloadUrl": "https://edge.forgecdn.net/files/2818/14/AtlasLootClassic-v1.3.2-7-g99b4c83-classic.zip",
+        "isAlternate": false,
+        "alternateFileId": 0,
+        "dependencies": [
+          {
+            "id": 32605966,
+            "addonId": 13380,
+            "type": 1,
+            "fileId": 2818014
+          },
+          {
+            "id": 32605963,
+            "addonId": 15552,
+            "type": 1,
+            "fileId": 2818014
+          },
+          {
+            "id": 32605968,
+            "addonId": 13376,
+            "type": 1,
+            "fileId": 2818014
+          },
+          {
+            "id": 32605965,
+            "addonId": 15049,
+            "type": 1,
+            "fileId": 2818014
+          },
+          {
+            "id": 32605967,
+            "addonId": 14328,
+            "type": 1,
+            "fileId": 2818014
+          },
+          {
+            "id": 32605964,
+            "addonId": 14320,
+            "type": 1,
+            "fileId": 2818014
+          }
+        ],
+        "isAvailable": true,
+        "modules": [
+          {
+            "foldername": "AtlasLootClassic_Crafting",
+            "fingerprint": 3403373496,
+            "type": 2
+          },
+          {
+            "foldername": "AtlasLootClassic_DungeonsAndRaids",
+            "fingerprint": 1710260091,
+            "type": 2
+          },
+          {
+            "foldername": "AtlasLootClassic_PvP",
+            "fingerprint": 304974268,
+            "type": 2
+          },
+          {
+            "foldername": "AtlasLootClassic_Collections",
+            "fingerprint": 1407990571,
+            "type": 2
+          },
+          {
+            "foldername": "AtlasLootClassic_Factions",
+            "fingerprint": 3663494738,
+            "type": 2
+          },
+          {
+            "foldername": "AtlasLootClassic_Options",
+            "fingerprint": 94406425,
+            "type": 2
+          },
+          {
+            "foldername": "AtlasLootClassic_Data",
+            "fingerprint": 1877595234,
+            "type": 2
+          },
+          {
+            "foldername": "AtlasLootClassic",
+            "fingerprint": 213207767,
+            "type": 3
+          }
+        ],
+        "packageFingerprint": 2218672458,
+        "gameVersion": [
+          "1.13.2"
+        ],
+        "sortableGameVersion": [
+          {
+            "gameVersionPadded": "0000000001.0000000013.0000000002",
+            "gameVersion": "1.13.2",
+            "gameVersionReleaseDate": "2001-01-01T00:00:00Z",
+            "gameVersionName": "1.13.2"
+          }
+        ],
+        "installMetadata": null,
+        "changelog": null,
+        "hasInstallScript": false,
+        "isCompatibleWithClient": true,
+        "categorySectionPackageType": 1,
+        "restrictProjectFileAccess": 1,
+        "projectStatus": 4,
+        "renderCacheId": 1691445,
+        "fileLegacyMappingId": null,
+        "projectId": 326516,
+        "parentProjectFileId": null,
+        "parentFileLegacyMappingId": null,
+        "fileTypeId": null,
+        "exposeAsAlternative": null,
+        "packageFingerprintId": 372069761,
+        "gameVersionDateReleased": "2001-01-01T00:00:00Z",
+        "gameVersionMappingId": 1985636,
+        "gameVersionId": 7350,
+        "gameId": 1,
+        "isServerPack": false,
+        "serverPackFileId": null,
+        "gameVersionFlavor": "wow_classic"
+      },
+      {
+        "id": 2849081,
+        "displayName": "v1.4.4-classic",
+        "fileName": "AtlasLootClassic-v1.4.4-classic.zip",
+        "fileDate": "2019-12-24T22:11:43.927Z",
+        "fileLength": 716178,
+        "releaseType": 1,
+        "fileStatus": 4,
+        "downloadUrl": "https://edge.forgecdn.net/files/2849/81/AtlasLootClassic-v1.4.4-classic.zip",
+        "isAlternate": false,
+        "alternateFileId": 0,
+        "dependencies": [
+          {
+            "id": 34609317,
+            "addonId": 13376,
+            "type": 1,
+            "fileId": 2849081
+          },
+          {
+            "id": 34609313,
+            "addonId": 14320,
+            "type": 1,
+            "fileId": 2849081
+          },
+          {
+            "id": 34609316,
+            "addonId": 14328,
+            "type": 1,
+            "fileId": 2849081
+          },
+          {
+            "id": 34609314,
+            "addonId": 15049,
+            "type": 1,
+            "fileId": 2849081
+          },
+          {
+            "id": 34609312,
+            "addonId": 15552,
+            "type": 1,
+            "fileId": 2849081
+          },
+          {
+            "id": 34609315,
+            "addonId": 13380,
+            "type": 1,
+            "fileId": 2849081
+          }
+        ],
+        "isAvailable": true,
+        "modules": [
+          {
+            "foldername": "AtlasLootClassic_Crafting",
+            "fingerprint": 3387922411,
+            "type": 2
+          },
+          {
+            "foldername": "AtlasLootClassic_DungeonsAndRaids",
+            "fingerprint": 712634599,
+            "type": 2
+          },
+          {
+            "foldername": "AtlasLootClassic_PvP",
+            "fingerprint": 858229478,
+            "type": 2
+          },
+          {
+            "foldername": "AtlasLootClassic_Collections",
+            "fingerprint": 56486714,
+            "type": 2
+          },
+          {
+            "foldername": "AtlasLootClassic_Factions",
+            "fingerprint": 2495044578,
+            "type": 2
+          },
+          {
+            "foldername": "AtlasLootClassic_Options",
+            "fingerprint": 122084995,
+            "type": 2
+          },
+          {
+            "foldername": "AtlasLootClassic_Data",
+            "fingerprint": 2279250761,
+            "type": 2
+          },
+          {
+            "foldername": "AtlasLootClassic",
+            "fingerprint": 162699517,
+            "type": 3
+          }
+        ],
+        "packageFingerprint": 1963099423,
+        "gameVersion": [
+          "1.13.3"
+        ],
+        "sortableGameVersion": [
+          {
+            "gameVersionPadded": "0000000001.0000000013.0000000003",
+            "gameVersion": "1.13.3",
+            "gameVersionReleaseDate": "2001-01-01T00:00:00Z",
+            "gameVersionName": "1.13.3"
+          }
+        ],
+        "installMetadata": null,
+        "changelog": null,
+        "hasInstallScript": false,
+        "isCompatibleWithClient": true,
+        "categorySectionPackageType": 1,
+        "restrictProjectFileAccess": 1,
+        "projectStatus": 4,
+        "renderCacheId": 1728728,
+        "fileLegacyMappingId": null,
+        "projectId": 326516,
+        "parentProjectFileId": null,
+        "parentFileLegacyMappingId": null,
+        "fileTypeId": null,
+        "exposeAsAlternative": null,
+        "packageFingerprintId": 390941415,
+        "gameVersionDateReleased": "2001-01-01T00:00:00Z",
+        "gameVersionMappingId": 2042051,
+        "gameVersionId": 7668,
+        "gameId": 1,
+        "isServerPack": false,
+        "serverPackFileId": null,
+        "gameVersionFlavor": "wow_classic"
+      }
+    ],
+    "categories": [
+      {
+        "categoryId": 1011,
+        "name": "Map & Minimap",
+        "url": "https://www.curseforge.com/wow/addons/map-minimap",
+        "avatarUrl": "https://media.forgecdn.net/avatars/54/447/636135209673867865.png",
+        "parentId": 1,
+        "rootId": 1,
+        "projectId": 326516,
+        "avatarId": 54447,
+        "gameId": 1
+      },
+      {
+        "categoryId": 1014,
+        "name": "Boss Encounters",
+        "url": "https://www.curseforge.com/wow/addons/boss-encounters",
+        "avatarUrl": "https://media.forgecdn.net/avatars/54/450/636135209695287536.png",
+        "parentId": 1,
+        "rootId": 1,
+        "projectId": 326516,
+        "avatarId": 54450,
+        "gameId": 1
+      },
+      {
+        "categoryId": 1015,
+        "name": "Professions",
+        "url": "https://www.curseforge.com/wow/addons/professions",
+        "avatarUrl": "https://media.forgecdn.net/avatars/54/451/636135209701693840.png",
+        "parentId": 1,
+        "rootId": 1,
+        "projectId": 326516,
+        "avatarId": 54451,
+        "gameId": 1
+      },
+      {
+        "categoryId": 1040,
+        "name": "Arena",
+        "url": "https://www.curseforge.com/wow/addons/pvp/arena",
+        "avatarUrl": "https://media.forgecdn.net/avatars/54/503/636135209999463325.png",
+        "parentId": 1004,
+        "rootId": 1,
+        "projectId": 326516,
+        "avatarId": 54503,
+        "gameId": 1
+      }
+    ],
+    "status": 4,
+    "primaryCategoryId": 1014,
+    "categorySection": {
+      "id": 1,
+      "gameId": 1,
+      "name": "Addons",
+      "packageType": 1,
+      "path": "Interface\\Addons",
+      "initialInclusionPattern": "(?i)^([^/]+)[\\\\/]\\1\\.toc$",
+      "extraIncludePattern": "(?i)^[^/\\\\]+[/\\\\]Bindings\\.xml$",
+      "gameCategoryId": 1
+    },
+    "slug": "atlaslootclassic",
+    "gameVersionLatestFiles": [
+      {
+        "gameVersion": "1.13.3",
+        "projectFileId": 2849081,
+        "projectFileName": "AtlasLootClassic-v1.4.4-classic.zip",
+        "fileType": 1,
+        "gameVersionFlavor": "wow_classic"
+      },
+      {
+        "gameVersion": "1.13.2",
+        "projectFileId": 2835920,
+        "projectFileName": "AtlasLootClassic-v1.4.1-classic.zip",
+        "fileType": 1,
+        "gameVersionFlavor": "wow_classic"
+      },
+      {
+        "gameVersion": "1.13.2",
+        "projectFileId": 2818014,
+        "projectFileName": "AtlasLootClassic-v1.3.2-7-g99b4c83-classic.zip",
+        "fileType": 3,
+        "gameVersionFlavor": "wow_classic"
+      },
+      {
+        "gameVersion": "1.13.2",
+        "projectFileId": 2807972,
+        "projectFileName": "AtlasLootClassic-v1.3.0-beta1-classic.zip",
+        "fileType": 2,
+        "gameVersionFlavor": "wow_classic"
+      }
+    ],
+    "isFeatured": false,
+    "popularityScore": 118960.3671875,
+    "gamePopularityRank": 4,
+    "primaryLanguage": "enUS",
+    "gameSlug": "wow",
+    "gameName": "World of Warcraft",
+    "portalName": "www.curseforge.com",
+    "dateModified": "2019-12-24T22:18:43.603Z",
+    "dateCreated": "2019-07-07T09:34:57.023Z",
+    "dateReleased": "2019-12-24T22:11:43.927Z",
+    "isAvailable": true,
+    "isExperiemental": false
+  },
+  {
+    "id": 20338,
+    "name": "Molinari",
+    "authors": [
+      {
+        "name": "p3lim",
+        "url": "https://www.curseforge.com/members/68336-p3lim?username=p3lim",
+        "projectId": 20338,
+        "id": 69605,
+        "projectTitleId": null,
+        "projectTitleTitle": null,
+        "userId": 68336,
+        "twitchId": 31138611
+      }
+    ],
+    "attachments": [
+      {
+        "id": 60949,
+        "projectId": 20338,
+        "description": "",
+        "isDefault": true,
+        "thumbnailUrl": "https://media.forgecdn.net/avatars/thumbnails/60/949/256/256/636141586082612330.png",
+        "title": "636141586082612330.png",
+        "url": "https://media.forgecdn.net/avatars/60/949/636141586082612330.png",
+        "status": 1
+      },
+      {
+        "id": 101518,
+        "projectId": 20338,
+        "description": "<p>Screenshot</p>\n",
+        "isDefault": false,
+        "thumbnailUrl": "https://media.forgecdn.net/attachments/thumbnails/101/518/310/172/v2_curse.png",
+        "title": "v2_curse.png",
+        "url": "https://media.forgecdn.net/attachments/101/518/v2_curse.png",
+        "status": 1
+      }
+    ],
+    "websiteUrl": "https://www.curseforge.com/wow/addons/molinari",
+    "gameId": 1,
+    "summary": "One-click Milling, Prospecting, Disenchanting and Lockpicking!",
+    "defaultFileId": 2842742,
+    "downloadCount": 434376,
+    "latestFiles": [
+      {
+        "id": 618477,
+        "displayName": "50001.22-Beta",
+        "fileName": "Molinari-50001.22-Beta.zip",
+        "fileDate": "2012-08-30T11:42:54.82Z",
+        "fileLength": 7810,
+        "releaseType": 2,
+        "fileStatus": 4,
+        "downloadUrl": "https://edge.forgecdn.net/files/618/477/Molinari-50001.22-Beta.zip",
+        "isAlternate": false,
+        "alternateFileId": 0,
+        "dependencies": [],
+        "isAvailable": true,
+        "modules": [
+          {
+            "foldername": "Molinari",
+            "fingerprint": 442847837,
+            "type": 3
+          }
+        ],
+        "packageFingerprint": 1480180278,
+        "gameVersion": [
+          "5.0.4"
+        ],
+        "sortableGameVersion": [
+          {
+            "gameVersionPadded": "0000000005.0000000000.0000000004",
+            "gameVersion": "5.0.4",
+            "gameVersionReleaseDate": "2012-08-28T00:00:00Z",
+            "gameVersionName": "5.0.4"
+          }
+        ],
+        "installMetadata": null,
+        "changelog": null,
+        "hasInstallScript": false,
+        "isCompatibleWithClient": true,
+        "categorySectionPackageType": 1,
+        "restrictProjectFileAccess": 1,
+        "projectStatus": 4,
+        "renderCacheId": 469264,
+        "fileLegacyMappingId": null,
+        "projectId": 20338,
+        "parentProjectFileId": null,
+        "parentFileLegacyMappingId": null,
+        "fileTypeId": null,
+        "exposeAsAlternative": null,
+        "packageFingerprintId": 99484565,
+        "gameVersionDateReleased": "2012-08-28T00:00:00Z",
+        "gameVersionMappingId": 467447,
+        "gameVersionId": 238,
+        "gameId": 1,
+        "isServerPack": false,
+        "serverPackFileId": null,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "id": 2574334,
+        "displayName": "70300.52-Release-2-g09b9479-alpha",
+        "fileName": "Molinari-70300.52-Release-2-g09b9479-alpha.zip",
+        "fileDate": "2018-06-19T14:48:14.98Z",
+        "fileLength": 31696,
+        "releaseType": 3,
+        "fileStatus": 4,
+        "downloadUrl": "https://edge.forgecdn.net/files/2574/334/Molinari-70300.52-Release-2-g09b9479-alpha.zip",
+        "isAlternate": false,
+        "alternateFileId": 0,
+        "dependencies": [
+          {
+            "id": 17890367,
+            "addonId": 14328,
+            "type": 1,
+            "fileId": 2574334
+          }
+        ],
+        "isAvailable": true,
+        "modules": [
+          {
+            "foldername": "Molinari",
+            "fingerprint": 1447483660,
+            "type": 3
+          }
+        ],
+        "packageFingerprint": 1225238992,
+        "gameVersion": [
+          "7.3.5"
+        ],
+        "sortableGameVersion": [
+          {
+            "gameVersionPadded": "0000000007.0000000003.0000000005",
+            "gameVersion": "7.3.5",
+            "gameVersionReleaseDate": "2018-01-16T06:00:00Z",
+            "gameVersionName": "7.3.5"
+          }
+        ],
+        "installMetadata": null,
+        "changelog": null,
+        "hasInstallScript": false,
+        "isCompatibleWithClient": true,
+        "categorySectionPackageType": 1,
+        "restrictProjectFileAccess": 1,
+        "projectStatus": 4,
+        "renderCacheId": 1398717,
+        "fileLegacyMappingId": null,
+        "projectId": 20338,
+        "parentProjectFileId": null,
+        "parentFileLegacyMappingId": null,
+        "fileTypeId": null,
+        "exposeAsAlternative": null,
+        "packageFingerprintId": 248018274,
+        "gameVersionDateReleased": "2018-01-16T06:00:00Z",
+        "gameVersionMappingId": 1602007,
+        "gameVersionId": 6904,
+        "gameId": 1,
+        "isServerPack": false,
+        "serverPackFileId": null,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "id": 2842742,
+        "displayName": "80200.64-Release",
+        "fileName": "Molinari-80200.64-Release.zip",
+        "fileDate": "2019-12-14T19:59:09.647Z",
+        "fileLength": 36133,
+        "releaseType": 1,
+        "fileStatus": 4,
+        "downloadUrl": "https://edge.forgecdn.net/files/2842/742/Molinari-80200.64-Release.zip",
+        "isAlternate": false,
+        "alternateFileId": 0,
+        "dependencies": [
+          {
+            "id": 34269046,
+            "addonId": 14328,
+            "type": 1,
+            "fileId": 2842742
+          }
+        ],
+        "isAvailable": true,
+        "modules": [
+          {
+            "foldername": "Molinari",
+            "fingerprint": 3308402241,
+            "type": 3
+          }
+        ],
+        "packageFingerprint": 1226975876,
+        "gameVersion": [
+          "8.2.5"
+        ],
+        "sortableGameVersion": [
+          {
+            "gameVersionPadded": "0000000008.0000000002.0000000005",
+            "gameVersion": "8.2.5",
+            "gameVersionReleaseDate": "2019-09-23T00:00:00Z",
+            "gameVersionName": "8.2.5"
+          }
+        ],
+        "installMetadata": null,
+        "changelog": null,
+        "hasInstallScript": false,
+        "isCompatibleWithClient": true,
+        "categorySectionPackageType": 1,
+        "restrictProjectFileAccess": 1,
+        "projectStatus": 4,
+        "renderCacheId": 1721221,
+        "fileLegacyMappingId": null,
+        "projectId": 20338,
+        "parentProjectFileId": null,
+        "parentFileLegacyMappingId": null,
+        "fileTypeId": null,
+        "exposeAsAlternative": null,
+        "packageFingerprintId": 387688974,
+        "gameVersionDateReleased": "2019-09-23T00:00:00Z",
+        "gameVersionMappingId": 2030826,
+        "gameVersionId": 7585,
+        "gameId": 1,
+        "isServerPack": false,
+        "serverPackFileId": null,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "id": 2842743,
+        "displayName": "80200.64-Release-classic",
+        "fileName": "Molinari-80200.64-Release-classic.zip",
+        "fileDate": "2019-12-14T19:59:11.687Z",
+        "fileLength": 36137,
+        "releaseType": 1,
+        "fileStatus": 4,
+        "downloadUrl": "https://edge.forgecdn.net/files/2842/743/Molinari-80200.64-Release-classic.zip",
+        "isAlternate": false,
+        "alternateFileId": 0,
+        "dependencies": [
+          {
+            "id": 34269047,
+            "addonId": 14328,
+            "type": 1,
+            "fileId": 2842743
+          }
+        ],
+        "isAvailable": true,
+        "modules": [
+          {
+            "foldername": "Molinari",
+            "fingerprint": 2542339631,
+            "type": 3
+          }
+        ],
+        "packageFingerprint": 2122158081,
+        "gameVersion": [
+          "1.13.2"
+        ],
+        "sortableGameVersion": [
+          {
+            "gameVersionPadded": "0000000001.0000000013.0000000002",
+            "gameVersion": "1.13.2",
+            "gameVersionReleaseDate": "2001-01-01T00:00:00Z",
+            "gameVersionName": "1.13.2"
+          }
+        ],
+        "installMetadata": null,
+        "changelog": null,
+        "hasInstallScript": false,
+        "isCompatibleWithClient": true,
+        "categorySectionPackageType": 1,
+        "restrictProjectFileAccess": 1,
+        "projectStatus": 4,
+        "renderCacheId": 1721222,
+        "fileLegacyMappingId": null,
+        "projectId": 20338,
+        "parentProjectFileId": null,
+        "parentFileLegacyMappingId": null,
+        "fileTypeId": null,
+        "exposeAsAlternative": null,
+        "packageFingerprintId": 387689016,
+        "gameVersionDateReleased": "2001-01-01T00:00:00Z",
+        "gameVersionMappingId": 2030827,
+        "gameVersionId": 7350,
+        "gameId": 1,
+        "isServerPack": false,
+        "serverPackFileId": null,
+        "gameVersionFlavor": "wow_classic"
+      }
+    ],
+    "categories": [
+      {
+        "categoryId": 1015,
+        "name": "Professions",
+        "url": "https://www.curseforge.com/wow/addons/professions",
+        "avatarUrl": "https://media.forgecdn.net/avatars/54/451/636135209701693840.png",
+        "parentId": 1,
+        "rootId": 1,
+        "projectId": 20338,
+        "avatarId": 54451,
+        "gameId": 1
+      },
+      {
+        "categoryId": 1050,
+        "name": "Jewelcrafting",
+        "url": "https://www.curseforge.com/wow/addons/professions/jewelcrafting",
+        "avatarUrl": "https://media.forgecdn.net/avatars/54/496/636135209964510099.png",
+        "parentId": 1015,
+        "rootId": 1,
+        "projectId": 20338,
+        "avatarId": 54496,
+        "gameId": 1
+      },
+      {
+        "categoryId": 1045,
+        "name": "Enchanting",
+        "url": "https://www.curseforge.com/wow/addons/professions/enchanting",
+        "avatarUrl": "https://media.forgecdn.net/avatars/54/491/636135209936129920.png",
+        "parentId": 1015,
+        "rootId": 1,
+        "projectId": 20338,
+        "avatarId": 54491,
+        "gameId": 1
+      },
+      {
+        "categoryId": 1059,
+        "name": "Inscription",
+        "url": "https://www.curseforge.com/wow/addons/professions/inscription",
+        "avatarUrl": "https://media.forgecdn.net/avatars/54/501/636135209993347320.png",
+        "parentId": 1015,
+        "rootId": 1,
+        "projectId": 20338,
+        "avatarId": 54501,
+        "gameId": 1
+      },
+      {
+        "categoryId": 1027,
+        "name": "Rogue",
+        "url": "https://www.curseforge.com/wow/addons/class/rogue",
+        "avatarUrl": "https://media.forgecdn.net/avatars/54/476/636135209851425101.png",
+        "parentId": 1020,
+        "rootId": 1,
+        "projectId": 20338,
+        "avatarId": 54476,
+        "gameId": 1
+      }
+    ],
+    "status": 4,
+    "primaryCategoryId": 1015,
+    "categorySection": {
+      "id": 1,
+      "gameId": 1,
+      "name": "Addons",
+      "packageType": 1,
+      "path": "Interface\\Addons",
+      "initialInclusionPattern": "(?i)^([^/]+)[\\\\/]\\1\\.toc$",
+      "extraIncludePattern": "(?i)^[^/\\\\]+[/\\\\]Bindings\\.xml$",
+      "gameCategoryId": 1
+    },
+    "slug": "molinari",
+    "gameVersionLatestFiles": [
+      {
+        "gameVersion": "1.13.2",
+        "projectFileId": 2842743,
+        "projectFileName": "Molinari-80200.64-Release-classic.zip",
+        "fileType": 1,
+        "gameVersionFlavor": "wow_classic"
+      },
+      {
+        "gameVersion": "8.2.5",
+        "projectFileId": 2842742,
+        "projectFileName": "Molinari-80200.64-Release.zip",
+        "fileType": 1,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "8.2.0",
+        "projectFileId": 2779132,
+        "projectFileName": "Molinari-80200.63-Release.zip",
+        "fileType": 1,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "8.0.1",
+        "projectFileId": 2590174,
+        "projectFileName": "Molinari-80000.58-Release.zip",
+        "fileType": 1,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "7.3.5",
+        "projectFileId": 2574338,
+        "projectFileName": "Molinari-70300.53-Release.zip",
+        "fileType": 1,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "7.3.5",
+        "projectFileId": 2574334,
+        "projectFileName": "Molinari-70300.52-Release-2-g09b9479-alpha.zip",
+        "fileType": 3,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "7.3.0",
+        "projectFileId": 2480707,
+        "projectFileName": "Molinari-70300.50-Release.zip",
+        "fileType": 1,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "7.3.0",
+        "projectFileId": 2480705,
+        "projectFileName": "Molinari-70300.49-Release-1-g7316666-alpha.zip",
+        "fileType": 3,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "7.2.0",
+        "projectFileId": 2418427,
+        "projectFileName": "Molinari-70200.49-Release.zip",
+        "fileType": 1,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "7.2.0",
+        "projectFileId": 2418426,
+        "projectFileName": "Molinari-70200.47-Release-2-g83e1761-alpha.zip",
+        "fileType": 3,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "7.0.3",
+        "projectFileId": 2390612,
+        "projectFileName": "Molinari-70100.43-Release.zip",
+        "fileType": 1,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "7.0.3",
+        "projectFileId": 2390610,
+        "projectFileName": "Molinari-ed0c113-alpha.zip",
+        "fileType": 3,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "7.1.0",
+        "projectFileId": 2349329,
+        "projectFileName": "Molinari-70100.42-Release.zip",
+        "fileType": 1,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "6.0.3",
+        "projectFileId": 840515,
+        "projectFileName": "Molinari-60000.35-Release.zip",
+        "fileType": 1,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "6.0.2",
+        "projectFileId": 821850,
+        "projectFileName": "Molinari-60000.33-Release.zip",
+        "fileType": 1,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "5.4.8",
+        "projectFileId": 812761,
+        "projectFileName": "Molinari-50400.30-Release.zip",
+        "fileType": 1,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "5.2.0",
+        "projectFileId": 795977,
+        "projectFileName": "Molinari-50200.24-Release.zip",
+        "fileType": 1,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "5.3.0",
+        "projectFileId": 708646,
+        "projectFileName": "Molinari-50300.26-Release.zip",
+        "fileType": 1,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "5.0.4",
+        "projectFileId": 618477,
+        "projectFileName": "Molinari-50001.22-Beta.zip",
+        "fileType": 2,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "4.3.4",
+        "projectFileId": 609648,
+        "projectFileName": "Molinari-40300.20-Beta.zip",
+        "fileType": 2,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "4.3.0",
+        "projectFileId": 572666,
+        "projectFileName": "Molinari-40300.14-Beta.zip",
+        "fileType": 2,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "4.2.0",
+        "projectFileId": 572665,
+        "projectFileName": "Molinari-40200.13-Beta.zip",
+        "fileType": 2,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "4.1.0",
+        "projectFileId": 531875,
+        "projectFileName": "Molinari-40100.10-Beta.zip",
+        "fileType": 2,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "4.0.6",
+        "projectFileId": 531874,
+        "projectFileName": "Molinari-40000.9-Beta.zip",
+        "fileType": 2,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "3.3.5",
+        "projectFileId": 531871,
+        "projectFileName": "Molinari-30300.6-Beta.zip",
+        "fileType": 2,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "3.3.0",
+        "projectFileId": 406756,
+        "projectFileName": "Molinari-30300.3-Beta.zip",
+        "fileType": 2,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "3.2.0",
+        "projectFileId": 375145,
+        "projectFileName": "Molinari-30200.1-Beta.zip",
+        "fileType": 2,
+        "gameVersionFlavor": "wow_retail"
+      }
+    ],
+    "isFeatured": false,
+    "popularityScore": 1641.4324951171875,
+    "gamePopularityRank": 484,
+    "primaryLanguage": "enUS",
+    "gameSlug": "wow",
+    "gameName": "World of Warcraft",
+    "portalName": "www.curseforge.com",
+    "dateModified": "2019-12-14T20:01:47.807Z",
+    "dateCreated": "2009-08-08T17:47:01.43Z",
+    "dateReleased": "2019-12-14T19:59:11.687Z",
+    "isAvailable": true,
+    "isExperiemental": false
+  },
+  {
+    "id": 333072,
+    "name": "ElvUI AdiBags",
+    "authors": [
+      {
+        "name": "KlixTV",
+        "url": "https://www.curseforge.com/members/31806876-klixtv?username=klixtv",
+        "projectId": 333072,
+        "id": 236524,
+        "projectTitleId": null,
+        "projectTitleTitle": null,
+        "userId": 31806876,
+        "twitchId": 81133059
+      }
+    ],
+    "attachments": [
+      {
+        "id": 216271,
+        "projectId": 333072,
+        "description": "",
+        "isDefault": true,
+        "thumbnailUrl": "https://media.forgecdn.net/avatars/thumbnails/216/271/256/256/637001582621354574.png",
+        "title": "637001582621354574.png",
+        "url": "https://media.forgecdn.net/avatars/216/271/637001582621354574.png",
+        "status": 1
+      }
+    ],
+    "websiteUrl": "https://www.curseforge.com/wow/addons/elvui-adibags",
+    "gameId": 1,
+    "summary": "This is a modified version of AdiBags, which will skin it, so it looks like ElvUI again!",
+    "defaultFileId": 2779426,
+    "downloadCount": 70020,
+    "latestFiles": [
+      {
+        "id": 2771673,
+        "displayName": "v0.0.1",
+        "fileName": "AdiBags.zip",
+        "fileDate": "2019-08-26T22:06:18.617Z",
+        "fileLength": 293227,
+        "releaseType": 2,
+        "fileStatus": 4,
+        "downloadUrl": "https://edge.forgecdn.net/files/2771/673/AdiBags.zip",
+        "isAlternate": false,
+        "alternateFileId": 0,
+        "dependencies": [],
+        "isAvailable": true,
+        "modules": [
+          {
+            "foldername": "AdiBags_Config",
+            "fingerprint": 697577182,
+            "type": 2
+          },
+          {
+            "foldername": "AdiBags",
+            "fingerprint": 3285912998,
+            "type": 3
+          }
+        ],
+        "packageFingerprint": 839254769,
+        "gameVersion": [
+          "1.13.2"
+        ],
+        "sortableGameVersion": [
+          {
+            "gameVersionPadded": "0000000001.0000000013.0000000002",
+            "gameVersion": "1.13.2",
+            "gameVersionReleaseDate": "2001-01-01T00:00:00Z",
+            "gameVersionName": "1.13.2"
+          }
+        ],
+        "installMetadata": null,
+        "changelog": null,
+        "hasInstallScript": false,
+        "isCompatibleWithClient": true,
+        "categorySectionPackageType": 1,
+        "restrictProjectFileAccess": 1,
+        "projectStatus": 4,
+        "renderCacheId": 1636192,
+        "fileLegacyMappingId": null,
+        "projectId": 333072,
+        "parentProjectFileId": null,
+        "parentFileLegacyMappingId": null,
+        "fileTypeId": null,
+        "exposeAsAlternative": null,
+        "packageFingerprintId": 349950087,
+        "gameVersionDateReleased": "2001-01-01T00:00:00Z",
+        "gameVersionMappingId": 1911922,
+        "gameVersionId": 7350,
+        "gameId": 1,
+        "isServerPack": false,
+        "serverPackFileId": null,
+        "gameVersionFlavor": "wow_classic"
+      },
+      {
+        "id": 2779426,
+        "displayName": "v0.0.5",
+        "fileName": "AdiBags.zip",
+        "fileDate": "2019-09-06T09:57:43.183Z",
+        "fileLength": 296323,
+        "releaseType": 1,
+        "fileStatus": 4,
+        "downloadUrl": "https://edge.forgecdn.net/files/2779/426/AdiBags.zip",
+        "isAlternate": false,
+        "alternateFileId": 0,
+        "dependencies": [],
+        "isAvailable": true,
+        "modules": [
+          {
+            "foldername": "AdiBags_Config",
+            "fingerprint": 4066319735,
+            "type": 2
+          },
+          {
+            "foldername": "AdiBags",
+            "fingerprint": 429918728,
+            "type": 3
+          }
+        ],
+        "packageFingerprint": 735286685,
+        "gameVersion": [
+          "1.13.2"
+        ],
+        "sortableGameVersion": [
+          {
+            "gameVersionPadded": "0000000001.0000000013.0000000002",
+            "gameVersion": "1.13.2",
+            "gameVersionReleaseDate": "2001-01-01T00:00:00Z",
+            "gameVersionName": "1.13.2"
+          }
+        ],
+        "installMetadata": null,
+        "changelog": null,
+        "hasInstallScript": false,
+        "isCompatibleWithClient": true,
+        "categorySectionPackageType": 1,
+        "restrictProjectFileAccess": 1,
+        "projectStatus": 4,
+        "renderCacheId": 1645602,
+        "fileLegacyMappingId": null,
+        "projectId": 333072,
+        "parentProjectFileId": null,
+        "parentFileLegacyMappingId": null,
+        "fileTypeId": null,
+        "exposeAsAlternative": null,
+        "packageFingerprintId": 353588446,
+        "gameVersionDateReleased": "2001-01-01T00:00:00Z",
+        "gameVersionMappingId": 1924533,
+        "gameVersionId": 7350,
+        "gameId": 1,
+        "isServerPack": false,
+        "serverPackFileId": null,
+        "gameVersionFlavor": "wow_classic"
+      },
+      {
+        "id": 2826909,
+        "displayName": "Build 0.11",
+        "fileName": "AdiBags.zip",
+        "fileDate": "2019-11-13T20:33:52.157Z",
+        "fileLength": 338886,
+        "releaseType": 1,
+        "fileStatus": 4,
+        "downloadUrl": "https://edge.forgecdn.net/files/2826/909/AdiBags.zip",
+        "isAlternate": false,
+        "alternateFileId": 0,
+        "dependencies": [],
+        "isAvailable": true,
+        "modules": [
+          {
+            "foldername": "AdiBags_Config",
+            "fingerprint": 3290594143,
+            "type": 2
+          },
+          {
+            "foldername": "AdiBags",
+            "fingerprint": 4221613723,
+            "type": 3
+          }
+        ],
+        "packageFingerprint": 756544502,
+        "gameVersion": [
+          "8.2.5"
+        ],
+        "sortableGameVersion": [
+          {
+            "gameVersionPadded": "0000000008.0000000002.0000000005",
+            "gameVersion": "8.2.5",
+            "gameVersionReleaseDate": "2019-09-23T00:00:00Z",
+            "gameVersionName": "8.2.5"
+          }
+        ],
+        "installMetadata": null,
+        "changelog": null,
+        "hasInstallScript": false,
+        "isCompatibleWithClient": true,
+        "categorySectionPackageType": 1,
+        "restrictProjectFileAccess": 1,
+        "projectStatus": 4,
+        "renderCacheId": 1702111,
+        "fileLegacyMappingId": null,
+        "projectId": 333072,
+        "parentProjectFileId": null,
+        "parentFileLegacyMappingId": null,
+        "fileTypeId": null,
+        "exposeAsAlternative": null,
+        "packageFingerprintId": 378048042,
+        "gameVersionDateReleased": "2019-09-23T00:00:00Z",
+        "gameVersionMappingId": 2001079,
+        "gameVersionId": 7585,
+        "gameId": 1,
+        "isServerPack": false,
+        "serverPackFileId": null,
+        "gameVersionFlavor": "wow_retail"
+      }
+    ],
+    "categories": [
+      {
+        "categoryId": 1009,
+        "name": "Bags & Inventory",
+        "url": "https://www.curseforge.com/wow/addons/bags-inventory",
+        "avatarUrl": "https://media.forgecdn.net/avatars/54/445/636135209663914354.png",
+        "parentId": 1,
+        "rootId": 1,
+        "projectId": 333072,
+        "avatarId": 54445,
+        "gameId": 1
+      },
+      {
+        "categoryId": 1006,
+        "name": "Artwork",
+        "url": "https://www.curseforge.com/wow/addons/artwork",
+        "avatarUrl": "https://media.forgecdn.net/avatars/54/442/636135209646924910.png",
+        "parentId": 1,
+        "rootId": 1,
+        "projectId": 333072,
+        "avatarId": 54442,
+        "gameId": 1
+      }
+    ],
+    "status": 4,
+    "primaryCategoryId": 1009,
+    "categorySection": {
+      "id": 1,
+      "gameId": 1,
+      "name": "Addons",
+      "packageType": 1,
+      "path": "Interface\\Addons",
+      "initialInclusionPattern": "(?i)^([^/]+)[\\\\/]\\1\\.toc$",
+      "extraIncludePattern": "(?i)^[^/\\\\]+[/\\\\]Bindings\\.xml$",
+      "gameCategoryId": 1
+    },
+    "slug": "elvui-adibags",
+    "gameVersionLatestFiles": [
+      {
+        "gameVersion": "8.2.5",
+        "projectFileId": 2826909,
+        "projectFileName": "AdiBags.zip",
+        "fileType": 1,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "1.13.2",
+        "projectFileId": 2779426,
+        "projectFileName": "AdiBags.zip",
+        "fileType": 1,
+        "gameVersionFlavor": "wow_classic"
+      },
+      {
+        "gameVersion": "1.13.2",
+        "projectFileId": 2771673,
+        "projectFileName": "AdiBags.zip",
+        "fileType": 2,
+        "gameVersionFlavor": "wow_classic"
+      },
+      {
+        "gameVersion": "8.2.0",
+        "projectFileId": 2768187,
+        "projectFileName": "AdiBags.zip",
+        "fileType": 1,
+        "gameVersionFlavor": "wow_retail"
+      }
+    ],
+    "isFeatured": false,
+    "popularityScore": 2596.22216796875,
+    "gamePopularityRank": 347,
+    "primaryLanguage": "enUS",
+    "gameSlug": "wow",
+    "gameName": "World of Warcraft",
+    "portalName": "www.curseforge.com",
+    "dateModified": "2019-11-13T20:34:25.373Z",
+    "dateCreated": "2019-07-31T08:24:22.09Z",
+    "dateReleased": "2019-11-13T20:33:52.157Z",
+    "isAvailable": true,
+    "isExperiemental": false
+  },
+  {
+    "id": 322865,
+    "name": "ClassicCastbars",
+    "authors": [
+      {
+        "name": "Wardzx",
+        "url": "https://www.curseforge.com/members/7303447-wardzx?username=wardzx",
+        "projectId": 322865,
+        "id": 225720,
+        "projectTitleId": null,
+        "projectTitleTitle": null,
+        "userId": 7303447,
+        "twitchId": 41973133
+      }
+    ],
+    "attachments": [
+      {
+        "id": 205166,
+        "projectId": 322865,
+        "description": "",
+        "isDefault": false,
+        "thumbnailUrl": "https://media.forgecdn.net/avatars/thumbnails/205/166/256/256/636946444488845574.png",
+        "title": "636946444488845574.png",
+        "url": "https://media.forgecdn.net/avatars/205/166/636946444488845574.png",
+        "status": 1
+      },
+      {
+        "id": 223334,
+        "projectId": 322865,
+        "description": "",
+        "isDefault": true,
+        "thumbnailUrl": "https://media.forgecdn.net/avatars/thumbnails/223/334/256/256/637028769930312534.png",
+        "title": "637028769930312534.png",
+        "url": "https://media.forgecdn.net/avatars/223/334/637028769930312534.png",
+        "status": 1
+      },
+      {
+        "id": 253529,
+        "projectId": 322865,
+        "description": "Simple Style option",
+        "isDefault": false,
+        "thumbnailUrl": "https://media.forgecdn.net/attachments/thumbnails/253/529/310/172/wowscrnshot_053019_132315.jpg",
+        "title": "simple",
+        "url": "https://media.forgecdn.net/attachments/253/529/wowscrnshot_053019_132315.jpg",
+        "status": 1
+      },
+      {
+        "id": 259393,
+        "projectId": 322865,
+        "description": "Options Panel",
+        "isDefault": false,
+        "thumbnailUrl": "https://media.forgecdn.net/attachments/thumbnails/259/393/310/172/options.jpg",
+        "title": "options",
+        "url": "https://media.forgecdn.net/attachments/259/393/options.jpg",
+        "status": 1
+      },
+      {
+        "id": 259394,
+        "projectId": 322865,
+        "description": "Default Target Castbar",
+        "isDefault": false,
+        "thumbnailUrl": "https://media.forgecdn.net/attachments/thumbnails/259/394/310/172/a.jpg",
+        "title": "Target",
+        "url": "https://media.forgecdn.net/attachments/259/394/a.jpg",
+        "status": 1
+      },
+      {
+        "id": 259392,
+        "projectId": 322865,
+        "description": "Nameplate Castbars",
+        "isDefault": false,
+        "thumbnailUrl": "https://media.forgecdn.net/attachments/thumbnails/259/392/310/172/nameplate.jpg",
+        "title": "nameplate2",
+        "url": "https://media.forgecdn.net/attachments/259/392/nameplate.jpg",
+        "status": 1
+      },
+      {
+        "id": 253530,
+        "projectId": 322865,
+        "description": "nameplate castbars",
+        "isDefault": false,
+        "thumbnailUrl": "https://media.forgecdn.net/attachments/thumbnails/253/530/310/172/wowscrnshot_052319_094625.jpg",
+        "title": "nameplate",
+        "url": "https://media.forgecdn.net/attachments/253/530/wowscrnshot_052319_094625.jpg",
+        "status": 1
+      }
+    ],
+    "websiteUrl": "https://www.curseforge.com/wow/addons/classiccastbars",
+    "gameId": 1,
+    "summary": "Enemy castbar for Classic WoW.",
+    "defaultFileId": 2850330,
+    "downloadCount": 5164428,
+    "latestFiles": [
+      {
+        "id": 2850330,
+        "displayName": "v1.2.2-classic",
+        "fileName": "ClassicCastbars-v1.2.2-classic.zip",
+        "fileDate": "2019-12-27T17:49:24.427Z",
+        "fileLength": 169763,
+        "releaseType": 1,
+        "fileStatus": 4,
+        "downloadUrl": "https://edge.forgecdn.net/files/2850/330/ClassicCastbars-v1.2.2-classic.zip",
+        "isAlternate": false,
+        "alternateFileId": 0,
+        "dependencies": [
+          {
+            "id": 34684581,
+            "addonId": 14320,
+            "type": 1,
+            "fileId": 2850330
+          },
+          {
+            "id": 34684582,
+            "addonId": 14328,
+            "type": 1,
+            "fileId": 2850330
+          },
+          {
+            "id": 34684579,
+            "addonId": 13380,
+            "type": 1,
+            "fileId": 2850330
+          },
+          {
+            "id": 34684578,
+            "addonId": 13376,
+            "type": 1,
+            "fileId": 2850330
+          },
+          {
+            "id": 34684580,
+            "addonId": 15049,
+            "type": 1,
+            "fileId": 2850330
+          }
+        ],
+        "isAvailable": true,
+        "modules": [
+          {
+            "foldername": "ClassicCastbars_Options",
+            "fingerprint": 1881020728,
+            "type": 2
+          },
+          {
+            "foldername": "ClassicCastbars",
+            "fingerprint": 1604818184,
+            "type": 3
+          }
+        ],
+        "packageFingerprint": 2594271104,
+        "gameVersion": [
+          "1.13.3"
+        ],
+        "sortableGameVersion": [
+          {
+            "gameVersionPadded": "0000000001.0000000013.0000000003",
+            "gameVersion": "1.13.3",
+            "gameVersionReleaseDate": "2001-01-01T00:00:00Z",
+            "gameVersionName": "1.13.3"
+          }
+        ],
+        "installMetadata": null,
+        "changelog": null,
+        "hasInstallScript": false,
+        "isCompatibleWithClient": true,
+        "categorySectionPackageType": 1,
+        "restrictProjectFileAccess": 1,
+        "projectStatus": 4,
+        "renderCacheId": 1730243,
+        "fileLegacyMappingId": null,
+        "projectId": 322865,
+        "parentProjectFileId": null,
+        "parentFileLegacyMappingId": null,
+        "fileTypeId": null,
+        "exposeAsAlternative": null,
+        "packageFingerprintId": 391607054,
+        "gameVersionDateReleased": "2001-01-01T00:00:00Z",
+        "gameVersionMappingId": 2044254,
+        "gameVersionId": 7668,
+        "gameId": 1,
+        "isServerPack": false,
+        "serverPackFileId": null,
+        "gameVersionFlavor": "wow_classic"
+      }
+    ],
+    "categories": [
+      {
+        "categoryId": 1034,
+        "name": "Caster",
+        "url": "https://www.curseforge.com/wow/addons/combat/caster",
+        "avatarUrl": "https://media.forgecdn.net/avatars/54/484/636135209896962644.png",
+        "parentId": 1019,
+        "rootId": 1,
+        "projectId": 322865,
+        "avatarId": 54484,
+        "gameId": 1
+      },
+      {
+        "categoryId": 1004,
+        "name": "PvP",
+        "url": "https://www.curseforge.com/wow/addons/pvp",
+        "avatarUrl": "https://media.forgecdn.net/avatars/54/440/636135209635968438.png",
+        "parentId": 1,
+        "rootId": 1,
+        "projectId": 322865,
+        "avatarId": 54440,
+        "gameId": 1
+      },
+      {
+        "categoryId": 1041,
+        "name": "Battleground",
+        "url": "https://www.curseforge.com/wow/addons/pvp/battleground",
+        "avatarUrl": "https://media.forgecdn.net/avatars/54/504/636135210006650899.png",
+        "parentId": 1004,
+        "rootId": 1,
+        "projectId": 322865,
+        "avatarId": 54504,
+        "gameId": 1
+      },
+      {
+        "categoryId": 1016,
+        "name": "Unit Frames",
+        "url": "https://www.curseforge.com/wow/addons/unit-frames",
+        "avatarUrl": "https://media.forgecdn.net/avatars/54/452/636135209705942926.png",
+        "parentId": 1,
+        "rootId": 1,
+        "projectId": 322865,
+        "avatarId": 54452,
+        "gameId": 1
+      },
+      {
+        "categoryId": 1019,
+        "name": "Combat",
+        "url": "https://www.curseforge.com/wow/addons/combat",
+        "avatarUrl": "https://media.forgecdn.net/avatars/54/455/636135209724699753.png",
+        "parentId": 1,
+        "rootId": 1,
+        "projectId": 322865,
+        "avatarId": 54455,
+        "gameId": 1
+      }
+    ],
+    "status": 4,
+    "primaryCategoryId": 1019,
+    "categorySection": {
+      "id": 1,
+      "gameId": 1,
+      "name": "Addons",
+      "packageType": 1,
+      "path": "Interface\\Addons",
+      "initialInclusionPattern": "(?i)^([^/]+)[\\\\/]\\1\\.toc$",
+      "extraIncludePattern": "(?i)^[^/\\\\]+[/\\\\]Bindings\\.xml$",
+      "gameCategoryId": 1
+    },
+    "slug": "classiccastbars",
+    "gameVersionLatestFiles": [
+      {
+        "gameVersion": "1.13.3",
+        "projectFileId": 2850330,
+        "projectFileName": "ClassicCastbars-v1.2.2-classic.zip",
+        "fileType": 1,
+        "gameVersionFlavor": "wow_classic"
+      },
+      {
+        "gameVersion": "1.13.2",
+        "projectFileId": 2846989,
+        "projectFileName": "ClassicCastbars-v1.2.1-classic.zip",
+        "fileType": 1,
+        "gameVersionFlavor": "wow_classic"
+      }
+    ],
+    "isFeatured": false,
+    "popularityScore": 80702.7265625,
+    "gamePopularityRank": 9,
+    "primaryLanguage": "enUS",
+    "gameSlug": "wow",
+    "gameName": "World of Warcraft",
+    "portalName": "www.curseforge.com",
+    "dateModified": "2019-12-27T17:58:33.123Z",
+    "dateCreated": "2019-05-28T12:47:28.853Z",
+    "dateReleased": "2019-12-27T17:49:24.427Z",
+    "isAvailable": true,
+    "isExperiemental": false
+  }
+]

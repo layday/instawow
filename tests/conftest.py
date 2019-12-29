@@ -1,3 +1,7 @@
+from functools import partial
+from pathlib import Path
+import re
+
 import pytest
 
 from instawow.config import Config
@@ -6,10 +10,10 @@ from instawow.manager import Manager, init_web_client, prepare_db_session
 
 @pytest.fixture(scope='session')
 def temp_dir(tmp_path_factory):
-    yield tmp_path_factory.mktemp('temp', numbered=True)
+    yield tmp_path_factory.mktemp('temp')
 
 
-@pytest.fixture(params=('retail', 'classic'))
+@pytest.fixture(params=['retail', 'classic'])
 def partial_config(tmp_path, request, temp_dir):
     addons = tmp_path / 'addons'
     addons.mkdir()
@@ -32,5 +36,112 @@ def manager(full_config, web_client):
     config = Config(**full_config).write()
     db_session = prepare_db_session(config=config)
     manager = Manager(config, db_session)
+
     manager.web_client = web_client
     yield manager
+
+
+_fixtures = {}
+
+
+def read_fixture(fixture):
+    try:
+        return _fixtures[fixture]
+    except KeyError:
+        f = _fixtures[fixture] = (Path(__file__).parent / 'fixtures' / fixture).read_bytes()
+        return f
+
+
+def make_zip(name):
+    from io import BytesIO
+    from zipfile import ZipFile
+
+    buffer = BytesIO()
+    with ZipFile(buffer, 'w') as file:
+        file.writestr(f'{name}/{name}.toc', b'')
+    return buffer.getvalue()
+
+
+@pytest.fixture
+def JsonResponse(aresponses):
+    return partial(aresponses.Response, headers={'Content-Type': 'application/json'})
+
+
+@pytest.fixture
+def mock_master_catalogue(aresponses, JsonResponse):
+    aresponses.add('raw.githubusercontent.com',
+                   aresponses.ANY, 'get',
+                   JsonResponse(body=read_fixture('master-catalogue.json')),
+                   is_reusable=True)
+
+
+@pytest.fixture
+def mock_curse(aresponses, JsonResponse, mock_master_catalogue):
+    aresponses.add('addons-ecs.forgesvc.net',
+                   '/api/v2/addon',
+                   'post',
+                   JsonResponse(body=read_fixture('curse-post-addon_all.json')),
+                   is_reusable=True)
+    aresponses.add('edge.forgecdn.net',
+                   aresponses.ANY,
+                   'get',
+                   aresponses.Response(body=make_zip('Molinari')),
+                   is_reusable=True)
+
+
+@pytest.fixture
+def mock_wowi(aresponses, JsonResponse, mock_master_catalogue):
+    aresponses.add('api.mmoui.com',
+                   '/v3/game/WOW/filelist.json',
+                   'get',
+                   JsonResponse(body=read_fixture('wowi-get-filelist.json')),
+                   is_reusable=True)
+    aresponses.add('api.mmoui.com',
+                   re.compile(r'^/v3/game/WOW/filedetails/'),
+                   'get',
+                   JsonResponse(body=read_fixture('wowi-get-filedetails.json')),
+                   is_reusable=True)
+    aresponses.add('cdn.wowinterface.com',
+                   aresponses.ANY,
+                   'get',
+                   aresponses.Response(body=make_zip('Molinari')),
+                   is_reusable=True)
+
+
+@pytest.fixture
+def mock_tukui(aresponses, JsonResponse, mock_master_catalogue):
+    aresponses.add('www.tukui.org',
+                   '/api.php?ui=tukui',
+                   'get',
+                   JsonResponse(body=read_fixture('tukui-get-ui_tukui.json')),
+                   match_querystring=True, is_reusable=True)
+    aresponses.add('www.tukui.org',
+                   '/api.php?addon=1',
+                   'get',
+                   JsonResponse(body=read_fixture('tukui-get-addon.json')),
+                   match_querystring=True, is_reusable=True)
+    aresponses.add('www.tukui.org',
+                   '/api.php?classic-addon=1',
+                   'get',
+                   JsonResponse(body=read_fixture('tukui-get-classic-addon.json')),
+                   match_querystring=True, is_reusable=True)
+    aresponses.add('www.tukui.org',
+                   '/api.php',
+                   'get',
+                   '',
+                   is_reusable=True)
+    aresponses.add('www.tukui.org',
+                   re.compile(r'^/downloads/tukui'),
+                   'get',
+                   aresponses.Response(body=make_zip('Tukui')),
+                   is_reusable=True)
+    aresponses.add('www.tukui.org',
+                   '/addons.php?download=1',
+                   'get',
+                   aresponses.Response(body=make_zip('ElvUI_MerathilisUI')),
+                   match_querystring=True, is_reusable=True)
+    aresponses.add('www.tukui.org',
+                   '/classic-addons.php?download=1',
+                   'get',
+                   aresponses.Response(body=make_zip('Tukui')),
+                   match_querystring=True, is_reusable=True)

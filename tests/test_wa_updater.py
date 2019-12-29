@@ -9,14 +9,15 @@ def builder(manager):
     yield WaCompanionBuilder(manager, 'test')
 
 
+@pytest.mark.skip
 @pytest.mark.asyncio
-@pytest.mark.parametrize('ids', [['RaidCDs', 'bfaraid2'],
-                                 ['bfaraid2', 'RaidCDs'],])
+@pytest.mark.parametrize('ids', [['RaidCDs', 'bfaraid2'], ['bfaraid2', 'RaidCDs']])
 async def test_id_order_is_retained_in_aura_metadata(builder, ids):
     results = await builder.get_wago_aura_metadata(ids)
     assert ids == [r.slug for r in results]
 
 
+@pytest.mark.skip
 @pytest.mark.asyncio
 async def test_id_length_is_retained_in_aura_metadata(builder):
     ids = ['bfaraid2', 'foobar', 'RaidCDs']    # Invalid ID flanked by two valid IDs
@@ -46,13 +47,13 @@ WeakAurasSaved = {
 
 
 def test_can_parse_minimal_wago_display(builder):
-    aura = {'id': 'foo',
-            'uid': 'foo',
-            'parent': None,
-            'url': URL('https://wago.io/foo/1'),
-            'version': 1,
-            'semver': None,
-            'ignore_wago_update': False}
+    aura = AuraEntry(id='foo',
+                     uid='foo',
+                     parent=None,
+                     url=URL('https://wago.io/foo/1'),
+                     version=1,
+                     semver=None,
+                     ignore_wago_update=False)
     assert builder.extract_auras('''\
 WeakAurasSaved = {
     ["displays"] = {
@@ -65,7 +66,7 @@ WeakAurasSaved = {
         },
     },
 }
-''') == {'foo': [AuraEntry(**aura)]}
+''') == {'foo': [aura]}
 
 
 @pytest.mark.xfail

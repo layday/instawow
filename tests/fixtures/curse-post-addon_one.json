@@ -1,0 +1,561 @@
+[
+  {
+    "id": 20338,
+    "name": "Molinari",
+    "authors": [
+      {
+        "name": "p3lim",
+        "url": "https://www.curseforge.com/members/68336-p3lim?username=p3lim",
+        "projectId": 20338,
+        "id": 69605,
+        "projectTitleId": null,
+        "projectTitleTitle": null,
+        "userId": 68336,
+        "twitchId": 31138611
+      }
+    ],
+    "attachments": [
+      {
+        "id": 60949,
+        "projectId": 20338,
+        "description": "",
+        "isDefault": true,
+        "thumbnailUrl": "https://media.forgecdn.net/avatars/thumbnails/60/949/256/256/636141586082612330.png",
+        "title": "636141586082612330.png",
+        "url": "https://media.forgecdn.net/avatars/60/949/636141586082612330.png",
+        "status": 1
+      },
+      {
+        "id": 101518,
+        "projectId": 20338,
+        "description": "<p>Screenshot</p>\n",
+        "isDefault": false,
+        "thumbnailUrl": "https://media.forgecdn.net/attachments/thumbnails/101/518/310/172/v2_curse.png",
+        "title": "v2_curse.png",
+        "url": "https://media.forgecdn.net/attachments/101/518/v2_curse.png",
+        "status": 1
+      }
+    ],
+    "websiteUrl": "https://www.curseforge.com/wow/addons/molinari",
+    "gameId": 1,
+    "summary": "One-click Milling, Prospecting, Disenchanting and Lockpicking!",
+    "defaultFileId": 2842742,
+    "downloadCount": 434376,
+    "latestFiles": [
+      {
+        "id": 618477,
+        "displayName": "50001.22-Beta",
+        "fileName": "Molinari-50001.22-Beta.zip",
+        "fileDate": "2012-08-30T11:42:54.82Z",
+        "fileLength": 7810,
+        "releaseType": 2,
+        "fileStatus": 4,
+        "downloadUrl": "https://edge.forgecdn.net/files/618/477/Molinari-50001.22-Beta.zip",
+        "isAlternate": false,
+        "alternateFileId": 0,
+        "dependencies": [],
+        "isAvailable": true,
+        "modules": [
+          {
+            "foldername": "Molinari",
+            "fingerprint": 442847837,
+            "type": 3
+          }
+        ],
+        "packageFingerprint": 1480180278,
+        "gameVersion": [
+          "5.0.4"
+        ],
+        "sortableGameVersion": [
+          {
+            "gameVersionPadded": "0000000005.0000000000.0000000004",
+            "gameVersion": "5.0.4",
+            "gameVersionReleaseDate": "2012-08-28T00:00:00Z",
+            "gameVersionName": "5.0.4"
+          }
+        ],
+        "installMetadata": null,
+        "changelog": null,
+        "hasInstallScript": false,
+        "isCompatibleWithClient": true,
+        "categorySectionPackageType": 1,
+        "restrictProjectFileAccess": 1,
+        "projectStatus": 4,
+        "renderCacheId": 469264,
+        "fileLegacyMappingId": null,
+        "projectId": 20338,
+        "parentProjectFileId": null,
+        "parentFileLegacyMappingId": null,
+        "fileTypeId": null,
+        "exposeAsAlternative": null,
+        "packageFingerprintId": 99484565,
+        "gameVersionDateReleased": "2012-08-28T00:00:00Z",
+        "gameVersionMappingId": 467447,
+        "gameVersionId": 238,
+        "gameId": 1,
+        "isServerPack": false,
+        "serverPackFileId": null,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "id": 2574334,
+        "displayName": "70300.52-Release-2-g09b9479-alpha",
+        "fileName": "Molinari-70300.52-Release-2-g09b9479-alpha.zip",
+        "fileDate": "2018-06-19T14:48:14.98Z",
+        "fileLength": 31696,
+        "releaseType": 3,
+        "fileStatus": 4,
+        "downloadUrl": "https://edge.forgecdn.net/files/2574/334/Molinari-70300.52-Release-2-g09b9479-alpha.zip",
+        "isAlternate": false,
+        "alternateFileId": 0,
+        "dependencies": [
+          {
+            "id": 17890367,
+            "addonId": 14328,
+            "type": 1,
+            "fileId": 2574334
+          }
+        ],
+        "isAvailable": true,
+        "modules": [
+          {
+            "foldername": "Molinari",
+            "fingerprint": 1447483660,
+            "type": 3
+          }
+        ],
+        "packageFingerprint": 1225238992,
+        "gameVersion": [
+          "7.3.5"
+        ],
+        "sortableGameVersion": [
+          {
+            "gameVersionPadded": "0000000007.0000000003.0000000005",
+            "gameVersion": "7.3.5",
+            "gameVersionReleaseDate": "2018-01-16T06:00:00Z",
+            "gameVersionName": "7.3.5"
+          }
+        ],
+        "installMetadata": null,
+        "changelog": null,
+        "hasInstallScript": false,
+        "isCompatibleWithClient": true,
+        "categorySectionPackageType": 1,
+        "restrictProjectFileAccess": 1,
+        "projectStatus": 4,
+        "renderCacheId": 1398717,
+        "fileLegacyMappingId": null,
+        "projectId": 20338,
+        "parentProjectFileId": null,
+        "parentFileLegacyMappingId": null,
+        "fileTypeId": null,
+        "exposeAsAlternative": null,
+        "packageFingerprintId": 248018274,
+        "gameVersionDateReleased": "2018-01-16T06:00:00Z",
+        "gameVersionMappingId": 1602007,
+        "gameVersionId": 6904,
+        "gameId": 1,
+        "isServerPack": false,
+        "serverPackFileId": null,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "id": 2842742,
+        "displayName": "80200.64-Release",
+        "fileName": "Molinari-80200.64-Release.zip",
+        "fileDate": "2019-12-14T19:59:09.647Z",
+        "fileLength": 36133,
+        "releaseType": 1,
+        "fileStatus": 4,
+        "downloadUrl": "https://edge.forgecdn.net/files/2842/742/Molinari-80200.64-Release.zip",
+        "isAlternate": false,
+        "alternateFileId": 0,
+        "dependencies": [
+          {
+            "id": 34269046,
+            "addonId": 14328,
+            "type": 1,
+            "fileId": 2842742
+          }
+        ],
+        "isAvailable": true,
+        "modules": [
+          {
+            "foldername": "Molinari",
+            "fingerprint": 3308402241,
+            "type": 3
+          }
+        ],
+        "packageFingerprint": 1226975876,
+        "gameVersion": [
+          "8.2.5"
+        ],
+        "sortableGameVersion": [
+          {
+            "gameVersionPadded": "0000000008.0000000002.0000000005",
+            "gameVersion": "8.2.5",
+            "gameVersionReleaseDate": "2019-09-23T00:00:00Z",
+            "gameVersionName": "8.2.5"
+          }
+        ],
+        "installMetadata": null,
+        "changelog": null,
+        "hasInstallScript": false,
+        "isCompatibleWithClient": true,
+        "categorySectionPackageType": 1,
+        "restrictProjectFileAccess": 1,
+        "projectStatus": 4,
+        "renderCacheId": 1721221,
+        "fileLegacyMappingId": null,
+        "projectId": 20338,
+        "parentProjectFileId": null,
+        "parentFileLegacyMappingId": null,
+        "fileTypeId": null,
+        "exposeAsAlternative": null,
+        "packageFingerprintId": 387688974,
+        "gameVersionDateReleased": "2019-09-23T00:00:00Z",
+        "gameVersionMappingId": 2030826,
+        "gameVersionId": 7585,
+        "gameId": 1,
+        "isServerPack": false,
+        "serverPackFileId": null,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "id": 2842743,
+        "displayName": "80200.64-Release-classic",
+        "fileName": "Molinari-80200.64-Release-classic.zip",
+        "fileDate": "2019-12-14T19:59:11.687Z",
+        "fileLength": 36137,
+        "releaseType": 1,
+        "fileStatus": 4,
+        "downloadUrl": "https://edge.forgecdn.net/files/2842/743/Molinari-80200.64-Release-classic.zip",
+        "isAlternate": false,
+        "alternateFileId": 0,
+        "dependencies": [
+          {
+            "id": 34269047,
+            "addonId": 14328,
+            "type": 1,
+            "fileId": 2842743
+          }
+        ],
+        "isAvailable": true,
+        "modules": [
+          {
+            "foldername": "Molinari",
+            "fingerprint": 2542339631,
+            "type": 3
+          }
+        ],
+        "packageFingerprint": 2122158081,
+        "gameVersion": [
+          "1.13.2"
+        ],
+        "sortableGameVersion": [
+          {
+            "gameVersionPadded": "0000000001.0000000013.0000000002",
+            "gameVersion": "1.13.2",
+            "gameVersionReleaseDate": "2001-01-01T00:00:00Z",
+            "gameVersionName": "1.13.2"
+          }
+        ],
+        "installMetadata": null,
+        "changelog": null,
+        "hasInstallScript": false,
+        "isCompatibleWithClient": true,
+        "categorySectionPackageType": 1,
+        "restrictProjectFileAccess": 1,
+        "projectStatus": 4,
+        "renderCacheId": 1721222,
+        "fileLegacyMappingId": null,
+        "projectId": 20338,
+        "parentProjectFileId": null,
+        "parentFileLegacyMappingId": null,
+        "fileTypeId": null,
+        "exposeAsAlternative": null,
+        "packageFingerprintId": 387689016,
+        "gameVersionDateReleased": "2001-01-01T00:00:00Z",
+        "gameVersionMappingId": 2030827,
+        "gameVersionId": 7350,
+        "gameId": 1,
+        "isServerPack": false,
+        "serverPackFileId": null,
+        "gameVersionFlavor": "wow_classic"
+      }
+    ],
+    "categories": [
+      {
+        "categoryId": 1015,
+        "name": "Professions",
+        "url": "https://www.curseforge.com/wow/addons/professions",
+        "avatarUrl": "https://media.forgecdn.net/avatars/54/451/636135209701693840.png",
+        "parentId": 1,
+        "rootId": 1,
+        "projectId": 20338,
+        "avatarId": 54451,
+        "gameId": 1
+      },
+      {
+        "categoryId": 1050,
+        "name": "Jewelcrafting",
+        "url": "https://www.curseforge.com/wow/addons/professions/jewelcrafting",
+        "avatarUrl": "https://media.forgecdn.net/avatars/54/496/636135209964510099.png",
+        "parentId": 1015,
+        "rootId": 1,
+        "projectId": 20338,
+        "avatarId": 54496,
+        "gameId": 1
+      },
+      {
+        "categoryId": 1045,
+        "name": "Enchanting",
+        "url": "https://www.curseforge.com/wow/addons/professions/enchanting",
+        "avatarUrl": "https://media.forgecdn.net/avatars/54/491/636135209936129920.png",
+        "parentId": 1015,
+        "rootId": 1,
+        "projectId": 20338,
+        "avatarId": 54491,
+        "gameId": 1
+      },
+      {
+        "categoryId": 1059,
+        "name": "Inscription",
+        "url": "https://www.curseforge.com/wow/addons/professions/inscription",
+        "avatarUrl": "https://media.forgecdn.net/avatars/54/501/636135209993347320.png",
+        "parentId": 1015,
+        "rootId": 1,
+        "projectId": 20338,
+        "avatarId": 54501,
+        "gameId": 1
+      },
+      {
+        "categoryId": 1027,
+        "name": "Rogue",
+        "url": "https://www.curseforge.com/wow/addons/class/rogue",
+        "avatarUrl": "https://media.forgecdn.net/avatars/54/476/636135209851425101.png",
+        "parentId": 1020,
+        "rootId": 1,
+        "projectId": 20338,
+        "avatarId": 54476,
+        "gameId": 1
+      }
+    ],
+    "status": 4,
+    "primaryCategoryId": 1015,
+    "categorySection": {
+      "id": 1,
+      "gameId": 1,
+      "name": "Addons",
+      "packageType": 1,
+      "path": "Interface\\Addons",
+      "initialInclusionPattern": "(?i)^([^/]+)[\\\\/]\\1\\.toc$",
+      "extraIncludePattern": "(?i)^[^/\\\\]+[/\\\\]Bindings\\.xml$",
+      "gameCategoryId": 1
+    },
+    "slug": "molinari",
+    "gameVersionLatestFiles": [
+      {
+        "gameVersion": "1.13.2",
+        "projectFileId": 2842743,
+        "projectFileName": "Molinari-80200.64-Release-classic.zip",
+        "fileType": 1,
+        "gameVersionFlavor": "wow_classic"
+      },
+      {
+        "gameVersion": "8.2.5",
+        "projectFileId": 2842742,
+        "projectFileName": "Molinari-80200.64-Release.zip",
+        "fileType": 1,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "8.2.0",
+        "projectFileId": 2779132,
+        "projectFileName": "Molinari-80200.63-Release.zip",
+        "fileType": 1,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "8.0.1",
+        "projectFileId": 2590174,
+        "projectFileName": "Molinari-80000.58-Release.zip",
+        "fileType": 1,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "7.3.5",
+        "projectFileId": 2574338,
+        "projectFileName": "Molinari-70300.53-Release.zip",
+        "fileType": 1,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "7.3.5",
+        "projectFileId": 2574334,
+        "projectFileName": "Molinari-70300.52-Release-2-g09b9479-alpha.zip",
+        "fileType": 3,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "7.3.0",
+        "projectFileId": 2480707,
+        "projectFileName": "Molinari-70300.50-Release.zip",
+        "fileType": 1,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "7.3.0",
+        "projectFileId": 2480705,
+        "projectFileName": "Molinari-70300.49-Release-1-g7316666-alpha.zip",
+        "fileType": 3,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "7.2.0",
+        "projectFileId": 2418427,
+        "projectFileName": "Molinari-70200.49-Release.zip",
+        "fileType": 1,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "7.2.0",
+        "projectFileId": 2418426,
+        "projectFileName": "Molinari-70200.47-Release-2-g83e1761-alpha.zip",
+        "fileType": 3,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "7.0.3",
+        "projectFileId": 2390612,
+        "projectFileName": "Molinari-70100.43-Release.zip",
+        "fileType": 1,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "7.0.3",
+        "projectFileId": 2390610,
+        "projectFileName": "Molinari-ed0c113-alpha.zip",
+        "fileType": 3,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "7.1.0",
+        "projectFileId": 2349329,
+        "projectFileName": "Molinari-70100.42-Release.zip",
+        "fileType": 1,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "6.0.3",
+        "projectFileId": 840515,
+        "projectFileName": "Molinari-60000.35-Release.zip",
+        "fileType": 1,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "6.0.2",
+        "projectFileId": 821850,
+        "projectFileName": "Molinari-60000.33-Release.zip",
+        "fileType": 1,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "5.4.8",
+        "projectFileId": 812761,
+        "projectFileName": "Molinari-50400.30-Release.zip",
+        "fileType": 1,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "5.2.0",
+        "projectFileId": 795977,
+        "projectFileName": "Molinari-50200.24-Release.zip",
+        "fileType": 1,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "5.3.0",
+        "projectFileId": 708646,
+        "projectFileName": "Molinari-50300.26-Release.zip",
+        "fileType": 1,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "5.0.4",
+        "projectFileId": 618477,
+        "projectFileName": "Molinari-50001.22-Beta.zip",
+        "fileType": 2,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "4.3.4",
+        "projectFileId": 609648,
+        "projectFileName": "Molinari-40300.20-Beta.zip",
+        "fileType": 2,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "4.3.0",
+        "projectFileId": 572666,
+        "projectFileName": "Molinari-40300.14-Beta.zip",
+        "fileType": 2,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "4.2.0",
+        "projectFileId": 572665,
+        "projectFileName": "Molinari-40200.13-Beta.zip",
+        "fileType": 2,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "4.1.0",
+        "projectFileId": 531875,
+        "projectFileName": "Molinari-40100.10-Beta.zip",
+        "fileType": 2,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "4.0.6",
+        "projectFileId": 531874,
+        "projectFileName": "Molinari-40000.9-Beta.zip",
+        "fileType": 2,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "3.3.5",
+        "projectFileId": 531871,
+        "projectFileName": "Molinari-30300.6-Beta.zip",
+        "fileType": 2,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "3.3.0",
+        "projectFileId": 406756,
+        "projectFileName": "Molinari-30300.3-Beta.zip",
+        "fileType": 2,
+        "gameVersionFlavor": "wow_retail"
+      },
+      {
+        "gameVersion": "3.2.0",
+        "projectFileId": 375145,
+        "projectFileName": "Molinari-30200.1-Beta.zip",
+        "fileType": 2,
+        "gameVersionFlavor": "wow_retail"
+      }
+    ],
+    "isFeatured": false,
+    "popularityScore": 1641.4324951171875,
+    "gamePopularityRank": 484,
+    "primaryLanguage": "enUS",
+    "gameSlug": "wow",
+    "gameName": "World of Warcraft",
+    "portalName": "www.curseforge.com",
+    "dateModified": "2019-12-14T20:01:47.807Z",
+    "dateCreated": "2009-08-08T17:47:01.43Z",
+    "dateReleased": "2019-12-14T19:59:11.687Z",
+    "isAvailable": true,
+    "isExperiemental": false
+  }
+]

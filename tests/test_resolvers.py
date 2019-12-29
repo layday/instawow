@@ -7,12 +7,12 @@ from instawow.resolvers import Defn, Strategies
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize('strategy', [Strategies.default, Strategies.latest])
-async def test_curse(manager, request, strategy):
-    (separate, retail_only, classic_only, flavour_explosion) = (
-        await manager.resolve([Defn('curse', 'tomcats', strategy),
-                               Defn('curse', 'method-dungeon-tools', strategy),
-                               Defn('curse', 'classiccastbars', strategy),
-                               Defn('curse', 'elkbuffbars', strategy)])).values()
+async def test_curse(manager, request, strategy, mock_curse):
+    results = await manager.resolve([Defn('curse', 'tomcats', strategy),
+                                     Defn('curse', 'method-dungeon-tools', strategy),
+                                     Defn('curse', 'classiccastbars', strategy),
+                                     Defn('curse', 'elkbuffbars', strategy)])
+    separate, retail_only, classic_only, flavour_explosion = results.values()
 
     assert isinstance(separate, Pkg)
     if manager.config.is_classic:
@@ -32,26 +32,29 @@ async def test_curse(manager, request, strategy):
 
 
 @pytest.mark.asyncio
-async def test_curse_latest(manager):
+async def test_curse_latest(manager, mock_curse):
     latest, = (await manager.resolve([Defn('curse', 'tomcats', Strategies.latest)])).values()
     assert isinstance(latest, Pkg)
 
 
 @pytest.mark.asyncio
-async def test_curse_deps(manager):
-    if manager.config.is_retail:
-        with_deps = (await manager.resolve([Defn('curse', 'mechagon-rare-share', Strategies.default)],
-                                           with_deps=True)).values()
-        assert ['mechagon-rare-share', 'rare-share'] == [d.slug for d in with_deps]
+async def test_curse_deps(manager, mock_curse):
+    if manager.config.is_classic:
+        pytest.skip('no classic equivalent')
+
+    defns = [Defn('curse', 'mechagon-rare-share', Strategies.default)]
+    with_deps = await manager.resolve(defns, with_deps=True)
+    assert ['mechagon-rare-share', 'rare-share'] == [d.slug for d in with_deps.values()]
 
 
 @pytest.mark.asyncio
-async def test_tukui(manager):
-    either, retail_id, retail_slug, invalid = (await manager.resolve(
-        [Defn('tukui', '1'),
-         Defn('tukui', '-1'),
-         Defn('tukui', 'tukui'),
-         Defn('tukui', '1', Strategies.latest)])).values()
+async def test_tukui(manager, mock_tukui):
+    results = await manager.resolve([Defn('tukui', '1'),
+                                     Defn('tukui', '-1'),
+                                     Defn('tukui', 'tukui'),
+                                     Defn('tukui', '1', Strategies.latest)])
+    either, retail_id, retail_slug, invalid = results.values()
+
     assert isinstance(either, Pkg)
     if manager.config.is_classic:
         assert either.name == 'Tukui'
@@ -66,14 +69,11 @@ async def test_tukui(manager):
 
 
 @pytest.mark.asyncio
-async def test_wowi(manager):
-    either, retail, classic, invalid = (await manager.resolve(
-        [Defn('wowi', '21654-dejamark'),
-         Defn('wowi', '21656'),    # -dejachat
-         Defn('wowi', '25180-dejachatclassic'),
-         Defn('wowi', '21654', Strategies.latest)])).values()
+async def test_wowi(manager, mock_wowi):
+    results = await manager.resolve([Defn('wowi', '13188-molinari'),
+                                     Defn('wowi', '13188', Strategies.latest)])
+    either, invalid = results.values()
+
     assert isinstance(either, Pkg)
-    assert isinstance(retail, Pkg)
-    assert isinstance(classic, Pkg)
     assert (isinstance(invalid, E.PkgStrategyUnsupported)
             and invalid.message == "'latest' strategy is not valid for source")

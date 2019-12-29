@@ -390,7 +390,7 @@ class TukuiResolver(Resolver):
         async with self.web_client.get(url) as response:
             if not response.content_length:
                 raise E.PkgNonexistent
-            addon = await response.json(content_type='text/html')
+            addon = await response.json(content_type=None)      # text/html
 
         return m.Pkg(source=self.source,
                      id=addon['id'],

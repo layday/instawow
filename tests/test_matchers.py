@@ -36,14 +36,14 @@ async def test_invalid_addons_discarded(manager, invalid_addons):
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize('test_func', [match_toc_ids, match_dir_names])
-async def test_multiple_pkgs_per_addon_contained_in_results(manager, test_func, molinari):
+async def test_multiple_pkgs_per_addon_contained_in_results(manager, test_func, molinari, mock_curse, mock_wowi):
     (_, results), = await test_func(manager, get_folders(manager))
     matches = {(r.source, r.id) for r in results}
     assert {('curse', '20338'), ('wowi', '13188')} == matches
 
 
 @pytest.mark.asyncio
-async def test_multiple_pkgs_per_addon_per_source_contained_in_results(manager):
+async def test_multiple_pkgs_per_addon_per_source_contained_in_results(manager, mock_curse, mock_wowi):
     write_addons(manager, 'AdiBags', 'AdiBags_Config')
     (_, results), = await match_dir_names(manager, get_folders(manager))
     matches = {(r.source, r.id) for r in results}

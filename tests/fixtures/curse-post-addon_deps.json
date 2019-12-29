@@ -1,0 +1,431 @@
+[
+  {
+    "id": 345144,
+    "name": "Rare Share: Core",
+    "authors": [
+      {
+        "name": "pffScrub",
+        "url": "https://www.curseforge.com/members/100099266-pffscrub?username=pffscrub",
+        "projectId": 345144,
+        "id": 249310,
+        "projectTitleId": null,
+        "projectTitleTitle": null,
+        "userId": 100099266,
+        "twitchId": 155520710
+      }
+    ],
+    "attachments": [
+      {
+        "id": 229493,
+        "projectId": 345144,
+        "description": "",
+        "isDefault": true,
+        "thumbnailUrl": "https://media.forgecdn.net/avatars/thumbnails/229/493/256/256/637055353138518761.png",
+        "title": "637055353138518761.png",
+        "url": "https://media.forgecdn.net/avatars/229/493/637055353138518761.png",
+        "status": 1
+      }
+    ],
+    "websiteUrl": "https://www.curseforge.com/wow/addons/rare-share",
+    "gameId": 1,
+    "summary": "Core library for RareShare modules",
+    "defaultFileId": 2799730,
+    "downloadCount": 53238,
+    "latestFiles": [
+      {
+        "id": 2799730,
+        "displayName": "RareShare v1.0.0",
+        "fileName": "RareShare v1.0.0.zip",
+        "fileDate": "2019-10-01T14:35:37.5Z",
+        "fileLength": 10524,
+        "releaseType": 1,
+        "fileStatus": 4,
+        "downloadUrl": "https://edge.forgecdn.net/files/2799/730/RareShare v1.0.0.zip",
+        "isAlternate": false,
+        "alternateFileId": 0,
+        "dependencies": [],
+        "isAvailable": true,
+        "modules": [
+          {
+            "foldername": "RareShare",
+            "fingerprint": 883580700,
+            "type": 3
+          }
+        ],
+        "packageFingerprint": 3630534124,
+        "gameVersion": [
+          "8.2.5"
+        ],
+        "sortableGameVersion": [
+          {
+            "gameVersionPadded": "0000000008.0000000002.0000000005",
+            "gameVersion": "8.2.5",
+            "gameVersionReleaseDate": "2019-09-23T00:00:00Z",
+            "gameVersionName": "8.2.5"
+          }
+        ],
+        "installMetadata": null,
+        "changelog": null,
+        "hasInstallScript": false,
+        "isCompatibleWithClient": true,
+        "categorySectionPackageType": 1,
+        "restrictProjectFileAccess": 1,
+        "projectStatus": 4,
+        "renderCacheId": 1669669,
+        "fileLegacyMappingId": null,
+        "projectId": 345144,
+        "parentProjectFileId": null,
+        "parentFileLegacyMappingId": null,
+        "fileTypeId": null,
+        "exposeAsAlternative": null,
+        "packageFingerprintId": 362618779,
+        "gameVersionDateReleased": "2019-09-23T00:00:00Z",
+        "gameVersionMappingId": 1955746,
+        "gameVersionId": 7585,
+        "gameId": 1,
+        "isServerPack": false,
+        "serverPackFileId": null,
+        "gameVersionFlavor": "wow_retail"
+      }
+    ],
+    "categories": [
+      {
+        "categoryId": 1001,
+        "name": "Chat & Communication",
+        "url": "https://www.curseforge.com/wow/addons/chat-communication",
+        "avatarUrl": "https://media.forgecdn.net/avatars/54/437/636135209616124519.png",
+        "parentId": 1,
+        "rootId": 1,
+        "projectId": 345144,
+        "avatarId": 54437,
+        "gameId": 1
+      },
+      {
+        "categoryId": 1067,
+        "name": "Achievements",
+        "url": "https://www.curseforge.com/wow/addons/achievements",
+        "avatarUrl": "https://media.forgecdn.net/avatars/54/462/636135209763346389.png",
+        "parentId": 1,
+        "rootId": 1,
+        "projectId": 345144,
+        "avatarId": 54462,
+        "gameId": 1
+      },
+      {
+        "categoryId": 1010,
+        "name": "Libraries",
+        "url": "https://www.curseforge.com/wow/addons/libraries",
+        "avatarUrl": "https://media.forgecdn.net/avatars/54/446/636135209667351870.png",
+        "parentId": 1,
+        "rootId": 1,
+        "projectId": 345144,
+        "avatarId": 54446,
+        "gameId": 1
+      },
+      {
+        "categoryId": 1011,
+        "name": "Map & Minimap",
+        "url": "https://www.curseforge.com/wow/addons/map-minimap",
+        "avatarUrl": "https://media.forgecdn.net/avatars/54/447/636135209673867865.png",
+        "parentId": 1,
+        "rootId": 1,
+        "projectId": 345144,
+        "avatarId": 54447,
+        "gameId": 1
+      },
+      {
+        "categoryId": 1014,
+        "name": "Boss Encounters",
+        "url": "https://www.curseforge.com/wow/addons/boss-encounters",
+        "avatarUrl": "https://media.forgecdn.net/avatars/54/450/636135209695287536.png",
+        "parentId": 1,
+        "rootId": 1,
+        "projectId": 345144,
+        "avatarId": 54450,
+        "gameId": 1
+      }
+    ],
+    "status": 4,
+    "primaryCategoryId": 1001,
+    "categorySection": {
+      "id": 1,
+      "gameId": 1,
+      "name": "Addons",
+      "packageType": 1,
+      "path": "Interface\\Addons",
+      "initialInclusionPattern": "(?i)^([^/]+)[\\\\/]\\1\\.toc$",
+      "extraIncludePattern": "(?i)^[^/\\\\]+[/\\\\]Bindings\\.xml$",
+      "gameCategoryId": 1
+    },
+    "slug": "rare-share",
+    "gameVersionLatestFiles": [
+      {
+        "gameVersion": "8.2.5",
+        "projectFileId": 2799730,
+        "projectFileName": "RareShare v1.0.0.zip",
+        "fileType": 1,
+        "gameVersionFlavor": "wow_retail"
+      }
+    ],
+    "isFeatured": false,
+    "popularityScore": 4009.62890625,
+    "gamePopularityRank": 272,
+    "primaryLanguage": "enUS",
+    "gameSlug": "wow",
+    "gameName": "World of Warcraft",
+    "portalName": "www.curseforge.com",
+    "dateModified": "2019-10-01T18:52:14.903Z",
+    "dateCreated": "2019-10-01T14:01:53.803Z",
+    "dateReleased": "2019-10-01T14:35:37.5Z",
+    "isAvailable": true,
+    "isExperiemental": false
+  },
+  {
+    "id": 326009,
+    "name": "Rare Share: Mechagon",
+    "authors": [
+      {
+        "name": "pffScrub",
+        "url": "https://www.curseforge.com/members/100099266-pffscrub?username=pffscrub",
+        "projectId": 326009,
+        "id": 229166,
+        "projectTitleId": null,
+        "projectTitleTitle": null,
+        "userId": 100099266,
+        "twitchId": 155520710
+      }
+    ],
+    "attachments": [
+      {
+        "id": 209345,
+        "projectId": 326009,
+        "description": "",
+        "isDefault": true,
+        "thumbnailUrl": "https://media.forgecdn.net/avatars/thumbnails/209/345/256/256/636981088844022044.png",
+        "title": "636981088844022044.png",
+        "url": "https://media.forgecdn.net/avatars/209/345/636981088844022044.png",
+        "status": 1
+      },
+      {
+        "id": 208729,
+        "projectId": 326009,
+        "description": "",
+        "isDefault": false,
+        "thumbnailUrl": "https://media.forgecdn.net/avatars/thumbnails/208/729/256/256/636976966357732659.png",
+        "title": "636976966357732659.png",
+        "url": "https://media.forgecdn.net/avatars/208/729/636976966357732659.png",
+        "status": 1
+      },
+      {
+        "id": 208901,
+        "projectId": 326009,
+        "description": "",
+        "isDefault": false,
+        "thumbnailUrl": "https://media.forgecdn.net/avatars/thumbnails/208/901/256/256/636978075509833642.png",
+        "title": "636978075509833642.png",
+        "url": "https://media.forgecdn.net/avatars/208/901/636978075509833642.png",
+        "status": 1
+      },
+      {
+        "id": 208902,
+        "projectId": 326009,
+        "description": "",
+        "isDefault": false,
+        "thumbnailUrl": "https://media.forgecdn.net/avatars/thumbnails/208/902/256/256/636978077101223671.png",
+        "title": "636978077101223671.png",
+        "url": "https://media.forgecdn.net/avatars/208/902/636978077101223671.png",
+        "status": 1
+      },
+      {
+        "id": 255908,
+        "projectId": 326009,
+        "description": "TomTom Support included",
+        "isDefault": false,
+        "thumbnailUrl": "https://media.forgecdn.net/attachments/thumbnails/255/908/310/172/drill.png",
+        "title": "Drill Announcer",
+        "url": "https://media.forgecdn.net/attachments/255/908/drill.png",
+        "status": 1
+      },
+      {
+        "id": 255738,
+        "projectId": 326009,
+        "description": "",
+        "isDefault": false,
+        "thumbnailUrl": "https://media.forgecdn.net/attachments/thumbnails/255/738/310/172/alt-timeline-support.png",
+        "title": "Alternate Timeline Support",
+        "url": "https://media.forgecdn.net/attachments/255/738/alt-timeline-support.png",
+        "status": 1
+      },
+      {
+        "id": 255732,
+        "projectId": 326009,
+        "description": "",
+        "isDefault": false,
+        "thumbnailUrl": "https://media.forgecdn.net/attachments/thumbnails/255/732/310/172/example-notify.PNG",
+        "title": "Example Notification",
+        "url": "https://media.forgecdn.net/attachments/255/732/example-notify.PNG",
+        "status": 1
+      }
+    ],
+    "websiteUrl": "https://www.curseforge.com/wow/addons/mechagon-rare-share",
+    "gameId": 1,
+    "summary": "Posts a message in the General chat channel whenever you target a Mechagon rare",
+    "defaultFileId": 2799833,
+    "downloadCount": 216080,
+    "latestFiles": [
+      {
+        "id": 2799833,
+        "displayName": "RareShare: Mechagon  v1.0.0",
+        "fileName": "RareShareMechagon v1.0.0.zip",
+        "fileDate": "2019-10-01T18:27:36.063Z",
+        "fileLength": 10287,
+        "releaseType": 1,
+        "fileStatus": 4,
+        "downloadUrl": "https://edge.forgecdn.net/files/2799/833/RareShareMechagon v1.0.0.zip",
+        "isAlternate": false,
+        "alternateFileId": 0,
+        "dependencies": [
+          {
+            "id": 31468736,
+            "addonId": 345144,
+            "type": 3,
+            "fileId": 2799833
+          }
+        ],
+        "isAvailable": true,
+        "modules": [
+          {
+            "foldername": "RareShareMechagon",
+            "fingerprint": 3919845033,
+            "type": 3
+          }
+        ],
+        "packageFingerprint": 814882831,
+        "gameVersion": [
+          "8.2.5"
+        ],
+        "sortableGameVersion": [
+          {
+            "gameVersionPadded": "0000000008.0000000002.0000000005",
+            "gameVersion": "8.2.5",
+            "gameVersionReleaseDate": "2019-09-23T00:00:00Z",
+            "gameVersionName": "8.2.5"
+          }
+        ],
+        "installMetadata": null,
+        "changelog": null,
+        "hasInstallScript": false,
+        "isCompatibleWithClient": true,
+        "categorySectionPackageType": 1,
+        "restrictProjectFileAccess": 1,
+        "projectStatus": 4,
+        "renderCacheId": 1669796,
+        "fileLegacyMappingId": null,
+        "projectId": 326009,
+        "parentProjectFileId": null,
+        "parentFileLegacyMappingId": null,
+        "fileTypeId": null,
+        "exposeAsAlternative": null,
+        "packageFingerprintId": 362658646,
+        "gameVersionDateReleased": "2019-09-23T00:00:00Z",
+        "gameVersionMappingId": 1955928,
+        "gameVersionId": 7585,
+        "gameId": 1,
+        "isServerPack": false,
+        "serverPackFileId": null,
+        "gameVersionFlavor": "wow_retail"
+      }
+    ],
+    "categories": [
+      {
+        "categoryId": 1014,
+        "name": "Boss Encounters",
+        "url": "https://www.curseforge.com/wow/addons/boss-encounters",
+        "avatarUrl": "https://media.forgecdn.net/avatars/54/450/636135209695287536.png",
+        "parentId": 1,
+        "rootId": 1,
+        "projectId": 326009,
+        "avatarId": 54450,
+        "gameId": 1
+      },
+      {
+        "categoryId": 1011,
+        "name": "Map & Minimap",
+        "url": "https://www.curseforge.com/wow/addons/map-minimap",
+        "avatarUrl": "https://media.forgecdn.net/avatars/54/447/636135209673867865.png",
+        "parentId": 1,
+        "rootId": 1,
+        "projectId": 326009,
+        "avatarId": 54447,
+        "gameId": 1
+      },
+      {
+        "categoryId": 1017,
+        "name": "Miscellaneous",
+        "url": "https://www.curseforge.com/wow/addons/miscellaneous",
+        "avatarUrl": "https://media.forgecdn.net/avatars/54/453/636135209712202362.png",
+        "parentId": 1,
+        "rootId": 1,
+        "projectId": 326009,
+        "avatarId": 54453,
+        "gameId": 1
+      },
+      {
+        "categoryId": 1001,
+        "name": "Chat & Communication",
+        "url": "https://www.curseforge.com/wow/addons/chat-communication",
+        "avatarUrl": "https://media.forgecdn.net/avatars/54/437/636135209616124519.png",
+        "parentId": 1,
+        "rootId": 1,
+        "projectId": 326009,
+        "avatarId": 54437,
+        "gameId": 1
+      },
+      {
+        "categoryId": 1067,
+        "name": "Achievements",
+        "url": "https://www.curseforge.com/wow/addons/achievements",
+        "avatarUrl": "https://media.forgecdn.net/avatars/54/462/636135209763346389.png",
+        "parentId": 1,
+        "rootId": 1,
+        "projectId": 326009,
+        "avatarId": 54462,
+        "gameId": 1
+      }
+    ],
+    "status": 4,
+    "primaryCategoryId": 1001,
+    "categorySection": {
+      "id": 1,
+      "gameId": 1,
+      "name": "Addons",
+      "packageType": 1,
+      "path": "Interface\\Addons",
+      "initialInclusionPattern": "(?i)^([^/]+)[\\\\/]\\1\\.toc$",
+      "extraIncludePattern": "(?i)^[^/\\\\]+[/\\\\]Bindings\\.xml$",
+      "gameCategoryId": 1
+    },
+    "slug": "mechagon-rare-share",
+    "gameVersionLatestFiles": [
+      {
+        "gameVersion": "8.2.5",
+        "projectFileId": 2799833,
+        "projectFileName": "RareShareMechagon v1.0.0.zip",
+        "fileType": 1,
+        "gameVersionFlavor": "wow_retail"
+      }
+    ],
+    "isFeatured": false,
+    "popularityScore": 5591.79443359375,
+    "gamePopularityRank": 223,
+    "primaryLanguage": "enUS",
+    "gameSlug": "wow",
+    "gameName": "World of Warcraft",
+    "portalName": "www.curseforge.com",
+    "dateModified": "2019-10-01T18:51:24.73Z",
+    "dateCreated": "2019-07-02T20:37:15.68Z",
+    "dateReleased": "2019-10-01T18:27:36.063Z",
+    "isAvailable": true,
+    "isExperiemental": false
+  }
+]

@@ -1,0 +1,569 @@
+[
+  {
+    "id": 326516,
+    "name": "AtlasLootClassic",
+    "authors": [
+      {
+        "name": "Lag123",
+        "url": "https://www.curseforge.com/members/1248646-lag123?username=lag123",
+        "projectId": 326516,
+        "id": 229701,
+        "projectTitleId": null,
+        "projectTitleTitle": null,
+        "userId": 1248646,
+        "twitchId": 111673327
+      }
+    ],
+    "attachments": [
+      {
+        "id": 209305,
+        "projectId": 326516,
+        "description": "",
+        "isDefault": true,
+        "thumbnailUrl": "https://media.forgecdn.net/avatars/thumbnails/209/305/256/256/636980888970699599.png",
+        "title": "636980888970699599.png",
+        "url": "https://media.forgecdn.net/avatars/209/305/636980888970699599.png",
+        "status": 1
+      },
+      {
+        "id": 257815,
+        "projectId": 326516,
+        "description": "",
+        "isDefault": false,
+        "thumbnailUrl": "https://media.forgecdn.net/attachments/thumbnails/257/815/310/172/craftingview.jpg",
+        "title": "Crafting",
+        "url": "https://media.forgecdn.net/attachments/257/815/craftingview.jpg",
+        "status": 1
+      },
+      {
+        "id": 260125,
+        "projectId": 326516,
+        "description": "",
+        "isDefault": false,
+        "thumbnailUrl": "https://media.forgecdn.net/attachments/thumbnails/260/125/310/172/atlasloot-fav-gui.png",
+        "title": "Favourites GUI",
+        "url": "https://media.forgecdn.net/attachments/260/125/atlasloot-fav-gui.png",
+        "status": 1
+      },
+      {
+        "id": 257816,
+        "projectId": 326516,
+        "description": "",
+        "isDefault": false,
+        "thumbnailUrl": "https://media.forgecdn.net/attachments/thumbnails/257/816/310/172/setview.jpg",
+        "title": "Sets",
+        "url": "https://media.forgecdn.net/attachments/257/816/setview.jpg",
+        "status": 1
+      },
+      {
+        "id": 260931,
+        "projectId": 326516,
+        "description": "",
+        "isDefault": false,
+        "thumbnailUrl": "https://media.forgecdn.net/attachments/thumbnails/260/931/310/172/atlasloot-fav-tt.png",
+        "title": "Favourites TT",
+        "url": "https://media.forgecdn.net/attachments/260/931/atlasloot-fav-tt.png",
+        "status": 1
+      },
+      {
+        "id": 257814,
+        "projectId": 326516,
+        "description": "",
+        "isDefault": false,
+        "thumbnailUrl": "https://media.forgecdn.net/attachments/thumbnails/257/814/310/172/bossview.jpg",
+        "title": "Bosses",
+        "url": "https://media.forgecdn.net/attachments/257/814/bossview.jpg",
+        "status": 1
+      }
+    ],
+    "websiteUrl": "https://www.curseforge.com/wow/addons/atlaslootclassic",
+    "gameId": 1,
+    "summary": "Shows the possible loot from the bosses",
+    "defaultFileId": 2849081,
+    "downloadCount": 8825013,
+    "latestFiles": [
+      {
+        "id": 2807972,
+        "displayName": "v1.3.0-beta1-classic",
+        "fileName": "AtlasLootClassic-v1.3.0-beta1-classic.zip",
+        "fileDate": "2019-10-12T19:48:43.363Z",
+        "fileLength": 676351,
+        "releaseType": 2,
+        "fileStatus": 4,
+        "downloadUrl": "https://edge.forgecdn.net/files/2807/972/AtlasLootClassic-v1.3.0-beta1-classic.zip",
+        "isAlternate": false,
+        "alternateFileId": 0,
+        "dependencies": [
+          {
+            "id": 31938736,
+            "addonId": 14320,
+            "type": 1,
+            "fileId": 2807972
+          },
+          {
+            "id": 31938735,
+            "addonId": 15552,
+            "type": 1,
+            "fileId": 2807972
+          },
+          {
+            "id": 31938738,
+            "addonId": 13380,
+            "type": 1,
+            "fileId": 2807972
+          },
+          {
+            "id": 31938739,
+            "addonId": 14328,
+            "type": 1,
+            "fileId": 2807972
+          },
+          {
+            "id": 31938740,
+            "addonId": 13376,
+            "type": 1,
+            "fileId": 2807972
+          },
+          {
+            "id": 31938737,
+            "addonId": 15049,
+            "type": 1,
+            "fileId": 2807972
+          }
+        ],
+        "isAvailable": true,
+        "modules": [
+          {
+            "foldername": "AtlasLootClassic_Crafting",
+            "fingerprint": 2541254836,
+            "type": 2
+          },
+          {
+            "foldername": "AtlasLootClassic_DungeonsAndRaids",
+            "fingerprint": 2711114989,
+            "type": 2
+          },
+          {
+            "foldername": "AtlasLootClassic_PvP",
+            "fingerprint": 185302379,
+            "type": 2
+          },
+          {
+            "foldername": "AtlasLootClassic_Collections",
+            "fingerprint": 2253136003,
+            "type": 2
+          },
+          {
+            "foldername": "AtlasLootClassic_Factions",
+            "fingerprint": 3385462311,
+            "type": 2
+          },
+          {
+            "foldername": "AtlasLootClassic_Options",
+            "fingerprint": 3215539884,
+            "type": 2
+          },
+          {
+            "foldername": "AtlasLootClassic_Data",
+            "fingerprint": 2926826172,
+            "type": 2
+          },
+          {
+            "foldername": "AtlasLootClassic",
+            "fingerprint": 2378250059,
+            "type": 3
+          }
+        ],
+        "packageFingerprint": 1901751802,
+        "gameVersion": [
+          "1.13.2"
+        ],
+        "sortableGameVersion": [
+          {
+            "gameVersionPadded": "0000000001.0000000013.0000000002",
+            "gameVersion": "1.13.2",
+            "gameVersionReleaseDate": "2001-01-01T00:00:00Z",
+            "gameVersionName": "1.13.2"
+          }
+        ],
+        "installMetadata": null,
+        "changelog": null,
+        "hasInstallScript": false,
+        "isCompatibleWithClient": true,
+        "categorySectionPackageType": 1,
+        "restrictProjectFileAccess": 1,
+        "projectStatus": 4,
+        "renderCacheId": 1679416,
+        "fileLegacyMappingId": null,
+        "projectId": 326516,
+        "parentProjectFileId": null,
+        "parentFileLegacyMappingId": null,
+        "fileTypeId": null,
+        "exposeAsAlternative": null,
+        "packageFingerprintId": 366489016,
+        "gameVersionDateReleased": "2001-01-01T00:00:00Z",
+        "gameVersionMappingId": 1968831,
+        "gameVersionId": 7350,
+        "gameId": 1,
+        "isServerPack": false,
+        "serverPackFileId": null,
+        "gameVersionFlavor": "wow_classic"
+      },
+      {
+        "id": 2818014,
+        "displayName": "v1.3.2-7-g99b4c83-classic",
+        "fileName": "AtlasLootClassic-v1.3.2-7-g99b4c83-classic.zip",
+        "fileDate": "2019-10-28T17:39:58.97Z",
+        "fileLength": 695614,
+        "releaseType": 3,
+        "fileStatus": 4,
+        "downloadUrl": "https://edge.forgecdn.net/files/2818/14/AtlasLootClassic-v1.3.2-7-g99b4c83-classic.zip",
+        "isAlternate": false,
+        "alternateFileId": 0,
+        "dependencies": [
+          {
+            "id": 32605966,
+            "addonId": 13380,
+            "type": 1,
+            "fileId": 2818014
+          },
+          {
+            "id": 32605963,
+            "addonId": 15552,
+            "type": 1,
+            "fileId": 2818014
+          },
+          {
+            "id": 32605968,
+            "addonId": 13376,
+            "type": 1,
+            "fileId": 2818014
+          },
+          {
+            "id": 32605965,
+            "addonId": 15049,
+            "type": 1,
+            "fileId": 2818014
+          },
+          {
+            "id": 32605967,
+            "addonId": 14328,
+            "type": 1,
+            "fileId": 2818014
+          },
+          {
+            "id": 32605964,
+            "addonId": 14320,
+            "type": 1,
+            "fileId": 2818014
+          }
+        ],
+        "isAvailable": true,
+        "modules": [
+          {
+            "foldername": "AtlasLootClassic_Crafting",
+            "fingerprint": 3403373496,
+            "type": 2
+          },
+          {
+            "foldername": "AtlasLootClassic_DungeonsAndRaids",
+            "fingerprint": 1710260091,
+            "type": 2
+          },
+          {
+            "foldername": "AtlasLootClassic_PvP",
+            "fingerprint": 304974268,
+            "type": 2
+          },
+          {
+            "foldername": "AtlasLootClassic_Collections",
+            "fingerprint": 1407990571,
+            "type": 2
+          },
+          {
+            "foldername": "AtlasLootClassic_Factions",
+            "fingerprint": 3663494738,
+            "type": 2
+          },
+          {
+            "foldername": "AtlasLootClassic_Options",
+            "fingerprint": 94406425,
+            "type": 2
+          },
+          {
+            "foldername": "AtlasLootClassic_Data",
+            "fingerprint": 1877595234,
+            "type": 2
+          },
+          {
+            "foldername": "AtlasLootClassic",
+            "fingerprint": 213207767,
+            "type": 3
+          }
+        ],
+        "packageFingerprint": 2218672458,
+        "gameVersion": [
+          "1.13.2"
+        ],
+        "sortableGameVersion": [
+          {
+            "gameVersionPadded": "0000000001.0000000013.0000000002",
+            "gameVersion": "1.13.2",
+            "gameVersionReleaseDate": "2001-01-01T00:00:00Z",
+            "gameVersionName": "1.13.2"
+          }
+        ],
+        "installMetadata": null,
+        "changelog": null,
+        "hasInstallScript": false,
+        "isCompatibleWithClient": true,
+        "categorySectionPackageType": 1,
+        "restrictProjectFileAccess": 1,
+        "projectStatus": 4,
+        "renderCacheId": 1691445,
+        "fileLegacyMappingId": null,
+        "projectId": 326516,
+        "parentProjectFileId": null,
+        "parentFileLegacyMappingId": null,
+        "fileTypeId": null,
+        "exposeAsAlternative": null,
+        "packageFingerprintId": 372069761,
+        "gameVersionDateReleased": "2001-01-01T00:00:00Z",
+        "gameVersionMappingId": 1985636,
+        "gameVersionId": 7350,
+        "gameId": 1,
+        "isServerPack": false,
+        "serverPackFileId": null,
+        "gameVersionFlavor": "wow_classic"
+      },
+      {
+        "id": 2849081,
+        "displayName": "v1.4.4-classic",
+        "fileName": "AtlasLootClassic-v1.4.4-classic.zip",
+        "fileDate": "2019-12-24T22:11:43.927Z",
+        "fileLength": 716178,
+        "releaseType": 1,
+        "fileStatus": 4,
+        "downloadUrl": "https://edge.forgecdn.net/files/2849/81/AtlasLootClassic-v1.4.4-classic.zip",
+        "isAlternate": false,
+        "alternateFileId": 0,
+        "dependencies": [
+          {
+            "id": 34609317,
+            "addonId": 13376,
+            "type": 1,
+            "fileId": 2849081
+          },
+          {
+            "id": 34609313,
+            "addonId": 14320,
+            "type": 1,
+            "fileId": 2849081
+          },
+          {
+            "id": 34609316,
+            "addonId": 14328,
+            "type": 1,
+            "fileId": 2849081
+          },
+          {
+            "id": 34609314,
+            "addonId": 15049,
+            "type": 1,
+            "fileId": 2849081
+          },
+          {
+            "id": 34609312,
+            "addonId": 15552,
+            "type": 1,
+            "fileId": 2849081
+          },
+          {
+            "id": 34609315,
+            "addonId": 13380,
+            "type": 1,
+            "fileId": 2849081
+          }
+        ],
+        "isAvailable": true,
+        "modules": [
+          {
+            "foldername": "AtlasLootClassic_Crafting",
+            "fingerprint": 3387922411,
+            "type": 2
+          },
+          {
+            "foldername": "AtlasLootClassic_DungeonsAndRaids",
+            "fingerprint": 712634599,
+            "type": 2
+          },
+          {
+            "foldername": "AtlasLootClassic_PvP",
+            "fingerprint": 858229478,
+            "type": 2
+          },
+          {
+            "foldername": "AtlasLootClassic_Collections",
+            "fingerprint": 56486714,
+            "type": 2
+          },
+          {
+            "foldername": "AtlasLootClassic_Factions",
+            "fingerprint": 2495044578,
+            "type": 2
+          },
+          {
+            "foldername": "AtlasLootClassic_Options",
+            "fingerprint": 122084995,
+            "type": 2
+          },
+          {
+            "foldername": "AtlasLootClassic_Data",
+            "fingerprint": 2279250761,
+            "type": 2
+          },
+          {
+            "foldername": "AtlasLootClassic",
+            "fingerprint": 162699517,
+            "type": 3
+          }
+        ],
+        "packageFingerprint": 1963099423,
+        "gameVersion": [
+          "1.13.3"
+        ],
+        "sortableGameVersion": [
+          {
+            "gameVersionPadded": "0000000001.0000000013.0000000003",
+            "gameVersion": "1.13.3",
+            "gameVersionReleaseDate": "2001-01-01T00:00:00Z",
+            "gameVersionName": "1.13.3"
+          }
+        ],
+        "installMetadata": null,
+        "changelog": null,
+        "hasInstallScript": false,
+        "isCompatibleWithClient": true,
+        "categorySectionPackageType": 1,
+        "restrictProjectFileAccess": 1,
+        "projectStatus": 4,
+        "renderCacheId": 1728728,
+        "fileLegacyMappingId": null,
+        "projectId": 326516,
+        "parentProjectFileId": null,
+        "parentFileLegacyMappingId": null,
+        "fileTypeId": null,
+        "exposeAsAlternative": null,
+        "packageFingerprintId": 390941415,
+        "gameVersionDateReleased": "2001-01-01T00:00:00Z",
+        "gameVersionMappingId": 2042051,
+        "gameVersionId": 7668,
+        "gameId": 1,
+        "isServerPack": false,
+        "serverPackFileId": null,
+        "gameVersionFlavor": "wow_classic"
+      }
+    ],
+    "categories": [
+      {
+        "categoryId": 1011,
+        "name": "Map & Minimap",
+        "url": "https://www.curseforge.com/wow/addons/map-minimap",
+        "avatarUrl": "https://media.forgecdn.net/avatars/54/447/636135209673867865.png",
+        "parentId": 1,
+        "rootId": 1,
+        "projectId": 326516,
+        "avatarId": 54447,
+        "gameId": 1
+      },
+      {
+        "categoryId": 1014,
+        "name": "Boss Encounters",
+        "url": "https://www.curseforge.com/wow/addons/boss-encounters",
+        "avatarUrl": "https://media.forgecdn.net/avatars/54/450/636135209695287536.png",
+        "parentId": 1,
+        "rootId": 1,
+        "projectId": 326516,
+        "avatarId": 54450,
+        "gameId": 1
+      },
+      {
+        "categoryId": 1015,
+        "name": "Professions",
+        "url": "https://www.curseforge.com/wow/addons/professions",
+        "avatarUrl": "https://media.forgecdn.net/avatars/54/451/636135209701693840.png",
+        "parentId": 1,
+        "rootId": 1,
+        "projectId": 326516,
+        "avatarId": 54451,
+        "gameId": 1
+      },
+      {
+        "categoryId": 1040,
+        "name": "Arena",
+        "url": "https://www.curseforge.com/wow/addons/pvp/arena",
+        "avatarUrl": "https://media.forgecdn.net/avatars/54/503/636135209999463325.png",
+        "parentId": 1004,
+        "rootId": 1,
+        "projectId": 326516,
+        "avatarId": 54503,
+        "gameId": 1
+      }
+    ],
+    "status": 4,
+    "primaryCategoryId": 1014,
+    "categorySection": {
+      "id": 1,
+      "gameId": 1,
+      "name": "Addons",
+      "packageType": 1,
+      "path": "Interface\\Addons",
+      "initialInclusionPattern": "(?i)^([^/]+)[\\\\/]\\1\\.toc$",
+      "extraIncludePattern": "(?i)^[^/\\\\]+[/\\\\]Bindings\\.xml$",
+      "gameCategoryId": 1
+    },
+    "slug": "atlaslootclassic",
+    "gameVersionLatestFiles": [
+      {
+        "gameVersion": "1.13.3",
+        "projectFileId": 2849081,
+        "projectFileName": "AtlasLootClassic-v1.4.4-classic.zip",
+        "fileType": 1,
+        "gameVersionFlavor": "wow_classic"
+      },
+      {
+        "gameVersion": "1.13.2",
+        "projectFileId": 2835920,
+        "projectFileName": "AtlasLootClassic-v1.4.1-classic.zip",
+        "fileType": 1,
+        "gameVersionFlavor": "wow_classic"
+      },
+      {
+        "gameVersion": "1.13.2",
+        "projectFileId": 2818014,
+        "projectFileName": "AtlasLootClassic-v1.3.2-7-g99b4c83-classic.zip",
+        "fileType": 3,
+        "gameVersionFlavor": "wow_classic"
+      },
+      {
+        "gameVersion": "1.13.2",
+        "projectFileId": 2807972,
+        "projectFileName": "AtlasLootClassic-v1.3.0-beta1-classic.zip",
+        "fileType": 2,
+        "gameVersionFlavor": "wow_classic"
+      }
+    ],
+    "isFeatured": false,
+    "popularityScore": 118960.3671875,
+    "gamePopularityRank": 4,
+    "primaryLanguage": "enUS",
+    "gameSlug": "wow",
+    "gameName": "World of Warcraft",
+    "portalName": "www.curseforge.com",
+    "dateModified": "2019-12-24T22:18:43.603Z",
+    "dateCreated": "2019-07-07T09:34:57.023Z",
+    "dateReleased": "2019-12-24T22:11:43.927Z",
+    "isAvailable": true,
+    "isExperiemental": false
+  }
+]

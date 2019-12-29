@@ -1,0 +1,17 @@
+{
+  "id": "1",
+  "name": "MerathilisUI",
+  "small_desc": "ElvUI_MerathilisUI is an external ElvUI Mod. Mostly for the design in a transparent look with a few additional features.",
+  "author": "Merathilis",
+  "version": "4.39",
+  "screenshot_url": "https://www.tukui.org/1",
+  "url": "https://www.tukui.org/addons.php?download=1",
+  "category": "Plugins: ElvUI",
+  "downloads": "83657",
+  "lastupdate": "2019-12-18 04:53:35",
+  "patch": "8.2.5",
+  "last_download": "2019-12-29 02:30:29",
+  "web_url": "https://www.tukui.org/addons.php?id=1",
+  "changelog": "https://www.tukui.org/addons.php?id=1&changelog",
+  "donate_url": "https://paypal.me/merathilis"
+}

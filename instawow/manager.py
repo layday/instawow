@@ -20,8 +20,8 @@ from . import DB_REVISION, exceptions as E
 from .models import Pkg, PkgFolder, is_pkg
 from .resolvers import (CurseResolver, Defn, InstawowResolver, MasterCatalogue, TukuiResolver,
                         WowiResolver)
-from .utils import (bucketise, cached_property, dict_chain, gather, is_not_stale,
-                    make_progress_bar, run_in_thread as t, shasum)
+from .utils import (bucketise, dict_chain, gather, is_not_stale, make_progress_bar,
+                    run_in_thread as t, shasum)
 
 if TYPE_CHECKING:
     import aiohttp
@@ -262,6 +262,9 @@ class Manager:
 
     async def resolve(self, defns: Sequence[Defn], with_deps: bool = False) -> Dict[Defn, Any]:
         "Resolve definitions into packages."
+        if not defns:
+            return {}
+
         await self.synchronise()
         defns_by_source = bucketise(defns, key=lambda v: v.source)
 
@@ -385,30 +388,30 @@ async def cancel_tickers() -> AsyncGenerator[None, None]:
             ticker.cancel()
 
 
-def init_cli_web_client(*, make_bar: ProgressBar) -> aiohttp.ClientSession:
+def init_cli_web_client(*, Bar: ProgressBar) -> aiohttp.ClientSession:
     from cgi import parse_header
     from aiohttp import TraceConfig
 
-    def extract_filename(params) -> str:
+    def extract_filename(params):
         _, cd_params = parse_header(params.response.headers.get('Content-Disposition', ''))
         filename = cd_params.get('filename') or params.response.url.name
         return filename
 
-    async def do_on_request_end(session, request_ctx, params) -> None:
+    async def do_on_request_end(session, request_ctx, params):
         ctx = request_ctx.trace_request_ctx
         if ctx and ctx.get('show_progress'):
             label = ctx.get('label') or f'Downloading {extract_filename(params)}'
-            bar = make_bar(label=label, total=params.response.content_length or 0)
+            bar = Bar(label=label, total=params.response.content_length or 0)
 
             async def ticker() -> None:
                 try:
                     content = params.response.content
                     while not content.is_eof():
                         bar.current = content._cursor
-                        make_bar.invalidate()
+                        Bar.invalidate()
                         await asyncio.sleep(_tick_interval)
                 finally:
-                    bar.progress_bar.counters.remove(bar)
+                    Bar.counters.remove(bar)
 
             tickers = _tickers.get()
             tickers.add(asyncio.create_task(ticker()))
@@ -425,13 +428,13 @@ class CliManager(Manager):
         super().__init__(config, db_session)
         self.progress_bar_factory = progress_bar_factory
 
-    @cached_property
+    @property
     def progress_bar(self) -> ProgressBar:
         return self.progress_bar_factory()
 
     def run(self, awaitable: Awaitable) -> Any:
         async def run():
-            async with init_cli_web_client(make_bar=self.progress_bar) as self.web_client, \
+            async with init_cli_web_client(Bar=self.progress_bar) as self.web_client, \
                     cancel_tickers():
                 return await awaitable
 

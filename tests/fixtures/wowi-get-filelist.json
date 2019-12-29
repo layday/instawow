@@ -1,0 +1,31 @@
+[
+  {
+    "UID": "13188",
+    "UICATID": "40",
+    "UIVersion": "80200.64-Release",
+    "UIDate": 1576353550000,
+    "UIName": "Molinari",
+    "UIAuthorName": "p3lim",
+    "UIFileInfoURL": "https://www.wowinterface.com/downloads/info13188-Molinari.html",
+    "UIDownloadTotal": "52622",
+    "UIDownloadMonthly": "297",
+    "UIFavoriteTotal": "421",
+    "UICompatibility": [
+      {
+        "version": "8.2.5",
+        "name": "BfA content patch"
+      }
+    ],
+    "UIDir": [
+      "Molinari"
+    ],
+    "UIIMG_Thumbs": [
+      "https://cdn-wow.mmoui.com/preview/tiny/pvw63234.png"
+    ],
+    "UIIMGs": [
+      "https://cdn-wow.mmoui.com/preview/pvw63234.png"
+    ],
+    "UISiblings": null,
+    "UIDonationLink": "https://www.wowinterface.com/downloads/info13188#donate"
+  }
+]

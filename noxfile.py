@@ -11,15 +11,18 @@ def reformat(session):
 
 @nox.session(python=False, name='update-stubs')
 def update_stubs(session):
-    session.run('rm', '-rf', '.py-types')
+    base_dir = '.py-types'
+    session.run('rm', '-rf', base_dir)
     session.run('git', 'clone', '--depth', '1',
                 'https://github.com/python/typeshed',
-                '.py-types/typeshed')
+                f'{base_dir}/typeshed')
     session.run('git', 'clone', '--depth', '1',
                 'https://github.com/dropbox/sqlalchemy-stubs',
-                '.py-types/stubs/_sqlalchemy-stubs')
-    session.run('mv', '.py-types/stubs/_sqlalchemy-stubs/sqlalchemy-stubs', '.py-types/stubs/sqlalchemy')
-    session.run('rm', '-rf', '.py-types/stubs/_sqlalchemy-stubs')
+                f'{base_dir}/stubs/_sqlalchemy-stubs')
+    session.run('mv',
+                f'{base_dir}/stubs/_sqlalchemy-stubs/sqlalchemy-stubs',
+                f'{base_dir}/stubs/sqlalchemy')
+    session.run('rm', '-rf', f'{base_dir}/stubs/_sqlalchemy-stubs')
 
 
 @nox.session(python='3.7', name='type-check')
@@ -30,7 +33,11 @@ def type_check(session):
 
 @nox.session
 def test(session):
-    session.install('coverage[toml]', 'pytest', 'pytest-asyncio', '.')
+    session.install('coverage[toml]',
+                    'pytest',
+                    'pytest-asyncio',
+                    'https://github.com/layday/aresponses/archive/make-responses-reusable.zip',
+                    '.')
     session.run('coverage', 'run', '-m', 'pytest', '-o', "'xfail_strict = True'", 'tests')
     session.run('coverage', 'report', '-m')
 
@@ -64,7 +71,8 @@ def publish(session):
 def nixify(session):
     session.cd(os.environ.get('INSTAWOW_NIXIFY_DIR', '.'))
     session.install('pypi2nix')
-    session.run('rm', '-f', 'requirements.nix',
-                            'requirements_overrides.nix',
-                            'requirements_frozen.txt')
+    session.run('rm', '-f',
+                'requirements.nix',
+                'requirements_overrides.nix',
+                'requirements_frozen.txt')
     session.run('pypi2nix', '-e', 'instawow')
