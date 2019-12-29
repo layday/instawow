@@ -1,5 +1,4 @@
 import json
-import os
 from pathlib import Path
 import sys
 
@@ -67,5 +66,5 @@ def test_default_config_dir_is_platform_and_xdg_appropriate(partial_config, monk
 @pytest.mark.skipif(sys.platform != 'win32', reason='path unhandling')
 def test_default_config_dir_on_win32(partial_config, monkeypatch):
     assert Config(**partial_config).config_dir == Path.home() / 'AppData/Roaming/instawow'
-    monkeypatch.delattr(os, 'environ', 'APPDATA')
+    monkeypatch.delenv('APPDATA')
     assert Config(**partial_config).config_dir == Path.home() / 'instawow'
