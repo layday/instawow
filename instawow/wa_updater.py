@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from pathlib import Path
 from typing import TYPE_CHECKING, Dict, List, NamedTuple, Optional, Sequence
 
 from loguru import logger
@@ -8,7 +7,8 @@ from pydantic import BaseModel, Extra, validator
 from yarl import URL
 
 from .config import BaseConfig
-from .utils import ManagerAttrAccessMixin, bucketise, dict_chain, gather, run_in_thread as t
+from .utils import (ManagerAttrAccessMixin, bucketise, cached_property, dict_chain, gather,
+                    run_in_thread as t)
 
 if TYPE_CHECKING:
     from .manager import Manager
@@ -20,18 +20,9 @@ raw_api = URL('https://data.wago.io/api/raw/encoded')
 
 class BuilderConfig(BaseConfig):
     account: str
-    config_dir: Path
 
     class Config:
         env_prefix = 'WAC_'
-
-    def ensure_dirs(self) -> BuilderConfig:
-        self.config_dir.mkdir(exist_ok=True)
-        return self
-
-    @property
-    def addon_file(self) -> Path:
-        return self.config_dir / 'WeakAurasCompanion.zip'
 
 
 class AuraEntry(BaseModel):
@@ -96,8 +87,17 @@ class WaCompanionBuilder(ManagerAttrAccessMixin):
     def __init__(self, manager: Manager, account: Optional[str] = None) -> None:
         self.manager = manager
 
-        config_dir = self.manager.config.plugin_dir / __name__
-        self.builder_config = BuilderConfig(account=account, config_dir=config_dir)
+        self.out_dir = self.config.plugin_dir / __name__
+        self.addon_file = self.out_dir / 'WeakAurasCompanion.zip'
+        self.account = account
+
+    def ensure_dirs(self) -> WaCompanionBuilder:
+        self.out_dir.mkdir(exist_ok=True)
+        return self
+
+    @cached_property
+    def builder_config(self) -> BuilderConfig:
+        return BuilderConfig(account=self.account)
 
     @staticmethod
     def extract_auras(source: str) -> Dict[str, List[AuraEntry]]:
@@ -144,7 +144,7 @@ class WaCompanionBuilder(ManagerAttrAccessMixin):
                                        for _, r in outdated), False)
         return [_OutdatedAuras(s, w, r, i) for ((s, w), r), i in zip(outdated, import_strings)]
 
-    def make_addon(self, outdated_auras: List[_OutdatedAuras]) -> None:
+    def make_addon(self, outdated_auras: Sequence[_OutdatedAuras]) -> None:
         from jinja2 import Environment, FunctionLoader
         from zipfile import ZipFile, ZipInfo
 
@@ -156,7 +156,7 @@ class WaCompanionBuilder(ManagerAttrAccessMixin):
 
         jinja_env = Environment(trim_blocks=True, lstrip_blocks=True, loader=FunctionLoader(loader))
 
-        with ZipFile(self.builder_config.ensure_dirs().addon_file, 'w') as addon_zip:
+        with ZipFile(self.ensure_dirs().addon_file, 'w') as addon_zip:
             def write_tpl(filename: str, ctx: dict) -> None:
                 # We're not using a plain string as the first argument to
                 # ``writestr`` 'cause the timestamp is generated dynamically
@@ -185,13 +185,13 @@ class WaCompanionBuilder(ManagerAttrAccessMixin):
                       {'interface': '11303' if self.config.is_classic else '80205'})
 
     async def build(self) -> None:
-        aura_groups = await t(self.extract_installed_auras)()
-        aura_groups = {k: v for k, v in aura_groups.items()
+        aura_groups = {k: v
+                       for k, v in (await t(self.extract_installed_auras)()).items()
                        if not any(i.ignore_wago_update for i in v)}
-        if aura_groups:
-            outdated_auras = await self.get_outdated_auras(aura_groups)
-            await t(self.make_addon)(outdated_auras)
+        outdated_auras = aura_groups and await self.get_outdated_auras(aura_groups)
+        await t(self.make_addon)(outdated_auras)
 
     def checksum(self) -> str:
         from hashlib import sha256
-        return sha256(self.builder_config.addon_file.read_bytes()).hexdigest()
+
+        return sha256(self.addon_file.read_bytes()).hexdigest()
