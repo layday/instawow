@@ -27,6 +27,7 @@ def test_reading_missing_config_from_env_raises(full_config, monkeypatch):
         Config.read()
 
 
+@pytest.mark.skipif(sys.platform == 'win32', reason='no ~ expansion on Windows')
 @pytest.mark.parametrize('dir_', ['config_dir', 'addon_dir', 'temp_dir'])
 def test_invalid_any_dir_raises(full_config, dir_):
     with pytest.raises(ValueError):     # type: ignore
