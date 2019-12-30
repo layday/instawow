@@ -428,17 +428,13 @@ class CliManager(Manager):
         super().__init__(config, db_session)
         self.progress_bar_factory = progress_bar_factory
 
-    @property
-    def progress_bar(self) -> ProgressBar:
-        return self.progress_bar_factory()
-
     def run(self, awaitable: Awaitable) -> Any:
         async def run():
-            async with init_cli_web_client(Bar=self.progress_bar) as self.web_client, \
+            async with init_cli_web_client(Bar=progress_bar) as self.web_client, \
                     cancel_tickers():
                 return await awaitable
 
-        with self.progress_bar:
+        with self.progress_bar_factory() as progress_bar:
             return asyncio.run(run())
 
     def _prepprocess(self, prepper: Callable, *args: Any, **kwargs: Any) -> Dict[Defn, E.ManagerResult]:
