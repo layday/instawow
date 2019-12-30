@@ -130,7 +130,7 @@ async def gather(it: Iterable, return_exceptions: bool = True) -> List[Any]:
     return await asyncio.gather(*it, return_exceptions=return_exceptions)
 
 
-def run_in_thread(fn: Callable) -> Callable[..., Awaitable]:
+def run_in_thread(fn: Callable[..., _V]) -> Callable[..., Awaitable[_V]]:
     return lambda *a, **k: asyncio.get_running_loop().run_in_executor(None, lambda: fn(*a, **k))
 
 
