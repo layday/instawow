@@ -99,6 +99,9 @@ For ease of use, you might want to set up an alias.  In your Bash profile, add::
 
 You would then be able to invoke *instawow* using ``instawow-classic``.
 
+If you find yourself needing to install a retail-only add-on that you know
+to work in Classic, the ``any_flavour`` strategy is available.
+
 Additional functionality
 ------------------------
 

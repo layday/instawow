@@ -418,10 +418,8 @@ def list_folders(obj: M, exclude_own: bool, toc_entries: Sequence[str]) -> None:
 
     folders = sorted(get_folders(obj.m, exclude_own=exclude_own))
     if folders:
-        rows = [('unreconciled' if exclude_own else 'folder',
-                 *(f'[{e}]' for e in toc_entries)),
-                *((f.name,
-                  *(f.toc_reader[e].value for e in toc_entries)) for f in folders)]
+        rows = [('unreconciled' if exclude_own else 'folder', *(f'[{e}]' for e in toc_entries)),
+                *((f.name, *(f.toc_reader[e].value for e in toc_entries)) for f in folders)]
         click.echo(tabulate(rows))
 
 

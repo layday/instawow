@@ -6,7 +6,7 @@ from instawow.resolvers import Defn, Strategies
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize('strategy', [Strategies.default, Strategies.latest])
+@pytest.mark.parametrize('strategy', [Strategies.default, Strategies.latest, Strategies.any_flavour])
 async def test_curse(manager, request, strategy, mock_curse):
     results = await manager.resolve([Defn('curse', 'tomcats', strategy),
                                      Defn('curse', 'method-dungeon-tools', strategy),
@@ -16,15 +16,22 @@ async def test_curse(manager, request, strategy, mock_curse):
 
     assert isinstance(separate, Pkg)
     if manager.config.is_classic:
-        assert 'classic' in separate.version
-        assert (isinstance(retail_only, E.PkgFileUnavailable)
-                and retail_only.message == f"no files compatible with classic using '{strategy.name}' strategy")
+        if strategy is Strategies.any_flavour:
+            assert 'classic' not in separate.version
+            assert isinstance(retail_only, Pkg)
+        else:
+            assert 'classic' in separate.version
+            assert (isinstance(retail_only, E.PkgFileUnavailable)
+                    and retail_only.message == f"no files compatible with classic using '{strategy.name}' strategy")
         assert isinstance(classic_only, Pkg)
     else:
         assert 'classic' not in separate.version
         assert isinstance(retail_only, Pkg)
-        assert (isinstance(classic_only, E.PkgFileUnavailable)
-                and classic_only.message == f"no files compatible with retail using '{strategy.name}' strategy")
+        if strategy is Strategies.any_flavour:
+            assert isinstance(classic_only, Pkg)
+        else:
+            assert (isinstance(classic_only, E.PkgFileUnavailable)
+                    and classic_only.message == f"no files compatible with retail using '{strategy.name}' strategy")
 
     versions = {*request.config.cache.get('flavour_explosion', ()), flavour_explosion.version}
     assert len(versions) == 1

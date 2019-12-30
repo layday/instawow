@@ -24,6 +24,7 @@ class Strategies(enum.Enum):
     latest = enum.auto()
     curse_latest_beta = enum.auto()
     curse_latest_alpha = enum.auto()
+    any_flavour = enum.auto()
 
 
 class Defn(NamedTuple):
@@ -117,7 +118,8 @@ class CurseResolver(Resolver):
     strategies = {Strategies.default,
                   Strategies.latest,
                   Strategies.curse_latest_beta,
-                  Strategies.curse_latest_alpha}
+                  Strategies.curse_latest_alpha,
+                  Strategies.any_flavour}
 
     # Reference: https://twitchappapi.docs.apiary.io/
     addon_api_url = URL('https://addons-ecs.forgesvc.net/api/v2/addon')
@@ -160,28 +162,31 @@ class CurseResolver(Resolver):
             # absent from the /file endpoint
             return not f['exposeAsAlternative']
 
-        classic_version_prefix = '1.13'
-        flavor = 'wow_classic' if self.config.is_classic else 'wow_retail'
+        if defn.strategy is Strategies.any_flavour:
+            def is_compatible_with_game_version(f: dict) -> bool: return True
+        else:
+            classic_version_prefix = '1.13'
+            flavour = 'wow_classic' if self.config.is_classic else 'wow_retail'
 
-        def is_compatible_with_game_version(f: dict) -> bool:
-            # Files can belong both to retail and classic
-            # but ``gameVersionFlavor`` can only be one of
-            # 'wow_retail' or 'wow_classic'.  To spice things up,
-            # ``gameVersion`` might not be populated so we still have to
-            # check the value of ``gameVersionFlavor``
-            return (f['gameVersionFlavor'] == flavor
-                    or any(v.startswith(classic_version_prefix) is self.config.is_classic
-                           for v in f['gameVersion']))
+            def is_compatible_with_game_version(f: dict) -> bool:
+                # Files can belong both to retail and classic
+                # but ``gameVersionFlavor`` can only be one of
+                # 'wow_retail' or 'wow_classic'.  To spice things up,
+                # ``gameVersion`` might not be populated so we still have to
+                # check the value of ``gameVersionFlavor``
+                return (f['gameVersionFlavor'] == flavour
+                        or any(v.startswith(classic_version_prefix) is self.config.is_classic
+                               for v in f['gameVersion']))
 
         # 1 = stable; 2 = beta; 3 = alpha
-        if defn.strategy is Strategies.default:
-            def has_release_type(f: dict) -> bool: return f['releaseType'] == 1
+        if defn.strategy is Strategies.latest:
+            def has_release_type(f: dict) -> bool: return True
         elif defn.strategy is Strategies.curse_latest_beta:
             def has_release_type(f: dict) -> bool: return f['releaseType'] == 2
         elif defn.strategy is Strategies.curse_latest_alpha:
             def has_release_type(f: dict) -> bool: return f['releaseType'] == 3
         else:
-            def has_release_type(f: dict) -> bool: return True
+            def has_release_type(f: dict) -> bool: return f['releaseType'] == 1
 
         try:
             file = max((f for f in files

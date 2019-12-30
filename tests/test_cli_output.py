@@ -75,7 +75,7 @@ def test_valid_curse_pkg_lifecycle(run, inp, cmp):
 
 
 @pytest.mark.parametrize(
-    'input, cmp, run',
+    'inp, cmp, run',
     [('install tukui:1',
       lambda v: v.startswith('✓ tukui:1\n  installed'),
       None),
@@ -116,12 +116,12 @@ def test_valid_curse_pkg_lifecycle(run, inp, cmp):
       '✗ tukui:tukui\n  package is not installed\n'.__eq__,
       None),],
     indirect=('run',))
-def test_valid_tukui_pkg_lifecycle(run, input, cmp):
-    assert cmp(run(input).output)
+def test_valid_tukui_pkg_lifecycle(run, inp, cmp):
+    assert cmp(run(inp).output)
 
 
 @pytest.mark.parametrize(
-    'input, cmp',
+    'inp, cmp',
     [('install wowi:13188-molinari',
       lambda v: v.startswith('✓ wowi:13188-molinari\n  installed')),
      ('install wowi:13188-molinari',
@@ -134,12 +134,12 @@ def test_valid_tukui_pkg_lifecycle(run, input, cmp):
       '✗ wowi:13188-molinari\n  package is not installed\n'.__eq__),
      ('remove wowi:13188-molinari',
       '✗ wowi:13188-molinari\n  package is not installed\n'.__eq__),])
-def test_valid_wowi_pkg_lifecycle(run, input, cmp):
-    assert cmp(run(input).output)
+def test_valid_wowi_pkg_lifecycle(run, inp, cmp):
+    assert cmp(run(inp).output)
 
 
 @pytest.mark.parametrize(
-    'input, cmp, run',
+    'inp, cmp, run',
     [('install curse:molinari',
       lambda v: v.startswith('✓ curse:molinari\n  installed'),
       Flavour.retail),
@@ -151,8 +151,8 @@ def test_valid_wowi_pkg_lifecycle(run, input, cmp):
       '✓ curse:molinari\n  removed\n'.__eq__,
       Flavour.retail),],
     indirect=('run',))
-def test_folder_conflict_lifecycle(run, input, cmp):
-    assert cmp(run(input).output)
+def test_folder_conflict_lifecycle(run, inp, cmp):
+    assert cmp(run(inp).output)
 
 
 def test_preexisting_folder_conflict_on_install(manager, run):
@@ -164,31 +164,31 @@ def test_preexisting_folder_conflict_on_install(manager, run):
 
 
 @pytest.mark.parametrize(
-    'input, output',
+    'inp, output',
     [('install curse:gargantuan-wigs',
       '✗ curse:gargantuan-wigs\n  package does not exist\n'),
      ('update curse:gargantuan-wigs',
       '✗ curse:gargantuan-wigs\n  package is not installed\n'),
      ('remove curse:gargantuan-wigs',
       '✗ curse:gargantuan-wigs\n  package is not installed\n'),])
-def test_invalid_addon_name_lifecycle(run, input, output):
-    assert run(input).output == output
+def test_invalid_addon_name_lifecycle(run, inp, output):
+    assert run(inp).output == output
 
 
 @pytest.mark.parametrize(
-    'input, output',
+    'inp, output',
     [('install foo:bar',
       '✗ foo:bar\n  package source is invalid\n'),
      ('update foo:bar',
       '✗ foo:bar\n  package is not installed\n'),
      ('remove foo:bar',
       '✗ foo:bar\n  package is not installed\n'),])
-def test_invalid_source_lifecycle(run, input, output):
-    assert run(input).output == output
+def test_invalid_source_lifecycle(run, inp, output):
+    assert run(inp).output == output
 
 
 @pytest.mark.parametrize(
-    'input, cmp',
+    'inp, cmp',
     [('install curse:molinari',
        lambda v: v.startswith('✓ curse:molinari\n  installed')),
      ('install curse:20338',
@@ -201,12 +201,12 @@ def test_invalid_source_lifecycle(run, input, output):
       '✗ curse:molinari\n  package already installed\n'.__eq__),
      ('remove curse:molinari',
       '✓ curse:molinari\n  removed\n'.__eq__),])
-def test_install_with_curse_alias(run, input, cmp):
-    assert cmp(run(input).output)
+def test_install_with_curse_alias(run, inp, cmp):
+    assert cmp(run(inp).output)
 
 
 @pytest.mark.parametrize(
-    'input, cmp, run',
+    'inp, cmp, run',
     [('install tukui:-1',
       lambda v: v.startswith('✓ tukui:-1\n  installed'),
       Flavour.retail),
@@ -235,12 +235,12 @@ def test_install_with_curse_alias(run, input, cmp):
       '✓ tukui:1\n  removed\n'.__eq__,
       None),],
     indirect=('run',))
-def test_install_with_tukui_alias(run, input, cmp):
-    assert cmp(run(input).output)
+def test_install_with_tukui_alias(run, inp, cmp):
+    assert cmp(run(inp).output)
 
 
 @pytest.mark.parametrize(
-    'input, cmp',
+    'inp, cmp',
     [('install wowi:13188',
       lambda v: v.startswith('✓ wowi:13188\n  installed')),
      ('install wowi:13188-molinari',
@@ -255,8 +255,8 @@ def test_install_with_tukui_alias(run, input, cmp):
       '✗ wowi:13188\n  package already installed\n'.__eq__),
      ('remove wowi:13188',
       '✓ wowi:13188\n  removed\n'.__eq__),])
-def test_install_with_wowi_alias(run, input, cmp):
-    assert cmp(run(input).output)
+def test_install_with_wowi_alias(run, inp, cmp):
+    assert cmp(run(inp).output)
 
 
 def test_missing_dir_on_remove(manager, molinari_and_run):

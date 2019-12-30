@@ -54,8 +54,8 @@ async def open_temp_writer() -> AsyncGenerator[Tuple[Path, Callable], None]:
         await t(fh.close)()
 
 
-async def trash(paths: Sequence[Path], dst: PurePath, *, missing_ok: bool = False) -> None:
-    dst = await async_mkdtemp(dir=dst, prefix='deleted-' + paths[0].name + '-')
+async def trash(paths: Sequence[Path], parent: PurePath, *, missing_ok: bool = False) -> None:
+    dst = await async_mkdtemp(dir=parent, prefix='deleted-' + paths[0].name + '-')
     for path in map(str, paths):    # https://bugs.python.org/issue32689
         try:
             await async_move(path, dst)
@@ -363,7 +363,7 @@ class Manager:
 
     async def remove_one(self, pkg: Pkg) -> E.PkgRemoved:
         await trash([self.config.addon_dir / f.name for f in pkg.folders],
-                    dst=self.config.temp_dir, missing_ok=True)
+                    parent=self.config.temp_dir, missing_ok=True)
         self.db_session.delete(pkg)
         self.db_session.commit()
         return E.PkgRemoved(pkg)
@@ -403,7 +403,7 @@ def init_cli_web_client(*, Bar: ProgressBar) -> aiohttp.ClientSession:
             label = ctx.get('label') or f'Downloading {extract_filename(params)}'
             bar = Bar(label=label, total=params.response.content_length or 0)
 
-            async def ticker() -> None:
+            async def ticker():
                 try:
                     content = params.response.content
                     while not content.is_eof():
