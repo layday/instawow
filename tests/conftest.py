@@ -8,6 +8,25 @@ from instawow.config import Config
 from instawow.manager import Manager, init_web_client, prepare_db_session
 
 
+def pytest_addoption(parser):
+    parser.addoption('--instawow-no-mock', action='store_true')
+
+
+def should_mock(fn):
+    import inspect
+    import warnings
+
+    def wrapper(request):
+        if request.config.getoption('--instawow-no-mock'):
+            warnings.warn(RuntimeWarning('not mocking'))
+            return None
+
+        args = (request.getfixturevalue(p) for p in inspect.signature(fn).parameters)
+        return fn(*args)
+
+    return wrapper
+
+
 @pytest.fixture(scope='session')
 def temp_dir(tmp_path_factory):
     yield tmp_path_factory.mktemp('temp')
@@ -35,8 +54,8 @@ async def web_client():
 def manager(full_config, web_client):
     config = Config(**full_config).write()
     db_session = prepare_db_session(config=config)
-    manager = Manager(config, db_session)
 
+    manager = Manager(config, db_session)
     manager.web_client = web_client
     yield manager
 
@@ -68,6 +87,7 @@ def JsonResponse(aresponses):
 
 
 @pytest.fixture
+@should_mock
 def mock_master_catalogue(aresponses, JsonResponse):
     aresponses.add('raw.githubusercontent.com',
                    aresponses.ANY, 'get',
@@ -76,6 +96,7 @@ def mock_master_catalogue(aresponses, JsonResponse):
 
 
 @pytest.fixture
+@should_mock
 def mock_curse(aresponses, JsonResponse, mock_master_catalogue):
     aresponses.add('addons-ecs.forgesvc.net',
                    '/api/v2/addon',
@@ -90,6 +111,7 @@ def mock_curse(aresponses, JsonResponse, mock_master_catalogue):
 
 
 @pytest.fixture
+@should_mock
 def mock_wowi(aresponses, JsonResponse, mock_master_catalogue):
     aresponses.add('api.mmoui.com',
                    '/v3/game/WOW/filelist.json',
@@ -109,6 +131,7 @@ def mock_wowi(aresponses, JsonResponse, mock_master_catalogue):
 
 
 @pytest.fixture
+@should_mock
 def mock_tukui(aresponses, JsonResponse, mock_master_catalogue):
     aresponses.add('www.tukui.org',
                    '/api.php?ui=tukui',

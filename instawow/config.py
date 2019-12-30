@@ -6,7 +6,7 @@ from tempfile import gettempdir
 from typing import Any, Dict
 
 import click
-from pydantic import BaseSettings, validator
+from pydantic import BaseSettings, Extra, validator
 from pydantic.utils import deep_update as _deep_update
 
 from .utils import Literal
@@ -26,6 +26,7 @@ class _Config(BaseConfig):
 
     class Config:
         env_prefix = 'INSTAWOW_'
+        extra = Extra.allow
 
     @validator('config_dir', pre=True, always=True)
     def _apply_config_dir_default(cls, value: Any) -> Path:

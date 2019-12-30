@@ -38,7 +38,7 @@ def test(session):
                     'pytest-asyncio',
                     'https://github.com/layday/aresponses/archive/make-responses-reusable.zip',
                     '.')
-    session.run('coverage', 'run', '-m', 'pytest', '-o', "'xfail_strict = True'", 'tests')
+    session.run('coverage', 'run', '-m', 'pytest', '-o', 'xfail_strict=true', 'tests')
     session.run('coverage', 'report', '-m')
 
 

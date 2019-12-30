@@ -20,16 +20,17 @@ class Flavour(enum.IntEnum):
 @pytest.fixture(params=['retail', 'classic'])
 def full_config(tmp_path_factory, request, temp_dir):
     name = f'{request.node.name[:30]}_{request.param}'
-    tmp_path = tmp_path_factory.getbasetemp() / name
-    addons = tmp_path / 'addons'
+    parametrized_tmp_path = tmp_path_factory.getbasetemp() / name
+    addons = parametrized_tmp_path / 'addons'
     addons.mkdir(parents=True, exist_ok=True)
 
-    return {'config_dir': tmp_path / 'config',
-            'addon_dir': addons, 'temp_dir': temp_dir, 'game_flavour': request.param}
+    return {'_parametrized_tmp_path': parametrized_tmp_path,
+            'config_dir': parametrized_tmp_path / 'config', 'addon_dir': addons, 'temp_dir': temp_dir,
+            'game_flavour': request.param}
 
 
 @pytest.fixture
-def manager(event_loop, full_config, web_client):
+def manager(event_loop, web_client, full_config):
     config = Config(**full_config).write()
     db_session = prepare_db_session(config=config)
 
@@ -44,7 +45,7 @@ def run(request, manager, mock_curse, mock_wowi, mock_tukui):
     param = getattr(request, 'param', None)
     if param is Flavour.retail and manager.config.is_classic:
         pytest.skip('test is for retail only')
-    elif param is Flavour.classic and not manager.config.is_classic:
+    elif param is Flavour.classic and manager.config.is_retail:
         pytest.skip('test is for classic only')
 
     yield partial(CliRunner().invoke, main, obj=SimpleNamespace(m=manager))
@@ -283,8 +284,8 @@ def test_substr_list_match(molinari_and_run):
     assert (molinari['source'], molinari['slug']) == ('curse', 'molinari')
 
 
-def test_csv_export_and_import(molinari_and_run, tmp_path_factory):
-    export_csv = tmp_path_factory.mktemp('export', numbered=True).joinpath('export.csv')
+def test_csv_export_and_import(molinari_and_run, manager):
+    export_csv = manager.config._parametrized_tmp_path / 'export.csv'
     molinari_and_run(f'list -e {export_csv}')
 
     assert export_csv.read_text(encoding='utf-8') == '''\
