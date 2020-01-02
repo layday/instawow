@@ -10,7 +10,7 @@ import click
 
 from . import exceptions as E, models
 from .resolvers import Defn, Strategies
-from .utils import (TocReader, bucketise, cached_property, get_version, is_outdated, setup_logging,
+from .utils import (TocReader, cached_property, get_version, is_outdated, setup_logging,
                     tabulate, uniq)
 
 if TYPE_CHECKING:
@@ -203,9 +203,7 @@ def install(obj: M, addons: Sequence[Defn], replace: bool) -> None:
         raise click.UsageError('You must provide at least one of "ADDONS", '
                                '"--with-strategy" or "--import"')
 
-    deduped_defns = [v for v, *_ in
-                     bucketise(addons, lambda d: (d.source, d.name)).values()]
-    results = obj.m.install(deduped_defns, replace)
+    results = obj.m.install(addons, replace)
     Report(results).generate_and_exit()
 
 
