@@ -390,34 +390,47 @@ async def cancel_tickers() -> AsyncGenerator[None, None]:
 
 def init_cli_web_client(*, Bar: ProgressBar) -> aiohttp.ClientSession:
     from cgi import parse_header
-    from aiohttp import TraceConfig
+    from aiohttp import TraceConfig, hdrs
 
-    def extract_filename(params):
-        _, cd_params = parse_header(params.response.headers.get('Content-Disposition', ''))
-        filename = cd_params.get('filename') or params.response.url.name
+    def extract_filename(response: aiohttp.ClientResponse) -> str:
+        _, cd_params = parse_header(response.headers.get(hdrs.CONTENT_DISPOSITION, ''))
+        filename = cd_params.get('filename') or response.url.name
         return filename
 
-    async def do_on_request_end(session, request_ctx, params):
+    async def do_on_request_end(session, request_ctx, params: aiohttp.TraceRequestEndParams) -> None:
         ctx = request_ctx.trace_request_ctx
-        if ctx and ctx.get('show_progress'):
-            label = ctx.get('label') or f'Downloading {extract_filename(params)}'
-            bar = Bar(label=label, total=params.response.content_length or 0)
+        if not (ctx and ctx.get('show_progress')):
+            return
 
-            async def ticker():
-                try:
-                    content = params.response.content
-                    while not content.is_eof():
-                        bar.current = content._cursor
-                        Bar.invalidate()
-                        await asyncio.sleep(_tick_interval)
-                finally:
+        label = ctx.get('label') or f'Downloading {extract_filename(params.response)}'
+        total = params.response.content_length
+        if (total is None
+                # Size before decoding is not exposed in streaming API and
+                # `Content-Length` has the size of the payload after gzipping
+                or params.response.headers.get(hdrs.CONTENT_ENCODING) == 'gzip'):
+            # Length of zero will have a hash sign cycle through the bar
+            # (see indeterminate progress bars)
+            total = 0
+
+        async def ticker() -> None:
+            bar = None
+            try:
+                bar = Bar(label=label, total=total)
+                content = params.response.content
+
+                while not content.is_eof():
+                    bar.current = content.total_bytes
+                    Bar.invalidate()
+                    await asyncio.sleep(_tick_interval)
+            finally:
+                if bar is not None:
                     Bar.counters.remove(bar)
 
-            tickers = _tickers.get()
-            tickers.add(asyncio.create_task(ticker()))
+        tickers = _tickers.get()
+        tickers.add(asyncio.create_task(ticker()))
 
     trace_config = TraceConfig()
-    trace_config.on_request_end.append(do_on_request_end)
+    trace_config.on_request_end.append(do_on_request_end)   # type: ignore  # ^aiohttp
     trace_config.freeze()
     return init_web_client(trace_configs=[trace_config])
 
