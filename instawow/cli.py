@@ -3,6 +3,7 @@ from __future__ import annotations
 from functools import partial
 from itertools import chain, islice
 from pathlib import Path
+from textwrap import fill
 from typing import (TYPE_CHECKING, Callable, FrozenSet, Generator, Iterable, List, Mapping,
                     Optional, Sequence, Tuple, Union, cast, overload)
 
@@ -43,8 +44,8 @@ class Report:
                 return self._failure
             return self._success
 
-        return '\n'.join((f'{_adorn_result(r)} {click.style(str(a), bold=True)}\n'
-                          f'  {r.message}')
+        return '\n'.join(f'{_adorn_result(r)} {click.style(str(a), bold=True)}\n'
+                         + fill(r.message, initial_indent='  ', subsequent_indent='  ')
                          for a, r in self.results.items()
                          if self.filter_fn(r))
 
