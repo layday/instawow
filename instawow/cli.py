@@ -23,7 +23,7 @@ class Report:
     _warning = click.style('!', fg='blue')
 
     def __init__(self, results: Mapping[Defn, E.ManagerResult],
-                 filter_fn: Callable = (lambda _: True),
+                 filter_fn: Callable[[E.ManagerResult], bool] = (lambda _: True),
                  report_outdated: bool = True) -> None:
         self.results = results
         self.filter_fn = filter_fn
@@ -217,7 +217,7 @@ def update(obj: M, addons: Sequence[Defn]) -> None:
     "Update installed add-ons."
     def report_filter(result):
         # Hide package from output if up to date and ``update`` was invoked without args
-        return addons or not isinstance(result, E.PkgUpToDate)
+        return cast(bool, addons or not isinstance(result, E.PkgUpToDate))
 
     defns = addons
     if not defns:
@@ -263,7 +263,7 @@ and WoWInterface catalogues.
 Selected add-ons _will_ be reinstalled.
 '''
 
-    manager = ctx.obj.m
+    manager: CliManager = ctx.obj.m
 
     def prompt_one(addons: List[AddonFolder], pkgs: List[models.Pkg]) -> Union[Defn, Tuple[()]]:
         def create_choice(pkg):
@@ -332,7 +332,7 @@ def search(ctx: click.Context, limit: int, search_terms: str) -> None:
     "Search for add-ons to install."
     from .prompts import PkgChoice, checkbox, confirm
 
-    manager = ctx.obj.m
+    manager: CliManager = ctx.obj.m
 
     pkgs = manager.run(manager.search(search_terms, limit))
     if pkgs:

@@ -6,9 +6,9 @@ from datetime import datetime, timedelta
 from itertools import chain, repeat
 from pathlib import Path
 import re
-from typing import (TYPE_CHECKING, Any, Awaitable, Callable, DefaultDict, Dict, Generic, Hashable,
-                    Iterable, List, NamedTuple, Optional, Sequence, Set, Tuple, TypeVar, Union,
-                    cast, overload)
+from typing import (TYPE_CHECKING, AbstractSet, Any, Awaitable, Callable, DefaultDict, Dict,
+                    Generic, Hashable, Iterable, List, NamedTuple, Optional, Sequence, Tuple,
+                    TypeVar, Union, cast, overload)
 
 try:
     from typing import Literal as _Literal
@@ -85,7 +85,7 @@ _H = TypeVar('_H', bound=Hashable)
 _V = TypeVar('_V')
 
 
-def bucketise(iterable: Iterable[_V], key: Callable[[Any], _H] = (lambda v: v)) -> DefaultDict[_H, List[_V]]:
+def bucketise(iterable: Iterable[_V], key: Callable[[_V], _H] = lambda v: v) -> DefaultDict[_H, List[_V]]:
     "Place the elements of an iterable in a bucket according to ``key``."
     bucket = defaultdict(list)
     for value in iterable:
@@ -103,7 +103,7 @@ def uniq(it: Iterable[_H]) -> List[_H]:
     return list(dict.fromkeys(it))
 
 
-_AnySet = TypeVar('_AnySet', set, frozenset)
+_AnySet = TypeVar('_AnySet', bound=AbstractSet)
 
 
 def merge_intersecting_sets(it: Iterable[_AnySet]) -> Iterable[_AnySet]:
@@ -126,7 +126,7 @@ def merge_intersecting_sets(it: Iterable[_AnySet]) -> Iterable[_AnySet]:
         yield this_set
 
 
-async def gather(it: Iterable, return_exceptions: bool = True) -> List[Any]:
+async def gather(it: Iterable[Awaitable[_V]], return_exceptions: bool = True) -> List[_V]:
     return await asyncio.gather(*it, return_exceptions=return_exceptions)
 
 
@@ -147,7 +147,7 @@ def slugify_uniq(text: str, set_: Set[str]) -> Tuple[str, Set[str]]:
     return slug, set_ | {slug}
 
 
-def tabulate(rows: Sequence, *, max_col_width: int = 60) -> str:
+def tabulate(rows: Sequence[Sequence[str]], *, max_col_width: int = 60) -> str:
     "Produce an ASCII table from equal-length elements in a sequence."
     from textwrap import fill
 
@@ -265,8 +265,8 @@ def is_outdated(manager: CliManager) -> bool:
         from aiohttp.client import ClientError
 
         async def get_metadata() -> dict:
-            url = 'https://pypi.org/pypi/instawow/json'
-            async with manager.web_client.get(url) as response:
+            api_url = 'https://pypi.org/pypi/instawow/json'
+            async with manager.web_client.get(api_url) as response:
                 return await response.json()
 
         try:

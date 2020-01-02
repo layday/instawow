@@ -6,7 +6,7 @@ from functools import update_wrapper
 from itertools import count, takewhile
 import re
 from typing import (TYPE_CHECKING, Any, AsyncIterable, Callable, ClassVar, Dict, List, NamedTuple,
-                    Optional, Set)
+                    Optional, Set, cast)
 
 from pydantic import BaseModel
 from yarl import URL
@@ -64,15 +64,15 @@ class MasterCatalogue(BaseModel):
     @classmethod
     async def collate(cls) -> MasterCatalogue:
         from types import SimpleNamespace
-        from .manager import init_web_client
+        from .manager import Manager, init_web_client
 
         resolvers = (CurseResolver, WowiResolver, TukuiResolver)
 
         async with init_web_client() as web_client:
-            faux_manager = SimpleNamespace(web_client=web_client)
+            faux_manager = cast(Manager, SimpleNamespace(web_client=web_client))
             items = [a
                      for r in resolvers
-                     async for a in r(faux_manager).collect_items()]     # type: ignore
+                     async for a in r(faux_manager).collect_items()]
         catalogue = cls(__root__=items)
         return catalogue
 
@@ -238,9 +238,9 @@ class CurseResolver(Resolver):
 
         step = 1000
         for index in count(0, step):
-            url = ((self.addon_api_url / 'search').with_query(
-                    gameId='1', sort='3',  # Alphabetical
-                    pageSize=step, index=index))
+            url = ((self.addon_api_url / 'search')
+                   .with_query(gameId='1', sort='3',  # Alphabetical
+                               pageSize=step, index=index))
             async with self.web_client.get(url) as response:
                 json_response = await response.json()
 
@@ -248,8 +248,8 @@ class CurseResolver(Resolver):
                 break
             for item in json_response:
                 folders = uniq(tuple(m['foldername'] for m in f['modules'])
-                                     for f in item['latestFiles']
-                                     if not f['exposeAsAlternative'])
+                               for f in item['latestFiles']
+                               if not f['exposeAsAlternative'])
                 yield _CItem(source=self.source,
                              id=item['id'],
                              slug=item['slug'],

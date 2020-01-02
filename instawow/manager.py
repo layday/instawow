@@ -12,7 +12,7 @@ from shutil import copy, move
 from tempfile import NamedTemporaryFile, mkdtemp
 from typing import (TYPE_CHECKING, Any, AsyncContextManager as ACM, AsyncGenerator, Awaitable,
                     Callable, Dict, Iterable, List, NoReturn, Optional, Sequence, Set, Tuple,
-                    Union, cast)
+                    TypeVar, Union, cast)
 
 from loguru import logger
 
@@ -123,17 +123,18 @@ async def download_archive(manager: Manager, pkg: Pkg, *, chunk_size: int = 4096
 
 
 async def cache_json_response(manager: Manager, url: str, *args: Any, label: Optional[str] = None) -> Any:
-    path = manager.config.cache_dir / shasum(url)
+    dst = manager.config.cache_dir / shasum(url)
 
-    if await t(is_not_stale)(path, *args):
-        text = await t(path.read_text)(encoding='utf-8')
+    if await t(is_not_stale)(dst, *args):
+        text = await t(dst.read_text)(encoding='utf-8')
     else:
         kwargs: Dict[str, Any] = {'raise_for_status': True}
         if label:
             kwargs.update({'trace_request_ctx': {'show_progress': True, 'label': label}})
+
         async with manager.web_client.get(url, **kwargs) as response:
             text = await response.text()
-        await t(path.write_text)(text, encoding='utf-8')
+        await t(dst.write_text)(text, encoding='utf-8')
     return json.loads(text)
 
 
@@ -204,6 +205,9 @@ async def _error_out(error: Union[E.ManagerError, E.InternalError]) -> NoReturn:
     raise error
 
 
+_PrepR = Dict[Defn, Callable[[], Awaitable]]
+
+
 class Manager:
     def __init__(self, config: Config, db_session: scoped_session) -> None:
         self.config = config
@@ -269,7 +273,7 @@ class Manager:
         defns_by_source = bucketise(defns, key=lambda v: v.source)
 
         results = await gather(self.resolvers[s].resolve(b) for s, b in defns_by_source.items())
-        results_by_defn = dict_chain(defns, None, *map(dict.items, results))
+        results_by_defn = dict_chain(defns, None, *(r.items() for r in results))
         if with_deps:
             results_by_defn.update(await self._resolve_deps(results_by_defn.values()))
         return results_by_defn
@@ -301,6 +305,7 @@ class Manager:
                          .filter(PkgFolder.name.in_(folders)).all())
             if conflicts:
                 raise E.PkgConflictsWithInstalled(conflicts)
+
             if replace:
                 await trash([self.config.addon_dir / f for f in folders], self.config.temp_dir)
             await extract(self.config.addon_dir)
@@ -310,9 +315,10 @@ class Manager:
         self.db_session.commit()
         return E.PkgInstalled(pkg)
 
-    async def prep_install(self, defns: Sequence[Defn], replace: bool) -> Dict[Defn, Callable]:
+    async def prep_install(self, defns: Sequence[Defn], replace: bool) -> _PrepR:
         "Retrieve packages to install."
-        prelim_results = await self.resolve([d for d in defns if not self.get(d)], with_deps=True)
+        prelim_results = await self.resolve([d for d in defns if not self.get(d)], True)
+
         # Weed out installed deps - this isn't super efficient but avoids
         # having to deal with local state in the resolver
         results = {d: r for d, r in prelim_results.items() if not self.get(d)}
@@ -340,11 +346,12 @@ class Manager:
         self.db_session.commit()
         return E.PkgUpdated(old_pkg, pkg)
 
-    async def prep_update(self, defns: Sequence[Defn]) -> Dict[Defn, Callable]:
+    async def prep_update(self, defns: Sequence[Defn]) -> _PrepR:
         "Retrieve packages to update."
-        # Rebuild ``Defn`` with strategy from package for ``Defn``s with installed packages
+        # Rebuild ``Defn`` with strategy from package for defns of installed packages
         checked_defns = {p.to_defn().with_name(c.name) if p else c: p
                          for c, p in ((d, self.get(d)) for d in defns)}
+
         # Results can contain errors
         # installables are those results which are packages
         # and updatables are packages with updates
@@ -368,7 +375,7 @@ class Manager:
         self.db_session.commit()
         return E.PkgRemoved(pkg)
 
-    async def prep_remove(self, defns: Sequence[Defn]) -> Dict[Defn, Callable]:
+    async def prep_remove(self, defns: Sequence[Defn]) -> _PrepR:
         "Prepare packages to remove."
         pkgs_by_defn = ((d, self.get(d)) for d in defns)
         return dict_chain(defns, partial(_error_out, E.PkgNotInstalled()),
@@ -435,13 +442,16 @@ def init_cli_web_client(*, Bar: ProgressBar) -> aiohttp.ClientSession:
     return init_web_client(trace_configs=[trace_config])
 
 
+_T = TypeVar('_T')
+
+
 class CliManager(Manager):
     def __init__(self, config: Config, db_session: scoped_session,
                  progress_bar_factory: Callable = make_progress_bar) -> None:
         super().__init__(config, db_session)
         self.progress_bar_factory = progress_bar_factory
 
-    def run(self, awaitable: Awaitable) -> Any:
+    def run(self, awaitable: Awaitable[_T]) -> _T:
         async def run():
             async with init_cli_web_client(Bar=progress_bar) as self.web_client, \
                     cancel_tickers():
