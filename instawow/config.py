@@ -62,7 +62,7 @@ class _Config(BaseConfig):
         # values are considered to be transient if overridden by an
         # env var, e.g. to bypass the cache
         self.ensure_dirs()
-        output = self.json(exclude={'config_dir'}, indent=2)
+        output = self.json(include={'addon_dir', 'game_flavour'}, indent=2)
         self.config_file.write_text(output, encoding='utf-8')
         return self
 
