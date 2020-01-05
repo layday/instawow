@@ -4,15 +4,15 @@ from functools import partial
 from itertools import chain, islice
 from pathlib import Path
 from textwrap import fill
-from typing import (TYPE_CHECKING, Callable, FrozenSet, Generator, Iterable, List, Mapping,
+from typing import (TYPE_CHECKING, Any, Callable, FrozenSet, Generator, Iterable, List, Mapping,
                     Optional, Sequence, Tuple, Union, cast, overload)
 
 import click
 
 from . import exceptions as E, models
 from .resolvers import Defn, Strategies
-from .utils import (TocReader, cached_property, get_version, is_outdated, setup_logging,
-                    tabulate, uniq)
+from .utils import (TocReader, cached_property, get_version, is_outdated, setup_logging, tabulate,
+                    uniq)
 
 if TYPE_CHECKING:
     from .manager import CliManager
@@ -112,7 +112,7 @@ def parse_into_defn(manager: CliManager, value: Sequence[str],
             raise click.BadParameter(value)
         parts = (any_source, value)
     else:
-        parts = manager.resolvers.decompose_url(value)
+        parts = manager.decompose_url(value)
         if not parts:
             parts = value.partition(delim)[::2]
     return Defn(*parts)
@@ -148,7 +148,7 @@ def _callbackify(fn: Callable) -> Callable:
 
 
 def _combine_into(param_name: str, fn: Callable) -> Callable:
-    def combine(ctx, param, value):
+    def combine(ctx: click.Context, param: Any, value: Any) -> None:
         addons = ctx.params.setdefault(param_name, [])
         if value:
             addons.extend(fn(ctx.obj.m, value))
@@ -156,7 +156,7 @@ def _combine_into(param_name: str, fn: Callable) -> Callable:
     return combine
 
 
-def _show_version(ctx: click.Context, param, value: bool) -> None:
+def _show_version(ctx: click.Context, param: Any, value: bool) -> None:
     if value:
         __version__ = get_version()
         click.echo(f'instawow, version {__version__}')
@@ -204,7 +204,7 @@ def install(obj: M, addons: Sequence[Defn], replace: bool) -> None:
         raise click.UsageError('You must provide at least one of "ADDONS", '
                                '"--with-strategy" or "--import"')
 
-    results = obj.m.install(addons, replace)
+    results = obj.m.run(obj.m.install(addons, replace))
     Report(results).generate_and_exit()
 
 
@@ -214,7 +214,7 @@ def install(obj: M, addons: Sequence[Defn], replace: bool) -> None:
 @click.pass_obj
 def update(obj: M, addons: Sequence[Defn]) -> None:
     "Update installed add-ons."
-    def report_filter(result):
+    def report_filter(result: E.ManagerResult):
         # Hide package from output if up to date and ``update`` was invoked without args
         return cast(bool, addons or not isinstance(result, E.PkgUpToDate))
 
@@ -222,7 +222,7 @@ def update(obj: M, addons: Sequence[Defn]) -> None:
     if not defns:
         defns = [p.to_defn() for p in obj.m.db_session.query(models.Pkg).all()]
 
-    results = obj.m.update(defns)
+    results = obj.m.run(obj.m.update(defns))
     Report(results, report_filter).generate_and_exit()
 
 
@@ -232,7 +232,7 @@ def update(obj: M, addons: Sequence[Defn]) -> None:
 @click.pass_obj
 def remove(obj: M, addons: Sequence[Defn]) -> None:
     "Remove add-ons."
-    results = obj.m.remove(addons)
+    results = obj.m.run(obj.m.remove(addons))
     Report(results).generate_and_exit()
 
 
@@ -265,7 +265,7 @@ Selected add-ons _will_ be reinstalled.
     manager: CliManager = ctx.obj.m
 
     def prompt_one(addons: List[AddonFolder], pkgs: List[models.Pkg]) -> Union[Defn, Tuple[()]]:
-        def create_choice(pkg):
+        def create_choice(pkg: models.Pkg):
             defn = pkg.to_defn()
             title = [('', str(defn)),
                      ('', '=='),
@@ -309,7 +309,7 @@ Selected add-ons _will_ be reinstalled.
     for _ in matcher:   # Skip over consumer yields
         selections = matcher.send(leftovers)
         if selections and (auto or confirm('Install selected add-ons?').unsafe_ask()):
-            results = manager.install(selections, replace=True)
+            results = manager.run(manager.install(selections, replace=True))
             Report(results).generate()
 
         leftovers = get_folders(manager)
@@ -358,12 +358,12 @@ def list_(obj: M, addons: Sequence[Defn], export: Optional[str], output_format: 
     "List installed add-ons."
     from sqlalchemy import and_, or_
 
-    def format_deps(pkg):
+    def format_deps(pkg: models.Pkg):
         deps = (Defn(pkg.source, d.id) for d in pkg.deps)
         deps = (d.with_name(getattr(obj.m.get(d), 'slug', d.name)) for d in deps)
         return map(str, deps)
 
-    def get_desc(pkg):
+    def get_desc(pkg: models.Pkg):
         if pkg.source == 'wowi':
             toc_reader = TocReader.from_path_name(obj.m.config.addon_dir / pkg.folders[0].name)
             return toc_reader['Notes'].value

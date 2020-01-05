@@ -127,7 +127,7 @@ class MultiPkgModel(pydantic.BaseModel):
         return cls(__root__=[_PkgModel.from_orm(v) for v in obj])
 
 
-def should_migrate(engine, version: str) -> bool:
+def should_migrate(engine: Any, version: str) -> bool:
     """Check if the database version is the same as `version`;
     if not a migration would be required.
     """

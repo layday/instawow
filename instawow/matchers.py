@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from functools import total_ordering
+from pathlib import Path
 from typing import TYPE_CHECKING, FrozenSet, List, Tuple
 
 from loguru import logger
@@ -55,7 +56,7 @@ class AddonFolder:
 
 
 def get_folders(manager: Manager, exclude_own: bool = True) -> FrozenSet[AddonFolder]:
-    def make_addon_folder(path):
+    def make_addon_folder(path: Path):
         try:
             return (path.name not in own_folders
                     and AddonFolder(path.name, TocReader.from_path_name(path)))
@@ -63,7 +64,7 @@ def get_folders(manager: Manager, exclude_own: bool = True) -> FrozenSet[AddonFo
             logger.info(f'skipping {path}')
 
     if exclude_own:
-        own_folders = {f.name for f in manager.db_session.query(PkgFolder).all()}
+        own_folders = {f.name for f in manager.db_session.query(PkgFolder).all()}   # type: ignore
     else:
         own_folders = set()
     return frozenset(filter(None, map(make_addon_folder, manager.config.addon_dir.iterdir())))
@@ -76,7 +77,7 @@ _Groups = List[
 
 async def match_toc_ids(manager: Manager, leftovers: FrozenSet[AddonFolder]) -> _Groups:
     "Attempt to match add-ons from source IDs contained in TOC files."
-    def keyer(value):
+    def keyer(value: AddonFolder):
         return next(d for d in defns if value.defns_from_toc & d)
 
     matches = [a for a in sorted(leftovers) if a.defns_from_toc]
@@ -87,7 +88,7 @@ async def match_toc_ids(manager: Manager, leftovers: FrozenSet[AddonFolder]) -> 
 
 async def match_dir_names(manager: Manager, leftovers: FrozenSet[AddonFolder]) -> _Groups:
     "Attempt to match folders against the CurseForge and WoWInterface catalogues."
-    def keyer(value):
+    def keyer(value: Tuple[FrozenSet[AddonFolder], Defn]):
         return next(f for f in folders if value[0] & f)
 
     await manager.synchronise()

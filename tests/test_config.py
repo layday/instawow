@@ -40,10 +40,9 @@ def test_invalid_addon_dir_raises(full_config):
 
 
 def test_reading_config_file(full_config):
-    config = Config(**full_config).write()
+    Config(**full_config).write()
     config_json = {'addon_dir': str(full_config['addon_dir']),
-                   'temp_dir': str(full_config['temp_dir']),
-                   'game_flavour': config.game_flavour}
+                   'game_flavour': full_config['game_flavour']}
     assert config_json == json.loads((full_config['config_dir'] / 'config.json').read_text())
 
 

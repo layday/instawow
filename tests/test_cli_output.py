@@ -162,6 +162,7 @@ def test_preexisting_folder_conflict_on_install(manager, run):
 ✗ curse:molinari
   package folders conflict with 'Molinari'
 '''
+    assert run('install -o curse:molinari').output.startswith('✓ curse:molinari\n  installed')
 
 
 @pytest.mark.parametrize(

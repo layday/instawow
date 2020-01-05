@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, ClassVar, Optional, Sequence, Set
+from typing import TYPE_CHECKING, Awaitable, ClassVar, Optional, Sequence, Set
+
+from loguru import logger
 
 if TYPE_CHECKING:
     from .models import Pkg
@@ -13,6 +15,17 @@ class ManagerResult:
     @property
     def message(self) -> str:
         return self.fmt_message.format(self=self)
+
+    @staticmethod
+    async def acapture(awaitable: Awaitable[ManagerResult]) -> ManagerResult:
+        "Capture errors in coroutines."
+        try:
+            return await awaitable
+        except ManagerError as error:
+            return error
+        except Exception as error:
+            logger.exception('error!')
+            return InternalError(error)
 
 
 class PkgInstalled(ManagerResult):

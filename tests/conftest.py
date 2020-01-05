@@ -1,4 +1,4 @@
-from functools import partial
+from functools import lru_cache, partial
 from pathlib import Path
 import re
 
@@ -18,13 +18,29 @@ def should_mock(fn):
 
     def wrapper(request):
         if request.config.getoption('--instawow-no-mock'):
-            warnings.warn(RuntimeWarning('not mocking'))
+            warnings.warn('not mocking')
             return None
 
         args = (request.getfixturevalue(p) for p in inspect.signature(fn).parameters)
         return fn(*args)
 
     return wrapper
+
+
+@lru_cache(maxsize=None)
+def read_fixture(filename):
+    return (Path(__file__).parent / 'fixtures' / filename).read_bytes()
+
+
+@lru_cache(maxsize=None)
+def make_zip(name):
+    from io import BytesIO
+    from zipfile import ZipFile
+
+    buffer = BytesIO()
+    with ZipFile(buffer, 'w') as file:
+        file.writestr(f'{name}/{name}.toc', b'')
+    return buffer.getvalue()
 
 
 @pytest.fixture(scope='session')
@@ -58,27 +74,6 @@ def manager(full_config, web_client):
     manager = Manager(config, db_session)
     manager.web_client = web_client
     yield manager
-
-
-_fixtures = {}
-
-
-def read_fixture(fixture):
-    try:
-        return _fixtures[fixture]
-    except KeyError:
-        f = _fixtures[fixture] = (Path(__file__).parent / 'fixtures' / fixture).read_bytes()
-        return f
-
-
-def make_zip(name):
-    from io import BytesIO
-    from zipfile import ZipFile
-
-    buffer = BytesIO()
-    with ZipFile(buffer, 'w') as file:
-        file.writestr(f'{name}/{name}.toc', b'')
-    return buffer.getvalue()
 
 
 @pytest.fixture
