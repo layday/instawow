@@ -34,7 +34,7 @@ def manager(event_loop, web_client, full_config):
     config = Config(**full_config).write()
     db_session = prepare_db_session(config=config)
 
-    manager = CliManager(config, db_session, None)      # type: ignore
+    manager = CliManager(config, db_session)
     manager.run = event_loop.run_until_complete
     manager.web_client = web_client
     yield manager

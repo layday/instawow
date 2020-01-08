@@ -189,12 +189,7 @@ class _DummyResolver:
         return dict.fromkeys(defns, E.PkgSourceInvalid())
 
 
-class _Resolvers(dict):
-    RESOLVERS = (CurseResolver, WowiResolver, TukuiResolver, InstawowResolver)
-
-    def __init__(self, manager: Manager) -> None:
-        super().__init__((r.source, r(manager)) for r in self.RESOLVERS)
-
+class _ResolverDict(dict):
     def __missing__(self, key: str) -> _DummyResolver:
         return _DummyResolver
 
@@ -207,7 +202,9 @@ class Manager:
     def __init__(self, config: Config, db_session: scoped_session) -> None:
         self.config = config
         self.db_session = db_session
-        self.resolvers: Mapping[str, Resolver] = _Resolvers(self)
+        self.resolvers: Mapping[str, Resolver] = _ResolverDict(
+            {r.source: r(self) for r in (CurseResolver, WowiResolver,
+                                         TukuiResolver, InstawowResolver)})
         self.catalogue: MasterCatalogue = None      # type: ignore
 
     @property
@@ -219,11 +216,13 @@ class Manager:
         _web_client.set(value)
 
     def get(self, defn: Defn) -> O[Pkg]:
+        "Get a package from (source, id) or (source, slug)."
         return (self.db_session.query(Pkg)
                 .filter(Pkg.source == defn.source,
                         (Pkg.id == defn.name) | (Pkg.slug == defn.name)).first())
 
     def get_from_substr(self, defn: Defn) -> O[Pkg]:
+        "Get a package from a partial slug."
         return (self.get(defn)
                 or (self.db_session.query(Pkg)
                     .filter(Pkg.slug.contains(defn.name)).order_by(Pkg.name).first()))
@@ -417,17 +416,17 @@ def init_cli_web_client(*, Bar: ProgressBar) -> aiohttp.ClientSession:
         if not (ctx and ctx.get('show_progress')):
             return
 
-        label = ctx.get('label') or f'Downloading {extract_filename(params.response)}'
-        total = params.response.content_length
-        if (total is None
-                # Size before decoding is not exposed in streaming API and
-                # `Content-Length` has the size of the payload after gzipping
-                or params.response.headers.get(hdrs.CONTENT_ENCODING) == 'gzip'):
-            # Length of zero will have a hash sign cycle through the bar
-            # (see indeterminate progress bars)
-            total = 0
-
         async def ticker() -> None:
+            label = ctx.get('label') or f'Downloading {extract_filename(params.response)}'
+            total = params.response.content_length
+            if (total is None
+                    # Size before decoding is not exposed in streaming API and
+                    # `Content-Length` has the size of the payload after gzipping
+                    or params.response.headers.get(hdrs.CONTENT_ENCODING) == 'gzip'):
+                # Length of zero will have a hash sign cycle through the bar
+                # (see indeterminate progress bars)
+                total = 0
+
             bar = None
             try:
                 bar = Bar(label=label, total=total)
@@ -454,15 +453,10 @@ _T = TypeVar('_T')
 
 
 class CliManager(Manager):
-    def __init__(self, config: Config, db_session: scoped_session,
-                 progress_bar_factory: Callable = make_progress_bar) -> None:
-        super().__init__(config, db_session)
-        self.progress_bar_factory = progress_bar_factory
-
     def run(self, awaitable: Awaitable[_T]) -> _T:
         async def run():
-            async with init_cli_web_client(Bar=progress_bar) as self.web_client, cancel_tickers():
+            async with init_cli_web_client(Bar=Bar) as self.web_client, cancel_tickers():
                 return await awaitable
 
-        with self.progress_bar_factory() as progress_bar:
+        with make_progress_bar() as Bar:
             return asyncio.run(run())
