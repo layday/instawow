@@ -8,9 +8,6 @@ jobs:
       matrix:
         runner: [macos-latest, ubuntu-latest, windows-latest]
         python-version: ['3.7', '3.8']
-        exclude:
-        - runner: windows-latest
-          python-version: '3.8'
     runs-on: ${{ matrix.runner }}
     steps:
     - name: Check-out the repo
