@@ -19,7 +19,7 @@ class Flavour(enum.IntEnum):
 
 @pytest.fixture(params=['retail', 'classic'])
 def full_config(tmp_path_factory, request, temp_dir):
-    name = f'{request.node.name[:30]}_{request.param}'
+    name = f'{request.node.name[: request.node.name.index("[")]}_{request.param}'
     parametrized_tmp_path = tmp_path_factory.getbasetemp() / name
     addons = parametrized_tmp_path / 'addons'
     addons.mkdir(parents=True, exist_ok=True)
