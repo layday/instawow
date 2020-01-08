@@ -287,13 +287,13 @@ def test_substr_list_match(molinari_and_run):
 
 def test_csv_export_and_import(molinari_and_run, manager):
     export_csv = manager.config._parametrized_tmp_path / 'export.csv'
-    molinari_and_run(f'list -e {export_csv}')
+    molinari_and_run(f'list -e "{export_csv}"')
 
     assert export_csv.read_text(encoding='utf-8') == '''\
 defn,strategy
 curse:molinari,default
 '''
-    assert molinari_and_run(f'install -i {export_csv}').output == '''\
+    assert molinari_and_run(f'install -i "{export_csv}"').output == '''\
 ✗ curse:molinari
   package already installed
 '''
