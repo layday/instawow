@@ -1,10 +1,9 @@
 from __future__ import annotations
 
+from contextlib import suppress
 from functools import total_ordering
 from pathlib import Path
 from typing import TYPE_CHECKING, FrozenSet, List, Tuple
-
-from loguru import logger
 
 from .exceptions import ManagerResult
 from .models import PkgFolder
@@ -57,14 +56,13 @@ class AddonFolder:
 
 def get_folders(manager: Manager, exclude_own: bool = True) -> FrozenSet[AddonFolder]:
     def make_addon_folder(path: Path):
-        try:
-            return (path.name not in own_folders
-                    and AddonFolder(path.name, TocReader.from_path_name(path)))
-        except (FileNotFoundError, NotADirectoryError):
-            logger.info(f'skipping {path}')
+        if (path.name not in own_folders
+                and path.is_dir() and not path.is_symlink()):
+            with suppress(FileNotFoundError):
+                return AddonFolder(path.name, TocReader.from_path_name(path))
 
     if exclude_own:
-        own_folders = {f.name for f in manager.db_session.query(PkgFolder).all()}   # type: ignore
+        own_folders = {f.name for f in manager.db_session.query(PkgFolder).all()}
     else:
         own_folders = set()
     return frozenset(filter(None, map(make_addon_folder, manager.config.addon_dir.iterdir())))
