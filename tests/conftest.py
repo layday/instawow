@@ -163,3 +163,9 @@ def mock_tukui(aresponses, JsonResponse, mock_master_catalogue):
                    'get',
                    aresponses.Response(body=make_zip('Tukui')),
                    match_querystring=True, is_reusable=True)
+
+
+@pytest.fixture
+@should_mock
+def mock_all(mock_curse, mock_wowi, mock_tukui):
+    pass

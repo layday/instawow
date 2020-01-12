@@ -4,19 +4,19 @@ from contextlib import suppress
 from functools import total_ordering
 from pathlib import Path
 from typing import TYPE_CHECKING, FrozenSet, List, Tuple
+import re
 
-from .exceptions import ManagerResult
 from .models import PkgFolder
-from .resolvers import Defn
+from .resolvers import Defn, CurseResolver, WowiResolver, TukuiResolver
 from .utils import TocReader, bucketise, cached_property, merge_intersecting_sets
 
 if TYPE_CHECKING:
     from .manager import Manager
 
 
-_ids_to_sources = {'X-Curse-Project-ID': 'curse',
-                   'X-Tukui-ProjectID': 'tukui',
-                   'X-WoWI-ID': 'wowi'}
+_ids_to_sources = {'X-Curse-Project-ID': CurseResolver.source,
+                   'X-Tukui-ProjectID': TukuiResolver.source,
+                   'X-WoWI-ID': WowiResolver.source}
 
 
 @total_ordering
@@ -65,27 +65,26 @@ def get_folders(manager: Manager, exclude_own: bool = True) -> FrozenSet[AddonFo
         own_folders = {f.name for f in manager.db_session.query(PkgFolder).all()}
     else:
         own_folders = set()
-    return frozenset(filter(None, map(make_addon_folder, manager.config.addon_dir.iterdir())))
+    return frozenset(f for f in map(make_addon_folder,
+                                    manager.config.addon_dir.iterdir()) if f)
 
 
-_Groups = List[
-    Tuple[List[AddonFolder], List[ManagerResult]]
-]
+if TYPE_CHECKING:
+    _Groups = List[Tuple[List[AddonFolder], FrozenSet[Defn]]]
 
 
 async def match_toc_ids(manager: Manager, leftovers: FrozenSet[AddonFolder]) -> _Groups:
-    "Attempt to match add-ons from source IDs contained in TOC files."
+    "Attempt to match add-ons from TOC file source ID entries."
     def keyer(value: AddonFolder):
         return next(d for d in defns if value.defns_from_toc & d)
 
     matches = [a for a in sorted(leftovers) if a.defns_from_toc]
     defns = list(merge_intersecting_sets(a.defns_from_toc for a in matches))
-    results = await manager.resolve(list(frozenset.union(*defns, frozenset())))
-    return [(f, [results[d] for d in b]) for b, f in bucketise(matches, keyer).items()]
+    return [(f, b) for b, f in bucketise(matches, keyer).items()]
 
 
 async def match_dir_names(manager: Manager, leftovers: FrozenSet[AddonFolder]) -> _Groups:
-    "Attempt to match folders against the CurseForge and WoWInterface catalogues."
+    "Attempt to match folders against the master catalogue."
     def keyer(value: Tuple[FrozenSet[AddonFolder], Defn]):
         return next(f for f in folders if value[0] & f)
 
@@ -93,10 +92,22 @@ async def match_dir_names(manager: Manager, leftovers: FrozenSet[AddonFolder]) -
 
     # We can't use an intersection here because
     # it's not guaranteed to return ``AddonFolder``s
-    matches = [(frozenset(filter(f.__contains__, leftovers)), Defn(i.source, i.id))
+    matches = [(frozenset(l for l in leftovers if l in f), Defn(i.source, i.id))
                for i in manager.catalogue.__root__
                for f in i.folders
                if manager.config.game_flavour in i.compatibility and frozenset(f) <= leftovers]
     folders = list(merge_intersecting_sets(f for f, _ in matches))
-    results = await manager.resolve(list({d for _, d in matches}))
-    return [(sorted(f), [results[d] for _, d in b]) for f, b in bucketise(matches, keyer).items()]
+    return [(sorted(f), frozenset(d for _, d in b))
+            for f, b in bucketise(matches, keyer).items()]
+
+
+async def match_toc_names(manager: Manager, leftovers: FrozenSet[AddonFolder]) -> _Groups:
+    "Attempt to match add-ons from TOC file name entries."
+    def normalise(value: str):
+        return re.sub(r'[^0-9A-Za-z]', '', value.casefold())
+
+    await manager.synchronise()
+
+    norm_to_items = bucketise(manager.catalogue.__root__, key=lambda i: normalise(i.name))
+    matches = ((l, norm_to_items.get(normalise(l.name))) for l in sorted(leftovers))
+    return [([l], frozenset(Defn(i.source, i.id) for i in m)) for l, m in matches if m]

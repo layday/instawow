@@ -1,8 +1,7 @@
 import pytest
 
-from instawow.matchers import get_folders, match_dir_names, match_toc_ids
-
-# TODO: use bespoke fixtures for catalogue
+from instawow.matchers import get_folders, match_dir_names, match_toc_ids, match_toc_names
+from instawow.resolvers import Defn
 
 
 def write_addons(manager, *addons):
@@ -20,10 +19,9 @@ def invalid_addons(manager):
 @pytest.fixture
 def molinari(manager):
     (manager.config.addon_dir / 'Molinari').mkdir()
-    (manager.config.addon_dir / 'Molinari' / 'Molinari.toc').write_text('''\
-## X-Curse-Project-ID: 20338
-## X-WoWI-ID: 13188
-''')
+    (manager.config.addon_dir / 'Molinari' / 'Molinari.toc').write_text(
+        '## X-Curse-Project-ID: 20338\n'
+        '## X-WoWI-ID: 13188\n')
 
 
 @pytest.mark.asyncio
@@ -35,16 +33,14 @@ async def test_invalid_addons_discarded(manager, invalid_addons):
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize('test_func', [match_toc_ids, match_dir_names])
-async def test_multiple_pkgs_per_addon_contained_in_results(manager, test_func, molinari, mock_curse, mock_wowi):
-    (_, results), = await test_func(manager, get_folders(manager))
-    matches = {(r.source, r.id) for r in results}
-    assert {('curse', '20338'), ('wowi', '13188')} == matches
+@pytest.mark.parametrize('test_func', [match_toc_ids, match_toc_names, match_dir_names])
+async def test_multiple_defns_per_addon_contained_in_results(manager, mock_all, molinari, test_func):
+    (_, matches), = await test_func(manager, get_folders(manager))
+    assert {Defn('curse', '20338'), Defn('wowi', '13188')} == set(matches)
 
 
 @pytest.mark.asyncio
-async def test_multiple_pkgs_per_addon_per_source_contained_in_results(manager, mock_curse, mock_wowi):
+async def test_multiple_defns_per_addon_per_source_contained_in_results(manager, mock_all):
     write_addons(manager, 'AdiBags', 'AdiBags_Config')
-    (_, results), = await match_dir_names(manager, get_folders(manager))
-    matches = {(r.source, r.id) for r in results}
-    assert {('curse', '23350'), ('curse', '333072')} == matches
+    (_, matches), = await match_dir_names(manager, get_folders(manager))
+    assert {Defn('curse', '23350'), Defn('curse', '333072')} == matches

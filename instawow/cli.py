@@ -3,7 +3,7 @@ from __future__ import annotations
 from functools import partial
 from itertools import chain, islice
 from pathlib import Path
-from textwrap import fill
+from textwrap import dedent, fill
 from typing import (TYPE_CHECKING, Any, Callable, FrozenSet, Generator, Iterable, List, Mapping,
                     Optional, Sequence, Tuple, Union, cast, overload)
 
@@ -240,24 +240,24 @@ def remove(obj: M, addons: Sequence[Defn]) -> None:
 @click.pass_context
 def reconcile(ctx: click.Context, auto: bool) -> None:
     "Reconcile pre-installed add-ons."
-    from .matchers import AddonFolder, match_toc_ids, match_dir_names, get_folders
+    from .matchers import AddonFolder, match_toc_ids, match_toc_names, match_dir_names, get_folders
     from .models import is_pkg
     from .prompts import PkgChoice, confirm, select, skip
 
-    preamble = '''\
-Use the arrow keys to navigate, <o> to open an add-on in your browser,
-enter to make a selection and <s> to skip to the next item.
+    preamble = dedent('''\
+        Use the arrow keys to navigate, <o> to open an add-on in your browser,
+        enter to make a selection and <s> to skip to the next item.
 
-Versions that differ from the installed version or differ between choices
-are highlighted in purple.
+        Versions that differ from the installed version or differ between
+        choices are highlighted in purple.
 
-The reconciler will do a first pass of all of your add-ons looking for
-source IDs in TOC files.  If it is unable to reconcile all of your add-ons
-it will perform a second pass to match add-on folders against the CurseForge
-and WoWInterface catalogues.
+        The reconciler will do a first pass of all of your add-ons looking for
+        source IDs in TOC files.  If it is unable to reconcile all of your
+        add-ons it will perform a second pass to match add-on folders against
+        the CurseForge and WoWInterface catalogues.
 
-Selected add-ons _will_ be reinstalled.
-'''
+        Selected add-ons _will_ be reinstalled.
+        ''')
 
     manager: CliManager = ctx.obj.m
 
@@ -277,9 +277,10 @@ Selected add-ons _will_ be reinstalled.
         selection = select(f'{addon.name} [{addon.version or "?"}]', choices).unsafe_ask()
         return selection
 
-    def prompt(groups) -> Iterable[Defn]:
-        for addons, results in groups:
-            shortlist = list(filter(is_pkg, results))
+    def prompt(groups: Iterable[Tuple[List[AddonFolder], FrozenSet[Defn]]]) -> Iterable[Defn]:
+        results = manager.run(manager.resolve(list({d for _, b in groups for d in b})))
+        for addons, defns in groups:
+            shortlist = list(filter(is_pkg, (results.get(d) for d in defns)))
             if shortlist:
                 if auto:
                     pkg = shortlist[0]      # TODO: something more sophisticated
@@ -291,7 +292,8 @@ Selected add-ons _will_ be reinstalled.
     def match_all() -> Generator[List[Defn], FrozenSet[AddonFolder], None]:
         # Match in order of increasing heuristicitivenessitude
         for fn in (match_toc_ids,
-                   match_dir_names,):
+                   match_dir_names,
+                   match_toc_names,):
             groups = manager.run(fn(manager, (yield [])))
             yield list(prompt(groups))
 
@@ -313,7 +315,7 @@ Selected add-ons _will_ be reinstalled.
 
     if not auto and leftovers:
         click.echo()
-        table_rows = [('unreconciled',), *((f.name,) for f in leftovers)]
+        table_rows = [('unreconciled',), *((f.name,) for f in sorted(leftovers))]
         click.echo(tabulate(table_rows))
 
 
