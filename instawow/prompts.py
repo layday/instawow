@@ -75,8 +75,7 @@ def checkbox(message: str, choices: Sequence[Choice], **prompt_kwargs: Any) -> Q
             tokens.append(('class:instruction',
                            '  (use arrow keys to move, '
                            '<space> to select, '
-                           '<o> to view in your browser and '
-                           '<i> to invert)'))
+                           '<o> to view in your browser)'))
         return tokens
 
     ic = InquirerControl(cast(list, choices), None,
