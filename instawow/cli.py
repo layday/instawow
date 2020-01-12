@@ -24,11 +24,9 @@ class Report:
     _warning = click.style('!', fg='blue')
 
     def __init__(self, results: Mapping[Defn, E.ManagerResult],
-                 filter_fn: Callable[[E.ManagerResult], bool] = (lambda _: True),
-                 report_outdated: bool = True) -> None:
+                 filter_fn: Callable[[E.ManagerResult], bool] = lambda _: True) -> None:
         self.results = results
         self.filter_fn = filter_fn
-        self.report_outdated = report_outdated
 
     @property
     def code(self) -> int:
@@ -50,10 +48,9 @@ class Report:
                          if self.filter_fn(r))
 
     def generate(self) -> None:
-        if self.report_outdated:
-            manager = click.get_current_context().obj.m
-            if is_outdated(manager):
-                click.echo(f'{self._warning} instawow is out of date')
+        manager: CliManager = click.get_current_context().obj.m
+        if manager.config.auto_update_check and is_outdated(manager):
+            click.echo(f'{self._warning} instawow is out of date')
 
         report = str(self)
         if report:

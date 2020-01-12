@@ -23,6 +23,7 @@ class _Config(BaseConfig):
     addon_dir: Path
     temp_dir: Path = Path(gettempdir()) / 'instawow'
     game_flavour: Literal['retail', 'classic']
+    auto_update_check: bool = True
 
     class Config:
         env_prefix = 'INSTAWOW_'
