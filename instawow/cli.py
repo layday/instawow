@@ -251,12 +251,11 @@ def reconcile(ctx: click.Context, auto: bool) -> None:
         Versions that differ from the installed version or differ between
         choices are highlighted in purple.
 
-        The reconciler will do a first pass of all of your add-ons looking for
-        source IDs in TOC files.  If it is unable to reconcile all of your
-        add-ons it will perform a second pass to match add-on folders against
-        the CurseForge and WoWInterface catalogues.
+        The reconciler will perform three passes from most to least accurate,
+        looking to match source IDs in TOC files, folder names and add-on names
+        in TOC files.
 
-        Selected add-ons _will_ be reinstalled.
+        Selected add-ons will be reinstalled.
         ''')
 
     manager: CliManager = ctx.obj.m
