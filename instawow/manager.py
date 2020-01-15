@@ -171,11 +171,12 @@ def prepare_db_session(config: Config) -> scoped_session:
 
 
 def init_web_client(**kwargs: Any) -> aiohttp.ClientSession:
-    from aiohttp import ClientSession, TCPConnector
+    from aiohttp import ClientSession, ClientTimeout, TCPConnector
 
     kwargs = {'connector': TCPConnector(force_close=True, limit_per_host=10),
               'headers': {'User-Agent': USER_AGENT},
               'trust_env': True,    # Respect http_proxy env var
+              'timeout': ClientTimeout(connect=15),     # type: ignore  # ^pyright
               **kwargs}
     return ClientSession(**kwargs)
 
