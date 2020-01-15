@@ -116,7 +116,7 @@ async def download_archive(manager: Manager, pkg: Pkg, *, chunk_size: int = 4096
 
         await acopy(unquote(url[7:]), dst)
     else:
-        kwargs = {'trace_request_ctx': {'show_progress': True}}
+        kwargs = {'raise_for_status': True, 'trace_request_ctx': {'show_progress': True}}
         async with manager.web_client.get(url, **kwargs) as response, \
                 open_temp_writer() as (temp_path, write):
             async for chunk in response.content.iter_chunked(chunk_size):
