@@ -154,15 +154,16 @@ class WaCompanionBuilder(ManagerAttrAccessMixin):
 
             return read_text(wa_templates, filename)
 
-        jinja_env = Environment(trim_blocks=True, lstrip_blocks=True, loader=FunctionLoader(loader))
+        jinja_env = Environment(trim_blocks=True, lstrip_blocks=True,
+                                loader=FunctionLoader(loader))
 
-        with ZipFile(self.ensure_dirs().addon_file, 'w') as addon_zip:
+        with ZipFile(self.ensure_dirs().addon_file, 'w') as file:
             def write_tpl(filename: str, ctx: dict) -> None:
                 # We're not using a plain string as the first argument to
                 # ``writestr`` 'cause the timestamp is generated dynamically
                 # by default making the build unreproducible
                 zip_info = ZipInfo(filename=f'WeakAurasCompanion/{filename}')
-                addon_zip.writestr(zip_info, jinja_env.get_template(filename).render(ctx))
+                file.writestr(zip_info, jinja_env.get_template(filename).render(ctx))
 
             write_tpl('data.lua',
                       {'was': [(o.metadata.slug,
@@ -182,7 +183,7 @@ class WaCompanionBuilder(ManagerAttrAccessMixin):
                        'stash': []})    # Send to WAC not supported - always empty
             write_tpl('init.lua', {})
             write_tpl('WeakAurasCompanion.toc',
-                      {'interface': '11303' if self.config.is_classic else '80205'})
+                      {'interface': '11303' if self.config.is_classic else '80300'})
 
     async def build(self) -> None:
         aura_groups = {k: v
