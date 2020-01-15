@@ -280,7 +280,7 @@ def reconcile(ctx: click.Context, auto: bool) -> None:
     def prompt(groups: Iterable[Tuple[List[AddonFolder], FrozenSet[Defn]]]) -> Iterable[Defn]:
         results = manager.run(manager.resolve(list({d for _, b in groups for d in b})))
         for addons, defns in groups:
-            shortlist = list(filter(is_pkg, (results.get(d) for d in defns)))
+            shortlist = list(filter(is_pkg, (results[d] for d in defns)))
             if shortlist:
                 if auto:
                     pkg = shortlist[0]      # TODO: something more sophisticated

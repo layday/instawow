@@ -151,10 +151,10 @@ def tabulate(rows: Sequence[Sequence[str]], *, max_col_width: int = 60) -> str:
     "Produce an ASCII table from equal-length elements in a sequence."
     from textwrap import fill
 
-    def apply_max_col_width(value):
+    def apply_max_col_width(value: Sequence[str]):
         return fill(str(value), width=max_col_width, max_lines=1)
 
-    def calc_resultant_col_widths(rows):
+    def calc_resultant_col_widths(rows: Sequence[Sequence[str]]):
         cols = zip(*rows)
         return [max(map(len, c)) for c in cols]
 
@@ -204,19 +204,19 @@ def make_progress_bar(**kwargs: Any) -> ProgressBar:
             values = {f: f'{getattr(progress, f) / 2 ** 20:.1f}' for f in {'current', 'total'}}
             return HTML(self.template).format(**values)
 
-    formatters = [formatters.Label(),
-                  formatters.Text(' '),
-                  formatters.Percentage(),
-                  formatters.Text(' '),
-                  formatters.Bar(),
-                  formatters.Text(' '),
-                  DownloadProgress(),
-                  formatters.Text(' '),
-                  formatters.Text('eta [', style='class:time-left'),
-                  formatters.TimeLeft(),
-                  formatters.Text(']', style='class:time-left'),
-                  formatters.Text(' ')]
-    progress_bar = PatchedProgressBar(formatters=formatters, **kwargs)
+    f = [formatters.Label(),
+         formatters.Text(' '),
+         formatters.Percentage(),
+         formatters.Text(' '),
+         formatters.Bar(),
+         formatters.Text(' '),
+         DownloadProgress(),
+         formatters.Text(' '),
+         formatters.Text('eta [', style='class:time-left'),
+         formatters.TimeLeft(),
+         formatters.Text(']', style='class:time-left'),
+         formatters.Text(' ')]
+    progress_bar = PatchedProgressBar(formatters=f, **kwargs)
     return progress_bar
 
 

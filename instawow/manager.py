@@ -10,7 +10,7 @@ from pathlib import Path, PurePath
 import posixpath
 from shutil import copy, move
 from tempfile import NamedTemporaryFile, mkdtemp
-from typing import (TYPE_CHECKING, Any, AsyncContextManager as ACM, AsyncGenerator, Awaitable,
+from typing import (TYPE_CHECKING, Any, AsyncContextManager as ACM, AsyncIterator, Awaitable,
                     Callable, Dict, Iterable, List, Mapping, NoReturn, Optional as O, Sequence,
                     Set, Tuple, TypeVar, Union, cast)
 
@@ -41,7 +41,7 @@ amove = t(move)
 
 
 @asynccontextmanager
-async def open_temp_writer() -> AsyncGenerator[Tuple[Path, Callable], None]:
+async def open_temp_writer() -> AsyncIterator[Tuple[Path, Callable]]:
     fh = await AsyncNamedTemporaryFile(delete=False)
     path = Path(fh.name)
     try:
@@ -85,7 +85,7 @@ _ArchiveR = Tuple[List[str], Callable[[Path], Awaitable[None]]]
 
 
 @asynccontextmanager
-async def acquire_archive(path: PurePath) -> AsyncGenerator[_ArchiveR]:
+async def acquire_archive(path: PurePath) -> AsyncIterator[_ArchiveR]:
     from zipfile import ZipFile
 
     def extract(parent: Path) -> None:
@@ -190,7 +190,7 @@ class _DummyResolver:
 
 
 class _ResolverDict(dict):
-    def __missing__(self, key: str) -> _DummyResolver:
+    def __missing__(self, key: str) -> Resolver:
         return _DummyResolver
 
 
@@ -199,13 +199,18 @@ async def _error_out(error: Union[E.ManagerError, E.InternalError]) -> NoReturn:
 
 
 class Manager:
+    config: Config
+    db_session: Any     # scoped_session
+    resolvers: Mapping[str, Resolver]
+    catalogue: MasterCatalogue
+
     def __init__(self, config: Config, db_session: scoped_session) -> None:
         self.config = config
         self.db_session = db_session
-        self.resolvers: Mapping[str, Resolver] = _ResolverDict(
-            {r.source: r(self) for r in (CurseResolver, WowiResolver,
-                                         TukuiResolver, InstawowResolver)})
-        self.catalogue: MasterCatalogue = None      # type: ignore
+
+        resolvers = (CurseResolver, WowiResolver, TukuiResolver, InstawowResolver)
+        self.resolvers = _ResolverDict({r.source: r(self) for r in resolvers})
+        self.catalogue = None      # type: ignore
 
     @property
     def web_client(self) -> aiohttp.ClientSession:
@@ -305,7 +310,7 @@ class Manager:
 
     async def install_one(self, pkg: Pkg, archive: ACM[_ArchiveR], replace: bool) -> E.PkgInstalled:
         async with archive as (folders, extract):
-            conflicts = (self.db_session.query(Pkg).join(Pkg.folders)   # type: ignore  # ^sqla
+            conflicts = (self.db_session.query(Pkg).join(Pkg.folders)
                          .filter(PkgFolder.name.in_(folders)).all())
             if conflicts:
                 raise E.PkgConflictsWithInstalled(conflicts)
@@ -320,7 +325,6 @@ class Manager:
         return E.PkgInstalled(pkg)
 
     async def install(self, defns: Sequence[Defn], replace: bool) -> Dict[Defn, E.ManagerResult]:
-        "Retrieve packages to install."
         prelim_results = await self.resolve([d for d in defns if not self.get(d)], True)
 
         # Weed out installed deps - this isn't super efficient but avoids
@@ -337,7 +341,7 @@ class Manager:
 
     async def update_one(self, old_pkg: Pkg, pkg: Pkg, archive: ACM[_ArchiveR]) -> E.PkgUpdated:
         async with archive as (folders, extract):
-            conflicts = (self.db_session.query(Pkg).join(Pkg.folders)   # type: ignore  # ^sqla
+            conflicts = (self.db_session.query(Pkg).join(Pkg.folders)
                          .filter(PkgFolder.pkg_source != pkg.source, PkgFolder.pkg_id != pkg.id)
                          .filter(PkgFolder.name.in_(folders)).all())
             if conflicts:
@@ -352,7 +356,6 @@ class Manager:
         return E.PkgUpdated(old_pkg, pkg)
 
     async def update(self, defns: Sequence[Defn]) -> Dict[Defn, E.ManagerResult]:
-        "Retrieve packages to update."
         # Rebuild ``Defn`` with strategy from package for defns of installed packages
         checked_defns = {p.to_defn().with_name(c.name) if p else c: p
                          for c, p in ((d, self.get(d)) for d in defns)}
@@ -382,7 +385,6 @@ class Manager:
         return E.PkgRemoved(pkg)
 
     async def remove(self, defns: Sequence[Defn]) -> Dict[Defn, E.ManagerResult]:
-        "Prepare packages to remove."
         pkgs_by_defn = ((d, self.get(d)) for d in defns)
         coros = dict_chain(defns, partial(_error_out, E.PkgNotInstalled()),
                            ((d, partial(self.remove_one, p)) for d, p in pkgs_by_defn if p))
@@ -394,7 +396,7 @@ _tickers: cv.ContextVar[Set[asyncio.Task[None]]] = cv.ContextVar('_tickers', def
 
 
 @asynccontextmanager
-async def cancel_tickers() -> AsyncGenerator[None]:
+async def cancel_tickers() -> AsyncIterator[None]:
     try:
         yield
     finally:
