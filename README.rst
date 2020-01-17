@@ -74,10 +74,11 @@ Searching for add-ons
 ~~~~~~~~~~~~~~~~~~~~~
 
 *instawow* comes with a rudimentary ``search`` command which allows you to
-select add-ons to install.  The search does not display add-on details
-other than the name and source; pressing ``<o>`` will bring the add-on page up
-in your browser.  The search uses a collated add-on name catalogue internally
-which is updated `once daily <https://github.com/layday/instascrape>`__.
+select add-ons to install.
+The search does not display add-on details other than the name and source;
+pressing ``<o>`` will bring the add-on page up in your browser.
+Search uses a collated add-on catalogue internally which is updated
+`once daily <https://github.com/layday/instawow-data/tree/data>`__.
 
 WoW Classic
 ~~~~~~~~~~~
