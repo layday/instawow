@@ -8,3 +8,5 @@ pytest-asyncio
 https://github.com/layday/aresponses/archive/make-responses-reusable.zip
 
 ipython
+
+-r requirements.txt

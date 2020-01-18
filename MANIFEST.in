@@ -1,5 +1,0 @@
-exclude .gitignore
-exclude .envrc alembic.ini MANIFEST.in noxfile.py pyrightconfig.json
-exclude requirements-*.txt requirements.in
-prune nix
-prune tests

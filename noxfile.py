@@ -45,8 +45,7 @@ def test(session):
 @nox.session(python='3.7', name='bump-dependencies')
 def bump_dependencies(session):
     session.install('pip-tools')
-    session.run('rm', '-f', 'requirements.txt')
-    session.run('pip-compile', 'requirements.in')
+    session.run('pip-compile', '-U', '--build-isolation', 'setup.py')
 
 
 @nox.session(python=False, name='clobber-build-artefacts')
