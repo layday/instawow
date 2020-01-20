@@ -2,33 +2,30 @@ import os
 
 import nox
 
+nox.options.envdir = '.py-nox'
+types_dir = '.py-types'
+
+
+@nox.session(python=False, name='update-stubs')
+def update_stubs(session):
+    session.run('rm', '-rf', types_dir)
+    session.run('mkdir', types_dir)
+    session.cd(types_dir)
+    session.run('git', 'clone', '--depth', '1', 'https://github.com/python/typeshed')
+    session.run('git', 'clone', '--depth', '1', 'https://github.com/dropbox/sqlalchemy-stubs', 'stubs/_sqlalchemy-stubs')
+    session.run('cp', '-r', 'stubs/_sqlalchemy-stubs/sqlalchemy-stubs', 'stubs/sqlalchemy')
+
+
+@nox.session(name='type-check')
+def type_check(session):
+    session.install('.')
+    session.run('npx', '--cache', '.npm', 'pyright', '--lib')
+
 
 @nox.session(python='3.7')
 def reformat(session):
     session.install('isort[pyproject]')
     session.run('isort', '--recursive', 'instawow', 'tests')
-
-
-@nox.session(python=False, name='update-stubs')
-def update_stubs(session):
-    base_dir = '.py-types'
-    session.run('rm', '-rf', base_dir)
-    session.run('git', 'clone', '--depth', '1',
-                'https://github.com/python/typeshed',
-                f'{base_dir}/typeshed')
-    session.run('git', 'clone', '--depth', '1',
-                'https://github.com/dropbox/sqlalchemy-stubs',
-                f'{base_dir}/stubs/_sqlalchemy-stubs')
-    session.run('mv',
-                f'{base_dir}/stubs/_sqlalchemy-stubs/sqlalchemy-stubs',
-                f'{base_dir}/stubs/sqlalchemy')
-    session.run('rm', '-rf', f'{base_dir}/stubs/_sqlalchemy-stubs')
-
-
-@nox.session(python='3.7', name='type-check')
-def type_check(session):
-    session.install('.')
-    session.run('npx', '--cache', '.npm', 'pyright', '--lib')
 
 
 @nox.session

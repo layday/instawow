@@ -25,7 +25,6 @@ in
 mkShell {
   buildInputs = [
     pkgconfig
-    libyaml
     git
     cacert
     myPython

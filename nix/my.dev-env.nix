@@ -12,7 +12,6 @@ in
     buildInputs = [
       pkgconfig
       libiconv
-      libyaml
       openssl
       ctags
       rustc
