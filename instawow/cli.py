@@ -69,8 +69,14 @@ class ManagerWrapper:
 
     @cached_property
     def m(self) -> CliManager:
+        import asyncio
         from .config import Config
         from .manager import CliManager, prepare_db_session
+
+        # TODO: rm once https://github.com/aio-libs/aiohttp/issues/4324 is fixed
+        policy = getattr(asyncio, 'WindowsSelectorEventLoopPolicy', None)
+        if policy:
+            asyncio.set_event_loop_policy(policy())
 
         while True:
             try:
