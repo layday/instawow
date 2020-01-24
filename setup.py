@@ -19,7 +19,7 @@ setup(name='instawow',
                           loguru
                           lupa
                           prompt-toolkit>=2,<3
-                          pydantic>=1,<2
+                          pydantic~=1.4.0
                           questionary==1.3.0
                           SQLAlchemy>=1,<2
                           yarl>=1,<2''',

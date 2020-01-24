@@ -7,15 +7,14 @@ from typing import Any, Dict
 
 import click
 from pydantic import BaseSettings, Extra, validator
-from pydantic.utils import deep_update as _deep_update
 
 from .utils import Literal
 
 
 class BaseConfig(BaseSettings):
-    def _build_values(self, init_kwargs: Dict[str, Any]) -> Dict[str, Any]:
+    def _build_values(self, init_kwargs: Dict[str, Any], _env_file: Any = None) -> Dict[str, Any]:
         # Prioritise env vars
-        return _deep_update(init_kwargs, self._build_environ())
+        return {**init_kwargs, **self._build_environ(_env_file)}
 
 
 class _Config(BaseConfig):
