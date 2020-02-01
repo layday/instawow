@@ -18,7 +18,7 @@ setup(name='instawow',
                           jinja2>=2,<3
                           loguru
                           lupa
-                          prompt-toolkit~=2.0,>=3.0.3,<4
+                          prompt-toolkit~=2.0.0,~=3.0.3
                           pydantic~=1.4.0
                           questionary>=1,!=1.3.0,<2
                           SQLAlchemy>=1,<2
