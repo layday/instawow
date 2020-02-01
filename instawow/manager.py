@@ -29,6 +29,9 @@ if TYPE_CHECKING:
     from sqlalchemy.orm import scoped_session
     from .config import Config
 
+    _ArchiveR = Tuple[List[str], Callable[[Path], Awaitable[None]]]
+    _T = TypeVar('_T')
+
 
 USER_AGENT = 'instawow (https://github.com/layday/instawow)'
 
@@ -79,9 +82,6 @@ def should_extract(base_dirs: Set[str]) -> Callable[[str], bool]:
         return cast(bool, sep) and head in base_dirs
 
     return is_member
-
-
-_ArchiveR = Tuple[List[str], Callable[[Path], Awaitable[None]]]
 
 
 @asynccontextmanager
@@ -176,7 +176,7 @@ def init_web_client(**kwargs: Any) -> aiohttp.ClientSession:
     kwargs = {'connector': TCPConnector(force_close=True, limit_per_host=10),
               'headers': {'User-Agent': USER_AGENT},
               'trust_env': True,    # Respect http_proxy env var
-              'timeout': ClientTimeout(connect=15),     # type: ignore  # ^pyright
+              'timeout': cast(Any, ClientTimeout)(connect=15),
               **kwargs}
     return ClientSession(**kwargs)
 
@@ -240,7 +240,7 @@ class Manager:
             if name:
                 return resolver.source, name
 
-    async def synchronise(self) -> Manager:
+    async def synchronise(self) -> None:
         "Fetch the master catalogue from the interwebs."
         if self.catalogue is None:
             label = 'Synchronising master catalogue'
@@ -248,7 +248,6 @@ class Manager:
                    'master-catalogue-v1.compact.json')   # v1
             catalogue = await cache_json_response(self, url, 4, 'hours', label=label)
             self.catalogue = MasterCatalogue.parse_obj(catalogue)
-        return self
 
     async def _consume_seq(self, coros_by_defn: Dict[Defn, Callable[..., Awaitable[Any]]]
                            ) -> Dict[Defn, E.ManagerResult]:
@@ -436,7 +435,8 @@ def init_cli_web_client(*, Bar: ProgressBar) -> aiohttp.ClientSession:
                 content = params.response.content
 
                 while not content.is_eof():
-                    bar.current = content.total_bytes
+                    # This is ``bar.current`` in prompt_toolkit v2 and ``.items_completed`` in v3
+                    bar.current = bar.items_completed = content.total_bytes
                     Bar.invalidate()
                     await asyncio.sleep(_tick_interval)
             finally:
@@ -450,9 +450,6 @@ def init_cli_web_client(*, Bar: ProgressBar) -> aiohttp.ClientSession:
     trace_config.on_request_end.append(do_on_request_end)
     trace_config.freeze()
     return init_web_client(trace_configs=[trace_config])
-
-
-_T = TypeVar('_T')
 
 
 class CliManager(Manager):

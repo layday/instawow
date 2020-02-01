@@ -20,6 +20,10 @@ if TYPE_CHECKING:
     from prompt_toolkit.shortcuts import ProgressBar
     from .manager import CliManager
 
+    _H = TypeVar('_H', bound=Hashable)
+    _AnySet = TypeVar('_AnySet', bound=AbstractSet)
+_V = TypeVar('_V')
+
 
 class ManagerAttrAccessMixin:
     def __getattr__(self, name: str) -> Any:
@@ -61,28 +65,21 @@ class TocReader:
         return cls.from_path(path / f'{path.name}.toc')
 
 
-_RT = TypeVar('_RT')
-
-
-class cached_property(Generic[_RT]):
-    def __init__(self, f: Callable[[Any], _RT]) -> None:
+class cached_property(Generic[_V]):
+    def __init__(self, f: Callable[[Any], _V]) -> None:
         self.f = f
 
     @overload
     def __get__(self, o: None, t: Optional[type] = None) -> Callable: ...
     @overload
-    def __get__(self, o: Any, t: Optional[type] = None) -> _RT: ...
+    def __get__(self, o: Any, t: Optional[type] = None) -> _V: ...
 
-    def __get__(self, o: Any, t: Optional[type] = None) -> Union[Callable, _RT]:
+    def __get__(self, o: Any, t: Optional[type] = None) -> Union[Callable, _V]:
         if o is None:
             return self.f
         else:
             o.__dict__[self.f.__name__] = v = self.f(o)
             return v
-
-
-_H = TypeVar('_H', bound=Hashable)
-_V = TypeVar('_V')
 
 
 def bucketise(iterable: Iterable[_V], key: Callable[[_V], _H] = lambda v: v) -> DefaultDict[_H, List[_V]]:
@@ -103,9 +100,6 @@ def uniq(it: Iterable[_H]) -> List[_H]:
     return list(dict.fromkeys(it))
 
 
-_AnySet = TypeVar('_AnySet', bound=AbstractSet)
-
-
 def merge_intersecting_sets(it: Iterable[_AnySet]) -> Iterable[_AnySet]:
     "Recursively merge intersecting sets in a collection."
     many_sets = deque(it)
@@ -118,7 +112,7 @@ def merge_intersecting_sets(it: Iterable[_AnySet]) -> Iterable[_AnySet]:
             for other_set in many_sets:
                 if this_set & other_set:
                     # The in-place operator will mutate unfrozen sets in the original collection
-                    this_set = this_set | other_set
+                    this_set = this_set | other_set     # type: ignore
                     many_sets.remove(other_set)
                     break
             else:
@@ -187,22 +181,28 @@ def make_progress_bar(**kwargs: Any) -> ProgressBar:
     # around all that by signalling to the daemon thread to kill the app.
 
     class PatchedProgressBar(ProgressBar):
-        def __exit__(self, *args):
+        def __exit__(self, *args: Any):
             if self._has_sigwinch:
-                self._loop.add_signal_handler(signal.SIGWINCH, self._previous_winch_handler)
+                self._loop.add_signal_handler(signal.SIGWINCH,
+                                              cast(Callable, self._previous_winch_handler))
 
             if self._thread is not None:
+                def attempt_exit(sender: Any):
+                    sender.is_running and sender.exit()
+
                 # Signal to ``_auto_refresh_context`` that it should exit the app
-                self.app.on_invalidate = Event(self.app,
-                                               lambda sender: sender.is_running and sender.exit())
+                self.app.on_invalidate = Event(self.app, attempt_exit)
                 self._thread.join()
 
     class DownloadProgress(formatters.Progress):
-        template = f'{formatters.Progress.template}MB'
+        template = formatters.Progress.template + 'MB'
 
-        def format(self, progress_bar, progress, width):
-            values = {f: f'{getattr(progress, f) / 2 ** 20:.1f}' for f in {'current', 'total'}}
-            return HTML(self.template).format(**values)
+        def format(self, progress_bar: ProgressBar, progress: Any, width: int):
+            def format_pct(value: int) -> str:
+                return f'{value / 2 ** 20:.1f}'
+
+            return HTML(self.template).format(current=format_pct(progress.current),
+                                              total=format_pct(progress.total))
 
     f = [formatters.Label(),
          formatters.Text(' '),
@@ -236,13 +236,13 @@ def is_not_stale(path: Path, ttl: int, unit: str = 'seconds') -> bool:
 
 def get_version() -> str:
     try:
-        import importlib.metadata as importlib_metadata
+        import importlib.metadata as md
     except ImportError:
-        import importlib_metadata       # type: ignore
+        import importlib_metadata as md     # type: ignore
 
     try:
-        return importlib_metadata.version(__package__)
-    except importlib_metadata.PackageNotFoundError:
+        return md.version(__package__)
+    except md.PackageNotFoundError:
         return 'dev'
 
 
@@ -264,7 +264,7 @@ def is_outdated(manager: CliManager) -> bool:
     else:
         from aiohttp.client import ClientError
 
-        async def get_metadata() -> dict:
+        async def get_metadata():
             api_url = 'https://pypi.org/pypi/instawow/json'
             async with manager.web_client.get(api_url) as response:
                 return await response.json()

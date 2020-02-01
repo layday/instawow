@@ -3,15 +3,17 @@ from __future__ import annotations
 from contextlib import suppress
 from functools import total_ordering
 from pathlib import Path
-from typing import TYPE_CHECKING, FrozenSet, List, Tuple
 import re
+from typing import TYPE_CHECKING, FrozenSet, List, Tuple
 
 from .models import PkgFolder
-from .resolvers import Defn, CurseResolver, WowiResolver, TukuiResolver
+from .resolvers import CurseResolver, Defn, TukuiResolver, WowiResolver
 from .utils import TocReader, bucketise, cached_property, merge_intersecting_sets
 
 if TYPE_CHECKING:
     from .manager import Manager
+
+    MatchGroups = List[Tuple[List['AddonFolder'], FrozenSet[Defn]]]
 
 
 _ids_to_sources = {'X-Curse-Project-ID': CurseResolver.source,
@@ -69,11 +71,7 @@ def get_folders(manager: Manager, exclude_own: bool = True) -> FrozenSet[AddonFo
                                     manager.config.addon_dir.iterdir()) if f)
 
 
-if TYPE_CHECKING:
-    _Groups = List[Tuple[List[AddonFolder], FrozenSet[Defn]]]
-
-
-async def match_toc_ids(manager: Manager, leftovers: FrozenSet[AddonFolder]) -> _Groups:
+async def match_toc_ids(manager: Manager, leftovers: FrozenSet[AddonFolder]) -> MatchGroups:
     "Attempt to match add-ons from TOC file source ID entries."
     def keyer(value: AddonFolder):
         return next(d for d in defns if value.defns_from_toc & d)
@@ -83,7 +81,7 @@ async def match_toc_ids(manager: Manager, leftovers: FrozenSet[AddonFolder]) -> 
     return [(f, b) for b, f in bucketise(matches, keyer).items()]
 
 
-async def match_dir_names(manager: Manager, leftovers: FrozenSet[AddonFolder]) -> _Groups:
+async def match_dir_names(manager: Manager, leftovers: FrozenSet[AddonFolder]) -> MatchGroups:
     "Attempt to match folders against the master catalogue."
     def keyer(value: Tuple[FrozenSet[AddonFolder], Defn]):
         return next(f for f in folders if value[0] & f)
@@ -101,7 +99,7 @@ async def match_dir_names(manager: Manager, leftovers: FrozenSet[AddonFolder]) -
             for f, b in bucketise(matches, keyer).items()]
 
 
-async def match_toc_names(manager: Manager, leftovers: FrozenSet[AddonFolder]) -> _Groups:
+async def match_toc_names(manager: Manager, leftovers: FrozenSet[AddonFolder]) -> MatchGroups:
     "Attempt to match add-ons from TOC file name entries."
     def normalise(value: str):
         return re.sub(r'[^0-9A-Za-z]', '', value.casefold())

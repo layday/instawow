@@ -482,7 +482,7 @@ def configure(obj: M, show_active: bool) -> None:
                        validator=PydanticValidator(Config, 'addon_dir'))
     game_flavour = prompt('Game flavour: ',
                           default='classic' if '_classic_' in addon_dir else 'retail',
-                          completer=WordCompleter(('retail', 'classic')),
+                          completer=WordCompleter(['retail', 'classic']),
                           validator=PydanticValidator(Config, 'game_flavour'))
     config = Config(addon_dir=addon_dir, game_flavour=game_flavour).write()
     click.echo(f'Configuration written to: {config.config_file}')

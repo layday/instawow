@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from functools import partial
-from typing import TYPE_CHECKING, Any, Optional, Sequence, Type, cast
+from typing import TYPE_CHECKING, Any, Optional, Sequence, Type
 
 from prompt_toolkit.application import Application
 from prompt_toolkit.completion import PathCompleter
@@ -15,14 +15,16 @@ from questionary.prompts.common import InquirerControl, Separator, create_inquir
 from questionary.question import Question
 
 if TYPE_CHECKING:
+    from prompt_toolkit.completion import CompleteEvent
+    from prompt_toolkit.document import Document
     from .models import Pkg
 
 
 class DirectoryCompleter(PathCompleter):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, expanduser=True, only_directories=True, **kwargs)
 
-    def get_completions(self, document, complete_event):
+    def get_completions(self, document: Document, complete_event: CompleteEvent):
         for completion in super().get_completions(document, complete_event):
             # Append slash to completions so we don't have to insert it manually after every <tab>
             completion.text += '/'
@@ -36,7 +38,7 @@ class PydanticValidator(Validator):
         self.model = model
         self.field = field
 
-    def validate(self, document) -> None:
+    def validate(self, document: Document) -> None:
         try:
             self.model.parse_obj({self.field: document.text})
         except pydantic.ValidationError as error:
@@ -78,7 +80,7 @@ def checkbox(message: str, choices: Sequence[Choice], **prompt_kwargs: Any) -> Q
                            '<o> to view in your browser)'))
         return tokens
 
-    ic = InquirerControl(cast(list, choices), None,
+    ic = InquirerControl(choices, None,
                          use_indicator=False, use_shortcuts=False, use_pointer=True)
     bindings = KeyBindings()
 
@@ -149,7 +151,7 @@ def select(message: str, choices: Sequence[Choice], **prompt_kwargs: Any) -> Que
                        ('class:skipped' if answer == 'skip' else '', answer)]
         return tokens
 
-    ic = InquirerControl(cast(list, choices), None,
+    ic = InquirerControl(choices, None,
                          use_indicator=False, use_shortcuts=False, use_pointer=True)
     bindings = KeyBindings()
 
