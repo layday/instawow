@@ -133,14 +133,6 @@ def slugify(text: str) -> str:
     return '-'.join(re.sub(r'[^0-9a-z]', ' ', text.casefold()).split())
 
 
-def slugify_uniq(text: str, set_: Set[str]) -> Tuple[str, Set[str]]:
-    "Convert an add-on name into a unique lower-alphanumeric slug."
-    slug = orig_slug = slugify(text)
-    for i, _ in enumerate(iter(lambda: slug in set_, False), start=1):
-        slug = f'{orig_slug}-{i}'
-    return slug, set_ | {slug}
-
-
 def tabulate(rows: Sequence[Sequence[str]], *, max_col_width: int = 60) -> str:
     "Produce an ASCII table from equal-length elements in a sequence."
     from textwrap import fill
