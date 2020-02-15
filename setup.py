@@ -24,7 +24,16 @@ setup(name='instawow',
          SQLAlchemy     ~=1.0
          yarl           ~=1.0
       ''',
-      extras_require={":python_version < '3.8'": '''typing-extensions'''},
+      extras_require={
+         ":python_version < '3.8'": '''\
+            typing-extensions
+         ''',
+         'test': '''\
+            coverage[toml]>=5
+            pytest>=5
+            pytest-asyncio
+            aresponses @ https://github.com/layday/aresponses/archive/make-responses-reusable.zip
+         '''},
       python_requires='~=3.7',
       include_package_data=True,
       packages=find_packages())

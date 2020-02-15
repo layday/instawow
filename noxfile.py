@@ -1,22 +1,19 @@
 import os
+import subprocess as sp
 
 import nox
 
 nox.options.envdir = '.py-nox'
-types_dir = '.py-types'
 
 
-@nox.session(python=False, name='update-stubs')
-def update_stubs(session):
-    session.run('rm', '-rf', types_dir)
-    session.run('mkdir', types_dir)
-    session.cd(types_dir)
-    session.run('git', 'clone', '--depth', '1', 'https://github.com/python/typeshed')
-    session.run('git', 'clone', '--depth', '1', 'https://github.com/dropbox/sqlalchemy-stubs', 'stubs/_sqlalchemy-stubs')
-    session.run('cp', '-r', 'stubs/_sqlalchemy-stubs/sqlalchemy-stubs', 'stubs/sqlalchemy')
+@nox.session(python=['3.7', '3.8'])
+def test(session):
+    session.install('.[test]')
+    session.run('coverage', 'run', '-m', 'pytest', '-o', 'xfail_strict=true', 'tests')
+    session.run('coverage', 'report', '-m')
 
 
-@nox.session(name='type-check')
+@nox.session(python=['3.7', '3.8'])
 def type_check(session):
     session.install('.')
     session.run('npx', '--cache', '.npm', 'pyright', '--lib')
@@ -24,28 +21,25 @@ def type_check(session):
 
 @nox.session(python='3.7')
 def reformat(session):
-    session.install('isort[pyproject]')
-    session.run('isort', '--recursive', 'instawow', 'tests')
+    session.install('isort[pyproject]>=4.3.5')
+    session.run('isort', '--recursive', 'instawow', 'tests', 'noxfile.py', 'setup.py')
 
 
-@nox.session
-def test(session):
-    session.install('coverage[toml]',
-                    'pytest',
-                    'pytest-asyncio',
-                    'https://github.com/layday/aresponses/archive/make-responses-reusable.zip',
-                    '.')
-    session.run('coverage', 'run', '-m', 'pytest', '-o', 'xfail_strict=true', 'tests')
-    session.run('coverage', 'report', '-m')
+@nox.session(python=False)
+def update_stubs(session):
+    sp.run("""\
+        types_dir=.py-types
+        rm -rf $types_dir && mkdir $types_dir && cd $types_dir && {
+          git clone --depth 1 \
+            https://github.com/python/typeshed
+          git clone --depth 1 \
+            https://github.com/dropbox/sqlalchemy-stubs stubs/_sqlalchemy-stubs
+          cp -r stubs/_sqlalchemy-stubs/sqlalchemy-stubs stubs/sqlalchemy
+        }
+    """, shell=True, executable='bash')
 
 
-@nox.session(python='3.7', name='bump-dependencies')
-def bump_dependencies(session):
-    session.install('pip-tools')
-    session.run('pip-compile', '-U', '--build-isolation', 'setup.py')
-
-
-@nox.session(python=False, name='clobber-build-artefacts')
+@nox.session(python=False)
 def clobber_build_artefacts(session):
     session.run('rm', '-rf', 'build', 'dist', 'instawow.egg-info')
 
@@ -54,7 +48,7 @@ def clobber_build_artefacts(session):
 def build(session):
     clobber_build_artefacts(session)
     session.install('pep517')
-    session.run('python3', '-m', 'pep517.build', '.', *session.posargs)
+    session.run('python', '-m', 'pep517.build', '.')
 
 
 @nox.session(python='3.7')
@@ -67,8 +61,4 @@ def publish(session):
 def nixify(session):
     session.cd(os.environ.get('INSTAWOW_NIXIFY_DIR', '.'))
     session.install('pypi2nix')
-    session.run('rm', '-f',
-                'requirements.nix',
-                'requirements_overrides.nix',
-                'requirements_frozen.txt')
     session.run('pypi2nix', '-e', 'instawow')

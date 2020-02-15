@@ -42,7 +42,10 @@ in
     RUST_BACKTRACE = 1;
 
     shellHook = ''
-      test -d "${pythonVenvDir}" || ${myPython.executable} -m venv "${pythonVenvDir}"
+      test -d "${pythonVenvDir}" || {
+        ${myPython.executable} -m venv "${pythonVenvDir}"
+        "${pythonVenvDir}/bin/${myPython.executable}" -m pip install -U pip setuptools
+      }
       export PATH="${lib.makeBinPath [ pythonVenvDir cargoHome ]}:$PATH"
     '';
   }
