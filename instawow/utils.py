@@ -2,13 +2,14 @@ from __future__ import annotations
 
 import asyncio
 from collections import defaultdict, deque
+from contextlib import contextmanager
 from datetime import datetime, timedelta
 from itertools import chain, repeat
 from pathlib import Path
 import re
-from typing import (TYPE_CHECKING, AbstractSet, Any, Awaitable, Callable, DefaultDict, Dict,
-                    Generic, Hashable, Iterable, List, NamedTuple, Optional, Sequence, Tuple,
-                    TypeVar, Union, cast, overload)
+from typing import (TYPE_CHECKING, AbstractSet, Any, Awaitable, Callable, Dict, Generic, Hashable,
+                    Iterable, Iterator, List, NamedTuple, Optional, Sequence, Tuple, TypeVar,
+                    Union, cast, overload)
 
 try:
     from typing import Literal as _Literal
@@ -82,15 +83,17 @@ class cached_property(Generic[_V]):
             return v
 
 
-def bucketise(iterable: Iterable[_V], key: Callable[[_V], _H] = lambda v: v) -> DefaultDict[_H, List[_V]]:
+def bucketise(iterable: Iterable[_V], key: Callable[[_V], _H] = lambda v: v
+              ) -> Dict[_H, List[_V]]:
     "Place the elements of an iterable in a bucket according to ``key``."
-    bucket = defaultdict(list)
+    bucket: Any = defaultdict(list)
     for value in iterable:
         bucket[key(value)].append(value)
-    return bucket
+    return dict(bucket)
 
 
-def dict_chain(keys: Iterable[_H], default: Any, *overrides: Iterable[Tuple[_H, Any]]) -> Dict[_H, Any]:
+def dict_chain(keys: Iterable[_H], default: Any, *overrides: Iterable[Tuple[_H, Any]]
+               ) -> Dict[_H, Any]:
     "Construct a dictionary from a series of iterables with overlapping keys."
     return dict(chain(zip(keys, repeat(default)), *overrides))
 
@@ -111,7 +114,8 @@ def merge_intersecting_sets(it: Iterable[_AnySet]) -> Iterable[_AnySet]:
         while True:
             for other_set in many_sets:
                 if this_set & other_set:
-                    # The in-place operator will mutate unfrozen sets in the original collection
+                    # The in-place operator will mutate unfrozen sets
+                    # in the original collection
                     this_set = this_set | other_set     # type: ignore
                     many_sets.remove(other_set)
                     break
@@ -126,6 +130,39 @@ async def gather(it: Iterable[Awaitable[_V]], return_exceptions: bool = True) ->
 
 def run_in_thread(fn: Callable[..., _V]) -> Callable[..., Awaitable[_V]]:
     return lambda *a, **k: asyncio.get_running_loop().run_in_executor(None, lambda: fn(*a, **k))
+
+
+def list_resources(package: str) -> Iterable[Tuple[str, str]]:
+    "Recursively list package resources."
+    from importlib.resources import contents, is_resource
+
+    for entry in contents(package):
+        if is_resource(package, entry):
+            yield package, entry
+        else:
+            yield from list_resources(package + '.' + entry)
+
+
+@contextmanager
+def copy_resources(parent_package: str) -> Iterator[Path]:
+    """Copy package resources to a temporary directory on disk.
+
+    Alembic cannot construct a migration environment from memory.
+    This is a genericised bodge to make migrations work in a frozen instawow.
+    """
+    from importlib.resources import read_binary
+    from tempfile import TemporaryDirectory
+
+    with TemporaryDirectory() as tmp_dir:
+        tmp_path = Path(cast(str, tmp_dir))        # ^typeshed
+
+        for package, resource in list_resources(parent_package):
+            parent_dir = tmp_path.joinpath(*package.split('.'))
+            if not parent_dir.is_dir():
+                parent_dir.mkdir(parents=True)
+
+            (parent_dir / resource).write_bytes(read_binary(package, resource))
+        yield tmp_path.joinpath(*parent_package.split('.'))
 
 
 def slugify(text: str) -> str:

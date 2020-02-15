@@ -29,8 +29,8 @@ if TYPE_CHECKING:
     from sqlalchemy.orm import scoped_session
     from .config import Config
 
-    _ArchiveR = Tuple[List[str], Callable[[Path], Awaitable[None]]]
     _T = TypeVar('_T')
+    _ArchiveR = Tuple[List[str], Callable[[Path], Awaitable[None]]]
 
 
 USER_AGENT = 'instawow (https://github.com/layday/instawow)'
@@ -149,23 +149,28 @@ def prepare_db_session(config: Config) -> scoped_session:
 
     db_path = config.config_dir / 'db.sqlite'
     db_url = f'sqlite:///{db_path}'
-    # We need to distinguish between newly-created databases and
-    # databases predating alembic in instawow - attempting to migrate a
-    # new database will throw an error
+    # We can't perform a migration on a new database without any metadata and
+    # need to check whether it exists before calling ``create_engine``
     db_exists = db_path.exists()
 
     engine = create_engine(db_url)
     if should_migrate(engine, DB_REVISION):
-        from .migrations import make_config, stamp, upgrade
+        from alembic.command import stamp, upgrade
+        from alembic.config import Config as AConfig
+        from .utils import copy_resources
 
-        alembic_config = make_config(db_url)
-        if db_exists:
-            logger.info(f'migrating database to {DB_REVISION}')
-            upgrade(alembic_config, DB_REVISION)
-        else:
-            ModelBase.metadata.create_all(engine)
-            logger.info(f'stamping database with {DB_REVISION}')
-            stamp(alembic_config, DB_REVISION)
+        with copy_resources(__package__ + '.migrations') as location:
+            aconfig = AConfig()
+            aconfig.set_main_option('script_location', str(location))
+            aconfig.set_main_option('sqlalchemy.url', db_url)
+
+            if db_exists:
+                logger.info(f'migrating database to {DB_REVISION}')
+                upgrade(aconfig, DB_REVISION)
+            else:
+                ModelBase.metadata.create_all(engine)
+                logger.info(f'stamping database with {DB_REVISION}')
+                stamp(aconfig, DB_REVISION)
 
     return scoped_session(sessionmaker(bind=engine))
 
