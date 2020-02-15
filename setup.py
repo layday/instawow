@@ -23,8 +23,7 @@ setup(name='instawow',
                           questionary>=1,!=1.3.0,<2
                           SQLAlchemy>=1,<2
                           yarl>=1,<2''',
-      extras_require={":python_version < '3.8'": '''importlib-metadata>=1,<2
-                                                    typing-extensions'''},
+      extras_require={":python_version < '3.8'": '''typing-extensions'''},
       python_requires='~=3.7',
       include_package_data=True,
       packages=find_packages())

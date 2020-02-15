@@ -264,19 +264,17 @@ def is_not_stale(path: Path, ttl: int, unit: str = 'seconds') -> bool:
 
 
 def get_version() -> str:
+    "Get the installed version of instawow."
     try:
-        import importlib.metadata as md
+        from ._version import __version__
     except ImportError:
-        import importlib_metadata as md     # type: ignore
-
-    try:
-        return md.version(__package__)
-    except md.PackageNotFoundError:
         return 'dev'
+    else:
+        return __version__
 
 
 def is_outdated(manager: CliManager) -> bool:
-    """Check against PyPI to see if `instawow` is outdated.
+    """Check on PyPI to see if the installed instawow is outdated.
 
     The response is cached for 24 hours.
     """
