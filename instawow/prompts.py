@@ -86,11 +86,11 @@ def checkbox(message: str, choices: Sequence[Choice], **prompt_kwargs: Any) -> Q
 
     @bindings.add(Keys.ControlQ, eager=True)
     @bindings.add(Keys.ControlC, eager=True)
-    def _(event):
+    def _(event: Any):
         event.app.exit(exception=KeyboardInterrupt, style='class:aborting')
 
     @bindings.add(' ', eager=True)
-    def toggle(event):
+    def toggle(event: Any):
         pointed_choice = ic.get_pointed_at().value
         if pointed_choice in ic.selected_options:
             ic.selected_options.remove(pointed_choice)
@@ -98,7 +98,7 @@ def checkbox(message: str, choices: Sequence[Choice], **prompt_kwargs: Any) -> Q
             ic.selected_options.append(pointed_choice)
 
     @bindings.add('i', eager=True)
-    def invert(event):
+    def invert(event: Any):
         inverted_selection = [c.value for c in ic.choices if
                               not isinstance(c, Separator)
                               and c.value not in ic.selected_options
@@ -107,32 +107,32 @@ def checkbox(message: str, choices: Sequence[Choice], **prompt_kwargs: Any) -> Q
 
     @bindings.add(Keys.Down, eager=True)
     @bindings.add('j', eager=True)
-    def move_cursor_down(event):
+    def move_cursor_down(event: Any):
         ic.select_next()
         while not ic.is_selection_valid():
             ic.select_next()
 
     @bindings.add(Keys.Up, eager=True)
     @bindings.add('k', eager=True)
-    def move_cursor_up(event):
+    def move_cursor_up(event: Any):
         ic.select_previous()
         while not ic.is_selection_valid():
             ic.select_previous()
 
     @bindings.add(Keys.ControlM, eager=True)
-    def set_answer(event):
+    def set_answer(event: Any):
         ic.is_answered = True
         event.app.exit(result=[c.value for c in ic.get_selected_values()])
 
     @bindings.add('o', eager=True)
-    def open_url(event):
+    def open_url(event: Any):
         pkg = ic.get_pointed_at().pkg
         if pkg:
             import webbrowser
             webbrowser.open(pkg.url)
 
     @bindings.add(Keys.Any)
-    def other(event):
+    def other(event: Any):
         # Disallow inserting other text
         pass
 
@@ -157,43 +157,43 @@ def select(message: str, choices: Sequence[Choice], **prompt_kwargs: Any) -> Que
 
     @bindings.add(Keys.ControlQ, eager=True)
     @bindings.add(Keys.ControlC, eager=True)
-    def _(event):
+    def _(event: Any):
         event.app.exit(exception=KeyboardInterrupt, style='class:aborting')
 
     @bindings.add(Keys.Down, eager=True)
     @bindings.add('j', eager=True)
-    def move_cursor_down(event):
+    def move_cursor_down(event: Any):
         ic.select_next()
         while not ic.is_selection_valid():
             ic.select_next()
 
     @bindings.add(Keys.Up, eager=True)
     @bindings.add('k', eager=True)
-    def move_cursor_up(event):
+    def move_cursor_up(event: Any):
         ic.select_previous()
         while not ic.is_selection_valid():
             ic.select_previous()
 
     @bindings.add(Keys.ControlM, eager=True)
-    def set_answer(event):
+    def set_answer(event: Any):
         ic.is_answered = True
         event.app.exit(result=ic.get_pointed_at().value)
 
     @bindings.add('o', eager=True)
-    def open_url(event):
+    def open_url(event: Any):
         pkg = ic.get_pointed_at().pkg
         if pkg:
             import webbrowser
             webbrowser.open(pkg.url)
 
     @bindings.add('s', eager=True)
-    def skip(event):
+    def skip(event: Any):
         ic.pointed_at = -1
         ic.is_answered = True
         event.app.exit(result=ic.get_pointed_at().value)
 
     @bindings.add(Keys.Any)
-    def other(event):
+    def other(event: Any):
         # Disallow inserting other text
         pass
 

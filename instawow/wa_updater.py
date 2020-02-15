@@ -36,7 +36,7 @@ class AuraEntry(BaseModel):
 
     class Config:
         arbitrary_types_allowed = True
-        fields = {'ignore_wago_update': {'alias': 'ignoreWagoUpdate'}}
+        fields = {'ignore_wago_update': 'ignoreWagoUpdate'}
 
     @validator('url', pre=True)
     def _convert_url(cls, value: str) -> URL:
@@ -68,10 +68,10 @@ class ApiMetadata(BaseModel):
 
     class Config:
         extra = Extra.forbid
-        fields = {'id': {'alias': '_id'},
-                  'fork_of': {'alias': 'forkOf'},
-                  'version_string': {'alias': 'versionString'},
-                  'region_type': {'alias': 'regionType'}}
+        fields = {'id': '_id',
+                  'fork_of': 'forkOf',
+                  'version_string': 'versionString',
+                  'region_type': 'regionType'}
 
 
 class _OutdatedAuras(NamedTuple):

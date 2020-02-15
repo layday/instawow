@@ -2,11 +2,10 @@ from __future__ import annotations
 
 from datetime import datetime
 import enum
-from functools import update_wrapper
 from itertools import count, takewhile
 import re
-from typing import (TYPE_CHECKING, Any, AsyncIterable, Callable, ClassVar, Dict, List, NamedTuple,
-                    Optional, Set, cast)
+from typing import (TYPE_CHECKING, Any, AsyncIterable, ClassVar, Dict, List, NamedTuple,
+                    Optional as O, Set, cast)
 
 from pydantic import BaseModel
 from yarl import URL
@@ -17,6 +16,8 @@ from .utils import (Literal, ManagerAttrAccessMixin, cached_property, gather, ru
 
 if TYPE_CHECKING:
     from .manager import Manager
+
+    JsonDict = Dict[str, Any]
 
 
 class Strategies(enum.Enum):
@@ -59,7 +60,7 @@ class MasterCatalogue(BaseModel):
     __root__: List[_CItem]
 
     class Config:
-        keep_untouched = (cached_property,)
+        keep_untouched: Any = (cached_property,)
 
     @classmethod
     async def collate(cls) -> MasterCatalogue:
@@ -90,16 +91,16 @@ class Resolver(ManagerAttrAccessMixin):
         self.manager = manager
 
     def __init_subclass__(cls) -> None:
-        async def wrapper(self, defn, *args, **kwargs):
+        async def wrapper(self: Resolver, defn: Defn, *args: Any, **kwargs: Any) -> m.Pkg:
             if defn.strategy in self.strategies:
                 return await resolve_one(self, defn, *args, **kwargs)
             raise E.PkgStrategyUnsupported(defn.strategy)
 
-        resolve_one: Callable = cls.resolve_one
-        cls.resolve_one = update_wrapper(wrapper, cls.resolve_one)
+        resolve_one = cls.resolve_one
+        cls.resolve_one = wrapper
 
     @staticmethod
-    def decompose_url(value: str) -> Optional[str]:
+    def decompose_url(value: str) -> O[str]:
         "Attempt to extract definition names from resolvable URLs."
 
     async def resolve(self, defns: List[Defn]) -> Dict[Defn, Any]:
@@ -125,7 +126,7 @@ class CurseResolver(Resolver):
     addon_api_url = URL('https://addons-ecs.forgesvc.net/api/v2/addon')
 
     @staticmethod
-    def decompose_url(value: str) -> Optional[str]:
+    def decompose_url(value: str) -> O[str]:
         url = URL(value)
         if (url.host == 'www.wowace.com'
                 and len(url.parts) > 2 and url.parts[1] == 'projects'):
@@ -148,7 +149,7 @@ class CurseResolver(Resolver):
                                for d, i in ids_for_defns.items())
         return dict(zip(defns, results))
 
-    async def resolve_one(self, defn: Defn, metadata: Optional[dict]) -> m.Pkg:
+    async def resolve_one(self, defn: Defn, metadata: O[JsonDict]) -> m.Pkg:
         if not metadata:
             raise E.PkgNonexistent
 
@@ -156,19 +157,19 @@ class CurseResolver(Resolver):
         if not files:
             raise E.PkgFileUnavailable('no files available for download')
 
-        def is_not_libless(f: dict) -> bool:
+        def is_not_libless(f: JsonDict):
             # There's also an 'isAlternate' field that's missing some
             # 50 lib-less files from c. 2008.  'exposeAsAlternative' is
             # absent from the /file endpoint
             return not f['exposeAsAlternative']
 
         if defn.strategy is Strategies.any_flavour:
-            def is_compatible_with_game_version(f: dict) -> bool: return True
+            def is_compatible_with_game_version(f: JsonDict): return True
         else:
             classic_version_prefix = '1.13'
             flavour = 'wow_classic' if self.config.is_classic else 'wow_retail'
 
-            def is_compatible_with_game_version(f: dict) -> bool:
+            def is_compatible_with_game_version(f: JsonDict):
                 # Files can belong both to retail and classic
                 # but ``gameVersionFlavor`` can only be one of
                 # 'wow_retail' or 'wow_classic'.  To spice things up,
@@ -180,13 +181,13 @@ class CurseResolver(Resolver):
 
         # 1 = stable; 2 = beta; 3 = alpha
         if defn.strategy is Strategies.latest:
-            def has_release_type(f: dict) -> bool: return True
+            def has_release_type(f: JsonDict): return True
         elif defn.strategy is Strategies.curse_latest_beta:
-            def has_release_type(f: dict) -> bool: return f['releaseType'] == 2
+            def has_release_type(f: JsonDict): return f['releaseType'] == 2
         elif defn.strategy is Strategies.curse_latest_alpha:
-            def has_release_type(f: dict) -> bool: return f['releaseType'] == 3
+            def has_release_type(f: JsonDict): return f['releaseType'] == 3
         else:
-            def has_release_type(f: dict) -> bool: return f['releaseType'] == 1
+            def has_release_type(f: JsonDict): return f['releaseType'] == 1
 
         try:
             file = max((f for f in files
@@ -226,20 +227,20 @@ class CurseResolver(Resolver):
         classic_version_prefix = '1.13'
         flavours = ('retail', 'classic')
 
-        def excise_compatibility(files):
+        def excise_compatibility(files: Any):
             for c in flavours:
                 if any(f['gameVersionFlavor'] == f'wow_{c}' for f in files):
                     yield c
                 else:
                     if any(v.startswith(classic_version_prefix) is (c == 'classic')
-                           for f in files
-                           for v in f['gameVersion']):
+                           for f in files for v in f['gameVersion']):
                         yield c
 
         step = 1000
         for index in count(0, step):
             url = ((self.addon_api_url / 'search')
-                   .with_query(gameId='1', sort='3',  # Alphabetical
+                   .with_query(gameId='1',
+                               sort='3',    # Alphabetical
                                pageSize=step, index=index))
             async with self.web_client.get(url) as response:
                 json_response = await response.json()
@@ -265,14 +266,22 @@ class WowiResolver(Resolver):
 
     # Reference: https://api.mmoui.com/v3/globalconfig.json
     # There's also a v4 API for the as yet unreleased Minion v4 which
-    # I would assume is unstable
+    # is fair to assume is unstable.  Fields were renamed and some fields
+    # which were strings have been changed to numbers.  Neither API
+    # provides access to classic files for multi-file add-ons and
+    # 'UICompatibility' cannot be relied upon for enforcing compatibility
+    # in instawow.  The API appears to inherit the version of the latest
+    # file to have been uploaded, which for multi-file add-ons can be the
+    # classic version.  However the download link always points to the
+    # 'retail' version, which for single-file add-ons belonging to the
+    # classic category would be an add-on for classic.
     list_api_url = 'https://api.mmoui.com/v3/game/WOW/filelist.json'
     details_api_url = URL('https://api.mmoui.com/v3/game/WOW/filedetails/')
 
-    _files: Optional[Dict[str, dict]] = None
+    _files: O[JsonDict] = None
 
     @staticmethod
-    def decompose_url(value: str) -> Optional[str]:
+    def decompose_url(value: str) -> O[str]:
         url = URL(value)
         if (url.host in {'wowinterface.com', 'www.wowinterface.com'}
                 and len(url.parts) == 3 and url.parts[1] == 'downloads'):
@@ -312,26 +321,15 @@ class WowiResolver(Resolver):
                                for d, i in ids_for_defns.items())
         return dict(zip(defns, results))
 
-    async def resolve_one(self, defn: Defn, metadata: Optional[dict]) -> m.Pkg:
+    async def resolve_one(self, defn: Defn, metadata: O[JsonDict]) -> m.Pkg:
         if not metadata:
             raise E.PkgNonexistent
+
+        # Files "pending" are downloadable but do not have a checksum which
+        # we use as a unique file identifier
+        # TODO: investigate using a different field for updates
         if metadata['UIPending'] == '1':
             raise E.PkgFileUnavailable('new file awaiting approval')
-
-        # WoWInterface has recently moved to a multi-file setup like CurseForge
-        # and they botched it, like, completely.  Classic add-on files aren't
-        # included in the API response and 'UICompatibility' can include either
-        # retail or classic or both (!) but the file linked to from the API
-        # is always the retail version.  You can have an add-on that is
-        # nominally compatible with classic but if you were to install it
-        # for classic you'd get the retail version and if you were to attempt
-        # to install it for retail instawow might report that it's
-        # incompatible.  The way they rushed this out without an ounce of
-        # thought or care for their own add-on manager and considering it
-        # hasn't received a proper update closing in on 3 years makes me
-        # doubt that a fix is on the horizon.  There isn't a sensible way for
-        # instawow to discern what version of the game a file's compatible with
-        # so it opts to not opt to do anything at all.  Good luck and godspeed.
 
         return m.Pkg(source=self.source,
                      id=metadata['UID'],
@@ -367,7 +365,7 @@ class TukuiResolver(Resolver):
                   'tukui': 'tukui', 'elvui': 'elvui'}
 
     @staticmethod
-    def decompose_url(value: str) -> Optional[str]:
+    def decompose_url(value: str) -> O[str]:
         url = URL(value)
         if (url.host == 'www.tukui.org'
                 and url.path in {'/addons.php', '/classic-addons.php', '/download.php'}):
@@ -410,11 +408,11 @@ class TukuiResolver(Resolver):
                      options=m.PkgOptions(strategy=defn.strategy.name))
 
     async def collect_items(self) -> AsyncIterable[_CItem]:
-        for query, param in  [('ui', 'tukui'), ('ui', 'elvui'),
-                              ('addons', 'all'), ('classic-addons', 'all'),]:
+        for query, param in [('ui', 'tukui'), ('ui', 'elvui'),
+                             ('addons', 'all'), ('classic-addons', 'all'),]:
             url = self.api_url.with_query({query: param})
             async with self.web_client.get(url) as response:
-                metadata = await response.json(content_type=None)
+                metadata = await response.json(content_type=None)   # text/html
 
             if query == 'ui':
                 yield _CItem(source=self.source,
