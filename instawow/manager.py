@@ -293,22 +293,30 @@ class Manager:
 
     async def search(self, search_terms: str, limit: int) -> Dict[Defn, Pkg]:
         "Search the combined names catalogue for packages."
-        import warnings
-        warnings.filterwarnings('ignore', category=UserWarning, module='fuzzywuzzy')
+        import heapq
+        import string
+        from jellyfish import jaro_winkler
 
-        from fuzzywuzzy import fuzz, process
+        trans_table = str.maketrans(dict.fromkeys(string.punctuation, ' '))
+
+        def normalise(value: str):
+            return value.casefold().translate(trans_table).strip()
 
         await self.synchronise()
-        defns_for_names = bucketise(((i.name, (i.source, i.id)) for i in self.catalogue.__root__
+
+        s = normalise(search_terms)
+        tokens_to_defns = bucketise(((normalise(i.name), (i.source, i.id))
+                                     for i in self.catalogue.__root__
                                      if self.config.game_flavour in i.compatibility),
                                     key=lambda v: v[0])
 
-        matches = cast(List[Tuple[str, int]],   # Co-dependent types in return sig
-                       process.extract(search_terms, defns_for_names.keys(),
-                                       scorer=fuzz.WRatio, limit=limit))
+        # TODO: weigh matches under threshold against download count
+        matches = heapq.nlargest(limit,
+                                 ((jaro_winkler(s, n), n) for n in tokens_to_defns.keys()),
+                                 key=lambda v: v[0])
         defns = [Defn(*d)
-                 for m, _ in matches
-                 for _, d in defns_for_names[m]]
+                 for _, m in matches
+                 for _, d in tokens_to_defns[m]]
         results = await self.resolve(defns)
         pkgs_by_defn = {d.with_name(r.slug): r for d, r in results.items() if is_pkg(r)}
         return pkgs_by_defn
