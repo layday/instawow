@@ -149,8 +149,9 @@ def prepare_db_session(config: Config) -> scoped_session:
 
     db_path = config.config_dir / 'db.sqlite'
     db_url = f'sqlite:///{db_path}'
-    # We can't perform a migration on a new database without any metadata and
-    # need to check whether it exists before calling ``create_engine``
+    # We can't perform a migration on a new database without "metadata"
+    # and we need to check whether it exists before calling ``create_engine``,
+    # which will implicitly create the database file
     db_exists = db_path.exists()
 
     engine = create_engine(db_url)
@@ -159,9 +160,11 @@ def prepare_db_session(config: Config) -> scoped_session:
         from alembic.config import Config as AConfig
         from .utils import copy_resources
 
-        with copy_resources(__package__ + '.migrations') as location:
+        with copy_resources(
+                f'{__package__}.migrations',
+                f'{__package__}.migrations.versions') as tmp_dir:
             aconfig = AConfig()
-            aconfig.set_main_option('script_location', str(location))
+            aconfig.set_main_option('script_location', str(tmp_dir / __package__ / 'migrations'))
             aconfig.set_main_option('sqlalchemy.url', db_url)
 
             if db_exists:
@@ -285,7 +288,8 @@ class Manager:
         await self.synchronise()
         defns_by_source = bucketise(defns, key=lambda v: v.source)
 
-        results = await gather(self.resolvers[s].resolve(b) for s, b in defns_by_source.items())
+        results = await gather(self.resolvers[s].resolve(b)
+                               for s, b in defns_by_source.items())
         results_by_defn = dict_chain(defns, None, *(r.items() for r in results))
         if with_deps:
             results_by_defn.update(await self._resolve_deps(results_by_defn.values()))
@@ -329,7 +333,8 @@ class Manager:
                 raise E.PkgConflictsWithInstalled(conflicts)
 
             if replace:
-                await trash([self.config.addon_dir / f for f in folders], self.config.temp_dir)
+                await trash([self.config.addon_dir / f for f in folders],
+                            self.config.temp_dir)
             await extract(self.config.addon_dir)
 
         pkg.folders = [PkgFolder(name=f) for f in folders]
@@ -338,25 +343,28 @@ class Manager:
         return E.PkgInstalled(pkg)
 
     async def install(self, defns: Sequence[Defn], replace: bool) -> Dict[Defn, E.ManagerResult]:
-        prelim_results = await self.resolve([d for d in defns if not self.get(d)], True)
-
+        prelim_results = await self.resolve(
+            [d for d in defns if not self.get(d)], with_deps=True)
         # Weed out installed deps - this isn't super efficient but avoids
         # having to deal with local state in the resolver
         results = {d: r for d, r in prelim_results.items() if not self.get(d)}
-        installables = {(d, r): download_archive(self, r) for d, r in results.items() if is_pkg(r)}
+        installables = {(d, r): download_archive(self, r)
+                        for d, r in results.items() if is_pkg(r)}
         archives = await gather(installables.values())
 
-        coros = dict_chain(defns, partial(_error_out, E.PkgAlreadyInstalled()),
-                           ((d, partial(_error_out, r)) for d, r in results.items()),
-                           ((d, partial(self.install_one, p, a, replace))
-                            for (d, p), a in zip(installables, archives)))
+        coros = dict_chain(
+            defns, partial(_error_out, E.PkgAlreadyInstalled()),
+            ((d, partial(_error_out, r)) for d, r in results.items()),
+            ((d, partial(self.install_one, p, a, replace))
+             for (d, p), a in zip(installables, archives)))
         return await self._consume_seq(coros)
 
     async def update_one(self, old_pkg: Pkg, pkg: Pkg, archive: ACM[_ArchiveR]) -> E.PkgUpdated:
         async with archive as (folders, extract):
-            conflicts = (self.db_session.query(Pkg).join(Pkg.folders)
-                         .filter(PkgFolder.pkg_source != pkg.source, PkgFolder.pkg_id != pkg.id)
-                         .filter(PkgFolder.name.in_(folders)).all())
+            conflicts = (
+                self.db_session.query(Pkg).join(Pkg.folders)
+                .filter(PkgFolder.pkg_source != pkg.source, PkgFolder.pkg_id != pkg.id)
+                .filter(PkgFolder.name.in_(folders)).all())
             if conflicts:
                 raise E.PkgConflictsWithInstalled(conflicts)
 
@@ -372,7 +380,6 @@ class Manager:
         # Rebuild ``Defn`` with strategy from package for defns of installed packages
         checked_defns = {p.to_defn().with_name(c.name) if p else c: p
                          for c, p in ((d, self.get(d)) for d in defns)}
-
         # Results can contain errors
         # installables are those results which are packages
         # and updatables are packages with updates
@@ -383,11 +390,12 @@ class Manager:
                       if p.file_id != cast(Pkg, checked_defns[d]).file_id}
         archives = await gather(updatables.values())
 
-        coros = dict_chain(checked_defns, partial(_error_out, E.PkgNotInstalled()),
-                           ((d, partial(_error_out, r)) for d, r in results.items()),
-                           ((d, partial(_error_out, E.PkgUpToDate())) for d in installables),
-                           ((d, partial(self.update_one, *p, a))
-                            for (d, *p), a in zip(updatables, archives)))
+        coros = dict_chain(
+            checked_defns, partial(_error_out, E.PkgNotInstalled()),
+            ((d, partial(_error_out, r)) for d, r in results.items()),
+            ((d, partial(_error_out, E.PkgUpToDate())) for d in installables),
+            ((d, partial(self.update_one, *p, a))
+             for (d, *p), a in zip(updatables, archives)))
         return await self._consume_seq(coros)
 
     async def remove_one(self, pkg: Pkg) -> E.PkgRemoved:
@@ -399,8 +407,9 @@ class Manager:
 
     async def remove(self, defns: Sequence[Defn]) -> Dict[Defn, E.ManagerResult]:
         pkgs_by_defn = ((d, self.get(d)) for d in defns)
-        coros = dict_chain(defns, partial(_error_out, E.PkgNotInstalled()),
-                           ((d, partial(self.remove_one, p)) for d, p in pkgs_by_defn if p))
+        coros = dict_chain(
+            defns, partial(_error_out, E.PkgNotInstalled()),
+            ((d, partial(self.remove_one, p)) for d, p in pkgs_by_defn if p))
         return await self._consume_seq(coros)
 
 
@@ -448,7 +457,8 @@ def init_cli_web_client(*, Bar: ProgressBar) -> aiohttp.ClientSession:
                 content = params.response.content
 
                 while not content.is_eof():
-                    # This is ``bar.current`` in prompt_toolkit v2 and ``.items_completed`` in v3
+                    # This is ``bar.current`` in prompt_toolkit v2
+                    # and ``.items_completed`` in v3
                     bar.current = bar.items_completed = content.total_bytes
                     Bar.invalidate()
                     await asyncio.sleep(_tick_interval)
@@ -468,7 +478,8 @@ def init_cli_web_client(*, Bar: ProgressBar) -> aiohttp.ClientSession:
 class CliManager(Manager):
     def run(self, awaitable: Awaitable[_T]) -> _T:
         async def run():
-            async with init_cli_web_client(Bar=Bar) as self.web_client, cancel_tickers():
+            async with init_cli_web_client(Bar=Bar) as self.web_client, \
+                    cancel_tickers():
                 return await awaitable
 
         with make_progress_bar() as Bar:

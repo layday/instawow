@@ -4,6 +4,7 @@ import asyncio
 from collections import defaultdict, deque
 from contextlib import contextmanager
 from datetime import datetime, timedelta
+from functools import partial
 from itertools import chain, repeat
 from pathlib import Path
 import re
@@ -132,37 +133,34 @@ def run_in_thread(fn: Callable[..., _V]) -> Callable[..., Awaitable[_V]]:
     return lambda *a, **k: asyncio.get_running_loop().run_in_executor(None, lambda: fn(*a, **k))
 
 
-def list_resources(package: str) -> Iterable[Tuple[str, str]]:
-    "Recursively list package resources."
-    from importlib.resources import contents, is_resource
-
-    for entry in contents(package):
-        if is_resource(package, entry):
-            yield package, entry
-        else:
-            yield from list_resources(package + '.' + entry)
-
-
 @contextmanager
-def copy_resources(parent_package: str) -> Iterator[Path]:
+def copy_resources(*packages: str) -> Iterator[Path]:
     """Copy package resources to a temporary directory on disk.
 
     Alembic cannot construct a migration environment from memory.
     This is a genericised bodge to make migrations work in a frozen instawow.
     """
-    from importlib.resources import read_binary
+    from importlib.resources import contents, is_resource, read_binary
     from tempfile import TemporaryDirectory
 
     with TemporaryDirectory() as tmp_dir:
-        tmp_path = Path(cast(str, tmp_dir))        # ^typeshed
+        tmp_path = Path(tmp_dir)
 
-        for package, resource in list_resources(parent_package):
-            parent_dir = tmp_path.joinpath(*package.split('.'))
-            if not parent_dir.is_dir():
-                parent_dir.mkdir(parents=True)
+        for package in packages:
+            for resource in filter(partial(is_resource, package), contents(package)):
+                parent_dir = tmp_path.joinpath(*package.split('.'))
+                if not parent_dir.is_dir():
+                    parent_dir.mkdir(parents=True)
 
-            (parent_dir / resource).write_bytes(read_binary(package, resource))
-        yield tmp_path.joinpath(*parent_package.split('.'))
+                filename = parent_dir / resource
+                # PyOxidizer does not expose Python source files to `importlib`
+                # (see https://github.com/indygreg/PyOxidizer/issues/237).
+                # Migrations have a "null" extension added to them that is shorn
+                # from the extracted filename
+                if filename.suffix == '.0':
+                    filename = filename.with_suffix('')
+                filename.write_bytes(read_binary(package, resource))
+        yield tmp_path
 
 
 def slugify(text: str) -> str:
@@ -170,11 +168,11 @@ def slugify(text: str) -> str:
     return '-'.join(re.sub(r'[^0-9a-z]', ' ', text.casefold()).split())
 
 
-def tabulate(rows: Sequence[Sequence[str]], *, max_col_width: int = 60) -> str:
+def tabulate(rows: Sequence[Sequence[Any]], *, max_col_width: int = 60) -> str:
     "Produce an ASCII table from equal-length elements in a sequence."
     from textwrap import fill
 
-    def apply_max_col_width(value: Sequence[str]):
+    def apply_max_col_width(value: Sequence[Any]):
         return fill(str(value), width=max_col_width, max_lines=1)
 
     def calc_resultant_col_widths(rows: Sequence[Sequence[str]]):
