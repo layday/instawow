@@ -6,9 +6,13 @@ from tempfile import gettempdir
 from typing import Any, Dict
 
 import click
-from pydantic import BaseSettings, Extra, validator
+from pydantic import BaseSettings, Extra, Field, validator
 
 from .utils import Literal
+
+
+def _get_default_config_dir() -> Path:
+    return Path(click.get_app_dir('instawow'))
 
 
 class BaseConfig(BaseSettings):
@@ -18,7 +22,7 @@ class BaseConfig(BaseSettings):
 
 
 class _Config(BaseConfig):
-    config_dir: Path = None   # type: ignore  # https://github.com/samuelcolvin/pydantic/issues/866
+    config_dir: Path = Field(default_factory=_get_default_config_dir)
     addon_dir: Path
     temp_dir: Path = Path(gettempdir()) / 'instawow'
     game_flavour: Literal['retail', 'classic']
@@ -28,14 +32,10 @@ class _Config(BaseConfig):
         env_prefix = 'INSTAWOW_'
         extra = Extra.allow
 
-    @validator('config_dir', pre=True, always=True)
-    def _apply_config_dir_default(cls, value: Any) -> Path:
-        return Path(click.get_app_dir('instawow') if value is None else value)
-
     @validator('config_dir', 'addon_dir', 'temp_dir')
     def _expand_paths(cls, value: Path) -> Path:
         try:
-            return Path(value).expanduser().resolve()
+            return value.expanduser().resolve()
         except RuntimeError as error:
             # pathlib will raise RuntimeError for non-existent ~users
             raise ValueError(str(error)) from error
