@@ -326,7 +326,7 @@ def reconcile(ctx: click.Context, auto: bool) -> None:
 
 @main.command()
 @click.option('--limit', '-l',
-              default=5, type=click.IntRange(1, 20, clamp=True),
+              default=10, type=click.IntRange(1, 20, clamp=True),
               help='A number to limit results to.')
 @click.argument('search-terms',
                 nargs=-1, required=True, callback=lambda _, __, v: ' '.join(v))
