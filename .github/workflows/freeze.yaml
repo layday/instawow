@@ -1,0 +1,30 @@
+---
+name: Create stand-alone executable
+on:
+  push:
+jobs:
+  freeze:
+    strategy:
+      matrix:
+        os: [macos-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+    - name: Clone the repo
+      uses: actions/checkout@v2
+    - name: Install Rust toolchain
+      uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: nightly
+    - name: Install PyOxidizer
+      run: |
+        cargo install pyoxidizer
+    - name: Build binary
+      run: |
+        mkdir -p dist
+        pyoxidizer build --release | tee >(cp $(tail -n 1 | cut -c 23-) dist/instawow)
+    - name: Upload binary
+      uses: actions/upload-artifact@v1
+      with:
+        name: instawow-${{ matrix.os }}
+        path: dist/instawow
