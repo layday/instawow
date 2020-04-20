@@ -32,6 +32,9 @@ Installing with ``pip`` is also supported::
 
     pip3 install --upgrade instawow
 
+Finally, you can download pre-built binaries from
+`GitHub <https://github.com/layday/instawow/releases>`.
+
 .. |pipx| replace:: ``pipx``
 .. _pipx: https://github.com/pipxproject/pipx
 
@@ -92,7 +95,7 @@ This was a conscious design decision, the merits of which (I should admit)
 are open to debate.  If you are already using *instawow* for retail,
 you will need to create a separate profile for Classic.  On Linux, this might be::
 
-    env INSTAWOW_CONFIG_DIR=~/.config/instawow-classic instawow
+    INSTAWOW_CONFIG_DIR=~/.config/instawow-classic instawow
 
 For ease of use, you might want to set up an alias.  In your Bash profile, add::
 
@@ -122,8 +125,8 @@ every invocation of ``instawow update``, install the
 ``instawow:weakauras-companion-autoupdate`` variant, exposing your account
 name as an env var::
 
-    env WAC_ACCOUNT=<your account name> instawow install instawow:weakauras-companion-autoupdate
-    env WAC_ACCOUNT=<your account name> instawow update
+    WAC_ACCOUNT=<your account name> instawow install instawow:weakauras-companion-autoupdate
+    WAC_ACCOUNT=<your account name> instawow update
 
 You may then choose to bypass the companion add-on simply by ommitting the env var.
 
