@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Dict, List, NamedTuple, Optional, Sequence
+from typing import TYPE_CHECKING, Any, Dict, List, NamedTuple, Optional, Sequence
 
 from loguru import logger
 from pydantic import BaseModel, Extra, validator
@@ -101,12 +101,25 @@ class WaCompanionBuilder(ManagerAttrAccessMixin):
 
     @staticmethod
     def extract_auras(source: str) -> Dict[str, List[AuraEntry]]:
-        from lupa import LuaRuntime     # type: ignore
-        lua_eval = LuaRuntime().eval
+        import re
+        from slpp import SLPP
 
-        table = lua_eval(source[source.find('= ') + 1 :])
-        raw_auras = map(dict, table['displays'].values())
-        aura_groups = bucketise((AuraEntry(**a) for a in raw_auras if a.get('url')),
+        class WaParser(SLPP):
+            def decode(self, text: Any) -> Any:
+                if not text or not isinstance(text, str):
+                    return
+
+                text = text[text.find('= ') + 1 :]
+                text = re.sub(r' -- \[\d+\]$', '', text, flags=re.M)
+                self.text = text
+                self.at, self.ch, self.depth = 0, '', 0
+                self.len = len(text)
+                self.next_chr()
+                return self.value()     # type: ignore
+
+        wa_table = WaParser().decode(source)
+        raw_auras = (a for a in wa_table['displays'].values() if a.get('url'))
+        aura_groups = bucketise(map(AuraEntry.parse_obj, raw_auras),
                                 key=lambda a: a.url.parts[1])
         return aura_groups
 
@@ -158,7 +171,7 @@ class WaCompanionBuilder(ManagerAttrAccessMixin):
                                 loader=FunctionLoader(loader))
 
         with ZipFile(self.ensure_dirs().addon_file, 'w') as file:
-            def write_tpl(filename: str, ctx: dict) -> None:
+            def write_tpl(filename: str, ctx: Dict[str, Any]) -> None:
                 # We're not using a plain string as the first argument to
                 # ``writestr`` 'cause the timestamp is generated dynamically
                 # by default making the build unreproducible

@@ -17,11 +17,11 @@ setup(name='instawow',
          jellyfish      ~=0.7.0
          jinja2         ~=2.0
          loguru         <1
-         lupa           ~=1.0
          prompt-toolkit >=2, !=3.0.0, !=3.0.1, !=3.0.2, <4
          pydantic       ~=1.4.0
          questionary    >=1, !=1.3.0, <2
-         SQLAlchemy     ~=1.0
+         slpp           ==1.2
+         sqlalchemy     ~=1.0
          yarl           ~=1.0
       ''',
       extras_require={
