@@ -29,10 +29,10 @@ setup(name='instawow',
             typing-extensions
          ''',
          'test': '''\
-            coverage[toml]>=5
-            pytest>=5
+            coverage[toml] >=5
+            pytest         >=5
             pytest-asyncio
-            aresponses @ https://github.com/layday/aresponses/archive/make-responses-reusable.zip
+            aresponses     ~=2.0
          '''},
       python_requires='~=3.7',
       include_package_data=True,

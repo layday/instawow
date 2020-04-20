@@ -87,7 +87,7 @@ def mock_master_catalogue(aresponses, JsonResponse):
     aresponses.add('raw.githubusercontent.com',
                    aresponses.ANY, 'get',
                    JsonResponse(body=read_fixture('master-catalogue.json')),
-                   is_reusable=True)
+                   repeat=float('inf'))
 
 
 @pytest.fixture
@@ -97,12 +97,12 @@ def mock_curse(aresponses, JsonResponse, mock_master_catalogue):
                    '/api/v2/addon',
                    'post',
                    JsonResponse(body=read_fixture('curse-post-addon_all.json')),
-                   is_reusable=True)
+                   repeat=float('inf'))
     aresponses.add('edge.forgecdn.net',
                    aresponses.ANY,
                    'get',
                    aresponses.Response(body=make_zip('Molinari')),
-                   is_reusable=True)
+                   repeat=float('inf'))
 
 
 @pytest.fixture
@@ -112,17 +112,17 @@ def mock_wowi(aresponses, JsonResponse, mock_master_catalogue):
                    '/v3/game/WOW/filelist.json',
                    'get',
                    JsonResponse(body=read_fixture('wowi-get-filelist.json')),
-                   is_reusable=True)
+                   repeat=float('inf'))
     aresponses.add('api.mmoui.com',
                    re.compile(r'^/v3/game/WOW/filedetails/'),
                    'get',
                    JsonResponse(body=read_fixture('wowi-get-filedetails.json')),
-                   is_reusable=True)
+                   repeat=float('inf'))
     aresponses.add('cdn.wowinterface.com',
                    aresponses.ANY,
                    'get',
                    aresponses.Response(body=make_zip('Molinari')),
-                   is_reusable=True)
+                   repeat=float('inf'))
 
 
 @pytest.fixture
@@ -132,37 +132,42 @@ def mock_tukui(aresponses, JsonResponse, mock_master_catalogue):
                    '/api.php?ui=tukui',
                    'get',
                    JsonResponse(body=read_fixture('tukui-get-ui_tukui.json')),
-                   match_querystring=True, is_reusable=True)
+                   match_querystring=True,
+                   repeat=float('inf'))
     aresponses.add('www.tukui.org',
                    '/api.php?addon=1',
                    'get',
                    JsonResponse(body=read_fixture('tukui-get-addon.json')),
-                   match_querystring=True, is_reusable=True)
+                   match_querystring=True,
+                   repeat=float('inf'))
     aresponses.add('www.tukui.org',
                    '/api.php?classic-addon=1',
                    'get',
                    JsonResponse(body=read_fixture('tukui-get-classic-addon.json')),
-                   match_querystring=True, is_reusable=True)
+                   match_querystring=True,
+                   repeat=float('inf'))
     aresponses.add('www.tukui.org',
                    '/api.php',
                    'get',
                    '',
-                   is_reusable=True)
+                   repeat=float('inf'))
     aresponses.add('www.tukui.org',
                    re.compile(r'^/downloads/tukui'),
                    'get',
                    aresponses.Response(body=make_zip('Tukui')),
-                   is_reusable=True)
+                   repeat=float('inf'))
     aresponses.add('www.tukui.org',
                    '/addons.php?download=1',
                    'get',
                    aresponses.Response(body=make_zip('ElvUI_MerathilisUI')),
-                   match_querystring=True, is_reusable=True)
+                   match_querystring=True,
+                   repeat=float('inf'))
     aresponses.add('www.tukui.org',
                    '/classic-addons.php?download=1',
                    'get',
                    aresponses.Response(body=make_zip('Tukui')),
-                   match_querystring=True, is_reusable=True)
+                   match_querystring=True,
+                   repeat=float('inf'))
 
 
 @pytest.fixture
