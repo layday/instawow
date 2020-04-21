@@ -33,7 +33,8 @@ Installing with ``pip`` is also supported::
     pip3 install --upgrade instawow
 
 Finally, you can download pre-built binaries from
-`GitHub <https://github.com/layday/instawow/releases>`.
+`GitHub <https://github.com/layday/instawow/releases>`__.
+These are only available for macOS and Linux (Ubuntu).
 
 .. |pipx| replace:: ``pipx``
 .. _pipx: https://github.com/pipxproject/pipx
