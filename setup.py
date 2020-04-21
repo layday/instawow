@@ -31,7 +31,7 @@ setup(name='instawow',
          'test': '''\
             coverage[toml] >=5
             pytest         >=5
-            pytest-asyncio
+            pytest-asyncio ==0.10.0
             aresponses     ~=2.0
          '''},
       python_requires='~=3.7',
