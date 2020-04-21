@@ -61,8 +61,8 @@ def full_config(tmp_path, partial_config):
 
 
 @pytest.fixture
-async def web_client():
-    async with init_web_client() as web_client:
+async def web_client(event_loop):
+    async with init_web_client(loop=event_loop) as web_client:
         yield web_client
 
 
