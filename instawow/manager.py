@@ -483,4 +483,8 @@ class CliManager(Manager):
                 return await awaitable
 
         with make_progress_bar() as Bar:
-            return asyncio.run(run())
+            loop = asyncio.new_event_loop()
+            try:
+                return loop.run_until_complete(run())
+            finally:
+                loop.close()
