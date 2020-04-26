@@ -257,11 +257,14 @@ def reconcile(ctx: click.Context, auto: bool) -> None:
         Versions that differ from the installed version or differ between
         choices are highlighted in purple.
 
-        The reconciler will perform three passes from most to least accurate,
-        looking to match source IDs in TOC files, folder names and add-on names
-        in TOC files.
+        The reconciler will perform three passes in decreasing order of accuracy,
+        looking to match source IDs and add-on names in TOC files, and folders.
 
         Selected add-ons will be reinstalled.
+
+        You can also run `reconcile` in promptless mode by passing
+        the `--auto` flag.  In this mode, add-ons will be reconciled
+        without user input.
         ''')
 
     manager: CliManager = ctx.obj.m
