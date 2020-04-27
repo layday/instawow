@@ -18,7 +18,7 @@ in
       cargo
       myPython
       nodejs-13_x
-      (callPackage ./my.nox-script.nix {})
+      ncurses
     ] ++ stdenv.lib.optional stdenv.isDarwin (
       with darwin.apple_sdk.frameworks; [
         AppKit
