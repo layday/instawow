@@ -7,7 +7,7 @@ from instawow.resolvers import Defn, Strategies
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize('strategy', [Strategies.default, Strategies.latest, Strategies.any_flavour])
-async def test_resolve_curse_pkgs(manager, request, strategy, mock_curse):
+async def test_resolve_curse_pkgs(manager, request, strategy):
     results = await manager.resolve([Defn('curse', 'tomcats', strategy),
                                      Defn('curse', 'method-dungeon-tools', strategy),
                                      Defn('curse', 'classiccastbars', strategy),
@@ -39,13 +39,13 @@ async def test_resolve_curse_pkgs(manager, request, strategy, mock_curse):
 
 
 @pytest.mark.asyncio
-async def test_resolve_curse_latest_pkg(manager, mock_curse):
+async def test_resolve_curse_latest_pkg(manager):
     latest, = (await manager.resolve([Defn('curse', 'tomcats', Strategies.latest)])).values()
     assert isinstance(latest, Pkg)
 
 
 @pytest.mark.asyncio
-async def test_resolve_curse_deps(manager, mock_curse):
+async def test_resolve_curse_deps(manager):
     if manager.config.is_classic:
         pytest.skip('no classic equivalent')
 
@@ -55,7 +55,7 @@ async def test_resolve_curse_deps(manager, mock_curse):
 
 
 @pytest.mark.asyncio
-async def test_resolve_tukui_pkgs(manager, mock_tukui):
+async def test_resolve_tukui_pkgs(manager):
     results = await manager.resolve([Defn('tukui', '1'),
                                      Defn('tukui', '-1'),
                                      Defn('tukui', 'tukui'),
@@ -76,7 +76,7 @@ async def test_resolve_tukui_pkgs(manager, mock_tukui):
 
 
 @pytest.mark.asyncio
-async def test_resolve_wowi_pkgs(manager, mock_wowi):
+async def test_resolve_wowi_pkgs(manager):
     results = await manager.resolve([Defn('wowi', '13188-molinari'),
                                      Defn('wowi', '13188', Strategies.latest)])
     either, invalid = results.values()

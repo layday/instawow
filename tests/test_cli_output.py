@@ -41,7 +41,7 @@ def manager(event_loop, web_client, full_config):
 
 
 @pytest.fixture
-def run(request, manager, mock_all):
+def run(request, manager):
     param = getattr(request, 'param', None)
     if param is Flavour.retail and manager.config.is_classic:
         pytest.skip('test is for retail only')

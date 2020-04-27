@@ -6,6 +6,7 @@ import pytest
 
 from instawow.config import Config
 from instawow.manager import Manager, init_web_client, prepare_db_session
+from instawow.utils import get_version
 
 
 def pytest_addoption(parser):
@@ -79,6 +80,15 @@ def manager(full_config, web_client):
 @pytest.fixture
 def JsonResponse(aresponses):
     return partial(aresponses.Response, headers={'Content-Type': 'application/json'})
+
+
+@pytest.fixture
+def mock_pypi(aresponses, JsonResponse):
+    aresponses.add('pypi.org',
+                   '/pypi/instawow/json',
+                   'get',
+                   JsonResponse(body=f'{{"info": {{"version": "{get_version()}"}}}}'),
+                   repeat=float('inf'))
 
 
 @pytest.fixture
@@ -170,7 +180,7 @@ def mock_tukui(aresponses, JsonResponse, mock_master_catalogue):
                    repeat=float('inf'))
 
 
-@pytest.fixture
-@should_mock
-def mock_all(mock_curse, mock_wowi, mock_tukui):
+@pytest.fixture(autouse=True)
+def mock_all(mock_pypi,
+             mock_curse, mock_wowi, mock_tukui):
     pass

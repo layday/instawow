@@ -9,8 +9,6 @@ jobs:
         os: [macos-latest, ubuntu-latest, windows-latest]
         python-version: ['3.7', '3.8']
     runs-on: ${{ matrix.os }}
-    env:
-      INSTAWOW_AUTO_UPDATE_CHECK: 0
     steps:
     - name: Clone the repo
       uses: actions/checkout@v2
