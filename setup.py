@@ -20,7 +20,7 @@ setup(name='instawow',
          prompt-toolkit >=2, !=3.0.0, !=3.0.1, !=3.0.2, <4
          pydantic       ~=1.5.0
          questionary    >=1, !=1.3.0, <2
-         slpp           ==1.2
+         slpp           ==1.2.1
          sqlalchemy     ~=1.0
          yarl           ~=1.0
       ''',
