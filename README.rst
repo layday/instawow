@@ -34,7 +34,7 @@ Installing with ``pip`` is also supported::
 
 Finally, you can download pre-built binaries from
 `GitHub <https://github.com/layday/instawow/releases>`__.
-These are only available for macOS and Linux (Ubuntu).
+These are only available for macOS and Linux (compiled on Ubuntu).
 
 .. |pipx| replace:: ``pipx``
 .. _pipx: https://github.com/pipxproject/pipx
@@ -42,25 +42,29 @@ These are only available for macOS and Linux (Ubuntu).
 Getting started
 ---------------
 
-*instawow* is able to interpret add-on URLs, slugs and IDs.
-All of the following will install Molinari::
+tl;dr
+~~~~~
+
+Begin with running ``instawow reconcile --auto`` to register previously-installed
+add-ons with *instawow*.  To install add-ons, you can search for them
+using the ``search`` command, like so::
+
+    instawow search molinari
+
+In addition *instawow* is able to interpret add-on URLs, slugs and host IDs.
+All of the following will install Molinari from CurseForge::
 
     instawow install https://www.curseforge.com/wow/addons/molinari
     instawow install curse:molinari
     instawow install curse:20338
-    instawow install https://www.wowinterface.com/downloads/info13188-Molinari.html
-    instawow install wowi:13188
 
-- The ``update`` and ``remove`` commands work in the same way, and ``update``
-  can be run without arguments to update all add-ons.
-- You can opt into alpha and beta quality add-ons from CurseForge
-  using the ``--with-strategy`` option on ``install``.
-- Use ``list`` to list add-ons managed by *instawow*; ``list-folders -e`` to
-  list unmanaged add-ons; ``info`` to display add-on information,
-  ``visit`` to open an add-on homepage in your browser and ``reveal`` to
-  open the primary add-on folder in your file manager.
-- Non-destructive operations accept partial definitions,
-  e.g. ``instawow info moli`` will display information about Molinari.
+You can ``update`` add-ons and ``remove`` them just as you'd install them.
+If ``update`` is invoked without arguments, it will update all of your
+installed add-ons.  You can ``list`` add-ons and view detailed information about
+them using ``list --format detailed``.  The argument of ``list`` and similarly
+non-destructive commands can be a substring of the add-on name; for instance,
+``instawow reveal molinari`` will open the Molinari add-on folder in your
+file manager.
 
 *instafying* add-ons
 ~~~~~~~~~~~~~~~~~~~~
@@ -71,8 +75,8 @@ fingerprinting algorithm to reconcile add-ons you have installed with add-ons
 their respective hosts keep on their servers.  Though the details of their implementation
 elude me, *instawow* tries to accomplish something similar by combining a variety
 of cues (e.g. folders and TOC entries).  This is not done automatically;
-you will need to execute ``instawow reconcile`` to absorb add-ons installed
-through other means.
+you will need to run ``instawow reconcile`` to absorb add-ons installed
+through other means.  The ``--auto`` flag automates the reconciliation process.
 
 Searching for add-ons
 ~~~~~~~~~~~~~~~~~~~~~
@@ -105,7 +109,7 @@ For ease of use, you might want to set up an alias.  In your Bash profile, add::
 You would then be able to invoke *instawow* using ``instawow-classic``.
 
 If you find yourself needing to install a retail-only add-on that you know
-to work in Classic, the ``any_flavour`` strategy is available.
+to work in Classic, you can use the ``any_flavour`` strategy.
 
 Additional functionality
 ------------------------
