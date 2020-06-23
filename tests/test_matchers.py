@@ -43,4 +43,4 @@ async def test_multiple_defns_per_addon_contained_in_results(manager, molinari, 
 async def test_multiple_defns_per_addon_per_source_contained_in_results(manager):
     write_addons(manager, 'AdiBags', 'AdiBags_Config')
     (_, matches), = await match_dir_names(manager, get_folders(manager))
-    assert {Defn('curse', '23350'), Defn('curse', '333072')} == matches
+    assert {Defn('curse', '23350'), Defn('curse', '333072')} == set(matches)
