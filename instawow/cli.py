@@ -285,7 +285,7 @@ def reconcile(ctx: click.Context, auto: bool) -> None:
         selection = select(f'{addon.name} [{addon.version or "?"}]', choices).unsafe_ask()
         return selection
 
-    def prompt(groups: Iterable[Tuple[List[AddonFolder], FrozenSet[Defn]]]) -> Iterable[Defn]:
+    def prompt(groups: Iterable[Tuple[List[AddonFolder], List[Defn]]]) -> Iterable[Defn]:
         results = manager.run(manager.resolve(list({d for _, b in groups for d in b})))
         for addons, defns in groups:
             shortlist = list(filter(is_pkg, (results[d] for d in defns)))
