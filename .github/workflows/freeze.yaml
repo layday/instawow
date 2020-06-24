@@ -41,7 +41,7 @@ jobs:
       run: |
         mv dist/instawow dist/instawow.exe
     - name: Upload binary
-      uses: actions/upload-artifact@v1
+      uses: actions/upload-artifact@v2
       with:
         name: instawow-${{ matrix.os }}
-        path: dist/instawow
+        path: dist/instawow*
