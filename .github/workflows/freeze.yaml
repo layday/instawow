@@ -32,10 +32,14 @@ jobs:
     - name: Install PyOxidizer
       run: |
         cargo install pyoxidizer
-    - name: Build binary
+    - name: Build instawow and copy into 'dist' directory
       run: |
         mkdir -p dist
         pyoxidizer build --release | tee >(cp $(tail -n 1 | cut -c 23-) dist/instawow)
+    - name: Rename binary on Windows
+      if: matrix.os == 'windows-latest'
+      run: |
+        mv dist/instawow dist/instawow.exe
     - name: Upload binary
       uses: actions/upload-artifact@v1
       with:
