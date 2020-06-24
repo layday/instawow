@@ -34,7 +34,7 @@ Installing with ``pip`` is also supported::
 
 Finally, you can download pre-built binaries from
 `GitHub <https://github.com/layday/instawow/releases>`__.
-These are only available for macOS and Linux (compiled on Ubuntu).
+These are available for Linux (compiled on Ubuntu), macOS, and Windows.
 
 .. |pipx| replace:: ``pipx``
 .. _pipx: https://github.com/pipxproject/pipx
