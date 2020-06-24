@@ -1,4 +1,5 @@
 { myPythonStr
+, withRust ? false
 , pkgs ? import <nixpkgs> { overlays = [ (import ./my.framework-overlay.nix) ]; }
 }:
 
@@ -14,12 +15,13 @@ in
       libiconv
       openssl
       ctags
-      rustc
-      cargo
       myPython
       nodejs-13_x
+    ] ++ stdenv.lib.optional withRust [
+      rustc
+      cargo
       ncurses
-    ] ++ stdenv.lib.optional stdenv.isDarwin (
+    ] ++ stdenv.lib.optional (withRust && stdenv.isDarwin) (
       with darwin.apple_sdk.frameworks; [
         AppKit
         ApplicationServices
