@@ -16,6 +16,14 @@ jobs:
     steps:
     - name: Clone the repo
       uses: actions/checkout@v2
+    - name: Set up caching for Rust
+      uses: actions/cache@v2
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          target
+        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
     - name: Install Rust toolchain
       uses: actions-rs/toolchain@v1
       with:
