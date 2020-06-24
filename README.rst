@@ -108,8 +108,10 @@ For ease of use, you might want to set up an alias.  In your Bash profile, add::
 
 You would then be able to invoke *instawow* using ``instawow-classic``.
 
-If you find yourself needing to install a retail-only add-on that you know
-to work in Classic, you can use the ``any_flavour`` strategy.
+The ``any_flavour`` strategy can be used to install ostensibly retail-only add-ons
+that work in Classic.  For example::
+
+    instawow-classic install -s any_flavour https://www.curseforge.com/wow/addons/colorpickerplus
 
 Additional functionality
 ------------------------
