@@ -6,6 +6,9 @@ on:
     - v*
 jobs:
   freeze:
+    defaults:
+      run:
+        shell: bash
     strategy:
       matrix:
         os: [macos-latest, ubuntu-latest, windows-latest]
