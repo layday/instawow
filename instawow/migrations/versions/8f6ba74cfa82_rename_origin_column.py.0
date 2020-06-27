@@ -26,19 +26,27 @@ def upgrade():
     with batch_alter_table('pkg_dep') as batch_op:
         batch_op.alter_column('pkg_origin', new_column_name='pkg_source')
         batch_op.drop_constraint('uq_id_per_foreign_key_constr', type_='unique')
-        batch_op.create_unique_constraint('uq_id_per_foreign_key_constr', ['id', 'pkg_source', 'pkg_id'])
+        batch_op.create_unique_constraint(
+            'uq_id_per_foreign_key_constr', ['id', 'pkg_source', 'pkg_id']
+        )
         batch_op.drop_constraint('fk_pkg_dep_pkg_origin_pkg', type_='foreignkey')
-        batch_op.create_foreign_key('fk_pkg_dep_pkg_source_pkg', 'pkg', ['pkg_source', 'pkg_id'], ['source', 'id'])
+        batch_op.create_foreign_key(
+            'fk_pkg_dep_pkg_source_pkg', 'pkg', ['pkg_source', 'pkg_id'], ['source', 'id']
+        )
 
     with batch_alter_table('pkg_folder') as batch_op:
         batch_op.alter_column('pkg_origin', new_column_name='pkg_source')
         batch_op.drop_constraint('fk_pkg_folder_pkg_origin_pkg', type_='foreignkey')
-        batch_op.create_foreign_key('fk_pkg_folder_pkg_source_pkg', 'pkg', ['pkg_source', 'pkg_id'], ['source', 'id'])
+        batch_op.create_foreign_key(
+            'fk_pkg_folder_pkg_source_pkg', 'pkg', ['pkg_source', 'pkg_id'], ['source', 'id']
+        )
 
     with batch_alter_table('pkg_options') as batch_op:
         batch_op.alter_column('pkg_origin', new_column_name='pkg_source')
         batch_op.drop_constraint('fk_pkg_options_pkg_origin_pkg', type_='foreignkey')
-        batch_op.create_foreign_key('fk_pkg_options_pkg_source_pkg', 'pkg', ['pkg_source', 'pkg_id'], ['source', 'id'])
+        batch_op.create_foreign_key(
+            'fk_pkg_options_pkg_source_pkg', 'pkg', ['pkg_source', 'pkg_id'], ['source', 'id']
+        )
 
 
 def downgrade():
@@ -48,16 +56,24 @@ def downgrade():
     with batch_alter_table('pkg_dep') as batch_op:
         batch_op.alter_column('pkg_source', new_column_name='pkg_origin')
         batch_op.drop_constraint('uq_id_per_foreign_key_constr', type_='unique')
-        batch_op.create_unique_constraint('uq_id_per_foreign_key_constr', ['id', 'pkg_origin', 'pkg_id'])
+        batch_op.create_unique_constraint(
+            'uq_id_per_foreign_key_constr', ['id', 'pkg_origin', 'pkg_id']
+        )
         batch_op.drop_constraint('fk_pkg_dep_pkg_source_pkg', type_='foreignkey')
-        batch_op.create_foreign_key('fk_pkg_dep_pkg_origin_pkg', 'pkg', ['pkg_origin', 'pkg_id'], ['origin', 'id'])
+        batch_op.create_foreign_key(
+            'fk_pkg_dep_pkg_origin_pkg', 'pkg', ['pkg_origin', 'pkg_id'], ['origin', 'id']
+        )
 
     with batch_alter_table('pkg_folder') as batch_op:
         batch_op.alter_column('pkg_source', new_column_name='pkg_origin')
         batch_op.drop_constraint('fk_pkg_folder_pkg_source_pkg', type_='foreignkey')
-        batch_op.create_foreign_key('fk_pkg_folder_pkg_origin_pkg', 'pkg', ['pkg_origin', 'pkg_id'], ['origin', 'id'])
+        batch_op.create_foreign_key(
+            'fk_pkg_folder_pkg_origin_pkg', 'pkg', ['pkg_origin', 'pkg_id'], ['origin', 'id']
+        )
 
     with batch_alter_table('pkg_options') as batch_op:
         batch_op.alter_column('pkg_source', new_column_name='pkg_origin')
         batch_op.drop_constraint('fk_pkg_options_pkg_source_pkg', type_='foreignkey')
-        batch_op.create_foreign_key('fk_pkg_options_pkg_origin_pkg', 'pkg', ['pkg_origin', 'pkg_id'], ['origin', 'id'])
+        batch_op.create_foreign_key(
+            'fk_pkg_options_pkg_origin_pkg', 'pkg', ['pkg_origin', 'pkg_id'], ['origin', 'id']
+        )

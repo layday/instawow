@@ -253,7 +253,7 @@ def install(obj: M, addons: Sequence[Defn], replace: bool):
     "Install add-ons."
     if not addons:
         raise click.UsageError(
-            'You must provide at least one of "ADDONS", ' '"--with-strategy" or "--import"'
+            'You must provide at least one of "ADDONS", "--with-strategy" or "--import"'
         )
 
     results = obj.m.run(obj.m.install(addons, replace))
@@ -598,7 +598,7 @@ def _weakauras_group():
     '--account',
     '-a',
     required=True,
-    help='Your account name.  This is used to locate ' 'the WeakAuras data file.',
+    help='Your account name.  This is used to locate the WeakAuras data file.',
 )
 @click.pass_obj
 def build_weakauras_companion(obj: M, account: str):
@@ -613,7 +613,7 @@ def build_weakauras_companion(obj: M, account: str):
     '--account',
     '-a',
     required=True,
-    help='Your account name.  This is used to locate ' 'the WeakAuras data file.',
+    help='Your account name.  This is used to locate the WeakAuras data file.',
 )
 @click.pass_obj
 def list_installed_wago_auras(obj: M, account: str):
