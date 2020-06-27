@@ -1,14 +1,13 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Dict, List, NamedTuple, Optional, Sequence
+from typing import TYPE_CHECKING, Any, Dict, List, NamedTuple, Optional as O, Sequence
 
 from loguru import logger
-from pydantic import BaseModel, Extra, validator
+from pydantic import BaseModel, Extra, ValidationError, validator
 from yarl import URL
 
 from .config import BaseConfig
-from .utils import (ManagerAttrAccessMixin, bucketise, cached_property, dict_chain, gather,
-                    run_in_thread as t)
+from .utils import ManagerAttrAccessMixin, bucketise, dict_chain, gather, run_in_thread as t
 
 if TYPE_CHECKING:
     from .manager import Manager
@@ -25,13 +24,17 @@ class BuilderConfig(BaseConfig):
         env_prefix = 'WAC_'
 
 
+class WaConfigError(Exception):
+    pass
+
+
 class AuraEntry(BaseModel):
     id: str
     uid: str
-    parent: Optional[str]
+    parent: O[str]
     url: URL
     version: int
-    semver: Optional[str]
+    semver: O[str]
     ignore_wago_update: bool = False
 
     class Config:
@@ -44,7 +47,7 @@ class AuraEntry(BaseModel):
 
 
 class ApiMetadata__Changelog(BaseModel):
-    format: Optional[str]
+    format: O[str]
     text: str = ''
 
     class Config:
@@ -59,12 +62,12 @@ class ApiMetadata(BaseModel):
     created: str
     modified: str
     game: str
-    fork_of: Optional[str]
+    fork_of: O[str]
     username: str
     version: int
     version_string: str
     changelog: ApiMetadata__Changelog
-    region_type: Optional[str]
+    region_type: O[str]
 
     class Config:
         extra = Extra.forbid
@@ -84,7 +87,7 @@ class _OutdatedAuras(NamedTuple):
 class WaCompanionBuilder(ManagerAttrAccessMixin):
     """A WeakAuras Companion port for shellfolk."""
 
-    def __init__(self, manager: Manager, account: Optional[str] = None) -> None:
+    def __init__(self, manager: Manager, account: O[str] = None) -> None:
         self.manager = manager
 
         self.out_dir = self.config.plugin_dir / __name__
@@ -94,10 +97,6 @@ class WaCompanionBuilder(ManagerAttrAccessMixin):
     def ensure_dirs(self) -> WaCompanionBuilder:
         self.out_dir.mkdir(exist_ok=True)
         return self
-
-    @cached_property
-    def builder_config(self) -> BuilderConfig:
-        return BuilderConfig(account=self.account)
 
     @staticmethod
     def extract_auras(source: str) -> Dict[str, List[AuraEntry]]:
@@ -126,10 +125,15 @@ class WaCompanionBuilder(ManagerAttrAccessMixin):
     def extract_installed_auras(self) -> Dict[str, List[AuraEntry]]:
         import time
 
-        saved_vars = (self.config.addon_dir.parents[1]
-                      / 'WTF/Account' / self.builder_config.account
-                      / 'SavedVariables/WeakAuras.lua')
+        try:
+            builder_config = BuilderConfig(account=self.account)
+        except ValidationError as error:
+            raise WaConfigError from error
 
+        saved_vars = (self.config.addon_dir.parents[1]
+                      / 'WTF/Account'
+                      / builder_config.account
+                      / 'SavedVariables/WeakAuras.lua')
         start = time.perf_counter()
         aura_groups = self.extract_auras(saved_vars.read_text(encoding='utf-8'))
         logger.debug(f'auras extracted in {time.perf_counter() - start}s')
@@ -153,8 +157,8 @@ class WaCompanionBuilder(ManagerAttrAccessMixin):
         outdated = [((s, w), r)
                     for (s, w), r in zip(aura_groups.items(), metadata)
                     if r and r.version > next((a for a in w if not a.parent), w[0]).version]
-        import_strings = await gather((self.get_wago_aura_import_string(r.id)
-                                       for _, r in outdated), False)
+        import_strings = await gather((self.get_wago_aura_import_string(r.id) for _, r in outdated),
+                                      False)
         return [_OutdatedAuras(s, w, r, i) for ((s, w), r), i in zip(outdated, import_strings)]
 
     def make_addon(self, outdated_auras: Sequence[_OutdatedAuras]) -> None:
@@ -173,8 +177,8 @@ class WaCompanionBuilder(ManagerAttrAccessMixin):
         with ZipFile(self.ensure_dirs().addon_file, 'w') as file:
             def write_tpl(filename: str, ctx: Dict[str, Any]) -> None:
                 # We're not using a plain string as the first argument to
-                # ``writestr`` 'cause the timestamp is generated dynamically
-                # by default making the build unreproducible
+                # ``writestr`` 'cause then the timestamp is generated dynamically
+                # making the build unreproducible
                 zip_info = ZipInfo(filename=f'WeakAurasCompanion/{filename}')
                 file.writestr(zip_info, jinja_env.get_template(filename).render(ctx))
 

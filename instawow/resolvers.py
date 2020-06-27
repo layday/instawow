@@ -446,15 +446,14 @@ class InstawowResolver(Resolver):
         except StopIteration:
             raise E.PkgNonexistent
 
-        from pydantic import ValidationError
-        from .wa_updater import WaCompanionBuilder
+        from .wa_updater import WaCompanionBuilder, WaConfigError
 
         builder = WaCompanionBuilder(self.manager)
         if id_ == '1':
             try:
                 await builder.build()
-            except ValidationError as error:
-                raise E.PkgFileUnavailable('account name not provided') from error
+            except WaConfigError:
+                raise E.PkgFileUnavailable('account named not provided')
 
         checksum = await t(builder.checksum)()
         return m.Pkg(source=self.source,
