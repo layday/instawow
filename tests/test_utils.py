@@ -44,8 +44,10 @@ def test_loading_toc_from_path(fake_addon):
 
 def test_parsing_toc_entries(fake_addon):
     toc_reader = TocReader.from_path_name(fake_addon)
-    assert toc_reader.entries == {'Normal': 'Normal entry',
-                                  'Compact': 'Compact entry',}
+    assert toc_reader.entries == {
+        'Normal': 'Normal entry',
+        'Compact': 'Compact entry',
+    }
 
 
 def test_indexing_toc_entries(fake_addon):
@@ -72,22 +74,29 @@ def test_bucketise_bucketises_by_putting_things_in_a_bucketing_bucket():
 def test_tabulate(fake_addon):
     toc_reader = TocReader.from_path_name(fake_addon)
     data = [('key', 'value'), *toc_reader.entries.items()]
-    assert tabulate(data) == '''\
+    assert (
+        tabulate(data)
+        == '''\
   key       value    \n\
 ------- -------------
 Normal  Normal entry \n\
 Compact Compact entry\
 '''
+    )
 
 
 def test_merge_intersecting_sets_in_noncontiguous_collection():
-    collection = [{'a'},
-                  {'b', 'c'},
-                  {'a', 'd'},
-                  {'e'},
-                  {'c', 'f'},
-                  {'g', 'a'},]
-    output = [{'a', 'd', 'g'},
-              {'b', 'c', 'f'},
-              {'e'},]
+    collection = [
+        {'a'},
+        {'b', 'c'},
+        {'a', 'd'},
+        {'e'},
+        {'c', 'f'},
+        {'g', 'a'},
+    ]
+    output = [
+        {'a', 'd', 'g'},
+        {'b', 'c', 'f'},
+        {'e'},
+    ]
     assert sorted(merge_intersecting_sets(collection)) == output

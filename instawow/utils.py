@@ -8,15 +8,33 @@ from functools import partial
 from itertools import chain, repeat
 from pathlib import Path
 import re
-from typing import (TYPE_CHECKING, AbstractSet, Any, Awaitable, Callable, Dict, Generic, Hashable,
-                    Iterable, Iterator, List, NamedTuple, Optional, Sequence, Tuple, TypeVar,
-                    Union, cast, overload)
+from typing import (
+    TYPE_CHECKING,
+    AbstractSet,
+    Any,
+    Awaitable,
+    Callable,
+    Dict,
+    Generic,
+    Hashable,
+    Iterable,
+    Iterator,
+    List,
+    NamedTuple,
+    Optional,
+    Sequence,
+    Tuple,
+    TypeVar,
+    Union,
+    cast,
+    overload,
+)
 
 try:
     from typing import Literal as _Literal
 except ImportError:
     from typing_extensions import Literal as _Literal
-Literal = _Literal     # ...
+Literal = _Literal  # ...
 
 if TYPE_CHECKING:
     from prompt_toolkit.shortcuts import ProgressBar
@@ -44,9 +62,11 @@ class TocReader:
     """Extracts key–value pairs from TOC files."""
 
     def __init__(self, contents: str) -> None:
-        possible_entries = (map(str.strip, e.lstrip('#').partition(':')[::2])
-                            for e in contents.splitlines()
-                            if e.startswith('##'))
+        possible_entries = (
+            map(str.strip, e.lstrip('#').partition(':')[::2])
+            for e in contents.splitlines()
+            if e.startswith('##')
+        )
         self.entries = {k: v for k, v in possible_entries if k}
         self.default = ''
 
@@ -72,9 +92,12 @@ class cached_property(Generic[_V]):
         self.f = f
 
     @overload
-    def __get__(self, o: None, t: Optional[type] = None) -> Callable: ...
+    def __get__(self, o: None, t: Optional[type] = None) -> Callable:
+        ...
+
     @overload
-    def __get__(self, o: Any, t: Optional[type] = None) -> _V: ...
+    def __get__(self, o: Any, t: Optional[type] = None) -> _V:
+        ...
 
     def __get__(self, o: Any, t: Optional[type] = None) -> Union[Callable, _V]:
         if o is None:
@@ -84,8 +107,7 @@ class cached_property(Generic[_V]):
             return v
 
 
-def bucketise(iterable: Iterable[_V], key: Callable[[_V], _H] = lambda v: v
-              ) -> Dict[_H, List[_V]]:
+def bucketise(iterable: Iterable[_V], key: Callable[[_V], _H] = lambda v: v) -> Dict[_H, List[_V]]:
     "Place the elements of an iterable in a bucket according to ``key``."
     bucket: Any = defaultdict(list)
     for value in iterable:
@@ -93,8 +115,9 @@ def bucketise(iterable: Iterable[_V], key: Callable[[_V], _H] = lambda v: v
     return dict(bucket)
 
 
-def dict_chain(keys: Iterable[_H], default: Any, *overrides: Iterable[Tuple[_H, Any]]
-               ) -> Dict[_H, Any]:
+def dict_chain(
+    keys: Iterable[_H], default: Any, *overrides: Iterable[Tuple[_H, Any]]
+) -> Dict[_H, Any]:
     "Construct a dictionary from a series of iterables with overlapping keys."
     return dict(chain(zip(keys, repeat(default)), *overrides))
 
@@ -117,7 +140,7 @@ def merge_intersecting_sets(it: Iterable[_AnySet]) -> Iterable[_AnySet]:
                 if this_set & other_set:
                     # The in-place operator will mutate unfrozen sets
                     # in the original collection
-                    this_set = this_set | other_set     # type: ignore
+                    this_set = this_set | other_set  # type: ignore
                     many_sets.remove(other_set)
                     break
             else:
@@ -182,12 +205,15 @@ def tabulate(rows: Sequence[Sequence[Any]], *, max_col_width: int = 60) -> str:
     rows = [tuple(map(apply_max_col_width, r)) for r in rows]
     head, *tail = rows
 
-    base_template = ' '.join(f'{{{{{{0}}{w}}}}}'
-                             for w in calc_resultant_col_widths(rows))
+    base_template = ' '.join(f'{{{{{{0}}{w}}}}}' for w in calc_resultant_col_widths(rows))
     row_template = base_template.format(':<')
-    table = '\n'.join((base_template.format(':^').format(*head),
-                       base_template.format(f'0:-<').format(''),
-                       *(row_template.format(*r) for r in tail),))
+    table = '\n'.join(
+        (
+            base_template.format(':^').format(*head),
+            base_template.format(f'0:-<').format(''),
+            *(row_template.format(*r) for r in tail),
+        )
+    )
     return table
 
 
@@ -210,10 +236,12 @@ def make_progress_bar(**kwargs: Any) -> ProgressBar:
     class PatchedProgressBar(ProgressBar):
         def __exit__(self, *args: Any):
             if self._has_sigwinch:
-                self._loop.add_signal_handler(signal.SIGWINCH,
-                                              cast(Callable, self._previous_winch_handler))
+                self._loop.add_signal_handler(
+                    signal.SIGWINCH, cast(Callable, self._previous_winch_handler)
+                )
 
             if self._thread is not None:
+
                 def attempt_exit(sender: Any):
                     sender.is_running and sender.exit()
 
@@ -228,21 +256,24 @@ def make_progress_bar(**kwargs: Any) -> ProgressBar:
             def format_pct(value: int) -> str:
                 return f'{value / 2 ** 20:.1f}'
 
-            return HTML(self.template).format(current=format_pct(progress.current),
-                                              total=format_pct(progress.total))
+            return HTML(self.template).format(
+                current=format_pct(progress.current), total=format_pct(progress.total)
+            )
 
-    f = [formatters.Label(),
-         formatters.Text(' '),
-         formatters.Percentage(),
-         formatters.Text(' '),
-         formatters.Bar(),
-         formatters.Text(' '),
-         DownloadProgress(),
-         formatters.Text(' '),
-         formatters.Text('eta [', style='class:time-left'),
-         formatters.TimeLeft(),
-         formatters.Text(']', style='class:time-left'),
-         formatters.Text(' ')]
+    f = [
+        formatters.Label(),
+        formatters.Text(' '),
+        formatters.Percentage(),
+        formatters.Text(' '),
+        formatters.Bar(),
+        formatters.Text(' '),
+        DownloadProgress(),
+        formatters.Text(' '),
+        formatters.Text('eta [', style='class:time-left'),
+        formatters.TimeLeft(),
+        formatters.Text(']', style='class:time-left'),
+        formatters.Text(' '),
+    ]
     progress_bar = PatchedProgressBar(formatters=f, **kwargs)
     return progress_bar
 
@@ -257,8 +288,9 @@ def shasum(*values: str) -> str:
 def is_not_stale(path: Path, ttl: int, unit: str = 'seconds') -> bool:
     "Check if a file is older than ``ttl``."
     mtime = path.exists() and path.stat().st_mtime
-    return mtime > 0 and ((datetime.now() - datetime.fromtimestamp(cast(float, mtime)))
-                          < timedelta(**{unit: ttl}))
+    return mtime > 0 and (
+        (datetime.now() - datetime.fromtimestamp(cast(float, mtime))) < timedelta(**{unit: ttl})
+    )
 
 
 def get_version() -> str:
@@ -307,9 +339,11 @@ def is_outdated(manager: CliManager) -> bool:
 def setup_logging(logger_dir: Path, level: Union[int, str] = 'INFO') -> int:
     from loguru import logger
 
-    handler = {'sink': logger_dir / 'error.log',
-               'level': level,
-               'rotation': '1 MB',
-               'enqueue': True}
-    handler_id, = logger.configure(handlers=(handler,))
+    handler = {
+        'sink': logger_dir / 'error.log',
+        'level': level,
+        'rotation': '1 MB',
+        'enqueue': True,
+    }
+    (handler_id,) = logger.configure(handlers=(handler,))
     return handler_id

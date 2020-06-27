@@ -10,18 +10,49 @@ from pathlib import Path, PurePath
 import posixpath
 from shutil import copy, move
 from tempfile import NamedTemporaryFile, mkdtemp
-from typing import (TYPE_CHECKING, Any, AsyncContextManager as ACM, AsyncIterator, Awaitable,
-                    Callable, Dict, Iterable, List, Mapping, NoReturn, Optional as O, Sequence,
-                    Set, Tuple, TypeVar, Union, cast)
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    AsyncContextManager as ACM,
+    AsyncIterator,
+    Awaitable,
+    Callable,
+    Dict,
+    Iterable,
+    List,
+    Mapping,
+    NoReturn,
+    Optional as O,
+    Sequence,
+    Set,
+    Tuple,
+    TypeVar,
+    Union,
+    cast,
+)
 
 from loguru import logger
 
 from . import DB_REVISION, exceptions as E
 from .models import Pkg, PkgFolder, is_pkg
-from .resolvers import (CurseResolver, Defn, InstawowResolver, MasterCatalogue, Resolver,
-                        TukuiResolver, WowiResolver)
-from .utils import (bucketise, dict_chain, gather, is_not_stale, make_progress_bar,
-                    run_in_thread as t, shasum)
+from .resolvers import (
+    CurseResolver,
+    Defn,
+    InstawowResolver,
+    MasterCatalogue,
+    Resolver,
+    TukuiResolver,
+    WowiResolver,
+)
+from .utils import (
+    bucketise,
+    dict_chain,
+    gather,
+    is_not_stale,
+    make_progress_bar,
+    run_in_thread as t,
+    shasum,
+)
 
 if TYPE_CHECKING:
     import aiohttp
@@ -59,7 +90,7 @@ async def open_temp_writer() -> AsyncIterator[Tuple[Path, Callable[..., Any]]]:
 
 async def trash(paths: Sequence[Path], parent: PurePath, *, missing_ok: bool = False) -> None:
     dst = await amkdtemp(dir=parent, prefix='deleted-' + paths[0].name + '-')
-    for path in map(str, paths):    # https://bugs.python.org/issue32689
+    for path in map(str, paths):  # https://bugs.python.org/issue32689
         try:
             await amove(path, dst)
         except (FileNotFoundError if missing_ok else ()):
@@ -72,8 +103,9 @@ _zip_excludes = {'__MACOSX'}
 
 
 def find_base_dirs(names: Sequence[str]) -> Set[str]:
-    return {n for n in (posixpath.dirname(n) for n in names)
-            if n and posixpath.sep not in n} - _zip_excludes
+    return {
+        n for n in (posixpath.dirname(n) for n in names) if n and posixpath.sep not in n
+    } - _zip_excludes
 
 
 def should_extract(base_dirs: Set[str]) -> Callable[[str], bool]:
@@ -105,7 +137,9 @@ async def acquire_archive(path: PurePath) -> AsyncIterator[_ArchiveR]:
         await t(archive.close)()
 
 
-async def download_archive(manager: Manager, pkg: Pkg, *, chunk_size: int = 4096) -> ACM[_ArchiveR]:
+async def download_archive(
+    manager: Manager, pkg: Pkg, *, chunk_size: int = 4096
+) -> ACM[_ArchiveR]:
     url = pkg.download_url
     dst = manager.config.cache_dir / shasum(pkg.source, pkg.id, pkg.file_id)
 
@@ -117,8 +151,10 @@ async def download_archive(manager: Manager, pkg: Pkg, *, chunk_size: int = 4096
         await acopy(unquote(url[7:]), dst)
     else:
         kwargs = {'raise_for_status': True, 'trace_request_ctx': {'show_progress': True}}
-        async with manager.web_client.get(url, **kwargs) as response, \
-                open_temp_writer() as (temp_path, write):
+        async with manager.web_client.get(url, **kwargs) as response, open_temp_writer() as (
+            temp_path,
+            write,
+        ):
             async for chunk in response.content.iter_chunked(chunk_size):
                 await write(chunk)
 
@@ -161,8 +197,8 @@ def prepare_db_session(config: Config) -> scoped_session:
         from .utils import copy_resources
 
         with copy_resources(
-                f'{__package__}.migrations',
-                f'{__package__}.migrations.versions') as tmp_dir:
+            f'{__package__}.migrations', f'{__package__}.migrations.versions'
+        ) as tmp_dir:
             aconfig = AConfig()
             aconfig.set_main_option('script_location', str(tmp_dir / __package__ / 'migrations'))
             aconfig.set_main_option('sqlalchemy.url', db_url)
@@ -181,11 +217,13 @@ def prepare_db_session(config: Config) -> scoped_session:
 def init_web_client(**kwargs: Any) -> aiohttp.ClientSession:
     from aiohttp import ClientSession, ClientTimeout, TCPConnector
 
-    kwargs = {'connector': TCPConnector(force_close=True, limit_per_host=10),
-              'headers': {'User-Agent': USER_AGENT},
-              'trust_env': True,    # Respect http_proxy env var
-              'timeout': cast(Any, ClientTimeout)(connect=15),
-              **kwargs}
+    kwargs = {
+        'connector': TCPConnector(force_close=True, limit_per_host=10),
+        'headers': {'User-Agent': USER_AGENT},
+        'trust_env': True,  # Respect http_proxy env var
+        'timeout': cast(Any, ClientTimeout)(connect=15),
+        **kwargs,
+    }
     return ClientSession(**kwargs)
 
 
@@ -209,7 +247,7 @@ async def _error_out(error: Union[E.ManagerError, E.InternalError]) -> NoReturn:
 
 class Manager:
     config: Config
-    db_session: Any     # scoped_session
+    db_session: Any  # scoped_session
     resolvers: Mapping[str, Resolver]
     catalogue: MasterCatalogue
 
@@ -219,7 +257,7 @@ class Manager:
 
         resolvers = (CurseResolver, WowiResolver, TukuiResolver, InstawowResolver)
         self.resolvers = _ResolverDict({r.source: r(self) for r in resolvers})
-        self.catalogue = None      # type: ignore
+        self.catalogue = None  # type: ignore
 
     @property
     def web_client(self) -> aiohttp.ClientSession:
@@ -231,15 +269,20 @@ class Manager:
 
     def get(self, defn: Defn) -> O[Pkg]:
         "Get a package from (source, id) or (source, slug)."
-        return (self.db_session.query(Pkg)
-                .filter(Pkg.source == defn.source,
-                        (Pkg.id == defn.name) | (Pkg.slug == defn.name)).first())
+        return (
+            self.db_session.query(Pkg)
+            .filter(Pkg.source == defn.source, (Pkg.id == defn.name) | (Pkg.slug == defn.name))
+            .first()
+        )
 
     def get_from_substr(self, defn: Defn) -> O[Pkg]:
         "Get a package from a partial slug."
-        return (self.get(defn)
-                or (self.db_session.query(Pkg)
-                    .filter(Pkg.slug.contains(defn.name)).order_by(Pkg.name).first()))
+        return self.get(defn) or (
+            self.db_session.query(Pkg)
+            .filter(Pkg.slug.contains(defn.name))
+            .order_by(Pkg.name)
+            .first()
+        )
 
     def decompose_url(self, url: str) -> O[Tuple[str, str]]:
         "Parse a URL into a source–name tuple."
@@ -252,13 +295,16 @@ class Manager:
         "Fetch the master catalogue from the interwebs."
         if self.catalogue is None:
             label = 'Synchronising master catalogue'
-            url = ('https://raw.githubusercontent.com/layday/instascrape/data/'
-                   'master-catalogue-v1.compact.json')   # v1
+            url = (
+                'https://raw.githubusercontent.com/layday/instascrape/data/'
+                'master-catalogue-v1.compact.json'
+            )  # v1
             catalogue = await cache_json_response(self, url, 4, 'hours', label=label)
             self.catalogue = MasterCatalogue.parse_obj(catalogue)
 
-    async def _consume_seq(self, coros_by_defn: Dict[Defn, Callable[..., Awaitable[Any]]]
-                           ) -> Dict[Defn, E.ManagerResult]:
+    async def _consume_seq(
+        self, coros_by_defn: Dict[Defn, Callable[..., Awaitable[Any]]]
+    ) -> Dict[Defn, E.ManagerResult]:
         return {d: await E.ManagerResult.acapture(c()) for d, c in coros_by_defn.items()}
 
     async def _resolve_deps(self, results: Iterable[Any]) -> Dict[Defn, Any]:
@@ -270,9 +316,13 @@ class Manager:
         encounter in the wild.
         """
         pkgs = list(filter(is_pkg, results))
-        dep_defns = list(filterfalse({(p.source, p.id) for p in pkgs}.__contains__,
-                                     # Using a dict to maintain dep appearance order
-                                     {(p.source, d.id): ... for p in pkgs for d in p.deps}))
+        dep_defns = list(
+            filterfalse(
+                {(p.source, p.id) for p in pkgs}.__contains__,
+                # Using a dict to maintain dep appearance order
+                {(p.source, d.id): ... for p in pkgs for d in p.deps},
+            )
+        )
         if not dep_defns:
             return {}
 
@@ -288,8 +338,7 @@ class Manager:
         await self.synchronise()
         defns_by_source = bucketise(defns, key=lambda v: v.source)
 
-        results = await gather(self.resolvers[s].resolve(b)
-                               for s, b in defns_by_source.items())
+        results = await gather(self.resolvers[s].resolve(b) for s, b in defns_by_source.items())
         results_by_defn = dict_chain(defns, None, *(r.items() for r in results))
         if with_deps:
             results_by_defn.update(await self._resolve_deps(results_by_defn.values()))
@@ -309,32 +358,39 @@ class Manager:
         await self.synchronise()
 
         s = normalise(search_terms)
-        tokens_to_defns = bucketise(((normalise(i.name), (i.source, i.id))
-                                     for i in self.catalogue.__root__
-                                     if self.config.game_flavour in i.compatibility),
-                                    key=lambda v: v[0])
+        tokens_to_defns = bucketise(
+            (
+                (normalise(i.name), (i.source, i.id))
+                for i in self.catalogue.__root__
+                if self.config.game_flavour in i.compatibility
+            ),
+            key=lambda v: v[0],
+        )
 
         # TODO: weigh matches under threshold against download count
-        matches = heapq.nlargest(limit,
-                                 ((jaro_winkler(s, n), n) for n in tokens_to_defns.keys()),
-                                 key=lambda v: v[0])
-        defns = [Defn(*d)
-                 for _, m in matches
-                 for _, d in tokens_to_defns[m]]
+        matches = heapq.nlargest(
+            limit, ((jaro_winkler(s, n), n) for n in tokens_to_defns.keys()), key=lambda v: v[0]
+        )
+        defns = [Defn(*d) for _, m in matches for _, d in tokens_to_defns[m]]
         results = await self.resolve(defns)
         pkgs_by_defn = {d.with_name(r.slug): r for d, r in results.items() if is_pkg(r)}
         return pkgs_by_defn
 
-    async def install_one(self, pkg: Pkg, archive: ACM[_ArchiveR], replace: bool) -> E.PkgInstalled:
+    async def install_one(
+        self, pkg: Pkg, archive: ACM[_ArchiveR], replace: bool
+    ) -> E.PkgInstalled:
         async with archive as (folders, extract):
-            conflicts = (self.db_session.query(Pkg).join(Pkg.folders)
-                         .filter(PkgFolder.name.in_(folders)).all())
+            conflicts = (
+                self.db_session.query(Pkg)
+                .join(Pkg.folders)
+                .filter(PkgFolder.name.in_(folders))
+                .all()
+            )
             if conflicts:
                 raise E.PkgConflictsWithInstalled(conflicts)
 
             if replace:
-                await trash([self.config.addon_dir / f for f in folders],
-                            self.config.temp_dir)
+                await trash([self.config.addon_dir / f for f in folders], self.config.temp_dir)
             await extract(self.config.addon_dir)
 
         pkg.folders = [PkgFolder(name=f) for f in folders]
@@ -343,28 +399,33 @@ class Manager:
         return E.PkgInstalled(pkg)
 
     async def install(self, defns: Sequence[Defn], replace: bool) -> Dict[Defn, E.ManagerResult]:
-        prelim_results = await self.resolve(
-            [d for d in defns if not self.get(d)], with_deps=True)
+        prelim_results = await self.resolve([d for d in defns if not self.get(d)], with_deps=True)
         # Weed out installed deps - this isn't super efficient but avoids
         # having to deal with local state in the resolver
         results = {d: r for d, r in prelim_results.items() if not self.get(d)}
-        installables = {(d, r): download_archive(self, r)
-                        for d, r in results.items() if is_pkg(r)}
+        installables = {(d, r): download_archive(self, r) for d, r in results.items() if is_pkg(r)}
         archives = await gather(installables.values())
 
         coros = dict_chain(
-            defns, partial(_error_out, E.PkgAlreadyInstalled()),
+            defns,
+            partial(_error_out, E.PkgAlreadyInstalled()),
             ((d, partial(_error_out, r)) for d, r in results.items()),
-            ((d, partial(self.install_one, p, a, replace))
-             for (d, p), a in zip(installables, archives)))
+            (
+                (d, partial(self.install_one, p, a, replace))
+                for (d, p), a in zip(installables, archives)
+            ),
+        )
         return await self._consume_seq(coros)
 
     async def update_one(self, old_pkg: Pkg, pkg: Pkg, archive: ACM[_ArchiveR]) -> E.PkgUpdated:
         async with archive as (folders, extract):
             conflicts = (
-                self.db_session.query(Pkg).join(Pkg.folders)
+                self.db_session.query(Pkg)
+                .join(Pkg.folders)
                 .filter(PkgFolder.pkg_source != pkg.source, PkgFolder.pkg_id != pkg.id)
-                .filter(PkgFolder.name.in_(folders)).all())
+                .filter(PkgFolder.name.in_(folders))
+                .all()
+            )
             if conflicts:
                 raise E.PkgConflictsWithInstalled(conflicts)
 
@@ -388,22 +449,28 @@ class Manager:
         # and updatables are packages with updates
         results = await self.resolve([d for d, p in checked_defns.items() if p])
         installables = {d: r for d, r in results.items() if is_pkg(r)}
-        updatables = {(d, checked_defns[d], p): download_archive(self, p)
-                      for d, p in installables.items()
-                      if p.file_id != cast(Pkg, checked_defns[d]).file_id}
+        updatables = {
+            (d, checked_defns[d], p): download_archive(self, p)
+            for d, p in installables.items()
+            if p.file_id != cast(Pkg, checked_defns[d]).file_id
+        }
         archives = await gather(updatables.values())
 
         coros = dict_chain(
-            checked_defns, partial(_error_out, E.PkgNotInstalled()),
+            checked_defns,
+            partial(_error_out, E.PkgNotInstalled()),
             ((d, partial(_error_out, r)) for d, r in results.items()),
             ((d, partial(_error_out, E.PkgUpToDate())) for d in installables),
-            ((d, partial(self.update_one, *p, a))
-             for (d, *p), a in zip(updatables, archives)))
+            ((d, partial(self.update_one, *p, a)) for (d, *p), a in zip(updatables, archives)),
+        )
         return await self._consume_seq(coros)
 
     async def remove_one(self, pkg: Pkg) -> E.PkgRemoved:
-        await trash([self.config.addon_dir / f.name for f in pkg.folders],
-                    parent=self.config.temp_dir, missing_ok=True)
+        await trash(
+            [self.config.addon_dir / f.name for f in pkg.folders],
+            parent=self.config.temp_dir,
+            missing_ok=True,
+        )
         self.db_session.delete(pkg)
         self.db_session.commit()
         return E.PkgRemoved(pkg)
@@ -411,12 +478,14 @@ class Manager:
     async def remove(self, defns: Sequence[Defn]) -> Dict[Defn, E.ManagerResult]:
         pkgs_by_defn = ((d, self.get(d)) for d in defns)
         coros = dict_chain(
-            defns, partial(_error_out, E.PkgNotInstalled()),
-            ((d, partial(self.remove_one, p)) for d, p in pkgs_by_defn if p))
+            defns,
+            partial(_error_out, E.PkgNotInstalled()),
+            ((d, partial(self.remove_one, p)) for d, p in pkgs_by_defn if p),
+        )
         return await self._consume_seq(coros)
 
 
-_tick_interval = .1
+_tick_interval = 0.1
 _tickers: cv.ContextVar[Set[asyncio.Task[None]]] = cv.ContextVar('_tickers', default=set())
 
 
@@ -446,10 +515,12 @@ def init_cli_web_client(*, Bar: ProgressBar) -> aiohttp.ClientSession:
         async def ticker() -> None:
             label = ctx.get('label') or f'Downloading {extract_filename(params.response)}'
             total = params.response.content_length
-            if (total is None
-                    # Size before decoding is not exposed in streaming API and
-                    # `Content-Length` has the size of the payload after gzipping
-                    or params.response.headers.get(hdrs.CONTENT_ENCODING) == 'gzip'):
+            if (
+                total is None
+                # Size before decoding is not exposed in streaming API and
+                # `Content-Length` has the size of the payload after gzipping
+                or params.response.headers.get(hdrs.CONTENT_ENCODING) == 'gzip'
+            ):
                 # Length of zero will have a hash sign cycle through the bar
                 # (see indeterminate progress bars)
                 total = 0
@@ -481,8 +552,7 @@ def init_cli_web_client(*, Bar: ProgressBar) -> aiohttp.ClientSession:
 class CliManager(Manager):
     def run(self, awaitable: Awaitable[_T]) -> _T:
         async def run():
-            async with init_cli_web_client(Bar=Bar) as self.web_client, \
-                    cancel_tickers():
+            async with init_cli_web_client(Bar=Bar) as self.web_client, cancel_tickers():
                 return await awaitable
 
         with make_progress_bar() as Bar:

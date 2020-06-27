@@ -21,13 +21,17 @@ def type_check(session):
 
 @nox.session(python='3.7')
 def reformat(session):
-    session.install('isort[pyproject]>=4.3.5')
+    session.install('isort[pyproject]>=4.3.5', 'black')
     session.run('isort', '--recursive', 'instawow', 'tests', 'noxfile.py', 'setup.py')
+    session.run(
+        'black', '--config', 'pyproject.toml', 'instawow', 'tests', 'noxfile.py', 'setup.py'
+    )
 
 
 @nox.session(python=False)
 def update_stubs(session):
-    sp.run("""\
+    sp.run(
+        """\
         types_dir=.py-types
         rm -rf $types_dir && mkdir $types_dir && cd $types_dir && {
           git clone --depth 1 \
@@ -36,7 +40,10 @@ def update_stubs(session):
             https://github.com/dropbox/sqlalchemy-stubs stubs/_sqlalchemy-stubs
           cp -r stubs/_sqlalchemy-stubs/sqlalchemy-stubs stubs/sqlalchemy
         }
-    """, shell=True, executable='bash')
+    """,
+        shell=True,
+        executable='bash',
+    )
 
 
 @nox.session(python=False)

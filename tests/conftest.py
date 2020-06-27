@@ -84,103 +84,125 @@ def JsonResponse(aresponses):
 
 @pytest.fixture
 def mock_pypi(aresponses, JsonResponse):
-    aresponses.add('pypi.org',
-                   '/pypi/instawow/json',
-                   'get',
-                   JsonResponse(body=f'{{"info": {{"version": "{get_version()}"}}}}'),
-                   repeat=float('inf'))
+    aresponses.add(
+        'pypi.org',
+        '/pypi/instawow/json',
+        'get',
+        JsonResponse(body=f'{{"info": {{"version": "{get_version()}"}}}}'),
+        repeat=float('inf'),
+    )
 
 
 @pytest.fixture
 @should_mock
 def mock_master_catalogue(aresponses, JsonResponse):
-    aresponses.add('raw.githubusercontent.com',
-                   aresponses.ANY, 'get',
-                   JsonResponse(body=read_fixture('master-catalogue.json')),
-                   repeat=float('inf'))
+    aresponses.add(
+        'raw.githubusercontent.com',
+        aresponses.ANY,
+        'get',
+        JsonResponse(body=read_fixture('master-catalogue.json')),
+        repeat=float('inf'),
+    )
 
 
 @pytest.fixture
 @should_mock
 def mock_curse(aresponses, JsonResponse, mock_master_catalogue):
-    aresponses.add('addons-ecs.forgesvc.net',
-                   '/api/v2/addon',
-                   'post',
-                   JsonResponse(body=read_fixture('curse-post-addon_all.json')),
-                   repeat=float('inf'))
-    aresponses.add('edge.forgecdn.net',
-                   aresponses.ANY,
-                   'get',
-                   aresponses.Response(body=make_zip('Molinari')),
-                   repeat=float('inf'))
+    aresponses.add(
+        'addons-ecs.forgesvc.net',
+        '/api/v2/addon',
+        'post',
+        JsonResponse(body=read_fixture('curse-post-addon_all.json')),
+        repeat=float('inf'),
+    )
+    aresponses.add(
+        'edge.forgecdn.net',
+        aresponses.ANY,
+        'get',
+        aresponses.Response(body=make_zip('Molinari')),
+        repeat=float('inf'),
+    )
 
 
 @pytest.fixture
 @should_mock
 def mock_wowi(aresponses, JsonResponse, mock_master_catalogue):
-    aresponses.add('api.mmoui.com',
-                   '/v3/game/WOW/filelist.json',
-                   'get',
-                   JsonResponse(body=read_fixture('wowi-get-filelist.json')),
-                   repeat=float('inf'))
-    aresponses.add('api.mmoui.com',
-                   re.compile(r'^/v3/game/WOW/filedetails/'),
-                   'get',
-                   JsonResponse(body=read_fixture('wowi-get-filedetails.json')),
-                   repeat=float('inf'))
-    aresponses.add('cdn.wowinterface.com',
-                   aresponses.ANY,
-                   'get',
-                   aresponses.Response(body=make_zip('Molinari')),
-                   repeat=float('inf'))
+    aresponses.add(
+        'api.mmoui.com',
+        '/v3/game/WOW/filelist.json',
+        'get',
+        JsonResponse(body=read_fixture('wowi-get-filelist.json')),
+        repeat=float('inf'),
+    )
+    aresponses.add(
+        'api.mmoui.com',
+        re.compile(r'^/v3/game/WOW/filedetails/'),
+        'get',
+        JsonResponse(body=read_fixture('wowi-get-filedetails.json')),
+        repeat=float('inf'),
+    )
+    aresponses.add(
+        'cdn.wowinterface.com',
+        aresponses.ANY,
+        'get',
+        aresponses.Response(body=make_zip('Molinari')),
+        repeat=float('inf'),
+    )
 
 
 @pytest.fixture
 @should_mock
 def mock_tukui(aresponses, JsonResponse, mock_master_catalogue):
-    aresponses.add('www.tukui.org',
-                   '/api.php?ui=tukui',
-                   'get',
-                   JsonResponse(body=read_fixture('tukui-get-ui_tukui.json')),
-                   match_querystring=True,
-                   repeat=float('inf'))
-    aresponses.add('www.tukui.org',
-                   '/api.php?addon=1',
-                   'get',
-                   JsonResponse(body=read_fixture('tukui-get-addon.json')),
-                   match_querystring=True,
-                   repeat=float('inf'))
-    aresponses.add('www.tukui.org',
-                   '/api.php?classic-addon=1',
-                   'get',
-                   JsonResponse(body=read_fixture('tukui-get-classic-addon.json')),
-                   match_querystring=True,
-                   repeat=float('inf'))
-    aresponses.add('www.tukui.org',
-                   '/api.php',
-                   'get',
-                   '',
-                   repeat=float('inf'))
-    aresponses.add('www.tukui.org',
-                   re.compile(r'^/downloads/tukui'),
-                   'get',
-                   aresponses.Response(body=make_zip('Tukui')),
-                   repeat=float('inf'))
-    aresponses.add('www.tukui.org',
-                   '/addons.php?download=1',
-                   'get',
-                   aresponses.Response(body=make_zip('ElvUI_MerathilisUI')),
-                   match_querystring=True,
-                   repeat=float('inf'))
-    aresponses.add('www.tukui.org',
-                   '/classic-addons.php?download=1',
-                   'get',
-                   aresponses.Response(body=make_zip('Tukui')),
-                   match_querystring=True,
-                   repeat=float('inf'))
+    aresponses.add(
+        'www.tukui.org',
+        '/api.php?ui=tukui',
+        'get',
+        JsonResponse(body=read_fixture('tukui-get-ui_tukui.json')),
+        match_querystring=True,
+        repeat=float('inf'),
+    )
+    aresponses.add(
+        'www.tukui.org',
+        '/api.php?addon=1',
+        'get',
+        JsonResponse(body=read_fixture('tukui-get-addon.json')),
+        match_querystring=True,
+        repeat=float('inf'),
+    )
+    aresponses.add(
+        'www.tukui.org',
+        '/api.php?classic-addon=1',
+        'get',
+        JsonResponse(body=read_fixture('tukui-get-classic-addon.json')),
+        match_querystring=True,
+        repeat=float('inf'),
+    )
+    aresponses.add('www.tukui.org', '/api.php', 'get', '', repeat=float('inf'))
+    aresponses.add(
+        'www.tukui.org',
+        re.compile(r'^/downloads/tukui'),
+        'get',
+        aresponses.Response(body=make_zip('Tukui')),
+        repeat=float('inf'),
+    )
+    aresponses.add(
+        'www.tukui.org',
+        '/addons.php?download=1',
+        'get',
+        aresponses.Response(body=make_zip('ElvUI_MerathilisUI')),
+        match_querystring=True,
+        repeat=float('inf'),
+    )
+    aresponses.add(
+        'www.tukui.org',
+        '/classic-addons.php?download=1',
+        'get',
+        aresponses.Response(body=make_zip('Tukui')),
+        match_querystring=True,
+        repeat=float('inf'),
+    )
 
 
 @pytest.fixture(autouse=True)
-def mock_all(mock_pypi,
-             mock_curse, mock_wowi, mock_tukui):
+def mock_all(mock_pypi, mock_curse, mock_wowi, mock_tukui):
     pass

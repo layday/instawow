@@ -20,8 +20,11 @@ def invalid_addons(manager):
 def molinari(manager):
     (manager.config.addon_dir / 'Molinari').mkdir()
     (manager.config.addon_dir / 'Molinari' / 'Molinari.toc').write_text(
-        '## X-Curse-Project-ID: 20338\n'
-        '## X-WoWI-ID: 13188\n')
+        '''\
+## X-Curse-Project-ID: 20338
+## X-WoWI-ID: 13188
+'''
+    )
 
 
 @pytest.mark.asyncio
@@ -35,12 +38,12 @@ async def test_invalid_addons_discarded(manager, invalid_addons):
 @pytest.mark.asyncio
 @pytest.mark.parametrize('test_func', [match_toc_ids, match_toc_names, match_dir_names])
 async def test_multiple_defns_per_addon_contained_in_results(manager, molinari, test_func):
-    (_, matches), = await test_func(manager, get_folders(manager))
+    ((_, matches),) = await test_func(manager, get_folders(manager))
     assert {Defn('curse', '20338'), Defn('wowi', '13188')} == set(matches)
 
 
 @pytest.mark.asyncio
 async def test_multiple_defns_per_addon_per_source_contained_in_results(manager):
     write_addons(manager, 'AdiBags', 'AdiBags_Config')
-    (_, matches), = await match_dir_names(manager, get_folders(manager))
+    ((_, matches),) = await match_dir_names(manager, get_folders(manager))
     assert {Defn('curse', '23350'), Defn('curse', '333072')} == set(matches)

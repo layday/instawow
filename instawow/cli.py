@@ -4,15 +4,37 @@ from functools import partial
 from itertools import chain, islice
 from pathlib import Path
 from textwrap import dedent, fill
-from typing import (TYPE_CHECKING, Any, Callable, FrozenSet, Generator, Iterable, List, Mapping,
-                    Optional, Sequence, Tuple, TypeVar, Union, cast, overload)
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    FrozenSet,
+    Generator,
+    Iterable,
+    List,
+    Mapping,
+    Optional,
+    Sequence,
+    Tuple,
+    TypeVar,
+    Union,
+    cast,
+    overload,
+)
 
 import click
 
 from . import exceptions as E, models
 from .resolvers import Defn, Strategies
-from .utils import (TocReader, cached_property, get_version, is_outdated, setup_logging, tabulate,
-                    uniq)
+from .utils import (
+    TocReader,
+    cached_property,
+    get_version,
+    is_outdated,
+    setup_logging,
+    tabulate,
+    uniq,
+)
 
 if TYPE_CHECKING:
     from .manager import CliManager
@@ -25,16 +47,21 @@ class Report:
     _failure = click.style('✗', fg='red')
     _warning = click.style('!', fg='blue')
 
-    def __init__(self, results: Mapping[Defn, E.ManagerResult],
-                 filter_fn: Callable[[E.ManagerResult], bool] = lambda _: True):
+    def __init__(
+        self,
+        results: Mapping[Defn, E.ManagerResult],
+        filter_fn: Callable[[E.ManagerResult], bool] = lambda _: True,
+    ):
         self.results = results
         self.filter_fn = filter_fn
 
     @property
     def code(self) -> int:
-        return any(r for r in self.results.values()
-                   if isinstance(r, (E.ManagerError, E.InternalError))
-                   and self.filter_fn(r))
+        return any(
+            r
+            for r in self.results.values()
+            if isinstance(r, (E.ManagerError, E.InternalError)) and self.filter_fn(r)
+        )
 
     def __str__(self) -> str:
         def _adorn_result(result: E.ManagerResult) -> str:
@@ -44,10 +71,12 @@ class Report:
                 return self._failure
             return self._success
 
-        return '\n'.join(f'{_adorn_result(r)} {click.style(str(a), bold=True)}\n'
-                         + fill(r.message, initial_indent='  ', subsequent_indent='  ')
-                         for a, r in self.results.items()
-                         if self.filter_fn(r))
+        return '\n'.join(
+            f'{_adorn_result(r)} {click.style(str(a), bold=True)}\n'
+            + fill(r.message, initial_indent='  ', subsequent_indent='  ')
+            for a, r in self.results.items()
+            if self.filter_fn(r)
+        )
 
     def generate(self):
         manager: CliManager = click.get_current_context().obj.m
@@ -93,18 +122,25 @@ class ManagerWrapper:
         manager = CliManager(config, db_session)
         return manager
 
+
 M = ManagerWrapper
 
 
 @overload
-def parse_into_defn(manager: CliManager, value: str,
-                    *, raise_invalid: bool = True) -> Defn: ...
-@overload
-def parse_into_defn(manager: CliManager, value: Sequence[str],
-                    *, raise_invalid: bool = True) -> List[Defn]: ...
+def parse_into_defn(manager: CliManager, value: str, *, raise_invalid: bool = True) -> Defn:
+    ...
 
-def parse_into_defn(manager: CliManager, value: Sequence[str],
-                    *, raise_invalid: bool = True) -> Union[Defn, List[Defn]]:
+
+@overload
+def parse_into_defn(
+    manager: CliManager, value: Sequence[str], *, raise_invalid: bool = True
+) -> List[Defn]:
+    ...
+
+
+def parse_into_defn(
+    manager: CliManager, value: Sequence[str], *, raise_invalid: bool = True
+) -> Union[Defn, List[Defn]]:
     if not isinstance(value, str):
         defns = (parse_into_defn(manager, v, raise_invalid=raise_invalid) for v in value)
         return uniq(defns)
@@ -122,7 +158,9 @@ def parse_into_defn(manager: CliManager, value: Sequence[str],
     return Defn(*parts)
 
 
-def parse_into_defn_with_strategy(manager: CliManager, value: Sequence[Tuple[str, str]]) -> List[Defn]:
+def parse_into_defn_with_strategy(
+    manager: CliManager, value: Sequence[Tuple[str, str]]
+) -> List[Defn]:
     defns = parse_into_defn(manager, [d for _, d in value])
     strategies = (Strategies[s] for s, _ in value)
     return list(map(Defn.with_strategy, defns, strategies))
@@ -168,13 +206,16 @@ def _show_version(ctx: click.Context, param: Any, value: bool):
 
 
 @click.group(context_settings={'help_option_names': ('-h', '--help')})
-@click.option('--version',
-              is_flag=True, default=False,
-              callback=_show_version, expose_value=False, is_eager=True,
-              help='Show the version and exit.')
-@click.option('--debug',
-              is_flag=True, default=False,
-              help='Log more things.')
+@click.option(
+    '--version',
+    is_flag=True,
+    default=False,
+    callback=_show_version,
+    expose_value=False,
+    is_eager=True,
+    help='Show the version and exit.',
+)
+@click.option('--debug', is_flag=True, default=False, help='Log more things.')
 @click.pass_context
 def main(ctx: click.Context, debug: bool):
     "Add-on manager for World of Warcraft."
@@ -183,41 +224,48 @@ def main(ctx: click.Context, debug: bool):
 
 
 @main.command()
-@click.option('--replace', '-o',
-              is_flag=True, default=False,
-              help='Replace existing add-ons.')
-@click.option('--import', '-i',
-              type=click.Path(dir_okay=False, exists=True),
-              callback=_combine_into('addons', import_from_csv), expose_value=False,
-              help='Install add-ons from CSV.')
-@click.option('--with-strategy', '-s',
-              multiple=True,
-              type=(click.Choice([s.name for s in Strategies]), str),
-              callback=_combine_into('addons', parse_into_defn_with_strategy), expose_value=False,
-              metavar='<STRATEGY ADDON>...',
-              help='A strategy followed by an add-on definition.  '
-                   'Available strategies are: '
-                   f'{", ".join(repr(s.name) for s in islice(Strategies, 1, None))}.')
-@click.argument('addons',
-                nargs=-1,
-                callback=_combine_into('addons', parse_into_defn), expose_value=False)
+@click.option('--replace', '-o', is_flag=True, default=False, help='Replace existing add-ons.')
+@click.option(
+    '--import',
+    '-i',
+    type=click.Path(dir_okay=False, exists=True),
+    callback=_combine_into('addons', import_from_csv),
+    expose_value=False,
+    help='Install add-ons from CSV.',
+)
+@click.option(
+    '--with-strategy',
+    '-s',
+    multiple=True,
+    type=(click.Choice([s.name for s in Strategies]), str),
+    callback=_combine_into('addons', parse_into_defn_with_strategy),
+    expose_value=False,
+    metavar='<STRATEGY ADDON>...',
+    help='A strategy followed by an add-on definition.  '
+    'Available strategies are: '
+    f'{", ".join(repr(s.name) for s in islice(Strategies, 1, None))}.',
+)
+@click.argument(
+    'addons', nargs=-1, callback=_combine_into('addons', parse_into_defn), expose_value=False
+)
 @click.pass_obj
 def install(obj: M, addons: Sequence[Defn], replace: bool):
     "Install add-ons."
     if not addons:
-        raise click.UsageError('You must provide at least one of "ADDONS", '
-                               '"--with-strategy" or "--import"')
+        raise click.UsageError(
+            'You must provide at least one of "ADDONS", ' '"--with-strategy" or "--import"'
+        )
 
     results = obj.m.run(obj.m.install(addons, replace))
     Report(results).generate_and_exit()
 
 
 @main.command()
-@click.argument('addons',
-                nargs=-1, callback=_callbackify(parse_into_defn))
+@click.argument('addons', nargs=-1, callback=_callbackify(parse_into_defn))
 @click.pass_obj
 def update(obj: M, addons: Sequence[Defn]):
     "Update installed add-ons."
+
     def report_filter(result: E.ManagerResult):
         # Hide package from output if up to date and ``update`` was invoked without args
         return cast(bool, addons or not isinstance(result, E.PkgUpToDate))
@@ -231,8 +279,7 @@ def update(obj: M, addons: Sequence[Defn]):
 
 
 @main.command()
-@click.argument('addons',
-                nargs=-1, required=True, callback=_callbackify(parse_into_defn))
+@click.argument('addons', nargs=-1, required=True, callback=_callbackify(parse_into_defn))
 @click.pass_obj
 def remove(obj: M, addons: Sequence[Defn]):
     "Remove add-ons."
@@ -241,9 +288,9 @@ def remove(obj: M, addons: Sequence[Defn]):
 
 
 @main.command()
-@click.option('--auto', '-a',
-              is_flag=True, default=False,
-              help='Do not ask for user confirmation.')
+@click.option(
+    '--auto', '-a', is_flag=True, default=False, help='Do not ask for user confirmation.'
+)
 @click.pass_context
 def reconcile(ctx: click.Context, auto: bool):
     "Reconcile pre-installed add-ons."
@@ -251,7 +298,8 @@ def reconcile(ctx: click.Context, auto: bool):
     from .models import is_pkg
     from .prompts import PkgChoice, confirm, select, skip
 
-    preamble = dedent('''\
+    preamble = dedent(
+        '''\
         Use the arrow keys to navigate, <o> to open an add-on in your browser,
         enter to make a selection and <s> to skip to the next item.
 
@@ -266,16 +314,19 @@ def reconcile(ctx: click.Context, auto: bool):
         You can also run `reconcile` in promptless mode by passing
         the `--auto` flag.  In this mode, add-ons will be reconciled
         without user input.
-        ''')
+        '''
+    )
 
     manager: CliManager = ctx.obj.m
 
     def prompt_one(addons: List[AddonFolder], pkgs: List[models.Pkg]) -> Union[Defn, Tuple[()]]:
         def create_choice(pkg: models.Pkg):
             defn = Defn.from_pkg(pkg)
-            title = [('', str(defn)),
-                     ('', '=='),
-                     ('class:highlight-sub' if highlight_version else '', pkg.version)]
+            title = [
+                ('', str(defn)),
+                ('', '=='),
+                ('class:highlight-sub' if highlight_version else '', pkg.version),
+            ]
             return PkgChoice(title, defn, pkg=pkg)
 
         # Highlight version if there's multiple of them
@@ -292,7 +343,7 @@ def reconcile(ctx: click.Context, auto: bool):
             shortlist = list(filter(is_pkg, (results[d] for d in defns)))
             if shortlist:
                 if auto:
-                    pkg = shortlist[0]      # TODO: something more sophisticated
+                    pkg = shortlist[0]  # TODO: something more sophisticated
                     selection = Defn.from_pkg(pkg)
                 else:
                     selection = prompt_one(addons, shortlist)
@@ -300,9 +351,11 @@ def reconcile(ctx: click.Context, auto: bool):
 
     def match_all() -> Generator[List[Defn], FrozenSet[AddonFolder], None]:
         # Match in order of increasing heuristicitivenessitude
-        for fn in (match_toc_ids,
-                   match_dir_names,
-                   match_toc_names,):
+        for fn in (
+            match_toc_ids,
+            match_dir_names,
+            match_toc_names,
+        ):
             groups = manager.run(fn(manager, (yield [])))
             yield list(prompt(groups))
 
@@ -314,7 +367,7 @@ def reconcile(ctx: click.Context, auto: bool):
         click.echo(preamble)
 
     matcher = match_all()
-    for _ in matcher:   # Skip over consumer yields
+    for _ in matcher:  # Skip over consumer yields
         selections = matcher.send(leftovers)
         if selections and (auto or confirm('Install selected add-ons?').unsafe_ask()):
             results = manager.run(manager.install(selections, replace=True))
@@ -329,12 +382,16 @@ def reconcile(ctx: click.Context, auto: bool):
 
 
 @main.command()
-@click.option('--limit', '-l',
-              default=10, type=click.IntRange(1, 20, clamp=True),
-              help='A number to limit results to.')
-@click.argument('search-terms',
-                nargs=-1, required=True,
-                callback=lambda _, __, v: ' '.join(v))      # type: ignore
+@click.option(
+    '--limit',
+    '-l',
+    default=10,
+    type=click.IntRange(1, 20, clamp=True),
+    help='A number to limit results to.',
+)
+@click.argument(
+    'search-terms', nargs=-1, required=True, callback=lambda _, __, v: ' '.join(v)
+)  # type: ignore
 @click.pass_context
 def search(ctx: click.Context, limit: int, search_terms: str):
     "Search for add-ons to install."
@@ -344,24 +401,32 @@ def search(ctx: click.Context, limit: int, search_terms: str):
 
     pkgs = manager.run(manager.search(search_terms, limit))
     if pkgs:
-        choices = [PkgChoice(f'{p.name}  ({d}=={p.version})', d, pkg=p)
-                   for d, p in pkgs.items()]
+        choices = [PkgChoice(f'{p.name}  ({d}=={p.version})', d, pkg=p) for d, p in pkgs.items()]
         selections = checkbox('Select add-ons to install', choices=choices).unsafe_ask()
         if selections and confirm('Install selected add-ons?').unsafe_ask():
             ctx.invoke(install, addons=selections)
 
 
 @main.command('list')
-@click.option('--export', '-e',
-              default=None, type=click.Path(dir_okay=False, writable=True),
-              help='Export listed add-ons to CSV.')
-@click.option('--format', '-f', 'output_format',
-              type=click.Choice(('simple', 'detailed', 'json')),
-              default='simple', show_default=True,
-              help='Change the output format.')
-@click.argument('addons',
-                nargs=-1,
-                callback=_callbackify(partial(parse_into_defn, raise_invalid=False)))
+@click.option(
+    '--export',
+    '-e',
+    default=None,
+    type=click.Path(dir_okay=False, writable=True),
+    help='Export listed add-ons to CSV.',
+)
+@click.option(
+    '--format',
+    '-f',
+    'output_format',
+    type=click.Choice(('simple', 'detailed', 'json')),
+    default='simple',
+    show_default=True,
+    help='Change the output format.',
+)
+@click.argument(
+    'addons', nargs=-1, callback=_callbackify(partial(parse_into_defn, raise_invalid=False))
+)
 @click.pass_obj
 def list_(obj: M, addons: Sequence[Defn], export: Optional[str], output_format: str):
     "List installed add-ons."
@@ -379,13 +444,24 @@ def list_(obj: M, addons: Sequence[Defn], export: Optional[str], output_format: 
         else:
             return pkg.description
 
-    pkgs = (obj.m.db_session.query(models.Pkg)
-            .filter(or_(*(models.Pkg.slug.contains(d.name) if d.source == '*'
-                          else and_(models.Pkg.source == d.source,
-                                    or_(models.Pkg.id == d.name, models.Pkg.slug == d.name))
-                          for d in addons)))
-            .order_by(models.Pkg.source, models.Pkg.name)
-            .all())
+    pkgs = (
+        obj.m.db_session.query(models.Pkg)
+        .filter(
+            or_(
+                *(
+                    models.Pkg.slug.contains(d.name)
+                    if d.source == '*'
+                    else and_(
+                        models.Pkg.source == d.source,
+                        or_(models.Pkg.id == d.name, models.Pkg.slug == d.name),
+                    )
+                    for d in addons
+                )
+            )
+        )
+        .order_by(models.Pkg.source, models.Pkg.name)
+        .all()
+    )
     if export:
         export_to_csv(pkgs, cast(Path, export))
     elif pkgs:
@@ -397,15 +473,18 @@ def list_(obj: M, addons: Sequence[Defn], export: Optional[str], output_format: 
             formatter = click.HelpFormatter(max_width=99)
             for pkg in pkgs:
                 with formatter.section(Defn.from_pkg(pkg)):
-                    formatter.write_dl((
-                        ('Name', pkg.name),
-                        ('Description', get_desc(pkg)),
-                        ('URL', pkg.url),
-                        ('Version', pkg.version),
-                        ('Date published', pkg.date_published.isoformat(' ', 'minutes')),
-                        ('Folders', ', '.join(f.name for f in pkg.folders)),
-                        ('Dependencies', ', '.join(format_deps(pkg))),
-                        ('Options', f'{{"strategy": "{pkg.options.strategy}"}}'),))
+                    formatter.write_dl(
+                        (
+                            ('Name', pkg.name),
+                            ('Description', get_desc(pkg)),
+                            ('URL', pkg.url),
+                            ('Version', pkg.version),
+                            ('Date published', pkg.date_published.isoformat(' ', 'minutes')),
+                            ('Folders', ', '.join(f.name for f in pkg.folders)),
+                            ('Dependencies', ', '.join(format_deps(pkg))),
+                            ('Options', f'{{"strategy": "{pkg.options.strategy}"}}'),
+                        )
+                    )
 
             click.echo(formatter.getvalue(), nl=False)
         else:
@@ -413,12 +492,16 @@ def list_(obj: M, addons: Sequence[Defn], export: Optional[str], output_format: 
 
 
 @main.command()
-@click.option('--exclude-own', '-e',
-              is_flag=True, default=False,
-              help='Exclude folders managed by instawow.')
-@click.option('--toc-entry', '-t', 'toc_entries',
-              multiple=True,
-              help='An entry to extract from the TOC.  Repeatable.')
+@click.option(
+    '--exclude-own', '-e', is_flag=True, default=False, help='Exclude folders managed by instawow.'
+)
+@click.option(
+    '--toc-entry',
+    '-t',
+    'toc_entries',
+    multiple=True,
+    help='An entry to extract from the TOC.  Repeatable.',
+)
 @click.pass_obj
 def list_folders(obj: M, exclude_own: bool, toc_entries: Sequence[str]) -> None:
     "List add-on folders."
@@ -426,8 +509,10 @@ def list_folders(obj: M, exclude_own: bool, toc_entries: Sequence[str]) -> None:
 
     folders = sorted(get_folders(obj.m, exclude_own=exclude_own))
     if folders:
-        rows = [('unreconciled' if exclude_own else 'folder', *(f'[{e}]' for e in toc_entries)),
-                *((f.name, *(f.toc_reader[e].value for e in toc_entries)) for f in folders)]
+        rows = [
+            ('unreconciled' if exclude_own else 'folder', *(f'[{e}]' for e in toc_entries)),
+            *((f.name, *(f.toc_reader[e].value for e in toc_entries)) for f in folders),
+        ]
         click.echo(tabulate(rows))
 
 
@@ -447,6 +532,7 @@ def visit(obj: M, addon: Defn):
     pkg = obj.m.get_from_substr(addon)
     if pkg:
         import webbrowser
+
         webbrowser.open(pkg.url)
     else:
         Report({addon: E.PkgNotInstalled()}).generate_and_exit()
@@ -460,15 +546,20 @@ def reveal(obj: M, addon: Defn):
     pkg = obj.m.get_from_substr(addon)
     if pkg:
         import webbrowser
+
         webbrowser.open((obj.m.config.addon_dir / pkg.folders[0].name).as_uri())
     else:
         Report({addon: E.PkgNotInstalled()}).generate_and_exit()
 
 
 @main.command()
-@click.option('--active', 'show_active',
-              is_flag=True, default=False,
-              help='Show the active configuration and exit.')
+@click.option(
+    '--active',
+    'show_active',
+    is_flag=True,
+    default=False,
+    help='Show the active configuration and exit.',
+)
 @click.pass_obj
 def configure(obj: M, show_active: bool):
     "Configure instawow."
@@ -482,13 +573,17 @@ def configure(obj: M, show_active: bool):
     from .config import Config
     from .prompts import DirectoryCompleter, PydanticValidator
 
-    addon_dir = prompt('Add-on directory: ',
-                       completer=DirectoryCompleter(),
-                       validator=PydanticValidator(Config, 'addon_dir'))
-    game_flavour = prompt('Game flavour: ',
-                          default='classic' if '_classic_' in addon_dir else 'retail',
-                          completer=WordCompleter(['retail', 'classic']),
-                          validator=PydanticValidator(Config, 'game_flavour'))
+    addon_dir = prompt(
+        'Add-on directory: ',
+        completer=DirectoryCompleter(),
+        validator=PydanticValidator(Config, 'addon_dir'),
+    )
+    game_flavour = prompt(
+        'Game flavour: ',
+        default='classic' if '_classic_' in addon_dir else 'retail',
+        completer=WordCompleter(['retail', 'classic']),
+        validator=PydanticValidator(Config, 'game_flavour'),
+    )
     config = Config(addon_dir=addon_dir, game_flavour=game_flavour).write()
     click.echo(f'Configuration written to: {config.config_file}')
 
@@ -499,10 +594,12 @@ def _weakauras_group():
 
 
 @_weakauras_group.command('build')
-@click.option('--account', '-a',
-              required=True,
-              help='Your account name.  This is used to locate '
-                   'the WeakAuras data file.')
+@click.option(
+    '--account',
+    '-a',
+    required=True,
+    help='Your account name.  This is used to locate ' 'the WeakAuras data file.',
+)
 @click.pass_obj
 def build_weakauras_companion(obj: M, account: str):
     "Build the WeakAuras Companion add-on."
@@ -512,22 +609,25 @@ def build_weakauras_companion(obj: M, account: str):
 
 
 @_weakauras_group.command('list')
-@click.option('--account', '-a',
-              required=True,
-              help='Your account name.  This is used to locate '
-                   'the WeakAuras data file.')
+@click.option(
+    '--account',
+    '-a',
+    required=True,
+    help='Your account name.  This is used to locate ' 'the WeakAuras data file.',
+)
 @click.pass_obj
 def list_installed_wago_auras(obj: M, account: str):
     "List WeakAuras installed from Wago."
     from .wa_updater import WaCompanionBuilder
 
     aura_groups = WaCompanionBuilder(obj.m, account).extract_installed_auras()
-    installed_auras = sorted((a.id, a.url, 'yes' if a.ignore_wago_update else 'no')
-                             for v in aura_groups.values()
-                             for a in v
-                             if not a.parent)
-    click.echo(tabulate([('name', 'URL', 'ignore updates'),
-                         *installed_auras]))
+    installed_auras = sorted(
+        (a.id, a.url, 'yes' if a.ignore_wago_update else 'no')
+        for v in aura_groups.values()
+        for a in v
+        if not a.parent
+    )
+    click.echo(tabulate([('name', 'URL', 'ignore updates'), *installed_auras]))
 
 
 @main.command(hidden=True)

@@ -53,14 +53,18 @@ class PkgChoice(Choice):
         self.pkg = pkg
 
 
-qstyle = Style([('qmark', 'fg:ansicyan'),
-                ('answer', 'fg: nobold'),
-                ('highlight-sub', 'fg:ansimagenta'),
-                ('skipped', 'fg:ansiyellow'),
-                ('question', 'nobold'),
-                ('x-question', 'bold')])
+qstyle = Style(
+    [
+        ('qmark', 'fg:ansicyan'),
+        ('answer', 'fg: nobold'),
+        ('highlight-sub', 'fg:ansimagenta'),
+        ('skipped', 'fg:ansiyellow'),
+        ('question', 'nobold'),
+        ('x-question', 'bold'),
+    ]
+)
 
-skip = Choice([('', 'skip')], ())       # type: ignore  # Wrong annotation in questionary
+skip = Choice([('', 'skip')], ())  # type: ignore  # Wrong annotation in questionary
 
 confirm = partial(_confirm, style=qstyle)
 
@@ -74,14 +78,17 @@ def checkbox(message: str, choices: Sequence[Choice], **prompt_kwargs: Any) -> Q
         if ic.is_answered:
             tokens.append(('class:answer', '  done'))
         else:
-            tokens.append(('class:instruction',
-                           '  (use arrow keys to move, '
-                           '<space> to select, '
-                           '<o> to view in your browser)'))
+            tokens.append(
+                (
+                    'class:instruction',
+                    '  (use arrow keys to move, '
+                    '<space> to select, '
+                    '<o> to view in your browser)',
+                )
+            )
         return tokens
 
-    ic = InquirerControl(choices, None,
-                         use_indicator=False, use_shortcuts=False, use_pointer=True)
+    ic = InquirerControl(choices, None, use_indicator=False, use_shortcuts=False, use_pointer=True)
     bindings = KeyBindings()
 
     @bindings.add(Keys.ControlQ, eager=True)
@@ -99,10 +106,13 @@ def checkbox(message: str, choices: Sequence[Choice], **prompt_kwargs: Any) -> Q
 
     @bindings.add('i', eager=True)
     def invert(event: Any):
-        inverted_selection = [c.value for c in ic.choices if
-                              not isinstance(c, Separator)
-                              and c.value not in ic.selected_options
-                              and not c.disabled]
+        inverted_selection = [
+            c.value
+            for c in ic.choices
+            if not isinstance(c, Separator)
+            and c.value not in ic.selected_options
+            and not c.disabled
+        ]
         ic.selected_options = inverted_selection
 
     @bindings.add(Keys.Down, eager=True)
@@ -129,6 +139,7 @@ def checkbox(message: str, choices: Sequence[Choice], **prompt_kwargs: Any) -> Q
         pkg = ic.get_pointed_at().pkg
         if pkg:
             import webbrowser
+
             webbrowser.open(pkg.url)
 
     @bindings.add(Keys.Any)
@@ -143,16 +154,13 @@ def checkbox(message: str, choices: Sequence[Choice], **prompt_kwargs: Any) -> Q
 
 def select(message: str, choices: Sequence[Choice], **prompt_kwargs: Any) -> Question:
     def get_prompt_tokens():
-        tokens = [('', '- '),
-                  ('class:x-question', message)]
+        tokens = [('', '- '), ('class:x-question', message)]
         if ic.is_answered:
             answer = ''.join(t for _, t in ic.get_pointed_at().title)
-            tokens += [('', '  '),
-                       ('class:skipped' if answer == 'skip' else '', answer)]
+            tokens += [('', '  '), ('class:skipped' if answer == 'skip' else '', answer)]
         return tokens
 
-    ic = InquirerControl(choices, None,
-                         use_indicator=False, use_shortcuts=False, use_pointer=True)
+    ic = InquirerControl(choices, None, use_indicator=False, use_shortcuts=False, use_pointer=True)
     bindings = KeyBindings()
 
     @bindings.add(Keys.ControlQ, eager=True)
@@ -184,6 +192,7 @@ def select(message: str, choices: Sequence[Choice], **prompt_kwargs: Any) -> Que
         pkg = ic.get_pointed_at().pkg
         if pkg:
             import webbrowser
+
             webbrowser.open(pkg.url)
 
     @bindings.add('s', eager=True)

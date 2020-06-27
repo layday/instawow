@@ -23,26 +23,28 @@ def test_config_dir_is_populated(full_config):
 
 def test_reading_missing_config_from_env_raises(full_config, monkeypatch):
     monkeypatch.setenv('INSTAWOW_CONFIG_DIR', str(full_config['config_dir']))
-    with pytest.raises(FileNotFoundError):      # type: ignore
+    with pytest.raises(FileNotFoundError):  # type: ignore
         Config.read()
 
 
 @pytest.mark.skipif(sys.platform == 'win32', reason='no ~ expansion on Windows')
 @pytest.mark.parametrize('dir_', ['config_dir', 'addon_dir', 'temp_dir'])
 def test_invalid_any_dir_raises(full_config, dir_):
-    with pytest.raises(ValueError):     # type: ignore
+    with pytest.raises(ValueError):  # type: ignore
         Config(**{**full_config, dir_: '~foo'})
 
 
 def test_invalid_addon_dir_raises(full_config):
-    with pytest.raises(ValueError, match='must be a writable directory'):       # type: ignore
+    with pytest.raises(ValueError, match='must be a writable directory'):  # type: ignore
         Config(**{**full_config, 'addon_dir': 'foo'})
 
 
 def test_reading_config_file(full_config):
     Config(**full_config).write()
-    config_json = {'addon_dir': str(full_config['addon_dir']),
-                   'game_flavour': full_config['game_flavour']}
+    config_json = {
+        'addon_dir': str(full_config['addon_dir']),
+        'game_flavour': full_config['game_flavour'],
+    }
     assert config_json == json.loads((full_config['config_dir'] / 'config.json').read_text())
 
 
