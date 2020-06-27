@@ -65,8 +65,10 @@ class PkgConflictsWithInstalled(ManagerError):
     fmt_message = 'package folders conflict with installed package {self.conflicts[0]}'
 
     def __init__(self, conflicts: Sequence[Pkg]) -> None:
+        from .resolvers import Defn
+
         super().__init__()
-        self.conflicts = [c.to_defn() for c in conflicts]
+        self.conflicts = [Defn.from_pkg(c) for c in conflicts]
 
 
 class PkgConflictsWithForeign(ManagerError):

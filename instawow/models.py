@@ -11,9 +11,6 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.schema import Column, ForeignKeyConstraint, MetaData, UniqueConstraint
 from sqlalchemy.types import DateTime, Integer, String
 
-if TYPE_CHECKING:
-    from .resolvers import Defn
-
 
 class _BaseCoercer(pydantic.BaseModel):
     """The coercer is used inside the declarative constructor to type-cast
@@ -74,10 +71,6 @@ class Pkg(_BaseTable):
     folders = relationship('PkgFolder', cascade='all, delete-orphan', backref='pkg')
     options = relationship('PkgOptions', cascade='all, delete-orphan', uselist=False)
     deps = relationship('PkgDep', cascade='all, delete-orphan', backref='pkg')
-
-    def to_defn(self) -> Defn:
-        from .resolvers import Defn
-        return Defn.from_pkg(self)
 
 
 class PkgFolder(_BaseTable):

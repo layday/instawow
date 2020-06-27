@@ -377,9 +377,12 @@ class Manager:
         return E.PkgUpdated(old_pkg, pkg)
 
     async def update(self, defns: Sequence[Defn]) -> Dict[Defn, E.ManagerResult]:
-        # Rebuild ``Defn`` with strategy from package for defns of installed packages
-        checked_defns = {p.to_defn().with_name(c.name) if p else c: p
-                         for c, p in ((d, self.get(d)) for d in defns)}
+        # Rebuild ``Defn`` with ID and strategy from package for defns
+        # of installed packages.  Using the ID has the benefit of resolving
+        # installed-but-renamed packages
+        maybe_pkgs = ((d, self.get(d)) for d in defns)
+        checked_defns = {Defn.from_pkg(p) if p else c: p for c, p in maybe_pkgs}
+
         # Results can contain errors
         # installables are those results which are packages
         # and updatables are packages with updates

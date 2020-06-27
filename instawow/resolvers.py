@@ -32,16 +32,19 @@ class Defn(NamedTuple):
     source: str
     name: str
     strategy: Strategies = Strategies.default
+    source_id: O[str] = None
 
     @classmethod
     def from_pkg(cls, pkg: m.Pkg) -> Defn:
-        return cls(pkg.source, pkg.slug, Strategies[pkg.options.strategy])
+        return cls(pkg.source, pkg.slug,
+                   Strategies[pkg.options.strategy],    # type: ignore
+                   pkg.id)
 
     def with_name(self, name: str) -> Defn:
-        return self.__class__(self.source, name, self.strategy)
+        return self.__class__(self.source, name, self.strategy, self.source_id)
 
     def with_strategy(self, strategy: Strategies) -> Defn:
-        return self.__class__(self.source, self.name, strategy)
+        return self.__class__(self.source, self.name, strategy, self.source_id)
 
     def __str__(self) -> str:
         return f'{self.source}:{self.name}'
@@ -136,7 +139,9 @@ class CurseResolver(Resolver):
             return url.parts[3].lower()
 
     async def resolve(self, defns: List[Defn]) -> Dict[Defn, Any]:
-        ids_for_defns = {d: self.catalogue.curse_slugs.get(d.name) or d.name for d in defns}
+        ids_for_defns = {d: (d.source_id
+                             or self.catalogue.curse_slugs.get(d.name)
+                             or d.name) for d in defns}
         numeric_ids = {i for i in ids_for_defns.values() if i.isdigit()}
         async with self.web_client.post(self.addon_api_url, json=list(numeric_ids)) as response:
             if response.status == 404:
@@ -231,10 +236,9 @@ class CurseResolver(Resolver):
             for c in flavours:
                 if any(f['gameVersionFlavor'] == f'wow_{c}' for f in files):
                     yield c
-                else:
-                    if any(v.startswith(classic_version_prefix) is (c == 'classic')
-                           for f in files for v in f['gameVersion']):
-                        yield c
+                elif any(v.startswith(classic_version_prefix) is (c == 'classic')
+                         for f in files for v in f['gameVersion']):
+                    yield c
 
         step = 1000
         for index in count(0, step):
@@ -265,14 +269,14 @@ class WowiResolver(Resolver):
     strategies = {Strategies.default}
 
     # Reference: https://api.mmoui.com/v3/globalconfig.json
-    # There's also a v4 API for the as yet unreleased Minion v4 which
-    # is fair to assume is unstable.  Fields were renamed and some fields
-    # which were strings have been changed to numbers.  Neither API
-    # provides access to classic files for multi-file add-ons and
-    # 'UICompatibility' cannot be relied upon for enforcing compatibility
-    # in instawow.  The API appears to inherit the version of the latest
+    # There's also a v4 API corresponding to the as yet unreleased Minion v4,
+    # which is fair to assume is unstable.  They changed the naming scheme t
+    # camelCase and some fields which were strings were converted to numbers.
+    # Neither API provides access to classic files for multi-file add-ons and
+    # 'UICompatibility' can't be relied on to enforce compatibility
+    # in instawow.  The API appears to inherit the version of the _latest_
     # file to have been uploaded, which for multi-file add-ons can be the
-    # classic version.  However the download link always points to the
+    # classic version.  Hoooowever the download link always points to the
     # 'retail' version, which for single-file add-ons belonging to the
     # classic category would be an add-on for classic.
     list_api_url = 'https://api.mmoui.com/v3/game/WOW/filelist.json'

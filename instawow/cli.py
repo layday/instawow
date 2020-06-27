@@ -134,7 +134,7 @@ def export_to_csv(pkgs: Sequence[models.Pkg], path: Path) -> None:
     with Path(path).open('w', encoding='utf-8', newline='') as file:
         writer = csv.writer(file)
         writer.writerow(('defn', 'strategy'))
-        writer.writerows((p.to_defn(), p.options.strategy) for p in pkgs)
+        writer.writerows((Defn.from_pkg(p), p.options.strategy) for p in pkgs)
 
 
 def import_from_csv(manager: CliManager, path: Path) -> List[Defn]:
@@ -223,7 +223,7 @@ def update(obj: M, addons: Sequence[Defn]) -> None:
 
     defns = addons
     if not defns:
-        defns = [p.to_defn() for p in obj.m.db_session.query(models.Pkg).all()]
+        defns = [Defn.from_pkg(p) for p in obj.m.db_session.query(models.Pkg).all()]
 
     results = obj.m.run(obj.m.update(defns))
     Report(results, report_filter).generate_and_exit()
@@ -271,7 +271,7 @@ def reconcile(ctx: click.Context, auto: bool) -> None:
 
     def prompt_one(addons: List[AddonFolder], pkgs: List[models.Pkg]) -> Union[Defn, Tuple[()]]:
         def create_choice(pkg: models.Pkg):
-            defn = pkg.to_defn()
+            defn = Defn.from_pkg(pkg)
             title = [('', str(defn)),
                      ('', '=='),
                      ('class:highlight-sub' if highlight_version else '', pkg.version)]
@@ -292,7 +292,7 @@ def reconcile(ctx: click.Context, auto: bool) -> None:
             if shortlist:
                 if auto:
                     pkg = shortlist[0]      # TODO: something more sophisticated
-                    selection = pkg.to_defn()
+                    selection = Defn.from_pkg(pkg)
                 else:
                     selection = prompt_one(addons, shortlist)
                 selection and (yield selection)
@@ -394,7 +394,7 @@ def list_(obj: M, addons: Sequence[Defn], export: Optional[str], output_format: 
         elif output_format == 'detailed':
             formatter = click.HelpFormatter(max_width=99)
             for pkg in pkgs:
-                with formatter.section(pkg.to_defn()):
+                with formatter.section(Defn.from_pkg(pkg)):
                     formatter.write_dl((
                         ('Name', pkg.name),
                         ('Description', get_desc(pkg)),
@@ -407,7 +407,7 @@ def list_(obj: M, addons: Sequence[Defn], export: Optional[str], output_format: 
 
             click.echo(formatter.getvalue(), nl=False)
         else:
-            click.echo('\n'.join(str(p.to_defn()) for p in pkgs))
+            click.echo('\n'.join(str(Defn.from_pkg(p)) for p in pkgs))
 
 
 @main.command()
@@ -432,8 +432,8 @@ def list_folders(obj: M, exclude_own: bool, toc_entries: Sequence[str]) -> None:
 @main.command(hidden=True)
 @click.argument('addon', callback=_callbackify(partial(parse_into_defn, raise_invalid=False)))
 @click.pass_context
-def info(ctx: click.Context, addon: Defn) -> None:
-    "Alias for `list -f detailed`."
+def info(ctx: click.Context, addon: Defn):
+    "Alias of `list -f detailed`."
     ctx.invoke(list_, addons=(addon,), output_format='detailed')
 
 
