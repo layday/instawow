@@ -5,7 +5,7 @@ from itertools import chain, islice
 from pathlib import Path
 from textwrap import dedent, fill
 from typing import (TYPE_CHECKING, Any, Callable, FrozenSet, Generator, Iterable, List, Mapping,
-                    Optional, Sequence, Tuple, Union, cast, overload)
+                    Optional, Sequence, Tuple, TypeVar, Union, cast, overload)
 
 import click
 
@@ -17,6 +17,8 @@ from .utils import (TocReader, cached_property, get_version, is_outdated, setup_
 if TYPE_CHECKING:
     from .manager import CliManager
 
+    _R = TypeVar('_R')
+
 
 class Report:
     _success = click.style('✓', fg='green')
@@ -24,7 +26,7 @@ class Report:
     _warning = click.style('!', fg='blue')
 
     def __init__(self, results: Mapping[Defn, E.ManagerResult],
-                 filter_fn: Callable[[E.ManagerResult], bool] = lambda _: True) -> None:
+                 filter_fn: Callable[[E.ManagerResult], bool] = lambda _: True):
         self.results = results
         self.filter_fn = filter_fn
 
@@ -47,7 +49,7 @@ class Report:
                          for a, r in self.results.items()
                          if self.filter_fn(r))
 
-    def generate(self) -> None:
+    def generate(self):
         manager: CliManager = click.get_current_context().obj.m
         if manager.config.auto_update_check and is_outdated(manager):
             click.echo(f'{self._warning} instawow is out of date')
@@ -56,7 +58,7 @@ class Report:
         if report:
             click.echo(report)
 
-    def generate_and_exit(self) -> None:
+    def generate_and_exit(self):
         self.generate()
         ctx = click.get_current_context()
         ctx.exit(self.code)
@@ -126,7 +128,7 @@ def parse_into_defn_with_strategy(manager: CliManager, value: Sequence[Tuple[str
     return list(map(Defn.with_strategy, defns, strategies))
 
 
-def export_to_csv(pkgs: Sequence[models.Pkg], path: Path) -> None:
+def export_to_csv(pkgs: Sequence[models.Pkg], path: Path):
     "Export packages to CSV."
     import csv
 
@@ -145,12 +147,12 @@ def import_from_csv(manager: CliManager, path: Path) -> List[Defn]:
     return parse_into_defn_with_strategy(manager, rows)
 
 
-def _callbackify(fn: Callable) -> Callable:
-    return lambda c, p, v: fn(c.obj.m, v)
+def _callbackify(fn: Callable[..., _R]) -> Callable[[click.Context, Any, Any], _R]:
+    return lambda c, _, v: fn(c.obj.m, v)
 
 
-def _combine_into(param_name: str, fn: Callable) -> Callable:
-    def combine(ctx: click.Context, param: Any, value: Any) -> None:
+def _combine_into(param_name: str, fn: Callable[..., Any]):
+    def combine(ctx: click.Context, param: Any, value: Any):
         addons = ctx.params.setdefault(param_name, [])
         if value:
             addons.extend(fn(ctx.obj.m, value))
@@ -158,7 +160,7 @@ def _combine_into(param_name: str, fn: Callable) -> Callable:
     return combine
 
 
-def _show_version(ctx: click.Context, param: Any, value: bool) -> None:
+def _show_version(ctx: click.Context, param: Any, value: bool):
     if value:
         __version__ = get_version()
         click.echo(f'instawow, version {__version__}')
@@ -174,7 +176,7 @@ def _show_version(ctx: click.Context, param: Any, value: bool) -> None:
               is_flag=True, default=False,
               help='Log more things.')
 @click.pass_context
-def main(ctx: click.Context, debug: bool) -> None:
+def main(ctx: click.Context, debug: bool):
     "Add-on manager for World of Warcraft."
     if not ctx.obj:
         ctx.obj = ManagerWrapper(debug)
@@ -200,7 +202,7 @@ def main(ctx: click.Context, debug: bool) -> None:
                 nargs=-1,
                 callback=_combine_into('addons', parse_into_defn), expose_value=False)
 @click.pass_obj
-def install(obj: M, addons: Sequence[Defn], replace: bool) -> None:
+def install(obj: M, addons: Sequence[Defn], replace: bool):
     "Install add-ons."
     if not addons:
         raise click.UsageError('You must provide at least one of "ADDONS", '
@@ -214,7 +216,7 @@ def install(obj: M, addons: Sequence[Defn], replace: bool) -> None:
 @click.argument('addons',
                 nargs=-1, callback=_callbackify(parse_into_defn))
 @click.pass_obj
-def update(obj: M, addons: Sequence[Defn]) -> None:
+def update(obj: M, addons: Sequence[Defn]):
     "Update installed add-ons."
     def report_filter(result: E.ManagerResult):
         # Hide package from output if up to date and ``update`` was invoked without args
@@ -232,7 +234,7 @@ def update(obj: M, addons: Sequence[Defn]) -> None:
 @click.argument('addons',
                 nargs=-1, required=True, callback=_callbackify(parse_into_defn))
 @click.pass_obj
-def remove(obj: M, addons: Sequence[Defn]) -> None:
+def remove(obj: M, addons: Sequence[Defn]):
     "Remove add-ons."
     results = obj.m.run(obj.m.remove(addons))
     Report(results).generate_and_exit()
@@ -243,7 +245,7 @@ def remove(obj: M, addons: Sequence[Defn]) -> None:
               is_flag=True, default=False,
               help='Do not ask for user confirmation.')
 @click.pass_context
-def reconcile(ctx: click.Context, auto: bool) -> None:
+def reconcile(ctx: click.Context, auto: bool):
     "Reconcile pre-installed add-ons."
     from .matchers import AddonFolder, match_toc_ids, match_toc_names, match_dir_names, get_folders
     from .models import is_pkg
@@ -331,9 +333,10 @@ def reconcile(ctx: click.Context, auto: bool) -> None:
               default=10, type=click.IntRange(1, 20, clamp=True),
               help='A number to limit results to.')
 @click.argument('search-terms',
-                nargs=-1, required=True, callback=lambda _, __, v: ' '.join(v))
+                nargs=-1, required=True,
+                callback=lambda _, __, v: ' '.join(v))      # type: ignore
 @click.pass_context
-def search(ctx: click.Context, limit: int, search_terms: str) -> None:
+def search(ctx: click.Context, limit: int, search_terms: str):
     "Search for add-ons to install."
     from .prompts import PkgChoice, checkbox, confirm
 
@@ -360,7 +363,7 @@ def search(ctx: click.Context, limit: int, search_terms: str) -> None:
                 nargs=-1,
                 callback=_callbackify(partial(parse_into_defn, raise_invalid=False)))
 @click.pass_obj
-def list_(obj: M, addons: Sequence[Defn], export: Optional[str], output_format: str) -> None:
+def list_(obj: M, addons: Sequence[Defn], export: Optional[str], output_format: str):
     "List installed add-ons."
     from sqlalchemy import and_, or_
 
@@ -439,7 +442,7 @@ def info(ctx: click.Context, addon: Defn):
 @main.command()
 @click.argument('addon', callback=_callbackify(partial(parse_into_defn, raise_invalid=False)))
 @click.pass_obj
-def visit(obj: M, addon: Defn) -> None:
+def visit(obj: M, addon: Defn):
     "Open an add-on's homepage in your browser."
     pkg = obj.m.get_from_substr(addon)
     if pkg:
@@ -452,7 +455,7 @@ def visit(obj: M, addon: Defn) -> None:
 @main.command()
 @click.argument('addon', callback=_callbackify(partial(parse_into_defn, raise_invalid=False)))
 @click.pass_obj
-def reveal(obj: M, addon: Defn) -> None:
+def reveal(obj: M, addon: Defn):
     "Open an add-on folder in your file manager."
     pkg = obj.m.get_from_substr(addon)
     if pkg:
@@ -467,7 +470,7 @@ def reveal(obj: M, addon: Defn) -> None:
               is_flag=True, default=False,
               help='Show the active configuration and exit.')
 @click.pass_obj
-def configure(obj: M, show_active: bool) -> None:
+def configure(obj: M, show_active: bool):
     "Configure instawow."
     if show_active:
         click.echo(obj.m.config.json(indent=2))
@@ -491,7 +494,7 @@ def configure(obj: M, show_active: bool) -> None:
 
 
 @main.group('weakauras-companion')
-def _weakauras_group() -> None:
+def _weakauras_group():
     "Manage your WeakAuras."
 
 
@@ -501,7 +504,7 @@ def _weakauras_group() -> None:
               help='Your account name.  This is used to locate '
                    'the WeakAuras data file.')
 @click.pass_obj
-def build_weakauras_companion(obj: M, account: str) -> None:
+def build_weakauras_companion(obj: M, account: str):
     "Build the WeakAuras Companion add-on."
     from .wa_updater import WaCompanionBuilder
 
@@ -514,7 +517,7 @@ def build_weakauras_companion(obj: M, account: str) -> None:
               help='Your account name.  This is used to locate '
                    'the WeakAuras data file.')
 @click.pass_obj
-def list_installed_wago_auras(obj: M, account: str) -> None:
+def list_installed_wago_auras(obj: M, account: str):
     "List WeakAuras installed from Wago."
     from .wa_updater import WaCompanionBuilder
 
@@ -529,7 +532,7 @@ def list_installed_wago_auras(obj: M, account: str) -> None:
 
 @main.command(hidden=True)
 @click.argument('filename', type=click.Path(dir_okay=False))
-def generate_catalogue(filename: str) -> None:
+def generate_catalogue(filename: str):
     import asyncio
     from .resolvers import MasterCatalogue
 

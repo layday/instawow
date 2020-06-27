@@ -44,7 +44,7 @@ amove = t(move)
 
 
 @asynccontextmanager
-async def open_temp_writer() -> AsyncIterator[Tuple[Path, Callable]]:
+async def open_temp_writer() -> AsyncIterator[Tuple[Path, Callable[..., Any]]]:
     fh = await AsyncNamedTemporaryFile(delete=False)
     path = Path(fh.name)
     try:
@@ -402,7 +402,7 @@ class Manager:
         return await self._consume_seq(coros)
 
     async def remove_one(self, pkg: Pkg) -> E.PkgRemoved:
-        await trash([self.config.addon_dir / f.name for f in pkg.folders],  # type: ignore  # ^sqla
+        await trash([self.config.addon_dir / f.name for f in pkg.folders],
                     parent=self.config.temp_dir, missing_ok=True)
         self.db_session.delete(pkg)
         self.db_session.commit()
@@ -438,7 +438,7 @@ def init_cli_web_client(*, Bar: ProgressBar) -> aiohttp.ClientSession:
         filename = cd_params.get('filename') or response.url.name
         return filename
 
-    async def do_on_request_end(session: Any, request_ctx: Any, params: Any) -> None:   # ^aiohttp
+    async def do_on_request_end(session: Any, request_ctx: Any, params: Any) -> None:
         ctx = request_ctx.trace_request_ctx
         if not (ctx and ctx.get('show_progress')):
             return
