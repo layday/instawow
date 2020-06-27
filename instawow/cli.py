@@ -63,9 +63,8 @@ class Report:
 
 
 class ManagerWrapper:
-    def __init__(self, debug: bool = False, own_catalogue: bool = False) -> None:
+    def __init__(self, debug: bool = False):
         self.debug = debug
-        self.own_catalogue = own_catalogue
 
     @cached_property
     def m(self) -> CliManager:
