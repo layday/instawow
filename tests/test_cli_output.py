@@ -81,7 +81,16 @@ def test_valid_curse_pkg_lifecycle(run, inp, cmp):
     [
         ('install tukui:1', lambda v: v.startswith('✓ tukui:1\n  installed'), None),
         ('install tukui:1', '✗ tukui:1\n  package already installed\n'.__eq__, None),
-        ('update tukui:1', '✗ tukui:1\n  package is up to date\n'.__eq__, None),
+        (
+            'update tukui:1',
+            '✗ tukui:1-merathilisui\n  package is up to date\n'.__eq__,
+            Flavour.retail,
+        ),
+        (
+            'update tukui:1',
+            '✗ tukui:1-tukui\n  package is up to date\n'.__eq__,
+            Flavour.classic,
+        ),
         ('remove tukui:1', '✓ tukui:1\n  removed\n'.__eq__, None),
         ('update tukui:1', '✗ tukui:1\n  package is not installed\n'.__eq__, None),
         ('remove tukui:1', '✗ tukui:1\n  package is not installed\n'.__eq__, None),
