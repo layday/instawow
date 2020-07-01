@@ -1,14 +1,12 @@
 ## Interface: {{ interface }}
 ## Title: WeakAuras Companion
 ## Author: The WeakAuras Team
-## Version: 1.0.0
+## Version: 1.1.0
 ## Notes: Keep your WeakAuras updated!
 ## X-Category: Interface Enhancements
 ## DefaultState: Enabled
 ## LoadOnDemand: 0
-## Dependencies: WeakAuras
+## OptionalDeps: WeakAuras, Plater
 
 data.lua
 init.lua
-
-## X-Generator: instawow

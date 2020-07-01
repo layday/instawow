@@ -1,31 +1,44 @@
 -- file generated automatically
 WeakAurasCompanion = {
   slugs = {
-  {% for wa in was %}
-    ["{{ wa[0] }}"] = {
-    {% for key, value in wa[1].items() %}
+  {% for slug, aura_metadata in weakauras %}
+    ["{{ slug }}"] = {
+    {% for key, value in aura_metadata.items() %}
       {{ key }} = [=[{{ value }}]=],
     {% endfor %}
     },
   {% endfor %}
   },
   uids = {
-  {% for uid in uids %}
-    ["{{ uid[0] }}"] = [=[{{ uid[1] }}]=],
+  {% for uid, slug in weakaura_uids %}
+    ["{{ uid }}"] = [=[{{ slug }}]=],
   {% endfor %}
   },
   ids = {
-  {% for id in ids %}
-    ["{{ id[0] }}"] = [=[{{ id[1] }}]=],
+  {% for id, slug in weakaura_ids %}
+    ["{{ id }}"] = [=[{{ slug }}]=],
   {% endfor %}
   },
   stash = {
-  {% for wa in stash %}
-    ["{{ wa[0] }}"] = {
-    {% for key, value in wa[1].items() %}
-      {{ key }} = [=[{{ value }}]=],
+  },
+  Plater = {
+    slugs = {
+    {% for slug, aura_metadata in plateroos %}
+      ["{{ slug }}"] = {
+      {% for key, value in aura_metadata.items() %}
+        {{ key }} = [=[{{ value }}]=],
+      {% endfor %}
+      },
     {% endfor %}
     },
-  {% endfor %}
+    uids = {
+    },
+    ids = {
+    {% for id, slug in plater_ids %}
+      ["{{ id }}"] = [=[{{ slug }}]=],
+    {% endfor %}
+    },
+    stash = {
+    }
   }
 }

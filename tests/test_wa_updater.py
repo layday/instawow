@@ -1,7 +1,7 @@
 import pytest
 from yarl import URL
 
-from instawow.wa_updater import ApiMetadata, AuraEntry, WaCompanionBuilder
+from instawow.wa_updater import ApiMetadata, WaCompanionBuilder, WeakAura, WeakAuras
 
 
 @pytest.fixture
@@ -28,13 +28,14 @@ async def test_id_length_is_retained_in_aura_metadata(builder):
 def test_can_parse_empty_displays_table(builder):
     assert (
         builder.extract_auras(
+            WeakAuras,
             '''\
 WeakAurasSaved = {
     ["displays"] = {
     },
 }
-'''
-        )
+''',
+        ).entries
         == {}
     )
 
@@ -42,6 +43,7 @@ WeakAurasSaved = {
 def test_urlless_display_is_discarded(builder):
     assert (
         builder.extract_auras(
+            WeakAuras,
             '''\
 WeakAurasSaved = {
     ["displays"] = {
@@ -50,14 +52,14 @@ WeakAurasSaved = {
         },
     },
 }
-'''
-        )
+''',
+        ).entries
         == {}
     )
 
 
 def test_can_parse_minimal_wago_display(builder):
-    aura = AuraEntry(
+    aura = WeakAura(
         id='foo',
         uid='foo',
         parent=None,
@@ -68,6 +70,7 @@ def test_can_parse_minimal_wago_display(builder):
     )
     assert (
         builder.extract_auras(
+            WeakAuras,
             '''\
 WeakAurasSaved = {
     ["displays"] = {
@@ -80,8 +83,8 @@ WeakAurasSaved = {
         },
     },
 }
-'''
-        )
+''',
+        ).entries
         == {'foo': [aura]}
     )
 
@@ -90,6 +93,7 @@ WeakAurasSaved = {
 def test_url_host_not_wago_display_is_discarded(builder):
     assert (
         builder.extract_auras(
+            WeakAuras,
             '''\
 WeakAurasSaved = {
     ["displays"] = {
@@ -102,8 +106,8 @@ WeakAurasSaved = {
         },
     },
 }
-'''
-        )
+''',
+        ).entries
         == {}
     )
 

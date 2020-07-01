@@ -622,12 +622,13 @@ def list_installed_wago_auras(obj: M, account: str):
 
     aura_groups = WaCompanionBuilder(obj.m, account).extract_installed_auras()
     installed_auras = sorted(
-        (a.id, a.url, 'yes' if a.ignore_wago_update else 'no')
-        for v in aura_groups.values()
+        (Path(g.Meta.filename).stem, a.id, a.url, 'yes' if a.ignore_wago_update else 'no')
+        for g in aura_groups
+        for v in g.entries.values()
         for a in v
         if not a.parent
     )
-    click.echo(tabulate([('name', 'URL', 'ignore updates'), *installed_auras]))
+    click.echo(tabulate([('add-on', 'name', 'URL', 'ignore updates'), *installed_auras]))
 
 
 @main.command(hidden=True)
