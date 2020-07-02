@@ -92,14 +92,14 @@ class cached_property(Generic[_V]):
         self.f = f
 
     @overload
-    def __get__(self, o: None, t: Optional[type] = None) -> Callable:
+    def __get__(self, o: None, t: Optional[type] = None) -> cached_property[_V]:
         ...
 
     @overload
     def __get__(self, o: Any, t: Optional[type] = None) -> _V:
         ...
 
-    def __get__(self, o: Any, t: Optional[type] = None) -> Union[Callable, _V]:
+    def __get__(self, o: Any, t: Optional[type] = None) -> Union[cached_property[_V], _V]:
         if o is None:
             return self.f
         else:
@@ -237,7 +237,7 @@ def make_progress_bar(**kwargs: Any) -> ProgressBar:
         def __exit__(self, *args: Any):
             if self._has_sigwinch:
                 self._loop.add_signal_handler(
-                    signal.SIGWINCH, cast(Callable, self._previous_winch_handler)
+                    signal.SIGWINCH, self._previous_winch_handler  # type: ignore
                 )
 
             if self._thread is not None:

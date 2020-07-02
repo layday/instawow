@@ -326,7 +326,7 @@ class WowiResolver(Resolver):
 
     # Reference: https://api.mmoui.com/v3/globalconfig.json
     # There's also a v4 API corresponding to the as yet unreleased Minion v4,
-    # which is fair to assume is unstable.  They changed the naming scheme t
+    # which is fair to assume is unstable.  They changed the naming scheme to
     # camelCase and some fields which were strings were converted to numbers.
     # Neither API provides access to classic files for multi-file add-ons and
     # 'UICompatibility' can't be relied on to enforce compatibility

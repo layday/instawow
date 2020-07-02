@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, ClassVar, List, Type
+from typing import Any, ClassVar, List, Type
 
 import pydantic
 from pydantic import create_model
