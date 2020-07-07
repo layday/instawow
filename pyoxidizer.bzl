@@ -97,7 +97,7 @@ def make_exe(dist):
     # `pip_install()` returns objects representing installed files.
     # `add_in_memory_python_resources()` adds these objects to the binary,
     # marking them for in-memory loading.
-    exe.add_in_memory_python_resources(dist.pip_install(["--no-binary", "pydantic", "."]))
+    exe.add_in_memory_python_resources(dist.pip_install(["--no-binary", "pydantic", "instawow.tar.gz"]))
 
     # Invoke `pip install` using a requirements file and add the collected resources
     # to our binary.

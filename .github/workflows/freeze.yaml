@@ -9,6 +9,8 @@ jobs:
     defaults:
       run:
         shell: bash
+    env:
+      PYOX_VERSION: '0.7.0'
     strategy:
       matrix:
         os: [macos-latest, ubuntu-latest, windows-latest]
@@ -16,14 +18,21 @@ jobs:
     steps:
     - name: Clone the repo
       uses: actions/checkout@v2
-    - name: Set up caching for Rust
+    - name: Install Python
+      uses: actions/setup-python@v1
+      with:
+        python-version: '3.7'
+    - name: Build instawow and rename the sdist for use by PyOxidizer
+      run: |
+        python -m pip install nox
+        python -m nox -s build
+        mv dist/*.tar.gz instawow.tar.gz
+        python -m nox -s clobber_build_artefacts
+    - name: Restore Cargo cache for PyOxidizer
       uses: actions/cache@v2
       with:
-        path: |
-          ~/.cargo/registry
-          ~/.cargo/git
-          target
-        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+        path: ~/.cargo
+        key: ${{ runner.os }}-cargo-pyox-${{ env.PYOX_VERSION }}
     - name: Install Rust toolchain
       uses: actions-rs/toolchain@v1
       with:
@@ -31,15 +40,14 @@ jobs:
         toolchain: nightly
     - name: Install PyOxidizer
       run: |
-        cargo install pyoxidizer
-    - name: Build instawow and copy into 'dist' directory
+        cargo install --version $PYOX_VERSION pyoxidizer
+    - name: Freeze instawow and copy it into the 'dist' directory
       run: |
         mkdir -p dist
-        pyoxidizer build --release | tee >(cp $(tail -n 1 | cut -c 23-) dist/instawow)
-    - name: Rename binary on Windows
-      if: matrix.os == 'windows-latest'
-      run: |
-        mv dist/instawow dist/instawow.exe
+        pyoxidizer build --release | tee >(
+          instawow_path=$(tail -n 1 | cut -c 23-)
+          cp $instawow_path dist/${instawow_path##*[\\/]}
+        )
     - name: Upload binary
       uses: actions/upload-artifact@v2
       with:
