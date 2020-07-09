@@ -257,7 +257,7 @@ def make_progress_bar(**kwargs: Any) -> ProgressBar:
                 return f'{value / 2 ** 20:.1f}'
 
             return HTML(self.template).format(
-                current=format_pct(progress.current), total=format_pct(progress.total)
+                current=format_pct(progress.items_completed), total=format_pct(progress.total)
             )
 
     f = [

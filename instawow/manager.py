@@ -529,11 +529,8 @@ def init_cli_web_client(*, Bar: ProgressBar) -> aiohttp.ClientSession:
             try:
                 bar = Bar(label=label, total=total)
                 content = params.response.content
-
                 while not content.is_eof():
-                    # This is ``bar.current`` in prompt_toolkit v2
-                    # and ``.items_completed`` in v3
-                    bar.current = bar.items_completed = content.total_bytes
+                    bar.items_completed = content.total_bytes
                     Bar.invalidate()
                     await asyncio.sleep(_tick_interval)
             finally:
