@@ -131,6 +131,11 @@ class Resolver(ManagerAttrAccessMixin):
         resolve_one = cls.resolve_one
         cls.resolve_one = wrapper  # type: ignore
 
+    @property
+    def supports_rollback(self) -> bool:
+        "Whether the resolver supports rollback operations."
+        return Strategies.version in self.strategies
+
     @staticmethod
     def get_name_from_url(value: str) -> O[str]:
         "Attempt to extract a definition name from a given URL."

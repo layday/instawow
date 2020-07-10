@@ -306,6 +306,67 @@ def remove(obj: M, addons: Sequence[Defn]):
 
 @main.command()
 @click.option(
+    '--undo',
+    is_flag=True,
+    default=False,
+    help='Undo rollback by reinstalling an add-on using the default strategy.',
+)
+@click.argument('addon', callback=_callbackify(parse_into_defn))
+@click.pass_context
+def rollback(ctx: click.Context, addon: Defn, undo: bool):
+    "Roll an add-on back to an older version."
+    from .prompts import Choice, select
+
+    manager = ctx.obj.m
+
+    pkg = manager.get_pkg(addon)
+    if not pkg:
+        Report([(addon, E.PkgNotInstalled())]).generate_and_exit()
+        return  # noop
+
+    resolver = manager.resolvers[pkg.source]
+    if not resolver.supports_rollback:
+        Report(
+            [(addon, E.PkgFileUnavailable('source does not support rollback'))]
+        ).generate_and_exit()
+
+    if undo:
+        Report(
+            chain(
+                manager.run(manager.remove([addon])).items(),
+                manager.run(manager.install([addon], replace=False)).items(),
+            )
+        ).generate_and_exit()
+
+    versions = (
+        manager.db_session.query(models.PkgVersionLog)
+        .filter(
+            models.PkgVersionLog.pkg_source == pkg.source, models.PkgVersionLog.pkg_id == pkg.id
+        )
+        .order_by(models.PkgVersionLog.install_time.desc())
+        .limit(10)
+        .all()
+    )
+    if len(versions) <= 1:
+        Report([(addon, E.PkgFileUnavailable('cannot find older versions'))]).generate_and_exit()
+
+    reconstructed_defn = Defn.from_pkg(pkg)
+    choices = [Choice([('', v.version)], disabled=(v.version == pkg.version)) for v in versions]
+    selection = select(
+        f'Select version of {reconstructed_defn} for rollback', choices
+    ).unsafe_ask()
+    Report(
+        chain(
+            manager.run(manager.remove([reconstructed_defn])).items(),
+            manager.run(
+                manager.install([reconstructed_defn.with_version(selection)], replace=False)
+            ).items(),
+        )
+    ).generate_and_exit()
+
+
+@main.command()
+@click.option(
     '--auto', '-a', is_flag=True, default=False, help='Do not ask for user confirmation.'
 )
 @click.option(
