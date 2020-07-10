@@ -34,7 +34,7 @@ from typing import (
 from loguru import logger
 
 from . import DB_REVISION, exceptions as E
-from .models import Pkg, PkgFolder, is_pkg
+from .models import Pkg, PkgFolder, PkgVersionLog, is_pkg
 from .resolvers import (
     CurseResolver,
     Defn,
@@ -400,9 +400,13 @@ class Manager:
                 await trash([self.config.addon_dir / f for f in folders], self.config.temp_dir)
             await extract(self.config.addon_dir)
 
-        pkg.folders = [PkgFolder(name=f) for f in folders]
-        self.db_session.add(pkg)
-        self.db_session.commit()
+            pkg.folders = [PkgFolder(name=f) for f in folders]
+            self.db_session.add(pkg)
+            self.db_session.merge(
+                PkgVersionLog(version=pkg.version, pkg_source=pkg.source, pkg_id=pkg.id)
+            )
+            self.db_session.commit()
+
         return E.PkgInstalled(pkg)
 
     async def install(self, defns: Sequence[Defn], replace: bool) -> Dict[Defn, E.ManagerResult]:
@@ -441,9 +445,13 @@ class Manager:
             await self.remove_one(old_pkg)
             await extract(self.config.addon_dir)
 
-        pkg.folders = [PkgFolder(name=f) for f in folders]
-        self.db_session.add(pkg)
-        self.db_session.commit()
+            pkg.folders = [PkgFolder(name=f) for f in folders]
+            self.db_session.add(pkg)
+            self.db_session.merge(
+                PkgVersionLog(version=pkg.version, pkg_source=pkg.source, pkg_id=pkg.id)
+            )
+            self.db_session.commit()
+
         return E.PkgUpdated(old_pkg, pkg)
 
     async def update(self, defns: Sequence[Defn]) -> Dict[Defn, E.ManagerResult]:
@@ -481,6 +489,7 @@ class Manager:
         )
         self.db_session.delete(pkg)
         self.db_session.commit()
+
         return E.PkgRemoved(pkg)
 
     async def remove(self, defns: Sequence[Defn]) -> Dict[Defn, E.ManagerResult]:
