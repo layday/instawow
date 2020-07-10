@@ -21,11 +21,9 @@ def type_check(session):
 
 @nox.session(python='3.7')
 def reformat(session):
-    session.install('isort[pyproject]>=4.3.5', 'black')
-    session.run('isort', '--recursive', 'instawow', 'tests', 'noxfile.py', 'setup.py')
-    session.run(
-        'black', '--config', 'pyproject.toml', 'instawow', 'tests', 'noxfile.py', 'setup.py'
-    )
+    session.install('isort>=5.0.7', 'black>=19.10b0')
+    session.run('isort', 'instawow', 'tests', 'noxfile.py', 'setup.py')
+    session.run('black', 'instawow', 'tests', 'noxfile.py', 'setup.py')
 
 
 @nox.session(python=False)
