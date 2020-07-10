@@ -45,13 +45,14 @@ Getting started
 tl;dr
 ~~~~~
 
-Begin with running ``instawow reconcile --auto`` to register previously-installed
-add-ons with *instawow*.  To install add-ons, you can search for them
-using the ``search`` command, like so::
+Begin with running ``instawow reconcile``
+(or ``instawow reconcile --auto`` to reconcile add-ons without user input)
+to register previously-installed add-ons with *instawow*.
+To install add-ons, you can search for them using the ``search`` command::
 
     instawow search molinari
 
-In addition *instawow* is able to interpret add-on URLs, slugs and host IDs.
+In addition, *instawow* is able to interpret add-on URLs, slugs and host IDs.
 All of the following will install Molinari from CurseForge::
 
     instawow install https://www.curseforge.com/wow/addons/molinari
@@ -88,6 +89,20 @@ pressing ``<o>`` will bring the add-on page up in your browser.
 Search uses a collated add-on catalogue internally which is updated
 `once daily <https://github.com/layday/instawow-data/tree/data>`__.
 
+Dealing with pesky updates
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+As of version 1.10.0, *instawow* keeps a log of all versions of an add-on it has
+installed in the past.
+Add-on updates can be reverted using the ``instawow rollback`` command.
+Rollbacked add-ons and versioned add-ons more generally
+cannot be updated.
+Rollbacks can themselves be undone with ``instawow rollback --undo``,
+which will install the latest version of the specified add-on using
+the default strategy.
+
+Rollback is currently only supported by CurseForge.
+
 WoW Classic
 ~~~~~~~~~~~
 
@@ -96,20 +111,20 @@ of add-ons from sources depending on the value of the
 ``game_flavour`` configuration setting.
 What *instawow* does not have is a switch you can flick to go from managing
 your retail add-ons to managing your classic add-ons and vice versa.
-This was a conscious design decision, the merits of which (I should admit)
-are open to debate.  If you are already using *instawow* for retail,
+This was a conscious design decision, the merits of which – I should admit –
+are open to debate.  If you are already using *instawow* for Retail,
 you will need to create a separate profile for Classic.  On Linux, this might be::
 
     INSTAWOW_CONFIG_DIR=~/.config/instawow-classic instawow
 
-For ease of use, you might want to set up an alias.  In your Bash profile, add::
+For ease of use, you might want to set up an alias.  In your Bash profile::
 
     alias instawow-classic='INSTAWOW_CONFIG_DIR=~/.config/instawow-classic instawow'
 
 You would then be able to invoke *instawow* using ``instawow-classic``.
 
 The ``any_flavour`` strategy can be used to install ostensibly retail-only add-ons
-that work in Classic.  For example::
+which work in Classic.  For example::
 
     instawow-classic install -s any_flavour https://www.curseforge.com/wow/addons/colorpickerplus
 
@@ -135,7 +150,8 @@ name as an env var::
     WAC_ACCOUNT=<your account name> instawow install instawow:weakauras-companion-autoupdate
     WAC_ACCOUNT=<your account name> instawow update
 
-You may then choose to bypass the companion add-on simply by ommitting the env var.
+You may then choose to bypass the companion add-on when updating
+simply by ommitting the env var.
 
 Metadata sourcing
 -----------------
@@ -150,7 +166,8 @@ access to their account.  Authentication was also complicated
 by the ongoing Curse account migration to Twitch and is (or should be)
 unnecessary for the simple use case of installing and updating add-ons.
 Thankfully, Twitch migrated to an unauthenticated
-API interally in Q2 2019, which we have adopted for our own use.
+API interally in the second quarter of the year of the periodic table,
+which we have adopted for our own use.
 This is similar to what Minion, the WoWInterface-branded add-on manager, has been
 doing for years.  The good people at Tukui provide an API for public use.
 *instawow* might break whenever one of our sources introduces
