@@ -14,16 +14,16 @@ setup(
     install_requires='''
         aiohttp        ~=3.5
         alembic        ~=1.4
-        click          ~=7.0
-        jellyfish      ~=0.7.0
-        jinja2         ~=2.0
+        click          ~=7.1
+        jellyfish      ~=0.8.2
+        jinja2         ~=2.11
         loguru         <1
         prompt-toolkit >=3, !=3.0.0, !=3.0.1, !=3.0.2, <4
         pydantic       ~=1.5.0
         questionary    >=1, !=1.3.0, <2
         slpp           ==1.2.1
-        sqlalchemy     ~=1.0
-        yarl           ~=1.0
+        sqlalchemy     ~=1.3
+        yarl           ~=1.4
     ''',
     extras_require={
         ":python_version < '3.8'": '''
