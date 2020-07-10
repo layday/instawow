@@ -2,18 +2,18 @@
   {
     "UID": "13188",
     "UICATID": "40",
-    "UIVersion": "80200.64-Release",
-    "UIDate": 1576353550000,
+    "UIVersion": "80300.66-Release",
+    "UIDate": 1583004254000,
     "UIName": "Molinari",
     "UIAuthorName": "p3lim",
     "UIFileInfoURL": "https://www.wowinterface.com/downloads/info13188-Molinari.html",
-    "UIDownloadTotal": "52622",
-    "UIDownloadMonthly": "297",
-    "UIFavoriteTotal": "421",
+    "UIDownloadTotal": "56563",
+    "UIDownloadMonthly": "399",
+    "UIFavoriteTotal": "422",
     "UICompatibility": [
       {
-        "version": "8.2.5",
-        "name": "BfA content patch"
+        "version": "8.3.0",
+        "name": "Visions of N'Zoth"
       }
     ],
     "UIDir": [

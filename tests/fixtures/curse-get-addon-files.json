@@ -1,0 +1,3364 @@
+[
+  {
+    "id": 531874,
+    "displayName": "40000.9-Beta",
+    "fileName": "Molinari-40000.9-Beta.zip",
+    "fileDate": "2011-07-13T01:10:23.977Z",
+    "fileLength": 3022,
+    "releaseType": 2,
+    "fileStatus": 4,
+    "downloadUrl": "https://edge.forgecdn.net/files/531/874/Molinari-40000.9-Beta.zip",
+    "isAlternate": false,
+    "alternateFileId": 0,
+    "dependencies": [],
+    "isAvailable": true,
+    "modules": [
+      {
+        "foldername": "Molinari",
+        "fingerprint": 2984867425
+      }
+    ],
+    "packageFingerprint": 2454170826,
+    "gameVersion": [
+      "4.0.6"
+    ],
+    "installMetadata": null,
+    "serverPackFileId": null,
+    "hasInstallScript": false,
+    "gameVersionDateReleased": "2011-02-08T00:00:00Z",
+    "gameVersionFlavor": "wow_retail"
+  },
+  {
+    "id": 531871,
+    "displayName": "30300.6-Beta",
+    "fileName": "Molinari-30300.6-Beta.zip",
+    "fileDate": "2011-07-13T01:10:21.887Z",
+    "fileLength": 2438,
+    "releaseType": 2,
+    "fileStatus": 4,
+    "downloadUrl": "https://edge.forgecdn.net/files/531/871/Molinari-30300.6-Beta.zip",
+    "isAlternate": false,
+    "alternateFileId": 0,
+    "dependencies": [],
+    "isAvailable": true,
+    "modules": [
+      {
+        "foldername": "Molinari",
+        "fingerprint": 2956789419
+      }
+    ],
+    "packageFingerprint": 738601717,
+    "gameVersion": [
+      "3.3.5"
+    ],
+    "installMetadata": null,
+    "serverPackFileId": null,
+    "hasInstallScript": false,
+    "gameVersionDateReleased": "2010-06-22T00:00:00Z",
+    "gameVersionFlavor": "wow_retail"
+  },
+  {
+    "id": 706745,
+    "displayName": "50300.25-Release",
+    "fileName": "Molinari-50300.25-Release.zip",
+    "fileDate": "2013-05-27T14:39:32.217Z",
+    "fileLength": 9324,
+    "releaseType": 1,
+    "fileStatus": 4,
+    "downloadUrl": "https://edge.forgecdn.net/files/706/745/Molinari-50300.25-Release.zip",
+    "isAlternate": false,
+    "alternateFileId": 0,
+    "dependencies": [],
+    "isAvailable": true,
+    "modules": [
+      {
+        "foldername": "Molinari",
+        "fingerprint": 1786397889
+      }
+    ],
+    "packageFingerprint": 2707385421,
+    "gameVersion": [
+      "5.3.0"
+    ],
+    "installMetadata": null,
+    "serverPackFileId": null,
+    "hasInstallScript": false,
+    "gameVersionDateReleased": "2013-05-21T00:00:00Z",
+    "gameVersionFlavor": "wow_retail"
+  },
+  {
+    "id": 706743,
+    "displayName": "50200.23-Release",
+    "fileName": "Molinari-50200.23-Release.zip",
+    "fileDate": "2013-05-27T14:39:30.507Z",
+    "fileLength": 9140,
+    "releaseType": 1,
+    "fileStatus": 4,
+    "downloadUrl": "https://edge.forgecdn.net/files/706/743/Molinari-50200.23-Release.zip",
+    "isAlternate": false,
+    "alternateFileId": 0,
+    "dependencies": [],
+    "isAvailable": true,
+    "modules": [
+      {
+        "foldername": "Molinari",
+        "fingerprint": 3221267139
+      }
+    ],
+    "packageFingerprint": 1684190269,
+    "gameVersion": [
+      "5.2.0"
+    ],
+    "installMetadata": null,
+    "serverPackFileId": null,
+    "hasInstallScript": false,
+    "gameVersionDateReleased": "2013-03-05T00:00:00Z",
+    "gameVersionFlavor": "wow_retail"
+  },
+  {
+    "id": 406756,
+    "displayName": "30300.3-Beta",
+    "fileName": "Molinari-30300.3-Beta.zip",
+    "fileDate": "2010-01-02T14:38:37.103Z",
+    "fileLength": 2567,
+    "releaseType": 2,
+    "fileStatus": 4,
+    "downloadUrl": "https://edge.forgecdn.net/files/406/756/Molinari-30300.3-Beta.zip",
+    "isAlternate": false,
+    "alternateFileId": 0,
+    "dependencies": [],
+    "isAvailable": true,
+    "modules": [
+      {
+        "foldername": "Molinari",
+        "fingerprint": 2053709525
+      }
+    ],
+    "packageFingerprint": 2639675651,
+    "gameVersion": [
+      "3.3.0"
+    ],
+    "installMetadata": null,
+    "serverPackFileId": null,
+    "hasInstallScript": false,
+    "gameVersionDateReleased": "2009-12-08T00:00:00Z",
+    "gameVersionFlavor": "wow_retail"
+  },
+  {
+    "id": 406292,
+    "displayName": "30300.2-Beta",
+    "fileName": "Molinari-30300.2-Beta.zip",
+    "fileDate": "2009-12-31T03:11:02.937Z",
+    "fileLength": 2902,
+    "releaseType": 2,
+    "fileStatus": 4,
+    "downloadUrl": "https://edge.forgecdn.net/files/406/292/Molinari-30300.2-Beta.zip",
+    "isAlternate": false,
+    "alternateFileId": 0,
+    "dependencies": [],
+    "isAvailable": true,
+    "modules": [
+      {
+        "foldername": "Molinari",
+        "fingerprint": 4073008829
+      }
+    ],
+    "packageFingerprint": 344107047,
+    "gameVersion": [
+      "3.3.0"
+    ],
+    "installMetadata": null,
+    "serverPackFileId": null,
+    "hasInstallScript": false,
+    "gameVersionDateReleased": "2009-12-08T00:00:00Z",
+    "gameVersionFlavor": "wow_retail"
+  },
+  {
+    "id": 531870,
+    "displayName": "30300.5-Beta",
+    "fileName": "Molinari-30300.5-Beta.zip",
+    "fileDate": "2011-07-13T01:10:21.24Z",
+    "fileLength": 2637,
+    "releaseType": 2,
+    "fileStatus": 4,
+    "downloadUrl": "https://edge.forgecdn.net/files/531/870/Molinari-30300.5-Beta.zip",
+    "isAlternate": false,
+    "alternateFileId": 0,
+    "dependencies": [],
+    "isAvailable": true,
+    "modules": [
+      {
+        "foldername": "Molinari",
+        "fingerprint": 3259163293
+      }
+    ],
+    "packageFingerprint": 3788306199,
+    "gameVersion": [
+      "3.3.5"
+    ],
+    "installMetadata": null,
+    "serverPackFileId": null,
+    "hasInstallScript": false,
+    "gameVersionDateReleased": "2010-06-22T00:00:00Z",
+    "gameVersionFlavor": "wow_retail"
+  },
+  {
+    "id": 531875,
+    "displayName": "40100.10-Beta",
+    "fileName": "Molinari-40100.10-Beta.zip",
+    "fileDate": "2011-07-13T01:10:24.677Z",
+    "fileLength": 5436,
+    "releaseType": 2,
+    "fileStatus": 4,
+    "downloadUrl": "https://edge.forgecdn.net/files/531/875/Molinari-40100.10-Beta.zip",
+    "isAlternate": false,
+    "alternateFileId": 0,
+    "dependencies": [],
+    "isAvailable": true,
+    "modules": [
+      {
+        "foldername": "Molinari",
+        "fingerprint": 2254121106
+      }
+    ],
+    "packageFingerprint": 2396262477,
+    "gameVersion": [
+      "4.1.0"
+    ],
+    "installMetadata": null,
+    "serverPackFileId": null,
+    "hasInstallScript": false,
+    "gameVersionDateReleased": "2011-04-26T00:00:00Z",
+    "gameVersionFlavor": "wow_retail"
+  },
+  {
+    "id": 531876,
+    "displayName": "40200.11-Beta",
+    "fileName": "Molinari-40200.11-Beta.zip",
+    "fileDate": "2011-07-13T01:10:31.21Z",
+    "fileLength": 5437,
+    "releaseType": 2,
+    "fileStatus": 4,
+    "downloadUrl": "https://edge.forgecdn.net/files/531/876/Molinari-40200.11-Beta.zip",
+    "isAlternate": false,
+    "alternateFileId": 0,
+    "dependencies": [],
+    "isAvailable": true,
+    "modules": [
+      {
+        "foldername": "Molinari",
+        "fingerprint": 1718099356
+      }
+    ],
+    "packageFingerprint": 3376353328,
+    "gameVersion": [
+      "4.2.0"
+    ],
+    "installMetadata": null,
+    "serverPackFileId": null,
+    "hasInstallScript": false,
+    "gameVersionDateReleased": "2011-06-28T00:00:00Z",
+    "gameVersionFlavor": "wow_retail"
+  },
+  {
+    "id": 531869,
+    "displayName": "30300.4-Beta",
+    "fileName": "Molinari-30300.4-Beta.zip",
+    "fileDate": "2011-07-13T01:10:20.523Z",
+    "fileLength": 2576,
+    "releaseType": 2,
+    "fileStatus": 4,
+    "downloadUrl": "https://edge.forgecdn.net/files/531/869/Molinari-30300.4-Beta.zip",
+    "isAlternate": false,
+    "alternateFileId": 0,
+    "dependencies": [],
+    "isAvailable": true,
+    "modules": [
+      {
+        "foldername": "Molinari",
+        "fingerprint": 4148382134
+      }
+    ],
+    "packageFingerprint": 3297225388,
+    "gameVersion": [
+      "3.3.5"
+    ],
+    "installMetadata": null,
+    "serverPackFileId": null,
+    "hasInstallScript": false,
+    "gameVersionDateReleased": "2010-06-22T00:00:00Z",
+    "gameVersionFlavor": "wow_retail"
+  },
+  {
+    "id": 590675,
+    "displayName": "40300.15-Beta",
+    "fileName": "Molinari-40300.15-Beta.zip",
+    "fileDate": "2012-04-28T18:09:25.82Z",
+    "fileLength": 6741,
+    "releaseType": 2,
+    "fileStatus": 4,
+    "downloadUrl": "https://edge.forgecdn.net/files/590/675/Molinari-40300.15-Beta.zip",
+    "isAlternate": false,
+    "alternateFileId": 0,
+    "dependencies": [],
+    "isAvailable": true,
+    "modules": [
+      {
+        "foldername": "Molinari",
+        "fingerprint": 1331677743
+      }
+    ],
+    "packageFingerprint": 1647023641,
+    "gameVersion": [
+      "4.3.4"
+    ],
+    "installMetadata": null,
+    "serverPackFileId": null,
+    "hasInstallScript": false,
+    "gameVersionDateReleased": "2012-04-17T00:00:00Z",
+    "gameVersionFlavor": "wow_retail"
+  },
+  {
+    "id": 531872,
+    "displayName": "40000.7-Beta",
+    "fileName": "Molinari-40000.7-Beta.zip",
+    "fileDate": "2011-07-13T01:10:22.543Z",
+    "fileLength": 2549,
+    "releaseType": 2,
+    "fileStatus": 4,
+    "downloadUrl": "https://edge.forgecdn.net/files/531/872/Molinari-40000.7-Beta.zip",
+    "isAlternate": false,
+    "alternateFileId": 0,
+    "dependencies": [],
+    "isAvailable": true,
+    "modules": [
+      {
+        "foldername": "Molinari",
+        "fingerprint": 2351558143
+      }
+    ],
+    "packageFingerprint": 3740205056,
+    "gameVersion": [
+      "4.0.6"
+    ],
+    "installMetadata": null,
+    "serverPackFileId": null,
+    "hasInstallScript": false,
+    "gameVersionDateReleased": "2011-02-08T00:00:00Z",
+    "gameVersionFlavor": "wow_retail"
+  },
+  {
+    "id": 2589468,
+    "displayName": "80000.55-Release",
+    "fileName": "Molinari-80000.55-Release.zip",
+    "fileDate": "2018-07-23T00:53:52.66Z",
+    "fileLength": 36049,
+    "releaseType": 1,
+    "fileStatus": 4,
+    "downloadUrl": "https://edge.forgecdn.net/files/2589/468/Molinari-80000.55-Release.zip",
+    "isAlternate": false,
+    "alternateFileId": 0,
+    "dependencies": [],
+    "isAvailable": true,
+    "modules": [
+      {
+        "foldername": "Molinari",
+        "fingerprint": 747828160
+      }
+    ],
+    "packageFingerprint": 4238019469,
+    "gameVersion": [
+      "8.0.1"
+    ],
+    "installMetadata": null,
+    "serverPackFileId": null,
+    "hasInstallScript": false,
+    "gameVersionDateReleased": "2018-07-17T00:00:00Z",
+    "gameVersionFlavor": "wow_retail"
+  },
+  {
+    "id": 2737651,
+    "displayName": "80200.59-Release",
+    "fileName": "Molinari-80200.59-Release.zip",
+    "fileDate": "2019-07-08T17:08:07.673Z",
+    "fileLength": 35658,
+    "releaseType": 1,
+    "fileStatus": 4,
+    "downloadUrl": "https://edge.forgecdn.net/files/2737/651/Molinari-80200.59-Release.zip",
+    "isAlternate": false,
+    "alternateFileId": 0,
+    "dependencies": [
+      {
+        "addonId": 14328,
+        "type": 1
+      }
+    ],
+    "isAvailable": true,
+    "modules": [
+      {
+        "foldername": "Molinari",
+        "fingerprint": 3128012815
+      }
+    ],
+    "packageFingerprint": 313516653,
+    "gameVersion": [
+      "8.2.0"
+    ],
+    "installMetadata": null,
+    "serverPackFileId": null,
+    "hasInstallScript": false,
+    "gameVersionDateReleased": "2019-06-25T00:00:00Z",
+    "gameVersionFlavor": "wow_retail"
+  },
+  {
+    "id": 375145,
+    "displayName": "30200.1-Beta",
+    "fileName": "Molinari-30200.1-Beta.zip",
+    "fileDate": "2009-08-08T19:59:01.753Z",
+    "fileLength": 3008,
+    "releaseType": 2,
+    "fileStatus": 4,
+    "downloadUrl": "https://edge.forgecdn.net/files/375/145/Molinari-30200.1-Beta.zip",
+    "isAlternate": false,
+    "alternateFileId": 0,
+    "dependencies": [],
+    "isAvailable": true,
+    "modules": [
+      {
+        "foldername": "Molinari",
+        "fingerprint": 823567146
+      }
+    ],
+    "packageFingerprint": 3754183923,
+    "gameVersion": [
+      "3.2.0"
+    ],
+    "installMetadata": null,
+    "serverPackFileId": null,
+    "hasInstallScript": false,
+    "gameVersionDateReleased": "2009-08-04T00:00:00Z",
+    "gameVersionFlavor": "wow_retail"
+  },
+  {
+    "id": 603844,
+    "displayName": "40300.17-Beta",
+    "fileName": "Molinari-40300.17-Beta.zip",
+    "fileDate": "2012-07-13T03:07:02.747Z",
+    "fileLength": 7023,
+    "releaseType": 2,
+    "fileStatus": 4,
+    "downloadUrl": "https://edge.forgecdn.net/files/603/844/Molinari-40300.17-Beta.zip",
+    "isAlternate": false,
+    "alternateFileId": 0,
+    "dependencies": [],
+    "isAvailable": true,
+    "modules": [
+      {
+        "foldername": "Molinari",
+        "fingerprint": 3623759113
+      }
+    ],
+    "packageFingerprint": 1686652121,
+    "gameVersion": [
+      "4.3.4"
+    ],
+    "installMetadata": null,
+    "serverPackFileId": null,
+    "hasInstallScript": false,
+    "gameVersionDateReleased": "2012-04-17T00:00:00Z",
+    "gameVersionFlavor": "wow_retail"
+  },
+  {
+    "id": 572665,
+    "displayName": "40200.13-Beta",
+    "fileName": "Molinari-40200.13-Beta.zip",
+    "fileDate": "2012-02-07T01:13:56.71Z",
+    "fileLength": 4680,
+    "releaseType": 2,
+    "fileStatus": 4,
+    "downloadUrl": "https://edge.forgecdn.net/files/572/665/Molinari-40200.13-Beta.zip",
+    "isAlternate": false,
+    "alternateFileId": 0,
+    "dependencies": [],
+    "isAvailable": true,
+    "modules": [
+      {
+        "foldername": "Molinari",
+        "fingerprint": 4285344039
+      }
+    ],
+    "packageFingerprint": 3727026616,
+    "gameVersion": [
+      "4.2.0"
+    ],
+    "installMetadata": null,
+    "serverPackFileId": null,
+    "hasInstallScript": false,
+    "gameVersionDateReleased": "2011-06-28T00:00:00Z",
+    "gameVersionFlavor": "wow_retail"
+  },
+  {
+    "id": 531873,
+    "displayName": "40000.8-Beta",
+    "fileName": "Molinari-40000.8-Beta.zip",
+    "fileDate": "2011-07-13T01:10:23.23Z",
+    "fileLength": 3080,
+    "releaseType": 2,
+    "fileStatus": 4,
+    "downloadUrl": "https://edge.forgecdn.net/files/531/873/Molinari-40000.8-Beta.zip",
+    "isAlternate": false,
+    "alternateFileId": 0,
+    "dependencies": [],
+    "isAvailable": true,
+    "modules": [
+      {
+        "foldername": "Molinari",
+        "fingerprint": 3129891617
+      }
+    ],
+    "packageFingerprint": 2659287288,
+    "gameVersion": [
+      "4.0.6"
+    ],
+    "installMetadata": null,
+    "serverPackFileId": null,
+    "hasInstallScript": false,
+    "gameVersionDateReleased": "2011-02-08T00:00:00Z",
+    "gameVersionFlavor": "wow_retail"
+  },
+  {
+    "id": 572664,
+    "displayName": "40200.12-Beta",
+    "fileName": "Molinari-40200.12-Beta.zip",
+    "fileDate": "2012-02-07T01:13:55.96Z",
+    "fileLength": 4506,
+    "releaseType": 2,
+    "fileStatus": 4,
+    "downloadUrl": "https://edge.forgecdn.net/files/572/664/Molinari-40200.12-Beta.zip",
+    "isAlternate": false,
+    "alternateFileId": 0,
+    "dependencies": [],
+    "isAvailable": true,
+    "modules": [
+      {
+        "foldername": "Molinari",
+        "fingerprint": 3379249931
+      }
+    ],
+    "packageFingerprint": 2826543285,
+    "gameVersion": [
+      "4.2.0"
+    ],
+    "installMetadata": null,
+    "serverPackFileId": null,
+    "hasInstallScript": false,
+    "gameVersionDateReleased": "2011-06-28T00:00:00Z",
+    "gameVersionFlavor": "wow_retail"
+  },
+  {
+    "id": 833968,
+    "displayName": "60000.34-Release-nolib",
+    "fileName": "Molinari-60000.34-Release-nolib.zip",
+    "fileDate": "2014-11-24T15:46:37.597Z",
+    "fileLength": 7868,
+    "releaseType": 1,
+    "fileStatus": 4,
+    "downloadUrl": "https://edge.forgecdn.net/files/833/968/Molinari-60000.34-Release-nolib.zip",
+    "isAlternate": true,
+    "alternateFileId": 0,
+    "dependencies": [
+      {
+        "addonId": 14328,
+        "type": 1
+      }
+    ],
+    "isAvailable": true,
+    "modules": [
+      {
+        "foldername": "Molinari",
+        "fingerprint": 4133076410
+      }
+    ],
+    "packageFingerprint": 120697965,
+    "gameVersion": [
+      "6.0.3"
+    ],
+    "installMetadata": null,
+    "serverPackFileId": null,
+    "hasInstallScript": false,
+    "gameVersionDateReleased": "2014-10-28T00:00:00Z",
+    "gameVersionFlavor": "wow_retail"
+  },
+  {
+    "id": 833969,
+    "displayName": "60000.34-Release",
+    "fileName": "Molinari-60000.34-Release.zip",
+    "fileDate": "2014-11-24T15:46:38.217Z",
+    "fileLength": 11729,
+    "releaseType": 1,
+    "fileStatus": 4,
+    "downloadUrl": "https://edge.forgecdn.net/files/833/969/Molinari-60000.34-Release.zip",
+    "isAlternate": false,
+    "alternateFileId": 833968,
+    "dependencies": [
+      {
+        "addonId": 14328,
+        "type": 1
+      }
+    ],
+    "isAvailable": true,
+    "modules": [
+      {
+        "foldername": "Molinari",
+        "fingerprint": 3611968982
+      }
+    ],
+    "packageFingerprint": 2561461037,
+    "gameVersion": [
+      "6.0.3"
+    ],
+    "installMetadata": null,
+    "serverPackFileId": null,
+    "hasInstallScript": false,
+    "gameVersionDateReleased": "2014-10-28T00:00:00Z",
+    "gameVersionFlavor": "wow_retail"
+  },
+  {
+    "id": 821841,
+    "displayName": "60000.32-Release-nolib",
+    "fileName": "Molinari-60000.32-Release-nolib.zip",
+    "fileDate": "2014-10-17T14:00:48.947Z",
+    "fileLength": 7854,
+    "releaseType": 1,
+    "fileStatus": 4,
+    "downloadUrl": "https://edge.forgecdn.net/files/821/841/Molinari-60000.32-Release-nolib.zip",
+    "isAlternate": true,
+    "alternateFileId": 0,
+    "dependencies": [
+      {
+        "addonId": 14328,
+        "type": 1
+      }
+    ],
+    "isAvailable": true,
+    "modules": [
+      {
+        "foldername": "Molinari",
+        "fingerprint": 1317677445
+      }
+    ],
+    "packageFingerprint": 3830017956,
+    "gameVersion": [
+      "6.0.2"
+    ],
+    "installMetadata": null,
+    "serverPackFileId": null,
+    "hasInstallScript": false,
+    "gameVersionDateReleased": "2014-10-14T00:00:00Z",
+    "gameVersionFlavor": "wow_retail"
+  },
+  {
+    "id": 840515,
+    "displayName": "60000.35-Release",
+    "fileName": "Molinari-60000.35-Release.zip",
+    "fileDate": "2014-12-19T08:07:44.183Z",
+    "fileLength": 12538,
+    "releaseType": 1,
+    "fileStatus": 4,
+    "downloadUrl": "https://edge.forgecdn.net/files/840/515/Molinari-60000.35-Release.zip",
+    "isAlternate": false,
+    "alternateFileId": 840514,
+    "dependencies": [
+      {
+        "addonId": 14328,
+        "type": 1
+      }
+    ],
+    "isAvailable": true,
+    "modules": [
+      {
+        "foldername": "Molinari",
+        "fingerprint": 3635137507
+      }
+    ],
+    "packageFingerprint": 2036106117,
+    "gameVersion": [
+      "6.0.3"
+    ],
+    "installMetadata": null,
+    "serverPackFileId": null,
+    "hasInstallScript": false,
+    "gameVersionDateReleased": "2014-10-28T00:00:00Z",
+    "gameVersionFlavor": "wow_retail"
+  },
+  {
+    "id": 939843,
+    "displayName": "70000.39-Release-nolib",
+    "fileName": "Molinari-70000.39-Release-nolib.zip",
+    "fileDate": "2016-08-26T03:14:48.447Z",
+    "fileLength": 6021,
+    "releaseType": 1,
+    "fileStatus": 4,
+    "downloadUrl": "https://edge.forgecdn.net/files/939/843/Molinari-70000.39-Release-nolib.zip",
+    "isAlternate": true,
+    "alternateFileId": 0,
+    "dependencies": [
+      {
+        "addonId": 101134,
+        "type": 2
+      },
+      {
+        "addonId": 14328,
+        "type": 1
+      },
+      {
+        "addonId": 88553,
+        "type": 2
+      }
+    ],
+    "isAvailable": true,
+    "modules": [
+      {
+        "foldername": "Molinari",
+        "fingerprint": 2539984401
+      }
+    ],
+    "packageFingerprint": 3071633848,
+    "gameVersion": [
+      "7.0.3"
+    ],
+    "installMetadata": null,
+    "serverPackFileId": null,
+    "hasInstallScript": false,
+    "gameVersionDateReleased": "2016-07-19T00:00:00Z",
+    "gameVersionFlavor": "wow_retail"
+  },
+  {
+    "id": 939844,
+    "displayName": "70000.39-Release",
+    "fileName": "Molinari-70000.39-Release.zip",
+    "fileDate": "2016-08-26T03:14:50.253Z",
+    "fileLength": 25909,
+    "releaseType": 1,
+    "fileStatus": 4,
+    "downloadUrl": "https://edge.forgecdn.net/files/939/844/Molinari-70000.39-Release.zip",
+    "isAlternate": false,
+    "alternateFileId": 939843,
+    "dependencies": [
+      {
+        "addonId": 101134,
+        "type": 2
+      },
+      {
+        "addonId": 14328,
+        "type": 1
+      },
+      {
+        "addonId": 88553,
+        "type": 2
+      }
+    ],
+    "isAvailable": true,
+    "modules": [
+      {
+        "foldername": "Molinari",
+        "fingerprint": 2761723636
+      }
+    ],
+    "packageFingerprint": 2199780292,
+    "gameVersion": [
+      "7.0.3"
+    ],
+    "installMetadata": null,
+    "serverPackFileId": null,
+    "hasInstallScript": false,
+    "gameVersionDateReleased": "2016-07-19T00:00:00Z",
+    "gameVersionFlavor": "wow_retail"
+  },
+  {
+    "id": 603845,
+    "displayName": "40300.18-Beta",
+    "fileName": "Molinari-40300.18-Beta.zip",
+    "fileDate": "2012-07-13T03:10:49.92Z",
+    "fileLength": 7025,
+    "releaseType": 2,
+    "fileStatus": 4,
+    "downloadUrl": "https://edge.forgecdn.net/files/603/845/Molinari-40300.18-Beta.zip",
+    "isAlternate": false,
+    "alternateFileId": 0,
+    "dependencies": [],
+    "isAvailable": true,
+    "modules": [
+      {
+        "foldername": "Molinari",
+        "fingerprint": 3743955125
+      }
+    ],
+    "packageFingerprint": 3876698710,
+    "gameVersion": [
+      "4.3.4"
+    ],
+    "installMetadata": null,
+    "serverPackFileId": null,
+    "hasInstallScript": false,
+    "gameVersionDateReleased": "2012-04-17T00:00:00Z",
+    "gameVersionFlavor": "wow_retail"
+  },
+  {
+    "id": 590724,
+    "displayName": "40300.16-Beta",
+    "fileName": "Molinari-40300.16-Beta.zip",
+    "fileDate": "2012-04-28T22:28:03.823Z",
+    "fileLength": 6694,
+    "releaseType": 2,
+    "fileStatus": 4,
+    "downloadUrl": "https://edge.forgecdn.net/files/590/724/Molinari-40300.16-Beta.zip",
+    "isAlternate": false,
+    "alternateFileId": 0,
+    "dependencies": [],
+    "isAvailable": true,
+    "modules": [
+      {
+        "foldername": "Molinari",
+        "fingerprint": 2179301824
+      }
+    ],
+    "packageFingerprint": 4196070915,
+    "gameVersion": [
+      "4.3.4"
+    ],
+    "installMetadata": null,
+    "serverPackFileId": null,
+    "hasInstallScript": false,
+    "gameVersionDateReleased": "2012-04-17T00:00:00Z",
+    "gameVersionFlavor": "wow_retail"
+  },
+  {
+    "id": 706744,
+    "displayName": "50300.24-Release",
+    "fileName": "Molinari-50300.24-Release.zip",
+    "fileDate": "2013-05-27T14:39:31.427Z",
+    "fileLength": 9269,
+    "releaseType": 1,
+    "fileStatus": 4,
+    "downloadUrl": "https://edge.forgecdn.net/files/706/744/Molinari-50300.24-Release.zip",
+    "isAlternate": false,
+    "alternateFileId": 0,
+    "dependencies": [],
+    "isAvailable": true,
+    "modules": [
+      {
+        "foldername": "Molinari",
+        "fingerprint": 3325640672
+      }
+    ],
+    "packageFingerprint": 3405506789,
+    "gameVersion": [
+      "5.3.0"
+    ],
+    "installMetadata": null,
+    "serverPackFileId": null,
+    "hasInstallScript": false,
+    "gameVersionDateReleased": "2013-05-21T00:00:00Z",
+    "gameVersionFlavor": "wow_retail"
+  },
+  {
+    "id": 942232,
+    "displayName": "70000.40-Release",
+    "fileName": "Molinari-70000.40-Release.zip",
+    "fileDate": "2016-09-03T18:14:59.04Z",
+    "fileLength": 26009,
+    "releaseType": 1,
+    "fileStatus": 4,
+    "downloadUrl": "https://edge.forgecdn.net/files/942/232/Molinari-70000.40-Release.zip",
+    "isAlternate": false,
+    "alternateFileId": 942231,
+    "dependencies": [
+      {
+        "addonId": 14328,
+        "type": 1
+      },
+      {
+        "addonId": 88553,
+        "type": 2
+      },
+      {
+        "addonId": 101134,
+        "type": 2
+      }
+    ],
+    "isAvailable": true,
+    "modules": [
+      {
+        "foldername": "Molinari",
+        "fingerprint": 1283333176
+      }
+    ],
+    "packageFingerprint": 2286667205,
+    "gameVersion": [
+      "7.0.3"
+    ],
+    "installMetadata": null,
+    "serverPackFileId": null,
+    "hasInstallScript": false,
+    "gameVersionDateReleased": "2016-07-19T00:00:00Z",
+    "gameVersionFlavor": "wow_retail"
+  },
+  {
+    "id": 812332,
+    "displayName": "50400.28-Release-nolib",
+    "fileName": "Molinari-50400.28-Release-nolib.zip",
+    "fileDate": "2014-08-29T15:33:47.657Z",
+    "fileLength": 7267,
+    "releaseType": 1,
+    "fileStatus": 4,
+    "downloadUrl": "https://edge.forgecdn.net/files/812/332/Molinari-50400.28-Release-nolib.zip",
+    "isAlternate": true,
+    "alternateFileId": 0,
+    "dependencies": [
+      {
+        "addonId": 14328,
+        "type": 1
+      }
+    ],
+    "isAvailable": true,
+    "modules": [
+      {
+        "foldername": "Molinari",
+        "fingerprint": 3138170835
+      }
+    ],
+    "packageFingerprint": 2551764173,
+    "gameVersion": [
+      "5.4.8"
+    ],
+    "installMetadata": null,
+    "serverPackFileId": null,
+    "hasInstallScript": false,
+    "gameVersionDateReleased": "2014-05-20T00:00:00Z",
+    "gameVersionFlavor": "wow_retail"
+  },
+  {
+    "id": 939700,
+    "displayName": "70000.38-Release-nolib",
+    "fileName": "Molinari-70000.38-Release-nolib.zip",
+    "fileDate": "2016-08-25T13:24:29.09Z",
+    "fileLength": 5846,
+    "releaseType": 1,
+    "fileStatus": 4,
+    "downloadUrl": "https://edge.forgecdn.net/files/939/700/Molinari-70000.38-Release-nolib.zip",
+    "isAlternate": true,
+    "alternateFileId": 0,
+    "dependencies": [
+      {
+        "addonId": 88553,
+        "type": 2
+      },
+      {
+        "addonId": 101134,
+        "type": 2
+      },
+      {
+        "addonId": 14328,
+        "type": 1
+      }
+    ],
+    "isAvailable": true,
+    "modules": [
+      {
+        "foldername": "Molinari",
+        "fingerprint": 3460938950
+      }
+    ],
+    "packageFingerprint": 1771292280,
+    "gameVersion": [
+      "7.0.3"
+    ],
+    "installMetadata": null,
+    "serverPackFileId": null,
+    "hasInstallScript": false,
+    "gameVersionDateReleased": "2016-07-19T00:00:00Z",
+    "gameVersionFlavor": "wow_retail"
+  },
+  {
+    "id": 605514,
+    "displayName": "40300.19-Beta",
+    "fileName": "Molinari-40300.19-Beta.zip",
+    "fileDate": "2012-07-21T12:31:08.003Z",
+    "fileLength": 6988,
+    "releaseType": 2,
+    "fileStatus": 4,
+    "downloadUrl": "https://edge.forgecdn.net/files/605/514/Molinari-40300.19-Beta.zip",
+    "isAlternate": false,
+    "alternateFileId": 0,
+    "dependencies": [],
+    "isAvailable": true,
+    "modules": [
+      {
+        "foldername": "Molinari",
+        "fingerprint": 3536828095
+      }
+    ],
+    "packageFingerprint": 2802746953,
+    "gameVersion": [
+      "4.3.4"
+    ],
+    "installMetadata": null,
+    "serverPackFileId": null,
+    "hasInstallScript": false,
+    "gameVersionDateReleased": "2012-04-17T00:00:00Z",
+    "gameVersionFlavor": "wow_retail"
+  },
+  {
+    "id": 2413310,
+    "displayName": "70100.43-Release-3-g7c6202e-alpha",
+    "fileName": "Molinari-70100.43-Release-3-g7c6202e-alpha.zip",
+    "fileDate": "2017-04-29T08:41:42.883Z",
+    "fileLength": 26465,
+    "releaseType": 3,
+    "fileStatus": 4,
+    "downloadUrl": "https://edge.forgecdn.net/files/2413/310/Molinari-70100.43-Release-3-g7c6202e-alpha.zip",
+    "isAlternate": false,
+    "alternateFileId": 0,
+    "dependencies": [
+      {
+        "addonId": 88553,
+        "type": 2
+      },
+      {
+        "addonId": 101134,
+        "type": 2
+      }
+    ],
+    "isAvailable": true,
+    "modules": [
+      {
+        "foldername": "Molinari",
+        "fingerprint": 1105962117
+      }
+    ],
+    "packageFingerprint": 2897937841,
+    "gameVersion": [
+      "7.2.0"
+    ],
+    "installMetadata": null,
+    "serverPackFileId": null,
+    "hasInstallScript": false,
+    "gameVersionDateReleased": "2017-03-28T05:00:00Z",
+    "gameVersionFlavor": "wow_retail"
+  },
+  {
+    "id": 820159,
+    "displayName": "60000.31-Release-nolib",
+    "fileName": "Molinari-60000.31-Release-nolib.zip",
+    "fileDate": "2014-10-15T16:46:07.157Z",
+    "fileLength": 7886,
+    "releaseType": 1,
+    "fileStatus": 4,
+    "downloadUrl": "https://edge.forgecdn.net/files/820/159/Molinari-60000.31-Release-nolib.zip",
+    "isAlternate": true,
+    "alternateFileId": 0,
+    "dependencies": [
+      {
+        "addonId": 14328,
+        "type": 1
+      }
+    ],
+    "isAvailable": true,
+    "modules": [
+      {
+        "foldername": "Molinari",
+        "fingerprint": 1286802875
+      }
+    ],
+    "packageFingerprint": 344078766,
+    "gameVersion": [
+      "6.0.2"
+    ],
+    "installMetadata": null,
+    "serverPackFileId": null,
+    "hasInstallScript": false,
+    "gameVersionDateReleased": "2014-10-14T00:00:00Z",
+    "gameVersionFlavor": "wow_retail"
+  },
+  {
+    "id": 2418426,
+    "displayName": "70200.47-Release-2-g83e1761-alpha",
+    "fileName": "Molinari-70200.47-Release-2-g83e1761-alpha.zip",
+    "fileDate": "2017-05-11T14:05:08.023Z",
+    "fileLength": 27221,
+    "releaseType": 3,
+    "fileStatus": 4,
+    "downloadUrl": "https://edge.forgecdn.net/files/2418/426/Molinari-70200.47-Release-2-g83e1761-alpha.zip",
+    "isAlternate": false,
+    "alternateFileId": 0,
+    "dependencies": [
+      {
+        "addonId": 101134,
+        "type": 2
+      },
+      {
+        "addonId": 88553,
+        "type": 2
+      }
+    ],
+    "isAvailable": true,
+    "modules": [
+      {
+        "foldername": "Molinari",
+        "fingerprint": 673036942
+      }
+    ],
+    "packageFingerprint": 1361270748,
+    "gameVersion": [
+      "7.2.0"
+    ],
+    "installMetadata": null,
+    "serverPackFileId": null,
+    "hasInstallScript": false,
+    "gameVersionDateReleased": "2017-03-28T05:00:00Z",
+    "gameVersionFlavor": "wow_retail"
+  },
+  {
+    "id": 2418427,
+    "displayName": "70200.49-Release",
+    "fileName": "Molinari-70200.49-Release.zip",
+    "fileDate": "2017-05-11T14:05:09.693Z",
+    "fileLength": 27242,
+    "releaseType": 1,
+    "fileStatus": 4,
+    "downloadUrl": "https://edge.forgecdn.net/files/2418/427/Molinari-70200.49-Release.zip",
+    "isAlternate": false,
+    "alternateFileId": 0,
+    "dependencies": [
+      {
+        "addonId": 88553,
+        "type": 2
+      },
+      {
+        "addonId": 101134,
+        "type": 2
+      }
+    ],
+    "isAvailable": true,
+    "modules": [
+      {
+        "foldername": "Molinari",
+        "fingerprint": 3840419138
+      }
+    ],
+    "packageFingerprint": 1253954280,
+    "gameVersion": [
+      "7.2.0"
+    ],
+    "installMetadata": null,
+    "serverPackFileId": null,
+    "hasInstallScript": false,
+    "gameVersionDateReleased": "2017-03-28T05:00:00Z",
+    "gameVersionFlavor": "wow_retail"
+  },
+  {
+    "id": 2349329,
+    "displayName": "70100.42-Release",
+    "fileName": "Molinari-70100.42-Release.zip",
+    "fileDate": "2016-11-26T13:52:32.883Z",
+    "fileLength": 26192,
+    "releaseType": 1,
+    "fileStatus": 4,
+    "downloadUrl": "https://edge.forgecdn.net/files/2349/329/Molinari-70100.42-Release.zip",
+    "isAlternate": false,
+    "alternateFileId": 2349330,
+    "dependencies": [
+      {
+        "addonId": 101134,
+        "type": 2
+      },
+      {
+        "addonId": 88553,
+        "type": 2
+      }
+    ],
+    "isAvailable": true,
+    "modules": [
+      {
+        "foldername": "Molinari",
+        "fingerprint": 3854848686
+      }
+    ],
+    "packageFingerprint": 3757590012,
+    "gameVersion": [
+      "7.1.0"
+    ],
+    "installMetadata": null,
+    "serverPackFileId": null,
+    "hasInstallScript": false,
+    "gameVersionDateReleased": "2016-10-25T00:00:00Z",
+    "gameVersionFlavor": "wow_retail"
+  },
+  {
+    "id": 820160,
+    "displayName": "60000.31-Release",
+    "fileName": "Molinari-60000.31-Release.zip",
+    "fileDate": "2014-10-15T16:46:07.69Z",
+    "fileLength": 11744,
+    "releaseType": 1,
+    "fileStatus": 4,
+    "downloadUrl": "https://edge.forgecdn.net/files/820/160/Molinari-60000.31-Release.zip",
+    "isAlternate": false,
+    "alternateFileId": 820159,
+    "dependencies": [
+      {
+        "addonId": 14328,
+        "type": 1
+      }
+    ],
+    "isAvailable": true,
+    "modules": [
+      {
+        "foldername": "Molinari",
+        "fingerprint": 4228887630
+      }
+    ],
+    "packageFingerprint": 4280802355,
+    "gameVersion": [
+      "6.0.2"
+    ],
+    "installMetadata": null,
+    "serverPackFileId": null,
+    "hasInstallScript": false,
+    "gameVersionDateReleased": "2014-10-14T00:00:00Z",
+    "gameVersionFlavor": "wow_retail"
+  },
+  {
+    "id": 618474,
+    "displayName": "50001.21-Beta",
+    "fileName": "Molinari-50001.21-Beta.zip",
+    "fileDate": "2012-08-30T11:39:19.01Z",
+    "fileLength": 7792,
+    "releaseType": 2,
+    "fileStatus": 4,
+    "downloadUrl": "https://edge.forgecdn.net/files/618/474/Molinari-50001.21-Beta.zip",
+    "isAlternate": false,
+    "alternateFileId": 0,
+    "dependencies": [],
+    "isAvailable": true,
+    "modules": [
+      {
+        "foldername": "Molinari",
+        "fingerprint": 574860390
+      }
+    ],
+    "packageFingerprint": 1097176842,
+    "gameVersion": [
+      "5.0.4"
+    ],
+    "installMetadata": null,
+    "serverPackFileId": null,
+    "hasInstallScript": false,
+    "gameVersionDateReleased": "2012-08-28T00:00:00Z",
+    "gameVersionFlavor": "wow_retail"
+  },
+  {
+    "id": 2777611,
+    "displayName": "80200.62-Release-classic",
+    "fileName": "Molinari-80200.62-Release-classic.zip",
+    "fileDate": "2019-09-03T16:28:54.233Z",
+    "fileLength": 36181,
+    "releaseType": 1,
+    "fileStatus": 4,
+    "downloadUrl": "https://edge.forgecdn.net/files/2777/611/Molinari-80200.62-Release-classic.zip",
+    "isAlternate": false,
+    "alternateFileId": 0,
+    "dependencies": [
+      {
+        "addonId": 14328,
+        "type": 1
+      }
+    ],
+    "isAvailable": true,
+    "modules": [
+      {
+        "foldername": "Molinari",
+        "fingerprint": 4177138597
+      }
+    ],
+    "packageFingerprint": 1395289994,
+    "gameVersion": [
+      "1.13.2"
+    ],
+    "installMetadata": null,
+    "serverPackFileId": null,
+    "hasInstallScript": false,
+    "gameVersionDateReleased": "2001-01-01T00:00:00Z",
+    "gameVersionFlavor": "wow_classic"
+  },
+  {
+    "id": 925854,
+    "displayName": "70000.36-Release-nolib",
+    "fileName": "Molinari-70000.36-Release-nolib.zip",
+    "fileDate": "2016-07-19T18:52:29.153Z",
+    "fileLength": 20446,
+    "releaseType": 1,
+    "fileStatus": 4,
+    "downloadUrl": "https://edge.forgecdn.net/files/925/854/Molinari-70000.36-Release-nolib.zip",
+    "isAlternate": true,
+    "alternateFileId": 0,
+    "dependencies": [
+      {
+        "addonId": 14328,
+        "type": 2
+      },
+      {
+        "addonId": 88553,
+        "type": 2
+      }
+    ],
+    "isAvailable": true,
+    "modules": [
+      {
+        "foldername": "Molinari",
+        "fingerprint": 2075584977
+      }
+    ],
+    "packageFingerprint": 1921014279,
+    "gameVersion": [
+      "7.0.3"
+    ],
+    "installMetadata": null,
+    "serverPackFileId": null,
+    "hasInstallScript": false,
+    "gameVersionDateReleased": "2016-07-19T00:00:00Z",
+    "gameVersionFlavor": "wow_retail"
+  },
+  {
+    "id": 2574334,
+    "displayName": "70300.52-Release-2-g09b9479-alpha",
+    "fileName": "Molinari-70300.52-Release-2-g09b9479-alpha.zip",
+    "fileDate": "2018-06-19T14:48:14.98Z",
+    "fileLength": 31696,
+    "releaseType": 3,
+    "fileStatus": 4,
+    "downloadUrl": "https://edge.forgecdn.net/files/2574/334/Molinari-70300.52-Release-2-g09b9479-alpha.zip",
+    "isAlternate": false,
+    "alternateFileId": 2574335,
+    "dependencies": [
+      {
+        "addonId": 14328,
+        "type": 1
+      }
+    ],
+    "isAvailable": true,
+    "modules": [
+      {
+        "foldername": "Molinari",
+        "fingerprint": 1447483660
+      }
+    ],
+    "packageFingerprint": 1225238992,
+    "gameVersion": [
+      "7.3.5"
+    ],
+    "installMetadata": null,
+    "serverPackFileId": null,
+    "hasInstallScript": false,
+    "gameVersionDateReleased": "2018-01-16T06:00:00Z",
+    "gameVersionFlavor": "wow_retail"
+  },
+  {
+    "id": 812760,
+    "displayName": "50400.30-Release-nolib",
+    "fileName": "Molinari-50400.30-Release-nolib.zip",
+    "fileDate": "2014-09-01T19:24:03.213Z",
+    "fileLength": 7825,
+    "releaseType": 1,
+    "fileStatus": 4,
+    "downloadUrl": "https://edge.forgecdn.net/files/812/760/Molinari-50400.30-Release-nolib.zip",
+    "isAlternate": true,
+    "alternateFileId": 0,
+    "dependencies": [
+      {
+        "addonId": 14328,
+        "type": 1
+      }
+    ],
+    "isAvailable": true,
+    "modules": [
+      {
+        "foldername": "Molinari",
+        "fingerprint": 1444327
+      }
+    ],
+    "packageFingerprint": 1601122517,
+    "gameVersion": [
+      "5.4.8"
+    ],
+    "installMetadata": null,
+    "serverPackFileId": null,
+    "hasInstallScript": false,
+    "gameVersionDateReleased": "2014-05-20T00:00:00Z",
+    "gameVersionFlavor": "wow_retail"
+  },
+  {
+    "id": 812761,
+    "displayName": "50400.30-Release",
+    "fileName": "Molinari-50400.30-Release.zip",
+    "fileDate": "2014-09-01T19:24:03.68Z",
+    "fileLength": 11683,
+    "releaseType": 1,
+    "fileStatus": 4,
+    "downloadUrl": "https://edge.forgecdn.net/files/812/761/Molinari-50400.30-Release.zip",
+    "isAlternate": false,
+    "alternateFileId": 812760,
+    "dependencies": [
+      {
+        "addonId": 14328,
+        "type": 1
+      }
+    ],
+    "isAvailable": true,
+    "modules": [
+      {
+        "foldername": "Molinari",
+        "fingerprint": 2978288106
+      }
+    ],
+    "packageFingerprint": 3628603900,
+    "gameVersion": [
+      "5.4.8"
+    ],
+    "installMetadata": null,
+    "serverPackFileId": null,
+    "hasInstallScript": false,
+    "gameVersionDateReleased": "2014-05-20T00:00:00Z",
+    "gameVersionFlavor": "wow_retail"
+  },
+  {
+    "id": 939654,
+    "displayName": "70000.37-Release",
+    "fileName": "Molinari-70000.37-Release.zip",
+    "fileDate": "2016-08-25T09:19:30.787Z",
+    "fileLength": 27122,
+    "releaseType": 1,
+    "fileStatus": 4,
+    "downloadUrl": "https://edge.forgecdn.net/files/939/654/Molinari-70000.37-Release.zip",
+    "isAlternate": false,
+    "alternateFileId": 939653,
+    "dependencies": [
+      {
+        "addonId": 14328,
+        "type": 1
+      },
+      {
+        "addonId": 88553,
+        "type": 2
+      },
+      {
+        "addonId": 101134,
+        "type": 2
+      }
+    ],
+    "isAvailable": true,
+    "modules": [
+      {
+        "foldername": "Molinari",
+        "fingerprint": 1355780385
+      }
+    ],
+    "packageFingerprint": 1303308631,
+    "gameVersion": [
+      "7.0.3"
+    ],
+    "installMetadata": null,
+    "serverPackFileId": null,
+    "hasInstallScript": false,
+    "gameVersionDateReleased": "2016-07-19T00:00:00Z",
+    "gameVersionFlavor": "wow_retail"
+  },
+  {
+    "id": 2529008,
+    "displayName": "70300.52-Release",
+    "fileName": "Molinari-70300.52-Release.zip",
+    "fileDate": "2018-02-07T18:23:49.787Z",
+    "fileLength": 28512,
+    "releaseType": 1,
+    "fileStatus": 4,
+    "downloadUrl": "https://edge.forgecdn.net/files/2529/8/Molinari-70300.52-Release.zip",
+    "isAlternate": false,
+    "alternateFileId": 0,
+    "dependencies": [
+      {
+        "addonId": 14328,
+        "type": 1
+      },
+      {
+        "addonId": 88553,
+        "type": 2
+      },
+      {
+        "addonId": 101134,
+        "type": 2
+      }
+    ],
+    "isAvailable": true,
+    "modules": [
+      {
+        "foldername": "Molinari",
+        "fingerprint": 3207656045
+      }
+    ],
+    "packageFingerprint": 1559299375,
+    "gameVersion": [
+      "7.3.5"
+    ],
+    "installMetadata": null,
+    "serverPackFileId": null,
+    "hasInstallScript": false,
+    "gameVersionDateReleased": "2018-01-16T06:00:00Z",
+    "gameVersionFlavor": "wow_retail"
+  },
+  {
+    "id": 618477,
+    "displayName": "50001.22-Beta",
+    "fileName": "Molinari-50001.22-Beta.zip",
+    "fileDate": "2012-08-30T11:42:54.82Z",
+    "fileLength": 7810,
+    "releaseType": 2,
+    "fileStatus": 4,
+    "downloadUrl": "https://edge.forgecdn.net/files/618/477/Molinari-50001.22-Beta.zip",
+    "isAlternate": false,
+    "alternateFileId": 0,
+    "dependencies": [],
+    "isAvailable": true,
+    "modules": [
+      {
+        "foldername": "Molinari",
+        "fingerprint": 442847837
+      }
+    ],
+    "packageFingerprint": 1480180278,
+    "gameVersion": [
+      "5.0.4"
+    ],
+    "installMetadata": null,
+    "serverPackFileId": null,
+    "hasInstallScript": false,
+    "gameVersionDateReleased": "2012-08-28T00:00:00Z",
+    "gameVersionFlavor": "wow_retail"
+  },
+  {
+    "id": 821850,
+    "displayName": "60000.33-Release",
+    "fileName": "Molinari-60000.33-Release.zip",
+    "fileDate": "2014-10-17T14:07:25.027Z",
+    "fileLength": 11734,
+    "releaseType": 1,
+    "fileStatus": 4,
+    "downloadUrl": "https://edge.forgecdn.net/files/821/850/Molinari-60000.33-Release.zip",
+    "isAlternate": false,
+    "alternateFileId": 821849,
+    "dependencies": [
+      {
+        "addonId": 14328,
+        "type": 1
+      }
+    ],
+    "isAvailable": true,
+    "modules": [
+      {
+        "foldername": "Molinari",
+        "fingerprint": 3086314566
+      }
+    ],
+    "packageFingerprint": 1360698158,
+    "gameVersion": [
+      "6.0.2"
+    ],
+    "installMetadata": null,
+    "serverPackFileId": null,
+    "hasInstallScript": false,
+    "gameVersionDateReleased": "2014-10-14T00:00:00Z",
+    "gameVersionFlavor": "wow_retail"
+  },
+  {
+    "id": 572666,
+    "displayName": "40300.14-Beta",
+    "fileName": "Molinari-40300.14-Beta.zip",
+    "fileDate": "2012-02-07T01:13:57.677Z",
+    "fileLength": 6825,
+    "releaseType": 2,
+    "fileStatus": 4,
+    "downloadUrl": "https://edge.forgecdn.net/files/572/666/Molinari-40300.14-Beta.zip",
+    "isAlternate": false,
+    "alternateFileId": 0,
+    "dependencies": [],
+    "isAvailable": true,
+    "modules": [
+      {
+        "foldername": "Molinari",
+        "fingerprint": 3905306358
+      }
+    ],
+    "packageFingerprint": 1767813572,
+    "gameVersion": [
+      "4.3.0"
+    ],
+    "installMetadata": null,
+    "serverPackFileId": null,
+    "hasInstallScript": false,
+    "gameVersionDateReleased": "2011-11-29T00:00:00Z",
+    "gameVersionFlavor": "wow_retail"
+  },
+  {
+    "id": 2777538,
+    "displayName": "80200.61-Release-classic",
+    "fileName": "Molinari-80200.61-Release-classic.zip",
+    "fileDate": "2019-09-03T14:47:23.91Z",
+    "fileLength": 36159,
+    "releaseType": 1,
+    "fileStatus": 4,
+    "downloadUrl": "https://edge.forgecdn.net/files/2777/538/Molinari-80200.61-Release-classic.zip",
+    "isAlternate": false,
+    "alternateFileId": 0,
+    "dependencies": [
+      {
+        "addonId": 14328,
+        "type": 1
+      }
+    ],
+    "isAvailable": true,
+    "modules": [
+      {
+        "foldername": "Molinari",
+        "fingerprint": 1821931244
+      }
+    ],
+    "packageFingerprint": 4219602476,
+    "gameVersion": [
+      "1.13.2"
+    ],
+    "installMetadata": null,
+    "serverPackFileId": null,
+    "hasInstallScript": false,
+    "gameVersionDateReleased": "2001-01-01T00:00:00Z",
+    "gameVersionFlavor": "wow_classic"
+  },
+  {
+    "id": 939701,
+    "displayName": "70000.38-Release",
+    "fileName": "Molinari-70000.38-Release.zip",
+    "fileDate": "2016-08-25T13:24:29.55Z",
+    "fileLength": 25815,
+    "releaseType": 1,
+    "fileStatus": 4,
+    "downloadUrl": "https://edge.forgecdn.net/files/939/701/Molinari-70000.38-Release.zip",
+    "isAlternate": false,
+    "alternateFileId": 939700,
+    "dependencies": [
+      {
+        "addonId": 101134,
+        "type": 2
+      },
+      {
+        "addonId": 88553,
+        "type": 2
+      },
+      {
+        "addonId": 14328,
+        "type": 1
+      }
+    ],
+    "isAvailable": true,
+    "modules": [
+      {
+        "foldername": "Molinari",
+        "fingerprint": 1147614217
+      }
+    ],
+    "packageFingerprint": 2067166365,
+    "gameVersion": [
+      "7.0.3"
+    ],
+    "installMetadata": null,
+    "serverPackFileId": null,
+    "hasInstallScript": false,
+    "gameVersionDateReleased": "2016-07-19T00:00:00Z",
+    "gameVersionFlavor": "wow_retail"
+  },
+  {
+    "id": 2589740,
+    "displayName": "80000.56-Release",
+    "fileName": "Molinari-80000.56-Release.zip",
+    "fileDate": "2018-07-23T14:45:43.18Z",
+    "fileLength": 36128,
+    "releaseType": 1,
+    "fileStatus": 4,
+    "downloadUrl": "https://edge.forgecdn.net/files/2589/740/Molinari-80000.56-Release.zip",
+    "isAlternate": false,
+    "alternateFileId": 0,
+    "dependencies": [],
+    "isAvailable": true,
+    "modules": [
+      {
+        "foldername": "Molinari",
+        "fingerprint": 2804540639
+      }
+    ],
+    "packageFingerprint": 1959992631,
+    "gameVersion": [
+      "8.0.1"
+    ],
+    "installMetadata": null,
+    "serverPackFileId": null,
+    "hasInstallScript": false,
+    "gameVersionDateReleased": "2018-07-17T00:00:00Z",
+    "gameVersionFlavor": "wow_retail"
+  },
+  {
+    "id": 795977,
+    "displayName": "50200.24-Release",
+    "fileName": "Molinari-50200.24-Release.zip",
+    "fileDate": "2014-06-19T11:14:55.583Z",
+    "fileLength": 8085,
+    "releaseType": 1,
+    "fileStatus": 4,
+    "downloadUrl": "https://edge.forgecdn.net/files/795/977/Molinari-50200.24-Release.zip",
+    "isAlternate": false,
+    "alternateFileId": 0,
+    "dependencies": [],
+    "isAvailable": true,
+    "modules": [
+      {
+        "foldername": "Molinari",
+        "fingerprint": 2008666189
+      }
+    ],
+    "packageFingerprint": 476015136,
+    "gameVersion": [
+      "5.2.0"
+    ],
+    "installMetadata": null,
+    "serverPackFileId": null,
+    "hasInstallScript": false,
+    "gameVersionDateReleased": "2013-03-05T00:00:00Z",
+    "gameVersionFlavor": "wow_retail"
+  },
+  {
+    "id": 840514,
+    "displayName": "60000.35-Release-nolib",
+    "fileName": "Molinari-60000.35-Release-nolib.zip",
+    "fileDate": "2014-12-19T08:07:43.243Z",
+    "fileLength": 8677,
+    "releaseType": 1,
+    "fileStatus": 4,
+    "downloadUrl": "https://edge.forgecdn.net/files/840/514/Molinari-60000.35-Release-nolib.zip",
+    "isAlternate": true,
+    "alternateFileId": 0,
+    "dependencies": [
+      {
+        "addonId": 14328,
+        "type": 1
+      }
+    ],
+    "isAvailable": true,
+    "modules": [
+      {
+        "foldername": "Molinari",
+        "fingerprint": 1939833775
+      }
+    ],
+    "packageFingerprint": 2979869381,
+    "gameVersion": [
+      "6.0.3"
+    ],
+    "installMetadata": null,
+    "serverPackFileId": null,
+    "hasInstallScript": false,
+    "gameVersionDateReleased": "2014-10-28T00:00:00Z",
+    "gameVersionFlavor": "wow_retail"
+  },
+  {
+    "id": 2480707,
+    "displayName": "70300.50-Release",
+    "fileName": "Molinari-70300.50-Release.zip",
+    "fileDate": "2017-09-17T05:24:25.923Z",
+    "fileLength": 28421,
+    "releaseType": 1,
+    "fileStatus": 4,
+    "downloadUrl": "https://edge.forgecdn.net/files/2480/707/Molinari-70300.50-Release.zip",
+    "isAlternate": false,
+    "alternateFileId": 0,
+    "dependencies": [],
+    "isAvailable": true,
+    "modules": [
+      {
+        "foldername": "Molinari",
+        "fingerprint": 1448857452
+      }
+    ],
+    "packageFingerprint": 1249973884,
+    "gameVersion": [
+      "7.3.0"
+    ],
+    "installMetadata": null,
+    "serverPackFileId": null,
+    "hasInstallScript": false,
+    "gameVersionDateReleased": "2017-08-29T05:00:00Z",
+    "gameVersionFlavor": "wow_retail"
+  },
+  {
+    "id": 812443,
+    "displayName": "50400.29-Release",
+    "fileName": "Molinari-50400.29-Release.zip",
+    "fileDate": "2014-08-30T12:18:53.08Z",
+    "fileLength": 10895,
+    "releaseType": 1,
+    "fileStatus": 4,
+    "downloadUrl": "https://edge.forgecdn.net/files/812/443/Molinari-50400.29-Release.zip",
+    "isAlternate": false,
+    "alternateFileId": 812442,
+    "dependencies": [
+      {
+        "addonId": 14328,
+        "type": 1
+      }
+    ],
+    "isAvailable": true,
+    "modules": [
+      {
+        "foldername": "Molinari",
+        "fingerprint": 2741526428
+      }
+    ],
+    "packageFingerprint": 2179198009,
+    "gameVersion": [
+      "5.4.8"
+    ],
+    "installMetadata": null,
+    "serverPackFileId": null,
+    "hasInstallScript": false,
+    "gameVersionDateReleased": "2014-05-20T00:00:00Z",
+    "gameVersionFlavor": "wow_retail"
+  },
+  {
+    "id": 2586025,
+    "displayName": "80000.54-Release",
+    "fileName": "Molinari-80000.54-Release.zip",
+    "fileDate": "2018-07-18T22:30:31.803Z",
+    "fileLength": 34415,
+    "releaseType": 1,
+    "fileStatus": 4,
+    "downloadUrl": "https://edge.forgecdn.net/files/2586/25/Molinari-80000.54-Release.zip",
+    "isAlternate": false,
+    "alternateFileId": 0,
+    "dependencies": [],
+    "isAvailable": true,
+    "modules": [
+      {
+        "foldername": "Molinari",
+        "fingerprint": 29563968
+      }
+    ],
+    "packageFingerprint": 753947906,
+    "gameVersion": [
+      "8.0.1"
+    ],
+    "installMetadata": null,
+    "serverPackFileId": null,
+    "hasInstallScript": false,
+    "gameVersionDateReleased": "2018-07-17T00:00:00Z",
+    "gameVersionFlavor": "wow_retail"
+  },
+  {
+    "id": 821849,
+    "displayName": "60000.33-Release-nolib",
+    "fileName": "Molinari-60000.33-Release-nolib.zip",
+    "fileDate": "2014-10-17T14:07:24.593Z",
+    "fileLength": 7873,
+    "releaseType": 1,
+    "fileStatus": 4,
+    "downloadUrl": "https://edge.forgecdn.net/files/821/849/Molinari-60000.33-Release-nolib.zip",
+    "isAlternate": true,
+    "alternateFileId": 0,
+    "dependencies": [
+      {
+        "addonId": 14328,
+        "type": 1
+      }
+    ],
+    "isAvailable": true,
+    "modules": [
+      {
+        "foldername": "Molinari",
+        "fingerprint": 1057957143
+      }
+    ],
+    "packageFingerprint": 4067471767,
+    "gameVersion": [
+      "6.0.2"
+    ],
+    "installMetadata": null,
+    "serverPackFileId": null,
+    "hasInstallScript": false,
+    "gameVersionDateReleased": "2014-10-14T00:00:00Z",
+    "gameVersionFlavor": "wow_retail"
+  },
+  {
+    "id": 2471766,
+    "displayName": "70200.49-Release-5-g6aea29a-alpha",
+    "fileName": "Molinari-70200.49-Release-5-g6aea29a-alpha.zip",
+    "fileDate": "2017-08-30T14:14:32.033Z",
+    "fileLength": 28574,
+    "releaseType": 3,
+    "fileStatus": 4,
+    "downloadUrl": "https://edge.forgecdn.net/files/2471/766/Molinari-70200.49-Release-5-g6aea29a-alpha.zip",
+    "isAlternate": false,
+    "alternateFileId": 0,
+    "dependencies": [
+      {
+        "addonId": 88553,
+        "type": 2
+      },
+      {
+        "addonId": 101134,
+        "type": 2
+      },
+      {
+        "addonId": 14328,
+        "type": 1
+      }
+    ],
+    "isAvailable": true,
+    "modules": [
+      {
+        "foldername": "Molinari",
+        "fingerprint": 1834017930
+      }
+    ],
+    "packageFingerprint": 1057717274,
+    "gameVersion": [
+      "7.3.0"
+    ],
+    "installMetadata": null,
+    "serverPackFileId": null,
+    "hasInstallScript": false,
+    "gameVersionDateReleased": "2017-08-29T05:00:00Z",
+    "gameVersionFlavor": "wow_retail"
+  },
+  {
+    "id": 2413492,
+    "displayName": "70200.44-Release-2-g6604100-alpha",
+    "fileName": "Molinari-70200.44-Release-2-g6604100-alpha.zip",
+    "fileDate": "2017-04-29T17:23:51.67Z",
+    "fileLength": 26900,
+    "releaseType": 3,
+    "fileStatus": 4,
+    "downloadUrl": "https://edge.forgecdn.net/files/2413/492/Molinari-70200.44-Release-2-g6604100-alpha.zip",
+    "isAlternate": false,
+    "alternateFileId": 0,
+    "dependencies": [
+      {
+        "addonId": 88553,
+        "type": 2
+      },
+      {
+        "addonId": 101134,
+        "type": 2
+      }
+    ],
+    "isAvailable": true,
+    "modules": [
+      {
+        "foldername": "Molinari",
+        "fingerprint": 2395471658
+      }
+    ],
+    "packageFingerprint": 2774257085,
+    "gameVersion": [
+      "7.2.0"
+    ],
+    "installMetadata": null,
+    "serverPackFileId": null,
+    "hasInstallScript": false,
+    "gameVersionDateReleased": "2017-03-28T05:00:00Z",
+    "gameVersionFlavor": "wow_retail"
+  },
+  {
+    "id": 812333,
+    "displayName": "50400.28-Release",
+    "fileName": "Molinari-50400.28-Release.zip",
+    "fileDate": "2014-08-29T15:33:48.17Z",
+    "fileLength": 11125,
+    "releaseType": 1,
+    "fileStatus": 4,
+    "downloadUrl": "https://edge.forgecdn.net/files/812/333/Molinari-50400.28-Release.zip",
+    "isAlternate": false,
+    "alternateFileId": 812332,
+    "dependencies": [
+      {
+        "addonId": 14328,
+        "type": 1
+      }
+    ],
+    "isAvailable": true,
+    "modules": [
+      {
+        "foldername": "Molinari",
+        "fingerprint": 2954822906
+      }
+    ],
+    "packageFingerprint": 3513069468,
+    "gameVersion": [
+      "5.4.8"
+    ],
+    "installMetadata": null,
+    "serverPackFileId": null,
+    "hasInstallScript": false,
+    "gameVersionDateReleased": "2014-05-20T00:00:00Z",
+    "gameVersionFlavor": "wow_retail"
+  },
+  {
+    "id": 2413338,
+    "displayName": "70200.44-Release-1-g8f7b335-alpha",
+    "fileName": "Molinari-70200.44-Release-1-g8f7b335-alpha.zip",
+    "fileDate": "2017-04-29T10:17:25.883Z",
+    "fileLength": 26467,
+    "releaseType": 3,
+    "fileStatus": 4,
+    "downloadUrl": "https://edge.forgecdn.net/files/2413/338/Molinari-70200.44-Release-1-g8f7b335-alpha.zip",
+    "isAlternate": false,
+    "alternateFileId": 0,
+    "dependencies": [
+      {
+        "addonId": 101134,
+        "type": 2
+      },
+      {
+        "addonId": 88553,
+        "type": 2
+      }
+    ],
+    "isAvailable": true,
+    "modules": [
+      {
+        "foldername": "Molinari",
+        "fingerprint": 2754980396
+      }
+    ],
+    "packageFingerprint": 1017010024,
+    "gameVersion": [
+      "7.2.0"
+    ],
+    "installMetadata": null,
+    "serverPackFileId": null,
+    "hasInstallScript": false,
+    "gameVersionDateReleased": "2017-03-28T05:00:00Z",
+    "gameVersionFlavor": "wow_retail"
+  },
+  {
+    "id": 2415279,
+    "displayName": "70200.47-Release",
+    "fileName": "Molinari-70200.47-Release.zip",
+    "fileDate": "2017-05-03T10:50:07.847Z",
+    "fileLength": 27088,
+    "releaseType": 1,
+    "fileStatus": 4,
+    "downloadUrl": "https://edge.forgecdn.net/files/2415/279/Molinari-70200.47-Release.zip",
+    "isAlternate": false,
+    "alternateFileId": 0,
+    "dependencies": [
+      {
+        "addonId": 88553,
+        "type": 2
+      },
+      {
+        "addonId": 101134,
+        "type": 2
+      }
+    ],
+    "isAvailable": true,
+    "modules": [
+      {
+        "foldername": "Molinari",
+        "fingerprint": 4223767540
+      }
+    ],
+    "packageFingerprint": 2310403909,
+    "gameVersion": [
+      "7.2.0"
+    ],
+    "installMetadata": null,
+    "serverPackFileId": null,
+    "hasInstallScript": false,
+    "gameVersionDateReleased": "2017-03-28T05:00:00Z",
+    "gameVersionFlavor": "wow_retail"
+  },
+  {
+    "id": 2413592,
+    "displayName": "70200.46-Release",
+    "fileName": "Molinari-70200.46-Release.zip",
+    "fileDate": "2017-04-29T20:46:20.643Z",
+    "fileLength": 27076,
+    "releaseType": 1,
+    "fileStatus": 4,
+    "downloadUrl": "https://edge.forgecdn.net/files/2413/592/Molinari-70200.46-Release.zip",
+    "isAlternate": false,
+    "alternateFileId": 0,
+    "dependencies": [
+      {
+        "addonId": 101134,
+        "type": 2
+      },
+      {
+        "addonId": 88553,
+        "type": 2
+      }
+    ],
+    "isAvailable": true,
+    "modules": [
+      {
+        "foldername": "Molinari",
+        "fingerprint": 1333253667
+      }
+    ],
+    "packageFingerprint": 3264925301,
+    "gameVersion": [
+      "7.2.0"
+    ],
+    "installMetadata": null,
+    "serverPackFileId": null,
+    "hasInstallScript": false,
+    "gameVersionDateReleased": "2017-03-28T05:00:00Z",
+    "gameVersionFlavor": "wow_retail"
+  },
+  {
+    "id": 609648,
+    "displayName": "40300.20-Beta",
+    "fileName": "Molinari-40300.20-Beta.zip",
+    "fileDate": "2012-08-07T23:01:56.743Z",
+    "fileLength": 7809,
+    "releaseType": 2,
+    "fileStatus": 4,
+    "downloadUrl": "https://edge.forgecdn.net/files/609/648/Molinari-40300.20-Beta.zip",
+    "isAlternate": false,
+    "alternateFileId": 0,
+    "dependencies": [],
+    "isAvailable": true,
+    "modules": [
+      {
+        "foldername": "Molinari",
+        "fingerprint": 3452533903
+      }
+    ],
+    "packageFingerprint": 1216910190,
+    "gameVersion": [
+      "4.3.4"
+    ],
+    "installMetadata": null,
+    "serverPackFileId": null,
+    "hasInstallScript": false,
+    "gameVersionDateReleased": "2012-04-17T00:00:00Z",
+    "gameVersionFlavor": "wow_retail"
+  },
+  {
+    "id": 2779135,
+    "displayName": "80200.63-Release-classic",
+    "fileName": "Molinari-80200.63-Release-classic.zip",
+    "fileDate": "2019-09-05T20:28:04.79Z",
+    "fileLength": 36118,
+    "releaseType": 1,
+    "fileStatus": 4,
+    "downloadUrl": "https://edge.forgecdn.net/files/2779/135/Molinari-80200.63-Release-classic.zip",
+    "isAlternate": false,
+    "alternateFileId": 0,
+    "dependencies": [
+      {
+        "addonId": 14328,
+        "type": 1
+      }
+    ],
+    "isAvailable": true,
+    "modules": [
+      {
+        "foldername": "Molinari",
+        "fingerprint": 3251860034
+      }
+    ],
+    "packageFingerprint": 3321693330,
+    "gameVersion": [
+      "1.13.2"
+    ],
+    "installMetadata": null,
+    "serverPackFileId": null,
+    "hasInstallScript": false,
+    "gameVersionDateReleased": "2001-01-01T00:00:00Z",
+    "gameVersionFlavor": "wow_classic"
+  },
+  {
+    "id": 2413311,
+    "displayName": "70200.44-Release",
+    "fileName": "Molinari-70200.44-Release.zip",
+    "fileDate": "2017-04-29T08:41:44.12Z",
+    "fileLength": 26456,
+    "releaseType": 1,
+    "fileStatus": 4,
+    "downloadUrl": "https://edge.forgecdn.net/files/2413/311/Molinari-70200.44-Release.zip",
+    "isAlternate": false,
+    "alternateFileId": 0,
+    "dependencies": [
+      {
+        "addonId": 101134,
+        "type": 2
+      },
+      {
+        "addonId": 88553,
+        "type": 2
+      }
+    ],
+    "isAvailable": true,
+    "modules": [
+      {
+        "foldername": "Molinari",
+        "fingerprint": 3263900820
+      }
+    ],
+    "packageFingerprint": 1432955255,
+    "gameVersion": [
+      "7.2.0"
+    ],
+    "installMetadata": null,
+    "serverPackFileId": null,
+    "hasInstallScript": false,
+    "gameVersionDateReleased": "2017-03-28T05:00:00Z",
+    "gameVersionFlavor": "wow_retail"
+  },
+  {
+    "id": 708646,
+    "displayName": "50300.26-Release",
+    "fileName": "Molinari-50300.26-Release.zip",
+    "fileDate": "2013-06-03T11:50:03.36Z",
+    "fileLength": 9366,
+    "releaseType": 1,
+    "fileStatus": 4,
+    "downloadUrl": "https://edge.forgecdn.net/files/708/646/Molinari-50300.26-Release.zip",
+    "isAlternate": false,
+    "alternateFileId": 0,
+    "dependencies": [],
+    "isAvailable": true,
+    "modules": [
+      {
+        "foldername": "Molinari",
+        "fingerprint": 2467732355
+      }
+    ],
+    "packageFingerprint": 1610610652,
+    "gameVersion": [
+      "5.3.0"
+    ],
+    "installMetadata": null,
+    "serverPackFileId": null,
+    "hasInstallScript": false,
+    "gameVersionDateReleased": "2013-05-21T00:00:00Z",
+    "gameVersionFlavor": "wow_retail"
+  },
+  {
+    "id": 2390612,
+    "displayName": "70100.43-Release",
+    "fileName": "Molinari-70100.43-Release.zip",
+    "fileDate": "2017-03-09T13:33:34.457Z",
+    "fileLength": 26315,
+    "releaseType": 1,
+    "fileStatus": 4,
+    "downloadUrl": "https://edge.forgecdn.net/files/2390/612/Molinari-70100.43-Release.zip",
+    "isAlternate": false,
+    "alternateFileId": 2390613,
+    "dependencies": [
+      {
+        "addonId": 88553,
+        "type": 2
+      },
+      {
+        "addonId": 101134,
+        "type": 2
+      }
+    ],
+    "isAvailable": true,
+    "modules": [
+      {
+        "foldername": "Molinari",
+        "fingerprint": 3509402569
+      }
+    ],
+    "packageFingerprint": 1262974215,
+    "gameVersion": [
+      "7.0.3"
+    ],
+    "installMetadata": null,
+    "serverPackFileId": null,
+    "hasInstallScript": false,
+    "gameVersionDateReleased": "2016-07-19T00:00:00Z",
+    "gameVersionFlavor": "wow_retail"
+  },
+  {
+    "id": 2590174,
+    "displayName": "80000.58-Release",
+    "fileName": "Molinari-80000.58-Release.zip",
+    "fileDate": "2018-07-24T02:56:31.98Z",
+    "fileLength": 34660,
+    "releaseType": 1,
+    "fileStatus": 4,
+    "downloadUrl": "https://edge.forgecdn.net/files/2590/174/Molinari-80000.58-Release.zip",
+    "isAlternate": false,
+    "alternateFileId": 0,
+    "dependencies": [],
+    "isAvailable": true,
+    "modules": [
+      {
+        "foldername": "Molinari",
+        "fingerprint": 1614480375
+      }
+    ],
+    "packageFingerprint": 2848257529,
+    "gameVersion": [
+      "8.0.1"
+    ],
+    "installMetadata": null,
+    "serverPackFileId": null,
+    "hasInstallScript": false,
+    "gameVersionDateReleased": "2018-07-17T00:00:00Z",
+    "gameVersionFlavor": "wow_retail"
+  },
+  {
+    "id": 2529004,
+    "displayName": "70300.52-Release",
+    "fileName": "Molinari-70300.52-Release.zip",
+    "fileDate": "2018-02-07T18:17:55.947Z",
+    "fileLength": 27870,
+    "releaseType": 1,
+    "fileStatus": 4,
+    "downloadUrl": "https://edge.forgecdn.net/files/2529/4/Molinari-70300.52-Release.zip",
+    "isAlternate": false,
+    "alternateFileId": 0,
+    "dependencies": [],
+    "isAvailable": true,
+    "modules": [
+      {
+        "foldername": "Molinari",
+        "fingerprint": 41321868
+      }
+    ],
+    "packageFingerprint": 2128860018,
+    "gameVersion": [
+      "7.3.5"
+    ],
+    "installMetadata": null,
+    "serverPackFileId": null,
+    "hasInstallScript": false,
+    "gameVersionDateReleased": "2018-01-16T06:00:00Z",
+    "gameVersionFlavor": "wow_retail"
+  },
+  {
+    "id": 2480706,
+    "displayName": "70300.50-Release",
+    "fileName": "Molinari-70300.50-Release.zip",
+    "fileDate": "2017-09-17T05:24:11.337Z",
+    "fileLength": 28816,
+    "releaseType": 1,
+    "fileStatus": 4,
+    "downloadUrl": "https://edge.forgecdn.net/files/2480/706/Molinari-70300.50-Release.zip",
+    "isAlternate": false,
+    "alternateFileId": 0,
+    "dependencies": [
+      {
+        "addonId": 14328,
+        "type": 1
+      },
+      {
+        "addonId": 88553,
+        "type": 2
+      },
+      {
+        "addonId": 101134,
+        "type": 2
+      }
+    ],
+    "isAvailable": true,
+    "modules": [
+      {
+        "foldername": "Molinari",
+        "fingerprint": 300879113
+      }
+    ],
+    "packageFingerprint": 1729444359,
+    "gameVersion": [
+      "7.3.0"
+    ],
+    "installMetadata": null,
+    "serverPackFileId": null,
+    "hasInstallScript": false,
+    "gameVersionDateReleased": "2017-08-29T05:00:00Z",
+    "gameVersionFlavor": "wow_retail"
+  },
+  {
+    "id": 2390610,
+    "displayName": "ed0c113-alpha",
+    "fileName": "Molinari-ed0c113-alpha.zip",
+    "fileDate": "2017-03-09T13:33:31.9Z",
+    "fileLength": 26277,
+    "releaseType": 3,
+    "fileStatus": 4,
+    "downloadUrl": "https://edge.forgecdn.net/files/2390/610/Molinari-ed0c113-alpha.zip",
+    "isAlternate": false,
+    "alternateFileId": 2390611,
+    "dependencies": [
+      {
+        "addonId": 88553,
+        "type": 2
+      },
+      {
+        "addonId": 101134,
+        "type": 2
+      }
+    ],
+    "isAvailable": true,
+    "modules": [
+      {
+        "foldername": "Molinari",
+        "fingerprint": 385646515
+      }
+    ],
+    "packageFingerprint": 4274067885,
+    "gameVersion": [
+      "7.0.3"
+    ],
+    "installMetadata": null,
+    "serverPackFileId": null,
+    "hasInstallScript": false,
+    "gameVersionDateReleased": "2016-07-19T00:00:00Z",
+    "gameVersionFlavor": "wow_retail"
+  },
+  {
+    "id": 812442,
+    "displayName": "50400.29-Release-nolib",
+    "fileName": "Molinari-50400.29-Release-nolib.zip",
+    "fileDate": "2014-08-30T12:18:52.75Z",
+    "fileLength": 7037,
+    "releaseType": 1,
+    "fileStatus": 4,
+    "downloadUrl": "https://edge.forgecdn.net/files/812/442/Molinari-50400.29-Release-nolib.zip",
+    "isAlternate": true,
+    "alternateFileId": 0,
+    "dependencies": [
+      {
+        "addonId": 14328,
+        "type": 1
+      }
+    ],
+    "isAvailable": true,
+    "modules": [
+      {
+        "foldername": "Molinari",
+        "fingerprint": 2336955409
+      }
+    ],
+    "packageFingerprint": 992592155,
+    "gameVersion": [
+      "5.4.8"
+    ],
+    "installMetadata": null,
+    "serverPackFileId": null,
+    "hasInstallScript": false,
+    "gameVersionDateReleased": "2014-05-20T00:00:00Z",
+    "gameVersionFlavor": "wow_retail"
+  },
+  {
+    "id": 2480705,
+    "displayName": "70300.49-Release-1-g7316666-alpha",
+    "fileName": "Molinari-70300.49-Release-1-g7316666-alpha.zip",
+    "fileDate": "2017-09-17T05:24:04.963Z",
+    "fileLength": 28785,
+    "releaseType": 3,
+    "fileStatus": 4,
+    "downloadUrl": "https://edge.forgecdn.net/files/2480/705/Molinari-70300.49-Release-1-g7316666-alpha.zip",
+    "isAlternate": false,
+    "alternateFileId": 0,
+    "dependencies": [
+      {
+        "addonId": 101134,
+        "type": 2
+      },
+      {
+        "addonId": 14328,
+        "type": 1
+      },
+      {
+        "addonId": 88553,
+        "type": 2
+      }
+    ],
+    "isAvailable": true,
+    "modules": [
+      {
+        "foldername": "Molinari",
+        "fingerprint": 899390720
+      }
+    ],
+    "packageFingerprint": 2191548647,
+    "gameVersion": [
+      "7.3.0"
+    ],
+    "installMetadata": null,
+    "serverPackFileId": null,
+    "hasInstallScript": false,
+    "gameVersionDateReleased": "2017-08-29T05:00:00Z",
+    "gameVersionFlavor": "wow_retail"
+  },
+  {
+    "id": 795978,
+    "displayName": "50400.27-Release",
+    "fileName": "Molinari-50400.27-Release.zip",
+    "fileDate": "2014-06-19T11:14:56.273Z",
+    "fileLength": 9376,
+    "releaseType": 1,
+    "fileStatus": 4,
+    "downloadUrl": "https://edge.forgecdn.net/files/795/978/Molinari-50400.27-Release.zip",
+    "isAlternate": false,
+    "alternateFileId": 0,
+    "dependencies": [],
+    "isAvailable": true,
+    "modules": [
+      {
+        "foldername": "Molinari",
+        "fingerprint": 2145640950
+      }
+    ],
+    "packageFingerprint": 990876967,
+    "gameVersion": [
+      "5.4.8"
+    ],
+    "installMetadata": null,
+    "serverPackFileId": null,
+    "hasInstallScript": false,
+    "gameVersionDateReleased": "2014-05-20T00:00:00Z",
+    "gameVersionFlavor": "wow_retail"
+  },
+  {
+    "id": 939653,
+    "displayName": "70000.37-Release-nolib",
+    "fileName": "Molinari-70000.37-Release-nolib.zip",
+    "fileDate": "2016-08-25T09:19:30.267Z",
+    "fileLength": 5826,
+    "releaseType": 1,
+    "fileStatus": 4,
+    "downloadUrl": "https://edge.forgecdn.net/files/939/653/Molinari-70000.37-Release-nolib.zip",
+    "isAlternate": true,
+    "alternateFileId": 0,
+    "dependencies": [
+      {
+        "addonId": 88553,
+        "type": 2
+      },
+      {
+        "addonId": 101134,
+        "type": 2
+      },
+      {
+        "addonId": 14328,
+        "type": 1
+      }
+    ],
+    "isAvailable": true,
+    "modules": [
+      {
+        "foldername": "Molinari",
+        "fingerprint": 1355780385
+      }
+    ],
+    "packageFingerprint": 2768920151,
+    "gameVersion": [
+      "7.0.3"
+    ],
+    "installMetadata": null,
+    "serverPackFileId": null,
+    "hasInstallScript": false,
+    "gameVersionDateReleased": "2016-07-19T00:00:00Z",
+    "gameVersionFlavor": "wow_retail"
+  },
+  {
+    "id": 2779132,
+    "displayName": "80200.63-Release",
+    "fileName": "Molinari-80200.63-Release.zip",
+    "fileDate": "2019-09-05T20:28:00.42Z",
+    "fileLength": 36114,
+    "releaseType": 1,
+    "fileStatus": 4,
+    "downloadUrl": "https://edge.forgecdn.net/files/2779/132/Molinari-80200.63-Release.zip",
+    "isAlternate": false,
+    "alternateFileId": 0,
+    "dependencies": [
+      {
+        "addonId": 14328,
+        "type": 1
+      }
+    ],
+    "isAvailable": true,
+    "modules": [
+      {
+        "foldername": "Molinari",
+        "fingerprint": 1732726569
+      }
+    ],
+    "packageFingerprint": 2066052955,
+    "gameVersion": [
+      "8.2.0"
+    ],
+    "installMetadata": null,
+    "serverPackFileId": null,
+    "hasInstallScript": false,
+    "gameVersionDateReleased": "2019-06-25T00:00:00Z",
+    "gameVersionFlavor": "wow_retail"
+  },
+  {
+    "id": 2471767,
+    "displayName": "70300.49-Release",
+    "fileName": "Molinari-70300.49-Release.zip",
+    "fileDate": "2017-08-30T14:14:35.09Z",
+    "fileLength": 28582,
+    "releaseType": 1,
+    "fileStatus": 4,
+    "downloadUrl": "https://edge.forgecdn.net/files/2471/767/Molinari-70300.49-Release.zip",
+    "isAlternate": false,
+    "alternateFileId": 0,
+    "dependencies": [
+      {
+        "addonId": 88553,
+        "type": 2
+      },
+      {
+        "addonId": 101134,
+        "type": 2
+      },
+      {
+        "addonId": 14328,
+        "type": 1
+      }
+    ],
+    "isAvailable": true,
+    "modules": [
+      {
+        "foldername": "Molinari",
+        "fingerprint": 2640421030
+      }
+    ],
+    "packageFingerprint": 4051008650,
+    "gameVersion": [
+      "7.3.0"
+    ],
+    "installMetadata": null,
+    "serverPackFileId": null,
+    "hasInstallScript": false,
+    "gameVersionDateReleased": "2017-08-29T05:00:00Z",
+    "gameVersionFlavor": "wow_retail"
+  },
+  {
+    "id": 2413493,
+    "displayName": "70200.45-Release",
+    "fileName": "Molinari-70200.45-Release.zip",
+    "fileDate": "2017-04-29T17:23:53.267Z",
+    "fileLength": 26911,
+    "releaseType": 1,
+    "fileStatus": 4,
+    "downloadUrl": "https://edge.forgecdn.net/files/2413/493/Molinari-70200.45-Release.zip",
+    "isAlternate": false,
+    "alternateFileId": 0,
+    "dependencies": [
+      {
+        "addonId": 88553,
+        "type": 2
+      },
+      {
+        "addonId": 101134,
+        "type": 2
+      }
+    ],
+    "isAvailable": true,
+    "modules": [
+      {
+        "foldername": "Molinari",
+        "fingerprint": 276287639
+      }
+    ],
+    "packageFingerprint": 2012838560,
+    "gameVersion": [
+      "7.2.0"
+    ],
+    "installMetadata": null,
+    "serverPackFileId": null,
+    "hasInstallScript": false,
+    "gameVersionDateReleased": "2017-03-28T05:00:00Z",
+    "gameVersionFlavor": "wow_retail"
+  },
+  {
+    "id": 821842,
+    "displayName": "60000.32-Release",
+    "fileName": "Molinari-60000.32-Release.zip",
+    "fileDate": "2014-10-17T14:00:49.34Z",
+    "fileLength": 11715,
+    "releaseType": 1,
+    "fileStatus": 4,
+    "downloadUrl": "https://edge.forgecdn.net/files/821/842/Molinari-60000.32-Release.zip",
+    "isAlternate": false,
+    "alternateFileId": 821841,
+    "dependencies": [
+      {
+        "addonId": 14328,
+        "type": 1
+      }
+    ],
+    "isAvailable": true,
+    "modules": [
+      {
+        "foldername": "Molinari",
+        "fingerprint": 4069048793
+      }
+    ],
+    "packageFingerprint": 720986631,
+    "gameVersion": [
+      "6.0.2"
+    ],
+    "installMetadata": null,
+    "serverPackFileId": null,
+    "hasInstallScript": false,
+    "gameVersionDateReleased": "2014-10-14T00:00:00Z",
+    "gameVersionFlavor": "wow_retail"
+  },
+  {
+    "id": 2574338,
+    "displayName": "70300.53-Release",
+    "fileName": "Molinari-70300.53-Release.zip",
+    "fileDate": "2018-06-19T14:49:00.077Z",
+    "fileLength": 27887,
+    "releaseType": 1,
+    "fileStatus": 4,
+    "downloadUrl": "https://edge.forgecdn.net/files/2574/338/Molinari-70300.53-Release.zip",
+    "isAlternate": false,
+    "alternateFileId": 0,
+    "dependencies": [],
+    "isAvailable": true,
+    "modules": [
+      {
+        "foldername": "Molinari",
+        "fingerprint": 2887308200
+      }
+    ],
+    "packageFingerprint": 438870469,
+    "gameVersion": [
+      "8.0.1",
+      "7.3.5"
+    ],
+    "installMetadata": null,
+    "serverPackFileId": null,
+    "hasInstallScript": false,
+    "gameVersionDateReleased": "2018-01-16T06:00:00Z",
+    "gameVersionFlavor": "wow_retail"
+  },
+  {
+    "id": 925855,
+    "displayName": "70000.36-Release",
+    "fileName": "Molinari-70000.36-Release.zip",
+    "fileDate": "2016-07-19T18:52:29.68Z",
+    "fileLength": 33659,
+    "releaseType": 1,
+    "fileStatus": 4,
+    "downloadUrl": "https://edge.forgecdn.net/files/925/855/Molinari-70000.36-Release.zip",
+    "isAlternate": false,
+    "alternateFileId": 925854,
+    "dependencies": [
+      {
+        "addonId": 14328,
+        "type": 2
+      },
+      {
+        "addonId": 88553,
+        "type": 2
+      }
+    ],
+    "isAvailable": true,
+    "modules": [
+      {
+        "foldername": "Molinari",
+        "fingerprint": 2193082582
+      }
+    ],
+    "packageFingerprint": 609242074,
+    "gameVersion": [
+      "7.0.3"
+    ],
+    "installMetadata": null,
+    "serverPackFileId": null,
+    "hasInstallScript": false,
+    "gameVersionDateReleased": "2016-07-19T00:00:00Z",
+    "gameVersionFlavor": "wow_retail"
+  },
+  {
+    "id": 2776979,
+    "displayName": "80200.60-Release-classic",
+    "fileName": "Molinari-80200.60-Release-classic.zip",
+    "fileDate": "2019-09-02T17:08:29.747Z",
+    "fileLength": 36126,
+    "releaseType": 1,
+    "fileStatus": 4,
+    "downloadUrl": "https://edge.forgecdn.net/files/2776/979/Molinari-80200.60-Release-classic.zip",
+    "isAlternate": false,
+    "alternateFileId": 0,
+    "dependencies": [
+      {
+        "addonId": 14328,
+        "type": 1
+      }
+    ],
+    "isAvailable": true,
+    "modules": [
+      {
+        "foldername": "Molinari",
+        "fingerprint": 3540169131
+      }
+    ],
+    "packageFingerprint": 3341353838,
+    "gameVersion": [
+      "1.13.2"
+    ],
+    "installMetadata": null,
+    "serverPackFileId": null,
+    "hasInstallScript": false,
+    "gameVersionDateReleased": "2001-01-01T00:00:00Z",
+    "gameVersionFlavor": "wow_classic"
+  },
+  {
+    "id": 2776978,
+    "displayName": "80200.60-Release",
+    "fileName": "Molinari-80200.60-Release.zip",
+    "fileDate": "2019-09-02T17:08:24.657Z",
+    "fileLength": 36122,
+    "releaseType": 1,
+    "fileStatus": 4,
+    "downloadUrl": "https://edge.forgecdn.net/files/2776/978/Molinari-80200.60-Release.zip",
+    "isAlternate": false,
+    "alternateFileId": 0,
+    "dependencies": [
+      {
+        "addonId": 14328,
+        "type": 1
+      }
+    ],
+    "isAvailable": true,
+    "modules": [
+      {
+        "foldername": "Molinari",
+        "fingerprint": 3658791593
+      }
+    ],
+    "packageFingerprint": 4284791745,
+    "gameVersion": [
+      "8.2.0"
+    ],
+    "installMetadata": null,
+    "serverPackFileId": null,
+    "hasInstallScript": false,
+    "gameVersionDateReleased": "2019-06-25T00:00:00Z",
+    "gameVersionFlavor": "wow_retail"
+  },
+  {
+    "id": 942231,
+    "displayName": "70000.40-Release-nolib",
+    "fileName": "Molinari-70000.40-Release-nolib.zip",
+    "fileDate": "2016-09-03T18:14:58.483Z",
+    "fileLength": 6038,
+    "releaseType": 1,
+    "fileStatus": 4,
+    "downloadUrl": "https://edge.forgecdn.net/files/942/231/Molinari-70000.40-Release-nolib.zip",
+    "isAlternate": true,
+    "alternateFileId": 0,
+    "dependencies": [
+      {
+        "addonId": 88553,
+        "type": 2
+      },
+      {
+        "addonId": 14328,
+        "type": 1
+      },
+      {
+        "addonId": 101134,
+        "type": 2
+      }
+    ],
+    "isAvailable": true,
+    "modules": [
+      {
+        "foldername": "Molinari",
+        "fingerprint": 1868384198
+      }
+    ],
+    "packageFingerprint": 1072127192,
+    "gameVersion": [
+      "7.0.3"
+    ],
+    "installMetadata": null,
+    "serverPackFileId": null,
+    "hasInstallScript": false,
+    "gameVersionDateReleased": "2016-07-19T00:00:00Z",
+    "gameVersionFlavor": "wow_retail"
+  },
+  {
+    "id": 2865898,
+    "displayName": "80300.65-Release",
+    "fileName": "Molinari-80300.65-Release.zip",
+    "fileDate": "2020-01-22T17:07:10.987Z",
+    "fileLength": 36252,
+    "releaseType": 1,
+    "fileStatus": 4,
+    "downloadUrl": "https://edge.forgecdn.net/files/2865/898/Molinari-80300.65-Release.zip",
+    "isAlternate": false,
+    "alternateFileId": 0,
+    "dependencies": [
+      {
+        "addonId": 14328,
+        "type": 1
+      }
+    ],
+    "isAvailable": true,
+    "modules": [
+      {
+        "foldername": "Molinari",
+        "fingerprint": 2447021279
+      }
+    ],
+    "packageFingerprint": 2012706263,
+    "gameVersion": [
+      "1.13.3"
+    ],
+    "installMetadata": null,
+    "serverPackFileId": null,
+    "hasInstallScript": false,
+    "gameVersionDateReleased": "2001-01-01T00:00:00Z",
+    "gameVersionFlavor": "wow_classic"
+  },
+  {
+    "id": 2528996,
+    "displayName": "70300.51-Release",
+    "fileName": "Molinari-70300.51-Release.zip",
+    "fileDate": "2018-02-07T17:46:25.95Z",
+    "fileLength": 29053,
+    "releaseType": 1,
+    "fileStatus": 4,
+    "downloadUrl": "https://edge.forgecdn.net/files/2528/996/Molinari-70300.51-Release.zip",
+    "isAlternate": false,
+    "alternateFileId": 0,
+    "dependencies": [
+      {
+        "addonId": 14328,
+        "type": 1
+      },
+      {
+        "addonId": 88553,
+        "type": 2
+      },
+      {
+        "addonId": 101134,
+        "type": 2
+      }
+    ],
+    "isAvailable": true,
+    "modules": [
+      {
+        "foldername": "Molinari",
+        "fingerprint": 1265480147
+      }
+    ],
+    "packageFingerprint": 2465049537,
+    "gameVersion": [
+      "7.3.5"
+    ],
+    "installMetadata": null,
+    "serverPackFileId": null,
+    "hasInstallScript": false,
+    "gameVersionDateReleased": "2018-01-16T06:00:00Z",
+    "gameVersionFlavor": "wow_retail"
+  },
+  {
+    "id": 2528997,
+    "displayName": "70300.51-Release",
+    "fileName": "Molinari-70300.51-Release.zip",
+    "fileDate": "2018-02-07T17:47:10.257Z",
+    "fileLength": 28427,
+    "releaseType": 1,
+    "fileStatus": 4,
+    "downloadUrl": "https://edge.forgecdn.net/files/2528/997/Molinari-70300.51-Release.zip",
+    "isAlternate": false,
+    "alternateFileId": 0,
+    "dependencies": [],
+    "isAvailable": true,
+    "modules": [
+      {
+        "foldername": "Molinari",
+        "fingerprint": 3868166013
+      }
+    ],
+    "packageFingerprint": 595384971,
+    "gameVersion": [
+      "7.3.5"
+    ],
+    "installMetadata": null,
+    "serverPackFileId": null,
+    "hasInstallScript": false,
+    "gameVersionDateReleased": "2018-01-16T06:00:00Z",
+    "gameVersionFlavor": "wow_retail"
+  },
+  {
+    "id": 2529007,
+    "displayName": "70300.51-Release-1-gb8cf037-alpha",
+    "fileName": "Molinari-70300.51-Release-1-gb8cf037-alpha.zip",
+    "fileDate": "2018-02-07T18:23:45.487Z",
+    "fileLength": 28509,
+    "releaseType": 3,
+    "fileStatus": 4,
+    "downloadUrl": "https://edge.forgecdn.net/files/2529/7/Molinari-70300.51-Release-1-gb8cf037-alpha.zip",
+    "isAlternate": false,
+    "alternateFileId": 0,
+    "dependencies": [
+      {
+        "addonId": 14328,
+        "type": 1
+      },
+      {
+        "addonId": 88553,
+        "type": 2
+      },
+      {
+        "addonId": 101134,
+        "type": 2
+      }
+    ],
+    "isAvailable": true,
+    "modules": [
+      {
+        "foldername": "Molinari",
+        "fingerprint": 200169568
+      }
+    ],
+    "packageFingerprint": 1735977807,
+    "gameVersion": [
+      "7.3.5"
+    ],
+    "installMetadata": null,
+    "serverPackFileId": null,
+    "hasInstallScript": false,
+    "gameVersionDateReleased": "2018-01-16T06:00:00Z",
+    "gameVersionFlavor": "wow_retail"
+  },
+  {
+    "id": 2777537,
+    "displayName": "80200.61-Release",
+    "fileName": "Molinari-80200.61-Release.zip",
+    "fileDate": "2019-09-03T14:47:21.317Z",
+    "fileLength": 36155,
+    "releaseType": 1,
+    "fileStatus": 4,
+    "downloadUrl": "https://edge.forgecdn.net/files/2777/537/Molinari-80200.61-Release.zip",
+    "isAlternate": false,
+    "alternateFileId": 0,
+    "dependencies": [
+      {
+        "addonId": 14328,
+        "type": 1
+      }
+    ],
+    "isAvailable": true,
+    "modules": [
+      {
+        "foldername": "Molinari",
+        "fingerprint": 3470612326
+      }
+    ],
+    "packageFingerprint": 4286480833,
+    "gameVersion": [
+      "8.2.0"
+    ],
+    "installMetadata": null,
+    "serverPackFileId": null,
+    "hasInstallScript": false,
+    "gameVersionDateReleased": "2019-06-25T00:00:00Z",
+    "gameVersionFlavor": "wow_retail"
+  },
+  {
+    "id": 2589888,
+    "displayName": "80000.57-Release",
+    "fileName": "Molinari-80000.57-Release.zip",
+    "fileDate": "2018-07-23T18:45:46.387Z",
+    "fileLength": 36187,
+    "releaseType": 1,
+    "fileStatus": 4,
+    "downloadUrl": "https://edge.forgecdn.net/files/2589/888/Molinari-80000.57-Release.zip",
+    "isAlternate": false,
+    "alternateFileId": 0,
+    "dependencies": [],
+    "isAvailable": true,
+    "modules": [
+      {
+        "foldername": "Molinari",
+        "fingerprint": 1066042477
+      }
+    ],
+    "packageFingerprint": 3625175235,
+    "gameVersion": [
+      "8.0.1"
+    ],
+    "installMetadata": null,
+    "serverPackFileId": null,
+    "hasInstallScript": false,
+    "gameVersionDateReleased": "2018-07-17T00:00:00Z",
+    "gameVersionFlavor": "wow_retail"
+  },
+  {
+    "id": 2377797,
+    "displayName": "f081f4d-alpha",
+    "fileName": "Molinari-f081f4d-alpha.zip",
+    "fileDate": "2017-02-04T17:14:52.187Z",
+    "fileLength": 26147,
+    "releaseType": 3,
+    "fileStatus": 4,
+    "downloadUrl": "https://edge.forgecdn.net/files/2377/797/Molinari-f081f4d-alpha.zip",
+    "isAlternate": false,
+    "alternateFileId": 2377798,
+    "dependencies": [
+      {
+        "addonId": 88553,
+        "type": 2
+      },
+      {
+        "addonId": 101134,
+        "type": 2
+      }
+    ],
+    "isAvailable": true,
+    "modules": [
+      {
+        "foldername": "Molinari",
+        "fingerprint": 3146633132
+      }
+    ],
+    "packageFingerprint": 3293392991,
+    "gameVersion": [
+      "7.0.3"
+    ],
+    "installMetadata": null,
+    "serverPackFileId": null,
+    "hasInstallScript": false,
+    "gameVersionDateReleased": "2016-07-19T00:00:00Z",
+    "gameVersionFlavor": "wow_retail"
+  },
+  {
+    "id": 2777610,
+    "displayName": "80200.62-Release",
+    "fileName": "Molinari-80200.62-Release.zip",
+    "fileDate": "2019-09-03T16:28:51.897Z",
+    "fileLength": 36177,
+    "releaseType": 1,
+    "fileStatus": 4,
+    "downloadUrl": "https://edge.forgecdn.net/files/2777/610/Molinari-80200.62-Release.zip",
+    "isAlternate": false,
+    "alternateFileId": 0,
+    "dependencies": [
+      {
+        "addonId": 14328,
+        "type": 1
+      }
+    ],
+    "isAvailable": true,
+    "modules": [
+      {
+        "foldername": "Molinari",
+        "fingerprint": 765104002
+      }
+    ],
+    "packageFingerprint": 2295737395,
+    "gameVersion": [
+      "8.2.0"
+    ],
+    "installMetadata": null,
+    "serverPackFileId": null,
+    "hasInstallScript": false,
+    "gameVersionDateReleased": "2019-06-25T00:00:00Z",
+    "gameVersionFlavor": "wow_retail"
+  },
+  {
+    "id": 2892082,
+    "displayName": "80300.66-Release",
+    "fileName": "Molinari-80300.66-Release.zip",
+    "fileDate": "2020-02-29T19:24:13.997Z",
+    "fileLength": 36264,
+    "releaseType": 1,
+    "fileStatus": 4,
+    "downloadUrl": "https://edge.forgecdn.net/files/2892/82/Molinari-80300.66-Release.zip",
+    "isAlternate": false,
+    "alternateFileId": 0,
+    "dependencies": [
+      {
+        "addonId": 14328,
+        "type": 1
+      }
+    ],
+    "isAvailable": true,
+    "modules": [
+      {
+        "foldername": "Molinari",
+        "fingerprint": 2573674108
+      }
+    ],
+    "packageFingerprint": 3728712436,
+    "gameVersion": [
+      "8.3.0"
+    ],
+    "installMetadata": null,
+    "serverPackFileId": null,
+    "hasInstallScript": false,
+    "gameVersionDateReleased": "2020-01-14T00:00:00Z",
+    "gameVersionFlavor": "wow_retail"
+  },
+  {
+    "id": 2865897,
+    "displayName": "80300.65-Release",
+    "fileName": "Molinari-80300.65-Release.zip",
+    "fileDate": "2020-01-22T17:07:08.827Z",
+    "fileLength": 36252,
+    "releaseType": 1,
+    "fileStatus": 4,
+    "downloadUrl": "https://edge.forgecdn.net/files/2865/897/Molinari-80300.65-Release.zip",
+    "isAlternate": false,
+    "alternateFileId": 0,
+    "dependencies": [
+      {
+        "addonId": 14328,
+        "type": 1
+      }
+    ],
+    "isAvailable": true,
+    "modules": [
+      {
+        "foldername": "Molinari",
+        "fingerprint": 2447021279
+      }
+    ],
+    "packageFingerprint": 3888498288,
+    "gameVersion": [
+      "8.3.0"
+    ],
+    "installMetadata": null,
+    "serverPackFileId": null,
+    "hasInstallScript": false,
+    "gameVersionDateReleased": "2020-01-14T00:00:00Z",
+    "gameVersionFlavor": "wow_retail"
+  },
+  {
+    "id": 2892083,
+    "displayName": "80300.66-Release",
+    "fileName": "Molinari-80300.66-Release.zip",
+    "fileDate": "2020-02-29T19:24:16.33Z",
+    "fileLength": 36264,
+    "releaseType": 1,
+    "fileStatus": 4,
+    "downloadUrl": "https://edge.forgecdn.net/files/2892/83/Molinari-80300.66-Release.zip",
+    "isAlternate": false,
+    "alternateFileId": 0,
+    "dependencies": [
+      {
+        "addonId": 14328,
+        "type": 1
+      }
+    ],
+    "isAvailable": true,
+    "modules": [
+      {
+        "foldername": "Molinari",
+        "fingerprint": 2573674108
+      }
+    ],
+    "packageFingerprint": 975167073,
+    "gameVersion": [
+      "1.13.3"
+    ],
+    "installMetadata": null,
+    "serverPackFileId": null,
+    "hasInstallScript": false,
+    "gameVersionDateReleased": "2001-01-01T00:00:00Z",
+    "gameVersionFlavor": "wow_classic"
+  },
+  {
+    "id": 2842743,
+    "displayName": "80200.64-Release-classic",
+    "fileName": "Molinari-80200.64-Release-classic.zip",
+    "fileDate": "2019-12-14T19:59:11.687Z",
+    "fileLength": 36137,
+    "releaseType": 1,
+    "fileStatus": 4,
+    "downloadUrl": "https://edge.forgecdn.net/files/2842/743/Molinari-80200.64-Release-classic.zip",
+    "isAlternate": false,
+    "alternateFileId": 0,
+    "dependencies": [
+      {
+        "addonId": 14328,
+        "type": 1
+      }
+    ],
+    "isAvailable": true,
+    "modules": [
+      {
+        "foldername": "Molinari",
+        "fingerprint": 2542339631
+      }
+    ],
+    "packageFingerprint": 2122158081,
+    "gameVersion": [
+      "1.13.2"
+    ],
+    "installMetadata": null,
+    "serverPackFileId": null,
+    "hasInstallScript": false,
+    "gameVersionDateReleased": "2001-01-01T00:00:00Z",
+    "gameVersionFlavor": "wow_classic"
+  },
+  {
+    "id": 2842742,
+    "displayName": "80200.64-Release",
+    "fileName": "Molinari-80200.64-Release.zip",
+    "fileDate": "2019-12-14T19:59:09.647Z",
+    "fileLength": 36133,
+    "releaseType": 1,
+    "fileStatus": 4,
+    "downloadUrl": "https://edge.forgecdn.net/files/2842/742/Molinari-80200.64-Release.zip",
+    "isAlternate": false,
+    "alternateFileId": 0,
+    "dependencies": [
+      {
+        "addonId": 14328,
+        "type": 1
+      }
+    ],
+    "isAvailable": true,
+    "modules": [
+      {
+        "foldername": "Molinari",
+        "fingerprint": 3308402241
+      }
+    ],
+    "packageFingerprint": 1226975876,
+    "gameVersion": [
+      "8.2.5"
+    ],
+    "installMetadata": null,
+    "serverPackFileId": null,
+    "hasInstallScript": false,
+    "gameVersionDateReleased": "2019-09-23T00:00:00Z",
+    "gameVersionFlavor": "wow_retail"
+  }
+]

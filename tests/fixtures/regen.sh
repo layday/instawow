@@ -8,6 +8,9 @@ echo '[20338,23350,306085,288981,322865,2398,326516,326009,333072,345144]' \
     | http post https://addons-ecs.forgesvc.net/api/v2/addon -b \
     | jq -r \
     > "$DIR"/curse-post-addon_all.json
+http get https://addons-ecs.forgesvc.net/api/v2/addon/20338/files -b \
+    | jq -r \
+    > "$DIR"/curse-get-addon-files.json
 
 http get https://api.mmoui.com/v3/game/WOW/filelist.json -b \
     | jq -r '.[] | select(.UID == "13188") | [.]' \
