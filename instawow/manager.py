@@ -58,6 +58,8 @@ if TYPE_CHECKING:
     import aiohttp
     from prompt_toolkit.shortcuts import ProgressBar
     from sqlalchemy.orm import scoped_session
+    from yarl import URL
+
     from .config import Config
 
     _T = TypeVar('_T')
@@ -162,8 +164,10 @@ async def download_archive(
     return acquire_archive(dst)
 
 
-async def cache_json_response(manager: Manager, url: str, *args: Any, label: O[str] = None) -> Any:
-    dst = manager.config.cache_dir / shasum(url)
+async def cache_json_response(
+    manager: Manager, url: Union[str, URL], *args: Any, label: O[str] = None
+) -> Any:
+    dst = manager.config.cache_dir / shasum(str(url))
 
     if await t(is_not_stale)(dst, *args):
         text = await t(dst.read_text)(encoding='utf-8')

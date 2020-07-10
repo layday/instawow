@@ -153,6 +153,7 @@ class CurseResolver(Resolver):
         Strategies.curse_latest_beta,
         Strategies.curse_latest_alpha,
         Strategies.any_flavour,
+        Strategies.version,
     }
 
     # Reference: https://twitchappapi.docs.apiary.io/
@@ -191,68 +192,82 @@ class CurseResolver(Resolver):
         if not metadata:
             raise E.PkgNonexistent
 
-        files = metadata['latestFiles']
-        if not files:
-            raise E.PkgFileUnavailable('no files available for download')
+        if defn.strategy is Strategies.version:
 
-        def is_not_libless(f: JsonDict):
-            # There's also an 'isAlternate' field that's missing some
-            # 50 lib-less files from c. 2008.  'exposeAsAlternative' is
-            # absent from the /file endpoint
-            return not f['exposeAsAlternative']
+            from .manager import cache_json_response
 
-        if defn.strategy is Strategies.any_flavour:
+            files = await cache_json_response(
+                self.manager,
+                self.addon_api_url / str(metadata['id']) / 'files',
+                3600,
+                label=f'Fetching metadata from {self.name}',
+            )
 
-            def is_compatible_with_game_version(f: JsonDict):
-                return True
+            def is_compatible(f: JsonDict):
+                return defn.strategy_vals[0] == f['displayName']
 
         else:
-            classic_version_prefix = '1.13'
-            flavour = 'wow_classic' if self.config.is_classic else 'wow_retail'
 
-            def is_compatible_with_game_version(f: JsonDict):
-                # Files can belong both to retail and classic
-                # but ``gameVersionFlavor`` can only be one of
-                # 'wow_retail' or 'wow_classic'.  To spice things up,
-                # ``gameVersion`` might not be populated so we still have to
-                # check the value of ``gameVersionFlavor``
-                return f['gameVersionFlavor'] == flavour or any(
-                    v.startswith(classic_version_prefix) is self.config.is_classic
-                    for v in f['gameVersion']
+            files = metadata['latestFiles']
+
+            def is_not_libless(f: JsonDict):
+                # There's also an 'isAlternate' field that's missing from some
+                # 50 lib-less files from c. 2008.  'exposeAsAlternative' is
+                # absent from the /file endpoint
+                return not f['exposeAsAlternative']
+
+            if defn.strategy is Strategies.any_flavour:
+
+                def supports_game_version(f: JsonDict):
+                    return True
+
+            else:
+                classic_version_prefix = '1.13'
+                flavour = 'wow_classic' if self.config.is_classic else 'wow_retail'
+
+                def supports_game_version(f: JsonDict):
+                    # Files can belong both to retail and classic
+                    # but ``gameVersionFlavor`` can only be one of
+                    # 'wow_retail' or 'wow_classic'.  To spice things up,
+                    # ``gameVersion`` might not be populated so we still have to
+                    # check the value of ``gameVersionFlavor``
+                    return f['gameVersionFlavor'] == flavour or any(
+                        v.startswith(classic_version_prefix) is self.config.is_classic
+                        for v in f['gameVersion']
+                    )
+
+            # 1 = stable; 2 = beta; 3 = alpha
+            if defn.strategy is Strategies.latest:
+
+                def is_of_specified_quality(f: JsonDict):
+                    return True
+
+            elif defn.strategy is Strategies.curse_latest_beta:
+
+                def is_of_specified_quality(f: JsonDict):
+                    return f['releaseType'] == 2
+
+            elif defn.strategy is Strategies.curse_latest_alpha:
+
+                def is_of_specified_quality(f: JsonDict):
+                    return f['releaseType'] == 3
+
+            else:
+
+                def is_of_specified_quality(f: JsonDict):
+                    return f['releaseType'] == 1
+
+            def is_compatible(f: JsonDict):
+                return (
+                    is_not_libless(f) and supports_game_version(f) and is_of_specified_quality(f)
                 )
 
-        # 1 = stable; 2 = beta; 3 = alpha
-        if defn.strategy is Strategies.latest:
-
-            def has_release_type(f: JsonDict):
-                return True
-
-        elif defn.strategy is Strategies.curse_latest_beta:
-
-            def has_release_type(f: JsonDict):
-                return f['releaseType'] == 2
-
-        elif defn.strategy is Strategies.curse_latest_alpha:
-
-            def has_release_type(f: JsonDict):
-                return f['releaseType'] == 3
-
-        else:
-
-            def has_release_type(f: JsonDict):
-                return f['releaseType'] == 1
-
+        if not files:
+            raise E.PkgFileUnavailable('no files available for download')
         try:
             file = max(
-                (
-                    f
-                    for f in files
-                    if is_not_libless(f)
-                    and is_compatible_with_game_version(f)
-                    and has_release_type(f)
-                ),
-                # The ``id`` is just a counter so we don't have to
-                # go digging around dates
+                filter(is_compatible, files),
+                # The ``id`` is just a counter so we don't have to go digging around dates
                 key=lambda f: f['id'],
             )
         except ValueError:
