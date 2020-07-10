@@ -157,6 +157,7 @@ class WaCompanionBuilder(ManagerAttrAccessMixin):
     @staticmethod
     def extract_auras(model: Type[WeakAuras], source: str) -> WeakAuras:
         import re
+
         from slpp import SLPP
 
         class WaParser(SLPP):
@@ -228,11 +229,13 @@ class WaCompanionBuilder(ManagerAttrAccessMixin):
         )
 
     def make_addon(self, auras: Sequence[Tuple[Type[WeakAuras], Sequence[RemoteAura]]]) -> None:
-        from jinja2 import Environment, FunctionLoader
         from zipfile import ZipFile, ZipInfo
+
+        from jinja2 import Environment, FunctionLoader
 
         def loader(filename: str) -> str:
             from importlib.resources import read_text
+
             from . import wa_templates
 
             return read_text(wa_templates, filename)

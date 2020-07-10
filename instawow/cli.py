@@ -12,7 +12,6 @@ from typing import (
     Generator,
     Iterable,
     List,
-    Mapping,
     Optional,
     Sequence,
     Tuple,
@@ -49,17 +48,17 @@ class Report:
 
     def __init__(
         self,
-        results: Mapping[Defn, E.ManagerResult],
+        results: Iterable[Tuple[Defn, E.ManagerResult]],
         filter_fn: Callable[[E.ManagerResult], bool] = lambda _: True,
     ):
-        self.results = results
+        self.results = list(results)
         self.filter_fn = filter_fn
 
     @property
     def code(self) -> int:
         return any(
             r
-            for r in self.results.values()
+            for _, r in self.results
             if isinstance(r, (E.ManagerError, E.InternalError)) and self.filter_fn(r)
         )
 
@@ -74,7 +73,7 @@ class Report:
         return '\n'.join(
             f'{_adorn_result(r)} {click.style(str(a), bold=True)}\n'
             + fill(r.message, initial_indent='  ', subsequent_indent='  ')
-            for a, r in self.results.items()
+            for a, r in self.results
             if self.filter_fn(r)
         )
 
@@ -100,6 +99,7 @@ class ManagerWrapper:
     @cached_property
     def m(self) -> CliManager:
         import asyncio
+
         from .config import Config
         from .manager import CliManager, prepare_db_session
 
@@ -152,7 +152,7 @@ def parse_into_defn(
             raise click.BadParameter(value)
         parts = (any_source, value)
     else:
-        parts = manager.decompose_url(value)
+        parts = manager.pair_url(value)
         if not parts:
             parts = value.partition(delim)[::2]
     return Defn(*parts)
@@ -274,7 +274,7 @@ def install(obj: M, addons: Sequence[Defn], replace: bool):
         )
 
     results = obj.m.run(obj.m.install(addons, replace))
-    Report(results).generate_and_exit()
+    Report(results.items()).generate_and_exit()
 
 
 @main.command()
@@ -292,7 +292,7 @@ def update(obj: M, addons: Sequence[Defn]):
         defns = [Defn.from_pkg(p) for p in obj.m.db_session.query(models.Pkg).all()]
 
     results = obj.m.run(obj.m.update(defns))
-    Report(results, report_filter).generate_and_exit()
+    Report(results.items(), report_filter).generate_and_exit()
 
 
 @main.command()
@@ -301,7 +301,7 @@ def update(obj: M, addons: Sequence[Defn]):
 def remove(obj: M, addons: Sequence[Defn]):
     "Remove add-ons."
     results = obj.m.run(obj.m.remove(addons))
-    Report(results).generate_and_exit()
+    Report(results.items()).generate_and_exit()
 
 
 @main.command()
@@ -337,7 +337,7 @@ def reconcile(ctx: click.Context, auto: bool, list_unreconciled: bool):
         '''
     )
 
-    manager: CliManager = ctx.obj.m
+    manager = ctx.obj.m
 
     def prompt_one(addons: List[AddonFolder], pkgs: List[models.Pkg]) -> Union[Defn, Tuple[()]]:
         def create_choice(pkg: models.Pkg):
@@ -421,7 +421,7 @@ def search(ctx: click.Context, limit: int, search_terms: str):
     "Search for add-ons to install."
     from .prompts import PkgChoice, checkbox, confirm
 
-    manager: CliManager = ctx.obj.m
+    manager = ctx.obj.m
 
     pkgs = manager.run(manager.search(search_terms, limit))
     if pkgs:
@@ -458,7 +458,7 @@ def list_(obj: M, addons: Sequence[Defn], export: Optional[str], output_format: 
 
     def format_deps(pkg: models.Pkg):
         deps = (Defn(pkg.source, d.id) for d in pkg.deps)
-        deps = (d.with_name(getattr(obj.m.get(d), 'slug', d.name)) for d in deps)
+        deps = (d.with_name(getattr(obj.m.get_pkg(d), 'slug', d.name)) for d in deps)
         return map(str, deps)
 
     def get_desc(pkg: models.Pkg):
@@ -496,7 +496,7 @@ def list_(obj: M, addons: Sequence[Defn], export: Optional[str], output_format: 
         elif output_format == 'detailed':
             formatter = click.HelpFormatter(max_width=99)
             for pkg in pkgs:
-                with formatter.section(Defn.from_pkg(pkg)):
+                with formatter.section(str(Defn.from_pkg(pkg))):
                     formatter.write_dl(
                         (
                             ('Name', pkg.name),
@@ -527,14 +527,14 @@ def info(ctx: click.Context, addon: Defn):
 @click.argument('addon', callback=_callbackify(partial(parse_into_defn, raise_invalid=False)))
 @click.pass_obj
 def reveal(obj: M, addon: Defn):
-    "Open an add-on folder in your file manager."
-    pkg = obj.m.get_from_substr(addon)
+    "Bring an add-on up in your file manager."
+    pkg = obj.m.get_pkg_from_substr(addon)
     if pkg:
         import webbrowser
 
         webbrowser.open((obj.m.config.addon_dir / pkg.folders[0].name).as_uri())
     else:
-        Report({addon: E.PkgNotInstalled()}).generate_and_exit()
+        Report([(addon, E.PkgNotInstalled())]).generate_and_exit()
 
 
 @main.command()
@@ -620,6 +620,7 @@ def list_installed_wago_auras(obj: M, account: str):
 @click.argument('filename', type=click.Path(dir_okay=False))
 def generate_catalogue(filename: str):
     import asyncio
+
     from .resolvers import MasterCatalogue
 
     catalogue = asyncio.run(MasterCatalogue.collate())

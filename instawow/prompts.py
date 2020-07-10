@@ -17,6 +17,7 @@ from questionary.question import Question
 if TYPE_CHECKING:
     from prompt_toolkit.completion import CompleteEvent
     from prompt_toolkit.document import Document
+
     from .models import Pkg
 
 
@@ -189,7 +190,7 @@ def select(message: str, choices: Sequence[Choice], **prompt_kwargs: Any) -> Que
 
     @bindings.add('o', eager=True)
     def open_url(event: Any):
-        pkg = ic.get_pointed_at().pkg
+        pkg = getattr(ic.get_pointed_at(), 'pkg', None)
         if pkg:
             import webbrowser
 

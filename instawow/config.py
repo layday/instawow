@@ -48,19 +48,24 @@ class _Config(BaseConfig):
 
     @classmethod
     def read(cls) -> _Config:
+        "Read the configuration from disk."
         dummy_config = cls(addon_dir='', game_flavour='retail')
         return cls.parse_raw(dummy_config.config_file.read_text(encoding='utf-8'))
 
     def ensure_dirs(self) -> _Config:
+        "Create the various folders used by instawow."
         self.config_dir.mkdir(exist_ok=True, parents=True)
         for dir_ in self.logger_dir, self.plugin_dir, self.temp_dir, self.cache_dir:
             dir_.mkdir(exist_ok=True)
         return self
 
     def write(self) -> _Config:
-        # This is separate from ``ensure_dirs`` because configuration
-        # values are considered to be transient if overridden by an
-        # env var, e.g. to bypass the cache
+        """Write the configuration on disk.
+
+        ``write``, unlike ``ensure_dirs``, is only called when configuring
+        instawow.  This means that environment overrides are only persisted if
+        made during configuration.
+        """
         self.ensure_dirs()
         output = self.json(include={'addon_dir', 'game_flavour'}, indent=2)
         self.config_file.write_text(output, encoding='utf-8')

@@ -184,7 +184,8 @@ async def cache_json_response(
 
 def prepare_db_session(config: Config) -> scoped_session:
     from sqlalchemy import create_engine
-    from sqlalchemy.orm import sessionmaker, scoped_session
+    from sqlalchemy.orm import scoped_session, sessionmaker
+
     from .models import ModelBase, should_migrate
 
     db_path = config.config_dir / 'db.sqlite'
@@ -198,6 +199,7 @@ def prepare_db_session(config: Config) -> scoped_session:
     if should_migrate(engine, DB_REVISION):
         from alembic.command import stamp, upgrade
         from alembic.config import Config as AConfig
+
         from .utils import copy_resources
 
         with copy_resources(
@@ -271,29 +273,34 @@ class Manager:
     def web_client(self, value: aiohttp.ClientSession) -> None:
         _web_client.set(value)
 
-    def get(self, defn: Defn) -> O[Pkg]:
-        "Get a package from (source, id) or (source, slug)."
+    async def _consume_seq(
+        self, coros_by_defn: Dict[Defn, Callable[..., Awaitable[Any]]]
+    ) -> Dict[Defn, E.ManagerResult]:
+        return {d: await E.ManagerResult.acapture(c()) for d, c in coros_by_defn.items()}
+
+    def get_pkg(self, defn: Defn) -> O[Pkg]:
+        "Retrieve an installed package from a definition."
         return (
             self.db_session.query(Pkg)
             .filter(Pkg.source == defn.source, (Pkg.id == defn.name) | (Pkg.slug == defn.name))
             .first()
         )
 
-    def get_from_substr(self, defn: Defn) -> O[Pkg]:
-        "Get a package from a partial slug."
-        return self.get(defn) or (
+    def get_pkg_from_substr(self, defn: Defn) -> O[Pkg]:
+        "Retrieve an installed package from a partial slug."
+        return self.get_pkg(defn) or (
             self.db_session.query(Pkg)
             .filter(Pkg.slug.contains(defn.name))
             .order_by(Pkg.name)
             .first()
         )
 
-    def decompose_url(self, url: str) -> O[Tuple[str, str]]:
-        "Parse a URL into a source–name tuple."
-        for resolver in self.resolvers.values():
-            name = resolver.decompose_url(url)
-            if name:
-                return resolver.source, name
+    def pair_url(self, url: str) -> O[Tuple[str, str]]:
+        "Attempt to pair a URL with a resolver, returning the source and name."
+        return next(
+            filter(all, ((r.source, r.get_name_from_url(url)) for r in self.resolvers.values())),
+            None,
+        )  # type: ignore
 
     async def synchronise(self) -> None:
         "Fetch the master catalogue from the interwebs."
@@ -305,11 +312,6 @@ class Manager:
             )  # v1
             catalogue = await cache_json_response(self, url, 4, 'hours', label=label)
             self.catalogue = MasterCatalogue.parse_obj(catalogue)
-
-    async def _consume_seq(
-        self, coros_by_defn: Dict[Defn, Callable[..., Awaitable[Any]]]
-    ) -> Dict[Defn, E.ManagerResult]:
-        return {d: await E.ManagerResult.acapture(c()) for d, c in coros_by_defn.items()}
 
     async def _resolve_deps(self, results: Iterable[Any]) -> Dict[Defn, Any]:
         """Resolve package dependencies.
@@ -349,9 +351,10 @@ class Manager:
         return results_by_defn
 
     async def search(self, search_terms: str, limit: int) -> Dict[Defn, Pkg]:
-        "Search the combined names catalogue for packages."
+        "Search the master catalogue for packages by name."
         import heapq
         import string
+
         from jellyfish import jaro_winkler
 
         trans_table = str.maketrans(dict.fromkeys(string.punctuation, ' '))
@@ -403,10 +406,12 @@ class Manager:
         return E.PkgInstalled(pkg)
 
     async def install(self, defns: Sequence[Defn], replace: bool) -> Dict[Defn, E.ManagerResult]:
-        prelim_results = await self.resolve([d for d in defns if not self.get(d)], with_deps=True)
+        prelim_results = await self.resolve(
+            [d for d in defns if not self.get_pkg(d)], with_deps=True
+        )
         # Weed out installed deps - this isn't super efficient but avoids
         # having to deal with local state in the resolver
-        results = {d: r for d, r in prelim_results.items() if not self.get(d)}
+        results = {d: r for d, r in prelim_results.items() if not self.get_pkg(d)}
         installables = {(d, r): download_archive(self, r) for d, r in results.items() if is_pkg(r)}
         archives = await gather(installables.values())
 
@@ -444,10 +449,9 @@ class Manager:
     async def update(self, defns: Sequence[Defn]) -> Dict[Defn, E.ManagerResult]:
         # Rebuild ``Defn`` with ID and strategy from package for defns
         # of installed packages.  Using the ID has the benefit of resolving
-        # installed-but-renamed packages
-        maybe_pkgs = ((d, self.get(d)) for d in defns)
+        # installed-but-renamed packages - the slug is transient; the ID isn't
+        maybe_pkgs = ((d, self.get_pkg(d)) for d in defns)
         checked_defns = {Defn.from_pkg(p) if p else c: p for c, p in maybe_pkgs}
-
         # Results can contain errors
         # installables are those results which are packages
         # and updatables are packages with updates
@@ -480,7 +484,7 @@ class Manager:
         return E.PkgRemoved(pkg)
 
     async def remove(self, defns: Sequence[Defn]) -> Dict[Defn, E.ManagerResult]:
-        pkgs_by_defn = ((d, self.get(d)) for d in defns)
+        pkgs_by_defn = ((d, self.get_pkg(d)) for d in defns)
         coros = dict_chain(
             defns,
             partial(_error_out, E.PkgNotInstalled()),
@@ -504,6 +508,7 @@ async def cancel_tickers() -> AsyncIterator[None]:
 
 def init_cli_web_client(*, Bar: ProgressBar) -> aiohttp.ClientSession:
     from cgi import parse_header
+
     from aiohttp import TraceConfig, hdrs
 
     def extract_filename(response: aiohttp.ClientResponse) -> str:
@@ -552,11 +557,12 @@ def init_cli_web_client(*, Bar: ProgressBar) -> aiohttp.ClientSession:
 
 class CliManager(Manager):
     def run(self, awaitable: Awaitable[_T]) -> _T:
-        async def run():
-            async with init_cli_web_client(Bar=Bar) as self.web_client, cancel_tickers():
-                return await awaitable
-
         with make_progress_bar() as Bar:
+
+            async def run():
+                async with init_cli_web_client(Bar=Bar) as self.web_client, cancel_tickers():
+                    return await awaitable
+
             loop = asyncio.new_event_loop()
             try:
                 return loop.run_until_complete(run())

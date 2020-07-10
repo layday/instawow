@@ -38,6 +38,7 @@ Literal = _Literal  # ...
 
 if TYPE_CHECKING:
     from prompt_toolkit.shortcuts import ProgressBar
+
     from .manager import CliManager
 
     _H = TypeVar('_H', bound=Hashable)
@@ -112,7 +113,7 @@ def bucketise(iterable: Iterable[_V], key: Callable[[_V], _H] = lambda v: v) -> 
     bucket: Any = defaultdict(list)
     for value in iterable:
         bucket[key(value)].append(value)
-    return dict(bucket)
+    return bucket
 
 
 def dict_chain(
@@ -220,6 +221,7 @@ def tabulate(rows: Sequence[Sequence[Any]], *, max_col_width: int = 60) -> str:
 def make_progress_bar(**kwargs: Any) -> ProgressBar:
     "A ``ProgressBar`` with download progress expressed in megabytes."
     import signal
+
     from prompt_toolkit.formatted_text import HTML
     from prompt_toolkit.shortcuts.progress_bar import ProgressBar, formatters
     from prompt_toolkit.utils import Event

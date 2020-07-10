@@ -98,6 +98,7 @@ class MasterCatalogue(BaseModel):
     @classmethod
     async def collate(cls) -> MasterCatalogue:
         from types import SimpleNamespace
+
         from .manager import Manager, init_web_client
 
         resolvers = (CurseResolver, WowiResolver, TukuiResolver)
@@ -122,20 +123,24 @@ class Resolver(ManagerAttrAccessMixin):
         self.manager = manager
 
     def __init_subclass__(cls) -> None:
-        async def wrapper(self: Resolver, defn: Defn, *args: Any, **kwargs: Any) -> m.Pkg:
+        async def wrapper(self: Resolver, defn: Defn, metadata: O[JsonDict] = None) -> m.Pkg:
             if defn.strategy in self.strategies:
-                return await resolve_one(self, defn, *args, **kwargs)
+                return await resolve_one(self, defn, metadata)
             raise E.PkgStrategyUnsupported(defn.strategy)
 
         resolve_one = cls.resolve_one
-        cls.resolve_one = wrapper
+        cls.resolve_one = wrapper  # type: ignore
 
     @staticmethod
-    def decompose_url(value: str) -> O[str]:
-        "Attempt to extract definition names from resolvable URLs."
+    def get_name_from_url(value: str) -> O[str]:
+        "Attempt to extract a definition name from a given URL."
 
     async def resolve(self, defns: List[Defn]) -> Dict[Defn, Any]:
         "Resolve add-on definitions into packages."
+        raise NotImplementedError
+
+    async def resolve_one(self, defn: Defn, metadata: O[JsonDict]) -> m.Pkg:
+        "Resolve an individual definition into a package."
         raise NotImplementedError
 
     async def collect_items(self) -> AsyncIterable[_CItem]:
@@ -160,7 +165,7 @@ class CurseResolver(Resolver):
     addon_api_url = URL('https://addons-ecs.forgesvc.net/api/v2/addon')
 
     @staticmethod
-    def decompose_url(value: str) -> O[str]:
+    def get_name_from_url(value: str) -> O[str]:
         url = URL(value)
         if url.host == 'www.wowace.com' and len(url.parts) > 2 and url.parts[1] == 'projects':
             return url.parts[2].lower()
@@ -365,7 +370,7 @@ class WowiResolver(Resolver):
     _files: O[JsonDict] = None
 
     @staticmethod
-    def decompose_url(value: str) -> O[str]:
+    def get_name_from_url(value: str) -> O[str]:
         url = URL(value)
         if (
             url.host in {'wowinterface.com', 'www.wowinterface.com'}
@@ -393,7 +398,7 @@ class WowiResolver(Resolver):
                 self.manager,
                 self.list_api_url,
                 3600,
-                label=f'Synchronising {self.source} catalogue',
+                label=f'Synchronising {self.name} catalogue',
             )
             self._files = {i['UID']: i for i in files}
 
@@ -455,7 +460,7 @@ class TukuiResolver(Resolver):
     retail_uis = {'-1': 'tukui', '-2': 'elvui', 'tukui': 'tukui', 'elvui': 'elvui'}
 
     @staticmethod
-    def decompose_url(value: str) -> O[str]:
+    def get_name_from_url(value: str) -> O[str]:
         url = URL(value)
         if url.host == 'www.tukui.org' and url.path in {
             '/addons.php',
@@ -470,7 +475,7 @@ class TukuiResolver(Resolver):
         results = await gather(self.resolve_one(d) for d in defns)
         return dict(zip(defns, results))
 
-    async def resolve_one(self, defn: Defn) -> m.Pkg:
+    async def resolve_one(self, defn: Defn, metadata: ... = None) -> m.Pkg:
         name = ui_name = self.retail_uis.get(defn.name)
         if not name:
             name = ''.join(takewhile('-'.__ne__, defn.name))
@@ -541,7 +546,7 @@ class InstawowResolver(Resolver):
         results = await gather(self.resolve_one(d) for d in defns)
         return dict(zip(defns, results))
 
-    async def resolve_one(self, defn: Defn) -> m.Pkg:
+    async def resolve_one(self, defn: Defn, metadata: ... = None) -> m.Pkg:
         try:
             id_, slug = next(p for p in self._addons if defn.name in p)
         except StopIteration:
