@@ -509,20 +509,6 @@ def info(ctx: click.Context, addon: Defn):
 @main.command()
 @click.argument('addon', callback=_callbackify(partial(parse_into_defn, raise_invalid=False)))
 @click.pass_obj
-def visit(obj: M, addon: Defn):
-    "Open an add-on's homepage in your browser."
-    pkg = obj.m.get_from_substr(addon)
-    if pkg:
-        import webbrowser
-
-        webbrowser.open(pkg.url)
-    else:
-        Report({addon: E.PkgNotInstalled()}).generate_and_exit()
-
-
-@main.command()
-@click.argument('addon', callback=_callbackify(partial(parse_into_defn, raise_invalid=False)))
-@click.pass_obj
 def reveal(obj: M, addon: Defn):
     "Open an add-on folder in your file manager."
     pkg = obj.m.get_from_substr(addon)
