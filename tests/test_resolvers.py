@@ -1,6 +1,6 @@
 import pytest
 
-import instawow.exceptions as E
+from instawow import exceptions as E
 from instawow.models import Pkg
 from instawow.resolvers import Defn, Strategies
 
@@ -9,11 +9,11 @@ from instawow.resolvers import Defn, Strategies
 @pytest.mark.parametrize(
     'strategy', [Strategies.default, Strategies.latest, Strategies.any_flavour]
 )
-async def test_resolve_curse_pkgs(manager, request, strategy):
+async def test_resolve_curse_simple_pkgs(manager, request, strategy):
     results = await manager.resolve(
         [
             Defn('curse', 'tomcats', strategy),
-            Defn('curse', 'method-dungeon-tools', strategy),
+            Defn('curse', 'mythic-dungeon-tools', strategy),
             Defn('curse', 'classiccastbars', strategy),
             Defn('curse', 'elkbuffbars', strategy),
         ]
@@ -52,8 +52,20 @@ async def test_resolve_curse_pkgs(manager, request, strategy):
 
 @pytest.mark.asyncio
 async def test_resolve_curse_latest_pkg(manager):
-    (latest,) = (await manager.resolve([Defn('curse', 'tomcats', Strategies.latest)])).values()
-    assert isinstance(latest, Pkg)
+    (latest_pkg,) = (await manager.resolve([Defn('curse', 'tomcats', Strategies.latest)])).values()
+    assert latest_pkg.options.strategy == 'latest'
+
+
+@pytest.mark.asyncio
+async def test_resolve_curse_versioned_pkg(manager):
+    (versioned_pkg,) = (
+        await manager.resolve(
+            [Defn('curse', 'molinari', Strategies.version, ('70300.51-Release',))]
+        )
+    ).values()
+    assert (
+        versioned_pkg.options.strategy == 'version' and versioned_pkg.version == '70300.51-Release'
+    )
 
 
 @pytest.mark.asyncio

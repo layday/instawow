@@ -116,6 +116,13 @@ def mock_curse(aresponses, JsonResponse, mock_master_catalogue):
         repeat=float('inf'),
     )
     aresponses.add(
+        'addons-ecs.forgesvc.net',
+        '/api/v2/addon/20338/files',
+        'get',
+        JsonResponse(body=read_fixture('curse-get-addon-files.json')),
+        repeat=float('inf'),
+    )
+    aresponses.add(
         'edge.forgecdn.net',
         aresponses.ANY,
         'get',

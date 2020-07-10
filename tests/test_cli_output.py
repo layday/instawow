@@ -86,11 +86,7 @@ def test_valid_curse_pkg_lifecycle(run, inp, cmp):
             '✗ tukui:1-merathilisui\n  package is up to date\n'.__eq__,
             Flavour.retail,
         ),
-        (
-            'update tukui:1',
-            '✗ tukui:1-tukui\n  package is up to date\n'.__eq__,
-            Flavour.classic,
-        ),
+        ('update tukui:1', '✗ tukui:1-tukui\n  package is up to date\n'.__eq__, Flavour.classic,),
         ('remove tukui:1', '✓ tukui:1\n  removed\n'.__eq__, None),
         ('update tukui:1', '✗ tukui:1\n  package is not installed\n'.__eq__, None),
         ('remove tukui:1', '✗ tukui:1\n  package is not installed\n'.__eq__, None),
@@ -297,6 +293,41 @@ def test_install_with_tukui_alias(run, inp, cmp):
 )
 def test_install_with_wowi_alias(run, inp, cmp):
     assert cmp(run(inp).output)
+
+
+@pytest.mark.parametrize(
+    'inp, output, run',
+    [
+        ('install curse:molinari', '✓ curse:molinari\n  installed 80300.66-Release\n', None),
+        (
+            'install --version foo curse:molinari',
+            '✗ curse:molinari\n  package already installed\n',
+            None,
+        ),
+        ('update curse:molinari', '✗ curse:molinari\n  package is up to date\n', None),
+        ('remove curse:molinari', '✓ curse:molinari\n  removed\n', None),
+        (
+            'install --version foo curse:molinari',
+            "✗ curse:molinari\n  no files compatible with retail using 'version' strategy\n",
+            Flavour.retail,
+        ),
+        (
+            'install --version foo curse:molinari',
+            "✗ curse:molinari\n  no files compatible with classic using 'version' strategy\n",
+            Flavour.classic,
+        ),
+        (
+            'install --version 80000.57-Release curse:molinari',
+            '✓ curse:molinari\n  installed 80000.57-Release\n',
+            None,
+        ),
+        ('update curse:molinari', '✗ curse:molinari\n  package is up to date\n', None),
+        ('remove curse:molinari', '✓ curse:molinari\n  removed\n', None),
+    ],
+    indirect=('run',),
+)
+def test_version_strategy_lifecycle(run, inp, output):
+    assert run(inp).output == output
 
 
 def test_missing_dir_on_remove(manager, molinari_and_run):
