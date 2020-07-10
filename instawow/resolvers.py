@@ -10,10 +10,12 @@ from typing import (
     AsyncIterable,
     ClassVar,
     Dict,
+    Iterable,
     List,
     NamedTuple,
     Optional as O,
     Set,
+    Tuple,
     cast,
 )
 
@@ -43,28 +45,36 @@ class Strategies(enum.Enum):
     curse_latest_beta = enum.auto()
     curse_latest_alpha = enum.auto()
     any_flavour = enum.auto()
+    version = enum.auto()
+
+    @classmethod
+    def exposed(cls) -> Iterable[Strategies]:
+        return (s for s in cls if s not in {cls.default, cls.version})
 
 
 class Defn(NamedTuple):
     source: str
     name: str
     strategy: Strategies = Strategies.default
+    strategy_vals: Tuple[str, ...] = ()
     source_id: O[str] = None
 
     @classmethod
     def from_pkg(cls, pkg: m.Pkg) -> Defn:
-        return cls(
-            pkg.source,
-            pkg.slug,
-            Strategies[pkg.options.strategy],  # type: ignore
-            pkg.id,
-        )
+        strategy = Strategies[pkg.options.strategy]  # type: ignore
+        strategy_vals = (pkg.version,) if strategy is Strategies.version else ()
+        return cls(pkg.source, pkg.slug, strategy, strategy_vals, pkg.id)
 
     def with_name(self, name: str) -> Defn:
-        return self.__class__(self.source, name, self.strategy, self.source_id)
+        return self.__class__(self.source, name, self.strategy, self.strategy_vals, self.source_id)
 
     def with_strategy(self, strategy: Strategies) -> Defn:
-        return self.__class__(self.source, self.name, strategy, self.source_id)
+        return self.__class__(self.source, self.name, strategy, (), self.source_id)
+
+    def with_version(self, version: str) -> Defn:
+        return self.__class__(
+            self.source, self.name, Strategies.version, (version,), self.source_id
+        )
 
     def __str__(self) -> str:
         return f'{self.source}:{self.name}'

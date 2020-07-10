@@ -166,6 +166,13 @@ def parse_into_defn_with_strategy(
     return list(map(Defn.with_strategy, defns, strategies))
 
 
+def parse_into_defn_with_version(
+    manager: CliManager, value: Sequence[Tuple[str, str]]
+) -> List[Defn]:
+    defns = parse_into_defn(manager, [d for _, d in value])
+    return list(map(Defn.with_version, defns, (v for v, _ in value)))
+
+
 def export_to_csv(pkgs: Sequence[models.Pkg], path: Path):
     "Export packages to CSV."
     import csv
@@ -237,13 +244,22 @@ def main(ctx: click.Context, debug: bool):
     '--with-strategy',
     '-s',
     multiple=True,
-    type=(click.Choice([s.name for s in Strategies]), str),
+    type=(click.Choice([s.name for s in Strategies.exposed()]), str),
     callback=_combine_into('addons', parse_into_defn_with_strategy),
     expose_value=False,
     metavar='<STRATEGY ADDON>...',
     help='A strategy followed by an add-on definition.  '
     'Available strategies are: '
-    f'{", ".join(repr(s.name) for s in islice(Strategies, 1, None))}.',
+    f'{", ".join(repr(s.name) for s in Strategies.exposed())}.',
+)
+@click.option(
+    '--version',
+    multiple=True,
+    type=(str, str),
+    callback=_combine_into('addons', parse_into_defn_with_version),
+    expose_value=False,
+    metavar='<VERSION ADDON>...',
+    help='A version followed by an add-on definition.',
 )
 @click.argument(
     'addons', nargs=-1, callback=_combine_into('addons', parse_into_defn), expose_value=False
@@ -253,7 +269,8 @@ def install(obj: M, addons: Sequence[Defn], replace: bool):
     "Install add-ons."
     if not addons:
         raise click.UsageError(
-            'You must provide at least one of "ADDONS", "--with-strategy" or "--import"'
+            'You must provide at least one of "ADDONS", "--with-strategy", '
+            '"--version" or "--import"'
         )
 
     results = obj.m.run(obj.m.install(addons, replace))
