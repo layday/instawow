@@ -141,7 +141,7 @@ async def download_archive(
     manager: Manager, pkg: Pkg, *, chunk_size: int = 4096
 ) -> ACM[_ArchiveR]:
     url = pkg.download_url
-    dst = manager.config.cache_dir / shasum(pkg.source, pkg.id, pkg.file_id)
+    dst = manager.config.cache_dir / shasum(pkg.source, pkg.id, pkg.version)
 
     if await t(dst.exists)():
         pass
@@ -452,7 +452,7 @@ class Manager:
         updatables = {
             (d, checked_defns[d], p): download_archive(self, p)
             for d, p in installables.items()
-            if p.file_id != cast(Pkg, checked_defns[d]).file_id
+            if p.version != cast(Pkg, checked_defns[d]).version
         }
         archives = await gather(updatables.values())
 

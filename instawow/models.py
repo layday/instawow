@@ -69,7 +69,6 @@ class Pkg(_BaseTable):
     name = Column(String, nullable=False)
     description = Column(String, nullable=False)
     url = Column(String, nullable=False)
-    file_id = Column(String, nullable=False)
     download_url = Column(String, nullable=False)
     date_published = Column(DateTime, nullable=False)
     version = Column(String, nullable=False)

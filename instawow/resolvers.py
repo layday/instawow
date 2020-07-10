@@ -266,7 +266,6 @@ class CurseResolver(Resolver):
             name=metadata['name'],
             description=metadata['summary'],
             url=metadata['websiteUrl'],
-            file_id=file['id'],
             download_url=file['downloadUrl'],
             date_published=file['fileDate'],
             version=file['displayName'],
@@ -393,12 +392,8 @@ class WowiResolver(Resolver):
         if not metadata:
             raise E.PkgNonexistent
 
-        # Files "pending" are downloadable but do not have a checksum which
-        # we use as a unique file identifier
-        # TODO: investigate using a different field for updates
-        if metadata['UIPending'] == '1':
-            raise E.PkgFileUnavailable('new file awaiting approval')
-
+        # 'UIPending' is set to '1' for files awaiting approval during which
+        # time 'UIMD5' is null - all other fields appear to be filled correctly
         return m.Pkg(
             source=self.source,
             id=metadata['UID'],
@@ -406,7 +401,6 @@ class WowiResolver(Resolver):
             name=metadata['UIName'],
             description=metadata['UIDescription'],
             url=metadata['UIFileInfoURL'],
-            file_id=metadata['UIMD5'],
             download_url=metadata['UIDownload'],
             date_published=metadata['UIDate'],
             version=metadata['UIVersion'],
@@ -476,7 +470,6 @@ class TukuiResolver(Resolver):
             name=addon['name'],
             description=addon['small_desc'],
             url=addon['web_url'],
-            file_id=addon['version'],
             download_url=addon['url'],
             date_published=datetime.fromisoformat(addon['lastupdate']),
             version=addon['version'],
@@ -546,7 +539,6 @@ class InstawowResolver(Resolver):
             name='WeakAuras Companion',
             description='A WeakAuras Companion clone.',
             url='https://github.com/layday/instawow',
-            file_id=checksum,
             download_url=builder.addon_file.as_uri(),
             date_published=datetime.now(),
             version=checksum[:7],
