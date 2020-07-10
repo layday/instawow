@@ -4,9 +4,8 @@ from typing import Any, ClassVar, List, Type
 
 import pydantic
 from pydantic import create_model
-import sqlalchemy.exc
+from sqlalchemy import exc, func, inspect
 from sqlalchemy.ext.declarative import DeclarativeMeta, as_declarative
-from sqlalchemy.inspection import inspect
 from sqlalchemy.orm import relationship
 from sqlalchemy.schema import Column, ForeignKeyConstraint, MetaData, UniqueConstraint
 from sqlalchemy.types import DateTime, Integer, String
@@ -32,7 +31,7 @@ class _BaseTableMeta(DeclarativeMeta):
         super().__init__(*args)
         try:
             columns = inspect(cls).columns
-        except sqlalchemy.exc.NoInspectionAvailable:
+        except exc.NoInspectionAvailable:
             pass
         else:
             cls.Coercer = create_model(
@@ -41,7 +40,7 @@ class _BaseTableMeta(DeclarativeMeta):
                 **{
                     c.name: (c.type.python_type, ...)
                     for c in columns
-                    if not c.foreign_keys and not c.name.startswith('_')
+                    if not c.foreign_keys and not c.name.startswith('_') and not c.server_default
                 },
             )
 
@@ -108,6 +107,15 @@ class PkgDep(_BaseTable):
     pkg_id = Column(String, nullable=False)
 
 
+class PkgVersionLog(_BaseTable):
+    __tablename__ = 'pkg_version_log'
+
+    version = Column(String, nullable=False, primary_key=True)
+    install_time = Column(DateTime, nullable=False, server_default=func.now())
+    pkg_source = Column(String, nullable=False, primary_key=True)
+    pkg_id = Column(String, nullable=False, primary_key=True)
+
+
 class _PkgModel(Pkg.Coercer):
     folders: List[PkgFolder.Coercer]
     options: PkgOptions.Coercer
@@ -131,7 +139,7 @@ def should_migrate(engine: Any, version: str) -> bool:
             current = conn.execute(
                 'SELECT version_num FROM alembic_version WHERE version_num = (?)', version,
             ).scalar()
-        except sqlalchemy.exc.OperationalError:
+        except exc.OperationalError:
             return True
         else:
             if not current:
