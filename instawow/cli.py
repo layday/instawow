@@ -291,10 +291,13 @@ def remove(obj: M, addons: Sequence[Defn]):
 @click.option(
     '--auto', '-a', is_flag=True, default=False, help='Do not ask for user confirmation.'
 )
+@click.option(
+    '--list-unreconciled', is_flag=True, default=False, help='List unreconciled add-ons and exit.'
+)
 @click.pass_context
-def reconcile(ctx: click.Context, auto: bool):
+def reconcile(ctx: click.Context, auto: bool, list_unreconciled: bool):
     "Reconcile pre-installed add-ons."
-    from .matchers import AddonFolder, match_toc_ids, match_toc_names, match_dir_names, get_folders
+    from .matchers import AddonFolder, get_folders, match_dir_names, match_toc_ids, match_toc_names
     from .models import is_pkg
     from .prompts import PkgChoice, confirm, select, skip
 
@@ -360,10 +363,14 @@ def reconcile(ctx: click.Context, auto: bool):
             yield list(prompt(groups))
 
     leftovers = get_folders(manager)
-    if not leftovers:
+    if list_unreconciled:
+        table_rows = [('unreconciled',), *((f.name,) for f in sorted(leftovers))]
+        click.echo(tabulate(table_rows))
+        return
+    elif not leftovers:
         click.echo('No add-ons left to reconcile.')
         return
-    if not auto:
+    elif not auto:
         click.echo(preamble)
 
     matcher = match_all()
@@ -371,11 +378,11 @@ def reconcile(ctx: click.Context, auto: bool):
         selections = matcher.send(leftovers)
         if selections and (auto or confirm('Install selected add-ons?').unsafe_ask()):
             results = manager.run(manager.install(selections, replace=True))
-            Report(results).generate()
+            Report(results.items()).generate()
 
         leftovers = get_folders(manager)
 
-    if not auto and leftovers:
+    if leftovers:
         click.echo()
         table_rows = [('unreconciled',), *((f.name,) for f in sorted(leftovers))]
         click.echo(tabulate(table_rows))
@@ -489,31 +496,6 @@ def list_(obj: M, addons: Sequence[Defn], export: Optional[str], output_format: 
             click.echo(formatter.getvalue(), nl=False)
         else:
             click.echo('\n'.join(str(Defn.from_pkg(p)) for p in pkgs))
-
-
-@main.command()
-@click.option(
-    '--exclude-own', '-e', is_flag=True, default=False, help='Exclude folders managed by instawow.'
-)
-@click.option(
-    '--toc-entry',
-    '-t',
-    'toc_entries',
-    multiple=True,
-    help='An entry to extract from the TOC.  Repeatable.',
-)
-@click.pass_obj
-def list_folders(obj: M, exclude_own: bool, toc_entries: Sequence[str]) -> None:
-    "List add-on folders."
-    from .matchers import get_folders
-
-    folders = sorted(get_folders(obj.m, exclude_own=exclude_own))
-    if folders:
-        rows = [
-            ('unreconciled' if exclude_own else 'folder', *(f'[{e}]' for e in toc_entries)),
-            *((f.name, *(f.toc_reader[e].value for e in toc_entries)) for f in folders),
-        ]
-        click.echo(tabulate(rows))
 
 
 @main.command(hidden=True)
