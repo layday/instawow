@@ -218,6 +218,9 @@ class WaCompanionBuilder(ManagerAttrAccessMixin):
     async def get_remote_auras(
         self, aura_groups: WeakAuras
     ) -> Tuple[Type[WeakAuras], List[RemoteAura]]:
+        if not aura_groups.entries:
+            return (aura_groups.__class__, [])
+
         metadata = await self.get_wago_metadata(aura_groups)
         import_strings = await gather((self.get_wago_import_string(m.id) for m in metadata), False)
         return (
