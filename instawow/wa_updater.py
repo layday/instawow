@@ -325,7 +325,7 @@ class WaCompanionBuilder(ManagerAttrAccessMixin):
             )
             for g in aura_groups
         ]
-        remote_auras = await gather(self.get_remote_auras(g) for g in aura_groups)
+        remote_auras = await gather((self.get_remote_auras(g) for g in aura_groups), False)
         await t(self.make_addon)(remote_auras)
 
     def checksum(self) -> str:
