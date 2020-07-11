@@ -51,8 +51,8 @@ def temp_dir(tmp_path_factory):
 
 @pytest.fixture(params=['retail', 'classic'])
 def partial_config(tmp_path, request, temp_dir):
-    addons = tmp_path / 'addons'
-    addons.mkdir()
+    addons = tmp_path / 'wow' / 'interface' / 'addons'
+    addons.mkdir(parents=True)
     return {'addon_dir': addons, 'temp_dir': temp_dir, 'game_flavour': request.param}
 
 
