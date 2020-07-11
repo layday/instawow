@@ -315,7 +315,7 @@ class WaCompanionBuilder(ManagerAttrAccessMixin):
             write_tpl('init.lua', {})
             write_tpl(
                 'WeakAurasCompanion.toc',
-                {'interface': '11303' if self.config.is_classic else '80300'},
+                {'interface': '11305' if self.config.is_classic else '80300'},
             )
 
     async def build(self) -> None:
