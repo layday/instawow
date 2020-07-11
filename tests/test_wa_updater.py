@@ -9,22 +9,6 @@ def builder(manager):
     yield WaCompanionBuilder(manager, 'test')
 
 
-@pytest.mark.skip
-@pytest.mark.asyncio
-@pytest.mark.parametrize('ids', [['RaidCDs', 'bfaraid2'], ['bfaraid2', 'RaidCDs']])
-async def test_id_order_is_retained_in_aura_metadata(builder, ids):
-    results = await builder.get_wago_aura_metadata(ids)
-    assert ids == [r.slug for r in results]
-
-
-@pytest.mark.skip
-@pytest.mark.asyncio
-async def test_id_length_is_retained_in_aura_metadata(builder):
-    ids = ['bfaraid2', 'foobar', 'RaidCDs']  # Invalid ID flanked by two valid IDs
-    results = await builder.get_wago_aura_metadata(ids)
-    assert [ApiMetadata, type(None), ApiMetadata] == [type(r) for r in results]
-
-
 def test_can_parse_empty_displays_table(builder):
     assert (
         builder.extract_auras(
