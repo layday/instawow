@@ -617,7 +617,7 @@ class GithubResolver(Resolver):
         return m.Pkg(
             source=self.source,
             id=project_metadata['full_name'],
-            slug=project_metadata['full_name'],
+            slug=project_metadata['full_name'].lower(),
             name=project_metadata['name'],
             description=project_metadata['description'],
             url=project_metadata['html_url'],
