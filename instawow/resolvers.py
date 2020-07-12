@@ -590,22 +590,33 @@ class GithubResolver(Resolver):
                 raise E.PkgFileUnavailable('release not found')
             raise
 
-        if not release_metadata['assets']:
-            raise E.PkgFileUnavailable('no files attached to release')
-        matching_asset = next(
-            chain(
-                (
-                    a
-                    for a in release_metadata['assets']
+        try:
+
+            def is_valid_asset(asset: JsonDict):
+                return (
                     # There is something of a convention that Classic archives
                     # end in '-classic' and lib-less archives end in '-nolib'
-                    if a['name'].endswith('-classic.zip') is self.config.is_classic
-                    and not a['name'].endswith('-nolib.zip')
-                ),
-                (a for a in release_metadata['assets'] if not a['name'].endswith('-nolib.zip')),
-                release_metadata['assets'],
+                    not asset['name'].endswith('-nolib.zip')
+                    and asset['content_type']
+                    in {'application/zip', 'application/x-zip-compressed'}
+                    # A failed upload has a state value of 'starter'
+                    and asset['state'] == 'uploaded'
+                )
+
+            matching_asset = next(
+                chain(
+                    (
+                        a
+                        for a in release_metadata['assets']
+                        if is_valid_asset(a)
+                        and a['name'].endswith('-classic.zip') is self.config.is_classic
+                    ),
+                    filter(is_valid_asset, release_metadata['assets']),
+                )
             )
-        )
+        except StopIteration:
+            raise E.PkgFileUnavailable
+
         return m.Pkg(
             source=self.source,
             id=project_metadata['full_name'],
