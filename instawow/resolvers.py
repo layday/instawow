@@ -570,10 +570,9 @@ class GithubResolver(Resolver):
 
         from .manager import cache_json_response
 
-        cache_for = 1800
         repo_url = self.repos_api_url / defn.name
         try:
-            project_metadata = await cache_json_response(self.manager, repo_url, cache_for)
+            project_metadata = await cache_json_response(self.manager, repo_url, 3600)
         except ClientResponseError as error:
             if error.status == 404:
                 raise E.PkgNonexistent
@@ -583,12 +582,10 @@ class GithubResolver(Resolver):
             release_url = repo_url / 'releases/tags' / defn.strategy_vals[0]
         else:
             release_url = repo_url / 'releases/latest'
-        try:
-            release_metadata = await cache_json_response(self.manager, release_url, cache_for)
-        except ClientResponseError as error:
-            if error.status == 404:
+        async with self.web_client.get(release_url) as response:
+            if response.status == 404:
                 raise E.PkgFileUnavailable('release not found')
-            raise
+            release_metadata = await response.json()
 
         try:
 
