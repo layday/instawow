@@ -38,6 +38,7 @@ from .models import Pkg, PkgFolder, PkgVersionLog, is_pkg
 from .resolvers import (
     CurseResolver,
     Defn,
+    GithubResolver,
     InstawowResolver,
     MasterCatalogue,
     Resolver,
@@ -261,7 +262,13 @@ class Manager:
         self.config = config
         self.db_session = db_session
 
-        resolvers = (CurseResolver, WowiResolver, TukuiResolver, InstawowResolver)
+        resolvers = (
+            CurseResolver,
+            WowiResolver,
+            TukuiResolver,
+            GithubResolver,
+            InstawowResolver,
+        )
         self.resolvers = _ResolverDict({r.source: r(self) for r in resolvers})
         self.catalogue = None  # type: ignore
 

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 import enum
-from itertools import count, takewhile
+from itertools import chain, count, takewhile
 import re
 from typing import (
     TYPE_CHECKING,
@@ -142,9 +142,10 @@ class Resolver(ManagerAttrAccessMixin):
 
     async def resolve(self, defns: List[Defn]) -> Dict[Defn, Any]:
         "Resolve add-on definitions into packages."
-        raise NotImplementedError
+        results = await gather(self.resolve_one(d) for d in defns)
+        return dict(zip(defns, results))
 
-    async def resolve_one(self, defn: Defn, metadata: O[JsonDict]) -> m.Pkg:
+    async def resolve_one(self, defn: Defn, metadata: O[JsonDict] = None) -> m.Pkg:
         "Resolve an individual definition into a package."
         raise NotImplementedError
 
@@ -476,10 +477,6 @@ class TukuiResolver(Resolver):
             if name:
                 return name
 
-    async def resolve(self, defns: List[Defn]) -> Dict[Defn, Any]:
-        results = await gather(self.resolve_one(d) for d in defns)
-        return dict(zip(defns, results))
-
     async def resolve_one(self, defn: Defn, metadata: ... = None) -> m.Pkg:
         name = ui_name = self.retail_uis.get(defn.name)
         if not name:
@@ -540,16 +537,95 @@ class TukuiResolver(Resolver):
                     )
 
 
+class GithubResolver(Resolver):
+    source = 'github'
+    name = 'GitHub'
+    strategies = {
+        Strategies.default,
+        Strategies.version,
+    }
+
+    repos_api_url = URL('https://api.github.com/repos')
+
+    @staticmethod
+    def get_name_from_url(value: str) -> O[str]:
+        url = URL(value)
+        if url.host == 'github.com' and len(url.parts) > 2:
+            return '/'.join(url.parts[1:3])
+
+    async def resolve_one(self, defn: Defn, metadata: ... = None) -> m.Pkg:
+        """Resolve a hypothetical add-on hosted on GitHub.
+
+        The GitHub resolver, ahem, 'builds' on the work done by Torkus
+        (see https://github.com/ogri-la/strongbox/blob/develop/github-addons.md) -
+        it purports to support the different kinds of add-ons supported by strongbox
+        with the exception that instawow does not look for TOC files or validate
+        the contents of the ZIP file.
+        instawow will attempt to prioritise add-ons compatible with your selected
+        game flavour.  It will otherwise install the first file it encounters.
+        instawow will only install assets attached to releases.  It will not
+        install add-ons from VCS tarballs or 'zipballs' (i.e. from source).
+        """
+        from aiohttp import ClientResponseError
+
+        from .manager import cache_json_response
+
+        cache_for = 1800
+        repo_url = self.repos_api_url / defn.name
+        try:
+            project_metadata = await cache_json_response(self.manager, repo_url, cache_for)
+        except ClientResponseError as error:
+            if error.status == 404:
+                raise E.PkgNonexistent
+            raise
+
+        if defn.strategy is Strategies.version:
+            release_url = repo_url / 'releases/tags' / defn.strategy_vals[0]
+        else:
+            release_url = repo_url / 'releases/latest'
+        try:
+            release_metadata = await cache_json_response(self.manager, release_url, cache_for)
+        except ClientResponseError as error:
+            if error.status == 404:
+                raise E.PkgFileUnavailable('release not found')
+            raise
+
+        if not release_metadata['assets']:
+            raise E.PkgFileUnavailable('no files attached to release')
+        matching_asset = next(
+            chain(
+                (
+                    a
+                    for a in release_metadata['assets']
+                    # There is something of a convention that Classic archives
+                    # end in '-classic' and lib-less archives end in '-nolib'
+                    if a['name'].endswith('-classic.zip') is self.config.is_classic
+                    and not a['name'].endswith('-nolib.zip')
+                ),
+                (a for a in release_metadata['assets'] if not a['name'].endswith('-nolib.zip')),
+                release_metadata['assets'],
+            )
+        )
+        return m.Pkg(
+            source=self.source,
+            id=project_metadata['full_name'],
+            slug=project_metadata['full_name'],
+            name=project_metadata['name'],
+            description=project_metadata['description'],
+            url=project_metadata['html_url'],
+            download_url=matching_asset['browser_download_url'],
+            date_published=release_metadata['published_at'],
+            version=release_metadata['tag_name'],
+            options=m.PkgOptions(strategy=defn.strategy.name),
+        )
+
+
 class InstawowResolver(Resolver):
     source = 'instawow'
     name = 'instawow'
     strategies = {Strategies.default}
 
     _addons = {('0', 'weakauras-companion'), ('1', 'weakauras-companion-autoupdate')}
-
-    async def resolve(self, defns: List[Defn]) -> Dict[Defn, Any]:
-        results = await gather(self.resolve_one(d) for d in defns)
-        return dict(zip(defns, results))
 
     async def resolve_one(self, defn: Defn, metadata: ... = None) -> m.Pkg:
         try:
