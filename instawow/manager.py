@@ -144,7 +144,9 @@ async def download_archive(
     manager: Manager, pkg: Pkg, *, chunk_size: int = 4096
 ) -> ACM[_ArchiveR]:
     url = pkg.download_url
-    dst = manager.config.cache_dir / shasum(pkg.source, pkg.id, pkg.version)
+    dst = manager.config.cache_dir / shasum(
+        pkg.source, pkg.id, pkg.version, manager.config.game_flavour
+    )
 
     if await t(dst.exists)():
         pass
