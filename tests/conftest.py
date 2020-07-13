@@ -112,14 +112,14 @@ def mock_curse(aresponses, JsonResponse, mock_master_catalogue):
         'addons-ecs.forgesvc.net',
         '/api/v2/addon',
         'post',
-        JsonResponse(body=read_fixture('curse-post-addon_all.json')),
+        JsonResponse(body=read_fixture('curse-addon--all.json')),
         repeat=float('inf'),
     )
     aresponses.add(
         'addons-ecs.forgesvc.net',
         '/api/v2/addon/20338/files',
         'get',
-        JsonResponse(body=read_fixture('curse-get-addon-files.json')),
+        JsonResponse(body=read_fixture('curse-addon-files.json')),
         repeat=float('inf'),
     )
     aresponses.add(
@@ -138,14 +138,14 @@ def mock_wowi(aresponses, JsonResponse, mock_master_catalogue):
         'api.mmoui.com',
         '/v3/game/WOW/filelist.json',
         'get',
-        JsonResponse(body=read_fixture('wowi-get-filelist.json')),
+        JsonResponse(body=read_fixture('wowi-filelist.json')),
         repeat=float('inf'),
     )
     aresponses.add(
         'api.mmoui.com',
         re.compile(r'^/v3/game/WOW/filedetails/'),
         'get',
-        JsonResponse(body=read_fixture('wowi-get-filedetails.json')),
+        JsonResponse(body=read_fixture('wowi-filedetails.json')),
         repeat=float('inf'),
     )
     aresponses.add(
@@ -164,7 +164,7 @@ def mock_tukui(aresponses, JsonResponse, mock_master_catalogue):
         'www.tukui.org',
         '/api.php?ui=tukui',
         'get',
-        JsonResponse(body=read_fixture('tukui-get-ui_tukui.json')),
+        JsonResponse(body=read_fixture('tukui-ui--tukui.json')),
         match_querystring=True,
         repeat=float('inf'),
     )
@@ -172,7 +172,7 @@ def mock_tukui(aresponses, JsonResponse, mock_master_catalogue):
         'www.tukui.org',
         '/api.php?addon=1',
         'get',
-        JsonResponse(body=read_fixture('tukui-get-addon.json')),
+        JsonResponse(body=read_fixture('tukui-addon.json')),
         match_querystring=True,
         repeat=float('inf'),
     )
@@ -180,7 +180,7 @@ def mock_tukui(aresponses, JsonResponse, mock_master_catalogue):
         'www.tukui.org',
         '/api.php?classic-addon=1',
         'get',
-        JsonResponse(body=read_fixture('tukui-get-classic-addon.json')),
+        JsonResponse(body=read_fixture('tukui-classic-addon.json')),
         match_querystring=True,
         repeat=float('inf'),
     )
@@ -210,6 +210,83 @@ def mock_tukui(aresponses, JsonResponse, mock_master_catalogue):
     )
 
 
+@pytest.fixture
+@should_mock
+def mock_github(aresponses, JsonResponse):
+    aresponses.add(
+        'api.github.com',
+        '/repos/AdiAddons/AdiButtonAuras',
+        'get',
+        JsonResponse(body=read_fixture('github-repo-lib-and-nolib.json')),
+        repeat=float('inf'),
+    )
+    aresponses.add(
+        'api.github.com',
+        '/repos/AdiAddons/AdiButtonAuras/releases/latest',
+        'get',
+        JsonResponse(body=read_fixture('github-release-lib-and-nolib.json')),
+        repeat=float('inf'),
+    )
+    aresponses.add(
+        'api.github.com',
+        '/repos/AdiAddons/AdiButtonAuras/releases/tags/2.1.0',
+        'get',
+        JsonResponse(body=read_fixture('github-release-lib-and-nolib-older-version.json')),
+        repeat=float('inf'),
+    )
+    aresponses.add(
+        'api.github.com',
+        '/repos/WeakAuras/WeakAuras2',
+        'get',
+        JsonResponse(body=read_fixture('github-repo-retail-and-classic.json')),
+        repeat=float('inf'),
+    )
+    aresponses.add(
+        'api.github.com',
+        '/repos/WeakAuras/WeakAuras2/releases/latest',
+        'get',
+        JsonResponse(body=read_fixture('github-release-retail-and-classic.json')),
+        repeat=float('inf'),
+    )
+    aresponses.add(
+        'api.github.com',
+        '/repos/p3lim-wow/Molinari',
+        'get',
+        JsonResponse(body=read_fixture('github-repo-no-releases.json')),
+        repeat=float('inf'),
+    )
+    aresponses.add(
+        'api.github.com',
+        '/repos/p3lim-wow/Molinari/releases/latest',
+        'get',
+        aresponses.Response(body=b'', status=404),
+        repeat=float('inf'),
+    )
+    aresponses.add(
+        'api.github.com',
+        '/repos/AdiAddons/AdiButtonAuras/releases/tags/2.0.19',
+        'get',
+        JsonResponse(body=read_fixture('github-release-no-assets.json')),
+        repeat=float('inf'),
+    )
+    aresponses.add(
+        'api.github.com',
+        '/repos/layday/foo-bar',
+        'get',
+        aresponses.Response(body=b'', status=404),
+        repeat=float('inf'),
+    )
+    aresponses.add(
+        'github.com',
+        re.compile(r'^(/[^/]*){2}/releases/download'),
+        'get',
+        aresponses.Response(body=make_zip('Foo')),
+        repeat=float('inf'),
+    )
+
+
 @pytest.fixture(autouse=True)
-def mock_all(mock_pypi, mock_curse, mock_wowi, mock_tukui):
+def mock_all(
+    mock_pypi, mock_curse, mock_wowi, mock_tukui, mock_github,
+):
     pass

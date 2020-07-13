@@ -296,6 +296,35 @@ def test_install_with_wowi_alias(run, inp, cmp):
 
 
 @pytest.mark.parametrize(
+    'inp, cmp',
+    [
+        (
+            'install github:AdiAddons/AdiButtonAuras',
+            lambda v: v.startswith('✓ github:AdiAddons/AdiButtonAuras\n  installed'),
+        ),
+        (
+            'install github:adiaddons/adibuttonauras',
+            '✗ github:adiaddons/adibuttonauras\n  package already installed\n'.__eq__,
+        ),
+        (
+            'install https://github.com/AdiAddons/AdiButtonAuras',
+            '✗ github:AdiAddons/AdiButtonAuras\n  package already installed\n'.__eq__,
+        ),
+        (
+            'install https://github.com/AdiAddons/AdiButtonAuras/releases',
+            '✗ github:AdiAddons/AdiButtonAuras\n  package already installed\n'.__eq__,
+        ),
+        (
+            'remove github:adiaddons/adibuttonauras',
+            '✓ github:adiaddons/adibuttonauras\n  removed\n'.__eq__,
+        ),
+    ],
+)
+def test_install_with_github_alias(run, inp, cmp):
+    assert cmp(run(inp).output)
+
+
+@pytest.mark.parametrize(
     'inp, output, run',
     [
         ('install curse:molinari', '✓ curse:molinari\n  installed 80300.66-Release\n', None),

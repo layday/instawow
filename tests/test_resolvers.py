@@ -79,6 +79,20 @@ async def test_resolve_curse_deps(manager):
 
 
 @pytest.mark.asyncio
+async def test_resolve_wowi_pkgs(manager):
+    results = await manager.resolve(
+        [Defn('wowi', '13188-molinari'), Defn('wowi', '13188', Strategies.latest)]
+    )
+    either, invalid = results.values()
+
+    assert isinstance(either, Pkg)
+    assert (
+        isinstance(invalid, E.PkgStrategyUnsupported)
+        and invalid.message == "'latest' strategy is not valid for source"
+    )
+
+
+@pytest.mark.asyncio
 async def test_resolve_tukui_pkgs(manager):
     results = await manager.resolve(
         [
@@ -106,14 +120,31 @@ async def test_resolve_tukui_pkgs(manager):
 
 
 @pytest.mark.asyncio
-async def test_resolve_wowi_pkgs(manager):
+async def test_resolve_github_pkgs(manager):
     results = await manager.resolve(
-        [Defn('wowi', '13188-molinari'), Defn('wowi', '13188', Strategies.latest)]
+        [
+            Defn('github', 'AdiAddons/AdiButtonAuras'),
+            Defn('github', 'AdiAddons/AdiButtonAuras', Strategies.version, ('2.1.0',)),
+            Defn('github', 'AdiAddons/AdiButtonAuras', Strategies.version, ('2.0.19',)),
+            Defn('github', 'WeakAuras/WeakAuras2'),
+            Defn('github', 'p3lim-wow/Molinari'),
+            Defn('github', 'layday/foo-bar'),
+        ]
     )
-    either, invalid = results.values()
-
-    assert isinstance(either, Pkg)
+    (
+        lib_and_nolib,
+        older_version,
+        assetless,
+        retail_and_classic,
+        releaseless,
+        missing,
+    ) = results.values()
+    assert 'nolib' not in lib_and_nolib.download_url
+    assert older_version.options.strategy == 'version' and older_version.version == '2.1.0'
+    assert isinstance(assetless, E.PkgFileUnavailable)
     assert (
-        isinstance(invalid, E.PkgStrategyUnsupported)
-        and invalid.message == "'latest' strategy is not valid for source"
+        isinstance(releaseless, E.PkgFileUnavailable)
+        and releaseless.message == 'release not found'
     )
+    assert ('classic' in retail_and_classic.download_url) is manager.config.is_classic
+    assert isinstance(missing, E.PkgNonexistent)

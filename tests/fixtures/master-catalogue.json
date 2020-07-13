@@ -3657,6 +3657,21 @@
   },
   {
     "source": "curse",
+    "id": "395022",
+    "slug": "always-show-level",
+    "name": "Always Show Level",
+    "compatibility": [
+      "retail",
+      "classic"
+    ],
+    "folders": [
+      [
+        "AlwaysShowLevel"
+      ]
+    ]
+  },
+  {
+    "source": "curse",
     "id": "33436",
     "slug": "alysmon",
     "name": "Alysmon",
@@ -7085,6 +7100,21 @@
     "folders": [
       [
         "ConfirmSP"
+      ]
+    ]
+  },
+  {
+    "source": "curse",
+    "id": "3727",
+    "slug": "auto-destroy",
+    "name": "Auto Destroy",
+    "compatibility": [
+      "retail",
+      "classic"
+    ],
+    "folders": [
+      [
+        "AutoDestroy"
       ]
     ]
   },
@@ -16170,6 +16200,20 @@
     "folders": [
       [
         "Broker_Currencyflow"
+      ]
+    ]
+  },
+  {
+    "source": "curse",
+    "id": "380492",
+    "slug": "broker_dateclock",
+    "name": "Broker_DateClock",
+    "compatibility": [
+      "retail"
+    ],
+    "folders": [
+      [
+        "Broker_DateClock"
       ]
     ]
   },
@@ -34480,10 +34524,10 @@
     ],
     "folders": [
       [
-        "ElvUI_NutsAndBolts_Classic"
+        "ElvUI_NutsAndBolts"
       ],
       [
-        "ElvUI_NutsAndBolts"
+        "ElvUI_NutsAndBolts_Classic"
       ]
     ]
   },
@@ -34844,10 +34888,10 @@
     ],
     "folders": [
       [
-        "ElvUI_BenikUI_Classic"
+        "ElvUI_BenikUI"
       ],
       [
-        "ElvUI_BenikUI"
+        "ElvUI_BenikUI_Classic"
       ]
     ]
   },
@@ -36041,6 +36085,20 @@
     "folders": [
       [
         "EquipNSpecReminder"
+      ]
+    ]
+  },
+  {
+    "source": "curse",
+    "id": "394797",
+    "slug": "equippummeler",
+    "name": "EquipPummeler",
+    "compatibility": [
+      "classic"
+    ],
+    "folders": [
+      [
+        "EquipPummeler"
       ]
     ]
   },
@@ -40979,6 +41037,20 @@
   },
   {
     "source": "curse",
+    "id": "394761",
+    "slug": "gdkpd-classic",
+    "name": "GDKPd Classic",
+    "compatibility": [
+      "classic"
+    ],
+    "folders": [
+      [
+        "GDKPd"
+      ]
+    ]
+  },
+  {
+    "source": "curse",
     "id": "356857",
     "slug": "gfdi-death-sound",
     "name": "GFDI - Death Sound",
@@ -44548,6 +44620,20 @@
         "Grid2RaidDebuffsOptions",
         "Grid2LDB",
         "Grid2"
+      ]
+    ]
+  },
+  {
+    "source": "curse",
+    "id": "394916",
+    "slug": "grid2-survival-buff-korean-plugin",
+    "name": "Grid2 Survival Buff(Korean) plugin",
+    "compatibility": [
+      "retail"
+    ],
+    "folders": [
+      [
+        "Grid2SurvivalBuff"
       ]
     ]
   },
@@ -57012,7 +57098,7 @@
     "source": "curse",
     "id": "95528",
     "slug": "kkthnxui",
-    "name": "KkthnxUI for WoW Retail",
+    "name": "KkthnxUI Retail",
     "compatibility": [
       "retail"
     ],
@@ -61556,6 +61642,20 @@
     "folders": [
       [
         "LightSpeed"
+      ]
+    ]
+  },
+  {
+    "source": "curse",
+    "id": "395189",
+    "slug": "lightning-timer",
+    "name": "Lightning Timer",
+    "compatibility": [
+      "retail"
+    ],
+    "folders": [
+      [
+        "LightningTimer"
       ]
     ]
   },
@@ -76280,7 +76380,8 @@
     "slug": "peskytext",
     "name": "PeskyText",
     "compatibility": [
-      "retail"
+      "retail",
+      "classic"
     ],
     "folders": [
       [
@@ -77345,6 +77446,21 @@
     "folders": [
       [
         "PhotoRobot"
+      ]
+    ]
+  },
+  {
+    "source": "curse",
+    "id": "393721",
+    "slug": "phreakin-handwriting-fonts",
+    "name": "Phreakin's Handwriting Fonts",
+    "compatibility": [
+      "retail",
+      "classic"
+    ],
+    "folders": [
+      [
+        "PhreakFonts"
       ]
     ]
   },
@@ -86194,6 +86310,21 @@
   },
   {
     "source": "curse",
+    "id": "395100",
+    "slug": "request-stop-transparent",
+    "name": "Request Stop Transparent",
+    "compatibility": [
+      "retail",
+      "classic"
+    ],
+    "folders": [
+      [
+        "RequestStopTransparent"
+      ]
+    ]
+  },
+  {
+    "source": "curse",
     "id": "101773",
     "slug": "requeststop",
     "name": "RequestStop",
@@ -90651,6 +90782,20 @@
     "folders": [
       [
         "Data"
+      ]
+    ]
+  },
+  {
+    "source": "curse",
+    "id": "393421",
+    "slug": "shutuptoys",
+    "name": "ShutupToys",
+    "compatibility": [
+      "retail"
+    ],
+    "folders": [
+      [
+        "ShutupToys"
       ]
     ]
   },
@@ -97070,6 +97215,21 @@
   },
   {
     "source": "curse",
+    "id": "394799",
+    "slug": "super-lfg",
+    "name": "Super LFG",
+    "compatibility": [
+      "retail",
+      "classic"
+    ],
+    "folders": [
+      [
+        "SuperLFG"
+      ]
+    ]
+  },
+  {
+    "source": "curse",
     "id": "326843",
     "slug": "super-status-tracking-bar",
     "name": "Super Status Tracking Bar",
@@ -98884,6 +99044,20 @@
     "folders": [
       [
         "Target_3D_Model_Viewer"
+      ]
+    ]
+  },
+  {
+    "source": "curse",
+    "id": "394881",
+    "slug": "target-assist",
+    "name": "Target Assist",
+    "compatibility": [
+      "classic"
+    ],
+    "folders": [
+      [
+        "Target Assist"
       ]
     ]
   },
@@ -109867,6 +110041,20 @@
   },
   {
     "source": "curse",
+    "id": "394782",
+    "slug": "witchhunt-classic",
+    "name": "WitchHunt-Classic",
+    "compatibility": [
+      "classic"
+    ],
+    "folders": [
+      [
+        "WitchHunt-Classic"
+      ]
+    ]
+  },
+  {
+    "source": "curse",
     "id": "268983",
     "slug": "withered-army-training-map",
     "name": "Withered Army Training Map",
@@ -112105,6 +112293,20 @@
     "folders": [
       [
         "XpGainNotify"
+      ]
+    ]
+  },
+  {
+    "source": "curse",
+    "id": "395128",
+    "slug": "xplogger",
+    "name": "XpLogger",
+    "compatibility": [
+      "classic"
+    ],
+    "folders": [
+      [
+        "XpLogger"
       ]
     ]
   },
@@ -226107,16 +226309,6 @@
   },
   {
     "source": "tukui",
-    "id": "162",
-    "slug": "",
-    "name": "Data Bars &amp; Texts",
-    "compatibility": [
-      "retail"
-    ],
-    "folders": []
-  },
-  {
-    "source": "tukui",
     "id": "8",
     "slug": "",
     "name": "DecUI",
@@ -226160,6 +226352,16 @@
     "id": "64",
     "slug": "",
     "name": "ElvUI Actionbar Combat State",
+    "compatibility": [
+      "retail"
+    ],
+    "folders": []
+  },
+  {
+    "source": "tukui",
+    "id": "174",
+    "slug": "",
+    "name": "ElvUI BC DataTexts",
     "compatibility": [
       "retail"
     ],
