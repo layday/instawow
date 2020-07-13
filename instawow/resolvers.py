@@ -592,8 +592,9 @@ class GithubResolver(Resolver):
             def is_valid_asset(asset: JsonDict):
                 return (
                     # There is something of a convention that Classic archives
-                    # end in '-classic' and lib-less archives end in '-nolib'
-                    not asset['name'].endswith('-nolib.zip')
+                    # end in '-classic' and lib-less archives end in '-nolib'.
+                    # Archives produced by packager follow this convention
+                    not asset['name'].endswith(('-nolib.zip', '-nolib-classic.zip'))
                     and asset['content_type']
                     in {'application/zip', 'application/x-zip-compressed'}
                     # A failed upload has a state value of 'starter'
