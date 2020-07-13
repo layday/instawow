@@ -601,15 +601,16 @@ class GithubResolver(Resolver):
                     and asset['state'] == 'uploaded'
                 )
 
+            assets = release_metadata.get('assets', [])
             matching_asset = next(
                 chain(
                     (
                         a
-                        for a in release_metadata['assets']
+                        for a in assets
                         if is_valid_asset(a)
                         and a['name'].endswith('-classic.zip') is self.config.is_classic
                     ),
-                    filter(is_valid_asset, release_metadata['assets']),
+                    filter(is_valid_asset, assets),
                 )
             )
         except StopIteration:
