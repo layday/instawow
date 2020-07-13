@@ -3,7 +3,7 @@
 
 *instawow* is a package manager for World of Warcraft, written
 in Python.  It can be used to install, remove and update add-ons from
-WoWInterface, CurseForge and Tukui.
+WoWInterface, CurseForge, Tukui and GitHub.
 
 *instawow* tries to make installing, updating and removing
 add-ons quick and painless for those of us who are
@@ -101,7 +101,18 @@ Rollbacks can themselves be undone with ``instawow rollback --undo``,
 which will install the latest version of the specified add-on using
 the default strategy.
 
-Rollback is currently only supported by CurseForge.
+Rollback is currently only supported for CurseForge and GitHub.
+
+GitHub as a source
+~~~~~~~~~~~~~~~~~~
+
+*instawow* purports to support WoW add-ons *released* on GitHub; that is to say,
+the repository must have a release associated with it and that release *must*
+carry a ZIP file as an asset.  *instawow* will not install or build add-ons from
+source.
+
+I do not recommend using GitHub as a source unless an add-on cannot
+be found in a domain-specific source.
 
 WoW Classic
 ~~~~~~~~~~~
@@ -180,13 +191,13 @@ When installing, updating or searching for add-ons, *instawow* will retrieve
 scraped add-on metadata from https://raw.githubusercontent.com,
 CurseForge add-on metadata from https://addons-ecs.forgesvc.net,
 WoWInterface add-on metadata from https://api.mmoui.com,
-Tukui add-on metadata from https://www.tukui.org, and
-aura data from https://data.wago.io;
-and will follow file URLs contained in metadata.
+Tukui add-on metadata from https://www.tukui.org,
+GitHub add-on metadata from https://api.github.com,
+and aura data from https://data.wago.io;
+and will follow download URLs contained in metadata.
 
 Every 24 hours, on launch, *instawow* will query PyPI (https://pypi.org) – the
-canonical Python package repository – to suggest updating *instawow* to the
-latest version.
+canonical Python package repository – to check for *instawow* updates.
 
 Requests made by *instawow* can be identified by its user agent string.
 
