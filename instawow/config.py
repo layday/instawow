@@ -3,10 +3,10 @@ from __future__ import annotations
 import os
 from pathlib import Path
 from tempfile import gettempdir
-from typing import Any, Dict
+from typing import Any, Dict, Optional as O
 
 import click
-from pydantic import BaseSettings, Extra, Field, validator
+from pydantic import BaseSettings, Extra, Field, constr, validator
 
 from .utils import Literal
 
@@ -27,6 +27,7 @@ class _Config(BaseConfig):
     temp_dir: Path = Path(gettempdir()) / 'instawow'
     game_flavour: Literal['retail', 'classic']
     auto_update_check: bool = True
+    profile: O[constr(min_length=1)] = None
 
     class Config:
         env_prefix = 'INSTAWOW_'
@@ -46,16 +47,33 @@ class _Config(BaseConfig):
             raise ValueError('must be a writable directory')
         return value
 
+    @validator('profile')
+    def _rewrite_config_dir_for_profile(cls, value: O[str], values: Any) -> O[str]:
+        if value:
+            values['config_dir'] = values['config_dir'] / 'profiles' / value
+        return value
+
     @classmethod
-    def read(cls) -> _Config:
+    def read(cls, profile: O[str] = None) -> _Config:
         "Read the configuration from disk."
-        dummy_config = cls(addon_dir='', game_flavour='retail')
-        return cls.parse_raw(dummy_config.config_file.read_text(encoding='utf-8'))
+        dummy_config = cls(addon_dir='', game_flavour='retail', profile=profile)
+        config = cls.parse_raw(dummy_config.config_file.read_text(encoding='utf-8'))
+        if profile != config.profile:
+            raise ValueError(
+                f'profile location does not match profile value of '
+                f'{config.profile!r} in {dummy_config.config_file}'
+            )
+        return config
 
     def ensure_dirs(self) -> _Config:
         "Create the various folders used by instawow."
         self.config_dir.mkdir(exist_ok=True, parents=True)
-        for dir_ in self.logger_dir, self.plugin_dir, self.temp_dir, self.cache_dir:
+        for dir_ in (
+            self.logger_dir,
+            self.plugin_dir,
+            self.temp_dir,
+            self.cache_dir,
+        ):
             dir_.mkdir(exist_ok=True)
         return self
 
@@ -67,7 +85,8 @@ class _Config(BaseConfig):
         made during configuration.
         """
         self.ensure_dirs()
-        output = self.json(include={'addon_dir', 'game_flavour'}, indent=2)
+        includes = {'addon_dir', 'game_flavour', 'profile'}
+        output = self.json(include=includes, indent=2)
         self.config_file.write_text(output, encoding='utf-8')
         return self
 

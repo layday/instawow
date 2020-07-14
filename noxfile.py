@@ -38,7 +38,7 @@ def update_stubs(session):
             https://github.com/dropbox/sqlalchemy-stubs stubs/_sqlalchemy-stubs
           cp -r stubs/_sqlalchemy-stubs/sqlalchemy-stubs stubs/sqlalchemy
         }
-    """,
+        """,
         shell=True,
         executable='bash',
     )

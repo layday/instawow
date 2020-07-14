@@ -124,20 +124,26 @@ What *instawow* does not have is a switch you can flick to go from managing
 your retail add-ons to managing your classic add-ons and vice versa.
 This was a conscious design decision, the merits of which – I should admit –
 are open to debate.  If you are already using *instawow* for Retail,
-you will need to create a separate profile for Classic.  On Linux, this might be::
+you will need to set up a profile for Classic.  To activate an
+alternative profile, you must use the ``--profile``/``-p`` option.  Assuming your
+default profile is configured for retail,
+you can create a pristine profile by running::
+
+    instawow -p classic configure
+
+You must then prefix ``-p classic`` to commands to manage your Classic profile.
+
+Before v1.12, the only way to create a new profile was to
+override the default configuration folder in the environment.
+This remains an option.  In Bash::
 
     INSTAWOW_CONFIG_DIR=~/.config/instawow-classic instawow
 
-For ease of use, you might want to set up an alias.  In your Bash profile::
+The ``any_flavour`` strategy can be used to install add-ons from CurseForge
+which have not been released for Classic but work just as well.
+Taking ColorPickerPlus as an example::
 
-    alias instawow-classic='INSTAWOW_CONFIG_DIR=~/.config/instawow-classic instawow'
-
-You would then be able to invoke *instawow* using ``instawow-classic``.
-
-The ``any_flavour`` strategy can be used to install ostensibly retail-only add-ons
-which work in Classic.  For example::
-
-    instawow-classic install -s any_flavour https://www.curseforge.com/wow/addons/colorpickerplus
+    instawow -p classic install -s any_flavour https://www.curseforge.com/wow/addons/colorpickerplus
 
 Additional functionality
 ------------------------

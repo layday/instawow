@@ -12,7 +12,7 @@ from typing import (
     Generator,
     Iterable,
     List,
-    Optional,
+    Optional as O,
     Sequence,
     Tuple,
     TypeVar,
@@ -93,8 +93,8 @@ class Report:
 
 
 class ManagerWrapper:
-    def __init__(self, debug: bool = False):
-        self.debug = debug
+    def __init__(self, ctx: click.Context):
+        self.ctx = ctx
 
     @cached_property
     def m(self) -> CliManager:
@@ -110,14 +110,13 @@ class ManagerWrapper:
 
         while True:
             try:
-                config = Config.read().ensure_dirs()
+                config = Config.read(profile=self.ctx.params['profile']).ensure_dirs()
             except FileNotFoundError:
-                ctx = click.get_current_context()
-                ctx.invoke(configure)
+                self.ctx.invoke(configure)
             else:
                 break
 
-        setup_logging(config.logger_dir, 'DEBUG' if self.debug else 'INFO')
+        setup_logging(config.logger_dir, 'DEBUG' if self.ctx.params['debug'] else 'INFO')
         db_session = prepare_db_session(config)
         manager = CliManager(config, db_session)
         return manager
@@ -222,12 +221,13 @@ def _show_version(ctx: click.Context, param: Any, value: bool):
     is_eager=True,
     help='Show the version and exit.',
 )
+@click.option('--profile', '-p', default=None, help='Activate the specified profile.')
 @click.option('--debug', is_flag=True, default=False, help='Log more things.')
 @click.pass_context
-def main(ctx: click.Context, debug: bool):
+def main(ctx: click.Context, profile: O[str], debug: bool):
     "Add-on manager for World of Warcraft."
     if not ctx.obj:
-        ctx.obj = ManagerWrapper(debug)
+        ctx.obj = ManagerWrapper(ctx)
 
 
 @main.command()
@@ -513,7 +513,7 @@ def search(ctx: click.Context, limit: int, search_terms: str):
     'addons', nargs=-1, callback=_callbackify(partial(parse_into_defn, raise_invalid=False))
 )
 @click.pass_obj
-def list_(obj: M, addons: Sequence[Defn], export: Optional[str], output_format: str):
+def list_(obj: M, addons: Sequence[Defn], export: O[str], output_format: str):
     "List installed add-ons."
     from sqlalchemy import and_, or_
 
@@ -606,11 +606,11 @@ def reveal(obj: M, addon: Defn):
     default=False,
     help='Show the active configuration and exit.',
 )
-@click.pass_obj
-def configure(obj: M, show_active: bool):
+@click.pass_context
+def configure(ctx: click.Context, show_active: bool):
     "Configure instawow."
     if show_active:
-        click.echo(obj.m.config.json(indent=2))
+        click.echo(ctx.obj.m.config.json(indent=2))
         return
 
     from prompt_toolkit.completion import WordCompleter
@@ -630,7 +630,9 @@ def configure(obj: M, show_active: bool):
         completer=WordCompleter(['retail', 'classic']),
         validator=PydanticValidator(Config, 'game_flavour'),
     )
-    config = Config(addon_dir=addon_dir, game_flavour=game_flavour).write()
+    config = Config(
+        addon_dir=addon_dir, game_flavour=game_flavour, profile=ctx.parent.params['profile'],
+    ).write()
     click.echo(f'Configuration written to: {config.config_file}')
 
 

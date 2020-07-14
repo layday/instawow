@@ -39,13 +39,18 @@ def test_invalid_addon_dir_raises(full_config):
         Config(**{**full_config, 'addon_dir': 'foo'})
 
 
-def test_reading_config_file(full_config):
-    Config(**full_config).write()
+@pytest.mark.parametrize('profile', ['foo', None])
+def test_reading_config_file(full_config, profile):
+    Config(**full_config, profile=profile).write()
     config_json = {
         'addon_dir': str(full_config['addon_dir']),
         'game_flavour': full_config['game_flavour'],
+        'profile': profile,
     }
-    assert config_json == json.loads((full_config['config_dir'] / 'config.json').read_text())
+    config_loc = full_config['config_dir']
+    if profile:
+        config_loc = config_loc / 'profiles' / profile
+    assert config_json == json.loads((config_loc / 'config.json').read_text())
 
 
 @pytest.mark.skipif(sys.platform == 'win32', reason='path handling')
