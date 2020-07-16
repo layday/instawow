@@ -319,7 +319,7 @@ class WaCompanionBuilder(ManagerAttrAccessMixin):
             )
 
     async def build(self) -> None:
-        aura_groups = await t(self.extract_installed_auras)()
+        aura_groups = await t(lambda: list(self.extract_installed_auras()))()
         aura_groups = [
             g.__class__(
                 entries={
