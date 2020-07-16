@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from itertools import chain
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -85,8 +86,6 @@ class Plateroo(WeakAura):
 
 
 class Plateroos(WeakAuras):
-    entries: Dict[str, List[Plateroo]]
-
     class Meta:
         model = Plateroo
         filename = 'Plater.lua'
@@ -97,10 +96,11 @@ class Plateroos(WeakAuras):
     def from_lua_table(cls, lua_table: Dict[Any, Any]) -> Plateroos:
         auras = (
             cls.Meta.model.parse_obj(a)
-            for p in lua_table['profiles'].values()
-            for n, v in p.items()
-            if n in ('script_data', 'hook_data')
-            for a in v
+            for n, p in lua_table['profiles'].items()
+            for a in chain(
+                ({**p, 'Name': f'__profile_{n}__'},),
+                (i for n, v in p.items() if n in {'script_data', 'hook_data'} for i in v),
+            )
             if a.get('url')
         )
         return cls(entries=bucketise(auras, key=lambda a: a.url.parts[1]))
@@ -232,19 +232,18 @@ class WaCompanionBuilder(ManagerAttrAccessMixin):
         )
 
     def make_addon(self, auras: Sequence[Tuple[Type[WeakAuras], Sequence[RemoteAura]]]) -> None:
+        from functools import partial
+        from importlib.resources import read_text
         from zipfile import ZipFile, ZipInfo
 
         from jinja2 import Environment, FunctionLoader
 
-        def loader(filename: str) -> str:
-            from importlib.resources import read_text
-
-            from . import wa_templates
-
-            return read_text(wa_templates, filename)
+        from . import wa_templates
 
         jinja_env = Environment(
-            trim_blocks=True, lstrip_blocks=True, loader=FunctionLoader(loader)
+            trim_blocks=True,
+            lstrip_blocks=True,
+            loader=FunctionLoader(partial(read_text, wa_templates)),
         )
         aura_dict = dict_chain((WeakAuras, Plateroos), [], auras)
 
