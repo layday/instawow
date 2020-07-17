@@ -85,8 +85,12 @@ async def match_toc_ids(manager: Manager, leftovers: FrozenSet[AddonFolder]) -> 
 async def match_dir_names(manager: Manager, leftovers: FrozenSet[AddonFolder]) -> MatchGroups:
     "Attempt to match folders against the master catalogue."
 
-    def keyer(value: Tuple[FrozenSet[AddonFolder], Defn]):
+    def bucket_keyer(value: Tuple[FrozenSet[AddonFolder], Defn]):
         return next(f for f in folders if value[0] & f)
+
+    def sort_keyer(value: Tuple[FrozenSet[AddonFolder], Defn]):
+        folders, defn = value
+        return (-len(folders), defn)
 
     await manager.synchronise()
 
@@ -101,8 +105,8 @@ async def match_dir_names(manager: Manager, leftovers: FrozenSet[AddonFolder]) -
     folders = list(merge_intersecting_sets(f for f, _ in matches))
     return [
         # IDs are sorted in decreasing order of number of matching folders
-        (sorted(f), uniq(d for _, d in sorted(b, reverse=True)))
-        for f, b in bucketise(matches, keyer).items()
+        (sorted(f), uniq(d for _, d in sorted(b, key=sort_keyer)))
+        for f, b in bucketise(matches, bucket_keyer).items()
     ]
 
 
