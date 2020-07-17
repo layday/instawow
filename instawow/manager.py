@@ -206,7 +206,7 @@ def prepare_db_session(config: Config) -> scoped_session:
         from .utils import copy_resources
 
         with copy_resources(
-            f'{__package__}.migrations', f'{__package__}.migrations.versions'
+            f'{__package__}.migrations', f'{__package__}.migrations.versions',
         ) as tmp_dir:
             aconfig = AConfig()
             aconfig.set_main_option('script_location', str(tmp_dir / __package__ / 'migrations'))
@@ -260,18 +260,18 @@ class Manager:
     resolvers: Mapping[str, Resolver]
     catalogue: MasterCatalogue
 
+    resolver_classes = (
+        CurseResolver,
+        WowiResolver,
+        TukuiResolver,
+        GithubResolver,
+        InstawowResolver,
+    )
+
     def __init__(self, config: Config, db_session: scoped_session) -> None:
         self.config = config
         self.db_session = db_session
-
-        resolvers = (
-            CurseResolver,
-            WowiResolver,
-            TukuiResolver,
-            GithubResolver,
-            InstawowResolver,
-        )
-        self.resolvers = _ResolverDict({r.source: r(self) for r in resolvers})
+        self.resolvers = _ResolverDict((r.source, r(self)) for r in self.resolver_classes)
         self.catalogue = None  # type: ignore
 
     @property
@@ -307,16 +307,18 @@ class Manager:
     def pair_url(self, url: str) -> O[Tuple[str, str]]:
         "Attempt to pair a URL with a resolver, returning the source and name."
         return next(
-            filter(all, ((r.source, r.get_name_from_url(url)) for r in self.resolvers.values())),
+            filter(
+                all, ((r.source, r.get_name_from_url(url)) for r in self.resolvers.values())
+            ),  # type: ignore
             None,
-        )  # type: ignore
+        )
 
     async def synchronise(self) -> None:
         "Fetch the master catalogue from the interwebs."
         if self.catalogue is None:
             label = 'Synchronising master catalogue'
             url = (
-                'https://raw.githubusercontent.com/layday/instascrape/data/'
+                'https://raw.githubusercontent.com/layday/instawow-data/data/'
                 'master-catalogue-v1.compact.json'
             )  # v1
             catalogue = await cache_json_response(self, url, 4, 'hours', label=label)

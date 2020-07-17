@@ -6,7 +6,7 @@ from tempfile import gettempdir
 from typing import Any, Dict, Optional as O
 
 import click
-from pydantic import BaseSettings, Extra, Field, constr, validator
+from pydantic import BaseSettings, Extra, Field, validator
 
 from .utils import Literal
 
@@ -27,7 +27,7 @@ class _Config(BaseConfig):
     temp_dir: Path = Path(gettempdir()) / 'instawow'
     game_flavour: Literal['retail', 'classic']
     auto_update_check: bool = True
-    profile: O[constr(min_length=1)] = None
+    profile: O[str] = None
 
     class Config:
         env_prefix = 'INSTAWOW_'
@@ -49,6 +49,8 @@ class _Config(BaseConfig):
 
     @validator('profile')
     def _rewrite_config_dir_for_profile(cls, value: O[str], values: Any) -> O[str]:
+        if value is not None and not value:
+            raise ValueError('must be at least one character long')
         if value:
             values['config_dir'] = values['config_dir'] / 'profiles' / value
         return value

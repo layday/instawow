@@ -12,6 +12,7 @@ from typing import (
     TYPE_CHECKING,
     AbstractSet,
     Any,
+    AsyncIterator,
     Awaitable,
     Callable,
     Dict,
@@ -117,8 +118,8 @@ def bucketise(iterable: Iterable[_V], key: Callable[[_V], _H] = lambda v: v) -> 
 
 
 def dict_chain(
-    keys: Iterable[_H], default: Any, *overrides: Iterable[Tuple[_H, Any]]
-) -> Dict[_H, Any]:
+    keys: Iterable[_H], default: Any, *overrides: Iterable[Tuple[_H, _V]]
+) -> Dict[_H, _V]:
     "Construct a dictionary from a series of iterables with overlapping keys."
     return dict(chain(zip(keys, repeat(default)), *overrides))
 
@@ -154,7 +155,32 @@ async def gather(it: Iterable[Awaitable[_V]], return_exceptions: bool = True) ->
 
 
 def run_in_thread(fn: Callable[..., _V]) -> Callable[..., Awaitable[_V]]:
-    return lambda *a, **k: asyncio.get_running_loop().run_in_executor(None, lambda: fn(*a, **k))
+    def wrapper(*args: Any, **kwargs: Any):
+        loop = asyncio.get_running_loop()
+        return loop.run_in_executor(None, lambda: fn(*args, **kwargs))
+
+    return wrapper
+
+
+class _StopIteration(Exception):
+    pass
+
+
+def _iit_next(it: Iterator[_V]) -> _V:
+    try:
+        return next(it)
+    except StopIteration:
+        raise _StopIteration
+
+
+# From Starlette: https://github.com/encode/starlette/blob/78f7095/starlette/concurrency.py
+async def iter_in_thread(it: Iterator[_V]) -> AsyncIterator[_V]:
+    loop = asyncio.get_running_loop()
+    while True:
+        try:
+            yield await loop.run_in_executor(None, _iit_next, it)
+        except _StopIteration:
+            return
 
 
 @contextmanager

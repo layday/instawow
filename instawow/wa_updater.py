@@ -1,28 +1,27 @@
 from __future__ import annotations
 
 from itertools import chain
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Dict,
-    Iterable,
-    List,
-    NamedTuple,
-    Optional as O,
-    Sequence,
-    Tuple,
-    Type,
-)
+from typing import TYPE_CHECKING, Any, Dict, Iterator, List, Optional as O, Sequence, Tuple, Type
 
 from loguru import logger
 from pydantic import BaseModel, Extra, ValidationError, validator
 from yarl import URL
 
 from .config import BaseConfig
-from .utils import ManagerAttrAccessMixin, bucketise, dict_chain, gather, run_in_thread as t
+from .utils import (
+    ManagerAttrAccessMixin,
+    bucketise,
+    dict_chain,
+    gather,
+    iter_in_thread as iit,
+    run_in_thread as t,
+)
 
 if TYPE_CHECKING:
     from .manager import Manager
+
+    ImportString = str
+    RemoteAura = Tuple[List['WeakAura'], 'WagoResponse', ImportString]
 
 
 import_api = URL('https://data.wago.io/api/raw/encoded')
@@ -103,10 +102,10 @@ class Plateroos(WeakAuras):
             )
             if a.get('url')
         )
-        return cls(entries=bucketise(auras, key=lambda a: a.url.parts[1]))
+        return cls(entries={a.url.parts[1]: [a] for a in auras})
 
 
-class _ApiChangelog(BaseModel):
+class _WagoChangelog(BaseModel):
     format: O[str]
     text: str = ''
 
@@ -114,19 +113,19 @@ class _ApiChangelog(BaseModel):
         extra = Extra.forbid
 
 
-class ApiMetadata(BaseModel):
+class WagoResponse(BaseModel):
     id: str
-    name: str
-    slug: str
+    name: str  # +
+    slug: str  # +
     url: str
     created: str
     modified: str
     game: str
     fork_of: O[str]
-    username: str
-    version: int
-    version_string: str
-    changelog: _ApiChangelog
+    username: str  # +
+    version: int  # +
+    version_string: str  # +
+    changelog: _WagoChangelog  # +
     region_type: O[str]
 
     class Config:
@@ -137,13 +136,6 @@ class ApiMetadata(BaseModel):
             'version_string': 'versionString',
             'region_type': 'regionType',
         }
-
-
-class RemoteAura(NamedTuple):
-    slug: str
-    existing_auras: List[WeakAura]
-    metadata: ApiMetadata
-    import_string: str
 
 
 class WaCompanionBuilder(ManagerAttrAccessMixin):
@@ -173,7 +165,7 @@ class WaCompanionBuilder(ManagerAttrAccessMixin):
         table = WaParser().decode(source)
         return model.from_lua_table(table)
 
-    def extract_installed_auras(self) -> Iterable[WeakAuras]:
+    def extract_installed_auras(self) -> Iterator[WeakAuras]:
         import time
 
         try:
@@ -200,14 +192,14 @@ class WaCompanionBuilder(ManagerAttrAccessMixin):
                 logger.debug(f'auras extracted in {time.perf_counter() - start}s')
                 yield aura_groups
 
-    async def get_wago_metadata(self, aura_groups: WeakAuras) -> List[ApiMetadata]:
+    async def get_wago_metadata(self, aura_groups: WeakAuras) -> List[WagoResponse]:
         aura_ids = list(aura_groups.entries)
         url = aura_groups.Meta.api.with_query(ids=','.join(aura_ids))
         async with self.web_client.get(url) as response:
             metadata = await response.json()
 
         results = dict_chain(
-            aura_ids, None, ((i.slug, i) for i in map(ApiMetadata.parse_obj, metadata))
+            aura_ids, None, ((i.slug, i) for i in map(WagoResponse.parse_obj, metadata))
         )
         return list(results.values())
 
@@ -225,10 +217,7 @@ class WaCompanionBuilder(ManagerAttrAccessMixin):
         import_strings = await gather((self.get_wago_import_string(m.id) for m in metadata), False)
         return (
             aura_groups.__class__,
-            [
-                RemoteAura(slug=s, existing_auras=e, metadata=m, import_string=i)
-                for (s, e), m, i in zip(aura_groups.entries.items(), metadata, import_strings)
-            ],
+            list(zip(aura_groups.entries.values(), metadata, import_strings)),
         )
 
     def make_addon(self, auras: Sequence[Tuple[Type[WeakAuras], Sequence[RemoteAura]]]) -> None:
@@ -262,52 +251,50 @@ class WaCompanionBuilder(ManagerAttrAccessMixin):
                 {
                     'weakauras': [
                         (
-                            o.metadata.slug,
+                            metadata.slug,
                             {
-                                'name': o.metadata.name,
-                                'author': o.metadata.username,
-                                'encoded': o.import_string,
-                                'wagoVersion': o.metadata.version,
-                                'wagoSemver': o.metadata.version_string,
-                                'versionNote': o.metadata.changelog.text,
+                                'name': metadata.name,
+                                'author': metadata.username,
+                                'encoded': import_string,
+                                'wagoVersion': metadata.version,
+                                'wagoSemver': metadata.version_string,
+                                'versionNote': metadata.changelog.text,
                             },
                         )
-                        for o in aura_dict[WeakAuras]
+                        for _, metadata, import_string in aura_dict[WeakAuras]
                     ],
                     # Maps internal UIDs of top-level auras to IDs or slugs on Wago
                     'weakaura_uids': [
                         (a.uid, a.url.parts[1])
-                        for o in aura_dict[WeakAuras]
+                        for existing_auras, _, _ in aura_dict[WeakAuras]
                         for a in (
-                            next(
-                                (i for i in o.existing_auras if not i.parent), o.existing_auras[0]
-                            ),
+                            next((i for i in existing_auras if not i.parent), existing_auras[0]),
                         )
                     ],
                     # Maps local names to IDs or slugs on Wago
                     'weakaura_ids': [
                         (a.id, a.url.parts[1])
-                        for o in aura_dict[WeakAuras]
-                        for a in o.existing_auras
+                        for existing_auras, _, _ in aura_dict[WeakAuras]
+                        for a in existing_auras
                     ],
                     'plateroos': [
                         (
-                            o.metadata.slug,
+                            metadata.slug,
                             {
-                                'name': o.metadata.name,
-                                'author': o.metadata.username,
-                                'encoded': o.import_string,
-                                'wagoVersion': o.metadata.version,
-                                'wagoSemver': o.metadata.version_string,
-                                'versionNote': o.metadata.changelog.text,
+                                'name': metadata.name,
+                                'author': metadata.username,
+                                'encoded': import_string,
+                                'wagoVersion': metadata.version,
+                                'wagoSemver': metadata.version_string,
+                                'versionNote': metadata.changelog.text,
                             },
                         )
-                        for o in aura_dict[Plateroos]
+                        for _, metadata, import_string in aura_dict[Plateroos]
                     ],
                     'plater_ids': [
                         (a.id, a.url.parts[1])
-                        for o in aura_dict[Plateroos]
-                        for a in o.existing_auras
+                        for existing_auras, _, _ in aura_dict[Plateroos]
+                        for a in existing_auras
                     ],
                 },
             )
@@ -318,14 +305,14 @@ class WaCompanionBuilder(ManagerAttrAccessMixin):
             )
 
     async def build(self) -> None:
-        aura_groups = await t(lambda: list(self.extract_installed_auras()))()
+        iter_auras = iit(self.extract_installed_auras())
         aura_groups = [
             g.__class__(
                 entries={
                     k: v for k, v in g.entries.items() if not any(i.ignore_wago_update for i in v)
                 }
             )
-            for g in aura_groups
+            async for g in iter_auras
         ]
         remote_auras = await gather((self.get_remote_auras(g) for g in aura_groups), False)
         await t(self.make_addon)(remote_auras)

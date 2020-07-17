@@ -61,7 +61,7 @@ class Defn(NamedTuple):
 
     @classmethod
     def from_pkg(cls, pkg: m.Pkg) -> Defn:
-        strategy = Strategies[pkg.options.strategy]  # type: ignore
+        strategy = Strategies[pkg.options.strategy]
         strategy_vals = (pkg.version,) if strategy is Strategies.version else ()
         return cls(pkg.source, pkg.slug, strategy, strategy_vals, pkg.id)
 
@@ -123,13 +123,15 @@ class Resolver(ManagerAttrAccessMixin):
         self.manager = manager
 
     def __init_subclass__(cls) -> None:
-        async def wrapper(self: Resolver, defn: Defn, metadata: O[JsonDict] = None) -> m.Pkg:
+        async def resolve_wrapper(
+            self: Resolver, defn: Defn, metadata: O[JsonDict] = None
+        ) -> m.Pkg:
             if defn.strategy in self.strategies:
-                return await resolve_one(self, defn, metadata)
+                return await resolve_one(self, defn, metadata)  # type: ignore
             raise E.PkgStrategyUnsupported(defn.strategy)
 
         resolve_one = cls.resolve_one
-        cls.resolve_one = wrapper  # type: ignore
+        cls.resolve_one = resolve_wrapper  # type: ignore
 
     @property
     def supports_rollback(self) -> bool:
