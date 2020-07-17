@@ -77,10 +77,10 @@ def test_tabulate(fake_addon):
     assert (
         tabulate(data)
         == '''\
-  key       value    \n\
-------- -------------
-Normal  Normal entry \n\
-Compact Compact entry\
+  key        value    \n\
+-------  -------------
+Normal   Normal entry \n\
+Compact  Compact entry\
 '''
     )
 
