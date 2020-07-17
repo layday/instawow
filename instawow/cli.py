@@ -666,17 +666,24 @@ def build_weakauras_companion(obj: M, account: str):
 @click.pass_obj
 def list_installed_wago_auras(obj: M, account: str):
     "List WeakAuras installed from Wago."
+    from textwrap import fill
+
     from .wa_updater import WaCompanionBuilder
 
     aura_groups = WaCompanionBuilder(obj.m, account).extract_installed_auras()
     installed_auras = sorted(
-        (Path(g.Meta.filename).stem, a.id, a.url, 'yes' if a.ignore_wago_update else 'no')
+        (
+            g.Meta.model.__name__,
+            fill(a.id, width=30, max_lines=1),
+            a.url,
+            'yes' if a.ignore_wago_update else 'no',
+        )
         for g in aura_groups
         for v in g.entries.values()
         for a in v
         if not a.parent
     )
-    click.echo(tabulate([('add-on', 'name', 'URL', 'ignore updates'), *installed_auras]))
+    click.echo(tabulate([('type', 'name', 'URL', 'ignore updates'), *installed_auras]))
 
 
 @main.command(hidden=True)

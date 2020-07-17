@@ -232,7 +232,7 @@ def tabulate(rows: Sequence[Sequence[Any]], *, max_col_width: int = 60) -> str:
     rows = [tuple(map(apply_max_col_width, r)) for r in rows]
     head, *tail = rows
 
-    base_template = ' '.join(f'{{{{{{0}}{w}}}}}' for w in calc_resultant_col_widths(rows))
+    base_template = '  '.join(f'{{{{{{0}}{w}}}}}' for w in calc_resultant_col_widths(rows))
     row_template = base_template.format(':<')
     table = '\n'.join(
         (
