@@ -18,6 +18,8 @@ jobs:
     steps:
     - name: Clone the repo
       uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
     - name: Extract the tag
       id: get_tag
       run: |
