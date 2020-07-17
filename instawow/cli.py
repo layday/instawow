@@ -178,8 +178,8 @@ def export_to_csv(pkgs: Sequence[models.Pkg], path: Path):
 
     with Path(path).open('w', encoding='utf-8', newline='') as file:
         writer = csv.writer(file)
-        writer.writerow(('defn', 'strategy'))
-        writer.writerows((Defn.from_pkg(p), p.options.strategy) for p in pkgs)
+        writer.writerow(('defn', 'strategy', 'version'))
+        writer.writerows((Defn.from_pkg(p), p.options.strategy, p.version) for p in pkgs)
 
 
 def import_from_csv(manager: CliManager, path: Path) -> List[Defn]:
@@ -187,8 +187,9 @@ def import_from_csv(manager: CliManager, path: Path) -> List[Defn]:
     import csv
 
     with Path(path).open(encoding='utf-8', newline='') as contents:
-        rows = [(b, a) for a, b in islice(csv.reader(contents), 1, None)]
-    return parse_into_defn_with_strategy(manager, rows)
+        rows = islice(csv.reader(contents), 1, None)
+        defns = [Defn(*parse_into_defn(manager, d)[:2], Strategies[s], (v,)) for d, s, v in rows]
+    return defns
 
 
 def _callbackify(fn: Callable[..., _R]) -> Callable[[click.Context, Any, Any], _R]:
@@ -551,9 +552,7 @@ def list_(obj: M, addons: Sequence[Defn], export: O[str], output_format: str):
         export_to_csv(pkgs, cast(Path, export))
     elif pkgs:
         if output_format == 'json':
-            from .models import MultiPkgModel
-
-            click.echo(MultiPkgModel.from_orm(pkgs).json(indent=2))
+            click.echo(models.MultiPkgModel.from_orm(pkgs).json(indent=2))
         elif output_format == 'detailed':
             formatter = click.HelpFormatter(max_width=99)
             for pkg in pkgs:
@@ -570,7 +569,6 @@ def list_(obj: M, addons: Sequence[Defn], export: O[str], output_format: str):
                             ('Options', f'{{"strategy": "{pkg.options.strategy}"}}'),
                         )
                     )
-
             click.echo(formatter.getvalue(), nl=False)
         else:
             click.echo('\n'.join(str(Defn.from_pkg(p)) for p in pkgs))

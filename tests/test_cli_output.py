@@ -389,8 +389,8 @@ def test_csv_export_and_import(molinari_and_run, manager):
     assert (
         export_csv.read_text(encoding='utf-8')
         == '''\
-defn,strategy
-curse:molinari,default
+defn,strategy,version
+curse:molinari,default,80300.66-Release
 '''
     )
     assert (
