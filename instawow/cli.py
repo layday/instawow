@@ -611,15 +611,15 @@ def configure(ctx: click.Context, show_active: bool):
         click.echo(ctx.obj.m.config.json(indent=2))
         return
 
-    from prompt_toolkit.completion import WordCompleter
+    from prompt_toolkit.completion import PathCompleter, WordCompleter
     from prompt_toolkit.shortcuts import prompt
 
     from .config import Config
-    from .prompts import DirectoryCompleter, PydanticValidator
+    from .prompts import PydanticValidator
 
     addon_dir = prompt(
         'Add-on directory: ',
-        completer=DirectoryCompleter(),
+        completer=PathCompleter(only_directories=True, expanduser=True),
         validator=PydanticValidator(Config, 'addon_dir'),
     )
     game_flavour = prompt(
@@ -629,7 +629,9 @@ def configure(ctx: click.Context, show_active: bool):
         validator=PydanticValidator(Config, 'game_flavour'),
     )
     config = Config(
-        addon_dir=addon_dir, game_flavour=game_flavour, profile=ctx.parent.params['profile'],
+        addon_dir=addon_dir,
+        game_flavour=game_flavour,
+        profile=cast(click.Context, ctx.parent).params['profile'],
     ).write()
     click.echo(f'Configuration written to: {config.config_file}')
 

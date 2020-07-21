@@ -4,7 +4,6 @@ from functools import partial
 from typing import TYPE_CHECKING, Any, Optional, Sequence, Type
 
 from prompt_toolkit.application import Application
-from prompt_toolkit.completion import PathCompleter
 from prompt_toolkit.key_binding import KeyBindings
 from prompt_toolkit.keys import Keys
 from prompt_toolkit.styles import Style
@@ -15,21 +14,9 @@ from questionary.prompts.common import InquirerControl, Separator, create_inquir
 from questionary.question import Question
 
 if TYPE_CHECKING:
-    from prompt_toolkit.completion import CompleteEvent
     from prompt_toolkit.document import Document
 
     from .models import Pkg
-
-
-class DirectoryCompleter(PathCompleter):
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
-        super().__init__(*args, expanduser=True, only_directories=True, **kwargs)
-
-    def get_completions(self, document: Document, complete_event: CompleteEvent):
-        for completion in super().get_completions(document, complete_event):
-            # Append slash to completions so we don't have to insert it manually after every <tab>
-            completion.text += '/'
-            yield completion
 
 
 class PydanticValidator(Validator):
@@ -65,7 +52,7 @@ qstyle = Style(
     ]
 )
 
-skip = Choice([('', 'skip')], ())  # type: ignore  # Wrong annotation in questionary
+skip = Choice([('', 'skip')], ())
 
 confirm = partial(_confirm, style=qstyle)
 
