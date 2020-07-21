@@ -46,12 +46,9 @@ class WeakAura(BaseModel):
     parent: O[str]
     url: URL
     version: int
-    semver: O[str]
-    ignore_wago_update: bool = False
 
     class Config:
         arbitrary_types_allowed = True
-        fields = {'ignore_wago_update': 'ignoreWagoUpdate'}
 
     @validator('url', pre=True)
     def _convert_url(cls, value: str) -> URL:
@@ -296,16 +293,10 @@ class WaCompanionBuilder(ManagerAttrAccessMixin):
             )
 
     async def build(self) -> None:
-        iter_auras = iit(self.extract_installed_auras())
-        aura_groups = [
-            g.__class__(
-                entries={
-                    k: v for k, v in g.entries.items() if not any(i.ignore_wago_update for i in v)
-                }
-            )
-            async for g in iter_auras
-        ]
-        remote_auras = await gather((self.get_remote_auras(g) for g in aura_groups), False)
+        installed_auras = iit(self.extract_installed_auras())
+        remote_auras = await gather(
+            [self.get_remote_auras(g) async for g in installed_auras], False,
+        )
         await t(self.make_addon)(remote_auras)
 
     def checksum(self) -> str:

@@ -674,18 +674,13 @@ def list_installed_wago_auras(obj: M, account: str):
     config = BuilderConfig(account=account)
     aura_groups = WaCompanionBuilder(obj.m, config).extract_installed_auras()
     installed_auras = sorted(
-        (
-            g.Meta.model.__name__,
-            fill(a.id, width=30, max_lines=1),
-            a.url,
-            'yes' if a.ignore_wago_update else 'no',
-        )
+        (g.Meta.model.__name__, fill(a.id, width=30, max_lines=1), a.url)
         for g in aura_groups
         for v in g.entries.values()
         for a in v
         if not a.parent
     )
-    click.echo(tabulate([('type', 'name', 'URL', 'ignore updates'), *installed_auras]))
+    click.echo(tabulate([('type', 'name', 'URL'), *installed_auras]))
 
 
 @main.command(hidden=True)
