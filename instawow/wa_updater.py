@@ -31,6 +31,7 @@ import_api = URL('https://data.wago.io/api/raw/encoded')
 
 class BuilderConfig(BaseConfig):
     account: str
+    api_key: O[str]
 
     class Config:
         env_prefix = 'WAC_'
@@ -183,7 +184,9 @@ class WaCompanionBuilder(ManagerAttrAccessMixin):
     async def get_wago_metadata(self, aura_groups: WeakAuras) -> List[WagoResponse]:
         aura_ids = list(aura_groups.entries)
         url = aura_groups.Meta.api.with_query(ids=','.join(aura_ids))
-        async with self.web_client.get(url) as response:
+        async with self.web_client.get(
+            url, headers={'api-key': self.builder_config.api_key or ''}
+        ) as response:
             metadata = await response.json()
 
         results = dict_chain(
@@ -192,7 +195,10 @@ class WaCompanionBuilder(ManagerAttrAccessMixin):
         return list(results.values())
 
     async def get_wago_import_string(self, aura_id: str) -> str:
-        async with self.web_client.get(import_api.with_query(id=aura_id)) as response:
+        async with self.web_client.get(
+            import_api.with_query(id=aura_id),
+            headers={'api-key': self.builder_config.api_key or ''},
+        ) as response:
             return await response.text()
 
     async def get_remote_auras(
