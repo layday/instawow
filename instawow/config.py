@@ -21,7 +21,7 @@ class BaseConfig(BaseSettings):
         return {**init_kwargs, **self._build_environ(_env_file)}
 
 
-class _Config(BaseConfig):
+class GlobalConfig(BaseConfig):
     config_dir: Path = Field(default_factory=_get_default_config_dir)
     addon_dir: Path
     temp_dir: Path = Path(gettempdir()) / 'instawow'
@@ -56,18 +56,18 @@ class _Config(BaseConfig):
         return value
 
     @classmethod
-    def read(cls, profile: O[str] = None) -> _Config:
+    def read(cls, profile: O[str] = None) -> GlobalConfig:
         "Read the configuration from disk."
         dummy_config = cls(addon_dir='', game_flavour='retail', profile=profile)
         config = cls.parse_raw(dummy_config.config_file.read_text(encoding='utf-8'))
         if profile != config.profile:
             raise ValueError(
-                f'profile location does not match profile value of '
+                'profile location does not match profile value of '
                 f'{config.profile!r} in {dummy_config.config_file}'
             )
         return config
 
-    def ensure_dirs(self) -> _Config:
+    def ensure_dirs(self) -> GlobalConfig:
         "Create the various folders used by instawow."
         self.config_dir.mkdir(exist_ok=True, parents=True)
         for dir_ in (
@@ -79,7 +79,7 @@ class _Config(BaseConfig):
             dir_.mkdir(exist_ok=True)
         return self
 
-    def write(self) -> _Config:
+    def write(self) -> GlobalConfig:
         """Write the configuration on disk.
 
         ``write``, unlike ``ensure_dirs``, is only called when configuring
@@ -117,4 +117,4 @@ class _Config(BaseConfig):
         return self.temp_dir / 'cache'
 
 
-Config = _Config
+Config = GlobalConfig

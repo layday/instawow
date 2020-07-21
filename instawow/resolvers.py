@@ -645,14 +645,14 @@ class InstawowResolver(Resolver):
         except StopIteration:
             raise E.PkgNonexistent
 
-        from .wa_updater import WaCompanionBuilder, WaConfigError
+        from .wa_updater import BuilderConfig, WaCompanionBuilder
 
-        builder = WaCompanionBuilder(self.manager)
+        sentinel = '__sentinel__'
+        builder = WaCompanionBuilder(self.manager, BuilderConfig(account=sentinel))
         if id_ == '1':
-            try:
-                await builder.build()
-            except WaConfigError:
-                raise E.PkgFileUnavailable('account named not provided')
+            if builder.builder_config.account == sentinel:
+                raise E.PkgFileUnavailable('account name not provided')
+            await builder.build()
 
         checksum = await t(builder.checksum)()
         return m.Pkg(

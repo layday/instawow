@@ -1,7 +1,7 @@
 import pytest
 from yarl import URL
 
-from instawow.wa_updater import WaCompanionBuilder, WeakAura, WeakAuras
+from instawow.wa_updater import BuilderConfig, WaCompanionBuilder, WeakAura, WeakAuras
 
 
 @pytest.fixture
@@ -25,7 +25,7 @@ WeakAurasSaved = {
 
 @pytest.fixture
 def builder(manager):
-    yield WaCompanionBuilder(manager, 'test')
+    yield WaCompanionBuilder(manager, BuilderConfig(account='test'))
 
 
 def test_can_parse_empty_displays_table(builder):

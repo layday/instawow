@@ -4,10 +4,10 @@ from itertools import chain
 from typing import TYPE_CHECKING, Any, Dict, Iterator, List, Optional as O, Sequence, Tuple, Type
 
 from loguru import logger
-from pydantic import BaseModel, Extra, ValidationError, validator
+from pydantic import BaseModel, Extra, validator
 from yarl import URL
 
-from .config import BaseConfig
+from .config import BaseConfig, GlobalConfig
 from .utils import (
     ManagerAttrAccessMixin,
     bucketise,
@@ -18,6 +18,8 @@ from .utils import (
 )
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from .manager import Manager
 
     ImportString = str
@@ -33,9 +35,9 @@ class BuilderConfig(BaseConfig):
     class Config:
         env_prefix = 'WAC_'
 
-
-class WaConfigError(Exception):
-    pass
+    def get_saved_vars(self, global_config: GlobalConfig) -> Path:
+        root_for_flavour = global_config.addon_dir.parents[1]
+        return root_for_flavour / 'WTF' / 'Account' / self.account / 'SavedVariables'
 
 
 class WeakAura(BaseModel):
@@ -141,10 +143,10 @@ class WagoResponse(BaseModel):
 class WaCompanionBuilder(ManagerAttrAccessMixin):
     """A WeakAuras Companion port for shellfolk."""
 
-    def __init__(self, manager: Manager, account: O[str] = None) -> None:
+    def __init__(self, manager: Manager, builder_config: BuilderConfig) -> None:
         self.manager = manager
         self.addon_file = self.config.plugin_dir / __name__ / 'WeakAurasCompanion.zip'
-        self.account = account
+        self.builder_config = builder_config
 
     @staticmethod
     def extract_auras(model: Type[WeakAuras], source: str) -> WeakAuras:
@@ -168,18 +170,7 @@ class WaCompanionBuilder(ManagerAttrAccessMixin):
     def extract_installed_auras(self) -> Iterator[WeakAuras]:
         import time
 
-        try:
-            builder_config = BuilderConfig(account=self.account)
-        except ValidationError as error:
-            raise WaConfigError from error
-
-        saved_vars = (
-            self.config.addon_dir.parents[1]
-            / 'WTF'
-            / 'Account'
-            / builder_config.account
-            / 'SavedVariables'
-        )
+        saved_vars = self.builder_config.get_saved_vars(self.config)
         for model in WeakAuras, Plateroos:
             file = saved_vars / model.Meta.filename
             if not file.exists():

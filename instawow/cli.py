@@ -651,9 +651,10 @@ def _weakauras_group():
 @click.pass_obj
 def build_weakauras_companion(obj: M, account: str):
     "Build the WeakAuras Companion add-on."
-    from .wa_updater import WaCompanionBuilder
+    from .wa_updater import BuilderConfig, WaCompanionBuilder
 
-    obj.m.run(WaCompanionBuilder(obj.m, account).build())
+    config = BuilderConfig(account=account)
+    obj.m.run(WaCompanionBuilder(obj.m, config).build())
 
 
 @_weakauras_group.command('list')
@@ -668,9 +669,10 @@ def list_installed_wago_auras(obj: M, account: str):
     "List WeakAuras installed from Wago."
     from textwrap import fill
 
-    from .wa_updater import WaCompanionBuilder
+    from .wa_updater import BuilderConfig, WaCompanionBuilder
 
-    aura_groups = WaCompanionBuilder(obj.m, account).extract_installed_auras()
+    config = BuilderConfig(account=account)
+    aura_groups = WaCompanionBuilder(obj.m, config).extract_installed_auras()
     installed_auras = sorted(
         (
             g.Meta.model.__name__,
