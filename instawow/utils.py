@@ -40,16 +40,23 @@ Literal = _Literal  # ...
 if TYPE_CHECKING:
     from prompt_toolkit.shortcuts import ProgressBar
 
-    from .manager import CliManager
+    from .manager import CliManager, Manager
 
     _H = TypeVar('_H', bound=Hashable)
     _AnySet = TypeVar('_AnySet', bound=AbstractSet)
+
+    class ManagerAttrAccessMixin(Manager):
+        manager: Manager
+
+
+else:
+
+    class ManagerAttrAccessMixin:
+        def __getattr__(self, name: str) -> Any:
+            return getattr(self.manager, name)
+
+
 _V = TypeVar('_V')
-
-
-class ManagerAttrAccessMixin:
-    def __getattr__(self, name: str) -> Any:
-        return getattr(self.manager, name)
 
 
 class _TocEntry(NamedTuple):
