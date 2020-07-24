@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, ClassVar, List, Type
+from typing import Any, ClassVar, List, Type, cast
 
 import pydantic
 from pydantic import create_model
@@ -71,9 +71,15 @@ class Pkg(_BaseTable):
     download_url = Column(String, nullable=False)
     date_published = Column(DateTime, nullable=False)
     version = Column(String, nullable=False)
-    folders = relationship('PkgFolder', cascade='all, delete-orphan', backref='pkg')
-    options = relationship('PkgOptions', cascade='all, delete-orphan', uselist=False)
-    deps = relationship('PkgDep', cascade='all, delete-orphan', backref='pkg')
+    folders = cast(
+        'List[PkgFolder]', relationship('PkgFolder', cascade='all, delete-orphan', backref='pkg')
+    )
+    options = cast(
+        'PkgOptions', relationship('PkgOptions', cascade='all, delete-orphan', uselist=False)
+    )
+    deps = cast(
+        'List[PkgDep]', relationship('PkgDep', cascade='all, delete-orphan', backref='pkg')
+    )
 
 
 class PkgFolder(_BaseTable):
