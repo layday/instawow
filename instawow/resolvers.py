@@ -475,7 +475,7 @@ class TukuiResolver(Resolver):
             if name:
                 return name
 
-    async def resolve_one(self, defn: Defn, metadata: ... = None) -> m.Pkg:
+    async def resolve_one(self, defn: Defn, metadata: Any = None) -> m.Pkg:
         name = ui_name = self.retail_uis.get(defn.name)
         if not name:
             name = ''.join(takewhile('-'.__ne__, defn.name))
@@ -550,7 +550,7 @@ class GithubResolver(Resolver):
         if url.host == 'github.com' and len(url.parts) > 2:
             return '/'.join(url.parts[1:3])
 
-    async def resolve_one(self, defn: Defn, metadata: ... = None) -> m.Pkg:
+    async def resolve_one(self, defn: Defn, metadata: Any = None) -> m.Pkg:
         """Resolve a hypothetical add-on hosted on GitHub.
 
         The GitHub resolver, ahem, 'builds' on the work done by Torkus
@@ -632,9 +632,12 @@ class InstawowResolver(Resolver):
     name = 'instawow'
     strategies = {Strategies.default}
 
-    _addons = {('0', 'weakauras-companion'), ('1', 'weakauras-companion-autoupdate')}
+    _addons = {
+        ('0', 'weakauras-companion'),
+        ('1', 'weakauras-companion-autoupdate'),
+    }
 
-    async def resolve_one(self, defn: Defn, metadata: ... = None) -> m.Pkg:
+    async def resolve_one(self, defn: Defn, metadata: Any = None) -> m.Pkg:
         try:
             id_, slug = next(p for p in self._addons if defn.name in p)
         except StopIteration:

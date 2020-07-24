@@ -364,7 +364,7 @@ def rollback(ctx: click.Context, addon: Defn, undo: bool):
     choices = [
         Choice(
             [('', v.version)],  # type: ignore
-            disabled='installed version' if v.version == pkg.version else None
+            disabled='installed version' if v.version == pkg.version else None,
         )
         for v in versions
     ]
@@ -492,7 +492,7 @@ def reconcile(ctx: click.Context, auto: bool, list_unreconciled: bool):
     help='A number to limit results to.',
 )
 @click.pass_context
-def search(ctx: click.Context, limit: int, search_terms: str):
+def search(ctx: click.Context, search_terms: str, limit: int):
     "Search for add-ons to install."
     from .prompts import PkgChoice, checkbox, confirm
 
@@ -521,7 +521,7 @@ class ListFormats(enum.Enum):
     '-f',
     'output_format',
     type=_EnumParam(ListFormats),
-    default='simple',
+    default=ListFormats.simple.name,
     show_default=True,
     help='Change the output format.',
 )
@@ -561,7 +561,7 @@ def list_installed(obj: M, addons: Sequence[Defn], output_format: ListFormats):
         .all()
     )
     if output_format is ListFormats.json:
-        click.echo(models.MultiPkgModel.from_orm(pkgs).json(indent=2))
+        click.echo(models.MultiPkgModel.parse_obj(pkgs).json(indent=2))
     elif output_format is ListFormats.detailed:
         formatter = click.HelpFormatter(max_width=99)
         for pkg in pkgs:

@@ -13,7 +13,7 @@ from tempfile import NamedTemporaryFile, mkdtemp
 from typing import (
     TYPE_CHECKING,
     Any,
-    AsyncContextManager as ACM,
+    AsyncContextManager,
     AsyncIterator,
     Awaitable,
     Callable,
@@ -64,7 +64,7 @@ if TYPE_CHECKING:
     from .config import Config
 
     _T = TypeVar('_T')
-    _ArchiveR = Tuple[List[str], Callable[[Path], Awaitable[None]]]
+    _ArchiveACM = AsyncContextManager[Tuple[List[str], Callable[[Path], Awaitable[None]]]]
 
 
 USER_AGENT = 'instawow (https://github.com/layday/instawow)'
@@ -78,7 +78,7 @@ amove = t(move)
 
 
 @asynccontextmanager
-async def open_temp_writer() -> AsyncIterator[Tuple[Path, Callable[..., Any]]]:
+async def open_temp_writer() -> AsyncIterator[Tuple[Path, Callable[[bytes], Awaitable[int]]]]:
     fh = await AsyncNamedTemporaryFile(delete=False)
     path = Path(fh.name)
     try:
@@ -120,7 +120,7 @@ def should_extract(base_dirs: Set[str]) -> Callable[[str], bool]:
 
 
 @asynccontextmanager
-async def acquire_archive(path: PurePath) -> AsyncIterator[_ArchiveR]:
+async def acquire_archive(path: PurePath):
     from zipfile import ZipFile
 
     def extract(parent: Path) -> None:
@@ -140,9 +140,7 @@ async def acquire_archive(path: PurePath) -> AsyncIterator[_ArchiveR]:
         await t(archive.close)()
 
 
-async def download_archive(
-    manager: Manager, pkg: Pkg, *, chunk_size: int = 4096
-) -> ACM[_ArchiveR]:
+async def download_archive(manager: Manager, pkg: Pkg, *, chunk_size: int = 4096) -> _ArchiveACM:
     url = pkg.download_url
     dst = manager.config.cache_dir / shasum(
         pkg.source, pkg.id, pkg.version, manager.config.game_flavour
@@ -175,9 +173,9 @@ async def cache_json_response(
     if await t(is_not_stale)(dst, *args):
         text = await t(dst.read_text)(encoding='utf-8')
     else:
-        kwargs: Dict[str, Any] = {'raise_for_status': True}
+        kwargs = {'raise_for_status': True}
         if label:
-            kwargs.update({'trace_request_ctx': {'show_progress': True, 'label': label}})
+            kwargs = {**kwargs, 'trace_request_ctx': {'show_progress': True, 'label': label}}
         async with manager.web_client.get(url, **kwargs) as response:
             text = await response.text()
 
@@ -256,7 +254,7 @@ async def _error_out(error: Union[E.ManagerError, E.InternalError]) -> NoReturn:
 
 class Manager:
     config: Config
-    db_session: Any  # scoped_session
+    db_session: scoped_session
     resolvers: Mapping[str, Resolver]
     catalogue: MasterCatalogue
 
@@ -394,9 +392,7 @@ class Manager:
         pkgs_by_defn = {d.with_name(r.slug): r for d, r in results.items() if is_pkg(r)}
         return pkgs_by_defn
 
-    async def install_one(
-        self, pkg: Pkg, archive: ACM[_ArchiveR], replace: bool
-    ) -> E.PkgInstalled:
+    async def install_one(self, pkg: Pkg, archive: _ArchiveACM, replace: bool) -> E.PkgInstalled:
         async with archive as (folders, extract):
             conflicts = (
                 self.db_session.query(Pkg)
@@ -411,12 +407,12 @@ class Manager:
                 await trash([self.config.addon_dir / f for f in folders], self.config.temp_dir)
             await extract(self.config.addon_dir)
 
-            pkg.folders = [PkgFolder(name=f) for f in folders]
-            self.db_session.add(pkg)
-            self.db_session.merge(
-                PkgVersionLog(version=pkg.version, pkg_source=pkg.source, pkg_id=pkg.id)
-            )
-            self.db_session.commit()
+        pkg.folders = [PkgFolder(name=f) for f in folders]
+        self.db_session.add(pkg)
+        self.db_session.merge(
+            PkgVersionLog(version=pkg.version, pkg_source=pkg.source, pkg_id=pkg.id)
+        )
+        self.db_session.commit()
 
         return E.PkgInstalled(pkg)
 
@@ -441,29 +437,34 @@ class Manager:
         )
         return await self._consume_seq(coros)
 
-    async def update_one(self, old_pkg: Pkg, pkg: Pkg, archive: ACM[_ArchiveR]) -> E.PkgUpdated:
+    async def update_one(self, old_pkg: Pkg, new_pkg: Pkg, archive: _ArchiveACM) -> E.PkgUpdated:
         async with archive as (folders, extract):
             conflicts = (
                 self.db_session.query(Pkg)
                 .join(Pkg.folders)
-                .filter(PkgFolder.pkg_source != pkg.source, PkgFolder.pkg_id != pkg.id)
+                .filter(PkgFolder.pkg_source != new_pkg.source, PkgFolder.pkg_id != new_pkg.id)
                 .filter(PkgFolder.name.in_(folders))
                 .all()
             )
             if conflicts:
                 raise E.PkgConflictsWithInstalled(conflicts)
 
-            await self.remove_one(old_pkg)
+            await trash(
+                [self.config.addon_dir / f.name for f in old_pkg.folders],
+                parent=self.config.temp_dir,
+                missing_ok=True,
+            )
             await extract(self.config.addon_dir)
 
-            pkg.folders = [PkgFolder(name=f) for f in folders]
-            self.db_session.add(pkg)
-            self.db_session.merge(
-                PkgVersionLog(version=pkg.version, pkg_source=pkg.source, pkg_id=pkg.id)
-            )
-            self.db_session.commit()
+        new_pkg.folders = [PkgFolder(name=f) for f in folders]
+        self.db_session.delete(old_pkg)
+        self.db_session.add(new_pkg)
+        self.db_session.merge(
+            PkgVersionLog(version=new_pkg.version, pkg_source=new_pkg.source, pkg_id=new_pkg.id)
+        )
+        self.db_session.commit()
 
-        return E.PkgUpdated(old_pkg, pkg)
+        return E.PkgUpdated(old_pkg, new_pkg)
 
     async def update(self, defns: Sequence[Defn]) -> Dict[Defn, E.ManagerResult]:
         # Rebuild ``Defn`` with ID and strategy from package for defns

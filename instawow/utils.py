@@ -15,6 +15,7 @@ from typing import (
     AsyncIterator,
     Awaitable,
     Callable,
+    DefaultDict,
     Dict,
     Generic,
     Hashable,
@@ -110,13 +111,13 @@ class cached_property(Generic[_V]):
 
     def __get__(self, o: Any, t: Optional[type] = None) -> Union[cached_property[_V], _V]:
         if o is None:
-            return self.f
+            return self
         else:
             o.__dict__[self.f.__name__] = v = self.f(o)
             return v
 
 
-def bucketise(iterable: Iterable[_V], key: Callable[[_V], _H] = lambda v: v) -> Dict[_H, List[_V]]:
+def bucketise(iterable: Iterable[_V], key: Callable[[_V], _H]) -> DefaultDict[_H, List[_V]]:
     "Place the elements of an iterable in a bucket according to ``key``."
     bucket: Any = defaultdict(list)
     for value in iterable:
@@ -125,8 +126,8 @@ def bucketise(iterable: Iterable[_V], key: Callable[[_V], _H] = lambda v: v) -> 
 
 
 def dict_chain(
-    keys: Iterable[_H], default: Any, *overrides: Iterable[Tuple[_H, _V]]
-) -> Dict[_H, _V]:
+    keys: Iterable[_H], default: Any, *overrides: Iterable[Tuple[_H, Any]]
+) -> Dict[_H, Any]:
     "Construct a dictionary from a series of iterables with overlapping keys."
     return dict(chain(zip(keys, repeat(default)), *overrides))
 

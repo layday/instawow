@@ -3,7 +3,6 @@ from __future__ import annotations
 from typing import Any, ClassVar, List, Type, cast
 
 import pydantic
-from pydantic import create_model
 from sqlalchemy import exc, func, inspect
 from sqlalchemy.ext.declarative import DeclarativeMeta, as_declarative
 from sqlalchemy.orm import relationship
@@ -30,16 +29,16 @@ class _BaseTableMeta(DeclarativeMeta):
     def __init__(cls, *args: Any) -> None:
         super().__init__(*args)
         try:
-            columns = inspect(cls).columns
+            inspector = inspect(cls)
         except exc.NoInspectionAvailable:
             pass
         else:
-            cls.Coercer = create_model(
+            cls.Coercer = pydantic.create_model(
                 f'{cls.__name__}Coercer',
                 __base__=_BaseCoercer,
                 **{
                     c.name: (c.type.python_type, ...)
-                    for c in columns
+                    for c in inspector.columns
                     if not c.foreign_keys and not c.name.startswith('_') and not c.server_default
                 },
             )
@@ -122,18 +121,14 @@ class PkgVersionLog(_BaseTable):
     pkg_id = Column(String, nullable=False, primary_key=True)
 
 
-class _PkgModel(Pkg.Coercer):
+class _PkgModelAmalgam(Pkg.Coercer):
     folders: List[PkgFolder.Coercer]
     options: PkgOptions.Coercer
     deps: List[PkgDep.Coercer]
 
 
 class MultiPkgModel(pydantic.BaseModel):
-    __root__: List[_PkgModel]
-
-    @classmethod
-    def from_orm(cls, obj: List[Pkg]) -> MultiPkgModel:
-        return cls(__root__=[_PkgModel.from_orm(v) for v in obj])
+    __root__: List[_PkgModelAmalgam]
 
 
 def should_migrate(engine: Any, version: str) -> bool:
