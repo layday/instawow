@@ -10,7 +10,6 @@ from typing import (
     AsyncIterable,
     ClassVar,
     Dict,
-    Iterable,
     List,
     NamedTuple,
     Optional as O,
@@ -46,10 +45,6 @@ class Strategies(enum.Enum):
     curse_latest_alpha = enum.auto()
     any_flavour = enum.auto()
     version = enum.auto()
-
-    @classmethod
-    def exposed(cls) -> Iterable[Strategies]:
-        return (s for s in cls if s not in {cls.default, cls.version})
 
 
 class Defn(NamedTuple):

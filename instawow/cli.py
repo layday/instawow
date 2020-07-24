@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import enum
 from functools import partial
 from itertools import chain, islice
 from pathlib import Path
@@ -10,11 +11,14 @@ from typing import (
     Callable,
     FrozenSet,
     Generator,
+    Generic,
     Iterable,
     List,
     Optional as O,
     Sequence,
+    Set,
     Tuple,
+    Type,
     TypeVar,
     Union,
     cast,
@@ -39,6 +43,8 @@ if TYPE_CHECKING:
     from .manager import CliManager
 
     _R = TypeVar('_R')
+
+_EnumT = TypeVar('_EnumT', bound=enum.Enum)
 
 
 class Report:
@@ -130,6 +136,16 @@ class _PathParam(click.Path):
         return Path(value)
 
 
+class _EnumParam(click.Choice, Generic[_EnumT]):
+    def __init__(self, choice_enum: Type[_EnumT], excludes: Set[_EnumT] = set()) -> None:
+        self.choice_enum = choice_enum
+        super().__init__([c.name for c in choice_enum if c not in excludes])
+
+    def convert(self, value: str, param: O[click.Parameter], ctx: O[click.Context]) -> _EnumT:
+        parent_result = super().convert(value, param, ctx)
+        return self.choice_enum[parent_result]
+
+
 @overload
 def parse_into_defn(manager: CliManager, value: str, *, raise_invalid: bool = True) -> Defn:
     ...
@@ -137,37 +153,38 @@ def parse_into_defn(manager: CliManager, value: str, *, raise_invalid: bool = Tr
 
 @overload
 def parse_into_defn(
-    manager: CliManager, value: Sequence[str], *, raise_invalid: bool = True
+    manager: CliManager, value: List[str], *, raise_invalid: bool = True
 ) -> List[Defn]:
     ...
 
 
 def parse_into_defn(
-    manager: CliManager, value: Sequence[str], *, raise_invalid: bool = True
+    manager: CliManager, value: Union[str, List[str]], *, raise_invalid: bool = True
 ) -> Union[Defn, List[Defn]]:
     if not isinstance(value, str):
         defns = (parse_into_defn(manager, v, raise_invalid=raise_invalid) for v in value)
         return uniq(defns)
 
+    parts: Tuple[str, str]
     delim = ':'
     any_source = '*'
+
     if delim not in value:
         if raise_invalid:
             raise click.BadParameter(value)
+
         parts = (any_source, value)
     else:
-        parts = manager.pair_url(value)
-        if not parts:
-            parts = value.partition(delim)[::2]
+        maybe_parts = manager.pair_url(value)
+        parts = maybe_parts or value.partition(delim)[::2]
     return Defn(*parts)
 
 
 def parse_into_defn_with_strategy(
-    manager: CliManager, value: Sequence[Tuple[str, str]]
+    manager: CliManager, value: Sequence[Tuple[Strategies, str]]
 ) -> List[Defn]:
     defns = parse_into_defn(manager, [d for _, d in value])
-    strategies = (Strategies[s] for s, _ in value)
-    return list(map(Defn.with_strategy, defns, strategies))
+    return list(map(Defn.with_strategy, defns, (s for s, _ in value)))
 
 
 def parse_into_defn_with_version(
@@ -236,6 +253,9 @@ def main(ctx: click.Context, profile: O[str], debug: bool):
         ctx.obj = ManagerWrapper(ctx)
 
 
+excluded_strategies = {Strategies.default, Strategies.version}
+
+
 @main.command()
 @click.option('--replace', '-o', is_flag=True, default=False, help='Replace existing add-ons.')
 @click.option(
@@ -250,13 +270,13 @@ def main(ctx: click.Context, profile: O[str], debug: bool):
     '--with-strategy',
     '-s',
     multiple=True,
-    type=(click.Choice([s.name for s in Strategies.exposed()]), str),
+    type=(_EnumParam(Strategies, excluded_strategies), str),
     callback=_combine_into('addons', parse_into_defn_with_strategy),
     expose_value=False,
     metavar='<STRATEGY ADDON>...',
     help='A strategy followed by an add-on definition.  '
-    'Available strategies are: '
-    f'{", ".join(repr(s.name) for s in Strategies.exposed())}.',
+    'The strategies are: '
+    f'{", ".join(s.name for s in Strategies if s not in excluded_strategies)}.',
 )
 @click.option(
     '--version',
