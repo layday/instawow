@@ -48,9 +48,9 @@ _EnumT = TypeVar('_EnumT', bound=enum.Enum)
 
 
 class Report:
-    _success = click.style('✓', fg='green')
-    _failure = click.style('✗', fg='red')
-    _warning = click.style('!', fg='blue')
+    _success_symbol = click.style('✓', fg='green')
+    _failure_symbol = click.style('✗', fg='red')
+    _warning_symbol = click.style('!', fg='blue')
 
     def __init__(
         self,
@@ -61,7 +61,7 @@ class Report:
         self.filter_fn = filter_fn
 
     @property
-    def code(self) -> int:
+    def exit_code(self) -> int:
         return any(
             r
             for _, r in self.results
@@ -69,15 +69,15 @@ class Report:
         )
 
     def __str__(self) -> str:
-        def _adorn_result(result: E.ManagerResult) -> str:
+        def adorn_result(result: E.ManagerResult):
             if isinstance(result, E.InternalError):
-                return self._warning
+                return self._warning_symbol
             elif isinstance(result, E.ManagerError):
-                return self._failure
-            return self._success
+                return self._failure_symbol
+            return self._success_symbol
 
         return '\n'.join(
-            f'{_adorn_result(r)} {click.style(str(a), bold=True)}\n'
+            f'{adorn_result(r)} {click.style(str(a), bold=True)}\n'
             + fill(r.message, initial_indent='  ', subsequent_indent='  ')
             for a, r in self.results
             if self.filter_fn(r)
@@ -86,7 +86,7 @@ class Report:
     def generate(self):
         manager: CliManager = click.get_current_context().obj.m
         if manager.config.auto_update_check and is_outdated(manager):
-            click.echo(f'{self._warning} instawow is out of date')
+            click.echo(f'{self._warning_symbol} instawow is out of date')
 
         report = str(self)
         if report:
@@ -95,7 +95,7 @@ class Report:
     def generate_and_exit(self):
         self.generate()
         ctx = click.get_current_context()
-        ctx.exit(self.code)
+        ctx.exit(self.exit_code)
 
 
 class ManagerWrapper:
@@ -109,7 +109,7 @@ class ManagerWrapper:
         from .config import Config
         from .manager import CliManager, prepare_db_session
 
-        # TODO: rm once https://github.com/aio-libs/aiohttp/issues/4324 is fixed
+        # TODO: remove once https://github.com/aio-libs/aiohttp/issues/4324 is fixed
         policy = getattr(asyncio, 'WindowsSelectorEventLoopPolicy', None)
         if policy:
             asyncio.set_event_loop_policy(policy())
@@ -144,6 +144,36 @@ class _EnumParam(click.Choice, Generic[_EnumT]):
     def convert(self, value: str, param: O[click.Parameter], ctx: O[click.Context]) -> _EnumT:
         parent_result = super().convert(value, param, ctx)
         return self.choice_enum[parent_result]
+
+
+def _callbackify(fn: Callable[..., _R]) -> Callable[[click.Context, click.Parameter, Any], _R]:
+    return lambda c, _, v: fn(c.obj.m, v)
+
+
+def _show_version(ctx: click.Context, _param: click.Parameter, value: bool):
+    if value:
+        __version__ = get_version()
+        click.echo(f'instawow, version {__version__}')
+        ctx.exit()
+
+
+@click.group(context_settings={'help_option_names': ('-h', '--help')})
+@click.option(
+    '--version',
+    is_flag=True,
+    default=False,
+    callback=_show_version,
+    expose_value=False,
+    is_eager=True,
+    help='Show the version and exit.',
+)
+@click.option('--profile', '-p', default=None, help='Activate the specified profile.')
+@click.option('--debug', is_flag=True, default=False, help='Log more things.')
+@click.pass_context
+def main(ctx: click.Context, profile: O[str], debug: bool):
+    "Add-on manager for World of Warcraft."
+    if not ctx.obj:
+        ctx.obj = ManagerWrapper(ctx)
 
 
 @overload
@@ -199,50 +229,23 @@ def parse_into_defn_from_json_file(manager: CliManager, path: Path) -> List[Defn
     return list(map(Defn.from_pkg, cast('List[models.Pkg]', faux_pkgs.__root__)))
 
 
-def _callbackify(fn: Callable[..., _R]) -> Callable[[click.Context, Any, Any], _R]:
-    return lambda c, _, v: fn(c.obj.m, v)
-
-
-def _combine_into(param_name: str, fn: Callable[..., Any]):
-    def combine(ctx: click.Context, param: Any, value: Any):
-        addons = ctx.params.setdefault(param_name, [])
+def _combine_into(param_name: str, fn: Callable[[CliManager, Any], List[Any]]):
+    def combine(ctx: click.Context, _param: click.Parameter, value: Any):
+        # Add param by ``param_name`` to param dict regardless of output
+        param = ctx.params.setdefault(param_name, [])
         if value:
-            addons.extend(fn(ctx.obj.m, value))
+            param.extend(fn(ctx.obj.m, value))
 
     return combine
-
-
-def _show_version(ctx: click.Context, param: Any, value: bool):
-    if value:
-        __version__ = get_version()
-        click.echo(f'instawow, version {__version__}')
-        ctx.exit()
-
-
-@click.group(context_settings={'help_option_names': ('-h', '--help')})
-@click.option(
-    '--version',
-    is_flag=True,
-    default=False,
-    callback=_show_version,
-    expose_value=False,
-    is_eager=True,
-    help='Show the version and exit.',
-)
-@click.option('--profile', '-p', default=None, help='Activate the specified profile.')
-@click.option('--debug', is_flag=True, default=False, help='Log more things.')
-@click.pass_context
-def main(ctx: click.Context, profile: O[str], debug: bool):
-    "Add-on manager for World of Warcraft."
-    if not ctx.obj:
-        ctx.obj = ManagerWrapper(ctx)
 
 
 excluded_strategies = {Strategies.default, Strategies.version}
 
 
 @main.command()
-@click.option('--replace', '-o', is_flag=True, default=False, help='Replace existing add-ons.')
+@click.argument(
+    'addons', nargs=-1, callback=_combine_into('addons', parse_into_defn), expose_value=False
+)
 @click.option(
     '--import',
     '-i',
@@ -272,9 +275,7 @@ excluded_strategies = {Strategies.default, Strategies.version}
     metavar='<VERSION ADDON>...',
     help='A version followed by an add-on definition.',
 )
-@click.argument(
-    'addons', nargs=-1, callback=_combine_into('addons', parse_into_defn), expose_value=False
-)
+@click.option('--replace', '-o', is_flag=True, default=False, help='Replace existing add-ons.')
 @click.pass_obj
 def install(obj: M, addons: Sequence[Defn], replace: bool):
     "Install add-ons."
@@ -296,12 +297,9 @@ def update(obj: M, addons: Sequence[Defn]):
 
     def report_filter(result: E.ManagerResult):
         # Hide package from output if up to date and ``update`` was invoked without args
-        return cast(bool, addons or not isinstance(result, E.PkgUpToDate))
+        return cast(bool, addons) or not isinstance(result, E.PkgUpToDate)
 
-    defns = addons
-    if not defns:
-        defns = [Defn.from_pkg(p) for p in obj.m.db_session.query(models.Pkg).all()]
-
+    defns = addons or list(map(Defn.from_pkg, obj.m.db_session.query(models.Pkg).all()))
     results = obj.m.run(obj.m.update(defns))
     Report(results.items(), report_filter).generate_and_exit()
 
@@ -316,19 +314,20 @@ def remove(obj: M, addons: Sequence[Defn]):
 
 
 @main.command()
+@click.argument('addon', callback=_callbackify(parse_into_defn))
 @click.option(
     '--undo',
     is_flag=True,
     default=False,
     help='Undo rollback by reinstalling an add-on using the default strategy.',
 )
-@click.argument('addon', callback=_callbackify(parse_into_defn))
 @click.pass_context
 def rollback(ctx: click.Context, addon: Defn, undo: bool):
     "Roll an add-on back to an older version."
     from .prompts import Choice, select
 
-    manager = ctx.obj.m
+    manager: CliManager = ctx.obj.m
+    limit = 10
 
     pkg = manager.get_pkg(addon)
     if not pkg:
@@ -349,20 +348,26 @@ def rollback(ctx: click.Context, addon: Defn, undo: bool):
             )
         ).generate_and_exit()
 
-    versions = (
+    versions: List[models.PkgVersionLog] = (
         manager.db_session.query(models.PkgVersionLog)
         .filter(
             models.PkgVersionLog.pkg_source == pkg.source, models.PkgVersionLog.pkg_id == pkg.id
         )
         .order_by(models.PkgVersionLog.install_time.desc())
-        .limit(10)
+        .limit(limit)
         .all()
     )
     if len(versions) <= 1:
         Report([(addon, E.PkgFileUnavailable('cannot find older versions'))]).generate_and_exit()
 
     reconstructed_defn = Defn.from_pkg(pkg)
-    choices = [Choice([('', v.version)], disabled=(v.version == pkg.version)) for v in versions]
+    choices = [
+        Choice(
+            [('', v.version)],  # type: ignore
+            disabled='installed version' if v.version == pkg.version else None
+        )
+        for v in versions
+    ]
     selection = select(
         f'Select version of {reconstructed_defn} for rollback', choices
     ).unsafe_ask()
@@ -409,10 +414,10 @@ def reconcile(ctx: click.Context, auto: bool, list_unreconciled: bool):
         '''
     )
 
-    manager = ctx.obj.m
+    manager: CliManager = ctx.obj.m
 
     def prompt_one(addons: List[AddonFolder], pkgs: List[models.Pkg]) -> Union[Defn, Tuple[()]]:
-        def create_choice(pkg: models.Pkg):
+        def construct_choice(pkg: models.Pkg):
             defn = Defn.from_pkg(pkg)
             title = [
                 ('', str(defn)),
@@ -423,20 +428,20 @@ def reconcile(ctx: click.Context, auto: bool, list_unreconciled: bool):
 
         # Highlight version if there's multiple of them
         highlight_version = len({i.version for i in chain(addons, pkgs)}) > 1
-        choices = list(chain(map(create_choice, pkgs), (skip,)))
+        choices = list(chain(map(construct_choice, pkgs), (skip,)))
         addon = addons[0]
         # Using 'unsafe_ask' to let ^C bubble up
         selection = select(f'{addon.name} [{addon.version or "?"}]', choices).unsafe_ask()
         return selection
 
-    def prompt(groups: Iterable[Tuple[List[AddonFolder], List[Defn]]]) -> Iterable[Defn]:
-        results = manager.run(manager.resolve(list({d for _, b in groups for d in b})))
+    def prompt(groups: Sequence[Tuple[List[AddonFolder], List[Defn]]]) -> Iterable[Defn]:
+        uniq_defns = uniq(d for _, b in groups for d in b)
+        results = manager.run(manager.resolve(uniq_defns))
         for addons, defns in groups:
             shortlist = list(filter(is_pkg, (results[d] for d in defns)))
             if shortlist:
                 if auto:
-                    pkg = shortlist[0]  # TODO: something more sophisticated
-                    selection = Defn.from_pkg(pkg)
+                    selection = Defn.from_pkg(shortlist[0])
                 else:
                     selection = prompt_one(addons, shortlist)
                 selection and (yield selection)
@@ -478,6 +483,7 @@ def reconcile(ctx: click.Context, auto: bool, list_unreconciled: bool):
 
 
 @main.command()
+@click.argument('search-terms', nargs=-1, required=True, callback=lambda _, __, v: ' '.join(v))
 @click.option(
     '--limit',
     '-l',
@@ -485,15 +491,12 @@ def reconcile(ctx: click.Context, auto: bool, list_unreconciled: bool):
     type=click.IntRange(1, 20, clamp=True),
     help='A number to limit results to.',
 )
-@click.argument(
-    'search-terms', nargs=-1, required=True, callback=lambda _, __, v: ' '.join(v)
-)  # type: ignore
 @click.pass_context
 def search(ctx: click.Context, limit: int, search_terms: str):
     "Search for add-ons to install."
     from .prompts import PkgChoice, checkbox, confirm
 
-    manager = ctx.obj.m
+    manager: CliManager = ctx.obj.m
 
     pkgs = manager.run(manager.search(search_terms, limit))
     if pkgs:
@@ -510,6 +513,8 @@ class ListFormats(enum.Enum):
 
 
 @main.command('list')
+@click.argument(
+    'addons', nargs=-1, callback=_callbackify(partial(parse_into_defn, raise_invalid=False))
 )
 @click.option(
     '--format',
@@ -519,9 +524,6 @@ class ListFormats(enum.Enum):
     default='simple',
     show_default=True,
     help='Change the output format.',
-)
-@click.argument(
-    'addons', nargs=-1, callback=_callbackify(partial(parse_into_defn, raise_invalid=False))
 )
 @click.pass_obj
 def list_installed(obj: M, addons: Sequence[Defn], output_format: ListFormats):
@@ -533,14 +535,14 @@ def list_installed(obj: M, addons: Sequence[Defn], output_format: ListFormats):
         deps = (d.with_name(getattr(obj.m.get_pkg(d), 'slug', d.name)) for d in deps)
         return map(str, deps)
 
-    def get_desc(pkg: models.Pkg):
+    def get_desc_from_toc(pkg: models.Pkg):
         if pkg.source == 'wowi':
             toc_reader = TocReader.from_path_name(obj.m.config.addon_dir / pkg.folders[0].name)
             return toc_reader['Notes'].value
         else:
             return pkg.description
 
-    pkgs = (
+    pkgs: List[models.Pkg] = (
         obj.m.db_session.query(models.Pkg)
         .filter(
             or_(
