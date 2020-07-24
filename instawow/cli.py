@@ -125,6 +125,11 @@ class ManagerWrapper:
 M = ManagerWrapper
 
 
+class _PathParam(click.Path):
+    def coerce_path_result(self, value: str) -> Path:
+        return Path(value)
+
+
 @overload
 def parse_into_defn(manager: CliManager, value: str, *, raise_invalid: bool = True) -> Defn:
     ...
@@ -684,15 +689,15 @@ def list_installed_wago_auras(obj: M, account: str):
 
 
 @main.command(hidden=True)
-@click.argument('filename', type=click.Path(dir_okay=False))
-def generate_catalogue(filename: str):
+@click.argument('filename', type=_PathParam(dir_okay=False))
+def generate_catalogue(filename: Path):
+    "Generate the master catalogue."
     import asyncio
 
     from .resolvers import MasterCatalogue
 
     catalogue = asyncio.run(MasterCatalogue.collate())
-    expanded = Path(filename)
-    expanded.write_text(catalogue.json(indent=2), encoding='utf-8')
-
-    compact = expanded.with_suffix(f'.compact{expanded.suffix}')
-    compact.write_text(catalogue.json(separators=(',', ':')), encoding='utf-8')
+    filename.write_text(catalogue.json(indent=2), encoding='utf-8')
+    filename.with_suffix(f'.compact{filename.suffix}').write_text(
+        catalogue.json(separators=(',', ':')), encoding='utf-8'
+    )
