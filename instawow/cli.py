@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import enum
 from functools import partial
-from itertools import chain, islice
+from itertools import chain
 from pathlib import Path
 from textwrap import dedent, fill
 from typing import (
@@ -194,24 +194,9 @@ def parse_into_defn_with_version(
     return list(map(Defn.with_version, defns, (v for v, _ in value)))
 
 
-def export_to_csv(pkgs: Sequence[models.Pkg], path: Path):
-    "Export packages to CSV."
-    import csv
-
-    with Path(path).open('w', encoding='utf-8', newline='') as file:
-        writer = csv.writer(file)
-        writer.writerow(('defn', 'strategy', 'version'))
-        writer.writerows((Defn.from_pkg(p), p.options.strategy, p.version) for p in pkgs)
-
-
-def import_from_csv(manager: CliManager, path: Path) -> List[Defn]:
-    "Import definitions from CSV."
-    import csv
-
-    with Path(path).open(encoding='utf-8', newline='') as contents:
-        rows = islice(csv.reader(contents), 1, None)
-        defns = [Defn(*parse_into_defn(manager, d)[:2], Strategies[s], (v,)) for d, s, v in rows]
-    return defns
+def parse_into_defn_from_json_file(manager: CliManager, path: Path) -> List[Defn]:
+    faux_pkgs = models.MultiPkgModel.parse_file(path, encoding='utf-8')
+    return list(map(Defn.from_pkg, cast('List[models.Pkg]', faux_pkgs.__root__)))
 
 
 def _callbackify(fn: Callable[..., _R]) -> Callable[[click.Context, Any, Any], _R]:
@@ -261,10 +246,10 @@ excluded_strategies = {Strategies.default, Strategies.version}
 @click.option(
     '--import',
     '-i',
-    type=click.Path(dir_okay=False, exists=True),
-    callback=_combine_into('addons', import_from_csv),
+    type=_PathParam(dir_okay=False, exists=True),
+    callback=_combine_into('addons', parse_into_defn_from_json_file),
     expose_value=False,
-    help='Install add-ons from CSV.',
+    help='Install add-ons from the output of `list -f json`.',
 )
 @click.option(
     '--with-strategy',
@@ -525,12 +510,6 @@ class ListFormats(enum.Enum):
 
 
 @main.command('list')
-@click.option(
-    '--export',
-    '-e',
-    default=None,
-    type=click.Path(dir_okay=False, writable=True),
-    help='Export listed add-ons to CSV.',
 )
 @click.option(
     '--format',
@@ -545,7 +524,7 @@ class ListFormats(enum.Enum):
     'addons', nargs=-1, callback=_callbackify(partial(parse_into_defn, raise_invalid=False))
 )
 @click.pass_obj
-def list_installed(obj: M, addons: Sequence[Defn], export: O[str], output_format: ListFormats):
+def list_installed(obj: M, addons: Sequence[Defn], output_format: ListFormats):
     "List installed add-ons."
     from sqlalchemy import and_, or_
 
@@ -579,30 +558,27 @@ def list_installed(obj: M, addons: Sequence[Defn], export: O[str], output_format
         .order_by(models.Pkg.source, models.Pkg.name)
         .all()
     )
-    if export:
-        export_to_csv(pkgs, cast(Path, export))
-    elif pkgs:
-        if output_format is ListFormats.json:
-            click.echo(models.MultiPkgModel.from_orm(pkgs).json(indent=2))
-        elif output_format is ListFormats.detailed:
-            formatter = click.HelpFormatter(max_width=99)
-            for pkg in pkgs:
-                with formatter.section(str(Defn.from_pkg(pkg))):
-                    formatter.write_dl(
-                        (
-                            ('Name', pkg.name),
-                            ('Description', get_desc(pkg)),
-                            ('URL', pkg.url),
-                            ('Version', pkg.version),
-                            ('Date published', pkg.date_published.isoformat(' ', 'minutes')),
-                            ('Folders', ', '.join(f.name for f in pkg.folders)),
-                            ('Dependencies', ', '.join(format_deps(pkg))),
-                            ('Options', f'{{"strategy": "{pkg.options.strategy}"}}'),
-                        )
+    if output_format is ListFormats.json:
+        click.echo(models.MultiPkgModel.from_orm(pkgs).json(indent=2))
+    elif output_format is ListFormats.detailed:
+        formatter = click.HelpFormatter(max_width=99)
+        for pkg in pkgs:
+            with formatter.section(Defn.from_pkg(pkg)):
+                formatter.write_dl(
+                    (
+                        ('Name', pkg.name),
+                        ('Description', get_desc_from_toc(pkg)),
+                        ('URL', pkg.url),
+                        ('Version', pkg.version),
+                        ('Date published', pkg.date_published.isoformat(' ', 'minutes')),
+                        ('Folders', ', '.join(f.name for f in pkg.folders)),
+                        ('Dependencies', ', '.join(format_deps(pkg))),
+                        ('Options', f'{{"strategy": "{pkg.options.strategy}"}}'),
                     )
-            click.echo(formatter.getvalue(), nl=False)
-        else:
-            click.echo('\n'.join(str(Defn.from_pkg(p)) for p in pkgs))
+                )
+        click.echo(formatter.getvalue(), nl=False)
+    else:
+        click.echo(''.join(f'{Defn.from_pkg(p)}\n' for p in pkgs), nl=False)
 
 
 @main.command(hidden=True)

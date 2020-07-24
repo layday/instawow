@@ -382,21 +382,10 @@ def test_substr_list_match(molinari_and_run):
     assert (molinari['source'], molinari['slug']) == ('curse', 'molinari')
 
 
-def test_csv_export_and_import(molinari_and_run, manager):
-    export_csv = manager.config._parametrized_tmp_path / 'export.csv'
-    molinari_and_run(f'list -e "{export_csv}"')
-
+def test_json_export_and_import(molinari_and_run, manager):
+    export_json = manager.config._parametrized_tmp_path / 'export.json'
+    export_json.write_text(molinari_and_run('list -f json').output, encoding='utf-8')
     assert (
-        export_csv.read_text(encoding='utf-8')
-        == '''\
-defn,strategy,version
-curse:molinari,default,80300.66-Release
-'''
-    )
-    assert (
-        molinari_and_run(f'install -i "{export_csv}"').output
-        == '''\
-✗ curse:molinari
-  package already installed
-'''
+        molinari_and_run(f'install --import "{export_json}"').output
+        == '✗ curse:molinari\n  package already installed\n'
     )
