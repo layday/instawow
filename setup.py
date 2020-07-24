@@ -30,10 +30,11 @@ setup(
             typing-extensions
         ''',
         'test': '''
-            coverage[toml] >=5
-            pytest         >=5
-            pytest-asyncio ==0.10.0
-            aresponses     ~=2.0
+            coverage[toml]   >=5
+            pytest           >=5
+            pytest-asyncio   ==0.10.0
+            aresponses       ~=2.0
+            sqlalchemy-stubs
         ''',
     },
     python_requires='~=3.7',

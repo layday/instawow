@@ -1,9 +1,7 @@
-import os
-import subprocess as sp
-
 import nox
 
 nox.options.envdir = '.py-nox'
+nox.options.reuse_existing_virtualenvs = True
 
 
 @nox.session(python=['3.7', '3.8'])
@@ -13,35 +11,26 @@ def test(session):
     session.run('coverage', 'report', '-m')
 
 
+@nox.session(python=False)
+def update_typeshed(session):
+    types_dir = '.py-types'
+    session.run('rm', '-rf', types_dir)
+    session.run(
+        *f'git clone --depth 1 https://github.com/python/typeshed {types_dir}/typeshed'.split()
+    )
+
+
 @nox.session(python=['3.7', '3.8'])
 def type_check(session):
-    session.install('.')
+    session.install('.[test]')
     session.run('npx', '--cache', '.npm', 'pyright', '--lib')
 
 
 @nox.session(python='3.7')
 def reformat(session):
     session.install('isort>=5.0.7', 'black>=19.10b0')
-    session.run('isort', 'instawow', 'tests', 'noxfile.py', 'setup.py')
-    session.run('black', 'instawow', 'tests', 'noxfile.py', 'setup.py')
-
-
-@nox.session(python=False)
-def update_stubs(session):
-    sp.run(
-        """\
-        types_dir=.py-types
-        rm -rf $types_dir && mkdir $types_dir && cd $types_dir && {
-          git clone --depth 1 \
-            https://github.com/python/typeshed
-          git clone --depth 1 \
-            https://github.com/dropbox/sqlalchemy-stubs stubs/_sqlalchemy-stubs
-          cp -r stubs/_sqlalchemy-stubs/sqlalchemy-stubs stubs/sqlalchemy
-        }
-        """,
-        shell=True,
-        executable='bash',
-    )
+    for cmd in 'isort', 'black':
+        session.run(cmd, 'instawow', 'tests', 'noxfile.py', 'setup.py')
 
 
 @nox.session(python=False)
@@ -64,6 +53,9 @@ def publish(session):
 
 @nox.session
 def nixify(session):
-    session.cd(os.environ.get('INSTAWOW_NIXIFY_DIR', '.'))
+    import os
+
+    nixify_dir = os.environ.get('INSTAWOW_NIXIFY_DIR', '.')
+    session.cd(nixify_dir)
     session.install('pypi2nix')
     session.run('pypi2nix', '-e', 'instawow')

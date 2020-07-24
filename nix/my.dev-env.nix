@@ -16,7 +16,7 @@ in
       openssl
       ctags
       myPython
-      nodejs-13_x
+      nodejs-14_x
     ] ++ stdenv.lib.optional withRust [
       rustc
       cargo
