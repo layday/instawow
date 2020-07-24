@@ -518,6 +518,12 @@ def search(ctx: click.Context, limit: int, search_terms: str):
             ctx.invoke(install, addons=selections)
 
 
+class ListFormats(enum.Enum):
+    simple = 'simple'
+    detailed = 'detailed'
+    json = 'json'
+
+
 @main.command('list')
 @click.option(
     '--export',
@@ -530,7 +536,7 @@ def search(ctx: click.Context, limit: int, search_terms: str):
     '--format',
     '-f',
     'output_format',
-    type=click.Choice(('simple', 'detailed', 'json')),
+    type=_EnumParam(ListFormats),
     default='simple',
     show_default=True,
     help='Change the output format.',
@@ -539,7 +545,7 @@ def search(ctx: click.Context, limit: int, search_terms: str):
     'addons', nargs=-1, callback=_callbackify(partial(parse_into_defn, raise_invalid=False))
 )
 @click.pass_obj
-def list_(obj: M, addons: Sequence[Defn], export: O[str], output_format: str):
+def list_installed(obj: M, addons: Sequence[Defn], export: O[str], output_format: ListFormats):
     "List installed add-ons."
     from sqlalchemy import and_, or_
 
@@ -576,9 +582,9 @@ def list_(obj: M, addons: Sequence[Defn], export: O[str], output_format: str):
     if export:
         export_to_csv(pkgs, cast(Path, export))
     elif pkgs:
-        if output_format == 'json':
+        if output_format is ListFormats.json:
             click.echo(models.MultiPkgModel.from_orm(pkgs).json(indent=2))
-        elif output_format == 'detailed':
+        elif output_format is ListFormats.detailed:
             formatter = click.HelpFormatter(max_width=99)
             for pkg in pkgs:
                 with formatter.section(str(Defn.from_pkg(pkg))):
@@ -604,7 +610,7 @@ def list_(obj: M, addons: Sequence[Defn], export: O[str], output_format: str):
 @click.pass_context
 def info(ctx: click.Context, addon: Defn):
     "Alias of `list -f detailed`."
-    ctx.invoke(list_, addons=(addon,), output_format='detailed')
+    ctx.invoke(list_installed, addons=(addon,), output_format=ListFormats.detailed)
 
 
 @main.command()
