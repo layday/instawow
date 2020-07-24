@@ -80,7 +80,7 @@ class _CItem(BaseModel):
     id: str
     slug: str = ''
     name: str
-    compatibility: List[Literal['retail', 'classic']]
+    compatibility: Set[Literal['retail', 'classic']]
     folders: List[List[str]] = []
 
 
@@ -347,7 +347,7 @@ class CurseResolver(Resolver):
                     slug=item['slug'],
                     name=item['name'],
                     folders=folders,
-                    compatibility=list(excise_compatibility(item['latestFiles'])),
+                    compatibility=set(excise_compatibility(item['latestFiles'])),
                 )
 
 
@@ -443,13 +443,14 @@ class WowiResolver(Resolver):
     async def collect_items(self) -> AsyncIterable[_CItem]:
         async with self.web_client.get(self.list_api_url) as response:
             json_response = await response.json()
+
         for item in json_response:
             yield _CItem(
                 source=self.source,
                 id=item['UID'],
                 name=item['UIName'],
                 folders=[item['UIDir']],
-                compatibility=['retail', 'classic'],
+                compatibility={'retail', 'classic'},
             )
 
 
@@ -506,11 +507,11 @@ class TukuiResolver(Resolver):
         )
 
     async def collect_items(self) -> AsyncIterable[_CItem]:
-        for query, param in [
-            ('ui', 'tukui'),
-            ('ui', 'elvui'),
-            ('addons', 'all'),
-            ('classic-addons', 'all'),
+        for query, param, compatibility in [
+            ('ui', 'tukui', 'retail'),
+            ('ui', 'elvui', 'retail'),
+            ('addons', 'all', 'retail'),
+            ('classic-addons', 'all', 'classic'),
         ]:
             url = self.api_url.with_query({query: param})
             async with self.web_client.get(url) as response:
@@ -521,16 +522,15 @@ class TukuiResolver(Resolver):
                     source=self.source,
                     id=metadata['id'],
                     name=metadata['name'],
-                    compatibility=('retail',),
+                    compatibility={compatibility},
                 )
             else:
-                compatibility = ('retail' if query == 'addons' else 'classic',)
                 for item in metadata:
                     yield _CItem(
                         source=self.source,
                         id=item['id'],
                         name=item['name'],
-                        compatibility=compatibility,
+                        compatibility={compatibility},
                     )
 
 
