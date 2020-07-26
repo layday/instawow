@@ -1,7 +1,8 @@
+import os
+
 import nox
 
 nox.options.envdir = '.py-nox'
-nox.options.reuse_existing_virtualenvs = True
 
 
 @nox.session(python=['3.7', '3.8'])
@@ -26,7 +27,7 @@ def type_check(session):
     session.run('npx', '--cache', '.npm', 'pyright', '--lib')
 
 
-@nox.session(python='3.7')
+@nox.session(python='3.7', reuse_venv=True)
 def reformat(session):
     session.install('isort>=5.0.7', 'black>=19.10b0')
     for cmd in 'isort', 'black':
@@ -53,9 +54,12 @@ def publish(session):
 
 @nox.session
 def nixify(session):
-    import os
-
     nixify_dir = os.environ.get('INSTAWOW_NIXIFY_DIR', '.')
+
     session.cd(nixify_dir)
-    session.install('pypi2nix')
-    session.run('pypi2nix', '-e', 'instawow')
+    # The latest published version of pypi2nix (2.0.4) overrides the pip
+    # derivation's fetch URL with an old version of pip from GitHub which cannot
+    # be built with an up-to-date derivation because the latter attempts
+    # to apply a patch to a file which does not exist in the pip of olde
+    session.install('pypi2nix @ https://github.com/nix-community/pypi2nix/archive/0dbd11.zip')
+    session.run('pypi2nix', '-vvv', '-e', 'instawow')
