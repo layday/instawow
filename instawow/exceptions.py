@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Awaitable, ClassVar, Optional, Sequence, Set
-
-from loguru import logger
+from typing import TYPE_CHECKING, ClassVar, Optional, Sequence, Set
 
 if TYPE_CHECKING:
     from .models import Pkg
@@ -10,34 +8,23 @@ if TYPE_CHECKING:
 
 
 class ManagerResult:
-    fmt_message: ClassVar[str]
+    format_message: ClassVar[str]
 
     @property
     def message(self) -> str:
-        return self.fmt_message.format(self=self)
-
-    @staticmethod
-    async def acapture(awaitable: Awaitable[ManagerResult]) -> ManagerResult:
-        "Capture errors in coroutines."
-        try:
-            return await awaitable
-        except ManagerError as error:
-            return error
-        except Exception as error:
-            logger.exception('error!')
-            return InternalError(error)
+        return self.format_message.format(self=self)
 
 
 class PkgInstalled(ManagerResult):
-    fmt_message = 'installed {self.new_pkg.version}'
+    format_message = 'installed {self.pkg.version}'
 
-    def __init__(self, new_pkg: Pkg) -> None:
+    def __init__(self, pkg: Pkg) -> None:
         super().__init__()
-        self.new_pkg = new_pkg
+        self.pkg = pkg
 
 
 class PkgUpdated(ManagerResult):
-    fmt_message = 'updated {self.old_pkg.version} to {self.new_pkg.version}'
+    format_message = 'updated {self.old_pkg.version} to {self.new_pkg.version}'
 
     def __init__(self, old_pkg: Pkg, new_pkg: Pkg) -> None:
         super().__init__()
@@ -46,7 +33,7 @@ class PkgUpdated(ManagerResult):
 
 
 class PkgRemoved(ManagerResult):
-    fmt_message = 'removed'
+    format_message = 'removed'
 
     def __init__(self, old_pkg: Pkg) -> None:
         super().__init__()
@@ -58,11 +45,11 @@ class ManagerError(ManagerResult, Exception):
 
 
 class PkgAlreadyInstalled(ManagerError):
-    fmt_message = 'package already installed'
+    format_message = 'package already installed'
 
 
 class PkgConflictsWithInstalled(ManagerError):
-    fmt_message = 'package folders conflict with installed package {self.conflicts[0]}'
+    format_message = 'package folders conflict with installed package {self.conflicts[0]}'
 
     def __init__(self, conflicts: Sequence[Pkg]) -> None:
         from .resolvers import Defn
@@ -72,7 +59,7 @@ class PkgConflictsWithInstalled(ManagerError):
 
 
 class PkgConflictsWithForeign(ManagerError):
-    fmt_message = 'package folders conflict with {self.folders}'
+    format_message = 'package folders conflict with {self.folders}'
 
     def __init__(self, folders: Set[str]) -> None:
         super().__init__()
@@ -80,35 +67,35 @@ class PkgConflictsWithForeign(ManagerError):
 
 
 class PkgNonexistent(ManagerError):
-    fmt_message = 'package does not exist'
+    format_message = 'package does not exist'
 
 
 class PkgFileUnavailable(ManagerError):
-    fmt_message = 'package file is not available for download'
+    format_message = 'package file is not available for download'
 
-    def __init__(self, detailed_message: Optional[str] = None) -> None:
+    def __init__(self, specialised_message: Optional[str] = None) -> None:
         super().__init__()
-        self.detailed_message = detailed_message
+        self.specialised_message = specialised_message
 
     @property
     def message(self) -> str:
-        return self.detailed_message or super().message
+        return self.specialised_message or super().message
 
 
 class PkgNotInstalled(ManagerError):
-    fmt_message = 'package is not installed'
+    format_message = 'package is not installed'
 
 
 class PkgSourceInvalid(ManagerError):
-    fmt_message = 'package source is invalid'
+    format_message = 'package source is invalid'
 
 
 class PkgUpToDate(ManagerError):
-    fmt_message = 'package is up to date'
+    format_message = 'package is up to date'
 
 
 class PkgStrategyUnsupported(ManagerError):
-    fmt_message = '{self.strategy.name!r} strategy is not valid for source'
+    format_message = '{self.strategy.name!r} strategy is not valid for source'
 
     def __init__(self, strategy: Strategies) -> None:
         super().__init__()
@@ -116,8 +103,15 @@ class PkgStrategyUnsupported(ManagerError):
 
 
 class InternalError(ManagerResult, Exception):
-    fmt_message = 'instawow encountered an error'
+    format_message = 'internal error'
 
-    def __init__(self, error: Exception) -> None:
+    def __init__(self, error: BaseException, stringify_error: bool = False) -> None:
         super().__init__()
         self.error = error
+        self.stringify_error = stringify_error
+
+    @property
+    def message(self) -> str:
+        return (
+            f'{self.format_message}: "{self.error}"' if self.stringify_error else super().message
+        )

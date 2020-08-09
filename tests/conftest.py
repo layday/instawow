@@ -62,18 +62,9 @@ def full_config(tmp_path, partial_config):
 
 
 @pytest.fixture
-async def web_client():
-    async with init_web_client() as web_client:
-        yield web_client
-
-
-@pytest.fixture
-def manager(full_config, web_client):
+def manager(full_config):
     config = Config(**full_config).write()
-    db_session = prepare_db_session(config=config)
-
-    manager = Manager(config, db_session)
-    manager.web_client = web_client
+    manager = Manager(config, prepare_db_session(config))
     yield manager
 
 
@@ -83,6 +74,7 @@ def JsonResponse(aresponses):
 
 
 @pytest.fixture
+@should_mock
 def mock_pypi(aresponses, JsonResponse):
     aresponses.add(
         'pypi.org',

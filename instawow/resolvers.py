@@ -88,18 +88,18 @@ class MasterCatalogue(BaseModel):
     __root__: List[_CItem]
 
     class Config:
-        keep_untouched: Any = (cached_property,)
+        keep_untouched = (cast(Any, cached_property),)
 
     @classmethod
     async def collate(cls) -> MasterCatalogue:
         from types import SimpleNamespace
 
-        from .manager import Manager, init_web_client
+        from .manager import init_web_client
 
         resolvers = (CurseResolver, WowiResolver, TukuiResolver)
 
         async with init_web_client() as web_client:
-            faux_manager = cast(Manager, SimpleNamespace(web_client=web_client))
+            faux_manager = cast('Manager', SimpleNamespace(web_client=web_client))
             items = [a for r in resolvers async for a in r(faux_manager).collect_items()]
         catalogue = cls(__root__=items)
         return catalogue
@@ -322,13 +322,10 @@ class CurseResolver(Resolver):
                     yield c
 
         step = 1000
+        sort_order = '3'  # Alphabetical
         for index in count(0, step):
             url = (self.addon_api_url / 'search').with_query(
-                # fmt: off
-                gameId='1',
-                sort='3', # Alphabetical
-                pageSize=step, index=index,
-                # fmt: on
+                gameId='1', sort=sort_order, pageSize=step, index=index
             )
             async with self.web_client.get(url) as response:
                 json_response = await response.json()
@@ -346,8 +343,8 @@ class CurseResolver(Resolver):
                     id=item['id'],
                     slug=item['slug'],
                     name=item['name'],
-                    folders=folders,
                     compatibility=set(excise_compatibility(item['latestFiles'])),
+                    folders=folders,
                 )
 
 
@@ -394,16 +391,17 @@ class WowiResolver(Resolver):
                     return match.group('id')
 
     async def resolve(self, defns: List[Defn]) -> Dict[Defn, Any]:
-        if self._files is None:
-            from .manager import cache_json_response
+        async with self.locks['load WoWI catalogue']:
+            if self._files is None:
+                from .manager import cache_json_response
 
-            files = await cache_json_response(
-                self.manager,
-                self.list_api_url,
-                3600,
-                label=f'Synchronising {self.name} catalogue',
-            )
-            self._files = {i['UID']: i for i in files}
+                files = await cache_json_response(
+                    self.manager,
+                    self.list_api_url,
+                    3600,
+                    label=f'Synchronising {self.name} catalogue',
+                )
+                self._files = {i['UID']: i for i in files}
 
         ids_for_defns = {d: ''.join(takewhile(str.isdigit, d.name)) for d in defns}
         numeric_ids = {i for i in ids_for_defns.values() if i.isdigit()}
@@ -449,8 +447,8 @@ class WowiResolver(Resolver):
                 source=self.source,
                 id=item['UID'],
                 name=item['UIName'],
-                folders=[item['UIDir']],
                 compatibility={'retail', 'classic'},
+                folders=[item['UIDir']],
             )
 
 

@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 from functools import partial
 from itertools import chain, repeat
 from pathlib import Path
+import posixpath
 import re
 from typing import (
     TYPE_CHECKING,
@@ -25,6 +26,7 @@ from typing import (
     NamedTuple,
     Optional,
     Sequence,
+    Set,
     Tuple,
     TypeVar,
     Union,
@@ -36,7 +38,7 @@ try:
     from typing import Literal as _Literal
 except ImportError:
     from typing_extensions import Literal as _Literal
-Literal = _Literal  # ...
+Literal = _Literal  # type: ignore
 
 if TYPE_CHECKING:
     from prompt_toolkit.shortcuts import ProgressBar
@@ -125,7 +127,7 @@ def bucketise(iterable: Iterable[_V], key: Callable[[_V], _H]) -> DefaultDict[_H
     return bucket
 
 
-def dict_chain(
+def chain_dict(
     keys: Iterable[_H], default: Any, *overrides: Iterable[Tuple[_H, Any]]
 ) -> Dict[_H, Any]:
     "Construct a dictionary from a series of iterables with overlapping keys."
@@ -145,10 +147,11 @@ def merge_intersecting_sets(it: Iterable[_AnySet]) -> Iterable[_AnySet]:
             this_set = many_sets.popleft()
         except IndexError:
             return
+
         while True:
             for other_set in many_sets:
                 if this_set & other_set:
-                    # The in-place operator will mutate unfrozen sets
+                    # The in-place operator would mutate unfrozen sets
                     # in the original collection
                     this_set = this_set | other_set  # type: ignore
                     many_sets.remove(other_set)
@@ -158,7 +161,21 @@ def merge_intersecting_sets(it: Iterable[_AnySet]) -> Iterable[_AnySet]:
         yield this_set
 
 
-async def gather(it: Iterable[Awaitable[_V]], return_exceptions: bool = True) -> List[_V]:
+@overload
+async def gather(
+    it: Iterable[Awaitable[_V]], return_exceptions: Literal[True] = ...
+) -> List[Union[BaseException, _V]]:
+    ...
+
+
+@overload
+async def gather(it: Iterable[Awaitable[_V]], return_exceptions: Literal[False] = ...) -> List[_V]:
+    ...
+
+
+async def gather(
+    it: Iterable[Awaitable[_V]], return_exceptions: bool = True
+) -> List[Union[BaseException, _V]]:
     return await asyncio.gather(*it, return_exceptions=return_exceptions)
 
 
@@ -213,8 +230,10 @@ def copy_resources(*packages: str) -> Iterator[Path]:
                 filename = parent_dir / resource
                 # PyOxidizer does not expose Python source files to `importlib`
                 # (see https://github.com/indygreg/PyOxidizer/issues/237).
-                # Migrations have a "null" extension added to them that is shorn
-                # from the extracted filename
+                # The filenames of Python files have a secondary ".0" extension
+                # so that PyOx will regard them as binary resources.
+                # The extension is then removed when they're copied into
+                # the temporary folder
                 if filename.suffix == '.0':
                     filename = filename.with_suffix('')
                 filename.write_bytes(read_binary(package, resource))
@@ -384,3 +403,20 @@ def setup_logging(logger_dir: Path, level: Union[int, str] = 'INFO') -> int:
     }
     (handler_id,) = logger.configure(handlers=(handler,))
     return handler_id
+
+
+def find_zip_base_dirs(names: Sequence[str]) -> Set[str]:
+    "Find top-level folders in a list of ZIP member paths."
+    return {n for n in (posixpath.dirname(n) for n in names) if n and posixpath.sep not in n}
+
+
+def make_zip_member_filter(base_dirs: Set[str]) -> Callable[[str], bool]:
+    """Filter out items which are not sub-paths of top-level folders for the
+    purpose of extracting ZIP files.
+    """
+
+    def is_subpath(name: str):
+        head, sep, _ = name.partition(posixpath.sep)
+        return cast(bool, sep) and head in base_dirs
+
+    return is_subpath

@@ -107,7 +107,7 @@ async def match_dir_names(manager: Manager, leftovers: FrozenSet[AddonFolder]) -
     # to be undefined
     matches = [
         (
-            frozenset(l for l in leftovers if l in cast('List[AddonFolder]', f)),
+            frozenset(e for e in leftovers if e in cast('List[AddonFolder]', f)),
             Defn(i.source, i.id),
         )
         for i in manager.catalogue.__root__
@@ -131,5 +131,5 @@ async def match_toc_names(manager: Manager, leftovers: FrozenSet[AddonFolder]) -
     await manager.synchronise()
 
     norm_to_items = bucketise(manager.catalogue.__root__, key=lambda i: normalise(i.name))
-    matches = ((l, norm_to_items.get(normalise(l.name))) for l in sorted(leftovers))
-    return [([l], uniq(Defn(i.source, i.id) for i in m)) for l, m in matches if m]
+    matches = ((e, norm_to_items.get(normalise(e.name))) for e in sorted(leftovers))
+    return [([e], uniq(Defn(i.source, i.id) for i in m)) for e, m in matches if m]

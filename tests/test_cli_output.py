@@ -34,13 +34,10 @@ def full_config(tmp_path_factory, request, temp_dir):
 
 
 @pytest.fixture
-def manager(event_loop, web_client, full_config):
+def manager(event_loop, full_config):
     config = Config(**full_config).write()
-    db_session = prepare_db_session(config=config)
-
-    manager = CliManager(config, db_session)
+    manager = CliManager(config, prepare_db_session(config))
     manager.run = event_loop.run_until_complete
-    manager.web_client = web_client
     yield manager
 
 

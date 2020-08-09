@@ -11,7 +11,7 @@ from .config import BaseConfig, GlobalConfig
 from .utils import (
     ManagerAttrAccessMixin,
     bucketise,
-    dict_chain,
+    chain_dict,
     gather,
     iter_in_thread as iit,
     run_in_thread as t,
@@ -178,7 +178,7 @@ class WaCompanionBuilder(ManagerAttrAccessMixin):
                 aura_groups = self.extract_auras(
                     model, file.read_text(encoding='utf-8-sig', errors='replace')
                 )
-                logger.debug(f'auras extracted in {time.perf_counter() - start}s')
+                logger.debug(f'{model.__name__} extracted in {time.perf_counter() - start}s')
                 yield aura_groups
 
     async def get_wago_metadata(self, aura_groups: WeakAuras) -> List[WagoResponse]:
@@ -189,7 +189,7 @@ class WaCompanionBuilder(ManagerAttrAccessMixin):
         ) as response:
             metadata = await response.json()
 
-        results = dict_chain(
+        results = chain_dict(
             aura_ids, None, ((i.slug, i) for i in map(WagoResponse.parse_obj, metadata))
         )
         return list(results.values())
@@ -228,7 +228,7 @@ class WaCompanionBuilder(ManagerAttrAccessMixin):
             lstrip_blocks=True,
             loader=FunctionLoader(partial(read_text, wa_templates)),
         )
-        aura_dict = dict_chain((WeakAuras, Plateroos), [], auras)
+        aura_dict = chain_dict((WeakAuras, Plateroos), [], auras)
 
         self.addon_file.parent.mkdir(exist_ok=True)
         with ZipFile(self.addon_file, 'w') as file:

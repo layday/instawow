@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from instawow.manager import find_base_dirs, should_extract
+from instawow.manager import find_zip_base_dirs, make_zip_member_filter
 from instawow.utils import TocReader, bucketise, merge_intersecting_sets, tabulate
 
 
@@ -11,24 +11,20 @@ def fake_addon():
     yield Path(__file__).parent / 'fixtures' / 'FakeAddon'
 
 
-def test_find_base_dirs_can_find_explicit_dirs():
-    assert find_base_dirs(['b/', 'b/b.toc']) == {'b'}
+def test_find_zip_base_dirs_can_find_explicit_dirs():
+    assert find_zip_base_dirs(['b/', 'b/b.toc']) == {'b'}
 
 
-def test_find_base_dirs_can_find_implicit_dirs():
-    assert find_base_dirs(['b/b.toc']) == {'b'}
+def test_find_zip_base_dirs_can_find_implicit_dirs():
+    assert find_zip_base_dirs(['b/b.toc']) == {'b'}
 
 
-def test_find_base_dirs_discards_resource_forks():
-    assert find_base_dirs(['b/', '__MACOSX/']) == {'b'}
+def test_find_zip_base_dirs_discards_files_in_root():
+    assert find_zip_base_dirs(['a', 'b/b.toc', 'c/']) == {'b', 'c'}
 
 
-def test_find_base_dirs_discards_files_in_root():
-    assert find_base_dirs(['a', 'b/b.toc', 'c/']) == {'b', 'c'}
-
-
-def test_should_extract_discards_names_with_prefix_not_in_dirs():
-    is_member = should_extract({'b'})
+def test_make_zip_member_filter_discards_names_with_prefix_not_in_dirs():
+    is_member = make_zip_member_filter({'b'})
     assert list(map(is_member, ['a/', 'b/', 'aa/', 'bb/'])) == [False, True, False, False]
 
 

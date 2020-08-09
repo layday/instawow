@@ -1,31 +1,32 @@
 from __future__ import annotations
 
 import asyncio
-from contextlib import asynccontextmanager
+from collections import defaultdict
+from contextlib import asynccontextmanager, contextmanager
 import contextvars as cv
 from functools import partial
-from itertools import filterfalse, starmap
+from itertools import compress, filterfalse, repeat, starmap
 import json
 from pathlib import Path, PurePath
-import posixpath
-from shutil import copy, move
+from shutil import copy, move as _move
 from tempfile import NamedTemporaryFile, mkdtemp
 from typing import (
     TYPE_CHECKING,
     Any,
-    AsyncContextManager,
     AsyncIterator,
     Awaitable,
     Callable,
+    DefaultDict,
     Dict,
     Iterable,
+    Iterator,
     List,
-    Mapping,
     NoReturn,
     Optional as O,
     Sequence,
     Set,
     Tuple,
+    Type,
     TypeVar,
     Union,
     cast,
@@ -47,10 +48,13 @@ from .resolvers import (
 )
 from .utils import (
     bucketise,
-    dict_chain,
+    chain_dict,
+    find_zip_base_dirs,
     gather,
     is_not_stale,
+    iter_in_thread as iit,
     make_progress_bar,
+    make_zip_member_filter,
     run_in_thread as t,
     shasum,
 )
@@ -58,27 +62,41 @@ from .utils import (
 if TYPE_CHECKING:
     import aiohttp
     from prompt_toolkit.shortcuts import ProgressBar
-    from sqlalchemy.orm import scoped_session
+    from sqlalchemy.orm import Session
     from yarl import URL
 
     from .config import Config
 
     _T = TypeVar('_T')
-    _ArchiveACM = AsyncContextManager[Tuple[List[str], Callable[[Path], Awaitable[None]]]]
 
 
 USER_AGENT = 'instawow (https://github.com/layday/instawow)'
 
 _web_client: cv.ContextVar[aiohttp.ClientSession] = cv.ContextVar('_web_client')
+_locks: cv.ContextVar[DefaultDict[str, asyncio.Lock]] = cv.ContextVar('_locks')
+
+
+def move(src: PurePath, dst: PurePath) -> PurePath:
+    # See https://bugs.python.org/issue32689
+    return _move(str(src), dst)
+
 
 AsyncNamedTemporaryFile = t(NamedTemporaryFile)
-amkdtemp = t(mkdtemp)
-acopy = t(copy)
-amove = t(move)
+copy_async = t(copy)
+move_async = t(move)
+
+
+def trash(paths: Sequence[PurePath], *, dst: PurePath, missing_ok: bool = False) -> None:
+    parent_folder = Path(mkdtemp(dir=dst, prefix=f'deleted-{paths[0].name}-'))
+    for path in paths:
+        try:
+            move(path, dst=parent_folder)
+        except (FileNotFoundError if missing_ok else ()):
+            logger.opt(exception=True).info('source file missing')
 
 
 @asynccontextmanager
-async def open_temp_writer() -> AsyncIterator[Tuple[Path, Callable[[bytes], Awaitable[int]]]]:
+async def _open_temp_writer() -> AsyncIterator[Tuple[Path, Callable[[bytes], Awaitable[int]]]]:
     fh = await AsyncNamedTemporaryFile(delete=False)
     path = Path(fh.name)
     try:
@@ -91,56 +109,27 @@ async def open_temp_writer() -> AsyncIterator[Tuple[Path, Callable[[bytes], Awai
         await t(fh.close)()
 
 
-async def trash(paths: Sequence[Path], parent: PurePath, *, missing_ok: bool = False) -> None:
-    dst = await amkdtemp(dir=parent, prefix='deleted-' + paths[0].name + '-')
-    for path in map(str, paths):  # https://bugs.python.org/issue32689
-        try:
-            await amove(path, dst)
-        except (FileNotFoundError if missing_ok else ()):
-            logger.opt(exception=True).info('source missing')
-
-
-# macOS 'resource forks' are sometimes included in download zips - these
-# violate our one add-on per folder contract-thing and will be omitted
-_zip_excludes = {'__MACOSX'}
-
-
-def find_base_dirs(names: Sequence[str]) -> Set[str]:
-    return {
-        n for n in (posixpath.dirname(n) for n in names) if n and posixpath.sep not in n
-    } - _zip_excludes
-
-
-def should_extract(base_dirs: Set[str]) -> Callable[[str], bool]:
-    def is_member(name: str) -> bool:
-        head, sep, _ = name.partition(posixpath.sep)
-        return cast(bool, sep) and head in base_dirs
-
-    return is_member
-
-
-@asynccontextmanager
-async def acquire_archive(path: PurePath):
+@contextmanager
+def _open_archive(path: PurePath) -> Iterator[Tuple[Set[str], Callable[[Path], None]]]:
     from zipfile import ZipFile
 
-    def extract(parent: Path) -> None:
-        conflicts = base_dirs & {f.name for f in parent.iterdir()}
-        if conflicts:
-            raise E.PkgConflictsWithForeign(conflicts)
-        else:
-            members = filter(should_extract(base_dirs), names)
-            archive.extractall(parent, members=members)
+    ZIP_EXCLUDES = {
+        # Mac 'resource forks' are ommitted cuz they violate our one package
+        # per folder policy-contract-thing (besides just being clutter)
+        '__MACOSX',
+    }
 
-    archive = await t(ZipFile)(path)
-    try:
+    with ZipFile(path) as archive:
+
+        def extract(parent: Path) -> None:
+            archive.extractall(parent, members=filter(make_zip_member_filter(base_dirs), names))
+
         names = archive.namelist()
-        base_dirs = find_base_dirs(names)
-        yield (sorted(base_dirs), t(extract))
-    finally:
-        await t(archive.close)()
+        base_dirs = find_zip_base_dirs(names) - ZIP_EXCLUDES
+        yield (base_dirs, extract)
 
 
-async def download_archive(manager: Manager, pkg: Pkg, *, chunk_size: int = 4096) -> _ArchiveACM:
+async def download_archive(manager: Manager, pkg: Pkg, *, chunk_size: int = 4096) -> Path:
     url = pkg.download_url
     dst = manager.config.cache_dir / shasum(
         pkg.source, pkg.id, pkg.version, manager.config.game_flavour
@@ -151,25 +140,25 @@ async def download_archive(manager: Manager, pkg: Pkg, *, chunk_size: int = 4096
     elif url.startswith('file://'):
         from urllib.parse import unquote
 
-        await acopy(unquote(url[7:]), dst)
+        await copy_async(unquote(url[7:]), dst)
     else:
         kwargs = {'raise_for_status': True, 'trace_request_ctx': {'show_progress': True}}
-        async with manager.web_client.get(url, **kwargs) as response, open_temp_writer() as (
+        async with manager.web_client.get(url, **kwargs) as response, _open_temp_writer() as (
             temp_path,
             write,
         ):
             async for chunk in response.content.iter_chunked(chunk_size):
                 await write(chunk)
 
-        await amove(temp_path, dst)
-    return acquire_archive(dst)
+        await move_async(temp_path, dst)
+
+    return dst
 
 
 async def cache_json_response(
     manager: Manager, url: Union[str, URL], *args: Any, label: O[str] = None
 ) -> Any:
     dst = manager.config.cache_dir / shasum(str(url))
-
     if await t(is_not_stale)(dst, *args):
         text = await t(dst.read_text)(encoding='utf-8')
     else:
@@ -180,12 +169,13 @@ async def cache_json_response(
             text = await response.text()
 
         await t(dst.write_text)(text, encoding='utf-8')
+
     return json.loads(text)
 
 
-def prepare_db_session(config: Config) -> scoped_session:
+def prepare_db_session(config: Config) -> Session:
     from sqlalchemy import create_engine
-    from sqlalchemy.orm import scoped_session, sessionmaker
+    from sqlalchemy.orm import sessionmaker
 
     from .models import ModelBase, should_migrate
 
@@ -196,7 +186,11 @@ def prepare_db_session(config: Config) -> scoped_session:
     # which will implicitly create the database file
     db_exists = db_path.exists()
 
-    engine = create_engine(db_url)
+    # We want to be able to reuse SQLite objects in a separate thread
+    # when lumping database operations in with disk I/O,
+    # not to lock up the loop
+    engine = create_engine(db_url, connect_args={'check_same_thread': False})
+
     if should_migrate(engine, DB_REVISION):
         from alembic.command import stamp, upgrade
         from alembic.config import Config as AConfig
@@ -218,7 +212,8 @@ def prepare_db_session(config: Config) -> scoped_session:
                 logger.info(f'stamping database with {DB_REVISION}')
                 stamp(aconfig, DB_REVISION)
 
-    return scoped_session(sessionmaker(bind=engine))
+    Session = sessionmaker(bind=engine)
+    return Session()
 
 
 def init_web_client(**kwargs: Any) -> aiohttp.ClientSession:
@@ -227,7 +222,7 @@ def init_web_client(**kwargs: Any) -> aiohttp.ClientSession:
     kwargs = {
         'connector': TCPConnector(force_close=True, limit_per_host=10),
         'headers': {'User-Agent': USER_AGENT},
-        'trust_env': True,  # Respect http_proxy env var
+        'trust_env': True,  # Respect the 'http_proxy' env var
         'timeout': cast(Any, ClientTimeout)(connect=15),
         **kwargs,
     }
@@ -236,71 +231,100 @@ def init_web_client(**kwargs: Any) -> aiohttp.ClientSession:
 
 @object.__new__
 class _DummyResolver:
-    async def synchronise(self) -> _DummyResolver:
-        return self
-
-    async def resolve(self, defns: List[Defn], **kwargs: Any) -> Dict[Defn, E.PkgSourceInvalid]:
+    async def resolve(self, defns: List[Defn]) -> Dict[Defn, E.PkgSourceInvalid]:
         return dict.fromkeys(defns, E.PkgSourceInvalid())
 
 
-class _ResolverDict(dict):
+class _ResolverDict(Dict[str, Resolver]):
     def __missing__(self, key: str) -> Resolver:
         return _DummyResolver
 
 
-async def _error_out(error: Union[E.ManagerError, E.InternalError]) -> NoReturn:
-    raise error
+def _error_out(error: BaseException) -> Callable[[], Awaitable[NoReturn]]:
+    async def inner() -> NoReturn:
+        raise error
+
+    return inner
+
+
+async def _capture_exc(coro: Callable[..., Awaitable[Any]]) -> E.ManagerResult:
+    from aiohttp import ClientError
+
+    try:
+        return await coro()
+    except E.ManagerError as error:
+        return error
+    except ClientError as error:
+        logger.opt(exception=True).debug('network error')
+        return E.InternalError(error, stringify_error=True)
+    except BaseException as error:
+        logger.exception('unclassed error')
+        return E.InternalError(error)
 
 
 class Manager:
-    config: Config
-    db_session: scoped_session
-    resolvers: Mapping[str, Resolver]
-    catalogue: MasterCatalogue
-
-    resolver_classes = (
-        CurseResolver,
-        WowiResolver,
-        TukuiResolver,
-        GithubResolver,
-        InstawowResolver,
-    )
-
-    def __init__(self, config: Config, db_session: scoped_session) -> None:
+    def __init__(
+        self,
+        config: Config,
+        db_session: Session,
+        catalogue: O[MasterCatalogue] = None,
+        resolver_classes: Sequence[Type[Resolver]] = (
+            CurseResolver,
+            WowiResolver,
+            TukuiResolver,
+            GithubResolver,
+            InstawowResolver,
+        ),
+    ) -> None:
         self.config = config
         self.db_session = db_session
-        self.resolvers = _ResolverDict((r.source, r(self)) for r in self.resolver_classes)
-        self.catalogue = None  # type: ignore
+        self.catalogue: MasterCatalogue = catalogue  # type: ignore
+        self.resolvers = _ResolverDict((r.source, r(self)) for r in resolver_classes)
 
     @property
     def web_client(self) -> aiohttp.ClientSession:
-        return _web_client.get()
+        "The web client session."
+        try:
+            return _web_client.get()
+        except LookupError:
+            task = asyncio.current_task()
+            if task is None:
+                raise RuntimeError('no running task')
+
+            logger.debug('initialising default web client')
+            web_client = init_web_client()
+            task.add_done_callback(lambda _: asyncio.create_task(web_client.close()))
+            _web_client.set(web_client)
+            return web_client
 
     @web_client.setter
     def web_client(self, value: aiohttp.ClientSession) -> None:
         _web_client.set(value)
 
-    async def _consume_seq(
-        self, coros_by_defn: Dict[Defn, Callable[..., Awaitable[Any]]]
-    ) -> Dict[Defn, E.ManagerResult]:
-        return {d: await E.ManagerResult.acapture(c()) for d, c in coros_by_defn.items()}
+    @property
+    def locks(self) -> DefaultDict[str, asyncio.Lock]:
+        "A context-aware factory of locks."
+        asyncio.get_running_loop()  # Sanity check
 
-    def get_pkg(self, defn: Defn) -> O[Pkg]:
-        "Retrieve an installed package from a definition."
-        return (
-            self.db_session.query(Pkg)
-            .filter(Pkg.source == defn.source, (Pkg.id == defn.name) | (Pkg.slug == defn.name))
-            .first()
-        )
+        try:
+            locks = _locks.get()
+        except LookupError:
+            logger.debug('initialising lock factory')
+            locks: DefaultDict[str, asyncio.Lock] = defaultdict(asyncio.Lock)
+            _locks.set(locks)
+        return locks
 
-    def get_pkg_from_substr(self, defn: Defn) -> O[Pkg]:
-        "Retrieve an installed package from a partial slug."
-        return self.get_pkg(defn) or (
-            self.db_session.query(Pkg)
-            .filter(Pkg.slug.contains(defn.name))
-            .order_by(Pkg.name)
-            .first()
-        )
+    def _with_lock(
+        lock_name: str,  # type: ignore  # Undeclared static method
+    ) -> Callable[[_T], _T]:
+        def outer(coro_fn: _T):
+            async def inner(self: Manager, *args: Any, **kwargs: Any):
+                async with self.locks[lock_name]:
+                    return await coro_fn(self, *args, **kwargs)
+
+            return inner
+
+        return outer
 
     def pair_url(self, url: str) -> O[Tuple[str, str]]:
         "Attempt to pair a URL with a resolver, returning the source and name."
@@ -311,16 +335,122 @@ class Manager:
             None,
         )
 
+    def get_pkg(self, defn: Defn, partial_match: bool = False) -> O[Pkg]:
+        "Retrieve an installed package from a definition."
+        return (
+            (
+                self.db_session.query(Pkg)
+                .filter(
+                    Pkg.source == defn.source,
+                    (Pkg.id == defn.name) | (Pkg.slug == defn.name) | (Pkg.id == defn.source_id),
+                )
+                .first()
+            )
+            or partial_match
+            and (
+                self.db_session.query(Pkg)
+                .filter(Pkg.slug.contains(defn.name))
+                .order_by(Pkg.name)
+                .first()
+            )
+            or None
+        )
+
+    def install_pkg(self, pkg: Pkg, archive: Path, replace: bool) -> E.PkgInstalled:
+        "Install a package."
+        with _open_archive(archive) as (top_level_folders, extract):
+            installed_conflicts = (
+                self.db_session.query(Pkg)
+                .join(Pkg.folders)
+                .filter(PkgFolder.name.in_(top_level_folders))
+                .all()
+            )
+            if installed_conflicts:
+                raise E.PkgConflictsWithInstalled(installed_conflicts)
+
+            if replace:
+                trash(
+                    [self.config.addon_dir / f for f in top_level_folders],
+                    dst=self.config.temp_dir,
+                    missing_ok=True,
+                )
+            else:
+                foreign_conflicts = top_level_folders & {
+                    f.name for f in self.config.addon_dir.iterdir()
+                }
+                if foreign_conflicts:
+                    raise E.PkgConflictsWithForeign(foreign_conflicts)
+
+            extract(self.config.addon_dir)
+            pkg.folders = [PkgFolder(name=f) for f in sorted(top_level_folders)]
+
+        self.db_session.add(pkg)
+        self.db_session.merge(
+            PkgVersionLog(version=pkg.version, pkg_source=pkg.source, pkg_id=pkg.id)
+        )
+        self.db_session.commit()
+
+        return E.PkgInstalled(pkg)
+
+    def update_pkg(self, old_pkg: Pkg, new_pkg: Pkg, archive: Path) -> E.PkgUpdated:
+        "Update a package."
+        with _open_archive(archive) as (top_level_folders, extract):
+            installed_conflicts = (
+                self.db_session.query(Pkg)
+                .join(Pkg.folders)
+                .filter(PkgFolder.pkg_source != new_pkg.source, PkgFolder.pkg_id != new_pkg.id)
+                .filter(PkgFolder.name.in_(top_level_folders))
+                .all()
+            )
+            if installed_conflicts:
+                raise E.PkgConflictsWithInstalled(installed_conflicts)
+
+            foreign_conflicts = top_level_folders - {f.name for f in old_pkg.folders} & {
+                f.name for f in self.config.addon_dir.iterdir()
+            }
+            if foreign_conflicts:
+                raise E.PkgConflictsWithForeign(foreign_conflicts)
+
+            trash(
+                [self.config.addon_dir / f.name for f in old_pkg.folders],
+                dst=self.config.temp_dir,
+                missing_ok=True,
+            )
+            extract(self.config.addon_dir)
+            new_pkg.folders = [PkgFolder(name=f) for f in sorted(top_level_folders)]
+
+        self.db_session.delete(old_pkg)
+        self.db_session.add(new_pkg)
+        self.db_session.merge(
+            PkgVersionLog(version=new_pkg.version, pkg_source=new_pkg.source, pkg_id=new_pkg.id)
+        )
+        self.db_session.commit()
+
+        return E.PkgUpdated(old_pkg, new_pkg)
+
+    def remove_pkg(self, pkg: Pkg) -> E.PkgRemoved:
+        "Remove a package."
+        trash(
+            [self.config.addon_dir / f.name for f in pkg.folders],
+            dst=self.config.temp_dir,
+            missing_ok=True,
+        )
+        self.db_session.delete(pkg)
+        self.db_session.commit()
+
+        return E.PkgRemoved(pkg)
+
+    @_with_lock('load master catalogue')
     async def synchronise(self) -> None:
-        "Fetch the master catalogue from the interwebs."
+        "Fetch the master catalogue from the interwebs and load it."
         if self.catalogue is None:
             label = 'Synchronising master catalogue'
             url = (
                 'https://raw.githubusercontent.com/layday/instawow-data/data/'
                 'master-catalogue-v1.compact.json'
             )  # v1
-            catalogue = await cache_json_response(self, url, 4, 'hours', label=label)
-            self.catalogue = MasterCatalogue.parse_obj(catalogue)
+            raw_catalogue = await cache_json_response(self, url, 4, 'hours', label=label)
+            self.catalogue = MasterCatalogue.parse_obj(raw_catalogue)
 
     async def _resolve_deps(self, results: Iterable[Any]) -> Dict[Defn, Any]:
         """Resolve package dependencies.
@@ -351,10 +481,17 @@ class Manager:
             return {}
 
         await self.synchronise()
-        defns_by_source = bucketise(defns, key=lambda v: v.source)
 
+        defns_by_source = bucketise(defns, key=lambda v: v.source)
         results = await gather(self.resolvers[s].resolve(b) for s, b in defns_by_source.items())
-        results_by_defn = dict_chain(defns, None, *(r.items() for r in results))
+        results_by_defn = chain_dict(
+            defns,
+            None,
+            *(
+                r.items() if isinstance(r, dict) else zip(d, repeat(r))
+                for d, r in zip(defns_by_source.values(), results)
+            ),
+        )
         if with_deps:
             results_by_defn.update(await self._resolve_deps(results_by_defn.values()))
         return results_by_defn
@@ -364,7 +501,7 @@ class Manager:
         import heapq
         import string
 
-        from jellyfish import jaro_winkler
+        from jellyfish import jaro_winkler_similarity
 
         trans_table = str.maketrans(dict.fromkeys(string.punctuation, ' '))
 
@@ -385,133 +522,107 @@ class Manager:
 
         # TODO: weigh matches under threshold against download count
         matches = heapq.nlargest(
-            limit, ((jaro_winkler(s, n), n) for n in tokens_to_defns.keys()), key=lambda v: v[0]
+            limit,
+            ((jaro_winkler_similarity(s, n), n) for n in tokens_to_defns),
+            key=lambda v: v[0],
         )
         defns = [Defn(*d) for _, m in matches for _, d in tokens_to_defns[m]]
-        results = await self.resolve(defns)
-        pkgs_by_defn = {d.with_name(r.slug): r for d, r in results.items() if is_pkg(r)}
+        resolve_results = await self.resolve(defns)
+        pkgs_by_defn = {d.with_name(r.slug): r for d, r in resolve_results.items() if is_pkg(r)}
         return pkgs_by_defn
 
-    async def install_one(self, pkg: Pkg, archive: _ArchiveACM, replace: bool) -> E.PkgInstalled:
-        async with archive as (folders, extract):
-            conflicts = (
-                self.db_session.query(Pkg)
-                .join(Pkg.folders)
-                .filter(PkgFolder.name.in_(folders))
-                .all()
-            )
-            if conflicts:
-                raise E.PkgConflictsWithInstalled(conflicts)
-
-            if replace:
-                await trash([self.config.addon_dir / f for f in folders], self.config.temp_dir)
-            await extract(self.config.addon_dir)
-
-        pkg.folders = [PkgFolder(name=f) for f in folders]
-        self.db_session.add(pkg)
-        self.db_session.merge(
-            PkgVersionLog(version=pkg.version, pkg_source=pkg.source, pkg_id=pkg.id)
-        )
-        self.db_session.commit()
-
-        return E.PkgInstalled(pkg)
-
+    @_with_lock('change state')
     async def install(self, defns: Sequence[Defn], replace: bool) -> Dict[Defn, E.ManagerResult]:
-        prelim_results = await self.resolve(
-            [d for d in defns if not self.get_pkg(d)], with_deps=True
+        "Install packages from a definition list."
+        # We'll weed out installed dependencies from results after resolving.
+        # Doing it this way isn't particularly efficient but avoids having to
+        # deal with local state in resolvers.
+        resolve_results = await self.resolve(
+            list(compress(defns, [b async for b in iit(not self.get_pkg(d) for d in defns)])),
+            with_deps=True,
         )
-        # Weed out installed deps - this isn't super efficient but avoids
-        # having to deal with local state in the resolver
-        results = {d: r for d, r in prelim_results.items() if not self.get_pkg(d)}
-        installables = {(d, r): download_archive(self, r) for d, r in results.items() if is_pkg(r)}
+        resolve_results = dict(
+            compress(
+                resolve_results.items(),
+                [b async for b in iit(not self.get_pkg(d) for d in resolve_results)],
+            )
+        )
+        installables = {
+            (d, cast(Pkg, r)): download_archive(self, r)
+            for d, r in resolve_results.items()
+            if is_pkg(r)
+        }
         archives = await gather(installables.values())
-
-        coros = dict_chain(
+        result_coros = chain_dict(
             defns,
-            partial(_error_out, E.PkgAlreadyInstalled()),
-            ((d, partial(_error_out, r)) for d, r in results.items()),
+            _error_out(E.PkgAlreadyInstalled()),
+            ((d, _error_out(r)) for d, r in resolve_results.items()),
             (
-                (d, partial(self.install_one, p, a, replace))
+                (
+                    d,
+                    partial(t(self.install_pkg), p, a, replace)
+                    if isinstance(a, PurePath)
+                    else _error_out(a),
+                )
                 for (d, p), a in zip(installables, archives)
             ),
         )
-        return await self._consume_seq(coros)
+        results = {d: await _capture_exc(c) for d, c in result_coros.items()}
+        return results
 
-    async def update_one(self, old_pkg: Pkg, new_pkg: Pkg, archive: _ArchiveACM) -> E.PkgUpdated:
-        async with archive as (folders, extract):
-            conflicts = (
-                self.db_session.query(Pkg)
-                .join(Pkg.folders)
-                .filter(PkgFolder.pkg_source != new_pkg.source, PkgFolder.pkg_id != new_pkg.id)
-                .filter(PkgFolder.name.in_(folders))
-                .all()
-            )
-            if conflicts:
-                raise E.PkgConflictsWithInstalled(conflicts)
-
-            await trash(
-                [self.config.addon_dir / f.name for f in old_pkg.folders],
-                parent=self.config.temp_dir,
-                missing_ok=True,
-            )
-            await extract(self.config.addon_dir)
-
-        new_pkg.folders = [PkgFolder(name=f) for f in folders]
-        self.db_session.delete(old_pkg)
-        self.db_session.add(new_pkg)
-        self.db_session.merge(
-            PkgVersionLog(version=new_pkg.version, pkg_source=new_pkg.source, pkg_id=new_pkg.id)
-        )
-        self.db_session.commit()
-
-        return E.PkgUpdated(old_pkg, new_pkg)
-
+    @_with_lock('change state')
     async def update(self, defns: Sequence[Defn]) -> Dict[Defn, E.ManagerResult]:
-        # Rebuild ``Defn`` with ID and strategy from package for defns
-        # of installed packages.  Using the ID has the benefit of resolving
-        # installed-but-renamed packages - the slug is transient; the ID isn't
-        maybe_pkgs = ((d, self.get_pkg(d)) for d in defns)
-        checked_defns = {Defn.from_pkg(p) if p else c: p for c, p in maybe_pkgs}
-        # Results can contain errors
-        # installables are those results which are packages
-        # and updatables are packages with updates
-        results = await self.resolve([d for d, p in checked_defns.items() if p])
-        installables = {d: r for d, r in results.items() if is_pkg(r)}
+        "Update installed packages from a definition list."
+        # Begin by rebuilding ``Defn`` with ID and strategy from package
+        # for ``Defn``s of installed packages.  Using the ID has the benefit
+        # of resolving installed-but-renamed packages -
+        # the slug is transient but the ID is not.
+        # Afterwards trim the results down to ``Defn``s with packages (installables)
+        # and ``Defn``s with updates (updatables) and fetch the archives of
+        # the latter class.
+        defns_to_pkgs = {
+            Defn.from_pkg(p) if p else d: p
+            async for d, p in iit((d, self.get_pkg(d)) for d in defns)
+        }
+        resolve_results = await self.resolve([d for d, p in defns_to_pkgs.items() if p])
+        installables = {d: cast(Pkg, r) for d, r in resolve_results.items() if is_pkg(r)}
         updatables = {
-            (d, checked_defns[d], p): download_archive(self, p)
-            for d, p in installables.items()
-            if p.version != cast(Pkg, checked_defns[d]).version
+            (d, o, n): download_archive(self, n)
+            for (d, n), o in zip(
+                installables.items(), (cast(Pkg, defns_to_pkgs[d]) for d in installables)
+            )
+            if n.version != o.version
         }
         archives = await gather(updatables.values())
-
-        coros = dict_chain(
-            checked_defns,
-            partial(_error_out, E.PkgNotInstalled()),
-            ((d, partial(_error_out, r)) for d, r in results.items()),
-            ((d, partial(_error_out, E.PkgUpToDate())) for d in installables),
-            ((d, partial(self.update_one, *p, a)) for (d, *p), a in zip(updatables, archives)),
+        result_coros = chain_dict(
+            defns_to_pkgs,
+            _error_out(E.PkgNotInstalled()),
+            ((d, _error_out(r)) for d, r in resolve_results.items()),
+            ((d, _error_out(E.PkgUpToDate())) for d in installables),
+            (
+                (
+                    d,
+                    partial(t(self.update_pkg), *p, a)
+                    if isinstance(a, PurePath)
+                    else _error_out(a),
+                )
+                for (d, *p), a in zip(updatables, archives)
+            ),
         )
-        return await self._consume_seq(coros)
+        results = {d: await _capture_exc(c) for d, c in result_coros.items()}
+        return results
 
-    async def remove_one(self, pkg: Pkg) -> E.PkgRemoved:
-        await trash(
-            [self.config.addon_dir / f.name for f in pkg.folders],
-            parent=self.config.temp_dir,
-            missing_ok=True,
-        )
-        self.db_session.delete(pkg)
-        self.db_session.commit()
-
-        return E.PkgRemoved(pkg)
-
+    @_with_lock('change state')
     async def remove(self, defns: Sequence[Defn]) -> Dict[Defn, E.ManagerResult]:
-        pkgs_by_defn = ((d, self.get_pkg(d)) for d in defns)
-        coros = dict_chain(
+        "Remove packages by their definition."
+        maybe_pkgs = [p async for p in iit(self.get_pkg(d) for d in defns)]
+        result_coros = chain_dict(
             defns,
-            partial(_error_out, E.PkgNotInstalled()),
-            ((d, partial(self.remove_one, p)) for d, p in pkgs_by_defn if p),
+            _error_out(E.PkgNotInstalled()),
+            ((d, partial(t(self.remove_pkg), p)) for d, p in zip(defns, maybe_pkgs) if p),
         )
-        return await self._consume_seq(coros)
+        results = {d: await _capture_exc(c) for d, c in result_coros.items()}
+        return results
 
 
 _tick_interval = 0.1
@@ -519,7 +630,7 @@ _tickers: cv.ContextVar[Set[asyncio.Task[None]]] = cv.ContextVar('_tickers', def
 
 
 @asynccontextmanager
-async def cancel_tickers() -> AsyncIterator[None]:
+async def _cancel_tickers() -> AsyncIterator[None]:
     try:
         yield
     finally:
@@ -527,7 +638,7 @@ async def cancel_tickers() -> AsyncIterator[None]:
             ticker.cancel()
 
 
-def init_cli_web_client(*, bar_group: ProgressBar) -> aiohttp.ClientSession:
+def init_cli_web_client(bar: ProgressBar) -> aiohttp.ClientSession:
     from aiohttp import TraceConfig, hdrs
 
     def extract_filename(response: aiohttp.ClientResponse) -> str:
@@ -546,21 +657,23 @@ def init_cli_web_client(*, bar_group: ProgressBar) -> aiohttp.ClientSession:
             label = ctx.get('label') or f'Downloading {extract_filename(params.response)}'
             total = params.response.content_length
             # The encoded size is not exposed in the streaming API and
-            # ``content_length`` has the size of the payload after gzipping
+            # ``content_length`` has the size of the payload after gzipping -
+            # we can't know what the actual size of a file is in transfer
             if params.response.headers.get(hdrs.CONTENT_ENCODING) == 'gzip':
                 total = None
 
             counter = None
             try:
-                counter = bar_group(label=label, total=total)
+                counter = bar(label=label, total=total)
+
                 content = params.response.content
                 while not content.is_eof():
                     counter.items_completed = content.total_bytes
-                    bar_group.invalidate()
+                    bar.invalidate()
                     await asyncio.sleep(_tick_interval)
             finally:
                 try:
-                    bar_group.counters.remove(counter)
+                    bar.counters.remove(counter)
                 except ValueError:
                     pass
 
@@ -575,12 +688,10 @@ def init_cli_web_client(*, bar_group: ProgressBar) -> aiohttp.ClientSession:
 
 class CliManager(Manager):
     def run(self, awaitable: Awaitable[_T]) -> _T:
-        with make_progress_bar() as bar_group:
+        with make_progress_bar() as bar:
 
             async def run():
-                async with init_cli_web_client(
-                    bar_group=bar_group
-                ) as self.web_client, cancel_tickers():
+                async with init_cli_web_client(bar) as self.web_client, _cancel_tickers():
                     return await awaitable
 
             loop = asyncio.new_event_loop()

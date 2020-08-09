@@ -78,7 +78,7 @@ class Report:
 
         return '\n'.join(
             f'{adorn_result(r)} {click.style(str(a), bold=True)}\n'
-            + fill(r.message, initial_indent='  ', subsequent_indent='  ')
+            + fill(r.message, initial_indent=' ' * 2, subsequent_indent=' ' * 4)
             for a, r in self.results
             if self.filter_fn(r)
         )
@@ -137,9 +137,17 @@ class _PathParam(click.Path):
 
 
 class _EnumParam(click.Choice, Generic[_EnumT]):
-    def __init__(self, choice_enum: Type[_EnumT], excludes: Set[_EnumT] = set()) -> None:
+    def __init__(
+        self,
+        choice_enum: Type[_EnumT],
+        excludes: Set[_EnumT] = set(),
+        case_sensitive: bool = True,
+    ) -> None:
         self.choice_enum = choice_enum
-        super().__init__([c.name for c in choice_enum if c not in excludes])
+        super().__init__(
+            choices=[c.name for c in choice_enum if c not in excludes],
+            case_sensitive=case_sensitive,
+        )
 
     def convert(self, value: str, param: O[click.Parameter], ctx: O[click.Context]) -> _EnumT:
         parent_result = super().convert(value, param, ctx)
@@ -296,7 +304,7 @@ def update(obj: M, addons: Sequence[Defn]):
     "Update installed add-ons."
 
     def report_filter(result: E.ManagerResult):
-        # Hide package from output if up to date and ``update`` was invoked without args
+        # Hide package from output if it is up to date and ``update`` was invoked without args
         return cast(bool, addons) or not isinstance(result, E.PkgUpToDate)
 
     defns = addons or list(map(Defn.from_pkg, obj.m.db_session.query(models.Pkg).all()))
@@ -348,7 +356,7 @@ def rollback(ctx: click.Context, addon: Defn, undo: bool):
             )
         ).generate_and_exit()
 
-    versions: List[models.PkgVersionLog] = (
+    versions = (
         manager.db_session.query(models.PkgVersionLog)
         .filter(
             models.PkgVersionLog.pkg_source == pkg.source, models.PkgVersionLog.pkg_id == pkg.id
@@ -464,7 +472,8 @@ def reconcile(ctx: click.Context, auto: bool, list_unreconciled: bool):
     elif not leftovers:
         click.echo('No add-ons left to reconcile.')
         return
-    elif not auto:
+
+    if not auto:
         click.echo(preamble)
 
     matcher = match_all()
@@ -542,7 +551,7 @@ def list_installed(obj: M, addons: Sequence[Defn], output_format: ListFormats):
         else:
             return pkg.description
 
-    pkgs: List[models.Pkg] = (
+    pkgs = (
         obj.m.db_session.query(models.Pkg)
         .filter(
             or_(
@@ -596,7 +605,7 @@ def info(ctx: click.Context, addon: Defn):
 @click.pass_obj
 def reveal(obj: M, addon: Defn):
     "Bring an add-on up in your file manager."
-    pkg = obj.m.get_pkg_from_substr(addon)
+    pkg = obj.m.get_pkg(addon, partial_match=True)
     if pkg:
         import webbrowser
 
