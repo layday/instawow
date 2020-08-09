@@ -8,13 +8,14 @@ nox.options.envdir = '.py-nox'
 @nox.session(python=['3.7', '3.8'])
 def test(session):
     session.install('.[test]')
-    session.run('coverage', 'run', '-m', 'pytest', '-o', 'xfail_strict=true', 'tests')
+    session.run('coverage', 'run', '-m', 'pytest')
     session.run('coverage', 'report', '-m')
 
 
 @nox.session(python=False)
 def update_typeshed(session):
     types_dir = '.py-types'
+
     session.run('rm', '-rf', types_dir)
     session.run(
         *f'git clone --depth 1 https://github.com/python/typeshed {types_dir}/typeshed'.split()

@@ -46,7 +46,7 @@ in
     shellHook = ''
       test -d "${pythonVenvDir}" || {
         ${myPython.executable} -m venv "${pythonVenvDir}"
-        "${pythonVenvDir}/bin/${myPython.executable}" -m pip install -U pip setuptools
+        "${pythonVenvDir}/bin/${myPython.executable}" -m pip install -U pip setuptools wheel
       }
       export PATH="${lib.makeBinPath [ pythonVenvDir cargoHome ]}:$PATH"
     '';

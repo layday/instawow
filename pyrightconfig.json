@@ -1,8 +1,7 @@
 {
   "include": ["instawow"],
   "exclude": [
-    "instawow/migrations/env.py",
-    "instawow/migrations/versions/*.py"
+    "instawow/migrations"
   ],
   "ignore": [],
   "strict": [],
@@ -17,9 +16,9 @@
   "typeCheckingMode": "basic",
   "strictListInference": true,
   "strictDictionaryInference": true,
-  "strictParameterNoneValue": false,
+  "strictParameterNoneValue": true,
   "enableTypeIgnoreComments": true,
-  "reportGeneralTypeIssues": "error",
+  "reportGeneralTypeIssues": true,
   "reportMissingImports": true,
   "reportMissingModuleSource": "warning",
   "reportMissingTypeStubs": false,
@@ -29,12 +28,12 @@
   "reportUnusedFunction": "warning",
   "reportUnusedVariable": true,
   "reportDuplicateImport": true,
-  "reportOptionalSubscript": "warning",
-  "reportOptionalMemberAccess": "warning",
-  "reportOptionalCall": "warning",
-  "reportOptionalIterable": "warning",
-  "reportOptionalContextManager": "warning",
-  "reportOptionalOperand": "warning",
+  "reportOptionalSubscript": true,
+  "reportOptionalMemberAccess": true,
+  "reportOptionalCall": true,
+  "reportOptionalIterable": true,
+  "reportOptionalContextManager": true,
+  "reportOptionalOperand": true,
   "reportUntypedFunctionDecorator": "warning",
   "reportUntypedClassDecorator": "warning",
   "reportUntypedBaseClass": "warning",
@@ -42,6 +41,7 @@
   "reportPrivateUsage": "warning",
   "reportConstantRedefinition": "warning",
   "reportIncompatibleMethodOverride": false,
+  "reportIncompatibleVariableOverride": true,
   "reportInvalidStringEscapeSequence": "warning",
   "reportUnknownParameterType": "warning",
   "reportUnknownArgumentType": "warning",
@@ -55,5 +55,6 @@
   "reportSelfClsParameterName": "warning",
   "reportImplicitStringConcatenation": false,
   "reportUndefinedVariable": true,
-  "reportUnboundVariable": "warning"
+  "reportUnboundVariable": true,
+  "reportInvalidStubStatement": false
 }
