@@ -34,7 +34,7 @@ setup(
             pytest           >=6.0.1, <7
             pytest-asyncio   ~=0.14
             aresponses       ~=2.0
-            sqlalchemy-stubs
+            sqlalchemy-stubs @https://github.com/dropbox/sqlalchemy-stubs/archive/55470ce.zip
         ''',
     },
     python_requires='~=3.7',
