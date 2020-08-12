@@ -1,5 +1,7 @@
+from filecmp import dircmp
 import json
 from pathlib import Path
+from shutil import move
 import sys
 
 import pytest
@@ -18,43 +20,29 @@ def test_env_vars_have_prio(full_config, monkeypatch):
 
 def test_config_dir_is_populated(full_config):
     config = Config(**full_config).write()
-    assert {i.name for i in config.config_dir.iterdir()} == {'config.json', 'logs', 'plugins'}
+    assert {i.name for i in config.profile_dir.iterdir()} == {'config.json', 'logs', 'plugins'}
 
 
 def test_reading_missing_config_from_env_raises(full_config, monkeypatch):
     monkeypatch.setenv('INSTAWOW_CONFIG_DIR', str(full_config['config_dir']))
-    with pytest.raises(FileNotFoundError):  # type: ignore
+    with pytest.raises(FileNotFoundError):
         Config.read()
 
 
 @pytest.mark.skipif(sys.platform == 'win32', reason='no ~ expansion on Windows')
 @pytest.mark.parametrize('dir_', ['config_dir', 'addon_dir', 'temp_dir'])
-def test_invalid_any_dir_raises(full_config, dir_):
-    with pytest.raises(ValueError):  # type: ignore
+def test_invalid_user_expansion_raises(full_config, dir_):
+    with pytest.raises(ValueError):
         Config(**{**full_config, dir_: '~foo'})
 
 
-def test_invalid_addon_dir_raises(full_config):
-    with pytest.raises(ValueError, match='must be a writable directory'):  # type: ignore
+def test_missing_addon_dir_raises(full_config):
+    with pytest.raises(ValueError):
         Config(**{**full_config, 'addon_dir': 'foo'})
 
 
-@pytest.mark.parametrize('profile', ['foo', None])
-def test_reading_config_file(full_config, profile):
-    Config(**full_config, profile=profile).write()
-    config_json = {
-        'addon_dir': str(full_config['addon_dir']),
-        'game_flavour': full_config['game_flavour'],
-        'profile': profile,
-    }
-    config_loc = full_config['config_dir']
-    if profile:
-        config_loc = config_loc / 'profiles' / profile
-    assert config_json == json.loads((config_loc / 'config.json').read_text())
-
-
 @pytest.mark.skipif(sys.platform == 'win32', reason='path handling')
-def test_default_config_dir_is_platform_and_xdg_appropriate(partial_config, monkeypatch):
+def test_default_config_dir_is_platform_appropriate(partial_config, monkeypatch):
     with monkeypatch.context() as patcher:
         patcher.setattr(sys, 'platform', 'linux')
         config_dir = Config(**partial_config).config_dir
@@ -71,7 +59,32 @@ def test_default_config_dir_is_platform_and_xdg_appropriate(partial_config, monk
 
 
 @pytest.mark.skipif(sys.platform != 'win32', reason='path unhandling')
-def test_default_config_dir_on_win32(partial_config, monkeypatch):
+def test_default_config_dir_is_win32_appropriate(partial_config, monkeypatch):
     assert Config(**partial_config).config_dir == Path.home() / 'AppData/Roaming/instawow'
     monkeypatch.delenv('APPDATA')
     assert Config(**partial_config).config_dir == Path.home() / 'instawow'
+
+
+def test_legacy_profile_migration_goes_swimmingly(full_config, monkeypatch):
+    legacy_config = Config(**full_config).write()
+    monkeypatch.setenv('INSTAWOW_CONFIG_DIR', str(full_config['config_dir']))
+
+    comparison = dircmp(
+        legacy_config.config_dir, legacy_config.profile_dir,
+    )
+    profile_dirs = sorted(i.name for i in legacy_config.profile_dir.iterdir())
+    assert comparison.common == []
+    assert comparison.left_list == ['profiles']
+    assert sorted(comparison.right_list) == profile_dirs
+
+    for name in profile_dirs:
+        move(str(legacy_config.profile_dir / name), legacy_config.config_dir / name)
+    legacy_config.profile_dir.rmdir()
+    Config.get_dummy_config(config_dir=full_config['config_dir']).read()
+
+    comparison = dircmp(
+        legacy_config.config_dir, legacy_config.profile_dir,
+    )
+    assert comparison.common == []
+    assert comparison.left_list == ['profiles']
+    assert sorted(comparison.right_list) == profile_dirs

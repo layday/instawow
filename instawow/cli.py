@@ -122,7 +122,7 @@ class ManagerWrapper:
             else:
                 break
 
-        setup_logging(config.logger_dir, 'DEBUG' if self.ctx.params['debug'] else 'INFO')
+        setup_logging(config.logging_dir, 'DEBUG' if self.ctx.params['debug'] else 'INFO')
         db_session = prepare_db_session(config)
         manager = CliManager(config, db_session)
         return manager
@@ -647,9 +647,7 @@ def configure(ctx: click.Context, show_active: bool):
         validator=PydanticValidator(Config, 'game_flavour'),
     )
     config = Config(
-        addon_dir=addon_dir,
-        game_flavour=game_flavour,
-        profile=cast(click.Context, ctx.parent).params['profile'],
+        addon_dir=addon_dir, game_flavour=game_flavour, profile=ctx.find_root().params['profile'],
     ).write()
     click.echo(f'Configuration written to: {config.config_file}')
 

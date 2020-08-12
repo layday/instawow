@@ -8,8 +8,8 @@ from functools import partial
 from itertools import compress, filterfalse, repeat, starmap
 import json
 from pathlib import Path, PurePath
-from shutil import copy, move as _move
-from tempfile import NamedTemporaryFile, mkdtemp
+from shutil import copy
+from tempfile import NamedTemporaryFile
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -55,8 +55,10 @@ from .utils import (
     iter_in_thread as iit,
     make_progress_bar,
     make_zip_member_filter,
+    move,
     run_in_thread as t,
     shasum,
+    trash,
 )
 
 if TYPE_CHECKING:
@@ -76,23 +78,9 @@ _web_client: cv.ContextVar[aiohttp.ClientSession] = cv.ContextVar('_web_client')
 _locks: cv.ContextVar[DefaultDict[str, asyncio.Lock]] = cv.ContextVar('_locks')
 
 
-def move(src: PurePath, dst: PurePath) -> PurePath:
-    # See https://bugs.python.org/issue32689
-    return _move(str(src), dst)
-
-
 AsyncNamedTemporaryFile = t(NamedTemporaryFile)
 copy_async = t(copy)
 move_async = t(move)
-
-
-def trash(paths: Sequence[PurePath], *, dst: PurePath, missing_ok: bool = False) -> None:
-    parent_folder = Path(mkdtemp(dir=dst, prefix=f'deleted-{paths[0].name}-'))
-    for path in paths:
-        try:
-            move(path, dst=parent_folder)
-        except (FileNotFoundError if missing_ok else ()):
-            logger.opt(exception=True).info('source file missing')
 
 
 @asynccontextmanager
@@ -179,12 +167,11 @@ def prepare_db_session(config: Config) -> Session:
 
     from .models import ModelBase, should_migrate
 
-    db_path = config.config_dir / 'db.sqlite'
-    db_url = f'sqlite:///{db_path}'
     # We can't perform a migration on a new database without "metadata"
     # and we need to check whether it exists before calling ``create_engine``,
     # which will implicitly create the database file
-    db_exists = db_path.exists()
+    db_exists = config.db_file.exists()
+    db_url = f'sqlite:///{config.db_file}'
 
     # We want to be able to reuse SQLite objects in a separate thread
     # when lumping database operations in with disk I/O,

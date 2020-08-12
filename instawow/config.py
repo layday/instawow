@@ -1,14 +1,15 @@
 from __future__ import annotations
 
-import os
 from pathlib import Path
+from shutil import copytree, ignore_patterns
 from tempfile import gettempdir
 from typing import Any, Dict, Optional as O
 
 import click
-from pydantic import BaseSettings, Extra, Field, validator
+from pydantic import BaseSettings, DirectoryPath, Extra, Field, constr, validator
+from loguru import logger
 
-from .utils import Literal
+from .utils import Literal, trash
 
 
 def _get_default_config_dir() -> Path:
@@ -16,18 +17,20 @@ def _get_default_config_dir() -> Path:
 
 
 class BaseConfig(BaseSettings):
-    def _build_values(self, init_kwargs: Dict[str, Any], _env_file: Any = None) -> Dict[str, Any]:
+    def _build_values(
+        self, init_kwargs: Dict[str, Any], *args: Any, **kwargs: Any,
+    ) -> Dict[str, Any]:
         # Prioritise env vars
-        return {**init_kwargs, **self._build_environ(_env_file)}
+        return {**init_kwargs, **self._build_environ()}
 
 
 class GlobalConfig(BaseConfig):
     config_dir: Path = Field(default_factory=_get_default_config_dir)
-    addon_dir: Path
-    temp_dir: Path = Path(gettempdir()) / 'instawow'
+    profile: constr(min_length=1) = '__default__'
+    addon_dir: DirectoryPath
     game_flavour: Literal['retail', 'classic']
     auto_update_check: bool = True
-    profile: O[str] = None
+    temp_dir: Path = Path(gettempdir()) / 'instawow'
 
     class Config:
         env_prefix = 'INSTAWOW_'
@@ -41,42 +44,37 @@ class GlobalConfig(BaseConfig):
             # pathlib will raise RuntimeError for non-existent ~users
             raise ValueError(str(error)) from error
 
-    @validator('addon_dir')
-    def _check_writable(cls, value: Path) -> Path:
-        if not (value.is_dir() and os.access(value, os.W_OK)):
-            raise ValueError('must be a writable directory')
-        return value
-
-    @validator('profile')
-    def _rewrite_config_dir_for_profile(cls, value: O[str], values: Any) -> O[str]:
-        if value is not None and not value:
-            raise ValueError('must be at least one character long')
-        if value:
-            values['config_dir'] = values['config_dir'] / 'profiles' / value
-        return value
+    @classmethod
+    def get_dummy_config(cls, **kwargs: Any) -> GlobalConfig:
+        "Create a dummy configuration with default values."
+        dummy_config = cls(addon_dir='', game_flavour='retail', **kwargs)
+        return dummy_config
 
     @classmethod
     def read(cls, profile: O[str] = None) -> GlobalConfig:
         "Read the configuration from disk."
-        dummy_config = cls(addon_dir='', game_flavour='retail', profile=profile)
+        kwargs = {'profile': profile} if profile is not None else {}
+        dummy_config = cls.get_dummy_config(**kwargs)
+        dummy_config.migrate_legacy_dirs()
         config = cls.parse_raw(dummy_config.config_file.read_text(encoding='utf-8'))
-        if profile != config.profile:
+        if dummy_config.profile != config.profile:
             raise ValueError(
                 'profile location does not match profile value of '
-                f'{config.profile!r} in {dummy_config.config_file}'
+                f'"{config.profile}" in {dummy_config.config_file}'
             )
         return config
 
     def ensure_dirs(self) -> GlobalConfig:
         "Create the various folders used by instawow."
-        self.config_dir.mkdir(exist_ok=True, parents=True)
         for dir_ in (
-            self.logger_dir,
+            self.config_dir,
+            self.profile_dir,
+            self.logging_dir,
             self.plugin_dir,
             self.temp_dir,
             self.cache_dir,
         ):
-            dir_.mkdir(exist_ok=True)
+            dir_.mkdir(exist_ok=True, parents=True)
         return self
 
     def write(self) -> GlobalConfig:
@@ -92,6 +90,30 @@ class GlobalConfig(BaseConfig):
         self.config_file.write_text(output, encoding='utf-8')
         return self
 
+    def migrate_legacy_dirs(self) -> GlobalConfig:
+        "Migrate a profile-less configuration to the new format."
+        legacy_config_file = self.config_dir / 'config.json'
+        if (
+            self.profile == self.__field_defaults__['profile']
+            and not self.profile_dir.exists()
+            and legacy_config_file.exists()
+        ):
+            legacy_config = self.parse_raw(legacy_config_file.read_text(encoding='utf-8'))
+            ignores = ignore_patterns('profiles')
+
+            logger.info('migrating legacy configuration')
+            copytree(self.config_dir, self.profile_dir, ignore=ignores)
+            legacy_config.write()
+            trash(
+                [i for i in self.config_dir.iterdir() if i.name != 'profiles'], dst=self.temp_dir
+            )
+
+        return self
+
+    def delete(self) -> None:
+        "Delete the configuration files associated with this profile."
+        trash((self.profile_dir,), dst=self.temp_dir, missing_ok=True)
+
     @property
     def is_classic(self) -> bool:
         return self.game_flavour == 'classic'
@@ -101,16 +123,24 @@ class GlobalConfig(BaseConfig):
         return self.game_flavour == 'retail'
 
     @property
-    def config_file(self) -> Path:
-        return self.config_dir / 'config.json'
+    def profile_dir(self) -> Path:
+        return self.config_dir / 'profiles' / self.profile
 
     @property
-    def logger_dir(self) -> Path:
-        return self.config_dir / 'logs'
+    def logging_dir(self) -> Path:
+        return self.profile_dir / 'logs'
 
     @property
     def plugin_dir(self) -> Path:
-        return self.config_dir / 'plugins'
+        return self.profile_dir / 'plugins'
+
+    @property
+    def config_file(self) -> Path:
+        return self.profile_dir / 'config.json'
+
+    @property
+    def db_file(self) -> Path:
+        return self.profile_dir / 'db.sqlite'
 
     @property
     def cache_dir(self) -> Path:

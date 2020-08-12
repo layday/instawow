@@ -6,9 +6,11 @@ from contextlib import contextmanager
 from datetime import datetime, timedelta
 from functools import partial
 from itertools import chain, repeat
-from pathlib import Path
+from pathlib import Path, PurePath
 import posixpath
 import re
+from shutil import move as _move
+from tempfile import mkdtemp
 from typing import (
     TYPE_CHECKING,
     AbstractSet,
@@ -334,6 +336,20 @@ def make_progress_bar(**kwargs: Any) -> ProgressBar:
     return progress_bar
 
 
+def move(src: PurePath, dst: PurePath) -> PurePath:
+    # See https://bugs.python.org/issue32689
+    return _move(str(src), dst)
+
+
+def trash(paths: Sequence[PurePath], *, dst: PurePath, missing_ok: bool = False) -> None:
+    parent_folder = Path(mkdtemp(dir=dst, prefix=f'deleted-{paths[0].name}-'))
+    for path in paths:
+        try:
+            move(path, dst=parent_folder)
+        except (FileNotFoundError if missing_ok else ()):
+            pass
+
+
 def shasum(*values: str) -> str:
     "Base-16-encode a string using SHA-256 truncated to 32 characters."
     from hashlib import sha256
@@ -392,11 +408,11 @@ def is_outdated(manager: CliManager) -> bool:
     return parse_version(version) > parse_version(__version__)
 
 
-def setup_logging(logger_dir: Path, level: Union[int, str] = 'INFO') -> int:
+def setup_logging(logging_dir: Path, level: Union[int, str] = 'INFO') -> int:
     from loguru import logger
 
     handler = {
-        'sink': logger_dir / 'error.log',
+        'sink': logging_dir / 'error.log',
         'level': level,
         'rotation': '1 MB',
         'enqueue': True,
