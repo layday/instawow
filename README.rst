@@ -19,23 +19,20 @@ or inhabiting walled gardens.
 Installation
 ------------
 
-You can download pre-built binaries of *instawow* from
-`releases on GitHub <https://github.com/layday/instawow/releases>`__.
-These are available for Linux (compiled on Ubuntu), macOS, and Windows.
+You can download pre-built binaries of *instawow* from GitHub:
+
+- `Linux <https://github.com/layday/instawow/releases/latest/download/instawow-ubuntu-latest-v1.12.1.zip>`__
+- `macOS <https://github.com/layday/instawow/releases/latest/download/instawow-macos-latest-v1.12.1.zip>`__
+- `Windows <https://github.com/layday/instawow/releases/latest/download/instawow-windows-latest-v1.12.1.zip>`__
 
 If you prefer to install from source, all of the following will work:
 
-- |pipx|_:
+- `pipx <https://github.com/pipxproject/pipx>`__:
   ``pipx install instawow``
-
-- Vanilla ``pip``:
-  ``python -m pip install --upgrade instawow``
-
+- Vanilla pip:
+  ``python -m pip install -U instawow``
 - `Nix <https://nixos.org/>`__:
   ``nix-env -if https://github.com/layday/instawow-nix/tarball/master``
-
-.. |pipx| replace:: ``pipx``
-.. _pipx: https://github.com/pipxproject/pipx
 
 Getting started
 ---------------
