@@ -19,22 +19,22 @@ or inhabiting walled gardens.
 Installation
 ------------
 
-I recommend installing *instawow* in an isolated environment.
-|pipx|_ makes this easy::
-
-    pipx install instawow
-
-Or using `Nix <https://nixos.org/>`__::
-
-    nix-env -if https://github.com/layday/instawow-nix/tarball/master
-
-Installing with ``pip`` is also supported::
-
-    pip3 install --upgrade instawow
-
-Finally, you can download pre-built binaries from
+You can download pre-built binaries of *instawow* from
 `GitHub <https://github.com/layday/instawow/releases>`__.
 These are available for Linux (compiled on Ubuntu), macOS, and Windows.
+If you prefer to install from source, all of the following will work:
+
+- |pipx|_::
+
+      pipx install instawow
+
+- Vanilla ``pip``::
+
+      python -m pip install --upgrade instawow
+
+- `Nix <https://nixos.org/>`__::
+
+      nix-env -if https://github.com/layday/instawow-nix/tarball/master
 
 .. |pipx| replace:: ``pipx``
 .. _pipx: https://github.com/pipxproject/pipx
