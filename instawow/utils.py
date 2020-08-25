@@ -279,12 +279,13 @@ def make_progress_bar(**kwargs: Any) -> ProgressBar:
     # instawow will hang.  This is my ham-fisted attempt to work
     # around all that by signalling to the daemon thread to kill the app.
 
+    _SIGWINCH = getattr(signal, "SIGWINCH", None)
+
     class PatchedProgressBar(ProgressBar):
         def __exit__(self, *args: Any):
             if self._has_sigwinch:
-                self._loop.add_signal_handler(
-                    signal.SIGWINCH, self._previous_winch_handler  # type: ignore
-                )
+                self._loop.remove_signal_handler(_SIGWINCH)
+                signal.signal(_SIGWINCH, self._previous_winch_handler)
 
             if self._thread is not None:
 
@@ -294,6 +295,8 @@ def make_progress_bar(**kwargs: Any) -> ProgressBar:
                 # Signal to ``_auto_refresh_context`` that it should exit the app
                 self.app.on_invalidate = Event(self.app, attempt_exit)
                 self._thread.join()
+
+            self._app_loop.close()
 
     class DownloadProgress(formatters.Progress):
         template = formatters.Progress.template + 'MB'
