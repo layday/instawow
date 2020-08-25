@@ -2,8 +2,8 @@
 name: Create instawow executables
 on:
   push:
-    tags:
-    - v*
+    # tags:
+    # - v*
 defaults:
   run:
     shell: bash
@@ -25,7 +25,10 @@ jobs:
       PYOX_VERSION: '0.7.0'
     strategy:
       matrix:
-        os: [macos-latest, ubuntu-latest, windows-latest]
+        os:
+        - macos-latest
+        # - ubuntu-latest
+        # - windows-latest
     runs-on: ${{ matrix.os }}
     steps:
     - name: Clone the repo
