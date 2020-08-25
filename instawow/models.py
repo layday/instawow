@@ -3,11 +3,21 @@ from __future__ import annotations
 from typing import Any, ClassVar, List, Type, cast
 
 import pydantic
-from sqlalchemy import exc, func, inspect
+from sqlalchemy import (
+    Column,
+    DateTime,
+    ForeignKeyConstraint,
+    Integer,
+    MetaData,
+    String,
+    UniqueConstraint,
+    and_,
+    exc,
+    func,
+    inspect,
+)
 from sqlalchemy.ext.declarative import DeclarativeMeta, as_declarative
-from sqlalchemy.orm import relationship
-from sqlalchemy.schema import Column, ForeignKeyConstraint, MetaData, UniqueConstraint
-from sqlalchemy.types import DateTime, Integer, String
+from sqlalchemy.orm import object_session, relationship
 
 
 class _BaseCoercer(pydantic.BaseModel):
@@ -79,6 +89,22 @@ class Pkg(_BaseTable):
     deps = cast(
         'List[PkgDep]', relationship('PkgDep', cascade='all, delete-orphan', backref='pkg')
     )
+
+    @property
+    def logged_versions(self) -> List[PkgVersionLog]:
+        session: Any = object_session(self)
+        return (
+            (
+                session.query(PkgVersionLog)
+                .filter(
+                    and_(PkgVersionLog.pkg_source == self.source, PkgVersionLog.pkg_id == self.id)
+                )
+                .order_by(PkgVersionLog.install_time.desc())
+                .all()
+            )
+            if session
+            else []
+        )
 
 
 class PkgFolder(_BaseTable):
