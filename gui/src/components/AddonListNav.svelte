@@ -163,7 +163,7 @@
       <button disabled={refreshInProgress || !addonUpdates}>
         {addonUpdates ? `update ${addonUpdates}` : 'no updates'}
       </button>
-    {:else if activeView == View.Reconcile}
+    {:else if activeView === View.Reconcile}
       <button>
         <Icon icon={faArrowCircleLeft} />
       </button>
