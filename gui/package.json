@@ -6,7 +6,7 @@
   "scripts": {
     "rollup:build": "rollup -c",
     "rollup:watch": "rollup -c -w",
-    "electron:build": "electron-builder --mac --dir",
+    "electron:build": "electron-builder --mac",
     "start": "concurrently \"npm:rollup:watch\" \"electron .\"",
     "test": "echo \"Error: no test specified\" && exit 1",
     "prettify": "prettier --write src rollup.config.js"
