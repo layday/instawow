@@ -52,7 +52,6 @@ from .utils import (
     find_zip_base_dirs,
     gather,
     is_not_stale,
-    iter_in_thread as iit,
     make_progress_bar,
     make_zip_member_filter,
     move,
@@ -545,14 +544,10 @@ class Manager:
         # Doing it this way isn't particularly efficient but avoids having to
         # deal with local state in resolvers.
         resolve_results = await self.resolve(
-            list(compress(defns, [b async for b in iit(not self.get_pkg(d) for d in defns)])),
-            with_deps=True,
+            list(compress(defns, (not self.get_pkg(d) for d in defns))), with_deps=True,
         )
         resolve_results = dict(
-            compress(
-                resolve_results.items(),
-                [b async for b in iit(not self.get_pkg(d) for d in resolve_results)],
-            )
+            compress(resolve_results.items(), (not self.get_pkg(d) for d in resolve_results))
         )
         installables = {
             (d, cast(Pkg, r)): download_archive(self, r)
@@ -587,10 +582,8 @@ class Manager:
         # Afterwards trim the results down to ``Defn``s with packages (installables)
         # and ``Defn``s with updates (updatables) and fetch the archives of
         # the latter class.
-        defns_to_pkgs = {
-            Defn.from_pkg(p) if p else d: p
-            async for d, p in iit((d, self.get_pkg(d)) for d in defns)
-        }
+        maybe_pkgs = (self.get_pkg(d) for d in defns)
+        defns_to_pkgs = {Defn.from_pkg(p) if p else d: p for d, p in zip(defns, maybe_pkgs)}
         resolve_results = await self.resolve([d for d, p in defns_to_pkgs.items() if p])
         installables = {d: cast(Pkg, r) for d, r in resolve_results.items() if is_pkg(r)}
         updatables = {
@@ -622,7 +615,7 @@ class Manager:
     @_with_lock('change state')
     async def remove(self, defns: Sequence[Defn]) -> Dict[Defn, E.ManagerResult]:
         "Remove packages by their definition."
-        maybe_pkgs = [p async for p in iit(self.get_pkg(d) for d in defns)]
+        maybe_pkgs = (self.get_pkg(d) for d in defns)
         result_coros = chain_dict(
             defns,
             _error_out(E.PkgNotInstalled()),
