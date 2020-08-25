@@ -32,7 +32,7 @@ class GlobalConfig(BaseConfig):
     auto_update_check: bool = True
     temp_dir: Path = Path(gettempdir()) / 'instawow'
 
-    class Config:
+    class Config:  # type: ignore
         env_prefix = 'INSTAWOW_'
         extra = Extra.allow
 

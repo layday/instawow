@@ -4,10 +4,10 @@ from itertools import chain
 from typing import TYPE_CHECKING, Any, Dict, Iterator, List, Optional as O, Sequence, Tuple, Type
 
 from loguru import logger
-from pydantic import BaseModel, Extra, validator
+from pydantic import BaseModel, Field, validator
 from yarl import URL
 
-from .config import BaseConfig, GlobalConfig
+from .config import BaseConfig, Config as GlobalConfig
 from .utils import bucketise, chain_dict, gather, iter_in_thread as iit, run_in_thread as t
 
 if TYPE_CHECKING:
@@ -26,7 +26,7 @@ class BuilderConfig(BaseConfig):
     account: str
     api_key: O[str]
 
-    class Config:
+    class Config:  # type: ignore
         env_prefix = 'WAC_'
 
     def get_saved_vars(self, global_config: GlobalConfig) -> Path:
@@ -70,15 +70,12 @@ class WeakAuras(BaseModel):
 
 
 class Plateroo(WeakAura):
+    id: str = Field(alias='Name')
     uid = ''
-
-    class Config:
-        arbitrary_types_allowed = True
-        fields = {'id': 'Name'}
 
 
 class Plateroos(WeakAuras):
-    class Meta:
+    class Meta:  # type: ignore
         model = Plateroo
         filename = 'Plater.lua'
         table_prefix = 'PlaterDB'
@@ -102,33 +99,21 @@ class _WagoChangelog(BaseModel):
     format: O[str]
     text: str = ''
 
-    class Config:
-        extra = Extra.forbid
-
 
 class WagoResponse(BaseModel):
-    id: str
+    id: str = Field(alias='_id')
     name: str  # +
     slug: str  # +
     url: str
     created: str
     modified: str
     game: str
-    fork_of: O[str]
+    fork_of: O[str] = Field(alias='forkOf')
     username: str  # +
     version: int  # +
-    version_string: str  # +
+    version_string: str = Field(alias='versionString')  # +
     changelog: _WagoChangelog  # +
-    region_type: O[str]
-
-    class Config:
-        extra = Extra.forbid
-        fields = {
-            'id': '_id',
-            'fork_of': 'forkOf',
-            'version_string': 'versionString',
-            'region_type': 'regionType',
-        }
+    region_type: O[str] = Field(alias='regionType')
 
 
 class WaCompanionBuilder:
