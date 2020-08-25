@@ -11,7 +11,6 @@ from typing import (
     ClassVar,
     Dict,
     List,
-    NamedTuple,
     Optional as O,
     Sequence,
     Set,
@@ -40,29 +39,39 @@ class Strategies(enum.Enum):
     version = enum.auto()
 
 
-class Defn(NamedTuple):
+class Defn(BaseModel):
     source: str
+    source_id: O[str] = None
     name: str
     strategy: Strategies = Strategies.default
     strategy_vals: Tuple[str, ...] = ()
-    source_id: O[str] = None
 
     @classmethod
     def from_pkg(cls, pkg: m.Pkg) -> Defn:
-        strategy = Strategies[pkg.options.strategy]
-        strategy_vals = (pkg.version,) if strategy is Strategies.version else ()
-        return cls(pkg.source, pkg.slug, strategy, strategy_vals, pkg.id)
+        defn = cls(
+            source=pkg.source, source_id=pkg.id, name=pkg.slug, strategy=pkg.options.strategy,
+        )
+        if defn.strategy is Strategies.version:
+            defn.strategy_vals = (pkg.version,)
+        return defn
 
-    def with_name(self, name: str) -> Defn:
-        return self.__class__(self.source, name, self.strategy, self.strategy_vals, self.source_id)
+    @classmethod
+    def get(cls, source: str, name: str) -> Defn:
+        return cls(source=source, name=name)
 
-    def with_strategy(self, strategy: Strategies) -> Defn:
-        return self.__class__(self.source, self.name, strategy, (), self.source_id)
+    def with_(self, **kwargs: Any) -> Defn:
+        return self.__class__(**{**self.__dict__, **kwargs})
 
     def with_version(self, version: str) -> Defn:
-        return self.__class__(
-            self.source, self.name, Strategies.version, (version,), self.source_id
-        )
+        return self.with_(strategy='version', strategy_vals=(version,))
+
+    def __eq__(self, other: Any) -> bool:
+        if isinstance(other, self.__class__):
+            other = tuple(other.__dict__.values())
+        return tuple(self.__dict__.values()) == other
+
+    def __hash__(self) -> int:
+        return hash(tuple(self.__dict__.values()))
 
     def __str__(self) -> str:
         return f'{self.source}:{self.name}'

@@ -205,7 +205,7 @@ def parse_into_defn_with_strategy(
     manager: CliManager, value: Sequence[Tuple[Strategies, str]]
 ) -> List[Defn]:
     defns = parse_into_defn(manager, [d for _, d in value])
-    return list(map(Defn.with_strategy, defns, (s for s, _ in value)))
+    return list(map(lambda d, s: d.with_(strategy=s), defns, (s for s, _ in value)))
 
 
 def parse_into_defn_with_version(
@@ -525,8 +525,8 @@ def list_installed(obj: M, addons: Sequence[Defn], output_format: ListFormats):
     from sqlalchemy import and_, or_
 
     def format_deps(pkg: models.Pkg):
-        deps = (Defn(pkg.source, d.id) for d in pkg.deps)
-        deps = (d.with_name(getattr(obj.m.get_pkg(d), 'slug', d.name)) for d in deps)
+        deps = (Defn(source=pkg.source, name=d.id) for d in pkg.deps)
+        deps = (d.with_(name=getattr(obj.m.get_pkg(d), 'slug', d.name)) for d in deps)
         return map(str, deps)
 
     def get_desc_from_toc(pkg: models.Pkg):

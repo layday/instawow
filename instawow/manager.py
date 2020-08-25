@@ -499,8 +499,8 @@ class Manager:
         if not dep_defns:
             return {}
 
-        deps = await self.resolve(list(starmap(Defn, dep_defns)))
-        pretty_deps = {d.with_name(r.slug) if is_pkg(r) else d: r for d, r in deps.items()}
+        deps = await self.resolve(list(starmap(Defn.get, dep_defns)))
+        pretty_deps = {d.with_(name=r.slug) if is_pkg(r) else d: r for d, r in deps.items()}
         return pretty_deps
 
     async def resolve(self, defns: Sequence[Defn], with_deps: bool = False) -> Dict[Defn, Any]:
@@ -541,7 +541,7 @@ class Manager:
         s = normalise(search_terms)
         tokens_to_defns = bucketise(
             (
-                (normalise(i.name), (i.source, i.id))
+                (normalise(i.name), i)
                 for i in self.catalogue.__root__
                 if self.config.game_flavour in i.compatibility
             ),
@@ -554,9 +554,11 @@ class Manager:
             ((jaro_winkler_similarity(s, n), n) for n in tokens_to_defns),
             key=lambda v: v[0],
         )
-        defns = [Defn(*d) for _, m in matches for _, d in tokens_to_defns[m]]
+        defns = [
+            Defn(source=i.source, name=i.id) for _, m in matches for _, i in tokens_to_defns[m]
+        ]
         resolve_results = await self.resolve(defns)
-        pkgs_by_defn = {d.with_name(r.slug): r for d, r in resolve_results.items() if is_pkg(r)}
+        pkgs_by_defn = {d.with_(name=r.slug): r for d, r in resolve_results.items() if is_pkg(r)}
         return pkgs_by_defn
 
     @_with_lock('change state')

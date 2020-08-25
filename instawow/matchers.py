@@ -40,7 +40,7 @@ class AddonFolder:
     @cached_property
     def defns_from_toc(self) -> FrozenSet[Defn]:
         return frozenset(
-            Defn(s, i)
+            Defn(source=s, name=i)
             for s, i in ((s, self.toc_reader[k].value) for k, s in _ids_to_sources.items())
             if i
         )
@@ -70,7 +70,7 @@ def get_folders(manager: Manager, exclude_own: bool = True) -> FrozenSet[AddonFo
                 return AddonFolder(path.name, TocReader.from_path_name(path))
 
     if exclude_own:
-        own_folders = {f.name for f in manager.db_session.query(PkgFolder).all()}
+        own_folders = {f.name for f in manager.database.query(PkgFolder).all()}
     else:
         own_folders = set()
     return frozenset(f for f in map(make_addon_folder, manager.config.addon_dir.iterdir()) if f)
@@ -108,7 +108,7 @@ async def match_dir_names(manager: Manager, leftovers: FrozenSet[AddonFolder]) -
     matches = [
         (
             frozenset(e for e in leftovers if e in cast('List[AddonFolder]', f)),
-            Defn(i.source, i.id),
+            Defn(source=i.source, name=i.id),
         )
         for i in manager.catalogue.__root__
         for f in i.folders
@@ -116,7 +116,6 @@ async def match_dir_names(manager: Manager, leftovers: FrozenSet[AddonFolder]) -
     ]
     folders = list(merge_intersecting_sets(f for f, _ in matches))
     return [
-        # IDs are sorted in decreasing order of number of matching folders
         (sorted(f), uniq(d for _, d in sorted(b, key=sort_keyer)))
         for f, b in bucketise(matches, bucket_keyer).items()
     ]
@@ -132,4 +131,4 @@ async def match_toc_names(manager: Manager, leftovers: FrozenSet[AddonFolder]) -
 
     norm_to_items = bucketise(manager.catalogue.__root__, key=lambda i: normalise(i.name))
     matches = ((e, norm_to_items.get(normalise(e.name))) for e in sorted(leftovers))
-    return [([e], uniq(Defn(i.source, i.id) for i in m)) for e, m in matches if m]
+    return [([e], uniq(Defn(source=i.source, name=i.id) for i in m)) for e, m in matches if m]
