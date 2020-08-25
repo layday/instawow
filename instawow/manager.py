@@ -129,7 +129,7 @@ async def download_archive(manager: Manager, pkg: Pkg, *, chunk_size: int = 4096
 
         await copy_async(unquote(url[7:]), dest)
     else:
-        kwargs = {'raise_for_status': True, 'trace_request_ctx': {'show_progress': True}}
+        kwargs = {'raise_for_status': True, 'trace_request_ctx': {'report_progress': True}}
         async with manager.web_client.get(url, **kwargs) as response, _open_temp_writer() as (
             temp_path,
             write,
@@ -157,7 +157,7 @@ async def cache_json_response(
         method = request_kwargs.pop('method', 'GET')
         kwargs = {'raise_for_status': True, **request_kwargs}
         if label:
-            kwargs = {**kwargs, 'trace_request_ctx': {'show_progress': True, 'label': label}}
+            kwargs = {**kwargs, 'trace_request_ctx': {'report_progress': True, 'label': label}}
         async with manager.web_client.request(method, url, **kwargs) as response:
             text = await response.text()
 
