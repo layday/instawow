@@ -8,14 +8,7 @@ from pydantic import BaseModel, Extra, validator
 from yarl import URL
 
 from .config import BaseConfig, GlobalConfig
-from .utils import (
-    ManagerAttrAccessMixin,
-    bucketise,
-    chain_dict,
-    gather,
-    iter_in_thread as iit,
-    run_in_thread as t,
-)
+from .utils import bucketise, chain_dict, gather, iter_in_thread as iit, run_in_thread as t
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -138,12 +131,12 @@ class WagoResponse(BaseModel):
         }
 
 
-class WaCompanionBuilder(ManagerAttrAccessMixin):
+class WaCompanionBuilder:
     """A WeakAuras Companion port for shellfolk."""
 
     def __init__(self, manager: Manager, builder_config: BuilderConfig) -> None:
         self.manager = manager
-        self.addon_file = self.config.plugin_dir / __name__ / 'WeakAurasCompanion.zip'
+        self.addon_file = self.manager.config.plugin_dir / __name__ / 'WeakAurasCompanion.zip'
         self.builder_config = builder_config
 
     @staticmethod
@@ -168,7 +161,7 @@ class WaCompanionBuilder(ManagerAttrAccessMixin):
     def extract_installed_auras(self) -> Iterator[WeakAuras]:
         import time
 
-        saved_vars = self.builder_config.get_saved_vars(self.config)
+        saved_vars = self.builder_config.get_saved_vars(self.manager.config)
         for model in WeakAuras, Plateroos:
             file = saved_vars / model.Meta.filename
             if not file.exists():
@@ -184,7 +177,7 @@ class WaCompanionBuilder(ManagerAttrAccessMixin):
     async def get_wago_metadata(self, aura_groups: WeakAuras) -> List[WagoResponse]:
         aura_ids = list(aura_groups.entries)
         url = aura_groups.Meta.api.with_query(ids=','.join(aura_ids))
-        async with self.web_client.get(
+        async with self.manager.web_client.get(
             url, headers={'api-key': self.builder_config.api_key or ''}
         ) as response:
             metadata = await response.json()
@@ -195,7 +188,7 @@ class WaCompanionBuilder(ManagerAttrAccessMixin):
         return list(results.values())
 
     async def get_wago_import_string(self, aura_id: str) -> str:
-        async with self.web_client.get(
+        async with self.manager.web_client.get(
             import_api.with_query(id=aura_id),
             headers={'api-key': self.builder_config.api_key or ''},
         ) as response:
@@ -295,7 +288,7 @@ class WaCompanionBuilder(ManagerAttrAccessMixin):
             write_tpl('init.lua', {})
             write_tpl(
                 'WeakAurasCompanion.toc',
-                {'interface': '11305' if self.config.is_classic else '80300'},
+                {'interface': '11305' if self.manager.config.is_classic else '80300'},
             )
 
     async def build(self) -> None:

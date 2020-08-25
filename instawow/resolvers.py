@@ -22,15 +22,7 @@ from pydantic import BaseModel
 from yarl import URL
 
 from . import exceptions as E, models as m
-from .utils import (
-    Literal,
-    ManagerAttrAccessMixin,
-    cached_property,
-    gather,
-    run_in_thread as t,
-    slugify,
-    uniq,
-)
+from .utils import Literal, cached_property, gather, run_in_thread as t, slugify, uniq
 
 if TYPE_CHECKING:
     from .manager import Manager
@@ -109,7 +101,7 @@ class MasterCatalogue(BaseModel):
         return {a.slug: a.id for a in self.__root__ if a.source == 'curse'}
 
 
-class Resolver(ManagerAttrAccessMixin):
+class Resolver:
     source: ClassVar[str]
     name: ClassVar[str]
     strategies: ClassVar[Set[Strategies]]
@@ -180,11 +172,14 @@ class CurseResolver(Resolver):
             return url.parts[3].lower()
 
     async def resolve(self, defns: List[Defn]) -> Dict[Defn, Any]:
+        from .manager import cache_json_response
+
         ids_for_defns = {
-            d: (d.source_id or self.catalogue.curse_slugs.get(d.name) or d.name) for d in defns
+            d: (d.source_id or self.manager.catalogue.curse_slugs.get(d.name) or d.name)
+            for d in defns
         }
         numeric_ids = {i for i in ids_for_defns.values() if i.isdigit()}
-        async with self.web_client.post(self.addon_api_url, json=list(numeric_ids)) as response:
+        async with self.manager.web_client.post(self.addon_api_url, json=list(numeric_ids)) as response:
             if response.status == 404:
                 json_response = []
             else:
@@ -231,7 +226,7 @@ class CurseResolver(Resolver):
 
             else:
                 classic_version_prefix = '1.13'
-                flavour = 'wow_classic' if self.config.is_classic else 'wow_retail'
+                flavour = 'wow_classic' if self.manager.config.is_classic else 'wow_retail'
 
                 def supports_game_version(f: JsonDict):
                     # Files can belong both to retail and classic
@@ -240,7 +235,7 @@ class CurseResolver(Resolver):
                     # ``gameVersion`` might not be populated so we still have to
                     # check the value of ``gameVersionFlavor``
                     return f['gameVersionFlavor'] == flavour or any(
-                        v.startswith(classic_version_prefix) is self.config.is_classic
+                        v.startswith(classic_version_prefix) is self.manager.config.is_classic
                         for v in f['gameVersion']
                     )
 
@@ -280,7 +275,7 @@ class CurseResolver(Resolver):
             )
         except ValueError:
             raise E.PkgFileUnavailable(
-                f'no files compatible with {self.config.game_flavour} '
+                f'no files compatible with {self.manager.config.game_flavour} '
                 f'using {defn.strategy.name!r} strategy'
             )
 
@@ -327,7 +322,7 @@ class CurseResolver(Resolver):
             url = (self.addon_api_url / 'search').with_query(
                 gameId='1', sort=sort_order, pageSize=step, index=index
             )
-            async with self.web_client.get(url) as response:
+            async with self.manager.web_client.get(url) as response:
                 json_response = await response.json()
 
             if not json_response:
@@ -391,7 +386,7 @@ class WowiResolver(Resolver):
                     return match.group('id')
 
     async def resolve(self, defns: List[Defn]) -> Dict[Defn, Any]:
-        async with self.locks['load WoWI catalogue']:
+        async with self.manager.locks['load WoWI catalogue']:
             if self._files is None:
                 from .manager import cache_json_response
 
@@ -407,7 +402,7 @@ class WowiResolver(Resolver):
         numeric_ids = {i for i in ids_for_defns.values() if i.isdigit()}
 
         url = self.details_api_url / f'{",".join(numeric_ids)}.json'
-        async with self.web_client.get(url) as response:
+        async with self.manager.web_client.get(url) as response:
             if response.status == 404:
                 json_response = []
             else:
@@ -439,7 +434,7 @@ class WowiResolver(Resolver):
         )
 
     async def collect_items(self) -> AsyncIterable[_CItem]:
-        async with self.web_client.get(self.list_api_url) as response:
+        async with self.manager.web_client.get(self.list_api_url) as response:
             json_response = await response.json()
 
         for item in json_response:
@@ -478,7 +473,7 @@ class TukuiResolver(Resolver):
         if not name:
             name = ''.join(takewhile('-'.__ne__, defn.name))
 
-        if self.config.is_classic:
+        if self.manager.config.is_classic:
             query = 'classic-addon'
         elif ui_name:
             query = 'ui'
@@ -486,7 +481,7 @@ class TukuiResolver(Resolver):
             query = 'addon'
 
         url = self.api_url.with_query({query: name})
-        async with self.web_client.get(url) as response:
+        async with self.manager.web_client.get(url) as response:
             if not response.content_length:
                 raise E.PkgNonexistent
             addon = await response.json(content_type=None)  # text/html
@@ -512,7 +507,7 @@ class TukuiResolver(Resolver):
             ('classic-addons', 'all', 'classic'),
         ]:
             url = self.api_url.with_query({query: param})
-            async with self.web_client.get(url) as response:
+            async with self.manager.web_client.get(url) as response:
                 metadata = await response.json(content_type=None)  # text/html
 
             if query == 'ui':
@@ -577,7 +572,7 @@ class GithubResolver(Resolver):
             release_url = repo_url / 'releases/tags' / defn.strategy_vals[0]
         else:
             release_url = repo_url / 'releases/latest'
-        async with self.web_client.get(release_url) as response:
+        async with self.manager.web_client.get(release_url) as response:
             if response.status == 404:
                 raise E.PkgFileUnavailable('release not found')
             release_metadata = await response.json()
@@ -603,7 +598,7 @@ class GithubResolver(Resolver):
                         a
                         for a in assets
                         if is_valid_asset(a)
-                        and a['name'].endswith('-classic.zip') is self.config.is_classic
+                        and a['name'].endswith('-classic.zip') is self.manager.config.is_classic
                     ),
                     filter(is_valid_asset, assets),
                 )
