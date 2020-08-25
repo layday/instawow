@@ -7,7 +7,7 @@ nox.options.envdir = '.py-nox'
 
 @nox.session(python=['3.7', '3.8'])
 def test(session):
-    session.install('.[test]')
+    session.install('.[server,test]')
     session.run('coverage', 'run', '-m', 'pytest')
     session.run('coverage', 'report', '-m')
 
@@ -24,7 +24,7 @@ def update_typeshed(session):
 
 @nox.session(python=['3.7', '3.8'])
 def type_check(session):
-    session.install('.[test]')
+    session.install('.[server,test]')
     session.run('npx', '--cache', '.npm', 'pyright', '--lib')
 
 
