@@ -148,3 +148,38 @@ class GlobalConfig(BaseConfig):
 
 
 Config = GlobalConfig
+
+
+def setup_logging(config: _GlobalConfig, log_level: Union[int, str] = 'INFO') -> int:
+    import logging
+
+    class InterceptHandler(logging.Handler):
+        def emit(self, record: logging.LogRecord):
+            # Get the corresponding Loguru level if it exists
+            try:
+                level = logger.level(record.levelname).name
+            except ValueError:
+                level = record.levelno
+
+            # Find caller from where the logged message originated
+            frame = logging.currentframe()
+            depth = 2
+            while frame and frame.f_code.co_filename == logging.__file__:
+                frame = frame.f_back
+                depth += 1
+
+            logger.opt(
+                depth=depth, exception=record.exc_info,  # type: ignore
+            ).log(
+                level, record.getMessage()
+            )
+
+    logging.basicConfig(handlers=[InterceptHandler()], level=log_level)
+    handler = {
+        'sink': config.logging_dir / 'error.log',
+        'level': log_level,
+        'rotation': '1 MB',
+        'enqueue': True,
+    }
+    (handler_id,) = logger.configure(handlers=(handler,))
+    return handler_id

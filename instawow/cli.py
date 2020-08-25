@@ -28,16 +28,9 @@ from typing import (
 import click
 
 from . import exceptions as E, models
+from .config import Config, setup_logging
 from .resolvers import Defn, Strategies
-from .utils import (
-    TocReader,
-    cached_property,
-    get_version,
-    is_outdated,
-    setup_logging,
-    tabulate,
-    uniq,
-)
+from .utils import TocReader, cached_property, get_version, is_outdated, tabulate, uniq
 
 if TYPE_CHECKING:
     from .manager import CliManager
@@ -106,7 +99,6 @@ class ManagerWrapper:
     def m(self) -> CliManager:
         import asyncio
 
-        from .config import Config
         from .manager import CliManager, prepare_db_session
 
         # TODO: remove once https://github.com/aio-libs/aiohttp/issues/4324 is fixed
@@ -114,13 +106,10 @@ class ManagerWrapper:
         if policy:
             asyncio.set_event_loop_policy(policy())
 
-        while True:
-            try:
-                config = Config.read(profile=self.ctx.params['profile']).ensure_dirs()
-            except FileNotFoundError:
-                self.ctx.invoke(configure)
-            else:
-                break
+        try:
+            config = Config.read(self.ctx.params['profile']).ensure_dirs()
+        except FileNotFoundError:
+            config = self.ctx.invoke(configure)
 
         setup_logging(config.logging_dir, 'DEBUG' if self.ctx.params['debug'] else 'INFO')
         db_session = prepare_db_session(config)
@@ -609,42 +598,48 @@ def reveal(obj: M, addon: Defn):
         Report([(addon, E.PkgNotInstalled())]).generate_and_exit()
 
 
+def _show_active_config(ctx: click.Context, _param: click.Parameter, value: bool):
+    if value:
+        click.echo(ctx.obj.m.config.json(indent=2))
+        ctx.exit()
+
+
 @main.command()
 @click.option(
     '--active',
     'show_active',
     is_flag=True,
     default=False,
+    expose_value=False,
+    is_eager=True,
+    callback=_show_active_config,
     help='Show the active configuration and exit.',
 )
 @click.pass_context
-def configure(ctx: click.Context, show_active: bool):
+def configure(ctx: click.Context) -> Config:
     "Configure instawow."
-    if show_active:
-        click.echo(ctx.obj.m.config.json(indent=2))
-        return
-
     from prompt_toolkit.completion import PathCompleter, WordCompleter
-    from prompt_toolkit.shortcuts import prompt
+    from questionary import text
 
-    from .config import Config
     from .prompts import PydanticValidator
 
-    addon_dir = prompt(
+    profile = ctx.find_root().params['profile']
+    game_flavours = Config.__fields__['game_flavour'].type_.__args__
+
+    addon_dir = text(
         'Add-on directory: ',
         completer=PathCompleter(only_directories=True, expanduser=True),
-        validator=PydanticValidator(Config, 'addon_dir'),
-    )
-    game_flavour = prompt(
+        validate=PydanticValidator(Config, 'addon_dir'),
+    ).unsafe_ask()
+    game_flavour = text(
         'Game flavour: ',
         default='classic' if '_classic_' in addon_dir else 'retail',
-        completer=WordCompleter(['retail', 'classic']),
-        validator=PydanticValidator(Config, 'game_flavour'),
-    )
-    config = Config(
-        addon_dir=addon_dir, game_flavour=game_flavour, profile=ctx.find_root().params['profile'],
-    ).write()
+        completer=WordCompleter(game_flavours),
+        validate=PydanticValidator(Config, 'game_flavour'),
+    ).unsafe_ask()
+    config = Config(profile=profile, addon_dir=addon_dir, game_flavour=game_flavour).write()
     click.echo(f'Configuration written to: {config.config_file}')
+    return config
 
 
 @main.group('weakauras-companion')

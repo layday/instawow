@@ -400,19 +400,6 @@ def is_outdated(manager: CliManager) -> bool:
     return parse_version(version) > parse_version(__version__)
 
 
-def setup_logging(logging_dir: Path, level: Union[int, str] = 'INFO') -> int:
-    from loguru import logger
-
-    handler = {
-        'sink': logging_dir / 'error.log',
-        'level': level,
-        'rotation': '1 MB',
-        'enqueue': True,
-    }
-    (handler_id,) = logger.configure(handlers=(handler,))
-    return handler_id
-
-
 def find_zip_base_dirs(names: Sequence[str]) -> Set[str]:
     "Find top-level folders in a list of ZIP member paths."
     return {n for n in (posixpath.dirname(n) for n in names) if n and posixpath.sep not in n}
