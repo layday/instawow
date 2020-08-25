@@ -1,14 +1,26 @@
 ---
-name: Create stand-alone executable
+name: Create instawow executables
 on:
   push:
     tags:
     - v*
+defaults:
+  run:
+    shell: bash
 jobs:
-  freeze:
-    defaults:
-      run:
-        shell: bash
+  extract-tag:
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.get_tag.outputs.TAG }}
+    steps:
+    - name: Clone the repo
+      uses: actions/checkout@v2
+    - name: Extract the tag
+      id: get_tag
+      run: |
+        echo ::set-output name=TAG::${GITHUB_REF#refs/tags/}
+  freeze-cli:
+    needs: extract-tag
     env:
       PYOX_VERSION: '0.7.0'
     strategy:
@@ -18,17 +30,11 @@ jobs:
     steps:
     - name: Clone the repo
       uses: actions/checkout@v2
-      with:
-        fetch-depth: 0
-    - name: Extract the tag
-      id: get_tag
-      run: |
-        echo ::set-output name=TAG::${GITHUB_REF#refs/tags/}
     - name: Install Python
-      uses: actions/setup-python@v1
+      uses: actions/setup-python@v2
       with:
         python-version: '3.7'
-    - name: Build instawow and rename the sdist for use by PyOxidizer
+    - name: Build instawow and rename the sdist to be picked up by PyOxidizer
       run: |
         python -m pip install nox
         python -m nox -s build
@@ -57,5 +63,35 @@ jobs:
     - name: Upload binary
       uses: actions/upload-artifact@v2
       with:
-        name: instawow-${{ matrix.os }}-${{ steps.get_tag.outputs.TAG }}
+        name: instawow-${{ matrix.os }}-${{ needs.extract-tag.outputs.tag }}
         path: dist/instawow*
+  freeze-gui:
+    needs: [extract-tag, freeze-cli]
+    strategy:
+      matrix:
+        os: [macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+    - name: Clone the repo
+      uses: actions/checkout@v2
+    - name: Install node
+      uses: actions/setup-node@v1
+      with:
+        node-version: '14'
+    - name: Retrieve the CLI binary
+      uses: actions/download-artifact@v2
+      with:
+        name: instawow-${{ matrix.os }}-${{ needs.extract-tag.outputs.tag }}
+        path: gui/bin
+    - name: Install npm dependencies
+      run: |
+        npm install
+      working-directory: gui
+    - name: Build app
+      run: |
+        npm run rollup:build && npm run electron:build
+      working-directory: gui
+    - name: Upload app
+      uses: actions/upload-artifact@v2
+      with:
+        path: gui/dist/instawow-desktop*.zip

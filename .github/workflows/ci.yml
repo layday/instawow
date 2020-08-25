@@ -13,7 +13,7 @@ jobs:
     - name: Clone the repo
       uses: actions/checkout@v2
     - name: Install Python
-      uses: actions/setup-python@v1
+      uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install nox
@@ -21,4 +21,4 @@ jobs:
         python -m pip install nox
     - name: Run tests
       run: |
-        nox -s test
+        python -m nox -s test
