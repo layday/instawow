@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Any, ClassVar, List, Type, cast
 
 import pydantic
@@ -147,14 +148,41 @@ class PkgVersionLog(_BaseTable):
     pkg_id = Column(String, nullable=False, primary_key=True)
 
 
-class _PkgModelAmalgam(Pkg.Coercer):
-    folders: List[PkgFolder.Coercer]
-    options: PkgOptions.Coercer
-    deps: List[PkgDep.Coercer]
+class _PkgFolder(_BaseCoercer):
+    name: str
+
+
+class _PkgOptions(_BaseCoercer):
+    strategy: str
+
+
+class _PkgDep(_BaseCoercer):
+    id: str
+
+
+class _PkgVersion(_BaseCoercer):
+    version: str
+    install_time: datetime
+
+
+class PkgModel(_BaseCoercer):
+    source: str
+    id: str
+    slug: str
+    name: str
+    description: str
+    url: str
+    download_url: str
+    date_published: datetime
+    version: str
+    folders: List[_PkgFolder]
+    options: _PkgOptions
+    deps: List[_PkgDep]
+    logged_versions: List[_PkgVersion]
 
 
 class MultiPkgModel(pydantic.BaseModel):
-    __root__: List[_PkgModelAmalgam]
+    __root__: List[PkgModel]
 
 
 def should_migrate(engine: Any, version: str) -> bool:
