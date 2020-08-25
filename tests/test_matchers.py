@@ -4,6 +4,11 @@ from instawow.matchers import get_folders, match_dir_names, match_toc_ids, match
 from instawow.resolvers import Defn
 
 
+@pytest.fixture(autouse=True)
+def mock(mock_all):
+    pass
+
+
 def write_addons(manager, *addons):
     for addon in addons:
         (manager.config.addon_dir / addon).mkdir()

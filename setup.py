@@ -19,7 +19,7 @@ setup(
         jinja2         ~=2.11
         loguru         <1
         prompt-toolkit >=3, !=3.0.0, !=3.0.1, !=3.0.2, <4
-        pydantic       ~=1.5.0
+        pydantic       ~=1.6.1
         questionary    >=1, !=1.3.0, <2
         slpp           ==1.2.1
         sqlalchemy     ~=1.3
@@ -28,6 +28,9 @@ setup(
     extras_require={
         ":python_version < '3.8'": '''
             typing-extensions
+        ''',
+        'server': '''
+            aiohttp-json-rpc == 0.13.2
         ''',
         'test': '''
             coverage[toml]   ~=5.0

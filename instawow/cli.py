@@ -91,32 +91,32 @@ class Report:
         ctx.exit(self.exit_code)
 
 
+def _override_loop_policy() -> None:
+    # The proactor event loop which became the default on Windows in 3.8 is
+    # tripping up aiohttp<4.  See https://github.com/aio-libs/aiohttp/issues/4324
+    import asyncio
+
+    policy = getattr(asyncio, 'WindowsSelectorEventLoopPolicy', None)
+    if policy:
+        asyncio.set_event_loop_policy(policy())
+
+
 class ManagerWrapper:
     def __init__(self, ctx: click.Context):
         self.ctx = ctx
 
     @cached_property
     def m(self) -> CliManager:
-        import asyncio
-
         from .manager import CliManager
-
-        # TODO: remove once https://github.com/aio-libs/aiohttp/issues/4324 is fixed
-        policy = getattr(asyncio, 'WindowsSelectorEventLoopPolicy', None)
-        if policy:
-            asyncio.set_event_loop_policy(policy())
 
         try:
             config = Config.read(self.ctx.params['profile']).ensure_dirs()
         except FileNotFoundError:
             config = self.ctx.invoke(configure)
-
-        setup_logging(config.logging_dir, 'DEBUG' if self.ctx.params['debug'] else 'INFO')
+        setup_logging(config, self.ctx.params['log_level'])
+        _override_loop_policy()
         manager = CliManager.from_config(config)
         return manager
-
-
-M = ManagerWrapper
 
 
 class _PathParam(click.Path):
@@ -158,15 +158,22 @@ def _show_version(ctx: click.Context, _param: click.Parameter, value: bool):
     '--version',
     is_flag=True,
     default=False,
-    callback=_show_version,
     expose_value=False,
     is_eager=True,
+    callback=_show_version,
     help='Show the version and exit.',
 )
-@click.option('--profile', '-p', default=None, help='Activate the specified profile.')
-@click.option('--debug', is_flag=True, default=False, help='Log more things.')
+@click.option(
+    '--debug',
+    'log_level',
+    is_flag=True,
+    default=False,
+    callback=lambda _, __, v: 'DEBUG' if v else 'INFO',
+    help='Log more things.',
+)
+@click.option('--profile', '-p', default='__default__', help='Activate the specified profile.')
 @click.pass_context
-def main(ctx: click.Context, profile: O[str], debug: bool):
+def main(ctx: click.Context, log_level: bool, profile: str):
     "Add-on manager for World of Warcraft."
     if not ctx.obj:
         ctx.obj = ManagerWrapper(ctx)
@@ -241,8 +248,8 @@ excluded_strategies = {Strategies.default, Strategies.version}
     '--import',
     '-i',
     type=_PathParam(dir_okay=False, exists=True),
-    callback=_combine_into('addons', parse_into_defn_from_json_file),
     expose_value=False,
+    callback=_combine_into('addons', parse_into_defn_from_json_file),
     help='Install add-ons from the output of `list -f json`.',
 )
 @click.option(
@@ -250,8 +257,8 @@ excluded_strategies = {Strategies.default, Strategies.version}
     '-s',
     multiple=True,
     type=(_EnumParam(Strategies, excluded_strategies), str),
-    callback=_combine_into('addons', parse_into_defn_with_strategy),
     expose_value=False,
+    callback=_combine_into('addons', parse_into_defn_with_strategy),
     metavar='<STRATEGY ADDON>...',
     help='A strategy followed by an add-on definition.  '
     'The strategies are: '
@@ -261,14 +268,14 @@ excluded_strategies = {Strategies.default, Strategies.version}
     '--version',
     multiple=True,
     type=(str, str),
-    callback=_combine_into('addons', parse_into_defn_with_version),
     expose_value=False,
+    callback=_combine_into('addons', parse_into_defn_with_version),
     metavar='<VERSION ADDON>...',
     help='A version followed by an add-on definition.',
 )
 @click.option('--replace', '-o', is_flag=True, default=False, help='Replace existing add-ons.')
 @click.pass_obj
-def install(obj: M, addons: Sequence[Defn], replace: bool):
+def install(obj: ManagerWrapper, addons: Sequence[Defn], replace: bool) -> None:
     "Install add-ons."
     if not addons:
         raise click.UsageError(
@@ -283,7 +290,7 @@ def install(obj: M, addons: Sequence[Defn], replace: bool):
 @main.command()
 @click.argument('addons', nargs=-1, callback=_callbackify(parse_into_defn))
 @click.pass_obj
-def update(obj: M, addons: Sequence[Defn]):
+def update(obj: ManagerWrapper, addons: Sequence[Defn]) -> None:
     "Update installed add-ons."
 
     def filter_results(result: E.ManagerResult):
@@ -300,7 +307,7 @@ def update(obj: M, addons: Sequence[Defn]):
 @main.command()
 @click.argument('addons', nargs=-1, required=True, callback=_callbackify(parse_into_defn))
 @click.pass_obj
-def remove(obj: M, addons: Sequence[Defn]):
+def remove(obj: ManagerWrapper, addons: Sequence[Defn]) -> None:
     "Remove add-ons."
     results = obj.m.run(obj.m.remove(addons))
     Report(results.items()).generate_and_exit()
@@ -315,7 +322,7 @@ def remove(obj: M, addons: Sequence[Defn]):
     help='Undo rollback by reinstalling an add-on using the default strategy.',
 )
 @click.pass_context
-def rollback(ctx: click.Context, addon: Defn, undo: bool):
+def rollback(ctx: click.Context, addon: Defn, undo: bool) -> None:
     "Roll an add-on back to an older version."
     from .prompts import Choice, select
 
@@ -382,7 +389,7 @@ def rollback(ctx: click.Context, addon: Defn, undo: bool):
     '--list-unreconciled', is_flag=True, default=False, help='List unreconciled add-ons and exit.'
 )
 @click.pass_context
-def reconcile(ctx: click.Context, auto: bool, list_unreconciled: bool):
+def reconcile(ctx: click.Context, auto: bool, list_unreconciled: bool) -> None:
     "Reconcile pre-installed add-ons."
     from .matchers import AddonFolder, get_folders, match_dir_names, match_toc_ids, match_toc_names
     from .models import is_pkg
@@ -486,7 +493,7 @@ def reconcile(ctx: click.Context, auto: bool, list_unreconciled: bool):
     help='A number to limit results to.',
 )
 @click.pass_context
-def search(ctx: click.Context, search_terms: str, limit: int):
+def search(ctx: click.Context, search_terms: str, limit: int) -> None:
     "Search for add-ons to install."
     from .prompts import PkgChoice, checkbox, confirm
 
@@ -520,7 +527,9 @@ class ListFormats(enum.Enum):
     help='Change the output format.',
 )
 @click.pass_obj
-def list_installed(obj: M, addons: Sequence[Defn], output_format: ListFormats):
+def list_installed(
+    obj: ManagerWrapper, addons: Sequence[Defn], output_format: ListFormats
+) -> None:
     "List installed add-ons."
     from sqlalchemy import and_, or_
 
@@ -529,7 +538,7 @@ def list_installed(obj: M, addons: Sequence[Defn], output_format: ListFormats):
         deps = (d.with_(name=getattr(obj.m.get_pkg(d), 'slug', d.name)) for d in deps)
         return map(str, deps)
 
-    def get_desc_from_toc(pkg: models.Pkg):
+    def get_wowi_desc_from_toc(pkg: models.Pkg):
         if pkg.source == 'wowi':
             toc_reader = TocReader.from_path_name(obj.m.config.addon_dir / pkg.folders[0].name)
             return toc_reader['Notes'].value
@@ -563,7 +572,7 @@ def list_installed(obj: M, addons: Sequence[Defn], output_format: ListFormats):
                 formatter.write_dl(
                     (
                         ('Name', pkg.name),
-                        ('Description', get_desc_from_toc(pkg)),
+                        ('Description', get_wowi_desc_from_toc(pkg)),
                         ('URL', pkg.url),
                         ('Version', pkg.version),
                         ('Date published', pkg.date_published.isoformat(' ', 'minutes')),
@@ -580,7 +589,7 @@ def list_installed(obj: M, addons: Sequence[Defn], output_format: ListFormats):
 @main.command(hidden=True)
 @click.argument('addon', callback=_callbackify(partial(parse_into_defn, raise_invalid=False)))
 @click.pass_context
-def info(ctx: click.Context, addon: Defn):
+def info(ctx: click.Context, addon: Defn) -> None:
     "Alias of `list -f detailed`."
     ctx.invoke(list_installed, addons=(addon,), output_format=ListFormats.detailed)
 
@@ -588,7 +597,7 @@ def info(ctx: click.Context, addon: Defn):
 @main.command()
 @click.argument('addon', callback=_callbackify(partial(parse_into_defn, raise_invalid=False)))
 @click.pass_obj
-def reveal(obj: M, addon: Defn):
+def reveal(obj: ManagerWrapper, addon: Defn) -> None:
     "Bring an add-on up in your file manager."
     pkg = obj.m.get_pkg(addon, partial_match=True)
     if pkg:
@@ -656,7 +665,7 @@ def _weakauras_group():
     help='Your account name.  This is used to locate the WeakAuras data file.',
 )
 @click.pass_obj
-def build_weakauras_companion(obj: M, account: str):
+def build_weakauras_companion(obj: ManagerWrapper, account: str) -> None:
     "Build the WeakAuras Companion add-on."
     from .wa_updater import BuilderConfig, WaCompanionBuilder
 
@@ -672,7 +681,7 @@ def build_weakauras_companion(obj: M, account: str):
     help='Your account name.  This is used to locate the WeakAuras data file.',
 )
 @click.pass_obj
-def list_installed_wago_auras(obj: M, account: str):
+def list_installed_wago_auras(obj: ManagerWrapper, account: str) -> None:
     "List WeakAuras installed from Wago."
     from textwrap import fill
 
@@ -692,7 +701,7 @@ def list_installed_wago_auras(obj: M, account: str):
 
 @main.command(hidden=True)
 @click.argument('filename', type=_PathParam(dir_okay=False))
-def generate_catalogue(filename: Path):
+def generate_catalogue(filename: Path) -> None:
     "Generate the master catalogue."
     import asyncio
 
@@ -703,3 +712,18 @@ def generate_catalogue(filename: Path):
     filename.with_suffix(f'.compact{filename.suffix}').write_text(
         catalogue.json(separators=(',', ':')), encoding='utf-8'
     )
+
+
+@main.command(hidden=True)
+@click.pass_context
+def listen(ctx: click.Context) -> None:
+    "Fire up the WebSocket server."
+    import asyncio
+
+    from .json_rpc_server import listen
+
+    dummy_config = Config.get_dummy_config(profile='__jsonrpc__').ensure_dirs()
+    log_level = ctx.find_root().params['log_level']
+    setup_logging(dummy_config, log_level)
+    _override_loop_policy()
+    asyncio.run(listen())

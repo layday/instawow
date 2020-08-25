@@ -3,6 +3,11 @@ import pytest
 from instawow.resolvers import Defn
 
 
+@pytest.fixture(autouse=True)
+def mock(mock_all):
+    pass
+
+
 @pytest.mark.asyncio
 async def test_search(manager):
     results = await manager.search('molinari', limit=5)

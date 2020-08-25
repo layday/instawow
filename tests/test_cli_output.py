@@ -17,6 +17,11 @@ class Flavour(enum.IntEnum):
     classic = enum.auto()
 
 
+@pytest.fixture(autouse=True)
+def mock(mock_all):
+    pass
+
+
 @pytest.fixture(params=['retail', 'classic'])
 def full_config(tmp_path_factory, request, temp_dir):
     name = f'{request.node.name[: request.node.name.index("[")]}_{request.param}'

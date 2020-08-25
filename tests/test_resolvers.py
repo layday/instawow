@@ -5,6 +5,11 @@ from instawow.models import Pkg
 from instawow.resolvers import Defn, Strategies
 
 
+@pytest.fixture(autouse=True)
+def mock(mock_all):
+    pass
+
+
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     'strategy', [Strategies.default, Strategies.latest, Strategies.any_flavour]
