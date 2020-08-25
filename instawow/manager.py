@@ -612,36 +612,35 @@ class Manager:
         return results
 
 
-_tick_interval = 0.1
-_tickers: cv.ContextVar[Set[asyncio.Task[None]]] = cv.ContextVar('_tickers', default=set())
+def _extract_filename_from_hdr(response: aiohttp.ClientResponse) -> str:
+    from cgi import parse_header
+
+    from aiohttp import hdrs
+
+    _, cd_params = parse_header(response.headers.get(hdrs.CONTENT_DISPOSITION, ''))
+    filename = cd_params.get('filename') or response.url.name
+    return filename
 
 
-@asynccontextmanager
-async def _cancel_tickers() -> AsyncIterator[None]:
-    try:
-        yield
-    finally:
-        for ticker in _tickers.get():
-            ticker.cancel()
-
-
-def init_cli_web_client(bar: ProgressBar) -> aiohttp.ClientSession:
+def _init_cli_web_client(
+    bar: ProgressBar, tickers: Set[asyncio.Task[None]]
+) -> aiohttp.ClientSession:
     from aiohttp import TraceConfig, hdrs
 
-    def extract_filename(response: aiohttp.ClientResponse) -> str:
-        from cgi import parse_header
-
-        _, cd_params = parse_header(response.headers.get(hdrs.CONTENT_DISPOSITION, ''))
-        filename = cd_params.get('filename') or response.url.name
-        return filename
-
-    async def do_on_request_end(session: Any, request_ctx: Any, params: Any) -> None:
-        ctx = request_ctx.trace_request_ctx
-        if not (ctx and ctx.get('show_progress')):
+    async def do_on_request_end(
+        client_session: aiohttp.ClientSession,
+        trace_config_ctx: Any,
+        params: aiohttp.TraceRequestEndParams,
+    ) -> None:
+        tick_interval = 0.1
+        ctx = trace_config_ctx.trace_request_ctx
+        if not (ctx and ctx.get('report_progress')):
             return
 
         async def ticker() -> None:
-            label = ctx.get('label') or f'Downloading {extract_filename(params.response)}'
+            label = (
+                ctx.get('label') or f'Downloading {_extract_filename_from_hdr(params.response)}'
+            )
             total = params.response.content_length
             # The encoded size is not exposed in the streaming API and
             # ``content_length`` has the size of the payload after gzipping -
@@ -652,25 +651,32 @@ def init_cli_web_client(bar: ProgressBar) -> aiohttp.ClientSession:
             counter = None
             try:
                 counter = bar(label=label, total=total)
-
                 content = params.response.content
                 while not content.is_eof():
                     counter.items_completed = content.total_bytes
                     bar.invalidate()
-                    await asyncio.sleep(_tick_interval)
+                    await asyncio.sleep(tick_interval)
             finally:
                 try:
                     bar.counters.remove(counter)
                 except ValueError:
                     pass
 
-        tickers = _tickers.get()
         tickers.add(asyncio.create_task(ticker()))
 
     trace_config = TraceConfig()
-    trace_config.on_request_end.append(do_on_request_end)
+    trace_config.on_request_end.append(do_on_request_end)  # type: ignore
     trace_config.freeze()
     return init_web_client(trace_configs=[trace_config])
+
+
+@asynccontextmanager
+async def _cancel_tickers(tickers: Set[asyncio.Task[None]]):
+    try:
+        yield
+    finally:
+        for ticker in tickers:
+            ticker.cancel()
 
 
 class CliManager(Manager):
@@ -678,7 +684,10 @@ class CliManager(Manager):
         with make_progress_bar() as bar:
 
             async def run():
-                async with init_cli_web_client(bar) as self.web_client, _cancel_tickers():
+                tickers = set()
+                async with _init_cli_web_client(bar, tickers) as self.web_client, _cancel_tickers(
+                    tickers
+                ):
                     return await awaitable
 
             loop = asyncio.new_event_loop()
