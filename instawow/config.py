@@ -145,7 +145,7 @@ class _GlobalConfig(BaseConfig):
 
     def delete(self) -> None:
         "Delete the configuration files associated with this profile."
-        trash((self.profile_dir,), dst=self.temp_dir, missing_ok=True)
+        trash((self.ensure_dirs().profile_dir,), dst=self.temp_dir, missing_ok=True)
 
     @property
     def is_classic(self) -> bool:
