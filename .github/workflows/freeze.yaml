@@ -86,6 +86,9 @@ jobs:
       with:
         name: instawow-${{ matrix.os }}-${{ needs.extract-tag.outputs.tag }}
         path: gui/bin
+    - name: Ensure binary is executable
+      run: |
+        chmod +x gui/bin/instawow*
     - name: Install npm dependencies
       run: |
         npm install
