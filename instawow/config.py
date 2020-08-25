@@ -1,19 +1,42 @@
 from __future__ import annotations
 
+import os
 from pathlib import Path
 from shutil import copytree, ignore_patterns
 from tempfile import gettempdir
-from typing import Any, Dict, Optional as O
+from typing import Any, Dict, List, Union
 
 import click
-from pydantic import BaseSettings, DirectoryPath, Extra, Field, constr, validator
 from loguru import logger
+from pydantic import BaseSettings, Extra, Field, PydanticValueError, ValidationError, validator
 
 from .utils import Literal, trash
+
+__novalidate__ = '__novalidate__'
+
+
+class _PathNotWritableDirectoryError(PydanticValueError):
+    code = 'path.not_writable_directory'
+    msg_template = '"{path}" is not a writable directory'
 
 
 def _get_default_config_dir() -> Path:
     return Path(click.get_app_dir('instawow'))
+
+
+def _validate_expand_path(value: Path) -> Path:
+    try:
+        return value.expanduser().resolve()
+    except RuntimeError as error:
+        # pathlib will raise a ``RuntimeError`` for non-existent ~users
+        raise ValueError(str(error)) from error
+
+
+def _validate_path_is_writable_dir(value: Path) -> Path:
+    if not (value.is_dir() and os.access(value, os.W_OK)):
+        raise _PathNotWritableDirectoryError(path=value)
+
+    return value
 
 
 class BaseConfig(BaseSettings):
@@ -24,10 +47,10 @@ class BaseConfig(BaseSettings):
         return {**init_kwargs, **self._build_environ()}
 
 
-class GlobalConfig(BaseConfig):
+class _GlobalConfig(BaseConfig):
     config_dir: Path = Field(default_factory=_get_default_config_dir)
-    profile: constr(min_length=1) = '__default__'
-    addon_dir: DirectoryPath
+    profile: str = Field('__default__', min_length=1, strip_whitespace=True)
+    addon_dir: Path
     game_flavour: Literal['retail', 'classic']
     auto_update_check: bool = True
     temp_dir: Path = Path(gettempdir()) / 'instawow'
@@ -35,26 +58,36 @@ class GlobalConfig(BaseConfig):
     class Config:  # type: ignore
         env_prefix = 'INSTAWOW_'
         extra = Extra.allow
+        validate_assignment = True
 
     @validator('config_dir', 'addon_dir', 'temp_dir')
-    def _expand_paths(cls, value: Path) -> Path:
-        try:
-            return value.expanduser().resolve()
-        except RuntimeError as error:
-            # pathlib will raise RuntimeError for non-existent ~users
-            raise ValueError(str(error)) from error
+    def _validate_expand_path(cls, value: Path) -> Path:
+        return _validate_expand_path(value)
+
+    @validator('addon_dir')
+    def _validate_path_is_writable_dir(cls, value: Path) -> Path:
+        if value.name == __novalidate__:
+            return value
+        return _validate_path_is_writable_dir(value)
 
     @classmethod
-    def get_dummy_config(cls, **kwargs: Any) -> GlobalConfig:
+    def get_dummy_config(cls, **kwargs: Any) -> _GlobalConfig:
         "Create a dummy configuration with default values."
-        dummy_config = cls(addon_dir='', game_flavour='retail', **kwargs)
+        template = {'game_flavour': 'retail', 'addon_dir': __novalidate__}
+        dummy_config = cls.parse_obj({**template, **kwargs})
         return dummy_config
 
     @classmethod
-    def read(cls, profile: O[str] = None) -> GlobalConfig:
+    def list_profiles(cls) -> List[str]:
+        "List the profiles contained in the default ``config_dir``."
+        dummy_config = cls.get_dummy_config()
+        profiles = [f.name for f in (dummy_config.config_dir / 'profiles').iterdir() if f.is_dir()]
+        return profiles
+
+    @classmethod
+    def read(cls, profile: str) -> _GlobalConfig:
         "Read the configuration from disk."
-        kwargs = {'profile': profile} if profile is not None else {}
-        dummy_config = cls.get_dummy_config(**kwargs)
+        dummy_config = cls.get_dummy_config(profile=profile)
         dummy_config.migrate_legacy_dirs()
         config = cls.parse_raw(dummy_config.config_file.read_text(encoding='utf-8'))
         if dummy_config.profile != config.profile:
@@ -64,7 +97,7 @@ class GlobalConfig(BaseConfig):
             )
         return config
 
-    def ensure_dirs(self) -> GlobalConfig:
+    def ensure_dirs(self) -> _GlobalConfig:
         "Create the various folders used by instawow."
         for dir_ in (
             self.config_dir,
@@ -77,12 +110,12 @@ class GlobalConfig(BaseConfig):
             dir_.mkdir(exist_ok=True, parents=True)
         return self
 
-    def write(self) -> GlobalConfig:
+    def write(self) -> _GlobalConfig:
         """Write the configuration on disk.
 
-        ``write``, unlike ``ensure_dirs``, is only called when configuring
-        instawow.  This means that environment overrides are only persisted if
-        made during configuration.
+        ``write``, unlike ``ensure_dirs``, should only be called when configuring
+        instawow.  This means that environment overrides should only be persisted
+        if made during configuration.
         """
         self.ensure_dirs()
         includes = {'addon_dir', 'game_flavour', 'profile'}
@@ -90,7 +123,7 @@ class GlobalConfig(BaseConfig):
         self.config_file.write_text(output, encoding='utf-8')
         return self
 
-    def migrate_legacy_dirs(self) -> GlobalConfig:
+    def migrate_legacy_dirs(self) -> _GlobalConfig:
         "Migrate a profile-less configuration to the new format."
         legacy_config_file = self.config_dir / 'config.json'
         if (
@@ -147,7 +180,7 @@ class GlobalConfig(BaseConfig):
         return self.temp_dir / 'cache'
 
 
-Config = GlobalConfig
+Config = _GlobalConfig
 
 
 def setup_logging(config: _GlobalConfig, log_level: Union[int, str] = 'INFO') -> int:

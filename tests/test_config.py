@@ -1,5 +1,4 @@
 from filecmp import dircmp
-import json
 from pathlib import Path
 from shutil import move
 import sys
@@ -26,7 +25,7 @@ def test_config_dir_is_populated(full_config):
 def test_reading_missing_config_from_env_raises(full_config, monkeypatch):
     monkeypatch.setenv('INSTAWOW_CONFIG_DIR', str(full_config['config_dir']))
     with pytest.raises(FileNotFoundError):
-        Config.read()
+        Config.read('__default__')
 
 
 @pytest.mark.skipif(sys.platform == 'win32', reason='no ~ expansion on Windows')
@@ -69,9 +68,7 @@ def test_legacy_profile_migration_goes_swimmingly(full_config, monkeypatch):
     legacy_config = Config(**full_config).write()
     monkeypatch.setenv('INSTAWOW_CONFIG_DIR', str(full_config['config_dir']))
 
-    comparison = dircmp(
-        legacy_config.config_dir, legacy_config.profile_dir,
-    )
+    comparison = dircmp(legacy_config.config_dir, legacy_config.profile_dir,)
     profile_dirs = sorted(i.name for i in legacy_config.profile_dir.iterdir())
     assert comparison.common == []
     assert comparison.left_list == ['profiles']
@@ -80,11 +77,9 @@ def test_legacy_profile_migration_goes_swimmingly(full_config, monkeypatch):
     for name in profile_dirs:
         move(str(legacy_config.profile_dir / name), legacy_config.config_dir / name)
     legacy_config.profile_dir.rmdir()
-    Config.get_dummy_config(config_dir=full_config['config_dir']).read()
+    Config.get_dummy_config(config_dir=full_config['config_dir']).read('__default__')
 
-    comparison = dircmp(
-        legacy_config.config_dir, legacy_config.profile_dir,
-    )
+    comparison = dircmp(legacy_config.config_dir, legacy_config.profile_dir,)
     assert comparison.common == []
     assert comparison.left_list == ['profiles']
     assert sorted(comparison.right_list) == profile_dirs
