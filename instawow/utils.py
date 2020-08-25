@@ -4,7 +4,7 @@ import asyncio
 from collections import defaultdict, deque
 from contextlib import contextmanager
 from datetime import datetime, timedelta
-from functools import partial
+from functools import partial, wraps
 from itertools import chain, repeat
 from pathlib import Path, PurePath
 import posixpath
@@ -64,6 +64,8 @@ class _TocEntry(NamedTuple):
 class TocReader:
     """Extracts key–value pairs from TOC files."""
 
+    default = ''
+
     def __init__(self, contents: str) -> None:
         possible_entries = (
             map(str.strip, e.lstrip('#').partition(':')[::2])
@@ -71,7 +73,6 @@ class TocReader:
             if e.startswith('##')
         )
         self.entries = {k: v for k, v in possible_entries if k}
-        self.default = ''
 
     def __getitem__(self, key: Union[str, Tuple[str, ...]]) -> _TocEntry:
         if isinstance(key, tuple):
@@ -166,11 +167,12 @@ async def gather(it: Iterable[Awaitable[_V]], return_exceptions: Literal[False] 
 
 async def gather(
     it: Iterable[Awaitable[_V]], return_exceptions: bool = True
-) -> List[Union[BaseException, _V]]:
+) -> Union[List[Union[BaseException, _V]], List[_V]]:
     return await asyncio.gather(*it, return_exceptions=return_exceptions)
 
 
 def run_in_thread(fn: Callable[..., _V]) -> Callable[..., Awaitable[_V]]:
+    @wraps(fn)
     def wrapper(*args: Any, **kwargs: Any):
         loop = asyncio.get_running_loop()
         return loop.run_in_executor(None, lambda: fn(*args, **kwargs))
@@ -368,7 +370,7 @@ def get_version() -> str:
 
 
 def is_outdated(manager: CliManager) -> bool:
-    """Check on PyPI to see if the installed instawow is outdated.
+    """Check on PyPI to see if the installed copy of instawow is outdated.
 
     The response is cached for 24 hours.
     """

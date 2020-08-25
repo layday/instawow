@@ -13,6 +13,7 @@ from typing import (
     List,
     NamedTuple,
     Optional as O,
+    Sequence,
     Set,
     Tuple,
     cast,
@@ -67,17 +68,17 @@ class Defn(NamedTuple):
         return f'{self.source}:{self.name}'
 
 
-class _CItem(BaseModel):
+class _CatalogueEntry(BaseModel):
     source: str
     id: str
     slug: str = ''
     name: str
-    compatibility: Set[Literal['retail', 'classic']]
+    compatibility: Set[Literal['retail', 'classic']] = {'retail', 'classic'}
     folders: List[List[str]] = []
 
 
 class MasterCatalogue(BaseModel):
-    __root__: List[_CItem]
+    __root__: List[_CatalogueEntry]
 
     class Config:
         keep_untouched = (cast(Any, cached_property),)
@@ -110,9 +111,7 @@ class Resolver:
         self.manager = manager
 
     def __init_subclass__(cls) -> None:
-        async def resolve_wrapper(
-            self: Resolver, defn: Defn, metadata: O[JsonDict] = None
-        ) -> m.Pkg:
+        async def resolve_wrapper(self: Resolver, defn: Defn, metadata: O[JsonDict]) -> m.Pkg:
             if defn.strategy in self.strategies:
                 return await resolve_one(self, defn, metadata)  # type: ignore
             raise E.PkgStrategyUnsupported(defn.strategy)
@@ -129,16 +128,16 @@ class Resolver:
     def get_name_from_url(value: str) -> O[str]:
         "Attempt to extract a definition name from a given URL."
 
-    async def resolve(self, defns: List[Defn]) -> Dict[Defn, Any]:
+    async def resolve(self, defns: Sequence[Defn]) -> Dict[Defn, Any]:
         "Resolve add-on definitions into packages."
-        results = await gather(self.resolve_one(d) for d in defns)
+        results = await gather(self.resolve_one(d, None) for d in defns)
         return dict(zip(defns, results))
 
-    async def resolve_one(self, defn: Defn, metadata: O[JsonDict] = None) -> m.Pkg:
+    async def resolve_one(self, defn: Defn, metadata: O[JsonDict]) -> m.Pkg:
         "Resolve an individual definition into a package."
         raise NotImplementedError
 
-    async def collect_items(self) -> AsyncIterable[_CItem]:
+    async def collect_items(self) -> AsyncIterable[_CatalogueEntry]:
         "Yield add-ons from source for cataloguing."
         return
         yield
@@ -171,7 +170,7 @@ class CurseResolver(Resolver):
         ):
             return url.parts[3].lower()
 
-    async def resolve(self, defns: List[Defn]) -> Dict[Defn, Any]:
+    async def resolve(self, defns: Sequence[Defn]) -> Dict[Defn, Any]:
         from .manager import cache_json_response
 
         ids_for_defns = {
@@ -301,7 +300,7 @@ class CurseResolver(Resolver):
             deps=deps,
         )
 
-    async def collect_items(self) -> AsyncIterable[_CItem]:
+    async def collect_items(self) -> AsyncIterable[_CatalogueEntry]:
         classic_version_prefix = '1.13'
         flavours = ('retail', 'classic')
 
@@ -333,7 +332,7 @@ class CurseResolver(Resolver):
                     for f in item['latestFiles']
                     if not f['exposeAsAlternative']
                 )
-                yield _CItem(
+                yield _CatalogueEntry(
                     source=self.source,
                     id=item['id'],
                     slug=item['slug'],
@@ -373,19 +372,19 @@ class WowiResolver(Resolver):
             and url.parts[1] == 'downloads'
         ):
             if url.name == 'landing.php':
-                id_ = url.query.get('fileid')
-                if id_:
-                    return id_
+                source_id = url.query.get('fileid')
+                if source_id:
+                    return source_id
             elif url.name == 'fileinfo.php':
-                id_ = url.query.get('id')
-                if id_:
-                    return id_
+                source_id = url.query.get('id')
+                if source_id:
+                    return source_id
             else:
                 match = re.match(r'^(?:download|info)(?P<id>\d+)', url.name)
                 if match:
                     return match.group('id')
 
-    async def resolve(self, defns: List[Defn]) -> Dict[Defn, Any]:
+    async def resolve(self, defns: Sequence[Defn]) -> Dict[Defn, Any]:
         async with self.manager.locks['load WoWI catalogue']:
             if self._files is None:
                 from .manager import cache_json_response
@@ -433,17 +432,13 @@ class WowiResolver(Resolver):
             options=m.PkgOptions(strategy=defn.strategy.name),
         )
 
-    async def collect_items(self) -> AsyncIterable[_CItem]:
+    async def collect_items(self) -> AsyncIterable[_CatalogueEntry]:
         async with self.manager.web_client.get(self.list_api_url) as response:
             json_response = await response.json()
 
         for item in json_response:
-            yield _CItem(
-                source=self.source,
-                id=item['UID'],
-                name=item['UIName'],
-                compatibility={'retail', 'classic'},
-                folders=[item['UIDir']],
+            yield _CatalogueEntry(
+                source=self.source, id=item['UID'], name=item['UIName'], folders=[item['UIDir']],
             )
 
 
@@ -468,7 +463,7 @@ class TukuiResolver(Resolver):
             if name:
                 return name
 
-    async def resolve_one(self, defn: Defn, metadata: Any = None) -> m.Pkg:
+    async def resolve_one(self, defn: Defn, metadata: Any) -> m.Pkg:
         name = ui_name = self.retail_uis.get(defn.name)
         if not name:
             name = ''.join(takewhile('-'.__ne__, defn.name))
@@ -499,7 +494,7 @@ class TukuiResolver(Resolver):
             options=m.PkgOptions(strategy=defn.strategy.name),
         )
 
-    async def collect_items(self) -> AsyncIterable[_CItem]:
+    async def collect_items(self) -> AsyncIterable[_CatalogueEntry]:
         for query, param, compatibility in [
             ('ui', 'tukui', 'retail'),
             ('ui', 'elvui', 'retail'),
@@ -511,7 +506,7 @@ class TukuiResolver(Resolver):
                 metadata = await response.json(content_type=None)  # text/html
 
             if query == 'ui':
-                yield _CItem(
+                yield _CatalogueEntry(
                     source=self.source,
                     id=metadata['id'],
                     name=metadata['name'],
@@ -519,7 +514,7 @@ class TukuiResolver(Resolver):
                 )
             else:
                 for item in metadata:
-                    yield _CItem(
+                    yield _CatalogueEntry(
                         source=self.source,
                         id=item['id'],
                         name=item['name'],
@@ -543,7 +538,7 @@ class GithubResolver(Resolver):
         if url.host == 'github.com' and len(url.parts) > 2:
             return '/'.join(url.parts[1:3])
 
-    async def resolve_one(self, defn: Defn, metadata: Any = None) -> m.Pkg:
+    async def resolve_one(self, defn: Defn, metadata: Any) -> m.Pkg:
         """Resolve a hypothetical add-on hosted on GitHub.
 
         The GitHub resolver, ahem, 'builds' on the work done by Torkus
