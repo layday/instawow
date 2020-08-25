@@ -171,6 +171,8 @@ class CurseResolver(Resolver):
             return url.parts[3].lower()
 
     async def resolve(self, defns: Sequence[Defn]) -> Dict[Defn, Any]:
+        from aiohttp import ClientResponseError
+
         from .manager import cache_json_response
 
         ids_for_defns = {
@@ -178,11 +180,17 @@ class CurseResolver(Resolver):
             for d in defns
         }
         numeric_ids = {i for i in ids_for_defns.values() if i.isdigit()}
-        async with self.manager.web_client.post(self.addon_api_url, json=list(numeric_ids)) as response:
-            if response.status == 404:
-                json_response = []
-            else:
-                json_response = await response.json()
+        try:
+            json_response = await cache_json_response(
+                self.manager,
+                self.addon_api_url,
+                300,
+                request_kwargs={'method': 'POST', 'json': list(numeric_ids)},
+            )
+        except ClientResponseError as error:
+            if error.status != 404:
+                raise
+            json_response = []
 
         api_results = {str(r['id']): r for r in json_response}
         results = await gather(
@@ -241,28 +249,26 @@ class CurseResolver(Resolver):
             # 1 = stable; 2 = beta; 3 = alpha
             if defn.strategy is Strategies.latest:
 
-                def is_of_specified_quality(f: JsonDict):
+                def has_release_type(f: JsonDict):
                     return True
 
             elif defn.strategy is Strategies.curse_latest_beta:
 
-                def is_of_specified_quality(f: JsonDict):
+                def has_release_type(f: JsonDict):
                     return f['releaseType'] == 2
 
             elif defn.strategy is Strategies.curse_latest_alpha:
 
-                def is_of_specified_quality(f: JsonDict):
+                def has_release_type(f: JsonDict):
                     return f['releaseType'] == 3
 
             else:
 
-                def is_of_specified_quality(f: JsonDict):
+                def has_release_type(f: JsonDict):
                     return f['releaseType'] == 1
 
             def is_compatible(f: JsonDict):
-                return (
-                    is_not_libless(f) and supports_game_version(f) and is_of_specified_quality(f)
-                )
+                return is_not_libless(f) and supports_game_version(f) and has_release_type(f)
 
         if not files:
             raise E.PkgFileUnavailable('no files available for download')
@@ -385,10 +391,12 @@ class WowiResolver(Resolver):
                     return match.group('id')
 
     async def resolve(self, defns: Sequence[Defn]) -> Dict[Defn, Any]:
+        from aiohttp import ClientResponseError
+
+        from .manager import cache_json_response
+
         async with self.manager.locks['load WoWI catalogue']:
             if self._files is None:
-                from .manager import cache_json_response
-
                 files = await cache_json_response(
                     self.manager,
                     self.list_api_url,
@@ -399,13 +407,13 @@ class WowiResolver(Resolver):
 
         ids_for_defns = {d: ''.join(takewhile(str.isdigit, d.name)) for d in defns}
         numeric_ids = {i for i in ids_for_defns.values() if i.isdigit()}
-
         url = self.details_api_url / f'{",".join(numeric_ids)}.json'
-        async with self.manager.web_client.get(url) as response:
-            if response.status == 404:
-                json_response = []
-            else:
-                json_response = await response.json()
+        try:
+            json_response = await cache_json_response(self.manager, url, 300)
+        except ClientResponseError as error:
+            if error.status != 404:
+                raise
+            json_response = []
 
         api_results = {r['UID']: {**self._files[r['UID']], **r} for r in json_response}
         results = await gather(

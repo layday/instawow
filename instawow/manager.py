@@ -119,16 +119,15 @@ def _open_archive(path: PurePath) -> Iterator[Tuple[Set[str], Callable[[Path], N
 
 async def download_archive(manager: Manager, pkg: Pkg, *, chunk_size: int = 4096) -> Path:
     url = pkg.download_url
-    dst = manager.config.cache_dir / shasum(
+    dest = manager.config.cache_dir / shasum(
         pkg.source, pkg.id, pkg.version, manager.config.game_flavour
     )
-
-    if await t(dst.exists)():
-        pass
+    if await t(dest.exists)():
+        logger.debug(f'{url} is cached at {dest}')
     elif url.startswith('file://'):
         from urllib.parse import unquote
 
-        await copy_async(unquote(url[7:]), dst)
+        await copy_async(unquote(url[7:]), dest)
     else:
         kwargs = {'raise_for_status': True, 'trace_request_ctx': {'show_progress': True}}
         async with manager.web_client.get(url, **kwargs) as response, _open_temp_writer() as (
@@ -138,25 +137,31 @@ async def download_archive(manager: Manager, pkg: Pkg, *, chunk_size: int = 4096
             async for chunk in response.content.iter_chunked(chunk_size):
                 await write(chunk)
 
-        await move_async(temp_path, dst)
+        await move_async(temp_path, dest)
 
-    return dst
+    return dest
 
 
 async def cache_json_response(
-    manager: Manager, url: Union[str, URL], *args: Any, label: O[str] = None
+    manager: Manager,
+    url: Union[str, URL],
+    *timedelta_args: Any,
+    label: O[str] = None,
+    request_kwargs: Dict[str, Any] = {},
 ) -> Any:
-    dst = manager.config.cache_dir / shasum(str(url))
-    if await t(is_not_stale)(dst, *args):
-        text = await t(dst.read_text)(encoding='utf-8')
+    dest = manager.config.cache_dir / shasum(str(url), json.dumps(request_kwargs))
+    if await t(is_not_stale)(dest, *timedelta_args):
+        logger.debug(f'{url} is cached at {dest}')
+        text = await t(dest.read_text)(encoding='utf-8')
     else:
-        kwargs = {'raise_for_status': True}
+        method = request_kwargs.pop('method', 'GET')
+        kwargs = {'raise_for_status': True, **request_kwargs}
         if label:
             kwargs = {**kwargs, 'trace_request_ctx': {'show_progress': True, 'label': label}}
-        async with manager.web_client.get(url, **kwargs) as response:
+        async with manager.web_client.request(method, url, **kwargs) as response:
             text = await response.text()
 
-        await t(dst.write_text)(text, encoding='utf-8')
+        await t(dest.write_text)(text, encoding='utf-8')
 
     return json.loads(text)
 
