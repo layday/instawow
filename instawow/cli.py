@@ -99,7 +99,7 @@ class ManagerWrapper:
     def m(self) -> CliManager:
         import asyncio
 
-        from .manager import CliManager, prepare_db_session
+        from .manager import CliManager
 
         # TODO: remove once https://github.com/aio-libs/aiohttp/issues/4324 is fixed
         policy = getattr(asyncio, 'WindowsSelectorEventLoopPolicy', None)
@@ -112,8 +112,7 @@ class ManagerWrapper:
             config = self.ctx.invoke(configure)
 
         setup_logging(config.logging_dir, 'DEBUG' if self.ctx.params['debug'] else 'INFO')
-        db_session = prepare_db_session(config)
-        manager = CliManager(config, db_session)
+        manager = CliManager.from_config(config)
         return manager
 
 
@@ -287,13 +286,15 @@ def install(obj: M, addons: Sequence[Defn], replace: bool):
 def update(obj: M, addons: Sequence[Defn]):
     "Update installed add-ons."
 
-    def report_filter(result: E.ManagerResult):
-        # Hide package from output if it is up to date and ``update`` was invoked without args
+    def filter_results(result: E.ManagerResult):
+        # Hide packages from output if they are up to date
+        # and ``update`` was invoked without args
         return cast(bool, addons) or not isinstance(result, E.PkgUpToDate)
 
-    defns = addons or list(map(Defn.from_pkg, obj.m.db_session.query(models.Pkg).all()))
-    results = obj.m.run(obj.m.update(defns))
-    Report(results.items(), report_filter).generate_and_exit()
+    results = obj.m.run(
+        obj.m.update(addons or list(map(Defn.from_pkg, obj.m.database.query(models.Pkg).all())))
+    )
+    Report(results.items(), filter_results).generate_and_exit()
 
 
 @main.command()
@@ -341,7 +342,7 @@ def rollback(ctx: click.Context, addon: Defn, undo: bool):
         ).generate_and_exit()
 
     versions = (
-        manager.db_session.query(models.PkgVersionLog)
+        manager.database.query(models.PkgVersionLog)
         .filter(
             models.PkgVersionLog.pkg_source == pkg.source, models.PkgVersionLog.pkg_id == pkg.id
         )
@@ -536,7 +537,7 @@ def list_installed(obj: M, addons: Sequence[Defn], output_format: ListFormats):
             return pkg.description
 
     pkgs = (
-        obj.m.db_session.query(models.Pkg)
+        obj.m.database.query(models.Pkg)
         .filter(
             or_(
                 *(

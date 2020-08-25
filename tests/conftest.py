@@ -5,7 +5,7 @@ import re
 import pytest
 
 from instawow.config import Config
-from instawow.manager import Manager, init_web_client, prepare_db_session
+from instawow.manager import Manager
 from instawow.utils import get_version
 
 
@@ -64,7 +64,7 @@ def full_config(tmp_path, partial_config):
 @pytest.fixture
 def manager(full_config):
     config = Config(**full_config).write()
-    manager = Manager(config, prepare_db_session(config))
+    manager = Manager.from_config(config)
     yield manager
 
 

@@ -9,7 +9,7 @@ import pytest
 
 from instawow.cli import main
 from instawow.config import Config
-from instawow.manager import CliManager, prepare_db_session
+from instawow.manager import CliManager
 
 
 class Flavour(enum.IntEnum):
@@ -36,7 +36,7 @@ def full_config(tmp_path_factory, request, temp_dir):
 @pytest.fixture
 def manager(event_loop, full_config):
     config = Config(**full_config).write()
-    manager = CliManager(config, prepare_db_session(config))
+    manager = CliManager.from_config(config)
     manager.run = event_loop.run_until_complete
     yield manager
 

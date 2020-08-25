@@ -63,12 +63,13 @@ from .utils import (
 if TYPE_CHECKING:
     import aiohttp
     from prompt_toolkit.shortcuts import ProgressBar
-    from sqlalchemy.orm import Session
+    from sqlalchemy.orm import Session as SqlaSession
     from yarl import URL
 
     from .config import Config
 
     _T = TypeVar('_T')
+    _ManagerT = TypeVar('_ManagerT', bound='Manager')
 
 
 USER_AGENT = 'instawow (https://github.com/layday/instawow)'
@@ -160,7 +161,7 @@ async def cache_json_response(
     return json.loads(text)
 
 
-def prepare_db_session(config: Config) -> Session:
+def prepare_database(config: Config) -> SqlaSession:
     from sqlalchemy import create_engine
     from sqlalchemy.orm import sessionmaker
 
@@ -198,8 +199,8 @@ def prepare_db_session(config: Config) -> Session:
                 logger.info(f'stamping database with {DB_REVISION}')
                 stamp(aconfig, DB_REVISION)
 
-    Session = sessionmaker(bind=engine)
-    return Session()
+    session_factory = sessionmaker(bind=engine)
+    return session_factory()
 
 
 def init_web_client(**kwargs: Any) -> aiohttp.ClientSession:
@@ -252,7 +253,7 @@ class Manager:
     def __init__(
         self,
         config: Config,
-        db_session: Session,
+        database: SqlaSession,
         catalogue: O[MasterCatalogue] = None,
         resolver_classes: Sequence[Type[Resolver]] = (
             CurseResolver,
@@ -263,9 +264,14 @@ class Manager:
         ),
     ) -> None:
         self.config = config
-        self.db_session = db_session
+        self.database = database
         self.catalogue: MasterCatalogue = catalogue  # type: ignore
         self.resolvers = _ResolverDict((r.source, r(self)) for r in resolver_classes)
+
+    @classmethod
+    def from_config(cls: Type[_ManagerT], config: Config) -> _ManagerT:
+        database = prepare_database(config)
+        return cls(config, database)
 
     @property
     def web_client(self) -> aiohttp.ClientSession:
@@ -332,7 +338,7 @@ class Manager:
         "Retrieve an installed package from a definition."
         return (
             (
-                self.db_session.query(Pkg)
+                self.database.query(Pkg)
                 .filter(
                     Pkg.source == defn.source,
                     (Pkg.id == defn.name) | (Pkg.slug == defn.name) | (Pkg.id == defn.source_id),
@@ -341,7 +347,7 @@ class Manager:
             )
             or partial_match
             and (
-                self.db_session.query(Pkg)
+                self.database.query(Pkg)
                 .filter(Pkg.slug.contains(defn.name))
                 .order_by(Pkg.name)
                 .first()
@@ -366,7 +372,7 @@ class Manager:
         "Install a package."
         with _open_archive(archive) as (top_level_folders, extract):
             installed_conflicts = (
-                self.db_session.query(Pkg)
+                self.database.query(Pkg)
                 .join(Pkg.folders)
                 .filter(PkgFolder.name.in_(top_level_folders))
                 .all()
@@ -390,11 +396,11 @@ class Manager:
             extract(self.config.addon_dir)
             pkg.folders = [PkgFolder(name=f) for f in sorted(top_level_folders)]
 
-        self.db_session.add(pkg)
-        self.db_session.merge(
+        self.database.add(pkg)
+        self.database.merge(
             PkgVersionLog(version=pkg.version, pkg_source=pkg.source, pkg_id=pkg.id)
         )
-        self.db_session.commit()
+        self.database.commit()
 
         return E.PkgInstalled(pkg)
 
@@ -402,7 +408,7 @@ class Manager:
         "Update a package."
         with _open_archive(archive) as (top_level_folders, extract):
             installed_conflicts = (
-                self.db_session.query(Pkg)
+                self.database.query(Pkg)
                 .join(Pkg.folders)
                 .filter(PkgFolder.pkg_source != new_pkg.source, PkgFolder.pkg_id != new_pkg.id)
                 .filter(PkgFolder.name.in_(top_level_folders))
@@ -425,12 +431,12 @@ class Manager:
             extract(self.config.addon_dir)
             new_pkg.folders = [PkgFolder(name=f) for f in sorted(top_level_folders)]
 
-        self.db_session.delete(old_pkg)
-        self.db_session.add(new_pkg)
-        self.db_session.merge(
+        self.database.delete(old_pkg)
+        self.database.add(new_pkg)
+        self.database.merge(
             PkgVersionLog(version=new_pkg.version, pkg_source=new_pkg.source, pkg_id=new_pkg.id)
         )
-        self.db_session.commit()
+        self.database.commit()
 
         return E.PkgUpdated(old_pkg, new_pkg)
 
@@ -441,8 +447,8 @@ class Manager:
             dst=self.config.temp_dir,
             missing_ok=True,
         )
-        self.db_session.delete(pkg)
-        self.db_session.commit()
+        self.database.delete(pkg)
+        self.database.commit()
 
         return E.PkgRemoved(pkg)
 
