@@ -5,7 +5,7 @@ from collections import defaultdict
 from contextlib import asynccontextmanager, contextmanager
 import contextvars as cv
 from functools import partial
-from itertools import compress, filterfalse, repeat, starmap
+from itertools import chain, compress, filterfalse, repeat, starmap
 import json
 from pathlib import Path, PurePath
 from shutil import copy
@@ -313,12 +313,19 @@ class Manager:
 
         return outer
 
-    def pair_url(self, url: str) -> O[Tuple[str, str]]:
+    def pair_uri(self, value: str) -> O[Tuple[str, str]]:
         "Attempt to pair a URL with a resolver, returning the source and name."
+
+        def from_urn():
+            source, name = value.partition(':')[::2]
+            if name and source in self.resolvers:
+                yield (source, name)
+
+        url_pairs = filter(
+            all, ((r.source, r.get_name_from_url(value)) for r in self.resolvers.values())
+        )
         return next(
-            filter(
-                all, ((r.source, r.get_name_from_url(url)) for r in self.resolvers.values())
-            ),  # type: ignore
+            chain(url_pairs, from_urn()),  # type: ignore
             None,
         )
 

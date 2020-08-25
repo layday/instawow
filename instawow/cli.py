@@ -203,19 +203,14 @@ def parse_into_defn(
         defns = (parse_into_defn(manager, v, raise_invalid=raise_invalid) for v in value)
         return uniq(defns)
 
-    parts: Tuple[str, str]
-    delim = ':'
-    any_source = '*'
-
-    if delim not in value:
+    pair = manager.pair_uri(value)
+    if not pair:
         if raise_invalid:
             raise click.BadParameter(value)
 
-        parts = (any_source, value)
-    else:
-        maybe_parts = manager.pair_url(value)
-        parts = maybe_parts or value.partition(delim)[::2]
-    return Defn(*parts)
+        pair = '*', value
+    source, name = pair
+    return Defn(source=source, name=name)
 
 
 def parse_into_defn_with_strategy(
