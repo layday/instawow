@@ -221,8 +221,16 @@ def init_web_client(**kwargs: Any) -> aiohttp.ClientSession:
     return ClientSession(**kwargs)
 
 
+class _DummyLock:
+    async def __aenter__(self) -> None:
+        pass
+
+    async def __aexit__(self, *args: Any) -> None:
+        pass
+
+
 @object.__new__
-class _DummyResolver:
+class _DummyResolver(Resolver):
     async def resolve(self, defns: List[Defn]) -> Dict[Defn, E.PkgSourceInvalid]:
         return dict.fromkeys(defns, E.PkgSourceInvalid())
 
@@ -288,10 +296,10 @@ class Manager:
             if task is None:
                 raise RuntimeError('no running task')
 
-            logger.debug('initialising default web client')
             web_client = init_web_client()
             task.add_done_callback(lambda _: asyncio.create_task(web_client.close()))
             _web_client.set(web_client)
+            logger.debug(f'initialised default web client with id {id(web_client)}')
             return web_client
 
     @web_client.setter
@@ -300,23 +308,26 @@ class Manager:
 
     @property
     def locks(self) -> DefaultDict[str, asyncio.Lock]:
-        "A context-aware factory of locks."
-        asyncio.get_running_loop()  # Sanity check
-
+        "Keeping things syncin'."
         try:
-            locks = _locks.get()
+            return _locks.get()
         except LookupError:
-            logger.debug('initialising lock factory')
-            locks: DefaultDict[str, asyncio.Lock] = defaultdict(asyncio.Lock)
+            locks = cast('DefaultDict[str, asyncio.Lock]', defaultdict(_DummyLock))
             _locks.set(locks)
-        return locks
+            logger.debug('using dummy lock factory')
+            return locks
+
+    @locks.setter
+    def locks(self, value: DefaultDict[str, asyncio.Lock]) -> None:
+        _locks.set(value)
 
     def _with_lock(
-        lock_name: str,  # type: ignore  # Undeclared static method
+        lock_name: str, manager_bound: bool = True,  # type: ignore  # Undeclared static method
     ) -> Callable[[_T], _T]:
         def outer(coro_fn: _T):
             async def inner(self: Manager, *args: Any, **kwargs: Any):
-                async with self.locks[lock_name]:
+                key = f'{id(self)}_{lock_name}' if manager_bound else lock_name
+                async with self.locks[key]:
                     return await coro_fn(self, *args, **kwargs)
 
             return inner
@@ -457,7 +468,7 @@ class Manager:
 
         return E.PkgRemoved(pkg)
 
-    @_with_lock('load master catalogue')
+    @_with_lock('load master catalogue', False)
     async def synchronise(self) -> None:
         "Fetch the master catalogue from the interwebs and load it."
         if self.catalogue is None:
