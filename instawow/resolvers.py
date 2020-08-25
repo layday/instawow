@@ -31,12 +31,13 @@ if TYPE_CHECKING:
 
 
 class Strategies(enum.Enum):
-    default = enum.auto()
-    latest = enum.auto()
-    curse_latest_beta = enum.auto()
-    curse_latest_alpha = enum.auto()
-    any_flavour = enum.auto()
-    version = enum.auto()
+    default = 'default'
+    latest = 'latest'
+    curse_latest_beta = 'curse_latest_beta'
+    curse_latest_alpha = 'curse_latest_alpha'
+    any_flavour = 'any_flavour'
+    version = 'version'
+    weakauras_companion = 'weakauras_companion'
 
 
 class Defn(BaseModel):
