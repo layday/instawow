@@ -8,19 +8,6 @@
   export let api: Api;
 
   let editing: "new" | "existing" | false = false;
-
-  const saveConfig = async (config: Config) => {
-    const result = await api.writeProfile(config);
-    console.log(result);
-    profiles.update((value) => {
-      value[result.profile] = result;
-      return value;
-    });
-    if (editing === "new") {
-      $activeProfile = result.profile;
-    }
-    editing = false;
-  };
 </script>
 
 <style lang="scss">
@@ -55,6 +42,7 @@
     }
 
     button {
+      width: 2rem;
       margin-left: 4px;
 
       :global(.icon) {
@@ -109,12 +97,12 @@
   {#if editing === 'new'}
     <ConfigEditor
       on:keydown={(e) => e.key === 'Escape' && (editing = false)}
-      on:requestSaveConfig={(event) => saveConfig(event.detail)}
+      {api}
       createNew={true} />
   {:else if editing === 'existing'}
     <ConfigEditor
       on:keydown={(e) => e.key === 'Escape' && (editing = false)}
-      on:requestSaveConfig={(event) => saveConfig(event.detail)}
+      {api}
       createNew={false} />
   {/if}
 </div>

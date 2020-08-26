@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { Config } from "../api";
+  import type { Api, Config } from "../api";
   import { faFolderOpen } from "@fortawesome/free-solid-svg-icons";
   import { ipcRenderer } from "electron";
   import { createEventDispatcher } from "svelte";
@@ -7,16 +7,50 @@
   import { activeProfile, profiles } from "../store";
   import Icon from "./SvgIcon.svelte";
 
-  export let createNew: boolean;
+  export let api: Api, createNew: boolean;
 
   let configParams = { ...(createNew ? {} : $profiles[$activeProfile]) } as Config;
+  let errors: { [key: string]: any } = {};
 
   const dispatch = createEventDispatcher();
 
   const selectFolder = async () => {
-    const [cancelled, [path]] = await ipcRenderer.invoke("select-folder");
+    const [cancelled, [path]] = await ipcRenderer.invoke("select-folder", configParams.addon_dir);
     if (!cancelled) {
       configParams.addon_dir = path;
+    }
+  };
+
+  const saveConfig = async () => {
+    if (
+      (createNew && configParams.profile in $profiles) ||
+      (!configParams.profile && "__default__" in $profiles)
+    ) {
+      if (!configParams.profile) {
+        errors = { profile: "a default profile already exists" };
+      } else {
+        errors = { profile: "a profile with that name already exists" };
+      }
+      return;
+    }
+
+    let result: Config;
+    try {
+      result = await api.writeProfile(configParams);
+    } catch (error) {
+      // `error instanceof JSONRPCError` isn't working because of some transpilation fuckery:
+      // https://github.com/open-rpc/client-js/issues/209
+      if (error?.data) {
+        errors = Object.fromEntries(error.data.map(({ loc, msg }) => [loc, msg]));
+        return;
+      } else {
+        throw error;
+      }
+    }
+
+    $profiles[result.profile] = result;
+    if (createNew) {
+      $activeProfile = result.profile;
     }
   };
 </script>
@@ -72,9 +106,14 @@
       background-color: var(--inverse-color-20);
     }
 
+    &.error {
+      background-color: salmon;
+    }
+
     &.submit {
       background-color: $action-button-bg-color;
       color: $action-button-text-color;
+      font-weight: 500;
 
       &:focus {
         background-color: $action-button-focus-bg-color;
@@ -98,7 +137,7 @@
     -webkit-appearance: none;
   }
 
-  .input-row + .input-row {
+  .row + .row {
     margin-top: 0.5rem;
   }
 
@@ -133,28 +172,53 @@
       border-bottom-right-radius: $edge-border-radius;
     }
   }
+
+  .error-text {
+    line-height: 1;
+    color: salmon;
+    font-size: 0.9em;
+
+    :not(:first-child) {
+      padding-top: 0.25rem;
+    }
+  }
 </style>
 
 <div
   class="config-editor-wrapper"
-  style="--arrowhead-offset: {createNew ? '.5rem' : '2.5rem'}"
+  style="--arrowhead-offset: {createNew ? 'calc(1rem - 8px)' : 'calc(3rem - 4px)'}"
   transition:fade={{ duration: 200 }}>
   <form on:keydown on:submit|preventDefault>
+    {#if errors.profile}
+      <div class="row error-text">{errors.profile}</div>
+    {/if}
     {#if createNew}
       <input
-        class="input-row"
+        class="row"
+        class:error={errors.profile}
         type="text"
         placeholder="profile"
         name="profile"
         autofocus
         bind:value={configParams.profile} />
     {/if}
-    <select class="input-row" name="game_flavour" bind:value={configParams.game_flavour}>
+    {#if errors.game_flavour}
+      <div class="row error-text">{errors.game_flavour}</div>
+    {/if}
+    <select
+      class="row"
+      class:error={errors.game_flavour}
+      name="game_flavour"
+      bind:value={configParams.game_flavour}>
       <option value="retail">retail</option>
       <option value="classic">classic</option>
     </select>
-    <div class="input-row select-folder-array">
+    {#if errors.addon_dir}
+      <div class="row error-text">{errors.addon_dir}</div>
+    {/if}
+    <div class="row select-folder-array">
       <input
+        class:error={errors.addon_dir}
         type="text"
         disabled
         placeholder="select folder"
@@ -163,10 +227,6 @@
         <Icon icon={faFolderOpen} />
       </button>
     </div>
-    <button
-      class="input-row submit"
-      on:click|preventDefault={() => dispatch('requestSaveConfig', configParams)}>
-      save
-    </button>
+    <button class="row submit" on:click|preventDefault={() => saveConfig()}>save</button>
   </form>
 </div>

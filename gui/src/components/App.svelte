@@ -103,6 +103,10 @@
     text-decoration: none;
   }
 
+  :global(nav) {
+    -webkit-user-select: none;
+  }
+
   main {
     display: flex;
     flex-direction: column;

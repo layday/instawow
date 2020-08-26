@@ -118,7 +118,6 @@
     flex-wrap: nowrap;
     align-self: center;
     padding-left: 0.75em;
-    -webkit-user-select: none;
 
     button {
       padding: 0 0.75em;

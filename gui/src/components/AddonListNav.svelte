@@ -143,7 +143,7 @@
       <div class="search-status-indicator" transition:fade={{ duration: 200 }} />
     {/if}
   </div>
-  <div class="view-switcher">
+  <nav class="view-switcher">
     <input
       type="radio"
       name="view-switcher"
@@ -158,8 +158,8 @@
       value={View.Reconcile}
       bind:group={activeView} />
     <label for="__radioGaga">unreconciled</label>
-  </div>
-  <div class="view-actions">
+  </nav>
+  <nav class="view-actions">
     {#if activeView === View.Installed}
       <button disabled={refreshing} on:click={() => dispatch('requestRefresh')}>refresh</button>
       <button disabled={refreshing || !addonUpdates} on:click={() => dispatch('requestUpdateAll')}>
@@ -172,5 +172,5 @@
       <button>install selected</button>
       <button>automate</button>
     {/if}
-  </div>
+  </nav>
 </nav>

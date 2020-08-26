@@ -63,8 +63,11 @@ ipcMain.handle("get-server-address", async () => {
   return serverAddress;
 });
 
-ipcMain.handle("select-folder", async () => {
-  const result = await dialog.showOpenDialog({ properties: ["openDirectory", "createDirectory"] });
+ipcMain.handle("select-folder", async (event, defaultPath?: string) => {
+  const result = await dialog.showOpenDialog({
+    defaultPath: defaultPath,
+    properties: ["openDirectory", "createDirectory"],
+  });
   return [result.canceled, result.filePaths];
 });
 
