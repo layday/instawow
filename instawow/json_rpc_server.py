@@ -92,12 +92,17 @@ class _DefnParamMixin(BaseModel):
 class WriteConfigParams(BaseParams):
     values: Dict[str, Any]
     _method = 'config.write'
-    _result_type = type(None)
+    _result_type = Config
 
     @t
     def respond(self, managers: ManagerWorkQueue) -> _result_type:
         with _reraise_validation_error(_ConfigError):
-            Config(**self.values).write()
+            config = Config(**self.values).write()
+
+        # Dispose of the ``Manager`` corresponding to the profile so that it is
+        # re-loaded on next invocation of ``ManagerWorkQueue.run``
+        managers.unload(config.profile)
+        return config
 
 
 class InferConfigParams(BaseParams):
