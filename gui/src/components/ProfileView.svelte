@@ -16,7 +16,7 @@
   import AddonListNav from "./AddonListNav.svelte";
   import AddonStub from "./AddonStub.svelte";
 
-  export let api: Api, isActive: boolean, profile: string;
+  export let api: Api, isActive: boolean;
 
   const debounceDelay = 500;
   const searchLimit = 25;
@@ -38,7 +38,7 @@
     return new Promise((resolve) => setTimeout(resolve, ms));
   };
 
-  const matchCmp = ([installedAddon], [otherAddon]) =>
+  const matchCmp = ([installedAddon]: [Addon, AddonMeta], [otherAddon]: [Addon, AddonMeta]) =>
     installedAddon.source === otherAddon.source && installedAddon.id === otherAddon.id;
 
   const attachId = ([addon, addonMeta]): [Addon, AddonMeta, string] => {
@@ -55,11 +55,14 @@
     addonsBeingModified = [...addonsBeingModified, ...ids];
 
     try {
-      const result = await api.modifyAddons("install", defns, extraParams);
+      const result = await api.modifyAddons(method, defns, extraParams);
       const defnResultPairs = lodash.zip(defns, result);
       const resultGroups = lodash.groupBy(defnResultPairs, ([, [status]]) => status);
       if (resultGroups.success) {
-        const justInstalledAddons = resultGroups.success.map(([, [, addon]]) => addon);
+        const justInstalledAddons = resultGroups.success.map(([, [, addon]]) => addon) as [
+          Addon,
+          AddonMeta
+        ][];
         installedAddons = lodash.unionWith(justInstalledAddons, installedAddons, matchCmp);
         // We've got to go about the intersection in a slightly roundabout way
         // for search cuz lodash extracts the match from the first array
@@ -88,13 +91,16 @@
 
   const update = async (defns: { source: string; name: string }[]) => {
     await installOrUpdate("update", defns);
+    addonUpdates = installedAddons.reduce(
+      (val, [, { new_version }]) => val + (new_version ? 1 : 0),
+      0
+    );
   };
 
   const updateAll = async () => {
     const outdatedAddons = installedAddons.filter(([, { new_version }]) => new_version);
     const defns = outdatedAddons.map(([{ source, id }]) => ({ source: source, name: id }));
-    // await update(defns);
-    await sleep(1000);
+    await update(defns);
   };
 
   const remove = async (defns: { source: string; name: string }[]) => {
@@ -106,7 +112,10 @@
       const defnResultPairs = lodash.zip(defns, result);
       const resultGroups = lodash.groupBy(defnResultPairs, ([, [status]]) => status);
       if (resultGroups.success) {
-        const removedAddons = resultGroups.success.map(([, [, addon]]) => addon);
+        const removedAddons = resultGroups.success.map(([, [, addon]]) => addon) as [
+          Addon,
+          AddonMeta
+        ][];
         installedAddons = lodash.differenceWith(installedAddons, removedAddons, matchCmp);
         const removedAddonsInSearch = lodash.intersectionWith(
           removedAddons,
@@ -175,21 +184,19 @@
   };
 
   const setupComponent = async () => {
-    if (!refreshInProgress) {
-      refreshInProgress = true;
-      try {
-        sources = await api.listSources();
-        protocols = [...Object.keys(sources), "http", "https"].map((v) => `${v}:`);
-        for (const checkForUpdates of [false, true]) {
-          installedAddons = await api.listAddons(checkForUpdates);
-        }
-        addonUpdates = installedAddons.reduce(
-          (val, [, { new_version }]) => val + (new_version ? 1 : 0),
-          0
-        );
-      } finally {
-        refreshInProgress = false;
+    refreshInProgress = true;
+    try {
+      sources = await api.listSources();
+      protocols = [...Object.keys(sources), "http", "https"].map((v) => `${v}:`);
+      for (const checkForUpdates of [false, true]) {
+        installedAddons = await api.listAddons(checkForUpdates);
       }
+      addonUpdates = installedAddons.reduce(
+        (val, [, { new_version }]) => val + (new_version ? 1 : 0),
+        0
+      );
+    } finally {
+      refreshInProgress = false;
     }
   };
 
@@ -234,7 +241,7 @@
     bind:activeView
     bind:searchTerms
     on:requestRefresh={() => refresh()}
-    on:requestUpdate={() => updateAll()}
+    on:requestUpdateAll={() => updateAll()}
     {addonUpdates}
     refreshing={refreshInProgress}
     searching={searchesInProgress > 0} />

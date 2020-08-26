@@ -10,9 +10,6 @@
 <style lang="scss">
   @import "vars";
 
-  $action-button-bg-color: rgb(24, 136, 255);
-  $action-button-text-color: #efefef;
-
   .addon-stub {
     position: relative;
     display: flex;
@@ -98,7 +95,7 @@
       display: none;
 
       &:checked + label {
-        background-color: rgb(0, 104, 217);
+        background-color: $action-button-focus-bg-color;
       }
     }
 

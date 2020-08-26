@@ -1,6 +1,7 @@
 <script lang="ts">
   import { RequestManager, Client, WebSocketTransport } from "@open-rpc/client-js";
   import { ipcRenderer } from "electron";
+  import lodash from "lodash";
   import { Lock } from "semaphore-async-await";
   import { Api } from "../api";
   import { activeProfile, profiles } from "../store";
@@ -41,8 +42,11 @@
   const setup = async () => {
     api = new Api(getClient);
     instawowVersion = await api.getVersion();
-    profiles.set(await api.enumerateProfiles());
-    activeProfile.set(profiles[0]);
+    const profileNames = await api.enumerateProfiles();
+    const profileConfigs = await Promise.all(profileNames.map((p) => api.readProfile(p)));
+    const profilesObj = lodash.fromPairs(lodash.zip(profileNames, profileConfigs));
+    profiles.set(profilesObj);
+    activeProfile.set(profileNames[0]);
   };
 </script>
 
@@ -51,6 +55,7 @@
 
   :global(:root) {
     --base-color: #{$base-color-light};
+    --base-color-65: #{rgba($base-color-light, 0.65)};
     --inverse-color: #{$inverse-color-light};
     --inverse-color-05: #{rgba($inverse-color-light, 0.05)};
     --inverse-color-10: #{rgba($inverse-color-light, 0.1)};
@@ -63,6 +68,7 @@
   @media (prefers-color-scheme: dark) {
     :global(:root) {
       --base-color: #{$base-color-dark};
+      --base-color-65: #{rgba($base-color-dark, 0.65)};
       --inverse-color: #{$inverse-color-dark};
       --inverse-color-05: #{rgba($inverse-color-dark, 0.05)};
       --inverse-color-10: #{rgba($inverse-color-dark, 0.15)};
@@ -156,7 +162,7 @@
 {:then}
   <main>
     <header class="section section__menubar">
-      <ProfileSwitcher />
+      <ProfileSwitcher {api} />
       <div class="instawow-version">
         <b>instawow</b>
         <br />
@@ -164,11 +170,8 @@
       </div>
     </header>
     <section class="section section__main">
-      {#each $profiles as profile}
-        <ProfileView
-          api={api.withProfile(profile)}
-          {profile}
-          isActive={profile === $activeProfile} />
+      {#each Object.keys($profiles) as profile}
+        <ProfileView api={api.withProfile(profile)} isActive={profile === $activeProfile} />
       {/each}
     </section>
     <footer class="section section__statusbar">

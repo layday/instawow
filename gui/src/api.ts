@@ -5,6 +5,15 @@ export type Profile = string;
 
 export type Profiles = Profile[];
 
+export type Config = {
+  addon_dir: string;
+  auto_update_check: boolean;
+  config_dir: string;
+  game_flavour: string;
+  profile: string;
+  temp_dir: string;
+};
+
 export type Sources = {
   [source: string]: {
     source: string;
@@ -60,6 +69,16 @@ export class Api {
 
   withProfile(profile: string) {
     return new Api(this.getClient, profile);
+  }
+
+  async readProfile(profile: string): Promise<Config> {
+    const client = await this.getClient();
+    return await client.request({ method: "config.read", params: { profile: profile } }, null);
+  }
+
+  async writeProfile(config: Config): Promise<Config> {
+    const client = await this.getClient();
+    return await client.request({ method: "config.write", params: { values: config } }, null);
   }
 
   async enumerateProfiles(): Promise<Profiles> {

@@ -3,6 +3,10 @@ $inverse-color-light: invert($base-color-light);
 $base-color-dark: rgb(53, 55, 51);
 $inverse-color-dark: invert($base-color-dark);
 
+$action-button-bg-color: rgb(24, 136, 255);
+$action-button-focus-bg-color: rgb(0, 104, 217);
+$action-button-text-color: #efefef;
+
 @mixin unstyle-list {
   list-style: none;
   margin: 0;

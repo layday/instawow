@@ -28,8 +28,8 @@
     button,
     label,
     [type="search"] {
-      background-color: var(--inverse-color-10);
       border: 0;
+      background-color: var(--inverse-color-10);
       transition: background-color 0.2s;
 
       &:disabled {
@@ -162,7 +162,7 @@
   <div class="view-actions">
     {#if activeView === View.Installed}
       <button disabled={refreshing} on:click={() => dispatch('requestRefresh')}>refresh</button>
-      <button disabled={refreshing || !addonUpdates} on:click={() => dispatch('requestUpdate')}>
+      <button disabled={refreshing || !addonUpdates} on:click={() => dispatch('requestUpdateAll')}>
         {addonUpdates ? `update ${addonUpdates}` : 'no updates'}
       </button>
     {:else if activeView === View.Reconcile}

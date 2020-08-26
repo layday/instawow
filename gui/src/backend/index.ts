@@ -63,12 +63,14 @@ ipcMain.handle("get-server-address", async () => {
   return serverAddress;
 });
 
-ipcMain.handle("select-dir", async () => {
+ipcMain.handle("select-folder", async () => {
   const result = await dialog.showOpenDialog({ properties: ["openDirectory", "createDirectory"] });
   return [result.canceled, result.filePaths];
 });
 
-ipcMain.on("reveal-folder", (event, path: string) => shell.showItemInFolder(path));
+ipcMain.on("reveal-addon-folder", (event, addonDir: string, folder: string) =>
+  shell.showItemInFolder(path.join(addonDir, folder))
+);
 
 ipcMain.on("open-url", (event, url: string) => shell.openExternal(url));
 

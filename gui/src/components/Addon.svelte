@@ -5,6 +5,7 @@
   import { DateTime } from "luxon";
   import { createEventDispatcher } from "svelte";
   import { fade } from "svelte/transition";
+  import { activeProfile, profiles } from "../store";
   import Icon from "./SvgIcon.svelte";
 
   export let addon: Addon,
@@ -30,13 +31,17 @@
   const requestRemove = () => {
     dispatch("requestRemove", { source: addon.source, name: addon.id });
   };
+
+  const revealFolder = () =>
+    ipcRenderer.send(
+      "reveal-addon-folder",
+      $profiles[$activeProfile].addon_dir,
+      addon.folders[0].name
+    );
 </script>
 
 <style lang="scss">
   @import "vars";
-
-  $action-button-bg-color: rgb(24, 136, 255);
-  $action-button-text-color: #efefef;
 
   .addon {
     position: relative;
@@ -131,7 +136,7 @@
       }
 
       &:focus {
-        background-color: rgb(0, 104, 217);
+        background-color: $action-button-focus-bg-color;
       }
 
       + button {
@@ -189,9 +194,7 @@
     <nav class="addon-actions">
       {#if addonMeta.installed}
         {#if addonMeta.new_version && addon.version !== addonMeta.new_version}
-          <button disabled={refreshing} on:click|stopPropagation={() => (beingModified = true)}>
-            update
-          </button>
+          <button disabled={refreshing} on:click|stopPropagation={requestUpdate}>update</button>
         {/if}
         {#if addonMeta.damaged}
           <button disabled={refreshing} on:click|stopPropagation>reinstall</button>
@@ -206,7 +209,11 @@
             <Icon icon={faHistory} />
           </button>
         {/if}
-        <button label="more" title="more" disabled={refreshing} on:click|stopPropagation>
+        <button
+          label="more"
+          title="more"
+          disabled={refreshing}
+          on:click|stopPropagation={() => revealFolder()}>
           <Icon icon={faEllipsisH} />
         </button>
         <button disabled={refreshing} on:click|stopPropagation={requestRemove}>remove</button>
