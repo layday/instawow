@@ -2,8 +2,8 @@
 name: Create instawow executables
 on:
   push:
-    # tags:
-    # - v*
+    tags:
+    - v*
 defaults:
   run:
     shell: bash
