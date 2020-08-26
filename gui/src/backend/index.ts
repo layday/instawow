@@ -48,7 +48,7 @@ const createWindow = () => {
 const instawow = spawnInstawow();
 let serverAddress: string;
 
-instawow.once("message", (message) => (serverAddress = message.address));
+instawow.once("message", (message: any) => (serverAddress = message.address));
 
 instawow.stderr.on("data", (data) => {
   if (data.toString().trim() !== "Aborted!") {

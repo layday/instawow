@@ -8,11 +8,11 @@
 </script>
 
 <script lang="ts">
-  import type Api from "../api";
+  import type { Addon, AddonMeta, Api, ListResult, Sources } from "../api";
   import lodash from "lodash";
   import { onMount } from "svelte";
   import { fade } from "svelte/transition";
-  import Addon from "./Addon.svelte";
+  import AddonComponent from "./Addon.svelte";
   import AddonListNav from "./AddonListNav.svelte";
   import AddonStub from "./AddonStub.svelte";
 
@@ -21,50 +21,64 @@
   const debounceDelay = 500;
   const searchLimit = 25;
 
-  let sources: object;
+  let sources: Sources;
   let protocols: string[];
   let activeView: View = View.Installed;
-  let addons: any[];
+  let addons: ListResult;
+  let installedAddons: ListResult = [];
+  let searchAddons: ListResult = [];
+  let addonsBeingModified: string[] = [];
   let addonUpdates: number;
-  let installedAddons = [];
-  let searchAddons = [];
   let searchTerms = "";
   let searchesInProgress = 0;
   let refreshInProgress = false;
-  let selected = [];
-  let toInstall = [];
-  let toUpdate = [];
-  let toRemove = [];
+  let reconciliationStage;
+
+  const sleep = (ms: number) => {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  };
 
   const matchCmp = ([installedAddon], [otherAddon]) =>
     installedAddon.source === otherAddon.source && installedAddon.id === otherAddon.id;
+
+  const attachId = ([addon, addonMeta]): [Addon, AddonMeta, string] => {
+    const id = `${addon.source}:${addon.id}`;
+    return [addon, addonMeta, id];
+  };
 
   const installOrUpdate = async (
     method: "install" | "update",
     defns: { source: string; name: string }[],
     extraParams: object = {}
   ) => {
-    const result = await api.modifyAddons("install", defns, extraParams);
-    const defnResultPairs = lodash.zip(defns, result);
-    const resultGroups = lodash.groupBy(defnResultPairs, ([, [status]]) => status);
-    if (resultGroups.success) {
-      const justInstalledAddons = resultGroups.success.map(([, [, addon]]) => addon);
-      installedAddons = lodash.unionWith(justInstalledAddons, installedAddons, matchCmp);
-      // We've got to go about the intersection in a slightly roundabout way
-      // for search cuz lodash extracts the match from the first array
-      const justInstalledAddonsInSearch = lodash.intersectionWith(
-        justInstalledAddons,
-        searchAddons,
-        matchCmp
-      );
-      searchAddons = lodash.unionWith(justInstalledAddonsInSearch, searchAddons, matchCmp);
-    }
+    const ids = defns.map(({ source, name }) => `${source}:${name}`);
+    addonsBeingModified = [...addonsBeingModified, ...ids];
 
-    for (const [defn, [, message]] of Array.prototype.concat(
-      resultGroups.failure || [],
-      resultGroups.error || []
-    )) {
-      alert(`Failed to ${method} ${defn.source}:${defn.name}: ${message}`);
+    try {
+      const result = await api.modifyAddons("install", defns, extraParams);
+      const defnResultPairs = lodash.zip(defns, result);
+      const resultGroups = lodash.groupBy(defnResultPairs, ([, [status]]) => status);
+      if (resultGroups.success) {
+        const justInstalledAddons = resultGroups.success.map(([, [, addon]]) => addon);
+        installedAddons = lodash.unionWith(justInstalledAddons, installedAddons, matchCmp);
+        // We've got to go about the intersection in a slightly roundabout way
+        // for search cuz lodash extracts the match from the first array
+        const justInstalledAddonsInSearch = lodash.intersectionWith(
+          justInstalledAddons,
+          searchAddons,
+          matchCmp
+        );
+        searchAddons = lodash.unionWith(justInstalledAddonsInSearch, searchAddons, matchCmp);
+      }
+
+      for (const [defn, [, message]] of Array.prototype.concat(
+        resultGroups.failure || [],
+        resultGroups.error || []
+      )) {
+        alert(`Failed to ${method} ${defn.source}:${defn.name}: ${message}`);
+      }
+    } finally {
+      addonsBeingModified = lodash.xor(addonsBeingModified, ids);
     }
   };
 
@@ -76,23 +90,47 @@
     await installOrUpdate("update", defns);
   };
 
-  const remove = async (defns: { source: string; name: string }[]) => {
-    const result = await api.modifyAddons("remove", defns);
-    const defnResultPairs = lodash.zip(defns, result);
-    const resultGroups = lodash.groupBy(defnResultPairs, ([, [status]]) => status);
-    if (resultGroups.success) {
-      const removedAddons = resultGroups.success.map(([, [, addon]]) => addon);
-      installedAddons = lodash.differenceWith(installedAddons, removedAddons, matchCmp);
-      const removedAddonsInSearch = lodash.intersectionWith(removedAddons, searchAddons, matchCmp);
-      searchAddons = lodash.unionWith(removedAddonsInSearch, searchAddons, matchCmp);
-    }
+  const updateAll = async () => {
+    const outdatedAddons = installedAddons.filter(([, { new_version }]) => new_version);
+    const defns = outdatedAddons.map(([{ source, id }]) => ({ source: source, name: id }));
+    // await update(defns);
+    await sleep(1000);
+  };
 
-    for (const [defn, [, message]] of Array.prototype.concat(
-      resultGroups.failure || [],
-      resultGroups.error || []
-    )) {
-      alert(`Failed to remove ${defn.source}:${defn.name}: ${message}`);
+  const remove = async (defns: { source: string; name: string }[]) => {
+    const ids = defns.map(({ source, name }) => `${source}:${name}`);
+    addonsBeingModified = [...addonsBeingModified, ...ids];
+
+    try {
+      const result = await api.modifyAddons("remove", defns);
+      const defnResultPairs = lodash.zip(defns, result);
+      const resultGroups = lodash.groupBy(defnResultPairs, ([, [status]]) => status);
+      if (resultGroups.success) {
+        const removedAddons = resultGroups.success.map(([, [, addon]]) => addon);
+        installedAddons = lodash.differenceWith(installedAddons, removedAddons, matchCmp);
+        const removedAddonsInSearch = lodash.intersectionWith(
+          removedAddons,
+          searchAddons,
+          matchCmp
+        );
+        searchAddons = lodash.unionWith(removedAddonsInSearch, searchAddons, matchCmp);
+      }
+
+      for (const [defn, [, message]] of Array.prototype.concat(
+        resultGroups.failure || [],
+        resultGroups.error || []
+      )) {
+        alert(`Failed to remove ${defn.source}:${defn.name}: ${message}`);
+      }
+    } finally {
+      addonsBeingModified = lodash.xor(addonsBeingModified, ids);
     }
+  };
+
+  const reconcile = async (matcher: "toc_ids" | "dir_names" | "toc_names") => {
+    const results = await api.reconcile(matcher);
+    console.log(results);
+    return results;
   };
 
   const search = lodash.debounce(async () => {
@@ -125,10 +163,6 @@
     }
   }, debounceDelay);
 
-  const select = (addon) => {
-    selected = lodash.xorWith(selected, [addon], lodash.isEqual);
-  };
-
   const refresh = async () => {
     if (!refreshInProgress) {
       refreshInProgress = true;
@@ -159,26 +193,11 @@
     }
   };
 
-  const reconcile = async (matcher: "toc_ids" | "dir_names" | "toc_names") => {
-    const results = await api.reconcile(matcher);
-    console.log(results);
-    return results;
-  };
-
   onMount(setupComponent);
 
   // Update list view - we're restoring installed add-ons immediately but debouncing searches
   $: searchTerms ? search() : (activeView = View.Installed);
-  $: switch (activeView) {
-    case View.Search:
-      addons = searchAddons;
-      break;
-    case View.Reconcile:
-      addons = [];
-      break;
-    default:
-      addons = installedAddons;
-  }
+  $: activeView === View.Search ? (addons = searchAddons) : (addons = installedAddons);
 </script>
 
 <style lang="scss">
@@ -214,20 +233,23 @@
   <AddonListNav
     bind:activeView
     bind:searchTerms
+    on:requestRefresh={() => refresh()}
+    on:requestUpdate={() => updateAll()}
     {addonUpdates}
-    {searchesInProgress}
-    {refreshInProgress}
-    {refresh} />
+    refreshing={refreshInProgress}
+    searching={searchesInProgress > 0} />
   <div class="addon-list-wrapper">
     {#if activeView === View.Reconcile}
-      {#await reconcile('toc_ids')}
+      {#await reconcile('dir_names')}
         <div class="placeholder" in:fade>
           <div>Hold on tight!</div>
         </div>
       {:then [reconciled, unreconciled]}
         {#if reconciled.length || unreconciled.length}
           <ul class="addon-list">
-            {#each reconciled as [folders, choices], idx}
+            {#each Array.prototype.concat( reconciled, lodash
+                .sortBy(unreconciled, (f) => f.name)
+                .map((f) => [[f], []]) ) as [folders, choices], idx}
               <AddonStub {folders} {choices} {idx} />
             {/each}
           </ul>
@@ -239,16 +261,16 @@
       {/await}
     {:else}
       <ul class="addon-list">
-        {#each addons as [addon, addonMeta] (`${addon.source}:${addon.id}`)}
-          <Addon
-            on:requestSelect={(event) => select(event.detail)}
+        {#each addons.map(attachId) as [addon, addonMeta, id] (id)}
+          <AddonComponent
             on:requestInstall={(event) => install([event.detail])}
             on:requestUpdate={(event) => update([event.detail])}
             on:requestRemove={(event) => remove([event.detail])}
             {addon}
             {addonMeta}
             {sources}
-            {refreshInProgress} />
+            beingModified={addonsBeingModified.includes(id)}
+            refreshing={refreshInProgress} />
         {/each}
       </ul>
     {/if}

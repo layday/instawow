@@ -1,6 +1,5 @@
 import fs from "fs";
 import commonjs from "@rollup/plugin-commonjs";
-import livereload from "rollup-plugin-livereload";
 import resolve from "@rollup/plugin-node-resolve";
 import svelte from "rollup-plugin-svelte";
 import { terser } from "rollup-plugin-terser";
@@ -15,23 +14,6 @@ function copyFile({ src, dest }) {
     buildEnd: () => fs.copyFileSync(src, dest),
   };
 }
-
-// function serve() {
-//   let started = false;
-
-//   return {
-//     writeBundle() {
-//       if (!started) {
-//         started = true;
-
-//         require("child_process").spawn("npm", ["run", "svelte:start", "--", "--dev"], {
-//           stdio: ["ignore", "inherit", "inherit"],
-//           shell: true,
-//         });
-//       }
-//     },
-//   };
-// }
 
 export default [
   {
@@ -59,7 +41,7 @@ export default [
         // we'll extract any component CSS out into
         // a separate file - better for performance
         css: (css) => {
-          css.write("build/svelte-bundle.css");
+          css.write("svelte-bundle.css");
         },
       }),
       // If you have external dependencies installed from
@@ -78,10 +60,10 @@ export default [
       // !production && serve(),
       // Watch the `public` directory and refresh the
       // browser on changes when not in production
-      !production && livereload("public"),
+      // !production && livereload("public"),
       // If we're building for production (npm run build
       // instead of npm run dev), minify
-      production && terser(),
+      // production && terser(),
       copyFile({ src: "src/backend/index.html", dest: "build/index.html" }),
     ],
     external: ["electron", "fs", "path"],

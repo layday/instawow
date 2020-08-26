@@ -2,7 +2,7 @@
   import { RequestManager, Client, WebSocketTransport } from "@open-rpc/client-js";
   import { ipcRenderer } from "electron";
   import { Lock } from "semaphore-async-await";
-  import Api from "../api";
+  import { Api } from "../api";
   import { activeProfile, profiles } from "../store";
   import ProfileView from "./ProfileView.svelte";
   import ProfileSwitcher from "./ProfileSwitcher.svelte";
@@ -41,8 +41,7 @@
   const setup = async () => {
     api = new Api(getClient);
     instawowVersion = await api.getVersion();
-    const profileResponse = await api.enumerateProfiles();
-    profiles.set(Object.fromEntries(profileResponse.map((p) => [p, {}])));
+    profiles.set(await api.enumerateProfiles());
     activeProfile.set(profiles[0]);
   };
 </script>
@@ -165,11 +164,11 @@
       </div>
     </header>
     <section class="section section__main">
-      {#each Object.keys($profiles) as profile}
+      {#each $profiles as profile}
         <ProfileView
           api={api.withProfile(profile)}
           {profile}
-          isActive={profile == $activeProfile} />
+          isActive={profile === $activeProfile} />
       {/each}
     </section>
     <footer class="section section__statusbar">

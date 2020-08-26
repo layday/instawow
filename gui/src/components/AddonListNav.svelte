@@ -1,15 +1,17 @@
 <script lang="ts">
-  import { faArrowCircleLeft, faArrowCircleRight } from "@fortawesome/free-solid-svg-icons";
+  import { faStepBackward } from "@fortawesome/free-solid-svg-icons";
+  import { createEventDispatcher } from "svelte";
   import { fade } from "svelte/transition";
   import { View } from "./ProfileView.svelte";
   import Icon from "./SvgIcon.svelte";
 
-  export let searchTerms: string,
-    activeView: View,
-    refresh: () => Promise<void>,
+  export let activeView: View,
+    searchTerms: string,
     addonUpdates: number,
-    searchesInProgress: number,
-    refreshInProgress: boolean;
+    refreshing: boolean,
+    searching: boolean;
+
+  const dispatch = createEventDispatcher();
 </script>
 
 <style lang="scss">
@@ -137,7 +139,7 @@
       placeholder="Search"
       bind:value={searchTerms}
       disabled={activeView === View.Reconcile} />
-    {#if searchesInProgress}
+    {#if searching}
       <div class="search-status-indicator" transition:fade={{ duration: 200 }} />
     {/if}
   </div>
@@ -159,18 +161,16 @@
   </div>
   <div class="view-actions">
     {#if activeView === View.Installed}
-      <button disabled={refreshInProgress} on:click={() => refresh()}>refresh</button>
-      <button disabled={refreshInProgress || !addonUpdates}>
+      <button disabled={refreshing} on:click={() => dispatch('requestRefresh')}>refresh</button>
+      <button disabled={refreshing || !addonUpdates} on:click={() => dispatch('requestUpdate')}>
         {addonUpdates ? `update ${addonUpdates}` : 'no updates'}
       </button>
     {:else if activeView === View.Reconcile}
-      <button>
-        <Icon icon={faArrowCircleLeft} />
+      <button label="restart" title="restart">
+        <Icon icon={faStepBackward} />
       </button>
-      <button>install selections</button>
-      <button>
-        <Icon icon={faArrowCircleRight} />
-      </button>
+      <button>install selected</button>
+      <button>automate</button>
     {/if}
   </div>
 </nav>

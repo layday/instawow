@@ -19,7 +19,7 @@
   export let icon;
 
   let {
-    icon: [width, height, ligatures, unicode, svgPathData],
+    icon: [width, height, _ligatures, _unicode, svgPathData],
     iconName,
     prefix,
   } = icon;

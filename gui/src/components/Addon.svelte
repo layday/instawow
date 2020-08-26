@@ -1,4 +1,5 @@
 <script lang="ts">
+  import type { Addon, AddonMeta, Sources } from "../api";
   import { faHistory, faEllipsisH } from "@fortawesome/free-solid-svg-icons";
   import { ipcRenderer } from "electron";
   import { DateTime } from "luxon";
@@ -6,41 +7,28 @@
   import { fade } from "svelte/transition";
   import Icon from "./SvgIcon.svelte";
 
-  export let addon, addonMeta, sources, refreshInProgress;
-
-  let selected = false;
-  let modifying = false;
-
-  const modify = async (awaitable: Promise<any>) => {
-    modifying = true;
-    try {
-      await awaitable;
-    } finally {
-      modifying = false;
-    }
-  };
+  export let addon: Addon,
+    addonMeta: AddonMeta,
+    sources: Sources,
+    beingModified: boolean,
+    refreshing: boolean;
 
   const dispatch = createEventDispatcher();
 
-  const select = () => {
-    selected = !selected;
-    dispatch("requestSelect", { source: addon.source, name: addon.slug });
-  };
-
   const requestInstall = () => {
-    dispatch("requestInstall", { source: addon.source, name: addon.slug });
+    dispatch("requestInstall", { source: addon.source, name: addon.id });
   };
 
   const requestReinstall = () => {
-    dispatch("requestReinstall", { source: addon.source, name: addon.slug });
+    dispatch("requestReinstall", { source: addon.source, name: addon.id });
   };
 
   const requestUpdate = () => {
-    dispatch("requestUpdate", { source: addon.source, name: addon.slug });
+    dispatch("requestUpdate", { source: addon.source, name: addon.id });
   };
 
   const requestRemove = () => {
-    dispatch("requestRemove", { source: addon.source, name: addon.slug });
+    dispatch("requestRemove", { source: addon.source, name: addon.id });
   };
 </script>
 
@@ -58,29 +46,6 @@
 
     &:nth-child(odd) {
       background-color: var(--inverse-color-05);
-    }
-
-    &.selected {
-      $selected-color: rgb(2, 99, 225);
-      background-color: $selected-color;
-      color: #eee;
-
-      .addon-details * {
-        color: #ddd;
-      }
-
-      .addon-actions button {
-        background-color: $action-button-text-color;
-        color: $action-button-bg-color;
-
-        :global(.icon) {
-          fill: $action-button-bg-color;
-        }
-      }
-
-      .modification-status-indicator {
-        @include spinner(18px, $action-button-text-color);
-      }
     }
 
     &.status-being-modified {
@@ -147,7 +112,6 @@
     display: flex;
     flex-wrap: nowrap;
     align-self: center;
-    justify-self: right;
     padding-left: 0.75em;
     -webkit-user-select: none;
 
@@ -193,12 +157,10 @@
 
 <li
   class="addon"
-  class:selected
   class:status-damaged={addonMeta.damaged}
   class:status-outdated={addonMeta.new_version && addon.version !== addonMeta.new_version}
   class:status-pinned={addon.options.strategy === 'version'}
-  class:status-being-modified={modifying}
-  on:click={select}>
+  class:status-being-modified={beingModified}>
   <ul class="addon-details">
     <li class="name">{addon.name}</li>
     <!-- prettier-ignore -->
@@ -221,39 +183,35 @@
     </li>
     <li class="description">{addon.description || 'No description.'}</li>
   </ul>
-  {#if modifying}
-    <div class="modification-status-indicator" transition:fade={{ duration: 200 }} />
+  {#if beingModified}
+    <div class="modification-status-indicator" in:fade />
   {:else}
     <nav class="addon-actions">
       {#if addonMeta.installed}
         {#if addonMeta.new_version && addon.version !== addonMeta.new_version}
-          <button disabled={refreshInProgress} on:click|stopPropagation={() => (modifying = true)}>
+          <button disabled={refreshing} on:click|stopPropagation={() => (beingModified = true)}>
             update
           </button>
         {/if}
         {#if addonMeta.damaged}
-          <button disabled={refreshInProgress} on:click|stopPropagation>reinstall</button>
+          <button disabled={refreshing} on:click|stopPropagation>reinstall</button>
         {/if}
-        {#if addon.logged_versions.length > 1 && sources[addon.source] && sources[addon.source].supports_rollback}
+        {#if addon.logged_versions.length > 1 && sources[addon.source]?.supports_rollback}
           <button
             label="rollback"
             title="rollback"
-            disabled={refreshInProgress}
+            disabled={refreshing}
             on:click|stopPropagation
             on:contextmenu|preventDefault>
             <Icon icon={faHistory} />
           </button>
         {/if}
-        <button label="more" title="more" disabled={refreshInProgress} on:click|stopPropagation>
+        <button label="more" title="more" disabled={refreshing} on:click|stopPropagation>
           <Icon icon={faEllipsisH} />
         </button>
-        <button disabled={refreshInProgress} on:click|stopPropagation={requestRemove}>
-          remove
-        </button>
+        <button disabled={refreshing} on:click|stopPropagation={requestRemove}>remove</button>
       {:else}
-        <button disabled={refreshInProgress} on:click|stopPropagation={requestInstall}>
-          install
-        </button>
+        <button disabled={refreshing} on:click|stopPropagation={requestInstall}>install</button>
       {/if}
     </nav>
   {/if}

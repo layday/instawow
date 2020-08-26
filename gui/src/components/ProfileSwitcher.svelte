@@ -61,7 +61,7 @@
 
 <nav class="profile-switcher">
   <select bind:value={$activeProfile}>
-    {#each Object.keys($profiles) as profile}
+    {#each $profiles as profile}
       <option value={profile}>{profile}</option>
     {/each}
   </select>

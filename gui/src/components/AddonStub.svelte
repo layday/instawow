@@ -1,9 +1,10 @@
 <script lang="ts">
+  import type { Addon, AddonMatch } from "../api";
   import { ipcRenderer } from "electron";
   import { DateTime } from "luxon";
   import { createEventDispatcher } from "svelte";
 
-  export let folders, choices: any[], idx;
+  export let folders: AddonMatch[], choices: Addon[], idx: number;
 </script>
 
 <style lang="scss">
@@ -14,6 +15,7 @@
 
   .addon-stub {
     position: relative;
+    display: flex;
     padding: 0.4em 0.75em;
     transition: all 0.2s;
 
@@ -25,7 +27,8 @@
       @include unstyle-list;
     }
 
-    .folders {
+    .main-col {
+      flex-grow: 1;
       overflow-x: hidden;
       white-space: nowrap;
       text-overflow: ellipsis;
@@ -41,44 +44,39 @@
 
     .choices {
       display: flex;
+      flex-wrap: wrap;
       margin-top: 0.2em;
 
       li {
         display: flex;
+        align-items: center;
 
         label {
           line-height: 1.2em;
-          padding: 0 0.5em;
+          padding-left: 0.25em;
           border-radius: 1em;
         }
 
         + li {
-          margin-left: 0.5em;
+          padding-left: 0.5em;
         }
       }
 
       [type="radio"] {
-        display: none;
+        -webkit-appearance: none;
+        flex-shrink: 0;
+        width: 12px;
+        height: 12px;
+        margin: 0;
+        border-radius: 1rem;
+        border: 1px solid var(--inverse-color);
 
-        &:checked + label {
-          background-color: $action-button-bg-color;
-          font-weight: 500;
-
-          &,
-          .name,
-          a {
-            color: $action-button-text-color;
-          }
+        &:checked {
+          background-color: var(--inverse-color);
         }
       }
 
-      .name {
-        font-size: 0.8em;
-        color: var(--inverse-color-tone-10);
-      }
-
       .defn-and-version {
-        padding-left: 0.5em;
         font-family: Menlo, monospace;
         font-size: 0.7em;
 
@@ -88,10 +86,42 @@
       }
     }
   }
+
+  .addon-actions {
+    display: flex;
+    flex-wrap: nowrap;
+    align-self: center;
+    padding-left: 0.75em;
+    -webkit-user-select: none;
+
+    [type="radio"] {
+      display: none;
+
+      &:checked + label {
+        background-color: rgb(0, 104, 217);
+      }
+    }
+
+    label {
+      padding: 0 0.75em;
+      line-height: 1.8em;
+      font-size: 0.8em;
+      font-weight: 500;
+      border: 0;
+      border-radius: 1em;
+      background-color: $action-button-bg-color;
+      color: $action-button-text-color;
+      transition: all 0.2s;
+
+      ~ label {
+        margin-left: 0.5em;
+      }
+    }
+  }
 </style>
 
 <li class="addon-stub">
-  <div class="folders">
+  <div class="main-col">
     <span class="main-folder">{folders[0].name}</span>
     <span>{folders[0].version}</span>
     {#if folders.length > 1}
@@ -102,35 +132,38 @@
           .join(', ')}
       </span>
     {/if}
+    {#if choices.length}
+      <ul class="choices">
+        {#each choices as choice, choiceIdx}
+          <li>
+            <input
+              type="radio"
+              name="addon-selection-{idx}"
+              id="addon-selection-{idx}-{choiceIdx}"
+              value=""
+              checked={choiceIdx === 0} />
+            <label for="addon-selection-{idx}-{choiceIdx}">
+              <!-- prettier-ignore -->
+              <span class="defn-and-version">
+                <a
+                  href="__openUrl"
+                  on:click|preventDefault|stopPropagation={() => ipcRenderer.send('open-url', choice.url)}>
+                  {choice.source}:{choice.slug}</a><!--
+                -->==<!--
+                --><span title={choice.date_published}>{choice.version}</span>
+              </span>
+            </label>
+          </li>
+        {/each}
+      </ul>
+    {/if}
   </div>
-  <ul class="choices">
-    {#each choices as choice, choiceIdx}
-      <li>
-        <input
-          type="radio"
-          name="addon-selection-{idx}"
-          id="addon-selection-{idx}-{choiceIdx}"
-          value=""
-          checked={choiceIdx === 0} />
-        <label for="addon-selection-{idx}-{choiceIdx}">
-          <span class="name">{choice.name}</span>
-          <!-- prettier-ignore -->
-          <span class="defn-and-version">
-            <a
-              href="__openUrl"
-              on:click|preventDefault|stopPropagation={() => ipcRenderer.send('open-url', choice.url)}>
-              {choice.source}</a><!--
-            -->==<!--
-            --><span title={choice.date_published}>{choice.version}</span>
-          </span>
-        </label>
-      </li>
-    {/each}
-    <li>
+  {#if choices.length}
+    <nav class="addon-actions">
       <input type="radio" name="addon-selection-{idx}" id="addon-selection-{idx}-skip" value="" />
       <label for="addon-selection-{idx}-skip">
         <span class="name">skip</span>
       </label>
-    </li>
-  </ul>
+    </nav>
+  {/if}
 </li>
