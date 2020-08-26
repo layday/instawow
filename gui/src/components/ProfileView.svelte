@@ -46,6 +46,12 @@
     return [addon, addonMeta, id];
   };
 
+  const countUpdates = () =>
+    (addonUpdates = installedAddons.reduce(
+      (val, [, { new_version }]) => val + (new_version ? 1 : 0),
+      0
+    ));
+
   const installOrUpdate = async (
     method: "install" | "update",
     defns: { source: string; name: string }[],
@@ -91,10 +97,7 @@
 
   const update = async (defns: { source: string; name: string }[]) => {
     await installOrUpdate("update", defns);
-    addonUpdates = installedAddons.reduce(
-      (val, [, { new_version }]) => val + (new_version ? 1 : 0),
-      0
-    );
+    countUpdates();
   };
 
   const updateAll = async () => {
@@ -177,6 +180,7 @@
       refreshInProgress = true;
       try {
         installedAddons = await api.listAddons(true);
+        countUpdates();
       } finally {
         refreshInProgress = false;
       }
@@ -191,10 +195,7 @@
       for (const checkForUpdates of [false, true]) {
         installedAddons = await api.listAddons(checkForUpdates);
       }
-      addonUpdates = installedAddons.reduce(
-        (val, [, { new_version }]) => val + (new_version ? 1 : 0),
-        0
-      );
+      countUpdates();
     } finally {
       refreshInProgress = false;
     }
