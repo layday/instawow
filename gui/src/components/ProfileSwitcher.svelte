@@ -59,6 +59,7 @@
       background-repeat: no-repeat;
       background-position: top 9px right 7px;
       min-width: 200px;
+      font-weight: 500;
       -webkit-appearance: none;
     }
 
@@ -95,14 +96,8 @@
     </button>
   </nav>
   {#if editing === 'new'}
-    <ConfigEditor
-      bind:editing
-      {api}
-      createNew={true} />
+    <ConfigEditor bind:editing {api} />
   {:else if editing === 'existing'}
-    <ConfigEditor
-      bind:editing
-      {api}
-      createNew={false} />
+    <ConfigEditor bind:editing {api} />
   {/if}
 </div>

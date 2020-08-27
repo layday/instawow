@@ -2,17 +2,16 @@
   import type { Api, Config } from "../api";
   import { faFolderOpen } from "@fortawesome/free-solid-svg-icons";
   import { ipcRenderer } from "electron";
-  import { createEventDispatcher } from "svelte";
   import { fade } from "svelte/transition";
   import { activeProfile, profiles } from "../store";
   import Icon from "./SvgIcon.svelte";
 
-  export let api: Api, createNew: boolean, editing: boolean | string;
+  export let api: Api, editing: "new" | "existing" | boolean;
+
+  const createNew = editing === "new";
 
   let configParams = { ...(createNew ? {} : $profiles[$activeProfile]) } as Config;
   let errors: { [key: string]: any } = {};
-
-  const dispatch = createEventDispatcher();
 
   const selectFolder = async () => {
     const [cancelled, [path]] = await ipcRenderer.invoke("select-folder", configParams.addon_dir);

@@ -44,9 +44,8 @@
     instawowVersion = await api.getVersion();
     const profileNames = await api.enumerateProfiles();
     const profileConfigs = await Promise.all(profileNames.map((p) => api.readProfile(p)));
-    const profilesObj = lodash.fromPairs(lodash.zip(profileNames, profileConfigs));
-    profiles.set(profilesObj);
-    activeProfile.set(profileNames[0]);
+    $profiles = lodash.fromPairs(lodash.zip(profileNames, profileConfigs));
+    $activeProfile = profileNames[0];
   };
 </script>
 
