@@ -33,13 +33,13 @@ def test_loading_toc_from_path(fake_addon):
     with pytest.raises(FileNotFoundError):
         TocReader.from_path(fake_addon / 'MissingToc.toc')
 
-    TocReader.from_path_name(fake_addon)
+    TocReader.from_parent_folder(fake_addon)
     with pytest.raises(FileNotFoundError):
-        TocReader.from_path_name(fake_addon.parent / 'MissingAddon')
+        TocReader.from_parent_folder(fake_addon.parent / 'MissingAddon')
 
 
 def test_parsing_toc_entries(fake_addon):
-    toc_reader = TocReader.from_path_name(fake_addon)
+    toc_reader = TocReader.from_parent_folder(fake_addon)
     assert toc_reader.entries == {
         'Normal': 'Normal entry',
         'Compact': 'Compact entry',
@@ -47,7 +47,7 @@ def test_parsing_toc_entries(fake_addon):
 
 
 def test_indexing_toc_entries(fake_addon):
-    toc_reader = TocReader.from_path_name(fake_addon)
+    toc_reader = TocReader.from_parent_folder(fake_addon)
     assert toc_reader['Normal'] == ('Normal', 'Normal entry')
     assert toc_reader['Compact'] == ('Compact', 'Compact entry')
     assert toc_reader['Indented'] == ('Indented', '')
@@ -56,7 +56,7 @@ def test_indexing_toc_entries(fake_addon):
 
 
 def test_multiindexing_toc_entries(fake_addon):
-    toc_reader = TocReader.from_path_name(fake_addon)
+    toc_reader = TocReader.from_parent_folder(fake_addon)
     assert toc_reader['Normal', 'Compact'] == ('Normal', 'Normal entry')
     assert toc_reader['Compact', 'Normal'] == ('Compact', 'Compact entry')
     assert toc_reader['Indented', 'Normal'] == ('Normal', 'Normal entry')
@@ -68,7 +68,7 @@ def test_bucketise_bucketises_by_putting_things_in_a_bucketing_bucket():
 
 
 def test_tabulate(fake_addon):
-    toc_reader = TocReader.from_path_name(fake_addon)
+    toc_reader = TocReader.from_parent_folder(fake_addon)
     data = [('key', 'value'), *toc_reader.entries.items()]
     assert (
         tabulate(data)

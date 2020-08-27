@@ -540,7 +540,7 @@ def list_installed(
 
     def get_wowi_desc_from_toc(pkg: models.Pkg):
         if pkg.source == 'wowi':
-            toc_reader = TocReader.from_path_name(obj.m.config.addon_dir / pkg.folders[0].name)
+            toc_reader = TocReader.from_parent_folder(obj.m.config.addon_dir / pkg.folders[0].name)
             return toc_reader['Notes'].value
         else:
             return pkg.description

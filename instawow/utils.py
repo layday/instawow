@@ -87,7 +87,7 @@ class TocReader:
         return cls(path.read_text(encoding='utf-8-sig', errors='replace'))
 
     @classmethod
-    def from_path_name(cls, path: Path) -> TocReader:
+    def from_parent_folder(cls, path: Path) -> TocReader:
         return cls.from_path(path / f'{path.name}.toc')
 
 

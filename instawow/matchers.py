@@ -67,7 +67,7 @@ def get_folders(manager: Manager, exclude_own: bool = True) -> FrozenSet[AddonFo
     def make_addon_folder(path: Path):
         if path.name not in own_folders and path.is_dir() and not path.is_symlink():
             with suppress(FileNotFoundError):
-                return AddonFolder(path.name, TocReader.from_path_name(path))
+                return AddonFolder(path.name, TocReader.from_parent_folder(path))
 
     if exclude_own:
         own_folders = {f.name for f in manager.database.query(PkgFolder).all()}
