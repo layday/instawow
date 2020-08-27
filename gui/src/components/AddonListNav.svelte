@@ -62,11 +62,12 @@
   }
 
   .search-status-indicator {
-    @include spinner(18px, var(--inverse-color));
+    @include spinner(18px, currentColor);
     margin-left: 0.5em;
   }
 
   .view-switcher {
+    @include unstyle-list;
     display: flex;
     font-size: 0.85em;
 
@@ -100,6 +101,7 @@
   }
 
   .view-actions {
+    @include unstyle-list;
     display: flex;
     font-size: 0.85em;
 
@@ -143,7 +145,7 @@
       <div class="search-status-indicator" transition:fade={{ duration: 200 }} />
     {/if}
   </div>
-  <nav class="view-switcher">
+  <menu class="view-switcher">
     <input
       type="radio"
       name="view-switcher"
@@ -158,19 +160,19 @@
       value={View.Reconcile}
       bind:group={activeView} />
     <label for="__radioGaga">unreconciled</label>
-  </nav>
-  <nav class="view-actions">
+  </menu>
+  <menu class="view-actions">
     {#if activeView === View.Installed}
       <button disabled={refreshing} on:click={() => dispatch('requestRefresh')}>refresh</button>
       <button disabled={refreshing || !addonUpdates} on:click={() => dispatch('requestUpdateAll')}>
         {addonUpdates ? `update ${addonUpdates}` : 'no updates'}
       </button>
     {:else if activeView === View.Reconcile}
-      <button label="restart" title="restart">
+      <button aria-label="restart" title="restart">
         <Icon icon={faStepBackward} />
       </button>
       <button>install selected</button>
       <button>automate</button>
     {/if}
-  </nav>
+  </menu>
 </nav>

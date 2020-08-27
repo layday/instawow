@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { Addon, AddonMeta, Sources } from "../api";
-  import { faHistory, faEllipsisH } from "@fortawesome/free-solid-svg-icons";
+  import { faHistory, faSync } from "@fortawesome/free-solid-svg-icons";
   import { ipcRenderer } from "electron";
   import { DateTime } from "luxon";
   import { createEventDispatcher } from "svelte";
@@ -32,12 +32,24 @@
     dispatch("requestRemove", { source: addon.source, name: addon.id });
   };
 
+  const requestShowModal = () => {
+    dispatch("requestShowModal", { source: addon.source, name: addon.id });
+  };
+
+  // const showContextMenu = () => ipcRenderer.send("show-addon-context-menu", token);
+
   const revealFolder = () =>
     ipcRenderer.send(
       "reveal-addon-folder",
       $profiles[$activeProfile].addon_dir,
       addon.folders[0].name
     );
+
+  // ipcRenderer.on("reinstall-addon", (event, ipcToken) => {
+  //   if (token === ipcToken) {
+  //     requestReinstall();
+  //   }
+  // });
 </script>
 
 <style lang="scss">
@@ -196,7 +208,9 @@
           <button disabled={refreshing} on:click|stopPropagation={requestUpdate}>update</button>
         {/if}
         {#if addonMeta.damaged}
-          <button disabled={refreshing} on:click|stopPropagation>reinstall</button>
+          <button disabled={refreshing} on:click|stopPropagation={() => requestReinstall()}>
+            reinstall
+          </button>
         {/if}
         {#if addon.logged_versions.length > 1 && sources[addon.source]?.supports_rollback}
           <button
@@ -209,11 +223,11 @@
           </button>
         {/if}
         <button
-          label="more"
-          title="more"
+          label="reinstall with strategy"
+          title="reinstall with strategy"
           disabled={refreshing}
-          on:click|stopPropagation={() => revealFolder()}>
-          <Icon icon={faEllipsisH} />
+          on:click|stopPropagation={() => requestShowModal()}>
+          <Icon icon={faSync} />
         </button>
         <button disabled={refreshing} on:click|stopPropagation={requestRemove}>remove</button>
       {:else}

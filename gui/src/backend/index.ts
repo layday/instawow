@@ -1,6 +1,6 @@
 import { spawn } from "child_process";
 import path from "path";
-import { app, BrowserWindow, dialog, ipcMain, shell } from "electron";
+import { app, BrowserWindow, dialog, ipcMain, Menu, shell } from "electron";
 import contextMenu from "electron-context-menu";
 
 const sleep = (ms: number) => {
@@ -29,6 +29,7 @@ const createWindow = () => {
     width: 800,
     height: 600,
     webPreferences: {
+      // contextIsolation: true,    // to investigate
       nodeIntegration: true,
     },
     vibrancy: "titlebar",
@@ -44,6 +45,19 @@ const createWindow = () => {
     win.webContents.openDevTools();
   }
 };
+
+// const createAddonContextMenu = (event, token) => {
+//   const menu = Menu.buildFromTemplate([
+//     {
+//       id: "reinstall",
+//       label: "R&einstall",
+//       click: () => {
+//         event.reply("reinstall-addon", token);
+//       },
+//     },
+//   ]);
+//   return menu;
+// };
 
 const instawow = spawnInstawow();
 let serverAddress: string;
@@ -76,6 +90,10 @@ ipcMain.on("reveal-addon-folder", (event, addonDir: string, folder: string) =>
 );
 
 ipcMain.on("open-url", (event, url: string) => shell.openExternal(url));
+
+// ipcMain.on("show-addon-context-menu", (event, token) => {
+//   createAddonContextMenu(event, token).popup();
+// });
 
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.

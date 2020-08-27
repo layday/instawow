@@ -102,7 +102,7 @@
     text-decoration: none;
   }
 
-  :global(nav) {
+  :global(menu, nav) {
     -webkit-user-select: none;
   }
 
@@ -174,7 +174,10 @@
     </header>
     <section class="section section__main">
       {#each Object.keys($profiles) as profile}
-        <ProfileView api={api.withProfile(profile)} isActive={profile === $activeProfile} />
+        <ProfileView
+          {profile}
+          api={api.withProfile(profile)}
+          isActive={profile === $activeProfile} />
       {/each}
     </section>
     <footer class="section section__statusbar">

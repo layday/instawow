@@ -6,12 +6,12 @@
   import { activeProfile, profiles } from "../store";
   import Icon from "./SvgIcon.svelte";
 
-  export let api: Api, editing: "new" | "existing" | boolean;
+  export let api: Api, editing: "new" | "existing" | false;
 
   const createNew = editing === "new";
 
   let configParams = { ...(createNew ? {} : $profiles[$activeProfile]) } as Config;
-  let errors: { [key: string]: any } = {};
+  let errors: { [key: string]: string } = {};
 
   const selectFolder = async () => {
     const [cancelled, [path]] = await ipcRenderer.invoke("select-folder", configParams.addon_dir);
@@ -53,6 +53,15 @@
     }
     editing = false;
   };
+
+  const dismissOnEsc = () => {
+    const handler = (e) => e.key === "Escape" && (editing = false);
+    document.body.addEventListener("keydown", handler);
+
+    return {
+      destroy: () => document.body.removeEventListener("keydown", handler),
+    };
+  };
 </script>
 
 <style lang="scss">
@@ -69,10 +78,12 @@
     right: 0;
     z-index: 10;
     padding: 1.25rem;
+    border: 0;
     border-radius: 0.25rem;
     box-shadow: 0 10px 20px var(--inverse-color-05);
     background-color: var(--base-color-65);
     backdrop-filter: blur(5px);
+    color: var(--inverse-color);
 
     &::before {
       content: "";
@@ -184,11 +195,13 @@
   }
 </style>
 
-<div
+<dialog
+  open
   class="config-editor-wrapper"
   style="--arrowhead-offset: {createNew ? 'calc(1rem - 8px)' : 'calc(3rem - 4px)'}"
-  transition:fade={{ duration: 200 }}>
-  <form on:keydown={(e) => e.key === 'Escape' && (editing = false)} on:submit|preventDefault>
+  transition:fade={{ duration: 200 }}
+  use:dismissOnEsc>
+  <form on:submit|preventDefault>
     {#if errors.profile}
       <div class="row error-text">{errors.profile}</div>
     {/if}
@@ -197,15 +210,31 @@
         class="row"
         class:error={errors.profile}
         type="text"
+        label="profile"
         placeholder="profile"
         name="profile"
-        autofocus
         bind:value={configParams.profile} />
     {/if}
+    {#if errors.addon_dir}
+      <div class="row error-text">{errors.addon_dir}</div>
+    {/if}
+    <div class="row select-folder-array">
+      <input
+        aria-label="add-on folder"
+        class:error={errors.addon_dir}
+        type="text"
+        disabled
+        placeholder="add-on folder"
+        value={configParams.addon_dir || ''} />
+      <button aria-label="select folder" on:click|preventDefault={() => selectFolder()}>
+        <Icon icon={faFolderOpen} />
+      </button>
+    </div>
     {#if errors.game_flavour}
       <div class="row error-text">{errors.game_flavour}</div>
     {/if}
     <select
+      aria-label="game flavour"
       class="row"
       class:error={errors.game_flavour}
       name="game_flavour"
@@ -213,20 +242,6 @@
       <option value="retail">retail</option>
       <option value="classic">classic</option>
     </select>
-    {#if errors.addon_dir}
-      <div class="row error-text">{errors.addon_dir}</div>
-    {/if}
-    <div class="row select-folder-array">
-      <input
-        class:error={errors.addon_dir}
-        type="text"
-        disabled
-        placeholder="select folder"
-        value={configParams.addon_dir || ''} />
-      <button on:click|preventDefault={() => selectFolder()}>
-        <Icon icon={faFolderOpen} />
-      </button>
-    </div>
     <button class="row submit" on:click|preventDefault={() => saveConfig()}>save</button>
   </form>
-</div>
+</dialog>

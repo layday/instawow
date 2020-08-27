@@ -76,28 +76,29 @@
 </style>
 
 <div class="profile-switcher-wrapper">
-  <nav class="profile-switcher">
-    <select bind:value={$activeProfile} disabled={!!editing}>
-      {#each Object.keys($profiles) as profile}
-        <option value={profile}>{profile}</option>
-      {/each}
-    </select>
-    <button
-      label="edit profile"
-      title="edit profile"
-      on:click={() => (editing = editing === 'existing' ? false : 'existing')}>
-      <Icon icon={faPencilAlt} />
-    </button>
-    <button
-      label="add profile"
-      title="add profile"
-      on:click={() => (editing = editing === 'new' ? false : 'new')}>
-      <Icon icon={faPlusCircle} />
-    </button>
-  </nav>
   {#if editing === 'new'}
     <ConfigEditor bind:editing {api} />
   {:else if editing === 'existing'}
     <ConfigEditor bind:editing {api} />
   {/if}
+
+  <nav class="profile-switcher">
+    <select aria-label="profile" bind:value={$activeProfile} disabled={!!editing}>
+      {#each Object.keys($profiles) as profile}
+        <option value={profile}>{profile}</option>
+      {/each}
+    </select>
+    <button
+      aria-label="edit profile"
+      title="edit profile"
+      on:click={() => (editing = editing === 'existing' ? false : 'existing')}>
+      <Icon icon={faPencilAlt} />
+    </button>
+    <button
+      aria-label="add profile"
+      title="add profile"
+      on:click={() => (editing = editing === 'new' ? false : 'new')}>
+      <Icon icon={faPlusCircle} />
+    </button>
+  </nav>
 </div>

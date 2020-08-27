@@ -1,6 +1,13 @@
 import type { Client } from "@open-rpc/client-js";
 import lodash from "lodash";
 
+export type Defn = {
+  source: string;
+  name: string;
+  strategy?: string;
+  strategy_vals?: string[];
+};
+
 export type Profile = string;
 
 export type Profiles = Profile[];
