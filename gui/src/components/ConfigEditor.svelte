@@ -7,7 +7,7 @@
   import { activeProfile, profiles } from "../store";
   import Icon from "./SvgIcon.svelte";
 
-  export let api: Api, createNew: boolean;
+  export let api: Api, createNew: boolean, editing: boolean | string;
 
   let configParams = { ...(createNew ? {} : $profiles[$activeProfile]) } as Config;
   let errors: { [key: string]: any } = {};
@@ -52,6 +52,7 @@
     if (createNew) {
       $activeProfile = result.profile;
     }
+    editing = false;
   };
 </script>
 
@@ -188,7 +189,7 @@
   class="config-editor-wrapper"
   style="--arrowhead-offset: {createNew ? 'calc(1rem - 8px)' : 'calc(3rem - 4px)'}"
   transition:fade={{ duration: 200 }}>
-  <form on:keydown on:submit|preventDefault>
+  <form on:keydown={(e) => e.key === 'Escape' && (editing = false)} on:submit|preventDefault>
     {#if errors.profile}
       <div class="row error-text">{errors.profile}</div>
     {/if}

@@ -96,12 +96,12 @@
   </nav>
   {#if editing === 'new'}
     <ConfigEditor
-      on:keydown={(e) => e.key === 'Escape' && (editing = false)}
+      bind:editing
       {api}
       createNew={true} />
   {:else if editing === 'existing'}
     <ConfigEditor
-      on:keydown={(e) => e.key === 'Escape' && (editing = false)}
+      bind:editing
       {api}
       createNew={false} />
   {/if}
