@@ -335,11 +335,11 @@ class Manager:
         return outer
 
     def pair_uri(self, value: str) -> O[Tuple[str, str]]:
-        "Attempt to pair a URL with a resolver, returning the source and name."
+        "Attempt to extract the source from a URI."
 
         def from_urn():
             source, name = value.partition(':')[::2]
-            if name and source in self.resolvers:
+            if name:
                 yield (source, name)
 
         url_pairs = filter(
