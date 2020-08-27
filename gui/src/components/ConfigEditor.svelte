@@ -65,11 +65,7 @@
 </script>
 
 <style lang="scss">
-  @import "vars";
-
-  $line-height: 1.8em;
-  $middle-border-radius: $line-height / 6;
-  $edge-border-radius: $line-height / 4;
+  @import "modal";
 
   .config-editor-wrapper {
     position: absolute;
@@ -95,103 +91,8 @@
       border-width: 8px;
       pointer-events: none;
     }
-  }
 
-  button,
-  input,
-  select {
-    display: block;
-    width: 100%;
-    line-height: $line-height;
-    padding: 0 0.75em;
-    border: 0;
-    border-radius: $edge-border-radius;
-    background-color: var(--inverse-color-10);
-    transition: background-color 0.2s;
-
-    &:disabled {
-      opacity: 0.5;
-    }
-
-    &:focus {
-      background-color: var(--inverse-color-20);
-    }
-
-    &.error {
-      background-color: salmon;
-    }
-
-    &.submit {
-      background-color: $action-button-bg-color;
-      color: $action-button-text-color;
-      font-weight: 500;
-
-      &:focus {
-        background-color: $action-button-focus-bg-color;
-      }
-    }
-
-    :global(.icon) {
-      height: 16px;
-      width: 16px;
-      fill: var(--inverse-color);
-      vertical-align: text-bottom;
-    }
-  }
-
-  select {
-    background-image: var(--dropdown-arrow);
-    background-size: 10px;
-    background-repeat: no-repeat;
-    background-position: top 9px right 7px;
-    min-width: 200px;
-    -webkit-appearance: none;
-  }
-
-  .row + .row {
-    margin-top: 0.5rem;
-  }
-
-  .select-folder-array {
-    display: flex;
-
-    button,
-    input {
-      border-radius: $middle-border-radius;
-
-      + button,
-      + input {
-        margin-left: 4px;
-      }
-    }
-
-    button {
-      width: auto;
-    }
-
-    input {
-      flex-grow: 1;
-    }
-
-    :first-child {
-      border-top-left-radius: $edge-border-radius;
-      border-bottom-left-radius: $edge-border-radius;
-    }
-
-    :last-child {
-      border-top-right-radius: $edge-border-radius;
-      border-bottom-right-radius: $edge-border-radius;
-    }
-  }
-
-  .error-text {
-    line-height: 1;
-    color: salmon;
-    font-size: 0.9em;
-
-    :not(:first-child) {
-      padding-top: 0.25rem;
-    }
+    @extend %modal-elements;
   }
 </style>
 
@@ -201,7 +102,7 @@
   style="--arrowhead-offset: {createNew ? 'calc(1rem - 8px)' : 'calc(3rem - 4px)'}"
   transition:fade={{ duration: 200 }}
   use:dismissOnEsc>
-  <form on:submit|preventDefault>
+  <form on:submit|preventDefault={() => saveConfig()}>
     {#if errors.profile}
       <div class="row error-text">{errors.profile}</div>
     {/if}
@@ -242,6 +143,6 @@
       <option value="retail">retail</option>
       <option value="classic">classic</option>
     </select>
-    <button class="row submit" on:click|preventDefault={() => saveConfig()}>save</button>
+    <button class="row submit" type="submit">save</button>
   </form>
 </dialog>

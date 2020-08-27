@@ -2,12 +2,12 @@
   import { faStepBackward } from "@fortawesome/free-solid-svg-icons";
   import { createEventDispatcher } from "svelte";
   import { fade } from "svelte/transition";
-  import { View } from "./ProfileView.svelte";
+  import { View } from "../constants";
   import Icon from "./SvgIcon.svelte";
 
-  export let activeView: View,
-    searchTerms: string,
-    addonUpdates: number,
+  export let searchTerms,
+    activeView: View,
+    outdatedAddons: number,
     refreshing: boolean,
     searching: boolean;
 
@@ -164,8 +164,10 @@
   <menu class="view-actions">
     {#if activeView === View.Installed}
       <button disabled={refreshing} on:click={() => dispatch('requestRefresh')}>refresh</button>
-      <button disabled={refreshing || !addonUpdates} on:click={() => dispatch('requestUpdateAll')}>
-        {addonUpdates ? `update ${addonUpdates}` : 'no updates'}
+      <button
+        disabled={refreshing || !outdatedAddons}
+        on:click={() => dispatch('requestUpdateAll')}>
+        {outdatedAddons ? `update ${outdatedAddons}` : 'no updates'}
       </button>
     {:else if activeView === View.Reconcile}
       <button aria-label="restart" title="restart">

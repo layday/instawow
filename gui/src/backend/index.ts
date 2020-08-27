@@ -85,8 +85,8 @@ ipcMain.handle("select-folder", async (event, defaultPath?: string) => {
   return [result.canceled, result.filePaths];
 });
 
-ipcMain.on("reveal-addon-folder", (event, addonDir: string, folder: string) =>
-  shell.showItemInFolder(path.join(addonDir, folder))
+ipcMain.on("reveal-addon-folder", (event, pathComponents: string[]) =>
+  shell.showItemInFolder(path.join(...pathComponents))
 );
 
 ipcMain.on("open-url", (event, url: string) => shell.openExternal(url));

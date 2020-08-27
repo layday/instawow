@@ -81,7 +81,6 @@
   {:else if editing === 'existing'}
     <ConfigEditor bind:editing {api} />
   {/if}
-
   <nav class="profile-switcher">
     <select aria-label="profile" bind:value={$activeProfile} disabled={!!editing}>
       {#each Object.keys($profiles) as profile}

@@ -5,51 +5,46 @@
   import { DateTime } from "luxon";
   import { createEventDispatcher } from "svelte";
   import { fade } from "svelte/transition";
-  import { activeProfile, profiles } from "../store";
+  import { profiles } from "../store";
+  import { addonToDefn } from "./ProfileView.svelte";
   import Icon from "./SvgIcon.svelte";
 
   export let addon: Addon,
     addonMeta: AddonMeta,
     sources: Sources,
+    profile: string,
     beingModified: boolean,
     refreshing: boolean;
 
   const dispatch = createEventDispatcher();
 
   const requestInstall = () => {
-    dispatch("requestInstall", { source: addon.source, name: addon.id });
+    dispatch("requestInstall", addonToDefn(addon));
   };
 
   const requestReinstall = () => {
-    dispatch("requestReinstall", { source: addon.source, name: addon.id });
+    dispatch("requestReinstall", addonToDefn(addon));
   };
 
   const requestUpdate = () => {
-    dispatch("requestUpdate", { source: addon.source, name: addon.id });
+    dispatch("requestUpdate", addonToDefn(addon));
   };
 
   const requestRemove = () => {
-    dispatch("requestRemove", { source: addon.source, name: addon.id });
+    dispatch("requestRemove", addonToDefn(addon));
   };
 
-  const requestShowModal = () => {
-    dispatch("requestShowModal", { source: addon.source, name: addon.id });
+  const requestShowModal = (modal: "install" | "rollback") => {
+    const details = [
+      modal,
+      addonToDefn(addon),
+      ...(modal === "rollback" ? [addon.logged_versions] : []),
+    ];
+    dispatch("requestShowModal", details);
   };
-
-  // const showContextMenu = () => ipcRenderer.send("show-addon-context-menu", token);
 
   const revealFolder = () =>
-    ipcRenderer.send(
-      "reveal-addon-folder",
-      $profiles[$activeProfile].addon_dir,
-      addon.folders[0].name
-    );
-
-  // ipcRenderer.on("reinstall-addon", (event, ipcToken) => {
-  //   if (token === ipcToken) {
-  //     requestReinstall();
-  //   }
-  // });
+    ipcRenderer.send("reveal-addon-folder", [$profiles[profile].addon_dir, addon.folders[0].name]);
 </script>
 
 <style lang="scss">
@@ -171,7 +166,7 @@
   }
 </style>
 
-<li
+<div
   class="addon"
   class:status-damaged={addonMeta.damaged}
   class:status-outdated={addonMeta.new_version && addon.version !== addonMeta.new_version}
@@ -202,7 +197,7 @@
   {#if beingModified}
     <div class="modification-status-indicator" in:fade />
   {:else}
-    <nav class="addon-actions">
+    <menu class="addon-actions">
       {#if addonMeta.installed}
         {#if addonMeta.new_version && addon.version !== addonMeta.new_version}
           <button disabled={refreshing} on:click|stopPropagation={requestUpdate}>update</button>
@@ -217,22 +212,23 @@
             label="rollback"
             title="rollback"
             disabled={refreshing}
-            on:click|stopPropagation
-            on:contextmenu|preventDefault>
+            on:click|stopPropagation={() => requestShowModal('rollback')}>
             <Icon icon={faHistory} />
           </button>
         {/if}
-        <button
-          label="reinstall with strategy"
-          title="reinstall with strategy"
-          disabled={refreshing}
-          on:click|stopPropagation={() => requestShowModal()}>
-          <Icon icon={faSync} />
-        </button>
+        {#if sources[addon.source]?.supported_strategies.length > 1}
+          <button
+            label="reinstall with strategy"
+            title="reinstall with strategy"
+            disabled={refreshing}
+            on:click|stopPropagation={() => requestShowModal('install')}>
+            <Icon icon={faSync} />
+          </button>
+        {/if}
         <button disabled={refreshing} on:click|stopPropagation={requestRemove}>remove</button>
       {:else}
         <button disabled={refreshing} on:click|stopPropagation={requestInstall}>install</button>
       {/if}
-    </nav>
+    </menu>
   {/if}
-</li>
+</div>
