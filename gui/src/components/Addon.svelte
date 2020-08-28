@@ -5,14 +5,12 @@
   import { DateTime } from "luxon";
   import { createEventDispatcher } from "svelte";
   import { fade } from "svelte/transition";
-  import { profiles } from "../store";
   import { addonToDefn } from "./ProfileView.svelte";
   import Icon from "./SvgIcon.svelte";
 
   export let addon: Addon,
     addonMeta: AddonMeta,
     sources: Sources,
-    profile: string,
     beingModified: boolean,
     refreshing: boolean;
 
@@ -43,8 +41,8 @@
     dispatch("requestShowModal", details);
   };
 
-  const revealFolder = () =>
-    ipcRenderer.send("reveal-addon-folder", [$profiles[profile].addon_dir, addon.folders[0].name]);
+  const requestRevealFolder = () =>
+    dispatch("requestRevealFolder", addon.folders[0].name);
 </script>
 
 <style lang="scss">

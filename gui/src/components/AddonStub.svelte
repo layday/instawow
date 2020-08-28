@@ -16,10 +16,6 @@
     padding: 0.4em 0.75em;
     transition: all 0.2s;
 
-    &:nth-child(odd) {
-      background-color: var(--inverse-color-05);
-    }
-
     ul {
       @include unstyle-list;
     }
@@ -117,7 +113,7 @@
   }
 </style>
 
-<li class="addon-stub">
+<div class="addon-stub">
   <div class="main-col">
     <span class="main-folder">{folders[0].name}</span>
     <span>{folders[0].version}</span>
@@ -163,4 +159,4 @@
       </label>
     </menu>
   {/if}
-</li>
+</div>

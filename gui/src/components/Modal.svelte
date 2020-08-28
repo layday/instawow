@@ -1,6 +1,4 @@
 <script lang="ts">
-  import type { HtmlTag } from "svelte/internal";
-
   import { fade } from "svelte/transition";
 
   export let show: boolean;

@@ -25,6 +25,7 @@
 <script lang="ts">
   import type { Addon, AddonMeta, Api, Defn, ListResult, ModifyResult, Sources } from "../api";
   import { View } from "../constants";
+  import { profiles } from "../store";
   import { ipcRenderer } from "electron";
   import lodash from "lodash";
   import { onMount } from "svelte";
@@ -49,12 +50,16 @@
   let searchTerms: string = "";
   let refreshInProgress: boolean = false;
   let searchesInProgress: number = 0;
+
   let notifications;
 
-  let addonsBeingModified: string[] = [];
+  let addonsBeingModified: string[] = [];   // revisit
 
   let modalToShow: "install" | "reinstall" | "rollback" | false = false;
   let modalProps: object;
+
+  let reconciliationStage;
+  let reconciliationSelections;
 
   const countUpdates = () =>
     (outdatedAddons = addons__Installed.reduce(
@@ -83,8 +88,8 @@
     }
   };
 
-  const installOrUpdate = async (
-    method: "install" | "update",
+  const modify = async (
+    method: "install" | "update" | "remove",
     defns: Defn[],
     extraParams: object = {}
   ) => {
@@ -95,13 +100,16 @@
       const result = await api.modifyAddons(method, defns, extraParams);
       const defnResultPairs = lodash.zip(defns, result);
       const resultGroups = lodash.groupBy(defnResultPairs, ([, [status]]) => status);
-
       if (resultGroups.success) {
-        const justInstalledAddons = resultGroups.success.map(([, [, addon]]) => addon) as [
+        const modifiedAddons = resultGroups.success.map(([, [, addon]]) => addon) as [
           Addon,
           AddonMeta
         ][];
-        addons__Installed = lodash.unionWith(justInstalledAddons, addons__Installed, matchCmp);
+        if (method === "remove") {
+          addons__Installed = lodash.differenceWith(addons__Installed, modifiedAddons, matchCmp);
+        } else {
+          addons__Installed = lodash.unionWith(modifiedAddons, addons__Installed, matchCmp);
+        }
         regenerateCombinedSearchAddons();
       }
 
@@ -112,7 +120,7 @@
   };
 
   const install = async (defns: Defn[], replace = false) => {
-    await installOrUpdate("install", defns, { replace: replace });
+    await modify("install", defns, { replace: replace });
   };
 
   type UpdateSignature = {
@@ -124,86 +132,20 @@
     if (value === true) {
       const outdatedAddons = addons__Installed.filter(([, { new_version }]) => new_version);
       const defns = outdatedAddons.map(([addon]) => addonToDefn(addon));
-      await installOrUpdate("update", defns);
+      await modify("update", defns);
     } else {
-      await installOrUpdate("update", value);
+      await modify("update", value);
     }
   };
 
   const remove = async (defns: Defn[]) => {
-    const ids = defns.map(createToken);
-    addonsBeingModified = [...addonsBeingModified, ...ids];
-
-    try {
-      const method = "remove";
-      const result = await api.modifyAddons(method, defns);
-      const defnResultPairs = lodash.zip(defns, result);
-      const resultGroups = lodash.groupBy(defnResultPairs, ([, [status]]) => status);
-
-      if (resultGroups.success) {
-        const removedAddons = resultGroups.success.map(([, [, addon]]) => addon) as [
-          Addon,
-          AddonMeta
-        ][];
-        addons__Installed = lodash.differenceWith(addons__Installed, removedAddons, matchCmp);
-        regenerateCombinedSearchAddons();
-      }
-
-      notifyOfFailures(method, resultGroups as any);
-    } finally {
-      addonsBeingModified = lodash.difference(addonsBeingModified, ids);
-    }
+    await modify("remove", defns);
   };
 
+  // TODO: implement in the server w/ transactions
   const reinstall = async (defns: Defn[]) => {
-    const ids = defns.map(createToken);
-    addonsBeingModified = [...addonsBeingModified, ...ids];
-
-    try {
-      let removeResultGroups;
-      {
-        const method = "remove";
-        const result = await api.modifyAddons(method, defns);
-        const defnResultPairs = lodash.zip(defns, result);
-        removeResultGroups = lodash.groupBy(defnResultPairs, ([, [status]]) => status);
-        notifyOfFailures(method, removeResultGroups);
-      }
-      {
-        const method = "install";
-        const toReinstall = (removeResultGroups.success || []).map(([defn]) => defn);
-        const result = await api.modifyAddons(method, toReinstall, { replace: false });
-        const resultGroups = lodash.groupBy(lodash.zip(defns, result), ([, [status]]) => status);
-
-        const justInstalledAddons = (resultGroups.success || []).map(([, [, addon]]) => addon) as [
-          Addon,
-          AddonMeta
-        ][];
-        if (justInstalledAddons) {
-          addons__Installed = lodash.unionWith(justInstalledAddons, addons__Installed, matchCmp);
-        }
-        notifyOfFailures(method, resultGroups as any);
-
-        const removedButFailedToInstall = lodash.intersectionWith(
-          removeResultGroups.success,
-          Array.prototype.concat(resultGroups.failure || [], resultGroups.error || []),
-          ([thisDefn], [otherDefn]) => lodash.isEqual(thisDefn, otherDefn)
-        );
-        if (removedButFailedToInstall) {
-          const defns = removedButFailedToInstall.map(
-            ([, [, [{ source, id, version, options }]]]) => ({
-              source: source,
-              name: id,
-              strategy: options.strategy,
-              ...(options.strategy === "version" ? { strategy_vals: [version] } : {}),
-            })
-          );
-          await install(defns);
-        }
-      }
-    } finally {
-      regenerateCombinedSearchAddons();
-      addonsBeingModified = lodash.difference(addonsBeingModified, ids);
-    }
+    await remove(defns);
+    await install(defns);
   };
 
   const reconcile = async (matcher: "toc_ids" | "dir_names" | "toc_names") => {
@@ -260,6 +202,9 @@
     }
     modalToShow = modal;
   };
+
+  const revealFolder = (folder: string) =>
+    ipcRenderer.send("reveal-addon-folder", [$profiles[profile].addon_dir, folder]);
 
   const setupComponent = async () => {
     refreshInProgress = true;
@@ -353,10 +298,13 @@
       {:then [reconciled, unreconciled]}
         {#if reconciled.length || unreconciled.length}
           <ul class="addon-list">
-            {#each Array.prototype.concat( reconciled, lodash
-                .sortBy(unreconciled, (f) => f.name)
-                .map((f) => [[f], []]) ) as [folders, choices], idx}
-              <AddonStub {folders} {choices} {idx} />
+            {#each Array.prototype.concat( reconciled, lodash.map((f) => [
+                [f],
+                [],
+              ]) ) as [folders, choices], idx}
+              <li>
+                <AddonStub {folders} {choices} {idx} />
+              </li>
             {/each}
           </ul>
         {:else}
@@ -375,10 +323,11 @@
               on:requestRemove={(e) => remove([e.detail])}
               on:requestReinstall={(e) => reinstall([e.detail])}
               on:requestShowModal={(e) => showModal(e.detail)}
+              on:requestShowModal={(e) => showModal(e.detail)}
+              on:requestRevealFolder={(e) => revealFolder(e.detail)}
               {addon}
               {addonMeta}
               {sources}
-              {profile}
               beingModified={addonsBeingModified.includes(createToken(defn))}
               refreshing={refreshInProgress} />
           </li>
