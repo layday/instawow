@@ -105,10 +105,7 @@ $edge-border-radius: $form-el-line-height / 4;
 }
 
 .modal {
-  position: fixed;
-  top: 50%;
-  bottom: 50%;
-  z-index: 10;
+  position: unset;
   padding: 1.25rem;
   border: 0;
   border-radius: 0.25rem;

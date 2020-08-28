@@ -122,7 +122,7 @@
   const update: UpdateSignature = async (value: any) => {
     if (value === true) {
       const outdatedAddons = addons__Installed.filter(([, { new_version }]) => new_version);
-      const defns = outdatedAddons.map(([{ source, id }]) => ({ source: source, name: id }));
+      const defns = outdatedAddons.map(([addon]) => addonToDefn(addon));
       await installOrUpdate("update", defns);
     } else {
       await installOrUpdate("update", value);
@@ -255,8 +255,7 @@
     Addon["logged_versions"]?
   ]) => {
     if (modal === "install") {
-      const source = sources[defn.source];
-      modalProps = { source: source, defn: defn };
+      modalProps = { defn: defn, source: sources[defn.source] };
     } else if (modal === "rollback") {
       modalProps = { defn: defn, versions: versions };
     }
@@ -301,7 +300,6 @@
   .addon-list-wrapper {
     @include stretch-vertically;
     position: relative;
-    height: 100%;
     overflow-y: auto;
     padding: 0.5em 0;
     border-radius: 6px;
@@ -315,6 +313,10 @@
 
   .addon-list {
     @include unstyle-list;
+
+    :nth-child(odd) {
+      background-color: var(--inverse-color-05);
+    }
   }
 </style>
 

@@ -2,6 +2,7 @@
   import type { Addon, Defn } from "../api";
   import { DateTime } from "luxon";
   import { createEventDispatcher } from "svelte";
+  import { scale } from "svelte/transition";
   import Modal from "./Modal.svelte";
 
   export let show: any, defn: Defn, versions: Addon["logged_versions"];
@@ -21,7 +22,7 @@
 </style>
 
 <Modal bind:show>
-  <dialog open class="modal">
+  <dialog open class="modal" in:scale={{ duration: 200 }} on:click|stopPropagation>
     <form on:submit|preventDefault={() => requestReinstall()}>
       <select class="row" aria-label="strategy" bind:value={version}>
         {#each versions as version}

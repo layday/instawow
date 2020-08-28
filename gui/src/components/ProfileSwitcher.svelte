@@ -31,6 +31,7 @@
       border: 0;
       border-radius: $middle-border-radius;
       -webkit-app-region: no-drag;
+      transition: all 0.2s;
 
       &:disabled {
         opacity: 0.5;

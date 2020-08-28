@@ -56,10 +56,6 @@
     padding: 0.4em 0.75em;
     transition: all 0.2s;
 
-    &:nth-child(odd) {
-      background-color: var(--inverse-color-05);
-    }
-
     &.status-being-modified {
       pointer-events: none;
     }
@@ -127,6 +123,7 @@
     padding-left: 0.75em;
 
     button {
+      min-width: 2rem;
       padding: 0 0.75em;
       line-height: 1.8em;
       font-size: 0.8em;
