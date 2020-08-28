@@ -31,7 +31,7 @@
           </option>
         {/each}
       </select>
-      <button class="row submit" type="submit">install</button>
+      <button class="row" type="submit">install</button>
     </form>
   </dialog>
 </Modal>

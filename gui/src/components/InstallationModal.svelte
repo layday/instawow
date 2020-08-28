@@ -11,8 +11,12 @@
   let strategy: string;
   let strategyVals: string[] = [];
 
-  const requestInstall = () => {
-    dispatch("requestReinstall", { ...defn, strategy: strategy, strategy_vals: strategyVals });
+  const requestInstallOrReinstall = () => {
+    dispatch(show === "install" ? "requestInstall" : "requestReinstall", {
+      ...defn,
+      strategy: strategy,
+      strategy_vals: strategyVals,
+    });
     show = false;
   };
 </script>
@@ -23,10 +27,10 @@
 
 <Modal bind:show>
   <dialog open class="modal" in:scale={{ duration: 200 }} on:click|stopPropagation>
-    <form on:submit|preventDefault={() => requestInstall()}>
+    <form on:submit|preventDefault={() => requestInstallOrReinstall()}>
       <select class="row" aria-label="strategy" bind:value={strategy}>
         {#each source.supported_strategies as strategy}
-          <option value={strategy}>{strategy.replace(/_/g, ' ')}</option>
+          <option value={strategy}>{strategy}</option>
         {/each}
       </select>
       {#if strategy === 'version'}
@@ -38,7 +42,7 @@
           required
           on:change={(e) => (strategyVals = [e.target.value])} />
       {/if}
-      <button class="row submit" type="submit">install</button>
+      <button class="row" type="submit">{show}</button>
     </form>
   </dialog>
 </Modal>

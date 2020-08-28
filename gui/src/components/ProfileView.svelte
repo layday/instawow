@@ -49,13 +49,14 @@
   let searchTerms: string = "";
   let refreshInProgress: boolean = false;
   let searchesInProgress: number = 0;
+  let notifications;
 
   let addonsBeingModified: string[] = [];
 
-  let modalToShow: "install" | "rollback" | false = false;
+  let modalToShow: "install" | "reinstall" | "rollback" | false = false;
   let modalProps: object;
 
-  const recountUpdates = () =>
+  const countUpdates = () =>
     (outdatedAddons = addons__Installed.reduce(
       (val, [, { new_version }]) => val + (new_version ? 1 : 0),
       0
@@ -78,7 +79,7 @@
       resultGroups.failure || [],
       resultGroups.error || []
     )) {
-      alert(`Failed to ${method} ${createToken(defn)}: ${message}`);
+      alert(`failed to ${method} ${createToken(defn)}: ${message}`);
     }
   };
 
@@ -127,7 +128,6 @@
     } else {
       await installOrUpdate("update", value);
     }
-    recountUpdates();
   };
 
   const remove = async (defns: Defn[]) => {
@@ -242,7 +242,6 @@
       refreshInProgress = true;
       try {
         addons__Installed = await api.listAddons(true);
-        recountUpdates();
       } finally {
         refreshInProgress = false;
       }
@@ -250,11 +249,11 @@
   };
 
   const showModal = ([modal, defn, versions]: [
-    "install" | "rollback",
+    "install" | "reinstall" | "rollback",
     Defn,
     Addon["logged_versions"]?
   ]) => {
-    if (modal === "install") {
+    if (modal === "install" || modal === "reinstall") {
       modalProps = { defn: defn, source: sources[defn.source] };
     } else if (modal === "rollback") {
       modalProps = { defn: defn, versions: versions };
@@ -270,7 +269,9 @@
       for (const checkForUpdates of [false, true]) {
         addons__Installed = await api.listAddons(checkForUpdates);
       }
-      recountUpdates();
+      if (!addons__Installed.length) {
+        activeView = View.Reconcile;
+      }
     } finally {
       refreshInProgress = false;
     }
@@ -281,6 +282,7 @@
   // Update list view - we're restoring installed add-ons immediately but debouncing searches
   $: searchTerms ? search() : (activeView = View.Installed);
   $: addons = (activeView === View.Search ? addons__CombinedSearch : addons__Installed) ?? [];
+  $: addons__Installed && countUpdates();
 </script>
 
 <style lang="scss">
@@ -330,7 +332,7 @@
     refreshing={refreshInProgress}
     searching={searchesInProgress > 0} />
   <div class="addon-list-wrapper" class:prevent-scrolling={!!modalToShow}>
-    {#if modalToShow === 'install'}
+    {#if modalToShow === 'install' || modalToShow === 'reinstall'}
       <InstallationModal
         on:requestInstall={(event) => install([event.detail])}
         on:requestReinstall={(event) => reinstall([event.detail])}

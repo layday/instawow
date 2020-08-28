@@ -43,19 +43,17 @@
       display: flex;
       flex-wrap: wrap;
       margin-top: 0.2em;
+      margin-left: -0.5rem;
 
       li {
         display: flex;
         align-items: center;
+        margin-left: 0.5rem;
 
         label {
           line-height: 1.2em;
           padding-left: 0.25em;
           border-radius: 1em;
-        }
-
-        + li {
-          padding-left: 0.5em;
         }
       }
 
@@ -85,6 +83,8 @@
   }
 
   .addon-actions {
+    @include unstyle-list;
+
     display: flex;
     flex-wrap: nowrap;
     align-self: center;
@@ -156,11 +156,11 @@
     {/if}
   </div>
   {#if choices.length}
-    <nav class="addon-actions">
+    <menu class="addon-actions">
       <input type="radio" name="addon-selection-{idx}" id="addon-selection-{idx}-skip" value="" />
       <label for="addon-selection-{idx}-skip">
         <span class="name">skip</span>
       </label>
-    </nav>
+    </menu>
   {/if}
 </li>

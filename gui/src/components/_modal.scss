@@ -29,21 +29,21 @@ $edge-border-radius: $form-el-line-height / 4;
       background-color: salmon;
     }
 
-    &.submit {
-      background-color: $action-button-bg-color;
-      color: $action-button-text-color;
-      font-weight: 500;
-
-      &:focus {
-        background-color: $action-button-focus-bg-color;
-      }
-    }
-
     :global(.icon) {
       height: 16px;
       width: 16px;
       fill: var(--inverse-color);
       vertical-align: text-bottom;
+    }
+  }
+
+  button[type="submit"] {
+    background-color: $action-button-bg-color;
+    color: $action-button-text-color;
+    font-weight: 500;
+
+    &:focus {
+      background-color: $action-button-focus-bg-color;
     }
   }
 

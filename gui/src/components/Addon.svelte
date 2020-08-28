@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { Addon, AddonMeta, Sources } from "../api";
-  import { faHistory, faSync } from "@fortawesome/free-solid-svg-icons";
+  import { faHistory, faTasks } from "@fortawesome/free-solid-svg-icons";
   import { ipcRenderer } from "electron";
   import { DateTime } from "luxon";
   import { createEventDispatcher } from "svelte";
@@ -34,7 +34,7 @@
     dispatch("requestRemove", addonToDefn(addon));
   };
 
-  const requestShowModal = (modal: "install" | "rollback") => {
+  const requestShowModal = (modal: "install" | "reinstall" | "rollback") => {
     const details = [
       modal,
       addonToDefn(addon),
@@ -218,12 +218,21 @@
             label="reinstall with strategy"
             title="reinstall with strategy"
             disabled={refreshing}
-            on:click|stopPropagation={() => requestShowModal('install')}>
-            <Icon icon={faSync} />
+            on:click|stopPropagation={() => requestShowModal('reinstall')}>
+            <Icon icon={faTasks} />
           </button>
         {/if}
         <button disabled={refreshing} on:click|stopPropagation={requestRemove}>remove</button>
       {:else}
+        {#if sources[addon.source]?.supported_strategies.length > 1}
+          <button
+            label="install with strategy"
+            title="install with strategy"
+            disabled={refreshing}
+            on:click|stopPropagation={() => requestShowModal('install')}>
+            <Icon icon={faTasks} />
+          </button>
+        {/if}
         <button disabled={refreshing} on:click|stopPropagation={requestInstall}>install</button>
       {/if}
     </menu>
