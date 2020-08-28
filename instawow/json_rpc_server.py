@@ -17,7 +17,6 @@ from typing import (
     Iterator,
     List,
     Optional as O,
-    Set,
     Tuple,
     Type,
     TypeVar,
@@ -28,7 +27,7 @@ from typing import (
 from aiohttp.web import Application, AppRunner
 from aiohttp_json_rpc import JsonRpc, RpcError, RpcGenericServerDefinedError, RpcInvalidParamsError
 from aiohttp_json_rpc.rpc import JsonRpcMethod
-from pydantic import BaseModel, Field, ValidationError
+from pydantic import BaseModel, Field, ValidationError, validator
 
 from . import exceptions as E
 from .config import Config
@@ -150,8 +149,12 @@ class EnumerateProfilesParams(BaseParams):
 class _Source(BaseModel):
     source: str
     name: str
-    supported_strategies: Set[Strategies] = Field(alias='strategies')
+    supported_strategies: List[Strategies] = Field(alias='strategies')
     supports_rollback: bool
+
+    @validator('supported_strategies')
+    def _sort_strategies(cls, value: List[Strategies]) -> List[Strategies]:
+        return sorted(value, key=list(Strategies).index)
 
     class Config:
         orm_mode = True
