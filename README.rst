@@ -23,8 +23,10 @@ News
 2020-08-29
 ~~~~~~~~~~
 
-I have released an experimental GUI for macOS.  This does not currently
-have feature parity with the CLI; specifically, it is not able to find
+I have released an experimental GUI for macOS with plans for eventually
+making it available for all three major OSes.
+This does not currently have feature parity with the CLI;
+specifically, it is not able to find
 add-ons without a stable release – which is the case for a limited number
 of add-ons from CurseForge – nor does it interface with the
 WeakAuras plug-in.  I welcome feedback and suggestions for improvement.
