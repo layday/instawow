@@ -44,7 +44,6 @@
           <option value={strategy}>{strategy} ({strategyExplanations[strategy]})</option>
         {/each}
       </select>
-      <!-- <div class="row explanation">{strategyExplanations[strategy]}</div> -->
       {#if strategy === 'version'}
         <input
           aria-label="version"
