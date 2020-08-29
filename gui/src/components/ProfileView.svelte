@@ -1,7 +1,7 @@
 <script context="module" lang="ts">
   import { ReconciliationStage, View } from "../constants";
 
-  export const addonToDefn = (addon: Addon) => ({ source: addon.source, name: addon.id });
+  const addonToDefn = (addon: Addon) => ({ source: addon.source, name: addon.id });
 
   type CreateTokenSignature = {
     (addon: Addon): string;
@@ -20,13 +20,13 @@
     createToken(addon),
   ];
 
-  const reconciliationStages = Object.values(ReconciliationStage);
+  const reconcileStages = Object.values(ReconciliationStage);
 
   const getReconcilePrevStage = (stage: ReconciliationStage) =>
-    reconciliationStages[reconciliationStages.indexOf(stage) - 1];
+    reconcileStages[reconcileStages.indexOf(stage) - 1];
 
   const getReconcileNextStage = (stage: ReconciliationStage) =>
-    reconciliationStages[reconciliationStages.indexOf(stage) + 1];
+    reconcileStages[reconcileStages.indexOf(stage) + 1];
 
   const debounceDelay = 500;
   const searchLimit = 25;
@@ -58,12 +58,12 @@
   let outdatedAddonCount: number;
   let searchTerms: string = "";
 
-  let reconciliationStage: ReconciliationStage = reconciliationStages[0];
-  let reconciliationSelections: Addon[];
+  let reconcileStage: ReconciliationStage = reconcileStages[0];
+  let reconcileSelections: Addon[];
 
   let refreshInProgress: boolean = false;
   let searchesInProgress: number = 0;
-  let reconciliationInstallationInProgress: boolean = false;
+  let reconcileInstallationInProgress: boolean = false;
 
   let modalToShow: "install" | "reinstall" | "rollback" | false = false;
   let modalProps: object;
@@ -159,39 +159,50 @@
     await install(defns);
   };
 
-  const reconcile = async (thisStage: ReconciliationStage) => {
-    const stages = reconciliationStages.slice(reconciliationStages.indexOf(thisStage));
+  const prepareReconcile = async (thisStage: ReconciliationStage) => {
+    const stages = reconcileStages.slice(reconcileStages.indexOf(thisStage));
     for (const stage of stages) {
-      console.debug("trying", stage);
+      console.debug("trying", stage, reconcileSelections);
 
       const results = await api.reconcile(stage);
       if (results.reconciled.length || !getReconcileNextStage(stage)) {
-        reconciliationStage = stage;
-        reconciliationSelections = [];
+        reconcileStage = stage;
+        reconcileSelections = [];
         return results;
       }
     }
   };
 
-  const installReconciled = async () => {
-    reconciliationInstallationInProgress = true;
+  const installReconciled = async (
+    thisStage: ReconciliationStage,
+    theseSelections: Addon[],
+    recursive?: boolean
+  ) => {
+    reconcileInstallationInProgress = true;
     try {
-      await install(reconciliationSelections.filter(Boolean).map(addonToDefn), true);
+      await install(theseSelections.filter(Boolean).map(addonToDefn), true);
 
-      const nextStage = getReconcileNextStage(reconciliationStage);
+      const nextStage = getReconcileNextStage(thisStage);
       if (nextStage) {
-        reconciliationStage = nextStage;
+        if (recursive) {
+          const { reconciled } = await api.reconcile(thisStage);
+          const nextSelections = reconciled.map(({ matches: [addon] }) => addon);
+          await installReconciled(nextStage, nextSelections, true);
+        } else {
+          reconcileStage = nextStage;
+        }
+      } else if (recursive) {
+        // Trigger `prepareReconcile` to update the view when all is said and done
+        reconcileStage = thisStage;
       }
     } finally {
-      reconciliationInstallationInProgress = false;
+      reconcileInstallationInProgress = false;
     }
   };
 
-  const goToPrevReconcileStage = () =>
-    (reconciliationStage = getReconcilePrevStage(reconciliationStage));
+  const goToPrevReconcileStage = () => (reconcileStage = getReconcilePrevStage(reconcileStage));
 
-  const goToNextReconcileStage = () =>
-    (reconciliationStage = getReconcileNextStage(reconciliationStage));
+  const goToNextReconcileStage = () => (reconcileStage = getReconcileNextStage(reconcileStage));
 
   const search = async () => {
     searchesInProgress++;
@@ -220,15 +231,12 @@
 
   const searchDebounced = lodash.debounce(search, debounceDelay);
 
-  const showModal = ([modal, defn, versions]: [
-    "install" | "reinstall" | "rollback",
-    Defn,
-    Addon["logged_versions"]?
-  ]) => {
+  const showModal = (modal: "install" | "reinstall" | "rollback", addon: Addon) => {
+    const defn = addonToDefn(addon);
     if (modal === "install" || modal === "reinstall") {
       modalProps = { defn: defn, source: sources[defn.source] };
     } else if (modal === "rollback") {
-      modalProps = { defn: defn, versions: versions };
+      modalProps = { defn: defn, versions: addon.logged_versions };
     }
     modalToShow = modal;
   };
@@ -328,16 +336,16 @@
     on:requestUpdateAll={() => update(true)}
     on:requestReconcileStepBackward={() => goToPrevReconcileStage()}
     on:requestReconcileStepForward={() => goToNextReconcileStage()}
-    on:requestInstallReconciled={() => installReconciled()}
-    on:requestAutomateReconciliation
+    on:requestInstallReconciled={() => installReconciled(reconcileStage, reconcileSelections)}
+    on:requestAutomateReconciliation={() => installReconciled(reconcileStage, reconcileSelections, true)}
     bind:activeView
     bind:search__searchTerms={searchTerms}
     search__isSearching={searchesInProgress > 0}
     installed__isRefreshing={refreshInProgress}
     installed__outdatedAddonCount={outdatedAddonCount}
-    reconcile__isInstalling={reconciliationInstallationInProgress}
-    reconcile__canStepBackward={!!getReconcilePrevStage(reconciliationStage)}
-    reconcile__canStepForward={!!getReconcileNextStage(reconciliationStage)} />
+    reconcile__isInstalling={reconcileInstallationInProgress}
+    reconcile__canStepBackward={!!getReconcilePrevStage(reconcileStage)}
+    reconcile__canStepForward={!!getReconcileNextStage(reconcileStage)} />
   <div class="addon-list-wrapper" class:prevent-scrolling={!!modalToShow}>
     {#if modalToShow === 'install' || modalToShow === 'reinstall'}
       <InstallationModal
@@ -352,7 +360,7 @@
         {...modalProps} />
     {/if}
     {#if activeView === View.Reconcile}
-      {#await reconcile(reconciliationStage)}
+      {#await prepareReconcile(reconcileStage)}
         <div class="placeholder" in:fade>
           <div>Hold on tight!</div>
         </div>
@@ -373,7 +381,7 @@
           <ul class="addon-list">
             {#each result.reconciled.concat(result.unreconciled) as { folders, matches: choices }, idx}
               <li>
-                <AddonStub bind:selections={reconciliationSelections} {folders} {choices} {idx} />
+                <AddonStub bind:selections={reconcileSelections} {folders} {choices} {idx} />
               </li>
             {/each}
           </ul>
@@ -388,12 +396,12 @@
         {#each addons.map(attachTokentoAddon) as [addon, addonMeta, token] (token)}
           <li animate:flip={{ duration: 200 }}>
             <AddonComponent
-              on:requestInstall={(e) => install([e.detail])}
-              on:requestUpdate={(e) => update([e.detail])}
-              on:requestRemove={(e) => remove([e.detail])}
-              on:requestReinstall={(e) => reinstall([e.detail])}
-              on:requestShowModal={(e) => showModal(e.detail)}
-              on:requestShowContexMenu={(e) => showAddonContextMenu(addon)}
+              on:requestInstall={() => install([addonToDefn(addon)])}
+              on:requestUpdate={() => update([addonToDefn(addon)])}
+              on:requestRemove={() => remove([addonToDefn(addon)])}
+              on:requestReinstall={() => reinstall([addonToDefn(addon)])}
+              on:requestShowModal={(e) => showModal(e.detail, addon)}
+              on:requestShowContexMenu={() => showAddonContextMenu(addon)}
               {addon}
               {addonMeta}
               {sources}

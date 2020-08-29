@@ -4,7 +4,6 @@
   import { DateTime } from "luxon";
   import { createEventDispatcher } from "svelte";
   import { fade } from "svelte/transition";
-  import { addonToDefn } from "./ProfileView.svelte";
   import Icon from "./SvgIcon.svelte";
 
   export let addon: Addon,
@@ -15,20 +14,13 @@
 
   const dispatch = createEventDispatcher();
 
-  const requestInstall = () => dispatch("requestInstall", addonToDefn(addon));
-  const requestReinstall = () => dispatch("requestReinstall", addonToDefn(addon));
-  const requestUpdate = () => dispatch("requestUpdate", addonToDefn(addon));
-  const requestRemove = () => dispatch("requestRemove", addonToDefn(addon));
+  const requestInstall = () => dispatch("requestInstall");
+  const requestReinstall = () => dispatch("requestReinstall");
+  const requestUpdate = () => dispatch("requestUpdate");
+  const requestRemove = () => dispatch("requestRemove");
   const requestShowContexMenu = () => dispatch("requestShowContexMenu");
-
-  const requestShowModal = (modal: "install" | "reinstall" | "rollback") => {
-    const details = [
-      modal,
-      addonToDefn(addon),
-      ...(modal === "rollback" ? [addon.logged_versions] : []),
-    ];
-    dispatch("requestShowModal", details);
-  };
+  const requestShowModal = (modal: "install" | "reinstall" | "rollback") =>
+    dispatch("requestShowModal", modal);
 </script>
 
 <style lang="scss">

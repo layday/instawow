@@ -196,7 +196,7 @@
         install
       </button>
       <button
-        disabled={true || reconcile__isInstalling}
+        disabled={reconcile__isInstalling}
         on:click={() => dispatch('requestAutomateReconciliation')}>
         automate
       </button>
