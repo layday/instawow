@@ -57,11 +57,14 @@ export type ListResult = [Addon, AddonMeta][];
 export type ModifyResult = (["success", [Addon, AddonMeta]] | ["failure" | "error", string])[];
 
 export type AddonMatch = {
-  name: string;
-  version: string;
+  folders: { name: string; version: string }[];
+  matches: Addon[];
 };
 
-export type ReconcileResult = [[AddonMatch[], Addon[]][], AddonMatch[]];
+export type ReconcileResult = {
+  reconciled: AddonMatch[];
+  unreconciled: AddonMatch[];
+};
 
 export type Version = {
   installed_version: string;

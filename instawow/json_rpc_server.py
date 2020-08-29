@@ -35,7 +35,7 @@ from .manager import Manager, init_web_client
 from .matchers import get_folders, match_dir_names, match_toc_ids, match_toc_names
 from .models import Pkg, PkgModel, is_pkg
 from .resolvers import Defn, Strategies
-from .utils import Literal, get_version, run_in_thread as t, uniq
+from .utils import Literal, get_version, is_outdated, run_in_thread as t, uniq
 
 if TYPE_CHECKING:
     _T = TypeVar('_T')
@@ -199,7 +199,8 @@ class ListInstalledParams(_ProfileParamMixin, BaseParams):
             for p in installed_pkgs
         ]
         pkg_objs = sorted(
-            pkg_objs, key=lambda i: (not i[1].damaged, not i[1].new_version, i[0].name),
+            pkg_objs,
+            key=lambda i: (not i[1].damaged, not i[1].new_version, i[0].name),
         )
         result = _ListResult.parse_obj(pkg_objs)
         return result
@@ -296,16 +297,29 @@ class RemoveParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
         )
 
 
-class _AddonMatch(BaseModel):
+class _AddonFolder(BaseModel):
     name: str
     version: str
 
-    class Config:
-        orm_mode = True
+
+class _AddonMatch(BaseModel):
+    folders: List[_AddonFolder]
+    matches: List[PkgModel]
 
 
 class _ReconcileResult(BaseModel):
-    __root__: Tuple[List[Tuple[List[_AddonMatch], List[PkgModel]]], List[_AddonMatch]]
+    reconciled: List[_AddonMatch]
+    unreconciled: List[_AddonMatch]
+
+    @validator('reconciled', 'unreconciled', pre=True)
+    def _transform_matches(cls, value: Any):
+        return [
+            {
+                'folders': [_AddonFolder(name=f.name, version=f.version) for f in s],
+                'matches': m,
+            }
+            for s, m in value
+        ]
 
 
 _matchers = {
@@ -329,11 +343,13 @@ class ReconcileParams(_ProfileParamMixin, BaseParams):
         resolve_results = await managers.run(
             self.profile, partial(Manager.resolve, defns=uniq_defns)
         )
-        matches = [
+        reconciled = [
             (a, list(filter(is_pkg, (resolve_results[i] for i in d)))) for a, d in match_groups
         ]
-        leftovers = leftovers - frozenset(i for a, _ in match_groups for i in a)
-        return _ReconcileResult.parse_obj((matches, leftovers))
+        unreconciled = [
+            ([l], []) for l in sorted(leftovers - frozenset(i for a, _ in match_groups for i in a))
+        ]
+        return _ReconcileResult(reconciled=reconciled, unreconciled=unreconciled)
 
 
 class _GetVersionResponse(BaseModel):
