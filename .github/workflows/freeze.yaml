@@ -28,7 +28,7 @@ jobs:
         os:
         - macos-latest
         # - ubuntu-latest
-        # - windows-latest
+        - windows-latest
     runs-on: ${{ matrix.os }}
     steps:
     - name: Clone the repo
@@ -72,7 +72,9 @@ jobs:
     needs: [extract-tag, freeze-cli]
     strategy:
       matrix:
-        os: [macos-latest]
+        os:
+        - macos-latest
+        - windows-latest
     runs-on: ${{ matrix.os }}
     steps:
     - name: Clone the repo
