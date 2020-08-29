@@ -68,7 +68,7 @@ def test_legacy_profile_migration_goes_swimmingly(full_config, monkeypatch):
     legacy_config = Config(**full_config).write()
     monkeypatch.setenv('INSTAWOW_CONFIG_DIR', str(full_config['config_dir']))
 
-    comparison = dircmp(legacy_config.config_dir, legacy_config.profile_dir,)
+    comparison = dircmp(legacy_config.config_dir, legacy_config.profile_dir)
     profile_dirs = sorted(i.name for i in legacy_config.profile_dir.iterdir())
     assert comparison.common == []
     assert comparison.left_list == ['profiles']
@@ -79,7 +79,7 @@ def test_legacy_profile_migration_goes_swimmingly(full_config, monkeypatch):
     legacy_config.profile_dir.rmdir()
     Config.get_dummy_config(config_dir=full_config['config_dir']).read('__default__')
 
-    comparison = dircmp(legacy_config.config_dir, legacy_config.profile_dir,)
+    comparison = dircmp(legacy_config.config_dir, legacy_config.profile_dir)
     assert comparison.common == []
     assert comparison.left_list == ['profiles']
     assert sorted(comparison.right_list) == profile_dirs

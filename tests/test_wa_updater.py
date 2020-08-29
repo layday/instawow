@@ -62,7 +62,13 @@ WeakAurasSaved = {
 
 
 def test_can_parse_minimal_wago_display(builder):
-    aura = WeakAura(id='foo', uid='foo', parent=None, url=URL('https://wago.io/foo/1'), version=1,)
+    aura = WeakAura(
+        id='foo',
+        uid='foo',
+        parent=None,
+        url=URL('https://wago.io/foo/1'),
+        version=1,
+    )
     assert (
         builder.extract_auras(
             WeakAuras,

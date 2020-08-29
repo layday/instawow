@@ -41,7 +41,10 @@ def _validate_path_is_writable_dir(value: Path) -> Path:
 
 class BaseConfig(BaseSettings):
     def _build_values(
-        self, init_kwargs: Dict[str, Any], *args: Any, **kwargs: Any,
+        self,
+        init_kwargs: Dict[str, Any],
+        *args: Any,
+        **kwargs: Any,
     ) -> Dict[str, Any]:
         # Prioritise env vars
         return {**init_kwargs, **self._build_environ()}
@@ -202,10 +205,9 @@ def setup_logging(config: _GlobalConfig, log_level: Union[int, str] = 'INFO') ->
                 depth += 1
 
             logger.opt(
-                depth=depth, exception=record.exc_info,  # type: ignore
-            ).log(
-                level, record.getMessage()
-            )
+                depth=depth,
+                exception=record.exc_info,  # type: ignore
+            ).log(level, record.getMessage())
 
     logging.basicConfig(handlers=[InterceptHandler()], level=log_level)
     handler = {

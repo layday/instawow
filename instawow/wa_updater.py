@@ -279,7 +279,8 @@ class WaCompanionBuilder:
     async def build(self) -> None:
         installed_auras = iit(self.extract_installed_auras())
         remote_auras = await gather(
-            [self.get_remote_auras(g) async for g in installed_auras], False,
+            [self.get_remote_auras(g) async for g in installed_auras],
+            False,
         )
         await t(self.make_addon)(remote_auras)
 

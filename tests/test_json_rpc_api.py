@@ -44,7 +44,11 @@ async def test_write_config(request, full_config, ws):
 
 @pytest.mark.asyncio
 async def test_install_with_invalid_params(request, ws):
-    rpc_request = Request(method='install', params={}, id=request.node.name,)
+    rpc_request = Request(
+        method='install',
+        params={},
+        id=request.node.name,
+    )
     await ws.send_str(rpc_request.json())
     rpc_response = ErrorResponse.parse_raw(await ws.receive_str())
     assert rpc_response.error['code'] == -32602

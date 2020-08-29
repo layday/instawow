@@ -192,14 +192,13 @@ def should_migrate(engine: Any, version: str) -> bool:
     with engine.begin() as conn:
         try:
             current = conn.execute(
-                'SELECT version_num FROM alembic_version WHERE version_num = (?)', version,
+                'SELECT version_num FROM alembic_version WHERE version_num = (?)',
+                version,
             ).scalar()
         except exc.OperationalError:
             return True
         else:
-            if not current:
-                return True
-    return False
+            return not current
 
 
 def is_pkg(value: Any) -> bool:

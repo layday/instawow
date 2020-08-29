@@ -279,6 +279,10 @@ def mock_github(aresponses, JsonResponse):
 
 @pytest.fixture
 def mock_all(
-    mock_pypi, mock_curse, mock_wowi, mock_tukui, mock_github,
+    mock_pypi,
+    mock_curse,
+    mock_wowi,
+    mock_tukui,
+    mock_github,
 ):
     pass

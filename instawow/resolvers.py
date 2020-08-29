@@ -37,7 +37,6 @@ class Strategies(enum.Enum):
     curse_latest_alpha = 'curse_latest_alpha'
     any_flavour = 'any_flavour'
     version = 'version'
-    weakauras_companion = 'weakauras_companion'
 
 
 class Defn(BaseModel):
@@ -50,7 +49,7 @@ class Defn(BaseModel):
     @classmethod
     def from_pkg(cls, pkg: m.Pkg) -> Defn:
         defn = cls(
-            source=pkg.source, source_id=pkg.id, name=pkg.slug, strategy=pkg.options.strategy,
+            source=pkg.source, source_id=pkg.id, name=pkg.slug, strategy=pkg.options.strategy
         )
         if defn.strategy is Strategies.version:
             defn.strategy_vals = (pkg.version,)
@@ -456,7 +455,10 @@ class WowiResolver(Resolver):
 
         for item in json_response:
             yield _CatalogueEntry(
-                source=self.source, id=item['UID'], name=item['UIName'], folders=[item['UIDir']],
+                source=self.source,
+                id=item['UID'],
+                name=item['UIName'],
+                folders=[item['UIDir']],
             )
 
 
@@ -643,9 +645,9 @@ class InstawowResolver(Resolver):
         ('1', 'weakauras-companion-autoupdate'),
     }
 
-    async def resolve_one(self, defn: Defn, metadata: Any = None) -> m.Pkg:
+    async def resolve_one(self, defn: Defn, metadata: Any) -> m.Pkg:
         try:
-            id_, slug = next(p for p in self._addons if defn.name in p)
+            source_id, slug = next(p for p in self._addons if defn.name in p)
         except StopIteration:
             raise E.PkgNonexistent
 
@@ -653,7 +655,7 @@ class InstawowResolver(Resolver):
 
         sentinel = '__sentinel__'
         builder = WaCompanionBuilder(self.manager, BuilderConfig(account=sentinel))
-        if id_ == '1':
+        if source_id == '1':
             if builder.builder_config.account == sentinel:
                 raise E.PkgFileUnavailable('account name not provided')
             await builder.build()
@@ -661,7 +663,7 @@ class InstawowResolver(Resolver):
         checksum = await t(builder.checksum)()
         return m.Pkg(
             source=self.source,
-            id=id_,
+            id=source_id,
             slug=slug,
             name='WeakAuras Companion',
             description='A WeakAuras Companion clone.',

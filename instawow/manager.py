@@ -190,7 +190,8 @@ def prepare_database(config: Config) -> SqlaSession:
         from .utils import copy_resources
 
         with copy_resources(
-            f'{__package__}.migrations', f'{__package__}.migrations.versions',
+            f'{__package__}.migrations',
+            f'{__package__}.migrations.versions',
         ) as tmp_dir:
             aconfig = AConfig()
             aconfig.set_main_option('script_location', str(tmp_dir / __package__ / 'migrations'))
@@ -322,7 +323,8 @@ class Manager:
         _locks.set(value)
 
     def _with_lock(
-        lock_name: str, manager_bound: bool = True,  # type: ignore  # Undeclared static method
+        lock_name: str,
+        manager_bound: bool = True,  # type: ignore  # Undeclared static method
     ) -> Callable[[_T], _T]:
         def outer(coro_fn: _T):
             async def inner(self: Manager, *args: Any, **kwargs: Any):
@@ -568,7 +570,8 @@ class Manager:
         # Doing it this way isn't particularly efficient but avoids having to
         # deal with local state in resolvers.
         resolve_results = await self.resolve(
-            list(compress(defns, (not self.get_pkg(d) for d in defns))), with_deps=True,
+            list(compress(defns, (not self.get_pkg(d) for d in defns))),
+            with_deps=True,
         )
         resolve_results = dict(
             compress(resolve_results.items(), (not self.get_pkg(d) for d in resolve_results))

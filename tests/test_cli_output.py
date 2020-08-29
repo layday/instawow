@@ -88,7 +88,11 @@ def test_valid_curse_pkg_lifecycle(run, inp, cmp):
             '✗ tukui:1-merathilisui\n  package is up to date\n'.__eq__,
             Flavour.retail,
         ),
-        ('update tukui:1', '✗ tukui:1-tukui\n  package is up to date\n'.__eq__, Flavour.classic,),
+        (
+            'update tukui:1',
+            '✗ tukui:1-tukui\n  package is up to date\n'.__eq__,
+            Flavour.classic,
+        ),
         ('remove tukui:1', '✓ tukui:1\n  removed\n'.__eq__, None),
         ('update tukui:1', '✗ tukui:1\n  package is not installed\n'.__eq__, None),
         ('remove tukui:1', '✗ tukui:1\n  package is not installed\n'.__eq__, None),
@@ -369,7 +373,12 @@ def test_missing_dir_on_remove(manager, molinari_and_run):
 
 @pytest.mark.parametrize(
     'command, exit_code',
-    [('list mol', 0), ('info foo', 0), ('reveal mol', 0), ('reveal foo', 1),],
+    [
+        ('list mol', 0),
+        ('info foo', 0),
+        ('reveal mol', 0),
+        ('reveal foo', 1),
+    ],
 )
 @patch('webbrowser.open', lambda v: ...)
 def test_exit_codes_with_substr_match(molinari_and_run, command, exit_code):
