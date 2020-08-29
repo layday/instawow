@@ -160,7 +160,6 @@
   };
 
   const reconcile = async (thisStage: ReconciliationStage) => {
-    reconciliationSelections = [];
     const stages = reconciliationStages.slice(reconciliationStages.indexOf(thisStage));
     for (const stage of stages) {
       console.debug("trying", stage);
@@ -168,6 +167,7 @@
       const results = await api.reconcile(stage);
       if (results.reconciled.length || !getReconcileNextStage(stage)) {
         reconciliationStage = stage;
+        reconciliationSelections = [];
         return results;
       }
     }
@@ -186,6 +186,12 @@
       reconciliationInstallationInProgress = false;
     }
   };
+
+  const goToPrevReconcileStage = () =>
+    (reconciliationStage = getReconcilePrevStage(reconciliationStage));
+
+  const goToNextReconcileStage = () =>
+    (reconciliationStage = getReconcileNextStage(reconciliationStage));
 
   const search = async () => {
     searchesInProgress++;
@@ -317,21 +323,21 @@
 
 {#if isActive}
   <AddonListNav
-    bind:activeView
-    bind:searchTerms
     on:keydown={(e) => e.key === 'Enter' && search()}
     on:requestRefresh={() => refresh()}
     on:requestUpdateAll={() => update(true)}
-    on:requestReconcileStepBackward={() => (reconciliationStage = getReconcilePrevStage(reconciliationStage))}
-    on:requestReconcileStepForward={() => (reconciliationStage = getReconcileNextStage(reconciliationStage))}
+    on:requestReconcileStepBackward={() => goToPrevReconcileStage()}
+    on:requestReconcileStepForward={() => goToNextReconcileStage()}
     on:requestInstallReconciled={() => installReconciled()}
     on:requestAutomateReconciliation
-    isSearching={searchesInProgress > 0}
+    bind:activeView
+    bind:search__searchTerms={searchTerms}
+    search__isSearching={searchesInProgress > 0}
     installed__isRefreshing={refreshInProgress}
     installed__outdatedAddonCount={outdatedAddonCount}
-    reconciliation__isInstalling={reconciliationInstallationInProgress}
-    reconciliation__canStepBackward={!!getReconcilePrevStage(reconciliationStage)}
-    reconciliation__canStepForward={!!getReconcileNextStage(reconciliationStage)} />
+    reconcile__isInstalling={reconciliationInstallationInProgress}
+    reconcile__canStepBackward={!!getReconcilePrevStage(reconciliationStage)}
+    reconcile__canStepForward={!!getReconcileNextStage(reconciliationStage)} />
   <div class="addon-list-wrapper" class:prevent-scrolling={!!modalToShow}>
     {#if modalToShow === 'install' || modalToShow === 'reinstall'}
       <InstallationModal

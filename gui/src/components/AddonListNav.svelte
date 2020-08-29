@@ -6,13 +6,13 @@
   import Icon from "./SvgIcon.svelte";
 
   export let activeView: View,
-    searchTerms: string,
-    isSearching: boolean,
+    search__searchTerms: string,
+    search__isSearching: boolean,
     installed__isRefreshing: boolean,
     installed__outdatedAddonCount: number,
-    reconciliation__isInstalling: boolean,
-    reconciliation__canStepBackward: boolean,
-    reconciliation__canStepForward: boolean;
+    reconcile__isInstalling: boolean,
+    reconcile__canStepBackward: boolean,
+    reconcile__canStepForward: boolean;
 
   const dispatch = createEventDispatcher();
 </script>
@@ -142,10 +142,10 @@
     <input
       type="search"
       placeholder="search"
-      bind:value={searchTerms}
+      bind:value={search__searchTerms}
       on:keydown
       disabled={activeView === View.Reconcile} />
-    {#if isSearching}
+    {#if search__isSearching}
       <div class="search-status-indicator" transition:fade={{ duration: 200 }} />
     {/if}
   </div>
@@ -179,24 +179,24 @@
       <button
         aria-label="previous stage"
         title="previous stage"
-        disabled={!reconciliation__canStepBackward || reconciliation__isInstalling}
+        disabled={!reconcile__canStepBackward || reconcile__isInstalling}
         on:click={() => dispatch('requestReconcileStepBackward')}>
         <Icon icon={faStepBackward} />
       </button>
       <button
         aria-label="next stage"
         title="next stage"
-        disabled={!reconciliation__canStepForward || reconciliation__isInstalling}
+        disabled={!reconcile__canStepForward || reconcile__isInstalling}
         on:click={() => dispatch('requestReconcileStepForward')}>
         <Icon icon={faStepForward} />
       </button>
       <button
-        disabled={reconciliation__isInstalling}
+        disabled={reconcile__isInstalling}
         on:click={() => dispatch('requestInstallReconciled')}>
         install
       </button>
       <button
-        disabled={true || reconciliation__isInstalling}
+        disabled={true || reconcile__isInstalling}
         on:click={() => dispatch('requestAutomateReconciliation')}>
         automate
       </button>
