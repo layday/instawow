@@ -5,7 +5,7 @@ from collections import defaultdict, deque
 from contextlib import contextmanager
 from datetime import datetime, timedelta
 from functools import partial, wraps
-from itertools import chain, repeat
+from itertools import chain, repeat, takewhile
 from pathlib import Path, PurePath
 import posixpath
 import re
@@ -382,7 +382,11 @@ def is_outdated() -> Tuple[bool, str]:
     from .manager import init_web_client
 
     def parse_version(version: str) -> Tuple[int, ...]:
-        return tuple(map(int, version.split('.')[:3]))
+        version_numbers = version.split('.')[:3]
+        int_only_version_numbers = (
+            int(''.join(takewhile('0123456789'.__contains__, e))) for e in version_numbers
+        )
+        return tuple(int_only_version_numbers)
 
     dummy_config = Config.get_dummy_config()
     if not dummy_config.auto_update_check:
