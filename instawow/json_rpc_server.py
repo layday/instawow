@@ -104,17 +104,6 @@ class WriteConfigParams(BaseParams):
         return config
 
 
-class InferConfigParams(BaseParams):
-    values: Dict[str, Any]
-    _method = 'config.infer'
-    _result_type = Config
-
-    @t
-    def respond(self, managers: ManagerWorkQueue) -> _result_type:
-        with _reraise_validation_error(_ConfigError):
-            return Config.infer(**self.values)
-
-
 class ReadConfigParams(_ProfileParamMixin, BaseParams):
     _method = 'config.read'
     _result_type = Config
@@ -468,7 +457,6 @@ async def create_app() -> Application:
             _prepare_response,
             (
                 WriteConfigParams,
-                InferConfigParams,
                 ReadConfigParams,
                 DeleteConfigParams,
                 EnumerateProfilesParams,
