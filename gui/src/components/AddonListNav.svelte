@@ -1,15 +1,18 @@
 <script lang="ts">
-  import { faStepBackward } from "@fortawesome/free-solid-svg-icons";
+  import { faStepBackward, faStepForward } from "@fortawesome/free-solid-svg-icons";
   import { createEventDispatcher } from "svelte";
   import { fade } from "svelte/transition";
   import { View } from "../constants";
   import Icon from "./SvgIcon.svelte";
 
-  export let searchTerms,
-    activeView: View,
-    outdatedAddons: number,
-    refreshing: boolean,
-    searching: boolean;
+  export let activeView: View,
+    searchTerms: string,
+    isSearching: boolean,
+    installed__isRefreshing: boolean,
+    installed__outdatedAddonCount: number,
+    reconciliation__isInstalling: boolean,
+    reconciliation__canStepBackward: boolean,
+    reconciliation__canStepForward: boolean;
 
   const dispatch = createEventDispatcher();
 </script>
@@ -27,7 +30,7 @@
 
     button,
     label,
-    [type="search"] {
+    input[type="search"] {
       border: 0;
       background-color: var(--inverse-color-10);
       transition: background-color 0.2s;
@@ -138,10 +141,11 @@
   <div class="search-wrapper">
     <input
       type="search"
-      placeholder="Search"
+      placeholder="search"
       bind:value={searchTerms}
+      on:keydown
       disabled={activeView === View.Reconcile} />
-    {#if searching}
+    {#if isSearching}
       <div class="search-status-indicator" transition:fade={{ duration: 200 }} />
     {/if}
   </div>
@@ -163,18 +167,39 @@
   </menu>
   <menu class="view-actions">
     {#if activeView === View.Installed}
-      <button disabled={refreshing} on:click={() => dispatch('requestRefresh')}>refresh</button>
+      <button disabled={installed__isRefreshing} on:click={() => dispatch('requestRefresh')}>
+        refresh
+      </button>
       <button
-        disabled={refreshing || !outdatedAddons}
+        disabled={installed__isRefreshing || !installed__outdatedAddonCount}
         on:click={() => dispatch('requestUpdateAll')}>
-        {outdatedAddons ? `update ${outdatedAddons}` : 'no updates'}
+        {installed__outdatedAddonCount ? `update ${installed__outdatedAddonCount}` : 'no updates'}
       </button>
     {:else if activeView === View.Reconcile}
-      <button aria-label="restart" title="restart">
+      <button
+        aria-label="previous stage"
+        title="previous stage"
+        disabled={!reconciliation__canStepBackward || reconciliation__isInstalling}
+        on:click={() => dispatch('requestReconcileStepBackward')}>
         <Icon icon={faStepBackward} />
       </button>
-      <button>install selected</button>
-      <button>automate</button>
+      <button
+        aria-label="next stage"
+        title="next stage"
+        disabled={!reconciliation__canStepForward || reconciliation__isInstalling}
+        on:click={() => dispatch('requestReconcileStepForward')}>
+        <Icon icon={faStepForward} />
+      </button>
+      <button
+        disabled={reconciliation__isInstalling}
+        on:click={() => dispatch('requestInstallReconciled')}>
+        install
+      </button>
+      <button
+        disabled={true || reconciliation__isInstalling}
+        on:click={() => dispatch('requestAutomateReconciliation')}>
+        automate
+      </button>
     {/if}
   </menu>
 </nav>

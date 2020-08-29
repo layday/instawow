@@ -1,14 +1,16 @@
 <script lang="ts">
+  import { onMount } from "svelte";
   import { fade } from "svelte/transition";
 
   export let show: boolean;
 
-  const adjustPosition = (el: HTMLElement) => {
-    const addonList = el.parentElement.querySelector(".addon-list") as HTMLElement;
+  let wrapperElement: HTMLElement;
+
+  const adjustPosition = () => {
+    const addonList = wrapperElement.parentElement.querySelector(".addon-list") as HTMLElement;
     const scrollOfset = addonList.getBoundingClientRect().y;
     const staticOffset = (addonList.offsetParent as HTMLElement).offsetTop + addonList.offsetTop;
-    el.style.top = `${Math.floor(Math.abs(scrollOfset - staticOffset))}px`;
-    return { destroy: () => {} };
+    wrapperElement.style.top = `${Math.floor(Math.abs(scrollOfset - staticOffset))}px`;
   };
 
   const dismissOnEsc = () => {
@@ -18,6 +20,8 @@
       destroy: () => document.body.removeEventListener("keydown", handler),
     };
   };
+
+  onMount(adjustPosition);
 </script>
 
 <style lang="scss">
@@ -34,8 +38,8 @@
 
 <div
   class="modal-wrapper"
+  bind:this={wrapperElement}
   transition:fade={{ duration: 200 }}
-  use:adjustPosition
   use:dismissOnEsc
   on:click={() => (show = false)}>
   <slot />

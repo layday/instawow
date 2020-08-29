@@ -46,18 +46,24 @@ const createWindow = () => {
   }
 };
 
-// const createAddonContextMenu = (event, token) => {
-//   const menu = Menu.buildFromTemplate([
-//     {
-//       id: "reinstall",
-//       label: "R&einstall",
-//       click: () => {
-//         event.reply("reinstall-addon", token);
-//       },
-//     },
-//   ]);
-//   return menu;
-// };
+const createAddonContextMenu = (data: { pathComponents: string[]; url: string }) => {
+  return Menu.buildFromTemplate([
+    {
+      id: "open-url",
+      label: "Open in browser",
+      click: () => {
+        shell.openExternal(data.url);
+      },
+    },
+    {
+      id: "reveal-folder",
+      label: "Reveal folder",
+      click: () => {
+        shell.showItemInFolder(path.join(...data.pathComponents));
+      },
+    },
+  ]);
+};
 
 const instawow = spawnInstawow();
 let serverAddress: string;
@@ -85,15 +91,15 @@ ipcMain.handle("select-folder", async (event, defaultPath?: string) => {
   return [result.canceled, result.filePaths];
 });
 
+ipcMain.on("show-addon-context-menu", (event, data) => {
+  createAddonContextMenu(data).popup();
+});
+
 ipcMain.on("reveal-addon-folder", (event, pathComponents: string[]) =>
   shell.showItemInFolder(path.join(...pathComponents))
 );
 
 ipcMain.on("open-url", (event, url: string) => shell.openExternal(url));
-
-// ipcMain.on("show-addon-context-menu", (event, token) => {
-//   createAddonContextMenu(event, token).popup();
-// });
 
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.

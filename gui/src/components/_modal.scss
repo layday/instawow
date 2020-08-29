@@ -5,6 +5,29 @@ $middle-border-radius: $form-el-line-height / 6;
 $edge-border-radius: $form-el-line-height / 4;
 
 %modal-elements {
+  .content,
+  .title-bar {
+    padding: 1.25rem;
+    background-color: var(--base-color-65);
+    backdrop-filter: blur(5px);
+  }
+
+  .title-bar {
+    padding: 0.65rem 1.25rem;
+    border-radius: 0.25rem 0.25rem 0 0;
+    background-color: var(--inverse-color-05);
+    font-size: 0.9em;
+    font-weight: 500;
+  }
+
+  .content {
+    border-radius: 0 0 0.25rem 0.25rem;
+
+    &:first-child {
+      border-radius: 0.25rem;
+    }
+  }
+
   button,
   input,
   select {
@@ -102,16 +125,23 @@ $edge-border-radius: $form-el-line-height / 4;
       padding-top: 0.25rem;
     }
   }
+
+  .explanation {
+    margin-top: 0.35rem !important;
+    padding: 0 0.25rem;
+    line-height: 1;
+    font-size: 0.9em;
+    color: var(--inverse-color-tone-20);
+  }
 }
 
 .modal {
+  background: none;
   position: unset;
-  padding: 1.25rem;
+  padding: 0;
   border: 0;
   border-radius: 0.25rem;
   box-shadow: 0 10px 20px var(--inverse-color-05);
-  background-color: var(--base-color-65);
-  backdrop-filter: blur(5px);
   color: var(--inverse-color);
 
   @extend %modal-elements;

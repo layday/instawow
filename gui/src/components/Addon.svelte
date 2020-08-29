@@ -1,7 +1,6 @@
 <script lang="ts">
   import type { Addon, AddonMeta, Sources } from "../api";
   import { faHistory, faTasks } from "@fortawesome/free-solid-svg-icons";
-  import { ipcRenderer } from "electron";
   import { DateTime } from "luxon";
   import { createEventDispatcher } from "svelte";
   import { fade } from "svelte/transition";
@@ -16,21 +15,11 @@
 
   const dispatch = createEventDispatcher();
 
-  const requestInstall = () => {
-    dispatch("requestInstall", addonToDefn(addon));
-  };
-
-  const requestReinstall = () => {
-    dispatch("requestReinstall", addonToDefn(addon));
-  };
-
-  const requestUpdate = () => {
-    dispatch("requestUpdate", addonToDefn(addon));
-  };
-
-  const requestRemove = () => {
-    dispatch("requestRemove", addonToDefn(addon));
-  };
+  const requestInstall = () => dispatch("requestInstall", addonToDefn(addon));
+  const requestReinstall = () => dispatch("requestReinstall", addonToDefn(addon));
+  const requestUpdate = () => dispatch("requestUpdate", addonToDefn(addon));
+  const requestRemove = () => dispatch("requestRemove", addonToDefn(addon));
+  const requestShowContexMenu = () => dispatch("requestShowContexMenu");
 
   const requestShowModal = (modal: "install" | "reinstall" | "rollback") => {
     const details = [
@@ -40,9 +29,6 @@
     ];
     dispatch("requestShowModal", details);
   };
-
-  const requestRevealFolder = () =>
-    dispatch("requestRevealFolder", addon.folders[0].name);
 </script>
 
 <style lang="scss">
@@ -84,21 +70,16 @@
       font-weight: 500;
     }
 
-    .defn {
-      a {
-        color: var(--inverse-color-tone-20);
-      }
-    }
-
-    .version {
+    .versions {
       float: right;
     }
 
     .defn,
-    .version {
+    .versions {
+      margin: 0.25rem 0;
       font-family: Menlo, monospace;
       font-size: 0.7em;
-      line-height: 2em;
+      color: var(--inverse-color-tone-10);
     }
 
     .description {
@@ -166,27 +147,24 @@
   class:status-damaged={addonMeta.damaged}
   class:status-outdated={addonMeta.new_version && addon.version !== addonMeta.new_version}
   class:status-pinned={addon.options.strategy === 'version'}
-  class:status-being-modified={beingModified}>
+  class:status-being-modified={beingModified}
+  on:contextmenu={() => false && requestShowContexMenu()}>
   <ul class="addon-details">
     <li class="name">{addon.name}</li>
     <!-- prettier-ignore -->
-    <li class="version">
+    <li class="versions">
       {addon.version}
       (<span title={addon.date_published}><!--
         -->{DateTime.fromISO(addon.date_published).toRelative()}<!--
       --></span>)
       {#if addonMeta.new_version && addon.version !== addonMeta.new_version}
-        {`< ${addonMeta.new_version}`}
+        {"<"} {addonMeta.new_version}
       {/if}
-      {#if addon.options.strategy !== 'default'}@ {addon.options.strategy}{/if}
+      {#if addon.options.strategy !== 'default'}
+        @ {addon.options.strategy}
+      {/if}
     </li>
-    <li class="defn">
-      <a
-        href="#__openUrl"
-        on:click|preventDefault|stopPropagation={() => ipcRenderer.send('open-url', addon.url)}>
-        {addon.source}:{addon.slug}
-      </a>
-    </li>
+    <li class="defn">{addon.source}:{addon.slug}</li>
     <li class="description">{addon.description || 'No description.'}</li>
   </ul>
   {#if beingModified}

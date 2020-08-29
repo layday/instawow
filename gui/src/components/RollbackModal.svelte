@@ -23,7 +23,8 @@
 
 <Modal bind:show>
   <dialog open class="modal" in:scale={{ duration: 200 }} on:click|stopPropagation>
-    <form on:submit|preventDefault={() => requestReinstall()}>
+    <div class="title-bar">rollback</div>
+    <form class="content" on:submit|preventDefault={() => requestReinstall()}>
       <select class="row" aria-label="strategy" bind:value={version}>
         {#each versions as version}
           <option value={version.version}>

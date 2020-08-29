@@ -6,7 +6,17 @@
 
   export let show: any, source: Sources["foo"], defn: Defn;
 
+  const strategyExplanations = {
+    default: "latest stable version",
+    latest: "latest version of any quality",
+    curse_latest_beta: "latest beta from CurseForge",
+    curse_latest_alpha: "latest alpha from CurseForge",
+    any_flavour: "latest stable version for any game flavour",
+    version: "specific version to install",
+  };
+
   const dispatch = createEventDispatcher();
+  const label = show;
 
   let strategy: string;
   let strategyVals: string[] = [];
@@ -27,12 +37,14 @@
 
 <Modal bind:show>
   <dialog open class="modal" in:scale={{ duration: 200 }} on:click|stopPropagation>
-    <form on:submit|preventDefault={() => requestInstallOrReinstall()}>
+    <div class="title-bar">{label} with strategy</div>
+    <form class="content" on:submit|preventDefault={() => requestInstallOrReinstall()}>
       <select class="row" aria-label="strategy" bind:value={strategy}>
         {#each source.supported_strategies as strategy}
-          <option value={strategy}>{strategy}</option>
+          <option value={strategy}>{strategy} ({strategyExplanations[strategy]})</option>
         {/each}
       </select>
+      <!-- <div class="row explanation">{strategyExplanations[strategy]}</div> -->
       {#if strategy === 'version'}
         <input
           aria-label="version"
@@ -42,7 +54,7 @@
           required
           on:change={(e) => (strategyVals = [e.target.value])} />
       {/if}
-      <button class="row" type="submit">{show}</button>
+      <button class="row" type="submit">{label}</button>
     </form>
   </dialog>
 </Modal>

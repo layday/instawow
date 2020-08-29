@@ -1,11 +1,7 @@
 <script context="module" lang="ts">
-  export const addonToDefn = (addon: Addon) => ({ source: addon.source, name: addon.id });
+  import { ReconciliationStage, View } from "../constants";
 
-  const attachDefntoAddon = ([addon, addonMeta]): [Addon, AddonMeta, Defn] => [
-    addon,
-    addonMeta,
-    addonToDefn(addon),
-  ];
+  export const addonToDefn = (addon: Addon) => ({ source: addon.source, name: addon.id });
 
   type CreateTokenSignature = {
     (addon: Addon): string;
@@ -18,13 +14,26 @@
   const matchCmp = ([thisAddon]: [Addon, AddonMeta], [otherAddon]: [Addon, AddonMeta]) =>
     thisAddon.source === otherAddon.source && thisAddon.id === otherAddon.id;
 
+  const attachTokentoAddon = ([addon, addonMeta]): [Addon, AddonMeta, string] => [
+    addon,
+    addonMeta,
+    createToken(addon),
+  ];
+
+  const reconciliationStages = Object.values(ReconciliationStage);
+
+  const getReconcilePrevStage = (stage: ReconciliationStage) =>
+    reconciliationStages[reconciliationStages.indexOf(stage) - 1];
+
+  const getReconcileNextStage = (stage: ReconciliationStage) =>
+    reconciliationStages[reconciliationStages.indexOf(stage) + 1];
+
   const debounceDelay = 500;
   const searchLimit = 25;
 </script>
 
 <script lang="ts">
   import type { Addon, AddonMeta, Api, Defn, ListResult, ModifyResult, Sources } from "../api";
-  import { View } from "../constants";
   import { profiles } from "../store";
   import { ipcRenderer } from "electron";
   import lodash from "lodash";
@@ -46,23 +55,25 @@
   let addons__Installed: ListResult;
   let addons__Search: ListResult;
   let addons__CombinedSearch: ListResult;
-  let outdatedAddons: number;
+  let outdatedAddonCount: number;
   let searchTerms: string = "";
+
+  let reconciliationStage: ReconciliationStage = reconciliationStages[0];
+  let reconciliationSelections: Addon[];
+
   let refreshInProgress: boolean = false;
   let searchesInProgress: number = 0;
-
-  let notifications;
-
-  let addonsBeingModified: string[] = [];   // revisit
+  let reconciliationInstallationInProgress: boolean = false;
 
   let modalToShow: "install" | "reinstall" | "rollback" | false = false;
   let modalProps: object;
 
-  let reconciliationStage;
-  let reconciliationSelections;
+  let notifications;
+
+  let addonsBeingModified: string[] = []; // revisit
 
   const countUpdates = () =>
-    (outdatedAddons = addons__Installed.reduce(
+    (outdatedAddonCount = addons__Installed.reduce(
       (val, [, { new_version }]) => val + (new_version ? 1 : 0),
       0
     ));
@@ -130,8 +141,8 @@
 
   const update: UpdateSignature = async (value: any) => {
     if (value === true) {
-      const outdatedAddons = addons__Installed.filter(([, { new_version }]) => new_version);
-      const defns = outdatedAddons.map(([addon]) => addonToDefn(addon));
+      const outdatedAddonCount = addons__Installed.filter(([, { new_version }]) => new_version);
+      const defns = outdatedAddonCount.map(([addon]) => addonToDefn(addon));
       await modify("update", defns);
     } else {
       await modify("update", value);
@@ -148,13 +159,35 @@
     await install(defns);
   };
 
-  const reconcile = async (matcher: "toc_ids" | "dir_names" | "toc_names") => {
-    const results = await api.reconcile(matcher);
-    console.log(results);
-    return results;
+  const reconcile = async (thisStage: ReconciliationStage) => {
+    reconciliationSelections = [];
+    const stages = reconciliationStages.slice(reconciliationStages.indexOf(thisStage));
+    for (const stage of stages) {
+      console.debug("trying", stage);
+
+      const results = await api.reconcile(stage);
+      if (results.reconciled.length || !getReconcileNextStage(stage)) {
+        reconciliationStage = stage;
+        return results;
+      }
+    }
   };
 
-  const search = lodash.debounce(async () => {
+  const installReconciled = async () => {
+    reconciliationInstallationInProgress = true;
+    try {
+      await install(reconciliationSelections.filter(Boolean).map(addonToDefn), true);
+
+      const nextStage = getReconcileNextStage(reconciliationStage);
+      if (nextStage) {
+        reconciliationStage = nextStage;
+      }
+    } finally {
+      reconciliationInstallationInProgress = false;
+    }
+  };
+
+  const search = async () => {
     searchesInProgress++;
     try {
       const searchTermsSnapshot = searchTerms;
@@ -177,18 +210,9 @@
     } finally {
       searchesInProgress--;
     }
-  }, debounceDelay);
-
-  const refresh = async () => {
-    if (!refreshInProgress) {
-      refreshInProgress = true;
-      try {
-        addons__Installed = await api.listAddons(true);
-      } finally {
-        refreshInProgress = false;
-      }
-    }
   };
+
+  const searchDebounced = lodash.debounce(search, debounceDelay);
 
   const showModal = ([modal, defn, versions]: [
     "install" | "reinstall" | "rollback",
@@ -203,17 +227,34 @@
     modalToShow = modal;
   };
 
-  const revealFolder = (folder: string) =>
-    ipcRenderer.send("reveal-addon-folder", [$profiles[profile].addon_dir, folder]);
+  const showAddonContextMenu = (addon: Addon) =>
+    ipcRenderer.send("show-addon-context-menu", {
+      pathComponents: [$profiles[profile].addon_dir, addon.folders[0].name],
+      url: addon.url,
+    });
+
+  const refresh = async () => {
+    if (!refreshInProgress) {
+      refreshInProgress = true;
+      try {
+        addons__Installed = await api.listAddons(true);
+      } finally {
+        refreshInProgress = false;
+      }
+    }
+  };
 
   const setupComponent = async () => {
     refreshInProgress = true;
     try {
       sources = await api.listSources();
       protocols = [...Object.keys(sources), "http", "https"].map((v) => `${v}:`);
+      // Grab the list of installed add-ons before checking for updates
+      // which might take time
       for (const checkForUpdates of [false, true]) {
         addons__Installed = await api.listAddons(checkForUpdates);
       }
+      // Immediately switch over to reconciliation if no add-ons are installed
       if (!addons__Installed.length) {
         activeView = View.Reconcile;
       }
@@ -225,7 +266,7 @@
   onMount(setupComponent);
 
   // Update list view - we're restoring installed add-ons immediately but debouncing searches
-  $: searchTerms ? search() : (activeView = View.Installed);
+  $: searchTerms ? searchDebounced() : (activeView = View.Installed);
   $: addons = (activeView === View.Search ? addons__CombinedSearch : addons__Installed) ?? [];
   $: addons__Installed && countUpdates();
 </script>
@@ -258,6 +299,13 @@
     }
   }
 
+  .preamble {
+    margin: 0;
+    padding: 0.5rem;
+    padding-top: 0;
+    font-size: 0.9em;
+  }
+
   .addon-list {
     @include unstyle-list;
 
@@ -269,13 +317,21 @@
 
 {#if isActive}
   <AddonListNav
-    on:requestRefresh={() => refresh()}
-    on:requestUpdateAll={() => update(true)}
     bind:activeView
     bind:searchTerms
-    {outdatedAddons}
-    refreshing={refreshInProgress}
-    searching={searchesInProgress > 0} />
+    on:keydown={(e) => e.key === 'Enter' && search()}
+    on:requestRefresh={() => refresh()}
+    on:requestUpdateAll={() => update(true)}
+    on:requestReconcileStepBackward={() => (reconciliationStage = getReconcilePrevStage(reconciliationStage))}
+    on:requestReconcileStepForward={() => (reconciliationStage = getReconcileNextStage(reconciliationStage))}
+    on:requestInstallReconciled={() => installReconciled()}
+    on:requestAutomateReconciliation
+    isSearching={searchesInProgress > 0}
+    installed__isRefreshing={refreshInProgress}
+    installed__outdatedAddonCount={outdatedAddonCount}
+    reconciliation__isInstalling={reconciliationInstallationInProgress}
+    reconciliation__canStepBackward={!!getReconcilePrevStage(reconciliationStage)}
+    reconciliation__canStepForward={!!getReconcileNextStage(reconciliationStage)} />
   <div class="addon-list-wrapper" class:prevent-scrolling={!!modalToShow}>
     {#if modalToShow === 'install' || modalToShow === 'reinstall'}
       <InstallationModal
@@ -290,20 +346,28 @@
         {...modalProps} />
     {/if}
     {#if activeView === View.Reconcile}
-      <!--  -->
-      {#await reconcile('dir_names')}
+      {#await reconcile(reconciliationStage)}
         <div class="placeholder" in:fade>
           <div>Hold on tight!</div>
         </div>
-      {:then [reconciled, unreconciled]}
-        {#if reconciled.length || unreconciled.length}
+      {:then result}
+        {#if Object.values(result).some((v) => v.length)}
+          <p class="preamble">
+            Reconciliation is the process by which installed add-ons are linked with add-ons from
+            sources. This is done in three stages in decreasing order of accuracy. Add-ons do not
+            always carry source metadata and
+            <i>instawow</i>
+            employes a number of heuristics to reconcile add-ons which cannot be positively
+            identified. If you trust
+            <i>instawow</i>
+            to do this without supervision, press "automate". Otherwise, review your selections
+            below and press "install" to proceed to the next stage. Reconciled add-ons will be
+            reinstalled.
+          </p>
           <ul class="addon-list">
-            {#each Array.prototype.concat( reconciled, lodash.map((f) => [
-                [f],
-                [],
-              ]) ) as [folders, choices], idx}
+            {#each result.reconciled.concat(result.unreconciled) as { folders, matches: choices }, idx}
               <li>
-                <AddonStub {folders} {choices} {idx} />
+                <AddonStub bind:selections={reconciliationSelections} {folders} {choices} {idx} />
               </li>
             {/each}
           </ul>
@@ -315,7 +379,7 @@
       {/await}
     {:else}
       <ul class="addon-list">
-        {#each addons.map(attachDefntoAddon) as [addon, addonMeta, defn] (createToken(defn))}
+        {#each addons.map(attachTokentoAddon) as [addon, addonMeta, token] (token)}
           <li animate:flip={{ duration: 200 }}>
             <AddonComponent
               on:requestInstall={(e) => install([e.detail])}
@@ -323,12 +387,11 @@
               on:requestRemove={(e) => remove([e.detail])}
               on:requestReinstall={(e) => reinstall([e.detail])}
               on:requestShowModal={(e) => showModal(e.detail)}
-              on:requestShowModal={(e) => showModal(e.detail)}
-              on:requestRevealFolder={(e) => revealFolder(e.detail)}
+              on:requestShowContexMenu={(e) => showAddonContextMenu(addon)}
               {addon}
               {addonMeta}
               {sources}
-              beingModified={addonsBeingModified.includes(createToken(defn))}
+              beingModified={addonsBeingModified.includes(token)}
               refreshing={refreshInProgress} />
           </li>
         {/each}
