@@ -44,8 +44,6 @@ except ImportError:
 if TYPE_CHECKING:
     from prompt_toolkit.shortcuts import ProgressBar
 
-    from .manager import CliManager
-
     _H = TypeVar('_H', bound=Hashable)
     _AnySet = TypeVar('_AnySet', bound=AbstractSet)
 
@@ -369,37 +367,45 @@ def get_version() -> str:
         return __version__
 
 
-def is_outdated(manager: CliManager) -> bool:
+def is_outdated() -> Tuple[bool, str]:
     """Check on PyPI to see if the installed copy of instawow is outdated.
 
     The response is cached for 24 hours.
     """
     __version__ = get_version()
     if 'dev' in __version__:
-        return False
+        return (False, '')
+
+    from aiohttp.client import ClientError
+
+    from .config import Config
+    from .manager import init_web_client
 
     def parse_version(version: str) -> Tuple[int, ...]:
         return tuple(map(int, version.split('.')[:3]))
 
-    cache_file = manager.config.temp_dir / '.pypi_version'
+    dummy_config = Config.get_dummy_config()
+    if not dummy_config.auto_update_check:
+        return (False, '')
+
+    cache_file = dummy_config.temp_dir / '.pypi_version'
     if is_not_stale(cache_file, 1, 'days'):
         version = cache_file.read_text(encoding='utf-8')
     else:
-        from aiohttp.client import ClientError
 
         async def get_metadata():
             api_url = 'https://pypi.org/pypi/instawow/json'
-            async with manager.web_client.get(api_url) as response:
+            async with init_web_client() as web_client, web_client.get(api_url) as response:
                 return await response.json()
 
         try:
-            version = manager.run(get_metadata())['info']['version']
+            version = asyncio.run(get_metadata())['info']['version']
         except ClientError:
             version = __version__
         else:
             cache_file.write_text(version, encoding='utf-8')
 
-    return parse_version(version) > parse_version(__version__)
+    return (parse_version(version) > parse_version(__version__), version)
 
 
 def find_zip_base_dirs(names: Sequence[str]) -> Set[str]:

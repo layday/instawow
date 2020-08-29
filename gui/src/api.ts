@@ -63,7 +63,10 @@ export type AddonMatch = {
 
 export type ReconcileResult = [[AddonMatch[], Addon[]][], AddonMatch[]];
 
-export type Version = string;
+export type Version = {
+  installed_version: string;
+  new_version: string | null;
+};
 
 export class Api {
   getClient: () => Promise<Client>;

@@ -347,12 +347,20 @@ class ReconcileParams(_ProfileParamMixin, BaseParams):
         return _ReconcileResult.parse_obj((matches, leftovers))
 
 
+class _GetVersionResponse(BaseModel):
+    installed_version: str
+    new_version: O[str]
+
+
 class GetVersionParams(BaseParams):
     _method = 'meta.get_version'
-    _result_type = str
+    _result_type = _GetVersionResponse
 
     async def respond(self, managers: ManagerWorkQueue) -> _result_type:
-        return get_version()
+        outdated, new_version = await t(is_outdated)()
+        return _GetVersionResponse(
+            installed_version=get_version(), new_version=new_version if outdated else None
+        )
 
 
 class _Response(BaseModel):

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import type { Version } from "../api";
   import { RequestManager, Client, WebSocketTransport } from "@open-rpc/client-js";
   import { ipcRenderer } from "electron";
   import lodash from "lodash";
@@ -11,7 +12,7 @@
   let _transport: WebSocketTransport;
   let _client: Client;
   let api: Api;
-  let instawowVersion: string;
+  let instawowVersions: Version;
 
   const _clientInitialisationLock = new Lock();
 
@@ -41,7 +42,7 @@
 
   const setup = async () => {
     api = new Api(getClient);
-    instawowVersion = await api.getVersion();
+    instawowVersions = await api.getVersion();
     const profileNames = await api.enumerateProfiles();
     const profileConfigs = await Promise.all(profileNames.map((p) => api.readProfile(p)));
     $profiles = lodash.fromPairs(lodash.zip(profileNames, profileConfigs));
@@ -169,7 +170,8 @@
       <div class="instawow-version">
         <b>instawow</b>
         <br />
-        {instawowVersion}
+        {instawowVersions.installed_version}
+        {instawowVersions.new_version ? `< ${instawowVersions.new_version}` : ''}
       </div>
     </header>
     <section class="section section__main">
