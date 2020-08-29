@@ -1,8 +1,8 @@
 *instawow*
 ==========
 
-*instawow* is a package manager for World of Warcraft, written
-in Python.  It can be used to install, remove and update add-ons from
+*instawow* is a package manager for World of Warcraft.
+It can be used to install, remove and update add-ons from
 WoWInterface, CurseForge, Tukui and GitHub.
 
 *instawow* tries to make installing, updating and removing
@@ -11,19 +11,36 @@ add-ons quick and painless for those of us who are
 and do not revel in using bloatware which infringe on our privacy
 or inhabiting walled gardens.
 
-.. image:: https://asciinema.org/a/NfIonzvUn65jEl9v0D2WQJdLl.svg
+.. image:: https://asciinema.org/a/8m36ncAoyTmig4MXfQM8YjE6a.svg
+   :align: center
    :width: 640
    :alt: Asciicast demonstrating the operation of instawow.
-   :target: https://asciinema.org/a/NfIonzvUn65jEl9v0D2WQJdLl?autoplay=1
+   :target: https://asciinema.org/a/8m36ncAoyTmig4MXfQM8YjE6a?autoplay=1
+
+News
+----
+
+2020-08-29
+~~~~~~~~~~
+
+I have released an experimental GUI for macOS.  This does not currently
+have feature parity with the CLI; specifically, it is not able to find
+add-ons without a stable release – which is the case for a limited number
+of add-ons from CurseForge – nor does it interface with the
+WeakAuras plug-in.  I welcome feedback and suggestions for improvement.
+The GUI is available for download from
+`GitHub releases <https://github.com/layday/instawow/releases/latest>`__.
+
+.. image:: https://raw.githubusercontent.com/layday/instawow/feature-oh-my-gui/gui/screenshots/v0.1.0.png
+   :width: 100%
+   :target: https://github.com/layday/instawow/releases/latest
 
 Installation
 ------------
 
 You can download pre-built binaries of *instawow* from GitHub:
 
-- `Linux <https://github.com/layday/instawow/releases/latest/download/instawow-ubuntu-latest-v1.12.1.zip>`__
-- `macOS <https://github.com/layday/instawow/releases/latest/download/instawow-macos-latest-v1.12.1.zip>`__
-- `Windows <https://github.com/layday/instawow/releases/latest/download/instawow-windows-latest-v1.12.1.zip>`__
+- `Binaries <https://github.com/layday/instawow/releases/latest>`__
 
 If you prefer to install from source, all of the following will work:
 
