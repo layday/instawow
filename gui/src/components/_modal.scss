@@ -71,12 +71,13 @@ $edge-border-radius: $form-el-line-height / 4;
   }
 
   select {
+    min-width: 12rem;
+    max-width: 20rem;
+    padding-right: 1.25rem;
     background-image: var(--dropdown-arrow);
     background-size: 10px;
     background-repeat: no-repeat;
     background-position: top 9px right 7px;
-    padding-right: 1.25rem;
-    min-width: 200px;
     -webkit-appearance: none;
   }
 
@@ -113,6 +114,40 @@ $edge-border-radius: $form-el-line-height / 4;
     :last-child {
       border-top-right-radius: $edge-border-radius;
       border-bottom-right-radius: $edge-border-radius;
+    }
+  }
+
+  .checkbox-array {
+    display: flex;
+    align-items: center;
+    position: relative;
+
+    input[type="checkbox"] {
+      -webkit-appearance: none;
+      flex-shrink: 0;
+      width: 12px;
+      height: 12px;
+      margin: 0;
+      margin-bottom: -2px;
+      border-radius: 4px;
+      border: 1px solid var(--inverse-color);
+      transition: all 0.2s;
+
+      &:checked {
+        background-color: var(--inverse-color);
+
+        &::before {
+          content: "✔";
+          position: absolute;
+          top: 0;
+          color: var(--base-color);
+        }
+      }
+    }
+
+    label {
+      padding-left: 0.3rem;
+      flex-grow: 1;
     }
   }
 

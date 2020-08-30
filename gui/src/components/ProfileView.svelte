@@ -356,8 +356,8 @@
   <div class="addon-list-wrapper" class:prevent-scrolling={!!modalToShow}>
     {#if modalToShow === 'install' || modalToShow === 'reinstall'}
       <InstallationModal
-        on:requestInstall={(event) => install([event.detail])}
-        on:requestReinstall={(event) => reinstall([event.detail])}
+        on:requestInstall={({ detail: [defn, replace] }) => install([defn], replace)}
+        on:requestReinstall={({ detail: [defn] }) => reinstall([defn])}
         bind:show={modalToShow}
         {...modalProps} />
     {:else if modalToShow === 'rollback'}
