@@ -46,7 +46,7 @@ jobs:
       uses: actions/cache@v2
       with:
         path: ~/.cargo
-        key: ${{ runner.os }}-main-cargo-pyox-${{ env.PYOX_VERSION }}
+        key: ${{ runner.os }}-main-cargo-pyox-${{ env.PYOX_VERSION }}-1
     - name: Install Rust toolchain
       uses: actions-rs/toolchain@v1
       with:
