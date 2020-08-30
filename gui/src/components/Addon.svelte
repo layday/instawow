@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { Addon, AddonMeta, Sources } from "../api";
-  import { faHistory, faTasks } from "@fortawesome/free-solid-svg-icons";
+  import { faExternalLinkSquareAlt, faHistory, faTasks } from "@fortawesome/free-solid-svg-icons";
+  import { ipcRenderer } from "electron";
   import { DateTime } from "luxon";
   import { createEventDispatcher } from "svelte";
   import { fade } from "svelte/transition";
@@ -94,7 +95,6 @@
     padding-left: 0.75em;
 
     button {
-      min-width: 2rem;
       padding: 0 0.75em;
       line-height: 1.8em;
       font-size: 0.8em;
@@ -174,7 +174,7 @@
         {/if}
         {#if addon.logged_versions.length > 1 && sources[addon.source]?.supports_rollback}
           <button
-            label="rollback"
+            aria-label="rollback"
             title="rollback"
             disabled={refreshing}
             on:click|stopPropagation={() => requestShowModal('rollback')}>
@@ -183,7 +183,7 @@
         {/if}
         {#if sources[addon.source]?.supported_strategies.length > 1}
           <button
-            label="reinstall with strategy"
+            aria-label="reinstall with strategy"
             title="reinstall with strategy"
             disabled={refreshing}
             on:click|stopPropagation={() => requestShowModal('reinstall')}>
@@ -194,13 +194,19 @@
       {:else}
         {#if sources[addon.source]?.supported_strategies.length > 1}
           <button
-            label="install with strategy"
+            aria-label="install with strategy"
             title="install with strategy"
             disabled={refreshing}
             on:click|stopPropagation={() => requestShowModal('install')}>
             <Icon icon={faTasks} />
           </button>
         {/if}
+        <button
+          aria-label="install with strategy"
+          title="install with strategy"
+          on:click|stopPropagation={() => ipcRenderer.send('open-url', addon.url)}>
+          <Icon icon={faExternalLinkSquareAlt} />
+        </button>
         <button disabled={refreshing} on:click|stopPropagation={requestInstall}>install</button>
       {/if}
     </menu>
