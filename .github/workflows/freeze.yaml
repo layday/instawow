@@ -85,10 +85,10 @@ jobs:
       uses: actions/download-artifact@v2
       with:
         name: instawow-${{ matrix.os }}-${{ needs.extract-tag.outputs.tag }}
-        path: gui/bin
+        path: gui/artefacts
     - name: Ensure binary is executable
       run: |
-        chmod +x gui/bin/instawow*
+        chmod +x gui/artefacts/instawow*
     - name: Install npm dependencies
       run: |
         npm install

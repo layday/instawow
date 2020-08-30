@@ -46,6 +46,9 @@
   },
   "build": {
     "appId": "org.instawow.instawow-desktop",
+    "directories": {
+      "buildResources": "./artefacts/"
+    },
     "files": [
       "./build/**/*"
     ],
@@ -53,7 +56,7 @@
       "target": "zip",
       "extraFiles": [
         {
-          "from": "./bin/instawow",
+          "from": "./artefacts/instawow",
           "to": "./MacOS/instawow"
         }
       ]
