@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import os
 from pathlib import Path
 from shutil import copytree, ignore_patterns
@@ -8,7 +9,7 @@ from typing import Any, Dict, List, Union
 
 import click
 from loguru import logger
-from pydantic import BaseSettings, Extra, Field, PydanticValueError, ValidationError, validator
+from pydantic import BaseSettings, Extra, Field, PydanticValueError, validator
 
 from .utils import Literal, trash
 
@@ -134,7 +135,9 @@ class _GlobalConfig(BaseConfig):
             and not self.profile_dir.exists()
             and legacy_config_file.exists()
         ):
-            legacy_config = self.parse_raw(legacy_config_file.read_text(encoding='utf-8'))
+            legacy_json = json.loads(legacy_config_file.read_text(encoding='utf-8'))
+            legacy_json.pop('profile', None)
+            legacy_config = self.parse_obj(legacy_json)
             ignores = ignore_patterns('profiles')
 
             logger.info('migrating legacy configuration')
