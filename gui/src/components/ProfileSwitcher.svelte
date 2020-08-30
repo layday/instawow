@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { Api, Config } from "../api";
   import { faPencilAlt, faPlusCircle } from "@fortawesome/free-solid-svg-icons";
+  import { onMount } from "svelte";
   import { activeProfile, profiles } from "../store";
   import ConfigEditor from "./ConfigEditor.svelte";
   import Icon from "./SvgIcon.svelte";
@@ -8,6 +9,8 @@
   export let api: Api;
 
   let editing: "new" | "existing" | false = false;
+
+  onMount(() => !$activeProfile && (editing = "new"));
 </script>
 
 <style lang="scss">
