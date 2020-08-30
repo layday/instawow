@@ -17,21 +17,11 @@ or inhabiting walled gardens.
    :alt: Asciicast demonstrating the operation of instawow.
    :target: https://asciinema.org/a/8m36ncAoyTmig4MXfQM8YjE6a?autoplay=1
 
-News
-----
-
-2020-08-29
-~~~~~~~~~~
-
-I have released an experimental GUI for macOS with plans for eventually
-making it available for all three major OSes.
-This does not currently have feature parity with the CLI;
-specifically, it is not able to find
-add-ons without a stable release – which is the case for a limited number
-of add-ons from CurseForge – nor does it interface with the
-WeakAuras plug-in.  I welcome feedback and suggestions for improvement.
-The GUI is available for download from
+An *instawow* GUI is in early development.
+The macOS version is available for download from
 `GitHub releases <https://github.com/layday/instawow/releases/latest>`__.
+The GUI does not have feature parity with the CLI as yet.
+Notably, it does not interface with the WeakAuras Companion plug-in.
 
 .. image:: https://raw.githubusercontent.com/layday/instawow/feature-oh-my-gui/gui/screenshots/v0.1.0.png
    :width: 100%
