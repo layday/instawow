@@ -76,7 +76,7 @@
   let modalToShow: "install" | "reinstall" | "rollback" | false = false;
   let modalProps: object;
 
-  let notifications;
+  let notifications;  // TODO as a replacement for `notifyOfFailures`
 
   let addonsBeingModified: string[] = []; // revisit
 
@@ -287,6 +287,8 @@
 
   // Update list view - we're restoring installed add-ons immediately but debouncing searches
   $: searchTerms && searchStrategy ? searchDebounced() : (activeView = View.Installed);
+  // Reset the strategy in between searches
+  $: searchTerms || (searchStrategy = Strategies.default);
   $: addons = (activeView === View.Search ? addons__CombinedSearch : addons__Installed) ?? [];
   $: addons__Installed && countUpdates();
 </script>
