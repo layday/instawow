@@ -92,7 +92,7 @@ ipcMain.handle("select-folder", async (event, defaultPath?: string) => {
 });
 
 ipcMain.on("show-addon-context-menu", (event, data) => {
-  createAddonContextMenu(data).popup();
+  app.isPackaged && createAddonContextMenu(data).popup();
 });
 
 ipcMain.on("reveal-addon-folder", (event, pathComponents: string[]) =>

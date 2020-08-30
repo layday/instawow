@@ -140,7 +140,7 @@
   class:status-outdated={addonMeta.new_version && addon.version !== addonMeta.new_version}
   class:status-pinned={addon.options.strategy === 'version'}
   class:status-being-modified={beingModified}
-  on:contextmenu={() => false && requestShowContexMenu()}>
+  on:contextmenu={() => requestShowContexMenu()}>
   <ul class="addon-details">
     <li class="name">{addon.name}</li>
     <!-- prettier-ignore -->
