@@ -2,7 +2,7 @@
 Change the `pkg_options` table's `strategy` column to be
 one of 'default', 'latest'.
 """
-from functools import partial
+from functools import partial, update_wrapper
 
 from alembic import op
 from sqlalchemy import Enum, String
@@ -32,5 +32,9 @@ def _migrate(new_type: Enum, old_val: str, new_val: str) -> None:
         batch_op.alter_column('strategy', type_=new_type)
 
 
-upgrade = partial(_migrate, Enum('default', 'latest'), 'canonical', 'default')
-downgrade = partial(_migrate, Enum('canonical', 'latest'), 'default', 'canonical')
+upgrade = update_wrapper(
+    partial(_migrate, Enum('default', 'latest'), 'canonical', 'default'), _migrate
+)
+downgrade = update_wrapper(
+    partial(_migrate, Enum('canonical', 'latest'), 'default', 'canonical'), _migrate
+)
