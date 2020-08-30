@@ -1,10 +1,19 @@
 import type { Client } from "@open-rpc/client-js";
 import lodash from "lodash";
 
+export enum Strategies {
+  default = "default",
+  latest = "latest",
+  curse_latest_beta = "curse_latest_beta",
+  curse_latest_alpha = "curse_latest_alpha",
+  any_flavour = "any_flavour",
+  version = "version",
+}
+
 export type Defn = {
   source: string;
   name: string;
-  strategy?: string;
+  strategy?: Strategies;
   strategy_vals?: string[];
 };
 
@@ -84,58 +93,69 @@ export class Api {
     return new Api(this.getClient, profile);
   }
 
-  async readProfile(profile: string): Promise<Config> {
+  async _request(requestObject: Parameters<Client["request"]>[0]) {
     const client = await this.getClient();
-    return await client.request({ method: "config.read", params: { profile: profile } }, null);
+    return await client.request(requestObject, null);
+  }
+
+  async readProfile(profile: string): Promise<Config> {
+    return await this._request({ method: "config.read", params: { profile: profile } });
   }
 
   async writeProfile(config: Config): Promise<Config> {
-    const client = await this.getClient();
-    return await client.request({ method: "config.write", params: { values: config } }, null);
+    return await this._request({ method: "config.write", params: { values: config } });
   }
 
   async enumerateProfiles(): Promise<Profiles> {
-    const client = await this.getClient();
-    return await client.request({ method: "config.enumerate" }, null);
+    return await this._request({ method: "config.enumerate" });
   }
 
   async listSources(): Promise<Sources> {
-    const client = await this.getClient();
-    const result = await client.request(
-      { method: "sources.list", params: { profile: this.profile } },
-      null
-    );
+    const result = await this._request({
+      method: "sources.list",
+      params: { profile: this.profile },
+    });
     return lodash.fromPairs(result.map((i) => [i.source, i]));
   }
 
   async listAddons(checkForUpdates: boolean): Promise<ListResult> {
-    const client = await this.getClient();
-    return await client.request(
-      { method: "list", params: { profile: this.profile, check_for_updates: checkForUpdates } },
-      null
-    );
+    return await this._request({
+      method: "list",
+      params: { profile: this.profile, check_for_updates: checkForUpdates },
+    });
   }
 
-  async searchForAddons(searchTerms: string, searchLimit: number): Promise<ListResult> {
-    const client = await this.getClient();
-    return await client.request(
-      {
-        method: "search",
-        params: { profile: this.profile, search_terms: searchTerms, limit: searchLimit },
+  async search(
+    searchTerms: string,
+    searchLimit: number,
+    strategy: Exclude<Strategies, "version">
+  ): Promise<ListResult> {
+    return await this._request({
+      method: "search",
+      params: {
+        profile: this.profile,
+        search_terms: searchTerms,
+        limit: searchLimit,
+        strategy: strategy,
       },
-      null
-    );
+    });
   }
 
-  async resolveUris(prospectiveDefns: string[]): Promise<ListResult> {
-    const client = await this.getClient();
-    return await client.request(
-      {
-        method: "resolve_uris",
-        params: { profile: this.profile, prospective_defns: prospectiveDefns },
-      },
-      null
-    );
+  async resolve(defns: Defn[]): Promise<ListResult> {
+    return await this._request({
+      method: "resolve",
+      params: { profile: this.profile, defns: defns },
+    });
+  }
+
+  async resolveUris(
+    prospectiveDefns: string[],
+    strategy: Exclude<Strategies, "version">
+  ): Promise<ListResult> {
+    return await this._request({
+      method: "resolve_uris",
+      params: { profile: this.profile, prospective_defns: prospectiveDefns, strategy: strategy },
+    });
   }
 
   async modifyAddons(
@@ -143,26 +163,20 @@ export class Api {
     defns: object[],
     extraParams: object = {}
   ): Promise<ModifyResult> {
-    const client = await this.getClient();
-    return await client.request(
-      {
-        method: method,
-        params: { profile: this.profile, defns: defns, ...extraParams },
-      },
-      null
-    );
+    return await this._request({
+      method: method,
+      params: { profile: this.profile, defns: defns, ...extraParams },
+    });
   }
 
   async reconcile(matcher: "toc_ids" | "dir_names" | "toc_names"): Promise<ReconcileResult> {
-    const client = await this.getClient();
-    return await client.request(
-      { method: "reconcile", params: { profile: this.profile, matcher: matcher } },
-      null
-    );
+    return await this._request({
+      method: "reconcile",
+      params: { profile: this.profile, matcher: matcher },
+    });
   }
 
   async getVersion(): Promise<Version> {
-    const client = await this.getClient();
-    return await client.request({ method: "meta.get_version" }, null);
+    return await this._request({ method: "meta.get_version" });
   }
 }

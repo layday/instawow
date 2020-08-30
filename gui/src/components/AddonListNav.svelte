@@ -2,11 +2,13 @@
   import { faStepBackward, faStepForward } from "@fortawesome/free-solid-svg-icons";
   import { createEventDispatcher } from "svelte";
   import { fade } from "svelte/transition";
+  import { Strategies } from "../api";
   import { View } from "../constants";
   import Icon from "./SvgIcon.svelte";
 
   export let activeView: View,
     search__searchTerms: string,
+    search__searchStrategy: Exclude<Strategies, "version">,
     search__isSearching: boolean,
     installed__isRefreshing: boolean,
     installed__outdatedAddonCount: number,
@@ -29,8 +31,9 @@
     margin-bottom: 0.5em;
 
     button,
+    input[type="search"],
     label,
-    input[type="search"] {
+    select {
       border: 0;
       background-color: var(--inverse-color-10);
       transition: background-color 0.2s;
@@ -62,11 +65,14 @@
         -webkit-appearance: none;
       }
     }
+
+    .status-indicator {
+      margin-left: 0.5em;
+    }
   }
 
-  .search-status-indicator {
+  .status-indicator {
     @include spinner(18px, currentColor);
-    margin-left: 0.5em;
   }
 
   .view-switcher {
@@ -106,14 +112,17 @@
   .view-actions {
     @include unstyle-list;
     display: flex;
+    align-items: center;
     font-size: 0.85em;
 
-    button {
+    button,
+    select {
       line-height: $line-height;
       padding: 0 0.7em;
       border-radius: $middle-border-radius;
 
-      + button {
+      + button,
+      + select {
         margin-left: 4px;
       }
 
@@ -134,6 +143,19 @@
         fill: var(--inverse-color);
       }
     }
+
+    select {
+      padding-right: 1.4rem;
+      background-image: var(--dropdown-arrow);
+      background-size: 10px;
+      background-repeat: no-repeat;
+      background-position: top 7px right 7px;
+      -webkit-appearance: none;
+    }
+
+    .status-indicator {
+      margin-right: 0.5em;
+    }
   }
 </style>
 
@@ -146,7 +168,7 @@
       on:keydown
       disabled={activeView === View.Reconcile} />
     {#if search__isSearching}
-      <div class="search-status-indicator" transition:fade={{ duration: 200 }} />
+      <div class="status-indicator" transition:fade={{ duration: 200 }} />
     {/if}
   </div>
   <menu class="view-switcher">
@@ -175,7 +197,16 @@
         on:click={() => dispatch('requestUpdateAll')}>
         {installed__outdatedAddonCount ? `update ${installed__outdatedAddonCount}` : 'no updates'}
       </button>
+    {:else if activeView === View.Search}
+      <select aria-label="strategy" bind:value={search__searchStrategy}>
+        {#each Object.values(Strategies).filter((s) => s !== 'version') as strategy}
+          <option value={strategy}>{strategy}</option>
+        {/each}
+      </select>
     {:else if activeView === View.Reconcile}
+      {#if reconcile__isInstalling}
+        <div class="status-indicator" transition:fade={{ duration: 200 }} />
+      {/if}
       <button
         aria-label="previous stage"
         title="previous stage"

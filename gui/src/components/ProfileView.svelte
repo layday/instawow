@@ -1,7 +1,13 @@
 <script context="module" lang="ts">
   import { ReconciliationStage, View } from "../constants";
+  import { Strategies } from "../api";
 
-  const addonToDefn = (addon: Addon) => ({ source: addon.source, name: addon.id });
+  export const addonToDefn = (addon: Addon): Defn => ({
+    source: addon.source,
+    name: addon.id,
+    strategy: addon.options.strategy as Strategies,
+    ...(addon.options.strategy === "version" ? { strategy_vals: [addon.version] } : {}),
+  });
 
   type CreateTokenSignature = {
     (addon: Addon): string;
@@ -29,7 +35,7 @@
     reconcileStages[reconcileStages.indexOf(stage) + 1];
 
   const debounceDelay = 500;
-  const searchLimit = 25;
+  const searchLimit = 20;
 </script>
 
 <script lang="ts">
@@ -56,7 +62,9 @@
   let addons__Search: ListResult;
   let addons__CombinedSearch: ListResult;
   let outdatedAddonCount: number;
+
   let searchTerms: string = "";
+  let searchStrategy: Exclude<Strategies, "version"> = Strategies.default;
 
   let reconcileStage: ReconciliationStage = reconcileStages[0];
   let reconcileSelections: Addon[];
@@ -159,10 +167,14 @@
     await install(defns);
   };
 
+  const goToPrevReconcileStage = () => (reconcileStage = getReconcilePrevStage(reconcileStage));
+
+  const goToNextReconcileStage = () => (reconcileStage = getReconcileNextStage(reconcileStage));
+
   const prepareReconcile = async (thisStage: ReconciliationStage) => {
     const stages = reconcileStages.slice(reconcileStages.indexOf(thisStage));
     for (const stage of stages) {
-      console.debug("trying", stage, reconcileSelections);
+      console.debug("trying", stage);
 
       const results = await api.reconcile(stage);
       if (results.reconciled.length || !getReconcileNextStage(stage)) {
@@ -180,6 +192,7 @@
   ) => {
     reconcileInstallationInProgress = true;
     try {
+      console.debug("installing selections from", thisStage);
       await install(theseSelections.filter(Boolean).map(addonToDefn), true);
 
       const nextStage = getReconcileNextStage(thisStage);
@@ -200,24 +213,16 @@
     }
   };
 
-  const goToPrevReconcileStage = () => (reconcileStage = getReconcilePrevStage(reconcileStage));
-
-  const goToNextReconcileStage = () => (reconcileStage = getReconcileNextStage(reconcileStage));
-
   const search = async () => {
     searchesInProgress++;
     try {
       const searchTermsSnapshot = searchTerms;
       if (searchTermsSnapshot) {
-        let maybeUrl: URL;
-        try {
-          maybeUrl = new URL(searchTermsSnapshot);
-        } catch {
-          //
-        }
-        const results = await (maybeUrl && protocols.includes(maybeUrl.protocol)
-          ? api.resolveUris([searchTermsSnapshot])
-          : api.searchForAddons(searchTermsSnapshot, searchLimit));
+        const requests: [Promise<ListResult>, Promise<ListResult>] = [
+          api.resolveUris([searchTermsSnapshot], searchStrategy),
+          api.search(searchTermsSnapshot, searchLimit, searchStrategy),
+        ];
+        const results = lodash.unionWith(...(await Promise.all(requests)), matchCmp);
         if (searchTermsSnapshot === searchTerms) {
           addons__Search = results;
           regenerateCombinedSearchAddons();
@@ -273,14 +278,15 @@
         activeView = View.Reconcile;
       }
     } finally {
-      refreshInProgress = false;
+      // Keep actions disabled until after the addons reshuffled to prevent misclicking
+      setTimeout(() => (refreshInProgress = false), debounceDelay);
     }
   };
 
   onMount(setupComponent);
 
   // Update list view - we're restoring installed add-ons immediately but debouncing searches
-  $: searchTerms ? searchDebounced() : (activeView = View.Installed);
+  $: searchTerms && searchStrategy ? searchDebounced() : (activeView = View.Installed);
   $: addons = (activeView === View.Search ? addons__CombinedSearch : addons__Installed) ?? [];
   $: addons__Installed && countUpdates();
 </script>
@@ -340,6 +346,7 @@
     on:requestAutomateReconciliation={() => installReconciled(reconcileStage, reconcileSelections, true)}
     bind:activeView
     bind:search__searchTerms={searchTerms}
+    bind:search__searchStrategy={searchStrategy}
     search__isSearching={searchesInProgress > 0}
     installed__isRefreshing={refreshInProgress}
     installed__outdatedAddonCount={outdatedAddonCount}
