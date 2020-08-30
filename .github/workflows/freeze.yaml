@@ -7,7 +7,7 @@ defaults:
     shell: bash
 jobs:
   extract-tag:
-    if: 'startsWith(github.event.head_commit.ref, "refs/tags")'
+    if: "startsWith(github.event.head_commit.ref, 'refs/tags')"
     runs-on: ubuntu-latest
     outputs:
       tag: ${{ steps.get_tag.outputs.TAG }}
