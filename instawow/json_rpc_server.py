@@ -209,26 +209,42 @@ class ListInstalledParams(_ProfileParamMixin, BaseParams):
 class SearchParams(_ProfileParamMixin, BaseParams):
     search_terms: str
     limit: int
+    strategy: Strategies = Strategies.default
     _method = 'search'
     _result_type = _ListResult
 
     async def respond(self, managers: ManagerWorkQueue) -> _result_type:
         results = await managers.run(
             self.profile,
-            partial(Manager.search, search_terms=self.search_terms, limit=self.limit),
+            partial(
+                Manager.search,
+                search_terms=self.search_terms,
+                limit=self.limit,
+                strategy=self.strategy,
+            ),
         )
         return _ListResult.parse_obj([(r, _PkgMeta()) for r in results.values()])
 
 
+class ResolveParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
+    _method = 'resolve'
+    _result_type = _ListResult
+
+    async def respond(self, managers: ManagerWorkQueue) -> _result_type:
+        results = await managers.run(self.profile, partial(Manager.resolve, defns=self.defns))
+        return _ListResult.parse_obj([(r, _PkgMeta()) for r in results.values() if is_pkg(r)])
+
+
 class ResolveUrisParams(_ProfileParamMixin, BaseParams):
     prospective_defns: List[str]
+    strategy: Strategies = Strategies.default
     _method = 'resolve_uris'
     _result_type = _ListResult
 
     async def respond(self, managers: ManagerWorkQueue) -> _result_type:
         manager = await managers.run(self.profile)
         source_name_pairs = filter(None, map(manager.pair_uri, self.prospective_defns))
-        defns = [Defn(source=a, name=b) for a, b in source_name_pairs]
+        defns = [Defn.get(a, b).with_(strategy=self.strategy) for a, b in source_name_pairs]
         results = await managers.run(self.profile, partial(Manager.resolve, defns=defns))
         return _ListResult.parse_obj([(r, _PkgMeta()) for r in results.values() if is_pkg(r)])
 
@@ -479,6 +495,7 @@ async def create_app() -> Application:
                 ListSourcesParams,
                 ListInstalledParams,
                 SearchParams,
+                ResolveParams,
                 ResolveUrisParams,
                 InstallParams,
                 UpdateParams,

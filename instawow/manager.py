@@ -43,6 +43,7 @@ from .resolvers import (
     InstawowResolver,
     MasterCatalogue,
     Resolver,
+    Strategies,
     TukuiResolver,
     WowiResolver,
 )
@@ -526,7 +527,9 @@ class Manager:
             results_by_defn.update(await self._resolve_deps(results_by_defn.values()))
         return results_by_defn
 
-    async def search(self, search_terms: str, limit: int) -> Dict[Defn, Pkg]:
+    async def search(
+        self, search_terms: str, limit: int, strategy: Strategies = Strategies.default
+    ) -> Dict[Defn, Pkg]:
         "Search the master catalogue for packages by name."
         import heapq
         import string
@@ -557,7 +560,9 @@ class Manager:
             key=lambda v: v[0],
         )
         defns = [
-            Defn(source=i.source, name=i.id) for _, m in matches for _, i in tokens_to_defns[m]
+            Defn.get(i.source, i.id).with_(strategy=strategy)
+            for _, m in matches
+            for _, i in tokens_to_defns[m]
         ]
         resolve_results = await self.resolve(defns)
         pkgs_by_defn = {d.with_(name=r.slug): r for d, r in resolve_results.items() if is_pkg(r)}
