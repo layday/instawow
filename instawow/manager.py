@@ -199,11 +199,11 @@ def prepare_database(config: Config) -> SqlaSession:
             aconfig.set_main_option('sqlalchemy.url', db_url)
 
             if db_exists:
-                logger.info(f'migrating database to {DB_REVISION}')
+                logger.info(f'migrating database at {config.db_file} to {DB_REVISION}')
                 upgrade(aconfig, DB_REVISION)
             else:
                 ModelBase.metadata.create_all(engine)
-                logger.info(f'stamping database with {DB_REVISION}')
+                logger.info(f'stamping database at {config.db_file} with {DB_REVISION}')
                 stamp(aconfig, DB_REVISION)
 
     session_factory = sessionmaker(bind=engine)
