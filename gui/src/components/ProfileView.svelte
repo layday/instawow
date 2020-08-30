@@ -41,6 +41,7 @@
 <script lang="ts">
   import type { Addon, AddonMeta, Api, Defn, ListResult, ModifyResult, Sources } from "../api";
   import { profiles } from "../store";
+  import { faQuestion } from "@fortawesome/free-solid-svg-icons";
   import { ipcRenderer } from "electron";
   import lodash from "lodash";
   import { onMount } from "svelte";
@@ -51,6 +52,7 @@
   import AddonStub from "./AddonStub.svelte";
   import InstallationModal from "./InstallationModal.svelte";
   import RollbackModal from "./RollbackModal.svelte";
+  import Icon from "./SvgIcon.svelte";
 
   export let profile: string, api: Api, isActive: boolean;
 
@@ -76,7 +78,7 @@
   let modalToShow: "install" | "reinstall" | "rollback" | false = false;
   let modalProps: object;
 
-  let notifications;  // TODO as a replacement for `notifyOfFailures`
+  let notifications; // TODO as a replacement for `notifyOfFailures`
 
   let addonsBeingModified: string[] = []; // revisit
 
@@ -278,7 +280,8 @@
         activeView = View.Reconcile;
       }
     } finally {
-      // Keep actions disabled until after the addons reshuffled to prevent misclicking
+      // Keep actions disabled until after the addons have been reshuffled
+      // to prevent misclicking
       setTimeout(() => (refreshInProgress = false), debounceDelay);
     }
   };
@@ -322,10 +325,22 @@
   }
 
   .preamble {
-    margin: 0;
-    padding: 0.5rem;
-    padding-top: 0;
-    font-size: 0.9em;
+    display: grid;
+    grid-template-columns: 3rem 1fr;
+    grid-column-gap: 0.5rem;
+    align-items: center;
+    margin: 0.25rem 0.75rem 0.75rem;
+    padding: 0 0.75rem;
+    font-size: 0.85em;
+    border-radius: 4px;
+    background-image: linear-gradient(45deg, rgba(pink, 0.2), rgba(orange, 0.2));
+    color: var(--inverse-color-tone-10);
+
+    :global(.icon) {
+      width: 3rem;
+      height: 3rem;
+      fill: var(--inverse-color-tone-10);
+    }
   }
 
   .addon-list {
@@ -375,18 +390,23 @@
         </div>
       {:then result}
         {#if Object.values(result).some((v) => v.length)}
-          <p class="preamble">
-            Reconciliation is the process by which installed add-ons are linked with add-ons from
-            sources. This is done in three stages in decreasing order of accuracy. Add-ons do not
-            always carry source metadata and
-            <i>instawow</i>
-            employes a number of heuristics to reconcile add-ons which cannot be positively
-            identified. If you trust
-            <i>instawow</i>
-            to do this without supervision, press "automate". Otherwise, review your selections
-            below and press "install" to proceed to the next stage. Reconciled add-ons will be
-            reinstalled.
-          </p>
+          <div class="preamble">
+            <Icon icon={faQuestion} />
+            <p>
+              Reconciliation is the process by which installed add-ons are linked with add-ons from
+              sources. This is done in three stages in decreasing order of accuracy. Add-ons do not
+              always carry source metadata and
+              <i>instawow</i>
+              employes a number of heuristics to reconcile add-ons which cannot be positively
+              identified. If you trust
+              <i>instawow</i>
+              to do this without supervision, press "
+              <b>automate</b>
+              ". Otherwise, review your selections below and press "
+              <b>install</b>
+              " to proceed to the next stage. Reconciled add-ons will be reinstalled.
+            </p>
+          </div>
           <ul class="addon-list">
             {#each result.reconciled.concat(result.unreconciled) as { folders, matches: choices }, idx}
               <li>

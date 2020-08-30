@@ -57,7 +57,6 @@
   const dismissOnEsc = () => {
     const handler = (e) => e.key === "Escape" && (editing = false);
     document.body.addEventListener("keydown", handler);
-
     return {
       destroy: () => document.body.removeEventListener("keydown", handler),
     };

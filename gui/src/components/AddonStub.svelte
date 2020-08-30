@@ -45,7 +45,7 @@
     margin: 0.35rem 0 0.2rem;
     padding: 0.1rem 0.2rem 0 0.5rem;
     background-color: var(--inverse-color-10);
-    border-radius: 6px;
+    border-radius: 4px;
 
     summary {
       display: grid;
