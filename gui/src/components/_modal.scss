@@ -29,7 +29,7 @@ $edge-border-radius: $form-el-line-height / 4;
   }
 
   button,
-  input,
+  input[type="text"],
   select {
     display: block;
     width: 100%;
@@ -133,7 +133,7 @@ $edge-border-radius: $form-el-line-height / 4;
   padding: 0;
   border: 0;
   border-radius: 0.25rem;
-  box-shadow: 0 10px 20px var(--inverse-color-05);
+  box-shadow: 0 1rem 3rem var(--inverse-color-05);
   color: var(--inverse-color);
 
   @extend %modal-elements;

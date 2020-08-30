@@ -67,19 +67,14 @@
 <style lang="scss">
   @import "modal";
 
-  .config-editor-wrapper {
+  .config-editor {
+    @extend .modal;
+
     position: absolute;
     top: calc(100% + 4px);
     left: 0;
     right: 0;
     z-index: 10;
-    padding: 1.25rem;
-    border: 0;
-    border-radius: 0.25rem;
-    box-shadow: 0 10px 20px var(--inverse-color-05);
-    background-color: var(--base-color-65);
-    backdrop-filter: blur(5px);
-    color: var(--inverse-color);
 
     &::before {
       content: "";
@@ -91,18 +86,16 @@
       border-width: 8px;
       pointer-events: none;
     }
-
-    @extend %modal-elements;
   }
 </style>
 
 <dialog
   open
-  class="config-editor-wrapper"
+  class="config-editor"
   style="--arrowhead-offset: {createNew ? 'calc(1rem - 8px)' : 'calc(3rem - 4px)'}"
   transition:fade={{ duration: 200 }}
   use:dismissOnEsc>
-  <form on:submit|preventDefault={() => saveConfig()}>
+  <form class="content" on:submit|preventDefault={() => saveConfig()}>
     {#if errors.profile}
       <div class="row error-text">{errors.profile}</div>
     {/if}
