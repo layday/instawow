@@ -2,13 +2,12 @@
 name: Create instawow executables
 on:
   push:
-    tags:
-    - v*
 defaults:
   run:
     shell: bash
 jobs:
   extract-tag:
+    if: 'startsWith(github.event.head_commit.ref, "refs/tags")'
     runs-on: ubuntu-latest
     outputs:
       tag: ${{ steps.get_tag.outputs.TAG }}
@@ -72,7 +71,8 @@ jobs:
     needs: [extract-tag, freeze-cli]
     strategy:
       matrix:
-        os: [macos-latest]
+        os:
+        - macos-latest
     runs-on: ${{ matrix.os }}
     steps:
     - name: Clone the repo
