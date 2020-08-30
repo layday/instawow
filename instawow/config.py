@@ -200,7 +200,7 @@ def setup_logging(config: _GlobalConfig, log_level: Union[int, str] = 'INFO') ->
             # Find caller from where the logged message originated
             frame = logging.currentframe()
             depth = 2
-            while frame and frame.f_code.co_filename == logging.__file__:
+            while frame and frame.f_code.co_filename == getattr(logging, '__file__', None):
                 frame = frame.f_back
                 depth += 1
 
