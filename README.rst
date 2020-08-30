@@ -12,10 +12,11 @@ and do not revel in using bloatware which infringe on our privacy
 or inhabiting walled gardens.
 
 .. image:: https://asciinema.org/a/8m36ncAoyTmig4MXfQM8YjE6a.svg
-   :align: center
    :width: 640
    :alt: Asciicast demonstrating the operation of instawow.
    :target: https://asciinema.org/a/8m36ncAoyTmig4MXfQM8YjE6a?autoplay=1
+
+----
 
 An *instawow* GUI is in early development.
 The macOS version is available for download from
@@ -24,7 +25,7 @@ The GUI does not have feature parity with the CLI as yet.
 Notably, it does not interface with the WeakAuras Companion plug-in.
 
 .. image:: https://raw.githubusercontent.com/layday/instawow/feature-oh-my-gui/gui/screenshots/v0.1.0.png
-   :width: 100%
+   :width: 640
    :target: https://github.com/layday/instawow/releases/latest
 
 Installation
