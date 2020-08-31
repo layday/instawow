@@ -30,7 +30,7 @@ setup(
             typing-extensions
         ''',
         'server': '''
-            aiohttp-json-rpc == 0.13.2
+            aiohttp-rpc == 0.6.2
         ''',
         'test': '''
             coverage[toml]   ~=5.0

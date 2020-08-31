@@ -24,9 +24,9 @@ from typing import (
     overload,
 )
 
-from aiohttp.web import Application, AppRunner
-from aiohttp_json_rpc import JsonRpc, RpcError, RpcGenericServerDefinedError, RpcInvalidParamsError
-from aiohttp_json_rpc.rpc import JsonRpcMethod
+from aiohttp.web import Application, AppRunner, get
+from aiohttp_rpc import JsonRpcMethod, WsJsonRpcServer, middlewares as rpc_middlewares
+from aiohttp_rpc.errors import InvalidParams as InvalidParamsError, ServerError
 from pydantic import BaseModel, Field, ValidationError, validator
 
 from . import exceptions as E
@@ -45,32 +45,17 @@ if TYPE_CHECKING:
 API_VERSION = 0
 
 
-class _InstawowError(RpcGenericServerDefinedError):
-    ERROR_CODE = -32000
-    MESSAGE = 'instawow encountered an error'
-
-
-class _ConfigError(_InstawowError):
-    ERROR_CODE = -32001
-    MESSAGE = 'invalid configuration parameters'
+class _ConfigError(ServerError):
+    code = -32001
+    message = 'invalid configuration parameters'
 
 
 @contextmanager
-def _reraise_validation_error(error_class: Type[RpcError] = _InstawowError) -> Iterator[None]:
+def _reraise_validation_error(error_class: Type[ServerError] = ServerError) -> Iterator[None]:
     try:
         yield
     except ValidationError as error:
         raise error_class(data=error.errors()) from error
-
-
-JSONRPC = '2.0'
-
-
-class Request(BaseModel):
-    jsonrpc = JSONRPC
-    method: str
-    params: Union[List[Any], Dict[str, Any]]
-    id: Union[None, int, str]
 
 
 class BaseParams(BaseModel):
@@ -384,19 +369,6 @@ class GetVersionParams(BaseParams):
         )
 
 
-class _Response(BaseModel):
-    jsonrpc = JSONRPC
-    id: Union[None, int, str]
-
-
-class SuccessResponse(_Response):
-    result: Any
-
-
-class ErrorResponse(_Response):
-    error: Any
-
-
 class ManagerWorkQueue:
     def __init__(self) -> None:
         asyncio.get_running_loop()  # Sanity check
@@ -464,27 +436,26 @@ class ManagerWorkQueue:
         self._managers.pop(profile, None)
 
 
-def _prepare_response(
-    param_class: Type[BaseParams], managers: ManagerWorkQueue
-) -> Tuple[str, JsonRpcMethod]:
-    async def respond(request: Any) -> Any:
-        with _reraise_validation_error(RpcInvalidParamsError):
-            params = param_class.parse_obj(request.params)
+def serialise_response(value: Dict[str, Any]) -> str:
+    return BaseModel.construct(**value).json()
 
-        response = SuccessResponse(
-            result=await params.respond(managers), id=request.msg.data['id']
-        )
-        return response.json()
 
-    # Signal to ``JsonRpc`` that it should not attempt to encode the return value
-    respond.raw_response = True
-    return (param_class._method, JsonRpcMethod(respond))
+def _prepare_response(param_class: Type[BaseParams], managers: ManagerWorkQueue) -> JsonRpcMethod:
+    async def respond(**kwargs: Any) -> BaseModel:
+        with _reraise_validation_error(InvalidParamsError):
+            params = param_class.parse_obj(kwargs)
+        return await params.respond(managers)
+
+    return JsonRpcMethod('', respond, custom_name=param_class._method)
 
 
 async def create_app() -> Application:
     managers = ManagerWorkQueue()
-    json_rpc = JsonRpc()
-    json_rpc.methods = dict(
+    rpc_server = WsJsonRpcServer(
+        json_serialize=serialise_response,
+        middlewares=rpc_middlewares.DEFAULT_MIDDLEWARES,
+    )
+    rpc_server.add_methods(
         map(
             _prepare_response,
             (
@@ -507,18 +478,14 @@ async def create_app() -> Application:
         )
     )
     app = Application()
-    app.router.add_route(
-        '*',
-        f'/v{API_VERSION}',
-        json_rpc.handle_request,  # type: ignore  # aiohttp_json_rpc is untyped
-    )
+    app.router.add_routes([get(f'/v{API_VERSION}', rpc_server.handle_http_request)])
 
     async def on_shutdown(app: Application):
         listen.cancel()
         await managers.cleanup()
 
     listen = asyncio.create_task(managers.listen())
-    app.on_shutdown.append(on_shutdown)
+    app.on_shutdown.extend([on_shutdown, rpc_server.on_shutdown])
     return app
 
 
