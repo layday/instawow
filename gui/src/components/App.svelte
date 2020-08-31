@@ -125,7 +125,7 @@
       .instawow-version {
         flex-grow: 1;
         text-align: right;
-        font-family: Menlo, monospace;
+        font-family: $mono-font-stack;
         font-size: 0.7em;
       }
     }

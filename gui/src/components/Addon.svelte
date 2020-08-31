@@ -70,7 +70,7 @@
     .defn,
     .versions {
       margin: 0.25rem 0;
-      font-family: Menlo, monospace;
+      font-family: $mono-font-stack;
       font-size: 0.7em;
       color: var(--inverse-color-tone-10);
     }

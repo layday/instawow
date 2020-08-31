@@ -37,24 +37,39 @@
 
       .remaining-folders {
         font-size: 0.8em;
+        color: var(--inverse-color-tone-20);
       }
     }
   }
 
+  .defn-or-version {
+    font-family: $mono-font-stack;
+    font-size: 0.7rem;
+  }
+
   .selection-controls {
     margin: 0.35rem 0 0.2rem;
-    padding: 0.1rem 0.2rem 0 0.5rem;
+    padding: 0.18rem;
+    padding-left: 0.4rem;
     background-color: var(--inverse-color-10);
     border-radius: 4px;
 
-    summary {
+    summary,
+    .choices {
       display: grid;
-      grid-template-columns: 1fr 2fr 1.5rem;
+      grid-template-columns: 1fr 2fr 1rem;
       grid-column-gap: 0.5rem;
-      line-height: 2.2;
+    }
+
+    summary {
+      line-height: 1rem;
 
       &::-webkit-details-marker {
         display: none;
+      }
+
+      :nth-child(2) {
+        padding: 0 0.2rem;
       }
 
       :last-child {
@@ -63,16 +78,10 @@
 
       :global(.icon) {
         display: block;
-        margin-top: 3px;
-        height: 16px;
-        width: 16px;
+        height: 1rem;
+        width: 1rem;
         fill: var(--inverse-color);
       }
-    }
-
-    .defn-and-version {
-      font-family: Menlo, monospace;
-      font-size: 0.7rem;
     }
 
     &[open] :global(.icon-collapsed) {
@@ -86,39 +95,39 @@
 
   .choices {
     @include unstyle-list;
-    margin-left: -0.5rem;
-    padding-bottom: 0.3rem;
 
     li {
+      @extend .defn-or-version;
       display: flex;
-      align-items: center;
-      margin-left: 0.5rem;
+      padding: 0 0.2rem;
+      grid-column-start: 2;
+      line-height: 1rem;
+
+      &:first-child {
+        margin-top: 0.18rem;
+        padding-top: 0.18rem;
+        border-top: 1px solid var(--inverse-color-tone-20);
+      }
 
       label {
         flex-grow: 1;
-        line-height: 1em;
-        padding-left: 0.25em;
-        border-radius: 1em;
 
-        a {
-          font-size: 0.8em;
-          color: var(--inverse-color-tone-20);
+        &::before {
+          content: "( ) ";
         }
       }
     }
 
     [type="radio"] {
-      -webkit-appearance: none;
-      flex-shrink: 0;
-      width: 12px;
-      height: 12px;
-      margin: 0;
-      border-radius: 1rem;
-      border: 1px solid var(--inverse-color);
+      display: none;
 
-      &:checked {
-        background-color: var(--inverse-color);
+      &:checked + label::before {
+        content: "(x) ";
       }
+    }
+
+    .open-url {
+      color: var(--inverse-color-tone-20);
     }
   }
 </style>
@@ -140,11 +149,11 @@
       <!-- open={false} is needed for the [open] CSS selector to be compiled -->
       <details class="selection-controls" open={false}>
         <summary>
-          <div aria-label="installed version" class="defn-and-version">
+          <div aria-label="installed version" class="defn-or-version">
             {folders.find((f) => f.version)?.version || '?'}
           </div>
           <!-- prettier-ignore -->
-          <div aria-label="selection" class="defn-and-version">
+          <div aria-label="selection" class="defn-or-version">
             ({choices.length})
             {#if selection}
               {selection.source}:{selection.slug}==<span title={selection.date_published}>{selection.version}</span>
@@ -167,14 +176,15 @@
                 value={choiceIdx}
                 bind:group={selectionIdx} />
               <label for="addon-selection-{idx}-{choiceIdx}">
-                <span class="defn-and-version">
+                <span class="defn-or-version">
                   {choice.source}:{choice.slug}=={choice.version}
                 </span>
                 <a
                   class="open-url"
+                  title="open in browser"
                   href="__openUrl"
                   on:click|preventDefault|stopPropagation={() => ipcRenderer.send('open-url', choice.url)}>
-                  (open in browser)
+                  [↗]
                 </a>
               </label>
             </li>
@@ -187,7 +197,7 @@
               value={-1}
               bind:group={selectionIdx} />
             <label for="addon-selection-{idx}-skip">
-              <span class="defn-and-version">skip</span>
+              <span class="defn-or-version">skip</span>
             </label>
           </li>
         </ul>
