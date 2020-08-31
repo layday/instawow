@@ -24,9 +24,10 @@ from typing import (
     overload,
 )
 
-from aiohttp.web import Application, AppRunner, get
-from aiohttp_rpc import JsonRpcMethod, WsJsonRpcServer, middlewares as rpc_middlewares
+from aiohttp import http, web
+from aiohttp_rpc import BaseJsonRpcServer, JsonRpcMethod, middlewares as rpc_middlewares
 from aiohttp_rpc.errors import InvalidParams as InvalidParamsError, ServerError
+from loguru import logger
 from pydantic import BaseModel, Field, ValidationError, validator
 
 from . import exceptions as E
@@ -353,18 +354,18 @@ class ReconcileParams(_ProfileParamMixin, BaseParams):
         return _ReconcileResult(reconciled=reconciled, unreconciled=unreconciled)
 
 
-class _GetVersionResponse(BaseModel):
+class _GetVersionResult(BaseModel):
     installed_version: str
     new_version: O[str]
 
 
 class GetVersionParams(BaseParams):
     _method = 'meta.get_version'
-    _result_type = _GetVersionResponse
+    _result_type = _GetVersionResult
 
     async def respond(self, managers: ManagerWorkQueue) -> _result_type:
         outdated, new_version = await t(is_outdated)()
-        return _GetVersionResponse(
+        return _GetVersionResult(
             installed_version=get_version(), new_version=new_version if outdated else None
         )
 
@@ -436,10 +437,6 @@ class ManagerWorkQueue:
         self._managers.pop(profile, None)
 
 
-def serialise_response(value: Dict[str, Any]) -> str:
-    return BaseModel.construct(**value).json()
-
-
 def _prepare_response(param_class: Type[BaseParams], managers: ManagerWorkQueue) -> JsonRpcMethod:
     async def respond(**kwargs: Any) -> BaseModel:
         with _reraise_validation_error(InvalidParamsError):
@@ -449,12 +446,41 @@ def _prepare_response(param_class: Type[BaseParams], managers: ManagerWorkQueue)
     return JsonRpcMethod('', respond, custom_name=param_class._method)
 
 
-async def create_app() -> Application:
+def serialise_response(value: Dict[str, Any]) -> str:
+    return BaseModel.construct(**value).json()
+
+
+class WsJsonRpcServer(BaseJsonRpcServer):
+    async def handle_request(self, http_request: web.Request) -> web.StreamResponse:
+        if http_request.headers.get('upgrade', '').lower() != 'websocket':
+            return web.Response(status=405)
+
+        ws = web.WebSocketResponse()
+        await ws.prepare(http_request)
+
+        try:
+            async for ws_msg in ws:
+                if ws_msg.type == web.WSMsgType.TEXT:
+                    logger.debug(f'will handle {ws_msg.data}')
+                    asyncio.create_task(self._handle_ws_msg(http_request, ws, ws_msg))
+        finally:
+            logger.debug(f'exiting websocket')
+        return ws
+
+    async def _handle_ws_msg(
+        self, http_request: web.Request, ws: web.WebSocketResponse, ws_msg: http.WSMessage
+    ) -> None:
+        output_data = await self._process_input_data(ws_msg.json(), http_request=http_request)
+
+        if ws._writer.transport.is_closing():  # type: ignore
+            await ws.close()
+        await ws.send_str(serialise_response(output_data))
+        logger.info(f'handled {ws_msg.data}')
+
+
+async def create_app() -> web.Application:
     managers = ManagerWorkQueue()
-    rpc_server = WsJsonRpcServer(
-        json_serialize=serialise_response,
-        middlewares=rpc_middlewares.DEFAULT_MIDDLEWARES,
-    )
+    rpc_server = WsJsonRpcServer(middlewares=rpc_middlewares.DEFAULT_MIDDLEWARES)
     rpc_server.add_methods(
         map(
             _prepare_response,
@@ -477,22 +503,22 @@ async def create_app() -> Application:
             repeat(managers),
         )
     )
-    app = Application()
-    app.router.add_routes([get(f'/v{API_VERSION}', rpc_server.handle_http_request)])
+    app = web.Application()
+    app.router.add_routes([web.get(f'/v{API_VERSION}', rpc_server.handle_request)])
 
-    async def on_shutdown(app: Application):
+    async def on_shutdown(app: web.Application):
         listen.cancel()
         await managers.cleanup()
 
     listen = asyncio.create_task(managers.listen())
-    app.on_shutdown.extend([on_shutdown, rpc_server.on_shutdown])
+    app.on_shutdown.append(on_shutdown)
     return app
 
 
 async def listen() -> None:
     "Fire up the server."
     loop = asyncio.get_running_loop()
-    app_runner = AppRunner(await create_app())
+    app_runner = web.AppRunner(await create_app())
     await app_runner.setup()
     # Placate the type checker - server is created in ``app_runner.setup``
     assert app_runner.server
