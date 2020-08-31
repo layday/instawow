@@ -392,19 +392,16 @@
         {#if Object.values(result).some((v) => v.length)}
           <div class="preamble">
             <Icon icon={faQuestion} />
+            <!-- prettier-ignore -->
             <p>
               Reconciliation is the process by which installed add-ons are linked with add-ons from
               sources. This is done in three stages in decreasing order of accuracy. Add-ons do not
-              always carry source metadata and
-              <i>instawow</i>
-              employes a number of heuristics to reconcile add-ons which cannot be positively
-              identified. If you trust
-              <i>instawow</i>
-              to do this without supervision, press "
-              <b>automate</b>
-              ". Otherwise, review your selections below and press "
-              <b>install</b>
-              " to proceed to the next stage. Reconciled add-ons will be reinstalled.
+              always carry source metadata and <i>instawow</i>
+              employs a number of heuristics to reconcile add-ons which cannot be positively
+              identified. If you trust <i>instawow</i>
+              to do this without supervision, press "<b>automate</b>".
+              Otherwise, review your selections below and press "<b>install</b>"
+              to proceed to the next stage. Reconciled add-ons will be reinstalled.
             </p>
           </div>
           <ul class="addon-list">
