@@ -402,12 +402,15 @@ def is_outdated() -> Tuple[bool, str]:
             async with init_web_client() as web_client, web_client.get(api_url) as response:
                 return await response.json()
 
+        loop = asyncio.new_event_loop()
         try:
-            version = asyncio.run(get_metadata())['info']['version']
+            version = loop.run_until_complete(get_metadata())['info']['version']
         except ClientError:
             version = __version__
         else:
             cache_file.write_text(version, encoding='utf-8')
+        finally:
+            loop.close()
 
     return (parse_version(version) > parse_version(__version__), version)
 
