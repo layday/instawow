@@ -233,6 +233,8 @@ class _DummyLock:
 
 @object.__new__
 class _DummyResolver(Resolver):
+    strategies = set()
+
     async def resolve(self, defns: List[Defn]) -> Dict[Defn, E.PkgSourceInvalid]:
         return dict.fromkeys(defns, E.PkgSourceInvalid())
 
@@ -654,6 +656,28 @@ class Manager:
             ((d, partial(t(self.remove_pkg), p)) for d, p in zip(defns, maybe_pkgs) if p),
         )
         results = {d: await _capture_exc(c) for d, c in result_coros.items()}
+        return results
+
+    @_with_lock('change state')
+    async def pin(self, defns: List[Defn]) -> Dict[Defn, E.ManagerResult]:
+        "Pin installed packages."
+
+        async def pin(defn: Defn) -> E.PkgInstalled:
+            pkg = self.get_pkg(defn)
+            if not pkg:
+                raise E.PkgNotInstalled
+
+            if pkg.options.strategy == 'version':
+                return E.PkgInstalled(pkg)
+
+            if not self.resolvers[pkg.source].supports_rollback:
+                raise E.PkgStrategyUnsupported(Strategies.version)
+
+            pkg.options.strategy = 'version'
+            self.database.commit()
+            return E.PkgInstalled(pkg)
+
+        results = {d: await _capture_exc(partial(pin, d)) for d in defns}
         return results
 
 

@@ -299,6 +299,25 @@ class RemoveParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
         )
 
 
+class PinParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
+    _method = 'pin'
+    _result_type = _ModifyResult
+
+    async def respond(self, managers: ManagerWorkQueue) -> _result_type:
+        results = await managers.run(self.profile, partial(Manager.pin, defns=self.defns))
+        return _ModifyResult.parse_obj(
+            [
+                (
+                    r.kind,
+                    (r.pkg, _PkgMeta(installed=True))
+                    if isinstance(r, E.PkgInstalled)
+                    else r.message,
+                )
+                for r in results.values()
+            ]
+        )
+
+
 class _AddonFolder(BaseModel):
     name: str
     version: str
@@ -497,6 +516,7 @@ async def create_app() -> web.Application:
                 InstallParams,
                 UpdateParams,
                 RemoveParams,
+                PinParams,
                 ReconcileParams,
                 GetVersionParams,
             ),

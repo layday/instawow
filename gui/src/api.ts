@@ -159,7 +159,7 @@ export class Api {
   }
 
   async modifyAddons(
-    method: "install" | "update" | "remove",
+    method: "install" | "update" | "remove" | "pin",
     defns: object[],
     extraParams: object = {}
   ): Promise<ModifyResult> {
