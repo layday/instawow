@@ -162,8 +162,8 @@
     await modify("remove", defns);
   };
 
-  const pin = async (defns: Defn[], revert: boolean = false) => {
-    await modify("pin", defns, { revert: revert });
+  const pin = async (defns: Defn[]) => {
+    await modify("pin", defns);
   };
 
   // TODO: implement in the server w/ transactions
@@ -270,7 +270,13 @@
         break;
       case "pin":
       case "unpin":
-        await pin([addonToDefn(addon)], result === "unpin");
+        await pin([
+          {
+            ...addonToDefn(addon),
+            strategy: result === "pin" ? Strategies.version : Strategies.default,
+            strategy_vals: [addon.version],
+          },
+        ]);
         break;
       case "reinstall-with-strategy":
         showModal("reinstall", addon);

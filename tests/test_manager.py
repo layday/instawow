@@ -18,23 +18,17 @@ async def test_finding_damaged_pkgs(mock_all, manager):
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize(
-    'defn',
-    [
-        Defn.get('curse', 'molinari'),
-        Defn.get('curse', 'molinari').with_version('70300.51-Release'),
-    ],
-)
-async def test_pinning_supported(mock_all, manager, defn):
+async def test_pinning_supported(mock_all, manager):
+    defn = Defn.get('curse', 'molinari')
     install_result = await manager.install([defn], False)
-    installed_pkg = install_result[defn].pkg
-    version = installed_pkg.version
-    assert installed_pkg.options.strategy == defn.strategy.value
-    pin_result = await manager.pin([defn])
-    assert installed_pkg.options.strategy == pin_result[defn].pkg.options.strategy == 'version'
-    assert version == pin_result[defn].pkg.version
-    pin_result = await manager.pin([defn], True)
-    assert installed_pkg.options.strategy == pin_result[defn].pkg.options.strategy == 'default'
+    pkg = install_result[defn].pkg
+    version = pkg.version
+
+    for new_defn in (defn.with_version(pkg.version), defn):
+        pin_result = await manager.pin([new_defn])
+        pinned_pkg = pin_result[new_defn].pkg
+        assert pkg.options.strategy == pinned_pkg.options.strategy == new_defn.strategy.name
+        assert version == pinned_pkg.version
 
 
 @pytest.mark.asyncio

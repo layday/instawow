@@ -235,7 +235,7 @@ class _DummyLock:
 class _DummyResolver(Resolver):
     strategies = set()
 
-    async def resolve(self, defns: List[Defn]) -> Dict[Defn, E.PkgSourceInvalid]:
+    async def resolve(self, defns: Sequence[Defn]) -> Dict[Defn, E.PkgSourceInvalid]:
         return dict.fromkeys(defns, E.PkgSourceInvalid())
 
 
@@ -659,28 +659,34 @@ class Manager:
         return results
 
     @_with_lock('change state')
-    async def pin(self, defns: List[Defn], revert: bool = False) -> Dict[Defn, E.ManagerResult]:
-        "Pin installed packages."
+    async def pin(self, defns: Sequence[Defn]) -> Dict[Defn, E.ManagerResult]:
+        """Pin and unpin installed packages.
 
-        strategy = 'default' if revert else 'version'
+        instawow does not have true pinning.  This sets the strategy
+        to ``Strategies.version`` for installed packages from sources
+        that support it.  The net effect is the same as if the package
+        had been reinstalled with
+        ``Defn(..., strategy=Strategies.version, strategy_vals=[pkg.version])``.
+        Conversely a ``Defn`` with a ``Strategies.default`` will unpin the
+        package.
+        """
 
-        async def pin(defn: Defn) -> E.PkgInstalled:
-            pkg = self.get_pkg(defn)
-            if not pkg:
-                raise E.PkgNotInstalled
+        strategies = {Strategies.default, Strategies.version}
 
-            if pkg.options.strategy == strategy:
-                return E.PkgInstalled(pkg)
+        def pin(defns: Sequence[Defn]) -> Iterable[Tuple[Defn, E.ManagerResult]]:
+            for defn in defns:
+                pkg = self.get_pkg(defn)
+                if pkg:
+                    if {defn.strategy} <= strategies <= self.resolvers[pkg.source].strategies:
+                        pkg.options.strategy = defn.strategy.name
+                        self.database.commit()
+                        yield (defn, E.PkgInstalled(pkg))
+                    else:
+                        yield (defn, E.PkgStrategyUnsupported(Strategies.version))
+                else:
+                    yield (defn, E.PkgNotInstalled())
 
-            if not self.resolvers[pkg.source].supports_rollback:
-                raise E.PkgStrategyUnsupported(Strategies.version)
-
-            pkg.options.strategy = strategy
-            self.database.commit()
-            return E.PkgInstalled(pkg)
-
-        results = {d: await _capture_exc(partial(pin, d)) for d in defns}
-        return results
+        return dict(pin(defns))
 
 
 def _extract_filename_from_hdr(response: aiohttp.ClientResponse) -> str:

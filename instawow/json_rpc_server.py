@@ -307,19 +307,16 @@ class RemoveParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
 
 
 class PinParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
-    revert: bool = False
     _method = 'pin'
     _result_type = _ModifyResult
 
     async def respond(self, managers: ManagerWorkQueue) -> _result_type:
-        results = await managers.run(
-            self.profile, partial(Manager.pin, defns=self.defns, revert=self.revert)
-        )
+        results = await managers.run(self.profile, partial(Manager.pin, defns=self.defns))
         return _ModifyResult.parse_obj(
             [
                 (
                     r.kind,
-                    (r.pkg, _PkgMeta(installed=True, pinned=not self.revert))
+                    (r.pkg, _PkgMeta(installed=True, pinned=r.pkg.options.strategy == 'version'))
                     if isinstance(r, E.PkgInstalled)
                     else r.message,
                 )
