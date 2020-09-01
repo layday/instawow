@@ -1,15 +1,20 @@
 <script lang="ts">
   import type { Addon, AddonMeta, Sources } from "../api";
-  import { faExternalLinkSquareAlt, faHistory, faTasks } from "@fortawesome/free-solid-svg-icons";
+  import {
+    faEllipsisH,
+    faExternalLinkSquareAlt,
+    faHistory,
+    faTasks,
+  } from "@fortawesome/free-solid-svg-icons";
   import { ipcRenderer } from "electron";
   import { DateTime } from "luxon";
   import { createEventDispatcher } from "svelte";
-  import { fade } from "svelte/transition";
+  import { fade, slide } from "svelte/transition";
   import Icon from "./SvgIcon.svelte";
 
   export let addon: Addon,
     addonMeta: AddonMeta,
-    sources: Sources,
+    source: Sources["foo"],
     beingModified: boolean,
     refreshing: boolean;
 
@@ -19,9 +24,9 @@
   const requestReinstall = () => dispatch("requestReinstall");
   const requestUpdate = () => dispatch("requestUpdate");
   const requestRemove = () => dispatch("requestRemove");
-  const requestShowContexMenu = () => dispatch("requestShowContexMenu");
   const requestShowModal = (modal: "install" | "reinstall" | "rollback") =>
     dispatch("requestShowModal", modal);
+  const requestShowContexMenu = () => dispatch("requestShowContexMenu");
 </script>
 
 <style lang="scss">
@@ -89,6 +94,7 @@
   }
 
   .addon-actions {
+    @include unstyle-list;
     display: flex;
     flex-wrap: nowrap;
     align-self: center;
@@ -119,8 +125,8 @@
 
       :global(.icon) {
         display: block;
-        width: 11px;
-        height: 11px;
+        width: 0.8rem;
+        height: 0.8rem;
         fill: $action-button-text-color;
       }
     }
@@ -139,8 +145,7 @@
   class:status-damaged={addonMeta.damaged}
   class:status-outdated={addonMeta.new_version && addon.version !== addonMeta.new_version}
   class:status-pinned={addon.options.strategy === 'version'}
-  class:status-being-modified={beingModified}
-  on:contextmenu={() => requestShowContexMenu()}>
+  class:status-being-modified={beingModified}>
   <ul class="addon-details">
     <li class="name">{addon.name}</li>
     <!-- prettier-ignore -->
@@ -172,7 +177,7 @@
             reinstall
           </button>
         {/if}
-        {#if addon.logged_versions.length > 1 && sources[addon.source]?.supports_rollback}
+        {#if addon.logged_versions.length > 1 && source?.supports_rollback}
           <button
             aria-label="rollback"
             title="rollback"
@@ -181,29 +186,25 @@
             <Icon icon={faHistory} />
           </button>
         {/if}
-        {#if sources[addon.source]?.supported_strategies.length > 1}
-          <button
-            aria-label="reinstall with strategy"
-            title="reinstall with strategy"
-            disabled={refreshing}
-            on:click|stopPropagation={() => requestShowModal('reinstall')}>
-            <Icon icon={faTasks} />
-          </button>
-        {/if}
+        <button
+          aria-label="show options"
+          title="show options"
+          disabled={refreshing}
+          on:click|stopPropagation={() => requestShowContexMenu()}>
+          <Icon icon={faEllipsisH} />
+        </button>
         <button disabled={refreshing} on:click|stopPropagation={requestRemove}>remove</button>
       {:else}
-        {#if sources[addon.source]?.supported_strategies.length > 1}
-          <button
-            aria-label="install with strategy"
-            title="install with strategy"
-            disabled={refreshing}
-            on:click|stopPropagation={() => requestShowModal('install')}>
-            <Icon icon={faTasks} />
-          </button>
-        {/if}
         <button
           aria-label="install with strategy"
           title="install with strategy"
+          disabled={refreshing}
+          on:click|stopPropagation={() => requestShowModal('install')}>
+          <Icon icon={faTasks} />
+        </button>
+        <button
+          aria-label="open in browser"
+          title="open in browser"
           on:click|stopPropagation={() => ipcRenderer.send('open-url', addon.url)}>
           <Icon icon={faExternalLinkSquareAlt} />
         </button>

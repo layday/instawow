@@ -46,23 +46,27 @@ const createWindow = () => {
   }
 };
 
-const createAddonContextMenu = (data: { pathComponents: string[]; url: string }) => {
-  return Menu.buildFromTemplate([
-    {
-      id: "open-url",
-      label: "Open in browser",
-      click: () => {
-        shell.openExternal(data.url);
-      },
-    },
-    {
-      id: "reveal-folder",
-      label: "Reveal folder",
-      click: () => {
-        shell.showItemInFolder(path.join(...data.pathComponents));
-      },
-    },
-  ]);
+// Construct a menu from `actions` and wait for it to be dismissed.
+// Returns the `action` value of the item that was selected if any.
+const waitForMenuSelection = async (
+  actions: { action: string; label: string }[]
+): Promise<string> => {
+  let selectedAction: string;
+
+  const menu = Menu.buildFromTemplate(
+    actions.map(({ action, label }) => ({
+      id: action,
+      label: label,
+      click: () => (selectedAction = action),
+    }))
+  );
+
+  const getSelection = (): Promise<string> =>
+    new Promise((resolve) => {
+      menu.popup({ callback: () => resolve(selectedAction) });
+    });
+
+  return await getSelection();
 };
 
 const instawow = spawnInstawow();
@@ -91,11 +95,14 @@ ipcMain.handle("select-folder", async (event, defaultPath?: string) => {
   return [result.canceled, result.filePaths];
 });
 
-ipcMain.on("show-addon-context-menu", (event, data) => {
-  app.isPackaged && createAddonContextMenu(data).popup();
-});
+ipcMain.handle(
+  "get-action-from-context-menu",
+  async (event, actions: { action: string; label: string }[]) => {
+    return await waitForMenuSelection(actions);
+  }
+);
 
-ipcMain.on("reveal-addon-folder", (event, pathComponents: string[]) =>
+ipcMain.on("reveal-folder", (event, pathComponents: string[]) =>
   shell.showItemInFolder(path.join(...pathComponents))
 );
 

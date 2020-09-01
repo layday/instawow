@@ -98,7 +98,7 @@
   };
 
   const notifyOfFailures = (
-    method: "install" | "update" | "remove",
+    method: "install" | "update" | "remove" | "pin",
     resultGroups: { [kind: string]: ModifyResult }
   ) => {
     for (const [defn, [, message]] of Array.prototype.concat(
@@ -110,7 +110,7 @@
   };
 
   const modify = async (
-    method: "install" | "update" | "remove",
+    method: "install" | "update" | "remove" | "pin",
     defns: Defn[],
     extraParams: object = {}
   ) => {
@@ -161,6 +161,10 @@
 
   const remove = async (defns: Defn[]) => {
     await modify("remove", defns);
+  };
+
+  const pin = async (defns: Defn[]) => {
+    await modify("pin", defns);
   };
 
   // TODO: implement in the server w/ transactions
@@ -248,11 +252,32 @@
     modalToShow = modal;
   };
 
-  const showAddonContextMenu = (addon: Addon) =>
-    ipcRenderer.send("show-addon-context-menu", {
-      pathComponents: [$profiles[profile].addon_dir, addon.folders[0].name],
-      url: addon.url,
-    });
+  const showAddonContextMenu = async (addon: Addon) => {
+    const result = await ipcRenderer.invoke(
+      "get-action-from-context-menu",
+      [
+        { action: "open-url", label: "Open in browser" },
+        { action: "reveal-folder", label: "Reveal folder" },
+        addon.options.strategy !== "version" && { action: "pin", label: "Pin" },
+        { action: "reinstall-with-strategy", label: "Reinstall" },
+      ].filter(Boolean)
+    );
+    switch (result) {
+      case "open-url":
+        ipcRenderer.send("open-url", addon.url);
+        break;
+      case "reveal-folder":
+        ipcRenderer.send("reveal-folder", [$profiles[profile].addon_dir, addon.folders[0].name]);
+        break;
+      case "pin":
+        await pin([addonToDefn(addon)]);
+        break;
+      case "reinstall-with-strategy":
+        showModal("reinstall", addon);
+      default:
+        break;
+    }
+  };
 
   const refresh = async () => {
     if (!refreshInProgress) {
@@ -430,7 +455,7 @@
               on:requestShowContexMenu={() => showAddonContextMenu(addon)}
               {addon}
               {addonMeta}
-              {sources}
+              source={sources[addon.source]}
               beingModified={addonsBeingModified.includes(token)}
               refreshing={refreshInProgress} />
           </li>

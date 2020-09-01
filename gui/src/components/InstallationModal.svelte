@@ -48,11 +48,13 @@
           <label for="__replace">replace unreconciled add-on</label>
         </div>
       {/if}
-      <select class="row" aria-label="strategy" bind:value={strategy}>
-        {#each source.supported_strategies as strategy}
-          <option value={strategy}>{strategy} ({strategyExplanations[strategy]})</option>
-        {/each}
-      </select>
+      {#if source.supported_strategies.length > 1}
+        <select class="row" aria-label="strategy" bind:value={strategy}>
+          {#each source.supported_strategies as strategy}
+            <option value={strategy}>{strategy} ({strategyExplanations[strategy]})</option>
+          {/each}
+        </select>
+      {/if}
       {#if strategy === 'version'}
         <input
           aria-label="version"
