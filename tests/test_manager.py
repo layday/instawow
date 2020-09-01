@@ -33,6 +33,8 @@ async def test_pinning_supported(mock_all, manager, defn):
     pin_result = await manager.pin([defn])
     assert installed_pkg.options.strategy == pin_result[defn].pkg.options.strategy == 'version'
     assert version == pin_result[defn].pkg.version
+    pin_result = await manager.pin([defn], True)
+    assert installed_pkg.options.strategy == pin_result[defn].pkg.options.strategy == 'default'
 
 
 @pytest.mark.asyncio

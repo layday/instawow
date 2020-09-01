@@ -147,6 +147,7 @@ class ListSourcesParams(_ProfileParamMixin, BaseParams):
 class _PkgMeta(BaseModel):
     installed: bool = False
     damaged: bool = False
+    pinned: bool = False
     new_version: O[str] = None
 
 
@@ -179,7 +180,10 @@ class ListInstalledParams(_ProfileParamMixin, BaseParams):
             (
                 p,
                 _PkgMeta(
-                    installed=True, damaged=p in damaged_pkgs, new_version=outdated_pkgs.get(p)
+                    installed=True,
+                    damaged=p in damaged_pkgs,
+                    pinned=p.options.strategy == 'version',
+                    new_version=outdated_pkgs.get(p),
                 ),
             )
             for p in installed_pkgs
@@ -257,7 +261,7 @@ class InstallParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
             [
                 (
                     r.kind,
-                    (r.pkg, _PkgMeta(installed=True))
+                    (r.pkg, _PkgMeta(installed=True, pinned=r.pkg.options.strategy == 'version'))
                     if isinstance(r, E.PkgInstalled)
                     else r.message,
                 )
@@ -276,7 +280,10 @@ class UpdateParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
             [
                 (
                     r.kind,
-                    (r.new_pkg, _PkgMeta(installed=True))
+                    (
+                        r.new_pkg,
+                        _PkgMeta(installed=True, pinned=r.new_pkg.options.strategy == 'version'),
+                    )
                     if isinstance(r, E.PkgUpdated)
                     else r.message,
                 )
@@ -300,16 +307,19 @@ class RemoveParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
 
 
 class PinParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
+    revert: bool = False
     _method = 'pin'
     _result_type = _ModifyResult
 
     async def respond(self, managers: ManagerWorkQueue) -> _result_type:
-        results = await managers.run(self.profile, partial(Manager.pin, defns=self.defns))
+        results = await managers.run(
+            self.profile, partial(Manager.pin, defns=self.defns, revert=self.revert)
+        )
         return _ModifyResult.parse_obj(
             [
                 (
                     r.kind,
-                    (r.pkg, _PkgMeta(installed=True))
+                    (r.pkg, _PkgMeta(installed=True, pinned=not self.revert))
                     if isinstance(r, E.PkgInstalled)
                     else r.message,
                 )

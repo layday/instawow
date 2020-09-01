@@ -57,7 +57,6 @@
   export let profile: string, api: Api, isActive: boolean;
 
   let sources: Sources;
-  let protocols: string[];
 
   let activeView: View = View.Installed;
   let addons__Installed: ListResult;
@@ -75,7 +74,7 @@
   let searchesInProgress: number = 0;
   let reconcileInstallationInProgress: boolean = false;
 
-  let modalToShow: "install" | "reinstall" | "rollback" | false = false;
+  let modal: "install" | "reinstall" | "rollback" | false = false;
   let modalProps: object;
 
   let notifications; // TODO as a replacement for `notifyOfFailures`
@@ -151,8 +150,8 @@
 
   const update: UpdateSignature = async (value: any) => {
     if (value === true) {
-      const outdatedAddonCount = addons__Installed.filter(([, { new_version }]) => new_version);
-      const defns = outdatedAddonCount.map(([addon]) => addonToDefn(addon));
+      const outdatedAddons = addons__Installed.filter(([, { new_version }]) => new_version);
+      const defns = outdatedAddons.map(([addon]) => addonToDefn(addon));
       await modify("update", defns);
     } else {
       await modify("update", value);
@@ -163,8 +162,8 @@
     await modify("remove", defns);
   };
 
-  const pin = async (defns: Defn[]) => {
-    await modify("pin", defns);
+  const pin = async (defns: Defn[], revert: boolean = false) => {
+    await modify("pin", defns, { revert: revert });
   };
 
   // TODO: implement in the server w/ transactions
@@ -242,23 +241,23 @@
 
   const searchDebounced = lodash.debounce(search, debounceDelay);
 
-  const showModal = (modal: "install" | "reinstall" | "rollback", addon: Addon) => {
+  const showModal = (thisModal: "install" | "reinstall" | "rollback", addon: Addon) => {
     const defn = addonToDefn(addon);
-    if (modal === "install" || modal === "reinstall") {
+    if (thisModal === "install" || thisModal === "reinstall") {
       modalProps = { defn: defn, source: sources[defn.source] };
-    } else if (modal === "rollback") {
+    } else if (thisModal === "rollback") {
       modalProps = { defn: defn, versions: addon.logged_versions };
     }
-    modalToShow = modal;
+    modal = thisModal;
   };
 
-  const showAddonContextMenu = async (addon: Addon) => {
+  const showAddonContextMenu = async ([addon, addonMeta]: [Addon, AddonMeta]) => {
     const result = await ipcRenderer.invoke(
       "get-action-from-context-menu",
       [
         { action: "open-url", label: "Open in browser" },
         { action: "reveal-folder", label: "Reveal folder" },
-        addon.options.strategy !== "version" && { action: "pin", label: "Pin" },
+        addonMeta.pinned ? { action: "unpin", label: "Unpin" } : { action: "pin", label: "Pin" },
         { action: "reinstall-with-strategy", label: "Reinstall" },
       ].filter(Boolean)
     );
@@ -270,10 +269,12 @@
         ipcRenderer.send("reveal-folder", [$profiles[profile].addon_dir, addon.folders[0].name]);
         break;
       case "pin":
-        await pin([addonToDefn(addon)]);
+      case "unpin":
+        await pin([addonToDefn(addon)], result === "unpin");
         break;
       case "reinstall-with-strategy":
         showModal("reinstall", addon);
+        break;
       default:
         break;
     }
@@ -294,7 +295,6 @@
     refreshInProgress = true;
     try {
       sources = await api.listSources();
-      protocols = [...Object.keys(sources), "http", "https"].map((v) => `${v}:`);
       // Grab the list of installed add-ons before checking for updates
       // which might take time
       for (const checkForUpdates of [false, true]) {
@@ -395,17 +395,17 @@
     reconcile__isInstalling={reconcileInstallationInProgress}
     reconcile__canStepBackward={!!getReconcilePrevStage(reconcileStage)}
     reconcile__canStepForward={!!getReconcileNextStage(reconcileStage)} />
-  <div class="addon-list-wrapper" class:prevent-scrolling={!!modalToShow}>
-    {#if modalToShow === 'install' || modalToShow === 'reinstall'}
+  <div class="addon-list-wrapper" class:prevent-scrolling={!!modal}>
+    {#if modal === 'install' || modal === 'reinstall'}
       <InstallationModal
         on:requestInstall={({ detail: [defn, replace] }) => install([defn], replace)}
         on:requestReinstall={({ detail: [defn] }) => reinstall([defn])}
-        bind:show={modalToShow}
+        bind:show={modal}
         {...modalProps} />
-    {:else if modalToShow === 'rollback'}
+    {:else if modal === 'rollback'}
       <RollbackModal
         on:requestReinstall={(event) => reinstall([event.detail])}
-        bind:show={modalToShow}
+        bind:show={modal}
         {...modalProps} />
     {/if}
     {#if activeView === View.Reconcile}
@@ -452,10 +452,10 @@
               on:requestRemove={() => remove([addonToDefn(addon)])}
               on:requestReinstall={() => reinstall([addonToDefn(addon)])}
               on:requestShowModal={(e) => showModal(e.detail, addon)}
-              on:requestShowContexMenu={() => showAddonContextMenu(addon)}
+              on:requestShowContexMenu={() => showAddonContextMenu([addon, addonMeta])}
               {addon}
               {addonMeta}
-              source={sources[addon.source]}
+              canRollback={!!sources[addon.source]?.supports_rollback}
               beingModified={addonsBeingModified.includes(token)}
               refreshing={refreshInProgress} />
           </li>

@@ -659,21 +659,23 @@ class Manager:
         return results
 
     @_with_lock('change state')
-    async def pin(self, defns: List[Defn]) -> Dict[Defn, E.ManagerResult]:
+    async def pin(self, defns: List[Defn], revert: bool = False) -> Dict[Defn, E.ManagerResult]:
         "Pin installed packages."
+
+        strategy = 'default' if revert else 'version'
 
         async def pin(defn: Defn) -> E.PkgInstalled:
             pkg = self.get_pkg(defn)
             if not pkg:
                 raise E.PkgNotInstalled
 
-            if pkg.options.strategy == 'version':
+            if pkg.options.strategy == strategy:
                 return E.PkgInstalled(pkg)
 
             if not self.resolvers[pkg.source].supports_rollback:
                 raise E.PkgStrategyUnsupported(Strategies.version)
 
-            pkg.options.strategy = 'version'
+            pkg.options.strategy = strategy
             self.database.commit()
             return E.PkgInstalled(pkg)
 

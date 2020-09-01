@@ -58,6 +58,7 @@ export type Addon = {
 export type AddonMeta = {
   installed: boolean;
   damaged: boolean;
+  pinned: boolean;
   new_version: string | null;
 };
 

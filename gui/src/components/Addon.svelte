@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { Addon, AddonMeta, Sources } from "../api";
+  import type { Addon, AddonMeta } from "../api";
   import {
     faEllipsisH,
     faExternalLinkSquareAlt,
@@ -14,7 +14,7 @@
 
   export let addon: Addon,
     addonMeta: AddonMeta,
-    source: Sources["foo"],
+    canRollback: boolean,
     beingModified: boolean,
     refreshing: boolean;
 
@@ -177,7 +177,7 @@
             reinstall
           </button>
         {/if}
-        {#if addon.logged_versions.length > 1 && source?.supports_rollback}
+        {#if addon.logged_versions.length > 1 && canRollback}
           <button
             aria-label="rollback"
             title="rollback"
