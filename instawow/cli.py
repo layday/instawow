@@ -81,7 +81,7 @@ class Report:
         if manager.config.auto_update_check:
             outdated, new_version = is_outdated()
             if outdated:
-                click.echo(f'{self._symbols["error"]} instawow-{new_version} is available')
+                click.echo(f'{self._warning_symbol} instawow-{new_version} is available')
 
         report = str(self)
         if report:
