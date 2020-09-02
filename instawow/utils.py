@@ -36,10 +36,7 @@ from typing import (
     overload,
 )
 
-try:
-    from typing import Literal
-except ImportError:
-    from typing_extensions import Literal
+from typing_extensions import Literal
 
 if TYPE_CHECKING:
     from prompt_toolkit.shortcuts import ProgressBar

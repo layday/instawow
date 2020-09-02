@@ -12,23 +12,21 @@ setup(
     long_description=Path('README.rst').read_text(encoding='utf-8'),
     entry_points={'console_scripts': ['instawow = instawow.cli:main']},
     install_requires='''
-        aiohttp        ~=3.5
-        alembic        ~=1.4
-        click          ~=7.1
-        jellyfish      ~=0.8.2
-        jinja2         ~=2.11
-        loguru         <1
-        prompt-toolkit >=3, !=3.0.0, !=3.0.1, !=3.0.2, <4
-        pydantic       ~=1.6.1
-        questionary    >=1, !=1.3.0, <2
-        slpp           ==1.2.1
-        sqlalchemy     ~=1.3
-        yarl           ~=1.4
+        aiohttp           ~=3.5
+        alembic           ~=1.4
+        click             ~=7.1
+        jellyfish         ~=0.8.2
+        jinja2            ~=2.11
+        loguru            <1
+        prompt-toolkit    >=3, !=3.0.0, !=3.0.1, !=3.0.2, <4
+        pydantic          ~=1.6.1
+        questionary       >=1, !=1.3.0, <2
+        slpp              ==1.2.1
+        sqlalchemy        ~=1.3
+        typing-extensions ~=3.7
+        yarl              ~=1.4
     ''',
     extras_require={
-        ":python_version < '3.8'": '''
-            typing-extensions
-        ''',
         'server': '''
             aiohttp-rpc == 0.6.2
         ''',

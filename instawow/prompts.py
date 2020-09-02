@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from functools import partial
-from typing import TYPE_CHECKING, Any, Optional, Sequence, Type
+from typing import TYPE_CHECKING, Any, List, Optional, Sequence, Tuple, Type
 
 from prompt_toolkit.application import Application
 from prompt_toolkit.key_binding import KeyBindings
@@ -52,7 +52,7 @@ qstyle = Style(
     ]
 )
 
-skip = Choice([('', 'skip')], ())
+skip = Choice([('', 'skip')], ())  # type: ignore
 
 confirm = partial(_confirm, style=qstyle)
 
@@ -62,21 +62,24 @@ def checkbox(message: str, choices: Sequence[Choice], **prompt_kwargs: Any) -> Q
     # of an <o> key binding for opening package URLs
 
     def get_prompt_tokens():
-        tokens = [('class:x-question', message)]
+        tokens: List[Tuple[str, str]] = [('class:x-question', message)]
         if ic.is_answered:
-            tokens.append(('class:answer', '  done'))
+            tokens = [*tokens, (('class:answer', '  done'))]
         else:
-            tokens.append(
+            tokens = [
+                *tokens,
                 (
-                    'class:instruction',
-                    '  (use arrow keys to move, '
-                    '<space> to select, '
-                    '<o> to view in your browser)',
-                )
-            )
+                    (
+                        'class:instruction',
+                        '  (use arrow keys to move, <space> to select, <o> to view in your browser)',
+                    )
+                ),
+            ]
         return tokens
 
-    ic = InquirerControl(choices, None, use_indicator=False, use_shortcuts=False, use_pointer=True)
+    ic = InquirerControl(
+        choices, None, use_indicator=False, use_shortcuts=False, use_pointer=True  # type: ignore
+    )
     bindings = KeyBindings()
 
     @bindings.add(Keys.ControlQ, eager=True)
@@ -142,13 +145,15 @@ def checkbox(message: str, choices: Sequence[Choice], **prompt_kwargs: Any) -> Q
 
 def select(message: str, choices: Sequence[Choice], **prompt_kwargs: Any) -> Question:
     def get_prompt_tokens():
-        tokens = [('', '- '), ('class:x-question', message)]
+        tokens: List[Tuple[str, str]] = [('', '- '), ('class:x-question', message)]
         if ic.is_answered:
             answer = ''.join(t for _, t in ic.get_pointed_at().title)
-            tokens += [('', '  '), ('class:skipped' if answer == 'skip' else '', answer)]
+            tokens = [*tokens, ('', '  '), ('class:skipped' if answer == 'skip' else '', answer)]
         return tokens
 
-    ic = InquirerControl(choices, None, use_indicator=False, use_shortcuts=False, use_pointer=True)
+    ic = InquirerControl(
+        choices, None, use_indicator=False, use_shortcuts=False, use_pointer=True  # type: ignore
+    )
     bindings = KeyBindings()
 
     @bindings.add(Keys.ControlQ, eager=True)
