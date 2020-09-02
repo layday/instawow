@@ -42,7 +42,12 @@ def type_check(session: Session):
     tmp_dir = session.create_tmp()
     session.run('git', 'clone', '.', tmp_dir)
     session.cd(tmp_dir)
-    session.install('-e', '.[server, test]')
+    session.install(
+        '-e',
+        '.[server, test]',
+        '-U',
+        'sqlalchemy-stubs @https://github.com/dropbox/sqlalchemy-stubs/archive/55470ce.zip',
+    )
     session.run('npx', '--cache', '.npm', 'pyright')
 
 
