@@ -169,7 +169,10 @@
     align-items: center;
     font-size: 0.85em;
 
-    > * {
+    > button,
+    > input,
+    > label,
+    > select {
       line-height: $line-height;
       padding: 0 0.7em;
       border-radius: $middle-border-radius;

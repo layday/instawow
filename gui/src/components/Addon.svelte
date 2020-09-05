@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { Addon, AddonWithMeta } from "../api";
+  import { Strategies } from "../api";
   import {
     faEllipsisH,
     faExternalLinkSquareAlt,
@@ -151,7 +152,7 @@
   class="addon"
   class:status-damaged={false}
   class:status-outdated={isOutdated}
-  class:status-pinned={addon.options.strategy === 'version'}
+  class:status-pinned={addon.options.strategy === Strategies.version}
   class:status-being-modified={beingModified}>
   <ul class="addon-details" class:two-col={showCondensed}>
     <li class="name">{addon.name}</li>
@@ -167,7 +168,7 @@
           ({DateTime.fromISO(addon.date_published).toRelative()})
         </span>
       {/if}
-      {#if (isOutdated ? otherAddon : addon).options.strategy !== 'default'}
+      {#if (isOutdated ? otherAddon : addon).options.strategy !== Strategies.default}
         @ {(isOutdated ? otherAddon : addon).options.strategy}
       {/if}
     </li>
