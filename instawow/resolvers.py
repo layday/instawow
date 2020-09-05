@@ -14,20 +14,22 @@ from typing import (
     Optional as O,
     Sequence,
     Set,
-    Tuple,
+    Union,
     cast,
+    get_args,
 )
 
-from pydantic import BaseModel
+from pydantic import BaseModel, WrongConstantError, validator
+from typing_extensions import Literal
 from yarl import URL
 
 from . import exceptions as E, models as m
-from .utils import Literal, cached_property, gather, run_in_thread as t, slugify, uniq
+from .utils import cached_property, gather, run_in_thread as t, slugify, uniq
 
 if TYPE_CHECKING:
-    from .manager import Manager
+    from pydantic.fields import ModelField
 
-    JsonDict = Dict[str, Any]
+    from .manager import Manager
 
 
 class Strategies(enum.Enum):
@@ -39,42 +41,74 @@ class Strategies(enum.Enum):
     version = 'version'
 
 
-class Defn(BaseModel):
+class HashableModel(BaseModel):
+    def __eq__(self, other: Any) -> bool:
+        if not isinstance(other, self.__class__):
+            return NotImplemented
+        return self.__dict__ == other.__dict__
+
+    def __hash__(self) -> int:
+        return hash(tuple(self.__dict__.items()))
+
+
+class BaseStrategy(HashableModel):
+    @validator('type_', check_fields=False, pre=True)
+    def _parse_strategy(cls, value: Any, field: ModelField) -> Strategies:
+        accepted_strategies = get_args(field.type_)
+        strategy = Strategies.__members__.get(value) or value
+        if strategy in accepted_strategies:
+            return strategy
+        raise WrongConstantError(given=value, permitted=accepted_strategies)
+
+
+class SimpleStrategy(BaseStrategy):
+    type_: Literal[
+        Strategies.default,
+        Strategies.latest,
+        Strategies.curse_latest_beta,
+        Strategies.curse_latest_alpha,
+        Strategies.any_flavour,
+    ]
+
+
+class VersionStrategy(BaseStrategy):
+    type_: Literal[Strategies.version]
+    version: str
+
+
+class Defn(HashableModel):
     source: str
     source_id: O[str] = None
-    name: str
-    strategy: Strategies = Strategies.default
-    strategy_vals: Tuple[str, ...] = ()
+    alias: str
+    strategy: Union[SimpleStrategy, VersionStrategy] = SimpleStrategy(type_=Strategies.default)
 
     @classmethod
     def from_pkg(cls, pkg: m.Pkg) -> Defn:
-        defn = cls(
-            source=pkg.source, source_id=pkg.id, name=pkg.slug, strategy=pkg.options.strategy
+        strategy_kwargs: Dict[str, str] = (
+            {'version': pkg.version} if pkg.options.strategy == 'version' else {}
         )
-        if defn.strategy is Strategies.version:
-            defn.strategy_vals = (pkg.version,)
-        return defn
+        return cls(
+            source=pkg.source,
+            source_id=pkg.id,
+            alias=pkg.slug,
+            strategy={'type_': pkg.options.strategy, **strategy_kwargs},
+        )
 
     @classmethod
-    def get(cls, source: str, name: str) -> Defn:
-        return cls(source=source, name=name)
+    def get(cls, source: str, alias: str) -> Defn:
+        return cls(source=source, alias=alias)
 
     def with_(self, **kwargs: Any) -> Defn:
         return self.__class__(**{**self.__dict__, **kwargs})
 
+    def with_strategy(self, strategy: Strategies) -> Defn:
+        return self.with_(strategy={'type_': strategy})
+
     def with_version(self, version: str) -> Defn:
-        return self.with_(strategy='version', strategy_vals=(version,))
-
-    def __eq__(self, other: Any) -> bool:
-        if isinstance(other, self.__class__):
-            other = tuple(other.__dict__.values())
-        return tuple(self.__dict__.values()) == other
-
-    def __hash__(self) -> int:
-        return hash(tuple(self.__dict__.values()))
+        return self.with_(strategy={'type_': Strategies.version, 'version': version})
 
     def __str__(self) -> str:
-        return f'{self.source}:{self.name}'
+        return f'{self.source}:{self.alias}'
 
 
 class _CatalogueEntry(BaseModel):
@@ -120,10 +154,10 @@ class Resolver:
         self.manager = manager
 
     def __init_subclass__(cls) -> None:
-        async def resolve_wrapper(self: Resolver, defn: Defn, metadata: O[JsonDict]) -> m.Pkg:
-            if defn.strategy in self.strategies:
+        async def resolve_wrapper(self: Resolver, defn: Defn, metadata: O[Any]) -> m.Pkg:
+            if defn.strategy.type_ in self.strategies:
                 return await resolve_one(self, defn, metadata)  # type: ignore
-            raise E.PkgStrategyUnsupported(defn.strategy)
+            raise E.PkgStrategyUnsupported(defn.strategy.type_)
 
         resolve_one = cls.resolve_one
         cls.resolve_one = resolve_wrapper  # type: ignore
@@ -134,7 +168,7 @@ class Resolver:
         return Strategies.version in self.strategies
 
     @staticmethod
-    def get_name_from_url(value: str) -> O[str]:
+    def get_alias_from_url(value: str) -> O[str]:
         "Attempt to extract a definition name from a given URL."
 
     async def resolve(self, defns: Sequence[Defn]) -> Dict[Defn, Any]:
@@ -142,7 +176,7 @@ class Resolver:
         results = await gather(self.resolve_one(d, None) for d in defns)
         return dict(zip(defns, results))
 
-    async def resolve_one(self, defn: Defn, metadata: O[JsonDict]) -> m.Pkg:
+    async def resolve_one(self, defn: Defn, metadata: O[Any]) -> m.Pkg:
         "Resolve an individual definition into a package."
         raise NotImplementedError
 
@@ -168,7 +202,7 @@ class CurseResolver(Resolver):
     addon_api_url = URL('https://addons-ecs.forgesvc.net/api/v2/addon')
 
     @staticmethod
-    def get_name_from_url(value: str) -> O[str]:
+    def get_alias_from_url(value: str) -> O[str]:
         url = URL(value)
         if url.host == 'www.wowace.com' and len(url.parts) > 2 and url.parts[1] == 'projects':
             return url.parts[2].lower()
@@ -185,7 +219,7 @@ class CurseResolver(Resolver):
         from .manager import cache_json_response
 
         ids_for_defns = {
-            d: (d.source_id or self.manager.catalogue.curse_slugs.get(d.name) or d.name)
+            d: (d.source_id or self.manager.catalogue.curse_slugs.get(d.alias) or d.alias)
             for d in defns
         }
         numeric_ids = {i for i in ids_for_defns.values() if i.isdigit()}
@@ -207,11 +241,11 @@ class CurseResolver(Resolver):
         )
         return dict(zip(defns, results))
 
-    async def resolve_one(self, defn: Defn, metadata: O[JsonDict]) -> m.Pkg:
+    async def resolve_one(self, defn: Defn, metadata: O[Any]) -> m.Pkg:
         if not metadata:
             raise E.PkgNonexistent
 
-        if defn.strategy is Strategies.version:
+        if defn.strategy.type_ is Strategies.version:
 
             from .manager import cache_json_response
 
@@ -222,29 +256,29 @@ class CurseResolver(Resolver):
                 label=f'Fetching metadata from {self.name}',
             )
 
-            def is_compatible(f: JsonDict):
-                return defn.strategy_vals[0] == f['displayName']
+            def is_compatible(f: Any):
+                return cast(VersionStrategy, defn.strategy).version == f['displayName']
 
         else:
 
             files = metadata['latestFiles']
 
-            def is_not_libless(f: JsonDict):
+            def is_not_libless(f: Any):
                 # There's also an 'isAlternate' field that's missing from some
                 # 50 lib-less files from c. 2008.  'exposeAsAlternative' is
                 # absent from the /file endpoint
                 return not f['exposeAsAlternative']
 
-            if defn.strategy is Strategies.any_flavour:
+            if defn.strategy.type_ is Strategies.any_flavour:
 
-                def supports_game_version(f: JsonDict):
+                def supports_game_version(f: Any):
                     return True
 
             else:
                 classic_version_prefix = '1.13'
                 flavour = 'wow_classic' if self.manager.config.is_classic else 'wow_retail'
 
-                def supports_game_version(f: JsonDict):
+                def supports_game_version(f: Any):
                     # Files can belong both to retail and classic
                     # but ``gameVersionFlavor`` can only be one of
                     # 'wow_retail' or 'wow_classic'.  To spice things up,
@@ -256,27 +290,27 @@ class CurseResolver(Resolver):
                     )
 
             # 1 = stable; 2 = beta; 3 = alpha
-            if defn.strategy is Strategies.latest:
+            if defn.strategy.type_ is Strategies.latest:
 
-                def has_release_type(f: JsonDict):
+                def has_release_type(f: Any):
                     return True
 
-            elif defn.strategy is Strategies.curse_latest_beta:
+            elif defn.strategy.type_ is Strategies.curse_latest_beta:
 
-                def has_release_type(f: JsonDict):
+                def has_release_type(f: Any):
                     return f['releaseType'] == 2
 
-            elif defn.strategy is Strategies.curse_latest_alpha:
+            elif defn.strategy.type_ is Strategies.curse_latest_alpha:
 
-                def has_release_type(f: JsonDict):
+                def has_release_type(f: Any):
                     return f['releaseType'] == 3
 
             else:
 
-                def has_release_type(f: JsonDict):
+                def has_release_type(f: Any):
                     return f['releaseType'] == 1
 
-            def is_compatible(f: JsonDict):
+            def is_compatible(f: Any):
                 return is_not_libless(f) and supports_game_version(f) and has_release_type(f)
 
         if not files:
@@ -290,7 +324,7 @@ class CurseResolver(Resolver):
         except ValueError:
             raise E.PkgFileUnavailable(
                 f'no files compatible with {self.manager.config.game_flavour} '
-                f'using {defn.strategy.name!r} strategy'
+                f'using {defn.strategy.type_.name!r} strategy'
             )
 
         # 1 = embedded library
@@ -311,7 +345,7 @@ class CurseResolver(Resolver):
             download_url=file['downloadUrl'],
             date_published=file['fileDate'],
             version=file['displayName'],
-            options=m.PkgOptions(strategy=defn.strategy.name),
+            options=m.PkgOptions(strategy=defn.strategy.type_.name),
             deps=deps,
         )
 
@@ -376,10 +410,10 @@ class WowiResolver(Resolver):
     list_api_url = 'https://api.mmoui.com/v3/game/WOW/filelist.json'
     details_api_url = URL('https://api.mmoui.com/v3/game/WOW/filedetails/')
 
-    _files: O[JsonDict] = None
+    _files: O[Any] = None
 
     @staticmethod
-    def get_name_from_url(value: str) -> O[str]:
+    def get_alias_from_url(value: str) -> O[str]:
         url = URL(value)
         if (
             url.host in {'wowinterface.com', 'www.wowinterface.com'}
@@ -414,7 +448,7 @@ class WowiResolver(Resolver):
                 )
                 self._files = {i['UID']: i for i in files}
 
-        ids_for_defns = {d: ''.join(takewhile(str.isdigit, d.name)) for d in defns}
+        ids_for_defns = {d: ''.join(takewhile(str.isdigit, d.alias)) for d in defns}
         numeric_ids = {i for i in ids_for_defns.values() if i.isdigit()}
         url = self.details_api_url / f'{",".join(numeric_ids)}.json'
         try:
@@ -430,7 +464,7 @@ class WowiResolver(Resolver):
         )
         return dict(zip(defns, results))
 
-    async def resolve_one(self, defn: Defn, metadata: O[JsonDict]) -> m.Pkg:
+    async def resolve_one(self, defn: Defn, metadata: O[Any]) -> m.Pkg:
         if not metadata:
             raise E.PkgNonexistent
 
@@ -446,7 +480,7 @@ class WowiResolver(Resolver):
             download_url=metadata['UIDownload'],
             date_published=metadata['UIDate'],
             version=metadata['UIVersion'],
-            options=m.PkgOptions(strategy=defn.strategy.name),
+            options=m.PkgOptions(strategy=defn.strategy.type_.name),
         )
 
     async def collect_items(self) -> AsyncIterable[_CatalogueEntry]:
@@ -472,30 +506,30 @@ class TukuiResolver(Resolver):
     retail_uis = {'-1': 'tukui', '-2': 'elvui', 'tukui': 'tukui', 'elvui': 'elvui'}
 
     @staticmethod
-    def get_name_from_url(value: str) -> O[str]:
+    def get_alias_from_url(value: str) -> O[str]:
         url = URL(value)
         if url.host == 'www.tukui.org' and url.path in {
             '/addons.php',
             '/classic-addons.php',
             '/download.php',
         }:
-            name = url.query.get('id') or url.query.get('ui')
-            if name:
-                return name
+            alias = url.query.get('id') or url.query.get('ui')
+            if alias:
+                return alias
 
     async def resolve_one(self, defn: Defn, metadata: Any) -> m.Pkg:
-        name = ui_name = self.retail_uis.get(defn.name)
-        if not name:
-            name = ''.join(takewhile('-'.__ne__, defn.name))
+        alias = ui_id = self.retail_uis.get(defn.alias)
+        if not alias:
+            alias = ''.join(takewhile('-'.__ne__, defn.alias))
 
         if self.manager.config.is_classic:
             query = 'classic-addon'
-        elif ui_name:
+        elif ui_id:
             query = 'ui'
         else:
             query = 'addon'
 
-        url = self.api_url.with_query({query: name})
+        url = self.api_url.with_query({query: alias})
         async with self.manager.web_client.get(url) as response:
             if not response.content_length:
                 raise E.PkgNonexistent
@@ -504,14 +538,14 @@ class TukuiResolver(Resolver):
         return m.Pkg(
             source=self.source,
             id=addon['id'],
-            slug=ui_name or slugify(f'{addon["id"]} {addon["name"]}'),
+            slug=ui_id or slugify(f'{addon["id"]} {addon["name"]}'),
             name=addon['name'],
             description=addon['small_desc'],
             url=addon['web_url'],
             download_url=addon['url'],
             date_published=datetime.fromisoformat(addon['lastupdate']),
             version=addon['version'],
-            options=m.PkgOptions(strategy=defn.strategy.name),
+            options=m.PkgOptions(strategy=defn.strategy.type_.name),
         )
 
     async def collect_items(self) -> AsyncIterable[_CatalogueEntry]:
@@ -553,7 +587,7 @@ class GithubResolver(Resolver):
     repos_api_url = URL('https://api.github.com/repos')
 
     @staticmethod
-    def get_name_from_url(value: str) -> O[str]:
+    def get_alias_from_url(value: str) -> O[str]:
         url = URL(value)
         if url.host == 'github.com' and len(url.parts) > 2:
             return '/'.join(url.parts[1:3])
@@ -561,21 +595,22 @@ class GithubResolver(Resolver):
     async def resolve_one(self, defn: Defn, metadata: Any) -> m.Pkg:
         """Resolve a hypothetical add-on hosted on GitHub.
 
-        The GitHub resolver, ahem, 'builds' on the work done by Torkus
-        (see https://github.com/ogri-la/strongbox/blob/develop/github-addons.md) -
-        it purports to support the different kinds of add-ons supported by strongbox
-        with the exception that instawow does not look for TOC files or validate
-        the contents of the ZIP file.
-        instawow will attempt to prioritise add-ons compatible with your selected
-        game flavour.  It will otherwise install the first file it encounters.
-        instawow will only install assets attached to releases.  It will not
+        The GitHub resolver is inspired by strongbox's
+        (see https://github.com/ogri-la/strongbox/blob/develop/github-addons.md)
+        and makes similar assumptions -
+        with the notable exception that instawow does not look for TOC file
+        or validate the contents of the ZIP file.
+        The resolver will attempt to prioritise add-ons compatible with your
+        selected game flavour.  It will otherwise install the first file
+        it encounters.
+        The resolver will only install assets attached to releases.  It will not
         install add-ons from VCS tarballs or 'zipballs' (i.e. from source).
         """
         from aiohttp import ClientResponseError
 
         from .manager import cache_json_response
 
-        repo_url = self.repos_api_url / defn.name
+        repo_url = self.repos_api_url / defn.alias
         try:
             project_metadata = await cache_json_response(self.manager, repo_url, 3600)
         except ClientResponseError as error:
@@ -583,8 +618,8 @@ class GithubResolver(Resolver):
                 raise E.PkgNonexistent
             raise
 
-        if defn.strategy is Strategies.version:
-            release_url = repo_url / 'releases/tags' / defn.strategy_vals[0]
+        if defn.strategy.type_ is Strategies.version:
+            release_url = repo_url / 'releases/tags' / cast(VersionStrategy, defn.strategy).version
         else:
             release_url = repo_url / 'releases/latest'
         async with self.manager.web_client.get(release_url) as response:
@@ -594,7 +629,7 @@ class GithubResolver(Resolver):
 
         try:
 
-            def is_valid_asset(asset: JsonDict):
+            def is_valid_asset(asset: Any):
                 return (
                     # There is something of a convention that Classic archives
                     # end in '-classic' and lib-less archives end in '-nolib'.
@@ -631,7 +666,7 @@ class GithubResolver(Resolver):
             download_url=matching_asset['browser_download_url'],
             date_published=release_metadata['published_at'],
             version=release_metadata['tag_name'],
-            options=m.PkgOptions(strategy=defn.strategy.name),
+            options=m.PkgOptions(strategy=defn.strategy.type_.name),
         )
 
 
@@ -647,7 +682,7 @@ class InstawowResolver(Resolver):
 
     async def resolve_one(self, defn: Defn, metadata: Any) -> m.Pkg:
         try:
-            source_id, slug = next(p for p in self._addons if defn.name in p)
+            source_id, slug = next(p for p in self._addons if defn.alias in p)
         except StopIteration:
             raise E.PkgNonexistent
 
@@ -671,5 +706,5 @@ class InstawowResolver(Resolver):
             download_url=builder.addon_file.as_uri(),
             date_published=datetime.now(),
             version=checksum[:7],
-            options=m.PkgOptions(strategy=defn.strategy.name),
+            options=m.PkgOptions(strategy=defn.strategy.type_.name),
         )

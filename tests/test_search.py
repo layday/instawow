@@ -11,9 +11,7 @@ def mock(mock_all):
 @pytest.mark.asyncio
 async def test_search(manager):
     results = await manager.search('molinari', limit=5)
-    assert (
-        Defn.get('curse', 'molinari') in results and Defn.get('wowi', '13188-molinari') in results
-    )
+    assert {Defn.get('curse', 'molinari'), Defn.get('wowi', '13188-molinari')} == set(results)
 
 
 @pytest.mark.asyncio

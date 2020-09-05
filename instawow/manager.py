@@ -326,8 +326,8 @@ class Manager:
         _locks.set(value)
 
     def _with_lock(
-        lock_name: str,
-        manager_bound: bool = True,  # type: ignore  # Undeclared static method
+        lock_name: str,  # type: ignore  # Undeclared static method
+        manager_bound: bool = True,
     ) -> Callable[[_T], _T]:
         def outer(coro_fn: _T):
             async def inner(self: Manager, *args: Any, **kwargs: Any):
@@ -343,12 +343,12 @@ class Manager:
         "Attempt to extract the source from a URI."
 
         def from_urn():
-            source, name = value.partition(':')[::2]
-            if name:
-                yield (source, name)
+            source, alias = value.partition(':')[::2]
+            if alias:
+                yield (source, alias)
 
         url_pairs = filter(
-            all, ((r.source, r.get_name_from_url(value)) for r in self.resolvers.values())
+            all, ((r.source, r.get_alias_from_url(value)) for r in self.resolvers.values())
         )
         return next(
             chain(url_pairs, from_urn()),  # type: ignore
@@ -362,14 +362,14 @@ class Manager:
                 self.database.query(Pkg)
                 .filter(
                     Pkg.source == defn.source,
-                    (Pkg.id == defn.name) | (Pkg.slug == defn.name) | (Pkg.id == defn.source_id),
+                    (Pkg.id == defn.alias) | (Pkg.slug == defn.alias) | (Pkg.id == defn.source_id),
                 )
                 .first()
             )
             or partial_match
             and (
                 self.database.query(Pkg)
-                .filter(Pkg.slug.contains(defn.name))
+                .filter(Pkg.slug.contains(defn.alias))
                 .order_by(Pkg.name)
                 .first()
             )
@@ -562,12 +562,12 @@ class Manager:
             key=lambda v: v[0],
         )
         defns = [
-            Defn.get(i.source, i.id).with_(strategy=strategy)
+            Defn.get(i.source, i.id).with_(strategy={'type_': strategy})
             for _, m in matches
             for _, i in tokens_to_defns[m]
         ]
         resolve_results = await self.resolve(defns)
-        pkgs_by_defn = {d.with_(name=r.slug): r for d, r in resolve_results.items() if is_pkg(r)}
+        pkgs_by_defn = {d.with_(alias=r.slug): r for d, r in resolve_results.items() if is_pkg(r)}
         return pkgs_by_defn
 
     @_with_lock('change state')
@@ -607,17 +607,23 @@ class Manager:
         return results
 
     @_with_lock('change state')
-    async def update(self, defns: Sequence[Defn]) -> Dict[Defn, E.ManagerResult]:
-        "Update installed packages from a definition list."
-        # Begin by rebuilding ``Defn`` with ID and strategy from package
-        # for ``Defn``s of installed packages.  Using the ID has the benefit
-        # of resolving installed-but-renamed packages -
-        # the slug is transient but the ID is not.
-        # Afterwards trim the results down to ``Defn``s with packages (installables)
-        # and ``Defn``s with updates (updatables) and fetch the archives of
-        # the latter class.
-        maybe_pkgs = (self.get_pkg(d) for d in defns)
-        defns_to_pkgs = {Defn.from_pkg(p) if p else d: p for d, p in zip(defns, maybe_pkgs)}
+    async def update(
+        self, defns: Sequence[Defn], retain_strategy: bool
+    ) -> Dict[Defn, E.ManagerResult]:
+        """Update installed packages from a definition list.
+
+        A ``retain_strategy`` value of false will instruct ``update``
+        to extract the strategy from the installed package; otherwise
+        the ``Defn`` strategy will be used.
+        """
+        # Begin by attaching the source ID to each ``Defn``
+        # from the corresponding installed package.  Using the ID has
+        # the benefit of resolving installed-but-renamed packages -
+        # the slug is transient but the ID is not
+        defns_to_pkgs = {
+            (Defn.from_pkg(p) if not retain_strategy and p else d.with_(source_id=p and p.id)): p
+            for d, p in zip(defns, (self.get_pkg(d) for d in defns))
+        }
         resolve_results = await self.resolve([d for d, p in defns_to_pkgs.items() if p])
         installables = {d: cast(Pkg, r) for d, r in resolve_results.items() if is_pkg(r)}
         updatables = {
@@ -632,7 +638,7 @@ class Manager:
             defns_to_pkgs,
             _error_out(E.PkgNotInstalled()),
             ((d, _error_out(r)) for d, r in resolve_results.items()),
-            ((d, _error_out(E.PkgUpToDate())) for d in installables),
+            zip(installables, repeat(_error_out(E.PkgUpToDate()))),
             (
                 (
                     d,
@@ -665,28 +671,31 @@ class Manager:
         instawow does not have true pinning.  This sets the strategy
         to ``Strategies.version`` for installed packages from sources
         that support it.  The net effect is the same as if the package
-        had been reinstalled with
-        ``Defn(..., strategy=Strategies.version, strategy_vals=[pkg.version])``.
-        Conversely a ``Defn`` with a ``Strategies.default`` will unpin the
+        had been reinstalled with the version strategy.
+        Conversely a ``Defn`` with the default strategy will unpin the
         package.
         """
 
         strategies = {Strategies.default, Strategies.version}
 
-        def pin(defns: Sequence[Defn]) -> Iterable[Tuple[Defn, E.ManagerResult]]:
+        def pin(defns: Sequence[Defn]) -> Iterable[E.ManagerResult]:
             for defn in defns:
                 pkg = self.get_pkg(defn)
                 if pkg:
-                    if {defn.strategy} <= strategies <= self.resolvers[pkg.source].strategies:
-                        pkg.options.strategy = defn.strategy.name
+                    if (
+                        {defn.strategy.type_}
+                        <= strategies
+                        <= self.resolvers[pkg.source].strategies
+                    ):
+                        pkg.options.strategy = defn.strategy.type_.name
                         self.database.commit()
-                        yield (defn, E.PkgInstalled(pkg))
+                        yield E.PkgInstalled(pkg)
                     else:
-                        yield (defn, E.PkgStrategyUnsupported(Strategies.version))
+                        yield E.PkgStrategyUnsupported(defn.strategy.type_)
                 else:
-                    yield (defn, E.PkgNotInstalled())
+                    yield E.PkgNotInstalled()
 
-        return dict(pin(defns))
+        return dict(zip(defns, pin(defns)))
 
 
 def _extract_filename_from_hdr(response: aiohttp.ClientResponse) -> str:

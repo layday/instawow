@@ -19,7 +19,7 @@ async def ws(full_config, monkeypatch):
 async def test_write_config(request, full_config, ws):
     config_values = {**full_config, 'profile': request.node.name}
     rpc_request = Request(
-        method='config.write',
+        method='config/write',
         params={'values': config_values},
         msg_id=request.node.name,
     )
@@ -32,7 +32,7 @@ async def test_write_config(request, full_config, ws):
 @pytest.mark.asyncio
 async def test_write_config_with_invalid_params(request, full_config, ws):
     rpc_request = Request(
-        method='config.write',
+        method='config/write',
         params={'values': {**full_config, 'game_flavour': 'strawberry'}},
         msg_id=request.node.name,
     )

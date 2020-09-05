@@ -24,10 +24,9 @@ from typing import (
     overload,
 )
 
-from aiohttp import http, web
-from aiohttp_rpc import BaseJsonRpcServer, JsonRpcMethod, middlewares as rpc_middlewares
+from aiohttp import web
+from aiohttp_rpc import JsonRpcMethod, WsJsonRpcServer, middlewares as rpc_middlewares
 from aiohttp_rpc.errors import InvalidParams as InvalidParamsError, ServerError
-from loguru import logger
 from pydantic import BaseModel, Field, ValidationError, validator
 
 from . import exceptions as E
@@ -76,7 +75,7 @@ class _DefnParamMixin(BaseModel):
 
 class WriteConfigParams(BaseParams):
     values: Dict[str, Any]
-    _method = 'config.write'
+    _method = 'config/write'
     _result_type = Config
 
     @t
@@ -91,7 +90,7 @@ class WriteConfigParams(BaseParams):
 
 
 class ReadConfigParams(_ProfileParamMixin, BaseParams):
-    _method = 'config.read'
+    _method = 'config/read'
     _result_type = Config
 
     @t
@@ -101,7 +100,7 @@ class ReadConfigParams(_ProfileParamMixin, BaseParams):
 
 
 class DeleteConfigParams(_ProfileParamMixin, BaseParams):
-    _method = 'config.delete'
+    _method = 'config/delete'
     _result_type = type(None)
 
     async def respond(self, managers: ManagerWorkQueue) -> _result_type:
@@ -113,7 +112,7 @@ class DeleteConfigParams(_ProfileParamMixin, BaseParams):
 
 
 class EnumerateProfilesParams(BaseParams):
-    _method = 'config.enumerate'
+    _method = 'config/enumerate'
     _result_type = List[str]
 
     @t
@@ -136,7 +135,7 @@ class _Source(BaseModel):
 
 
 class ListSourcesParams(_ProfileParamMixin, BaseParams):
-    _method = 'sources.list'
+    _method = 'sources/list'
     _result_type = List[_Source]
 
     async def respond(self, managers: ManagerWorkQueue) -> _result_type:
@@ -144,56 +143,19 @@ class ListSourcesParams(_ProfileParamMixin, BaseParams):
         return list(map(_Source.from_orm, manager.resolvers.values()))
 
 
-class _PkgMeta(BaseModel):
-    installed: bool = False
-    damaged: bool = False
-    pinned: bool = False
-    new_version: O[str] = None
-
-
 class _ListResult(BaseModel):
-    __root__: List[Tuple[PkgModel, _PkgMeta]]
+    __root__: List[O[PkgModel]]
 
 
 class ListInstalledParams(_ProfileParamMixin, BaseParams):
-    check_for_updates: bool
     _method = 'list'
     _result_type = _ListResult
 
     async def respond(self, managers: ManagerWorkQueue) -> _result_type:
-        manager = await managers.run(self.profile)
-        installed_pkgs = manager.database.query(Pkg).all()
-        damaged_pkgs = await managers.run(self.profile, t(Manager.find_damaged_pkgs))
-        if self.check_for_updates:
-            resolve_results = await managers.run(
-                self.profile,
-                partial(Manager.resolve, defns=list(map(Defn.from_pkg, installed_pkgs))),
-            )
-            outdated_pkgs = {
-                p: r.version
-                for p, r in zip(installed_pkgs, resolve_results.values())
-                if is_pkg(r) and p.version != r.version
-            }
-        else:
-            outdated_pkgs = {}
-        pkg_objs = [
-            (
-                p,
-                _PkgMeta(
-                    installed=True,
-                    damaged=p in damaged_pkgs,
-                    pinned=p.options.strategy == 'version',
-                    new_version=outdated_pkgs.get(p),
-                ),
-            )
-            for p in installed_pkgs
-        ]
-        pkg_objs = sorted(
-            pkg_objs,
-            key=lambda i: (not i[1].damaged, not i[1].new_version, i[0].name),
+        installed_pkgs = await managers.run(
+            self.profile, t(lambda m: m.database.query(Pkg).order_by(Pkg.name).all())
         )
-        result = _ListResult.parse_obj(pkg_objs)
-        return result
+        return _ListResult.parse_obj(installed_pkgs)
 
 
 class SearchParams(_ProfileParamMixin, BaseParams):
@@ -213,7 +175,7 @@ class SearchParams(_ProfileParamMixin, BaseParams):
                 strategy=self.strategy,
             ),
         )
-        return _ListResult.parse_obj([(r, _PkgMeta()) for r in results.values()])
+        return _ListResult.parse_obj(list(results.values()))
 
 
 class ResolveParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
@@ -221,28 +183,29 @@ class ResolveParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
     _result_type = _ListResult
 
     async def respond(self, managers: ManagerWorkQueue) -> _result_type:
-        results = await managers.run(self.profile, partial(Manager.resolve, defns=self.defns))
-        return _ListResult.parse_obj([(r, _PkgMeta()) for r in results.values() if is_pkg(r)])
+        def extract_source(manager: Manager, defns: List[Defn]):
+            for defn in defns:
+                if defn.source == '*':
+                    pair = manager.pair_uri(defn.alias)
+                    if pair:
+                        source, alias = pair
+                        defn = defn.with_(source=source, alias=alias)
+                yield defn
 
-
-class ResolveUrisParams(_ProfileParamMixin, BaseParams):
-    prospective_defns: List[str]
-    strategy: Strategies = Strategies.default
-    _method = 'resolve_uris'
-    _result_type = _ListResult
-
-    async def respond(self, managers: ManagerWorkQueue) -> _result_type:
-        manager = await managers.run(self.profile)
-        source_name_pairs = filter(None, map(manager.pair_uri, self.prospective_defns))
-        defns = [Defn.get(a, b).with_(strategy=self.strategy) for a, b in source_name_pairs]
-        results = await managers.run(self.profile, partial(Manager.resolve, defns=defns))
-        return _ListResult.parse_obj([(r, _PkgMeta()) for r in results.values() if is_pkg(r)])
+        results = await managers.run(
+            self.profile,
+            partial(
+                Manager.resolve,
+                defns=list(extract_source(await managers.run(self.profile), self.defns)),
+            ),
+        )
+        return _ListResult.parse_obj([r if is_pkg(r) else None for r in results.values()])
 
 
 class _ModifyResult(BaseModel):
     __root__: List[
         Union[
-            Tuple[Literal['success'], Tuple[PkgModel, _PkgMeta]],
+            Tuple[Literal['success'], PkgModel],
             Tuple[Literal['failure', 'error'], str],
         ]
     ]
@@ -259,12 +222,7 @@ class InstallParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
         )
         return _ModifyResult.parse_obj(
             [
-                (
-                    r.kind,
-                    (r.pkg, _PkgMeta(installed=True, pinned=r.pkg.options.strategy == 'version'))
-                    if isinstance(r, E.PkgInstalled)
-                    else r.message,
-                )
+                (r.kind, r.pkg if isinstance(r, E.PkgInstalled) else r.message)
                 for r in results.values()
             ]
         )
@@ -275,18 +233,12 @@ class UpdateParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
     _result_type = _ModifyResult
 
     async def respond(self, managers: ManagerWorkQueue) -> _result_type:
-        results = await managers.run(self.profile, partial(Manager.update, defns=self.defns))
+        results = await managers.run(
+            self.profile, partial(Manager.update, defns=self.defns, retain_strategy=True)
+        )
         return _ModifyResult.parse_obj(
             [
-                (
-                    r.kind,
-                    (
-                        r.new_pkg,
-                        _PkgMeta(installed=True, pinned=r.new_pkg.options.strategy == 'version'),
-                    )
-                    if isinstance(r, E.PkgUpdated)
-                    else r.message,
-                )
+                (r.kind, r.new_pkg if isinstance(r, E.PkgUpdated) else r.message)
                 for r in results.values()
             ]
         )
@@ -300,7 +252,7 @@ class RemoveParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
         results = await managers.run(self.profile, partial(Manager.remove, defns=self.defns))
         return _ModifyResult.parse_obj(
             [
-                (r.kind, (r.old_pkg, _PkgMeta()) if isinstance(r, E.PkgRemoved) else r.message)
+                (r.kind, r.old_pkg if isinstance(r, E.PkgRemoved) else r.message)
                 for r in results.values()
             ]
         )
@@ -314,12 +266,7 @@ class PinParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
         results = await managers.run(self.profile, partial(Manager.pin, defns=self.defns))
         return _ModifyResult.parse_obj(
             [
-                (
-                    r.kind,
-                    (r.pkg, _PkgMeta(installed=True, pinned=r.pkg.options.strategy == 'version'))
-                    if isinstance(r, E.PkgInstalled)
-                    else r.message,
-                )
+                (r.kind, r.pkg if isinstance(r, E.PkgInstalled) else r.message)
                 for r in results.values()
             ]
         )
@@ -386,7 +333,7 @@ class _GetVersionResult(BaseModel):
 
 
 class GetVersionParams(BaseParams):
-    _method = 'meta.get_version'
+    _method = 'meta/get_version'
     _result_type = _GetVersionResult
 
     async def respond(self, managers: ManagerWorkQueue) -> _result_type:
@@ -476,37 +423,12 @@ def serialise_response(value: Dict[str, Any]) -> str:
     return BaseModel.construct(**value).json()
 
 
-class WsJsonRpcServer(BaseJsonRpcServer):
-    async def handle_request(self, http_request: web.Request) -> web.StreamResponse:
-        if http_request.headers.get('upgrade', '').lower() != 'websocket':
-            return web.Response(status=405)
-
-        ws = web.WebSocketResponse()
-        await ws.prepare(http_request)
-
-        try:
-            async for ws_msg in ws:
-                if ws_msg.type == web.WSMsgType.TEXT:
-                    logger.debug(f'will handle {ws_msg.data}')
-                    asyncio.create_task(self._handle_ws_msg(http_request, ws, ws_msg))
-        finally:
-            logger.debug(f'exiting websocket')
-        return ws
-
-    async def _handle_ws_msg(
-        self, http_request: web.Request, ws: web.WebSocketResponse, ws_msg: http.WSMessage
-    ) -> None:
-        output_data = await self._process_input_data(ws_msg.json(), http_request=http_request)
-
-        if ws._writer.transport.is_closing():  # type: ignore
-            await ws.close()
-        await ws.send_str(serialise_response(output_data))
-        logger.info(f'handled {ws_msg.data}')
-
-
 async def create_app() -> web.Application:
     managers = ManagerWorkQueue()
-    rpc_server = WsJsonRpcServer(middlewares=rpc_middlewares.DEFAULT_MIDDLEWARES)
+    rpc_server = WsJsonRpcServer(
+        json_serialize=serialise_response,
+        middlewares=rpc_middlewares.DEFAULT_MIDDLEWARES,
+    )
     rpc_server.add_methods(
         map(
             _prepare_response,
@@ -519,7 +441,6 @@ async def create_app() -> web.Application:
                 ListInstalledParams,
                 SearchParams,
                 ResolveParams,
-                ResolveUrisParams,
                 InstallParams,
                 UpdateParams,
                 RemoveParams,
@@ -531,7 +452,7 @@ async def create_app() -> web.Application:
         )
     )
     app = web.Application()
-    app.router.add_routes([web.get(f'/v{API_VERSION}', rpc_server.handle_request)])
+    app.router.add_routes([web.get(f'/v{API_VERSION}', rpc_server.handle_http_request)])
 
     async def on_shutdown(app: web.Application):
         listen.cancel()

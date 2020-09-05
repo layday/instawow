@@ -17,10 +17,10 @@ def mock(mock_all):
 async def test_resolve_curse_simple_pkgs(manager, request, strategy):
     results = await manager.resolve(
         [
-            Defn(source='curse', name='tomcats', strategy=strategy),
-            Defn(source='curse', name='mythic-dungeon-tools', strategy=strategy),
-            Defn(source='curse', name='classiccastbars', strategy=strategy),
-            Defn(source='curse', name='elkbuffbars', strategy=strategy),
+            Defn.get('curse', 'tomcats').with_strategy(strategy),
+            Defn.get('curse', 'mythic-dungeon-tools').with_strategy(strategy),
+            Defn.get('curse', 'classiccastbars').with_strategy(strategy),
+            Defn.get('curse', 'elkbuffbars').with_strategy(strategy),
         ]
     )
     separate, retail_only, classic_only, flavour_explosion = results.values()
@@ -58,7 +58,7 @@ async def test_resolve_curse_simple_pkgs(manager, request, strategy):
 @pytest.mark.asyncio
 async def test_resolve_curse_latest_pkg(manager):
     (latest_pkg,) = (
-        await manager.resolve([Defn(source='curse', name='tomcats', strategy=Strategies.latest)])
+        await manager.resolve([Defn.get('curse', 'tomcats').with_strategy(Strategies.latest)])
     ).values()
     assert latest_pkg.options.strategy == 'latest'
 
@@ -78,7 +78,7 @@ async def test_resolve_curse_deps(manager):
     if manager.config.is_classic:
         pytest.skip('no classic equivalent')
 
-    defns = [Defn(source='curse', name='mechagon-rare-share', strategy=Strategies.default)]
+    defns = [Defn.get('curse', 'mechagon-rare-share').with_strategy(Strategies.default)]
     with_deps = await manager.resolve(defns, with_deps=True)
     assert ['mechagon-rare-share', 'rare-share'] == [d.slug for d in with_deps.values()]
 
@@ -87,8 +87,8 @@ async def test_resolve_curse_deps(manager):
 async def test_resolve_wowi_pkgs(manager):
     results = await manager.resolve(
         [
-            Defn(source='wowi', name='13188-molinari'),
-            Defn(source='wowi', name='13188', strategy=Strategies.latest),
+            Defn.get('wowi', '13188-molinari'),
+            Defn.get('wowi', '13188').with_strategy(Strategies.latest),
         ]
     )
     either, invalid = results.values()
@@ -104,10 +104,10 @@ async def test_resolve_wowi_pkgs(manager):
 async def test_resolve_tukui_pkgs(manager):
     results = await manager.resolve(
         [
-            Defn(source='tukui', name='1'),
-            Defn(source='tukui', name='-1'),
-            Defn(source='tukui', name='tukui'),
-            Defn(source='tukui', name='1', strategy=Strategies.latest),
+            Defn.get('tukui', '1'),
+            Defn.get('tukui', '-1'),
+            Defn.get('tukui', 'tukui'),
+            Defn.get('tukui', '1').with_strategy(Strategies.latest),
         ]
     )
     either, retail_id, retail_slug, invalid = results.values()
@@ -131,22 +131,12 @@ async def test_resolve_tukui_pkgs(manager):
 async def test_resolve_github_pkgs(manager):
     results = await manager.resolve(
         [
-            Defn(source='github', name='AdiAddons/AdiButtonAuras'),
-            Defn(
-                source='github',
-                name='AdiAddons/AdiButtonAuras',
-                strategy=Strategies.version,
-                strategy_vals=('2.1.0',),
-            ),
-            Defn(
-                source='github',
-                name='AdiAddons/AdiButtonAuras',
-                strategy=Strategies.version,
-                strategy_vals=('2.0.19',),
-            ),
-            Defn(source='github', name='WeakAuras/WeakAuras2'),
-            Defn(source='github', name='p3lim-wow/Molinari'),
-            Defn(source='github', name='layday/foo-bar'),
+            Defn.get('github', 'AdiAddons/AdiButtonAuras'),
+            Defn.get('github', 'AdiAddons/AdiButtonAuras').with_version('2.1.0'),
+            Defn.get('github', 'AdiAddons/AdiButtonAuras').with_version('2.0.19'),
+            Defn.get('github', 'WeakAuras/WeakAuras2'),
+            Defn.get('github', 'p3lim-wow/Molinari'),
+            Defn.get('github', 'layday/foo-bar'),
         ]
     )
     (

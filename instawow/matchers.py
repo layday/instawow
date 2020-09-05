@@ -40,7 +40,7 @@ class AddonFolder:
     @cached_property
     def defns_from_toc(self) -> FrozenSet[Defn]:
         return frozenset(
-            Defn(source=s, name=i)
+            Defn.get(s, i)
             for s, i in ((s, self.toc_reader[k].value) for k, s in _ids_to_sources.items())
             if i
         )
@@ -108,7 +108,7 @@ async def match_dir_names(manager: Manager, leftovers: FrozenSet[AddonFolder]) -
     matches = [
         (
             frozenset(e for e in leftovers if e in cast('List[AddonFolder]', f)),
-            Defn(source=i.source, name=i.id),
+            Defn.get(i.source, i.id),
         )
         for i in manager.catalogue.__root__
         for f in i.folders
@@ -131,4 +131,4 @@ async def match_toc_names(manager: Manager, leftovers: FrozenSet[AddonFolder]) -
 
     norm_to_items = bucketise(manager.catalogue.__root__, key=lambda i: normalise(i.name))
     matches = ((e, norm_to_items.get(normalise(e.name))) for e in sorted(leftovers))
-    return [([e], uniq(Defn(source=i.source, name=i.id) for i in m)) for e, m in matches if m]
+    return [([e], uniq(Defn.get(i.source, i.id) for i in m)) for e, m in matches if m]

@@ -207,14 +207,14 @@ def parse_into_defn(
 
         pair = '*', value
     source, name = pair
-    return Defn(source=source, name=name)
+    return Defn.get(source, name)
 
 
 def parse_into_defn_with_strategy(
     manager: CliManager, value: Sequence[Tuple[Strategies, str]]
 ) -> List[Defn]:
     defns = parse_into_defn(manager, [d for _, d in value])
-    return list(map(lambda d, s: d.with_(strategy=s), defns, (s for s, _ in value)))
+    return list(map(Defn.with_strategy, defns, (s for s, _ in value)))
 
 
 def parse_into_defn_with_version(
@@ -301,7 +301,9 @@ def update(obj: ManagerWrapper, addons: Sequence[Defn]) -> None:
         return cast(bool, addons) or not isinstance(result, E.PkgUpToDate)
 
     results = obj.m.run(
-        obj.m.update(addons or list(map(Defn.from_pkg, obj.m.database.query(models.Pkg).all())))
+        obj.m.update(
+            addons or list(map(Defn.from_pkg, obj.m.database.query(models.Pkg).all())), False
+        )
     )
     Report(results.items(), filter_results).generate_and_exit()
 
@@ -536,8 +538,8 @@ def list_installed(
     from sqlalchemy import and_, or_
 
     def format_deps(pkg: models.Pkg):
-        deps = (Defn(source=pkg.source, name=d.id) for d in pkg.deps)
-        deps = (d.with_(name=getattr(obj.m.get_pkg(d), 'slug', d.name)) for d in deps)
+        deps = (Defn.get(pkg.source, d.id) for d in pkg.deps)
+        deps = (d.with_(name=getattr(obj.m.get_pkg(d), 'slug', d.alias)) for d in deps)
         return map(str, deps)
 
     def get_wowi_desc_from_toc(pkg: models.Pkg):
@@ -552,11 +554,11 @@ def list_installed(
         .filter(
             or_(
                 *(
-                    models.Pkg.slug.contains(d.name)
+                    models.Pkg.slug.contains(d.alias)
                     if d.source == '*'
                     else and_(
                         models.Pkg.source == d.source,
-                        or_(models.Pkg.id == d.name, models.Pkg.slug == d.name),
+                        or_(models.Pkg.id == d.alias, models.Pkg.slug == d.alias),
                     )
                     for d in addons
                 )

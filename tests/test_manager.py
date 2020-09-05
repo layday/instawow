@@ -1,7 +1,7 @@
 import pytest
 
 from instawow import exceptions as E
-from instawow.resolvers import Defn, Strategies
+from instawow.resolvers import Defn
 
 
 @pytest.mark.asyncio
@@ -27,7 +27,7 @@ async def test_pinning_supported(mock_all, manager):
     for new_defn in (defn.with_version(pkg.version), defn):
         pin_result = await manager.pin([new_defn])
         pinned_pkg = pin_result[new_defn].pkg
-        assert pkg.options.strategy == pinned_pkg.options.strategy == new_defn.strategy.name
+        assert pkg.options.strategy == pinned_pkg.options.strategy == new_defn.strategy.type_.name
         assert version == pinned_pkg.version
 
 
@@ -40,7 +40,7 @@ async def test_pinning_unsupported(mock_all, manager):
     result = await manager.pin([molinari_defn])
     assert (
         isinstance(result[molinari_defn], E.PkgStrategyUnsupported)
-        and result[molinari_defn].strategy == Strategies.version
+        and result[molinari_defn].strategy == molinari_defn.strategy.type_
     )
     assert installed_pkg.options.strategy == 'default'
 

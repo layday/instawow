@@ -22,19 +22,19 @@ setup(
         pydantic          ~=1.6.1
         questionary       >=1, !=1.3.0, <2
         slpp              ==1.2.1
-        sqlalchemy        ~=1.3
+        sqlalchemy        ~=1.3.19
         typing-extensions ~=3.7
         yarl              ~=1.4
     ''',
     extras_require={
         'server': '''
-            aiohttp-rpc == 0.6.2
+        aiohttp-rpc      ==0.6.3
         ''',
         'test': '''
-            coverage[toml]   ~=5.0
-            pytest           >=6.0.1, <7
-            pytest-asyncio   ~=0.14
-            aresponses       ~=2.0
+        coverage[toml]   ~=5.2
+        pytest           >=6.0.1, <7
+        pytest-asyncio   ~=0.14
+        aresponses       ~=2.0
         ''',
     },
     python_requires='~=3.7',

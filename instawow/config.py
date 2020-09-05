@@ -10,8 +10,9 @@ from typing import Any, Dict, List, Union
 import click
 from loguru import logger
 from pydantic import BaseSettings, Extra, Field, PydanticValueError, validator
+from typing_extensions import Literal
 
-from .utils import Literal, trash
+from .utils import trash
 
 __novalidate__ = '__novalidate__'
 
