@@ -16,11 +16,10 @@ from typing import (
     Set,
     Union,
     cast,
-    get_args,
 )
 
 from pydantic import BaseModel, WrongConstantError, validator
-from typing_extensions import Literal
+from typing_extensions import Literal, get_args
 from yarl import URL
 
 from . import exceptions as E, models as m
