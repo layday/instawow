@@ -38,3 +38,16 @@ GUI
 - [ ] App settings?  Do we need them or can we rely exclusively on profiles?
 - [ ] Tests, tests, tests
   - See https://objectcomputing.com/resources/publications/sett/july-2019-web-dev-simplified-with-svelte
+
+Both
+----
+
+- [ ] Remove really old add-ons from catalogue/search?
+- [ ] Categorise WoWI add-ons by compatibility?
+  - Though add-ons from CF are prioritised before WoWI we don't want
+    reconciliation to work off add-ons of the opposite flavour
+- [ ] Cache management - use eviction policy or periodically prune cache.
+  Cached (and deleted!) add-ons gradually build up in $TMPDIR.
+  I chose $TMPDIR for caching so I could delegate clean-up to the OS but the
+  majority of Linuxes only do this on reboot.  Not urgent but I should look
+  into it eventually
