@@ -1,32 +1,25 @@
 <script lang="ts">
-  import type { Addon, AddonMeta } from "../api";
+  import type { Addon, AddonWithMeta } from "../api";
   import {
     faEllipsisH,
     faExternalLinkSquareAlt,
     faHistory,
-    faTasks,
   } from "@fortawesome/free-solid-svg-icons";
   import { ipcRenderer } from "electron";
   import { DateTime } from "luxon";
   import { createEventDispatcher } from "svelte";
-  import { fade, slide } from "svelte/transition";
+  import { fade } from "svelte/transition";
   import Icon from "./SvgIcon.svelte";
 
-  export let addon: Addon,
-    addonMeta: AddonMeta,
-    canRollback: boolean,
+  export let addon: AddonWithMeta,
+    otherAddon: Addon,
+    isOutdated: boolean,
+    supportsRollback: boolean,
     beingModified: boolean,
+    showCondensed: boolean,
     refreshing: boolean;
 
   const dispatch = createEventDispatcher();
-
-  const requestInstall = () => dispatch("requestInstall");
-  const requestReinstall = () => dispatch("requestReinstall");
-  const requestUpdate = () => dispatch("requestUpdate");
-  const requestRemove = () => dispatch("requestRemove");
-  const requestShowModal = (modal: "install" | "reinstall" | "rollback") =>
-    dispatch("requestShowModal", modal);
-  const requestShowContexMenu = () => dispatch("requestShowContexMenu");
 </script>
 
 <style lang="scss">
@@ -36,6 +29,7 @@
     position: relative;
     display: flex;
     padding: 0.4em 0.75em;
+    border-radius: inherit;
     transition: all 0.2s;
 
     &.status-being-modified {
@@ -60,12 +54,25 @@
     flex-grow: 1;
     overflow-x: hidden;
 
+    &.two-col {
+      display: flex;
+      line-height: 1.5rem;
+
+      .name {
+        flex-grow: 1;
+      }
+
+      .versions {
+        margin-top: 0;
+      }
+    }
+
     li {
       display: block;
     }
 
     .name {
-      font-weight: 500;
+      font-weight: 600;
     }
 
     .versions {
@@ -74,18 +81,18 @@
 
     .defn,
     .versions {
-      margin: 0.25rem 0;
+      margin-top: 0.25rem;
       font-family: $mono-font-stack;
       font-size: 0.7em;
-      color: var(--inverse-color-tone-10);
     }
 
     .description {
-      font-size: 0.8em;
+      margin-top: 0.25rem;
       overflow-x: hidden;
       white-space: nowrap;
       text-overflow: ellipsis;
-      color: var(--inverse-color-tone-10);
+      font-size: 0.8em;
+      color: var(--inverse-color-tone-20);
     }
 
     &:hover .description {
@@ -98,10 +105,10 @@
     display: flex;
     flex-wrap: nowrap;
     align-self: center;
-    padding-left: 0.75em;
+    padding-left: 0.625rem;
 
     button {
-      padding: 0 0.75em;
+      padding: 0 0.625rem;
       line-height: 1.8em;
       font-size: 0.8em;
       font-weight: 500;
@@ -120,7 +127,7 @@
       }
 
       + button {
-        margin-left: 0.5em;
+        margin-left: 4px;
       }
 
       :global(.icon) {
@@ -142,47 +149,54 @@
 
 <div
   class="addon"
-  class:status-damaged={addonMeta.damaged}
-  class:status-outdated={addonMeta.new_version && addon.version !== addonMeta.new_version}
+  class:status-damaged={false}
+  class:status-outdated={isOutdated}
   class:status-pinned={addon.options.strategy === 'version'}
   class:status-being-modified={beingModified}>
-  <ul class="addon-details">
+  <ul class="addon-details" class:two-col={showCondensed}>
     <li class="name">{addon.name}</li>
-    <!-- prettier-ignore -->
     <li class="versions">
       {addon.version}
-      (<span title={addon.date_published}><!--
-        -->{DateTime.fromISO(addon.date_published).toRelative()}<!--
-      --></span>)
-      {#if addonMeta.new_version && addon.version !== addonMeta.new_version}
-        {"<"} {addonMeta.new_version}
+      {#if isOutdated}
+        {'<'}
+        {otherAddon.version}
+        <span
+          title={otherAddon.date_published}>({DateTime.fromISO(otherAddon.date_published).toRelative()})</span>
+      {:else}
+        <span title={addon.date_published}>
+          ({DateTime.fromISO(addon.date_published).toRelative()})
+        </span>
       {/if}
-      {#if addon.options.strategy !== 'default'}
-        @ {addon.options.strategy}
+      {#if (isOutdated ? otherAddon : addon).options.strategy !== 'default'}
+        @ {(isOutdated ? otherAddon : addon).options.strategy}
       {/if}
     </li>
-    <li class="defn">{addon.source}:{addon.slug}</li>
-    <li class="description">{addon.description || 'No description.'}</li>
+    {#if !showCondensed}
+      <li class="defn">{addon.source}:{addon.id}</li>
+      <li class="description">{addon.description || 'No description.'}</li>
+    {/if}
   </ul>
   {#if beingModified}
     <div class="modification-status-indicator" in:fade />
   {:else}
     <menu class="addon-actions">
-      {#if addonMeta.installed}
-        {#if addonMeta.new_version && addon.version !== addonMeta.new_version}
-          <button disabled={refreshing} on:click|stopPropagation={requestUpdate}>update</button>
+      {#if addon.__installed__}
+        {#if isOutdated}
+          <button
+            disabled={refreshing}
+            on:click|stopPropagation={() => dispatch('requestUpdate')}>update</button>
         {/if}
-        {#if addonMeta.damaged}
+        <!-- {#if false}
           <button disabled={refreshing} on:click|stopPropagation={() => requestReinstall()}>
             reinstall
           </button>
-        {/if}
-        {#if addon.logged_versions.length > 1 && canRollback}
+        {/if} -->
+        {#if addon.logged_versions.length > 1 && supportsRollback}
           <button
             aria-label="rollback"
             title="rollback"
             disabled={refreshing}
-            on:click|stopPropagation={() => requestShowModal('rollback')}>
+            on:click|stopPropagation={() => dispatch('requestShowRollbackModal')}>
             <Icon icon={faHistory} />
           </button>
         {/if}
@@ -190,25 +204,23 @@
           aria-label="show options"
           title="show options"
           disabled={refreshing}
-          on:click|stopPropagation={() => requestShowContexMenu()}>
+          on:click|stopPropagation={() => dispatch('showGenericAddonContextMenu')}>
           <Icon icon={faEllipsisH} />
         </button>
-        <button disabled={refreshing} on:click|stopPropagation={requestRemove}>remove</button>
-      {:else}
         <button
-          aria-label="install with strategy"
-          title="install with strategy"
           disabled={refreshing}
-          on:click|stopPropagation={() => requestShowModal('install')}>
-          <Icon icon={faTasks} />
-        </button>
+          on:click|stopPropagation={() => dispatch('requestRemove')}>remove</button>
+      {:else}
         <button
           aria-label="open in browser"
           title="open in browser"
           on:click|stopPropagation={() => ipcRenderer.send('open-url', addon.url)}>
           <Icon icon={faExternalLinkSquareAlt} />
         </button>
-        <button disabled={refreshing} on:click|stopPropagation={requestInstall}>install</button>
+        <button
+          disabled={refreshing}
+          on:click|stopPropagation={() => dispatch('requestInstall')}
+          on:contextmenu={() => dispatch('showInstallAddonContextMenu')}>install</button>
       {/if}
     </menu>
   {/if}

@@ -1,18 +1,22 @@
 <script lang="ts">
   import type { Addon, Defn } from "../api";
+  import { Strategies } from "../api";
   import { DateTime } from "luxon";
   import { createEventDispatcher } from "svelte";
   import { scale } from "svelte/transition";
   import Modal from "./Modal.svelte";
 
-  export let show: any, defn: Defn, versions: Addon["logged_versions"];
+  export let show: any, defn: Defn, versions: Addon["logged_versions"], addonListEl: HTMLElement;
 
   const dispatch = createEventDispatcher();
 
   let version: string;
 
-  const requestReinstall = () => {
-    dispatch("requestReinstall", { ...defn, strategy: "version", strategy_vals: [version] });
+  const requestRollback = () => {
+    dispatch("requestRollback", {
+      ...defn,
+      strategy: { type_: Strategies.version, version: version },
+    });
     show = false;
   };
 </script>
@@ -21,10 +25,10 @@
   @import "modal";
 </style>
 
-<Modal bind:show>
+<Modal bind:show {addonListEl}>
   <dialog open class="modal" in:scale={{ duration: 200 }} on:click|stopPropagation>
     <div class="title-bar">rollback</div>
-    <form class="content" on:submit|preventDefault={() => requestReinstall()}>
+    <form class="content" on:submit|preventDefault={() => requestRollback()}>
       <select class="row" aria-label="strategy" bind:value={version}>
         {#each versions as version}
           <option value={version.version}>
@@ -32,7 +36,7 @@
           </option>
         {/each}
       </select>
-      <button class="row" type="submit">install</button>
+      <button class="row" type="submit">rollback</button>
     </form>
   </dialog>
 </Modal>

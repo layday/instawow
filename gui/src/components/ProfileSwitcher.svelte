@@ -30,7 +30,7 @@
     select {
       line-height: $line-height;
       padding: 0 0.5em;
-      background-color: var(--inverse-color-10);
+      background-color: var(--inverse-color-alpha-10);
       border: 0;
       border-radius: $middle-border-radius;
       -webkit-app-region: no-drag;
@@ -41,7 +41,7 @@
       }
 
       &:focus {
-        background-color: var(--inverse-color-20);
+        background-color: var(--inverse-color-alpha-20);
       }
     }
 
@@ -50,8 +50,8 @@
       margin-left: 4px;
 
       :global(.icon) {
-        height: 16px;
-        width: 16px;
+        height: 1rem;
+        width: 1rem;
         fill: var(--inverse-color);
         vertical-align: text-bottom;
       }
@@ -61,7 +61,7 @@
       background-image: var(--dropdown-arrow);
       background-size: 10px;
       background-repeat: no-repeat;
-      background-position: top 9px right 7px;
+      background-position: top calc(50% + 1px) right 7px;
       min-width: 200px;
       font-weight: 500;
       -webkit-appearance: none;

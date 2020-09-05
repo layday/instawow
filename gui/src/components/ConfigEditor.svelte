@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { Api, Config } from "../api";
-  import { faFolderOpen } from "@fortawesome/free-solid-svg-icons";
+  import { faBan, faFolderOpen } from "@fortawesome/free-solid-svg-icons";
   import { ipcRenderer } from "electron";
   import { fade } from "svelte/transition";
   import { activeProfile, profiles } from "../store";
@@ -54,6 +54,19 @@
     editing = false;
   };
 
+  const deleteConfig = async () => {
+    if (
+      confirm(`Do you really want to delete this profile?
+
+Deleting a profile does not delete your add-ons; it simply
+dissociates the add-on folder from instawow.  However, you
+will have to reconcile your add-ons again if you create
+a new profile for this folder.`)
+    ) {
+      console.log("uh oh!");
+    }
+  };
+
   const dismissOnEsc = () => {
     const handler = (e) => e.key === "Escape" && (editing = false);
     document.body.addEventListener("keydown", handler);
@@ -81,7 +94,7 @@
       bottom: 100%;
       right: var(--arrowhead-offset);
       border: solid transparent;
-      border-bottom-color: var(--base-color-65);
+      border-bottom-color: var(--base-color-alpha-65);
       border-width: 8px;
       pointer-events: none;
     }
@@ -105,13 +118,12 @@
         type="text"
         label="profile"
         placeholder="profile"
-        name="profile"
         bind:value={configParams.profile} />
     {/if}
     {#if errors.addon_dir}
       <div class="row error-text">{errors.addon_dir}</div>
     {/if}
-    <div class="row select-folder-array">
+    <div class="row input-array">
       <input
         aria-label="add-on folder"
         class:error={errors.addon_dir}
@@ -119,7 +131,10 @@
         disabled
         placeholder="add-on folder"
         value={configParams.addon_dir || ''} />
-      <button aria-label="select folder" on:click|preventDefault={() => selectFolder()}>
+      <button
+        aria-label="select folder"
+        type="button"
+        on:click|preventDefault={() => selectFolder()}>
         <Icon icon={faFolderOpen} />
       </button>
     </div>
@@ -130,11 +145,21 @@
       aria-label="game flavour"
       class="row"
       class:error={errors.game_flavour}
-      name="game_flavour"
       bind:value={configParams.game_flavour}>
       <option value="retail">retail</option>
       <option value="classic">classic</option>
     </select>
-    <button class="row submit" type="submit">save</button>
+    <div class="row input-array">
+      <button type="submit">save</button>
+      {#if !createNew}
+        <button
+          aria-label="delete profile"
+          title="delete profile"
+          type="button"
+          on:click|preventDefault={() => deleteConfig()}>
+          <Icon icon={faBan} />
+        </button>
+      {/if}
+    </div>
   </form>
 </dialog>

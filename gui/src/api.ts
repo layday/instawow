@@ -12,9 +12,15 @@ export enum Strategies {
 
 export type Defn = {
   source: string;
-  name: string;
-  strategy?: Strategies;
-  strategy_vals?: string[];
+  alias: string;
+  strategy?:
+    | {
+        type_: Exclude<Strategies, Strategies.version>;
+      }
+    | {
+        type_: Strategies.version;
+        version?: string;
+      };
 };
 
 export type Profile = string;
@@ -50,21 +56,18 @@ export type Addon = {
   date_published: string;
   version: string;
   folders: { name: string }[];
-  options: { strategy: string };
+  options: { strategy: Strategies };
   deps: { id: string }[];
   logged_versions: { version: string; install_time: string }[];
 };
 
-export type AddonMeta = {
-  installed: boolean;
-  damaged: boolean;
-  pinned: boolean;
-  new_version: string | null;
+export type AddonWithMeta = Addon & {
+  __installed__: boolean;
 };
 
-export type ListResult = [Addon, AddonMeta][];
+export type ListResult = Addon[];
 
-export type ModifyResult = (["success", [Addon, AddonMeta]] | ["failure" | "error", string])[];
+export type ModifyResult = (["success", Addon] | ["failure" | "error", string])[];
 
 export type AddonMatch = {
   folders: { name: string; version: string }[];
@@ -100,36 +103,36 @@ export class Api {
   }
 
   async readProfile(profile: string): Promise<Config> {
-    return await this._request({ method: "config.read", params: { profile: profile } });
+    return await this._request({ method: "config/read", params: { profile: profile } });
   }
 
   async writeProfile(config: Config): Promise<Config> {
-    return await this._request({ method: "config.write", params: { values: config } });
+    return await this._request({ method: "config/write", params: { values: config } });
   }
 
   async enumerateProfiles(): Promise<Profiles> {
-    return await this._request({ method: "config.enumerate" });
+    return await this._request({ method: "config/enumerate" });
   }
 
   async listSources(): Promise<Sources> {
     const result = await this._request({
-      method: "sources.list",
+      method: "sources/list",
       params: { profile: this.profile },
     });
-    return lodash.fromPairs(result.map((i) => [i.source, i]));
+    return lodash.fromPairs(result.map((i: Sources["foo"]) => [i.source, i]));
   }
 
-  async listAddons(checkForUpdates: boolean): Promise<ListResult> {
+  async list(): Promise<ListResult> {
     return await this._request({
       method: "list",
-      params: { profile: this.profile, check_for_updates: checkForUpdates },
+      params: { profile: this.profile },
     });
   }
 
   async search(
     searchTerms: string,
     searchLimit: number,
-    strategy: Exclude<Strategies, "version">
+    strategy: Strategies
   ): Promise<ListResult> {
     return await this._request({
       method: "search",
@@ -146,16 +149,6 @@ export class Api {
     return await this._request({
       method: "resolve",
       params: { profile: this.profile, defns: defns },
-    });
-  }
-
-  async resolveUris(
-    prospectiveDefns: string[],
-    strategy: Exclude<Strategies, "version">
-  ): Promise<ListResult> {
-    return await this._request({
-      method: "resolve_uris",
-      params: { profile: this.profile, prospective_defns: prospectiveDefns, strategy: strategy },
     });
   }
 
@@ -178,6 +171,15 @@ export class Api {
   }
 
   async getVersion(): Promise<Version> {
-    return await this._request({ method: "meta.get_version" });
+    return await this._request({ method: "meta/get_version" });
   }
 }
+
+export const addonToDefn = (addon: Addon): Defn => ({
+  source: addon.source,
+  alias: addon.id,
+  strategy: {
+    type_: addon.options.strategy,
+    ...(addon.options.strategy === Strategies.version && { version: addon.version }),
+  },
+});

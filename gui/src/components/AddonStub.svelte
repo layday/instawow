@@ -16,29 +16,27 @@
   @import "vars";
 
   .addon-stub {
-    position: relative;
-    display: flex;
-    padding: 0.4em 0.75em;
     transition: all 0.2s;
+  }
 
-    > div {
-      flex-grow: 1;
-      overflow-x: hidden;
-      white-space: nowrap;
+  .folders,
+  .selection-controls {
+    padding: 0.4em 0.75em;
+  }
 
-      .folders {
-        overflow-x: hidden;
-        text-overflow: ellipsis;
-      }
+  .folders {
+    overflow-x: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    font-weight: 600;
 
-      .main-folder {
-        font-weight: 500;
-      }
+    &:only-child {
+      line-height: 1.5rem;
+    }
 
-      .remaining-folders {
-        font-size: 0.8em;
-        color: var(--inverse-color-tone-20);
-      }
+    .remaining-folders {
+      font-size: 0.8em;
+      color: var(--inverse-color-tone-20);
     }
   }
 
@@ -48,11 +46,9 @@
   }
 
   .selection-controls {
-    margin: 0.35rem 0 0.2rem;
-    padding: 0.18rem;
-    padding-left: 0.4rem;
-    background-color: var(--inverse-color-10);
-    border-radius: 4px;
+    margin-top: -0.25rem;
+    padding-top: 0;
+    color: var(--inverse-color-tone-20);
 
     summary,
     .choices {
@@ -133,75 +129,69 @@
 </style>
 
 <div class="addon-stub">
-  <div>
-    <div class="folders">
-      <span class="main-folder">{folders[0].name}</span>
-      {#if folders.length > 1}
-        <span class="remaining-folders">
-          {folders
-            .slice(1)
-            .map((f) => f.name)
-            .join(', ')}
-        </span>
-      {/if}
-    </div>
-    {#if choices.length}
-      <!-- open={false} is needed for the [open] CSS selector to be compiled -->
-      <details class="selection-controls" open={false}>
-        <summary>
-          <div aria-label="installed version" class="defn-or-version">
-            {folders.find((f) => f.version)?.version || '?'}
-          </div>
-          <!-- prettier-ignore -->
-          <div aria-label="selection" class="defn-or-version">
-            ({choices.length})
-            {#if selection}
-              {selection.source}:{selection.slug}==<span title={selection.date_published}>{selection.version}</span>
-            {:else}
-              skip
-            {/if}
-          </div>
-          <div>
-            <Icon class="icon icon-collapsed" icon={faChevronCircleDown} />
-            <Icon class="icon icon-expanded" icon={faChevronCircleUp} />
-          </div>
-        </summary>
-        <ul class="choices">
-          {#each choices as choice, choiceIdx}
-            <li>
-              <input
-                type="radio"
-                name="addon-selection-{idx}"
-                id="addon-selection-{idx}-{choiceIdx}"
-                value={choiceIdx}
-                bind:group={selectionIdx} />
-              <label for="addon-selection-{idx}-{choiceIdx}">
-                <span class="defn-or-version">
-                  {choice.source}:{choice.slug}=={choice.version}
-                </span>
-                <a
-                  class="open-url"
-                  title="open in browser"
-                  href="__openUrl"
-                  on:click|preventDefault|stopPropagation={() => ipcRenderer.send('open-url', choice.url)}>
-                  [↗]
-                </a>
-              </label>
-            </li>
-          {/each}
+  <div class="folders">
+    <span class="main-folder">{folders[0].name}</span>
+    {#if folders.length > 1}
+      <span class="remaining-folders">
+        {folders
+          .slice(1)
+          .map((f) => f.name)
+          .join(', ')}
+      </span>
+    {/if}
+  </div>
+  {#if choices.length}
+    <!-- open={false} is needed for the [open] CSS selector to be compiled -->
+    <details class="selection-controls" open={false}>
+      <summary>
+        <div aria-label="installed version" class="defn-or-version">
+          {folders.find((f) => f.version)?.version || '?'}
+        </div>
+        <!-- prettier-ignore -->
+        <div aria-label="selection" class="defn-or-version">
+          ({choices.length})
+          {#if selection}
+            {selection.source}:{selection.slug}==<span title={selection.date_published}>{selection.version}</span>
+          {:else}
+            skip
+          {/if}
+        </div>
+        <div>
+          <Icon class="icon icon-collapsed" icon={faChevronCircleDown} />
+          <Icon class="icon icon-expanded" icon={faChevronCircleUp} />
+        </div>
+      </summary>
+      <ul class="choices">
+        {#each choices as choice, choiceIdx}
           <li>
             <input
               type="radio"
-              name="addon-selection-{idx}"
-              id="addon-selection-{idx}-skip"
-              value={-1}
+              id="addon-selection-{idx}-{choiceIdx}"
+              value={choiceIdx}
               bind:group={selectionIdx} />
-            <label for="addon-selection-{idx}-skip">
-              <span class="defn-or-version">skip</span>
+            <label for="addon-selection-{idx}-{choiceIdx}">
+              <span class="defn-or-version">{choice.source}:{choice.slug}=={choice.version}</span>
+              <a
+                class="open-url"
+                title="open in browser"
+                href="__openUrl"
+                on:click|preventDefault|stopPropagation={() => ipcRenderer.send('open-url', choice.url)}>
+                [↗]
+              </a>
             </label>
           </li>
-        </ul>
-      </details>
-    {/if}
-  </div>
+        {/each}
+        <li>
+          <input
+            type="radio"
+            id="addon-selection-{idx}-skip"
+            value={-1}
+            bind:group={selectionIdx} />
+          <label for="addon-selection-{idx}-skip">
+            <span class="defn-or-version">skip</span>
+          </label>
+        </li>
+      </ul>
+    </details>
+  {/if}
 </div>

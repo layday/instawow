@@ -2,14 +2,14 @@
   import { onMount } from "svelte";
   import { fade } from "svelte/transition";
 
-  export let show: boolean;
+  export let show: boolean, addonListEl: HTMLElement;
 
   let wrapperElement: HTMLElement;
 
   const adjustPosition = () => {
-    const addonList = wrapperElement.parentElement.querySelector(".addon-list") as HTMLElement;
-    const scrollOfset = addonList.getBoundingClientRect().y;
-    const staticOffset = (addonList.offsetParent as HTMLElement).offsetTop + addonList.offsetTop;
+    const scrollOfset = addonListEl.getBoundingClientRect().y;
+    const staticOffset =
+      (addonListEl.offsetParent as HTMLElement).offsetTop + addonListEl.offsetTop;
     wrapperElement.style.top = `${Math.floor(Math.abs(scrollOfset - staticOffset))}px`;
   };
 
@@ -32,7 +32,7 @@
     height: 101%; /* leeway for position adjustment */
     z-index: 10;
     display: flex;
-    background-color: var(--base-color-65);
+    background-color: var(--base-color-alpha-65);
   }
 </style>
 
