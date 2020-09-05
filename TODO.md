@@ -1,9 +1,23 @@
+CLI
+---
+
+- [ ] Use `update` method for rollback as opposed to reinstalling now
+  that it's an option
+- [ ] Allow passing `--strategy` to search
+
+GUI
+---
+
 - [ ] Installed add-on filtering
   - Should probably be done client-side
   - Filtering UX: do we add another search box?
     A separate tab for searching?
   - Should filtering and search use the same algorithm?
 - [ ] New notification interface - `window.alert`s are horrible
+- [ ] Report add-on download progress
+  - Investigate JSON-RPC subscriptions
+- [ ] Deleting profiles
+  - [ ] Renaming profiles? Meh
 - [x] Improve (re)installing 'with options' workflow
   - [ ] ~~Resolve add-ons in modal before attempting to (re)install~~
     - Got rid of the installation modal and
@@ -11,6 +25,10 @@
   - [ ] ~~Implement reinstallation in the server rather than have it be
     an `uninstall` followed by an `install` (cf. atomicity)~~
     - Expanded `update` to take strategy into consideration
+  - Should people be able to subscribe to a new strategy without having
+    to reinstall the add-on if the version is the same between the installed
+    and new strategy?  This would be similar to 'pinning'
+    - Probably not worth the effort
 - [ ] WeakAuras Companion integration
   - [ ] Might need to rethink `strategy_vals` -
     attach account to options using custom strategy?
