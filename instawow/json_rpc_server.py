@@ -472,7 +472,7 @@ async def listen() -> None:
     assert app_runner.server
     # By omitting the port ``loop.create_server`` will find a random available
     # port to bind to (equivalent to creating a socket on port 0)
-    server = await loop.create_server(app_runner.server, '0.0.0.0')
+    server = await loop.create_server(app_runner.server, '127.0.0.1')
     assert server.sockets
     (host, port) = server.sockets[0].getsockname()
     # We're writing the address to fd 3 just in case something seeps into
