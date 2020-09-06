@@ -1,4 +1,5 @@
 import { spawn } from "child_process";
+import os from "os";
 import path from "path";
 import { app, BrowserWindow, dialog, ipcMain, Menu, shell } from "electron";
 import contextMenu from "electron-context-menu";
@@ -7,13 +8,19 @@ const sleep = (ms: number) => {
   return new Promise((resolve) => setTimeout(resolve, ms));
 };
 
-const getBinPath = () => {
-  return path.join(app.getAppPath(), "..", "..", "MacOS");
-};
-
 const spawnInstawow = () => {
   if (app.isPackaged) {
-    return spawn(path.join(getBinPath(), "instawow"), ["listen"], {
+    const platform = os.platform();
+
+    let instawowPath: string;
+    if (platform === "darwin") {
+      instawowPath = path.join(app.getAppPath(), "..", "..", "MacOS", "instawow");
+    } else if (platform === "win32") {
+      instawowPath = path.join(app.getAppPath(), "..", "instawow.exe");
+    } else {
+      throw new Error(`platform "${platform}" is not supported`);
+    }
+    return spawn(instawowPath, ["listen"], {
       stdio: [null, null, null, "ipc"],
     });
   } else {
