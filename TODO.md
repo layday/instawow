@@ -1,7 +1,7 @@
 CLI
 ---
 
-- [ ] Use `update` method for rollback as opposed to reinstalling now
+- [x] Use `update` method for rollback as opposed to reinstalling now
   that it's an option
 - [ ] Allow passing `--strategy` to search
 

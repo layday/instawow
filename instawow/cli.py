@@ -338,19 +338,13 @@ def rollback(ctx: click.Context, addon: Defn, undo: bool) -> None:
         Report([(addon, E.PkgNotInstalled())]).generate_and_exit()
         return  # noop
 
-    resolver = manager.resolvers[pkg.source]
-    if not resolver.supports_rollback:
+    if not manager.resolvers[pkg.source].supports_rollback:
         Report(
             [(addon, E.PkgFileUnavailable('source does not support rollback'))]
         ).generate_and_exit()
 
     if undo:
-        Report(
-            chain(
-                manager.run(manager.remove([addon])).items(),
-                manager.run(manager.install([addon], replace=False)).items(),
-            )
-        ).generate_and_exit()
+        Report(manager.run(manager.update([addon], True)).items()).generate_and_exit()
 
     versions = (
         manager.database.query(models.PkgVersionLog)
@@ -376,12 +370,7 @@ def rollback(ctx: click.Context, addon: Defn, undo: bool) -> None:
         f'Select version of {reconstructed_defn} for rollback', choices
     ).unsafe_ask()
     Report(
-        chain(
-            manager.run(manager.remove([reconstructed_defn])).items(),
-            manager.run(
-                manager.install([reconstructed_defn.with_version(selection)], replace=False)
-            ).items(),
-        )
+        manager.run(manager.update([reconstructed_defn.with_version(selection)], True)).items()
     ).generate_and_exit()
 
 
