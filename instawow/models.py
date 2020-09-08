@@ -8,10 +8,8 @@ from sqlalchemy import (
     Column,
     DateTime,
     ForeignKeyConstraint,
-    Integer,
     MetaData,
     String,
-    UniqueConstraint,
     and_,
     exc,
     func,
@@ -128,24 +126,20 @@ class PkgOptions(_BaseTable):
 
 class PkgDep(_BaseTable):
     __tablename__ = 'pkg_dep'
-    __table_args__ = (
-        ForeignKeyConstraint(['pkg_source', 'pkg_id'], ['pkg.source', 'pkg.id']),
-        UniqueConstraint('id', 'pkg_source', 'pkg_id', name='uq_id_per_foreign_key_constr'),
-    )
+    __table_args__ = (ForeignKeyConstraint(['pkg_source', 'pkg_id'], ['pkg.source', 'pkg.id']),)
 
-    _id = Column(Integer, primary_key=True)
-    id = Column(String, nullable=False)
-    pkg_source = Column(String, nullable=False)
-    pkg_id = Column(String, nullable=False)
+    id = Column(String, primary_key=True)
+    pkg_source = Column(String, primary_key=True)
+    pkg_id = Column(String, primary_key=True)
 
 
 class PkgVersionLog(_BaseTable):
     __tablename__ = 'pkg_version_log'
 
-    version = Column(String, nullable=False, primary_key=True)
+    version = Column(String, primary_key=True)
     install_time = Column(DateTime, nullable=False, server_default=func.now())
-    pkg_source = Column(String, nullable=False, primary_key=True)
-    pkg_id = Column(String, nullable=False, primary_key=True)
+    pkg_source = Column(String, primary_key=True)
+    pkg_id = Column(String, primary_key=True)
 
 
 class _PkgFolder(_BaseCoercer):

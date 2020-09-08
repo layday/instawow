@@ -18,7 +18,10 @@ def upgrade():
         sa.Column('id', sa.String(), nullable=False),
         sa.Column('pkg_origin', sa.String(), nullable=False),
         sa.Column('pkg_id', sa.String(), nullable=False),
-        sa.ForeignKeyConstraint(['pkg_origin', 'pkg_id'], ['pkg.origin', 'pkg.id'],),
+        sa.ForeignKeyConstraint(
+            ['pkg_origin', 'pkg_id'],
+            ['pkg.origin', 'pkg.id'],
+        ),
         sa.PrimaryKeyConstraint('_id'),
     )
 
