@@ -47,7 +47,7 @@
   "reportUnknownLambdaType": "warning",
   "reportUnknownVariableType": "warning",
   "reportUnknownMemberType": "warning",
-  "reportCallInDefaultInitializer": false,
+  "reportCallInDefaultInitializer": "warning",
   "reportUnnecessaryIsInstance": "warning",
   "reportUnnecessaryCast": "warning",
   "reportAssertAlwaysTrue": "warning",
@@ -55,5 +55,5 @@
   "reportImplicitStringConcatenation": false,
   "reportUndefinedVariable": true,
   "reportUnboundVariable": true,
-  "reportInvalidStubStatement": false
+  "reportInvalidStubStatement": "warning"
 }
