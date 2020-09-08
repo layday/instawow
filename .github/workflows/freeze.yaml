@@ -30,8 +30,6 @@ jobs:
         - ubuntu-latest
         - windows-latest
     runs-on: ${{ matrix.os }}
-    outputs:
-      rustc_hcash: ${{ steps.install-rust-toolchain.outputs.rustc_hash }}
     steps:
     - name: Clone the repo
       uses: actions/checkout@v2
@@ -46,19 +44,17 @@ jobs:
         mv dist/*.tar.gz instawow.tar.gz
         python -m nox -s clobber_build_artefacts
     - name: Install Rust toolchain
-      id: install-rust-toolchain
+      id: install-rust
       uses: actions-rs/toolchain@v1
       with:
         profile: minimal
         toolchain: nightly
-    - name: Restore Cargo cache for PyOxidizer
+    - name: Restore PyOxidizer from build cache
       uses: actions/cache@v2
       with:
         path: ~/.cargo
-        key: cargo-cache-${{ runner.os }}-${{ outputs.rustc_hash }}-${{ env.PYOX_VERSION }}
-    - name: Install PyOxidizer
-      run: |
-        cargo install --version $PYOX_VERSION pyoxidizer
+        key: >-
+          cargo-cache-${{ runner.os }}-${{ steps.install-rust.outputs.rustc_hash }}-${{ env.PYOX_VERSION }}
     - name: Freeze instawow and copy it into the 'dist' directory
       run: |
         mkdir -p dist
