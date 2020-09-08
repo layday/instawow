@@ -50,6 +50,7 @@ from .resolvers import (
 from .utils import (
     bucketise,
     chain_dict,
+    file_uri_to_path,
     find_zip_base_dirs,
     gather,
     is_not_stale,
@@ -126,9 +127,7 @@ async def download_archive(manager: Manager, pkg: Pkg, *, chunk_size: int = 4096
     if await t(dest.exists)():
         logger.debug(f'{url} is cached at {dest}')
     elif url.startswith('file://'):
-        from urllib.parse import unquote
-
-        await copy_async(unquote(url[7:]), dest)
+        await copy_async(file_uri_to_path(url), dest)
     else:
         kwargs = {'raise_for_status': True, 'trace_request_ctx': {'report_progress': True}}
         async with manager.web_client.get(url, **kwargs) as response, _open_temp_writer() as (

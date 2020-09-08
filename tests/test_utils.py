@@ -1,9 +1,16 @@
 from pathlib import Path
+import sys
 
 import pytest
 
 from instawow.manager import find_zip_base_dirs, make_zip_member_filter
-from instawow.utils import TocReader, bucketise, merge_intersecting_sets, tabulate
+from instawow.utils import (
+    TocReader,
+    bucketise,
+    file_uri_to_path,
+    merge_intersecting_sets,
+    tabulate,
+)
 
 
 @pytest.fixture
@@ -96,3 +103,13 @@ def test_merge_intersecting_sets_in_noncontiguous_collection():
         {'e'},
     ]
     assert sorted(merge_intersecting_sets(collection)) == output
+
+
+@pytest.mark.skipif(sys.platform == 'win32', reason='platform dependent')
+def test_file_uri_to_path_posix():
+    assert file_uri_to_path(Path('/foo/bar').as_uri()) == '/foo/bar'
+
+
+@pytest.mark.skipif(sys.platform != 'win32', reason='platform dependent')
+def test_file_uri_to_path_win32():
+    assert file_uri_to_path(Path('C:/foo/bar').as_uri()) == 'C:/foo/bar'

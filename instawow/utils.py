@@ -427,3 +427,16 @@ def make_zip_member_filter(base_dirs: Set[str]) -> Callable[[str], bool]:
         return cast(bool, sep) and head in base_dirs
 
     return is_subpath
+
+
+def file_uri_to_path(file_uri: str) -> str:
+    "Convert a file URI to a path that works both on Windows and *nix."
+    from urllib.parse import unquote
+
+    unprefixed_path = unquote(file_uri[7:])     # len('file://')
+    # A slash is prepended to the path even when there isn't one there
+    # on Windows.  The ``PurePath`` instance will inherit from either
+    # ``PurePosixPath`` or ``PureWindowsPath``; this will be a no-op on POSIX.
+    if PurePath(unprefixed_path[1:]).drive:
+        unprefixed_path = unprefixed_path[1:]
+    return unprefixed_path
