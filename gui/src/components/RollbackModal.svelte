@@ -1,12 +1,12 @@
 <script lang="ts">
-  import type { Addon, Defn } from "../api";
+  import type { Addon } from "../api";
   import { Strategies } from "../api";
   import { DateTime } from "luxon";
   import { createEventDispatcher } from "svelte";
   import { scale } from "svelte/transition";
   import Modal from "./Modal.svelte";
 
-  export let show: any, defn: Defn, versions: Addon["logged_versions"], addonListEl: HTMLElement;
+  export let show: any, addon: Addon, addonListEl: HTMLElement;
 
   const dispatch = createEventDispatcher();
 
@@ -14,9 +14,10 @@
 
   const requestRollback = () => {
     dispatch("requestRollback", {
-      ...defn,
-      strategy: { type_: Strategies.version, version: version },
-    });
+      ...addon,
+      version: version,
+      options: { strategy: Strategies.version },
+    } as Addon);
     show = false;
   };
 </script>
@@ -30,7 +31,7 @@
     <div class="title-bar">rollback</div>
     <form class="content" on:submit|preventDefault={() => requestRollback()}>
       <select class="row" aria-label="strategy" bind:value={version}>
-        {#each versions as version}
+        {#each addon.logged_versions as version}
           <option value={version.version}>
             {version.version} (installed {DateTime.fromISO(version.install_time).toRelative()})
           </option>

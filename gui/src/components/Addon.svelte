@@ -18,7 +18,7 @@
     supportsRollback: boolean,
     beingModified: boolean,
     showCondensed: boolean,
-    refreshing: boolean;
+    installed__isRefreshing: boolean;
 
   const dispatch = createEventDispatcher();
 </script>
@@ -158,19 +158,11 @@
     <li class="name">{addon.name}</li>
     <li class="versions">
       {addon.version}
-      {#if isOutdated}
-        {'<'}
-        {otherAddon.version}
-        <span
-          title={otherAddon.date_published}>({DateTime.fromISO(otherAddon.date_published).toRelative()})</span>
-      {:else}
-        <span title={addon.date_published}>
-          ({DateTime.fromISO(addon.date_published).toRelative()})
-        </span>
-      {/if}
-      {#if (isOutdated ? otherAddon : addon).options.strategy !== Strategies.default}
-        @ {(isOutdated ? otherAddon : addon).options.strategy}
-      {/if}
+      {#if isOutdated}{'<'} {otherAddon.version}{/if}
+      <span title={otherAddon.date_published}>
+        ({DateTime.fromISO(otherAddon.date_published).toRelative()})
+      </span>
+      {#if otherAddon.options.strategy !== Strategies.default}@ {otherAddon.options.strategy}{/if}
     </li>
     {#if !showCondensed}
       <li class="defn">{addon.source}:{addon.id}</li>
@@ -184,19 +176,14 @@
       {#if addon.__installed__}
         {#if isOutdated}
           <button
-            disabled={refreshing}
+            disabled={installed__isRefreshing}
             on:click|stopPropagation={() => dispatch('requestUpdate')}>update</button>
         {/if}
-        <!-- {#if false}
-          <button disabled={refreshing} on:click|stopPropagation={() => requestReinstall()}>
-            reinstall
-          </button>
-        {/if} -->
-        {#if addon.logged_versions.length > 1 && supportsRollback}
+        {#if supportsRollback && addon.logged_versions.length > 1}
           <button
             aria-label="rollback"
             title="rollback"
-            disabled={refreshing}
+            disabled={installed__isRefreshing}
             on:click|stopPropagation={() => dispatch('requestShowRollbackModal')}>
             <Icon icon={faHistory} />
           </button>
@@ -204,12 +191,12 @@
         <button
           aria-label="show options"
           title="show options"
-          disabled={refreshing}
+          disabled={installed__isRefreshing}
           on:click|stopPropagation={() => dispatch('showGenericAddonContextMenu')}>
           <Icon icon={faEllipsisH} />
         </button>
         <button
-          disabled={refreshing}
+          disabled={installed__isRefreshing}
           on:click|stopPropagation={() => dispatch('requestRemove')}>remove</button>
       {:else}
         <button
@@ -219,7 +206,7 @@
           <Icon icon={faExternalLinkSquareAlt} />
         </button>
         <button
-          disabled={refreshing}
+          disabled={installed__isRefreshing}
           on:click|stopPropagation={() => dispatch('requestInstall')}
           on:contextmenu={() => dispatch('showInstallAddonContextMenu')}>install</button>
       {/if}

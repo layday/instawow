@@ -27,7 +27,7 @@ from typing import (
 from aiohttp import web
 from aiohttp_rpc import JsonRpcMethod, WsJsonRpcServer, middlewares as rpc_middlewares
 from aiohttp_rpc.errors import InvalidParams as InvalidParamsError, ServerError
-from pydantic import BaseModel, Field, ValidationError, validator
+from pydantic import BaseModel, ValidationError, validator
 
 from . import exceptions as E
 from .config import Config
@@ -120,42 +120,69 @@ class EnumerateProfilesParams(BaseParams):
         return [f for f in Config.list_profiles() if f != '__jsonrpc__']
 
 
-class _Source(BaseModel):
+class Source(BaseModel):
     source: str
     name: str
-    supported_strategies: List[Strategies] = Field(alias='strategies')
+    supported_strategies: List[Strategies]
     supports_rollback: bool
 
     @validator('supported_strategies')
     def _sort_strategies(cls, value: List[Strategies]) -> List[Strategies]:
         return sorted(value, key=list(Strategies).index)
 
-    class Config:
-        orm_mode = True
-
 
 class ListSourcesParams(_ProfileParamMixin, BaseParams):
     _method = 'sources/list'
-    _result_type = List[_Source]
+    _result_type = List[Source]
 
     async def respond(self, managers: ManagerWorkQueue) -> _result_type:
         manager = await managers.run(self.profile)
-        return list(map(_Source.from_orm, manager.resolvers.values()))
+        return [
+            Source(
+                source=r.source,
+                name=r.name,
+                supported_strategies=r.strategies,
+                supports_rollback=r.supports_rollback,
+            )
+            for r in manager.resolvers.values()
+        ]
 
 
-class _ListResult(BaseModel):
-    __root__: List[O[PkgModel]]
+class ListResult(BaseModel):
+    __root__: List[PkgModel]
 
 
 class ListInstalledParams(_ProfileParamMixin, BaseParams):
     _method = 'list'
-    _result_type = _ListResult
+    _result_type = ListResult
 
     async def respond(self, managers: ManagerWorkQueue) -> _result_type:
         installed_pkgs = await managers.run(
             self.profile, t(lambda m: m.database.query(Pkg).order_by(Pkg.name).all())
         )
-        return _ListResult.parse_obj(installed_pkgs)
+        return ListResult.parse_obj(installed_pkgs)
+
+
+class SuccessResult(BaseModel):
+    status: Literal['success']
+    addon: PkgModel
+
+
+class ErrorResult(BaseModel):
+    status: Literal['failure', 'error']
+    message: str
+
+
+class MultiResult(BaseModel):
+    __root__: List[Union[SuccessResult, ErrorResult]]
+
+    @validator('__root__', each_item=True, pre=True)
+    def _classify_tuple(cls, value: Tuple[str, Any]) -> Union[SuccessResult, ErrorResult]:
+        status, result = value
+        if status == 'success':
+            return SuccessResult(status=status, addon=result)
+        else:
+            return ErrorResult(status=status, message=result)
 
 
 class SearchParams(_ProfileParamMixin, BaseParams):
@@ -163,7 +190,7 @@ class SearchParams(_ProfileParamMixin, BaseParams):
     limit: int
     strategy: Strategies = Strategies.default
     _method = 'search'
-    _result_type = _ListResult
+    _result_type = MultiResult
 
     async def respond(self, managers: ManagerWorkQueue) -> _result_type:
         results = await managers.run(
@@ -175,12 +202,12 @@ class SearchParams(_ProfileParamMixin, BaseParams):
                 strategy=self.strategy,
             ),
         )
-        return _ListResult.parse_obj(list(results.values()))
+        return MultiResult.parse_obj(list(zip(repeat('success'), results.values())))
 
 
 class ResolveParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
     _method = 'resolve'
-    _result_type = _ListResult
+    _result_type = MultiResult
 
     async def respond(self, managers: ManagerWorkQueue) -> _result_type:
         def extract_source(manager: Manager, defns: List[Defn]):
@@ -199,28 +226,21 @@ class ResolveParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
                 defns=list(extract_source(await managers.run(self.profile), self.defns)),
             ),
         )
-        return _ListResult.parse_obj([r if is_pkg(r) else None for r in results.values()])
-
-
-class _ModifyResult(BaseModel):
-    __root__: List[
-        Union[
-            Tuple[Literal['success'], PkgModel],
-            Tuple[Literal['failure', 'error'], str],
-        ]
-    ]
+        return MultiResult.parse_obj(
+            [('success', r) if is_pkg(r) else (r.kind, r.message) for r in results.values()]
+        )
 
 
 class InstallParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
     replace: bool
     _method = 'install'
-    _result_type = _ModifyResult
+    _result_type = MultiResult
 
     async def respond(self, managers: ManagerWorkQueue) -> _result_type:
         results = await managers.run(
             self.profile, partial(Manager.install, defns=self.defns, replace=self.replace)
         )
-        return _ModifyResult.parse_obj(
+        return MultiResult.parse_obj(
             [
                 (r.kind, r.pkg if isinstance(r, E.PkgInstalled) else r.message)
                 for r in results.values()
@@ -230,13 +250,13 @@ class InstallParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
 
 class UpdateParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
     _method = 'update'
-    _result_type = _ModifyResult
+    _result_type = MultiResult
 
     async def respond(self, managers: ManagerWorkQueue) -> _result_type:
         results = await managers.run(
             self.profile, partial(Manager.update, defns=self.defns, retain_strategy=True)
         )
-        return _ModifyResult.parse_obj(
+        return MultiResult.parse_obj(
             [
                 (r.kind, r.new_pkg if isinstance(r, E.PkgUpdated) else r.message)
                 for r in results.values()
@@ -246,11 +266,11 @@ class UpdateParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
 
 class RemoveParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
     _method = 'remove'
-    _result_type = _ModifyResult
+    _result_type = MultiResult
 
     async def respond(self, managers: ManagerWorkQueue) -> _result_type:
         results = await managers.run(self.profile, partial(Manager.remove, defns=self.defns))
-        return _ModifyResult.parse_obj(
+        return MultiResult.parse_obj(
             [
                 (r.kind, r.old_pkg if isinstance(r, E.PkgRemoved) else r.message)
                 for r in results.values()
@@ -260,11 +280,11 @@ class RemoveParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
 
 class PinParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
     _method = 'pin'
-    _result_type = _ModifyResult
+    _result_type = MultiResult
 
     async def respond(self, managers: ManagerWorkQueue) -> _result_type:
         results = await managers.run(self.profile, partial(Manager.pin, defns=self.defns))
-        return _ModifyResult.parse_obj(
+        return MultiResult.parse_obj(
             [
                 (r.kind, r.pkg if isinstance(r, E.PkgInstalled) else r.message)
                 for r in results.values()
@@ -272,25 +292,25 @@ class PinParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
         )
 
 
-class _AddonFolder(BaseModel):
+class AddonFolder(BaseModel):
     name: str
     version: str
 
 
-class _AddonMatch(BaseModel):
-    folders: List[_AddonFolder]
+class AddonMatch(BaseModel):
+    folders: List[AddonFolder]
     matches: List[PkgModel]
 
 
-class _ReconcileResult(BaseModel):
-    reconciled: List[_AddonMatch]
-    unreconciled: List[_AddonMatch]
+class ReconcileResult(BaseModel):
+    reconciled: List[AddonMatch]
+    unreconciled: List[AddonMatch]
 
     @validator('reconciled', 'unreconciled', pre=True)
     def _transform_matches(cls, value: Any):
         return [
             {
-                'folders': [_AddonFolder(name=f.name, version=f.version) for f in s],
+                'folders': [AddonFolder(name=f.name, version=f.version) for f in s],
                 'matches': m,
             }
             for s, m in value
@@ -307,7 +327,7 @@ _matchers = {
 class ReconcileParams(_ProfileParamMixin, BaseParams):
     matcher: Literal['toc_ids', 'dir_names', 'toc_names']
     _method = 'reconcile'
-    _result_type = _ReconcileResult
+    _result_type = ReconcileResult
 
     async def respond(self, managers: ManagerWorkQueue) -> _result_type:
         leftovers = await managers.run(self.profile, t(get_folders))
@@ -324,7 +344,7 @@ class ReconcileParams(_ProfileParamMixin, BaseParams):
         unreconciled = [
             ([l], []) for l in sorted(leftovers - frozenset(i for a, _ in match_groups for i in a))
         ]
-        return _ReconcileResult(reconciled=reconciled, unreconciled=unreconciled)
+        return ReconcileResult(reconciled=reconciled, unreconciled=unreconciled)
 
 
 class _GetVersionResult(BaseModel):

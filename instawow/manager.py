@@ -250,12 +250,12 @@ def _error_out(error: BaseException) -> Callable[[], Awaitable[NoReturn]]:
     return inner
 
 
-async def _capture_exc(coro: Callable[..., Awaitable[Any]]) -> E.ManagerResult:
+async def _capture_exc_async(coro: Callable[..., Awaitable[Any]]) -> Any:
     from aiohttp import ClientError
 
     try:
         return await coro()
-    except E.ManagerError as error:
+    except (E.ManagerError, E.InternalError) as error:
         return error
     except ClientError as error:
         logger.opt(exception=True).debug('network error')
@@ -515,7 +515,13 @@ class Manager:
         await self.synchronise()
 
         defns_by_source = bucketise(defns, key=lambda v: v.source)
-        results = await gather(self.resolvers[s].resolve(b) for s, b in defns_by_source.items())
+        results: List[Union[Dict[Defn, Any], E.ManagerError]] = await gather(
+            (
+                _capture_exc_async(partial(self.resolvers[s].resolve, b))
+                for s, b in defns_by_source.items()
+            ),
+            False,
+        )
         results_by_defn = chain_dict(
             defns,
             None,
@@ -602,7 +608,7 @@ class Manager:
                 for (d, p), a in zip(installables, archives)
             ),
         )
-        results = {d: await _capture_exc(c) for d, c in result_coros.items()}
+        results = {d: await _capture_exc_async(c) for d, c in result_coros.items()}
         return results
 
     @_with_lock('change state')
@@ -648,7 +654,7 @@ class Manager:
                 for (d, *p), a in zip(updatables, archives)
             ),
         )
-        results = {d: await _capture_exc(c) for d, c in result_coros.items()}
+        results = {d: await _capture_exc_async(c) for d, c in result_coros.items()}
         return results
 
     @_with_lock('change state')
@@ -660,7 +666,7 @@ class Manager:
             _error_out(E.PkgNotInstalled()),
             ((d, partial(t(self.remove_pkg), p)) for d, p in zip(defns, maybe_pkgs) if p),
         )
-        results = {d: await _capture_exc(c) for d, c in result_coros.items()}
+        results = {d: await _capture_exc_async(c) for d, c in result_coros.items()}
         return results
 
     @_with_lock('change state')

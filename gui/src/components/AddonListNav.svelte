@@ -16,7 +16,7 @@
     search__searchTerms: string,
     search__fromAlias: boolean,
     search__searchStrategy: Strategies,
-    search__searchStrategyExtra: object,
+    search__searchVersion: string,
     search__isSearching: boolean,
     installed__isRefreshing: boolean,
     installed__outdatedAddonCount: number,
@@ -283,7 +283,7 @@
           type="text"
           class="version"
           placeholder="version"
-          bind:value={search__searchStrategyExtra['version']}
+          bind:value={search__searchVersion}
           on:keydown
           in:fly={{ duration: 200, x: 64 }} />
       {/if}

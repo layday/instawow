@@ -67,7 +67,19 @@ export type AddonWithMeta = Addon & {
 
 export type ListResult = Addon[];
 
-export type ModifyResult = (["success", Addon] | ["failure" | "error", string])[];
+export type SuccessResult = {
+  status: "success";
+  addon: Addon;
+};
+
+export type ErrorResult = {
+  status: "failure" | "error";
+  message: string;
+};
+
+export type AnyResult = SuccessResult | ErrorResult;
+
+export type MultiResult = AnyResult[];
 
 export type AddonMatch = {
   folders: { name: string; version: string }[];
@@ -78,6 +90,12 @@ export type ReconcileResult = {
   reconciled: AddonMatch[];
   unreconciled: AddonMatch[];
 };
+
+export enum ReconciliationStage {
+  toc_ids = "toc_ids",
+  dir_names = "dir_names",
+  toc_names = "toc_names",
+}
 
 export type Version = {
   installed_version: string;
@@ -137,7 +155,7 @@ export class Api {
     searchTerms: string,
     searchLimit: number,
     strategy: Strategies
-  ): Promise<ListResult> {
+  ): Promise<MultiResult> {
     return await this._request({
       method: "search",
       params: {
@@ -149,7 +167,7 @@ export class Api {
     });
   }
 
-  async resolve(defns: Defn[]): Promise<ListResult> {
+  async resolve(defns: Defn[]): Promise<MultiResult> {
     return await this._request({
       method: "resolve",
       params: { profile: this.profile, defns: defns },
@@ -159,15 +177,15 @@ export class Api {
   async modifyAddons(
     method: "install" | "update" | "remove" | "pin",
     defns: object[],
-    extraParams: object = {}
-  ): Promise<ModifyResult> {
+    extraParams: { [key: string]: any } = {}
+  ): Promise<MultiResult> {
     return await this._request({
       method: method,
       params: { profile: this.profile, defns: defns, ...extraParams },
     });
   }
 
-  async reconcile(matcher: "toc_ids" | "dir_names" | "toc_names"): Promise<ReconcileResult> {
+  async reconcile(matcher: ReconciliationStage): Promise<ReconcileResult> {
     return await this._request({
       method: "reconcile",
       params: { profile: this.profile, matcher: matcher },

@@ -1,7 +1,7 @@
 <script context="module" lang="ts">
-  import type { Addon, AddonWithMeta, Api, Defn, ListResult, ModifyResult, Sources } from "../api";
-  import { Strategies, addonToDefn } from "../api";
-  import { ReconciliationStage, View } from "../constants";
+  import type { Addon, AddonWithMeta, Api, Defn, SuccessResult, AnyResult, Sources } from "../api";
+  import { Strategies, ReconciliationStage, addonToDefn } from "../api";
+  import { View } from "../constants";
   import { profiles } from "../store";
   import { faQuestion } from "@fortawesome/free-solid-svg-icons";
   import { ipcRenderer } from "electron";
@@ -15,7 +15,15 @@
   import RollbackModal from "./RollbackModal.svelte";
   import Icon from "./SvgIcon.svelte";
 
-  type ExtendedListResult = (readonly [AddonWithMeta, Addon?])[];
+  // Two-tuple of reference and resolved add-on.  When listing installed add-ons
+  // the reference add-on is the installed add-on.  If an installed add-on
+  // cannot be resolved the resolved add-on is identical to the reference add-on
+  // which is the installed add-on.
+  // When searching for add-ons the reference add-on is the installed
+  // add-on if the add-on is installed.  Otherwise it is the same as the
+  // resolved add-on.  Reference add-ons must have an `__installed__` property
+  // set to either true or false (see `AddonWithMeta`).
+  type AddonTuple = readonly [AddonWithMeta, Addon];
 
   type CreateTokenSignature = {
     (addon: Addon): string;
@@ -25,13 +33,13 @@
   const createAddonToken: CreateTokenSignature = (value: Addon | Defn) =>
     [value.source, (value as Addon).id || (value as Defn).alias].join(":");
 
-  const attachTokentoAddon = ([addon, otherAddon]: [AddonWithMeta, Addon]): [
-    AddonWithMeta,
-    Addon,
-    string
-  ] => [addon, otherAddon, createAddonToken(addon)];
+  const attachTokentoAddon = ([addon, otherAddon]: AddonTuple): [AddonWithMeta, Addon, string] => [
+    addon,
+    otherAddon,
+    createAddonToken(addon),
+  ];
 
-  const cmpModifiedAddon = ([thisAddon]: readonly [AddonWithMeta, Addon?], otherAddon: Addon) =>
+  const isSameAddon = ([thisAddon]: AddonTuple, otherAddon: Addon) =>
     thisAddon.source === otherAddon.source && thisAddon.id === otherAddon.id;
 
   const markAddonInstalled = (addon: Addon, installed = true): AddonWithMeta => ({
@@ -39,25 +47,36 @@
     ...addon,
   });
 
+  const notifyOfFailures = (method: string, combinedResult: [Addon, AnyResult][]) => {
+    for (const [addon, result] of combinedResult) {
+      if (result.status !== "success") {
+        new Notification(`failed to ${method} ${addon.name} (${createAddonToken(addon)})`, {
+          body: result.message,
+        });
+      }
+    }
+  };
+
   const reconcileStages = Object.values(ReconciliationStage);
 
-  const getReconcilePrevStage = (stage: ReconciliationStage) =>
+  const getPrevReconcileStage = (stage: ReconciliationStage) =>
     reconcileStages[reconcileStages.indexOf(stage) - 1];
 
-  const getReconcileNextStage = (stage: ReconciliationStage) =>
+  const getNextReconcileStage = (stage: ReconciliationStage) =>
     reconcileStages[reconcileStages.indexOf(stage) + 1];
 
   const defaultSearchState: {
     searchTerms: string;
     searchFromAlias: boolean;
     searchStrategy: Strategies;
-    searchStrategyExtra: { [key: string]: any };
+    searchVersion: string;
   } = {
     searchTerms: "",
     searchFromAlias: false,
     searchStrategy: Strategies.default,
-    searchStrategyExtra: {},
+    searchVersion: "",
   };
+
   const searchLimit = 20;
   const debounceDelay = 500;
 </script>
@@ -68,13 +87,14 @@
   let sources: Sources;
 
   let activeView: View = View.Installed;
-  let addons__Installed: ExtendedListResult = [];
-  let addons__Search: ListResult = [];
-  let addons__CombinedSearch: ExtendedListResult = [];
+  let addonsCondensed: boolean = false;
+  let addons__Installed: AddonTuple[] = [];
+  let addons__Search: Addon[] = [];
+  let addons__CombinedSearch: AddonTuple[] = [];
   let outdatedAddonCount: number;
   let addonsBeingModified: string[] = []; // revisit
 
-  let { searchTerms, searchFromAlias, searchStrategy, searchStrategyExtra } = defaultSearchState;
+  let { searchTerms, searchFromAlias, searchStrategy, searchVersion } = defaultSearchState;
 
   let reconcileStage: ReconciliationStage = reconcileStages[0];
   let reconcileSelections: Addon[];
@@ -83,10 +103,8 @@
   let searchesInProgress: number = 0;
   let reconcileInstallationInProgress: boolean = false;
 
-  let modal: "rollback" | false = false;
-  let modalProps: object;
-
-  let addonsCondensed: boolean = false;
+  let rollbackModal: boolean = false;
+  let rollbackModalProps: { addon: Addon };
   let addonListEl: HTMLElement;
 
   const countUpdates = () =>
@@ -97,53 +115,44 @@
     ));
 
   const regenerateCombinedSearchAddons = () => {
-    const combinedAddons = addons__Search.map((addon): [AddonWithMeta, Addon] => {
-      const installedAddon = addons__Installed.find(
-        ([installedAddon]) =>
-          installedAddon.source === addon.source && installedAddon.id === addon.id
-      );
-      return [installedAddon?.[0] || markAddonInstalled(addon, false), addon];
-    });
+    const combinedAddons = addons__Search.map(
+      (addon): AddonTuple => {
+        const installedAddon = addons__Installed.find((installedAddon) =>
+          isSameAddon(installedAddon, addon)
+        );
+        return [installedAddon?.[0] || markAddonInstalled(addon, false), addon];
+      }
+    );
     addons__CombinedSearch = combinedAddons;
   };
 
-  const notifyOfFailures = (
+  const modifyAddons = async (
     method: "install" | "update" | "remove" | "pin",
-    resultGroups: { [kind: string]: ModifyResult }
+    addons: Addon[],
+    extraParams: { [key: string]: any } = {}
   ) => {
-    for (const [defn, [, message]] of Array.prototype.concat(
-      resultGroups.failure || [],
-      resultGroups.error || []
-    )) {
-      alert(`failed to ${method} ${createAddonToken(defn)}: ${message}`);
-    }
-  };
-
-  const modify = async (
-    method: "install" | "update" | "remove" | "pin",
-    defns: Defn[],
-    extraParams: object = {}
-  ) => {
-    const ids = defns.map(createAddonToken);
+    const ids = addons.map(createAddonToken);
     addonsBeingModified = [...addonsBeingModified, ...ids];
 
     try {
-      const result = await api.modifyAddons(method, defns, extraParams);
-      const defnResultPairs = lodash.zip(defns, result);
-      const resultGroups = lodash.groupBy(defnResultPairs, ([, [status]]) => status);
-      if (resultGroups.success) {
-        const modifiedAddons = resultGroups.success.map(([, [, addon]]) => addon) as Addon[];
+      const modifyResults = await api.modifyAddons(method, addons.map(addonToDefn), extraParams);
+      const modifiedAddons = modifyResults
+        .filter((result): result is SuccessResult => result.status === "success")
+        .map(({ addon }) => addon);
+      if (modifiedAddons) {
         if (method === "remove") {
           addons__Installed = lodash.differenceWith(
             addons__Installed,
             modifiedAddons,
-            cmpModifiedAddon
+            isSameAddon
           );
         } else {
           const installedAddons = [...addons__Installed];
+          // Reversing `modifiedAddons` so that new add-ons will
+          // be prepended in alphabetical order
           for (const addon of lodash.reverse(modifiedAddons)) {
             const newAddon = [markAddonInstalled(addon), addon] as const;
-            const index = addons__Installed.findIndex((value) => cmpModifiedAddon(value, addon));
+            const index = addons__Installed.findIndex((value) => isSameAddon(value, addon));
             if (index === -1) {
               installedAddons.unshift(newAddon);
             } else {
@@ -154,40 +163,40 @@
         }
         regenerateCombinedSearchAddons();
       }
-
-      notifyOfFailures(method, resultGroups as any);
+      notifyOfFailures(method, lodash.zip(addons, modifyResults));
     } finally {
       addonsBeingModified = lodash.difference(addonsBeingModified, ids);
     }
   };
 
-  const install = async (defns: Defn[], replace = false) => {
-    await modify("install", defns, { replace: replace });
+  const installAddons = async (addons: Addon[], replace = false) => {
+    await modifyAddons("install", addons, { replace: replace });
   };
 
-  type UpdateSignature = {
-    (defns: Defn[]): Promise<void>;
+  type UpdateAddonsSignature = {
+    (defns: Addon[]): Promise<void>;
     (all: true): Promise<void>;
   };
 
-  const update: UpdateSignature = async (value: Defn[] | true) => {
+  const updateAddons: UpdateAddonsSignature = async (value: Addon[] | true) => {
     if (value === true) {
-      const outdatedAddons = addons__Installed.filter(
-        ([{ version: thisVersion }, { version: otherVersion }]) => thisVersion !== otherVersion
-      );
-      const defns = outdatedAddons.map(([, addon]) => addonToDefn(addon));
-      await modify("update", defns);
+      const outdatedAddons = addons__Installed
+        .filter(
+          ([{ version: thisVersion }, { version: otherVersion }]) => thisVersion !== otherVersion
+        )
+        .map(([, addon]) => addon);
+      await modifyAddons("update", outdatedAddons);
     } else {
-      await modify("update", value);
+      await modifyAddons("update", value);
     }
   };
 
-  const remove = async (defns: Defn[]) => {
-    await modify("remove", defns);
+  const removeAddons = async (addons: Addon[]) => {
+    await modifyAddons("remove", addons);
   };
 
-  const pin = async (defns: Defn[]) => {
-    await modify("pin", defns);
+  const pinAddons = async (addons: Addon[]) => {
+    await modifyAddons("pin", addons);
   };
 
   const search = async () => {
@@ -200,14 +209,16 @@
               {
                 source: "*",
                 alias: searchTermsSnapshot,
-                strategy: { type_: searchStrategy, ...searchStrategyExtra },
+                strategy: { type_: searchStrategy, version: searchVersion },
               },
             ])
           : api.search(searchTermsSnapshot, searchLimit, searchStrategy);
         const results = await coro;
-        // Discard the results if the search terms have changed in the interim
+        // Discard the results if the search terms have changed in the meantime
         if (searchTermsSnapshot === searchTerms) {
-          addons__Search = results.filter(Boolean);
+          addons__Search = results
+            .filter((result): result is SuccessResult => result.status === "success")
+            .map(({ addon }) => addon);
           regenerateCombinedSearchAddons();
           activeView = View.Search;
         }
@@ -227,25 +238,32 @@
         if (flash) {
           addons__Installed = lodash.zip(installedAddons, installedAddons);
         }
-        const resolvedAddons = await api.resolve(installedAddons.map(addonToDefn));
+        const resolveResults = await api.resolve(installedAddons.map(addonToDefn));
         addons__Installed = lodash.sortBy(
-          lodash.zip(installedAddons, resolvedAddons),
-          ([thisAddon, otherAddon]) => [thisAddon.version === otherAddon?.version, thisAddon.name]
+          lodash
+            .zip(installedAddons, resolveResults)
+            .map(([thisAddon, result]) => [
+              thisAddon,
+              result.status === "success" ? result.addon : thisAddon,
+            ]),
+          // Lift outdated add-ons to the top of ht list
+          ([thisAddon, { version: otherVersion }]) => [
+            thisAddon.version === otherVersion,
+            thisAddon.name,
+          ]
         );
+        notifyOfFailures("resolve", lodash.zip(installedAddons, resolveResults));
       } finally {
         // Keep actions disabled for a little while longer while the add-ons
         // are being reshuffled to prevent misclicking
-        setTimeout(() => (refreshInProgress = false), debounceDelay);
+        setTimeout(() => (refreshInProgress = false), 500);
       }
     }
   };
 
-  const showModal = (thisModal: "rollback", addon: Addon) => {
-    const defn = addonToDefn(addon);
-    if (thisModal === "rollback") {
-      modalProps = { defn: defn, versions: addon.logged_versions };
-    }
-    modal = thisModal;
+  const showRollbackModal = (addon: Addon) => {
+    rollbackModalProps = { addon: addon };
+    rollbackModal = true;
   };
 
   const showGenericAddonContextMenu = async (addon: Addon) => {
@@ -270,23 +288,19 @@
         break;
       case "pin":
       case "unpin":
-        const defn = {
-          ...addonToDefn(addon),
-          ...{
-            strategy:
-              selection === "pin"
-                ? { type_: Strategies.version, version: addon.version }
-                : { type_: Strategies.default },
-          },
+        const pinnedAddon = {
+          ...addon,
+          options: { strategy: selection === "pin" ? Strategies.version : Strategies.default },
         };
-        await pin([defn]);
+        await pinAddons([pinnedAddon]);
         break;
       case "look-up":
-        searchFromAlias = true;
-        searchStrategy = addon.options.strategy;
-        searchStrategyExtra = { version: addon.version };
-        // Modifying `searchTerms` last cuz we don't want to trigger repeat searches
-        searchTerms = createAddonToken(addon);
+        [searchFromAlias, searchStrategy, searchVersion, searchTerms] = [
+          true,
+          addon.options.strategy,
+          addon.version,
+          createAddonToken(addon),
+        ];
         break;
       default:
         break;
@@ -298,21 +312,21 @@
       { action: "replace", label: "Replace existing" },
     ]);
     if (selection === "replace") {
-      await install([addonToDefn(addon)], true);
+      await installAddons([addon], true);
     }
   };
 
-  const goToPrevReconcileStage = () => (reconcileStage = getReconcilePrevStage(reconcileStage));
+  const goToPrevReconcileStage = () => (reconcileStage = getPrevReconcileStage(reconcileStage));
 
-  const goToNextReconcileStage = () => (reconcileStage = getReconcileNextStage(reconcileStage));
+  const goToNextReconcileStage = () => (reconcileStage = getNextReconcileStage(reconcileStage));
 
   const prepareReconcile = async (thisStage: ReconciliationStage) => {
     const stages = reconcileStages.slice(reconcileStages.indexOf(thisStage));
     for (const stage of stages) {
-      console.debug("trying", stage);
+      console.debug(profile, "trying", stage);
 
       const results = await api.reconcile(stage);
-      if (results.reconciled.length || !getReconcileNextStage(stage)) {
+      if (results.reconciled.length || !getNextReconcileStage(stage)) {
         reconcileStage = stage;
         reconcileSelections = [];
         return results;
@@ -327,10 +341,10 @@
   ) => {
     reconcileInstallationInProgress = true;
     try {
-      console.debug("installing selections from", thisStage);
-      await install(theseSelections.filter(Boolean).map(addonToDefn), true);
+      console.debug(profile, "installing selections from", thisStage);
+      await installAddons(theseSelections.filter(Boolean), true);
 
-      const nextStage = getReconcileNextStage(thisStage);
+      const nextStage = getNextReconcileStage(thisStage);
       if (nextStage) {
         if (recursive) {
           const nextSelections = (await api.reconcile(thisStage)).reconciled.map(
@@ -359,17 +373,19 @@
   });
 
   // Revert to `View.Installed` when the search box is emptied
-  $: searchTerms || (activeView = View.Installed);
-  // Reset search state in-between searches
   $: searchTerms ||
-    ({ searchFromAlias, searchStrategy, searchStrategyExtra } = defaultSearchState);
-  // Schedule a new search whenever the state changes
-  $: (searchTerms || searchStrategy || searchFromAlias || searchStrategyExtra) &&
-    searchDebounced();
+    (console.debug(profile, "restoring add-on view"), (activeView = View.Installed));
+  // Reset secondary search values in-between searches
+  $: searchTerms ||
+    (console.debug(profile, "resetting search values"),
+    ({ searchFromAlias, searchStrategy, searchVersion } = defaultSearchState));
+  // Schedule a new search whenever the search values change
+  $: ((searchTerms && searchFromAlias) || searchStrategy || searchVersion) &&
+    (console.debug(profile, "searching for", searchTerms), searchDebounced());
   // Update add-on list according to view
   $: addons = activeView === View.Search ? addons__CombinedSearch : addons__Installed;
   // Re-count updates whenever `addons__Installed` is modified
-  $: addons__Installed && countUpdates();
+  $: addons__Installed && (console.debug(profile, "recounting updates"), countUpdates());
 </script>
 
 <style lang="scss">
@@ -443,7 +459,7 @@
   <AddonListNav
     on:keydown={(e) => e.key === 'Enter' && search()}
     on:requestRefresh={() => refreshInstalled()}
-    on:requestUpdateAll={() => update(true)}
+    on:requestUpdateAll={() => updateAddons(true)}
     on:requestReconcileStepBackward={() => goToPrevReconcileStage()}
     on:requestReconcileStepForward={() => goToNextReconcileStage()}
     on:requestInstallReconciled={() => installReconciled(reconcileStage, reconcileSelections)}
@@ -453,20 +469,20 @@
     bind:search__searchTerms={searchTerms}
     bind:search__fromAlias={searchFromAlias}
     bind:search__searchStrategy={searchStrategy}
-    bind:search__searchStrategyExtra={searchStrategyExtra}
+    bind:search__searchVersion={searchVersion}
     search__isSearching={searchesInProgress > 0}
     installed__isRefreshing={refreshInProgress}
     installed__outdatedAddonCount={outdatedAddonCount}
     reconcile__isInstalling={reconcileInstallationInProgress}
-    reconcile__canStepBackward={!!getReconcilePrevStage(reconcileStage)}
-    reconcile__canStepForward={!!getReconcileNextStage(reconcileStage)} />
-  <div class="addon-list-wrapper" class:prevent-scrolling={!!modal}>
-    {#if modal === 'rollback'}
+    reconcile__canStepBackward={!!getPrevReconcileStage(reconcileStage)}
+    reconcile__canStepForward={!!getNextReconcileStage(reconcileStage)} />
+  <div class="addon-list-wrapper" class:prevent-scrolling={rollbackModal}>
+    {#if rollbackModal}
       <RollbackModal
-        on:requestRollback={(event) => update([event.detail])}
-        bind:show={modal}
+        on:requestRollback={(event) => updateAddons([event.detail])}
+        bind:show={rollbackModal}
         {addonListEl}
-        {...modalProps} />
+        {...rollbackModalProps} />
     {/if}
     {#if activeView === View.Reconcile}
       {#await prepareReconcile(reconcileStage)}
@@ -507,19 +523,19 @@
         {#each addons.map(attachTokentoAddon) as [addon, otherAddon, token] (token)}
           <li animate:flip={{ duration: 200 }}>
             <AddonComponent
-              on:requestInstall={() => install([addonToDefn(otherAddon)])}
-              on:requestUpdate={() => update([addonToDefn(otherAddon)])}
-              on:requestRemove={() => remove([addonToDefn(addon)])}
-              on:requestShowRollbackModal={() => showModal('rollback', addon)}
+              on:requestInstall={() => installAddons([otherAddon])}
+              on:requestUpdate={() => updateAddons([otherAddon])}
+              on:requestRemove={() => removeAddons([addon])}
+              on:requestShowRollbackModal={() => showRollbackModal(addon)}
               on:showGenericAddonContextMenu={() => showGenericAddonContextMenu(addon)}
               on:showInstallAddonContextMenu={() => showInstallAddonContextMenu(otherAddon)}
               {addon}
               {otherAddon}
-              isOutdated={otherAddon && addon.version !== otherAddon.version}
+              isOutdated={addon.version !== otherAddon.version}
               supportsRollback={!!sources[addon.source]?.supports_rollback}
               beingModified={addonsBeingModified.includes(token)}
               showCondensed={addonsCondensed}
-              refreshing={refreshInProgress} />
+              installed__isRefreshing={refreshInProgress} />
           </li>
         {/each}
       </ul>

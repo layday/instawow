@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { Api, Config } from "../api";
+  import type { Api } from "../api";
   import { faPencilAlt, faPlusCircle } from "@fortawesome/free-solid-svg-icons";
   import { onMount } from "svelte";
   import { activeProfile, profiles } from "../store";
