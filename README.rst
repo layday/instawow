@@ -34,14 +34,14 @@ You can download pre-built binaries of *instawow* from GitHub:
 
 - `Binaries <https://github.com/layday/instawow/releases/latest>`__
 
-If you prefer to install from source, all of the following will work:
+If you prefer to install from source, the following will work:
 
 - `pipx <https://github.com/pipxproject/pipx>`__:
   ``pipx install instawow``
 - Vanilla pip:
   ``python -m pip install -U instawow``
-- `Nix <https://nixos.org/>`__:
-  ``nix-env -if https://github.com/layday/instawow-nix/tarball/master``
+
+*instawow* requires Python 3.7 or higher.
 
 Getting started
 ---------------
