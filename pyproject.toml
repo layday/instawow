@@ -2,7 +2,7 @@
 requires = [
   "setuptools >=42",
   "wheel",
-  "setuptools-scm[toml] >=3.4.1, <4"
+  "setuptools-scm[toml] >=3.4.1, <4",
 ]
 build-backend = "setuptools.build_meta"
 
@@ -14,7 +14,14 @@ write_to_template = "__version__ = '{version}'\n"
 [tool.coverage.run]
 source = ["instawow"]
 omit = [
-  "instawow/migrations"
+  "instawow/migrations",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+  "pragma: no cover",
+  "if TYPE_CHECKING:",
+  "raise NotImplementedError",
 ]
 
 [tool.pytest.ini_options]
