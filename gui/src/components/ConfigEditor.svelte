@@ -10,7 +10,7 @@
 
   const createNew = editing === "new";
 
-  let configParams = { ...(createNew ? {} : $profiles[$activeProfile]) } as Config;
+  let configParams = { ...(!createNew && $profiles[$activeProfile]) } as Config;
   let errors: { [key: string]: string } = {};
 
   const selectFolder = async () => {
@@ -58,12 +58,17 @@
     if (
       confirm(`Do you really want to delete this profile?
 
-Deleting a profile does not delete your add-ons; it simply
-dissociates the add-on folder from instawow.  However, you
-will have to reconcile your add-ons again if you create
-a new profile for this folder.`)
+Deleting a profile does not delete your add-ons; it simply \
+dissociates the add-on folder from instawow.  However, you \
+will have to reconcile your add-ons again if you create \
+a new profile for this folder and your rollback history \
+will be lost.`)
     ) {
-      console.log("uh oh!");
+      await api.deleteProfile($activeProfile);
+      delete $profiles[$activeProfile];
+      $profiles = $profiles;
+      $activeProfile = Object.keys($profiles)[0];
+      editing = false;
     }
   };
 

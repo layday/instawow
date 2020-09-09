@@ -110,6 +110,10 @@ export class Api {
     return await this._request({ method: "config/write", params: { values: config } });
   }
 
+  async deleteProfile(profile: string): Promise<void> {
+    return await this._request({ method: "config/delete", params: { profile: profile } });
+  }
+
   async enumerateProfiles(): Promise<Profiles> {
     return await this._request({ method: "config/enumerate" });
   }
