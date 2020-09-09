@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 nox.options.envdir = '.py-nox'
 
 
-@nox.session(python=['3.7', '3.8'])
+@nox.session(python=['3.7', '3.8', '3.9'])
 def test(session: Session):
     session.install('.[server, test]')
     session.run('coverage', 'run', '-m', 'pytest')
@@ -28,7 +28,7 @@ def update_typeshed(session: Session):
     )
 
 
-@nox.session(python=['3.7', '3.8'])
+@nox.session(python=['3.7', '3.8', '3.9'])
 def type_check(session: Session):
     # The instawow path is hardcoded in pyrightconfig.json relative
     # to the enclosing folder therefore we can't install instawow in a
