@@ -42,6 +42,9 @@ If you prefer to install from source, both of the following will work:
 
 When installing from source, *instawow* requires Python 3.7 or greater.
 
+For Arch Linux, there is also an AUR package available:
+``yay -Syu instawow``
+
 Getting started
 ---------------
 
