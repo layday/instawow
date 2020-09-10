@@ -65,7 +65,7 @@ def clobber_build_artefacts(session: Session):
 @nox.session(python='3.7')
 def build(session: Session):
     clobber_build_artefacts(session)
-    session.install('build @https://github.com/FFY00/python-build/archive/d6d66a2.zip')
+    session.install('build>=0.0.4')
     session.run('python', '-m', 'build', '.')
 
 
