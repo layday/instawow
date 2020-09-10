@@ -62,7 +62,7 @@ class PkgConflictsWithInstalled(ManagerError):
         self.conflicts = [Defn.from_pkg(c) for c in conflicts]
 
 
-class PkgConflictsWithForeign(ManagerError):
+class PkgConflictsWithUnreconciled(ManagerError):
     message_template = 'package folders conflict with {self.folders}'
 
     def __init__(self, folders: Set[str]) -> None:

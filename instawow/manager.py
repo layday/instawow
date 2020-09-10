@@ -407,11 +407,11 @@ class Manager:
                     missing_ok=True,
                 )
             else:
-                foreign_conflicts = top_level_folders & {
+                unreconciled_conflicts = top_level_folders & {
                     f.name for f in self.config.addon_dir.iterdir()
                 }
-                if foreign_conflicts:
-                    raise E.PkgConflictsWithForeign(foreign_conflicts)
+                if unreconciled_conflicts:
+                    raise E.PkgConflictsWithUnreconciled(unreconciled_conflicts)
 
             extract(self.config.addon_dir)
             pkg.folders = [PkgFolder(name=f) for f in sorted(top_level_folders)]
@@ -437,11 +437,11 @@ class Manager:
             if installed_conflicts:
                 raise E.PkgConflictsWithInstalled(installed_conflicts)
 
-            foreign_conflicts = top_level_folders - {f.name for f in old_pkg.folders} & {
+            unreconciled_conflicts = top_level_folders - {f.name for f in old_pkg.folders} & {
                 f.name for f in self.config.addon_dir.iterdir()
             }
-            if foreign_conflicts:
-                raise E.PkgConflictsWithForeign(foreign_conflicts)
+            if unreconciled_conflicts:
+                raise E.PkgConflictsWithUnreconciled(unreconciled_conflicts)
 
             trash(
                 [self.config.addon_dir / f.name for f in old_pkg.folders],
