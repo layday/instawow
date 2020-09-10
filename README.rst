@@ -11,21 +11,20 @@ add-ons quick and painless for those of us who are
 and do not revel in using bloatware which infringe on our privacy
 or inhabiting walled gardens.
 
-.. image:: https://asciinema.org/a/8m36ncAoyTmig4MXfQM8YjE6a.svg
-   :width: 640
+Indi-co-depedently, an *instawow* GUI is in early development.
+The macOS version is available for download from GitHub releases.
+The GUI does not have feature parity with the CLI and is not particularly,
+rigorously, tested.  However, it does offload add-on management to
+the *instawow* core.
+
+.. figure:: https://asciinema.org/a/8m36ncAoyTmig4MXfQM8YjE6a.svg
    :alt: Asciicast demonstrating the operation of instawow
    :target: https://asciinema.org/a/8m36ncAoyTmig4MXfQM8YjE6a?autoplay=1
+   :width: 640
 
-----
-
-An *instawow* GUI is in early development.
-The macOS version is available for download from
-`GitHub releases <https://github.com/layday/instawow/releases/latest>`__.
-The GUI does not have feature parity with the CLI as yet.
-Notably, it does not interface with the WeakAuras Companion plug-in.
-
-.. image:: https://raw.githubusercontent.com/layday/instawow/feature-oh-my-gui/gui/screenshots/v0.2.0_640px.png
+.. figure:: https://raw.githubusercontent.com/layday/instawow/feature-oh-my-gui/gui/screenshots/v0.2.0_640px.png
    :target: https://github.com/layday/instawow/releases/latest
+   :alt: The instawow GUI's main window
 
 Installation
 ------------
@@ -34,14 +33,14 @@ You can download pre-built binaries of *instawow* from GitHub:
 
 - `Binaries <https://github.com/layday/instawow/releases/latest>`__
 
-If you prefer to install from source, the following will work:
+If you prefer to install from source, both of the following will work:
 
 - `pipx <https://github.com/pipxproject/pipx>`__:
   ``pipx install instawow``
 - Vanilla pip:
   ``python -m pip install -U instawow``
 
-*instawow* requires Python 3.7 or higher.
+When installing from source, *instawow* requires Python 3.7 or greater.
 
 Getting started
 ---------------
@@ -49,14 +48,15 @@ Getting started
 tl;dr
 ~~~~~
 
-Begin with running ``instawow reconcile``
-(or ``instawow reconcile --auto`` to reconcile add-ons without user input)
-to register previously-installed add-ons with *instawow*.
+Begin by running ``instawow reconcile``
+to register previously-installed add-ons with *instawow*
+(``instawow reconcile --auto`` to do the same without user input).
 To install add-ons, you can search for them using the ``search`` command::
 
     instawow search molinari
 
-In addition, *instawow* is able to interpret add-on URLs, slugs and host IDs.
+In addition, *instawow* is able to interpret add-on URLs and *instawow*-specific
+URNs of slugs and host IDs.
 All of the following will install Molinari from CurseForge::
 
     instawow install https://www.curseforge.com/wow/addons/molinari
@@ -66,88 +66,86 @@ All of the following will install Molinari from CurseForge::
 You can ``update`` add-ons and ``remove`` them just as you'd install them.
 If ``update`` is invoked without arguments, it will update all of your
 installed add-ons.  You can ``list`` add-ons and view detailed information about
-them using ``list --format detailed``.  The argument of ``list`` and similarly
-non-destructive commands can be a substring of the add-on name; for instance,
-``instawow reveal molinari`` will open the Molinari add-on folder in your
-file manager.
+them using ``list --format detailed``.
+For ``list`` and similarly non-destructive commands, the source can be omitted
+and the slug can be abbreviated, e.g. ``instawow reveal moli``
+will open the Molinari add-on folder in your file manager.
 
-*instafying* add-ons
-~~~~~~~~~~~~~~~~~~~~
+Reconciling add-ons
+~~~~~~~~~~~~~~~~~~
 
 *instawow* does not know about add-ons it did not itself install.
 The Twitch and Minion clients each use their own, proprietary
 fingerprinting algorithm to reconcile add-ons you have installed with add-ons
 their respective hosts keep on their servers.  Though the details of their implementation
 elude me, *instawow* tries to accomplish something similar by combining a variety
-of cues (e.g. folders and TOC entries).  This is not done automatically;
-you will need to run ``instawow reconcile`` to absorb add-ons installed
-through other means.  The ``--auto`` flag automates the reconciliation process.
+of cues (e.g. folders and TOC entries).
+This is not done automatically for you – *instawow* makes a point of
+not automatically assuming ownership of your add-ons or your preference
+of add-on host.
+However, you can run ``reconcile`` in promptless mode with the ``--auto`` flag,
+and *instawow* will prioritise add-ons from CurseForge because: (a) they
+see more frequent updates; and (b) the API is of a higher quality.
+Reconciled add-ons are reinstalled because it is not possible to reliably
+determine the installed version; consequently, it would not be possible to offer
+updates reliably.
 
 Searching for add-ons
 ~~~~~~~~~~~~~~~~~~~~~
 
-*instawow* comes with a rudimentary ``search`` command which allows you to
-select add-ons to install.
-The search does not display add-on details other than the name and source;
-pressing ``<o>`` will bring the add-on page up in your browser.
+*instawow* comes with a rudimentary ``search`` command
+with results ranked based on edit distance.
 Search uses a collated add-on catalogue internally which is updated
 `once daily <https://github.com/layday/instawow-data/tree/data>`__.
+You can install multiple add-ons directly from search.
 
 Dealing with pesky updates
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-As of version 1.10.0, *instawow* keeps a log of all versions of an add-on it has
-installed in the past.
-Add-on updates can be reverted using the ``instawow rollback`` command.
-Rollbacked add-ons and versioned add-ons more generally
-cannot be updated.
+*instawow* keeps a log of all versions of an add-on it has previously
+installed.
+Add-on updates can be undone using the ``instawow rollback`` command.
+Add-ons which have been rolled back are pinned and will not receive updates.
 Rollbacks can themselves be undone with ``instawow rollback --undo``,
 which will install the latest version of the specified add-on using
-the default strategy.
+the ``default`` strategy.
 
-Rollback is currently only supported for CurseForge and GitHub.
+Rollback is not supported for WoWInterface and Tukui.
 
 GitHub as a source
 ~~~~~~~~~~~~~~~~~~
 
-*instawow* purports to support WoW add-ons *released* on GitHub; that is to say,
-the repository must have a release associated with it and that release *must*
-carry a ZIP file as an asset.  *instawow* will not install or build add-ons from
-source.
-
+*instawow* supports WoW add-ons *released* on GitHub; that is to say,
+the repository must have had a release
+– tags are not sufficient – and the release *must*
+have a ZIP file attached to it as an asset.
+*instawow* will not install or build add-ons directly from
+source, or from tarballs or 'zipballs'.
+Futhermore, *instawow* will not validate the contents of the ZIP file.
 I do not recommend using GitHub as a source unless an add-on cannot
-be found in a domain-specific source.
+be found on one of the supported add-on hosts.
 
-WoW Classic
-~~~~~~~~~~~
+WoW Classic and *instawow* profiles
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 *instawow* supports Classic – it will correctly install Classic versions
-of add-ons from sources depending on the value of the
-``game_flavour`` configuration setting.
-What *instawow* does not have is a switch you can flick to go from managing
-your retail add-ons to managing your classic add-ons and vice versa.
-This was a conscious design decision, the merits of which – I should admit –
-are open to debate.  If you are already using *instawow* for Retail,
-you will need to set up a profile for Classic.  To activate an
-alternative profile, you must use the ``--profile``/``-p`` option.  Assuming your
-default profile is configured for retail,
-you can create a pristine profile by running::
+of multi-flavour add-ons provided that the ``game_flavour``
+setting is set to ``classic``.
+Assuming your default profile is configured for Retail,
+you can create a pristine profile for Classic by running::
 
     instawow -p classic configure
 
-You must then prefix ``-p classic`` to commands to manage your Classic profile.
-
-Before v1.12, the only way to create a new profile was to
-override the default configuration folder in the environment.
-This remains an option.  In Bash::
-
-    INSTAWOW_CONFIG_DIR=~/.config/instawow-classic instawow
+You can create profiles for other versions of the game (e.g. PTR or beta)
+in the same way.
+You must prefix ``-p <profile>`` to *instawow* commands
+to manage each respective profile.
 
 The ``any_flavour`` strategy can be used to install add-ons from CurseForge
-which have not been released for Classic but work just as well.
-Taking ColorPickerPlus as an example::
+which do not have Classic releases but are known to work just as well::
 
     instawow -p classic install -s any_flavour https://www.curseforge.com/wow/addons/colorpickerplus
+
 
 Additional functionality
 ------------------------
@@ -172,7 +170,7 @@ name as an env var::
     WAC_ACCOUNT=<your account name> instawow update
 
 You may then choose to bypass the companion add-on when updating
-simply by ommitting the env var.
+simply by omitting the env var.
 
 Metadata sourcing
 -----------------

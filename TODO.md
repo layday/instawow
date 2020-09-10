@@ -3,21 +3,23 @@ CLI
 
 - [x] Use `update` method for rollback as opposed to reinstalling now
   that it's an option
-- [ ] Allow passing `--strategy` to search
+- [ ] Allow passing `--strategy` to search?
 
 GUI
 ---
 
+- [-] Better RPC error handling
+- [ ] New notification interface - `window.alert`s are horrible
+- [x] Deleting profiles
+  - [ ] Renaming profiles? Meh
+- [ ] Report add-on download progress
+  - Investigate JSON-RPC subscriptions
 - [ ] Installed add-on filtering
   - Should probably be done client-side
   - Filtering UX: do we add another search box?
     A separate tab for searching?
   - Should filtering and search use the same algorithm?
-- [ ] New notification interface - `window.alert`s are horrible
-- [ ] Report add-on download progress
-  - Investigate JSON-RPC subscriptions
-- [ ] Deleting profiles
-  - [ ] Renaming profiles? Meh
+- [ ] Advanced search with sub-queries (maybe)
 - [x] Improve (re)installing 'with options' workflow
   - [ ] ~~Resolve add-ons in modal before attempting to (re)install~~
     - Got rid of the installation modal and
@@ -35,9 +37,10 @@ GUI
     - Restructured strategy in `Defn`
       but haven't added a WA strategy yet
       which is going to require a migration
-- [ ] App settings?  Do we need them or can we rely exclusively on profiles?
+- [ ] Duplicate all of the buttons and controls in the menu bar
 - [ ] Tests, tests, tests
   - See https://objectcomputing.com/resources/publications/sett/july-2019-web-dev-simplified-with-svelte
+- App settings?  Do we need them or can we rely exclusively on profiles?
 
 Both
 ----
@@ -51,3 +54,5 @@ Both
   I chose $TMPDIR for caching so I could delegate clean-up to the OS but the
   majority of Linuxes only do this on reboot.  Not urgent but I should look
   into it eventually
+  - Consider using a more sophisticated caching mechanism
+- [ ] Precompute normalised add-on names for search
