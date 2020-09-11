@@ -117,7 +117,7 @@ class EnumerateProfilesParams(BaseParams):
 
     @t
     def respond(self, managers: ManagerWorkQueue) -> _result_type:
-        return [f for f in Config.list_profiles() if f != '__jsonrpc__']
+        return Config.list_profiles()
 
 
 class Source(BaseModel):

@@ -63,7 +63,6 @@ class _GlobalConfig(BaseConfig):
     class Config:  # type: ignore
         env_prefix = 'INSTAWOW_'
         extra = Extra.allow
-        validate_assignment = True
 
     @validator('config_dir', 'addon_dir', 'temp_dir')
     def _validate_expand_path(cls, value: Path) -> Path:
@@ -84,9 +83,9 @@ class _GlobalConfig(BaseConfig):
 
     @classmethod
     def list_profiles(cls) -> List[str]:
-        "List the profiles contained in the default ``config_dir``."
+        "List the profiles contained in ``config_dir``."
         dummy_config = cls.get_dummy_config()
-        profiles = [f.name for f in (dummy_config.config_dir / 'profiles').iterdir() if f.is_dir()]
+        profiles = [c.parent.name for c in dummy_config.config_dir.glob('profiles/*/config.json')]
         return profiles
 
     @classmethod
