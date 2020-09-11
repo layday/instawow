@@ -24,12 +24,14 @@ if waBuildTime and waBuildTime > buildTimeTarget then
           end
         end
       end
-      local emptyStash = true
-      for _ in pairs(WeakAurasCompanion.stash) do
-        emptyStash = false
-      end
-      if not emptyStash and WeakAuras.StashShow then
-        C_Timer.After(5, function() WeakAuras.StashShow() end)
+      if WeakAurasCompanion.stash then
+        local emptyStash = true
+        for _ in pairs(WeakAurasCompanion.stash) do
+          emptyStash = false
+        end
+        if not emptyStash and WeakAuras.StashShow then
+          C_Timer.After(5, function() WeakAuras.StashShow() end)
+        end
       end
     end
   end)
