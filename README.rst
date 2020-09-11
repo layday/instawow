@@ -39,6 +39,8 @@ If you prefer to install from source, both of the following will work:
   ``pipx install instawow``
 - Vanilla pip:
   ``python -m pip install -U instawow``
+- For Arch Linux, there is also an AUR package available:
+  ``yay -Syu instawow``
 
 When installing from source, *instawow* requires Python 3.7 or greater.
 
