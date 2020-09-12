@@ -94,6 +94,7 @@
     <button
       aria-label="edit profile"
       title="edit profile"
+      disabled={!$activeProfile}
       on:click={() => (editing = editing === 'existing' ? false : 'existing')}>
       <Icon icon={faPencilAlt} />
     </button>

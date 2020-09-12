@@ -4,17 +4,17 @@
 
   export let show: boolean, addonListEl: HTMLElement;
 
-  let wrapperElement: HTMLElement;
+  let wrapperEl: HTMLElement;
 
   const adjustPosition = () => {
     const scrollOfset = addonListEl.getBoundingClientRect().y;
     const staticOffset =
       (addonListEl.offsetParent as HTMLElement).offsetTop + addonListEl.offsetTop;
-    wrapperElement.style.top = `${Math.floor(Math.abs(scrollOfset - staticOffset))}px`;
+    wrapperEl.style.top = `${Math.floor(Math.abs(scrollOfset - staticOffset))}px`;
   };
 
   const dismissOnEsc = () => {
-    const handler = (e) => e.key === "Escape" && (show = false);
+    const handler = (e: KeyboardEvent) => e.key === "Escape" && (show = false);
     document.body.addEventListener("keydown", handler);
     return {
       destroy: () => document.body.removeEventListener("keydown", handler),
@@ -38,7 +38,7 @@
 
 <div
   class="modal-wrapper"
-  bind:this={wrapperElement}
+  bind:this={wrapperEl}
   transition:fade={{ duration: 200 }}
   use:dismissOnEsc
   on:click={() => (show = false)}>

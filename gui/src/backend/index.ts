@@ -1,3 +1,4 @@
+import type { ChildProcessWithoutNullStreams } from "child_process";
 import { spawn } from "child_process";
 import path from "path";
 import { app, BrowserWindow, dialog, ipcMain, Menu, shell } from "electron";
@@ -74,7 +75,8 @@ let serverAddress: string;
 
 instawow.once("message", (message: any) => (serverAddress = message.address));
 
-instawow.stderr.on("data", (data) => {
+// TS does not have variadic file descriptor overloads
+(instawow as ChildProcessWithoutNullStreams).stderr.on("data", (data) => {
   if (data.toString().trim() !== "Aborted!") {
     dialog.showErrorBox("Error", `stderr: ${data}`);
   }

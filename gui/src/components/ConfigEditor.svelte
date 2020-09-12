@@ -1,7 +1,8 @@
 <script lang="ts">
-  import type { Api, Config } from "../api";
+  import type { Api, Config, PydanticValidationError } from "../api";
   import { faBan, faFolderOpen } from "@fortawesome/free-solid-svg-icons";
   import { ipcRenderer } from "electron";
+  import lodash from "lodash";
   import { fade } from "svelte/transition";
   import { activeProfile, profiles } from "../store";
   import Icon from "./SvgIcon.svelte";
@@ -10,7 +11,7 @@
 
   const createNew = editing === "new";
 
-  let configParams = { ...(!createNew && $profiles[$activeProfile]) } as Config;
+  let configParams = { ...(!createNew && $profiles[$activeProfile as string]) } as Config;
   let errors: { [key: string]: string } = {};
 
   const selectFolder = async () => {
@@ -40,7 +41,9 @@
       // `error instanceof JSONRPCError` isn't working because of some transpilation fuckery:
       // https://github.com/open-rpc/client-js/issues/209
       if (error?.data) {
-        errors = Object.fromEntries(error.data.map(({ loc, msg }) => [loc, msg]));
+        errors = lodash.fromPairs(
+          (error.data as PydanticValidationError[]).map(({ loc, msg }) => [loc, msg])
+        );
         return;
       } else {
         throw error;
@@ -64,16 +67,16 @@ will have to reconcile your add-ons again if you create \
 a new profile for this folder and your rollback history \
 will be lost.`)
     ) {
-      await api.deleteProfile($activeProfile);
-      delete $profiles[$activeProfile];
-      $profiles = $profiles;
+      await api.deleteProfile(configParams.profile);
+      delete $profiles[configParams.profile];
       $activeProfile = Object.keys($profiles)[0];
+      $profiles = $profiles;
       editing = false;
     }
   };
 
   const dismissOnEsc = () => {
-    const handler = (e) => e.key === "Escape" && (editing = false);
+    const handler = (e: KeyboardEvent) => e.key === "Escape" && (editing = false);
     document.body.addEventListener("keydown", handler);
     return {
       destroy: () => document.body.removeEventListener("keydown", handler),

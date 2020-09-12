@@ -2,7 +2,7 @@ import fs from "fs";
 import commonjs from "@rollup/plugin-commonjs";
 import resolve from "@rollup/plugin-node-resolve";
 import svelte from "rollup-plugin-svelte";
-import { terser } from "rollup-plugin-terser";
+// import { terser } from "rollup-plugin-terser";
 import typescript from "@rollup/plugin-typescript";
 import autoPreprocess from "svelte-preprocess";
 

@@ -102,6 +102,13 @@ export type Version = {
   new_version: string | null;
 };
 
+export type PydanticValidationError = {
+  ctx: object;
+  loc: string[];
+  msg: string;
+  type: string;
+};
+
 export class Api {
   getClient: () => Promise<Client>;
   profile?: string;
@@ -117,7 +124,7 @@ export class Api {
 
   async _request(requestObject: Parameters<Client["request"]>[0]) {
     const client = await this.getClient();
-    return await client.request(requestObject, null);
+    return await client.request(requestObject, 0);
   }
 
   async readProfile(profile: string): Promise<Config> {
@@ -132,8 +139,8 @@ export class Api {
     return await this._request({ method: "config/delete", params: { profile: profile } });
   }
 
-  async enumerateProfiles(): Promise<Profiles> {
-    return await this._request({ method: "config/enumerate" });
+  async listProfiles(): Promise<Profiles> {
+    return await this._request({ method: "config/list" });
   }
 
   async listSources(): Promise<Sources> {
@@ -200,8 +207,5 @@ export class Api {
 export const addonToDefn = (addon: Addon): Defn => ({
   source: addon.source,
   alias: addon.id,
-  strategy: {
-    type_: addon.options.strategy,
-    ...(addon.options.strategy === Strategies.version && { version: addon.version }),
-  },
+  strategy: { type_: addon.options.strategy, version: addon.version },
 });

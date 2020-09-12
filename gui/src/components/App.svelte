@@ -1,52 +1,20 @@
 <script lang="ts">
-  import type { Version } from "../api";
-  import { RequestManager, Client, WebSocketTransport } from "@open-rpc/client-js";
-  import { ipcRenderer } from "electron";
+  import type { Api, Version } from "../api";
   import lodash from "lodash";
-  import { Lock } from "semaphore-async-await";
-  import { Api } from "../api";
   import { activeProfile, profiles } from "../store";
   import ProfileView from "./ProfileView.svelte";
   import ProfileSwitcher from "./ProfileSwitcher.svelte";
 
-  let _transport: WebSocketTransport;
-  let _client: Client;
-  let api: Api;
+  export let api: Api;
+
   let instawowVersions: Version;
 
-  const _clientInitialisationLock = new Lock();
-
-  const _connectToServer = async (): Promise<[WebSocketTransport, Client]> => {
-    const address = await ipcRenderer.invoke("get-server-address");
-    const endpoint = new URL("/v0", address).toString();
-    const transport = new WebSocketTransport(endpoint);
-    const requestManager = new RequestManager([transport]);
-    const client = new Client(requestManager);
-    return [transport, client];
-  };
-
-  const getClient = async () => {
-    await _clientInitialisationLock.acquire();
-    try {
-      if (
-        typeof _client === "undefined" ||
-        [WebSocket.CLOSING, WebSocket.CLOSED].includes(_transport.connection.readyState)
-      ) {
-        [_transport, _client] = await _connectToServer();
-      }
-      return _client;
-    } finally {
-      _clientInitialisationLock.release();
-    }
-  };
-
   const setup = async () => {
-    api = new Api(getClient);
-    instawowVersions = await api.getVersion();
-    const profileNames = await api.enumerateProfiles();
+    const profileNames = await api.listProfiles();
     const profileConfigs = await Promise.all(profileNames.map((p) => api.readProfile(p)));
     $profiles = lodash.fromPairs(lodash.zip(profileNames, profileConfigs));
     $activeProfile = profileNames[0];
+    instawowVersions = await api.getVersion();
   };
 </script>
 

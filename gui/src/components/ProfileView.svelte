@@ -47,7 +47,7 @@
     ...addon,
   });
 
-  const notifyOfFailures = (method: string, combinedResult: [Addon, AnyResult][]) => {
+  const notifyOfFailures = (method: string, combinedResult: (readonly [Addon, AnyResult])[]) => {
     for (const [addon, result] of combinedResult) {
       if (result.status !== "success") {
         new Notification(`failed to ${method} ${addon.name} (${createAddonToken(addon)})`, {
@@ -115,14 +115,12 @@
     ));
 
   const regenerateCombinedSearchAddons = () => {
-    const combinedAddons = addons__Search.map(
-      (addon): AddonTuple => {
-        const installedAddon = addons__Installed.find((installedAddon) =>
-          isSameAddon(installedAddon, addon)
-        );
-        return [installedAddon?.[0] || markAddonInstalled(addon, false), addon];
-      }
-    );
+    const combinedAddons = addons__Search.map((addon) => {
+      const installedAddon = addons__Installed.find((installedAddon) =>
+        isSameAddon(installedAddon, addon)
+      );
+      return [installedAddon?.[0] || markAddonInstalled(addon, false), addon] as const;
+    });
     addons__CombinedSearch = combinedAddons;
   };
 
@@ -150,7 +148,7 @@
           const installedAddons = [...addons__Installed];
           // Reversing `modifiedAddons` so that new add-ons will
           // be prepended in alphabetical order
-          for (const addon of lodash.reverse(modifiedAddons)) {
+          for (const addon of [...modifiedAddons].reverse()) {
             const newAddon = [markAddonInstalled(addon), addon] as const;
             const index = addons__Installed.findIndex((value) => isSameAddon(value, addon));
             if (index === -1) {
@@ -163,7 +161,10 @@
         }
         regenerateCombinedSearchAddons();
       }
-      notifyOfFailures(method, lodash.zip(addons, modifyResults));
+      notifyOfFailures(
+        method,
+        addons.map((a, i) => [a, modifyResults[i]])
+      );
     } finally {
       addonsBeingModified = lodash.difference(addonsBeingModified, ids);
     }
@@ -214,7 +215,7 @@
             ])
           : api.search(searchTermsSnapshot, searchLimit, searchStrategy);
         const results = await coro;
-        // Discard the results if the search terms have changed in the meantime
+        // Discard results if the search terms have changed in the meantime
         if (searchTermsSnapshot === searchTerms) {
           addons__Search = results
             .filter((result): result is SuccessResult => result.status === "success")
@@ -236,23 +237,22 @@
       try {
         const installedAddons = (await api.list()).map((addon) => markAddonInstalled(addon));
         if (flash) {
-          addons__Installed = lodash.zip(installedAddons, installedAddons);
+          addons__Installed = installedAddons.map((a) => [a, a]);
         }
         const resolveResults = await api.resolve(installedAddons.map(addonToDefn));
+        const addonsToResults = installedAddons.map((a, i) => [a, resolveResults[i]] as const);
         addons__Installed = lodash.sortBy(
-          lodash
-            .zip(installedAddons, resolveResults)
-            .map(([thisAddon, result]) => [
-              thisAddon,
-              result.status === "success" ? result.addon : thisAddon,
-            ]),
+          addonsToResults.map(([thisAddon, result]) => [
+            thisAddon,
+            result.status === "success" ? result?.addon : thisAddon,
+          ]),
           // Lift outdated add-ons to the top of ht list
           ([thisAddon, { version: otherVersion }]) => [
             thisAddon.version === otherVersion,
             thisAddon.name,
           ]
         );
-        notifyOfFailures("resolve", lodash.zip(installedAddons, resolveResults));
+        notifyOfFailures("resolve", addonsToResults);
       } finally {
         // Keep actions disabled for a little while longer while the add-ons
         // are being reshuffled to prevent misclicking
@@ -295,11 +295,11 @@
         await pinAddons([pinnedAddon]);
         break;
       case "look-up":
-        [searchFromAlias, searchStrategy, searchVersion, searchTerms] = [
+        [searchTerms, searchFromAlias, searchStrategy, searchVersion] = [
+          createAddonToken(addon),
           true,
           addon.options.strategy,
           addon.version,
-          createAddonToken(addon),
         ];
         break;
       default:
@@ -506,9 +506,13 @@
             </p>
           </div>
           <ul class="addon-list">
-            {#each result.reconciled.concat(result.unreconciled) as { folders, matches: choices }, idx}
+            {#each result.reconciled.concat(result.unreconciled) as { folders, matches }, idx}
               <li>
-                <AddonStub bind:selections={reconcileSelections} {folders} {choices} {idx} />
+                <AddonStub
+                  bind:selections={reconcileSelections}
+                  {folders}
+                  choices={matches}
+                  {idx} />
               </li>
             {/each}
           </ul>
