@@ -33,7 +33,7 @@ from .resolvers import Defn, Strategies
 from .utils import TocReader, cached_property, get_version, is_outdated, tabulate, uniq
 
 if TYPE_CHECKING:
-    from .manager import CliManager
+    from .manager import CliManager as CliManagerT
 
     _R = TypeVar('_R')
 
@@ -77,7 +77,7 @@ class Report:
         )
 
     def generate(self):
-        manager: CliManager = click.get_current_context().obj.m
+        manager: CliManagerT = click.get_current_context().obj.m
         if manager.config.auto_update_check:
             outdated, new_version = is_outdated()
             if outdated:
@@ -108,7 +108,7 @@ class ManagerWrapper:
         self.ctx = ctx
 
     @cached_property
-    def m(self) -> CliManager:
+    def m(self) -> CliManagerT:
         from .manager import CliManager
 
         try:
@@ -122,7 +122,7 @@ class ManagerWrapper:
 
 
 class _PathParam(click.Path):
-    def coerce_path_result(self, value: str) -> Path:
+    def coerce_path_result(self, value: str) -> Path:  # type: ignore
         return Path(value)
 
 
@@ -182,19 +182,19 @@ def main(ctx: click.Context, log_level: bool, profile: str):
 
 
 @overload
-def parse_into_defn(manager: CliManager, value: str, *, raise_invalid: bool = True) -> Defn:
+def parse_into_defn(manager: CliManagerT, value: str, *, raise_invalid: bool = True) -> Defn:
     ...
 
 
 @overload
 def parse_into_defn(
-    manager: CliManager, value: List[str], *, raise_invalid: bool = True
+    manager: CliManagerT, value: List[str], *, raise_invalid: bool = True
 ) -> List[Defn]:
     ...
 
 
 def parse_into_defn(
-    manager: CliManager, value: Union[str, List[str]], *, raise_invalid: bool = True
+    manager: CliManagerT, value: Union[str, List[str]], *, raise_invalid: bool = True
 ) -> Union[Defn, List[Defn]]:
     if not isinstance(value, str):
         defns = (parse_into_defn(manager, v, raise_invalid=raise_invalid) for v in value)
@@ -211,27 +211,26 @@ def parse_into_defn(
 
 
 def parse_into_defn_with_strategy(
-    manager: CliManager, value: Sequence[Tuple[Strategies, str]]
+    manager: CliManagerT, value: Sequence[Tuple[Strategies, str]]
 ) -> List[Defn]:
     defns = parse_into_defn(manager, [d for _, d in value])
     return list(map(Defn.with_strategy, defns, (s for s, _ in value)))
 
 
 def parse_into_defn_with_version(
-    manager: CliManager, value: Sequence[Tuple[str, str]]
+    manager: CliManagerT, value: Sequence[Tuple[str, str]]
 ) -> List[Defn]:
     defns = parse_into_defn(manager, [d for _, d in value])
     return list(map(Defn.with_version, defns, (v for v, _ in value)))
 
 
-def parse_into_defn_from_json_file(manager: CliManager, path: Path) -> List[Defn]:
+def parse_into_defn_from_json_file(manager: CliManagerT, path: Path) -> List[Defn]:
     faux_pkgs = models.MultiPkgModel.parse_file(path, encoding='utf-8')
     return list(map(Defn.from_pkg, cast('List[models.Pkg]', faux_pkgs.__root__)))
 
 
-def _combine_into(param_name: str, fn: Callable[[CliManager, Any], List[Any]]):
+def _combine_into(param_name: str, fn: Callable[[CliManagerT, Any], List[Any]]):
     def combine(ctx: click.Context, _param: click.Parameter, value: Any):
-        # Add param by ``param_name`` to param dict regardless of output
         param = ctx.params.setdefault(param_name, [])
         if value:
             param.extend(fn(ctx.obj.m, value))
@@ -330,7 +329,7 @@ def rollback(ctx: click.Context, addon: Defn, undo: bool) -> None:
     "Roll an add-on back to an older version."
     from .prompts import Choice, select
 
-    manager: CliManager = ctx.obj.m
+    manager: CliManagerT = ctx.obj.m
     limit = 10
 
     pkg = manager.get_pkg(addon)
@@ -407,7 +406,7 @@ def reconcile(ctx: click.Context, auto: bool, list_unreconciled: bool) -> None:
         '''
     )
 
-    manager: CliManager = ctx.obj.m
+    manager: CliManagerT = ctx.obj.m
 
     def prompt_one(addons: List[AddonFolder], pkgs: List[models.Pkg]) -> Union[Defn, Tuple[()]]:
         def construct_choice(pkg: models.Pkg):
@@ -490,7 +489,7 @@ def search(ctx: click.Context, search_terms: str, limit: int) -> None:
     "Search for add-ons to install."
     from .prompts import PkgChoice, checkbox, confirm
 
-    manager: CliManager = ctx.obj.m
+    manager: CliManagerT = ctx.obj.m
 
     pkgs = manager.run(manager.search(search_terms, limit))
     if pkgs:
@@ -713,10 +712,10 @@ def listen(ctx: click.Context) -> None:
     "Fire up the WebSocket server."
     import asyncio
 
-    from .json_rpc_server import listen
+    from . import json_rpc_server
 
     dummy_config = Config.get_dummy_config(profile='__jsonrpc__').ensure_dirs()
     log_level = ctx.find_root().params['log_level']
     setup_logging(dummy_config, log_level)
     _override_loop_policy()
-    asyncio.run(listen())
+    asyncio.run(json_rpc_server.listen())

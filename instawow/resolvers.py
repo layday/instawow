@@ -26,9 +26,9 @@ from . import exceptions as E, models as m
 from .utils import cached_property, gather, run_in_thread as t, slugify, uniq
 
 if TYPE_CHECKING:
-    from pydantic.fields import ModelField
+    from pydantic.fields import ModelField as ModeFieldT
 
-    from .manager import Manager
+    from .manager import Manager as ManagerT
 
 
 class Strategies(enum.Enum):
@@ -41,6 +41,9 @@ class Strategies(enum.Enum):
 
 
 class HashableModel(BaseModel):
+    class Config:
+        allow_mutation = False
+
     def __eq__(self, other: Any) -> bool:
         if not isinstance(other, self.__class__):
             return NotImplemented
@@ -52,7 +55,7 @@ class HashableModel(BaseModel):
 
 class BaseStrategy(HashableModel):
     @validator('type_', check_fields=False, pre=True)
-    def _parse_strategy(cls, value: Any, field: ModelField) -> Strategies:
+    def _parse_strategy(cls, value: Any, field: ModeFieldT) -> Strategies:
         accepted_strategies = get_args(field.type_)
         strategy = Strategies.__members__.get(value) or value
         if strategy in accepted_strategies:
@@ -134,7 +137,7 @@ class MasterCatalogue(BaseModel):
         resolvers = (CurseResolver, WowiResolver, TukuiResolver)
 
         async with init_web_client() as web_client:
-            faux_manager = cast('Manager', SimpleNamespace(web_client=web_client))
+            faux_manager = cast('ManagerT', SimpleNamespace(web_client=web_client))
             items = [a for r in resolvers async for a in r(faux_manager).collect_items()]
         catalogue = cls(__root__=items)
         return catalogue
@@ -149,7 +152,7 @@ class Resolver:
     name: ClassVar[str]
     strategies: ClassVar[Set[Strategies]]
 
-    def __init__(self, manager: Manager) -> None:
+    def __init__(self, manager: ManagerT) -> None:
         self.manager = manager
 
     def __init_subclass__(cls) -> None:
@@ -435,7 +438,7 @@ if TYPE_CHECKING:
         UIName: str  # User-facing add-on name
         UIAuthorName: str
 
-    class WowiCompatibilityEntry:
+    class WowiCompatibilityEntry(TypedDict):
         version: str  # Game version, e.g. '8.3.0'
         name: str  # Xpac or patch name, e.g. "Visions of N'Zoth" for 8.3.0
 

@@ -76,10 +76,9 @@ class _DefnParamMixin(BaseModel):
 class WriteConfigParams(BaseParams):
     values: Dict[str, Any]
     _method = 'config/write'
-    _result_type = Config
 
     @t
-    def respond(self, managers: ManagerWorkQueue) -> _result_type:
+    def respond(self, managers: ManagerWorkQueue) -> Config:
         with _reraise_validation_error(_ConfigError):
             config = Config(**self.values).write()
 
@@ -91,19 +90,17 @@ class WriteConfigParams(BaseParams):
 
 class ReadConfigParams(_ProfileParamMixin, BaseParams):
     _method = 'config/read'
-    _result_type = Config
 
     @t
-    def respond(self, managers: ManagerWorkQueue) -> _result_type:
+    def respond(self, managers: ManagerWorkQueue) -> Config:
         with _reraise_validation_error(_ConfigError):
             return Config.read(self.profile)
 
 
 class DeleteConfigParams(_ProfileParamMixin, BaseParams):
     _method = 'config/delete'
-    _result_type = type(None)
 
-    async def respond(self, managers: ManagerWorkQueue) -> _result_type:
+    async def respond(self, managers: ManagerWorkQueue) -> None:
         async def delete_profile(manager: Manager):
             await t(manager.config.delete)()
             managers.unload(self.profile)
@@ -113,10 +110,9 @@ class DeleteConfigParams(_ProfileParamMixin, BaseParams):
 
 class EnumerateProfilesParams(BaseParams):
     _method = 'config/enumerate'
-    _result_type = List[str]
 
     @t
-    def respond(self, managers: ManagerWorkQueue) -> _result_type:
+    def respond(self, managers: ManagerWorkQueue) -> List[str]:
         return Config.list_profiles()
 
 
@@ -133,9 +129,8 @@ class Source(BaseModel):
 
 class ListSourcesParams(_ProfileParamMixin, BaseParams):
     _method = 'sources/list'
-    _result_type = List[Source]
 
-    async def respond(self, managers: ManagerWorkQueue) -> _result_type:
+    async def respond(self, managers: ManagerWorkQueue) -> List[Source]:
         manager = await managers.run(self.profile)
         return [
             Source(
@@ -154,9 +149,8 @@ class ListResult(BaseModel):
 
 class ListInstalledParams(_ProfileParamMixin, BaseParams):
     _method = 'list'
-    _result_type = ListResult
 
-    async def respond(self, managers: ManagerWorkQueue) -> _result_type:
+    async def respond(self, managers: ManagerWorkQueue) -> ListResult:
         installed_pkgs = await managers.run(
             self.profile, t(lambda m: m.database.query(Pkg).order_by(Pkg.name).all())
         )
@@ -190,9 +184,8 @@ class SearchParams(_ProfileParamMixin, BaseParams):
     limit: int
     strategy: Strategies = Strategies.default
     _method = 'search'
-    _result_type = MultiResult
 
-    async def respond(self, managers: ManagerWorkQueue) -> _result_type:
+    async def respond(self, managers: ManagerWorkQueue) -> MultiResult:
         results = await managers.run(
             self.profile,
             partial(
@@ -207,9 +200,8 @@ class SearchParams(_ProfileParamMixin, BaseParams):
 
 class ResolveParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
     _method = 'resolve'
-    _result_type = MultiResult
 
-    async def respond(self, managers: ManagerWorkQueue) -> _result_type:
+    async def respond(self, managers: ManagerWorkQueue) -> MultiResult:
         def extract_source(manager: Manager, defns: List[Defn]):
             for defn in defns:
                 if defn.source == '*':
@@ -234,9 +226,8 @@ class ResolveParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
 class InstallParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
     replace: bool
     _method = 'install'
-    _result_type = MultiResult
 
-    async def respond(self, managers: ManagerWorkQueue) -> _result_type:
+    async def respond(self, managers: ManagerWorkQueue) -> MultiResult:
         results = await managers.run(
             self.profile, partial(Manager.install, defns=self.defns, replace=self.replace)
         )
@@ -250,9 +241,8 @@ class InstallParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
 
 class UpdateParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
     _method = 'update'
-    _result_type = MultiResult
 
-    async def respond(self, managers: ManagerWorkQueue) -> _result_type:
+    async def respond(self, managers: ManagerWorkQueue) -> MultiResult:
         results = await managers.run(
             self.profile, partial(Manager.update, defns=self.defns, retain_strategy=True)
         )
@@ -266,9 +256,8 @@ class UpdateParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
 
 class RemoveParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
     _method = 'remove'
-    _result_type = MultiResult
 
-    async def respond(self, managers: ManagerWorkQueue) -> _result_type:
+    async def respond(self, managers: ManagerWorkQueue) -> MultiResult:
         results = await managers.run(self.profile, partial(Manager.remove, defns=self.defns))
         return MultiResult.parse_obj(
             [
@@ -280,9 +269,8 @@ class RemoveParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
 
 class PinParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
     _method = 'pin'
-    _result_type = MultiResult
 
-    async def respond(self, managers: ManagerWorkQueue) -> _result_type:
+    async def respond(self, managers: ManagerWorkQueue) -> MultiResult:
         results = await managers.run(self.profile, partial(Manager.pin, defns=self.defns))
         return MultiResult.parse_obj(
             [
@@ -327,9 +315,8 @@ _matchers = {
 class ReconcileParams(_ProfileParamMixin, BaseParams):
     matcher: Literal['toc_ids', 'dir_names', 'toc_names']
     _method = 'reconcile'
-    _result_type = ReconcileResult
 
-    async def respond(self, managers: ManagerWorkQueue) -> _result_type:
+    async def respond(self, managers: ManagerWorkQueue) -> ReconcileResult:
         leftovers = await managers.run(self.profile, t(get_folders))
         match_groups = await managers.run(
             self.profile, partial(_matchers[self.matcher], leftovers=leftovers)
@@ -347,18 +334,17 @@ class ReconcileParams(_ProfileParamMixin, BaseParams):
         return ReconcileResult(reconciled=reconciled, unreconciled=unreconciled)
 
 
-class _GetVersionResult(BaseModel):
+class GetVersionResult(BaseModel):
     installed_version: str
     new_version: O[str]
 
 
 class GetVersionParams(BaseParams):
     _method = 'meta/get_version'
-    _result_type = _GetVersionResult
 
-    async def respond(self, managers: ManagerWorkQueue) -> _result_type:
+    async def respond(self, managers: ManagerWorkQueue) -> GetVersionResult:
         outdated, new_version = await t(is_outdated)()
-        return _GetVersionResult(
+        return GetVersionResult(
             installed_version=get_version(), new_version=new_version if outdated else None
         )
 

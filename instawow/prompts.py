@@ -1,7 +1,9 @@
+# pyright: reportUnusedFunction=false
+
 from __future__ import annotations
 
 from functools import partial
-from typing import TYPE_CHECKING, Any, List, Optional, Sequence, Tuple, Type
+from typing import TYPE_CHECKING, Any, Callable, List, Optional, Sequence, Tuple, Type
 
 from prompt_toolkit.application import Application
 from prompt_toolkit.key_binding import KeyBindings
@@ -78,8 +80,9 @@ def checkbox(message: str, choices: Sequence[Choice], **prompt_kwargs: Any) -> Q
         return tokens
 
     ic = InquirerControl(
-        choices, None, use_indicator=False, use_shortcuts=False, use_pointer=True  # type: ignore
+        list(choices), None, use_indicator=False, use_shortcuts=False, use_pointer=True
     )
+    ic_get_pointed_at: Callable[[], Choice] = ic.get_pointed_at
     bindings = KeyBindings()
 
     @bindings.add(Keys.ControlQ, eager=True)
@@ -89,7 +92,7 @@ def checkbox(message: str, choices: Sequence[Choice], **prompt_kwargs: Any) -> Q
 
     @bindings.add(' ', eager=True)
     def toggle(event: Any):
-        pointed_choice = ic.get_pointed_at().value
+        pointed_choice = ic_get_pointed_at().value
         if pointed_choice in ic.selected_options:
             ic.selected_options.remove(pointed_choice)
         else:
@@ -127,7 +130,7 @@ def checkbox(message: str, choices: Sequence[Choice], **prompt_kwargs: Any) -> Q
 
     @bindings.add('o', eager=True)
     def open_url(event: Any):
-        pkg = ic.get_pointed_at().pkg
+        pkg = getattr(ic_get_pointed_at(), 'pkg', None)
         if pkg:
             import webbrowser
 
@@ -147,13 +150,14 @@ def select(message: str, choices: Sequence[Choice], **prompt_kwargs: Any) -> Que
     def get_prompt_tokens():
         tokens: List[Tuple[str, str]] = [('', '- '), ('class:x-question', message)]
         if ic.is_answered:
-            answer = ''.join(t for _, t in ic.get_pointed_at().title)
+            answer = ''.join(t for _, t in ic_get_pointed_at().title)
             tokens = [*tokens, ('', '  '), ('class:skipped' if answer == 'skip' else '', answer)]
         return tokens
 
     ic = InquirerControl(
-        choices, None, use_indicator=False, use_shortcuts=False, use_pointer=True  # type: ignore
+        list(choices), None, use_indicator=False, use_shortcuts=False, use_pointer=True
     )
+    ic_get_pointed_at: Callable[[], Choice] = ic.get_pointed_at
     bindings = KeyBindings()
 
     @bindings.add(Keys.ControlQ, eager=True)
@@ -178,11 +182,11 @@ def select(message: str, choices: Sequence[Choice], **prompt_kwargs: Any) -> Que
     @bindings.add(Keys.ControlM, eager=True)
     def set_answer(event: Any):
         ic.is_answered = True
-        event.app.exit(result=ic.get_pointed_at().value)
+        event.app.exit(result=ic_get_pointed_at().value)
 
     @bindings.add('o', eager=True)
     def open_url(event: Any):
-        pkg = getattr(ic.get_pointed_at(), 'pkg', None)
+        pkg = getattr(ic_get_pointed_at(), 'pkg', None)
         if pkg:
             import webbrowser
 
@@ -192,7 +196,7 @@ def select(message: str, choices: Sequence[Choice], **prompt_kwargs: Any) -> Que
     def skip(event: Any):
         ic.pointed_at = -1
         ic.is_answered = True
-        event.app.exit(result=ic.get_pointed_at().value)
+        event.app.exit(result=ic_get_pointed_at().value)
 
     @bindings.add(Keys.Any)
     def other(event: Any):
