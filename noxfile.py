@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import os
 from typing import TYPE_CHECKING
 
 import nox
@@ -73,16 +72,3 @@ def build(session: Session):
 def publish(session: Session):
     session.install('twine')
     session.run('twine', 'upload', 'dist/*')
-
-
-@nox.session
-def nixify(session: Session):
-    nixify_dir = os.environ.get('INSTAWOW_NIXIFY_DIR', '.')
-
-    session.cd(nixify_dir)
-    # The latest published version of pypi2nix (2.0.4) overrides the pip
-    # derivation's fetch URL with an old version of pip from GitHub which cannot
-    # be built with an up-to-date derivation because the latter attempts
-    # to apply a patch to a file which does not exist in the pip of olde
-    session.install('pypi2nix @ https://github.com/nix-community/pypi2nix/archive/0dbd11.zip')
-    session.run('pypi2nix', '-vvv', '-e', 'instawow')
