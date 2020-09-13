@@ -24,15 +24,12 @@ jobs:
       with:
         profile: minimal
         toolchain: nightly
-    # From: https://github.com/denoland/deno/blob/71a9879/.github/workflows/ci.yml
-    - name: Configure cargo data directory
-      run: echo ::set-env name=CARGO_HOME::$HOME/.cargo
     - name: Restore build cache
       uses: actions/cache@v2
       with:
         path: ~/.cargo
         key: >-
-          cargo-cache-${{ runner.os }}-${{ steps.install-rust.outputs.rustc_hash }}-${{ env.PYOX_VERSION }}_5
+          cargo-cache-${{ runner.os }}-${{ steps.install-rust.outputs.rustc_hash }}-${{ env.PYOX_VERSION }}_1
     - name: Install PyOxidizer
       run: |
         cargo install --version $PYOX_VERSION pyoxidizer
