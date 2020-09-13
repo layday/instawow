@@ -50,6 +50,15 @@
     "files": [
       "./build/**/*"
     ],
+    "linux": {
+      "target": "appimage",
+      "extraResources": [
+        {
+          "from": "./artefacts/instawow",
+          "to": "./instawow"
+        }
+      ]
+    },
     "mac": {
       "target": "zip",
       "extraFiles": [

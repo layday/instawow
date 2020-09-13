@@ -1,5 +1,6 @@
 import type { ChildProcessWithoutNullStreams } from "child_process";
 import { spawn } from "child_process";
+import { platform } from "process";
 import path from "path";
 import { app, BrowserWindow, dialog, ipcMain, Menu, shell } from "electron";
 import contextMenu from "electron-context-menu";
@@ -9,7 +10,13 @@ const sleep = (ms: number) => {
 };
 
 const getBinPath = () => {
-  return path.join(app.getAppPath(), "..", "..", "MacOS");
+  if (platform === "darwin") {
+    return path.join(app.getAppPath(), "..", "..", "MacOS");
+  } else if (platform === "linux") {
+    return path.join(app.getAppPath(), "..");
+  } else {
+    throw new Error(`platform "${platform}" is not supported`);
+  }
 };
 
 const spawnInstawow = () => {
