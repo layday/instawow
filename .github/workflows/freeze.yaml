@@ -11,24 +11,23 @@ jobs:
   extract-tag:
     runs-on: ubuntu-latest
     outputs:
-      tag: ${{ steps.get_tag.outputs.TAG }}
+      tag: ${{ steps.get-tag.outputs.TAG }}
     steps:
     - name: Clone the repo
       uses: actions/checkout@v2
     - name: Extract the tag
-      id: get_tag
+      id: get-tag
       run: |
         echo ::set-output name=TAG::${GITHUB_REF#refs/tags/}
   freeze-cli:
     needs: extract-tag
     env:
       PYOX_VERSION: '0.7.0'
+      RUST_BACKTRACE: full
     strategy:
       matrix:
-        os:
-        - macos-latest
-        - ubuntu-latest
-        - windows-latest
+        os: [macos-latest, ubuntu-latest, windows-latest]
+      fail-fast: false
     runs-on: ${{ matrix.os }}
     steps:
     - name: Clone the repo
@@ -37,31 +36,37 @@ jobs:
       uses: actions/setup-python@v2
       with:
         python-version: '3.7'
-    - name: Build instawow and rename the sdist to be picked up by PyOxidizer
-      run: |
-        python -m pip install nox
-        python -m nox -s build
-        mv dist/*.tar.gz instawow.tar.gz
-        python -m nox -s clobber_build_artefacts
     - name: Install Rust toolchain
       id: install-rust
       uses: actions-rs/toolchain@v1
       with:
         profile: minimal
         toolchain: nightly
+    - name: Build instawow and rename the sdist to be picked up by PyOxidizer
+      run: |
+        python -m pip install nox
+        python -m nox -s build
+        mv dist/*.tar.gz instawow.tar.gz
+        python -m nox -s clobber_build_artefacts
+    # From: https://github.com/denoland/deno/blob/71a9879/.github/workflows/ci.yml
+    - name: Configure cargo data directory
+      run: echo ::set-env name=CARGO_HOME::$HOME/.cargo
     - name: Restore PyOxidizer from build cache
       uses: actions/cache@v2
       with:
         path: ~/.cargo
         key: >-
-          cargo-cache-${{ runner.os }}-${{ steps.install-rust.outputs.rustc_hash }}-${{ env.PYOX_VERSION }}_1
+          cargo-cache-${{ runner.os }}-${{ steps.install-rust.outputs.rustc_hash }}-${{ env.PYOX_VERSION }}_5
     - name: Install PyOxidizer
       run: |
         cargo install --version $PYOX_VERSION pyoxidizer
+    - name: Inspect PyOxidizer
+      run: |
+        file $CARGO_HOME/bin/pyoxidizer
     - name: Freeze instawow and copy it into the 'dist' directory
       run: |
         mkdir -p dist
-        pyoxidizer build --release | tee >(
+        $CARGO_HOME/bin/pyoxidizer build --release | tee >(
           instawow_path=$(tail -n 1 | cut -c 23-)
           cp $instawow_path dist/${instawow_path##*[\\/]}
         )
@@ -76,7 +81,7 @@ jobs:
       matrix:
         os:
         - macos-latest
-        # - ubuntu-latest
+        - ubuntu-latest
         # - windows-latest
     runs-on: ${{ matrix.os }}
     steps:
