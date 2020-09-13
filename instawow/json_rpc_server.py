@@ -108,8 +108,8 @@ class DeleteConfigParams(_ProfileParamMixin, BaseParams):
         await managers.run(self.profile, delete_profile)
 
 
-class EnumerateProfilesParams(BaseParams):
-    _method = 'config/enumerate'
+class ListProfilesParams(BaseParams):
+    _method = 'config/list'
 
     @t
     def respond(self, managers: ManagerWorkQueue) -> List[str]:
@@ -442,7 +442,7 @@ async def create_app() -> web.Application:
                 WriteConfigParams,
                 ReadConfigParams,
                 DeleteConfigParams,
-                EnumerateProfilesParams,
+                ListProfilesParams,
                 ListSourcesParams,
                 ListInstalledParams,
                 SearchParams,
