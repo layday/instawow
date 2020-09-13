@@ -7,6 +7,7 @@ from pathlib import Path
 from textwrap import dedent, fill
 from typing import (
     TYPE_CHECKING,
+    AbstractSet,
     Any,
     Callable,
     FrozenSet,
@@ -16,7 +17,6 @@ from typing import (
     List,
     Optional as O,
     Sequence,
-    Set,
     Tuple,
     Type,
     TypeVar,
@@ -130,7 +130,7 @@ class _EnumParam(click.Choice, Generic[_EnumT]):
     def __init__(
         self,
         choice_enum: Type[_EnumT],
-        excludes: Set[_EnumT] = set(),
+        excludes: AbstractSet[_EnumT] = set(),
         case_sensitive: bool = True,
     ) -> None:
         self.choice_enum = choice_enum
@@ -682,13 +682,13 @@ def list_installed_wago_auras(obj: ManagerWrapper, account: str) -> None:
     config = BuilderConfig(account=account)
     aura_groups = WaCompanionBuilder(obj.m, config).extract_installed_auras()
     installed_auras = sorted(
-        (g.Meta.model.__name__, fill(a.id, width=30, max_lines=1), a.url)
+        (g.filename, fill(a.id, width=30, max_lines=1), a.url)
         for g in aura_groups
         for v in g.entries.values()
         for a in v
         if not a.parent
     )
-    click.echo(tabulate([('type', 'name', 'URL'), *installed_auras]))
+    click.echo(tabulate([('in file', 'name', 'URL'), *installed_auras]))
 
 
 @main.command(hidden=True)

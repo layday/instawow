@@ -10,7 +10,7 @@ def wa_saved_vars(manager):
         manager.config.addon_dir.parents[1] / 'WTF' / 'Account' / 'test' / 'SavedVariables'
     )
     saved_vars.mkdir(parents=True)
-    (saved_vars / WeakAuras.Meta.filename).write_text(
+    (saved_vars / WeakAuras.filename).write_text(
         '''\
 WeakAurasSaved = {
     ["displays"] = {

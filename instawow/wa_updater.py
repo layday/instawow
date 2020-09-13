@@ -1,10 +1,22 @@
 from __future__ import annotations
 
 from itertools import chain
-from typing import TYPE_CHECKING, Any, Dict, Iterator, List, Optional as O, Sequence, Tuple, Type
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Dict,
+    Iterator,
+    List,
+    Optional as O,
+    Sequence,
+    Tuple,
+    Type,
+    cast,
+)
 
 from loguru import logger
 from pydantic import BaseModel, Field, validator
+from typing_extensions import Literal, TypedDict
 from yarl import URL
 
 from .config import BaseConfig, Config as GlobalConfig
@@ -16,7 +28,7 @@ if TYPE_CHECKING:
     from .manager import Manager
 
     ImportString = str
-    RemoteAura = Tuple[List['WeakAura'], 'WagoResponse', ImportString]
+    RemoteAura = Tuple[List[WeakAura], WagoApiResponse, ImportString]
 
 
 import_api = URL('https://data.wago.io/api/raw/encoded')
@@ -44,29 +56,19 @@ class WeakAura(BaseModel):
     class Config:
         arbitrary_types_allowed = True
 
-    @validator('url', pre=True)
-    def _convert_url(cls, value: str) -> URL:
-        return URL(value)
+    _convert_url = validator('url', pre=True)(lambda v: URL(v))
 
 
-class WeakAuras(BaseModel):
+class WeakAuras:
+    filename = 'WeakAuras.lua'
+    table_prefix = 'WeakAurasSaved'
+    api = URL('https://data.wago.io/api/check/weakauras')
+
     entries: Dict[str, List[WeakAura]]
 
-    class Config:
-        arbitrary_types_allowed = True
-
-    class Meta:
-        model = WeakAura
-        filename = 'WeakAuras.lua'
-        table_prefix = 'WeakAurasSaved'
-        api = URL('https://data.wago.io/api/check/weakauras')
-
-    @classmethod
-    def from_lua_table(cls, lua_table: Dict[Any, Any]) -> WeakAuras:
-        auras = (
-            cls.Meta.model.parse_obj(a) for a in lua_table['displays'].values() if a.get('url')
-        )
-        return cls(entries=bucketise(auras, key=lambda a: a.url.parts[1]))
+    def __init__(self, lua_table: Dict[Any, Any]) -> None:
+        auras = (WeakAura.parse_obj(a) for a in lua_table['displays'].values() if a.get('url'))
+        self.entries = bucketise(auras, key=lambda a: a.url.parts[1])
 
 
 class Plateroo(WeakAura):
@@ -75,16 +77,13 @@ class Plateroo(WeakAura):
 
 
 class Plateroos(WeakAuras):
-    class Meta:  # type: ignore
-        model = Plateroo
-        filename = 'Plater.lua'
-        table_prefix = 'PlaterDB'
-        api = URL('https://data.wago.io/api/check/plater')
+    filename = 'Plater.lua'
+    table_prefix = 'PlaterDB'
+    api = URL('https://data.wago.io/api/check/plater')
 
-    @classmethod
-    def from_lua_table(cls, lua_table: Dict[Any, Any]) -> Plateroos:
+    def __init__(self, lua_table: Dict[Any, Any]) -> None:
         auras = (
-            cls.Meta.model.parse_obj(a)
+            Plateroo.parse_obj(a)
             for n, p in lua_table['profiles'].items()
             for a in chain(
                 ({**p, 'Name': f'__profile_{n}__'},),
@@ -92,28 +91,35 @@ class Plateroos(WeakAuras):
             )
             if a.get('url')
         )
-        return cls(entries={a.url.parts[1]: [a] for a in auras})
+        self.entries = {a.url.parts[1]: [cast(WeakAura, a)] for a in auras}
 
 
-class _WagoChangelog(BaseModel):
-    format: O[str]
-    text: str = ''
+if TYPE_CHECKING:
 
+    class WagoApiChangelog(TypedDict, total=False):
+        format: Literal['bbcode', 'markdown']
+        text: str
 
-class WagoResponse(BaseModel):
-    id: str = Field(alias='_id')
-    name: str  # +
-    slug: str  # +
-    url: str
-    created: str
-    modified: str
-    game: str
-    fork_of: O[str] = Field(alias='forkOf')
-    username: str  # +
-    version: int  # +
-    version_string: str = Field(alias='versionString')  # +
-    changelog: _WagoChangelog  # +
-    region_type: O[str] = Field(alias='regionType')
+    class WagoApiCommonFields(TypedDict):
+        _id: str  # +   # Alphanumeric ID
+        name: str  # +  # User-facing name
+        slug: str  # +  # Slug if it has one; otherwise same as ``_id``
+        url: str
+        created: str  # ISO datetime
+        modified: str  # ISO datetime
+        game: str  # "classic" or xpac, e.g. "bfa"
+        username: str  # +  # Author username
+        version: int  # +   # Version counter, incremented with every update
+        # Semver auto-generated from ``version`` - for presentation only
+        versionString: str  # +
+        changelog: WagoApiChangelog  # +
+
+    class WagoApiOptionalFields(TypedDict, total=False):
+        forkOf: str  # Only present on forks
+        regionType: str  # Only present on WAs
+
+    class WagoApiResponse(WagoApiCommonFields, WagoApiOptionalFields):
+        pass
 
 
 class WaCompanionBuilder:
@@ -132,7 +138,7 @@ class WaCompanionBuilder:
 
         class WaParser(SLPP):
             def decode(self, text: str) -> Any:
-                text = re.sub(rf'^\s*{model.Meta.table_prefix} = ', '', text)
+                text = re.sub(rf'^\s*{model.table_prefix} = ', '', text)
                 text = re.sub(r' -- \[\d+\]$', '', text, flags=re.M)
                 self.text = text
                 self.at, self.ch, self.depth = 0, '', 0
@@ -141,14 +147,14 @@ class WaCompanionBuilder:
                 return self.value()  # type: ignore
 
         table = WaParser().decode(source)
-        return model.from_lua_table(table)
+        return model(table)
 
     def extract_installed_auras(self) -> Iterator[WeakAuras]:
         import time
 
         saved_vars = self.builder_config.get_saved_vars(self.manager.config)
         for model in WeakAuras, Plateroos:
-            file = saved_vars / model.Meta.filename
+            file = saved_vars / model.filename
             if not file.exists():
                 logger.info(f'{file} not found')
             else:
@@ -159,17 +165,15 @@ class WaCompanionBuilder:
                 logger.debug(f'{model.__name__} extracted in {time.perf_counter() - start}s')
                 yield aura_groups
 
-    async def get_wago_metadata(self, aura_groups: WeakAuras) -> List[WagoResponse]:
+    async def get_wago_metadata(self, aura_groups: WeakAuras) -> List[WagoApiResponse]:
         aura_ids = list(aura_groups.entries)
-        url = aura_groups.Meta.api.with_query(ids=','.join(aura_ids))
+        url = aura_groups.api.with_query(ids=','.join(aura_ids))
         async with self.manager.web_client.get(
             url, headers={'api-key': self.builder_config.api_key or ''}
         ) as response:
-            metadata = await response.json()
+            metadata: List[WagoApiResponse] = await response.json()
 
-        results = chain_dict(
-            aura_ids, None, ((i.slug, i) for i in map(WagoResponse.parse_obj, metadata))
-        )
+        results = chain_dict(aura_ids, None, ((i['slug'], i) for i in metadata))
         return list(results.values())
 
     async def get_wago_import_string(self, aura_id: str) -> str:
@@ -186,13 +190,15 @@ class WaCompanionBuilder:
             return (aura_groups.__class__, [])
 
         metadata = await self.get_wago_metadata(aura_groups)
-        import_strings = await gather((self.get_wago_import_string(m.id) for m in metadata), False)
+        import_strings = await gather(
+            (self.get_wago_import_string(r['_id']) for r in metadata), False
+        )
         return (
             aura_groups.__class__,
-            list(zip(aura_groups.entries.values(), metadata, import_strings)),
+            list(filter(all, zip(aura_groups.entries.values(), metadata, import_strings))),
         )
 
-    def make_addon(self, auras: Sequence[Tuple[Type[WeakAuras], Sequence[RemoteAura]]]) -> None:
+    def make_addon(self, auras: Sequence[Tuple[type, List[RemoteAura]]]) -> None:
         from functools import partial
         from importlib.resources import read_text
         from zipfile import ZipFile, ZipInfo
@@ -206,7 +212,7 @@ class WaCompanionBuilder:
             lstrip_blocks=True,
             loader=FunctionLoader(partial(read_text, wa_templates)),
         )
-        aura_dict = chain_dict((WeakAuras, Plateroos), [], auras)
+        aura_dict: Dict[type, List[RemoteAura]] = chain_dict((WeakAuras, Plateroos), [], auras)
 
         self.addon_file.parent.mkdir(exist_ok=True)
         with ZipFile(self.addon_file, 'w') as file:
@@ -223,14 +229,14 @@ class WaCompanionBuilder:
                 {
                     'weakauras': [
                         (
-                            metadata.slug,
+                            metadata['slug'],
                             {
-                                'name': metadata.name,
-                                'author': metadata.username,
+                                'name': metadata['name'],
+                                'author': metadata['username'],
                                 'encoded': import_string,
-                                'wagoVersion': metadata.version,
-                                'wagoSemver': metadata.version_string,
-                                'versionNote': metadata.changelog.text,
+                                'wagoVersion': metadata['version'],
+                                'wagoSemver': metadata['versionString'],
+                                'versionNote': metadata['changelog'].get('text', ''),
                             },
                         )
                         for _, metadata, import_string in aura_dict[WeakAuras]
@@ -251,14 +257,14 @@ class WaCompanionBuilder:
                     ],
                     'plateroos': [
                         (
-                            metadata.slug,
+                            metadata['slug'],
                             {
-                                'name': metadata.name,
-                                'author': metadata.username,
+                                'name': metadata['name'],
+                                'author': metadata['username'],
                                 'encoded': import_string,
-                                'wagoVersion': metadata.version,
-                                'wagoSemver': metadata.version_string,
-                                'versionNote': metadata.changelog.text,
+                                'wagoVersion': metadata['version'],
+                                'wagoSemver': metadata['versionString'],
+                                'versionNote': metadata['changelog'].get('text', ''),
                             },
                         )
                         for _, metadata, import_string in aura_dict[Plateroos]
