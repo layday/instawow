@@ -100,7 +100,7 @@ jobs:
       working-directory: gui
     - name: Build app
       run: |
-        npm run rollup:build && npm run electron:build
+        npx rollup -c && npx electron-builder
       working-directory: gui
     - name: Upload app
       uses: actions/upload-artifact@v2
