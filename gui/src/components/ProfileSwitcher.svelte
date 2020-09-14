@@ -58,6 +58,7 @@
     }
 
     select {
+      padding-left: 0.65em;
       background-image: var(--dropdown-arrow);
       background-size: 10px;
       background-repeat: no-repeat;

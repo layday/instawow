@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { Api, Version } from "../api";
   import lodash from "lodash";
+  import { backend } from "../ipc";
   import { activeProfile, profiles } from "../store";
   import ProfileView from "./ProfileView.svelte";
   import ProfileSwitcher from "./ProfileSwitcher.svelte";
@@ -9,7 +10,7 @@
 
   let instawowVersions: Version;
 
-  const setup = async () => {
+  const doInitialSetup = async () => {
     const profileNames = await api.listProfiles();
     const profileConfigs = await Promise.all(profileNames.map((p) => api.readProfile(p)));
     $profiles = lodash.fromPairs(lodash.zip(profileNames, profileConfigs));
@@ -99,6 +100,19 @@
     display: flex;
     flex-direction: column;
     height: 100vh;
+
+    &.mac {
+      .section__menubar {
+        padding-left: 95px;
+      }
+    }
+
+    &:not(.mac) {
+      .section__menubar,
+      .section__statusbar {
+        background-color: var(--base-color);
+      }
+    }
   }
 
   .section {
@@ -108,7 +122,6 @@
       display: flex;
       align-items: center;
       min-height: 55px;
-      padding-left: 95px;
 
       .instawow-version {
         flex-grow: 1;
@@ -144,7 +157,7 @@
   }
 </style>
 
-{#await setup()}
+{#await doInitialSetup()}
   <main>
     <header class="section section__menubar" />
     <section class="section section__main" />
@@ -153,8 +166,9 @@
     </footer>
   </main>
 {:then}
-  <main>
-    <header class="section section__menubar">
+  <main class:mac={backend.platform === 'darwin'}>
+    <header
+      class="section section__menubar">
       <ProfileSwitcher {api} />
       <div class="instawow-version">
         <b>instawow</b>
