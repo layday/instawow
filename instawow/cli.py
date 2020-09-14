@@ -274,7 +274,7 @@ excluded_strategies = {Strategies.default, Strategies.version}
     metavar='<VERSION ADDON>...',
     help='A version followed by an add-on definition.',
 )
-@click.option('--replace', '-o', is_flag=True, default=False, help='Replace unreconciled add-ons.')
+@click.option('--replace', is_flag=True, default=False, help='Replace unreconciled add-ons.')
 @click.pass_obj
 def install(obj: ManagerWrapper, addons: Sequence[Defn], replace: bool) -> None:
     "Install add-ons."
