@@ -1,6 +1,6 @@
 import { RequestManager, Client, WebSocketTransport } from "@open-rpc/client-js";
-import { ipcRenderer } from "electron";
 import { Lock } from "semaphore-async-await";
+import { ipcRenderer } from "./ipc";
 
 // A client wrapper which retrieves the server address from the backend and
 // automatically re-establishes the connection to the server when it drops.

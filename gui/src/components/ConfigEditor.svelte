@@ -1,9 +1,9 @@
 <script lang="ts">
   import type { Api, Config, PydanticValidationError } from "../api";
   import { faBan, faFolderOpen } from "@fortawesome/free-solid-svg-icons";
-  import { ipcRenderer } from "electron";
   import lodash from "lodash";
   import { fade } from "svelte/transition";
+  import { ipcRenderer } from "../ipc";
   import { activeProfile, profiles } from "../store";
   import Icon from "./SvgIcon.svelte";
 

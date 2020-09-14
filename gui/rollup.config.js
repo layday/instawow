@@ -16,20 +16,20 @@ function copyFile({ src, dest }) {
 }
 
 export default [
-  {
-    input: "src/backend/index.ts",
+  ...["index", "preload"].map((module) => ({
+    input: `src/backend/${module}.ts`,
     output: {
       sourcemap: true,
       format: "cjs",
-      file: "build/index.js",
+      file: `build/${module}.js`,
     },
     plugins: [typescript(), commonjs()],
-  },
+  })),
   {
     input: "src/index.ts",
     output: {
       sourcemap: true,
-      format: "cjs",
+      format: "iife",
       file: "build/svelte-bundle.js",
       exports: "auto",
     },
@@ -52,6 +52,7 @@ export default [
       resolve({
         browser: true,
         dedupe: ["svelte"],
+        preferBuiltins: false,
       }),
       typescript(),
       commonjs(),
@@ -66,7 +67,6 @@ export default [
       // production && terser(),
       copyFile({ src: "src/backend/index.html", dest: "build/index.html" }),
     ],
-    external: ["electron", "fs", "path"],
     watch: {
       clearScreen: false,
     },

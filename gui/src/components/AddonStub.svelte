@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { Addon, AddonMatch } from "../api";
+  import { ipcRenderer } from "../ipc";
   import { faChevronCircleDown, faChevronCircleUp } from "@fortawesome/free-solid-svg-icons";
-  import { ipcRenderer } from "electron";
   import Icon from "./SvgIcon.svelte";
 
   export let selections: Addon[], folders: AddonMatch["folders"], choices: Addon[], idx: number;

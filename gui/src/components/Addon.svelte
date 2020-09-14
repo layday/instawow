@@ -1,12 +1,12 @@
 <script lang="ts">
   import type { Addon, AddonWithMeta } from "../api";
   import { Strategies } from "../api";
+  import { ipcRenderer } from "../ipc";
   import {
     faEllipsisH,
     faExternalLinkSquareAlt,
     faHistory,
   } from "@fortawesome/free-solid-svg-icons";
-  import { ipcRenderer } from "electron";
   import { DateTime } from "luxon";
   import { createEventDispatcher } from "svelte";
   import { fade } from "svelte/transition";

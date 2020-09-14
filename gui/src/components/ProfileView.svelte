@@ -2,9 +2,9 @@
   import type { Addon, AddonWithMeta, Api, Defn, SuccessResult, AnyResult, Sources } from "../api";
   import { Strategies, ReconciliationStage, addonToDefn } from "../api";
   import { View } from "../constants";
+  import { ipcRenderer } from "../ipc";
   import { profiles } from "../store";
   import { faQuestion } from "@fortawesome/free-solid-svg-icons";
-  import { ipcRenderer } from "electron";
   import lodash from "lodash";
   import { onMount } from "svelte";
   import { flip } from "svelte/animate";

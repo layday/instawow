@@ -37,9 +37,12 @@ const createWindow = () => {
     width: 800,
     height: 600,
     webPreferences: {
-      // contextIsolation: true,    // to investigate
-      nodeIntegration: true,
+      contextIsolation: true,
+      preload: path.join(__dirname, "preload.js"),
     },
+    // Show menu on <alt>, only applicable to Linux and Windows
+    autoHideMenuBar: true,
+    // `vibrancy`, `titleBarStyle` and `trafficLightPosition` are only applicable to macOS
     vibrancy: "titlebar",
     titleBarStyle: "hidden",
     trafficLightPosition: { x: 20, y: 40 },
