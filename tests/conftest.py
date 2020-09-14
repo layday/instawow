@@ -63,9 +63,7 @@ def full_config(tmp_path, partial_config):
 
 @pytest.fixture
 def manager(full_config):
-    config = Config(**full_config).write()
-    manager = Manager.from_config(config)
-    yield manager
+    yield Manager.from_config(Config(**full_config).write())
 
 
 @pytest.fixture
@@ -204,7 +202,7 @@ def mock_tukui(aresponses, JsonResponse, mock_master_catalogue):
 
 @pytest.fixture
 @should_mock
-def mock_github(aresponses, JsonResponse):
+def mock_github(aresponses, JsonResponse, mock_master_catalogue):
     aresponses.add(
         'api.github.com',
         '/repos/AdiAddons/AdiButtonAuras',
@@ -280,6 +278,7 @@ def mock_github(aresponses, JsonResponse):
 @pytest.fixture
 def mock_all(
     mock_pypi,
+    mock_master_catalogue,
     mock_curse,
     mock_wowi,
     mock_tukui,

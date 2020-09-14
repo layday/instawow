@@ -9,7 +9,7 @@ from typing import Any, Dict, List, Union
 
 import click
 from loguru import logger
-from pydantic import BaseSettings, Extra, Field, PydanticValueError, validator
+from pydantic import BaseSettings, Field, PydanticValueError, validator
 from typing_extensions import Literal
 
 from .utils import trash
@@ -52,7 +52,7 @@ class BaseConfig(BaseSettings):
         return {**init_kwargs, **self._build_environ()}
 
 
-class _GlobalConfig(BaseConfig):
+class GlobalConfig(BaseConfig):
     config_dir: Path = Field(default_factory=_get_default_config_dir)
     profile: str = Field('__default__', min_length=1, strip_whitespace=True)
     addon_dir: Path
@@ -62,7 +62,6 @@ class _GlobalConfig(BaseConfig):
 
     class Config:  # type: ignore
         env_prefix = 'INSTAWOW_'
-        extra = Extra.allow
 
     @validator('config_dir', 'addon_dir', 'temp_dir')
     def _validate_expand_path(cls, value: Path) -> Path:
@@ -75,7 +74,7 @@ class _GlobalConfig(BaseConfig):
         return _validate_path_is_writable_dir(value)
 
     @classmethod
-    def get_dummy_config(cls, **kwargs: Any) -> _GlobalConfig:
+    def get_dummy_config(cls, **kwargs: Any) -> GlobalConfig:
         "Create a dummy configuration with default values."
         template = {'game_flavour': 'retail', 'addon_dir': __novalidate__}
         dummy_config = cls.parse_obj({**template, **kwargs})
@@ -89,7 +88,7 @@ class _GlobalConfig(BaseConfig):
         return profiles
 
     @classmethod
-    def read(cls, profile: str) -> _GlobalConfig:
+    def read(cls, profile: str) -> GlobalConfig:
         "Read the configuration from disk."
         dummy_config = cls.get_dummy_config(profile=profile)
         dummy_config.migrate_legacy_dirs()
@@ -101,7 +100,7 @@ class _GlobalConfig(BaseConfig):
             )
         return config
 
-    def ensure_dirs(self) -> _GlobalConfig:
+    def ensure_dirs(self) -> GlobalConfig:
         "Create the various folders used by instawow."
         for dir_ in (
             self.config_dir,
@@ -114,7 +113,7 @@ class _GlobalConfig(BaseConfig):
             dir_.mkdir(exist_ok=True, parents=True)
         return self
 
-    def write(self) -> _GlobalConfig:
+    def write(self) -> GlobalConfig:
         """Write the configuration on disk.
 
         ``write``, unlike ``ensure_dirs``, should only be called when configuring
@@ -127,7 +126,7 @@ class _GlobalConfig(BaseConfig):
         self.config_file.write_text(output, encoding='utf-8')
         return self
 
-    def migrate_legacy_dirs(self) -> _GlobalConfig:
+    def migrate_legacy_dirs(self) -> GlobalConfig:
         "Migrate a profile-less configuration to the new format."
         legacy_config_file = self.config_dir / 'config.json'
         if (
@@ -186,10 +185,10 @@ class _GlobalConfig(BaseConfig):
         return self.temp_dir / 'cache'
 
 
-Config = _GlobalConfig
+Config = GlobalConfig
 
 
-def setup_logging(config: _GlobalConfig, log_level: Union[int, str] = 'INFO') -> int:
+def setup_logging(config: GlobalConfig, log_level: Union[int, str] = 'INFO') -> int:
     import logging
 
     class InterceptHandler(logging.Handler):

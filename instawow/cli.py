@@ -121,12 +121,12 @@ class ManagerWrapper:
         return manager
 
 
-class _PathParam(click.Path):
+class PathParam(click.Path):
     def coerce_path_result(self, value: str) -> Path:  # type: ignore
         return Path(value)
 
 
-class _EnumParam(click.Choice, Generic[_EnumT]):
+class EnumParam(click.Choice, Generic[_EnumT]):
     def __init__(
         self,
         choice_enum: Type[_EnumT],
@@ -177,8 +177,7 @@ def _show_version(ctx: click.Context, _param: click.Parameter, value: bool):
 @click.pass_context
 def main(ctx: click.Context, log_level: bool, profile: str):
     "Add-on manager for World of Warcraft."
-    if not ctx.obj:
-        ctx.obj = ManagerWrapper(ctx)
+    ctx.obj = ManagerWrapper(ctx)
 
 
 @overload
@@ -229,13 +228,15 @@ def parse_into_defn_from_json_file(manager: CliManagerT, path: Path) -> List[Def
     return list(map(Defn.from_pkg, cast('List[models.Pkg]', faux_pkgs.__root__)))
 
 
-def _combine_into(param_name: str, fn: Callable[[CliManagerT, Any], List[Any]]):
-    def combine(ctx: click.Context, _param: click.Parameter, value: Any):
-        param = ctx.params.setdefault(param_name, [])
-        if value:
-            param.extend(fn(ctx.obj.m, value))
-
-    return combine
+def combine_addons(
+    fn: Callable[[CliManagerT, Any], List[Defn]],
+    ctx: click.Context,
+    click_param: click.Parameter,
+    value: Any,
+) -> None:
+    addons = ctx.params.setdefault('addons', [])
+    if value:
+        addons.extend(fn(ctx.obj.m, value))
 
 
 excluded_strategies = {Strategies.default, Strategies.version}
@@ -243,23 +244,23 @@ excluded_strategies = {Strategies.default, Strategies.version}
 
 @main.command()
 @click.argument(
-    'addons', nargs=-1, callback=_combine_into('addons', parse_into_defn), expose_value=False
+    'addons', nargs=-1, callback=partial(combine_addons, parse_into_defn), expose_value=False
 )
 @click.option(
     '--import',
     '-i',
-    type=_PathParam(dir_okay=False, exists=True),
+    type=PathParam(dir_okay=False, exists=True),
     expose_value=False,
-    callback=_combine_into('addons', parse_into_defn_from_json_file),
+    callback=partial(combine_addons, parse_into_defn_from_json_file),
     help='Install add-ons from the output of `list -f json`.',
 )
 @click.option(
     '--with-strategy',
     '-s',
     multiple=True,
-    type=(_EnumParam(Strategies, excluded_strategies), str),
+    type=(EnumParam(Strategies, excluded_strategies), str),
     expose_value=False,
-    callback=_combine_into('addons', parse_into_defn_with_strategy),
+    callback=partial(combine_addons, parse_into_defn_with_strategy),
     metavar='<STRATEGY ADDON>...',
     help='A strategy followed by an add-on definition.  '
     'The strategies are: '
@@ -270,7 +271,7 @@ excluded_strategies = {Strategies.default, Strategies.version}
     multiple=True,
     type=(str, str),
     expose_value=False,
-    callback=_combine_into('addons', parse_into_defn_with_version),
+    callback=partial(combine_addons, parse_into_defn_with_version),
     metavar='<VERSION ADDON>...',
     help='A version followed by an add-on definition.',
 )
@@ -513,7 +514,7 @@ class ListFormats(enum.Enum):
     '--format',
     '-f',
     'output_format',
-    type=_EnumParam(ListFormats),
+    type=EnumParam(ListFormats),
     default=ListFormats.simple.name,
     show_default=True,
     help='Change the output format.',
@@ -692,7 +693,7 @@ def list_installed_wago_auras(obj: ManagerWrapper, account: str) -> None:
 
 
 @main.command(hidden=True)
-@click.argument('filename', type=_PathParam(dir_okay=False))
+@click.argument('filename', type=PathParam(dir_okay=False))
 def generate_catalogue(filename: Path) -> None:
     "Generate the master catalogue."
     import asyncio
