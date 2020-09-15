@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 import enum
 from itertools import chain, count, takewhile
 import re
@@ -132,6 +132,7 @@ class _CatalogueEntryDefaultFields(TypedDict):
     game_compatibility: Set[Literal['retail', 'classic']]
     folders: Sequence[Sequence[str]]
     download_count: int
+    last_updated: Any
 
 
 class _CatalogueEntry(BaseModel):
@@ -142,6 +143,7 @@ class _CatalogueEntry(BaseModel):
     game_compatibility: Set[Literal['retail', 'classic']]
     folders: List[List[str]]
     download_count: int
+    last_updated: datetime
     normalised_name: str
     derived_download_score: float
 
@@ -153,7 +155,7 @@ class MasterCatalogue(BaseModel):
         keep_untouched = (cast(Any, cached_property),)
 
     @classmethod
-    async def collate(cls) -> MasterCatalogue:
+    async def collate(cls, age_cutoff: O[datetime]) -> MasterCatalogue:
         from types import SimpleNamespace
 
         from .manager import init_web_client
@@ -164,22 +166,23 @@ class MasterCatalogue(BaseModel):
             faux_manager = cast('ManagerT', SimpleNamespace(web_client=web_client))
             items = [a for r in resolvers async for a in r(faux_manager).collect_items()]
 
+        normalise = normalise_names()
         most_downloads_per_source = {
             s: max(e['download_count'] for e in i)
             for s, i in bucketise(items, key=lambda v: v['source']).items()
         }
-        normalise = normalise_names()
-        catalogue = cls.parse_obj(
-            [
-                _CatalogueEntry(
-                    **i,
-                    normalised_name=normalise(i['name']),
-                    derived_download_score=i['download_count']
-                    / most_downloads_per_source[i['source']],
-                )
-                for i in items
-            ]
+        entries = (
+            _CatalogueEntry(
+                **i,
+                normalised_name=normalise(i['name']),
+                derived_download_score=i['download_count']
+                / most_downloads_per_source[i['source']],
+            )
+            for i in items
         )
+        if age_cutoff:
+            entries = (e for e in entries if e.last_updated >= age_cutoff)
+        catalogue = cls.parse_obj(list(entries))
         return catalogue
 
     @cached_property
@@ -271,6 +274,7 @@ if TYPE_CHECKING:
         downloadCount: int  # Total number of downloads
         latestFiles: List[CurseAddon_File]
         slug: str  # URL slug; 'molinari' in 'https://www.curseforge.com/wow/addons/molinari'
+        dateReleased: str  # ISO datetime of latest release
 
 
 class CurseResolver(Resolver):
@@ -466,6 +470,7 @@ class CurseResolver(Resolver):
                     game_compatibility=set(excise_compatibility(item['latestFiles'])),
                     folders=folders,
                     download_count=item['downloadCount'],
+                    last_updated=item['dateReleased'],
                 )
 
 
@@ -619,6 +624,7 @@ class WowiResolver(Resolver):
                 folders=[list_item['UIDir']],
                 game_compatibility={'classic', 'retail'},
                 download_count=int(list_item['UIDownloadTotal']),
+                last_updated=list_item['UIDate'],
             )
 
 
@@ -713,31 +719,37 @@ class TukuiResolver(Resolver):
             description=addon['small_desc'],
             url=addon['web_url'],
             download_url=addon['url'],
-            date_published=datetime.fromisoformat(addon['lastupdate']),
+            date_published=datetime.fromisoformat(addon['lastupdate']).astimezone(timezone.utc),
             version=addon['version'],
             options=m.PkgOptions(strategy=defn.strategy.type_.name),
         )
 
     async def collect_items(self) -> AsyncIterable[_CatalogueEntryDefaultFields]:
-        for query, param, compatibility in [
+        for query, param, game_compatibility in [
             ('ui', 'tukui', 'retail'),
             ('ui', 'elvui', 'retail'),
             ('addons', 'all', 'retail'),
             ('classic-addons', 'all', 'classic'),
         ]:
-            url = self.api_url.with_query({query: param})
-            async with self.manager.web_client.get(url) as response:
+            async with self.manager.web_client.get(
+                self.api_url.with_query({query: param})
+            ) as response:
                 metadata = await response.json(content_type=None)  # text/html
 
-            for item in [metadata] if query == 'ui' else metadata:
+            for item in cast(
+                'List[Union[TukuiUi, TukuiAddon]]', [metadata] if query == 'ui' else metadata
+            ):
                 yield _CatalogueEntryDefaultFields(
                     source=self.source,
-                    id=item['id'],
+                    id=str(item['id']),
                     slug='',
                     name=item['name'],
                     folders=[],
-                    game_compatibility={compatibility},
+                    game_compatibility={game_compatibility},
                     download_count=int(item['downloads']),
+                    last_updated=datetime.fromisoformat(item['lastupdate']).astimezone(
+                        timezone.utc
+                    ),
                 )
 
 

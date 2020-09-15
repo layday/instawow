@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime
 import enum
 from functools import partial
 from itertools import chain
@@ -694,13 +695,19 @@ def list_installed_wago_auras(obj: ManagerWrapper, account: str) -> None:
 
 @main.command(hidden=True)
 @click.argument('filename', type=PathParam(dir_okay=False))
-def generate_catalogue(filename: Path) -> None:
+@click.option(
+    '--age-cutoff',
+    type=str,
+    default=None,
+    callback=lambda _, __, v: v and datetime.fromisoformat(v),
+)
+def generate_catalogue(filename: Path, age_cutoff: O[datetime]) -> None:
     "Generate the master catalogue."
     import asyncio
 
     from .resolvers import MasterCatalogue
 
-    catalogue = asyncio.run(MasterCatalogue.collate())
+    catalogue = asyncio.run(MasterCatalogue.collate(age_cutoff))
     filename.write_text(catalogue.json(indent=2), encoding='utf-8')
     filename.with_suffix(f'.compact{filename.suffix}').write_text(
         catalogue.json(separators=(',', ':')), encoding='utf-8'
