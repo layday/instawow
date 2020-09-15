@@ -23,7 +23,7 @@ from typing_extensions import Literal, TypedDict, get_args
 from yarl import URL
 
 from . import exceptions as E, models as m
-from .utils import cached_property, gather, run_in_thread as t, slugify, uniq
+from .utils import bucketise, cached_property, gather, run_in_thread as t, slugify, uniq
 
 if TYPE_CHECKING:
     from pydantic.fields import ModelField as ModeFieldT
@@ -80,7 +80,7 @@ class VersionStrategy(BaseStrategy):
 
 class Defn(HashableModel):
     source: str
-    source_id: O[str] = None
+    id: O[str] = None
     alias: str
     strategy: Union[SimpleStrategy, VersionStrategy] = SimpleStrategy(type_=Strategies.default)
 
@@ -91,7 +91,7 @@ class Defn(HashableModel):
         )
         return cls(
             source=pkg.source,
-            source_id=pkg.id,
+            id=pkg.id,
             alias=pkg.slug,
             strategy={'type_': pkg.options.strategy, **strategy_kwargs},
         )
@@ -113,13 +113,37 @@ class Defn(HashableModel):
         return f'{self.source}:{self.alias}'
 
 
+def normalise_names():
+    import string
+
+    trans_table = str.maketrans(dict.fromkeys(string.punctuation, ' '))
+
+    def normalise(value: str):
+        return ' '.join(value.casefold().translate(trans_table).split())
+
+    return normalise
+
+
+class _CatalogueEntryDefaultFields(TypedDict):
+    source: str
+    id: str
+    slug: str
+    name: str
+    game_compatibility: Set[Literal['retail', 'classic']]
+    folders: Sequence[Sequence[str]]
+    download_count: int
+
+
 class _CatalogueEntry(BaseModel):
     source: str
     id: str
-    slug: str = ''
+    slug: str
     name: str
-    compatibility: Set[Literal['retail', 'classic']] = {'retail', 'classic'}
-    folders: List[List[str]] = []
+    game_compatibility: Set[Literal['retail', 'classic']]
+    folders: List[List[str]]
+    download_count: int
+    normalised_name: str
+    derived_download_score: float
 
 
 class MasterCatalogue(BaseModel):
@@ -139,7 +163,23 @@ class MasterCatalogue(BaseModel):
         async with init_web_client() as web_client:
             faux_manager = cast('ManagerT', SimpleNamespace(web_client=web_client))
             items = [a for r in resolvers async for a in r(faux_manager).collect_items()]
-        catalogue = cls(__root__=items)
+
+        most_downloads_per_source = {
+            s: max(e['download_count'] for e in i)
+            for s, i in bucketise(items, key=lambda v: v['source']).items()
+        }
+        normalise = normalise_names()
+        catalogue = cls.parse_obj(
+            [
+                _CatalogueEntry(
+                    **i,
+                    normalised_name=normalise(i['name']),
+                    derived_download_score=i['download_count']
+                    / most_downloads_per_source[i['source']],
+                )
+                for i in items
+            ]
+        )
         return catalogue
 
     @cached_property
@@ -182,7 +222,7 @@ class Resolver:
         "Resolve an individual definition into a package."
         raise NotImplementedError
 
-    async def collect_items(self) -> AsyncIterable[_CatalogueEntry]:
+    async def collect_items(self) -> AsyncIterable[_CatalogueEntryDefaultFields]:
         "Yield add-ons from source for cataloguing."
         return
         yield
@@ -228,6 +268,7 @@ if TYPE_CHECKING:
         name: str  # User-facing add-on name
         websiteUrl: str  # e.g. 'https://www.curseforge.com/wow/addons/molinari'
         summary: str  # One-line description of the add-on
+        downloadCount: int  # Total number of downloads
         latestFiles: List[CurseAddon_File]
         slug: str  # URL slug; 'molinari' in 'https://www.curseforge.com/wow/addons/molinari'
 
@@ -265,8 +306,7 @@ class CurseResolver(Resolver):
         from .manager import cache_json_response
 
         defns_to_ids = {
-            d: (d.source_id or self.manager.catalogue.curse_slugs.get(d.alias) or d.alias)
-            for d in defns
+            d: (d.id or self.manager.catalogue.curse_slugs.get(d.alias) or d.alias) for d in defns
         }
         numeric_ids = {i for i in defns_to_ids.values() if i.isdigit()}
         try:
@@ -386,7 +426,7 @@ class CurseResolver(Resolver):
             deps=[m.PkgDep(id=d['addonId']) for d in file['dependencies'] if d['type'] == 3],
         )
 
-    async def collect_items(self) -> AsyncIterable[_CatalogueEntry]:
+    async def collect_items(self) -> AsyncIterable[_CatalogueEntryDefaultFields]:
         classic_version_prefix = '1.13'
         flavours = ('retail', 'classic')
 
@@ -418,13 +458,14 @@ class CurseResolver(Resolver):
                     for f in item['latestFiles']
                     if not f['exposeAsAlternative']
                 )
-                yield _CatalogueEntry(
+                yield _CatalogueEntryDefaultFields(
                     source=self.source,
-                    id=item['id'],
+                    id=str(item['id']),
                     slug=item['slug'],
                     name=item['name'],
-                    compatibility=set(excise_compatibility(item['latestFiles'])),
+                    game_compatibility=set(excise_compatibility(item['latestFiles'])),
                     folders=folders,
+                    download_count=item['downloadCount'],
                 )
 
 
@@ -565,16 +606,19 @@ class WowiResolver(Resolver):
             options=m.PkgOptions(strategy=defn.strategy.type_.name),
         )
 
-    async def collect_items(self) -> AsyncIterable[_CatalogueEntry]:
+    async def collect_items(self) -> AsyncIterable[_CatalogueEntryDefaultFields]:
         async with self.manager.web_client.get(self.list_api_url) as response:
             list_api_items: List[WowiListApiItem] = await response.json()
 
         for list_item in list_api_items:
-            yield _CatalogueEntry(
+            yield _CatalogueEntryDefaultFields(
                 source=self.source,
                 id=list_item['UID'],
                 name=list_item['UIName'],
+                slug='',
                 folders=[list_item['UIDir']],
+                game_compatibility={'classic', 'retail'},
+                download_count=int(list_item['UIDownloadTotal']),
             )
 
 
@@ -604,7 +648,7 @@ if TYPE_CHECKING:
         category: str
         changelog: str
         donate_url: str
-        downloads: str
+        downloads: str  # Not a mistake, it is actually a string
         id: str
         last_download: str
         # ISO *datetime* with space sep and without an offset, e.g. '2020-02-02 12:12:20'
@@ -674,7 +718,7 @@ class TukuiResolver(Resolver):
             options=m.PkgOptions(strategy=defn.strategy.type_.name),
         )
 
-    async def collect_items(self) -> AsyncIterable[_CatalogueEntry]:
+    async def collect_items(self) -> AsyncIterable[_CatalogueEntryDefaultFields]:
         for query, param, compatibility in [
             ('ui', 'tukui', 'retail'),
             ('ui', 'elvui', 'retail'),
@@ -685,21 +729,16 @@ class TukuiResolver(Resolver):
             async with self.manager.web_client.get(url) as response:
                 metadata = await response.json(content_type=None)  # text/html
 
-            if query == 'ui':
-                yield _CatalogueEntry(
+            for item in [metadata] if query == 'ui' else metadata:
+                yield _CatalogueEntryDefaultFields(
                     source=self.source,
-                    id=metadata['id'],
-                    name=metadata['name'],
-                    compatibility={compatibility},
+                    id=item['id'],
+                    slug='',
+                    name=item['name'],
+                    folders=[],
+                    game_compatibility={compatibility},
+                    download_count=int(item['downloads']),
                 )
-            else:
-                for item in metadata:
-                    yield _CatalogueEntry(
-                        source=self.source,
-                        id=item['id'],
-                        name=item['name'],
-                        compatibility={compatibility},
-                    )
 
 
 if TYPE_CHECKING:

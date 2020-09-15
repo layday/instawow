@@ -45,6 +45,7 @@ GUI
 Both
 ----
 
+- [ ] Vendor catalogue?
 - [ ] Remove really old add-ons from catalogue/search?
 - [ ] Categorise WoWI add-ons by compatibility?
   - Though add-ons from CF are prioritised before WoWI we don't want

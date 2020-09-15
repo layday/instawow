@@ -46,6 +46,7 @@ from .resolvers import (
     Strategies,
     TukuiResolver,
     WowiResolver,
+    normalise_names,
 )
 from .utils import (
     bucketise,
@@ -361,7 +362,7 @@ class Manager:
                 self.database.query(Pkg)
                 .filter(
                     Pkg.source == defn.source,
-                    (Pkg.id == defn.alias) | (Pkg.slug == defn.alias) | (Pkg.id == defn.source_id),
+                    (Pkg.id == defn.alias) | (Pkg.slug == defn.alias) | (Pkg.id == defn.id),
                 )
                 .first()
             )
@@ -479,8 +480,8 @@ class Manager:
             label = 'Synchronising master catalogue'
             url = (
                 'https://raw.githubusercontent.com/layday/instawow-data/data/'
-                'master-catalogue-v1.compact.json'
-            )  # v1
+                'master-catalogue-v2.compact.json'
+            )  # v2
             raw_catalogue = await cache_json_response(self, url, 4, 'hours', label=label)
             self.catalogue = MasterCatalogue.parse_obj(raw_catalogue)
 
@@ -539,38 +540,34 @@ class Manager:
     ) -> Dict[Defn, Pkg]:
         "Search the master catalogue for packages by name."
         import heapq
-        import string
 
         from jellyfish import jaro_winkler_similarity
 
-        trans_table = str.maketrans(dict.fromkeys(string.punctuation, ' '))
-
-        def normalise(value: str):
-            return value.casefold().translate(trans_table).strip()
-
         await self.synchronise()
 
+        w = 0.5  # Weighing edit distance and download score equally
+        normalise = normalise_names()
+
         s = normalise(search_terms)
-        tokens_to_defns = bucketise(
+        defns_by_token = bucketise(
             (
-                (normalise(i.name), i)
+                (i.normalised_name, i)
                 for i in self.catalogue.__root__
-                if self.config.game_flavour in i.compatibility
+                if self.config.game_flavour in i.game_compatibility
             ),
             key=lambda v: v[0],
         )
-
-        # TODO: weigh matches under threshold against download count
         matches = heapq.nlargest(
             limit,
-            ((jaro_winkler_similarity(s, n), n) for n in tokens_to_defns),
+            ((jaro_winkler_similarity(s, n), n) for n in defns_by_token),
             key=lambda v: v[0],
         )
-        defns = [
-            Defn.get(i.source, i.id).with_(strategy={'type_': strategy})
-            for _, m in matches
-            for _, i in tokens_to_defns[m]
-        ]
+        weighted_entries = sorted(
+            (-(s * w + i.derived_download_score * (1 - w)), i)
+            for s, m in matches
+            for _, i in defns_by_token[m]
+        )
+        defns = [Defn.get(i.source, i.id).with_strategy(strategy) for _, i in weighted_entries]
         resolve_results = await self.resolve(defns)
         pkgs_by_defn = {d.with_(alias=r.slug): r for d, r in resolve_results.items() if is_pkg(r)}
         return pkgs_by_defn
@@ -626,7 +623,7 @@ class Manager:
         # the benefit of resolving installed-but-renamed packages -
         # the slug is transient but the ID is not
         defns_to_pkgs = {
-            (Defn.from_pkg(p) if not retain_strategy and p else d.with_(source_id=p and p.id)): p
+            (Defn.from_pkg(p) if not retain_strategy and p else d.with_(id=p and p.id)): p
             for d, p in zip(defns, (self.get_pkg(d) for d in defns))
         }
         resolve_results = await self.resolve([d for d, p in defns_to_pkgs.items() if p])

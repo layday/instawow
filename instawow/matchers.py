@@ -112,7 +112,7 @@ async def match_dir_names(manager: Manager, leftovers: FrozenSet[AddonFolder]) -
         )
         for i in manager.catalogue.__root__
         for f in i.folders
-        if manager.config.game_flavour in i.compatibility and frozenset(f) <= leftovers
+        if manager.config.game_flavour in i.game_compatibility and frozenset(f) <= leftovers
     ]
     folders = list(merge_intersecting_sets(f for f, _ in matches))
     return [
