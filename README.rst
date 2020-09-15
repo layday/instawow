@@ -74,7 +74,7 @@ and the slug can be abbreviated, e.g. ``instawow reveal moli``
 will open the Molinari add-on folder in your file manager.
 
 Reconciling add-ons
-~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~
 
 *instawow* does not know about add-ons it did not itself install.
 The Twitch and Minion clients each use their own, proprietary

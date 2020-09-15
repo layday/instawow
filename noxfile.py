@@ -51,8 +51,8 @@ def type_check(session: Session):
 
 @nox.session(python='3.7', reuse_venv=True)
 def reformat(session: Session):
-    session.install('isort>=5.4.2', 'black>=20.8b1')
-    for cmd in 'isort', 'black':
+    session.install('isort>=5.5.2', 'black>=20.8b1')
+    for cmd in ('isort', 'black'):
         session.run(cmd, 'instawow', 'tests', 'noxfile.py', 'setup.py')
 
 
@@ -71,4 +71,5 @@ def build(session: Session):
 @nox.session(python='3.7')
 def publish(session: Session):
     session.install('twine')
-    session.run('twine', 'upload', 'dist/*')
+    for subcmd in ('check', 'upload'):
+        session.run('twine', subcmd, 'dist/*')

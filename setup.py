@@ -10,6 +10,7 @@ setup(
     license='GPL-3.0-or-later',
     description='CLI for managing World of Warcraft add-ons',
     long_description=Path('README.rst').read_text(encoding='utf-8'),
+    long_description_content_type='text/x-rst',
     entry_points={'console_scripts': ['instawow = instawow.cli:main']},
     install_requires='''
         aiohttp           ~=3.5
