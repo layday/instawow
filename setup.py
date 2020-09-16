@@ -19,7 +19,7 @@ setup(
         jellyfish         ~=0.8.2
         jinja2            ~=2.11
         loguru            <1
-        prompt-toolkit    >=3, !=3.0.0, !=3.0.1, !=3.0.2, <4
+        prompt-toolkit    >=3.0.3, <4
         pydantic          ~=1.6.1
         questionary       >=1, !=1.3.0, <2
         slpp              ==1.2.1
