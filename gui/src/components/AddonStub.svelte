@@ -81,11 +81,11 @@
     }
 
     &[open] :global(.icon-collapsed) {
-      display: none;
+      display: none !important;
     }
 
     &:not([open]) :global(.icon-expanded) {
-      display: none;
+      display: none !important;
     }
   }
 
