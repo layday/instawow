@@ -76,7 +76,7 @@ jobs:
       matrix:
         os:
         - macos-latest
-        # - ubuntu-latest
+        - ubuntu-latest
         # - windows-latest
     runs-on: ${{ matrix.os }}
     steps:
@@ -105,4 +105,4 @@ jobs:
     - name: Upload app
       uses: actions/upload-artifact@v2
       with:
-        path: gui/dist/instawow-desktop*.zip
+        path: gui/dist/instawow-desktop*
