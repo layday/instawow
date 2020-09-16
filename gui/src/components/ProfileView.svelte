@@ -309,10 +309,18 @@
 
   const showInstallAddonContextMenu = async (addon: Addon) => {
     const selection = await ipcRenderer.invoke("get-action-from-context-menu", [
-      { action: "replace", label: "Replace existing" },
+      { action: "replace", label: "Install and replace" },
+      { action: "look-up", label: "Look up" },
     ]);
     if (selection === "replace") {
       await installAddons([addon], true);
+    } else if (selection === "look-up") {
+      [searchTerms, searchFromAlias, searchStrategy, searchVersion] = [
+        createAddonToken(addon),
+        true,
+        addon.options.strategy,
+        addon.version,
+      ];
     }
   };
 

@@ -87,9 +87,7 @@ will be lost.`)
 <style lang="scss">
   @import "modal";
 
-  .config-editor {
-    @extend .modal;
-
+  .modal {
     position: absolute;
     top: calc(100% + 4px);
     left: 0;
@@ -111,7 +109,7 @@ will be lost.`)
 
 <dialog
   open
-  class="config-editor"
+  class="modal"
   style="--arrowhead-offset: {createNew ? 'calc(1rem - 8px)' : 'calc(3rem - 4px)'}"
   transition:fade={{ duration: 200 }}
   use:dismissOnEsc>

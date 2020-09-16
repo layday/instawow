@@ -206,9 +206,12 @@
           <Icon icon={faExternalLinkSquareAlt} />
         </button>
         <button
-          disabled={installed__isRefreshing}
-          on:click|stopPropagation={() => dispatch('requestInstall')}
-          on:contextmenu={() => dispatch('showInstallAddonContextMenu')}>install</button>
+          aria-label="show options"
+          title="show options"
+          on:click|stopPropagation={() => dispatch('showInstallAddonContextMenu')}>
+          <Icon icon={faEllipsisH} />
+        </button>
+        <button on:click|stopPropagation={() => dispatch('requestInstall')}>install</button>
       {/if}
     </menu>
   {/if}

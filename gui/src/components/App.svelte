@@ -167,8 +167,7 @@
   </main>
 {:then}
   <main class:mac={backend.platform === 'darwin'}>
-    <header
-      class="section section__menubar">
+    <header class="section section__menubar">
       <ProfileSwitcher {api} />
       <div class="instawow-version">
         <b>instawow</b>
