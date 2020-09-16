@@ -11,7 +11,8 @@ GUI
 - [-] Better RPC error handling
 - [ ] New notification interface - `window.alert`s are horrible
 - [x] Deleting profiles
-  - [ ] Renaming profiles? Meh
+  - [ ] ~~Renaming profiles? Meh~~
+    - WONTDO
 - [ ] Report add-on download progress
   - Investigate JSON-RPC subscriptions
 - [ ] Installed add-on filtering
@@ -19,7 +20,8 @@ GUI
   - Filtering UX: do we add another search box?
     A separate tab for searching?
   - Should filtering and search use the same algorithm?
-- [ ] Advanced search with sub-queries (maybe)
+- [ ] ~~Advanced search with sub-queries (maybe)~~
+  - WONTDO
 - [x] Improve (re)installing 'with options' workflow
   - [ ] ~~Resolve add-ons in modal before attempting to (re)install~~
     - Got rid of the installation modal and
@@ -46,7 +48,7 @@ Both
 ----
 
 - [ ] Vendor catalogue?
-- [ ] Remove really old add-ons from catalogue/search?
+- [x] Remove really old add-ons from catalogue/search?
 - [ ] Categorise WoWI add-ons by compatibility?
   - Though add-ons from CF are prioritised before WoWI we don't want
     reconciliation to work off add-ons of the opposite flavour
@@ -56,4 +58,4 @@ Both
   majority of Linuxes only do this on reboot.  Not urgent but I should look
   into it eventually
   - Consider using a more sophisticated caching mechanism
-- [ ] Precompute normalised add-on names for search
+- [x] Precompute normalised add-on names for search
