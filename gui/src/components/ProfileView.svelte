@@ -82,7 +82,7 @@
 </script>
 
 <script lang="ts">
-  export let profile: string, api: Api, isActive: boolean;
+  export let profile: string, api: Api, isActive: boolean, installedAddonCount: number;
 
   let sources: Sources;
 
@@ -276,7 +276,7 @@
           (addon.options.strategy === Strategies.version
             ? { action: "unpin", label: "Unpin" }
             : { action: "pin", label: "Pin" }),
-        { action: "look-up", label: "Look up" },
+        { action: "lookup", label: "Look up" },
       ].filter(Boolean)
     );
     switch (selection) {
@@ -294,7 +294,7 @@
         };
         await pinAddons([pinnedAddon]);
         break;
-      case "look-up":
+      case "lookup":
         [searchTerms, searchFromAlias, searchStrategy, searchVersion] = [
           createAddonToken(addon),
           true,
@@ -310,11 +310,11 @@
   const showInstallAddonContextMenu = async (addon: Addon) => {
     const selection = await ipcRenderer.invoke("get-action-from-context-menu", [
       { action: "replace", label: "Install and replace" },
-      { action: "look-up", label: "Look up" },
+      { action: "lookup", label: "Look up" },
     ]);
     if (selection === "replace") {
       await installAddons([addon], true);
-    } else if (selection === "look-up") {
+    } else if (selection === "lookup") {
       [searchTerms, searchFromAlias, searchStrategy, searchVersion] = [
         createAddonToken(addon),
         true,
@@ -380,20 +380,24 @@
     }
   });
 
-  // Revert to `View.Installed` when the search box is emptied
+  // Revert to `View.Installed` when the search box is empty
   $: searchTerms ||
     (console.debug(profile, "restoring add-on view"), (activeView = View.Installed));
-  // Reset secondary search values in-between searches
+  // Reset search params in-between searches
   $: searchTerms ||
     (console.debug(profile, "resetting search values"),
     ({ searchFromAlias, searchStrategy, searchVersion } = defaultSearchState));
-  // Schedule a new search whenever the search values change
-  $: ((searchTerms && searchFromAlias) || searchStrategy || searchVersion) &&
+  // Schedule a new search whenever the search params change
+  $: (searchTerms && (searchFromAlias || searchStrategy || searchVersion)) &&
     (console.debug(profile, "searching for", searchTerms), searchDebounced());
   // Update add-on list according to view
   $: addons = activeView === View.Search ? addons__CombinedSearch : addons__Installed;
   // Re-count updates whenever `addons__Installed` is modified
   $: addons__Installed && (console.debug(profile, "recounting updates"), countUpdates());
+  // Propagate `installedAddonCount` when profile is active
+  $: isActive &&
+    (installedAddonCount =
+      (console.debug(profile, "recounting installed add-ons"), addons__Installed.length));
 </script>
 
 <style lang="scss">

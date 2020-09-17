@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { Api, Version } from "../api";
   import lodash from "lodash";
+  import { fade } from "svelte/transition";
   import { backend } from "../ipc";
   import { activeProfile, profiles } from "../store";
   import ProfileView from "./ProfileView.svelte";
@@ -9,6 +10,7 @@
   export let api: Api;
 
   let instawowVersions: Version;
+  let installedAddonCount = 0;
 
   const doInitialSetup = async () => {
     const profileNames = await api.listProfiles();
@@ -133,6 +135,7 @@
 
     &__main {
       @include stretch-vertically;
+      z-index: 5;
       padding-top: 0.8em;
       padding-bottom: 0.8em;
       background-color: var(--base-color);
@@ -146,6 +149,7 @@
 
       .status {
         font-size: 0.8em;
+        color: var(--inverse-color-tone-10);
       }
     }
 
@@ -179,13 +183,14 @@
     <section class="section section__main">
       {#each Object.keys($profiles) as profile}
         <ProfileView
+          bind:installedAddonCount
           {profile}
           api={api.withProfile(profile)}
           isActive={profile === $activeProfile} />
       {/each}
     </section>
     <footer class="section section__statusbar">
-      <div class="status">&nbsp;</div>
+      <div class="status" in:fade>{installedAddonCount} installed add-ons</div>
     </footer>
   </main>
 {/await}
