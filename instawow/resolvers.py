@@ -639,7 +639,7 @@ if TYPE_CHECKING:
         git: str
         id: Literal[-1, -2]  # -1 is Tukui and -2 ElvUI
         lastdownload: str
-        lastupdate: str  # ISO date, e.g. '2020-02-02'
+        lastupdate: str  # ISO date and no tz, e.g. '2020-02-02'
         name: str
         patch: str
         screenshot_url: str
@@ -725,20 +725,20 @@ class TukuiResolver(Resolver):
         )
 
     async def collect_items(self) -> AsyncIterable[_CatalogueEntryDefaultFields]:
-        for query, param, game_compatibility in [
-            ('ui', 'tukui', 'retail'),
-            ('ui', 'elvui', 'retail'),
-            ('addons', 'all', 'retail'),
-            ('classic-addons', 'all', 'classic'),
+        for query, param in [
+            ('ui', 'tukui'),
+            ('ui', 'elvui'),
+            ('addons', 'all'),
+            ('classic-addons', 'all'),
         ]:
             async with self.manager.web_client.get(
                 self.api_url.with_query({query: param})
             ) as response:
                 metadata = await response.json(content_type=None)  # text/html
 
-            for item in cast(
-                'List[Union[TukuiUi, TukuiAddon]]', [metadata] if query == 'ui' else metadata
-            ):
+            items: List[Union[TukuiUi, TukuiAddon]] = [metadata] if query == 'ui' else metadata
+            game_compatibility = 'classic' if query == 'classic-addons' else 'retail'
+            for item in items:
                 yield _CatalogueEntryDefaultFields(
                     source=self.source,
                     id=str(item['id']),
@@ -746,7 +746,12 @@ class TukuiResolver(Resolver):
                     name=item['name'],
                     folders=[],
                     game_compatibility={game_compatibility},
-                    download_count=int(item['downloads']),
+                    # Split Tukui and ElvUI downloads evenly between them.
+                    # They both have the exact same number of downloads so
+                    # I'm assuming they're being counted together.
+                    # Anyway, this should help with scoring other add-ons
+                    # on the Tukui catalogue higher
+                    download_count=int(item['downloads']) // 2 if query == 'ui' else 1,
                     last_updated=datetime.fromisoformat(item['lastupdate']).astimezone(
                         timezone.utc
                     ),
