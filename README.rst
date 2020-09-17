@@ -11,8 +11,7 @@ add-ons quick and painless for those of us who are
 and do not revel in using bloatware which infringe on our privacy
 or inhabiting walled gardens.
 
-Indi-co-depedently, an *instawow* GUI is in early development.
-The macOS version is available for download from GitHub releases.
+Indi-co-depedently, an *instawow* GUI for Linux and macOS is in early development.
 The GUI does not have feature parity with the CLI and is not particularly,
 rigorously, tested.  However, it does offload add-on management to
 the *instawow* core.
@@ -29,17 +28,18 @@ the *instawow* core.
 Installation
 ------------
 
-You can download pre-built binaries of *instawow* from GitHub:
+You can download pre-built binaries of the *instawow* CLI and GUI from GitHub:
 
 - `Binaries <https://github.com/layday/instawow/releases/latest>`__
 
-If you prefer to install from source, both of the following will work:
+If you would prefer to install the CLI from source, the following will work:
 
 - `pipx <https://github.com/pipxproject/pipx>`__:
   ``pipx install instawow``
 - Vanilla pip:
   ``python -m pip install -U instawow``
-- For Arch Linux, there is also an AUR package available:
+- From the `AUR <https://aur.archlinux.org/packages/instawow/>`__
+  for Arch Linux:
   ``yay -Syu instawow``
 
 When installing from source, *instawow* requires Python 3.7 or greater.
