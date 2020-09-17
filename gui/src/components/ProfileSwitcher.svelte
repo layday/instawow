@@ -88,7 +88,7 @@
   {/if}
   <nav class="profile-switcher">
     <select aria-label="profile" bind:value={$activeProfile} disabled={!!editing}>
-      {#each Object.keys($profiles) as profile}
+      {#each [...$profiles.keys()] as profile (profile)}
         <option value={profile}>{profile}</option>
       {/each}
     </select>

@@ -11,7 +11,7 @@
 
   const createNew = editing === "new";
 
-  let configParams = { ...(!createNew && $profiles[$activeProfile as string]) } as Config;
+  let configParams = { ...(!createNew && $profiles.get($activeProfile as string)) } as Config;
   let errors: { [key: string]: string } = {};
 
   const selectFolder = async () => {
@@ -50,7 +50,7 @@
       }
     }
 
-    $profiles[result.profile] = result;
+    $profiles = $profiles.set(result.profile, result);
     if (createNew) {
       $activeProfile = result.profile;
     }
@@ -68,9 +68,9 @@ a new profile for this folder and your rollback history \
 will be lost.`)
     ) {
       await api.deleteProfile(configParams.profile);
-      delete $profiles[configParams.profile];
-      $activeProfile = Object.keys($profiles)[0];
-      $profiles = $profiles;
+      $profiles.delete(configParams.profile);
+      $profiles = $profiles; // Trigger update in Svelte
+      $activeProfile = $profiles.keys().next().value;
       editing = false;
     }
   };

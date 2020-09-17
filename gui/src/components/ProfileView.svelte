@@ -1,6 +1,15 @@
 <script context="module" lang="ts">
-  import type { Addon, AddonWithMeta, Api, Defn, SuccessResult, AnyResult, Sources } from "../api";
-  import { Strategies, ReconciliationStage, addonToDefn } from "../api";
+  import type {
+    Addon,
+    AddonWithMeta,
+    Api,
+    Config,
+    Defn,
+    SuccessResult,
+    AnyResult,
+    Sources,
+  } from "../api";
+  import { ReconciliationStage, Strategies, addonToDefn } from "../api";
   import { View } from "../constants";
   import { ipcRenderer } from "../ipc";
   import { profiles } from "../store";
@@ -284,7 +293,10 @@
         ipcRenderer.send("open-url", addon.url);
         break;
       case "reveal-folder":
-        ipcRenderer.send("reveal-folder", [$profiles[profile].addon_dir, addon.folders[0].name]);
+        ipcRenderer.send("reveal-folder", [
+          ($profiles.get(profile) as Config).addon_dir,
+          addon.folders[0].name,
+        ]);
         break;
       case "pin":
       case "unpin":
@@ -349,7 +361,7 @@
   ) => {
     reconcileInstallationInProgress = true;
     try {
-      console.debug(profile, "installing selections from", thisStage);
+      console.debug(profile, "- installing selections from", thisStage);
       await installAddons(theseSelections.filter(Boolean), true);
 
       const nextStage = getNextReconcileStage(thisStage);
@@ -382,22 +394,23 @@
 
   // Revert to `View.Installed` when the search box is empty
   $: searchTerms ||
-    (console.debug(profile, "restoring add-on view"), (activeView = View.Installed));
+    (console.debug(profile, "- restoring add-on view"), (activeView = View.Installed));
   // Reset search params in-between searches
   $: searchTerms ||
-    (console.debug(profile, "resetting search values"),
+    (console.debug(profile, "- resetting search values"),
     ({ searchFromAlias, searchStrategy, searchVersion } = defaultSearchState));
   // Schedule a new search whenever the search params change
-  $: (searchTerms && (searchFromAlias || searchStrategy || searchVersion)) &&
-    (console.debug(profile, "searching for", searchTerms), searchDebounced());
+  $: searchTerms &&
+    (searchFromAlias || searchStrategy || searchVersion) &&
+    (console.debug(profile, "- searching for", searchTerms), searchDebounced());
   // Update add-on list according to view
   $: addons = activeView === View.Search ? addons__CombinedSearch : addons__Installed;
-  // Re-count updates whenever `addons__Installed` is modified
-  $: addons__Installed && (console.debug(profile, "recounting updates"), countUpdates());
+  // Recount updates whenever `addons__Installed` is modified
+  $: addons__Installed && (console.debug(profile, "- recounting updates"), countUpdates());
   // Propagate `installedAddonCount` when profile is active
   $: isActive &&
     (installedAddonCount =
-      (console.debug(profile, "recounting installed add-ons"), addons__Installed.length));
+      (console.debug(profile, "- recounting installed add-ons"), addons__Installed.length));
 </script>
 
 <style lang="scss">
@@ -469,6 +482,7 @@
 
 {#if isActive}
   <AddonListNav
+    {profile}
     on:keydown={(e) => e.key === 'Enter' && search()}
     on:requestRefresh={() => refreshInstalled()}
     on:requestUpdateAll={() => updateAddons(true)}

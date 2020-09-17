@@ -1,6 +1,5 @@
 <script lang="ts">
   import type { Api, Version } from "../api";
-  import lodash from "lodash";
   import { fade } from "svelte/transition";
   import { backend } from "../ipc";
   import { activeProfile, profiles } from "../store";
@@ -15,7 +14,7 @@
   const doInitialSetup = async () => {
     const profileNames = await api.listProfiles();
     const profileConfigs = await Promise.all(profileNames.map((p) => api.readProfile(p)));
-    $profiles = lodash.fromPairs(lodash.zip(profileNames, profileConfigs));
+    $profiles = new Map(profileNames.map((n, i) => [n, profileConfigs[i]]));
     $activeProfile = profileNames[0];
     instawowVersions = await api.getVersion();
   };
@@ -181,7 +180,7 @@
       </div>
     </header>
     <section class="section section__main">
-      {#each Object.keys($profiles) as profile}
+      {#each [...$profiles.keys()] as profile (profile)}
         <ProfileView
           bind:installedAddonCount
           {profile}
@@ -190,7 +189,7 @@
       {/each}
     </section>
     <footer class="section section__statusbar">
-      <div class="status" in:fade>{installedAddonCount} installed add-ons</div>
+      <div class="status" in:fade>installed add-ons: {installedAddonCount}</div>
     </footer>
   </main>
 {/await}

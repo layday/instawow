@@ -11,7 +11,8 @@
   import { View } from "../constants";
   import Icon from "./SvgIcon.svelte";
 
-  export let activeView: View,
+  export let profile: string,
+    activeView: View,
     addonsCondensed: boolean,
     search__searchTerms: string,
     search__fromAlias: boolean,
@@ -226,10 +227,18 @@
 <nav class="addon-list-nav">
   <div class="view-controls">
     <menu>
-      <input type="radio" id="__radio-googoo" value={View.Installed} bind:group={activeView} />
-      <label for="__radio-googoo">installed</label>
-      <input type="radio" id="__radio-gaga" value={View.Reconcile} bind:group={activeView} />
-      <label for="__radio-gaga">unreconciled</label>
+      <input
+        type="radio"
+        id="__radio-googoo-{profile}"
+        value={View.Installed}
+        bind:group={activeView} />
+      <label for="__radio-googoo-{profile}">installed</label>
+      <input
+        type="radio"
+        id="__radio-gaga-{profile}"
+        value={View.Reconcile}
+        bind:group={activeView} />
+      <label for="__radio-gaga-{profile}">unreconciled</label>
     </menu>
     <menu class="view-actions">
       <button
