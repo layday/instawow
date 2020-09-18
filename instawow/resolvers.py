@@ -751,7 +751,7 @@ class TukuiResolver(Resolver):
                     # I'm assuming they're being counted together.
                     # Anyway, this should help with scoring other add-ons
                     # on the Tukui catalogue higher
-                    download_count=int(item['downloads']) // 2 if query == 'ui' else 1,
+                    download_count=int(item['downloads']) // (2 if query == 'ui' else 1),
                     last_updated=datetime.fromisoformat(item['lastupdate']).astimezone(
                         timezone.utc
                     ),
