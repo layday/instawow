@@ -46,14 +46,14 @@
     }
 
     button {
+      display: flex;
+      place-items: center;
       width: 2rem;
       margin-left: 4px;
 
       :global(.icon) {
         height: 1rem;
-        width: 1rem;
         fill: var(--inverse-color);
-        vertical-align: text-bottom;
       }
     }
 
