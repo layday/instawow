@@ -483,8 +483,7 @@ async def listen() -> None:
     (host, port) = server.sockets[0].getsockname()
     # We're writing the address to fd 3 just in case something seeps into
     # stdout or stderr.
-    # The message needs to be in JSON for quote, unquote IPC with Electron
-    message = f'{{"address": "ws://{host}:{port}/"}}\n'.encode()
+    message = f'ws://{host}:{port}/'.encode()
     for fd in (1, 3):
         os.write(fd, message)
     try:

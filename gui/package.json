@@ -67,6 +67,15 @@
           "to": "./MacOS/instawow"
         }
       ]
+    },
+    "win": {
+      "target": "portable",
+      "extraResources": [
+        {
+          "from": "./artefacts/instawow.exe",
+          "to": "./instawow.exe"
+        }
+      ]
     }
   },
   "prettier": {

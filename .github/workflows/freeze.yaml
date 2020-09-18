@@ -25,10 +25,7 @@ jobs:
       PYOX_VERSION: '0.7.0'
     strategy:
       matrix:
-        os:
-        - macos-latest
-        - ubuntu-latest
-        - windows-latest
+        os: [macos-latest, ubuntu-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
     - name: Clone the repo
@@ -74,10 +71,7 @@ jobs:
     needs: [extract-tag, freeze-cli]
     strategy:
       matrix:
-        os:
-        - macos-latest
-        - ubuntu-latest
-        # - windows-latest
+        os: [macos-latest, ubuntu-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
     - name: Clone the repo

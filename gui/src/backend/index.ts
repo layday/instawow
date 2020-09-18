@@ -1,4 +1,3 @@
-import type { ChildProcessWithoutNullStreams } from "child_process";
 import { spawn } from "child_process";
 import { platform } from "process";
 import path from "path";
@@ -9,26 +8,24 @@ const sleep = (ms: number) => {
   return new Promise((resolve) => setTimeout(resolve, ms));
 };
 
-const getBinPath = () => {
-  if (platform === "darwin") {
-    return path.join(app.getAppPath(), "..", "..", "MacOS");
-  } else if (platform === "linux") {
-    return path.join(app.getAppPath(), "..");
-  } else {
-    throw new Error(`platform "${platform}" is not supported`);
+const getInstawowPath = () => {
+  switch (platform) {
+    case "darwin":
+      return path.join(app.getAppPath(), "..", "..", "MacOS", "instawow");
+    case "linux":
+      return path.join(app.getAppPath(), "..", "instawow");
+    case "win32":
+      return path.join(app.getAppPath(), "..", "instawow.exe");
+    default:
+      throw new Error(`platform "${platform}" is not supported`);
   }
 };
 
 const spawnInstawow = () => {
-  if (app.isPackaged) {
-    return spawn(path.join(getBinPath(), "instawow"), ["listen"], {
-      stdio: [null, null, null, "ipc"],
-    });
-  } else {
-    return spawn("python", ["-m", "instawow", "--debug", "listen"], {
-      stdio: [null, null, null, "ipc"],
-    });
-  }
+  const [command, args] = app.isPackaged
+    ? [getInstawowPath(), ["listen"]]
+    : ["python", ["-m", "instawow", "--debug", "listen"]];
+  return spawn(command, args, { stdio: [null, null, null, "pipe"] });
 };
 
 const createWindow = () => {
@@ -83,13 +80,14 @@ const waitForMenuSelection = async (
 const instawow = spawnInstawow();
 let serverAddress: string;
 
-instawow.once("message", (message: any) => (serverAddress = message.address));
-
-// TS does not have variadic file descriptor overloads
-(instawow as ChildProcessWithoutNullStreams).stderr.on("data", (data) => {
+instawow.stderr.on("data", (data: Buffer) => {
   if (data.toString().trim() !== "Aborted!") {
-    dialog.showErrorBox("Error", `stderr: ${data}`);
+    dialog.showErrorBox("stderr", data.toString());
   }
+});
+
+instawow.stdio[3]?.once("data", (data: Buffer) => {
+  serverAddress = data.toString();
 });
 
 ipcMain.handle("get-server-address", async () => {
