@@ -11,7 +11,7 @@ add-ons quick and painless for those of us who are
 and do not revel in using bloatware which infringe on our privacy
 or inhabiting walled gardens.
 
-Indi-co-depedently, an *instawow* GUI for Linux and macOS is in early development.
+Indi-co-depedently, an *instawow* GUI is in early development.
 The GUI does not have feature parity with the CLI and is not particularly,
 rigorously, tested.  However, it does offload add-on management to
 the *instawow* core.
