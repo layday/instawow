@@ -10,7 +10,7 @@
     Sources,
   } from "../api";
   import { ReconciliationStage, Strategies, addonToDefn } from "../api";
-  import { View } from "../constants";
+  import { SEARCH_DEBOUNCE_DELAY, SEARCH_LIMIT, View } from "../constants";
   import { ipcRenderer } from "../ipc";
   import { profiles } from "../store";
   import { faQuestion } from "@fortawesome/free-solid-svg-icons";
@@ -85,9 +85,6 @@
     searchStrategy: Strategies.default,
     searchVersion: "",
   };
-
-  const searchLimit = 20;
-  const debounceDelay = 500;
 </script>
 
 <script lang="ts">
@@ -222,7 +219,7 @@
                 strategy: { type_: searchStrategy, version: searchVersion },
               },
             ])
-          : api.search(searchTermsSnapshot, searchLimit, searchStrategy);
+          : api.search(searchTermsSnapshot, SEARCH_LIMIT, searchStrategy);
         const results = await coro;
         // Discard results if the search terms have changed in the meantime
         if (searchTermsSnapshot === searchTerms) {
@@ -238,7 +235,7 @@
     }
   };
 
-  const searchDebounced = lodash.debounce(search, debounceDelay);
+  const searchDebounced = lodash.debounce(search, SEARCH_DEBOUNCE_DELAY);
 
   const refreshInstalled = async (flash = false) => {
     if (!refreshInProgress) {
