@@ -189,15 +189,14 @@
           </button>
         {/if}
         <button
+          disabled={installed__isRefreshing}
+          on:click|stopPropagation={() => dispatch('requestRemove')}>remove</button>
+        <button
           aria-label="show options"
           title="show options"
-          disabled={installed__isRefreshing}
           on:click|stopPropagation={() => dispatch('showGenericAddonContextMenu')}>
           <Icon icon={faEllipsisH} />
         </button>
-        <button
-          disabled={installed__isRefreshing}
-          on:click|stopPropagation={() => dispatch('requestRemove')}>remove</button>
       {:else}
         <button
           aria-label="open in browser"
@@ -205,13 +204,13 @@
           on:click|stopPropagation={() => ipcRenderer.send('open-url', addon.url)}>
           <Icon icon={faExternalLinkSquareAlt} />
         </button>
+        <button on:click|stopPropagation={() => dispatch('requestInstall')}>install</button>
         <button
           aria-label="show options"
           title="show options"
           on:click|stopPropagation={() => dispatch('showInstallAddonContextMenu')}>
           <Icon icon={faEllipsisH} />
         </button>
-        <button on:click|stopPropagation={() => dispatch('requestInstall')}>install</button>
       {/if}
     </menu>
   {/if}
