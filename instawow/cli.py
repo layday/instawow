@@ -627,9 +627,6 @@ def configure(ctx: click.Context) -> Config:
 
     from .prompts import PydanticValidator
 
-    profile = ctx.find_root().params['profile']
-    game_flavours = Config.__fields__['game_flavour'].type_.__args__
-
     addon_dir = text(
         'Add-on directory: ',
         completer=PathCompleter(only_directories=True, expanduser=True),
@@ -637,11 +634,13 @@ def configure(ctx: click.Context) -> Config:
     ).unsafe_ask()
     game_flavour = text(
         'Game flavour: ',
-        default='classic' if '_classic_' in addon_dir else 'retail',
-        completer=WordCompleter(game_flavours),
+        default='classic' if Config.is_classic_folder(addon_dir) else 'retail',
+        completer=WordCompleter(['retail', 'classic']),
         validate=PydanticValidator(Config, 'game_flavour'),
     ).unsafe_ask()
-    config = Config(profile=profile, addon_dir=addon_dir, game_flavour=game_flavour).write()
+    config = Config(
+        profile=ctx.find_root().params['profile'], addon_dir=addon_dir, game_flavour=game_flavour
+    ).write()
     click.echo(f'Configuration written to: {config.config_file}')
     return config
 

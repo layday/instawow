@@ -84,3 +84,8 @@ def test_legacy_profile_migration_goes_swimmingly(full_config, monkeypatch):
     assert comparison.common == []
     assert comparison.left_list == ['profiles']
     assert sorted(comparison.right_list) == profile_dirs
+
+
+def test_can_detect_classic_folder():
+    assert Config.is_classic_folder('wowzerz/_classic_/Interface/AddOns')
+    assert not Config.is_classic_folder('wowzerz/_retail_/Interface/AddOns')

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 import os
-from pathlib import Path
+from pathlib import Path, PurePath
 from shutil import copytree, ignore_patterns
 from tempfile import gettempdir
 from typing import Any, Dict, List, Union
@@ -72,6 +72,11 @@ class GlobalConfig(BaseConfig):
         if value.name == __novalidate__:
             return value
         return _validate_path_is_writable_dir(value)
+
+    @staticmethod
+    def is_classic_folder(folder: str) -> bool:
+        tail = PurePath(folder).parts[-3:]
+        return tuple(map(str.casefold, tail)) == ('_classic_', 'interface', 'addons')
 
     @classmethod
     def get_dummy_config(cls, **kwargs: Any) -> GlobalConfig:
