@@ -5,6 +5,7 @@
     Api,
     Config,
     Defn,
+    ReconcileResult,
     SuccessResult,
     AnyResult,
     Sources,
@@ -340,17 +341,17 @@
   const goToNextReconcileStage = () => (reconcileStage = getNextReconcileStage(reconcileStage));
 
   const prepareReconcile = async (thisStage: ReconciliationStage) => {
-    const stages = reconcileStages.slice(reconcileStages.indexOf(thisStage));
+    const stages = lodash.dropWhile(reconcileStages, (s) => s !== thisStage);
     for (const stage of stages) {
-      console.debug(profile, "trying", stage);
-
+      console.debug(profile, "- trying", stage);
       const results = await api.reconcile(stage);
       if (results.reconciled.length || !getNextReconcileStage(stage)) {
-        reconcileStage = stage;
-        reconcileSelections = [];
+        reconcileStage = stage, reconcileSelections = [];
         return results;
       }
     }
+    console.debug(profile, "- no stages in", stages, "from", thisStage);
+    return {} as ReconcileResult;
   };
 
   const installReconciled = async (
