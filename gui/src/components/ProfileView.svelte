@@ -282,7 +282,7 @@
           (addon.options.strategy === Strategies.version
             ? { action: "unpin", label: "Unpin" }
             : { action: "pin", label: "Pin" }),
-        { action: "lookup", label: "Look up" },
+        { action: "lookup", label: "Look up definition" },
       ].filter(Boolean)
     );
     switch (selection) {
@@ -318,10 +318,12 @@
 
   const showInstallAddonContextMenu = async (addon: Addon) => {
     const selection = await ipcRenderer.invoke("get-action-from-context-menu", [
-      { action: "replace", label: "Install and replace" },
-      { action: "lookup", label: "Look up" },
+      // This should be pulled out of here and
+      // made interactive when installing
+      { action: "install-and-replace", label: "Install and replace" },
+      { action: "lookup", label: "Look up definition" },
     ]);
-    if (selection === "replace") {
+    if (selection === "install-and-replace") {
       await installAddons([addon], true);
     } else if (selection === "lookup") {
       [searchTerms, searchFromAlias, searchStrategy, searchVersion] = [
