@@ -772,7 +772,9 @@ class TukuiResolver(Resolver):
             description=addon['small_desc'],
             url=addon['web_url'],
             download_url=addon['url'],
-            date_published=datetime.fromisoformat(addon['lastupdate']).astimezone(timezone.utc),
+            date_published=datetime.fromisoformat(addon['lastupdate']).replace(
+                tzinfo=timezone.utc
+            ),
             version=addon['version'],
             options=m.PkgOptions(strategy=defn.strategy.type_.name),
         )
@@ -805,8 +807,8 @@ class TukuiResolver(Resolver):
                     # Anyway, this should help with scoring other add-ons
                     # on the Tukui catalogue higher
                     download_count=int(item['downloads']) // (2 if query == 'ui' else 1),
-                    last_updated=datetime.fromisoformat(item['lastupdate']).astimezone(
-                        timezone.utc
+                    last_updated=datetime.fromisoformat(item['lastupdate']).replace(
+                        tzinfo=timezone.utc
                     ),
                 )
 
