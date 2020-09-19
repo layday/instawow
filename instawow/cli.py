@@ -30,7 +30,7 @@ import click
 
 from . import exceptions as E, models
 from .config import Config, setup_logging
-from .resolvers import Defn, Strategies
+from .resolvers import Defn, MultiPkgModel, Strategies
 from .utils import TocReader, cached_property, get_version, is_outdated, tabulate, uniq
 
 if TYPE_CHECKING:
@@ -225,7 +225,7 @@ def parse_into_defn_with_version(
 
 
 def parse_into_defn_from_json_file(manager: CliManagerT, path: Path) -> List[Defn]:
-    faux_pkgs = models.MultiPkgModel.parse_file(path, encoding='utf-8')
+    faux_pkgs = MultiPkgModel.parse_file(path, encoding='utf-8')
     return list(map(Defn.from_pkg, cast('List[models.Pkg]', faux_pkgs.__root__)))
 
 
@@ -558,7 +558,7 @@ def list_installed(
         .all()
     )
     if output_format is ListFormats.json:
-        click.echo(models.MultiPkgModel.parse_obj(pkgs).json(indent=2))
+        click.echo(MultiPkgModel.parse_obj(pkgs).json(indent=2))
     elif output_format is ListFormats.detailed:
         formatter = click.HelpFormatter(max_width=99)
         for pkg in pkgs:

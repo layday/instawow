@@ -33,8 +33,8 @@ from . import exceptions as E
 from .config import Config
 from .manager import Manager, init_web_client
 from .matchers import get_folders, match_dir_names, match_toc_ids, match_toc_names
-from .models import Pkg, PkgModel, is_pkg
-from .resolvers import Defn, Strategies
+from .models import Pkg, is_pkg
+from .resolvers import Defn, PkgModel, Strategies
 from .utils import Literal, get_version, is_outdated, run_in_thread as t, uniq
 
 if TYPE_CHECKING:

@@ -190,6 +190,49 @@ class MasterCatalogue(BaseModel):
         return {a.slug: a.id for a in self.__root__ if a.source == 'curse'}
 
 
+class _OrmModel(BaseModel):
+    class Config:
+        allow_mutation = False
+        orm_mode = True
+
+
+class PkgModel_PkgFolder(_OrmModel):
+    name: str
+
+
+class PkgModel_PkgOptions(_OrmModel):
+    strategy: str
+
+
+class PkgModel_PkgDep(_OrmModel):
+    id: str
+
+
+class PkgModel_PkgVersion(_OrmModel):
+    version: str
+    install_time: datetime
+
+
+class PkgModel(_OrmModel):
+    source: str
+    id: str
+    slug: str
+    name: str
+    description: str
+    url: str
+    download_url: str
+    date_published: datetime
+    version: str
+    folders: List[PkgModel_PkgFolder]
+    options: PkgModel_PkgOptions
+    deps: List[PkgModel_PkgDep]
+    logged_versions: List[PkgModel_PkgVersion]
+
+
+class MultiPkgModel(BaseModel):
+    __root__: List[PkgModel]
+
+
 class Resolver:
     source: ClassVar[str]
     name: ClassVar[str]
@@ -251,7 +294,15 @@ if TYPE_CHECKING:
 
     class CurseAddon_FileModules(TypedDict):
         foldername: str
-        fingerprint: int
+        fingerprint: int  # Folder fingerprint used by Curse for reconciliation
+        # One of:
+        #   1 = package
+        #   2 = module
+        #   3 = main module
+        #   4 = file
+        #   5 = referenced file
+        # For WoW add-ons the main folder will have type "3" and the rest
+        # of them type "2"
         type: int
 
     class CurseAddon_File(TypedDict):
@@ -474,48 +525,50 @@ class CurseResolver(Resolver):
                 )
 
 
-if TYPE_CHECKING:
+class WowiCommonTerms(TypedDict):
+    UID: str  # Unique add-on ID
+    UICATID: str  # ID of category add-on is placed in
+    UIVersion: str  # Add-on version
+    UIDate: int  # Upload date expressed as unix epoch
+    UIName: str  # User-facing add-on name
+    UIAuthorName: str
 
-    class WowiCommonTerms(TypedDict):
-        UID: str  # Unique add-on ID
-        UICATID: str  # ID of category add-on is placed in
-        UIVersion: str  # Add-on version
-        UIDate: int  # Upload date expressed as unix epoch
-        UIName: str  # User-facing add-on name
-        UIAuthorName: str
 
-    class WowiCompatibilityEntry(TypedDict):
-        version: str  # Game version, e.g. '8.3.0'
-        name: str  # Xpac or patch name, e.g. "Visions of N'Zoth" for 8.3.0
+class WowiCompatibilityEntry(TypedDict):
+    version: str  # Game version, e.g. '8.3.0'
+    name: str  # Xpac or patch name, e.g. "Visions of N'Zoth" for 8.3.0
 
-    class WowiListApiItem(WowiCommonTerms):
-        UIFileInfoURL: str  # Add-on page on WoWI
-        UIDownloadTotal: str  # Total number of downloads
-        UIDownloadMonthly: str  # Number of downloads in the last month and not 'monthly'
-        UIFavoriteTotal: str
-        UICompatibility: O[List[WowiCompatibilityEntry]]  # ``null`` if would be empty
-        UIDir: List[str]  # Names of folders contained in archive
-        UIIMG_Thumbs: O[List[str]]  # Thumbnail URLs; ``null`` if would be empty
-        UIIMGs: O[List[str]]  # Full-size image URLs; ``null`` if would be empty
-        # There are only two add-ons on the entire list with siblings
-        # (they refer to each other). I don't know if this was meant to capture
-        # dependencies (probably not) but it's so underused as to be worthless.
-        # ``null`` if would be empty
-        UISiblings: O[List[str]]
-        UIDonationLink: O[str]  # Absent from the first item on the list (!)
 
-    class WowiDetailsApiItem(WowiCommonTerms):
-        UIMD5: O[str]  # Archive hash, ``null` when UI is pending
-        UIFileName: str  # The actual filename, e.g. 'foo.zip'
-        UIDownload: str  # Download URL
-        UIPending: Literal['0', '1']  # Set to '1' if the file is awaiting approval
-        UIDescription: str  # Long description with BB Code and all
-        UIChangeLog: str  # This can also contain BB Code
-        UIHitCount: str  # Same as UIDownloadTotal
-        UIHitCountMonthly: str  # Same as UIDownloadMonthly
+class WowiListApiItem(WowiCommonTerms):
+    UIFileInfoURL: str  # Add-on page on WoWI
+    UIDownloadTotal: str  # Total number of downloads
+    UIDownloadMonthly: str  # Number of downloads in the last month and not 'monthly'
+    UIFavoriteTotal: str
+    UICompatibility: O[List[WowiCompatibilityEntry]]  # ``null`` if would be empty
+    UIDir: List[str]  # Names of folders contained in archive
+    UIIMG_Thumbs: O[List[str]]  # Thumbnail URLs; ``null`` if would be empty
+    UIIMGs: O[List[str]]  # Full-size image URLs; ``null`` if would be empty
+    # There are only two add-ons on the entire list with siblings
+    # (they refer to each other). I don't know if this was meant to capture
+    # dependencies (probably not) but it's so underused as to be worthless.
+    # ``null`` if would be empty
+    UISiblings: O[List[str]]
+    UIDonationLink: O[str]  # Absent from the first item on the list (!)
 
-    class WowiCombinedItem(WowiListApiItem, WowiDetailsApiItem):
-        pass
+
+class WowiDetailsApiItem(WowiCommonTerms):
+    UIMD5: O[str]  # Archive hash, ``null` when UI is pending
+    UIFileName: str  # The actual filename, e.g. 'foo.zip'
+    UIDownload: str  # Download URL
+    UIPending: Literal['0', '1']  # Set to '1' if the file is awaiting approval
+    UIDescription: str  # Long description with BB Code and all
+    UIChangeLog: str  # This can also contain BB Code
+    UIHitCount: str  # Same as UIDownloadTotal
+    UIHitCountMonthly: str  # Same as UIDownloadMonthly
+
+
+class WowiCombinedItem(WowiListApiItem, WowiDetailsApiItem):
+    pass
 
 
 class WowiResolver(Resolver):
@@ -586,7 +639,7 @@ class WowiResolver(Resolver):
             details_api_items = []
 
         combined_items = {
-            r['UID']: cast('WowiCombinedItem', {**self.list_api_items[r['UID']], **r})
+            r['UID']: WowiCombinedItem(**{**self.list_api_items[r['UID']], **r})
             for r in details_api_items
         }
         results = await gather(

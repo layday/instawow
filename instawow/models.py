@@ -1,22 +1,22 @@
 from __future__ import annotations
 
-from datetime import datetime
-from typing import Any, ClassVar, List, Type, cast
+from datetime import datetime, timezone
+from typing import TYPE_CHECKING, Any, Dict, List, Optional as O, Type
 
 import pydantic
 from sqlalchemy import (
     Column,
     DateTime,
     ForeignKeyConstraint,
-    MetaData,
     String,
+    TypeDecorator,
     and_,
     exc,
     func,
     inspect,
 )
-from sqlalchemy.ext.declarative import DeclarativeMeta, as_declarative
-from sqlalchemy.orm import object_session, relationship
+from sqlalchemy.ext.declarative import DeclarativeMeta, declarative_base
+from sqlalchemy.orm import Session, object_session, relationship
 
 
 class _BaseCoercer(pydantic.BaseModel):
@@ -31,18 +31,17 @@ class _BaseCoercer(pydantic.BaseModel):
     class Config:
         extra = pydantic.Extra.allow
         max_anystr_length = 2 ** 32
-        orm_mode = True
 
 
-class _BaseTableMeta(DeclarativeMeta):
-    def __init__(cls, *args: Any) -> None:
-        super().__init__(*args)
-        try:
-            inspector = inspect(cls)
-        except exc.NoInspectionAvailable:
-            pass
-        else:
-            cls.Coercer = pydantic.create_model(
+_coercers: Dict[type, Type[pydantic.BaseModel]] = {}
+
+
+class _ModelMeta(DeclarativeMeta):
+    def __init__(cls, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        inspector = inspect(cls, raiseerr=False)
+        if inspector:
+            _coercers[cls] = pydantic.create_model(
                 f'{cls.__name__}Coercer',
                 __base__=_BaseCoercer,
                 **{
@@ -53,21 +52,39 @@ class _BaseTableMeta(DeclarativeMeta):
             )
 
 
-@as_declarative(constructor=None, metaclass=_BaseTableMeta)
-class _BaseTable:
-    Coercer: ClassVar[Type[_BaseCoercer]]
-    metadata: ClassVar[MetaData]
-
-    def __init__(self, **kwargs: Any) -> None:
-        intermediate_obj = self.Coercer(**kwargs)
-        for k, v in intermediate_obj:
-            setattr(self, k, v)
+def _constructor(self: object, **kwargs: Any) -> None:
+    intermediate_obj = _coercers[self.__class__](**kwargs)
+    for k, v in intermediate_obj:
+        setattr(self, k, v)
 
 
-ModelBase = _BaseTable
+ModelBase: Any = declarative_base(constructor=_constructor, metaclass=_ModelMeta)
+
+if TYPE_CHECKING:
+    TZDateTime_base_class = TypeDecorator[datetime]
+else:
+    TZDateTime_base_class = TypeDecorator
 
 
-class Pkg(_BaseTable):
+class TZDateTime(TZDateTime_base_class):
+    impl = DateTime
+
+    def process_bind_param(self, value: O[datetime], dialect: Any) -> O[datetime]:  # type: ignore
+        if value is not None:
+            if not value.tzinfo:
+                raise TypeError('tzinfo is required')
+            value = value.astimezone(timezone.utc).replace(tzinfo=None)
+        return value
+
+    def process_result_value(self, value: O[datetime], dialect: Any) -> O[datetime]:
+        return value and value.replace(tzinfo=timezone.utc)
+
+    @property
+    def python_type(self):
+        return datetime
+
+
+class Pkg(ModelBase):
     __tablename__ = 'pkg'
 
     source = Column(String, primary_key=True)
@@ -77,21 +94,21 @@ class Pkg(_BaseTable):
     description = Column(String, nullable=False)
     url = Column(String, nullable=False)
     download_url = Column(String, nullable=False)
-    date_published = Column(DateTime, nullable=False)
+    date_published = Column(TZDateTime, nullable=False)
     version = Column(String, nullable=False)
-    folders = cast(
-        'List[PkgFolder]', relationship('PkgFolder', cascade='all, delete-orphan', backref='pkg')
+    folders: relationship[List[PkgFolder]] = relationship(
+        'PkgFolder', cascade='all, delete-orphan', backref='pkg'
     )
-    options = cast(
-        'PkgOptions', relationship('PkgOptions', cascade='all, delete-orphan', uselist=False)
+    options: relationship[PkgOptions] = relationship(
+        'PkgOptions', cascade='all, delete-orphan', uselist=False
     )
-    deps = cast(
-        'List[PkgDep]', relationship('PkgDep', cascade='all, delete-orphan', backref='pkg')
+    deps: relationship[List[PkgDep]] = relationship(
+        'PkgDep', cascade='all, delete-orphan', backref='pkg'
     )
 
     @property
     def logged_versions(self) -> List[PkgVersionLog]:
-        session: Any = object_session(self)
+        session: O[Session] = object_session(self)
         return (
             (
                 session.query(PkgVersionLog)
@@ -106,7 +123,7 @@ class Pkg(_BaseTable):
         )
 
 
-class PkgFolder(_BaseTable):
+class PkgFolder(ModelBase):
     __tablename__ = 'pkg_folder'
     __table_args__ = (ForeignKeyConstraint(['pkg_source', 'pkg_id'], ['pkg.source', 'pkg.id']),)
 
@@ -115,7 +132,7 @@ class PkgFolder(_BaseTable):
     pkg_id = Column(String, nullable=False)
 
 
-class PkgOptions(_BaseTable):
+class PkgOptions(ModelBase):
     __tablename__ = 'pkg_options'
     __table_args__ = (ForeignKeyConstraint(['pkg_source', 'pkg_id'], ['pkg.source', 'pkg.id']),)
 
@@ -124,7 +141,7 @@ class PkgOptions(_BaseTable):
     pkg_id = Column(String, primary_key=True)
 
 
-class PkgDep(_BaseTable):
+class PkgDep(ModelBase):
     __tablename__ = 'pkg_dep'
     __table_args__ = (ForeignKeyConstraint(['pkg_source', 'pkg_id'], ['pkg.source', 'pkg.id']),)
 
@@ -133,50 +150,13 @@ class PkgDep(_BaseTable):
     pkg_id = Column(String, primary_key=True)
 
 
-class PkgVersionLog(_BaseTable):
+class PkgVersionLog(ModelBase):
     __tablename__ = 'pkg_version_log'
 
     version = Column(String, primary_key=True)
-    install_time = Column(DateTime, nullable=False, server_default=func.now())
+    install_time = Column(TZDateTime, nullable=False, server_default=func.now())
     pkg_source = Column(String, primary_key=True)
     pkg_id = Column(String, primary_key=True)
-
-
-class _PkgFolder(_BaseCoercer):
-    name: str
-
-
-class _PkgOptions(_BaseCoercer):
-    strategy: str
-
-
-class _PkgDep(_BaseCoercer):
-    id: str
-
-
-class _PkgVersion(_BaseCoercer):
-    version: str
-    install_time: datetime
-
-
-class PkgModel(_BaseCoercer):
-    source: str
-    id: str
-    slug: str
-    name: str
-    description: str
-    url: str
-    download_url: str
-    date_published: datetime
-    version: str
-    folders: List[_PkgFolder]
-    options: _PkgOptions
-    deps: List[_PkgDep]
-    logged_versions: List[_PkgVersion]
-
-
-class MultiPkgModel(pydantic.BaseModel):
-    __root__: List[PkgModel]
 
 
 def should_migrate(engine: Any, version: str) -> bool:
