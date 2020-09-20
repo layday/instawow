@@ -44,7 +44,7 @@ def type_check(session: Session):
     session.install(
         '-e',
         '.[server]',
-        'sqlalchemy-stubs @https://github.com/dropbox/sqlalchemy-stubs/archive/55470ce.zip',
+        'sqlalchemy-stubs @https://github.com/layday/sqlalchemy-stubs/archive/b4be519.zip',
     )
     session.run('npx', '--cache', '.npm', 'pyright')
 
