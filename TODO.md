@@ -49,6 +49,7 @@ GUI
 Both
 ----
 
+- [ ] Improve test coverage
 - [ ] Vendor catalogue?
 - [x] Remove really old add-ons from catalogue/search?
 - [ ] Categorise WoWI add-ons by compatibility?
