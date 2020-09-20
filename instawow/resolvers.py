@@ -964,7 +964,7 @@ class InstawowResolver(Resolver):
             description='A WeakAuras Companion clone.',
             url='https://github.com/layday/instawow',
             download_url=builder.addon_file.as_uri(),
-            date_published=datetime.now(),
+            date_published=datetime.now(timezone.utc),
             version=checksum[:7],
             options=m.PkgOptions(strategy=defn.strategy.type_.name),
         )

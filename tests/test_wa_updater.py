@@ -1,6 +1,8 @@
 import pytest
 from yarl import URL
 
+from instawow.models import is_pkg
+from instawow.resolvers import Defn
 from instawow.wa_updater import BuilderConfig, WaCompanionBuilder, WeakAura, WeakAuras
 
 
@@ -127,3 +129,19 @@ def test_build_is_reproducible(builder):
     checksum = builder.checksum()
     builder.make_addon([])
     assert checksum == builder.checksum()
+
+
+@pytest.mark.asyncio
+async def test_can_resolve_wa_companion_pkg(builder):
+    await builder.build()
+    defn = Defn.get('instawow', 'weakauras-companion')
+    resolve_results = await builder.manager.resolve([defn])
+    assert is_pkg(resolve_results[defn])
+
+
+@pytest.mark.asyncio
+async def test_can_resolve_wa_companion_autoupdate_pkg(monkeypatch, builder):
+    monkeypatch.setenv('WAC_ACCOUNT', builder.builder_config.account)
+    defn = Defn.get('instawow', 'weakauras-companion-autoupdate')
+    resolve_results = await builder.manager.resolve([defn])
+    assert is_pkg(resolve_results[defn])
