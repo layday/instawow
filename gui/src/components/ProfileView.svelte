@@ -10,7 +10,7 @@
     AnyResult,
     Sources,
   } from "../api";
-  import { ReconciliationStage, Strategies, addonToDefn } from "../api";
+  import { ReconciliationStage, Strategy, addonToDefn } from "../api";
   import { SEARCH_DEBOUNCE_DELAY, SEARCH_LIMIT, View } from "../constants";
   import { ipcRenderer } from "../ipc";
   import { profiles } from "../store";
@@ -78,12 +78,12 @@
   const defaultSearchState: {
     searchTerms: string;
     searchFromAlias: boolean;
-    searchStrategy: Strategies;
+    searchStrategy: Strategy;
     searchVersion: string;
   } = {
     searchTerms: "",
     searchFromAlias: false,
-    searchStrategy: Strategies.default,
+    searchStrategy: Strategy.default,
     searchVersion: "",
   };
 </script>
@@ -217,7 +217,8 @@
               {
                 source: "*",
                 alias: searchTermsSnapshot,
-                strategy: { type_: searchStrategy, version: searchVersion },
+                strategy: searchStrategy,
+                version: searchVersion,
               },
             ])
           : api.search(searchTermsSnapshot, SEARCH_LIMIT, searchStrategy);
@@ -277,13 +278,13 @@
     const selection = await ipcRenderer.invoke(
       "get-action-from-context-menu",
       [
-        { action: "open-url", label: "Open in browser" },
-        { action: "reveal-folder", label: "Reveal folder" },
+        { id: "open-url", label: "Open in browser" },
+        { id: "reveal-folder", label: "Reveal folder" },
         sources[addon.source]?.supports_rollback &&
-          (addon.options.strategy === Strategies.version
-            ? { action: "unpin", label: "Unpin" }
-            : { action: "pin", label: "Pin" }),
-        { action: "lookup", label: "Look up definition" },
+          (addon.options.strategy === Strategy.version
+            ? { id: "unpin", label: "Unpin" }
+            : { id: "pin", label: "Pin" }),
+        { id: "lookup", label: "Look up definition" },
       ].filter(Boolean)
     );
     switch (selection) {
@@ -300,7 +301,7 @@
       case "unpin":
         const pinnedAddon = {
           ...addon,
-          options: { strategy: selection === "pin" ? Strategies.version : Strategies.default },
+          options: { strategy: selection === "pin" ? Strategy.version : Strategy.default },
         };
         await pinAddons([pinnedAddon]);
         break;
@@ -319,10 +320,9 @@
 
   const showInstallAddonContextMenu = async (addon: Addon) => {
     const selection = await ipcRenderer.invoke("get-action-from-context-menu", [
-      // This should be pulled out of here and
-      // made interactive when installing
-      { action: "install-and-replace", label: "Install and replace" },
-      { action: "lookup", label: "Look up definition" },
+      // This should be pulled out of here and made interactive when installing
+      { id: "install-and-replace", label: "Install and replace" },
+      { id: "lookup", label: "Look up definition" },
     ]);
     if (selection === "install-and-replace") {
       await installAddons([addon], true);
@@ -346,7 +346,7 @@
       console.debug(profile, "- trying", stage);
       const results = await api.reconcile(stage);
       if (results.reconciled.length || !getNextReconcileStage(stage)) {
-        reconcileStage = stage, reconcileSelections = [];
+        (reconcileStage = stage), (reconcileSelections = []);
         return results;
       }
     }

@@ -11,13 +11,13 @@ def mock(mock_all):
 @pytest.mark.asyncio
 async def test_search(manager):
     results = await manager.search('molinari', limit=5)
-    assert {Defn.get('curse', 'molinari'), Defn.get('wowi', '13188-molinari')} == set(results)
+    assert {Defn('curse', 'molinari'), Defn('wowi', '13188-molinari')} == set(results)
 
 
 @pytest.mark.asyncio
-async def test_search_with_extra_spice(manager):
+async def test_search_caters_to_flavour(manager):
     results = await manager.search('AtlasLootClassic', limit=5)
     if manager.config.is_classic:
-        assert Defn.get('curse', 'atlaslootclassic') in results
+        assert Defn('curse', 'atlaslootclassic') in results
     else:
-        assert Defn.get('curse', 'atlaslootclassic') not in results
+        assert Defn('curse', 'atlaslootclassic') not in results

@@ -6,7 +6,7 @@ from instawow.resolvers import Defn
 
 @pytest.mark.asyncio
 async def test_finding_damaged_pkgs(mock_all, manager):
-    molinari_defn = Defn.get('curse', 'molinari')
+    molinari_defn = Defn('curse', 'molinari')
     install_result = await manager.install([molinari_defn], False)
     installed_pkg = install_result[molinari_defn].pkg
     assert not manager.find_damaged_pkgs()
@@ -19,7 +19,7 @@ async def test_finding_damaged_pkgs(mock_all, manager):
 
 @pytest.mark.asyncio
 async def test_pinning_supported(mock_all, manager):
-    defn = Defn.get('curse', 'molinari')
+    defn = Defn('curse', 'molinari')
     install_result = await manager.install([defn], False)
     pkg = install_result[defn].pkg
     version = pkg.version
@@ -27,26 +27,26 @@ async def test_pinning_supported(mock_all, manager):
     for new_defn in (defn.with_version(pkg.version), defn):
         pin_result = await manager.pin([new_defn])
         pinned_pkg = pin_result[new_defn].pkg
-        assert pkg.options.strategy == pinned_pkg.options.strategy == new_defn.strategy.type_.name
+        assert pkg.options.strategy == pinned_pkg.options.strategy == new_defn.strategy.name
         assert version == pinned_pkg.version
 
 
 @pytest.mark.asyncio
 async def test_pinning_unsupported(mock_all, manager):
-    molinari_defn = Defn.get('wowi', '13188')
+    molinari_defn = Defn('wowi', '13188')
     await manager.install([molinari_defn], False)
     installed_pkg = manager.get_pkg(molinari_defn)
     assert installed_pkg.options.strategy == 'default'
     result = await manager.pin([molinari_defn])
     assert (
         isinstance(result[molinari_defn], E.PkgStrategyUnsupported)
-        and result[molinari_defn].strategy == molinari_defn.strategy.type_
+        and result[molinari_defn].strategy == molinari_defn.strategy
     )
     assert installed_pkg.options.strategy == 'default'
 
 
 @pytest.mark.asyncio
 async def test_pinning_nonexistent(mock_all, manager):
-    molinari_defn = Defn.get('wowi', '13188')
+    molinari_defn = Defn('wowi', '13188')
     result = await manager.pin([molinari_defn])
     assert isinstance(result[molinari_defn], E.PkgNotInstalled)

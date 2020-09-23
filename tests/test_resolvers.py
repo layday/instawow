@@ -2,7 +2,7 @@ import pytest
 
 from instawow import exceptions as E
 from instawow.models import Pkg
-from instawow.resolvers import Defn, Strategies
+from instawow.resolvers import Defn, Strategy
 
 
 @pytest.fixture(autouse=True)
@@ -11,23 +11,21 @@ def mock(mock_all):
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize(
-    'strategy', [Strategies.default, Strategies.latest, Strategies.any_flavour]
-)
+@pytest.mark.parametrize('strategy', [Strategy.default, Strategy.latest, Strategy.any_flavour])
 async def test_resolve_curse_simple_pkgs(manager, request, strategy):
     results = await manager.resolve(
         [
-            Defn.get('curse', 'tomcats').with_strategy(strategy),
-            Defn.get('curse', 'mythic-dungeon-tools').with_strategy(strategy),
-            Defn.get('curse', 'classiccastbars').with_strategy(strategy),
-            Defn.get('curse', 'elkbuffbars').with_strategy(strategy),
+            Defn('curse', 'tomcats', strategy=strategy),
+            Defn('curse', 'mythic-dungeon-tools', strategy=strategy),
+            Defn('curse', 'classiccastbars', strategy=strategy),
+            Defn('curse', 'elkbuffbars', strategy=strategy),
         ]
     )
     separate, retail_only, classic_only, flavour_explosion = results.values()
 
     assert isinstance(separate, Pkg)
     if manager.config.is_classic:
-        if strategy is Strategies.any_flavour:
+        if strategy is Strategy.any_flavour:
             assert 'classic' not in separate.version
             assert isinstance(retail_only, Pkg)
         else:
@@ -41,7 +39,7 @@ async def test_resolve_curse_simple_pkgs(manager, request, strategy):
     else:
         assert 'classic' not in separate.version
         assert isinstance(retail_only, Pkg)
-        if strategy is Strategies.any_flavour:
+        if strategy is Strategy.any_flavour:
             assert isinstance(classic_only, Pkg)
         else:
             assert (
@@ -58,7 +56,7 @@ async def test_resolve_curse_simple_pkgs(manager, request, strategy):
 @pytest.mark.asyncio
 async def test_resolve_curse_latest_pkg(manager):
     (latest_pkg,) = (
-        await manager.resolve([Defn.get('curse', 'tomcats').with_strategy(Strategies.latest)])
+        await manager.resolve([Defn('curse', 'tomcats', strategy=Strategy.latest)])
     ).values()
     assert latest_pkg.options.strategy == 'latest'
 
@@ -66,7 +64,7 @@ async def test_resolve_curse_latest_pkg(manager):
 @pytest.mark.asyncio
 async def test_resolve_curse_versioned_pkg(manager):
     (versioned_pkg,) = (
-        await manager.resolve([Defn.get('curse', 'molinari').with_version('70300.51-Release')])
+        await manager.resolve([Defn('curse', 'molinari').with_version('70300.51-Release')])
     ).values()
     assert (
         versioned_pkg.options.strategy == 'version' and versioned_pkg.version == '70300.51-Release'
@@ -78,7 +76,7 @@ async def test_resolve_curse_deps(manager):
     if manager.config.is_classic:
         pytest.skip('no classic equivalent')
 
-    defns = [Defn.get('curse', 'mechagon-rare-share').with_strategy(Strategies.default)]
+    defns = [Defn('curse', 'mechagon-rare-share', strategy=Strategy.default)]
     with_deps = await manager.resolve(defns, with_deps=True)
     assert ['mechagon-rare-share', 'rare-share'] == [d.slug for d in with_deps.values()]
 
@@ -87,8 +85,8 @@ async def test_resolve_curse_deps(manager):
 async def test_resolve_wowi_pkgs(manager):
     results = await manager.resolve(
         [
-            Defn.get('wowi', '13188-molinari'),
-            Defn.get('wowi', '13188').with_strategy(Strategies.latest),
+            Defn('wowi', '13188-molinari'),
+            Defn('wowi', '13188', strategy=Strategy.latest),
         ]
     )
     either, invalid = results.values()
@@ -104,10 +102,10 @@ async def test_resolve_wowi_pkgs(manager):
 async def test_resolve_tukui_pkgs(manager):
     results = await manager.resolve(
         [
-            Defn.get('tukui', '1'),
-            Defn.get('tukui', '-1'),
-            Defn.get('tukui', 'tukui'),
-            Defn.get('tukui', '1').with_strategy(Strategies.latest),
+            Defn('tukui', '1'),
+            Defn('tukui', '-1'),
+            Defn('tukui', 'tukui'),
+            Defn('tukui', '1', strategy=Strategy.latest),
         ]
     )
     either, retail_id, retail_slug, invalid = results.values()
@@ -131,12 +129,12 @@ async def test_resolve_tukui_pkgs(manager):
 async def test_resolve_github_pkgs(manager):
     results = await manager.resolve(
         [
-            Defn.get('github', 'AdiAddons/AdiButtonAuras'),
-            Defn.get('github', 'AdiAddons/AdiButtonAuras').with_version('2.1.0'),
-            Defn.get('github', 'AdiAddons/AdiButtonAuras').with_version('2.0.19'),
-            Defn.get('github', 'WeakAuras/WeakAuras2'),
-            Defn.get('github', 'p3lim-wow/Molinari'),
-            Defn.get('github', 'layday/foo-bar'),
+            Defn('github', 'AdiAddons/AdiButtonAuras'),
+            Defn('github', 'AdiAddons/AdiButtonAuras').with_version('2.1.0'),
+            Defn('github', 'AdiAddons/AdiButtonAuras').with_version('2.0.19'),
+            Defn('github', 'WeakAuras/WeakAuras2'),
+            Defn('github', 'p3lim-wow/Molinari'),
+            Defn('github', 'layday/foo-bar'),
         ]
     )
     (

@@ -134,7 +134,7 @@ def test_build_is_reproducible(builder):
 @pytest.mark.asyncio
 async def test_can_resolve_wa_companion_pkg(builder):
     await builder.build()
-    defn = Defn.get('instawow', 'weakauras-companion')
+    defn = Defn('instawow', 'weakauras-companion')
     resolve_results = await builder.manager.resolve([defn])
     assert is_pkg(resolve_results[defn])
 
@@ -142,6 +142,6 @@ async def test_can_resolve_wa_companion_pkg(builder):
 @pytest.mark.asyncio
 async def test_can_resolve_wa_companion_autoupdate_pkg(monkeypatch, builder):
     monkeypatch.setenv('WAC_ACCOUNT', builder.builder_config.account)
-    defn = Defn.get('instawow', 'weakauras-companion-autoupdate')
+    defn = Defn('instawow', 'weakauras-companion-autoupdate')
     resolve_results = await builder.manager.resolve([defn])
     assert is_pkg(resolve_results[defn])

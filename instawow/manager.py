@@ -37,13 +37,13 @@ from loguru import logger
 from . import DB_REVISION, exceptions as E
 from .models import Pkg, PkgFolder, PkgVersionLog, is_pkg
 from .resolvers import (
+    Catalogue,
     CurseResolver,
     Defn,
     GithubResolver,
     InstawowResolver,
-    MasterCatalogue,
     Resolver,
-    Strategies,
+    Strategy,
     TukuiResolver,
     WowiResolver,
     normalise_names,
@@ -66,7 +66,7 @@ from .utils import (
 if TYPE_CHECKING:
     import aiohttp
     from prompt_toolkit.shortcuts import ProgressBar
-    from sqlalchemy.orm import Session as SqlaSession
+    from sqlalchemy.orm import Session as SqlaSession, sessionmaker
     from yarl import URL
 
     from .config import Config
@@ -167,7 +167,7 @@ async def cache_json_response(
     return json.loads(text)
 
 
-def prepare_database(config: Config) -> SqlaSession:
+def prepare_database(config: Config) -> sessionmaker:
     from sqlalchemy import create_engine
     from sqlalchemy.orm import sessionmaker
 
@@ -194,7 +194,7 @@ def prepare_database(config: Config) -> SqlaSession:
             f'{__package__}.migrations',
             f'{__package__}.migrations.versions',
         ) as tmp_dir:
-            aconfig = AConfig()
+            aconfig: Any = AConfig()
             aconfig.set_main_option('script_location', str(tmp_dir / __package__ / 'migrations'))
             aconfig.set_main_option('sqlalchemy.url', db_url)
 
@@ -206,8 +206,7 @@ def prepare_database(config: Config) -> SqlaSession:
                 logger.info(f'stamping database at {config.db_file} with {DB_REVISION}')
                 stamp(aconfig, DB_REVISION)
 
-    session_factory = sessionmaker(bind=engine)
-    return session_factory()
+    return sessionmaker(bind=engine)
 
 
 def init_web_client(**kwargs: Any) -> aiohttp.ClientSession:
@@ -251,7 +250,9 @@ def _error_out(error: BaseException) -> Callable[[], Awaitable[NoReturn]]:
     return inner
 
 
-async def _capture_exc_async(coro: Callable[..., Awaitable[Any]]) -> Any:
+async def _capture_exc_async(
+    coro: Callable[..., Awaitable[_T]]
+) -> Union[_T, E.ManagerError, E.InternalError]:
     from aiohttp import ClientError
 
     try:
@@ -260,10 +261,25 @@ async def _capture_exc_async(coro: Callable[..., Awaitable[Any]]) -> Any:
         return error
     except ClientError as error:
         logger.opt(exception=True).debug('network error')
-        return E.InternalError(error, stringify_error=True)
+        return E.InternalError(error)
     except BaseException as error:
         logger.exception('unclassed error')
         return E.InternalError(error)
+
+
+def _with_lock(
+    lock_name: str,
+    manager_bound: bool = True,
+) -> Callable[[_T], _T]:
+    def outer(coro_fn: _T):
+        async def inner(self: Manager, *args: Any, **kwargs: Any):
+            key = f'{id(self)}_{lock_name}' if manager_bound else lock_name
+            async with self.locks[key]:
+                return await coro_fn(self, *args, **kwargs)
+
+        return inner
+
+    return outer
 
 
 class Manager:
@@ -271,7 +287,7 @@ class Manager:
         self,
         config: Config,
         database: SqlaSession,
-        catalogue: O[MasterCatalogue] = None,
+        catalogue: O[Catalogue] = None,
         resolver_classes: Sequence[Type[Resolver]] = (
             CurseResolver,
             WowiResolver,
@@ -282,13 +298,13 @@ class Manager:
     ) -> None:
         self.config = config
         self.database = database
-        self.catalogue: MasterCatalogue = catalogue  # type: ignore
         self.resolvers = _ResolverDict((r.source, r(self)) for r in resolver_classes)
+        self._catalogue: O[Catalogue] = catalogue
 
     @classmethod
     def from_config(cls: Type[_ManagerT], config: Config) -> _ManagerT:
-        database = prepare_database(config)
-        return cls(config, database)
+        session_factory = prepare_database(config)
+        return cls(config, cast('SqlaSession', session_factory()))
 
     @property
     def web_client(self) -> aiohttp.ClientSession:
@@ -324,20 +340,6 @@ class Manager:
     @locks.setter
     def locks(self, value: DefaultDict[str, asyncio.Lock]) -> None:
         _locks.set(value)
-
-    def _with_lock(
-        lock_name: str,  # type: ignore  # Undeclared static method
-        manager_bound: bool = True,
-    ) -> Callable[[_T], _T]:
-        def outer(coro_fn: _T):
-            async def inner(self: Manager, *args: Any, **kwargs: Any):
-                key = f'{id(self)}_{lock_name}' if manager_bound else lock_name
-                async with self.locks[key]:
-                    return await coro_fn(self, *args, **kwargs)
-
-            return inner
-
-        return outer
 
     def pair_uri(self, value: str) -> O[Tuple[str, str]]:
         "Attempt to extract the source from a URI."
@@ -381,7 +383,7 @@ class Manager:
         folders_in_db = {f.name for f in self.database.query(PkgFolder).all()}
         folders_on_disk = {f.name for f in self.config.addon_dir.iterdir()}
         folder_complement = folders_in_db - folders_on_disk
-        damaged_pkgs = (
+        damaged_pkgs: List[Pkg] = (
             self.database.query(Pkg)
             .join(PkgFolder)
             .filter(PkgFolder.name.in_(folder_complement))
@@ -392,7 +394,7 @@ class Manager:
     def install_pkg(self, pkg: Pkg, archive: Path, replace: bool) -> E.PkgInstalled:
         "Install a package."
         with _open_archive(archive) as (top_level_folders, extract):
-            installed_conflicts = (
+            installed_conflicts: List[Pkg] = (
                 self.database.query(Pkg)
                 .join(Pkg.folders)
                 .filter(PkgFolder.name.in_(top_level_folders))
@@ -428,7 +430,7 @@ class Manager:
     def update_pkg(self, old_pkg: Pkg, new_pkg: Pkg, archive: Path) -> E.PkgUpdated:
         "Update a package."
         with _open_archive(archive) as (top_level_folders, extract):
-            installed_conflicts = (
+            installed_conflicts: List[Pkg] = (
                 self.database.query(Pkg)
                 .join(Pkg.folders)
                 .filter(PkgFolder.pkg_source != new_pkg.source, PkgFolder.pkg_id != new_pkg.id)
@@ -474,16 +476,17 @@ class Manager:
         return E.PkgRemoved(pkg)
 
     @_with_lock('load master catalogue', False)
-    async def synchronise(self) -> None:
+    async def synchronise(self) -> Catalogue:
         "Fetch the master catalogue from the interwebs and load it."
-        if self.catalogue is None:
+        if self._catalogue is None:
             label = 'Synchronising master catalogue'
             url = (
                 'https://raw.githubusercontent.com/layday/instawow-data/data/'
                 'master-catalogue-v2.compact.json'
             )  # v2
             raw_catalogue = await cache_json_response(self, url, 4, 'hours', label=label)
-            self.catalogue = MasterCatalogue.parse_obj(raw_catalogue)
+            self._catalogue = Catalogue.parse_obj(raw_catalogue)
+        return self._catalogue
 
     async def _resolve_deps(self, results: Iterable[Any]) -> Dict[Defn, Any]:
         """Resolve package dependencies.
@@ -504,7 +507,7 @@ class Manager:
         if not dep_defns:
             return {}
 
-        deps = await self.resolve(list(starmap(Defn.get, dep_defns)))
+        deps = await self.resolve(list(starmap(Defn, dep_defns)))
         pretty_deps = {d.with_(name=r.slug) if is_pkg(r) else d: r for d, r in deps.items()}
         return pretty_deps
 
@@ -516,7 +519,7 @@ class Manager:
         await self.synchronise()
 
         defns_by_source = bucketise(defns, key=lambda v: v.source)
-        results: List[Union[Dict[Defn, Any], E.ManagerError]] = await gather(
+        results = await gather(
             (
                 _capture_exc_async(partial(self.resolvers[s].resolve, b))
                 for s, b in defns_by_source.items()
@@ -536,14 +539,14 @@ class Manager:
         return results_by_defn
 
     async def search(
-        self, search_terms: str, limit: int, strategy: Strategies = Strategies.default
+        self, search_terms: str, limit: int, strategy: Strategy = Strategy.default
     ) -> Dict[Defn, Pkg]:
         "Search the master catalogue for packages by name."
         import heapq
 
         from jellyfish import jaro_winkler_similarity
 
-        await self.synchronise()
+        catalogue = await self.synchronise()
 
         w = 0.5  # Weighing edit distance and download score equally
         normalise = normalise_names()
@@ -552,7 +555,7 @@ class Manager:
         defns_by_token = bucketise(
             (
                 (i.normalised_name, i)
-                for i in self.catalogue.__root__
+                for i in catalogue.__root__
                 if self.config.game_flavour in i.game_compatibility
             ),
             key=lambda v: v[0],
@@ -567,7 +570,7 @@ class Manager:
             for s, m in matches
             for _, i in defns_by_token[m]
         )
-        defns = [Defn.get(i.source, i.id).with_strategy(strategy) for _, i in weighted_entries]
+        defns = [Defn(i.source, i.id).with_strategy(strategy) for _, i in weighted_entries]
         resolve_results = await self.resolve(defns)
         pkgs_by_defn = {d.with_(alias=r.slug): r for d, r in resolve_results.items() if is_pkg(r)}
         return pkgs_by_defn
@@ -605,7 +608,9 @@ class Manager:
                 for (d, p), a in zip(installables, archives)
             ),
         )
-        results = {d: await _capture_exc_async(c) for d, c in result_coros.items()}
+        results: Dict[Defn, Any] = {
+            d: await _capture_exc_async(c) for d, c in result_coros.items()
+        }
         return results
 
     @_with_lock('change state')
@@ -651,7 +656,9 @@ class Manager:
                 for (d, *p), a in zip(updatables, archives)
             ),
         )
-        results = {d: await _capture_exc_async(c) for d, c in result_coros.items()}
+        results: Dict[Defn, Any] = {
+            d: await _capture_exc_async(c) for d, c in result_coros.items()
+        }
         return results
 
     @_with_lock('change state')
@@ -663,7 +670,9 @@ class Manager:
             _error_out(E.PkgNotInstalled()),
             ((d, partial(t(self.remove_pkg), p)) for d, p in zip(defns, maybe_pkgs) if p),
         )
-        results = {d: await _capture_exc_async(c) for d, c in result_coros.items()}
+        results: Dict[Defn, Any] = {
+            d: await _capture_exc_async(c) for d, c in result_coros.items()
+        }
         return results
 
     @_with_lock('change state')
@@ -678,22 +687,18 @@ class Manager:
         package.
         """
 
-        strategies = {Strategies.default, Strategies.version}
+        strategies = {Strategy.default, Strategy.version}
 
         def pin(defns: Sequence[Defn]) -> Iterable[E.ManagerResult]:
             for defn in defns:
                 pkg = self.get_pkg(defn)
                 if pkg:
-                    if (
-                        {defn.strategy.type_}
-                        <= strategies
-                        <= self.resolvers[pkg.source].strategies
-                    ):
-                        pkg.options.strategy = defn.strategy.type_.name
+                    if {defn.strategy} <= strategies <= self.resolvers[pkg.source].strategies:
+                        pkg.options.strategy = defn.strategy.name
                         self.database.commit()
                         yield E.PkgInstalled(pkg)
                     else:
-                        yield E.PkgStrategyUnsupported(defn.strategy.type_)
+                        yield E.PkgStrategyUnsupported(defn.strategy)
                 else:
                     yield E.PkgNotInstalled()
 

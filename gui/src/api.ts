@@ -1,7 +1,7 @@
 import type { Client } from "@open-rpc/client-js";
 import lodash from "lodash";
 
-export enum Strategies {
+export enum Strategy {
   default = "default",
   latest = "latest",
   curse_latest_beta = "curse_latest_beta",
@@ -10,18 +10,19 @@ export enum Strategies {
   version = "version",
 }
 
-export type Defn = {
+type BaseDefn = {
   source: string;
   alias: string;
-  strategy?:
-    | {
-        type_: Exclude<Strategies, Strategies.version>;
-      }
-    | {
-        type_: Strategies.version;
-        version?: string;
-      };
 };
+
+type SimpleDefn = BaseDefn & { strategy?: Exclude<Strategy, Strategy.version> };
+
+type VersionDefn = BaseDefn & {
+  strategy: Strategy.version;
+  version: string;
+};
+
+export type Defn = SimpleDefn | VersionDefn;
 
 export type Profile = string;
 
@@ -56,7 +57,7 @@ export type Addon = {
   date_published: string;
   version: string;
   folders: { name: string }[];
-  options: { strategy: Strategies };
+  options: { strategy: Strategy };
   deps: { id: string }[];
   logged_versions: { version: string; install_time: string }[];
 };
@@ -161,7 +162,7 @@ export class Api {
   async search(
     searchTerms: string,
     searchLimit: number,
-    strategy: Strategies
+    strategy: Strategy
   ): Promise<MultiResult> {
     return await this._request({
       method: "search",
@@ -207,5 +208,6 @@ export class Api {
 export const addonToDefn = (addon: Addon): Defn => ({
   source: addon.source,
   alias: addon.id,
-  strategy: { type_: addon.options.strategy, version: addon.version },
+  strategy: addon.options.strategy,
+  version: addon.version,
 });

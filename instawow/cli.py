@@ -30,7 +30,7 @@ import click
 
 from . import exceptions as E, models
 from .config import Config, setup_logging
-from .resolvers import Defn, MultiPkgModel, Strategies
+from .resolvers import Defn, MultiPkgModel, Strategy
 from .utils import TocReader, cached_property, get_version, is_outdated, tabulate, uniq
 
 if TYPE_CHECKING:
@@ -42,9 +42,9 @@ _EnumT = TypeVar('_EnumT', bound=enum.Enum)
 
 
 class Report:
-    _success_symbol = click.style('✓', fg='green')
-    _failure_symbol = click.style('✗', fg='red')
-    _warning_symbol = click.style('!', fg='blue')
+    SUCCESS_SYMBOL = click.style('✓', fg='green')
+    FAILURE_SYMBOL = click.style('✗', fg='red')
+    WARNING_SYMBOL = click.style('!', fg='blue')
 
     def __init__(
         self,
@@ -57,21 +57,22 @@ class Report:
     @property
     def exit_code(self) -> int:
         return any(
-            r
+            isinstance(r, (E.ManagerError, E.InternalError)) and self.filter_fn(r)
             for _, r in self.results
-            if isinstance(r, (E.ManagerError, E.InternalError)) and self.filter_fn(r)
         )
 
-    def __str__(self) -> str:
-        def adorn_result(result: E.ManagerResult):
-            if isinstance(result, E.InternalError):
-                return self._warning_symbol
-            elif isinstance(result, E.ManagerError):
-                return self._failure_symbol
-            return self._success_symbol
+    @classmethod
+    def _result_type_to_symbol(cls, result: E.ManagerResult) -> str:
+        if isinstance(result, E.InternalError):
+            return cls.WARNING_SYMBOL
+        elif isinstance(result, E.ManagerError):
+            return cls.FAILURE_SYMBOL
+        else:
+            return cls.SUCCESS_SYMBOL
 
+    def __str__(self) -> str:
         return '\n'.join(
-            f'{adorn_result(r)} {click.style(str(a), bold=True)}\n'
+            f'{self._result_type_to_symbol(r)} {click.style(str(a), bold=True)}\n'
             + fill(r.message, initial_indent=' ' * 2, subsequent_indent=' ' * 4)
             for a, r in self.results
             if self.filter_fn(r)
@@ -82,7 +83,7 @@ class Report:
         if manager.config.auto_update_check:
             outdated, new_version = is_outdated()
             if outdated:
-                click.echo(f'{self._warning_symbol} instawow-{new_version} is available')
+                click.echo(f'{self.WARNING_SYMBOL} instawow-{new_version} is available')
 
         report = str(self)
         if report:
@@ -206,12 +207,11 @@ def parse_into_defn(
             raise click.BadParameter(value)
 
         pair = '*', value
-    source, name = pair
-    return Defn.get(source, name)
+    return Defn(*pair)
 
 
 def parse_into_defn_with_strategy(
-    manager: CliManagerT, value: Sequence[Tuple[Strategies, str]]
+    manager: CliManagerT, value: Sequence[Tuple[Strategy, str]]
 ) -> List[Defn]:
     defns = parse_into_defn(manager, [d for _, d in value])
     return list(map(Defn.with_strategy, defns, (s for s, _ in value)))
@@ -240,7 +240,7 @@ def combine_addons(
         addons.extend(fn(ctx.obj.m, value))
 
 
-excluded_strategies = {Strategies.default, Strategies.version}
+excluded_strategies = {Strategy.default, Strategy.version}
 
 
 @main.command()
@@ -259,13 +259,13 @@ excluded_strategies = {Strategies.default, Strategies.version}
     '--with-strategy',
     '-s',
     multiple=True,
-    type=(EnumParam(Strategies, excluded_strategies), str),
+    type=(EnumParam(Strategy, excluded_strategies), str),
     expose_value=False,
     callback=partial(combine_addons, parse_into_defn_with_strategy),
     metavar='<STRATEGY ADDON>...',
     help='A strategy followed by an add-on definition.  '
     'The strategies are: '
-    f'{", ".join(s.name for s in Strategies if s not in excluded_strategies)}.',
+    f'{", ".join(s.name for s in Strategy if s not in excluded_strategies)}.',
 )
 @click.option(
     '--version',
@@ -434,10 +434,7 @@ def reconcile(ctx: click.Context, auto: bool, list_unreconciled: bool) -> None:
         for addons, defns in groups:
             shortlist = list(filter(is_pkg, (results[d] for d in defns)))
             if shortlist:
-                if auto:
-                    selection = Defn.from_pkg(shortlist[0])
-                else:
-                    selection = prompt_one(addons, shortlist)
+                selection = Defn.from_pkg(shortlist[0]) if auto else prompt_one(addons, shortlist)
                 selection and (yield selection)
 
     def match_all() -> Generator[List[Defn], FrozenSet[AddonFolder], None]:
@@ -528,7 +525,7 @@ def list_installed(
     from sqlalchemy import and_, or_
 
     def format_deps(pkg: models.Pkg):
-        deps = (Defn.get(pkg.source, d.id) for d in pkg.deps)
+        deps = (Defn(pkg.source, d.id) for d in pkg.deps)
         deps = (d.with_(name=getattr(obj.m.get_pkg(d), 'slug', d.alias)) for d in deps)
         return map(str, deps)
 
@@ -704,9 +701,9 @@ def generate_catalogue(filename: Path, age_cutoff: O[datetime]) -> None:
     "Generate the master catalogue."
     import asyncio
 
-    from .resolvers import MasterCatalogue
+    from .resolvers import Catalogue
 
-    catalogue = asyncio.run(MasterCatalogue.collate(age_cutoff))
+    catalogue = asyncio.run(Catalogue.collate(age_cutoff))
     filename.write_text(catalogue.json(indent=2), encoding='utf-8')
     filename.with_suffix(f'.compact{filename.suffix}').write_text(
         catalogue.json(separators=(',', ':')), encoding='utf-8'

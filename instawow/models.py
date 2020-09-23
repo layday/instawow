@@ -1,66 +1,27 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import TYPE_CHECKING, Any, Dict, List, Optional as O, Type
+from typing import TYPE_CHECKING, Any, List, Optional as O, Type
 
-import pydantic
 from sqlalchemy import (
     Column,
     DateTime,
     ForeignKeyConstraint,
+    MetaData,
     String,
     TypeDecorator,
     and_,
     exc,
     func,
-    inspect,
 )
-from sqlalchemy.ext.declarative import DeclarativeMeta, declarative_base
+from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import Session, object_session, relationship
 
-
-class _BaseCoercer(pydantic.BaseModel):
-    """The coercer is used inside the declarative constructor to type-cast
-    values _prior to_ inserts.  SQLAlchemy delegates this function to
-    the DB API -- see https://stackoverflow.com/a/8980982.  We need this to
-    happen in advance to be able to compare values with their in-database
-    counterparts.  It also saves us the trouble of having to manually
-    parse dates and the like.
-    """
-
-    class Config:
-        extra = pydantic.Extra.allow
-        max_anystr_length = 2 ** 32
-
-
-_coercers: Dict[type, Type[pydantic.BaseModel]] = {}
-
-
-class _ModelMeta(DeclarativeMeta):
-    def __init__(cls, *args: Any, **kwargs: Any) -> None:
-        super().__init__(*args, **kwargs)
-        inspector = inspect(cls, raiseerr=False)
-        if inspector:
-            _coercers[cls] = pydantic.create_model(
-                f'{cls.__name__}Coercer',
-                __base__=_BaseCoercer,
-                **{
-                    c.name: (c.type.python_type, ...)
-                    for c in inspector.columns
-                    if not c.foreign_keys and not c.name.startswith('_') and not c.server_default
-                },
-            )
-
-
-def _constructor(self: object, **kwargs: Any) -> None:
-    intermediate_obj = _coercers[self.__class__](**kwargs)
-    for k, v in intermediate_obj:
-        setattr(self, k, v)
-
-
-ModelBase: Any = declarative_base(constructor=_constructor, metaclass=_ModelMeta)
-
 if TYPE_CHECKING:
+
+    class _ModelBase:
+        metadata: MetaData
+
     TZDateTime_base_class = TypeDecorator[datetime]
 else:
     TZDateTime_base_class = TypeDecorator
@@ -77,11 +38,16 @@ class TZDateTime(TZDateTime_base_class):
         return value
 
     def process_result_value(self, value: O[datetime], dialect: Any) -> O[datetime]:
-        return value and value.replace(tzinfo=timezone.utc)
+        if value is not None:
+            value = value.replace(tzinfo=timezone.utc)
+        return value
 
     @property
     def python_type(self):
         return datetime
+
+
+ModelBase: Type[_ModelBase] = declarative_base()
 
 
 class Pkg(ModelBase):
@@ -105,6 +71,26 @@ class Pkg(ModelBase):
     deps: relationship[List[PkgDep]] = relationship(
         'PkgDep', cascade='all, delete-orphan', backref='pkg'
     )
+
+    if TYPE_CHECKING:
+
+        def __init__(
+            self,
+            *,
+            source: str,
+            id: str,
+            slug: str,
+            name: str,
+            description: str,
+            url: str,
+            download_url: str,
+            date_published: datetime,
+            version: str,
+            folders: List[PkgFolder] = [],
+            options: PkgOptions,
+            deps: List[PkgDep] = [],
+        ) -> None:
+            ...
 
     @property
     def logged_versions(self) -> List[PkgVersionLog]:
@@ -131,6 +117,11 @@ class PkgFolder(ModelBase):
     pkg_source = Column(String, nullable=False)
     pkg_id = Column(String, nullable=False)
 
+    if TYPE_CHECKING:
+
+        def __init__(self, *, name: str) -> None:
+            ...
+
 
 class PkgOptions(ModelBase):
     __tablename__ = 'pkg_options'
@@ -139,6 +130,11 @@ class PkgOptions(ModelBase):
     strategy = Column(String, nullable=False)
     pkg_source = Column(String, primary_key=True)
     pkg_id = Column(String, primary_key=True)
+
+    if TYPE_CHECKING:
+
+        def __init__(self, *, strategy: str) -> None:
+            ...
 
 
 class PkgDep(ModelBase):
@@ -149,6 +145,11 @@ class PkgDep(ModelBase):
     pkg_source = Column(String, primary_key=True)
     pkg_id = Column(String, primary_key=True)
 
+    if TYPE_CHECKING:
+
+        def __init__(self, *, id: str) -> None:
+            ...
+
 
 class PkgVersionLog(ModelBase):
     __tablename__ = 'pkg_version_log'
@@ -157,6 +158,17 @@ class PkgVersionLog(ModelBase):
     install_time = Column(TZDateTime, nullable=False, server_default=func.now())
     pkg_source = Column(String, primary_key=True)
     pkg_id = Column(String, primary_key=True)
+
+    if TYPE_CHECKING:
+
+        def __init__(
+            self,
+            *,
+            version: str,
+            pkg_source: str,
+            pkg_id: str,
+        ) -> None:
+            ...
 
 
 def should_migrate(engine: Any, version: str) -> bool:

@@ -7,7 +7,7 @@
   } from "@fortawesome/free-solid-svg-icons";
   import { createEventDispatcher } from "svelte";
   import { fade, fly } from "svelte/transition";
-  import { Strategies } from "../api";
+  import { Strategy } from "../api";
   import { View } from "../constants";
   import Icon from "./SvgIcon.svelte";
 
@@ -16,7 +16,7 @@
     addonsCondensed: boolean,
     search__searchTerms: string,
     search__fromAlias: boolean,
-    search__searchStrategy: Strategies,
+    search__searchStrategy: Strategy,
     search__searchVersion: string,
     search__isSearching: boolean,
     installed__isRefreshing: boolean,
@@ -283,11 +283,11 @@
         <Icon icon={faFingerprint} />
       </label>
       <select aria-label="strategy" bind:value={search__searchStrategy}>
-        {#each Object.values(Strategies) as strategy}
+        {#each Object.values(Strategy) as strategy}
           <option value={strategy}>{strategy}</option>
         {/each}
       </select>
-      {#if search__searchStrategy === Strategies.version}
+      {#if search__searchStrategy === Strategy.version}
         <input
           type="text"
           class="version"

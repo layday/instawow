@@ -34,7 +34,7 @@ from .config import Config
 from .manager import Manager, init_web_client
 from .matchers import get_folders, match_dir_names, match_toc_ids, match_toc_names
 from .models import Pkg, is_pkg
-from .resolvers import Defn, PkgModel, Strategies
+from .resolvers import Defn, PkgModel, Strategy
 from .utils import Literal, get_version, is_outdated, run_in_thread as t, uniq
 
 if TYPE_CHECKING:
@@ -119,12 +119,12 @@ class ListProfilesParams(BaseParams):
 class Source(BaseModel):
     source: str
     name: str
-    supported_strategies: List[Strategies]
+    supported_strategies: List[Strategy]
     supports_rollback: bool
 
     @validator('supported_strategies')
-    def _sort_strategies(cls, value: List[Strategies]) -> List[Strategies]:
-        return sorted(value, key=list(Strategies).index)
+    def _sort_strategies(cls, value: List[Strategy]) -> List[Strategy]:
+        return sorted(value, key=list(Strategy).index)
 
 
 class ListSourcesParams(_ProfileParamMixin, BaseParams):
@@ -182,7 +182,7 @@ class MultiResult(BaseModel):
 class SearchParams(_ProfileParamMixin, BaseParams):
     search_terms: str
     limit: int
-    strategy: Strategies = Strategies.default
+    strategy: Strategy = Strategy.default
     _method = 'search'
 
     async def respond(self, managers: ManagerWorkQueue) -> MultiResult:

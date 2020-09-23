@@ -57,15 +57,15 @@ const createWindow = () => {
 // Construct a menu from `actions` and wait for it to be dismissed.
 // Returns the `action` value of the item that was selected if any.
 const waitForMenuSelection = async (
-  actions: { action: string; label: string }[]
+  actions: { id: string; label: string }[]
 ): Promise<string> => {
   let selectedAction: string;
 
   const menu = Menu.buildFromTemplate(
-    actions.map(({ action, label }) => ({
-      id: action,
+    actions.map(({ id, label }) => ({
+      id: id,
       label: label,
-      click: () => (selectedAction = action),
+      click: () => (selectedAction = id),
     }))
   );
 
@@ -107,7 +107,7 @@ ipcMain.handle("select-folder", async (event, defaultPath?: string) => {
 
 ipcMain.handle(
   "get-action-from-context-menu",
-  async (event, actions: { action: string; label: string }[]) => {
+  async (event, actions: { id: string; label: string }[]) => {
     return await waitForMenuSelection(actions);
   }
 );

@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, ClassVar, Optional, Sequence, Set
 
 if TYPE_CHECKING:
     from .models import Pkg
-    from .resolvers import Strategies
+    from .resolvers import Strategy
 
 
 class ManagerResult:
@@ -53,13 +53,19 @@ class PkgAlreadyInstalled(ManagerError):
 
 
 class PkgConflictsWithInstalled(ManagerError):
-    message_template = 'package folders conflict with installed package {self.conflicts[0]}'
+    message_template = 'package folders conflict with installed package'
 
-    def __init__(self, conflicts: Sequence[Pkg]) -> None:
-        from .resolvers import Defn
-
+    def __init__(self, conflicting_pkgs: Sequence[Pkg]) -> None:
         super().__init__()
-        self.conflicts = [Defn.from_pkg(c) for c in conflicts]
+        self.conflicting_pkgs = conflicting_pkgs
+
+    @property
+    def message(self) -> str:
+        return (
+            self.message_template
+            + ('s ' if len(self.conflicting_pkgs) > 1 else ' ')
+            + ', '.join(f'{c.name} ({c.source}:{c.id})' for c in self.conflicting_pkgs)
+        )
 
 
 class PkgConflictsWithUnreconciled(ManagerError):
@@ -77,13 +83,13 @@ class PkgNonexistent(ManagerError):
 class PkgFileUnavailable(ManagerError):
     message_template = 'package file is not available for download'
 
-    def __init__(self, specialised_message: Optional[str] = None) -> None:
+    def __init__(self, message: Optional[str] = None) -> None:
         super().__init__()
-        self.specialised_message = specialised_message
+        self._message = message
 
     @property
     def message(self) -> str:
-        return self.specialised_message or super().message
+        return self._message or super().message
 
 
 class PkgNotInstalled(ManagerError):
@@ -101,7 +107,7 @@ class PkgUpToDate(ManagerError):
 class PkgStrategyUnsupported(ManagerError):
     message_template = '{self.strategy.name!r} strategy is not valid for source'
 
-    def __init__(self, strategy: Strategies) -> None:
+    def __init__(self, strategy: Strategy) -> None:
         super().__init__()
         self.strategy = strategy
 
@@ -110,13 +116,10 @@ class InternalError(ManagerResult, Exception):
     kind = 'error'
     message_template = 'internal error'
 
-    def __init__(self, error: BaseException, stringify_error: bool = False) -> None:
+    def __init__(self, error: BaseException) -> None:
         super().__init__()
         self.error = error
-        self.stringify_error = stringify_error
 
     @property
     def message(self) -> str:
-        return (
-            f'{self.message_template}: "{self.error}"' if self.stringify_error else super().message
-        )
+        return f'{self.message_template}: "{self.error}"'

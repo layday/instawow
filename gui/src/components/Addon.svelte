@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { Addon, AddonWithMeta } from "../api";
-  import { Strategies } from "../api";
+  import { Strategy } from "../api";
   import { ipcRenderer } from "../ipc";
   import {
     faEllipsisH,
@@ -152,7 +152,7 @@
   class="addon"
   class:status-damaged={false}
   class:status-outdated={isOutdated}
-  class:status-pinned={addon.options.strategy === Strategies.version}
+  class:status-pinned={addon.options.strategy === Strategy.version}
   class:status-being-modified={beingModified}>
   <ul class="addon-details" class:two-col={showCondensed}>
     <li class="name">{addon.name}</li>
@@ -162,7 +162,7 @@
       <span title={otherAddon.date_published}>
         ({DateTime.fromISO(otherAddon.date_published).toRelative()})
       </span>
-      {#if otherAddon.options.strategy !== Strategies.default}@ {otherAddon.options.strategy}{/if}
+      {#if otherAddon.options.strategy !== Strategy.default}@ {otherAddon.options.strategy}{/if}
     </li>
     {#if !showCondensed}
       <li class="defn">{addon.source}:{addon.id}</li>

@@ -40,7 +40,7 @@ class AddonFolder:
     @cached_property
     def defns_from_toc(self) -> FrozenSet[Defn]:
         return frozenset(
-            Defn.get(s, i)
+            Defn(s, i)
             for s, i in ((s, self.toc_reader[k].value) for k, s in _ids_to_sources.items())
             if i
         )
@@ -60,20 +60,17 @@ class AddonFolder:
     def __lt__(self, other: object) -> bool:
         if not isinstance(other, (self.__class__, str)):
             return NotImplemented
-        return self.name < other
+        return self.name < cast(str, other)
 
 
-def get_folders(manager: Manager, exclude_own: bool = True) -> FrozenSet[AddonFolder]:
+def get_folders(manager: Manager) -> FrozenSet[AddonFolder]:
     def make_addon_folder(path: Path):
         if path.name not in own_folders and path.is_dir() and not path.is_symlink():
             with suppress(FileNotFoundError):
                 return AddonFolder(path.name, TocReader.from_parent_folder(path))
 
-    if exclude_own:
-        own_folders = {f.name for f in manager.database.query(PkgFolder).all()}
-    else:
-        own_folders = set()
-    return frozenset(f for f in map(make_addon_folder, manager.config.addon_dir.iterdir()) if f)
+    own_folders = {f.name for f in manager.database.query(PkgFolder).all()}
+    return frozenset(filter(None, map(make_addon_folder, manager.config.addon_dir.iterdir())))
 
 
 async def match_toc_ids(manager: Manager, leftovers: FrozenSet[AddonFolder]) -> MatchGroups:
@@ -100,7 +97,7 @@ async def match_dir_names(manager: Manager, leftovers: FrozenSet[AddonFolder]) -
         folders, defn = value
         return (-len(folders), _sources_to_sort_weights[defn.source])
 
-    await manager.synchronise()
+    catalogue = await manager.synchronise()
 
     # We can't use an intersection here because it's not guaranteed to
     # return ``AddonFolder``s - the duck typing semantics of '&' appear
@@ -108,9 +105,9 @@ async def match_dir_names(manager: Manager, leftovers: FrozenSet[AddonFolder]) -
     matches = [
         (
             frozenset(e for e in leftovers if e in cast('List[AddonFolder]', f)),
-            Defn.get(i.source, i.id),
+            Defn(i.source, i.id),
         )
-        for i in manager.catalogue.__root__
+        for i in catalogue.__root__
         for f in i.folders
         if manager.config.game_flavour in i.game_compatibility and frozenset(f) <= leftovers
     ]
@@ -127,8 +124,8 @@ async def match_toc_names(manager: Manager, leftovers: FrozenSet[AddonFolder]) -
     def normalise(value: str):
         return re.sub(r'[^0-9A-Za-z]', '', value.casefold())
 
-    await manager.synchronise()
+    catalogue = await manager.synchronise()
 
-    norm_to_items = bucketise(manager.catalogue.__root__, key=lambda i: normalise(i.name))
+    norm_to_items = bucketise(catalogue.__root__, key=lambda i: normalise(i.name))
     matches = ((e, norm_to_items.get(normalise(e.name))) for e in sorted(leftovers))
-    return [([e], uniq(Defn.get(i.source, i.id) for i in m)) for e, m in matches if m]
+    return [([e], uniq(Defn(i.source, i.id) for i in m)) for e, m in matches if m]

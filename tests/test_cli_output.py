@@ -22,7 +22,6 @@ def mock(mock_all):
 def cli_config(
     request,
     tmp_path_factory,
-    temp_dir,
 ):
     "Reuse the temporary folder for all cases of a parametrized test."
     parametrized_tmp_path = (
@@ -36,7 +35,6 @@ def cli_config(
         config_dir=parametrized_tmp_path / 'config',
         addon_dir=addon_dir,
         game_flavour=request.param,
-        temp_dir=temp_dir,
     ).write()
 
 
@@ -224,8 +222,9 @@ def test_valid_wowi_pkg_lifecycle(run, args, cmp):
         ),
         (
             'install wowi:13188-molinari',
-            "✗ wowi:13188-molinari\n"
-            "  package folders conflict with installed package curse:molinari\n".__eq__,
+            '✗ wowi:13188-molinari\n'
+            '  package folders conflict with installed package Molinari\n'
+            '    (curse:20338)\n'.__eq__,
             Flavour.retail,
         ),
         (
@@ -517,9 +516,11 @@ def test_install_sandwich(run):
 ✓ curse:molinari
   installed 80300.66-Release
 ✗ curse:molinari
-  package folders conflict with installed package curse:molinari
+  package folders conflict with installed package Molinari
+    (curse:20338)
 ✗ curse:molinari
-  package folders conflict with installed package curse:molinari
+  package folders conflict with installed package Molinari
+    (curse:20338)
 '''
     )
 
@@ -536,25 +537,24 @@ def test_install_sandwich_defn_order_is_respected(run):
 ✓ curse:molinari
   installed 80000.57-Release
 ✗ curse:molinari
-  package folders conflict with installed package curse:molinari
+  package folders conflict with installed package Molinari
+    (curse:20338)
 ✗ curse:molinari
-  package folders conflict with installed package curse:molinari
+  package folders conflict with installed package Molinari
+    (curse:20338)
 '''
     )
 
 
 def test_install_sandwich_addon_argument_is_not_required(run):
     assert (
-        run(
-            'install'
-            ' -s latest curse:molinari'
-            ' --version 80000.57-Release curse:molinari'
-        ).output
+        run('install -s latest curse:molinari --version 80000.57-Release curse:molinari').output
         == '''\
 ✓ curse:molinari
   installed 80300.66-Release
 ✗ curse:molinari
-  package folders conflict with installed package curse:molinari
+  package folders conflict with installed package Molinari
+    (curse:20338)
 '''
     )
 

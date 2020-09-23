@@ -8,7 +8,6 @@ from functools import partial, wraps
 from itertools import chain, repeat, takewhile
 from pathlib import Path, PurePath
 import posixpath
-import re
 from shutil import move as _move
 from tempfile import mkdtemp
 from typing import (
@@ -226,11 +225,6 @@ def copy_resources(*packages: str) -> Iterator[Path]:
                     filename = filename.with_suffix('')
                 filename.write_bytes(read_binary(package, resource))
         yield tmp_path
-
-
-def slugify(text: str) -> str:
-    "Convert an add-on name into a lower-alphanumeric slug."
-    return '-'.join(re.sub(r'[^0-9a-z]', ' ', text.casefold()).split())
 
 
 def tabulate(rows: Sequence[Sequence[Any]], *, max_col_width: int = 60) -> str:

@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { Addon } from "../api";
-  import { Strategies } from "../api";
+  import { Strategy } from "../api";
   import { DateTime } from "luxon";
   import { createEventDispatcher } from "svelte";
   import { scale } from "svelte/transition";
@@ -16,8 +16,8 @@
     dispatch("requestRollback", {
       ...addon,
       version: version,
-      options: { strategy: Strategies.version },
-    } as Addon);
+      options: { strategy: Strategy.version },
+    });
     show = false;
   };
 </script>
