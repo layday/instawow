@@ -23,11 +23,13 @@ from typing import (
     Union,
     overload,
 )
+from uuid import uuid4
 
 from aiohttp import web
 from aiohttp_rpc import JsonRpcMethod, WsJsonRpcServer, middlewares as rpc_middlewares
 from aiohttp_rpc.errors import InvalidParams as InvalidParamsError, ServerError
 from pydantic import BaseModel, ValidationError, validator
+from yarl import URL
 
 from . import exceptions as E
 from .config import Config
@@ -42,6 +44,7 @@ if TYPE_CHECKING:
     ManagerWorkQueueItem = Tuple[asyncio.Future[Any], str, O[Callable[..., Awaitable[Any]]]]
 
 
+LOCALHOST = '127.0.0.1'
 API_VERSION = 0
 
 
@@ -429,8 +432,19 @@ def serialise_response(value: Dict[str, Any]) -> str:
     return BaseModel.construct(**value).json()
 
 
-async def create_app() -> web.Application:
+async def create_app() -> Tuple[web.Application, str]:
     managers = ManagerWorkQueue()
+
+    def start_managers():
+        managers_listen = asyncio.create_task(managers.listen())
+
+        async def on_shutdown(app: web.Application):
+            managers_listen.cancel()
+            await managers.cleanup()
+
+        return on_shutdown
+
+    endpoint = f'/v{API_VERSION}/{uuid4()}'
     rpc_server = WsJsonRpcServer(
         json_serialize=serialise_response,
         middlewares=rpc_middlewares.DEFAULT_MIDDLEWARES,
@@ -458,32 +472,28 @@ async def create_app() -> web.Application:
         )
     )
     app = web.Application()
-    app.router.add_routes([web.get(f'/v{API_VERSION}', rpc_server.handle_http_request)])
-
-    async def on_shutdown(app: web.Application):
-        listen.cancel()
-        await managers.cleanup()
-
-    listen = asyncio.create_task(managers.listen())
-    app.on_shutdown.append(on_shutdown)
-    return app
+    app.add_routes([web.get(endpoint, rpc_server.handle_http_request)])
+    app.on_shutdown.append(start_managers())
+    app.freeze()
+    return (app, endpoint)
 
 
 async def listen() -> None:
     "Fire up the server."
     loop = asyncio.get_running_loop()
-    app_runner = web.AppRunner(await create_app())
+    app, endpoint = await create_app()
+    app_runner = web.AppRunner(app)
     await app_runner.setup()
     # Placate the type checker - server is created in ``app_runner.setup``
     assert app_runner.server
-    # By omitting the port ``loop.create_server`` will find a random available
-    # port to bind to (equivalent to creating a socket on port 0)
-    server = await loop.create_server(app_runner.server, '127.0.0.1')
+    # By omitting the port, ``loop.create_server`` will find an available port
+    # to bind to - this is equivalent to creating a socket on port 0.
+    server = await loop.create_server(app_runner.server, LOCALHOST)
     assert server.sockets
     (host, port) = server.sockets[0].getsockname()
     # We're writing the address to fd 3 just in case something seeps into
     # stdout or stderr.
-    message = f'ws://{host}:{port}/'.encode()
+    message = str(URL.build(scheme='ws', host=host, port=port, path=endpoint)).encode()
     for fd in (1, 3):
         os.write(fd, message)
     try:

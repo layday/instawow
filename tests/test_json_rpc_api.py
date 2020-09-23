@@ -9,9 +9,9 @@ from instawow.json_rpc_server import create_app, serialise_response
 @pytest.fixture
 async def ws(full_config, monkeypatch):
     monkeypatch.setenv('INSTAWOW_CONFIG_DIR', str(full_config['config_dir']))
-    app = await create_app()
+    app, endpoint = await create_app()
     server = TestServer(app)
-    async with TestClient(server) as client, client.ws_connect('/v0') as ws:
+    async with TestClient(server) as client, client.ws_connect(endpoint) as ws:
         yield ws
 
 

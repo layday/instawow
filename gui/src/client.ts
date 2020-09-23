@@ -7,8 +7,7 @@ import { ipcRenderer } from "./ipc";
 export const getClient = () => {
   const connectToServer = async () => {
     const serverAddress = await ipcRenderer.invoke("get-server-address"),
-      endpoint = new URL("/v0", serverAddress).toString(),
-      transport = new WebSocketTransport(endpoint),
+      transport = new WebSocketTransport(serverAddress),
       client = new Client(new RequestManager([transport]));
     return [transport, client] as const;
   };
