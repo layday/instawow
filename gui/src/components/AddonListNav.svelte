@@ -272,14 +272,14 @@
       </button>
     {:else if activeView === View.Search}
       <input
-        id="__interpret-as-defn"
+        id="__interpret-as-uri"
         class="hidden"
         type="checkbox"
         bind:checked={search__fromAlias} />
       <label
-        for="__interpret-as-defn"
-        aria-label="interpret query as an add-on definition"
-        title="interpret query as an add-on definition">
+        for="__interpret-as-uri"
+        aria-label="interpret query as an add-on URI"
+        title="interpret query as an add-on URI">
         <Icon icon={faFingerprint} />
       </label>
       <select aria-label="strategy" bind:value={search__searchStrategy}>

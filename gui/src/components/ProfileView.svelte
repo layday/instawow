@@ -92,9 +92,11 @@
   export let profile: string, api: Api, isActive: boolean, installedAddonCount: number;
 
   let sources: Sources;
+  let uriSchemes: string[];
 
   let activeView: View = View.Installed;
   let addonsCondensed: boolean = false;
+
   let addons__Installed: AddonTuple[] = [];
   let addons__Search: Addon[] = [];
   let addons__CombinedSearch: AddonTuple[] = [];
@@ -205,6 +207,10 @@
 
   const pinAddons = async (addons: Addon[]) => {
     await modifyAddons("pin", addons);
+  };
+
+  const isSearchFromAlias = () => {
+    return uriSchemes.some((s) => searchTerms.startsWith(s));
   };
 
   const search = async () => {
@@ -363,7 +369,6 @@
     try {
       console.debug(profile, "- installing selections from", thisStage);
       await installAddons(theseSelections.filter(Boolean), true);
-
       const nextStage = getNextReconcileStage(thisStage);
       if (nextStage) {
         if (recursive) {
@@ -385,6 +390,7 @@
 
   onMount(async () => {
     sources = await api.listSources();
+    uriSchemes = [...Object.keys(sources), "http", "https"].map((s) => `${s}:`);
     await refreshInstalled(true);
     // Switch over to reconciliation if no add-ons are installed
     if (!addons__Installed.length) {
@@ -403,6 +409,10 @@
   $: searchTerms &&
     (searchFromAlias || searchStrategy || searchVersion) &&
     (console.debug(profile, "- searching for", searchTerms), searchDebounced());
+  // Upddate `searchFromAlias` whenever the `searchTerms` change
+  $: searchTerms &&
+    (searchFromAlias =
+      (console.debug(profile, "- updating `searchFromAlias`"), isSearchFromAlias()));
   // Update add-on list according to view
   $: addons = activeView === View.Search ? addons__CombinedSearch : addons__Installed;
   // Recount updates whenever `addons__Installed` is modified
