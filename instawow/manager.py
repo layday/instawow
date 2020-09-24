@@ -566,11 +566,14 @@ class Manager:
             key=lambda v: v[0],
         )
         weighted_entries = sorted(
-            (-(s * w + i.derived_download_score * (1 - w)), i)
-            for s, m in matches
-            for _, i in defns_by_token[m]
+            (
+                (-(s * w + i.derived_download_score * (1 - w)), i)
+                for s, m in matches
+                for _, i in defns_by_token[m]
+            ),
+            key=lambda v: v[0],
         )
-        defns = [Defn(i.source, i.id).with_strategy(strategy) for _, i in weighted_entries]
+        defns = [Defn(i.source, i.id, strategy=strategy) for _, i in weighted_entries]
         resolve_results = await self.resolve(defns)
         pkgs_by_defn = {d.with_(alias=r.slug): r for d, r in resolve_results.items() if is_pkg(r)}
         return pkgs_by_defn
