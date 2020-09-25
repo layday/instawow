@@ -11,7 +11,6 @@ from sqlalchemy import (
     String,
     TypeDecorator,
     and_,
-    exc,
     func,
 )
 from sqlalchemy.ext.declarative import declarative_base
@@ -169,22 +168,6 @@ class PkgVersionLog(ModelBase):
             pkg_id: str,
         ) -> None:
             ...
-
-
-def should_migrate(engine: Any, version: str) -> bool:
-    """Check if the database version is the same as `version`;
-    if not a migration would be required.
-    """
-    with engine.begin() as conn:
-        try:
-            current = conn.execute(
-                'SELECT version_num FROM alembic_version WHERE version_num = (?)',
-                version,
-            ).scalar()
-        except exc.OperationalError:
-            return True
-        else:
-            return not current
 
 
 def is_pkg(value: Any) -> bool:

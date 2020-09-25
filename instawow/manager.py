@@ -51,6 +51,7 @@ from .resolvers import (
 from .utils import (
     bucketise,
     chain_dict,
+    copy_resources,
     file_uri_to_path,
     find_zip_base_dirs,
     gather,
@@ -167,44 +168,60 @@ async def cache_json_response(
     return json.loads(text)
 
 
+def _should_migrate(engine: Any) -> bool:
+    """Check if the database version is the same as ``DB_REVISION``;
+    if not, a migration is required.
+
+    Importing Alembic is prohibitively expensive in the CLI
+    (adds about 250 ms to start-up time on my MBP) so we defer
+    to SQLAlchemy.
+    """
+    from sqlalchemy import exc
+
+    with engine.begin() as conn:
+        try:
+            current = conn.execute(
+                'SELECT version_num FROM alembic_version WHERE version_num = (?)',
+                DB_REVISION,
+            ).scalar()
+        except exc.OperationalError:
+            return True
+        else:
+            return not current
+
+
 def prepare_database(config: Config) -> sessionmaker:
     from sqlalchemy import create_engine
     from sqlalchemy.orm import sessionmaker
 
-    from .models import ModelBase, should_migrate
+    from .models import ModelBase
 
-    # We can't perform a migration on a new database without "metadata"
-    # and we need to check whether it exists before calling ``create_engine``,
-    # which will implicitly create the database file
-    db_exists = config.db_file.exists()
-    db_url = f'sqlite:///{config.db_file}'
+    engine = create_engine(
+        f'sqlite:///{config.db_file}',
+        # We wanna be able to operate on SQLite objects from
+        # executor threads for convenience, when performing disk I/O
+        connect_args={'check_same_thread': False},
+    )
 
-    # We want to be able to reuse SQLite objects in a separate thread
-    # when lumping database operations in with disk I/O,
-    # not to lock up the loop
-    engine = create_engine(db_url, connect_args={'check_same_thread': False})
-
-    if should_migrate(engine, DB_REVISION):
+    if _should_migrate(engine):
         from alembic.command import stamp, upgrade
-        from alembic.config import Config as AConfig
-
-        from .utils import copy_resources
+        from alembic.config import Config as AlembicConfig
 
         with copy_resources(
             f'{__package__}.migrations',
             f'{__package__}.migrations.versions',
         ) as tmp_dir:
-            aconfig: Any = AConfig()
-            aconfig.set_main_option('script_location', str(tmp_dir / __package__ / 'migrations'))
-            aconfig.set_main_option('sqlalchemy.url', db_url)
+            alembic_config = AlembicConfig()
+            alembic_config.set_main_option(
+                'script_location', str(tmp_dir / __package__ / 'migrations')
+            )
+            alembic_config.set_main_option('sqlalchemy.url', str(engine.url))
 
-            if db_exists:
-                logger.info(f'migrating database at {config.db_file} to {DB_REVISION}')
-                upgrade(aconfig, DB_REVISION)
+            if engine.table_names():
+                upgrade(alembic_config, DB_REVISION)
             else:
                 ModelBase.metadata.create_all(engine)
-                logger.info(f'stamping database at {config.db_file} with {DB_REVISION}')
-                stamp(aconfig, DB_REVISION)
+                stamp(alembic_config, DB_REVISION)
 
     return sessionmaker(bind=engine)
 
