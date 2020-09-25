@@ -5,16 +5,17 @@ CLI
   that it's an option
 - [ ] Allow passing `--strategy` to search?
 - [ ] Scoop package for Windows?  brew for Mac?  I don't like Homebrew though.
-- [ ] RH/Fedora blocker: https://github.com/indygreg/PyOxidizer/issues/283
 
 GUI
 ---
 
-- [-] Better RPC error handling
+- [ ] Better RPC error handling
+  - [ ] Investigate crash when config is invalid
 - [ ] New notification interface - `window.alert`s are horrible
+  - Tentatively using `Notification`s
 - [x] Deleting profiles
   - [ ] ~~Renaming profiles? Meh~~
-    - WONTDO
+    - wontfix
 - [ ] Report add-on download progress
   - Investigate JSON-RPC subscriptions
 - [ ] Installed add-on filtering
@@ -23,7 +24,7 @@ GUI
     A separate tab for searching?
   - Should filtering and search use the same algorithm?
 - [ ] ~~Advanced search with sub-queries (maybe)~~
-  - WONTDO
+  - wontfix
 - [x] Improve (re)installing 'with options' workflow
   - [ ] ~~Resolve add-ons in modal before attempting to (re)install~~
     - Got rid of the installation modal and
@@ -35,16 +36,19 @@ GUI
     to reinstall the add-on if the version is the same between the installed
     and new strategy?  This would be similar to 'pinning'
     - Probably not worth the effort
+      - wontfix
 - [ ] WeakAuras Companion integration
   - [ ] Might need to rethink `strategy_vals` -
     attach account to options using custom strategy?
     - Restructured strategy in `Defn`
       but haven't added a WA strategy yet
       which is going to require a migration
-- [ ] Duplicate all of the buttons and controls in the menu bar
 - [ ] Tests, tests, tests
   - See https://objectcomputing.com/resources/publications/sett/july-2019-web-dev-simplified-with-svelte
+- [ ] Duplicate all of the buttons and controls in the menu bar
 - App settings?  Do we need them or can we rely exclusively on profiles?
+- [ ] Investigate [Tauri](https://github.com/tauri-apps/tauri) as a replacement
+  for Electron.  Tauri looks promising and would tie in nicely with PyOxidizer.
 
 Both
 ----
@@ -62,3 +66,4 @@ Both
   into it eventually
   - Consider using a more sophisticated caching mechanism
 - [x] Precompute normalised add-on names for search
+- [ ] RHEL/Fedora blocker: https://github.com/indygreg/PyOxidizer/issues/283
