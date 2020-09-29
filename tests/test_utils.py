@@ -67,6 +67,7 @@ def test_multiindexing_toc_entries(fake_addon):
     assert toc_reader['Normal', 'Compact'] == ('Normal', 'Normal entry')
     assert toc_reader['Compact', 'Normal'] == ('Compact', 'Compact entry')
     assert toc_reader['Indented', 'Normal'] == ('Normal', 'Normal entry')
+    assert toc_reader['Nonexistent', 'Indented'] == ('Nonexistent', '')
     assert toc_reader['Nonexistent', 'Indented', 'Normal'] == ('Normal', 'Normal entry')
 
 

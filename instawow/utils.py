@@ -14,10 +14,10 @@ from typing import (
     TYPE_CHECKING,
     AbstractSet,
     Any,
-    AsyncIterator,
     Awaitable,
     Callable,
     DefaultDict,
+    Deque,
     Dict,
     Generic,
     Hashable,
@@ -107,7 +107,7 @@ class cached_property(Generic[_V]):
 
 def bucketise(iterable: Iterable[_V], key: Callable[[_V], _H]) -> DefaultDict[_H, List[_V]]:
     "Place the elements of an iterable in a bucket according to ``key``."
-    bucket: Any = defaultdict(list)
+    bucket: DefaultDict[_H, List[_V]] = defaultdict(list)
     for value in iterable:
         bucket[key(value)].append(value)
     return bucket
@@ -127,19 +127,17 @@ def uniq(it: Iterable[_H]) -> List[_H]:
 
 def merge_intersecting_sets(it: Iterable[_AnySet]) -> Iterable[_AnySet]:
     "Recursively merge intersecting sets in a collection."
-    many_sets = deque(it)
+    many_sets: Deque[AbstractSet[object]] = deque(it)
     while True:
         try:
-            this_set = many_sets.popleft()
+            this_set: AbstractSet[Any] = many_sets.popleft()
         except IndexError:
             return
 
         while True:
             for other_set in many_sets:
                 if this_set & other_set:
-                    # The in-place operator would mutate unfrozen sets
-                    # in the original collection
-                    this_set = this_set | other_set  # type: ignore
+                    this_set = this_set | other_set
                     many_sets.remove(other_set)
                     break
             else:
@@ -167,32 +165,11 @@ async def gather(
 
 def run_in_thread(fn: Callable[..., _V]) -> Callable[..., Awaitable[_V]]:
     @wraps(fn)
-    def wrapper(*args: Any, **kwargs: Any):
+    def wrapper(*args: object, **kwargs: object):
         loop = asyncio.get_running_loop()
         return loop.run_in_executor(None, lambda: fn(*args, **kwargs))
 
     return wrapper
-
-
-class _StopIteration(Exception):
-    pass
-
-
-def _iit_next(it: Iterator[_V]) -> _V:
-    try:
-        return next(it)
-    except StopIteration:
-        raise _StopIteration
-
-
-# From Starlette: https://github.com/encode/starlette/blob/78f7095/starlette/concurrency.py
-async def iter_in_thread(it: Iterator[_V]) -> AsyncIterator[_V]:
-    loop = asyncio.get_running_loop()
-    while True:
-        try:
-            yield await loop.run_in_executor(None, _iit_next, it)
-        except _StopIteration:
-            return
 
 
 @contextmanager
@@ -258,7 +235,8 @@ def make_progress_bar(**kwargs: Any) -> ProgressBar:
     import signal
 
     from prompt_toolkit.formatted_text import HTML
-    from prompt_toolkit.shortcuts.progress_bar import ProgressBar, formatters
+    from prompt_toolkit.shortcuts.progress_bar import formatters
+    from prompt_toolkit.shortcuts.progress_bar.base import ProgressBar, ProgressBarCounter
     from prompt_toolkit.utils import Event
 
     # There is a race condition in the bar's shutdown logic
@@ -273,7 +251,7 @@ def make_progress_bar(**kwargs: Any) -> ProgressBar:
     _SIGWINCH = getattr(signal, "SIGWINCH", None)
 
     class PatchedProgressBar(ProgressBar):
-        def __exit__(self, *args: Any):
+        def __exit__(self, *args: object):
             if self._has_sigwinch:
                 self._loop.remove_signal_handler(_SIGWINCH)
                 signal.signal(_SIGWINCH, self._previous_winch_handler)
@@ -283,17 +261,18 @@ def make_progress_bar(**kwargs: Any) -> ProgressBar:
                 def attempt_exit(sender: Any):
                     sender.is_running and sender.exit()
 
-                # Signal to ``_auto_refresh_context`` that it should exit the app
                 self.app.on_invalidate = Event(self.app, attempt_exit)
                 self._thread.join()
 
             self._app_loop.close()
 
     class DownloadProgress(formatters.Progress):
-        template = formatters.Progress.template + 'MB'
+        template = '<current>{current:>3}</current>/<total>{total:>3}</total>MB'
 
-        def format(self, progress_bar: ProgressBar, progress: Any, width: int):
-            def format_pct(value: int) -> str:
+        def format(
+            self, progress_bar: ProgressBar, progress: ProgressBarCounter[object], width: int
+        ):
+            def format_pct(value: int):
                 return f'{value / 2 ** 20:.1f}'
 
             return HTML(self.template).format(
