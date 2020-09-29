@@ -21,7 +21,10 @@ omit = [
 exclude_lines = [
   "pragma: no cover",
   "if TYPE_CHECKING:",
+  "def __repr__",
   "raise NotImplementedError",
+  "if __name__ == .__main__.:",
+  "@overload",
 ]
 
 [tool.pytest.ini_options]
