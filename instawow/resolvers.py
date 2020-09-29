@@ -133,7 +133,7 @@ class Catalogue(BaseModel):
     async def collate(cls, age_cutoff: O[datetime]) -> Catalogue:
         from .manager import init_web_client
 
-        resolvers = (CurseResolver, WowiResolver, TukuiResolver)
+        resolvers = (CurseResolver, WowiResolver, TukuiResolver, InstawowResolver)
 
         async with init_web_client() as web_client:
             items = [a for r in resolvers async for a in r.collect_items(web_client)]
@@ -243,7 +243,7 @@ class Resolver:
 if TYPE_CHECKING:
 
     # Only documenting the fields we're actually using -
-    # the API responses are absolutely massive
+    # the API response is absolutely massive
 
     class CurseAddon_FileDependency(TypedDict):
         id: int  # Unique dependency ID
@@ -324,14 +324,14 @@ class CurseResolver(Resolver):
     async def resolve(self, defns: Sequence[Defn]) -> Dict[Defn, Any]:
         from aiohttp import ClientResponseError
 
-        from .manager import cache_json_response
+        from .manager import cache_response
 
         catalogue = await self.manager.synchronise()
 
         defns_to_ids = {d: (d.id or catalogue.curse_slugs.get(d.alias) or d.alias) for d in defns}
         numeric_ids = {i for i in defns_to_ids.values() if i.isdigit()}
         try:
-            json_response = await cache_json_response(
+            json_response = await cache_response(
                 self.manager,
                 self.addon_api_url,
                 300,
@@ -357,9 +357,9 @@ class CurseResolver(Resolver):
 
         if defn.strategy is Strategy.version:
 
-            from .manager import cache_json_response
+            from .manager import cache_response
 
-            files = await cache_json_response(
+            files = await cache_response(
                 self.manager,
                 self.addon_api_url / str(metadata['id']) / 'files',
                 3600,
@@ -588,11 +588,11 @@ class WowiResolver(Resolver):
     async def resolve(self, defns: Sequence[Defn]) -> Dict[Defn, Any]:
         from aiohttp import ClientResponseError
 
-        from .manager import cache_json_response
+        from .manager import cache_response
 
         async with self.manager.locks['load WoWI catalogue']:
             if self.list_api_items is None:
-                list_api_items = await cache_json_response(
+                list_api_items = await cache_response(
                     self.manager,
                     self.list_api_url,
                     3600,
@@ -603,7 +603,7 @@ class WowiResolver(Resolver):
         defns_to_ids = {d: ''.join(takewhile(str.isdigit, d.alias)) for d in defns}
         numeric_ids = {i for i in defns_to_ids.values() if i.isdigit()}
         try:
-            details_api_items = await cache_json_response(
+            details_api_items = await cache_response(
                 self.manager, self.details_api_url / f'{",".join(numeric_ids)}.json', 300
             )
         except ClientResponseError as error:
@@ -851,14 +851,14 @@ class GithubResolver(Resolver):
         """
         from aiohttp import ClientResponseError
 
-        from .manager import cache_json_response
+        from .manager import cache_response
 
         if defn.strategy not in self.strategies:
             raise E.PkgStrategyUnsupported(defn.strategy)
 
         repo_url = self.repos_api_url / defn.alias
         try:
-            project_metadata: GithubRepo = await cache_json_response(self.manager, repo_url, 3600)
+            project_metadata: GithubRepo = await cache_response(self.manager, repo_url, 3600)
         except ClientResponseError as error:
             if error.status == 404:
                 raise E.PkgNonexistent
@@ -937,14 +937,10 @@ class InstawowResolver(Resolver):
 
         from .wa_updater import BuilderConfig, WaCompanionBuilder
 
-        sentinel = '__sentinel__'
-        builder = WaCompanionBuilder(self.manager, BuilderConfig(account=sentinel))
+        builder = WaCompanionBuilder(self.manager, BuilderConfig())
         if source_id == '1':
-            if builder.builder_config.account == sentinel:
-                raise E.PkgFileUnavailable('account name not provided')
             await builder.build()
 
-        checksum = await t(builder.checksum)()
         return m.Pkg(
             source=self.source,
             id=source_id,
@@ -954,6 +950,23 @@ class InstawowResolver(Resolver):
             url='https://github.com/layday/instawow',
             download_url=builder.addon_file.as_uri(),
             date_published=datetime.now(timezone.utc),
-            version=checksum[:7],
+            version=(await t(builder.checksum)())[:7],
             options=m.PkgOptions(strategy=defn.strategy.name),
+        )
+
+    @classmethod
+    async def collect_items(
+        cls, web_client: aiohttp.ClientSession
+    ) -> AsyncIterable[_CatalogueEntryDefaultFields]:
+        yield _CatalogueEntryDefaultFields(
+            source=cls.source,
+            id='1',
+            slug='weakauras-companion-autoupdate',
+            name='WeakAuras Companion',
+            folders=[
+                ['WeakAurasCompanion'],
+            ],
+            game_compatibility={'retail', 'classic'},
+            download_count=1,
+            last_updated=datetime.now(timezone.utc),
         )

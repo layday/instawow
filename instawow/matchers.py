@@ -7,7 +7,7 @@ import re
 from typing import TYPE_CHECKING, FrozenSet, List, Tuple, cast
 
 from .models import PkgFolder
-from .resolvers import CurseResolver, Defn, TukuiResolver, WowiResolver
+from .resolvers import CurseResolver, Defn, InstawowResolver, TukuiResolver, WowiResolver
 from .utils import TocReader, bucketise, cached_property, merge_intersecting_sets, uniq
 
 if TYPE_CHECKING:
@@ -25,6 +25,7 @@ _sources_to_sort_weights = {
     CurseResolver.source: 0,
     TukuiResolver.source: 2,
     WowiResolver.source: 1,
+    InstawowResolver.source: 3,
 }
 
 

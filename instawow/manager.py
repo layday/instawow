@@ -144,11 +144,12 @@ async def download_archive(manager: Manager, pkg: Pkg, *, chunk_size: int = 4096
     return dest
 
 
-async def cache_json_response(
+async def cache_response(
     manager: Manager,
     url: Union[str, URL],
     *timedelta_args: Any,
     label: O[str] = None,
+    to_json: bool = True,
     request_kwargs: Dict[str, Any] = {},
 ) -> Any:
     dest = manager.config.cache_dir / shasum(str(url), json.dumps(request_kwargs))
@@ -165,7 +166,7 @@ async def cache_json_response(
 
         await t(dest.write_text)(text, encoding='utf-8')
 
-    return json.loads(text)
+    return json.loads(text) if to_json else text
 
 
 def _should_migrate(engine: Any) -> bool:
@@ -501,7 +502,7 @@ class Manager:
                 'https://raw.githubusercontent.com/layday/instawow-data/data/'
                 'master-catalogue-v2.compact.json'
             )  # v2
-            raw_catalogue = await cache_json_response(self, url, 4, 'hours', label=label)
+            raw_catalogue = await cache_response(self, url, 4, 'hours', label=label)
             self._catalogue = Catalogue.parse_obj(raw_catalogue)
         return self._catalogue
 

@@ -648,41 +648,29 @@ def _weakauras_group():
 
 
 @_weakauras_group.command('build')
-@click.option(
-    '--account',
-    '-a',
-    required=True,
-    help='Your account name.  This is used to locate the WeakAuras data file.',
-)
 @click.pass_obj
-def build_weakauras_companion(obj: ManagerWrapper, account: str) -> None:
+def build_weakauras_companion(obj: ManagerWrapper) -> None:
     "Build the WeakAuras Companion add-on."
     from .wa_updater import BuilderConfig, WaCompanionBuilder
 
-    config = BuilderConfig(account=account)
+    config = BuilderConfig()
     obj.m.run(WaCompanionBuilder(obj.m, config).build())
 
 
 @_weakauras_group.command('list')
-@click.option(
-    '--account',
-    '-a',
-    required=True,
-    help='Your account name.  This is used to locate the WeakAuras data file.',
-)
 @click.pass_obj
-def list_installed_wago_auras(obj: ManagerWrapper, account: str) -> None:
+def list_installed_wago_auras(obj: ManagerWrapper) -> None:
     "List WeakAuras installed from Wago."
     from textwrap import fill
 
     from .wa_updater import BuilderConfig, WaCompanionBuilder
 
-    config = BuilderConfig(account=account)
+    config = BuilderConfig()
     aura_groups = WaCompanionBuilder(obj.m, config).extract_installed_auras()
     installed_auras = sorted(
-        (g.filename, fill(a.id, width=30, max_lines=1), a.url)
+        (g._filename, fill(a.id, width=30, max_lines=1), a.url)
         for g in aura_groups
-        for v in g.entries.values()
+        for v in g.__root__.values()
         for a in v
         if not a.parent
     )

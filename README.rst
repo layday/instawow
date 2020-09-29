@@ -159,20 +159,16 @@ WeakAuras aura updater
 `WeakAuras Companion <https://weakauras.wtf/>`__.  To use the updater
 and provided that you have WeakAuras installed::
 
-    instawow weakauras-companion build -a <your account name>
+    instawow weakauras-companion build
     instawow install instawow:weakauras-companion
 
 You will have to rebuild the companion add-on prior to updating
 to receive aura updates.  If you would like to check for updates on
 every invocation of ``instawow update``, install the
-``instawow:weakauras-companion-autoupdate`` variant, exposing your account
-name as an env var::
+``instawow:weakauras-companion-autoupdate`` variant::
 
-    WAC_ACCOUNT=<your account name> instawow install instawow:weakauras-companion-autoupdate
-    WAC_ACCOUNT=<your account name> instawow update
-
-You may then choose to bypass the companion add-on when updating
-simply by omitting the env var.
+    instawow install instawow:weakauras-companion-autoupdate
+    instawow update
 
 Metadata sourcing
 -----------------

@@ -37,9 +37,9 @@ GUI
     and new strategy?  This would be similar to 'pinning'
     - Probably not worth the effort
       - wontfix
-- [ ] WeakAuras Companion integration
-  - [ ] Might need to rethink `strategy_vals` -
-    attach account to options using custom strategy?
+- [x] WeakAuras Companion integration
+  - [ ] ~~Might need to rethink `strategy_vals` -
+    attach account to options using custom strategy?~~
     - Restructured strategy in `Defn`
       but haven't added a WA strategy yet
       which is going to require a migration

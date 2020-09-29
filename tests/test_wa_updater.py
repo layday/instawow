@@ -12,7 +12,7 @@ def wa_saved_vars(manager):
         manager.config.addon_dir.parents[1] / 'WTF' / 'Account' / 'test' / 'SavedVariables'
     )
     saved_vars.mkdir(parents=True)
-    (saved_vars / WeakAuras.filename).write_text(
+    (saved_vars / WeakAuras._filename).write_text(
         '''\
 WeakAurasSaved = {
     ["displays"] = {
@@ -27,7 +27,7 @@ WeakAurasSaved = {
 
 @pytest.fixture
 def builder(manager):
-    yield WaCompanionBuilder(manager, BuilderConfig(account='test'))
+    yield WaCompanionBuilder(manager, BuilderConfig())
 
 
 def test_can_parse_empty_displays_table(builder):
@@ -40,7 +40,7 @@ WeakAurasSaved = {
     },
 }
 ''',
-        ).entries
+        ).__root__
         == {}
     )
 
@@ -58,7 +58,7 @@ WeakAurasSaved = {
     },
 }
 ''',
-        ).entries
+        ).__root__
         == {}
     )
 
@@ -87,7 +87,7 @@ WeakAurasSaved = {
     },
 }
 ''',
-        ).entries
+        ).__root__
         == {'foo': [aura]}
     )
 
@@ -110,7 +110,7 @@ WeakAurasSaved = {
     },
 }
 ''',
-        ).entries
+        ).__root__
         == {}
     )
 
@@ -141,7 +141,6 @@ async def test_can_resolve_wa_companion_pkg(builder):
 
 @pytest.mark.asyncio
 async def test_can_resolve_wa_companion_autoupdate_pkg(monkeypatch, builder):
-    monkeypatch.setenv('WAC_ACCOUNT', builder.builder_config.account)
     defn = Defn('instawow', 'weakauras-companion-autoupdate')
     resolve_results = await builder.manager.resolve([defn])
     assert is_pkg(resolve_results[defn])
