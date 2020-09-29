@@ -1,7 +1,14 @@
 import pytest
 
-from instawow.matchers import get_folders, match_dir_names, match_toc_ids, match_toc_names
+from instawow.matchers import (
+    AddonFolder,
+    get_folders,
+    match_dir_names,
+    match_toc_ids,
+    match_toc_names,
+)
 from instawow.resolvers import Defn
+from instawow.utils import TocReader
 
 
 @pytest.fixture(autouse=True)
@@ -23,12 +30,26 @@ def invalid_addons(manager):
 
 @pytest.fixture
 def molinari(manager):
-    (manager.config.addon_dir / 'Molinari').mkdir()
-    (manager.config.addon_dir / 'Molinari' / 'Molinari.toc').write_text(
+    molinari_folder = manager.config.addon_dir / 'Molinari'
+    molinari_folder.mkdir()
+    (molinari_folder / 'Molinari.toc').write_text(
         '''\
 ## X-Curse-Project-ID: 20338
 ## X-WoWI-ID: 13188
 '''
+    )
+    yield molinari_folder
+
+
+def test_addon_folder_is_comparable_to_str(molinari):
+    addon_folder = AddonFolder(molinari.name, None)
+    assert isinstance(addon_folder, AddonFolder) and addon_folder <= 'Molinari'
+
+
+def test_addon_folder_can_extract_defns_frm_toc(molinari):
+    addon_folder = AddonFolder(molinari.name, TocReader.from_parent_folder(molinari))
+    assert addon_folder.defns_from_toc == frozenset(
+        [Defn('curse', '20338'), Defn('wowi', '13188')]
     )
 
 
