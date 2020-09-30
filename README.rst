@@ -1,6 +1,10 @@
 *instawow*
 ==========
 
+.. image:: https://img.shields.io/matrix/wow-addon-management:matrix.org
+   :target: https://matrix.to/#/#wow-addon-management:matrix.org?via=matrix.org
+   :alt: Matrix
+
 *instawow* is a package manager for World of Warcraft.
 It can be used to install, remove and update add-ons from
 WoWInterface, CurseForge, Tukui and GitHub.
