@@ -1,4 +1,4 @@
-from functools import lru_cache, partial
+from functools import lru_cache
 import json
 import os
 from pathlib import Path
@@ -46,10 +46,10 @@ def make_zip(name):
     return buffer.getvalue()
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture(scope='session', autouse=True)
 def temp_dir(tmp_path_factory):
-    os.environ['INSTAWOW_TEMP_DIR'] = str(tmp_path_factory.mktemp('temp'))
-    yield os.environ['INSTAWOW_TEMP_DIR']
+    temp_dir = os.environ['INSTAWOW_TEMP_DIR'] = str(tmp_path_factory.mktemp('temp'))
+    yield temp_dir
 
 
 @pytest.fixture(params=['retail', 'classic'])
