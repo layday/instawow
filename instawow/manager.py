@@ -739,12 +739,17 @@ def _extract_filename_from_hdr(response: aiohttp.ClientResponse) -> str:
 def _init_cli_web_client(
     bar: ProgressBar, tickers: Set[asyncio.Task[None]]
 ) -> aiohttp.ClientSession:
-    from aiohttp import TraceConfig, hdrs
+    from aiohttp import ClientResponse, TraceConfig, hdrs
+
+    if TYPE_CHECKING:
+
+        class TraceRequestEndParams:
+            response: ClientResponse
 
     async def do_on_request_end(
         client_session: aiohttp.ClientSession,
         trace_config_ctx: Any,
-        params: aiohttp.TraceRequestEndParams,
+        params: TraceRequestEndParams,
     ) -> None:
         tick_interval = 0.1
         ctx = trace_config_ctx.trace_request_ctx
