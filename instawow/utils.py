@@ -337,15 +337,11 @@ def get_version() -> str:
         return __version__
 
 
-def is_outdated() -> Tuple[bool, str]:
+async def is_outdated() -> Tuple[bool, str]:
     """Check on PyPI to see if the installed copy of instawow is outdated.
 
     The response is cached for 24 hours.
     """
-    __version__ = get_version()
-    if 'dev' in __version__:
-        return (False, '')
-
     from aiohttp.client import ClientError
 
     from .config import Config
@@ -358,29 +354,28 @@ def is_outdated() -> Tuple[bool, str]:
         )
         return tuple(int_only_version_numbers)
 
+    __version__ = get_version()
+    if 'dev' in __version__:
+        return (False, '')
+
     dummy_config = Config.get_dummy_config()
     if not dummy_config.auto_update_check:
         return (False, '')
 
     cache_file = dummy_config.temp_dir / '.pypi_version'
-    if is_not_stale(cache_file, 1, 'days'):
+    if await run_in_thread(is_not_stale)(cache_file, 1, 'days'):
         version = cache_file.read_text(encoding='utf-8')
     else:
-
-        async def get_metadata():
-            api_url = 'https://pypi.org/pypi/instawow/json'
-            async with init_web_client() as web_client, web_client.get(api_url) as response:
-                return await response.json()
-
-        loop = asyncio.new_event_loop()
         try:
-            version = loop.run_until_complete(get_metadata())['info']['version']
+            async with init_web_client(raise_for_status=True) as web_client, web_client.get(
+                'https://pypi.org/pypi/instawow/json'
+            ) as response:
+                version = (await response.json())['info']['version']
+                print(version)
         except ClientError:
             version = __version__
         else:
             cache_file.write_text(version, encoding='utf-8')
-        finally:
-            loop.close()
 
     return (parse_version(version) > parse_version(__version__), version)
 

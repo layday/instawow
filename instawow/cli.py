@@ -81,7 +81,7 @@ class Report:
     def generate(self):
         manager: CliManagerT = click.get_current_context().obj.m
         if manager.config.auto_update_check:
-            outdated, new_version = is_outdated()
+            outdated, new_version = manager.run(is_outdated())
             if outdated:
                 click.echo(f'{self.WARNING_SYMBOL} instawow-{new_version} is available')
 

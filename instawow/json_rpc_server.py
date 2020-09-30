@@ -346,7 +346,7 @@ class GetVersionParams(BaseParams):
     _method = 'meta/get_version'
 
     async def respond(self, managers: ManagerWorkQueue) -> GetVersionResult:
-        outdated, new_version = await t(is_outdated)()
+        outdated, new_version = await is_outdated()
         return GetVersionResult(
             installed_version=get_version(), new_version=new_version if outdated else None
         )
