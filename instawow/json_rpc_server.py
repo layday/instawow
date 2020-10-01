@@ -34,7 +34,7 @@ from yarl import URL
 from . import exceptions as E
 from .config import Config
 from .manager import Manager, init_web_client
-from .matchers import get_folders, match_dir_names, match_toc_ids, match_toc_names
+from .matchers import get_folder_set, match_dir_names, match_toc_ids, match_toc_names
 from .models import Pkg, is_pkg
 from .resolvers import Defn, PkgModel, Strategy
 from .utils import Literal, get_version, is_outdated, run_in_thread as t, uniq
@@ -320,7 +320,7 @@ class ReconcileParams(_ProfileParamMixin, BaseParams):
     _method = 'reconcile'
 
     async def respond(self, managers: ManagerWorkQueue) -> ReconcileResult:
-        leftovers = await managers.run(self.profile, t(get_folders))
+        leftovers = await managers.run(self.profile, t(get_folder_set))
         match_groups = await managers.run(
             self.profile, partial(_matchers[self.matcher], leftovers=leftovers)
         )

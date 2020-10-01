@@ -385,7 +385,7 @@ def rollback(ctx: click.Context, addon: Defn, undo: bool) -> None:
 @click.pass_context
 def reconcile(ctx: click.Context, auto: bool, list_unreconciled: bool) -> None:
     "Reconcile pre-installed add-ons."
-    from .matchers import AddonFolder, get_folders, match_dir_names, match_toc_ids, match_toc_names
+    from .matchers import AddonFolder, get_folder_set, match_dir_names, match_toc_ids, match_toc_names
     from .models import is_pkg
     from .prompts import PkgChoice, confirm, select, skip
 
@@ -447,7 +447,7 @@ def reconcile(ctx: click.Context, auto: bool, list_unreconciled: bool) -> None:
             groups = manager.run(fn(manager, (yield [])))
             yield list(prompt(groups))
 
-    leftovers = get_folders(manager)
+    leftovers = get_folder_set(manager)
     if list_unreconciled:
         table_rows = [('unreconciled',), *((f.name,) for f in sorted(leftovers))]
         click.echo(tabulate(table_rows))
@@ -466,7 +466,7 @@ def reconcile(ctx: click.Context, auto: bool, list_unreconciled: bool) -> None:
             results = manager.run(manager.install(selections, replace=True))
             Report(results.items()).generate()
 
-        leftovers = get_folders(manager)
+        leftovers = get_folder_set(manager)
 
     if leftovers:
         click.echo()

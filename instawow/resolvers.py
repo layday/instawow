@@ -10,6 +10,7 @@ from typing import (
     AsyncIterable,
     ClassVar,
     Dict,
+    FrozenSet,
     List,
     Optional as O,
     Sequence,
@@ -116,7 +117,7 @@ class _CatalogueEntry(BaseModel):
     slug: str
     name: str
     game_compatibility: Set[Literal['retail', 'classic']]
-    folders: List[List[str]]
+    folders: List[FrozenSet[str]]
     download_count: int
     last_updated: datetime
     normalised_name: str

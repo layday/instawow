@@ -2,7 +2,7 @@ import pytest
 
 from instawow.matchers import (
     AddonFolder,
-    get_folders,
+    get_folder_set,
     match_dir_names,
     match_toc_ids,
     match_toc_names,
@@ -55,7 +55,7 @@ def test_addon_folder_can_extract_defns_frm_toc(molinari):
 
 @pytest.mark.asyncio
 async def test_invalid_addons_discarded(manager, invalid_addons):
-    folders = get_folders(manager)
+    folders = get_folder_set(manager)
     assert folders == frozenset()
     assert await match_toc_ids(manager, folders) == []
     assert await match_dir_names(manager, folders) == []
@@ -64,12 +64,12 @@ async def test_invalid_addons_discarded(manager, invalid_addons):
 @pytest.mark.asyncio
 @pytest.mark.parametrize('test_func', [match_toc_ids, match_toc_names, match_dir_names])
 async def test_multiple_defns_per_addon_contained_in_results(manager, molinari, test_func):
-    ((_, matches),) = await test_func(manager, get_folders(manager))
+    ((_, matches),) = await test_func(manager, get_folder_set(manager))
     assert {Defn('curse', '20338'), Defn('wowi', '13188')} == set(matches)
 
 
 @pytest.mark.asyncio
 async def test_multiple_defns_per_addon_per_source_contained_in_results(manager):
     write_addons(manager, 'AdiBags', 'AdiBags_Config')
-    ((_, matches),) = await match_dir_names(manager, get_folders(manager))
+    ((_, matches),) = await match_dir_names(manager, get_folder_set(manager))
     assert {Defn('curse', '23350'), Defn('curse', '333072')} == set(matches)

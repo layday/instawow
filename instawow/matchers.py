@@ -2,9 +2,8 @@ from __future__ import annotations
 
 from contextlib import suppress
 from functools import total_ordering
-from pathlib import Path
 import re
-from typing import TYPE_CHECKING, FrozenSet, List, Tuple, cast
+from typing import TYPE_CHECKING, FrozenSet, Iterable, List, Tuple, cast
 
 from .models import PkgFolder
 from .resolvers import CurseResolver, Defn, InstawowResolver, TukuiResolver, WowiResolver
@@ -38,6 +37,21 @@ class AddonFolder:
     def __repr__(self) -> str:
         return f'<{self.__class__.__name__}: {self.name}>'
 
+    def __hash__(self) -> int:
+        return hash(self.name)
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, (self.__class__, str)):
+            return NotImplemented
+        return self.name == other
+
+    def __lt__(self, other: object) -> bool:
+        if isinstance(other, self.__class__):
+            other = other.name
+        if not isinstance(other, str):
+            return NotImplemented
+        return self.name < other
+
     @cached_property
     def defns_from_toc(self) -> FrozenSet[Defn]:
         return frozenset(
@@ -50,28 +64,23 @@ class AddonFolder:
     def version(self) -> str:
         return self.toc_reader['Version', 'X-Packaged-Version', 'X-Curse-Packaged-Version'].value
 
-    def __hash__(self) -> int:
-        return hash(self.name)
 
-    def __eq__(self, other: object) -> bool:
-        if not isinstance(other, (self.__class__, str)):
-            return NotImplemented
-        return self.name == other
+def get_folders(manager: Manager) -> Iterable[AddonFolder]:
+    pkg_folders = {f.name for f in manager.database.query(PkgFolder).all()}
+    unreconciled_folders = (
+        p
+        for p in manager.config.addon_dir.iterdir()
+        if p.name not in pkg_folders and p.is_dir() and not p.is_symlink()
+    )
+    suppress_not_found = suppress(FileNotFoundError)
+    for folder in unreconciled_folders:
+        with suppress_not_found:
+            toc_reader = TocReader.from_parent_folder(folder)
+            yield AddonFolder(folder.name, toc_reader)
 
-    def __lt__(self, other: object) -> bool:
-        if not isinstance(other, (self.__class__, str)):
-            return NotImplemented
-        return self.name < cast(str, other)
 
-
-def get_folders(manager: Manager) -> FrozenSet[AddonFolder]:
-    def make_addon_folder(path: Path):
-        if path.name not in own_folders and path.is_dir() and not path.is_symlink():
-            with suppress(FileNotFoundError):
-                return AddonFolder(path.name, TocReader.from_parent_folder(path))
-
-    own_folders = {f.name for f in manager.database.query(PkgFolder).all()}
-    return frozenset(filter(None, map(make_addon_folder, manager.config.addon_dir.iterdir())))
+def get_folder_set(manager: Manager) -> FrozenSet[AddonFolder]:
+    return frozenset(get_folders(manager))
 
 
 async def match_toc_ids(manager: Manager, leftovers: FrozenSet[AddonFolder]) -> MatchGroups:
@@ -100,17 +109,17 @@ async def match_dir_names(manager: Manager, leftovers: FrozenSet[AddonFolder]) -
 
     catalogue = await manager.synchronise()
 
-    # We can't use an intersection here because it's not guaranteed to
-    # return ``AddonFolder``s - the duck typing semantics of '&' appear
-    # to be undefined
     matches = [
         (
-            frozenset(e for e in leftovers if e in cast('List[AddonFolder]', f)),
+            # We can't use an intersection here because it's not guaranteed
+            # to give us ``AddonFolder``s
+            frozenset(e for e in leftovers if e in cast('FrozenSet[AddonFolder]', f)),
             Defn(i.source, i.id),
         )
         for i in catalogue.__root__
+        if manager.config.game_flavour in i.game_compatibility
         for f in i.folders
-        if manager.config.game_flavour in i.game_compatibility and frozenset(f) <= leftovers
+        if f <= leftovers
     ]
     folders = list(merge_intersecting_sets(f for f, _ in matches))
     return [
