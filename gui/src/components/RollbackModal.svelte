@@ -33,7 +33,9 @@
       <select class="row" aria-label="strategy" bind:value={version}>
         {#each addon.logged_versions as version}
           <option value={version.version} disabled={addon.version === version.version}>
-            {version.version} (installed {DateTime.fromISO(version.install_time).toRelative()})
+            {version.version}
+            (installed
+            {DateTime.fromISO(version.install_time).toRelative()})
           </option>
         {/each}
       </select>
