@@ -142,9 +142,7 @@ def checkbox(message: str, choices: Sequence[Choice], **prompt_kwargs: Any) -> Q
         pass
 
     layout = create_inquirer_layout(ic, get_prompt_tokens, **prompt_kwargs)
-    app: Application[Any] = Application(
-        layout=layout, key_bindings=bindings, style=qstyle, **prompt_kwargs
-    )
+    app = Application[Any](layout=layout, key_bindings=bindings, style=qstyle, **prompt_kwargs)
     return Question(app)
 
 
@@ -206,7 +204,5 @@ def select(message: str, choices: Sequence[Choice], **prompt_kwargs: Any) -> Que
         pass
 
     layout = create_inquirer_layout(ic, get_prompt_tokens, **prompt_kwargs)
-    app: Application[Any] = Application(
-        layout=layout, key_bindings=bindings, style=qstyle, **prompt_kwargs
-    )
+    app = Application[Any](layout=layout, key_bindings=bindings, style=qstyle, **prompt_kwargs)
     return Question(app)
