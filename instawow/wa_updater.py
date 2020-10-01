@@ -129,7 +129,7 @@ if TYPE_CHECKING:
         username: str  # +  # Author username
         version: int  # +   # Version counter, incremented with every update
         # Semver auto-generated from ``version`` - for presentation only
-        versionString: str  # +
+        versionString: str
         changelog: WagoApiChangelog  # +
 
     class WagoApiOptionalFields(TypedDict, total=False):
@@ -264,9 +264,9 @@ class WaCompanionBuilder:
         with ZipFile(self.addon_file, 'w') as file:
 
             def write_tpl(filename: str, ctx: Dict[str, Any]) -> None:
-                # We're not using a plain string as the first argument to
-                # ``writestr`` 'cause then the timestamp is generated dynamically
-                # making the build unreproducible
+                # Not using a plain string as the first argument to ``writestr``
+                # 'cause the timestamp would be set to the current time
+                # which would render the build unreproducible
                 zip_info = ZipInfo(filename=f'WeakAurasCompanion/{filename}')
                 file.writestr(zip_info, jinja_env.get_template(filename).render(ctx))
 
@@ -281,7 +281,13 @@ class WaCompanionBuilder:
                                 'author': metadata['username'],
                                 'encoded': import_string,
                                 'wagoVersion': metadata['version'],
-                                'wagoSemver': metadata['versionString'],
+                                # ``wagoSemver`` is supposed to be the ``versionString``
+                                # from Wago but there is a bug where the ``version``
+                                # is sometimes not appended to the semver.
+                                # The Companion add-on's version is derived from its checksum
+                                # so if ``wagoSemver`` were to change between requests
+                                # we'd be triggering spurious updates in instawow.
+                                'wagoSemver': metadata['version'],
                                 'versionNote': metadata['changelog'].get('text', ''),
                             },
                         )
@@ -309,7 +315,7 @@ class WaCompanionBuilder:
                                 'author': metadata['username'],
                                 'encoded': import_string,
                                 'wagoVersion': metadata['version'],
-                                'wagoSemver': metadata['versionString'],
+                                'wagoSemver': metadata['version'],
                                 'versionNote': metadata['changelog'].get('text', ''),
                             },
                         )
