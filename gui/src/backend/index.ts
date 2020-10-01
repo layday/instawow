@@ -39,10 +39,6 @@ const createWindow = () => {
     },
     // Show menu on <alt>, only applicable to Linux and Windows
     autoHideMenuBar: true,
-    // `vibrancy`, `titleBarStyle` and `trafficLightPosition` are only applicable to macOS
-    vibrancy: "titlebar",
-    titleBarStyle: "hidden",
-    trafficLightPosition: { x: 20, y: 40 },
   });
 
   // and load the index.html of the app.
@@ -56,9 +52,7 @@ const createWindow = () => {
 
 // Construct a menu from `actions` and wait for it to be dismissed.
 // Returns the `action` value of the item that was selected if any.
-const waitForMenuSelection = async (
-  actions: { id: string; label: string }[]
-): Promise<string> => {
+const waitForMenuSelection = async (actions: { id: string; label: string }[]): Promise<string> => {
   let selectedAction: string;
 
   const menu = Menu.buildFromTemplate(

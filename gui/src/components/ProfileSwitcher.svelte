@@ -30,10 +30,9 @@
     select {
       line-height: $line-height;
       padding: 0 0.5em;
-      background-color: var(--inverse-color-alpha-10);
+      background-color: var(--inverse-color-alpha-05);
       border: 0;
       border-radius: $middle-border-radius;
-      -webkit-app-region: no-drag;
       transition: all 0.2s;
 
       &:disabled {

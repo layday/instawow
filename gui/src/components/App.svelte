@@ -1,7 +1,6 @@
 <script lang="ts">
   import type { Api, Version } from "../api";
   import { fade } from "svelte/transition";
-  import { backend } from "../ipc";
   import { activeProfile, profiles } from "../store";
   import ProfileView from "./ProfileView.svelte";
   import ProfileSwitcher from "./ProfileSwitcher.svelte";
@@ -102,17 +101,9 @@
     flex-direction: column;
     height: 100vh;
 
-    &.mac {
-      .section__menubar {
-        padding-left: 95px;
-      }
-    }
-
-    &:not(.mac) {
-      .section__menubar,
-      .section__statusbar {
-        background-color: var(--base-color);
-      }
+    .section__menubar,
+    .section__statusbar {
+      background-color: var(--base-color);
     }
   }
 
@@ -129,6 +120,10 @@
         text-align: right;
         font-family: $mono-font-stack;
         font-size: 0.7em;
+
+        span {
+          color: var(--inverse-color-tone-10);
+        }
       }
     }
 
@@ -136,10 +131,8 @@
       @include stretch-vertically;
       z-index: 5;
       padding-top: 0.8em;
-      padding-bottom: 0.8em;
       background-color: var(--base-color);
-      box-shadow: 0 1px 0px 0 var(--inverse-color-alpha-10),
-        0 -1px 0px 0 var(--inverse-color-alpha-10);
+      box-shadow: 0 -1px 0px 0 var(--inverse-color-alpha-10);
     }
 
     &__statusbar {
@@ -154,7 +147,6 @@
 
     &__menubar,
     &__statusbar {
-      -webkit-app-region: drag; /* */
       -webkit-user-select: none;
     }
   }
@@ -165,18 +157,20 @@
     <header class="section section__menubar" />
     <section class="section section__main" />
     <footer class="section section__statusbar">
-      <div class="status">Loading…</div>
+      <div class="status">loading…</div>
     </footer>
   </main>
 {:then}
-  <main class:mac={backend.platform === 'darwin'}>
+  <main>
     <header class="section section__menubar">
       <ProfileSwitcher {api} />
       <div class="instawow-version">
         <b>instawow</b>
         <br />
-        {instawowVersions.installed_version}
-        {instawowVersions.new_version ? `< ${instawowVersions.new_version}` : ''}
+        <span>
+          {instawowVersions.installed_version}
+          {instawowVersions.new_version ? `< ${instawowVersions.new_version}` : ''}
+        </span>
       </div>
     </header>
     <section class="section section__main">

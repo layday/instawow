@@ -72,7 +72,7 @@
     label,
     select {
       border: 0;
-      box-shadow: inset 0 0 0 1px var(--inverse-color-alpha-10);
+      background-color: var(--inverse-color-alpha-05);
       transition: all 0.2s;
 
       &:disabled {
@@ -97,7 +97,8 @@
       padding: 0 0.75em;
       transition: all 0.2s;
       border-radius: $edge-border-radius;
-      background-color: var(--inverse-color-alpha-05);
+      background-color: transparent;
+      box-shadow: inset 0 0 0 1px var(--inverse-color-alpha-20);
 
       &,
       &::-webkit-search-cancel-button {

@@ -17,7 +17,7 @@ $edge-border-radius: $form-el-line-height / 4;
     border-radius: 0.25rem 0.25rem 0 0;
     background-color: var(--inverse-color-alpha-05);
     font-size: 0.9em;
-    font-weight: 500;
+    font-weight: 600;
   }
 
   .content {
@@ -65,7 +65,7 @@ $edge-border-radius: $form-el-line-height / 4;
     justify-content: center;
     background-color: $action-button-bg-color;
     color: $action-button-text-color;
-    font-weight: 500;
+    font-weight: 600;
 
     &:focus {
       background-color: $action-button-focus-bg-color;

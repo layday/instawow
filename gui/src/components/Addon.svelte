@@ -85,15 +85,16 @@
       margin-top: 0.25rem;
       font-family: $mono-font-stack;
       font-size: 0.7em;
+      color: var(--inverse-color-tone-20);
     }
 
     .description {
       margin-top: 0.25rem;
+      padding-left: 0.25rem;
       overflow-x: hidden;
       white-space: nowrap;
       text-overflow: ellipsis;
       font-size: 0.8em;
-      color: var(--inverse-color-tone-20);
     }
 
     &:hover .description {
@@ -112,7 +113,7 @@
       padding: 0 0.625rem;
       line-height: 1.8em;
       font-size: 0.8em;
-      font-weight: 500;
+      font-weight: 600;
       border: 0;
       border-radius: 1em;
       background-color: $action-button-bg-color;

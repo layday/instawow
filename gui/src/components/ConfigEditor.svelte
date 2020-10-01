@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { Api, Config, PydanticValidationError } from "../api";
-  import { faBan, faFolderOpen } from "@fortawesome/free-solid-svg-icons";
+  import { faFolderOpen, faTimesCircle } from "@fortawesome/free-solid-svg-icons";
   import lodash from "lodash";
   import { fade } from "svelte/transition";
   import { ipcRenderer } from "../ipc";
@@ -163,7 +163,7 @@ will be lost.`)
           title="delete profile"
           type="button"
           on:click|preventDefault={() => deleteConfig()}>
-          <Icon icon={faBan} />
+          <Icon icon={faTimesCircle} />
         </button>
       {/if}
     </div>

@@ -443,7 +443,7 @@
     overflow-y: auto;
     padding: 0.5em;
     border-radius: 0.5rem;
-    box-shadow: inset 0 0 0 1px var(--inverse-color-alpha-05);
+    box-shadow: inset 0 0 0 1px var(--inverse-color-alpha-10);
     -webkit-user-select: none;
 
     &.prevent-scrolling {

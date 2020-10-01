@@ -48,7 +48,7 @@
   .selection-controls {
     margin-top: -0.25rem;
     padding-top: 0;
-    color: var(--inverse-color-tone-10);
+    color: var(--inverse-color-tone-20);
 
     summary,
     .choices {
