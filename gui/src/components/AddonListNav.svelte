@@ -273,12 +273,12 @@
       </button>
     {:else if activeView === View.Search}
       <input
-        id="__interpret-as-uri"
+        id="__interpret-as-uri-{profile}"
         class="hidden"
         type="checkbox"
         bind:checked={search__fromAlias} />
       <label
-        for="__interpret-as-uri"
+        for="__interpret-as-uri-{profile}"
         aria-label="interpret query as an add-on URI"
         title="interpret query as an add-on URI">
         <Icon icon={faFingerprint} />
