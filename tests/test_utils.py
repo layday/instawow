@@ -1,5 +1,7 @@
+import asyncio
 from pathlib import Path
 import sys
+import time
 
 import pytest
 
@@ -10,6 +12,7 @@ from instawow.utils import (
     file_uri_to_path,
     is_outdated,
     merge_intersecting_sets,
+    run_in_thread,
     tabulate,
 )
 
@@ -194,3 +197,19 @@ async def test_is_outdated_works_in_variety_of_scenarios(monkeypatch, aresponses
             {'info': {'version': '1.0.0'}},
         )
         assert await is_outdated() == (False, '1.0.0')
+
+
+@pytest.mark.asyncio
+async def test_generator_in_run_in_thread_does_not_lock_up_loop():
+    def foo():
+        time.sleep(2)
+        yield 'foo'
+
+    async def bar():
+        await asyncio.sleep(1)
+        return ['bar']
+
+    assert [await a for a in asyncio.as_completed([run_in_thread(list)(foo()), bar()])] == [
+        ['bar'],
+        ['foo'],
+    ]
