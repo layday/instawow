@@ -1,3 +1,26 @@
+
+- [ ] Improve test coverage
+- [ ] Display changelog on update
+  - Requires an additional request to retrieve from CF.
+    I do not consider merely linking to changelogs to be something
+    worth implementing.
+    - Delay until Overwolf client launch.
+- [ ] Vendor catalogue?
+- [x] Remove really old add-ons from catalogue/search?
+- [ ] Categorise WoWI add-ons by compatibility?
+  - Though add-ons from CF are prioritised before WoWI we don't want
+    reconciliation to work off add-ons of the opposite flavour
+- [ ] Cache management - use eviction policy or periodically prune cache.
+  Cached (and deleted!) add-ons gradually build up in $TMPDIR.
+  I chose $TMPDIR for caching so I could delegate clean-up to the OS but the
+  majority of Linuxes only do this on reboot.  Not urgent but I should look
+  into it eventually
+  - Consider using a more sophisticated caching mechanism
+- [x] Precompute normalised add-on names for search
+
+- [ ] RHEL/Fedora blocker: https://github.com/indygreg/PyOxidizer/issues/283
+
+
 CLI
 ---
 
@@ -6,12 +29,14 @@ CLI
 - [ ] Allow passing `--strategy` to search?
 - [ ] Scoop package for Windows?  brew for Mac?  I don't like Homebrew though.
 
+
 GUI
 ---
 
+- [ ] Add-on export and import to/from JSON - this is available in the CLI
 - [ ] Better RPC error handling
   - [ ] Investigate crash when config is invalid
-- [ ] New notification interface - `window.alert`s are horrible
+- [ ] New notification interface - ~~`window.alert`s are horrible~~
   - Tentatively using `Notification`s
 - [x] Deleting profiles
   - [ ] ~~Renaming profiles? Meh~~
@@ -43,27 +68,12 @@ GUI
     - Restructured strategy in `Defn`
       but haven't added a WA strategy yet
       which is going to require a migration
+  - Removed the `account` settings which obviated the
+    need for a custom strategy.
 - [ ] Tests, tests, tests
   - See https://objectcomputing.com/resources/publications/sett/july-2019-web-dev-simplified-with-svelte
-- [ ] Duplicate all of the buttons and controls in the menu bar
-- App settings?  Do we need them or can we rely exclusively on profiles?
+- [ ] Duplicate all of the buttons and controls in the menu bar for macOS
+- App settings?  Do we need them or can we punt on profiles?
 - [ ] Investigate [Tauri](https://github.com/tauri-apps/tauri) as a replacement
-  for Electron.  Tauri looks promising and would tie in nicely with PyOxidizer.
-
-Both
-----
-
-- [ ] Improve test coverage
-- [ ] Vendor catalogue?
-- [x] Remove really old add-ons from catalogue/search?
-- [ ] Categorise WoWI add-ons by compatibility?
-  - Though add-ons from CF are prioritised before WoWI we don't want
-    reconciliation to work off add-ons of the opposite flavour
-- [ ] Cache management - use eviction policy or periodically prune cache.
-  Cached (and deleted!) add-ons gradually build up in $TMPDIR.
-  I chose $TMPDIR for caching so I could delegate clean-up to the OS but the
-  majority of Linuxes only do this on reboot.  Not urgent but I should look
-  into it eventually
-  - Consider using a more sophisticated caching mechanism
-- [x] Precompute normalised add-on names for search
-- [ ] RHEL/Fedora blocker: https://github.com/indygreg/PyOxidizer/issues/283
+  for Electron.
+  Tauri looks promising and would tie in nicely with PyOxidizer.
