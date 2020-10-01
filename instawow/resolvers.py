@@ -8,6 +8,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     AsyncIterable,
+    Callable,
     ClassVar,
     Dict,
     FrozenSet,
@@ -15,6 +16,7 @@ from typing import (
     Optional as O,
     Sequence,
     Set,
+    Tuple,
     Union,
     cast,
 )
@@ -128,7 +130,11 @@ class Catalogue(BaseModel):
     __root__: List[_CatalogueEntry]
 
     class Config:
-        keep_untouched = (cast(Any, cached_property),)
+        json_encoders: Dict[type, Callable[..., Any]] = {
+            set: sorted,
+            frozenset: sorted,
+        }
+        keep_untouched: Tuple[type, ...] = (cached_property,)
 
     @classmethod
     async def collate(cls, age_cutoff: O[datetime]) -> Catalogue:
