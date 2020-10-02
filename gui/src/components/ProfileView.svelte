@@ -11,12 +11,12 @@
     Sources,
   } from "../api";
   import { ReconciliationStage, Strategy, addonToDefn } from "../api";
-  import { SEARCH_DEBOUNCE_DELAY, SEARCH_LIMIT, View } from "../constants";
+  import { SEARCH_LIMIT, View } from "../constants";
   import { ipcRenderer } from "../ipc";
   import { profiles } from "../store";
   import { faQuestion } from "@fortawesome/free-solid-svg-icons";
   import lodash from "lodash";
-  import { onMount } from "svelte";
+  import { onMount, tick } from "svelte";
   import { flip } from "svelte/animate";
   import { fade } from "svelte/transition";
   import AddonComponent from "./Addon.svelte";
@@ -243,8 +243,6 @@
     }
   };
 
-  const searchDebounced = lodash.debounce(search, SEARCH_DEBOUNCE_DELAY);
-
   const refreshInstalled = async (flash = false) => {
     if (!refreshInProgress) {
       refreshInProgress = true;
@@ -290,7 +288,7 @@
           (addon.options.strategy === Strategy.version
             ? { id: "unpin", label: "Unpin" }
             : { id: "pin", label: "Pin" }),
-        { id: "lookup", label: "Look up definition" },
+        { id: "lookup", label: "Resolve" },
       ].filter(Boolean)
     );
     switch (selection) {
@@ -312,6 +310,8 @@
         await pinAddons([pinnedAddon]);
         break;
       case "lookup":
+        searchTerms = "";
+        await tick();
         [searchTerms, searchFromAlias, searchStrategy, searchVersion] = [
           createAddonToken(addon),
           true,
@@ -328,11 +328,13 @@
     const selection = await ipcRenderer.invoke("get-action-from-context-menu", [
       // This should be pulled out of here and made interactive when installing
       { id: "install-and-replace", label: "Install and replace" },
-      { id: "lookup", label: "Look up definition" },
+      { id: "lookup", label: "Resolve" },
     ]);
     if (selection === "install-and-replace") {
       await installAddons([addon], true);
     } else if (selection === "lookup") {
+      searchTerms = "";
+      await tick();
       [searchTerms, searchFromAlias, searchStrategy, searchVersion] = [
         createAddonToken(addon),
         true,
@@ -405,14 +407,13 @@
   $: searchTerms ||
     (console.debug(profile, "- resetting search values"),
     ({ searchFromAlias, searchStrategy, searchVersion } = defaultSearchState));
-  // Schedule a new search whenever the search params change
-  $: searchTerms &&
-    (searchFromAlias || searchStrategy || searchVersion) &&
-    (console.debug(profile, "- searching for", searchTerms), searchDebounced());
   // Upddate `searchFromAlias` whenever the `searchTerms` change
   $: searchTerms &&
     (searchFromAlias =
       (console.debug(profile, "- updating `searchFromAlias`"), isSearchFromAlias()));
+  // Schedule a new search whenever the search params change
+  $: (searchFromAlias || searchStrategy || searchVersion) &&
+    (console.debug(profile, "- triggering search"), search());
   // Update add-on list according to view
   $: addons = activeView === View.Search ? addons__CombinedSearch : addons__Installed;
   // Recount updates whenever `addons__Installed` is modified
