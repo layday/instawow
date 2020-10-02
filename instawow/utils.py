@@ -371,7 +371,6 @@ async def is_outdated() -> Tuple[bool, str]:
                 'https://pypi.org/pypi/instawow/json'
             ) as response:
                 version = (await response.json())['info']['version']
-                print(version)
         except ClientError:
             version = __version__
         else:
