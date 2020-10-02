@@ -592,9 +592,7 @@ def reveal(obj: ManagerWrapper, addon: Defn) -> None:
     "Bring an add-on up in your file manager."
     pkg = obj.m.get_pkg(addon, partial_match=True)
     if pkg:
-        import webbrowser
-
-        webbrowser.open((obj.m.config.addon_dir / pkg.folders[0].name).as_uri())
+        click.launch(str(obj.m.config.addon_dir / pkg.folders[0].name), locate=True)
     else:
         Report([(addon, E.PkgNotInstalled())]).generate_and_exit()
 
