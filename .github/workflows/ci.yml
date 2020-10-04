@@ -3,26 +3,32 @@ name: CI
 on: [push, pull_request]
 jobs:
   test:
-    if: "! contains(github.event.head_commit.message, '[skip ci]')"
+    if: "!contains(github.event.head_commit.message, '[skip ci]')"
     strategy:
       fail-fast: false
       matrix:
         os: [macos-latest, ubuntu-latest, windows-latest]
-        python-version: ['3.7', '3.8', '3.9.0-rc.1']
+        python-version: ['3.7', '3.8', '3.9']
     runs-on: ${{ matrix.os }}
     steps:
     - name: Clone the repo
       uses: actions/checkout@v2
-    - name: Install Python
+    - name: Install Python (< 3.9)
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
+      if: ${{ matrix.python-version != '3.9' }}
+    - name: Install Python (3.9 pre-release)
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.9.0-rc.1
+      if: ${{ matrix.python-version == '3.9' }}
     - name: Install nox
       run: |
         python -m pip install nox
     - name: Run pytest
       run: |
-        python -m nox -s test
+        python -m nox -s test -p ${{ matrix.python-version }}
     - name: Run pyright
       run: |
-        python -m nox -s type_check
+        python -m nox -s type_check -p ${{ matrix.python-version }}
