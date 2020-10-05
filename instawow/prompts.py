@@ -3,15 +3,15 @@
 from __future__ import annotations
 
 from functools import partial
-from typing import TYPE_CHECKING, Any, Callable, List, Optional, Sequence, Tuple, Type
+from typing import TYPE_CHECKING, Any, List, Optional, Sequence, Tuple, Type
 
 from prompt_toolkit.application import Application
-from prompt_toolkit.key_binding import KeyBindings
+from prompt_toolkit.key_binding import KeyBindings, KeyPressEvent
 from prompt_toolkit.keys import Keys
 from prompt_toolkit.styles import Style
 from prompt_toolkit.validation import ValidationError, Validator
 import pydantic
-from questionary import Choice, confirm as _confirm
+from questionary import Choice, confirm as _confirm, text as _text
 from questionary.prompts.common import InquirerControl, Separator, create_inquirer_layout
 from questionary.question import Question
 
@@ -46,60 +46,53 @@ class PkgChoice(Choice):
 qstyle = Style(
     [
         ('qmark', 'fg:ansicyan'),
+        ('question', 'bold'),
         ('answer', 'fg: nobold'),
+        ('skipped-answer', 'fg:ansiyellow'),
         ('highlight-sub', 'fg:ansimagenta'),
-        ('skipped', 'fg:ansiyellow'),
-        ('question', 'nobold'),
-        ('x-question', 'bold'),
     ]
 )
 
-skip = Choice([('', 'skip')], ())  # type: ignore
+skip = Choice([('', 'skip')], ())
 
 confirm = partial(_confirm, style=qstyle)
+text = partial(_text, style=qstyle)
 
 
 def checkbox(message: str, choices: Sequence[Choice], **prompt_kwargs: Any) -> Question:
-    # This is a cut-down version of ``questionary.checkbox`` with the addition
-    # of an <o> key binding for opening package URLs
-
     def get_prompt_tokens():
-        tokens: List[Tuple[str, str]] = [('class:x-question', message)]
+        tokens: List[Tuple[str, str]] = [('class:question', message)]
         if ic.is_answered:
-            tokens = [*tokens, (('class:answer', '  done'))]
+            tokens.append(('class:answer', '  done'))
         else:
-            tokens = [
-                *tokens,
+            tokens.append(
                 (
-                    (
-                        'class:instruction',
-                        '  (use arrow keys to move, <space> to select, <o> to view in your browser)',
-                    )
-                ),
-            ]
+                    'class:instruction',
+                    '  (use arrow keys to move, <space> to select, <o> to view in your browser)',
+                )
+            )
         return tokens
 
     ic = InquirerControl(
         list(choices), None, use_indicator=False, use_shortcuts=False, use_pointer=True
     )
-    ic_get_pointed_at: Callable[[], Choice] = ic.get_pointed_at
     bindings = KeyBindings()
 
     @bindings.add(Keys.ControlQ, eager=True)
     @bindings.add(Keys.ControlC, eager=True)
-    def _(event: Any):
+    def _(event: KeyPressEvent):
         event.app.exit(exception=KeyboardInterrupt, style='class:aborting')
 
     @bindings.add(' ', eager=True)
-    def toggle(event: Any):
-        pointed_choice = ic_get_pointed_at().value
+    def toggle(event: KeyPressEvent):
+        pointed_choice = ic.get_pointed_at().value
         if pointed_choice in ic.selected_options:
             ic.selected_options.remove(pointed_choice)
         else:
             ic.selected_options.append(pointed_choice)
 
     @bindings.add('i', eager=True)
-    def invert(event: Any):
+    def invert(event: KeyPressEvent):
         inverted_selection = [
             c.value
             for c in ic.choices
@@ -111,98 +104,108 @@ def checkbox(message: str, choices: Sequence[Choice], **prompt_kwargs: Any) -> Q
 
     @bindings.add(Keys.Down, eager=True)
     @bindings.add('j', eager=True)
-    def move_cursor_down(event: Any):
+    def move_cursor_down(event: KeyPressEvent):
         ic.select_next()
         while not ic.is_selection_valid():
             ic.select_next()
 
     @bindings.add(Keys.Up, eager=True)
     @bindings.add('k', eager=True)
-    def move_cursor_up(event: Any):
+    def move_cursor_up(event: KeyPressEvent):
         ic.select_previous()
         while not ic.is_selection_valid():
             ic.select_previous()
 
     @bindings.add(Keys.ControlM, eager=True)
-    def set_answer(event: Any):
+    def set_answer(event: KeyPressEvent):
         ic.is_answered = True
         event.app.exit(result=[c.value for c in ic.get_selected_values()])
 
     @bindings.add('o', eager=True)
-    def open_url(event: Any):
-        pkg = getattr(ic_get_pointed_at(), 'pkg', None)
+    def open_url(event: KeyPressEvent):
+        pkg = getattr(ic.get_pointed_at(), 'pkg', None)
         if pkg:
             import webbrowser
 
             webbrowser.open(pkg.url)
 
     @bindings.add(Keys.Any)
-    def other(event: Any):
+    def other(event: KeyPressEvent):
         # Disallow inserting other text
         pass
 
     layout = create_inquirer_layout(ic, get_prompt_tokens, **prompt_kwargs)
-    app = Application[Any](layout=layout, key_bindings=bindings, style=qstyle, **prompt_kwargs)
-    return Question(app)
+    return Question(
+        Application(layout=layout, key_bindings=bindings, style=qstyle, **prompt_kwargs)
+    )
 
 
 def select(message: str, choices: Sequence[Choice], **prompt_kwargs: Any) -> Question:
     def get_prompt_tokens():
-        tokens: List[Tuple[str, str]] = [('', '- '), ('class:x-question', message)]
+        tokens: List[Tuple[str, str]] = [('', '- '), ('class:question', message)]
         if ic.is_answered:
-            answer = ''.join(t for _, t in ic_get_pointed_at().title)
-            tokens = [*tokens, ('', '  '), ('class:skipped' if answer == 'skip' else '', answer)]
+            answer = ic.get_pointed_at()
+            tokens.extend(
+                [
+                    ('', ' '),
+                    (
+                        'class:skipped-answer' if answer is skip else 'class:answer',
+                        ''.join(t[1] for t in answer.title),
+                    ),
+                ]
+            )
         return tokens
 
     ic = InquirerControl(
         list(choices), None, use_indicator=False, use_shortcuts=False, use_pointer=True
     )
-    ic_get_pointed_at: Callable[[], Choice] = ic.get_pointed_at
     bindings = KeyBindings()
 
     @bindings.add(Keys.ControlQ, eager=True)
     @bindings.add(Keys.ControlC, eager=True)
-    def _(event: Any):
+    def _(event: KeyPressEvent):
         event.app.exit(exception=KeyboardInterrupt, style='class:aborting')
 
     @bindings.add(Keys.Down, eager=True)
     @bindings.add('j', eager=True)
-    def move_cursor_down(event: Any):
+    def move_cursor_down(event: KeyPressEvent):
         ic.select_next()
         while not ic.is_selection_valid():
             ic.select_next()
 
     @bindings.add(Keys.Up, eager=True)
     @bindings.add('k', eager=True)
-    def move_cursor_up(event: Any):
+    def move_cursor_up(event: KeyPressEvent):
         ic.select_previous()
         while not ic.is_selection_valid():
             ic.select_previous()
 
     @bindings.add(Keys.ControlM, eager=True)
-    def set_answer(event: Any):
+    def set_answer(event: KeyPressEvent):
         ic.is_answered = True
-        event.app.exit(result=ic_get_pointed_at().value)
+        event.app.exit(result=ic.get_pointed_at().value)
 
     @bindings.add('o', eager=True)
-    def open_url(event: Any):
-        pkg = getattr(ic_get_pointed_at(), 'pkg', None)
+    def open_url(event: KeyPressEvent):
+        pkg = getattr(ic.get_pointed_at(), 'pkg', None)
         if pkg:
             import webbrowser
 
             webbrowser.open(pkg.url)
 
-    @bindings.add('s', eager=True)
-    def skip(event: Any):
-        ic.pointed_at = -1
-        ic.is_answered = True
-        event.app.exit(result=ic_get_pointed_at().value)
+    if skip in ic.choices:
+
+        @bindings.add('s', eager=True)
+        def skip_question(event: KeyPressEvent):
+            ic.pointed_at = -1
+            set_answer(event)
 
     @bindings.add(Keys.Any)
-    def other(event: Any):
+    def other(event: KeyPressEvent):
         # Disallow inserting other text
         pass
 
     layout = create_inquirer_layout(ic, get_prompt_tokens, **prompt_kwargs)
-    app = Application[Any](layout=layout, key_bindings=bindings, style=qstyle, **prompt_kwargs)
-    return Question(app)
+    return Question(
+        Application(layout=layout, key_bindings=bindings, style=qstyle, **prompt_kwargs)
+    )

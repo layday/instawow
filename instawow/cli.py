@@ -362,7 +362,7 @@ def rollback(ctx: click.Context, addon: Defn, undo: bool) -> None:
     reconstructed_defn = Defn.from_pkg(pkg)
     choices = [
         Choice(
-            [('', v.version)],  # type: ignore
+            [('', v.version)],
             disabled='installed version' if v.version == pkg.version else None,
         )
         for v in versions
@@ -385,7 +385,13 @@ def rollback(ctx: click.Context, addon: Defn, undo: bool) -> None:
 @click.pass_context
 def reconcile(ctx: click.Context, auto: bool, list_unreconciled: bool) -> None:
     "Reconcile pre-installed add-ons."
-    from .matchers import AddonFolder, get_folder_set, match_dir_names, match_toc_ids, match_toc_names
+    from .matchers import (
+        AddonFolder,
+        get_folder_set,
+        match_dir_names,
+        match_toc_ids,
+        match_toc_names,
+    )
     from .models import is_pkg
     from .prompts import PkgChoice, confirm, select, skip
 
@@ -432,7 +438,7 @@ def reconcile(ctx: click.Context, auto: bool, list_unreconciled: bool) -> None:
         uniq_defns = uniq(d for _, b in groups for d in b)
         results = manager.run(manager.resolve(uniq_defns))
         for addons, defns in groups:
-            shortlist = list(filter(is_pkg, (results[d] for d in defns)))
+            shortlist: List[models.Pkg] = list(filter(is_pkg, (results[d] for d in defns)))
             if shortlist:
                 selection = Defn.from_pkg(shortlist[0]) if auto else prompt_one(addons, shortlist)
                 selection and (yield selection)
@@ -618,9 +624,8 @@ def _show_active_config(ctx: click.Context, _param: click.Parameter, value: bool
 def configure(ctx: click.Context) -> Config:
     "Configure instawow."
     from prompt_toolkit.completion import PathCompleter, WordCompleter
-    from questionary import text
 
-    from .prompts import PydanticValidator
+    from .prompts import PydanticValidator, text
 
     addon_dir = text(
         'Add-on directory: ',
