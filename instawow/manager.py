@@ -767,19 +767,15 @@ def _init_cli_web_client(
             if params.response.headers.get(hdrs.CONTENT_ENCODING) == 'gzip':
                 total = None
 
-            counter = None
+            counter = bar(label=label, total=total)
             try:
-                counter = bar(label=label, total=total)
                 content = params.response.content
                 while not content.is_eof():
                     counter.items_completed = content.total_bytes
                     bar.invalidate()
                     await asyncio.sleep(tick_interval)
             finally:
-                try:
-                    bar.counters.remove(counter)
-                except ValueError:
-                    pass
+                bar.counters.remove(counter)
 
         tickers.add(asyncio.create_task(ticker()))
 
