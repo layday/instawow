@@ -158,7 +158,7 @@ async def cache_response(
         text = await t(dest.read_text)(encoding='utf-8')
     else:
         method = request_kwargs.pop('method', 'GET')
-        kwargs = {'raise_for_status': True, **request_kwargs}
+        kwargs: Dict[str, Any] = {'raise_for_status': True, **request_kwargs}
         if label:
             kwargs = {**kwargs, 'trace_request_ctx': {'report_progress': True, 'label': label}}
         async with manager.web_client.request(method, url, **kwargs) as response:
@@ -514,7 +514,7 @@ class Manager:
         complexity for something that I would never expect to
         encounter in the wild.
         """
-        pkgs = list(filter(is_pkg, results))
+        pkgs: List[Pkg] = list(filter(is_pkg, results))
         dep_defns = list(
             filterfalse(
                 {(p.source, p.id) for p in pkgs}.__contains__,

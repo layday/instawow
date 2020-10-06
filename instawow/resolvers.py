@@ -16,7 +16,6 @@ from typing import (
     Optional as O,
     Sequence,
     Set,
-    Tuple,
     Union,
     cast,
 )
@@ -48,7 +47,7 @@ class _HashableModel(BaseModel):
     class Config:
         allow_mutation = False
 
-    def __eq__(self, other: Any) -> bool:
+    def __eq__(self, other: object) -> bool:
         return self.__dict__ == (other.__dict__ if isinstance(other, self.__class__) else other)
 
     def __hash__(self) -> int:
@@ -134,7 +133,7 @@ class Catalogue(BaseModel):
             set: sorted,
             frozenset: sorted,
         }
-        keep_untouched: Tuple[type, ...] = (cached_property,)
+        keep_untouched: Sequence[Any] = (cached_property,)
 
     @classmethod
     async def collate(cls, age_cutoff: O[datetime]) -> Catalogue:
@@ -731,7 +730,7 @@ class TukuiResolver(Resolver):
             if alias:
                 return alias
 
-    async def resolve_one(self, defn: Defn, metadata: Any) -> m.Pkg:
+    async def resolve_one(self, defn: Defn, metadata: None) -> m.Pkg:
         if defn.strategy not in self.strategies:
             raise E.PkgStrategyUnsupported(defn.strategy)
 
@@ -842,7 +841,7 @@ class GithubResolver(Resolver):
         if url.host == 'github.com' and len(url.parts) > 2:
             return '/'.join(url.parts[1:3])
 
-    async def resolve_one(self, defn: Defn, metadata: Any) -> m.Pkg:
+    async def resolve_one(self, defn: Defn, metadata: None) -> m.Pkg:
         """Resolve a hypothetical add-on hosted on GitHub.
 
         The GitHub resolver is inspired by strongbox's
@@ -933,7 +932,7 @@ class InstawowResolver(Resolver):
         ('1', 'weakauras-companion-autoupdate'),
     }
 
-    async def resolve_one(self, defn: Defn, metadata: Any) -> m.Pkg:
+    async def resolve_one(self, defn: Defn, metadata: None) -> m.Pkg:
         if defn.strategy not in self.strategies:
             raise E.PkgStrategyUnsupported(defn.strategy)
 

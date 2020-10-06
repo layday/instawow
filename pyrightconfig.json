@@ -1,7 +1,5 @@
 {
   "include": ["instawow"],
-  "typeshedPath": "./.py-types/typeshed",
-  "stubPath": "./.py-types/stubs",
   "typeCheckingMode": "strict",
   "useLibraryCodeForTypes": true,
   "reportMissingTypeStubs": "information",

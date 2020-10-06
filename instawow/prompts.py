@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from functools import partial
-from typing import TYPE_CHECKING, Any, List, Optional, Sequence, Tuple, Type
+from typing import TYPE_CHECKING, Any, List, Sequence, Tuple, Type
 
 from prompt_toolkit.application import Application
 from prompt_toolkit.key_binding import KeyBindings, KeyPressEvent
@@ -38,7 +38,7 @@ class PydanticValidator(Validator):
 
 
 class PkgChoice(Choice):
-    def __init__(self, *args: Any, pkg: Optional[Pkg] = None, **kwargs: Any) -> None:
+    def __init__(self, *args: Any, pkg: Pkg, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.pkg = pkg
 
@@ -73,14 +73,14 @@ def checkbox(message: str, choices: Sequence[Choice], **prompt_kwargs: Any) -> Q
             )
         return tokens
 
-    ic = InquirerControl(
+    ic: Any = InquirerControl(
         list(choices), None, use_indicator=False, use_shortcuts=False, use_pointer=True
     )
     bindings = KeyBindings()
 
     @bindings.add(Keys.ControlQ, eager=True)
     @bindings.add(Keys.ControlC, eager=True)
-    def _(event: KeyPressEvent):
+    def abort(event: KeyPressEvent):
         event.app.exit(exception=KeyboardInterrupt, style='class:aborting')
 
     @bindings.add(' ', eager=True)
@@ -123,14 +123,14 @@ def checkbox(message: str, choices: Sequence[Choice], **prompt_kwargs: Any) -> Q
 
     @bindings.add('o', eager=True)
     def open_url(event: KeyPressEvent):
-        pkg = getattr(ic.get_pointed_at(), 'pkg', None)
-        if pkg:
+        choice = ic.get_pointed_at()
+        if isinstance(choice, PkgChoice):
             import webbrowser
 
-            webbrowser.open(pkg.url)
+            webbrowser.open(choice.pkg.url)
 
     @bindings.add(Keys.Any)
-    def other(event: KeyPressEvent):
+    def default(event: KeyPressEvent):
         # Disallow inserting other text
         pass
 
@@ -156,14 +156,14 @@ def select(message: str, choices: Sequence[Choice], **prompt_kwargs: Any) -> Que
             )
         return tokens
 
-    ic = InquirerControl(
+    ic: Any = InquirerControl(
         list(choices), None, use_indicator=False, use_shortcuts=False, use_pointer=True
     )
     bindings = KeyBindings()
 
     @bindings.add(Keys.ControlQ, eager=True)
     @bindings.add(Keys.ControlC, eager=True)
-    def _(event: KeyPressEvent):
+    def abort(event: KeyPressEvent):
         event.app.exit(exception=KeyboardInterrupt, style='class:aborting')
 
     @bindings.add(Keys.Down, eager=True)
@@ -187,11 +187,11 @@ def select(message: str, choices: Sequence[Choice], **prompt_kwargs: Any) -> Que
 
     @bindings.add('o', eager=True)
     def open_url(event: KeyPressEvent):
-        pkg = getattr(ic.get_pointed_at(), 'pkg', None)
-        if pkg:
+        choice = ic.get_pointed_at()
+        if isinstance(choice, PkgChoice):
             import webbrowser
 
-            webbrowser.open(pkg.url)
+            webbrowser.open(choice.pkg.url)
 
     if skip in ic.choices:
 
@@ -201,7 +201,7 @@ def select(message: str, choices: Sequence[Choice], **prompt_kwargs: Any) -> Que
             set_answer(event)
 
     @bindings.add(Keys.Any)
-    def other(event: KeyPressEvent):
+    def default(event: KeyPressEvent):
         # Disallow inserting other text
         pass
 

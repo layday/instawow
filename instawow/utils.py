@@ -29,6 +29,7 @@ from typing import (
     Sequence,
     Set,
     Tuple,
+    Type,
     TypeVar,
     Union,
     cast,
@@ -130,7 +131,7 @@ def merge_intersecting_sets(it: Iterable[_AnySet]) -> Iterable[_AnySet]:
     many_sets: Deque[AbstractSet[object]] = deque(it)
     while True:
         try:
-            this_set: AbstractSet[Any] = many_sets.popleft()
+            this_set = many_sets.popleft()
         except IndexError:
             return
 
@@ -163,11 +164,23 @@ async def gather(
     return await asyncio.gather(*it, return_exceptions=return_exceptions)
 
 
+@overload
+def run_in_thread(fn: Type[List[object]]) -> Callable[[Iterable[_V]], Awaitable[List[_V]]]:
+    ...
+
+
+@overload
 def run_in_thread(fn: Callable[..., _V]) -> Callable[..., Awaitable[_V]]:
+    ...
+
+
+def run_in_thread(
+    fn: Union[Type[List[object]], Callable[..., _V]]
+) -> Union[Callable[[Iterable[_V]], Awaitable[List[_V]]], Callable[..., Awaitable[_V]]]:
     @wraps(fn)
     def wrapper(*args: object, **kwargs: object):
         loop = asyncio.get_running_loop()
-        return loop.run_in_executor(None, lambda: fn(*args, **kwargs))
+        return loop.run_in_executor(None, partial(fn, *args, **kwargs))
 
     return wrapper
 
@@ -234,6 +247,7 @@ def make_progress_bar(**kwargs: Any) -> ProgressBar:
     "A ``ProgressBar`` with download progress expressed in megabytes."
     import signal
 
+    from prompt_toolkit import Application
     from prompt_toolkit.formatted_text import HTML
     from prompt_toolkit.shortcuts.progress_bar import formatters
     from prompt_toolkit.shortcuts.progress_bar.base import ProgressBar, ProgressBarCounter
@@ -258,7 +272,7 @@ def make_progress_bar(**kwargs: Any) -> ProgressBar:
 
             if self._thread is not None:
 
-                def attempt_exit(sender: Any):
+                def attempt_exit(sender: Application[Any]):
                     sender.is_running and sender.exit()
 
                 self.app.on_invalidate = Event(self.app, attempt_exit)

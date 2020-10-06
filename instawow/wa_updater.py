@@ -8,6 +8,7 @@ from typing import (
     Any,
     Dict,
     Generic,
+    Iterable,
     Iterator,
     List,
     Optional as O,
@@ -61,6 +62,14 @@ class Auras(GenericModel, Generic[WeakAuraT]):
     @classmethod
     def from_lua_table(cls, lua_table: Dict[Any, Any]) -> Auras[WeakAuraT]:
         raise NotImplementedError
+
+    @classmethod
+    def merge(cls, *auras: Auras[WeakAuraT]) -> Iterable[Auras[WeakAuraT]]:
+        "Merge auras of the same type."
+        return (
+            t(__root__=reduce(lambda a, b: {**a, **b}, (i.__root__ for i in a)))
+            for t, a in bucketise(auras, key=type).items()
+        )
 
 
 class WeakAura(BaseModel):
@@ -335,13 +344,9 @@ class WaCompanionBuilder:
             )
 
     async def build(self) -> None:
-        installed_auras: List[Auras[Any]] = await t(list)(self.extract_installed_auras())
-        # Merge auras of the same type
-        auras_by_type = (
-            t(__root__=reduce(lambda a, b: {**a, **b}, (i.__root__ for i in a)))
-            for t, a in bucketise(installed_auras, key=type).items()
-        )
-        remote_auras = await gather(map(self.get_remote_auras, auras_by_type), False)
+        installed_auras = await t(list)(self.extract_installed_auras())
+        installed_auras_by_type = Auras.merge(*installed_auras)
+        remote_auras = await gather(map(self.get_remote_auras, installed_auras_by_type), False)
         await t(self.make_addon)(remote_auras)
 
     def checksum(self) -> str:

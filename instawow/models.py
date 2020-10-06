@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import TYPE_CHECKING, Any, List, Optional as O, Type
+from typing import TYPE_CHECKING, List, Optional as O
 
 from sqlalchemy import (
     Column,
@@ -17,10 +17,6 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import Session, object_session, relationship
 
 if TYPE_CHECKING:
-
-    class _ModelBase:
-        metadata: MetaData
-
     TZDateTime_base_class = TypeDecorator[datetime]
 else:
     TZDateTime_base_class = TypeDecorator
@@ -29,14 +25,14 @@ else:
 class TZDateTime(TZDateTime_base_class):
     impl = DateTime
 
-    def process_bind_param(self, value: O[datetime], dialect: Any) -> O[datetime]:  # type: ignore
+    def process_bind_param(self, value: O[datetime], dialect: object) -> O[datetime]:  # type: ignore
         if value is not None:
             if not value.tzinfo:
                 raise TypeError('tzinfo is required')
             value = value.astimezone(timezone.utc).replace(tzinfo=None)
         return value
 
-    def process_result_value(self, value: O[datetime], dialect: Any) -> O[datetime]:
+    def process_result_value(self, value: O[datetime], dialect: object) -> O[datetime]:
         if value is not None:
             value = value.replace(tzinfo=timezone.utc)
         return value
@@ -46,7 +42,14 @@ class TZDateTime(TZDateTime_base_class):
         return datetime
 
 
-ModelBase: Type[_ModelBase] = declarative_base()
+if TYPE_CHECKING:
+
+    class ModelBase:
+        metadata: MetaData
+
+
+else:
+    ModelBase = declarative_base()
 
 
 class Pkg(ModelBase):
@@ -170,5 +173,5 @@ class PkgVersionLog(ModelBase):
             ...
 
 
-def is_pkg(value: Any) -> bool:
+def is_pkg(value: object) -> bool:
     return isinstance(value, Pkg)
