@@ -150,23 +150,8 @@ def _callbackify(fn: Callable[..., _R]) -> Callable[[click.Context, click.Parame
     return lambda c, _, v: fn(c.obj.m, v)
 
 
-def _show_version(ctx: click.Context, _param: click.Parameter, value: bool):
-    if value:
-        __version__ = get_version()
-        click.echo(f'instawow, version {__version__}')
-        ctx.exit()
-
-
 @click.group(context_settings={'help_option_names': ('-h', '--help')})
-@click.option(
-    '--version',
-    is_flag=True,
-    default=False,
-    expose_value=False,
-    is_eager=True,
-    callback=_show_version,
-    help='Show the version and exit.',
-)
+@click.version_option(get_version(), prog_name=__package__)
 @click.option(
     '--debug',
     'log_level',

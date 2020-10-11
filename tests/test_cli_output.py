@@ -5,7 +5,7 @@ import json
 from click.testing import CliRunner
 import pytest
 
-from instawow import cli, config
+from instawow import cli, config, utils
 
 
 class Flavour(enum.IntEnum):
@@ -594,3 +594,7 @@ def test_json_export_and_import(cli_config, molinari_and_run):
         molinari_and_run(f'install --import "{export_json}"').output
         == '✗ curse:molinari\n  package already installed\n'
     )
+
+
+def test_show_version(run):
+    assert run('--version').output == f'instawow, version {utils.get_version()}\n'
