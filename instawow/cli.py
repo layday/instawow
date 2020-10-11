@@ -9,7 +9,6 @@ from textwrap import dedent, fill
 from typing import (
     TYPE_CHECKING,
     AbstractSet,
-    Any,
     Callable,
     FrozenSet,
     Generator,
@@ -34,7 +33,7 @@ from .resolvers import Defn, MultiPkgModel, Strategy
 from .utils import TocReader, cached_property, get_version, is_outdated, tabulate, uniq
 
 if TYPE_CHECKING:
-    from .manager import CliManager as CliManagerT
+    from .manager import CliManager
 
     _R = TypeVar('_R')
 
@@ -79,7 +78,7 @@ class Report:
         )
 
     def generate(self):
-        manager: CliManagerT = click.get_current_context().obj.m
+        manager: CliManager = click.get_current_context().obj.m
         if manager.config.auto_update_check:
             outdated, new_version = manager.run(is_outdated())
             if outdated:
@@ -110,7 +109,7 @@ class ManagerWrapper:
         self.ctx = ctx
 
     @cached_property
-    def m(self) -> CliManagerT:
+    def m(self) -> CliManager:
         from .manager import CliManager
 
         try:
@@ -146,7 +145,7 @@ class EnumParam(click.Choice, Generic[_EnumT]):
         return self.choice_enum[parent_result]
 
 
-def _callbackify(fn: Callable[..., _R]) -> Callable[[click.Context, click.Parameter, Any], _R]:
+def _callbackify(fn: Callable[..., _R]) -> Callable[[click.Context, click.Parameter, object], _R]:
     return lambda c, _, v: fn(c.obj.m, v)
 
 
@@ -160,7 +159,12 @@ def _callbackify(fn: Callable[..., _R]) -> Callable[[click.Context, click.Parame
     callback=lambda _, __, v: 'DEBUG' if v else 'INFO',
     help='Log more things.',
 )
-@click.option('--profile', '-p', default='__default__', help='Activate the specified profile.')
+@click.option(
+    '--profile',
+    '-p',
+    default='__default__',
+    help='Activate the specified profile.',
+)
 @click.pass_context
 def main(ctx: click.Context, log_level: bool, profile: str):
     "Add-on manager for World of Warcraft."
@@ -168,19 +172,19 @@ def main(ctx: click.Context, log_level: bool, profile: str):
 
 
 @overload
-def parse_into_defn(manager: CliManagerT, value: str, *, raise_invalid: bool = True) -> Defn:
+def parse_into_defn(manager: CliManager, value: str, *, raise_invalid: bool = True) -> Defn:
     ...
 
 
 @overload
 def parse_into_defn(
-    manager: CliManagerT, value: List[str], *, raise_invalid: bool = True
+    manager: CliManager, value: List[str], *, raise_invalid: bool = True
 ) -> List[Defn]:
     ...
 
 
 def parse_into_defn(
-    manager: CliManagerT, value: Union[str, List[str]], *, raise_invalid: bool = True
+    manager: CliManager, value: Union[str, List[str]], *, raise_invalid: bool = True
 ) -> Union[Defn, List[Defn]]:
     if not isinstance(value, str):
         defns = (parse_into_defn(manager, v, raise_invalid=raise_invalid) for v in value)
@@ -196,31 +200,31 @@ def parse_into_defn(
 
 
 def parse_into_defn_with_strategy(
-    manager: CliManagerT, value: Sequence[Tuple[Strategy, str]]
-) -> List[Defn]:
+    manager: CliManager, value: Sequence[Tuple[Strategy, str]]
+) -> Iterable[Defn]:
     defns = parse_into_defn(manager, [d for _, d in value])
-    return list(map(Defn.with_strategy, defns, (s for s, _ in value)))
+    return map(Defn.with_strategy, defns, (s for s, _ in value))
 
 
 def parse_into_defn_with_version(
-    manager: CliManagerT, value: Sequence[Tuple[str, str]]
-) -> List[Defn]:
+    manager: CliManager, value: Sequence[Tuple[str, str]]
+) -> Iterable[Defn]:
     defns = parse_into_defn(manager, [d for _, d in value])
-    return list(map(Defn.with_version, defns, (v for v, _ in value)))
+    return map(Defn.with_version, defns, (v for v, _ in value))
 
 
-def parse_into_defn_from_json_file(manager: CliManagerT, path: Path) -> List[Defn]:
+def parse_into_defn_from_json_file(manager: CliManager, path: Path) -> Iterable[Defn]:
     faux_pkgs = MultiPkgModel.parse_file(path, encoding='utf-8')
-    return list(map(Defn.from_pkg, cast('List[models.Pkg]', faux_pkgs.__root__)))
+    return map(Defn.from_pkg, faux_pkgs.__root__)
 
 
 def combine_addons(
-    fn: Callable[[CliManagerT, Any], List[Defn]],
+    fn: Callable[[CliManager, object], List[Defn]],
     ctx: click.Context,
     click_param: click.Parameter,
-    value: Any,
+    value: object,
 ) -> None:
-    addons = ctx.params.setdefault('addons', [])
+    addons: List[Defn] = ctx.params.setdefault('addons', [])
     if value:
         addons.extend(fn(ctx.obj.m, value))
 
@@ -316,7 +320,7 @@ def rollback(ctx: click.Context, addon: Defn, undo: bool) -> None:
     "Roll an add-on back to an older version."
     from .prompts import Choice, select
 
-    manager: CliManagerT = ctx.obj.m
+    manager: CliManager = ctx.obj.m
     limit = 10
 
     pkg = manager.get_pkg(addon)
@@ -399,7 +403,7 @@ def reconcile(ctx: click.Context, auto: bool, list_unreconciled: bool) -> None:
         '''
     )
 
-    manager: CliManagerT = ctx.obj.m
+    manager: CliManager = ctx.obj.m
 
     def prompt_one(addons: List[AddonFolder], pkgs: List[models.Pkg]) -> Union[Defn, Tuple[()]]:
         def construct_choice(pkg: models.Pkg):
@@ -479,7 +483,7 @@ def search(ctx: click.Context, search_terms: str, limit: int) -> None:
     "Search for add-ons to install."
     from .prompts import PkgChoice, checkbox, confirm
 
-    manager: CliManagerT = ctx.obj.m
+    manager: CliManager = ctx.obj.m
 
     pkgs = manager.run(manager.search(search_terms, limit))
     if pkgs:
