@@ -81,7 +81,7 @@ class SLPP:
             self.next_chr()
             if self.chr == end:
                 self.next_chr()
-                if start != '[' or self.chr == ']':
+                if start == end or self.chr == end:
                     return s
             if self.chr == '\\' and start == end:
                 self.next_chr()

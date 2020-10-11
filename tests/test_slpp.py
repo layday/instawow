@@ -69,8 +69,12 @@ def test_singe_value_table():
     assert slpp.decode('{ 0, 1, 0 }') == [0, 1, 0]
 
 
-def test_string_with_escape():
-    assert slpp.decode(r"'test\'s string'") == "test's string"
+def test_string_with_and_without_escape():
+    assert slpp.decode("'test\\'s string'") == "test's string"
+    assert slpp.decode('"test\\\'s string"') == "test\\'s string"
+    assert slpp.decode('"test\'s string"') == "test's string"
+    assert slpp.decode("[[test\\'s string]]") == "test\\'s string"
+    assert slpp.decode("[[test's string]]") == "test's string"
 
 
 def test_nested_table_with_variety_of_comments():
