@@ -60,7 +60,7 @@
       ]
     },
     "mac": {
-      "target": "zip",
+      "target": "dmg",
       "extraFiles": [
         {
           "from": "./artefacts/instawow",
