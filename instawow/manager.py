@@ -713,20 +713,17 @@ class Manager:
 
         strategies = {Strategy.default, Strategy.version}
 
-        def pin(defns: Sequence[Defn]) -> Iterable[E.ManagerResult]:
-            for defn in defns:
-                pkg = self.get_pkg(defn)
-                if pkg:
-                    if {defn.strategy} <= strategies <= self.resolvers[pkg.source].strategies:
-                        pkg.options.strategy = defn.strategy.name
-                        self.database.commit()
-                        yield E.PkgInstalled(pkg)
-                    else:
-                        yield E.PkgStrategyUnsupported(defn.strategy)
-                else:
-                    yield E.PkgNotInstalled()
+        def pin(defn: Defn, pkg: O[Pkg]) -> E.ManagerResult:
+            if not pkg:
+                return E.PkgNotInstalled()
+            elif {defn.strategy} <= strategies <= self.resolvers[pkg.source].strategies:
+                pkg.options.strategy = defn.strategy.name
+                self.database.commit()
+                return E.PkgInstalled(pkg)
+            else:
+                return E.PkgStrategyUnsupported(Strategy.version)
 
-        return dict(zip(defns, pin(defns)))
+        return {d: pin(d, self.get_pkg(d)) for d in defns}
 
 
 def _extract_filename_from_hdr(response: aiohttp.ClientResponse) -> str:
