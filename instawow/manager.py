@@ -12,6 +12,7 @@ from shutil import copy
 from tempfile import NamedTemporaryFile
 from typing import (
     TYPE_CHECKING,
+    AbstractSet,
     Any,
     AsyncIterator,
     Awaitable,
@@ -557,7 +558,11 @@ class Manager:
         return results_by_defn
 
     async def search(
-        self, search_terms: str, limit: int, strategy: Strategy = Strategy.default
+        self,
+        search_terms: str,
+        limit: int,
+        sources: O[AbstractSet[str]] = None,
+        strategy: Strategy = Strategy.default,
     ) -> Dict[Defn, Pkg]:
         "Search the master catalogue for packages by name."
         import heapq
@@ -569,25 +574,28 @@ class Manager:
         w = 0.5  # Weighing edit distance and download score equally
         normalise = normalise_names()
 
+        if sources is None:
+            sources = self.resolvers.keys()
+
         s = normalise(search_terms)
-        defns_by_token = bucketise(
+        tokens_to_entries = bucketise(
             (
                 (i.normalised_name, i)
                 for i in catalogue.__root__
-                if self.config.game_flavour in i.game_compatibility
+                if self.config.game_flavour in i.game_compatibility and i.source in sources
             ),
             key=lambda v: v[0],
         )
         matches = heapq.nlargest(
             limit,
-            ((jaro_winkler_similarity(s, n), n) for n in defns_by_token),
+            ((jaro_winkler_similarity(s, n), n) for n in tokens_to_entries),
             key=lambda v: v[0],
         )
         weighted_entries = sorted(
             (
                 (-(s * w + i.derived_download_score * (1 - w)), i)
                 for s, m in matches
-                for _, i in defns_by_token[m]
+                for _, i in tokens_to_entries[m]
             ),
             key=lambda v: v[0],
         )

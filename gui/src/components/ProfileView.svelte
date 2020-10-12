@@ -78,11 +78,13 @@
   const defaultSearchState: {
     searchTerms: string;
     searchFromAlias: boolean;
+    searchSource: string | null;
     searchStrategy: Strategy;
     searchVersion: string;
   } = {
     searchTerms: "",
     searchFromAlias: false,
+    searchSource: null,
     searchStrategy: Strategy.default,
     searchVersion: "",
   };
@@ -103,7 +105,13 @@
   let outdatedAddonCount: number;
   let addonsBeingModified: string[] = []; // revisit
 
-  let { searchTerms, searchFromAlias, searchStrategy, searchVersion } = defaultSearchState;
+  let {
+    searchTerms,
+    searchFromAlias,
+    searchSource,
+    searchStrategy,
+    searchVersion,
+  } = defaultSearchState;
 
   let reconcileStage: ReconciliationStage = reconcileStages[0];
   let reconcileSelections: Addon[];
@@ -227,7 +235,12 @@
                 version: searchVersion,
               },
             ])
-          : api.search(searchTermsSnapshot, SEARCH_LIMIT, searchStrategy);
+          : api.search(
+              searchTermsSnapshot,
+              SEARCH_LIMIT,
+              searchSource ? [searchSource] : null,
+              searchStrategy
+            );
         const results = await coro;
         // Discard results if the search terms have changed in the meantime
         if (searchTermsSnapshot === searchTerms) {
@@ -354,7 +367,8 @@
       console.debug(profile, "- trying", stage);
       const results = await api.reconcile(stage);
       if (results.reconciled.length || !getNextReconcileStage(stage)) {
-        (reconcileStage = stage), (reconcileSelections = []);
+        reconcileStage = stage;
+        reconcileSelections = [];
         return results;
       }
     }
@@ -406,13 +420,13 @@
   // Reset search params in-between searches
   $: searchTerms ||
     (console.debug(profile, "- resetting search values"),
-    ({ searchFromAlias, searchStrategy, searchVersion } = defaultSearchState));
+    ({ searchFromAlias, searchSource, searchStrategy, searchVersion } = defaultSearchState));
   // Upddate `searchFromAlias` whenever the `searchTerms` change
   $: searchTerms &&
     (searchFromAlias =
       (console.debug(profile, "- updating `searchFromAlias`"), isSearchFromAlias()));
   // Schedule a new search whenever the search params change
-  $: (searchFromAlias || searchStrategy || searchVersion) &&
+  $: (searchFromAlias || searchSource || searchStrategy || searchVersion) &&
     (console.debug(profile, "- triggering search"), search());
   // Update add-on list according to view
   $: addons = activeView === View.Search ? addons__CombinedSearch : addons__Installed;
@@ -494,6 +508,7 @@
 {#if isActive}
   <AddonListNav
     {profile}
+    {sources}
     on:keydown={(e) => e.key === 'Enter' && search()}
     on:requestRefresh={() => refreshInstalled()}
     on:requestUpdateAll={() => updateAddons(true)}
@@ -505,6 +520,7 @@
     bind:addonsCondensed
     bind:search__searchTerms={searchTerms}
     bind:search__fromAlias={searchFromAlias}
+    bind:search__searchSource={searchSource}
     bind:search__searchStrategy={searchStrategy}
     bind:search__searchVersion={searchVersion}
     search__isSearching={searchesInProgress > 0}

@@ -478,19 +478,27 @@ def reconcile(ctx: click.Context, auto: bool, list_unreconciled: bool) -> None:
     type=click.IntRange(1, 20, clamp=True),
     help='A number to limit results to.',
 )
+@click.option(
+    '--source',
+    'sources',
+    multiple=True,
+    help='A source to search in.  Repeatable.',
+)
 @click.pass_context
-def search(ctx: click.Context, search_terms: str, limit: int) -> None:
+def search(ctx: click.Context, search_terms: str, limit: int, sources: Sequence[str]) -> None:
     "Search for add-ons to install."
     from .prompts import PkgChoice, checkbox, confirm
 
     manager: CliManager = ctx.obj.m
 
-    pkgs = manager.run(manager.search(search_terms, limit))
+    pkgs = manager.run(manager.search(search_terms, limit, frozenset(sources) or None))
     if pkgs:
         choices = [PkgChoice(f'{p.name}  ({d}=={p.version})', d, pkg=p) for d, p in pkgs.items()]
         selections = checkbox('Select add-ons to install', choices=choices).unsafe_ask()
         if selections and confirm('Install selected add-ons?').unsafe_ask():
             ctx.invoke(install, addons=selections)
+    else:
+        click.echo('No results found.')
 
 
 class ListFormats(enum.Enum):

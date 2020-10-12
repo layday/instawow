@@ -1,4 +1,5 @@
 <script lang="ts">
+  import type { Sources } from "../api";
   import {
     faFingerprint,
     faGripLines,
@@ -12,10 +13,12 @@
   import Icon from "./SvgIcon.svelte";
 
   export let profile: string,
+    sources: Sources,
     activeView: View,
     addonsCondensed: boolean,
     search__searchTerms: string,
     search__fromAlias: boolean,
+    search__searchSource: string | null,
     search__searchStrategy: Strategy,
     search__searchVersion: string,
     search__isSearching: boolean,
@@ -283,6 +286,17 @@
         title="interpret query as an add-on URI">
         <Icon icon={faFingerprint} />
       </label>
+      {#if !search__fromAlias}
+        <select
+          aria-label="source"
+          bind:value={search__searchSource}
+          in:fly={{ duration: 200, x: 64 }}>
+          <option value={null}>any</option>
+          {#each Object.keys(sources) as source}
+            <option value={source}>{source}</option>
+          {/each}
+        </select>
+      {/if}
       <select aria-label="strategy" bind:value={search__searchStrategy}>
         {#each Object.values(Strategy) as strategy}
           <option value={strategy}>{strategy}</option>

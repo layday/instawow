@@ -162,6 +162,7 @@ export class Api {
   async search(
     searchTerms: string,
     searchLimit: number,
+    sources: string[] | null,
     strategy: Strategy
   ): Promise<MultiResult> {
     return await this._request({
@@ -170,6 +171,7 @@ export class Api {
         profile: this.profile,
         search_terms: searchTerms,
         limit: searchLimit,
+        sources: sources,
         strategy: strategy,
       },
     });

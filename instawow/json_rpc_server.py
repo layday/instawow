@@ -17,6 +17,7 @@ from typing import (
     Iterator,
     List,
     Optional as O,
+    Set,
     Tuple,
     Type,
     TypeVar,
@@ -185,6 +186,7 @@ class MultiResult(BaseModel):
 class SearchParams(_ProfileParamMixin, BaseParams):
     search_terms: str
     limit: int
+    sources: O[Set[str]] = None
     strategy: Strategy = Strategy.default
     _method = 'search'
 
@@ -195,6 +197,7 @@ class SearchParams(_ProfileParamMixin, BaseParams):
                 Manager.search,
                 search_terms=self.search_terms,
                 limit=self.limit,
+                sources=self.sources,
                 strategy=self.strategy,
             ),
         )

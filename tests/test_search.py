@@ -9,9 +9,15 @@ def mock(mock_all):
 
 
 @pytest.mark.asyncio
-async def test_search(manager):
+async def test_search_unfiltered(manager):
     results = await manager.search('molinari', limit=5)
     assert {Defn('curse', 'molinari'), Defn('wowi', '13188-molinari')} == set(results)
+
+
+@pytest.mark.asyncio
+async def test_search_filtered(manager):
+    results = await manager.search('molinari', limit=5, sources={'curse'})
+    assert {Defn('curse', 'molinari')} == set(results)
 
 
 @pytest.mark.asyncio
