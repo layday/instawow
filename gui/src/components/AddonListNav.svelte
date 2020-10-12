@@ -1,8 +1,8 @@
 <script lang="ts">
   import type { Sources } from "../api";
   import {
-    faFingerprint,
     faGripLines,
+    faLink,
     faStepBackward,
     faStepForward,
   } from "@fortawesome/free-solid-svg-icons";
@@ -284,7 +284,7 @@
         for="__interpret-as-uri-{profile}"
         aria-label="interpret query as an add-on URI"
         title="interpret query as an add-on URI">
-        <Icon icon={faFingerprint} />
+        <Icon icon={faLink} />
       </label>
       {#if !search__fromAlias}
         <select
