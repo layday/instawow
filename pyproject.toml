@@ -13,9 +13,7 @@ write_to_template = "__version__ = '{version}'\n"
 
 [tool.coverage.run]
 source = ["instawow"]
-omit = [
-  "instawow/migrations",
-]
+omit = ["instawow/migrations/*"]
 
 [tool.coverage.report]
 exclude_lines = [
@@ -23,7 +21,7 @@ exclude_lines = [
   "if TYPE_CHECKING:",
   "def __repr__",
   "raise NotImplementedError",
-  "if __name__ == .__main__.:",
+  "if __name__ == ['\"]__main__['\"]:",
   "@overload",
 ]
 
