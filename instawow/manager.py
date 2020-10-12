@@ -30,7 +30,6 @@ from typing import (
     Type,
     TypeVar,
     Union,
-    cast,
 )
 
 from loguru import logger
@@ -235,7 +234,7 @@ def init_web_client(**kwargs: Any) -> aiohttp.ClientSession:
         'connector': TCPConnector(force_close=True, limit_per_host=10),
         'headers': {'User-Agent': USER_AGENT},
         'trust_env': True,  # Respect the 'http_proxy' env var
-        'timeout': cast(Any, ClientTimeout)(connect=15),
+        'timeout': ClientTimeout(connect=15),  # type: ignore
         **kwargs,
     }
     return ClientSession(**kwargs)
@@ -245,7 +244,7 @@ class _DummyLock:
     async def __aenter__(self) -> None:
         pass
 
-    async def __aexit__(self, *args: Any) -> None:
+    async def __aexit__(self, *args: object) -> None:
         pass
 
 
@@ -291,7 +290,7 @@ def _with_lock(
     manager_bound: bool = True,
 ) -> Callable[[_T], _T]:
     def outer(coro_fn: _T):
-        async def inner(self: Manager, *args: Any, **kwargs: Any):
+        async def inner(self: Manager, *args: object, **kwargs: object):
             key = f'{id(self)}_{lock_name}' if manager_bound else lock_name
             async with self.locks[key]:
                 return await coro_fn(self, *args, **kwargs)
@@ -318,12 +317,12 @@ class Manager:
         self.config = config
         self.database = database
         self.resolvers = _ResolverDict((r.source, r(self)) for r in resolver_classes)
-        self._catalogue: O[Catalogue] = catalogue
+        self._catalogue = catalogue
 
     @classmethod
     def from_config(cls: Type[_ManagerT], config: Config) -> _ManagerT:
         session_factory = prepare_database(config)
-        return cls(config, cast('SqlaSession', session_factory()))
+        return cls(config, session_factory())
 
     @property
     def web_client(self) -> aiohttp.ClientSession:
@@ -351,7 +350,7 @@ class Manager:
         try:
             return _locks.get()
         except LookupError:
-            locks = cast('DefaultDict[str, asyncio.Lock]', defaultdict(_DummyLock))
+            locks: DefaultDict[str, Any] = defaultdict(_DummyLock)
             _locks.set(locks)
             logger.debug('using dummy lock factory')
             return locks
@@ -515,11 +514,11 @@ class Manager:
         complexity for something that I would never expect to
         encounter in the wild.
         """
-        pkgs: List[Pkg] = list(filter(is_pkg, results))
+        pkgs = [r for r in results if is_pkg(r)]
         dep_defns = list(
             filterfalse(
                 {(p.source, p.id) for p in pkgs}.__contains__,
-                # Using a dict to maintain dep appearance order
+                # Using a dict to remove dupes *and* maintain dep appearance order
                 {(p.source, d.id): ... for p in pkgs for d in p.deps},
             )
         )
@@ -618,9 +617,7 @@ class Manager:
             compress(resolve_results.items(), (not self.get_pkg(d) for d in resolve_results))
         )
         installables = {
-            (d, cast(Pkg, r)): download_archive(self, r)
-            for d, r in resolve_results.items()
-            if is_pkg(r)
+            (d, r): download_archive(self, r) for d, r in resolve_results.items() if is_pkg(r)
         }
         archives = await gather(installables.values())
         result_coros = chain_dict(
@@ -661,13 +658,11 @@ class Manager:
             for d, p in zip(defns, (self.get_pkg(d) for d in defns))
         }
         resolve_results = await self.resolve([d for d, p in defns_to_pkgs.items() if p])
-        installables = {d: cast(Pkg, r) for d, r in resolve_results.items() if is_pkg(r)}
+        installables = {d: r for d, r in resolve_results.items() if is_pkg(r)}
         updatables = {
             (d, o, n): download_archive(self, n)
-            for (d, n), o in zip(
-                installables.items(), (cast(Pkg, defns_to_pkgs[d]) for d in installables)
-            )
-            if n.version != o.version
+            for (d, n), o in zip(installables.items(), (defns_to_pkgs[d] for d in installables))
+            if n.version != o.version  # type: ignore
         }
         archives = await gather(updatables.values())
         result_coros = chain_dict(

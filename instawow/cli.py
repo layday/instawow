@@ -131,7 +131,7 @@ class EnumParam(click.Choice, Generic[_EnumT]):
     def __init__(
         self,
         choice_enum: Type[_EnumT],
-        excludes: AbstractSet[_EnumT] = set(),
+        excludes: AbstractSet[_EnumT] = frozenset(),
         case_sensitive: bool = True,
     ) -> None:
         self.choice_enum = choice_enum
@@ -352,11 +352,12 @@ def rollback(ctx: click.Context, addon: Defn, undo: bool) -> None:
     choices = [
         Choice(
             [('', v.version)],
+            value=v.version,
             disabled='installed version' if v.version == pkg.version else None,
         )
         for v in versions
     ]
-    selection = select(
+    selection: str = select(
         f'Select version of {reconstructed_defn} for rollback', choices
     ).unsafe_ask()
     Report(
@@ -409,11 +410,10 @@ def reconcile(ctx: click.Context, auto: bool, list_unreconciled: bool) -> None:
         def construct_choice(pkg: models.Pkg):
             defn = Defn.from_pkg(pkg)
             title = [
-                ('', str(defn)),
-                ('', '=='),
+                ('', f'=={defn}'),
                 ('class:highlight-sub' if highlight_version else '', pkg.version),
             ]
-            return PkgChoice(title, defn, pkg=pkg)
+            return PkgChoice(title, pkg=pkg, value=defn)
 
         # Highlight version if there's multiple of them
         highlight_version = len({i.version for i in chain(addons, pkgs)}) > 1

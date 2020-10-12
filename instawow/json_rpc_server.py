@@ -175,7 +175,7 @@ class MultiResult(BaseModel):
     __root__: List[Union[SuccessResult, ErrorResult]]
 
     @validator('__root__', each_item=True, pre=True)
-    def _classify_tuple(cls, value: Tuple[str, Any]) -> Union[SuccessResult, ErrorResult]:
+    def _classify_tuple(cls, value: Tuple[str, object]) -> Union[SuccessResult, ErrorResult]:
         status, result = value
         if status == 'success':
             return SuccessResult(status=status, addon=result)

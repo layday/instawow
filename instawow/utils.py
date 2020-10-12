@@ -262,7 +262,7 @@ def make_progress_bar(**kwargs: Any) -> ProgressBar:
     # instawow will hang.  This is my ham-fisted attempt to work
     # around all that by signalling to the daemon thread to kill the app.
 
-    _SIGWINCH = getattr(signal, "SIGWINCH", None)
+    _SIGWINCH = getattr(signal, 'SIGWINCH', None)
 
     class PatchedProgressBar(ProgressBar):
         def __exit__(self, *args: object):
@@ -272,7 +272,7 @@ def make_progress_bar(**kwargs: Any) -> ProgressBar:
 
             if self._thread is not None:
 
-                def attempt_exit(sender: Application[Any]):
+                def attempt_exit(sender: Application[object]):
                     sender.is_running and sender.exit()
 
                 self.app.on_invalidate = Event(self.app, attempt_exit)

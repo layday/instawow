@@ -17,6 +17,8 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import Session, object_session, relationship
 
 if TYPE_CHECKING:
+    from typing_extensions import TypeGuard
+
     TZDateTime_base_class = TypeDecorator[datetime]
 else:
     TZDateTime_base_class = TypeDecorator
@@ -173,5 +175,5 @@ class PkgVersionLog(ModelBase):
             ...
 
 
-def is_pkg(value: object) -> bool:
+def is_pkg(value: object) -> TypeGuard[Pkg]:
     return isinstance(value, Pkg)

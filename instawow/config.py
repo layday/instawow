@@ -43,11 +43,8 @@ def _validate_path_is_writable_dir(value: Path) -> Path:
 
 class BaseConfig(BaseSettings):
     def _build_values(
-        self,
-        init_kwargs: Dict[str, Any],
-        *args: Any,
-        **kwargs: Any,
-    ) -> Dict[str, Any]:
+        self, init_kwargs: Dict[str, Any], *args: Any, **kwargs: Any
+    ) -> Dict[str, object]:
         # Prioritise env vars
         return {**init_kwargs, **self._build_environ()}
 

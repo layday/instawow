@@ -62,7 +62,7 @@ class Defn(_HashableModel):
     version: O[str] = None
 
     @classmethod
-    def from_pkg(cls, pkg: m.Pkg) -> Defn:
+    def from_pkg(cls, pkg: Union[m.Pkg, PkgModel]) -> Defn:
         return cls(
             source=pkg.source,
             id=pkg.id,
