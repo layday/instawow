@@ -13,15 +13,15 @@ setup(
     long_description_content_type='text/x-rst',
     entry_points={'console_scripts': ['instawow = instawow.cli:main']},
     install_requires='''
-        aiohttp           ~=3.5
-        alembic           ~=1.4
+        aiohttp           ~=3.6
+        alembic           ~=1.4.3
         click             ~=7.1
         jellyfish         ~=0.8.2
         jinja2            ~=2.11
         loguru            <1
         prompt-toolkit    >=3.0.3, <4
         pydantic          ~=1.6.1
-        questionary       ~=1.4
+        questionary       ~=1.6
         sqlalchemy        ~=1.3.19
         typing-extensions ~=3.7
         yarl              ~=1.4
