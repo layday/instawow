@@ -528,9 +528,12 @@ def list_installed(
     from sqlalchemy import and_, or_
 
     def format_deps(pkg: models.Pkg):
-        deps = (Defn(pkg.source, d.id) for d in pkg.deps)
-        deps = (d.with_(name=getattr(obj.m.get_pkg(d), 'slug', d.alias)) for d in deps)
-        return map(str, deps)
+        return (
+            str(d.with_(alias=p.slug) if p else d)
+            for d in pkg.deps
+            for d in (Defn(pkg.source, d.id),)
+            for d, p in ((d, obj.m.get_pkg(d)),)
+        )
 
     def get_wowi_desc_from_toc(pkg: models.Pkg):
         if pkg.source == 'wowi':
