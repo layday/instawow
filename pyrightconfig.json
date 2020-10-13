@@ -4,10 +4,10 @@
   "useLibraryCodeForTypes": true,
   "reportMissingTypeStubs": "information",
   "reportImportCycles": false,
-  "reportPrivateUsage": "warning",
+  "reportPrivateUsage": "information",
   "reportIncompatibleMethodOverride": "warning",
   "reportUnknownArgumentType": "warning",
-  "reportUnknownMemberType": "warning",
+  "reportUnknownMemberType": false,
   "reportCallInDefaultInitializer": false,
   "reportImplicitStringConcatenation": false
 }
