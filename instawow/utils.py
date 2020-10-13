@@ -108,15 +108,15 @@ class cached_property(Generic[_V]):
 
 def bucketise(iterable: Iterable[_V], key: Callable[[_V], _H]) -> DefaultDict[_H, List[_V]]:
     "Place the elements of an iterable in a bucket according to ``key``."
-    bucket: DefaultDict[_H, List[_V]] = defaultdict(list)
+    bucket: DefaultDict[Hashable, List[object]] = defaultdict(list)
     for value in iterable:
         bucket[key(value)].append(value)
     return bucket
 
 
 def chain_dict(
-    keys: Iterable[_H], default: Any, *overrides: Iterable[Tuple[_H, Any]]
-) -> Dict[_H, Any]:
+    keys: Iterable[_H], default: Any, *overrides: Iterable[Tuple[_H, _V]]
+) -> Dict[_H, _V]:
     "Construct a dictionary from a series of iterables with overlapping keys."
     return dict(chain(zip(keys, repeat(default)), *overrides))
 

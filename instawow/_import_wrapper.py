@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import importlib.util
 import sys
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     import types
@@ -21,8 +21,12 @@ def __getattr__(name: str) -> types.ModuleType:
         # converted to an ``ImportError`` by Python's import mechanism so we
         # don't have to be too fussy about what returns which - everything's
         # gonna work out just fine, I promise
-        spec: Any = importlib.util.find_spec(fullname)
-        sys.modules[fullname] = module = importlib.util.module_from_spec(spec)
-        lazy_loader = importlib.util.LazyLoader(spec.loader)
+        spec = importlib.util.find_spec(fullname)
+        sys.modules[fullname] = module = importlib.util.module_from_spec(
+            spec,  # type: ignore
+        )
+        lazy_loader = importlib.util.LazyLoader(
+            spec.loader,  # type: ignore
+        )
         lazy_loader.exec_module(module)
         return module

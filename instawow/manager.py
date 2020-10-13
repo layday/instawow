@@ -62,6 +62,7 @@ from .utils import (
     run_in_thread as t,
     shasum,
     trash,
+    uniq,
 )
 
 if TYPE_CHECKING:
@@ -515,11 +516,10 @@ class Manager:
         encounter in the wild.
         """
         pkgs = [r for r in results if is_pkg(r)]
-        dep_defns = list(
+        dep_defns = uniq(
             filterfalse(
                 {(p.source, p.id) for p in pkgs}.__contains__,
-                # Using a dict to remove dupes *and* maintain dep appearance order
-                {(p.source, d.id): ... for p in pkgs for d in p.deps},
+                ((p.source, d.id) for p in pkgs for d in p.deps),
             )
         )
         if not dep_defns:
