@@ -1,7 +1,6 @@
 <script lang="ts">
   import type { Api, Config, PydanticValidationError } from "../api";
   import { faFolderOpen, faTimesCircle } from "@fortawesome/free-solid-svg-icons";
-  import lodash from "lodash";
   import { fade } from "svelte/transition";
   import { ipcRenderer } from "../ipc";
   import { activeProfile, profiles } from "../store";
@@ -41,7 +40,7 @@
       // `error instanceof JSONRPCError` isn't working because of some transpilation fuckery:
       // https://github.com/open-rpc/client-js/issues/209
       if (error?.data) {
-        errors = lodash.fromPairs(
+        errors = Object.fromEntries(
           (error.data as PydanticValidationError[]).map(({ loc, msg }) => [loc, msg])
         );
         return;

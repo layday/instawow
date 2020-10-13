@@ -1,5 +1,4 @@
 import type { Client } from "@open-rpc/client-js";
-import lodash from "lodash";
 
 export enum Strategy {
   default = "default",
@@ -149,7 +148,7 @@ export class Api {
       method: "sources/list",
       params: { profile: this.profile },
     });
-    return lodash.fromPairs(result.map((i: Sources["foo"]) => [i.source, i]));
+    return Object.fromEntries(result.map((i: Sources["foo"]) => [i.source, i]));
   }
 
   async list(): Promise<ListResult> {
