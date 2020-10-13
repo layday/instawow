@@ -165,7 +165,7 @@ def _callbackify(fn: Callable[..., _R]) -> Callable[[click.Context, click.Parame
     help='Activate the specified profile.',
 )
 @click.pass_context
-def main(ctx: click.Context, log_level: bool, profile: str):
+def main(ctx: click.Context, log_level: str, profile: str):
     "Add-on manager for World of Warcraft."
     ctx.obj = ManagerWrapper(ctx)
 
