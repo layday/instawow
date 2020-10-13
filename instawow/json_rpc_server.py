@@ -225,7 +225,7 @@ class ResolveParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
             ),
         )
         return MultiResult.parse_obj(
-            [('success', r) if is_pkg(r) else (r.kind, r.message) for r in results.values()]
+            [('success', r) if is_pkg(r) else (r.status, r.message) for r in results.values()]
         )
 
 
@@ -239,7 +239,7 @@ class InstallParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
         )
         return MultiResult.parse_obj(
             [
-                (r.kind, r.pkg if isinstance(r, E.PkgInstalled) else r.message)
+                (r.status, r.pkg if isinstance(r, E.PkgInstalled) else r.message)
                 for r in results.values()
             ]
         )
@@ -254,7 +254,7 @@ class UpdateParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
         )
         return MultiResult.parse_obj(
             [
-                (r.kind, r.new_pkg if isinstance(r, E.PkgUpdated) else r.message)
+                (r.status, r.new_pkg if isinstance(r, E.PkgUpdated) else r.message)
                 for r in results.values()
             ]
         )
@@ -267,7 +267,7 @@ class RemoveParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
         results = await managers.run(self.profile, partial(Manager.remove, defns=self.defns))
         return MultiResult.parse_obj(
             [
-                (r.kind, r.old_pkg if isinstance(r, E.PkgRemoved) else r.message)
+                (r.status, r.old_pkg if isinstance(r, E.PkgRemoved) else r.message)
                 for r in results.values()
             ]
         )
@@ -280,7 +280,7 @@ class PinParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
         results = await managers.run(self.profile, partial(Manager.pin, defns=self.defns))
         return MultiResult.parse_obj(
             [
-                (r.kind, r.pkg if isinstance(r, E.PkgInstalled) else r.message)
+                (r.status, r.pkg if isinstance(r, E.PkgInstalled) else r.message)
                 for r in results.values()
             ]
         )

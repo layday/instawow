@@ -8,7 +8,7 @@ if TYPE_CHECKING:
 
 
 class ManagerResult:
-    kind: ClassVar[str]
+    status: ClassVar[str]
     message_template: ClassVar[str]
 
     @property
@@ -17,7 +17,7 @@ class ManagerResult:
 
 
 class PkgInstalled(ManagerResult):
-    kind = 'success'
+    status = 'success'
     message_template = 'installed {self.pkg.version}'
 
     def __init__(self, pkg: Pkg) -> None:
@@ -26,7 +26,7 @@ class PkgInstalled(ManagerResult):
 
 
 class PkgUpdated(ManagerResult):
-    kind = 'success'
+    status = 'success'
     message_template = 'updated {self.old_pkg.version} to {self.new_pkg.version}'
 
     def __init__(self, old_pkg: Pkg, new_pkg: Pkg) -> None:
@@ -36,7 +36,7 @@ class PkgUpdated(ManagerResult):
 
 
 class PkgRemoved(ManagerResult):
-    kind = 'success'
+    status = 'success'
     message_template = 'removed'
 
     def __init__(self, old_pkg: Pkg) -> None:
@@ -45,7 +45,7 @@ class PkgRemoved(ManagerResult):
 
 
 class ManagerError(ManagerResult, Exception):
-    kind = 'failure'
+    status = 'failure'
 
 
 class PkgAlreadyInstalled(ManagerError):
@@ -53,8 +53,6 @@ class PkgAlreadyInstalled(ManagerError):
 
 
 class PkgConflictsWithInstalled(ManagerError):
-    message_template = 'package folders conflict with installed package'
-
     def __init__(self, conflicting_pkgs: Sequence[Pkg]) -> None:
         super().__init__()
         self.conflicting_pkgs = conflicting_pkgs
@@ -62,18 +60,21 @@ class PkgConflictsWithInstalled(ManagerError):
     @property
     def message(self) -> str:
         return (
-            self.message_template
+            'package folders conflict with installed package'
             + ('s ' if len(self.conflicting_pkgs) > 1 else ' ')
             + ', '.join(f'{c.name} ({c.source}:{c.id})' for c in self.conflicting_pkgs)
         )
 
 
 class PkgConflictsWithUnreconciled(ManagerError):
-    message_template = 'package folders conflict with {self.folders}'
-
     def __init__(self, folders: Set[str]) -> None:
         super().__init__()
-        self.folders = ', '.join(f"'{f}'" for f in folders)
+        self.folders = folders
+
+    @property
+    def message(self) -> str:
+        folders = ', '.join(f"'{f}'" for f in self.folders)
+        return f'package folders conflict with {folders}'
 
 
 class PkgNonexistent(ManagerError):
@@ -83,13 +84,13 @@ class PkgNonexistent(ManagerError):
 class PkgFileUnavailable(ManagerError):
     message_template = 'package file is not available for download'
 
-    def __init__(self, message: Optional[str] = None) -> None:
+    def __init__(self, custom_message: Optional[str] = None) -> None:
         super().__init__()
-        self._message = message
+        self._custom_message = custom_message
 
     @property
     def message(self) -> str:
-        return self._message or super().message
+        return self._custom_message or super().message
 
 
 class PkgNotInstalled(ManagerError):
@@ -113,8 +114,7 @@ class PkgStrategyUnsupported(ManagerError):
 
 
 class InternalError(ManagerResult, Exception):
-    kind = 'error'
-    message_template = 'internal error'
+    status = 'error'
 
     def __init__(self, error: BaseException) -> None:
         super().__init__()
@@ -122,4 +122,4 @@ class InternalError(ManagerResult, Exception):
 
     @property
     def message(self) -> str:
-        return f'{self.message_template}: "{self.error}"'
+        return f'internal error: "{self.error}"'
