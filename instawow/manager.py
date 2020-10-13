@@ -669,7 +669,10 @@ class Manager:
             defns_to_pkgs,
             _error_out(E.PkgNotInstalled()),
             ((d, _error_out(r)) for d, r in resolve_results.items()),
-            zip(installables, repeat(_error_out(E.PkgUpToDate()))),
+            (
+                (d, _error_out(E.PkgUpToDate(is_pinned=d.strategy is Strategy.version)))
+                for d in installables
+            ),
             (
                 (
                     d,

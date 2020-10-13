@@ -489,7 +489,7 @@ def test_install_with_github_alias(run, args, cmp):
         ),
         (
             'update curse:molinari',
-            '✗ curse:molinari\n  package is up to date\n',
+            '✗ curse:molinari\n  package is pinned\n',
             None,
         ),
         (

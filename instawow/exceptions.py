@@ -102,7 +102,13 @@ class PkgSourceInvalid(ManagerError):
 
 
 class PkgUpToDate(ManagerError):
-    message_template = 'package is up to date'
+    def __init__(self, is_pinned: bool) -> None:
+        super().__init__()
+        self.is_pinned = is_pinned
+
+    @property
+    def message(self) -> str:
+        return f'package is {"pinned" if self.is_pinned else "up to date"}'
 
 
 class PkgStrategyUnsupported(ManagerError):

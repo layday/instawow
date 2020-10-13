@@ -21,7 +21,6 @@ from typing import (
     Type,
     TypeVar,
     Union,
-    cast,
     overload,
 )
 
@@ -287,8 +286,12 @@ def update(obj: ManagerWrapper, addons: Sequence[Defn]) -> None:
 
     def filter_results(result: E.ManagerResult):
         # Hide packages from output if they are up to date
-        # and ``update`` was invoked without args
-        return cast(bool, addons) or not isinstance(result, E.PkgUpToDate)
+        # and ``update`` was invoked without args,
+        # provided that they are not pinned
+        if addons or not isinstance(result, E.PkgUpToDate):
+            return True
+        else:
+            return result.is_pinned
 
     results = obj.m.run(
         obj.m.update(
