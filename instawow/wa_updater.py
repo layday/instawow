@@ -201,6 +201,7 @@ class WaCompanionBuilder:
                 aura_groups._api_url.with_query(ids=','.join(aura_ids)),
                 30,
                 'minutes',
+                label='Fetching aura metadata',
                 request_kwargs={'headers': {'api-key': self.builder_config.wago_api_key or ''}},
             )
         except ClientResponseError as error:
@@ -216,6 +217,7 @@ class WaCompanionBuilder:
             import_api_url.with_query(id=aura_id),
             30,
             'minutes',
+            label=f'Fetching aura with ID {aura_id}',
             to_json=False,
             request_kwargs={'headers': {'api-key': self.builder_config.wago_api_key or ''}},
         )
