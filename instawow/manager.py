@@ -526,7 +526,7 @@ class Manager:
             return {}
 
         deps = await self.resolve(list(starmap(Defn, dep_defns)))
-        pretty_deps = {d.with_(name=r.slug) if is_pkg(r) else d: r for d, r in deps.items()}
+        pretty_deps = {d.with_(alias=r.slug) if is_pkg(r) else d: r for d, r in deps.items()}
         return pretty_deps
 
     async def resolve(self, defns: Sequence[Defn], with_deps: bool = False) -> Dict[Defn, Any]:
