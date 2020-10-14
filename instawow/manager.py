@@ -235,7 +235,7 @@ def init_web_client(**kwargs: Any) -> aiohttp.ClientSession:
         'connector': TCPConnector(force_close=True, limit_per_host=10),
         'headers': {'User-Agent': USER_AGENT},
         'trust_env': True,  # Respect the 'http_proxy' env var
-        'timeout': ClientTimeout(connect=15),  # type: ignore
+        'timeout': ClientTimeout(connect=10, sock_read=10),  # type: ignore
         **kwargs,
     }
     return ClientSession(**kwargs)
