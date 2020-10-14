@@ -269,13 +269,14 @@ def _error_out(error: BaseException) -> Callable[[], Awaitable[NoReturn]]:
     return inner
 
 
-async def _capture_exc_async(
-    coro: Callable[..., Awaitable[_T]]
+async def capture_manager_exc_async(
+    awaitable: Awaitable[_T],
 ) -> Union[_T, E.ManagerError, E.InternalError]:
+    "Capture and log an exception raised in a coroutine."
     from aiohttp import ClientError
 
     try:
-        return await coro()
+        return await awaitable
     except (E.ManagerError, E.InternalError) as error:
         return error
     except ClientError as error:
@@ -538,11 +539,8 @@ class Manager:
 
         defns_by_source = bucketise(defns, key=lambda v: v.source)
         results = await gather(
-            (
-                _capture_exc_async(partial(self.resolvers[s].resolve, b))
-                for s, b in defns_by_source.items()
-            ),
-            False,
+            (self.resolvers[s].resolve(b) for s, b in defns_by_source.items()),
+            capture_manager_exc_async,
         )
         results_by_defn = chain_dict(
             defns,
@@ -619,7 +617,7 @@ class Manager:
         installables = {
             (d, r): download_archive(self, r) for d, r in resolve_results.items() if is_pkg(r)
         }
-        archives = await gather(installables.values())
+        archives = await gather(installables.values(), capture_manager_exc_async)
         result_coros = chain_dict(
             defns,
             _error_out(E.PkgAlreadyInstalled()),
@@ -635,7 +633,7 @@ class Manager:
             ),
         )
         results: Dict[Defn, Any] = {
-            d: await _capture_exc_async(c) for d, c in result_coros.items()
+            d: await capture_manager_exc_async(c()) for d, c in result_coros.items()
         }
         return results
 
@@ -664,7 +662,7 @@ class Manager:
             for (d, n), o in zip(installables.items(), (defns_to_pkgs[d] for d in installables))
             if n.version != o.version  # type: ignore
         }
-        archives = await gather(updatables.values())
+        archives = await gather(updatables.values(), capture_manager_exc_async)
         result_coros = chain_dict(
             defns_to_pkgs,
             _error_out(E.PkgNotInstalled()),
@@ -684,7 +682,7 @@ class Manager:
             ),
         )
         results: Dict[Defn, Any] = {
-            d: await _capture_exc_async(c) for d, c in result_coros.items()
+            d: await capture_manager_exc_async(c()) for d, c in result_coros.items()
         }
         return results
 
@@ -698,7 +696,7 @@ class Manager:
             ((d, partial(t(self.remove_pkg), p)) for d, p in zip(defns, maybe_pkgs) if p),
         )
         results: Dict[Defn, Any] = {
-            d: await _capture_exc_async(c) for d, c in result_coros.items()
+            d: await capture_manager_exc_async(c()) for d, c in result_coros.items()
         }
         return results
 

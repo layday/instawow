@@ -230,7 +230,11 @@ class Resolver:
 
     async def resolve(self, defns: Sequence[Defn]) -> Dict[Defn, Any]:
         "Resolve add-on definitions into packages."
-        results = await gather(self.resolve_one(d, None) for d in defns)
+        from .manager import capture_manager_exc_async
+
+        results = await gather(
+            (self.resolve_one(d, None) for d in defns), capture_manager_exc_async
+        )
         return dict(zip(defns, results))
 
     async def resolve_one(self, defn: Defn, metadata: O[Any]) -> m.Pkg:
@@ -330,7 +334,7 @@ class CurseResolver(Resolver):
     async def resolve(self, defns: Sequence[Defn]) -> Dict[Defn, Any]:
         from aiohttp import ClientResponseError
 
-        from .manager import cache_response
+        from .manager import cache_response, capture_manager_exc_async
 
         catalogue = await self.manager.synchronise()
 
@@ -350,7 +354,8 @@ class CurseResolver(Resolver):
 
         api_results: Dict[str, CurseAddon] = {str(r['id']): r for r in json_response}
         results = await gather(
-            self.resolve_one(d, api_results.get(i)) for d, i in defns_to_ids.items()
+            (self.resolve_one(d, api_results.get(i)) for d, i in defns_to_ids.items()),
+            capture_manager_exc_async,
         )
         return dict(zip(defns, results))
 
@@ -594,7 +599,7 @@ class WowiResolver(Resolver):
     async def resolve(self, defns: Sequence[Defn]) -> Dict[Defn, Any]:
         from aiohttp import ClientResponseError
 
-        from .manager import cache_response
+        from .manager import cache_response, capture_manager_exc_async
 
         async with self.manager.locks['load WoWI catalogue']:
             if self.list_api_items is None:
@@ -622,7 +627,8 @@ class WowiResolver(Resolver):
             for i in details_api_items
         }
         results = await gather(
-            self.resolve_one(d, combined_items.get(i)) for d, i in defns_to_ids.items()
+            (self.resolve_one(d, combined_items.get(i)) for d, i in defns_to_ids.items()),
+            capture_manager_exc_async,
         )
         return dict(zip(defns, results))
 

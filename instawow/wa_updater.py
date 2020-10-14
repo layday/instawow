@@ -229,9 +229,7 @@ class WaCompanionBuilder:
             return (aura_groups.__class__, [])
 
         metadata = await self.get_wago_metadata(aura_groups)
-        import_strings = await gather(
-            (self.get_wago_import_string(r['_id']) for r in metadata), False
-        )
+        import_strings = await gather(self.get_wago_import_string(r['_id']) for r in metadata)
         return (
             aura_groups.__class__,
             list(filter(all, zip(aura_groups.__root__.values(), metadata, import_strings))),
@@ -329,7 +327,7 @@ class WaCompanionBuilder:
     async def build(self) -> None:
         installed_auras = await t(list)(self.extract_installed_auras())
         installed_auras_by_type = Auras.merge(*installed_auras)
-        remote_auras = await gather(map(self.get_remote_auras, installed_auras_by_type), False)
+        remote_auras = await gather(map(self.get_remote_auras, installed_auras_by_type))
         await t(self.make_addon)(remote_auras)
 
     def checksum(self) -> str:

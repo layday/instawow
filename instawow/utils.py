@@ -25,7 +25,7 @@ from typing import (
     Iterator,
     List,
     NamedTuple,
-    Optional,
+    Optional as O,
     Sequence,
     Set,
     Tuple,
@@ -35,8 +35,6 @@ from typing import (
     cast,
     overload,
 )
-
-from typing_extensions import Literal
 
 if TYPE_CHECKING:
     from prompt_toolkit.shortcuts import ProgressBar
@@ -91,14 +89,14 @@ class cached_property(Generic[_V]):
         self.f = f
 
     @overload
-    def __get__(self, o: None, t: Optional[type] = None) -> cached_property[_V]:
+    def __get__(self, o: None, t: O[type] = None) -> cached_property[_V]:
         ...
 
     @overload
-    def __get__(self, o: Any, t: Optional[type] = None) -> _V:
+    def __get__(self, o: Any, t: O[type] = None) -> _V:
         ...
 
-    def __get__(self, o: Any, t: Optional[type] = None) -> Union[cached_property[_V], _V]:
+    def __get__(self, o: Any, t: O[type] = None) -> Union[cached_property[_V], _V]:
         if o is None:
             return self
         else:
@@ -148,20 +146,23 @@ def merge_intersecting_sets(it: Iterable[_AnySet]) -> Iterable[_AnySet]:
 
 @overload
 async def gather(
-    it: Iterable[Awaitable[_V]], return_exceptions: Literal[True] = ...
-) -> List[Union[BaseException, _V]]:
+    it: Iterable[Awaitable[_V]],
+    wrapper: Callable[..., Awaitable[_V]] = ...,
+) -> List[_V]:
     ...
 
 
 @overload
-async def gather(it: Iterable[Awaitable[_V]], return_exceptions: Literal[False] = ...) -> List[_V]:
+async def gather(it: Iterable[Awaitable[_V]], wrapper: None = ...) -> List[_V]:
     ...
 
 
 async def gather(
-    it: Iterable[Awaitable[_V]], return_exceptions: bool = True
-) -> Union[List[Union[BaseException, _V]], List[_V]]:
-    return await asyncio.gather(*it, return_exceptions=return_exceptions)
+    it: Iterable[Awaitable[_V]], wrapper: O[Callable[..., Awaitable[_V]]] = None
+) -> Sequence[_V]:
+    if wrapper is not None:
+        it = map(wrapper, it)
+    return await asyncio.gather(*it)
 
 
 @overload
