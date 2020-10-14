@@ -51,7 +51,7 @@ jobs:
       with:
         path: ~/.cargo
         key: >-
-          cargo-cache-${{ runner.os }}-${{ steps.install-rust.outputs.rustc_hash }}-${{ env.PYOX_VERSION }}_1
+          cargo-cache-${{ runner.os }}-${{ steps.install-rust.outputs.rustc_hash }}-${{ env.PYOX_VERSION }}_2
     - name: Install PyOxidizer
       run: |
         cargo install --version $PYOX_VERSION pyoxidizer
