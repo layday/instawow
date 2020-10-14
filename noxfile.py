@@ -46,7 +46,7 @@ def clobber_build_artefacts(session: nox.Session):
     session.run('rm', '-rf', 'build', 'dist', 'instawow.egg-info')
 
 
-@nox.session(python='3.8')
+@nox.session
 def build(session: nox.Session):
     clobber_build_artefacts(session)
     session.install('build>=0.0.4')
