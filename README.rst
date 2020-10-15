@@ -20,14 +20,35 @@ The GUI does not have feature parity with the CLI and is not particularly,
 rigorously, tested.  However, it does offload add-on management to
 the *instawow* core.
 
+Some of the features of *instawow* are:
+
+- Interoperable CLI and GUI
+- Fuzzy search with download scoring, backed by a catalogue which
+  combines add-ons from WoWInterface, CurseForge and Tukui
+- Ability to interpret add-on URLs and host IDs
+- Add-on reconciliation which works with all three major hosts
+- Rollback – ability to revert problematic updates
+- Multiple update channels – 'stable', 'latest', and alpha and beta
+  for CurseForge add-ons
+- Dependency resolution on installation
+- Version pinning of CurseForge and GitHub add-ons
+- Wago integration – a WeakAuras Companion clone which can be managed like
+  any other add-on
+
+----
+
 .. figure:: https://asciinema.org/a/8m36ncAoyTmig4MXfQM8YjE6a.svg
    :alt: Asciicast demonstrating the operation of instawow
    :target: https://asciinema.org/a/8m36ncAoyTmig4MXfQM8YjE6a?autoplay=1
    :width: 640
 
+----
+
 .. figure:: https://raw.githubusercontent.com/layday/instawow/feature-oh-my-gui/gui/screenshots/v0.2.0_640px.png
    :target: https://github.com/layday/instawow/releases/latest
    :alt: The instawow GUI's main window
+
+----
 
 Installation
 ------------
