@@ -33,6 +33,7 @@ CLI
 GUI
 ---
 
+- [x] Automatic flavour detection
 - [ ] Add-on export and import to/from JSON - this is available in the CLI
 - [ ] Better RPC error handling
   - [ ] Investigate crash when config is invalid

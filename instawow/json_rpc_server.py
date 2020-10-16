@@ -80,12 +80,18 @@ class _DefnParamMixin(BaseModel):
 
 class WriteConfigParams(BaseParams):
     values: Dict[str, Any]
+    infer_game_flavour: bool
     _method = 'config/write'
 
     @t
     def respond(self, managers: ManagerWorkQueue) -> Config:
         with _reraise_validation_error(_ConfigError):
-            config = Config(**self.values).write()
+            config = Config(**self.values)
+            if self.infer_game_flavour:
+                config.game_flavour = (
+                    'classic' if Config.is_classic_folder(config.addon_dir) else 'retail'
+                )
+            config.write()
 
         # Dispose of the ``Manager`` corresponding to the profile so that it is
         # re-loaded on next invocation of ``ManagerWorkQueue.run``

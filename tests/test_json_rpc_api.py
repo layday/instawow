@@ -20,7 +20,7 @@ async def test_write_config(request, full_config, ws):
     config_values = {**full_config, 'profile': request.node.name}
     rpc_request = Request(
         method='config/write',
-        params={'values': config_values},
+        params={'values': config_values, 'infer_game_flavour': False},
         msg_id=request.node.name,
     )
     await ws.send_str(serialise_response(rpc_request.to_dict()))
@@ -33,7 +33,10 @@ async def test_write_config(request, full_config, ws):
 async def test_write_config_with_invalid_params(request, full_config, ws):
     rpc_request = Request(
         method='config/write',
-        params={'values': {**full_config, 'game_flavour': 'strawberry'}},
+        params={
+            'values': {**full_config, 'game_flavour': 'strawberry'},
+            'infer_game_flavour': False,
+        },
         msg_id=request.node.name,
     )
     await ws.send_str(serialise_response(rpc_request.to_dict()))

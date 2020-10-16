@@ -86,6 +86,22 @@ def test_legacy_profile_migration_goes_swimmingly(full_config, monkeypatch):
     assert sorted(comparison.right_list) == profile_dirs
 
 
-def test_can_detect_classic_folder():
+def test_can_determine_classic_folder():
     assert Config.is_classic_folder('wowzerz/_classic_/Interface/AddOns')
+    assert Config.is_classic_folder('/foo/bar/_classic_ptr_/Interface/AddOns')
     assert not Config.is_classic_folder('wowzerz/_retail_/Interface/AddOns')
+
+
+def test_can_list_profiles(monkeypatch, full_config):
+    monkeypatch.setenv('INSTAWOW_CONFIG_DIR', str(full_config['config_dir']))
+    assert Config.list_profiles() == []
+    Config.parse_obj(full_config).write()
+    Config.parse_obj({**full_config, 'profile': 'foo'}).write()
+    assert sorted(Config.list_profiles()) == ['__default__', 'foo']
+
+
+def test_can_delete_profile(full_config):
+    config = Config(**full_config).write()
+    assert config.profile_dir.exists()
+    config.delete()
+    assert not config.profile_dir.exists()

@@ -71,9 +71,12 @@ class GlobalConfig(BaseConfig):
         return _validate_path_is_writable_dir(value)
 
     @staticmethod
-    def is_classic_folder(folder: str) -> bool:
+    def is_classic_folder(folder: os.PathLike[str]) -> bool:
         tail = PurePath(folder).parts[-3:]
-        return tuple(map(str.casefold, tail)) == ('_classic_', 'interface', 'addons')
+        return tuple(map(str.casefold, tail)) in {
+            ('_classic_', 'interface', 'addons'),
+            ('_classic_ptr_', 'interface', 'addons'),
+        }
 
     @classmethod
     def get_dummy_config(cls, **kwargs: Any) -> GlobalConfig:

@@ -10,7 +10,9 @@
 
   const createNew = editing === "new";
 
-  let configParams = { ...(!createNew && $profiles.get($activeProfile as string)) } as Config;
+  let configParams = (createNew
+    ? { game_flavour: "retail" }
+    : $profiles.get($activeProfile as string)) as Config;
   let errors: { [key: string]: string } = {};
 
   const selectFolder = async () => {
@@ -35,7 +37,7 @@
 
     let result: Config;
     try {
-      result = await api.writeProfile(configParams);
+      result = await api.writeProfile(configParams, true);
     } catch (error) {
       // `error instanceof JSONRPCError` isn't working because of some transpilation fuckery:
       // https://github.com/open-rpc/client-js/issues/209
@@ -143,17 +145,6 @@ will be lost.`)
         <Icon icon={faFolderOpen} />
       </button>
     </div>
-    {#if errors.game_flavour}
-      <div class="row error-text">{errors.game_flavour}</div>
-    {/if}
-    <select
-      aria-label="game flavour"
-      class="row"
-      class:error={errors.game_flavour}
-      bind:value={configParams.game_flavour}>
-      <option value="retail">retail</option>
-      <option value="classic">classic</option>
-    </select>
     <div class="row input-array">
       <button type="submit">save</button>
       {#if !createNew}

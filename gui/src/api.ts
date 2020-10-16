@@ -131,8 +131,11 @@ export class Api {
     return await this._request({ method: "config/read", params: { profile: profile } });
   }
 
-  async writeProfile(config: Config): Promise<Config> {
-    return await this._request({ method: "config/write", params: { values: config } });
+  async writeProfile(config: Config, infer_game_flavour: boolean): Promise<Config> {
+    return await this._request({
+      method: "config/write",
+      params: { values: config, infer_game_flavour: infer_game_flavour },
+    });
   }
 
   async deleteProfile(profile: string): Promise<void> {
