@@ -59,9 +59,9 @@ class PkgConflictsWithInstalled(ManagerError):
 
     @property
     def message(self) -> str:
+        plural = 's' if len(self.conflicting_pkgs) > 1 else ''
         return (
-            'package folders conflict with installed package'
-            + ('s ' if len(self.conflicting_pkgs) > 1 else ' ')
+            f'package folders conflict with installed package{plural}: '
             + ', '.join(f'{c.name} ({c.source}:{c.id})' for c in self.conflicting_pkgs)
         )
 

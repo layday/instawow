@@ -223,7 +223,7 @@ def test_valid_wowi_pkg_lifecycle(run, args, cmp):
         (
             'install wowi:13188-molinari',
             '✗ wowi:13188-molinari\n'
-            '  package folders conflict with installed package Molinari\n'
+            '  package folders conflict with installed package: Molinari\n'
             '    (curse:20338)\n'.__eq__,
             Flavour.retail,
         ),
@@ -516,10 +516,10 @@ def test_install_sandwich(run):
 ✓ curse:molinari
   installed 80300.66-Release
 ✗ curse:molinari
-  package folders conflict with installed package Molinari
+  package folders conflict with installed package: Molinari
     (curse:20338)
 ✗ curse:molinari
-  package folders conflict with installed package Molinari
+  package folders conflict with installed package: Molinari
     (curse:20338)
 '''
     )
@@ -537,10 +537,10 @@ def test_install_sandwich_defn_order_is_respected(run):
 ✓ curse:molinari
   installed 80000.57-Release
 ✗ curse:molinari
-  package folders conflict with installed package Molinari
+  package folders conflict with installed package: Molinari
     (curse:20338)
 ✗ curse:molinari
-  package folders conflict with installed package Molinari
+  package folders conflict with installed package: Molinari
     (curse:20338)
 '''
     )
@@ -553,7 +553,7 @@ def test_install_sandwich_addon_argument_is_not_required(run):
 ✓ curse:molinari
   installed 80300.66-Release
 ✗ curse:molinari
-  package folders conflict with installed package Molinari
+  package folders conflict with installed package: Molinari
     (curse:20338)
 '''
     )
