@@ -3,7 +3,8 @@
 
 .. image:: https://img.shields.io/matrix/wow-addon-management:matrix.org
    :target: https://matrix.to/#/#wow-addon-management:matrix.org?via=matrix.org
-   :alt: Matrix
+   :alt: Matrix channel
+
 
 *instawow* is a package manager for World of Warcraft.
 It can be used to install, remove and update add-ons from
@@ -35,20 +36,14 @@ Some of the features of *instawow* are:
 - Wago integration – a WeakAuras Companion clone which can be managed like
   any other add-on
 
-----
-
 .. figure:: https://asciinema.org/a/8m36ncAoyTmig4MXfQM8YjE6a.svg
    :alt: Asciicast demonstrating the operation of instawow
    :target: https://asciinema.org/a/8m36ncAoyTmig4MXfQM8YjE6a?autoplay=1
    :width: 640
 
-----
-
-.. figure:: https://raw.githubusercontent.com/layday/instawow/feature-oh-my-gui/gui/screenshots/v0.2.0_640px.png
+.. figure:: https://raw.githubusercontent.com/layday/instawow/main/gui/screenshots/v0.6.0_640px.png
    :target: https://github.com/layday/instawow/releases/latest
    :alt: The instawow GUI's main window
-
-----
 
 Installation
 ------------
