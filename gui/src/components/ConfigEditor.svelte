@@ -24,8 +24,8 @@
 
   const saveConfig = async () => {
     if (
-      (createNew && configParams.profile in $profiles) ||
-      (!configParams.profile && "__default__" in $profiles)
+      (createNew && $profiles.has(configParams.profile)) ||
+      (!configParams.profile && $profiles.has("__default__"))
     ) {
       if (!configParams.profile) {
         errors = { profile: "a default profile already exists" };
