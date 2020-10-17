@@ -17,8 +17,8 @@
   into it eventually
   - Consider using a more sophisticated caching mechanism
 - [x] Precompute normalised add-on names for search
-
 - [ ] RHEL/Fedora blocker: https://github.com/indygreg/PyOxidizer/issues/283
+- [ ] Scoop package for Windows?  brew for Mac?  I don't like Homebrew though.
 
 
 CLI
@@ -26,8 +26,8 @@ CLI
 
 - [x] Use `update` method for rollback as opposed to reinstalling now
   that it's an option
-- [ ] Allow passing `--strategy` to search?
-- [ ] Scoop package for Windows?  brew for Mac?  I don't like Homebrew though.
+- [ ] ~~Allow passing `--strategy` to search?~~
+  - Less practical than `--source`, wontfix
 
 
 GUI
