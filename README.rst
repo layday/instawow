@@ -230,7 +230,7 @@ Requests made by *instawow* can be identified by its user agent string.
 Related work
 ------------
 
-The author of *wowman* has been cataloguing similar software
+The author of `strongbox <https://github.com/ogri-la/strongbox>`__ has been cataloguing similar software
 `here <https://ogri-la.github.io/wow-addon-managers/>`__.  If you are unhappy
 with *instawow*, you might find one of these other add-on managers more
 to your liking.
