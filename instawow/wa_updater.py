@@ -32,7 +32,7 @@ if TYPE_CHECKING:
     from .manager import Manager
 
     ImportString = str
-    RemoteAuras = List[Tuple[List[WeakAura], WagoApiResponse, ImportString]]
+    RemoteAuras = Sequence[Tuple[Sequence[WeakAura], WagoApiResponse, ImportString]]
 
 
 class BuilderConfig(BaseConfig):
@@ -196,13 +196,18 @@ class WaCompanionBuilder:
 
         aura_ids = list(aura_groups.__root__)
         try:
-            return await cache_response(
-                self.manager,
-                aura_groups._api_url.with_query(ids=','.join(aura_ids)),
-                30,
-                'minutes',
-                label='Fetching aura metadata',
-                request_kwargs={'headers': {'api-key': self.builder_config.wago_api_key or ''}},
+            return sorted(
+                await cache_response(
+                    self.manager,
+                    aura_groups._api_url.with_query(ids=','.join(aura_ids)),
+                    30,
+                    'minutes',
+                    label='Fetching aura metadata',
+                    request_kwargs={
+                        'headers': {'api-key': self.builder_config.wago_api_key or ''}
+                    },
+                ),
+                key=lambda r: r['slug'],
             )
         except ClientResponseError as error:
             if error.status != 404:
@@ -232,7 +237,7 @@ class WaCompanionBuilder:
         import_strings = await gather(self.get_wago_import_string(r['_id']) for r in metadata)
         return (
             aura_groups.__class__,
-            list(filter(all, zip(aura_groups.__root__.values(), metadata, import_strings))),
+            [(aura_groups.__root__[r['slug']], r, i) for r, i in zip(metadata, import_strings)],
         )
 
     def make_addon(self, auras: Sequence[Tuple[Type[Auras[Any]], RemoteAuras]]) -> None:
