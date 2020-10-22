@@ -157,10 +157,10 @@ class WaCompanionBuilder:
 
     @staticmethod
     def extract_auras(model: Type[Auras[Any]], source: str) -> Auras[Any]:
-        from ._custom_slpp import slpp
+        from ._custom_slpp import decode
 
         source_after_assignment = source[source.find('=') + 1 :]
-        lua_table = slpp.decode(source_after_assignment)
+        lua_table = decode(source_after_assignment)
         return model.from_lua_table(lua_table)
 
     def extract_installed_auras(self) -> Iterator[Auras[Any]]:

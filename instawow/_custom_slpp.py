@@ -26,16 +26,14 @@ import re
 import string
 
 whitespace = string.whitespace
+newline = '\r\n'
 keywords = {'true': True, 'false': False, 'nil': None}
 
-match_identifier = re.compile(r'^[a-zA-Z_]\w*$')
+match_identifier = re.compile(r'^[a-z_]\w*$', flags=re.IGNORECASE)
 
 
-class _ParseError(Exception):
+class ParseError(Exception):
     pass
-
-
-_comment = object()
 
 
 class _Sentinel(str):
@@ -46,167 +44,175 @@ _sentinel = _Sentinel()
 
 
 class SLPP:
-    def decode(self, text: str):
+    def __init__(self, text: str):
         self.iter_text = iter(text)
-        self.depth = 0
-        self.next_chr()
-        return self.value()
 
-    def next_chr(self):
-        self.chr = next(self.iter_text, _sentinel)
+    def decode(self):
+        self.next()
+        return self.get_value()
 
-    def this_or_next_chr_not_ws(self):
-        if self.chr is not _sentinel and self.chr in whitespace:
-            self.chr = next(dropwhile(whitespace.__contains__, self.iter_text))
+    def next(self):
+        self.c = next(self.iter_text, _sentinel)
 
-    def value(self):
-        self.this_or_next_chr_not_ws()
-        if not self.chr:
-            return _ParseError('input is empty')
-        elif self.chr == '{':
-            return self.table()
-        if self.chr == '[':
-            self.next_chr()
-        if self.chr in '\'"[':
-            return self.string()
-        elif self.chr == '-' or self.chr.isdigit():
-            return self.number()
-        return self.word()
+    def next_nl(self):
+        self.c = next(dropwhile(lambda c: c not in newline, self.iter_text), _sentinel)
 
-    def string(self):
-        s = ''
-        start = self.chr
-        end = ']' if start == '[' else start
+    def this_or_next_not_ws(self):
+        if self.c in whitespace:
+            self.c = next(dropwhile(whitespace.__contains__, self.iter_text), _sentinel)
+
+    def get_value(self):
+        self.this_or_next_not_ws()
+        if not self.c:
+            raise ParseError('input is empty')
+
+        if self.c == '{':
+            return self.get_table()
+        elif self.c == '[':
+            self.next()
+
+        if self.c in '\'"[':
+            return self.get_string()
+        elif self.c == '-' or self.c.isdigit():
+            return self.get_number()
+        return self.get_bare_word()
+
+    def get_table(self):
+        table = {}
+        idx = 0
+
+        self.next()
         while True:
-            self.next_chr()
-            if self.chr == end:
-                self.next_chr()
-                if start == end or self.chr == end:
-                    return s
-            if self.chr == '\\' and start == end:
-                self.next_chr()
-                if self.chr != end:
-                    s += '\\'
-            s += self.chr
+            self.this_or_next_not_ws()
 
-    def table(self):
-        o = {}
-        k = None
-        idx = count(1)
-        self.depth += 1
-        self.next_chr()
-        self.this_or_next_chr_not_ws()
-        if self.chr == '}':
-            self.depth -= 1
-            self.next_chr()
-            return o
-        else:
-            while True:
-                self.this_or_next_chr_not_ws()
-                if self.chr == '{':
-                    o[next(idx)] = self.table()
-                    continue
-                elif self.chr == '}':
-                    self.depth -= 1
-                    self.next_chr()
-                    if k not in {None, _comment}:
-                        o[next(idx)] = k
+            if self.c == '}':
 
-                    # Convert table to list if keys are sequential integers
-                    # from 1 counting upwards
-                    first_k = next(iter(o), None)
-                    if first_k == 1 and all(map(eq, iter(o), count(1))):
-                        o = list(o.values())
-                    return o
-                else:
-                    if self.chr == ',':
-                        self.next_chr()
+                # Convert table to list if k(0) = 1 and k = k(n-1) + 1, ...
+                if (
+                    table
+                    and all(map(eq, table, count(1)))
+                    # bool is a subclass of int in Python but not in Lua
+                    and not any(isinstance(k, bool) for k in table)
+                ):
+                    table = list(table.values())
+
+                self.next()
+                return table
+
+            elif self.c == ',':
+
+                self.next()
+
+            else:
+
+                item = self.get_value()
+                # Item is either a key or a string literal (this needs to be handled better)
+                if self.c == ']':
+                    self.next()
+
+                self.this_or_next_not_ws()
+                c = self.c
+                if c in '=,':
+                    self.next()
+                    if c == '=':
+                        # nil key produces a runtime error in Lua
+                        if item is None:
+                            raise ParseError('table keys cannot be nil')
+
+                        # Item is a key
+                        value = self.get_value()
+                        if (
+                            # nil values are not persisted in Lua tables
+                            value is not None
+                            # Where the key is a valid index key-less values take precedence
+                            and (not isinstance(item, int) or isinstance(item, bool) or item > idx)
+                        ):
+                            table[item] = value
                         continue
-                    else:
-                        k = self.value()
-                        if self.chr == ']':
-                            self.next_chr()
 
-                    self.this_or_next_chr_not_ws()
-                    c = self.chr
-                    if c in '=,':
-                        self.next_chr()
-                        self.this_or_next_chr_not_ws()
-                        if c == '=':
-                            v = self.value()
-                            # Key-less values take precedence
-                            o.setdefault(k, v)
-                        else:
-                            o[next(idx)] = k
-                        k = None
+                if item is not None:
+                    idx += 1
+                    table[idx] = item
 
-    def word(self):
-        s = self.chr
-        for self.chr in self.iter_text:
-            new_s = s + self.chr
+    def get_string(self):
+        s = ''
+        start = self.c
+        end = ']' if start == '[' else start
+        for self.c in self.iter_text:
+            if self.c == end:
+                self.next()
+                return s
+            if self.c == '\\' and start == end:
+                self.next()
+                if self.c != end:
+                    s += '\\'
+            s += self.c
+
+    def get_bare_word(self):
+        s = self.c
+        for self.c in self.iter_text:
+            new_s = s + self.c
             if match_identifier.match(new_s):
                 s = new_s
             else:
                 break
             if s in keywords:
                 break
-        self.next_chr()
+        self.next()
         return keywords.get(s, s)
 
-    def number(self):
-        def next_digit(err: str):
-            c = self.chr
-            self.next_chr()
-            if not self.chr or not self.chr.isdigit():
-                raise _ParseError(err, n, c, self.chr)
-            return c
-
+    def get_number(self):
         n = ''
-        if self.chr == '-':
-            c = self.chr
-            self.next_chr()
-            if self.chr == '-':
-                self.chr = next(dropwhile(lambda c: c not in '\r\n', self.iter_text))
-                return _comment
-            elif not self.chr or not self.chr.isdigit():
-                raise _ParseError('malformed number (no digits after initial minus)', c, self.chr)
+        if self.c == '-':
+            c = self.c
+            self.next()
+            if self.c == '-':
+                # This is a comment - skip to the end of the line
+                self.next_nl()
+                return None
+            elif not self.c or not self.c.isdigit():
+                raise ParseError('malformed number (no digits after initial minus)', c, self.c)
             n += c
-        n += self.digit()
-        if n == '0' and self.chr in 'Xx':
-            n += self.chr
-            self.next_chr()
-            n += self.hex()
+        n += self.get_digit()
+        if n == '0' and self.c in 'Xx':
+            n += self.c
+            self.next()
+            n += self.get_hex()
         else:
-            if self.chr and self.chr == '.':
-                n += self.chr
-                self.next_chr()
-                n += self.digit()
-            if self.chr and self.chr in 'Ee':
-                n += self.chr
-                self.next_chr()
-                if not self.chr or self.chr not in '+-':
-                    raise _ParseError('malformed number (bad scientific format)', n, self.chr)
-                n += next_digit('malformed number (bad scientific format)')
-                n += self.digit()
+            if self.c and self.c == '.':
+                n += self.c
+                self.next()
+                n += self.get_digit()
+            if self.c and self.c in 'Ee':
+                n += self.c
+                self.next()
+                if not self.c or self.c not in '+-':
+                    raise ParseError('malformed number (bad scientific format)', n, self.c)
+                n += self.c
+                self.next()
+                if not self.c.isdigit():
+                    raise ParseError('malformed number (bad scientific format)', n, self.c)
+                n += self.get_digit()
         try:
             return int(n, 0)
-        except:
+        except BaseException:
             pass
         return float(n)
 
-    def digit(self):
+    def get_digit(self):
         n = ''
-        while self.chr and self.chr.isdigit():
-            n += self.chr
-            self.next_chr()
+        while self.c and self.c.isdigit():
+            n += self.c
+            self.next()
         return n
 
-    def hex(self):
+    def get_hex(self):
         n = ''
-        while self.chr and (self.chr in 'ABCDEFabcdef' or self.chr.isdigit()):
-            n += self.chr
-            self.next_chr()
+        while self.c and (self.c in 'ABCDEFabcdef' or self.c.isdigit()):
+            n += self.c
+            self.next()
         return n
 
 
-slpp = SLPP()
+def decode(text: str):
+    return SLPP(text).decode()

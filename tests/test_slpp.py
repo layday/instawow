@@ -20,23 +20,23 @@
 #   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 #   THE SOFTWARE.
 
-from instawow._custom_slpp import slpp
+from instawow._custom_slpp import decode
 
 
 def test_numbers():
     # int and float
-    assert slpp.decode('3') == 3
-    assert slpp.decode('3.') == 3
-    assert slpp.decode('3.1') == 3.1
+    assert decode('3') == 3
+    assert decode('3.') == 3
+    assert decode('3.1') == 3.1
     # negative float
-    assert slpp.decode('-0.45') == -0.45
+    assert decode('-0.45') == -0.45
     # scientific
-    assert slpp.decode('3e-07') == 3e-7
-    assert slpp.decode('-3.23e+17') == -3.23e17
+    assert decode('3e-07') == 3e-7
+    assert decode('-3.23e+17') == -3.23e17
     # hex
-    assert slpp.decode('0x3a') == 0x3A
+    assert decode('0x3a') == 0x3A
     assert (
-        slpp.decode(
+        decode(
             '''{
                 ID = 0x74fa4cae,
                 Version = 0x07c2,
@@ -48,59 +48,65 @@ def test_numbers():
 
 
 def test_bool():
-    assert slpp.decode('true') == True
-    assert slpp.decode('false') == False
+    assert decode('true') == True
+    assert decode('false') == False
 
 
 def test_nil():
-    slpp.decode('nil') == None
+    decode('nil') == None
 
 
-def test_singe_value_table():
-    # bracketed string key
-    assert slpp.decode('{ [10] = 1 }') == {10: 1}
-    # keyword in table
-    assert slpp.decode('{ true }') == [True]
+def test_simple_table():
+    # bracketed key
+    assert decode('{ [10] = 11 }') == {10: 11}
+    assert decode('{ [false] = 0 }') == {False: 0}
+    assert decode('{ [true] = 1 }') == {True: 1}
+    # bracketed string key - not supported
+    # assert decode('{ [ [[10]] ] = 1 }') == {"10": 1}
+    # keywords in table
+    assert decode('{ false, true }') == [False, True]
     # void table
-    assert slpp.decode('{ nil }') == {}
+    assert decode('{ nil }') == {}
     # values-only table
-    assert slpp.decode('{ "10" }') == ["10"]
+    assert decode('{ "10" }') == ["10"]
     # last zero
-    assert slpp.decode('{ 0, 1, 0 }') == [0, 1, 0]
+    assert decode('{ 0, 1, 0 }') == [0, 1, 0]
 
 
 def test_string_with_and_without_escape():
-    assert slpp.decode("'test\\'s string'") == "test's string"
-    assert slpp.decode('"test\\\'s string"') == "test\\'s string"
-    assert slpp.decode('"test\'s string"') == "test's string"
-    assert slpp.decode("[[test\\'s string]]") == "test\\'s string"
-    assert slpp.decode("[[test's string]]") == "test's string"
+    assert decode("'test\\'s string'") == "test's string"
+    assert decode('"test\\\'s string"') == "test\\'s string"
+    assert decode('"test\'s string"') == "test's string"
+    assert decode("[[test\\'s string]]") == "test\\'s string"
+    assert decode("[[test's string]]") == "test's string"
+    # https://github.com/SirAnthony/slpp/issues/23
+    assert decode("'--3'") == '--3'
 
 
-def test_nested_table_with_variety_of_comments():
-    assert slpp.decode(
+def test_table_palooza():
+    assert decode(
         '''{ -- δκσξδφξ
         array = { 65, 23, 5 }, -- 3493
-        dict = {  -- !!!,11
-            string = "value",  -- wassup
-            array = {  -- wassup
-                3, 6,   -- wassup
+        dict =     {  -- !!!,11
+            [false]       =    "value"      ,  -- what's up
+            ["array"] = {  -- waddup
+                3, [[6]],   -- wassup
                 4 }, -- [2]
-            mixed = { 43, 54.3, false, string = "value", 9 }    -- wassup
-        }                   -- wassup
-    }'''
+            mixed = { 43, 54.3, false, string = "value", 9 }    -- wazzup
+        }                   -- foo
+} -- bar'''
     ) == {
         'array': [65, 23, 5],
         'dict': {
-            'string': 'value',
-            'array': [3, 6, 4],
+            False: 'value',
+            'array': [3, '6', 4],
             'mixed': {1: 43, 2: 54.3, 3: False, 'string': 'value', 4: 9},
         },
     }
 
 
-def test_varied_tables():
-    assert slpp.decode(
+def test_table_key_overrides():
+    assert decode(
         '{ 43, 54.3, false, string = "value", 9, [4] = 111, [1] = 222, [2.1] = "text" }'
     ) == {
         1: 43,
@@ -110,7 +116,7 @@ def test_varied_tables():
         'string': 'value',
         2.1: 'text',
     }
-    assert slpp.decode('{ 43, 54.3, false, 9, [5] = 111, [7] = 222 }') == {
+    assert decode('{ 43, 54.3, false, 9, [5] = 111, [7] = 222 }') == {
         1: 43,
         2: 54.3,
         3: False,
@@ -118,7 +124,7 @@ def test_varied_tables():
         5: 111,
         7: 222,
     }
-    assert slpp.decode('{ [7] = 111, [5] = 222, 43, 54.3, false, 9 }') == {
+    assert decode('{ [7] = 111, [5] = 222, 43, 54.3, false, 9 }') == {
         7: 111,
         5: 222,
         1: 43,
@@ -126,22 +132,22 @@ def test_varied_tables():
         3: False,
         4: 9,
     }
-    assert slpp.decode('{ 43, 54.3, false, 9, [4] = 111, [5] = 52.1 }') == [
+    assert decode('{ 43, 54.3, false, 9, [4] = 111, [5] = 52.1 }') == [
         43,
         54.3,
         False,
         9,
         52.1,
     ]
-    assert slpp.decode('{ [5] = 111, [4] = 52.1, 43, [3] = 54.3, false, 9 }') == {
+    assert decode('{ [5] = 111, [4] = 52.1, 43, [3] = 54.3, false, 9 }') == {
         5: 111,
         4: 52.1,
         1: 43,
         2: False,
         3: 9,
     }
-    assert slpp.decode('{ [1] = 1, [2] = "2", 3, 4, [5] = 5 }') == {
+    assert decode('{ [1] = 1, [2] = "2", 3, 4, [5] = 5, [5] = 6 }') == {
         1: 3,
         2: 4,
-        5: 5,
+        5: 6,
     }
