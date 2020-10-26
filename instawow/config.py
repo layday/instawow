@@ -14,12 +14,14 @@ from typing_extensions import Literal
 
 from .utils import trash
 
-__novalidate__ = '__novalidate__'
-
 
 class _PathNotWritableDirectoryError(PydanticValueError):
     code = 'path.not_writable_directory'
     msg_template = '"{path}" is not a writable directory'
+
+
+_default_profile = '__default__'
+_novalidate = '__novalidate__'
 
 
 def _get_default_config_dir() -> Path:
@@ -51,7 +53,7 @@ class BaseConfig(BaseSettings):
 
 class GlobalConfig(BaseConfig):
     config_dir: Path = Field(default_factory=_get_default_config_dir)
-    profile: str = Field('__default__', min_length=1, strip_whitespace=True)
+    profile: str = Field(_default_profile, min_length=1, strip_whitespace=True)
     addon_dir: Path
     game_flavour: Literal['retail', 'classic']
     auto_update_check: bool = True
@@ -66,7 +68,7 @@ class GlobalConfig(BaseConfig):
 
     @validator('addon_dir')
     def _validate_path_is_writable_dir(cls, value: Path) -> Path:
-        if value.name == __novalidate__:
+        if value.name == _novalidate:
             return value
         return _validate_path_is_writable_dir(value)
 
@@ -81,7 +83,7 @@ class GlobalConfig(BaseConfig):
     @classmethod
     def get_dummy_config(cls, **kwargs: Any) -> GlobalConfig:
         "Create a dummy configuration with default values."
-        template = {'game_flavour': 'retail', 'addon_dir': __novalidate__}
+        template = {'game_flavour': 'retail', 'addon_dir': _novalidate}
         dummy_config = cls.parse_obj({**template, **kwargs})
         return dummy_config
 
@@ -135,7 +137,7 @@ class GlobalConfig(BaseConfig):
         "Migrate a profile-less configuration to the new format."
         legacy_config_file = self.config_dir / 'config.json'
         if (
-            self.profile == self.__field_defaults__['profile']
+            self.profile == _default_profile
             and not self.profile_dir.exists()
             and legacy_config_file.exists()
         ):
