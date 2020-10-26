@@ -740,12 +740,7 @@ def _extract_filename_from_hdr(response: aiohttp.ClientResponse) -> str:
 def _init_cli_web_client(
     bar: ProgressBar, tickers: Set[asyncio.Task[None]]
 ) -> aiohttp.ClientSession:
-    from aiohttp import ClientResponse, TraceConfig, hdrs
-
-    if TYPE_CHECKING:
-
-        class TraceRequestEndParams:
-            response: ClientResponse
+    from aiohttp import TraceConfig, TraceRequestEndParams, hdrs
 
     async def do_on_request_end(
         client_session: aiohttp.ClientSession,
@@ -758,21 +753,20 @@ def _init_cli_web_client(
             return
 
         async def ticker() -> None:
-            label = (
-                ctx.get('label') or f'Downloading {_extract_filename_from_hdr(params.response)}'
-            )
-            total = params.response.content_length
+            response = params.response
+            label = ctx.get('label') or f'Downloading {_extract_filename_from_hdr(response)}'
+
+            total = response.content_length
             # The encoded size is not exposed in the streaming API and
             # ``content_length`` has the size of the payload after gzipping -
             # we can't know what the actual size of a file is in transfer
-            if params.response.headers.get(hdrs.CONTENT_ENCODING) == 'gzip':
+            if response.headers.get(hdrs.CONTENT_ENCODING) == 'gzip':
                 total = None
 
             counter = bar(label=label, total=total)
             try:
-                content = params.response.content
-                while not content.is_eof():
-                    counter.items_completed = content.total_bytes
+                while not response.content.is_eof():
+                    counter.items_completed = response.content.total_bytes
                     bar.invalidate()
                     await asyncio.sleep(tick_interval)
             finally:
@@ -781,7 +775,7 @@ def _init_cli_web_client(
         tickers.add(asyncio.create_task(ticker()))
 
     trace_config = TraceConfig()
-    trace_config.on_request_end.append(do_on_request_end)  # type: ignore
+    trace_config.on_request_end.append(do_on_request_end)
     trace_config.freeze()
     return init_web_client(trace_configs=[trace_config])
 
