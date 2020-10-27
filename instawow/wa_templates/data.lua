@@ -2,7 +2,7 @@
 WeakAurasCompanion = {
   slugs = {
   {% for slug, aura_metadata in weakauras %}
-    ["{{ slug }}"] = {
+    [ [=[{{ slug }}]=] ] = {
     {% for key, value in aura_metadata.items() %}
       {{ key }} = [=[{{ value }}]=],
     {% endfor %}
@@ -11,12 +11,12 @@ WeakAurasCompanion = {
   },
   uids = {
   {% for uid, slug in weakaura_uids %}
-    ["{{ uid }}"] = [=[{{ slug }}]=],
+    [ [=[{{ uid }}]=] ] = [=[{{ slug }}]=],
   {% endfor %}
   },
   ids = {
   {% for id, slug in weakaura_ids %}
-    ["{{ id }}"] = [=[{{ slug }}]=],
+    [ [=[{{ id }}]=] ] = [=[{{ slug }}]=],
   {% endfor %}
   },
   stash = {
@@ -24,7 +24,7 @@ WeakAurasCompanion = {
   Plater = {
     slugs = {
     {% for slug, aura_metadata in plateroos %}
-      ["{{ slug }}"] = {
+      [ [=[{{ slug }}]=] ] = {
       {% for key, value in aura_metadata.items() %}
         {{ key }} = [=[{{ value }}]=],
       {% endfor %}
@@ -35,7 +35,7 @@ WeakAurasCompanion = {
     },
     ids = {
     {% for id, slug in plater_ids %}
-      ["{{ id }}"] = [=[{{ slug }}]=],
+      [ [=[{{ id }}]=] ] = [=[{{ slug }}]=],
     {% endfor %}
     },
     stash = {
