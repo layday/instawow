@@ -218,7 +218,7 @@ def parse_into_defn_from_json_file(manager: CliManager, path: Path) -> Iterable[
 
 
 def combine_addons(
-    fn: Callable[[CliManager, object], List[Defn]],
+    fn: Callable[[CliManager, object], Iterable[Defn]],
     ctx: click.Context,
     click_param: click.Parameter,
     value: object,

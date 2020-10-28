@@ -74,6 +74,7 @@ if TYPE_CHECKING:
     from .config import Config
 
     _T = TypeVar('_T')
+    _FT = TypeVar('_FT', bound=Callable[..., Any])
     _ManagerT = TypeVar('_ManagerT', bound='Manager')
 
 
@@ -290,8 +291,8 @@ async def capture_manager_exc_async(
 def _with_lock(
     lock_name: str,
     manager_bound: bool = True,
-) -> Callable[[_T], _T]:
-    def outer(coro_fn: _T):
+) -> Callable[[_FT], _FT]:
+    def outer(coro_fn: _FT):
         async def inner(self: Manager, *args: object, **kwargs: object):
             key = f'{id(self)}_{lock_name}' if manager_bound else lock_name
             async with self.locks[key]:
