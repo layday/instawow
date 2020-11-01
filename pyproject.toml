@@ -12,6 +12,7 @@ write_to_template = "__version__ = '{version}'\n"
 
 
 [tool.coverage.run]
+branch = true
 source = ["instawow"]
 omit = ["instawow/migrations/*"]
 
