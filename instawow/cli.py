@@ -303,10 +303,16 @@ def update(obj: ManagerWrapper, addons: Sequence[Defn]) -> None:
 
 @main.command()
 @click.argument('addons', nargs=-1, required=True, callback=_callbackify(parse_into_defn))
+@click.option(
+    '--keep-folders',
+    is_flag=True,
+    default=False,
+    help="Do not delete the add-on folders.",
+)
 @click.pass_obj
-def remove(obj: ManagerWrapper, addons: Sequence[Defn]) -> None:
+def remove(obj: ManagerWrapper, addons: Sequence[Defn], keep_folders: bool) -> None:
     "Remove add-ons."
-    results = obj.m.run(obj.m.remove(addons))
+    results = obj.m.run(obj.m.remove(addons, keep_folders))
     Report(results.items()).generate_and_exit()
 
 

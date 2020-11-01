@@ -253,6 +253,17 @@ def test_preexisting_folder_conflict_on_install(cli_config, run):
     )
 
 
+def test_keep_folders_on_remove(cli_config, molinari_and_run):
+    assert (
+        molinari_and_run('remove --keep-folders curse:molinari').output
+        == '''\
+✓ curse:molinari
+  removed
+'''
+    )
+    assert cli_config.addon_dir.joinpath('Molinari').is_dir()
+
+
 @pytest.mark.parametrize(
     'args, output',
     [

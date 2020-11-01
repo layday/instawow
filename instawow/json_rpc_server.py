@@ -271,7 +271,9 @@ class RemoveParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
     _method = 'remove'
 
     async def respond(self, managers: ManagerWorkQueue) -> MultiResult:
-        results = await managers.run(self.profile, partial(Manager.remove, defns=self.defns))
+        results = await managers.run(
+            self.profile, partial(Manager.remove, defns=self.defns, keep_folders=False)
+        )
         return MultiResult.parse_obj(
             [
                 (r.status, r.old_pkg if isinstance(r, E.PkgRemoved) else r.message)

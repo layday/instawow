@@ -484,13 +484,14 @@ class Manager:
 
         return E.PkgUpdated(old_pkg, new_pkg)
 
-    def remove_pkg(self, pkg: Pkg) -> E.PkgRemoved:
+    def remove_pkg(self, pkg: Pkg, keep_folders: bool) -> E.PkgRemoved:
         "Remove a package."
-        trash(
-            [self.config.addon_dir / f.name for f in pkg.folders],
-            dst=self.config.temp_dir,
-            missing_ok=True,
-        )
+        if not keep_folders:
+            trash(
+                [self.config.addon_dir / f.name for f in pkg.folders],
+                dst=self.config.temp_dir,
+                missing_ok=True,
+            )
         self.database.delete(pkg)
         self.database.commit()
 
@@ -688,13 +689,19 @@ class Manager:
         return results
 
     @_with_lock('change state')
-    async def remove(self, defns: Sequence[Defn]) -> Dict[Defn, E.ManagerResult]:
+    async def remove(
+        self, defns: Sequence[Defn], keep_folders: bool
+    ) -> Dict[Defn, E.ManagerResult]:
         "Remove packages by their definition."
         maybe_pkgs = (self.get_pkg(d) for d in defns)
         result_coros = chain_dict(
             defns,
             _error_out(E.PkgNotInstalled()),
-            ((d, partial(t(self.remove_pkg), p)) for d, p in zip(defns, maybe_pkgs) if p),
+            (
+                (d, partial(t(self.remove_pkg), p, keep_folders))
+                for d, p in zip(defns, maybe_pkgs)
+                if p
+            ),
         )
         results: Dict[Defn, Any] = {
             d: await capture_manager_exc_async(c()) for d, c in result_coros.items()
