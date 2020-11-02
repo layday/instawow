@@ -268,11 +268,12 @@ class UpdateParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
 
 
 class RemoveParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
+    keep_folders: bool
     _method = 'remove'
 
     async def respond(self, managers: ManagerWorkQueue) -> MultiResult:
         results = await managers.run(
-            self.profile, partial(Manager.remove, defns=self.defns, keep_folders=False)
+            self.profile, partial(Manager.remove, defns=self.defns, keep_folders=self.keep_folders)
         )
         return MultiResult.parse_obj(
             [

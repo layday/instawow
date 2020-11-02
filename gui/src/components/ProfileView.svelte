@@ -209,8 +209,8 @@
     }
   };
 
-  const removeAddons = async (addons: Addon[]) => {
-    await modifyAddons("remove", addons);
+  const removeAddons = async (addons: Addon[], keepFolders: boolean) => {
+    await modifyAddons("remove", addons, { keep_folders: keepFolders });
   };
 
   const pinAddons = async (addons: Addon[]) => {
@@ -301,6 +301,7 @@
           (addon.options.strategy === Strategy.version
             ? { id: "unpin", label: "Unpin" }
             : { id: "pin", label: "Pin" }),
+        { id: "unreconcile", label: "Unreconcile" },
         { id: "lookup", label: "Resolve" },
       ].filter(Boolean)
     );
@@ -321,6 +322,9 @@
           options: { strategy: selection === "pin" ? Strategy.version : Strategy.default },
         };
         await pinAddons([pinnedAddon]);
+        break;
+      case "unreconcile":
+        await removeAddons([addon], true);
         break;
       case "lookup":
         searchTerms = "";
@@ -582,7 +586,7 @@
             <AddonComponent
               on:requestInstall={() => installAddons([otherAddon])}
               on:requestUpdate={() => updateAddons([otherAddon])}
-              on:requestRemove={() => removeAddons([addon])}
+              on:requestRemove={() => removeAddons([addon], false)}
               on:requestShowRollbackModal={() => showRollbackModal(addon)}
               on:showGenericAddonContextMenu={() => showGenericAddonContextMenu(addon)}
               on:showInstallAddonContextMenu={() => showInstallAddonContextMenu(otherAddon)}
