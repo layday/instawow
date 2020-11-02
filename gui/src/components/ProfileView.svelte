@@ -266,7 +266,7 @@
           // Lift outdated add-ons to the top of ht list
           ([thisAddon, { version: otherVersion }]) => [
             thisAddon.version === otherVersion,
-            thisAddon.name,
+            thisAddon.name.toLowerCase(),
           ]
         );
         notifyOfFailures("resolve", addonsToResults);

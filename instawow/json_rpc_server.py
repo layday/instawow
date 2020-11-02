@@ -162,8 +162,10 @@ class ListInstalledParams(_ProfileParamMixin, BaseParams):
     _method = 'list'
 
     async def respond(self, managers: ManagerWorkQueue) -> ListResult:
+        from sqlalchemy import func
+
         installed_pkgs = await managers.run(
-            self.profile, t(lambda m: m.database.query(Pkg).order_by(Pkg.name).all())
+            self.profile, t(lambda m: m.database.query(Pkg).order_by(func.lower(Pkg.name)).all())
         )
         return ListResult.parse_obj(installed_pkgs)
 
