@@ -40,6 +40,20 @@ def reformat(session: nox.Session):
     for cmd in ('isort', 'black'):
         session.run(cmd, 'instawow', 'tests', 'noxfile.py', 'setup.py')
 
+    if '--skip-prettier' not in session.posargs:
+        session.chdir('gui')
+        session.run(
+            'npx',
+            'prettier',
+            '--write',
+            '../pyrightconfig.json',
+            'src',
+            'package.json',
+            'rollup.config.js',
+            'tsconfig.json',
+            external=True,
+        )
+
 
 @nox.session(python=False)
 def clobber_build_artefacts(session: nox.Session):

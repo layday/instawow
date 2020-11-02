@@ -6,8 +6,7 @@
   "scripts": {
     "build": "rollup -c",
     "start": "concurrently \"rollup -c -w\" \"electron .\"",
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "prettify": "prettier --write src"
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "layday <layday@protonmail.com>",
   "license": "GPL-3.0-or-later",
