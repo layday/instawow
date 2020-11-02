@@ -155,27 +155,19 @@
         .filter((result): result is SuccessResult => result.status === "success")
         .map(({ addon }) => addon);
       if (modifiedAddons) {
-        if (method === "remove") {
-          addons__Installed = lodash.differenceWith(
-            addons__Installed,
-            modifiedAddons,
-            isSameAddon
-          );
-        } else {
-          const installedAddons = [...addons__Installed];
-          // Reversing `modifiedAddons` so that new add-ons will
-          // be prepended in alphabetical order
-          for (const addon of [...modifiedAddons].reverse()) {
-            const newAddon = [markAddonInstalled(addon), addon] as const;
-            const index = addons__Installed.findIndex((value) => isSameAddon(value, addon));
-            if (index === -1) {
-              installedAddons.unshift(newAddon);
-            } else {
-              installedAddons[index] = newAddon;
-            }
+        const installedAddons = [...addons__Installed];
+        // Reversing `modifiedAddons` so that new add-ons will
+        // be prepended in alphabetical order
+        for (const addon of [...modifiedAddons].reverse()) {
+          const newAddon = [markAddonInstalled(addon, method !== "remove"), addon] as const;
+          const index = addons__Installed.findIndex((value) => isSameAddon(value, addon));
+          if (index === -1) {
+            installedAddons.unshift(newAddon);
+          } else {
+            installedAddons[index] = newAddon;
           }
-          addons__Installed = installedAddons;
         }
+        addons__Installed = installedAddons;
         regenerateCombinedSearchAddons();
       }
       notifyOfFailures(
