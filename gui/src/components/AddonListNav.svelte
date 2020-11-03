@@ -32,7 +32,7 @@
 </script>
 
 <style lang="scss">
-  @import "vars";
+  @import "scss/vars";
 
   $line-height: 1.8em;
   $middle-border-radius: $line-height / 6;

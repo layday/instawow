@@ -23,7 +23,7 @@
 </script>
 
 <style lang="scss">
-  @import "modal";
+  @import "scss/modal";
 </style>
 
 <Modal bind:show {addonListEl}>

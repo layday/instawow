@@ -20,51 +20,31 @@
 </script>
 
 <style lang="scss">
-  @import "vars";
+  @import "scss/vars";
 
-  /* prettier-ignore */
   :global(:root) {
-    --base-color:
-      #{$base-color-light};
-    --base-color-alpha-65:
-      #{rgba($base-color-light, 0.65)};
-    --inverse-color:
-      #{$inverse-color-light};
-    --inverse-color-alpha-05:
-      #{rgba($inverse-color-light, 0.05)};
-    --inverse-color-alpha-10:
-      #{rgba($inverse-color-light, 0.1)};
-    --inverse-color-alpha-20:
-      #{rgba($inverse-color-light, 0.2)};
-    --inverse-color-tone-10:
-      #{lighten($inverse-color-light, 10%)};
-    --inverse-color-tone-20:
-      #{lighten($inverse-color-light, 20%)};
-    --dropdown-arrow:
-      #{generate-dropdown-arrow($inverse-color-light)};
+    --base-color: #{$base-color-light};
+    --base-color-alpha-65: #{rgba($base-color-light, 0.65)};
+    --inverse-color: #{$inverse-color-light};
+    --inverse-color-alpha-05: #{rgba($inverse-color-light, 0.05)};
+    --inverse-color-alpha-10: #{rgba($inverse-color-light, 0.1)};
+    --inverse-color-alpha-20: #{rgba($inverse-color-light, 0.2)};
+    --inverse-color-tone-10: #{lighten($inverse-color-light, 10%)};
+    --inverse-color-tone-20: #{lighten($inverse-color-light, 20%)};
+    --dropdown-arrow: #{generate-dropdown-arrow($inverse-color-light)};
   }
 
   @media (prefers-color-scheme: dark) {
-    /* prettier-ignore */
     :global(:root) {
-      --base-color:
-        #{$base-color-dark};
-      --base-color-alpha-65:
-        #{rgba($base-color-dark, 0.65)};
-      --inverse-color:
-        #{$inverse-color-dark};
-      --inverse-color-alpha-05:
-        #{rgba($inverse-color-dark, 0.05)};
-      --inverse-color-alpha-10:
-        #{rgba($inverse-color-dark, 0.15)};
-      --inverse-color-alpha-20:
-        #{rgba($inverse-color-dark, 0.25)};
-      --inverse-color-tone-10:
-        #{darken($inverse-color-dark, 05%)};
-      --inverse-color-tone-20:
-        #{darken($inverse-color-dark, 10%)};
-      --dropdown-arrow:
-        #{generate-dropdown-arrow($inverse-color-dark)};
+      --base-color: #{$base-color-dark};
+      --base-color-alpha-65: #{rgba($base-color-dark, 0.65)};
+      --inverse-color: #{$inverse-color-dark};
+      --inverse-color-alpha-05: #{rgba($inverse-color-dark, 0.05)};
+      --inverse-color-alpha-10: #{rgba($inverse-color-dark, 0.15)};
+      --inverse-color-alpha-20: #{rgba($inverse-color-dark, 0.25)};
+      --inverse-color-tone-10: #{darken($inverse-color-dark, 05%)};
+      --inverse-color-tone-20: #{darken($inverse-color-dark, 10%)};
+      --dropdown-arrow: #{generate-dropdown-arrow($inverse-color-dark)};
     }
   }
 

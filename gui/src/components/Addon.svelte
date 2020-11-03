@@ -24,7 +24,7 @@
 </script>
 
 <style lang="scss">
-  @import "vars";
+  @import "scss/vars";
 
   .addon {
     position: relative;

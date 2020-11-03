@@ -13,7 +13,7 @@
 </script>
 
 <style lang="scss">
-  @import "vars";
+  @import "scss/vars";
 
   .addon-stub {
     transition: all 0.2s;

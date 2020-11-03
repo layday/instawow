@@ -86,7 +86,7 @@ will be lost.`)
 </script>
 
 <style lang="scss">
-  @import "modal";
+  @import "scss/modal";
 
   .modal {
     position: absolute;

@@ -435,7 +435,7 @@
 </script>
 
 <style lang="scss">
-  @import "vars";
+  @import "scss/vars";
 
   .placeholder {
     display: flex;
