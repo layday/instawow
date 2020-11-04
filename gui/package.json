@@ -1,6 +1,6 @@
 {
   "name": "instawow-desktop",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "description": "GUI for the World of Warcraft add-on manager instawow",
   "main": "build",
   "scripts": {
