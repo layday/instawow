@@ -399,19 +399,6 @@ class Manager:
             or None
         )
 
-    def find_damaged_pkgs(self) -> List[Pkg]:
-        "Find packages with missing folders."
-        folders_in_db = {f.name for f in self.database.query(PkgFolder).all()}
-        folders_on_disk = {f.name for f in self.config.addon_dir.iterdir()}
-        folder_complement = folders_in_db - folders_on_disk
-        damaged_pkgs: List[Pkg] = (
-            self.database.query(Pkg)
-            .join(PkgFolder)
-            .filter(PkgFolder.name.in_(folder_complement))
-            .all()
-        )
-        return damaged_pkgs
-
     def install_pkg(self, pkg: Pkg, archive: Path, replace: bool) -> E.PkgInstalled:
         "Install a package."
         with _open_archive(archive) as (top_level_folders, extract):

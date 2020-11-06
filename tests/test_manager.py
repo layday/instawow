@@ -75,16 +75,3 @@ async def test_deleting_and_retaining_folders_on_remove(manager, keep_folders):
         assert all(f.is_dir() for f in folders)
     else:
         assert not any(f.is_dir() for f in folders)
-
-
-@pytest.mark.asyncio
-async def test_finding_damaged_pkgs(manager):
-    molinari_defn = Defn('curse', 'molinari')
-    install_result = await manager.install([molinari_defn], False)
-    installed_pkg = install_result[molinari_defn].pkg
-    assert not manager.find_damaged_pkgs()
-    (manager.config.addon_dir / installed_pkg.folders[0].name).rename(
-        manager.config.addon_dir / 'Foo'
-    )
-    damaged_pkgs = manager.find_damaged_pkgs()
-    assert installed_pkg in damaged_pkgs
