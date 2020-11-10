@@ -586,7 +586,7 @@ def test_addon_is_removed_even_if_folders_missing(cli_config, molinari_and_run):
     ],
 )
 def test_exit_codes_with_substr_match(monkeypatch, molinari_and_run, command, exit_code):
-    monkeypatch.setattr('webbrowser.open', lambda v: ...)
+    monkeypatch.setattr('click.launch', lambda url, wait=..., locate=...: ...)
     assert molinari_and_run(command).exit_code == exit_code
 
 

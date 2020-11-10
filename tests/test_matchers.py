@@ -46,11 +46,9 @@ def test_addon_folder_is_comparable_to_str(molinari):
     assert isinstance(addon_folder, AddonFolder) and addon_folder <= 'Molinari'
 
 
-def test_addon_folder_can_extract_defns_frm_toc(molinari):
+def test_addon_folder_can_extract_defns_from_toc(molinari):
     addon_folder = AddonFolder(molinari.name, TocReader.from_parent_folder(molinari))
-    assert addon_folder.defns_from_toc == frozenset(
-        [Defn('curse', '20338'), Defn('wowi', '13188')]
-    )
+    assert addon_folder.defns_from_toc == {Defn('curse', '20338'), Defn('wowi', '13188')}
 
 
 @pytest.mark.asyncio
