@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import TYPE_CHECKING, List, Optional as O
+from typing import TYPE_CHECKING, Optional as O
 
 from sqlalchemy import (
     Column,
@@ -66,13 +66,13 @@ class Pkg(ModelBase):
     download_url = Column(String, nullable=False)
     date_published = Column(TZDateTime, nullable=False)
     version = Column(String, nullable=False)
-    folders: relationship[List[PkgFolder]] = relationship(
+    folders: relationship[list[PkgFolder]] = relationship(
         'PkgFolder', cascade='all, delete-orphan', backref='pkg'
     )
     options: relationship[PkgOptions] = relationship(
         'PkgOptions', cascade='all, delete-orphan', uselist=False
     )
-    deps: relationship[List[PkgDep]] = relationship(
+    deps: relationship[list[PkgDep]] = relationship(
         'PkgDep', cascade='all, delete-orphan', backref='pkg'
     )
 
@@ -90,14 +90,14 @@ class Pkg(ModelBase):
             download_url: str,
             date_published: datetime,
             version: str,
-            folders: List[PkgFolder] = [],
+            folders: list[PkgFolder] = [],
             options: PkgOptions,
-            deps: List[PkgDep] = [],
+            deps: list[PkgDep] = [],
         ) -> None:
             ...
 
     @property
-    def logged_versions(self) -> List[PkgVersionLog]:
+    def logged_versions(self) -> list[PkgVersionLog]:
         session: O[Session] = object_session(self)
         return (
             (

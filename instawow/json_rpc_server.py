@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 from collections import defaultdict
+from collections.abc import Awaitable, Callable, Iterator
 from contextlib import contextmanager
 from functools import partial
 from itertools import repeat
@@ -9,17 +10,11 @@ import os
 from typing import (
     TYPE_CHECKING,
     Any,
-    Awaitable,
-    Callable,
     ClassVar,
-    DefaultDict,
     Dict,
-    Iterator,
     List,
     Optional as O,
-    Set,
-    Tuple,
-    Type,
+    Set as TSet,
     TypeVar,
     Union,
     overload,
@@ -43,7 +38,9 @@ from .utils import get_version, is_outdated, run_in_thread as t, uniq
 
 if TYPE_CHECKING:
     _T = TypeVar('_T')
-    ManagerWorkQueueItem = Tuple[asyncio.Future[Any], str, O[Callable[..., Awaitable[Any]]]]
+    ManagerWorkQueueItem = Union[
+        'tuple[asyncio.Future[Any], str, O[Callable[..., Awaitable[Any]]]]'
+    ]
 
 
 LOCALHOST = '127.0.0.1'
@@ -56,7 +53,7 @@ class _ConfigError(ServerError):
 
 
 @contextmanager
-def _reraise_validation_error(error_class: Type[ServerError] = ServerError) -> Iterator[None]:
+def _reraise_validation_error(error_class: type[ServerError] = ServerError) -> Iterator[None]:
     try:
         yield
     except ValidationError as error:
@@ -123,7 +120,7 @@ class ListProfilesParams(BaseParams):
     _method = 'config/list'
 
     @t
-    def respond(self, managers: ManagerWorkQueue) -> List[str]:
+    def respond(self, managers: ManagerWorkQueue) -> list[str]:
         return Config.list_profiles()
 
 
@@ -134,14 +131,14 @@ class Source(BaseModel):
     supports_rollback: bool
 
     @validator('supported_strategies')
-    def _sort_strategies(cls, value: List[Strategy]) -> List[Strategy]:
+    def _sort_strategies(cls, value: list[Strategy]) -> list[Strategy]:
         return sorted(value, key=list(Strategy).index)
 
 
 class ListSourcesParams(_ProfileParamMixin, BaseParams):
     _method = 'sources/list'
 
-    async def respond(self, managers: ManagerWorkQueue) -> List[Source]:
+    async def respond(self, managers: ManagerWorkQueue) -> list[Source]:
         manager = await managers.run(self.profile)
         return [
             Source(
@@ -164,9 +161,8 @@ class ListInstalledParams(_ProfileParamMixin, BaseParams):
     async def respond(self, managers: ManagerWorkQueue) -> ListResult:
         from sqlalchemy import func
 
-        installed_pkgs = await managers.run(
-            self.profile, t(lambda m: m.database.query(Pkg).order_by(func.lower(Pkg.name)).all())
-        )
+        manager = await managers.run(self.profile)
+        installed_pkgs = manager.database.query(Pkg).order_by(func.lower(Pkg.name)).all()
         return ListResult.parse_obj(installed_pkgs)
 
 
@@ -184,7 +180,7 @@ class MultiResult(BaseModel):
     __root__: List[Union[SuccessResult, ErrorResult]]
 
     @validator('__root__', each_item=True, pre=True)
-    def _classify_tuple(cls, value: Tuple[str, object]) -> Union[SuccessResult, ErrorResult]:
+    def _classify_tuple(cls, value: tuple[str, object]) -> Union[SuccessResult, ErrorResult]:
         status, result = value
         if status == 'success':
             return SuccessResult(status=status, addon=result)
@@ -195,7 +191,7 @@ class MultiResult(BaseModel):
 class SearchParams(_ProfileParamMixin, BaseParams):
     search_terms: str
     limit: int
-    sources: O[Set[str]] = None
+    sources: O[TSet[str]] = None
     strategy: Strategy = Strategy.default
     _method = 'search'
 
@@ -217,7 +213,7 @@ class ResolveParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
     _method = 'resolve'
 
     async def respond(self, managers: ManagerWorkQueue) -> MultiResult:
-        def extract_source(manager: Manager, defns: List[Defn]):
+        def extract_source(manager: Manager, defns: list[Defn]):
             for defn in defns:
                 if defn.source == '*':
                     pair = manager.pair_uri(defn.alias)
@@ -371,8 +367,8 @@ class ManagerWorkQueue:
     def __init__(self) -> None:
         asyncio.get_running_loop()  # Sanity check
         self._queue: asyncio.Queue[ManagerWorkQueueItem] = asyncio.Queue()
-        self._managers: Dict[str, Manager] = {}
-        self._locks: DefaultDict[str, asyncio.Lock] = defaultdict(asyncio.Lock)
+        self._managers: dict[str, Manager] = {}
+        self._locks: defaultdict[str, asyncio.Lock] = defaultdict(asyncio.Lock)
         self._web_client = init_web_client()
 
     async def _jumpstart(self, profile: str) -> Manager:
@@ -434,7 +430,7 @@ class ManagerWorkQueue:
         self._managers.pop(profile, None)
 
 
-def _prepare_response(param_class: Type[BaseParams], managers: ManagerWorkQueue) -> JsonRpcMethod:
+def _prepare_response(param_class: type[BaseParams], managers: ManagerWorkQueue) -> JsonRpcMethod:
     async def respond(**kwargs: Any) -> BaseModel:
         with _reraise_validation_error(InvalidParamsError):
             params = param_class.parse_obj(kwargs)
@@ -443,11 +439,11 @@ def _prepare_response(param_class: Type[BaseParams], managers: ManagerWorkQueue)
     return JsonRpcMethod('', respond, custom_name=param_class._method)
 
 
-def serialise_response(value: Dict[str, Any]) -> str:
+def serialise_response(value: dict[str, Any]) -> str:
     return BaseModel.construct(**value).json()
 
 
-async def create_app() -> Tuple[web.Application, str]:
+async def create_app() -> tuple[web.Application, str]:
     managers = ManagerWorkQueue()
 
     def start_managers():

@@ -1,23 +1,10 @@
 from __future__ import annotations
 
+from collections.abc import Iterable, Iterator, Sequence
 from functools import partial, reduce
 from itertools import chain, product
 import time
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    ClassVar,
-    Dict,
-    Generic,
-    Iterable,
-    Iterator,
-    List,
-    Optional as O,
-    Sequence,
-    Tuple,
-    Type,
-    TypeVar,
-)
+from typing import TYPE_CHECKING, Any, ClassVar, Dict, Generic, List, Optional as O, TypeVar
 
 from loguru import logger
 from pydantic import BaseModel, Field, validator
@@ -32,7 +19,7 @@ if TYPE_CHECKING:
     from .manager import Manager
 
     ImportString = str
-    RemoteAuras = Sequence[Tuple[Sequence[WeakAura], WagoApiResponse, ImportString]]
+    RemoteAuras = Sequence[tuple[Sequence[WeakAura], WagoApiResponse, ImportString]]
 
 
 class BuilderConfig(BaseConfig):
@@ -156,7 +143,7 @@ class WaCompanionBuilder:
         self.builder_config = builder_config
 
     @staticmethod
-    def extract_auras(model: Type[Auras[Any]], source: str) -> Auras[Any]:
+    def extract_auras(model: type[Auras[Any]], source: str) -> Auras[Any]:
         from ._custom_slpp import decode
 
         source_after_assignment = source[source.find('=') + 1 :]
@@ -189,7 +176,7 @@ class WaCompanionBuilder:
                     aura_group_cache.write_text(aura_groups.json(), encoding='utf-8')
                 yield aura_groups
 
-    async def get_wago_metadata(self, aura_groups: Auras[Any]) -> List[WagoApiResponse]:
+    async def get_wago_metadata(self, aura_groups: Auras[Any]) -> list[WagoApiResponse]:
         from aiohttp import ClientResponseError
 
         from .manager import cache_response
@@ -229,7 +216,7 @@ class WaCompanionBuilder:
 
     async def get_remote_auras(
         self, aura_groups: Auras[WeakAuraT]
-    ) -> Tuple[Type[Auras[WeakAuraT]], RemoteAuras]:
+    ) -> tuple[type[Auras[WeakAuraT]], RemoteAuras]:
         if not aura_groups.__root__:
             return (aura_groups.__class__, [])
 
@@ -240,7 +227,7 @@ class WaCompanionBuilder:
             [(aura_groups.__root__[r['slug']], r, i) for r, i in zip(metadata, import_strings)],
         )
 
-    def make_addon(self, auras: Sequence[Tuple[Type[Auras[Any]], RemoteAuras]]) -> None:
+    def make_addon(self, auras: Sequence[tuple[type[Auras[Any]], RemoteAuras]]) -> None:
         from importlib.resources import read_text
         from zipfile import ZipFile, ZipInfo
 
@@ -258,7 +245,7 @@ class WaCompanionBuilder:
         self.addon_file.parent.mkdir(exist_ok=True)
         with ZipFile(self.addon_file, 'w') as file:
 
-            def write_tpl(filename: str, ctx: Dict[str, Any]) -> None:
+            def write_tpl(filename: str, ctx: dict[str, Any]) -> None:
                 # Not using a plain string as the first argument to ``writestr``
                 # 'cause the timestamp would be set to the current time
                 # which would render the build unreproducible

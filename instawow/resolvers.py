@@ -1,24 +1,11 @@
 from __future__ import annotations
 
+from collections.abc import AsyncIterable, Callable, Sequence
 from datetime import datetime, timezone
 import enum
 from itertools import chain, count, takewhile
 import re
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    AsyncIterable,
-    Callable,
-    ClassVar,
-    Dict,
-    FrozenSet,
-    List,
-    Optional as O,
-    Sequence,
-    Set,
-    Union,
-    cast,
-)
+from typing import TYPE_CHECKING, Any, ClassVar, List, Optional as O, Set as TSet, Union, cast
 
 from pydantic import BaseModel
 from pydantic.datetime_parse import parse_datetime
@@ -106,7 +93,7 @@ class _CatalogueEntryDefaultFields(TypedDict):
     id: str
     slug: str
     name: str
-    game_compatibility: Set[Literal['retail', 'classic']]
+    game_compatibility: set[Literal['retail', 'classic']]
     folders: Sequence[Sequence[str]]
     download_count: int
     last_updated: Any
@@ -117,8 +104,8 @@ class _CatalogueEntry(BaseModel):
     id: str
     slug: str
     name: str
-    game_compatibility: Set[Literal['retail', 'classic']]
-    folders: List[FrozenSet[str]]
+    game_compatibility: TSet[Literal['retail', 'classic']]
+    folders: List[TSet[str]]
     download_count: int
     last_updated: datetime
     normalised_name: str
@@ -129,9 +116,8 @@ class Catalogue(BaseModel):
     __root__: List[_CatalogueEntry]
 
     class Config:
-        json_encoders: Dict[type, Callable[..., Any]] = {
+        json_encoders: dict[type, Callable[[Any], Any]] = {
             set: sorted,
-            frozenset: sorted,
         }
         keep_untouched: Sequence[Any] = (cached_property,)
 
@@ -164,7 +150,7 @@ class Catalogue(BaseModel):
         return catalogue
 
     @cached_property
-    def curse_slugs(self) -> Dict[str, str]:
+    def curse_slugs(self) -> dict[str, str]:
         return {a.slug: a.id for a in self.__root__ if a.source == 'curse'}
 
 
@@ -214,7 +200,7 @@ class MultiPkgModel(BaseModel):
 class Resolver:
     source: ClassVar[str]
     name: ClassVar[str]
-    strategies: ClassVar[Set[Strategy]]
+    strategies: ClassVar[set[Strategy]]
 
     def __init__(self, manager: ManagerT) -> None:
         self.manager = manager
@@ -228,7 +214,7 @@ class Resolver:
     def get_alias_from_url(value: str) -> O[str]:
         "Attempt to extract a definition name from a given URL."
 
-    async def resolve(self, defns: Sequence[Defn]) -> Dict[Defn, Any]:
+    async def resolve(self, defns: Sequence[Defn]) -> dict[Defn, Any]:
         "Resolve add-on definitions into packages."
         from .manager import capture_manager_exc_async
 
@@ -287,10 +273,10 @@ if TYPE_CHECKING:
         downloadUrl: str
         fileDate: str  # Upload datetime in ISO, e.g. '2020-02-02T12:12:12Z'
         releaseType: int  # 1 = stable; 2 = beta; 3 = alpha
-        dependencies: List[CurseAddon_FileDependency]
-        modules: List[CurseAddon_FileModules]
+        dependencies: list[CurseAddon_FileDependency]
+        modules: list[CurseAddon_FileModules]
         exposeAsAlternative: O[bool]
-        gameVersion: List[str]  # e.g. '8.3.0'
+        gameVersion: list[str]  # e.g. '8.3.0'
         gameVersionFlavor: Literal['wow_classic', 'wow_retail']
 
     class CurseAddon(TypedDict):
@@ -299,7 +285,7 @@ if TYPE_CHECKING:
         websiteUrl: str  # e.g. 'https://www.curseforge.com/wow/addons/molinari'
         summary: str  # One-line description of the add-on
         downloadCount: int  # Total number of downloads
-        latestFiles: List[CurseAddon_File]
+        latestFiles: list[CurseAddon_File]
         slug: str  # URL slug; 'molinari' in 'https://www.curseforge.com/wow/addons/molinari'
         dateReleased: str  # ISO datetime of latest release
 
@@ -331,7 +317,7 @@ class CurseResolver(Resolver):
         ):
             return url.parts[3].lower()
 
-    async def resolve(self, defns: Sequence[Defn]) -> Dict[Defn, Any]:
+    async def resolve(self, defns: Sequence[Defn]) -> dict[Defn, Any]:
         from aiohttp import ClientResponseError
 
         from .manager import cache_response, capture_manager_exc_async
@@ -352,7 +338,7 @@ class CurseResolver(Resolver):
                 raise
             json_response = []
 
-        api_results: Dict[str, CurseAddon] = {str(r['id']): r for r in json_response}
+        api_results: dict[str, CurseAddon] = {str(r['id']): r for r in json_response}
         results = await gather(
             (self.resolve_one(d, api_results.get(i)) for d, i in defns_to_ids.items()),
             capture_manager_exc_async,
@@ -468,7 +454,7 @@ class CurseResolver(Resolver):
         classic_version_prefix = '1.13'
         flavours = ('retail', 'classic')
 
-        def excise_flavours(files: List[CurseAddon_File]):
+        def excise_flavours(files: list[CurseAddon_File]):
             for c in flavours:
                 if any(f['gameVersionFlavor'] == f'wow_{c}' for f in files):
                     yield c
@@ -487,7 +473,7 @@ class CurseResolver(Resolver):
                     gameId='1', sort=sort_order, pageSize=step, index=index
                 )
             ) as response:
-                json_response: List[CurseAddon] = await response.json()
+                json_response: list[CurseAddon] = await response.json()
 
             if not json_response:
                 break
@@ -529,15 +515,15 @@ if TYPE_CHECKING:
         UIDownloadTotal: str  # Total number of downloads
         UIDownloadMonthly: str  # Number of downloads in the last month and not 'monthly'
         UIFavoriteTotal: str
-        UICompatibility: O[List[WowiCompatibilityEntry]]  # ``null`` if would be empty
-        UIDir: List[str]  # Names of folders contained in archive
-        UIIMG_Thumbs: O[List[str]]  # Thumbnail URLs; ``null`` if would be empty
-        UIIMGs: O[List[str]]  # Full-size image URLs; ``null`` if would be empty
+        UICompatibility: O[list[WowiCompatibilityEntry]]  # ``null`` if would be empty
+        UIDir: list[str]  # Names of folders contained in archive
+        UIIMG_Thumbs: O[list[str]]  # Thumbnail URLs; ``null`` if would be empty
+        UIIMGs: O[list[str]]  # Full-size image URLs; ``null`` if would be empty
         # There are only two add-ons on the entire list with siblings
         # (they refer to each other). I don't know if this was meant to capture
         # dependencies (probably not) but it's so underused as to be worthless.
         # ``null`` if would be empty
-        UISiblings: O[List[str]]
+        UISiblings: O[list[str]]
         UIDonationLink: O[str]  # Absent from the first item on the list (!)
 
     class WowiDetailsApiItem(WowiCommonTerms):
@@ -573,7 +559,7 @@ class WowiResolver(Resolver):
     list_api_url = 'https://api.mmoui.com/v3/game/WOW/filelist.json'
     details_api_url = URL('https://api.mmoui.com/v3/game/WOW/filedetails/')
 
-    list_api_items: O[Dict[str, WowiListApiItem]] = None
+    list_api_items: O[dict[str, WowiListApiItem]] = None
 
     @staticmethod
     def get_alias_from_url(value: str) -> O[str]:
@@ -596,7 +582,7 @@ class WowiResolver(Resolver):
                 if match:
                     return match.group('id')
 
-    async def resolve(self, defns: Sequence[Defn]) -> Dict[Defn, Any]:
+    async def resolve(self, defns: Sequence[Defn]) -> dict[Defn, Any]:
         from aiohttp import ClientResponseError
 
         from .manager import cache_response, capture_manager_exc_async
@@ -657,7 +643,7 @@ class WowiResolver(Resolver):
         cls, web_client: aiohttp.ClientSession
     ) -> AsyncIterable[_CatalogueEntryDefaultFields]:
         async with web_client.get(cls.list_api_url) as response:
-            list_api_items: List[WowiListApiItem] = await response.json()
+            list_api_items: list[WowiListApiItem] = await response.json()
 
         for list_item in list_api_items:
             yield _CatalogueEntryDefaultFields(
@@ -786,7 +772,7 @@ class TukuiResolver(Resolver):
             async with web_client.get(cls.api_url.with_query({query: param})) as response:
                 metadata = await response.json(content_type=None)  # text/html
 
-            items: List[Union[TukuiUi, TukuiAddon]] = [metadata] if query == 'ui' else metadata
+            items: list[Union[TukuiUi, TukuiAddon]] = [metadata] if query == 'ui' else metadata
             game_compatibility = 'classic' if query == 'classic-addons' else 'retail'
             for item in items:
                 yield _CatalogueEntryDefaultFields(
@@ -828,7 +814,7 @@ if TYPE_CHECKING:
     class GithubRelease(TypedDict):
         tag_name: str  # Hopefully the version
         published_at: str  # ISO datetime
-        assets: List[GithubReleaseAsset]
+        assets: list[GithubReleaseAsset]
 
 
 class GithubResolver(Resolver):

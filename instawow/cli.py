@@ -1,28 +1,13 @@
 from __future__ import annotations
 
+from collections.abc import Callable, Generator, Iterable, Sequence, Set
 from datetime import datetime
-import enum
+from enum import Enum
 from functools import partial
 from itertools import chain
 from pathlib import Path
 from textwrap import dedent, fill
-from typing import (
-    TYPE_CHECKING,
-    AbstractSet,
-    Callable,
-    FrozenSet,
-    Generator,
-    Generic,
-    Iterable,
-    List,
-    Optional as O,
-    Sequence,
-    Tuple,
-    Type,
-    TypeVar,
-    Union,
-    overload,
-)
+from typing import TYPE_CHECKING, Optional as O, Union, overload
 
 import click
 
@@ -34,10 +19,6 @@ from .utils import TocReader, cached_property, get_version, is_outdated, tabulat
 if TYPE_CHECKING:
     from .manager import CliManager
 
-    _R = TypeVar('_R')
-
-_EnumT = TypeVar('_EnumT', bound=enum.Enum)
-
 
 class Report:
     SUCCESS_SYMBOL = click.style('✓', fg='green')
@@ -46,7 +27,7 @@ class Report:
 
     def __init__(
         self,
-        results: Iterable[Tuple[Defn, E.ManagerResult]],
+        results: Iterable[tuple[Defn, E.ManagerResult]],
         filter_fn: Callable[[E.ManagerResult], bool] = lambda _: True,
     ):
         self.results = list(results)
@@ -126,11 +107,11 @@ class PathParam(click.Path):
         return Path(value)
 
 
-class EnumParam(click.Choice, Generic[_EnumT]):
+class EnumParam(click.Choice):
     def __init__(
         self,
-        choice_enum: Type[_EnumT],
-        excludes: AbstractSet[_EnumT] = frozenset(),
+        choice_enum: type[Enum],
+        excludes: Set[Enum] = frozenset(),
         case_sensitive: bool = True,
     ) -> None:
         self.choice_enum = choice_enum
@@ -139,12 +120,14 @@ class EnumParam(click.Choice, Generic[_EnumT]):
             case_sensitive=case_sensitive,
         )
 
-    def convert(self, value: str, param: O[click.Parameter], ctx: O[click.Context]) -> _EnumT:
+    def convert(self, value: str, param: O[click.Parameter], ctx: O[click.Context]) -> Enum:
         parent_result = super().convert(value, param, ctx)
         return self.choice_enum[parent_result]
 
 
-def _callbackify(fn: Callable[..., _R]) -> Callable[[click.Context, click.Parameter, object], _R]:
+def _callbackify(
+    fn: Callable[..., object]
+) -> Callable[[click.Context, click.Parameter, object], object]:
     return lambda c, _, v: fn(c.obj.m, v)
 
 
@@ -177,14 +160,14 @@ def parse_into_defn(manager: CliManager, value: str, *, raise_invalid: bool = Tr
 
 @overload
 def parse_into_defn(
-    manager: CliManager, value: List[str], *, raise_invalid: bool = True
-) -> List[Defn]:
+    manager: CliManager, value: list[str], *, raise_invalid: bool = True
+) -> list[Defn]:
     ...
 
 
 def parse_into_defn(
-    manager: CliManager, value: Union[str, List[str]], *, raise_invalid: bool = True
-) -> Union[Defn, List[Defn]]:
+    manager: CliManager, value: Union[str, list[str]], *, raise_invalid: bool = True
+) -> Union[Defn, list[Defn]]:
     if not isinstance(value, str):
         defns = (parse_into_defn(manager, v, raise_invalid=raise_invalid) for v in value)
         return uniq(defns)
@@ -199,14 +182,14 @@ def parse_into_defn(
 
 
 def parse_into_defn_with_strategy(
-    manager: CliManager, value: Sequence[Tuple[Strategy, str]]
+    manager: CliManager, value: Sequence[tuple[Strategy, str]]
 ) -> Iterable[Defn]:
     defns = parse_into_defn(manager, [d for _, d in value])
     return map(Defn.with_strategy, defns, (s for s, _ in value))
 
 
 def parse_into_defn_with_version(
-    manager: CliManager, value: Sequence[Tuple[str, str]]
+    manager: CliManager, value: Sequence[tuple[str, str]]
 ) -> Iterable[Defn]:
     defns = parse_into_defn(manager, [d for _, d in value])
     return map(Defn.with_version, defns, (v for v, _ in value))
@@ -223,7 +206,7 @@ def combine_addons(
     click_param: click.Parameter,
     value: object,
 ) -> None:
-    addons: List[Defn] = ctx.params.setdefault('addons', [])
+    addons: list[Defn] = ctx.params.setdefault('addons', [])
     if value:
         addons.extend(fn(ctx.obj.m, value))
 
@@ -415,7 +398,7 @@ def reconcile(ctx: click.Context, auto: bool, list_unreconciled: bool) -> None:
 
     manager: CliManager = ctx.obj.m
 
-    def prompt_one(addons: List[AddonFolder], pkgs: List[models.Pkg]) -> Union[Defn, Tuple[()]]:
+    def prompt_one(addons: list[AddonFolder], pkgs: list[models.Pkg]) -> Union[Defn, tuple[()]]:
         def construct_choice(pkg: models.Pkg):
             defn = Defn.from_pkg(pkg)
             title = [
@@ -432,16 +415,16 @@ def reconcile(ctx: click.Context, auto: bool, list_unreconciled: bool) -> None:
         selection = select(f'{addon.name} [{addon.version or "?"}]', choices).unsafe_ask()
         return selection
 
-    def prompt(groups: Sequence[Tuple[List[AddonFolder], List[Defn]]]) -> Iterable[Defn]:
+    def prompt(groups: Sequence[tuple[list[AddonFolder], list[Defn]]]) -> Iterable[Defn]:
         uniq_defns = uniq(d for _, b in groups for d in b)
         results = manager.run(manager.resolve(uniq_defns))
         for addons, defns in groups:
-            shortlist: List[models.Pkg] = list(filter(is_pkg, (results[d] for d in defns)))
+            shortlist: list[models.Pkg] = list(filter(is_pkg, (results[d] for d in defns)))
             if shortlist:
                 selection = Defn.from_pkg(shortlist[0]) if auto else prompt_one(addons, shortlist)
                 selection and (yield selection)
 
-    def match_all() -> Generator[List[Defn], FrozenSet[AddonFolder], None]:
+    def match_all() -> Generator[list[Defn], frozenset[AddonFolder], None]:
         # Match in order of increasing heuristicitivenessitude
         for fn in (
             match_toc_ids,
@@ -510,7 +493,7 @@ def search(ctx: click.Context, search_terms: str, limit: int, sources: Sequence[
         click.echo('No results found.')
 
 
-class ListFormats(enum.Enum):
+class ListFormats(Enum):
     simple = 'simple'
     detailed = 'detailed'
     json = 'json'

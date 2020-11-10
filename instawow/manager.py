@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 from collections import defaultdict
+from collections.abc import AsyncIterator, Awaitable, Callable, Iterable, Iterator, Sequence, Set
 from contextlib import asynccontextmanager, contextmanager
 import contextvars as cv
 from functools import partial
@@ -10,27 +11,7 @@ import json
 from pathlib import Path, PurePath
 from shutil import copy
 from tempfile import NamedTemporaryFile
-from typing import (
-    TYPE_CHECKING,
-    AbstractSet,
-    Any,
-    AsyncIterator,
-    Awaitable,
-    Callable,
-    DefaultDict,
-    Dict,
-    Iterable,
-    Iterator,
-    List,
-    NoReturn,
-    Optional as O,
-    Sequence,
-    Set,
-    Tuple,
-    Type,
-    TypeVar,
-    Union,
-)
+from typing import TYPE_CHECKING, Any, NoReturn, Optional as O, TypeVar, Union
 
 from loguru import logger
 
@@ -77,11 +58,15 @@ if TYPE_CHECKING:
     _FT = TypeVar('_FT', bound=Callable[..., Any])
     _ManagerT = TypeVar('_ManagerT', bound='Manager')
 
+    _BaseResolverDict = Union['dict[str, Resolver]']
+else:
+    _BaseResolverDict = dict
+
 
 USER_AGENT = 'instawow (https://github.com/layday/instawow)'
 
 _web_client: cv.ContextVar[aiohttp.ClientSession] = cv.ContextVar('_web_client')
-_locks: cv.ContextVar[DefaultDict[str, asyncio.Lock]] = cv.ContextVar('_locks')
+_locks: cv.ContextVar[defaultdict[str, asyncio.Lock]] = cv.ContextVar('_locks')
 
 
 AsyncNamedTemporaryFile = t(NamedTemporaryFile)
@@ -90,7 +75,7 @@ move_async = t(move)
 
 
 @asynccontextmanager
-async def _open_temp_writer() -> AsyncIterator[Tuple[Path, Callable[[bytes], Awaitable[int]]]]:
+async def _open_temp_writer() -> AsyncIterator[tuple[Path, Callable[[bytes], Awaitable[int]]]]:
     fh = await AsyncNamedTemporaryFile(delete=False)
     path = Path(fh.name)
     try:
@@ -104,7 +89,7 @@ async def _open_temp_writer() -> AsyncIterator[Tuple[Path, Callable[[bytes], Awa
 
 
 @contextmanager
-def _open_archive(path: PurePath) -> Iterator[Tuple[Set[str], Callable[[Path], None]]]:
+def _open_archive(path: PurePath) -> Iterator[tuple[set[str], Callable[[Path], None]]]:
     from zipfile import ZipFile
 
     ZIP_EXCLUDES = {
@@ -152,7 +137,7 @@ async def cache_response(
     *timedelta_args: Any,
     label: O[str] = None,
     to_json: bool = True,
-    request_kwargs: Dict[str, Any] = {},
+    request_kwargs: dict[str, Any] = {},
 ) -> Any:
     dest = manager.config.cache_dir / shasum(str(url), json.dumps(request_kwargs))
     if await t(is_not_stale)(dest, *timedelta_args):
@@ -160,7 +145,7 @@ async def cache_response(
         text = await t(dest.read_text)(encoding='utf-8')
     else:
         method = request_kwargs.pop('method', 'GET')
-        kwargs: Dict[str, Any] = {'raise_for_status': True, **request_kwargs}
+        kwargs: dict[str, Any] = {'raise_for_status': True, **request_kwargs}
         if label:
             kwargs = {**kwargs, 'trace_request_ctx': {'report_progress': True, 'label': label}}
         async with manager.web_client.request(method, url, **kwargs) as response:
@@ -254,11 +239,11 @@ class _DummyLock:
 class _DummyResolver(Resolver):
     strategies = set()
 
-    async def resolve(self, defns: Sequence[Defn]) -> Dict[Defn, E.PkgSourceInvalid]:
+    async def resolve(self, defns: Sequence[Defn]) -> dict[Defn, E.PkgSourceInvalid]:
         return dict.fromkeys(defns, E.PkgSourceInvalid())
 
 
-class _ResolverDict(Dict[str, Resolver]):
+class _ResolverDict(_BaseResolverDict):
     def __missing__(self, key: str) -> Resolver:
         return _DummyResolver
 
@@ -309,7 +294,7 @@ class Manager:
         config: Config,
         database: SqlaSession,
         catalogue: O[Catalogue] = None,
-        resolver_classes: Sequence[Type[Resolver]] = (
+        resolver_classes: Sequence[type[Resolver]] = (
             CurseResolver,
             WowiResolver,
             TukuiResolver,
@@ -323,7 +308,7 @@ class Manager:
         self._catalogue = catalogue
 
     @classmethod
-    def from_config(cls: Type[_ManagerT], config: Config) -> _ManagerT:
+    def from_config(cls: type[_ManagerT], config: Config) -> _ManagerT:
         session_factory = prepare_database(config)
         return cls(config, session_factory())
 
@@ -348,21 +333,21 @@ class Manager:
         _web_client.set(value)
 
     @property
-    def locks(self) -> DefaultDict[str, asyncio.Lock]:
+    def locks(self) -> defaultdict[str, asyncio.Lock]:
         "Keeping things syncin'."
         try:
             return _locks.get()
         except LookupError:
-            locks: DefaultDict[str, Any] = defaultdict(_DummyLock)
+            locks: defaultdict[str, Any] = defaultdict(_DummyLock)
             _locks.set(locks)
             logger.debug('using dummy lock factory')
             return locks
 
     @locks.setter
-    def locks(self, value: DefaultDict[str, asyncio.Lock]) -> None:
+    def locks(self, value: defaultdict[str, asyncio.Lock]) -> None:
         _locks.set(value)
 
-    def pair_uri(self, value: str) -> O[Tuple[str, str]]:
+    def pair_uri(self, value: str) -> O[tuple[str, str]]:
         "Attempt to extract the source from a URI."
 
         def from_urn():
@@ -402,7 +387,7 @@ class Manager:
     def install_pkg(self, pkg: Pkg, archive: Path, replace: bool) -> E.PkgInstalled:
         "Install a package."
         with _open_archive(archive) as (top_level_folders, extract):
-            installed_conflicts: List[Pkg] = (
+            installed_conflicts: list[Pkg] = (
                 self.database.query(Pkg)
                 .join(Pkg.folders)
                 .filter(PkgFolder.name.in_(top_level_folders))
@@ -438,7 +423,7 @@ class Manager:
     def update_pkg(self, old_pkg: Pkg, new_pkg: Pkg, archive: Path) -> E.PkgUpdated:
         "Update a package."
         with _open_archive(archive) as (top_level_folders, extract):
-            installed_conflicts: List[Pkg] = (
+            installed_conflicts: list[Pkg] = (
                 self.database.query(Pkg)
                 .join(Pkg.folders)
                 .filter(PkgFolder.pkg_source != new_pkg.source, PkgFolder.pkg_id != new_pkg.id)
@@ -497,7 +482,7 @@ class Manager:
             self._catalogue = Catalogue.parse_obj(raw_catalogue)
         return self._catalogue
 
-    async def _resolve_deps(self, results: Iterable[Any]) -> Dict[Defn, Any]:
+    async def _resolve_deps(self, results: Iterable[Any]) -> dict[Defn, Any]:
         """Resolve package dependencies.
 
         The resolver will not follow dependencies
@@ -519,7 +504,7 @@ class Manager:
         pretty_deps = {d.with_(alias=r.slug) if is_pkg(r) else d: r for d, r in deps.items()}
         return pretty_deps
 
-    async def resolve(self, defns: Sequence[Defn], with_deps: bool = False) -> Dict[Defn, Any]:
+    async def resolve(self, defns: Sequence[Defn], with_deps: bool = False) -> dict[Defn, Any]:
         "Resolve definitions into packages."
         if not defns:
             return {}
@@ -547,9 +532,9 @@ class Manager:
         self,
         search_terms: str,
         limit: int,
-        sources: O[AbstractSet[str]] = None,
+        sources: O[Set[str]] = None,
         strategy: Strategy = Strategy.default,
-    ) -> Dict[Defn, Pkg]:
+    ) -> dict[Defn, Pkg]:
         "Search the master catalogue for packages by name."
         import heapq
 
@@ -591,7 +576,7 @@ class Manager:
         return pkgs_by_defn
 
     @_with_lock('change state')
-    async def install(self, defns: Sequence[Defn], replace: bool) -> Dict[Defn, E.ManagerResult]:
+    async def install(self, defns: Sequence[Defn], replace: bool) -> dict[Defn, E.ManagerResult]:
         "Install packages from a definition list."
         # We'll weed out installed dependencies from results after resolving.
         # Doing it this way isn't particularly efficient but avoids having to
@@ -621,7 +606,7 @@ class Manager:
                 for (d, p), a in zip(installables, archives)
             ),
         )
-        results: Dict[Defn, Any] = {
+        results: dict[Defn, Any] = {
             d: await capture_manager_exc_async(c()) for d, c in result_coros.items()
         }
         return results
@@ -629,7 +614,7 @@ class Manager:
     @_with_lock('change state')
     async def update(
         self, defns: Sequence[Defn], retain_strategy: bool
-    ) -> Dict[Defn, E.ManagerResult]:
+    ) -> dict[Defn, E.ManagerResult]:
         """Update installed packages from a definition list.
 
         A ``retain_strategy`` value of false will instruct ``update``
@@ -670,7 +655,7 @@ class Manager:
                 for (d, *p), a in zip(updatables, archives)
             ),
         )
-        results: Dict[Defn, Any] = {
+        results: dict[Defn, Any] = {
             d: await capture_manager_exc_async(c()) for d, c in result_coros.items()
         }
         return results
@@ -678,7 +663,7 @@ class Manager:
     @_with_lock('change state')
     async def remove(
         self, defns: Sequence[Defn], keep_folders: bool
-    ) -> Dict[Defn, E.ManagerResult]:
+    ) -> dict[Defn, E.ManagerResult]:
         "Remove packages by their definition."
         maybe_pkgs = (self.get_pkg(d) for d in defns)
         result_coros = chain_dict(
@@ -690,13 +675,13 @@ class Manager:
                 if p
             ),
         )
-        results: Dict[Defn, Any] = {
+        results: dict[Defn, Any] = {
             d: await capture_manager_exc_async(c()) for d, c in result_coros.items()
         }
         return results
 
     @_with_lock('change state')
-    async def pin(self, defns: Sequence[Defn]) -> Dict[Defn, E.ManagerResult]:
+    async def pin(self, defns: Sequence[Defn]) -> dict[Defn, E.ManagerResult]:
         """Pin and unpin installed packages.
 
         instawow does not have true pinning.  This sets the strategy
@@ -733,7 +718,7 @@ def _extract_filename_from_hdr(response: aiohttp.ClientResponse) -> str:
 
 
 def _init_cli_web_client(
-    bar: ProgressBar, tickers: Set[asyncio.Task[None]]
+    bar: ProgressBar, tickers: set[asyncio.Task[None]]
 ) -> aiohttp.ClientSession:
     from aiohttp import TraceConfig, TraceRequestEndParams, hdrs
 
@@ -776,7 +761,7 @@ def _init_cli_web_client(
 
 
 @asynccontextmanager
-async def _cancel_tickers(tickers: Set[asyncio.Task[None]]):
+async def _cancel_tickers(tickers: set[asyncio.Task[None]]):
     try:
         yield
     finally:

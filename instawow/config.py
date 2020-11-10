@@ -5,7 +5,7 @@ import os
 from pathlib import Path, PurePath
 from shutil import copytree, ignore_patterns
 from tempfile import gettempdir
-from typing import Any, Dict, List, Union
+from typing import Union
 
 import click
 from loguru import logger
@@ -45,8 +45,8 @@ def _validate_path_is_writable_dir(value: Path) -> Path:
 
 class BaseConfig(BaseSettings):
     def _build_values(
-        self, init_kwargs: Dict[str, Any], *args: Any, **kwargs: Any
-    ) -> Dict[str, object]:
+        self, init_kwargs: dict[str, object], *args: object, **kwargs: object
+    ) -> dict[str, object]:
         # Prioritise env vars
         return {**init_kwargs, **self._build_environ()}
 
@@ -81,14 +81,14 @@ class GlobalConfig(BaseConfig):
         }
 
     @classmethod
-    def get_dummy_config(cls, **kwargs: Any) -> GlobalConfig:
+    def get_dummy_config(cls, **kwargs: object) -> GlobalConfig:
         "Create a dummy configuration with default values."
         template = {'game_flavour': 'retail', 'addon_dir': _novalidate}
         dummy_config = cls.parse_obj({**template, **kwargs})
         return dummy_config
 
     @classmethod
-    def list_profiles(cls) -> List[str]:
+    def list_profiles(cls) -> list[str]:
         "List the profiles contained in ``config_dir``."
         dummy_config = cls.get_dummy_config()
         profiles = [c.parent.name for c in dummy_config.config_dir.glob('profiles/*/config.json')]

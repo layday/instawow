@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 from collections import defaultdict, deque
+from collections.abc import Awaitable, Callable, Coroutine, Iterable, Iterator, Sequence, Set
 from contextlib import contextmanager
 from datetime import datetime, timedelta
 from functools import partial, wraps
@@ -12,24 +13,11 @@ from shutil import move as _move
 from tempfile import mkdtemp
 from typing import (
     TYPE_CHECKING,
-    AbstractSet,
     Any,
-    Awaitable,
-    Callable,
-    DefaultDict,
-    Deque,
-    Dict,
     Generic,
     Hashable,
-    Iterable,
-    Iterator,
-    List,
     NamedTuple,
     Optional as O,
-    Sequence,
-    Set,
-    Tuple,
-    Type,
     TypeVar,
     Union,
     cast,
@@ -40,7 +28,7 @@ if TYPE_CHECKING:
     from prompt_toolkit.shortcuts import ProgressBar
 
     _H = TypeVar('_H', bound=Hashable)
-    _AnySet = TypeVar('_AnySet', bound=AbstractSet)
+    _AnySet = TypeVar('_AnySet', bound=Set)
 
 
 _V = TypeVar('_V')
@@ -67,7 +55,7 @@ class TocReader:
         )
         self.entries = {k: v for k, v in possible_entries if k}
 
-    def __getitem__(self, key: Union[str, Tuple[str, ...]]) -> _TocEntry:
+    def __getitem__(self, key: Union[str, tuple[str, ...]]) -> _TocEntry:
         if isinstance(key, tuple):
             try:
                 return next(filter(None, (self[k] for k in key)))
@@ -104,29 +92,29 @@ class cached_property(Generic[_V]):
             return v
 
 
-def bucketise(iterable: Iterable[_V], key: Callable[[_V], _H]) -> DefaultDict[_H, List[_V]]:
+def bucketise(iterable: Iterable[_V], key: Callable[[_V], _H]) -> defaultdict[_H, list[_V]]:
     "Place the elements of an iterable in a bucket according to ``key``."
-    bucket: DefaultDict[Hashable, List[object]] = defaultdict(list)
+    bucket: defaultdict[_H, list[_V]] = defaultdict(list)
     for value in iterable:
         bucket[key(value)].append(value)
     return bucket
 
 
 def chain_dict(
-    keys: Iterable[_H], default: Any, *overrides: Iterable[Tuple[_H, _V]]
-) -> Dict[_H, _V]:
+    keys: Iterable[_H], default: Any, *overrides: Iterable[tuple[_H, _V]]
+) -> dict[_H, _V]:
     "Construct a dictionary from a series of iterables with overlapping keys."
     return dict(chain(zip(keys, repeat(default)), *overrides))
 
 
-def uniq(it: Iterable[_H]) -> List[_H]:
+def uniq(it: Iterable[_H]) -> list[_H]:
     "Deduplicate hashable items in an iterable maintaining insertion order."
     return list(dict.fromkeys(it))
 
 
 def merge_intersecting_sets(it: Iterable[_AnySet]) -> Iterable[_AnySet]:
     "Recursively merge intersecting sets in a collection."
-    many_sets: Deque[AbstractSet[object]] = deque(it)
+    many_sets: deque[Set[object]] = deque(it)
     while True:
         try:
             this_set = many_sets.popleft()
@@ -148,12 +136,12 @@ def merge_intersecting_sets(it: Iterable[_AnySet]) -> Iterable[_AnySet]:
 async def gather(
     it: Iterable[Awaitable[_V]],
     wrapper: Callable[..., Awaitable[_V]] = ...,
-) -> List[_V]:
+) -> list[_V]:
     ...
 
 
 @overload
-async def gather(it: Iterable[Awaitable[_V]], wrapper: None = ...) -> List[_V]:
+async def gather(it: Iterable[Awaitable[_V]], wrapper: None = ...) -> list[_V]:
     ...
 
 
@@ -166,18 +154,18 @@ async def gather(
 
 
 @overload
-def run_in_thread(fn: Type[List[object]]) -> Callable[[Iterable[_V]], Awaitable[List[_V]]]:
+def run_in_thread(
+    fn: type[list[object]],
+) -> Callable[[Iterable[_V]], Coroutine[object, object, list[_V]]]:
     ...
 
 
 @overload
-def run_in_thread(fn: Callable[..., _V]) -> Callable[..., Awaitable[_V]]:
+def run_in_thread(fn: Callable[..., _V]) -> Callable[..., Coroutine[object, object, _V]]:
     ...
 
 
-def run_in_thread(
-    fn: Union[Type[List[object]], Callable[..., _V]]
-) -> Union[Callable[[Iterable[_V]], Awaitable[List[_V]]], Callable[..., Awaitable[_V]]]:
+def run_in_thread(fn: Callable[..., object]):
     @wraps(fn)
     def wrapper(*args: object, **kwargs: object):
         loop = asyncio.get_running_loop()
@@ -352,7 +340,7 @@ def get_version() -> str:
         return __version__
 
 
-async def is_outdated() -> Tuple[bool, str]:
+async def is_outdated() -> tuple[bool, str]:
     """Check on PyPI to see if the installed copy of instawow is outdated.
 
     The response is cached for 24 hours.
@@ -362,7 +350,7 @@ async def is_outdated() -> Tuple[bool, str]:
     from .config import Config
     from .manager import init_web_client
 
-    def parse_version(version: str) -> Tuple[int, ...]:
+    def parse_version(version: str) -> tuple[int, ...]:
         version_numbers = version.split('.')[:3]
         int_only_version_numbers = (
             int(''.join(takewhile('0123456789'.__contains__, e))) for e in version_numbers
@@ -394,12 +382,12 @@ async def is_outdated() -> Tuple[bool, str]:
     return (parse_version(version) > parse_version(__version__), version)
 
 
-def find_zip_base_dirs(names: Sequence[str]) -> Set[str]:
+def find_zip_base_dirs(names: Sequence[str]) -> set[str]:
     "Find top-level folders in a list of ZIP member paths."
     return {n for n in (posixpath.dirname(n) for n in names) if n and posixpath.sep not in n}
 
 
-def make_zip_member_filter(base_dirs: Set[str]) -> Callable[[str], bool]:
+def make_zip_member_filter(base_dirs: set[str]) -> Callable[[str], bool]:
     """Filter out items which are not sub-paths of top-level folders for the
     purpose of extracting ZIP files.
     """

@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from functools import partial
-from typing import TYPE_CHECKING, Any, List, Sequence, Tuple, Type
+from typing import TYPE_CHECKING, Any
 
 from prompt_toolkit.application import Application
 from prompt_toolkit.key_binding import KeyBindings, KeyPressEvent
@@ -24,7 +25,7 @@ if TYPE_CHECKING:
 class PydanticValidator(Validator):
     "One-off validators for Pydantic model fields."
 
-    def __init__(self, model: Type[pydantic.BaseModel], field: str) -> None:
+    def __init__(self, model: type[pydantic.BaseModel], field: str) -> None:
         self.model = model
         self.field = field
 
@@ -61,7 +62,7 @@ text = partial(_text, style=qstyle)
 
 def checkbox(message: str, choices: Sequence[Choice], **prompt_kwargs: Any) -> Question:
     def get_prompt_tokens():
-        tokens: List[Tuple[str, str]] = [('class:question', message)]
+        tokens: list[tuple[str, str]] = [('class:question', message)]
         if ic.is_answered:
             tokens.append(('class:answer', '  done'))
         else:
@@ -142,7 +143,7 @@ def checkbox(message: str, choices: Sequence[Choice], **prompt_kwargs: Any) -> Q
 
 def select(message: str, choices: Sequence[Choice], **prompt_kwargs: Any) -> Question:
     def get_prompt_tokens():
-        tokens: List[Tuple[str, str]] = [('', '- '), ('class:question', message)]
+        tokens: list[tuple[str, str]] = [('', '- '), ('class:question', message)]
         if ic.is_answered:
             answer = ic.get_pointed_at()
             tokens.extend(

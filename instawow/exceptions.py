@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, ClassVar, Optional, Sequence, Set
+from collections.abc import Sequence
+from typing import TYPE_CHECKING, ClassVar, Optional as O
 
 if TYPE_CHECKING:
     from .models import Pkg
@@ -67,7 +68,7 @@ class PkgConflictsWithInstalled(ManagerError):
 
 
 class PkgConflictsWithUnreconciled(ManagerError):
-    def __init__(self, folders: Set[str]) -> None:
+    def __init__(self, folders: set[str]) -> None:
         super().__init__()
         self.folders = folders
 
@@ -84,7 +85,7 @@ class PkgNonexistent(ManagerError):
 class PkgFileUnavailable(ManagerError):
     message_template = 'package file is not available for download'
 
-    def __init__(self, custom_message: Optional[str] = None) -> None:
+    def __init__(self, custom_message: O[str] = None) -> None:
         super().__init__()
         self._custom_message = custom_message
 
