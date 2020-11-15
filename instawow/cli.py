@@ -402,7 +402,7 @@ def reconcile(ctx: click.Context, auto: bool, list_unreconciled: bool) -> None:
         def construct_choice(pkg: models.Pkg):
             defn = Defn.from_pkg(pkg)
             title = [
-                ('', f'=={defn}'),
+                ('', f'{defn}=='),
                 ('class:highlight-sub' if highlight_version else '', pkg.version),
             ]
             return PkgChoice(title, pkg=pkg, value=defn)
