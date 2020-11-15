@@ -3,6 +3,9 @@ from functools import partial
 import json
 
 from click.testing import CliRunner
+from prompt_toolkit.application import create_app_session
+from prompt_toolkit.input import create_pipe_input
+from prompt_toolkit.output import DummyOutput
 import pytest
 
 from instawow import cli, config, utils
@@ -16,6 +19,13 @@ class Flavour(enum.IntEnum):
 @pytest.fixture(autouse=True)
 def mock(mock_all):
     pass
+
+
+@pytest.fixture
+def feed_pt():
+    pipe_input = create_pipe_input()
+    with create_app_session(input=pipe_input, output=DummyOutput()):
+        yield pipe_input.send_text
 
 
 @pytest.fixture(params=list(Flavour.__members__))
@@ -63,6 +73,19 @@ def run(
 @pytest.fixture
 def molinari_and_run(run):
     run('install curse:molinari')
+    yield run
+
+
+@pytest.fixture
+def faux_molinari_and_run(cli_config, run):
+    molinari = cli_config.addon_dir / 'Molinari'
+    molinari.mkdir()
+    (molinari / 'Molinari.toc').write_text(
+        '''\
+## X-Curse-Project-ID: 20338
+## X-WoWI-ID: 13188
+'''
+    )
     yield run
 
 
@@ -574,6 +597,57 @@ def test_addon_is_removed_even_if_folders_missing(cli_config, molinari_and_run):
     cli_config.addon_dir.joinpath('Molinari').rename(cli_config.addon_dir.joinpath('NotMolinari'))
     assert {cli_config.addon_dir.joinpath('NotMolinari')} == set(cli_config.addon_dir.iterdir())
     assert molinari_and_run('remove curse:molinari').output == '✓ curse:molinari\n  removed\n'
+
+
+def test_list_unreconciled(faux_molinari_and_run):
+    assert faux_molinari_and_run('reconcile --list-unreconciled').output == (
+        # fmt: off
+        'unreconciled\n'
+        '------------\n'
+        'Molinari    \n'
+        # fmt: on
+    )
+
+
+def test_auto_reconcile(faux_molinari_and_run):
+    assert (
+        faux_molinari_and_run('reconcile --auto').output
+        == '✓ curse:molinari\n  installed 80300.66-Release\n'
+    )
+
+
+def test_cancel_interactive_reconciliation(feed_pt, faux_molinari_and_run):
+    feed_pt('\x03')  # ^C
+    assert faux_molinari_and_run('reconcile').output.endswith('Aborted!\n')
+
+
+def test_confirm_interactive_reconciliation(feed_pt, faux_molinari_and_run):
+    feed_pt('\r\r')
+    assert faux_molinari_and_run('reconcile').output.endswith(
+        '✓ curse:molinari\n  installed 80300.66-Release\n'
+    )
+
+
+def test_reconciliation_complete(run):
+    assert run('reconcile').output == 'No add-ons left to reconcile.\n'
+
+
+@pytest.mark.parametrize(
+    'args, output',
+    [
+        (
+            'search molinari --source curse',
+            '✓ curse:molinari\n  installed 80300.66-Release\n',
+        ),
+        (
+            'search molinari --source wowi',
+            '✗ wowi:13188-molinari\n  package folders conflict with installed package Molinari\n    (curse:20338)\n',
+        ),
+    ],
+)
+def test_install_directly_from_search_with_conflicting_folders(feed_pt, run, args, output):
+    feed_pt(' \r\r')
+    assert run(args).output == output
 
 
 @pytest.mark.parametrize(
