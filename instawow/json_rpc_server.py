@@ -44,7 +44,6 @@ if TYPE_CHECKING:
 
 
 LOCALHOST = '127.0.0.1'
-API_VERSION = 0
 
 
 class _ConfigError(ServerError):
@@ -455,7 +454,7 @@ async def create_app() -> tuple[web.Application, str]:
 
         return on_shutdown
 
-    endpoint = f'/v{API_VERSION}/{uuid4()}'
+    endpoint = f'/{uuid4()}'
     rpc_server = WsJsonRpcServer(
         json_serialize=serialise_response,
         middlewares=rpc_middlewares.DEFAULT_MIDDLEWARES,
