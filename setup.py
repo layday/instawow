@@ -21,7 +21,7 @@ setup(
         loguru            <1
         prompt-toolkit    >=3.0.3, <4
         pydantic          ~=1.7.0
-        questionary       ~=1.6
+        questionary       ~=1.8
         sqlalchemy        ~=1.3.19
         typing-extensions ~=3.7
         yarl              ~=1.4
@@ -31,10 +31,10 @@ setup(
         aiohttp-rpc      ==0.6.3
         ''',
         'test': '''
+        aresponses       ~=2.0
         coverage[toml]   ~=5.2
         pytest           >=6.0.1, <7
         pytest-asyncio   ~=0.14
-        aresponses       ~=2.0
         ''',
     },
     python_requires='~=3.7',

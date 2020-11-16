@@ -615,23 +615,21 @@ def _show_active_config(ctx: click.Context, _param: click.Parameter, value: bool
 @click.pass_context
 def configure(ctx: click.Context) -> Config:
     "Configure instawow."
-    from prompt_toolkit.completion import PathCompleter, WordCompleter
+    from .prompts import PydanticValidator, path, select
 
-    from .prompts import PydanticValidator, text
-
-    addon_dir = text(
-        'Add-on directory: ',
-        completer=PathCompleter(only_directories=True, expanduser=True),
+    addon_dir = path(
+        'Add-on directory:',
+        only_directories=True,
         validate=PydanticValidator(Config, 'addon_dir'),
     ).unsafe_ask()
-    game_flavour = text(
-        'Game flavour: ',
-        default='classic' if Config.is_classic_folder(addon_dir) else 'retail',
-        completer=WordCompleter(['retail', 'classic']),
-        validate=PydanticValidator(Config, 'game_flavour'),
+    game_flavour = select(
+        'Game flavour:',
+        choices=sorted(['classic', 'retail'], reverse=not Config.is_classic_folder(addon_dir)),
     ).unsafe_ask()
     config = Config(
-        profile=ctx.find_root().params['profile'], addon_dir=addon_dir, game_flavour=game_flavour
+        profile=ctx.find_root().params['profile'],
+        addon_dir=addon_dir,
+        game_flavour=game_flavour,
     ).write()
     click.echo(f'Configuration written to: {config.config_file}')
     return config

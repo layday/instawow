@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from functools import partial
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Union
 
 from prompt_toolkit.application import Application
 from prompt_toolkit.key_binding import KeyBindings, KeyPressEvent
@@ -12,7 +12,7 @@ from prompt_toolkit.keys import Keys
 from prompt_toolkit.styles import Style
 from prompt_toolkit.validation import ValidationError, Validator
 import pydantic
-from questionary import Choice, confirm as _confirm, text as _text
+from questionary import Choice, confirm as _confirm, path as _path
 from questionary.prompts.common import InquirerControl, Separator, create_inquirer_layout
 from questionary.question import Question
 
@@ -56,11 +56,11 @@ qstyle = Style(
 
 skip = Choice([('', 'skip')], ())
 
-confirm = partial(_confirm, style=qstyle)
-text = partial(_text, style=qstyle)
+confirm = partial(_confirm, qmark='?', style=qstyle)
+path = partial(_path, qmark='>', style=qstyle)
 
 
-def checkbox(message: str, choices: Sequence[Choice], **prompt_kwargs: Any) -> Question:
+def checkbox(message: str, choices: Sequence[Choice], **inquirer_kwargs: Any) -> Question:
     def get_prompt_tokens():
         tokens: list[tuple[str, str]] = [('class:question', message)]
         if ic.is_answered:
@@ -74,9 +74,7 @@ def checkbox(message: str, choices: Sequence[Choice], **prompt_kwargs: Any) -> Q
             )
         return tokens
 
-    ic: Any = InquirerControl(
-        list(choices), None, use_indicator=False, use_shortcuts=False, use_pointer=True
-    )
+    ic = InquirerControl(choices, None, use_indicator=False, use_shortcuts=False, use_pointer=True)
     bindings = KeyBindings()
 
     @bindings.add(Keys.ControlQ, eager=True)
@@ -135,31 +133,33 @@ def checkbox(message: str, choices: Sequence[Choice], **prompt_kwargs: Any) -> Q
         # Disallow inserting other text
         pass
 
-    layout = create_inquirer_layout(ic, get_prompt_tokens, **prompt_kwargs)
-    return Question(
-        Application(layout=layout, key_bindings=bindings, style=qstyle, **prompt_kwargs)
-    )
+    layout = create_inquirer_layout(ic, get_prompt_tokens, **inquirer_kwargs)
+    return Question(Application(layout=layout, key_bindings=bindings, style=qstyle))
 
 
-def select(message: str, choices: Sequence[Choice], **prompt_kwargs: Any) -> Question:
+def select(
+    message: str,
+    choices: Union[Sequence[str], Sequence[Choice]],
+    **inquirer_kwargs: Any,
+) -> Question:
     def get_prompt_tokens():
-        tokens: list[tuple[str, str]] = [('', '- '), ('class:question', message)]
+        tokens: list[tuple[str, str]] = [('class:qmark', '- '), ('class:question', message)]
         if ic.is_answered:
             answer = ic.get_pointed_at()
+            title = answer.title
+            assert title
             tokens.extend(
                 [
                     ('', ' '),
                     (
                         'class:skipped-answer' if answer is skip else 'class:answer',
-                        ''.join(t[1] for t in answer.title),
+                        ''.join(t[1] for t in title) if isinstance(title, list) else title,
                     ),
                 ]
             )
         return tokens
 
-    ic: Any = InquirerControl(
-        list(choices), None, use_indicator=False, use_shortcuts=False, use_pointer=True
-    )
+    ic = InquirerControl(choices, None, use_indicator=False, use_shortcuts=False, use_pointer=True)
     bindings = KeyBindings()
 
     @bindings.add(Keys.ControlQ, eager=True)
@@ -206,7 +206,5 @@ def select(message: str, choices: Sequence[Choice], **prompt_kwargs: Any) -> Que
         # Disallow inserting other text
         pass
 
-    layout = create_inquirer_layout(ic, get_prompt_tokens, **prompt_kwargs)
-    return Question(
-        Application(layout=layout, key_bindings=bindings, style=qstyle, **prompt_kwargs)
-    )
+    layout = create_inquirer_layout(ic, get_prompt_tokens, **inquirer_kwargs)
+    return Question(Application(layout=layout, key_bindings=bindings, style=qstyle))
