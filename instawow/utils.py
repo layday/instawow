@@ -112,7 +112,7 @@ def uniq(it: Iterable[_H]) -> list[_H]:
     return list(dict.fromkeys(it))
 
 
-def merge_intersecting_sets(it: Iterable[_AnySet]) -> Iterable[_AnySet]:
+def merge_intersecting_sets(it: Iterable[_AnySet]) -> Iterator[_AnySet]:
     "Recursively merge intersecting sets in a collection."
     many_sets: deque[Set[object]] = deque(it)
     while True:

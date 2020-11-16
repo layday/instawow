@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Callable, Generator, Iterable, Sequence, Set
+from collections.abc import Callable, Generator, Iterable, Iterator, Sequence, Set
 from datetime import datetime
 from enum import Enum
 from functools import partial
@@ -17,7 +17,7 @@ from .resolvers import Defn, MultiPkgModel, Strategy
 from .utils import TocReader, cached_property, get_version, is_outdated, tabulate, uniq
 
 if TYPE_CHECKING:
-    from .manager import CliManager
+    from .manager import CliManager, Manager
 
 
 class Report:
@@ -102,6 +102,19 @@ class ManagerWrapper:
         return manager
 
 
+def _with_manager(
+    fn: Callable[..., object]
+) -> Callable[[click.Context, click.Parameter, object], object]:
+    def wrapper(
+        ctx: click.Context,
+        click_param: click.Parameter,
+        value: object,
+    ):
+        return fn(ctx.obj.m, value)
+
+    return wrapper
+
+
 class PathParam(click.Path):
     def coerce_path_result(self, value: str) -> Path:  # type: ignore
         return Path(value)
@@ -123,12 +136,6 @@ class EnumParam(click.Choice):
     def convert(self, value: str, param: O[click.Parameter], ctx: O[click.Context]) -> Enum:
         parent_result = super().convert(value, param, ctx)
         return self.choice_enum[parent_result]
-
-
-def _callbackify(
-    fn: Callable[..., object]
-) -> Callable[[click.Context, click.Parameter, object], object]:
-    return lambda c, _, v: fn(c.obj.m, v)
 
 
 @click.group(context_settings={'help_option_names': ('-h', '--help')})
@@ -154,19 +161,19 @@ def main(ctx: click.Context, log_level: str, profile: str):
 
 
 @overload
-def parse_into_defn(manager: CliManager, value: str, *, raise_invalid: bool = True) -> Defn:
+def parse_into_defn(manager: Manager, value: str, *, raise_invalid: bool = True) -> Defn:
     ...
 
 
 @overload
 def parse_into_defn(
-    manager: CliManager, value: list[str], *, raise_invalid: bool = True
+    manager: Manager, value: list[str], *, raise_invalid: bool = True
 ) -> list[Defn]:
     ...
 
 
 def parse_into_defn(
-    manager: CliManager, value: Union[str, list[str]], *, raise_invalid: bool = True
+    manager: Manager, value: Union[str, list[str]], *, raise_invalid: bool = True
 ) -> Union[Defn, list[Defn]]:
     if not isinstance(value, str):
         defns = (parse_into_defn(manager, v, raise_invalid=raise_invalid) for v in value)
@@ -182,26 +189,26 @@ def parse_into_defn(
 
 
 def parse_into_defn_with_strategy(
-    manager: CliManager, value: Sequence[tuple[Strategy, str]]
-) -> Iterable[Defn]:
+    manager: Manager, value: Sequence[tuple[Strategy, str]]
+) -> Iterator[Defn]:
     defns = parse_into_defn(manager, [d for _, d in value])
     return map(Defn.with_strategy, defns, (s for s, _ in value))
 
 
 def parse_into_defn_with_version(
-    manager: CliManager, value: Sequence[tuple[str, str]]
-) -> Iterable[Defn]:
+    manager: Manager, value: Sequence[tuple[str, str]]
+) -> Iterator[Defn]:
     defns = parse_into_defn(manager, [d for _, d in value])
     return map(Defn.with_version, defns, (v for v, _ in value))
 
 
-def parse_into_defn_from_json_file(manager: CliManager, path: Path) -> Iterable[Defn]:
+def parse_into_defn_from_json_file(manager: Manager, path: Path) -> Iterator[Defn]:
     faux_pkgs = MultiPkgModel.parse_file(path, encoding='utf-8')
     return map(Defn.from_pkg, faux_pkgs.__root__)
 
 
 def combine_addons(
-    fn: Callable[[CliManager, object], Iterable[Defn]],
+    fn: Callable[[Manager, object], Iterable[Defn]],
     ctx: click.Context,
     click_param: click.Parameter,
     value: object,
@@ -211,7 +218,7 @@ def combine_addons(
         addons.extend(fn(ctx.obj.m, value))
 
 
-excluded_strategies = {Strategy.default, Strategy.version}
+_EXCLUDED_STRATEGIES = {Strategy.default, Strategy.version}
 
 
 @main.command()
@@ -230,13 +237,13 @@ excluded_strategies = {Strategy.default, Strategy.version}
     '--with-strategy',
     '-s',
     multiple=True,
-    type=(EnumParam(Strategy, excluded_strategies), str),
+    type=(EnumParam(Strategy, _EXCLUDED_STRATEGIES), str),
     expose_value=False,
     callback=partial(combine_addons, parse_into_defn_with_strategy),
     metavar='<STRATEGY ADDON>...',
     help='A strategy followed by an add-on definition.  '
     'The strategies are: '
-    f'{", ".join(s.name for s in Strategy if s not in excluded_strategies)}.',
+    f'{", ".join(s.name for s in Strategy if s not in _EXCLUDED_STRATEGIES)}.',
 )
 @click.option(
     '--version',
@@ -262,7 +269,7 @@ def install(obj: ManagerWrapper, addons: Sequence[Defn], replace: bool) -> None:
 
 
 @main.command()
-@click.argument('addons', nargs=-1, callback=_callbackify(parse_into_defn))
+@click.argument('addons', nargs=-1, callback=_with_manager(parse_into_defn))
 @click.pass_obj
 def update(obj: ManagerWrapper, addons: Sequence[Defn]) -> None:
     "Update installed add-ons."
@@ -285,7 +292,7 @@ def update(obj: ManagerWrapper, addons: Sequence[Defn]) -> None:
 
 
 @main.command()
-@click.argument('addons', nargs=-1, required=True, callback=_callbackify(parse_into_defn))
+@click.argument('addons', nargs=-1, required=True, callback=_with_manager(parse_into_defn))
 @click.option(
     '--keep-folders',
     is_flag=True,
@@ -300,7 +307,7 @@ def remove(obj: ManagerWrapper, addons: Sequence[Defn], keep_folders: bool) -> N
 
 
 @main.command()
-@click.argument('addon', callback=_callbackify(parse_into_defn))
+@click.argument('addon', callback=_with_manager(parse_into_defn))
 @click.option(
     '--undo',
     is_flag=True,
@@ -501,7 +508,7 @@ class ListFormats(Enum):
 
 @main.command('list')
 @click.argument(
-    'addons', nargs=-1, callback=_callbackify(partial(parse_into_defn, raise_invalid=False))
+    'addons', nargs=-1, callback=_with_manager(partial(parse_into_defn, raise_invalid=False))
 )
 @click.option(
     '--format',
@@ -576,7 +583,7 @@ def list_installed(
 
 
 @main.command(hidden=True)
-@click.argument('addon', callback=_callbackify(partial(parse_into_defn, raise_invalid=False)))
+@click.argument('addon', callback=_with_manager(partial(parse_into_defn, raise_invalid=False)))
 @click.pass_context
 def info(ctx: click.Context, addon: Defn) -> None:
     "Alias of `list -f detailed`."
@@ -584,7 +591,7 @@ def info(ctx: click.Context, addon: Defn) -> None:
 
 
 @main.command()
-@click.argument('addon', callback=_callbackify(partial(parse_into_defn, raise_invalid=False)))
+@click.argument('addon', callback=_with_manager(partial(parse_into_defn, raise_invalid=False)))
 @click.pass_obj
 def reveal(obj: ManagerWrapper, addon: Defn) -> None:
     "Bring an add-on up in your file manager."
@@ -654,8 +661,6 @@ def build_weakauras_companion(obj: ManagerWrapper) -> None:
 @click.pass_obj
 def list_installed_wago_auras(obj: ManagerWrapper) -> None:
     "List WeakAuras installed from Wago."
-    from textwrap import fill
-
     from .wa_updater import BuilderConfig, WaCompanionBuilder
 
     config = BuilderConfig()
