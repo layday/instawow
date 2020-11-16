@@ -28,7 +28,7 @@ from pydantic import BaseModel, ValidationError, validator
 from typing_extensions import Literal
 from yarl import URL
 
-from . import exceptions as E
+from . import results as E
 from .config import Config
 from .manager import Manager, init_web_client
 from .matchers import get_folder_set, match_dir_names, match_toc_ids, match_toc_names

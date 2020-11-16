@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING, Optional as O, Union, overload
 
 import click
 
-from . import exceptions as E, models
+from . import models, results as E
 from .config import Config, setup_logging
 from .resolvers import Defn, MultiPkgModel, Strategy
 from .utils import TocReader, cached_property, get_version, is_outdated, tabulate, uniq

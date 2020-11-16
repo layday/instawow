@@ -12,7 +12,7 @@ from pydantic.datetime_parse import parse_datetime
 from typing_extensions import Literal, TypedDict
 from yarl import URL
 
-from . import exceptions as E, models as m
+from . import models as m, results as E
 from .utils import bucketise, cached_property, gather, run_in_thread as t, uniq
 
 if TYPE_CHECKING:

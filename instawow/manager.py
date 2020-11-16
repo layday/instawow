@@ -15,7 +15,7 @@ from typing import TYPE_CHECKING, Any, NoReturn, Optional as O, TypeVar, Union
 
 from loguru import logger
 
-from . import DB_REVISION, exceptions as E
+from . import DB_REVISION, results as E
 from .models import Pkg, PkgFolder, PkgVersionLog, is_pkg
 from .resolvers import (
     Catalogue,
@@ -56,7 +56,7 @@ if TYPE_CHECKING:
 
     _T = TypeVar('_T')
     _FT = TypeVar('_FT', bound=Callable[..., Any])
-    _ManagerT = TypeVar('_ManagerT', bound='Manager')
+    _TManager = TypeVar('_TManager', bound='Manager')
 
     _BaseResolverDict = Union['dict[str, Resolver]']
 else:
@@ -308,7 +308,7 @@ class Manager:
         self._catalogue = catalogue
 
     @classmethod
-    def from_config(cls: type[_ManagerT], config: Config) -> _ManagerT:
+    def from_config(cls: type[_TManager], config: Config) -> _TManager:
         session_factory = prepare_database(config)
         return cls(config, session_factory())
 

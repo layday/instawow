@@ -1,6 +1,6 @@
 import pytest
 
-from instawow import exceptions as E
+from instawow import results as E
 from instawow.models import Pkg
 from instawow.resolvers import Defn, Strategy
 
