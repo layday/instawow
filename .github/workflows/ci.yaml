@@ -22,7 +22,7 @@ jobs:
         python -m pip install nox
     - name: Run pytest
       run: |
-        python -m nox -s test -p ${{ matrix.python-version }}
+        python -m nox -s test -p ${{ matrix.python-version }} --error-on-missing-interpreters
     - name: Run pyright
       run: |
         python -m nox -s type_check -p ${{ matrix.python-version }}

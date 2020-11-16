@@ -69,9 +69,26 @@ async def test_deleting_and_retaining_folders_on_remove(manager, keep_folders):
     folders = [manager.config.addon_dir / f.name for f in manager.get_pkg(defn).folders]
     assert all(f.is_dir() for f in folders)
 
-    await manager.remove([defn], keep_folders=keep_folders)
+    result = await manager.remove([defn], keep_folders=keep_folders)
+    assert isinstance(result[defn], E.PkgRemoved)
     assert not manager.get_pkg(defn)
     if keep_folders:
         assert all(f.is_dir() for f in folders)
     else:
         assert not any(f.is_dir() for f in folders)
+
+
+@pytest.mark.parametrize('keep_folders', [True, False])
+@pytest.mark.asyncio
+async def test_removing_pkg_with_missing_folders(manager, keep_folders):
+    defn = Defn('curse', 'molinari')
+
+    await manager.install([defn], False)
+    folders = [manager.config.addon_dir / f.name for f in manager.get_pkg(defn).folders]
+    for folder in folders:
+        folder.rename(folder.with_name(f'Not_{folder.name}'))
+    assert not any(f.is_dir() for f in folders)
+
+    result = await manager.remove([defn], keep_folders=keep_folders)
+    assert isinstance(result[defn], E.PkgRemoved)
+    assert not manager.get_pkg(defn)

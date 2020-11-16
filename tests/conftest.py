@@ -65,8 +65,13 @@ def full_config(tmp_path, partial_config):
 
 
 @pytest.fixture
-def manager(full_config):
-    yield Manager.from_config(Config(**full_config).write())
+def config(full_config):
+    yield Config(**full_config).write()
+
+
+@pytest.fixture
+def manager(config):
+    yield Manager.from_config(config)
 
 
 @pytest.fixture
