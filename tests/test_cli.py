@@ -266,6 +266,7 @@ def test_version_strategy_lifecycle(config, run):
         run('install --version 80000.57-Release curse:molinari').output
         == '✓ curse:molinari\n  installed 80000.57-Release\n'
     )
+    assert run('update').output == '✗ curse:molinari\n  package is pinned\n'
     assert run('update curse:molinari').output == '✗ curse:molinari\n  package is pinned\n'
     assert run('remove curse:molinari').output == '✓ curse:molinari\n  removed\n'
 
@@ -337,6 +338,51 @@ def test_configure__create_new_profile(feed_pt, config, run):
     )
 
 
+@pytest.mark.parametrize('options', ['', '--undo'])
+def test_rollback__pkg_not_installed(run, options):
+    assert (
+        run(f'rollback {options} curse:molinari').output
+        == '✗ curse:molinari\n  package is not installed\n'
+    )
+
+
+@pytest.mark.parametrize('options', ['', '--undo'])
+def test_rollback__unsupported(run, options):
+    assert run('install wowi:13188-molinari').exit_code == 0
+    assert (
+        run(f'rollback {options} wowi:13188-molinari').output
+        == '✗ wowi:13188-molinari\n  source does not support rollback\n'
+    )
+
+
+def test_rollback__single_version(run):
+    assert run('install curse:molinari').exit_code == 0
+    assert (
+        run(f'rollback curse:molinari').output
+        == '✗ curse:molinari\n  cannot find older versions\n'
+    )
+
+
+def test_rollback__multiple_versions(feed_pt, run):
+    assert run('install --version 80000.57-Release curse:molinari').exit_code == 0
+    assert run('remove curse:molinari').exit_code == 0
+    assert run('install curse:molinari').exit_code == 0
+    feed_pt('\r\r')
+    assert (
+        run('rollback curse:molinari').output
+        == '✓ curse:molinari\n  updated 80300.66-Release to 80000.57-Release\n'
+    )
+
+
+@pytest.mark.parametrize('options', ['', '--undo'])
+def test_rollback__rollback_multiple_versions(feed_pt, run, options):
+    test_rollback__multiple_versions(feed_pt, run)
+    assert (
+        run(f'rollback {options} curse:molinari').output
+        == '✓ curse:molinari\n  updated 80000.57-Release to 80300.66-Release\n'
+    )
+
+
 def test_reconcile__list_unreconciled(faux_molinari_and_run):
     assert faux_molinari_and_run('reconcile --list-unreconciled').output == (
         # fmt: off
@@ -368,6 +414,10 @@ def test_reconcile__complete_interactive_reconciliation(feed_pt, faux_molinari_a
 
 def test_reconcile__reconciliation_complete(run):
     assert run('reconcile').output == 'No add-ons left to reconcile.\n'
+
+
+def test_search__no_results(feed_pt, run):
+    assert run('search ∅').output == 'No results found.\n'
 
 
 def test_search__exit_without_selecting(feed_pt, run):

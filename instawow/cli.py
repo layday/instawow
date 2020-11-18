@@ -325,7 +325,7 @@ def rollback(ctx: click.Context, addon: Defn, undo: bool) -> None:
     pkg = manager.get_pkg(addon)
     if not pkg:
         Report([(addon, E.PkgNotInstalled())]).generate_and_exit()
-        return  # noop
+        return  # pragma: no cover
 
     if not manager.resolvers[pkg.source].supports_rollback:
         Report(
