@@ -23,7 +23,7 @@ setup(
         pydantic          ~=1.7.0
         questionary       ~=1.8
         sqlalchemy        ~=1.3.19
-        typing-extensions ~=3.7
+        typing-extensions >=3.7.4.3, <4
         yarl              ~=1.4
     ''',
     extras_require={

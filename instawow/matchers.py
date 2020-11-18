@@ -4,7 +4,9 @@ from collections.abc import Iterable
 from contextlib import suppress
 from functools import total_ordering
 import re
-from typing import TYPE_CHECKING, Union, cast
+from typing import TYPE_CHECKING, cast
+
+from typing_extensions import TypeAlias
 
 from .models import PkgFolder
 from .resolvers import CurseResolver, Defn, InstawowResolver, TukuiResolver, WowiResolver
@@ -13,7 +15,7 @@ from .utils import TocReader, bucketise, cached_property, merge_intersecting_set
 if TYPE_CHECKING:
     from .manager import Manager
 
-    MatchGroups = Union['list[tuple[list[AddonFolder], list[Defn]]]']
+    MatchGroups: TypeAlias = 'list[tuple[list[AddonFolder], list[Defn]]]'
 
 
 _ids_to_sources = {

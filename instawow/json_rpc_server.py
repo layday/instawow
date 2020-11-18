@@ -25,7 +25,7 @@ from aiohttp import web
 from aiohttp_rpc import JsonRpcMethod, WsJsonRpcServer, middlewares as rpc_middlewares
 from aiohttp_rpc.errors import InvalidParams as InvalidParamsError, ServerError
 from pydantic import BaseModel, ValidationError, validator
-from typing_extensions import Literal
+from typing_extensions import Literal, TypeAlias
 from yarl import URL
 
 from . import results as E
@@ -38,9 +38,9 @@ from .utils import get_version, is_outdated, run_in_thread as t, uniq
 
 if TYPE_CHECKING:
     _T = TypeVar('_T')
-    ManagerWorkQueueItem = Union[
+    ManagerWorkQueueItem: TypeAlias = (
         'tuple[asyncio.Future[Any], str, O[Callable[..., Awaitable[Any]]]]'
-    ]
+    )
 
 
 LOCALHOST = '127.0.0.1'
@@ -89,8 +89,8 @@ class WriteConfigParams(BaseParams):
                 )
             config.write()
 
-        # Dispose of the ``Manager`` corresponding to the profile so that it is
-        # re-loaded on next invocation of ``ManagerWorkQueue.run``
+        # Dispose of the ``Manager`` for this profile so that it's reloaded
+        # on next invocation of ``ManagerWorkQueue.run``
         managers.unload(config.profile)
         return config
 

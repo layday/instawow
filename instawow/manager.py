@@ -5,15 +5,15 @@ from collections import defaultdict
 from collections.abc import AsyncIterator, Awaitable, Callable, Iterable, Iterator, Sequence, Set
 from contextlib import asynccontextmanager, contextmanager
 import contextvars as cv
-from functools import partial
 from itertools import chain, compress, filterfalse, repeat, starmap
 import json
 from pathlib import Path, PurePath
 from shutil import copy
 from tempfile import NamedTemporaryFile
-from typing import TYPE_CHECKING, Any, NoReturn, Optional as O, TypeVar, Union
+from typing import TYPE_CHECKING, Any, Optional as O, TypeVar, Union
 
 from loguru import logger
+from typing_extensions import TypeAlias
 
 from . import DB_REVISION, results as E
 from .models import Pkg, PkgFolder, PkgVersionLog, is_pkg
@@ -58,7 +58,7 @@ if TYPE_CHECKING:
     _FT = TypeVar('_FT', bound=Callable[..., Any])
     _TManager = TypeVar('_TManager', bound='Manager')
 
-    _BaseResolverDict = Union['dict[str, Resolver]']
+    _BaseResolverDict: TypeAlias = 'dict[str, Resolver]'
 else:
     _BaseResolverDict = dict
 
@@ -118,8 +118,9 @@ async def download_archive(manager: Manager, pkg: Pkg, *, chunk_size: int = 4096
     elif url.startswith('file://'):
         await copy_async(file_uri_to_path(url), dest)
     else:
-        kwargs = {'raise_for_status': True, 'trace_request_ctx': {'report_progress': True}}
-        async with manager.web_client.get(url, **kwargs) as response, _open_temp_writer() as (
+        async with manager.web_client.get(
+            url, raise_for_status=True, trace_request_ctx={'report_progress': True}
+        ) as response, _open_temp_writer() as (
             temp_path,
             write,
         ):
@@ -144,11 +145,10 @@ async def cache_response(
         logger.debug(f'{url} is cached at {dest}')
         text = await t(dest.read_text)(encoding='utf-8')
     else:
-        method = request_kwargs.pop('method', 'GET')
-        kwargs: dict[str, Any] = {'raise_for_status': True, **request_kwargs}
+        kwargs = {'url': url, 'raise_for_status': True, 'method': 'GET', **request_kwargs}
         if label:
             kwargs = {**kwargs, 'trace_request_ctx': {'report_progress': True, 'label': label}}
-        async with manager.web_client.request(method, url, **kwargs) as response:
+        async with manager.web_client.request(**kwargs) as response:
             text = await response.text()
 
         await t(dest.write_text)(text, encoding='utf-8')
@@ -246,13 +246,6 @@ class _DummyResolver(Resolver):
 class _ResolverDict(_BaseResolverDict):
     def __missing__(self, key: str) -> Resolver:
         return _DummyResolver
-
-
-def _error_out(error: BaseException) -> Callable[[], Awaitable[NoReturn]]:
-    async def inner() -> NoReturn:
-        raise error
-
-    return inner
 
 
 async def capture_manager_exc_async(
@@ -355,13 +348,10 @@ class Manager:
             if alias:
                 yield (source, alias)
 
-        url_pairs = filter(
+        url_pairs: Iterator[tuple[str, Any]] = filter(
             all, ((r.source, r.get_alias_from_url(value)) for r in self.resolvers.values())
         )
-        return next(
-            chain(url_pairs, from_urn()),  # type: ignore
-            None,
-        )
+        return next(chain(url_pairs, from_urn()), None)
 
     def get_pkg(self, defn: Defn, partial_match: bool = False) -> O[Pkg]:
         "Retrieve an installed package from a definition."
@@ -576,7 +566,9 @@ class Manager:
         return pkgs_by_defn
 
     @_with_lock('change state')
-    async def install(self, defns: Sequence[Defn], replace: bool) -> dict[Defn, E.ManagerResult]:
+    async def install(
+        self, defns: Sequence[Defn], replace: bool
+    ) -> dict[Defn, Union[E.PkgInstalled, E.ManagerError, E.InternalError]]:
         "Install packages from a definition list."
         # We'll weed out installed dependencies from results after resolving.
         # Doing it this way isn't particularly efficient but avoids having to
@@ -592,29 +584,23 @@ class Manager:
             (d, r): download_archive(self, r) for d, r in resolve_results.items() if is_pkg(r)
         }
         archives = await gather(installables.values(), capture_manager_exc_async)
-        result_coros = chain_dict(
+        results = chain_dict(
             defns,
-            _error_out(E.PkgAlreadyInstalled()),
-            ((d, _error_out(r)) for d, r in resolve_results.items()),
-            (
-                (
-                    d,
-                    partial(t(self.install_pkg), p, a, replace)
-                    if isinstance(a, PurePath)
-                    else _error_out(a),
-                )
+            E.PkgAlreadyInstalled(),
+            resolve_results.items(),
+            ((d, a) for (d, _), a in zip(installables, archives)),
+            [
+                (d, await capture_manager_exc_async(t(self.install_pkg)(p, a, replace)))
                 for (d, p), a in zip(installables, archives)
-            ),
+                if isinstance(a, PurePath)
+            ],
         )
-        results: dict[Defn, Any] = {
-            d: await capture_manager_exc_async(c()) for d, c in result_coros.items()
-        }
         return results
 
     @_with_lock('change state')
     async def update(
         self, defns: Sequence[Defn], retain_strategy: bool
-    ) -> dict[Defn, E.ManagerResult]:
+    ) -> dict[Defn, Union[E.PkgUpdated, E.ManagerError, E.InternalError]]:
         """Update installed packages from a definition list.
 
         A ``retain_strategy`` value of false will instruct ``update``
@@ -634,50 +620,38 @@ class Manager:
         updatables = {
             (d, o, n): download_archive(self, n)
             for (d, n), o in zip(installables.items(), (defns_to_pkgs[d] for d in installables))
-            if n.version != o.version  # type: ignore
+            if o and n.version != o.version
         }
         archives = await gather(updatables.values(), capture_manager_exc_async)
-        result_coros = chain_dict(
+        results = chain_dict(
             defns_to_pkgs,
-            _error_out(E.PkgNotInstalled()),
-            ((d, _error_out(r)) for d, r in resolve_results.items()),
-            (
-                (d, _error_out(E.PkgUpToDate(is_pinned=d.strategy is Strategy.version)))
-                for d in installables
-            ),
-            (
-                (
-                    d,
-                    partial(t(self.update_pkg), *p, a)
-                    if isinstance(a, PurePath)
-                    else _error_out(a),
-                )
+            E.PkgNotInstalled(),
+            resolve_results.items(),
+            ((d, E.PkgUpToDate(is_pinned=d.strategy is Strategy.version)) for d in installables),
+            ((d, a) for (d, *_), a in zip(updatables, archives)),
+            [
+                (d, await capture_manager_exc_async(t(self.update_pkg)(*p, a)))
                 for (d, *p), a in zip(updatables, archives)
-            ),
+                if isinstance(a, PurePath)
+            ],
         )
-        results: dict[Defn, Any] = {
-            d: await capture_manager_exc_async(c()) for d, c in result_coros.items()
-        }
         return results
 
     @_with_lock('change state')
     async def remove(
         self, defns: Sequence[Defn], keep_folders: bool
-    ) -> dict[Defn, E.ManagerResult]:
+    ) -> dict[Defn, Union[E.PkgRemoved, E.ManagerError, E.InternalError]]:
         "Remove packages by their definition."
         maybe_pkgs = (self.get_pkg(d) for d in defns)
-        result_coros = chain_dict(
+        results = chain_dict(
             defns,
-            _error_out(E.PkgNotInstalled()),
-            (
-                (d, partial(t(self.remove_pkg), p, keep_folders))
+            E.PkgNotInstalled(),
+            [
+                (d, await capture_manager_exc_async(t(self.remove_pkg)(p, keep_folders)))
                 for d, p in zip(defns, maybe_pkgs)
                 if p
-            ),
+            ],
         )
-        results: dict[Defn, Any] = {
-            d: await capture_manager_exc_async(c()) for d, c in result_coros.items()
-        }
         return results
 
     @_with_lock('change state')

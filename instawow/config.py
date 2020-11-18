@@ -5,7 +5,6 @@ import os
 from pathlib import Path, PurePath
 from shutil import copytree, ignore_patterns
 from tempfile import gettempdir
-from typing import Union
 
 import click
 from loguru import logger
@@ -195,7 +194,7 @@ class GlobalConfig(BaseConfig):
 Config = GlobalConfig
 
 
-def setup_logging(config: GlobalConfig, log_level: Union[int, str] = 'INFO') -> int:
+def setup_logging(config: GlobalConfig, log_level: str = 'INFO') -> int:
     import logging
 
     class InterceptHandler(logging.Handler):

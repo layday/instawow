@@ -30,8 +30,8 @@ if TYPE_CHECKING:
     _H = TypeVar('_H', bound=Hashable)
     _AnySet = TypeVar('_AnySet', bound=Set)
 
-
-_V = TypeVar('_V')
+    _V = TypeVar('_V')
+_T = TypeVar('_T')
 
 
 class _TocEntry(NamedTuple):
@@ -72,19 +72,19 @@ class TocReader:
         return cls.from_path(path / f'{path.name}.toc')
 
 
-class cached_property(Generic[_V]):
-    def __init__(self, f: Callable[[Any], _V]) -> None:
+class cached_property(Generic[_T]):
+    def __init__(self, f: Callable[[Any], _T]) -> None:
         self.f = f
 
     @overload
-    def __get__(self, o: None, t: O[type] = None) -> cached_property[_V]:
+    def __get__(self, o: None, t: O[type] = None) -> cached_property[_T]:
         ...
 
     @overload
-    def __get__(self, o: Any, t: O[type] = None) -> _V:
+    def __get__(self, o: Any, t: O[type] = None) -> _T:
         ...
 
-    def __get__(self, o: Any, t: O[type] = None) -> Union[cached_property[_V], _V]:
+    def __get__(self, o: Any, t: O[type] = None) -> Union[cached_property[_T], _T]:
         if o is None:
             return self
         else:
@@ -135,8 +135,8 @@ def merge_intersecting_sets(it: Iterable[_AnySet]) -> Iterator[_AnySet]:
 @overload
 async def gather(
     it: Iterable[Awaitable[_V]],
-    wrapper: Callable[..., Awaitable[_V]] = ...,
-) -> list[_V]:
+    wrapper: Callable[[Awaitable[_V]], Awaitable[_T]] = ...,
+) -> list[_T]:
     ...
 
 
@@ -156,12 +156,12 @@ async def gather(
 @overload
 def run_in_thread(
     fn: type[list[object]],
-) -> Callable[[Iterable[_V]], Coroutine[object, object, list[_V]]]:
+) -> Callable[[Iterable[_V]], Coroutine[Any, Any, list[_V]]]:
     ...
 
 
 @overload
-def run_in_thread(fn: Callable[..., _V]) -> Callable[..., Coroutine[object, object, _V]]:
+def run_in_thread(fn: Callable[..., _V]) -> Callable[..., Coroutine[Any, Any, _V]]:
     ...
 
 
