@@ -41,17 +41,10 @@ jobs:
         mv dist/*.tar.gz instawow.tar.gz
         python -m nox -s clobber_build_artefacts
     - name: Install Rust toolchain
-      id: install-rust
       uses: actions-rs/toolchain@v1
       with:
         profile: minimal
         toolchain: nightly
-    # - name: Restore PyOxidizer from build cache
-    #   uses: actions/cache@v2
-    #   with:
-    #     path: ~/.cargo
-    #     key: >-
-    #       cargo-cache-${{ runner.os }}-${{ steps.install-rust.outputs.rustc_hash }}-${{ env.PYOX_VERSION }}_2
     - name: Install PyOxidizer
       run: |
         cargo install --version $PYOX_VERSION pyoxidizer
