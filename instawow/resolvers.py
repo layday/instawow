@@ -71,7 +71,7 @@ class Defn(_HashableModel):
     def with_version(self, version: str) -> Defn:
         return self.with_(strategy=Strategy.version, version=version)
 
-    def __str__(self) -> str:
+    def to_uri(self) -> str:
         return f'{self.source}:{self.alias}'
 
 

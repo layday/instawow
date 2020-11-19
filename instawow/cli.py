@@ -51,7 +51,7 @@ class Report:
 
     def __str__(self) -> str:
         return '\n'.join(
-            f'{self._result_type_to_symbol(r)} {click.style(str(a), bold=True)}\n'
+            f'{self._result_type_to_symbol(r)} {click.style(a.to_uri(), bold=True)}\n'
             + fill(r.message, initial_indent=' ' * 2, subsequent_indent=' ' * 4)
             for a, r in self.results
             if self.filter_fn(r)
@@ -409,7 +409,7 @@ def reconcile(ctx: click.Context, auto: bool, list_unreconciled: bool) -> None:
         def construct_choice(pkg: models.Pkg):
             defn = Defn.from_pkg(pkg)
             title = [
-                ('', f'{defn}=='),
+                ('', f'{defn.to_uri()}=='),
                 ('class:highlight-sub' if highlight_version else '', pkg.version),
             ]
             return PkgChoice(title, pkg=pkg, value=defn)
@@ -492,7 +492,9 @@ def search(ctx: click.Context, search_terms: str, limit: int, sources: Sequence[
 
     pkgs = manager.run(manager.search(search_terms, limit, frozenset(sources) or None))
     if pkgs:
-        choices = [PkgChoice(f'{p.name}  ({d}=={p.version})', d, pkg=p) for d, p in pkgs.items()]
+        choices = [
+            PkgChoice(f'{p.name}  ({d.to_uri()}=={p.version})', d, pkg=p) for d, p in pkgs.items()
+        ]
         selections = checkbox('Select add-ons to install', choices=choices).unsafe_ask()
         if selections and confirm('Install selected add-ons?').unsafe_ask():
             ctx.invoke(install, addons=selections)
@@ -528,7 +530,7 @@ def list_installed(
 
     def format_deps(pkg: models.Pkg):
         return (
-            str(d.with_(alias=p.slug) if p else d)
+            (d.with_(alias=p.slug) if p else d).to_uri()
             for d in pkg.deps
             for d in (Defn(pkg.source, d.id),)
             for d, p in ((d, obj.m.get_pkg(d)),)
@@ -564,7 +566,7 @@ def list_installed(
     elif output_format is ListFormats.detailed:
         formatter = click.HelpFormatter(max_width=99)
         for pkg in pkgs:
-            with formatter.section(Defn.from_pkg(pkg)):
+            with formatter.section(Defn.from_pkg(pkg).to_uri()):
                 formatter.write_dl(
                     (
                         ('Name', pkg.name),
@@ -579,7 +581,7 @@ def list_installed(
                 )
         click.echo(formatter.getvalue(), nl=False)
     else:
-        click.echo(''.join(f'{Defn.from_pkg(p)}\n' for p in pkgs), nl=False)
+        click.echo(''.join(f'{Defn.from_pkg(p).to_uri()}\n' for p in pkgs), nl=False)
 
 
 @main.command(hidden=True)
