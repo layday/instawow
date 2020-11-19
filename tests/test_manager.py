@@ -1,3 +1,4 @@
+from aiohttp import ClientError
 import pytest
 
 from instawow import results as E
@@ -44,8 +45,40 @@ async def test_pinning_nonexistent_pkg(manager):
     assert isinstance(result[molinari_defn], E.PkgNotInstalled)
 
 
+@pytest.mark.parametrize('exception', [ValueError('foo'), ClientError('bar')])
 @pytest.mark.asyncio
-async def test_replacing_folders_on_install(manager):
+async def test_resolve_rewraps_exception_appropriately_from_resolve(
+    monkeypatch, manager, exception
+):
+    async def resolve_one(self, defn, metadata):
+        raise exception
+
+    monkeypatch.setattr('instawow.resolvers.CurseResolver.resolve_one', resolve_one)
+
+    defn = Defn('curse', 'molinari')
+    results = await manager.resolve([defn])
+    assert isinstance(results[defn], E.InternalError)
+    assert results[defn].message == f'internal error: "{exception}"'
+
+
+@pytest.mark.parametrize('exception', [ValueError('foo'), ClientError('bar')])
+@pytest.mark.asyncio
+async def test_resolve_rewraps_exception_appropriately_from_batch_resolve(
+    monkeypatch, manager, exception
+):
+    async def resolve(self, defns):
+        raise exception
+
+    monkeypatch.setattr('instawow.resolvers.CurseResolver.resolve', resolve)
+
+    defn = Defn('curse', 'molinari')
+    results = await manager.resolve([defn])
+    assert isinstance(results[defn], E.InternalError)
+    assert results[defn].message == f'internal error: "{exception}"'
+
+
+@pytest.mark.asyncio
+async def test_install_can_replace_unreconciled_folders(manager):
     molinari = manager.config.addon_dir / 'Molinari'
     molinari.mkdir()
 
@@ -58,6 +91,21 @@ async def test_replacing_folders_on_install(manager):
     result = await manager.install([defn], replace=True)
     assert isinstance(result[defn], E.PkgInstalled)
     assert any(molinari.iterdir())
+
+
+@pytest.mark.asyncio
+async def test_install_cannot_replace_reconciled_folders(manager):
+    curse_defn = Defn('curse', 'molinari')
+    wowi_defn = Defn('wowi', '13188-molinari')
+
+    result = await manager.install([curse_defn], replace=False)
+    assert isinstance(result[curse_defn], E.PkgInstalled)
+
+    result = await manager.install([wowi_defn], replace=False)
+    assert isinstance(result[wowi_defn], E.PkgConflictsWithInstalled)
+
+    result = await manager.install([wowi_defn], replace=True)
+    assert isinstance(result[wowi_defn], E.PkgConflictsWithInstalled)
 
 
 @pytest.mark.parametrize('keep_folders', [True, False])
