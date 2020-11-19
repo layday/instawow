@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING, Optional as O, Union, overload
 import click
 
 from . import models, results as E
-from .config import Config, setup_logging
+from .config import Config, Flavour, setup_logging
 from .resolvers import Defn, MultiPkgModel, Strategy
 from .utils import TocReader, cached_property, get_version, is_outdated, tabulate, uniq
 
@@ -500,7 +500,7 @@ def search(ctx: click.Context, search_terms: str, limit: int, sources: Sequence[
         click.echo('No results found.')
 
 
-class ListFormats(Enum):
+class ListFormats(str, Enum):
     simple = 'simple'
     detailed = 'detailed'
     json = 'json'
@@ -631,7 +631,7 @@ def configure(ctx: click.Context) -> Config:
     ).unsafe_ask()
     game_flavour = select(
         'Game flavour:',
-        choices=sorted(['classic', 'retail'], reverse=not Config.is_classic_folder(addon_dir)),
+        choices=sorted(Flavour.__members__, reverse=not Config.is_classic_folder(addon_dir)),
     ).unsafe_ask()
     config = Config(
         profile=ctx.find_root().params['profile'],

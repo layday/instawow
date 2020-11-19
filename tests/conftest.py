@@ -6,7 +6,7 @@ import re
 
 import pytest
 
-from instawow.config import Config
+from instawow.config import Config, Flavour
 from instawow.manager import Manager
 from instawow.utils import get_version
 
@@ -52,7 +52,7 @@ def temp_dir(tmp_path_factory):
     yield temp_dir
 
 
-@pytest.fixture(params=['retail', 'classic'])
+@pytest.fixture(params=Flavour)
 def partial_config(tmp_path, request, temp_dir):
     addons = tmp_path / 'wow' / 'interface' / 'addons'
     addons.mkdir(parents=True)

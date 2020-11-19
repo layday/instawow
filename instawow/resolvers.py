@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from collections.abc import AsyncIterable, Callable, Sequence
+from collections.abc import AsyncIterable, Callable, Sequence, Set
 from datetime import datetime, timezone
-import enum
+from enum import Enum
 from itertools import chain, count, takewhile
 import re
 from typing import TYPE_CHECKING, Any, ClassVar, List, Optional as O, Set as TSet, Union, cast
@@ -13,6 +13,7 @@ from typing_extensions import Literal, TypedDict
 from yarl import URL
 
 from . import models as m, results as E
+from .config import Flavour
 from .utils import bucketise, cached_property, gather, run_in_thread as t, uniq
 
 if TYPE_CHECKING:
@@ -21,7 +22,7 @@ if TYPE_CHECKING:
     from .manager import Manager as ManagerT
 
 
-class Strategy(enum.Enum):
+class Strategy(str, Enum):
     default = 'default'
     latest = 'latest'
     curse_latest_beta = 'curse_latest_beta'
@@ -93,7 +94,7 @@ class _CatalogueEntryDefaultFields(TypedDict):
     id: str
     slug: str
     name: str
-    game_compatibility: set[Literal['retail', 'classic']]
+    game_compatibility: Set[str]
     folders: Sequence[Sequence[str]]
     download_count: int
     last_updated: Any
@@ -104,7 +105,7 @@ class _CatalogueEntry(BaseModel):
     id: str
     slug: str
     name: str
-    game_compatibility: TSet[Literal['retail', 'classic']]
+    game_compatibility: TSet[Flavour]
     folders: List[TSet[str]]
     download_count: int
     last_updated: datetime
@@ -200,7 +201,7 @@ class MultiPkgModel(BaseModel):
 class Resolver:
     source: ClassVar[str]
     name: ClassVar[str]
-    strategies: ClassVar[set[Strategy]]
+    strategies: ClassVar[Set[Strategy]]
 
     def __init__(self, manager: ManagerT) -> None:
         self.manager = manager
@@ -293,14 +294,16 @@ if TYPE_CHECKING:
 class CurseResolver(Resolver):
     source = 'curse'
     name = 'CurseForge'
-    strategies = {
-        Strategy.default,
-        Strategy.latest,
-        Strategy.curse_latest_beta,
-        Strategy.curse_latest_alpha,
-        Strategy.any_flavour,
-        Strategy.version,
-    }
+    strategies = frozenset(
+        {
+            Strategy.default,
+            Strategy.latest,
+            Strategy.curse_latest_beta,
+            Strategy.curse_latest_alpha,
+            Strategy.any_flavour,
+            Strategy.version,
+        }
+    )
 
     # Reference: https://twitchappapi.docs.apiary.io/
     addon_api_url = URL('https://addons-ecs.forgesvc.net/api/v2/addon')
@@ -429,7 +432,7 @@ class CurseResolver(Resolver):
             )
         except ValueError:
             raise E.PkgFileUnavailable(
-                f'no files compatible with {self.manager.config.game_flavour} '
+                f'no files compatible with {self.manager.config.game_flavour.name} '
                 f'using {defn.strategy.name!r} strategy'
             )
 
@@ -452,10 +455,9 @@ class CurseResolver(Resolver):
         cls, web_client: aiohttp.ClientSession
     ) -> AsyncIterable[_CatalogueEntryDefaultFields]:
         classic_version_prefix = '1.13'
-        flavours = ('retail', 'classic')
 
         def excise_flavours(files: list[CurseAddon_File]):
-            for c in flavours:
+            for c in Flavour.__members__:
                 if any(f['gameVersionFlavor'] == f'wow_{c}' for f in files):
                     yield c
                 elif any(
@@ -543,7 +545,7 @@ if TYPE_CHECKING:
 class WowiResolver(Resolver):
     source = 'wowi'
     name = 'WoWInterface'
-    strategies = {Strategy.default}
+    strategies = frozenset({Strategy.default})
 
     # Reference: https://api.mmoui.com/v3/globalconfig.json
     # There's also a v4 API corresponding to the as yet unreleased Minion v4,
@@ -645,6 +647,7 @@ class WowiResolver(Resolver):
         async with web_client.get(cls.list_api_url) as response:
             list_api_items: list[WowiListApiItem] = await response.json()
 
+        game_compatibility = set(Flavour.__members__)
         for list_item in list_api_items:
             yield _CatalogueEntryDefaultFields(
                 source=cls.source,
@@ -652,7 +655,7 @@ class WowiResolver(Resolver):
                 name=list_item['UIName'],
                 slug='',
                 folders=[list_item['UIDir']],
-                game_compatibility={'classic', 'retail'},
+                game_compatibility=game_compatibility,
                 download_count=int(list_item['UIDownloadTotal']),
                 last_updated=list_item['UIDate'],
             )
@@ -701,7 +704,7 @@ if TYPE_CHECKING:
 class TukuiResolver(Resolver):
     source = 'tukui'
     name = 'Tukui'
-    strategies = {Strategy.default}
+    strategies = frozenset({Strategy.default})
 
     # There's also a ``/client-api.php`` endpoint which is apparently
     # used by the Tukui client itself to check for updates for the two retail
@@ -773,7 +776,7 @@ class TukuiResolver(Resolver):
                 metadata = await response.json(content_type=None)  # text/html
 
             items: list[Union[TukuiUi, TukuiAddon]] = [metadata] if query == 'ui' else metadata
-            game_compatibility = 'classic' if query == 'classic-addons' else 'retail'
+            game_compatibility = {'classic' if query == 'classic-addons' else 'retail'}
             for item in items:
                 yield _CatalogueEntryDefaultFields(
                     source=cls.source,
@@ -781,12 +784,12 @@ class TukuiResolver(Resolver):
                     slug='',
                     name=item['name'],
                     folders=[],
-                    game_compatibility={game_compatibility},
+                    game_compatibility=game_compatibility,
                     # Split Tukui and ElvUI downloads evenly between them.
                     # They both have the exact same number of downloads so
                     # I'm assuming they're being counted together.
-                    # Anyway, this should help with scoring other add-ons
-                    # on the Tukui catalogue higher
+                    # This should help with scoring other add-ons on the
+                    # Tukui catalogue higher
                     download_count=int(item['downloads']) // (2 if query == 'ui' else 1),
                     last_updated=datetime.fromisoformat(item['lastupdate']).replace(
                         tzinfo=timezone.utc
@@ -820,10 +823,7 @@ if TYPE_CHECKING:
 class GithubResolver(Resolver):
     source = 'github'
     name = 'GitHub'
-    strategies = {
-        Strategy.default,
-        Strategy.version,
-    }
+    strategies = frozenset({Strategy.default, Strategy.version})
 
     repos_api_url = URL('https://api.github.com/repos')
 
@@ -917,7 +917,7 @@ class GithubResolver(Resolver):
 class InstawowResolver(Resolver):
     source = 'instawow'
     name = 'instawow'
-    strategies = {Strategy.default}
+    strategies = frozenset({Strategy.default})
 
     _addons = {
         ('0', 'weakauras-companion'),
@@ -964,7 +964,7 @@ class InstawowResolver(Resolver):
             folders=[
                 ['WeakAurasCompanion'],
             ],
-            game_compatibility={'retail', 'classic'},
+            game_compatibility=set(Flavour.__members__),
             download_count=1,
             last_updated=datetime.now(timezone.utc),
         )

@@ -25,9 +25,6 @@ if TYPE_CHECKING:
 class BuilderConfig(BaseConfig):
     wago_api_key: O[str]
 
-    class Config:  # type: ignore
-        env_prefix = 'INSTAWOW_'
-
 
 WeakAuraT = TypeVar('WeakAuraT', bound='WeakAura')
 

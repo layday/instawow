@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from enum import Enum
 import json
 import os
 from pathlib import Path, PurePath
@@ -9,7 +10,6 @@ from tempfile import gettempdir
 import click
 from loguru import logger
 from pydantic import BaseSettings, Field, PydanticValueError, validator
-from typing_extensions import Literal
 
 from .utils import trash
 
@@ -43,6 +43,9 @@ def _validate_path_is_writable_dir(value: Path) -> Path:
 
 
 class BaseConfig(BaseSettings):
+    class Config:  # type: ignore
+        env_prefix = 'INSTAWOW_'
+
     def _build_values(
         self, init_kwargs: dict[str, object], *args: object, **kwargs: object
     ) -> dict[str, object]:
@@ -50,16 +53,18 @@ class BaseConfig(BaseSettings):
         return {**init_kwargs, **self._build_environ()}
 
 
+class Flavour(str, Enum):
+    retail = 'retail'
+    classic = 'classic'
+
+
 class GlobalConfig(BaseConfig):
     config_dir: Path = Field(default_factory=_get_default_config_dir)
     profile: str = Field(_default_profile, min_length=1, strip_whitespace=True)
     addon_dir: Path
-    game_flavour: Literal['retail', 'classic']
+    game_flavour: Flavour
     auto_update_check: bool = True
-    temp_dir: Path = Path(gettempdir()) / 'instawow'
-
-    class Config:  # type: ignore
-        env_prefix = 'INSTAWOW_'
+    temp_dir: Path = Path(gettempdir(), 'instawow')
 
     @validator('config_dir', 'addon_dir', 'temp_dir')
     def _validate_expand_path(cls, value: Path) -> Path:
@@ -82,7 +87,7 @@ class GlobalConfig(BaseConfig):
     @classmethod
     def get_dummy_config(cls, **kwargs: object) -> GlobalConfig:
         "Create a dummy configuration with default values."
-        template = {'game_flavour': 'retail', 'addon_dir': _novalidate}
+        template = {'game_flavour': Flavour.retail, 'addon_dir': _novalidate}
         dummy_config = cls.parse_obj({**template, **kwargs})
         return dummy_config
 
@@ -160,11 +165,11 @@ class GlobalConfig(BaseConfig):
 
     @property
     def is_classic(self) -> bool:
-        return self.game_flavour == 'classic'
+        return self.game_flavour is Flavour.classic
 
     @property
     def is_retail(self) -> bool:
-        return self.game_flavour == 'retail'
+        return self.game_flavour is Flavour.retail
 
     @property
     def profile_dir(self) -> Path:

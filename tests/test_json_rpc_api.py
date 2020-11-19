@@ -49,9 +49,9 @@ async def test_write_config_with_invalid_params(request, full_config, ws):
     assert rpc_response.error.data == [
         {
             'loc': ['game_flavour'],
-            'msg': "unexpected value; permitted: 'retail', 'classic'",
-            'type': 'value_error.const',
-            'ctx': {'given': 'strawberry', 'permitted': ['retail', 'classic']},
+            'msg': "value is not a valid enumeration member; permitted: 'retail', 'classic'",
+            'type': 'type_error.enum',
+            'ctx': {'enum_values': ['retail', 'classic']},
         }
     ]
 

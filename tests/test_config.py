@@ -5,7 +5,7 @@ import sys
 
 import pytest
 
-from instawow.config import Config
+from instawow.config import Config, Flavour
 
 
 def test_env_vars_have_prio(full_config, monkeypatch):
@@ -14,7 +14,7 @@ def test_env_vars_have_prio(full_config, monkeypatch):
 
     config = Config(**full_config)
     assert config.config_dir == Path('/foo').resolve()
-    assert config.game_flavour == 'classic'
+    assert config.game_flavour is Flavour.classic
 
 
 def test_config_dir_is_populated(full_config):

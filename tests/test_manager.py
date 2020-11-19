@@ -32,7 +32,7 @@ async def test_pinning_unsupported_pkg(manager):
     result = await manager.pin([molinari_defn])
     assert (
         isinstance(result[molinari_defn], E.PkgStrategyUnsupported)
-        and result[molinari_defn].strategy == Strategy.version
+        and result[molinari_defn].strategy is Strategy.version
     )
     assert installed_pkg.options.strategy == 'default'
 
