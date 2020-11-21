@@ -53,8 +53,8 @@ class Defn(_HashableModel):
     def from_pkg(cls, pkg: Union[m.Pkg, PkgModel]) -> Defn:
         return cls(
             source=pkg.source,
-            id=pkg.id,
             alias=pkg.slug,
+            id=pkg.id,
             strategy=pkg.options.strategy,
             version=pkg.version,
         )
@@ -432,8 +432,8 @@ class CurseResolver(Resolver):
             )
         except ValueError:
             raise E.PkgFileUnavailable(
-                f'no files compatible with {self.manager.config.game_flavour.name} '
-                f'using {defn.strategy.name!r} strategy'
+                f'no files compatible with {self.manager.config.game_flavour} '
+                f'using {defn.strategy} strategy'
             )
 
         return m.Pkg(
@@ -446,7 +446,7 @@ class CurseResolver(Resolver):
             download_url=file['downloadUrl'],
             date_published=parse_datetime(file['fileDate']),
             version=file['displayName'],
-            options=m.PkgOptions(strategy=defn.strategy.name),
+            options=m.PkgOptions(strategy=defn.strategy),
             deps=[m.PkgDep(id=str(d['addonId'])) for d in file['dependencies'] if d['type'] == 3],
         )
 
@@ -637,7 +637,7 @@ class WowiResolver(Resolver):
             download_url=metadata['UIDownload'],
             date_published=parse_datetime(metadata['UIDate']),
             version=metadata['UIVersion'],
-            options=m.PkgOptions(strategy=defn.strategy.name),
+            options=m.PkgOptions(strategy=defn.strategy),
         )
 
     @classmethod
@@ -759,7 +759,7 @@ class TukuiResolver(Resolver):
                 tzinfo=timezone.utc
             ),
             version=addon['version'],
-            options=m.PkgOptions(strategy=defn.strategy.name),
+            options=m.PkgOptions(strategy=defn.strategy),
         )
 
     @classmethod
@@ -910,7 +910,7 @@ class GithubResolver(Resolver):
             download_url=matching_asset['browser_download_url'],
             date_published=parse_datetime(release_metadata['published_at']),
             version=release_metadata['tag_name'],
-            options=m.PkgOptions(strategy=defn.strategy.name),
+            options=m.PkgOptions(strategy=defn.strategy),
         )
 
 
@@ -949,7 +949,7 @@ class InstawowResolver(Resolver):
             download_url=builder.addon_file.as_uri(),
             date_published=datetime.now(timezone.utc),
             version=(await t(builder.checksum)())[:7],
-            options=m.PkgOptions(strategy=defn.strategy.name),
+            options=m.PkgOptions(strategy=defn.strategy),
         )
 
     @classmethod

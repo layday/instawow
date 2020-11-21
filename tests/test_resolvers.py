@@ -33,7 +33,7 @@ async def test_resolve_curse_simple_pkgs(manager, request, strategy):
             assert (
                 isinstance(retail_only, E.PkgFileUnavailable)
                 and retail_only.message
-                == f"no files compatible with classic using '{strategy.name}' strategy"
+                == f"no files compatible with classic using {strategy} strategy"
             )
         assert isinstance(classic_only, Pkg)
     else:
@@ -45,7 +45,7 @@ async def test_resolve_curse_simple_pkgs(manager, request, strategy):
             assert (
                 isinstance(classic_only, E.PkgFileUnavailable)
                 and classic_only.message
-                == f"no files compatible with retail using '{strategy.name}' strategy"
+                == f"no files compatible with retail using {strategy} strategy"
             )
 
     versions = {*request.config.cache.get('flavour_explosion', ()), flavour_explosion.version}
@@ -58,7 +58,7 @@ async def test_resolve_curse_latest_pkg(manager):
     (latest_pkg,) = (
         await manager.resolve([Defn('curse', 'tomcats', strategy=Strategy.latest)])
     ).values()
-    assert latest_pkg.options.strategy == 'latest'
+    assert latest_pkg.options.strategy == Strategy.latest
 
 
 @pytest.mark.asyncio
@@ -67,7 +67,8 @@ async def test_resolve_curse_versioned_pkg(manager):
         await manager.resolve([Defn('curse', 'molinari').with_version('70300.51-Release')])
     ).values()
     assert (
-        versioned_pkg.options.strategy == 'version' and versioned_pkg.version == '70300.51-Release'
+        versioned_pkg.options.strategy == Strategy.version
+        and versioned_pkg.version == '70300.51-Release'
     )
 
 
@@ -146,7 +147,7 @@ async def test_resolve_github_pkgs(manager):
         missing,
     ) = results.values()
     assert 'nolib' not in lib_and_nolib.download_url
-    assert older_version.options.strategy == 'version' and older_version.version == '2.1.0'
+    assert older_version.options.strategy == Strategy.version and older_version.version == '2.1.0'
     assert isinstance(assetless, E.PkgFileUnavailable)
     assert (
         isinstance(releaseless, E.PkgFileUnavailable)

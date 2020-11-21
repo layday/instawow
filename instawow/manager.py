@@ -111,7 +111,7 @@ def _open_archive(path: PurePath) -> Iterator[tuple[set[str], Callable[[Path], N
 async def download_archive(manager: Manager, pkg: Pkg, *, chunk_size: int = 4096) -> Path:
     url = pkg.download_url
     dest = manager.config.cache_dir / shasum(
-        pkg.source, pkg.id, pkg.version, manager.config.game_flavour.name
+        pkg.source, pkg.id, pkg.version, manager.config.game_flavour
     )
     if await t(dest.exists)():
         logger.debug(f'{url} is cached at {dest}')
@@ -672,7 +672,7 @@ class Manager:
             if not pkg:
                 return E.PkgNotInstalled()
             elif {defn.strategy} <= strategies <= self.resolvers[pkg.source].strategies:
-                pkg.options.strategy = defn.strategy.name
+                pkg.options.strategy = defn.strategy
                 self.database.commit()
                 return E.PkgInstalled(pkg)
             else:

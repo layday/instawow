@@ -20,7 +20,7 @@ async def test_pinning_supported_pkg(manager):
     for new_defn in (defn.with_version(pkg.version), defn):
         pin_result = await manager.pin([new_defn])
         pinned_pkg = pin_result[new_defn].pkg
-        assert pkg.options.strategy == pinned_pkg.options.strategy == new_defn.strategy.name
+        assert pkg.options.strategy == pinned_pkg.options.strategy == new_defn.strategy
         assert version == pinned_pkg.version
 
 
@@ -29,13 +29,13 @@ async def test_pinning_unsupported_pkg(manager):
     molinari_defn = Defn('wowi', '13188')
     await manager.install([molinari_defn], False)
     installed_pkg = manager.get_pkg(molinari_defn)
-    assert installed_pkg.options.strategy == 'default'
+    assert installed_pkg.options.strategy == Strategy.default
     result = await manager.pin([molinari_defn])
     assert (
         isinstance(result[molinari_defn], E.PkgStrategyUnsupported)
         and result[molinari_defn].strategy is Strategy.version
     )
-    assert installed_pkg.options.strategy == 'default'
+    assert installed_pkg.options.strategy == Strategy.default
 
 
 @pytest.mark.asyncio

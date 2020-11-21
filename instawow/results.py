@@ -113,7 +113,7 @@ class PkgUpToDate(ManagerError):
 
 
 class PkgStrategyUnsupported(ManagerError):
-    message_template = '{self.strategy.name!r} strategy is not valid for source'
+    message_template = "'{self.strategy}' strategy is not valid for source"
 
     def __init__(self, strategy: Strategy) -> None:
         super().__init__()

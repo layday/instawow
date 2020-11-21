@@ -243,7 +243,7 @@ _EXCLUDED_STRATEGIES = {Strategy.default, Strategy.version}
     metavar='<STRATEGY ADDON>...',
     help='A strategy followed by an add-on definition.  '
     'The strategies are: '
-    f'{", ".join(s.name for s in Strategy if s not in _EXCLUDED_STRATEGIES)}.',
+    f'{", ".join(s for s in Strategy if s not in _EXCLUDED_STRATEGIES)}.',
 )
 @click.option(
     '--version',
@@ -517,7 +517,7 @@ class ListFormats(str, Enum):
     '-f',
     'output_format',
     type=EnumParam(ListFormats),
-    default=ListFormats.simple.name,
+    default=ListFormats.simple,
     show_default=True,
     help='Change the output format.',
 )
