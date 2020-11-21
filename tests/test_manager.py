@@ -32,7 +32,7 @@ async def test_pinning_unsupported_pkg(manager):
     assert installed_pkg.options.strategy == Strategy.default
     result = await manager.pin([molinari_defn])
     assert (
-        isinstance(result[molinari_defn], E.PkgStrategyUnsupported)
+        type(result[molinari_defn]) is E.PkgStrategyUnsupported
         and result[molinari_defn].strategy is Strategy.version
     )
     assert installed_pkg.options.strategy == Strategy.default
@@ -42,7 +42,7 @@ async def test_pinning_unsupported_pkg(manager):
 async def test_pinning_nonexistent_pkg(manager):
     molinari_defn = Defn('wowi', '13188')
     result = await manager.pin([molinari_defn])
-    assert isinstance(result[molinari_defn], E.PkgNotInstalled)
+    assert type(result[molinari_defn]) is E.PkgNotInstalled
 
 
 @pytest.mark.parametrize('exception', [ValueError('foo'), ClientError('bar')])
@@ -57,7 +57,7 @@ async def test_resolve_rewraps_exception_appropriately_from_resolve(
 
     defn = Defn('curse', 'molinari')
     results = await manager.resolve([defn])
-    assert isinstance(results[defn], E.InternalError)
+    assert type(results[defn]) is E.InternalError
     assert results[defn].message == f'internal error: "{exception}"'
 
 
@@ -73,7 +73,7 @@ async def test_resolve_rewraps_exception_appropriately_from_batch_resolve(
 
     defn = Defn('curse', 'molinari')
     results = await manager.resolve([defn])
-    assert isinstance(results[defn], E.InternalError)
+    assert type(results[defn]) is E.InternalError
     assert results[defn].message == f'internal error: "{exception}"'
 
 
@@ -85,11 +85,11 @@ async def test_install_can_replace_unreconciled_folders(manager):
     defn = Defn('curse', 'molinari')
 
     result = await manager.install([defn], replace=False)
-    assert isinstance(result[defn], E.PkgConflictsWithUnreconciled)
+    assert type(result[defn]) is E.PkgConflictsWithUnreconciled
     assert not any(molinari.iterdir())
 
     result = await manager.install([defn], replace=True)
-    assert isinstance(result[defn], E.PkgInstalled)
+    assert type(result[defn]) is E.PkgInstalled
     assert any(molinari.iterdir())
 
 
@@ -99,13 +99,13 @@ async def test_install_cannot_replace_reconciled_folders(manager):
     wowi_defn = Defn('wowi', '13188-molinari')
 
     result = await manager.install([curse_defn], replace=False)
-    assert isinstance(result[curse_defn], E.PkgInstalled)
+    assert type(result[curse_defn]) is E.PkgInstalled
 
     result = await manager.install([wowi_defn], replace=False)
-    assert isinstance(result[wowi_defn], E.PkgConflictsWithInstalled)
+    assert type(result[wowi_defn]) is E.PkgConflictsWithInstalled
 
     result = await manager.install([wowi_defn], replace=True)
-    assert isinstance(result[wowi_defn], E.PkgConflictsWithInstalled)
+    assert type(result[wowi_defn]) is E.PkgConflictsWithInstalled
 
 
 @pytest.mark.parametrize('keep_folders', [True, False])
@@ -118,7 +118,7 @@ async def test_deleting_and_retaining_folders_on_remove(manager, keep_folders):
     assert all(f.is_dir() for f in folders)
 
     result = await manager.remove([defn], keep_folders=keep_folders)
-    assert isinstance(result[defn], E.PkgRemoved)
+    assert type(result[defn]) is E.PkgRemoved
     assert not manager.get_pkg(defn)
     if keep_folders:
         assert all(f.is_dir() for f in folders)
@@ -138,5 +138,5 @@ async def test_removing_pkg_with_missing_folders(manager, keep_folders):
     assert not any(f.is_dir() for f in folders)
 
     result = await manager.remove([defn], keep_folders=keep_folders)
-    assert isinstance(result[defn], E.PkgRemoved)
+    assert type(result[defn]) is E.PkgRemoved
     assert not manager.get_pkg(defn)

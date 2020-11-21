@@ -23,27 +23,27 @@ async def test_resolve_curse_simple_pkgs(manager, request, strategy):
     )
     separate, retail_only, classic_only, flavour_explosion = results.values()
 
-    assert isinstance(separate, Pkg)
+    assert type(separate) is Pkg
     if manager.config.is_classic:
         if strategy is Strategy.any_flavour:
             assert 'classic' not in separate.version
-            assert isinstance(retail_only, Pkg)
+            assert type(retail_only) is Pkg
         else:
             assert 'classic' in separate.version
             assert (
-                isinstance(retail_only, E.PkgFileUnavailable)
+                type(retail_only) is E.PkgFileUnavailable
                 and retail_only.message
                 == f"no files compatible with classic using {strategy} strategy"
             )
-        assert isinstance(classic_only, Pkg)
+        assert type(classic_only) is Pkg
     else:
         assert 'classic' not in separate.version
-        assert isinstance(retail_only, Pkg)
+        assert type(retail_only) is Pkg
         if strategy is Strategy.any_flavour:
-            assert isinstance(classic_only, Pkg)
+            assert type(classic_only) is Pkg
         else:
             assert (
-                isinstance(classic_only, E.PkgFileUnavailable)
+                type(classic_only) is E.PkgFileUnavailable
                 and classic_only.message
                 == f"no files compatible with retail using {strategy} strategy"
             )
@@ -92,9 +92,9 @@ async def test_resolve_wowi_pkgs(manager):
     )
     either, invalid = results.values()
 
-    assert isinstance(either, Pkg)
+    assert type(either) is Pkg
     assert (
-        isinstance(invalid, E.PkgStrategyUnsupported)
+        type(invalid) is E.PkgStrategyUnsupported
         and invalid.message == "'latest' strategy is not valid for source"
     )
 
@@ -111,17 +111,17 @@ async def test_resolve_tukui_pkgs(manager):
     )
     either, retail_id, retail_slug, invalid = results.values()
 
-    assert isinstance(either, Pkg)
+    assert type(either) is Pkg
     if manager.config.is_classic:
         assert either.name == 'Tukui'
-        assert isinstance(retail_id, E.PkgNonexistent)
-        assert isinstance(retail_slug, E.PkgNonexistent)
+        assert type(retail_id) is E.PkgNonexistent
+        assert type(retail_slug) is E.PkgNonexistent
     else:
         assert either.name == 'MerathilisUI'
-        assert isinstance(retail_id, Pkg) and retail_id.name == 'Tukui'
-        assert isinstance(retail_slug, Pkg) and retail_slug.name == 'Tukui'
+        assert type(retail_id) is Pkg and retail_id.name == 'Tukui'
+        assert type(retail_slug) is Pkg and retail_slug.name == 'Tukui'
     assert (
-        isinstance(invalid, E.PkgStrategyUnsupported)
+        type(invalid) is E.PkgStrategyUnsupported
         and invalid.message == "'latest' strategy is not valid for source"
     )
 
@@ -148,10 +148,7 @@ async def test_resolve_github_pkgs(manager):
     ) = results.values()
     assert 'nolib' not in lib_and_nolib.download_url
     assert older_version.options.strategy == Strategy.version and older_version.version == '2.1.0'
-    assert isinstance(assetless, E.PkgFileUnavailable)
-    assert (
-        isinstance(releaseless, E.PkgFileUnavailable)
-        and releaseless.message == 'release not found'
-    )
+    assert type(assetless) is E.PkgFileUnavailable
+    assert type(releaseless) is E.PkgFileUnavailable and releaseless.message == 'release not found'
     assert ('classic' in retail_and_classic.download_url) is manager.config.is_classic
-    assert isinstance(missing, E.PkgNonexistent)
+    assert type(missing) is E.PkgNonexistent
