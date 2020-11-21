@@ -693,7 +693,7 @@ if TYPE_CHECKING:
         # ISO *datetime* with space sep and without an offset, e.g. '2020-02-02 12:12:20'
         lastupdate: str
         name: str
-        patch: str
+        patch: O[str]
         screenshot_url: str
         small_desc: str
         url: str
