@@ -67,10 +67,7 @@ def test_valid_curse_pkg_lifecycle(run):
 def test_valid_tukui_pkg_lifecycle(config, run):
     assert run('install tukui:1').output.startswith('✓ tukui:1\n  installed')
     assert run('install tukui:1').output == '✗ tukui:1\n  package already installed\n'
-    if config.is_retail:
-        assert run('update tukui:1').output == '✗ tukui:1-merathilisui\n  package is up to date\n'
-    else:
-        assert run('update tukui:1').output == '✗ tukui:1-tukui\n  package is up to date\n'
+    assert run('update tukui:1').output == '✗ tukui:1\n  package is up to date\n'
     assert run('remove tukui:1').output == '✓ tukui:1\n  removed\n'
     assert run('update tukui:1').output == '✗ tukui:1\n  package is not installed\n'
     assert run('remove tukui:1').output == '✗ tukui:1\n  package is not installed\n'

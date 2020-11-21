@@ -108,6 +108,36 @@ async def test_install_cannot_replace_reconciled_folders(manager):
     assert type(result[wowi_defn]) is E.PkgConflictsWithInstalled
 
 
+@pytest.mark.asyncio
+async def test_update_lifecycle_while_varying_retain_strategy(manager):
+    defn = Defn('curse', 'molinari')
+    versioned_defn = defn.with_version('80000.57-Release')
+
+    result = await manager.install([defn], replace=False)
+    assert type(result[defn]) is E.PkgInstalled
+    assert result[defn].pkg.options.strategy == Strategy.default
+
+    result = await manager.update([defn], retain_strategy=False)
+    assert type(result[defn]) is E.PkgUpToDate
+    assert result[defn].is_pinned is False
+
+    result = await manager.update([versioned_defn], retain_strategy=False)
+    assert type(result[versioned_defn]) is E.PkgUpToDate
+    assert result[versioned_defn].is_pinned is False
+
+    result = await manager.update([versioned_defn], retain_strategy=True)
+    assert type(result[versioned_defn]) is E.PkgUpdated
+    assert result[versioned_defn].new_pkg.options.strategy == Strategy.version
+
+    result = await manager.update([defn], retain_strategy=False)
+    assert type(result[defn]) is E.PkgUpToDate
+    assert result[defn].is_pinned is True
+
+    result = await manager.update([defn], retain_strategy=True)
+    assert type(result[defn]) is E.PkgUpdated
+    assert result[defn].new_pkg.options.strategy == Strategy.default
+
+
 @pytest.mark.parametrize('keep_folders', [True, False])
 @pytest.mark.asyncio
 async def test_deleting_and_retaining_folders_on_remove(manager, keep_folders):

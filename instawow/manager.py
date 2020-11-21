@@ -588,7 +588,7 @@ class Manager:
             defns,
             E.PkgAlreadyInstalled(),
             resolve_results.items(),
-            ((d, a) for (d, _), a in zip(installables, archives)),
+            ((d, a) for (d, _), a in zip(installables, archives) if not isinstance(a, PurePath)),
             [
                 (d, await capture_manager_exc_async(t(self.install_pkg)(p, a, replace)))
                 for (d, p), a in zip(installables, archives)
@@ -607,28 +607,36 @@ class Manager:
         to extract the strategy from the installed package; otherwise
         the ``Defn`` strategy will be used.
         """
-        # Begin by attaching the source ID to each ``Defn``
-        # from the corresponding installed package.  Using the ID has
-        # the benefit of resolving installed-but-renamed packages -
-        # the slug is transient but the ID is not
-        defns_to_pkgs = {
-            (Defn.from_pkg(p) if not retain_strategy and p else d.with_(id=p and p.id)): p
-            for d, p in zip(defns, (self.get_pkg(d) for d in defns))
+        defns_to_pkgs = {d: p for d in defns for d, p in ((d, self.get_pkg(d)),) if p}
+        resolve_defns = {
+            # Attach the source ID to each ``Defn`` from the
+            # corresponding installed package.  Using the ID has the benefit
+            # of resolving installed-but-renamed  packages - the slug is
+            # transient but the ID isn't
+            d.with_(id=p.id) if retain_strategy else Defn.from_pkg(p): d
+            for d, p in defns_to_pkgs.items()
         }
-        resolve_results = await self.resolve([d for d, p in defns_to_pkgs.items() if p])
+        # Discard the reconstructed ``Defn``s
+        resolve_results = {
+            resolve_defns[d]: r for d, r in (await self.resolve(list(resolve_defns))).items()
+        }
         installables = {d: r for d, r in resolve_results.items() if is_pkg(r)}
         updatables = {
             (d, o, n): download_archive(self, n)
-            for (d, n), o in zip(installables.items(), (defns_to_pkgs[d] for d in installables))
-            if o and n.version != o.version
+            for d, n in installables.items()
+            for d, o, n in ((d, defns_to_pkgs[d], n),)
+            if n.version != o.version
         }
         archives = await gather(updatables.values(), capture_manager_exc_async)
         results = chain_dict(
-            defns_to_pkgs,
+            defns,
             E.PkgNotInstalled(),
             resolve_results.items(),
-            ((d, E.PkgUpToDate(is_pinned=d.strategy is Strategy.version)) for d in installables),
-            ((d, a) for (d, *_), a in zip(updatables, archives)),
+            (
+                (d, E.PkgUpToDate(is_pinned=p.options.strategy == Strategy.version))
+                for d, p in installables.items()
+            ),
+            ((d, a) for (d, *_), a in zip(updatables, archives) if not isinstance(a, PurePath)),
             [
                 (d, await capture_manager_exc_async(t(self.update_pkg)(*p, a)))
                 for (d, *p), a in zip(updatables, archives)
@@ -642,13 +650,13 @@ class Manager:
         self, defns: Sequence[Defn], keep_folders: bool
     ) -> dict[Defn, Union[E.PkgRemoved, E.ManagerError, E.InternalError]]:
         "Remove packages by their definition."
-        maybe_pkgs = (self.get_pkg(d) for d in defns)
         results = chain_dict(
             defns,
             E.PkgNotInstalled(),
             [
                 (d, await capture_manager_exc_async(t(self.remove_pkg)(p, keep_folders)))
-                for d, p in zip(defns, maybe_pkgs)
+                for d in defns
+                for d, p in ((d, self.get_pkg(d)),)
                 if p
             ],
         )
