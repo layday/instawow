@@ -335,6 +335,15 @@ def test_configure__create_new_profile(feed_pt, config, run):
     )
 
 
+def test_configure__create_new_profile_promptless(monkeypatch, config, run):
+    monkeypatch.setenv('INSTAWOW_ADDON_DIR', config.addon_dir)
+    monkeypatch.setenv('INSTAWOW_GAME_FLAVOUR', config.game_flavour)
+    assert (
+        run('-p foo configure --promptless').output
+        == f'Configuration written to: {config.config_dir / "profiles/foo/config.json"}\n'
+    )
+
+
 @pytest.mark.parametrize('options', ['', '--undo'])
 def test_rollback__pkg_not_installed(run, options):
     assert (

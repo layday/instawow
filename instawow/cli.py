@@ -95,7 +95,7 @@ class ManagerWrapper:
         try:
             config = Config.read(self.ctx.params['profile']).ensure_dirs()
         except FileNotFoundError:
-            config = self.ctx.invoke(configure)
+            config = self.ctx.invoke(configure, promptless=False)
         setup_logging(config, self.ctx.params['log_level'])
         _override_loop_policy()
         manager = CliManager.from_config(config)
@@ -621,25 +621,32 @@ def _show_active_config(ctx: click.Context, _param: click.Parameter, value: bool
     callback=_show_active_config,
     help='Show the active configuration and exit.',
 )
+@click.option(
+    '--promptless',
+    is_flag=True,
+    default=False,
+    help='Do not prompt for input and derive the configuration from the environment.',
+)
 @click.pass_context
-def configure(ctx: click.Context) -> Config:
+def configure(ctx: click.Context, promptless: bool) -> Config:
     "Configure instawow."
-    from .prompts import PydanticValidator, path, select
+    if promptless:
+        constructor = Config
+    else:
+        from .prompts import PydanticValidator, path, select
 
-    addon_dir = path(
-        'Add-on directory:',
-        only_directories=True,
-        validate=PydanticValidator(Config, 'addon_dir'),
-    ).unsafe_ask()
-    game_flavour = select(
-        'Game flavour:',
-        choices=sorted(Flavour.__members__, reverse=not Config.is_classic_folder(addon_dir)),
-    ).unsafe_ask()
-    config = Config(
-        profile=ctx.find_root().params['profile'],
-        addon_dir=addon_dir,
-        game_flavour=game_flavour,
-    ).write()
+        addon_dir = path(
+            'Add-on directory:',
+            only_directories=True,
+            validate=PydanticValidator(Config, 'addon_dir'),
+        ).unsafe_ask()
+        game_flavour = select(
+            'Game flavour:',
+            choices=sorted(Flavour.__members__, reverse=not Config.is_classic_folder(addon_dir)),
+        ).unsafe_ask()
+        constructor = partial(Config, addon_dir=addon_dir, game_flavour=game_flavour)
+
+    config = constructor(profile=ctx.find_root().params['profile']).write()
     click.echo(f'Configuration written to: {config.config_file}')
     return config
 
