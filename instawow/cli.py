@@ -74,14 +74,24 @@ class Report:
         ctx.exit(self.exit_code)
 
 
-def _override_loop_policy() -> None:
-    # The proactor event loop which became the default on Windows in 3.8 is
-    # tripping up aiohttp<4.  See https://github.com/aio-libs/aiohttp/issues/4324
+def _override_asyncio_loop_policy() -> None:
+    # The proactor event loop which became the default loop on Windows
+    # in Python 3.8 is causing issues with aiohttp.
+    # See https://github.com/aio-libs/aiohttp/issues/4324
     import asyncio
 
     policy = getattr(asyncio, 'WindowsSelectorEventLoopPolicy', None)
     if policy:
         asyncio.set_event_loop_policy(policy())
+
+
+def _set_asyncio_debug(debug: bool) -> None:
+    # This is the least obtrusive way to enable debugging in asyncio.
+    # Reference: https://docs.python.org/3/library/asyncio-dev.html#debug-mode
+    if debug:
+        import os
+
+        os.environ['PYTHONASYNCIODEBUG'] = '1'
 
 
 class ManagerWrapper:
@@ -97,7 +107,8 @@ class ManagerWrapper:
         except FileNotFoundError:
             config = self.ctx.invoke(configure, promptless=False)
         setup_logging(config, self.ctx.params['log_level'])
-        _override_loop_policy()
+        _override_asyncio_loop_policy()
+        _set_asyncio_debug(self.ctx.params['log_level'] == 'DEBUG')
         manager = CliManager.from_config(config)
         return manager
 
@@ -716,5 +727,6 @@ def listen(ctx: click.Context) -> None:
     dummy_config = Config.get_dummy_config(profile='__jsonrpc__').ensure_dirs()
     log_level = ctx.find_root().params['log_level']
     setup_logging(dummy_config, log_level)
-    _override_loop_policy()
+    _override_asyncio_loop_policy()
+    _set_asyncio_debug(log_level == 'DEBUG')
     asyncio.run(json_rpc_server.listen())
