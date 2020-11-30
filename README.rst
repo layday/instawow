@@ -55,9 +55,9 @@ You can download pre-built binaries of the *instawow* CLI and GUI from GitHub:
 If you would prefer to install the CLI from source, the following will work:
 
 - `pipx <https://github.com/pipxproject/pipx>`__:
-  ``pipx install instawow --pip-args='--use-feature=2020-resolver'``
+  ``pipx install instawow``
 - Vanilla pip:
-  ``python -m pip --use-feature=2020-resolver install -U instawow``
+  ``python -m pip install -U instawow``
 - From the `AUR <https://aur.archlinux.org/packages/instawow/>`__
   for Arch Linux:
   ``yay -S instawow``
