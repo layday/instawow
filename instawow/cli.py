@@ -57,7 +57,7 @@ class Report:
             if self.filter_fn(r)
         )
 
-    def generate(self):
+    def generate(self) -> None:
         manager: CliManager = click.get_current_context().obj.m
         if manager.config.auto_update_check:
             outdated, new_version = manager.run(is_outdated())
@@ -68,7 +68,7 @@ class Report:
         if report:
             click.echo(report)
 
-    def generate_and_exit(self):
+    def generate_and_exit(self) -> None:
         self.generate()
         ctx = click.get_current_context()
         ctx.exit(self.exit_code)
@@ -120,7 +120,7 @@ def _with_manager(
         ctx: click.Context,
         click_param: click.Parameter,
         value: object,
-    ):
+    ) -> object:
         return fn(ctx.obj.m, value)
 
     return wrapper
@@ -166,7 +166,7 @@ class EnumParam(click.Choice):
     help='Activate the specified profile.',
 )
 @click.pass_context
-def main(ctx: click.Context, log_level: str, profile: str):
+def main(ctx: click.Context, log_level: str, profile: str) -> None:
     "Add-on manager for World of Warcraft."
     ctx.obj = ManagerWrapper(ctx)
 
@@ -542,8 +542,8 @@ def list_installed(
     def format_deps(pkg: models.Pkg):
         return (
             (d.with_(alias=p.slug) if p else d).to_uri()
-            for d in pkg.deps
-            for d in (Defn(pkg.source, d.id),)
+            for e in pkg.deps
+            for d in (Defn(pkg.source, e.id),)
             for d, p in ((d, obj.m.get_pkg(d)),)
         )
 
@@ -663,7 +663,7 @@ def configure(ctx: click.Context, promptless: bool) -> Config:
 
 
 @main.group('weakauras-companion')
-def _weakauras_group():
+def _weakauras_group() -> None:
     "Manage your WeakAuras."
 
 
