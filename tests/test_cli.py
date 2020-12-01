@@ -179,17 +179,17 @@ def test_install_with_curse_alias(run):
 def test_install_with_tukui_alias(config, run):
     if config.is_retail:
         assert run('install tukui:-1').output.startswith('✓ tukui:-1\n  installed')
-        assert run('install tukui:-1-tukui').output == '✗ tukui:-1-tukui\n  package already installed\n'
+        assert run('install tukui:tukui').output == '✗ tukui:tukui\n  package already installed\n'
         assert (
             run('install https://www.tukui.org/download.php?ui=tukui').output
-            == '✗ tukui:-1\n  package already installed\n'
+            == '✗ tukui:tukui\n  package already installed\n'
         )
     else:
         assert run('install tukui:-1').output == '✗ tukui:-1\n  package does not exist\n'
-        assert run('install tukui:-1-tukui').output == '✗ tukui:-1-tukui\n  package does not exist\n'
+        assert run('install tukui:tukui').output == '✗ tukui:tukui\n  package does not exist\n'
         assert (
             run('install https://www.tukui.org/download.php?ui=tukui').output
-            == '✗ tukui:-1\n  package does not exist\n'
+            == '✗ tukui:tukui\n  package does not exist\n'
         )
     assert run('install https://www.tukui.org/addons.php?id=1').output.startswith(
         '✓ tukui:1\n  installed'

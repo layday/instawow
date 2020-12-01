@@ -722,13 +722,9 @@ class TukuiResolver(Resolver):
         url = URL(value)
         if url.host == 'www.tukui.org':
             if url.path in {'/addons.php', '/classic-addons.php'}:
-                alias = url.query.get('id')
-                if alias:
-                    return alias
+                return url.query.get('id')
             elif url.path == '/download.php':
-                alias = url.query.get('ui')
-                if alias:
-                    return {'tukui': '-1', 'elvui': '-2'}.get(alias)
+                return url.query.get('ui')
 
     async def _synchronise(self) -> dict[str, TukuiAddon | TukuiUi]:
         from .manager import cache_response
@@ -739,7 +735,7 @@ class TukuiResolver(Resolver):
                 self.api_url.with_query({'ui': ui_slug}),
                 {'minutes': 5},
             )
-            return [(str(addon['id']), addon)]
+            return [(str(addon['id']), addon), (ui_slug, addon)]
 
         async def fetch_addons(flavour: Flavour):
             addons: list[TukuiAddon] = await cache_response(
@@ -778,10 +774,17 @@ class TukuiResolver(Resolver):
         if defn.strategy not in self.strategies:
             raise E.PkgStrategyUnsupported(defn.strategy)
 
+        if metadata['id'] == -1:
+            slug = 'tukui'
+        elif metadata['id'] == -2:
+            slug = 'elvui'
+        else:
+            slug = _slugify(f'{metadata["id"]} {metadata["name"]}')
+
         return m.Pkg(
             source=self.source,
             id=str(metadata['id']),
-            slug=f'{metadata["id"]}-{_slugify(metadata["name"])}',
+            slug=slug,
             name=metadata['name'],
             description=metadata['small_desc'],
             url=metadata['web_url'],
