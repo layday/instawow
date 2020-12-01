@@ -105,7 +105,7 @@ async def test_resolve_tukui_pkgs(manager):
         [
             Defn('tukui', '1'),
             Defn('tukui', '-1'),
-            Defn('tukui', 'tukui'),
+            Defn('tukui', '-1-tukui'),
             Defn('tukui', '1', strategy=Strategy.latest),
         ]
     )

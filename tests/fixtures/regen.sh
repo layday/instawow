@@ -1,5 +1,5 @@
-#!/usr/bin/env nix-shell
-#!nix-shell -i bash -p httpie jq
+#! /usr/bin/env nix-shell
+#! nix-shell -i bash -p httpie jq
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null 2>&1 && pwd)"
 
@@ -22,12 +22,15 @@ http get https://api.mmoui.com/v3/game/WOW/filedetails/13188.json -b \
 http get 'https://www.tukui.org/api.php?ui=tukui' -b \
     | jq -r \
     > "$DIR"/tukui-ui--tukui.json
-http get 'https://www.tukui.org/api.php?addon=1' -b \
+http get 'https://www.tukui.org/api.php?ui=elvui' -b \
     | jq -r \
-    > "$DIR"/tukui-addon.json
-http get 'https://www.tukui.org/api.php?classic-addon=1' -b \
-    | jq -r \
-    > "$DIR"/tukui-classic-addon.json
+    > "$DIR"/tukui-ui--elvui.json
+http get 'https://www.tukui.org/api.php?addons=all' -b \
+    | jq -r '.[] | select(.id == "1") | [.]' \
+    > "$DIR"/tukui-retail-addons.json
+http get 'https://www.tukui.org/api.php?classic-addons=all' -b \
+    | jq -r '.[] | select(.id == "1") | [.]' \
+    > "$DIR"/tukui-classic-addons.json
 
 
 http get 'https://api.github.com/repos/AdiAddons/AdiButtonAuras' -b \

@@ -1,0 +1,19 @@
+{
+  "name": "ElvUI",
+  "author": "Elv",
+  "url": "https://www.tukui.org/downloads/elvui-12.16.zip",
+  "version": "12.16",
+  "changelog": "https://www.tukui.org/ui/elvui/changelog",
+  "ticket": "https://git.tukui.org/elvui/elvui/issues",
+  "git": "https://git.tukui.org/elvui/elvui",
+  "id": -2,
+  "patch": "9.0.2",
+  "lastupdate": "2020-11-27",
+  "web_url": "https://www.tukui.org/download.php?ui=elvui",
+  "lastdownload": "2020-12-01 03:45:01",
+  "donate_url": "http://www.tukui.org/support.php",
+  "small_desc": "A user interface designed around user-friendliness with extra features that are not included in the standard ui",
+  "screenshot_url": "https://www.tukui.org/images/screenshots/DarkTheme_ThickBorders_DPS.jpg",
+  "downloads": 2147483000,
+  "category": "Full UI Replacements"
+}

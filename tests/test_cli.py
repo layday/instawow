@@ -72,14 +72,14 @@ def test_valid_tukui_pkg_lifecycle(config, run):
     assert run('update tukui:1').output == '✗ tukui:1\n  package is not installed\n'
     assert run('remove tukui:1').output == '✗ tukui:1\n  package is not installed\n'
     if config.is_retail:
-        assert run('install tukui:tukui').output.startswith('✓ tukui:tukui\n  installed')
-        assert run('install tukui:tukui').output == '✗ tukui:tukui\n  package already installed\n'
-        assert run('update tukui:tukui').output == '✗ tukui:tukui\n  package is up to date\n'
-        assert run('remove tukui:tukui').output == '✓ tukui:tukui\n  removed\n'
+        assert run('install tukui:-1').output.startswith('✓ tukui:-1\n  installed')
+        assert run('install tukui:-1').output == '✗ tukui:-1\n  package already installed\n'
+        assert run('update tukui:-1').output == '✗ tukui:-1\n  package is up to date\n'
+        assert run('remove tukui:-1').output == '✓ tukui:-1\n  removed\n'
     else:
-        assert run('install tukui:tukui').output == '✗ tukui:tukui\n  package does not exist\n'
-    assert run('update tukui:tukui').output == '✗ tukui:tukui\n  package is not installed\n'
-    assert run('remove tukui:tukui').output == '✗ tukui:tukui\n  package is not installed\n'
+        assert run('install tukui:-1').output == '✗ tukui:-1\n  package does not exist\n'
+    assert run('update tukui:-1').output == '✗ tukui:-1\n  package is not installed\n'
+    assert run('remove tukui:-1').output == '✗ tukui:-1\n  package is not installed\n'
 
 
 def test_valid_wowi_pkg_lifecycle(run):
@@ -179,17 +179,17 @@ def test_install_with_curse_alias(run):
 def test_install_with_tukui_alias(config, run):
     if config.is_retail:
         assert run('install tukui:-1').output.startswith('✓ tukui:-1\n  installed')
-        assert run('install tukui:tukui').output == '✗ tukui:tukui\n  package already installed\n'
+        assert run('install tukui:-1-tukui').output == '✗ tukui:-1-tukui\n  package already installed\n'
         assert (
             run('install https://www.tukui.org/download.php?ui=tukui').output
-            == '✗ tukui:tukui\n  package already installed\n'
+            == '✗ tukui:-1\n  package already installed\n'
         )
     else:
         assert run('install tukui:-1').output == '✗ tukui:-1\n  package does not exist\n'
-        assert run('install tukui:tukui').output == '✗ tukui:tukui\n  package does not exist\n'
+        assert run('install tukui:-1-tukui').output == '✗ tukui:-1-tukui\n  package does not exist\n'
         assert (
             run('install https://www.tukui.org/download.php?ui=tukui').output
-            == '✗ tukui:tukui\n  package does not exist\n'
+            == '✗ tukui:-1\n  package does not exist\n'
         )
     assert run('install https://www.tukui.org/addons.php?id=1').output.startswith(
         '✓ tukui:1\n  installed'

@@ -717,54 +717,79 @@ class TukuiResolver(Resolver):
     # UIs only.  The response body appears to be identical to ``/api.php``
     api_url = URL('https://www.tukui.org/api.php')
 
-    retail_uis = {'-1': 'tukui', '-2': 'elvui', 'tukui': 'tukui', 'elvui': 'elvui'}
-
     @staticmethod
     def get_alias_from_url(value: str) -> O[str]:
         url = URL(value)
-        if url.host == 'www.tukui.org' and url.path in {
-            '/addons.php',
-            '/classic-addons.php',
-            '/download.php',
-        }:
-            alias = url.query.get('id') or url.query.get('ui')
-            if alias:
-                return alias
+        if url.host == 'www.tukui.org':
+            if url.path in {'/addons.php', '/classic-addons.php'}:
+                alias = url.query.get('id')
+                if alias:
+                    return alias
+            elif url.path == '/download.php':
+                alias = url.query.get('ui')
+                if alias:
+                    return {'tukui': '-1', 'elvui': '-2'}.get(alias)
 
-    async def resolve_one(self, defn: Defn, metadata: None) -> m.Pkg:
+    async def _synchronise(self) -> dict[str, TukuiAddon | TukuiUi]:
+        from .manager import cache_response
+
+        async def fetch_ui(ui_slug: str):
+            addon: TukuiUi = await cache_response(
+                self.manager,
+                self.api_url.with_query({'ui': ui_slug}),
+                {'minutes': 5},
+            )
+            return [(str(addon['id']), addon)]
+
+        async def fetch_addons(flavour: Flavour):
+            addons: list[TukuiAddon] = await cache_response(
+                self.manager,
+                self.api_url.with_query(
+                    {'classic-addons' if flavour is Flavour.classic else 'addons': 'all'}
+                ),
+                {'minutes': 30},
+                label=f'Synchronising {self.name} {flavour} catalogue',
+            )
+            return [(str(a['id']), a) for a in addons]
+
+        async with self.manager.locks['load Tukui catalogue']:
+            requests = await gather(
+                ((fetch_ui('tukui'), fetch_ui('elvui')) if self.manager.config.is_retail else ())
+                + (fetch_addons(self.manager.config.game_flavour),)
+            )
+            return {k: v for l in requests for k, v in l}
+
+    async def resolve(self, defns: Sequence[Defn]) -> dict[Defn, Any]:
+        from .manager import capture_manager_exc_async
+
+        addons = await self._synchronise()
+
+        ids = (d.alias[: p if p != -1 else None] for d in defns for p in (d.alias.find('-', 1),))
+        results = await gather(
+            (self.resolve_one(d, addons.get(i)) for d, i in zip(defns, ids)),
+            capture_manager_exc_async,
+        )
+        return dict(zip(defns, results))
+
+    async def resolve_one(self, defn: Defn, metadata: O[TukuiAddon | TukuiUi]) -> m.Pkg:
+        if metadata is None:
+            raise E.PkgNonexistent
+
         if defn.strategy not in self.strategies:
             raise E.PkgStrategyUnsupported(defn.strategy)
 
-        alias = ui_id = self.retail_uis.get(defn.alias)
-        if not alias:
-            alias = ''.join(takewhile('-'.__ne__, defn.alias))
-
-        if self.manager.config.is_classic:
-            query = 'classic-addon'
-        elif ui_id:
-            query = 'ui'
-        else:
-            query = 'addon'
-
-        url = self.api_url.with_query({query: alias})
-        async with self.manager.web_client.get(url) as response:
-            # Does not 404 for non-existent add-ons but the response body is empty
-            if not response.content_length:
-                raise E.PkgNonexistent
-            addon: Union[TukuiUi, TukuiAddon] = await response.json(content_type=None)  # text/html
-
         return m.Pkg(
             source=self.source,
-            id=str(addon['id']),
-            slug=ui_id or _slugify(f'{addon["id"]} {addon["name"]}'),
-            name=addon['name'],
-            description=addon['small_desc'],
-            url=addon['web_url'],
-            download_url=addon['url'],
-            date_published=datetime.fromisoformat(addon['lastupdate']).replace(
+            id=str(metadata['id']),
+            slug=f'{metadata["id"]}-{_slugify(metadata["name"])}',
+            name=metadata['name'],
+            description=metadata['small_desc'],
+            url=metadata['web_url'],
+            download_url=metadata['url'],
+            date_published=datetime.fromisoformat(metadata['lastupdate']).replace(
                 tzinfo=timezone.utc
             ),
-            version=addon['version'],
+            version=metadata['version'],
             options=m.PkgOptions(strategy=defn.strategy),
         )
 
@@ -772,17 +797,26 @@ class TukuiResolver(Resolver):
     async def collect_items(
         cls, web_client: aiohttp.ClientSession
     ) -> AsyncIterable[_CatalogueEntryDefaultFields]:
-        for query, param in [
-            ('ui', 'tukui'),
-            ('ui', 'elvui'),
-            ('addons', 'all'),
-            ('classic-addons', 'all'),
-        ]:
-            async with web_client.get(cls.api_url.with_query({query: param})) as response:
-                metadata = await response.json(content_type=None)  # text/html
+        async def fetch_ui(ui_slug: str) -> tuple[set[Flavour], list[TukuiUi]]:
+            async with web_client.get(cls.api_url.with_query({'ui': ui_slug})) as response:
+                return ({Flavour.retail}, [await response.json(content_type=None)])  # text/html
 
-            items: list[Union[TukuiUi, TukuiAddon]] = [metadata] if query == 'ui' else metadata
-            game_compatibility = {'classic' if query == 'classic-addons' else 'retail'}
+        async def fetch_addons(flavour: Flavour) -> tuple[set[Flavour], list[TukuiAddon]]:
+            async with web_client.get(
+                cls.api_url.with_query(
+                    {'classic-addons' if flavour is Flavour.classic else 'addons': 'all'}
+                )
+            ) as response:
+                return ({flavour}, await response.json(content_type=None))  # text/html
+
+        for flavours, items in await gather(
+            [
+                fetch_ui('tukui'),
+                fetch_ui('elvui'),
+                fetch_addons(Flavour.retail),
+                fetch_addons(Flavour.classic),
+            ]
+        ):
             for item in items:
                 yield _CatalogueEntryDefaultFields(
                     source=cls.source,
@@ -790,13 +824,13 @@ class TukuiResolver(Resolver):
                     slug='',
                     name=item['name'],
                     folders=[],
-                    game_compatibility=game_compatibility,
+                    game_compatibility=flavours,
                     # Split Tukui and ElvUI downloads evenly between them.
                     # They both have the exact same number of downloads so
                     # I'm assuming they're being counted together.
                     # This should help with scoring other add-ons on the
                     # Tukui catalogue higher
-                    download_count=int(item['downloads']) // (2 if query == 'ui' else 1),
+                    download_count=int(item['downloads']) // (2 if item['id'] in {-1, -2} else 1),
                     last_updated=datetime.fromisoformat(item['lastupdate']).replace(
                         tzinfo=timezone.utc
                     ),
