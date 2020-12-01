@@ -58,7 +58,7 @@ jobs:
     - name: Upload binary
       uses: actions/upload-artifact@v2
       with:
-        name: instawow-${{ matrix.os }}-${{ needs.extract-tag.outputs.tag }}
+        name: instawow-cli-${{ matrix.os }}-${{ needs.extract-tag.outputs.tag }}
         path: dist/instawow*
   freeze-gui:
     needs: [extract-tag, freeze-cli]
@@ -76,7 +76,7 @@ jobs:
     - name: Retrieve the CLI binary
       uses: actions/download-artifact@v2
       with:
-        name: instawow-${{ matrix.os }}-${{ needs.extract-tag.outputs.tag }}
+        name: instawow-cli-${{ matrix.os }}-${{ needs.extract-tag.outputs.tag }}
         path: gui/artefacts
     - name: Ensure binary is executable
       run: |
@@ -92,4 +92,5 @@ jobs:
     - name: Upload app
       uses: actions/upload-artifact@v2
       with:
+        name: instawow-gui-${{ matrix.os }}-${{ needs.extract-tag.outputs.tag }}
         path: gui/dist/instawow-desktop*
