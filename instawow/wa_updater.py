@@ -21,6 +21,15 @@ if TYPE_CHECKING:
     ImportString = str
     RemoteAuras = Sequence[tuple[Sequence[WeakAura], WagoApiResponse, ImportString]]
 
+    _T = TypeVar('_T')
+
+    def type_(value: _T) -> type[_T]:
+        ...
+
+
+else:
+    type_ = type
+
 
 class BuilderConfig(BaseConfig):
     wago_api_key: O[str]
@@ -48,11 +57,11 @@ class Auras(GenericModel, Generic[WeakAuraT]):
         raise NotImplementedError
 
     @classmethod
-    def merge(cls, *auras: Auras[WeakAuraT]) -> Iterable[Auras[WeakAuraT]]:
+    def merge(cls, *auras: Auras[Any]) -> Iterable[Auras[Any]]:
         "Merge auras of the same type."
         return (
             t(__root__=reduce(lambda a, b: {**a, **b}, (i.__root__ for i in a)))
-            for t, a in bucketise(auras, key=type).items()
+            for t, a in bucketise(auras, key=type_).items()
         )
 
 
@@ -164,7 +173,7 @@ class WaCompanionBuilder:
                 content = file.read_text(encoding='utf-8-sig', errors='replace')
                 aura_group_cache = self.manager.config.cache_dir / shasum(content)
                 if aura_group_cache.exists():
-                    logger.info(f'loading {file} from cache')
+                    logger.info(f'loading {file} from cache at {aura_group_cache}')
                     aura_groups = model.parse_file(aura_group_cache)
                 else:
                     start = time.perf_counter()
@@ -184,12 +193,9 @@ class WaCompanionBuilder:
                 await cache_response(
                     self.manager,
                     aura_groups._api_url.with_query(ids=','.join(aura_ids)),
-                    30,
-                    'minutes',
+                    {'minutes': 30},
                     label='Fetching aura metadata',
-                    request_kwargs={
-                        'headers': {'api-key': self.builder_config.wago_api_key or ''}
-                    },
+                    request_extra={'headers': {'api-key': self.builder_config.wago_api_key or ''}},
                 ),
                 key=lambda r: r['slug'],
             )
@@ -198,17 +204,16 @@ class WaCompanionBuilder:
                 raise
             return []
 
-    async def get_wago_import_string(self, aura_id: str) -> str:
+    async def get_wago_import_string(self, aura: WagoApiResponse) -> str:
         from .manager import cache_response
 
         return await cache_response(
             self.manager,
-            import_api_url.with_query(id=aura_id),
-            30,
-            'minutes',
-            label=f'Fetching aura with ID {aura_id}',
-            to_json=False,
-            request_kwargs={'headers': {'api-key': self.builder_config.wago_api_key or ''}},
+            import_api_url.with_query(id=aura['_id']),
+            {'minutes': 30},
+            label=f"Fetching aura '{aura['slug']}'",
+            is_json=False,
+            request_extra={'headers': {'api-key': self.builder_config.wago_api_key or ''}},
         )
 
     async def get_remote_auras(
@@ -218,7 +223,7 @@ class WaCompanionBuilder:
             return (aura_groups.__class__, [])
 
         metadata = await self.get_wago_metadata(aura_groups)
-        import_strings = await gather(self.get_wago_import_string(r['_id']) for r in metadata)
+        import_strings = await gather(self.get_wago_import_string(r) for r in metadata)
         return (
             aura_groups.__class__,
             [(aura_groups.__root__[r['slug']], r, i) for r, i in zip(metadata, import_strings)],

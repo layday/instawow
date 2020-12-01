@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from enum import Enum
 from itertools import chain, count, takewhile
 import re
-from typing import TYPE_CHECKING, Any, ClassVar, List, Optional as O, Set as TSet, Union, cast
+from typing import TYPE_CHECKING, Any, ClassVar, List, Optional as O, Set as TSet, cast
 
 from pydantic import BaseModel
 from pydantic.datetime_parse import parse_datetime
@@ -50,7 +50,7 @@ class Defn(_HashableModel):
     version: O[str] = None
 
     @classmethod
-    def from_pkg(cls, pkg: Union[m.Pkg, PkgModel]) -> Defn:
+    def from_pkg(cls, pkg: m.Pkg | PkgModel) -> Defn:
         return cls(
             source=pkg.source,
             alias=pkg.slug,
@@ -327,21 +327,21 @@ class CurseResolver(Resolver):
 
         catalogue = await self.manager.synchronise()
 
-        defns_to_ids = {d: (d.id or catalogue.curse_slugs.get(d.alias) or d.alias) for d in defns}
+        defns_to_ids = {d: d.id or catalogue.curse_slugs.get(d.alias) or d.alias for d in defns}
         numeric_ids = {i for i in defns_to_ids.values() if i.isdigit()}
         try:
-            json_response = await cache_response(
+            json_response: list[CurseAddon] = await cache_response(
                 self.manager,
                 self.addon_api_url,
-                300,
-                request_kwargs={'method': 'POST', 'json': list(numeric_ids)},
+                {'minutes': 5},
+                request_extra={'method': 'POST', 'json': list(numeric_ids)},
             )
         except ClientResponseError as error:
             if error.status != 404:
                 raise
             json_response = []
 
-        api_results: dict[str, CurseAddon] = {str(r['id']): r for r in json_response}
+        api_results = {str(r['id']): r for r in json_response}
         results = await gather(
             (self.resolve_one(d, api_results.get(i)) for d, i in defns_to_ids.items()),
             capture_manager_exc_async,
@@ -349,7 +349,7 @@ class CurseResolver(Resolver):
         return dict(zip(defns, results))
 
     async def resolve_one(self, defn: Defn, metadata: O[CurseAddon]) -> m.Pkg:
-        if not metadata:
+        if metadata is None:
             raise E.PkgNonexistent
 
         if defn.strategy not in self.strategies:
@@ -362,7 +362,7 @@ class CurseResolver(Resolver):
             files = await cache_response(
                 self.manager,
                 self.addon_api_url / str(metadata['id']) / 'files',
-                3600,
+                {'hours': 1},
                 label=f'Fetching metadata from {self.name}',
             )
 
@@ -498,48 +498,50 @@ class CurseResolver(Resolver):
                 )
 
 
-if TYPE_CHECKING:
+class WowiCommonTerms(TypedDict):
+    UID: str  # Unique add-on ID
+    UICATID: str  # ID of category add-on is placed in
+    UIVersion: str  # Add-on version
+    UIDate: int  # Upload date expressed as unix epoch
+    UIName: str  # User-facing add-on name
+    UIAuthorName: str
 
-    class WowiCommonTerms(TypedDict):
-        UID: str  # Unique add-on ID
-        UICATID: str  # ID of category add-on is placed in
-        UIVersion: str  # Add-on version
-        UIDate: int  # Upload date expressed as unix epoch
-        UIName: str  # User-facing add-on name
-        UIAuthorName: str
 
-    class WowiCompatibilityEntry(TypedDict):
-        version: str  # Game version, e.g. '8.3.0'
-        name: str  # Xpac or patch name, e.g. "Visions of N'Zoth" for 8.3.0
+class WowiCompatibilityEntry(TypedDict):
+    version: str  # Game version, e.g. '8.3.0'
+    name: str  # Xpac or patch name, e.g. "Visions of N'Zoth" for 8.3.0
 
-    class WowiListApiItem(WowiCommonTerms):
-        UIFileInfoURL: str  # Add-on page on WoWI
-        UIDownloadTotal: str  # Total number of downloads
-        UIDownloadMonthly: str  # Number of downloads in the last month and not 'monthly'
-        UIFavoriteTotal: str
-        UICompatibility: O[list[WowiCompatibilityEntry]]  # ``null`` if would be empty
-        UIDir: list[str]  # Names of folders contained in archive
-        UIIMG_Thumbs: O[list[str]]  # Thumbnail URLs; ``null`` if would be empty
-        UIIMGs: O[list[str]]  # Full-size image URLs; ``null`` if would be empty
-        # There are only two add-ons on the entire list with siblings
-        # (they refer to each other). I don't know if this was meant to capture
-        # dependencies (probably not) but it's so underused as to be worthless.
-        # ``null`` if would be empty
-        UISiblings: O[list[str]]
-        UIDonationLink: O[str]  # Absent from the first item on the list (!)
 
-    class WowiDetailsApiItem(WowiCommonTerms):
-        UIMD5: O[str]  # Archive hash, ``null` when UI is pending
-        UIFileName: str  # The actual filename, e.g. 'foo.zip'
-        UIDownload: str  # Download URL
-        UIPending: Literal['0', '1']  # Set to '1' if the file is awaiting approval
-        UIDescription: str  # Long description with BB Code and all
-        UIChangeLog: str  # This can also contain BB Code
-        UIHitCount: str  # Same as UIDownloadTotal
-        UIHitCountMonthly: str  # Same as UIDownloadMonthly
+class WowiListApiItem(WowiCommonTerms):
+    UIFileInfoURL: str  # Add-on page on WoWI
+    UIDownloadTotal: str  # Total number of downloads
+    UIDownloadMonthly: str  # Number of downloads in the last month and not 'monthly'
+    UIFavoriteTotal: str
+    UICompatibility: O[list[WowiCompatibilityEntry]]  # ``null`` if would be empty
+    UIDir: list[str]  # Names of folders contained in archive
+    UIIMG_Thumbs: O[list[str]]  # Thumbnail URLs; ``null`` if would be empty
+    UIIMGs: O[list[str]]  # Full-size image URLs; ``null`` if would be empty
+    # There are only two add-ons on the entire list with siblings
+    # (they refer to each other). I don't know if this was meant to capture
+    # dependencies (probably not) but it's so underused as to be worthless.
+    # ``null`` if would be empty
+    UISiblings: O[list[str]]
+    UIDonationLink: O[str]  # Absent from the first item on the list (!)
 
-    class WowiCombinedItem(WowiListApiItem, WowiDetailsApiItem):
-        pass
+
+class WowiDetailsApiItem(WowiCommonTerms):
+    UIMD5: O[str]  # Archive hash, ``null` when UI is pending
+    UIFileName: str  # The actual filename, e.g. 'foo.zip'
+    UIDownload: str  # Download URL
+    UIPending: Literal['0', '1']  # Set to '1' if the file is awaiting approval
+    UIDescription: str  # Long description with BB Code and all
+    UIChangeLog: str  # This can also contain BB Code
+    UIHitCount: str  # Same as UIDownloadTotal
+    UIHitCountMonthly: str  # Same as UIDownloadMonthly
+
+
+class WowiCombinedItem(WowiListApiItem, WowiDetailsApiItem):
+    pass
 
 
 class WowiResolver(Resolver):
@@ -560,8 +562,6 @@ class WowiResolver(Resolver):
     # classic category would be an add-on for classic.
     list_api_url = 'https://api.mmoui.com/v3/game/WOW/filelist.json'
     details_api_url = URL('https://api.mmoui.com/v3/game/WOW/filedetails/')
-
-    list_api_items: O[dict[str, WowiListApiItem]] = None
 
     @staticmethod
     def get_alias_from_url(value: str) -> O[str]:
@@ -584,26 +584,32 @@ class WowiResolver(Resolver):
                 if match:
                     return match.group('id')
 
+    async def _synchronise(self) -> dict[str, WowiListApiItem]:
+        from .manager import cache_response
+
+        async with self.manager.locks['load WoWI catalogue']:
+            list_api_items = await cache_response(
+                self.manager,
+                self.list_api_url,
+                {'hours': 1},
+                label=f'Synchronising {self.name} catalogue',
+            )
+            return {i['UID']: i for i in list_api_items}
+
     async def resolve(self, defns: Sequence[Defn]) -> dict[Defn, Any]:
         from aiohttp import ClientResponseError
 
         from .manager import cache_response, capture_manager_exc_async
 
-        async with self.manager.locks['load WoWI catalogue']:
-            if self.list_api_items is None:
-                list_api_items = await cache_response(
-                    self.manager,
-                    self.list_api_url,
-                    3600,
-                    label=f'Synchronising {self.name} catalogue',
-                )
-                self.list_api_items = {i['UID']: i for i in list_api_items}
+        list_api_items = await self._synchronise()
 
         defns_to_ids = {d: ''.join(takewhile(str.isdigit, d.alias)) for d in defns}
         numeric_ids = {i for i in defns_to_ids.values() if i.isdigit()}
         try:
-            details_api_items = await cache_response(
-                self.manager, self.details_api_url / f'{",".join(numeric_ids)}.json', 300
+            details_api_items: list[WowiDetailsApiItem] = await cache_response(
+                self.manager,
+                self.details_api_url / f'{",".join(numeric_ids)}.json',
+                {'minutes': 5},
             )
         except ClientResponseError as error:
             if error.status != 404:
@@ -611,7 +617,7 @@ class WowiResolver(Resolver):
             details_api_items = []
 
         combined_items = {
-            i['UID']: cast('WowiCombinedItem', {**self.list_api_items[i['UID']], **i})
+            i['UID']: WowiCombinedItem(**{**list_api_items[i['UID']], **i})
             for i in details_api_items
         }
         results = await gather(
@@ -621,7 +627,7 @@ class WowiResolver(Resolver):
         return dict(zip(defns, results))
 
     async def resolve_one(self, defn: Defn, metadata: O[WowiCombinedItem]) -> m.Pkg:
-        if not metadata:
+        if metadata is None:
             raise E.PkgNonexistent
 
         if defn.strategy not in self.strategies:
@@ -647,7 +653,7 @@ class WowiResolver(Resolver):
         async with web_client.get(cls.list_api_url) as response:
             list_api_items: list[WowiListApiItem] = await response.json()
 
-        game_compatibility = set(Flavour.__members__)
+        flavours = set(Flavour.__members__)
         for list_item in list_api_items:
             yield _CatalogueEntryDefaultFields(
                 source=cls.source,
@@ -655,7 +661,7 @@ class WowiResolver(Resolver):
                 name=list_item['UIName'],
                 slug='',
                 folders=[list_item['UIDir']],
-                game_compatibility=game_compatibility,
+                game_compatibility=flavours,
                 download_count=int(list_item['UIDownloadTotal']),
                 last_updated=list_item['UIDate'],
             )
@@ -856,7 +862,9 @@ class GithubResolver(Resolver):
 
         repo_url = self.repos_api_url / defn.alias
         try:
-            project_metadata: GithubRepo = await cache_response(self.manager, repo_url, 3600)
+            project_metadata: GithubRepo = await cache_response(
+                self.manager, repo_url, {'hours': 1}
+            )
         except ClientResponseError as error:
             if error.status == 404:
                 raise E.PkgNonexistent

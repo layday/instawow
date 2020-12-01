@@ -2,7 +2,16 @@ from __future__ import annotations
 
 import asyncio
 from collections import defaultdict
-from collections.abc import AsyncIterator, Awaitable, Callable, Iterable, Iterator, Sequence, Set
+from collections.abc import (
+    AsyncIterator,
+    Awaitable,
+    Callable,
+    Iterable,
+    Iterator,
+    Mapping,
+    Sequence,
+    Set,
+)
 from contextlib import asynccontextmanager, contextmanager
 import contextvars as cv
 from itertools import chain, compress, filterfalse, repeat, starmap
@@ -10,7 +19,7 @@ import json
 from pathlib import Path, PurePath
 from shutil import copy
 from tempfile import NamedTemporaryFile
-from typing import TYPE_CHECKING, Any, Optional as O, TypeVar, Union
+from typing import TYPE_CHECKING, Any, Optional as O, TypeVar
 
 from loguru import logger
 from typing_extensions import TypeAlias
@@ -114,7 +123,7 @@ async def download_archive(manager: Manager, pkg: Pkg, *, chunk_size: int = 4096
         pkg.source, pkg.id, pkg.version, manager.config.game_flavour
     )
     if await t(dest.exists)():
-        logger.debug(f'{url} is cached at {dest}')
+        logger.debug(f'retrieving {url} from cache at {dest}')
     elif url.startswith('file://'):
         await copy_async(file_uri_to_path(url), dest)
     else:
@@ -134,26 +143,29 @@ async def download_archive(manager: Manager, pkg: Pkg, *, chunk_size: int = 4096
 
 async def cache_response(
     manager: Manager,
-    url: Union[str, URL],
-    *timedelta_args: Any,
+    url: str | URL,
+    ttl: Mapping[str, float],
+    *,
     label: O[str] = None,
-    to_json: bool = True,
-    request_kwargs: dict[str, Any] = {},
+    is_json: bool = True,
+    request_extra: Mapping[str, Any] = {},
 ) -> Any:
-    dest = manager.config.cache_dir / shasum(str(url), json.dumps(request_kwargs))
-    if await t(is_not_stale)(dest, *timedelta_args):
-        logger.debug(f'{url} is cached at {dest}')
-        text = await t(dest.read_text)(encoding='utf-8')
-    else:
-        kwargs = {'url': url, 'raise_for_status': True, 'method': 'GET', **request_kwargs}
+    async def make_request():
+        kwargs = {'method': 'GET', 'url': url, 'raise_for_status': True, **request_extra}
         if label:
             kwargs = {**kwargs, 'trace_request_ctx': {'report_progress': True, 'label': label}}
         async with manager.web_client.request(**kwargs) as response:
-            text = await response.text()
+            return await response.text()
 
+    dest = manager.config.cache_dir / shasum(url, request_extra)
+    if await t(is_not_stale)(dest, ttl):
+        logger.debug(f'loading {url} from cache at {dest} (ttl: {ttl})')
+        text = await t(dest.read_text)(encoding='utf-8')
+    else:
+        text = await make_request()
         await t(dest.write_text)(text, encoding='utf-8')
 
-    return json.loads(text) if to_json else text
+    return json.loads(text) if is_json else text
 
 
 def _should_migrate(engine: Any) -> bool:
@@ -250,7 +262,7 @@ class _ResolverDict(_BaseResolverDict):
 
 async def capture_manager_exc_async(
     awaitable: Awaitable[_T],
-) -> Union[_T, E.ManagerError, E.InternalError]:
+) -> _T | E.ManagerError | E.InternalError:
     "Capture and log an exception raised in a coroutine."
     from aiohttp import ClientError
 
@@ -389,7 +401,7 @@ class Manager:
             if replace:
                 trash(
                     [self.config.addon_dir / f for f in top_level_folders],
-                    dst=self.config.temp_dir,
+                    dest=self.config.temp_dir,
                     missing_ok=True,
                 )
             else:
@@ -431,7 +443,7 @@ class Manager:
 
             trash(
                 [self.config.addon_dir / f.name for f in old_pkg.folders],
-                dst=self.config.temp_dir,
+                dest=self.config.temp_dir,
                 missing_ok=True,
             )
             extract(self.config.addon_dir)
@@ -451,7 +463,7 @@ class Manager:
         if not keep_folders:
             trash(
                 [self.config.addon_dir / f.name for f in pkg.folders],
-                dst=self.config.temp_dir,
+                dest=self.config.temp_dir,
                 missing_ok=True,
             )
         self.database.delete(pkg)
@@ -468,7 +480,7 @@ class Manager:
                 'https://raw.githubusercontent.com/layday/instawow-data/data/'
                 'master-catalogue-v2.compact.json'
             )  # v2
-            raw_catalogue = await cache_response(self, url, 4, 'hours', label=label)
+            raw_catalogue = await cache_response(self, url, {'hours': 4}, label=label)
             self._catalogue = Catalogue.parse_obj(raw_catalogue)
         return self._catalogue
 
@@ -568,7 +580,7 @@ class Manager:
     @_with_lock('change state')
     async def install(
         self, defns: Sequence[Defn], replace: bool
-    ) -> dict[Defn, Union[E.PkgInstalled, E.ManagerError, E.InternalError]]:
+    ) -> dict[Defn, E.PkgInstalled | E.ManagerError | E.InternalError]:
         "Install packages from a definition list."
         # We'll weed out installed dependencies from results after resolving.
         # Doing it this way isn't particularly efficient but avoids having to
@@ -600,7 +612,7 @@ class Manager:
     @_with_lock('change state')
     async def update(
         self, defns: Sequence[Defn], retain_strategy: bool
-    ) -> dict[Defn, Union[E.PkgUpdated, E.ManagerError, E.InternalError]]:
+    ) -> dict[Defn, E.PkgUpdated | E.ManagerError | E.InternalError]:
         """Update installed packages from a definition list.
 
         A ``retain_strategy`` value of false will instruct ``update``
@@ -611,7 +623,7 @@ class Manager:
         resolve_defns = {
             # Attach the source ID to each ``Defn`` from the
             # corresponding installed package.  Using the ID has the benefit
-            # of resolving installed-but-renamed  packages - the slug is
+            # of resolving installed-but-renamed packages - the slug is
             # transient but the ID isn't
             d.with_(id=p.id) if retain_strategy else Defn.from_pkg(p): d
             for d, p in defns_to_pkgs.items()
@@ -648,7 +660,7 @@ class Manager:
     @_with_lock('change state')
     async def remove(
         self, defns: Sequence[Defn], keep_folders: bool
-    ) -> dict[Defn, Union[E.PkgRemoved, E.ManagerError, E.InternalError]]:
+    ) -> dict[Defn, E.PkgRemoved | E.ManagerError | E.InternalError]:
         "Remove packages by their definition."
         results = chain_dict(
             defns,
@@ -674,7 +686,7 @@ class Manager:
         package.
         """
 
-        strategies = {Strategy.default, Strategy.version}
+        strategies = frozenset({Strategy.default, Strategy.version})
 
         def pin(defn: Defn, pkg: O[Pkg]) -> E.ManagerResult:
             if not pkg:

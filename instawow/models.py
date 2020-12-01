@@ -27,7 +27,7 @@ else:
 class TZDateTime(TZDateTime_base_class):
     impl = DateTime
 
-    def process_bind_param(self, value: O[datetime], dialect: object) -> O[datetime]:  # type: ignore
+    def process_bind_param(self, value: O[datetime], dialect: object) -> O[datetime]:
         if value is not None:
             if not value.tzinfo:
                 raise TypeError('tzinfo is required')
@@ -40,7 +40,7 @@ class TZDateTime(TZDateTime_base_class):
         return value
 
     @property
-    def python_type(self):
+    def python_type(self) -> type[datetime]:
         return datetime
 
 

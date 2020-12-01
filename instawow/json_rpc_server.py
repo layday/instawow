@@ -420,7 +420,7 @@ class ManagerWorkQueue:
 
     async def run(
         self, profile: str, coro_fn: O[Callable[..., Awaitable[_T]]] = None
-    ) -> Union[Manager, _T]:
+    ) -> Manager | _T:
         future: asyncio.Future[Any] = asyncio.Future()
         self._queue.put_nowait((future, profile, coro_fn))
         return await asyncio.wait_for(future, None)

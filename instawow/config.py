@@ -154,14 +154,14 @@ class GlobalConfig(BaseConfig):
             copytree(self.config_dir, self.profile_dir, ignore=ignores)
             legacy_config.write()
             trash(
-                [i for i in self.config_dir.iterdir() if i.name != 'profiles'], dst=self.temp_dir
+                [i for i in self.config_dir.iterdir() if i.name != 'profiles'], dest=self.temp_dir
             )
 
         return self
 
     def delete(self) -> None:
         "Delete the configuration files associated with this profile."
-        trash((self.ensure_dirs().profile_dir,), dst=self.temp_dir, missing_ok=True)
+        trash((self.profile_dir,), dest=self.temp_dir, missing_ok=True)
 
     @property
     def is_classic(self) -> bool:

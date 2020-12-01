@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from functools import partial
-from typing import TYPE_CHECKING, Any, Union
+from typing import TYPE_CHECKING, Any
 
 from prompt_toolkit.application import Application
 from prompt_toolkit.key_binding import KeyBindings, KeyPressEvent
@@ -139,7 +139,7 @@ def checkbox(message: str, choices: Sequence[Choice], **inquirer_kwargs: Any) ->
 
 def select(
     message: str,
-    choices: Union[Sequence[str], Sequence[Choice]],
+    choices: Sequence[str] | Sequence[Choice],
     **inquirer_kwargs: Any,
 ) -> Question:
     def get_prompt_tokens():

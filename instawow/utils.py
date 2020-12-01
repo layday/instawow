@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 from collections import defaultdict, deque
-from collections.abc import Awaitable, Callable, Coroutine, Iterable, Iterator, Sequence, Set
+from collections.abc import Awaitable, Callable, Coroutine, Iterable, Iterator, Mapping, Sequence
 from contextlib import contextmanager
 from datetime import datetime, timedelta
 from functools import partial, wraps
@@ -11,27 +11,13 @@ from pathlib import Path, PurePath
 import posixpath
 from shutil import move as _move
 from tempfile import mkdtemp
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Generic,
-    Hashable,
-    NamedTuple,
-    Optional as O,
-    TypeVar,
-    Union,
-    cast,
-    overload,
-)
+from typing import TYPE_CHECKING, Any, Generic, NamedTuple, Optional as O, TypeVar, cast, overload
 
 if TYPE_CHECKING:
     from prompt_toolkit.shortcuts import ProgressBar
 
-    _H = TypeVar('_H', bound=Hashable)
-    _AnySet = TypeVar('_AnySet', bound=Set)
-
-    _V = TypeVar('_V')
 _T = TypeVar('_T')
+_V = TypeVar('_V')
 
 
 class _TocEntry(NamedTuple):
@@ -55,7 +41,7 @@ class TocReader:
         )
         self.entries = {k: v for k, v in possible_entries if k}
 
-    def __getitem__(self, key: Union[str, tuple[str, ...]]) -> _TocEntry:
+    def __getitem__(self, key: str | tuple[str, ...]) -> _TocEntry:
         if isinstance(key, tuple):
             try:
                 return next(filter(None, (self[k] for k in key)))
@@ -72,19 +58,19 @@ class TocReader:
         return cls.from_path(path / f'{path.name}.toc')
 
 
-class cached_property(Generic[_T]):
-    def __init__(self, f: Callable[[Any], _T]) -> None:
+class cached_property(Generic[_V]):
+    def __init__(self, f: Callable[[Any], _V]) -> None:
         self.f = f
 
     @overload
-    def __get__(self, o: None, t: O[type] = None) -> cached_property[_T]:
+    def __get__(self, o: None, t: O[type] = None) -> cached_property[_V]:
         ...
 
     @overload
-    def __get__(self, o: Any, t: O[type] = None) -> _T:
+    def __get__(self, o: _T, t: O[type[_T]] = None) -> _V:
         ...
 
-    def __get__(self, o: Any, t: O[type] = None) -> Union[cached_property[_T], _T]:
+    def __get__(self, o: _T, t: O[type[_T]] = None) -> cached_property[_V] | _V:
         if o is None:
             return self
         else:
@@ -92,29 +78,29 @@ class cached_property(Generic[_T]):
             return v
 
 
-def bucketise(iterable: Iterable[_V], key: Callable[[_V], _H]) -> defaultdict[_H, list[_V]]:
+def bucketise(iterable: Iterable[_V], key: Callable[[_V], _T]) -> defaultdict[_T, list[_V]]:
     "Place the elements of an iterable in a bucket according to ``key``."
-    bucket: defaultdict[_H, list[_V]] = defaultdict(list)
+    bucket: defaultdict[_T, list[_V]] = defaultdict(list)
     for value in iterable:
         bucket[key(value)].append(value)
     return bucket
 
 
 def chain_dict(
-    keys: Iterable[_H], default: Any, *overrides: Iterable[tuple[_H, _V]]
-) -> dict[_H, _V]:
-    "Construct a dictionary from a series of iterables with overlapping keys."
+    keys: Iterable[_T], default: _V, *overrides: Iterable[tuple[_T, _V]]
+) -> dict[_T, _V]:
+    "Construct a dictionary from a series of two-tuple iterables with overlapping keys."
     return dict(chain(zip(keys, repeat(default)), *overrides))
 
 
-def uniq(it: Iterable[_H]) -> list[_H]:
+def uniq(it: Iterable[_T]) -> list[_T]:
     "Deduplicate hashable items in an iterable maintaining insertion order."
     return list(dict.fromkeys(it))
 
 
-def merge_intersecting_sets(it: Iterable[_AnySet]) -> Iterator[_AnySet]:
+def merge_intersecting_sets(it: Iterable[frozenset[_T]]) -> Iterator[frozenset[_T]]:
     "Recursively merge intersecting sets in a collection."
-    many_sets: deque[Set[object]] = deque(it)
+    many_sets = deque(it)
     while True:
         try:
             this_set = many_sets.popleft()
@@ -133,15 +119,15 @@ def merge_intersecting_sets(it: Iterable[_AnySet]) -> Iterator[_AnySet]:
 
 
 @overload
-async def gather(
-    it: Iterable[Awaitable[_V]],
-    wrapper: Callable[[Awaitable[_V]], Awaitable[_T]] = ...,
-) -> list[_T]:
+async def gather(it: Iterable[Awaitable[_V]], wrapper: None = ...) -> list[_V]:
     ...
 
 
 @overload
-async def gather(it: Iterable[Awaitable[_V]], wrapper: None = ...) -> list[_V]:
+async def gather(
+    it: Iterable[Awaitable[_V]],
+    wrapper: Callable[[Awaitable[_V]], Awaitable[_T]] = ...,
+) -> list[_T]:
     ...
 
 
@@ -301,32 +287,32 @@ def make_progress_bar(**kwargs: Any) -> ProgressBar:
     return progress_bar
 
 
-def move(src: PurePath, dst: PurePath) -> PurePath:
+def move(src: PurePath, dest: PurePath) -> PurePath:
     # See https://bugs.python.org/issue32689
-    return _move(str(src), dst)
+    return _move(str(src), dest)
 
 
-def trash(paths: Sequence[PurePath], *, dst: PurePath, missing_ok: bool = False) -> None:
-    parent_folder = Path(mkdtemp(dir=dst, prefix=f'deleted-{paths[0].name}-'))
+def trash(paths: Sequence[PurePath], *, dest: PurePath, missing_ok: bool = False) -> None:
+    parent_folder = Path(mkdtemp(dir=dest, prefix=f'deleted-{paths[0].name}-'))
     for path in paths:
         try:
-            move(path, dst=parent_folder)
+            move(path, dest=parent_folder)
         except (FileNotFoundError if missing_ok else ()):
             pass
 
 
-def shasum(*values: str) -> str:
+def shasum(*values: Any) -> str:
     "Base-16-encode a string using SHA-256 truncated to 32 characters."
     from hashlib import sha256
 
-    return sha256(''.join(values).encode()).hexdigest()[:32]
+    return sha256(''.join(map(str, values)).encode()).hexdigest()[:32]
 
 
-def is_not_stale(path: Path, ttl: int, unit: str = 'seconds') -> bool:
+def is_not_stale(path: Path, ttl: Mapping[str, float]) -> bool:
     "Check if a file is older than ``ttl``."
     mtime = path.exists() and path.stat().st_mtime
     return mtime > 0 and (
-        (datetime.now() - datetime.fromtimestamp(cast(float, mtime))) < timedelta(**{unit: ttl})
+        (datetime.now() - datetime.fromtimestamp(cast(float, mtime))) < timedelta(**ttl)
     )
 
 
@@ -366,7 +352,7 @@ async def is_outdated() -> tuple[bool, str]:
         return (False, '')
 
     cache_file = dummy_config.temp_dir / '.pypi_version'
-    if await run_in_thread(is_not_stale)(cache_file, 1, 'days'):
+    if await run_in_thread(is_not_stale)(cache_file, {'days': 1}):
         version = cache_file.read_text(encoding='utf-8')
     else:
         try:

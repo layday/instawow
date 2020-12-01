@@ -7,7 +7,7 @@ from functools import partial
 from itertools import chain
 from pathlib import Path
 from textwrap import dedent, fill
-from typing import TYPE_CHECKING, Optional as O, Union, overload
+from typing import TYPE_CHECKING, Optional as O, overload
 
 import click
 
@@ -127,7 +127,7 @@ def _with_manager(
 
 
 class PathParam(click.Path):
-    def coerce_path_result(self, value: str) -> Path:  # type: ignore
+    def coerce_path_result(self, value: str) -> Path:
         return Path(value)
 
 
@@ -184,8 +184,8 @@ def parse_into_defn(
 
 
 def parse_into_defn(
-    manager: Manager, value: Union[str, list[str]], *, raise_invalid: bool = True
-) -> Union[Defn, list[Defn]]:
+    manager: Manager, value: str | list[str], *, raise_invalid: bool = True
+) -> Defn | list[Defn]:
     if not isinstance(value, str):
         defns = (parse_into_defn(manager, v, raise_invalid=raise_invalid) for v in value)
         return uniq(defns)
@@ -229,7 +229,7 @@ def combine_addons(
         addons.extend(fn(ctx.obj.m, value))
 
 
-_EXCLUDED_STRATEGIES = {Strategy.default, Strategy.version}
+_EXCLUDED_STRATEGIES = frozenset({Strategy.default, Strategy.version})
 
 
 @main.command()
@@ -416,7 +416,7 @@ def reconcile(ctx: click.Context, auto: bool, list_unreconciled: bool) -> None:
 
     manager: CliManager = ctx.obj.m
 
-    def prompt_one(addons: list[AddonFolder], pkgs: list[models.Pkg]) -> Union[Defn, tuple[()]]:
+    def prompt_one(addons: list[AddonFolder], pkgs: list[models.Pkg]) -> Defn | tuple[()]:
         def construct_choice(pkg: models.Pkg):
             defn = Defn.from_pkg(pkg)
             title = [

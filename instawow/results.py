@@ -10,16 +10,16 @@ if TYPE_CHECKING:
 
 class ManagerResult:
     status: ClassVar[str]
-    message_template: ClassVar[str]
+    template: ClassVar[str]
 
     @property
     def message(self) -> str:
-        return self.message_template.format(self=self)
+        return self.template.format(self=self)
 
 
 class PkgInstalled(ManagerResult):
     status = 'success'
-    message_template = 'installed {self.pkg.version}'
+    template = 'installed {self.pkg.version}'
 
     def __init__(self, pkg: Pkg) -> None:
         super().__init__()
@@ -28,7 +28,7 @@ class PkgInstalled(ManagerResult):
 
 class PkgUpdated(ManagerResult):
     status = 'success'
-    message_template = 'updated {self.old_pkg.version} to {self.new_pkg.version}'
+    template = 'updated {self.old_pkg.version} to {self.new_pkg.version}'
 
     def __init__(self, old_pkg: Pkg, new_pkg: Pkg) -> None:
         super().__init__()
@@ -38,7 +38,7 @@ class PkgUpdated(ManagerResult):
 
 class PkgRemoved(ManagerResult):
     status = 'success'
-    message_template = 'removed'
+    template = 'removed'
 
     def __init__(self, old_pkg: Pkg) -> None:
         super().__init__()
@@ -50,7 +50,7 @@ class ManagerError(ManagerResult, Exception):
 
 
 class PkgAlreadyInstalled(ManagerError):
-    message_template = 'package already installed'
+    template = 'package already installed'
 
 
 class PkgConflictsWithInstalled(ManagerError):
@@ -79,11 +79,11 @@ class PkgConflictsWithUnreconciled(ManagerError):
 
 
 class PkgNonexistent(ManagerError):
-    message_template = 'package does not exist'
+    template = 'package does not exist'
 
 
 class PkgFileUnavailable(ManagerError):
-    message_template = 'package file is not available for download'
+    template = 'package file is not available for download'
 
     def __init__(self, custom_message: O[str] = None) -> None:
         super().__init__()
@@ -95,11 +95,11 @@ class PkgFileUnavailable(ManagerError):
 
 
 class PkgNotInstalled(ManagerError):
-    message_template = 'package is not installed'
+    template = 'package is not installed'
 
 
 class PkgSourceInvalid(ManagerError):
-    message_template = 'package source is invalid'
+    template = 'package source is invalid'
 
 
 class PkgUpToDate(ManagerError):
@@ -113,7 +113,7 @@ class PkgUpToDate(ManagerError):
 
 
 class PkgStrategyUnsupported(ManagerError):
-    message_template = "'{self.strategy}' strategy is not valid for source"
+    template = "'{self.strategy}' strategy is not valid for source"
 
     def __init__(self, strategy: Strategy) -> None:
         super().__init__()
