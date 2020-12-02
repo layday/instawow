@@ -368,7 +368,7 @@ def rollback(ctx: click.Context, addon: Defn, undo: bool) -> None:
         for v in versions
     ]
     selection: str = select(
-        f'Select version of {reconstructed_defn} for rollback', choices
+        f'Select version of {reconstructed_defn.to_uri()} for rollback', choices
     ).unsafe_ask()
     Report(
         manager.run(manager.update([reconstructed_defn.with_version(selection)], True)).items()
