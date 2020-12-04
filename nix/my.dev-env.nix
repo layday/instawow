@@ -1,53 +1,22 @@
-{ myPythonStr
-, withRust ? false
-, pkgs ? import <nixpkgs> { overlays = [ (import ./my.framework-overlay.nix) ]; }
-}:
-
+{ pkgs ? import <nixpkgs> { } }:
 let
-  myPython = pkgs.${myPythonStr};
-
-  pythonVenvDir = toString ./../.py-venvs + ("/" + myPython.pythonVersion);
-  cargoHome = toString ./../.cargo;
+  python = pkgs.python39;
 in
-  with pkgs; mkShell {
-    buildInputs = [
-      pkgconfig
-      libiconv
-      openssl
-      ctags
-      myPython
-      nodejs-14_x
-    ] ++ stdenv.lib.optional withRust [
-      rustc
-      cargo
-      ncurses
-    ] ++ stdenv.lib.optional (withRust && stdenv.isDarwin) (
-      with darwin.apple_sdk.frameworks; [
-        AppKit
-        ApplicationServices
-        Carbon
-        CoreFoundation
-        CoreGraphics
-        CoreServices
-        IOKit
-        SystemConfiguration
-        Tcl
-        Tk # Using overlay!
-        Security
-      ]
-    );
+pkgs.mkShell {
+  buildInputs = [
+    python
+    python.pkgs.venvShellHook
+    pkgs.nodejs-14_x
+  ];
 
-    SOURCE_DATE_EPOCH = "315532800"; # The year 1980
-    PYTHONBREAKPOINT = "IPython.terminal.debugger.set_trace";
+  venvDir = toString ./../.py-venvs + ("/" + python.pythonVersion);
 
-    CARGO_HOME = cargoHome;
-    RUST_BACKTRACE = 1;
+  VIRTUAL_ENV_DISABLE_PROMPT = "1";
+  SOURCE_DATE_EPOCH = "315532800"; # The year 1980
+  PYTHONBREAKPOINT = "IPython.terminal.debugger.set_trace";
 
-    shellHook = ''
-      test -d "${pythonVenvDir}" || {
-        ${myPython.executable} -m venv "${pythonVenvDir}"
-        "${pythonVenvDir}/bin/${myPython.executable}" -m pip install -U pip setuptools wheel
-      }
-      export PATH="${lib.makeBinPath [ pythonVenvDir cargoHome ]}:$PATH"
-    '';
-  }
+  postVenvCreation = ''
+    python -m pip install -U pip setuptools wheel \
+      ipython
+  '';
+}
