@@ -320,18 +320,25 @@ def remove(obj: ManagerWrapper, addons: Sequence[Defn], keep_folders: bool) -> N
 @main.command()
 @click.argument('addon', callback=_with_manager(parse_into_defn))
 @click.option(
+    '--version',
+    help='Version to roll back to.',
+)
+@click.option(
     '--undo',
     is_flag=True,
     default=False,
     help='Undo rollback by reinstalling an add-on using the default strategy.',
 )
 @click.pass_context
-def rollback(ctx: click.Context, addon: Defn, undo: bool) -> None:
+def rollback(ctx: click.Context, addon: Defn, version: O[str], undo: bool) -> None:
     "Roll an add-on back to an older version."
     from .prompts import Choice, select
 
     manager: CliManager = ctx.obj.m
-    limit = 10
+    version_limit = 10
+
+    if version and undo:
+        raise click.UsageError('Cannot use "--version" and "--undo" together')
 
     pkg = manager.get_pkg(addon)
     if not pkg:
@@ -346,30 +353,37 @@ def rollback(ctx: click.Context, addon: Defn, undo: bool) -> None:
     if undo:
         Report(manager.run(manager.update([addon], True)).items()).generate_and_exit()
 
-    versions = (
-        manager.database.query(models.PkgVersionLog)
-        .filter(
-            models.PkgVersionLog.pkg_source == pkg.source, models.PkgVersionLog.pkg_id == pkg.id
-        )
-        .order_by(models.PkgVersionLog.install_time.desc())
-        .limit(limit)
-        .all()
-    )
-    if len(versions) <= 1:
-        Report([(addon, E.PkgFileUnavailable('cannot find older versions'))]).generate_and_exit()
-
     reconstructed_defn = Defn.from_pkg(pkg)
-    choices = [
-        Choice(
-            [('', v.version)],
-            value=v.version,
-            disabled='installed version' if v.version == pkg.version else None,
+    if version:
+        selection = version
+    else:
+        versions = (
+            manager.database.query(models.PkgVersionLog)
+            .filter(
+                models.PkgVersionLog.pkg_source == pkg.source,
+                models.PkgVersionLog.pkg_id == pkg.id,
+            )
+            .order_by(models.PkgVersionLog.install_time.desc())
+            .limit(version_limit)
+            .all()
         )
-        for v in versions
-    ]
-    selection: str = select(
-        f'Select version of {reconstructed_defn.to_uri()} for rollback', choices
-    ).unsafe_ask()
+        if len(versions) <= 1:
+            Report(
+                [(addon, E.PkgFileUnavailable('cannot find older versions'))]
+            ).generate_and_exit()
+
+        choices = [
+            Choice(
+                [('', v.version)],
+                value=v.version,
+                disabled='installed version' if v.version == pkg.version else None,
+            )
+            for v in versions
+        ]
+        selection = select(
+            f'Select version of {reconstructed_defn.to_uri()} for rollback', choices
+        ).unsafe_ask()
+
     Report(
         manager.run(manager.update([reconstructed_defn.with_version(selection)], True)).items()
     ).generate_and_exit()

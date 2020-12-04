@@ -380,6 +380,16 @@ def test_rollback__multiple_versions(feed_pt, run):
     )
 
 
+def test_rollback__multiple_versions_promptless(run):
+    assert run('install --version 80000.57-Release curse:molinari').exit_code == 0
+    assert run('remove curse:molinari').exit_code == 0
+    assert run('install curse:molinari').exit_code == 0
+    assert (
+        run('rollback --version 80000.57-Release curse:molinari').output
+        == '✓ curse:molinari\n  updated 80300.66-Release to 80000.57-Release\n'
+    )
+
+
 @pytest.mark.parametrize('options', ['', '--undo'])
 def test_rollback__rollback_multiple_versions(feed_pt, run, options):
     test_rollback__multiple_versions(feed_pt, run)
@@ -387,6 +397,12 @@ def test_rollback__rollback_multiple_versions(feed_pt, run, options):
         run(f'rollback {options} curse:molinari').output
         == '✓ curse:molinari\n  updated 80000.57-Release to 80300.66-Release\n'
     )
+
+
+def test_rollback__cannot_use_version_with_undo(run):
+    result = run(f'rollback --version foo --undo curse:molinari')
+    assert result.exit_code == 2
+    assert 'Cannot use "--version" and "--undo" together' in result.output
 
 
 def test_reconcile__list_unreconciled(faux_molinari_and_run):
