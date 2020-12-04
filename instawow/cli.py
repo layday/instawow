@@ -126,11 +126,6 @@ def _with_manager(
     return wrapper
 
 
-class PathParam(click.Path):
-    def coerce_path_result(self, value: str) -> Path:
-        return Path(value)
-
-
 class EnumParam(click.Choice):
     def __init__(
         self,
@@ -239,7 +234,7 @@ _EXCLUDED_STRATEGIES = frozenset({Strategy.default, Strategy.version})
 @click.option(
     '--import',
     '-i',
-    type=PathParam(dir_okay=False, exists=True),
+    type=click.Path(dir_okay=False, exists=True),
     expose_value=False,
     callback=partial(combine_addons, parse_into_defn_from_json_file),
     help='Install add-ons from the output of `list -f json`.',
@@ -710,23 +705,28 @@ def list_installed_wago_auras(obj: ManagerWrapper) -> None:
 
 
 @main.command(hidden=True)
-@click.argument('filename', type=PathParam(dir_okay=False))
+@click.argument('filename', type=click.Path(dir_okay=False))
 @click.option(
     '--age-cutoff',
     type=str,
     default=None,
     callback=lambda _, __, v: v and datetime.fromisoformat(v),
 )
-def generate_catalogue(filename: Path, age_cutoff: O[datetime]) -> None:
+def generate_catalogue(filename: str, age_cutoff: O[datetime]) -> None:
     "Generate the master catalogue."
     import asyncio
 
     from .resolvers import Catalogue
 
     catalogue = asyncio.run(Catalogue.collate(age_cutoff))
-    filename.write_text(catalogue.json(indent=2), encoding='utf-8')
-    filename.with_suffix(f'.compact{filename.suffix}').write_text(
-        catalogue.json(separators=(',', ':')), encoding='utf-8'
+    file = Path(filename)
+    file.write_text(
+        catalogue.json(indent=2),
+        encoding='utf-8',
+    )
+    file.with_suffix(f'.compact{file.suffix}').write_text(
+        catalogue.json(separators=(',', ':')),
+        encoding='utf-8',
     )
 
 
