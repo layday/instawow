@@ -170,3 +170,28 @@ async def test_removing_pkg_with_missing_folders(manager, keep_folders):
     result = await manager.remove([defn], keep_folders=keep_folders)
     assert type(result[defn]) is E.PkgRemoved
     assert not manager.get_pkg(defn)
+
+
+@pytest.mark.asyncio
+async def test_basic_search(manager):
+    results = await manager.search('molinari', limit=5)
+    defns = {Defn(e.source, e.slug or e.id) for e in results}
+    assert {Defn('curse', 'molinari'), Defn('wowi', '13188')} <= defns
+
+
+@pytest.mark.asyncio
+async def test_search_source_filtering(manager):
+    results = await manager.search('molinari', limit=5, sources={'curse'})
+    defns = {Defn(e.source, e.slug or e.id) for e in results}
+    assert all(d.source == 'curse' for d in defns)
+    assert {Defn('curse', 'molinari')} <= defns
+
+
+@pytest.mark.asyncio
+async def test_search_caters_to_flavour(manager):
+    results = await manager.search('AtlasLootClassic', limit=5)
+    defns = {Defn(e.source, e.slug or e.id) for e in results}
+    if manager.config.is_classic:
+        assert Defn('curse', 'atlaslootclassic') in defns
+    else:
+        assert Defn('curse', 'atlaslootclassic') not in defns

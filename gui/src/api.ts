@@ -1,5 +1,10 @@
 import type { Client } from "@open-rpc/client-js";
 
+enum Flavour {
+  retail = "retail",
+  classic = "classic",
+}
+
 export enum Strategy {
   default = "default",
   latest = "latest",
@@ -80,6 +85,18 @@ export type ErrorResult = {
 export type AnyResult = SuccessResult | ErrorResult;
 
 export type MultiResult = AnyResult[];
+
+export type CatalogueEntry = {
+  source: string;
+  id: string;
+  slug: string;
+  name: string;
+  game_compatibility: Flavour[];
+  download_count: number;
+  last_updated: string;
+  normalised_name: string;
+  derived_download_score: number;
+};
 
 export type AddonMatch = {
   folders: { name: string; version: string }[];
@@ -164,9 +181,8 @@ export class Api {
   async search(
     searchTerms: string,
     searchLimit: number,
-    sources: string[] | null,
-    strategy: Strategy
-  ): Promise<MultiResult> {
+    sources: string[] | null
+  ): Promise<CatalogueEntry[]> {
     return await this._request({
       method: "search",
       params: {
@@ -174,7 +190,6 @@ export class Api {
         search_terms: searchTerms,
         limit: searchLimit,
         sources: sources,
-        strategy: strategy,
       },
     });
   }

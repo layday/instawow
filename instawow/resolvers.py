@@ -100,7 +100,7 @@ class _CatalogueEntryDefaultFields(TypedDict):
     last_updated: Any
 
 
-class _CatalogueEntry(BaseModel):
+class CatalogueEntry(BaseModel):
     source: str
     id: str
     slug: str
@@ -114,7 +114,7 @@ class _CatalogueEntry(BaseModel):
 
 
 class Catalogue(BaseModel):
-    __root__: List[_CatalogueEntry]
+    __root__: List[CatalogueEntry]
 
     class Config:
         json_encoders: dict[type, Callable[[Any], Any]] = {
@@ -137,7 +137,7 @@ class Catalogue(BaseModel):
             for s, i in bucketise(items, key=lambda v: v['source']).items()
         }
         entries = (
-            _CatalogueEntry(
+            CatalogueEntry(
                 **i,
                 normalised_name=normalise(i['name']),
                 derived_download_score=i['download_count']

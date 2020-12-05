@@ -28,6 +28,7 @@ from . import DB_REVISION, results as E
 from .models import Pkg, PkgFolder, PkgVersionLog, is_pkg
 from .resolvers import (
     Catalogue,
+    CatalogueEntry,
     CurseResolver,
     Defn,
     GithubResolver,
@@ -533,8 +534,7 @@ class Manager:
         search_terms: str,
         limit: int,
         sources: O[Set[str]] = None,
-        strategy: Strategy = Strategy.default,
-    ) -> dict[Defn, Pkg]:
+    ) -> list[CatalogueEntry]:
         "Search the master catalogue for packages by name."
         import heapq
 
@@ -570,10 +570,7 @@ class Manager:
             ),
             key=lambda v: v[0],
         )
-        defns = [Defn(i.source, i.id, strategy=strategy) for _, i in weighted_entries]
-        resolve_results = await self.resolve(defns)
-        pkgs_by_defn = {d.with_(alias=r.slug): r for d, r in resolve_results.items() if is_pkg(r)}
-        return pkgs_by_defn
+        return [e for _, e in weighted_entries]
 
     @_with_lock('change state')
     async def install(

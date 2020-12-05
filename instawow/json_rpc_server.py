@@ -33,7 +33,7 @@ from .config import Config, Flavour
 from .manager import Manager, init_web_client
 from .matchers import get_folder_set, match_dir_names, match_toc_ids, match_toc_names
 from .models import Pkg, is_pkg
-from .resolvers import Defn, PkgModel, Strategy
+from .resolvers import CatalogueEntry, Defn, PkgModel, Strategy
 from .utils import get_version, is_outdated, run_in_thread as t, uniq
 
 if TYPE_CHECKING:
@@ -191,21 +191,18 @@ class SearchParams(_ProfileParamMixin, BaseParams):
     search_terms: str
     limit: int
     sources: O[TSet[str]] = None
-    strategy: Strategy = Strategy.default
     _method = 'search'
 
-    async def respond(self, managers: ManagerWorkQueue) -> MultiResult:
-        results = await managers.run(
+    async def respond(self, managers: ManagerWorkQueue) -> list[CatalogueEntry]:
+        return await managers.run(
             self.profile,
             partial(
                 Manager.search,
                 search_terms=self.search_terms,
                 limit=self.limit,
                 sources=self.sources,
-                strategy=self.strategy,
             ),
         )
-        return MultiResult.parse_obj(list(zip(repeat('success'), results.values())))
 
 
 class ResolveParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):

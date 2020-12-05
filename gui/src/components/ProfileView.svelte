@@ -218,30 +218,46 @@
     try {
       const searchTermsSnapshot = searchTerms;
       if (searchTermsSnapshot) {
-        const coro = searchFromAlias
-          ? api.resolve([
-              {
-                source: "*",
-                alias: searchTermsSnapshot,
-                strategy: searchStrategy,
-                version: searchVersion,
-              },
-            ])
-          : api.search(
-              searchTermsSnapshot,
-              SEARCH_LIMIT,
-              searchSource ? [searchSource] : null,
-              searchStrategy
-            );
-        const results = await coro;
-        // Discard results if the search terms have changed in the meantime
-        if (searchTermsSnapshot === searchTerms) {
-          addons__Search = results
-            .filter((result): result is SuccessResult => result.status === "success")
-            .map(({ addon }) => addon);
-          regenerateCombinedSearchAddons();
-          activeView = View.Search;
+        let results: AnyResult[];
+
+        if (searchFromAlias) {
+          results = await api.resolve([
+            {
+              source: "*",
+              alias: searchTermsSnapshot,
+              strategy: searchStrategy,
+              version: searchVersion,
+            },
+          ]);
+        } else {
+          const searchResults = await api.search(
+            searchTermsSnapshot,
+            SEARCH_LIMIT,
+            searchSource ? [searchSource] : null
+          );
+
+          if (searchTermsSnapshot !== searchTerms) {
+            return;
+          }
+
+          const defns = searchResults.map((r) => ({
+            source: r.source,
+            alias: r.id,
+            strategy: searchStrategy,
+            version: searchVersion,
+          }));
+          results = await api.resolve(defns);
         }
+
+        if (searchTermsSnapshot !== searchTerms) {
+          return;
+        }
+
+        addons__Search = results
+          .filter((result): result is SuccessResult => result.status === "success")
+          .map(({ addon }) => addon);
+        regenerateCombinedSearchAddons();
+        activeView = View.Search;
       }
     } finally {
       searchesInProgress--;

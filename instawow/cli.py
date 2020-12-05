@@ -510,11 +510,15 @@ def search(ctx: click.Context, search_terms: str, limit: int, sources: Sequence[
 
     manager: CliManager = ctx.obj.m
 
-    pkgs = manager.run(manager.search(search_terms, limit, frozenset(sources) or None))
-    if pkgs:
-        choices = [
-            PkgChoice(f'{p.name}  ({d.to_uri()}=={p.version})', d, pkg=p) for d, p in pkgs.items()
-        ]
+    entries = manager.run(manager.search(search_terms, limit, frozenset(sources) or None))
+    defns = [Defn(e.source, e.id) for e in entries]
+    pkgs = (
+        (d.with_(alias=r.slug), r)
+        for d, r in manager.run(manager.resolve(defns)).items()
+        if models.is_pkg(r)
+    )
+    choices = [PkgChoice(f'{p.name}  ({d.to_uri()}=={p.version})', d, pkg=p) for d, p in pkgs]
+    if choices:
         selections = checkbox('Select add-ons to install', choices=choices).unsafe_ask()
         if selections and confirm('Install selected add-ons?').unsafe_ask():
             ctx.invoke(install, addons=selections)
