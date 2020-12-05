@@ -511,8 +511,6 @@ class Manager:
         if not defns:
             return {}
 
-        await self.synchronise()
-
         defns_by_source = bucketise(defns, key=lambda v: v.source)
         results = await gather(
             (self.resolvers[s].resolve(b) for s, b in defns_by_source.items()),
