@@ -87,7 +87,8 @@ class WeakAuras(Auras[WeakAura]):
     @classmethod
     def from_lua_table(cls, lua_table: Any) -> WeakAuras:
         auras = (WeakAura.parse_obj(a) for a in lua_table['displays'].values() if a.get('url'))
-        return cls(__root__=bucketise(auras, key=lambda a: a.url.parts[1]))
+        sorted_auras = sorted(auras, key=lambda a: a.id)
+        return cls(__root__=bucketise(sorted_auras, key=lambda a: a.url.parts[1]))
 
 
 class Plateroo(WeakAura):
@@ -110,7 +111,8 @@ class Plateroos(Auras[Plateroo]):
             )
             if a.get('url')
         )
-        return cls(__root__={a.url.parts[1]: [a] for a in auras})
+        sorted_auras = sorted(auras, key=lambda a: a.id)
+        return cls(__root__={a.url.parts[1]: [a] for a in sorted_auras})
 
 
 if TYPE_CHECKING:
