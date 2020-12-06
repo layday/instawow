@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import TYPE_CHECKING, Optional as O
+from typing import TYPE_CHECKING
 
 from sqlalchemy import (
     Column,
@@ -27,14 +27,16 @@ else:
 class TZDateTime(TZDateTime_base_class):
     impl = DateTime
 
-    def process_bind_param(self, value: O[datetime], dialect: object) -> O[datetime]:
+    def process_bind_param(  # type: ignore
+        self, value: datetime | None, dialect: object
+    ) -> datetime | None:
         if value is not None:
             if not value.tzinfo:
                 raise TypeError('tzinfo is required')
             value = value.astimezone(timezone.utc).replace(tzinfo=None)
         return value
 
-    def process_result_value(self, value: O[datetime], dialect: object) -> O[datetime]:
+    def process_result_value(self, value: datetime | None, dialect: object) -> datetime | None:
         if value is not None:
             value = value.replace(tzinfo=timezone.utc)
         return value
@@ -98,7 +100,7 @@ class Pkg(ModelBase):
 
     @property
     def logged_versions(self) -> list[PkgVersionLog]:
-        session: O[Session] = object_session(self)
+        session: Session | None = object_session(self)
         return (
             (
                 session.query(PkgVersionLog)

@@ -7,17 +7,14 @@ from functools import partial
 from itertools import chain
 from pathlib import Path
 from textwrap import dedent, fill
-from typing import TYPE_CHECKING, Optional as O, overload
+from typing import overload
 
 import click
 
-from . import models, results as E
+from . import manager as managers, models, results as E
 from .config import Config, Flavour, setup_logging
 from .resolvers import Defn, MultiPkgModel, Strategy
 from .utils import TocReader, cached_property, get_version, is_outdated, tabulate, uniq
-
-if TYPE_CHECKING:
-    from .manager import CliManager, Manager
 
 
 class Report:
@@ -52,13 +49,13 @@ class Report:
     def __str__(self) -> str:
         return '\n'.join(
             f'{self._result_type_to_symbol(r)} {click.style(a.to_uri(), bold=True)}\n'
-            + fill(r.message, initial_indent=' ' * 2, subsequent_indent=' ' * 4)
+            f'{fill(r.message, initial_indent=" " * 2, subsequent_indent=" " * 4)}'
             for a, r in self.results
             if self.filter_fn(r)
         )
 
     def generate(self) -> None:
-        manager: CliManager = click.get_current_context().obj.m
+        manager: managers.CliManager = click.get_current_context().obj.m
         if manager.config.auto_update_check:
             outdated, new_version = manager.run(is_outdated())
             if outdated:
@@ -99,17 +96,17 @@ class ManagerWrapper:
         self.ctx = ctx
 
     @cached_property
-    def m(self) -> CliManager:
-        from .manager import CliManager
-
+    def m(self) -> managers.CliManager:
         try:
             config = Config.read(self.ctx.params['profile']).ensure_dirs()
         except FileNotFoundError:
             config = self.ctx.invoke(configure, promptless=False)
+
         setup_logging(config, self.ctx.params['log_level'])
         _override_asyncio_loop_policy()
         _set_asyncio_debug(self.ctx.params['log_level'] == 'DEBUG')
-        manager = CliManager.from_config(config)
+
+        manager = managers.CliManager.from_config(config)
         return manager
 
 
@@ -139,7 +136,9 @@ class EnumParam(click.Choice):
             case_sensitive=case_sensitive,
         )
 
-    def convert(self, value: str, param: O[click.Parameter], ctx: O[click.Context]) -> Enum:
+    def convert(
+        self, value: str, param: click.Parameter | None, ctx: click.Context | None
+    ) -> Enum:
         parent_result = super().convert(value, param, ctx)
         return self.choice_enum[parent_result]
 
@@ -167,19 +166,19 @@ def main(ctx: click.Context, log_level: str, profile: str) -> None:
 
 
 @overload
-def parse_into_defn(manager: Manager, value: str, *, raise_invalid: bool = True) -> Defn:
+def parse_into_defn(manager: managers.Manager, value: str, *, raise_invalid: bool = True) -> Defn:
     ...
 
 
 @overload
 def parse_into_defn(
-    manager: Manager, value: list[str], *, raise_invalid: bool = True
+    manager: managers.Manager, value: list[str], *, raise_invalid: bool = True
 ) -> list[Defn]:
     ...
 
 
 def parse_into_defn(
-    manager: Manager, value: str | list[str], *, raise_invalid: bool = True
+    manager: managers.Manager, value: str | list[str], *, raise_invalid: bool = True
 ) -> Defn | list[Defn]:
     if not isinstance(value, str):
         defns = (parse_into_defn(manager, v, raise_invalid=raise_invalid) for v in value)
@@ -195,26 +194,26 @@ def parse_into_defn(
 
 
 def parse_into_defn_with_strategy(
-    manager: Manager, value: Sequence[tuple[Strategy, str]]
+    manager: managers.Manager, value: Sequence[tuple[Strategy, str]]
 ) -> Iterator[Defn]:
     defns = parse_into_defn(manager, [d for _, d in value])
     return map(Defn.with_strategy, defns, (s for s, _ in value))
 
 
 def parse_into_defn_with_version(
-    manager: Manager, value: Sequence[tuple[str, str]]
+    manager: managers.Manager, value: Sequence[tuple[str, str]]
 ) -> Iterator[Defn]:
     defns = parse_into_defn(manager, [d for _, d in value])
     return map(Defn.with_version, defns, (v for v, _ in value))
 
 
-def parse_into_defn_from_json_file(manager: Manager, path: Path) -> Iterator[Defn]:
+def parse_into_defn_from_json_file(manager: managers.Manager, path: Path) -> Iterator[Defn]:
     faux_pkgs = MultiPkgModel.parse_file(path, encoding='utf-8')
     return map(Defn.from_pkg, faux_pkgs.__root__)
 
 
 def combine_addons(
-    fn: Callable[[Manager, object], Iterable[Defn]],
+    fn: Callable[[managers.Manager, object], Iterable[Defn]],
     ctx: click.Context,
     click_param: click.Parameter,
     value: object,
@@ -325,11 +324,11 @@ def remove(obj: ManagerWrapper, addons: Sequence[Defn], keep_folders: bool) -> N
     help='Undo rollback by reinstalling an add-on using the default strategy.',
 )
 @click.pass_context
-def rollback(ctx: click.Context, addon: Defn, version: O[str], undo: bool) -> None:
+def rollback(ctx: click.Context, addon: Defn, version: str | None, undo: bool) -> None:
     "Roll an add-on back to an older version."
     from .prompts import Choice, select
 
-    manager: CliManager = ctx.obj.m
+    manager: managers.CliManager = ctx.obj.m
     version_limit = 10
 
     if version and undo:
@@ -401,7 +400,6 @@ def reconcile(ctx: click.Context, auto: bool, list_unreconciled: bool) -> None:
         match_toc_ids,
         match_toc_names,
     )
-    from .models import is_pkg
     from .prompts import PkgChoice, confirm, select, skip
 
     preamble = dedent(
@@ -423,7 +421,7 @@ def reconcile(ctx: click.Context, auto: bool, list_unreconciled: bool) -> None:
         '''
     )
 
-    manager: CliManager = ctx.obj.m
+    manager: managers.CliManager = ctx.obj.m
 
     def prompt_one(addons: list[AddonFolder], pkgs: list[models.Pkg]) -> Defn | tuple[()]:
         def construct_choice(pkg: models.Pkg):
@@ -446,7 +444,7 @@ def reconcile(ctx: click.Context, auto: bool, list_unreconciled: bool) -> None:
         uniq_defns = uniq(d for _, b in groups for d in b)
         results = manager.run(manager.resolve(uniq_defns))
         for addons, defns in groups:
-            shortlist: list[models.Pkg] = list(filter(is_pkg, (results[d] for d in defns)))
+            shortlist: list[models.Pkg] = list(filter(models.is_pkg, (results[d] for d in defns)))
             if shortlist:
                 selection = Defn.from_pkg(shortlist[0]) if auto else prompt_one(addons, shortlist)
                 selection and (yield selection)
@@ -508,7 +506,7 @@ def search(ctx: click.Context, search_terms: str, limit: int, sources: Sequence[
     "Search for add-ons to install."
     from .prompts import PkgChoice, checkbox, confirm
 
-    manager: CliManager = ctx.obj.m
+    manager: managers.CliManager = ctx.obj.m
 
     entries = manager.run(manager.search(search_terms, limit, frozenset(sources) or None))
     defns = [Defn(e.source, e.id) for e in entries]
@@ -628,7 +626,7 @@ def reveal(obj: ManagerWrapper, addon: Defn) -> None:
         Report([(addon, E.PkgNotInstalled())]).generate_and_exit()
 
 
-def _show_active_config(ctx: click.Context, _param: click.Parameter, value: bool):
+def _show_active_config(ctx: click.Context, _param: click.Parameter, value: bool) -> None:
     if value:
         click.echo(ctx.obj.m.config.json(indent=2))
         ctx.exit()
@@ -712,11 +710,9 @@ def list_installed_wago_auras(obj: ManagerWrapper) -> None:
 @click.argument('filename', type=click.Path(dir_okay=False))
 @click.option(
     '--age-cutoff',
-    type=str,
-    default=None,
     callback=lambda _, __, v: v and datetime.fromisoformat(v),
 )
-def generate_catalogue(filename: str, age_cutoff: O[datetime]) -> None:
+def generate_catalogue(filename: str, age_cutoff: datetime | None) -> None:
     "Generate the master catalogue."
     import asyncio
 

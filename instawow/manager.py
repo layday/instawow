@@ -19,12 +19,13 @@ import json
 from pathlib import Path, PurePath
 from shutil import copy
 from tempfile import NamedTemporaryFile
-from typing import TYPE_CHECKING, Any, Optional as O, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar
 
 from loguru import logger
 from typing_extensions import TypeAlias
 
 from . import DB_REVISION, results as E
+from .config import Config
 from .models import Pkg, PkgFolder, PkgVersionLog, is_pkg
 from .resolvers import (
     Catalogue,
@@ -61,8 +62,6 @@ if TYPE_CHECKING:
     from prompt_toolkit.shortcuts import ProgressBar
     from sqlalchemy.orm import Session as SqlaSession, sessionmaker
     from yarl import URL
-
-    from .config import Config
 
     _T = TypeVar('_T')
     _FT = TypeVar('_FT', bound=Callable[..., Any])
@@ -147,7 +146,7 @@ async def cache_response(
     url: str | URL,
     ttl: Mapping[str, float],
     *,
-    label: O[str] = None,
+    label: str | None = None,
     is_json: bool = True,
     request_extra: Mapping[str, Any] = {},
 ) -> Any:
@@ -252,7 +251,9 @@ class _DummyLock:
 class _DummyResolver(Resolver):
     strategies = set()
 
-    async def resolve(self, defns: Sequence[Defn]) -> dict[Defn, E.PkgSourceInvalid]:
+    async def resolve(
+        self, defns: Sequence[Defn]
+    ) -> dict[Defn, Pkg | E.ManagerError | E.InternalError]:
         return dict.fromkeys(defns, E.PkgSourceInvalid())
 
 
@@ -295,23 +296,19 @@ def _with_lock(
 
 
 class Manager:
-    def __init__(
-        self,
-        config: Config,
-        database: SqlaSession,
-        catalogue: O[Catalogue] = None,
-        resolver_classes: Sequence[type[Resolver]] = (
-            CurseResolver,
-            WowiResolver,
-            TukuiResolver,
-            GithubResolver,
-            InstawowResolver,
-        ),
-    ) -> None:
+    RESOLVERS = (
+        CurseResolver,
+        WowiResolver,
+        TukuiResolver,
+        GithubResolver,
+        InstawowResolver,
+    )
+
+    def __init__(self, config: Config, database: SqlaSession) -> None:
         self.config = config
         self.database = database
-        self.resolvers = _ResolverDict((r.source, r(self)) for r in resolver_classes)
-        self._catalogue = catalogue
+        self.resolvers = _ResolverDict((r.source, r(self)) for r in self.RESOLVERS)
+        self._catalogue = None
 
     @classmethod
     def from_config(cls: type[_TManager], config: Config) -> _TManager:
@@ -353,7 +350,7 @@ class Manager:
     def locks(self, value: defaultdict[str, asyncio.Lock]) -> None:
         _locks.set(value)
 
-    def pair_uri(self, value: str) -> O[tuple[str, str]]:
+    def pair_uri(self, value: str) -> tuple[str, str] | None:
         "Attempt to extract the source from a URI."
 
         def from_urn():
@@ -366,7 +363,7 @@ class Manager:
         )
         return next(chain(url_pairs, from_urn()), None)
 
-    def get_pkg(self, defn: Defn, partial_match: bool = False) -> O[Pkg]:
+    def get_pkg(self, defn: Defn, partial_match: bool = False) -> Pkg | None:
         "Retrieve an installed package from a definition."
         return (
             (
@@ -533,7 +530,7 @@ class Manager:
         self,
         search_terms: str,
         limit: int,
-        sources: O[Set[str]] = None,
+        sources: Set[str] | None = None,
     ) -> list[CatalogueEntry]:
         "Search the master catalogue for packages by name."
         import heapq
@@ -683,7 +680,7 @@ class Manager:
 
         strategies = frozenset({Strategy.default, Strategy.version})
 
-        def pin(defn: Defn, pkg: O[Pkg]) -> E.ManagerResult:
+        def pin(defn: Defn, pkg: Pkg | None) -> E.ManagerResult:
             if not pkg:
                 return E.PkgNotInstalled()
             elif {defn.strategy} <= strategies <= self.resolvers[pkg.source].strategies:

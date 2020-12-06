@@ -1,11 +1,9 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from typing import TYPE_CHECKING, ClassVar, Optional as O
+from typing import ClassVar
 
-if TYPE_CHECKING:
-    from .models import Pkg
-    from .resolvers import Strategy
+from . import models, resolvers
 
 
 class ManagerResult:
@@ -21,7 +19,7 @@ class PkgInstalled(ManagerResult):
     status = 'success'
     template = 'installed {self.pkg.version}'
 
-    def __init__(self, pkg: Pkg) -> None:
+    def __init__(self, pkg: models.Pkg) -> None:
         super().__init__()
         self.pkg = pkg
 
@@ -30,7 +28,7 @@ class PkgUpdated(ManagerResult):
     status = 'success'
     template = 'updated {self.old_pkg.version} to {self.new_pkg.version}'
 
-    def __init__(self, old_pkg: Pkg, new_pkg: Pkg) -> None:
+    def __init__(self, old_pkg: models.Pkg, new_pkg: models.Pkg) -> None:
         super().__init__()
         self.old_pkg = old_pkg
         self.new_pkg = new_pkg
@@ -40,7 +38,7 @@ class PkgRemoved(ManagerResult):
     status = 'success'
     template = 'removed'
 
-    def __init__(self, old_pkg: Pkg) -> None:
+    def __init__(self, old_pkg: models.Pkg) -> None:
         super().__init__()
         self.old_pkg = old_pkg
 
@@ -54,7 +52,7 @@ class PkgAlreadyInstalled(ManagerError):
 
 
 class PkgConflictsWithInstalled(ManagerError):
-    def __init__(self, conflicting_pkgs: Sequence[Pkg]) -> None:
+    def __init__(self, conflicting_pkgs: Sequence[models.Pkg]) -> None:
         super().__init__()
         self.conflicting_pkgs = conflicting_pkgs
 
@@ -85,7 +83,7 @@ class PkgNonexistent(ManagerError):
 class PkgFileUnavailable(ManagerError):
     template = 'package file is not available for download'
 
-    def __init__(self, custom_message: O[str] = None) -> None:
+    def __init__(self, custom_message: str | None = None) -> None:
         super().__init__()
         self._custom_message = custom_message
 
@@ -115,7 +113,7 @@ class PkgUpToDate(ManagerError):
 class PkgStrategyUnsupported(ManagerError):
     template = "'{self.strategy}' strategy is not valid for source"
 
-    def __init__(self, strategy: Strategy) -> None:
+    def __init__(self, strategy: resolvers.Strategy) -> None:
         super().__init__()
         self.strategy = strategy
 

@@ -7,18 +7,7 @@ from contextlib import contextmanager
 from functools import partial
 from itertools import repeat
 import os
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    ClassVar,
-    Dict,
-    List,
-    Optional as O,
-    Set as TSet,
-    TypeVar,
-    Union,
-    overload,
-)
+from typing import Any, ClassVar, Dict, List, Optional, Set as TSet, TypeVar, Union, overload
 from uuid import uuid4
 
 from aiohttp import web
@@ -36,11 +25,10 @@ from .models import Pkg, is_pkg
 from .resolvers import CatalogueEntry, Defn, PkgModel, Strategy
 from .utils import get_version, is_outdated, run_in_thread as t, uniq
 
-if TYPE_CHECKING:
-    _T = TypeVar('_T')
-    ManagerWorkQueueItem: TypeAlias = (
-        'tuple[asyncio.Future[Any], str, O[Callable[..., Awaitable[Any]]]]'
-    )
+_T = TypeVar('_T')
+ManagerWorkQueueItem: TypeAlias = (
+    'tuple[asyncio.Future[Any], str, Callable[..., Awaitable[Any]] | None]'
+)
 
 
 LOCALHOST = '127.0.0.1'
@@ -190,7 +178,7 @@ class MultiResult(BaseModel):
 class SearchParams(_ProfileParamMixin, BaseParams):
     search_terms: str
     limit: int
-    sources: O[TSet[str]] = None
+    sources: Optional[TSet[str]] = None
     _method = 'search'
 
     async def respond(self, managers: ManagerWorkQueue) -> list[CatalogueEntry]:
@@ -346,7 +334,7 @@ class ReconcileParams(_ProfileParamMixin, BaseParams):
 
 class GetVersionResult(BaseModel):
     installed_version: str
-    new_version: O[str]
+    new_version: Optional[str]
 
 
 class GetVersionParams(BaseParams):
@@ -416,7 +404,7 @@ class ManagerWorkQueue:
         ...
 
     async def run(
-        self, profile: str, coro_fn: O[Callable[..., Awaitable[_T]]] = None
+        self, profile: str, coro_fn: Callable[..., Awaitable[_T]] | None = None
     ) -> Manager | _T:
         future: asyncio.Future[Any] = asyncio.Future()
         self._queue.put_nowait((future, profile, coro_fn))

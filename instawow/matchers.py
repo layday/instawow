@@ -4,18 +4,16 @@ from collections.abc import Iterable
 from contextlib import suppress
 from functools import total_ordering
 import re
-from typing import TYPE_CHECKING, cast
+from typing import cast
 
 from typing_extensions import TypeAlias
 
+from . import manager
 from .models import PkgFolder
 from .resolvers import CurseResolver, Defn, InstawowResolver, TukuiResolver, WowiResolver
 from .utils import TocReader, bucketise, cached_property, merge_intersecting_sets, uniq
 
-if TYPE_CHECKING:
-    from .manager import Manager
-
-    MatchGroups: TypeAlias = 'list[tuple[list[AddonFolder], list[Defn]]]'
+MatchGroups: TypeAlias = 'list[tuple[list[AddonFolder], list[Defn]]]'
 
 
 _ids_to_sources = {
@@ -68,7 +66,7 @@ class AddonFolder:
         return self.toc_reader['Version', 'X-Packaged-Version', 'X-Curse-Packaged-Version'].value
 
 
-def get_folders(manager: Manager) -> Iterable[AddonFolder]:
+def get_folders(manager: manager.Manager) -> Iterable[AddonFolder]:
     pkg_folders = {f.name for f in manager.database.query(PkgFolder).all()}
     unreconciled_folders = (
         p
@@ -82,11 +80,13 @@ def get_folders(manager: Manager) -> Iterable[AddonFolder]:
             yield AddonFolder(folder.name, toc_reader)
 
 
-def get_folder_set(manager: Manager) -> frozenset[AddonFolder]:
+def get_folder_set(manager: manager.Manager) -> frozenset[AddonFolder]:
     return frozenset(get_folders(manager))
 
 
-async def match_toc_ids(manager: Manager, leftovers: frozenset[AddonFolder]) -> MatchGroups:
+async def match_toc_ids(
+    manager: manager.Manager, leftovers: frozenset[AddonFolder]
+) -> MatchGroups:
     "Attempt to match add-ons from TOC-file source ID entries."
 
     def bucket_keyer(value: AddonFolder):
@@ -100,7 +100,9 @@ async def match_toc_ids(manager: Manager, leftovers: frozenset[AddonFolder]) -> 
     return [(f, sorted(b, key=sort_keyer)) for b, f in bucketise(matches, bucket_keyer).items()]
 
 
-async def match_dir_names(manager: Manager, leftovers: frozenset[AddonFolder]) -> MatchGroups:
+async def match_dir_names(
+    manager: manager.Manager, leftovers: frozenset[AddonFolder]
+) -> MatchGroups:
     "Attempt to match folders against the master catalogue."
 
     def bucket_keyer(value: tuple[frozenset[AddonFolder], Defn]):
@@ -131,7 +133,9 @@ async def match_dir_names(manager: Manager, leftovers: frozenset[AddonFolder]) -
     ]
 
 
-async def match_toc_names(manager: Manager, leftovers: frozenset[AddonFolder]) -> MatchGroups:
+async def match_toc_names(
+    manager: manager.Manager, leftovers: frozenset[AddonFolder]
+) -> MatchGroups:
     "Attempt to match add-ons from TOC-file name entries."
 
     def normalise(value: str):

@@ -4,7 +4,7 @@ from collections.abc import Iterable, Iterator, Sequence
 from functools import partial, reduce
 from itertools import chain, product
 import time
-from typing import TYPE_CHECKING, Any, ClassVar, Dict, Generic, List, Optional as O, TypeVar
+from typing import TYPE_CHECKING, Any, ClassVar, Dict, Generic, List, Optional, TypeVar
 
 from loguru import logger
 from pydantic import BaseModel, Field, validator
@@ -12,12 +12,11 @@ from pydantic.generics import GenericModel
 from typing_extensions import Literal, TypedDict
 from yarl import URL
 
+from . import manager
 from .config import BaseConfig
 from .utils import bucketise, chain_dict, gather, run_in_thread as t, shasum
 
 if TYPE_CHECKING:
-    from .manager import Manager
-
     ImportString = str
     RemoteAuras = Sequence[tuple[Sequence[WeakAura], WagoApiResponse, ImportString]]
 
@@ -32,7 +31,7 @@ else:
 
 
 class BuilderConfig(BaseConfig):
-    wago_api_key: O[str]
+    wago_api_key: Optional[str]
 
 
 WeakAuraT = TypeVar('WeakAuraT', bound='WeakAura')
@@ -68,7 +67,7 @@ class Auras(GenericModel, Generic[WeakAuraT]):
 class WeakAura(BaseModel):
     id: str
     uid: str
-    parent: O[str]
+    parent: Optional[str]
     url: URL
     version: int
 
@@ -76,7 +75,9 @@ class WeakAura(BaseModel):
         allow_population_by_field_name = True
         arbitrary_types_allowed = True
 
-    _convert_url = validator('url', pre=True)(lambda v: URL(v))
+    @validator('url', pre=True)
+    def _convert_url(cls, value: str) -> URL:
+        return URL(value)
 
 
 class WeakAuras(Auras[WeakAura]):
@@ -143,7 +144,7 @@ if TYPE_CHECKING:
 class WaCompanionBuilder:
     """A WeakAuras Companion port for shellfolk."""
 
-    def __init__(self, manager: Manager, builder_config: BuilderConfig) -> None:
+    def __init__(self, manager: manager.Manager, builder_config: BuilderConfig) -> None:
         self.manager = manager
         self.addon_file = self.manager.config.plugin_dir / __name__ / 'WeakAurasCompanion.zip'
         self.builder_config = builder_config

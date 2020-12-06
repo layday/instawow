@@ -9,7 +9,7 @@ from tempfile import gettempdir
 
 import click
 from loguru import logger
-from pydantic import BaseSettings, Field, PydanticValueError, validator
+from pydantic import BaseSettings as _BaseConfig, Field, PydanticValueError, validator
 
 from .utils import trash
 
@@ -42,7 +42,7 @@ def _validate_path_is_writable_dir(value: Path) -> Path:
     return value
 
 
-class BaseConfig(BaseSettings):
+class BaseConfig(_BaseConfig):
     class Config:  # type: ignore
         env_prefix = 'INSTAWOW_'
 
@@ -203,7 +203,7 @@ def setup_logging(config: GlobalConfig, log_level: str = 'INFO') -> int:
     import logging
 
     class InterceptHandler(logging.Handler):
-        def emit(self, record: logging.LogRecord):
+        def emit(self, record: logging.LogRecord) -> None:
             # Get the corresponding Loguru level if it exists
             try:
                 level = logger.level(record.levelname).name
@@ -217,10 +217,7 @@ def setup_logging(config: GlobalConfig, log_level: str = 'INFO') -> int:
                 frame = frame.f_back
                 depth += 1
 
-            logger.opt(
-                depth=depth,
-                exception=record.exc_info,  # type: ignore
-            ).log(level, record.getMessage())
+            logger.opt(depth=depth, exception=record.exc_info).log(level, record.getMessage())
 
     logging.basicConfig(handlers=[InterceptHandler()], level=log_level)
     handler = {

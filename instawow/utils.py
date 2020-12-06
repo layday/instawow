@@ -11,7 +11,7 @@ from pathlib import Path, PurePath
 import posixpath
 from shutil import move as _move
 from tempfile import mkdtemp
-from typing import TYPE_CHECKING, Any, Generic, NamedTuple, Optional as O, TypeVar, cast, overload
+from typing import TYPE_CHECKING, Any, Generic, NamedTuple, TypeVar, cast, overload
 
 if TYPE_CHECKING:
     from prompt_toolkit.shortcuts import ProgressBar
@@ -63,14 +63,14 @@ class cached_property(Generic[_V]):
         self.f = f
 
     @overload
-    def __get__(self, o: None, t: O[type] = None) -> cached_property[_V]:
+    def __get__(self, o: None, t: type[_T] | None = ...) -> cached_property[_V]:
         ...
 
     @overload
-    def __get__(self, o: _T, t: O[type[_T]] = None) -> _V:
+    def __get__(self, o: _T, t: type[_T] | None = ...) -> _V:
         ...
 
-    def __get__(self, o: _T, t: O[type[_T]] = None) -> cached_property[_V] | _V:
+    def __get__(self, o: _T | None, t: type[_T] | None = None) -> cached_property[_V] | _V:
         if o is None:
             return self
         else:
@@ -132,7 +132,7 @@ async def gather(
 
 
 async def gather(
-    it: Iterable[Awaitable[_V]], wrapper: O[Callable[..., Awaitable[_V]]] = None
+    it: Iterable[Awaitable[_V]], wrapper: Callable[..., Awaitable[_V]] | None = None
 ) -> Sequence[_V]:
     if wrapper is not None:
         it = map(wrapper, it)
@@ -247,7 +247,7 @@ def make_progress_bar(**kwargs: Any) -> ProgressBar:
 
             if self._thread is not None:
 
-                def attempt_exit(sender: Application[object]):
+                def attempt_exit(sender: Application[None]):
                     sender.is_running and sender.exit()
 
                 self.app.on_invalidate = Event(self.app, attempt_exit)
