@@ -58,9 +58,6 @@ If you would prefer to install the CLI from source, the following will work:
   ``pipx install instawow``
 - Vanilla pip:
   ``python -m pip install -U instawow``
-- From the `AUR <https://aur.archlinux.org/packages/instawow/>`__
-  for Arch Linux:
-  ``yay -S instawow``
 
 When installing from source, *instawow* requires Python 3.7 or greater.
 
