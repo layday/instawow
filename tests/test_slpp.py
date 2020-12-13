@@ -20,7 +20,9 @@
 #   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 #   THE SOFTWARE.
 
-from instawow._custom_slpp import decode
+import pytest
+
+from instawow._custom_slpp import ParseError, decode
 
 
 def test_numbers():
@@ -50,6 +52,12 @@ def test_numbers():
 def test_bool():
     assert decode('true') == True
     assert decode('false') == False
+    assert decode('falser') == 'falser'
+
+
+def test_bool_keys_are_not_nums():
+    assert decode('{ [false] = "", [true] = "" }') == {False: '', True: ''}
+    assert decode('{ [false] = "", [true] = "", [3] = "" }') == {False: '', True: '', 3: ''}
 
 
 def test_nil():
@@ -81,6 +89,12 @@ def test_string_with_and_without_escape():
     assert decode("[[test's string]]") == "test's string"
     # https://github.com/SirAnthony/slpp/issues/23
     assert decode("'--3'") == '--3'
+
+
+def test_table_keys():
+    assert decode('{ [ [[false]] ] = "" }') == {'false': ''}
+    with pytest.raises(ParseError):
+        decode('{ [[false]] = "" }')
 
 
 def test_table_palooza():

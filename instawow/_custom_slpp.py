@@ -20,16 +20,18 @@
 #   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 #   THE SOFTWARE.
 
-from itertools import count, dropwhile
+from __future__ import annotations
+
+from itertools import count, dropwhile, islice
 from operator import eq
 import re
 import string
 
-whitespace = string.whitespace
-newline = '\r\n'
-keywords = {'true': True, 'false': False, 'nil': None}
+WHITESPACE = frozenset(string.whitespace)
+NEWLINE = frozenset('\r\n')
+KEYWORDS = {'true': True, 'false': False, 'nil': None}
 
-match_identifier = re.compile(r'^[a-z_]\w*$', flags=re.IGNORECASE)
+match_bare_word = re.compile(r'^[a-z_]\w*$', flags=re.IGNORECASE)
 
 
 class ParseError(Exception):
@@ -48,42 +50,39 @@ class SLPP:
         self.iter_text = iter(text)
 
     def decode(self):
-        self.next()
-        return self.get_value()
+        self._next()
+        return self._get_value()
 
-    def next(self):
+    def _next(self):
         self.c = next(self.iter_text, _sentinel)
 
-    def next_nl(self):
-        self.c = next(dropwhile(lambda c: c not in newline, self.iter_text), _sentinel)
+    def _next_not(self, exclude: frozenset[str] | str):
+        if self.c in exclude:
+            self.c = next(dropwhile(exclude.__contains__, self.iter_text), _sentinel)
 
-    def this_or_next_not_ws(self):
-        if self.c in whitespace:
-            self.c = next(dropwhile(whitespace.__contains__, self.iter_text), _sentinel)
+    def _next_nl(self):
+        self.c = next((c for c in self.iter_text if c in NEWLINE), _sentinel)
 
-    def get_value(self):
-        self.this_or_next_not_ws()
+    def _get_value(self):
+        self._next_not(WHITESPACE)
         if not self.c:
             raise ParseError('input is empty')
-
-        if self.c == '{':
-            return self.get_table()
-        elif self.c == '[':
-            self.next()
-
-        if self.c in '\'"[':
-            return self.get_string()
+        elif self.c == '{':
+            return self._get_table()
+        elif self.c in '\'"[':
+            return self._get_string()
         elif self.c == '-' or self.c.isdigit():
-            return self.get_number()
-        return self.get_bare_word()
+            return self._get_number()
+        else:
+            return self._get_bare_word()
 
-    def get_table(self):
+    def _get_table(self):
         table = {}
         idx = 0
 
-        self.next()
+        self._next()
         while True:
-            self.this_or_next_not_ws()
+            self._next_not(WHITESPACE)
 
             if self.c == '}':
 
@@ -92,35 +91,43 @@ class SLPP:
                     table
                     and all(map(eq, table, count(1)))
                     # bool is a subclass of int in Python but not in Lua
-                    and not any(isinstance(k, bool) for k in table)
+                    and not any(isinstance(k, bool) for k in islice(table, 0, 2))
                 ):
                     table = list(table.values())
 
-                self.next()
+                self._next()
                 return table
 
             elif self.c == ',':
 
-                self.next()
+                self._next()
 
             else:
 
-                item = self.get_value()
-                # Item is either a key or a string literal (this needs to be handled better)
-                if self.c == ']':
-                    self.next()
+                is_val_long_string_literal = False
 
-                self.this_or_next_not_ws()
+                if self.c == '[':
+                    self._next()
+                    if self.c == '[':
+                        is_val_long_string_literal = True
+
+                item = self._get_value()
+                self._next_not(WHITESPACE | {']'})
+
                 c = self.c
                 if c in '=,':
-                    self.next()
+                    self._next()
+
                     if c == '=':
+                        if is_val_long_string_literal:
+                            raise ParseError('malformed key', item)
+
                         # nil key produces a runtime error in Lua
                         if item is None:
                             raise ParseError('table keys cannot be nil')
 
                         # Item is a key
-                        value = self.get_value()
+                        value = self._get_value()
                         if (
                             # nil values are not persisted in Lua tables
                             value is not None
@@ -134,83 +141,106 @@ class SLPP:
                     idx += 1
                     table[idx] = item
 
-    def get_string(self):
+    def _get_string(self):
         s = ''
         start = self.c
-        end = ']' if start == '[' else start
+        if start == '[':
+            self._next_not('[')
+            s += self.c
+            end = ']'
+        else:
+            end = start
+
         for self.c in self.iter_text:
             if self.c == end:
-                self.next()
-                return s
-            if self.c == '\\' and start == end:
-                self.next()
+                break
+            elif self.c == '\\' and start == end:
+                self._next()
                 if self.c != end:
                     s += '\\'
             s += self.c
 
-    def get_bare_word(self):
+        if start != end:
+            self._next()
+        else:
+            # Strip multiple closing brackets
+            self._next_not(end)
+        return s
+
+    def _get_bare_word(self):
         s = self.c
         for self.c in self.iter_text:
             new_s = s + self.c
-            if match_identifier.match(new_s):
+            if match_bare_word.match(new_s):
                 s = new_s
             else:
                 break
-            if s in keywords:
-                break
-        self.next()
-        return keywords.get(s, s)
 
-    def get_number(self):
+        self._next()
+        return KEYWORDS.get(s, s)
+
+    def _get_number(self):
         n = ''
+
         if self.c == '-':
             c = self.c
-            self.next()
+            self._next()
             if self.c == '-':
+
                 # This is a comment - skip to the end of the line
-                self.next_nl()
+                self._next_nl()
                 return None
+
             elif not self.c or not self.c.isdigit():
-                raise ParseError('malformed number (no digits after initial minus)', c, self.c)
+
+                raise ParseError('malformed number (no digits after initial minus)', c + self.c)
+
             n += c
-        n += self.get_digit()
+
+        n += self._get_digit()
         if n == '0' and self.c in 'Xx':
+
             n += self.c
-            self.next()
-            n += self.get_hex()
+            self._next()
+            n += self._get_hex()
+
         else:
+
             if self.c and self.c == '.':
                 n += self.c
-                self.next()
-                n += self.get_digit()
+                self._next()
+                n += self._get_digit()
+
             if self.c and self.c in 'Ee':
                 n += self.c
-                self.next()
+
+                self._next()
                 if not self.c or self.c not in '+-':
                     raise ParseError('malformed number (bad scientific format)', n, self.c)
                 n += self.c
-                self.next()
+
+                self._next()
                 if not self.c.isdigit():
                     raise ParseError('malformed number (bad scientific format)', n, self.c)
-                n += self.get_digit()
+                n += self._get_digit()
+
         try:
             return int(n, 0)
-        except BaseException:
-            pass
-        return float(n)
+        except Exception:
+            return float(n)
 
-    def get_digit(self):
+    def _get_digit(self):
         n = ''
         while self.c and self.c.isdigit():
             n += self.c
-            self.next()
+            self._next()
         return n
 
-    def get_hex(self):
+    def _get_hex(self):
         n = ''
         while self.c and (self.c in 'ABCDEFabcdef' or self.c.isdigit()):
             n += self.c
-            self.next()
+            self._next()
         return n
 
 
