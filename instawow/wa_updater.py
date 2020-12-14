@@ -4,7 +4,8 @@ from collections.abc import Iterable, Iterator, Sequence
 from functools import partial, reduce
 from itertools import chain, product
 import time
-from typing import TYPE_CHECKING, Any, ClassVar, Dict, Generic, List, Optional, TypeVar
+import typing
+from typing import TYPE_CHECKING, Any, ClassVar, Generic, TypeVar
 
 from loguru import logger
 from pydantic import BaseModel, Field, validator
@@ -31,7 +32,7 @@ else:
 
 
 class BuilderConfig(BaseConfig):
-    wago_api_key: Optional[str]
+    wago_api_key: typing.Optional[str]
 
 
 WeakAuraT = TypeVar('WeakAuraT', bound='WeakAura')
@@ -43,7 +44,7 @@ class Auras(GenericModel, Generic[WeakAuraT]):
     _filename: ClassVar[str]
     _api_url: ClassVar[URL]
 
-    __root__: Dict[str, List[WeakAuraT]]
+    __root__: typing.Dict[str, typing.List[WeakAuraT]]
 
     class Config:
         arbitrary_types_allowed = True
@@ -67,7 +68,7 @@ class Auras(GenericModel, Generic[WeakAuraT]):
 class WeakAura(BaseModel):
     id: str
     uid: str
-    parent: Optional[str]
+    parent: typing.Optional[str]
     url: URL
     version: int
 

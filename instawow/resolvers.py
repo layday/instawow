@@ -5,7 +5,8 @@ from datetime import datetime, timezone
 from enum import Enum
 from itertools import chain, count, takewhile
 import re
-from typing import TYPE_CHECKING, Any, ClassVar, List, Optional, Set as TSet, cast
+import typing
+from typing import TYPE_CHECKING, Any, ClassVar, cast
 
 from pydantic import BaseModel
 from pydantic.datetime_parse import parse_datetime
@@ -43,9 +44,9 @@ class _HashableModel(BaseModel):
 class Defn(_HashableModel):
     source: str
     alias: str
-    id: Optional[str] = None
+    id: typing.Optional[str] = None
     strategy: Strategy = Strategy.default
-    version: Optional[str] = None
+    version: typing.Optional[str] = None
 
     @classmethod
     def from_pkg(cls, pkg: models.Pkg | PkgModel) -> Defn:
@@ -103,8 +104,8 @@ class CatalogueEntry(BaseModel):
     id: str
     slug: str
     name: str
-    game_compatibility: TSet[Flavour]
-    folders: List[TSet[str]]
+    game_compatibility: typing.Set[Flavour]
+    folders: typing.List[typing.Set[str]]
     download_count: int
     last_updated: datetime
     normalised_name: str
@@ -112,7 +113,7 @@ class CatalogueEntry(BaseModel):
 
 
 class Catalogue(BaseModel):
-    __root__: List[CatalogueEntry]
+    __root__: typing.List[CatalogueEntry]
 
     class Config:
         json_encoders: dict[type, Any] = {
@@ -184,14 +185,14 @@ class PkgModel(_OrmModel):
     download_url: str
     date_published: datetime
     version: str
-    folders: List[_PkgModel_PkgFolder]
+    folders: typing.List[_PkgModel_PkgFolder]
     options: _PkgModel_PkgOptions
-    deps: List[_PkgModel_PkgDep]
-    logged_versions: List[_PkgModel_PkgVersion]
+    deps: typing.List[_PkgModel_PkgDep]
+    logged_versions: typing.List[_PkgModel_PkgVersion]
 
 
 class MultiPkgModel(BaseModel):
-    __root__: List[PkgModel]
+    __root__: typing.List[PkgModel]
 
 
 class Resolver:
