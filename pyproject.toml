@@ -2,7 +2,7 @@
 requires = [
   "setuptools >=42",
   "wheel",
-  "setuptools-scm[toml] >=3.4.1, <4",
+  "setuptools-scm[toml] >=3.4.1, <6",
 ]
 build-backend = "setuptools.build_meta"
 
