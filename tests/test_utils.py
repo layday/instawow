@@ -57,22 +57,22 @@ def test_parsing_toc_entries(fake_addon):
     }
 
 
-def test_indexing_toc_entries(fake_addon):
+def test_toc_entry_indexing(fake_addon):
     toc_reader = TocReader.from_parent_folder(fake_addon)
-    assert toc_reader['Normal'] == ('Normal', 'Normal entry')
-    assert toc_reader['Compact'] == ('Compact', 'Compact entry')
-    assert toc_reader['Indented'] == ('Indented', '')
-    assert toc_reader['Comment'] == ('Comment', '')
-    assert toc_reader['Nonexistent'] == ('Nonexistent', '')
+    assert toc_reader['Normal'] == 'Normal entry'
+    assert toc_reader['Compact'] == 'Compact entry'
+    assert toc_reader['Indented'] is None
+    assert toc_reader['Comment'] is None
+    assert toc_reader['Nonexistent'] is None
 
 
-def test_multiindexing_toc_entries(fake_addon):
+def test_toc_entry_multiindexing(fake_addon):
     toc_reader = TocReader.from_parent_folder(fake_addon)
-    assert toc_reader['Normal', 'Compact'] == ('Normal', 'Normal entry')
-    assert toc_reader['Compact', 'Normal'] == ('Compact', 'Compact entry')
-    assert toc_reader['Indented', 'Normal'] == ('Normal', 'Normal entry')
-    assert toc_reader['Nonexistent', 'Indented'] == ('Nonexistent', '')
-    assert toc_reader['Nonexistent', 'Indented', 'Normal'] == ('Normal', 'Normal entry')
+    assert toc_reader['Normal', 'Compact'] == 'Normal entry'
+    assert toc_reader['Compact', 'Normal'] == 'Compact entry'
+    assert toc_reader['Indented', 'Normal'] == 'Normal entry'
+    assert toc_reader['Nonexistent', 'Indented'] is None
+    assert toc_reader['Nonexistent', 'Indented', 'Normal'] == 'Normal entry'
 
 
 def test_bucketise_bucketises_by_putting_things_in_a_bucketing_bucket():

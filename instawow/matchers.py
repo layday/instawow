@@ -57,13 +57,13 @@ class AddonFolder:
     def defns_from_toc(self) -> frozenset[Defn]:
         return frozenset(
             Defn(s, i)
-            for s, i in ((s, self.toc_reader[k].value) for k, s in _ids_to_sources.items())
+            for s, i in ((s, self.toc_reader[k]) for k, s in _ids_to_sources.items())
             if i
         )
 
     @cached_property
     def version(self) -> str:
-        return self.toc_reader['Version', 'X-Packaged-Version', 'X-Curse-Packaged-Version'].value
+        return self.toc_reader['Version', 'X-Packaged-Version', 'X-Curse-Packaged-Version'] or ''
 
 
 def get_folders(manager: manager.Manager) -> Iterable[AddonFolder]:

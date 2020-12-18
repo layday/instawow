@@ -11,7 +11,7 @@ from pathlib import Path, PurePath
 import posixpath
 from shutil import move as _move
 from tempfile import mkdtemp
-from typing import TYPE_CHECKING, Any, Generic, NamedTuple, TypeVar, cast, overload
+from typing import TYPE_CHECKING, Any, Generic, TypeVar, cast, overload
 
 if TYPE_CHECKING:
     from prompt_toolkit.shortcuts import ProgressBar
@@ -20,34 +20,23 @@ _T = TypeVar('_T')
 _V = TypeVar('_V')
 
 
-class _TocEntry(NamedTuple):
-    key: str
-    value: str
-
-    def __bool__(self) -> bool:
-        return bool(self.value)
-
-
 class TocReader:
     """Extracts key–value pairs from TOC files."""
 
-    default = ''
-
     def __init__(self, contents: str) -> None:
-        possible_entries = (
-            map(str.strip, e.lstrip('#').partition(':')[::2])
+        self.entries = {
+            k: v
             for e in contents.splitlines()
             if e.startswith('##')
-        )
-        self.entries = {k: v for k, v in possible_entries if k}
+            for k, v in (map(str.strip, e.lstrip('#').partition(':')[::2]),)
+            if k
+        }
 
-    def __getitem__(self, key: str | tuple[str, ...]) -> _TocEntry:
+    def __getitem__(self, key: str | tuple[str, ...]) -> str | None:
         if isinstance(key, tuple):
-            try:
-                return next(filter(None, (self[k] for k in key)))
-            except StopIteration:
-                key = key[0]
-        return _TocEntry(key, self.entries.get(key, self.default))
+            return next(filter(None, map(self.entries.get, key)), None)
+        else:
+            return self.entries.get(key)
 
     @classmethod
     def from_path(cls, path: Path) -> TocReader:
