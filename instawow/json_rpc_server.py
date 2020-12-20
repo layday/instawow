@@ -362,9 +362,10 @@ class ManagerWorkQueue:
             async with self._locks['load manager']:
                 with _reraise_validation_error(_ConfigError):
                     config = await t(Config.read)(profile)
-                self._managers[profile] = manager = await t(Manager.from_config)(config)
-            manager.web_client = self._web_client
-            manager.locks = self._locks
+                self._managers[profile] = manager = await t(Manager.from_config)(
+                    config, web_client=self._web_client, locks=self._locks
+                )
+
         return manager
 
     async def listen(self) -> None:

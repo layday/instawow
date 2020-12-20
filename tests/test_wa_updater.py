@@ -7,9 +7,9 @@ from instawow.wa_updater import BuilderConfig, WaCompanionBuilder, WeakAura, Wea
 
 
 @pytest.fixture
-def wa_saved_vars(manager):
+def wa_saved_vars(iw_manager):
     saved_vars = (
-        manager.config.addon_dir.parents[1] / 'WTF' / 'Account' / 'test' / 'SavedVariables'
+        iw_manager.config.addon_dir.parents[1] / 'WTF' / 'Account' / 'test' / 'SavedVariables'
     )
     saved_vars.mkdir(parents=True)
     (saved_vars / WeakAuras._filename).write_text(
@@ -26,8 +26,8 @@ WeakAurasSaved = {
 
 
 @pytest.fixture
-def builder(manager):
-    yield WaCompanionBuilder(manager, BuilderConfig())
+def builder(iw_manager):
+    yield WaCompanionBuilder(iw_manager, BuilderConfig())
 
 
 def test_can_parse_empty_displays_table(builder):

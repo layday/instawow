@@ -9,7 +9,7 @@ from zipfile import ZipFile
 import pytest
 
 from instawow.config import Config, Flavour
-from instawow.manager import Manager
+from instawow.manager import Manager, init_web_client
 from instawow.utils import get_version
 
 inf = float('inf')
@@ -50,31 +50,37 @@ def make_addon_zip(*folders):
 
 
 @pytest.fixture(scope='session', autouse=True)
-def temp_dir(tmp_path_factory):
+def iw_temp_dir(tmp_path_factory):
     temp_dir = os.environ['INSTAWOW_TEMP_DIR'] = str(tmp_path_factory.mktemp('temp'))
     yield temp_dir
 
 
 @pytest.fixture(params=Flavour)
-def partial_config(tmp_path, request, temp_dir):
+def iw_partial_config(tmp_path, request, iw_temp_dir):
     addons = tmp_path / 'wow' / 'interface' / 'addons'
     addons.mkdir(parents=True)
-    return {'addon_dir': addons, 'temp_dir': temp_dir, 'game_flavour': request.param}
+    return {'addon_dir': addons, 'temp_dir': iw_temp_dir, 'game_flavour': request.param}
 
 
 @pytest.fixture
-def full_config(tmp_path, partial_config):
-    return {**partial_config, 'config_dir': tmp_path / 'config'}
+def iw_full_config(tmp_path, iw_partial_config):
+    return {**iw_partial_config, 'config_dir': tmp_path / 'config'}
 
 
 @pytest.fixture
-def config(full_config):
-    yield Config(**full_config).write()
+def iw_config(iw_full_config):
+    yield Config(**iw_full_config).write()
 
 
 @pytest.fixture
-def manager(config):
-    yield Manager.from_config(config)
+async def iw_web_client():
+    async with init_web_client() as web_client:
+        yield web_client
+
+
+@pytest.fixture
+def iw_manager(iw_config, iw_web_client):
+    yield Manager.from_config(iw_config, web_client=iw_web_client)
 
 
 @pytest.fixture

@@ -16,21 +16,21 @@ def mock(mock_all):
     pass
 
 
-def write_addons(manager, *addons):
+def write_addons(iw_manager, *addons):
     for addon in addons:
-        (manager.config.addon_dir / addon).mkdir()
-        (manager.config.addon_dir / addon / f'{addon}.toc').touch()
+        (iw_manager.config.addon_dir / addon).mkdir()
+        (iw_manager.config.addon_dir / addon / f'{addon}.toc').touch()
 
 
 @pytest.fixture
-def invalid_addons(manager):
-    (manager.config.addon_dir / 'foo').mkdir()
-    (manager.config.addon_dir / 'bar').touch()
+def invalid_addons(iw_manager):
+    (iw_manager.config.addon_dir / 'foo').mkdir()
+    (iw_manager.config.addon_dir / 'bar').touch()
 
 
 @pytest.fixture
-def molinari(manager):
-    molinari_folder = manager.config.addon_dir / 'Molinari'
+def molinari(iw_manager):
+    molinari_folder = iw_manager.config.addon_dir / 'Molinari'
     molinari_folder.mkdir()
     (molinari_folder / 'Molinari.toc').write_text(
         '''\
@@ -52,22 +52,22 @@ def test_addon_folder_can_extract_defns_from_toc(molinari):
 
 
 @pytest.mark.asyncio
-async def test_invalid_addons_discarded(manager, invalid_addons):
-    folders = get_folder_set(manager)
+async def test_invalid_addons_discarded(iw_manager, invalid_addons):
+    folders = get_folder_set(iw_manager)
     assert folders == frozenset()
-    assert await match_toc_ids(manager, folders) == []
-    assert await match_dir_names(manager, folders) == []
+    assert await match_toc_ids(iw_manager, folders) == []
+    assert await match_dir_names(iw_manager, folders) == []
 
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize('test_func', [match_toc_ids, match_toc_names, match_dir_names])
-async def test_multiple_defns_per_addon_contained_in_results(manager, molinari, test_func):
-    ((_, matches),) = await test_func(manager, get_folder_set(manager))
+async def test_multiple_defns_per_addon_contained_in_results(iw_manager, molinari, test_func):
+    ((_, matches),) = await test_func(iw_manager, get_folder_set(iw_manager))
     assert {Defn('curse', '20338'), Defn('wowi', '13188')} == set(matches)
 
 
 @pytest.mark.asyncio
-async def test_multiple_defns_per_addon_per_source_contained_in_results(manager):
-    write_addons(manager, 'AdiBags', 'AdiBags_Config')
-    ((_, matches),) = await match_dir_names(manager, get_folder_set(manager))
+async def test_multiple_defns_per_addon_per_source_contained_in_results(iw_manager):
+    write_addons(iw_manager, 'AdiBags', 'AdiBags_Config')
+    ((_, matches),) = await match_dir_names(iw_manager, get_folder_set(iw_manager))
     assert {Defn('curse', '23350'), Defn('curse', '333072')} == set(matches)

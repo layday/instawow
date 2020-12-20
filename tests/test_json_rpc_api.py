@@ -7,8 +7,8 @@ from instawow.json_rpc_server import create_app, serialise_response
 
 
 @pytest.fixture
-async def ws(full_config, monkeypatch):
-    monkeypatch.setenv('INSTAWOW_CONFIG_DIR', str(full_config['config_dir']))
+async def ws(iw_full_config, monkeypatch):
+    monkeypatch.setenv('INSTAWOW_CONFIG_DIR', str(iw_full_config['config_dir']))
     app, endpoint = await create_app()
     server = TestServer(app)
     async with TestClient(server) as client, client.ws_connect(endpoint) as ws:
@@ -16,8 +16,8 @@ async def ws(full_config, monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_write_config(request, full_config, ws):
-    config_values = {**full_config, 'profile': request.node.name}
+async def test_write_config(request, iw_full_config, ws):
+    config_values = {**iw_full_config, 'profile': request.node.name}
     rpc_request = Request(
         method='config/write',
         params={'values': config_values, 'infer_game_flavour': False},
@@ -30,11 +30,11 @@ async def test_write_config(request, full_config, ws):
 
 
 @pytest.mark.asyncio
-async def test_write_config_with_invalid_params(request, full_config, ws):
+async def test_write_config_with_invalid_params(request, iw_full_config, ws):
     rpc_request = Request(
         method='config/write',
         params={
-            'values': {**full_config, 'game_flavour': 'strawberry'},
+            'values': {**iw_full_config, 'game_flavour': 'strawberry'},
             'infer_game_flavour': False,
         },
         msg_id=request.node.name,

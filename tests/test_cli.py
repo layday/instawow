@@ -24,9 +24,13 @@ def feed_pt():
 
 
 @pytest.fixture
-def run(monkeypatch, event_loop, config):
-    monkeypatch.setattr('instawow.manager.CliManager.run', event_loop.run_until_complete)
-    monkeypatch.setenv('INSTAWOW_CONFIG_DIR', str(config.config_dir))
+def run(monkeypatch, event_loop, iw_config, iw_web_client):
+    def runner(self, awaitable):
+        self.web_client = iw_web_client
+        return event_loop.run_until_complete(awaitable)
+
+    monkeypatch.setattr('instawow.manager.CliManager.run', runner)
+    monkeypatch.setenv('INSTAWOW_CONFIG_DIR', str(iw_config.config_dir))
     yield partial(
         CliRunner().invoke,
         cli.main,
@@ -41,8 +45,8 @@ def molinari_and_run(run):
 
 
 @pytest.fixture
-def faux_molinari_and_run(config, run):
-    molinari = config.addon_dir / 'Molinari'
+def faux_molinari_and_run(iw_config, run):
+    molinari = iw_config.addon_dir / 'Molinari'
     molinari.mkdir()
     (molinari / 'Molinari.toc').write_text(
         '''\
@@ -64,14 +68,14 @@ def test_valid_curse_pkg_lifecycle(run):
     assert run('remove curse:molinari').output == '✗ curse:molinari\n  package is not installed\n'
 
 
-def test_valid_tukui_pkg_lifecycle(config, run):
+def test_valid_tukui_pkg_lifecycle(iw_config, run):
     assert run('install tukui:1').output.startswith('✓ tukui:1\n  installed')
     assert run('install tukui:1').output == '✗ tukui:1\n  package already installed\n'
     assert run('update tukui:1').output == '✗ tukui:1\n  package is up to date\n'
     assert run('remove tukui:1').output == '✓ tukui:1\n  removed\n'
     assert run('update tukui:1').output == '✗ tukui:1\n  package is not installed\n'
     assert run('remove tukui:1').output == '✗ tukui:1\n  package is not installed\n'
-    if config.is_retail:
+    if iw_config.is_retail:
         assert run('install tukui:-1').output.startswith('✓ tukui:-1\n  installed')
         assert run('install tukui:-1').output == '✗ tukui:-1\n  package already installed\n'
         assert run('update tukui:-1').output == '✗ tukui:-1\n  package is up to date\n'
@@ -105,39 +109,13 @@ def test_valid_wowi_pkg_lifecycle(run):
     )
 
 
-def test_folder_conflict_lifecycle(run):
-    assert run('install curse:molinari').output.startswith('✓ curse:molinari\n  installed')
-    assert run('install wowi:13188-molinari').output == (
-        '✗ wowi:13188-molinari\n'
-        '  package folders conflict with installed package Molinari\n'
-        '    (curse:20338)\n'
-    )
-    assert run('remove curse:molinari').output == '✓ curse:molinari\n  removed\n'
+def test_invalid_source_lifecycle(run):
+    assert run('install foo:bar').output == '✗ foo:bar\n  package source is invalid\n'
+    assert run('update foo:bar').output == '✗ foo:bar\n  package is not installed\n'
+    assert run('remove foo:bar').output == '✗ foo:bar\n  package is not installed\n'
 
 
-def test_preexisting_folder_conflict_on_install(config, run):
-    config.addon_dir.joinpath('Molinari').mkdir()
-    assert (
-        run('install curse:molinari').output
-        == '''\
-✗ curse:molinari
-  package folders conflict with 'Molinari'
-'''
-    )
-    assert run('install --replace curse:molinari').output.startswith(
-        '✓ curse:molinari\n  installed'
-    )
-
-
-def test_keep_folders_on_remove(config, molinari_and_run):
-    assert (
-        molinari_and_run('remove --keep-folders curse:molinari').output
-        == '✓ curse:molinari\n  removed\n'
-    )
-    assert config.addon_dir.joinpath('Molinari').is_dir()
-
-
-def test_invalid_addon_name_lifecycle(run):
+def test_nonexistent_addon_alias_lifecycle(run):
     assert (
         run('install curse:gargantuan-wigs').output
         == '✗ curse:gargantuan-wigs\n  package does not exist\n'
@@ -152,10 +130,32 @@ def test_invalid_addon_name_lifecycle(run):
     )
 
 
-def test_invalid_source_lifecycle(run):
-    assert run('install foo:bar').output == '✗ foo:bar\n  package source is invalid\n'
-    assert run('update foo:bar').output == '✗ foo:bar\n  package is not installed\n'
-    assert run('remove foo:bar').output == '✗ foo:bar\n  package is not installed\n'
+def test_reconciled_folder_conflict_on_install(run):
+    assert run('install curse:molinari').output.startswith('✓ curse:molinari\n  installed')
+    assert run('install wowi:13188-molinari').output == (
+        '✗ wowi:13188-molinari\n'
+        '  package folders conflict with installed package Molinari\n'
+        '    (curse:20338)\n'
+    )
+
+
+def test_unreconciled_folder_conflict_on_install(iw_config, run):
+    iw_config.addon_dir.joinpath('Molinari').mkdir()
+    assert (
+        run('install curse:molinari').output
+        == "✗ curse:molinari\n  package folders conflict with 'Molinari'\n"
+    )
+    assert run('install --replace curse:molinari').output.startswith(
+        '✓ curse:molinari\n  installed'
+    )
+
+
+def test_keep_folders_on_remove(iw_config, molinari_and_run):
+    assert (
+        molinari_and_run('remove --keep-folders curse:molinari').output
+        == '✓ curse:molinari\n  removed\n'
+    )
+    assert iw_config.addon_dir.joinpath('Molinari').is_dir()
 
 
 def test_install_with_curse_alias(run):
@@ -173,11 +173,10 @@ def test_install_with_curse_alias(run):
         run('install https://www.curseforge.com/wow/addons/molinari/download').output
         == '✗ curse:molinari\n  package already installed\n'
     )
-    assert run('remove curse:molinari').output == '✓ curse:molinari\n  removed\n'
 
 
-def test_install_with_tukui_alias(config, run):
-    if config.is_retail:
+def test_install_with_tukui_alias(iw_config, run):
+    if iw_config.is_retail:
         assert run('install tukui:-1').output.startswith('✓ tukui:-1\n  installed')
         assert run('install tukui:tukui').output == '✗ tukui:tukui\n  package already installed\n'
         assert (
@@ -195,7 +194,6 @@ def test_install_with_tukui_alias(config, run):
         '✓ tukui:1\n  installed'
     )
     assert run('install tukui:1').output == '✗ tukui:1\n  package already installed\n'
-    assert run('remove tukui:1').output == '✓ tukui:1\n  removed\n'
 
 
 def test_install_with_wowi_alias(run):
@@ -220,7 +218,6 @@ def test_install_with_wowi_alias(run):
         run('install https://www.wowinterface.com/downloads/info13188-Molinari.html').output
         == '✗ wowi:13188\n  package already installed\n'
     )
-    assert run('remove wowi:13188').output == '✓ wowi:13188\n  removed\n'
 
 
 def test_install_with_github_alias(run):
@@ -245,7 +242,7 @@ def test_install_with_github_alias(run):
     )
 
 
-def test_version_strategy_lifecycle(config, run):
+def test_version_strategy_lifecycle(iw_config, run):
     assert (
         run('install curse:molinari').output == '✓ curse:molinari\n  installed 80300.66-Release\n'
     )
@@ -257,7 +254,7 @@ def test_version_strategy_lifecycle(config, run):
     assert run('remove curse:molinari').output == '✓ curse:molinari\n  removed\n'
     assert (
         run('install --version foo curse:molinari').output
-        == f"✗ curse:molinari\n  no files compatible with {config.game_flavour} using version strategy\n"
+        == f"✗ curse:molinari\n  no files compatible with {iw_config.game_flavour} using version strategy\n"
     )
     assert (
         run('install --version 80000.57-Release curse:molinari').output
@@ -323,24 +320,24 @@ def test_install_sandwich_addon_argument_is_not_required(run):
     )
 
 
-def test_configure__display_active_profile(config, run):
-    assert run('configure --active').output == config.json(indent=2) + '\n'
+def test_configure__display_active_profile(iw_config, run):
+    assert run('configure --active').output == iw_config.json(indent=2) + '\n'
 
 
-def test_configure__create_new_profile(feed_pt, config, run):
-    feed_pt(f'{config.addon_dir}\r\r')
+def test_configure__create_new_profile(feed_pt, iw_config, run):
+    feed_pt(f'{iw_config.addon_dir}\r\r')
     assert (
         run('-p foo configure').output
-        == f'Configuration written to: {config.config_dir / "profiles/foo/config.json"}\n'
+        == f'Configuration written to: {iw_config.config_dir / "profiles/foo/config.json"}\n'
     )
 
 
-def test_configure__create_new_profile_promptless(monkeypatch, config, run):
-    monkeypatch.setenv('INSTAWOW_ADDON_DIR', str(config.addon_dir))
-    monkeypatch.setenv('INSTAWOW_GAME_FLAVOUR', config.game_flavour.value)
+def test_configure__create_new_profile_promptless(monkeypatch, iw_config, run):
+    monkeypatch.setenv('INSTAWOW_ADDON_DIR', str(iw_config.addon_dir))
+    monkeypatch.setenv('INSTAWOW_GAME_FLAVOUR', iw_config.game_flavour.value)
     assert (
         run('-p foo configure --promptless').output
-        == f'Configuration written to: {config.config_dir / "profiles/foo/config.json"}\n'
+        == f'Configuration written to: {iw_config.config_dir / "profiles/foo/config.json"}\n'
     )
 
 
@@ -502,8 +499,8 @@ def test_can_list_with_substr_match(molinari_and_run):
     assert (molinari['source'], molinari['slug']) == ('curse', 'molinari')
 
 
-def test_json_export_and_import(config, molinari_and_run):
-    export_json = config.config_dir.parent / 'export.json'
+def test_json_export_and_import(iw_config, molinari_and_run):
+    export_json = iw_config.config_dir.parent / 'export.json'
     export_json.write_text(molinari_and_run('list -f json').output, encoding='utf-8')
     assert (
         molinari_and_run(f'install --import "{export_json}"').output

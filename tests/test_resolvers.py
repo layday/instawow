@@ -12,8 +12,8 @@ def mock(mock_all):
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize('strategy', [Strategy.default, Strategy.latest, Strategy.any_flavour])
-async def test_resolve_curse_simple_pkgs(manager, request, strategy):
-    results = await manager.resolve(
+async def test_resolve_curse_simple_pkgs(iw_manager, request, strategy):
+    results = await iw_manager.resolve(
         [
             Defn('curse', 'tomcats', strategy=strategy),
             Defn('curse', 'mythic-dungeon-tools', strategy=strategy),
@@ -24,7 +24,7 @@ async def test_resolve_curse_simple_pkgs(manager, request, strategy):
     separate, retail_only, classic_only, flavour_explosion = results.values()
 
     assert type(separate) is Pkg
-    if manager.config.is_classic:
+    if iw_manager.config.is_classic:
         if strategy is Strategy.any_flavour:
             assert 'classic' not in separate.version
             assert type(retail_only) is Pkg
@@ -54,17 +54,17 @@ async def test_resolve_curse_simple_pkgs(manager, request, strategy):
 
 
 @pytest.mark.asyncio
-async def test_resolve_curse_latest_pkg(manager):
+async def test_resolve_curse_latest_pkg(iw_manager):
     (latest_pkg,) = (
-        await manager.resolve([Defn('curse', 'tomcats', strategy=Strategy.latest)])
+        await iw_manager.resolve([Defn('curse', 'tomcats', strategy=Strategy.latest)])
     ).values()
     assert latest_pkg.options.strategy == Strategy.latest
 
 
 @pytest.mark.asyncio
-async def test_resolve_curse_versioned_pkg(manager):
+async def test_resolve_curse_versioned_pkg(iw_manager):
     (versioned_pkg,) = (
-        await manager.resolve([Defn('curse', 'molinari').with_version('70300.51-Release')])
+        await iw_manager.resolve([Defn('curse', 'molinari').with_version('70300.51-Release')])
     ).values()
     assert (
         versioned_pkg.options.strategy == Strategy.version
@@ -73,18 +73,18 @@ async def test_resolve_curse_versioned_pkg(manager):
 
 
 @pytest.mark.asyncio
-async def test_resolve_curse_deps(manager):
-    if manager.config.is_classic:
+async def test_resolve_curse_deps(iw_manager):
+    if iw_manager.config.is_classic:
         pytest.skip('no classic equivalent')
 
     defns = [Defn('curse', 'mechagon-rare-share', strategy=Strategy.default)]
-    with_deps = await manager.resolve(defns, with_deps=True)
+    with_deps = await iw_manager.resolve(defns, with_deps=True)
     assert ['mechagon-rare-share', 'rare-share'] == [d.slug for d in with_deps.values()]
 
 
 @pytest.mark.asyncio
-async def test_resolve_wowi_pkgs(manager):
-    results = await manager.resolve(
+async def test_resolve_wowi_pkgs(iw_manager):
+    results = await iw_manager.resolve(
         [
             Defn('wowi', '13188-molinari'),
             Defn('wowi', '13188', strategy=Strategy.latest),
@@ -100,8 +100,8 @@ async def test_resolve_wowi_pkgs(manager):
 
 
 @pytest.mark.asyncio
-async def test_resolve_tukui_pkgs(manager):
-    results = await manager.resolve(
+async def test_resolve_tukui_pkgs(iw_manager):
+    results = await iw_manager.resolve(
         [
             Defn('tukui', '1'),
             Defn('tukui', '-1'),
@@ -112,7 +112,7 @@ async def test_resolve_tukui_pkgs(manager):
     either, retail_id, retail_slug, invalid = results.values()
 
     assert type(either) is Pkg
-    if manager.config.is_classic:
+    if iw_manager.config.is_classic:
         assert either.name == 'Tukui'
         assert type(retail_id) is E.PkgNonexistent
         assert type(retail_slug) is E.PkgNonexistent
@@ -127,8 +127,8 @@ async def test_resolve_tukui_pkgs(manager):
 
 
 @pytest.mark.asyncio
-async def test_resolve_github_pkgs(manager):
-    results = await manager.resolve(
+async def test_resolve_github_pkgs(iw_manager):
+    results = await iw_manager.resolve(
         [
             Defn('github', 'AdiAddons/AdiButtonAuras'),
             Defn('github', 'AdiAddons/AdiButtonAuras').with_version('2.1.0'),
@@ -150,5 +150,5 @@ async def test_resolve_github_pkgs(manager):
     assert older_version.options.strategy == Strategy.version and older_version.version == '2.1.0'
     assert type(assetless) is E.PkgFileUnavailable
     assert type(releaseless) is E.PkgFileUnavailable and releaseless.message == 'release not found'
-    assert ('classic' in retail_and_classic.download_url) is manager.config.is_classic
+    assert ('classic' in retail_and_classic.download_url) is iw_manager.config.is_classic
     assert type(missing) is E.PkgNonexistent

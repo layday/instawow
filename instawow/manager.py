@@ -59,8 +59,8 @@ from .utils import (
 
 if TYPE_CHECKING:
     import aiohttp
-    from prompt_toolkit.shortcuts import ProgressBar
-    from sqlalchemy.orm import Session as SqlaSession, sessionmaker
+    import prompt_toolkit.shortcuts
+    import sqlalchemy.orm
     from yarl import URL
 
     _T = TypeVar('_T')
@@ -73,9 +73,6 @@ else:
 
 
 USER_AGENT = 'instawow (https://github.com/layday/instawow)'
-
-_web_client: cv.ContextVar[aiohttp.ClientSession] = cv.ContextVar('_web_client')
-_locks: cv.ContextVar[defaultdict[str, asyncio.Lock]] = cv.ContextVar('_locks')
 
 
 AsyncNamedTemporaryFile = t(NamedTemporaryFile)
@@ -190,7 +187,7 @@ def _should_migrate(engine: Any) -> bool:
             return not current
 
 
-def prepare_database(config: Config) -> sessionmaker:
+def prepare_database(config: Config) -> sqlalchemy.orm.sessionmaker:
     from sqlalchemy import create_engine
     from sqlalchemy.orm import sessionmaker
 
@@ -239,14 +236,6 @@ def init_web_client(**kwargs: Any) -> aiohttp.ClientSession:
     return ClientSession(**kwargs)
 
 
-class _DummyLock:
-    async def __aenter__(self) -> None:
-        pass
-
-    async def __aexit__(self, *args: object) -> None:
-        pass
-
-
 @object.__new__
 class _DummyResolver(Resolver):
     strategies = set()
@@ -280,6 +269,14 @@ async def capture_manager_exc_async(
         return E.InternalError(error)
 
 
+class _DummyLock:
+    async def __aenter__(self) -> None:
+        pass
+
+    async def __aexit__(self, *args: object) -> None:
+        pass
+
+
 def _with_lock(
     lock_name: str,
     manager_bound: bool = True,
@@ -295,6 +292,14 @@ def _with_lock(
     return outer
 
 
+_web_client: cv.ContextVar[aiohttp.ClientSession] = cv.ContextVar('_web_client')
+
+dummy_locks: defaultdict[str, Any] = defaultdict(_DummyLock)
+_locks: cv.ContextVar[defaultdict[str, asyncio.Lock]] = cv.ContextVar(
+    '_locks', default=dummy_locks
+)
+
+
 class Manager:
     RESOLVERS = (
         CurseResolver,
@@ -304,32 +309,34 @@ class Manager:
         InstawowResolver,
     )
 
-    def __init__(self, config: Config, database: SqlaSession) -> None:
+    def __init__(
+        self,
+        config: Config,
+        database: sqlalchemy.orm.Session,
+        *,
+        web_client: aiohttp.ClientSession | None = None,
+        locks: defaultdict[str, asyncio.Lock] | None = None,
+    ) -> None:
         self.config = config
         self.database = database
         self.resolvers = _ResolverDict((r.source, r(self)) for r in self.RESOLVERS)
+
+        if web_client is not None:
+            self.web_client = web_client
+        if locks is not None:
+            self.locks = locks
+
         self._catalogue = None
 
     @classmethod
-    def from_config(cls: type[_TManager], config: Config) -> _TManager:
+    def from_config(cls: type[_TManager], config: Config, **kwargs: Any) -> _TManager:
         session_factory = prepare_database(config)
-        return cls(config, session_factory())
+        return cls(config, session_factory(), **kwargs)
 
     @property
     def web_client(self) -> aiohttp.ClientSession:
         "The web client session."
-        try:
-            return _web_client.get()
-        except LookupError:
-            task = asyncio.current_task()
-            if task is None:
-                raise RuntimeError('no running task')
-
-            web_client = init_web_client()
-            task.add_done_callback(lambda _: asyncio.create_task(web_client.close()))
-            _web_client.set(web_client)
-            logger.debug(f'initialised default web client with id {id(web_client)}')
-            return web_client
+        return _web_client.get()
 
     @web_client.setter
     def web_client(self, value: aiohttp.ClientSession) -> None:
@@ -337,21 +344,15 @@ class Manager:
 
     @property
     def locks(self) -> defaultdict[str, asyncio.Lock]:
-        "Keeping things syncin'."
-        try:
-            return _locks.get()
-        except LookupError:
-            locks: defaultdict[str, Any] = defaultdict(_DummyLock)
-            _locks.set(locks)
-            logger.debug('using dummy lock factory')
-            return locks
+        "Lock factory used to synchronise async operations."
+        return _locks.get()
 
     @locks.setter
     def locks(self, value: defaultdict[str, asyncio.Lock]) -> None:
         _locks.set(value)
 
     def pair_uri(self, value: str) -> tuple[str, str] | None:
-        "Attempt to extract the source from a URI."
+        "Attempt to extract the package source and alias from a URI."
 
         def from_urn():
             source, alias = value.partition(':')[::2]
@@ -469,11 +470,11 @@ class Manager:
 
         return E.PkgRemoved(pkg)
 
-    @_with_lock('load master catalogue', False)
+    @_with_lock('load catalogue', False)
     async def synchronise(self) -> Catalogue:
-        "Fetch the master catalogue from the interwebs and load it."
+        "Fetch the catalogue from the interwebs and load it."
         if self._catalogue is None:
-            label = 'Synchronising master catalogue'
+            label = 'Synchronising catalogue'
             url = (
                 'https://raw.githubusercontent.com/layday/instawow-data/data/'
                 'master-catalogue-v2.compact.json'
@@ -642,8 +643,8 @@ class Manager:
             ),
             ((d, a) for (d, *_), a in zip(updatables, archives) if not isinstance(a, PurePath)),
             [
-                (d, await capture_manager_exc_async(t(self.update_pkg)(*p, a)))
-                for (d, *p), a in zip(updatables, archives)
+                (d, await capture_manager_exc_async(t(self.update_pkg)(o, n, a)))
+                for (d, o, n), a in zip(updatables, archives)
                 if isinstance(a, PurePath)
             ],
         )
@@ -704,7 +705,7 @@ def _extract_filename_from_hdr(response: aiohttp.ClientResponse) -> str:
 
 
 def _init_cli_web_client(
-    bar: ProgressBar, tickers: set[asyncio.Task[None]]
+    bar: prompt_toolkit.shortcuts.ProgressBar, tickers: set[asyncio.Task[None]]
 ) -> aiohttp.ClientSession:
     from aiohttp import TraceConfig, TraceRequestEndParams, hdrs
 
