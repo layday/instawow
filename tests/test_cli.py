@@ -510,3 +510,8 @@ def test_json_export_and_import(iw_config, molinari_and_run):
 
 def test_show_version(run):
     assert run('--version').output == f'instawow, version {utils.get_version()}\n'
+
+
+def test_plugin_hook_command_can_be_invoked(run):
+    pytest.importorskip('instawow_test_plugin')
+    assert run('foo').output == 'success!\n'

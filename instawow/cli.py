@@ -13,6 +13,7 @@ import click
 
 from . import manager as managers, models, results as E
 from .config import Config, Flavour, setup_logging
+from .plugins import load_plugins
 from .resolvers import Defn, MultiPkgModel, Strategy
 from .utils import TocReader, cached_property, get_version, is_outdated, tabulate, uniq
 
@@ -143,6 +144,15 @@ class EnumParam(click.Choice):
         return self.choice_enum[parent_result]
 
 
+def _register_plugin_commands(group: click.Group) -> click.Group:
+    plugin_hook = load_plugins()
+    additional_commands = (c for g in plugin_hook.instawow_add_commands() for c in g)
+    for command in additional_commands:
+        group.add_command(command)
+    return group
+
+
+@_register_plugin_commands
 @click.group(context_settings={'help_option_names': ('-h', '--help')})
 @click.version_option(get_version(), prog_name=__package__)
 @click.option(

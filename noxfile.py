@@ -30,7 +30,7 @@ def reformat(session: nox.Session):
 @nox.session(python=['3.7', '3.8', '3.9'])
 def test(session: nox.Session):
     "Run the test suite."
-    session.install('.[server, test]')
+    session.install('.[server, test]', './tests/plugin')
     session.run('coverage', 'run', '-m', 'pytest')
     session.run('coverage', 'report', '-m')
 

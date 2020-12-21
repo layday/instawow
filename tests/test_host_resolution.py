@@ -152,3 +152,18 @@ async def test_resolve_github_pkgs(iw_manager):
     assert type(releaseless) is E.PkgFileUnavailable and releaseless.message == 'release not found'
     assert ('classic' in retail_and_classic.download_url) is iw_manager.config.is_classic
     assert type(missing) is E.PkgNonexistent
+
+
+@pytest.mark.asyncio
+async def test_plugin_hook_dummy_pkg_can_be_resolved(iw_manager):
+    pytest.importorskip('instawow_test_plugin')
+    defn = Defn('me', 'bar')
+    results = await iw_manager.resolve([defn])
+    assert type(results[defn]) is Pkg
+
+
+@pytest.mark.asyncio
+async def test_invalid_source_returns_invalid_exc(iw_manager):
+    defn = Defn('bar', 'baz')
+    results = await iw_manager.resolve([defn])
+    assert type(results[defn]) is E.PkgSourceInvalid
