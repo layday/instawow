@@ -190,6 +190,13 @@ every invocation of ``instawow update``, install the
     instawow install instawow:weakauras-companion-autoupdate
     instawow update
 
+Plug-ins
+~~~~~~~~
+
+*instawow* can be extended using plug-ins.  Plug-ins can be used to add support
+for arbitrary hosts and add new commands to the CLI.  You will find a sample
+plug-in in ``tests/plugin``.
+
 Metadata sourcing
 -----------------
 
