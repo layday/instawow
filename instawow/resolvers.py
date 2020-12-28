@@ -854,7 +854,7 @@ if TYPE_CHECKING:
 class GithubResolver(Resolver):
     source = 'github'
     name = 'GitHub'
-    strategies = frozenset({Strategy.default, Strategy.version})
+    strategies = frozenset({Strategy.default, Strategy.latest, Strategy.version})
 
     repos_api_url = URL('https://api.github.com/repos')
 
@@ -895,12 +895,22 @@ class GithubResolver(Resolver):
 
         if defn.strategy is Strategy.version:
             release_url = repo_url / 'releases/tags' / cast(str, defn.version)
+        elif defn.strategy is Strategy.latest:
+            release_url = (repo_url / 'releases').with_query(per_page='1')
         else:
+            # Per GH, the latest release is the most recent non-prerelease,
+            # non-draft release, sorted by the ``created_at`` attribute.
+            # https://docs.github.com/en/free-pro-team@latest/rest/reference/repos#get-the-latest-release
             release_url = repo_url / 'releases/latest'
+
         async with self.manager.web_client.get(release_url) as response:
             if response.status == 404:
                 raise E.PkgFileUnavailable('release not found')
-            release_metadata: GithubRelease = await response.json()
+
+            response_json = await response.json()
+            if defn.strategy is Strategy.latest:
+                (response_json,) = response_json
+            release_metadata: GithubRelease = response_json
 
         try:
 

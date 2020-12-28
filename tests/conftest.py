@@ -245,6 +245,14 @@ def mock_github(aresponses):
     )
     aresponses.add(
         'api.github.com',
+        '/repos/AdiAddons/AdiButtonAuras/releases?per_page=1',
+        'get',
+        [read_json_fixture('github-release-lib-and-nolib.json')],
+        match_querystring=True,
+        repeat=inf,
+    )
+    aresponses.add(
+        'api.github.com',
         '/repos/AdiAddons/AdiButtonAuras/releases/tags/2.1.0',
         'get',
         read_json_fixture('github-release-lib-and-nolib-older-version.json'),

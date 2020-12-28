@@ -128,25 +128,26 @@ async def test_resolve_tukui_pkgs(iw_manager):
 
 @pytest.mark.asyncio
 async def test_resolve_github_pkgs(iw_manager):
-    results = await iw_manager.resolve(
-        [
-            Defn('github', 'AdiAddons/AdiButtonAuras'),
-            Defn('github', 'AdiAddons/AdiButtonAuras').with_version('2.1.0'),
-            Defn('github', 'AdiAddons/AdiButtonAuras').with_version('2.0.19'),
-            Defn('github', 'WeakAuras/WeakAuras2'),
-            Defn('github', 'p3lim-wow/Molinari'),
-            Defn('github', 'layday/foo-bar'),
-        ]
-    )
-    (
+    defns = [
+        Defn('github', 'AdiAddons/AdiButtonAuras'),
+        Defn('github', 'AdiAddons/AdiButtonAuras', strategy=Strategy.latest),
+        Defn('github', 'AdiAddons/AdiButtonAuras').with_version('2.1.0'),
+        Defn('github', 'AdiAddons/AdiButtonAuras').with_version('2.0.19'),
+        Defn('github', 'WeakAuras/WeakAuras2'),
+        Defn('github', 'p3lim-wow/Molinari'),
+        Defn('github', 'layday/foo-bar'),
+    ]
+    [
         lib_and_nolib,
+        latest,
         older_version,
         assetless,
         retail_and_classic,
         releaseless,
         missing,
-    ) = results.values()
+    ] = (await iw_manager.resolve(defns)).values()
     assert 'nolib' not in lib_and_nolib.download_url
+    assert latest.options.strategy == Strategy.latest and 'nolib' not in latest.download_url
     assert older_version.options.strategy == Strategy.version and older_version.version == '2.1.0'
     assert type(assetless) is E.PkgFileUnavailable
     assert type(releaseless) is E.PkgFileUnavailable and releaseless.message == 'release not found'
