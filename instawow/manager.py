@@ -65,9 +65,8 @@ if TYPE_CHECKING:
     from yarl import URL
 
     _T = TypeVar('_T')
-    _FT = TypeVar('_FT', bound=Callable[..., Any])
+    _C = TypeVar('_C', bound=Callable[..., Awaitable[object]])
     _TManager = TypeVar('_TManager', bound='Manager')
-
     _BaseResolverDict: TypeAlias = 'dict[str, Resolver]'
 else:
     _BaseResolverDict = dict
@@ -281,14 +280,13 @@ class _DummyLock:
 def _with_lock(
     lock_name: str,
     manager_bound: bool = True,
-) -> Callable[[_FT], _FT]:
-    def outer(coro_fn: _FT):
+) -> Callable[[_C], _C]:
+    def outer(coro_fn: _C) -> _C:
         async def inner(self: Manager, *args: object, **kwargs: object):
-            key = f'{id(self)}_{lock_name}' if manager_bound else lock_name
-            async with self.locks[key]:
+            async with self.locks[f'{id(self)}_{lock_name}' if manager_bound else lock_name]:
                 return await coro_fn(self, *args, **kwargs)
 
-        return inner
+        return inner  # type: ignore
 
     return outer
 

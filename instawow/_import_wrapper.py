@@ -2,13 +2,9 @@ from __future__ import annotations
 
 import importlib.util
 import sys
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    import types
 
 
-def __getattr__(name: str) -> types.ModuleType:
+def __getattr__(name: str) -> object:
     """Defer importing own modules until attempting to access an attribute.
 
     Importing this in ``__init__`` will overwrite relative imports.

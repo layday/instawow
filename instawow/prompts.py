@@ -4,9 +4,10 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from functools import partial
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from prompt_toolkit.application import Application
+from prompt_toolkit.document import Document
 from prompt_toolkit.key_binding import KeyBindings, KeyPressEvent
 from prompt_toolkit.keys import Keys
 from prompt_toolkit.styles import Style
@@ -16,10 +17,7 @@ from questionary import Choice, confirm as _confirm, path as _path
 from questionary.prompts.common import InquirerControl, Separator, create_inquirer_layout
 from questionary.question import Question
 
-if TYPE_CHECKING:
-    from prompt_toolkit.document import Document
-
-    from .models import Pkg
+from . import models
 
 
 class PydanticValidator(Validator):
@@ -39,7 +37,7 @@ class PydanticValidator(Validator):
 
 
 class PkgChoice(Choice):
-    def __init__(self, *args: Any, pkg: Pkg, **kwargs: Any) -> None:
+    def __init__(self, *args: Any, pkg: models.Pkg, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.pkg = pkg
 

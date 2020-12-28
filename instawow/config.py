@@ -63,8 +63,8 @@ class GlobalConfig(BaseConfig):
     profile: str = Field(_default_profile, min_length=1, strip_whitespace=True)
     addon_dir: Path
     game_flavour: Flavour
-    auto_update_check: bool = True
     temp_dir: Path = Path(gettempdir(), 'instawow')
+    auto_update_check: bool = True
 
     @validator('config_dir', 'addon_dir', 'temp_dir')
     def _validate_expand_path(cls, value: Path) -> Path:
@@ -77,7 +77,7 @@ class GlobalConfig(BaseConfig):
         return _validate_path_is_writable_dir(value)
 
     @staticmethod
-    def is_classic_folder(folder: os.PathLike[str]) -> bool:
+    def is_classic_folder(folder: os.PathLike[str] | str) -> bool:
         tail = PurePath(folder).parts[-3:]
         return tuple(map(str.casefold, tail)) in {
             ('_classic_', 'interface', 'addons'),
@@ -87,8 +87,8 @@ class GlobalConfig(BaseConfig):
     @classmethod
     def get_dummy_config(cls, **kwargs: object) -> GlobalConfig:
         "Create a dummy configuration with default values."
-        template = {'game_flavour': Flavour.retail, 'addon_dir': _novalidate}
-        dummy_config = cls.parse_obj({**template, **kwargs})
+        defaults = {'addon_dir': _novalidate, 'game_flavour': Flavour.retail}
+        dummy_config = cls.parse_obj({**defaults, **kwargs})
         return dummy_config
 
     @classmethod

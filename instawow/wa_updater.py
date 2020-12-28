@@ -5,46 +5,35 @@ from functools import partial, reduce
 from itertools import chain, product
 import time
 import typing
-from typing import TYPE_CHECKING, Any, ClassVar, Generic, TypeVar
+from typing import Any, ClassVar, Generic, TypeVar
 
 from loguru import logger
 from pydantic import BaseModel, Field, validator
 from pydantic.generics import GenericModel
-from typing_extensions import Literal, TypedDict
+from typing_extensions import Literal, TypeAlias, TypedDict
 from yarl import URL
 
 from . import manager
 from .config import BaseConfig
 from .utils import bucketise, chain_dict, gather, run_in_thread as t, shasum
 
-if TYPE_CHECKING:
-    ImportString = str
-    RemoteAuras = Sequence[tuple[Sequence[WeakAura], WagoApiResponse, ImportString]]
+ImportString: TypeAlias = str
+RemoteAuras: TypeAlias = 'Sequence[tuple[Sequence[WeakAura], WagoApiResponse, ImportString]]'
 
-    _T = TypeVar('_T')
+_TWeakAura = TypeVar('_TWeakAura', bound='WeakAura')
 
-    def type_(value: _T) -> type[_T]:
-        ...
-
-
-else:
-    type_ = type
+IMPORT_API_URL = URL('https://data.wago.io/api/raw/encoded')
 
 
 class BuilderConfig(BaseConfig):
     wago_api_key: typing.Optional[str]
 
 
-WeakAuraT = TypeVar('WeakAuraT', bound='WeakAura')
-
-import_api_url = URL('https://data.wago.io/api/raw/encoded')
-
-
-class Auras(GenericModel, Generic[WeakAuraT]):
+class Auras(GenericModel, Generic[_TWeakAura]):
     _filename: ClassVar[str]
     _api_url: ClassVar[URL]
 
-    __root__: typing.Dict[str, typing.List[WeakAuraT]]
+    __root__: typing.Dict[str, typing.List[_TWeakAura]]
 
     class Config:
         arbitrary_types_allowed = True
@@ -53,7 +42,7 @@ class Auras(GenericModel, Generic[WeakAuraT]):
         }
 
     @classmethod
-    def from_lua_table(cls, lua_table: Any) -> Auras[WeakAuraT]:
+    def from_lua_table(cls, lua_table: Any) -> Auras[_TWeakAura]:
         raise NotImplementedError
 
     @classmethod
@@ -61,7 +50,7 @@ class Auras(GenericModel, Generic[WeakAuraT]):
         "Merge auras of the same type."
         return (
             t(__root__=reduce(lambda a, b: {**a, **b}, (i.__root__ for i in a)))
-            for t, a in bucketise(auras, key=type_).items()
+            for t, a in bucketise(auras, key=type).items()
         )
 
 
@@ -116,32 +105,33 @@ class Plateroos(Auras[Plateroo]):
         return cls(__root__={a.url.parts[1]: [a] for a in sorted_auras})
 
 
-if TYPE_CHECKING:
+class WagoApiChangelog(TypedDict, total=False):
+    format: Literal['bbcode', 'markdown']
+    text: str
 
-    class WagoApiChangelog(TypedDict, total=False):
-        format: Literal['bbcode', 'markdown']
-        text: str
 
-    class WagoApiCommonFields(TypedDict):
-        _id: str  # +   # Alphanumeric ID
-        name: str  # +  # User-facing name
-        slug: str  # +  # Slug if it has one; otherwise same as ``_id``
-        url: str
-        created: str  # ISO datetime
-        modified: str  # ISO datetime
-        game: str  # "classic" or xpac, e.g. "bfa"
-        username: str  # +  # Author username
-        version: int  # +   # Version counter, incremented with every update
-        # Semver auto-generated from ``version`` - for presentation only
-        versionString: str
-        changelog: WagoApiChangelog  # +
+class WagoApiCommonFields(TypedDict):
+    _id: str  # +   # Alphanumeric ID
+    name: str  # +  # User-facing name
+    slug: str  # +  # Slug if it has one; otherwise same as ``_id``
+    url: str
+    created: str  # ISO datetime
+    modified: str  # ISO datetime
+    game: str  # "classic" or xpac, e.g. "bfa"
+    username: str  # +  # Author username
+    version: int  # +   # Version counter, incremented with every update
+    # Semver auto-generated from ``version`` - for presentation only
+    versionString: str
+    changelog: WagoApiChangelog  # +
 
-    class WagoApiOptionalFields(TypedDict, total=False):
-        forkOf: str  # Only present on forks
-        regionType: str  # Only present on WAs
 
-    class WagoApiResponse(WagoApiCommonFields, WagoApiOptionalFields):
-        pass
+class WagoApiOptionalFields(TypedDict, total=False):
+    forkOf: str  # Only present on forks
+    regionType: str  # Only present on WAs
+
+
+class WagoApiResponse(WagoApiCommonFields, WagoApiOptionalFields):
+    pass
 
 
 class WaCompanionBuilder:
@@ -213,7 +203,7 @@ class WaCompanionBuilder:
 
         return await cache_response(
             self.manager,
-            import_api_url.with_query(id=aura['_id']),
+            IMPORT_API_URL.with_query(id=aura['_id']),
             {'minutes': 30},
             label=f"Fetching aura '{aura['slug']}'",
             is_json=False,
@@ -221,8 +211,8 @@ class WaCompanionBuilder:
         )
 
     async def get_remote_auras(
-        self, aura_groups: Auras[WeakAuraT]
-    ) -> tuple[type[Auras[WeakAuraT]], RemoteAuras]:
+        self, aura_groups: Auras[_TWeakAura]
+    ) -> tuple[type[Auras[_TWeakAura]], RemoteAuras]:
         if not aura_groups.__root__:
             return (aura_groups.__class__, [])
 

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 from collections import defaultdict, deque
-from collections.abc import Awaitable, Callable, Coroutine, Iterable, Iterator, Mapping, Sequence
+from collections.abc import Awaitable, Callable, Iterable, Iterator, Mapping, Sequence
 from contextlib import contextmanager
 from datetime import datetime, timedelta
 from functools import partial, wraps
@@ -52,7 +52,7 @@ class cached_property(Generic[_V]):
         self.f = f
 
     @overload
-    def __get__(self, o: None, t: type[_T] | None = ...) -> cached_property[_V]:
+    def __get__(self, o: None, t: type | None = ...) -> cached_property[_V]:
         ...
 
     @overload
@@ -131,12 +131,12 @@ async def gather(
 @overload
 def run_in_thread(
     fn: type[list[object]],
-) -> Callable[[Iterable[_V]], Coroutine[Any, Any, list[_V]]]:
+) -> Callable[[Iterable[_V]], Awaitable[list[_V]]]:
     ...
 
 
 @overload
-def run_in_thread(fn: Callable[..., _V]) -> Callable[..., Coroutine[Any, Any, _V]]:
+def run_in_thread(fn: Callable[..., _V]) -> Callable[..., Awaitable[_V]]:
     ...
 
 
