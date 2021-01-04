@@ -4,7 +4,6 @@
   "typeCheckingMode": "strict",
   "reportMissingTypeStubs": "information",
   "reportImportCycles": false,
-  "reportPrivateUsage": "information",
   "reportUnknownArgumentType": "warning",
   "reportUnknownMemberType": false
 }

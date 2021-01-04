@@ -707,7 +707,7 @@ def list_installed_wago_auras(obj: ManagerWrapper) -> None:
     config = BuilderConfig()
     aura_groups = WaCompanionBuilder(obj.m, config).extract_installed_auras()
     installed_auras = sorted(
-        (g._filename, fill(a.id, width=30, max_lines=1), a.url)
+        (g.filename, fill(a.id, width=30, max_lines=1), a.url)
         for g in aura_groups
         for v in g.__root__.values()
         for a in v

@@ -12,7 +12,7 @@ def wa_saved_vars(iw_manager):
         iw_manager.config.addon_dir.parents[1] / 'WTF' / 'Account' / 'test' / 'SavedVariables'
     )
     saved_vars.mkdir(parents=True)
-    (saved_vars / WeakAuras._filename).write_text(
+    (saved_vars / WeakAuras.filename).write_text(
         '''\
 WeakAurasSaved = {
     ["displays"] = {
