@@ -7,7 +7,8 @@ from contextlib import contextmanager
 from functools import partial
 from itertools import repeat
 import os
-from typing import Any, ClassVar, Dict, List, Optional, Set as TSet, TypeVar, Union, overload
+import typing
+from typing import Any, ClassVar, TypeVar, overload
 from uuid import uuid4
 
 from aiohttp import web
@@ -59,11 +60,11 @@ class _ProfileParamMixin(BaseModel):
 
 
 class _DefnParamMixin(BaseModel):
-    defns: List[Defn]
+    defns: typing.List[Defn]
 
 
 class WriteConfigParams(BaseParams):
-    values: Dict[str, Any]
+    values: typing.Dict[str, Any]
     infer_game_flavour: bool
     _method = 'config/write'
 
@@ -114,7 +115,7 @@ class ListProfilesParams(BaseParams):
 class Source(BaseModel):
     source: str
     name: str
-    supported_strategies: List[Strategy]
+    supported_strategies: typing.List[Strategy]
     supports_rollback: bool
 
     @validator('supported_strategies')
@@ -139,7 +140,7 @@ class ListSourcesParams(_ProfileParamMixin, BaseParams):
 
 
 class ListResult(BaseModel):
-    __root__: List[PkgModel]
+    __root__: typing.List[PkgModel]
 
 
 class ListInstalledParams(_ProfileParamMixin, BaseParams):
@@ -164,10 +165,10 @@ class ErrorResult(BaseModel):
 
 
 class MultiResult(BaseModel):
-    __root__: List[Union[SuccessResult, ErrorResult]]
+    __root__: typing.List[typing.Union[SuccessResult, ErrorResult]]
 
     @validator('__root__', each_item=True, pre=True)
-    def _classify_tuple(cls, value: tuple[str, object]) -> Union[SuccessResult, ErrorResult]:
+    def _classify_tuple(cls, value: tuple[str, object]) -> SuccessResult | ErrorResult:
         status, result = value
         if status == 'success':
             return SuccessResult(status=status, addon=result)
@@ -178,7 +179,7 @@ class MultiResult(BaseModel):
 class SearchParams(_ProfileParamMixin, BaseParams):
     search_terms: str
     limit: int
-    sources: Optional[TSet[str]] = None
+    sources: typing.Optional[typing.Set[str]] = None
     _method = 'search'
 
     async def respond(self, managers: ManagerWorkQueue) -> list[CatalogueEntry]:
@@ -284,13 +285,13 @@ class AddonFolder(BaseModel):
 
 
 class AddonMatch(BaseModel):
-    folders: List[AddonFolder]
-    matches: List[PkgModel]
+    folders: typing.List[AddonFolder]
+    matches: typing.List[PkgModel]
 
 
 class ReconcileResult(BaseModel):
-    reconciled: List[AddonMatch]
-    unreconciled: List[AddonMatch]
+    reconciled: typing.List[AddonMatch]
+    unreconciled: typing.List[AddonMatch]
 
     @validator('reconciled', 'unreconciled', pre=True)
     def _transform_matches(cls, value: Any):
@@ -334,7 +335,7 @@ class ReconcileParams(_ProfileParamMixin, BaseParams):
 
 class GetVersionResult(BaseModel):
     installed_version: str
-    new_version: Optional[str]
+    new_version: typing.Optional[str]
 
 
 class GetVersionParams(BaseParams):
