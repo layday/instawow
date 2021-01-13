@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import AsyncIterator, Sequence, Set
 from datetime import datetime, timezone
 from enum import Enum
-from itertools import chain, count, takewhile
+from itertools import chain, takewhile
 import re
 import typing
 from typing import TYPE_CHECKING, Any, ClassVar
@@ -464,7 +464,7 @@ class CurseResolver(Resolver):
 
         step = 1000
         sort_order = '3'  # Alphabetical
-        for index in count(0, step):
+        for index in range(0, 10001 - step, step):
             async with web_client.get(
                 (cls.addon_api_url / 'search').with_query(
                     gameId='1', sort=sort_order, pageSize=step, index=index
