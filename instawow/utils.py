@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import asyncio
-from collections import defaultdict, deque
+from collections import defaultdict
 from collections.abc import Awaitable, Callable, Iterable, Iterator, Mapping, Sequence
 from contextlib import contextmanager
 from datetime import datetime, timedelta
@@ -11,13 +11,13 @@ from pathlib import Path, PurePath
 import posixpath
 from shutil import move as _move
 from tempfile import mkdtemp
-from typing import TYPE_CHECKING, Any, Generic, TypeVar, cast, overload
+from typing import TYPE_CHECKING, Generic, TypeVar, overload
 
 if TYPE_CHECKING:
     from prompt_toolkit.shortcuts import ProgressBar
 
 _T = TypeVar('_T')
-_V = TypeVar('_V')
+_U = TypeVar('_U')
 
 
 class TocReader:
@@ -47,19 +47,19 @@ class TocReader:
         return cls.from_path(path / f'{path.name}.toc')
 
 
-class cached_property(Generic[_V]):
-    def __init__(self, f: Callable[[Any], _V]) -> None:
+class cached_property(Generic[_T, _U]):
+    def __init__(self, f: Callable[[_T], _U]) -> None:
         self.f = f
 
     @overload
-    def __get__(self, o: None, t: type | None = ...) -> cached_property[_V]:
+    def __get__(self, o: None, t: type[_T] | None = ...) -> cached_property[_T, _U]:
         ...
 
     @overload
-    def __get__(self, o: _T, t: type[_T] | None = ...) -> _V:
+    def __get__(self, o: _T, t: type[_T] | None = ...) -> _U:
         ...
 
-    def __get__(self, o: _T | None, t: type[_T] | None = None) -> cached_property[_V] | _V:
+    def __get__(self, o: _T | None, t: type[_T] | None = None) -> cached_property[_T, _U] | _U:
         if o is None:
             return self
         else:
@@ -67,17 +67,17 @@ class cached_property(Generic[_V]):
             return v
 
 
-def bucketise(iterable: Iterable[_V], key: Callable[[_V], _T]) -> defaultdict[_T, list[_V]]:
+def bucketise(iterable: Iterable[_U], key: Callable[[_U], _T]) -> defaultdict[_T, list[_U]]:
     "Place the elements of an iterable in a bucket according to ``key``."
-    bucket: defaultdict[_T, list[_V]] = defaultdict(list)
+    bucket: defaultdict[_T, list[_U]] = defaultdict(list)
     for value in iterable:
         bucket[key(value)].append(value)
     return bucket
 
 
 def chain_dict(
-    keys: Iterable[_T], default: _V, *overrides: Iterable[tuple[_T, _V]]
-) -> dict[_T, _V]:
+    keys: Iterable[_T], default: _U, *overrides: Iterable[tuple[_T, _U]]
+) -> dict[_T, _U]:
     "Construct a dictionary from a series of two-tuple iterables with overlapping keys."
     return dict(chain(zip(keys, repeat(default)), *overrides))
 
@@ -89,18 +89,13 @@ def uniq(it: Iterable[_T]) -> list[_T]:
 
 def merge_intersecting_sets(it: Iterable[frozenset[_T]]) -> Iterator[frozenset[_T]]:
     "Recursively merge intersecting sets in a collection."
-    many_sets = deque(it)
-    while True:
-        try:
-            this_set = many_sets.popleft()
-        except IndexError:
-            return
-
+    many_sets = list(it)
+    while many_sets:
+        this_set = many_sets.pop(0)
         while True:
-            for other_set in many_sets:
-                if this_set & other_set:
-                    this_set = this_set | other_set
-                    many_sets.remove(other_set)
+            for idx, other_set in enumerate(many_sets):
+                if not this_set.isdisjoint(other_set):
+                    this_set |= many_sets.pop(idx)
                     break
             else:
                 break
@@ -108,21 +103,21 @@ def merge_intersecting_sets(it: Iterable[frozenset[_T]]) -> Iterator[frozenset[_
 
 
 @overload
-async def gather(it: Iterable[Awaitable[_V]], wrapper: None = ...) -> list[_V]:
+async def gather(it: Iterable[Awaitable[_U]], wrapper: None = ...) -> list[_U]:
     ...
 
 
 @overload
 async def gather(
-    it: Iterable[Awaitable[_V]],
-    wrapper: Callable[[Awaitable[_V]], Awaitable[_T]] = ...,
+    it: Iterable[Awaitable[_U]],
+    wrapper: Callable[[Awaitable[_U]], Awaitable[_T]] = ...,
 ) -> list[_T]:
     ...
 
 
 async def gather(
-    it: Iterable[Awaitable[_V]], wrapper: Callable[..., Awaitable[_V]] | None = None
-) -> Sequence[_V]:
+    it: Iterable[Awaitable[object]], wrapper: Callable[..., Awaitable[object]] | None = None
+) -> Sequence[object]:
     if wrapper is not None:
         it = map(wrapper, it)
     return await asyncio.gather(*it)
@@ -131,16 +126,16 @@ async def gather(
 @overload
 def run_in_thread(
     fn: type[list[object]],
-) -> Callable[[Iterable[_V]], Awaitable[list[_V]]]:
+) -> Callable[[Iterable[_U]], Awaitable[list[_U]]]:
     ...
 
 
 @overload
-def run_in_thread(fn: Callable[..., _V]) -> Callable[..., Awaitable[_V]]:
+def run_in_thread(fn: Callable[..., _U]) -> Callable[..., Awaitable[_U]]:
     ...
 
 
-def run_in_thread(fn: Callable[..., object]):
+def run_in_thread(fn: Callable[..., object]) -> Callable[..., Awaitable[object]]:
     @wraps(fn)
     def wrapper(*args: object, **kwargs: object):
         loop = asyncio.get_running_loop()
@@ -181,11 +176,11 @@ def copy_resources(*packages: str) -> Iterator[Path]:
         yield tmp_path
 
 
-def tabulate(rows: Sequence[Sequence[Any]], *, max_col_width: int = 60) -> str:
+def tabulate(rows: Sequence[Sequence[object]], *, max_col_width: int = 60) -> str:
     "Produce an ASCII table from equal-length elements in a sequence."
     from textwrap import fill
 
-    def apply_max_col_width(value: Sequence[Any]):
+    def apply_max_col_width(value: object):
         return fill(str(value), width=max_col_width, max_lines=1)
 
     def calc_resultant_col_widths(rows: Sequence[Sequence[str]]):
@@ -207,7 +202,7 @@ def tabulate(rows: Sequence[Sequence[Any]], *, max_col_width: int = 60) -> str:
     return table
 
 
-def make_progress_bar(**kwargs: Any) -> ProgressBar:
+def make_progress_bar(**kwargs: object) -> ProgressBar:
     "A ``ProgressBar`` with download progress expressed in megabytes."
     import signal
 
@@ -290,7 +285,7 @@ def trash(paths: Sequence[PurePath], *, dest: PurePath, missing_ok: bool = False
             pass
 
 
-def shasum(*values: Any) -> str:
+def shasum(*values: object) -> str:
     "Base-16-encode a string using SHA-256 truncated to 32 characters."
     from hashlib import sha256
 
@@ -299,9 +294,8 @@ def shasum(*values: Any) -> str:
 
 def is_not_stale(path: Path, ttl: Mapping[str, float]) -> bool:
     "Check if a file is older than ``ttl``."
-    mtime = path.exists() and path.stat().st_mtime
-    return mtime > 0 and (
-        (datetime.now() - datetime.fromtimestamp(cast(float, mtime))) < timedelta(**ttl)
+    return path.exists() and (
+        (datetime.now() - datetime.fromtimestamp(path.stat().st_mtime)) < timedelta(**ttl)
     )
 
 
@@ -369,7 +363,7 @@ def make_zip_member_filter(base_dirs: set[str]) -> Callable[[str], bool]:
 
     def is_subpath(name: str):
         head, sep, _ = name.partition(posixpath.sep)
-        return cast(bool, sep) and head in base_dirs
+        return head in base_dirs if sep else False
 
     return is_subpath
 

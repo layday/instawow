@@ -6,7 +6,7 @@ from enum import Enum
 from itertools import chain, count, takewhile
 import re
 import typing
-from typing import TYPE_CHECKING, Any, ClassVar, cast
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from pydantic import BaseModel
 from pydantic.datetime_parse import parse_datetime
@@ -93,7 +93,7 @@ class _CatalogueEntryDefaultFields(TypedDict):
     id: str
     slug: str
     name: str
-    game_compatibility: Set[str]
+    game_compatibility: Set[Flavour]
     folders: Sequence[Sequence[str]]
     download_count: int
     last_updated: Any
@@ -123,10 +123,8 @@ class Catalogue(BaseModel):
 
     @classmethod
     async def collate(cls, age_cutoff: datetime | None) -> Catalogue:
-        resolvers = (CurseResolver, WowiResolver, TukuiResolver, InstawowResolver)
-
         async with manager.init_web_client() as web_client:
-            items = [a for r in resolvers async for a in r.collect_items(web_client)]
+            items = [a for r in manager.Manager.RESOLVERS async for a in r.catalogue(web_client)]
 
         normalise = normalise_names()
         most_downloads_per_source = {
@@ -226,7 +224,7 @@ class Resolver:
         raise NotImplementedError
 
     @classmethod
-    async def collect_items(
+    async def catalogue(
         cls, web_client: aiohttp.ClientSession
     ) -> AsyncIterator[_CatalogueEntryDefaultFields]:
         "Yield add-ons from source for cataloguing."
@@ -448,13 +446,13 @@ class CurseResolver(Resolver):
         )
 
     @classmethod
-    async def collect_items(
+    async def catalogue(
         cls, web_client: aiohttp.ClientSession
     ) -> AsyncIterator[_CatalogueEntryDefaultFields]:
         classic_version_prefix = '1.13'
 
         def excise_flavours(files: list[CurseAddon_File]):
-            for c in Flavour.__members__:
+            for c in Flavour:
                 if any(f['gameVersionFlavor'] == f'wow_{c}' for f in files):
                     yield c
                 elif any(
@@ -637,13 +635,13 @@ class WowiResolver(Resolver):
         )
 
     @classmethod
-    async def collect_items(
+    async def catalogue(
         cls, web_client: aiohttp.ClientSession
     ) -> AsyncIterator[_CatalogueEntryDefaultFields]:
         async with web_client.get(cls.list_api_url) as response:
             list_api_items: list[WowiListApiItem] = await response.json()
 
-        flavours = set(Flavour.__members__)
+        flavours = set(Flavour)
         for list_item in list_api_items:
             yield _CatalogueEntryDefaultFields(
                 source=cls.source,
@@ -785,7 +783,7 @@ class TukuiResolver(Resolver):
         )
 
     @classmethod
-    async def collect_items(
+    async def catalogue(
         cls, web_client: aiohttp.ClientSession
     ) -> AsyncIterator[_CatalogueEntryDefaultFields]:
         async def fetch_ui(ui_slug: str) -> tuple[set[Flavour], list[TukuiUi]]:
@@ -894,7 +892,8 @@ class GithubResolver(Resolver):
             raise
 
         if defn.strategy is Strategy.version:
-            release_url = repo_url / 'releases/tags' / cast(str, defn.version)
+            assert defn.version
+            release_url = repo_url / 'releases/tags' / defn.version
         elif defn.strategy is Strategy.latest:
             release_url = (repo_url / 'releases').with_query(per_page='1')
         else:
@@ -994,7 +993,7 @@ class InstawowResolver(Resolver):
         )
 
     @classmethod
-    async def collect_items(
+    async def catalogue(
         cls, web_client: aiohttp.ClientSession
     ) -> AsyncIterator[_CatalogueEntryDefaultFields]:
         yield _CatalogueEntryDefaultFields(
@@ -1005,7 +1004,7 @@ class InstawowResolver(Resolver):
             folders=[
                 ['WeakAurasCompanion'],
             ],
-            game_compatibility=set(Flavour.__members__),
+            game_compatibility=set(Flavour),
             download_count=1,
             last_updated=datetime.now(timezone.utc),
         )
