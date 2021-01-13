@@ -54,7 +54,7 @@ def type_check(session: nox.Session):
         '.[server]',
         'sqlalchemy-stubs@ https://github.com/layday/sqlalchemy-stubs/archive/develop.zip',
     )
-    session.run('npx', 'pyright@1.1.99')
+    session.run('npx', 'pyright@1.1.101')
 
 
 @nox.session(python=False)
