@@ -674,7 +674,7 @@ def configure(ctx: click.Context, promptless: bool) -> Config:
         ).unsafe_ask()
         game_flavour = select(
             'Game flavour:',
-            choices=sorted(Flavour.__members__, reverse=not Config.is_classic_folder(addon_dir)),
+            choices=sorted(Flavour, reverse=not Config.is_classic_folder(addon_dir)),
         ).unsafe_ask()
         constructor = partial(Config, addon_dir=addon_dir, game_flavour=game_flavour)
 

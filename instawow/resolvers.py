@@ -58,10 +58,10 @@ class Defn(_HashableModel):
             version=pkg.version,
         )
 
-    def __init__(self, source: str, alias: str, **kwargs: Any) -> None:
+    def __init__(self, source: str, alias: str, **kwargs: object) -> None:
         super().__init__(source=source, alias=alias, **kwargs)
 
-    def with_(self, **kwargs: Any) -> Defn:
+    def with_(self, **kwargs: object) -> Defn:
         return self.__class__(**{**self.__dict__, **kwargs})
 
     def with_strategy(self, strategy: Strategy) -> Defn:
@@ -96,7 +96,7 @@ class _CatalogueEntryDefaultFields(TypedDict):
     game_compatibility: Set[Flavour]
     folders: Sequence[Sequence[str]]
     download_count: int
-    last_updated: Any
+    last_updated: datetime | int | str
 
 
 class CatalogueEntry(BaseModel):
