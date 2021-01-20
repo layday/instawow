@@ -5,10 +5,10 @@ from collections import defaultdict
 from collections.abc import Awaitable, Callable, Iterator
 from contextlib import contextmanager
 from functools import partial
-from itertools import repeat
+from itertools import starmap
 import os
 import typing
-from typing import Any, ClassVar, TypeVar, overload
+from typing import Any, TypeVar, overload
 from uuid import uuid4
 
 from aiohttp import web
@@ -20,7 +20,7 @@ from yarl import URL
 
 from . import results as E
 from .config import Config, Flavour
-from .manager import Manager, init_web_client
+from .manager import Manager, init_web_client, prepare_database
 from .matchers import get_folder_set, match_dir_names, match_toc_ids, match_toc_names
 from .models import Pkg, is_pkg
 from .resolvers import CatalogueEntry, Defn, PkgModel, Strategy
@@ -49,8 +49,6 @@ def _reraise_validation_error(error_class: type[ServerError] = ServerError) -> I
 
 
 class BaseParams(BaseModel):
-    _method: ClassVar[str]
-
     async def respond(self, managers: ManagerWorkQueue) -> Any:
         raise NotImplementedError
 
@@ -66,7 +64,6 @@ class _DefnParamMixin(BaseModel):
 class WriteConfigParams(BaseParams):
     values: typing.Dict[str, Any]
     infer_game_flavour: bool
-    _method = 'config/write'
 
     @t
     def respond(self, managers: ManagerWorkQueue) -> Config:
@@ -80,13 +77,11 @@ class WriteConfigParams(BaseParams):
 
         # Dispose of the ``Manager`` for this profile so that it's reloaded
         # on next invocation of ``ManagerWorkQueue.run``
-        managers.unload(config.profile)
+        managers.managers.pop(config.profile, None)
         return config
 
 
 class ReadConfigParams(_ProfileParamMixin, BaseParams):
-    _method = 'config/read'
-
     @t
     def respond(self, managers: ManagerWorkQueue) -> Config:
         with _reraise_validation_error(_ConfigError):
@@ -94,19 +89,15 @@ class ReadConfigParams(_ProfileParamMixin, BaseParams):
 
 
 class DeleteConfigParams(_ProfileParamMixin, BaseParams):
-    _method = 'config/delete'
-
     async def respond(self, managers: ManagerWorkQueue) -> None:
         async def delete_profile(manager: Manager):
             await t(manager.config.delete)()
-            managers.unload(self.profile)
+            managers.managers.pop(self.profile, None)
 
         await managers.run(self.profile, delete_profile)
 
 
 class ListProfilesParams(BaseParams):
-    _method = 'config/list'
-
     @t
     def respond(self, managers: ManagerWorkQueue) -> list[str]:
         return Config.list_profiles()
@@ -124,8 +115,6 @@ class Source(BaseModel):
 
 
 class ListSourcesParams(_ProfileParamMixin, BaseParams):
-    _method = 'sources/list'
-
     async def respond(self, managers: ManagerWorkQueue) -> list[Source]:
         manager = await managers.run(self.profile)
         return [
@@ -144,8 +133,6 @@ class ListResult(BaseModel):
 
 
 class ListInstalledParams(_ProfileParamMixin, BaseParams):
-    _method = 'list'
-
     async def respond(self, managers: ManagerWorkQueue) -> ListResult:
         from sqlalchemy import func
 
@@ -180,7 +167,6 @@ class SearchParams(_ProfileParamMixin, BaseParams):
     search_terms: str
     limit: int
     sources: typing.Optional[typing.Set[str]] = None
-    _method = 'search'
 
     async def respond(self, managers: ManagerWorkQueue) -> list[CatalogueEntry]:
         return await managers.run(
@@ -195,8 +181,6 @@ class SearchParams(_ProfileParamMixin, BaseParams):
 
 
 class ResolveParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
-    _method = 'resolve'
-
     async def respond(self, managers: ManagerWorkQueue) -> MultiResult:
         def extract_source(manager: Manager, defns: list[Defn]):
             for defn in defns:
@@ -221,7 +205,6 @@ class ResolveParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
 
 class InstallParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
     replace: bool
-    _method = 'install'
 
     async def respond(self, managers: ManagerWorkQueue) -> MultiResult:
         results = await managers.run(
@@ -236,8 +219,6 @@ class InstallParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
 
 
 class UpdateParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
-    _method = 'update'
-
     async def respond(self, managers: ManagerWorkQueue) -> MultiResult:
         results = await managers.run(
             self.profile, partial(Manager.update, defns=self.defns, retain_strategy=True)
@@ -252,7 +233,6 @@ class UpdateParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
 
 class RemoveParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
     keep_folders: bool
-    _method = 'remove'
 
     async def respond(self, managers: ManagerWorkQueue) -> MultiResult:
         results = await managers.run(
@@ -267,8 +247,6 @@ class RemoveParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
 
 
 class PinParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
-    _method = 'pin'
-
     async def respond(self, managers: ManagerWorkQueue) -> MultiResult:
         results = await managers.run(self.profile, partial(Manager.pin, defns=self.defns))
         return MultiResult.parse_obj(
@@ -313,7 +291,6 @@ _matchers = {
 
 class ReconcileParams(_ProfileParamMixin, BaseParams):
     matcher: Literal['toc_ids', 'dir_names', 'toc_names']
-    _method = 'reconcile'
 
     async def respond(self, managers: ManagerWorkQueue) -> ReconcileResult:
         leftovers = await managers.run(self.profile, t(get_folder_set))
@@ -339,8 +316,6 @@ class GetVersionResult(BaseModel):
 
 
 class GetVersionParams(BaseParams):
-    _method = 'meta/get_version'
-
     async def respond(self, managers: ManagerWorkQueue) -> GetVersionResult:
         outdated, new_version = await is_outdated()
         return GetVersionResult(
@@ -350,49 +325,44 @@ class GetVersionParams(BaseParams):
 
 class ManagerWorkQueue:
     def __init__(self) -> None:
-        asyncio.get_running_loop()  # Sanity check
+        self.managers: dict[str, Manager] = {}
         self._queue: asyncio.Queue[ManagerWorkQueueItem] = asyncio.Queue()
-        self._managers: dict[str, Manager] = {}
-        self._locks: defaultdict[str, asyncio.Lock] = defaultdict(asyncio.Lock)
         self._web_client = init_web_client()
-
-    async def _jumpstart(self, profile: str) -> Manager:
-        try:
-            manager = self._managers[profile]
-        except KeyError:
-            async with self._locks['load manager']:
-                with _reraise_validation_error(_ConfigError):
-                    config = await t(Config.read)(profile)
-
-                self._managers[profile] = manager = await t(Manager.from_config)(config)
-                manager.web_client = self._web_client
-                manager.locks = self._locks
-
-        return manager
+        self._locks: defaultdict[str, asyncio.Lock] = defaultdict(asyncio.Lock)
 
     async def listen(self) -> None:
+        Manager.contextualise(
+            web_client=self._web_client,
+            locks=self._locks,
+        )
         while True:
-            (future, profile, coro_fn) = item = await self._queue.get()
-            try:
-                manager = await self._jumpstart(profile)
-            except BaseException as error:
-                future.set_exception(error)
-            else:
-                if coro_fn:
+            item = await self._queue.get()
 
-                    async def schedule(item: ManagerWorkQueueItem, manager: Manager):
-                        future, _, coro_fn = item
+            async def schedule(item: ManagerWorkQueueItem):
+                future, profile, coro_fn = item
+                try:
+                    async with self._locks[f"load profile '{profile}'"]:
                         try:
-                            result = await coro_fn(manager)  # type: ignore
-                        except BaseException as error:
-                            future.set_exception(error)
-                        else:
-                            future.set_result(result)
+                            manager = self.managers[profile]
+                        except KeyError:
+                            with _reraise_validation_error(_ConfigError):
+                                config = await t(Config.read)(profile)
 
-                    asyncio.create_task(schedule(item, manager))
+                            manager = self.managers[profile] = Manager(
+                                config=config,
+                                database=await t(prepare_database)(config),
+                            )
+
+                    if coro_fn is None:
+                        result = manager
+                    else:
+                        result = await coro_fn(manager)
+                except BaseException as error:
+                    future.set_exception(error)
                 else:
-                    future.set_result(manager)
+                    future.set_result(result)
 
+            asyncio.create_task(schedule(item))
             self._queue.task_done()
 
     async def cleanup(self) -> None:
@@ -413,17 +383,16 @@ class ManagerWorkQueue:
         self._queue.put_nowait((future, profile, coro_fn))
         return await asyncio.wait_for(future, None)
 
-    def unload(self, profile: str) -> None:
-        self._managers.pop(profile, None)
 
-
-def _prepare_response(param_class: type[BaseParams], managers: ManagerWorkQueue) -> JsonRpcMethod:
+def _prepare_response(
+    param_class: type[BaseParams], method: str, managers: ManagerWorkQueue
+) -> JsonRpcMethod:
     async def respond(**kwargs: Any) -> BaseModel:
         with _reraise_validation_error(InvalidParamsError):
             params = param_class.parse_obj(kwargs)
         return await params.respond(managers)
 
-    return JsonRpcMethod('', respond, custom_name=param_class._method)
+    return JsonRpcMethod('', respond, custom_name=method)
 
 
 def serialise_response(value: dict[str, Any]) -> str:
@@ -448,25 +417,24 @@ async def create_app() -> tuple[web.Application, str]:
         middlewares=rpc_middlewares.DEFAULT_MIDDLEWARES,
     )
     rpc_server.add_methods(
-        map(
+        starmap(
             _prepare_response,
-            (
-                WriteConfigParams,
-                ReadConfigParams,
-                DeleteConfigParams,
-                ListProfilesParams,
-                ListSourcesParams,
-                ListInstalledParams,
-                SearchParams,
-                ResolveParams,
-                InstallParams,
-                UpdateParams,
-                RemoveParams,
-                PinParams,
-                ReconcileParams,
-                GetVersionParams,
-            ),
-            repeat(managers),
+            [
+                (WriteConfigParams, 'config/write', managers),
+                (ReadConfigParams, 'config/read', managers),
+                (DeleteConfigParams, 'config/delete', managers),
+                (ListProfilesParams, 'config/list', managers),
+                (ListSourcesParams, 'sources/list', managers),
+                (ListInstalledParams, 'list', managers),
+                (SearchParams, 'search', managers),
+                (ResolveParams, 'resolve', managers),
+                (InstallParams, 'install', managers),
+                (UpdateParams, 'update', managers),
+                (RemoveParams, 'remove', managers),
+                (PinParams, 'pin', managers),
+                (ReconcileParams, 'reconcile', managers),
+                (GetVersionParams, 'meta/get_version', managers),
+            ],
         )
     )
     app = web.Application()

@@ -187,7 +187,7 @@ def _should_migrate(engine: Any) -> bool:
             return not current
 
 
-def prepare_database(config: Config) -> sqlalchemy.orm.sessionmaker:
+def prepare_database(config: Config) -> sqlalchemy.orm.Session:
     from sqlalchemy import create_engine
     from sqlalchemy.orm import sessionmaker
 
@@ -220,7 +220,7 @@ def prepare_database(config: Config) -> sqlalchemy.orm.sessionmaker:
                 ModelBase.metadata.create_all(engine)
                 stamp(alembic_config, DB_REVISION)
 
-    return sessionmaker(bind=engine)
+    return sessionmaker(bind=engine)()
 
 
 def init_web_client(**kwargs: Any) -> aiohttp.ClientSession:
@@ -312,9 +312,6 @@ class Manager:
         self,
         config: Config,
         database: sqlalchemy.orm.Session,
-        *,
-        web_client: aiohttp.ClientSession | None = None,
-        locks: defaultdict[str, asyncio.Lock] | None = None,
     ) -> None:
         self.config = config
         self.database = database
@@ -325,35 +322,33 @@ class Manager:
         )
         self.resolvers = _ResolverDict((r.source, r(self)) for r in resolver_classes)
 
-        if web_client is not None:
-            self.web_client = web_client
-        if locks is not None:
-            self.locks = locks
-
         self._catalogue = None
 
     @classmethod
-    def from_config(cls: type[_TManager], config: Config, **kwargs: Any) -> _TManager:
-        session_factory = prepare_database(config)
-        return cls(config, session_factory(), **kwargs)
+    def contextualise(
+        cls,
+        *,
+        web_client: aiohttp.ClientSession | None = None,
+        locks: defaultdict[str, asyncio.Lock] | None = None,
+    ) -> None:
+        if web_client is not None:
+            _web_client.set(web_client)
+        if locks is not None:
+            _locks.set(locks)
+
+    @classmethod
+    def from_config(cls: type[_TManager], config: Config) -> _TManager:
+        return cls(config, prepare_database(config))
 
     @property
     def web_client(self) -> aiohttp.ClientSession:
         "The web client session."
         return _web_client.get()
 
-    @web_client.setter
-    def web_client(self, value: aiohttp.ClientSession) -> None:
-        _web_client.set(value)
-
     @property
     def locks(self) -> defaultdict[str, asyncio.Lock]:
         "Lock factory used to synchronise async operations."
         return _locks.get()
-
-    @locks.setter
-    def locks(self, value: defaultdict[str, asyncio.Lock]) -> None:
-        _locks.set(value)
 
     def pair_uri(self, value: str) -> tuple[str, str] | None:
         "Attempt to extract the package source and alias from a URI."
@@ -766,9 +761,10 @@ class CliManager(Manager):
 
             async def run():
                 tickers = set()
-                async with _init_cli_web_client(bar, tickers) as self.web_client, _cancel_tickers(
+                async with _init_cli_web_client(bar, tickers) as web_client, _cancel_tickers(
                     tickers
                 ):
+                    self.contextualise(web_client=web_client)
                     return await awaitable
 
             loop = asyncio.new_event_loop()

@@ -80,7 +80,9 @@ async def iw_web_client():
 
 @pytest.fixture
 def iw_manager(iw_config, iw_web_client):
-    yield Manager.from_config(iw_config, web_client=iw_web_client)
+    manager = Manager.from_config(iw_config)
+    manager.contextualise(web_client=iw_web_client)
+    yield manager
 
 
 @pytest.fixture

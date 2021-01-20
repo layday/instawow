@@ -26,7 +26,7 @@ def feed_pt():
 @pytest.fixture
 def run(monkeypatch, event_loop, iw_config, iw_web_client):
     def runner(self, awaitable):
-        self.web_client = iw_web_client
+        self.contextualise(web_client=iw_web_client)
         return event_loop.run_until_complete(awaitable)
 
     monkeypatch.setattr('instawow.manager.CliManager.run', runner)
