@@ -1,6 +1,4 @@
-from filecmp import dircmp
 from pathlib import Path
-from shutil import move
 import sys
 
 import pytest
@@ -63,27 +61,6 @@ def test_default_config_dir_is_win32_appropriate(iw_partial_config, monkeypatch)
     assert Config(**iw_partial_config).config_dir == Path.home() / 'AppData/Roaming/instawow'
     monkeypatch.delenv('APPDATA')
     assert Config(**iw_partial_config).config_dir == Path.home() / 'instawow'
-
-
-def test_legacy_profile_migration_goes_swimmingly(iw_full_config, monkeypatch):
-    legacy_config = Config(**iw_full_config).write()
-    monkeypatch.setenv('INSTAWOW_CONFIG_DIR', str(iw_full_config['config_dir']))
-
-    comparison = dircmp(legacy_config.config_dir, legacy_config.profile_dir)
-    profile_dirs = sorted(i.name for i in legacy_config.profile_dir.iterdir())
-    assert comparison.common == []
-    assert comparison.left_list == ['profiles']
-    assert sorted(comparison.right_list) == profile_dirs
-
-    for name in profile_dirs:
-        move(str(legacy_config.profile_dir / name), legacy_config.config_dir / name)
-    legacy_config.profile_dir.rmdir()
-    Config.get_dummy_config(config_dir=iw_full_config['config_dir']).read('__default__')
-
-    comparison = dircmp(legacy_config.config_dir, legacy_config.profile_dir)
-    assert comparison.common == []
-    assert comparison.left_list == ['profiles']
-    assert sorted(comparison.right_list) == profile_dirs
 
 
 def test_can_determine_classic_folder():

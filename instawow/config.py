@@ -1,10 +1,8 @@
 from __future__ import annotations
 
 from enum import Enum
-import json
 import os
 from pathlib import Path, PurePath
-from shutil import copytree, ignore_patterns
 from tempfile import gettempdir
 
 import click
@@ -102,13 +100,7 @@ class GlobalConfig(BaseConfig):
     def read(cls, profile: str) -> GlobalConfig:
         "Read the configuration from disk."
         dummy_config = cls.get_dummy_config(profile=profile)
-        dummy_config.migrate_legacy_dirs()
-        config = cls.parse_raw(dummy_config.config_file.read_text(encoding='utf-8'))
-        if dummy_config.profile != config.profile:
-            raise ValueError(
-                'profile location does not match profile value of '
-                f'"{config.profile}" in {dummy_config.config_file}'
-            )
+        config = cls.parse_file(dummy_config.config_file, encoding='utf-8')
         return config
 
     def ensure_dirs(self) -> GlobalConfig:
@@ -135,28 +127,6 @@ class GlobalConfig(BaseConfig):
         includes = {'addon_dir', 'game_flavour', 'profile'}
         output = self.json(include=includes, indent=2)
         self.config_file.write_text(output, encoding='utf-8')
-        return self
-
-    def migrate_legacy_dirs(self) -> GlobalConfig:
-        "Migrate a profile-less configuration to the new format."
-        legacy_config_file = self.config_dir / 'config.json'
-        if (
-            self.profile == _default_profile
-            and not self.profile_dir.exists()
-            and legacy_config_file.exists()
-        ):
-            legacy_json = json.loads(legacy_config_file.read_text(encoding='utf-8'))
-            legacy_json.pop('profile', None)
-            legacy_config = self.parse_obj(legacy_json)
-            ignores = ignore_patterns('profiles')
-
-            logger.info('migrating legacy configuration')
-            copytree(self.config_dir, self.profile_dir, ignore=ignores)
-            legacy_config.write()
-            trash(
-                [i for i in self.config_dir.iterdir() if i.name != 'profiles'], dest=self.temp_dir
-            )
-
         return self
 
     def delete(self) -> None:
