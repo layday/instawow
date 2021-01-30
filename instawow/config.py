@@ -44,11 +44,8 @@ class BaseConfig(_BaseConfig):
     class Config:  # type: ignore
         env_prefix = 'INSTAWOW_'
 
-    def _build_values(
-        self, init_kwargs: dict[str, object], *args: object, **kwargs: object
-    ) -> dict[str, object]:
-        # Prioritise env vars
-        return {**init_kwargs, **self._build_environ()}
+    def __init__(self, **data: object) -> None:
+        super().__init__(**{**data, **self._build_environ()})
 
 
 class Flavour(str, Enum):
@@ -56,7 +53,7 @@ class Flavour(str, Enum):
     classic = 'classic'
 
 
-class GlobalConfig(BaseConfig):
+class Config(BaseConfig):
     config_dir: Path = Field(default_factory=_get_default_config_dir)
     profile: str = Field(_default_profile, min_length=1, strip_whitespace=True)
     addon_dir: Path
@@ -83,7 +80,7 @@ class GlobalConfig(BaseConfig):
         }
 
     @classmethod
-    def get_dummy_config(cls, **kwargs: object) -> GlobalConfig:
+    def get_dummy_config(cls, **kwargs: object) -> Config:
         "Create a dummy configuration with default values."
         defaults = {'addon_dir': _novalidate, 'game_flavour': Flavour.retail}
         dummy_config = cls.parse_obj({**defaults, **kwargs})
@@ -97,13 +94,13 @@ class GlobalConfig(BaseConfig):
         return profiles
 
     @classmethod
-    def read(cls, profile: str) -> GlobalConfig:
+    def read(cls, profile: str) -> Config:
         "Read the configuration from disk."
         dummy_config = cls.get_dummy_config(profile=profile)
         config = cls.parse_file(dummy_config.config_file, encoding='utf-8')
         return config
 
-    def ensure_dirs(self) -> GlobalConfig:
+    def ensure_dirs(self) -> Config:
         "Create the various folders used by instawow."
         for dir_ in (
             self.config_dir,
@@ -116,7 +113,7 @@ class GlobalConfig(BaseConfig):
             dir_.mkdir(exist_ok=True, parents=True)
         return self
 
-    def write(self) -> GlobalConfig:
+    def write(self) -> Config:
         """Write the configuration on disk.
 
         ``write``, unlike ``ensure_dirs``, should only be called when configuring
@@ -166,10 +163,7 @@ class GlobalConfig(BaseConfig):
         return self.temp_dir / 'cache'
 
 
-Config = GlobalConfig
-
-
-def setup_logging(config: GlobalConfig, log_level: str = 'INFO') -> int:
+def setup_logging(config: Config, log_level: str = 'INFO') -> int:
     import logging
 
     class InterceptHandler(logging.Handler):
