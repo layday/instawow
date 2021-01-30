@@ -254,7 +254,7 @@ def test_version_strategy_lifecycle(iw_config, run):
     assert run('remove curse:molinari').output == '✓ curse:molinari\n  removed\n'
     assert (
         run('install --version foo curse:molinari').output
-        == f"✗ curse:molinari\n  no files compatible with {iw_config.game_flavour} using version strategy\n"
+        == f"✗ curse:molinari\n  no files match {iw_config.game_flavour} using version strategy\n"
     )
     assert (
         run('install --version 80000.57-Release curse:molinari').output

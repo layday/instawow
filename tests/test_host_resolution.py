@@ -33,7 +33,7 @@ async def test_resolve_curse_simple_pkgs(iw_manager, request, strategy):
             assert (
                 type(retail_only) is E.PkgFileUnavailable
                 and retail_only.message
-                == f"no files compatible with classic using {strategy} strategy"
+                == f"no files match classic using {strategy} strategy"
             )
         assert type(classic_only) is Pkg
     else:
@@ -45,7 +45,7 @@ async def test_resolve_curse_simple_pkgs(iw_manager, request, strategy):
             assert (
                 type(classic_only) is E.PkgFileUnavailable
                 and classic_only.message
-                == f"no files compatible with retail using {strategy} strategy"
+                == f"no files match retail using {strategy} strategy"
             )
 
     versions = {*request.config.cache.get('flavour_explosion', ()), flavour_explosion.version}

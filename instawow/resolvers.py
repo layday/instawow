@@ -359,8 +359,10 @@ class CurseResolver(Resolver):
                 label=f'Fetching metadata from {self.name}',
             )
 
-            def is_match(f: CurseAddon_File):
+            def is_version_match(f: CurseAddon_File):
                 return defn.version == f['displayName']
+
+            is_match = is_version_match
 
         else:
 
@@ -374,14 +376,16 @@ class CurseResolver(Resolver):
 
             if defn.strategy is Strategy.any_flavour:
 
-                def supports_game_version(f: CurseAddon_File):
+                def supports_any_flavour_game_version(f: CurseAddon_File):
                     return True
+
+                supports_game_version = supports_any_flavour_game_version
 
             else:
                 classic_version_prefix = '1.13'
                 flavour = 'wow_classic' if self.manager.config.is_classic else 'wow_retail'
 
-                def supports_game_version(f: CurseAddon_File):
+                def supports_default_game_version(f: CurseAddon_File):
                     # Files can belong both to retail and classic
                     # but ``gameVersionFlavor`` can only be one of
                     # 'wow_retail' or 'wow_classic'.  To spice things up,
@@ -392,31 +396,44 @@ class CurseResolver(Resolver):
                         for v in f['gameVersion']
                     )
 
+                supports_game_version = supports_default_game_version
+
             if defn.strategy is Strategy.latest:
 
-                def has_release_type(f: CurseAddon_File):
+                def has_latest_release_type(f: CurseAddon_File):
                     return True
+
+                has_release_type = has_latest_release_type
 
             elif defn.strategy is Strategy.curse_latest_beta:
 
-                def has_release_type(f: CurseAddon_File):
+                def has_curse_latest_beta_release_type(f: CurseAddon_File):
                     return f['releaseType'] == 2
+
+                has_release_type = has_curse_latest_beta_release_type
 
             elif defn.strategy is Strategy.curse_latest_alpha:
 
-                def has_release_type(f: CurseAddon_File):
+                def has_curse_latest_alpha_release_type(f: CurseAddon_File):
                     return f['releaseType'] == 3
+
+                has_release_type = has_curse_latest_alpha_release_type
 
             else:
 
-                def has_release_type(f: CurseAddon_File):
+                def has_default_release_type(f: CurseAddon_File):
                     return f['releaseType'] == 1
 
-            def is_match(f: CurseAddon_File):
+                has_release_type = has_default_release_type
+
+            def is_default_matcb(f: CurseAddon_File):
                 return is_not_libless(f) and supports_game_version(f) and has_release_type(f)
+
+            is_match = is_default_matcb
 
         if not files:
             raise E.PkgFileUnavailable('no files available for download')
+
         try:
             file = max(
                 filter(is_match, files),
@@ -425,7 +442,7 @@ class CurseResolver(Resolver):
             )
         except ValueError:
             raise E.PkgFileUnavailable(
-                f'no files compatible with {self.manager.config.game_flavour} '
+                f'no files match {self.manager.config.game_flavour} '
                 f'using {defn.strategy} strategy'
             )
 
