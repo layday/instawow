@@ -14,7 +14,7 @@ setup(
     entry_points={'console_scripts': ['instawow = instawow.cli:main']},
     install_requires='''
         aiohttp           ~=3.6, !=3.6.3, !=3.7.0
-        alembic           ~=1.4.3
+        alembic           >=1.4.3, <1.6
         click             ~=7.1
         jellyfish         ~=0.8.2
         jinja2            ~=2.11
