@@ -75,14 +75,14 @@ else:
 USER_AGENT = 'instawow (https://github.com/layday/instawow)'
 
 
-AsyncNamedTemporaryFile = t(NamedTemporaryFile)
-copy_async = t(copy)
-move_async = t(move)
+_AsyncNamedTemporaryFile = t(NamedTemporaryFile)
+_copy_async = t(copy)
+_move_async = t(move)
 
 
 @asynccontextmanager
 async def _open_temp_writer() -> AsyncIterator[tuple[Path, Callable[[bytes], Awaitable[int]]]]:
-    fh = await AsyncNamedTemporaryFile(delete=False)
+    fh = await _AsyncNamedTemporaryFile(delete=False)
     path = Path(fh.name)
     try:
         yield (path, t(fh.write))
@@ -114,7 +114,7 @@ def _open_archive(path: PurePath) -> Iterator[tuple[set[str], Callable[[Path], N
         yield (base_dirs, extract)
 
 
-async def download_archive(manager: Manager, pkg: Pkg, *, chunk_size: int = 4096) -> Path:
+async def _download_archive(manager: Manager, pkg: Pkg, *, chunk_size: int = 4096) -> Path:
     url = pkg.download_url
     dest = manager.config.cache_dir / shasum(
         pkg.source, pkg.id, pkg.version, manager.config.game_flavour
@@ -122,7 +122,7 @@ async def download_archive(manager: Manager, pkg: Pkg, *, chunk_size: int = 4096
     if await t(dest.exists)():
         logger.debug(f'retrieving {url} from cache at {dest}')
     elif url.startswith('file://'):
-        await copy_async(file_uri_to_path(url), dest)
+        await _copy_async(file_uri_to_path(url), dest)
     else:
         async with manager.web_client.get(
             url, raise_for_status=True, trace_request_ctx={'report_progress': True}
@@ -133,7 +133,7 @@ async def download_archive(manager: Manager, pkg: Pkg, *, chunk_size: int = 4096
             async for chunk in response.content.iter_chunked(chunk_size):
                 await write(chunk)
 
-        await move_async(temp_path, dest)
+        await _move_async(temp_path, dest)
 
     return dest
 
@@ -585,7 +585,7 @@ class Manager:
             compress(resolve_results.items(), (not self.get_pkg(d) for d in resolve_results))
         )
         installables = {
-            (d, r): download_archive(self, r) for d, r in resolve_results.items() if is_pkg(r)
+            (d, r): _download_archive(self, r) for d, r in resolve_results.items() if is_pkg(r)
         }
         archives = await gather(installables.values(), capture_manager_exc_async)
         results = chain_dict(
@@ -626,7 +626,7 @@ class Manager:
         }
         installables = {d: r for d, r in resolve_results.items() if is_pkg(r)}
         updatables = {
-            (d, o, n): download_archive(self, n)
+            (d, o, n): _download_archive(self, n)
             for d, n in installables.items()
             for d, o, n in ((d, defns_to_pkgs[d], n),)
             if n.version != o.version
