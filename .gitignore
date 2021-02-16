@@ -1,9 +1,6 @@
 __pycache__
-.envrc
 
-/.cargo
 /.coverage
-/.py*
 /*.egg-info
 /build
 /dist

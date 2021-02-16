@@ -2,8 +2,6 @@ from __future__ import annotations
 
 import nox
 
-nox.options.envdir = '.py-nox'
-
 
 @nox.session(reuse_venv=True)
 def reformat(session: nox.Session):
