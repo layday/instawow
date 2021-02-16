@@ -20,7 +20,7 @@ setup(
         jinja2            ~=2.11
         loguru            <1
         pluggy            ~=0.13
-        prompt-toolkit    >=3.0.3, <4
+        prompt-toolkit    >=3.0.15, <4
         pydantic          ~=1.7.0
         questionary       ~=1.8
         sqlalchemy        ~=1.3.19

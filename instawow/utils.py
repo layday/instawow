@@ -204,40 +204,9 @@ def tabulate(rows: Sequence[Sequence[object]], *, max_col_width: int = 60) -> st
 
 def make_progress_bar(**kwargs: object) -> ProgressBar:
     "A ``ProgressBar`` with download progress expressed in megabytes."
-    import signal
-
-    from prompt_toolkit import Application
     from prompt_toolkit.formatted_text import HTML
     from prompt_toolkit.shortcuts.progress_bar import formatters
     from prompt_toolkit.shortcuts.progress_bar.base import ProgressBar, ProgressBarCounter
-    from prompt_toolkit.utils import Event
-
-    # There is a race condition in the bar's shutdown logic
-    # where the bar-drawing thread is left to run indefinitely
-    # if the prompt_toolkit app is not (yet) running
-    # but is scheduled to run when ``__exit__``ing the bar.
-    # If an exception occurs early in the execution cycle or if execution
-    # finishes before prompt_toolkit is able to crank the app,
-    # instawow will hang.  This is my ham-fisted attempt to work
-    # around all that by signalling to the daemon thread to kill the app.
-
-    _SIGWINCH = getattr(signal, 'SIGWINCH', None)
-
-    class PatchedProgressBar(ProgressBar):
-        def __exit__(self, *args: object):
-            if self._has_sigwinch:
-                self._loop.remove_signal_handler(_SIGWINCH)
-                signal.signal(_SIGWINCH, self._previous_winch_handler)
-
-            if self._thread is not None:
-
-                def attempt_exit(sender: Application[None]):
-                    sender.is_running and sender.exit()
-
-                self.app.on_invalidate = Event(self.app, attempt_exit)
-                self._thread.join()
-
-            self._app_loop.close()
 
     class DownloadProgress(formatters.Progress):
         template = '<current>{current:>3}</current>/<total>{total:>3}</total>MB'
@@ -253,21 +222,23 @@ def make_progress_bar(**kwargs: object) -> ProgressBar:
                 total=format_pct(progress.total) if progress.total else '?',
             )
 
-    f = [
-        formatters.Label(),
-        formatters.Text(' '),
-        formatters.Percentage(),
-        formatters.Text(' '),
-        formatters.Bar(),
-        formatters.Text(' '),
-        DownloadProgress(),
-        formatters.Text(' '),
-        formatters.Text('eta [', style='class:time-left'),
-        formatters.TimeLeft(),
-        formatters.Text(']', style='class:time-left'),
-        formatters.Text(' '),
-    ]
-    progress_bar = PatchedProgressBar(formatters=f, **kwargs)
+    progress_bar = ProgressBar(
+        formatters=[
+            formatters.Label(),
+            formatters.Text(' '),
+            formatters.Percentage(),
+            formatters.Text(' '),
+            formatters.Bar(),
+            formatters.Text(' '),
+            DownloadProgress(),
+            formatters.Text(' '),
+            formatters.Text('eta [', style='class:time-left'),
+            formatters.TimeLeft(),
+            formatters.Text(']', style='class:time-left'),
+            formatters.Text(' '),
+        ],
+        **kwargs,
+    )
     return progress_bar
 
 
