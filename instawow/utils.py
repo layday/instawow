@@ -7,17 +7,21 @@ from contextlib import contextmanager
 from datetime import datetime, timedelta
 from functools import partial, wraps
 from itertools import chain, repeat, takewhile
+import os
 from pathlib import Path, PurePath
 import posixpath
 from shutil import move as _move
 from tempfile import mkdtemp
 from typing import TYPE_CHECKING, Generic, TypeVar, overload
 
+from typing_extensions import TypeAlias
+
 if TYPE_CHECKING:
     from prompt_toolkit.shortcuts import ProgressBar
 
 _T = TypeVar('_T')
 _U = TypeVar('_U')
+_StrPath: TypeAlias = 'os.PathLike[str] | str'
 
 
 class TocReader:
@@ -242,13 +246,15 @@ def make_progress_bar(**kwargs: object) -> ProgressBar:
     return progress_bar
 
 
-def move(src: PurePath, dest: PurePath) -> PurePath:
-    # See https://bugs.python.org/issue32689
-    return _move(str(src), dest)
+def move(src: _StrPath, dest: _StrPath) -> _StrPath:
+    return _move(
+        str(src),  # See https://bugs.python.org/issue32689
+        dest,
+    )
 
 
 def trash(paths: Sequence[PurePath], *, dest: PurePath, missing_ok: bool = False) -> None:
-    parent_folder = Path(mkdtemp(dir=dest, prefix=f'deleted-{paths[0].name}-'))
+    parent_folder = mkdtemp(dir=dest, prefix=f'deleted-{paths[0].name}-')
     for path in paths:
         try:
             move(path, dest=parent_folder)
