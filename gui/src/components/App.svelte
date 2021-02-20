@@ -19,6 +19,43 @@
   };
 </script>
 
+{#await doInitialSetup()}
+  <main>
+    <header class="section section__menubar" />
+    <section class="section section__main" />
+    <footer class="section section__statusbar">
+      <div class="status">loading…</div>
+    </footer>
+  </main>
+{:then}
+  <main>
+    <header class="section section__menubar">
+      <ProfileSwitcher {api} />
+      <div class="instawow-version">
+        <b>instawow</b>
+        <br />
+        <span>
+          {instawowVersions.installed_version}
+          {instawowVersions.new_version ? `< ${instawowVersions.new_version}` : ""}
+        </span>
+      </div>
+    </header>
+    <section class="section section__main">
+      {#each [...$profiles.keys()] as profile (profile)}
+        <ProfileView
+          bind:installedAddonCount
+          {profile}
+          api={api.withProfile(profile)}
+          isActive={profile === $activeProfile}
+        />
+      {/each}
+    </section>
+    <footer class="section section__statusbar">
+      <div class="status" in:fade>installed add-ons: {installedAddonCount}</div>
+    </footer>
+  </main>
+{/await}
+
 <style lang="scss">
   @import "scss/vars";
 
@@ -131,39 +168,3 @@
     }
   }
 </style>
-
-{#await doInitialSetup()}
-  <main>
-    <header class="section section__menubar" />
-    <section class="section section__main" />
-    <footer class="section section__statusbar">
-      <div class="status">loading…</div>
-    </footer>
-  </main>
-{:then}
-  <main>
-    <header class="section section__menubar">
-      <ProfileSwitcher {api} />
-      <div class="instawow-version">
-        <b>instawow</b>
-        <br />
-        <span>
-          {instawowVersions.installed_version}
-          {instawowVersions.new_version ? `< ${instawowVersions.new_version}` : ''}
-        </span>
-      </div>
-    </header>
-    <section class="section section__main">
-      {#each [...$profiles.keys()] as profile (profile)}
-        <ProfileView
-          bind:installedAddonCount
-          {profile}
-          api={api.withProfile(profile)}
-          isActive={profile === $activeProfile} />
-      {/each}
-    </section>
-    <footer class="section section__statusbar">
-      <div class="status" in:fade>installed add-ons: {installedAddonCount}</div>
-    </footer>
-  </main>
-{/await}

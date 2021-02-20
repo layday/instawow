@@ -23,6 +23,81 @@
   const dispatch = createEventDispatcher();
 </script>
 
+<div
+  class="addon"
+  class:status-damaged={false}
+  class:status-outdated={isOutdated}
+  class:status-pinned={addon.options.strategy === Strategy.version}
+  class:status-being-modified={beingModified}
+>
+  <ul class="addon-details" class:two-col={showCondensed}>
+    <li class="name">{addon.name}</li>
+    <li class="versions">
+      {addon.version}
+      {#if isOutdated}{"<"} {otherAddon.version}{/if}
+      <span title={otherAddon.date_published}>
+        ({DateTime.fromISO(otherAddon.date_published).toRelative()})
+      </span>
+      {#if otherAddon.options.strategy !== Strategy.default}@ {otherAddon.options.strategy}{/if}
+    </li>
+    {#if !showCondensed}
+      <li class="defn">{addon.source}:{addon.id}</li>
+      <li class="description">{addon.description || "No description."}</li>
+    {/if}
+  </ul>
+  {#if beingModified}
+    <div class="modification-status-indicator" in:fade />
+  {:else}
+    <menu class="addon-actions">
+      {#if addon.__installed__}
+        {#if isOutdated}
+          <button
+            disabled={installed__isRefreshing}
+            on:click|stopPropagation={() => dispatch("requestUpdate")}>update</button
+          >
+        {/if}
+        {#if supportsRollback && addon.logged_versions.length > 1}
+          <button
+            aria-label="rollback"
+            title="rollback"
+            disabled={installed__isRefreshing}
+            on:click|stopPropagation={() => dispatch("requestShowRollbackModal")}
+          >
+            <Icon icon={faHistory} />
+          </button>
+        {/if}
+        <button
+          disabled={installed__isRefreshing}
+          on:click|stopPropagation={() => dispatch("requestRemove")}>remove</button
+        >
+        <button
+          aria-label="show options"
+          title="show options"
+          on:click|stopPropagation={() => dispatch("showGenericAddonContextMenu")}
+        >
+          <Icon icon={faEllipsisH} />
+        </button>
+      {:else}
+        <button
+          aria-label="open in browser"
+          title="open in browser"
+          on:click|stopPropagation={() => ipcRenderer.send("open-url", addon.url)}
+        >
+          <Icon icon={faExternalLinkSquareAlt} />
+        </button>
+        <button on:click|stopPropagation={() => dispatch("requestInstall")}>install</button>
+        <button
+          aria-label="show options"
+          title="show options"
+          on:click|stopPropagation={() => dispatch("showInstallAddonContextMenu")}
+        >
+          <Icon icon={faEllipsisH} />
+        </button>
+      {/if}
+    </menu>
+  {/if}
+</div>
+
 <style lang="scss">
   @import "scss/vars";
 
@@ -148,71 +223,3 @@
     margin-left: 0.75em;
   }
 </style>
-
-<div
-  class="addon"
-  class:status-damaged={false}
-  class:status-outdated={isOutdated}
-  class:status-pinned={addon.options.strategy === Strategy.version}
-  class:status-being-modified={beingModified}>
-  <ul class="addon-details" class:two-col={showCondensed}>
-    <li class="name">{addon.name}</li>
-    <li class="versions">
-      {addon.version}
-      {#if isOutdated}{'<'} {otherAddon.version}{/if}
-      <span title={otherAddon.date_published}>
-        ({DateTime.fromISO(otherAddon.date_published).toRelative()})
-      </span>
-      {#if otherAddon.options.strategy !== Strategy.default}@ {otherAddon.options.strategy}{/if}
-    </li>
-    {#if !showCondensed}
-      <li class="defn">{addon.source}:{addon.id}</li>
-      <li class="description">{addon.description || 'No description.'}</li>
-    {/if}
-  </ul>
-  {#if beingModified}
-    <div class="modification-status-indicator" in:fade />
-  {:else}
-    <menu class="addon-actions">
-      {#if addon.__installed__}
-        {#if isOutdated}
-          <button
-            disabled={installed__isRefreshing}
-            on:click|stopPropagation={() => dispatch('requestUpdate')}>update</button>
-        {/if}
-        {#if supportsRollback && addon.logged_versions.length > 1}
-          <button
-            aria-label="rollback"
-            title="rollback"
-            disabled={installed__isRefreshing}
-            on:click|stopPropagation={() => dispatch('requestShowRollbackModal')}>
-            <Icon icon={faHistory} />
-          </button>
-        {/if}
-        <button
-          disabled={installed__isRefreshing}
-          on:click|stopPropagation={() => dispatch('requestRemove')}>remove</button>
-        <button
-          aria-label="show options"
-          title="show options"
-          on:click|stopPropagation={() => dispatch('showGenericAddonContextMenu')}>
-          <Icon icon={faEllipsisH} />
-        </button>
-      {:else}
-        <button
-          aria-label="open in browser"
-          title="open in browser"
-          on:click|stopPropagation={() => ipcRenderer.send('open-url', addon.url)}>
-          <Icon icon={faExternalLinkSquareAlt} />
-        </button>
-        <button on:click|stopPropagation={() => dispatch('requestInstall')}>install</button>
-        <button
-          aria-label="show options"
-          title="show options"
-          on:click|stopPropagation={() => dispatch('showInstallAddonContextMenu')}>
-          <Icon icon={faEllipsisH} />
-        </button>
-      {/if}
-    </menu>
-  {/if}
-</div>

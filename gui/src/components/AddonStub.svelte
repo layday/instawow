@@ -12,6 +12,78 @@
   $: selection = selections[idx] = choices[selectionIdx];
 </script>
 
+<div class="addon-stub">
+  <div class="folders">
+    <span class="main-folder">{folders[0].name}</span>
+    {#if folders.length > 1}
+      <span class="remaining-folders">
+        {folders
+          .slice(1)
+          .map((f) => f.name)
+          .join(", ")}
+      </span>
+    {/if}
+  </div>
+  {#if choices.length}
+    <!-- open={false} is needed for the [open] CSS selector to be compiled -->
+    <details class="selection-controls" open={false}>
+      <summary>
+        <div aria-label="installed version" class="defn-or-version">
+          {folders.find((f) => f.version)?.version || "?"}
+        </div>
+        <!-- prettier-ignore -->
+        <div aria-label="selection" class="defn-or-version">
+          ({choices.length})
+          {#if selection}
+            {selection.source}:{selection.slug}==<span title={selection.date_published}>{selection.version}</span>
+          {:else}
+            skip
+          {/if}
+        </div>
+        <div>
+          <Icon class="icon icon-collapsed" icon={faChevronCircleDown} />
+          <Icon class="icon icon-expanded" icon={faChevronCircleUp} />
+        </div>
+      </summary>
+      <ul class="choices">
+        {#each choices as choice, choiceIdx}
+          <li>
+            <input
+              type="radio"
+              id="addon-selection-{idx}-{choiceIdx}"
+              value={choiceIdx}
+              bind:group={selectionIdx}
+            />
+            <label for="addon-selection-{idx}-{choiceIdx}">
+              <span class="defn-or-version">{choice.source}:{choice.slug}=={choice.version}</span>
+              <a
+                class="open-url"
+                title="open in browser"
+                href="__openUrl"
+                on:click|preventDefault|stopPropagation={() =>
+                  ipcRenderer.send("open-url", choice.url)}
+              >
+                [↗]
+              </a>
+            </label>
+          </li>
+        {/each}
+        <li>
+          <input
+            type="radio"
+            id="addon-selection-{idx}-skip"
+            value={-1}
+            bind:group={selectionIdx}
+          />
+          <label for="addon-selection-{idx}-skip">
+            <span class="defn-or-version">skip</span>
+          </label>
+        </li>
+      </ul>
+    </details>
+  {/if}
+</div>
+
 <style lang="scss">
   @import "scss/vars";
 
@@ -127,71 +199,3 @@
     }
   }
 </style>
-
-<div class="addon-stub">
-  <div class="folders">
-    <span class="main-folder">{folders[0].name}</span>
-    {#if folders.length > 1}
-      <span class="remaining-folders">
-        {folders
-          .slice(1)
-          .map((f) => f.name)
-          .join(', ')}
-      </span>
-    {/if}
-  </div>
-  {#if choices.length}
-    <!-- open={false} is needed for the [open] CSS selector to be compiled -->
-    <details class="selection-controls" open={false}>
-      <summary>
-        <div aria-label="installed version" class="defn-or-version">
-          {folders.find((f) => f.version)?.version || '?'}
-        </div>
-        <!-- prettier-ignore -->
-        <div aria-label="selection" class="defn-or-version">
-          ({choices.length})
-          {#if selection}
-            {selection.source}:{selection.slug}==<span title={selection.date_published}>{selection.version}</span>
-          {:else}
-            skip
-          {/if}
-        </div>
-        <div>
-          <Icon class="icon icon-collapsed" icon={faChevronCircleDown} />
-          <Icon class="icon icon-expanded" icon={faChevronCircleUp} />
-        </div>
-      </summary>
-      <ul class="choices">
-        {#each choices as choice, choiceIdx}
-          <li>
-            <input
-              type="radio"
-              id="addon-selection-{idx}-{choiceIdx}"
-              value={choiceIdx}
-              bind:group={selectionIdx} />
-            <label for="addon-selection-{idx}-{choiceIdx}">
-              <span class="defn-or-version">{choice.source}:{choice.slug}=={choice.version}</span>
-              <a
-                class="open-url"
-                title="open in browser"
-                href="__openUrl"
-                on:click|preventDefault|stopPropagation={() => ipcRenderer.send('open-url', choice.url)}>
-                [↗]
-              </a>
-            </label>
-          </li>
-        {/each}
-        <li>
-          <input
-            type="radio"
-            id="addon-selection-{idx}-skip"
-            value={-1}
-            bind:group={selectionIdx} />
-          <label for="addon-selection-{idx}-skip">
-            <span class="defn-or-version">skip</span>
-          </label>
-        </li>
-      </ul>
-    </details>
-  {/if}
-</div>

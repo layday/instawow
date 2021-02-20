@@ -31,6 +31,134 @@
   const dispatch = createEventDispatcher();
 </script>
 
+<nav class="addon-list-nav">
+  <div class="view-controls">
+    <menu>
+      <input
+        type="radio"
+        id="__radio-googoo-{profile}"
+        value={View.Installed}
+        bind:group={activeView}
+      />
+      <label for="__radio-googoo-{profile}">installed</label>
+      <input
+        type="radio"
+        id="__radio-gaga-{profile}"
+        value={View.Reconcile}
+        bind:group={activeView}
+      />
+      <label for="__radio-gaga-{profile}">unreconciled</label>
+    </menu>
+    <menu class="view-actions">
+      <button
+        aria-label="condense/expand add-on cells"
+        disabled={activeView === View.Reconcile}
+        on:click={() => (addonsCondensed = !addonsCondensed)}
+      >
+        <Icon icon={faGripLines} />
+      </button>
+    </menu>
+  </div>
+  <div class="search-wrapper">
+    <input
+      type="search"
+      placeholder="search"
+      bind:value={search__searchTerms}
+      on:keydown
+      disabled={activeView === View.Reconcile}
+    />
+    {#if search__isSearching}
+      <div class="status-indicator" transition:fade={{ duration: 200 }} />
+    {/if}
+  </div>
+  <menu class="view-actions">
+    {#if activeView === View.Installed}
+      <button disabled={installed__isRefreshing} on:click={() => dispatch("requestRefresh")}>
+        refresh
+      </button>
+      <button
+        disabled={installed__isRefreshing || !installed__outdatedAddonCount}
+        on:click={() => dispatch("requestUpdateAll")}
+      >
+        {installed__outdatedAddonCount ? `update ${installed__outdatedAddonCount}` : "no updates"}
+      </button>
+    {:else if activeView === View.Search}
+      <input
+        id="__interpret-as-uri-{profile}"
+        class="hidden"
+        type="checkbox"
+        bind:checked={search__fromAlias}
+      />
+      <label
+        for="__interpret-as-uri-{profile}"
+        aria-label="interpret query as an add-on URI"
+        title="interpret query as an add-on URI"
+      >
+        <Icon icon={faLink} />
+      </label>
+      {#if !search__fromAlias}
+        <select
+          aria-label="source"
+          bind:value={search__searchSource}
+          in:fly={{ duration: 200, x: 64 }}
+        >
+          <option value={null}>any</option>
+          {#each Object.keys(sources) as source}
+            <option value={source}>{source}</option>
+          {/each}
+        </select>
+      {/if}
+      <select aria-label="strategy" bind:value={search__searchStrategy}>
+        {#each Object.values(Strategy) as strategy}
+          <option value={strategy}>{strategy}</option>
+        {/each}
+      </select>
+      {#if search__searchStrategy === Strategy.version}
+        <input
+          type="text"
+          class="version"
+          placeholder="version"
+          bind:value={search__searchVersion}
+          on:keydown
+          in:fly={{ duration: 200, x: 64 }}
+        />
+      {/if}
+    {:else if activeView === View.Reconcile}
+      {#if reconcile__isInstalling}
+        <div class="status-indicator" transition:fade={{ duration: 200 }} />
+      {/if}
+      <button
+        aria-label="previous stage"
+        title="previous stage"
+        disabled={!reconcile__canStepBackward || reconcile__isInstalling}
+        on:click={() => dispatch("requestReconcileStepBackward")}
+      >
+        <Icon icon={faStepBackward} />
+      </button>
+      <button
+        aria-label="next stage"
+        title="next stage"
+        disabled={!reconcile__canStepForward || reconcile__isInstalling}
+        on:click={() => dispatch("requestReconcileStepForward")}
+      >
+        <Icon icon={faStepForward} />
+      </button>
+      <button
+        disabled={reconcile__isInstalling}
+        on:click={() => dispatch("requestInstallReconciled")}
+      >
+        install
+      </button>
+      <button
+        disabled={reconcile__isInstalling}
+        on:click={() => dispatch("requestAutomateReconciliation")}
+      >
+        automate
+      </button>
+    {/if}
+  </menu>
+</nav>
+
 <style lang="scss">
   @import "scss/vars";
 
@@ -227,118 +355,3 @@
     }
   }
 </style>
-
-<nav class="addon-list-nav">
-  <div class="view-controls">
-    <menu>
-      <input
-        type="radio"
-        id="__radio-googoo-{profile}"
-        value={View.Installed}
-        bind:group={activeView} />
-      <label for="__radio-googoo-{profile}">installed</label>
-      <input
-        type="radio"
-        id="__radio-gaga-{profile}"
-        value={View.Reconcile}
-        bind:group={activeView} />
-      <label for="__radio-gaga-{profile}">unreconciled</label>
-    </menu>
-    <menu class="view-actions">
-      <button
-        aria-label="condense/expand add-on cells"
-        disabled={activeView === View.Reconcile}
-        on:click={() => (addonsCondensed = !addonsCondensed)}>
-        <Icon icon={faGripLines} />
-      </button>
-    </menu>
-  </div>
-  <div class="search-wrapper">
-    <input
-      type="search"
-      placeholder="search"
-      bind:value={search__searchTerms}
-      on:keydown
-      disabled={activeView === View.Reconcile} />
-    {#if search__isSearching}
-      <div class="status-indicator" transition:fade={{ duration: 200 }} />
-    {/if}
-  </div>
-  <menu class="view-actions">
-    {#if activeView === View.Installed}
-      <button disabled={installed__isRefreshing} on:click={() => dispatch('requestRefresh')}>
-        refresh
-      </button>
-      <button
-        disabled={installed__isRefreshing || !installed__outdatedAddonCount}
-        on:click={() => dispatch('requestUpdateAll')}>
-        {installed__outdatedAddonCount ? `update ${installed__outdatedAddonCount}` : 'no updates'}
-      </button>
-    {:else if activeView === View.Search}
-      <input
-        id="__interpret-as-uri-{profile}"
-        class="hidden"
-        type="checkbox"
-        bind:checked={search__fromAlias} />
-      <label
-        for="__interpret-as-uri-{profile}"
-        aria-label="interpret query as an add-on URI"
-        title="interpret query as an add-on URI">
-        <Icon icon={faLink} />
-      </label>
-      {#if !search__fromAlias}
-        <select
-          aria-label="source"
-          bind:value={search__searchSource}
-          in:fly={{ duration: 200, x: 64 }}>
-          <option value={null}>any</option>
-          {#each Object.keys(sources) as source}
-            <option value={source}>{source}</option>
-          {/each}
-        </select>
-      {/if}
-      <select aria-label="strategy" bind:value={search__searchStrategy}>
-        {#each Object.values(Strategy) as strategy}
-          <option value={strategy}>{strategy}</option>
-        {/each}
-      </select>
-      {#if search__searchStrategy === Strategy.version}
-        <input
-          type="text"
-          class="version"
-          placeholder="version"
-          bind:value={search__searchVersion}
-          on:keydown
-          in:fly={{ duration: 200, x: 64 }} />
-      {/if}
-    {:else if activeView === View.Reconcile}
-      {#if reconcile__isInstalling}
-        <div class="status-indicator" transition:fade={{ duration: 200 }} />
-      {/if}
-      <button
-        aria-label="previous stage"
-        title="previous stage"
-        disabled={!reconcile__canStepBackward || reconcile__isInstalling}
-        on:click={() => dispatch('requestReconcileStepBackward')}>
-        <Icon icon={faStepBackward} />
-      </button>
-      <button
-        aria-label="next stage"
-        title="next stage"
-        disabled={!reconcile__canStepForward || reconcile__isInstalling}
-        on:click={() => dispatch('requestReconcileStepForward')}>
-        <Icon icon={faStepForward} />
-      </button>
-      <button
-        disabled={reconcile__isInstalling}
-        on:click={() => dispatch('requestInstallReconciled')}>
-        install
-      </button>
-      <button
-        disabled={reconcile__isInstalling}
-        on:click={() => dispatch('requestAutomateReconciliation')}>
-        automate
-      </button>
-    {/if}
-  </menu>
-</nav>

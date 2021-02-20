@@ -450,6 +450,106 @@
       (console.debug(profile, "- recounting installed add-ons"), addons__Installed.length));
 </script>
 
+{#if isActive}
+  <AddonListNav
+    {profile}
+    {sources}
+    on:keydown={(e) => e.key === "Enter" && search()}
+    on:requestRefresh={() => refreshInstalled()}
+    on:requestUpdateAll={() => updateAddons(true)}
+    on:requestReconcileStepBackward={() => goToPrevReconcileStage()}
+    on:requestReconcileStepForward={() => goToNextReconcileStage()}
+    on:requestInstallReconciled={() => installReconciled(reconcileStage, reconcileSelections)}
+    on:requestAutomateReconciliation={() =>
+      installReconciled(reconcileStage, reconcileSelections, true)}
+    bind:activeView
+    bind:addonsCondensed
+    bind:search__searchTerms={searchTerms}
+    bind:search__fromAlias={searchFromAlias}
+    bind:search__searchSource={searchSource}
+    bind:search__searchStrategy={searchStrategy}
+    bind:search__searchVersion={searchVersion}
+    search__isSearching={searchesInProgress > 0}
+    installed__isRefreshing={refreshInProgress}
+    installed__outdatedAddonCount={outdatedAddonCount}
+    reconcile__isInstalling={reconcileInstallationInProgress}
+    reconcile__canStepBackward={!!getPrevReconcileStage(reconcileStage)}
+    reconcile__canStepForward={!!getNextReconcileStage(reconcileStage)}
+  />
+  <div class="addon-list-wrapper" class:prevent-scrolling={rollbackModal}>
+    {#if rollbackModal}
+      <RollbackModal
+        on:requestRollback={(event) => updateAddons([event.detail])}
+        bind:show={rollbackModal}
+        {addonListEl}
+        {...rollbackModalProps}
+      />
+    {/if}
+    {#if activeView === View.Reconcile}
+      {#await prepareReconcile(reconcileStage)}
+        <div class="placeholder" in:fade>
+          <div>Hold on tight!</div>
+        </div>
+      {:then result}
+        {#if Object.values(result).some((v) => v.length)}
+          <div class="preamble">
+            <Icon icon={faQuestion} />
+            <!-- prettier-ignore -->
+            <p>
+              Reconciliation is the process by which installed add-ons are linked with add-ons from
+              sources. This is done in three stages in decreasing order of accuracy. Add-ons do not
+              always carry source metadata and <i>instawow</i>
+              employs a number of heuristics to reconcile add-ons which cannot be positively
+              identified. If you trust <i>instawow</i>
+              to do this without supervision, press "<b>automate</b>".
+              Otherwise, review your selections below and press "<b>install</b>"
+              to proceed to the next stage. Reconciled add-ons will be reinstalled.
+            </p>
+          </div>
+          <ul class="addon-list">
+            {#each result.reconciled.concat(result.unreconciled) as { folders, matches }, idx}
+              <li>
+                <AddonStub
+                  bind:selections={reconcileSelections}
+                  {folders}
+                  choices={matches}
+                  {idx}
+                />
+              </li>
+            {/each}
+          </ul>
+        {:else}
+          <div class="placeholder" in:fade>
+            <div>Reconciliation complete.</div>
+          </div>
+        {/if}
+      {/await}
+    {:else}
+      <ul class="addon-list" bind:this={addonListEl}>
+        {#each addons.map(attachTokentoAddon) as [addon, otherAddon, token] (token)}
+          <li animate:flip={{ duration: 200 }}>
+            <AddonComponent
+              on:requestInstall={() => installAddons([otherAddon])}
+              on:requestUpdate={() => updateAddons([otherAddon])}
+              on:requestRemove={() => removeAddons([addon], false)}
+              on:requestShowRollbackModal={() => showRollbackModal(addon)}
+              on:showGenericAddonContextMenu={() => showGenericAddonContextMenu(addon)}
+              on:showInstallAddonContextMenu={() => showInstallAddonContextMenu(otherAddon)}
+              {addon}
+              {otherAddon}
+              isOutdated={addon.version !== otherAddon.version}
+              supportsRollback={!!sources[addon.source]?.supports_rollback}
+              beingModified={addonsBeingModified.includes(token)}
+              showCondensed={addonsCondensed}
+              installed__isRefreshing={refreshInProgress}
+            />
+          </li>
+        {/each}
+      </ul>
+    {/if}
+  </div>
+{/if}
+
 <style lang="scss">
   @import "scss/vars";
 
@@ -516,98 +616,3 @@
     }
   }
 </style>
-
-{#if isActive}
-  <AddonListNav
-    {profile}
-    {sources}
-    on:keydown={(e) => e.key === 'Enter' && search()}
-    on:requestRefresh={() => refreshInstalled()}
-    on:requestUpdateAll={() => updateAddons(true)}
-    on:requestReconcileStepBackward={() => goToPrevReconcileStage()}
-    on:requestReconcileStepForward={() => goToNextReconcileStage()}
-    on:requestInstallReconciled={() => installReconciled(reconcileStage, reconcileSelections)}
-    on:requestAutomateReconciliation={() => installReconciled(reconcileStage, reconcileSelections, true)}
-    bind:activeView
-    bind:addonsCondensed
-    bind:search__searchTerms={searchTerms}
-    bind:search__fromAlias={searchFromAlias}
-    bind:search__searchSource={searchSource}
-    bind:search__searchStrategy={searchStrategy}
-    bind:search__searchVersion={searchVersion}
-    search__isSearching={searchesInProgress > 0}
-    installed__isRefreshing={refreshInProgress}
-    installed__outdatedAddonCount={outdatedAddonCount}
-    reconcile__isInstalling={reconcileInstallationInProgress}
-    reconcile__canStepBackward={!!getPrevReconcileStage(reconcileStage)}
-    reconcile__canStepForward={!!getNextReconcileStage(reconcileStage)} />
-  <div class="addon-list-wrapper" class:prevent-scrolling={rollbackModal}>
-    {#if rollbackModal}
-      <RollbackModal
-        on:requestRollback={(event) => updateAddons([event.detail])}
-        bind:show={rollbackModal}
-        {addonListEl}
-        {...rollbackModalProps} />
-    {/if}
-    {#if activeView === View.Reconcile}
-      {#await prepareReconcile(reconcileStage)}
-        <div class="placeholder" in:fade>
-          <div>Hold on tight!</div>
-        </div>
-      {:then result}
-        {#if Object.values(result).some((v) => v.length)}
-          <div class="preamble">
-            <Icon icon={faQuestion} />
-            <!-- prettier-ignore -->
-            <p>
-              Reconciliation is the process by which installed add-ons are linked with add-ons from
-              sources. This is done in three stages in decreasing order of accuracy. Add-ons do not
-              always carry source metadata and <i>instawow</i>
-              employs a number of heuristics to reconcile add-ons which cannot be positively
-              identified. If you trust <i>instawow</i>
-              to do this without supervision, press "<b>automate</b>".
-              Otherwise, review your selections below and press "<b>install</b>"
-              to proceed to the next stage. Reconciled add-ons will be reinstalled.
-            </p>
-          </div>
-          <ul class="addon-list">
-            {#each result.reconciled.concat(result.unreconciled) as { folders, matches }, idx}
-              <li>
-                <AddonStub
-                  bind:selections={reconcileSelections}
-                  {folders}
-                  choices={matches}
-                  {idx} />
-              </li>
-            {/each}
-          </ul>
-        {:else}
-          <div class="placeholder" in:fade>
-            <div>Reconciliation complete.</div>
-          </div>
-        {/if}
-      {/await}
-    {:else}
-      <ul class="addon-list" bind:this={addonListEl}>
-        {#each addons.map(attachTokentoAddon) as [addon, otherAddon, token] (token)}
-          <li animate:flip={{ duration: 200 }}>
-            <AddonComponent
-              on:requestInstall={() => installAddons([otherAddon])}
-              on:requestUpdate={() => updateAddons([otherAddon])}
-              on:requestRemove={() => removeAddons([addon], false)}
-              on:requestShowRollbackModal={() => showRollbackModal(addon)}
-              on:showGenericAddonContextMenu={() => showGenericAddonContextMenu(addon)}
-              on:showInstallAddonContextMenu={() => showInstallAddonContextMenu(otherAddon)}
-              {addon}
-              {otherAddon}
-              isOutdated={addon.version !== otherAddon.version}
-              supportsRollback={!!sources[addon.source]?.supports_rollback}
-              beingModified={addonsBeingModified.includes(token)}
-              showCondensed={addonsCondensed}
-              installed__isRefreshing={refreshInProgress} />
-          </li>
-        {/each}
-      </ul>
-    {/if}
-  </div>
-{/if}

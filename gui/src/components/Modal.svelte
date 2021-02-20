@@ -24,6 +24,16 @@
   onMount(adjustPosition);
 </script>
 
+<div
+  class="modal-wrapper"
+  bind:this={wrapperEl}
+  transition:fade={{ duration: 200 }}
+  use:dismissOnEsc
+  on:click={() => (show = false)}
+>
+  <slot />
+</div>
+
 <style lang="scss">
   .modal-wrapper {
     position: absolute;
@@ -35,12 +45,3 @@
     background-color: var(--base-color-alpha-65);
   }
 </style>
-
-<div
-  class="modal-wrapper"
-  bind:this={wrapperEl}
-  transition:fade={{ duration: 200 }}
-  use:dismissOnEsc
-  on:click={() => (show = false)}>
-  <slot />
-</div>

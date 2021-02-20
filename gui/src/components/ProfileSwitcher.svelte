@@ -13,6 +13,36 @@
   onMount(() => !$activeProfile && (editing = "new"));
 </script>
 
+<div class="profile-switcher-wrapper">
+  {#if editing === "new"}
+    <ConfigEditor bind:editing {api} />
+  {:else if editing === "existing"}
+    <ConfigEditor bind:editing {api} />
+  {/if}
+  <nav class="profile-switcher">
+    <select aria-label="profile" bind:value={$activeProfile} disabled={!!editing}>
+      {#each [...$profiles.keys()] as profile (profile)}
+        <option value={profile}>{profile}</option>
+      {/each}
+    </select>
+    <button
+      aria-label="edit profile"
+      title="edit profile"
+      disabled={!$activeProfile}
+      on:click={() => (editing = editing === "existing" ? false : "existing")}
+    >
+      <Icon icon={faPencilAlt} />
+    </button>
+    <button
+      aria-label="add profile"
+      title="add profile"
+      on:click={() => (editing = editing === "new" ? false : "new")}
+    >
+      <Icon icon={faPlusCircle} />
+    </button>
+  </nav>
+</div>
+
 <style lang="scss">
   .profile-switcher-wrapper {
     position: relative;
@@ -78,31 +108,3 @@
     }
   }
 </style>
-
-<div class="profile-switcher-wrapper">
-  {#if editing === 'new'}
-    <ConfigEditor bind:editing {api} />
-  {:else if editing === 'existing'}
-    <ConfigEditor bind:editing {api} />
-  {/if}
-  <nav class="profile-switcher">
-    <select aria-label="profile" bind:value={$activeProfile} disabled={!!editing}>
-      {#each [...$profiles.keys()] as profile (profile)}
-        <option value={profile}>{profile}</option>
-      {/each}
-    </select>
-    <button
-      aria-label="edit profile"
-      title="edit profile"
-      disabled={!$activeProfile}
-      on:click={() => (editing = editing === 'existing' ? false : 'existing')}>
-      <Icon icon={faPencilAlt} />
-    </button>
-    <button
-      aria-label="add profile"
-      title="add profile"
-      on:click={() => (editing = editing === 'new' ? false : 'new')}>
-      <Icon icon={faPlusCircle} />
-    </button>
-  </nav>
-</div>

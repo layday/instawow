@@ -22,10 +22,6 @@
   };
 </script>
 
-<style lang="scss">
-  @import "scss/modal";
-</style>
-
 <Modal bind:show {addonListEl}>
   <dialog open class="modal" in:scale={{ duration: 200 }} on:click|stopPropagation>
     <div class="title-bar">rollback</div>
@@ -43,3 +39,7 @@
     </form>
   </dialog>
 </Modal>
+
+<style lang="scss">
+  @import "scss/modal";
+</style>

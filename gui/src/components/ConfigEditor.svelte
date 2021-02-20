@@ -85,6 +85,63 @@ will be lost.`)
   };
 </script>
 
+<dialog
+  open
+  class="modal"
+  style="--arrowhead-offset: {createNew ? 'calc(1rem - 8px)' : 'calc(3rem - 4px)'}"
+  transition:fade={{ duration: 200 }}
+  use:dismissOnEsc
+>
+  <form class="content" on:submit|preventDefault={() => saveConfig()}>
+    {#if errors.profile}
+      <div class="row error-text">{errors.profile}</div>
+    {/if}
+    {#if createNew}
+      <input
+        class="row"
+        class:error={errors.profile}
+        type="text"
+        label="profile"
+        placeholder="profile"
+        bind:value={configParams.profile}
+      />
+    {/if}
+    {#if errors.addon_dir}
+      <div class="row error-text">{errors.addon_dir}</div>
+    {/if}
+    <div class="row input-array">
+      <input
+        aria-label="add-on folder"
+        class:error={errors.addon_dir}
+        type="text"
+        disabled
+        placeholder="add-on folder"
+        value={configParams.addon_dir || ""}
+      />
+      <button
+        aria-label="select folder"
+        type="button"
+        on:click|preventDefault={() => selectFolder()}
+      >
+        <Icon icon={faFolderOpen} />
+      </button>
+    </div>
+    <div class="row input-array">
+      <button type="submit">save</button>
+      {#if !createNew}
+        <button
+          aria-label="delete profile"
+          title="delete profile"
+          type="button"
+          on:click|preventDefault={() => deleteConfig()}
+        >
+          <Icon icon={faTimesCircle} />
+        </button>
+      {/if}
+    </div>
+  </form>
+</dialog>
+
 <style lang="scss">
   @import "scss/modal";
 
@@ -107,55 +164,3 @@ will be lost.`)
     }
   }
 </style>
-
-<dialog
-  open
-  class="modal"
-  style="--arrowhead-offset: {createNew ? 'calc(1rem - 8px)' : 'calc(3rem - 4px)'}"
-  transition:fade={{ duration: 200 }}
-  use:dismissOnEsc>
-  <form class="content" on:submit|preventDefault={() => saveConfig()}>
-    {#if errors.profile}
-      <div class="row error-text">{errors.profile}</div>
-    {/if}
-    {#if createNew}
-      <input
-        class="row"
-        class:error={errors.profile}
-        type="text"
-        label="profile"
-        placeholder="profile"
-        bind:value={configParams.profile} />
-    {/if}
-    {#if errors.addon_dir}
-      <div class="row error-text">{errors.addon_dir}</div>
-    {/if}
-    <div class="row input-array">
-      <input
-        aria-label="add-on folder"
-        class:error={errors.addon_dir}
-        type="text"
-        disabled
-        placeholder="add-on folder"
-        value={configParams.addon_dir || ''} />
-      <button
-        aria-label="select folder"
-        type="button"
-        on:click|preventDefault={() => selectFolder()}>
-        <Icon icon={faFolderOpen} />
-      </button>
-    </div>
-    <div class="row input-array">
-      <button type="submit">save</button>
-      {#if !createNew}
-        <button
-          aria-label="delete profile"
-          title="delete profile"
-          type="button"
-          on:click|preventDefault={() => deleteConfig()}>
-          <Icon icon={faTimesCircle} />
-        </button>
-      {/if}
-    </div>
-  </form>
-</dialog>
