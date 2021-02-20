@@ -13,7 +13,7 @@
     wrapperEl.style.top = `${Math.floor(Math.abs(scrollOfset - staticOffset))}px`;
   };
 
-  const dismissOnEsc = () => {
+  const dismissOnEsc = (node: HTMLElement) => {
     const handler = (e: KeyboardEvent) => e.key === "Escape" && (show = false);
     document.body.addEventListener("keydown", handler);
     return {

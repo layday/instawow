@@ -76,7 +76,7 @@ will be lost.`)
     }
   };
 
-  const dismissOnEsc = () => {
+  const dismissOnEsc = (node: HTMLElement) => {
     const handler = (e: KeyboardEvent) => e.key === "Escape" && (editing = false);
     document.body.addEventListener("keydown", handler);
     return {
