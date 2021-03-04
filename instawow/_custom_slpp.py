@@ -26,6 +26,7 @@ from itertools import count, dropwhile, islice
 from operator import eq
 import re
 import string
+from typing import Any
 
 WHITESPACE = frozenset(string.whitespace)
 NEWLINE = frozenset('\r\n')
@@ -77,7 +78,7 @@ class SLPP:
             return self._get_bare_word()
 
     def _get_table(self):
-        table = {}
+        table: dict[Any, Any] | list[Any] = {}
         idx = 0
 
         self._next()
