@@ -7,7 +7,8 @@ from tempfile import gettempdir
 
 import click
 from loguru import logger
-from pydantic import BaseSettings as _BaseConfig, Field, PydanticValueError, validator
+from pydantic import BaseSettings, Field, PydanticValueError, validator
+from pydantic.env_settings import SettingsSourceCallable
 
 from .utils import trash
 
@@ -40,12 +41,20 @@ def _validate_path_is_writable_dir(value: Path) -> Path:
     return value
 
 
-class BaseConfig(_BaseConfig):
+class BaseConfig(BaseSettings):
     class Config:  # type: ignore
         env_prefix = 'INSTAWOW_'
 
-    def __init__(self, **data: object) -> None:
-        super().__init__(**{**data, **self._build_environ()})
+        @classmethod
+        def customise_sources(
+            cls,
+            init_settings: SettingsSourceCallable,
+            env_settings: SettingsSourceCallable,
+            *args: SettingsSourceCallable,
+            **kwargs: SettingsSourceCallable,
+        ) -> tuple[SettingsSourceCallable, ...]:
+            # Prioritise env vars
+            return (env_settings, init_settings)
 
 
 class Flavour(str, Enum):

@@ -21,7 +21,7 @@ setup(
         loguru            <1
         pluggy            ~=0.13
         prompt-toolkit    >=3.0.15, <4
-        pydantic          ~=1.7.0
+        pydantic          ~=1.8
         questionary       ~=1.8
         sqlalchemy        ~=1.3.19
         typing-extensions >=3.7.4.3, <4
