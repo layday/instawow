@@ -14,16 +14,16 @@ setup(
     entry_points={'console_scripts': ['instawow = instawow.cli:main']},
     install_requires='''
         aiohttp           ~=3.6, !=3.6.3, !=3.7.0
-        alembic           >=1.4.3, <1.6
+        alembic           >=1.4.3, <2
         click             ~=7.1
-        jellyfish         ~=0.8.2
+        jellyfish         >=0.8.2, <1
         jinja2            ~=2.11
         loguru            <1
         pluggy            ~=0.13
         prompt-toolkit    >=3.0.15, <4
         pydantic          ~=1.8
         questionary       ~=1.8
-        sqlalchemy        ~=1.3.19
+        sqlalchemy        >=1.3.19, <2
         typing-extensions >=3.7.4.3, <4
         yarl              ~=1.4
     ''',
@@ -36,6 +36,9 @@ setup(
         coverage[toml]   ~=5.2
         pytest           >=6.0.1, <7
         pytest-asyncio   ~=0.14
+        ''',
+        'types': '''
+        sqlalchemy2-stubs
         ''',
     },
     python_requires='~=3.7',
