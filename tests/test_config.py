@@ -63,10 +63,10 @@ def test_default_config_dir_is_win32_appropriate(iw_partial_config, monkeypatch)
     assert Config(**iw_partial_config).config_dir == Path.home() / 'instawow'
 
 
-def test_can_determine_classic_folder():
-    assert Config.is_classic_folder('wowzerz/_classic_/Interface/AddOns')
-    assert Config.is_classic_folder('/foo/bar/_classic_ptr_/Interface/AddOns')
-    assert not Config.is_classic_folder('wowzerz/_retail_/Interface/AddOns')
+def test_can_infer_flavour_from_path():
+    assert Config.infer_flavour('wowzerz/_classic_/Interface/AddOns') is Flavour.classic
+    assert Config.infer_flavour('/foo/bar/_classic_ptr_/Interface/AddOns') is Flavour.classic
+    assert Config.infer_flavour('wowzerz/_retail_/Interface/AddOns') is Flavour.retail
 
 
 def test_can_list_profiles(monkeypatch, iw_full_config):

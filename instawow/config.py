@@ -72,12 +72,13 @@ class Config(BaseConfig):
         return _validate_path_is_writable_dir(value)
 
     @staticmethod
-    def is_classic_folder(folder: os.PathLike[str] | str) -> bool:
+    def infer_flavour(folder: os.PathLike[str] | str) -> Flavour:
         tail = PurePath(folder).parts[-3:]
-        return tuple(map(str.casefold, tail)) in {
+        is_classic_folder = tuple(map(str.casefold, tail)) in {
             ('_classic_', 'interface', 'addons'),
             ('_classic_ptr_', 'interface', 'addons'),
         }
+        return Flavour.classic if is_classic_folder else Flavour.retail
 
     @classmethod
     def get_dummy_config(cls, **kwargs: object) -> Config:

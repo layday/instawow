@@ -19,7 +19,7 @@ from typing_extensions import Literal, TypeAlias
 from yarl import URL
 
 from . import results as E
-from .config import Config, Flavour
+from .config import Config
 from .manager import Manager, init_web_client, prepare_database
 from .matchers import get_folder_set, match_dir_names, match_toc_ids, match_toc_names
 from .models import Pkg, is_pkg
@@ -70,9 +70,7 @@ class WriteConfigParams(BaseParams):
         with _reraise_validation_error(_ConfigError):
             config = Config(**self.values)
             if self.infer_game_flavour:
-                config.game_flavour = Flavour[
-                    'classic' if Config.is_classic_folder(config.addon_dir) else 'retail'
-                ]
+                config.game_flavour = Config.infer_flavour(config.addon_dir)
             config.write()
 
         # Dispose of the ``Manager`` for this profile so that it's reloaded
