@@ -3,6 +3,8 @@ from __future__ import annotations
 from collections.abc import Sequence
 from typing import ClassVar
 
+from typing_extensions import Literal
+
 from . import models, resolvers
 
 
@@ -16,7 +18,7 @@ class ManagerResult:
 
 
 class PkgInstalled(ManagerResult):
-    status = 'success'
+    status: Literal['success'] = 'success'
     template = 'installed {self.pkg.version}'
 
     def __init__(self, pkg: models.Pkg) -> None:
@@ -25,7 +27,7 @@ class PkgInstalled(ManagerResult):
 
 
 class PkgUpdated(ManagerResult):
-    status = 'success'
+    status: Literal['success'] = 'success'
     template = 'updated {self.old_pkg.version} to {self.new_pkg.version}'
 
     def __init__(self, old_pkg: models.Pkg, new_pkg: models.Pkg) -> None:
@@ -35,7 +37,7 @@ class PkgUpdated(ManagerResult):
 
 
 class PkgRemoved(ManagerResult):
-    status = 'success'
+    status: Literal['success'] = 'success'
     template = 'removed'
 
     def __init__(self, old_pkg: models.Pkg) -> None:
@@ -44,7 +46,7 @@ class PkgRemoved(ManagerResult):
 
 
 class ManagerError(ManagerResult, Exception):
-    status = 'failure'
+    status: Literal['failure'] = 'failure'
 
 
 class PkgAlreadyInstalled(ManagerError):
@@ -119,7 +121,7 @@ class PkgStrategyUnsupported(ManagerError):
 
 
 class InternalError(ManagerResult, Exception):
-    status = 'error'
+    status: Literal['error'] = 'error'
 
     def __init__(self, error: BaseException) -> None:
         super().__init__()

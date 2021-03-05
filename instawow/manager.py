@@ -667,7 +667,9 @@ class Manager:
         return results
 
     @_with_lock('change state')
-    async def pin(self, defns: Sequence[Defn]) -> dict[Defn, E.ManagerResult]:
+    async def pin(
+        self, defns: Sequence[Defn]
+    ) -> dict[Defn, E.PkgNotInstalled | E.PkgInstalled | E.PkgStrategyUnsupported]:
         """Pin and unpin installed packages.
 
         instawow does not have true pinning.  This sets the strategy
@@ -680,7 +682,9 @@ class Manager:
 
         strategies = frozenset({Strategy.default, Strategy.version})
 
-        def pin(defn: Defn, pkg: Pkg | None) -> E.ManagerResult:
+        def pin(
+            defn: Defn, pkg: Pkg | None
+        ) -> E.PkgNotInstalled | E.PkgInstalled | E.PkgStrategyUnsupported:
             if not pkg:
                 return E.PkgNotInstalled()
             elif {defn.strategy} <= strategies <= self.resolvers[pkg.source].strategies:

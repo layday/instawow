@@ -14,8 +14,8 @@ from uuid import uuid4
 from aiohttp import web
 from aiohttp_rpc import JsonRpcMethod, WsJsonRpcServer, middlewares as rpc_middlewares
 from aiohttp_rpc.errors import InvalidParams as InvalidParamsError, ServerError
-from pydantic import BaseModel, ValidationError, validator
-from typing_extensions import Literal, TypeAlias
+from pydantic import BaseModel, ValidationError
+from typing_extensions import Literal, TypeAlias, TypedDict
 from yarl import URL
 
 from . import results as E
@@ -101,15 +101,11 @@ class ListProfilesParams(BaseParams):
         return Config.list_profiles()
 
 
-class Source(BaseModel):
+class Source(TypedDict):
     source: str
     name: str
-    supported_strategies: typing.List[Strategy]
+    supported_strategies: list[Strategy]
     supports_rollback: bool
-
-    @validator('supported_strategies')
-    def _sort_strategies(cls, value: list[Strategy]) -> list[Strategy]:
-        return sorted(value, key=list(Strategy).index)
 
 
 class ListSourcesParams(_ProfileParamMixin, BaseParams):
@@ -119,46 +115,30 @@ class ListSourcesParams(_ProfileParamMixin, BaseParams):
             Source(
                 source=r.source,
                 name=r.name,
-                supported_strategies=r.strategies,
+                supported_strategies=sorted(r.strategies, key=list(Strategy).index),
                 supports_rollback=r.supports_rollback,
             )
             for r in manager.resolvers.values()
         ]
 
 
-class ListResult(BaseModel):
-    __root__: typing.List[PkgModel]
-
-
 class ListInstalledParams(_ProfileParamMixin, BaseParams):
-    async def respond(self, managers: ManagerWorkQueue) -> ListResult:
+    async def respond(self, managers: ManagerWorkQueue) -> list[PkgModel]:
         from sqlalchemy import func
 
         manager = await managers.run(self.profile)
         installed_pkgs = manager.database.query(Pkg).order_by(func.lower(Pkg.name)).all()
-        return ListResult.parse_obj(installed_pkgs)
+        return [PkgModel.from_orm(p) for p in installed_pkgs]
 
 
-class SuccessResult(BaseModel):
+class SuccessResult(TypedDict):
     status: Literal['success']
     addon: PkgModel
 
 
-class ErrorResult(BaseModel):
+class ErrorResult(TypedDict):
     status: Literal['failure', 'error']
     message: str
-
-
-class MultiResult(BaseModel):
-    __root__: typing.List[typing.Union[SuccessResult, ErrorResult]]
-
-    @validator('__root__', each_item=True, pre=True)
-    def _classify_tuple(cls, value: tuple[str, object]) -> SuccessResult | ErrorResult:
-        status, result = value
-        if status == 'success':
-            return SuccessResult(status=status, addon=result)
-        else:
-            return ErrorResult(status=status, message=result)
 
 
 class SearchParams(_ProfileParamMixin, BaseParams):
@@ -179,7 +159,7 @@ class SearchParams(_ProfileParamMixin, BaseParams):
 
 
 class ResolveParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
-    async def respond(self, managers: ManagerWorkQueue) -> MultiResult:
+    async def respond(self, managers: ManagerWorkQueue) -> list[SuccessResult | ErrorResult]:
         def extract_source(manager: Manager, defns: list[Defn]):
             for defn in defns:
                 if defn.source == '*':
@@ -196,88 +176,81 @@ class ResolveParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
                 defns=list(extract_source(await managers.run(self.profile), self.defns)),
             ),
         )
-        return MultiResult.parse_obj(
-            [('success', r) if is_pkg(r) else (r.status, r.message) for r in results.values()]
-        )
+        return [
+            SuccessResult(status='success', addon=PkgModel.from_orm(r))
+            if is_pkg(r)
+            else ErrorResult(status=r.status, message=r.message)
+            for r in results.values()
+        ]
 
 
 class InstallParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
     replace: bool
 
-    async def respond(self, managers: ManagerWorkQueue) -> MultiResult:
+    async def respond(self, managers: ManagerWorkQueue) -> list[SuccessResult | ErrorResult]:
         results = await managers.run(
             self.profile, partial(Manager.install, defns=self.defns, replace=self.replace)
         )
-        return MultiResult.parse_obj(
-            [
-                (r.status, r.pkg if isinstance(r, E.PkgInstalled) else r.message)
-                for r in results.values()
-            ]
-        )
+        return [
+            SuccessResult(status=r.status, addon=PkgModel.from_orm(r.pkg))
+            if isinstance(r, E.PkgInstalled)
+            else ErrorResult(status=r.status, message=r.message)
+            for r in results.values()
+        ]
 
 
 class UpdateParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
-    async def respond(self, managers: ManagerWorkQueue) -> MultiResult:
+    async def respond(self, managers: ManagerWorkQueue) -> list[SuccessResult | ErrorResult]:
         results = await managers.run(
             self.profile, partial(Manager.update, defns=self.defns, retain_strategy=True)
         )
-        return MultiResult.parse_obj(
-            [
-                (r.status, r.new_pkg if isinstance(r, E.PkgUpdated) else r.message)
-                for r in results.values()
-            ]
-        )
+        return [
+            SuccessResult(status=r.status, addon=PkgModel.from_orm(r.new_pkg))
+            if isinstance(r, E.PkgUpdated)
+            else ErrorResult(status=r.status, message=r.message)
+            for r in results.values()
+        ]
 
 
 class RemoveParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
     keep_folders: bool
 
-    async def respond(self, managers: ManagerWorkQueue) -> MultiResult:
+    async def respond(self, managers: ManagerWorkQueue) -> list[SuccessResult | ErrorResult]:
         results = await managers.run(
             self.profile, partial(Manager.remove, defns=self.defns, keep_folders=self.keep_folders)
         )
-        return MultiResult.parse_obj(
-            [
-                (r.status, r.old_pkg if isinstance(r, E.PkgRemoved) else r.message)
-                for r in results.values()
-            ]
-        )
+        return [
+            SuccessResult(status=r.status, addon=PkgModel.from_orm(r.old_pkg))
+            if isinstance(r, E.PkgRemoved)
+            else ErrorResult(status=r.status, message=r.message)
+            for r in results.values()
+        ]
 
 
 class PinParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
-    async def respond(self, managers: ManagerWorkQueue) -> MultiResult:
+    async def respond(self, managers: ManagerWorkQueue) -> list[SuccessResult | ErrorResult]:
         results = await managers.run(self.profile, partial(Manager.pin, defns=self.defns))
-        return MultiResult.parse_obj(
-            [
-                (r.status, r.pkg if isinstance(r, E.PkgInstalled) else r.message)
-                for r in results.values()
-            ]
-        )
+        return [
+            SuccessResult(status=r.status, addon=PkgModel.from_orm(r.pkg))
+            if isinstance(r, E.PkgInstalled)
+            else ErrorResult(status=r.status, message=r.message)
+            for r in results.values()
+        ]
 
 
-class AddonFolder(BaseModel):
+class ReconcileResult_AddonFolder(TypedDict):
     name: str
     version: str
 
 
-class AddonMatch(BaseModel):
-    folders: typing.List[AddonFolder]
-    matches: typing.List[PkgModel]
+class ReconcileResult_AddonMatch(TypedDict):
+    folders: list[ReconcileResult_AddonFolder]
+    matches: list[PkgModel]
 
 
-class ReconcileResult(BaseModel):
-    reconciled: typing.List[AddonMatch]
-    unreconciled: typing.List[AddonMatch]
-
-    @validator('reconciled', 'unreconciled', pre=True)
-    def _transform_matches(cls, value: Any):
-        return [
-            {
-                'folders': [AddonFolder(name=f.name, version=f.version) for f in s],
-                'matches': m,
-            }
-            for s, m in value
-        ]
+class ReconcileResult(TypedDict):
+    reconciled: list[ReconcileResult_AddonMatch]
+    unreconciled: list[ReconcileResult_AddonMatch]
 
 
 _matchers = {
@@ -299,18 +272,31 @@ class ReconcileParams(_ProfileParamMixin, BaseParams):
         resolve_results = await managers.run(
             self.profile, partial(Manager.resolve, defns=uniq_defns)
         )
-        reconciled = [
-            (a, list(filter(is_pkg, (resolve_results[i] for i in d)))) for a, d in match_groups
-        ]
-        unreconciled = [
-            ([l], []) for l in sorted(leftovers - frozenset(i for a, _ in match_groups for i in a))
-        ]
-        return ReconcileResult(reconciled=reconciled, unreconciled=unreconciled)
+        return ReconcileResult(
+            reconciled=[
+                ReconcileResult_AddonMatch(
+                    folders=[
+                        ReconcileResult_AddonFolder(name=f.name, version=f.version) for f in a
+                    ],
+                    matches=[
+                        PkgModel.from_orm(r) for i in d for r in (resolve_results[i],) if is_pkg(r)
+                    ],
+                )
+                for a, d in match_groups
+            ],
+            unreconciled=[
+                ReconcileResult_AddonMatch(
+                    folders=[ReconcileResult_AddonFolder(name=f.name, version=f.version)],
+                    matches=[],
+                )
+                for f in sorted(leftovers - frozenset(i for a, _ in match_groups for i in a))
+            ],
+        )
 
 
-class GetVersionResult(BaseModel):
+class GetVersionResult(TypedDict):
     installed_version: str
-    new_version: typing.Optional[str]
+    new_version: str | None
 
 
 class GetVersionParams(BaseParams):
