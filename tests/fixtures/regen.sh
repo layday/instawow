@@ -58,3 +58,7 @@ http get 'https://api.github.com/repos/AdiAddons/AdiButtonAuras/releases/tags/2.
 http get https://raw.githubusercontent.com/layday/instawow-data/data/master-catalogue-v2.json -b \
     | jq -r \
     > "$DIR"/master-catalogue.json
+
+http get 'https://hub.wowup.io/addons/author/foxlit' -b \
+    | jq -r \
+    > "$DIR"/wowup-hub-townlong-yak.json

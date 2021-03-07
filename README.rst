@@ -8,7 +8,7 @@
 
 *instawow* is a package manager for World of Warcraft.
 It can be used to install, remove and update add-ons from
-WoWInterface, CurseForge, Tukui and GitHub.
+WoWInterface, CurseForge, Tukui, Townlong Yak and GitHub.
 
 *instawow* tries to make installing, updating and removing
 add-ons quick and painless for those of us who are
@@ -25,7 +25,7 @@ Some of the features of *instawow* are:
 
 - Interoperable CLI and GUI
 - Fuzzy search with download scoring, backed by a catalogue which
-  combines add-ons from WoWInterface, CurseForge and Tukui
+  combines add-ons from WoWInterface, CurseForge, Tukui and Townlong Yak
 - Ability to interpret add-on URLs and host IDs
 - Add-on reconciliation which works with all three major hosts
 - Rollback – ability to revert problematic updates

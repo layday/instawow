@@ -37,6 +37,7 @@ from .resolvers import (
     InstawowResolver,
     Resolver,
     Strategy,
+    TownlongYakResolver,
     TukuiResolver,
     WowiResolver,
     normalise_names,
@@ -306,6 +307,7 @@ class Manager:
         TukuiResolver,
         GithubResolver,
         InstawowResolver,
+        TownlongYakResolver,
     )
 
     def __init__(
