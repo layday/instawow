@@ -71,8 +71,8 @@ class WeakAura(BaseModel):
 
 
 class WeakAuras(Auras[WeakAura]):
-    api_url: ClassVar[URL] = URL('https://data.wago.io/api/check/weakauras')
-    filename: ClassVar[str] = 'WeakAuras.lua'
+    api_url = URL('https://data.wago.io/api/check/weakauras')
+    filename = 'WeakAuras.lua'
 
     @classmethod
     def from_lua_table(cls, lua_table: Any) -> WeakAuras:
@@ -87,8 +87,8 @@ class Plateroo(WeakAura):
 
 
 class Plateroos(Auras[Plateroo]):
-    api_url: ClassVar[URL] = URL('https://data.wago.io/api/check/plater')
-    filename: ClassVar[str] = 'Plater.lua'
+    api_url = URL('https://data.wago.io/api/check/plater')
+    filename = 'Plater.lua'
 
     @classmethod
     def from_lua_table(cls, lua_table: Any) -> Plateroos:
