@@ -671,7 +671,14 @@ class Manager:
     @_with_lock('change state')
     async def pin(
         self, defns: Sequence[Defn]
-    ) -> dict[Defn, E.PkgNotInstalled | E.PkgInstalled | E.PkgStrategyUnsupported]:
+    ) -> dict[
+        Defn,
+        E.PkgNotInstalled
+        | E.PkgInstalled
+        | E.PkgStrategyUnsupported
+        | E.ManagerError
+        | E.InternalError,
+    ]:
         """Pin and unpin installed packages.
 
         instawow does not have true pinning.  This sets the strategy
@@ -696,7 +703,7 @@ class Manager:
             else:
                 return E.PkgStrategyUnsupported(Strategy.version)
 
-        return {d: pin(d, self.get_pkg(d)) for d in defns}
+        return {d: await capture_manager_exc_async(t(pin)(d, self.get_pkg(d))) for d in defns}
 
 
 def _extract_filename_from_hdr(response: aiohttp.ClientResponse) -> str:
