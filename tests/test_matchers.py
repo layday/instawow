@@ -11,11 +11,6 @@ from instawow.resolvers import Defn
 from instawow.utils import TocReader
 
 
-@pytest.fixture(autouse=True)
-def mock(mock_all):
-    pass
-
-
 def write_addons(iw_manager, *addons):
     for addon in addons:
         (iw_manager.config.addon_dir / addon).mkdir()

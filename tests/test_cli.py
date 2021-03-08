@@ -10,11 +10,6 @@ import pytest
 from instawow import cli, utils
 
 
-@pytest.fixture(autouse=True)
-def mock(mock_all):
-    pass
-
-
 @pytest.fixture
 def feed_pt():
     pipe_input = create_pipe_input()

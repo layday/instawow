@@ -5,11 +5,6 @@ from instawow.models import Pkg
 from instawow.resolvers import Defn, Strategy
 
 
-@pytest.fixture(autouse=True)
-def mock(mock_all):
-    pass
-
-
 @pytest.mark.asyncio
 @pytest.mark.parametrize('strategy', [Strategy.default, Strategy.latest, Strategy.any_flavour])
 async def test_can_resolve_curse_simple_pkgs(iw_manager, request, strategy):

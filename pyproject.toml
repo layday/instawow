@@ -27,6 +27,9 @@ exclude_lines = [
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+markers = [
+  "iw_no_mock",
+]
 xfail_strict = true
 
 

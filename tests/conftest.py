@@ -16,7 +16,7 @@ inf = float('inf')
 
 
 def pytest_addoption(parser):
-    parser.addoption('--instawow-no-mock', action='store_true')
+    parser.addoption('--iw-no-mock', action='store_true')
 
 
 def should_mock(fn):
@@ -24,8 +24,13 @@ def should_mock(fn):
     import warnings
 
     def wrapper(request):
-        if request.config.getoption('--instawow-no-mock'):
+        if request.config.getoption('--iw-no-mock'):
             warnings.warn('not mocking')
+            return None
+        elif any(m.name == 'iw_no_mock' for m in request.node.iter_markers()):
+            return None
+        elif request.module.__name__ == 'test_json_rpc_api':
+            # aresponses conflicts with aiohttp's own test server
             return None
 
         args = (request.getfixturevalue(p) for p in inspect.signature(fn).parameters)
@@ -330,7 +335,7 @@ def mock_townlong_yak(aresponses):
     )
 
 
-@pytest.fixture
+@pytest.fixture(autouse=True)
 @should_mock
 def mock_all(
     mock_pypi,

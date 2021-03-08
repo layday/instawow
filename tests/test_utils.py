@@ -121,6 +121,7 @@ def test_file_uri_to_path_win32_leading_slash_is_stripped():
     assert file_uri_to_path(uri) == 'C:/foo/bar'
 
 
+@pytest.mark.iw_no_mock
 @pytest.mark.asyncio
 async def test_is_outdated_works_in_variety_of_scenarios(monkeypatch, aresponses):
     # 'dev' in version number, version not cached

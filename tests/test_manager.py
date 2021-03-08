@@ -5,11 +5,6 @@ from instawow import results as E
 from instawow.resolvers import Defn, Strategy
 
 
-@pytest.fixture(autouse=True)
-def mock(mock_all):
-    pass
-
-
 @pytest.mark.asyncio
 async def test_pinning_supported_pkg(iw_manager):
     defn = Defn('curse', 'molinari')
