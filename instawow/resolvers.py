@@ -232,58 +232,58 @@ class Resolver:
         yield
 
 
-if TYPE_CHECKING:
+# Only documenting the fields we're actually using -
+# the API response is absolutely massive
+class CurseAddon_FileDependency(TypedDict):
+    id: int  # Unique dependency ID
+    addonId: int  # The ID of the add-on we're depending on
+    # The type of dependency.  One of:
+    #   1 = embedded library
+    #   2 = optional dependency
+    #   3 = required dependency (this is the one we're after)
+    #   4 = tool
+    #   5 = incompatible
+    #   6 = include (wat)
+    type: int
+    fileId: int  # The ID of the parent file which has this as a dependency
 
-    # Only documenting the fields we're actually using -
-    # the API response is absolutely massive
 
-    class CurseAddon_FileDependency(TypedDict):
-        id: int  # Unique dependency ID
-        addonId: int  # The ID of the add-on we're depending on
-        # The type of dependency.  One of:
-        #   1 = embedded library
-        #   2 = optional dependency
-        #   3 = required dependency (this is the one we're after)
-        #   4 = tool
-        #   5 = incompatible
-        #   6 = include (wat)
-        type: int
-        fileId: int  # The ID of the parent file which has this as a dependency
+class CurseAddon_FileModules(TypedDict):
+    foldername: str
+    fingerprint: int  # Folder fingerprint used by Curse for reconciliation
+    # One of:
+    #   1 = package
+    #   2 = module
+    #   3 = main module
+    #   4 = file
+    #   5 = referenced file
+    # For WoW add-ons the main folder will have type "3" and the rest
+    # of them type "2"
+    type: int
 
-    class CurseAddon_FileModules(TypedDict):
-        foldername: str
-        fingerprint: int  # Folder fingerprint used by Curse for reconciliation
-        # One of:
-        #   1 = package
-        #   2 = module
-        #   3 = main module
-        #   4 = file
-        #   5 = referenced file
-        # For WoW add-ons the main folder will have type "3" and the rest
-        # of them type "2"
-        type: int
 
-    class CurseAddon_File(TypedDict):
-        id: int  # Unique file ID
-        displayName: str  # Tends to be the version
-        downloadUrl: str
-        fileDate: str  # Upload datetime in ISO, e.g. '2020-02-02T12:12:12Z'
-        releaseType: int  # 1 = stable; 2 = beta; 3 = alpha
-        dependencies: list[CurseAddon_FileDependency]
-        modules: list[CurseAddon_FileModules]
-        exposeAsAlternative: bool | None
-        gameVersion: list[str]  # e.g. '8.3.0'
-        gameVersionFlavor: Literal['wow_classic', 'wow_retail']
+class CurseAddon_File(TypedDict):
+    id: int  # Unique file ID
+    displayName: str  # Tends to be the version
+    downloadUrl: str
+    fileDate: str  # Upload datetime in ISO, e.g. '2020-02-02T12:12:12Z'
+    releaseType: int  # 1 = stable; 2 = beta; 3 = alpha
+    dependencies: list[CurseAddon_FileDependency]
+    modules: list[CurseAddon_FileModules]
+    exposeAsAlternative: bool | None
+    gameVersion: list[str]  # e.g. '8.3.0'
+    gameVersionFlavor: Literal['wow_classic', 'wow_retail']
 
-    class CurseAddon(TypedDict):
-        id: int
-        name: str  # User-facing add-on name
-        websiteUrl: str  # e.g. 'https://www.curseforge.com/wow/addons/molinari'
-        summary: str  # One-line description of the add-on
-        downloadCount: int  # Total number of downloads
-        latestFiles: list[CurseAddon_File]
-        slug: str  # URL slug; 'molinari' in 'https://www.curseforge.com/wow/addons/molinari'
-        dateReleased: str  # ISO datetime of latest release
+
+class CurseAddon(TypedDict):
+    id: int
+    name: str  # User-facing add-on name
+    websiteUrl: str  # e.g. 'https://www.curseforge.com/wow/addons/molinari'
+    summary: str  # One-line description of the add-on
+    downloadCount: int  # Total number of downloads
+    latestFiles: list[CurseAddon_File]
+    slug: str  # URL slug; 'molinari' in 'https://www.curseforge.com/wow/addons/molinari'
+    dateReleased: str  # ISO datetime of latest release
 
 
 class CurseResolver(Resolver):
@@ -519,7 +519,7 @@ class WowiCommonTerms(TypedDict):
     UIAuthorName: str
 
 
-class WowiCompatibilityEntry(TypedDict):
+class WowiListApiItem_CompatibilityEntry(TypedDict):
     version: str  # Game version, e.g. '8.3.0'
     name: str  # Xpac or patch name, e.g. "Visions of N'Zoth" for 8.3.0
 
@@ -529,7 +529,7 @@ class WowiListApiItem(WowiCommonTerms):
     UIDownloadTotal: str  # Total number of downloads
     UIDownloadMonthly: str  # Number of downloads in the last month and not 'monthly'
     UIFavoriteTotal: str
-    UICompatibility: list[WowiCompatibilityEntry] | None  # ``null`` if would be empty
+    UICompatibility: list[WowiListApiItem_CompatibilityEntry] | None  # ``null`` if would be empty
     UIDir: list[str]  # Names of folders contained in archive
     UIIMG_Thumbs: list[str] | None  # Thumbnail URLs; ``null`` if would be empty
     UIIMGs: list[str] | None  # Full-size image URLs; ``null`` if would be empty
@@ -672,44 +672,43 @@ class WowiResolver(Resolver):
             )
 
 
-if TYPE_CHECKING:
+class TukuiUi(TypedDict):
+    author: str
+    category: str
+    changelog: str
+    donate_url: str
+    downloads: int
+    git: str
+    id: Literal[-1, -2]  # -1 is Tukui and -2 ElvUI
+    lastdownload: str
+    lastupdate: str  # ISO date and no tz, e.g. '2020-02-02'
+    name: str
+    patch: str
+    screenshot_url: str
+    small_desc: str
+    ticket: str
+    url: str
+    version: str
+    web_url: str
 
-    class TukuiUi(TypedDict):
-        author: str
-        category: str
-        changelog: str
-        donate_url: str
-        downloads: int
-        git: str
-        id: Literal[-1, -2]  # -1 is Tukui and -2 ElvUI
-        lastdownload: str
-        lastupdate: str  # ISO date and no tz, e.g. '2020-02-02'
-        name: str
-        patch: str
-        screenshot_url: str
-        small_desc: str
-        ticket: str
-        url: str
-        version: str
-        web_url: str
 
-    class TukuiAddon(TypedDict):
-        author: str
-        category: str
-        changelog: str
-        donate_url: str
-        downloads: str  # Not a mistake, it is actually a string
-        id: str
-        last_download: str
-        # ISO *datetime* with space sep and without an offset, e.g. '2020-02-02 12:12:20'
-        lastupdate: str
-        name: str
-        patch: str | None
-        screenshot_url: str
-        small_desc: str
-        url: str
-        version: str
-        web_url: str
+class TukuiAddon(TypedDict):
+    author: str
+    category: str
+    changelog: str
+    donate_url: str
+    downloads: str  # Not a mistake, it is actually a string
+    id: str
+    last_download: str
+    # ISO *datetime* with space sep and without an offset, e.g. '2020-02-02 12:12:20'
+    lastupdate: str
+    name: str
+    patch: str | None
+    screenshot_url: str
+    small_desc: str
+    url: str
+    version: str
+    web_url: str
 
 
 class TukuiResolver(Resolver):
@@ -843,27 +842,26 @@ class TukuiResolver(Resolver):
                 )
 
 
-if TYPE_CHECKING:
+# Not exhaustive (as you might've guessed).  Reference:
+# https://docs.github.com/en/rest/reference/repos
+class GithubRepo(TypedDict):
+    name: str  # the repo in user-or-org/repo
+    full_name: str  # user-or-org/repo
+    description: str
+    html_url: str
 
-    # Not exhaustive (as you might've guessed).  Reference:
-    # https://docs.github.com/en/rest/reference/repos
 
-    class GithubRepo(TypedDict):
-        name: str  # the repo in user-or-org/repo
-        full_name: str  # user-or-org/repo
-        description: str
-        html_url: str
+class GithubRelease_Asset(TypedDict):
+    name: str  # filename
+    content_type: str  # mime type
+    state: Literal['starter', 'uploaded']
+    browser_download_url: str
 
-    class GithubReleaseAsset(TypedDict):
-        name: str  # filename
-        content_type: str  # mime type
-        state: Literal['starter', 'uploaded']
-        browser_download_url: str
 
-    class GithubRelease(TypedDict):
-        tag_name: str  # Hopefully the version
-        published_at: str  # ISO datetime
-        assets: list[GithubReleaseAsset]
+class GithubRelease(TypedDict):
+    tag_name: str  # Hopefully the version
+    published_at: str  # ISO datetime
+    assets: list[GithubRelease_Asset]
 
 
 class GithubResolver(Resolver):
@@ -930,7 +928,7 @@ class GithubResolver(Resolver):
 
         try:
 
-            def is_valid_asset(asset: GithubReleaseAsset):
+            def is_valid_asset(asset: GithubRelease_Asset):
                 return (
                     # There is something of a convention that Classic archives
                     # end in '-classic' and lib-less archives end in '-nolib'.

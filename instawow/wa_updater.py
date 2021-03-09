@@ -5,7 +5,7 @@ from functools import partial, reduce
 from itertools import chain, product
 import time
 import typing
-from typing import Any, ClassVar, Generic, TypeVar
+from typing import TYPE_CHECKING, Any, ClassVar, Generic, TypeVar
 
 from loguru import logger
 from pydantic import BaseModel, Field, validator
@@ -16,6 +16,10 @@ from yarl import URL
 from . import manager
 from .config import BaseConfig
 from .utils import bucketise, chain_dict, gather, run_in_thread as t, shasum
+
+if TYPE_CHECKING:
+    from typing_extensions import NotRequired as Ν
+
 
 _ImportString: TypeAlias = str
 RemoteAuras: TypeAlias = 'Sequence[tuple[Sequence[WeakAura], WagoApiResponse, _ImportString]]'
@@ -105,12 +109,12 @@ class Plateroos(Auras[Plateroo]):
         return cls(__root__={a.url.parts[1]: [a] for a in sorted_auras})
 
 
-class WagoApiChangelog(TypedDict, total=False):
-    format: Literal['bbcode', 'markdown']
-    text: str
+class WagoApiResponse_Changelog(TypedDict):
+    format: Ν[Literal['bbcode', 'markdown']]
+    text: Ν[str]
 
 
-class WagoApiCommonFields(TypedDict):
+class WagoApiResponse(TypedDict):
     _id: str  # +   # Alphanumeric ID
     name: str  # +  # User-facing name
     slug: str  # +  # Slug if it has one; otherwise same as ``_id``
@@ -122,16 +126,9 @@ class WagoApiCommonFields(TypedDict):
     version: int  # +   # Version counter, incremented with every update
     # Semver auto-generated from ``version`` - for presentation only
     versionString: str
-    changelog: WagoApiChangelog  # +
-
-
-class WagoApiOptionalFields(TypedDict, total=False):
-    forkOf: str  # Only present on forks
-    regionType: str  # Only present on WAs
-
-
-class WagoApiResponse(WagoApiCommonFields, WagoApiOptionalFields):
-    pass
+    changelog: WagoApiResponse_Changelog  # +
+    forkOf: Ν[str]  # Only present on forks
+    regionType: Ν[str]  # Only present on WAs
 
 
 class WaCompanionBuilder:
