@@ -320,7 +320,7 @@ class Manager:
 
         plugin_hook = load_plugins()
         resolver_classes = chain(
-            self.RESOLVERS, (r for g in plugin_hook.instawow_add_resolvers() for r in g)
+            (r for g in plugin_hook.instawow_add_resolvers() for r in g), self.RESOLVERS
         )
         self.resolvers = _ResolverDict((r.source, r(self)) for r in resolver_classes)
 
