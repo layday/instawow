@@ -13,7 +13,7 @@ setup(
     long_description_content_type='text/x-rst',
     entry_points={'console_scripts': ['instawow = instawow.cli:main']},
     install_requires='''
-        aiohttp           ~=3.6, !=3.6.3, !=3.7.0
+        aiohttp           >=3.7.4, <4
         alembic           >=1.4.3, <2
         click             ~=7.1
         jellyfish         >=0.8.2, <1
