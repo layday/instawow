@@ -589,6 +589,8 @@ def list_installed(
                     for d in addons
                 )
             )
+            if addons
+            else True
         )
         .order_by(models.Pkg.source, models.Pkg.name)
         .all()
