@@ -636,6 +636,18 @@ def reveal(obj: ManagerWrapper, addon: Defn) -> None:
         Report([(addon, E.PkgNotInstalled())]).generate_and_exit()
 
 
+@main.command()
+@click.argument('addon', callback=_with_manager(partial(parse_into_defn, raise_invalid=False)))
+@click.pass_obj
+def view_changelog(obj: ManagerWrapper, addon: Defn) -> None:
+    "View the changelog of an installed add-on."
+    pkg = obj.m.get_pkg(addon, partial_match=True)
+    if pkg:
+        click.echo(obj.m.run(obj.m.resolvers[pkg.source].get_changelog(pkg)))
+    else:
+        Report([(addon, E.PkgNotInstalled())]).generate_and_exit()
+
+
 def _show_active_config(ctx: click.Context, _param: click.Parameter, value: bool) -> None:
     if value:
         click.echo(ctx.obj.m.config.json(indent=2))

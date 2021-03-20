@@ -106,6 +106,7 @@ class Source(TypedDict):
     name: str
     supported_strategies: list[Strategy]
     supports_rollback: bool
+    changelog_format: str
 
 
 class ListSourcesParams(_ProfileParamMixin, BaseParams):
@@ -117,6 +118,7 @@ class ListSourcesParams(_ProfileParamMixin, BaseParams):
                 name=r.name,
                 supported_strategies=sorted(r.strategies, key=list(Strategy).index),
                 supports_rollback=r.supports_rollback,
+                changelog_format=r.changelog_format.value,
             )
             for r in manager.resolvers.values()
         ]

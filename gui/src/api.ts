@@ -47,6 +47,7 @@ export type Sources = {
     name: string;
     supported_strategies: string[];
     supports_rollback: boolean;
+    changelog_format: "html" | "markdown" | "raw";
   };
 };
 

@@ -68,6 +68,7 @@ class Pkg(ModelBase):
     download_url = Column(String, nullable=False)
     date_published = Column(TZDateTime, nullable=False)
     version = Column(String, nullable=False)
+    changelog_url = Column(String, nullable=False)
     folders: relationship[list[PkgFolder]] = relationship(
         'PkgFolder', cascade='all, delete-orphan', backref='pkg'
     )
@@ -92,6 +93,7 @@ class Pkg(ModelBase):
             download_url: str,
             date_published: datetime,
             version: str,
+            changelog_url: str,
             folders: list[PkgFolder] = [],
             options: PkgOptions,
             deps: list[PkgDep] = [],

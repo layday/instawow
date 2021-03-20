@@ -7,6 +7,7 @@ from itertools import chain, takewhile
 import re
 import typing
 from typing import TYPE_CHECKING, Any, ClassVar
+import urllib.parse
 
 from pydantic import BaseModel
 from pydantic.datetime_parse import parse_datetime
@@ -28,6 +29,12 @@ class Strategy(str, Enum):
     curse_latest_alpha = 'curse_latest_alpha'
     any_flavour = 'any_flavour'
     version = 'version'
+
+
+class ChangelogFormat(str, Enum):
+    html = 'html'
+    markdown = 'markdown'
+    raw = 'raw'
 
 
 class _HashableModel(BaseModel):
@@ -86,6 +93,10 @@ def normalise_names(replace_delim: str = ' '):
 
 
 _slugify = normalise_names('-')
+
+
+def _format_data_changelog(changelog: str = '') -> str:
+    return f'data:,{urllib.parse.quote(changelog)}'
 
 
 class _CatalogueEntryDefaultFields(TypedDict):
@@ -197,6 +208,7 @@ class Resolver:
     source: ClassVar[str]
     name: ClassVar[str]
     strategies: ClassVar[Set[Strategy]]
+    changelog_format: ClassVar[ChangelogFormat]
 
     def __init__(self, manager: manager.Manager) -> None:
         self.manager = manager
@@ -230,6 +242,21 @@ class Resolver:
         "Yield add-ons from source for cataloguing."
         return
         yield
+
+    async def get_changelog(self, pkg: models.Pkg) -> str:
+        "Retrieve a changelog from its URL."
+        changelog_url = URL(pkg.changelog_url)
+        if changelog_url.scheme == 'data':
+            return urllib.parse.unquote(changelog_url.raw_path[1:])
+        elif changelog_url.scheme in {'http', 'https'}:
+            return await manager.cache_response(
+                self.manager,
+                changelog_url.with_fragment(pkg.version),
+                {'days': 1},
+                is_json=False,
+            )
+        else:
+            raise ValueError('Unsupported URL scheme', changelog_url.scheme)
 
 
 # Only documenting the fields we're actually using -
@@ -299,6 +326,7 @@ class CurseResolver(Resolver):
             Strategy.version,
         }
     )
+    changelog_format = ChangelogFormat.html
 
     # Reference: https://twitchappapi.docs.apiary.io/
     addon_api_url = URL('https://addons-ecs.forgesvc.net/api/v2/addon')
@@ -446,9 +474,12 @@ class CurseResolver(Resolver):
                 f'using {defn.strategy} strategy'
             )
 
+        addon_id = str(metadata['id'])
+        file_id = str(file['id'])
+
         return models.Pkg(
             source=self.source,
-            id=str(metadata['id']),
+            id=addon_id,
             slug=metadata['slug'],
             name=metadata['name'],
             description=metadata['summary'],
@@ -456,6 +487,7 @@ class CurseResolver(Resolver):
             download_url=file['downloadUrl'],
             date_published=parse_datetime(file['fileDate']),
             version=file['displayName'],
+            changelog_url=str(self.addon_api_url / addon_id / 'file' / file_id / 'changelog'),
             options=models.PkgOptions(strategy=defn.strategy),
             deps=[
                 models.PkgDep(id=str(d['addonId'])) for d in file['dependencies'] if d['type'] == 3
@@ -560,6 +592,7 @@ class WowiResolver(Resolver):
     source = 'wowi'
     name = 'WoWInterface'
     strategies = frozenset({Strategy.default})
+    changelog_format = ChangelogFormat.raw
 
     # Reference: https://api.mmoui.com/v3/globalconfig.json
     # There's also a v4 API corresponding to the as yet unreleased Minion v4,
@@ -648,6 +681,7 @@ class WowiResolver(Resolver):
             download_url=metadata['UIDownload'],
             date_published=parse_datetime(metadata['UIDate']),
             version=metadata['UIVersion'],
+            changelog_url=_format_data_changelog(metadata['UIChangeLog']),
             options=models.PkgOptions(strategy=defn.strategy),
         )
 
@@ -715,6 +749,7 @@ class TukuiResolver(Resolver):
     source = 'tukui'
     name = 'Tukui'
     strategies = frozenset({Strategy.default})
+    changelog_format = ChangelogFormat.html
 
     # There's also a ``/client-api.php`` endpoint which is apparently
     # used by the Tukui client itself to check for updates for the two retail
@@ -795,6 +830,13 @@ class TukuiResolver(Resolver):
                 tzinfo=timezone.utc
             ),
             version=metadata['version'],
+            changelog_url=(
+                # Regular add-ons don't have dedicated changelogs but rather
+                # link to the changelog tab on the add-on page
+                metadata['changelog']
+                if metadata['id'] in {-1, -2}
+                else _format_data_changelog(metadata['changelog'])
+            ),
             options=models.PkgOptions(strategy=defn.strategy),
         )
 
@@ -862,12 +904,14 @@ class GithubRelease(TypedDict):
     tag_name: str  # Hopefully the version
     published_at: str  # ISO datetime
     assets: list[GithubRelease_Asset]
+    body: str
 
 
 class GithubResolver(Resolver):
     source = 'github'
     name = 'GitHub'
     strategies = frozenset({Strategy.default, Strategy.latest, Strategy.version})
+    changelog_format = ChangelogFormat.markdown
 
     repos_api_url = URL('https://api.github.com/repos')
 
@@ -965,6 +1009,7 @@ class GithubResolver(Resolver):
             download_url=matching_asset['browser_download_url'],
             date_published=parse_datetime(release_metadata['published_at']),
             version=release_metadata['tag_name'],
+            changelog_url=_format_data_changelog(release_metadata['body']),
             options=models.PkgOptions(strategy=defn.strategy),
         )
 
@@ -973,6 +1018,7 @@ class InstawowResolver(Resolver):
     source = 'instawow'
     name = 'instawow'
     strategies = frozenset({Strategy.default})
+    changelog_format = ChangelogFormat.raw
 
     _addons = {
         ('0', 'weakauras-companion'),
@@ -1004,6 +1050,7 @@ class InstawowResolver(Resolver):
             download_url=builder.addon_file.as_uri(),
             date_published=datetime.now(timezone.utc),
             version=(await t(builder.checksum)())[:7],
+            changelog_url=_format_data_changelog(),
             options=models.PkgOptions(strategy=defn.strategy),
         )
 
@@ -1063,6 +1110,7 @@ class TownlongYakResolver(Resolver):
     source = 'townlong-yak'
     name = 'Townlong Yak (via WowUp.Hub)'
     strategies = frozenset({Strategy.default})
+    changelog_format = ChangelogFormat.html
 
     _api_url = 'https://hub.wowup.io/addons/author/foxlit'
 
@@ -1111,6 +1159,7 @@ class TownlongYakResolver(Resolver):
             download_url=file['download_url'],
             date_published=datetime.now(timezone.utc),
             version=file['tag_name'],
+            changelog_url=_format_data_changelog(file['body']),
             options=models.PkgOptions(strategy=defn.strategy),
         )
 
