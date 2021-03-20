@@ -1037,7 +1037,7 @@ class InstawowResolver(Resolver):
             download_url=builder.addon_file.as_uri(),
             date_published=datetime.now(timezone.utc),
             version=(await t(builder.checksum)())[:7],
-            changelog_url=_format_data_changelog(),
+            changelog_url=_format_data_changelog('n/a'),
             options=models.PkgOptions(strategy=defn.strategy),
         )
 
