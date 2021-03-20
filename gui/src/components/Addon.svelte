@@ -55,6 +55,9 @@
             disabled={installed__isRefreshing}
             on:click|stopPropagation={() => dispatch("requestUpdate")}>update</button
           >
+          <button on:click|stopPropagation={() => dispatch("requestShowChangelogModal")}
+            >changelog</button
+          >
         {/if}
         {#if supportsRollback && addon.logged_versions.length > 1}
           <button

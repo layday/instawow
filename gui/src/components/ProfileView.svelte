@@ -22,6 +22,7 @@
   import AddonComponent from "./Addon.svelte";
   import AddonListNav from "./AddonListNav.svelte";
   import AddonStub from "./AddonStub.svelte";
+  import ChangelogModal from "./ChangelogModal.svelte";
   import RollbackModal from "./RollbackModal.svelte";
   import Icon from "./SvgIcon.svelte";
 
@@ -120,6 +121,8 @@
   let searchesInProgress: number = 0;
   let reconcileInstallationInProgress: boolean = false;
 
+  let changelogModal: boolean = false;
+  let changelogModalProps: { addon: Addon };
   let rollbackModal: boolean = false;
   let rollbackModalProps: { addon: Addon };
   let addonListEl: HTMLElement;
@@ -294,6 +297,11 @@
     }
   };
 
+  const showChangelogModal = (addon: Addon) => {
+    changelogModalProps = { addon: addon };
+    changelogModal = true;
+  };
+
   const showRollbackModal = (addon: Addon) => {
     rollbackModalProps = { addon: addon };
     rollbackModal = true;
@@ -304,6 +312,7 @@
       "get-action-from-context-menu",
       [
         { id: "open-url", label: "Open in browser" },
+        { id: "view-changelog", label: "View changelog" },
         { id: "reveal-folder", label: "Reveal folder" },
         sources[addon.source]?.supports_rollback &&
           (addon.options.strategy === Strategy.version
@@ -316,6 +325,9 @@
     switch (selection) {
       case "open-url":
         ipcRenderer.send("open-url", addon.url);
+        break;
+      case "view-changelog":
+        showChangelogModal(addon);
         break;
       case "reveal-folder":
         ipcRenderer.send("reveal-folder", [
@@ -477,6 +489,9 @@
     reconcile__canStepForward={!!getNextReconcileStage(reconcileStage)}
   />
   <div class="addon-list-wrapper" class:prevent-scrolling={rollbackModal}>
+    {#if changelogModal}
+      <ChangelogModal bind:show={changelogModal} {addonListEl} {...changelogModalProps} />
+    {/if}
     {#if rollbackModal}
       <RollbackModal
         on:requestRollback={(event) => updateAddons([event.detail])}
@@ -532,6 +547,7 @@
               on:requestInstall={() => installAddons([otherAddon])}
               on:requestUpdate={() => updateAddons([otherAddon])}
               on:requestRemove={() => removeAddons([addon], false)}
+              on:requestShowChangelogModal={() => showChangelogModal(addon)}
               on:requestShowRollbackModal={() => showRollbackModal(addon)}
               on:showGenericAddonContextMenu={() => showGenericAddonContextMenu(addon)}
               on:showInstallAddonContextMenu={() => showInstallAddonContextMenu(otherAddon)}

@@ -194,6 +194,7 @@ class PkgModel(_OrmModel):
     download_url: str
     date_published: datetime
     version: str
+    changelog_url: str
     folders: typing.List[_PkgModel_PkgFolder]
     options: _PkgModel_PkgOptions
     deps: typing.List[_PkgModel_PkgDep]
@@ -247,7 +248,8 @@ class Resolver:
         "Retrieve a changelog from its URL."
         changelog_url = URL(pkg.changelog_url)
         if changelog_url.scheme == 'data':
-            return urllib.parse.unquote(changelog_url.raw_path[1:])
+            _, body = changelog_url.raw_path.split(',', 1)
+            return urllib.parse.unquote(body)
         elif changelog_url.scheme in {'http', 'https'}:
             return await manager.cache_response(
                 self.manager,

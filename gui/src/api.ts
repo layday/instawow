@@ -61,6 +61,7 @@ export type Addon = {
   download_url: string;
   date_published: string;
   version: string;
+  changelog_url: string;
   folders: { name: string }[];
   options: { strategy: Strategy };
   deps: { id: string }[];
