@@ -11,7 +11,9 @@
     <div class="title-bar">changelog</div>
     <div class="content">
       {#if asHtml}
-        {@html changelog}
+        <blockquote>
+          {@html changelog}
+        </blockquote>
       {:else}
         <pre>
           {changelog}
@@ -24,7 +26,12 @@
 <style lang="scss">
   @import "scss/modal";
 
-  .modal .content {
-    overflow-x: scroll;
+  .modal {
+    max-height: 75%;
+    overflow-y: scroll;
+
+    .content {
+      overflow: scroll;
+    }
   }
 </style>

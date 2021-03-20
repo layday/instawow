@@ -492,7 +492,7 @@
     reconcile__canStepBackward={!!getPrevReconcileStage(reconcileStage)}
     reconcile__canStepForward={!!getNextReconcileStage(reconcileStage)}
   />
-  <div class="addon-list-wrapper" class:prevent-scrolling={rollbackModal}>
+  <div class="addon-list-wrapper" class:prevent-scrolling={changelogModal || rollbackModal}>
     {#if changelogModal}
       <ChangelogModal bind:show={changelogModal} {addonListEl} {...changelogModalProps} />
     {/if}
