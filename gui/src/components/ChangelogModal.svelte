@@ -32,6 +32,7 @@
 
     .content {
       overflow: scroll;
+      -webkit-user-select: text;
     }
   }
 </style>
