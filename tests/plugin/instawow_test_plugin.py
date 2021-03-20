@@ -29,6 +29,7 @@ class MyResolver(Resolver):
             download_url='file:///...',
             date_published=datetime.now(),
             version='0',
+            changelog_url='data:,',
             options=PkgOptions(strategy=defn.strategy),
         )
 
