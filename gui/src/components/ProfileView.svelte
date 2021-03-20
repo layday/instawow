@@ -318,12 +318,13 @@
         { id: "open-url", label: "Open in browser" },
         { id: "view-changelog", label: "View changelog" },
         { id: "reveal-folder", label: "Reveal folder" },
+        { id: "separator" },
+        { id: "lookup", label: "Resolve" },
         sources[addon.source]?.supports_rollback &&
           (addon.options.strategy === Strategy.version
             ? { id: "unpin", label: "Unpin" }
             : { id: "pin", label: "Pin" }),
         { id: "unreconcile", label: "Unreconcile" },
-        { id: "lookup", label: "Resolve" },
       ].filter(Boolean)
     );
     switch (selection) {
@@ -339,6 +340,16 @@
           addon.folders[0].name,
         ]);
         break;
+      case "lookup":
+        searchTerms = "";
+        await tick();
+        [searchTerms, searchFromAlias, searchStrategy, searchVersion] = [
+          createAddonToken(addon),
+          true,
+          addon.options.strategy,
+          addon.version,
+        ];
+        break;
       case "pin":
       case "unpin":
         const pinnedAddon = {
@@ -349,16 +360,6 @@
         break;
       case "unreconcile":
         await removeAddons([addon], true);
-        break;
-      case "lookup":
-        searchTerms = "";
-        await tick();
-        [searchTerms, searchFromAlias, searchStrategy, searchVersion] = [
-          createAddonToken(addon),
-          true,
-          addon.options.strategy,
-          addon.version,
-        ];
         break;
       default:
         break;

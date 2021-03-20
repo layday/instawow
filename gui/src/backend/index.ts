@@ -56,11 +56,15 @@ const waitForMenuSelection = async (actions: { id: string; label: string }[]): P
   let selectedAction: string;
 
   const menu = Menu.buildFromTemplate(
-    actions.map(({ id, label }) => ({
-      id: id,
-      label: label,
-      click: () => (selectedAction = id),
-    }))
+    actions.map((a) =>
+      a.id === "separator"
+        ? { type: "separator" }
+        : {
+            id: a.id,
+            label: a.label,
+            click: () => (selectedAction = a.id),
+          }
+    )
   );
 
   const getSelection = (): Promise<string> =>
