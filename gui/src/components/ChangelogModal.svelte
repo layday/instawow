@@ -1,9 +1,11 @@
 <script lang="ts">
-  import type { Addon } from "../api";
+  import { stripHtml } from "string-strip-html";
   import { scale } from "svelte/transition";
   import Modal from "./Modal.svelte";
 
   export let show: boolean, changelog: string, asHtml: boolean, addonListEl: HTMLElement;
+
+  const ALLOWED_TAGS = ["code", "p", "ul", "li", "pre", "b", "i"];
 </script>
 
 <Modal bind:show {addonListEl}>
@@ -12,7 +14,7 @@
     <div class="content">
       {#if asHtml}
         <blockquote>
-          {@html changelog}
+          {@html stripHtml(changelog, { ignoreTags: ALLOWED_TAGS }).result}
         </blockquote>
       {:else}
         <pre>

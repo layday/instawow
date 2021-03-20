@@ -40,7 +40,8 @@
     "electron-context-menu": "^2.5.0",
     "lodash": "^4.17.21",
     "luxon": "^1.26.0",
-    "semaphore-async-await": "^1.5.1"
+    "semaphore-async-await": "^1.5.1",
+    "string-strip-html": "^8.2.5"
   },
   "build": {
     "appId": "org.instawow.instawow-desktop",
