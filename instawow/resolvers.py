@@ -91,7 +91,7 @@ def _format_data_changelog(changelog: str = '') -> str:
     return f'data:,{urllib.parse.quote(changelog)}'
 
 
-class _CatalogueEntryDefaultFields(TypedDict):
+class _CatalogueBaseEntry(TypedDict):
     source: str
     id: str
     slug: str
@@ -238,7 +238,7 @@ class Resolver:
     @classmethod
     async def catalogue(
         cls, web_client: aiohttp.ClientSession
-    ) -> AsyncIterator[_CatalogueEntryDefaultFields]:
+    ) -> AsyncIterator[_CatalogueBaseEntry]:
         "Yield add-ons from source for cataloguing."
         return
         yield
@@ -498,7 +498,7 @@ class CurseResolver(Resolver):
     @classmethod
     async def catalogue(
         cls, web_client: aiohttp.ClientSession
-    ) -> AsyncIterator[_CatalogueEntryDefaultFields]:
+    ) -> AsyncIterator[_CatalogueBaseEntry]:
         classic_version_prefix = '1.13'
 
         def excise_flavours(files: list[CurseAddon_File]):
@@ -531,7 +531,7 @@ class CurseResolver(Resolver):
                     for f in item['latestFiles']
                     if not f['exposeAsAlternative']
                 )
-                yield _CatalogueEntryDefaultFields(
+                yield _CatalogueBaseEntry(
                     source=cls.source,
                     id=str(item['id']),
                     slug=item['slug'],
@@ -689,13 +689,13 @@ class WowiResolver(Resolver):
     @classmethod
     async def catalogue(
         cls, web_client: aiohttp.ClientSession
-    ) -> AsyncIterator[_CatalogueEntryDefaultFields]:
+    ) -> AsyncIterator[_CatalogueBaseEntry]:
         async with web_client.get(cls.list_api_url) as response:
             list_api_items: list[WowiListApiItem] = await response.json()
 
         flavours = set(Flavour)
         for list_item in list_api_items:
-            yield _CatalogueEntryDefaultFields(
+            yield _CatalogueBaseEntry(
                 source=cls.source,
                 id=list_item['UID'],
                 name=list_item['UIName'],
@@ -844,7 +844,7 @@ class TukuiResolver(Resolver):
     @classmethod
     async def catalogue(
         cls, web_client: aiohttp.ClientSession
-    ) -> AsyncIterator[_CatalogueEntryDefaultFields]:
+    ) -> AsyncIterator[_CatalogueBaseEntry]:
         async def fetch_ui(ui_slug: str) -> tuple[set[Flavour], list[TukuiUi]]:
             async with web_client.get(cls.api_url.with_query({'ui': ui_slug})) as response:
                 return ({Flavour.retail}, [await response.json(content_type=None)])  # text/html
@@ -866,7 +866,7 @@ class TukuiResolver(Resolver):
             ]
         ):
             for item in items:
-                yield _CatalogueEntryDefaultFields(
+                yield _CatalogueBaseEntry(
                     source=cls.source,
                     id=str(item['id']),
                     slug='',
@@ -1058,8 +1058,8 @@ class InstawowResolver(Resolver):
     @classmethod
     async def catalogue(
         cls, web_client: aiohttp.ClientSession
-    ) -> AsyncIterator[_CatalogueEntryDefaultFields]:
-        yield _CatalogueEntryDefaultFields(
+    ) -> AsyncIterator[_CatalogueBaseEntry]:
+        yield _CatalogueBaseEntry(
             source=cls.source,
             id='1',
             slug='weakauras-companion-autoupdate',
@@ -1167,13 +1167,13 @@ class TownlongYakResolver(Resolver):
     @classmethod
     async def catalogue(
         cls, web_client: aiohttp.ClientSession
-    ) -> AsyncIterator[_CatalogueEntryDefaultFields]:
+    ) -> AsyncIterator[_CatalogueBaseEntry]:
         async with web_client.get(cls._api_url) as response:
             foxlit_addons: WowUpHubAddons = await response.json()
 
             for addon in foxlit_addons['addons']:
                 slug = URL(addon['repository']).name
-                yield _CatalogueEntryDefaultFields(
+                yield _CatalogueBaseEntry(
                     source=cls.source,
                     id=slug,
                     slug=slug,
