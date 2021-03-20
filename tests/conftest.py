@@ -14,6 +14,8 @@ from instawow.utils import get_version
 
 inf = float('inf')
 
+FIXTURES = Path(__file__).parent / 'fixtures'
+
 
 def pytest_addoption(parser):
     parser.addoption('--iw-no-mock', action='store_true')
@@ -39,9 +41,12 @@ def should_mock(fn):
     return wrapper
 
 
-@lru_cache(maxsize=None)
-def read_json_fixture(filename):
-    return json.loads((Path(__file__).parent / 'fixtures' / filename).read_bytes())
+def load_fixture(filename):
+    return (FIXTURES / filename).read_bytes()
+
+
+def load_json_fixture(filename):
+    return json.loads(load_fixture(filename))
 
 
 @lru_cache(maxsize=None)
@@ -109,7 +114,7 @@ def mock_master_catalogue(aresponses):
         'raw.githubusercontent.com',
         aresponses.ANY,
         'get',
-        read_json_fixture('master-catalogue.json'),
+        load_json_fixture('master-catalogue.json'),
         repeat=inf,
     )
 
@@ -121,14 +126,21 @@ def mock_curse(aresponses, mock_master_catalogue):
         'addons-ecs.forgesvc.net',
         '/api/v2/addon',
         'post',
-        read_json_fixture('curse-addon--all.json'),
+        load_json_fixture('curse-addon--all.json'),
         repeat=inf,
     )
     aresponses.add(
         'addons-ecs.forgesvc.net',
         '/api/v2/addon/20338/files',
         'get',
-        read_json_fixture('curse-addon-files.json'),
+        load_json_fixture('curse-addon-files.json'),
+        repeat=inf,
+    )
+    aresponses.add(
+        'addons-ecs.forgesvc.net',
+        '/api/v2/addon/20338/file/3152268/changelog',
+        'get',
+        aresponses.Response(body=load_fixture('curse-addon-changelog.txt')),
         repeat=inf,
     )
     aresponses.add(
@@ -147,14 +159,14 @@ def mock_wowi(aresponses, mock_master_catalogue):
         'api.mmoui.com',
         '/v3/game/WOW/filelist.json',
         'get',
-        read_json_fixture('wowi-filelist.json'),
+        load_json_fixture('wowi-filelist.json'),
         repeat=inf,
     )
     aresponses.add(
         'api.mmoui.com',
         re.compile(r'^/v3/game/WOW/filedetails/'),
         'get',
-        read_json_fixture('wowi-filedetails.json'),
+        load_json_fixture('wowi-filedetails.json'),
         repeat=inf,
     )
     aresponses.add(
@@ -173,7 +185,7 @@ def mock_tukui(aresponses, mock_master_catalogue):
         'www.tukui.org',
         '/api.php?ui=tukui',
         'get',
-        read_json_fixture('tukui-ui--tukui.json'),
+        load_json_fixture('tukui-ui--tukui.json'),
         match_querystring=True,
         repeat=inf,
     )
@@ -181,7 +193,7 @@ def mock_tukui(aresponses, mock_master_catalogue):
         'www.tukui.org',
         '/api.php?ui=elvui',
         'get',
-        read_json_fixture('tukui-ui--elvui.json'),
+        load_json_fixture('tukui-ui--elvui.json'),
         match_querystring=True,
         repeat=inf,
     )
@@ -189,7 +201,7 @@ def mock_tukui(aresponses, mock_master_catalogue):
         'www.tukui.org',
         '/api.php?addons=all',
         'get',
-        read_json_fixture('tukui-retail-addons.json'),
+        load_json_fixture('tukui-retail-addons.json'),
         match_querystring=True,
         repeat=inf,
     )
@@ -197,7 +209,7 @@ def mock_tukui(aresponses, mock_master_catalogue):
         'www.tukui.org',
         '/api.php?classic-addons=all',
         'get',
-        read_json_fixture('tukui-classic-addons.json'),
+        load_json_fixture('tukui-classic-addons.json'),
         match_querystring=True,
         repeat=inf,
     )
@@ -240,21 +252,21 @@ def mock_github(aresponses):
         'api.github.com',
         '/repos/AdiAddons/AdiButtonAuras',
         'get',
-        read_json_fixture('github-repo-lib-and-nolib.json'),
+        load_json_fixture('github-repo-lib-and-nolib.json'),
         repeat=inf,
     )
     aresponses.add(
         'api.github.com',
         '/repos/AdiAddons/AdiButtonAuras/releases/latest',
         'get',
-        read_json_fixture('github-release-lib-and-nolib.json'),
+        load_json_fixture('github-release-lib-and-nolib.json'),
         repeat=inf,
     )
     aresponses.add(
         'api.github.com',
         '/repos/AdiAddons/AdiButtonAuras/releases?per_page=1',
         'get',
-        [read_json_fixture('github-release-lib-and-nolib.json')],
+        [load_json_fixture('github-release-lib-and-nolib.json')],
         match_querystring=True,
         repeat=inf,
     )
@@ -262,28 +274,28 @@ def mock_github(aresponses):
         'api.github.com',
         '/repos/AdiAddons/AdiButtonAuras/releases/tags/2.1.0',
         'get',
-        read_json_fixture('github-release-lib-and-nolib-older-version.json'),
+        load_json_fixture('github-release-lib-and-nolib-older-version.json'),
         repeat=inf,
     )
     aresponses.add(
         'api.github.com',
         '/repos/WeakAuras/WeakAuras2',
         'get',
-        read_json_fixture('github-repo-retail-and-classic.json'),
+        load_json_fixture('github-repo-retail-and-classic.json'),
         repeat=inf,
     )
     aresponses.add(
         'api.github.com',
         '/repos/WeakAuras/WeakAuras2/releases/latest',
         'get',
-        read_json_fixture('github-release-retail-and-classic.json'),
+        load_json_fixture('github-release-retail-and-classic.json'),
         repeat=inf,
     )
     aresponses.add(
         'api.github.com',
         '/repos/p3lim-wow/Molinari',
         'get',
-        read_json_fixture('github-repo-no-releases.json'),
+        load_json_fixture('github-repo-no-releases.json'),
         repeat=inf,
     )
     aresponses.add(
@@ -297,7 +309,7 @@ def mock_github(aresponses):
         'api.github.com',
         '/repos/AdiAddons/AdiButtonAuras/releases/tags/2.0.19',
         'get',
-        read_json_fixture('github-release-no-assets.json'),
+        load_json_fixture('github-release-no-assets.json'),
         repeat=inf,
     )
     aresponses.add(
@@ -323,7 +335,7 @@ def mock_townlong_yak(aresponses):
         'hub.wowup.io',
         '/addons/author/foxlit',
         'get',
-        read_json_fixture('wowup-hub-townlong-yak.json'),
+        load_json_fixture('wowup-hub-townlong-yak.json'),
         repeat=inf,
     )
     aresponses.add(

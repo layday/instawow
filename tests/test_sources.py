@@ -1,3 +1,5 @@
+import re
+
 import pytest
 
 from instawow import results as E
@@ -75,6 +77,16 @@ async def test_can_resolve_curse_deps(iw_manager):
 
 
 @pytest.mark.asyncio
+async def test_curse_changelog_url_is_present(iw_manager):
+    molinari = Defn('curse', 'molinari')
+    results = await iw_manager.resolve([molinari])
+    assert re.match(
+        r'https://addons-ecs\.forgesvc\.net/api/v2/addon/\d+/file/\d+/changelog',
+        results[molinari].changelog_url,
+    )
+
+
+@pytest.mark.asyncio
 async def test_can_resolve_wowi_pkgs(iw_manager):
     retail_and_classic = Defn('wowi', '13188-molinari')
     unsupported = Defn('wowi', '13188', strategy=Strategy.latest)
@@ -85,6 +97,13 @@ async def test_can_resolve_wowi_pkgs(iw_manager):
         type(results[unsupported]) is E.PkgStrategyUnsupported
         and results[unsupported].message == "'latest' strategy is not valid for source"
     )
+
+
+@pytest.mark.asyncio
+async def test_wowi_changelog_is_data_url(iw_manager):
+    molinari = Defn('wowi', '13188-molinari')
+    results = await iw_manager.resolve([molinari])
+    assert results[molinari].changelog_url.startswith('data:,')
 
 
 @pytest.mark.asyncio
@@ -108,6 +127,16 @@ async def test_can_resolve_tukui_pkgs(iw_manager):
         type(results[unsupported]) is E.PkgStrategyUnsupported
         and results[unsupported].message == "'latest' strategy is not valid for source"
     )
+
+
+@pytest.mark.asyncio
+async def test_tukui_changelog_url_varies_by_addon_type(iw_manager):
+    ui_suite = Defn('tukui', '-1')
+    regular_addon = Defn('tukui', '1')
+    results = await iw_manager.resolve([ui_suite, regular_addon])
+    if iw_manager.config.is_retail:
+        assert results[ui_suite].changelog_url == 'https://www.tukui.org/ui/tukui/changelog#20.10'
+    assert results[regular_addon].changelog_url.startswith('data:,')
 
 
 @pytest.mark.asyncio
@@ -142,6 +171,13 @@ async def test_can_resolve_github_pkgs(iw_manager):
 
 
 @pytest.mark.asyncio
+async def test_github_changelog_is_data_url(iw_manager):
+    adibuttonauras = Defn('github', 'AdiAddons/AdiButtonAuras')
+    results = await iw_manager.resolve([adibuttonauras])
+    assert results[adibuttonauras].changelog_url.startswith('data:,')
+
+
+@pytest.mark.asyncio
 async def test_can_resolve_townlong_yak_pkgs(iw_manager):
     retail_and_classic = Defn('townlong-yak', 'opie')
     retail_only = Defn('townlong-yak', 'venture-plan')
@@ -161,6 +197,14 @@ async def test_can_resolve_townlong_yak_pkgs(iw_manager):
         assert type(results[retail_only]) is E.PkgFileUnavailable
     assert type(results[missing]) is E.PkgNonexistent
     assert type(results[unsupported]) is E.PkgStrategyUnsupported
+    assert results[retail_and_classic].changelog_url.startswith('data:,')
+
+
+@pytest.mark.asyncio
+async def test_townlong_yak_changelog_is_data_url(iw_manager):
+    opie = Defn('townlong-yak', 'opie')
+    results = await iw_manager.resolve([opie])
+    assert results[opie].changelog_url.startswith('data:,')
 
 
 @pytest.mark.asyncio

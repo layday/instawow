@@ -542,7 +542,7 @@ class Manager:
                 is_json=False,
             )
         else:
-            raise ValueError('Unsupported URL scheme', url.scheme)
+            raise ValueError('Unsupported URL with scheme', url.scheme)
 
     async def search(
         self,

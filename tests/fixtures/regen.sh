@@ -11,6 +11,8 @@ echo '[20338,23350,306085,288981,322865,2398,326516,326009,333072,345144]' \
 http get https://addons-ecs.forgesvc.net/api/v2/addon/20338/files -b \
     | jq -r \
     > "$DIR"/curse-addon-files.json
+http get https://addons-ecs.forgesvc.net/api/v2/addon/20338/file/3152268/changelog -b \
+    > "$DIR"/curse-addon-changelog.txt
 
 http get https://api.mmoui.com/v3/game/WOW/filelist.json -b \
     | jq -r '.[] | select(.UID == "13188") | [.]' \

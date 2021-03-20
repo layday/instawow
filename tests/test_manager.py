@@ -190,3 +190,35 @@ async def test_search_caters_to_flavour(iw_manager):
         assert Defn('curse', 'atlaslootclassic') in defns
     else:
         assert Defn('curse', 'atlaslootclassic') not in defns
+
+
+@pytest.mark.asyncio
+async def test_get_changelog_from_empty_data(iw_manager):
+    assert (await iw_manager.get_changelog('data:,')) == ''
+
+
+@pytest.mark.asyncio
+async def test_get_changelog_from_url_encoded_data(iw_manager):
+    assert (await iw_manager.get_changelog('data:,foo%20bar')) == 'foo bar'
+
+
+@pytest.mark.asyncio
+async def test_get_malformed_changelog(iw_manager):
+    with pytest.raises(ValueError, match='Unsupported URL with scheme'):
+        await iw_manager.get_changelog('')
+
+
+@pytest.mark.asyncio
+async def test_get_changelog_from_url(iw_manager):
+    assert (
+        await iw_manager.get_changelog(
+            'https://addons-ecs.forgesvc.net/api/v2/addon/20338/file/3152268/changelog'
+        )
+        == '''\
+<h3>Changes in 90000.73-Release:</h3>
+<ul>
+<li>Added: Support for disenchanting Shadowlands profession world quest items</li>
+<li>Changed: Update LibProcessable embed</li>
+</ul>
+'''
+    )
