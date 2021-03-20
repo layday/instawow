@@ -122,7 +122,7 @@
   let reconcileInstallationInProgress: boolean = false;
 
   let changelogModal: boolean = false;
-  let changelogModalProps: { addon: Addon };
+  let changelogModalProps: { changelog: string; asHtml: boolean };
   let rollbackModal: boolean = false;
   let rollbackModalProps: { addon: Addon };
   let addonListEl: HTMLElement;
@@ -297,8 +297,12 @@
     }
   };
 
-  const showChangelogModal = (addon: Addon) => {
-    changelogModalProps = { addon: addon };
+  const showChangelogModal = async (addon: Addon) => {
+    const changelog = await api.getChangelog(addon.changelog_url);
+    changelogModalProps = {
+      changelog: changelog,
+      asHtml: sources[addon.source].changelog_format === "html",
+    };
     changelogModal = true;
   };
 
@@ -547,7 +551,7 @@
               on:requestInstall={() => installAddons([otherAddon])}
               on:requestUpdate={() => updateAddons([otherAddon])}
               on:requestRemove={() => removeAddons([addon], false)}
-              on:requestShowChangelogModal={() => showChangelogModal(addon)}
+              on:requestShowChangelogModal={() => showChangelogModal(otherAddon)}
               on:requestShowRollbackModal={() => showRollbackModal(addon)}
               on:showGenericAddonContextMenu={() => showGenericAddonContextMenu(addon)}
               on:showInstallAddonContextMenu={() => showInstallAddonContextMenu(otherAddon)}

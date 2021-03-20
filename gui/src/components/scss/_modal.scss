@@ -130,6 +130,7 @@ $edge-border-radius: $form-el-line-height / 4;
 .modal {
   background: none;
   position: unset;
+  max-width: 75vw;
   padding: 0;
   border: 0;
   border-radius: 0.25rem;

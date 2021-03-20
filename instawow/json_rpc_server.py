@@ -240,6 +240,15 @@ class PinParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
         ]
 
 
+class GetChangelogParams(_ProfileParamMixin, BaseParams):
+    changelog_url: str
+
+    async def respond(self, managers: ManagerWorkQueue) -> str:
+        return await managers.run(
+            self.profile, partial(Manager.get_changelog, loose_url=self.changelog_url)
+        )
+
+
 class ReconcileResult_AddonFolder(TypedDict):
     name: str
     version: str
@@ -418,6 +427,7 @@ async def create_app() -> tuple[web.Application, str]:
                 (UpdateParams, 'update', managers),
                 (RemoveParams, 'remove', managers),
                 (PinParams, 'pin', managers),
+                (GetChangelogParams, 'get_changelog', managers),
                 (ReconcileParams, 'reconcile', managers),
                 (GetVersionParams, 'meta/get_version', managers),
             ],

@@ -20,9 +20,11 @@ from pathlib import Path, PurePath
 from shutil import copy
 from tempfile import NamedTemporaryFile
 from typing import TYPE_CHECKING, Any, TypeVar
+import urllib.parse
 
 from loguru import logger
 from typing_extensions import TypeAlias
+from yarl import URL
 
 from . import DB_REVISION, results as E
 from .config import Config
@@ -63,7 +65,6 @@ if TYPE_CHECKING:
     import aiohttp
     import prompt_toolkit.shortcuts
     import sqlalchemy.orm
-    from yarl import URL
 
     _T = TypeVar('_T')
     _C = TypeVar('_C', bound=Callable[..., Awaitable[object]])
@@ -527,6 +528,21 @@ class Manager:
         if with_deps:
             results_by_defn.update(await self._resolve_deps(results_by_defn.values()))
         return results_by_defn
+
+    async def get_changelog(self, loose_url: str | URL) -> str:
+        "Retrieve a changelog from its URL."
+        url = URL(loose_url)
+        if url.scheme == 'data' and url.raw_path.startswith(','):
+            return urllib.parse.unquote(url.raw_path[1:])
+        elif url.scheme in {'http', 'https'}:
+            return await cache_response(
+                self,
+                url,
+                {'days': 1},
+                is_json=False,
+            )
+        else:
+            raise ValueError('Unsupported URL scheme', url.scheme)
 
     async def search(
         self,

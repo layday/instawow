@@ -214,6 +214,13 @@ export class Api {
     });
   }
 
+  async getChangelog(changelogUrl: string): Promise<string> {
+    return await this._request({
+      method: "get_changelog",
+      params: { profile: this.profile, changelog_url: changelogUrl },
+    });
+  }
+
   async reconcile(matcher: ReconciliationStage): Promise<ReconcileResult> {
     return await this._request({
       method: "reconcile",

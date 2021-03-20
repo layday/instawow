@@ -7,7 +7,6 @@ from itertools import chain, takewhile
 import re
 import typing
 from typing import TYPE_CHECKING, Any, ClassVar
-import urllib.parse
 
 from pydantic import BaseModel
 from pydantic.datetime_parse import parse_datetime
@@ -88,6 +87,8 @@ _slugify = normalise_names('-')
 
 
 def _format_data_changelog(changelog: str = '') -> str:
+    import urllib.parse
+
     return f'data:,{urllib.parse.quote(changelog)}'
 
 
@@ -242,22 +243,6 @@ class Resolver:
         "Yield add-ons from source for cataloguing."
         return
         yield
-
-    async def get_changelog(self, pkg: models.Pkg) -> str:
-        "Retrieve a changelog from its URL."
-        changelog_url = URL(pkg.changelog_url)
-        if changelog_url.scheme == 'data':
-            _, body = changelog_url.raw_path.split(',', 1)
-            return urllib.parse.unquote(body)
-        elif changelog_url.scheme in {'http', 'https'}:
-            return await manager.cache_response(
-                self.manager,
-                changelog_url.with_fragment(pkg.version),
-                {'days': 1},
-                is_json=False,
-            )
-        else:
-            raise ValueError('Unsupported URL scheme', changelog_url.scheme)
 
 
 # Only documenting the fields we're actually using -
@@ -832,10 +817,11 @@ class TukuiResolver(Resolver):
             ),
             version=metadata['version'],
             changelog_url=(
+                # The changelog URL is not versioned - adding fragment to allow caching
+                str(URL(metadata['changelog']).with_fragment(metadata['version']))
+                if metadata['id'] in {-1, -2}
                 # Regular add-ons don't have dedicated changelogs but rather
                 # link to the changelog tab on the add-on page
-                metadata['changelog']
-                if metadata['id'] in {-1, -2}
                 else _format_data_changelog(metadata['changelog'])
             ),
             options=models.PkgOptions(strategy=defn.strategy),

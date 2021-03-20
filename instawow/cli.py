@@ -643,7 +643,7 @@ def view_changelog(obj: ManagerWrapper, addon: Defn) -> None:
     "View the changelog of an installed add-on."
     pkg = obj.m.get_pkg(addon, partial_match=True)
     if pkg:
-        click.echo(obj.m.run(obj.m.resolvers[pkg.source].get_changelog(pkg)))
+        click.echo(obj.m.run(obj.m.get_changelog(pkg.changelog_url)))
     else:
         Report([(addon, E.PkgNotInstalled())]).generate_and_exit()
 
