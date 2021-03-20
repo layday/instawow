@@ -214,11 +214,10 @@ async def test_get_changelog_from_url(iw_manager):
         await iw_manager.get_changelog(
             'https://addons-ecs.forgesvc.net/api/v2/addon/20338/file/3152268/changelog'
         )
-        == '''\
-<h3>Changes in 90000.73-Release:</h3>
-<ul>
-<li>Added: Support for disenchanting Shadowlands profession world quest items</li>
-<li>Changed: Update LibProcessable embed</li>
-</ul>
-'''
-    )
+    ).splitlines() == [
+        '<h3>Changes in 90000.73-Release:</h3>',
+        '<ul>',
+        '<li>Added: Support for disenchanting Shadowlands profession world quest items</li>',
+        '<li>Changed: Update LibProcessable embed</li>',
+        '</ul>',
+    ]
