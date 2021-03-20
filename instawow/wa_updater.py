@@ -58,16 +58,16 @@ class Auras(GenericModel, Generic[_TWeakAura]):
         )
 
 
-class WeakAura(BaseModel):
+class WeakAura(
+    BaseModel,
+    allow_population_by_field_name=True,
+    arbitrary_types_allowed=True,
+):
     id: str
     uid: str
     parent: typing.Optional[str]
     url: URL
     version: int
-
-    class Config:
-        allow_population_by_field_name = True
-        arbitrary_types_allowed = True
 
     @validator('url', pre=True)
     def _convert_url(cls, value: str) -> URL:

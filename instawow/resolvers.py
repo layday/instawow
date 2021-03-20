@@ -37,18 +37,10 @@ class ChangelogFormat(str, Enum):
     raw = 'raw'
 
 
-class _HashableModel(BaseModel):
-    class Config:
-        allow_mutation = False
-
-    def __eq__(self, other: object) -> bool:
-        return self.__dict__ == (other.__dict__ if isinstance(other, self.__class__) else other)
-
-    def __hash__(self) -> int:
-        return hash(tuple(self.__dict__.items()))
-
-
-class Defn(_HashableModel):
+class Defn(
+    BaseModel,
+    frozen=True,
+):
     source: str
     alias: str
     id: typing.Optional[str] = None
@@ -123,14 +115,12 @@ class CatalogueEntry(BaseModel):
     derived_download_score: float
 
 
-class Catalogue(BaseModel):
+class Catalogue(
+    BaseModel,
+    json_encoders={set: sorted},
+    keep_untouched=(cached_property,),
+):
     __root__: typing.List[CatalogueEntry]
-
-    class Config:
-        json_encoders: dict[type, Any] = {
-            set: sorted,
-        }
-        keep_untouched: tuple[Any, ...] = (cached_property,)
 
     @classmethod
     async def collate(cls, age_cutoff: datetime | None) -> Catalogue:
@@ -161,30 +151,39 @@ class Catalogue(BaseModel):
         return {a.slug: a.id for a in self.__root__ if a.source == 'curse'}
 
 
-class _OrmModel(BaseModel):
-    class Config:
-        allow_mutation = False
-        orm_mode = True
-
-
-class _PkgModel_PkgFolder(_OrmModel):
+class _PkgModel_PkgFolder(
+    BaseModel,
+    orm_mode=True,
+):
     name: str
 
 
-class _PkgModel_PkgOptions(_OrmModel):
+class _PkgModel_PkgOptions(
+    BaseModel,
+    orm_mode=True,
+):
     strategy: Strategy
 
 
-class _PkgModel_PkgDep(_OrmModel):
+class _PkgModel_PkgDep(
+    BaseModel,
+    orm_mode=True,
+):
     id: str
 
 
-class _PkgModel_PkgVersion(_OrmModel):
+class _PkgModel_PkgVersion(
+    BaseModel,
+    orm_mode=True,
+):
     version: str
     install_time: datetime
 
 
-class PkgModel(_OrmModel):
+class PkgModel(
+    BaseModel,
+    orm_mode=True,
+):
     source: str
     id: str
     slug: str
