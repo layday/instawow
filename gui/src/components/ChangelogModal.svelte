@@ -5,7 +5,7 @@
 
   export let show: boolean, changelog: string, asHtml: boolean, addonListEl: HTMLElement;
 
-  const ALLOWED_TAGS = ["code", "p", "ul", "li", "pre", "b", "i"];
+  const ALLOWED_TAGS = ["code", "p", "ul", "li", "pre", "br", "b", "i"];
 </script>
 
 <Modal bind:show {addonListEl}>
