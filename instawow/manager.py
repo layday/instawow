@@ -127,11 +127,13 @@ async def _download_archive(manager: Manager, pkg: Pkg, *, chunk_size: int = 409
         await _copy_async(file_uri_to_path(url), dest)
     else:
         async with manager.web_client.get(
-            url, raise_for_status=True, trace_request_ctx={'report_progress': True}
-        ) as response, _open_temp_writer() as (
-            temp_path,
-            write,
-        ):
+            url,
+            raise_for_status=True,
+            trace_request_ctx={'report_progress': True},
+            # This is needed for Townlong Yak.  See
+            # https://github.com/aio-libs/aiohttp/issues/3904#issuecomment-632661245
+            headers={'Connection': 'keep-alive'},
+        ) as response, _open_temp_writer() as (temp_path, write):
             async for chunk in response.content.iter_chunked(chunk_size):
                 await write(chunk)
 
