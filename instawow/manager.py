@@ -793,7 +793,7 @@ class CliManager(Manager):
         with make_progress_bar() as bar:
 
             async def run():
-                tickers = set()
+                tickers: set[asyncio.Task[None]] = set()
                 async with _init_cli_web_client(bar, tickers) as web_client, _cancel_tickers(
                     tickers
                 ):
