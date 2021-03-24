@@ -22,7 +22,7 @@ if TYPE_CHECKING:
 
 
 _ImportString: TypeAlias = str
-RemoteAuras: TypeAlias = 'Sequence[tuple[Sequence[WeakAura], WagoApiResponse, _ImportString]]'
+AuraGroup: TypeAlias = 'Sequence[tuple[Sequence[WeakAura], WagoApiResponse, _ImportString]]'
 
 _TWeakAura = TypeVar('_TWeakAura', bound='WeakAura', covariant=True)
 
@@ -136,8 +136,12 @@ class WaCompanionBuilder:
 
     def __init__(self, manager: manager.Manager, builder_config: BuilderConfig) -> None:
         self.manager = manager
-        self.addon_file = self.manager.config.plugin_dir / __name__ / 'WeakAurasCompanion.zip'
         self.builder_config = builder_config
+
+        output_folder = self.manager.config.plugin_dir / __name__
+        self.addon_zip_path = output_folder / 'WeakAurasCompanion.zip'
+        self.changelog_path = output_folder / 'CHANGELOG.md'
+        self.checksum_path = output_folder / 'checksum.txt'
 
     @staticmethod
     def extract_auras(model: type[Auras[WeakAura]], source: str) -> Auras[WeakAura]:
@@ -173,17 +177,18 @@ class WaCompanionBuilder:
                     aura_group_cache.write_text(aura_groups.json(), encoding='utf-8')
                 yield aura_groups
 
-    async def get_wago_metadata(self, aura_groups: Auras[WeakAura]) -> list[WagoApiResponse]:
+    async def _fetch_wago_metadata(
+        self, api_url: URL, aura_ids: Iterable[str]
+    ) -> list[WagoApiResponse]:
         from aiohttp import ClientResponseError
 
         from .manager import cache_response
 
-        aura_ids = list(aura_groups.__root__)
         try:
             return sorted(
                 await cache_response(
                     self.manager,
-                    aura_groups.api_url.with_query(ids=','.join(aura_ids)),
+                    api_url.with_query(ids=','.join(aura_ids)),
                     {'minutes': 30},
                     label='Fetching aura metadata',
                     request_extra={'headers': {'api-key': self.builder_config.wago_api_key or ''}},
@@ -195,7 +200,7 @@ class WaCompanionBuilder:
                 raise
             return []
 
-    async def get_wago_import_string(self, aura: WagoApiResponse) -> str:
+    async def _fetch_wago_import_string(self, aura: WagoApiResponse) -> str:
         from .manager import cache_response
 
         return await cache_response(
@@ -207,20 +212,23 @@ class WaCompanionBuilder:
             request_extra={'headers': {'api-key': self.builder_config.wago_api_key or ''}},
         )
 
-    async def get_remote_auras(
-        self, aura_groups: Auras[WeakAura]
-    ) -> tuple[type[Auras[WeakAura]], RemoteAuras]:
-        if not aura_groups.__root__:
-            return (aura_groups.__class__, [])
+    async def get_remote_auras(self, auras: Auras[WeakAura]) -> AuraGroup:
+        if not auras.__root__:
+            return []
 
-        metadata = await self.get_wago_metadata(aura_groups)
-        import_strings = await gather(self.get_wago_import_string(r) for r in metadata)
-        return (
-            aura_groups.__class__,
-            [(aura_groups.__root__[r['slug']], r, i) for r, i in zip(metadata, import_strings)],
-        )
+        metadata = await self._fetch_wago_metadata(auras.api_url, auras.__root__)
+        import_strings = await gather(self._fetch_wago_import_string(r) for r in metadata)
+        return [(auras.__root__[r['slug']], r, i) for r, i in zip(metadata, import_strings)]
 
-    def make_addon(self, auras: Sequence[tuple[type[Auras[WeakAura]], RemoteAuras]]) -> None:
+    def _checksum(self) -> str:
+        from hashlib import sha256
+
+        return sha256(self.addon_zip_path.read_bytes()).hexdigest()
+
+    async def get_checksum(self) -> str:
+        return await t(self.checksum_path.read_text)(encoding='utf-8')
+
+    def _generate_addon(self, auras: Iterable[tuple[type[Auras[WeakAura]], AuraGroup]]) -> None:
         from importlib.resources import read_text
         from zipfile import ZipFile, ZipInfo
 
@@ -233,10 +241,10 @@ class WaCompanionBuilder:
             lstrip_blocks=True,
             loader=FunctionLoader(partial(read_text, wa_templates)),
         )
-        aura_dict = chain_dict((WeakAuras, Plateroos), [], auras)
+        aura_dict = chain_dict((WeakAuras, Plateroos), (), auras)
 
-        self.addon_file.parent.mkdir(exist_ok=True)
-        with ZipFile(self.addon_file, 'w') as file:
+        self.addon_zip_path.parent.mkdir(exist_ok=True)
+        with ZipFile(self.addon_zip_path, 'w') as file:
 
             def write_tpl(filename: str, ctx: dict[str, Any]) -> None:
                 # Not using a plain string as the first argument to ``writestr``
@@ -309,13 +317,36 @@ class WaCompanionBuilder:
                 {'interface': '11306' if self.manager.config.is_classic else '90005'},
             )
 
+        self.changelog_path.write_text(
+            jinja_env.get_template(self.changelog_path.name).render(
+                {
+                    'changelog_entries': [
+                        (a.id, a.url.parent, c)
+                        for v in aura_dict.values()
+                        for existing_auras, metadata, _ in v
+                        for a, c in (
+                            (
+                                next(
+                                    (i for i in existing_auras if not i.parent), existing_auras[0]
+                                ),
+                                metadata['changelog'].get('text', 'n/a'),
+                            ),
+                        )
+                        if a.version != metadata['version']
+                    ]
+                }
+            ),
+            encoding='utf-8',
+        )
+
+        self.checksum_path.write_text(
+            self._checksum(),
+            encoding='utf-8',
+        )
+
     async def build(self) -> None:
         installed_auras = await t(list)(self.extract_installed_auras())
-        installed_auras_by_type = Auras.merge(*installed_auras)
-        remote_auras = await gather(map(self.get_remote_auras, installed_auras_by_type))
-        await t(self.make_addon)(remote_auras)
-
-    def checksum(self) -> str:
-        from hashlib import sha256
-
-        return sha256(self.addon_file.read_bytes()).hexdigest()
+        installed_auras_by_type = list(Auras.merge(*installed_auras))
+        aura_groups = await gather(map(self.get_remote_auras, installed_auras_by_type))
+        aura_groups_by_type = zip((type(g) for g in installed_auras_by_type), aura_groups)
+        await t(self._generate_addon)(aura_groups_by_type)

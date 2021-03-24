@@ -531,9 +531,9 @@ class Manager:
             results_by_defn.update(await self._resolve_deps(results_by_defn.values()))
         return results_by_defn
 
-    async def get_changelog(self, loose_url: str | URL) -> str:
+    async def get_changelog(self, uri: str) -> str:
         "Retrieve a changelog from its URL."
-        url = URL(loose_url)
+        url = URL(uri)
         if url.scheme == 'data' and url.raw_path.startswith(','):
             return urllib.parse.unquote(url.raw_path[1:])
         elif url.scheme in {'http', 'https'}:
@@ -543,6 +543,8 @@ class Manager:
                 {'days': 1},
                 is_json=False,
             )
+        elif url.scheme == 'file':
+            return await t(Path(file_uri_to_path(uri)).read_text)(encoding='utf-8')
         else:
             raise ValueError('Unsupported URL with scheme', url.scheme)
 

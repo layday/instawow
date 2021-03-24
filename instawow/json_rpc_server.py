@@ -245,7 +245,7 @@ class GetChangelogParams(_ProfileParamMixin, BaseParams):
 
     async def respond(self, managers: ManagerWorkQueue) -> str:
         return await managers.run(
-            self.profile, partial(Manager.get_changelog, loose_url=self.changelog_url)
+            self.profile, partial(Manager.get_changelog, uri=self.changelog_url)
         )
 
 

@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from aiohttp import ClientError
 import pytest
 
@@ -193,12 +195,12 @@ async def test_search_caters_to_flavour(iw_manager):
 
 
 @pytest.mark.asyncio
-async def test_get_changelog_from_empty_data(iw_manager):
+async def test_get_changelog_from_empty_data_url(iw_manager):
     assert (await iw_manager.get_changelog('data:,')) == ''
 
 
 @pytest.mark.asyncio
-async def test_get_changelog_from_url_encoded_data(iw_manager):
+async def test_get_changelog_from_url_encoded_data_url(iw_manager):
     assert (await iw_manager.get_changelog('data:,foo%20bar')) == 'foo bar'
 
 
@@ -209,7 +211,16 @@ async def test_get_malformed_changelog(iw_manager):
 
 
 @pytest.mark.asyncio
-async def test_get_changelog_from_url(iw_manager):
+async def test_get_changelog_from_file_uri(iw_manager):
+    assert (
+        await iw_manager.get_changelog(
+            (Path(__file__).parent / 'fixtures' / 'curse-addon-changelog.txt').as_uri()
+        )
+    ).startswith('<h3>Changes in 90000.73-Release:</h3>')
+
+
+@pytest.mark.asyncio
+async def test_get_changelog_from_web_url(iw_manager):
     assert (
         await iw_manager.get_changelog(
             'https://addons-ecs.forgesvc.net/api/v2/addon/20338/file/3152268/changelog'

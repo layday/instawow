@@ -15,7 +15,7 @@ from yarl import URL
 
 from . import manager, models, results as E
 from .config import Flavour
-from .utils import bucketise, cached_property, gather, run_in_thread as t, uniq
+from .utils import bucketise, cached_property, gather, uniq
 
 if TYPE_CHECKING:
     import aiohttp
@@ -1034,10 +1034,10 @@ class InstawowResolver(Resolver):
             name='WeakAuras Companion',
             description='A WeakAuras Companion clone.',
             url='https://github.com/layday/instawow',
-            download_url=builder.addon_file.as_uri(),
+            download_url=builder.addon_zip_path.as_uri(),
             date_published=datetime.now(timezone.utc),
-            version=(await t(builder.checksum)())[:7],
-            changelog_url=_format_data_changelog('n/a'),
+            version=(await builder.get_checksum())[:7],
+            changelog_url=builder.changelog_path.as_uri(),
             options=models.PkgOptions(strategy=defn.strategy),
         )
 

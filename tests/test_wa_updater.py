@@ -116,7 +116,7 @@ WeakAurasSaved = {
 
 
 def test_can_build_addon_with_empty_seq(builder):
-    builder.make_addon([])
+    builder._generate_addon([])
 
 
 @pytest.mark.asyncio
@@ -125,10 +125,10 @@ async def test_can_build_addon_with_mock_saved_vars(builder, wa_saved_vars):
 
 
 def test_build_is_reproducible(builder):
-    builder.make_addon([])
-    checksum = builder.checksum()
-    builder.make_addon([])
-    assert checksum == builder.checksum()
+    builder._generate_addon([])
+    checksum = builder._checksum()
+    builder._generate_addon([])
+    assert checksum == builder._checksum()
 
 
 @pytest.mark.asyncio
@@ -140,7 +140,7 @@ async def test_can_resolve_wa_companion_pkg(builder):
 
 
 @pytest.mark.asyncio
-async def test_can_resolve_wa_companion_autoupdate_pkg(monkeypatch, builder):
+async def test_can_resolve_wa_companion_autoupdate_pkg(builder):
     defn = Defn('instawow', 'weakauras-companion-autoupdate')
     resolve_results = await builder.manager.resolve([defn])
     assert is_pkg(resolve_results[defn])
