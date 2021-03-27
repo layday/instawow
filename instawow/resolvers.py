@@ -33,6 +33,7 @@ class Strategy(str, Enum):
 class ChangelogFormat(str, Enum):
     html = 'html'
     markdown = 'markdown'
+    bbcode = 'bbcode'
     raw = 'raw'
 
 
@@ -578,7 +579,7 @@ class WowiResolver(Resolver):
     source = 'wowi'
     name = 'WoWInterface'
     strategies = frozenset({Strategy.default})
-    changelog_format = ChangelogFormat.raw
+    changelog_format = ChangelogFormat.bbcode
 
     # Reference: https://api.mmoui.com/v3/globalconfig.json
     # There's also a v4 API corresponding to the as yet unreleased Minion v4,
@@ -1005,7 +1006,7 @@ class InstawowResolver(Resolver):
     source = 'instawow'
     name = 'instawow'
     strategies = frozenset({Strategy.default})
-    changelog_format = ChangelogFormat.raw
+    changelog_format = ChangelogFormat.markdown
 
     _addons = {
         ('0', 'weakauras-companion'),

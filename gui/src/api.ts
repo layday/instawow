@@ -14,6 +14,13 @@ export enum Strategy {
   version = "version",
 }
 
+export enum ChangelogFormat {
+  html = "html",
+  markdown = "markdown",
+  bbcode = "bbcode",
+  raw = "raw",
+}
+
 type BaseDefn = {
   source: string;
   alias: string;
@@ -47,7 +54,7 @@ export type Sources = {
     name: string;
     supported_strategies: string[];
     supports_rollback: boolean;
-    changelog_format: "html" | "markdown" | "raw";
+    changelog_format: ChangelogFormat;
   };
 };
 
