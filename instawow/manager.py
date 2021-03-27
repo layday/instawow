@@ -177,13 +177,13 @@ def _should_migrate(engine: Any) -> bool:
     (adds about 250 ms to start-up time on my MBP) so we defer
     to SQLAlchemy.
     """
-    from sqlalchemy import exc
+    from sqlalchemy import exc, text
 
-    with engine.begin() as conn:
+    with engine.begin() as connection:
         try:
-            current = conn.execute(
-                'SELECT version_num FROM alembic_version WHERE version_num = (?)',
-                DB_REVISION,
+            current = connection.execute(
+                text('SELECT version_num FROM alembic_version WHERE version_num = :version_num'),
+                {'version_num': DB_REVISION},
             ).scalar()
         except exc.OperationalError:
             return True
