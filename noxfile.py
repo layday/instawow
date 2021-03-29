@@ -26,9 +26,47 @@ def reformat(session: nox.Session):
 
 
 @nox.session(python=['3.7', '3.8', '3.9'])
-def test(session: nox.Session):
+@nox.parametrize(
+    'constraints',
+    [
+        '',
+        '''\
+aiohttp           ==3.7.4
+alembic           ==1.4.3
+click             ==7.1
+jellyfish         ==0.8.2
+jinja2            ==2.11.0
+loguru            ==0.1.0
+pluggy            ==0.13.0
+prompt-toolkit    ==3.0.15
+pydantic          ==1.8.0
+questionary       ==1.8.0
+sqlalchemy        ==1.3.19
+typing-extensions ==3.7.4.3
+yarl              ==1.4
+''',
+    ],
+    [
+        'none',
+        'mininmum-versions',
+    ],
+)
+def test(session: nox.Session, constraints: str):
     "Run the test suite."
-    session.install('.[server, test]', './tests/plugin')
+    tmp_dir = session.create_tmp()
+    session.run('git', 'clone', '.', tmp_dir)
+    session.chdir(tmp_dir)
+
+    constraints_txt = 'constraints.txt'
+    with open(constraints_txt, 'w') as file:
+        file.write(constraints)
+
+    session.install(
+        '-c',
+        constraints_txt,
+        './.[server, test]',
+        './tests/plugin',
+    )
     session.run('coverage', 'run', '-m', 'pytest')
     session.run('coverage', 'report', '-m')
 
