@@ -205,8 +205,8 @@ class WaCompanionBuilder:
 
         return await cache_response(
             self.manager,
-            IMPORT_API_URL.with_query(id=aura['_id']),
-            {'minutes': 30},
+            IMPORT_API_URL.with_query(id=aura['_id']).with_fragment(str(aura['version'])),
+            {'days': 1},
             label=f"Fetching aura '{aura['slug']}'",
             is_json=False,
             request_extra={'headers': {'api-key': self.builder_config.wago_api_key or ''}},
