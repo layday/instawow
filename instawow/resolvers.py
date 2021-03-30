@@ -6,19 +6,16 @@ from enum import Enum
 from itertools import chain, takewhile
 import re
 import typing
-from typing import TYPE_CHECKING, Any, ClassVar
+from typing import Any, ClassVar
 
 from pydantic import BaseModel
 from pydantic.datetime_parse import parse_datetime
 from typing_extensions import Literal, TypedDict
 from yarl import URL
 
-from . import manager, models, results as E
+from . import _deferred_types, manager, models, results as E
 from .config import Flavour
 from .utils import bucketise, cached_property, gather, uniq
-
-if TYPE_CHECKING:
-    import aiohttp
 
 
 class Strategy(str, Enum):
@@ -239,7 +236,7 @@ class Resolver:
 
     @classmethod
     async def catalogue(
-        cls, web_client: aiohttp.ClientSession
+        cls, web_client: _deferred_types.aiohttp.ClientSession
     ) -> AsyncIterator[_CatalogueBaseEntry]:
         "Yield add-ons from source for cataloguing."
         return
@@ -483,7 +480,7 @@ class CurseResolver(Resolver):
 
     @classmethod
     async def catalogue(
-        cls, web_client: aiohttp.ClientSession
+        cls, web_client: _deferred_types.aiohttp.ClientSession
     ) -> AsyncIterator[_CatalogueBaseEntry]:
         classic_version_prefix = '1.13'
 
@@ -674,7 +671,7 @@ class WowiResolver(Resolver):
 
     @classmethod
     async def catalogue(
-        cls, web_client: aiohttp.ClientSession
+        cls, web_client: _deferred_types.aiohttp.ClientSession
     ) -> AsyncIterator[_CatalogueBaseEntry]:
         async with web_client.get(cls.list_api_url) as response:
             list_api_items: list[WowiListApiItem] = await response.json()
@@ -830,7 +827,7 @@ class TukuiResolver(Resolver):
 
     @classmethod
     async def catalogue(
-        cls, web_client: aiohttp.ClientSession
+        cls, web_client: _deferred_types.aiohttp.ClientSession
     ) -> AsyncIterator[_CatalogueBaseEntry]:
         async def fetch_ui(ui_slug: str) -> tuple[set[Flavour], list[TukuiUi]]:
             async with web_client.get(cls.api_url.with_query({'ui': ui_slug})) as response:
@@ -1044,7 +1041,7 @@ class InstawowResolver(Resolver):
 
     @classmethod
     async def catalogue(
-        cls, web_client: aiohttp.ClientSession
+        cls, web_client: _deferred_types.aiohttp.ClientSession
     ) -> AsyncIterator[_CatalogueBaseEntry]:
         yield _CatalogueBaseEntry(
             source=cls.source,
@@ -1153,7 +1150,7 @@ class TownlongYakResolver(Resolver):
 
     @classmethod
     async def catalogue(
-        cls, web_client: aiohttp.ClientSession
+        cls, web_client: _deferred_types.aiohttp.ClientSession
     ) -> AsyncIterator[_CatalogueBaseEntry]:
         async with web_client.get(cls._api_url) as response:
             foxlit_addons: WowUpHubAddons = await response.json()

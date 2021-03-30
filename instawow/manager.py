@@ -23,10 +23,13 @@ from typing import TYPE_CHECKING, Any, TypeVar
 import urllib.parse
 
 from loguru import logger
+import sqlalchemy
+import sqlalchemy.exc
+import sqlalchemy.orm
 from typing_extensions import TypeAlias
 from yarl import URL
 
-from . import DB_REVISION, results as E
+from . import DB_REVISION, _deferred_types, results as E
 from .config import Config
 from .models import Pkg, PkgFolder, PkgVersionLog, is_pkg
 from .plugins import load_plugins
@@ -62,16 +65,13 @@ from .utils import (
 )
 
 if TYPE_CHECKING:
-    import aiohttp
-    import prompt_toolkit.shortcuts
-    import sqlalchemy.orm
-
-    _T = TypeVar('_T')
-    _C = TypeVar('_C', bound=Callable[..., Awaitable[object]])
-    _TManager = TypeVar('_TManager', bound='Manager')
     _BaseResolverDict: TypeAlias = 'dict[str, Resolver]'
 else:
     _BaseResolverDict = dict
+
+_T = TypeVar('_T')
+_C = TypeVar('_C', bound='Callable[..., Awaitable[object]]')
+_TManager = TypeVar('_TManager', bound='Manager')
 
 
 USER_AGENT = 'instawow (https://github.com/layday/instawow)'
@@ -177,27 +177,24 @@ def _should_migrate(engine: Any) -> bool:
     (adds about 250 ms to start-up time on my MBP) so we defer
     to SQLAlchemy.
     """
-    from sqlalchemy import exc, text
-
     with engine.begin() as connection:
         try:
             current = connection.execute(
-                text('SELECT version_num FROM alembic_version WHERE version_num = :version_num'),
+                sqlalchemy.text(
+                    'SELECT version_num FROM alembic_version WHERE version_num = :version_num'
+                ),
                 {'version_num': DB_REVISION},
             ).scalar()
-        except exc.OperationalError:
+        except sqlalchemy.exc.OperationalError:
             return True
         else:
             return not current
 
 
 def prepare_database(config: Config) -> sqlalchemy.orm.Session:
-    from sqlalchemy import create_engine
-    from sqlalchemy.orm import sessionmaker
-
     from .models import ModelBase
 
-    engine = create_engine(
+    engine = sqlalchemy.create_engine(
         f'sqlite:///{config.db_file}',
         # We wanna be able to operate on SQLite objects from
         # executor threads for convenience, when performing disk I/O
@@ -224,10 +221,10 @@ def prepare_database(config: Config) -> sqlalchemy.orm.Session:
                 ModelBase.metadata.create_all(engine)
                 stamp(alembic_config, DB_REVISION)
 
-    return sessionmaker(bind=engine)()
+    return sqlalchemy.orm.sessionmaker(bind=engine)()
 
 
-def init_web_client(**kwargs: Any) -> aiohttp.ClientSession:
+def init_web_client(**kwargs: Any) -> _deferred_types.aiohttp.ClientSession:
     from aiohttp import ClientSession, ClientTimeout, TCPConnector
 
     kwargs = {
@@ -295,7 +292,7 @@ def _with_lock(
     return outer
 
 
-_web_client: cv.ContextVar[aiohttp.ClientSession] = cv.ContextVar('_web_client')
+_web_client: cv.ContextVar[_deferred_types.aiohttp.ClientSession] = cv.ContextVar('_web_client')
 
 dummy_locks: defaultdict[str, Any] = defaultdict(_DummyLock)
 _locks: cv.ContextVar[defaultdict[str, asyncio.Lock]] = cv.ContextVar(
@@ -333,7 +330,7 @@ class Manager:
     def contextualise(
         cls,
         *,
-        web_client: aiohttp.ClientSession | None = None,
+        web_client: _deferred_types.aiohttp.ClientSession | None = None,
         locks: defaultdict[str, asyncio.Lock] | None = None,
     ) -> None:
         if web_client is not None:
@@ -346,7 +343,7 @@ class Manager:
         return cls(config, prepare_database(config))
 
     @property
-    def web_client(self) -> aiohttp.ClientSession:
+    def web_client(self) -> _deferred_types.aiohttp.ClientSession:
         "The web client session."
         return _web_client.get()
 
@@ -726,7 +723,7 @@ class Manager:
         return {d: await capture_manager_exc_async(t(pin)(d, self.get_pkg(d))) for d in defns}
 
 
-def _extract_filename_from_hdr(response: aiohttp.ClientResponse) -> str:
+def _extract_filename_from_hdr(response: _deferred_types.aiohttp.ClientResponse) -> str:
     from cgi import parse_header
 
     from aiohttp import hdrs
@@ -737,12 +734,12 @@ def _extract_filename_from_hdr(response: aiohttp.ClientResponse) -> str:
 
 
 def _init_cli_web_client(
-    bar: prompt_toolkit.shortcuts.ProgressBar, tickers: set[asyncio.Task[None]]
-) -> aiohttp.ClientSession:
+    bar: _deferred_types.prompt_toolkit.shortcuts.ProgressBar, tickers: set[asyncio.Task[None]]
+) -> _deferred_types.aiohttp.ClientSession:
     from aiohttp import TraceConfig, TraceRequestEndParams, hdrs
 
     async def do_on_request_end(
-        client_session: aiohttp.ClientSession,
+        client_session: _deferred_types.aiohttp.ClientSession,
         trace_config_ctx: Any,
         params: TraceRequestEndParams,
     ) -> None:

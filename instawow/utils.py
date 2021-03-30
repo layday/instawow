@@ -12,12 +12,11 @@ from pathlib import Path, PurePath
 import posixpath
 from shutil import move as _move
 from tempfile import mkdtemp
-from typing import TYPE_CHECKING, Generic, TypeVar, overload
+from typing import Generic, TypeVar, overload
 
 from typing_extensions import TypeAlias
 
-if TYPE_CHECKING:
-    from prompt_toolkit.shortcuts import ProgressBar
+from . import _deferred_types
 
 _T = TypeVar('_T')
 _U = TypeVar('_U')
@@ -206,7 +205,7 @@ def tabulate(rows: Sequence[Sequence[object]], *, max_col_width: int = 60) -> st
     return table
 
 
-def make_progress_bar(**kwargs: object) -> ProgressBar:
+def make_progress_bar(**kwargs: object) -> _deferred_types.prompt_toolkit.shortcuts.ProgressBar:
     "A ``ProgressBar`` with download progress expressed in megabytes."
     from prompt_toolkit.formatted_text import HTML
     from prompt_toolkit.shortcuts.progress_bar import formatters

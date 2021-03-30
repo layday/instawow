@@ -17,6 +17,7 @@ from . import manager
 from .config import BaseConfig
 from .utils import bucketise, chain_dict, gather, run_in_thread as t, shasum
 
+# ``NotRequired`` is provisional and does not exist at runtime
 if TYPE_CHECKING:
     from typing_extensions import NotRequired as Ν
 
