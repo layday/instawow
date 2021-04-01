@@ -48,7 +48,7 @@ yarl              ==1.4
     ],
     [
         'none',
-        'mininmum-versions',
+        'minimum-versions',
     ],
 )
 def test(session: nox.Session, constraints: str):
