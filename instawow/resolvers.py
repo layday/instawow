@@ -283,7 +283,7 @@ class CurseAddon_File(TypedDict):
     modules: list[CurseAddon_FileModules]
     exposeAsAlternative: bool | None
     gameVersion: list[str]  # e.g. '8.3.0'
-    gameVersionFlavor: Literal['wow_classic', 'wow_retail']
+    gameVersionFlavor: Literal['wow_classic', 'wow_retail'] | None
 
 
 class CurseAddon(TypedDict):
@@ -398,14 +398,18 @@ class CurseResolver(Resolver):
                 flavour = 'wow_classic' if self.manager.config.is_classic else 'wow_retail'
 
                 def supports_default_game_version(f: CurseAddon_File):
-                    # Files can belong both to retail and classic
-                    # but ``gameVersionFlavor`` can only be one of
-                    # 'wow_retail' or 'wow_classic'.  To spice things up,
-                    # ``gameVersion`` might not be populated so we still have to
-                    # check the value of ``gameVersionFlavor``
-                    return f['gameVersionFlavor'] == flavour or any(
-                        v.startswith(classic_version_prefix) is self.manager.config.is_classic
-                        for v in f['gameVersion']
+                    # Files can have multiple ``gameVersion``s but ``gameVersionFlavor``
+                    # is a scalar ('wow_retail' or 'wow_classic').
+                    # ``gameVersion`` might not be populated - we fall back on it
+                    # only if ``gameVersionFlavor`` does not match.
+                    # As of 2021-04-02, TBC add-ons have a ``gameVersionFlavor``
+                    # value of null - we filter these out.
+                    return f['gameVersionFlavor'] is not None and (
+                        f['gameVersionFlavor'] == flavour
+                        or any(
+                            v.startswith(classic_version_prefix) is self.manager.config.is_classic
+                            for v in f['gameVersion']
+                        )
                     )
 
                 supports_game_version = supports_default_game_version
