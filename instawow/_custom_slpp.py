@@ -77,7 +77,7 @@ class SLPP:
         else:
             return self._get_bare_word()
 
-    def _get_table(self) -> dict[Any, Any] | list[Any]:
+    def _get_table(self):
         table: dict[Any, Any] | list[Any] = {}
         idx = 0
 
