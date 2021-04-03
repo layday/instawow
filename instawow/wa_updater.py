@@ -336,7 +336,8 @@ class WaCompanionBuilder:
                         if a.version != metadata['version']
                     ]
                 }
-            ),
+            )
+            or 'n/a',
             encoding='utf-8',
         )
 

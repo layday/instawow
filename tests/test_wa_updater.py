@@ -131,6 +131,11 @@ def test_build_is_reproducible(builder):
     assert checksum == builder._checksum()
 
 
+def test_changelog_is_generated(builder):
+    builder._generate_addon([])
+    assert builder.changelog_path.read_text() == 'n/a'
+
+
 @pytest.mark.asyncio
 async def test_can_resolve_wa_companion_pkg(builder):
     await builder.build()
