@@ -123,7 +123,7 @@ class WagoApiResponse(TypedDict):
     created: str  # ISO datetime
     modified: str  # ISO datetime
     game: str  # "classic" or xpac, e.g. "bfa"
-    username: str  # +  # Author username
+    username: Ν[str]  # +  # Author username
     version: int  # +   # Version counter, incremented with every update
     # Semver auto-generated from ``version`` - for presentation only
     versionString: str
@@ -262,7 +262,7 @@ class WaCompanionBuilder:
                             metadata['slug'],
                             {
                                 'name': metadata['name'],
-                                'author': metadata['username'],
+                                'author': metadata.get('username', '__unknown__'),
                                 'encoded': import_string,
                                 'wagoVersion': metadata['version'],
                                 # ``wagoSemver`` is supposed to be the ``versionString``
@@ -296,7 +296,7 @@ class WaCompanionBuilder:
                             metadata['slug'],
                             {
                                 'name': metadata['name'],
-                                'author': metadata['username'],
+                                'author': metadata.get('username', '__unknown__'),
                                 'encoded': import_string,
                                 'wagoVersion': metadata['version'],
                                 'wagoSemver': metadata['version'],
