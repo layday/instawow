@@ -29,7 +29,7 @@ import sqlalchemy.orm
 from typing_extensions import TypeAlias
 from yarl import URL
 
-from . import DB_REVISION, _deferred_types, results as E
+from . import DB_REVISION, _deferred_types, results as R
 from .config import Config
 from .models import Pkg, PkgFolder, PkgVersionLog, is_pkg
 from .plugins import load_plugins
@@ -243,8 +243,8 @@ class _DummyResolver(Resolver):
 
     async def resolve(
         self, defns: Sequence[Defn]
-    ) -> dict[Defn, Pkg | E.ManagerError | E.InternalError]:
-        return dict.fromkeys(defns, E.PkgSourceInvalid())
+    ) -> dict[Defn, Pkg | R.ManagerError | R.InternalError]:
+        return dict.fromkeys(defns, R.PkgSourceInvalid())
 
 
 class _ResolverDict(_BaseResolverDict):
@@ -254,20 +254,20 @@ class _ResolverDict(_BaseResolverDict):
 
 async def capture_manager_exc_async(
     awaitable: Awaitable[_T],
-) -> _T | E.ManagerError | E.InternalError:
+) -> _T | R.ManagerError | R.InternalError:
     "Capture and log an exception raised in a coroutine."
     from aiohttp import ClientError
 
     try:
         return await awaitable
-    except (E.ManagerError, E.InternalError) as error:
+    except (R.ManagerError, R.InternalError) as error:
         return error
     except ClientError as error:
         logger.opt(exception=True).debug('network error')
-        return E.InternalError(error)
+        return R.InternalError(error)
     except BaseException as error:
         logger.exception('unclassed error')
-        return E.InternalError(error)
+        return R.InternalError(error)
 
 
 class _DummyLock:
@@ -386,7 +386,7 @@ class Manager:
             or None
         )
 
-    def install_pkg(self, pkg: Pkg, archive: Path, replace: bool) -> E.PkgInstalled:
+    def install_pkg(self, pkg: Pkg, archive: Path, replace: bool) -> R.PkgInstalled:
         "Install a package."
         with _open_archive(archive) as (top_level_folders, extract):
             installed_conflicts: list[Pkg] = (
@@ -396,7 +396,7 @@ class Manager:
                 .all()
             )
             if installed_conflicts:
-                raise E.PkgConflictsWithInstalled(installed_conflicts)
+                raise R.PkgConflictsWithInstalled(installed_conflicts)
 
             if replace:
                 trash(
@@ -409,7 +409,7 @@ class Manager:
                     f.name for f in self.config.addon_dir.iterdir()
                 }
                 if unreconciled_conflicts:
-                    raise E.PkgConflictsWithUnreconciled(unreconciled_conflicts)
+                    raise R.PkgConflictsWithUnreconciled(unreconciled_conflicts)
 
             extract(self.config.addon_dir)
             pkg.folders = [PkgFolder(name=f) for f in sorted(top_level_folders)]
@@ -420,9 +420,9 @@ class Manager:
         )
         self.database.commit()
 
-        return E.PkgInstalled(pkg)
+        return R.PkgInstalled(pkg)
 
-    def update_pkg(self, old_pkg: Pkg, new_pkg: Pkg, archive: Path) -> E.PkgUpdated:
+    def update_pkg(self, old_pkg: Pkg, new_pkg: Pkg, archive: Path) -> R.PkgUpdated:
         "Update a package."
         with _open_archive(archive) as (top_level_folders, extract):
             installed_conflicts: list[Pkg] = (
@@ -433,13 +433,13 @@ class Manager:
                 .all()
             )
             if installed_conflicts:
-                raise E.PkgConflictsWithInstalled(installed_conflicts)
+                raise R.PkgConflictsWithInstalled(installed_conflicts)
 
             unreconciled_conflicts = top_level_folders - {f.name for f in old_pkg.folders} & {
                 f.name for f in self.config.addon_dir.iterdir()
             }
             if unreconciled_conflicts:
-                raise E.PkgConflictsWithUnreconciled(unreconciled_conflicts)
+                raise R.PkgConflictsWithUnreconciled(unreconciled_conflicts)
 
             trash(
                 [self.config.addon_dir / f.name for f in old_pkg.folders],
@@ -456,9 +456,9 @@ class Manager:
         )
         self.database.commit()
 
-        return E.PkgUpdated(old_pkg, new_pkg)
+        return R.PkgUpdated(old_pkg, new_pkg)
 
-    def remove_pkg(self, pkg: Pkg, keep_folders: bool) -> E.PkgRemoved:
+    def remove_pkg(self, pkg: Pkg, keep_folders: bool) -> R.PkgRemoved:
         "Remove a package."
         if not keep_folders:
             trash(
@@ -469,7 +469,7 @@ class Manager:
         self.database.delete(pkg)
         self.database.commit()
 
-        return E.PkgRemoved(pkg)
+        return R.PkgRemoved(pkg)
 
     @_with_lock('load catalogue', False)
     async def synchronise(self) -> Catalogue:
@@ -591,7 +591,7 @@ class Manager:
     @_with_lock('change state')
     async def install(
         self, defns: Sequence[Defn], replace: bool
-    ) -> dict[Defn, E.PkgInstalled | E.ManagerError | E.InternalError]:
+    ) -> dict[Defn, R.PkgInstalled | R.ManagerError | R.InternalError]:
         "Install packages from a definition list."
         # We'll weed out installed dependencies from results after resolving.
         # Doing it this way isn't particularly efficient but avoids having to
@@ -609,7 +609,7 @@ class Manager:
         archives = await gather(installables.values(), capture_manager_exc_async)
         results = chain_dict(
             defns,
-            E.PkgAlreadyInstalled(),
+            R.PkgAlreadyInstalled(),
             resolve_results.items(),
             ((d, a) for (d, _), a in zip(installables, archives) if not isinstance(a, PurePath)),
             [
@@ -623,7 +623,7 @@ class Manager:
     @_with_lock('change state')
     async def update(
         self, defns: Sequence[Defn], retain_strategy: bool
-    ) -> dict[Defn, E.PkgUpdated | E.ManagerError | E.InternalError]:
+    ) -> dict[Defn, R.PkgUpdated | R.ManagerError | R.InternalError]:
         """Update installed packages from a definition list.
 
         A ``retain_strategy`` value of false will instruct ``update``
@@ -653,10 +653,10 @@ class Manager:
         archives = await gather(updatables.values(), capture_manager_exc_async)
         results = chain_dict(
             defns,
-            E.PkgNotInstalled(),
+            R.PkgNotInstalled(),
             resolve_results.items(),
             (
-                (d, E.PkgUpToDate(is_pinned=p.options.strategy == Strategy.version))
+                (d, R.PkgUpToDate(is_pinned=p.options.strategy == Strategy.version))
                 for d, p in installables.items()
             ),
             ((d, a) for (d, *_), a in zip(updatables, archives) if not isinstance(a, PurePath)),
@@ -671,11 +671,11 @@ class Manager:
     @_with_lock('change state')
     async def remove(
         self, defns: Sequence[Defn], keep_folders: bool
-    ) -> dict[Defn, E.PkgRemoved | E.ManagerError | E.InternalError]:
+    ) -> dict[Defn, R.PkgRemoved | R.ManagerError | R.InternalError]:
         "Remove packages by their definition."
         results = chain_dict(
             defns,
-            E.PkgNotInstalled(),
+            R.PkgNotInstalled(),
             [
                 (d, await capture_manager_exc_async(t(self.remove_pkg)(p, keep_folders)))
                 for d in defns
@@ -690,11 +690,11 @@ class Manager:
         self, defns: Sequence[Defn]
     ) -> dict[
         Defn,
-        E.PkgNotInstalled
-        | E.PkgInstalled
-        | E.PkgStrategyUnsupported
-        | E.ManagerError
-        | E.InternalError,
+        R.PkgNotInstalled
+        | R.PkgInstalled
+        | R.PkgStrategyUnsupported
+        | R.ManagerError
+        | R.InternalError,
     ]:
         """Pin and unpin installed packages.
 
@@ -710,15 +710,15 @@ class Manager:
 
         def pin(
             defn: Defn, pkg: Pkg | None
-        ) -> E.PkgNotInstalled | E.PkgInstalled | E.PkgStrategyUnsupported:
+        ) -> R.PkgNotInstalled | R.PkgInstalled | R.PkgStrategyUnsupported:
             if not pkg:
-                return E.PkgNotInstalled()
+                return R.PkgNotInstalled()
             elif {defn.strategy} <= strategies <= self.resolvers[pkg.source].strategies:
                 pkg.options.strategy = defn.strategy
                 self.database.commit()
-                return E.PkgInstalled(pkg)
+                return R.PkgInstalled(pkg)
             else:
-                return E.PkgStrategyUnsupported(Strategy.version)
+                return R.PkgStrategyUnsupported(Strategy.version)
 
         return {d: await capture_manager_exc_async(t(pin)(d, self.get_pkg(d))) for d in defns}
 

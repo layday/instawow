@@ -11,7 +11,7 @@ from typing import overload
 
 import click
 
-from . import manager as managers, models, results as E
+from . import manager as managers, models, results as R
 from .config import Config, Flavour, setup_logging
 from .plugins import load_plugins
 from .resolvers import Defn, MultiPkgModel, Strategy
@@ -25,8 +25,8 @@ class Report:
 
     def __init__(
         self,
-        results: Iterable[tuple[Defn, E.ManagerResult]],
-        filter_fn: Callable[[E.ManagerResult], bool] = lambda _: True,
+        results: Iterable[tuple[Defn, R.ManagerResult]],
+        filter_fn: Callable[[R.ManagerResult], bool] = lambda _: True,
     ):
         self.results = list(results)
         self.filter_fn = filter_fn
@@ -34,15 +34,15 @@ class Report:
     @property
     def exit_code(self) -> int:
         return any(
-            isinstance(r, (E.ManagerError, E.InternalError)) and self.filter_fn(r)
+            isinstance(r, (R.ManagerError, R.InternalError)) and self.filter_fn(r)
             for _, r in self.results
         )
 
     @classmethod
-    def _result_type_to_symbol(cls, result: E.ManagerResult) -> str:
-        if isinstance(result, E.InternalError):
+    def _result_type_to_symbol(cls, result: R.ManagerResult) -> str:
+        if isinstance(result, R.InternalError):
             return cls.WARNING_SYMBOL
-        elif isinstance(result, E.ManagerError):
+        elif isinstance(result, R.ManagerError):
             return cls.FAILURE_SYMBOL
         else:
             return cls.SUCCESS_SYMBOL
@@ -289,11 +289,11 @@ def install(obj: ManagerWrapper, addons: Sequence[Defn], replace: bool) -> None:
 def update(obj: ManagerWrapper, addons: Sequence[Defn]) -> None:
     "Update installed add-ons."
 
-    def filter_results(result: E.ManagerResult):
+    def filter_results(result: R.ManagerResult):
         # Hide packages from output if they are up to date
         # and ``update`` was invoked without args,
         # provided that they are not pinned
-        if addons or not isinstance(result, E.PkgUpToDate):
+        if addons or not isinstance(result, R.PkgUpToDate):
             return True
         else:
             return result.is_pinned
@@ -346,12 +346,12 @@ def rollback(ctx: click.Context, addon: Defn, version: str | None, undo: bool) -
 
     pkg = manager.get_pkg(addon)
     if not pkg:
-        Report([(addon, E.PkgNotInstalled())]).generate_and_exit()
+        Report([(addon, R.PkgNotInstalled())]).generate_and_exit()
         return  # pragma: no cover
 
     if not manager.resolvers[pkg.source].supports_rollback:
         Report(
-            [(addon, E.PkgFileUnavailable('source does not support rollback'))]
+            [(addon, R.PkgFileUnavailable('source does not support rollback'))]
         ).generate_and_exit()
 
     if undo:
@@ -373,7 +373,7 @@ def rollback(ctx: click.Context, addon: Defn, version: str | None, undo: bool) -
         )
         if len(versions) <= 1:
             Report(
-                [(addon, E.PkgFileUnavailable('cannot find older versions'))]
+                [(addon, R.PkgFileUnavailable('cannot find older versions'))]
             ).generate_and_exit()
 
         choices = [
@@ -635,7 +635,7 @@ def reveal(obj: ManagerWrapper, addon: Defn) -> None:
     if pkg:
         click.launch(str(obj.m.config.addon_dir / pkg.folders[0].name), locate=True)
     else:
-        Report([(addon, E.PkgNotInstalled())]).generate_and_exit()
+        Report([(addon, R.PkgNotInstalled())]).generate_and_exit()
 
 
 @main.command()
@@ -647,7 +647,7 @@ def view_changelog(obj: ManagerWrapper, addon: Defn) -> None:
     if pkg:
         click.echo_via_pager(obj.m.run(obj.m.get_changelog(pkg.changelog_url)))
     else:
-        Report([(addon, E.PkgNotInstalled())]).generate_and_exit()
+        Report([(addon, R.PkgNotInstalled())]).generate_and_exit()
 
 
 def _show_active_config(ctx: click.Context, _param: click.Parameter, value: bool) -> None:

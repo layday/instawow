@@ -18,7 +18,7 @@ from pydantic import BaseModel, ValidationError
 from typing_extensions import Literal, TypeAlias, TypedDict
 from yarl import URL
 
-from . import results as E
+from . import results as R
 from .config import Config
 from .manager import Manager, init_web_client, prepare_database
 from .matchers import get_folder_set, match_dir_names, match_toc_ids, match_toc_names
@@ -195,7 +195,7 @@ class InstallParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
         )
         return [
             SuccessResult(status=r.status, addon=PkgModel.from_orm(r.pkg))
-            if isinstance(r, E.PkgInstalled)
+            if isinstance(r, R.PkgInstalled)
             else ErrorResult(status=r.status, message=r.message)
             for r in results.values()
         ]
@@ -208,7 +208,7 @@ class UpdateParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
         )
         return [
             SuccessResult(status=r.status, addon=PkgModel.from_orm(r.new_pkg))
-            if isinstance(r, E.PkgUpdated)
+            if isinstance(r, R.PkgUpdated)
             else ErrorResult(status=r.status, message=r.message)
             for r in results.values()
         ]
@@ -223,7 +223,7 @@ class RemoveParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
         )
         return [
             SuccessResult(status=r.status, addon=PkgModel.from_orm(r.old_pkg))
-            if isinstance(r, E.PkgRemoved)
+            if isinstance(r, R.PkgRemoved)
             else ErrorResult(status=r.status, message=r.message)
             for r in results.values()
         ]
@@ -234,7 +234,7 @@ class PinParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
         results = await managers.run(self.profile, partial(Manager.pin, defns=self.defns))
         return [
             SuccessResult(status=r.status, addon=PkgModel.from_orm(r.pkg))
-            if isinstance(r, E.PkgInstalled)
+            if isinstance(r, R.PkgInstalled)
             else ErrorResult(status=r.status, message=r.message)
             for r in results.values()
         ]

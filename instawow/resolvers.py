@@ -13,7 +13,7 @@ from pydantic.datetime_parse import parse_datetime
 from typing_extensions import Literal, TypedDict
 from yarl import URL
 
-from . import _deferred_types, manager, models, results as E
+from . import _deferred_types, manager, models, results as R
 from .config import Flavour
 from .utils import bucketise, cached_property, gather, uniq
 
@@ -223,7 +223,7 @@ class Resolver:
 
     async def resolve(
         self, defns: Sequence[Defn]
-    ) -> dict[Defn, models.Pkg | E.ManagerError | E.InternalError]:
+    ) -> dict[Defn, models.Pkg | R.ManagerError | R.InternalError]:
         "Resolve add-on definitions into packages."
         results = await gather(
             (self.resolve_one(d, None) for d in defns), manager.capture_manager_exc_async
@@ -329,7 +329,7 @@ class CurseResolver(Resolver):
 
     async def resolve(
         self, defns: Sequence[Defn]
-    ) -> dict[Defn, models.Pkg | E.ManagerError | E.InternalError]:
+    ) -> dict[Defn, models.Pkg | R.ManagerError | R.InternalError]:
         from aiohttp import ClientResponseError
 
         catalogue = await self.manager.synchronise()
@@ -357,10 +357,10 @@ class CurseResolver(Resolver):
 
     async def resolve_one(self, defn: Defn, metadata: CurseAddon | None) -> models.Pkg:
         if metadata is None:
-            raise E.PkgNonexistent
+            raise R.PkgNonexistent
 
         if defn.strategy not in self.strategies:
-            raise E.PkgStrategyUnsupported(defn.strategy)
+            raise R.PkgStrategyUnsupported(defn.strategy)
 
         if defn.strategy is Strategy.version:
 
@@ -448,7 +448,7 @@ class CurseResolver(Resolver):
             is_match = is_default_matcb
 
         if not files:
-            raise E.PkgFileUnavailable('no files available for download')
+            raise R.PkgFileUnavailable('no files available for download')
 
         try:
             file = max(
@@ -457,7 +457,7 @@ class CurseResolver(Resolver):
                 key=lambda f: f['id'],
             )
         except ValueError:
-            raise E.PkgFileUnavailable(
+            raise R.PkgFileUnavailable(
                 f'no files match {self.manager.config.game_flavour} '
                 f'using {defn.strategy} strategy'
             )
@@ -624,7 +624,7 @@ class WowiResolver(Resolver):
 
     async def resolve(
         self, defns: Sequence[Defn]
-    ) -> dict[Defn, models.Pkg | E.ManagerError | E.InternalError]:
+    ) -> dict[Defn, models.Pkg | R.ManagerError | R.InternalError]:
         from aiohttp import ClientResponseError
 
         list_api_items = await self._synchronise()
@@ -654,10 +654,10 @@ class WowiResolver(Resolver):
 
     async def resolve_one(self, defn: Defn, metadata: WowiCombinedItem | None) -> models.Pkg:
         if metadata is None:
-            raise E.PkgNonexistent
+            raise R.PkgNonexistent
 
         if defn.strategy not in self.strategies:
-            raise E.PkgStrategyUnsupported(defn.strategy)
+            raise R.PkgStrategyUnsupported(defn.strategy)
 
         return models.Pkg(
             source=self.source,
@@ -782,7 +782,7 @@ class TukuiResolver(Resolver):
 
     async def resolve(
         self, defns: Sequence[Defn]
-    ) -> dict[Defn, models.Pkg | E.ManagerError | E.InternalError]:
+    ) -> dict[Defn, models.Pkg | R.ManagerError | R.InternalError]:
         addons = await self._synchronise()
 
         ids = (d.alias[: p if p != -1 else None] for d in defns for p in (d.alias.find('-', 1),))
@@ -794,10 +794,10 @@ class TukuiResolver(Resolver):
 
     async def resolve_one(self, defn: Defn, metadata: TukuiAddon | TukuiUi | None) -> models.Pkg:
         if metadata is None:
-            raise E.PkgNonexistent
+            raise R.PkgNonexistent
 
         if defn.strategy not in self.strategies:
-            raise E.PkgStrategyUnsupported(defn.strategy)
+            raise R.PkgStrategyUnsupported(defn.strategy)
 
         if metadata['id'] == -1:
             slug = 'tukui'
@@ -927,7 +927,7 @@ class GithubResolver(Resolver):
         from aiohttp import ClientResponseError
 
         if defn.strategy not in self.strategies:
-            raise E.PkgStrategyUnsupported(defn.strategy)
+            raise R.PkgStrategyUnsupported(defn.strategy)
 
         repo_url = self.repos_api_url / defn.alias
         try:
@@ -936,7 +936,7 @@ class GithubResolver(Resolver):
             )
         except ClientResponseError as error:
             if error.status == 404:
-                raise E.PkgNonexistent
+                raise R.PkgNonexistent
             raise
 
         if defn.strategy is Strategy.version:
@@ -952,7 +952,7 @@ class GithubResolver(Resolver):
 
         async with self.manager.web_client.get(release_url) as response:
             if response.status == 404:
-                raise E.PkgFileUnavailable('release not found')
+                raise R.PkgFileUnavailable('release not found')
 
             response_json = await response.json()
             if defn.strategy is Strategy.latest:
@@ -986,7 +986,7 @@ class GithubResolver(Resolver):
                 )
             )
         except StopIteration:
-            raise E.PkgFileUnavailable
+            raise R.PkgFileUnavailable
 
         return models.Pkg(
             source=self.source,
@@ -1016,12 +1016,12 @@ class InstawowResolver(Resolver):
 
     async def resolve_one(self, defn: Defn, metadata: None) -> models.Pkg:
         if defn.strategy not in self.strategies:
-            raise E.PkgStrategyUnsupported(defn.strategy)
+            raise R.PkgStrategyUnsupported(defn.strategy)
 
         try:
             source_id, slug = next(p for p in self._addons if defn.alias in p)
         except StopIteration:
-            raise E.PkgNonexistent
+            raise R.PkgNonexistent
 
         from .wa_updater import BuilderConfig, WaCompanionBuilder
 
@@ -1121,13 +1121,13 @@ class TownlongYakResolver(Resolver):
 
     async def resolve_one(self, defn: Defn, metadata: None) -> models.Pkg:
         if defn.strategy not in self.strategies:
-            raise E.PkgStrategyUnsupported(defn.strategy)
+            raise R.PkgStrategyUnsupported(defn.strategy)
 
         addons = await self._synchronise()
         try:
             addon = addons[defn.alias]
         except KeyError:
-            raise E.PkgNonexistent
+            raise R.PkgNonexistent
 
         try:
             file = next(
@@ -1136,7 +1136,7 @@ class TownlongYakResolver(Resolver):
                 if not r['prerelease'] and r['game_type'] == self.manager.config.game_flavour
             )
         except StopIteration:
-            raise E.PkgFileUnavailable
+            raise R.PkgFileUnavailable
 
         return models.Pkg(
             source=self.source,
