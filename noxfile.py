@@ -6,7 +6,7 @@ import nox
 @nox.session(reuse_venv=True)
 def reformat(session: nox.Session):
     "Reformat Python source code using Black and JavaScript using Prettier."
-    session.install('isort >=5.6.4', 'black >=20.8b1')
+    session.install('isort >=5.8.0', 'black >=20.8b1')
     for cmd in ('isort', 'black'):
         session.run(cmd, 'instawow', 'tests', 'noxfile.py', 'setup.py')
 
@@ -96,7 +96,7 @@ def type_check(session: nox.Session):
 @nox.session(python=False)
 def clobber_build_artefacts(session: nox.Session):
     "Remove build artefacts left behind by setuptools."
-    session.run('rm', '-rf', 'build', 'dist', 'instawow.egg-info')
+    session.run('rm', '-rf', 'build', 'dist', 'instawow/_version.py', 'instawow.egg-info')
 
 
 @nox.session
