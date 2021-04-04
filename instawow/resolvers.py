@@ -395,6 +395,7 @@ class CurseResolver(Resolver):
 
             else:
                 classic_version_prefix = '1.13'
+                tbc_version_prefix = '2.5'
                 flavour = 'wow_classic' if self.manager.config.is_classic else 'wow_retail'
 
                 def supports_default_game_version(f: CurseAddon_File):
@@ -407,7 +408,11 @@ class CurseResolver(Resolver):
                     return f['gameVersionFlavor'] is not None and (
                         f['gameVersionFlavor'] == flavour
                         or any(
-                            v.startswith(classic_version_prefix) is self.manager.config.is_classic
+                            not v.startswith(tbc_version_prefix)
+                            and (
+                                v.startswith(classic_version_prefix)
+                                is self.manager.config.is_classic
+                            )
                             for v in f['gameVersion']
                         )
                     )
@@ -487,13 +492,15 @@ class CurseResolver(Resolver):
         cls, web_client: _deferred_types.aiohttp.ClientSession
     ) -> AsyncIterator[_CatalogueBaseEntry]:
         classic_version_prefix = '1.13'
+        tbc_version_prefix = '2.5'
 
         def excise_flavours(files: list[CurseAddon_File]):
             for c in Flavour:
                 if any(f['gameVersionFlavor'] == f'wow_{c}' for f in files):
                     yield c
                 elif any(
-                    v.startswith(classic_version_prefix) is (c == 'classic')
+                    not v.startswith(tbc_version_prefix)
+                    and (v.startswith(classic_version_prefix) is (c is Flavour.classic))
                     for f in files
                     for v in f['gameVersion']
                 ):
