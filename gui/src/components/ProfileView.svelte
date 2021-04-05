@@ -425,7 +425,7 @@
           reconcileStage = nextStage;
         }
       } else if (recursive) {
-        // Trigger `prepareReconcile` to update the view when all is said and done
+        console.debug(profile, "- triggering view update");
         reconcileStage = thisStage;
       }
     } finally {
@@ -487,6 +487,7 @@
     bind:search__searchStrategy={searchStrategy}
     bind:search__searchVersion={searchVersion}
     search__isSearching={searchesInProgress > 0}
+    installed__isModifying={addonsBeingModified.length > 0}
     installed__isRefreshing={refreshInProgress}
     installed__outdatedAddonCount={outdatedAddonCount}
     reconcile__isInstalling={reconcileInstallationInProgress}

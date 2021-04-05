@@ -22,6 +22,7 @@
     search__searchStrategy: Strategy,
     search__searchVersion: string,
     search__isSearching: boolean,
+    installed__isModifying: boolean,
     installed__isRefreshing: boolean,
     installed__outdatedAddonCount: number,
     reconcile__isInstalling: boolean,
@@ -77,7 +78,7 @@
         refresh
       </button>
       <button
-        disabled={installed__isRefreshing || !installed__outdatedAddonCount}
+        disabled={installed__isModifying || installed__isRefreshing || !installed__outdatedAddonCount}
         on:click={() => dispatch("requestUpdateAll")}
       >
         {installed__outdatedAddonCount ? `update ${installed__outdatedAddonCount}` : "no updates"}
