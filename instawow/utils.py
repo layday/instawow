@@ -253,6 +253,9 @@ def move(src: _StrPath, dest: _StrPath) -> _StrPath:
 
 
 def trash(paths: Sequence[PurePath], *, dest: PurePath, missing_ok: bool = False) -> None:
+    if not paths:
+        return
+
     parent_folder = mkdtemp(dir=dest, prefix=f'deleted-{paths[0].name}-')
     for path in paths:
         try:
