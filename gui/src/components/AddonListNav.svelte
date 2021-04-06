@@ -78,7 +78,9 @@
         refresh
       </button>
       <button
-        disabled={installed__isModifying || installed__isRefreshing || !installed__outdatedAddonCount}
+        disabled={installed__isModifying ||
+          installed__isRefreshing ||
+          !installed__outdatedAddonCount}
         on:click={() => dispatch("requestUpdateAll")}
       >
         {installed__outdatedAddonCount ? `update ${installed__outdatedAddonCount}` : "no updates"}

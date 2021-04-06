@@ -110,7 +110,7 @@
   }
 
   :global(menu, nav) {
-    -webkit-user-select: none;
+    user-select: none;
   }
 
   main {
@@ -164,7 +164,7 @@
 
     &__menubar,
     &__statusbar {
-      -webkit-user-select: none;
+      user-select: none;
     }
   }
 </style>

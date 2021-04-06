@@ -29,12 +29,17 @@
   @import "scss/modal";
 
   .modal {
+    display: flex;
+    flex-direction: column;
     max-height: 75%;
-    overflow-y: scroll;
 
     .content {
       overflow: scroll;
-      -webkit-user-select: text;
+      user-select: text;
+
+      > pre {
+        white-space: pre-wrap;
+      }
     }
   }
 </style>
