@@ -158,8 +158,8 @@ async def test_deleting_and_retaining_folders_on_remove(iw_manager, keep_folders
 async def test_removing_pkg_with_missing_folders(iw_manager, keep_folders):
     defn = Defn('curse', 'molinari')
 
-    await iw_manager.install([defn], False)
-    folders = [iw_manager.config.addon_dir / f.name for f in iw_manager.get_pkg(defn).folders]
+    result = await iw_manager.install([defn], False)
+    folders = [iw_manager.config.addon_dir / f.name for f in result[defn].pkg.folders]
     for folder in folders:
         folder.rename(folder.with_name(f'Not_{folder.name}'))
     assert not any(f.is_dir() for f in folders)
