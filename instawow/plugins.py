@@ -9,7 +9,7 @@ from typing import Any
 import click
 import pluggy
 
-from .resolvers import Resolver
+from . import resolvers
 
 _entrypoint = f'{__package__}.plugins'
 
@@ -25,7 +25,7 @@ class InstawowPlugin:
         "Additional commands to register with ``click``."
 
     @hookspec
-    def instawow_add_resolvers(self) -> Iterable[Resolver]:
+    def instawow_add_resolvers(self) -> Iterable[resolvers.Resolver]:
         "Additional resolvers to load."
 
 
