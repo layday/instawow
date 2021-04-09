@@ -9,6 +9,8 @@
   let selectionIdx = 0;
   let selection: Addon;
 
+  const getVersion = () => folders.find((f) => f.version)?.version || "?";
+
   $: selection = selections[idx] = choices[selectionIdx];
 </script>
 
@@ -29,7 +31,7 @@
     <details class="selection-controls" open={false}>
       <summary>
         <div aria-label="installed version" class="defn-or-version">
-          {folders.find((f) => f.version)?.version || "?"}
+          {getVersion()}
         </div>
         <!-- prettier-ignore -->
         <div aria-label="selection" class="defn-or-version">

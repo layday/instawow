@@ -433,6 +433,8 @@
     }
   };
 
+  const supportsRollback = (addon: Addon) => !!sources[addon.source]?.supports_rollback;
+
   onMount(async () => {
     sources = await api.listSources();
     uriSchemes = [...Object.keys(sources), "http", "https"].map((s) => `${s}:`);
@@ -560,7 +562,7 @@
               {addon}
               {otherAddon}
               isOutdated={addon.version !== otherAddon.version}
-              supportsRollback={!!sources[addon.source]?.supports_rollback}
+              supportsRollback={supportsRollback(addon)}
               beingModified={addonsBeingModified.includes(token)}
               showCondensed={addonsCondensed}
               installed__isRefreshing={refreshInProgress}
