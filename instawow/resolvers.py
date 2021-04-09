@@ -1153,7 +1153,7 @@ class TownlongYakResolver(Resolver):
             description=addon['description'],
             url=addon['repository'],
             download_url=file['download_url'],
-            date_published=datetime.now(timezone.utc),
+            date_published=parse_datetime(file['published_at']),
             version=file['tag_name'],
             changelog_url=_format_data_changelog(file['body']),
             options=models.PkgOptions(strategy=defn.strategy),
