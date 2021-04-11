@@ -26,19 +26,12 @@ def _get_default_config_dir() -> Path:
     return Path(click.get_app_dir('instawow'))
 
 
-def _validate_expand_path(value: Path) -> Path:
-    try:
-        return value.expanduser().resolve()
-    except RuntimeError as error:
-        # pathlib will raise a ``RuntimeError`` for non-existent ~users
-        raise ValueError(str(error)) from error
+def _expand_path(value: Path) -> Path:
+    return Path(os.path.abspath(os.path.expanduser(value)))
 
 
-def _validate_path_is_writable_dir(value: Path) -> Path:
-    if not (value.is_dir() and os.access(value, os.W_OK)):
-        raise _PathNotWritableDirectoryError(path=value)
-
-    return value
+def _is_writable_dir(value: Path) -> bool:
+    return value.is_dir() and os.access(value, os.W_OK)
 
 
 class BaseConfig(BaseSettings):
@@ -71,14 +64,17 @@ class Config(BaseConfig):
     auto_update_check: bool = True
 
     @validator('config_dir', 'addon_dir', 'temp_dir')
-    def _validate_expand_path(cls, value: Path) -> Path:
-        return _validate_expand_path(value)
+    def _expand_path(cls, value: Path) -> Path:
+        return _expand_path(value)
 
     @validator('addon_dir')
     def _validate_path_is_writable_dir(cls, value: Path) -> Path:
         if value.name == _novalidate:
             return value
-        return _validate_path_is_writable_dir(value)
+        elif not _is_writable_dir(value):
+            raise _PathNotWritableDirectoryError(path=value)
+        else:
+            return value
 
     @staticmethod
     def infer_flavour(folder: os.PathLike[str] | str) -> Flavour:

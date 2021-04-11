@@ -26,14 +26,6 @@ def test_reading_missing_config_from_env_raises(iw_full_config, monkeypatch):
         Config.read('__default__')
 
 
-@pytest.mark.skipif(sys.platform == 'win32', reason='no ~ expansion on Windows')
-@pytest.mark.parametrize('folder', ['config_dir', 'addon_dir', 'temp_dir'])
-def test_invalid_user_expansion_raises(monkeypatch, iw_full_config, folder):
-    monkeypatch.delenv(f'INSTAWOW_{folder.upper()}', raising=False)
-    with pytest.raises(ValueError):
-        Config(**{**iw_full_config, folder: '~foo'})
-
-
 def test_missing_addon_dir_raises(iw_full_config):
     with pytest.raises(ValueError):
         Config(**{**iw_full_config, 'addon_dir': 'foo'})
