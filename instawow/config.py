@@ -26,6 +26,10 @@ def _get_default_config_dir() -> Path:
     return Path(click.get_app_dir('instawow'))
 
 
+def _get_default_temp_dir() -> Path:
+    return Path(gettempdir(), 'instawow')
+
+
 def _expand_path(value: Path) -> Path:
     return Path(os.path.abspath(os.path.expanduser(value)))
 
@@ -60,7 +64,7 @@ class Config(BaseConfig):
     profile: str = Field(_default_profile, min_length=1, strip_whitespace=True)
     addon_dir: Path
     game_flavour: Flavour
-    temp_dir: Path = Path(gettempdir(), 'instawow')
+    temp_dir: Path = Field(default_factory=_get_default_temp_dir)
     auto_update_check: bool = True
 
     @validator('config_dir', 'addon_dir', 'temp_dir')
