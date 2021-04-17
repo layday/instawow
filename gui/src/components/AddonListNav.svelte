@@ -10,6 +10,7 @@
   import { fade, fly } from "svelte/transition";
   import { Strategy } from "../api";
   import { View } from "../constants";
+  import { backend } from "../ipc";
   import Icon from "./SvgIcon.svelte";
 
   export let profile: string,
@@ -30,7 +31,19 @@
     reconcile__canStepForward: boolean;
 
   const dispatch = createEventDispatcher();
+
+  let searchBox: HTMLElement;
+
+  const shortcutKey = backend.platform === "darwin" ? "metaKey" : "ctrlKey";
+
+  const focusSearchBoxOnMetaF = (e: KeyboardEvent) => {
+    if (e[shortcutKey] && e.code === "KeyF") {
+      searchBox.focus();
+    }
+  };
 </script>
+
+<svelte:window on:keydown={focusSearchBoxOnMetaF} />
 
 <nav class="addon-list-nav">
   <div class="view-controls">
@@ -64,6 +77,7 @@
     <input
       type="search"
       placeholder="search"
+      bind:this={searchBox}
       bind:value={search__searchTerms}
       on:keydown
       disabled={activeView === View.Reconcile}

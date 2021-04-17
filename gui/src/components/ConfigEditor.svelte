@@ -76,21 +76,16 @@ will be lost.`)
     }
   };
 
-  const dismissOnEsc = (node: HTMLElement) => {
-    const handler = (e: KeyboardEvent) => e.key === "Escape" && (editing = false);
-    document.body.addEventListener("keydown", handler);
-    return {
-      destroy: () => document.body.removeEventListener("keydown", handler),
-    };
-  };
+  const dismissOnEsc = (e: KeyboardEvent) => e.key === "Escape" && (editing = false);
 </script>
+
+<svelte:window on:keydown={dismissOnEsc} />
 
 <dialog
   open
   class="modal"
   style="--arrowhead-offset: {createNew ? 'calc(1rem - 8px)' : 'calc(3rem - 4px)'}"
   transition:fade={{ duration: 200 }}
-  use:dismissOnEsc
 >
   <form class="content" on:submit|preventDefault={() => saveConfig()}>
     {#if errors.profile}

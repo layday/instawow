@@ -13,22 +13,17 @@
     wrapperEl.style.top = `${Math.floor(Math.abs(scrollOfset - staticOffset))}px`;
   };
 
-  const dismissOnEsc = (node: HTMLElement) => {
-    const handler = (e: KeyboardEvent) => e.key === "Escape" && (show = false);
-    document.body.addEventListener("keydown", handler);
-    return {
-      destroy: () => document.body.removeEventListener("keydown", handler),
-    };
-  };
+  const dismissOnEsc = (e: KeyboardEvent) => e.key === "Escape" && (show = false);
 
   onMount(adjustPosition);
 </script>
+
+<svelte:window on:keydown={dismissOnEsc} />
 
 <div
   class="modal-wrapper"
   bind:this={wrapperEl}
   transition:fade={{ duration: 200 }}
-  use:dismissOnEsc
   on:click={() => (show = false)}
 >
   <slot />
