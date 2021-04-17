@@ -6,7 +6,7 @@ pkgs.mkShell {
   buildInputs = [
     python
     python.pkgs.venvShellHook
-    pkgs.nodejs-14_x
+    pkgs.nodejs-15_x
   ];
 
   venvDir = toString ./../venvs + ("/" + python.pythonVersion);
