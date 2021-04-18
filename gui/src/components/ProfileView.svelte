@@ -592,9 +592,9 @@
     @include stretch-vertically;
     position: relative;
     overflow-y: auto;
-    padding: 0.5em;
-    border-radius: 0.5rem;
-    box-shadow: inset 0 0 0 1px var(--inverse-color-alpha-10);
+    padding: 0.8rem;
+    margin: 0 -0.8rem;
+    box-shadow: inset 0 1px 0px 0 var(--inverse-color-alpha-10);
     user-select: none;
 
     &.prevent-scrolling {
@@ -607,8 +607,8 @@
     grid-template-columns: 3rem 1fr;
     grid-column-gap: 0.5rem;
     align-items: center;
-    margin: 0 -0.5rem 0.5rem;
-    padding: 0 1rem;
+    margin: -0.4rem -0.8rem 0.8rem;
+    padding: 0 0.8rem;
     font-size: 0.85em;
     background-image: linear-gradient(45deg, rgba(pink, 0.2), rgba(orange, 0.2));
     color: var(--inverse-color-tone-10);

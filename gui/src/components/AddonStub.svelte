@@ -102,7 +102,7 @@
     overflow-x: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
-    font-weight: 600;
+    font-weight: 700;
 
     &:only-child {
       line-height: 1.5rem;

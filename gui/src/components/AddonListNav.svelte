@@ -119,16 +119,20 @@
           bind:value={search__searchSource}
           in:fly={{ duration: 200, x: 64 }}
         >
-          <option value={null}>any</option>
-          {#each Object.keys(sources) as source}
-            <option value={source}>{source}</option>
-          {/each}
+          <optgroup label="source">
+            <option value={null}>any</option>
+            {#each Object.keys(sources) as source}
+              <option value={source}>{source}</option>
+            {/each}
+          </optgroup>
         </select>
       {/if}
       <select aria-label="strategy" bind:value={search__searchStrategy}>
-        {#each Object.values(Strategy) as strategy}
-          <option value={strategy}>{strategy}</option>
-        {/each}
+        <optgroup label="strategy">
+          {#each Object.values(Strategy) as strategy}
+            <option value={strategy}>{strategy}</option>
+          {/each}
+        </optgroup>
       </select>
       {#if search__searchStrategy === Strategy.version}
         <input
@@ -194,7 +198,6 @@
     &:checked + label {
       background-color: var(--inverse-color-tone-10);
       color: var(--base-color);
-      font-weight: 500;
 
       :global(.icon) {
         fill: var(--base-color);
@@ -208,6 +211,7 @@
 
   menu {
     @include unstyle-list;
+    font-weight: 600;
   }
 
   .addon-list-nav {
@@ -217,7 +221,7 @@
     button,
     input[type="search"],
     input[type="text"],
-    label,
+    input + label,
     select {
       border: 0;
       background-color: var(--inverse-color-alpha-05);

@@ -61,6 +61,8 @@
 
   :global(:root) {
     --base-color: #{$base-color-light};
+    --base-color-tone-10: #{lighten($base-color-light, 05%)};
+    --base-color-tone-20: #{rgba($inverse-color-light, 0.1)};
     --base-color-alpha-65: #{rgba($base-color-light, 0.65)};
     --inverse-color: #{$inverse-color-light};
     --inverse-color-alpha-05: #{rgba($inverse-color-light, 0.05)};
@@ -74,6 +76,8 @@
   @media (prefers-color-scheme: dark) {
     :global(:root) {
       --base-color: #{$base-color-dark};
+      --base-color-tone-10: #{darken($base-color-dark, 02%)};
+      --base-color-tone-20: #{darken($base-color-dark, 10%)};
       --base-color-alpha-65: #{rgba($base-color-dark, 0.65)};
       --inverse-color: #{$inverse-color-dark};
       --inverse-color-alpha-05: #{rgba($inverse-color-dark, 0.05)};
@@ -148,13 +152,15 @@
       @include stretch-vertically;
       z-index: 5;
       padding-top: 0.8em;
-      background-color: var(--base-color);
-      box-shadow: 0 -1px 0px 0 var(--inverse-color-alpha-10);
+      background-color: var(--base-color-tone-10);
+      box-shadow: 0 -1px 0px 0 var(--base-color-tone-20);
     }
 
     &__statusbar {
+      z-index: 10;
       padding-top: 0.5em;
       padding-bottom: 0.5em;
+      box-shadow: 0 -1px 0px 0 var(--base-color-tone-20);
 
       .status {
         font-size: 0.8em;
