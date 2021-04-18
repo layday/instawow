@@ -603,18 +603,18 @@ class Manager:
         resolve_results = dict(
             compress(resolve_results.items(), (not self.get_pkg(d) for d in resolve_results))
         )
-        installables = {
-            (d, r): _download_archive(self, r) for d, r in resolve_results.items() if is_pkg(r)
-        }
-        archives = await gather(installables.values(), capture_manager_exc_async)
+        installables = {d: r for d, r in resolve_results.items() if is_pkg(r)}
+        archives = await gather(
+            (_download_archive(self, r) for r in installables.values()), capture_manager_exc_async
+        )
         results = chain_dict(
             defns,
             R.PkgAlreadyInstalled(),
             resolve_results.items(),
-            ((d, a) for (d, _), a in zip(installables, archives) if not isinstance(a, PurePath)),
+            ((d, a) for d, a in zip(installables, archives) if not isinstance(a, PurePath)),
             [
                 (d, await capture_manager_exc_async(t(self.install_pkg)(p, a, replace)))
-                for (d, p), a in zip(installables, archives)
+                for (d, p), a in zip(installables.items(), archives)
                 if isinstance(a, PurePath)
             ],
         )
@@ -630,7 +630,7 @@ class Manager:
         to extract the strategy from the installed package; otherwise
         the ``Defn`` strategy will be used.
         """
-        defns_to_pkgs = {d: p for d in defns for d, p in ((d, self.get_pkg(d)),) if p}
+        defns_to_pkgs = {d: p for d in defns for p in (self.get_pkg(d),) if p}
         resolve_defns = {
             # Attach the source ID to each ``Defn`` from the
             # corresponding installed package.  Using the ID has the benefit
@@ -645,12 +645,14 @@ class Manager:
         }
         installables = {d: r for d, r in resolve_results.items() if is_pkg(r)}
         updatables = {
-            (d, o, n): _download_archive(self, n)
+            d: (o, n)
             for d, n in installables.items()
-            for d, o, n in ((d, defns_to_pkgs[d], n),)
+            for o in (defns_to_pkgs[d],)
             if n.version != o.version
         }
-        archives = await gather(updatables.values(), capture_manager_exc_async)
+        archives = await gather(
+            (_download_archive(self, n) for _, n in updatables.values()), capture_manager_exc_async
+        )
         results = chain_dict(
             defns,
             R.PkgNotInstalled(),
@@ -659,10 +661,10 @@ class Manager:
                 (d, R.PkgUpToDate(is_pinned=p.options.strategy == Strategy.version))
                 for d, p in installables.items()
             ),
-            ((d, a) for (d, *_), a in zip(updatables, archives) if not isinstance(a, PurePath)),
+            ((d, a) for d, a in zip(updatables, archives) if not isinstance(a, PurePath)),
             [
                 (d, await capture_manager_exc_async(t(self.update_pkg)(o, n, a)))
-                for (d, o, n), a in zip(updatables, archives)
+                for (d, (o, n)), a in zip(updatables.items(), archives)
                 if isinstance(a, PurePath)
             ],
         )
@@ -679,7 +681,7 @@ class Manager:
             [
                 (d, await capture_manager_exc_async(t(self.remove_pkg)(p, keep_folders)))
                 for d in defns
-                for d, p in ((d, self.get_pkg(d)),)
+                for p in (self.get_pkg(d),)
                 if p
             ],
         )
