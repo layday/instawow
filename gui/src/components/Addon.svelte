@@ -6,6 +6,7 @@
     faEllipsisH,
     faExternalLinkSquareAlt,
     faHistory,
+    faTrashAlt,
   } from "@fortawesome/free-solid-svg-icons";
   import { DateTime } from "luxon";
   import { createEventDispatcher } from "svelte";
@@ -70,9 +71,13 @@
           </button>
         {/if}
         <button
+          aria-label="remove"
+          title="remove"
           disabled={installed__isRefreshing}
-          on:click|stopPropagation={() => dispatch("requestRemove")}>remove</button
+          on:click|stopPropagation={() => dispatch("requestRemove")}
         >
+          <Icon icon={faTrashAlt} />
+        </button>
         <button
           aria-label="show options"
           title="show options"
@@ -81,6 +86,7 @@
           <Icon icon={faEllipsisH} />
         </button>
       {:else}
+        <button on:click|stopPropagation={() => dispatch("requestInstall")}>install</button>
         <button
           aria-label="open in browser"
           title="open in browser"
@@ -88,7 +94,6 @@
         >
           <Icon icon={faExternalLinkSquareAlt} />
         </button>
-        <button on:click|stopPropagation={() => dispatch("requestInstall")}>install</button>
         <button
           aria-label="show options"
           title="show options"
@@ -188,12 +193,16 @@
     padding-left: 0.625rem;
 
     button {
+      $middle-border-radius: 0.75em;
+      $edge-border-radius: 1em;
+
       padding: 0 0.625rem;
+      height: 1.8em;
       line-height: 1.8em;
       font-size: 0.8em;
       font-weight: 600;
       border: 0;
-      border-radius: 1em;
+      border-radius: $middle-border-radius;
       background-color: $action-button-bg-color;
       color: $action-button-text-color;
       transition: all 0.2s;
@@ -204,6 +213,16 @@
 
       &:focus {
         background-color: $action-button-focus-bg-color;
+      }
+
+      &:first-child {
+        border-top-left-radius: $edge-border-radius;
+        border-bottom-left-radius: $edge-border-radius;
+      }
+
+      &:last-child {
+        border-top-right-radius: $edge-border-radius;
+        border-bottom-right-radius: $edge-border-radius;
       }
 
       + button {

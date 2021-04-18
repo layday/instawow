@@ -352,6 +352,7 @@
     }
 
     select {
+      width: 100%;
       padding-right: 1.4rem;
       background-image: var(--dropdown-arrow);
       background-size: 10px;
