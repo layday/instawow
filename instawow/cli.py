@@ -27,7 +27,7 @@ class Report:
         self,
         results: Iterable[tuple[Defn, R.ManagerResult]],
         filter_fn: Callable[[R.ManagerResult], bool] = lambda _: True,
-    ):
+    ) -> None:
         self.results = list(results)
         self.filter_fn = filter_fn
 
@@ -93,7 +93,7 @@ def _set_asyncio_debug(debug: bool) -> None:
 
 
 class ManagerWrapper:
-    def __init__(self, ctx: click.Context):
+    def __init__(self, ctx: click.Context) -> None:
         self.ctx = ctx
 
     @cached_property
