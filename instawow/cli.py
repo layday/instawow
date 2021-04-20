@@ -11,11 +11,11 @@ from typing import overload
 
 import click
 
-from . import manager as managers, models, results as R
+from . import __version__, manager as managers, models, results as R
 from .config import Config, Flavour, setup_logging
 from .plugins import load_plugins
 from .resolvers import Defn, MultiPkgModel, Strategy
-from .utils import TocReader, cached_property, get_version, is_outdated, tabulate, uniq
+from .utils import TocReader, cached_property, is_outdated, tabulate, uniq
 
 
 class Report:
@@ -154,7 +154,7 @@ def _register_plugin_commands(group: click.Group) -> click.Group:
 
 @_register_plugin_commands
 @click.group(context_settings={'help_option_names': ('-h', '--help')})
-@click.version_option(get_version(), prog_name=__package__)
+@click.version_option(__version__, prog_name=__package__)
 @click.option(
     '--debug',
     'log_level',

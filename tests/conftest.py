@@ -8,9 +8,9 @@ from zipfile import ZipFile
 
 import pytest
 
+from instawow import __version__
 from instawow.config import Config, Flavour
 from instawow.manager import Manager, init_web_client
-from instawow.utils import get_version
 
 inf = float('inf')
 
@@ -102,7 +102,7 @@ def mock_pypi(aresponses):
         'pypi.org',
         '/pypi/instawow/json',
         'get',
-        {'info': {'version': get_version()}},
+        {'info': {'version': __version__}},
         repeat=inf,
     )
 

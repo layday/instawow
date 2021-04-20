@@ -7,7 +7,8 @@ from prompt_toolkit.input import create_pipe_input
 from prompt_toolkit.output import DummyOutput
 import pytest
 
-from instawow import cli, utils
+from instawow import __version__
+from instawow.cli import main
 
 
 @pytest.fixture
@@ -28,7 +29,7 @@ def run(monkeypatch, event_loop, iw_config, iw_web_client):
     monkeypatch.setenv('INSTAWOW_CONFIG_DIR', str(iw_config.config_dir))
     yield partial(
         CliRunner().invoke,
-        cli.main,
+        main,
         catch_exceptions=False,
     )
 
@@ -504,7 +505,7 @@ def test_json_export_and_import(iw_config, molinari_and_run):
 
 
 def test_show_version(run):
-    assert run('--version').output == f'instawow, version {utils.get_version()}\n'
+    assert run('--version').output == f'instawow, version {__version__}\n'
 
 
 def test_plugin_hook_command_can_be_invoked(run):

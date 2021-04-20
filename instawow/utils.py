@@ -278,16 +278,6 @@ def is_not_stale(path: Path, ttl: Mapping[str, float]) -> bool:
     )
 
 
-def get_version() -> str:
-    "Get the installed version of instawow."
-    try:
-        from ._version import __version__
-    except ImportError:
-        return 'dev'
-    else:
-        return __version__
-
-
 async def is_outdated() -> tuple[bool, str]:
     """Check on PyPI to see if the installed copy of instawow is outdated.
 
@@ -295,6 +285,7 @@ async def is_outdated() -> tuple[bool, str]:
     """
     from aiohttp.client import ClientError
 
+    from . import __version__
     from .config import Config
     from .manager import init_web_client
 
@@ -305,7 +296,6 @@ async def is_outdated() -> tuple[bool, str]:
         )
         return tuple(int_only_version_numbers)
 
-    __version__ = get_version()
     if 'dev' in __version__:
         return (False, '')
 

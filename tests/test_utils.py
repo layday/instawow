@@ -126,7 +126,7 @@ def test_file_uri_to_path_win32_leading_slash_is_stripped():
 async def test_is_outdated_works_in_variety_of_scenarios(monkeypatch, aresponses):
     # 'dev' in version number, version not cached
     with monkeypatch.context() as patcher:
-        patcher.setattr('instawow.utils.get_version', lambda: '0.0.0-dev')
+        patcher.setattr('instawow.__version__', '0.0.0-dev')
         assert await is_outdated() == (False, '')
 
     # Update check disabled, version not cached
@@ -136,7 +136,7 @@ async def test_is_outdated_works_in_variety_of_scenarios(monkeypatch, aresponses
 
     # Endpoint not responsive, version not cached
     with monkeypatch.context() as patcher:
-        patcher.setattr('instawow.utils.get_version', lambda: '0.0.0')
+        patcher.setattr('instawow.__version__', '0.0.0')
         aresponses.add(
             'pypi.org',
             '/pypi/instawow/json',
@@ -147,7 +147,7 @@ async def test_is_outdated_works_in_variety_of_scenarios(monkeypatch, aresponses
 
     # Endpoint responsive, version not cached and version different
     with monkeypatch.context() as patcher:
-        patcher.setattr('instawow.utils.get_version', lambda: '0.0.0')
+        patcher.setattr('instawow.__version__', '0.0.0')
         aresponses.add(
             'pypi.org',
             '/pypi/instawow/json',
@@ -158,7 +158,7 @@ async def test_is_outdated_works_in_variety_of_scenarios(monkeypatch, aresponses
 
     # 'dev' in version number, version cached
     with monkeypatch.context() as patcher:
-        patcher.setattr('instawow.utils.get_version', lambda: '0.0.0-dev')
+        patcher.setattr('instawow.__version__', '0.0.0-dev')
         assert await is_outdated() == (False, '')
 
     # Update check disabled, version cached
@@ -168,7 +168,7 @@ async def test_is_outdated_works_in_variety_of_scenarios(monkeypatch, aresponses
 
     # Endpoint not responsive, version cached
     with monkeypatch.context() as patcher:
-        patcher.setattr('instawow.utils.get_version', lambda: '0.0.0')
+        patcher.setattr('instawow.__version__', '0.0.0')
         aresponses.add(
             'pypi.org',
             '/pypi/instawow/json',
@@ -179,7 +179,7 @@ async def test_is_outdated_works_in_variety_of_scenarios(monkeypatch, aresponses
 
     # Endpoint responsive, version cached and version same
     with monkeypatch.context() as patcher:
-        patcher.setattr('instawow.utils.get_version', lambda: '0.0.0')
+        patcher.setattr('instawow.__version__', '0.0.0')
         aresponses.add(
             'pypi.org',
             '/pypi/instawow/json',
@@ -190,7 +190,7 @@ async def test_is_outdated_works_in_variety_of_scenarios(monkeypatch, aresponses
 
     # Endpoint responsive, version cached and version different
     with monkeypatch.context() as patcher:
-        patcher.setattr('instawow.utils.get_version', lambda: '1.0.0')
+        patcher.setattr('instawow.__version__', '1.0.0')
         aresponses.add(
             'pypi.org',
             '/pypi/instawow/json',

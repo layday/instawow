@@ -1,13 +1,64 @@
 [build-system]
 requires = [
-  "setuptools >=42",
-  "setuptools-scm[toml] >=3.4.1, <6",
+  "flit >=3.2, <4",
 ]
-build-backend = "setuptools.build_meta"
+build-backend = "flit_core.buildapi"
 
-[tool.setuptools_scm]
-write_to = "instawow/_version.py"
-write_to_template = "__version__ = '{version}'\n"
+
+[project]
+dynamic = [
+  "version",
+]
+name = "instawow"
+description = "CLI for managing World of Warcraft add-ons"
+readme = "README.rst"
+requires-python = ">=3.7"
+license = { file = "COPYING" }
+authors = [
+  { name = "layday", email = "layday@protonmail.com" },
+]
+urls = { homepage = "http://github.com/layday/instawow" }
+dependencies = [
+  "aiohttp >=3.7.4, <4",
+  "alembic >=1.4.3, <2",
+  "click ~=7.1",
+  "jellyfish >=0.8.2, <1",
+  "jinja2 ~=2.11",
+  "loguru <1",
+  "pluggy ~=0.13",
+  "prompt-toolkit >=3.0.15, <4",
+  "pydantic ~=1.8",
+  "questionary ~=1.8",
+  "sqlalchemy >=1.3.19, <2",
+  "typing-extensions >=3.7.4.3, <4",
+  "yarl ~=1.4",
+]
+
+[project.optional-dependencies]
+server = [
+  "aiohttp-rpc ==0.6.3",
+]
+test = [
+  "aresponses ~=2.0",
+  "coverage[toml] ~=5.2",
+  "pytest >=6.0.1, <7",
+  "pytest-asyncio ~=0.14",
+]
+types = [
+  'sqlalchemy2-stubs',
+]
+
+[project.scripts]
+instawow = "instawow.cli:main"
+
+[tool.flit.sdist]
+include = [
+  "tests",
+]
+exclude = [
+  "tests/__pycache__",
+  "tests/plugin/__pycache__",
+]
 
 
 [tool.coverage.run]
@@ -32,14 +83,13 @@ markers = [
 ]
 xfail_strict = true
 
+[tool.black]
+line_length = 99
+skip_string_normalization = true
+target_version = ["py37", "py38"]
 
 [tool.isort]
 profile = "black"
 line_length = 99
 combine_as_imports = true
 force_sort_within_sections = true
-
-[tool.black]
-line_length = 99
-skip_string_normalization = true
-target_version = ["py37", "py38"]

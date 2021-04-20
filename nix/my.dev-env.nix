@@ -17,8 +17,8 @@ pkgs.mkShell {
 
   postVenvCreation = ''
     python -m pip install -U pip
-    python -m pip install ipython \
-      nox \
-      -e '.[server, test]'
+    python -m pip install nox
+    nox -s build_editable
+    python -m pip install "$(find dist -name 'instawow-*.whl')[server, test, types]"
   '';
 }

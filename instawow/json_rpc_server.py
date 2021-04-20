@@ -18,13 +18,13 @@ from pydantic import BaseModel, ValidationError
 from typing_extensions import Literal, TypeAlias, TypedDict
 from yarl import URL
 
-from . import results as R
+from . import __version__, results as R
 from .config import Config
 from .manager import Manager, init_web_client, prepare_database
 from .matchers import get_folder_set, match_dir_names, match_toc_ids, match_toc_names
 from .models import Pkg, is_pkg
 from .resolvers import CatalogueEntry, Defn, PkgModel, Strategy
-from .utils import get_version, is_outdated, run_in_thread as t, uniq
+from .utils import is_outdated, run_in_thread as t, uniq
 
 _T = TypeVar('_T')
 ManagerWorkQueueItem: TypeAlias = (
@@ -314,7 +314,7 @@ class GetVersionParams(BaseParams):
     async def respond(self, managers: ManagerWorkQueue) -> GetVersionResult:
         outdated, new_version = await is_outdated()
         return GetVersionResult(
-            installed_version=get_version(), new_version=new_version if outdated else None
+            installed_version=__version__, new_version=new_version if outdated else None
         )
 
 
