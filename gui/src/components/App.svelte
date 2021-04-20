@@ -8,7 +8,7 @@
   export let api: Api;
 
   let instawowVersions: Version;
-  let installedAddonCount = 0;
+  let statusMessage: string = "";
 
   const doInitialSetup = async () => {
     const profileNames = await api.listProfiles();
@@ -43,7 +43,7 @@
     <section class="section section__main">
       {#each [...$profiles.keys()] as profile (profile)}
         <ProfileView
-          bind:installedAddonCount
+          bind:statusMessage
           {profile}
           api={api.withProfile(profile)}
           isActive={profile === $activeProfile}
@@ -51,7 +51,7 @@
       {/each}
     </section>
     <footer class="section section__statusbar">
-      <div class="status" in:fade>installed add-ons: {installedAddonCount}</div>
+      <div class="status" in:fade>{statusMessage}</div>
     </footer>
   </main>
 {/await}

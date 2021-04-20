@@ -92,7 +92,7 @@
 </script>
 
 <script lang="ts">
-  export let profile: string, api: Api, isActive: boolean, installedAddonCount: number;
+  export let profile: string, api: Api, isActive: boolean, statusMessage: string;
 
   let sources: Sources;
   let uriSchemes: string[];
@@ -435,6 +435,14 @@
 
   const supportsRollback = (addon: Addon) => !!sources[addon.source]?.supports_rollback;
 
+  const generateStatusMessage = () => {
+    if (refreshInProgress) {
+      return "refreshing…";
+    } else {
+      return `installed add-ons: ${addons__Installed.length}`;
+    }
+  };
+
   onMount(async () => {
     sources = await api.listSources();
     uriSchemes = [...Object.keys(sources), "http", "https"].map((s) => `${s}:`);
@@ -463,10 +471,8 @@
   $: addons = activeView === View.Search ? addons__CombinedSearch : addons__Installed;
   // Recount updates whenever `addons__Installed` is modified
   $: addons__Installed && (console.debug(profile, "- recounting updates"), countUpdates());
-  // Propagate `installedAddonCount` when profile is active
-  $: isActive &&
-    (installedAddonCount =
-      (console.debug(profile, "- recounting installed add-ons"), addons__Installed.length));
+  // Update status message
+  $: (isActive || refreshInProgress) && (statusMessage = generateStatusMessage());
 </script>
 
 {#if isActive}
