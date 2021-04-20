@@ -3,7 +3,7 @@ from pathlib import Path
 from aiohttp import ClientError
 import pytest
 
-from instawow import results as E
+from instawow import results as R
 from instawow.resolvers import Defn, Strategy
 
 
@@ -29,7 +29,7 @@ async def test_pinning_unsupported_pkg(iw_manager):
     assert installed_pkg.options.strategy == Strategy.default
     result = await iw_manager.pin([molinari_defn])
     assert (
-        type(result[molinari_defn]) is E.PkgStrategyUnsupported
+        type(result[molinari_defn]) is R.PkgStrategyUnsupported
         and result[molinari_defn].strategy is Strategy.version
     )
     assert installed_pkg.options.strategy == Strategy.default
@@ -39,7 +39,7 @@ async def test_pinning_unsupported_pkg(iw_manager):
 async def test_pinning_nonexistent_pkg(iw_manager):
     molinari_defn = Defn('wowi', '13188')
     result = await iw_manager.pin([molinari_defn])
-    assert type(result[molinari_defn]) is E.PkgNotInstalled
+    assert type(result[molinari_defn]) is R.PkgNotInstalled
 
 
 @pytest.mark.parametrize('exception', [ValueError('foo'), ClientError('bar')])
@@ -54,7 +54,7 @@ async def test_resolve_rewraps_exception_appropriately_from_resolve(
 
     defn = Defn('curse', 'molinari')
     results = await iw_manager.resolve([defn])
-    assert type(results[defn]) is E.InternalError
+    assert type(results[defn]) is R.InternalError
     assert results[defn].message == f'internal error: "{exception}"'
 
 
@@ -70,7 +70,7 @@ async def test_resolve_rewraps_exception_appropriately_from_batch_resolve(
 
     defn = Defn('curse', 'molinari')
     results = await iw_manager.resolve([defn])
-    assert type(results[defn]) is E.InternalError
+    assert type(results[defn]) is R.InternalError
     assert results[defn].message == f'internal error: "{exception}"'
 
 
@@ -82,11 +82,11 @@ async def test_install_can_replace_unreconciled_folders(iw_manager):
     defn = Defn('curse', 'molinari')
 
     result = await iw_manager.install([defn], replace=False)
-    assert type(result[defn]) is E.PkgConflictsWithUnreconciled
+    assert type(result[defn]) is R.PkgConflictsWithUnreconciled
     assert not any(molinari.iterdir())
 
     result = await iw_manager.install([defn], replace=True)
-    assert type(result[defn]) is E.PkgInstalled
+    assert type(result[defn]) is R.PkgInstalled
     assert any(molinari.iterdir())
 
 
@@ -96,13 +96,13 @@ async def test_install_cannot_replace_reconciled_folders(iw_manager):
     wowi_defn = Defn('wowi', '13188-molinari')
 
     result = await iw_manager.install([curse_defn], replace=False)
-    assert type(result[curse_defn]) is E.PkgInstalled
+    assert type(result[curse_defn]) is R.PkgInstalled
 
     result = await iw_manager.install([wowi_defn], replace=False)
-    assert type(result[wowi_defn]) is E.PkgConflictsWithInstalled
+    assert type(result[wowi_defn]) is R.PkgConflictsWithInstalled
 
     result = await iw_manager.install([wowi_defn], replace=True)
-    assert type(result[wowi_defn]) is E.PkgConflictsWithInstalled
+    assert type(result[wowi_defn]) is R.PkgConflictsWithInstalled
 
 
 @pytest.mark.asyncio
@@ -111,27 +111,27 @@ async def test_update_lifecycle_while_varying_retain_strategy(iw_manager):
     versioned_defn = defn.with_version('80000.57-Release')
 
     result = await iw_manager.install([defn], replace=False)
-    assert type(result[defn]) is E.PkgInstalled
+    assert type(result[defn]) is R.PkgInstalled
     assert result[defn].pkg.options.strategy == Strategy.default
 
     result = await iw_manager.update([defn], retain_strategy=False)
-    assert type(result[defn]) is E.PkgUpToDate
+    assert type(result[defn]) is R.PkgUpToDate
     assert result[defn].is_pinned is False
 
     result = await iw_manager.update([versioned_defn], retain_strategy=False)
-    assert type(result[versioned_defn]) is E.PkgUpToDate
+    assert type(result[versioned_defn]) is R.PkgUpToDate
     assert result[versioned_defn].is_pinned is False
 
     result = await iw_manager.update([versioned_defn], retain_strategy=True)
-    assert type(result[versioned_defn]) is E.PkgUpdated
+    assert type(result[versioned_defn]) is R.PkgUpdated
     assert result[versioned_defn].new_pkg.options.strategy == Strategy.version
 
     result = await iw_manager.update([defn], retain_strategy=False)
-    assert type(result[defn]) is E.PkgUpToDate
+    assert type(result[defn]) is R.PkgUpToDate
     assert result[defn].is_pinned is True
 
     result = await iw_manager.update([defn], retain_strategy=True)
-    assert type(result[defn]) is E.PkgUpdated
+    assert type(result[defn]) is R.PkgUpdated
     assert result[defn].new_pkg.options.strategy == Strategy.default
 
 
@@ -145,7 +145,7 @@ async def test_deleting_and_retaining_folders_on_remove(iw_manager, keep_folders
     assert all(f.is_dir() for f in folders)
 
     result = await iw_manager.remove([defn], keep_folders=keep_folders)
-    assert type(result[defn]) is E.PkgRemoved
+    assert type(result[defn]) is R.PkgRemoved
     assert not iw_manager.get_pkg(defn)
     if keep_folders:
         assert all(f.is_dir() for f in folders)
@@ -165,7 +165,7 @@ async def test_removing_pkg_with_missing_folders(iw_manager, keep_folders):
     assert not any(f.is_dir() for f in folders)
 
     result = await iw_manager.remove([defn], keep_folders=keep_folders)
-    assert type(result[defn]) is E.PkgRemoved
+    assert type(result[defn]) is R.PkgRemoved
     assert not iw_manager.get_pkg(defn)
 
 

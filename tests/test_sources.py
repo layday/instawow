@@ -2,7 +2,7 @@ import re
 
 import pytest
 
-from instawow import results as E
+from instawow import results as R
 from instawow.models import Pkg
 from instawow.resolvers import Defn, Strategy
 
@@ -24,7 +24,7 @@ async def test_can_resolve_curse_simple_pkgs(iw_manager, request, strategy):
         else:
             assert 'classic' in results[separate].version
             assert (
-                type(results[retail_only]) is E.PkgFileUnavailable
+                type(results[retail_only]) is R.PkgFileUnavailable
                 and results[retail_only].message
                 == f"no files match classic using {strategy} strategy"
             )
@@ -36,7 +36,7 @@ async def test_can_resolve_curse_simple_pkgs(iw_manager, request, strategy):
             assert type(results[classic_only]) is Pkg
         else:
             assert (
-                type(results[classic_only]) is E.PkgFileUnavailable
+                type(results[classic_only]) is R.PkgFileUnavailable
                 and results[classic_only].message
                 == f"no files match retail using {strategy} strategy"
             )
@@ -94,7 +94,7 @@ async def test_can_resolve_wowi_pkgs(iw_manager):
     results = await iw_manager.resolve([retail_and_classic, unsupported])
     assert type(results[retail_and_classic]) is Pkg
     assert (
-        type(results[unsupported]) is E.PkgStrategyUnsupported
+        type(results[unsupported]) is R.PkgStrategyUnsupported
         and results[unsupported].message == "'latest' strategy is not valid for source"
     )
 
@@ -117,14 +117,14 @@ async def test_can_resolve_tukui_pkgs(iw_manager):
     assert type(results[either]) is Pkg
     if iw_manager.config.is_classic:
         assert results[either].name == 'Tukui'
-        assert type(results[retail_id]) is E.PkgNonexistent
-        assert type(results[retail_slug]) is E.PkgNonexistent
+        assert type(results[retail_id]) is R.PkgNonexistent
+        assert type(results[retail_slug]) is R.PkgNonexistent
     else:
         assert results[either].name == 'MerathilisUI'
         assert type(results[retail_id]) is Pkg and results[retail_id].name == 'Tukui'
         assert type(results[retail_slug]) is Pkg and results[retail_slug].name == 'Tukui'
     assert (
-        type(results[unsupported]) is E.PkgStrategyUnsupported
+        type(results[unsupported]) is R.PkgStrategyUnsupported
         and results[unsupported].message == "'latest' strategy is not valid for source"
     )
 
@@ -161,13 +161,13 @@ async def test_can_resolve_github_pkgs(iw_manager):
         results[older_version].options.strategy == Strategy.version
         and results[older_version].version == '2.1.0'
     )
-    assert type(results[assetless]) is E.PkgFileUnavailable
+    assert type(results[assetless]) is R.PkgFileUnavailable
     assert (
-        type(results[releaseless]) is E.PkgFileUnavailable
+        type(results[releaseless]) is R.PkgFileUnavailable
         and results[releaseless].message == 'release not found'
     )
     assert ('classic' in results[retail_and_classic].download_url) is iw_manager.config.is_classic
-    assert type(results[missing]) is E.PkgNonexistent
+    assert type(results[missing]) is R.PkgNonexistent
 
 
 @pytest.mark.asyncio
@@ -194,9 +194,9 @@ async def test_can_resolve_townlong_yak_pkgs(iw_manager):
             and results[retail_only].version == 'venture-plan-4.12a'
         )
     else:
-        assert type(results[retail_only]) is E.PkgFileUnavailable
-    assert type(results[missing]) is E.PkgNonexistent
-    assert type(results[unsupported]) is E.PkgStrategyUnsupported
+        assert type(results[retail_only]) is R.PkgFileUnavailable
+    assert type(results[missing]) is R.PkgNonexistent
+    assert type(results[unsupported]) is R.PkgStrategyUnsupported
     assert results[retail_and_classic].changelog_url.startswith('data:,')
 
 
@@ -219,4 +219,4 @@ async def test_plugin_hook_dummy_pkg_can_be_resolved(iw_manager):
 async def test_invalid_source_returns_invalid_exc(iw_manager):
     defn = Defn('bar', 'baz')
     results = await iw_manager.resolve([defn])
-    assert type(results[defn]) is E.PkgSourceInvalid
+    assert type(results[defn]) is R.PkgSourceInvalid
