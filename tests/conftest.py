@@ -61,7 +61,8 @@ def make_addon_zip(*folders):
 
 @pytest.fixture(scope='session', autouse=True)
 def iw_temp_dir(tmp_path_factory):
-    temp_dir = os.environ['INSTAWOW_TEMP_DIR'] = str(tmp_path_factory.mktemp('temp'))
+    temp_dir = tmp_path_factory.mktemp('temp')
+    os.environ['INSTAWOW_TEMP_DIR'] = str(temp_dir)
     yield temp_dir
 
 

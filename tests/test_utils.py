@@ -123,7 +123,11 @@ def test_file_uri_to_path_win32_leading_slash_is_stripped():
 
 @pytest.mark.iw_no_mock
 @pytest.mark.asyncio
-async def test_is_outdated_works_in_variety_of_scenarios(monkeypatch, aresponses):
+async def test_is_outdated_works_in_variety_of_scenarios(monkeypatch, aresponses, iw_temp_dir):
+    pypi_version = iw_temp_dir.joinpath('.pypi_version')
+    if pypi_version.exists():
+        pypi_version.unlink()
+
     # 'dev' in version number, version not cached
     with monkeypatch.context() as patcher:
         patcher.setattr('instawow.__version__', '0.0.0-dev')
