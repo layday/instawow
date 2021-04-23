@@ -3,6 +3,7 @@
   "useLibraryCodeForTypes": true,
   "typeCheckingMode": "strict",
   "reportMissingTypeStubs": "information",
+  // `TYPE_CHECKING` and lazy imports produce spurious import cycle errors
   "reportImportCycles": false,
   "reportUnknownArgumentType": "warning",
   "reportUnknownMemberType": false
