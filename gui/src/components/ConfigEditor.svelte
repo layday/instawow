@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { Api, Config, PydanticValidationError } from "../api";
   import { faFolderOpen, faTimesCircle } from "@fortawesome/free-solid-svg-icons";
+  import { JSONRPCError } from "@open-rpc/client-js";
   import { fade } from "svelte/transition";
   import { ipcRenderer } from "../ipc";
   import { activeProfile, profiles } from "../store";
@@ -39,9 +40,7 @@
     try {
       result = await api.writeProfile(configParams, true);
     } catch (error) {
-      // `error instanceof JSONRPCError` isn't working because of some transpilation fuckery:
-      // https://github.com/open-rpc/client-js/issues/209
-      if (error?.data) {
+      if (error instanceof JSONRPCError) {
         errors = Object.fromEntries(
           (error.data as PydanticValidationError[]).map(({ loc, msg }) => [loc, msg])
         );
