@@ -129,7 +129,7 @@ async def _download_archive(manager: Manager, pkg: Pkg, *, chunk_size: int = 409
         async with manager.web_client.get(
             url,
             raise_for_status=True,
-            trace_request_ctx={'report_progress': True},
+            trace_request_ctx={'report_progress': True, 'manager': manager, 'pkg': pkg},
             # This is needed for Townlong Yak.  See
             # https://github.com/aio-libs/aiohttp/issues/3904#issuecomment-632661245
             headers={'Connection': 'keep-alive'},
@@ -740,25 +740,29 @@ def _init_cli_web_client(
 ) -> _deferred_types.aiohttp.ClientSession:
     from aiohttp import TraceConfig, TraceRequestEndParams, hdrs
 
+    tick_interval = 0.1
+
     async def do_on_request_end(
         client_session: _deferred_types.aiohttp.ClientSession,
         trace_config_ctx: Any,
         params: TraceRequestEndParams,
     ) -> None:
-        tick_interval = 0.1
-        ctx = trace_config_ctx.trace_request_ctx
-        if not (ctx and ctx.get('report_progress')):
+        trace_request_ctx = trace_config_ctx.trace_request_ctx
+        if not trace_request_ctx or 'report_progress' not in trace_request_ctx:
             return
 
         async def ticker() -> None:
             response = params.response
-            label = ctx.get('label') or f'Downloading {_extract_filename_from_hdr(response)}'
+            label = (
+                trace_request_ctx.get('label')
+                or f'Downloading {_extract_filename_from_hdr(response)}'
+            )
 
+            # The encoded size is not exposed in the aiohttp streaming API
+            # in which case the total is set to ``None`` for the progress bar
+            # to be displayed as indeterminate
             total = response.content_length
-            # The encoded size is not exposed in the streaming API and
-            # ``content_length`` has the size of the payload after gzipping -
-            # we can't know what the actual size of a file is in transfer
-            if response.headers.get(hdrs.CONTENT_ENCODING) == 'gzip':
+            if hdrs.CONTENT_ENCODING in response.headers:
                 total = None
 
             counter = bar(label=label, total=total)

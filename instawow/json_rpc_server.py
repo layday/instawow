@@ -11,7 +11,8 @@ import typing
 from typing import Any, TypeVar, overload
 from uuid import uuid4
 
-from aiohttp import web
+import aiohttp
+import aiohttp.web
 from aiohttp_rpc import JsonRpcMethod, WsJsonRpcServer, middlewares as rpc_middlewares
 from aiohttp_rpc.errors import InvalidParams as InvalidParamsError, ServerError
 from pydantic import BaseModel, ValidationError
@@ -24,7 +25,7 @@ from .manager import Manager, init_web_client, prepare_database
 from .matchers import get_folder_set, match_dir_names, match_toc_ids, match_toc_names
 from .models import Pkg, is_pkg
 from .resolvers import CatalogueEntry, Defn, PkgModel, Strategy
-from .utils import is_outdated, run_in_thread as t, uniq
+from .utils import gather, is_outdated, run_in_thread as t, uniq
 
 _T = TypeVar('_T')
 ManagerWorkQueueItem: TypeAlias = (
@@ -73,9 +74,9 @@ class WriteConfigParams(BaseParams):
                 config.game_flavour = Config.infer_flavour(config.addon_dir)
             config.write()
 
-        # Dispose of the ``Manager`` for this profile so that it's reloaded
-        # on next invocation of ``ManagerWorkQueue.run``
-        managers.managers.pop(config.profile, None)
+        # Dispose of the ``Manager`` corresponding to the profile if any
+        # so that the configuration is reloaded on next invocation
+        managers.unload_manager(config.profile)
         return config
 
 
@@ -90,7 +91,7 @@ class DeleteConfigParams(_ProfileParamMixin, BaseParams):
     async def respond(self, managers: ManagerWorkQueue) -> None:
         async def delete_profile(manager: Manager):
             await t(manager.config.delete)()
-            managers.managers.pop(self.profile, None)
+            managers.unload_manager(self.profile)
 
         await managers.run(self.profile, delete_profile)
 
@@ -305,6 +306,21 @@ class ReconcileParams(_ProfileParamMixin, BaseParams):
         )
 
 
+class DownloadProgressReport(TypedDict):
+    defn: Defn
+    progress: float
+
+
+class GetDownloadProgressParams(_ProfileParamMixin, BaseParams):
+    async def respond(self, managers: ManagerWorkQueue) -> list[DownloadProgressReport]:
+        manager = await managers.run(self.profile)
+        return [
+            DownloadProgressReport(defn=Defn.from_pkg(p), progress=s)
+            for m, p, s in await gather(t() for t in managers.progress_reporters)
+            if m is manager
+        ]
+
+
 class GetVersionResult(TypedDict):
     installed_version: str
     new_version: str | None
@@ -318,11 +334,52 @@ class GetVersionParams(BaseParams):
         )
 
 
+def _init_json_rpc_web_client(
+    progress_reporters: set[Callable[[], Awaitable[tuple[Manager, Pkg, float]]]],
+) -> aiohttp.ClientSession:
+    from aiohttp import TraceConfig, TraceRequestEndParams, hdrs
+
+    async def do_on_request_end(
+        client_session: aiohttp.ClientSession,
+        trace_config_ctx: Any,
+        params: TraceRequestEndParams,
+    ) -> None:
+        trace_request_ctx = trace_config_ctx.trace_request_ctx
+        if (
+            not trace_request_ctx
+            or 'manager' not in trace_request_ctx
+            or 'pkg' not in trace_request_ctx
+        ):
+            return
+
+        if not params.response.content_length or hdrs.CONTENT_ENCODING in params.response.headers:
+            return
+
+        content_length = params.response.content_length
+
+        async def progress_reporter() -> tuple[Manager, Pkg, float]:
+            total_bytes: int = params.response.content.total_bytes
+            return (
+                trace_request_ctx['manager'],
+                trace_request_ctx['pkg'],
+                total_bytes / content_length,
+            )
+
+        progress_reporters.add(progress_reporter)
+        params.response.content.on_eof(lambda: progress_reporters.remove(progress_reporter))
+
+    trace_config = TraceConfig()
+    trace_config.on_request_end.append(do_on_request_end)
+    trace_config.freeze()
+    return init_web_client(trace_configs=[trace_config])
+
+
 class ManagerWorkQueue:
     def __init__(self) -> None:
-        self.managers: dict[str, Manager] = {}
+        self._managers: dict[str, Manager] = {}
         self._queue: asyncio.Queue[ManagerWorkQueueItem] = asyncio.Queue()
-        self._web_client = init_web_client()
+        self.progress_reporters: set[Callable[[], Awaitable[tuple[Manager, Pkg, float]]]] = set()
+        self._web_client = _init_json_rpc_web_client(self.progress_reporters)
         self._locks: defaultdict[str, asyncio.Lock] = defaultdict(asyncio.Lock)
 
     async def listen(self) -> None:
@@ -330,6 +387,7 @@ class ManagerWorkQueue:
             web_client=self._web_client,
             locks=self._locks,
         )
+
         while True:
             item = await self._queue.get()
 
@@ -338,12 +396,12 @@ class ManagerWorkQueue:
                 try:
                     async with self._locks[f"load profile '{profile}'"]:
                         try:
-                            manager = self.managers[profile]
+                            manager = self._managers[profile]
                         except KeyError:
                             with _reraise_validation_error(_ConfigError):
                                 config = await t(Config.read)(profile)
 
-                            manager = self.managers[profile] = Manager(
+                            manager = self._managers[profile] = Manager(
                                 config=config,
                                 database=await t(prepare_database)(config),
                             )
@@ -378,6 +436,9 @@ class ManagerWorkQueue:
         self._queue.put_nowait((future, profile, coro_fn))
         return await asyncio.wait_for(future, None)
 
+    def unload_manager(self, profile: str) -> None:
+        self._managers.pop(profile, None)
+
 
 def _prepare_response(
     param_class: type[BaseParams], method: str, managers: ManagerWorkQueue
@@ -390,25 +451,24 @@ def _prepare_response(
     return JsonRpcMethod('', respond, custom_name=method)
 
 
-def serialise_response(value: dict[str, Any]) -> str:
+def _serialise_response(value: dict[str, Any]) -> str:
     return BaseModel.construct(**value).json()
 
 
-async def create_app() -> tuple[web.Application, str]:
+async def create_app() -> tuple[aiohttp.web.Application, str]:
     managers = ManagerWorkQueue()
 
     def start_managers():
         managers_listen = asyncio.create_task(managers.listen())
 
-        async def on_shutdown(app: web.Application):
+        async def on_shutdown(app: aiohttp.web.Application):
             managers_listen.cancel()
             await managers.cleanup()
 
         return on_shutdown
 
-    endpoint = f'/{uuid4()}'
     rpc_server = WsJsonRpcServer(
-        json_serialize=serialise_response,
+        json_serialize=_serialise_response,
         middlewares=rpc_middlewares.DEFAULT_MIDDLEWARES,
     )
     rpc_server.add_methods(
@@ -429,12 +489,14 @@ async def create_app() -> tuple[web.Application, str]:
                 (PinParams, 'pin', managers),
                 (GetChangelogParams, 'get_changelog', managers),
                 (ReconcileParams, 'reconcile', managers),
+                (GetDownloadProgressParams, 'get_download_progress', managers),
                 (GetVersionParams, 'meta/get_version', managers),
             ],
         )
     )
-    app = web.Application()
-    app.add_routes([web.get(endpoint, rpc_server.handle_http_request)])
+    endpoint = f'/{uuid4()}'
+    app = aiohttp.web.Application()
+    app.add_routes([aiohttp.web.get(endpoint, rpc_server.handle_http_request)])
     app.on_shutdown.append(start_managers())
     app.freeze()
     return (app, endpoint)
@@ -443,21 +505,21 @@ async def create_app() -> tuple[web.Application, str]:
 async def listen() -> None:
     "Fire up the server."
     loop = asyncio.get_running_loop()
+
     app, endpoint = await create_app()
-    app_runner = web.AppRunner(app)
+    app_runner = aiohttp.web.AppRunner(app)
     await app_runner.setup()
-    # Placate the type checker - server is created in ``app_runner.setup``
-    assert app_runner.server
-    # By omitting the port, ``loop.create_server`` will find an available port
-    # to bind to - this is equivalent to creating a socket on port 0.
+    assert app_runner.server  # Server is created during ``app_runner.setup``
+    # By omitting the port ``loop.create_server`` will find an available port
+    # to bind to - equivalent to creating a socket on port 0.
     server = await loop.create_server(app_runner.server, LOCALHOST)
     assert server.sockets
     (host, port) = server.sockets[0].getsockname()
-    # We're writing the address to fd 3 just in case something seeps into
-    # stdout or stderr.
     message = str(URL.build(scheme='ws', host=host, port=port, path=endpoint)).encode()
+    # We're writing the address to fd 3 in case something seeps into stdout
     for fd in (1, 3):
         os.write(fd, message)
+
     try:
         # ``server_forever`` cleans up after the server when it's interrupted
         await server.serve_forever()

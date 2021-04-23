@@ -11,6 +11,7 @@
   import { Strategy } from "../api";
   import { View } from "../constants";
   import { backend } from "../ipc";
+  import ProgressIndicator from "./ProgressIndicator.svelte";
   import Icon from "./SvgIcon.svelte";
 
   export let profile: string,
@@ -83,7 +84,9 @@
       disabled={activeView === View.Reconcile}
     />
     {#if search__isSearching}
-      <div class="status-indicator" transition:fade={{ duration: 200 }} />
+      <div class="progress-indicator" in:fade>
+        <ProgressIndicator diameter={18} progress={0} />
+      </div>
     {/if}
   </div>
   <menu class="view-actions">
@@ -146,7 +149,9 @@
       {/if}
     {:else if activeView === View.Reconcile}
       {#if reconcile__isInstalling}
-        <div class="status-indicator" transition:fade={{ duration: 200 }} />
+        <div class="progress-indicator" in:fade>
+          <ProgressIndicator diameter={18} progress={0} />
+        </div>
       {/if}
       <button
         aria-label="previous stage"
@@ -262,13 +267,17 @@
       }
     }
 
-    .status-indicator {
+    .progress-indicator {
       margin-left: 0.5em;
     }
   }
 
-  .status-indicator {
-    @include spinner(18px, currentColor);
+  .progress-indicator {
+    height: 18px;
+
+    :global(circle) {
+      stroke: currentColor;
+    }
   }
 
   .view-controls {
@@ -372,7 +381,7 @@
       fill: var(--inverse-color);
     }
 
-    .status-indicator {
+    .progress-indicator {
       margin-right: 0.5em;
     }
   }

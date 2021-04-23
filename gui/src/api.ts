@@ -123,6 +123,11 @@ export enum ReconciliationStage {
   toc_names = "toc_names",
 }
 
+export type DownloadProgressReport = {
+  defn: Defn;
+  progress: number;
+};
+
 export type Version = {
   installed_version: string;
   new_version: string | null;
@@ -235,6 +240,12 @@ export class Api {
     });
   }
 
+  async getDownloadProgress(): Promise<DownloadProgressReport[]> {
+    return await this._request({
+      method: "get_download_progress",
+      params: { profile: this.profile },
+    });
+  }
   async getVersion(): Promise<Version> {
     return await this._request({ method: "meta/get_version" });
   }

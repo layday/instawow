@@ -31,7 +31,6 @@
   {width}
   {height}
   viewBox="0 0 {width} {height}"
-  aria-hidden="true"
   class="icon {prefix}-{iconName}"
   {...$$restProps}
 >

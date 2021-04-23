@@ -36,12 +36,7 @@
   // set to either true or false (see `AddonWithMeta`).
   type AddonTuple = readonly [AddonWithMeta, Addon];
 
-  type CreateTokenSignature = {
-    (addon: Addon): string;
-    (defn: Defn): string;
-  };
-
-  const createAddonToken: CreateTokenSignature = (value: Addon | Defn) =>
+  const createAddonToken = (value: Addon | Defn) =>
     [value.source, (value as Addon).id || (value as Defn).alias].join(":");
 
   const attachTokentoAddon = ([addon, otherAddon]: AddonTuple): [AddonWithMeta, Addon, string] => [
@@ -53,7 +48,7 @@
   const isSameAddon = ([thisAddon]: AddonTuple, otherAddon: Addon) =>
     thisAddon.source === otherAddon.source && thisAddon.id === otherAddon.id;
 
-  const markAddonInstalled = (addon: Addon, installed = true): AddonWithMeta => ({
+  const markAddonInstalled = (addon: Addon, installed: boolean = true): AddonWithMeta => ({
     __installed__: installed,
     ...addon,
   });
@@ -104,7 +99,8 @@
   let addons__Search: Addon[] = [];
   let addons__CombinedSearch: AddonTuple[] = [];
   let outdatedAddonCount: number;
-  let addonsBeingModified: string[] = []; // revisit
+  let addonsBeingModified: string[] = [];
+  let addonDownloadProgress: { [token: string]: number } = {};
 
   let {
     searchTerms,
@@ -144,6 +140,19 @@
     addons__CombinedSearch = combinedAddons;
   };
 
+  const scheduleDownloadProgressPolling = (delay: number = 1000) => {
+    const ticker = setInterval(async () => {
+      const downloadProgress = await api.getDownloadProgress();
+      addonDownloadProgress = Object.fromEntries(
+        downloadProgress.map(({ defn, progress }) => [createAddonToken(defn), progress])
+      );
+    }, delay);
+
+    return {
+      cancel: () => clearInterval(ticker),
+    };
+  };
+
   const modifyAddons = async (
     method: "install" | "update" | "remove" | "pin",
     addons: Addon[],
@@ -151,6 +160,7 @@
   ) => {
     const ids = addons.map(createAddonToken);
     addonsBeingModified = [...addonsBeingModified, ...ids];
+    const cancelDownloadProgessPolling = scheduleDownloadProgressPolling(1000).cancel;
 
     try {
       const modifyResults = await api.modifyAddons(method, addons.map(addonToDefn), extraParams);
@@ -179,6 +189,7 @@
       );
     } finally {
       addonsBeingModified = lodash.difference(addonsBeingModified, ids);
+      cancelDownloadProgessPolling();
     }
   };
 
@@ -186,13 +197,8 @@
     await modifyAddons("install", addons, { replace: replace });
   };
 
-  type UpdateAddonsSignature = {
-    (defns: Addon[]): Promise<void>;
-    (all: true): Promise<void>;
-  };
-
-  const updateAddons: UpdateAddonsSignature = async (value: Addon[] | true) => {
-    if (value === true) {
+  const updateAddons = async (addons: Addon[] | true) => {
+    if (addons === true) {
       const outdatedAddons = addons__Installed
         .filter(
           ([{ version: thisVersion }, { version: otherVersion }]) => thisVersion !== otherVersion
@@ -200,7 +206,7 @@
         .map(([, addon]) => addon);
       await modifyAddons("update", outdatedAddons);
     } else {
-      await modifyAddons("update", value);
+      await modifyAddons("update", addons);
     }
   };
 
@@ -572,6 +578,7 @@
               beingModified={addonsBeingModified.includes(token)}
               showCondensed={addonsCondensed}
               installed__isRefreshing={refreshInProgress}
+              downloadProgress={addonDownloadProgress[token] || 0}
             />
           </li>
         {/each}

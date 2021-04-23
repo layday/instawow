@@ -11,6 +11,7 @@
   import { DateTime } from "luxon";
   import { createEventDispatcher } from "svelte";
   import { fade } from "svelte/transition";
+  import ProgressIndicator from "./ProgressIndicator.svelte";
   import Icon from "./SvgIcon.svelte";
 
   export let addon: AddonWithMeta,
@@ -19,7 +20,8 @@
     supportsRollback: boolean,
     beingModified: boolean,
     showCondensed: boolean,
-    installed__isRefreshing: boolean;
+    installed__isRefreshing: boolean,
+    downloadProgress: number;
 
   const dispatch = createEventDispatcher();
 </script>
@@ -47,7 +49,9 @@
     {/if}
   </ul>
   {#if beingModified}
-    <div class="modification-status-indicator" in:fade />
+    <div class="progress-indicator" in:fade>
+      <ProgressIndicator diameter={18} progress={downloadProgress} />
+    </div>
   {:else}
     <menu class="addon-actions">
       {#if addon.__installed__}
@@ -238,10 +242,13 @@
     }
   }
 
-  .modification-status-indicator {
-    @include spinner(18px, $action-button-bg-color);
+  .progress-indicator {
     align-self: center;
     justify-self: right;
     margin-left: 0.75em;
+
+    :global(circle) {
+      stroke: $action-button-bg-color;
+    }
   }
 </style>

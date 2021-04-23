@@ -3,7 +3,7 @@ from aiohttp_rpc import JsonRpcRequest as Request, JsonRpcResponse as Response
 import pytest
 
 from instawow.config import Config
-from instawow.json_rpc_server import create_app, serialise_response
+from instawow.json_rpc_server import _serialise_response, create_app
 
 
 @pytest.fixture
@@ -23,7 +23,7 @@ async def test_write_config(request, iw_full_config, ws):
         params={'values': config_values, 'infer_game_flavour': False},
         msg_id=request.node.name,
     )
-    await ws.send_str(serialise_response(rpc_request.to_dict()))
+    await ws.send_str(_serialise_response(rpc_request.to_dict()))
     rpc_response = Response.from_dict(await ws.receive_json())
     assert rpc_response.msg_id == request.node.name
     assert Config.parse_obj(rpc_response.result) == Config.parse_obj(config_values)
@@ -39,7 +39,7 @@ async def test_write_config_with_invalid_params(request, iw_full_config, ws):
         },
         msg_id=request.node.name,
     )
-    await ws.send_str(serialise_response(rpc_request.to_dict()))
+    await ws.send_str(_serialise_response(rpc_request.to_dict()))
     rpc_response = Response.from_dict(await ws.receive_json())
     assert rpc_response.msg_id == request.node.name
     assert rpc_response.error
@@ -63,7 +63,7 @@ async def test_install_with_invalid_params(request, ws):
         params={},
         msg_id=request.node.name,
     )
-    await ws.send_str(serialise_response(rpc_request.to_dict()))
+    await ws.send_str(_serialise_response(rpc_request.to_dict()))
     rpc_response = Response.from_dict(await ws.receive_json())
     assert rpc_response.error and rpc_response.error.code == -32602
 
@@ -80,6 +80,6 @@ async def test_install_with_uninitialised_profile(request, ws):
         },
         msg_id=request.node.name,
     )
-    await ws.send_str(serialise_response(rpc_request.to_dict()))
+    await ws.send_str(_serialise_response(rpc_request.to_dict()))
     rpc_response = Response.from_dict(await ws.receive_json())
     assert rpc_response.error and rpc_response.error.code == -32001
