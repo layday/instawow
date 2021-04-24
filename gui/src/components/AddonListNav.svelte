@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { Sources } from "../api";
   import {
+    faFilter,
     faGripLines,
     faLink,
     faStepBackward,
@@ -18,11 +19,12 @@
     sources: Sources,
     activeView: View,
     addonsCondensed: boolean,
-    search__searchTerms: string,
+    search__terms: string,
+    search__filterInstalled: boolean,
     search__fromAlias: boolean,
-    search__searchSource: string | null,
-    search__searchStrategy: Strategy,
-    search__searchVersion: string,
+    search__source: string | null,
+    search__strategy: Strategy,
+    search__version: string,
     search__isSearching: boolean,
     installed__isModifying: boolean,
     installed__isRefreshing: boolean,
@@ -35,11 +37,13 @@
 
   let searchBox: HTMLElement;
 
-  const shortcutKey = backend.platform === "darwin" ? "metaKey" : "ctrlKey";
+  const modifierKey = backend.platform === "darwin" ? "metaKey" : "ctrlKey";
 
   const focusSearchBoxOnMetaF = (e: KeyboardEvent) => {
-    if (e[shortcutKey] && e.code === "KeyF") {
+    if (e[modifierKey] && e.code === "KeyF") {
       searchBox.focus();
+    } else if (e[modifierKey] && e.code === "KeyG") {
+      search__filterInstalled = !search__filterInstalled;
     }
   };
 </script>
@@ -75,11 +79,26 @@
     </menu>
   </div>
   <div class="search-wrapper">
+    <div class="view-actions">
+      <input
+        id="__search-filter-installed-{profile}"
+        class="hidden"
+        type="checkbox"
+        bind:checked={search__filterInstalled}
+      />
+      <label
+        for="__search-filter-installed-{profile}"
+        aria-label="filter installed add-ons"
+        title="filter installed add-ons"
+      >
+        <Icon icon={faFilter} />
+      </label>
+    </div>
     <input
       type="search"
       placeholder="search"
       bind:this={searchBox}
-      bind:value={search__searchTerms}
+      bind:value={search__terms}
       on:keydown
       disabled={activeView === View.Reconcile}
     />
@@ -117,11 +136,7 @@
         <Icon icon={faLink} />
       </label>
       {#if !search__fromAlias}
-        <select
-          aria-label="source"
-          bind:value={search__searchSource}
-          in:fly={{ duration: 200, x: 64 }}
-        >
+        <select aria-label="source" bind:value={search__source}>
           <optgroup label="source">
             <option value={null}>any</option>
             {#each Object.keys(sources) as source}
@@ -130,19 +145,19 @@
           </optgroup>
         </select>
       {/if}
-      <select aria-label="strategy" bind:value={search__searchStrategy}>
+      <select aria-label="strategy" bind:value={search__strategy}>
         <optgroup label="strategy">
           {#each Object.values(Strategy) as strategy}
             <option value={strategy}>{strategy}</option>
           {/each}
         </optgroup>
       </select>
-      {#if search__searchStrategy === Strategy.version}
+      {#if search__strategy === Strategy.version}
         <input
           type="text"
           class="version"
           placeholder="version"
-          bind:value={search__searchVersion}
+          bind:value={search__version}
           on:keydown
           in:fly={{ duration: 200, x: 64 }}
         />
@@ -251,9 +266,11 @@
     input[type="search"] {
       flex-basis: calc(100% - 2em);
       line-height: 1.75em;
+      margin-left: -1px;
       padding: 0 0.75em;
       transition: all 0.2s;
-      border-radius: $edge-border-radius;
+      border-top-right-radius: $edge-border-radius;
+      border-bottom-right-radius: $edge-border-radius;
       background-color: transparent;
       box-shadow: inset 0 0 0 1px var(--inverse-color-alpha-20);
 
@@ -269,6 +286,12 @@
 
     .progress-indicator {
       margin-left: 0.5em;
+    }
+
+    & .view-actions > label:last-child {
+      line-height: 1.75rem;
+      border-bottom-right-radius: 0;
+      border-top-right-radius: 0;
     }
   }
 

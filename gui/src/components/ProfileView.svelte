@@ -3,6 +3,7 @@
     Addon,
     AddonWithMeta,
     Api,
+    CatalogueEntry,
     Config,
     Defn,
     ReconcileResult,
@@ -73,12 +74,14 @@
 
   const defaultSearchState: {
     searchTerms: string;
+    searchFilterInstalled: boolean;
     searchFromAlias: boolean;
     searchSource: string | null;
     searchStrategy: Strategy;
     searchVersion: string;
   } = {
     searchTerms: "",
+    searchFilterInstalled: false,
     searchFromAlias: false,
     searchSource: null,
     searchStrategy: Strategy.default,
@@ -96,14 +99,17 @@
   let addonsCondensed: boolean = false;
 
   let addons__Installed: AddonTuple[] = [];
-  let addons__Search: Addon[] = [];
-  let addons__CombinedSearch: AddonTuple[] = [];
+  let filteredCatalogueEntries: CatalogueEntry[] = [];
+  let addons__FilterInstalled: AddonTuple[] = [];
+  let addonsFromSearch: Addon[] = [];
+  let addons__Search: AddonTuple[] = [];
   let outdatedAddonCount: number;
   let addonsBeingModified: string[] = [];
   let addonDownloadProgress: { [token: string]: number } = {};
 
   let {
     searchTerms,
+    searchFilterInstalled,
     searchFromAlias,
     searchSource,
     searchStrategy,
@@ -130,14 +136,19 @@
       0
     ));
 
-  const regenerateCombinedSearchAddons = () => {
-    const combinedAddons = addons__Search.map((addon) => {
+  const regenerateFilteredAddons = () => {
+    addons__FilterInstalled = addons__Installed.filter(([a]) =>
+      filteredCatalogueEntries.some((e) => a.source === e.source && a.id === e.id)
+    );
+  };
+
+  const regenerateSearchAddons = () => {
+    addons__Search = addonsFromSearch.map((addon) => {
       const installedAddon = addons__Installed.find((installedAddon) =>
         isSameAddon(installedAddon, addon)
       );
       return [installedAddon?.[0] || markAddonInstalled(addon, false), addon] as const;
     });
-    addons__CombinedSearch = combinedAddons;
   };
 
   const scheduleDownloadProgressPolling = (delay: number = 1000) => {
@@ -181,7 +192,8 @@
           }
         }
         addons__Installed = installedAddons;
-        regenerateCombinedSearchAddons();
+        regenerateFilteredAddons();
+        regenerateSearchAddons();
       }
       notifyOfFailures(
         method,
@@ -239,7 +251,7 @@
             },
           ]);
         } else {
-          const searchResults = await api.search(
+          const catalogueEntries = await api.search(
             searchTermsSnapshot,
             SEARCH_LIMIT,
             searchSource ? [searchSource] : null
@@ -249,9 +261,16 @@
             return;
           }
 
-          const defns = searchResults.map((r) => ({
-            source: r.source,
-            alias: r.id,
+          if (searchFilterInstalled) {
+            filteredCatalogueEntries = catalogueEntries;
+            regenerateFilteredAddons();
+            activeView = View.FilterInstalled;
+            return;
+          }
+
+          const defns = catalogueEntries.map((e) => ({
+            source: e.source,
+            alias: e.id,
             strategy: searchStrategy,
             version: searchVersion,
           }));
@@ -262,10 +281,10 @@
           return;
         }
 
-        addons__Search = results
+        addonsFromSearch = results
           .filter((result): result is SuccessResult => result.status === "success")
           .map(({ addon }) => addon);
-        regenerateCombinedSearchAddons();
+        regenerateSearchAddons();
         activeView = View.Search;
       }
     } finally {
@@ -288,7 +307,7 @@
             thisAddon,
             result.status === "success" ? result?.addon : thisAddon,
           ]),
-          // Lift outdated add-ons to the top of ht list
+          // Haul outdated add-ons up to the top
           ([thisAddon, { version: otherVersion }]) => [
             thisAddon.version === otherVersion,
             thisAddon.name.toLowerCase(),
@@ -474,7 +493,12 @@
   $: (searchFromAlias || searchSource || searchStrategy || searchVersion) &&
     (console.debug(profile, "- triggering search"), search());
   // Update add-on list according to view
-  $: addons = activeView === View.Search ? addons__CombinedSearch : addons__Installed;
+  $: addons =
+    activeView === View.Search
+      ? addons__Search
+      : activeView === View.FilterInstalled
+      ? addons__FilterInstalled
+      : addons__Installed;
   // Recount updates whenever `addons__Installed` is modified
   $: addons__Installed && (console.debug(profile, "- recounting updates"), countUpdates());
   // Update status message
@@ -495,11 +519,12 @@
       installReconciled(reconcileStage, reconcileSelections, true)}
     bind:activeView
     bind:addonsCondensed
-    bind:search__searchTerms={searchTerms}
+    bind:search__terms={searchTerms}
+    bind:search__filterInstalled={searchFilterInstalled}
     bind:search__fromAlias={searchFromAlias}
-    bind:search__searchSource={searchSource}
-    bind:search__searchStrategy={searchStrategy}
-    bind:search__searchVersion={searchVersion}
+    bind:search__source={searchSource}
+    bind:search__strategy={searchStrategy}
+    bind:search__version={searchVersion}
     search__isSearching={searchesInProgress > 0}
     installed__isModifying={addonsBeingModified.length > 0}
     installed__isRefreshing={refreshInProgress}
