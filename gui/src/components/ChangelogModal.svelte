@@ -5,7 +5,7 @@
 
   export let show: boolean, changelog: string, asHtml: boolean, addonListEl: HTMLElement;
 
-  const ALLOWED_TAGS = ["code", "p", "ul", "li", "pre", "br", "b", "i"];
+  const ALLOWED_TAGS = ["b", "br", "code", "h1", "h2", "h3", "i", "li", "p", "pre", "ul"];
 </script>
 
 <Modal bind:show {addonListEl}>
@@ -14,7 +14,15 @@
     <div class="content">
       {#if asHtml}
         <blockquote>
-          {@html stripHtml(changelog, { ignoreTags: ALLOWED_TAGS }).result}
+          {@html stripHtml(changelog, {
+            ignoreTags: ALLOWED_TAGS,
+            dumpLinkHrefsNearby: {
+              enabled: true,
+              putOnNewLine: false,
+              wrapHeads: '<span class="link">&lt;',
+              wrapTails: "&gt;</span>",
+            },
+          }).result}
         </blockquote>
       {:else}
         <pre>
@@ -37,8 +45,24 @@
       overflow: scroll;
       user-select: text;
 
-      > pre {
+      :global(pre) {
         white-space: pre-wrap;
+      }
+
+      :global(h1) {
+        font-size: 1.4em;
+      }
+
+      :global(h2) {
+        font-size: 1.2em;
+      }
+
+      :global(h3) {
+        font-size: 1em;
+      }
+
+      :global(.link) {
+        word-break: break-all;
       }
     }
   }
