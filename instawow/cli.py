@@ -217,11 +217,6 @@ def parse_into_defn_with_version(
     return map(Defn.with_version, defns, (v for v, _ in value))
 
 
-def parse_into_defn_from_json_file(manager: managers.Manager, path: Path) -> Iterator[Defn]:
-    faux_pkgs = MultiPkgModel.parse_file(path, encoding='utf-8')
-    return map(Defn.from_pkg, faux_pkgs.__root__)
-
-
 def combine_addons(
     fn: Callable[[managers.Manager, object], Iterable[Defn]],
     ctx: click.Context,
@@ -241,14 +236,6 @@ _EXCLUDED_STRATEGIES = frozenset({Strategy.default, Strategy.version})
     'addons', nargs=-1, callback=partial(combine_addons, parse_into_defn), expose_value=False
 )
 @click.option(
-    '--import',
-    '-i',
-    type=click.Path(dir_okay=False, exists=True),
-    expose_value=False,
-    callback=partial(combine_addons, parse_into_defn_from_json_file),
-    help='Install add-ons from the output of `list -f json`.',
-)
-@click.option(
     '--with-strategy',
     '-s',
     multiple=True,
@@ -257,7 +244,7 @@ _EXCLUDED_STRATEGIES = frozenset({Strategy.default, Strategy.version})
     callback=partial(combine_addons, parse_into_defn_with_strategy),
     metavar='<STRATEGY ADDON>...',
     help='A strategy followed by an add-on definition.  '
-    'The strategies are: '
+    'The strategy is one of: '
     f'{", ".join(s for s in Strategy if s not in _EXCLUDED_STRATEGIES)}.',
 )
 @click.option(
@@ -275,8 +262,7 @@ def install(obj: ManagerWrapper, addons: Sequence[Defn], replace: bool) -> None:
     "Install add-ons."
     if not addons:
         raise click.UsageError(
-            'You must provide at least one of "ADDONS", "--with-strategy", '
-            '"--version" or "--import"'
+            'You must provide at least one of "ADDONS", "--with-strategy" or "--version"'
         )
 
     results = obj.m.run(obj.m.install(addons, replace))

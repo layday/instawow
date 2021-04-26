@@ -9,6 +9,7 @@ import pytest
 
 from instawow import __version__
 from instawow.cli import main
+from instawow.resolvers import MultiPkgModel
 
 
 @pytest.fixture
@@ -495,13 +496,10 @@ def test_can_list_with_substr_match(molinari_and_run):
     assert (molinari['source'], molinari['slug']) == ('curse', 'molinari')
 
 
-def test_json_export_and_import(iw_config, molinari_and_run):
+def test_json_export(iw_config, molinari_and_run):
     export_json = iw_config.config_dir.parent / 'export.json'
-    export_json.write_text(molinari_and_run('list -f json').output, encoding='utf-8')
-    assert (
-        molinari_and_run(f'install --import "{export_json}"').output
-        == '✗ curse:molinari\n  package already installed\n'
-    )
+    output = molinari_and_run('list -f json').output
+    assert MultiPkgModel.parse_raw(output).__root__[0].name == 'Molinari'
 
 
 def test_show_version(run):
