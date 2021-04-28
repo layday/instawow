@@ -1,6 +1,6 @@
-{% for name, url, changelog in changelog_entries %}
-## {{ name }} ({{ url }})
-{{ changelog }}
+{% for name, url, version, changelog in changelog_entries %}
+## {{ name }} v{{ version }} ({{ url }})
 
+{{ changelog }}
 
 {% endfor %}

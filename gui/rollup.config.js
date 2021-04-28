@@ -1,5 +1,6 @@
 import fs from "fs";
 import commonjs from "@rollup/plugin-commonjs";
+import json from "@rollup/plugin-json";
 import resolve from "@rollup/plugin-node-resolve";
 import svelte from "rollup-plugin-svelte";
 import typescript from "@rollup/plugin-typescript";
@@ -59,6 +60,7 @@ export default [
         sourceMap: !production,
         inlineSources: !production,
       }),
+      json(),
       copyFile({ src: "src/backend/index.html", dest: "build/index.html" }),
     ],
     watch: {

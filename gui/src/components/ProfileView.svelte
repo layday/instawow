@@ -11,11 +11,12 @@
     AnyResult,
     Sources,
   } from "../api";
-  import { ReconciliationStage, Strategy, addonToDefn } from "../api";
+  import { ChangelogFormat, ReconciliationStage, Strategy, addonToDefn } from "../api";
   import { SEARCH_LIMIT, View } from "../constants";
   import { ipcRenderer } from "../ipc";
   import { profiles } from "../store";
   import { faQuestion } from "@fortawesome/free-solid-svg-icons";
+  import * as commonmark from "commonmark";
   import lodash from "lodash";
   import { onMount, tick } from "svelte";
   import { flip } from "svelte/animate";
@@ -87,6 +88,9 @@
     searchStrategy: Strategy.default,
     searchVersion: "",
   };
+
+  const htmlify = (markdownText: string) =>
+    new commonmark.HtmlRenderer().render(new commonmark.Parser().parse(markdownText));
 </script>
 
 <script lang="ts">
@@ -124,7 +128,7 @@
   let reconcileInstallationInProgress: boolean = false;
 
   let changelogModal: boolean = false;
-  let changelogModalProps: { changelog: string; asHtml: boolean };
+  let changelogModalProps: { changelog: string; renderAsHtml: boolean };
   let rollbackModal: boolean = false;
   let rollbackModalProps: { addon: Addon };
   let addonListEl: HTMLElement;
@@ -323,10 +327,12 @@
   };
 
   const showChangelogModal = async (addon: Addon) => {
+    const changelogFormat = sources[addon.source].changelog_format;
     const changelog = await api.getChangelog(addon.changelog_url);
     changelogModalProps = {
-      changelog: changelog,
-      asHtml: sources[addon.source].changelog_format === "html",
+      changelog: changelogFormat === ChangelogFormat.markdown ? htmlify(changelog) : changelog,
+      renderAsHtml:
+        changelogFormat === ChangelogFormat.html || changelogFormat === ChangelogFormat.markdown,
     };
     changelogModal = true;
   };

@@ -322,16 +322,16 @@ class WaCompanionBuilder:
             jinja_env.get_template(self.changelog_path.name).render(
                 {
                     'changelog_entries': [
-                        (a.id, a.url.parent, c)
+                        (
+                            a.id,
+                            a.url.parent,
+                            metadata['version'],
+                            metadata['changelog'].get('text') or 'n/a',
+                        )
                         for v in aura_dict.values()
                         for existing_auras, metadata, _ in v
-                        for a, c in (
-                            (
-                                next(
-                                    (i for i in existing_auras if not i.parent), existing_auras[0]
-                                ),
-                                metadata['changelog'].get('text', 'n/a'),
-                            ),
+                        for a in (
+                            next((i for i in existing_auras if not i.parent), existing_auras[0]),
                         )
                         if a.version != metadata['version']
                     ]

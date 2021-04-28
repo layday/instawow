@@ -3,7 +3,7 @@
   import { scale } from "svelte/transition";
   import Modal from "./Modal.svelte";
 
-  export let show: boolean, changelog: string, asHtml: boolean, addonListEl: HTMLElement;
+  export let show: boolean, changelog: string, renderAsHtml: boolean, addonListEl: HTMLElement;
 
   const ALLOWED_TAGS = ["b", "br", "code", "h1", "h2", "h3", "i", "li", "p", "pre", "ul"];
 </script>
@@ -12,7 +12,7 @@
   <dialog open class="modal" in:scale={{ duration: 200 }} on:click|stopPropagation>
     <div class="title-bar">changelog</div>
     <div class="content">
-      {#if asHtml}
+      {#if renderAsHtml}
         <blockquote>
           {@html stripHtml(changelog, {
             ignoreTags: ALLOWED_TAGS,
