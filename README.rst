@@ -220,19 +220,16 @@ a change to their website or API (though only temporarily).
 Remote hosts
 ------------
 
+Web requests initiated by *instawow* can be identified by its user agent string.
+
 When installing, updating or searching for add-ons, *instawow* will retrieve
-scraped add-on metadata from https://raw.githubusercontent.com,
-CurseForge add-on metadata from https://addons-ecs.forgesvc.net,
-WoWInterface add-on metadata from https://api.mmoui.com,
-Tukui add-on metadata from https://www.tukui.org,
-GitHub add-on metadata from https://api.github.com,
-and aura data from https://data.wago.io;
-and will follow download URLs contained in metadata.
+add-on metadata from https://raw.githubusercontent.com,
+https://addons-ecs.forgesvc.net, https://api.mmoui.com, https://www.tukui.org,
+https://hub.wowup.io, https://api.github.com and https://data.wago.io,
+and will follow download URLs found in metadata.
 
-Every 24 hours, on launch, *instawow* will query PyPI (https://pypi.org) – the
-canonical Python package repository – to check for *instawow* updates.
-
-Requests made by *instawow* can be identified by its user agent string.
+Every 24 hours, on launch, *instawow* will query PyPI (https://pypi.org) –
+the canonical Python package repository – to check for *instawow* updates.
 
 Related work
 ------------
