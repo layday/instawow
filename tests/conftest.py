@@ -67,20 +67,20 @@ def iw_temp_dir(tmp_path_factory):
 
 
 @pytest.fixture(params=Flavour)
-def iw_partial_config(tmp_path, request, iw_temp_dir):
+def iw_config_dict_no_config_dir(tmp_path, request, iw_temp_dir):
     addons = tmp_path / 'wow' / 'interface' / 'addons'
     addons.mkdir(parents=True)
     return {'addon_dir': addons, 'temp_dir': iw_temp_dir, 'game_flavour': request.param}
 
 
 @pytest.fixture
-def iw_full_config(tmp_path, iw_partial_config):
-    return {**iw_partial_config, 'config_dir': tmp_path / 'config'}
+def iw_config_dict(tmp_path, iw_config_dict_no_config_dir):
+    return {**iw_config_dict_no_config_dir, 'config_dir': tmp_path / 'config'}
 
 
 @pytest.fixture
-def iw_config(iw_full_config):
-    yield Config(**iw_full_config).write()
+def iw_config(iw_config_dict):
+    yield Config(**iw_config_dict).write()
 
 
 @pytest.fixture
