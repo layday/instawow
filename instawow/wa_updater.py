@@ -31,7 +31,7 @@ IMPORT_API_URL = URL('https://data.wago.io/api/raw/encoded')
 
 
 class BuilderConfig(BaseConfig):
-    wago_api_key: typing.Optional[str]
+    wago_api_key: typing.Optional[str] = None
 
 
 class Auras(GenericModel, Generic[_TWeakAura]):
