@@ -29,7 +29,7 @@ import sqlalchemy.orm
 from typing_extensions import TypeAlias
 from yarl import URL
 
-from . import DB_REVISION, _deferred_types, results as R
+from . import _deferred_types, results as R
 from .config import Config
 from .models import Pkg, PkgFolder, PkgVersionLog, is_pkg
 from .plugins import load_plugins
@@ -75,6 +75,8 @@ _TManager = TypeVar('_TManager', bound='Manager')
 
 
 USER_AGENT = 'instawow (https://github.com/layday/instawow)'
+
+DB_REVISION = '764fa963cc71'
 
 
 _AsyncNamedTemporaryFile = t(NamedTemporaryFile)

@@ -104,8 +104,14 @@ from pathlib import Path
 
 import dunamai
 
-Path('instawow', '_version.py').write_text(
-    f"__version__ = '{dunamai.Version.from_git()}'\\n",
+Path('instawow', '__init__.py').write_text(
+    f"""\
+from . import _import_wrapper
+
+__getattr__ = _import_wrapper.__getattr__
+
+__version__ = '{dunamai.Version.from_git().serialize(dirty=True)}'
+""",
     encoding='utf-8',
 )
 ''',
