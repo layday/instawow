@@ -39,18 +39,14 @@ def test_make_zip_member_filter_discards_names_with_prefix_not_in_dirs():
     assert list(map(is_member, ['a/', 'b/', 'aa/', 'bb/'])) == [False, True, False, False]
 
 
-def test_loading_toc_from_path(fake_addon):
-    TocReader.from_path(fake_addon / 'FakeAddon.toc')
+def test_loading_toc_from_addon_path(fake_addon):
+    TocReader.from_addon_path(fake_addon)
     with pytest.raises(FileNotFoundError):
-        TocReader.from_path(fake_addon / 'MissingToc.toc')
-
-    TocReader.from_parent_folder(fake_addon)
-    with pytest.raises(FileNotFoundError):
-        TocReader.from_parent_folder(fake_addon.parent / 'MissingAddon')
+        TocReader.from_addon_path(fake_addon.parent / 'MissingAddon')
 
 
 def test_parsing_toc_entries(fake_addon):
-    toc_reader = TocReader.from_parent_folder(fake_addon)
+    toc_reader = TocReader.from_addon_path(fake_addon)
     assert toc_reader.entries == {
         'Normal': 'Normal entry',
         'Compact': 'Compact entry',
@@ -58,7 +54,7 @@ def test_parsing_toc_entries(fake_addon):
 
 
 def test_toc_entry_indexing(fake_addon):
-    toc_reader = TocReader.from_parent_folder(fake_addon)
+    toc_reader = TocReader.from_addon_path(fake_addon)
     assert toc_reader['Normal'] == 'Normal entry'
     assert toc_reader['Compact'] == 'Compact entry'
     assert toc_reader['Indented'] is None
@@ -67,7 +63,7 @@ def test_toc_entry_indexing(fake_addon):
 
 
 def test_toc_entry_multiindexing(fake_addon):
-    toc_reader = TocReader.from_parent_folder(fake_addon)
+    toc_reader = TocReader.from_addon_path(fake_addon)
     assert toc_reader['Normal', 'Compact'] == 'Normal entry'
     assert toc_reader['Compact', 'Normal'] == 'Compact entry'
     assert toc_reader['Indented', 'Normal'] == 'Normal entry'
@@ -80,7 +76,7 @@ def test_bucketise_bucketises_by_putting_things_in_a_bucketing_bucket():
 
 
 def test_tabulate_spits_out_ascii_table(fake_addon):
-    toc_reader = TocReader.from_parent_folder(fake_addon)
+    toc_reader = TocReader.from_addon_path(fake_addon)
     data = [('key', 'value'), *toc_reader.entries.items()]
     assert tabulate(data) == (
         '  key        value    \n'

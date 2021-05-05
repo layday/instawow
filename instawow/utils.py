@@ -42,12 +42,8 @@ class TocReader:
             return self.entries.get(key)
 
     @classmethod
-    def from_path(cls, path: Path) -> TocReader:
-        return cls(path.read_text(encoding='utf-8-sig', errors='replace'))
-
-    @classmethod
-    def from_parent_folder(cls, path: Path) -> TocReader:
-        return cls.from_path(path / f'{path.name}.toc')
+    def from_addon_path(cls, path: Path, suffix: str = '.toc') -> TocReader:
+        return cls((path / (path.name + suffix)).read_text(encoding='utf-8-sig', errors='replace'))
 
 
 class cached_property(Generic[_T, _U]):

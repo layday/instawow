@@ -22,7 +22,12 @@ from yarl import URL
 from . import __version__, results as R
 from .config import Config
 from .manager import Manager, init_web_client, prepare_database
-from .matchers import get_folder_set, match_dir_names, match_toc_ids, match_toc_names
+from .matchers import (
+    get_unreconciled_folder_set,
+    match_addon_names_with_folder_names,
+    match_folder_name_subsets,
+    match_toc_source_ids,
+)
 from .models import Pkg, is_pkg
 from .resolvers import CatalogueEntry, Defn, PkgModel, Strategy
 from .utils import gather, is_outdated, run_in_thread as t, uniq
@@ -266,17 +271,17 @@ class ReconcileResult(TypedDict):
 
 
 _matchers = {
-    'toc_ids': match_toc_ids,
-    'dir_names': match_dir_names,
-    'toc_names': match_toc_names,
+    'toc_source_ids': match_toc_source_ids,
+    'folder_name_subsets': match_folder_name_subsets,
+    'addon_names_with_folder_names': match_addon_names_with_folder_names,
 }
 
 
 class ReconcileParams(_ProfileParamMixin, BaseParams):
-    matcher: Literal['toc_ids', 'dir_names', 'toc_names']
+    matcher: Literal['toc_source_ids', 'folder_name_subsets', 'addon_names_with_folder_names']
 
     async def respond(self, managers: ManagerWorkQueue) -> ReconcileResult:
-        leftovers = await managers.run(self.profile, t(get_folder_set))
+        leftovers = await managers.run(self.profile, t(get_unreconciled_folder_set))
         match_groups = await managers.run(
             self.profile, partial(_matchers[self.matcher], leftovers=leftovers)
         )

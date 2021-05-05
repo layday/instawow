@@ -4,28 +4,42 @@ from collections.abc import Iterable
 from contextlib import suppress
 from functools import total_ordering
 import re
-from typing import cast
 
 from typing_extensions import TypeAlias
 
 from . import manager
+from .config import Flavour
 from .models import PkgFolder
-from .resolvers import CurseResolver, Defn, InstawowResolver, TukuiResolver, WowiResolver
+from .resolvers import (
+    CurseResolver,
+    Defn,
+    InstawowResolver,
+    TownlongYakResolver,
+    TukuiResolver,
+    WowiResolver,
+)
 from .utils import TocReader, bucketise, cached_property, merge_intersecting_sets, uniq
 
-MatchGroups: TypeAlias = 'list[tuple[list[AddonFolder], list[Defn]]]'
+FolderAndDefnPairs: TypeAlias = 'list[tuple[list[AddonFolder], list[Defn]]]'
 
 
-_ids_to_sources = {
+_source_toc_ids = {
     'X-Curse-Project-ID': CurseResolver.source,
     'X-Tukui-ProjectID': TukuiResolver.source,
     'X-WoWI-ID': WowiResolver.source,
 }
-_sources_to_sort_weights = {
+_source_sort_order = {
     CurseResolver.source: 0,
-    TukuiResolver.source: 2,
     WowiResolver.source: 1,
+    TukuiResolver.source: 2,
     InstawowResolver.source: 3,
+    TownlongYakResolver.source: 4,
+}
+# See https://github.com/Stanzilla/WoWUIBugs/issues/68#issuecomment-830351390
+_flavour_toc_suffixes = {
+    Flavour.retail: ['-Mainline.toc', '.toc'],
+    Flavour.classic: ['-Classic.toc', '.toc'],
+    # Flavour.?: ['-BCC.toc', '.toc'],
 }
 
 
@@ -57,7 +71,7 @@ class AddonFolder:
     def defns_from_toc(self) -> frozenset[Defn]:
         return frozenset(
             Defn(s, i)
-            for s, i in ((s, self.toc_reader[k]) for k, s in _ids_to_sources.items())
+            for s, i in ((s, self.toc_reader[k]) for k, s in _source_toc_ids.items())
             if i
         )
 
@@ -66,83 +80,78 @@ class AddonFolder:
         return self.toc_reader['Version', 'X-Packaged-Version', 'X-Curse-Packaged-Version'] or ''
 
 
-def get_folders(manager: manager.Manager) -> Iterable[AddonFolder]:
+def get_unreconciled_folders(manager: manager.Manager) -> Iterable[AddonFolder]:
     pkg_folders = {f.name for f in manager.database.query(PkgFolder).all()}
-    unreconciled_folders = (
+    unreconciled_folder_paths = (
         p
         for p in manager.config.addon_dir.iterdir()
         if p.name not in pkg_folders and p.is_dir() and not p.is_symlink()
     )
-    suppress_not_found = suppress(FileNotFoundError)
-    for folder in unreconciled_folders:
-        with suppress_not_found:
-            toc_reader = TocReader.from_parent_folder(folder)
-            yield AddonFolder(folder.name, toc_reader)
+    suppress_not_found_error = suppress(FileNotFoundError)
+    for path in unreconciled_folder_paths:
+        for suffix in _flavour_toc_suffixes[manager.config.game_flavour]:
+            with suppress_not_found_error:
+                toc_reader = TocReader.from_addon_path(path, suffix)
+                yield AddonFolder(path.name, toc_reader)
+                break
 
 
-def get_folder_set(manager: manager.Manager) -> frozenset[AddonFolder]:
-    return frozenset(get_folders(manager))
+def get_unreconciled_folder_set(manager: manager.Manager) -> frozenset[AddonFolder]:
+    return frozenset(get_unreconciled_folders(manager))
 
 
-async def match_toc_ids(
+async def match_toc_source_ids(
     manager: manager.Manager, leftovers: frozenset[AddonFolder]
-) -> MatchGroups:
-    "Attempt to match add-ons from TOC-file source ID entries."
+) -> FolderAndDefnPairs:
+    addons_with_toc_source_ids = [a for a in sorted(leftovers) if a.defns_from_toc]
+    merged_defns = list(
+        merge_intersecting_sets(a.defns_from_toc for a in addons_with_toc_source_ids)
+    )
+    folders_grouped_by_overlapping_defns = bucketise(
+        addons_with_toc_source_ids, lambda a: next(d for d in merged_defns if a.defns_from_toc & d)
+    )
+    return [
+        (f, sorted(b, key=lambda d: _source_sort_order[d.source]))
+        for b, f in folders_grouped_by_overlapping_defns.items()
+    ]
 
-    def bucket_keyer(value: AddonFolder):
-        return next(d for d in defns if value.defns_from_toc & d)
 
-    def sort_keyer(value: Defn):
-        return _sources_to_sort_weights[value.source]
-
-    matches = [a for a in sorted(leftovers) if a.defns_from_toc]
-    defns = list(merge_intersecting_sets(a.defns_from_toc for a in matches))
-    return [(f, sorted(b, key=sort_keyer)) for b, f in bucketise(matches, bucket_keyer).items()]
-
-
-async def match_dir_names(
+async def match_folder_name_subsets(
     manager: manager.Manager, leftovers: frozenset[AddonFolder]
-) -> MatchGroups:
-    "Attempt to match folders against the master catalogue."
-
-    def bucket_keyer(value: tuple[frozenset[AddonFolder], Defn]):
-        return next(f for f in folders if value[0] & f)
-
-    def sort_keyer(value: tuple[frozenset[AddonFolder], Defn]):
+) -> FolderAndDefnPairs:
+    def sort_key(value: tuple[frozenset[AddonFolder], Defn]):
         folders, defn = value
-        return (-len(folders), _sources_to_sort_weights[defn.source])
+        return (-len(folders), _source_sort_order[defn.source])
 
     catalogue = await manager.synchronise()
-
     matches = [
-        (
-            # We can't use an intersection here because it's not guaranteed
-            # to give us ``AddonFolder``s
-            frozenset(e for e in leftovers if e in cast('frozenset[AddonFolder]', f)),
-            Defn(i.source, i.id),
-        )
+        (frozenset(e for e in leftovers if e.name in f), Defn(i.source, i.id))
         for i in catalogue.__root__
         if manager.config.game_flavour in i.game_compatibility
         for f in i.folders
         if f <= leftovers
     ]
-    folders = list(merge_intersecting_sets(f for f, _ in matches))
+    merged_folders = list(merge_intersecting_sets(f for f, _ in matches))
+    matches_grouped_by_overlapping_folder_names = bucketise(
+        matches, lambda v: next(f for f in merged_folders if v[0] & f)
+    )
     return [
-        (sorted(f), uniq(d for _, d in sorted(b, key=sort_keyer)))
-        for f, b in bucketise(matches, bucket_keyer).items()
+        (sorted(f), uniq(d for _, d in sorted(b, key=sort_key)))
+        for f, b in matches_grouped_by_overlapping_folder_names.items()
     ]
 
 
-async def match_toc_names(
+async def match_addon_names_with_folder_names(
     manager: manager.Manager, leftovers: frozenset[AddonFolder]
-) -> MatchGroups:
-    "Attempt to match add-ons from TOC-file name entries."
-
+) -> FolderAndDefnPairs:
     def normalise(value: str):
         return re.sub(r'[^0-9A-Za-z]', '', value.casefold())
 
     catalogue = await manager.synchronise()
-
-    norm_to_items = bucketise(catalogue.__root__, key=lambda i: normalise(i.name))
-    matches = ((e, norm_to_items.get(normalise(e.name))) for e in sorted(leftovers))
-    return [([e], uniq(Defn(i.source, i.id) for i in m)) for e, m in matches if m]
+    addon_names_to_catalogue_entries = bucketise(
+        catalogue.__root__, key=lambda i: normalise(i.name)
+    )
+    matches = (
+        (a, addon_names_to_catalogue_entries.get(normalise(a.name))) for a in sorted(leftovers)
+    )
+    return [([a], uniq(Defn(i.source, i.id) for i in m)) for a, m in matches if m]

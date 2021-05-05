@@ -118,9 +118,9 @@ export type ReconcileResult = {
 };
 
 export enum ReconciliationStage {
-  toc_ids = "toc_ids",
-  dir_names = "dir_names",
-  toc_names = "toc_names",
+  toc_source_ids = "toc_source_ids",
+  folder_name_subsets = "folder_name_subsets",
+  addon_names_with_folder_names = "addon_names_with_folder_names",
 }
 
 export type DownloadProgressReport = {

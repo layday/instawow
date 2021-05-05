@@ -6,7 +6,7 @@ from enum import Enum
 from functools import partial
 from itertools import chain
 from pathlib import Path
-from textwrap import dedent, fill
+import textwrap
 from typing import overload
 
 import click
@@ -15,7 +15,7 @@ from . import __version__, manager as managers, models, results as R
 from .config import Config, Flavour, setup_logging
 from .plugins import load_plugins
 from .resolvers import Defn, MultiPkgModel, Strategy
-from .utils import TocReader, cached_property, is_outdated, tabulate, uniq
+from .utils import cached_property, is_outdated, tabulate, uniq
 
 
 class Report:
@@ -50,7 +50,7 @@ class Report:
     def __str__(self) -> str:
         return '\n'.join(
             f'{self._result_type_to_symbol(r)} {click.style(a.to_uri(), bold=True)}\n'
-            f'{fill(r.message, initial_indent=" " * 2, subsequent_indent=" " * 4)}'
+            f'{textwrap.fill(r.message, initial_indent=" " * 2, subsequent_indent=" " * 4)}'
             for a, r in self.results
             if self.filter_fn(r)
         )
@@ -391,14 +391,14 @@ def reconcile(ctx: click.Context, auto: bool, list_unreconciled: bool) -> None:
     "Reconcile pre-installed add-ons."
     from .matchers import (
         AddonFolder,
-        get_folder_set,
-        match_dir_names,
-        match_toc_ids,
-        match_toc_names,
+        get_unreconciled_folder_set,
+        match_addon_names_with_folder_names,
+        match_folder_name_subsets,
+        match_toc_source_ids,
     )
     from .prompts import PkgChoice, confirm, select, skip
 
-    preamble = dedent(
+    preamble = textwrap.dedent(
         '''\
         Use the arrow keys to navigate, <o> to open an add-on in your browser,
         enter to make a selection and <s> to skip to the next item.
@@ -448,14 +448,14 @@ def reconcile(ctx: click.Context, auto: bool, list_unreconciled: bool) -> None:
     def match_all() -> Generator[list[Defn], frozenset[AddonFolder], None]:
         # Match in order of increasing heuristicitivenessitude
         for fn in (
-            match_toc_ids,
-            match_dir_names,
-            match_toc_names,
+            match_toc_source_ids,
+            match_folder_name_subsets,
+            match_addon_names_with_folder_names,
         ):
             groups = manager.run(fn(manager, (yield [])))
             yield list(prompt(groups))
 
-    leftovers = get_folder_set(manager)
+    leftovers = get_unreconciled_folder_set(manager)
     if list_unreconciled:
         table_rows = [('unreconciled',), *((f.name,) for f in sorted(leftovers))]
         click.echo(tabulate(table_rows))
@@ -474,7 +474,7 @@ def reconcile(ctx: click.Context, auto: bool, list_unreconciled: bool) -> None:
             results = manager.run(manager.install(selections, replace=True))
             Report(results.items()).generate()
 
-        leftovers = get_folder_set(manager)
+        leftovers = get_unreconciled_folder_set(manager)
 
     if leftovers:
         click.echo()
@@ -554,13 +554,6 @@ def list_installed(
             for d, p in ((d, obj.m.get_pkg(d)),)
         )
 
-    def get_wowi_desc_from_toc(pkg: models.Pkg):
-        if pkg.source == 'wowi':
-            toc_reader = TocReader.from_parent_folder(obj.m.config.addon_dir / pkg.folders[0].name)
-            return toc_reader['Notes'] or ''
-        else:
-            return pkg.description
-
     pkgs = (
         obj.m.database.query(models.Pkg)
         .filter(
@@ -590,7 +583,7 @@ def list_installed(
                 formatter.write_dl(
                     (
                         ('Name', pkg.name),
-                        ('Description', get_wowi_desc_from_toc(pkg)),
+                        ('Description', textwrap.shorten(pkg.description, 280)),
                         ('URL', pkg.url),
                         ('Version', pkg.version),
                         ('Date published', pkg.date_published.isoformat(' ', 'minutes')),
@@ -707,7 +700,7 @@ def list_installed_wago_auras(obj: ManagerWrapper) -> None:
     config = BuilderConfig()
     aura_groups = WaCompanionBuilder(obj.m, config).extract_installed_auras()
     installed_auras = sorted(
-        (g.filename, fill(a.id, width=30, max_lines=1), a.url)
+        (g.filename, textwrap.fill(a.id, width=30, max_lines=1), a.url)
         for g in aura_groups
         for v in g.__root__.values()
         for a in v
