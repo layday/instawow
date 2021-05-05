@@ -362,10 +362,13 @@ class Manager:
             if alias:
                 yield (source, alias)
 
-        url_pairs: Iterator[tuple[str, Any]] = filter(
-            all, ((r.source, r.get_alias_from_url(value)) for r in self.resolvers.values())
+        aliases_from_url = (
+            (r.source, a)
+            for r in self.resolvers.values()
+            for a in (r.get_alias_from_url(value),)
+            if a
         )
-        return next(chain(url_pairs, from_urn()), None)
+        return next(chain(aliases_from_url, from_urn(), (None,)))
 
     def get_pkg(self, defn: Defn, partial_match: bool = False) -> Pkg | None:
         "Retrieve an installed package from a definition."
