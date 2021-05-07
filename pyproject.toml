@@ -42,6 +42,7 @@ test = [
   "coverage[toml] ~=5.2",
   "pytest >=6.0.1, <7",
   "pytest-asyncio ~=0.14",
+  "pytest-xdist ~=2.0",
 ]
 types = [
   'sqlalchemy2-stubs',

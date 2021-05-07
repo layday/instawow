@@ -71,7 +71,7 @@ def test(session: nox.Session, constraints: str):
         '.[server, test]',
         './tests/plugin',
     )
-    session.run('coverage', 'run', '-m', 'pytest')
+    session.run('coverage', 'run', '-m', 'pytest', '-n', 'auto')
     session.run('coverage', 'report', '-m')
 
 
