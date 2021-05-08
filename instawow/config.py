@@ -82,12 +82,15 @@ class Config(BaseConfig):
 
     @staticmethod
     def infer_flavour(folder: os.PathLike[str] | str) -> Flavour:
-        tail = PurePath(folder).parts[-3:]
-        is_classic_folder = tuple(map(str.casefold, tail)) in {
-            ('_classic_', 'interface', 'addons'),
-            ('_classic_ptr_', 'interface', 'addons'),
-        }
-        return Flavour.classic if is_classic_folder else Flavour.retail
+        tail = tuple(map(str.casefold, PurePath(folder).parts[-3:]))
+        if len(tail) != 3 or tail[1:] != ('interface', 'addons'):
+            return Flavour.retail
+        elif tail[0] in {'_classic_', '_classic_beta_', '_classic_ptr_'}:
+            return Flavour.classic
+        elif tail[0] in {'_classic_era_'}:
+            return Flavour.classic
+        else:
+            return Flavour.retail
 
     @classmethod
     def get_dummy_config(cls, **kwargs: object) -> Config:

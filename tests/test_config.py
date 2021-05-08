@@ -60,7 +60,9 @@ def test_default_config_dir_is_win32_appropriate(iw_config_dict_no_config_dir, m
 
 def test_can_infer_flavour_from_path():
     assert Config.infer_flavour('wowzerz/_classic_/Interface/AddOns') is Flavour.classic
+    assert Config.infer_flavour('/foo/bar/_classic_beta_/Interface/AddOns') is Flavour.classic
     assert Config.infer_flavour('/foo/bar/_classic_ptr_/Interface/AddOns') is Flavour.classic
+    assert Config.infer_flavour('_classic_era_/Interface/AddOns') is Flavour.classic
     assert Config.infer_flavour('wowzerz/_retail_/Interface/AddOns') is Flavour.retail
 
 
