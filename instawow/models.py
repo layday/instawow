@@ -26,6 +26,7 @@ else:
 
 class TZDateTime(TZDateTime_base_class):
     impl = DateTime
+    cache_ok = True
 
     def process_bind_param(  # type: ignore
         self, value: datetime | None, dialect: object
