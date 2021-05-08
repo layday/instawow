@@ -251,23 +251,44 @@ def mock_tukui(aresponses, mock_master_catalogue):
 def mock_github(aresponses):
     aresponses.add(
         'api.github.com',
+        '/repos/nebularg/PackagerTest',
+        'get',
+        load_json_fixture('github-repo-release-json.json'),
+        repeat=inf,
+    )
+    aresponses.add(
+        'api.github.com',
+        '/repos/nebularg/PackagerTest/releases/latest',
+        'get',
+        load_json_fixture('github-release-release-json.json'),
+        repeat=inf,
+    )
+    aresponses.add(
+        'github.com',
+        '/nebularg/PackagerTest/releases/download/v1.9.6/release.json',
+        'get',
+        load_json_fixture('github-release-release-json-release-json.json'),
+        repeat=inf,
+    )
+    aresponses.add(
+        'api.github.com',
         '/repos/AdiAddons/AdiButtonAuras',
         'get',
-        load_json_fixture('github-repo-lib-and-nolib.json'),
+        load_json_fixture('github-repo-legacy-lib-and-nolib.json'),
         repeat=inf,
     )
     aresponses.add(
         'api.github.com',
         '/repos/AdiAddons/AdiButtonAuras/releases/latest',
         'get',
-        load_json_fixture('github-release-lib-and-nolib.json'),
+        load_json_fixture('github-release-legacy-lib-and-nolib.json'),
         repeat=inf,
     )
     aresponses.add(
         'api.github.com',
         '/repos/AdiAddons/AdiButtonAuras/releases?per_page=1',
         'get',
-        [load_json_fixture('github-release-lib-and-nolib.json')],
+        [load_json_fixture('github-release-legacy-lib-and-nolib.json')],
         match_querystring=True,
         repeat=inf,
     )
@@ -275,21 +296,21 @@ def mock_github(aresponses):
         'api.github.com',
         '/repos/AdiAddons/AdiButtonAuras/releases/tags/2.1.0',
         'get',
-        load_json_fixture('github-release-lib-and-nolib-older-version.json'),
+        load_json_fixture('github-release-legacy-lib-and-nolib-older-version.json'),
         repeat=inf,
     )
     aresponses.add(
         'api.github.com',
         '/repos/WeakAuras/WeakAuras2',
         'get',
-        load_json_fixture('github-repo-retail-and-classic.json'),
+        load_json_fixture('github-repo-legacy-retail-and-classic.json'),
         repeat=inf,
     )
     aresponses.add(
         'api.github.com',
         '/repos/WeakAuras/WeakAuras2/releases/latest',
         'get',
-        load_json_fixture('github-release-retail-and-classic.json'),
+        load_json_fixture('github-release-legacy-retail-and-classic.json'),
         repeat=inf,
     )
     aresponses.add(

@@ -1,0 +1,34 @@
+{
+  "releases": [
+    {
+      "filename": "TestGit-v1.9.6-classic.zip",
+      "nolib": false,
+      "metadata": [
+        {
+          "flavor": "classic",
+          "interface": 11307
+        }
+      ]
+    },
+    {
+      "filename": "TestGit-v1.9.6-nolib.zip",
+      "nolib": true,
+      "metadata": [
+        {
+          "flavor": "mainline",
+          "interface": 90100
+        }
+      ]
+    },
+    {
+      "filename": "TestGit-v1.9.6.zip",
+      "nolib": false,
+      "metadata": [
+        {
+          "flavor": "mainline",
+          "interface": 90100
+        }
+      ]
+    }
+  ]
+}

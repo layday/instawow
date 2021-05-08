@@ -35,21 +35,30 @@ http get 'https://www.tukui.org/api.php?classic-addons=all' -b \
     > "$DIR"/tukui-classic-addons.json
 
 
+http get 'https://api.github.com/repos/nebularg/PackagerTest' -b \
+    | jq -r \
+    > "$DIR"/github-repo-release-json.json
+http get 'https://api.github.com/repos/nebularg/PackagerTest/releases/latest' -b \
+    | jq -r \
+    > "$DIR"/github-release-release-json.json
+http --follow get 'https://github.com/nebularg/PackagerTest/releases/download/v1.9.6/release.json' -b \
+    | jq -r \
+    > "$DIR"/github-release-release-json-release-json.json
 http get 'https://api.github.com/repos/AdiAddons/AdiButtonAuras' -b \
     | jq -r \
-    > "$DIR"/github-repo-lib-and-nolib.json
+    > "$DIR"/github-repo-legacy-lib-and-nolib.json
 http get 'https://api.github.com/repos/AdiAddons/AdiButtonAuras/releases/latest' -b \
     | jq -r \
-    > "$DIR"/github-release-lib-and-nolib.json
+    > "$DIR"/github-release-legacy-lib-and-nolib.json
 http get 'https://api.github.com/repos/AdiAddons/AdiButtonAuras/releases/tags/2.1.0' -b \
     | jq -r \
-    > "$DIR"/github-release-lib-and-nolib-older-version.json
+    > "$DIR"/github-release-legacy-lib-and-nolib-older-version.json
 http get 'https://api.github.com/repos/WeakAuras/WeakAuras2' -b \
     | jq -r \
-    > "$DIR"/github-repo-retail-and-classic.json
+    > "$DIR"/github-repo-legacy-retail-and-classic.json
 http get 'https://api.github.com/repos/WeakAuras/WeakAuras2/releases/latest' -b \
     | jq -r \
-    > "$DIR"/github-release-retail-and-classic.json
+    > "$DIR"/github-release-legacy-retail-and-classic.json
 http get 'https://api.github.com/repos/p3lim-wow/Molinari' -b \
     | jq -r \
     > "$DIR"/github-repo-no-releases.json

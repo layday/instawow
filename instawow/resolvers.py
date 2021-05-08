@@ -8,6 +8,7 @@ import re
 import typing
 from typing import Any, ClassVar
 
+from loguru import logger
 from pydantic import BaseModel
 from pydantic.datetime_parse import parse_datetime
 from typing_extensions import Literal, TypedDict
@@ -903,6 +904,21 @@ class GithubRelease(TypedDict):
     body: str
 
 
+class PackagerReleaseJson(TypedDict):
+    releases: list[PackagerReleaseJson_Release]
+
+
+class PackagerReleaseJson_Release(TypedDict):
+    filename: str
+    nolib: bool
+    metadata: list[PackagerReleaseJson_Release_Metadata]
+
+
+class PackagerReleaseJson_Release_Metadata(TypedDict):
+    flavor: Literal['mainline', 'classic', 'bcc']
+    interface: int
+
+
 class GithubResolver(Resolver):
     source = 'github'
     name = 'GitHub'
@@ -918,25 +934,13 @@ class GithubResolver(Resolver):
             return '/'.join(url.parts[1:3])
 
     async def resolve_one(self, defn: Defn, metadata: None) -> models.Pkg:
-        """Resolve a hypothetical add-on hosted on GitHub.
-
-        The GitHub resolver is inspired by strongbox's
-        (see https://github.com/ogri-la/strongbox/blob/develop/github-addons.md)
-        and makes similar assumptions.
-        The repo must have releases.  The releases must have assets
-        attached to them.  instawow will not retrieve add-ons from VCS tarballs
-        or 'zipballs' (i.e. from source).
-        It will prioritise assets which appear to be compatible with the
-        selected game flavour.
-        It will *not* look for TOC files or validate the contents
-        of the ZIP file in any way.
-        """
         from aiohttp import ClientResponseError
 
         if defn.strategy not in self.strategies:
             raise R.PkgStrategyUnsupported(defn.strategy)
 
         repo_url = self.repos_api_url / defn.alias
+
         try:
             project_metadata: GithubRepo = await manager.cache_response(
                 self.manager, repo_url, {'hours': 1}
@@ -952,9 +956,9 @@ class GithubResolver(Resolver):
         elif defn.strategy is Strategy.latest:
             release_url = (repo_url / 'releases').with_query(per_page='1')
         else:
-            # Per GH, the latest release is the most recent non-prerelease,
+            # The latest release is the most recent non-prerelease,
             # non-draft release, sorted by the ``created_at`` attribute.
-            # https://docs.github.com/en/free-pro-team@latest/rest/reference/repos#get-the-latest-release
+            # See: https://docs.github.com/en/free-pro-team@latest/rest/reference/repos#get-the-latest-release
             release_url = repo_url / 'releases/latest'
 
         async with self.manager.web_client.get(release_url) as response:
@@ -966,7 +970,14 @@ class GithubResolver(Resolver):
                 (response_json,) = response_json
             release_metadata: GithubRelease = response_json
 
+        assets = release_metadata['assets']
+
         try:
+            release_json = next(
+                a for a in assets if a['name'] == 'release.json' and a['state'] == 'uploaded'
+            )
+        except StopIteration:
+            logger.info(f'no release.json found for {defn}; inspecting assets')
 
             def is_valid_asset(asset: GithubRelease_Asset):
                 return (
@@ -980,20 +991,48 @@ class GithubResolver(Resolver):
                     and asset['state'] == 'uploaded'
                 )
 
-            assets = release_metadata['assets']
-            matching_asset = next(
-                chain(
-                    (
-                        a
-                        for a in assets
-                        if is_valid_asset(a)
-                        and a['name'].endswith('-classic.zip') is self.manager.config.is_classic
-                    ),
-                    filter(is_valid_asset, assets),
+            try:
+                matching_asset = next(
+                    chain(
+                        (
+                            a
+                            for a in assets
+                            if is_valid_asset(a)
+                            and a['name'].endswith('-classic.zip')
+                            is self.manager.config.is_classic
+                        ),
+                        filter(is_valid_asset, assets),
+                    )
                 )
+            except StopIteration:
+                raise R.PkgFileUnavailable
+
+        else:
+            logger.info(f'reading metadata for {defn} from release.json')
+
+            packager_metadata: PackagerReleaseJson = await manager.cache_response(
+                self.manager, release_json['browser_download_url'], {'days': 1}
             )
-        except StopIteration:
-            raise R.PkgFileUnavailable
+            game_flavour = self.manager.config.game_flavour
+            if game_flavour is Flavour.retail:
+                release_json_flavour = 'mainline'
+            elif game_flavour is Flavour.classic:
+                release_json_flavour = 'classic'
+
+            try:
+                matching_release = next(
+                    r
+                    for r in packager_metadata['releases']
+                    if r['nolib'] is False
+                    and any(m['flavor'] == release_json_flavour for m in r['metadata'])
+                )
+                matching_asset = next(
+                    a
+                    for a in assets
+                    if a['name'] == matching_release['filename'] and a['state'] == 'uploaded'
+                )
+            except StopIteration:
+                raise R.PkgFileUnavailable
 
         return models.Pkg(
             source=self.source,

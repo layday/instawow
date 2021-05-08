@@ -141,33 +141,47 @@ async def test_tukui_changelog_url_varies_by_addon_type(iw_manager):
 
 @pytest.mark.asyncio
 async def test_can_resolve_github_pkgs(iw_manager):
-    lib_and_nolib = Defn('github', 'AdiAddons/AdiButtonAuras')
-    latest = Defn('github', 'AdiAddons/AdiButtonAuras', strategy=Strategy.latest)
-    older_version = Defn('github', 'AdiAddons/AdiButtonAuras').with_version('2.1.0')
-    assetless = Defn('github', 'AdiAddons/AdiButtonAuras').with_version('2.0.19')
-    retail_and_classic = Defn('github', 'WeakAuras/WeakAuras2')
+    release_json = Defn('github', 'nebularg/PackagerTest')
+    legacy_lib_and_nolib = Defn('github', 'AdiAddons/AdiButtonAuras')
+    legacy_latest = Defn('github', 'AdiAddons/AdiButtonAuras', strategy=Strategy.latest)
+    legacy_older_version = Defn('github', 'AdiAddons/AdiButtonAuras').with_version('2.1.0')
+    legacy_assetless = Defn('github', 'AdiAddons/AdiButtonAuras').with_version('2.0.19')
+    legacy_retail_and_classic = Defn('github', 'WeakAuras/WeakAuras2')
     releaseless = Defn('github', 'p3lim-wow/Molinari')
-    missing = Defn('github', 'layday/foo-bar')
+    nonexistent = Defn('github', 'layday/foo-bar')
 
     results = await iw_manager.resolve(
-        [lib_and_nolib, latest, older_version, assetless, retail_and_classic, releaseless, missing]
+        [
+            release_json,
+            legacy_lib_and_nolib,
+            legacy_latest,
+            legacy_older_version,
+            legacy_assetless,
+            legacy_retail_and_classic,
+            releaseless,
+            nonexistent,
+        ]
     )
-    assert 'nolib' not in results[lib_and_nolib].download_url
+    assert ('classic' in results[release_json].download_url) is iw_manager.config.is_classic
+    assert 'nolib' not in results[release_json].download_url
+    assert 'nolib' not in results[legacy_lib_and_nolib].download_url
     assert (
-        results[latest].options.strategy == Strategy.latest
-        and 'nolib' not in results[latest].download_url
+        results[legacy_latest].options.strategy == Strategy.latest
+        and 'nolib' not in results[legacy_latest].download_url
     )
     assert (
-        results[older_version].options.strategy == Strategy.version
-        and results[older_version].version == '2.1.0'
+        results[legacy_older_version].options.strategy == Strategy.version
+        and results[legacy_older_version].version == '2.1.0'
     )
-    assert type(results[assetless]) is R.PkgFileUnavailable
+    assert type(results[legacy_assetless]) is R.PkgFileUnavailable
+    assert (
+        'classic' in results[legacy_retail_and_classic].download_url
+    ) is iw_manager.config.is_classic
     assert (
         type(results[releaseless]) is R.PkgFileUnavailable
         and results[releaseless].message == 'release not found'
     )
-    assert ('classic' in results[retail_and_classic].download_url) is iw_manager.config.is_classic
-    assert type(results[missing]) is R.PkgNonexistent
+    assert type(results[nonexistent]) is R.PkgNonexistent
 
 
 @pytest.mark.asyncio
