@@ -217,7 +217,7 @@ def prepare_database(config: Config) -> sqlalchemy.orm.Session:
             )
             alembic_config.set_main_option('sqlalchemy.url', str(engine.url))
 
-            if engine.table_names():
+            if sqlalchemy.inspect(engine).get_table_names():
                 upgrade(alembic_config, DB_REVISION)
             else:
                 ModelBase.metadata.create_all(engine)
