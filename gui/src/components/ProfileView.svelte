@@ -182,10 +182,9 @@
       const modifiedAddons = modifyResults
         .filter((result): result is SuccessResult => result.status === "success")
         .map(({ addon }) => addon);
-      if (modifiedAddons) {
+      if (modifiedAddons.length) {
         const installedAddons = [...addons__Installed];
-        // Reversing `modifiedAddons` so that new add-ons will
-        // be prepended in alphabetical order
+        // Reversing `modifiedAddons` so that new add-ons will be prepended in alphabetical order
         for (const addon of [...modifiedAddons].reverse()) {
           const newAddon = [markAddonInstalled(addon, method !== "remove"), addon] as const;
           const index = addons__Installed.findIndex((value) => isSameAddon(value, addon));
@@ -204,8 +203,11 @@
         addons.map((a, i) => [a, modifyResults[i]])
       );
     } finally {
-      addonsBeingModified = lodash.difference(addonsBeingModified, ids);
-      cancelDownloadProgessPolling();
+      try {
+        cancelDownloadProgessPolling();
+      } finally {
+        addonsBeingModified = lodash.difference(addonsBeingModified, ids);
+      }
     }
   };
 
