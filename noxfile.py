@@ -48,7 +48,7 @@ prompt-toolkit ==3.0.15
 pydantic ==1.8.0
 questionary ==1.8.0
 sqlalchemy ==1.3.19
-typing-extensions ==3.7.4.3
+typing-extensions ==3.10.0.0
 yarl ==1.4
 ''',
     ],

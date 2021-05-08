@@ -15,10 +15,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import Session, object_session, relationship
-
-# ``TypeGuard`` is provisional and does not exist at runtime
-if TYPE_CHECKING:
-    from typing_extensions import TypeGuard
+from typing_extensions import TypeGuard
 
 # ``TypeDecorator`` is not generic at runtime
 if TYPE_CHECKING:
