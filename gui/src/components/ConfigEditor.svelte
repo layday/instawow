@@ -3,6 +3,7 @@
   import { faFolderOpen, faTimesCircle } from "@fortawesome/free-solid-svg-icons";
   import { JSONRPCError } from "@open-rpc/client-js";
   import { fade } from "svelte/transition";
+  import { Flavour } from "../api";
   import { ipcRenderer } from "../ipc";
   import { activeProfile, profiles } from "../store";
   import Icon from "./SvgIcon.svelte";
@@ -38,7 +39,7 @@
 
     let result: Config;
     try {
-      result = await api.writeProfile(configParams, true);
+      result = await api.writeProfile(configParams, createNew);
     } catch (error) {
       if (error instanceof JSONRPCError) {
         errors = Object.fromEntries(
@@ -120,6 +121,21 @@ will be lost.`)
         <Icon icon={faFolderOpen} />
       </button>
     </div>
+    {#if !createNew}
+      {#if errors.game_flavour}
+        <div class="row error-text">{errors.game_flavour}</div>
+      {/if}
+      <select
+        aria-label="game flavour"
+        class="row"
+        class:error={errors.game_flavour}
+        bind:value={configParams.game_flavour}
+      >
+        {#each Object.values(Flavour) as flavour}
+          <option value={flavour}>{flavour}</option>
+        {/each}
+      </select>
+    {/if}
     <div class="row input-array">
       <button type="submit">save</button>
       {#if !createNew}

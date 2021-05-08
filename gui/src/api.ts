@@ -1,6 +1,6 @@
 import type { Client } from "@open-rpc/client-js";
 
-enum Flavour {
+export enum Flavour {
   retail = "retail",
   classic = "classic",
 }
