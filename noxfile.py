@@ -22,7 +22,6 @@ def reformat(session: nox.Session):
             'npx',
             'prettier',
             '--write',
-            '../pyrightconfig.json',
             'src',
             'package.json',
             'rollup.config.js',

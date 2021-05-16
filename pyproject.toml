@@ -62,6 +62,8 @@ exclude = [
 ]
 
 
+## TESTS ##
+
 [tool.coverage.run]
 branch = true
 source = ["instawow"]
@@ -83,6 +85,24 @@ markers = [
   "iw_no_mock",
 ]
 xfail_strict = true
+
+
+## TYPE CHECKING ##
+
+[tool.pyright]
+include = [
+  "instawow",
+]
+useLibraryCodeForTypes = true
+typeCheckingMode = "strict"
+reportMissingTypeStubs = "information"
+# `TYPE_CHECKING` and lazy imports produce spurious import cycle errors
+reportImportCycles = false
+reportUnknownArgumentType = "warning"
+reportUnknownMemberType = false
+
+
+## FORMATTING ##
 
 [tool.black]
 line_length = 99
