@@ -154,7 +154,12 @@ async def cache_response(
     request_extra: Mapping[str, Any] = {},
 ) -> Any:
     async def make_request():
-        kwargs = {'method': 'GET', 'url': url, 'raise_for_status': True, **request_extra}
+        kwargs: dict[str, Any] = {
+            'method': 'GET',
+            'url': url,
+            'raise_for_status': True,
+            **request_extra,
+        }
         if label:
             kwargs = {**kwargs, 'trace_request_ctx': {'report_progress': True, 'label': label}}
         async with manager.web_client.request(**kwargs) as response:
