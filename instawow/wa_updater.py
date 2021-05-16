@@ -34,17 +34,16 @@ class BuilderConfig(BaseConfig):
     wago_api_key: typing.Optional[str] = None
 
 
-class Auras(GenericModel, Generic[_TWeakAura]):
+class Auras(
+    GenericModel,
+    Generic[_TWeakAura],
+    arbitrary_types_allowed=True,
+    json_encoders={URL: str},
+):
     api_url: ClassVar[URL]
     filename: ClassVar[str]
 
     __root__: typing.Dict[str, typing.List[_TWeakAura]]
-
-    class Config:
-        arbitrary_types_allowed = True
-        json_encoders = {
-            URL: str,
-        }
 
     @classmethod
     def from_lua_table(cls, lua_table: Any) -> Auras[_TWeakAura]:

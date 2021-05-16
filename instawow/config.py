@@ -38,20 +38,21 @@ def _is_writable_dir(value: Path) -> bool:
     return value.is_dir() and os.access(value, os.W_OK)
 
 
-class BaseConfig(BaseSettings):
-    class Config:  # type: ignore
-        env_prefix = 'INSTAWOW_'
+def _customise_sources(
+    init_settings: SettingsSourceCallable,
+    env_settings: SettingsSourceCallable,
+    file_secret_settings: SettingsSourceCallable,
+) -> tuple[SettingsSourceCallable, ...]:
+    # Prioritise env vars
+    return (env_settings, init_settings)
 
-        @classmethod
-        def customise_sources(
-            cls,
-            init_settings: SettingsSourceCallable,
-            env_settings: SettingsSourceCallable,
-            *args: SettingsSourceCallable,
-            **kwargs: SettingsSourceCallable,
-        ) -> tuple[SettingsSourceCallable, ...]:
-            # Prioritise env vars
-            return (env_settings, init_settings)
+
+class BaseConfig(
+    BaseSettings,
+    env_prefix='INSTAWOW_',
+    customise_sources=_customise_sources,
+):
+    pass
 
 
 class Flavour(str, Enum):

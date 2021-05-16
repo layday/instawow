@@ -58,7 +58,7 @@ class Defn(
     def __init__(self, source: str, alias: str, **kwargs: object) -> None:
         super().__init__(source=source, alias=alias, **kwargs)
 
-    def with_(self, **kwargs: object) -> Defn:
+    def with_(self, **kwargs: Any) -> Defn:
         return self.__class__(**{**self.__dict__, **kwargs})
 
     def with_strategy(self, strategy: Strategy) -> Defn:
