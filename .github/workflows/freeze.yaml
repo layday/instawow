@@ -38,7 +38,7 @@ jobs:
       run: |
         python -m pip install nox
         python -m nox -s build
-        mv dist/*.tar.gz instawow.tar.gz
+        mv dist/*.tar.gz instawow-standalone/instawow.tar.gz
         python -m nox -s clobber_build_artefacts
     - name: Install Rust toolchain
       uses: actions-rs/toolchain@v1
@@ -55,11 +55,12 @@ jobs:
           instawow_path=$(tail -n 1 | cut -c 23-)
           cp $instawow_path dist/${instawow_path##*[\\/]}
         )
+      working-directory: instawow-standalone
     - name: Upload binary
       uses: actions/upload-artifact@v2
       with:
         name: instawow-cli-${{ matrix.os }}-${{ needs.extract-tag.outputs.tag }}
-        path: dist/instawow*
+        path: instawow-standalone/dist/instawow*
   freeze-gui:
     needs: [extract-tag, freeze-cli]
     strategy:
