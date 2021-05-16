@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import nox
 
+SUPPORTED_PYTHON_VERSIONS = ['3.7', '3.8', '3.9']
+
 
 def _mirror_project(session: nox.Session):
     tmp_dir = session.create_tmp()
@@ -30,7 +32,7 @@ def reformat(session: nox.Session):
         )
 
 
-@nox.session(python=['3.7', '3.8', '3.9'])
+@nox.session(python=SUPPORTED_PYTHON_VERSIONS)
 @nox.parametrize(
     'constraints',
     [
@@ -69,7 +71,7 @@ def test(session: nox.Session, constraints: str):
     session.run('coverage', 'report', '-m')
 
 
-@nox.session(python=['3.7', '3.8', '3.9'])
+@nox.session(python=SUPPORTED_PYTHON_VERSIONS)
 def type_check(session: nox.Session):
     "Run Pyright."
     _mirror_project(session)
