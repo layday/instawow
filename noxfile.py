@@ -39,6 +39,7 @@ def reformat(session: nox.Session):
         '',
         '''\
 aiohttp ==3.7.4
+aiohttp-rpc ==0.6.3
 alembic ==1.4.3
 click ==7.1
 jellyfish ==0.8.2
