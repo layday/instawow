@@ -56,9 +56,9 @@ class Report:
         )
 
     def generate(self) -> None:
-        manager: managers.CliManager = click.get_current_context().obj.m
-        if manager.config.auto_update_check:
-            outdated, new_version = manager.run(is_outdated())
+        manager_wrapper: ManagerWrapper | None = click.get_current_context().obj
+        if manager_wrapper and manager_wrapper.m.config.auto_update_check:
+            outdated, new_version = manager_wrapper.m.run(is_outdated())
             if outdated:
                 click.echo(f'{self.WARNING_SYMBOL} instawow-{new_version} is available')
 
@@ -114,11 +114,8 @@ class ManagerWrapper:
 def _with_manager(
     fn: Callable[..., object]
 ) -> Callable[[click.Context, click.Parameter, object], object]:
-    def wrapper(
-        ctx: click.Context,
-        click_param: click.Parameter,
-        value: object,
-    ) -> object:
+    def wrapper(ctx: click.Context, __: click.Parameter, value: object) -> object:
+        assert ctx.obj
         return fn(ctx.obj.m, value)
 
     return wrapper
@@ -152,6 +149,10 @@ def _register_plugin_commands(group: click.Group) -> click.Group:
     return group
 
 
+def _set_log_level(_: click.Context, __: click.Parameter, value: bool) -> str:
+    return 'DEBUG' if value else 'INFO'
+
+
 @_register_plugin_commands
 @click.group(context_settings={'help_option_names': ('-h', '--help')})
 @click.version_option(__version__, prog_name=__package__)
@@ -160,7 +161,7 @@ def _register_plugin_commands(group: click.Group) -> click.Group:
     'log_level',
     is_flag=True,
     default=False,
-    callback=lambda _, __, v: 'DEBUG' if v else 'INFO',
+    callback=_set_log_level,
     help='Log more things.',
 )
 @click.option(
@@ -220,11 +221,12 @@ def parse_into_defn_with_version(
 def combine_addons(
     fn: Callable[[managers.Manager, object], Iterable[Defn]],
     ctx: click.Context,
-    click_param: click.Parameter,
+    __: click.Parameter,
     value: object,
 ) -> None:
     addons: list[Defn] = ctx.params.setdefault('addons', [])
     if value:
+        assert ctx.obj
         addons.extend(fn(ctx.obj.m, value))
 
 
@@ -319,13 +321,13 @@ def remove(obj: ManagerWrapper, addons: Sequence[Defn], keep_folders: bool) -> N
     default=False,
     help='Undo rollback by reinstalling an add-on using the default strategy.',
 )
-@click.pass_context
-def rollback(ctx: click.Context, addon: Defn, version: str | None, undo: bool) -> None:
+@click.pass_obj
+def rollback(obj: ManagerWrapper, addon: Defn, version: str | None, undo: bool) -> None:
     "Roll an add-on back to an older version."
     from .prompts import Choice, select
 
-    manager: managers.CliManager = ctx.obj.m
     version_limit = 10
+    manager = obj.m
 
     if version and undo:
         raise click.UsageError('Cannot use "--version" and "--undo" together')
@@ -386,8 +388,8 @@ def rollback(ctx: click.Context, addon: Defn, version: str | None, undo: bool) -
 @click.option(
     '--list-unreconciled', is_flag=True, default=False, help='List unreconciled add-ons and exit.'
 )
-@click.pass_context
-def reconcile(ctx: click.Context, auto: bool, list_unreconciled: bool) -> None:
+@click.pass_obj
+def reconcile(obj: ManagerWrapper, auto: bool, list_unreconciled: bool) -> None:
     "Reconcile pre-installed add-ons."
     from .matchers import (
         AddonFolder,
@@ -417,7 +419,7 @@ def reconcile(ctx: click.Context, auto: bool, list_unreconciled: bool) -> None:
         '''
     )
 
-    manager: managers.CliManager = ctx.obj.m
+    manager = obj.m
 
     def prompt_one(addons: list[AddonFolder], pkgs: list[models.Pkg]) -> Defn | tuple[()]:
         def construct_choice(pkg: models.Pkg):
@@ -482,8 +484,12 @@ def reconcile(ctx: click.Context, auto: bool, list_unreconciled: bool) -> None:
         click.echo(tabulate(table_rows))
 
 
+def _concat_search_terms(_: click.Context, __: click.Parameter, value: tuple[str, ...]) -> str:
+    return ' '.join(value)
+
+
 @main.command()
-@click.argument('search-terms', nargs=-1, required=True, callback=lambda _, __, v: ' '.join(v))
+@click.argument('search-terms', nargs=-1, required=True, callback=_concat_search_terms)
 @click.option(
     '--limit',
     '-l',
@@ -502,6 +508,7 @@ def search(ctx: click.Context, search_terms: str, limit: int, sources: Sequence[
     "Search for add-ons to install."
     from .prompts import PkgChoice, checkbox, confirm
 
+    assert ctx.obj
     manager: managers.CliManager = ctx.obj.m
 
     entries = manager.run(manager.search(search_terms, limit, frozenset(sources) or None))
@@ -629,8 +636,9 @@ def view_changelog(obj: ManagerWrapper, addon: Defn) -> None:
         Report([(addon, R.PkgNotInstalled())]).generate_and_exit()
 
 
-def _show_active_config(ctx: click.Context, _param: click.Parameter, value: bool) -> None:
+def _show_active_config(ctx: click.Context, __: click.Parameter, value: bool) -> None:
     if value:
+        assert ctx.obj
         click.echo(ctx.obj.m.config.json(indent=2))
         ctx.exit()
 
@@ -709,12 +717,14 @@ def list_installed_wago_auras(obj: ManagerWrapper) -> None:
     click.echo(tabulate([('in file', 'name', 'URL'), *installed_auras]))
 
 
+def _parse_datetime(_: click.Context, __: click.Parameter, value: str | None) -> datetime | None:
+    if value is not None:
+        return datetime.fromisoformat(value)
+
+
 @main.command(hidden=True)
 @click.argument('filename', type=click.Path(dir_okay=False))
-@click.option(
-    '--age-cutoff',
-    callback=lambda _, __, v: v and datetime.fromisoformat(v),
-)
+@click.option('--age-cutoff', callback=_parse_datetime)
 def generate_catalogue(filename: str, age_cutoff: datetime | None) -> None:
     "Generate the master catalogue."
     import asyncio
