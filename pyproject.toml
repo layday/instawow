@@ -20,9 +20,9 @@ urls = { homepage = "http://github.com/layday/instawow" }
 dependencies = [
   "aiohttp >=3.7.4, <4",
   "alembic >=1.4.3, <2",
-  "click ~=7.1",
+  "click >=7.1, <9",
   "jellyfish >=0.8.2, <1",
-  "jinja2 ~=2.11",
+  "jinja2 >=2.11, <4",
   "loguru <1",
   "pluggy ~=0.13",
   "prompt-toolkit >=3.0.15, <4",
