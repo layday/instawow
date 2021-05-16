@@ -70,7 +70,12 @@ def iw_temp_dir(tmp_path_factory):
 def iw_config_dict_no_config_dir(tmp_path, request, iw_temp_dir):
     addons = tmp_path / 'wow' / 'interface' / 'addons'
     addons.mkdir(parents=True)
-    return {'addon_dir': addons, 'temp_dir': iw_temp_dir, 'game_flavour': request.param}
+    return {
+        'profile': '__default__',
+        'addon_dir': addons,
+        'temp_dir': iw_temp_dir,
+        'game_flavour': request.param,
+    }
 
 
 @pytest.fixture

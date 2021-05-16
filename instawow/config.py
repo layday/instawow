@@ -18,7 +18,6 @@ class _PathNotWritableDirectoryError(PydanticValueError):
     msg_template = '"{path}" is not a writable directory'
 
 
-_default_profile = '__default__'
 _novalidate = '__novalidate__'
 
 
@@ -62,7 +61,7 @@ class Flavour(str, Enum):
 
 class Config(BaseConfig):
     config_dir: Path = Field(default_factory=_get_default_config_dir)
-    profile: str = Field(_default_profile, min_length=1, strip_whitespace=True)
+    profile: str = Field(min_length=1, strip_whitespace=True)
     addon_dir: Path
     game_flavour: Flavour
     temp_dir: Path = Field(default_factory=_get_default_temp_dir)
@@ -96,7 +95,11 @@ class Config(BaseConfig):
     @classmethod
     def get_dummy_config(cls, **kwargs: object) -> Config:
         "Create a dummy configuration with default values."
-        defaults = {'addon_dir': _novalidate, 'game_flavour': Flavour.retail}
+        defaults = {
+            'profile': _novalidate,
+            'addon_dir': _novalidate,
+            'game_flavour': Flavour.retail,
+        }
         dummy_config = cls.parse_obj({**defaults, **kwargs})
         return dummy_config
 
