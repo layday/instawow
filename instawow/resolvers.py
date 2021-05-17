@@ -1013,7 +1013,7 @@ class GithubResolver(Resolver):
             packager_metadata: PackagerReleaseJson = await manager.cache_response(
                 self.manager, release_json['browser_download_url'], {'days': 1}
             )
-            game_flavour = self.manager.config.game_flavour
+            game_flavour: Flavour = self.manager.config.game_flavour
             if game_flavour is Flavour.retail:
                 release_json_flavour = 'mainline'
             elif game_flavour is Flavour.classic:
