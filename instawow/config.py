@@ -201,10 +201,12 @@ def setup_logging(config: Config, log_level: str = 'INFO') -> int:
             logger.opt(depth=depth, exception=record.exc_info).log(level, record.getMessage())
 
     logging.basicConfig(handlers=[InterceptHandler()], level=log_level)
+
     handler = {
         'sink': config.logging_dir / 'error.log',
         'level': log_level,
-        'rotation': '1 MB',
+        'rotation': '5 MB',
+        'retention': 5,  # Number of log files to keep
         'enqueue': True,
     }
     (handler_id,) = logger.configure(handlers=(handler,))
