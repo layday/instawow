@@ -55,8 +55,15 @@ class BaseConfig(
 
 
 class Flavour(str, Enum):
+    # The latest classic version is always aliased to "classic".
+    # The logic here is that should WoW Classic not be discontinued
+    # it will continue to be updated in place so that new Classic versions
+    # will inherit the "_classic_" folder.  This way we won't have to
+    # perform a migration or require user intervention.
     retail = 'retail'
     classic = 'classic'
+    vanilla_classic = 'vanilla_classic'
+    burning_crusade_classic = classic
 
 
 class Config(BaseConfig):
@@ -85,9 +92,9 @@ class Config(BaseConfig):
         tail = tuple(map(str.casefold, PurePath(folder).parts[-3:]))
         if len(tail) != 3 or tail[1:] != ('interface', 'addons'):
             return Flavour.retail
+        elif tail[0] == '_classic_era_':
+            return Flavour.vanilla_classic
         elif tail[0] in {'_classic_', '_classic_beta_', '_classic_ptr_'}:
-            return Flavour.classic
-        elif tail[0] in {'_classic_era_'}:
             return Flavour.classic
         else:
             return Flavour.retail
@@ -146,14 +153,6 @@ class Config(BaseConfig):
     def delete(self) -> None:
         "Delete the configuration files associated with this profile."
         trash((self.profile_dir,), dest=self.temp_dir, missing_ok=True)
-
-    @property
-    def is_classic(self) -> bool:
-        return self.game_flavour is Flavour.classic
-
-    @property
-    def is_retail(self) -> bool:
-        return self.game_flavour is Flavour.retail
 
     @property
     def profile_dir(self) -> Path:

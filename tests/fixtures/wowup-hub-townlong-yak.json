@@ -14,20 +14,36 @@
       "funding_links": [],
       "releases": [
         {
-          "body": "<p>Guide improvements and bug fixes.</p>",
+          "body": "<p>Adventure start and completion interface changes.</p>",
           "download_count": 0,
-          "download_url": "https://www.townlong-yak.com/addons/ul/5735c4e167dad4f091349653fcd25b8a83a52f8f7/install.zip",
-          "external_id": "969a5c2684b347a735e457d6184f0c74",
-          "game_version": "90002",
-          "id": 23336,
-          "name": "venture-plan-4.12a",
+          "download_url": "https://www.townlong-yak.com/addons/ul/6262f5a09b373e3915eea3762063c51cbc03f0ac077de746/install.zip",
+          "external_id": "a94a102fc48c0eaf883e2fe45c7e509c",
+          "game_version": "90005",
+          "game_versions": [
+            {
+              "game_type": "retail",
+              "interface": "90005",
+              "title": "Venture Plan",
+              "version": "4.15a",
+              "authors": "foxlit"
+            }
+          ],
+          "id": 26102,
+          "name": "venture-plan-4.15a",
           "prerelease": false,
-          "published_at": "2021-02-27T00:08:02.657Z",
-          "tag_name": "venture-plan-4.12a",
-          "url": "https://www.townlong-yak.com/addons/ul/f9085270053142d33533d75bb1f17f24bfc60cd7f/install.zip",
+          "published_at": "2021-04-26T22:42:55.958Z",
+          "tag_name": "venture-plan-4.15a",
+          "url": "https://www.townlong-yak.com/addons/venture-plan/release/90005",
           "game_type": "retail",
           "toc_title": "Venture Plan",
-          "toc_version": "4.12a"
+          "toc_version": "4.15a",
+          "addonFolders": [
+            {
+              "fingerprint": "a76f90920724756a7ce1395bd7d13b4a",
+              "folder_name": "VenturePlan",
+              "id": 6482
+            }
+          ]
         }
       ]
     },
@@ -45,20 +61,36 @@
       "funding_links": [],
       "releases": [
         {
-          "body": "<p></p>",
+          "body": "<p>bug fixes and localization updates.</p>",
           "download_count": 0,
-          "download_url": "https://www.townlong-yak.com/addons/ul/5652ba4da8cebe9785203e8a086f525e94dbba69d/install.zip",
-          "external_id": "23c19b3579fc893272a07825ea35c481",
-          "game_version": "90002",
-          "id": 1319,
-          "name": "war-plan-3.15",
+          "download_url": "https://www.townlong-yak.com/addons/ul/8d55ae2e61e3882e2e034e7620633b6783ebab4719d7f342/install.zip",
+          "external_id": "e7bd2c08344103a4d1f474b8b428f763",
+          "game_version": "90005",
+          "game_versions": [
+            {
+              "game_type": "retail",
+              "interface": "90005",
+              "title": "War Plan",
+              "version": "3.16",
+              "authors": "foxlit"
+            }
+          ],
+          "id": 30855,
+          "name": "war-plan-3.16",
           "prerelease": false,
-          "published_at": "2021-01-25T07:33:53.886Z",
-          "tag_name": "war-plan-3.15",
-          "url": "https://www.townlong-yak.com/addons/ul/8e4f7f8e6b10faa2e7a6c8baa5daffd9872a1b385/install.zip",
+          "published_at": "2021-05-17T21:01:35.116Z",
+          "tag_name": "war-plan-3.16",
+          "url": "https://www.townlong-yak.com/addons/war-plan/release/90005",
           "game_type": "retail",
           "toc_title": "War Plan",
-          "toc_version": "3.15"
+          "toc_version": "3.16",
+          "addonFolders": [
+            {
+              "fingerprint": "ece3f375d17ec4d9338a9c7da7130cb2",
+              "folder_name": "WarPlan",
+              "id": 6721
+            }
+          ]
         }
       ]
     },
@@ -76,20 +108,41 @@
       "funding_links": [],
       "releases": [
         {
-          "body": "<p></p>",
+          "body": "<p>bug fixes</p>",
           "download_count": 0,
-          "download_url": "https://www.townlong-yak.com/addons/ul/87738863228ea44915086ac0c5f210b8ba637ebc3/install.zip",
-          "external_id": "2338347e9518d0fc7ca1e5b384f73b13",
-          "game_version": "90002",
-          "id": 1313,
-          "name": "master-plan-0.121",
+          "download_url": "https://www.townlong-yak.com/addons/ul/4303020be5c05307c374e3762063da760647547b91ce3c12/install.zip",
+          "external_id": "78e6eae059b2c1b7c27e5310aa3c0d02",
+          "game_version": "90005",
+          "game_versions": [
+            {
+              "game_type": "retail",
+              "interface": "90005",
+              "title": "Master Plan A",
+              "version": "A",
+              "authors": ""
+            }
+          ],
+          "id": 24168,
+          "name": "master-plan-0.122",
           "prerelease": false,
-          "published_at": "2021-01-25T07:24:56.079Z",
-          "tag_name": "master-plan-0.121",
-          "url": "https://www.townlong-yak.com/addons/ul/86b6523f51b931c6454096639082c6bef927aa609/install.zip",
+          "published_at": "2021-03-24T23:08:04.760Z",
+          "tag_name": "master-plan-0.122",
+          "url": "https://www.townlong-yak.com/addons/master-plan/release/90005",
           "game_type": "retail",
-          "toc_title": "Master Plan",
-          "toc_version": "0.121"
+          "toc_title": "Master Plan A",
+          "toc_version": "A",
+          "addonFolders": [
+            {
+              "fingerprint": "34b20c2bf781122ffef91dbf9da7f195",
+              "folder_name": "MasterPlanA",
+              "id": 5304
+            },
+            {
+              "fingerprint": "f4b4eedc2bdf463f6457357cf4fd6932",
+              "folder_name": "MasterPlan",
+              "id": 5303
+            }
+          ]
         }
       ]
     },
@@ -107,36 +160,68 @@
       "funding_links": [],
       "releases": [
         {
-          "body": "<p>[visual] conditional, bug fixes.</p>",
+          "body": "<p><code>[coven,mine,skin]</code>, bug fixes.</p>",
           "download_count": 0,
-          "download_url": "https://www.townlong-yak.com/addons/ul/91ac689a4e5b0a4dd64602fa5dea2056d53fd49d4/install.zip",
-          "external_id": "ad857786a26ab8e163278e196849a436",
+          "download_url": "https://www.townlong-yak.com/addons/ul/4bb8814df56808f763ac037620637244ad0392cd482d98c0/install.zip",
+          "external_id": "87319cd404c7b31f12c16ae06b269532",
           "game_version": "11306",
-          "id": 1464,
-          "name": "opie-ancient-xe-5",
+          "game_versions": [
+            {
+              "game_type": "classic",
+              "interface": "11306",
+              "title": "OPie",
+              "version": "Ancient Xe 6",
+              "authors": "foxlit"
+            }
+          ],
+          "id": 24159,
+          "name": "opie-ancient-xe-6",
           "prerelease": false,
-          "published_at": "2021-02-15T23:08:10.226Z",
-          "tag_name": "opie-ancient-xe-5",
-          "url": "https://www.townlong-yak.com/addons/ul/cb5dbb5eef2cf06f376881fbbd338f9dd13178b25/install.zip",
+          "published_at": "2021-03-23T22:08:08.237Z",
+          "tag_name": "opie-ancient-xe-6",
+          "url": "https://www.townlong-yak.com/addons/opie/release/11306",
           "game_type": "classic",
           "toc_title": "OPie",
-          "toc_version": "Ancient Xe 5"
+          "toc_version": "Ancient Xe 6",
+          "addonFolders": [
+            {
+              "fingerprint": "9f0ecc02493d6c6b53fefa183b904354",
+              "folder_name": "OPie",
+              "id": 5294
+            }
+          ]
         },
         {
-          "body": "<p>[visual] conditional, bug fixes.</p>",
+          "body": "<p><code>[coven,mine,skin]</code>, bug fixes.</p>",
           "download_count": 0,
-          "download_url": "https://www.townlong-yak.com/addons/ul/05d644f1d549aa1d50cac9f76def732c2398962ee/install.zip",
-          "external_id": "22884f649f59342b4d7298a741408856",
-          "game_version": "90002",
-          "id": 1465,
-          "name": "opie-xe-5",
+          "download_url": "https://www.townlong-yak.com/addons/ul/e557a0eb4440b088e535cd7620634a02c3d0792a870c3df8/install.zip",
+          "external_id": "62f7eb2fdccea61e197b4b879b3e2bb2",
+          "game_version": "90005",
+          "game_versions": [
+            {
+              "game_type": "retail",
+              "interface": "90005",
+              "title": "OPie",
+              "version": "Xe 6",
+              "authors": "foxlit"
+            }
+          ],
+          "id": 24160,
+          "name": "opie-xe-6",
           "prerelease": false,
-          "published_at": "2021-02-15T23:08:10.855Z",
-          "tag_name": "opie-xe-5",
-          "url": "https://www.townlong-yak.com/addons/ul/5f279735743e503fb1e44ab733c99e0757a2b8569/install.zip",
+          "published_at": "2021-03-23T22:08:09.147Z",
+          "tag_name": "opie-xe-6",
+          "url": "https://www.townlong-yak.com/addons/opie/release/90005",
           "game_type": "retail",
           "toc_title": "OPie",
-          "toc_version": "Xe 5"
+          "toc_version": "Xe 6",
+          "addonFolders": [
+            {
+              "fingerprint": "7afec6dd00504f50451927483b4c84ab",
+              "folder_name": "OPie",
+              "id": 5295
+            }
+          ]
         }
       ]
     },
@@ -154,20 +239,36 @@
       "funding_links": [],
       "releases": [
         {
-          "body": "<p>[visual] conditional, bug fixes.</p>",
+          "body": "<p><code>[coven,mine,skin]</code>, <code>#label</code>, bug fixes.</p>",
           "download_count": 0,
-          "download_url": "https://www.townlong-yak.com/addons/ul/b51623aced8888a6218f4a5957380ce4a8bccbed1/install.zip",
-          "external_id": "bc9fbcf439c39af48c30626a901f3764",
-          "game_version": "90002",
-          "id": 1463,
-          "name": "m6-1.25",
+          "download_url": "https://www.townlong-yak.com/addons/ul/81c3a023dbc77a2c06fff67620637ad824835671e018be7f/install.zip",
+          "external_id": "f80b7e10f2663fc661d116ee848a43bb",
+          "game_version": "90005",
+          "game_versions": [
+            {
+              "game_type": "retail",
+              "interface": "90005",
+              "title": "M6",
+              "version": "1.26a",
+              "authors": "foxlit"
+            }
+          ],
+          "id": 24169,
+          "name": "m6-1.26a",
           "prerelease": false,
-          "published_at": "2021-02-15T23:08:08.386Z",
-          "tag_name": "m6-1.25",
-          "url": "https://www.townlong-yak.com/addons/ul/efe7f0684cff7284c0a1c952c4019eb801f215b8f/install.zip",
+          "published_at": "2021-03-24T23:13:02.000Z",
+          "tag_name": "m6-1.26a",
+          "url": "https://www.townlong-yak.com/addons/m6/release/90005",
           "game_type": "retail",
           "toc_title": "M6",
-          "toc_version": "1.25"
+          "toc_version": "1.26a",
+          "addonFolders": [
+            {
+              "fingerprint": "ba824b60b8139547f5382d8eddc8c162",
+              "folder_name": "M6",
+              "id": 5305
+            }
+          ]
         }
       ]
     },
@@ -185,20 +286,36 @@
       "funding_links": [],
       "releases": [
         {
-          "body": "<p></p>",
+          "body": "",
           "download_count": 0,
-          "download_url": "https://www.townlong-yak.com/addons/ul/2ccfbe208aa764f997fe72e80f7fa356856dbd03e/install.zip",
+          "download_url": "https://www.townlong-yak.com/addons/ul/040dea236a55624211ad297620631a556be1623f6c19e5b6/install.zip",
           "external_id": "f7c174828554d9089901cba4c339001f",
           "game_version": "90001",
+          "game_versions": [
+            {
+              "game_type": "retail",
+              "interface": "90001",
+              "title": "TaintLess",
+              "version": "20-10-19",
+              "authors": ""
+            }
+          ],
           "id": 1310,
           "name": "taintless-20-10-19",
           "prerelease": false,
-          "published_at": "2021-01-25T07:24:55.789Z",
+          "published_at": "2021-01-25T07:24:55.000Z",
           "tag_name": "taintless-20-10-19",
-          "url": "https://www.townlong-yak.com/addons/ul/2d0a647cf990f176c7b68e72b615c0712eb038ab6/install.zip",
+          "url": "https://www.townlong-yak.com/addons/taintless/release/90001",
           "game_type": "retail",
           "toc_title": "TaintLess",
-          "toc_version": "20-10-19"
+          "toc_version": "20-10-19",
+          "addonFolders": [
+            {
+              "fingerprint": "b4144027de4ddc8d695130004633c9f9",
+              "folder_name": "TaintLess",
+              "id": 4671
+            }
+          ]
         }
       ]
     },
@@ -216,20 +333,36 @@
       "funding_links": [],
       "releases": [
         {
-          "body": "<p></p>",
+          "body": "",
           "download_count": 0,
-          "download_url": "https://www.townlong-yak.com/addons/ul/820ea10ff1982a5207afa29fe45f40855791e59c9/install.zip",
+          "download_url": "https://www.townlong-yak.com/addons/ul/e8b7985fd62202078abfd076206326511ec4fd138c987067/install.zip",
           "external_id": "6fe41b12ee9bbb46f831574650fa2627",
           "game_version": "80300",
+          "game_versions": [
+            {
+              "game_type": "retail",
+              "interface": "80300",
+              "title": "Spade",
+              "version": "1.15",
+              "authors": "foxlit"
+            }
+          ],
           "id": 1311,
           "name": "spade-1.15",
           "prerelease": false,
-          "published_at": "2021-01-25T07:24:55.808Z",
+          "published_at": "2021-01-25T07:24:55.000Z",
           "tag_name": "spade-1.15",
-          "url": "https://www.townlong-yak.com/addons/ul/c1b0160045e791335ca47727c6047af6c4fb63c2b/install.zip",
+          "url": "https://www.townlong-yak.com/addons/spade/release/80300",
           "game_type": "retail",
           "toc_title": "Spade",
-          "toc_version": "1.15"
+          "toc_version": "1.15",
+          "addonFolders": [
+            {
+              "fingerprint": "21ecebaeecc12e66d88080a96de38274",
+              "folder_name": "Spade",
+              "id": 4672
+            }
+          ]
         }
       ]
     },
@@ -247,20 +380,36 @@
       "funding_links": [],
       "releases": [
         {
-          "body": "<p></p>",
+          "body": "",
           "download_count": 0,
-          "download_url": "https://www.townlong-yak.com/addons/ul/28f0ad0af050ddd3645422444b570b390700547ab/install.zip",
+          "download_url": "https://www.townlong-yak.com/addons/ul/0032f90910a2db68e207797620638fb70a8dbdfa3fdfb763/install.zip",
           "external_id": "52efb581bfd6598edd0481ec21baec2d",
           "game_version": "80300",
+          "game_versions": [
+            {
+              "game_type": "retail",
+              "interface": "80300",
+              "title": "Ogri'Lazy",
+              "version": "1.5",
+              "authors": "foxlit"
+            }
+          ],
           "id": 1307,
           "name": "ogri'lazy-1.5",
           "prerelease": false,
-          "published_at": "2021-01-25T06:53:13.529Z",
+          "published_at": "2021-01-25T06:53:13.000Z",
           "tag_name": "ogri'lazy-1.5",
-          "url": "https://www.townlong-yak.com/addons/ul/293577568367485c341cdeb8be91303ba257fb928/install.zip",
+          "url": "https://www.townlong-yak.com/addons/ogri-lazy/release/80300",
           "game_type": "retail",
           "toc_title": "Ogri'Lazy",
-          "toc_version": "1.5"
+          "toc_version": "1.5",
+          "addonFolders": [
+            {
+              "fingerprint": "e6c5c619bfb42ac3e7409780467f7730",
+              "folder_name": "Ogri'Lazy",
+              "id": 4670
+            }
+          ]
         }
       ]
     }

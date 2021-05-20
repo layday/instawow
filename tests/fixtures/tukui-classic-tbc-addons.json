@@ -1,0 +1,19 @@
+[
+  {
+    "id": "1",
+    "name": "Tukui",
+    "small_desc": "A clean, lightweight, minimalist and popular user interface among the warcraft community since 2007.",
+    "author": "Tukz",
+    "version": "20.18",
+    "screenshot_url": "https://www.tukui.org/addons/Tukz/1618531589/screenshot.png",
+    "url": "https://www.tukui.org/classic-tbc-addons.php?download=1",
+    "category": "Interfaces",
+    "downloads": "1856",
+    "lastupdate": "2021-05-18 21:00:01",
+    "patch": "2.5.1",
+    "web_url": "https://www.tukui.org/classic-tbc-addons.php?id=1",
+    "last_download": "2021-05-19 00:53:08",
+    "changelog": "https://www.tukui.org/classic-tbc-addons.php?id=1&changelog",
+    "donate_url": "https://www.tukui.org/support.php"
+  }
+]

@@ -138,6 +138,7 @@ def checkbox(message: str, choices: Sequence[Choice], **inquirer_kwargs: Any) ->
 def select(
     message: str,
     choices: Sequence[str] | Sequence[Choice],
+    initial_choice: str | Choice | None = None,
     **inquirer_kwargs: Any,
 ) -> Question:
     def get_prompt_tokens():
@@ -157,7 +158,14 @@ def select(
             )
         return tokens
 
-    ic = InquirerControl(choices, None, use_indicator=False, use_shortcuts=False, use_pointer=True)
+    ic = InquirerControl(
+        choices,
+        None,
+        use_indicator=False,
+        use_shortcuts=False,
+        use_pointer=True,
+        initial_choice=initial_choice,
+    )
     bindings = KeyBindings()
 
     @bindings.add(Keys.ControlQ, eager=True)

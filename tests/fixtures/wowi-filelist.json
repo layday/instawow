@@ -2,18 +2,18 @@
   {
     "UID": "13188",
     "UICATID": "40",
-    "UIVersion": "80300.66-Release",
-    "UIDate": 1583004254000,
+    "UIVersion": "90000.73-Release",
+    "UIDate": 1609246897000,
     "UIName": "Molinari",
     "UIAuthorName": "p3lim",
     "UIFileInfoURL": "https://www.wowinterface.com/downloads/info13188-Molinari.html",
-    "UIDownloadTotal": "56591",
-    "UIDownloadMonthly": "393",
-    "UIFavoriteTotal": "422",
+    "UIDownloadTotal": "62955",
+    "UIDownloadMonthly": "15",
+    "UIFavoriteTotal": "419",
     "UICompatibility": [
       {
-        "version": "8.3.0",
-        "name": "Visions of N'Zoth"
+        "version": "9.0.2",
+        "name": "Shadowlands patch"
       }
     ],
     "UIDir": [

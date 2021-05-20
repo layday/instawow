@@ -38,8 +38,8 @@ _source_sort_order = {
 # See https://github.com/Stanzilla/WoWUIBugs/issues/68#issuecomment-830351390
 _flavour_toc_suffixes = {
     Flavour.retail: ['-Mainline.toc', '.toc'],
-    Flavour.classic: ['-Classic.toc', '.toc'],
-    # Flavour.?: ['-BCC.toc', '.toc'],
+    Flavour.vanilla_classic: ['-Classic.toc', '.toc'],
+    Flavour.burning_crusade_classic: ['-BCC.toc', '.toc'],
 }
 
 
@@ -127,7 +127,7 @@ async def match_folder_name_subsets(
     matches = [
         (frozenset(e for e in leftovers if e.name in f), Defn(i.source, i.id))
         for i in catalogue.__root__
-        if manager.config.game_flavour in i.game_compatibility
+        if manager.config.game_flavour in i.game_flavours
         for f in i.folders
         if f <= leftovers
     ]

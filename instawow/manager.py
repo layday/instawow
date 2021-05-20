@@ -488,8 +488,8 @@ class Manager:
             label = 'Synchronising catalogue'
             url = (
                 'https://raw.githubusercontent.com/layday/instawow-data/data/'
-                'master-catalogue-v2.compact.json'
-            )  # v2
+                'master-catalogue-v3.compact.json'
+            )  # v3
             raw_catalogue = await cache_response(self, url, {'hours': 4}, label=label)
             self._catalogue = Catalogue.parse_obj(raw_catalogue)
         return self._catalogue
@@ -579,7 +579,7 @@ class Manager:
             (
                 (i.normalised_name, i)
                 for i in catalogue.__root__
-                if self.config.game_flavour in i.game_compatibility and i.source in sources
+                if self.config.game_flavour in i.game_flavours and i.source in sources
             ),
             key=lambda v: v[0],
         )

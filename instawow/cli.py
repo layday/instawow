@@ -675,7 +675,8 @@ def configure(ctx: click.Context, promptless: bool) -> Config:
         ).unsafe_ask()
         game_flavour = select(
             'Game flavour:',
-            choices=sorted(Flavour, reverse=Config.infer_flavour(addon_dir) is Flavour.retail),
+            choices=list(Flavour),
+            initial_choice=Config.infer_flavour(addon_dir),
         ).unsafe_ask()
         constructor = partial(Config, addon_dir=addon_dir, game_flavour=game_flavour)
 

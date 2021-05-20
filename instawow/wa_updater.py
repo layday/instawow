@@ -14,7 +14,7 @@ from typing_extensions import Literal, TypeAlias, TypedDict
 from yarl import URL
 
 from . import manager
-from .config import BaseConfig
+from .config import BaseConfig, Flavour
 from .utils import bucketise, chain_dict, gather, run_in_thread as t, shasum
 
 # ``NotRequired`` is provisional and does not exist at runtime
@@ -228,6 +228,15 @@ class WaCompanionBuilder:
     async def get_checksum(self) -> str:
         return await t(self.checksum_path.read_text)(encoding='utf-8')
 
+    def _get_toc_number(self) -> str:
+        game_flavour: Flavour = self.manager.config.game_flavour
+        if game_flavour is Flavour.retail:
+            return '90005'
+        elif game_flavour is Flavour.vanilla_classic:
+            return '11307'
+        elif game_flavour is Flavour.burning_crusade_classic:
+            return '20501'
+
     def _generate_addon(self, auras: Iterable[tuple[type[Auras[WeakAura]], AuraGroup]]) -> None:
         from importlib.resources import read_text
         from zipfile import ZipFile, ZipInfo
@@ -314,7 +323,7 @@ class WaCompanionBuilder:
             write_tpl('init.lua', {})
             write_tpl(
                 'WeakAurasCompanion.toc',
-                {'interface': '11306' if self.manager.config.is_classic else '90005'},
+                {'interface': self._get_toc_number()},
             )
 
         self.changelog_path.write_text(

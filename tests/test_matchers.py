@@ -1,5 +1,6 @@
 import pytest
 
+from instawow.config import Flavour
 from instawow.matchers import (
     AddonFolder,
     get_unreconciled_folder_set,
@@ -65,9 +66,18 @@ async def test_multiple_defns_per_addon_contained_in_results(iw_manager, molinar
 
 
 @pytest.mark.asyncio
-async def test_multiple_defns_per_addon_per_source_contained_in_results(iw_manager):
+async def test_results_vary_by_game_flavour(iw_manager):
     write_addons(iw_manager, 'AdiBags', 'AdiBags_Config')
     ((_, matches),) = await match_folder_name_subsets(
         iw_manager, get_unreconciled_folder_set(iw_manager)
     )
-    assert {Defn('curse', '23350'), Defn('curse', '333072')} == set(matches)
+    if iw_manager.config.game_flavour is Flavour.retail:
+        assert {
+            Defn('curse', '23350'),
+            Defn('curse', '333072'),
+            Defn('curse', '431557'),
+        } == set(matches)
+    elif iw_manager.config.game_flavour is Flavour.vanilla_classic:
+        assert {Defn('curse', '23350'), Defn('curse', '333072')} == set(matches)
+    else:
+        assert False

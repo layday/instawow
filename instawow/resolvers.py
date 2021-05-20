@@ -96,7 +96,7 @@ class _CatalogueBaseEntry(TypedDict):
     id: str
     slug: str
     name: str
-    game_compatibility: Set[Flavour]
+    game_flavours: Set[Flavour]
     folders: Sequence[Sequence[str]]
     download_count: int
     last_updated: datetime | int | str
@@ -107,7 +107,7 @@ class CatalogueEntry(BaseModel):
     id: str
     slug: str
     name: str
-    game_compatibility: typing.Set[Flavour]
+    game_flavours: typing.Set[Flavour]
     folders: typing.List[typing.Set[str]]
     download_count: int
     last_updated: datetime
@@ -376,7 +376,6 @@ class CurseResolver(Resolver):
                 return defn.version == f['displayName']
 
             is_match = is_version_match
-
         else:
 
             files = metadata['latestFiles']
@@ -389,36 +388,39 @@ class CurseResolver(Resolver):
 
             if defn.strategy is Strategy.any_flavour:
 
-                def supports_any_flavour_game_version(f: CurseAddon_File):
+                def supports_any_game_version(f: CurseAddon_File):
                     return True
 
-                supports_game_version = supports_any_flavour_game_version
-
+                supports_game_version = supports_any_game_version
             else:
-                classic_version_prefix = '1.13'
-                tbc_version_prefix = '2.5'
-                flavour = 'wow_classic' if self.manager.config.is_classic else 'wow_retail'
 
-                def supports_default_game_version(f: CurseAddon_File):
-                    # Files can have multiple ``gameVersion``s but ``gameVersionFlavor``
-                    # is a scalar ('wow_retail' or 'wow_classic').
-                    # ``gameVersion`` might not be populated - we fall back on it
-                    # only if ``gameVersionFlavor`` does not match.
-                    # As of 2021-04-02, TBC add-ons have a ``gameVersionFlavor``
-                    # value of null - we filter these out.
-                    return f['gameVersionFlavor'] is not None and (
-                        f['gameVersionFlavor'] == flavour
-                        or any(
-                            not v.startswith(tbc_version_prefix)
-                            and (
-                                v.startswith(classic_version_prefix)
-                                is self.manager.config.is_classic
-                            )
-                            for v in f['gameVersion']
+                # Files can have multiple ``gameVersion``s but ``gameVersionFlavor``
+                # is a scalar....but also ``gameVersion`` might not be populated -
+                # we fall back on it only if ``gameVersionFlavor`` does not match
+                if self.manager.config.game_flavour is Flavour.retail:
+
+                    def supports_retail(f: CurseAddon_File):
+                        return f['gameVersionFlavor'] == 'wow_retail' or any(
+                            not v.startswith(('1.13', '2.5')) for v in f['gameVersion']
                         )
-                    )
 
-                supports_game_version = supports_default_game_version
+                    supports_game_version = supports_retail
+                elif self.manager.config.game_flavour is Flavour.vanilla_classic:
+
+                    def supports_vanilla_classic(f: CurseAddon_File):
+                        return f['gameVersionFlavor'] == 'wow_classic' or any(
+                            v.startswith('1.13') for v in f['gameVersion']
+                        )
+
+                    supports_game_version = supports_vanilla_classic
+                elif self.manager.config.game_flavour is Flavour.burning_crusade_classic:
+
+                    def supports_burning_crusade(f: CurseAddon_File):
+                        return f['gameVersionFlavor'] == 'wow_burning_crusade' or any(
+                            v.startswith('2.5') for v in f['gameVersion']
+                        )
+
+                    supports_game_version = supports_burning_crusade
 
             if defn.strategy is Strategy.latest:
 
@@ -426,21 +428,18 @@ class CurseResolver(Resolver):
                     return True
 
                 has_release_type = has_latest_release_type
-
             elif defn.strategy is Strategy.curse_latest_beta:
 
                 def has_curse_latest_beta_release_type(f: CurseAddon_File):
                     return f['releaseType'] == 2
 
                 has_release_type = has_curse_latest_beta_release_type
-
             elif defn.strategy is Strategy.curse_latest_alpha:
 
                 def has_curse_latest_alpha_release_type(f: CurseAddon_File):
                     return f['releaseType'] == 3
 
                 has_release_type = has_curse_latest_alpha_release_type
-
             else:
 
                 def has_default_release_type(f: CurseAddon_File):
@@ -448,10 +447,10 @@ class CurseResolver(Resolver):
 
                 has_release_type = has_default_release_type
 
-            def is_default_matcb(f: CurseAddon_File):
+            def is_default_match(f: CurseAddon_File):
                 return is_not_libless(f) and supports_game_version(f) and has_release_type(f)
 
-            is_match = is_default_matcb
+            is_match = is_default_match
 
         if not files:
             raise R.PkgFileUnavailable('no files available for download')
@@ -492,20 +491,19 @@ class CurseResolver(Resolver):
     async def catalogue(
         cls, web_client: _deferred_types.aiohttp.ClientSession
     ) -> AsyncIterator[_CatalogueBaseEntry]:
-        classic_version_prefix = '1.13'
-        tbc_version_prefix = '2.5'
-
         def excise_flavours(files: list[CurseAddon_File]):
-            for c in Flavour:
-                if any(f['gameVersionFlavor'] == f'wow_{c}' for f in files):
-                    yield c
-                elif any(
-                    not v.startswith(tbc_version_prefix)
-                    and (v.startswith(classic_version_prefix) is (c is Flavour.classic))
-                    for f in files
-                    for v in f['gameVersion']
-                ):
-                    yield c
+            if any(f['gameVersionFlavor'] == 'wow_retail' for f in files) or any(
+                not v.startswith(('1.13', '2.5')) for f in files for v in f['gameVersion']
+            ):
+                yield Flavour.retail
+            if any(f['gameVersionFlavor'] == 'wow_classic' for f in files) or any(
+                v.startswith('1.13') for f in files for v in f['gameVersion']
+            ):
+                yield Flavour.vanilla_classic
+            if any(f['gameVersionFlavor'] == 'wow_burning_crusade' for f in files) or any(
+                v.startswith('2.5') for f in files for v in f['gameVersion']
+            ):
+                yield Flavour.burning_crusade_classic
 
         step = 1000
         sort_order = '3'  # Alphabetical
@@ -521,18 +519,17 @@ class CurseResolver(Resolver):
                 break
 
             for item in json_response:
-                folders = uniq(
-                    tuple(m['foldername'] for m in f['modules'])
-                    for f in item['latestFiles']
-                    if not f['exposeAsAlternative']
-                )
                 yield _CatalogueBaseEntry(
                     source=cls.source,
                     id=str(item['id']),
                     slug=item['slug'],
                     name=item['name'],
-                    game_compatibility=set(excise_flavours(item['latestFiles'])),
-                    folders=folders,
+                    game_flavours=set(excise_flavours(item['latestFiles'])),
+                    folders=uniq(
+                        tuple(m['foldername'] for m in f['modules'])
+                        for f in item['latestFiles']
+                        if not f['exposeAsAlternative']
+                    ),
                     download_count=item['downloadCount'],
                     last_updated=item['dateReleased'],
                 )
@@ -650,9 +647,8 @@ class WowiResolver(Resolver):
                 raise
             details_api_items = []
 
-        combined_items = {
-            i['UID']: WowiCombinedItem(**{**list_api_items[i['UID']], **i})
-            for i in details_api_items
+        combined_items: dict[str, Any] = {
+            i['UID']: {**list_api_items[i['UID']], **i} for i in details_api_items
         }
         results = await gather(
             (self.resolve_one(d, combined_items.get(i)) for d, i in defns_to_ids.items()),
@@ -696,7 +692,7 @@ class WowiResolver(Resolver):
                 name=list_item['UIName'],
                 slug='',
                 folders=[list_item['UIDir']],
-                game_compatibility=flavours,
+                game_flavours=flavours,
                 download_count=int(list_item['UIDownloadTotal']),
                 last_updated=list_item['UIDate'],
             )
@@ -756,7 +752,7 @@ class TukuiResolver(Resolver):
     def get_alias_from_url(value: str) -> str | None:
         url = URL(value)
         if url.host == 'www.tukui.org':
-            if url.path in {'/addons.php', '/classic-addons.php'}:
+            if url.path in {'/addons.php', '/classic-addons.php', '/classic-tbc-addons.php'}:
                 return url.query.get('id')
             elif url.path == '/download.php':
                 return url.query.get('ui')
@@ -771,11 +767,16 @@ class TukuiResolver(Resolver):
             return [(str(addon['id']), addon), (ui_slug, addon)]
 
         async def fetch_addons(flavour: Flavour):
+            if flavour is Flavour.retail:
+                query = 'addons'
+            elif flavour is Flavour.vanilla_classic:
+                query = 'classic-addons'
+            elif flavour is Flavour.burning_crusade_classic:
+                query = 'classic-tbc-addons'
+
             addons: list[TukuiAddon] = await manager.cache_response(
                 self.manager,
-                self.api_url.with_query(
-                    {'classic-addons' if flavour is Flavour.classic else 'addons': 'all'}
-                ),
+                self.api_url.with_query({query: 'all'}),
                 {'minutes': 30},
                 label=f'Synchronising {self.name} {flavour} catalogue',
             )
@@ -783,7 +784,11 @@ class TukuiResolver(Resolver):
 
         async with self.manager.locks['load Tukui catalogue']:
             requests = await gather(
-                ((fetch_ui('tukui'), fetch_ui('elvui')) if self.manager.config.is_retail else ())
+                (
+                    (fetch_ui('tukui'), fetch_ui('elvui'))
+                    if self.manager.config.game_flavour is Flavour.retail
+                    else ()
+                )
                 + (fetch_addons(self.manager.config.game_flavour),)
             )
             return {k: v for l in requests for k, v in l}
@@ -792,7 +797,6 @@ class TukuiResolver(Resolver):
         self, defns: Sequence[Defn]
     ) -> dict[Defn, models.Pkg | R.ManagerError | R.InternalError]:
         addons = await self._synchronise()
-
         ids = (d.alias[: p if p != -1 else None] for d in defns for p in (d.alias.find('-', 1),))
         results = await gather(
             (self.resolve_one(d, addons.get(i)) for d, i in zip(defns, ids)),
@@ -846,11 +850,13 @@ class TukuiResolver(Resolver):
                 return ({Flavour.retail}, [await response.json(content_type=None)])  # text/html
 
         async def fetch_addons(flavour: Flavour) -> tuple[set[Flavour], list[TukuiAddon]]:
-            async with web_client.get(
-                cls.api_url.with_query(
-                    {'classic-addons' if flavour is Flavour.classic else 'addons': 'all'}
-                )
-            ) as response:
+            if flavour is Flavour.retail:
+                query = 'addons'
+            elif flavour is Flavour.vanilla_classic:
+                query = 'classic-addons'
+            elif flavour is Flavour.burning_crusade_classic:
+                query = 'classic-tbc-addons'
+            async with web_client.get(cls.api_url.with_query({query: 'all'})) as response:
                 return ({flavour}, await response.json(content_type=None))  # text/html
 
         for flavours, items in await gather(
@@ -858,7 +864,8 @@ class TukuiResolver(Resolver):
                 fetch_ui('tukui'),
                 fetch_ui('elvui'),
                 fetch_addons(Flavour.retail),
-                fetch_addons(Flavour.classic),
+                fetch_addons(Flavour.vanilla_classic),
+                fetch_addons(Flavour.burning_crusade_classic),
             ]
         ):
             for item in items:
@@ -868,7 +875,7 @@ class TukuiResolver(Resolver):
                     slug='',
                     name=item['name'],
                     folders=[],
-                    game_compatibility=flavours,
+                    game_flavours=flavours,
                     # Split Tukui and ElvUI downloads evenly between them.
                     # They both have the exact same number of downloads so
                     # I'm assuming they're being counted together.
@@ -999,7 +1006,7 @@ class GithubResolver(Resolver):
                             for a in assets
                             if is_valid_asset(a)
                             and a['name'].endswith('-classic.zip')
-                            is self.manager.config.is_classic
+                            is (self.manager.config.game_flavour is Flavour.vanilla_classic)
                         ),
                         filter(is_valid_asset, assets),
                     )
@@ -1016,8 +1023,10 @@ class GithubResolver(Resolver):
             game_flavour: Flavour = self.manager.config.game_flavour
             if game_flavour is Flavour.retail:
                 release_json_flavour = 'mainline'
-            elif game_flavour is Flavour.classic:
+            elif game_flavour is Flavour.vanilla_classic:
                 release_json_flavour = 'classic'
+            elif game_flavour is Flavour.burning_crusade_classic:
+                release_json_flavour = 'bcc'
 
             try:
                 matching_release = next(
@@ -1101,7 +1110,7 @@ class InstawowResolver(Resolver):
             folders=[
                 ['WeakAurasCompanion'],
             ],
-            game_compatibility=set(Flavour),
+            game_flavours=set(Flavour),
             download_count=1,
             last_updated=datetime.now(timezone.utc),
         )
@@ -1134,7 +1143,7 @@ class WowUpHubAddon_Release(TypedDict):
     published_at: str
     tag_name: str  # Cf. GH API
     url: str  # Same as download URL for TY
-    game_type: Literal['retail', 'classic']
+    game_type: Literal['retail', 'classic', 'burningCrusade']
 
 
 class WowUpHubAddons(TypedDict):
@@ -1175,11 +1184,16 @@ class TownlongYakResolver(Resolver):
         except KeyError:
             raise R.PkgNonexistent
 
+        if self.manager.config.game_flavour is Flavour.retail:
+            game_type = 'retail'
+        elif self.manager.config.game_flavour is Flavour.vanilla_classic:
+            game_type = 'classic'
+        elif self.manager.config.game_flavour is Flavour.burning_crusade_classic:
+            game_type = 'burningCrusade'
+
         try:
             file = next(
-                r
-                for r in addon['releases']
-                if not r['prerelease'] and r['game_type'] == self.manager.config.game_flavour
+                r for r in addon['releases'] if not r['prerelease'] and r['game_type'] == game_type
             )
         except StopIteration:
             raise R.PkgFileUnavailable
@@ -1213,7 +1227,7 @@ class TownlongYakResolver(Resolver):
                     slug=slug,
                     name=addon['repository_name'],
                     folders=(),
-                    game_compatibility={
+                    game_flavours={
                         Flavour[r['game_type']] for r in addon['releases'] if not r['prerelease']
                     },
                     download_count=1,

@@ -9,6 +9,7 @@ import pytest
 
 from instawow import __version__
 from instawow.cli import main
+from instawow.config import Flavour
 from instawow.resolvers import MultiPkgModel
 
 
@@ -54,7 +55,7 @@ def faux_molinari_and_run(iw_config, run):
     yield run
 
 
-def test_valid_curse_pkg_lifecycle(run):
+def test_valid_curse_pkg_lifecycle(iw_config, run):
     assert run('install curse:molinari').output.startswith('✓ curse:molinari\n  installed')
     assert (
         run('install curse:molinari').output == '✗ curse:molinari\n  package already installed\n'
@@ -72,7 +73,7 @@ def test_valid_tukui_pkg_lifecycle(iw_config, run):
     assert run('remove tukui:1').output == '✓ tukui:1\n  removed\n'
     assert run('update tukui:1').output == '✗ tukui:1\n  package is not installed\n'
     assert run('remove tukui:1').output == '✗ tukui:1\n  package is not installed\n'
-    if iw_config.is_retail:
+    if iw_config.game_flavour is Flavour.retail:
         assert run('install tukui:-1').output.startswith('✓ tukui:-1\n  installed')
         assert run('install tukui:-1').output == '✗ tukui:-1\n  package already installed\n'
         assert run('update tukui:-1').output == '✗ tukui:-1\n  package is up to date\n'
@@ -173,7 +174,7 @@ def test_install_with_curse_alias(run):
 
 
 def test_install_with_tukui_alias(iw_config, run):
-    if iw_config.is_retail:
+    if iw_config.game_flavour is Flavour.retail:
         assert run('install tukui:-1').output.startswith('✓ tukui:-1\n  installed')
         assert run('install tukui:tukui').output == '✗ tukui:tukui\n  package already installed\n'
         assert (
@@ -240,8 +241,8 @@ def test_install_with_github_alias(run):
 
 
 def test_version_strategy_lifecycle(iw_config, run):
-    assert (
-        run('install curse:molinari').output == '✓ curse:molinari\n  installed 80300.66-Release\n'
+    assert run('install curse:molinari').output.startswith(
+        '✓ curse:molinari\n  installed 90000.73-Release'
     )
     assert (
         run('install --version foo curse:molinari').output
@@ -262,7 +263,7 @@ def test_version_strategy_lifecycle(iw_config, run):
     assert run('remove curse:molinari').output == '✓ curse:molinari\n  removed\n'
 
 
-def test_install_sandwich(run):
+def test_install_options(iw_config, run):
     assert (
         run(
             'install'
@@ -270,9 +271,9 @@ def test_install_sandwich(run):
             ' -s latest curse:molinari'
             ' --version 80000.57-Release curse:molinari'
         ).output
-        == '''\
+        == f'''\
 ✓ curse:molinari
-  installed 80300.66-Release
+  installed 90000.73-Release{"-classic" if iw_config.game_flavour is Flavour.vanilla_classic else ""}
 ✗ curse:molinari
   package folders conflict with installed package Molinari
     (curse:20338)
@@ -283,7 +284,7 @@ def test_install_sandwich(run):
     )
 
 
-def test_install_sandwich_defn_order_is_respected(run):
+def test_install_option_order_is_respected(run):
     assert (
         run(
             'install'
@@ -304,12 +305,12 @@ def test_install_sandwich_defn_order_is_respected(run):
     )
 
 
-def test_install_sandwich_addon_argument_is_not_required(run):
+def test_install_argument_is_not_required(iw_config, run):
     assert (
         run('install -s latest curse:molinari --version 80000.57-Release curse:molinari').output
-        == '''\
+        == f'''\
 ✓ curse:molinari
-  installed 80300.66-Release
+  installed 90000.73-Release{"-classic" if iw_config.game_flavour is Flavour.vanilla_classic else ""}
 ✗ curse:molinari
   package folders conflict with installed package Molinari
     (curse:20338)
@@ -363,33 +364,33 @@ def test_rollback__single_version(run):
     )
 
 
-def test_rollback__multiple_versions(feed_pt, run):
+def test_rollback__multiple_versions(feed_pt, iw_config, run):
     assert run('install --version 80000.57-Release curse:molinari').exit_code == 0
     assert run('remove curse:molinari').exit_code == 0
     assert run('install curse:molinari').exit_code == 0
     feed_pt('\r\r')
     assert (
         run('rollback curse:molinari').output
-        == '✓ curse:molinari\n  updated 80300.66-Release to 80000.57-Release\n'
+        == f'✓ curse:molinari\n  updated 90000.73-Release{"-classic" if iw_config.game_flavour is Flavour.vanilla_classic else ""} to 80000.57-Release\n'
     )
 
 
-def test_rollback__multiple_versions_promptless(run):
+def test_rollback__multiple_versions_promptless(iw_config, run):
     assert run('install --version 80000.57-Release curse:molinari').exit_code == 0
     assert run('remove curse:molinari').exit_code == 0
     assert run('install curse:molinari').exit_code == 0
     assert (
         run('rollback --version 80000.57-Release curse:molinari').output
-        == '✓ curse:molinari\n  updated 80300.66-Release to 80000.57-Release\n'
+        == f'✓ curse:molinari\n  updated 90000.73-Release{"-classic" if iw_config.game_flavour is Flavour.vanilla_classic else ""} to 80000.57-Release\n'
     )
 
 
 @pytest.mark.parametrize('options', ['', '--undo'])
-def test_rollback__rollback_multiple_versions(feed_pt, run, options):
-    test_rollback__multiple_versions(feed_pt, run)
+def test_rollback__rollback_multiple_versions(feed_pt, iw_config, run, options):
+    test_rollback__multiple_versions(feed_pt, iw_config, run)
     assert (
         run(f'rollback {options} curse:molinari').output
-        == '✓ curse:molinari\n  updated 80000.57-Release to 80300.66-Release\n'
+        == f'✓ curse:molinari\n  updated 80000.57-Release to 90000.73-Release{"-classic" if iw_config.game_flavour is Flavour.vanilla_classic else ""}\n'
     )
 
 
@@ -409,10 +410,10 @@ def test_reconcile__list_unreconciled(faux_molinari_and_run):
     )
 
 
-def test_reconcile__auto_reconcile(faux_molinari_and_run):
+def test_reconcile__auto_reconcile(iw_config, faux_molinari_and_run):
     assert (
         faux_molinari_and_run('reconcile --auto').output
-        == '✓ curse:molinari\n  installed 80300.66-Release\n'
+        == f'✓ curse:molinari\n  installed 90000.73-Release{"-classic" if iw_config.game_flavour is Flavour.vanilla_classic else ""}\n'
     )
 
 
@@ -421,10 +422,10 @@ def test_reconcile__abort_interactive_reconciliation(feed_pt, faux_molinari_and_
     assert faux_molinari_and_run('reconcile').output.endswith('Aborted!\n')
 
 
-def test_reconcile__complete_interactive_reconciliation(feed_pt, faux_molinari_and_run):
+def test_reconcile__complete_interactive_reconciliation(feed_pt, iw_config, faux_molinari_and_run):
     feed_pt('\r\r')
     assert faux_molinari_and_run('reconcile').output.endswith(
-        '✓ curse:molinari\n  installed 80300.66-Release\n'
+        f'✓ curse:molinari\n  installed 90000.73-Release{"-classic" if iw_config.game_flavour is Flavour.vanilla_classic else ""}\n'
     )
 
 
@@ -446,27 +447,27 @@ def test_search__exit_after_selection(feed_pt, run):
     assert run('search molinari').output == ''
 
 
-def test_search__install_directly_from_search(feed_pt, run):
+def test_search__install_directly_from_search(feed_pt, iw_config, run):
     feed_pt(' \r\r')  # space, enter, enter
     assert (
         run('search molinari --source curse').output
-        == '✓ curse:molinari\n  installed 80300.66-Release\n'
+        == f'✓ curse:molinari\n  installed 90000.73-Release{"-classic" if iw_config.game_flavour is Flavour.vanilla_classic else ""}\n'
     )
 
 
-def test_search__install_multiple(feed_pt, run):
+def test_search__install_multiple(feed_pt, iw_config, run):
     feed_pt(' \x1b[B \r\r')  # space, arrow down, space, enter, enter
     assert run('search molinari').output in {
-        '''\
+        f'''\
 ✓ curse:molinari
-  installed 80300.66-Release
+  installed 90000.73-Release{"-classic" if iw_config.game_flavour is Flavour.vanilla_classic else ""}
 ✗ wowi:13188-molinari
   package folders conflict with installed package Molinari
     (curse:20338)
 ''',
-        '''\
+        f'''\
 ✓ wowi:13188-molinari
-  installed 80300.66-Release
+  installed 90000.73-Release
 ✗ curse:molinari
   package folders conflict with installed package Molinari
     (wowi:13188)

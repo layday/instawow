@@ -4,6 +4,8 @@ from aiohttp import ClientError
 import pytest
 
 from instawow import results as R
+from instawow.config import Flavour
+from instawow.models import Pkg
 from instawow.resolvers import Defn, Strategy
 
 
@@ -72,6 +74,21 @@ async def test_resolve_rewraps_exception_appropriately_from_batch_resolve(
     results = await iw_manager.resolve([defn])
     assert type(results[defn]) is R.InternalError
     assert results[defn].message == f'internal error: "{exception}"'
+
+
+@pytest.mark.asyncio
+async def test_resolve_invalid_source(iw_manager):
+    defn = Defn('bar', 'baz')
+    results = await iw_manager.resolve([defn])
+    assert type(results[defn]) is R.PkgSourceInvalid
+
+
+@pytest.mark.asyncio
+async def test_resolve_plugin_hook_source(iw_manager):
+    pytest.importorskip('instawow_test_plugin')
+    defn = Defn('me', 'bar')
+    results = await iw_manager.resolve([defn])
+    assert type(results[defn]) is Pkg
 
 
 @pytest.mark.asyncio
@@ -188,7 +205,7 @@ async def test_search_source_filtering(iw_manager):
 async def test_search_caters_to_flavour(iw_manager):
     results = await iw_manager.search('AtlasLootClassic', limit=5)
     defns = {Defn(e.source, e.slug or e.id) for e in results}
-    if iw_manager.config.is_classic:
+    if iw_manager.config.game_flavour is Flavour.vanilla_classic:
         assert Defn('curse', 'atlaslootclassic') in defns
     else:
         assert Defn('curse', 'atlaslootclassic') not in defns

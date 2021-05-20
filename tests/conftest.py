@@ -66,7 +66,12 @@ def iw_temp_dir(tmp_path_factory):
     yield temp_dir
 
 
-@pytest.fixture(params=Flavour)
+@pytest.fixture(
+    params=[
+        Flavour.retail,
+        Flavour.vanilla_classic,
+    ]
+)
 def iw_config_dict_no_config_dir(tmp_path, request, iw_temp_dir):
     addons = tmp_path / 'wow' / 'interface' / 'addons'
     addons.mkdir(parents=True)
@@ -221,6 +226,14 @@ def mock_tukui(aresponses, mock_master_catalogue):
     )
     aresponses.add(
         'www.tukui.org',
+        '/api.php?classic-tbc-addons=all',
+        'get',
+        load_json_fixture('tukui-classic-tbc-addons.json'),
+        match_querystring=True,
+        repeat=inf,
+    )
+    aresponses.add(
+        'www.tukui.org',
         '/api.php',
         'get',
         '',
@@ -243,7 +256,7 @@ def mock_tukui(aresponses, mock_master_catalogue):
     )
     aresponses.add(
         'www.tukui.org',
-        '/classic-addons.php?download=1',
+        re.compile(r'/classic-(?:-tbc)?addons\.php\?download=1'),
         'get',
         aresponses.Response(body=make_addon_zip('Tukui')),
         match_querystring=True,
@@ -306,28 +319,28 @@ def mock_github(aresponses):
     )
     aresponses.add(
         'api.github.com',
-        '/repos/WeakAuras/WeakAuras2',
+        '/repos/p3lim-wow/Molinari',
         'get',
         load_json_fixture('github-repo-legacy-retail-and-classic.json'),
         repeat=inf,
     )
     aresponses.add(
         'api.github.com',
-        '/repos/WeakAuras/WeakAuras2/releases/latest',
+        '/repos/p3lim-wow/Molinari/releases/latest',
         'get',
         load_json_fixture('github-release-legacy-retail-and-classic.json'),
         repeat=inf,
     )
     aresponses.add(
         'api.github.com',
-        '/repos/p3lim-wow/Molinari',
+        '/repos/AdiAddons/AdiBags',
         'get',
         load_json_fixture('github-repo-no-releases.json'),
         repeat=inf,
     )
     aresponses.add(
         'api.github.com',
-        '/repos/p3lim-wow/Molinari/releases/latest',
+        '/repos/AdiAddons/AdiBags/releases/latest',
         'get',
         aresponses.Response(body=b'', status=404),
         repeat=inf,
@@ -341,7 +354,7 @@ def mock_github(aresponses):
     )
     aresponses.add(
         'api.github.com',
-        '/repos/layday/foo-bar',
+        '/repos/layday/foobar',
         'get',
         aresponses.Response(body=b'', status=404),
         repeat=inf,
