@@ -234,7 +234,7 @@ class WaCompanionBuilder:
             return '90005'
         elif game_flavour is Flavour.vanilla_classic:
             return '11307'
-        elif game_flavour is Flavour.burning_crusade_classic:
+        else:  # Flavour.burning_crusade_classic
             return '20501'
 
     def _generate_addon(self, auras: Iterable[tuple[type[Auras[WeakAura]], AuraGroup]]) -> None:

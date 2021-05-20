@@ -771,7 +771,7 @@ class TukuiResolver(Resolver):
                 query = 'addons'
             elif flavour is Flavour.vanilla_classic:
                 query = 'classic-addons'
-            elif flavour is Flavour.burning_crusade_classic:
+            else:  # Flavour.burning_crusade_classic
                 query = 'classic-tbc-addons'
 
             addons: list[TukuiAddon] = await manager.cache_response(
@@ -854,7 +854,7 @@ class TukuiResolver(Resolver):
                 query = 'addons'
             elif flavour is Flavour.vanilla_classic:
                 query = 'classic-addons'
-            elif flavour is Flavour.burning_crusade_classic:
+            else:  # Flavour.burning_crusade_classic
                 query = 'classic-tbc-addons'
             async with web_client.get(cls.api_url.with_query({query: 'all'})) as response:
                 return ({flavour}, await response.json(content_type=None))  # text/html
@@ -1025,7 +1025,7 @@ class GithubResolver(Resolver):
                 release_json_flavour = 'mainline'
             elif game_flavour is Flavour.vanilla_classic:
                 release_json_flavour = 'classic'
-            elif game_flavour is Flavour.burning_crusade_classic:
+            else:  # Flavour.burning_crusade_classic
                 release_json_flavour = 'bcc'
 
             try:
@@ -1188,7 +1188,7 @@ class TownlongYakResolver(Resolver):
             game_type = 'retail'
         elif self.manager.config.game_flavour is Flavour.vanilla_classic:
             game_type = 'classic'
-        elif self.manager.config.game_flavour is Flavour.burning_crusade_classic:
+        else:  # Flavour.burning_crusade_classic
             game_type = 'burningCrusade'
 
         try:
