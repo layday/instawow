@@ -62,15 +62,15 @@ jobs:
     strategy:
       matrix:
         build-env:
-        # - os: macos-latest
-        #   briefcase-build-opts: ''
-        #   briefcase-package-opts: '--no-sign'
+        - os: macos-latest
+          briefcase-build-opts: ''
+          briefcase-package-opts: '--no-sign'
         - os: ubuntu-latest
           briefcase-build-opts: '--no-docker'
           briefcase-package-opts: ''
-        # - os: windows-latest
-        #   briefcase-build-opts: ''
-        #   briefcase-package-opts: ''
+        - os: windows-latest
+          briefcase-build-opts: ''
+          briefcase-package-opts: ''
       fail-fast: false
     runs-on: ${{ matrix.build-env.os }}
     steps:
