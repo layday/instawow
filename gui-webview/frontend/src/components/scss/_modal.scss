@@ -1,0 +1,143 @@
+@import "vars";
+
+$form-el-line-height: 1.75em;
+$middle-border-radius: $form-el-line-height / 6;
+$edge-border-radius: $form-el-line-height / 4;
+
+%modal-elements {
+  .content,
+  .title-bar {
+    padding: 1.25rem;
+    background-color: var(--base-color-alpha-65);
+    -webkit-backdrop-filter: blur(5px);
+    backdrop-filter: blur(5px);
+  }
+
+  .title-bar {
+    padding: 0.65rem 1.25rem;
+    border-radius: 0.25rem 0.25rem 0 0;
+    background-color: var(--inverse-color-alpha-05);
+    font-size: 0.9em;
+    font-weight: 600;
+  }
+
+  .content {
+    border-radius: 0 0 0.25rem 0.25rem;
+
+    &:first-child {
+      border-radius: 0.25rem;
+    }
+  }
+
+  button,
+  input[type="text"],
+  select {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    line-height: $form-el-line-height;
+    padding: 0 0.5em;
+    border: 0;
+    border-radius: $edge-border-radius;
+    background-color: var(--inverse-color-alpha-10);
+    transition: background-color 0.2s;
+
+    &:disabled {
+      opacity: 0.5;
+    }
+
+    &:focus {
+      background-color: var(--inverse-color-alpha-20);
+    }
+
+    &.error {
+      background-color: salmon;
+    }
+
+    :global(.icon) {
+      height: 1rem;
+      width: 1rem;
+      fill: var(--inverse-color);
+      vertical-align: text-bottom;
+    }
+  }
+
+  button[type="submit"] {
+    justify-content: center;
+    background-color: $action-button-bg-color;
+    color: $action-button-text-color;
+    font-weight: 600;
+
+    &:focus {
+      background-color: $action-button-focus-bg-color;
+    }
+  }
+
+  select {
+    min-width: 12rem;
+    max-width: 20rem;
+    padding-right: 1.25rem;
+    background-image: var(--dropdown-arrow);
+    background-size: 10px;
+    background-repeat: no-repeat;
+    background-position: top 9px right 7px;
+    -webkit-appearance: none;
+  }
+
+  .row + .row {
+    margin-top: 0.5rem;
+  }
+
+  .input-array {
+    display: flex;
+
+    button,
+    input {
+      margin: 0;
+      border-radius: $middle-border-radius;
+
+      + button,
+      + input {
+        margin-left: 4px;
+      }
+    }
+
+    button {
+      width: auto;
+    }
+
+    :first-child {
+      flex-grow: 1;
+      border-top-left-radius: $edge-border-radius;
+      border-bottom-left-radius: $edge-border-radius;
+    }
+
+    :last-child {
+      border-top-right-radius: $edge-border-radius;
+      border-bottom-right-radius: $edge-border-radius;
+    }
+  }
+
+  .error-text {
+    line-height: 1;
+    color: salmon;
+    font-size: 0.9em;
+
+    :not(:first-child) {
+      padding-top: 0.25rem;
+    }
+  }
+}
+
+.modal {
+  background: none;
+  position: unset;
+  max-width: 75vw;
+  padding: 0;
+  border: 0;
+  border-radius: 0.25rem;
+  box-shadow: 0 1rem 3rem var(--inverse-color-alpha-10);
+  color: var(--inverse-color);
+
+  @extend %modal-elements;
+}

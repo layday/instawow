@@ -16,10 +16,10 @@ def reformat(session: nox.Session):
     "Reformat Python source code using Black and JavaScript using Prettier."
     session.install('isort >=5.8.0', 'black >=20.8b1')
     for cmd in ('isort', 'black'):
-        session.run(cmd, 'instawow', 'tests', 'noxfile.py')
+        session.run(cmd, 'instawow', 'gui-webview/instawow_gui', 'tests', 'noxfile.py')
 
     if '--skip-prettier' not in session.posargs:
-        session.chdir('gui')
+        session.chdir('gui-webview/frontend')
         session.run(
             'npx',
             'prettier',
@@ -67,8 +67,10 @@ def test(session: nox.Session, constraints: str):
     with open(constraints_txt, 'w') as file:
         file.write(constraints)
 
-    session.install('-c', constraints_txt, '.[server, test]', './tests/plugin')
-    session.run('pytest', '--cov', '--cov-report=', '-n', 'auto')
+    session.install('-c', constraints_txt, '.[gui, test]', './tests/plugin')
+    session.run(
+        'pytest', '--cov', '--cov-report=', '-n', 'auto', env={'PYTHONPATH': 'gui-webview'}
+    )
     session.run('coverage', 'report', '-m')
 
 

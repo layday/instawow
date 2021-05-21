@@ -1,0 +1,24 @@
+[tool.briefcase]
+project_name = "instawow-gui"
+bundle = "org.instawow.gui"
+version = "0.0.0"
+url = "https://github.com/layday/instawow"
+license = "GNU General Public License v3 (GPLv3)"
+author = "layday"
+author_email = "layday@protonmail.com"
+
+[tool.briefcase.app.instawow-gui]
+formal_name = "instawow-gui"
+description = "GUI for the World of Warcraft add-on manager instawow"
+icon = "instawow_gui/resources/instawow_gui"
+sources = ["instawow_gui"]
+requires = ["..[gui]"]
+
+[tool.briefcase.app.instawow-gui.linux]
+system_requires = [
+  "libgirepository1.0-dev",
+  "libcairo2-dev",
+  "libpango1.0-dev",
+  "libwebkitgtk-3.0-0",
+  "gir1.2-webkit-3.0",
+]

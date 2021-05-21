@@ -3,15 +3,19 @@ from aiohttp_rpc import JsonRpcRequest as Request, JsonRpcResponse as Response
 import pytest
 
 from instawow.config import Config
-from instawow.json_rpc_server import _serialise_response, create_app
+
+try:
+    from instawow_gui import json_rpc_server
+except ImportError:
+    pytestmark = pytest.mark.skip(reason='instawow_gui is not available')
 
 
 @pytest.fixture
 async def ws(iw_config_dict, monkeypatch):
     monkeypatch.setenv('INSTAWOW_CONFIG_DIR', str(iw_config_dict['config_dir']))
-    app, endpoint = await create_app()
+    app = await json_rpc_server.create_app()
     server = TestServer(app)
-    async with TestClient(server) as client, client.ws_connect(endpoint) as ws:
+    async with TestClient(server) as client, client.ws_connect('/api') as ws:
         yield ws
 
 
@@ -19,29 +23,29 @@ async def ws(iw_config_dict, monkeypatch):
 async def test_write_config(request, iw_config_dict, ws):
     config_values = {**iw_config_dict, 'profile': request.node.name}
     rpc_request = Request(
-        method='config/write',
+        method_name='config/write',
         params={'values': config_values, 'infer_game_flavour': False},
-        msg_id=request.node.name,
+        id=request.node.name,
     )
-    await ws.send_str(_serialise_response(rpc_request.to_dict()))
+    await ws.send_str(json_rpc_server._serialise_response(rpc_request.to_dict()))
     rpc_response = Response.from_dict(await ws.receive_json())
-    assert rpc_response.msg_id == request.node.name
+    assert rpc_response.id == request.node.name
     assert Config.parse_obj(rpc_response.result) == Config.parse_obj(config_values)
 
 
 @pytest.mark.asyncio
 async def test_write_config_with_invalid_params(request, iw_config_dict, ws):
     rpc_request = Request(
-        method='config/write',
+        method_name='config/write',
         params={
             'values': {**iw_config_dict, 'game_flavour': 'strawberry'},
             'infer_game_flavour': False,
         },
-        msg_id=request.node.name,
+        id=request.node.name,
     )
-    await ws.send_str(_serialise_response(rpc_request.to_dict()))
+    await ws.send_str(json_rpc_server._serialise_response(rpc_request.to_dict()))
     rpc_response = Response.from_dict(await ws.receive_json())
-    assert rpc_response.msg_id == request.node.name
+    assert rpc_response.id == request.node.name
     assert rpc_response.error
     error = rpc_response.error
     assert error.code == -32001
@@ -59,11 +63,11 @@ async def test_write_config_with_invalid_params(request, iw_config_dict, ws):
 @pytest.mark.asyncio
 async def test_install_with_invalid_params(request, ws):
     rpc_request = Request(
-        method='install',
+        method_name='install',
         params={},
-        msg_id=request.node.name,
+        id=request.node.name,
     )
-    await ws.send_str(_serialise_response(rpc_request.to_dict()))
+    await ws.send_str(json_rpc_server._serialise_response(rpc_request.to_dict()))
     rpc_response = Response.from_dict(await ws.receive_json())
     assert rpc_response.error and rpc_response.error.code == -32602
 
@@ -72,14 +76,14 @@ async def test_install_with_invalid_params(request, ws):
 @pytest.mark.asyncio
 async def test_install_with_uninitialised_profile(request, ws):
     rpc_request = Request(
-        method='install',
+        method_name='install',
         params={
             'profile': request.node.name,
             'defns': [{'source': 'curse', 'name': 'molinari'}],
             'replace': False,
         },
-        msg_id=request.node.name,
+        id=request.node.name,
     )
-    await ws.send_str(_serialise_response(rpc_request.to_dict()))
+    await ws.send_str(json_rpc_server._serialise_response(rpc_request.to_dict()))
     rpc_response = Response.from_dict(await ws.receive_json())
     assert rpc_response.error and rpc_response.error.code == -32001

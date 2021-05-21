@@ -745,16 +745,36 @@ def generate_catalogue(filename: str, age_cutoff: datetime | None) -> None:
 
 
 @main.command(hidden=True)
+@click.option(
+    '--log-to-stderr', is_flag=True, default=False, help="Output log to stderr for debugging."
+)
 @click.pass_context
-def listen(ctx: click.Context) -> None:
-    "Fire up the WebSocket server."
+def gui(ctx: click.Context, log_to_stderr: bool) -> None:
+    "Fire up the GUI."
     import asyncio
+    import threading
 
-    from . import json_rpc_server
+    from instawow_gui import json_rpc_server
+    from instawow_gui.app import InstawowApp
 
-    dummy_config = Config.get_dummy_config(profile='__jsonrpc__').ensure_dirs()
     log_level = ctx.find_root().params['log_level']
-    setup_logging(dummy_config, log_level)
+    if not log_to_stderr:
+        dummy_config = Config.get_dummy_config(profile='__jsonrpc__').ensure_dirs()
+        setup_logging(dummy_config, log_level)
+
     _override_asyncio_loop_policy()
     _set_asyncio_debug(log_level == 'DEBUG')
-    asyncio.run(json_rpc_server.listen())
+
+    loop = asyncio.new_event_loop()
+    server_url, listen = loop.run_until_complete(json_rpc_server.prepare())
+    click.echo(f'web server: {server_url}')
+
+    def serve():
+        loop.run_until_complete(listen())
+
+    server_thread = threading.Thread(target=serve, name='iw-server-thread')
+    try:
+        server_thread.start()
+        InstawowApp(str(server_url), version=__version__).main_loop()
+    finally:
+        server_thread.join()

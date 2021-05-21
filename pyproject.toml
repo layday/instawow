@@ -34,8 +34,12 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-server = [
-  "aiohttp-rpc ==0.6.3",
+gui = [
+  "aiohttp-rpc >=0.6.3",
+  "toga >=0.3.0.dev27",
+  "toga-cocoa >=0.3.0.dev27; platform_system == 'Darwin'",
+  "toga-gtk >=0.3.0.dev27; platform_system == 'Linux'",
+  "toga-winforms >=0.3.0.dev27; platform_system == 'Windows'",
 ]
 test = [
   "aresponses ~=2.0",
@@ -92,7 +96,9 @@ xfail_strict = true
 [tool.pyright]
 include = [
   "instawow",
+  "gui-webview/instawow_gui",
 ]
+extraPaths = ["gui-webview"]
 useLibraryCodeForTypes = true
 typeCheckingMode = "strict"
 reportMissingTypeStubs = "information"
