@@ -70,7 +70,7 @@ jobs:
     - name: Install Python
       uses: actions/setup-python@v2
       with:
-        python-version: '3.9'
+        python-version: '3.8'
     - name: Install npm dependencies and compile frontend
       run: |
         npm install
@@ -87,5 +87,5 @@ jobs:
     - name: Upload app
       uses: actions/upload-artifact@v2
       with:
-        name: instawow-gui-${{ matrix.os }}-${{ needs.extract-tag.outputs.tag }}
+        # name: instawow-gui-${{ matrix.os }}-${{ needs.extract-tag.outputs.tag }}
         path: ${{ env.artifact_path }}
