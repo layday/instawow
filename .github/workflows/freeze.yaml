@@ -85,6 +85,14 @@ jobs:
         npm install
         npx rollup -c
       working-directory: gui-webview/frontend
+    - name: Install briefcase dependencies
+      run: |
+        sudo apt-get install -y libgirepository1.0-dev \
+          libcairo2-dev \
+          libpango1.0-dev \
+          libwebkitgtk-3.0-0 \
+          gir1.2-webkit-3.0
+      if: matrix.build-env.os == 'ubuntu-latest'
     - name: Install briefcase and build app
       run: |
         python -m pip install briefcase
