@@ -64,6 +64,7 @@ def main() -> None:
     if _running_under_briefcase():
         _patch_loguru()
         _patch_aiohttp()
+        print()  # ``click`` doesn't run without this, for whatever reason.
 
     instawow.cli.main(sys.argv[1:] or ['gui'])
 
