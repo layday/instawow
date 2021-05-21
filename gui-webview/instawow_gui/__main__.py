@@ -41,19 +41,22 @@ def _patch_aiohttp() -> None:
 
 
 def _running_under_briefcase() -> bool:
-    try:
-        import importlib.metadata
-    except ImportError:
-        # briefcase uses Python 3.9 which ships with ``importlib.metadata``.
-        # If we can't import importlib.metadata then we're not under briefcase.
-        return False
+    import sys
 
-    try:
-        gui_metadata = importlib.metadata.metadata('instawow_gui')
-    except importlib.metadata.PackageNotFoundError:
-        return False
+    # briefcase uses Python 3.9 which ships with ``importlib.metadata``.
+    # If we can't import importlib.metadata then we're not under briefcase.
+    if sys.version_info > (3, 7):
+        import importlib.metadata
+
+        try:
+            gui_metadata = importlib.metadata.metadata('instawow_gui')
+        except importlib.metadata.PackageNotFoundError:
+            return False
+        else:
+            return 'Briefcase-Version' in gui_metadata
+
     else:
-        return 'Briefcase-Version' in gui_metadata
+        return False
 
 
 def main() -> None:
