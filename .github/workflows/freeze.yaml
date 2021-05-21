@@ -76,6 +76,18 @@ jobs:
     steps:
     - name: Clone the repo
       uses: actions/checkout@v2
+    - name: Install briefcase dependencies
+      run: |
+        sudo apt-get install -y libgirepository1.0-dev \
+          libcairo2-dev \
+          libpango1.0-dev \
+          libgdbm-dev
+      if: matrix.build-env.os == 'ubuntu-latest'
+    - name: Symlink new to old gdbm
+      run: |
+        sudo ln -s libgdbm.so.6 libgdbm.so.5
+      working-directory: /usr/lib/x86_64-linux-gnu
+      if: matrix.build-env.os == 'ubuntu-latest'
     - name: Install Python
       uses: actions/setup-python@v2
       with:
@@ -85,13 +97,6 @@ jobs:
         npm install
         npx rollup -c
       working-directory: gui-webview/frontend
-    - name: Install briefcase dependencies
-      run: |
-        sudo apt-get install -y libgirepository1.0-dev \
-          libcairo2-dev \
-          libpango1.0-dev \
-          libgdbm-dev
-      if: matrix.build-env.os == 'ubuntu-latest'
     - name: Install briefcase and build app
       run: |
         python -m pip install briefcase
