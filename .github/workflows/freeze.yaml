@@ -62,15 +62,15 @@ jobs:
     strategy:
       matrix:
         build-env:
-        - os: macos-latest
-          briefcase-build-opts: ''
-          briefcase-package-opts: '--no-sign'
+        # - os: macos-latest
+        #   briefcase-build-opts: ''
+        #   briefcase-package-opts: '--no-sign'
         - os: ubuntu-latest
           briefcase-build-opts: '--no-docker'
           briefcase-package-opts: ''
-        - os: windows-latest
-          briefcase-build-opts: ''
-          briefcase-package-opts: ''
+        # - os: windows-latest
+        #   briefcase-build-opts: ''
+        #   briefcase-package-opts: ''
       fail-fast: false
     runs-on: ${{ matrix.build-env.os }}
     steps:
@@ -81,7 +81,8 @@ jobs:
         sudo apt-get install -y libgirepository1.0-dev \
           libcairo2-dev \
           libpango1.0-dev \
-          libgdbm-dev
+          libgdbm-dev \
+          libffi-dev
       if: matrix.build-env.os == 'ubuntu-latest'
     - name: Symlink new to old gdbm
       run: |
