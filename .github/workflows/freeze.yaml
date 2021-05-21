@@ -63,12 +63,15 @@ jobs:
       matrix:
         build-env:
         - os: macos-latest
+          python-version: '3.9'
           briefcase-build-opts: ''
           briefcase-package-opts: '--no-sign'
         - os: ubuntu-latest
+          python-version: '3.9'
           briefcase-build-opts: '--no-docker'
           briefcase-package-opts: ''
         - os: windows-latest
+          python-version: '3.8'
           briefcase-build-opts: ''
           briefcase-package-opts: ''
       fail-fast: false
@@ -91,7 +94,7 @@ jobs:
     - name: Install Python
       uses: actions/setup-python@v2
       with:
-        python-version: '3.8'
+        python-version: ${{ matrix.build-env.python-version }}
     - name: Install npm dependencies and compile frontend
       run: |
         npm install
