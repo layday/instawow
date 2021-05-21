@@ -79,14 +79,13 @@ jobs:
     - name: Install briefcase dependencies
       run: |
         sudo apt-get install -y libgirepository1.0-dev \
-          libcairo2-dev \
           libpango1.0-dev \
           libgdbm-dev \
-          libffi-dev
       if: matrix.build-env.os == 'ubuntu-latest'
-    - name: Symlink new to old gdbm
+    - name: Symlink new to old libs
       run: |
         sudo ln -s libgdbm.so.6 libgdbm.so.5
+        sudo ln -s libffi.so.7 libffi.so.6
       working-directory: /usr/lib/x86_64-linux-gnu
       if: matrix.build-env.os == 'ubuntu-latest'
     - name: Install Python
