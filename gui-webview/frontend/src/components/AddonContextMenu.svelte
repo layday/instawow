@@ -42,14 +42,14 @@
       {#if addon.options.strategy === Strategy.version}
         <ContextMenuItem
           on:click={() =>
-            dispatch("requestHandleContextMenuSelection", { addon, selection: "pin" })}
-          >Pin</ContextMenuItem
+            dispatch("requestHandleContextMenuSelection", { addon, selection: "unpin" })}
+          >Unpin</ContextMenuItem
         >
       {:else}
         <ContextMenuItem
           on:click={() =>
-            dispatch("requestHandleContextMenuSelection", { addon, selection: "unpin" })}
-          >Unpin</ContextMenuItem
+            dispatch("requestHandleContextMenuSelection", { addon, selection: "pin" })}
+          >Pin</ContextMenuItem
         >
       {/if}
     {/if}
