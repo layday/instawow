@@ -89,7 +89,8 @@ jobs:
       run: |
         sudo apt-get install -y libgirepository1.0-dev \
           libcairo2-dev \
-          libpango1.0-dev
+          libpango1.0-dev \
+          libgdbm-dev
       if: matrix.build-env.os == 'ubuntu-latest'
     - name: Install briefcase and build app
       run: |
