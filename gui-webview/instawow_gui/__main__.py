@@ -26,6 +26,20 @@ def _patch_loguru() -> None:
     )
 
 
+def _patch_aiohttp() -> None:
+    from functools import partial
+    import ssl
+
+    import aiohttp
+    import certifi
+
+    original_aiohttp_TCPConnector = aiohttp.TCPConnector
+    aiohttp.TCPConnector = partial(
+        original_aiohttp_TCPConnector,
+        ssl=ssl.create_default_context(cafile=certifi.where()),
+    )
+
+
 def _running_under_briefcase() -> bool:
     try:
         import importlib.metadata
@@ -48,8 +62,8 @@ def main() -> None:
     import instawow.cli
 
     if _running_under_briefcase():
-        print('patching loguru')
         _patch_loguru()
+        _patch_aiohttp()
 
     instawow.cli.main(sys.argv[1:] or ['gui'])
 

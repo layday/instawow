@@ -12,7 +12,10 @@ formal_name = "instawow-gui"
 description = "GUI for the World of Warcraft add-on manager instawow"
 icon = "instawow_gui/resources/instawow_gui"
 sources = ["instawow_gui"]
-requires = ["..[gui]"]
+requires = [
+  "..[gui]",
+  "certifi",
+]
 
 [tool.briefcase.app.instawow-gui.linux]
 system_requires = [
