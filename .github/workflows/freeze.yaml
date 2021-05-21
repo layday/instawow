@@ -89,9 +89,7 @@ jobs:
       run: |
         sudo apt-get install -y libgirepository1.0-dev \
           libcairo2-dev \
-          libpango1.0-dev \
-          libwebkitgtk-3.0-0 \
-          gir1.2-webkit-3.0
+          libpango1.0-dev
       if: matrix.build-env.os == 'ubuntu-latest'
     - name: Install briefcase and build app
       run: |
