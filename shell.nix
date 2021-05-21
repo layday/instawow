@@ -9,7 +9,7 @@ pkgs.mkShell {
     pkgs.nodejs-15_x
   ];
 
-  venvDir = toString ./../venvs + ("/" + python.pythonVersion);
+  venvDir = toString ./venvs + ("/" + python.pythonVersion);
 
   VIRTUAL_ENV_DISABLE_PROMPT = "1";
   SOURCE_DATE_EPOCH = "315532800"; # The year 1980
