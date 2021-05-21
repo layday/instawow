@@ -1,5 +1,4 @@
 from aiohttp.test_utils import TestClient, TestServer
-from aiohttp_rpc import JsonRpcRequest as Request, JsonRpcResponse as Response
 import pytest
 
 from instawow.config import Config
@@ -8,6 +7,8 @@ try:
     from instawow_gui import json_rpc_server
 except ImportError:
     pytestmark = pytest.mark.skip(reason='instawow_gui is not available')
+else:
+    from aiohttp_rpc import JsonRpcRequest as Request, JsonRpcResponse as Response
 
 
 @pytest.fixture
