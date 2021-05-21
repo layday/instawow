@@ -1,7 +1,7 @@
 [tool.briefcase]
 project_name = "instawow-gui"
 bundle = "org.instawow.gui"
-version = "0.0.0"
+version = "0.1.0"
 url = "https://github.com/layday/instawow"
 license = "GNU General Public License v3 (GPLv3)"
 author = "layday"

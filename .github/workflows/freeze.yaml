@@ -61,9 +61,18 @@ jobs:
     needs: [extract-tag]
     strategy:
       matrix:
-        os: [macos-latest, ubuntu-latest, windows-latest]
+        build-env:
+        - os: macos-latest
+          briefcase-build-opts: ''
+          briefcase-package-opts: '--no-sign'
+        - os: ubuntu-latest
+          briefcase-build-opts: '--no-docker'
+          briefcase-package-opts: ''
+        - os: windows-latest
+          briefcase-build-opts: ''
+          briefcase-package-opts: ''
       fail-fast: false
-    runs-on: ${{ matrix.os }}
+    runs-on: ${{ matrix.build-env.os }}
     steps:
     - name: Clone the repo
       uses: actions/checkout@v2
@@ -79,13 +88,13 @@ jobs:
     - name: Install briefcase and build app
       run: |
         python -m pip install briefcase
-        python -m briefcase build
-        python -m briefcase package --no-sign | tee >(
+        python -m briefcase build ${{ matrix.build-env.briefcase-build-opts }}
+        python -m briefcase package ${{ matrix.build-env.briefcase-package-opts }} | tee >(
           echo "artifact_path=gui-webview/$(tail -n 1 | cut -c 25-)" >> $GITHUB_ENV
         )
       working-directory: gui-webview
     - name: Upload app
       uses: actions/upload-artifact@v2
       with:
-        # name: instawow-gui-${{ matrix.os }}-${{ needs.extract-tag.outputs.tag }}
+        # name: instawow-gui-${{ matrix.build-env.os }}-${{ needs.extract-tag.outputs.tag }}
         path: ${{ env.artifact_path }}
