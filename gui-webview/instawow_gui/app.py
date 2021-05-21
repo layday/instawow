@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from functools import partial
 import json
 import platform
@@ -17,7 +18,7 @@ class InstawowApp(toga.App):
 
         self.__class__.running_app = self
 
-        self.loop = self._impl.loop
+        self.loop = asyncio.get_event_loop()
         self.iw_server_url = server_url
 
     def startup(self) -> None:
