@@ -67,8 +67,11 @@ def test(session: nox.Session, constraints: str):
     with open(constraints_txt, 'w') as file:
         file.write(constraints)
 
-    session.install('-c', constraints_txt, '.[test]', './tests/plugin')
-    session.run('pytest', '--cov', '--cov-report=', '-n', 'auto')
+    session.install('-c', constraints_txt, '.[gui, test]', './tests/plugin')
+    session.run(
+        *('pytest', '--cov', '--cov-report=', '-n', 'auto'),
+        env={'PYTHONPATH': 'gui-webview'},
+    )
     session.run('coverage', 'report', '-m')
 
 
@@ -77,7 +80,7 @@ def type_check(session: nox.Session):
     "Run Pyright."
     _mirror_project(session)
     session.install(
-        '.[server]',
+        '.[gui]',
         'sqlalchemy-stubs@ https://github.com/layday/sqlalchemy-stubs/archive/develop.zip',
     )
     session.run('npx', 'pyright', external=True)

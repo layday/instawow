@@ -16,6 +16,10 @@ jobs:
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
+    - name: Install toga Linux dependencies
+      run: |
+        sudo apt-get install -y libgirepository1.0-dev
+      if: matrix.os == 'ubuntu-latest'
     - name: Install nox
       run: |
         python -m pip install nox
