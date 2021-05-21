@@ -67,10 +67,8 @@ def test(session: nox.Session, constraints: str):
     with open(constraints_txt, 'w') as file:
         file.write(constraints)
 
-    session.install('-c', constraints_txt, '.[gui, test]', './tests/plugin')
-    session.run(
-        'pytest', '--cov', '--cov-report=', '-n', 'auto', env={'PYTHONPATH': 'gui-webview'}
-    )
+    session.install('-c', constraints_txt, '.[test]', './tests/plugin')
+    session.run('pytest', '--cov', '--cov-report=', '-n', 'auto')
     session.run('coverage', 'report', '-m')
 
 
