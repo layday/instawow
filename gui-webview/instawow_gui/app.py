@@ -14,7 +14,12 @@ class InstawowApp(toga.App):
     running_app: ClassVar[InstawowApp]
 
     def __init__(self, server_url: str, **kwargs: object) -> None:
-        super().__init__(formal_name='instawow', app_id='org.instawow.gui', **kwargs)
+        super().__init__(
+            formal_name='instawow',
+            app_id='org.instawow.gui',
+            app_name='instawow_gui',
+            **kwargs,
+        )
 
         self.__class__.running_app = self
 
