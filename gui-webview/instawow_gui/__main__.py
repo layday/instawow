@@ -33,6 +33,10 @@ def _patch_aiohttp() -> None:
     import aiohttp
     import certifi
 
+    # SSL is misconfigured on the briefcase Python.  Instead of trying
+    # to fix the paths, let's just use certifi.
+    # See: https://github.com/beeware/Python-Apple-support/issues/119
+
     original_aiohttp_TCPConnector = aiohttp.TCPConnector
     aiohttp.TCPConnector = partial(
         original_aiohttp_TCPConnector,
@@ -43,8 +47,8 @@ def _patch_aiohttp() -> None:
 def _running_under_briefcase() -> bool:
     import sys
 
-    # briefcase uses Python 3.9 which ships with ``importlib.metadata``.
-    # If we can't import importlib.metadata then we're not under briefcase.
+    # We don't use Python < 3.8 with briefcase.  If we can't import
+    # ``importlib.metadata`` then we're in briefcase.
     if sys.version_info > (3, 7):
         import importlib.metadata
 
@@ -67,7 +71,10 @@ def main() -> None:
     if _running_under_briefcase():
         _patch_loguru()
         _patch_aiohttp()
-        print()  # ``click`` doesn't run without this, for whatever reason.
+
+        # ``click`` doesn't run without previously printing something to stdout,
+        # presumably something to do with spooling.
+        print()
 
     instawow.cli.main(sys.argv[1:] or ['gui'])
 
