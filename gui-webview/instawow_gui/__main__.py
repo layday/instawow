@@ -48,7 +48,7 @@ def _running_under_briefcase() -> bool:
     import sys
 
     # We don't use Python < 3.8 with briefcase.  If we can't import
-    # ``importlib.metadata`` then we're in briefcase.
+    # ``importlib.metadata`` then we're not in briefcase.
     if sys.version_info > (3, 7):
         import importlib.metadata
 
