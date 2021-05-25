@@ -2,6 +2,7 @@
   import type { Api, Config, PydanticValidationError } from "../api";
   import { faFolderOpen, faTimesCircle } from "@fortawesome/free-solid-svg-icons";
   import { JSONRPCError } from "@open-rpc/client-js";
+  import lodash from "lodash";
   import { fade } from "svelte/transition";
   import { Flavour } from "../api";
   import { api } from "../ipc";
@@ -42,7 +43,7 @@
       result = await api.writeProfile(configParams, createNew);
     } catch (error) {
       if (error instanceof JSONRPCError) {
-        errors = Object.fromEntries(
+        errors = lodash.fromPairs(
           (error.data as PydanticValidationError[]).map(({ loc, msg }) => [loc, msg])
         );
         return;

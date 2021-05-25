@@ -1,4 +1,5 @@
 import type { Client } from "@open-rpc/client-js";
+import lodash from "lodash";
 
 export enum Flavour {
   retail = "retail",
@@ -191,7 +192,7 @@ export class Api {
       method: "sources/list",
       params: { profile: this.profile },
     });
-    return Object.fromEntries(result.map((i: Sources["foo"]) => [i.source, i]));
+    return lodash.fromPairs(result.map((i: Sources["foo"]) => [i.source, i]));
   }
 
   async list(): Promise<ListResult> {

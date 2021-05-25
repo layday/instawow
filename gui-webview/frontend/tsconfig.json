@@ -1,7 +1,7 @@
 {
   "extends": "@tsconfig/svelte/tsconfig.json",
   "compilerOptions": {
-    "target": "es2019",
+    "target": "es2017",
     "strict": true
   },
   "include": ["src/**/*"],

@@ -173,7 +173,7 @@
   const scheduleDownloadProgressPolling = (delay: number = 1000) => {
     const ticker = setInterval(async () => {
       const downloadProgress = await profileApi.getDownloadProgress();
-      addonDownloadProgress = Object.fromEntries(
+      addonDownloadProgress = lodash.fromPairs(
         downloadProgress.map(({ defn, progress }) => [createAddonToken(defn), progress])
       );
     }, delay);
