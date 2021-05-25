@@ -208,11 +208,13 @@
 </nav>
 
 <style lang="scss">
+  @use "sass:math";
+
   @import "scss/vars";
 
   $line-height: 1.8em;
-  $middle-border-radius: $line-height / 6;
-  $edge-border-radius: $line-height / 4;
+  $middle-border-radius: math.div($line-height, 6);
+  $edge-border-radius: math.div($line-height, 4);
 
   .hidden {
     display: none;

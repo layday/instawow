@@ -1,8 +1,10 @@
+@use "sass:math";
+
 @import "vars";
 
 $form-el-line-height: 1.75em;
-$middle-border-radius: $form-el-line-height / 6;
-$edge-border-radius: $form-el-line-height / 4;
+$middle-border-radius: math.div($form-el-line-height, 6);
+$edge-border-radius: math.div($form-el-line-height, 4);
 
 %modal-elements {
   .content,

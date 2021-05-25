@@ -41,14 +41,16 @@
 </div>
 
 <style lang="scss">
+  @use "sass:math";
+
   .profile-switcher-wrapper {
     position: relative;
   }
 
   .profile-switcher {
     $line-height: 2em;
-    $middle-border-radius: $line-height / 6;
-    $edge-border-radius: $line-height / 4;
+    $middle-border-radius: math.div($line-height, 6);
+    $edge-border-radius: math.div($line-height, 4);
 
     display: flex;
     font-size: 0.9em;

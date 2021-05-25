@@ -13,9 +13,9 @@
 
   const createNew = editing === "new";
 
-  let configParams = (createNew
-    ? { game_flavour: "retail" }
-    : $profiles.get($activeProfile as string)) as Config;
+  let configParams = (
+    createNew ? { game_flavour: "retail" } : $profiles.get($activeProfile as string)
+  ) as Config;
   let errors: { [key: string]: string } = {};
 
   const selectFolder = async () => {
