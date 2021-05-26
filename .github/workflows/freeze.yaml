@@ -55,7 +55,7 @@ jobs:
         name: instawow-cli-${{ matrix.os }}-${{ needs.get-version.outputs.instawow-version }}
         path: ${{ env.INSTAWOW_ARTIFACT_PATH }}
   freeze-gui:
-    needs: [get-version]
+    needs: get-version
     strategy:
       matrix:
         build-env:

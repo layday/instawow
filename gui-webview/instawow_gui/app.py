@@ -31,31 +31,43 @@ class InstawowApp(toga.App):
         self.main_window = self.iw_window = toga.MainWindow(
             title=self.formal_name, size=(800, 600)
         )
-        self.iw_window.content = self.iw_webview = toga.WebView(
-            url=self.iw_server_url, style=toga.style.Pack(flex=1)
-        )
 
-        # ``toga-winforms`` does not implement ``invoke_javascript`` for WebView
-        if platform.system() != 'Windows':
-            view_group = toga.Group('View')
-            self.commands.add(
-                toga.Command(
-                    partial(self.iw_dispatch_keyboard_event, action='focusSearchBox'),
-                    label='Search',
-                    shortcut=toga.Key.MOD_1 + toga.Key.F,
-                    group=view_group,
-                    section=1,
-                    order=0,
-                ),
-                toga.Command(
-                    partial(self.iw_dispatch_keyboard_event, action='toggleFiltering'),
-                    label='Toggle filtering',
-                    shortcut=toga.Key.MOD_1 + toga.Key.G,
-                    group=view_group,
-                    section=1,
-                    order=1,
-                ),
+        if platform.system() == 'Windows':
+            from . import cef_adapter
+
+            cef_adapter.load()
+            self.on_exit = lambda _: cef_adapter.unload()
+
+            self.iw_window.content = self.iw_webview = toga.WebView(
+                url=self.iw_server_url,
+                style=toga.style.Pack(flex=1),
+                factory=cef_adapter.Factory,
             )
+
+        else:
+            self.iw_window.content = self.iw_webview = toga.WebView(
+                url=self.iw_server_url, style=toga.style.Pack(flex=1)
+            )
+
+        view_group = toga.Group('View')
+        self.commands.add(
+            toga.Command(
+                partial(self.iw_dispatch_keyboard_event, action='focusSearchBox'),
+                label='Search',
+                shortcut=toga.Key.MOD_1 + toga.Key.F,
+                group=view_group,
+                section=2,
+                order=0,
+            ),
+            toga.Command(
+                partial(self.iw_dispatch_keyboard_event, action='toggleFiltering'),
+                label='Toggle filtering',
+                shortcut=toga.Key.MOD_1 + toga.Key.G,
+                group=view_group,
+                section=2,
+                order=1,
+            ),
+        )
 
         self.iw_window.show()
 
