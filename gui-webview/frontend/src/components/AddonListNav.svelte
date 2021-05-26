@@ -342,7 +342,7 @@
       border-bottom-left-radius: $edge-border-radius;
     }
 
-    :not(:first-child, .segment-label--first) {
+    :not(:first-child):not(.segment-label--first) {
       margin-left: 4px;
     }
 
