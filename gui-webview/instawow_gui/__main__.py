@@ -44,6 +44,15 @@ def _patch_aiohttp() -> None:
     )
 
 
+def _patch_std_streams() -> None:
+    import io
+    import sys
+
+    # These are ``None`` when pythonw is used.
+    if sys.stdout is None or sys.stderr is None:
+        sys.stdout = sys.stderr = io.StringIO()
+
+
 def _running_under_briefcase() -> bool:
     import sys
 
@@ -69,6 +78,7 @@ def main() -> None:
     import instawow.cli
 
     if _running_under_briefcase():
+        _patch_std_streams()
         _patch_loguru()
         _patch_aiohttp()
 
