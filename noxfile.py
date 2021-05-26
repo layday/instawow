@@ -96,10 +96,15 @@ def clobber_build_artefacts(session: nox.Session):
 def bump_version(session: nox.Session):
     "Bump the version of instawow."
     session.install('dunamai')
+    version = (
+        session.posargs[0]
+        if session.posargs
+        else '{dunamai.Version.from_git().serialize(dirty=True)}'
+    )
     session.run(
         'python',
         '-c',
-        '''
+        f'''\
 from pathlib import Path
 
 import dunamai
@@ -110,7 +115,7 @@ from . import _import_wrapper
 
 __getattr__ = _import_wrapper.__getattr__
 
-__version__ = '{dunamai.Version.from_git().serialize(dirty=True)}'
+__version__ = '{version}'
 """,
     encoding='utf-8',
 )
