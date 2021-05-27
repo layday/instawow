@@ -99,6 +99,9 @@ include = [
   "instawow",
   "gui-webview/instawow_gui",
 ]
+exclude = [
+  "gui-webview/instawow_gui/cef_adapter.py",
+]
 extraPaths = ["gui-webview"]
 useLibraryCodeForTypes = true
 typeCheckingMode = "strict"
@@ -107,6 +110,12 @@ reportMissingTypeStubs = "information"
 reportImportCycles = false
 reportUnknownArgumentType = "warning"
 reportUnknownMemberType = false
+
+[[tool.pyright.executionEnvironments]]
+include = [
+  "gui-webview/instawow_gui/cef_adapter.py",
+]
+pythonPlatform = "Windows"
 
 
 ## FORMATTING ##
