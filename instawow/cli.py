@@ -558,7 +558,7 @@ def list_installed(
             (d.with_(alias=p.slug) if p else d).to_uri()
             for e in pkg.deps
             for d in (Defn(pkg.source, e.id),)
-            for d, p in ((d, obj.m.get_pkg(d)),)
+            for p in (obj.m.get_pkg(d),)
         )
 
     pkgs = (
@@ -754,8 +754,7 @@ def gui(ctx: click.Context, log_to_stderr: bool) -> None:
     import asyncio
     import threading
 
-    from instawow_gui import json_rpc_server
-    from instawow_gui.app import InstawowApp
+    from instawow_gui import InstawowApp, json_rpc_server
 
     log_level = ctx.find_root().params['log_level']
     if not log_to_stderr:
@@ -769,12 +768,11 @@ def gui(ctx: click.Context, log_to_stderr: bool) -> None:
     server_url, listen = loop.run_until_complete(json_rpc_server.prepare())
     click.echo(f'web server: {server_url}')
 
-    def serve():
-        loop.run_until_complete(listen())
-
-    server_thread = threading.Thread(target=serve, name='iw-server-thread')
+    server_thread = threading.Thread(
+        target=lambda: loop.run_until_complete(listen()), name='iw-server-thread'
+    )
+    server_thread.start()
     try:
-        server_thread.start()
         InstawowApp(str(server_url), version=__version__).main_loop()
     finally:
         server_thread.join()
