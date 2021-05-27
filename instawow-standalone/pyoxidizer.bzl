@@ -3,11 +3,16 @@
 # https://pyoxidizer.readthedocs.io/en/stable/ for details of this
 # configuration file format.
 
+WINDOWS = BUILD_TARGET_TRIPLE.find("windows") != -1
+
 # Obtain the default PythonDistribution for our build target. We link
 # this distribution into our produced executable and extract the Python
 # standard library from it.
 def make_dist():
-    return default_python_distribution()
+    if WINDOWS:
+        return default_python_distribution(flavor="standalone_static")
+    else:
+        return default_python_distribution()
 
 # Configuration files consist of functions which define build "targets."
 # This function creates a Python executable and installs it in a destination
@@ -238,8 +243,10 @@ def make_exe(dist):
     # Invoke `pip install` using a requirements file and add the collected resources
     # to our binary.
     #exe.add_python_resources(exe.pip_install(["-r", "requirements.txt"]))
-    exe.add_python_resources(exe.pip_install(["-r", "requirements.txt"]))
-
+    if WINDOWS:
+        exe.add_python_resources(exe.pip_install(["--no-binary", ":all:", "-r", "requirements.txt"]))
+    else:
+        exe.add_python_resources(exe.pip_install(["-r", "requirements.txt"]))
 
     # Read Python files from a local directory and add them to our embedded
     # context, taking just the resources belonging to the `foo` and `bar`
