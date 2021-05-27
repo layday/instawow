@@ -1,10 +1,32 @@
 from __future__ import annotations
 
+import atexit
 import sys
 import threading
 
 from cefpython3 import cefpython as cef
 from toga_winforms.widgets.box import Box
+
+_cef_loaded = False
+
+
+def load() -> None:
+    global _cef_loaded
+
+    if not _cef_loaded:
+        sys.excepthook = cef.ExceptHook
+        cef.Initialize(
+            settings={
+                'cache_path': '',
+                'multi_threaded_message_loop': True,
+            },
+            switches={
+                # To enable ``filter-backdrop`` support
+                'enable-experimental-web-platform-features': '',
+            },
+        )
+        atexit.register(cef.Shutdown)
+        _cef_loaded = True
 
 
 class _CefWidget(Box):
@@ -58,24 +80,6 @@ class _CefWidget(Box):
             self.browser.ExecuteJavascript(javascript)
 
         cef.PostTask(cef.TID_UI, execute_javascript)
-
-
-def load() -> None:
-    sys.excepthook = cef.ExceptHook
-    cef.Initialize(
-        settings={
-            'cache_path': '',
-            'multi_threaded_message_loop': True,
-        },
-        switches={
-            # To enable ``filter-backdrop`` support
-            'enable-experimental-web-platform-features': '',
-        },
-    )
-
-
-def unload() -> None:
-    cef.Shutdown()
 
 
 class Factory:

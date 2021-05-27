@@ -36,7 +36,6 @@ class InstawowApp(toga.App):
             from . import cef_adapter
 
             cef_adapter.load()
-            self.on_exit = lambda _: cef_adapter.unload()
 
             self.iw_window.content = self.iw_webview = toga.WebView(
                 url=self.iw_server_url,
