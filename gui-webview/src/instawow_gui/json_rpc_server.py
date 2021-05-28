@@ -29,8 +29,7 @@ from instawow.models import Pkg, is_pkg
 from instawow.resolvers import CatalogueEntry, Defn, PkgModel, Strategy
 from instawow.utils import gather, is_outdated, run_in_thread as t, uniq
 
-from . import frontend, templates
-from .app import InstawowApp
+from . import InstawowApp, frontend, templates
 
 _T = TypeVar('_T')
 ManagerWorkQueueItem: TypeAlias = (
