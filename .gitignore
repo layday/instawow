@@ -1,4 +1,7 @@
 __pycache__
 
 /.coverage
+/build
 /dist
+/*.egg-info
+/instawow/_version.py

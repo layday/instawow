@@ -1,8 +1,10 @@
 [build-system]
 requires = [
-  "flit_core >=3.2, <4",
+  "setuptools >=45",
+  "setuptools-scm[toml] >=6",
+  "toml",
 ]
-build-backend = "flit_core.buildapi"
+build-backend = "setuptools.build_meta"
 
 [project]
 dynamic = [
@@ -57,14 +59,9 @@ types = [
 [project.scripts]
 instawow = "instawow.cli:main"
 
-[tool.flit.sdist]
-include = [
-  "tests",
-]
-exclude = [
-  "tests/__pycache__",
-  "tests/plugin/__pycache__",
-]
+[tool.setuptools_scm]
+write_to = "instawow/_version.py"
+write_to_template = "__version__ = '{version}'\n"
 
 
 ## TESTS ##
