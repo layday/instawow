@@ -11,6 +11,8 @@ import toml
 def _pep621_metadata_to_setup_kwargs(metadata: Mapping[str, Any]) -> dict[str, Any]:
     return {
         'name': metadata['name'],
+        'author': metadata['authors'][0]['name'],
+        'author_email': metadata['authors'][0]['email'],
         'description': metadata['description'],
         'long_description': Path(metadata['readme']).read_text(encoding='utf-8'),
         'long_description_content_type': 'text-x/rst',
