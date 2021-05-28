@@ -85,6 +85,7 @@ def type_check(session: nox.Session):
     "Run Pyright."
     _mirror_project(session)
     session.install(
+        '--use-feature=in-tree-build',
         '.[gui]',
         'sqlalchemy-stubs@ https://github.com/layday/sqlalchemy-stubs/archive/develop.zip',
     )
@@ -95,8 +96,6 @@ def type_check(session: nox.Session):
 def clobber_build_artefacts(session: nox.Session):
     "Remove build artefacts."
     session.run('rm', '-rf', 'build', 'dist', 'instawow.egg-info', external=True)
-
-
 
 
 @nox.session
