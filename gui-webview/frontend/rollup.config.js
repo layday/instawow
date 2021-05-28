@@ -14,7 +14,7 @@ export default [
     output: {
       sourcemap: true,
       format: "iife",
-      file: "../instawow_gui/frontend/svelte-bundle.js",
+      file: "../src/instawow_gui/frontend/svelte-bundle.js",
       exports: "auto",
     },
     plugins: [

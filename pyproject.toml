@@ -58,7 +58,7 @@ types = [
 instawow = "instawow.cli:main"
 
 [tool.setuptools_scm]
-write_to = "instawow/_version.py"
+write_to = "src/instawow/_version.py"
 write_to_template = "__version__ = '{version}'\n"
 
 
@@ -91,13 +91,12 @@ xfail_strict = true
 
 [tool.pyright]
 include = [
-  "instawow",
-  "gui-webview/instawow_gui",
+  "src",
+  "gui-webview/src",
 ]
 ignore = [
-  "gui-webview/instawow_gui/cef_adapter.py",
+  "gui-webview/src/instawow_gui/cef_adapter.py",
 ]
-extraPaths = ["gui-webview"]
 useLibraryCodeForTypes = true
 typeCheckingMode = "strict"
 reportMissingTypeStubs = "information"

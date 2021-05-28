@@ -1,1 +1,1 @@
-include gui-webview/instawow_gui/frontend/svelte-*
+include gui-webview/src/instawow_gui/frontend/svelte-*

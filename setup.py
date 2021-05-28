@@ -28,8 +28,11 @@ if __name__ == '__main__':
     project_toml = toml.load(Path('pyproject.toml').open(encoding='utf-8'))
     setuptools.setup(
         **_pep621_metadata_to_setup_kwargs(project_toml['project']),
-        package_dir={'instawow_gui': 'gui-webview/instawow_gui'},
-        packages=setuptools.find_packages('.', include=['instawow'])
-        + setuptools.find_packages('gui-webview', include=['instawow_gui']),
+        package_dir={
+            'instawow': 'src/instawow',
+            'instawow_gui': 'gui-webview/src/instawow_gui',
+        },
+        packages=setuptools.find_packages('src', include=['instawow'])
+        + setuptools.find_packages('gui-webview/src', include=['instawow_gui']),
         include_package_data=True,
     )

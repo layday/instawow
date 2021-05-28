@@ -10,8 +10,8 @@ author_email = "layday@protonmail.com"
 [tool.briefcase.app.instawow-gui-wrapper]
 formal_name = "instawow-gui"
 description = "GUI for the World of Warcraft add-on manager instawow"
-icon = "instawow_gui/resources/instawow_gui"
-sources = ["instawow_gui_wrapper"]
+icon = "src/instawow_gui/resources/instawow_gui"
+sources = ["src/instawow_gui_wrapper"]
 requires = [
   "..[gui]",
   "certifi",

@@ -20,8 +20,8 @@ def reformat(session: nox.Session):
     for cmd in ('isort', 'black'):
         session.run(
             cmd,
-            'instawow',
-            'gui-webview/instawow_gui',
+            'src',
+            'gui-webview/src',
             'tests',
             'noxfile.py',
             'setup.py',
@@ -104,7 +104,7 @@ def build(session: nox.Session):
     "Build an sdist and wheel."
     clobber_build_artefacts(session)
     session.install('build')
-    session.run('python', '-m', 'build', '.')
+    session.run('python', '-m', 'build')
 
 
 @nox.session
