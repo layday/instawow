@@ -3,7 +3,7 @@
 # https://pyoxidizer.readthedocs.io/en/stable/ for details of this
 # configuration file format.
 
-WINDOWS = BUILD_TARGET_TRIPLE.find("windows") != -1
+WINDOWS = "windows" in BUILD_TARGET_TRIPLE
 
 # Obtain the default PythonDistribution for our build target. We link
 # this distribution into our produced executable and extract the Python
@@ -172,7 +172,7 @@ def make_exe(dist):
     # python_config.filesystem_importer = True
 
     # Set `sys.frozen = True`
-    # python_config.sys_frozen = True
+    python_config.sys_frozen = True
 
     # Set `sys.meipass`
     # python_config.sys_meipass = True

@@ -72,6 +72,17 @@ class Report:
         ctx.exit(self.exit_code)
 
 
+def _set_mac_multiprocessing_start_method() -> None:
+    import sys
+
+    # Reference: https://github.com/indygreg/PyOxidizer/issues/111#issuecomment-808834727
+
+    if getattr(sys, 'frozen', False) and sys.platform == 'darwin':
+        import multiprocessing
+
+        multiprocessing.set_start_method('fork')
+
+
 def _override_asyncio_loop_policy() -> None:
     # The proactor event loop which became the default loop on Windows
     # in Python 3.8 is causing issues with aiohttp.
@@ -98,14 +109,16 @@ class ManagerWrapper:
 
     @cached_property
     def m(self) -> managers.CliManager:
+        _set_mac_multiprocessing_start_method()
+        _override_asyncio_loop_policy()
+        _set_asyncio_debug(self.ctx.params['log_level'] == 'DEBUG')
+
         try:
             config = Config.read(self.ctx.params['profile']).ensure_dirs()
         except FileNotFoundError:
             config = self.ctx.invoke(configure, promptless=False)
 
         setup_logging(config, self.ctx.params['log_level'])
-        _override_asyncio_loop_policy()
-        _set_asyncio_debug(self.ctx.params['log_level'] == 'DEBUG')
 
         manager = managers.CliManager.from_config(config)
         return manager
@@ -757,12 +770,14 @@ def gui(ctx: click.Context, log_to_stderr: bool) -> None:
     from instawow_gui import InstawowApp, json_rpc_server
 
     log_level = ctx.find_root().params['log_level']
+
+    _set_mac_multiprocessing_start_method()
+    _override_asyncio_loop_policy()
+    _set_asyncio_debug(log_level == 'DEBUG')
+
     if not log_to_stderr:
         dummy_config = Config.get_dummy_config(profile='__jsonrpc__').ensure_dirs()
         setup_logging(dummy_config, log_level)
-
-    _override_asyncio_loop_policy()
-    _set_asyncio_debug(log_level == 'DEBUG')
 
     loop = asyncio.new_event_loop()
     server_url, listen = loop.run_until_complete(json_rpc_server.prepare())
