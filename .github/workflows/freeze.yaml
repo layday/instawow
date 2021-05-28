@@ -87,10 +87,9 @@ jobs:
     - name: Clone the repo
       uses: actions/checkout@v2
     - name: Install briefcase dependencies
-      run: |
-        sudo apt-get install -y libgirepository1.0-dev \
-          libpango1.0-dev \
-          libgdbm-dev \
+      run: sudo apt-get install -y libgirepository1.0-dev
+        libpango1.0-dev
+        libgdbm-dev
       if: matrix.build-env.os == 'ubuntu-latest'
     - name: Symlink new to old libs for linuxdeploy
       run: |
@@ -107,12 +106,18 @@ jobs:
         npm install
         npx rollup -c
       working-directory: gui-webview/frontend
+    - name: Patch in the version number
+      run: sed -i 's/version = "0.1.0"/version = "${{ needs.get-version.outputs.instawow-version }}"/'
+          pyproject.toml
+      if: >
+        !contains(needs.get-version.outputs.instawow-version, 'dev')
+      working-directory: gui-webview
     - name: Install and run briefcase
       run: |
         python -m pip install briefcase
         briefcase build ${{ matrix.build-env.briefcase-build-opts }}
         briefcase package ${{ matrix.build-env.briefcase-package-opts }} | tee >(
-          echo "INSTAWOW_ARTIFACT_PATH=gui-webview/$(tail -n 1 | cut -c 25-)" >> $GITHUB_ENV
+          echo "INSTAWOW_ARTIFACT_PATH=gui-webview/$(tail -n 1 | cut -c 33-)" >> $GITHUB_ENV
         )
       working-directory: gui-webview
     - name: Upload output
