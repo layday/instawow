@@ -117,7 +117,7 @@ reportUnknownMemberType = false
 [tool.black]
 line_length = 99
 skip_string_normalization = true
-target_version = ["py37", "py38"]
+target_version = ["py37", "py38", "py39"]
 
 [tool.isort]
 profile = "black"
