@@ -1,23 +1,23 @@
 [tool.briefcase]
 project_name = "instawow-gui"
-bundle = "org.instawow.gui"
+bundle = "org.instawow"
 version = "0.1.0"
 url = "https://github.com/layday/instawow"
 license = "GNU General Public License v3 (GPLv3)"
 author = "layday"
 author_email = "layday@protonmail.com"
 
-[tool.briefcase.app.instawow-gui]
+[tool.briefcase.app.instawow-gui-wrapper]
 formal_name = "instawow-gui"
 description = "GUI for the World of Warcraft add-on manager instawow"
 icon = "instawow_gui/resources/instawow_gui"
-sources = ["instawow_gui"]
+sources = ["instawow_gui_wrapper"]
 requires = [
   "..[gui]",
   "certifi",
 ]
 
-[tool.briefcase.app.instawow-gui.linux]
+[tool.briefcase.app.instawow-gui-wrapper.linux]
 system_requires = [
   "libgirepository1.0-dev",
   "libcairo2-dev",

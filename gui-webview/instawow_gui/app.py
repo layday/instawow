@@ -16,7 +16,7 @@ class InstawowApp(toga.App):
     def __init__(self, server_url: str, **kwargs: object) -> None:
         super().__init__(
             formal_name='instawow-gui',
-            app_id='org.instawow.gui',
+            app_id='org.instawow.instawow-gui',
             app_name='instawow-gui',
             icon='resources/instawow_gui',
             **kwargs,

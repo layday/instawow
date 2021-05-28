@@ -62,11 +62,9 @@ def _running_under_briefcase() -> bool:
         import importlib.metadata
 
         try:
-            gui_metadata = importlib.metadata.metadata('instawow_gui')
+            return importlib.metadata.distribution(__package__) and True
         except importlib.metadata.PackageNotFoundError:
             return False
-        else:
-            return 'Briefcase-Version' in gui_metadata
 
     else:
         return False
