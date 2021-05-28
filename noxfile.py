@@ -76,7 +76,8 @@ def test(session: nox.Session, constraints: str):
         file.write(dedent(constraints))
 
     session.install('-c', constraints_txt, '.[gui, test]', './tests/plugin')
-    session.run('pytest', '--cov', '-n', 'auto')
+    session.run('coverage', 'run', '-m', 'pytest')
+    session.run('coverage', 'report', '-m')
 
 
 @nox.session(python=SUPPORTED_PYTHON_VERSIONS)
