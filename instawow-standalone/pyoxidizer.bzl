@@ -10,7 +10,8 @@ WINDOWS = "windows" in BUILD_TARGET_TRIPLE
 # standard library from it.
 def make_dist():
     if WINDOWS:
-        return default_python_distribution(flavor="standalone_static")
+        # return default_python_distribution(flavor="standalone_static")
+        return default_python_distribution()
     else:
         return default_python_distribution()
 
@@ -244,7 +245,8 @@ def make_exe(dist):
     # to our binary.
     #exe.add_python_resources(exe.pip_install(["-r", "requirements.txt"]))
     if WINDOWS:
-        exe.add_python_resources(exe.pip_install(["--no-binary", ":all:", "-r", "requirements.txt"]))
+        # exe.add_python_resources(exe.pip_install(["--no-binary", ":all:", "-r", "requirements.txt"]))
+        exe.add_python_resources(exe.pip_install(["-r", "requirements.txt"]))
     else:
         exe.add_python_resources(exe.pip_install(["-r", "requirements.txt"]))
 
