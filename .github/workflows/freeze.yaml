@@ -86,9 +86,10 @@ jobs:
     steps:
     - name: Clone the repo
       uses: actions/checkout@v2
-    - name: Install briefcase dependencies
-      run: sudo apt-get install -y libgirepository1.0-dev
-        libpango1.0-dev libgdbm-dev
+    - name: Install briefcase Linux dependencies
+      run: sudo apt-get update --fix-missing && sudo apt-get install -y
+        libgirepository1.0-dev libcairo2-dev libpango1.0-dev libwebkitgtk-3.0-dev gir1.2-webkit-3.0
+        libgdbm-dev
       if: matrix.build-env.os == 'ubuntu-18.04'
     - name: Install Python
       uses: actions/setup-python@v2
