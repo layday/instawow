@@ -35,7 +35,7 @@ jobs:
     needs: get-version
     strategy:
       matrix:
-        os: [macos-latest, ubuntu-latest, windows-latest]
+        os: [macos-latest, ubuntu-18.04, windows-latest]
       fail-fast: false
     runs-on: ${{ matrix.os }}
     steps:
@@ -73,7 +73,7 @@ jobs:
           python-version: '3.9'
           briefcase-build-opts: ''
           briefcase-package-opts: '--no-sign'
-        - os: ubuntu-latest
+        - os: ubuntu-18.04
           python-version: '3.9'
           briefcase-build-opts: '--no-docker'
           briefcase-package-opts: ''
@@ -88,15 +88,8 @@ jobs:
       uses: actions/checkout@v2
     - name: Install briefcase dependencies
       run: sudo apt-get install -y libgirepository1.0-dev
-        libpango1.0-dev
-        libgdbm-dev
-      if: matrix.build-env.os == 'ubuntu-latest'
-    - name: Symlink new to old libs for linuxdeploy
-      run: |
-        sudo ln -s libgdbm.so.6 libgdbm.so.5
-        sudo ln -s libffi.so.7 libffi.so.6
-      working-directory: /usr/lib/x86_64-linux-gnu
-      if: matrix.build-env.os == 'ubuntu-latest'
+        libpango1.0-dev libgdbm-dev
+      if: matrix.build-env.os == 'ubuntu-18.04'
     - name: Install Python
       uses: actions/setup-python@v2
       with:
