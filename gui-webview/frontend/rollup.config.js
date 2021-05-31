@@ -12,7 +12,7 @@ export default [
   {
     input: "src/index.ts",
     output: {
-      sourcemap: true,
+      sourcemap: !production,
       format: "iife",
       file: "../src/instawow_gui/frontend/svelte-bundle.js",
       exports: "auto",
