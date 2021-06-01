@@ -29,7 +29,12 @@ jobs:
       run: |
         echo "::set-output name=INSTAWOW_VERSION::$(python -c "
         import setuptools_scm
-        print(setuptools_scm.get_version())
+        config = setuptools_scm.Configuration.from_file()
+        print(
+            setuptools_scm.get_version(
+                version_scheme=config.version_scheme, local_scheme=config.local_scheme
+            )
+        )
         ")"
   freeze-cli:
     needs: get-version
@@ -51,9 +56,11 @@ jobs:
     - name: Build instawow dists and generate a `requirements.txt` for pyoxidizer
       run: |
         python -m pip install nox
-        SETUPTOOLS_SCM_PRETEND_VERSION='${{ needs.get-version.outputs.instawow-version }}' \
-          python -m nox -s build
+        python -m nox -s build
         echo "../$(find dist -name 'instawow-*.whl')" > instawow-standalone/requirements.txt
+      env:
+        SETUPTOOLS_SCM_PRETEND_VERSION_FOR_INSTAWOW:
+          ${{ needs.get-version.outputs.instawow-version }}
     - name: Install and run pyoxidizer
       run: |
         python -m pip install pyoxidizer
@@ -104,10 +111,9 @@ jobs:
         npx rollup -c
       working-directory: gui-webview/frontend
     - name: Patch in the version number
-      run: sed -i 's/version = "0.1.0"/version = "${{ needs.get-version.outputs.instawow-version }}"/'
-          pyproject.toml
-      if: >
-        !contains(needs.get-version.outputs.instawow-version, 'dev')
+      run: sed -i
+        's/version = "0.1.0"/version = "${{ needs.get-version.outputs.instawow-version }}"/'
+        pyproject.toml
       working-directory: gui-webview
     - name: Install and run briefcase
       run: |
@@ -116,6 +122,9 @@ jobs:
         briefcase package ${{ matrix.build-env.briefcase-package-opts }} | tee >(
           echo "INSTAWOW_ARTIFACT_PATH=gui-webview/$(tail -n 1 | cut -c 33-)" >> $GITHUB_ENV
         )
+      env:
+        SETUPTOOLS_SCM_PRETEND_VERSION_FOR_INSTAWOW:
+          ${{ needs.get-version.outputs.instawow-version }}
       working-directory: gui-webview
     - name: Upload output
       uses: actions/upload-artifact@v2

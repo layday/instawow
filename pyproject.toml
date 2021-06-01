@@ -58,6 +58,7 @@ types = [
 instawow = "instawow.cli:main"
 
 [tool.setuptools_scm]
+local_scheme = "dirty-tag"
 write_to = "src/instawow/_version.py"
 write_to_template = "__version__ = '{version}'\n"
 
