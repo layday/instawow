@@ -35,7 +35,10 @@ jobs:
     needs: get-version
     strategy:
       matrix:
-        os: [macos-latest, ubuntu-18.04, windows-latest]
+        os:
+        - macos-latest
+        - ubuntu-18.04
+        - windows-latest
       fail-fast: false
     runs-on: ${{ matrix.os }}
     steps:
@@ -48,9 +51,9 @@ jobs:
     - name: Build instawow dists and generate a `requirements.txt` for pyoxidizer
       run: |
         python -m pip install nox
-        python -m nox -s build
-        echo "../$(find dist -name instawow-*${{ matrix.os == 'windows-latest' && '.tar.gz' || '.whl' }})" \
-          > instawow-standalone/requirements.txt
+        SETUPTOOLS_SCM_PRETEND_VERSION='${{ needs.get-version.outputs.instawow-version }}' \
+          python -m nox -s build
+        echo "../$(find dist -name 'instawow-*.whl')" > instawow-standalone/requirements.txt
     - name: Install and run pyoxidizer
       run: |
         python -m pip install pyoxidizer

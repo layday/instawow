@@ -3,17 +3,17 @@
 # https://pyoxidizer.readthedocs.io/en/stable/ for details of this
 # configuration file format.
 
-WINDOWS = "windows" in BUILD_TARGET_TRIPLE
+DISK_RESOURCE_LOCATION = "filesystem-relative:instawow-lib"
 
 # Obtain the default PythonDistribution for our build target. We link
 # this distribution into our produced executable and extract the Python
 # standard library from it.
 def make_dist():
-    if WINDOWS:
-        # return default_python_distribution(flavor="standalone_static")
-        return default_python_distribution()
-    else:
-        return default_python_distribution()
+    return default_python_distribution()
+
+def resource_callback(policy, resource):
+    if type(resource) == "PythonModuleSource":
+        resource.add_source = False
 
 # Configuration files consist of functions which define build "targets."
 # This function creates a Python executable and installs it in a destination
@@ -24,10 +24,11 @@ def make_exe(dist):
     # the executable. You can customize the default behavior by assigning
     # to attributes and calling functions.
     policy = dist.make_python_packaging_policy()
+    policy.register_resource_callback(resource_callback)
 
     # Enable support for non-classified "file" resources to be added to
     # resource collections.
-    # policy.allow_files = True
+    policy.allow_files = True
 
     # Control support for loading Python extensions and other shared libraries
     # from memory. This is only supported on Windows and is ignored on other
@@ -63,7 +64,7 @@ def make_exe(dist):
     # policy.file_scanner_classify_files = True
 
     # Controls whether `File` instances are emitted by the file scanner.
-    # policy.file_scanner_emit_files = False
+    policy.file_scanner_emit_files = True
 
     # Controls the `add_include` attribute of "classified" resources
     # (`PythonModuleSource`, `PythonPackageResource`, etc).
@@ -94,14 +95,14 @@ def make_exe(dist):
     # an optional fallback.
 
     # Use in-memory location for adding resources by default.
-    # policy.resources_location = "in-memory"
+    policy.resources_location = "in-memory"
 
     # Use filesystem-relative location for adding resources by default.
-    # policy.resources_location = "filesystem-relative:prefix"
+    # policy.resources_location = DISK_RESOURCE_LOCATION
 
     # Attempt to add resources relative to the built binary when
     # `resources_location` fails.
-    policy.resources_location_fallback = "filesystem-relative:prefix"
+    policy.resources_location_fallback = DISK_RESOURCE_LOCATION
 
     # Clear out a fallback resource location.
     # policy.resources_location_fallback = None
@@ -243,12 +244,7 @@ def make_exe(dist):
 
     # Invoke `pip install` using a requirements file and add the collected resources
     # to our binary.
-    #exe.add_python_resources(exe.pip_install(["-r", "requirements.txt"]))
-    if WINDOWS:
-        # exe.add_python_resources(exe.pip_install(["--no-binary", ":all:", "-r", "requirements.txt"]))
-        exe.add_python_resources(exe.pip_install(["-r", "requirements.txt"]))
-    else:
-        exe.add_python_resources(exe.pip_install(["-r", "requirements.txt"]))
+    exe.add_python_resources(exe.pip_install(["-r", "requirements.txt"]))
 
     # Read Python files from a local directory and add them to our embedded
     # context, taking just the resources belonging to the `foo` and `bar`
