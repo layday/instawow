@@ -111,7 +111,7 @@ jobs:
         npx rollup -c
       working-directory: gui-webview/frontend
     - name: Patch in the version number
-      run: sed -i
+      run: sed -i.bak
         's/version = "0.1.0"/version = "${{ needs.get-version.outputs.instawow-version }}"/'
         pyproject.toml
       working-directory: gui-webview
