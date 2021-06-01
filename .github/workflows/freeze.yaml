@@ -117,7 +117,8 @@ jobs:
       working-directory: gui-webview
     - name: Install and run briefcase
       run: |
-        python -m pip install briefcase
+        python -m pip install \
+          'briefcase @ git+https://github.com/layday/briefcase@add-optimise-step'
         briefcase build ${{ matrix.build-env.briefcase-build-opts }}
         briefcase package ${{ matrix.build-env.briefcase-package-opts }} | tee >(
           echo "INSTAWOW_ARTIFACT_PATH=gui-webview/$(tail -n 1 | cut -c 33-)" >> $GITHUB_ENV
