@@ -19,7 +19,7 @@ from aiohttp_rpc.errors import InvalidParams as InvalidParamsError, ServerError
 import click
 from loguru import logger
 from pydantic import BaseModel, ValidationError
-from typing_extensions import Literal, TypeAlias, TypedDict
+from typing_extensions import Concatenate, Literal, ParamSpec, TypeAlias, TypedDict
 from yarl import URL
 
 from instawow import __version__, matchers, results as R
@@ -32,6 +32,7 @@ from instawow.utils import gather, is_outdated, run_in_thread as t, uniq
 from . import InstawowApp, frontend, templates
 
 _T = TypeVar('_T')
+_P = ParamSpec('_P')
 ManagerWorkQueueItem: TypeAlias = (
     'tuple[asyncio.Future[Any], str, Callable[..., Awaitable[Any]] | None]'
 )
@@ -478,16 +479,26 @@ class ManagerWorkQueue:
         await self._web_client.close()
 
     @overload
-    async def run(self, profile: str, coro_fn: None = ...) -> Manager:
+    async def run(
+        self,
+        profile: str,
+        coro_fn: None = None,
+    ) -> Manager:
         ...
 
     @overload
-    async def run(self, profile: str, coro_fn: Callable[..., Awaitable[_T]] = ...) -> _T:
+    async def run(
+        self,
+        profile: str,
+        coro_fn: Callable[Concatenate[Manager, _P], Awaitable[_T]],
+    ) -> _T:
         ...
 
     async def run(
-        self, profile: str, coro_fn: Callable[..., Awaitable[_T]] | None = None
-    ) -> Manager | _T:
+        self,
+        profile: str,
+        coro_fn: Callable[Concatenate[Manager, _P], Awaitable[_T]] | None = None,
+    ) -> _T | Manager:
         future: asyncio.Future[Any] = asyncio.Future()
         self._queue.put_nowait((future, profile, coro_fn))
         return await asyncio.wait_for(future, None)
