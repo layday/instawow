@@ -22,13 +22,18 @@
 
 from __future__ import annotations
 
-from itertools import count, dropwhile, islice
+from itertools import count, islice
 from operator import eq
 import re
 import string
-from typing import Any
+from typing import Any, Container
 
+DIGITS = frozenset(string.digits)
+HEXDIGITS = frozenset(string.hexdigits)
+HEXDELIMS = frozenset('Xx')
+EXPONENTS = frozenset('Ee')
 WHITESPACE = frozenset(string.whitespace)
+WHITESPACE_OR_CLOSING_SQ_BR = WHITESPACE | frozenset(']')
 NEWLINE = frozenset('\r\n')
 KEYWORDS = {'true': True, 'false': False, 'nil': None}
 
@@ -48,42 +53,37 @@ _sentinel = _Sentinel()
 
 class SLPP:
     def __init__(self, text: str):
-        self.iter_text = iter(text)
-
-    def decode(self):
+        self._iter_text = iter(text)
         self._next()
-        return self._get_value()
 
     def _next(self):
-        self.c = next(self.iter_text, _sentinel)
+        self.c = next(self._iter_text, _sentinel)
 
-    def _next_not(self, exclude: frozenset[str] | str):
-        if self.c in exclude:
-            self.c = next(dropwhile(exclude.__contains__, self.iter_text), _sentinel)
+    def _next_eq(self, includes: Container[str]):
+        if self.c not in includes:
+            for c in self._iter_text:
+                if c in includes:
+                    self.c = c
+                    break
+            else:
+                self.c = _sentinel
 
-    def _next_nl(self):
-        self.c = next((c for c in self.iter_text if c in NEWLINE), _sentinel)
+    def _next_not_eq(self, excludes: Container[str]):
+        if self.c in excludes:
+            for c in self._iter_text:
+                if c not in excludes:
+                    self.c = c
+                    break
+            else:
+                self.c = _sentinel
 
-    def _get_value(self):
-        self._next_not(WHITESPACE)
-        if not self.c:
-            raise ParseError('input is empty')
-        elif self.c == '{':
-            return self._get_table()
-        elif self.c in '\'"[':
-            return self._get_string()
-        elif self.c == '-' or self.c.isdigit():
-            return self._get_number()
-        else:
-            return self._get_bare_word()
-
-    def _get_table(self):
+    def _decode_table(self):
         table: dict[Any, Any] | list[Any] = {}
         idx = 0
 
         self._next()
         while True:
-            self._next_not(WHITESPACE)
+            self._next_not_eq(WHITESPACE)
 
             if self.c == '}':
 
@@ -112,11 +112,11 @@ class SLPP:
                     if self.c == '[':
                         is_val_long_string_literal = True
 
-                item = self._get_value()
-                self._next_not(WHITESPACE | {']'})
+                item = self.decode()
+                self._next_not_eq(WHITESPACE_OR_CLOSING_SQ_BR)
 
                 c = self.c
-                if c in '=,':
+                if c and c in '=,':
                     self._next()
 
                     if c == '=':
@@ -128,7 +128,7 @@ class SLPP:
                             raise ParseError('table keys cannot be nil')
 
                         # Item is a key
-                        value = self._get_value()
+                        value = self.decode()
                         if (
                             # nil values are not persisted in Lua tables
                             value is not None
@@ -142,36 +142,44 @@ class SLPP:
                     idx += 1
                     table[idx] = item
 
-    def _get_string(self):
+    def _decode_string(self):
         s = ''
         start = self.c
+        end = None
+        prev_was_slash = False
+
         if start == '[':
-            self._next_not('[')
+            self._next_not_eq('[')
             s += self.c
             end = ']'
         else:
             end = start
 
-        for self.c in self.iter_text:
-            if self.c == end:
-                break
-            elif self.c == '\\' and start == end:
-                self._next()
-                if self.c != end:
-                    s += '\\'
-            s += self.c
+        for c in self._iter_text:
+            if prev_was_slash:
+                prev_was_slash = False
 
+                if c != end:
+                    s += '\\'
+            elif c == end:
+                break
+            elif c == '\\' and start == end:
+                prev_was_slash = True
+                continue
+
+            s += c
+
+        self._next()
         if start != end:
-            self._next()
-        else:
             # Strip multiple closing brackets
-            self._next_not(end)
+            self._next_not_eq(end)
+
         return s
 
-    def _get_bare_word(self):
+    def _decode_bare_word(self):
         s = self.c
-        for self.c in self.iter_text:
-            new_s = s + self.c
+        for c in self._iter_text:
+            new_s = s + c
             if match_bare_word.match(new_s):
                 s = new_s
             else:
@@ -180,7 +188,21 @@ class SLPP:
         self._next()
         return KEYWORDS.get(s, s)
 
-    def _get_number(self):
+    def _decode_number(self):
+        def get_digits():
+            n = ''
+
+            for c in self._iter_text:
+                if c in DIGITS:
+                    n += c
+                else:
+                    self.c = c
+                    break
+            else:
+                self.c = _sentinel
+
+            return n
+
         n = ''
 
         if self.c == '-':
@@ -189,61 +211,52 @@ class SLPP:
             if self.c == '-':
 
                 # This is a comment - skip to the end of the line
-                self._next_nl()
+                self._next_eq(NEWLINE)
                 return None
 
-            elif not self.c or not self.c.isdigit():
-
-                raise ParseError('malformed number (no digits after initial minus)', c + self.c)
+            elif not self.c or self.c not in DIGITS:
+                raise ParseError('malformed number (no digits after minus sign)', c + self.c)
 
             n += c
 
-        n += self._get_digit()
-        if n == '0' and self.c in 'Xx':
+        n += self.c + get_digits()
+        if n == '0' and self.c in HEXDELIMS:
 
             n += self.c
-            self._next()
-            n += self._get_hex()
+
+            for c in self._iter_text:
+                if c in HEXDIGITS:
+                    n += c
+                else:
+                    self.c = c
+                    break
+            else:
+                self.c = _sentinel
 
         else:
 
-            if self.c and self.c == '.':
-                n += self.c
-                self._next()
-                n += self._get_digit()
+            if self.c == '.':
+                n += self.c + get_digits()
 
-            if self.c and self.c in 'Ee':
+            if self.c in EXPONENTS:
                 n += self.c
-
-                self._next()
-                if not self.c or self.c not in '+-':
-                    raise ParseError('malformed number (bad scientific format)', n, self.c)
-                n += self.c
-
-                self._next()
-                if not self.c.isdigit():
-                    raise ParseError('malformed number (bad scientific format)', n, self.c)
-                n += self._get_digit()
+                self._next()  # +-
+                n += self.c + get_digits()
 
         try:
             return int(n, 0)
-        except Exception:
+        except ValueError:
             return float(n)
 
-    def _get_digit(self):
-        n = ''
-        while self.c and self.c.isdigit():
-            n += self.c
-            self._next()
-        return n
-
-    def _get_hex(self):
-        n = ''
-        while self.c and (self.c in 'ABCDEFabcdef' or self.c.isdigit()):
-            n += self.c
-            self._next()
-        return n
-
-
-def decode(text: str):
-    return SLPP(text).decode()
+    def decode(self):
+        self._next_not_eq(WHITESPACE)
+        if not self.c:
+            raise ParseError('input is empty')
+        elif self.c == '{':
+            return self._decode_table()
+        elif self.c in '\'"[':
+            return self._decode_string()
+        elif self.c == '-' or self.c in DIGITS:
+            return self._decode_number()
+        else:
+            return self._decode_bare_word()

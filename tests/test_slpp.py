@@ -22,7 +22,11 @@
 
 import pytest
 
-from instawow._custom_slpp import ParseError, decode
+from instawow._custom_slpp import SLPP, ParseError
+
+
+def decode(value):
+    return SLPP(value).decode()
 
 
 def test_numbers():
