@@ -780,11 +780,11 @@ def gui(ctx: click.Context, log_to_stderr: bool) -> None:
         setup_logging(dummy_config, log_level)
 
     loop = asyncio.new_event_loop()
-    server_url, listen = loop.run_until_complete(json_rpc_server.prepare())
+    server_url, serve = loop.run_until_complete(json_rpc_server.prepare())
     click.echo(f'web server: {server_url}')
 
     server_thread = threading.Thread(
-        target=lambda: loop.run_until_complete(listen()), name='iw-server-thread'
+        target=lambda: loop.run_until_complete(serve()), name='iw-server-thread'
     )
     server_thread.start()
     try:

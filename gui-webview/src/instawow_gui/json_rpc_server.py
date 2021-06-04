@@ -596,21 +596,20 @@ async def create_app() -> aiohttp.web.Application:
     return app
 
 
-async def prepare():
+async def prepare() -> tuple[URL, Callable[[], Awaitable[None]]]:
     "Fire up the server."
     loop = asyncio.get_running_loop()
 
     app = await create_app()
     app_runner = aiohttp.web.AppRunner(app)
     await app_runner.setup()
-    assert app_runner.server  # Server is created during ``app_runner.setup``
+    assert app_runner.server  # Server is created during setup
     # By omitting the port ``loop.create_server`` will find an available port
     # to bind to - equivalent to creating a socket on port 0.
     server = await loop.create_server(app_runner.server, LOCALHOST)
-    assert server.sockets
     host, port = server.sockets[0].getsockname()
 
-    async def listen() -> None:
+    async def serve():
         try:
             # ``server_forever`` cleans up after the server when it's interrupted
             await server.serve_forever()
@@ -619,5 +618,5 @@ async def prepare():
 
     return (
         URL.build(scheme='http', host=host, port=port),
-        listen,
+        serve,
     )
