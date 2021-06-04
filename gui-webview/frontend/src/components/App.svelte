@@ -1,24 +1,35 @@
 <script lang="ts">
-  import type { Api, Version } from "../api";
+  import type { Api, Config, Version } from "../api";
+  import { JSONRPCError } from "@open-rpc/client-js";
   import { fade } from "svelte/transition";
   import { api } from "../ipc";
   import { activeProfile, profiles } from "../store";
   import ProfileView from "./ProfileView.svelte";
   import ProfileSwitcher from "./ProfileSwitcher.svelte";
 
-  let instawowVersions: Version;
   let statusMessage: string = "";
 
-  const doInitialSetup = async () => {
+  const performInitialSetup = async () => {
+    const instawowVersions = await api.getVersion();
     const profileNames = await api.listProfiles();
-    const profileConfigs = await Promise.all(profileNames.map((p) => api.readProfile(p)));
-    $profiles = new Map(profileNames.map((n, i) => [n, profileConfigs[i]]));
+    const profileConfigs = await Promise.all(
+      profileNames.map(async (p) => {
+        try {
+          return await api.readProfile(p);
+        } catch (error) {
+          return error;
+        }
+      })
+    );
+    $profiles = new Map(
+      profileConfigs.filter((p): p is Config => !(p instanceof Error)).map((p) => [p.profile, p])
+    );
     $activeProfile = profileNames[0];
-    instawowVersions = await api.getVersion();
+    return instawowVersions;
   };
 </script>
 
-{#await doInitialSetup()}
+{#await performInitialSetup()}
   <main>
     <header class="section section__menubar" />
     <section class="section section__main" />
@@ -26,7 +37,7 @@
       <div class="status">loading…</div>
     </footer>
   </main>
-{:then}
+{:then instawowVersions}
   <main>
     <header class="section section__menubar">
       <ProfileSwitcher />
