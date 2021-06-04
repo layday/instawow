@@ -270,7 +270,7 @@ async def capture_manager_exc_async(
     except (R.ManagerError, R.InternalError) as error:
         return error
     except ClientError as error:
-        logger.opt(exception=True).debug('network error')
+        logger.opt(exception=True).info('network error')
         return R.InternalError(error)
     except BaseException as error:
         logger.exception('unclassed error')
