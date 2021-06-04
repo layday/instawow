@@ -72,7 +72,6 @@ else:
 
 _T = TypeVar('_T')
 _C = TypeVar('_C', bound='Callable[..., Awaitable[object]]')
-_TManager = TypeVar('_TManager', bound='Manager')
 
 
 USER_AGENT = 'instawow (https://github.com/layday/instawow)'
@@ -365,7 +364,7 @@ class Manager:
             _locks.set(locks)
 
     @classmethod
-    def from_config(cls: type[_TManager], config: Config) -> _TManager:
+    def from_config(cls: type[_T], config: Config) -> _T:
         return cls(config, prepare_database(config))
 
     @property
