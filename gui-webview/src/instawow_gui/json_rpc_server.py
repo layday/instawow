@@ -542,7 +542,7 @@ async def create_app() -> aiohttp.web.Application:
 
     async def get_static_file(request: aiohttp.web.Request):
         filename = request.path.lstrip('/')
-        if filename == 'svelte-bundle.js':
+        if filename.startswith('svelte-bundle.js'):
             content_type = 'application/javascript'
         elif filename == 'svelte-bundle.css':
             content_type = 'text/css'
@@ -558,7 +558,9 @@ async def create_app() -> aiohttp.web.Application:
     app.add_routes(
         [
             aiohttp.web.get('/', get_index),
-            aiohttp.web.get('/svelte-bundle.{extension:(?:css|js)}', get_static_file),
+            aiohttp.web.get(
+                r'/svelte-bundle{extension:(?:\.css|\.js(?:\.map)?)}', get_static_file
+            ),
         ]
     )
 
