@@ -9,6 +9,7 @@ import importlib.resources
 from itertools import starmap
 import os
 import threading
+from types import SimpleNamespace
 import typing
 from typing import Any, TypeVar, overload
 
@@ -24,10 +25,10 @@ from yarl import URL
 
 from instawow import __version__, matchers, results as R
 from instawow.config import Config
-from instawow.manager import Manager, init_web_client, prepare_database
+from instawow.manager import Manager, TraceRequestCtx, init_web_client, prepare_database
 from instawow.models import Pkg, is_pkg
 from instawow.resolvers import CatalogueEntry, Defn, PkgModel, Strategy
-from instawow.utils import gather, is_outdated, run_in_thread as t, uniq
+from instawow.utils import is_outdated, run_in_thread as t, uniq
 
 from . import InstawowApp, frontend, templates
 
@@ -315,11 +316,9 @@ class DownloadProgressReport(TypedDict):
 
 class GetDownloadProgressParams(_ProfileParamMixin, BaseParams):
     async def respond(self, managers: ManagerWorkQueue) -> list[DownloadProgressReport]:
-        manager = await managers.run(self.profile)
         return [
-            DownloadProgressReport(defn=Defn.from_pkg(p), progress=s)
-            for m, p, s in await gather(t() for t in managers.progress_reporters)
-            if m is manager
+            DownloadProgressReport(defn=Defn.from_pkg(p), progress=r)
+            for p, r in await managers.get_download_progress(self.profile)
         ]
 
 
@@ -392,40 +391,31 @@ class ConfirmDialogueParams(BaseParams):
 
 
 def _init_json_rpc_web_client(
-    progress_reporters: set[Callable[[], Awaitable[tuple[Manager, Pkg, float]]]],
+    progress_reporters: set[tuple[Manager, Pkg, Callable[[], float]]],
 ) -> aiohttp.ClientSession:
-    from aiohttp import TraceConfig, TraceRequestEndParams, hdrs
-
     async def do_on_request_end(
         client_session: aiohttp.ClientSession,
-        trace_config_ctx: Any,
-        params: TraceRequestEndParams,
+        trace_config_ctx: SimpleNamespace,
+        params: aiohttp.TraceRequestEndParams,
     ) -> None:
-        trace_request_ctx = trace_config_ctx.trace_request_ctx
+        trace_request_ctx: TraceRequestCtx = trace_config_ctx.trace_request_ctx
         if (
-            not trace_request_ctx
-            or 'manager' not in trace_request_ctx
-            or 'pkg' not in trace_request_ctx
+            trace_request_ctx
+            and trace_request_ctx['report_progress'] == 'pkg_download'
+            and params.response.content_length
+            and aiohttp.hdrs.CONTENT_ENCODING not in params.response.headers
         ):
-            return
-
-        if not params.response.content_length or hdrs.CONTENT_ENCODING in params.response.headers:
-            return
-
-        content_length = params.response.content_length
-
-        async def progress_reporter() -> tuple[Manager, Pkg, float]:
-            total_bytes: int = params.response.content.total_bytes
-            return (
+            content = params.response.content
+            content_length = params.response.content_length
+            entry = (
                 trace_request_ctx['manager'],
                 trace_request_ctx['pkg'],
-                total_bytes / content_length,
+                lambda: content.total_bytes / content_length,  # type: ignore
             )
+            progress_reporters.add(entry)
+            content.on_eof(lambda: progress_reporters.remove(entry))
 
-        progress_reporters.add(progress_reporter)
-        params.response.content.on_eof(lambda: progress_reporters.remove(progress_reporter))
-
-    trace_config = TraceConfig()
+    trace_config = aiohttp.TraceConfig()
     trace_config.on_request_end.append(do_on_request_end)
     trace_config.freeze()
     return init_web_client(trace_configs=[trace_config])
@@ -435,8 +425,8 @@ class ManagerWorkQueue:
     def __init__(self) -> None:
         self._managers: dict[str, Manager] = {}
         self._queue: asyncio.Queue[ManagerWorkQueueItem] = asyncio.Queue()
-        self.progress_reporters: set[Callable[[], Awaitable[tuple[Manager, Pkg, float]]]] = set()
-        self._web_client = _init_json_rpc_web_client(self.progress_reporters)
+        self._progress_reporters: set[tuple[Manager, Pkg, Callable[[], float]]] = set()
+        self._web_client = _init_json_rpc_web_client(self._progress_reporters)
         self._locks: defaultdict[str, asyncio.Lock] = defaultdict(asyncio.Lock)
 
     async def listen(self) -> None:
@@ -502,6 +492,10 @@ class ManagerWorkQueue:
         future: asyncio.Future[Any] = asyncio.Future()
         self._queue.put_nowait((future, profile, coro_fn))
         return await asyncio.wait_for(future, None)
+
+    async def get_download_progress(self, profile: str) -> Iterator[tuple[Pkg, float]]:
+        manager = await self.run(profile)
+        return ((p, r()) for m, p, r in self._progress_reporters if m is manager)
 
     def unload_manager(self, profile: str) -> None:
         self._managers.pop(profile, None)

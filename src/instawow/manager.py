@@ -19,6 +19,7 @@ import json
 from pathlib import Path, PurePath
 from shutil import copy
 from tempfile import NamedTemporaryFile
+from types import SimpleNamespace
 from typing import TYPE_CHECKING, Any, TypeVar
 import urllib.parse
 
@@ -26,7 +27,7 @@ from loguru import logger
 import sqlalchemy
 import sqlalchemy.exc
 import sqlalchemy.orm
-from typing_extensions import TypeAlias
+from typing_extensions import Literal, TypeAlias, TypedDict
 from yarl import URL
 
 from . import _deferred_types, results as R
@@ -79,6 +80,20 @@ USER_AGENT = 'instawow (https://github.com/layday/instawow)'
 DB_REVISION = '764fa963cc71'
 
 
+class _GenericDownloadTraceRequestCtx(TypedDict):
+    report_progress: Literal['generic']
+    label: str
+
+
+class _PkgDownloadTraceRequestCtx(TypedDict):
+    report_progress: Literal['pkg_download']
+    manager: Manager
+    pkg: Pkg
+
+
+TraceRequestCtx: TypeAlias = '_GenericDownloadTraceRequestCtx | _PkgDownloadTraceRequestCtx | None'
+
+
 _AsyncNamedTemporaryFile = t(NamedTemporaryFile)
 _copy_async = t(copy)
 _move_async = t(move)
@@ -124,16 +139,18 @@ async def _download_archive(manager: Manager, pkg: Pkg, *, chunk_size: int = 409
         pkg.source, pkg.id, pkg.version, manager.config.game_flavour
     )
     if await t(dest.exists)():
-        logger.debug(f'retrieving {url} from cache at {dest}')
+        logger.debug(f'{url} is cached at {dest}')
     elif url.startswith('file://'):
         await _copy_async(file_uri_to_path(url), dest)
     else:
         async with manager.web_client.get(
             url,
             raise_for_status=True,
-            trace_request_ctx={'report_progress': True, 'manager': manager, 'pkg': pkg},
-            # This is needed for Townlong Yak.  See
-            # https://github.com/aio-libs/aiohttp/issues/3904#issuecomment-632661245
+            trace_request_ctx=_PkgDownloadTraceRequestCtx(
+                report_progress='pkg_download', manager=manager, pkg=pkg
+            ),
+            # This is needed for Townlong Yak.
+            # See: https://github.com/aio-libs/aiohttp/issues/3904#issuecomment-632661245
             headers={'Connection': 'keep-alive'},
         ) as response, _open_temp_writer() as (temp_path, write):
             async for chunk in response.content.iter_chunked(chunk_size):
@@ -161,13 +178,15 @@ async def cache_response(
             **request_extra,
         }
         if label:
-            kwargs = {**kwargs, 'trace_request_ctx': {'report_progress': True, 'label': label}}
+            kwargs['trace_request_ctx'] = _GenericDownloadTraceRequestCtx(
+                report_progress='generic', label=label
+            )
         async with manager.web_client.request(**kwargs) as response:
             return await response.text()
 
     dest = manager.config.cache_dir / shasum(url, request_extra)
     if await t(is_not_stale)(dest, ttl):
-        logger.debug(f'loading {url} from cache at {dest} (ttl: {ttl})')
+        logger.debug(f'{url} is cache at {dest} (ttl: {ttl})')
         text = await t(dest.read_text)(encoding='utf-8')
     else:
         text = await make_request()
@@ -750,41 +769,38 @@ def _init_cli_web_client(
 ) -> _deferred_types.aiohttp.ClientSession:
     from aiohttp import TraceConfig, TraceRequestEndParams, hdrs
 
-    tick_interval = 0.1
+    TICK_INTERVAL = 0.1
 
     async def do_on_request_end(
         client_session: _deferred_types.aiohttp.ClientSession,
-        trace_config_ctx: Any,
+        trace_config_ctx: SimpleNamespace,
         params: TraceRequestEndParams,
     ) -> None:
-        trace_request_ctx = trace_config_ctx.trace_request_ctx
-        if not trace_request_ctx or 'report_progress' not in trace_request_ctx:
-            return
-
-        async def ticker() -> None:
+        trace_request_ctx: TraceRequestCtx = trace_config_ctx.trace_request_ctx
+        if trace_request_ctx:
             response = params.response
             label = (
                 trace_request_ctx.get('label')
                 or f'Downloading {_extract_filename_from_hdr(response)}'
             )
-
-            # The encoded size is not exposed in the aiohttp streaming API
-            # in which case the total is set to ``None`` for the progress bar
-            # to be displayed as indeterminate
             total = response.content_length
             if hdrs.CONTENT_ENCODING in response.headers:
+                # The encoded size is not exposed in the aiohttp streaming API.
+                # If the payload is encoded, ``total`` is set to ``None``
+                # for the progress bar to be rendered as indeterminate.
                 total = None
 
-            counter = bar(label=label, total=total)
-            try:
-                while not response.content.is_eof():
-                    counter.items_completed = response.content.total_bytes
-                    bar.invalidate()
-                    await asyncio.sleep(tick_interval)
-            finally:
-                bar.counters.remove(counter)
+            async def ticker() -> None:
+                counter = bar(label=label, total=total)
+                try:
+                    while not response.content.is_eof():
+                        counter.items_completed = response.content.total_bytes
+                        bar.invalidate()
+                        await asyncio.sleep(TICK_INTERVAL)
+                finally:
+                    bar.counters.remove(counter)
 
-        tickers.add(asyncio.create_task(ticker()))
+            tickers.add(asyncio.create_task(ticker()))
 
     trace_config = TraceConfig()
     trace_config.on_request_end.append(do_on_request_end)
