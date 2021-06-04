@@ -276,7 +276,7 @@ export class Api {
     });
   }
 
-  async confirm(title: string, message: string): Promise<SelectFolderResult> {
+  async confirm(title: string, message: string): Promise<ConfirmDialogueResult> {
     return await this._request({
       method: "assist/confirm",
       params: { title, message },
