@@ -128,6 +128,9 @@ jobs:
       env:
         SETUPTOOLS_SCM_PRETEND_VERSION_FOR_INSTAWOW:
           ${{ needs.get-version.outputs.instawow-version }}
+        # Install a pure Python copy of Pydantic because of its enormous size
+        # when cythonized.
+        PIP_NO_BINARY: 'pydantic'
       working-directory: gui-webview
     - name: Upload output
       uses: actions/upload-artifact@v2
