@@ -16,12 +16,3 @@ requires = [
   "..[gui]",
   "certifi",
 ]
-
-[tool.briefcase.app.instawow-gui-wrapper.linux]
-system_requires = [
-  "libgirepository1.0-dev",
-  "libcairo2-dev",
-  "libpango1.0-dev",
-  "libwebkitgtk-3.0-0",
-  "gir1.2-webkit-3.0",
-]
