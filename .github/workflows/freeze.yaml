@@ -21,21 +21,13 @@ jobs:
       uses: actions/setup-python@v2
       with:
         python-version: '3.9'
-    - name: Install setuptools-scm
+    - name: Install dunamai
       run: |
-        python -m pip install setuptools-scm[toml]
+        python -m pip install dunamai
     - name: Grab the version
       id: get-version
       run: |
-        echo "::set-output name=INSTAWOW_VERSION::$(python -c "
-        import setuptools_scm
-        config = setuptools_scm.Configuration.from_file()
-        print(
-            setuptools_scm.get_version(
-                version_scheme=config.version_scheme, local_scheme=config.local_scheme
-            )
-        )
-        ")"
+        echo "::set-output name=INSTAWOW_VERSION::$(dunamai from git --bump --no-metadata)"
   freeze-cli:
     needs: get-version
     strategy:
@@ -49,6 +41,8 @@ jobs:
     steps:
     - name: Clone the repo
       uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
     - name: Install Python
       uses: actions/setup-python@v2
       with:
@@ -56,11 +50,8 @@ jobs:
     - name: Build instawow dists and generate a `requirements.txt` for pyoxidizer
       run: |
         python -m pip install nox
-        python -m nox -s build
+        python -m nox -s build_dists
         echo "../$(find dist -name 'instawow-*.whl')" > instawow-standalone/requirements.txt
-      env:
-        SETUPTOOLS_SCM_PRETEND_VERSION_FOR_INSTAWOW:
-          ${{ needs.get-version.outputs.instawow-version }}
     - name: Install and run pyoxidizer
       run: |
         python -m pip install pyoxidizer
@@ -96,6 +87,8 @@ jobs:
     steps:
     - name: Clone the repo
       uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
     - name: Install briefcase Linux dependencies
       run: sudo apt-get update --fix-missing && sudo apt-get install -y
         patchelf pkgconf
@@ -114,7 +107,7 @@ jobs:
       working-directory: gui-webview/frontend
     - name: Patch in the version number
       run: sed -i.bak
-        's/version = "0.1.0"/version = "${{ needs.get-version.outputs.instawow-version }}"/'
+        's/version = "0.0.0"/version = "${{ needs.get-version.outputs.instawow-version }}"/'
         pyproject.toml
       working-directory: gui-webview
     - name: Install and run briefcase
@@ -126,8 +119,6 @@ jobs:
           echo "INSTAWOW_ARTIFACT_PATH=gui-webview/$(tail -n 1 | cut -c 33-)" >> $GITHUB_ENV
         )
       env:
-        SETUPTOOLS_SCM_PRETEND_VERSION_FOR_INSTAWOW:
-          ${{ needs.get-version.outputs.instawow-version }}
         # Install a pure Python copy of Pydantic because of its enormous size
         # when cythonized.
         PIP_NO_BINARY: 'pydantic'

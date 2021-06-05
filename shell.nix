@@ -16,7 +16,7 @@ pkgs.mkShell {
   PYTHONBREAKPOINT = "IPython.terminal.debugger.set_trace";
 
   postVenvCreation = ''
-    python -m pip install -U pip
-    python -m pip install -U ipython nox -e '.[gui, test, types]'
+    python -m pip install -U pip setuptools
+    python -m pip install -U ipython nox '.[gui, test, types]'
   '';
 }

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from pathlib import Path
+from shutil import rmtree
 from textwrap import dedent
 
 import nox
@@ -24,7 +26,6 @@ def reformat(session: nox.Session):
             'gui-webview/src',
             'tests',
             'noxfile.py',
-            'setup.py',
         )
 
     if '--skip-prettier' not in session.posargs:
@@ -47,7 +48,6 @@ def reformat(session: nox.Session):
     [
         '',
         '''aiohttp ==3.7.4
-           aiohttp-rpc ==0.6.3
            alembic ==1.4.3
            click ==7.1
            jellyfish ==0.8.2
@@ -60,6 +60,7 @@ def reformat(session: nox.Session):
            sqlalchemy ==1.3.19
            typing-extensions ==3.10.0.0
            yarl ==1.4
+           aiohttp-rpc ==0.6.3
         ''',
     ],
     [
@@ -93,23 +94,26 @@ def type_check(session: nox.Session):
 
 
 @nox.session(python=False)
-def clobber_build_artefacts(session: nox.Session):
-    "Remove build artefacts."
-    session.run('rm', '-rf', 'build', 'dist', 'instawow.egg-info', external=True)
+def bundle_frontend(session: nox.Session):
+    "Bundle the frontend."
+    for file in Path().glob('gui-webview/src/instawow_gui/frontend/svelte-*'):
+        file.unlink()
+
+    session.chdir('gui-webview/frontend')
+    session.run('npx', 'rollup', '-c', external=True)
 
 
 @nox.session
-def build(session: nox.Session):
+def build_dists(session: nox.Session):
     "Build an sdist and wheel."
-    clobber_build_artefacts(session)
+    rmtree('dist', ignore_errors=True)
     session.install('build')
     session.run('python', '-m', 'build')
 
 
 @nox.session
-def build_and_publish(session: nox.Session):
+def publish_dists(session: nox.Session):
     "Build, validate and upload dists to PyPI."
-    build(session)
     session.install('twine')
     for subcmd in ('check', 'upload'):
         session.run('twine', subcmd, 'dist/*')
