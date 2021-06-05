@@ -98,8 +98,10 @@ jobs:
       uses: actions/checkout@v2
     - name: Install briefcase Linux dependencies
       run: sudo apt-get update --fix-missing && sudo apt-get install -y
-        libgirepository1.0-dev libcairo2-dev libpango1.0-dev libwebkitgtk-3.0-dev gir1.2-webkit-3.0
-        libgdbm-dev
+        patchelf pkgconf
+        libgtk-3-dev libwebkit2gtk-4.0-dev
+        libgirepository1.0-dev gir1.2-javascriptcoregtk-4.0 gir1.2-webkit2-4.0
+        proot
       if: matrix.build-env.os == 'ubuntu-18.04'
     - name: Install Python
       uses: actions/setup-python@v2
