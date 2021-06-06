@@ -5,7 +5,6 @@
    :target: https://matrix.to/#/#wow-addon-management:matrix.org?via=matrix.org
    :alt: Matrix channel
 
-
 *instawow* is a package manager for World of Warcraft.
 It can be used to install, remove and update add-ons from
 WoWInterface, CurseForge, Tukui, Townlong Yak and GitHub.
@@ -48,21 +47,19 @@ Some of the features of *instawow* are:
 Installation
 ------------
 
-You can download pre-built binaries of the *instawow* CLI and GUI from GitHub:
+You can download pre-built binaries of *instawow* from GitHub:
 
 - `Binaries <https://github.com/layday/instawow/releases/latest>`__
 
-If you would prefer to install the CLI from source, the following will work:
+If you'd prefer to install *instawow* from source, you are able to choose from:
 
 - `pipx <https://github.com/pipxproject/pipx>`__:
-  ``pipx install instawow``
-- Vanilla pip:
-  ``python -m pip install -U instawow``
-- From the `AUR <https://aur.archlinux.org/packages/instawow/>`__
+  ``pipx install instawow`` or ``pipx install instawow[gui]`` for the GUI
+- The `AUR <https://aur.archlinux.org/packages/instawow/>`__
   for Arch Linux:
   ``yay -S instawow``
-
-When installing from source, *instawow* requires Python 3.7 or greater.
+- Vanilla pip:
+  ``python -m pip install -U instawow`` or ``python -m pip install -U instawow[gui]`` for the GUI
 
 Getting started
 ---------------
