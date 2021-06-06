@@ -28,6 +28,7 @@ def _patch_loguru() -> None:
 
 def _patch_aiohttp() -> None:
     from functools import partial
+    from importlib.resources import read_text
     import ssl
 
     import aiohttp
@@ -40,7 +41,7 @@ def _patch_aiohttp() -> None:
     original_aiohttp_TCPConnector = aiohttp.TCPConnector
     aiohttp.TCPConnector = partial(
         original_aiohttp_TCPConnector,
-        ssl=ssl.create_default_context(cafile=certifi.where()),
+        ssl=ssl.create_default_context(cadata=read_text(certifi, 'cacert.pem', encoding='ascii')),
     )
 
 
