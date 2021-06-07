@@ -339,7 +339,6 @@ def rollback(obj: ManagerWrapper, addon: Defn, version: str | None, undo: bool) 
     "Roll an add-on back to an older version."
     from .prompts import Choice, select
 
-    version_limit = 10
     manager = obj.m
 
     if version and undo:
@@ -362,16 +361,7 @@ def rollback(obj: ManagerWrapper, addon: Defn, version: str | None, undo: bool) 
     if version:
         selection = version
     else:
-        versions = (
-            manager.database.query(models.PkgVersionLog)
-            .filter(
-                models.PkgVersionLog.pkg_source == pkg.source,
-                models.PkgVersionLog.pkg_id == pkg.id,
-            )
-            .order_by(models.PkgVersionLog.install_time.desc())
-            .limit(version_limit)
-            .all()
-        )
+        versions = pkg.logged_versions
         if len(versions) <= 1:
             Report(
                 [(addon, R.PkgFileUnavailable('cannot find older versions'))]

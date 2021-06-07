@@ -10,7 +10,6 @@ from sqlalchemy import (
     MetaData,
     String,
     TypeDecorator,
-    and_,
     func,
 )
 from sqlalchemy.ext.declarative import declarative_base
@@ -107,10 +106,9 @@ class Pkg(ModelBase):
         return (
             (
                 session.query(PkgVersionLog)
-                .filter(
-                    and_(PkgVersionLog.pkg_source == self.source, PkgVersionLog.pkg_id == self.id)
-                )
+                .filter_by(pkg_source=self.source, pkg_id=self.id)
                 .order_by(PkgVersionLog.install_time.desc())
+                .limit(10)
                 .all()
             )
             if session
