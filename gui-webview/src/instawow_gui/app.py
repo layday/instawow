@@ -48,42 +48,89 @@ class InstawowApp(toga.App):
                 url=self.iw_server_url, style=toga.style.Pack(flex=1)
             )
 
+        if platform.system() == 'Darwin':
+            from rubicon.objc import send_message
+
+            def send_message_to_wkwebview(_: toga.Command, *, selector: str):
+                send_message(
+                    self.iw_webview._impl.native,  # type: ignore
+                    selector,
+                    restype=None,
+                    argtypes=[],
+                )
+
+            edit_group = toga.Group('Edit')
+            self.commands.add(
+                toga.Command(
+                    partial(send_message_to_wkwebview, selector='cut:'),
+                    label='Cut',
+                    shortcut=toga.Key.MOD_1 + toga.Key.X,
+                    group=edit_group,
+                    section=1,
+                    order=1,
+                ),
+                toga.Command(
+                    partial(send_message_to_wkwebview, selector='copy:'),
+                    label='Copy',
+                    shortcut=toga.Key.MOD_1 + toga.Key.C,
+                    group=edit_group,
+                    section=1,
+                    order=2,
+                ),
+                toga.Command(
+                    partial(send_message_to_wkwebview, selector='paste:'),
+                    label='Paste',
+                    shortcut=toga.Key.MOD_1 + toga.Key.V,
+                    group=edit_group,
+                    section=1,
+                    order=3,
+                ),
+                toga.Command(
+                    partial(send_message_to_wkwebview, selector='selectAll:'),
+                    label='Select All',
+                    shortcut=toga.Key.MOD_1 + toga.Key.A,
+                    group=edit_group,
+                    section=2,
+                    order=1,
+                ),
+            )
+
+        def dispatch_js_keyboard_event(_: toga.Command, *, action: str):
+            event_args = json.dumps(
+                {'detail': {'action': action}, 'bubbles': True, 'cancelable': True}
+            )
+            self.iw_webview.invoke_javascript(
+                f'document.dispatchEvent(new CustomEvent("togaSimulateKeypress", {event_args}));'
+            )
+
         view_group = toga.Group('View')
         self.commands.add(
             toga.Command(
-                partial(self.iw_dispatch_keyboard_event, action='focusSearchBox'),
+                partial(dispatch_js_keyboard_event, action='focusSearchBox'),
                 label='Search',
                 shortcut=toga.Key.MOD_1 + toga.Key.F,
                 group=view_group,
                 section=2,
-                order=0,
+                order=1,
             ),
             toga.Command(
-                partial(self.iw_dispatch_keyboard_event, action='toggleFiltering'),
+                partial(dispatch_js_keyboard_event, action='toggleFiltering'),
                 label='Toggle filtering',
                 shortcut=toga.Key.MOD_1 + toga.Key.G,
                 group=view_group,
                 section=2,
-                order=1,
+                order=2,
             ),
         )
 
         self.iw_window.show()
-
-    def iw_dispatch_keyboard_event(self, command: toga.Command, action: str) -> None:
-        event_args = json.dumps(
-            {'detail': {'action': action}, 'bubbles': True, 'cancelable': True}
-        )
-        self.iw_webview.invoke_javascript(
-            f'document.dispatchEvent(new CustomEvent("togaSimulateKeypress", {event_args}));'
-        )
 
     def iw_select_folder(self, initial_folder: str | None = None) -> str | None:
         try:
             (selection,) = self.iw_window.select_folder_dialog('Select folder', initial_folder)
             return selection
         except ValueError:
-            pass
+            return None
 
     def iw_confirm(self, title: str, message: str) -> bool:
         return self.iw_window.confirm_dialog(title, message)
