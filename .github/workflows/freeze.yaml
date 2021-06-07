@@ -94,7 +94,6 @@ jobs:
         patchelf pkgconf
         libgtk-3-dev libwebkit2gtk-4.0-dev
         libgirepository1.0-dev gir1.2-javascriptcoregtk-4.0 gir1.2-webkit2-4.0
-        proot
       if: matrix.build-env.os == 'ubuntu-18.04'
     - name: Install Python
       uses: actions/setup-python@v2
