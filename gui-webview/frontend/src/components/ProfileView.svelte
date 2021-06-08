@@ -261,6 +261,7 @@
 
   const search = async () => {
     searchesInProgress++;
+
     try {
       const searchTermsSnapshot = searchTerms;
       if (searchTermsSnapshot) {
@@ -484,20 +485,17 @@
     }
   });
 
-  // Revert to `View.Installed` when the search box is empty
+  // Restore `View.Installed` when the search box is emptied
   $: searchTerms ||
     (console.debug(profile, "- restoring add-on view"), (activeView = View.Installed));
   // Reset search params in-between searches
   $: searchTerms ||
     (console.debug(profile, "- resetting search values"),
     ({ searchFromAlias, searchSource, searchStrategy, searchVersion } = defaultSearchState));
-  // Upddate `searchFromAlias` whenever the `searchTerms` change
+  // Upddate `searchFromAlias` whenever the search terms change
   $: searchTerms &&
     (searchFromAlias =
       (console.debug(profile, "- updating `searchFromAlias`"), isSearchFromAlias()));
-  // Schedule a new search whenever the search params change
-  $: (searchFromAlias || searchSource || searchStrategy || searchVersion) &&
-    (console.debug(profile, "- triggering search"), search());
   // Update add-on list according to view
   $: addons =
     activeView === View.Search
@@ -517,7 +515,7 @@
   <AddonListNav
     {profile}
     {sources}
-    on:keydown={(e) => e.key === "Enter" && search()}
+    on:requestSearch={() => search()}
     on:requestRefresh={() => refreshInstalled()}
     on:requestUpdateAll={() => updateAddons(true)}
     on:requestReconcileStepBackward={() => goToPrevReconcileStage()}

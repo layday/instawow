@@ -106,7 +106,7 @@
       placeholder="search"
       bind:this={searchBox}
       bind:value={search__terms}
-      on:keydown
+      on:keydown={(e) => e.key === "Enter" && dispatch("requestSearch")}
       disabled={activeView === View.Reconcile}
     />
     {#if search__isSearching}
@@ -134,6 +134,7 @@
         class="hidden"
         type="checkbox"
         bind:checked={search__fromAlias}
+        on:change={() => dispatch("requestSearch")}
       />
       <label
         for="__interpret-as-uri-{profile}"
@@ -143,16 +144,26 @@
         <Icon icon={faLink} />
       </label>
       {#if !search__fromAlias}
-        <select aria-label="source" bind:value={search__source}>
+        <!-- svelte-ignore a11y-no-onchange -->
+        <select
+          aria-label="source"
+          bind:value={search__source}
+          on:change={() => dispatch("requestSearch")}
+        >
           <optgroup label="source">
             <option value={null}>any</option>
-            {#each Object.keys(sources) as source}
-              <option value={source}>{source}</option>
+            {#each Object.values(sources) as { source, name }}
+              <option value={source}>{name}</option>
             {/each}
           </optgroup>
         </select>
       {/if}
-      <select aria-label="strategy" bind:value={search__strategy}>
+      <!-- svelte-ignore a11y-no-onchange -->
+      <select
+        aria-label="strategy"
+        bind:value={search__strategy}
+        on:change={() => dispatch("requestSearch")}
+      >
         <optgroup label="strategy">
           {#each Object.values(Strategy) as strategy}
             <option value={strategy}>{strategy}</option>
@@ -165,7 +176,7 @@
           class="version"
           placeholder="version"
           bind:value={search__version}
-          on:keydown
+          on:keydown={(e) => e.key === "Enter" && dispatch("requestSearch")}
           in:fly={{ duration: 200, x: 64 }}
         />
       {/if}
