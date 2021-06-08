@@ -467,7 +467,10 @@
     if (refreshInProgress) {
       return "refreshing…";
     } else {
-      return `installed add-ons: ${addons__Installed.length}`;
+      return `installed add-ons: ${addons__Installed.reduce(
+        (a, [c]) => a + (c.__installed__ ? 1 : 0),
+        0
+      )}`;
     }
   };
 
@@ -505,7 +508,9 @@
   // Recount updates whenever `addons__Installed` is modified
   $: addons__Installed && (console.debug(profile, "- recounting updates"), countUpdates());
   // Update status message
-  $: (isActive || refreshInProgress) && (statusMessage = generateStatusMessage());
+  $: isActive &&
+    (addons__Installed || refreshInProgress) &&
+    (statusMessage = generateStatusMessage());
 </script>
 
 {#if isActive}
