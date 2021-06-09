@@ -8,7 +8,6 @@ from functools import partial
 import importlib.resources
 from itertools import starmap
 import os
-import threading
 from types import SimpleNamespace
 import typing
 from typing import Any, TypeVar, overload
@@ -34,7 +33,7 @@ from . import InstawowApp, frontend, templates
 
 _T = TypeVar('_T')
 _P = ParamSpec('_P')
-ManagerWorkQueueItem: TypeAlias = (
+_ManagerWorkQueueItem: TypeAlias = (
     'tuple[asyncio.Future[Any], str, Callable[..., Awaitable[Any]] | None]'
 )
 
@@ -60,7 +59,7 @@ def _reraise_validation_error(
 
 
 class BaseParams(BaseModel):
-    async def respond(self, managers: ManagerWorkQueue) -> Any:
+    async def respond(self, managers: _ManagerWorkQueue) -> Any:
         raise NotImplementedError
 
 
@@ -77,7 +76,7 @@ class WriteConfigParams(BaseParams):
     infer_game_flavour: bool
 
     @t
-    def respond(self, managers: ManagerWorkQueue) -> Config:
+    def respond(self, managers: _ManagerWorkQueue) -> Config:
         with _reraise_validation_error(_ConfigError):
             config = Config(**self.values)
             if self.infer_game_flavour:
@@ -86,29 +85,29 @@ class WriteConfigParams(BaseParams):
 
         # Dispose of the ``Manager`` corresponding to the profile if any
         # so that the configuration is reloaded on next invocation
-        managers.unload_manager(config.profile)
+        managers.unload(config.profile)
         return config
 
 
 class ReadConfigParams(_ProfileParamMixin, BaseParams):
     @t
-    def respond(self, managers: ManagerWorkQueue) -> Config:
+    def respond(self, managers: _ManagerWorkQueue) -> Config:
         with _reraise_validation_error(_ConfigError):
             return Config.read(self.profile)
 
 
 class DeleteConfigParams(_ProfileParamMixin, BaseParams):
-    async def respond(self, managers: ManagerWorkQueue) -> None:
+    async def respond(self, managers: _ManagerWorkQueue) -> None:
         async def delete_profile(manager: Manager):
             await t(manager.config.delete)()
-            managers.unload_manager(self.profile)
+            managers.unload(self.profile)
 
         await managers.run(self.profile, delete_profile)
 
 
 class ListProfilesParams(BaseParams):
     @t
-    def respond(self, managers: ManagerWorkQueue) -> list[str]:
+    def respond(self, managers: _ManagerWorkQueue) -> list[str]:
         return Config.list_profiles()
 
 
@@ -121,7 +120,7 @@ class Source(TypedDict):
 
 
 class ListSourcesParams(_ProfileParamMixin, BaseParams):
-    async def respond(self, managers: ManagerWorkQueue) -> list[Source]:
+    async def respond(self, managers: _ManagerWorkQueue) -> list[Source]:
         manager = await managers.run(self.profile)
         return [
             Source(
@@ -136,11 +135,13 @@ class ListSourcesParams(_ProfileParamMixin, BaseParams):
 
 
 class ListInstalledParams(_ProfileParamMixin, BaseParams):
-    async def respond(self, managers: ManagerWorkQueue) -> list[PkgModel]:
-        from sqlalchemy import func
+    async def respond(self, managers: _ManagerWorkQueue) -> list[PkgModel]:
+        from sqlalchemy import func, select
 
         manager = await managers.run(self.profile)
-        installed_pkgs = manager.database.query(Pkg).order_by(func.lower(Pkg.name)).all()
+        installed_pkgs = (
+            manager.database.execute(select(Pkg).order_by(func.lower(Pkg.name))).scalars().all()
+        )
         return [PkgModel.from_orm(p) for p in installed_pkgs]
 
 
@@ -159,7 +160,7 @@ class SearchParams(_ProfileParamMixin, BaseParams):
     limit: int
     sources: typing.Optional[typing.Set[str]] = None
 
-    async def respond(self, managers: ManagerWorkQueue) -> list[CatalogueEntry]:
+    async def respond(self, managers: _ManagerWorkQueue) -> list[CatalogueEntry]:
         return await managers.run(
             self.profile,
             partial(
@@ -172,7 +173,7 @@ class SearchParams(_ProfileParamMixin, BaseParams):
 
 
 class ResolveParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
-    async def respond(self, managers: ManagerWorkQueue) -> list[SuccessResult | ErrorResult]:
+    async def respond(self, managers: _ManagerWorkQueue) -> list[SuccessResult | ErrorResult]:
         def extract_source(manager: Manager, defns: list[Defn]):
             for defn in defns:
                 if defn.source == '*':
@@ -200,7 +201,7 @@ class ResolveParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
 class InstallParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
     replace: bool
 
-    async def respond(self, managers: ManagerWorkQueue) -> list[SuccessResult | ErrorResult]:
+    async def respond(self, managers: _ManagerWorkQueue) -> list[SuccessResult | ErrorResult]:
         results = await managers.run(
             self.profile, partial(Manager.install, defns=self.defns, replace=self.replace)
         )
@@ -213,7 +214,7 @@ class InstallParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
 
 
 class UpdateParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
-    async def respond(self, managers: ManagerWorkQueue) -> list[SuccessResult | ErrorResult]:
+    async def respond(self, managers: _ManagerWorkQueue) -> list[SuccessResult | ErrorResult]:
         results = await managers.run(
             self.profile, partial(Manager.update, defns=self.defns, retain_strategy=True)
         )
@@ -228,7 +229,7 @@ class UpdateParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
 class RemoveParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
     keep_folders: bool
 
-    async def respond(self, managers: ManagerWorkQueue) -> list[SuccessResult | ErrorResult]:
+    async def respond(self, managers: _ManagerWorkQueue) -> list[SuccessResult | ErrorResult]:
         results = await managers.run(
             self.profile, partial(Manager.remove, defns=self.defns, keep_folders=self.keep_folders)
         )
@@ -241,7 +242,7 @@ class RemoveParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
 
 
 class PinParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
-    async def respond(self, managers: ManagerWorkQueue) -> list[SuccessResult | ErrorResult]:
+    async def respond(self, managers: _ManagerWorkQueue) -> list[SuccessResult | ErrorResult]:
         results = await managers.run(self.profile, partial(Manager.pin, defns=self.defns))
         return [
             SuccessResult(status=r.status, addon=PkgModel.from_orm(r.pkg))
@@ -254,7 +255,7 @@ class PinParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
 class GetChangelogParams(_ProfileParamMixin, BaseParams):
     changelog_url: str
 
-    async def respond(self, managers: ManagerWorkQueue) -> str:
+    async def respond(self, managers: _ManagerWorkQueue) -> str:
         return await managers.run(
             self.profile, partial(Manager.get_changelog, uri=self.changelog_url)
         )
@@ -278,7 +279,7 @@ class ReconcileResult(TypedDict):
 class ReconcileParams(_ProfileParamMixin, BaseParams):
     matcher: Literal['toc_source_ids', 'folder_name_subsets', 'addon_names_with_folder_names']
 
-    async def respond(self, managers: ManagerWorkQueue) -> ReconcileResult:
+    async def respond(self, managers: _ManagerWorkQueue) -> ReconcileResult:
         leftovers = await managers.run(self.profile, t(matchers.get_unreconciled_folder_set))
         match_groups: matchers.FolderAndDefnPairs = await managers.run(
             self.profile, partial(getattr(matchers, f'match_{self.matcher}'), leftovers=leftovers)
@@ -315,7 +316,7 @@ class DownloadProgressReport(TypedDict):
 
 
 class GetDownloadProgressParams(_ProfileParamMixin, BaseParams):
-    async def respond(self, managers: ManagerWorkQueue) -> list[DownloadProgressReport]:
+    async def respond(self, managers: _ManagerWorkQueue) -> list[DownloadProgressReport]:
         return [
             DownloadProgressReport(defn=Defn.from_pkg(p), progress=r)
             for p, r in await managers.get_download_progress(self.profile)
@@ -328,7 +329,7 @@ class GetVersionResult(TypedDict):
 
 
 class GetVersionParams(BaseParams):
-    async def respond(self, managers: ManagerWorkQueue) -> GetVersionResult:
+    async def respond(self, managers: _ManagerWorkQueue) -> GetVersionResult:
         outdated, new_version = await is_outdated()
         return GetVersionResult(
             installed_version=__version__, new_version=new_version if outdated else None
@@ -338,14 +339,14 @@ class GetVersionParams(BaseParams):
 class OpenUrlParams(BaseParams):
     url: str
 
-    async def respond(self, managers: ManagerWorkQueue) -> None:
+    async def respond(self, managers: _ManagerWorkQueue) -> None:
         click.launch(self.url)
 
 
 class RevealFolderParams(BaseParams):
     path_parts: typing.List[str]
 
-    async def respond(self, managers: ManagerWorkQueue) -> None:
+    async def respond(self, managers: _ManagerWorkQueue) -> None:
         click.launch(os.path.join(*self.path_parts), locate=True)
 
 
@@ -356,16 +357,19 @@ class SelectFolderResult(TypedDict):
 class SelectFolderParams(BaseParams):
     initial_folder: typing.Optional[str]
 
-    async def respond(self, managers: ManagerWorkQueue) -> SelectFolderResult:
+    async def respond(self, managers: _ManagerWorkQueue) -> SelectFolderResult:
         async def select_folder():
-            result = InstawowApp.running_app.iw_select_folder(self.initial_folder)
-            future_completed.set()
-            return result
+            try:
+                (selection,) = InstawowApp.app.iw_window.select_folder_dialog(
+                    'Select folder', self.initial_folder
+                )
+            except ValueError:
+                selection = None
+            return selection
 
-        future_completed = threading.Event()
-        future = asyncio.run_coroutine_threadsafe(select_folder(), InstawowApp.running_app.loop)
-        await t(future_completed.wait)()
-        selection = future.result()
+        selection = asyncio.run_coroutine_threadsafe(
+            select_folder(), InstawowApp.app.loop
+        ).result()
         return SelectFolderResult(selection=selection)
 
 
@@ -377,16 +381,11 @@ class ConfirmDialogueParams(BaseParams):
     title: str
     message: str
 
-    async def respond(self, managers: ManagerWorkQueue) -> ConfirmDialogueResult:
+    async def respond(self, managers: _ManagerWorkQueue) -> ConfirmDialogueResult:
         async def confirm():
-            result = InstawowApp.running_app.iw_confirm(self.title, self.message)
-            future_completed.set()
-            return result
+            return InstawowApp.app.iw_window.confirm_dialog(self.title, self.message)
 
-        future_completed = threading.Event()
-        future = asyncio.run_coroutine_threadsafe(confirm(), InstawowApp.running_app.loop)
-        await t(future_completed.wait)()
-        ok = future.result()
+        ok = asyncio.run_coroutine_threadsafe(confirm(), InstawowApp.app.loop).result()
         return ConfirmDialogueResult(ok=ok)
 
 
@@ -421,24 +420,24 @@ def _init_json_rpc_web_client(
     return init_web_client(trace_configs=[trace_config])
 
 
-class ManagerWorkQueue:
+class _ManagerWorkQueue:
     def __init__(self) -> None:
         self._managers: dict[str, Manager] = {}
-        self._queue: asyncio.Queue[ManagerWorkQueueItem] = asyncio.Queue()
+        self._queue: asyncio.Queue[_ManagerWorkQueueItem] = asyncio.Queue()
         self._progress_reporters: set[tuple[Manager, Pkg, Callable[[], float]]] = set()
         self._web_client = _init_json_rpc_web_client(self._progress_reporters)
         self._locks: defaultdict[str, asyncio.Lock] = defaultdict(asyncio.Lock)
 
+    async def cleanup(self) -> None:
+        await self._web_client.close()
+
     async def listen(self) -> None:
-        Manager.contextualise(
-            web_client=self._web_client,
-            locks=self._locks,
-        )
+        Manager.contextualise(web_client=self._web_client, locks=self._locks)
 
         while True:
             item = await self._queue.get()
 
-            async def schedule(item: ManagerWorkQueueItem):
+            async def schedule(item: _ManagerWorkQueueItem):
                 future, profile, coro_fn = item
                 try:
                     async with self._locks[f"load profile '{profile}'"]:
@@ -457,16 +456,13 @@ class ManagerWorkQueue:
                         result = manager
                     else:
                         result = await coro_fn(manager)
-                except BaseException as error:
-                    future.set_exception(error)
+                except BaseException as exc:
+                    future.set_exception(exc)
                 else:
                     future.set_result(result)
 
             asyncio.create_task(schedule(item))
             self._queue.task_done()
-
-    async def cleanup(self) -> None:
-        await self._web_client.close()
 
     @overload
     async def run(
@@ -497,12 +493,12 @@ class ManagerWorkQueue:
         manager = await self.run(profile)
         return ((p, r()) for m, p, r in self._progress_reporters if m is manager)
 
-    def unload_manager(self, profile: str) -> None:
+    def unload(self, profile: str) -> None:
         self._managers.pop(profile, None)
 
 
 def _prepare_response(
-    param_class: type[BaseParams], method: str, managers: ManagerWorkQueue
+    param_class: type[BaseParams], method: str, managers: _ManagerWorkQueue
 ) -> JsonRpcMethod:
     async def respond(**kwargs: Any) -> BaseModel:
         with _reraise_validation_error(InvalidParamsError, kwargs):
@@ -517,7 +513,7 @@ def _serialise_response(value: dict[str, Any]) -> str:
 
 
 async def create_app() -> aiohttp.web.Application:
-    managers = ManagerWorkQueue()
+    managers = _ManagerWorkQueue()
 
     def start_managers():
         managers_listen = asyncio.create_task(managers.listen())
@@ -598,15 +594,13 @@ async def create_app() -> aiohttp.web.Application:
 
 async def prepare() -> tuple[URL, Callable[[], Awaitable[None]]]:
     "Fire up the server."
-    loop = asyncio.get_running_loop()
-
     app = await create_app()
     app_runner = aiohttp.web.AppRunner(app)
     await app_runner.setup()
     assert app_runner.server  # Server is created during setup
     # By omitting the port ``loop.create_server`` will find an available port
     # to bind to - equivalent to creating a socket on port 0.
-    server = await loop.create_server(app_runner.server, LOCALHOST)
+    server = await asyncio.get_running_loop().create_server(app_runner.server, LOCALHOST)
     host, port = server.sockets[0].getsockname()
 
     async def serve():

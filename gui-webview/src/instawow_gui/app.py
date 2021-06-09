@@ -6,28 +6,39 @@ import asyncio
 from functools import partial
 import json
 import platform
-from typing import ClassVar
+import threading
 
 import toga
 import toga.style
 
 
 class InstawowApp(toga.App):
-    running_app: ClassVar[InstawowApp]
+    app: InstawowApp
 
-    def __init__(self, server_url: str, **kwargs: object) -> None:
+    def __init__(self, **kwargs: object) -> None:
+        from . import json_rpc_server
+
+        server_loop = asyncio.new_event_loop()
+        server_url, serve = server_loop.run_until_complete(json_rpc_server.prepare())
+        self.iw_server_url = str(server_url)
+        server_thread = threading.Thread(
+            target=lambda: server_loop.run_until_complete(serve()), name='iw-server-thread'
+        )
+        server_thread.start()
+
+        def on_exit(_: InstawowApp):
+            server_loop.call_soon_threadsafe(server_loop.stop)
+            server_thread.join()
+
         super().__init__(
             formal_name='instawow-gui',
             app_id='org.instawow.instawow_gui',
             app_name='instawow_gui',
             icon='resources/instawow_gui',
+            on_exit=on_exit,
             **kwargs,
         )
-
-        self.__class__.running_app = self
-
         self.loop = asyncio.get_event_loop()
-        self.iw_server_url = server_url
 
     def startup(self) -> None:
         self.main_window = self.iw_window = toga.MainWindow(
@@ -126,13 +137,3 @@ class InstawowApp(toga.App):
         )
 
         self.iw_window.show()
-
-    def iw_select_folder(self, initial_folder: str | None = None) -> str | None:
-        try:
-            (selection,) = self.iw_window.select_folder_dialog('Select folder', initial_folder)
-            return selection
-        except ValueError:
-            return None
-
-    def iw_confirm(self, title: str, message: str) -> bool:
-        return self.iw_window.confirm_dialog(title, message)

@@ -754,13 +754,9 @@ def generate_catalogue(filename: str, age_cutoff: datetime | None) -> None:
 @click.pass_context
 def gui(ctx: click.Context, log_to_stderr: bool) -> None:
     "Fire up the GUI."
-    import asyncio
-    import threading
-
-    from instawow_gui import InstawowApp, json_rpc_server
+    from instawow_gui import InstawowApp
 
     log_level = ctx.find_root().params['log_level']
-
     _set_mac_multiprocessing_start_method()
     _override_asyncio_loop_policy()
     _set_asyncio_debug(log_level == 'DEBUG')
@@ -769,15 +765,4 @@ def gui(ctx: click.Context, log_to_stderr: bool) -> None:
         dummy_config = Config.get_dummy_config(profile='__jsonrpc__').ensure_dirs()
         setup_logging(dummy_config, log_level)
 
-    loop = asyncio.new_event_loop()
-    server_url, serve = loop.run_until_complete(json_rpc_server.prepare())
-    click.echo(f'web server: {server_url}')
-
-    server_thread = threading.Thread(
-        target=lambda: loop.run_until_complete(serve()), name='iw-server-thread'
-    )
-    server_thread.start()
-    try:
-        InstawowApp(str(server_url), version=__version__).main_loop()
-    finally:
-        server_thread.join()
+    InstawowApp(version=__version__).main_loop()
