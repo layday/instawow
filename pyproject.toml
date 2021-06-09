@@ -87,10 +87,10 @@ instawow = "instawow.cli:main"
 [tool.coverage.run]
 branch = true
 source = [
-  "src/instawow",
+  "instawow",
 ]
 omit = [
-  "src/instawow/migrations/*",
+  "instawow/migrations/*",
 ]
 
 [tool.pytest.ini_options]
