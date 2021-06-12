@@ -40,7 +40,7 @@ Some of the features of *instawow* are:
    :target: https://asciinema.org/a/8m36ncAoyTmig4MXfQM8YjE6a?autoplay=1
    :width: 640
 
-.. figure:: https://raw.githubusercontent.com/layday/instawow/main/gui/screenshots/v0.6.0_640px.png
+.. figure:: https://raw.githubusercontent.com/layday/instawow/main/gui-webview/screenshots/v0.6.0_640px.png
    :target: https://github.com/layday/instawow/releases/latest
    :alt: The instawow GUI's main window
 
