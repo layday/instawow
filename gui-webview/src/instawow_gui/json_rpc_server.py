@@ -136,12 +136,10 @@ class ListSourcesParams(_ProfileParamMixin, BaseParams):
 
 class ListInstalledParams(_ProfileParamMixin, BaseParams):
     async def respond(self, managers: _ManagerWorkQueue) -> list[PkgModel]:
-        from sqlalchemy import func, select
+        from sqlalchemy import func
 
         manager = await managers.run(self.profile)
-        installed_pkgs = (
-            manager.database.execute(select(Pkg).order_by(func.lower(Pkg.name))).scalars().all()
-        )
+        installed_pkgs = manager.database.query(Pkg).order_by(func.lower(Pkg.name)).all()
         return [PkgModel.from_orm(p) for p in installed_pkgs]
 
 
