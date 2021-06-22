@@ -6,7 +6,7 @@ from textwrap import dedent
 
 import nox
 
-SUPPORTED_PYTHON_VERSIONS = ['3.7', '3.8', '3.9']
+SUPPORTED_PYTHON_VERSIONS = ['3.7', '3.8', '3.9', '3.10']
 
 
 def _mirror_project(session: nox.Session):
