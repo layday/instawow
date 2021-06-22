@@ -8,6 +8,8 @@ import nox
 
 SUPPORTED_PYTHON_VERSIONS = ['3.7', '3.8', '3.9', '3.10']
 
+nox.options.sessions = ['reformat', 'test', 'type_check']
+
 
 def _mirror_project(session: nox.Session):
     tmp_dir = session.create_tmp()
@@ -15,29 +17,21 @@ def _mirror_project(session: nox.Session):
     session.chdir(tmp_dir)
 
 
+def _install_coverage_hook(session: nox.Session):
+    session.run('python', 'tests/install_coverage_hook.py')
+
+
 @nox.session(reuse_venv=True)
 def reformat(session: nox.Session):
     "Reformat Python source code using Black and JavaScript using Prettier."
-    session.install('isort >=5.8.0', 'black >=20.8b1')
-    for cmd in ('isort', 'black'):
-        session.run(
-            cmd,
-            'src',
-            'gui-webview/src',
-            'tests',
-            'noxfile.py',
-        )
+    session.install('isort', 'black')
+    for cmd in ['isort', 'black']:
+        session.run(cmd, 'src', 'gui-webview/src', 'tests', 'noxfile.py')
 
     if '--skip-prettier' not in session.posargs:
         session.chdir('gui-webview/frontend')
         session.run(
-            'npx',
-            'prettier',
-            '--write',
-            'package.json',
-            'rollup.config.js',
-            'src',
-            'tsconfig.json',
+            *('npx', 'prettier', '-w', 'src', 'package.json', 'rollup.config.js', 'tsconfig.json'),
             external=True,
         )
 
@@ -71,13 +65,18 @@ def reformat(session: nox.Session):
 def test(session: nox.Session, constraints: str):
     "Run the test suite."
     _mirror_project(session)
+    _install_coverage_hook(session)
 
     constraints_txt = 'constraints.txt'
     with open(constraints_txt, 'w') as file:
         file.write(dedent(constraints))
 
     session.install('-c', constraints_txt, '.[gui, test]', './tests/plugin')
-    session.run('coverage', 'run', '-m', 'pytest')
+    session.run(
+        *('coverage', 'run', '-m', 'pytest', '-n', 'auto'),
+        env={'COVERAGE_PROCESS_START': 'pyproject.toml'},
+    )
+    session.run('coverage', 'combine')
     session.run('coverage', 'report', '-m')
 
 
@@ -115,5 +114,5 @@ def build_dists(session: nox.Session):
 def publish_dists(session: nox.Session):
     "Build, validate and upload dists to PyPI."
     session.install('twine')
-    for subcmd in ('check', 'upload'):
+    for subcmd in ['check', 'upload']:
         session.run('twine', subcmd, 'dist/*')

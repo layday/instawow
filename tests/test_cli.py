@@ -450,8 +450,8 @@ def test_search__exit_after_selection(feed_pt, run):
 def test_search__install_directly_from_search(feed_pt, iw_config, run):
     feed_pt(' \r\r')  # space, enter, enter
     assert (
-        run('search molinari --source curse').output
-        == f'✓ curse:molinari\n  installed 90000.73-Release{"-classic" if iw_config.game_flavour is Flavour.vanilla_classic else ""}\n'
+        run('search molinari --source curse').output == '✓ curse:molinari\n  '
+        f'installed 90000.73-Release{"-classic" if iw_config.game_flavour is Flavour.vanilla_classic else ""}\n'
     )
 
 
