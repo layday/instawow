@@ -505,7 +505,7 @@ class CurseResolver(Resolver):
             ):
                 yield Flavour.burning_crusade_classic
 
-        step = 1000
+        step = 50
         sort_order = '3'  # Alphabetical
         for index in range(0, 10001 - step, step):
             async with web_client.get(
