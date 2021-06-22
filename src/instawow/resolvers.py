@@ -71,7 +71,7 @@ class Defn(
         return f'{self.source}:{self.alias}'
 
 
-def normalise_names(replace_delim: str = ' '):
+def normalise_names(replace_delim: str):
     import string
 
     trans_table = str.maketrans(dict.fromkeys(string.punctuation, ' '))
@@ -111,7 +111,6 @@ class CatalogueEntry(BaseModel):
     folders: typing.List[typing.Set[str]]
     download_count: int
     last_updated: datetime
-    normalised_name: str
     derived_download_score: float
 
 
@@ -127,7 +126,6 @@ class Catalogue(
         async with manager.init_web_client() as web_client:
             items = [a for r in manager.Manager.RESOLVERS async for a in r.catalogue(web_client)]
 
-        normalise = normalise_names()
         most_downloads_per_source = {
             s: max(e['download_count'] for e in i)
             for s, i in bucketise(items, key=lambda v: v['source']).items()
@@ -135,7 +133,6 @@ class Catalogue(
         entries = (
             CatalogueEntry(
                 **i,
-                normalised_name=normalise(i['name']),
                 derived_download_score=i['download_count']
                 / most_downloads_per_source[i['source']],
             )

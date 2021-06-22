@@ -501,8 +501,8 @@ class Manager:
             label = 'Synchronising catalogue'
             url = (
                 'https://raw.githubusercontent.com/layday/instawow-data/data/'
-                'master-catalogue-v3.compact.json'
-            )  # v3
+                'master-catalogue-v4.compact.json'
+            )  # v4
             raw_catalogue = await cache_response(self, url, {'hours': 4}, label=label)
             self._catalogue = Catalogue.parse_obj(raw_catalogue)
         return self._catalogue
@@ -575,14 +575,12 @@ class Manager:
         sources: Set[str] | None = None,
     ) -> list[CatalogueEntry]:
         "Search the master catalogue for packages by name."
-        import heapq
-
-        from jellyfish import jaro_winkler_similarity
+        import rapidfuzz
 
         catalogue = await self.synchronise()
 
         w = 0.5  # Weighing edit distance and download score equally
-        normalise = normalise_names()
+        normalise = normalise_names('')
 
         if sources is None:
             sources = self.resolvers.keys()
@@ -590,21 +588,19 @@ class Manager:
         s = normalise(search_terms)
         tokens_to_entries = bucketise(
             (
-                (i.normalised_name, i)
+                (normalise(i.name), i)
                 for i in catalogue.__root__
                 if self.config.game_flavour in i.game_flavours and i.source in sources
             ),
             key=lambda v: v[0],
         )
-        matches = heapq.nlargest(
-            limit,
-            ((jaro_winkler_similarity(s, n), n) for n in tokens_to_entries),
-            key=lambda v: v[0],
+        matches: list[tuple[str, float, int]] = rapidfuzz.process.extract(
+            s, list(tokens_to_entries), scorer=rapidfuzz.fuzz.WRatio, limit=limit
         )
         weighted_entries = sorted(
             (
-                (-(s * w + i.derived_download_score * (1 - w)), i)
-                for s, m in matches
+                (-((s / 100) * w + i.derived_download_score * (1 - w)), i)
+                for m, s, _ in matches
                 for _, i in tokens_to_entries[m]
             ),
             key=lambda v: v[0],

@@ -50,13 +50,13 @@ def reformat(session: nox.Session):
         '''aiohttp ==3.7.4
            alembic ==1.4.3
            click ==7.1
-           jellyfish ==0.8.2
            jinja2 ==2.11.0
            loguru ==0.1.0
            pluggy ==0.13.0
            prompt-toolkit ==3.0.15
            pydantic ==1.8.2
            questionary ==1.8.0
+           rapidfuzz ==1.4.1
            sqlalchemy ==1.3.19
            typing-extensions ==3.10.0.0
            yarl ==1.4
