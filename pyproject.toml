@@ -5,7 +5,6 @@ build-backend = "poetry.core.masonry.api"
 [tool.poetry-dynamic-versioning]
 enable = true
 vcs = "git"
-bump = true
 substitution = { files = ["src/instawow/_version.py"] }
 
 [tool.poetry]

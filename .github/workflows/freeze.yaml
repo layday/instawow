@@ -27,7 +27,7 @@ jobs:
     - name: Grab the version
       id: get-version
       run: |
-        echo "::set-output name=INSTAWOW_VERSION::$(dunamai from git --bump --no-metadata)"
+        echo "::set-output name=INSTAWOW_VERSION::$(dunamai from git --no-metadata)"
   freeze-cli:
     needs: get-version
     strategy:
