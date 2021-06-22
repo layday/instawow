@@ -48,7 +48,8 @@ class _ConfigError(ServerError):
 
 @contextmanager
 def _reraise_validation_error(
-    error_class: type[ServerError] = ServerError, values: dict[Any, Any] | None = None
+    error_class: type[ServerError | InvalidParamsError] = ServerError,
+    values: dict[Any, Any] | None = None,
 ) -> Iterator[None]:
     try:
         yield
