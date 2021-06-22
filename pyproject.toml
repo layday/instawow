@@ -60,7 +60,7 @@ sqlalchemy2-stubs = { version = "*", optional = true }
 
 [tool.poetry.extras]
 gui = [
-  "aiohttp-rpc ",
+  "aiohttp-rpc",
   "cefpython3",
   "toga",
   "toga-cocoa",
@@ -84,16 +84,17 @@ instawow = "instawow.cli:main"
 ## TESTS ##
 
 [tool.coverage.run]
-branch = true
-source = [
+source_pkgs = [
   "instawow",
 ]
-omit = [
-  "instawow/migrations/*",
+branch = true
+
+[tool.coverage.paths]
+combine = [
+  "src/instawow", "**/instawow",
 ]
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
 markers = [
   "iw_no_mock",
 ]
