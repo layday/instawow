@@ -10,14 +10,7 @@ from typing_extensions import TypeAlias
 from . import manager
 from .config import Flavour
 from .models import PkgFolder
-from .resolvers import (
-    CurseResolver,
-    Defn,
-    InstawowResolver,
-    TownlongYakResolver,
-    TukuiResolver,
-    WowiResolver,
-)
+from .resolvers import CurseResolver, Defn, InstawowResolver, TukuiResolver, WowiResolver
 from .utils import TocReader, bucketise, cached_property, merge_intersecting_sets, uniq
 
 FolderAndDefnPairs: TypeAlias = 'list[tuple[list[AddonFolder], list[Defn]]]'
@@ -33,7 +26,6 @@ _source_sort_order = {
     WowiResolver.source: 1,
     TukuiResolver.source: 2,
     InstawowResolver.source: 3,
-    TownlongYakResolver.source: 4,
 }
 # See https://github.com/Stanzilla/WoWUIBugs/issues/68#issuecomment-830351390
 _flavour_toc_suffixes = {

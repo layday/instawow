@@ -215,35 +215,3 @@ async def test_github_changelog_is_data_url(iw_manager):
     adibuttonauras = Defn('github', 'AdiAddons/AdiButtonAuras')
     results = await iw_manager.resolve([adibuttonauras])
     assert results[adibuttonauras].changelog_url.startswith('data:,')
-
-
-@pytest.mark.asyncio
-async def test_townlong_yak(iw_manager):
-    retail_and_classic = Defn('townlong-yak', 'opie')
-    retail_only = Defn('townlong-yak', 'venture-plan')
-    missing = Defn('townlong-yak', 'foo')
-    unsupported = Defn('townlong-yak', 'foo', strategy=Strategy.latest)
-
-    results = await iw_manager.resolve([retail_and_classic, retail_only, missing, unsupported])
-    assert results[retail_and_classic].version == (
-        'opie-ancient-xe-6'
-        if iw_manager.config.game_flavour is Flavour.vanilla_classic
-        else 'opie-xe-6'
-    )
-    if iw_manager.config.game_flavour is Flavour.retail:
-        assert (
-            type(results[retail_only]) is Pkg
-            and results[retail_only].version == 'venture-plan-4.15a'
-        )
-    else:
-        assert type(results[retail_only]) is R.PkgFileUnavailable
-    assert type(results[missing]) is R.PkgNonexistent
-    assert type(results[unsupported]) is R.PkgStrategyUnsupported
-    assert results[retail_and_classic].changelog_url.startswith('data:,')
-
-
-@pytest.mark.asyncio
-async def test_townlong_yak_changelog_is_data_url(iw_manager):
-    opie = Defn('townlong-yak', 'opie')
-    results = await iw_manager.resolve([opie])
-    assert results[opie].changelog_url.startswith('data:,')

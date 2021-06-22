@@ -368,25 +368,6 @@ def mock_github(aresponses):
     )
 
 
-@pytest.fixture
-@should_mock
-def mock_townlong_yak(aresponses):
-    aresponses.add(
-        'hub.wowup.io',
-        '/addons/author/foxlit',
-        'get',
-        load_json_fixture('wowup-hub-townlong-yak.json'),
-        repeat=inf,
-    )
-    aresponses.add(
-        'www.townlong-yak.com',
-        re.compile(r'^/addons/ul/[0-9a-z]{41}/install\.zip'),
-        'get',
-        aresponses.Response(body=make_addon_zip('Foo')),
-        repeat=inf,
-    )
-
-
 @pytest.fixture(autouse=True)
 @should_mock
 def mock_all(
@@ -396,6 +377,5 @@ def mock_all(
     mock_wowi,
     mock_tukui,
     mock_github,
-    mock_townlong_yak,
 ):
     pass

@@ -43,7 +43,6 @@ from .resolvers import (
     InstawowResolver,
     Resolver,
     Strategy,
-    TownlongYakResolver,
     TukuiResolver,
     WowiResolver,
     normalise_names,
@@ -148,9 +147,6 @@ async def _download_archive(manager: Manager, pkg: Pkg, *, chunk_size: int = 409
             trace_request_ctx=_PkgDownloadTraceRequestCtx(
                 report_progress='pkg_download', manager=manager, pkg=pkg
             ),
-            # This is needed for Townlong Yak.
-            # See: https://github.com/aio-libs/aiohttp/issues/3904#issuecomment-632661245
-            headers={'Connection': 'keep-alive'},
         ) as response, _open_temp_writer() as (temp_path, write):
             async for chunk in response.content.iter_chunked(chunk_size):
                 await write(chunk)
@@ -332,7 +328,6 @@ class Manager:
         TukuiResolver,
         GithubResolver,
         InstawowResolver,
-        TownlongYakResolver,
     )
 
     def __init__(
