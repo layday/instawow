@@ -106,8 +106,12 @@ def bundle_frontend(session: nox.Session):
 def build_dists(session: nox.Session):
     "Build an sdist and wheel."
     rmtree('dist', ignore_errors=True)
-    session.install('build')
-    session.run('python', '-m', 'build')
+    session.install(
+        'build',
+        'poetry-core @ git+https://github.com/layday/poetry-core@fix-multi-package-srcs',
+        'poetry-dynamic-versioning',
+    )
+    session.run('python', '-m', 'build', '-n')
 
 
 @nox.session
