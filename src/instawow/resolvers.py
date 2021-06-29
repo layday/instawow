@@ -241,9 +241,32 @@ class Resolver:
         yield
 
 
-# Only documenting the fields we're actually using -
-# the API response is absolutely massive
-class CurseAddon_FileDependency(TypedDict):
+# Only documenting the fields we're actually using.
+class _CurseAddon(TypedDict):
+    id: int
+    name: str  # User-facing add-on name
+    websiteUrl: str  # e.g. 'https://www.curseforge.com/wow/addons/molinari'
+    summary: str  # One-line description of the add-on
+    downloadCount: int  # Total number of downloads
+    latestFiles: list[_CurseAddon_File]
+    slug: str  # URL slug; 'molinari' in 'https://www.curseforge.com/wow/addons/molinari'
+    dateReleased: str  # ISO datetime of latest release
+
+
+class _CurseAddon_File(TypedDict):
+    id: int  # Unique file ID
+    displayName: str  # Tends to be the version
+    downloadUrl: str
+    fileDate: str  # Upload datetime in ISO, e.g. '2020-02-02T12:12:12Z'
+    releaseType: Literal[1, 2, 3]  # 1 = stable; 2 = beta; 3 = alpha
+    dependencies: list[_CurseAddon_FileDependency]
+    modules: list[_CurseAddon_FileModules]
+    exposeAsAlternative: bool | None
+    gameVersion: list[str]  # e.g. '8.3.0'
+    gameVersionFlavor: Literal['wow_burning_crusade', 'wow_classic', 'wow_retail']
+
+
+class _CurseAddon_FileDependency(TypedDict):
     id: int  # Unique dependency ID
     addonId: int  # The ID of the add-on we're depending on
     # The type of dependency.  One of:
@@ -253,11 +276,11 @@ class CurseAddon_FileDependency(TypedDict):
     #   4 = tool
     #   5 = incompatible
     #   6 = include (wat)
-    type: int
+    type: Literal[1, 2, 3, 4, 5, 6]
     fileId: int  # The ID of the parent file which has this as a dependency
 
 
-class CurseAddon_FileModules(TypedDict):
+class _CurseAddon_FileModules(TypedDict):
     foldername: str
     fingerprint: int  # Folder fingerprint used by Curse for reconciliation
     # One of:
@@ -268,31 +291,7 @@ class CurseAddon_FileModules(TypedDict):
     #   5 = referenced file
     # For WoW add-ons the main folder will have type "3" and the rest
     # of them type "2"
-    type: int
-
-
-class CurseAddon_File(TypedDict):
-    id: int  # Unique file ID
-    displayName: str  # Tends to be the version
-    downloadUrl: str
-    fileDate: str  # Upload datetime in ISO, e.g. '2020-02-02T12:12:12Z'
-    releaseType: int  # 1 = stable; 2 = beta; 3 = alpha
-    dependencies: list[CurseAddon_FileDependency]
-    modules: list[CurseAddon_FileModules]
-    exposeAsAlternative: bool | None
-    gameVersion: list[str]  # e.g. '8.3.0'
-    gameVersionFlavor: Literal['wow_classic', 'wow_retail'] | None
-
-
-class CurseAddon(TypedDict):
-    id: int
-    name: str  # User-facing add-on name
-    websiteUrl: str  # e.g. 'https://www.curseforge.com/wow/addons/molinari'
-    summary: str  # One-line description of the add-on
-    downloadCount: int  # Total number of downloads
-    latestFiles: list[CurseAddon_File]
-    slug: str  # URL slug; 'molinari' in 'https://www.curseforge.com/wow/addons/molinari'
-    dateReleased: str  # ISO datetime of latest release
+    type: Literal[1, 2, 3, 4, 5]
 
 
 class CurseResolver(Resolver):
@@ -335,7 +334,7 @@ class CurseResolver(Resolver):
         defns_to_ids = {d: d.id or catalogue.curse_slugs.get(d.alias) or d.alias for d in defns}
         numeric_ids = uniq(i for i in defns_to_ids.values() if i.isdigit())
         try:
-            json_response: list[CurseAddon] = await manager.cache_response(
+            json_response: list[_CurseAddon] = await manager.cache_response(
                 self.manager,
                 self.addon_api_url,
                 {'minutes': 5},
@@ -353,7 +352,7 @@ class CurseResolver(Resolver):
         )
         return dict(zip(defns, results))
 
-    async def resolve_one(self, defn: Defn, metadata: CurseAddon | None) -> models.Pkg:
+    async def resolve_one(self, defn: Defn, metadata: _CurseAddon | None) -> models.Pkg:
         if metadata is None:
             raise R.PkgNonexistent
 
@@ -369,7 +368,7 @@ class CurseResolver(Resolver):
                 label=f'Fetching metadata from {self.name}',
             )
 
-            def is_version_match(f: CurseAddon_File):
+            def is_version_match(f: _CurseAddon_File):
                 return defn.version == f['displayName']
 
             is_match = is_version_match
@@ -377,7 +376,7 @@ class CurseResolver(Resolver):
 
             files = metadata['latestFiles']
 
-            def is_not_libless(f: CurseAddon_File):
+            def is_not_libless(f: _CurseAddon_File):
                 # There's also an 'isAlternate' field that's missing from some
                 # 50 lib-less files from c. 2008.  'exposeAsAlternative' is
                 # absent from the /file endpoint
@@ -385,7 +384,7 @@ class CurseResolver(Resolver):
 
             if defn.strategy is Strategy.any_flavour:
 
-                def supports_any_game_version(f: CurseAddon_File):
+                def supports_any_game_version(f: _CurseAddon_File):
                     return True
 
                 supports_game_version = supports_any_game_version
@@ -396,7 +395,7 @@ class CurseResolver(Resolver):
                 # we fall back on it only if ``gameVersionFlavor`` does not match
                 if self.manager.config.game_flavour is Flavour.retail:
 
-                    def supports_retail(f: CurseAddon_File):
+                    def supports_retail(f: _CurseAddon_File):
                         return f['gameVersionFlavor'] == 'wow_retail' or any(
                             not v.startswith(('1.13', '2.5')) for v in f['gameVersion']
                         )
@@ -404,7 +403,7 @@ class CurseResolver(Resolver):
                     supports_game_version = supports_retail
                 elif self.manager.config.game_flavour is Flavour.vanilla_classic:
 
-                    def supports_vanilla_classic(f: CurseAddon_File):
+                    def supports_vanilla_classic(f: _CurseAddon_File):
                         return f['gameVersionFlavor'] == 'wow_classic' or any(
                             v.startswith('1.13') for v in f['gameVersion']
                         )
@@ -412,7 +411,7 @@ class CurseResolver(Resolver):
                     supports_game_version = supports_vanilla_classic
                 elif self.manager.config.game_flavour is Flavour.burning_crusade_classic:
 
-                    def supports_burning_crusade(f: CurseAddon_File):
+                    def supports_burning_crusade(f: _CurseAddon_File):
                         return f['gameVersionFlavor'] == 'wow_burning_crusade' or any(
                             v.startswith('2.5') for v in f['gameVersion']
                         )
@@ -421,30 +420,30 @@ class CurseResolver(Resolver):
 
             if defn.strategy is Strategy.latest:
 
-                def has_latest_release_type(f: CurseAddon_File):
+                def has_latest_release_type(f: _CurseAddon_File):
                     return True
 
                 has_release_type = has_latest_release_type
             elif defn.strategy is Strategy.curse_latest_beta:
 
-                def has_curse_latest_beta_release_type(f: CurseAddon_File):
+                def has_curse_latest_beta_release_type(f: _CurseAddon_File):
                     return f['releaseType'] == 2
 
                 has_release_type = has_curse_latest_beta_release_type
             elif defn.strategy is Strategy.curse_latest_alpha:
 
-                def has_curse_latest_alpha_release_type(f: CurseAddon_File):
+                def has_curse_latest_alpha_release_type(f: _CurseAddon_File):
                     return f['releaseType'] == 3
 
                 has_release_type = has_curse_latest_alpha_release_type
             else:
 
-                def has_default_release_type(f: CurseAddon_File):
+                def has_default_release_type(f: _CurseAddon_File):
                     return f['releaseType'] == 1
 
                 has_release_type = has_default_release_type
 
-            def is_default_match(f: CurseAddon_File):
+            def is_default_match(f: _CurseAddon_File):
                 return is_not_libless(f) and supports_game_version(f) and has_release_type(f)
 
             is_match = is_default_match
@@ -488,7 +487,7 @@ class CurseResolver(Resolver):
     async def catalogue(
         cls, web_client: _deferred_types.aiohttp.ClientSession
     ) -> AsyncIterator[_CatalogueBaseEntry]:
-        def excise_flavours(files: list[CurseAddon_File]):
+        def excise_flavours(files: list[_CurseAddon_File]):
             if any(f['gameVersionFlavor'] == 'wow_retail' for f in files) or any(
                 not v.startswith(('1.13', '2.5')) for f in files for v in f['gameVersion']
             ):
@@ -510,7 +509,7 @@ class CurseResolver(Resolver):
                     gameId='1', sort=sort_order, pageSize=step, index=index
                 )
             ) as response:
-                json_response: list[CurseAddon] = await response.json()
+                json_response: list[_CurseAddon] = await response.json()
 
             if not json_response:
                 break
@@ -532,7 +531,7 @@ class CurseResolver(Resolver):
                 )
 
 
-class WowiCommonTerms(TypedDict):
+class _WowiCommonTerms(TypedDict):
     UID: str  # Unique add-on ID
     UICATID: str  # ID of category add-on is placed in
     UIVersion: str  # Add-on version
@@ -541,17 +540,17 @@ class WowiCommonTerms(TypedDict):
     UIAuthorName: str
 
 
-class WowiListApiItem_CompatibilityEntry(TypedDict):
+class _WowiListApiItem_CompatibilityEntry(TypedDict):
     version: str  # Game version, e.g. '8.3.0'
     name: str  # Xpac or patch name, e.g. "Visions of N'Zoth" for 8.3.0
 
 
-class WowiListApiItem(WowiCommonTerms):
+class _WowiListApiItem(_WowiCommonTerms):
     UIFileInfoURL: str  # Add-on page on WoWI
     UIDownloadTotal: str  # Total number of downloads
     UIDownloadMonthly: str  # Number of downloads in the last month and not 'monthly'
     UIFavoriteTotal: str
-    UICompatibility: list[WowiListApiItem_CompatibilityEntry] | None  # ``null`` if would be empty
+    UICompatibility: list[_WowiListApiItem_CompatibilityEntry] | None  # ``null`` if would be empty
     UIDir: list[str]  # Names of folders contained in archive
     UIIMG_Thumbs: list[str] | None  # Thumbnail URLs; ``null`` if would be empty
     UIIMGs: list[str] | None  # Full-size image URLs; ``null`` if would be empty
@@ -563,7 +562,7 @@ class WowiListApiItem(WowiCommonTerms):
     UIDonationLink: str | None  # Absent from the first item on the list (!)
 
 
-class WowiDetailsApiItem(WowiCommonTerms):
+class _WowiDetailsApiItem(_WowiCommonTerms):
     UIMD5: str | None  # Archive hash, ``null` when UI is pending
     UIFileName: str  # The actual filename, e.g. 'foo.zip'
     UIDownload: str  # Download URL
@@ -574,7 +573,7 @@ class WowiDetailsApiItem(WowiCommonTerms):
     UIHitCountMonthly: str  # Same as UIDownloadMonthly
 
 
-class WowiCombinedItem(WowiListApiItem, WowiDetailsApiItem):
+class _WowiCombinedItem(_WowiListApiItem, _WowiDetailsApiItem):
     pass
 
 
@@ -614,7 +613,7 @@ class WowiResolver(Resolver):
                 match = re.match(r'^(?:download|info)(?P<id>\d+)', url.name)
                 return match and match.group('id')
 
-    async def _synchronise(self) -> dict[str, WowiListApiItem]:
+    async def _synchronise(self) -> dict[str, _WowiListApiItem]:
         async with self.manager.locks['load WoWI catalogue']:
             list_api_items = await manager.cache_response(
                 self.manager,
@@ -634,7 +633,7 @@ class WowiResolver(Resolver):
         defns_to_ids = {d: ''.join(takewhile(str.isdigit, d.alias)) for d in defns}
         numeric_ids = set(filter(None, defns_to_ids.values()))
         try:
-            details_api_items: list[WowiDetailsApiItem] = await manager.cache_response(
+            details_api_items: list[_WowiDetailsApiItem] = await manager.cache_response(
                 self.manager,
                 self.details_api_url / f'{",".join(numeric_ids)}.json',
                 {'minutes': 5},
@@ -653,7 +652,7 @@ class WowiResolver(Resolver):
         )
         return dict(zip(defns, results))
 
-    async def resolve_one(self, defn: Defn, metadata: WowiCombinedItem | None) -> models.Pkg:
+    async def resolve_one(self, defn: Defn, metadata: _WowiCombinedItem | None) -> models.Pkg:
         if metadata is None:
             raise R.PkgNonexistent
 
@@ -679,7 +678,7 @@ class WowiResolver(Resolver):
         cls, web_client: _deferred_types.aiohttp.ClientSession
     ) -> AsyncIterator[_CatalogueBaseEntry]:
         async with web_client.get(cls.list_api_url) as response:
-            list_api_items: list[WowiListApiItem] = await response.json()
+            list_api_items: list[_WowiListApiItem] = await response.json()
 
         flavours = set(Flavour)
         for list_item in list_api_items:
@@ -695,7 +694,7 @@ class WowiResolver(Resolver):
             )
 
 
-class TukuiUi(TypedDict):
+class _TukuiUi(TypedDict):
     author: str
     category: str
     changelog: str
@@ -715,7 +714,7 @@ class TukuiUi(TypedDict):
     web_url: str
 
 
-class TukuiAddon(TypedDict):
+class _TukuiAddon(TypedDict):
     author: str
     category: str
     changelog: str
@@ -754,9 +753,9 @@ class TukuiResolver(Resolver):
             elif url.path == '/download.php':
                 return url.query.get('ui')
 
-    async def _synchronise(self) -> dict[str, TukuiAddon | TukuiUi]:
+    async def _synchronise(self) -> dict[str, _TukuiAddon | _TukuiUi]:
         async def fetch_ui(ui_slug: str):
-            addon: TukuiUi = await manager.cache_response(
+            addon: _TukuiUi = await manager.cache_response(
                 self.manager,
                 self.api_url.with_query({'ui': ui_slug}),
                 {'minutes': 5},
@@ -771,7 +770,7 @@ class TukuiResolver(Resolver):
             else:  # Flavour.burning_crusade_classic
                 query = 'classic-tbc-addons'
 
-            addons: list[TukuiAddon] = await manager.cache_response(
+            addons: list[_TukuiAddon] = await manager.cache_response(
                 self.manager,
                 self.api_url.with_query({query: 'all'}),
                 {'minutes': 30},
@@ -801,7 +800,7 @@ class TukuiResolver(Resolver):
         )
         return dict(zip(defns, results))
 
-    async def resolve_one(self, defn: Defn, metadata: TukuiAddon | TukuiUi | None) -> models.Pkg:
+    async def resolve_one(self, defn: Defn, metadata: _TukuiAddon | _TukuiUi | None) -> models.Pkg:
         if metadata is None:
             raise R.PkgNonexistent
 
@@ -842,11 +841,11 @@ class TukuiResolver(Resolver):
     async def catalogue(
         cls, web_client: _deferred_types.aiohttp.ClientSession
     ) -> AsyncIterator[_CatalogueBaseEntry]:
-        async def fetch_ui(ui_slug: str) -> tuple[set[Flavour], list[TukuiUi]]:
+        async def fetch_ui(ui_slug: str) -> tuple[set[Flavour], list[_TukuiUi]]:
             async with web_client.get(cls.api_url.with_query({'ui': ui_slug})) as response:
                 return ({Flavour.retail}, [await response.json(content_type=None)])  # text/html
 
-        async def fetch_addons(flavour: Flavour) -> tuple[set[Flavour], list[TukuiAddon]]:
+        async def fetch_addons(flavour: Flavour) -> tuple[set[Flavour], list[_TukuiAddon]]:
             if flavour is Flavour.retail:
                 query = 'addons'
             elif flavour is Flavour.vanilla_classic:
@@ -887,38 +886,38 @@ class TukuiResolver(Resolver):
 
 # Not exhaustive (as you might've guessed).  Reference:
 # https://docs.github.com/en/rest/reference/repos
-class GithubRepo(TypedDict):
+class _GithubRepo(TypedDict):
     name: str  # the repo in user-or-org/repo
     full_name: str  # user-or-org/repo
     description: str
     html_url: str
 
 
-class GithubRelease_Asset(TypedDict):
+class _GithubRelease(TypedDict):
+    tag_name: str  # Hopefully the version
+    published_at: str  # ISO datetime
+    assets: list[_GithubRelease_Asset]
+    body: str
+
+
+class _GithubRelease_Asset(TypedDict):
     name: str  # filename
     content_type: str  # mime type
     state: Literal['starter', 'uploaded']
     browser_download_url: str
 
 
-class GithubRelease(TypedDict):
-    tag_name: str  # Hopefully the version
-    published_at: str  # ISO datetime
-    assets: list[GithubRelease_Asset]
-    body: str
+class _PackagerReleaseJson(TypedDict):
+    releases: list[_PackagerReleaseJson_Release]
 
 
-class PackagerReleaseJson(TypedDict):
-    releases: list[PackagerReleaseJson_Release]
-
-
-class PackagerReleaseJson_Release(TypedDict):
+class _PackagerReleaseJson_Release(TypedDict):
     filename: str
     nolib: bool
-    metadata: list[PackagerReleaseJson_Release_Metadata]
+    metadata: list[_PackagerReleaseJson_Release_Metadata]
 
 
-class PackagerReleaseJson_Release_Metadata(TypedDict):
+class _PackagerReleaseJson_Release_Metadata(TypedDict):
     flavor: Literal['mainline', 'classic', 'bcc']
     interface: int
 
@@ -946,7 +945,7 @@ class GithubResolver(Resolver):
         repo_url = self.repos_api_url / defn.alias
 
         try:
-            project_metadata: GithubRepo = await manager.cache_response(
+            project_metadata: _GithubRepo = await manager.cache_response(
                 self.manager, repo_url, {'hours': 1}
             )
         except ClientResponseError as error:
@@ -972,7 +971,7 @@ class GithubResolver(Resolver):
             response_json = await response.json()
             if defn.strategy is Strategy.latest:
                 (response_json,) = response_json
-            release_metadata: GithubRelease = response_json
+            release_metadata: _GithubRelease = response_json
 
         assets = release_metadata['assets']
 
@@ -983,7 +982,7 @@ class GithubResolver(Resolver):
         except StopIteration:
             logger.info(f'no release.json found for {defn}; inspecting assets')
 
-            def is_valid_asset(asset: GithubRelease_Asset):
+            def is_valid_asset(asset: _GithubRelease_Asset):
                 return (
                     # There is something of a convention that Classic archives
                     # end in '-classic' and lib-less archives end in '-nolib'.
@@ -1014,7 +1013,7 @@ class GithubResolver(Resolver):
         else:
             logger.info(f'reading metadata for {defn} from release.json')
 
-            packager_metadata: PackagerReleaseJson = await manager.cache_response(
+            packager_metadata: _PackagerReleaseJson = await manager.cache_response(
                 self.manager, release_json['browser_download_url'], {'days': 1}
             )
             game_flavour: Flavour = self.manager.config.game_flavour
