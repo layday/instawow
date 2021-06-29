@@ -12,7 +12,7 @@ def test_env_vars_have_prio(iw_config_dict, monkeypatch):
 
     config = Config(**iw_config_dict)
     assert config.config_dir == Path('/foo').resolve()
-    assert config.game_flavour is Flavour.classic
+    assert config.game_flavour is Flavour.burning_crusade_classic
 
 
 def test_config_dir_is_populated(iw_config_dict):
@@ -59,9 +59,18 @@ def test_default_config_dir_is_win32_appropriate(iw_config_dict_no_config_dir, m
 
 
 def test_can_infer_flavour_from_path():
-    assert Config.infer_flavour('wowzerz/_classic_/Interface/AddOns') is Flavour.classic
-    assert Config.infer_flavour('/foo/bar/_classic_beta_/Interface/AddOns') is Flavour.classic
-    assert Config.infer_flavour('/foo/bar/_classic_ptr_/Interface/AddOns') is Flavour.classic
+    assert (
+        Config.infer_flavour('wowzerz/_classic_/Interface/AddOns')
+        is Flavour.burning_crusade_classic
+    )
+    assert (
+        Config.infer_flavour('/foo/bar/_classic_beta_/Interface/AddOns')
+        is Flavour.burning_crusade_classic
+    )
+    assert (
+        Config.infer_flavour('/foo/bar/_classic_ptr_/Interface/AddOns')
+        is Flavour.burning_crusade_classic
+    )
     assert Config.infer_flavour('_classic_era_/Interface/AddOns') is Flavour.vanilla_classic
     assert Config.infer_flavour('wowzerz/_retail_/Interface/AddOns') is Flavour.retail
 

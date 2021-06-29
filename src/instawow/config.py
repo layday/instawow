@@ -61,9 +61,8 @@ class Flavour(str, Enum):
     # will inherit the "_classic_" folder.  This way we won't have to
     # perform a migration or require user intervention.
     retail = 'retail'
-    classic = 'classic'
     vanilla_classic = 'vanilla_classic'
-    burning_crusade_classic = classic
+    burning_crusade_classic = 'classic'
 
 
 class Config(BaseConfig):
@@ -95,7 +94,7 @@ class Config(BaseConfig):
         elif tail[0] == '_classic_era_':
             return Flavour.vanilla_classic
         elif tail[0] in {'_classic_', '_classic_beta_', '_classic_ptr_'}:
-            return Flavour.classic
+            return Flavour.burning_crusade_classic
         else:
             return Flavour.retail
 

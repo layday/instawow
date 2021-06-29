@@ -4,7 +4,7 @@ import lodash from "lodash";
 export enum Flavour {
   retail = "retail",
   vanilla_classic = "vanilla_classic",
-  classic = "classic",
+  burning_crusade_classic = "classic",
 }
 
 export enum Strategy {

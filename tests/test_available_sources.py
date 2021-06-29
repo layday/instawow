@@ -41,34 +41,6 @@ async def test_curse_common_strategies(iw_manager, request, strategy):
                 and results[classic_only_file].message
                 == f"no files match retail using {strategy} strategy"
             )
-    # elif iw_manager.config.game_flavour is Flavour.classic:
-    #     if strategy is Strategy.any_flavour:
-    #         assert type(results[retail_and_vanilla_classic_files]) is Pkg
-    #         assert type(results[retail_only_file]) is Pkg
-    #         assert type(results[classic_only_file]) is Pkg
-    #     else:
-    #         assert (
-    #             type(results[retail_and_vanilla_classic_files]) is R.PkgFileUnavailable
-    #             and results[classic_only_file].message
-    #             == f"no files match classic using {strategy} strategy"
-    #         )
-    #         assert (
-    #             type(results[retail_only_file]) is R.PkgFileUnavailable
-    #             and results[classic_only_file].message
-    #             == f"no files match classic using {strategy} strategy"
-    #         )
-    #         assert (
-    #             type(results[classic_only_file]) is R.PkgFileUnavailable
-    #             and results[classic_only_file].message
-    #             == f"no files match classic using {strategy} strategy"
-    #         )
-
-    # versions = {
-    #     *request.config.cache.get('multiflavour_file', ()),
-    #     results[multiflavour_file].version,
-    # }
-    # assert len(versions) == 1
-    # request.config.cache.set('multiflavour_file', tuple(versions))
 
 
 @pytest.mark.asyncio
