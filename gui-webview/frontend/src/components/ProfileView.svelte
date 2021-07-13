@@ -17,7 +17,7 @@
   import { faQuestion } from "@fortawesome/free-solid-svg-icons";
   import * as commonmark from "commonmark";
   import lodash from "lodash";
-  import { onMount, tick } from "svelte";
+  import { onMount } from "svelte";
   import { flip } from "svelte/animate";
   import { fade } from "svelte/transition";
   import AddonComponent from "./Addon.svelte";
@@ -395,13 +395,13 @@
       ]);
     } else if (selection === "resolve") {
       searchTerms = "";
-      await tick();
       [searchTerms, searchFromAlias, searchStrategy, searchVersion] = [
         createAddonToken(addon),
         true,
         addon.options.strategy,
         addon.version,
       ];
+      await search();
     } else if (selection === "pin" || selection === "unpin") {
       const pinnedAddon = {
         ...addon,
