@@ -128,7 +128,7 @@ class ListSourcesParams(_ProfileParamMixin, BaseParams):
                 source=r.source,
                 name=r.name,
                 supported_strategies=sorted(r.strategies, key=list(Strategy).index),
-                supports_rollback=r.supports_rollback,
+                supports_rollback=Strategy.version in r.strategies,
                 changelog_format=r.changelog_format.value,
             )
             for r in manager.resolvers.values()

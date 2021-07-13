@@ -349,10 +349,8 @@ def rollback(obj: ManagerWrapper, addon: Defn, version: str | None, undo: bool) 
         Report([(addon, R.PkgNotInstalled())]).generate_and_exit()
         return  # pragma: no cover
 
-    if not manager.resolvers[pkg.source].supports_rollback:
-        Report(
-            [(addon, R.PkgFileUnavailable('source does not support rollback'))]
-        ).generate_and_exit()
+    if Strategy.version not in manager.resolvers[pkg.source].strategies:
+        Report([(addon, R.PkgStrategyUnsupported(Strategy.version))]).generate_and_exit()
 
     if undo:
         Report(manager.run(manager.update([addon], True)).items()).generate_and_exit()

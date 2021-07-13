@@ -210,11 +210,6 @@ class Resolver:
     def __init__(self, manager: manager.Manager) -> None:
         self.manager = manager
 
-    @property
-    def supports_rollback(self) -> bool:
-        "Whether the resolver supports rollback operations."
-        return Strategy.version in self.strategies
-
     @staticmethod
     def get_alias_from_url(value: str) -> str | None:
         "Attempt to extract a definition name from a given URL."
