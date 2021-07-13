@@ -19,7 +19,7 @@ pkgs.mkShell {
     python -m pip install -U pip setuptools ipython nox
     python -m pip install git+https://github.com/layday/frontend-editables
     python -m frontend_editables.transitional_cli \
-      --spec ".[gui, test, types]" \
+      --method lax_symlink --spec ".[gui, test, types]" \
       src/instawow instawow \
       gui-webview/src/instawow_gui instawow_gui
   '';
