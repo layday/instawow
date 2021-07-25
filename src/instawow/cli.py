@@ -156,7 +156,6 @@ def _set_mac_multiprocessing_start_method() -> None:
     import sys
 
     # Reference: https://github.com/indygreg/PyOxidizer/issues/111#issuecomment-808834727
-
     if getattr(sys, 'frozen', False) and sys.platform == 'darwin':
         import multiprocessing
 
@@ -167,8 +166,6 @@ def _override_asyncio_loop_policy() -> None:
     # The proactor event loop which became the default loop on Windows
     # in Python 3.8 is causing issues with aiohttp.
     # See https://github.com/aio-libs/aiohttp/issues/4324
-    import asyncio
-
     policy = getattr(asyncio, 'WindowsSelectorEventLoopPolicy', None)
     if policy:
         asyncio.set_event_loop_policy(policy())
@@ -801,8 +798,6 @@ def _parse_datetime(_: click.Context, __: click.Parameter, value: str | None) ->
 @click.option('--age-cutoff', callback=_parse_datetime)
 def generate_catalogue(filename: str, age_cutoff: datetime | None) -> None:
     "Generate the master catalogue."
-    import asyncio
-
     from .resolvers import Catalogue
 
     catalogue = asyncio.run(Catalogue.collate(age_cutoff))
