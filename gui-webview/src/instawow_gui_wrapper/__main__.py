@@ -54,21 +54,14 @@ def _patch_std_streams() -> None:
         sys.stdout = sys.stderr = io.StringIO()
 
 
-def _running_under_briefcase() -> bool:
-    import sys
+def _apply_patches():
+    _patch_loguru()
+    _patch_aiohttp()
+    _patch_std_streams()
 
-    # We don't use Python < 3.8 with briefcase.  If we can't import
-    # ``importlib.metadata`` then we're not in briefcase.
-    if sys.version_info > (3, 7):
-        import importlib.metadata
-
-        try:
-            return importlib.metadata.distribution(__package__) and True
-        except importlib.metadata.PackageNotFoundError:
-            return False
-
-    else:
-        return False
+    # ``click`` doesn't run without previously printing something to stdout,
+    # presumably something to do with spooling.
+    print()
 
 
 def main() -> None:
@@ -76,15 +69,7 @@ def main() -> None:
 
     import instawow.cli
 
-    if _running_under_briefcase():
-        _patch_std_streams()
-        _patch_loguru()
-        _patch_aiohttp()
-
-        # ``click`` doesn't run without previously printing something to stdout,
-        # presumably something to do with spooling.
-        print()
-
+    _apply_patches()
     instawow.cli.main(sys.argv[1:] or ['gui'])
 
 
