@@ -19,7 +19,6 @@ import json
 from pathlib import Path, PurePath
 from shutil import copy
 from tempfile import NamedTemporaryFile
-from types import SimpleNamespace
 from typing import TYPE_CHECKING, Any, TypeVar
 import urllib.parse
 
@@ -55,7 +54,6 @@ from .utils import (
     find_zip_base_dirs,
     gather,
     is_not_stale,
-    make_progress_bar,
     make_zip_member_filter,
     move,
     run_in_thread as t,
@@ -742,85 +740,3 @@ class Manager:
                 return R.PkgStrategyUnsupported(Strategy.version)
 
         return {d: await capture_manager_exc_async(t(pin)(d, self.get_pkg(d))) for d in defns}
-
-
-def _extract_filename_from_hdr(response: _deferred_types.aiohttp.ClientResponse) -> str:
-    from cgi import parse_header
-
-    from aiohttp import hdrs
-
-    _, cd_params = parse_header(response.headers.get(hdrs.CONTENT_DISPOSITION, ''))
-    filename = cd_params.get('filename') or response.url.name
-    return filename
-
-
-def _init_cli_web_client(
-    bar: _deferred_types.prompt_toolkit.shortcuts.ProgressBar, tickers: set[asyncio.Task[None]]
-) -> _deferred_types.aiohttp.ClientSession:
-    from aiohttp import TraceConfig, TraceRequestEndParams, hdrs
-
-    TICK_INTERVAL = 0.1
-
-    async def do_on_request_end(
-        client_session: _deferred_types.aiohttp.ClientSession,
-        trace_config_ctx: SimpleNamespace,
-        params: TraceRequestEndParams,
-    ) -> None:
-        trace_request_ctx: TraceRequestCtx = trace_config_ctx.trace_request_ctx
-        if trace_request_ctx:
-            response = params.response
-            label = (
-                trace_request_ctx.get('label')
-                or f'Downloading {_extract_filename_from_hdr(response)}'
-            )
-            total = response.content_length
-            if hdrs.CONTENT_ENCODING in response.headers:
-                # The encoded size is not exposed in the aiohttp streaming API.
-                # If the payload is encoded, ``total`` is set to ``None``
-                # for the progress bar to be rendered as indeterminate.
-                total = None
-
-            async def ticker() -> None:
-                counter = bar(label=label, total=total)
-                try:
-                    while not response.content.is_eof():
-                        counter.items_completed = response.content.total_bytes
-                        bar.invalidate()
-                        await asyncio.sleep(TICK_INTERVAL)
-                finally:
-                    bar.counters.remove(counter)
-
-            tickers.add(asyncio.create_task(ticker()))
-
-    trace_config = TraceConfig()
-    trace_config.on_request_end.append(do_on_request_end)
-    trace_config.freeze()
-    return init_web_client(trace_configs=[trace_config])
-
-
-@asynccontextmanager
-async def _cancel_tickers(tickers: set[asyncio.Task[None]]):
-    try:
-        yield
-    finally:
-        for ticker in tickers:
-            ticker.cancel()
-
-
-class CliManager(Manager):
-    def run(self, awaitable: Awaitable[_T]) -> _T:
-        with make_progress_bar() as bar:
-
-            async def run():
-                tickers: set[asyncio.Task[None]] = set()
-                async with _init_cli_web_client(bar, tickers) as web_client, _cancel_tickers(
-                    tickers
-                ):
-                    self.contextualise(web_client=web_client)
-                    return await awaitable
-
-            loop = asyncio.new_event_loop()
-            try:
-                return loop.run_until_complete(run())
-            finally:
-                loop.close()

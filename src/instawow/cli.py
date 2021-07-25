@@ -1,21 +1,25 @@
 from __future__ import annotations
 
-from collections.abc import Callable, Generator, Iterable, Iterator, Sequence, Set
+import asyncio
+from collections.abc import Awaitable, Callable, Generator, Iterable, Iterator, Sequence, Set
+from contextlib import contextmanager
 from datetime import datetime
 from enum import Enum
 from functools import partial
 from itertools import chain
 from pathlib import Path
 import textwrap
-from typing import overload
+from typing import Any, TypeVar, overload
 
 import click
 
-from . import __version__, manager as managers, models, results as R
+from . import __version__, _deferred_types, manager as M, models, results as R
 from .config import Config, Flavour, setup_logging
 from .plugins import load_plugins
 from .resolvers import Defn, MultiPkgModel, Strategy
-from .utils import cached_property, is_outdated, tabulate, uniq
+from .utils import cached_property, is_outdated, make_progress_bar, tabulate, uniq
+
+_T = TypeVar('_T')
 
 
 class Report:
@@ -58,7 +62,7 @@ class Report:
     def generate(self) -> None:
         manager_wrapper: ManagerWrapper | None = click.get_current_context().obj
         if manager_wrapper and manager_wrapper.m.config.auto_update_check:
-            outdated, new_version = manager_wrapper.m.run(is_outdated())
+            outdated, new_version = run_with_progress(is_outdated())
             if outdated:
                 click.echo(f'{self.WARNING_SYMBOL} instawow-{new_version} is available')
 
@@ -70,6 +74,82 @@ class Report:
         self.generate()
         ctx = click.get_current_context()
         ctx.exit(self.exit_code)
+
+
+def _extract_filename_from_hdr(response: _deferred_types.aiohttp.ClientResponse) -> str:
+    from cgi import parse_header
+
+    from aiohttp import hdrs
+
+    _, cd_params = parse_header(response.headers.get(hdrs.CONTENT_DISPOSITION, ''))
+    filename = cd_params.get('filename') or response.url.name
+    return filename
+
+
+def _init_cli_web_client(
+    bar: _deferred_types.prompt_toolkit.shortcuts.ProgressBar, tickers: set[asyncio.Task[None]]
+) -> _deferred_types.aiohttp.ClientSession:
+    from aiohttp import TraceConfig, hdrs
+
+    TICK_INTERVAL = 0.1
+
+    async def do_on_request_end(
+        client_session: _deferred_types.aiohttp.ClientSession,
+        trace_config_ctx: Any,
+        params: _deferred_types.aiohttp.TraceRequestEndParams,
+    ) -> None:
+        trace_request_ctx: M.TraceRequestCtx = trace_config_ctx.trace_request_ctx
+        if trace_request_ctx:
+            response = params.response
+            label = (
+                trace_request_ctx.get('label')
+                or f'Downloading {_extract_filename_from_hdr(response)}'
+            )
+            total = response.content_length
+            if hdrs.CONTENT_ENCODING in response.headers:
+                # The encoded size is not exposed in the aiohttp streaming API.
+                # If the payload is encoded, ``total`` is set to ``None``
+                # for the progress bar to be rendered as indeterminate.
+                total = None
+
+            async def ticker() -> None:
+                counter = bar(label=label, total=total)
+                try:
+                    while not response.content.is_eof():
+                        counter.items_completed = response.content.total_bytes
+                        bar.invalidate()
+                        await asyncio.sleep(TICK_INTERVAL)
+                finally:
+                    bar.counters.remove(counter)
+
+            tickers.add(asyncio.create_task(ticker()))
+
+    trace_config = TraceConfig()
+    trace_config.on_request_end.append(do_on_request_end)
+    trace_config.freeze()
+    return M.init_web_client(trace_configs=[trace_config])
+
+
+@contextmanager
+def _cancel_tickers() -> Iterator[set[asyncio.Task[None]]]:
+    tickers: set[asyncio.Task[None]] = set()
+    try:
+        yield tickers
+    finally:
+        for ticker in tickers:
+            ticker.cancel()
+
+
+def run_with_progress(awaitable: Awaitable[_T]) -> _T:
+    with make_progress_bar() as bar, _cancel_tickers() as tickers:
+
+        async def run():
+            async with _init_cli_web_client(bar, tickers) as web_client:
+                M.Manager.contextualise(web_client=web_client)
+                return await awaitable
+
+        loop = asyncio.get_event_loop()
+        return loop.run_until_complete(run())
 
 
 def _set_mac_multiprocessing_start_method() -> None:
@@ -94,13 +174,9 @@ def _override_asyncio_loop_policy() -> None:
         asyncio.set_event_loop_policy(policy())
 
 
-def _set_asyncio_debug(debug: bool) -> None:
-    # This is the least obtrusive way to enable debugging in asyncio.
-    # Reference: https://docs.python.org/3/library/asyncio-dev.html#debug-mode
-    if debug:
-        import os
-
-        os.environ['PYTHONASYNCIODEBUG'] = '1'
+def _apply_patches() -> None:
+    _set_mac_multiprocessing_start_method()
+    _override_asyncio_loop_policy()
 
 
 class ManagerWrapper:
@@ -108,11 +184,7 @@ class ManagerWrapper:
         self.ctx = ctx
 
     @cached_property
-    def m(self) -> managers.CliManager:
-        _set_mac_multiprocessing_start_method()
-        _override_asyncio_loop_policy()
-        _set_asyncio_debug(self.ctx.params['log_level'] == 'DEBUG')
-
+    def m(self) -> M.Manager:
         try:
             config = Config.read(self.ctx.params['profile']).ensure_dirs()
         except FileNotFoundError:
@@ -120,7 +192,7 @@ class ManagerWrapper:
 
         setup_logging(config, self.ctx.params['log_level'])
 
-        manager = managers.CliManager.from_config(config)
+        manager = M.Manager.from_config(config)
         return manager
 
 
@@ -186,23 +258,24 @@ def _set_log_level(_: click.Context, __: click.Parameter, value: bool) -> str:
 @click.pass_context
 def main(ctx: click.Context, log_level: str, profile: str) -> None:
     "Add-on manager for World of Warcraft."
+    _apply_patches()
     ctx.obj = ManagerWrapper(ctx)
 
 
 @overload
-def parse_into_defn(manager: managers.Manager, value: str, *, raise_invalid: bool = True) -> Defn:
+def parse_into_defn(manager: M.Manager, value: str, *, raise_invalid: bool = True) -> Defn:
     ...
 
 
 @overload
 def parse_into_defn(
-    manager: managers.Manager, value: list[str], *, raise_invalid: bool = True
+    manager: M.Manager, value: list[str], *, raise_invalid: bool = True
 ) -> list[Defn]:
     ...
 
 
 def parse_into_defn(
-    manager: managers.Manager, value: str | list[str], *, raise_invalid: bool = True
+    manager: M.Manager, value: str | list[str], *, raise_invalid: bool = True
 ) -> Defn | list[Defn]:
     if not isinstance(value, str):
         defns = (parse_into_defn(manager, v, raise_invalid=raise_invalid) for v in value)
@@ -213,26 +286,26 @@ def parse_into_defn(
         if raise_invalid:
             raise click.BadParameter(value)
 
-        pair = '*', value
+        pair = ('*', value)
     return Defn(*pair)
 
 
 def parse_into_defn_with_strategy(
-    manager: managers.Manager, value: Sequence[tuple[Strategy, str]]
+    manager: M.Manager, value: Sequence[tuple[Strategy, str]]
 ) -> Iterator[Defn]:
     defns = parse_into_defn(manager, [d for _, d in value])
     return map(Defn.with_strategy, defns, (s for s, _ in value))
 
 
 def parse_into_defn_with_version(
-    manager: managers.Manager, value: Sequence[tuple[str, str]]
+    manager: M.Manager, value: Sequence[tuple[str, str]]
 ) -> Iterator[Defn]:
     defns = parse_into_defn(manager, [d for _, d in value])
     return map(Defn.with_version, defns, (v for v, _ in value))
 
 
 def combine_addons(
-    fn: Callable[[managers.Manager, object], Iterable[Defn]],
+    fn: Callable[[M.Manager, object], Iterable[Defn]],
     ctx: click.Context,
     __: click.Parameter,
     value: object,
@@ -280,7 +353,7 @@ def install(obj: ManagerWrapper, addons: Sequence[Defn], replace: bool) -> None:
             'You must provide at least one of "ADDONS", "--with-strategy" or "--version"'
         )
 
-    results = obj.m.run(obj.m.install(addons, replace))
+    results = run_with_progress(obj.m.install(addons, replace))
     Report(results.items()).generate_and_exit()
 
 
@@ -299,11 +372,8 @@ def update(obj: ManagerWrapper, addons: Sequence[Defn]) -> None:
         else:
             return result.is_pinned
 
-    results = obj.m.run(
-        obj.m.update(
-            addons or list(map(Defn.from_pkg, obj.m.database.query(models.Pkg).all())), False
-        )
-    )
+    update_defns = addons or list(map(Defn.from_pkg, obj.m.database.query(models.Pkg).all()))
+    results = run_with_progress(obj.m.update(update_defns, False))
     Report(results.items(), filter_results).generate_and_exit()
 
 
@@ -318,7 +388,7 @@ def update(obj: ManagerWrapper, addons: Sequence[Defn]) -> None:
 @click.pass_obj
 def remove(obj: ManagerWrapper, addons: Sequence[Defn], keep_folders: bool) -> None:
     "Remove add-ons."
-    results = obj.m.run(obj.m.remove(addons, keep_folders))
+    results = run_with_progress(obj.m.remove(addons, keep_folders))
     Report(results.items()).generate_and_exit()
 
 
@@ -353,7 +423,7 @@ def rollback(obj: ManagerWrapper, addon: Defn, version: str | None, undo: bool) 
         Report([(addon, R.PkgStrategyUnsupported(Strategy.version))]).generate_and_exit()
 
     if undo:
-        Report(manager.run(manager.update([addon], True)).items()).generate_and_exit()
+        Report(run_with_progress(manager.update([addon], True)).items()).generate_and_exit()
 
     reconstructed_defn = Defn.from_pkg(pkg)
     if version:
@@ -378,7 +448,9 @@ def rollback(obj: ManagerWrapper, addon: Defn, version: str | None, undo: bool) 
         ).unsafe_ask()
 
     Report(
-        manager.run(manager.update([reconstructed_defn.with_version(selection)], True)).items()
+        run_with_progress(
+            manager.update([reconstructed_defn.with_version(selection)], True)
+        ).items()
     ).generate_and_exit()
 
 
@@ -441,7 +513,7 @@ def reconcile(obj: ManagerWrapper, auto: bool, list_unreconciled: bool) -> None:
 
     def prompt(groups: Sequence[tuple[list[AddonFolder], list[Defn]]]) -> Iterable[Defn]:
         uniq_defns = uniq(d for _, b in groups for d in b)
-        results = manager.run(manager.resolve(uniq_defns))
+        results = run_with_progress(manager.resolve(uniq_defns))
         for addons, defns in groups:
             shortlist: list[models.Pkg] = list(filter(models.is_pkg, (results[d] for d in defns)))
             if shortlist:
@@ -455,7 +527,7 @@ def reconcile(obj: ManagerWrapper, auto: bool, list_unreconciled: bool) -> None:
             match_folder_name_subsets,
             match_addon_names_with_folder_names,
         ):
-            groups = manager.run(fn(manager, (yield [])))
+            groups = run_with_progress(fn(manager, (yield [])))
             yield list(prompt(groups))
 
     leftovers = get_unreconciled_folder_set(manager)
@@ -474,7 +546,7 @@ def reconcile(obj: ManagerWrapper, auto: bool, list_unreconciled: bool) -> None:
     for _ in matcher:  # Skip over consumer yields
         selections = matcher.send(leftovers)
         if selections and (auto or confirm('Install selected add-ons?').unsafe_ask()):
-            results = manager.run(manager.install(selections, replace=True))
+            results = run_with_progress(manager.install(selections, replace=True))
             Report(results.items()).generate()
 
         leftovers = get_unreconciled_folder_set(manager)
@@ -510,13 +582,13 @@ def search(ctx: click.Context, search_terms: str, limit: int, sources: Sequence[
     from .prompts import PkgChoice, checkbox, confirm
 
     assert ctx.obj
-    manager: managers.CliManager = ctx.obj.m
+    manager: M.Manager = ctx.obj.m
 
-    entries = manager.run(manager.search(search_terms, limit, frozenset(sources) or None))
+    entries = run_with_progress(manager.search(search_terms, limit, frozenset(sources) or None))
     defns = [Defn(e.source, e.id) for e in entries]
     pkgs = (
         (d.with_(alias=r.slug), r)
-        for d, r in manager.run(manager.resolve(defns)).items()
+        for d, r in run_with_progress(manager.resolve(defns)).items()
         if models.is_pkg(r)
     )
     choices = [PkgChoice(f'{p.name}  ({d.to_uri()}=={p.version})', d, pkg=p) for d, p in pkgs]
@@ -632,7 +704,7 @@ def view_changelog(obj: ManagerWrapper, addon: Defn) -> None:
     "View the changelog of an installed add-on."
     pkg = obj.m.get_pkg(addon, partial_match=True)
     if pkg:
-        click.echo_via_pager(obj.m.run(obj.m.get_changelog(pkg.changelog_url)))
+        click.echo_via_pager(run_with_progress(obj.m.get_changelog(pkg.changelog_url)))
     else:
         Report([(addon, R.PkgNotInstalled())]).generate_and_exit()
 
@@ -665,7 +737,7 @@ def _show_active_config(ctx: click.Context, __: click.Parameter, value: bool) ->
 def configure(ctx: click.Context, promptless: bool) -> Config:
     "Configure instawow."
     if promptless:
-        constructor = Config
+        make_config = Config
     else:
         from .prompts import PydanticValidator, path, select
 
@@ -679,9 +751,9 @@ def configure(ctx: click.Context, promptless: bool) -> Config:
             choices=list(Flavour),
             initial_choice=Config.infer_flavour(addon_dir),
         ).unsafe_ask()
-        constructor = partial(Config, addon_dir=addon_dir, game_flavour=game_flavour)
+        make_config = partial(Config, addon_dir=addon_dir, game_flavour=game_flavour)
 
-    config = constructor(profile=ctx.find_root().params['profile']).write()
+    config = make_config(profile=ctx.find_root().params['profile']).write()
     click.echo(f'Configuration written to: {config.config_file}')
     return config
 
@@ -698,7 +770,7 @@ def build_weakauras_companion(obj: ManagerWrapper) -> None:
     from .wa_updater import BuilderConfig, WaCompanionBuilder
 
     config = BuilderConfig()
-    obj.m.run(WaCompanionBuilder(obj.m, config).build())
+    run_with_progress(WaCompanionBuilder(obj.m, config).build())
 
 
 @_weakauras_group.command('list')
@@ -754,12 +826,8 @@ def gui(ctx: click.Context, log_to_stderr: bool) -> None:
     "Fire up the GUI."
     from instawow_gui import InstawowApp
 
-    log_level = ctx.find_root().params['log_level']
-    _set_mac_multiprocessing_start_method()
-    _override_asyncio_loop_policy()
-    _set_asyncio_debug(log_level == 'DEBUG')
-
     if not log_to_stderr:
+        log_level = ctx.find_root().params['log_level']
         dummy_config = Config.get_dummy_config(profile='__jsonrpc__').ensure_dirs()
         setup_logging(dummy_config, log_level)
 

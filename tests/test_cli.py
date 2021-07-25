@@ -1,5 +1,6 @@
 from functools import partial
 import json
+import unittest.mock
 
 from click.testing import CliRunner
 from prompt_toolkit.application import create_app_session
@@ -7,8 +8,7 @@ from prompt_toolkit.input import create_pipe_input
 from prompt_toolkit.output import DummyOutput
 import pytest
 
-from instawow import __version__
-from instawow.cli import main
+from instawow import __version__, cli
 from instawow.config import Flavour
 from instawow.resolvers import MultiPkgModel
 
@@ -22,18 +22,10 @@ def feed_pt():
 
 
 @pytest.fixture
-def run(monkeypatch, event_loop, iw_config, iw_web_client):
-    def runner(self, awaitable):
-        self.contextualise(web_client=iw_web_client)
-        return event_loop.run_until_complete(awaitable)
-
-    monkeypatch.setattr('instawow.manager.CliManager.run', runner)
-    monkeypatch.setenv('INSTAWOW_CONFIG_DIR', str(iw_config.config_dir))
-    yield partial(
-        CliRunner().invoke,
-        main,
-        catch_exceptions=False,
-    )
+def run(monkeypatch, iw_config):
+    with unittest.mock.patch.object(cli, 'make_progress_bar'):
+        monkeypatch.setenv('INSTAWOW_CONFIG_DIR', str(iw_config.config_dir))
+        yield partial(CliRunner().invoke, cli.main, catch_exceptions=False)
 
 
 @pytest.fixture
