@@ -72,7 +72,9 @@ def checkbox(message: str, choices: Sequence[Choice], **inquirer_kwargs: Any) ->
             )
         return tokens
 
-    ic = InquirerControl(choices, None, use_indicator=False, use_shortcuts=False, use_pointer=True)
+    ic = InquirerControl(
+        choices,
+    )
     bindings = KeyBindings()
 
     @bindings.add(Keys.ControlQ, eager=True)
@@ -160,10 +162,7 @@ def select(
 
     ic = InquirerControl(
         choices,
-        None,
         use_indicator=False,
-        use_shortcuts=False,
-        use_pointer=True,
         initial_choice=initial_choice,
     )
     bindings = KeyBindings()
