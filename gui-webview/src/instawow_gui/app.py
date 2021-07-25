@@ -61,53 +61,6 @@ class InstawowApp(toga.App):
                 url=self.iw_server_url, style=toga.style.Pack(flex=1)
             )
 
-        if platform.system() == 'Darwin':
-            from rubicon.objc import send_message
-
-            def send_message_to_wkwebview(_: toga.Command, *, selector: str):
-                send_message(
-                    self.iw_webview._impl.native,  # type: ignore
-                    selector,
-                    restype=None,
-                    argtypes=[],
-                )
-
-            edit_group = toga.Group('Edit')
-            self.commands.add(
-                toga.Command(
-                    partial(send_message_to_wkwebview, selector='cut:'),
-                    label='Cut',
-                    shortcut=toga.Key.MOD_1 + toga.Key.X,
-                    group=edit_group,
-                    section=1,
-                    order=1,
-                ),
-                toga.Command(
-                    partial(send_message_to_wkwebview, selector='copy:'),
-                    label='Copy',
-                    shortcut=toga.Key.MOD_1 + toga.Key.C,
-                    group=edit_group,
-                    section=1,
-                    order=2,
-                ),
-                toga.Command(
-                    partial(send_message_to_wkwebview, selector='paste:'),
-                    label='Paste',
-                    shortcut=toga.Key.MOD_1 + toga.Key.V,
-                    group=edit_group,
-                    section=1,
-                    order=3,
-                ),
-                toga.Command(
-                    partial(send_message_to_wkwebview, selector='selectAll:'),
-                    label='Select All',
-                    shortcut=toga.Key.MOD_1 + toga.Key.A,
-                    group=edit_group,
-                    section=2,
-                    order=1,
-                ),
-            )
-
         def dispatch_js_keyboard_event(_: toga.Command, *, action: str):
             event_args = json.dumps(
                 {'detail': {'action': action}, 'bubbles': True, 'cancelable': True}
@@ -123,16 +76,16 @@ class InstawowApp(toga.App):
                 label='Search',
                 shortcut=toga.Key.MOD_1 + toga.Key.F,
                 group=view_group,
-                section=2,
-                order=1,
+                section=20,
+                order=10,
             ),
             toga.Command(
                 partial(dispatch_js_keyboard_event, action='toggleFiltering'),
                 label='Toggle filtering',
                 shortcut=toga.Key.MOD_1 + toga.Key.G,
                 group=view_group,
-                section=2,
-                order=2,
+                section=20,
+                order=20,
             ),
         )
 
