@@ -1,5 +1,3 @@
-# pyright: reportMissingImports=false
-
 from __future__ import annotations
 
 import asyncio
@@ -26,16 +24,11 @@ class InstawowApp(toga.App):
         )
         server_thread.start()
 
-        def on_exit(_: InstawowApp):
-            server_loop.call_soon_threadsafe(server_loop.stop)
-            server_thread.join()
-
         super().__init__(
             formal_name='instawow-gui',
             app_id='org.instawow.instawow_gui',
             app_name='instawow_gui',
             icon='resources/instawow_gui',
-            on_exit=on_exit,
             **kwargs,
         )
         self.loop = asyncio.get_event_loop()
