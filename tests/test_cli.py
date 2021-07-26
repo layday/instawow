@@ -1,6 +1,5 @@
 from functools import partial
 import json
-import unittest.mock
 
 from click.testing import CliRunner
 from prompt_toolkit.application import create_app_session
@@ -8,12 +7,13 @@ from prompt_toolkit.input import create_pipe_input
 from prompt_toolkit.output import DummyOutput
 import pytest
 
-from instawow import __version__, cli
+from instawow import __version__
+from instawow.cli import main
 from instawow.config import Flavour
 from instawow.resolvers import MultiPkgModel
 
 
-@pytest.fixture
+@pytest.fixture(scope='module')
 def feed_pt():
     pipe_input = create_pipe_input()
     with create_app_session(input=pipe_input, output=DummyOutput()):
@@ -22,10 +22,9 @@ def feed_pt():
 
 
 @pytest.fixture
-def run(monkeypatch, iw_config):
-    with unittest.mock.patch.object(cli, 'make_progress_bar'):
-        monkeypatch.setenv('INSTAWOW_CONFIG_DIR', str(iw_config.config_dir))
-        yield partial(CliRunner().invoke, cli.main, catch_exceptions=False)
+def run(monkeypatch, iw_config, feed_pt):
+    monkeypatch.setenv('INSTAWOW_CONFIG_DIR', str(iw_config.config_dir))
+    yield partial(CliRunner().invoke, main, catch_exceptions=False)
 
 
 @pytest.fixture
@@ -379,7 +378,10 @@ def test_rollback__multiple_versions_promptless(iw_config, run):
 
 @pytest.mark.parametrize('options', ['', '--undo'])
 def test_rollback__rollback_multiple_versions(feed_pt, iw_config, run, options):
-    test_rollback__multiple_versions(feed_pt, iw_config, run)
+    assert run('install curse:molinari').exit_code == 0
+    assert run('remove curse:molinari').exit_code == 0
+    assert run('install --version 80000.57-Release curse:molinari').exit_code == 0
+    feed_pt('\r\r')
     assert (
         run(f'rollback {options} curse:molinari').output
         == f'✓ curse:molinari\n  updated 80000.57-Release to 90000.73-Release{"-classic" if iw_config.game_flavour is Flavour.vanilla_classic else ""}\n'
