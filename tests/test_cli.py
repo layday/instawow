@@ -10,10 +10,11 @@ import pytest
 from instawow import __version__
 from instawow.cli import main
 from instawow.config import Flavour
+from instawow.manager import Manager
 from instawow.resolvers import MultiPkgModel
 
 
-@pytest.fixture(scope='module')
+@pytest.fixture
 def feed_pt():
     pipe_input = create_pipe_input()
     with create_app_session(input=pipe_input, output=DummyOutput()):
@@ -22,7 +23,12 @@ def feed_pt():
 
 
 @pytest.fixture
-def run(monkeypatch, iw_config, feed_pt):
+def run(monkeypatch, event_loop, iw_config, iw_web_client):
+    def runner(awaitable):
+        Manager.contextualise(web_client=iw_web_client)
+        return event_loop.run_until_complete(awaitable)
+
+    monkeypatch.setattr('instawow.cli.run_with_progress', runner)
     monkeypatch.setenv('INSTAWOW_CONFIG_DIR', str(iw_config.config_dir))
     yield partial(CliRunner().invoke, main, catch_exceptions=False)
 
