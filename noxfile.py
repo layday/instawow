@@ -49,7 +49,7 @@ def reformat(session: nox.Session):
            pluggy ==0.13.0
            prompt-toolkit ==3.0.15
            pydantic ==1.8.2
-           questionary ==1.8.0
+           questionary ==1.10.0
            rapidfuzz ==1.4.1
            sqlalchemy ==1.3.19
            typing-extensions ==3.10.0.0
