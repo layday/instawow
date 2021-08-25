@@ -152,16 +152,6 @@ def run_with_progress(awaitable: Awaitable[_T]) -> _T:
         return loop.run_until_complete(run())
 
 
-def _set_mac_multiprocessing_start_method() -> None:
-    import sys
-
-    # Reference: https://github.com/indygreg/PyOxidizer/issues/111#issuecomment-808834727
-    if getattr(sys, 'frozen', False) and sys.platform == 'darwin':
-        import multiprocessing
-
-        multiprocessing.set_start_method('fork')
-
-
 def _override_asyncio_loop_policy() -> None:
     # The proactor event loop which became the default loop on Windows
     # in Python 3.8 is causing issues with aiohttp.
@@ -172,7 +162,6 @@ def _override_asyncio_loop_policy() -> None:
 
 
 def _apply_patches() -> None:
-    _set_mac_multiprocessing_start_method()
     _override_asyncio_loop_policy()
 
 
