@@ -54,7 +54,7 @@ def reformat(session: nox.Session):
            sqlalchemy ==1.3.19
            typing-extensions ==3.10.0.0
            yarl ==1.4
-           aiohttp-rpc ==0.6.3
+           aiohttp-rpc ==1.0.0
         ''',
     ],
     [

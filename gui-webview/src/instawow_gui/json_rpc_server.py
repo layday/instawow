@@ -504,7 +504,7 @@ def _prepare_response(
             params = param_class.parse_obj(kwargs)
         return await params.respond(managers)
 
-    return JsonRpcMethod('', respond, custom_name=method)
+    return JsonRpcMethod(respond, name=method)
 
 
 def _serialise_response(value: dict[str, Any]) -> str:
