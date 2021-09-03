@@ -124,13 +124,13 @@ class ListSourcesParams(_ProfileParamMixin, BaseParams):
     async def respond(self, managers: _ManagerWorkQueue) -> list[Source]:
         manager = await managers.run(self.profile)
         return [
-            Source(
-                source=r.source,
-                name=r.name,
-                supported_strategies=sorted(r.strategies, key=list(Strategy).index),
-                supports_rollback=Strategy.version in r.strategies,
-                changelog_format=r.changelog_format.value,
-            )
+            {
+                'source': r.source,
+                'name': r.name,
+                'supported_strategies': sorted(r.strategies, key=list(Strategy).index),
+                'supports_rollback': Strategy.version in r.strategies,
+                'changelog_format': r.changelog_format.value,
+            }
             for r in manager.resolvers.values()
         ]
 
@@ -190,9 +190,9 @@ class ResolveParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
             ),
         )
         return [
-            SuccessResult(status='success', addon=PkgModel.from_orm(r))
+            {'status': 'success', 'addon': PkgModel.from_orm(r)}
             if is_pkg(r)
-            else ErrorResult(status=r.status, message=r.message)
+            else {'status': r.status, 'message': r.message}
             for r in results.values()
         ]
 
@@ -205,9 +205,9 @@ class InstallParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
             self.profile, partial(Manager.install, defns=self.defns, replace=self.replace)
         )
         return [
-            SuccessResult(status=r.status, addon=PkgModel.from_orm(r.pkg))
+            {'status': r.status, 'addon': PkgModel.from_orm(r.pkg)}
             if isinstance(r, R.PkgInstalled)
-            else ErrorResult(status=r.status, message=r.message)
+            else {'status': r.status, 'message': r.message}
             for r in results.values()
         ]
 
@@ -218,9 +218,9 @@ class UpdateParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
             self.profile, partial(Manager.update, defns=self.defns, retain_strategy=True)
         )
         return [
-            SuccessResult(status=r.status, addon=PkgModel.from_orm(r.new_pkg))
+            {'status': r.status, 'addon': PkgModel.from_orm(r.new_pkg)}
             if isinstance(r, R.PkgUpdated)
-            else ErrorResult(status=r.status, message=r.message)
+            else {'status': r.status, 'message': r.message}
             for r in results.values()
         ]
 
@@ -233,9 +233,9 @@ class RemoveParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
             self.profile, partial(Manager.remove, defns=self.defns, keep_folders=self.keep_folders)
         )
         return [
-            SuccessResult(status=r.status, addon=PkgModel.from_orm(r.old_pkg))
+            {'status': r.status, 'addon': PkgModel.from_orm(r.old_pkg)}
             if isinstance(r, R.PkgRemoved)
-            else ErrorResult(status=r.status, message=r.message)
+            else {'status': r.status, 'message': r.message}
             for r in results.values()
         ]
 
@@ -244,9 +244,9 @@ class PinParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
     async def respond(self, managers: _ManagerWorkQueue) -> list[SuccessResult | ErrorResult]:
         results = await managers.run(self.profile, partial(Manager.pin, defns=self.defns))
         return [
-            SuccessResult(status=r.status, addon=PkgModel.from_orm(r.pkg))
+            {'status': r.status, 'addon': PkgModel.from_orm(r.pkg)}
             if isinstance(r, R.PkgInstalled)
-            else ErrorResult(status=r.status, message=r.message)
+            else {'status': r.status, 'message': r.message}
             for r in results.values()
         ]
 
@@ -260,9 +260,9 @@ class GetChangelogParams(_ProfileParamMixin, BaseParams):
         )
 
 
-class ReconcileResult_AddonFolder(TypedDict):
-    name: str
-    version: str
+class ReconcileResult(TypedDict):
+    reconciled: list[ReconcileResult_AddonMatch]
+    unreconciled: list[ReconcileResult_AddonMatch]
 
 
 class ReconcileResult_AddonMatch(TypedDict):
@@ -270,9 +270,9 @@ class ReconcileResult_AddonMatch(TypedDict):
     matches: list[PkgModel]
 
 
-class ReconcileResult(TypedDict):
-    reconciled: list[ReconcileResult_AddonMatch]
-    unreconciled: list[ReconcileResult_AddonMatch]
+class ReconcileResult_AddonFolder(TypedDict):
+    name: str
+    version: str
 
 
 class ReconcileParams(_ProfileParamMixin, BaseParams):
@@ -287,26 +287,24 @@ class ReconcileParams(_ProfileParamMixin, BaseParams):
         resolve_results = await managers.run(
             self.profile, partial(Manager.resolve, defns=uniq_defns)
         )
-        return ReconcileResult(
-            reconciled=[
-                ReconcileResult_AddonMatch(
-                    folders=[
-                        ReconcileResult_AddonFolder(name=f.name, version=f.version) for f in a
-                    ],
-                    matches=[
+        return {
+            'reconciled': [
+                {
+                    'folders': [{'name': f.name, 'version': f.version} for f in a],
+                    'matches': [
                         PkgModel.from_orm(r) for i in d for r in (resolve_results[i],) if is_pkg(r)
                     ],
-                )
+                }
                 for a, d in match_groups
             ],
-            unreconciled=[
-                ReconcileResult_AddonMatch(
-                    folders=[ReconcileResult_AddonFolder(name=f.name, version=f.version)],
-                    matches=[],
-                )
+            'unreconciled': [
+                {
+                    'folders': [{'name': f.name, 'version': f.version}],
+                    'matches': [],
+                }
                 for f in sorted(leftovers - frozenset(i for a, _ in match_groups for i in a))
             ],
-        )
+        }
 
 
 class DownloadProgressReport(TypedDict):
@@ -317,7 +315,7 @@ class DownloadProgressReport(TypedDict):
 class GetDownloadProgressParams(_ProfileParamMixin, BaseParams):
     async def respond(self, managers: _ManagerWorkQueue) -> list[DownloadProgressReport]:
         return [
-            DownloadProgressReport(defn=Defn.from_pkg(p), progress=r)
+            {'defn': Defn.from_pkg(p), 'progress': r}
             for p, r in await managers.get_download_progress(self.profile)
         ]
 
@@ -330,9 +328,10 @@ class GetVersionResult(TypedDict):
 class GetVersionParams(BaseParams):
     async def respond(self, managers: _ManagerWorkQueue) -> GetVersionResult:
         outdated, new_version = await is_outdated()
-        return GetVersionResult(
-            installed_version=__version__, new_version=new_version if outdated else None
-        )
+        return {
+            'installed_version': __version__,
+            'new_version': new_version if outdated else None,
+        }
 
 
 class OpenUrlParams(BaseParams):
@@ -369,7 +368,7 @@ class SelectFolderParams(BaseParams):
         selection = asyncio.run_coroutine_threadsafe(
             select_folder(), InstawowApp.app.loop
         ).result()
-        return SelectFolderResult(selection=selection)
+        return {'selection': selection}
 
 
 class ConfirmDialogueResult(TypedDict):
@@ -385,7 +384,7 @@ class ConfirmDialogueParams(BaseParams):
             return InstawowApp.app.iw_window.confirm_dialog(self.title, self.message)
 
         ok = asyncio.run_coroutine_threadsafe(confirm(), InstawowApp.app.loop).result()
-        return ConfirmDialogueResult(ok=ok)
+        return {'ok': ok}
 
 
 def _init_json_rpc_web_client(
