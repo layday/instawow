@@ -231,11 +231,11 @@ class WaCompanionBuilder:
     def _get_toc_number(self) -> str:
         game_flavour: Flavour = self.manager.config.game_flavour
         if game_flavour is Flavour.retail:
-            return '90005'
+            return '90100'
         elif game_flavour is Flavour.vanilla_classic:
             return '11307'
-        else:  # Flavour.burning_crusade_classic
-            return '20501'
+        elif game_flavour is Flavour.burning_crusade_classic:
+            return '20502'
 
     def _generate_addon(self, auras: Iterable[tuple[type[Auras[WeakAura]], AuraGroup]]) -> None:
         from importlib.resources import read_text
