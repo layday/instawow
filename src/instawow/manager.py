@@ -592,7 +592,7 @@ class Manager:
             ),
             key=lambda v: v[0],
         )
-        matches: list[tuple[str, float, int]] = rapidfuzz.process.extract(
+        matches = rapidfuzz.process.extract(
             s, list(tokens_to_entries), scorer=rapidfuzz.fuzz.WRatio, limit=limit
         )
         weighted_entries = sorted(
