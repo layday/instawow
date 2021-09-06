@@ -60,13 +60,16 @@
       line-height: $line-height;
       margin: 0;
       padding: 0 0.5em;
-      background-color: var(--inverse-color-alpha-05);
       border: 0;
       border-radius: $middle-border-radius;
       transition: all 0.2s;
 
       &:disabled {
         opacity: 0.5;
+      }
+
+      &:hover:not(:disabled) {
+        background-color: var(--inverse-color-alpha-05);
       }
 
       &:focus {
@@ -82,12 +85,13 @@
 
       :global(.icon) {
         height: 1rem;
-        fill: var(--inverse-color-tone-10);
+        fill: var(--inverse-color-tone-20);
       }
     }
 
     select {
       padding-left: 0.65em;
+      box-shadow: inset 0 0 0 1px var(--inverse-color-alpha-10);
       background-image: var(--dropdown-arrow);
       background-size: 10px;
       background-repeat: no-repeat;

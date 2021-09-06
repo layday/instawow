@@ -1,6 +1,5 @@
 <script lang="ts">
-  import type { Api, Config, Version } from "../api";
-  import { JSONRPCError } from "@open-rpc/client-js";
+  import type { Config } from "../api";
   import { fade } from "svelte/transition";
   import { api } from "../ipc";
   import { activeProfile, profiles } from "../store";
@@ -75,6 +74,7 @@
     --inverse-color-alpha-20: #{rgba($inverse-color-light, 0.2)};
     --inverse-color-tone-10: #{lighten($inverse-color-light, 10%)};
     --inverse-color-tone-20: #{lighten($inverse-color-light, 20%)};
+    --alert-background-color: #{rgba(salmon, 0.5)};
     --dropdown-arrow: #{generate-dropdown-arrow($inverse-color-light)};
   }
 
@@ -90,6 +90,7 @@
       --inverse-color-alpha-20: #{rgba($inverse-color-dark, 0.25)};
       --inverse-color-tone-10: #{darken($inverse-color-dark, 05%)};
       --inverse-color-tone-20: #{darken($inverse-color-dark, 10%)};
+      --alert-background-color: #{rgba(salmon, 0.5)};
       --dropdown-arrow: #{generate-dropdown-arrow($inverse-color-dark)};
     }
   }

@@ -59,7 +59,7 @@ $edge-border-radius: math.div($form-el-line-height, 4);
     :global(.icon) {
       height: 1rem;
       width: 1rem;
-      fill: var(--inverse-color);
+      fill: var(--inverse-color-tone-20);
       vertical-align: text-bottom;
     }
   }

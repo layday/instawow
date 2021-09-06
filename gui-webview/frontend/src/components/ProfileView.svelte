@@ -7,6 +7,7 @@
     Defn,
     ReconcileResult,
     SuccessResult,
+    ErrorResult,
     AnyResult,
     Sources,
   } from "../api";
@@ -16,7 +17,7 @@
   import { profiles } from "../store";
   import { faQuestion } from "@fortawesome/free-solid-svg-icons";
   import * as commonmark from "commonmark";
-  import lodash from "lodash";
+  import lodash, { result } from "lodash";
   import { onMount } from "svelte";
   import { flip } from "svelte/animate";
   import { fade } from "svelte/transition";
@@ -24,6 +25,7 @@
   import AddonContextMenu from "./AddonContextMenu.svelte";
   import AddonListNav from "./AddonListNav.svelte";
   import AddonStub from "./AddonStub.svelte";
+  import Alerts from "./Alerts.svelte";
   import ChangelogModal from "./ChangelogModal.svelte";
   import RollbackModal from "./RollbackModal.svelte";
   import Icon from "./SvgIcon.svelte";
@@ -112,6 +114,11 @@
     searchVersion,
   } = defaultSearchState;
 
+  let alerts: {
+    heading: string;
+    message: string;
+  }[] = [];
+
   let reconcileStage: ReconciliationStage = reconcileStages[0];
   let reconcileSelections: Addon[];
 
@@ -132,20 +139,14 @@
     yOffset: number;
   };
 
-  const notifyOfFailures = async (
-    method: string,
-    combinedResult: (readonly [Addon, AnyResult])[]
-  ) => {
-    Promise.all(
-      combinedResult.map(([addon, result]) => {
-        if (result.status !== "success") {
-          return profileApi.notify(
-            `failed to ${method} ${addon.name} (${createAddonToken(addon)})`,
-            result.message
-          );
-        }
-      })
-    );
+  const updateAlerts = (method: string, combinedResult: (readonly [Addon, AnyResult])[]) => {
+    const newAlerts = combinedResult
+      .filter((c): c is [Addon, ErrorResult] => c[1].status !== "success")
+      .map(([a, r]) => ({
+        heading: `failed to ${method} ${a.name} (${createAddonToken(a)})`,
+        message: r.message,
+      }));
+    alerts = [...newAlerts, ...alerts];
   };
 
   const countUpdates = () =>
@@ -217,7 +218,7 @@
         regenerateFilteredAddons();
         regenerateSearchAddons();
       }
-      notifyOfFailures(
+      updateAlerts(
         method,
         addons.map((a, i) => [a, modifyResults[i]])
       );
@@ -341,7 +342,7 @@
             thisAddon.name.toLowerCase(),
           ]
         );
-        notifyOfFailures("resolve", addonsToResults);
+        updateAlerts("resolve", addonsToResults);
       } finally {
         // Keep actions disabled for a little while longer while the add-ons
         // are being reshuffled to prevent misclicking
@@ -540,6 +541,7 @@
     reconcile__canStepForward={!!getNextReconcileStage(reconcileStage)}
   />
   <div class="addon-list-wrapper" class:prevent-scrolling={changelogModal || rollbackModal}>
+    <Alerts bind:alerts />
     {#if addonContextMenu}
       <AddonContextMenu
         bind:show={addonContextMenu}
@@ -676,7 +678,7 @@
     :global(.icon) {
       width: 3rem;
       height: 3rem;
-      fill: var(--inverse-color-tone-10);
+      fill: var(--inverse-color-tone-20);
     }
   }
 
