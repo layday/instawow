@@ -14,7 +14,6 @@
   import { ChangelogFormat, ReconciliationStage, Strategy, addonToDefn } from "../api";
   import { SEARCH_LIMIT, View } from "../constants";
   import { api } from "../ipc";
-  import { profiles } from "../store";
   import { faQuestion } from "@fortawesome/free-solid-svg-icons";
   import * as commonmark from "commonmark";
   import lodash, { result } from "lodash";
@@ -86,6 +85,8 @@
 </script>
 
 <script lang="ts">
+  import { profiles } from "../store";
+
   export let profile: string, isActive: boolean, statusMessage: string;
 
   const profileApi = api.withProfile(profile);
