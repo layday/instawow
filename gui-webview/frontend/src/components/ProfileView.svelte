@@ -16,7 +16,7 @@
   import { api } from "../ipc";
   import { faQuestion } from "@fortawesome/free-solid-svg-icons";
   import * as commonmark from "commonmark";
-  import lodash, { result } from "lodash";
+  import lodash from "lodash";
   import { onMount } from "svelte";
   import { flip } from "svelte/animate";
   import { fade } from "svelte/transition";
@@ -422,7 +422,7 @@
   const goToNextReconcileStage = () => (reconcileStage = getNextReconcileStage(reconcileStage));
 
   const prepareReconcile = async (thisStage: ReconciliationStage) => {
-    const stages = lodash.dropWhile(reconcileStages, (s) => s !== thisStage);
+    const stages = reconcileStages.slice(reconcileStages.indexOf(thisStage));
     for (const stage of stages) {
       console.debug(profile, "- trying", stage);
       const results = await profileApi.reconcile(stage);
@@ -432,8 +432,7 @@
         return results;
       }
     }
-    console.debug(profile, "- no stages in", stages, "from", thisStage);
-    return {} as ReconcileResult;
+    throw Error("loop didn't run");
   };
 
   const installReconciled = async (
