@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { faPencilAlt, faPlusCircle } from "@fortawesome/free-solid-svg-icons";
+  import { faCog, faPlus } from "@fortawesome/free-solid-svg-icons";
   import { onMount } from "svelte";
   import { activeProfile, profiles } from "../store";
   import ConfigEditor from "./ConfigEditor.svelte";
@@ -28,14 +28,14 @@
       disabled={!$activeProfile}
       on:click={() => (editing = editing === "existing" ? false : "existing")}
     >
-      <Icon icon={faPencilAlt} />
+      <Icon icon={faCog} />
     </button>
     <button
       aria-label="add profile"
       title="add profile"
       on:click={() => (editing = editing === "new" ? false : "new")}
     >
-      <Icon icon={faPlusCircle} />
+      <Icon icon={faPlus} />
     </button>
   </div>
 </div>

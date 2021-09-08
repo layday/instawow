@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { Api, Config, PydanticValidationError } from "../api";
-  import { faFolderOpen, faTimesCircle } from "@fortawesome/free-solid-svg-icons";
+  import { faFolderOpen, faTrashAlt } from "@fortawesome/free-solid-svg-icons";
   import { JSONRPCError } from "@open-rpc/client-js";
   import lodash from "lodash";
   import { fade } from "svelte/transition";
@@ -148,7 +148,7 @@ will be lost.`
           type="button"
           on:click|preventDefault={() => deleteConfig()}
         >
-          <Icon icon={faTimesCircle} />
+          <Icon icon={faTrashAlt} />
         </button>
       {/if}
     </div>

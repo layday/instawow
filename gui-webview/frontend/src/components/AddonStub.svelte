@@ -150,7 +150,7 @@
         display: block;
         height: 1rem;
         width: 1rem;
-        fill: var(--inverse-color);
+        fill: var(--inverse-color-tone-20);
       }
     }
 
