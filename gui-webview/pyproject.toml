@@ -15,4 +15,6 @@ sources = ["src/instawow_gui_wrapper"]
 requires = [
   "..[gui]",
   "certifi",
+  # v1.6.0 depends on numpy
+  "rapidfuzz <1.6",
 ]
