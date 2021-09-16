@@ -454,9 +454,8 @@
         } else {
           reconcileStage = nextStage;
         }
-      } else if (recursive) {
-        console.debug(profile, "- triggering view update");
-        reconcileStage = thisStage;
+      } else {
+        reconcileStage = reconcileStages[0];
       }
     } finally {
       reconcileInstallationInProgress = false;
@@ -504,6 +503,8 @@
       : activeView === View.FilterInstalled
       ? addons__FilterInstalled
       : addons__Installed;
+  // Reset stage when returning to reconciliation page
+  $: (activeView === View.Reconcile) && (reconcileStage = reconcileStages[0]);
   // Recount updates whenever `addons__Installed` is modified
   $: addons__Installed && (console.debug(profile, "- recounting updates"), countUpdates());
   // Update status message
