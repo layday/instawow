@@ -198,7 +198,7 @@
         .map(({ addon }) => addon);
       if (modifiedAddons.length) {
         const installedAddons = [...addons__Installed];
-        // Reversing `modifiedAddons` so that new add-ons will be prepended in alphabetical order
+        // Reversing `modifiedAddons` for new add-ons to be prepended in alphabetical order
         for (const addon of [...modifiedAddons].reverse()) {
           const newAddon = [markAddonInstalled(addon, method !== "remove"), addon] as const;
           const index = addons__Installed.findIndex((value) => isSameAddon(value, addon));
@@ -462,6 +462,8 @@
   const generateStatusMessage = () => {
     if (refreshInProgress) {
       return "refreshing…";
+    } else if (reconcileInstallationInProgress) {
+      return "installing…";
     } else {
       return `installed add-ons: ${addons__Installed.reduce(
         (a, [c]) => a + (c.__installed__ ? 1 : 0),
