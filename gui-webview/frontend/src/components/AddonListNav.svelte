@@ -1,15 +1,9 @@
 <script lang="ts">
   import type { Sources } from "../api";
-  import {
-    faFilter,
-    faGripLines,
-    faLink,
-    faStepBackward,
-    faStepForward,
-  } from "@fortawesome/free-solid-svg-icons";
+  import { faFilter, faGripLines, faLink } from "@fortawesome/free-solid-svg-icons";
   import { createEventDispatcher } from "svelte";
   import { fade, fly } from "svelte/transition";
-  import { Strategy } from "../api";
+  import { ReconciliationStage, Strategy } from "../api";
   import { View } from "../constants";
   import ProgressIndicator from "./ProgressIndicator.svelte";
   import Icon from "./SvgIcon.svelte";
@@ -29,8 +23,7 @@
     installed__isRefreshing: boolean,
     installed__outdatedAddonCount: number,
     reconcile__isInstalling: boolean,
-    reconcile__canStepBackward: boolean,
-    reconcile__canStepForward: boolean;
+    reconcile__stage: ReconciliationStage;
 
   const dispatch = createEventDispatcher();
 
@@ -186,22 +179,17 @@
           <ProgressIndicator diameter={18} progress={0} />
         </div>
       {/if}
-      <button
-        aria-label="previous stage"
-        title="previous stage"
-        disabled={!reconcile__canStepBackward || reconcile__isInstalling}
-        on:click={() => dispatch("requestReconcileStepBackward")}
+      <select
+        aria-label="reconciliation stage"
+        disabled={reconcile__isInstalling}
+        bind:value={reconcile__stage}
       >
-        <Icon icon={faStepBackward} />
-      </button>
-      <button
-        aria-label="next stage"
-        title="next stage"
-        disabled={!reconcile__canStepForward || reconcile__isInstalling}
-        on:click={() => dispatch("requestReconcileStepForward")}
-      >
-        <Icon icon={faStepForward} />
-      </button>
+        <optgroup label="stage">
+          {#each Object.values(ReconciliationStage) as stage}
+            <option value={stage}>{stage}</option>
+          {/each}
+        </optgroup>
+      </select>
       <button
         disabled={reconcile__isInstalling}
         on:click={() => dispatch("requestInstallReconciled")}

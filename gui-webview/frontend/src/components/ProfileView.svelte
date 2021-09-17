@@ -5,7 +5,6 @@
     CatalogueEntry,
     Config,
     Defn,
-    ReconcileResult,
     SuccessResult,
     ErrorResult,
     AnyResult,
@@ -57,12 +56,6 @@
   });
 
   const reconcileStages = Object.values(ReconciliationStage);
-
-  const getPrevReconcileStage = (stage: ReconciliationStage) =>
-    reconcileStages[reconcileStages.indexOf(stage) - 1];
-
-  const getNextReconcileStage = (stage: ReconciliationStage) =>
-    reconcileStages[reconcileStages.indexOf(stage) + 1];
 
   const defaultSearchState: {
     searchTerms: string;
@@ -417,37 +410,39 @@
     }
   };
 
-  const goToPrevReconcileStage = () => (reconcileStage = getPrevReconcileStage(reconcileStage));
-
-  const goToNextReconcileStage = () => (reconcileStage = getNextReconcileStage(reconcileStage));
-
-  const prepareReconcile = async (thisStage: ReconciliationStage) => {
-    const stages = reconcileStages.slice(reconcileStages.indexOf(thisStage));
-    for (const stage of stages) {
-      console.debug(profile, "- trying", stage);
+  const reconcile = async (fromStage: ReconciliationStage) => {
+    for (const [index, stage] of Array.from(reconcileStages.entries()).slice(
+      reconcileStages.indexOf(fromStage)
+    )) {
       const results = await profileApi.reconcile(stage);
-      if (results.reconciled.length || !getNextReconcileStage(stage)) {
-        reconcileStage = stage;
-        reconcileSelections = [];
-        return results;
+      if (results.reconciled.length || !(index + 1 in reconcileStages)) {
+        return [stage, results] as const;
       }
     }
-    throw Error("loop didn't run");
+  };
+
+  const prepareReconcile = async (fromStage: ReconciliationStage) => {
+    const maybeResults = await reconcile(fromStage);
+    if (maybeResults) {
+      [reconcileStage] = maybeResults;
+      reconcileSelections = [];
+      return maybeResults[1];
+    }
   };
 
   const installReconciled = async (
-    thisStage: ReconciliationStage,
+    fromStage: ReconciliationStage,
     theseSelections: Addon[],
     recursive?: boolean
   ) => {
     reconcileInstallationInProgress = true;
     try {
-      console.debug(profile, "- installing selections from", thisStage);
+      console.debug(profile, "- installing selections from", fromStage);
       await installAddons(theseSelections.filter(Boolean), true);
-      const nextStage = getNextReconcileStage(thisStage);
+      const nextStage = reconcileStages[reconcileStages.indexOf(fromStage) + 1];
       if (nextStage) {
         if (recursive) {
-          const nextSelections = (await profileApi.reconcile(thisStage)).reconciled.map(
+          const nextSelections = (await profileApi.reconcile(fromStage)).reconciled.map(
             ({ matches: [addon] }) => addon
           );
           await installReconciled(nextStage, nextSelections, true);
@@ -504,7 +499,7 @@
       ? addons__FilterInstalled
       : addons__Installed;
   // Reset stage when returning to reconciliation page
-  $: (activeView === View.Reconcile) && (reconcileStage = reconcileStages[0]);
+  $: activeView === View.Reconcile && (reconcileStage = reconcileStages[0]);
   // Recount updates whenever `addons__Installed` is modified
   $: addons__Installed && (console.debug(profile, "- recounting updates"), countUpdates());
   // Update status message
@@ -520,8 +515,6 @@
     on:requestSearch={() => search()}
     on:requestRefresh={() => refreshInstalled()}
     on:requestUpdateAll={() => updateAddons(true)}
-    on:requestReconcileStepBackward={() => goToPrevReconcileStage()}
-    on:requestReconcileStepForward={() => goToNextReconcileStage()}
     on:requestInstallReconciled={() => installReconciled(reconcileStage, reconcileSelections)}
     on:requestAutomateReconciliation={() =>
       installReconciled(reconcileStage, reconcileSelections, true)}
@@ -533,13 +526,12 @@
     bind:search__source={searchSource}
     bind:search__strategy={searchStrategy}
     bind:search__version={searchVersion}
+    bind:reconcile__stage={reconcileStage}
     search__isSearching={searchesInProgress > 0}
     installed__isModifying={addonsBeingModified.length > 0}
     installed__isRefreshing={refreshInProgress}
     installed__outdatedAddonCount={outdatedAddonCount}
     reconcile__isInstalling={reconcileInstallationInProgress}
-    reconcile__canStepBackward={!!getPrevReconcileStage(reconcileStage)}
-    reconcile__canStepForward={!!getNextReconcileStage(reconcileStage)}
   />
   <div class="addon-list-wrapper" class:prevent-scrolling={changelogModal || rollbackModal}>
     <Alerts bind:alerts />
@@ -569,7 +561,7 @@
           <div>Hold on tight!</div>
         </div>
       {:then result}
-        {#if Object.values(result).some((v) => v.length)}
+        {#if result && (result.reconciled.length || result.unreconciled.length)}
           <div class="preamble">
             <Icon icon={faQuestion} />
             <!-- prettier-ignore -->
