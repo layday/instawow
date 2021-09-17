@@ -6,7 +6,6 @@ from collections.abc import Awaitable, Callable, Iterator
 from contextlib import contextmanager
 from functools import partial
 import importlib.resources
-from itertools import starmap
 import os
 from types import SimpleNamespace
 import typing
@@ -14,8 +13,9 @@ from typing import Any, TypeVar, overload
 
 import aiohttp
 import aiohttp.web
-from aiohttp_rpc import JsonRpcMethod, WsJsonRpcServer, middlewares as rpc_middlewares
+from aiohttp_rpc import JsonRpcMethod, middlewares as rpc_middlewares
 from aiohttp_rpc.errors import InvalidParams as InvalidParamsError, ServerError
+from aiohttp_rpc.server import WsJsonRpcServer
 import click
 from loguru import logger
 from pydantic import BaseModel, ValidationError
@@ -557,31 +557,28 @@ async def create_app() -> aiohttp.web.Application:
         middlewares=rpc_middlewares.DEFAULT_MIDDLEWARES,
     )
     rpc_server.add_methods(
-        starmap(
-            _prepare_response,
-            [
-                (WriteConfigParams, 'config/write', managers),
-                (ReadConfigParams, 'config/read', managers),
-                (DeleteConfigParams, 'config/delete', managers),
-                (ListProfilesParams, 'config/list', managers),
-                (ListSourcesParams, 'sources/list', managers),
-                (ListInstalledParams, 'list', managers),
-                (SearchParams, 'search', managers),
-                (ResolveParams, 'resolve', managers),
-                (InstallParams, 'install', managers),
-                (UpdateParams, 'update', managers),
-                (RemoveParams, 'remove', managers),
-                (PinParams, 'pin', managers),
-                (GetChangelogParams, 'get_changelog', managers),
-                (ReconcileParams, 'reconcile', managers),
-                (GetDownloadProgressParams, 'get_download_progress', managers),
-                (GetVersionParams, 'meta/get_version', managers),
-                (OpenUrlParams, 'assist/open_url', managers),
-                (RevealFolderParams, 'assist/reveal_folder', managers),
-                (SelectFolderParams, 'assist/select_folder', managers),
-                (ConfirmDialogueParams, 'assist/confirm', managers),
-            ],
-        )
+        [
+            _prepare_response(WriteConfigParams, 'config/write', managers),
+            _prepare_response(ReadConfigParams, 'config/read', managers),
+            _prepare_response(DeleteConfigParams, 'config/delete', managers),
+            _prepare_response(ListProfilesParams, 'config/list', managers),
+            _prepare_response(ListSourcesParams, 'sources/list', managers),
+            _prepare_response(ListInstalledParams, 'list', managers),
+            _prepare_response(SearchParams, 'search', managers),
+            _prepare_response(ResolveParams, 'resolve', managers),
+            _prepare_response(InstallParams, 'install', managers),
+            _prepare_response(UpdateParams, 'update', managers),
+            _prepare_response(RemoveParams, 'remove', managers),
+            _prepare_response(PinParams, 'pin', managers),
+            _prepare_response(GetChangelogParams, 'get_changelog', managers),
+            _prepare_response(ReconcileParams, 'reconcile', managers),
+            _prepare_response(GetDownloadProgressParams, 'get_download_progress', managers),
+            _prepare_response(GetVersionParams, 'meta/get_version', managers),
+            _prepare_response(OpenUrlParams, 'assist/open_url', managers),
+            _prepare_response(RevealFolderParams, 'assist/reveal_folder', managers),
+            _prepare_response(SelectFolderParams, 'assist/select_folder', managers),
+            _prepare_response(ConfirmDialogueParams, 'assist/confirm', managers),
+        ]
     )
     app.add_routes([aiohttp.web.get('/api', rpc_server.handle_http_request)])
 
