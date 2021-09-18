@@ -1,3 +1,6 @@
+# pyright: reportGeneralTypeIssues=warning
+# pyright: reportUnknownArgumentType=warning
+
 from __future__ import annotations
 
 import asyncio
@@ -62,23 +65,37 @@ class InstawowApp(toga.App):
                 f'document.dispatchEvent(new CustomEvent("togaSimulateKeypress", {event_args}));'
             )
 
-        view_group = toga.Group('View')
         self.commands.add(
             toga.Command(
-                partial(dispatch_js_keyboard_event, action='focusSearchBox'),
-                label='Search',
-                shortcut=toga.Key.MOD_1 + toga.Key.F,
-                group=view_group,
+                partial(dispatch_js_keyboard_event, action='toggleSearchFilter'),
+                label='Toggle Search Filter',
+                shortcut=toga.Key.MOD_1 + toga.Key.G,
+                group=toga.Group.EDIT,
                 section=20,
                 order=10,
             ),
             toga.Command(
-                partial(dispatch_js_keyboard_event, action='toggleFiltering'),
-                label='Toggle filtering',
-                shortcut=toga.Key.MOD_1 + toga.Key.G,
-                group=view_group,
+                partial(dispatch_js_keyboard_event, action='activateViewInstalled'),
+                label='Installed',
+                shortcut=toga.Key.MOD_1 + toga.Key.L,
+                group=toga.Group.WINDOW,
+                section=20,
+                order=10,
+            ),
+            toga.Command(
+                partial(dispatch_js_keyboard_event, action='activateViewReconcile'),
+                label='Unreconciled',
+                group=toga.Group.WINDOW,
                 section=20,
                 order=20,
+            ),
+            toga.Command(
+                partial(dispatch_js_keyboard_event, action='activateViewSearch'),
+                label='Search',
+                shortcut=toga.Key.MOD_1 + toga.Key.F,
+                group=toga.Group.WINDOW,
+                section=20,
+                order=30,
             ),
         )
 

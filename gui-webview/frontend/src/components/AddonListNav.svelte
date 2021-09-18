@@ -40,10 +40,23 @@
   // };
 
   const handleKeypress = (e: CustomEvent) => {
-    if (e.detail.action === "focusSearchBox") {
+    if (e.detail.action === "activateViewInstalled") {
+      activeView = View.Installed;
+    } else if (e.detail.action === "activateViewReconcile") {
+      activeView = View.Reconcile;
+    } else if (e.detail.action === "activateViewSearch") {
+      activeView = View.Search;
       searchBox.focus();
-    } else if (e.detail.action === "toggleFiltering") {
+    } else if (e.detail.action === "toggleSearchFilter") {
       search__filterInstalled = !search__filterInstalled;
+      if (search__filterInstalled) {
+        searchBox.focus();
+        if (search__terms) {
+          dispatch("requestSearch");
+        }
+      } else {
+        activeView = View.Installed;
+      }
     }
   };
 
