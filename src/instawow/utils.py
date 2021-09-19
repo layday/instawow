@@ -147,8 +147,7 @@ def run_in_thread(fn: Callable[..., object]) -> Callable[..., Awaitable[object]]
 def copy_resources(*packages: str) -> Iterator[Path]:
     """Copy package resources to a temporary directory on disk.
 
-    Alembic cannot construct a migration environment from memory.
-    This is a genericised bodge to make migrations work in a frozen instawow.
+    PyOxidizer cannot read Python files from memory.
     """
     from importlib.resources import contents, is_resource, read_binary
     from tempfile import TemporaryDirectory
@@ -216,8 +215,9 @@ def make_progress_bar(**kwargs: object) -> _deferred_types.prompt_toolkit.shortc
             def format_pct(value: int):
                 return f'{value / 2 ** 20:.1f}'
 
+            items_completed: int = progress.items_completed
             return HTML(self.template).format(
-                current=format_pct(progress.items_completed),
+                current=format_pct(items_completed),
                 total=format_pct(progress.total) if progress.total else '?',
             )
 
@@ -344,3 +344,14 @@ def file_uri_to_path(file_uri: str) -> str:
     if PurePath(unprefixed_path[1:]).drive:
         unprefixed_path = unprefixed_path[1:]
     return unprefixed_path
+
+
+def normalise_names(replace_delim: str):
+    import string
+
+    trans_table = str.maketrans(dict.fromkeys(string.punctuation, ' '))
+
+    def normalise(value: str):
+        return replace_delim.join(value.casefold().translate(trans_table).split())
+
+    return normalise

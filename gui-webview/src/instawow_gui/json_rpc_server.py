@@ -9,33 +9,37 @@ import importlib.resources
 import os
 from types import SimpleNamespace
 import typing
-from typing import Any, TypeVar, overload
+from typing import Any, TypeVar
 
 import aiohttp
 import aiohttp.web
-from aiohttp_rpc import JsonRpcMethod, middlewares as rpc_middlewares
-from aiohttp_rpc.errors import InvalidParams as InvalidParamsError, ServerError
+from aiohttp_rpc import JsonRpcMethod
+from aiohttp_rpc import middlewares as rpc_middlewares
+from aiohttp_rpc.errors import InvalidParams as InvalidParamsError
+from aiohttp_rpc.errors import ServerError
 from aiohttp_rpc.server import WsJsonRpcServer
 import click
 from loguru import logger
 from pydantic import BaseModel, ValidationError
+import sqlalchemy as sa
 from typing_extensions import Concatenate, Literal, ParamSpec, TypeAlias, TypedDict
 from yarl import URL
 
-from instawow import __version__, matchers, results as R
+from instawow import __version__, db, matchers, models
+from instawow import results as R
+from instawow.common import Strategy
 from instawow.config import Config
-from instawow.manager import Manager, TraceRequestCtx, init_web_client, prepare_database
-from instawow.models import Pkg, is_pkg
-from instawow.resolvers import CatalogueEntry, Defn, PkgModel, Strategy
-from instawow.utils import is_outdated, run_in_thread as t, uniq
+from instawow.manager import Manager, TraceRequestCtx, init_web_client
+from instawow.resolvers import CatalogueEntry, Defn
+from instawow.utils import is_outdated
+from instawow.utils import run_in_thread as t
+from instawow.utils import uniq
 
 from . import InstawowApp, frontend, templates
 
 _T = TypeVar('_T')
 _P = ParamSpec('_P')
-_ManagerWorkQueueItem: TypeAlias = (
-    'tuple[asyncio.Future[Any], str, Callable[..., Awaitable[Any]] | None]'
-)
+_ManagerWorkQueueItem: TypeAlias = 'tuple[asyncio.Future[Any], str, Callable[..., Awaitable[Any]]]'
 
 
 LOCALHOST = '127.0.0.1'
@@ -122,7 +126,7 @@ class Source(TypedDict):
 
 class ListSourcesParams(_ProfileParamMixin, BaseParams):
     async def respond(self, managers: _ManagerWorkQueue) -> list[Source]:
-        manager = await managers.run(self.profile)
+        manager = await managers.run(self.profile, _get_manager)
         return [
             {
                 'source': r.source,
@@ -136,17 +140,19 @@ class ListSourcesParams(_ProfileParamMixin, BaseParams):
 
 
 class ListInstalledParams(_ProfileParamMixin, BaseParams):
-    async def respond(self, managers: _ManagerWorkQueue) -> list[PkgModel]:
-        from sqlalchemy import func
-
-        manager = await managers.run(self.profile)
-        installed_pkgs = manager.database.query(Pkg).order_by(func.lower(Pkg.name)).all()
-        return [PkgModel.from_orm(p) for p in installed_pkgs]
+    async def respond(self, managers: _ManagerWorkQueue) -> list[models.Pkg]:
+        manager = await managers.run(self.profile, _get_manager)
+        installed_pkgs = (
+            manager.database.execute(sa.select(db.pkg).order_by(sa.func.lower(db.pkg.c.name)))
+            .mappings()
+            .all()
+        )
+        return [models.Pkg.from_row_mapping(manager.database, p) for p in installed_pkgs]
 
 
 class SuccessResult(TypedDict):
     status: Literal['success']
-    addon: PkgModel
+    addon: models.Pkg
 
 
 class ErrorResult(TypedDict):
@@ -172,26 +178,22 @@ class SearchParams(_ProfileParamMixin, BaseParams):
 
 
 class ResolveParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
-    async def respond(self, managers: _ManagerWorkQueue) -> list[SuccessResult | ErrorResult]:
-        def extract_source(manager: Manager, defns: list[Defn]):
-            for defn in defns:
-                if defn.source == '*':
-                    pair = manager.pair_uri(defn.alias)
-                    if pair:
-                        source, alias = pair
-                        defn = defn.with_(source=source, alias=alias)
-                yield defn
+    async def _resolve(self, manager: Manager) -> dict[Defn, Any]:
+        def extract_source(defn: Defn):
+            if defn.source == '*':
+                pair = manager.pair_uri(defn.alias)
+                if pair:
+                    source, alias = pair
+                    defn = defn.with_(source=source, alias=alias)
+            return defn
 
-        results = await managers.run(
-            self.profile,
-            partial(
-                Manager.resolve,
-                defns=list(extract_source(await managers.run(self.profile), self.defns)),
-            ),
-        )
+        return await manager.resolve(list(map(extract_source, self.defns)))
+
+    async def respond(self, managers: _ManagerWorkQueue) -> list[SuccessResult | ErrorResult]:
+        results = await managers.run(self.profile, self._resolve)
         return [
-            {'status': 'success', 'addon': PkgModel.from_orm(r)}
-            if is_pkg(r)
+            {'status': 'success', 'addon': r}
+            if models.is_pkg(r)
             else {'status': r.status, 'message': r.message}
             for r in results.values()
         ]
@@ -205,7 +207,7 @@ class InstallParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
             self.profile, partial(Manager.install, defns=self.defns, replace=self.replace)
         )
         return [
-            {'status': r.status, 'addon': PkgModel.from_orm(r.pkg)}
+            {'status': r.status, 'addon': r.pkg}
             if isinstance(r, R.PkgInstalled)
             else {'status': r.status, 'message': r.message}
             for r in results.values()
@@ -215,10 +217,10 @@ class InstallParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
 class UpdateParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
     async def respond(self, managers: _ManagerWorkQueue) -> list[SuccessResult | ErrorResult]:
         results = await managers.run(
-            self.profile, partial(Manager.update, defns=self.defns, retain_strategy=True)
+            self.profile, partial(Manager.update, defns=self.defns, retain_defn_strategy=True)
         )
         return [
-            {'status': r.status, 'addon': PkgModel.from_orm(r.new_pkg)}
+            {'status': r.status, 'addon': r.new_pkg}
             if isinstance(r, R.PkgUpdated)
             else {'status': r.status, 'message': r.message}
             for r in results.values()
@@ -233,7 +235,7 @@ class RemoveParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
             self.profile, partial(Manager.remove, defns=self.defns, keep_folders=self.keep_folders)
         )
         return [
-            {'status': r.status, 'addon': PkgModel.from_orm(r.old_pkg)}
+            {'status': r.status, 'addon': r.old_pkg}
             if isinstance(r, R.PkgRemoved)
             else {'status': r.status, 'message': r.message}
             for r in results.values()
@@ -244,7 +246,7 @@ class PinParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
     async def respond(self, managers: _ManagerWorkQueue) -> list[SuccessResult | ErrorResult]:
         results = await managers.run(self.profile, partial(Manager.pin, defns=self.defns))
         return [
-            {'status': r.status, 'addon': PkgModel.from_orm(r.pkg)}
+            {'status': r.status, 'addon': r.pkg}
             if isinstance(r, R.PkgInstalled)
             else {'status': r.status, 'message': r.message}
             for r in results.values()
@@ -267,7 +269,7 @@ class ReconcileResult(TypedDict):
 
 class ReconcileResult_AddonMatch(TypedDict):
     folders: list[ReconcileResult_AddonFolder]
-    matches: list[PkgModel]
+    matches: list[models.Pkg]
 
 
 class ReconcileResult_AddonFolder(TypedDict):
@@ -291,9 +293,7 @@ class ReconcileParams(_ProfileParamMixin, BaseParams):
             'reconciled': [
                 {
                     'folders': [{'name': f.name, 'version': f.version} for f in a],
-                    'matches': [
-                        PkgModel.from_orm(r) for i in d for r in (resolve_results[i],) if is_pkg(r)
-                    ],
+                    'matches': [r for i in d for r in (resolve_results[i],) if models.is_pkg(r)],
                 }
                 for a, d in match_groups
             ],
@@ -388,7 +388,7 @@ class ConfirmDialogueParams(BaseParams):
 
 
 def _init_json_rpc_web_client(
-    progress_reporters: set[tuple[Manager, Pkg, Callable[[], float]]],
+    progress_reporters: set[tuple[Manager, models.Pkg, Callable[[], float]]],
 ) -> aiohttp.ClientSession:
     async def do_on_request_end(
         client_session: aiohttp.ClientSession,
@@ -418,11 +418,16 @@ def _init_json_rpc_web_client(
     return init_web_client(trace_configs=[trace_config])
 
 
+async def _get_manager(manager: Manager):
+    return manager
+
+
 class _ManagerWorkQueue:
     def __init__(self) -> None:
+        self._loop = asyncio.get_running_loop()
         self._managers: dict[str, Manager] = {}
         self._queue: asyncio.Queue[_ManagerWorkQueueItem] = asyncio.Queue()
-        self._progress_reporters: set[tuple[Manager, Pkg, Callable[[], float]]] = set()
+        self._progress_reporters: set[tuple[Manager, models.Pkg, Callable[[], float]]] = set()
         self._web_client = _init_json_rpc_web_client(self._progress_reporters)
         self._locks: defaultdict[str, asyncio.Lock] = defaultdict(asyncio.Lock)
 
@@ -432,63 +437,39 @@ class _ManagerWorkQueue:
     async def listen(self) -> None:
         Manager.contextualise(web_client=self._web_client, locks=self._locks)
 
+        async def schedule(
+            future: asyncio.Future[Any], profile: str, coro_fn: Callable[..., Awaitable[Any]]
+        ):
+            try:
+                async with self._locks[f"load profile '{profile}'"]:
+                    try:
+                        manager = self._managers[profile]
+                    except KeyError:
+                        with _reraise_validation_error(_ConfigError):
+                            config = await t(Config.read)(profile)
+
+                        manager = self._managers[profile] = Manager.from_config(config)
+
+                result = await coro_fn(manager)
+            except BaseException as exc:
+                future.set_exception(exc)
+            else:
+                future.set_result(result)
+
         while True:
             item = await self._queue.get()
-
-            async def schedule(item: _ManagerWorkQueueItem):
-                future, profile, coro_fn = item
-                try:
-                    async with self._locks[f"load profile '{profile}'"]:
-                        try:
-                            manager = self._managers[profile]
-                        except KeyError:
-                            with _reraise_validation_error(_ConfigError):
-                                config = await t(Config.read)(profile)
-
-                            manager = self._managers[profile] = Manager(
-                                config=config,
-                                database=await t(prepare_database)(config),
-                            )
-
-                    if coro_fn is None:
-                        result = manager
-                    else:
-                        result = await coro_fn(manager)
-                except BaseException as exc:
-                    future.set_exception(exc)
-                else:
-                    future.set_result(result)
-
-            asyncio.create_task(schedule(item))
+            asyncio.create_task(schedule(*item))
             self._queue.task_done()
 
-    @overload
     async def run(
-        self,
-        profile: str,
-        coro_fn: None = None,
-    ) -> Manager:
-        ...
-
-    @overload
-    async def run(
-        self,
-        profile: str,
-        coro_fn: Callable[Concatenate[Manager, _P], Awaitable[_T]],
+        self, profile: str, coro_fn: Callable[Concatenate[Manager, _P], Awaitable[_T]]
     ) -> _T:
-        ...
-
-    async def run(
-        self,
-        profile: str,
-        coro_fn: Callable[Concatenate[Manager, _P], Awaitable[_T]] | None = None,
-    ) -> _T | Manager:
-        future: asyncio.Future[Any] = asyncio.Future()
+        future = self._loop.create_future()
         self._queue.put_nowait((future, profile, coro_fn))
         return await asyncio.wait_for(future, None)
 
-    async def get_download_progress(self, profile: str) -> Iterator[tuple[Pkg, float]]:
-        manager = await self.run(profile)
+    async def get_download_progress(self, profile: str) -> Iterator[tuple[models.Pkg, float]]:
+        manager = await self.run(profile, _get_manager)
         return ((p, r()) for m, p, r in self._progress_reporters if m is manager)
 
     def unload(self, profile: str) -> None:
@@ -522,6 +503,8 @@ async def create_app() -> aiohttp.web.Application:
 
         return on_shutdown
 
+    stop_managers = start_managers()
+
     async def get_index(request: aiohttp.web.Request):
         return aiohttp.web.Response(
             content_type='text/html',
@@ -541,16 +524,6 @@ async def create_app() -> aiohttp.web.Application:
             content_type=content_type,
             text=importlib.resources.read_text(frontend, filename),
         )
-
-    app = aiohttp.web.Application()
-    app.add_routes(
-        [
-            aiohttp.web.get('/', get_index),
-            aiohttp.web.get(
-                r'/svelte-bundle{extension:(?:\.css|\.js(?:\.map)?)}', get_static_file
-            ),
-        ]
-    )
 
     rpc_server = WsJsonRpcServer(
         json_serialize=_serialise_response,
@@ -580,9 +553,18 @@ async def create_app() -> aiohttp.web.Application:
             _prepare_response(ConfirmDialogueParams, 'assist/confirm', managers),
         ]
     )
-    app.add_routes([aiohttp.web.get('/api', rpc_server.handle_http_request)])
 
-    app.on_shutdown.append(start_managers())
+    app = aiohttp.web.Application()
+    app.add_routes(
+        [
+            aiohttp.web.get('/', get_index),
+            aiohttp.web.get(
+                r'/svelte-bundle{extension:(?:\.css|\.js(?:\.map)?)}', get_static_file
+            ),
+            aiohttp.web.get('/api', rpc_server.handle_http_request),
+        ]
+    )
+    app.on_shutdown.append(stop_managers)
     app.freeze()
     return app
 

@@ -23,17 +23,19 @@ from typing import TYPE_CHECKING, Any, TypeVar
 import urllib.parse
 
 from loguru import logger
-import sqlalchemy
-import sqlalchemy.exc
-import sqlalchemy.orm
+import sqlalchemy as sa
+import sqlalchemy.engine as sa_engine
+import sqlalchemy.exc as sa_exc
 from typing_extensions import Literal, TypeAlias, TypedDict
 from yarl import URL
 
-from . import _deferred_types, results as R
+from . import _deferred_types, db, models
+from . import results as R
+from .common import Strategy
 from .config import Config
-from .models import Pkg, PkgFolder, PkgVersionLog, is_pkg
 from .plugins import load_plugins
 from .resolvers import (
+    BaseResolver,
     Catalogue,
     CatalogueEntry,
     CurseResolver,
@@ -41,10 +43,8 @@ from .resolvers import (
     GithubResolver,
     InstawowResolver,
     Resolver,
-    Strategy,
     TukuiResolver,
     WowiResolver,
-    normalise_names,
 )
 from .utils import (
     bucketise,
@@ -56,11 +56,10 @@ from .utils import (
     is_not_stale,
     make_zip_member_filter,
     move,
-    run_in_thread as t,
-    shasum,
-    trash,
-    uniq,
+    normalise_names,
 )
+from .utils import run_in_thread as t
+from .utils import shasum, trash, uniq
 
 if TYPE_CHECKING:
     _BaseResolverDict: TypeAlias = 'dict[str, Resolver]'
@@ -84,7 +83,7 @@ class _GenericDownloadTraceRequestCtx(TypedDict):
 class _PkgDownloadTraceRequestCtx(TypedDict):
     report_progress: Literal['pkg_download']
     manager: Manager
-    pkg: Pkg
+    pkg: models.Pkg
 
 
 TraceRequestCtx: TypeAlias = '_GenericDownloadTraceRequestCtx | _PkgDownloadTraceRequestCtx | None'
@@ -110,7 +109,7 @@ async def _open_temp_writer() -> AsyncIterator[tuple[Path, Callable[[bytes], Awa
 
 
 @contextmanager
-def _open_archive(path: PurePath) -> Iterator[tuple[set[str], Callable[[Path], None]]]:
+def _open_pkg_archive(path: PurePath) -> Iterator[tuple[set[str], Callable[[Path], None]]]:
     from zipfile import ZipFile
 
     ZIP_EXCLUDES = {
@@ -129,7 +128,9 @@ def _open_archive(path: PurePath) -> Iterator[tuple[set[str], Callable[[Path], N
         yield (base_dirs, extract)
 
 
-async def _download_archive(manager: Manager, pkg: Pkg, *, chunk_size: int = 4096) -> Path:
+async def _download_pkg_archive(
+    manager: Manager, pkg: models.Pkg, *, chunk_size: int = 4096
+) -> Path:
     url = pkg.download_url
     dest = manager.config.cache_dir / shasum(
         pkg.source, pkg.id, pkg.version, manager.config.game_flavour
@@ -188,39 +189,29 @@ async def cache_response(
     return json.loads(text) if is_json else text
 
 
-def _should_migrate(engine: Any) -> bool:
-    """Check if the database version is the same as ``DB_REVISION``;
-    if not, a migration is required.
+def prepare_database(config: Config) -> sa_engine.Engine:
+    engine = sa.create_engine(
+        f'sqlite:///{config.db_file}',
+        # We wanna be able to operate on SQLite objects from executor threads
+        # for convenience, when performing disk I/O
+        connect_args={'check_same_thread': False},
+        # echo=True,
+    )
 
-    Importing Alembic is prohibitively expensive in the CLI
-    (adds about 250 ms to start-up time on my MBP) so we defer
-    to SQLAlchemy.
-    """
     with engine.begin() as connection:
         try:
             current = connection.execute(
-                sqlalchemy.text(
+                sa.text(
                     'SELECT version_num FROM alembic_version WHERE version_num = :version_num'
                 ),
                 {'version_num': DB_REVISION},
             ).scalar()
-        except sqlalchemy.exc.OperationalError:
-            return True
+        except sa_exc.OperationalError:
+            should_migrate = True
         else:
-            return not current
+            should_migrate = not current
 
-
-def prepare_database(config: Config) -> sqlalchemy.orm.Session:
-    from .models import ModelBase
-
-    engine = sqlalchemy.create_engine(
-        f'sqlite:///{config.db_file}',
-        # We wanna be able to operate on SQLite objects from
-        # executor threads for convenience, when performing disk I/O
-        connect_args={'check_same_thread': False},
-    )
-
-    if _should_migrate(engine):
+    if should_migrate:
         from alembic.command import stamp, upgrade
         from alembic.config import Config as AlembicConfig
 
@@ -230,17 +221,19 @@ def prepare_database(config: Config) -> sqlalchemy.orm.Session:
         ) as tmp_dir:
             alembic_config = AlembicConfig()
             alembic_config.set_main_option(
-                'script_location', str(tmp_dir / __package__ / 'migrations')
+                'script_location',
+                # f'{__package__}:migrations',
+                str(tmp_dir / __package__ / 'migrations'),
             )
             alembic_config.set_main_option('sqlalchemy.url', str(engine.url))
 
-            if sqlalchemy.inspect(engine).get_table_names():
+            if sa.inspect(engine).get_table_names():
                 upgrade(alembic_config, DB_REVISION)
             else:
-                ModelBase.metadata.create_all(engine)
+                db.metadata.create_all(engine)
                 stamp(alembic_config, DB_REVISION)
 
-    return sqlalchemy.orm.sessionmaker(bind=engine)()
+    return engine
 
 
 def init_web_client(**kwargs: Any) -> _deferred_types.aiohttp.ClientSession:
@@ -257,18 +250,18 @@ def init_web_client(**kwargs: Any) -> _deferred_types.aiohttp.ClientSession:
 
 
 @object.__new__
-class _DummyResolver(Resolver):
-    strategies = set()
+class _DummyResolver(BaseResolver):
+    strategies = frozenset()
 
     async def resolve(
         self, defns: Sequence[Defn]
-    ) -> dict[Defn, Pkg | R.ManagerError | R.InternalError]:
+    ) -> dict[Defn, models.Pkg | R.ManagerError | R.InternalError]:
         return dict.fromkeys(defns, R.PkgSourceInvalid())
 
 
 class _ResolverDict(_BaseResolverDict):
     def __missing__(self, key: str) -> Resolver:
-        return _DummyResolver
+        return _DummyResolver  # type: ignore
 
 
 async def capture_manager_exc_async(
@@ -331,16 +324,18 @@ class Manager:
     def __init__(
         self,
         config: Config,
-        database: sqlalchemy.orm.Session,
+        database: sa_engine.Connection,
     ) -> None:
-        self.config = config
-        self.database = database
+        self.config: Config = config
+        self.database: sa_engine.Connection = database
 
         plugin_hook = load_plugins()
         resolver_classes = chain(
             (r for g in plugin_hook.instawow_add_resolvers() for r in g), self.RESOLVERS
         )
-        self.resolvers = _ResolverDict((r.source, r(self)) for r in resolver_classes)
+        self.resolvers: _ResolverDict = _ResolverDict(
+            (r.source, r(self)) for r in resolver_classes
+        )
 
         self._catalogue = None
 
@@ -357,8 +352,8 @@ class Manager:
             _locks.set(locks)
 
     @classmethod
-    def from_config(cls: type[_T], config: Config) -> _T:
-        return cls(config, prepare_database(config))
+    def from_config(cls, config: Config) -> Manager:
+        return cls(config, prepare_database(config).connect())
 
     @property
     def web_client(self) -> _deferred_types.aiohttp.ClientSession:
@@ -381,41 +376,62 @@ class Manager:
         aliases_from_url = (
             (r.source, a)
             for r in self.resolvers.values()
-            for a in (r.get_alias_from_url(value),)
+            for a in (r.get_alias_from_url(URL(value)),)
             if a
         )
         return next(chain(aliases_from_url, from_urn(), (None,)))
 
-    def get_pkg(self, defn: Defn, partial_match: bool = False) -> Pkg | None:
-        "Retrieve an installed package from a definition."
+    def check_pkg_exists(self, defn: Defn) -> bool:
         return (
-            (
-                self.database.query(Pkg)
+            self.database.execute(
+                sa.select(sa.func.count())
+                .select_from(db.pkg)
                 .filter(
-                    Pkg.source == defn.source,
-                    (Pkg.id == defn.alias) | (Pkg.slug == defn.alias) | (Pkg.id == defn.id),
+                    db.pkg.c.source == defn.source,
+                    (db.pkg.c.id == defn.alias)
+                    | (db.pkg.c.id == defn.id)
+                    | (db.pkg.c.slug == defn.alias),
                 )
-                .first()
-            )
-            or partial_match
-            and (
-                self.database.query(Pkg)
-                .filter(Pkg.slug.contains(defn.alias))
-                .order_by(Pkg.name)
-                .first()
-            )
-            or None
+            ).scalar()
+            != 0
         )
 
-    def install_pkg(self, pkg: Pkg, archive: Path, replace: bool) -> R.PkgInstalled:
-        "Install a package."
-        with _open_archive(archive) as (top_level_folders, extract):
-            installed_conflicts: list[Pkg] = (
-                self.database.query(Pkg)
-                .join(Pkg.folders)
-                .filter(PkgFolder.name.in_(top_level_folders))
-                .all()
+    def get_pkg(self, defn: Defn, partial_match: bool = False) -> models.Pkg | None:
+        "Retrieve an installed package from a definition."
+        maybe_row_mapping = (
+            self.database.execute(
+                sa.select(db.pkg).filter(
+                    db.pkg.c.source == defn.source,
+                    (db.pkg.c.id == defn.alias)
+                    | (db.pkg.c.id == defn.id)
+                    | (db.pkg.c.slug == defn.alias),
+                )
             )
+            .mappings()
+            .one_or_none()
+        )
+        if maybe_row_mapping is None and partial_match:
+            maybe_row_mapping = (
+                self.database.execute(
+                    sa.select(db.pkg)
+                    .filter(db.pkg.c.slug.contains(defn.alias))
+                    .order_by(db.pkg.c.name)
+                )
+                .mappings()
+                .first()
+            )
+        if maybe_row_mapping is not None:
+            return models.Pkg.from_row_mapping(self.database, maybe_row_mapping)
+
+    def install_pkg(self, pkg: models.Pkg, archive: Path, replace: bool) -> R.PkgInstalled:
+        "Install a package."
+        with _open_pkg_archive(archive) as (top_level_folders, extract):
+            installed_conflicts = self.database.execute(
+                sa.select(db.pkg)
+                .distinct()
+                .join(db.pkg_folder)
+                .filter(db.pkg_folder.c.name.in_(top_level_folders))
+            ).all()
             if installed_conflicts:
                 raise R.PkgConflictsWithInstalled(installed_conflicts)
 
@@ -433,53 +449,50 @@ class Manager:
                     raise R.PkgConflictsWithUnreconciled(unreconciled_conflicts)
 
             extract(self.config.addon_dir)
-            pkg.folders = [PkgFolder(name=f) for f in sorted(top_level_folders)]
 
-        self.database.add(pkg)
-        self.database.merge(
-            PkgVersionLog(version=pkg.version, pkg_source=pkg.source, pkg_id=pkg.id)
+        pkg = models.Pkg.parse_obj(
+            {**pkg.__dict__, 'folders': [{'name': f} for f in sorted(top_level_folders)]}
         )
-        self.database.commit()
-
+        pkg.insert(self.database)
         return R.PkgInstalled(pkg)
 
-    def update_pkg(self, old_pkg: Pkg, new_pkg: Pkg, archive: Path) -> R.PkgUpdated:
+    def update_pkg(self, pkg1: models.Pkg, pkg2: models.Pkg, archive: Path) -> R.PkgUpdated:
         "Update a package."
-        with _open_archive(archive) as (top_level_folders, extract):
-            installed_conflicts: list[Pkg] = (
-                self.database.query(Pkg)
-                .join(Pkg.folders)
-                .filter(PkgFolder.pkg_source != new_pkg.source, PkgFolder.pkg_id != new_pkg.id)
-                .filter(PkgFolder.name.in_(top_level_folders))
-                .all()
-            )
+        with _open_pkg_archive(archive) as (top_level_folders, extract):
+            installed_conflicts = self.database.execute(
+                sa.select(db.pkg)
+                .distinct()
+                .join(db.pkg_folder)
+                .filter(
+                    db.pkg_folder.c.pkg_source != pkg2.source,
+                    db.pkg_folder.c.pkg_id != pkg2.id,
+                    db.pkg_folder.c.name.in_(top_level_folders),
+                )
+            ).all()
             if installed_conflicts:
                 raise R.PkgConflictsWithInstalled(installed_conflicts)
 
-            unreconciled_conflicts = top_level_folders - {f.name for f in old_pkg.folders} & {
+            unreconciled_conflicts = top_level_folders - {f.name for f in pkg1.folders} & {
                 f.name for f in self.config.addon_dir.iterdir()
             }
             if unreconciled_conflicts:
                 raise R.PkgConflictsWithUnreconciled(unreconciled_conflicts)
 
             trash(
-                [self.config.addon_dir / f.name for f in old_pkg.folders],
+                [self.config.addon_dir / f.name for f in pkg1.folders],
                 dest=self.config.temp_dir,
                 missing_ok=True,
             )
             extract(self.config.addon_dir)
-            new_pkg.folders = [PkgFolder(name=f) for f in sorted(top_level_folders)]
 
-        self.database.delete(old_pkg)
-        self.database.add(new_pkg)
-        self.database.merge(
-            PkgVersionLog(version=new_pkg.version, pkg_source=new_pkg.source, pkg_id=new_pkg.id)
+        pkg2 = models.Pkg.parse_obj(
+            {**pkg2.__dict__, 'folders': [{'name': f} for f in sorted(top_level_folders)]}
         )
-        self.database.commit()
+        pkg1.delete(self.database)
+        pkg2.insert(self.database)
+        return R.PkgUpdated(pkg1, pkg2)
 
-        return R.PkgUpdated(old_pkg, new_pkg)
-
-    def remove_pkg(self, pkg: Pkg, keep_folders: bool) -> R.PkgRemoved:
+    def remove_pkg(self, pkg: models.Pkg, keep_folders: bool) -> R.PkgRemoved:
         "Remove a package."
         if not keep_folders:
             trash(
@@ -487,9 +500,8 @@ class Manager:
                 dest=self.config.temp_dir,
                 missing_ok=True,
             )
-        self.database.delete(pkg)
-        self.database.commit()
 
+        pkg.delete(self.database)
         return R.PkgRemoved(pkg)
 
     @_with_lock('load catalogue', False)
@@ -513,7 +525,7 @@ class Manager:
         complexity for something that I would never expect to
         encounter in the wild.
         """
-        pkgs = [r for r in results if is_pkg(r)]
+        pkgs = [r for r in results if models.is_pkg(r)]
         dep_defns = uniq(
             filterfalse(
                 {(p.source, p.id) for p in pkgs}.__contains__,
@@ -524,7 +536,9 @@ class Manager:
             return {}
 
         deps = await self.resolve(list(starmap(Defn, dep_defns)))
-        pretty_deps = {d.with_(alias=r.slug) if is_pkg(r) else d: r for d, r in deps.items()}
+        pretty_deps = {
+            d.with_(alias=r.slug) if models.is_pkg(r) else d: r for d, r in deps.items()
+        }
         return pretty_deps
 
     async def resolve(self, defns: Sequence[Defn], with_deps: bool = False) -> dict[Defn, Any]:
@@ -610,40 +624,43 @@ class Manager:
         self, defns: Sequence[Defn], replace: bool
     ) -> dict[Defn, R.PkgInstalled | R.ManagerError | R.InternalError]:
         "Install packages from a definition list."
-        # We'll weed out installed dependencies from results after resolving.
-        # Doing it this way isn't particularly efficient but avoids having to
-        # deal with local state in resolvers.
+        # We'll weed out installed deps from the results after resolving -
+        # doing it this way isn't particularly efficient but avoids having to
+        # deal with local state in `resolve()`
         resolve_results = await self.resolve(
-            list(compress(defns, (not self.get_pkg(d) for d in defns))),
+            list(compress(defns, (not self.check_pkg_exists(d) for d in defns))),
             with_deps=True,
         )
         resolve_results = dict(
-            compress(resolve_results.items(), (not self.get_pkg(d) for d in resolve_results))
+            compress(
+                resolve_results.items(), (not self.check_pkg_exists(d) for d in resolve_results)
+            )
         )
-        installables = {d: r for d, r in resolve_results.items() if is_pkg(r)}
+        installables = {d: r for d, r in resolve_results.items() if models.is_pkg(r)}
         archives = await gather(
-            (_download_archive(self, r) for r in installables.values()), capture_manager_exc_async
+            (_download_pkg_archive(self, r) for r in installables.values()),
+            capture_manager_exc_async,
         )
         results = chain_dict(
             defns,
             R.PkgAlreadyInstalled(),
             resolve_results.items(),
-            ((d, a) for d, a in zip(installables, archives) if not isinstance(a, PurePath)),
             [
                 (d, await capture_manager_exc_async(t(self.install_pkg)(p, a, replace)))
-                for (d, p), a in zip(installables.items(), archives)
                 if isinstance(a, PurePath)
+                else (d, a)
+                for (d, p), a in zip(installables.items(), archives)
             ],
         )
         return results
 
     @_with_lock('change state')
     async def update(
-        self, defns: Sequence[Defn], retain_strategy: bool
+        self, defns: Sequence[Defn], retain_defn_strategy: bool
     ) -> dict[Defn, R.PkgUpdated | R.ManagerError | R.InternalError]:
         """Update installed packages from a definition list.
 
-        A ``retain_strategy`` value of false will instruct ``update``
+        A ``retain_defn_strategy`` value of false will instruct ``update``
         to extract the strategy from the installed package; otherwise
         the ``Defn`` strategy will be used.
         """
@@ -653,14 +670,14 @@ class Manager:
             # corresponding installed package.  Using the ID has the benefit
             # of resolving installed-but-renamed packages - the slug is
             # transient but the ID isn't
-            d.with_(id=p.id) if retain_strategy else Defn.from_pkg(p): d
+            d.with_(id=p.id) if retain_defn_strategy else Defn.from_pkg(p): d
             for d, p in defns_to_pkgs.items()
         }
         # Discard the reconstructed ``Defn``s
         resolve_results = {
             resolve_defns[d]: r for d, r in (await self.resolve(list(resolve_defns))).items()
         }
-        installables = {d: r for d, r in resolve_results.items() if is_pkg(r)}
+        installables = {d: r for d, r in resolve_results.items() if models.is_pkg(r)}
         updatables = {
             d: (o, n)
             for d, n in installables.items()
@@ -668,7 +685,8 @@ class Manager:
             if n.version != o.version
         }
         archives = await gather(
-            (_download_archive(self, n) for _, n in updatables.values()), capture_manager_exc_async
+            (_download_pkg_archive(self, n) for _, n in updatables.values()),
+            capture_manager_exc_async,
         )
         results = chain_dict(
             defns,
@@ -678,11 +696,11 @@ class Manager:
                 (d, R.PkgUpToDate(is_pinned=p.options.strategy == Strategy.version))
                 for d, p in installables.items()
             ),
-            ((d, a) for d, a in zip(updatables, archives) if not isinstance(a, PurePath)),
             [
                 (d, await capture_manager_exc_async(t(self.update_pkg)(o, n, a)))
-                for (d, (o, n)), a in zip(updatables.items(), archives)
                 if isinstance(a, PurePath)
+                else (d, a)
+                for (d, (o, n)), a in zip(updatables.items(), archives)
             ],
         )
         return results
@@ -728,14 +746,26 @@ class Manager:
         strategies = frozenset({Strategy.default, Strategy.version})
 
         def pin(
-            defn: Defn, pkg: Pkg | None
+            defn: Defn, pkg: models.Pkg | None
         ) -> R.PkgNotInstalled | R.PkgInstalled | R.PkgStrategyUnsupported:
             if not pkg:
                 return R.PkgNotInstalled()
+
             elif {defn.strategy} <= strategies <= self.resolvers[pkg.source].strategies:
-                pkg.options.strategy = defn.strategy
-                self.database.commit()
-                return R.PkgInstalled(pkg)
+                self.database.execute(
+                    sa.update(db.pkg_options)
+                    .filter_by(pkg_source=pkg.source, pkg_id=pkg.id)
+                    .values(strategy=defn.strategy)
+                )
+                row_mapping = (
+                    self.database.execute(
+                        sa.select(db.pkg).filter_by(source=pkg.source, id=pkg.id)
+                    )
+                    .mappings()
+                    .one()
+                )
+                return R.PkgInstalled(models.Pkg.from_row_mapping(self.database, row_mapping))
+
             else:
                 return R.PkgStrategyUnsupported(Strategy.version)
 

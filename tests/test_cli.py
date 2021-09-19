@@ -12,7 +12,7 @@ from instawow import __version__
 from instawow.cli import main
 from instawow.config import Flavour
 from instawow.manager import Manager
-from instawow.resolvers import MultiPkgModel
+from instawow.models import PkgList
 
 
 @pytest.fixture
@@ -519,7 +519,7 @@ def test_can_list_with_substr_match(molinari_and_run):
 def test_json_export(iw_config, molinari_and_run):
     export_json = iw_config.config_dir.parent / 'export.json'
     output = molinari_and_run('list -f json').output
-    assert MultiPkgModel.parse_raw(output).__root__[0].name == 'Molinari'
+    assert PkgList.parse_raw(output).__root__[0].name == 'Molinari'
 
 
 def test_show_version(run):

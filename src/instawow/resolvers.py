@@ -10,22 +10,14 @@ from typing import Any, ClassVar
 
 from loguru import logger
 from pydantic import BaseModel
-from pydantic.datetime_parse import parse_datetime
-from typing_extensions import Literal, TypedDict
+from typing_extensions import Literal, Protocol, TypedDict
 from yarl import URL
 
-from . import _deferred_types, manager, models, results as R
+from . import _deferred_types, manager, models
+from . import results as R
+from .common import Strategy
 from .config import Flavour
-from .utils import bucketise, cached_property, gather, uniq
-
-
-class Strategy(str, Enum):
-    default = 'default'
-    latest = 'latest'
-    curse_latest_beta = 'curse_latest_beta'
-    curse_latest_alpha = 'curse_latest_alpha'
-    any_flavour = 'any_flavour'
-    version = 'version'
+from .utils import bucketise, cached_property, gather, normalise_names, uniq
 
 
 class ChangelogFormat(str, Enum):
@@ -45,8 +37,11 @@ class Defn(
     strategy: Strategy = Strategy.default
     version: typing.Optional[str] = None
 
+    def __init__(self, source: str, alias: str, **kwargs: Any) -> None:
+        super().__init__(source=source, alias=alias, **kwargs)
+
     @classmethod
-    def from_pkg(cls, pkg: models.Pkg | PkgModel) -> Defn:
+    def from_pkg(cls, pkg: models.Pkg) -> Defn:
         return cls(
             source=pkg.source,
             alias=pkg.slug,
@@ -55,34 +50,17 @@ class Defn(
             version=pkg.version,
         )
 
-    def __init__(self, source: str, alias: str, **kwargs: object) -> None:
-        super().__init__(source=source, alias=alias, **kwargs)
-
     def with_(self, **kwargs: Any) -> Defn:
         return self.__class__(**{**self.__dict__, **kwargs})
-
-    def with_strategy(self, strategy: Strategy) -> Defn:
-        return self.with_(strategy=strategy)
 
     def with_version(self, version: str) -> Defn:
         return self.with_(strategy=Strategy.version, version=version)
 
-    def to_uri(self) -> str:
+    def to_urn(self) -> str:
         return f'{self.source}:{self.alias}'
 
 
-def normalise_names(replace_delim: str):
-    import string
-
-    trans_table = str.maketrans(dict.fromkeys(string.punctuation, ' '))
-
-    def normalise(value: str):
-        return replace_delim.join(value.casefold().translate(trans_table).split())
-
-    return normalise
-
-
-_slugify = normalise_names('-')
+slugify = normalise_names('-')
 
 
 def _format_data_changelog(changelog: str = '') -> str:
@@ -91,26 +69,18 @@ def _format_data_changelog(changelog: str = '') -> str:
     return f'data:,{urllib.parse.quote(changelog)}'
 
 
-class _CatalogueBaseEntry(TypedDict):
+class CatatalogueBaseEntry(BaseModel):
     source: str
     id: str
-    slug: str
-    name: str
-    game_flavours: Set[Flavour]
-    folders: Sequence[Sequence[str]]
-    download_count: int
-    last_updated: datetime | int | str
-
-
-class CatalogueEntry(BaseModel):
-    source: str
-    id: str
-    slug: str
+    slug: str = ''
     name: str
     game_flavours: typing.Set[Flavour]
-    folders: typing.List[typing.Set[str]]
+    folders: typing.List[typing.Set[str]] = []
     download_count: int
     last_updated: datetime
+
+
+class CatalogueEntry(CatatalogueBaseEntry):
     derived_download_score: float
 
 
@@ -127,14 +97,13 @@ class Catalogue(
             items = [a for r in manager.Manager.RESOLVERS async for a in r.catalogue(web_client)]
 
         most_downloads_per_source = {
-            s: max(e['download_count'] for e in i)
-            for s, i in bucketise(items, key=lambda v: v['source']).items()
+            s: max(e.download_count for e in i)
+            for s, i in bucketise(items, key=lambda v: v.source).items()
         }
         entries = (
             CatalogueEntry(
-                **i,
-                derived_download_score=i['download_count']
-                / most_downloads_per_source[i['source']],
+                **i.__dict__,
+                derived_download_score=i.download_count / most_downloads_per_source[i.source],
             )
             for i in items
         )
@@ -148,90 +117,70 @@ class Catalogue(
         return {a.slug: a.id for a in self.__root__ if a.source == 'curse'}
 
 
-class _PkgModel_PkgFolder(
-    BaseModel,
-    orm_mode=True,
-):
-    name: str
-
-
-class _PkgModel_PkgOptions(
-    BaseModel,
-    orm_mode=True,
-):
-    strategy: Strategy
-
-
-class _PkgModel_PkgDep(
-    BaseModel,
-    orm_mode=True,
-):
-    id: str
-
-
-class _PkgModel_PkgVersion(
-    BaseModel,
-    orm_mode=True,
-):
-    version: str
-    install_time: datetime
-
-
-class PkgModel(
-    BaseModel,
-    orm_mode=True,
-):
-    source: str
-    id: str
-    slug: str
-    name: str
-    description: str
-    url: str
-    download_url: str
-    date_published: datetime
-    version: str
-    changelog_url: str
-    folders: typing.List[_PkgModel_PkgFolder]
-    options: _PkgModel_PkgOptions
-    deps: typing.List[_PkgModel_PkgDep]
-    logged_versions: typing.List[_PkgModel_PkgVersion]
-
-
-class MultiPkgModel(BaseModel):
-    __root__: typing.List[PkgModel]
-
-
-class Resolver:
+class Resolver(Protocol):
     source: ClassVar[str]
     name: ClassVar[str]
     strategies: ClassVar[Set[Strategy]]
     changelog_format: ClassVar[ChangelogFormat]
 
     def __init__(self, manager: manager.Manager) -> None:
-        self.manager = manager
+        ...
 
     @staticmethod
-    def get_alias_from_url(value: str) -> str | None:
-        "Attempt to extract a definition name from a given URL."
+    def get_alias_from_url(url: URL) -> str | None:
+        "Attempt to extract a ``Defn`` alias from a given URL."
 
     async def resolve(
         self, defns: Sequence[Defn]
     ) -> dict[Defn, models.Pkg | R.ManagerError | R.InternalError]:
-        "Resolve add-on definitions into packages."
+        "Resolve multiple ``Defn``s into packages."
+
+    async def resolve_one(self, defn: Defn, metadata: Any) -> models.Pkg:
+        "Resolve a ``Defn`` into a package."
+
+    @classmethod
+    async def catalogue(
+        cls, web_client: _deferred_types.aiohttp.ClientSession
+    ) -> AsyncIterator[CatatalogueBaseEntry]:
+        "Yield add-ons from source for cataloguing."
+        return
+        yield
+
+
+class BaseResolver(Resolver):
+    def __init__(self, manager: manager.Manager) -> None:
+        self.manager = manager
+
+    def __init_subclass__(cls) -> None:
+        orig_resolve_one = cls.resolve_one
+
+        async def resolve_one(self: BaseResolver, defn: Defn, metadata: Any) -> models.Pkg:
+            if defn.strategy not in self.strategies:
+                raise R.PkgStrategyUnsupported(defn.strategy)
+
+            return await orig_resolve_one(self, defn, metadata)
+
+        cls.resolve_one = resolve_one  # type: ignore
+
+    @staticmethod
+    def get_alias_from_url(url: URL) -> str | None:
+        return None
+
+    async def resolve(
+        self, defns: Sequence[Defn]
+    ) -> dict[Defn, models.Pkg | R.ManagerError | R.InternalError]:
         results = await gather(
             (self.resolve_one(d, None) for d in defns), manager.capture_manager_exc_async
         )
         return dict(zip(defns, results))
 
     async def resolve_one(self, defn: Defn, metadata: Any) -> models.Pkg:
-        "Resolve an individual definition into a package."
         raise NotImplementedError
 
     @classmethod
     async def catalogue(
         cls, web_client: _deferred_types.aiohttp.ClientSession
-    ) -> AsyncIterator[_CatalogueBaseEntry]:
-        "Yield add-ons from source for cataloguing."
+    ) -> AsyncIterator[CatatalogueBaseEntry]:
         return
         yield
 
@@ -289,7 +238,7 @@ class _CurseAddon_FileModules(TypedDict):
     type: Literal[1, 2, 3, 4, 5]
 
 
-class CurseResolver(Resolver):
+class CurseResolver(BaseResolver):
     source = 'curse'
     name = 'CurseForge'
     strategies = frozenset(
@@ -308,8 +257,7 @@ class CurseResolver(Resolver):
     addon_api_url = URL('https://addons-ecs.forgesvc.net/api/v2/addon')
 
     @staticmethod
-    def get_alias_from_url(value: str) -> str | None:
-        url = URL(value)
+    def get_alias_from_url(url: URL) -> str | None:
         if url.host == 'www.wowace.com' and len(url.parts) > 2 and url.parts[1] == 'projects':
             return url.parts[2].lower()
         elif (
@@ -351,9 +299,6 @@ class CurseResolver(Resolver):
         if metadata is None:
             raise R.PkgNonexistent
 
-        if defn.strategy not in self.strategies:
-            raise R.PkgStrategyUnsupported(defn.strategy)
-
         if defn.strategy is Strategy.version:
 
             files = await manager.cache_response(
@@ -371,77 +316,69 @@ class CurseResolver(Resolver):
 
             files = metadata['latestFiles']
 
-            def is_not_libless(f: _CurseAddon_File):
-                # There's also an 'isAlternate' field that's missing from some
-                # 50 lib-less files from c. 2008.  'exposeAsAlternative' is
-                # absent from the /file endpoint
-                return not f['exposeAsAlternative']
+            def generate_filter_fns():
+                def is_not_libless(f: _CurseAddon_File):
+                    # There's also an 'isAlternate' field that's missing from some
+                    # 50 lib-less files from c. 2008.  'exposeAsAlternative' is
+                    # absent from the /file endpoint
+                    return not f['exposeAsAlternative']
 
-            if defn.strategy is Strategy.any_flavour:
+                yield is_not_libless
 
-                def supports_any_game_version(f: _CurseAddon_File):
-                    return True
+                if defn.strategy is not Strategy.any_flavour:
+                    # Files can have multiple ``gameVersion``s but ``gameVersionFlavor``
+                    # is a scalar....but also ``gameVersion`` might not be populated.
+                    # We'll refer to it only if ``gameVersionFlavor`` is not a match
+                    if self.manager.config.game_flavour is Flavour.retail:
 
-                supports_game_version = supports_any_game_version
-            else:
+                        def supports_retail(f: _CurseAddon_File):
+                            return f['gameVersionFlavor'] == 'wow_retail' or any(
+                                not v.startswith(('1.13', '2.5')) for v in f['gameVersion']
+                            )
 
-                # Files can have multiple ``gameVersion``s but ``gameVersionFlavor``
-                # is a scalar....but also ``gameVersion`` might not be populated -
-                # we fall back on it only if ``gameVersionFlavor`` does not match
-                if self.manager.config.game_flavour is Flavour.retail:
+                        yield supports_retail
+                    elif self.manager.config.game_flavour is Flavour.vanilla_classic:
 
-                    def supports_retail(f: _CurseAddon_File):
-                        return f['gameVersionFlavor'] == 'wow_retail' or any(
-                            not v.startswith(('1.13', '2.5')) for v in f['gameVersion']
-                        )
+                        def supports_vanilla_classic(f: _CurseAddon_File):
+                            return f['gameVersionFlavor'] == 'wow_classic' or any(
+                                v.startswith('1.13') for v in f['gameVersion']
+                            )
 
-                    supports_game_version = supports_retail
-                elif self.manager.config.game_flavour is Flavour.vanilla_classic:
+                        yield supports_vanilla_classic
+                    elif self.manager.config.game_flavour is Flavour.burning_crusade_classic:
 
-                    def supports_vanilla_classic(f: _CurseAddon_File):
-                        return f['gameVersionFlavor'] == 'wow_classic' or any(
-                            v.startswith('1.13') for v in f['gameVersion']
-                        )
+                        def supports_burning_crusade_classic(f: _CurseAddon_File):
+                            return f['gameVersionFlavor'] == 'wow_burning_crusade' or any(
+                                v.startswith('2.5') for v in f['gameVersion']
+                            )
 
-                    supports_game_version = supports_vanilla_classic
-                elif self.manager.config.game_flavour is Flavour.burning_crusade_classic:
+                        yield supports_burning_crusade_classic
 
-                    def supports_burning_crusade(f: _CurseAddon_File):
-                        return f['gameVersionFlavor'] == 'wow_burning_crusade' or any(
-                            v.startswith('2.5') for v in f['gameVersion']
-                        )
+                if defn.strategy is Strategy.curse_latest_beta:
 
-                    supports_game_version = supports_burning_crusade
+                    def is_beta(f: _CurseAddon_File):
+                        return f['releaseType'] == 2
 
-            if defn.strategy is Strategy.latest:
+                    yield is_beta
+                elif defn.strategy is Strategy.curse_latest_alpha:
 
-                def has_latest_release_type(f: _CurseAddon_File):
-                    return True
+                    def is_alpha(f: _CurseAddon_File):
+                        return f['releaseType'] == 3
 
-                has_release_type = has_latest_release_type
-            elif defn.strategy is Strategy.curse_latest_beta:
+                    yield is_alpha
+                elif defn.strategy is not Strategy.latest:
 
-                def has_curse_latest_beta_release_type(f: _CurseAddon_File):
-                    return f['releaseType'] == 2
+                    def is_stable(f: _CurseAddon_File):
+                        return f['releaseType'] == 1
 
-                has_release_type = has_curse_latest_beta_release_type
-            elif defn.strategy is Strategy.curse_latest_alpha:
+                    yield is_stable
 
-                def has_curse_latest_alpha_release_type(f: _CurseAddon_File):
-                    return f['releaseType'] == 3
+            filter_fns = list(generate_filter_fns())
 
-                has_release_type = has_curse_latest_alpha_release_type
-            else:
+            def is_other_match(f: _CurseAddon_File):
+                return all(fn(f) for fn in filter_fns)
 
-                def has_default_release_type(f: _CurseAddon_File):
-                    return f['releaseType'] == 1
-
-                has_release_type = has_default_release_type
-
-            def is_default_match(f: _CurseAddon_File):
-                return is_not_libless(f) and supports_game_version(f) and has_release_type(f)
-
-            is_match = is_default_match
+            is_match = is_other_match
 
         if not files:
             raise R.PkgFileUnavailable('no files available for download')
@@ -458,39 +395,38 @@ class CurseResolver(Resolver):
                 f'using {defn.strategy} strategy'
             )
 
-        addon_id = str(metadata['id'])
-        file_id = str(file['id'])
-
         return models.Pkg(
             source=self.source,
-            id=addon_id,
+            id=metadata['id'],
             slug=metadata['slug'],
             name=metadata['name'],
             description=metadata['summary'],
             url=metadata['websiteUrl'],
             download_url=file['downloadUrl'],
-            date_published=parse_datetime(file['fileDate']),
+            date_published=file['fileDate'],
             version=file['displayName'],
-            changelog_url=str(self.addon_api_url / addon_id / 'file' / file_id / 'changelog'),
-            options=models.PkgOptions(strategy=defn.strategy),
-            deps=[
-                models.PkgDep(id=str(d['addonId'])) for d in file['dependencies'] if d['type'] == 3
-            ],
+            changelog_url=str(
+                self.addon_api_url / str(metadata['id']) / 'file' / str(file['id']) / 'changelog'
+            ),
+            options={'strategy': defn.strategy},
+            deps=[{'id': d['addonId']} for d in file['dependencies'] if d['type'] == 3],
         )
 
     @classmethod
     async def catalogue(
         cls, web_client: _deferred_types.aiohttp.ClientSession
-    ) -> AsyncIterator[_CatalogueBaseEntry]:
+    ) -> AsyncIterator[CatatalogueBaseEntry]:
         def excise_flavours(files: list[_CurseAddon_File]):
             if any(f['gameVersionFlavor'] == 'wow_retail' for f in files) or any(
                 not v.startswith(('1.13', '2.5')) for f in files for v in f['gameVersion']
             ):
                 yield Flavour.retail
+
             if any(f['gameVersionFlavor'] == 'wow_classic' for f in files) or any(
                 v.startswith('1.13') for f in files for v in f['gameVersion']
             ):
                 yield Flavour.vanilla_classic
+
             if any(f['gameVersionFlavor'] == 'wow_burning_crusade' for f in files) or any(
                 v.startswith('2.5') for f in files for v in f['gameVersion']
             ):
@@ -504,20 +440,20 @@ class CurseResolver(Resolver):
                     gameId='1', sort=sort_order, pageSize=step, index=index
                 )
             ) as response:
-                json_response: list[_CurseAddon] = await response.json()
+                items: list[_CurseAddon] = await response.json()
 
-            if not json_response:
+            if not items:
                 break
 
-            for item in json_response:
-                yield _CatalogueBaseEntry(
+            for item in items:
+                yield CatatalogueBaseEntry(
                     source=cls.source,
-                    id=str(item['id']),
+                    id=item['id'],
                     slug=item['slug'],
                     name=item['name'],
-                    game_flavours=set(excise_flavours(item['latestFiles'])),
+                    game_flavours=excise_flavours(item['latestFiles']),
                     folders=uniq(
-                        tuple(m['foldername'] for m in f['modules'])
+                        set(m['foldername'] for m in f['modules'])
                         for f in item['latestFiles']
                         if not f['exposeAsAlternative']
                     ),
@@ -572,7 +508,7 @@ class _WowiCombinedItem(_WowiListApiItem, _WowiDetailsApiItem):
     pass
 
 
-class WowiResolver(Resolver):
+class WowiResolver(BaseResolver):
     source = 'wowi'
     name = 'WoWInterface'
     strategies = frozenset({Strategy.default})
@@ -593,8 +529,7 @@ class WowiResolver(Resolver):
     details_api_url = URL('https://api.mmoui.com/v3/game/WOW/filedetails/')
 
     @staticmethod
-    def get_alias_from_url(value: str) -> str | None:
-        url = URL(value)
+    def get_alias_from_url(url: URL) -> str | None:
         if (
             url.host in {'wowinterface.com', 'www.wowinterface.com'}
             and len(url.parts) == 3
@@ -606,7 +541,7 @@ class WowiResolver(Resolver):
                 return url.query.get('id')
             else:
                 match = re.match(r'^(?:download|info)(?P<id>\d+)', url.name)
-                return match and match.group('id')
+                return match and match['id']
 
     async def _synchronise(self) -> dict[str, _WowiListApiItem]:
         async with self.manager.locks['load WoWI catalogue']:
@@ -626,7 +561,7 @@ class WowiResolver(Resolver):
         list_api_items = await self._synchronise()
 
         defns_to_ids = {d: ''.join(takewhile(str.isdigit, d.alias)) for d in defns}
-        numeric_ids = set(filter(None, defns_to_ids.values()))
+        numeric_ids = frozenset(filter(None, defns_to_ids.values()))
         try:
             details_api_items: list[_WowiDetailsApiItem] = await manager.cache_response(
                 self.manager,
@@ -651,41 +586,38 @@ class WowiResolver(Resolver):
         if metadata is None:
             raise R.PkgNonexistent
 
-        if defn.strategy not in self.strategies:
-            raise R.PkgStrategyUnsupported(defn.strategy)
-
         return models.Pkg(
             source=self.source,
             id=metadata['UID'],
-            slug=_slugify(f'{metadata["UID"]} {metadata["UIName"]}'),
+            slug=slugify(f'{metadata["UID"]} {metadata["UIName"]}'),
             name=metadata['UIName'],
             description=metadata['UIDescription'],
             url=metadata['UIFileInfoURL'],
             download_url=metadata['UIDownload'],
-            date_published=parse_datetime(metadata['UIDate']),
+            date_published=metadata['UIDate'],
             version=metadata['UIVersion'],
             changelog_url=_format_data_changelog(metadata['UIChangeLog']),
-            options=models.PkgOptions(strategy=defn.strategy),
+            options={'strategy': defn.strategy},
         )
 
     @classmethod
     async def catalogue(
         cls, web_client: _deferred_types.aiohttp.ClientSession
-    ) -> AsyncIterator[_CatalogueBaseEntry]:
-        async with web_client.get(cls.list_api_url) as response:
-            list_api_items: list[_WowiListApiItem] = await response.json()
-
+    ) -> AsyncIterator[CatatalogueBaseEntry]:
         flavours = set(Flavour)
-        for list_item in list_api_items:
-            yield _CatalogueBaseEntry(
+
+        async with web_client.get(cls.list_api_url) as response:
+            items: list[_WowiListApiItem] = await response.json()
+
+        for item in items:
+            yield CatatalogueBaseEntry(
                 source=cls.source,
-                id=list_item['UID'],
-                name=list_item['UIName'],
-                slug='',
-                folders=[list_item['UIDir']],
+                id=item['UID'],
+                name=item['UIName'],
+                folders=[item['UIDir']],
                 game_flavours=flavours,
-                download_count=int(list_item['UIDownloadTotal']),
-                last_updated=list_item['UIDate'],
+                download_count=item['UIDownloadTotal'],
+                last_updated=item['UIDate'],
             )
 
 
@@ -728,7 +660,7 @@ class _TukuiAddon(TypedDict):
     web_url: str
 
 
-class TukuiResolver(Resolver):
+class TukuiResolver(BaseResolver):
     source = 'tukui'
     name = 'Tukui'
     strategies = frozenset({Strategy.default})
@@ -739,9 +671,10 @@ class TukuiResolver(Resolver):
     # UIs only.  The response body appears to be identical to ``/api.php``
     api_url = URL('https://www.tukui.org/api.php')
 
+    retail_ui_suites = {'elvui', 'tukui'}
+
     @staticmethod
-    def get_alias_from_url(value: str) -> str | None:
-        url = URL(value)
+    def get_alias_from_url(url: URL) -> str | None:
         if url.host == 'www.tukui.org':
             if url.path in {'/addons.php', '/classic-addons.php', '/classic-tbc-addons.php'}:
                 return url.query.get('id')
@@ -774,21 +707,28 @@ class TukuiResolver(Resolver):
             return [(str(a['id']), a) for a in addons]
 
         async with self.manager.locks['load Tukui catalogue']:
-            requests = await gather(
-                (
-                    (fetch_ui('tukui'), fetch_ui('elvui'))
-                    if self.manager.config.game_flavour is Flavour.retail
-                    else ()
-                )
-                + (fetch_addons(self.manager.config.game_flavour),)
+            addon_lists = await gather(
+                [
+                    *map(
+                        fetch_ui,
+                        self.retail_ui_suites
+                        if self.manager.config.game_flavour is Flavour.retail
+                        else [],
+                    ),
+                    fetch_addons(self.manager.config.game_flavour),
+                ]
             )
-            return {k: v for l in requests for k, v in l}
+            return {k: v for l in addon_lists for k, v in l}
 
     async def resolve(
         self, defns: Sequence[Defn]
     ) -> dict[Defn, models.Pkg | R.ManagerError | R.InternalError]:
         addons = await self._synchronise()
-        ids = (d.alias[: p if p != -1 else None] for d in defns for p in (d.alias.find('-', 1),))
+        ids = (
+            d.alias[:p] if d.alias not in self.retail_ui_suites and p != -1 else d.alias
+            for d in defns
+            for p in (d.alias.find('-', 1),)
+        )
         results = await gather(
             (self.resolve_one(d, addons.get(i)) for d, i in zip(defns, ids)),
             manager.capture_manager_exc_async,
@@ -799,15 +739,12 @@ class TukuiResolver(Resolver):
         if metadata is None:
             raise R.PkgNonexistent
 
-        if defn.strategy not in self.strategies:
-            raise R.PkgStrategyUnsupported(defn.strategy)
-
         if metadata['id'] == -1:
             slug = 'tukui'
         elif metadata['id'] == -2:
             slug = 'elvui'
         else:
-            slug = _slugify(f'{metadata["id"]} {metadata["name"]}')
+            slug = slugify(f'{metadata["id"]} {metadata["name"]}')
 
         return models.Pkg(
             source=self.source,
@@ -829,43 +766,33 @@ class TukuiResolver(Resolver):
                 # link to the changelog tab on the add-on page
                 else _format_data_changelog(metadata['changelog'])
             ),
-            options=models.PkgOptions(strategy=defn.strategy),
+            options={'strategy': defn.strategy},
         )
 
     @classmethod
     async def catalogue(
         cls, web_client: _deferred_types.aiohttp.ClientSession
-    ) -> AsyncIterator[_CatalogueBaseEntry]:
-        async def fetch_ui(ui_slug: str) -> tuple[set[Flavour], list[_TukuiUi]]:
+    ) -> AsyncIterator[CatatalogueBaseEntry]:
+        async def fetch_ui(ui_slug: str) -> list[_TukuiUi]:
             async with web_client.get(cls.api_url.with_query({'ui': ui_slug})) as response:
-                return ({Flavour.retail}, [await response.json(content_type=None)])  # text/html
+                return [await response.json(content_type=None)]  # text/html
 
-        async def fetch_addons(flavour: Flavour) -> tuple[set[Flavour], list[_TukuiAddon]]:
-            if flavour is Flavour.retail:
-                query = 'addons'
-            elif flavour is Flavour.vanilla_classic:
-                query = 'classic-addons'
-            elif flavour is Flavour.burning_crusade_classic:
-                query = 'classic-tbc-addons'
+        async def fetch_addons(query: str) -> list[_TukuiAddon]:
             async with web_client.get(cls.api_url.with_query({query: 'all'})) as response:
-                return ({flavour}, await response.json(content_type=None))  # text/html
+                return await response.json(content_type=None)  # text/html
 
-        for flavours, items in await gather(
-            [
-                fetch_ui('tukui'),
-                fetch_ui('elvui'),
-                fetch_addons(Flavour.retail),
-                fetch_addons(Flavour.vanilla_classic),
-                fetch_addons(Flavour.burning_crusade_classic),
-            ]
-        ):
-            for item in items:
-                yield _CatalogueBaseEntry(
+        for flavours, item_coro in [
+            ({Flavour.retail}, fetch_ui('tukui')),
+            ({Flavour.retail}, fetch_ui('elvui')),
+            ({Flavour.retail}, fetch_addons('addons')),
+            ({Flavour.vanilla_classic}, fetch_addons('classic-addons')),
+            ({Flavour.burning_crusade_classic}, fetch_addons('classic-tbc-addons')),
+        ]:
+            for item in await item_coro:
+                yield CatatalogueBaseEntry(
                     source=cls.source,
-                    id=str(item['id']),
-                    slug='',
+                    id=item['id'],
                     name=item['name'],
-                    folders=[],
                     game_flavours=flavours,
                     # Split Tukui and ElvUI downloads evenly between them.
                     # They both have the exact same number of downloads so
@@ -917,7 +844,7 @@ class _PackagerReleaseJson_Release_Metadata(TypedDict):
     interface: int
 
 
-class GithubResolver(Resolver):
+class GithubResolver(BaseResolver):
     source = 'github'
     name = 'GitHub'
     strategies = frozenset({Strategy.default, Strategy.latest, Strategy.version})
@@ -926,8 +853,7 @@ class GithubResolver(Resolver):
     repos_api_url = URL('https://api.github.com/repos')
 
     @staticmethod
-    def get_alias_from_url(value: str) -> str | None:
-        url = URL(value)
+    def get_alias_from_url(url: URL) -> str | None:
         if url.host == 'github.com' and len(url.parts) > 2:
             return '/'.join(url.parts[1:3])
 
@@ -1042,14 +968,14 @@ class GithubResolver(Resolver):
             description=project_metadata['description'],
             url=project_metadata['html_url'],
             download_url=matching_asset['browser_download_url'],
-            date_published=parse_datetime(release_metadata['published_at']),
+            date_published=release_metadata['published_at'],
             version=release_metadata['tag_name'],
             changelog_url=_format_data_changelog(release_metadata['body']),
-            options=models.PkgOptions(strategy=defn.strategy),
+            options={'strategy': defn.strategy},
         )
 
 
-class InstawowResolver(Resolver):
+class InstawowResolver(BaseResolver):
     source = 'instawow'
     name = 'instawow'
     strategies = frozenset({Strategy.default})
@@ -1061,9 +987,6 @@ class InstawowResolver(Resolver):
     }
 
     async def resolve_one(self, defn: Defn, metadata: None) -> models.Pkg:
-        if defn.strategy not in self.strategies:
-            raise R.PkgStrategyUnsupported(defn.strategy)
-
         try:
             source_id, slug = next(p for p in self._addons if defn.alias in p)
         except StopIteration:
@@ -1086,14 +1009,14 @@ class InstawowResolver(Resolver):
             date_published=datetime.now(timezone.utc),
             version=(await builder.get_checksum())[:7],
             changelog_url=builder.changelog_path.as_uri(),
-            options=models.PkgOptions(strategy=defn.strategy),
+            options={'strategy': defn.strategy},
         )
 
     @classmethod
     async def catalogue(
         cls, web_client: _deferred_types.aiohttp.ClientSession
-    ) -> AsyncIterator[_CatalogueBaseEntry]:
-        yield _CatalogueBaseEntry(
+    ) -> AsyncIterator[CatatalogueBaseEntry]:
+        yield CatatalogueBaseEntry(
             source=cls.source,
             id='1',
             slug='weakauras-companion-autoupdate',

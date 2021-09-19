@@ -53,7 +53,7 @@ def reformat(session: nox.Session):
             pydantic ==1.8.2
             questionary ==1.10.0
             rapidfuzz ==1.4.1
-            sqlalchemy ==1.3.19
+            sqlalchemy ==1.4.23
             typing-extensions ==3.10.0.0
             yarl ==1.4
             aiohttp-rpc ==1.0.0
@@ -89,8 +89,7 @@ def type_check(session: nox.Session):
     _mirror_project(session)
     session.install(
         '--use-feature=in-tree-build',
-        '.[gui]',
-        'sqlalchemy-stubs@ https://github.com/layday/sqlalchemy-stubs/archive/develop.zip',
+        '.[gui, types]',
     )
     session.run('npx', 'pyright', external=True)
 

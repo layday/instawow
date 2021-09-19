@@ -5,11 +5,12 @@ from contextlib import suppress
 from functools import total_ordering
 import re
 
+import sqlalchemy as sa
 from typing_extensions import TypeAlias
 
 from . import manager
 from .config import Flavour
-from .models import PkgFolder
+from .db import pkg_folder
 from .resolvers import CurseResolver, Defn, InstawowResolver, TukuiResolver, WowiResolver
 from .utils import TocReader, bucketise, cached_property, merge_intersecting_sets, uniq
 
@@ -73,7 +74,7 @@ class AddonFolder:
 
 
 def get_unreconciled_folders(manager: manager.Manager) -> Iterable[AddonFolder]:
-    pkg_folders = {f.name for f in manager.database.query(PkgFolder).all()}
+    pkg_folders = manager.database.execute(sa.select(pkg_folder.c.name)).scalars().all()
     unreconciled_folder_paths = (
         p
         for p in manager.config.addon_dir.iterdir()

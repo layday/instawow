@@ -40,7 +40,7 @@ prompt-toolkit = "^3.0.15"
 pydantic = "^1.8.2"
 questionary = "^1.10"
 rapidfuzz = "^1.4.1"
-sqlalchemy = "^1.3.19"
+sqlalchemy = "^1.4.23"
 typing-extensions = "^3.10.0.0"
 yarl = "~=1.4"
 
@@ -117,13 +117,13 @@ include = [
 ]
 ignore = [
   "gui-webview/src/instawow_gui/cef_adapter.py",
+  "src/instawow/migrations",
 ]
 useLibraryCodeForTypes = true
 typeCheckingMode = "strict"
 reportMissingTypeStubs = "information"
 # `TYPE_CHECKING` and lazy imports produce spurious import cycle errors
 reportImportCycles = false
-reportUnknownArgumentType = "warning"
 reportUnknownMemberType = false
 
 
@@ -137,5 +137,4 @@ target_version = ["py37", "py38", "py39"]
 [tool.isort]
 profile = "black"
 line_length = 99
-combine_as_imports = true
 force_sort_within_sections = true

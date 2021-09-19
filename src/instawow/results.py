@@ -5,7 +5,8 @@ from typing import ClassVar
 
 from typing_extensions import Literal
 
-from . import models, resolvers
+from . import models
+from .common import Strategy
 
 
 class ManagerResult:
@@ -54,7 +55,7 @@ class PkgAlreadyInstalled(ManagerError):
 
 
 class PkgConflictsWithInstalled(ManagerError):
-    def __init__(self, conflicting_pkgs: Sequence[models.Pkg]) -> None:
+    def __init__(self, conflicting_pkgs: Sequence[models.PkgLike]) -> None:
         super().__init__()
         self.conflicting_pkgs = conflicting_pkgs
 
@@ -115,7 +116,7 @@ class PkgUpToDate(ManagerError):
 class PkgStrategyUnsupported(ManagerError):
     template = "'{self.strategy}' strategy is not valid for source"
 
-    def __init__(self, strategy: resolvers.Strategy) -> None:
+    def __init__(self, strategy: Strategy) -> None:
         super().__init__()
         self.strategy = strategy
 

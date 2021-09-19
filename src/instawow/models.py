@@ -1,182 +1,155 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
-from typing import TYPE_CHECKING
+from datetime import datetime
+import typing
+from typing import Any, Mapping
 
-from sqlalchemy import (
-    Column,
-    DateTime,
-    ForeignKeyConstraint,
-    MetaData,
-    String,
-    TypeDecorator,
-    func,
-)
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import Session, object_session, relationship
-from typing_extensions import TypeGuard
+from pydantic import BaseModel
+import sqlalchemy as sa
+import sqlalchemy.engine as sa_engine
+from typing_extensions import TypeAlias, TypeGuard
 
-# ``TypeDecorator`` is not generic at runtime
-if TYPE_CHECKING:
-    TZDateTime_base_class = TypeDecorator[datetime]
-else:
-    TZDateTime_base_class = TypeDecorator
+from . import db
+from .common import Strategy
 
 
-class TZDateTime(TZDateTime_base_class):
-    impl = DateTime
-    cache_ok = True
-
-    def process_bind_param(  # type: ignore
-        self, value: datetime | None, dialect: object
-    ) -> datetime | None:
-        if value is not None:
-            if not value.tzinfo:
-                raise TypeError('tzinfo is required')
-            value = value.astimezone(timezone.utc).replace(tzinfo=None)
-        return value
-
-    def process_result_value(self, value: datetime | None, dialect: object) -> datetime | None:
-        if value is not None:
-            value = value.replace(tzinfo=timezone.utc)
-        return value
-
-    @property
-    def python_type(self) -> type[datetime]:
-        return datetime
+class _PkgOptions(BaseModel):
+    strategy: Strategy
 
 
-if TYPE_CHECKING:
-
-    class ModelBase:
-        metadata: MetaData
+class _PkgFolder(BaseModel):
+    name: str
 
 
-else:
-    ModelBase = declarative_base()
+class _PkgDep(BaseModel):
+    id: str
 
 
-class Pkg(ModelBase):
-    __tablename__ = 'pkg'
+class _PkgLoggedVersion(BaseModel):
+    version: str
+    install_time: datetime
 
-    source = Column(String, primary_key=True)
-    id = Column(String, primary_key=True)
-    slug = Column(String, nullable=False)
-    name = Column(String, nullable=False)
-    description = Column(String, nullable=False)
-    url = Column(String, nullable=False)
-    download_url = Column(String, nullable=False)
-    date_published = Column(TZDateTime, nullable=False)
-    version = Column(String, nullable=False)
-    changelog_url = Column(String, nullable=False)
-    folders: relationship[list[PkgFolder]] = relationship(
-        'PkgFolder', cascade='all, delete-orphan', backref='pkg'
-    )
-    options: relationship[PkgOptions] = relationship(
-        'PkgOptions', cascade='all, delete-orphan', uselist=False
-    )
-    deps: relationship[list[PkgDep]] = relationship(
-        'PkgDep', cascade='all, delete-orphan', backref='pkg'
-    )
 
-    if TYPE_CHECKING:
+class Pkg(BaseModel):
+    source: str
+    id: str
+    slug: str
+    name: str
+    description: str
+    url: str
+    download_url: str
+    date_published: datetime
+    version: str
+    changelog_url: str
+    options: _PkgOptions  # pkg_options
+    folders: typing.List[_PkgFolder] = []  # pkg_folder
+    deps: typing.List[_PkgDep] = []  # pkg_dep
+    logged_versions: typing.List[_PkgLoggedVersion] = []  # pkg_version_log
 
-        def __init__(
-            self,
-            *,
-            source: str,
-            id: str,
-            slug: str,
-            name: str,
-            description: str,
-            url: str,
-            download_url: str,
-            date_published: datetime,
-            version: str,
-            changelog_url: str,
-            folders: list[PkgFolder] = [],
-            options: PkgOptions,
-            deps: list[PkgDep] = [],
-        ) -> None:
-            ...
-
-    @property
-    def logged_versions(self) -> list[PkgVersionLog]:
-        session: Session | None = object_session(self)
-        return (
-            (
-                session.query(PkgVersionLog)
-                .filter_by(pkg_source=self.source, pkg_id=self.id)
-                .order_by(PkgVersionLog.install_time.desc())
-                .limit(10)
-                .all()
-            )
-            if session
-            else []
+    @classmethod
+    def from_row_mapping(
+        cls, connection: sa_engine.Connection, row_mapping: Mapping[str, Any]
+    ) -> Pkg:
+        return cls.parse_obj(
+            {
+                **row_mapping,
+                'folders': connection.execute(
+                    sa.select(db.pkg_folder.c.name).filter_by(
+                        pkg_source=row_mapping['source'], pkg_id=row_mapping['id']
+                    )
+                )
+                .mappings()
+                .all(),
+                'options': connection.execute(
+                    sa.select(db.pkg_options.c.strategy).filter_by(
+                        pkg_source=row_mapping['source'], pkg_id=row_mapping['id']
+                    )
+                )
+                .mappings()
+                .one(),
+                'deps': connection.execute(
+                    sa.select(db.pkg_dep.c.id).filter_by(
+                        pkg_source=row_mapping['source'], pkg_id=row_mapping['id']
+                    )
+                )
+                .mappings()
+                .all(),
+                'logged_versions': connection.execute(
+                    sa.select(db.pkg_version_log)
+                    .filter_by(pkg_source=row_mapping['source'], pkg_id=row_mapping['id'])
+                    .order_by(db.pkg_version_log.c.install_time.desc())
+                    .limit(10)
+                )
+                .mappings()
+                .all(),
+            }
         )
 
+    def insert(self, connection: sa_engine.Connection) -> None:
+        with connection.begin():
+            pkg_dict = self.dict()
+            connection.execute(
+                sa.insert(db.pkg),
+                [pkg_dict],
+            )
+            connection.execute(
+                sa.insert(db.pkg_folder),
+                [
+                    {**f, 'pkg_source': pkg_dict['source'], 'pkg_id': pkg_dict['id']}
+                    for f in pkg_dict['folders']
+                ],
+            )
+            connection.execute(
+                sa.insert(db.pkg_options),
+                [
+                    {
+                        **pkg_dict['options'],
+                        'pkg_source': pkg_dict['source'],
+                        'pkg_id': pkg_dict['id'],
+                    }
+                ],
+            )
+            if pkg_dict['deps']:
+                connection.execute(
+                    sa.insert(db.pkg_dep),
+                    [
+                        {**f, 'pkg_source': pkg_dict['source'], 'pkg_id': pkg_dict['id']}
+                        for f in pkg_dict['deps']
+                    ],
+                )
+            connection.execute(
+                sa.insert(db.pkg_version_log).prefix_with('OR IGNORE'),
+                [
+                    {
+                        'version': pkg_dict['version'],
+                        'pkg_source': pkg_dict['source'],
+                        'pkg_id': pkg_dict['id'],
+                    }
+                ],
+            )
 
-class PkgFolder(ModelBase):
-    __tablename__ = 'pkg_folder'
-    __table_args__ = (ForeignKeyConstraint(['pkg_source', 'pkg_id'], ['pkg.source', 'pkg.id']),)
-
-    name = Column(String, primary_key=True)
-    pkg_source = Column(String, nullable=False)
-    pkg_id = Column(String, nullable=False)
-
-    if TYPE_CHECKING:
-
-        def __init__(self, *, name: str) -> None:
-            ...
-
-
-class PkgOptions(ModelBase):
-    __tablename__ = 'pkg_options'
-    __table_args__ = (ForeignKeyConstraint(['pkg_source', 'pkg_id'], ['pkg.source', 'pkg.id']),)
-
-    strategy = Column(String, nullable=False)
-    pkg_source = Column(String, primary_key=True)
-    pkg_id = Column(String, primary_key=True)
-
-    if TYPE_CHECKING:
-
-        def __init__(self, *, strategy: str) -> None:
-            ...
+    def delete(self, connection: sa_engine.Connection) -> None:
+        with connection.begin():
+            connection.execute(
+                sa.delete(db.pkg_dep).filter_by(pkg_source=self.source, pkg_id=self.id),
+            )
+            connection.execute(
+                sa.delete(db.pkg_folder).filter_by(pkg_source=self.source, pkg_id=self.id),
+            )
+            connection.execute(
+                sa.delete(db.pkg_options).filter_by(pkg_source=self.source, pkg_id=self.id),
+            )
+            connection.execute(
+                sa.delete(db.pkg).filter_by(source=self.source, id=self.id),
+            )
 
 
-class PkgDep(ModelBase):
-    __tablename__ = 'pkg_dep'
-    __table_args__ = (ForeignKeyConstraint(['pkg_source', 'pkg_id'], ['pkg.source', 'pkg.id']),)
-
-    id = Column(String, primary_key=True)
-    pkg_source = Column(String, primary_key=True)
-    pkg_id = Column(String, primary_key=True)
-
-    if TYPE_CHECKING:
-
-        def __init__(self, *, id: str) -> None:
-            ...
-
-
-class PkgVersionLog(ModelBase):
-    __tablename__ = 'pkg_version_log'
-
-    version = Column(String, primary_key=True)
-    install_time = Column(TZDateTime, nullable=False, server_default=func.now())
-    pkg_source = Column(String, primary_key=True)
-    pkg_id = Column(String, primary_key=True)
-
-    if TYPE_CHECKING:
-
-        def __init__(
-            self,
-            *,
-            version: str,
-            pkg_source: str,
-            pkg_id: str,
-        ) -> None:
-            ...
+class PkgList(BaseModel):
+    __root__: typing.List[Pkg]
 
 
 def is_pkg(value: object) -> TypeGuard[Pkg]:
     return isinstance(value, Pkg)
+
+
+PkgLike: TypeAlias = Any

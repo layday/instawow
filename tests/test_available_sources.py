@@ -3,9 +3,10 @@ import re
 import pytest
 
 from instawow import results as R
+from instawow.common import Strategy
 from instawow.config import Flavour
 from instawow.models import Pkg
-from instawow.resolvers import Defn, Strategy
+from instawow.resolvers import Defn
 
 
 @pytest.mark.asyncio

@@ -125,14 +125,14 @@ class Config(BaseConfig):
 
     def ensure_dirs(self) -> Config:
         "Create the various folders used by instawow."
-        for dir_ in (
+        for dir_ in [
             self.config_dir,
             self.profile_dir,
             self.logging_dir,
             self.plugin_dir,
             self.temp_dir,
             self.cache_dir,
-        ):
+        ]:
             dir_.mkdir(exist_ok=True, parents=True)
         return self
 
@@ -181,7 +181,9 @@ class Config(BaseConfig):
 def setup_logging(config: Config, log_level: str = 'INFO') -> int:
     import logging
 
-    class InterceptHandler(logging.Handler):
+    class InterceptHandler(logging.Handler):  # pragma: no cover
+        logging_filename = getattr(logging, '__file__', None)
+
         def emit(self, record: logging.LogRecord) -> None:
             # Get the corresponding Loguru level if it exists
             try:
@@ -192,7 +194,7 @@ def setup_logging(config: Config, log_level: str = 'INFO') -> int:
             # Find caller from where the logged message originated
             frame = logging.currentframe()
             depth = 2
-            while frame and frame.f_code.co_filename == getattr(logging, '__file__', None):
+            while frame and frame.f_code.co_filename == self.logging_filename:
                 frame = frame.f_back
                 depth += 1
 
@@ -200,12 +202,15 @@ def setup_logging(config: Config, log_level: str = 'INFO') -> int:
 
     logging.basicConfig(handlers=[InterceptHandler()], level=log_level)
 
-    handler = {
-        'sink': config.logging_dir / 'error.log',
-        'level': log_level,
-        'rotation': '5 MB',
-        'retention': 5,  # Number of log files to keep
-        'enqueue': True,
-    }
-    (handler_id,) = logger.configure(handlers=(handler,))
+    (handler_id,) = logger.configure(
+        handlers=(
+            {
+                'sink': config.logging_dir / 'error.log',
+                'level': log_level,
+                'rotation': '5 MB',
+                'retention': 5,  # Number of log files to keep
+                'enqueue': True,
+            },
+        )
+    )
     return handler_id

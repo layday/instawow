@@ -1,3 +1,4 @@
+# pyright: reportUnknownVariableType=false
 # pyright: reportUntypedFunctionDecorator=false
 
 from __future__ import annotations
@@ -11,10 +12,10 @@ import pluggy
 
 from . import resolvers
 
-_entrypoint = f'{__package__}.plugins'
+_project_name = __package__
 
-hookspec = pluggy.HookspecMarker(__package__)
-hookimpl = pluggy.HookimplMarker(__package__)
+hookspec = pluggy.HookspecMarker(_project_name)
+hookimpl = pluggy.HookimplMarker(_project_name)
 
 
 class InstawowPlugin:
@@ -31,7 +32,7 @@ class InstawowPlugin:
 
 @lru_cache(maxsize=None)
 def load_plugins() -> Any:
-    plugin_manager = pluggy.PluginManager(__package__)
+    plugin_manager = pluggy.PluginManager(_project_name)
     plugin_manager.add_hookspecs(InstawowPlugin)
-    plugin_manager.load_setuptools_entrypoints(_entrypoint)
+    plugin_manager.load_setuptools_entrypoints(f'{_project_name}.plugins')
     return plugin_manager.hook

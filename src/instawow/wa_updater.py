@@ -15,7 +15,9 @@ from yarl import URL
 
 from . import manager
 from .config import BaseConfig, Flavour
-from .utils import bucketise, chain_dict, gather, run_in_thread as t, shasum
+from .utils import bucketise, chain_dict, gather
+from .utils import run_in_thread as t
+from .utils import shasum
 
 # ``NotRequired`` is provisional and does not exist at runtime
 if TYPE_CHECKING:
@@ -109,11 +111,6 @@ class Plateroos(Auras[Plateroo]):
         return cls(__root__={a.url.parts[1]: [a] for a in sorted_auras})
 
 
-class WagoApiResponse_Changelog(TypedDict):
-    format: Ν[Literal['bbcode', 'markdown']]
-    text: Ν[str]
-
-
 class WagoApiResponse(TypedDict):
     _id: str  # +   # Alphanumeric ID
     name: str  # +  # User-facing name
@@ -131,6 +128,11 @@ class WagoApiResponse(TypedDict):
     regionType: Ν[str]  # Only present on WAs
 
 
+class WagoApiResponse_Changelog(TypedDict):
+    format: Ν[Literal['bbcode', 'markdown']]
+    text: Ν[str]
+
+
 class WaCompanionBuilder:
     """A WeakAuras Companion port for shellfolk."""
 
@@ -141,7 +143,7 @@ class WaCompanionBuilder:
         output_folder = self.manager.config.plugin_dir / __name__
         self.addon_zip_path = output_folder / 'WeakAurasCompanion.zip'
         self.changelog_path = output_folder / 'CHANGELOG.md'
-        self.checksum_path = output_folder / 'checksum.txt'
+        self.checksum_txt_path = output_folder / 'checksum.txt'
 
     @staticmethod
     def extract_auras(model: type[Auras[WeakAura]], source: str) -> Auras[WeakAura]:
@@ -226,7 +228,7 @@ class WaCompanionBuilder:
         return sha256(self.addon_zip_path.read_bytes()).hexdigest()
 
     async def get_checksum(self) -> str:
-        return await t(self.checksum_path.read_text)(encoding='utf-8')
+        return await t(self.checksum_txt_path.read_text)(encoding='utf-8')
 
     def _get_toc_number(self) -> str:
         game_flavour: Flavour = self.manager.config.game_flavour
@@ -349,7 +351,7 @@ class WaCompanionBuilder:
             encoding='utf-8',
         )
 
-        self.checksum_path.write_text(
+        self.checksum_txt_path.write_text(
             self._checksum(),
             encoding='utf-8',
         )

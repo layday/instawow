@@ -1,7 +1,7 @@
 import pytest
 from yarl import URL
 
-from instawow.models import is_pkg
+from instawow.models import Pkg
 from instawow.resolvers import Defn
 from instawow.wa_updater import BuilderConfig, WaCompanionBuilder, WeakAura, WeakAuras
 
@@ -141,11 +141,11 @@ async def test_can_resolve_wa_companion_pkg(builder):
     await builder.build()
     defn = Defn('instawow', 'weakauras-companion')
     resolve_results = await builder.manager.resolve([defn])
-    assert is_pkg(resolve_results[defn])
+    assert type(resolve_results[defn]) is Pkg
 
 
 @pytest.mark.asyncio
 async def test_can_resolve_wa_companion_autoupdate_pkg(builder):
     defn = Defn('instawow', 'weakauras-companion-autoupdate')
     resolve_results = await builder.manager.resolve([defn])
-    assert is_pkg(resolve_results[defn])
+    assert type(resolve_results[defn]) is Pkg

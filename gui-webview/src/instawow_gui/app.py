@@ -1,5 +1,5 @@
 # pyright: reportGeneralTypeIssues=warning
-# pyright: reportUnknownArgumentType=warning
+# pyright: reportUnknownArgumentType=false
 
 from __future__ import annotations
 

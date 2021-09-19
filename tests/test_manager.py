@@ -4,9 +4,10 @@ from aiohttp import ClientError
 import pytest
 
 from instawow import results as R
+from instawow.common import Strategy
 from instawow.config import Flavour
 from instawow.models import Pkg
-from instawow.resolvers import Defn, Strategy
+from instawow.resolvers import Defn
 
 
 @pytest.mark.asyncio
@@ -19,7 +20,8 @@ async def test_pinning_supported_pkg(iw_manager):
     for new_defn in (defn.with_version(pkg.version), defn):
         pin_result = await iw_manager.pin([new_defn])
         pinned_pkg = pin_result[new_defn].pkg
-        assert pkg.options.strategy == pinned_pkg.options.strategy == new_defn.strategy
+        assert pkg.options.strategy is Strategy.default
+        assert pinned_pkg.options.strategy is new_defn.strategy
         assert version == pinned_pkg.version
 
 
@@ -123,7 +125,7 @@ async def test_install_cannot_replace_reconciled_folders(iw_manager):
 
 
 @pytest.mark.asyncio
-async def test_update_lifecycle_while_varying_retain_strategy(iw_manager):
+async def test_update_lifecycle_while_varying_retain_defn_strategy(iw_manager):
     defn = Defn('curse', 'molinari')
     versioned_defn = defn.with_version('80000.57-Release')
 
@@ -131,23 +133,23 @@ async def test_update_lifecycle_while_varying_retain_strategy(iw_manager):
     assert type(result[defn]) is R.PkgInstalled
     assert result[defn].pkg.options.strategy == Strategy.default
 
-    result = await iw_manager.update([defn], retain_strategy=False)
+    result = await iw_manager.update([defn], retain_defn_strategy=False)
     assert type(result[defn]) is R.PkgUpToDate
     assert result[defn].is_pinned is False
 
-    result = await iw_manager.update([versioned_defn], retain_strategy=False)
+    result = await iw_manager.update([versioned_defn], retain_defn_strategy=False)
     assert type(result[versioned_defn]) is R.PkgUpToDate
     assert result[versioned_defn].is_pinned is False
 
-    result = await iw_manager.update([versioned_defn], retain_strategy=True)
+    result = await iw_manager.update([versioned_defn], retain_defn_strategy=True)
     assert type(result[versioned_defn]) is R.PkgUpdated
     assert result[versioned_defn].new_pkg.options.strategy == Strategy.version
 
-    result = await iw_manager.update([defn], retain_strategy=False)
+    result = await iw_manager.update([defn], retain_defn_strategy=False)
     assert type(result[defn]) is R.PkgUpToDate
     assert result[defn].is_pinned is True
 
-    result = await iw_manager.update([defn], retain_strategy=True)
+    result = await iw_manager.update([defn], retain_defn_strategy=True)
     assert type(result[defn]) is R.PkgUpdated
     assert result[defn].new_pkg.options.strategy == Strategy.default
 

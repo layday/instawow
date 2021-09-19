@@ -13,10 +13,14 @@ from typing import Any, TypeVar, overload
 
 import click
 
-from . import __version__, _deferred_types, manager as M, models, results as R
+from . import __version__, _deferred_types, db
+from . import manager as M
+from . import models
+from . import results as R
+from .common import Strategy
 from .config import Config, Flavour, setup_logging
 from .plugins import load_plugins
-from .resolvers import Defn, MultiPkgModel, Strategy
+from .resolvers import Defn
 from .utils import cached_property, is_outdated, make_progress_bar, tabulate, uniq
 
 _T = TypeVar('_T')
@@ -53,7 +57,7 @@ class Report:
 
     def __str__(self) -> str:
         return '\n'.join(
-            f'{self._result_type_to_symbol(r)} {click.style(a.to_uri(), bold=True)}\n'
+            f'{self._result_type_to_symbol(r)} {click.style(a.to_urn(), bold=True)}\n'
             f'{textwrap.fill(r.message, initial_indent=" " * 2, subsequent_indent=" " * 4)}'
             for a, r in self.results
             if self.filter_fn(r)
@@ -280,7 +284,7 @@ def parse_into_defn_with_strategy(
     manager: M.Manager, value: Sequence[tuple[Strategy, str]]
 ) -> Iterator[Defn]:
     defns = parse_into_defn(manager, [d for _, d in value])
-    return map(Defn.with_strategy, defns, (s for s, _ in value))
+    return map(lambda d, s: d.with_(strategy=s), defns, (s for s, _ in value))
 
 
 def parse_into_defn_with_version(
@@ -348,6 +352,7 @@ def install(obj: ManagerWrapper, addons: Sequence[Defn], replace: bool) -> None:
 @click.pass_obj
 def update(obj: ManagerWrapper, addons: Sequence[Defn]) -> None:
     "Update installed add-ons."
+    import sqlalchemy as sa
 
     def filter_results(result: R.ManagerResult):
         # Hide packages from output if they are up to date
@@ -358,7 +363,20 @@ def update(obj: ManagerWrapper, addons: Sequence[Defn]) -> None:
         else:
             return result.is_pinned
 
-    update_defns = addons or list(map(Defn.from_pkg, obj.m.database.query(models.Pkg).all()))
+    update_defns = addons or [
+        Defn(**v)
+        for v in obj.m.database.execute(
+            sa.select(
+                db.pkg.c.source,
+                db.pkg.c.id,
+                db.pkg.c.slug.label('alias'),
+                db.pkg.c.version,
+                db.pkg_options.c.strategy,
+            ).join(db.pkg_options)
+        )
+        .mappings()
+        .all()
+    ]
     results = run_with_progress(obj.m.update(update_defns, False))
     Report(results.items(), filter_results).generate_and_exit()
 
@@ -430,7 +448,7 @@ def rollback(obj: ManagerWrapper, addon: Defn, version: str | None, undo: bool) 
             for v in versions
         ]
         selection = select(
-            f'Select version of {reconstructed_defn.to_uri()} for rollback', choices
+            f'Select version of {reconstructed_defn.to_urn()} for rollback', choices
         ).unsafe_ask()
 
     Report(
@@ -484,7 +502,7 @@ def reconcile(obj: ManagerWrapper, auto: bool, list_unreconciled: bool) -> None:
         def construct_choice(pkg: models.Pkg):
             defn = Defn.from_pkg(pkg)
             title = [
-                ('', f'{defn.to_uri()}=='),
+                ('', f'{defn.to_urn()}=='),
                 ('class:highlight-sub' if highlight_version else '', pkg.version),
             ]
             return PkgChoice(title, pkg=pkg, value=defn)
@@ -577,7 +595,7 @@ def search(ctx: click.Context, search_terms: str, limit: int, sources: Sequence[
         for d, r in run_with_progress(manager.resolve(defns)).items()
         if models.is_pkg(r)
     )
-    choices = [PkgChoice(f'{p.name}  ({d.to_uri()}=={p.version})', d, pkg=p) for d, p in pkgs]
+    choices = [PkgChoice(f'{p.name}  ({d.to_urn()}=={p.version})', d, pkg=p) for d, p in pkgs]
     if choices:
         selections = checkbox('Select add-ons to install', choices=choices).unsafe_ask()
         if selections and confirm('Install selected add-ons?').unsafe_ask():
@@ -610,42 +628,43 @@ def list_installed(
     obj: ManagerWrapper, addons: Sequence[Defn], output_format: ListFormats
 ) -> None:
     "List installed add-ons."
-    from sqlalchemy import and_, or_
+    import sqlalchemy as sa
 
     def format_deps(pkg: models.Pkg):
         return (
-            (d.with_(alias=p.slug) if p else d).to_uri()
+            (d.with_(alias=p.slug) if p else d).to_urn()
             for e in pkg.deps
             for d in (Defn(pkg.source, e.id),)
             for p in (obj.m.get_pkg(d),)
         )
 
-    pkgs = (
-        obj.m.database.query(models.Pkg)
-        .filter(
-            or_(
-                *(
-                    models.Pkg.slug.contains(d.alias)
+    pkgs = [
+        models.Pkg.from_row_mapping(obj.m.database, p)
+        for p in obj.m.database.execute(
+            sa.select(db.pkg)
+            .filter(
+                sa.or_(
+                    db.pkg.c.slug.contains(d.alias)
                     if d.source == '*'
-                    else and_(
-                        models.Pkg.source == d.source,
-                        or_(models.Pkg.id == d.alias, models.Pkg.slug == d.alias),
-                    )
+                    else (db.pkg.c.source == d.source)
+                    & ((db.pkg.c.id == d.alias) | (db.pkg.c.slug == d.alias))
                     for d in addons
                 )
+                if addons
+                else True
             )
-            if addons
-            else True
+            .order_by(db.pkg.c.source, db.pkg.c.name)
         )
-        .order_by(models.Pkg.source, models.Pkg.name)
+        .mappings()
         .all()
-    )
+    ]
     if output_format is ListFormats.json:
-        click.echo(MultiPkgModel.parse_obj(pkgs).json(indent=2))
+        click.echo(models.PkgList.parse_obj(pkgs).json(indent=2))
+
     elif output_format is ListFormats.detailed:
         formatter = click.HelpFormatter(max_width=99)
         for pkg in pkgs:
-            with formatter.section(Defn.from_pkg(pkg).to_uri()):
+            with formatter.section(Defn.from_pkg(pkg).to_urn()):
                 formatter.write_dl(
                     (
                         ('Name', pkg.name),
@@ -659,8 +678,9 @@ def list_installed(
                     )
                 )
         click.echo(formatter.getvalue(), nl=False)
+
     else:
-        click.echo(''.join(f'{Defn.from_pkg(p).to_uri()}\n' for p in pkgs), nl=False)
+        click.echo(''.join(f'{Defn.from_pkg(p).to_urn()}\n' for p in pkgs), nl=False)
 
 
 @main.command(hidden=True)
@@ -803,7 +823,7 @@ def generate_catalogue(filename: str, age_cutoff: datetime | None) -> None:
 
 @main.command(hidden=True)
 @click.option(
-    '--log-to-stderr', is_flag=True, default=False, help="Output log to stderr for debugging."
+    '--log-to-stderr', is_flag=True, default=False, help="Log to stderr for development."
 )
 @click.pass_context
 def gui(ctx: click.Context, log_to_stderr: bool) -> None:
