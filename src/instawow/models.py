@@ -143,6 +143,10 @@ class Pkg(BaseModel):
                 sa.delete(db.pkg).filter_by(source=self.source, id=self.id),
             )
 
+    # Pydantic sets this to ``None`` unless the model is marked as "frozen",
+    # presumably because it overrides ``__eq__``, which we're not interested in.
+    __hash__ = object.__hash__
+
 
 class PkgList(BaseModel):
     __root__: typing.List[Pkg]
