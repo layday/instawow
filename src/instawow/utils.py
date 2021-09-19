@@ -3,7 +3,6 @@ from __future__ import annotations
 import asyncio
 from collections import defaultdict
 from collections.abc import Awaitable, Callable, Iterable, Iterator, Mapping, Sequence
-from contextlib import contextmanager
 from datetime import datetime, timedelta
 from functools import partial, wraps
 from itertools import chain, repeat, takewhile
@@ -141,37 +140,6 @@ def run_in_thread(fn: Callable[..., object]) -> Callable[..., Awaitable[object]]
         return loop.run_in_executor(None, partial(fn, *args, **kwargs))
 
     return wrapper
-
-
-@contextmanager
-def copy_resources(*packages: str) -> Iterator[Path]:
-    """Copy package resources to a temporary directory on disk.
-
-    PyOxidizer cannot read Python files from memory.
-    """
-    from importlib.resources import contents, is_resource, read_binary
-    from tempfile import TemporaryDirectory
-
-    with TemporaryDirectory() as tmp_dir:
-        tmp_path = Path(tmp_dir)
-
-        for package in packages:
-            for resource in filter(partial(is_resource, package), contents(package)):
-                parent_dir = tmp_path.joinpath(*package.split('.'))
-                if not parent_dir.is_dir():
-                    parent_dir.mkdir(parents=True)
-
-                filename = parent_dir / resource
-                # PyOxidizer does not expose Python source files to `importlib`
-                # (see https://github.com/indygreg/PyOxidizer/issues/237).
-                # The filenames of Python files have a secondary ".0" extension
-                # so that PyOx will regard them as binary resources.
-                # The extension is then removed when they're copied into
-                # the temporary folder
-                if filename.suffix == '.0':
-                    filename = filename.with_suffix('')
-                filename.write_bytes(read_binary(package, resource))
-        yield tmp_path
 
 
 def tabulate(rows: Sequence[Sequence[object]], *, max_col_width: int = 60) -> str:

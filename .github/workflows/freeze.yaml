@@ -28,43 +28,6 @@ jobs:
       id: get-version
       run: |
         echo "::set-output name=INSTAWOW_VERSION::$(dunamai from git --no-metadata)"
-  freeze-cli:
-    needs: get-version
-    strategy:
-      matrix:
-        os:
-        - macos-latest
-        - ubuntu-18.04
-        - windows-latest
-      fail-fast: false
-    runs-on: ${{ matrix.os }}
-    steps:
-    - name: Clone the repo
-      uses: actions/checkout@v2
-      with:
-        fetch-depth: 0
-    - name: Install Python
-      uses: actions/setup-python@v2
-      with:
-        python-version: '3.9'
-    - name: Build instawow dists and generate a `requirements.txt` for pyoxidizer
-      run: |
-        python -m pip install nox
-        python -m nox -s build_dists
-        echo "../$(find dist -name 'instawow-*.whl')" > instawow-standalone/requirements.txt
-    - name: Install and run pyoxidizer
-      run: |
-        python -m pip install pyoxidizer
-        LD_LIBRARY_PATH= pyoxidizer build --release | tee >(
-          output_folder=$(tail -n 1 | cut -c 21-)
-          cp -R $output_folder dist
-        )
-      working-directory: instawow-standalone
-    - name: Upload output
-      uses: actions/upload-artifact@v2
-      with:
-        name: instawow-cli-${{ needs.get-version.outputs.instawow-version }}-${{ matrix.os }}
-        path: instawow-standalone/dist
   freeze-gui:
     needs: get-version
     strategy:
@@ -111,12 +74,11 @@ jobs:
       working-directory: gui-webview
     - name: Install and run briefcase
       run: |
-        python -m pip install \
-          'briefcase @ git+https://github.com/layday/briefcase@instawow'
-        briefcase build ${{ matrix.build-env.briefcase-build-opts }}
-        briefcase package ${{ matrix.build-env.briefcase-package-opts }} | tee >(
-          echo "INSTAWOW_ARTIFACT_PATH=gui-webview/$(tail -n 1 | cut -c 33-)" >> $GITHUB_ENV
-        )
+        python -m pip install 'briefcase @ git+https://github.com/layday/briefcase@instawow'
+        python -m briefcase build ${{ matrix.build-env.briefcase-build-opts }}
+        python -m briefcase package ${{ matrix.build-env.briefcase-package-opts }} | tee >(
+            echo "INSTAWOW_ARTIFACT_PATH=gui-webview/$(tail -n 1 | cut -c 33-)" >> $GITHUB_ENV
+          )
       env:
         # Install a pure Python copy of Pydantic because of its enormous size
         # when cythonized.

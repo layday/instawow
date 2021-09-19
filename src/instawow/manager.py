@@ -49,7 +49,6 @@ from .resolvers import (
 from .utils import (
     bucketise,
     chain_dict,
-    copy_resources,
     file_uri_to_path,
     find_zip_base_dirs,
     gather,
@@ -212,26 +211,18 @@ def prepare_database(config: Config) -> sa_engine.Engine:
             should_migrate = not current
 
     if should_migrate:
-        from alembic.command import stamp, upgrade
-        from alembic.config import Config as AlembicConfig
+        import alembic.command
+        import alembic.config
 
-        with copy_resources(
-            f'{__package__}.migrations',
-            f'{__package__}.migrations.versions',
-        ) as tmp_dir:
-            alembic_config = AlembicConfig()
-            alembic_config.set_main_option(
-                'script_location',
-                # f'{__package__}:migrations',
-                str(tmp_dir / __package__ / 'migrations'),
-            )
-            alembic_config.set_main_option('sqlalchemy.url', str(engine.url))
+        alembic_config = alembic.config.Config()
+        alembic_config.set_main_option('script_location', f'{__package__}:migrations')
+        alembic_config.set_main_option('sqlalchemy.url', str(engine.url))
 
-            if sa.inspect(engine).get_table_names():
-                upgrade(alembic_config, DB_REVISION)
-            else:
-                db.metadata.create_all(engine)
-                stamp(alembic_config, DB_REVISION)
+        if sa.inspect(engine).get_table_names():
+            alembic.command.upgrade(alembic_config, DB_REVISION)
+        else:
+            db.metadata.create_all(engine)
+            alembic.command.stamp(alembic_config, DB_REVISION)
 
     return engine
 
