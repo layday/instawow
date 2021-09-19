@@ -7,29 +7,29 @@ jobs:
       fail-fast: false
       matrix:
         os: [macos-latest, ubuntu-latest, windows-latest]
-        python-version: ['3.7', '3.8', '3.9']
+        python-version: ["3.7", "3.8", "3.9"]
         include:
-        - os: ubuntu-latest
-          python-version: '3.10'
-          python-install-version: 3.10-dev
+          - os: ubuntu-latest
+            python-version: "3.10"
+            python-install-version: 3.10-dev
     runs-on: ${{ matrix.os }}
     steps:
-    - name: Clone the repo
-      uses: actions/checkout@v2
-    - name: Install Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
-      with:
-        python-version: ${{ matrix.python-install-version || matrix.python-version }}
-    - name: Install toga Linux dependencies
-      run: |
-        sudo apt-get install -y libgirepository1.0-dev
-      if: matrix.os == 'ubuntu-latest'
-    - name: Install nox
-      run: |
-        python -m pip install nox
-    - name: Run pytest
-      run: |
-        python -m nox -s test -p ${{ matrix.python-version }} --error-on-missing-interpreters
-    - name: Run pyright
-      run: |
-        python -m nox -s type_check -p ${{ matrix.python-version }}
+      - name: Clone the repo
+        uses: actions/checkout@v2
+      - name: Install Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-install-version || matrix.python-version }}
+      - name: Install toga Linux dependencies
+        run: |
+          sudo apt-get install -y libgirepository1.0-dev
+        if: matrix.os == 'ubuntu-latest'
+      - name: Install nox
+        run: |
+          python -m pip install nox
+      - name: Run pytest
+        run: |
+          python -m nox -s test -p ${{ matrix.python-version }} --error-on-missing-interpreters
+      - name: Run pyright
+        run: |
+          python -m nox -s type_check -p ${{ matrix.python-version }}

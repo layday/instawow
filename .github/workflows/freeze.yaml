@@ -13,80 +13,79 @@ jobs:
     outputs:
       instawow-version: ${{ steps.get-version.outputs.INSTAWOW_VERSION }}
     steps:
-    - name: Clone the repo
-      uses: actions/checkout@v2
-      with:
-        fetch-depth: 0
-    - name: Install Python
-      uses: actions/setup-python@v2
-      with:
-        python-version: '3.9'
-    - name: Install dunamai
-      run: |
-        python -m pip install dunamai
-    - name: Grab the version
-      id: get-version
-      run: |
-        echo "::set-output name=INSTAWOW_VERSION::$(dunamai from git --no-metadata)"
+      - name: Clone the repo
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - name: Install Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: "3.9"
+      - name: Install dunamai
+        run: |
+          python -m pip install dunamai
+      - name: Grab the version
+        id: get-version
+        run: |
+          echo "::set-output name=INSTAWOW_VERSION::$(dunamai from git --no-metadata)"
   freeze-gui:
     needs: get-version
     strategy:
       matrix:
         build-env:
-        - os: macos-latest
-          python-version: '3.9'
-          briefcase-build-opts: ''
-          briefcase-package-opts: '--no-sign'
-        - os: ubuntu-18.04
-          python-version: '3.9'
-          briefcase-build-opts: '--no-docker'
-          briefcase-package-opts: ''
-        - os: windows-latest
-          python-version: '3.8'
-          briefcase-build-opts: ''
-          briefcase-package-opts: ''
+          - os: macos-latest
+            python-version: "3.9"
+            briefcase-build-opts: ""
+            briefcase-package-opts: "--no-sign"
+          - os: ubuntu-18.04
+            python-version: "3.9"
+            briefcase-build-opts: "--no-docker"
+            briefcase-package-opts: ""
+          - os: windows-latest
+            python-version: "3.8"
+            briefcase-build-opts: ""
+            briefcase-package-opts: ""
       fail-fast: false
     runs-on: ${{ matrix.build-env.os }}
     steps:
-    - name: Clone the repo
-      uses: actions/checkout@v2
-      with:
-        fetch-depth: 0
-    - name: Install briefcase Linux dependencies
-      run: sudo apt-get update --fix-missing && sudo apt-get install -y
-        patchelf pkgconf
-        libgtk-3-dev libwebkit2gtk-4.0-dev
-        libgirepository1.0-dev gir1.2-javascriptcoregtk-4.0 gir1.2-webkit2-4.0
-      if: matrix.build-env.os == 'ubuntu-18.04'
-    - name: Install Python
-      uses: actions/setup-python@v2
-      with:
-        python-version: ${{ matrix.build-env.python-version }}
-    - name: Bundle the frontend
-      run: |
-        npm install
-        npx rollup -c
-      working-directory: gui-webview/frontend
-    - name: Patch in the version number
-      run: sed -i.bak
-        's/version = "0.0.0"/version = "${{ needs.get-version.outputs.instawow-version }}"/'
-        pyproject.toml
-      working-directory: gui-webview
-    - name: Install and run briefcase
-      run: |
-        python -m pip install 'briefcase @ git+https://github.com/layday/briefcase@instawow'
-        python -m briefcase build ${{ matrix.build-env.briefcase-build-opts }}
-        python -m briefcase package ${{ matrix.build-env.briefcase-package-opts }} | tee >(
-            echo "INSTAWOW_ARTIFACT_PATH=gui-webview/$(tail -n 1 | cut -c 33-)" >> $GITHUB_ENV
-          )
-      env:
-        # Install a pure Python copy of Pydantic because of its enormous size
-        # when cythonized.
-        PIP_NO_BINARY: 'pydantic'
-      working-directory: gui-webview
-    - name: Upload output
-      uses: actions/upload-artifact@v2
-      with:
-        name:
-          instawow-gui-${{ needs.get-version.outputs.instawow-version }}-${{ matrix.build-env.os }}
-        path: ${{ env.INSTAWOW_ARTIFACT_PATH }}
+      - name: Clone the repo
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - name: Install briefcase Linux dependencies
+        run: sudo apt-get update --fix-missing && sudo apt-get install -y
+          patchelf pkgconf
+          libgtk-3-dev libwebkit2gtk-4.0-dev
+          libgirepository1.0-dev gir1.2-javascriptcoregtk-4.0 gir1.2-webkit2-4.0
+        if: matrix.build-env.os == 'ubuntu-18.04'
+      - name: Install Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.build-env.python-version }}
+      - name: Bundle the frontend
+        run: |
+          npm install
+          npx rollup -c
+        working-directory: gui-webview/frontend
+      - name: Patch in the version number
+        run: sed -i.bak
+          's/version = "0.0.0"/version = "${{ needs.get-version.outputs.instawow-version }}"/'
+          pyproject.toml
+        working-directory: gui-webview
+      - name: Install and run briefcase
+        run: |
+          python -m pip install 'briefcase @ git+https://github.com/layday/briefcase@instawow'
+          python -m briefcase build ${{ matrix.build-env.briefcase-build-opts }}
+          python -m briefcase package ${{ matrix.build-env.briefcase-package-opts }} | tee >(
+              echo "INSTAWOW_ARTIFACT_PATH=gui-webview/$(tail -n 1 | cut -c 33-)" >> $GITHUB_ENV
+            )
+        env:
+          # Install a pure Python copy of Pydantic because of its enormous size
+          # when cythonized.
+          PIP_NO_BINARY: "pydantic"
+        working-directory: gui-webview
+      - name: Upload output
+        uses: actions/upload-artifact@v2
+        with:
+          name: instawow-gui-${{ needs.get-version.outputs.instawow-version }}-${{ matrix.build-env.os }}
+          path: ${{ env.INSTAWOW_ARTIFACT_PATH }}
