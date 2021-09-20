@@ -184,11 +184,9 @@ class WaCompanionBuilder:
     ) -> list[WagoApiResponse]:
         from aiohttp import ClientResponseError
 
-        from .manager import cache_response
-
         try:
             return sorted(
-                await cache_response(
+                await manager.cache_response(
                     self.manager,
                     api_url.with_query(ids=','.join(aura_ids)),
                     {'minutes': 30},
@@ -203,9 +201,7 @@ class WaCompanionBuilder:
             return []
 
     async def _fetch_wago_import_string(self, aura: WagoApiResponse) -> str:
-        from .manager import cache_response
-
-        return await cache_response(
+        return await manager.cache_response(
             self.manager,
             IMPORT_API_URL.with_query(id=aura['_id']).with_fragment(str(aura['version'])),
             {'days': 1},
