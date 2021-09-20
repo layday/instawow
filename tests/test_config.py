@@ -72,7 +72,9 @@ def test_can_infer_flavour_from_path():
         is Flavour.burning_crusade_classic
     )
     assert Config.infer_flavour('_classic_era_/Interface/AddOns') is Flavour.vanilla_classic
+    assert Config.infer_flavour('_classic_era_ptr_/Interface/AddOns') is Flavour.vanilla_classic
     assert Config.infer_flavour('wowzerz/_retail_/Interface/AddOns') is Flavour.retail
+    assert Config.infer_flavour('anything goes') is Flavour.retail
 
 
 def test_can_list_profiles(monkeypatch, iw_config_dict):

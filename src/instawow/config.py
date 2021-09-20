@@ -91,7 +91,7 @@ class Config(BaseConfig):
         tail = tuple(map(str.casefold, PurePath(folder).parts[-3:]))
         if len(tail) != 3 or tail[1:] != ('interface', 'addons'):
             return Flavour.retail
-        elif tail[0] == '_classic_era_':
+        elif tail[0] in {'_classic_era_', '_classic_era_ptr_'}:
             return Flavour.vanilla_classic
         elif tail[0] in {'_classic_', '_classic_beta_', '_classic_ptr_'}:
             return Flavour.burning_crusade_classic
