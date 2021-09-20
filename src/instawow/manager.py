@@ -179,7 +179,7 @@ async def cache_response(
 
     dest = manager.config.cache_dir / shasum(url, request_extra)
     if await t(is_not_stale)(dest, ttl):
-        logger.debug(f'{url} is cache at {dest} (ttl: {ttl})')
+        logger.debug(f'{url} is cached at {dest} (ttl: {ttl})')
         text = await t(dest.read_text)(encoding='utf-8')
     else:
         text = await make_request()
