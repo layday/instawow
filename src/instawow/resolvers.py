@@ -861,9 +861,6 @@ class GithubResolver(BaseResolver):
     async def resolve_one(self, defn: Defn, metadata: None) -> models.Pkg:
         from aiohttp import ClientResponseError
 
-        if defn.strategy not in self.strategies:
-            raise R.PkgStrategyUnsupported(defn.strategy)
-
         repo_url = self.repos_api_url / defn.alias
 
         try:
