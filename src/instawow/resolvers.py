@@ -446,17 +446,18 @@ class CurseResolver(BaseResolver):
                 break
 
             for item in items:
+                folders = uniq(
+                    frozenset(m['foldername'] for m in f['modules'])
+                    for f in item['latestFiles']
+                    if not f['exposeAsAlternative']
+                )
                 yield CatatalogueBaseEntry(
                     source=cls.source,
                     id=item['id'],
                     slug=item['slug'],
                     name=item['name'],
                     game_flavours=excise_flavours(item['latestFiles']),
-                    folders=uniq(
-                        set(m['foldername'] for m in f['modules'])
-                        for f in item['latestFiles']
-                        if not f['exposeAsAlternative']
-                    ),
+                    folders=folders,
                     download_count=item['downloadCount'],
                     last_updated=item['dateReleased'],
                 )

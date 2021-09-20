@@ -11,7 +11,7 @@ from pathlib import Path, PurePath
 import posixpath
 from shutil import move as _move
 from tempfile import mkdtemp
-from typing import Generic, TypeVar, overload
+from typing import Generic, Hashable, TypeVar, overload
 
 from typing_extensions import TypeAlias
 
@@ -19,6 +19,7 @@ from . import _deferred_types
 
 _T = TypeVar('_T')
 _U = TypeVar('_U')
+_H = TypeVar('_H', bound=Hashable)
 _StrPath: TypeAlias = 'os.PathLike[str] | str'
 
 
@@ -80,7 +81,7 @@ def chain_dict(
     return dict(chain(zip(keys, repeat(default)), *overrides))
 
 
-def uniq(it: Iterable[_T]) -> list[_T]:
+def uniq(it: Iterable[_H]) -> list[_H]:
     "Deduplicate hashable items in an iterable maintaining insertion order."
     return list(dict.fromkeys(it))
 
