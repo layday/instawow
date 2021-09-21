@@ -90,7 +90,7 @@ source_pkgs = [
   "instawow",
 ]
 omit = [
-  "**/instawow/migrations",
+  "**/instawow/migrations/*",
 ]
 parallel = true
 branch = true
@@ -116,8 +116,8 @@ include = [
   "gui-webview/src",
 ]
 ignore = [
-  "gui-webview/src/instawow_gui/cef_adapter.py",
   "src/instawow/migrations",
+  "gui-webview/src/instawow_gui/cef_adapter.py",
 ]
 useLibraryCodeForTypes = true
 typeCheckingMode = "strict"
