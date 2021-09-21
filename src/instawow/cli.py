@@ -9,7 +9,7 @@ from functools import partial
 from itertools import chain
 from pathlib import Path
 import textwrap
-from typing import Any, TypeVar, overload
+from typing import Any, NoReturn, TypeVar, overload
 
 import click
 
@@ -74,9 +74,9 @@ class Report:
         if report:
             click.echo(report)
 
-    def generate_and_exit(self) -> None:
+    def generate_and_exit(self) -> NoReturn:
         self.generate()
-        ctx = click.get_current_context()
+        ctx: click.Context = click.get_current_context()
         ctx.exit(self.exit_code)
 
 
@@ -420,8 +420,8 @@ def rollback(obj: ManagerWrapper, addon: Defn, version: str | None, undo: bool) 
 
     pkg = manager.get_pkg(addon)
     if not pkg:
-        Report([(addon, R.PkgNotInstalled())]).generate_and_exit()
-        return  # pragma: no cover
+        report: Report = Report([(addon, R.PkgNotInstalled())])
+        report.generate_and_exit()
 
     if Strategy.version not in manager.resolvers[pkg.source].strategies:
         Report([(addon, R.PkgStrategyUnsupported(Strategy.version))]).generate_and_exit()
