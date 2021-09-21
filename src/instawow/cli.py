@@ -180,7 +180,7 @@ class ManagerWrapper:
         except FileNotFoundError:
             config = self.ctx.invoke(configure, promptless=False)
 
-        setup_logging(config, self.ctx.params['log_level'])
+        setup_logging(config, self.ctx.params['log_level'], self.ctx.params['log_to_stderr'])
 
         manager = M.Manager.from_config(config)
         return manager
@@ -240,13 +240,20 @@ def _set_log_level(_: click.Context, __: click.Parameter, value: bool) -> str:
     help='Log more things.',
 )
 @click.option(
+    '--log-to-stderr',
+    is_flag=True,
+    default=False,
+    help='Log to stderr for development.',
+    hidden=True,
+)
+@click.option(
     '--profile',
     '-p',
     default='__default__',
     help='Activate the specified profile.',
 )
 @click.pass_context
-def main(ctx: click.Context, log_level: str, profile: str) -> None:
+def main(ctx: click.Context, log_level: str, log_to_stderr: bool, profile: str) -> None:
     "Add-on manager for World of Warcraft."
     _apply_patches()
     ctx.obj = ManagerWrapper(ctx)
@@ -822,17 +829,13 @@ def generate_catalogue(filename: str, age_cutoff: datetime | None) -> None:
 
 
 @main.command(hidden=True)
-@click.option(
-    '--log-to-stderr', is_flag=True, default=False, help="Log to stderr for development."
-)
 @click.pass_context
-def gui(ctx: click.Context, log_to_stderr: bool) -> None:
+def gui(ctx: click.Context) -> None:
     "Fire up the GUI."
     from instawow_gui import InstawowApp
 
-    if not log_to_stderr:
-        log_level = ctx.find_root().params['log_level']
-        dummy_config = Config.get_dummy_config(profile='__jsonrpc__').ensure_dirs()
-        setup_logging(dummy_config, log_level)
+    dummy_config = Config.get_dummy_config(profile='__jsonrpc__').ensure_dirs()
+    params = ctx.find_root().params
+    setup_logging(dummy_config, params['log_level'], params['log_to_stderr'])
 
     InstawowApp(version=__version__).main_loop()

@@ -178,7 +178,9 @@ class Config(BaseConfig):
         return self.temp_dir / 'cache'
 
 
-def setup_logging(config: Config, log_level: str = 'INFO') -> int:
+def setup_logging(
+    config: Config, log_level: str = 'INFO', log_to_stderr: bool = False
+) -> int | None:
     import logging
 
     class InterceptHandler(logging.Handler):  # pragma: no cover
@@ -202,15 +204,16 @@ def setup_logging(config: Config, log_level: str = 'INFO') -> int:
 
     logging.basicConfig(handlers=[InterceptHandler()], level=log_level)
 
-    (handler_id,) = logger.configure(
-        handlers=(
-            {
-                'sink': config.logging_dir / 'error.log',
-                'level': log_level,
-                'rotation': '5 MB',
-                'retention': 5,  # Number of log files to keep
-                'enqueue': True,
-            },
+    if not log_to_stderr:
+        (handler_id,) = logger.configure(
+            handlers=[
+                {
+                    'sink': config.logging_dir / 'error.log',
+                    'level': log_level,
+                    'rotation': '5 MB',
+                    'retention': 5,  # Number of log files to keep
+                    'enqueue': True,
+                },
+            ]
         )
-    )
-    return handler_id
+        return handler_id
