@@ -60,7 +60,7 @@ from .utils import (
 from .utils import run_in_thread as t
 from .utils import shasum, trash, uniq
 
-if TYPE_CHECKING:
+if TYPE_CHECKING:  # pragma: no cover
     _BaseResolverDict: TypeAlias = 'dict[str, Resolver]'
 else:
     _BaseResolverDict = dict

@@ -20,7 +20,7 @@ from .utils import run_in_thread as t
 from .utils import shasum
 
 # ``NotRequired`` is provisional and does not exist at runtime
-if TYPE_CHECKING:
+if TYPE_CHECKING:  # pragma: no cover
     from typing_extensions import NotRequired as Ν
 
 
