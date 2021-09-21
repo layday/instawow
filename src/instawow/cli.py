@@ -652,11 +652,13 @@ def list_installed(
             sa.select(db.pkg)
             .filter(
                 sa.or_(
-                    db.pkg.c.slug.contains(d.alias)
-                    if d.source == '*'
-                    else (db.pkg.c.source == d.source)
-                    & ((db.pkg.c.id == d.alias) | (db.pkg.c.slug == d.alias))
-                    for d in addons
+                    *(
+                        db.pkg.c.slug.contains(d.alias)
+                        if d.source == '*'
+                        else (db.pkg.c.source == d.source)
+                        & ((db.pkg.c.id == d.alias) | (db.pkg.c.slug == d.alias))
+                        for d in addons
+                    )
                 )
                 if addons
                 else True
