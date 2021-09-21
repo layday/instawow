@@ -640,10 +640,13 @@ def list_installed(
 
     def format_deps(pkg: models.Pkg):
         return (
-            (d.with_(alias=p.slug) if p else d).to_urn()
+            Defn(pkg.source, s or e.id).to_urn()
             for e in pkg.deps
-            for d in (Defn(pkg.source, e.id),)
-            for p in (obj.m.get_pkg(d),)
+            for s in (
+                obj.m.database.execute(
+                    sa.select(db.pkg.c.slug).filter_by(source=pkg.source, id=e.id)
+                ).scalar_one_or_none(),
+            )
         )
 
     pkgs = [
