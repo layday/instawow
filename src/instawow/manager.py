@@ -749,6 +749,7 @@ class Manager:
                     .filter_by(pkg_source=pkg.source, pkg_id=pkg.id)
                     .values(strategy=defn.strategy)
                 )
+                self.database.commit()
                 row_mapping = (
                     self.database.execute(
                         sa.select(db.pkg).filter_by(source=pkg.source, id=pkg.id)
