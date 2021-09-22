@@ -494,6 +494,13 @@ def test_search__install_multiple_conflicting(feed_pt, iw_config, run):
     }
 
 
+@pytest.mark.parametrize('arg', ['', 'curse:molinari'])
+def test_can_view_changelog_arg_and_argless(molinari_and_run, arg):
+    assert molinari_and_run(f'view-changelog {arg}').output.startswith(
+        '<h3>Changes in 90000.73-Release:</h3>'
+    )
+
+
 @pytest.mark.parametrize(
     'command, exit_code',
     [
@@ -517,7 +524,6 @@ def test_can_list_with_substr_match(molinari_and_run):
 
 
 def test_json_export(iw_config, molinari_and_run):
-    export_json = iw_config.config_dir.parent / 'export.json'
     output = molinari_and_run('list -f json').output
     assert PkgList.parse_raw(output).__root__[0].name == 'Molinari'
 

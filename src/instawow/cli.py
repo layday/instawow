@@ -22,7 +22,7 @@ from .common import Strategy
 from .config import Config, Flavour, setup_logging
 from .plugins import load_plugins
 from .resolvers import Defn
-from .utils import cached_property, is_outdated, make_progress_bar, tabulate, uniq
+from .utils import cached_property, gather, is_outdated, make_progress_bar, tabulate, uniq
 
 _T = TypeVar('_T')
 
@@ -272,9 +272,17 @@ def parse_into_defn(
     ...
 
 
+@overload
+def parse_into_defn(manager: M.Manager, value: None, *, raise_invalid: bool = True) -> None:
+    ...
+
+
 def parse_into_defn(
-    manager: M.Manager, value: str | list[str], *, raise_invalid: bool = True
-) -> Defn | list[Defn]:
+    manager: M.Manager, value: str | list[str] | None, *, raise_invalid: bool = True
+) -> Defn | list[Defn] | None:
+    if value is None:
+        return None
+
     if not isinstance(value, str):
         defns = (parse_into_defn(manager, v, raise_invalid=raise_invalid) for v in value)
         return uniq(defns)
@@ -717,15 +725,45 @@ def reveal(obj: ManagerWrapper, addon: Defn) -> None:
 
 
 @main.command()
-@click.argument('addon', callback=_with_manager(partial(parse_into_defn, raise_invalid=False)))
+@click.argument(
+    'addon', callback=_with_manager(partial(parse_into_defn, raise_invalid=False)), required=False
+)
 @click.pass_obj
-def view_changelog(obj: ManagerWrapper, addon: Defn) -> None:
+def view_changelog(obj: ManagerWrapper, addon: Defn | None) -> None:
     "View the changelog of an installed add-on."
-    pkg = obj.m.get_pkg(addon, partial_match=True)
-    if pkg:
-        click.echo_via_pager(run_with_progress(obj.m.get_changelog(pkg.changelog_url)))
+    if addon:
+        pkg = obj.m.get_pkg(addon, partial_match=True)
+        if pkg:
+            click.echo_via_pager(run_with_progress(obj.m.get_changelog(pkg.changelog_url)))
+        else:
+            Report([(addon, R.PkgNotInstalled())]).generate_and_exit()
+
     else:
-        Report([(addon, R.PkgNotInstalled())]).generate_and_exit()
+        import sqlalchemy as sa
+
+        last_installed_changelog_urls = (
+            obj.m.database.execute(
+                sa.select(db.pkg.c.changelog_url)
+                .join(
+                    db.pkg_version_log,
+                    (
+                        (db.pkg.c.source == db.pkg_version_log.c.pkg_source)
+                        & (db.pkg.c.id == db.pkg_version_log.c.pkg_id)
+                    ),
+                )
+                .filter_by(
+                    install_time=sa.select(
+                        sa.func.max(db.pkg_version_log.c.install_time)
+                    ).scalar_subquery()
+                )
+            )
+            .scalars()
+            .all()
+        )
+        changelogs = run_with_progress(
+            gather(map(obj.m.get_changelog, last_installed_changelog_urls))
+        )
+        click.echo_via_pager('\n\n'.join(changelogs))
 
 
 def _show_active_config(ctx: click.Context, __: click.Parameter, value: bool) -> None:

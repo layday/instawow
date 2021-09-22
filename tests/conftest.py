@@ -149,7 +149,7 @@ def mock_curse(aresponses, mock_master_catalogue):
     )
     aresponses.add(
         'addons-ecs.forgesvc.net',
-        '/api/v2/addon/20338/file/3152268/changelog',
+        re.compile(r'^/api/v2/addon/20338/file/(\d+)/changelog'),
         'get',
         aresponses.Response(text=load_fixture('curse-addon-changelog.txt').decode()),
         repeat=inf,
