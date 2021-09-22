@@ -6,7 +6,7 @@ from typing import Any, Mapping
 
 from pydantic import BaseModel
 import sqlalchemy as sa
-import sqlalchemy.engine as sa_engine
+import sqlalchemy.future as sa_future
 from typing_extensions import TypeAlias, TypeGuard
 
 from . import db
@@ -48,7 +48,7 @@ class Pkg(BaseModel):
 
     @classmethod
     def from_row_mapping(
-        cls, connection: sa_engine.Connection, row_mapping: Mapping[str, Any]
+        cls, connection: sa_future.Connection, row_mapping: Mapping[str, Any]
     ) -> Pkg:
         return cls.parse_obj(
             {
@@ -85,63 +85,63 @@ class Pkg(BaseModel):
             }
         )
 
-    def insert(self, connection: sa_engine.Connection) -> None:
-        with connection.begin():
-            pkg_dict = self.dict()
+    def insert(self, connection: sa_future.Connection) -> None:
+        pkg_dict = self.dict()
+        connection.execute(
+            sa.insert(db.pkg),
+            [pkg_dict],
+        )
+        connection.execute(
+            sa.insert(db.pkg_folder),
+            [
+                {**f, 'pkg_source': pkg_dict['source'], 'pkg_id': pkg_dict['id']}
+                for f in pkg_dict['folders']
+            ],
+        )
+        connection.execute(
+            sa.insert(db.pkg_options),
+            [
+                {
+                    **pkg_dict['options'],
+                    'pkg_source': pkg_dict['source'],
+                    'pkg_id': pkg_dict['id'],
+                }
+            ],
+        )
+        if pkg_dict['deps']:
             connection.execute(
-                sa.insert(db.pkg),
-                [pkg_dict],
-            )
-            connection.execute(
-                sa.insert(db.pkg_folder),
+                sa.insert(db.pkg_dep),
                 [
                     {**f, 'pkg_source': pkg_dict['source'], 'pkg_id': pkg_dict['id']}
-                    for f in pkg_dict['folders']
+                    for f in pkg_dict['deps']
                 ],
             )
-            connection.execute(
-                sa.insert(db.pkg_options),
-                [
-                    {
-                        **pkg_dict['options'],
-                        'pkg_source': pkg_dict['source'],
-                        'pkg_id': pkg_dict['id'],
-                    }
-                ],
-            )
-            if pkg_dict['deps']:
-                connection.execute(
-                    sa.insert(db.pkg_dep),
-                    [
-                        {**f, 'pkg_source': pkg_dict['source'], 'pkg_id': pkg_dict['id']}
-                        for f in pkg_dict['deps']
-                    ],
-                )
-            connection.execute(
-                sa.insert(db.pkg_version_log).prefix_with('OR IGNORE'),
-                [
-                    {
-                        'version': pkg_dict['version'],
-                        'pkg_source': pkg_dict['source'],
-                        'pkg_id': pkg_dict['id'],
-                    }
-                ],
-            )
+        connection.execute(
+            sa.insert(db.pkg_version_log).prefix_with('OR IGNORE'),
+            [
+                {
+                    'version': pkg_dict['version'],
+                    'pkg_source': pkg_dict['source'],
+                    'pkg_id': pkg_dict['id'],
+                }
+            ],
+        )
+        connection.commit()
 
-    def delete(self, connection: sa_engine.Connection) -> None:
-        with connection.begin():
-            connection.execute(
-                sa.delete(db.pkg_dep).filter_by(pkg_source=self.source, pkg_id=self.id),
-            )
-            connection.execute(
-                sa.delete(db.pkg_folder).filter_by(pkg_source=self.source, pkg_id=self.id),
-            )
-            connection.execute(
-                sa.delete(db.pkg_options).filter_by(pkg_source=self.source, pkg_id=self.id),
-            )
-            connection.execute(
-                sa.delete(db.pkg).filter_by(source=self.source, id=self.id),
-            )
+    def delete(self, connection: sa_future.Connection) -> None:
+        connection.execute(
+            sa.delete(db.pkg_dep).filter_by(pkg_source=self.source, pkg_id=self.id),
+        )
+        connection.execute(
+            sa.delete(db.pkg_folder).filter_by(pkg_source=self.source, pkg_id=self.id),
+        )
+        connection.execute(
+            sa.delete(db.pkg_options).filter_by(pkg_source=self.source, pkg_id=self.id),
+        )
+        connection.execute(
+            sa.delete(db.pkg).filter_by(source=self.source, id=self.id),
+        )
+        connection.commit()
 
     # Pydantic sets this to ``None`` unless the model is marked as "frozen",
     # presumably because it overrides ``__eq__``, which we're not interested in.

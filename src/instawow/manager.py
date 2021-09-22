@@ -24,8 +24,8 @@ import urllib.parse
 
 from loguru import logger
 import sqlalchemy as sa
-import sqlalchemy.engine as sa_engine
 import sqlalchemy.exc as sa_exc
+import sqlalchemy.future as sa_future
 from typing_extensions import Literal, TypeAlias, TypedDict
 from yarl import URL
 
@@ -188,13 +188,14 @@ async def cache_response(
     return json.loads(text) if is_json else text
 
 
-def prepare_database(config: Config) -> sa_engine.Engine:
+def prepare_database(config: Config) -> sa_future.Engine:
     engine = sa.create_engine(
         f'sqlite:///{config.db_file}',
         # We wanna be able to operate on SQLite objects from executor threads
         # for convenience, when performing disk I/O
         connect_args={'check_same_thread': False},
         # echo=True,
+        future=True,
     )
 
     with engine.begin() as connection:
@@ -315,10 +316,10 @@ class Manager:
     def __init__(
         self,
         config: Config,
-        database: sa_engine.Connection,
+        database: sa_future.Connection,
     ) -> None:
         self.config: Config = config
-        self.database: sa_engine.Connection = database
+        self.database: sa_future.Connection = database
 
         plugin_hook = load_plugins()
         resolver_classes = chain(
