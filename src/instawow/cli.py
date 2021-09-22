@@ -21,7 +21,7 @@ from . import results as R
 from .common import Strategy
 from .config import Config, Flavour, setup_logging
 from .plugins import load_plugins
-from .resolvers import Defn
+from .resolvers import ChangelogFormat, Defn
 from .utils import cached_property, gather, is_outdated, make_progress_bar, tabulate, uniq
 
 _T = TypeVar('_T')
@@ -728,41 +728,62 @@ def reveal(obj: ManagerWrapper, addon: Defn) -> None:
 @click.argument(
     'addon', callback=_with_manager(partial(parse_into_defn, raise_invalid=False)), required=False
 )
+@click.option(
+    '--convert',
+    is_flag=True,
+    default=False,
+    help='Convert output to plain text.  Requires pandoc.',
+)
 @click.pass_obj
-def view_changelog(obj: ManagerWrapper, addon: Defn | None) -> None:
+def view_changelog(obj: ManagerWrapper, addon: Defn | None, convert: bool) -> None:
     "View the changelog of an installed add-on."
+
+    def do_convert(source: str, changelog: str):
+        import subprocess
+
+        changelog_format = obj.m.resolvers[source].changelog_format
+        if changelog_format not in {ChangelogFormat.html, ChangelogFormat.markdown}:
+            return changelog
+        else:
+            return subprocess.check_output(
+                ['pandoc', '-f', changelog_format, '-t', 'plain'], input=changelog, text=True
+            )
+
     if addon:
         pkg = obj.m.get_pkg(addon, partial_match=True)
         if pkg:
-            click.echo_via_pager(run_with_progress(obj.m.get_changelog(pkg.changelog_url)))
+            changelog = run_with_progress(obj.m.get_changelog(pkg.changelog_url))
+            if convert:
+                changelog = do_convert(pkg.source, changelog)
+            click.echo_via_pager(changelog)
         else:
             Report([(addon, R.PkgNotInstalled())]).generate_and_exit()
 
     else:
         import sqlalchemy as sa
 
-        last_installed_changelog_urls = (
-            obj.m.database.execute(
-                sa.select(db.pkg.c.changelog_url)
-                .join(
-                    db.pkg_version_log,
-                    (
-                        (db.pkg.c.source == db.pkg_version_log.c.pkg_source)
-                        & (db.pkg.c.id == db.pkg_version_log.c.pkg_id)
-                    ),
-                )
-                .filter_by(
-                    install_time=sa.select(
-                        sa.func.max(db.pkg_version_log.c.install_time)
-                    ).scalar_subquery()
-                )
+        last_installed_changelog_urls = obj.m.database.execute(
+            sa.select(db.pkg.c.source, db.pkg.c.changelog_url)
+            .join(
+                db.pkg_version_log,
+                (
+                    (db.pkg.c.source == db.pkg_version_log.c.pkg_source)
+                    & (db.pkg.c.id == db.pkg_version_log.c.pkg_id)
+                ),
             )
-            .scalars()
-            .all()
-        )
+            .filter_by(
+                install_time=sa.select(
+                    sa.func.max(db.pkg_version_log.c.install_time)
+                ).scalar_subquery()
+            )
+        ).all()
         changelogs = run_with_progress(
-            gather(map(obj.m.get_changelog, last_installed_changelog_urls))
+            gather(obj.m.get_changelog(u) for _, u in last_installed_changelog_urls)
         )
+        if convert:
+            changelogs = (
+                do_convert(s, c) for (s, _), c in zip(last_installed_changelog_urls, changelogs)
+            )
         click.echo_via_pager('\n\n'.join(changelogs))
 
 
