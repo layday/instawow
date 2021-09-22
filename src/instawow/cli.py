@@ -146,7 +146,7 @@ def _cancel_tickers() -> Iterator[set[asyncio.Task[None]]]:
 
 
 def run_with_progress(awaitable: Awaitable[_T]) -> _T:
-    with make_progress_bar() as bar, _cancel_tickers() as tickers:
+    with _cancel_tickers() as tickers, make_progress_bar() as bar:
 
         async def run():
             async with _init_cli_web_client(bar, tickers) as web_client:
