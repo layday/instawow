@@ -4,6 +4,8 @@ on:
   push:
     # tags:
     # - v*
+env:
+  FORCE_COLOR: "1"
 defaults:
   run:
     shell: bash
