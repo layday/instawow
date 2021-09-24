@@ -30,6 +30,31 @@ jobs:
         id: get-version
         run: |
           echo "::set-output name=INSTAWOW_VERSION::$(dunamai from git --no-metadata)"
+  freeze-cli:
+    needs: get-version
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Clone the repo
+        uses: actions/checkout@v2
+      - name: Install Python 3.9
+        uses: actions/setup-python@v2
+        with:
+          python-version: "3.9"
+      - name: Install nox
+        run: |
+          python -m pip install nox
+      - name: Freeze the CLI
+        run: |
+          python -m nox -s freeze_cli
+      - name: Upload artefact
+        uses: actions/upload-artifact@v2
+        with:
+          name: instawow-cli-${{ needs.get-version.outputs.instawow-version }}-${{ matrix.os }}
+          path: ./dist/instawow-standalone
   freeze-gui:
     needs: get-version
     strategy:
@@ -84,9 +109,9 @@ jobs:
         env:
           # Install a pure Python copy of Pydantic because of its enormous size
           # when cythonized.
-          PIP_NO_BINARY: "pydantic"
+          PIP_NO_BINARY: pydantic
         working-directory: gui-webview
-      - name: Upload output
+      - name: Upload artefact
         uses: actions/upload-artifact@v2
         with:
           name: instawow-gui-${{ needs.get-version.outputs.instawow-version }}-${{ matrix.build-env.os }}

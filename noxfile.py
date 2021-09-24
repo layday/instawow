@@ -122,3 +122,31 @@ def publish_dists(session: nox.Session):
     session.install('twine')
     for subcmd in ['check', 'upload']:
         session.run('twine', subcmd, 'dist/*')
+
+
+@nox.session
+def freeze_cli(session: nox.Session):
+    session.install(
+        'pyinstaller',
+        '.',
+    )
+    main_py = session.run(
+        'python',
+        '-c',
+        'import instawow.__main__; print(instawow.__main__.__file__, end="")',
+        silent=True,
+    )
+    assert main_py
+    session.run(
+        'pyinstaller',
+        '--clean',
+        '-y',
+        '--onedir',
+        '-n',
+        'instawow-standalone',
+        '--collect-all',
+        'instawow',
+        '--console',
+        main_py,
+    )
+    Path('instawow-standalone.spec').unlink()
