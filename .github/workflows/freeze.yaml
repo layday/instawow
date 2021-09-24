@@ -40,6 +40,8 @@ jobs:
     steps:
       - name: Clone the repo
         uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
       - name: Install Python 3.9
         uses: actions/setup-python@v2
         with:
