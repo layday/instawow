@@ -147,6 +147,8 @@ def freeze_cli(session: nox.Session):
         'instawow-standalone',
         '--collect-all',
         'instawow',
+        '--exclude-module',
+        'instawow_gui',
         '--console',
         main_py,
     )
