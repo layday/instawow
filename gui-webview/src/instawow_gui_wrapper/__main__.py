@@ -28,25 +28,6 @@ def _patch_loguru() -> None:
     )
 
 
-def _patch_aiohttp() -> None:
-    from functools import partial
-    from importlib.resources import read_text
-    import ssl
-
-    import aiohttp
-    import certifi
-
-    # SSL is misconfigured on the briefcase Python.  Instead of trying
-    # to fix the paths, let's just use certifi.
-    # See: https://github.com/beeware/Python-Apple-support/issues/119
-
-    original_aiohttp_TCPConnector = aiohttp.TCPConnector
-    aiohttp.TCPConnector = partial(
-        original_aiohttp_TCPConnector,
-        ssl=ssl.create_default_context(cadata=read_text(certifi, 'cacert.pem', encoding='ascii')),
-    )
-
-
 def _patch_std_streams() -> None:
     import io
     import sys
@@ -58,12 +39,7 @@ def _patch_std_streams() -> None:
 
 def _apply_patches():
     _patch_loguru()
-    _patch_aiohttp()
     _patch_std_streams()
-
-    # ``click`` doesn't run without previously printing something to stdout,
-    # presumably something to do with spooling.
-    print()
 
 
 def main() -> None:
@@ -72,6 +48,11 @@ def main() -> None:
     import instawow.cli
 
     _apply_patches()
+
+    # ``click`` doesn't run without previously printing something to stdout,
+    # presumably something to do with spooling.
+    print()
+
     instawow.cli.main(sys.argv[1:] or ['gui'])
 
 

@@ -129,6 +129,7 @@ def freeze_cli(session: nox.Session):
     session.install(
         'pyinstaller',
         '.',
+        'certifi',
     )
     main_py = session.run(
         'python',

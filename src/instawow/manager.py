@@ -231,8 +231,22 @@ def prepare_database(config: Config) -> sa_future.Engine:
 def init_web_client(**kwargs: Any) -> _deferred_types.aiohttp.ClientSession:
     from aiohttp import ClientSession, ClientTimeout, TCPConnector
 
+    try:
+        import certifi
+    except ModuleNotFoundError:
+        connector = TCPConnector(force_close=True, limit_per_host=10)
+    else:
+        from importlib.resources import read_text
+        import ssl
+
+        logger.info('loading certifi certs')
+        ssl_context = ssl.create_default_context(
+            cadata=read_text(certifi, 'cacert.pem', encoding='ascii')
+        )
+        connector = TCPConnector(force_close=True, limit_per_host=10, ssl=ssl_context)
+
     kwargs = {
-        'connector': TCPConnector(force_close=True, limit_per_host=10),
+        'connector': connector,
         'headers': {'User-Agent': USER_AGENT},
         'trust_env': True,  # Respect the 'http_proxy' env var
         'timeout': ClientTimeout(connect=60, sock_connect=10, sock_read=10),
