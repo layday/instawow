@@ -766,10 +766,8 @@ def view_changelog(obj: ManagerWrapper, addon: Defn | None, convert: bool) -> No
             sa.select(db.pkg.c.source, db.pkg.c.changelog_url)
             .join(
                 db.pkg_version_log,
-                (
-                    (db.pkg.c.source == db.pkg_version_log.c.pkg_source)
-                    & (db.pkg.c.id == db.pkg_version_log.c.pkg_id)
-                ),
+                (db.pkg.c.source == db.pkg_version_log.c.pkg_source)
+                & (db.pkg.c.id == db.pkg_version_log.c.pkg_id),
             )
             .filter_by(
                 install_time=sa.select(
