@@ -50,6 +50,10 @@ jobs:
       - name: Freeze the CLI
         run: |
           python -m nox -s freeze_cli
+        env:
+          # Install a pure Python copy of Pydantic, it's well over 40 MB
+          # on some plats when Cythonised.
+          PIP_NO_BINARY: pydantic
       - name: Upload artefact
         uses: actions/upload-artifact@v2
         with:
@@ -107,8 +111,6 @@ jobs:
               echo "INSTAWOW_ARTIFACT_PATH=gui-webview/$(tail -n 1 | cut -c 33-)" >> $GITHUB_ENV
             )
         env:
-          # Install a pure Python copy of Pydantic because of its enormous size
-          # when cythonized.
           PIP_NO_BINARY: pydantic
         working-directory: gui-webview
       - name: Upload artefact
