@@ -25,6 +25,7 @@ if TYPE_CHECKING:  # pragma: no cover
 
 
 _ImportString: TypeAlias = str
+_Slug: TypeAlias = str
 AuraGroup: TypeAlias = 'Sequence[tuple[Sequence[WeakAura], WagoApiResponse, _ImportString]]'
 
 _TWeakAura = TypeVar('_TWeakAura', bound='WeakAura', covariant=True)
@@ -45,19 +46,19 @@ class Auras(
     api_url: ClassVar[URL]
     filename: ClassVar[str]
 
-    __root__: typing.Dict[str, typing.List[_TWeakAura]]
+    __root__: typing.Dict[_Slug, typing.List[_TWeakAura]]
 
     @classmethod
     def from_lua_table(cls, lua_table: Any) -> Auras[_TWeakAura]:
         raise NotImplementedError
 
-    @classmethod
-    def merge(cls, *auras: Auras[_TWeakAura]) -> Iterable[Auras[_TWeakAura]]:
-        "Merge auras of the same type."
-        return (
-            t(__root__=reduce(lambda a, b: {**a, **b}, (i.__root__ for i in a)))
-            for t, a in bucketise(auras, key=type).items()
-        )
+
+def _merge_auras(auras: Iterable[Auras[WeakAura]]) -> dict[type, Auras[WeakAura]]:
+    "Merge auras of the same type."
+    return {
+        t: t(__root__=reduce(lambda a, b: {**a, **b}, (i.__root__ for i in a)))
+        for t, a in bucketise(auras, key=type).items()
+    }
 
 
 class WeakAura(
@@ -158,10 +159,7 @@ class WaCompanionBuilder:
         saved_vars_of_every_account = flavour_root.glob('WTF/Account/*/SavedVariables')
         for saved_vars, model in product(
             saved_vars_of_every_account,
-            (
-                WeakAuras,
-                Plateroos,
-            ),
+            [WeakAuras, Plateroos],
         ):
             file = saved_vars / model.filename
             if not file.exists():
@@ -204,7 +202,7 @@ class WaCompanionBuilder:
         return await manager.cache_response(
             self.manager,
             IMPORT_API_URL.with_query(id=aura['_id']).with_fragment(str(aura['version'])),
-            {'days': 1},
+            {'days': 30},
             label=f"Fetching aura '{aura['slug']}'",
             is_json=False,
             request_extra={'headers': {'api-key': self.builder_config.wago_api_key or ''}},
@@ -253,7 +251,7 @@ class WaCompanionBuilder:
         self.addon_zip_path.parent.mkdir(exist_ok=True)
         with ZipFile(self.addon_zip_path, 'w') as file:
 
-            def write_tpl(filename: str, ctx: dict[str, Any]) -> None:
+            def write_tpl(filename: str, ctx: dict[str, Any]):
                 # Not using a plain string as the first argument to ``writestr``
                 # 'cause the timestamp would be set to the current time
                 # which would render the build unreproducible
@@ -354,7 +352,6 @@ class WaCompanionBuilder:
 
     async def build(self) -> None:
         installed_auras = await t(list)(self.extract_installed_auras())
-        installed_auras_by_type = list(Auras.merge(*installed_auras))
-        aura_groups = await gather(map(self.get_remote_auras, installed_auras_by_type))
-        aura_groups_by_type = zip((type(g) for g in installed_auras_by_type), aura_groups)
-        await t(self._generate_addon)(aura_groups_by_type)
+        installed_auras_by_type = _merge_auras(installed_auras)
+        aura_groups = await gather(map(self.get_remote_auras, installed_auras_by_type.values()))
+        await t(self._generate_addon)(zip(installed_auras_by_type, aura_groups))
