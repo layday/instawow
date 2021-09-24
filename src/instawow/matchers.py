@@ -30,9 +30,25 @@ _source_sort_order = {
 }
 # See https://github.com/Stanzilla/WoWUIBugs/issues/68#issuecomment-830351390
 _flavour_toc_suffixes = {
-    Flavour.retail: ['-Mainline.toc', '.toc'],
-    Flavour.vanilla_classic: ['-Classic.toc', '.toc'],
-    Flavour.burning_crusade_classic: ['-BCC.toc', '.toc'],
+    Flavour.retail: [
+        '_Mainline.toc',
+        '-Mainline.toc',
+        '.toc',
+    ],
+    Flavour.vanilla_classic: [
+        '_Vanilla.toc',
+        '-Vanilla.toc',
+        '_Classic.toc',
+        '-Classic.toc',
+        '.toc',
+    ],
+    Flavour.burning_crusade_classic: [
+        '_TBC.toc',
+        '-TBC.toc',
+        '_BCC.toc',
+        '-BCC.toc',
+        '.toc',
+    ],
 }
 
 
