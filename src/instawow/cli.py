@@ -15,7 +15,7 @@ from typing import Any, NoReturn, TypeVar, overload
 import click
 
 from . import __version__, _deferred_types, db
-from . import manager as M
+from . import manager as _manager
 from . import models
 from . import results as R
 from .common import Strategy
@@ -81,20 +81,12 @@ class Report:
         ctx.exit(self.exit_code)
 
 
-def _extract_filename_from_hdr(response: _deferred_types.aiohttp.ClientResponse) -> str:
-    from cgi import parse_header
-
-    from aiohttp import hdrs
-
-    _, cd_params = parse_header(response.headers.get(hdrs.CONTENT_DISPOSITION, ''))
-    filename = cd_params.get('filename') or response.url.name
-    return filename
-
-
 def _init_cli_web_client(
-    bar: _deferred_types.prompt_toolkit.shortcuts.ProgressBar, tickers: set[asyncio.Task[None]]
+    progress_bar: _deferred_types.prompt_toolkit.shortcuts.ProgressBar,
+    tickers: set[asyncio.Task[None]],
 ) -> _deferred_types.aiohttp.ClientSession:
     from aiohttp import TraceConfig, hdrs
+    from prompt_toolkit.shortcuts import ProgressBarCounter
 
     TICK_INTERVAL = 0.1
 
@@ -102,37 +94,40 @@ def _init_cli_web_client(
         client_session: _deferred_types.aiohttp.ClientSession,
         trace_config_ctx: Any,
         params: _deferred_types.aiohttp.TraceRequestEndParams,
-    ) -> None:
-        trace_request_ctx: M.TraceRequestCtx = trace_config_ctx.trace_request_ctx
+    ):
+        trace_request_ctx: _manager.TraceRequestCtx = trace_config_ctx.trace_request_ctx
         if trace_request_ctx:
             response = params.response
             label = (
-                trace_request_ctx.get('label')
-                or f'Downloading {_extract_filename_from_hdr(response)}'
+                'Downloading '
+                + Defn(trace_request_ctx['pkg'].source, trace_request_ctx['pkg'].slug).to_urn()
+                if trace_request_ctx['report_progress'] == 'pkg_download'
+                else trace_request_ctx['label']
             )
-            total = response.content_length
-            if hdrs.CONTENT_ENCODING in response.headers:
-                # The encoded size is not exposed in the aiohttp streaming API.
-                # If the payload is encoded, ``total`` is set to ``None``
-                # for the progress bar to be rendered as indeterminate.
-                total = None
+            # The encoded size is not exposed in the aiohttp streaming API
+            # so we cannot display progress.  When the total is ``None``
+            # the progress bar is animated as being "indeterminate"
+            total = None if hdrs.CONTENT_ENCODING in response.headers else response.content_length
 
-            async def ticker() -> None:
-                counter = bar(label=label, total=total)
+            async def ticker():
+                counter: ProgressBarCounter[None] = ProgressBarCounter(
+                    progress_bar=progress_bar, label=label, total=total
+                )
+                progress_bar.counters.append(counter)
                 try:
                     while not response.content.is_eof():
                         counter.items_completed = response.content.total_bytes
-                        bar.invalidate()
+                        progress_bar.invalidate()
                         await asyncio.sleep(TICK_INTERVAL)
                 finally:
-                    bar.counters.remove(counter)
+                    progress_bar.counters.remove(counter)
 
             tickers.add(asyncio.create_task(ticker()))
 
     trace_config = TraceConfig()
     trace_config.on_request_end.append(do_on_request_end)
     trace_config.freeze()
-    return M.init_web_client(trace_configs=[trace_config])
+    return _manager.init_web_client(trace_configs=[trace_config])
 
 
 @contextmanager
@@ -146,11 +141,11 @@ def _cancel_tickers() -> Iterator[set[asyncio.Task[None]]]:
 
 
 def run_with_progress(awaitable: Awaitable[_T]) -> _T:
-    with _cancel_tickers() as tickers, make_progress_bar() as bar:
+    with _cancel_tickers() as tickers, make_progress_bar() as progress_bar:
 
         async def run():
-            async with _init_cli_web_client(bar, tickers) as web_client:
-                M.Manager.contextualise(web_client=web_client)
+            async with _init_cli_web_client(progress_bar, tickers) as web_client:
+                _manager.Manager.contextualise(web_client=web_client)
                 return await awaitable
 
         loop = asyncio.get_event_loop()
@@ -175,7 +170,7 @@ class ManagerWrapper:
         self.ctx = ctx
 
     @cached_property
-    def m(self) -> M.Manager:
+    def m(self) -> _manager.Manager:
         try:
             config = Config.read(self.ctx.params['profile']).ensure_dirs()
         except FileNotFoundError:
@@ -183,7 +178,7 @@ class ManagerWrapper:
 
         setup_logging(config, self.ctx.params['log_level'], self.ctx.params['log_to_stderr'])
 
-        manager = M.Manager.from_config(config)
+        manager = _manager.Manager.from_config(config)
         return manager
 
 
@@ -261,24 +256,24 @@ def main(ctx: click.Context, log_level: str, log_to_stderr: bool, profile: str) 
 
 
 @overload
-def parse_into_defn(manager: M.Manager, value: str, *, raise_invalid: bool = True) -> Defn:
+def parse_into_defn(manager: _manager.Manager, value: str, *, raise_invalid: bool = True) -> Defn:
     ...
 
 
 @overload
 def parse_into_defn(
-    manager: M.Manager, value: list[str], *, raise_invalid: bool = True
+    manager: _manager.Manager, value: list[str], *, raise_invalid: bool = True
 ) -> list[Defn]:
     ...
 
 
 @overload
-def parse_into_defn(manager: M.Manager, value: None, *, raise_invalid: bool = True) -> None:
+def parse_into_defn(manager: _manager.Manager, value: None, *, raise_invalid: bool = True) -> None:
     ...
 
 
 def parse_into_defn(
-    manager: M.Manager, value: str | list[str] | None, *, raise_invalid: bool = True
+    manager: _manager.Manager, value: str | list[str] | None, *, raise_invalid: bool = True
 ) -> Defn | list[Defn] | None:
     if value is None:
         return None
@@ -297,21 +292,21 @@ def parse_into_defn(
 
 
 def parse_into_defn_with_strategy(
-    manager: M.Manager, value: Sequence[tuple[Strategy, str]]
+    manager: _manager.Manager, value: Sequence[tuple[Strategy, str]]
 ) -> Iterator[Defn]:
     defns = parse_into_defn(manager, [d for _, d in value])
     return map(lambda d, s: d.with_(strategy=s), defns, (s for s, _ in value))
 
 
 def parse_into_defn_with_version(
-    manager: M.Manager, value: Sequence[tuple[str, str]]
+    manager: _manager.Manager, value: Sequence[tuple[str, str]]
 ) -> Iterator[Defn]:
     defns = parse_into_defn(manager, [d for _, d in value])
     return map(Defn.with_version, defns, (v for v, _ in value))
 
 
 def combine_addons(
-    fn: Callable[[M.Manager, object], Iterable[Defn]],
+    fn: Callable[[_manager.Manager, object], Iterable[Defn]],
     ctx: click.Context,
     __: click.Parameter,
     value: object,
@@ -602,7 +597,7 @@ def search(ctx: click.Context, search_terms: str, limit: int, sources: Sequence[
     from .prompts import PkgChoice, checkbox, confirm
 
     assert ctx.obj
-    manager: M.Manager = ctx.obj.m
+    manager: _manager.Manager = ctx.obj.m
 
     entries = run_with_progress(manager.search(search_terms, limit, frozenset(sources) or None))
     defns = [Defn(e.source, e.id) for e in entries]

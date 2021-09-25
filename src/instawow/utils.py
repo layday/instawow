@@ -169,11 +169,10 @@ def tabulate(rows: Sequence[Sequence[object]], *, max_col_width: int = 60) -> st
     return table
 
 
-def make_progress_bar(**kwargs: object) -> _deferred_types.prompt_toolkit.shortcuts.ProgressBar:
+def make_progress_bar() -> _deferred_types.prompt_toolkit.shortcuts.ProgressBar:
     "A ``ProgressBar`` with download progress expressed in megabytes."
     from prompt_toolkit.formatted_text import HTML
-    from prompt_toolkit.shortcuts.progress_bar import formatters
-    from prompt_toolkit.shortcuts.progress_bar.base import ProgressBar, ProgressBarCounter
+    from prompt_toolkit.shortcuts.progress_bar import ProgressBar, ProgressBarCounter, formatters
 
     class DownloadProgress(formatters.Progress):
         template = '<current>{current:>3}</current>/<total>{total:>3}</total>MB'
@@ -205,7 +204,6 @@ def make_progress_bar(**kwargs: object) -> _deferred_types.prompt_toolkit.shortc
             formatters.Text(']', style='class:time-left'),
             formatters.Text(' '),
         ],
-        **kwargs,
     )
     return progress_bar
 
