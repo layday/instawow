@@ -186,7 +186,6 @@ def _with_manager(
     fn: Callable[..., object]
 ) -> Callable[[click.Context, click.Parameter, object], object]:
     def wrapper(ctx: click.Context, __: click.Parameter, value: object) -> object:
-        assert ctx.obj
         return fn(ctx.obj.m, value)
 
     return wrapper
@@ -313,7 +312,6 @@ def combine_addons(
 ) -> None:
     addons: list[Defn] = ctx.params.setdefault('addons', [])
     if value:
-        assert ctx.obj
         addons.extend(fn(ctx.obj.m, value))
 
 
@@ -596,7 +594,6 @@ def search(ctx: click.Context, search_terms: str, limit: int, sources: Sequence[
     "Search for add-ons to install."
     from .prompts import PkgChoice, checkbox, confirm
 
-    assert ctx.obj
     manager: _manager.Manager = ctx.obj.m
 
     entries = run_with_progress(manager.search(search_terms, limit, frozenset(sources) or None))
@@ -787,7 +784,6 @@ def view_changelog(obj: ManagerWrapper, addon: Defn | None, convert: bool) -> No
 
 def _show_active_config(ctx: click.Context, __: click.Parameter, value: bool) -> None:
     if value:
-        assert ctx.obj
         click.echo(ctx.obj.m.config.json(indent=2))
         ctx.exit()
 
