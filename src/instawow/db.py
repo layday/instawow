@@ -59,7 +59,11 @@ pkg_options = Table(
     Column('strategy', String, nullable=False),
     Column('pkg_source', String, primary_key=True),
     Column('pkg_id', String, primary_key=True),
-    ForeignKeyConstraint(['pkg_source', 'pkg_id'], ['pkg.source', 'pkg.id']),
+    ForeignKeyConstraint(
+        ['pkg_source', 'pkg_id'],
+        ['pkg.source', 'pkg.id'],
+        name='fk_pkg_options_pkg_source_and_id',
+    ),
 )
 
 pkg_folder = Table(
@@ -68,7 +72,11 @@ pkg_folder = Table(
     Column('name', String, primary_key=True),
     Column('pkg_source', String, nullable=False),
     Column('pkg_id', String, nullable=False),
-    ForeignKeyConstraint(['pkg_source', 'pkg_id'], ['pkg.source', 'pkg.id']),
+    ForeignKeyConstraint(
+        ['pkg_source', 'pkg_id'],
+        ['pkg.source', 'pkg.id'],
+        name='fk_pkg_folder_pkg_source_and_id',
+    ),
 )
 
 pkg_dep = Table(
@@ -77,7 +85,11 @@ pkg_dep = Table(
     Column('id', String, primary_key=True),
     Column('pkg_source', String, primary_key=True),
     Column('pkg_id', String, primary_key=True),
-    ForeignKeyConstraint(['pkg_source', 'pkg_id'], ['pkg.source', 'pkg.id']),
+    ForeignKeyConstraint(
+        ['pkg_source', 'pkg_id'],
+        ['pkg.source', 'pkg.id'],
+        name='fk_pkg_dep_pkg_source_and_id',
+    ),
 )
 
 pkg_version_log = Table(
@@ -87,4 +99,9 @@ pkg_version_log = Table(
     Column('install_time', TZDateTime, nullable=False, server_default=func.now()),
     Column('pkg_source', String, primary_key=True),
     Column('pkg_id', String, primary_key=True),
+    ForeignKeyConstraint(
+        ['pkg_source', 'pkg_id'],
+        ['pkg.source', 'pkg.id'],
+        name='fk_pkg_version_log_pkg_source_and_id',
+    ),
 )

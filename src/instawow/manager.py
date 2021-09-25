@@ -71,7 +71,7 @@ _C = TypeVar('_C', bound='Callable[..., Awaitable[object]]')
 
 USER_AGENT = 'instawow (https://github.com/layday/instawow)'
 
-DB_REVISION = '764fa963cc71'
+DB_REVISION = '9b8df9661cdb'
 
 
 class _GenericDownloadTraceRequestCtx(TypedDict):
