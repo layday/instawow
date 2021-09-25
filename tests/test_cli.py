@@ -494,10 +494,15 @@ def test_search__install_multiple_conflicting(feed_pt, iw_config, run):
     }
 
 
-@pytest.mark.parametrize('arg', ['', 'curse:molinari'])
-def test_can_view_changelog_arg_and_argless(molinari_and_run, arg):
-    assert molinari_and_run(f'view-changelog {arg}').output.startswith(
+def test_changelog_output_with_arg(molinari_and_run):
+    assert molinari_and_run('view-changelog curse:molinari').output.startswith(
         '<h3>Changes in 90000.73-Release:</h3>'
+    )
+
+
+def test_argless_changelog_output(molinari_and_run):
+    assert molinari_and_run('view-changelog').output.startswith(
+        'curse:molinari:\n  <h3>Changes in 90000.73-Release:</h3>'
     )
 
 

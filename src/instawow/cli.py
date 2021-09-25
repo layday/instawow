@@ -763,7 +763,7 @@ def view_changelog(obj: ManagerWrapper, addon: Defn | None, convert: bool) -> No
         import sqlalchemy as sa
 
         last_installed_changelog_urls = obj.m.database.execute(
-            sa.select(db.pkg.c.source, db.pkg.c.changelog_url)
+            sa.select(db.pkg.c.source, db.pkg.c.slug, db.pkg.c.changelog_url)
             .join(
                 db.pkg_version_log,
                 (db.pkg.c.source == db.pkg_version_log.c.pkg_source)
@@ -776,13 +776,18 @@ def view_changelog(obj: ManagerWrapper, addon: Defn | None, convert: bool) -> No
             )
         ).all()
         changelogs = run_with_progress(
-            gather(obj.m.get_changelog(u) for _, u in last_installed_changelog_urls)
+            gather(obj.m.get_changelog(m.changelog_url) for m in last_installed_changelog_urls)
         )
         if convert:
             changelogs = (
-                do_convert(s, c) for (s, _), c in zip(last_installed_changelog_urls, changelogs)
+                do_convert(m.source, c) for m, c in zip(last_installed_changelog_urls, changelogs)
             )
-        click.echo_via_pager('\n\n'.join(changelogs))
+        click.echo_via_pager(
+            '\n\n'.join(
+                Defn(m.source, m.slug).to_urn() + ':\n' + textwrap.indent(c, '  ')
+                for m, c in zip(last_installed_changelog_urls, changelogs)
+            )
+        )
 
 
 def _show_active_config(ctx: click.Context, __: click.Parameter, value: bool) -> None:
