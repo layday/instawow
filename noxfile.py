@@ -47,7 +47,7 @@ def reformat(session: nox.Session):
             alembic ==1.7.0
             click ==7.1
             jinja2 ==2.11.0
-            loguru ==0.1.0
+            loguru ==0.5.0
             pluggy ==0.13.0
             prompt-toolkit ==3.0.15
             pydantic ==1.8.2
