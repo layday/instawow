@@ -179,6 +179,7 @@ class ManagerWrapper:
         setup_logging(config, self.ctx.params['log_level'], self.ctx.params['log_to_stderr'])
 
         manager = _manager.Manager.from_config(config)
+        self.ctx.call_on_close(manager.database.close)
         return manager
 
 
