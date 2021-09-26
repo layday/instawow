@@ -198,7 +198,7 @@ def prepare_database(config: Config) -> sa_future.Engine:
         future=True,
     )
 
-    with engine.begin() as connection:
+    with engine.connect() as connection:
         try:
             current = connection.execute(
                 sa.text(
