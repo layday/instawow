@@ -106,6 +106,9 @@ markers = [
   "iw_no_mock",
 ]
 xfail_strict = true
+filterwarnings = [
+  "error",
+]
 
 
 ## TYPE CHECKING ##
