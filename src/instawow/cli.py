@@ -141,15 +141,13 @@ def _cancel_tickers() -> Iterator[set[asyncio.Task[None]]]:
 
 
 def run_with_progress(awaitable: Awaitable[_T]) -> _T:
-    with _cancel_tickers() as tickers, make_progress_bar() as progress_bar:
-
-        async def run():
+    async def run():
+        with _cancel_tickers() as tickers, make_progress_bar() as progress_bar:
             async with _init_cli_web_client(progress_bar, tickers) as web_client:
                 _manager.Manager.contextualise(web_client=web_client)
                 return await awaitable
 
-        loop = asyncio.get_event_loop()
-        return loop.run_until_complete(run())
+    return asyncio.run(run())
 
 
 def _override_asyncio_loop_policy() -> None:
