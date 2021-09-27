@@ -9,7 +9,7 @@ import importlib.resources
 import os
 from types import SimpleNamespace
 import typing
-from typing import Any, TypeVar
+from typing import Any, ClassVar, TypeVar
 
 import aiohttp
 import aiohttp.web
@@ -35,7 +35,7 @@ from instawow.utils import is_outdated
 from instawow.utils import run_in_thread as t
 from instawow.utils import uniq
 
-from . import InstawowApp, frontend, templates
+from . import frontend, templates
 
 _T = TypeVar('_T')
 _P = ParamSpec('_P')
@@ -64,6 +64,8 @@ def _reraise_validation_error(
 
 
 class BaseParams(BaseModel):
+    method: ClassVar[str]
+
     async def respond(self, managers: _ManagerWorkQueue) -> Any:
         raise NotImplementedError
 
@@ -77,6 +79,8 @@ class _DefnParamMixin(BaseModel):
 
 
 class WriteConfigParams(BaseParams):
+    method = 'config/write'
+
     values: typing.Dict[str, Any]
     infer_game_flavour: bool
 
@@ -95,6 +99,8 @@ class WriteConfigParams(BaseParams):
 
 
 class ReadConfigParams(_ProfileParamMixin, BaseParams):
+    method = 'config/read'
+
     @t
     def respond(self, managers: _ManagerWorkQueue) -> Config:
         with _reraise_validation_error(_ConfigError):
@@ -102,6 +108,8 @@ class ReadConfigParams(_ProfileParamMixin, BaseParams):
 
 
 class DeleteConfigParams(_ProfileParamMixin, BaseParams):
+    method = 'config/delete'
+
     async def respond(self, managers: _ManagerWorkQueue) -> None:
         async def delete_profile(manager: Manager):
             await t(manager.config.delete)()
@@ -111,6 +119,8 @@ class DeleteConfigParams(_ProfileParamMixin, BaseParams):
 
 
 class ListProfilesParams(BaseParams):
+    method = 'config/list'
+
     @t
     def respond(self, managers: _ManagerWorkQueue) -> list[str]:
         return Config.list_profiles()
@@ -125,6 +135,8 @@ class Source(TypedDict):
 
 
 class ListSourcesParams(_ProfileParamMixin, BaseParams):
+    method = 'sources/list'
+
     async def respond(self, managers: _ManagerWorkQueue) -> list[Source]:
         manager = await managers.run(self.profile, _get_manager)
         return [
@@ -140,6 +152,8 @@ class ListSourcesParams(_ProfileParamMixin, BaseParams):
 
 
 class ListInstalledParams(_ProfileParamMixin, BaseParams):
+    method = 'list'
+
     async def respond(self, managers: _ManagerWorkQueue) -> list[models.Pkg]:
         manager = await managers.run(self.profile, _get_manager)
         installed_pkgs = (
@@ -161,6 +175,8 @@ class ErrorResult(TypedDict):
 
 
 class SearchParams(_ProfileParamMixin, BaseParams):
+    method = 'search'
+
     search_terms: str
     limit: int
     sources: typing.Optional[typing.Set[str]] = None
@@ -178,6 +194,8 @@ class SearchParams(_ProfileParamMixin, BaseParams):
 
 
 class ResolveParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
+    method = 'resolve'
+
     async def _resolve(self, manager: Manager) -> dict[Defn, Any]:
         def extract_source(defn: Defn):
             if defn.source == '*':
@@ -200,6 +218,8 @@ class ResolveParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
 
 
 class InstallParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
+    method = 'install'
+
     replace: bool
 
     async def respond(self, managers: _ManagerWorkQueue) -> list[SuccessResult | ErrorResult]:
@@ -215,6 +235,8 @@ class InstallParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
 
 
 class UpdateParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
+    method = 'update'
+
     async def respond(self, managers: _ManagerWorkQueue) -> list[SuccessResult | ErrorResult]:
         results = await managers.run(
             self.profile, partial(Manager.update, defns=self.defns, retain_defn_strategy=True)
@@ -228,6 +250,8 @@ class UpdateParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
 
 
 class RemoveParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
+    method = 'remove'
+
     keep_folders: bool
 
     async def respond(self, managers: _ManagerWorkQueue) -> list[SuccessResult | ErrorResult]:
@@ -243,6 +267,8 @@ class RemoveParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
 
 
 class PinParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
+    method = 'pin'
+
     async def respond(self, managers: _ManagerWorkQueue) -> list[SuccessResult | ErrorResult]:
         results = await managers.run(self.profile, partial(Manager.pin, defns=self.defns))
         return [
@@ -254,6 +280,8 @@ class PinParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
 
 
 class GetChangelogParams(_ProfileParamMixin, BaseParams):
+    method = 'get_changelog'
+
     changelog_url: str
 
     async def respond(self, managers: _ManagerWorkQueue) -> str:
@@ -278,6 +306,8 @@ class ReconcileResult_AddonFolder(TypedDict):
 
 
 class ReconcileParams(_ProfileParamMixin, BaseParams):
+    method = 'reconcile'
+
     matcher: Literal['toc_source_ids', 'folder_name_subsets', 'addon_names_with_folder_names']
 
     async def respond(self, managers: _ManagerWorkQueue) -> ReconcileResult:
@@ -313,6 +343,8 @@ class DownloadProgressReport(TypedDict):
 
 
 class GetDownloadProgressParams(_ProfileParamMixin, BaseParams):
+    method = 'get_download_progress'
+
     async def respond(self, managers: _ManagerWorkQueue) -> list[DownloadProgressReport]:
         return [
             {'defn': Defn.from_pkg(p), 'progress': r}
@@ -326,6 +358,8 @@ class GetVersionResult(TypedDict):
 
 
 class GetVersionParams(BaseParams):
+    method = 'meta/get_version'
+
     async def respond(self, managers: _ManagerWorkQueue) -> GetVersionResult:
         outdated, new_version = await is_outdated()
         return {
@@ -335,6 +369,8 @@ class GetVersionParams(BaseParams):
 
 
 class OpenUrlParams(BaseParams):
+    method = 'assist/open_url'
+
     url: str
 
     async def respond(self, managers: _ManagerWorkQueue) -> None:
@@ -342,6 +378,8 @@ class OpenUrlParams(BaseParams):
 
 
 class RevealFolderParams(BaseParams):
+    method = 'assist/reveal_folder'
+
     path_parts: typing.List[str]
 
     async def respond(self, managers: _ManagerWorkQueue) -> None:
@@ -353,21 +391,19 @@ class SelectFolderResult(TypedDict):
 
 
 class SelectFolderParams(BaseParams):
+    method = 'assist/select_folder'
+
     initial_folder: typing.Optional[str]
 
     async def respond(self, managers: _ManagerWorkQueue) -> SelectFolderResult:
-        async def select_folder():
-            try:
-                (selection,) = InstawowApp.app.iw_window.select_folder_dialog(
-                    'Select folder', self.initial_folder
-                )
-            except ValueError:
-                selection = None
-            return selection
+        from .app import InstawowApp
 
-        selection = asyncio.run_coroutine_threadsafe(
-            select_folder(), InstawowApp.app.loop
-        ).result()
+        try:
+            (selection,) = InstawowApp.app.iw_window.select_folder_dialog(
+                'Select folder', self.initial_folder
+            )
+        except ValueError:
+            selection = None
         return {'selection': selection}
 
 
@@ -376,14 +412,15 @@ class ConfirmDialogueResult(TypedDict):
 
 
 class ConfirmDialogueParams(BaseParams):
+    method = 'assist/confirm'
+
     title: str
     message: str
 
     async def respond(self, managers: _ManagerWorkQueue) -> ConfirmDialogueResult:
-        async def confirm():
-            return InstawowApp.app.iw_window.confirm_dialog(self.title, self.message)
+        from .app import InstawowApp
 
-        ok = asyncio.run_coroutine_threadsafe(confirm(), InstawowApp.app.loop).result()
+        ok = InstawowApp.app.iw_window.confirm_dialog(self.title, self.message)
         return {'ok': ok}
 
 
@@ -432,11 +469,16 @@ class _ManagerWorkQueue:
         self._locks: defaultdict[str, asyncio.Lock] = defaultdict(asyncio.Lock)
 
     async def cleanup(self) -> None:
+        for manager in self._managers.values():
+            manager.database.close()
         await self._web_client.close()
 
-    async def listen(self) -> None:
-        Manager.contextualise(web_client=self._web_client, locks=self._locks)
+    def unload(self, profile: str) -> None:
+        manager = self._managers.pop(profile, None)
+        if manager:
+            manager.database.close()
 
+    async def listen(self) -> None:
         async def schedule(
             future: asyncio.Future[Any], profile: str, coro_fn: Callable[..., Awaitable[Any]]
         ):
@@ -456,6 +498,8 @@ class _ManagerWorkQueue:
             else:
                 future.set_result(result)
 
+        Manager.contextualise(web_client=self._web_client, locks=self._locks)
+
         while True:
             item = await self._queue.get()
             asyncio.create_task(schedule(*item))
@@ -472,19 +516,14 @@ class _ManagerWorkQueue:
         manager = await self.run(profile, _get_manager)
         return ((p, r()) for m, p, r in self._progress_reporters if m is manager)
 
-    def unload(self, profile: str) -> None:
-        self._managers.pop(profile, None)
 
-
-def _prepare_response(
-    param_class: type[BaseParams], method: str, managers: _ManagerWorkQueue
-) -> JsonRpcMethod:
+def _prepare_response(param_class: type[BaseParams], managers: _ManagerWorkQueue) -> JsonRpcMethod:
     async def respond(**kwargs: Any) -> BaseModel:
         with _reraise_validation_error(InvalidParamsError, kwargs):
             params = param_class.parse_obj(kwargs)
         return await params.respond(managers)
 
-    return JsonRpcMethod(respond, name=method)
+    return JsonRpcMethod(respond, name=param_class.method)
 
 
 def _serialise_response(value: dict[str, Any]) -> str:
@@ -493,17 +532,13 @@ def _serialise_response(value: dict[str, Any]) -> str:
 
 async def create_app() -> aiohttp.web.Application:
     managers = _ManagerWorkQueue()
+    prepare_response = partial(_prepare_response, managers=managers)
 
-    def start_managers():
+    async def start_managers(app: aiohttp.web.Application):
         managers_listen = asyncio.create_task(managers.listen())
-
-        async def on_shutdown(app: aiohttp.web.Application):
-            managers_listen.cancel()
-            await managers.cleanup()
-
-        return on_shutdown
-
-    stop_managers = start_managers()
+        yield
+        managers_listen.cancel()
+        await managers.cleanup()
 
     async def get_index(request: aiohttp.web.Request):
         return aiohttp.web.Response(
@@ -531,26 +566,26 @@ async def create_app() -> aiohttp.web.Application:
     )
     rpc_server.add_methods(
         [
-            _prepare_response(WriteConfigParams, 'config/write', managers),
-            _prepare_response(ReadConfigParams, 'config/read', managers),
-            _prepare_response(DeleteConfigParams, 'config/delete', managers),
-            _prepare_response(ListProfilesParams, 'config/list', managers),
-            _prepare_response(ListSourcesParams, 'sources/list', managers),
-            _prepare_response(ListInstalledParams, 'list', managers),
-            _prepare_response(SearchParams, 'search', managers),
-            _prepare_response(ResolveParams, 'resolve', managers),
-            _prepare_response(InstallParams, 'install', managers),
-            _prepare_response(UpdateParams, 'update', managers),
-            _prepare_response(RemoveParams, 'remove', managers),
-            _prepare_response(PinParams, 'pin', managers),
-            _prepare_response(GetChangelogParams, 'get_changelog', managers),
-            _prepare_response(ReconcileParams, 'reconcile', managers),
-            _prepare_response(GetDownloadProgressParams, 'get_download_progress', managers),
-            _prepare_response(GetVersionParams, 'meta/get_version', managers),
-            _prepare_response(OpenUrlParams, 'assist/open_url', managers),
-            _prepare_response(RevealFolderParams, 'assist/reveal_folder', managers),
-            _prepare_response(SelectFolderParams, 'assist/select_folder', managers),
-            _prepare_response(ConfirmDialogueParams, 'assist/confirm', managers),
+            prepare_response(WriteConfigParams),
+            prepare_response(ReadConfigParams),
+            prepare_response(DeleteConfigParams),
+            prepare_response(ListProfilesParams),
+            prepare_response(ListSourcesParams),
+            prepare_response(ListInstalledParams),
+            prepare_response(SearchParams),
+            prepare_response(ResolveParams),
+            prepare_response(InstallParams),
+            prepare_response(UpdateParams),
+            prepare_response(RemoveParams),
+            prepare_response(PinParams),
+            prepare_response(GetChangelogParams),
+            prepare_response(ReconcileParams),
+            prepare_response(GetDownloadProgressParams),
+            prepare_response(GetVersionParams),
+            prepare_response(OpenUrlParams),
+            prepare_response(RevealFolderParams),
+            prepare_response(SelectFolderParams),
+            prepare_response(ConfirmDialogueParams),
         ]
     )
 
@@ -564,7 +599,7 @@ async def create_app() -> aiohttp.web.Application:
             aiohttp.web.get('/api', rpc_server.handle_http_request),
         ]
     )
-    app.on_shutdown.append(stop_managers)
+    app.cleanup_ctx.append(start_managers)
     app.freeze()
     return app
 

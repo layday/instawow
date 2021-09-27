@@ -886,7 +886,7 @@ def generate_catalogue(filename: str, age_cutoff: datetime | None) -> None:
 @click.pass_context
 def gui(ctx: click.Context) -> None:
     "Fire up the GUI."
-    from instawow_gui import InstawowApp
+    from instawow_gui.app import InstawowApp
 
     dummy_config = Config.get_dummy_config(profile='__jsonrpc__').ensure_dirs()
     params = ctx.find_root().params
