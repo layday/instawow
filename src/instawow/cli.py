@@ -756,8 +756,11 @@ def view_changelog(obj: ManagerWrapper, addon: Defn | None, convert: bool) -> No
         last_installed_changelog_urls = obj.m.database.execute(
             sa.select(db.pkg.c.source, db.pkg.c.slug, db.pkg.c.changelog_url)
             .join(db.pkg_version_log)
-            .filter_by(
-                install_time=sa.select(sa.func.max(db.pkg_version_log.c.install_time))
+            .filter(
+                db.pkg_version_log.c.install_time
+                >= sa.select(
+                    sa.func.datetime(sa.func.max(db.pkg_version_log.c.install_time), '-1 minute')
+                )
                 .join(db.pkg)
                 .scalar_subquery()
             )
