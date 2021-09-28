@@ -678,16 +678,16 @@ def list_installed(
         for pkg in pkgs:
             with formatter.section(Defn.from_pkg(pkg).to_urn()):
                 formatter.write_dl(
-                    (
-                        ('Name', pkg.name),
-                        ('Description', textwrap.shorten(pkg.description, 280)),
-                        ('URL', pkg.url),
-                        ('Version', pkg.version),
-                        ('Date published', pkg.date_published.isoformat(' ', 'minutes')),
-                        ('Folders', ', '.join(f.name for f in pkg.folders)),
-                        ('Dependencies', ', '.join(format_deps(pkg))),
-                        ('Options', f'{{"strategy": "{pkg.options.strategy}"}}'),
-                    )
+                    [
+                        ('name', pkg.name),
+                        ('description', textwrap.shorten(pkg.description, 280)),
+                        ('url', pkg.url),
+                        ('version', pkg.version),
+                        ('date_published', pkg.date_published.isoformat(' ', 'minutes')[:-6]),
+                        ('folders', ', '.join(f.name for f in pkg.folders)),
+                        ('deps', ', '.join(format_deps(pkg))),
+                        ('options.strategy', pkg.options.strategy),
+                    ]
                 )
         click.echo(formatter.getvalue(), nl=False)
 
