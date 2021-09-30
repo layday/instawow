@@ -229,7 +229,7 @@ class WaCompanionBuilder:
         if game_flavour is Flavour.retail:
             return '90100'
         elif game_flavour is Flavour.vanilla_classic:
-            return '11307'
+            return '11400'
         elif game_flavour is Flavour.burning_crusade_classic:
             return '20502'
 
