@@ -36,22 +36,26 @@ class InstawowApp(toga.App):
 
             cef_adapter.load()
 
-            self.iw_window.content = web_view = toga.WebView(
+            self.iw_window.content = self._iw_web_view = toga.WebView(
                 url=str(server_url),
                 style=toga.style.Pack(flex=1),
                 factory=cef_adapter.Factory,
             )
 
         else:
-            self.iw_window.content = web_view = toga.WebView(
+            self.iw_window.content = self._iw_web_view = toga.WebView(
                 url=str(server_url), style=toga.style.Pack(flex=1)
             )
+        self.iw_window.show()
 
+        await serve()
+
+    def startup(self) -> None:
         def dispatch_js_keyboard_event(_: toga.Command, *, action: str):
             event_args = json.dumps(
                 {'detail': {'action': action}, 'bubbles': True, 'cancelable': True}
             )
-            web_view.invoke_javascript(
+            self._iw_web_view.invoke_javascript(
                 f'document.dispatchEvent(new CustomEvent("togaSimulateKeypress", {event_args}));'
             )
 
@@ -89,9 +93,4 @@ class InstawowApp(toga.App):
             ),
         )
 
-        self.iw_window.show()
-
-        await serve()
-
-    def startup(self) -> None:
         self.add_background_task(self._startup)
