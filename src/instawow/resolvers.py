@@ -333,7 +333,7 @@ class CurseResolver(BaseResolver):
 
                         def supports_retail(f: _CurseAddon_File):
                             return f['gameVersionFlavor'] == 'wow_retail' or any(
-                                not v.startswith(('1.13', '2.5')) for v in f['gameVersion']
+                                not v.startswith(('1.', '2.')) for v in f['gameVersion']
                             )
 
                         yield supports_retail
@@ -341,7 +341,7 @@ class CurseResolver(BaseResolver):
 
                         def supports_vanilla_classic(f: _CurseAddon_File):
                             return f['gameVersionFlavor'] == 'wow_classic' or any(
-                                v.startswith('1.13') for v in f['gameVersion']
+                                v.startswith('1.') for v in f['gameVersion']
                             )
 
                         yield supports_vanilla_classic
@@ -349,7 +349,7 @@ class CurseResolver(BaseResolver):
 
                         def supports_burning_crusade_classic(f: _CurseAddon_File):
                             return f['gameVersionFlavor'] == 'wow_burning_crusade' or any(
-                                v.startswith('2.5') for v in f['gameVersion']
+                                v.startswith('2.') for v in f['gameVersion']
                             )
 
                         yield supports_burning_crusade_classic
@@ -418,17 +418,17 @@ class CurseResolver(BaseResolver):
     ) -> AsyncIterator[CatatalogueBaseEntry]:
         def excise_flavours(files: list[_CurseAddon_File]):
             if any(f['gameVersionFlavor'] == 'wow_retail' for f in files) or any(
-                not v.startswith(('1.13', '2.5')) for f in files for v in f['gameVersion']
+                not v.startswith(('1.', '2.')) for f in files for v in f['gameVersion']
             ):
                 yield Flavour.retail
 
             if any(f['gameVersionFlavor'] == 'wow_classic' for f in files) or any(
-                v.startswith('1.13') for f in files for v in f['gameVersion']
+                v.startswith('1.') for f in files for v in f['gameVersion']
             ):
                 yield Flavour.vanilla_classic
 
             if any(f['gameVersionFlavor'] == 'wow_burning_crusade' for f in files) or any(
-                v.startswith('2.5') for f in files for v in f['gameVersion']
+                v.startswith('2.') for f in files for v in f['gameVersion']
             ):
                 yield Flavour.burning_crusade_classic
 
