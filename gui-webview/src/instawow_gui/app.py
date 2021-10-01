@@ -27,7 +27,10 @@ class InstawowApp(toga.App):
 
     async def _startup(self, native_app: object) -> None:
         server_url, serve = await json_rpc_server.prepare()
+        self._iw_web_view.url = str(server_url)
+        await serve()
 
+    def startup(self) -> None:
         self.main_window = self.iw_window = toga.MainWindow(
             title=self.formal_name, size=(800, 600)
         )
@@ -37,20 +40,14 @@ class InstawowApp(toga.App):
             cef_adapter.load()
 
             self.iw_window.content = self._iw_web_view = toga.WebView(
-                url=str(server_url),
-                style=toga.style.Pack(flex=1),
-                factory=cef_adapter.Factory,
+                style=toga.style.Pack(flex=1), factory=cef_adapter.Factory
             )
 
         else:
             self.iw_window.content = self._iw_web_view = toga.WebView(
-                url=str(server_url), style=toga.style.Pack(flex=1)
+                style=toga.style.Pack(flex=1)
             )
-        self.iw_window.show()
 
-        await serve()
-
-    def startup(self) -> None:
         def dispatch_js_keyboard_event(_: toga.Command, *, action: str):
             event_args = json.dumps(
                 {'detail': {'action': action}, 'bubbles': True, 'cancelable': True}
@@ -94,3 +91,5 @@ class InstawowApp(toga.App):
         )
 
         self.add_background_task(self._startup)
+
+        self.iw_window.show()
