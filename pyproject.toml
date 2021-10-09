@@ -69,6 +69,7 @@ gui = [
   "toga-winforms",
 ]
 test = [
+  "aiohttp-rpc",
   "aresponses",
   "coverage",
   "pytest",

@@ -74,7 +74,7 @@ def test(session: nox.Session, constraints: str):
     with open(constraints_txt, 'w') as file:
         file.write(constraints)
 
-    session.install('-c', constraints_txt, '.[gui, test]', './tests/plugin')
+    session.install('-c', constraints_txt, '.[test]', './tests/plugin')
     session.run(
         *('coverage', 'run', '-m', 'pytest', '-n', 'auto'),
         env={'COVERAGE_PROCESS_START': 'pyproject.toml'},
