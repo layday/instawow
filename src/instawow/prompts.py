@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from collections.abc import Sequence
 from functools import partial
 from typing import Any
@@ -215,3 +216,7 @@ def select(
 
     layout = create_inquirer_layout(ic, get_prompt_tokens, **inquirer_kwargs)
     return Question(Application(layout=layout, key_bindings=bindings, style=qstyle))
+
+
+def ask(question: Question) -> Any:
+    return asyncio.run(question.application.run_async())

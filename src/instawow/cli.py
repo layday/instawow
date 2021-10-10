@@ -428,7 +428,7 @@ def remove(manager: _manager.Manager, addons: Sequence[Defn], keep_folders: bool
 @ManagerWrapper.pass_manager
 def rollback(manager: _manager.Manager, addon: Defn, version: str | None, undo: bool) -> None:
     "Roll an add-on back to an older version."
-    from .prompts import Choice, select
+    from .prompts import Choice, ask, select
 
     if version and undo:
         raise click.UsageError('Cannot use "--version" and "--undo" together')
@@ -462,9 +462,9 @@ def rollback(manager: _manager.Manager, addon: Defn, version: str | None, undo: 
             )
             for v in versions
         ]
-        selection = select(
-            f'Select version of {reconstructed_defn.to_urn()} for rollback', choices
-        ).unsafe_ask()
+        selection = ask(
+            select(f'Select version of {reconstructed_defn.to_urn()} for rollback', choices)
+        )
 
     Report(
         run_with_progress(
@@ -490,7 +490,7 @@ def reconcile(manager: _manager.Manager, auto: bool, list_unreconciled: bool) ->
         match_folder_name_subsets,
         match_toc_source_ids,
     )
-    from .prompts import PkgChoice, confirm, select, skip
+    from .prompts import PkgChoice, ask, confirm, select, skip
 
     preamble = textwrap.dedent(
         '''\
@@ -524,8 +524,7 @@ def reconcile(manager: _manager.Manager, auto: bool, list_unreconciled: bool) ->
         highlight_version = len({i.version for i in chain(addons, pkgs)}) > 1
         choices = list(chain(map(construct_choice, pkgs), (skip,)))
         addon = addons[0]
-        # Using 'unsafe_ask' to let ^C bubble up
-        selection = select(f'{addon.name} [{addon.version or "?"}]', choices).unsafe_ask()
+        selection = ask(select(f'{addon.name} [{addon.version or "?"}]', choices))
         return selection
 
     def prompt(groups: Sequence[tuple[list[AddonFolder], list[Defn]]]) -> Iterable[Defn]:
@@ -562,7 +561,7 @@ def reconcile(manager: _manager.Manager, auto: bool, list_unreconciled: bool) ->
     matcher = match_all()
     for _ in matcher:  # Skip over consumer yields
         selections = matcher.send(leftovers)
-        if selections and (auto or confirm('Install selected add-ons?').unsafe_ask()):
+        if selections and (auto or ask(confirm('Install selected add-ons?'))):
             results = run_with_progress(manager.install(selections, replace=True))
             Report(results.items()).generate()
 
@@ -596,7 +595,7 @@ def _concat_search_terms(_: click.Context, __: click.Parameter, value: tuple[str
 @click.pass_context
 def search(ctx: click.Context, search_terms: str, limit: int, sources: Sequence[str]) -> None:
     "Search for add-ons to install."
-    from .prompts import PkgChoice, checkbox, confirm
+    from .prompts import PkgChoice, ask, checkbox, confirm
 
     manager: _manager.Manager = ctx.obj.manager
 
@@ -609,8 +608,8 @@ def search(ctx: click.Context, search_terms: str, limit: int, sources: Sequence[
     )
     choices = [PkgChoice(f'{p.name}  ({d.to_urn()}=={p.version})', d, pkg=p) for d, p in pkgs]
     if choices:
-        selections = checkbox('Select add-ons to install', choices=choices).unsafe_ask()
-        if selections and confirm('Install selected add-ons?').unsafe_ask():
+        selections: list[Defn] = ask(checkbox('Select add-ons to install', choices=choices))
+        if selections and ask(confirm('Install selected add-ons?')):
             ctx.invoke(install, addons=selections)
     else:
         click.echo('No results found.')
@@ -814,18 +813,22 @@ def configure(ctx: click.Context, promptless: bool) -> Config:
     if promptless:
         make_config = Config
     else:
-        from .prompts import PydanticValidator, path, select
+        from .prompts import PydanticValidator, ask, path, select
 
-        addon_dir = path(
-            'Add-on directory:',
-            only_directories=True,
-            validate=PydanticValidator(Config, 'addon_dir'),
-        ).unsafe_ask()
-        game_flavour = select(
-            'Game flavour:',
-            choices=list(Flavour),
-            initial_choice=Config.infer_flavour(addon_dir),
-        ).unsafe_ask()
+        addon_dir = ask(
+            path(
+                'Add-on directory:',
+                only_directories=True,
+                validate=PydanticValidator(Config, 'addon_dir'),
+            )
+        )
+        game_flavour = ask(
+            select(
+                'Game flavour:',
+                choices=list(Flavour),
+                initial_choice=Config.infer_flavour(addon_dir),
+            )
+        )
         make_config = partial(Config, addon_dir=addon_dir, game_flavour=game_flavour)
 
     config = make_config(profile=ctx.find_root().params['profile']).write()
