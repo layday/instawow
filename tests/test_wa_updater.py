@@ -92,7 +92,6 @@ WeakAurasSaved = {
     )
 
 
-@pytest.mark.xfail
 def test_url_host_not_wago_display_is_discarded(builder):
     assert (
         builder.extract_auras(
