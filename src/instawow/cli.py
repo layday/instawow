@@ -727,11 +727,15 @@ def reveal(manager: _manager.Manager, addon: Defn) -> None:
     '--convert',
     is_flag=True,
     default=False,
-    help='Convert output to plain text.  Requires pandoc.',
+    help='Convert HTML and Markdown changelogs to plain text.  Requires pandoc.',
 )
 @ManagerWrapper.pass_manager
 def view_changelog(manager: _manager.Manager, addon: Defn | None, convert: bool) -> None:
-    "View the changelog of an installed add-on."
+    """View the changelog of an installed add-on.
+
+    If `addon` is not provided, displays the changelogs of all add-ons
+    to have been installed within one minute of the last add-on.
+    """
 
     def do_convert(source: str, changelog: str):
         import subprocess
