@@ -72,9 +72,19 @@ class WeakAura(
     url: URL
     version: int
 
+    @classmethod
+    def from_lua_table(cls, lua_table: Any) -> WeakAura | None:
+        url_string = lua_table.get('url')
+        if url_string is not None:
+            url = URL(url_string)
+            if url.host == 'wago.io':
+                return cls.parse_obj({**lua_table, 'url': url})
+
     @validator('url', pre=True)
-    def _convert_url(cls, value: str) -> URL:
-        return URL(value)
+    def _url_to_URL(cls, value: str | URL) -> URL:
+        if not isinstance(value, URL):
+            value = URL(value)
+        return value
 
 
 class WeakAuras(Auras[WeakAura]):
@@ -83,7 +93,9 @@ class WeakAuras(Auras[WeakAura]):
 
     @classmethod
     def from_lua_table(cls, lua_table: Any) -> WeakAuras:
-        auras = (WeakAura.parse_obj(a) for a in lua_table['displays'].values() if a.get('url'))
+        auras = (
+            a for t in lua_table['displays'].values() for a in (WeakAura.from_lua_table(t),) if a
+        )
         sorted_auras = sorted(auras, key=lambda a: a.id)
         return cls(__root__=bucketise(sorted_auras, key=lambda a: a.url.parts[1]))
 
@@ -100,13 +112,15 @@ class Plateroos(Auras[Plateroo]):
     @classmethod
     def from_lua_table(cls, lua_table: Any) -> Plateroos:
         auras = (
-            Plateroo.parse_obj(a)
+            a
             for n, p in lua_table['profiles'].items()
-            for a in chain(
+            for t in chain(
                 ({**p, 'Name': f'__profile_{n}__'},),
-                (i for n, v in p.items() if n in {'script_data', 'hook_data'} for i in v),
+                p.get('script_data') or (),
+                p.get('hook_data') or (),
             )
-            if a.get('url')
+            for a in (Plateroo.from_lua_table(t),)
+            if a
         )
         sorted_auras = sorted(auras, key=lambda a: a.id)
         return cls(__root__={a.url.parts[1]: [a] for a in sorted_auras})
