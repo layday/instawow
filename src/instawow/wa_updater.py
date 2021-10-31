@@ -21,7 +21,7 @@ from .utils import shasum
 
 # ``NotRequired`` is provisional and does not exist at runtime
 if TYPE_CHECKING:  # pragma: no cover
-    from typing_extensions import NotRequired as Ν
+    from typing_extensions import NotRequired as N
 
 
 _ImportString: TypeAlias = str
@@ -134,18 +134,18 @@ class WagoApiResponse(TypedDict):
     created: str  # ISO datetime
     modified: str  # ISO datetime
     game: str  # "classic" or xpac, e.g. "bfa"
-    username: Ν[str]  # +  # Author username
+    username: N[str]  # +  # Author username
     version: int  # +   # Version counter, incremented with every update
     # Semver auto-generated from ``version`` - for presentation only
     versionString: str
     changelog: WagoApiResponse_Changelog  # +
-    forkOf: Ν[str]  # Only present on forks
-    regionType: Ν[str]  # Only present on WAs
+    forkOf: N[str]  # Only present on forks
+    regionType: N[str]  # Only present on WAs
 
 
 class WagoApiResponse_Changelog(TypedDict):
-    format: Ν[Literal['bbcode', 'markdown']]
-    text: Ν[str]
+    format: N[Literal['bbcode', 'markdown']]
+    text: N[str]
 
 
 class WaCompanionBuilder:
