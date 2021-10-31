@@ -2,11 +2,11 @@ from __future__ import annotations
 
 from collections.abc import AsyncIterator, Sequence, Set
 from datetime import datetime, timezone
-from enum import Enum
+from enum import Enum, IntEnum
 from itertools import chain, takewhile
 import re
 import typing
-from typing import Any, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from loguru import logger
 from pydantic import BaseModel
@@ -18,6 +18,9 @@ from . import results as R
 from .common import Strategy
 from .config import Flavour
 from .utils import bucketise, cached_property, gather, normalise_names, uniq
+
+if TYPE_CHECKING:  # pragma: no cover
+    from typing_extensions import NotRequired as N
 
 
 class ChangelogFormat(str, Enum):
@@ -185,6 +188,12 @@ class BaseResolver(Resolver):
         yield
 
 
+class _CurseGameVersionTypeId(IntEnum):
+    retail = 517
+    vanilla_classic = 67408
+    burning_crusade_classic = 73246
+
+
 # Only documenting the fields we're actually using.
 class _CurseAddon(TypedDict):
     id: int
@@ -206,8 +215,8 @@ class _CurseAddon_File(TypedDict):
     dependencies: list[_CurseAddon_FileDependency]
     modules: list[_CurseAddon_FileModules]
     exposeAsAlternative: bool | None
-    gameVersion: list[str]  # e.g. '8.3.0'
     gameVersionFlavor: Literal['wow_burning_crusade', 'wow_classic', 'wow_retail']
+    sortableGameVersion: list[_CurseAddon_FileSortableGameVersion]
 
 
 class _CurseAddon_FileDependency(TypedDict):
@@ -236,6 +245,10 @@ class _CurseAddon_FileModules(TypedDict):
     # For WoW add-ons the main folder will have type "3" and the rest
     # of them type "2"
     type: Literal[1, 2, 3, 4, 5]
+
+
+class _CurseAddon_FileSortableGameVersion(TypedDict):
+    gameVersionTypeId: N[_CurseGameVersionTypeId]
 
 
 class CurseResolver(BaseResolver):
@@ -326,14 +339,12 @@ class CurseResolver(BaseResolver):
                 yield is_not_libless
 
                 if defn.strategy is not Strategy.any_flavour:
-                    # Files can have multiple ``gameVersion``s but ``gameVersionFlavor``
-                    # is a scalar....but also ``gameVersion`` might not be populated.
-                    # We'll refer to it only if ``gameVersionFlavor`` is not a match
                     if self.manager.config.game_flavour is Flavour.retail:
 
                         def supports_retail(f: _CurseAddon_File):
                             return f['gameVersionFlavor'] == 'wow_retail' or any(
-                                not v.startswith(('1.', '2.')) for v in f['gameVersion']
+                                s.get('gameVersionTypeId') == _CurseGameVersionTypeId.retail
+                                for s in f['sortableGameVersion']
                             )
 
                         yield supports_retail
@@ -341,7 +352,9 @@ class CurseResolver(BaseResolver):
 
                         def supports_vanilla_classic(f: _CurseAddon_File):
                             return f['gameVersionFlavor'] == 'wow_classic' or any(
-                                v.startswith('1.') for v in f['gameVersion']
+                                s.get('gameVersionTypeId')
+                                == _CurseGameVersionTypeId.vanilla_classic
+                                for s in f['sortableGameVersion']
                             )
 
                         yield supports_vanilla_classic
@@ -349,7 +362,9 @@ class CurseResolver(BaseResolver):
 
                         def supports_burning_crusade_classic(f: _CurseAddon_File):
                             return f['gameVersionFlavor'] == 'wow_burning_crusade' or any(
-                                v.startswith('2.') for v in f['gameVersion']
+                                s.get('gameVersionTypeId')
+                                == _CurseGameVersionTypeId.burning_crusade_classic
+                                for s in f['sortableGameVersion']
                             )
 
                         yield supports_burning_crusade_classic
@@ -416,21 +431,35 @@ class CurseResolver(BaseResolver):
     async def catalogue(
         cls, web_client: _deferred_types.aiohttp.ClientSession
     ) -> AsyncIterator[CatatalogueBaseEntry]:
-        def excise_flavours(files: list[_CurseAddon_File]):
-            if any(f['gameVersionFlavor'] == 'wow_retail' for f in files) or any(
-                not v.startswith(('1.', '2.')) for f in files for v in f['gameVersion']
+        def supports_x(files: list[_CurseAddon_File]):
+            def excise_flavour(
+                curse_flavor: str, curse_type_id: _CurseGameVersionTypeId, flavour: Flavour
             ):
-                yield Flavour.retail
+                if any(
+                    f['gameVersionFlavor'] == curse_flavor
+                    or any(
+                        s.get('gameVersionTypeId') == curse_type_id
+                        for s in f['sortableGameVersion']
+                    )
+                    for f in files
+                ):
+                    yield flavour
 
-            if any(f['gameVersionFlavor'] == 'wow_classic' for f in files) or any(
-                v.startswith('1.') for f in files for v in f['gameVersion']
-            ):
-                yield Flavour.vanilla_classic
-
-            if any(f['gameVersionFlavor'] == 'wow_burning_crusade' for f in files) or any(
-                v.startswith('2.') for f in files for v in f['gameVersion']
-            ):
-                yield Flavour.burning_crusade_classic
+            yield from excise_flavour(
+                'wow_retail',
+                _CurseGameVersionTypeId.retail,
+                Flavour.retail,
+            )
+            yield from excise_flavour(
+                'wow_classic',
+                _CurseGameVersionTypeId.vanilla_classic,
+                Flavour.vanilla_classic,
+            )
+            yield from excise_flavour(
+                'wow_burning_crusade',
+                _CurseGameVersionTypeId.burning_crusade_classic,
+                Flavour.burning_crusade_classic,
+            )
 
         step = 50
         sort_order = '3'  # Alphabetical
@@ -456,7 +485,7 @@ class CurseResolver(BaseResolver):
                     id=item['id'],
                     slug=item['slug'],
                     name=item['name'],
-                    game_flavours=excise_flavours(item['latestFiles']),
+                    game_flavours=supports_x(item['latestFiles']),
                     folders=folders,
                     download_count=item['downloadCount'],
                     last_updated=item['dateReleased'],

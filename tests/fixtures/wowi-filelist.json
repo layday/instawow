@@ -2,18 +2,18 @@
   {
     "UID": "13188",
     "UICATID": "40",
-    "UIVersion": "90000.73-Release",
-    "UIDate": 1609246897000,
+    "UIVersion": "90100.79-Release",
+    "UIDate": 1632806923000,
     "UIName": "Molinari",
     "UIAuthorName": "p3lim",
     "UIFileInfoURL": "https://www.wowinterface.com/downloads/info13188-Molinari.html",
-    "UIDownloadTotal": "62955",
-    "UIDownloadMonthly": "15",
+    "UIDownloadTotal": "63411",
+    "UIDownloadMonthly": "46",
     "UIFavoriteTotal": "419",
     "UICompatibility": [
       {
-        "version": "9.0.2",
-        "name": "Shadowlands patch"
+        "version": "2.5.2",
+        "name": "TBC Patch"
       }
     ],
     "UIDir": [

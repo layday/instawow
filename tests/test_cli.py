@@ -240,7 +240,7 @@ def test_install_with_github_alias(run):
 
 def test_version_strategy_lifecycle(iw_config, run):
     assert run('install curse:molinari').output.startswith(
-        '✓ curse:molinari\n  installed 90000.73-Release'
+        '✓ curse:molinari\n  installed 90100.79-Release'
     )
     assert (
         run('install --version foo curse:molinari').output
@@ -270,7 +270,7 @@ def test_install_options(iw_config, run):
     ).output == dedent(
         f'''\
         ✓ curse:molinari
-          installed 90000.73-Release{"-classic" if iw_config.game_flavour is Flavour.vanilla_classic else ""}
+          installed 90100.79-Release{"-classic" if iw_config.game_flavour is Flavour.vanilla_classic else ""}
         ✗ curse:molinari
           package folders conflict with installed package Molinari
             (curse:20338)
@@ -307,7 +307,7 @@ def test_install_argument_is_not_required(iw_config, run):
     ).output == dedent(
         f'''\
         ✓ curse:molinari
-          installed 90000.73-Release{"-classic" if iw_config.game_flavour is Flavour.vanilla_classic else ""}
+          installed 90100.79-Release{"-classic" if iw_config.game_flavour is Flavour.vanilla_classic else ""}
         ✗ curse:molinari
           package folders conflict with installed package Molinari
             (curse:20338)
@@ -369,7 +369,7 @@ def test_rollback__multiple_versions(feed_pt, iw_config, run):
     assert run('rollback curse:molinari').output == dedent(
         f'''\
         ✓ curse:molinari
-          updated 90000.73-Release{"-classic" if iw_config.game_flavour is Flavour.vanilla_classic else ""} to 80000.57-Release
+          updated 90100.79-Release{"-classic" if iw_config.game_flavour is Flavour.vanilla_classic else ""} to 80000.57-Release
         '''
     )
 
@@ -381,7 +381,7 @@ def test_rollback__multiple_versions_promptless(iw_config, run):
     assert run('rollback --version 80000.57-Release curse:molinari').output == dedent(
         f'''\
         ✓ curse:molinari
-          updated 90000.73-Release{"-classic" if iw_config.game_flavour is Flavour.vanilla_classic else ""} to 80000.57-Release
+          updated 90100.79-Release{"-classic" if iw_config.game_flavour is Flavour.vanilla_classic else ""} to 80000.57-Release
         '''
     )
 
@@ -395,7 +395,7 @@ def test_rollback__rollback_multiple_versions(feed_pt, iw_config, run, options):
     assert run(f'rollback {options} curse:molinari').output == dedent(
         f'''\
         ✓ curse:molinari
-          updated 80000.57-Release to 90000.73-Release{"-classic" if iw_config.game_flavour is Flavour.vanilla_classic else ""}
+          updated 80000.57-Release to 90100.79-Release{"-classic" if iw_config.game_flavour is Flavour.vanilla_classic else ""}
         '''
     )
 
@@ -420,7 +420,7 @@ def test_reconcile__auto_reconcile(iw_config, faux_molinari_and_run):
     assert faux_molinari_and_run('reconcile --auto').output == dedent(
         f'''\
         ✓ curse:molinari
-          installed 90000.73-Release{"-classic" if iw_config.game_flavour is Flavour.vanilla_classic else ""}
+          installed 90100.79-Release{"-classic" if iw_config.game_flavour is Flavour.vanilla_classic else ""}
         '''
     )
 
@@ -436,7 +436,7 @@ def test_reconcile__complete_interactive_reconciliation(feed_pt, iw_config, faux
         dedent(
             f'''\
             ✓ curse:molinari
-              installed 90000.73-Release{"-classic" if iw_config.game_flavour is Flavour.vanilla_classic else ""}
+              installed 90100.79-Release{"-classic" if iw_config.game_flavour is Flavour.vanilla_classic else ""}
             '''
         )
     )
@@ -465,7 +465,7 @@ def test_search__install_one(feed_pt, iw_config, run):
     assert run('search molinari --source curse').output == dedent(
         f'''\
         ✓ curse:molinari
-          installed 90000.73-Release{"-classic" if iw_config.game_flavour is Flavour.vanilla_classic else ""}
+          installed 90100.79-Release{"-classic" if iw_config.game_flavour is Flavour.vanilla_classic else ""}
         '''
     )
 
@@ -476,7 +476,7 @@ def test_search__install_multiple_conflicting(feed_pt, iw_config, run):
         dedent(
             f'''\
             ✓ curse:molinari
-              installed 90000.73-Release{"-classic" if iw_config.game_flavour is Flavour.vanilla_classic else ""}
+              installed 90100.79-Release{"-classic" if iw_config.game_flavour is Flavour.vanilla_classic else ""}
             ✗ wowi:13188-molinari
               package folders conflict with installed package Molinari
                 (curse:20338)
@@ -485,7 +485,7 @@ def test_search__install_multiple_conflicting(feed_pt, iw_config, run):
         dedent(
             f'''\
             ✓ wowi:13188-molinari
-              installed 90000.73-Release
+              installed 90100.79-Release
             ✗ curse:molinari
               package folders conflict with installed package Molinari
                 (wowi:13188)
@@ -496,13 +496,13 @@ def test_search__install_multiple_conflicting(feed_pt, iw_config, run):
 
 def test_changelog_output_with_arg(molinari_and_run):
     assert molinari_and_run('view-changelog curse:molinari').output.startswith(
-        '<h3>Changes in 90000.73-Release:</h3>'
+        '<h3>Changes in 90100.79-Release:</h3>'
     )
 
 
 def test_argless_changelog_output(molinari_and_run):
     assert molinari_and_run('view-changelog').output.startswith(
-        'curse:molinari:\n  <h3>Changes in 90000.73-Release:</h3>'
+        'curse:molinari:\n  <h3>Changes in 90100.79-Release:</h3>'
     )
 
 
