@@ -53,7 +53,7 @@ def reformat(session: nox.Session):
             rapidfuzz ==1.4.1
             sqlalchemy ==1.4.23
             typing-extensions ==3.10.0.0
-            yarl ==1.4
+            yarl ==1.6.3
             aiohttp-rpc ==1.0.0
             '''
         ),
