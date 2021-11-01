@@ -7,7 +7,7 @@ from datetime import datetime
 from enum import Enum
 from functools import partial, wraps
 import importlib.util
-from itertools import chain
+from itertools import chain, repeat
 from pathlib import Path
 import textwrap
 from typing import Any, NoReturn, TypeVar, overload
@@ -652,9 +652,11 @@ def list_installed(
             )
         )
 
-    pkgs = [
-        models.Pkg.from_row_mapping(manager.database, p)
-        for p in manager.database.execute(
+    def row_mappings_to_pkgs():
+        return map(models.Pkg.from_row_mapping, repeat(manager.database), pkg_mappings)
+
+    pkg_mappings = (
+        manager.database.execute(
             sa.select(db.pkg)
             .filter(
                 sa.or_(
@@ -673,13 +675,14 @@ def list_installed(
         )
         .mappings()
         .all()
-    ]
+    )
+
     if output_format is ListFormats.json:
-        click.echo(models.PkgList.parse_obj(pkgs).json(indent=2))
+        click.echo(models.PkgList.parse_obj(list(row_mappings_to_pkgs())).json(indent=2))
 
     elif output_format is ListFormats.detailed:
         formatter = click.HelpFormatter(max_width=99)
-        for pkg in pkgs:
+        for pkg in row_mappings_to_pkgs():
             with formatter.section(Defn.from_pkg(pkg).to_urn()):
                 formatter.write_dl(
                     [
@@ -696,7 +699,10 @@ def list_installed(
         click.echo(formatter.getvalue(), nl=False)
 
     else:
-        click.echo(''.join(f'{Defn.from_pkg(p).to_urn()}\n' for p in pkgs), nl=False)
+        click.echo(
+            ''.join(f'{Defn(p["source"], p["slug"]).to_urn()}\n' for p in pkg_mappings),
+            nl=False,
+        )
 
 
 @main.command(hidden=True)
