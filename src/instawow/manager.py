@@ -14,7 +14,7 @@ from collections.abc import (
 )
 from contextlib import asynccontextmanager, contextmanager
 import contextvars as cv
-from itertools import chain, compress, filterfalse, repeat, starmap
+from itertools import chain, compress, filterfalse, repeat, starmap, takewhile
 import json
 from pathlib import Path, PurePath
 from shutil import copy
@@ -777,3 +777,40 @@ class Manager:
                 return R.PkgStrategyUnsupported(Strategy.version)
 
         return {d: await capture_manager_exc_async(t(pin)(d, self.get_pkg(d))) for d in defns}
+
+
+async def is_outdated() -> tuple[bool, str]:
+    """Check on PyPI to see if the installed copy of instawow is outdated.
+
+    The response is cached for 24 hours.
+    """
+    from aiohttp.client import ClientError
+
+    from . import __version__
+
+    def parse_version(version: str) -> tuple[int, ...]:
+        version_parts = takewhile(lambda p: all(c in '0123456789' for c in p), version.split('.'))
+        return tuple(map(int, version_parts))
+
+    if __version__ == '0.0.0':
+        return (False, '')
+
+    dummy_config = Config.get_dummy_config()
+    if not dummy_config.auto_update_check:
+        return (False, '')
+
+    cache_file = dummy_config.temp_dir / '.pypi_version'
+    if await t(is_not_stale)(cache_file, {'days': 1}):
+        version = cache_file.read_text(encoding='utf-8')
+    else:
+        try:
+            async with init_web_client(raise_for_status=True) as web_client, web_client.get(
+                'https://pypi.org/pypi/instawow/json'
+            ) as response:
+                version = (await response.json())['info']['version']
+        except ClientError:
+            version = __version__
+        else:
+            cache_file.write_text(version, encoding='utf-8')
+
+    return (parse_version(version) > parse_version(__version__), version)

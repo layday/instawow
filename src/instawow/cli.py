@@ -22,7 +22,7 @@ from .common import Strategy
 from .config import Config, Flavour, setup_logging
 from .plugins import load_plugins
 from .resolvers import ChangelogFormat, Defn
-from .utils import StrEnum, cached_property, gather, is_outdated, make_progress_bar, tabulate, uniq
+from .utils import StrEnum, cached_property, gather, make_progress_bar, tabulate, uniq
 
 _T = TypeVar('_T')
 _F = TypeVar('_F', bound='Callable[..., object]')
@@ -68,7 +68,7 @@ class Report:
     def generate(self) -> None:
         manager_wrapper: ManagerWrapper | None = click.get_current_context().obj
         if manager_wrapper and manager_wrapper.manager.config.auto_update_check:
-            outdated, new_version = run_with_progress(is_outdated())
+            outdated, new_version = run_with_progress(_manager.is_outdated())
             if outdated:
                 click.echo(f'{self.WARNING_SYMBOL} instawow-{new_version} is available')
 

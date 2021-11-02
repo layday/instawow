@@ -29,9 +29,8 @@ from instawow import __version__, db, matchers, models
 from instawow import results as R
 from instawow.common import Strategy
 from instawow.config import Config
-from instawow.manager import Manager, TraceRequestCtx, init_web_client
+from instawow.manager import Manager, TraceRequestCtx, init_web_client, is_outdated
 from instawow.resolvers import CatalogueEntry, Defn
-from instawow.utils import is_outdated
 from instawow.utils import run_in_thread as t
 from instawow.utils import uniq
 

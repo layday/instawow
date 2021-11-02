@@ -10,7 +10,6 @@ from instawow.utils import (
     TocReader,
     bucketise,
     file_uri_to_path,
-    is_outdated,
     merge_intersecting_sets,
     run_in_thread,
     tabulate,
@@ -115,89 +114,6 @@ def test_file_uri_to_path_win32_leading_slash_is_stripped():
     uri = Path('C:/foo/bar').as_uri()
     assert uri == 'file:///C:/foo/bar'
     assert file_uri_to_path(uri) == 'C:/foo/bar'
-
-
-@pytest.mark.iw_no_mock
-@pytest.mark.asyncio
-async def test_is_outdated_works_in_variety_of_scenarios(monkeypatch, aresponses, iw_temp_dir):
-    pypi_version = iw_temp_dir.joinpath('.pypi_version')
-    if pypi_version.exists():
-        pypi_version.unlink()
-
-    # 'dev' in version number, version not cached
-    with monkeypatch.context() as patcher:
-        patcher.setattr('instawow.__version__', '0.0.0-dev')
-        assert await is_outdated() == (False, '')
-
-    # Update check disabled, version not cached
-    with monkeypatch.context() as patcher:
-        patcher.setenv('INSTAWOW_AUTO_UPDATE_CHECK', '0')
-        assert await is_outdated() == (False, '')
-
-    # Endpoint not responsive, version not cached
-    with monkeypatch.context() as patcher:
-        patcher.setattr('instawow.__version__', '0.0.0')
-        aresponses.add(
-            'pypi.org',
-            '/pypi/instawow/json',
-            'get',
-            aresponses.Response(status=500),
-        )
-        assert await is_outdated() == (False, '0.0.0')
-
-    # Endpoint responsive, version not cached and version different
-    with monkeypatch.context() as patcher:
-        patcher.setattr('instawow.__version__', '0.0.0')
-        aresponses.add(
-            'pypi.org',
-            '/pypi/instawow/json',
-            'get',
-            {'info': {'version': '1.0.0'}},
-        )
-        assert await is_outdated() == (True, '1.0.0')
-
-    # 'dev' in version number, version cached
-    with monkeypatch.context() as patcher:
-        patcher.setattr('instawow.__version__', '0.0.0-dev')
-        assert await is_outdated() == (False, '')
-
-    # Update check disabled, version cached
-    with monkeypatch.context() as patcher:
-        patcher.setenv('INSTAWOW_AUTO_UPDATE_CHECK', '0')
-        assert await is_outdated() == (False, '')
-
-    # Endpoint not responsive, version cached
-    with monkeypatch.context() as patcher:
-        patcher.setattr('instawow.__version__', '0.0.0')
-        aresponses.add(
-            'pypi.org',
-            '/pypi/instawow/json',
-            'get',
-            aresponses.Response(status=500),
-        )
-        assert await is_outdated() == (True, '1.0.0')
-
-    # Endpoint responsive, version cached and version same
-    with monkeypatch.context() as patcher:
-        patcher.setattr('instawow.__version__', '0.0.0')
-        aresponses.add(
-            'pypi.org',
-            '/pypi/instawow/json',
-            'get',
-            {'info': {'version': '1.0.0'}},
-        )
-        assert await is_outdated() == (True, '1.0.0')
-
-    # Endpoint responsive, version cached and version different
-    with monkeypatch.context() as patcher:
-        patcher.setattr('instawow.__version__', '1.0.0')
-        aresponses.add(
-            'pypi.org',
-            '/pypi/instawow/json',
-            'get',
-            {'info': {'version': '1.0.0'}},
-        )
-        assert await is_outdated() == (False, '1.0.0')
 
 
 @pytest.mark.asyncio
