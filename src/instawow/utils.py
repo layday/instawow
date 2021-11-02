@@ -11,16 +11,13 @@ from pathlib import Path, PurePath
 import posixpath
 from shutil import move as _move
 from tempfile import mkdtemp
-from typing import Generic, Hashable, TypeVar, overload
-
-from typing_extensions import TypeAlias
+from typing import Any, Generic, Hashable, TypeVar, overload
 
 from . import _deferred_types
 
 _T = TypeVar('_T')
 _U = TypeVar('_U')
 _H = TypeVar('_H', bound=Hashable)
-_StrPath: TypeAlias = 'os.PathLike[str] | str'
 
 
 class TocReader:
@@ -208,9 +205,9 @@ def make_progress_bar() -> _deferred_types.prompt_toolkit.shortcuts.ProgressBar:
     return progress_bar
 
 
-def move(src: _StrPath, dest: _StrPath) -> _StrPath:
+def move(src: str | os.PathLike[str], dest: str | os.PathLike[str]) -> Any:
     return _move(
-        str(src),  # See https://bugs.python.org/issue32689
+        os.fspath(src),  # See https://bugs.python.org/issue32689
         dest,
     )
 
