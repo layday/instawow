@@ -22,7 +22,7 @@ from .common import Strategy
 from .config import Config, Flavour, setup_logging
 from .plugins import load_plugins
 from .resolvers import ChangelogFormat, Defn
-from .utils import cached_property, gather, is_outdated, make_progress_bar, tabulate, uniq
+from .utils import StrEnum, cached_property, gather, is_outdated, make_progress_bar, tabulate, uniq
 
 _T = TypeVar('_T')
 _F = TypeVar('_F', bound='Callable[..., object]')
@@ -615,7 +615,7 @@ def search(ctx: click.Context, search_terms: str, limit: int, sources: Sequence[
         click.echo('No results found.')
 
 
-class ListFormats(str, Enum):
+class ListFormats(StrEnum):
     simple = 'simple'
     detailed = 'detailed'
     json = 'json'

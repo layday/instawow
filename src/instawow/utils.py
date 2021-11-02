@@ -4,6 +4,7 @@ import asyncio
 from collections import defaultdict
 from collections.abc import Awaitable, Callable, Iterable, Iterator, Mapping, Sequence
 from datetime import datetime, timedelta
+import enum
 from functools import partial, wraps
 from itertools import chain, repeat, takewhile
 import os
@@ -18,6 +19,10 @@ from . import _deferred_types
 _T = TypeVar('_T')
 _U = TypeVar('_U')
 _H = TypeVar('_H', bound=Hashable)
+
+
+class StrEnum(str, enum.Enum):
+    pass
 
 
 class TocReader:

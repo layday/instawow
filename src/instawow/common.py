@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from enum import Enum
+from .utils import StrEnum
 
 
-class Strategy(str, Enum):
+class Strategy(StrEnum):
     default = 'default'
     latest = 'latest'
     curse_latest_beta = 'curse_latest_beta'

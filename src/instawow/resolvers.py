@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import AsyncIterator, Sequence, Set
 from datetime import datetime, timezone
-from enum import Enum, IntEnum
+from enum import IntEnum
 from itertools import chain, takewhile
 import re
 import typing
@@ -17,13 +17,13 @@ from . import _deferred_types, manager, models
 from . import results as R
 from .common import Strategy
 from .config import Flavour
-from .utils import bucketise, cached_property, gather, normalise_names, uniq
+from .utils import StrEnum, bucketise, cached_property, gather, normalise_names, uniq
 
 if TYPE_CHECKING:  # pragma: no cover
     from typing_extensions import NotRequired as N
 
 
-class ChangelogFormat(str, Enum):
+class ChangelogFormat(StrEnum):
     html = 'html'
     markdown = 'markdown'
     bbcode = 'bbcode'

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from enum import Enum
 import os
 from pathlib import Path, PurePath
 from tempfile import gettempdir
@@ -10,7 +9,7 @@ from loguru import logger
 from pydantic import BaseSettings, Field, PydanticValueError, validator
 from pydantic.env_settings import SettingsSourceCallable
 
-from .utils import trash
+from .utils import StrEnum, trash
 
 
 class _PathNotWritableDirectoryError(PydanticValueError):
@@ -54,7 +53,7 @@ class BaseConfig(
     pass
 
 
-class Flavour(str, Enum):
+class Flavour(StrEnum):
     # The latest classic version is always aliased to "classic".
     # The logic here is that should WoW Classic not be discontinued
     # it will continue to be updated in place so that new Classic versions
