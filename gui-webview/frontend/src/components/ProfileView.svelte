@@ -397,6 +397,7 @@
       ]);
     } else if (selection === "resolve") {
       searchTerms = "";
+      searchFilterInstalled = false;
       [searchTerms, searchFromAlias, searchStrategy, searchVersion] = [
         createAddonToken(addon),
         true,
@@ -493,8 +494,8 @@
   $: searchTerms ||
     (console.debug(profile, "- restoring add-on view"), (activeView = View.Installed));
   // Reset search params in-between searches
-  $: searchTerms ||
-    (console.debug(profile, "- resetting search values"),
+  $: (!searchTerms || searchFilterInstalled !== undefined) &&
+    (console.debug(profile, "- resetting search options"),
     ({ searchFromAlias, searchSources, searchStrategy, searchVersion, searchCutoffDate } =
       defaultSearchState));
   // Update `searchFromAlias` whenever the search terms change
