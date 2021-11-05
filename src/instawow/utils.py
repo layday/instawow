@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 from collections import defaultdict
-from collections.abc import Awaitable, Callable, Iterable, Iterator, Mapping, Sequence
+from collections.abc import Awaitable, Callable, Iterable, Iterator, Mapping, Sequence, Set
 from datetime import datetime, timedelta
 import enum
 from functools import partial, wraps
@@ -243,15 +243,17 @@ def is_not_stale(path: Path, ttl: Mapping[str, float]) -> bool:
     )
 
 
-def find_zip_base_dirs(names: Sequence[str]) -> set[str]:
+def find_addon_zip_base_dirs(names: Sequence[str]) -> Iterator[str]:
     "Find top-level folders in a list of ZIP member paths."
-    return {n for n in (posixpath.dirname(n) for n in names) if n and posixpath.sep not in n}
+    for name in names:
+        if name.count(posixpath.sep) == 1:
+            head, tail = posixpath.split(name)
+            if head == tail[:-4] and tail[-4:].casefold() == '.toc':
+                yield head
 
 
-def make_zip_member_filter(base_dirs: set[str]) -> Callable[[str], bool]:
-    """Filter out items which are not sub-paths of top-level folders for the
-    purpose of extracting ZIP files.
-    """
+def make_zip_member_filter(base_dirs: Set[str]) -> Callable[[str], bool]:
+    "Filter out items which are not sub-paths of top-level folders in a ZIP."
 
     def is_subpath(name: str):
         head, sep, _ = name.partition(posixpath.sep)

@@ -51,7 +51,7 @@ from .utils import (
     bucketise,
     chain_dict,
     file_uri_to_path,
-    find_zip_base_dirs,
+    find_addon_zip_base_dirs,
     gather,
     is_not_stale,
     make_zip_member_filter,
@@ -112,19 +112,13 @@ async def _open_temp_writer() -> AsyncIterator[tuple[Path, Callable[[bytes], Awa
 def _open_pkg_archive(path: PurePath) -> Iterator[tuple[set[str], Callable[[Path], None]]]:
     from zipfile import ZipFile
 
-    ZIP_EXCLUDES = {
-        # Mac 'resource forks' are ommitted cuz they violate our one package
-        # per folder policy-contract-thing (besides just being clutter)
-        '__MACOSX',
-    }
-
     with ZipFile(path) as archive:
 
         def extract(parent: Path) -> None:
             archive.extractall(parent, members=filter(make_zip_member_filter(base_dirs), names))
 
         names = archive.namelist()
-        base_dirs = find_zip_base_dirs(names) - ZIP_EXCLUDES
+        base_dirs = set(find_addon_zip_base_dirs(names))
         yield (base_dirs, extract)
 
 

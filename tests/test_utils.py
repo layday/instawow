@@ -1,11 +1,14 @@
+from __future__ import annotations
+
 import asyncio
+from itertools import product
 from pathlib import Path
 import sys
 import time
 
 import pytest
 
-from instawow.manager import find_zip_base_dirs, make_zip_member_filter
+from instawow.manager import find_addon_zip_base_dirs, make_zip_member_filter
 from instawow.utils import (
     TocReader,
     bucketise,
@@ -21,21 +24,30 @@ def fake_addon():
     yield Path(__file__).parent / 'fixtures' / 'FakeAddon'
 
 
-def test_find_zip_base_dirs_can_find_explicit_dirs():
-    assert find_zip_base_dirs(['b/', 'b/b.toc']) == {'b'}
+def test_find_addon_zip_base_dirs_can_find_explicit_dirs():
+    assert set(find_addon_zip_base_dirs(['b/', 'b/b.toc'])) == {'b'}
 
 
-def test_find_zip_base_dirs_can_find_implicit_dirs():
-    assert find_zip_base_dirs(['b/b.toc']) == {'b'}
+def test_find_addon_zip_base_dirs_can_find_implicit_dirs():
+    assert set(find_addon_zip_base_dirs(['b/b.toc'])) == {'b'}
 
 
-def test_find_zip_base_dirs_discards_files_in_root():
-    assert find_zip_base_dirs(['a', 'b/b.toc', 'c/']) == {'b', 'c'}
+def test_find_addon_zip_base_dirs_discards_tocless_paths():
+    assert set(find_addon_zip_base_dirs(['a', 'b/b.toc', 'c/'])) == {'b'}
+
+
+def test_find_addon_zip_base_dirs_discards_mismatched_tocs():
+    assert not set(find_addon_zip_base_dirs(['a', 'a/b.toc']))
+
+
+@pytest.mark.parametrize('ext', product('Tt', 'Oo', 'Cc'))
+def test_find_addon_zip_base_dirs_toc_is_case_insensitive(ext: tuple[str, ...]):
+    assert set(find_addon_zip_base_dirs([f'a/a.{"".join(ext)}'])) == {'a'}
 
 
 def test_make_zip_member_filter_discards_names_with_prefix_not_in_dirs():
     is_member = make_zip_member_filter({'b'})
-    assert list(map(is_member, ['a/', 'b/', 'aa/', 'bb/'])) == [False, True, False, False]
+    assert list(filter(is_member, ['a/', 'b/', 'aa/', 'bb/', 'b/c', 'a/d'])) == ['b/', 'b/c']
 
 
 def test_loading_toc_from_addon_path(fake_addon):
