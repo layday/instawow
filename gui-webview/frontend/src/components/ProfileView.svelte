@@ -396,8 +396,7 @@
         addon.folders[0].name,
       ]);
     } else if (selection === "resolve") {
-      searchTerms = "";
-      searchFilterInstalled = false;
+      resetSearchState();
       [searchTerms, searchFromAlias, searchStrategy, searchVersion] = [
         createAddonToken(addon),
         true,
@@ -480,6 +479,12 @@
     }
   };
 
+  const resetSearchState = () => {
+    console.debug(profile, "- resetting search state");
+    ({ searchFromAlias, searchSources, searchStrategy, searchVersion, searchCutoffDate } =
+      defaultSearchState);
+  };
+
   onMount(async () => {
     sources = await profileApi.listSources();
     uriSchemes = [...Object.keys(sources), "http", "https"].map((s) => `${s}:`);
@@ -494,10 +499,8 @@
   $: searchTerms ||
     (console.debug(profile, "- restoring add-on view"), (activeView = View.Installed));
   // Reset search params in-between searches
-  $: (!searchTerms || searchFilterInstalled !== undefined) &&
-    (console.debug(profile, "- resetting search options"),
-    ({ searchFromAlias, searchSources, searchStrategy, searchVersion, searchCutoffDate } =
-      defaultSearchState));
+  $: searchTerms || resetSearchState();
+  $: searchFilterInstalled === undefined || resetSearchState();
   // Update `searchFromAlias` whenever the search terms change
   $: searchTerms &&
     (searchFromAlias =
@@ -569,11 +572,11 @@
         {sources}
         on:requestSearch={() => search()}
         bind:show={searchOptionsModal}
-        bind:search__sources={searchSources}
-        bind:search__fromAlias={searchFromAlias}
-        bind:search__cutoffDate={searchCutoffDate}
-        bind:search__strategy={searchStrategy}
-        bind:search__version={searchVersion}
+        bind:searchSources
+        bind:searchFromAlias
+        bind:searchCutoffDate
+        bind:searchStrategy
+        bind:searchVersion
       />
     {/if}
     {#if activeView === View.Reconcile}

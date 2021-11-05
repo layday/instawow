@@ -7,11 +7,11 @@
 
   export let show: boolean,
     sources: Sources,
-    search__sources: string[],
-    search__fromAlias: boolean,
-    search__cutoffDate: string | null,
-    search__strategy: Strategy,
-    search__version: string;
+    searchSources: string[],
+    searchFromAlias: boolean,
+    searchCutoffDate: string | null,
+    searchStrategy: Strategy,
+    searchVersion: string;
 
   const dispatch = createEventDispatcher();
 
@@ -25,29 +25,24 @@
   <dialog open class="modal" in:scale={{ duration: 200 }} on:click|stopPropagation>
     <form class="content" on:submit|preventDefault={() => requestSearch()}>
       <label for="__search-source">source:</label>
-      <select
-        id="__search-source"
-        multiple
-        disabled={search__fromAlias}
-        bind:value={search__sources}
-      >
+      <select id="__search-source" multiple disabled={searchFromAlias} bind:value={searchSources}>
         {#each Object.values(sources) as { source, name }}
           <option value={source}>{name}</option>
         {/each}
       </select>
       <label for="__search-strategy">strategy:</label>
-      <select id="__search-strategy" bind:value={search__strategy}>
+      <select id="__search-strategy" bind:value={searchStrategy}>
         {#each Object.values(Strategy) as strategy}
           <option value={strategy}>{strategy}</option>
         {/each}
       </select>
-      {#if search__strategy === Strategy.version}
+      {#if searchStrategy === Strategy.version}
         <input
           type="text"
           class="version"
           placeholder="version"
           aria-label="version"
-          bind:value={search__version}
+          bind:value={searchVersion}
           in:fly={{ duration: 200, y: -64 }}
         />
       {/if}
@@ -56,8 +51,8 @@
         type="text"
         id="__search-cutoff-date"
         placeholder="YYYY-MM-DD"
-        disabled={search__fromAlias}
-        bind:value={search__cutoffDate}
+        disabled={searchFromAlias}
+        bind:value={searchCutoffDate}
       />
       <button type="submit">search</button>
     </form>
