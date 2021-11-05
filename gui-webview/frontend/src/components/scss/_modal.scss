@@ -79,11 +79,14 @@ $edge-border-radius: math.div($form-el-line-height, 4);
     min-width: 12rem;
     max-width: 20rem;
     padding-right: 1.25rem;
-    background-image: var(--dropdown-arrow);
-    background-size: 10px;
-    background-repeat: no-repeat;
-    background-position: top 9px right 7px;
     -webkit-appearance: none;
+
+    &:not([multiple]) {
+      background-image: var(--dropdown-arrow);
+      background-size: 10px;
+      background-repeat: no-repeat;
+      background-position: top 9px right 7px;
+    }
   }
 
   .row + .row {

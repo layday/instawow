@@ -84,12 +84,7 @@ will be lost.`
 
 <svelte:window on:keydown={dismissOnEsc} />
 
-<dialog
-  open
-  class="modal"
-  style="--arrowhead-offset: {createNew ? 'calc(1rem - 8px)' : 'calc(3rem - 4px)'}"
-  transition:fade={{ duration: 200 }}
->
+<dialog open class="modal" transition:fade={{ duration: 200 }}>
   <form class="content" on:submit|preventDefault={() => saveConfig()}>
     {#if errors.profile}
       <div class="row error-text">{errors.profile}</div>
@@ -164,16 +159,5 @@ will be lost.`
     left: 0;
     right: 0;
     z-index: 10;
-
-    &::before {
-      content: "";
-      position: absolute;
-      bottom: 100%;
-      right: var(--arrowhead-offset);
-      border: solid transparent;
-      border-bottom-color: var(--base-color-alpha-65);
-      border-width: 8px;
-      pointer-events: none;
-    }
   }
 </style>

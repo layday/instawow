@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { Sources } from "../api";
-  import { faFilter, faGripLines, faLink } from "@fortawesome/free-solid-svg-icons";
+  import { faCog, faFilter, faGripLines, faLink } from "@fortawesome/free-solid-svg-icons";
   import { createEventDispatcher } from "svelte";
   import { fade, fly } from "svelte/transition";
   import { ReconciliationStage, Strategy } from "../api";
@@ -15,9 +15,6 @@
     search__terms: string,
     search__filterInstalled: boolean,
     search__fromAlias: boolean,
-    search__source: string | null,
-    search__strategy: Strategy,
-    search__version: string,
     search__isSearching: boolean,
     installed__isModifying: boolean,
     installed__isRefreshing: boolean,
@@ -144,48 +141,18 @@
       />
       <label
         for="__interpret-as-uri-{profile}"
-        aria-label="interpret query as an add-on URI"
-        title="interpret query as an add-on URI"
+        aria-label="interpret query as add-on URI"
+        title="interpret query as add-on URI"
       >
         <Icon icon={faLink} />
       </label>
-      {#if !search__fromAlias}
-        <!-- svelte-ignore a11y-no-onchange -->
-        <select
-          aria-label="source"
-          bind:value={search__source}
-          on:change={() => dispatch("requestSearch")}
-        >
-          <optgroup label="source">
-            <option value={null}>any</option>
-            {#each Object.values(sources) as { source, name }}
-              <option value={source}>{name}</option>
-            {/each}
-          </optgroup>
-        </select>
-      {/if}
-      <!-- svelte-ignore a11y-no-onchange -->
-      <select
-        aria-label="strategy"
-        bind:value={search__strategy}
-        on:change={() => dispatch("requestSearch")}
+      <button
+        aria-label="show search options"
+        disabled={search__fromAlias}
+        on:click={() => dispatch("requestShowSearchOptionsModal")}
       >
-        <optgroup label="strategy">
-          {#each Object.values(Strategy) as strategy}
-            <option value={strategy}>{strategy}</option>
-          {/each}
-        </optgroup>
-      </select>
-      {#if search__strategy === Strategy.version}
-        <input
-          type="text"
-          class="version"
-          placeholder="version"
-          bind:value={search__version}
-          on:keydown={(e) => e.key === "Enter" && dispatch("requestSearch")}
-          in:fly={{ duration: 200, x: 64 }}
-        />
-      {/if}
+        <Icon icon={faCog} />
+      </button>
     {:else if activeView === View.Reconcile}
       {#if reconcile__isInstalling}
         <div class="progress-indicator" in:fade>
@@ -252,7 +219,7 @@
 
   menu {
     @include unstyle-list;
-    font-weight: 600;
+    font-weight: 500;
   }
 
   .addon-list-nav {
@@ -264,6 +231,7 @@
     input[type="text"],
     input + label,
     select {
+      min-width: min-content;
       border: 0;
       transition: all 0.2s;
 

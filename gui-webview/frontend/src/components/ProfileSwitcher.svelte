@@ -1,9 +1,7 @@
 <script lang="ts">
-  import { faCog, faPlus } from "@fortawesome/free-solid-svg-icons";
   import { onMount } from "svelte";
   import { activeProfile, profiles } from "../store";
   import ConfigEditor from "./ConfigEditor.svelte";
-  import Icon from "./SvgIcon.svelte";
 
   let editing: "new" | "existing" | false = false;
 
@@ -11,11 +9,6 @@
 </script>
 
 <div class="profile-switcher-wrapper">
-  {#if editing === "new"}
-    <ConfigEditor bind:editing />
-  {:else if editing === "existing"}
-    <ConfigEditor bind:editing />
-  {/if}
   <div class="profile-switcher">
     <select aria-label="profile" bind:value={$activeProfile} disabled={!!editing}>
       {#each [...$profiles.keys()] as profile (profile)}
@@ -24,20 +17,23 @@
     </select>
     <button
       aria-label="edit profile"
-      title="edit profile"
       disabled={!$activeProfile}
       on:click={() => (editing = editing === "existing" ? false : "existing")}
     >
-      <Icon icon={faCog} />
+      edit
     </button>
     <button
       aria-label="add profile"
-      title="add profile"
       on:click={() => (editing = editing === "new" ? false : "new")}
     >
-      <Icon icon={faPlus} />
+      add
     </button>
   </div>
+  {#if editing === "new"}
+    <ConfigEditor bind:editing />
+  {:else if editing === "existing"}
+    <ConfigEditor bind:editing />
+  {/if}
 </div>
 
 <style lang="scss">
@@ -63,6 +59,7 @@
       border: 0;
       border-radius: $middle-border-radius;
       transition: all 0.2s;
+      font-weight: 500;
 
       &:disabled {
         opacity: 0.5;
@@ -80,13 +77,7 @@
     button {
       display: flex;
       place-items: center;
-      width: 2rem;
       margin-left: 4px;
-
-      :global(.icon) {
-        height: 1rem;
-        fill: var(--inverse-color-tone-20);
-      }
     }
 
     select {
@@ -97,7 +88,6 @@
       background-repeat: no-repeat;
       background-position: top calc(50% + 1px) right 7px;
       min-width: 200px;
-      font-weight: 500;
       -webkit-appearance: none;
     }
 

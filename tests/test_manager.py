@@ -1,3 +1,4 @@
+import datetime
 from pathlib import Path
 
 from aiohttp import ClientError
@@ -191,27 +192,46 @@ async def test_removing_pkg_with_missing_folders(iw_manager, keep_folders):
 
 @pytest.mark.asyncio
 async def test_basic_search(iw_manager):
-    results = await iw_manager.search('molinari', limit=5)
-    defns = {Defn(e.source, e.slug or e.id) for e in results}
-    assert {Defn('curse', 'molinari'), Defn('wowi', '13188')} <= defns
+    limit = 5
+    results = await iw_manager.search('molinari', limit=limit)
+    assert len(results) == limit
+    assert {('curse', 'molinari'), ('wowi', '13188')} <= {
+        (e.source, e.slug or e.id) for e in results
+    }
+
+
+@pytest.mark.asyncio
+async def test_search_flavour_filtering(iw_manager):
+    results = await iw_manager.search('AtlasLootClassic', limit=5)
+    faux_defns = {(e.source, e.slug or e.id) for e in results}
+    if iw_manager.config.game_flavour is Flavour.vanilla_classic:
+        assert ('curse', 'atlaslootclassic') in faux_defns
+    else:
+        assert ('curse', 'atlaslootclassic') not in faux_defns
 
 
 @pytest.mark.asyncio
 async def test_search_source_filtering(iw_manager):
     results = await iw_manager.search('molinari', limit=5, sources={'curse'})
-    defns = {Defn(e.source, e.slug or e.id) for e in results}
-    assert all(d.source == 'curse' for d in defns)
-    assert {Defn('curse', 'molinari')} <= defns
+    assert all(e.source == 'curse' for e in results)
+    assert {('curse', 'molinari')} <= {(e.source, e.slug) for e in results}
 
 
 @pytest.mark.asyncio
-async def test_search_caters_to_flavour(iw_manager):
-    results = await iw_manager.search('AtlasLootClassic', limit=5)
-    defns = {Defn(e.source, e.slug or e.id) for e in results}
-    if iw_manager.config.game_flavour is Flavour.vanilla_classic:
-        assert Defn('curse', 'atlaslootclassic') in defns
-    else:
-        assert Defn('curse', 'atlaslootclassic') not in defns
+async def test_search_date_filtering(iw_manager):
+    cutoff_date = datetime.datetime.now(tz=datetime.timezone.utc) - datetime.timedelta(days=365)
+
+    results = await iw_manager.search('molinari', limit=5)
+    assert any(e.last_updated < cutoff_date for e in results)
+
+    results = await iw_manager.search('molinari', limit=5, cutoff_date=cutoff_date)
+    assert all(e.last_updated > cutoff_date for e in results)
+
+
+@pytest.mark.asyncio
+async def test_search_unknown_source(iw_manager):
+    with pytest.raises(ValueError, match='Unknown source'):
+        await iw_manager.search('molinari', limit=5, sources={'foo'})
 
 
 @pytest.mark.asyncio

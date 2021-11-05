@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 from collections.abc import Awaitable, Callable, Generator, Iterable, Iterator, Sequence, Set
 from contextlib import contextmanager
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from functools import partial, wraps
 import importlib.util
@@ -577,6 +577,13 @@ def _concat_search_terms(_: click.Context, __: click.Parameter, value: tuple[str
     return ' '.join(value)
 
 
+def _parse_iso_date_into_datetime(
+    _: click.Context, __: click.Parameter, value: str | None
+) -> datetime | None:
+    if value is not None:
+        return datetime.strptime(value, '%Y-%m-%d').replace(tzinfo=timezone.utc)
+
+
 @main.command()
 @click.argument('search-terms', nargs=-1, required=True, callback=_concat_search_terms)
 @click.option(
@@ -587,19 +594,33 @@ def _concat_search_terms(_: click.Context, __: click.Parameter, value: tuple[str
     help='A number to limit results to.',
 )
 @click.option(
+    '--cutoff-date',
+    callback=_parse_iso_date_into_datetime,
+    help='Omit results before this date.',
+    metavar='YYYY-MM-DD',
+)
+@click.option(
     '--source',
     'sources',
     multiple=True,
     help='A source to search in.  Repeatable.',
 )
 @click.pass_context
-def search(ctx: click.Context, search_terms: str, limit: int, sources: Sequence[str]) -> None:
+def search(
+    ctx: click.Context,
+    search_terms: str,
+    limit: int,
+    sources: Sequence[str],
+    cutoff_date: datetime | None,
+) -> None:
     "Search for add-ons to install."
     from .prompts import PkgChoice, ask, checkbox, confirm
 
     manager: _manager.Manager = ctx.obj.manager
 
-    entries = run_with_progress(manager.search(search_terms, limit, frozenset(sources) or None))
+    entries = run_with_progress(
+        manager.search(search_terms, limit, frozenset(sources), cutoff_date)
+    )
     defns = [Defn(e.source, e.id) for e in entries]
     pkgs = (
         (d.with_(alias=r.slug), r)
@@ -879,19 +900,19 @@ def list_installed_wago_auras(manager: _manager.Manager) -> None:
     click.echo(tabulate([('in file', 'name', 'URL'), *installed_auras]))
 
 
-def _parse_datetime(_: click.Context, __: click.Parameter, value: str | None) -> datetime | None:
-    if value is not None:
-        return datetime.fromisoformat(value)
-
-
 @main.command(hidden=True)
 @click.argument('filename', type=click.Path(dir_okay=False))
-@click.option('--age-cutoff', callback=_parse_datetime)
-def generate_catalogue(filename: str, age_cutoff: datetime | None) -> None:
+@click.option(
+    '--cutoff-date',
+    callback=_parse_iso_date_into_datetime,
+    help='Omit results before this date.',
+    metavar='YYYY-MM-DD',
+)
+def generate_catalogue(filename: str, cutoff_date: datetime | None) -> None:
     "Generate the master catalogue."
     from .resolvers import Catalogue
 
-    catalogue = asyncio.run(Catalogue.collate(age_cutoff))
+    catalogue = asyncio.run(Catalogue.collate(cutoff_date))
     file = Path(filename)
     file.write_text(
         catalogue.json(indent=2),

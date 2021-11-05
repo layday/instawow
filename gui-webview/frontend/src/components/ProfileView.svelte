@@ -26,6 +26,7 @@
   import Alerts from "./Alerts.svelte";
   import ChangelogModal from "./ChangelogModal.svelte";
   import RollbackModal from "./RollbackModal.svelte";
+  import SearchOptionsModal from "./SearchOptionsModal.svelte";
   import Icon from "./SvgIcon.svelte";
 
   // Two-tuple of reference and resolved add-on.  When listing installed add-ons
@@ -61,16 +62,18 @@
     searchTerms: string;
     searchFilterInstalled: boolean;
     searchFromAlias: boolean;
-    searchSource: string | null;
+    searchSources: string[];
     searchStrategy: Strategy;
     searchVersion: string;
+    searchCutoffDate: string | null;
   } = {
     searchTerms: "",
     searchFilterInstalled: false,
     searchFromAlias: false,
-    searchSource: null,
+    searchSources: [],
     searchStrategy: Strategy.default,
     searchVersion: "",
+    searchCutoffDate: null,
   };
 
   const htmlify = (markdownText: string) =>
@@ -103,9 +106,10 @@
     searchTerms,
     searchFilterInstalled,
     searchFromAlias,
-    searchSource,
+    searchSources,
     searchStrategy,
     searchVersion,
+    searchCutoffDate,
   } = defaultSearchState;
 
   let alerts: {
@@ -124,6 +128,8 @@
   let changelogModalProps: { changelog: string; renderAsHtml: boolean };
   let rollbackModal: boolean = false;
   let rollbackModalProps: { addon: Addon };
+  let searchOptionsModal: boolean = false;
+
   let addonContextMenu: boolean = false;
   let addonContextMenuProps: {
     addon: Addon;
@@ -275,7 +281,8 @@
           const catalogueEntries = await profileApi.search(
             searchTermsSnapshot,
             SEARCH_LIMIT,
-            searchSource ? [searchSource] : null
+            searchSources,
+            searchCutoffDate
           );
 
           if (searchTermsSnapshot !== searchTerms) {
@@ -488,8 +495,8 @@
   // Reset search params in-between searches
   $: searchTerms ||
     (console.debug(profile, "- resetting search values"),
-    ({ searchFromAlias, searchSource, searchStrategy, searchVersion } = defaultSearchState));
-  // Upddate `searchFromAlias` whenever the search terms change
+    ({ searchFromAlias, searchSources, searchStrategy, searchVersion } = defaultSearchState));
+  // Update `searchFromAlias` whenever the search terms change
   $: searchTerms &&
     (searchFromAlias =
       (console.debug(profile, "- updating `searchFromAlias`"), isSearchFromAlias()));
@@ -515,6 +522,7 @@
     {profile}
     {sources}
     on:requestSearch={() => search()}
+    on:requestShowSearchOptionsModal={() => (searchOptionsModal = true)}
     on:requestRefresh={() => refreshInstalled()}
     on:requestUpdateAll={() => updateAddons(true)}
     on:requestInstallReconciled={() => installReconciled(reconcileStage, reconcileSelections)}
@@ -525,9 +533,6 @@
     bind:search__terms={searchTerms}
     bind:search__filterInstalled={searchFilterInstalled}
     bind:search__fromAlias={searchFromAlias}
-    bind:search__source={searchSource}
-    bind:search__strategy={searchStrategy}
-    bind:search__version={searchVersion}
     bind:reconcile__stage={reconcileStage}
     search__isSearching={searchesInProgress > 0}
     installed__isModifying={addonsBeingModified.length > 0}
@@ -555,6 +560,17 @@
         on:requestRollback={(event) => updateAddons([event.detail])}
         bind:show={rollbackModal}
         {...rollbackModalProps}
+      />
+    {/if}
+    {#if searchOptionsModal}
+      <SearchOptionsModal
+        {sources}
+        on:requestSearch={() => search()}
+        bind:show={searchOptionsModal}
+        bind:search__sources={searchSources}
+        bind:search__cutoffDate={searchCutoffDate}
+        bind:search__strategy={searchStrategy}
+        bind:search__version={searchVersion}
       />
     {/if}
     {#if activeView === View.Reconcile}

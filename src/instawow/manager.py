@@ -14,6 +14,7 @@ from collections.abc import (
 )
 from contextlib import asynccontextmanager, contextmanager
 import contextvars as cv
+import datetime
 from itertools import chain, compress, filterfalse, repeat, starmap, takewhile
 import json
 from pathlib import Path, PurePath
@@ -590,40 +591,67 @@ class Manager:
         self,
         search_terms: str,
         limit: int,
-        sources: Set[str] | None = None,
+        sources: Set[str] = frozenset(),
+        cutoff_date: datetime.datetime | None = None,
     ) -> list[CatalogueEntry]:
         "Search the master catalogue for packages by name."
         import rapidfuzz
 
         catalogue = await self.synchronise()
 
-        w = 0.5  # Weighing edit distance and download score equally
+        ew = 0.5
+        dw = 1 - ew
+
         normalise = normalise_names('')
 
-        if sources is None:
+        if not sources:
             sources = self.resolvers.keys()
+        else:
+            unknown_sources = sources - self.resolvers.keys()
+            if unknown_sources:
+                raise ValueError(f'Unknown sources: {", ".join(unknown_sources)}')
+
+        def make_filter():
+            def filter_game_flavour(entry: CatalogueEntry):
+                return self.config.game_flavour in entry.game_flavours
+
+            yield filter_game_flavour
+
+            if sources is not None:
+
+                def filter_sources(entry: CatalogueEntry):
+                    return entry.source in sources
+
+                yield filter_sources
+
+            if cutoff_date is not None:
+                cutoff_date_ = cutoff_date
+
+                def filter_age(entry: CatalogueEntry):
+                    return entry.last_updated >= cutoff_date_
+
+                yield filter_age
+
+        filter_fns = list(make_filter())
 
         s = normalise(search_terms)
+
         tokens_to_entries = bucketise(
-            (
-                (normalise(i.name), i)
-                for i in catalogue.__root__
-                if self.config.game_flavour in i.game_flavours and i.source in sources
-            ),
+            ((normalise(e.name), e) for e in catalogue.__root__ if all(f(e) for f in filter_fns)),
             key=lambda v: v[0],
         )
         matches = rapidfuzz.process.extract(
-            s, list(tokens_to_entries), scorer=rapidfuzz.fuzz.WRatio, limit=limit
+            s, list(tokens_to_entries), scorer=rapidfuzz.fuzz.WRatio, limit=limit * 2
         )
         weighted_entries = sorted(
             (
-                (-((s / 100) * w + i.derived_download_score * (1 - w)), i)
+                (-((s / 100) * ew + e.derived_download_score * dw), e)
                 for m, s, _ in matches
-                for _, i in tokens_to_entries[m]
+                for _, e in tokens_to_entries[m]
             ),
             key=lambda v: v[0],
         )
-        return [e for _, e in weighted_entries]
+        return [e for _, e in weighted_entries[:limit]]
 
     @_with_lock('change state')
     async def install(
