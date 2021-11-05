@@ -495,7 +495,8 @@
   // Reset search params in-between searches
   $: searchTerms ||
     (console.debug(profile, "- resetting search values"),
-    ({ searchFromAlias, searchSources, searchStrategy, searchVersion } = defaultSearchState));
+    ({ searchFromAlias, searchSources, searchStrategy, searchVersion, searchCutoffDate } =
+      defaultSearchState));
   // Update `searchFromAlias` whenever the search terms change
   $: searchTerms &&
     (searchFromAlias =
