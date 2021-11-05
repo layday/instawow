@@ -258,8 +258,6 @@ class CurseResolver(BaseResolver):
         {
             Strategy.default,
             Strategy.latest,
-            Strategy.curse_latest_beta,
-            Strategy.curse_latest_alpha,
             Strategy.any_flavour,
             Strategy.version,
         }
@@ -369,19 +367,7 @@ class CurseResolver(BaseResolver):
 
                         yield supports_burning_crusade_classic
 
-                if defn.strategy is Strategy.curse_latest_beta:
-
-                    def is_beta(f: _CurseAddon_File):
-                        return f['releaseType'] == 2
-
-                    yield is_beta
-                elif defn.strategy is Strategy.curse_latest_alpha:
-
-                    def is_alpha(f: _CurseAddon_File):
-                        return f['releaseType'] == 3
-
-                    yield is_alpha
-                elif defn.strategy is not Strategy.latest:
+                if defn.strategy is not Strategy.latest:
 
                     def is_stable(f: _CurseAddon_File):
                         return f['releaseType'] == 1

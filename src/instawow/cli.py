@@ -339,8 +339,7 @@ _EXCLUDED_STRATEGIES = frozenset({Strategy.default, Strategy.version})
     callback=partial(_combine_addons, parse_into_defn_with_strategy),
     metavar='<STRATEGY ADDON>...',
     help='A strategy followed by an add-on definition.  '
-    'The strategy is one of: '
-    f'{", ".join(s for s in Strategy if s not in _EXCLUDED_STRATEGIES)}.',
+    f'One of: {", ".join(s for s in Strategy if s not in _EXCLUDED_STRATEGIES)}.',
 )
 @click.option(
     '--version',
