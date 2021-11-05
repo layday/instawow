@@ -8,6 +8,7 @@
   export let show: boolean,
     sources: Sources,
     search__sources: string[],
+    search__fromAlias: boolean,
     search__cutoffDate: string | null,
     search__strategy: Strategy,
     search__version: string;
@@ -24,7 +25,12 @@
   <dialog open class="modal" in:scale={{ duration: 200 }} on:click|stopPropagation>
     <form class="content" on:submit|preventDefault={() => requestSearch()}>
       <label for="__search-source">source:</label>
-      <select id="__search-source" multiple bind:value={search__sources}>
+      <select
+        id="__search-source"
+        multiple
+        disabled={search__fromAlias}
+        bind:value={search__sources}
+      >
         {#each Object.values(sources) as { source, name }}
           <option value={source}>{name}</option>
         {/each}
@@ -50,6 +56,7 @@
         type="text"
         id="__search-cutoff-date"
         placeholder="YYYY-MM-DD"
+        disabled={search__fromAlias}
         bind:value={search__cutoffDate}
       />
       <button type="submit">search</button>

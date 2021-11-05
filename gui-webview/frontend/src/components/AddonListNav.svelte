@@ -148,7 +148,6 @@
       </label>
       <button
         aria-label="show search options"
-        disabled={search__fromAlias}
         on:click={() => dispatch("requestShowSearchOptionsModal")}
       >
         <Icon icon={faCog} />

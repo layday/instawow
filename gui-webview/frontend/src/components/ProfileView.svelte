@@ -570,6 +570,7 @@
         on:requestSearch={() => search()}
         bind:show={searchOptionsModal}
         bind:search__sources={searchSources}
+        bind:search__fromAlias={searchFromAlias}
         bind:search__cutoffDate={searchCutoffDate}
         bind:search__strategy={searchStrategy}
         bind:search__version={searchVersion}
