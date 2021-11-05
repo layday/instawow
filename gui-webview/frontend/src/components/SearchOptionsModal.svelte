@@ -24,7 +24,7 @@
 <Modal bind:show>
   <dialog open class="modal" in:scale={{ duration: 200 }} on:click|stopPropagation>
     <form class="content" on:submit|preventDefault={() => requestSearch()}>
-      <label for="__search-source">source:</label>
+      <label for="__search-source">sources:</label>
       <select id="__search-source" multiple disabled={searchFromAlias} bind:value={searchSources}>
         {#each Object.values(sources) as { source, name }}
           <option value={source}>{name}</option>
