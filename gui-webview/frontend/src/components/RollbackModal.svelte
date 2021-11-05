@@ -6,7 +6,7 @@
   import { scale } from "svelte/transition";
   import Modal from "./Modal.svelte";
 
-  export let show: any, addon: Addon;
+  export let show: boolean, addon: Addon;
 
   const dispatch = createEventDispatcher();
 

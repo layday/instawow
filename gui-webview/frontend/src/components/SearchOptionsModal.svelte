@@ -5,7 +5,7 @@
   import { fly, scale } from "svelte/transition";
   import Modal from "./Modal.svelte";
 
-  export let show: any,
+  export let show: boolean,
     sources: Sources,
     search__sources: string[],
     search__cutoffDate: string | null,
