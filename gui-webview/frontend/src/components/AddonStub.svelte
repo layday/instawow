@@ -128,7 +128,7 @@
     .selection-grid {
       display: grid;
       grid-template-columns: 1fr 2fr 1rem;
-      grid-column-gap: 0.5rem;
+      column-gap: 0.5rem;
     }
 
     summary {

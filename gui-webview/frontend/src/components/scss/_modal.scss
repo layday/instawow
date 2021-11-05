@@ -77,15 +77,19 @@ $edge-border-radius: math.div($form-el-line-height, 4);
 
   select {
     min-width: 12rem;
-    max-width: 20rem;
-    padding-right: 1.25rem;
     -webkit-appearance: none;
 
     &:not([multiple]) {
+      padding-right: 1.25rem;
       background-image: var(--dropdown-arrow);
       background-size: 10px;
       background-repeat: no-repeat;
       background-position: top 9px right 7px;
+    }
+
+    &[multiple] {
+      padding-top: 0.35rem;
+      padding-bottom: 0.35rem;
     }
   }
 

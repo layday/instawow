@@ -87,7 +87,7 @@
 
   const profileApi = api.withProfile(profile);
 
-  let sources: Sources;
+  let sources: Sources = {};
   let uriSchemes: string[];
 
   let activeView: View = View.Installed;

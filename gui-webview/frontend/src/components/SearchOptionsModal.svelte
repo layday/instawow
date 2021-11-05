@@ -23,14 +23,14 @@
 <Modal bind:show>
   <dialog open class="modal" in:scale={{ duration: 200 }} on:click|stopPropagation>
     <form class="content" on:submit|preventDefault={() => requestSearch()}>
-      <label for="__search-source">source</label>
-      <select class="row" id="__search-source" multiple bind:value={search__sources}>
+      <label for="__search-source">source:</label>
+      <select id="__search-source" multiple bind:value={search__sources}>
         {#each Object.values(sources) as { source, name }}
           <option value={source}>{name}</option>
         {/each}
       </select>
-      <label for="__search-strategy">strategy</label>
-      <select class="row" id="__search-strategy" bind:value={search__strategy}>
+      <label for="__search-strategy">strategy:</label>
+      <select id="__search-strategy" bind:value={search__strategy}>
         {#each Object.values(Strategy) as strategy}
           <option value={strategy}>{strategy}</option>
         {/each}
@@ -38,22 +38,21 @@
       {#if search__strategy === Strategy.version}
         <input
           type="text"
-          class="row version"
+          class="version"
           placeholder="version"
           aria-label="version"
           bind:value={search__version}
           in:fly={{ duration: 200, y: -64 }}
         />
       {/if}
-      <label for="__search-cutoff-date">cut-off date</label>
+      <label for="__search-cutoff-date">cut-off date:</label>
       <input
         type="text"
-        class="row"
         id="__search-cutoff-date"
         placeholder="YYYY-MM-DD"
         bind:value={search__cutoffDate}
       />
-      <button class="row" type="submit">apply</button>
+      <button type="submit">search</button>
     </form>
   </dialog>
 </Modal>
@@ -61,14 +60,24 @@
 <style lang="scss">
   @import "scss/modal";
 
-  label {
-    display: block;
-    margin-bottom: 0.1em;
-    padding: 0 0.5em;
-    color: var(--inverse-color-tone-20);
+  form {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    column-gap: 0.5rem;
+    row-gap: 0.5rem;
 
-    &:not(:first-child) {
-      margin-top: 0.5em;
+    button {
+      grid-column-start: span 2;
+    }
+
+    label {
+      line-height: $form-el-line-height;
+      color: var(--inverse-color-tone-10);
+      text-align: right;
+    }
+
+    .version {
+      grid-column-start: 2;
     }
   }
 </style>
