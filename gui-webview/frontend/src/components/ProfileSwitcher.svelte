@@ -49,7 +49,7 @@
     $edge-border-radius: math.div($line-height, 4);
 
     display: flex;
-    font-size: 0.9em;
+    font-size: 0.95em;
 
     button,
     select {
