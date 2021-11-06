@@ -47,7 +47,12 @@
       <ul class="cutoff-date-suggestions">
         {#each cutoffDateSuggestions as { date, patch, flavour: suggestionFlavour }}
           {#if flavour === suggestionFlavour}
-            <li on:click={() => (searchCutoffDate = date)}>{patch}</li>
+            <li
+              class:disabled={searchFromAlias}
+              on:click={() => !searchFromAlias && (searchCutoffDate = date)}
+            >
+              {patch}
+            </li>
           {/if}
         {/each}
       </ul>
@@ -110,6 +115,11 @@
         border-radius: $edge-border-radius;
         background-color: var(--inverse-color-tone-20);
         color: var(--base-color);
+
+        &.disabled {
+          cursor: default;
+          opacity: 0.5;
+        }
       }
     }
   }
