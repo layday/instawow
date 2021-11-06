@@ -10,11 +10,11 @@
     flavour: Flavour,
     searchSources: string[],
     searchFromAlias: boolean,
-    searchCutoffDate: string | null,
+    searchStartDate: string | null,
     searchStrategy: Strategy,
     searchVersion: string;
 
-  const cutoffDateSuggestions = [
+  const startDateSuggestions = [
     { date: "2021-11-02", patch: "9.1.5", flavour: Flavour.retail },
     { date: "2020-10-13", patch: "9.0.1", flavour: Flavour.retail },
   ];
@@ -36,20 +36,20 @@
           <option value={source}>{name}</option>
         {/each}
       </select>
-      <label for="__search-cutoff-date">cut-off date:</label>
+      <label for="__search-start-date">start date:</label>
       <input
         type="text"
-        id="__search-cutoff-date"
+        id="__search-start-date"
         placeholder="YYYY-MM-DD"
         disabled={searchFromAlias}
-        bind:value={searchCutoffDate}
+        bind:value={searchStartDate}
       />
-      <ul class="cutoff-date-suggestions">
-        {#each cutoffDateSuggestions as { date, patch, flavour: suggestionFlavour }}
+      <ul class="start-date-suggestions">
+        {#each startDateSuggestions as { date, patch, flavour: suggestionFlavour }}
           {#if flavour === suggestionFlavour}
             <li
               class:disabled={searchFromAlias}
-              on:click={() => !searchFromAlias && (searchCutoffDate = date)}
+              on:click={() => !searchFromAlias && (searchStartDate = date)}
             >
               {patch}
             </li>
@@ -101,7 +101,7 @@
       grid-column-start: 2;
     }
 
-    .cutoff-date-suggestions {
+    .start-date-suggestions {
       @include unstyle-list;
       grid-column-start: 2;
       display: inline-flex;

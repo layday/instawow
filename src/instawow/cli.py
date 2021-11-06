@@ -593,7 +593,7 @@ def _parse_iso_date_into_datetime(
     help='A number to limit results to.',
 )
 @click.option(
-    '--cutoff-date',
+    '--start-date',
     callback=_parse_iso_date_into_datetime,
     help='Omit results before this date.',
     metavar='YYYY-MM-DD',
@@ -610,7 +610,7 @@ def search(
     search_terms: str,
     limit: int,
     sources: Sequence[str],
-    cutoff_date: datetime | None,
+    start_date: datetime | None,
 ) -> None:
     "Search for add-ons to install."
     from .prompts import PkgChoice, ask, checkbox, confirm
@@ -618,7 +618,7 @@ def search(
     manager: _manager.Manager = ctx.obj.manager
 
     entries = run_with_progress(
-        manager.search(search_terms, limit, frozenset(sources), cutoff_date)
+        manager.search(search_terms, limit, frozenset(sources), start_date)
     )
     defns = [Defn(e.source, e.id) for e in entries]
     pkgs = (
@@ -902,16 +902,16 @@ def list_installed_wago_auras(manager: _manager.Manager) -> None:
 @main.command(hidden=True)
 @click.argument('filename', type=click.Path(dir_okay=False))
 @click.option(
-    '--cutoff-date',
+    '--start-date',
     callback=_parse_iso_date_into_datetime,
     help='Omit results before this date.',
     metavar='YYYY-MM-DD',
 )
-def generate_catalogue(filename: str, cutoff_date: datetime | None) -> None:
+def generate_catalogue(filename: str, start_date: datetime | None) -> None:
     "Generate the master catalogue."
     from .resolvers import Catalogue
 
-    catalogue = asyncio.run(Catalogue.collate(cutoff_date))
+    catalogue = asyncio.run(Catalogue.collate(start_date))
     file = Path(filename)
     file.write_text(
         catalogue.json(indent=2),

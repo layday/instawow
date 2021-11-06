@@ -180,7 +180,7 @@ class SearchParams(_ProfileParamMixin, BaseParams):
     search_terms: str
     limit: int
     sources: typing.Set[str]
-    cutoff_date: typing.Optional[datetime]
+    start_date: typing.Optional[datetime]
 
     async def respond(self, managers: _ManagerWorkQueue) -> list[CatalogueEntry]:
         return await managers.run(
@@ -190,7 +190,7 @@ class SearchParams(_ProfileParamMixin, BaseParams):
                 search_terms=self.search_terms,
                 limit=self.limit,
                 sources=self.sources,
-                cutoff_date=self.cutoff_date,
+                start_date=self.start_date,
             ),
         )
 

@@ -586,7 +586,7 @@ class Manager:
         search_terms: str,
         limit: int,
         sources: Set[str] = frozenset(),
-        cutoff_date: datetime.datetime | None = None,
+        start_date: datetime.datetime | None = None,
     ) -> list[CatalogueEntry]:
         "Search the master catalogue for packages by name."
         import rapidfuzz
@@ -618,11 +618,11 @@ class Manager:
 
                 yield filter_sources
 
-            if cutoff_date is not None:
-                cutoff_date_ = cutoff_date
+            if start_date is not None:
+                start_date_ = start_date
 
                 def filter_age(entry: CatalogueEntry):
-                    return entry.last_updated >= cutoff_date_
+                    return entry.last_updated >= start_date_
 
                 yield filter_age
 

@@ -65,7 +65,7 @@
     searchSources: string[];
     searchStrategy: Strategy;
     searchVersion: string;
-    searchCutoffDate: string | null;
+    searchStartDate: string | null;
   } = {
     searchTerms: "",
     searchFilterInstalled: false,
@@ -73,7 +73,7 @@
     searchSources: [],
     searchStrategy: Strategy.default,
     searchVersion: "",
-    searchCutoffDate: null,
+    searchStartDate: null,
   };
 
   const htmlify = (markdownText: string) =>
@@ -109,7 +109,7 @@
     searchSources,
     searchStrategy,
     searchVersion,
-    searchCutoffDate,
+    searchStartDate,
   } = defaultSearchState;
 
   let alerts: {
@@ -282,7 +282,7 @@
             searchTermsSnapshot,
             SEARCH_LIMIT,
             searchSources,
-            searchCutoffDate
+            searchStartDate
           );
 
           if (searchTermsSnapshot !== searchTerms) {
@@ -483,7 +483,7 @@
 
   const resetSearchState = () => {
     console.debug(profile, "- resetting search state");
-    ({ searchFromAlias, searchSources, searchStrategy, searchVersion, searchCutoffDate } =
+    ({ searchFromAlias, searchSources, searchStrategy, searchVersion, searchStartDate } =
       defaultSearchState);
   };
 
@@ -577,7 +577,7 @@
         bind:show={searchOptionsModal}
         bind:searchSources
         bind:searchFromAlias
-        bind:searchCutoffDate
+        bind:searchStartDate
         bind:searchStrategy
         bind:searchVersion
       />

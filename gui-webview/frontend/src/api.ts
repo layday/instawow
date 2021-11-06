@@ -204,7 +204,7 @@ export class Api {
     searchTerms: string,
     searchLimit: number,
     sources: string[],
-    cutoffDate: string | null
+    startDate: string | null
   ): Promise<CatalogueEntry[]> {
     return await this._request({
       method: "search",
@@ -213,7 +213,7 @@ export class Api {
         search_terms: searchTerms,
         limit: searchLimit,
         sources: sources,
-        cutoff_date: cutoffDate ? new Date(cutoffDate) : null,
+        start_date: startDate ? new Date(startDate) : null,
       },
     });
   }

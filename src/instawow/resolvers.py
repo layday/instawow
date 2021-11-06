@@ -95,7 +95,7 @@ class Catalogue(
     __root__: typing.List[CatalogueEntry]
 
     @classmethod
-    async def collate(cls, cutoff_date: datetime | None) -> Catalogue:
+    async def collate(cls, start_date: datetime | None) -> Catalogue:
         async with manager.init_web_client() as web_client:
             items = [a for r in manager.Manager.RESOLVERS async for a in r.catalogue(web_client)]
 
@@ -110,8 +110,8 @@ class Catalogue(
             )
             for i in items
         )
-        if cutoff_date is not None:
-            entries = (e for e in entries if e.last_updated >= cutoff_date)
+        if start_date is not None:
+            entries = (e for e in entries if e.last_updated >= start_date)
         catalogue = cls.parse_obj(list(entries))
         return catalogue
 

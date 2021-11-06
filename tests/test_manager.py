@@ -219,13 +219,13 @@ async def test_search_source_filtering(iw_manager):
 
 @pytest.mark.asyncio
 async def test_search_date_filtering(iw_manager):
-    cutoff_date = datetime.datetime.now(tz=datetime.timezone.utc) - datetime.timedelta(days=365)
+    start_date = datetime.datetime.now(tz=datetime.timezone.utc) - datetime.timedelta(days=365)
 
     results = await iw_manager.search('molinari', limit=5)
-    assert any(e.last_updated < cutoff_date for e in results)
+    assert any(e.last_updated < start_date for e in results)
 
-    results = await iw_manager.search('molinari', limit=5, cutoff_date=cutoff_date)
-    assert all(e.last_updated > cutoff_date for e in results)
+    results = await iw_manager.search('molinari', limit=5, start_date=start_date)
+    assert all(e.last_updated > start_date for e in results)
 
 
 @pytest.mark.asyncio
