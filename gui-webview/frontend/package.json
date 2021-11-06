@@ -11,14 +11,14 @@
   "private": true,
   "devDependencies": {
     "@fortawesome/free-solid-svg-icons": "^5.15.3",
-    "@rollup/plugin-commonjs": "^19.0.0",
+    "@rollup/plugin-commonjs": "^21.0.1",
     "@rollup/plugin-json": "^4.1.0",
     "@rollup/plugin-node-resolve": "^13.0.0",
     "@rollup/plugin-typescript": "^8.2.1",
-    "@tsconfig/svelte": "^1.0.10",
+    "@tsconfig/svelte": "^2.0.1",
     "@types/commonmark": "^0.27.4",
     "@types/lodash": "^4.14.168",
-    "@types/luxon": "^1.26.3",
+    "@types/luxon": "^2.0.5",
     "events": "^3.3.0",
     "prettier": "^2.2.1",
     "prettier-plugin-svelte": "^2.2.0",
@@ -27,18 +27,18 @@
     "rollup-plugin-svelte": "^7.1.0",
     "sass": "^1.32.8",
     "svelte": "^3.37.0",
-    "svelte-check": "^1.4.0",
-    "svelte-preprocess": ">=4.7.0 <4.9.1",
+    "svelte-check": "^2.2.8",
+    "svelte-preprocess": "^4.9.8",
     "tslib": "^2.2.0",
     "typescript": ">=4.2.4 <4.4.2 || ^4.4.3"
   },
   "dependencies": {
     "@open-rpc/client-js": "^1.6.3",
-    "commonmark": "^0.29.3",
+    "commonmark": "^0.30.0",
     "lodash": "^4.17.21",
-    "luxon": "^1.26.0",
+    "luxon": "^2.0.2",
     "semaphore-async-await": "^1.5.1",
-    "string-strip-html": "^8.2.11"
+    "string-strip-html": "^9.0.4"
   },
   "prettier": {
     "printWidth": 99
