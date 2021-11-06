@@ -466,6 +466,8 @@
 
   const supportsRollback = (addon: Addon) => !!sources[addon.source]?.supports_rollback;
 
+  const getFlavour = () => ($profiles.get(profile) as Config).game_flavour;
+
   const generateStatusMessage = () => {
     if (refreshInProgress) {
       return "refreshing…";
@@ -570,6 +572,7 @@
     {#if searchOptionsModal}
       <SearchOptionsModal
         {sources}
+        flavour={getFlavour()}
         on:requestSearch={() => search()}
         bind:show={searchOptionsModal}
         bind:searchSources

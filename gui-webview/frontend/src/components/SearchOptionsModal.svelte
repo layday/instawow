@@ -1,17 +1,23 @@
 <script lang="ts">
   import type { Sources } from "../api";
-  import { Strategy } from "../api";
+  import { Flavour, Strategy } from "../api";
   import { createEventDispatcher } from "svelte";
   import { fly, scale } from "svelte/transition";
   import Modal from "./Modal.svelte";
 
   export let show: boolean,
     sources: Sources,
+    flavour: Flavour,
     searchSources: string[],
     searchFromAlias: boolean,
     searchCutoffDate: string | null,
     searchStrategy: Strategy,
     searchVersion: string;
+
+  const cutoffDateSuggestions = [
+    { date: "2021-11-02", patch: "9.1.5", flavour: Flavour.retail },
+    { date: "2020-10-13", patch: "9.0.1", flavour: Flavour.retail },
+  ];
 
   const dispatch = createEventDispatcher();
 
@@ -30,6 +36,21 @@
           <option value={source}>{name}</option>
         {/each}
       </select>
+      <label for="__search-cutoff-date">cut-off date:</label>
+      <input
+        type="text"
+        id="__search-cutoff-date"
+        placeholder="YYYY-MM-DD"
+        disabled={searchFromAlias}
+        bind:value={searchCutoffDate}
+      />
+      <ul class="cutoff-date-suggestions">
+        {#each cutoffDateSuggestions as { date, patch, flavour: suggestionFlavour }}
+          {#if flavour === suggestionFlavour}
+            <li on:click={() => (searchCutoffDate = date)}>{patch}</li>
+          {/if}
+        {/each}
+      </ul>
       <label for="__search-strategy">strategy:</label>
       <select id="__search-strategy" bind:value={searchStrategy}>
         {#each Object.values(Strategy) as strategy}
@@ -46,14 +67,6 @@
           in:fly={{ duration: 200, y: -64 }}
         />
       {/if}
-      <label for="__search-cutoff-date">cut-off date:</label>
-      <input
-        type="text"
-        id="__search-cutoff-date"
-        placeholder="YYYY-MM-DD"
-        disabled={searchFromAlias}
-        bind:value={searchCutoffDate}
-      />
       <button type="submit">search</button>
     </form>
   </dialog>
@@ -61,6 +74,7 @@
 
 <style lang="scss">
   @import "scss/modal";
+  @import "scss/vars";
 
   form {
     display: grid;
@@ -80,6 +94,23 @@
 
     .version {
       grid-column-start: 2;
+    }
+
+    .cutoff-date-suggestions {
+      @include unstyle-list;
+      grid-column-start: 2;
+      display: inline-flex;
+      gap: 0.2rem;
+      font-size: 0.8em;
+      font-weight: 600;
+
+      li {
+        cursor: pointer;
+        padding: 0.2rem 0.4rem;
+        border-radius: $edge-border-radius;
+        background-color: var(--inverse-color-tone-20);
+        color: var(--base-color);
+      }
     }
   }
 </style>

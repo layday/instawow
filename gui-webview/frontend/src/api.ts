@@ -43,7 +43,7 @@ export type Config = {
   addon_dir: string;
   auto_update_check: boolean;
   config_dir: string;
-  game_flavour: string;
+  game_flavour: Flavour;
   profile: string;
   temp_dir: string;
 };
