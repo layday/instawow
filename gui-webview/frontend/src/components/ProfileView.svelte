@@ -497,17 +497,15 @@
     }
   });
 
-  // Restore `View.Installed` when the search box is emptied
-  $: searchTerms ||
-    (console.debug(profile, "- restoring add-on view"), (activeView = View.Installed));
   // Reset search params in-between searches
-  $: searchTerms || resetSearchState();
+  $: (activeView !== View.Search && searchTerms === "") || resetSearchState();
+  // Or when we switch from search to filtering
   $: searchFilterInstalled === undefined || resetSearchState();
   // Update `searchFromAlias` whenever the search terms change
   $: searchTerms &&
     (searchFromAlias =
       (console.debug(profile, "- updating `searchFromAlias`"), isSearchFromAlias()));
-  // Update add-on list according to view
+  // Display add-ons corresponding to view
   $: addons =
     activeView === View.Search
       ? addons__Search
