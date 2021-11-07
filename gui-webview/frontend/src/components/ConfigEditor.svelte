@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { Api, Config, PydanticValidationError } from "../api";
+  import type { Config, PydanticValidationError } from "../api";
   import { faFolderOpen, faTrashAlt } from "@fortawesome/free-solid-svg-icons";
   import { JSONRPCError } from "@open-rpc/client-js";
   import lodash from "lodash";

@@ -320,7 +320,7 @@
     }
 
     .dirty {
-      @include striped-background(-45deg, rgba(orangered, 0.5));
+      @include striped-background(-45deg, rgba(salmon, 0.5));
     }
 
     > .hidden:first-child + label {

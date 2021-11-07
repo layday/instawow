@@ -29,50 +29,64 @@
 
 <Modal bind:show>
   <dialog open class="modal" in:scale={{ duration: 200 }} on:click|stopPropagation>
-    <form class="content" on:submit|preventDefault={() => requestSearch()}>
-      <label for="__search-source">sources:</label>
-      <select id="__search-source" multiple disabled={searchFromAlias} bind:value={searchSources}>
-        {#each Object.values(sources) as { source, name }}
-          <option value={source}>{name}</option>
-        {/each}
-      </select>
-      <label for="__search-start-date">start date:</label>
-      <input
-        type="text"
-        id="__search-start-date"
-        placeholder="YYYY-MM-DD"
-        disabled={searchFromAlias}
-        bind:value={searchStartDate}
-      />
-      <ul class="start-date-suggestions">
-        {#each startDateSuggestions as { date, patch, flavour: suggestionFlavour }}
-          {#if flavour === suggestionFlavour}
-            <li
-              class:disabled={searchFromAlias}
-              on:click={() => !searchFromAlias && (searchStartDate = date)}
-            >
-              {patch}
-            </li>
-          {/if}
-        {/each}
-      </ul>
-      <label for="__search-strategy">strategy:</label>
-      <select id="__search-strategy" bind:value={searchStrategy}>
-        {#each Object.values(Strategy) as strategy}
-          <option value={strategy}>{strategy}</option>
-        {/each}
-      </select>
-      {#if searchStrategy === Strategy.version}
+    <form
+      class="content"
+      on:submit|preventDefault={() => requestSearch()}
+      on:reset={() => dispatch("requestReset")}
+    >
+      <div class="row form-grid">
+        <label for="__search-source">sources:</label>
+        <select
+          id="__search-source"
+          multiple
+          disabled={searchFromAlias}
+          bind:value={searchSources}
+        >
+          {#each Object.values(sources) as { source, name }}
+            <option value={source}>{name}</option>
+          {/each}
+        </select>
+        <label for="__search-start-date">start date:</label>
         <input
           type="text"
-          class="version"
-          placeholder="version"
-          aria-label="version"
-          bind:value={searchVersion}
-          in:fly={{ duration: 200, y: -64 }}
+          id="__search-start-date"
+          placeholder="YYYY-MM-DD"
+          disabled={searchFromAlias}
+          bind:value={searchStartDate}
         />
-      {/if}
-      <button type="submit">search</button>
+        <ul class="start-date-suggestions">
+          {#each startDateSuggestions as { date, patch, flavour: suggestionFlavour }}
+            {#if flavour === suggestionFlavour}
+              <li
+                class:disabled={searchFromAlias}
+                on:click={() => !searchFromAlias && (searchStartDate = date)}
+              >
+                {patch}
+              </li>
+            {/if}
+          {/each}
+        </ul>
+        <label for="__search-strategy">strategy:</label>
+        <select id="__search-strategy" bind:value={searchStrategy}>
+          {#each Object.values(Strategy) as strategy}
+            <option value={strategy}>{strategy}</option>
+          {/each}
+        </select>
+        {#if searchStrategy === Strategy.version}
+          <input
+            type="text"
+            class="version"
+            placeholder="version"
+            aria-label="version"
+            bind:value={searchVersion}
+            in:fly={{ duration: 200, y: -64 }}
+          />
+        {/if}
+      </div>
+      <div class="row input-array">
+        <button type="submit">search</button>
+        <button type="reset">clear</button>
+      </div>
     </form>
   </dialog>
 </Modal>
@@ -82,13 +96,11 @@
   @import "scss/vars";
 
   form {
-    display: grid;
-    grid-template-columns: 1fr 2fr;
-    column-gap: 0.5rem;
-    row-gap: 0.5rem;
-
-    button {
-      grid-column-start: span 2;
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 2fr;
+      column-gap: 0.5rem;
+      row-gap: 0.5rem;
     }
 
     label {
@@ -104,6 +116,7 @@
     .start-date-suggestions {
       @include unstyle-list;
       grid-column-start: 2;
+      margin-top: -0.3em;
       display: inline-flex;
       gap: 0.2rem;
       font-size: 0.8em;
@@ -112,13 +125,23 @@
       li {
         cursor: pointer;
         padding: 0.2rem 0.4rem;
-        border-radius: $edge-border-radius;
+        border-radius: $middle-border-radius;
         background-color: var(--inverse-color-tone-20);
         color: var(--base-color);
 
         &.disabled {
           cursor: default;
           opacity: 0.5;
+        }
+
+        &:first-child {
+          border-top-left-radius: $edge-border-radius;
+          border-bottom-left-radius: $edge-border-radius;
+        }
+
+        &:last-child {
+          border-top-right-radius: $edge-border-radius;
+          border-bottom-right-radius: $edge-border-radius;
         }
       }
     }

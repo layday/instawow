@@ -64,14 +64,17 @@ $edge-border-radius: math.div($form-el-line-height, 4);
     }
   }
 
-  button[type="submit"] {
+  button {
     justify-content: center;
-    background-color: $action-button-bg-color;
-    color: $action-button-text-color;
-    font-weight: 600;
+    font-weight: 500;
 
-    &:focus {
-      background-color: $action-button-focus-bg-color;
+    &[type="submit"] {
+      background-color: $action-button-bg-color;
+      color: $action-button-text-color;
+
+      &:focus {
+        background-color: $action-button-focus-bg-color;
+      }
     }
   }
 

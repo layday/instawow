@@ -501,8 +501,7 @@
     searchTerms === "" &&
     (console.debug(profile, "resetting search state"), resetSearchState());
   $: searchFilterInstalled === undefined ||
-    (console.debug(profile, "filter status changed, resetting search state"),
-    resetSearchState());
+    (console.debug(profile, "filter status changed, resetting search state"), resetSearchState());
   $: searchStartDate === "" &&
     (searchStartDate = (console.debug(profile, "resetting `searchStartDate`"), null));
   $: searchIsDirty = [
@@ -576,6 +575,7 @@
         {sources}
         flavour={getFlavour()}
         on:requestSearch={() => search()}
+        on:requestReset={() => resetSearchState()}
         bind:show={searchOptionsModal}
         bind:searchSources
         bind:searchFromAlias
