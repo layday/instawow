@@ -91,7 +91,7 @@
   let uriSchemes: string[];
 
   let activeView: View = View.Installed;
-  let addonsCondensed: boolean = false;
+  let addonsCondensed = false;
 
   let addons__Installed: AddonTuple[] = [];
   let filteredCatalogueEntries: CatalogueEntry[] = [];
@@ -121,17 +121,17 @@
   let reconcileStage: ReconciliationStage = reconcileStages[0];
   let reconcileSelections: Addon[];
 
-  let refreshInProgress: boolean = false;
-  let searchesInProgress: number = 0;
-  let reconcileInstallationInProgress: boolean = false;
+  let refreshInProgress = false;
+  let searchesInProgress = 0;
+  let reconcileInstallationInProgress = false;
 
-  let changelogModal: boolean = false;
+  let changelogModal = false;
   let changelogModalProps: { changelog: string; renderAsHtml: boolean };
-  let rollbackModal: boolean = false;
+  let rollbackModal = false;
   let rollbackModalProps: { addon: Addon };
-  let searchOptionsModal: boolean = false;
+  let searchOptionsModal = false;
 
-  let addonContextMenu: boolean = false;
+  let addonContextMenu = false;
   let addonContextMenuProps: {
     addon: Addon;
     installed: boolean;
@@ -497,7 +497,8 @@
     }
   });
 
-  $: (activeView !== View.Search && searchTerms === "") ||
+  $: activeView !== View.Search &&
+    searchTerms === "" &&
     (console.debug(profile, "- resetting search state"), resetSearchState());
   $: searchFilterInstalled === undefined ||
     (console.debug(profile, "- filter status changed, resetting search state"),
