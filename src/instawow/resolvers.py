@@ -188,6 +188,9 @@ class BaseResolver(Resolver):
         yield
 
 
+_CurseFlavor = Literal['wow_burning_crusade', 'wow_classic', 'wow_retail']
+
+
 class _CurseGameVersionTypeId(IntEnum):
     retail = 517
     vanilla_classic = 67408
@@ -202,6 +205,7 @@ class _CurseAddon(TypedDict):
     summary: str  # One-line description of the add-on
     downloadCount: int  # Total number of downloads
     latestFiles: list[_CurseAddon_File]
+    gameVersionLatestFiles: list[_CurseAddon_GameVersionFile]
     slug: str  # URL slug; 'molinari' in 'https://www.curseforge.com/wow/addons/molinari'
     dateReleased: str  # ISO datetime of latest release
 
@@ -215,8 +219,14 @@ class _CurseAddon_File(TypedDict):
     dependencies: list[_CurseAddon_FileDependency]
     modules: list[_CurseAddon_FileModules]
     exposeAsAlternative: bool | None
-    gameVersionFlavor: Literal['wow_burning_crusade', 'wow_classic', 'wow_retail']
+    gameVersionFlavor: _CurseFlavor
     sortableGameVersion: list[_CurseAddon_FileSortableGameVersion]
+
+
+class _CurseAddon_GameVersionFile(TypedDict):
+    projectFileName: str
+    gameVersionFlavor: _CurseFlavor
+    gameVersionTypeId: N[_CurseGameVersionTypeId]
 
 
 class _CurseAddon_FileDependency(TypedDict):
@@ -249,6 +259,17 @@ class _CurseAddon_FileModules(TypedDict):
 
 class _CurseAddon_FileSortableGameVersion(TypedDict):
     gameVersionTypeId: N[_CurseGameVersionTypeId]
+
+
+class _CurseFile(TypedDict):
+    id: int
+    displayName: str
+    downloadUrl: str
+    fileDate: str  # Upload datetime in ISO, e.g. '2020-02-02T12:12:12Z'
+    releaseType: Literal[1, 2, 3]  # 1 = stable; 2 = beta; 3 = alpha
+    dependencies: list[_CurseAddon_FileDependency]
+    modules: list[_CurseAddon_FileModules]
+    gameVersionFlavor: Literal['wow_burning_crusade', 'wow_classic', 'wow_retail']
 
 
 class CurseResolver(BaseResolver):
@@ -311,23 +332,23 @@ class CurseResolver(BaseResolver):
             raise R.PkgNonexistent
 
         if defn.strategy is Strategy.version:
-
-            files = await manager.cache_response(
+            all_files: list[_CurseFile] = await manager.cache_response(
                 self.manager,
                 self.addon_api_url / str(metadata['id']) / 'files',
                 {'hours': 1},
                 label=f'Fetching metadata from {self.name}',
             )
 
-            def is_version_match(f: _CurseAddon_File):
-                return defn.version == f['displayName']
+            file = next((f for f in all_files if defn.version == f['displayName']), None)
+            if file is None:
+                raise R.PkgFileUnavailable(f'version {defn.version} not found')
 
-            is_match = is_version_match
         else:
+            latest_files = metadata['latestFiles']
+            if not latest_files:
+                raise R.PkgFileUnavailable('no files available for download')
 
-            files = metadata['latestFiles']
-
-            def generate_filter_fns():
+            def make_filter():
                 def is_not_libless(f: _CurseAddon_File):
                     # There's also an 'isAlternate' field that's missing from some
                     # 50 lib-less files from c. 2008.  'exposeAsAlternative' is
@@ -337,64 +358,54 @@ class CurseResolver(BaseResolver):
                 yield is_not_libless
 
                 if defn.strategy is not Strategy.any_flavour:
+
+                    def supports_x(
+                        curse_flavor: _CurseFlavor, curse_type_id: _CurseGameVersionTypeId
+                    ):
+                        def excise_flavour(f: _CurseAddon_File):
+                            return f['gameVersionFlavor'] == curse_flavor or any(
+                                s.get('gameVersionTypeId') == curse_type_id
+                                for s in f['sortableGameVersion']
+                            )
+
+                        return excise_flavour
+
                     if self.manager.config.game_flavour is Flavour.retail:
-
-                        def supports_retail(f: _CurseAddon_File):
-                            return f['gameVersionFlavor'] == 'wow_retail' or any(
-                                s.get('gameVersionTypeId') == _CurseGameVersionTypeId.retail
-                                for s in f['sortableGameVersion']
-                            )
-
-                        yield supports_retail
+                        yield supports_x(
+                            'wow_retail',
+                            _CurseGameVersionTypeId.retail,
+                        )
                     elif self.manager.config.game_flavour is Flavour.vanilla_classic:
-
-                        def supports_vanilla_classic(f: _CurseAddon_File):
-                            return f['gameVersionFlavor'] == 'wow_classic' or any(
-                                s.get('gameVersionTypeId')
-                                == _CurseGameVersionTypeId.vanilla_classic
-                                for s in f['sortableGameVersion']
-                            )
-
-                        yield supports_vanilla_classic
+                        yield supports_x(
+                            'wow_classic',
+                            _CurseGameVersionTypeId.vanilla_classic,
+                        )
                     elif self.manager.config.game_flavour is Flavour.burning_crusade_classic:
-
-                        def supports_burning_crusade_classic(f: _CurseAddon_File):
-                            return f['gameVersionFlavor'] == 'wow_burning_crusade' or any(
-                                s.get('gameVersionTypeId')
-                                == _CurseGameVersionTypeId.burning_crusade_classic
-                                for s in f['sortableGameVersion']
-                            )
-
-                        yield supports_burning_crusade_classic
+                        yield supports_x(
+                            'wow_burning_crusade',
+                            _CurseGameVersionTypeId.burning_crusade_classic,
+                        )
 
                 if defn.strategy is not Strategy.latest:
 
-                    def is_stable(f: _CurseAddon_File):
+                    def is_stable_release(f: _CurseAddon_File):
                         return f['releaseType'] == 1
 
-                    yield is_stable
+                    yield is_stable_release
 
-            filter_fns = list(generate_filter_fns())
+            filter_fns = list(make_filter())
 
-            def is_other_match(f: _CurseAddon_File):
-                return all(fn(f) for fn in filter_fns)
-
-            is_match = is_other_match
-
-        if not files:
-            raise R.PkgFileUnavailable('no files available for download')
-
-        try:
             file = max(
-                filter(is_match, files),
+                (f for f in latest_files if all(l(f) for l in filter_fns)),
                 # The ``id`` is just a counter so we don't have to go digging around dates
                 key=lambda f: f['id'],
+                default=None,
             )
-        except ValueError:
-            raise R.PkgFileUnavailable(
-                f'no files match {self.manager.config.game_flavour} '
-                f'using {defn.strategy} strategy'
-            )
+            if file is None:
+                raise R.PkgFileUnavailable(
+                    f'no files matching {self.manager.config.game_flavour} '
+                    f'using {defn.strategy} strategy'
+                )
 
         return models.Pkg(
             source=self.source,
@@ -419,7 +430,9 @@ class CurseResolver(BaseResolver):
     ) -> AsyncIterator[CatatalogueBaseEntry]:
         def supports_x(files: list[_CurseAddon_File]):
             def excise_flavour(
-                curse_flavor: str, curse_type_id: _CurseGameVersionTypeId, flavour: Flavour
+                curse_flavor: _CurseFlavor,
+                curse_type_id: _CurseGameVersionTypeId,
+                flavour: Flavour,
             ):
                 if any(
                     f['gameVersionFlavor'] == curse_flavor
@@ -689,6 +702,12 @@ class TukuiResolver(BaseResolver):
 
     retail_ui_suites = {'elvui', 'tukui'}
 
+    query_flavours = {
+        Flavour.retail: 'addons',
+        Flavour.vanilla_classic: 'classic-addons',
+        Flavour.burning_crusade_classic: 'classic-tbc-addons',
+    }
+
     @staticmethod
     def get_alias_from_url(url: URL) -> str | None:
         if url.host == 'www.tukui.org':
@@ -707,16 +726,9 @@ class TukuiResolver(BaseResolver):
             return [(str(addon['id']), addon), (ui_slug, addon)]
 
         async def fetch_addons(flavour: Flavour):
-            if flavour is Flavour.retail:
-                query = 'addons'
-            elif flavour is Flavour.vanilla_classic:
-                query = 'classic-addons'
-            elif flavour is Flavour.burning_crusade_classic:
-                query = 'classic-tbc-addons'
-
             addons: list[_TukuiAddon] = await manager.cache_response(
                 self.manager,
-                self.api_url.with_query({query: 'all'}),
+                self.api_url.with_query({self.query_flavours[flavour]: 'all'}),
                 {'minutes': 30},
                 label=f'Synchronising {self.name} {flavour} catalogue',
             )
@@ -868,6 +880,12 @@ class GithubResolver(BaseResolver):
 
     repos_api_url = URL('https://api.github.com/repos')
 
+    release_json_flavours = {
+        Flavour.retail: 'mainline',
+        Flavour.vanilla_classic: 'classic',
+        Flavour.burning_crusade_classic: 'bcc',
+    }
+
     @staticmethod
     def get_alias_from_url(url: URL) -> str | None:
         if url.host == 'github.com' and len(url.parts) > 2:
@@ -909,11 +927,11 @@ class GithubResolver(BaseResolver):
 
         assets = release_metadata['assets']
 
-        try:
-            release_json = next(
-                a for a in assets if a['name'] == 'release.json' and a['state'] == 'uploaded'
-            )
-        except StopIteration:
+        release_json = next(
+            (a for a in assets if a['name'] == 'release.json' and a['state'] == 'uploaded'),
+            None,
+        )
+        if release_json is None:
             logger.info(f'no release.json found for {defn}; inspecting assets')
 
             def is_valid_asset(asset: _GithubRelease_Asset):
@@ -928,20 +946,20 @@ class GithubResolver(BaseResolver):
                     and asset['state'] == 'uploaded'
                 )
 
-            try:
-                matching_asset = next(
-                    chain(
-                        (
-                            a
-                            for a in assets
-                            if is_valid_asset(a)
-                            and a['name'].endswith('-classic.zip')
-                            is (self.manager.config.game_flavour is Flavour.vanilla_classic)
-                        ),
-                        filter(is_valid_asset, assets),
-                    )
-                )
-            except StopIteration:
+            matching_asset = next(
+                chain(
+                    (
+                        a
+                        for a in assets
+                        if is_valid_asset(a)
+                        and a['name'].endswith('-classic.zip')
+                        is (self.manager.config.game_flavour is Flavour.vanilla_classic)
+                    ),
+                    filter(is_valid_asset, assets),
+                ),
+                None,
+            )
+            if matching_asset is None:
                 raise R.PkgFileUnavailable
 
         else:
@@ -950,28 +968,35 @@ class GithubResolver(BaseResolver):
             packager_metadata: _PackagerReleaseJson = await manager.cache_response(
                 self.manager, release_json['browser_download_url'], {'days': 1}
             )
-            game_flavour: Flavour = self.manager.config.game_flavour
-            if game_flavour is Flavour.retail:
-                release_json_flavour = 'mainline'
-            elif game_flavour is Flavour.vanilla_classic:
-                release_json_flavour = 'classic'
-            elif game_flavour is Flavour.burning_crusade_classic:
-                release_json_flavour = 'bcc'
+            releases = packager_metadata['releases']
+            if not releases:
+                raise R.PkgFileUnavailable('no files available for download')
 
-            try:
-                matching_release = next(
+            matching_release = next(
+                (
                     r
-                    for r in packager_metadata['releases']
+                    for r in releases
                     if r['nolib'] is False
-                    and any(m['flavor'] == release_json_flavour for m in r['metadata'])
-                )
-                matching_asset = next(
+                    and any(
+                        m['flavor'] == self.release_json_flavours[self.manager.config.game_flavour]
+                        for m in r['metadata']
+                    )
+                ),
+                None,
+            )
+            if matching_release is None:
+                raise R.PkgFileUnavailable(f'no files matching {self.manager.config.game_flavour}')
+
+            matching_asset = next(
+                (
                     a
                     for a in assets
                     if a['name'] == matching_release['filename'] and a['state'] == 'uploaded'
-                )
-            except StopIteration:
-                raise R.PkgFileUnavailable
+                ),
+                None,
+            )
+            if matching_asset is None:
+                raise R.PkgFileUnavailable(f'{matching_release["filename"]} not found')
 
         return models.Pkg(
             source=self.source,

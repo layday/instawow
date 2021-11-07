@@ -28,7 +28,7 @@ async def test_curse_common_strategies(iw_manager, request, strategy):
             assert (
                 type(results[retail_only_file]) is R.PkgFileUnavailable
                 and results[retail_only_file].message
-                == f"no files match vanilla_classic using {strategy} strategy"
+                == f"no files matching vanilla_classic using {strategy} strategy"
             )
         assert type(results[classic_only_file]) is Pkg
     elif iw_manager.config.game_flavour is Flavour.retail:
@@ -40,7 +40,7 @@ async def test_curse_common_strategies(iw_manager, request, strategy):
             assert (
                 type(results[classic_only_file]) is R.PkgFileUnavailable
                 and results[classic_only_file].message
-                == f"no files match retail using {strategy} strategy"
+                == f"no files matching retail using {strategy} strategy"
             )
 
 
