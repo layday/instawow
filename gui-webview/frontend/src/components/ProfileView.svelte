@@ -445,7 +445,7 @@
   ) => {
     reconcileInstallationInProgress = true;
     try {
-      console.debug(profile, "- installing selections from", fromStage);
+      console.debug(profile, "installing selections from", fromStage);
       await installAddons(theseSelections.filter(Boolean), true);
       const nextStage = reconcileStages[reconcileStages.indexOf(fromStage) + 1];
       if (nextStage) {
@@ -499,12 +499,12 @@
 
   $: activeView !== View.Search &&
     searchTerms === "" &&
-    (console.debug(profile, "- resetting search state"), resetSearchState());
+    (console.debug(profile, "resetting search state"), resetSearchState());
   $: searchFilterInstalled === undefined ||
-    (console.debug(profile, "- filter status changed, resetting search state"),
+    (console.debug(profile, "filter status changed, resetting search state"),
     resetSearchState());
   $: searchStartDate === "" &&
-    (searchStartDate = (console.debug(profile, "- resetting `searchStartDate`"), null));
+    (searchStartDate = (console.debug(profile, "resetting `searchStartDate`"), null));
   $: searchIsDirty = [
     [searchSources, defaultSearchState.searchSources],
     [searchStartDate, defaultSearchState.searchStartDate],
@@ -512,7 +512,7 @@
   ].some(([a, b]) => !lodash.isEqual(a, b));
   $: searchTerms &&
     (searchFromAlias =
-      (console.debug(profile, "- updating `searchFromAlias`"), isSearchFromAlias()));
+      (console.debug(profile, "updating `searchFromAlias`"), isSearchFromAlias()));
   $: addons =
     activeView === View.Search
       ? addons__Search
@@ -520,7 +520,7 @@
       ? addons__FilterInstalled
       : addons__Installed;
   $: activeView === View.Reconcile && (reconcileStage = reconcileStages[0]);
-  $: addons__Installed && (console.debug(profile, "- recounting updates"), countUpdates());
+  $: addons__Installed && (console.debug(profile, "recounting updates"), countUpdates());
   $: isActive &&
     (addons__Installed || refreshInProgress) &&
     (statusMessage = generateStatusMessage());
