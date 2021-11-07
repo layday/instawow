@@ -9,12 +9,12 @@
   import Icon from "./SvgIcon.svelte";
 
   export let profile: string,
-    sources: Sources,
     activeView: View,
     addonsCondensed: boolean,
     search__terms: string,
     search__filterInstalled: boolean,
     search__fromAlias: boolean,
+    search__isDirty: boolean,
     search__isSearching: boolean,
     installed__isModifying: boolean,
     installed__isRefreshing: boolean,
@@ -147,6 +147,7 @@
         <Icon icon={faLink} />
       </label>
       <button
+        class:dirty={search__isDirty}
         aria-label="show search options"
         on:click={() => dispatch("requestShowSearchOptionsModal")}
       >
@@ -316,6 +317,10 @@
         border-top-right-radius: $edge-border-radius;
         border-bottom-right-radius: $edge-border-radius;
       }
+    }
+
+    .dirty {
+      @include striped-background(-45deg, rgba(orangered, 0.5));
     }
 
     > .hidden:first-child + label {

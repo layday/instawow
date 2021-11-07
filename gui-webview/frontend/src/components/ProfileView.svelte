@@ -111,6 +111,7 @@
     searchVersion,
     searchStartDate,
   } = defaultSearchState;
+  let searchIsDirty = false;
 
   let alerts: {
     heading: string;
@@ -482,7 +483,6 @@
   };
 
   const resetSearchState = () => {
-    console.debug(profile, "- resetting search state");
     ({ searchFromAlias, searchSources, searchStrategy, searchVersion, searchStartDate } =
       defaultSearchState);
   };
@@ -497,26 +497,29 @@
     }
   });
 
-  // Reset search params in-between searches
-  $: (activeView !== View.Search && searchTerms === "") || resetSearchState();
-  // Or when we switch from search to filtering
-  $: searchFilterInstalled === undefined || resetSearchState();
-  // Update `searchFromAlias` whenever the search terms change
+  $: (activeView !== View.Search && searchTerms === "") ||
+    (console.debug(profile, "- resetting search state"), resetSearchState());
+  $: searchFilterInstalled === undefined ||
+    (console.debug(profile, "- filter status changed, resetting search state"),
+    resetSearchState());
+  $: searchStartDate === "" &&
+    (searchStartDate = (console.debug(profile, "- resetting `searchStartDate`"), null));
+  $: searchIsDirty = [
+    [searchSources, defaultSearchState.searchSources],
+    [searchStartDate, defaultSearchState.searchStartDate],
+    [searchStrategy, defaultSearchState.searchStrategy],
+  ].some(([a, b]) => !lodash.isEqual(a, b));
   $: searchTerms &&
     (searchFromAlias =
       (console.debug(profile, "- updating `searchFromAlias`"), isSearchFromAlias()));
-  // Display add-ons corresponding to view
   $: addons =
     activeView === View.Search
       ? addons__Search
       : activeView === View.FilterInstalled
       ? addons__FilterInstalled
       : addons__Installed;
-  // Reset stage when returning to reconciliation page
   $: activeView === View.Reconcile && (reconcileStage = reconcileStages[0]);
-  // Recount updates whenever `addons__Installed` is modified
   $: addons__Installed && (console.debug(profile, "- recounting updates"), countUpdates());
-  // Update status message
   $: isActive &&
     (addons__Installed || refreshInProgress) &&
     (statusMessage = generateStatusMessage());
@@ -525,7 +528,6 @@
 {#if isActive}
   <AddonListNav
     {profile}
-    {sources}
     on:requestSearch={() => search()}
     on:requestShowSearchOptionsModal={() => (searchOptionsModal = true)}
     on:requestRefresh={() => refreshInstalled()}
@@ -539,6 +541,7 @@
     bind:search__filterInstalled={searchFilterInstalled}
     bind:search__fromAlias={searchFromAlias}
     bind:reconcile__stage={reconcileStage}
+    search__isDirty={searchIsDirty}
     search__isSearching={searchesInProgress > 0}
     installed__isModifying={addonsBeingModified.length > 0}
     installed__isRefreshing={refreshInProgress}
