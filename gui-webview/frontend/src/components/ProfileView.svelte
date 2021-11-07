@@ -436,8 +436,9 @@
     const maybeResults = await reconcile(fromStage);
     if (maybeResults) {
       [reconcileStage] = maybeResults;
+      const [, reconcileResult] = maybeResults;
       reconcileSelections = [];
-      return maybeResults[1];
+      return reconcileResult;
     }
   };
 
@@ -461,7 +462,8 @@
           reconcileStage = nextStage;
         }
       } else {
-        reconcileStage = reconcileStages[0];
+        // We might be at `reconcileStage[0]` if `installReconciled` was called recursively
+        reconcileStage = reconcileStages[reconcileStages.indexOf(fromStage) || 0];
       }
     } finally {
       reconcileInstallationInProgress = false;
