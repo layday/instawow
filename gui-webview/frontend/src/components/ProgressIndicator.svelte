@@ -12,9 +12,9 @@
 
 <div
   role="progressbar"
-  aria-valuemin="0"
-  aria-valuemax="1"
-  aria-valuenow={indeterminate ? null : progress.toString()}
+  aria-valuemin={0}
+  aria-valuemax={1}
+  aria-valuenow={indeterminate ? undefined : progress}
 >
   <svg height={diameter} width={diameter} viewBox="0 0 {diameter} {diameter}">
     <circle
