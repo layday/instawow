@@ -532,7 +532,7 @@
   $: activeView === View.Reconcile && (reconcileStage = reconcileStages[0]);
   $: addons__Installed && (console.debug(profile, "recounting updates"), countUpdates());
   $: isActive &&
-    (addons__Installed || refreshInProgress) &&
+    (addons__Installed || reconcileInstallationInProgress || refreshInProgress) &&
     (statusMessage = generateStatusMessage());
 </script>
 
