@@ -12,7 +12,8 @@
     searchFromAlias: boolean,
     searchStartDate: string | null,
     searchStrategy: Strategy,
-    searchVersion: string;
+    searchVersion: string,
+    searchLimit: number;
 
   const startDateSuggestions = [
     { date: "2021-11-02", patch: "9.1.5", flavour: Flavour.retail },
@@ -35,6 +36,12 @@
       on:reset={() => dispatch("requestReset")}
     >
       <div class="row form-grid">
+        <label for="__search-limit">results:</label>
+        <select id="__search-limit" disabled={searchFromAlias} bind:value={searchLimit}>
+          <option value={20}>20</option>
+          <option value={50}>50</option>
+          <option value={100}>100</option>
+        </select>
         <label for="__search-source">sources:</label>
         <select
           id="__search-source"
@@ -46,7 +53,7 @@
             <option value={source}>{name}</option>
           {/each}
         </select>
-        <label for="__search-start-date">start date:</label>
+        <label for="__search-start-date">updated on/after:</label>
         <input
           type="text"
           id="__search-start-date"
@@ -85,7 +92,7 @@
       </div>
       <div class="row input-array">
         <button type="submit">search</button>
-        <button type="reset">clear</button>
+        <button type="reset">reset</button>
       </div>
     </form>
   </dialog>
@@ -109,14 +116,8 @@
       text-align: right;
     }
 
-    .version {
-      grid-column-start: 2;
-    }
-
     .start-date-suggestions {
       @include unstyle-list;
-      grid-column-start: 2;
-      margin-top: -0.3em;
       display: inline-flex;
       gap: 0.2rem;
       font-size: 0.8em;
@@ -144,6 +145,12 @@
           border-bottom-right-radius: $edge-border-radius;
         }
       }
+    }
+
+    .start-date-suggestions,
+    .version {
+      grid-column-start: 2;
+      margin-top: -0.3em;
     }
   }
 </style>

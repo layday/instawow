@@ -11,7 +11,7 @@
     Sources,
   } from "../api";
   import { ChangelogFormat, ReconciliationStage, Strategy, addonToDefn } from "../api";
-  import { SEARCH_LIMIT, View } from "../constants";
+  import { View } from "../constants";
   import { api } from "../ipc";
   import { faQuestion } from "@fortawesome/free-solid-svg-icons";
   import * as commonmark from "commonmark";
@@ -66,6 +66,7 @@
     searchStrategy: Strategy;
     searchVersion: string;
     searchStartDate: string | null;
+    searchLimit: number;
   } = {
     searchTerms: "",
     searchFilterInstalled: false,
@@ -74,6 +75,7 @@
     searchStrategy: Strategy.default,
     searchVersion: "",
     searchStartDate: null,
+    searchLimit: 20,
   };
 
   const htmlify = (markdownText: string) =>
@@ -110,6 +112,7 @@
     searchStrategy,
     searchVersion,
     searchStartDate,
+    searchLimit,
   } = defaultSearchState;
   let searchIsDirty = false;
 
@@ -281,7 +284,7 @@
         } else {
           const catalogueEntries = await profileApi.search(
             searchTermsSnapshot,
-            SEARCH_LIMIT,
+            searchLimit,
             searchSources,
             searchStartDate
           );
@@ -483,8 +486,14 @@
   };
 
   const resetSearchState = () => {
-    ({ searchFromAlias, searchSources, searchStrategy, searchVersion, searchStartDate } =
-      defaultSearchState);
+    ({
+      searchFromAlias,
+      searchSources,
+      searchStrategy,
+      searchVersion,
+      searchStartDate,
+      searchLimit,
+    } = defaultSearchState);
   };
 
   onMount(async () => {
@@ -582,6 +591,7 @@
         bind:searchStartDate
         bind:searchStrategy
         bind:searchVersion
+        bind:searchLimit
       />
     {/if}
     {#if activeView === View.Reconcile}
