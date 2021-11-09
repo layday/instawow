@@ -408,6 +408,8 @@
         addon.version,
       ];
       await search();
+    } else if (selection === "rollback") {
+      showRollbackModal(addon);
     } else if (selection === "pin" || selection === "unpin") {
       const pinnedAddon = {
         ...addon,
@@ -644,7 +646,6 @@
               on:requestUpdate={() => updateAddons([otherAddon])}
               on:requestRemove={() => removeAddons([addon], false)}
               on:requestShowChangelogModal={() => showChangelogModal(otherAddon)}
-              on:requestShowRollbackModal={() => showRollbackModal(addon)}
               on:requestShowAddonInstalledContextMenu={(e) =>
                 showAddonContextMenu(addon, true, e.detail)}
               on:requestShowAddonNotInstalledContextMenu={(e) =>
@@ -652,7 +653,6 @@
               {addon}
               {otherAddon}
               isOutdated={addon.version !== otherAddon.version}
-              supportsRollback={supportsRollback(addon)}
               beingModified={addonsBeingModified.includes(token)}
               showCondensed={addonsCondensed}
               installed__isRefreshing={refreshInProgress}

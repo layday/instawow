@@ -32,13 +32,20 @@
         dispatch("requestHandleContextMenuSelection", { addon, selection: "reveal-folder" })}
       >Reveal folder</ContextMenuItem
     >
-    <ContextMenuItem divider><hr /></ContextMenuItem>
     <ContextMenuItem
       on:click={() =>
         dispatch("requestHandleContextMenuSelection", { addon, selection: "resolve" })}
       >Resolve</ContextMenuItem
     >
+    <ContextMenuItem divider />
     {#if supportsRollback}
+      {#if addon.logged_versions.length > 1}
+        <ContextMenuItem
+          on:click={() =>
+            dispatch("requestHandleContextMenuSelection", { addon, selection: "rollback" })}
+          >Rollback</ContextMenuItem
+        >
+      {/if}
       {#if addon.options.strategy === Strategy.version}
         <ContextMenuItem
           on:click={() =>

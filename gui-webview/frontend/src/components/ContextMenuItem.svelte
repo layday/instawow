@@ -3,7 +3,11 @@
 </script>
 
 <li class:divider on:click|stopPropagation>
-  <slot />
+  {#if divider}
+    <hr />
+  {:else}
+    <slot />
+  {/if}
 </li>
 
 <style lang="scss">
@@ -18,7 +22,7 @@
       color: $action-button-text-color;
     }
 
-    :global(hr) {
+    hr {
       border: 1px solid var(--inverse-color-alpha-20);
     }
   }

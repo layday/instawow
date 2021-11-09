@@ -5,7 +5,6 @@
   import {
     faEllipsisH,
     faExternalLinkSquareAlt,
-    faHistory,
     faTrashAlt,
   } from "@fortawesome/free-solid-svg-icons";
   import { DateTime } from "luxon";
@@ -17,13 +16,10 @@
   export let addon: AddonWithMeta,
     otherAddon: Addon,
     isOutdated: boolean,
-    supportsRollback: boolean,
     beingModified: boolean,
     showCondensed: boolean,
     installed__isRefreshing: boolean,
     downloadProgress: number;
-
-  let installedAddonContextMenuButton: HTMLElement;
 
   const dispatch = createEventDispatcher();
 </script>
@@ -57,18 +53,6 @@
   {:else}
     <menu class="addon-actions">
       {#if addon.__installed__}
-        {#if supportsRollback && addon.logged_versions.length > 1}
-          <li>
-            <button
-              aria-label="rollback"
-              title="rollback"
-              disabled={installed__isRefreshing}
-              on:click|stopPropagation={() => dispatch("requestShowRollbackModal")}
-            >
-              <Icon icon={faHistory} />
-            </button>
-          </li>
-        {/if}
         {#if isOutdated}
           <li>
             <button
@@ -94,7 +78,6 @@
         </li>
         <li>
           <button
-            bind:this={installedAddonContextMenuButton}
             aria-label="show options"
             title="show options"
             on:click|stopPropagation={(e) => dispatch("requestShowAddonInstalledContextMenu", e)}
