@@ -160,6 +160,7 @@
   .addon-details {
     @include unstyle-list;
     flex-grow: 1;
+    gap: 0.5em;
     overflow-x: hidden;
 
     &.two-col {
@@ -217,7 +218,7 @@
     display: flex;
     flex-wrap: nowrap;
     align-self: center;
-    padding-left: 0.625rem;
+    padding-left: 0.5rem;
 
     li {
       + li {
