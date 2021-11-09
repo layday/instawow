@@ -1,15 +1,12 @@
 <script lang="ts">
-  import type { Sources } from "../api";
   import { faCog, faFilter, faGripLines, faLink } from "@fortawesome/free-solid-svg-icons";
   import { createEventDispatcher } from "svelte";
-  import { fade, fly } from "svelte/transition";
-  import { ReconciliationStage, Strategy } from "../api";
+  import { ReconciliationStage } from "../api";
   import { View } from "../constants";
   import ProgressIndicator from "./ProgressIndicator.svelte";
   import Icon from "./SvgIcon.svelte";
 
-  export let profile: string,
-    activeView: View,
+  export let activeView: View,
     addonsCondensed: boolean,
     search__terms: string,
     search__filterInstalled: boolean,
@@ -24,27 +21,18 @@
 
   const dispatch = createEventDispatcher();
 
-  let searchBox: HTMLElement;
-
-  // const modifierKey = __INSTAWOW_PLATFORM__ === "darwin" ? "metaKey" : "ctrlKey";
-
-  // const focusSearchBoxOnMetaF = (e: KeyboardEvent) => {
-  //   if (e[modifierKey] && e.code === "KeyF") {
-  //     searchBox.focus();
-  //   } else if (e[modifierKey] && e.code === "KeyG") {
-  //     search__filterInstalled = !search__filterInstalled;
-  //   }
-  // };
+  let searchBox: HTMLInputElement;
 
   const handleKeypress = (e: CustomEvent) => {
-    if (e.detail.action === "activateViewInstalled") {
+    const { action } = e.detail;
+    if (action === "activateViewInstalled") {
       activeView = View.Installed;
-    } else if (e.detail.action === "activateViewReconcile") {
+    } else if (action === "activateViewReconcile") {
       activeView = View.Reconcile;
-    } else if (e.detail.action === "activateViewSearch") {
+    } else if (action === "activateViewSearch") {
       activeView = View.Search;
       searchBox.focus();
-    } else if (e.detail.action === "toggleSearchFilter") {
+    } else if (action === "toggleSearchFilter") {
       search__filterInstalled = !search__filterInstalled;
       if (search__filterInstalled) {
         searchBox.focus();
@@ -56,134 +44,172 @@
       }
     }
   };
-
-  window.addEventListener("togaSimulateKeypress", handleKeypress as (e: Event) => void);
 </script>
 
-<!-- <svelte:window on:keydown={focusSearchBoxOnMetaF} /> -->
+<svelte:window on:togaSimulateKeypress={handleKeypress} />
 
 <nav class="addon-list-nav">
-  <menu class="view-actions">
-    <input
-      type="radio"
-      id="__radio-googoo-{profile}"
-      value={View.Installed}
-      bind:group={activeView}
-    />
-    <label class="segmented-label segment-label--first" for="__radio-googoo-{profile}"
-      >installed</label
-    >
-    <input
-      type="radio"
-      id="__radio-gaga-{profile}"
-      value={View.Reconcile}
-      bind:group={activeView}
-    />
-    <label class="segmented-label" for="__radio-gaga-{profile}">unreconciled</label>
-    <button
-      aria-label="condense/expand add-on cells"
-      disabled={activeView === View.Reconcile}
-      on:click={() => (addonsCondensed = !addonsCondensed)}
-    >
-      <Icon icon={faGripLines} />
-    </button>
-  </menu>
-  <div class="search-wrapper">
-    <div class="view-actions">
-      <input
-        id="__search-filter-installed-{profile}"
-        class="hidden"
-        type="checkbox"
-        bind:checked={search__filterInstalled}
-      />
-      <label
-        for="__search-filter-installed-{profile}"
-        aria-label="filter installed add-ons"
-        title="filter installed add-ons"
-      >
-        <Icon icon={faFilter} />
-      </label>
-    </div>
-    <input
-      type="search"
-      placeholder="search"
-      bind:this={searchBox}
-      bind:value={search__terms}
-      on:keydown={(e) => e.key === "Enter" && dispatch("requestSearch")}
-      disabled={activeView === View.Reconcile}
-    />
-    {#if search__isSearching}
-      <div class="progress-indicator" in:fade>
-        <ProgressIndicator diameter={18} progress={0} />
-      </div>
-    {/if}
+  <div>
+    <menu class="control-set">
+      <li class="segmented-control">
+        <input
+          class="control"
+          type="radio"
+          id="__radio-googoo"
+          value={View.Installed}
+          bind:group={activeView}
+        />
+        <label class="control" for="__radio-googoo">installed</label>
+      </li>
+      <li class="segmented-control">
+        <input
+          class="control"
+          type="radio"
+          id="__radio-gaga"
+          value={View.Reconcile}
+          bind:group={activeView}
+        />
+        <label class="control" for="__radio-gaga">unreconciled</label>
+      </li>
+      <li>
+        <button
+          class="control"
+          aria-label="condense/expand add-on cells"
+          disabled={activeView === View.Reconcile}
+          on:click={() => (addonsCondensed = !addonsCondensed)}
+        >
+          <Icon icon={faGripLines} />
+        </button>
+      </li>
+    </menu>
   </div>
-  <menu class="view-actions">
-    {#if activeView === View.Installed}
-      <button disabled={installed__isRefreshing} on:click={() => dispatch("requestRefresh")}>
-        refresh
-      </button>
-      <button
-        disabled={installed__isModifying ||
-          installed__isRefreshing ||
-          !installed__outdatedAddonCount}
-        on:click={() => dispatch("requestUpdateAll")}
-      >
-        {installed__outdatedAddonCount ? `update ${installed__outdatedAddonCount}` : "no updates"}
-      </button>
-    {:else if activeView === View.Search}
-      <input
-        id="__interpret-as-uri-{profile}"
-        class="hidden"
-        type="checkbox"
-        bind:checked={search__fromAlias}
-        on:change={() => dispatch("requestSearch")}
-      />
-      <label
-        for="__interpret-as-uri-{profile}"
-        aria-label="interpret query as add-on URI"
-        title="interpret query as add-on URI"
-      >
-        <Icon icon={faLink} />
-      </label>
-      <button
-        class:dirty={search__isDirty}
-        aria-label="show search options"
-        on:click={() => dispatch("requestShowSearchOptionsModal")}
-      >
-        <Icon icon={faCog} />
-      </button>
-    {:else if activeView === View.Reconcile}
-      {#if reconcile__isInstalling}
-        <div class="progress-indicator" in:fade>
-          <ProgressIndicator diameter={18} progress={0} />
-        </div>
+  <div class="search">
+    <menu class="control-set">
+      <li>
+        <input
+          class="control"
+          id="__search-filter-installed"
+          type="checkbox"
+          bind:checked={search__filterInstalled}
+        />
+        <label
+          class="control"
+          for="__search-filter-installed"
+          aria-label="filter installed add-ons"
+          title="filter installed add-ons"
+        >
+          <Icon icon={faFilter} />
+        </label>
+      </li>
+      <li>
+        <!-- Not type="search" because cursor jumps to end in Safari -->
+        <input
+          class="control search-control"
+          type="text"
+          placeholder="search"
+          bind:this={searchBox}
+          bind:value={search__terms}
+          on:keydown={(e) => e.key === "Enter" && dispatch("requestSearch")}
+          disabled={activeView === View.Reconcile}
+        />
+      </li>
+    </menu>
+    <div class="progress-indicator" class:hidden={!search__isSearching}>
+      <ProgressIndicator diameter={18} progress={0} />
+    </div>
+  </div>
+  <div>
+    <div class="progress-indicator" class:hidden={!reconcile__isInstalling}>
+      <ProgressIndicator diameter={18} progress={0} />
+    </div>
+    <menu class="control-set">
+      {#if activeView === View.Installed}
+        <li>
+          <button
+            class="control"
+            disabled={installed__isRefreshing}
+            on:click={() => dispatch("requestRefresh")}
+          >
+            refresh
+          </button>
+        </li>
+        <li>
+          <button
+            class="control"
+            disabled={installed__isModifying ||
+              installed__isRefreshing ||
+              !installed__outdatedAddonCount}
+            on:click={() => dispatch("requestUpdateAll")}
+          >
+            {installed__outdatedAddonCount
+              ? `update ${installed__outdatedAddonCount}`
+              : "no updates"}
+          </button>
+        </li>
+      {:else if activeView === View.Search}
+        <li>
+          <input
+            class="control"
+            id="__interpret-as-uri"
+            type="checkbox"
+            bind:checked={search__fromAlias}
+            on:change={() => dispatch("requestSearch")}
+          />
+          <label
+            class="control"
+            for="__interpret-as-uri"
+            aria-label="interpret query as add-on URI"
+            title="interpret query as add-on URI"
+          >
+            <Icon icon={faLink} />
+          </label>
+        </li>
+        <li>
+          <button
+            class="control"
+            class:dirty={search__isDirty}
+            aria-label="show search options"
+            on:click={() => dispatch("requestShowSearchOptionsModal")}
+          >
+            <Icon icon={faCog} />
+          </button>
+        </li>
+      {:else if activeView === View.Reconcile}
+        <li>
+          <select
+            class="control"
+            aria-label="reconciliation stage"
+            disabled={reconcile__isInstalling}
+            bind:value={reconcile__stage}
+          >
+            <optgroup label="stage">
+              {#each Object.values(ReconciliationStage) as stage}
+                <option value={stage}>{stage}</option>
+              {/each}
+            </optgroup>
+          </select>
+        </li>
+        <li>
+          <button
+            class="control"
+            disabled={reconcile__isInstalling}
+            on:click={() => dispatch("requestInstallReconciled")}
+          >
+            install
+          </button>
+        </li>
+        <li>
+          <button
+            class="control"
+            disabled={reconcile__isInstalling}
+            on:click={() => dispatch("requestAutomateReconciliation")}
+          >
+            automate
+          </button>
+        </li>
       {/if}
-      <select
-        aria-label="reconciliation stage"
-        disabled={reconcile__isInstalling}
-        bind:value={reconcile__stage}
-      >
-        <optgroup label="stage">
-          {#each Object.values(ReconciliationStage) as stage}
-            <option value={stage}>{stage}</option>
-          {/each}
-        </optgroup>
-      </select>
-      <button
-        disabled={reconcile__isInstalling}
-        on:click={() => dispatch("requestInstallReconciled")}
-      >
-        install
-      </button>
-      <button
-        disabled={reconcile__isInstalling}
-        on:click={() => dispatch("requestAutomateReconciliation")}
-      >
-        automate
-      </button>
-    {/if}
-  </menu>
+    </menu>
+  </div>
 </nav>
 
 <style lang="scss">
@@ -195,78 +221,34 @@
   $middle-border-radius: math.div($line-height, 6);
   $edge-border-radius: math.div($line-height, 4);
 
-  .hidden {
-    display: none;
-  }
-
-  [type="checkbox"],
-  [type="radio"] {
-    @extend .hidden;
-
-    &:checked + label {
-      background-color: var(--inverse-color-tone-20) !important;
-      color: var(--base-color);
-
-      :global(.icon) {
-        fill: var(--base-color);
-      }
-    }
-
-    &:disabled + label {
-      opacity: 0.5;
-    }
+  %center-flex {
+    display: flex;
+    align-items: center;
   }
 
   menu {
-    @include unstyle-list;
+    @extend %unstyle-list;
     font-weight: 500;
   }
 
   .addon-list-nav {
-    @include nav-grid(3);
+    @extend %nav-grid;
+    grid-template-columns: repeat(3, 1fr);
     margin-bottom: 0.5em;
 
-    button,
-    input[type="search"],
-    input[type="text"],
-    input + label,
-    select {
-      min-width: min-content;
-      border: 0;
-      transition: all 0.2s;
-
-      &:disabled {
-        opacity: 0.5;
-      }
-
-      &:hover:not(:disabled) {
-        background-color: var(--inverse-color-alpha-05);
-      }
-
-      &:focus {
-        background-color: var(--inverse-color-alpha-10);
-        box-shadow: inset 0 0 0 1px var(--inverse-color-alpha-20);
-      }
+    > div {
+      @extend %center-flex;
     }
   }
 
-  .search-wrapper {
-    display: flex;
-    align-items: center;
-    width: 100%;
+  .search {
+    .control-set {
+      font-size: 1rem;
+    }
 
-    input[type="search"] {
-      flex-basis: calc(100% - 2em);
-      line-height: 1.75em;
-      margin-left: 4px;
-      margin-right: 0.5rem;
-      padding: 0 0.75em;
-      transition: all 0.2s;
-      border-top-left-radius: $middle-border-radius;
-      border-bottom-left-radius: $middle-border-radius;
+    .search-control {
       border-top-right-radius: $edge-border-radius;
       border-bottom-right-radius: $edge-border-radius;
-      background-color: transparent;
       box-shadow: inset 0 0 0 1px var(--inverse-color-alpha-10);
 
       &,
@@ -278,61 +260,47 @@
         text-align: center;
       }
     }
-
-    & .view-actions > label:last-child {
-      line-height: 1.75rem;
-      border-top-right-radius: $middle-border-radius;
-      border-bottom-right-radius: $middle-border-radius;
-    }
   }
 
   .progress-indicator {
     height: 18px;
+    line-height: 18px;
+    margin: 0 0.5rem;
 
     :global(circle) {
       stroke: currentColor;
     }
+
+    &.hidden {
+      visibility: hidden;
+    }
   }
 
-  .view-actions {
-    display: flex;
-    align-items: center;
-    font-size: 0.85em;
+  .control {
+    display: block;
+    min-width: min-content;
+    border: 0;
+    transition: all 0.2s;
+    line-height: $line-height;
+    margin: 0;
+    padding: 0 0.7em;
+    border-radius: $middle-border-radius;
+    white-space: nowrap;
 
-    > button,
-    > input,
-    > label,
-    > select {
-      line-height: $line-height;
-      margin: 0;
-      padding: 0 0.7em;
-      border-radius: $middle-border-radius;
-
-      &:first-child {
-        border-top-left-radius: $edge-border-radius;
-        border-bottom-left-radius: $edge-border-radius;
-      }
-
-      &:last-child {
-        border-top-right-radius: $edge-border-radius;
-        border-bottom-right-radius: $edge-border-radius;
-      }
+    &:disabled {
+      opacity: 0.5;
     }
 
-    .dirty {
-      @include striped-background(-45deg, rgba(salmon, 0.5));
+    &:hover:not(:disabled) {
+      background-color: var(--inverse-color-alpha-05);
     }
 
-    > .hidden:first-child + label {
-      border-top-left-radius: $edge-border-radius;
-      border-bottom-left-radius: $edge-border-radius;
+    &:focus {
+      background-color: var(--inverse-color-alpha-10);
+      box-shadow: inset 0 0 0 1px var(--inverse-color-alpha-20);
     }
 
-    :not(:first-child):not(.segment-label--first) {
-      margin-left: 4px;
-    }
-
-    select {
+    @at-root select#{&} {
       width: 100%;
       padding-right: 1.4rem;
       background-image: var(--dropdown-arrow);
@@ -342,14 +310,26 @@
       -webkit-appearance: none;
     }
 
-    .segmented-label {
-      ~ .segmented-label {
-        margin-left: -1px;
+    &[type="checkbox"],
+    &[type="radio"] {
+      display: none;
+
+      &:checked + label {
+        background-color: var(--inverse-color-tone-20) !important;
+        color: var(--base-color);
+
+        :global(.icon) {
+          fill: var(--base-color);
+        }
+      }
+
+      &:disabled + label {
+        opacity: 0.5;
       }
     }
 
-    .version {
-      max-width: 4rem;
+    &.dirty {
+      @include striped-background(-45deg, rgba(salmon, 0.5));
     }
 
     :global(.icon) {
@@ -358,9 +338,32 @@
       vertical-align: text-bottom;
       fill: var(--inverse-color-tone-20);
     }
+  }
 
-    .progress-indicator {
-      margin-right: 0.5em;
+  .control-set {
+    @extend %center-flex;
+    font-size: 0.85em;
+
+    li {
+      &:not(:first-child) {
+        margin-left: 4px;
+      }
+
+      &.segmented-control {
+        ~ .segmented-control {
+          margin-left: -1px;
+        }
+      }
+
+      &:first-child .control {
+        border-top-left-radius: $edge-border-radius;
+        border-bottom-left-radius: $edge-border-radius;
+      }
+
+      &:last-child .control {
+        border-top-right-radius: $edge-border-radius;
+        border-bottom-right-radius: $edge-border-radius;
+      }
     }
   }
 </style>

@@ -164,7 +164,7 @@
   }
 
   .choices {
-    @include unstyle-list;
+    @extend %unstyle-list;
 
     li {
       @extend .defn-or-version;

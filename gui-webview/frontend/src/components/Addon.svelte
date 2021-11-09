@@ -26,7 +26,6 @@
 
 <div
   class="addon"
-  class:status-damaged={false}
   class:status-outdated={isOutdated}
   class:status-pinned={addon.options.strategy === Strategy.version}
   class:status-being-modified={beingModified}
@@ -35,8 +34,8 @@
     <li class="name">{addon.name}</li>
     <li class="versions">
       {addon.version}
-      {#if isOutdated}{"<"} {otherAddon.version}{/if}
-      <span title={otherAddon.date_published}>
+      {#if isOutdated}{"< "}{otherAddon.version}{/if}
+      <span class="date" title={otherAddon.date_published}>
         ({DateTime.fromISO(otherAddon.date_published).toRelative()})
       </span>
       {#if otherAddon.options.strategy !== Strategy.default}@ {otherAddon.options.strategy}{/if}
@@ -127,10 +126,6 @@
       pointer-events: none;
     }
 
-    &.status-damaged {
-      @include striped-background(-45deg, rgba(red, 0.1));
-    }
-
     &.status-outdated {
       @include striped-background(-45deg, rgba(lime, 0.1));
     }
@@ -141,8 +136,9 @@
   }
 
   .addon-details {
-    @include unstyle-list;
+    @extend %unstyle-list;
     flex-grow: 1;
+    align-items: baseline;
     gap: 0.5em;
     overflow-x: hidden;
 
@@ -159,16 +155,20 @@
       }
     }
 
-    li {
-      display: block;
-    }
-
     .name {
       font-weight: 700;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      overflow-x: hidden;
     }
 
     .versions {
       float: right;
+      text-align: right;
+    }
+
+    .date {
+      white-space: nowrap;
     }
 
     .defn,
@@ -197,7 +197,7 @@
     $middle-border-radius: 0.75em;
     $edge-border-radius: 1em;
 
-    @include unstyle-list;
+    @extend %unstyle-list;
     display: flex;
     flex-wrap: nowrap;
     align-self: center;

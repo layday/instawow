@@ -6,7 +6,7 @@
   import ProfileView from "./ProfileView.svelte";
   import ProfileSwitcher from "./ProfileSwitcher.svelte";
 
-  let statusMessage: string = "";
+  let statusMessage = "";
 
   const performInitialSetup = async () => {
     const instawowVersions = await api.getVersion();
@@ -157,7 +157,7 @@
     }
 
     &__main {
-      @include stretch-vertically;
+      @extend %stretch-vertically;
       z-index: 5;
       padding-top: 0.8em;
       background-color: var(--base-color-tone-10);

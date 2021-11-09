@@ -43,12 +43,7 @@
   $middle-border-radius: 0.75em;
 
   .context-menu-wrapper {
-    position: fixed;
-    top: 0;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    z-index: 30;
+    @extend %cover-canvas;
   }
 
   .context-menu {
@@ -64,7 +59,7 @@
     white-space: nowrap;
 
     menu {
-      @include unstyle-list;
+      @extend %unstyle-list;
       font-size: 0.8em;
     }
   }

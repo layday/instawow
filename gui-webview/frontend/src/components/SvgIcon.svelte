@@ -25,6 +25,7 @@
     iconName,
     prefix,
   } = icon;
+  const d = svgPathData as string;
 </script>
 
 <svg
@@ -34,5 +35,5 @@
   class="icon {prefix}-{iconName}"
   {...$$restProps}
 >
-  <path d={svgPathData} />
+  <path {d} />
 </svg>

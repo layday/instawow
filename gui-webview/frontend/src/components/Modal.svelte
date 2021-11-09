@@ -13,13 +13,10 @@
 </div>
 
 <style lang="scss">
+  @import "scss/vars";
+
   .modal-wrapper {
-    position: fixed;
-    top: 0;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    z-index: 30;
+    @extend %cover-canvas;
     display: flex;
     align-items: center;
     justify-content: center;

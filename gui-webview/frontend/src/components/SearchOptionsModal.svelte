@@ -117,7 +117,7 @@
     }
 
     .start-date-suggestions {
-      @include unstyle-list;
+      @extend %unstyle-list;
       display: inline-flex;
       gap: 0.2rem;
       font-size: 0.8em;

@@ -540,7 +540,6 @@
 
 {#if isActive}
   <AddonListNav
-    {profile}
     on:requestSearch={() => search()}
     on:requestShowSearchOptionsModal={() => (searchOptionsModal = true)}
     on:requestRefresh={() => refreshInstalled()}
@@ -673,14 +672,14 @@
     flex-grow: 1;
     place-items: center;
 
-    div {
+    > div {
       flex-grow: 1;
       text-align: center;
     }
   }
 
   .addon-list-wrapper {
-    @include stretch-vertically;
+    @extend %stretch-vertically;
     position: relative;
     overflow-y: auto;
     padding: 0.8rem;
@@ -717,7 +716,7 @@
   }
 
   .addon-list {
-    @include unstyle-list;
+    @extend %unstyle-list;
 
     li {
       border-radius: 4px;

@@ -9,26 +9,21 @@ $action-button-bg-color: rgb(24, 136, 255);
 $action-button-focus-bg-color: rgb(0, 104, 217);
 $action-button-text-color: #efefef;
 
-@mixin unstyle-list {
+%unstyle-list {
   list-style: none;
   margin: 0;
   padding-left: 0;
 }
 
-@mixin stretch-vertically {
+%stretch-vertically {
   display: flex;
   flex-direction: column;
   flex: 1;
   overflow-y: hidden;
 }
 
-@mixin striped-background($direction, $color) {
-  background-image: repeating-linear-gradient($direction, transparent 0 20px, $color 20px 40px);
-}
-
-@mixin nav-grid($columns) {
+%nav-grid {
   display: grid;
-  grid-template-columns: repeat($columns, 1fr);
   column-gap: 1em;
   place-items: center;
 
@@ -39,6 +34,19 @@ $action-button-text-color: #efefef;
   :last-child {
     justify-self: right;
   }
+}
+
+%cover-canvas {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 30;
+}
+
+@mixin striped-background($direction, $color) {
+  background-image: repeating-linear-gradient($direction, transparent 0 20px, $color 20px 40px);
 }
 
 @function generate-dropdown-arrow($hex-fill) {
