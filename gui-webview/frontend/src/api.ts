@@ -149,20 +149,14 @@ export type PydanticValidationError = {
 };
 
 export class Api {
-  getClient: () => Promise<Client>;
-  profile?: string;
-
-  constructor(clientHandle: () => Promise<Client>, profile?: string) {
-    this.getClient = clientHandle;
-    this.profile = profile;
-  }
+  constructor(private clientWrapper: { client: Promise<Client> }, public profile?: string) {}
 
   withProfile(profile: string) {
-    return new Api(this.getClient, profile);
+    return new Api(this.clientWrapper, profile);
   }
 
   async _request(requestObject: Parameters<Client["request"]>[0]) {
-    const client = await this.getClient();
+    const client = await this.clientWrapper.client;
     return await client.request(requestObject, 0);
   }
 

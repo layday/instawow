@@ -1,4 +1,4 @@
 import { Api } from "./api";
-import { getClient } from "./client";
+import { RClient } from "./client";
 
-export const api = new Api(getClient());
+export const api = new Api(new RClient());
