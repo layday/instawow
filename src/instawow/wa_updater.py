@@ -5,11 +5,10 @@ from functools import partial, reduce
 from itertools import chain, product
 import time
 import typing
-from typing import TYPE_CHECKING, Any, Generic, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar
 
 from loguru import logger
 from pydantic import BaseModel, Field, validator
-from pydantic.generics import GenericModel
 from typing_extensions import Literal, Protocol, TypeAlias, TypedDict
 from yarl import URL
 
@@ -24,12 +23,10 @@ if TYPE_CHECKING:  # pragma: no cover
     from typing_extensions import NotRequired as N
 
 
-_ImportString: TypeAlias = str
-_Slug: TypeAlias = str
-AuraGroup: TypeAlias = 'Sequence[tuple[Sequence[WeakAura], WagoApiResponse, _ImportString]]'
-
-_TWeakAura = TypeVar('_TWeakAura', bound='WeakAura', covariant=True)
-_TAuras = TypeVar('_TAuras', bound='Auras[WeakAura]')
+_TAuras = TypeVar('_TAuras', bound='BaseAuras')
+_Slug = str
+_ImportString = str
+_AuraGroup: TypeAlias = 'Sequence[tuple[Sequence[WeakAura], WagoApiResponse, _ImportString]]'
 
 IMPORT_API_URL = URL('https://data.wago.io/api/raw/encoded')
 
@@ -38,17 +35,14 @@ class BuilderConfig(BaseConfig):
     wago_api_key: typing.Optional[str] = None
 
 
-class Auras(
-    GenericModel,
-    Generic[_TWeakAura],
+class BaseAuras(
+    BaseModel,
     arbitrary_types_allowed=True,
     json_encoders={URL: str},
 ):
     class Meta(Protocol):
         api_url: URL
         filename: str
-
-    __root__: typing.Dict[_Slug, typing.List[_TWeakAura]]
 
     @classmethod
     def from_lua_table(cls: type[_TAuras], lua_table: Any) -> _TAuras:
@@ -89,10 +83,12 @@ class WeakAura(
         return value
 
 
-class WeakAuras(Auras[WeakAura]):
+class WeakAuras(BaseAuras):
     class Meta:
         api_url = URL('https://data.wago.io/api/check/weakauras')
         filename = 'WeakAuras.lua'
+
+    __root__: typing.Dict[_Slug, typing.List[WeakAura]]
 
     @classmethod
     def from_lua_table(cls, lua_table: Any) -> WeakAuras:
@@ -108,10 +104,12 @@ class Plateroo(WeakAura):
     uid = ''
 
 
-class Plateroos(Auras[Plateroo]):
+class Plateroos(BaseAuras):
     class Meta:
         api_url = URL('https://data.wago.io/api/check/plater')
         filename = 'Plater.lua'
+
+    __root__: typing.Dict[_Slug, typing.List[Plateroo]]
 
     @classmethod
     def from_lua_table(cls, lua_table: Any) -> Plateroos:
@@ -226,7 +224,7 @@ class WaCompanionBuilder:
             request_extra={'headers': {'api-key': self.builder_config.wago_api_key or ''}},
         )
 
-    async def get_remote_auras(self, auras: Auras[WeakAura]) -> AuraGroup:
+    async def get_remote_auras(self, auras: BaseAuras) -> _AuraGroup:
         if not auras.__root__:
             return []
 
@@ -251,7 +249,9 @@ class WaCompanionBuilder:
         elif game_flavour is Flavour.burning_crusade_classic:
             return '20502'
 
-    def _generate_addon(self, auras: Iterable[tuple[type[Auras[WeakAura]], AuraGroup]]) -> None:
+    def _generate_addon(
+        self, auras: Iterable[tuple[type[WeakAuras | Plateroos], _AuraGroup]]
+    ) -> None:
         from importlib.resources import read_text
         from zipfile import ZipFile, ZipInfo
 
