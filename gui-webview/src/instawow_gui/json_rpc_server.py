@@ -10,7 +10,7 @@ import importlib.resources
 import os
 from types import SimpleNamespace
 import typing
-from typing import Any, ClassVar, TypeVar
+from typing import Any, TypeVar
 
 import aiohttp
 import aiohttp.web
@@ -63,8 +63,26 @@ def _reraise_validation_error(
         raise error_class(data=errors) from error
 
 
+methods: list[tuple[str, type[BaseParams]]] = []
+
+
+def _register_method(method: str):
+    def inner(param_class: type[BaseParams]):
+        methods.append((method, param_class))
+        return param_class
+
+    return inner
+
+
 class BaseParams(BaseModel):
-    method: ClassVar[str]
+    @classmethod
+    def bind(cls, method: str, managers: _ManagerWorkQueue) -> JsonRpcMethod:
+        async def respond(**kwargs: Any) -> BaseModel:
+            with _reraise_validation_error(InvalidParamsError, kwargs):
+                params = cls.parse_obj(kwargs)
+            return await params.respond(managers)
+
+        return JsonRpcMethod(respond, name=method)
 
     async def respond(self, managers: _ManagerWorkQueue) -> Any:
         raise NotImplementedError
@@ -78,9 +96,8 @@ class _DefnParamMixin(BaseModel):
     defns: typing.List[Defn]
 
 
+@_register_method('config/write')
 class WriteConfigParams(BaseParams):
-    method = 'config/write'
-
     values: typing.Dict[str, Any]
     infer_game_flavour: bool
 
@@ -98,18 +115,16 @@ class WriteConfigParams(BaseParams):
         return config
 
 
+@_register_method('config/read')
 class ReadConfigParams(_ProfileParamMixin, BaseParams):
-    method = 'config/read'
-
     @t
     def respond(self, managers: _ManagerWorkQueue) -> Config:
         with _reraise_validation_error(_ConfigError):
             return Config.read(self.profile)
 
 
+@_register_method('config/delete')
 class DeleteConfigParams(_ProfileParamMixin, BaseParams):
-    method = 'config/delete'
-
     async def respond(self, managers: _ManagerWorkQueue) -> None:
         async def delete_profile(manager: Manager):
             await t(manager.config.delete)()
@@ -118,9 +133,8 @@ class DeleteConfigParams(_ProfileParamMixin, BaseParams):
         await managers.run(self.profile, delete_profile)
 
 
+@_register_method('config/list')
 class ListProfilesParams(BaseParams):
-    method = 'config/list'
-
     @t
     def respond(self, managers: _ManagerWorkQueue) -> list[str]:
         return Config.list_profiles()
@@ -134,9 +148,8 @@ class Source(TypedDict):
     changelog_format: str
 
 
+@_register_method('sources/list')
 class ListSourcesParams(_ProfileParamMixin, BaseParams):
-    method = 'sources/list'
-
     async def respond(self, managers: _ManagerWorkQueue) -> list[Source]:
         manager = await managers.run(self.profile, _get_manager)
         return [
@@ -151,9 +164,8 @@ class ListSourcesParams(_ProfileParamMixin, BaseParams):
         ]
 
 
+@_register_method('list')
 class ListInstalledParams(_ProfileParamMixin, BaseParams):
-    method = 'list'
-
     async def respond(self, managers: _ManagerWorkQueue) -> list[models.Pkg]:
         manager = await managers.run(self.profile, _get_manager)
         installed_pkgs = (
@@ -174,9 +186,8 @@ class ErrorResult(TypedDict):
     message: str
 
 
+@_register_method('search')
 class SearchParams(_ProfileParamMixin, BaseParams):
-    method = 'search'
-
     search_terms: str
     limit: int
     sources: typing.Set[str]
@@ -195,9 +206,8 @@ class SearchParams(_ProfileParamMixin, BaseParams):
         )
 
 
+@_register_method('resolve')
 class ResolveParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
-    method = 'resolve'
-
     async def _resolve(self, manager: Manager) -> dict[Defn, Any]:
         def extract_source(defn: Defn):
             if defn.source == '*':
@@ -219,9 +229,8 @@ class ResolveParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
         ]
 
 
+@_register_method('install')
 class InstallParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
-    method = 'install'
-
     replace: bool
 
     async def respond(self, managers: _ManagerWorkQueue) -> list[SuccessResult | ErrorResult]:
@@ -236,9 +245,8 @@ class InstallParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
         ]
 
 
+@_register_method('update')
 class UpdateParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
-    method = 'update'
-
     async def respond(self, managers: _ManagerWorkQueue) -> list[SuccessResult | ErrorResult]:
         results = await managers.run(
             self.profile, partial(Manager.update, defns=self.defns, retain_defn_strategy=True)
@@ -251,9 +259,8 @@ class UpdateParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
         ]
 
 
+@_register_method('remove')
 class RemoveParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
-    method = 'remove'
-
     keep_folders: bool
 
     async def respond(self, managers: _ManagerWorkQueue) -> list[SuccessResult | ErrorResult]:
@@ -268,9 +275,8 @@ class RemoveParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
         ]
 
 
+@_register_method('pin')
 class PinParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
-    method = 'pin'
-
     async def respond(self, managers: _ManagerWorkQueue) -> list[SuccessResult | ErrorResult]:
         results = await managers.run(self.profile, partial(Manager.pin, defns=self.defns))
         return [
@@ -281,9 +287,8 @@ class PinParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
         ]
 
 
+@_register_method('get_changelog')
 class GetChangelogParams(_ProfileParamMixin, BaseParams):
-    method = 'get_changelog'
-
     changelog_url: str
 
     async def respond(self, managers: _ManagerWorkQueue) -> str:
@@ -307,9 +312,8 @@ class ReconcileResult_AddonFolder(TypedDict):
     version: str
 
 
+@_register_method('reconcile')
 class ReconcileParams(_ProfileParamMixin, BaseParams):
-    method = 'reconcile'
-
     matcher: Literal['toc_source_ids', 'folder_name_subsets', 'addon_names_with_folder_names']
 
     async def respond(self, managers: _ManagerWorkQueue) -> ReconcileResult:
@@ -344,9 +348,8 @@ class DownloadProgressReport(TypedDict):
     progress: float
 
 
+@_register_method('get_download_progress')
 class GetDownloadProgressParams(_ProfileParamMixin, BaseParams):
-    method = 'get_download_progress'
-
     async def respond(self, managers: _ManagerWorkQueue) -> list[DownloadProgressReport]:
         return [
             {'defn': Defn.from_pkg(p), 'progress': r}
@@ -359,9 +362,8 @@ class GetVersionResult(TypedDict):
     new_version: str | None
 
 
+@_register_method('meta/get_version')
 class GetVersionParams(BaseParams):
-    method = 'meta/get_version'
-
     async def respond(self, managers: _ManagerWorkQueue) -> GetVersionResult:
         outdated, new_version = await is_outdated()
         return {
@@ -370,18 +372,16 @@ class GetVersionParams(BaseParams):
         }
 
 
+@_register_method('assist/open_url')
 class OpenUrlParams(BaseParams):
-    method = 'assist/open_url'
-
     url: str
 
     async def respond(self, managers: _ManagerWorkQueue) -> None:
         click.launch(self.url)
 
 
+@_register_method('assist/reveal_folder')
 class RevealFolderParams(BaseParams):
-    method = 'assist/reveal_folder'
-
     path_parts: typing.List[str]
 
     async def respond(self, managers: _ManagerWorkQueue) -> None:
@@ -392,9 +392,8 @@ class SelectFolderResult(TypedDict):
     selection: str | None
 
 
+@_register_method('assist/select_folder')
 class SelectFolderParams(BaseParams):
-    method = 'assist/select_folder'
-
     initial_folder: typing.Optional[str]
 
     async def respond(self, managers: _ManagerWorkQueue) -> SelectFolderResult:
@@ -413,9 +412,8 @@ class ConfirmDialogueResult(TypedDict):
     ok: bool
 
 
+@_register_method('assist/confirm')
 class ConfirmDialogueParams(BaseParams):
-    method = 'assist/confirm'
-
     title: str
     message: str
 
@@ -519,22 +517,8 @@ class _ManagerWorkQueue:
         return ((p, r()) for m, p, r in self._progress_reporters if m is manager)
 
 
-def _prepare_response(param_class: type[BaseParams], managers: _ManagerWorkQueue) -> JsonRpcMethod:
-    async def respond(**kwargs: Any) -> BaseModel:
-        with _reraise_validation_error(InvalidParamsError, kwargs):
-            params = param_class.parse_obj(kwargs)
-        return await params.respond(managers)
-
-    return JsonRpcMethod(respond, name=param_class.method)
-
-
-def _serialise_response(value: dict[str, Any]) -> str:
-    return BaseModel.construct(**value).json()
-
-
 async def create_app() -> aiohttp.web.Application:
     managers = _ManagerWorkQueue()
-    prepare_response = partial(_prepare_response, managers=managers)
 
     async def start_managers(app: aiohttp.web.Application):
         managers_listen = asyncio.create_task(managers.listen())
@@ -562,34 +546,14 @@ async def create_app() -> aiohttp.web.Application:
             text=importlib.resources.read_text(frontend, filename),
         )
 
+    def _json_serialize(value: dict[str, Any]) -> str:
+        return BaseModel.construct(**value).json()
+
     rpc_server = WsJsonRpcServer(
-        json_serialize=_serialise_response,
+        json_serialize=_json_serialize,
         middlewares=rpc_middlewares.DEFAULT_MIDDLEWARES,
     )
-    rpc_server.add_methods(
-        [
-            prepare_response(WriteConfigParams),
-            prepare_response(ReadConfigParams),
-            prepare_response(DeleteConfigParams),
-            prepare_response(ListProfilesParams),
-            prepare_response(ListSourcesParams),
-            prepare_response(ListInstalledParams),
-            prepare_response(SearchParams),
-            prepare_response(ResolveParams),
-            prepare_response(InstallParams),
-            prepare_response(UpdateParams),
-            prepare_response(RemoveParams),
-            prepare_response(PinParams),
-            prepare_response(GetChangelogParams),
-            prepare_response(ReconcileParams),
-            prepare_response(GetDownloadProgressParams),
-            prepare_response(GetVersionParams),
-            prepare_response(OpenUrlParams),
-            prepare_response(RevealFolderParams),
-            prepare_response(SelectFolderParams),
-            prepare_response(ConfirmDialogueParams),
-        ]
-    )
+    rpc_server.add_methods([m.bind(n, managers) for n, m in methods])
 
     app = aiohttp.web.Application()
     app.add_routes(

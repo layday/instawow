@@ -5,12 +5,12 @@ from functools import partial, reduce
 from itertools import chain, product
 import time
 import typing
-from typing import TYPE_CHECKING, Any, ClassVar, Generic, TypeVar
+from typing import TYPE_CHECKING, Any, Generic, TypeVar
 
 from loguru import logger
 from pydantic import BaseModel, Field, validator
 from pydantic.generics import GenericModel
-from typing_extensions import Literal, TypeAlias, TypedDict
+from typing_extensions import Literal, Protocol, TypeAlias, TypedDict
 from yarl import URL
 
 from . import manager
@@ -29,6 +29,7 @@ _Slug: TypeAlias = str
 AuraGroup: TypeAlias = 'Sequence[tuple[Sequence[WeakAura], WagoApiResponse, _ImportString]]'
 
 _TWeakAura = TypeVar('_TWeakAura', bound='WeakAura', covariant=True)
+_TAuras = TypeVar('_TAuras', bound='Auras[WeakAura]')
 
 IMPORT_API_URL = URL('https://data.wago.io/api/raw/encoded')
 
@@ -43,17 +44,18 @@ class Auras(
     arbitrary_types_allowed=True,
     json_encoders={URL: str},
 ):
-    api_url: ClassVar[URL]
-    filename: ClassVar[str]
+    class Meta(Protocol):
+        api_url: URL
+        filename: str
 
     __root__: typing.Dict[_Slug, typing.List[_TWeakAura]]
 
     @classmethod
-    def from_lua_table(cls, lua_table: Any) -> Auras[_TWeakAura]:
+    def from_lua_table(cls: type[_TAuras], lua_table: Any) -> _TAuras:
         raise NotImplementedError
 
 
-def _merge_auras(auras: Iterable[Auras[WeakAura]]) -> dict[type, Auras[WeakAura]]:
+def _merge_auras(auras: Iterable[_TAuras]) -> dict[type, _TAuras]:
     "Merge auras of the same type."
     return {
         t: t(__root__=reduce(lambda a, b: {**a, **b}, (i.__root__ for i in a)))
@@ -88,8 +90,9 @@ class WeakAura(
 
 
 class WeakAuras(Auras[WeakAura]):
-    api_url = URL('https://data.wago.io/api/check/weakauras')
-    filename = 'WeakAuras.lua'
+    class Meta:
+        api_url = URL('https://data.wago.io/api/check/weakauras')
+        filename = 'WeakAuras.lua'
 
     @classmethod
     def from_lua_table(cls, lua_table: Any) -> WeakAuras:
@@ -106,8 +109,9 @@ class Plateroo(WeakAura):
 
 
 class Plateroos(Auras[Plateroo]):
-    api_url = URL('https://data.wago.io/api/check/plater')
-    filename = 'Plater.lua'
+    class Meta:
+        api_url = URL('https://data.wago.io/api/check/plater')
+        filename = 'Plater.lua'
 
     @classmethod
     def from_lua_table(cls, lua_table: Any) -> Plateroos:
@@ -161,21 +165,21 @@ class WaCompanionBuilder:
         self.checksum_txt_path = output_folder / 'checksum.txt'
 
     @staticmethod
-    def extract_auras(model: type[Auras[WeakAura]], source: str) -> Auras[WeakAura]:
+    def extract_auras(model: type[_TAuras], source: str) -> _TAuras:
         from ._custom_slpp import SLPP
 
         source_after_assignment = source[source.find('=') + 1 :]
         lua_table = SLPP(source_after_assignment).decode()
         return model.from_lua_table(lua_table)
 
-    def extract_installed_auras(self) -> Iterator[Auras[WeakAura]]:
+    def extract_installed_auras(self) -> Iterator[WeakAuras | Plateroos]:
         flavour_root = self.manager.config.addon_dir.parents[1]
         saved_vars_of_every_account = flavour_root.glob('WTF/Account/*/SavedVariables')
         for saved_vars, model in product(
             saved_vars_of_every_account,
             [WeakAuras, Plateroos],
         ):
-            file = saved_vars / model.filename
+            file = saved_vars / model.Meta.filename
             if not file.exists():
                 logger.info(f'{file} not found')
             else:
@@ -226,7 +230,7 @@ class WaCompanionBuilder:
         if not auras.__root__:
             return []
 
-        metadata = await self._fetch_wago_metadata(auras.api_url, auras.__root__)
+        metadata = await self._fetch_wago_metadata(auras.Meta.api_url, auras.__root__)
         import_strings = await gather(self._fetch_wago_import_string(r) for r in metadata)
         return [(auras.__root__[r['slug']], r, i) for r, i in zip(metadata, import_strings)]
 
