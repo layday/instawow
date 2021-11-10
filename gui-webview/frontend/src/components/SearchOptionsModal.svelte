@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { Sources } from "../api";
   import { Flavour, Strategy } from "../api";
+  import { DateTime } from "luxon";
   import { createEventDispatcher } from "svelte";
   import { fly, scale } from "svelte/transition";
   import Modal from "./Modal.svelte";
@@ -16,8 +17,13 @@
     searchLimit: number;
 
   const startDateSuggestions = [
-    { date: "2021-11-02", patch: "9.1.5", flavour: Flavour.retail },
-    { date: "2020-10-13", patch: "9.0.1", flavour: Flavour.retail },
+    { date: "2021-11-02", label: "9.1.5", flavour: Flavour.retail },
+    { date: "2020-10-13", label: "9.0.1", flavour: Flavour.retail },
+    {
+      date: DateTime.now().minus({ days: 1 }).toISODate(),
+      label: "yesterday",
+      flavour: null,
+    },
   ];
 
   const dispatch = createEventDispatcher();
@@ -62,13 +68,13 @@
           bind:value={searchStartDate}
         />
         <ul class="start-date-suggestions">
-          {#each startDateSuggestions as { date, patch, flavour: suggestionFlavour }}
-            {#if flavour === suggestionFlavour}
+          {#each startDateSuggestions as { date, label, flavour: suggestionFlavour }}
+            {#if !suggestionFlavour || flavour === suggestionFlavour}
               <li
                 class:disabled={searchFromAlias}
                 on:click={() => !searchFromAlias && (searchStartDate = date)}
               >
-                {patch}
+                {label}
               </li>
             {/if}
           {/each}
