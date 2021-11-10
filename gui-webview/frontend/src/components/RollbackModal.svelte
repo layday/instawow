@@ -16,7 +16,7 @@
     dispatch("requestRollback", {
       ...addon,
       version: version,
-      options: { strategy: Strategy.version },
+      options: { ...addon.options, strategy: Strategy.version },
     });
     show = false;
   };
