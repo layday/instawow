@@ -90,6 +90,7 @@
           class="control"
           id="__search-filter-installed"
           type="checkbox"
+          disabled={activeView === View.Reconcile}
           bind:checked={search__filterInstalled}
         />
         <label
@@ -107,10 +108,10 @@
           class="control search-control"
           type="text"
           placeholder="search"
+          disabled={activeView === View.Reconcile}
           bind:this={searchBox}
           bind:value={search__terms}
           on:keydown={(e) => e.key === "Enter" && dispatch("requestSearch")}
-          disabled={activeView === View.Reconcile}
         />
       </li>
     </menu>
