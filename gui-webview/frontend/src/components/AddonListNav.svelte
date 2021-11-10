@@ -85,35 +85,48 @@
   </div>
   <div class="search">
     <menu class="control-set">
-      <li>
-        <input
-          class="control"
-          id="__search-filter-installed"
-          type="checkbox"
-          disabled={activeView === View.Reconcile}
-          bind:checked={search__filterInstalled}
-        />
-        <label
-          class="control"
-          for="__search-filter-installed"
-          aria-label="filter installed add-ons"
-          title="filter installed add-ons"
-        >
-          <Icon icon={faFilter} />
-        </label>
-      </li>
-      <li>
-        <!-- Not type="search" because cursor jumps to end in Safari -->
-        <input
-          class="control search-control"
-          type="text"
-          placeholder="search"
-          disabled={activeView === View.Reconcile}
-          bind:this={searchBox}
-          bind:value={search__terms}
-          on:keydown={(e) => e.key === "Enter" && dispatch("requestSearch")}
-        />
-      </li>
+      {#if activeView === View.Reconcile}
+        <li>
+          <select
+            class="control reconciliation-stage-control"
+            aria-label="reconciliation stage"
+            disabled={reconcile__isInstalling}
+            bind:value={reconcile__stage}
+          >
+            {#each Object.values(ReconciliationStage) as stage}
+              <option value={stage}>{stage}</option>
+            {/each}
+          </select>
+        </li>
+      {:else}
+        <li>
+          <input
+            class="control"
+            id="__search-filter-installed"
+            type="checkbox"
+            bind:checked={search__filterInstalled}
+          />
+          <label
+            class="control"
+            for="__search-filter-installed"
+            aria-label="filter installed add-ons"
+            title="filter installed add-ons"
+          >
+            <Icon icon={faFilter} />
+          </label>
+        </li>
+        <li>
+          <!-- Not type="search" because cursor jumps to end in Safari -->
+          <input
+            class="control search-control"
+            type="text"
+            placeholder="search"
+            bind:this={searchBox}
+            bind:value={search__terms}
+            on:keydown={(e) => e.key === "Enter" && dispatch("requestSearch")}
+          />
+        </li>
+      {/if}
     </menu>
     <div class="progress-indicator" class:hidden={!search__isSearching}>
       <ProgressIndicator diameter={18} progress={0} />
@@ -176,20 +189,6 @@
           </button>
         </li>
       {:else if activeView === View.Reconcile}
-        <li>
-          <select
-            class="control"
-            aria-label="reconciliation stage"
-            disabled={reconcile__isInstalling}
-            bind:value={reconcile__stage}
-          >
-            <optgroup label="stage">
-              {#each Object.values(ReconciliationStage) as stage}
-                <option value={stage}>{stage}</option>
-              {/each}
-            </optgroup>
-          </select>
-        </li>
         <li>
           <button
             class="control"
@@ -301,16 +300,6 @@
       box-shadow: inset 0 0 0 1px var(--inverse-color-alpha-20);
     }
 
-    @at-root select#{&} {
-      width: 100%;
-      padding-right: 1.4rem;
-      background-image: var(--dropdown-arrow);
-      background-size: 10px;
-      background-repeat: no-repeat;
-      background-position: top calc(50% + 1px) right 7px;
-      -webkit-appearance: none;
-    }
-
     &[type="checkbox"],
     &[type="radio"] {
       display: none;
@@ -331,6 +320,16 @@
 
     &.dirty {
       @include striped-background(-45deg, rgba(salmon, 0.5));
+    }
+
+    &.reconciliation-stage-control {
+      width: 100%;
+      padding-right: 1.4rem;
+      background-image: var(--dropdown-arrow);
+      background-size: 10px;
+      background-repeat: no-repeat;
+      background-position: top calc(50% + 1px) right 7px;
+      -webkit-appearance: none;
     }
 
     :global(.icon) {
