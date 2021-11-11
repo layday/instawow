@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { Addon, AddonWithMeta } from "../api";
   import { Strategy } from "../api";
-  import { api } from "../ipc";
+  import { api } from "../store";
   import {
     faEllipsisH,
     faExternalLinkSquareAlt,
@@ -15,11 +15,12 @@
 
   export let addon: AddonWithMeta,
     otherAddon: Addon,
-    isOutdated: boolean,
     beingModified: boolean,
     showCondensed: boolean,
-    installed__isRefreshing: boolean,
+    installedIsRefreshing: boolean,
     downloadProgress: number;
+
+  const isOutdated = addon.version !== otherAddon.version;
 
   const dispatch = createEventDispatcher();
 </script>
@@ -55,7 +56,7 @@
         {#if isOutdated}
           <li>
             <button
-              disabled={installed__isRefreshing}
+              disabled={installedIsRefreshing}
               on:click|stopPropagation={() => dispatch("requestUpdate")}>update</button
             >
           </li>
@@ -69,7 +70,7 @@
           <button
             aria-label="remove"
             title="remove"
-            disabled={installed__isRefreshing}
+            disabled={installedIsRefreshing}
             on:click|stopPropagation={() => dispatch("requestRemove")}
           >
             <Icon icon={faTrashAlt} />
@@ -92,7 +93,7 @@
           <button
             aria-label="open in browser"
             title="open in browser"
-            on:click|stopPropagation={() => api.openUrl(addon.url)}
+            on:click|stopPropagation={() => $api.openUrl(addon.url)}
           >
             <Icon icon={faExternalLinkSquareAlt} />
           </button>

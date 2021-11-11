@@ -1,30 +1,25 @@
 <script lang="ts">
   import type { Config } from "../api";
   import { fade } from "svelte/transition";
-  import { api } from "../ipc";
-  import { activeProfile, profiles } from "../store";
+  import { activeProfile, api, profiles } from "../store";
   import ProfileView from "./ProfileView.svelte";
   import ProfileSwitcher from "./ProfileSwitcher.svelte";
 
   let statusMessage = "";
+  let installedVersion: string;
+  let newVersion: string | null;
 
   const performInitialSetup = async () => {
-    const instawowVersions = await api.getVersion();
-    const profileNames = await api.listProfiles();
-    const profileConfigs = await Promise.all(
-      profileNames.map(async (p) => {
-        try {
-          return await api.readProfile(p);
-        } catch (error) {
-          return error;
-        }
-      })
+    ({ installed_version: installedVersion, new_version: newVersion } = await $api.getVersion());
+    const profileConfigs = await Promise.allSettled(
+      (await $api.listProfiles()).map(async (p) => await $api.readProfile(p))
     );
     $profiles = new Map(
-      profileConfigs.filter((p): p is Config => !(p instanceof Error)).map((p) => [p.profile, p])
+      profileConfigs
+        .filter((r): r is PromiseFulfilledResult<Config> => r.status === "fulfilled")
+        .map(({ value }) => [value.profile, value])
     );
-    $activeProfile = profileNames[0];
-    return instawowVersions;
+    $activeProfile = $profiles.keys().next().value;
   };
 </script>
 
@@ -36,7 +31,7 @@
       <div class="status">loading…</div>
     </footer>
   </main>
-{:then instawowVersions}
+{:then}
   <main>
     <header class="section section__menubar">
       <ProfileSwitcher />
@@ -44,8 +39,7 @@
         <b>instawow</b><!--
         --><br />
         <span>
-          {instawowVersions.installed_version}
-          {instawowVersions.new_version ? `< ${instawowVersions.new_version}` : ""}
+          {newVersion ? `${installedVersion} < ${newVersion}` : installedVersion}
         </span>
       </div>
     </header>

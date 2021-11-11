@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { Addon, AddonMatch } from "../api";
-  import { api } from "../ipc";
+  import { api } from "../store";
   import { faChevronCircleDown, faChevronCircleUp } from "@fortawesome/free-solid-svg-icons";
   import Icon from "./SvgIcon.svelte";
 
@@ -64,7 +64,7 @@
                 class="open-url"
                 title="open in browser"
                 href="__openUrl"
-                on:click|preventDefault|stopPropagation={() => api.openUrl(choice.url)}
+                on:click|preventDefault|stopPropagation={() => $api.openUrl(choice.url)}
               >
                 [↗]
               </a>

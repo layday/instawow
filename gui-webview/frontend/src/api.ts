@@ -155,32 +155,32 @@ export class Api {
     return new Api(this.clientWrapper, profile);
   }
 
-  async _request(requestObject: Parameters<Client["request"]>[0]) {
+  private async request(requestObject: Parameters<Client["request"]>[0]) {
     const client = await this.clientWrapper.client;
     return await client.request(requestObject, 0);
   }
 
   async readProfile(profile: string): Promise<Config> {
-    return await this._request({ method: "config/read", params: { profile: profile } });
+    return await this.request({ method: "config/read", params: { profile: profile } });
   }
 
   async writeProfile(config: Config, infer_game_flavour: boolean): Promise<Config> {
-    return await this._request({
+    return await this.request({
       method: "config/write",
       params: { values: config, infer_game_flavour: infer_game_flavour },
     });
   }
 
   async deleteProfile(profile: string): Promise<void> {
-    return await this._request({ method: "config/delete", params: { profile: profile } });
+    return await this.request({ method: "config/delete", params: { profile: profile } });
   }
 
   async listProfiles(): Promise<Profiles> {
-    return await this._request({ method: "config/list" });
+    return await this.request({ method: "config/list" });
   }
 
   async listSources(): Promise<Sources> {
-    const result = await this._request({
+    const result = await this.request({
       method: "sources/list",
       params: { profile: this.profile },
     });
@@ -188,7 +188,7 @@ export class Api {
   }
 
   async list(): Promise<ListResult> {
-    return await this._request({
+    return await this.request({
       method: "list",
       params: { profile: this.profile },
     });
@@ -196,16 +196,16 @@ export class Api {
 
   async search(
     searchTerms: string,
-    searchLimit: number,
+    limit: number,
     sources: string[],
     startDate: string | null
   ): Promise<CatalogueEntry[]> {
-    return await this._request({
+    return await this.request({
       method: "search",
       params: {
         profile: this.profile,
         search_terms: searchTerms,
-        limit: searchLimit,
+        limit: limit,
         sources: sources,
         start_date: startDate ? new Date(startDate) : null,
       },
@@ -213,7 +213,7 @@ export class Api {
   }
 
   async resolve(defns: Defn[]): Promise<MultiResult> {
-    return await this._request({
+    return await this.request({
       method: "resolve",
       params: { profile: this.profile, defns: defns },
     });
@@ -224,54 +224,54 @@ export class Api {
     defns: object[],
     extraParams: { [key: string]: any } = {}
   ): Promise<MultiResult> {
-    return await this._request({
+    return await this.request({
       method: method,
       params: { profile: this.profile, defns: defns, ...extraParams },
     });
   }
 
   async getChangelog(changelogUrl: string): Promise<string> {
-    return await this._request({
+    return await this.request({
       method: "get_changelog",
       params: { profile: this.profile, changelog_url: changelogUrl },
     });
   }
 
   async reconcile(matcher: ReconciliationStage): Promise<ReconcileResult> {
-    return await this._request({
+    return await this.request({
       method: "reconcile",
       params: { profile: this.profile, matcher: matcher },
     });
   }
 
   async getDownloadProgress(): Promise<DownloadProgressReport[]> {
-    return await this._request({
+    return await this.request({
       method: "get_download_progress",
       params: { profile: this.profile },
     });
   }
 
   async getVersion(): Promise<Version> {
-    return await this._request({ method: "meta/get_version" });
+    return await this.request({ method: "meta/get_version" });
   }
 
   async openUrl(url: string): Promise<void> {
-    await this._request({ method: "assist/open_url", params: { url } });
+    await this.request({ method: "assist/open_url", params: { url } });
   }
 
   async revealFolder(pathParts: string[]): Promise<void> {
-    await this._request({ method: "assist/reveal_folder", params: { path_parts: pathParts } });
+    await this.request({ method: "assist/reveal_folder", params: { path_parts: pathParts } });
   }
 
   async selectFolder(initialFolder: string | null): Promise<SelectFolderResult> {
-    return await this._request({
+    return await this.request({
       method: "assist/select_folder",
       params: { initial_folder: initialFolder },
     });
   }
 
   async confirm(title: string, message: string): Promise<ConfirmDialogueResult> {
-    return await this._request({
+    return await this.request({
       method: "assist/confirm",
       params: { title, message },
     });

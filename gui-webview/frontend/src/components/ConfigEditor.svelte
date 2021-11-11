@@ -5,7 +5,7 @@
   import lodash from "lodash";
   import { fade } from "svelte/transition";
   import { Flavour } from "../api";
-  import { api } from "../ipc";
+  import { api } from "../store";
   import { activeProfile, profiles } from "../store";
   import Icon from "./SvgIcon.svelte";
 
@@ -19,7 +19,7 @@
   let errors: { [key: string]: string } = {};
 
   const selectFolder = async () => {
-    const { selection } = await api.selectFolder(configParams.addon_dir);
+    const { selection } = await $api.selectFolder(configParams.addon_dir);
     if (selection !== null) {
       configParams.addon_dir = selection;
     }
@@ -40,7 +40,7 @@
 
     let result: Config;
     try {
-      result = await api.writeProfile(configParams, createNew);
+      result = await $api.writeProfile(configParams, createNew);
     } catch (error) {
       if (error instanceof JSONRPCError) {
         errors = lodash.fromPairs(
@@ -60,7 +60,7 @@
   };
 
   const deleteConfig = async () => {
-    const { ok } = await api.confirm(
+    const { ok } = await $api.confirm(
       "Delete profile",
       `Do you really want to delete this profile?
 
@@ -71,7 +71,7 @@ a new profile for this folder and your rollback history \
 will be lost.`
     );
     if (ok) {
-      await api.deleteProfile(configParams.profile);
+      await $api.deleteProfile(configParams.profile);
       $profiles.delete(configParams.profile);
       $profiles = $profiles; // Trigger update in Svelte
       $activeProfile = $profiles.keys().next().value;

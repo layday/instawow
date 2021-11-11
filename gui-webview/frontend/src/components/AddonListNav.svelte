@@ -8,16 +8,16 @@
 
   export let activeView: View,
     addonsCondensed: boolean,
-    search__terms: string,
-    search__filterInstalled: boolean,
-    search__fromAlias: boolean,
-    search__isDirty: boolean,
-    search__isSearching: boolean,
-    installed__isModifying: boolean,
-    installed__isRefreshing: boolean,
-    installed__outdatedAddonCount: number,
-    reconcile__isInstalling: boolean,
-    reconcile__stage: ReconciliationStage;
+    searchTerms: string,
+    searchFilterInstalled: boolean,
+    searchFromAlias: boolean,
+    searchIsDirty: boolean,
+    searchIsSearching: boolean,
+    installedIsModifying: boolean,
+    installedIsRefreshing: boolean,
+    installedOutdatedCount: number,
+    reconcileInstallationInProgress: boolean,
+    reconcileStage: ReconciliationStage;
 
   const dispatch = createEventDispatcher();
 
@@ -33,10 +33,10 @@
       activeView = View.Search;
       searchBox.focus();
     } else if (action === "toggleSearchFilter") {
-      search__filterInstalled = !search__filterInstalled;
-      if (search__filterInstalled) {
+      searchFilterInstalled = !searchFilterInstalled;
+      if (searchFilterInstalled) {
         searchBox.focus();
-        if (search__terms) {
+        if (searchTerms) {
           dispatch("requestSearch");
         }
       } else {
@@ -90,8 +90,8 @@
           <select
             class="control reconciliation-stage-control"
             aria-label="reconciliation stage"
-            disabled={reconcile__isInstalling}
-            bind:value={reconcile__stage}
+            disabled={reconcileInstallationInProgress}
+            bind:value={reconcileStage}
           >
             {#each Object.values(ReconciliationStage) as stage}
               <option value={stage}>{stage}</option>
@@ -104,7 +104,7 @@
             class="control"
             id="__search-filter-installed"
             type="checkbox"
-            bind:checked={search__filterInstalled}
+            bind:checked={searchFilterInstalled}
           />
           <label
             class="control"
@@ -122,18 +122,18 @@
             type="text"
             placeholder="search"
             bind:this={searchBox}
-            bind:value={search__terms}
+            bind:value={searchTerms}
             on:keydown={(e) => e.key === "Enter" && dispatch("requestSearch")}
           />
         </li>
       {/if}
     </menu>
-    <div class="progress-indicator" class:hidden={!search__isSearching}>
+    <div class="progress-indicator" class:hidden={!searchIsSearching}>
       <ProgressIndicator diameter={18} progress={0} />
     </div>
   </div>
   <div>
-    <div class="progress-indicator" class:hidden={!reconcile__isInstalling}>
+    <div class="progress-indicator" class:hidden={!reconcileInstallationInProgress}>
       <ProgressIndicator diameter={18} progress={0} />
     </div>
     <menu class="control-set">
@@ -141,7 +141,7 @@
         <li>
           <button
             class="control"
-            disabled={installed__isRefreshing}
+            disabled={installedIsRefreshing}
             on:click={() => dispatch("requestRefresh")}
           >
             refresh
@@ -150,14 +150,10 @@
         <li>
           <button
             class="control"
-            disabled={installed__isModifying ||
-              installed__isRefreshing ||
-              !installed__outdatedAddonCount}
+            disabled={installedIsModifying || installedIsRefreshing || !installedOutdatedCount}
             on:click={() => dispatch("requestUpdateAll")}
           >
-            {installed__outdatedAddonCount
-              ? `update ${installed__outdatedAddonCount}`
-              : "no updates"}
+            {installedOutdatedCount ? `update ${installedOutdatedCount}` : "no updates"}
           </button>
         </li>
       {:else if activeView === View.Search}
@@ -166,7 +162,7 @@
             class="control"
             id="__interpret-as-uri"
             type="checkbox"
-            bind:checked={search__fromAlias}
+            bind:checked={searchFromAlias}
             on:change={() => dispatch("requestSearch")}
           />
           <label
@@ -181,7 +177,7 @@
         <li>
           <button
             class="control"
-            class:dirty={search__isDirty}
+            class:dirty={searchIsDirty}
             aria-label="show search options"
             on:click={() => dispatch("requestShowSearchOptionsModal")}
           >
@@ -192,7 +188,7 @@
         <li>
           <button
             class="control"
-            disabled={reconcile__isInstalling}
+            disabled={reconcileInstallationInProgress}
             on:click={() => dispatch("requestInstallReconciled")}
           >
             install
@@ -201,7 +197,7 @@
         <li>
           <button
             class="control"
-            disabled={reconcile__isInstalling}
+            disabled={reconcileInstallationInProgress}
             on:click={() => dispatch("requestAutomateReconciliation")}
           >
             automate

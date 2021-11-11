@@ -3,7 +3,6 @@
     Addon,
     AddonWithMeta,
     CatalogueEntry,
-    Config,
     Defn,
     SuccessResult,
     ErrorResult,
@@ -12,7 +11,6 @@
   } from "../api";
   import { ChangelogFormat, ReconciliationStage, Strategy, addonToDefn } from "../api";
   import { View } from "../constants";
-  import { api } from "../ipc";
   import { faQuestion } from "@fortawesome/free-solid-svg-icons";
   import * as commonmark from "commonmark";
   import lodash from "lodash";
@@ -83,11 +81,12 @@
 </script>
 
 <script lang="ts">
-  import { profiles } from "../store";
+  import { api, profiles } from "../store";
 
   export let profile: string, isActive: boolean, statusMessage: string;
 
-  const profileApi = api.withProfile(profile);
+  const config = $profiles.get(profile)!;
+  const profileApi = $api.withProfile(profile);
 
   let sources: Sources = {};
   let uriSchemes: string[];
@@ -100,8 +99,9 @@
   let addons__FilterInstalled: AddonTuple[] = [];
   let addonsFromSearch: Addon[] = [];
   let addons__Search: AddonTuple[] = [];
-  let outdatedAddonCount: number;
-  let addonsBeingModified: string[] = [];
+  let installedOutdatedCount: number;
+  let installedAddonsBeingModified: string[] = [];
+
   let addonDownloadProgress: { [token: string]: number } = {};
 
   let {
@@ -124,7 +124,7 @@
   let reconcileStage: ReconciliationStage = reconcileStages[0];
   let reconcileSelections: Addon[];
 
-  let refreshInProgress = false;
+  let installedIsRefreshing = false;
   let searchesInProgress = 0;
   let reconcileInstallationInProgress = false;
 
@@ -154,7 +154,7 @@
   };
 
   const countUpdates = () =>
-    (outdatedAddonCount = addons__Installed.reduce(
+    (installedOutdatedCount = addons__Installed.reduce(
       (val, [thisAddon, otherAddon]) =>
         val + (otherAddon && thisAddon.version !== otherAddon.version ? 1 : 0),
       0
@@ -193,8 +193,8 @@
     addons: Addon[],
     extraParams: { [key: string]: any } = {}
   ) => {
-    const ids = addons.map(createAddonToken);
-    addonsBeingModified = [...addonsBeingModified, ...ids];
+    const addonTolens = addons.map(createAddonToken);
+    installedAddonsBeingModified = [...installedAddonsBeingModified, ...addonTolens];
     const cancelDownloadProgessPolling = scheduleDownloadProgressPolling(1000).cancel;
 
     try {
@@ -230,7 +230,10 @@
       try {
         cancelDownloadProgessPolling();
       } finally {
-        addonsBeingModified = lodash.difference(addonsBeingModified, ids);
+        installedAddonsBeingModified = lodash.difference(
+          installedAddonsBeingModified,
+          addonTolens
+        );
       }
     }
   };
@@ -325,8 +328,8 @@
   };
 
   const refreshInstalled = async (flash = false) => {
-    if (!refreshInProgress) {
-      refreshInProgress = true;
+    if (!installedIsRefreshing) {
+      installedIsRefreshing = true;
       try {
         const installedAddons = (await profileApi.list()).map((addon) =>
           markAddonInstalled(addon)
@@ -351,7 +354,7 @@
       } finally {
         // Keep actions disabled for a little while longer while the add-ons
         // are being reshuffled to prevent misclicking
-        setTimeout(() => (refreshInProgress = false), 500);
+        setTimeout(() => (installedIsRefreshing = false), 500);
       }
     }
   };
@@ -395,10 +398,7 @@
     } else if (selection === "view-changelog") {
       showChangelogModal(addon);
     } else if (selection === "reveal-folder") {
-      profileApi.revealFolder([
-        ($profiles.get(profile) as Config).addon_dir,
-        addon.folders[0].name,
-      ]);
+      profileApi.revealFolder([config.addon_dir, addon.folders[0].name]);
     } else if (selection === "resolve") {
       resetSearchState();
       [searchTerms, searchFromAlias, searchStrategy, searchVersion] = [
@@ -474,10 +474,8 @@
 
   const supportsRollback = (addon: Addon) => !!sources[addon.source]?.supports_rollback;
 
-  const getFlavour = () => ($profiles.get(profile) as Config).game_flavour;
-
   const generateStatusMessage = () => {
-    if (refreshInProgress) {
+    if (installedIsRefreshing) {
       return "refreshing…";
     } else if (reconcileInstallationInProgress) {
       return "installing…";
@@ -534,7 +532,7 @@
   $: activeView === View.Reconcile && (reconcileStage = reconcileStages[0]);
   $: addons__Installed && (console.debug(profile, "recounting updates"), countUpdates());
   $: isActive &&
-    (addons__Installed || reconcileInstallationInProgress || refreshInProgress) &&
+    (addons__Installed || reconcileInstallationInProgress || installedIsRefreshing) &&
     (statusMessage = generateStatusMessage());
 </script>
 
@@ -549,16 +547,16 @@
       installReconciled(reconcileStage, reconcileSelections, true)}
     bind:activeView
     bind:addonsCondensed
-    bind:search__terms={searchTerms}
-    bind:search__filterInstalled={searchFilterInstalled}
-    bind:search__fromAlias={searchFromAlias}
-    bind:reconcile__stage={reconcileStage}
-    search__isDirty={searchIsDirty}
-    search__isSearching={searchesInProgress > 0}
-    installed__isModifying={addonsBeingModified.length > 0}
-    installed__isRefreshing={refreshInProgress}
-    installed__outdatedAddonCount={outdatedAddonCount}
-    reconcile__isInstalling={reconcileInstallationInProgress}
+    bind:searchTerms
+    bind:searchFilterInstalled
+    bind:searchFromAlias
+    {searchIsDirty}
+    searchIsSearching={searchesInProgress > 0}
+    installedIsModifying={installedAddonsBeingModified.length > 0}
+    {installedIsRefreshing}
+    {installedOutdatedCount}
+    bind:reconcileStage
+    {reconcileInstallationInProgress}
   />
   <div class="addon-list-wrapper" class:prevent-scrolling={changelogModal || rollbackModal}>
     <Alerts bind:alerts />
@@ -585,7 +583,7 @@
     {#if searchOptionsModal}
       <SearchOptionsModal
         {sources}
-        flavour={getFlavour()}
+        flavour={config.game_flavour}
         on:requestSearch={() => search()}
         on:requestReset={() => resetSearchState()}
         bind:show={searchOptionsModal}
@@ -651,10 +649,9 @@
                 showAddonContextMenu(otherAddon, false, e.detail)}
               {addon}
               {otherAddon}
-              isOutdated={addon.version !== otherAddon.version}
-              beingModified={addonsBeingModified.includes(token)}
+              beingModified={installedAddonsBeingModified.includes(token)}
               showCondensed={addonsCondensed}
-              installed__isRefreshing={refreshInProgress}
+              {installedIsRefreshing}
               downloadProgress={addonDownloadProgress[token] || 0}
             />
           </li>
