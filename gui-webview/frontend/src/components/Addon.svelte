@@ -20,9 +20,9 @@
     installedIsRefreshing: boolean,
     downloadProgress: number;
 
-  const isOutdated = addon.version !== otherAddon.version;
-
   const dispatch = createEventDispatcher();
+
+  $: isOutdated = addon.version !== otherAddon.version;
 </script>
 
 <div
