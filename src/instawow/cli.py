@@ -750,10 +750,10 @@ def reveal(manager: _manager.Manager, addon: Defn) -> None:
     'addon', callback=_with_manager(partial(parse_into_defn, raise_invalid=False)), required=False
 )
 @click.option(
-    '--convert',
-    is_flag=True,
-    default=False,
-    help='Convert HTML and Markdown changelogs to plain text.  Requires pandoc.',
+    '--convert/--no-convert',
+    default=True,
+    show_default=True,
+    help='Convert HTML and Markdown changelogs to plain text using pandoc.',
 )
 @ManagerWrapper.pass_manager
 def view_changelog(manager: _manager.Manager, addon: Defn | None, convert: bool) -> None:
@@ -763,23 +763,37 @@ def view_changelog(manager: _manager.Manager, addon: Defn | None, convert: bool)
     to have been installed within one minute of the last add-on.
     """
 
-    def do_convert(source: str, changelog: str):
-        import subprocess
+    def make_converter():
+        import shutil
 
-        changelog_format = manager.resolvers[source].changelog_format
-        if changelog_format not in {ChangelogFormat.html, ChangelogFormat.markdown}:
-            return changelog
+        pandoc = shutil.which('pandoc')
+        if pandoc is None:
+
+            def noop_convert(source: str, changelog: str):
+                return changelog
+
+            return noop_convert
         else:
-            return subprocess.check_output(
-                ['pandoc', '-f', changelog_format, '-t', 'plain'], input=changelog, text=True
-            )
+
+            def real_convert(source: str, changelog: str):
+                import subprocess
+
+                changelog_format = manager.resolvers[source].changelog_format
+                if changelog_format not in {ChangelogFormat.html, ChangelogFormat.markdown}:
+                    return changelog
+                else:
+                    return subprocess.check_output(
+                        [pandoc, '-f', changelog_format, '-t', 'plain'], input=changelog, text=True
+                    )
+
+            return real_convert
 
     if addon:
         pkg = manager.get_pkg(addon, partial_match=True)
         if pkg:
             changelog = run_with_progress(manager.get_changelog(pkg.changelog_url))
             if convert:
-                changelog = do_convert(pkg.source, changelog)
+                changelog = make_converter()(pkg.source, changelog)
             click.echo_via_pager(changelog)
         else:
             Report([(addon, R.PkgNotInstalled())]).generate_and_exit()
@@ -803,6 +817,7 @@ def view_changelog(manager: _manager.Manager, addon: Defn | None, convert: bool)
             gather(manager.get_changelog(m.changelog_url) for m in last_installed_changelog_urls)
         )
         if convert:
+            do_convert = make_converter()
             changelogs = (
                 do_convert(m.source, c) for m, c in zip(last_installed_changelog_urls, changelogs)
             )
