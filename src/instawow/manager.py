@@ -16,7 +16,7 @@ from contextlib import asynccontextmanager, contextmanager
 import contextvars as cv
 import datetime
 from enum import IntEnum
-from functools import lru_cache, partial
+from functools import lru_cache, partial, wraps
 from itertools import chain, compress, filterfalse, repeat, starmap, takewhile
 import json
 from pathlib import Path, PurePath
@@ -29,7 +29,7 @@ from loguru import logger
 import sqlalchemy as sa
 import sqlalchemy.exc as sa_exc
 import sqlalchemy.future as sa_future
-from typing_extensions import Literal, TypeAlias, TypedDict
+from typing_extensions import Concatenate, Literal, ParamSpec, TypeAlias, TypedDict
 from yarl import URL
 
 from . import _deferred_types, db, models
@@ -68,8 +68,9 @@ if TYPE_CHECKING:  # pragma: no cover
 else:
     _BaseResolverDict = dict
 
+_P = ParamSpec('_P')
 _T = TypeVar('_T')
-_C = TypeVar('_C', bound='Callable[..., Awaitable[object]]')
+_CManager: TypeAlias = 'Callable[Concatenate[Manager, _P], Awaitable[_T]]'
 
 
 USER_AGENT = 'instawow (https://github.com/layday/instawow)'
@@ -287,7 +288,7 @@ class _DummyResolver(BaseResolver):
 
 class _ResolverDict(_BaseResolverDict):
     def __missing__(self, key: str) -> Resolver:
-        return _DummyResolver  # type: ignore
+        return _DummyResolver
 
 
 async def capture_manager_exc_async(
@@ -319,13 +320,14 @@ class _DummyLock:
 def _with_lock(
     lock_name: str,
     manager_bound: bool = True,
-) -> Callable[[_C], _C]:
-    def outer(coro_fn: _C) -> _C:
-        async def inner(self: Manager, *args: object, **kwargs: object):
-            async with self.locks[f'{id(self)}_{lock_name}' if manager_bound else lock_name]:
+):
+    def outer(coro_fn: _CManager[_P, _T]) -> _CManager[_P, _T]:
+        @wraps(coro_fn)
+        async def inner(self: Manager, *args: _P.args, **kwargs: _P.kwargs):
+            async with self.locks[f'{id(self)}-{lock_name}' if manager_bound else lock_name]:
                 return await coro_fn(self, *args, **kwargs)
 
-        return inner  # type: ignore
+        return inner
 
     return outer
 
@@ -798,11 +800,9 @@ class Manager:
 
         strategies = frozenset({Strategy.default, Strategy.version})
 
-        def pin(
-            defn: Defn, pkg: models.Pkg | None
-        ) -> R.PkgNotInstalled | R.PkgInstalled | R.PkgStrategyUnsupported:
+        def pin(defn: Defn, pkg: models.Pkg | None) -> R.PkgInstalled:
             if not pkg:
-                return R.PkgNotInstalled()
+                raise R.PkgNotInstalled
 
             elif {defn.strategy} <= strategies <= self.resolvers[pkg.source].strategies:
                 self.database.execute(
@@ -821,7 +821,7 @@ class Manager:
                 return R.PkgInstalled(models.Pkg.from_row_mapping(self.database, row_mapping))
 
             else:
-                return R.PkgStrategyUnsupported(Strategy.version)
+                raise R.PkgStrategyUnsupported(Strategy.version)
 
         return {d: await capture_manager_exc_async(t(pin)(d, self.get_pkg(d))) for d in defns}
 
@@ -835,7 +835,7 @@ async def is_outdated() -> tuple[bool, str]:
 
     from . import __version__
 
-    def parse_version(version: str) -> tuple[int, ...]:
+    def parse_version(version: str):
         version_parts = takewhile(lambda p: all(c in '0123456789' for c in p), version.split('.'))
         return tuple(map(int, version_parts))
 
