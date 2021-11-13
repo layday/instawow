@@ -22,7 +22,7 @@ from .common import Strategy
 from .config import Config, Flavour, setup_logging
 from .plugins import load_plugins
 from .resolvers import ChangelogFormat, Defn
-from .utils import StrEnum, cached_property, gather, make_progress_bar, tabulate, uniq
+from .utils import StrEnum, cached_property, gather, tabulate, uniq
 
 _T = TypeVar('_T')
 _F = TypeVar('_F', bound='Callable[..., object]')
@@ -106,8 +106,8 @@ def _init_cli_web_client(
                 else trace_request_ctx['label']
             )
             # The encoded size is not exposed in the aiohttp streaming API
-            # so we cannot display progress.  When the total is ``None``
-            # the progress bar is animated as being "indeterminate"
+            # so we cannot display progress when the payload is encoded.
+            # When ``None`` the progress bar is "indeterminate".
             total = None if hdrs.CONTENT_ENCODING in response.headers else response.content_length
 
             async def ticker():
@@ -142,8 +142,10 @@ def _cancel_tickers() -> Iterator[set[asyncio.Task[None]]]:
 
 
 def run_with_progress(awaitable: Awaitable[_T]) -> _T:
+    from .prompts import make_progress_bar
+
     async def run():
-        with _cancel_tickers() as tickers, make_progress_bar() as progress_bar:
+        with make_progress_bar() as progress_bar, _cancel_tickers() as tickers:
             async with _init_cli_web_client(progress_bar, tickers) as web_client:
                 _manager.Manager.contextualise(web_client=web_client)
                 return await awaitable

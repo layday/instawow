@@ -14,8 +14,6 @@ from shutil import move as _move
 from tempfile import mkdtemp
 from typing import Any, Generic, Hashable, TypeVar, overload
 
-from . import _deferred_types
-
 _T = TypeVar('_T')
 _U = TypeVar('_U')
 _H = TypeVar('_H', bound=Hashable)
@@ -169,45 +167,6 @@ def tabulate(rows: Sequence[Sequence[object]], *, max_col_width: int = 60) -> st
         )
     )
     return table
-
-
-def make_progress_bar() -> _deferred_types.prompt_toolkit.shortcuts.ProgressBar:
-    "A ``ProgressBar`` with download progress expressed in megabytes."
-    from prompt_toolkit.formatted_text import HTML
-    from prompt_toolkit.shortcuts.progress_bar import ProgressBar, ProgressBarCounter, formatters
-
-    class DownloadProgress(formatters.Progress):
-        template = '<current>{current:>3}</current>/<total>{total:>3}</total>MB'
-
-        def format(
-            self, progress_bar: ProgressBar, progress: ProgressBarCounter[object], width: int
-        ):
-            def format_pct(value: int):
-                return f'{value / 2 ** 20:.1f}'
-
-            items_completed: int = progress.items_completed
-            return HTML(self.template).format(
-                current=format_pct(items_completed),
-                total=format_pct(progress.total) if progress.total else '?',
-            )
-
-    progress_bar = ProgressBar(
-        formatters=[
-            formatters.Label(),
-            formatters.Text(' '),
-            formatters.Percentage(),
-            formatters.Text(' '),
-            formatters.Bar(),
-            formatters.Text(' '),
-            DownloadProgress(),
-            formatters.Text(' '),
-            formatters.Text('eta [', style='class:time-left'),
-            formatters.TimeLeft(),
-            formatters.Text(']', style='class:time-left'),
-            formatters.Text(' '),
-        ],
-    )
-    return progress_bar
 
 
 def move(src: str | os.PathLike[str], dest: str | os.PathLike[str]) -> Any:

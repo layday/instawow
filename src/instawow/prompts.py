@@ -9,8 +9,10 @@ from typing import Any
 
 from prompt_toolkit.application import Application
 from prompt_toolkit.document import Document
+from prompt_toolkit.formatted_text.html import HTML
 from prompt_toolkit.key_binding import KeyBindings, KeyPressEvent
 from prompt_toolkit.keys import Keys
+from prompt_toolkit.shortcuts.progress_bar import ProgressBar, formatters
 from prompt_toolkit.styles import Style
 from prompt_toolkit.validation import ValidationError, Validator
 import pydantic
@@ -220,3 +222,37 @@ def select(
 
 def ask(question: Question) -> Any:
     return asyncio.run(question.application.run_async())
+
+
+def _format_mb(value: int):
+    return f'{value / 2 ** 20:.1f}'
+
+
+class _DownloadProgress(formatters.Progress):
+    template = '<current>{current:>3}</current>/<total>{total:>3}</total>MB'
+
+    def format(self, progress_bar: ProgressBar, progress: Any, width: int):
+        return HTML(self.template).format(
+            current=_format_mb(progress.items_completed),
+            total=_format_mb(progress.total) if progress.total is not None else '?',
+        )
+
+
+def make_progress_bar() -> ProgressBar:
+    "``ProgressBar`` with download progress expressed in megabytes."
+    return ProgressBar(
+        formatters=[
+            formatters.Label(),
+            formatters.Text(' '),
+            formatters.Percentage(),
+            formatters.Text(' '),
+            formatters.Bar(),
+            formatters.Text(' '),
+            _DownloadProgress(),
+            formatters.Text(' '),
+            formatters.Text('eta [', style='class:time-left'),
+            formatters.TimeLeft(),
+            formatters.Text(']', style='class:time-left'),
+            formatters.Text(' '),
+        ],
+    )
