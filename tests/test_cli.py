@@ -36,13 +36,13 @@ def run(monkeypatch, event_loop, iw_config, iw_web_client):
 
 
 @pytest.fixture
-def molinari_and_run(run):
+def install_molinari_and_run(run):
     run('install curse:molinari')
     yield run
 
 
 @pytest.fixture
-def faux_molinari_and_run(iw_config, run):
+def faux_install_molinari_and_run(iw_config, run):
     molinari = iw_config.addon_dir / 'Molinari'
     molinari.mkdir()
     (molinari / 'Molinari.toc').write_text(
@@ -54,7 +54,15 @@ def faux_molinari_and_run(iw_config, run):
     yield run
 
 
-def test_valid_curse_pkg_lifecycle(iw_config, run):
+@pytest.fixture
+def molinari_version_suffix(iw_config):
+    if iw_config.game_flavour is Flavour.vanilla_classic:
+        return '-classic'
+    else:
+        return ''
+
+
+def test_valid_curse_pkg_lifecycle(run):
     assert run('install curse:molinari').output.startswith('✓ curse:molinari\n  installed')
     assert (
         run('install curse:molinari').output == '✗ curse:molinari\n  package already installed\n'
@@ -147,9 +155,9 @@ def test_unreconciled_folder_conflict_on_install(iw_config, run):
     )
 
 
-def test_keep_folders_on_remove(iw_config, molinari_and_run):
+def test_keep_folders_on_remove(iw_config, install_molinari_and_run):
     assert (
-        molinari_and_run('remove --keep-folders curse:molinari').output
+        install_molinari_and_run('remove --keep-folders curse:molinari').output
         == '✓ curse:molinari\n  removed\n'
     )
     assert iw_config.addon_dir.joinpath('Molinari').is_dir()
@@ -262,7 +270,7 @@ def test_version_strategy_lifecycle(iw_config, run):
     assert run('remove curse:molinari').output == '✓ curse:molinari\n  removed\n'
 
 
-def test_install_options(iw_config, run):
+def test_install_options(run, molinari_version_suffix):
     assert run(
         'install'
         ' curse:molinari'
@@ -271,7 +279,7 @@ def test_install_options(iw_config, run):
     ).output == dedent(
         f'''\
         ✓ curse:molinari
-          installed 90100.79-Release{"-classic" if iw_config.game_flavour is Flavour.vanilla_classic else ""}
+          installed 90100.79-Release{molinari_version_suffix}
         ✗ curse:molinari
           package folders conflict with installed package Molinari
             (curse:20338)
@@ -302,13 +310,13 @@ def test_install_option_order_is_respected(run):
     )
 
 
-def test_install_argument_is_not_required(iw_config, run):
+def test_install_argument_is_not_required(run, molinari_version_suffix):
     assert run(
         'install -s latest curse:molinari --version 80000.57-Release curse:molinari'
     ).output == dedent(
         f'''\
         ✓ curse:molinari
-          installed 90100.79-Release{"-classic" if iw_config.game_flavour is Flavour.vanilla_classic else ""}
+          installed 90100.79-Release{molinari_version_suffix}
         ✗ curse:molinari
           package folders conflict with installed package Molinari
             (curse:20338)
@@ -362,7 +370,7 @@ def test_rollback__single_version(run):
     )
 
 
-def test_rollback__multiple_versions(feed_pt, iw_config, run):
+def test_rollback__multiple_versions(feed_pt, run, molinari_version_suffix):
     assert run('install --version 80000.57-Release curse:molinari').exit_code == 0
     assert run('remove curse:molinari').exit_code == 0
     assert run('install curse:molinari').exit_code == 0
@@ -370,25 +378,25 @@ def test_rollback__multiple_versions(feed_pt, iw_config, run):
     assert run('rollback curse:molinari').output == dedent(
         f'''\
         ✓ curse:molinari
-          updated 90100.79-Release{"-classic" if iw_config.game_flavour is Flavour.vanilla_classic else ""} to 80000.57-Release
+          updated 90100.79-Release{molinari_version_suffix} to 80000.57-Release
         '''
     )
 
 
-def test_rollback__multiple_versions_promptless(iw_config, run):
+def test_rollback__multiple_versions_promptless(run, molinari_version_suffix):
     assert run('install --version 80000.57-Release curse:molinari').exit_code == 0
     assert run('remove curse:molinari').exit_code == 0
     assert run('install curse:molinari').exit_code == 0
     assert run('rollback --version 80000.57-Release curse:molinari').output == dedent(
         f'''\
         ✓ curse:molinari
-          updated 90100.79-Release{"-classic" if iw_config.game_flavour is Flavour.vanilla_classic else ""} to 80000.57-Release
+          updated 90100.79-Release{molinari_version_suffix} to 80000.57-Release
         '''
     )
 
 
 @pytest.mark.parametrize('options', ['', '--undo'])
-def test_rollback__rollback_multiple_versions(feed_pt, iw_config, run, options):
+def test_rollback__rollback_multiple_versions(feed_pt, run, molinari_version_suffix, options):
     assert run('install curse:molinari').exit_code == 0
     assert run('remove curse:molinari').exit_code == 0
     assert run('install --version 80000.57-Release curse:molinari').exit_code == 0
@@ -396,7 +404,7 @@ def test_rollback__rollback_multiple_versions(feed_pt, iw_config, run, options):
     assert run(f'rollback {options} curse:molinari').output == dedent(
         f'''\
         ✓ curse:molinari
-          updated 80000.57-Release to 90100.79-Release{"-classic" if iw_config.game_flavour is Flavour.vanilla_classic else ""}
+          updated 80000.57-Release to 90100.79-Release{molinari_version_suffix}
         '''
     )
 
@@ -407,8 +415,8 @@ def test_rollback__cannot_use_version_with_undo(run):
     assert 'Cannot use "--version" and "--undo" together' in result.output
 
 
-def test_reconcile__list_unreconciled(faux_molinari_and_run):
-    assert faux_molinari_and_run('reconcile --list-unreconciled').output == (
+def test_reconcile__list_unreconciled(faux_install_molinari_and_run):
+    assert faux_install_molinari_and_run('reconcile --list-unreconciled').output == (
         # fmt: off
         'unreconciled\n'
         '------------\n'
@@ -417,27 +425,29 @@ def test_reconcile__list_unreconciled(faux_molinari_and_run):
     )
 
 
-def test_reconcile__auto_reconcile(iw_config, faux_molinari_and_run):
-    assert faux_molinari_and_run('reconcile --auto').output == dedent(
+def test_reconcile__auto_reconcile(faux_install_molinari_and_run, molinari_version_suffix):
+    assert faux_install_molinari_and_run('reconcile --auto').output == dedent(
         f'''\
         ✓ curse:molinari
-          installed 90100.79-Release{"-classic" if iw_config.game_flavour is Flavour.vanilla_classic else ""}
+          installed 90100.79-Release{molinari_version_suffix}
         '''
     )
 
 
-def test_reconcile__abort_interactive_reconciliation(feed_pt, faux_molinari_and_run):
+def test_reconcile__abort_interactive_reconciliation(feed_pt, faux_install_molinari_and_run):
     feed_pt('\x03')  # ^C
-    assert faux_molinari_and_run('reconcile').output.endswith('Aborted!\n')
+    assert faux_install_molinari_and_run('reconcile').output.endswith('Aborted!\n')
 
 
-def test_reconcile__complete_interactive_reconciliation(feed_pt, iw_config, faux_molinari_and_run):
+def test_reconcile__complete_interactive_reconciliation(
+    feed_pt, faux_install_molinari_and_run, molinari_version_suffix
+):
     feed_pt('\r\r')
-    assert faux_molinari_and_run('reconcile').output.endswith(
+    assert faux_install_molinari_and_run('reconcile').output.endswith(
         dedent(
             f'''\
             ✓ curse:molinari
-              installed 90100.79-Release{"-classic" if iw_config.game_flavour is Flavour.vanilla_classic else ""}
+              installed 90100.79-Release{molinari_version_suffix}
             '''
         )
     )
@@ -461,66 +471,55 @@ def test_search__exit_after_selection(feed_pt, run):
     assert run('search molinari').output == ''
 
 
-def test_search__install_one(feed_pt, iw_config, run):
+def test_search__install_one(feed_pt, run, molinari_version_suffix):
     feed_pt(' \r\r')  # space, enter, enter
     assert run('search molinari --source curse').output == dedent(
         f'''\
         ✓ curse:molinari
-          installed 90100.79-Release{"-classic" if iw_config.game_flavour is Flavour.vanilla_classic else ""}
+          installed 90100.79-Release{molinari_version_suffix}
         '''
     )
 
 
-def test_search__install_multiple_conflicting(feed_pt, iw_config, run):
+def test_search__install_multiple_conflicting(feed_pt, run):
     feed_pt(' \x1b[B \r\r')  # space, arrow down, space, enter, enter
-    assert run('search molinari').output in {
-        dedent(
-            f'''\
-            ✓ curse:molinari
-              installed 90100.79-Release{"-classic" if iw_config.game_flavour is Flavour.vanilla_classic else ""}
-            ✗ wowi:13188-molinari
-              package folders conflict with installed package Molinari
-                (curse:20338)
-            '''
-        ),
-        dedent(
-            f'''\
-            ✓ wowi:13188-molinari
-              installed 90100.79-Release
-            ✗ curse:molinari
-              package folders conflict with installed package Molinari
-                (wowi:13188)
-            '''
-        ),
-    }
+    assert run('search molinari').output == dedent(
+        f'''\
+        ✓ wowi:13188-molinari
+          installed 90100.79-Release
+        ✗ curse:molinari
+          package folders conflict with installed package Molinari
+            (wowi:13188)
+        '''
+    )
 
 
-def test_changelog_output(molinari_and_run):
+def test_changelog_output(install_molinari_and_run):
     output = (
         'Changes in 90100.79-Release:'
         if shutil.which('pandoc')
         else '<h3>Changes in 90100.79-Release:</h3>'
     )
-    assert molinari_and_run('view-changelog curse:molinari').output.startswith(output)
+    assert install_molinari_and_run('view-changelog curse:molinari').output.startswith(output)
 
 
-def test_changelog_output_no_convert(molinari_and_run):
-    assert molinari_and_run('view-changelog --no-convert curse:molinari').output.startswith(
-        '<h3>Changes in 90100.79-Release:</h3>'
-    )
+def test_changelog_output_no_convert(install_molinari_and_run):
+    assert install_molinari_and_run(
+        'view-changelog --no-convert curse:molinari'
+    ).output.startswith('<h3>Changes in 90100.79-Release:</h3>')
 
 
-def test_argless_changelog_output(molinari_and_run):
+def test_argless_changelog_output(install_molinari_and_run):
     output = (
         'curse:molinari:\n  Changes in 90100.79-Release:'
         if shutil.which('pandoc')
         else 'curse:molinari:\n  <h3>Changes in 90100.79-Release:</h3>'
     )
-    assert molinari_and_run('view-changelog').output.startswith(output)
+    assert install_molinari_and_run('view-changelog').output.startswith(output)
 
 
-def test_argless_changelog_output_no_convert(molinari_and_run):
-    assert molinari_and_run('view-changelog --no-convert').output.startswith(
+def test_argless_changelog_output_no_convert(install_molinari_and_run):
+    assert install_molinari_and_run('view-changelog --no-convert').output.startswith(
         'curse:molinari:\n  <h3>Changes in 90100.79-Release:</h3>'
     )
 
@@ -534,21 +533,21 @@ def test_argless_changelog_output_no_convert(molinari_and_run):
         ('reveal foo', 1),
     ],
 )
-def test_exit_codes_with_substr_match(monkeypatch, molinari_and_run, command, exit_code):
+def test_exit_codes_with_substr_match(monkeypatch, install_molinari_and_run, command, exit_code):
     monkeypatch.setattr('click.launch', lambda *a, **k: ...)
-    assert molinari_and_run(command).exit_code == exit_code
+    assert install_molinari_and_run(command).exit_code == exit_code
 
 
-def test_can_list_with_substr_match(molinari_and_run):
-    assert molinari_and_run('list mol').output == 'curse:molinari\n'
-    assert molinari_and_run('list foo').output == ''
-    assert molinari_and_run('list -f detailed mol').output.startswith('curse:molinari')
-    (molinari,) = json.loads(molinari_and_run('list -f json mol').output)
+def test_can_list_with_substr_match(install_molinari_and_run):
+    assert install_molinari_and_run('list mol').output == 'curse:molinari\n'
+    assert install_molinari_and_run('list foo').output == ''
+    assert install_molinari_and_run('list -f detailed mol').output.startswith('curse:molinari')
+    (molinari,) = json.loads(install_molinari_and_run('list -f json mol').output)
     assert (molinari['source'], molinari['slug']) == ('curse', 'molinari')
 
 
-def test_json_export(iw_config, molinari_and_run):
-    output = molinari_and_run('list -f json').output
+def test_json_export(install_molinari_and_run):
+    output = install_molinari_and_run('list -f json').output
     assert PkgList.parse_raw(output).__root__[0].name == 'Molinari'
 
 
