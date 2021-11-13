@@ -1,5 +1,6 @@
 from functools import partial
 import json
+import shutil
 from textwrap import dedent
 
 from click.testing import CliRunner
@@ -494,14 +495,32 @@ def test_search__install_multiple_conflicting(feed_pt, iw_config, run):
     }
 
 
-def test_changelog_output_with_arg(molinari_and_run):
-    assert molinari_and_run('view-changelog curse:molinari').output.startswith(
+def test_changelog_output(molinari_and_run):
+    output = (
+        'Changes in 90100.79-Release:'
+        if shutil.which('pandoc')
+        else '<h3>Changes in 90100.79-Release:</h3>'
+    )
+    assert molinari_and_run('view-changelog curse:molinari').output.startswith(output)
+
+
+def test_changelog_output_no_convert(molinari_and_run):
+    assert molinari_and_run('view-changelog --no-convert curse:molinari').output.startswith(
         '<h3>Changes in 90100.79-Release:</h3>'
     )
 
 
 def test_argless_changelog_output(molinari_and_run):
-    assert molinari_and_run('view-changelog').output.startswith(
+    output = (
+        'curse:molinari:\n  Changes in 90100.79-Release:'
+        if shutil.which('pandoc')
+        else 'curse:molinari:\n  <h3>Changes in 90100.79-Release:</h3>'
+    )
+    assert molinari_and_run('view-changelog').output.startswith(output)
+
+
+def test_argless_changelog_output_no_convert(molinari_and_run):
+    assert molinari_and_run('view-changelog --no-convert').output.startswith(
         'curse:molinari:\n  <h3>Changes in 90100.79-Release:</h3>'
     )
 
@@ -516,7 +535,7 @@ def test_argless_changelog_output(molinari_and_run):
     ],
 )
 def test_exit_codes_with_substr_match(monkeypatch, molinari_and_run, command, exit_code):
-    monkeypatch.setattr('click.launch', lambda url, wait=..., locate=...: ...)
+    monkeypatch.setattr('click.launch', lambda *a, **k: ...)
     assert molinari_and_run(command).exit_code == exit_code
 
 
