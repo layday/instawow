@@ -16,6 +16,7 @@ from contextlib import asynccontextmanager, contextmanager
 import contextvars as cv
 import datetime
 from enum import IntEnum
+from functools import lru_cache, partial
 from itertools import chain, compress, filterfalse, repeat, starmap, takewhile
 import json
 from pathlib import Path, PurePath
@@ -239,25 +240,33 @@ def prepare_database(config: Config) -> sa_future.Engine:
     return engine
 
 
-def init_web_client(**kwargs: Any) -> _deferred_types.aiohttp.ClientSession:
-    from aiohttp import ClientSession, ClientTimeout, TCPConnector
-
+@lru_cache(None)
+def _load_certifi_certs():
     try:
         import certifi
     except ModuleNotFoundError:
-        connector = TCPConnector(force_close=True, limit_per_host=10)
+        pass
     else:
         from importlib.resources import read_text
-        import ssl
 
         logger.info('loading certifi certs')
-        ssl_context = ssl.create_default_context(
-            cadata=read_text(certifi, 'cacert.pem', encoding='ascii')
+        return read_text(certifi, 'cacert.pem', encoding='ascii')
+
+
+def init_web_client(**kwargs: Any) -> _deferred_types.aiohttp.ClientSession:
+    from aiohttp import ClientSession, ClientTimeout, TCPConnector
+
+    make_connector = partial(TCPConnector, force_close=True, limit_per_host=10)
+    certifi_certs = _load_certifi_certs()
+    if certifi_certs:
+        import ssl
+
+        make_connector = partial(
+            make_connector, ssl=ssl.create_default_context(cadata=certifi_certs)
         )
-        connector = TCPConnector(force_close=True, limit_per_host=10, ssl=ssl_context)
 
     kwargs = {
-        'connector': connector,
+        'connector': make_connector(),
         'headers': {'User-Agent': USER_AGENT},
         'trust_env': True,  # Respect the 'http_proxy' env var
         'timeout': ClientTimeout(connect=60, sock_connect=10, sock_read=10),
