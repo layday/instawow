@@ -11,6 +11,8 @@
   } from "../api";
   import { ChangelogFormat, ReconciliationStage, Strategy, addonToDefn } from "../api";
   import { View } from "../constants";
+  import bbobHTML from "@bbob/html";
+  import bbobPresetHTML5 from "@bbob/preset-html5";
   import { faQuestion } from "@fortawesome/free-solid-svg-icons";
   import * as commonmark from "commonmark";
   import lodash from "lodash";
@@ -76,8 +78,18 @@
     searchLimit: 20,
   };
 
-  const htmlify = (markdownText: string) =>
-    new commonmark.HtmlRenderer().render(new commonmark.Parser().parse(markdownText));
+  const htmlify = (changelog: string, format: ChangelogFormat): [boolean, string] => {
+    if (format === ChangelogFormat.bbcode) {
+      return [true, bbobHTML(changelog, bbobPresetHTML5())];
+    } else if (format === ChangelogFormat.markdown) {
+      return [
+        true,
+        new commonmark.HtmlRenderer().render(new commonmark.Parser().parse(changelog)),
+      ];
+    } else {
+      return [format === ChangelogFormat.html, changelog];
+    }
+  };
 </script>
 
 <script lang="ts">
@@ -362,10 +374,10 @@
   const showChangelogModal = async (addon: Addon) => {
     const changelogFormat = sources[addon.source].changelog_format;
     const changelog = await profileApi.getChangelog(addon.changelog_url);
+    const [renderAsHtml, changelogText] = htmlify(changelog, changelogFormat);
     changelogModalProps = {
-      changelog: changelogFormat === ChangelogFormat.markdown ? htmlify(changelog) : changelog,
-      renderAsHtml:
-        changelogFormat === ChangelogFormat.html || changelogFormat === ChangelogFormat.markdown,
+      changelog: changelogText,
+      renderAsHtml: renderAsHtml,
     };
     changelogModal = true;
   };
