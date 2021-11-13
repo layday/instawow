@@ -69,12 +69,7 @@ def iw_temp_dir(tmp_path_factory: pytest.TempPathFactory):
     yield temp_dir
 
 
-@pytest.fixture(
-    params=[
-        Flavour.retail,
-        Flavour.vanilla_classic,
-    ]
-)
+@pytest.fixture(params=Flavour)
 def iw_config_dict_no_config_dir(tmp_path: Path, request, iw_temp_dir: Path):
     addons = tmp_path / 'wow' / 'interface' / 'addons'
     addons.mkdir(parents=True)

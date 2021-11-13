@@ -206,7 +206,10 @@ async def test_basic_search(iw_manager: Manager):
 async def test_search_flavour_filtering(iw_manager: Manager):
     results = await iw_manager.search('AtlasLootClassic', limit=5)
     faux_defns = {(e.source, e.slug or e.id) for e in results}
-    if iw_manager.config.game_flavour is Flavour.vanilla_classic:
+    if iw_manager.config.game_flavour in {
+        Flavour.vanilla_classic,
+        Flavour.burning_crusade_classic,
+    }:
         assert ('curse', 'atlaslootclassic') in faux_defns
     else:
         assert ('curse', 'atlaslootclassic') not in faux_defns

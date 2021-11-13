@@ -9,42 +9,57 @@ from instawow.common import Strategy
 from instawow.config import Flavour
 from instawow.manager import Manager
 from instawow.models import Pkg
-from instawow.resolvers import Defn
+from instawow.resolvers import Defn, Resolver
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize('strategy', [Strategy.default, Strategy.latest, Strategy.any_flavour])
-async def test_curse_common_strategies(iw_manager: Manager, strategy: Strategy):
-    retail_and_vanilla_classic_files = Defn('curse', 'molinari', strategy=strategy)
-    retail_only_file = Defn('curse', 'mythic-dungeon-tools', strategy=strategy)
-    classic_only_file = Defn('curse', 'classiccastbars', strategy=strategy)
-    multiflavour_file = Defn('curse', 'elkbuffbars', strategy=strategy)
+@pytest.mark.parametrize('strategy', [Strategy.default, Strategy.latest])
+async def test_curse_simple_strategies(iw_manager: Manager, strategy: Strategy):
+    flavourful = Defn('curse', 'molinari', strategy=strategy)
+    retail_only = Defn('curse', 'mythic-dungeon-tools', strategy=strategy)
+    classic_only = Defn('curse', 'classiccastbars', strategy=strategy)
 
-    results = await iw_manager.resolve(
-        [retail_and_vanilla_classic_files, retail_only_file, classic_only_file, multiflavour_file]
-    )
+    results = await iw_manager.resolve([flavourful, retail_only, classic_only])
+
     if iw_manager.config.game_flavour is Flavour.vanilla_classic:
-        if strategy is Strategy.any_flavour:
-            assert type(results[retail_only_file]) is Pkg
-        else:
-            assert 'classic' in results[retail_and_vanilla_classic_files].version
-            assert (
-                type(results[retail_only_file]) is R.PkgFileUnavailable
-                and results[retail_only_file].message
-                == f"no files matching vanilla_classic using {strategy} strategy"
-            )
-        assert type(results[classic_only_file]) is Pkg
+        assert results[flavourful].version.endswith('Release-classic')
+        assert (
+            type(results[retail_only]) is R.PkgFileUnavailable
+            and results[retail_only].message
+            == f"no files matching vanilla_classic using {strategy} strategy"
+        )
+        assert type(results[classic_only]) is Pkg
+
+    elif iw_manager.config.game_flavour is Flavour.burning_crusade_classic:
+        assert results[flavourful].version.endswith('Release-bcc')
+        assert (
+            type(results[retail_only]) is R.PkgFileUnavailable
+            and results[retail_only].message
+            == f"no files matching classic using {strategy} strategy"
+        )
+        assert type(results[classic_only]) is Pkg
+
     elif iw_manager.config.game_flavour is Flavour.retail:
-        assert type(results[retail_only_file]) is Pkg
-        if strategy is Strategy.any_flavour:
-            assert type(results[classic_only_file]) is Pkg
-        else:
-            assert 'classic' not in results[retail_and_vanilla_classic_files].version
-            assert (
-                type(results[classic_only_file]) is R.PkgFileUnavailable
-                and results[classic_only_file].message
-                == f"no files matching retail using {strategy} strategy"
-            )
+        assert results[flavourful].version.endswith('Release')
+        assert type(results[retail_only]) is Pkg
+        assert (
+            type(results[classic_only]) is R.PkgFileUnavailable
+            and results[classic_only].message
+            == f"no files matching retail using {strategy} strategy"
+        )
+
+    else:
+        assert False
+
+
+@pytest.mark.asyncio
+async def test_curse_any_flavour_strategy(iw_manager: Manager):
+    flavourful = Defn('curse', 'molinari', strategy=Strategy.any_flavour)
+    retail_only = Defn('curse', 'mythic-dungeon-tools', strategy=Strategy.any_flavour)
+    classic_only = Defn('curse', 'classiccastbars', strategy=Strategy.any_flavour)
+
+    results = await iw_manager.resolve([flavourful, retail_only, classic_only])
+    assert all(type(r) is Pkg for r in results.values())
 
 
 @pytest.mark.asyncio
@@ -57,15 +72,17 @@ async def test_curse_version_pinning(iw_manager: Manager):
     )
 
 
+@pytest.mark.parametrize(
+    'iw_config_dict_no_config_dir',
+    [Flavour.retail],
+    indirect=True,
+)
 @pytest.mark.asyncio
-async def test_curse_deps_are_found(iw_manager: Manager):
+async def test_curse_deps_retrieved(iw_manager: Manager):
     defn = Defn('curse', 'bigwigs-voice-korean')
 
-    if iw_manager.config.game_flavour is not Flavour.retail:
-        pytest.skip(f'{defn} is only available for retail')
-
     results = await iw_manager.resolve([defn], with_deps=True)
-    assert ['bigwigs-voice-korean', 'big-wigs'] == [d.slug for d in results.values()]
+    assert {'bigwigs-voice-korean', 'big-wigs'} == {d.slug for d in results.values()}
 
 
 @pytest.mark.asyncio
@@ -80,16 +97,10 @@ async def test_curse_changelog_is_url(iw_manager: Manager):
 
 
 @pytest.mark.asyncio
-async def test_wowi(iw_manager: Manager):
-    retail_and_classic = Defn('wowi', '13188-molinari')
-    unsupported_strategy = Defn('wowi', '13188', strategy=Strategy.latest)
-
-    results = await iw_manager.resolve([retail_and_classic, unsupported_strategy])
-    assert type(results[retail_and_classic]) is Pkg
-    assert (
-        type(results[unsupported_strategy]) is R.PkgStrategyUnsupported
-        and results[unsupported_strategy].message == "'latest' strategy is not valid for source"
-    )
+async def test_wowi_basic(iw_manager: Manager):
+    defn = Defn('wowi', '13188-molinari')
+    results = await iw_manager.resolve([defn])
+    assert type(results[defn]) is Pkg
 
 
 @pytest.mark.asyncio
@@ -100,47 +111,52 @@ async def test_wowi_changelog_is_data_url(iw_manager: Manager):
 
 
 @pytest.mark.asyncio
-async def test_tukui(iw_manager: Manager):
-    regular_addon = Defn('tukui', '1')
+async def test_tukui_basic(iw_manager: Manager):
+    regular = Defn('tukui', '1')
     ui_suite = Defn('tukui', '-1')
-    ui_suite_with_slug = Defn('tukui', 'tukui')
-    unsupported_strategy = Defn('tukui', '1', strategy=Strategy.latest)
 
-    results = await iw_manager.resolve(
-        [regular_addon, ui_suite, ui_suite_with_slug, unsupported_strategy]
-    )
+    results = await iw_manager.resolve([regular, ui_suite])
 
     if iw_manager.config.game_flavour is Flavour.retail:
-        assert (
-            type(results[regular_addon]) is Pkg and results[regular_addon].name == 'MerathilisUI'
-        )
+        assert type(results[regular]) is Pkg and results[regular].name == 'MerathilisUI'
         assert type(results[ui_suite]) is Pkg and results[ui_suite].name == 'Tukui'
-        assert (
-            type(results[ui_suite_with_slug]) is Pkg
-            and results[ui_suite_with_slug].name == 'Tukui'
-        )
     else:
-        assert type(results[regular_addon]) is Pkg and results[regular_addon].name == 'Tukui'
+        assert type(results[regular]) is Pkg and results[regular].name == 'Tukui'
         assert type(results[ui_suite]) is R.PkgNonexistent
-        assert type(results[ui_suite_with_slug]) is R.PkgNonexistent
-    assert (
-        type(results[unsupported_strategy]) is R.PkgStrategyUnsupported
-        and results[unsupported_strategy].message == "'latest' strategy is not valid for source"
-    )
+
+
+@pytest.mark.parametrize(
+    'iw_config_dict_no_config_dir',
+    [Flavour.retail],
+    indirect=True,
+)
+@pytest.mark.asyncio
+async def test_tukui_ui_suite_aliases_for_retail(iw_manager: Manager):
+    tukui_id = Defn('tukui', '-1')
+    tukui_slug = Defn('tukui', 'tukui')
+    elvui_id = Defn('tukui', '-2')
+    elvui_slug = Defn('tukui', 'elvui')
+
+    results = await iw_manager.resolve([tukui_id, tukui_slug, elvui_id, elvui_slug])
+
+    assert results[tukui_id].id == results[tukui_slug].id
+    assert results[elvui_id].id == results[elvui_slug].id
 
 
 @pytest.mark.asyncio
-async def test_tukui_changelog_url_varies_by_addon_type(iw_manager: Manager):
+async def test_tukui_changelog_url_for_addon_type(iw_manager: Manager):
     ui_suite = Defn('tukui', '-1')
     regular_addon = Defn('tukui', '1')
+
     results = await iw_manager.resolve([ui_suite, regular_addon])
+
     if iw_manager.config.game_flavour is Flavour.retail:
         assert results[ui_suite].changelog_url == 'https://www.tukui.org/ui/tukui/changelog#20.17'
     assert results[regular_addon].changelog_url.startswith('data:,')
 
 
 @pytest.mark.asyncio
-async def test_github(iw_manager: Manager):
+async def test_github_basic(iw_manager: Manager):
     release_json = Defn('github', 'nebularg/PackagerTest')
     legacy_lib_and_nolib = Defn('github', 'AdiAddons/AdiButtonAuras')
     legacy_latest = Defn('github', 'AdiAddons/AdiButtonAuras', strategy=Strategy.latest)
@@ -162,10 +178,13 @@ async def test_github(iw_manager: Manager):
             nonexistent,
         ]
     )
-    assert ('classic' in results[release_json].download_url) is (
-        iw_manager.config.game_flavour is Flavour.vanilla_classic
-    )
-    assert 'nolib' not in results[release_json].download_url
+    if iw_manager.config.game_flavour is Flavour.burning_crusade_classic:
+        assert type(results[release_json]) is R.PkgFileUnavailable
+    else:
+        assert ('classic' in results[release_json].download_url) is (
+            iw_manager.config.game_flavour is Flavour.vanilla_classic
+        )
+        assert 'nolib' not in results[release_json].download_url
     assert 'nolib' not in results[legacy_lib_and_nolib].download_url
     assert (
         results[legacy_latest].options.strategy == Strategy.latest
@@ -191,3 +210,18 @@ async def test_github_changelog_is_data_url(iw_manager: Manager):
     adibuttonauras = Defn('github', 'AdiAddons/AdiButtonAuras')
     results = await iw_manager.resolve([adibuttonauras])
     assert results[adibuttonauras].changelog_url.startswith('data:,')
+
+
+@pytest.mark.parametrize('resolver', Manager.RESOLVERS)
+@pytest.mark.asyncio
+async def test_unsupported_strategies(iw_manager: Manager, resolver: Resolver):
+    defn = Defn(resolver.source, 'foo')
+    for strategy in set(Strategy) - {Strategy.version} - resolver.strategies:
+        strategy_defn = defn.with_(strategy=strategy)
+
+        results = await iw_manager.resolve([strategy_defn])
+
+        assert (
+            type(results[strategy_defn]) is R.PkgStrategyUnsupported
+            and results[strategy_defn].message == f"'{strategy}' strategy is not valid for source"
+        )

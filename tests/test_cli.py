@@ -60,6 +60,8 @@ def faux_install_molinari_and_run(iw_config: Config, run):
 def molinari_version_suffix(iw_config: Config):
     if iw_config.game_flavour is Flavour.vanilla_classic:
         return '-classic'
+    if iw_config.game_flavour is Flavour.burning_crusade_classic:
+        return '-bcc'
     else:
         return ''
 
@@ -75,6 +77,11 @@ def test_valid_curse_pkg_lifecycle(run):
     assert run('remove curse:molinari').output == '✗ curse:molinari\n  package is not installed\n'
 
 
+@pytest.mark.parametrize(
+    'iw_config_dict_no_config_dir',
+    [Flavour.retail, Flavour.vanilla_classic],
+    indirect=True,
+)
 def test_valid_tukui_pkg_lifecycle(iw_config: Config, run):
     assert run('install tukui:1').output.startswith('✓ tukui:1\n  installed')
     assert run('install tukui:1').output == '✗ tukui:1\n  package already installed\n'
@@ -182,6 +189,11 @@ def test_install_with_curse_alias(run):
     )
 
 
+@pytest.mark.parametrize(
+    'iw_config_dict_no_config_dir',
+    [Flavour.retail, Flavour.vanilla_classic],
+    indirect=True,
+)
 def test_install_with_tukui_alias(iw_config: Config, run):
     if iw_config.game_flavour is Flavour.retail:
         assert run('install tukui:-1').output.startswith('✓ tukui:-1\n  installed')
