@@ -1,9 +1,12 @@
+from __future__ import annotations
+
 from functools import lru_cache
 from io import BytesIO
 import json
 import os
 from pathlib import Path
 import re
+from typing import Any
 from zipfile import ZipFile
 
 import pytest
@@ -41,16 +44,16 @@ def should_mock(fn):
     return wrapper
 
 
-def load_fixture(filename):
+def load_fixture(filename: str):
     return (FIXTURES / filename).read_bytes()
 
 
-def load_json_fixture(filename):
+def load_json_fixture(filename: str):
     return json.loads(load_fixture(filename))
 
 
 @lru_cache(maxsize=None)
-def make_addon_zip(*folders):
+def make_addon_zip(*folders: str):
     buffer = BytesIO()
     with ZipFile(buffer, 'w') as file:
         for folder in folders:
@@ -60,7 +63,7 @@ def make_addon_zip(*folders):
 
 
 @pytest.fixture(scope='session', autouse=True)
-def iw_temp_dir(tmp_path_factory):
+def iw_temp_dir(tmp_path_factory: pytest.TempPathFactory):
     temp_dir = tmp_path_factory.mktemp('temp')
     os.environ['INSTAWOW_TEMP_DIR'] = str(temp_dir)
     yield temp_dir
@@ -72,7 +75,7 @@ def iw_temp_dir(tmp_path_factory):
         Flavour.vanilla_classic,
     ]
 )
-def iw_config_dict_no_config_dir(tmp_path, request, iw_temp_dir):
+def iw_config_dict_no_config_dir(tmp_path: Path, request, iw_temp_dir: Path):
     addons = tmp_path / 'wow' / 'interface' / 'addons'
     addons.mkdir(parents=True)
     return {
@@ -84,12 +87,12 @@ def iw_config_dict_no_config_dir(tmp_path, request, iw_temp_dir):
 
 
 @pytest.fixture
-def iw_config_dict(tmp_path, iw_config_dict_no_config_dir):
+def iw_config_dict(tmp_path: Path, iw_config_dict_no_config_dir: dict[str, Any]):
     return {**iw_config_dict_no_config_dir, 'config_dir': tmp_path / 'config'}
 
 
 @pytest.fixture
-def iw_config(iw_config_dict):
+def iw_config(iw_config_dict: dict[str, Any]):
     yield Config(**iw_config_dict).write()
 
 
@@ -100,7 +103,7 @@ async def iw_web_client():
 
 
 @pytest.fixture
-def iw_manager(iw_config, iw_web_client):
+def iw_manager(iw_config: Config, iw_web_client):
     manager = Manager.from_config(iw_config)
     manager.contextualise(web_client=iw_web_client)
     yield manager

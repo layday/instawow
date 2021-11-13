@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import datetime
 from pathlib import Path
 
@@ -7,13 +9,13 @@ import pytest
 from instawow import results as R
 from instawow.common import Strategy
 from instawow.config import Flavour
-from instawow.manager import is_outdated
+from instawow.manager import Manager, is_outdated
 from instawow.models import Pkg
 from instawow.resolvers import Defn
 
 
 @pytest.mark.asyncio
-async def test_pinning_supported_pkg(iw_manager):
+async def test_pinning_supported_pkg(iw_manager: Manager):
     defn = Defn('curse', 'molinari')
     install_result = await iw_manager.install([defn], False)
     pkg = install_result[defn].pkg
@@ -28,7 +30,7 @@ async def test_pinning_supported_pkg(iw_manager):
 
 
 @pytest.mark.asyncio
-async def test_pinning_unsupported_pkg(iw_manager):
+async def test_pinning_unsupported_pkg(iw_manager: Manager):
     molinari_defn = Defn('wowi', '13188')
     await iw_manager.install([molinari_defn], False)
     installed_pkg = iw_manager.get_pkg(molinari_defn)
@@ -42,7 +44,7 @@ async def test_pinning_unsupported_pkg(iw_manager):
 
 
 @pytest.mark.asyncio
-async def test_pinning_nonexistent_pkg(iw_manager):
+async def test_pinning_nonexistent_pkg(iw_manager: Manager):
     molinari_defn = Defn('wowi', '13188')
     result = await iw_manager.pin([molinari_defn])
     assert type(result[molinari_defn]) is R.PkgNotInstalled
@@ -51,7 +53,7 @@ async def test_pinning_nonexistent_pkg(iw_manager):
 @pytest.mark.parametrize('exception', [ValueError('foo'), ClientError('bar')])
 @pytest.mark.asyncio
 async def test_resolve_rewraps_exception_appropriately_from_resolve(
-    monkeypatch, iw_manager, exception
+    monkeypatch: pytest.MonkeyPatch, iw_manager: Manager, exception: Exception
 ):
     async def resolve_one(self, defn, metadata):
         raise exception
@@ -67,7 +69,7 @@ async def test_resolve_rewraps_exception_appropriately_from_resolve(
 @pytest.mark.parametrize('exception', [ValueError('foo'), ClientError('bar')])
 @pytest.mark.asyncio
 async def test_resolve_rewraps_exception_appropriately_from_batch_resolve(
-    monkeypatch, iw_manager, exception
+    monkeypatch: pytest.MonkeyPatch, iw_manager: Manager, exception: Exception
 ):
     async def resolve(self, defns):
         raise exception
@@ -81,14 +83,14 @@ async def test_resolve_rewraps_exception_appropriately_from_batch_resolve(
 
 
 @pytest.mark.asyncio
-async def test_resolve_invalid_source(iw_manager):
+async def test_resolve_invalid_source(iw_manager: Manager):
     defn = Defn('bar', 'baz')
     results = await iw_manager.resolve([defn])
     assert type(results[defn]) is R.PkgSourceInvalid
 
 
 @pytest.mark.asyncio
-async def test_resolve_plugin_hook_source(iw_manager):
+async def test_resolve_plugin_hook_source(iw_manager: Manager):
     pytest.importorskip('instawow_test_plugin')
     defn = Defn('me', 'bar')
     results = await iw_manager.resolve([defn])
@@ -96,7 +98,7 @@ async def test_resolve_plugin_hook_source(iw_manager):
 
 
 @pytest.mark.asyncio
-async def test_install_can_replace_unreconciled_folders(iw_manager):
+async def test_install_can_replace_unreconciled_folders(iw_manager: Manager):
     molinari = iw_manager.config.addon_dir / 'Molinari'
     molinari.mkdir()
 
@@ -112,7 +114,7 @@ async def test_install_can_replace_unreconciled_folders(iw_manager):
 
 
 @pytest.mark.asyncio
-async def test_install_cannot_replace_reconciled_folders(iw_manager):
+async def test_install_cannot_replace_reconciled_folders(iw_manager: Manager):
     curse_defn = Defn('curse', 'molinari')
     wowi_defn = Defn('wowi', '13188-molinari')
 
@@ -127,7 +129,7 @@ async def test_install_cannot_replace_reconciled_folders(iw_manager):
 
 
 @pytest.mark.asyncio
-async def test_update_lifecycle_while_varying_retain_defn_strategy(iw_manager):
+async def test_update_lifecycle_while_varying_retain_defn_strategy(iw_manager: Manager):
     defn = Defn('curse', 'molinari')
     versioned_defn = defn.with_version('80000.57-Release')
 
@@ -158,7 +160,7 @@ async def test_update_lifecycle_while_varying_retain_defn_strategy(iw_manager):
 
 @pytest.mark.parametrize('keep_folders', [True, False])
 @pytest.mark.asyncio
-async def test_deleting_and_retaining_folders_on_remove(iw_manager, keep_folders):
+async def test_deleting_and_retaining_folders_on_remove(iw_manager: Manager, keep_folders: bool):
     defn = Defn('curse', 'molinari')
 
     await iw_manager.install([defn], False)
@@ -176,7 +178,7 @@ async def test_deleting_and_retaining_folders_on_remove(iw_manager, keep_folders
 
 @pytest.mark.parametrize('keep_folders', [True, False])
 @pytest.mark.asyncio
-async def test_removing_pkg_with_missing_folders(iw_manager, keep_folders):
+async def test_removing_pkg_with_missing_folders(iw_manager: Manager, keep_folders: bool):
     defn = Defn('curse', 'molinari')
 
     result = await iw_manager.install([defn], False)
@@ -191,7 +193,7 @@ async def test_removing_pkg_with_missing_folders(iw_manager, keep_folders):
 
 
 @pytest.mark.asyncio
-async def test_basic_search(iw_manager):
+async def test_basic_search(iw_manager: Manager):
     limit = 5
     results = await iw_manager.search('molinari', limit=limit)
     assert len(results) == limit
@@ -201,7 +203,7 @@ async def test_basic_search(iw_manager):
 
 
 @pytest.mark.asyncio
-async def test_search_flavour_filtering(iw_manager):
+async def test_search_flavour_filtering(iw_manager: Manager):
     results = await iw_manager.search('AtlasLootClassic', limit=5)
     faux_defns = {(e.source, e.slug or e.id) for e in results}
     if iw_manager.config.game_flavour is Flavour.vanilla_classic:
@@ -211,14 +213,14 @@ async def test_search_flavour_filtering(iw_manager):
 
 
 @pytest.mark.asyncio
-async def test_search_source_filtering(iw_manager):
+async def test_search_source_filtering(iw_manager: Manager):
     results = await iw_manager.search('molinari', limit=5, sources={'curse'})
     assert all(e.source == 'curse' for e in results)
     assert {('curse', 'molinari')} <= {(e.source, e.slug) for e in results}
 
 
 @pytest.mark.asyncio
-async def test_search_date_filtering(iw_manager):
+async def test_search_date_filtering(iw_manager: Manager):
     start_date = datetime.datetime.now(tz=datetime.timezone.utc) - datetime.timedelta(days=365)
 
     results = await iw_manager.search('molinari', limit=5)
@@ -229,29 +231,29 @@ async def test_search_date_filtering(iw_manager):
 
 
 @pytest.mark.asyncio
-async def test_search_unknown_source(iw_manager):
+async def test_search_unknown_source(iw_manager: Manager):
     with pytest.raises(ValueError, match='Unknown source'):
         await iw_manager.search('molinari', limit=5, sources={'foo'})
 
 
 @pytest.mark.asyncio
-async def test_get_changelog_from_empty_data_url(iw_manager):
+async def test_get_changelog_from_empty_data_url(iw_manager: Manager):
     assert (await iw_manager.get_changelog('data:,')) == ''
 
 
 @pytest.mark.asyncio
-async def test_get_changelog_from_url_encoded_data_url(iw_manager):
+async def test_get_changelog_from_url_encoded_data_url(iw_manager: Manager):
     assert (await iw_manager.get_changelog('data:,foo%20bar')) == 'foo bar'
 
 
 @pytest.mark.asyncio
-async def test_get_malformed_changelog(iw_manager):
+async def test_get_malformed_changelog(iw_manager: Manager):
     with pytest.raises(ValueError, match='Unsupported URL with scheme'):
         await iw_manager.get_changelog('')
 
 
 @pytest.mark.asyncio
-async def test_get_changelog_from_file_uri(iw_manager):
+async def test_get_changelog_from_file_uri(iw_manager: Manager):
     assert (
         await iw_manager.get_changelog(
             (Path(__file__).parent / 'fixtures' / 'curse-addon-changelog.txt').as_uri()
@@ -260,7 +262,7 @@ async def test_get_changelog_from_file_uri(iw_manager):
 
 
 @pytest.mark.asyncio
-async def test_get_changelog_from_web_url(iw_manager):
+async def test_get_changelog_from_web_url(iw_manager: Manager):
     assert (
         await iw_manager.get_changelog(
             'https://addons-ecs.forgesvc.net/api/v2/addon/20338/file/3475338/changelog'
@@ -270,7 +272,9 @@ async def test_get_changelog_from_web_url(iw_manager):
 
 @pytest.mark.iw_no_mock
 @pytest.mark.asyncio
-async def test_is_outdated_works_in_variety_of_scenarios(monkeypatch, aresponses, iw_temp_dir):
+async def test_is_outdated_works_in_variety_of_scenarios(
+    monkeypatch: pytest.MonkeyPatch, aresponses, iw_temp_dir: Path
+):
     pypi_version = iw_temp_dir.joinpath('.pypi_version')
     if pypi_version.exists():
         pypi_version.unlink()

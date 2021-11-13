@@ -1,13 +1,16 @@
+from __future__ import annotations
+
 import pytest
 from yarl import URL
 
+from instawow.manager import Manager
 from instawow.models import Pkg
 from instawow.resolvers import Defn
 from instawow.wa_updater import BuilderConfig, WaCompanionBuilder, WeakAura, WeakAuras
 
 
 @pytest.fixture
-def wa_saved_vars(iw_manager):
+def wa_saved_vars(iw_manager: Manager):
     saved_vars = (
         iw_manager.config.addon_dir.parents[1] / 'WTF' / 'Account' / 'test' / 'SavedVariables'
     )
@@ -26,11 +29,11 @@ WeakAurasSaved = {
 
 
 @pytest.fixture
-def builder(iw_manager):
+def builder(iw_manager: Manager):
     yield WaCompanionBuilder(iw_manager, BuilderConfig())
 
 
-def test_can_parse_empty_displays_table(builder):
+def test_can_parse_empty_displays_table(builder: WaCompanionBuilder):
     assert (
         builder.extract_auras(
             WeakAuras,
@@ -45,7 +48,7 @@ WeakAurasSaved = {
     )
 
 
-def test_urlless_display_is_discarded(builder):
+def test_urlless_display_is_discarded(builder: WaCompanionBuilder):
     assert (
         builder.extract_auras(
             WeakAuras,
@@ -63,7 +66,7 @@ WeakAurasSaved = {
     )
 
 
-def test_can_parse_minimal_wago_display(builder):
+def test_can_parse_minimal_wago_display(builder: WaCompanionBuilder):
     aura = WeakAura(
         id='foo',
         uid='foo',
@@ -92,7 +95,7 @@ WeakAurasSaved = {
     )
 
 
-def test_url_host_not_wago_display_is_discarded(builder):
+def test_url_host_not_wago_display_is_discarded(builder: WaCompanionBuilder):
     assert (
         builder.extract_auras(
             WeakAuras,
@@ -114,29 +117,31 @@ WeakAurasSaved = {
     )
 
 
-def test_can_build_addon_with_empty_seq(builder):
+def test_can_build_addon_with_empty_seq(builder: WaCompanionBuilder):
     builder._generate_addon([])
 
 
 @pytest.mark.asyncio
-async def test_can_build_addon_with_mock_saved_vars(builder, wa_saved_vars):
+async def test_can_build_addon_with_mock_saved_vars(
+    builder: WaCompanionBuilder, wa_saved_vars: None
+):
     await builder.build()
 
 
-def test_build_is_reproducible(builder):
+def test_build_is_reproducible(builder: WaCompanionBuilder):
     builder._generate_addon([])
     checksum = builder._checksum()
     builder._generate_addon([])
     assert checksum == builder._checksum()
 
 
-def test_changelog_is_generated(builder):
+def test_changelog_is_generated(builder: WaCompanionBuilder):
     builder._generate_addon([])
     assert builder.changelog_path.read_text() == 'n/a'
 
 
 @pytest.mark.asyncio
-async def test_can_resolve_wa_companion_pkg(builder):
+async def test_can_resolve_wa_companion_pkg(builder: WaCompanionBuilder):
     await builder.build()
     defn = Defn('instawow', 'weakauras-companion')
     resolve_results = await builder.manager.resolve([defn])
@@ -144,7 +149,7 @@ async def test_can_resolve_wa_companion_pkg(builder):
 
 
 @pytest.mark.asyncio
-async def test_can_resolve_wa_companion_autoupdate_pkg(builder):
+async def test_can_resolve_wa_companion_autoupdate_pkg(builder: WaCompanionBuilder):
     defn = Defn('instawow', 'weakauras-companion-autoupdate')
     resolve_results = await builder.manager.resolve([defn])
     assert type(resolve_results[defn]) is Pkg

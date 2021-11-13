@@ -1,6 +1,10 @@
+from __future__ import annotations
+
 from functools import partial
 import json
+from typing import Any
 
+from aiohttp import ClientWebSocketResponse
 from aiohttp.test_utils import TestClient, TestServer
 import pytest
 
@@ -16,7 +20,7 @@ dumps = partial(json.dumps, default=str)
 
 
 @pytest.fixture
-async def ws(iw_config_dict, monkeypatch):
+async def ws(iw_config_dict: dict[str, Any], monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setenv('INSTAWOW_CONFIG_DIR', str(iw_config_dict['config_dir']))
     app = await json_rpc_server.create_app()
     server = TestServer(app)
@@ -25,7 +29,9 @@ async def ws(iw_config_dict, monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_write_config(request, iw_config_dict, ws):
+async def test_write_config(
+    request: pytest.FixtureRequest, iw_config_dict: dict[str, Any], ws: ClientWebSocketResponse
+):
     config_values = {**iw_config_dict, 'profile': request.node.name}
     rpc_request = {
         'jsonrpc': '2.0',
@@ -40,7 +46,9 @@ async def test_write_config(request, iw_config_dict, ws):
 
 
 @pytest.mark.asyncio
-async def test_write_config_with_invalid_params(request, iw_config_dict, ws):
+async def test_write_config_with_invalid_params(
+    request: pytest.FixtureRequest, iw_config_dict: dict[str, Any], ws: ClientWebSocketResponse
+):
     rpc_request = {
         'jsonrpc': '2.0',
         'method': 'config/write',
@@ -67,7 +75,9 @@ async def test_write_config_with_invalid_params(request, iw_config_dict, ws):
 
 
 @pytest.mark.asyncio
-async def test_install_with_invalid_params(request, ws):
+async def test_install_with_invalid_params(
+    request: pytest.FixtureRequest, ws: ClientWebSocketResponse
+):
     rpc_request = {
         'jsonrpc': '2.0',
         'method': 'install',
@@ -81,7 +91,9 @@ async def test_install_with_invalid_params(request, ws):
 
 @pytest.mark.xfail
 @pytest.mark.asyncio
-async def test_install_with_uninitialised_profile(request, ws):
+async def test_install_with_uninitialised_profile(
+    request: pytest.FixtureRequest, ws: ClientWebSocketResponse
+):
     rpc_request = {
         'jsonrpc': '2.0',
         'method': 'install',

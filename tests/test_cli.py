@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from functools import partial
 import json
 import shutil
@@ -11,7 +13,7 @@ import pytest
 
 from instawow import __version__
 from instawow.cli import main
-from instawow.config import Flavour
+from instawow.config import Config, Flavour
 from instawow.manager import Manager
 from instawow.models import PkgList
 
@@ -25,7 +27,7 @@ def feed_pt():
 
 
 @pytest.fixture
-def run(monkeypatch, event_loop, iw_config, iw_web_client):
+def run(monkeypatch: pytest.MonkeyPatch, event_loop, iw_config: Config, iw_web_client):
     def runner(awaitable):
         Manager.contextualise(web_client=iw_web_client)
         return event_loop.run_until_complete(awaitable)
@@ -42,7 +44,7 @@ def install_molinari_and_run(run):
 
 
 @pytest.fixture
-def faux_install_molinari_and_run(iw_config, run):
+def faux_install_molinari_and_run(iw_config: Config, run):
     molinari = iw_config.addon_dir / 'Molinari'
     molinari.mkdir()
     (molinari / 'Molinari.toc').write_text(
@@ -55,7 +57,7 @@ def faux_install_molinari_and_run(iw_config, run):
 
 
 @pytest.fixture
-def molinari_version_suffix(iw_config):
+def molinari_version_suffix(iw_config: Config):
     if iw_config.game_flavour is Flavour.vanilla_classic:
         return '-classic'
     else:
@@ -73,7 +75,7 @@ def test_valid_curse_pkg_lifecycle(run):
     assert run('remove curse:molinari').output == '✗ curse:molinari\n  package is not installed\n'
 
 
-def test_valid_tukui_pkg_lifecycle(iw_config, run):
+def test_valid_tukui_pkg_lifecycle(iw_config: Config, run):
     assert run('install tukui:1').output.startswith('✓ tukui:1\n  installed')
     assert run('install tukui:1').output == '✗ tukui:1\n  package already installed\n'
     assert run('update tukui:1').output == '✗ tukui:1\n  package is up to date\n'
@@ -144,7 +146,7 @@ def test_reconciled_folder_conflict_on_install(run):
     )
 
 
-def test_unreconciled_folder_conflict_on_install(iw_config, run):
+def test_unreconciled_folder_conflict_on_install(iw_config: Config, run):
     iw_config.addon_dir.joinpath('Molinari').mkdir()
     assert (
         run('install curse:molinari').output
@@ -155,7 +157,7 @@ def test_unreconciled_folder_conflict_on_install(iw_config, run):
     )
 
 
-def test_keep_folders_on_remove(iw_config, install_molinari_and_run):
+def test_keep_folders_on_remove(iw_config: Config, install_molinari_and_run):
     assert (
         install_molinari_and_run('remove --keep-folders curse:molinari').output
         == '✓ curse:molinari\n  removed\n'
@@ -180,7 +182,7 @@ def test_install_with_curse_alias(run):
     )
 
 
-def test_install_with_tukui_alias(iw_config, run):
+def test_install_with_tukui_alias(iw_config: Config, run):
     if iw_config.game_flavour is Flavour.retail:
         assert run('install tukui:-1').output.startswith('✓ tukui:-1\n  installed')
         assert run('install tukui:tukui').output == '✗ tukui:tukui\n  package already installed\n'
@@ -247,7 +249,7 @@ def test_install_with_github_alias(run):
     )
 
 
-def test_version_strategy_lifecycle(iw_config, run):
+def test_version_strategy_lifecycle(iw_config: Config, run):
     assert run('install curse:molinari').output.startswith(
         '✓ curse:molinari\n  installed 90100.79-Release'
     )
@@ -324,7 +326,7 @@ def test_install_argument_is_not_required(run, molinari_version_suffix):
     )
 
 
-def test_configure__display_active_profile(iw_config, run):
+def test_configure__display_active_profile(iw_config: Config, run):
     assert run('configure --active').output == iw_config.json(indent=2) + '\n'
 
 
@@ -336,7 +338,7 @@ def test_configure__create_new_profile(feed_pt, iw_config, run):
     )
 
 
-def test_configure__create_new_profile_promptless(monkeypatch, iw_config, run):
+def test_configure__create_new_profile_promptless(monkeypatch: pytest.MonkeyPatch, iw_config, run):
     monkeypatch.setenv('INSTAWOW_ADDON_DIR', str(iw_config.addon_dir))
     monkeypatch.setenv('INSTAWOW_GAME_FLAVOUR', iw_config.game_flavour.value)
     assert (
@@ -533,7 +535,9 @@ def test_argless_changelog_output_no_convert(install_molinari_and_run):
         ('reveal foo', 1),
     ],
 )
-def test_exit_codes_with_substr_match(monkeypatch, install_molinari_and_run, command, exit_code):
+def test_exit_codes_with_substr_match(
+    monkeypatch: pytest.MonkeyPatch, install_molinari_and_run, command, exit_code
+):
     monkeypatch.setattr('click.launch', lambda *a, **k: ...)
     assert install_molinari_and_run(command).exit_code == exit_code
 

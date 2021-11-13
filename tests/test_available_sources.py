@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import re
 
 import pytest
@@ -5,13 +7,14 @@ import pytest
 from instawow import results as R
 from instawow.common import Strategy
 from instawow.config import Flavour
+from instawow.manager import Manager
 from instawow.models import Pkg
 from instawow.resolvers import Defn
 
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize('strategy', [Strategy.default, Strategy.latest, Strategy.any_flavour])
-async def test_curse_common_strategies(iw_manager, request, strategy):
+async def test_curse_common_strategies(iw_manager: Manager, strategy: Strategy):
     retail_and_vanilla_classic_files = Defn('curse', 'molinari', strategy=strategy)
     retail_only_file = Defn('curse', 'mythic-dungeon-tools', strategy=strategy)
     classic_only_file = Defn('curse', 'classiccastbars', strategy=strategy)
@@ -45,7 +48,7 @@ async def test_curse_common_strategies(iw_manager, request, strategy):
 
 
 @pytest.mark.asyncio
-async def test_curse_version_pinning(iw_manager):
+async def test_curse_version_pinning(iw_manager: Manager):
     defn = Defn('curse', 'molinari').with_version('70300.51-Release')
     results = await iw_manager.resolve([defn])
     assert (
@@ -55,7 +58,7 @@ async def test_curse_version_pinning(iw_manager):
 
 
 @pytest.mark.asyncio
-async def test_curse_deps_are_found(iw_manager):
+async def test_curse_deps_are_found(iw_manager: Manager):
     defn = Defn('curse', 'bigwigs-voice-korean')
 
     if iw_manager.config.game_flavour is not Flavour.retail:
@@ -66,7 +69,7 @@ async def test_curse_deps_are_found(iw_manager):
 
 
 @pytest.mark.asyncio
-async def test_curse_changelog_is_url(iw_manager):
+async def test_curse_changelog_is_url(iw_manager: Manager):
     molinari = Defn('curse', 'molinari')
 
     results = await iw_manager.resolve([molinari])
@@ -77,7 +80,7 @@ async def test_curse_changelog_is_url(iw_manager):
 
 
 @pytest.mark.asyncio
-async def test_wowi(iw_manager):
+async def test_wowi(iw_manager: Manager):
     retail_and_classic = Defn('wowi', '13188-molinari')
     unsupported_strategy = Defn('wowi', '13188', strategy=Strategy.latest)
 
@@ -90,14 +93,14 @@ async def test_wowi(iw_manager):
 
 
 @pytest.mark.asyncio
-async def test_wowi_changelog_is_data_url(iw_manager):
+async def test_wowi_changelog_is_data_url(iw_manager: Manager):
     molinari = Defn('wowi', '13188-molinari')
     results = await iw_manager.resolve([molinari])
     assert results[molinari].changelog_url.startswith('data:,')
 
 
 @pytest.mark.asyncio
-async def test_tukui(iw_manager):
+async def test_tukui(iw_manager: Manager):
     regular_addon = Defn('tukui', '1')
     ui_suite = Defn('tukui', '-1')
     ui_suite_with_slug = Defn('tukui', 'tukui')
@@ -127,7 +130,7 @@ async def test_tukui(iw_manager):
 
 
 @pytest.mark.asyncio
-async def test_tukui_changelog_url_varies_by_addon_type(iw_manager):
+async def test_tukui_changelog_url_varies_by_addon_type(iw_manager: Manager):
     ui_suite = Defn('tukui', '-1')
     regular_addon = Defn('tukui', '1')
     results = await iw_manager.resolve([ui_suite, regular_addon])
@@ -137,7 +140,7 @@ async def test_tukui_changelog_url_varies_by_addon_type(iw_manager):
 
 
 @pytest.mark.asyncio
-async def test_github(iw_manager):
+async def test_github(iw_manager: Manager):
     release_json = Defn('github', 'nebularg/PackagerTest')
     legacy_lib_and_nolib = Defn('github', 'AdiAddons/AdiButtonAuras')
     legacy_latest = Defn('github', 'AdiAddons/AdiButtonAuras', strategy=Strategy.latest)
@@ -184,7 +187,7 @@ async def test_github(iw_manager):
 
 
 @pytest.mark.asyncio
-async def test_github_changelog_is_data_url(iw_manager):
+async def test_github_changelog_is_data_url(iw_manager: Manager):
     adibuttonauras = Defn('github', 'AdiAddons/AdiButtonAuras')
     results = await iw_manager.resolve([adibuttonauras])
     assert results[adibuttonauras].changelog_url.startswith('data:,')

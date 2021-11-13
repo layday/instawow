@@ -20,12 +20,14 @@
 #   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 #   THE SOFTWARE.
 
+from __future__ import annotations
+
 import pytest
 
 from instawow._custom_slpp import SLPP, ParseError
 
 
-def decode(value):
+def decode(value: str):
     return SLPP(value).decode()
 
 

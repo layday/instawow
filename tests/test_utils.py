@@ -50,13 +50,13 @@ def test_make_zip_member_filter_discards_names_with_prefix_not_in_dirs():
     assert list(filter(is_member, ['a/', 'b/', 'aa/', 'bb/', 'b/c', 'a/d'])) == ['b/', 'b/c']
 
 
-def test_loading_toc_from_addon_path(fake_addon):
+def test_loading_toc_from_addon_path(fake_addon: Path):
     TocReader.from_addon_path(fake_addon)
     with pytest.raises(FileNotFoundError):
         TocReader.from_addon_path(fake_addon.parent / 'MissingAddon')
 
 
-def test_parsing_toc_entries(fake_addon):
+def test_parsing_toc_entries(fake_addon: Path):
     toc_reader = TocReader.from_addon_path(fake_addon)
     assert toc_reader.entries == {
         'Normal': 'Normal entry',
@@ -64,7 +64,7 @@ def test_parsing_toc_entries(fake_addon):
     }
 
 
-def test_toc_entry_indexing(fake_addon):
+def test_toc_entry_indexing(fake_addon: Path):
     toc_reader = TocReader.from_addon_path(fake_addon)
     assert toc_reader['Normal'] == 'Normal entry'
     assert toc_reader['Compact'] == 'Compact entry'
@@ -73,7 +73,7 @@ def test_toc_entry_indexing(fake_addon):
     assert toc_reader['Nonexistent'] is None
 
 
-def test_toc_entry_multiindexing(fake_addon):
+def test_toc_entry_multiindexing(fake_addon: Path):
     toc_reader = TocReader.from_addon_path(fake_addon)
     assert toc_reader['Normal', 'Compact'] == 'Normal entry'
     assert toc_reader['Compact', 'Normal'] == 'Compact entry'
@@ -86,7 +86,7 @@ def test_bucketise_bucketises_by_putting_things_in_a_bucketing_bucket():
     assert bucketise(iter([1, 1, 0, 1]), bool) == {True: [1, 1, 1], False: [0]}
 
 
-def test_tabulate_spits_out_ascii_table(fake_addon):
+def test_tabulate_spits_out_ascii_table(fake_addon: Path):
     toc_reader = TocReader.from_addon_path(fake_addon)
     data = [('key', 'value'), *toc_reader.entries.items()]
     assert tabulate(data) == (
