@@ -290,9 +290,7 @@ class CurseResolver(BaseResolver):
 
     @staticmethod
     def get_alias_from_url(url: URL) -> str | None:
-        if url.host == 'www.wowace.com' and len(url.parts) > 2 and url.parts[1] == 'projects':
-            return url.parts[2].lower()
-        elif (
+        if (
             url.host == 'www.curseforge.com'
             and len(url.parts) > 3
             and url.parts[1:3] == ('wow', 'addons')

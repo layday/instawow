@@ -122,10 +122,6 @@ def test_install_with_curse_alias(run):
     assert run('install curse:molinari').output.startswith('✓ curse:molinari\n  installed')
     assert run('install curse:20338').output == '✗ curse:20338\n  package already installed\n'
     assert (
-        run('install https://www.wowace.com/projects/molinari').output
-        == '✗ curse:molinari\n  package already installed\n'
-    )
-    assert (
         run('install https://www.curseforge.com/wow/addons/molinari').output
         == '✗ curse:molinari\n  package already installed\n'
     )
