@@ -66,82 +66,28 @@ def molinari_version_suffix(iw_config: Config):
         return ''
 
 
-def test_valid_curse_pkg_lifecycle(run):
-    assert run('install curse:molinari').output.startswith('✓ curse:molinari\n  installed')
-    assert (
-        run('install curse:molinari').output == '✗ curse:molinari\n  package already installed\n'
-    )
-    assert run('update curse:molinari').output == '✗ curse:molinari\n  package is up to date\n'
-    assert run('remove curse:molinari').output == '✓ curse:molinari\n  removed\n'
-    assert run('update curse:molinari').output == '✗ curse:molinari\n  package is not installed\n'
-    assert run('remove curse:molinari').output == '✗ curse:molinari\n  package is not installed\n'
+@pytest.mark.parametrize('alias', ['curse:molinari', 'wowi:13188-molinari', 'tukui:1'])
+def test_valid_pkg_lifecycle(run, alias: str):
+    assert run(f'install {alias}').output.startswith(f'✓ {alias}\n  installed')
+    assert run(f'install {alias}').output == f'✗ {alias}\n  package already installed\n'
+    assert run(f'update {alias}').output == f'✗ {alias}\n  package is up to date\n'
+    assert run(f'remove {alias}').output == f'✓ {alias}\n  removed\n'
+    assert run(f'update {alias}').output == f'✗ {alias}\n  package is not installed\n'
+    assert run(f'remove {alias}').output == f'✗ {alias}\n  package is not installed\n'
 
 
-@pytest.mark.parametrize(
-    'iw_config_dict_no_config_dir',
-    [Flavour.retail, Flavour.vanilla_classic],
-    indirect=True,
-)
-def test_valid_tukui_pkg_lifecycle(iw_config: Config, run):
-    assert run('install tukui:1').output.startswith('✓ tukui:1\n  installed')
-    assert run('install tukui:1').output == '✗ tukui:1\n  package already installed\n'
-    assert run('update tukui:1').output == '✗ tukui:1\n  package is up to date\n'
-    assert run('remove tukui:1').output == '✓ tukui:1\n  removed\n'
-    assert run('update tukui:1').output == '✗ tukui:1\n  package is not installed\n'
-    assert run('remove tukui:1').output == '✗ tukui:1\n  package is not installed\n'
-    if iw_config.game_flavour is Flavour.retail:
-        assert run('install tukui:-1').output.startswith('✓ tukui:-1\n  installed')
-        assert run('install tukui:-1').output == '✗ tukui:-1\n  package already installed\n'
-        assert run('update tukui:-1').output == '✗ tukui:-1\n  package is up to date\n'
-        assert run('remove tukui:-1').output == '✓ tukui:-1\n  removed\n'
-    else:
-        assert run('install tukui:-1').output == '✗ tukui:-1\n  package does not exist\n'
-    assert run('update tukui:-1').output == '✗ tukui:-1\n  package is not installed\n'
-    assert run('remove tukui:-1').output == '✗ tukui:-1\n  package is not installed\n'
+@pytest.mark.parametrize('alias', ['curse:gargantuan-wigs'])
+def test_invalid_alias_pkg_lifecycle(run, alias: str):
+    assert run(f'install {alias}').output == f'✗ {alias}\n  package does not exist\n'
+    assert run(f'update {alias}').output == f'✗ {alias}\n  package is not installed\n'
+    assert run(f'remove {alias}').output == f'✗ {alias}\n  package is not installed\n'
 
 
-def test_valid_wowi_pkg_lifecycle(run):
-    assert run('install wowi:13188-molinari').output.startswith(
-        '✓ wowi:13188-molinari\n  installed'
-    )
-    assert (
-        run('install wowi:13188-molinari').output
-        == '✗ wowi:13188-molinari\n  package already installed\n'
-    )
-    assert (
-        run('update wowi:13188-molinari').output
-        == '✗ wowi:13188-molinari\n  package is up to date\n'
-    )
-    assert run('remove wowi:13188-molinari').output == '✓ wowi:13188-molinari\n  removed\n'
-    assert (
-        run('update wowi:13188-molinari').output
-        == '✗ wowi:13188-molinari\n  package is not installed\n'
-    )
-    assert (
-        run('remove wowi:13188-molinari').output
-        == '✗ wowi:13188-molinari\n  package is not installed\n'
-    )
-
-
-def test_invalid_source_lifecycle(run):
-    assert run('install foo:bar').output == '✗ foo:bar\n  package source is invalid\n'
-    assert run('update foo:bar').output == '✗ foo:bar\n  package is not installed\n'
-    assert run('remove foo:bar').output == '✗ foo:bar\n  package is not installed\n'
-
-
-def test_nonexistent_addon_alias_lifecycle(run):
-    assert (
-        run('install curse:gargantuan-wigs').output
-        == '✗ curse:gargantuan-wigs\n  package does not exist\n'
-    )
-    assert (
-        run('update curse:gargantuan-wigs').output
-        == '✗ curse:gargantuan-wigs\n  package is not installed\n'
-    )
-    assert (
-        run('remove curse:gargantuan-wigs').output
-        == '✗ curse:gargantuan-wigs\n  package is not installed\n'
-    )
+@pytest.mark.parametrize('alias', ['foo:bar'])
+def test_invalid_source_pkg_lifecycle(run, alias: str):
+    assert run(f'install {alias}').output == f'✗ {alias}\n  package source is invalid\n'
+    assert run(f'update {alias}').output == f'✗ {alias}\n  package is not installed\n'
+    assert run(f'remove {alias}').output == f'✗ {alias}\n  package is not installed\n'
 
 
 def test_reconciled_folder_conflict_on_install(run):
@@ -189,11 +135,6 @@ def test_install_with_curse_alias(run):
     )
 
 
-@pytest.mark.parametrize(
-    'iw_config_dict_no_config_dir',
-    [Flavour.retail, Flavour.vanilla_classic],
-    indirect=True,
-)
 def test_install_with_tukui_alias(iw_config: Config, run):
     if iw_config.game_flavour is Flavour.retail:
         assert run('install tukui:-1').output.startswith('✓ tukui:-1\n  installed')

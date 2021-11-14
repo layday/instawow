@@ -254,7 +254,7 @@ def mock_tukui(aresponses, mock_master_catalogue):
     )
     aresponses.add(
         'www.tukui.org',
-        re.compile(r'/classic-(?:-tbc)?addons\.php\?download=1'),
+        re.compile(r'/classic-(?:tbc-)?addons\.php\?download=1'),
         'get',
         aresponses.Response(body=make_addon_zip('Tukui')),
         match_querystring=True,
