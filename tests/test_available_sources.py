@@ -3,13 +3,21 @@ from __future__ import annotations
 import re
 
 import pytest
+from yarl import URL
 
 from instawow import results as R
 from instawow.common import Strategy
 from instawow.config import Flavour
 from instawow.manager import Manager
 from instawow.models import Pkg
-from instawow.resolvers import Defn, Resolver
+from instawow.resolvers import (
+    CurseResolver,
+    Defn,
+    GithubResolver,
+    Resolver,
+    TukuiResolver,
+    WowiResolver,
+)
 
 
 @pytest.mark.asyncio
@@ -225,3 +233,38 @@ async def test_unsupported_strategies(iw_manager: Manager, resolver: Resolver):
             type(results[strategy_defn]) is R.PkgStrategyUnsupported
             and results[strategy_defn].message == f"'{strategy}' strategy is not valid for source"
         )
+
+
+@pytest.mark.parametrize(
+    ('resolver', 'url', 'extracted_alias'),
+    [
+        (CurseResolver, 'https://www.curseforge.com/wow/addons/molinari', 'molinari'),
+        (CurseResolver, 'https://www.curseforge.com/wow/addons/molinari/download', 'molinari'),
+        (WowiResolver, 'https://www.wowinterface.com/downloads/landing.php?fileid=13188', '13188'),
+        (WowiResolver, 'https://wowinterface.com/downloads/landing.php?fileid=13188', '13188'),
+        (WowiResolver, 'https://www.wowinterface.com/downloads/fileinfo.php?id=13188', '13188'),
+        (WowiResolver, 'https://wowinterface.com/downloads/fileinfo.php?id=13188', '13188'),
+        (WowiResolver, 'https://www.wowinterface.com/downloads/download13188-Molinari', '13188'),
+        (WowiResolver, 'https://wowinterface.com/downloads/download13188-Molinari', '13188'),
+        (WowiResolver, 'https://www.wowinterface.com/downloads/info13188-Molinari.html', '13188'),
+        (WowiResolver, 'https://wowinterface.com/downloads/info13188-Molinari.html', '13188'),
+        (WowiResolver, 'https://www.wowinterface.com/downloads/info13188', '13188'),
+        (WowiResolver, 'https://wowinterface.com/downloads/info13188', '13188'),
+        (TukuiResolver, 'https://www.tukui.org/download.php?ui=tukui', 'tukui'),
+        (TukuiResolver, 'https://www.tukui.org/addons.php?id=1', '1'),
+        (TukuiResolver, 'https://www.tukui.org/classic-addons.php?id=1', '1'),
+        (TukuiResolver, 'https://www.tukui.org/classic-tbc-addons.php?id=1', '1'),
+        (
+            GithubResolver,
+            'https://github.com/AdiAddons/AdiButtonAuras',
+            'AdiAddons/AdiButtonAuras',
+        ),
+        (
+            GithubResolver,
+            'https://github.com/AdiAddons/AdiButtonAuras/releases',
+            'AdiAddons/AdiButtonAuras',
+        ),
+    ],
+)
+def test_get_alias_from_url(resolver: Resolver, url: str, extracted_alias: str):
+    assert resolver.get_alias_from_url(URL(url)) == extracted_alias
