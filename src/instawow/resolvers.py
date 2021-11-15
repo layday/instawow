@@ -837,7 +837,7 @@ class TukuiResolver(BaseResolver):
 class _GithubRepo(TypedDict):
     name: str  # the repo in user-or-org/repo
     full_name: str  # user-or-org/repo
-    description: str
+    description: str | None
     html_url: str
 
 
@@ -1001,7 +1001,7 @@ class GithubResolver(BaseResolver):
             id=project_metadata['full_name'],
             slug=project_metadata['full_name'].lower(),
             name=project_metadata['name'],
-            description=project_metadata['description'],
+            description=project_metadata['description'] or '',
             url=project_metadata['html_url'],
             download_url=matching_asset['browser_download_url'],
             date_published=release_metadata['published_at'],
