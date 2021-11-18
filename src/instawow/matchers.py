@@ -23,9 +23,9 @@ _source_toc_ids = {
     'X-WoWI-ID': WowiResolver.source,
 }
 _source_sort_order = [
-    WowiResolver.source,
     GithubResolver.source,
     CurseResolver.source,
+    WowiResolver.source,
     TukuiResolver.source,
     InstawowResolver.source,
 ]
