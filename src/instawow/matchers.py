@@ -11,7 +11,7 @@ from typing_extensions import TypeAlias
 from . import manager
 from .config import Flavour
 from .db import pkg_folder
-from .resolvers import CurseResolver, Defn, InstawowResolver, TukuiResolver, WowiResolver
+from .resolvers import CurseResolver, Defn, GithubResolver, InstawowResolver, TukuiResolver, WowiResolver
 from .utils import TocReader, bucketise, cached_property, merge_intersecting_sets, uniq
 
 FolderAndDefnPairs: TypeAlias = 'list[tuple[list[AddonFolder], list[Defn]]]'
@@ -22,12 +22,13 @@ _source_toc_ids = {
     'X-Tukui-ProjectID': TukuiResolver.source,
     'X-WoWI-ID': WowiResolver.source,
 }
-_source_sort_order = {
-    CurseResolver.source: 0,
-    WowiResolver.source: 1,
-    TukuiResolver.source: 2,
-    InstawowResolver.source: 3,
-}
+_source_sort_order = [
+    WowiResolver.source,
+    GithubResolver.source,
+    CurseResolver.source,
+    TukuiResolver.source,
+    InstawowResolver.source,
+]
 # See https://github.com/Stanzilla/WoWUIBugs/issues/68#issuecomment-830351390
 _flavour_toc_suffixes = {
     Flavour.retail: [
@@ -120,7 +121,7 @@ async def match_toc_source_ids(
         addons_with_toc_source_ids, lambda a: next(d for d in merged_defns if a.defns_from_toc & d)
     )
     return [
-        (f, sorted(b, key=lambda d: _source_sort_order[d.source]))
+        (f, sorted(b, key=lambda d: _source_sort_order.index(d.source)))
         for b, f in folders_grouped_by_overlapping_defns.items()
     ]
 
@@ -130,7 +131,7 @@ async def match_folder_name_subsets(
 ) -> FolderAndDefnPairs:
     def sort_key(value: tuple[frozenset[AddonFolder], Defn]):
         folders, defn = value
-        return (-len(folders), _source_sort_order[defn.source])
+        return (-len(folders), _source_sort_order.index(defn.source))
 
     catalogue = await manager.synchronise()
     matches = [
