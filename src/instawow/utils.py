@@ -207,7 +207,7 @@ def find_addon_zip_base_dirs(names: Sequence[str]) -> Iterator[str]:
     for name in names:
         if name.count(posixpath.sep) == 1:
             head, tail = posixpath.split(name)
-            if head == tail[:-4] and tail[-4:].casefold() == '.toc':
+            if tail.startswith(head) and tail[-4:].lower() == '.toc':
                 yield head
 
 

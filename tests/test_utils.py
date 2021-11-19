@@ -40,6 +40,10 @@ def test_find_addon_zip_base_dirs_discards_mismatched_tocs():
     assert not set(find_addon_zip_base_dirs(['a', 'a/b.toc']))
 
 
+def test_find_addon_zip_base_dirs_accepts_multitoc():
+    assert set(find_addon_zip_base_dirs(['a', 'a/a_mainline.toc'])) == {'a'}
+
+
 @pytest.mark.parametrize('ext', product('Tt', 'Oo', 'Cc'))
 def test_find_addon_zip_base_dirs_toc_is_case_insensitive(ext: tuple[str, ...]):
     assert set(find_addon_zip_base_dirs([f'a/a.{"".join(ext)}'])) == {'a'}
