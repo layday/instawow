@@ -11,7 +11,14 @@ from typing_extensions import TypeAlias
 from . import manager
 from .config import Flavour
 from .db import pkg_folder
-from .resolvers import CurseResolver, Defn, GithubResolver, InstawowResolver, TukuiResolver, WowiResolver
+from .resolvers import (
+    CurseResolver,
+    Defn,
+    GithubResolver,
+    InstawowResolver,
+    TukuiResolver,
+    WowiResolver,
+)
 from .utils import TocReader, bucketise, cached_property, merge_intersecting_sets, uniq
 
 FolderAndDefnPairs: TypeAlias = 'list[tuple[list[AddonFolder], list[Defn]]]'
