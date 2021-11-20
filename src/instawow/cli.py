@@ -6,7 +6,6 @@ from contextlib import contextmanager
 from datetime import datetime, timezone
 from enum import Enum
 from functools import partial, wraps
-import importlib.util
 from itertools import chain, repeat
 from pathlib import Path
 import textwrap
@@ -940,7 +939,7 @@ def generate_catalogue(filename: str, start_date: datetime | None) -> None:
     )
 
 
-@main.command(hidden=importlib.util.find_spec('instawow_gui') is None)
+@main.command()
 @click.pass_context
 def gui(ctx: click.Context) -> None:
     "Fire up the GUI."
