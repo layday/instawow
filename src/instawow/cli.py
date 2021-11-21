@@ -925,9 +925,9 @@ def list_installed_wago_auras(manager: _manager.Manager) -> None:
 )
 def generate_catalogue(filename: str, start_date: datetime | None) -> None:
     "Generate the master catalogue."
-    from .resolvers import Catalogue
+    from .cataloguer import BaseCatalogue
 
-    catalogue = asyncio.run(Catalogue.collate(start_date))
+    catalogue = asyncio.run(BaseCatalogue.collate(start_date))
     file = Path(filename)
     file.write_text(
         catalogue.json(indent=2),

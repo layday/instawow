@@ -28,10 +28,11 @@ from yarl import URL
 
 from instawow import __version__, db, matchers, models
 from instawow import results as R
+from instawow.cataloguer import CatalogueEntry
 from instawow.common import Strategy
 from instawow.config import Config
 from instawow.manager import Manager, TraceRequestCtx, init_web_client, is_outdated
-from instawow.resolvers import CatalogueEntry, Defn
+from instawow.resolvers import Defn
 from instawow.utils import run_in_thread as t
 from instawow.utils import uniq
 

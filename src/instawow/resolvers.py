@@ -15,9 +15,10 @@ from yarl import URL
 
 from . import _deferred_types, manager, models
 from . import results as R
+from .cataloguer import BaseCatatalogueEntry
 from .common import Strategy
 from .config import Flavour
-from .utils import StrEnum, bucketise, cached_property, gather, normalise_names, uniq
+from .utils import StrEnum, gather, normalise_names, uniq
 
 if TYPE_CHECKING:  # pragma: no cover
     from typing_extensions import NotRequired as N
@@ -72,54 +73,6 @@ def _format_data_changelog(changelog: str = '') -> str:
     return f'data:,{urllib.parse.quote(changelog)}'
 
 
-class CatatalogueBaseEntry(BaseModel):
-    source: str
-    id: str
-    slug: str = ''
-    name: str
-    game_flavours: typing.Set[Flavour]
-    folders: typing.List[typing.Set[str]] = []
-    download_count: int
-    last_updated: datetime
-
-
-class CatalogueEntry(CatatalogueBaseEntry):
-    derived_download_score: float
-
-
-class Catalogue(
-    BaseModel,
-    json_encoders={set: sorted},
-    keep_untouched=(cached_property,),
-):
-    __root__: typing.List[CatalogueEntry]
-
-    @classmethod
-    async def collate(cls, start_date: datetime | None) -> Catalogue:
-        async with manager.init_web_client() as web_client:
-            items = [a for r in manager.Manager.RESOLVERS async for a in r.catalogue(web_client)]
-
-        most_downloads_per_source = {
-            s: max(e.download_count for e in i)
-            for s, i in bucketise(items, key=lambda v: v.source).items()
-        }
-        entries = (
-            CatalogueEntry(
-                **i.__dict__,
-                derived_download_score=i.download_count / most_downloads_per_source[i.source],
-            )
-            for i in items
-        )
-        if start_date is not None:
-            entries = (e for e in entries if e.last_updated >= start_date)
-        catalogue = cls.parse_obj(list(entries))
-        return catalogue
-
-    @cached_property
-    def curse_slugs(self) -> dict[str, str]:
-        return {a.slug: a.id for a in self.__root__ if a.source == 'curse'}
-
-
 class Resolver(Protocol):
     source: ClassVar[str]
     name: ClassVar[str]
@@ -144,7 +97,7 @@ class Resolver(Protocol):
     @classmethod
     async def catalogue(
         cls, web_client: _deferred_types.aiohttp.ClientSession
-    ) -> AsyncIterator[CatatalogueBaseEntry]:
+    ) -> AsyncIterator[BaseCatatalogueEntry]:
         "Yield add-ons from source for cataloguing."
         return
         yield
@@ -183,7 +136,7 @@ class BaseResolver(Resolver):
     @classmethod
     async def catalogue(
         cls, web_client: _deferred_types.aiohttp.ClientSession
-    ) -> AsyncIterator[CatatalogueBaseEntry]:
+    ) -> AsyncIterator[BaseCatatalogueEntry]:
         return
         yield
 
@@ -425,7 +378,7 @@ class CurseResolver(BaseResolver):
     @classmethod
     async def catalogue(
         cls, web_client: _deferred_types.aiohttp.ClientSession
-    ) -> AsyncIterator[CatatalogueBaseEntry]:
+    ) -> AsyncIterator[BaseCatatalogueEntry]:
         def supports_x(files: list[_CurseAddon_File]):
             def excise_flavour(
                 curse_flavor: _CurseFlavor,
@@ -477,7 +430,7 @@ class CurseResolver(BaseResolver):
                     for f in item['latestFiles']
                     if not f['exposeAsAlternative']
                 )
-                yield CatatalogueBaseEntry(
+                yield BaseCatatalogueEntry(
                     source=cls.source,
                     id=item['id'],
                     slug=item['slug'],
@@ -630,14 +583,14 @@ class WowiResolver(BaseResolver):
     @classmethod
     async def catalogue(
         cls, web_client: _deferred_types.aiohttp.ClientSession
-    ) -> AsyncIterator[CatatalogueBaseEntry]:
+    ) -> AsyncIterator[BaseCatatalogueEntry]:
         flavours = set(Flavour)
 
         async with web_client.get(cls.list_api_url) as response:
             items: list[_WowiListApiItem] = await response.json()
 
         for item in items:
-            yield CatatalogueBaseEntry(
+            yield BaseCatatalogueEntry(
                 source=cls.source,
                 id=item['UID'],
                 name=item['UIName'],
@@ -798,7 +751,7 @@ class TukuiResolver(BaseResolver):
     @classmethod
     async def catalogue(
         cls, web_client: _deferred_types.aiohttp.ClientSession
-    ) -> AsyncIterator[CatatalogueBaseEntry]:
+    ) -> AsyncIterator[BaseCatatalogueEntry]:
         async def fetch_ui(ui_slug: str) -> list[_TukuiUi]:
             async with web_client.get(cls.api_url.with_query({'ui': ui_slug})) as response:
                 return [await response.json(content_type=None)]  # text/html
@@ -815,7 +768,7 @@ class TukuiResolver(BaseResolver):
             ({Flavour.burning_crusade_classic}, fetch_addons('classic-tbc-addons')),
         ]:
             for item in await item_coro:
-                yield CatatalogueBaseEntry(
+                yield BaseCatatalogueEntry(
                     source=cls.source,
                     id=item['id'],
                     name=item['name'],
@@ -1051,8 +1004,8 @@ class InstawowResolver(BaseResolver):
     @classmethod
     async def catalogue(
         cls, web_client: _deferred_types.aiohttp.ClientSession
-    ) -> AsyncIterator[CatatalogueBaseEntry]:
-        yield CatatalogueBaseEntry(
+    ) -> AsyncIterator[BaseCatatalogueEntry]:
+        yield BaseCatatalogueEntry(
             source=cls.source,
             id='1',
             slug='weakauras-companion-autoupdate',

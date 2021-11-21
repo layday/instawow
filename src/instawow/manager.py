@@ -14,7 +14,7 @@ from collections.abc import (
 )
 from contextlib import asynccontextmanager, contextmanager
 import contextvars as cv
-import datetime
+from datetime import datetime
 from enum import IntEnum
 from functools import lru_cache, partial, wraps
 from itertools import chain, compress, filterfalse, repeat, starmap, takewhile
@@ -34,13 +34,12 @@ from yarl import URL
 
 from . import _deferred_types, db, models
 from . import results as R
+from .cataloguer import Catalogue, CatalogueEntry
 from .common import Strategy
 from .config import Config
 from .plugins import load_plugins
 from .resolvers import (
     BaseResolver,
-    Catalogue,
-    CatalogueEntry,
     CurseResolver,
     Defn,
     GithubResolver,
@@ -334,20 +333,23 @@ def _with_lock(
 
 _web_client: cv.ContextVar[_deferred_types.aiohttp.ClientSession] = cv.ContextVar('_web_client')
 
-dummy_locks: defaultdict[str, Any] = defaultdict(_DummyLock)
+_dummy_locks: defaultdict[str, Any] = defaultdict(_DummyLock)
 _locks: cv.ContextVar[defaultdict[str, asyncio.Lock]] = cv.ContextVar(
-    '_locks', default=dummy_locks
+    '_locks', default=_dummy_locks
 )
 
 
 class Manager:
-    RESOLVERS = (
+    RESOLVERS = [
         CurseResolver,
         WowiResolver,
         TukuiResolver,
         GithubResolver,
         InstawowResolver,
-    )
+    ]
+
+    _catalogue_filename = 'catalogue.json'
+    _normalise_search_terms = staticmethod(normalise_names(''))
 
     def __init__(
         self,
@@ -535,14 +537,28 @@ class Manager:
     @_with_lock('load catalogue', False)
     async def synchronise(self) -> Catalogue:
         "Fetch the catalogue from the interwebs and load it."
-        if self._catalogue is None:
-            label = 'Synchronising catalogue'
+        catalogue_json = self.config.temp_dir / self._catalogue_filename
+        if await t(is_not_stale)(catalogue_json, {'hours': 4}):
+            if self._catalogue is None:
+                self._catalogue = Catalogue.parse_raw(
+                    await t(catalogue_json.read_text)(encoding='utf-8')
+                )
+        else:
             url = (
                 'https://raw.githubusercontent.com/layday/instawow-data/data/'
                 'master-catalogue-v4.compact.json'
             )  # v4
-            raw_catalogue = await cache_response(self, url, {'hours': 4}, label=label)
-            self._catalogue = Catalogue.parse_obj(raw_catalogue)
+            async with self.web_client.get(
+                url,
+                trace_request_ctx=_GenericDownloadTraceRequestCtx(
+                    report_progress='generic', label='Synchronising catalogue'
+                ),
+            ) as response:
+                raw_catalogue = await response.json(content_type=None)
+
+            self._catalogue = Catalogue.from_base_catalogue(raw_catalogue, None)
+            await t(catalogue_json.write_text)(self._catalogue.json(), encoding='utf-8')
+
         return self._catalogue
 
     async def _resolve_deps(self, results: Iterable[Any]) -> dict[Defn, Any]:
@@ -613,7 +629,7 @@ class Manager:
         search_terms: str,
         limit: int,
         sources: Set[str] = frozenset(),
-        start_date: datetime.datetime | None = None,
+        start_date: datetime | None = None,
     ) -> list[CatalogueEntry]:
         "Search the master catalogue for packages by name."
         import rapidfuzz
@@ -622,8 +638,6 @@ class Manager:
 
         ew = 0.5
         dw = 1 - ew
-
-        normalise = normalise_names('')
 
         if not sources:
             sources = self.resolvers.keys()
@@ -655,10 +669,10 @@ class Manager:
 
         filter_fns = list(make_filter())
 
-        s = normalise(search_terms)
+        s = self._normalise_search_terms(search_terms)
 
         tokens_to_entries = bucketise(
-            ((normalise(e.name), e) for e in catalogue.__root__ if all(f(e) for f in filter_fns)),
+            ((e.normalised_name, e) for e in catalogue.__root__ if all(f(e) for f in filter_fns)),
             key=lambda v: v[0],
         )
         matches = rapidfuzz.process.extract(
