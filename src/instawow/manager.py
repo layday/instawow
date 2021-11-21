@@ -128,7 +128,7 @@ async def _download_pkg_archive(
     manager: Manager, pkg: models.Pkg, *, chunk_size: int = 4096
 ) -> Path:
     url = pkg.download_url
-    dest = manager.config.cache_dir / shasum(
+    dest = manager.config.global_config.cache_dir / shasum(
         pkg.source, pkg.id, pkg.version, manager.config.game_flavour
     )
     if await t(dest.exists)():
@@ -174,7 +174,7 @@ async def cache_response(
         async with manager.web_client.request(**kwargs) as response:
             return await response.text()
 
-    dest = manager.config.cache_dir / shasum(url, request_extra)
+    dest = manager.config.global_config.cache_dir / shasum(url, request_extra)
     if await t(is_not_stale)(dest, ttl):
         logger.debug(f'{url} is cached at {dest} (ttl: {ttl})')
         text = await t(dest.read_text)(encoding='utf-8')
@@ -468,7 +468,7 @@ class Manager:
             if replace:
                 trash(
                     [self.config.addon_dir / f for f in top_level_folders],
-                    dest=self.config.temp_dir,
+                    dest=self.config.global_config.temp_dir,
                     missing_ok=True,
                 )
             else:
@@ -510,7 +510,7 @@ class Manager:
 
             trash(
                 [self.config.addon_dir / f.name for f in pkg1.folders],
-                dest=self.config.temp_dir,
+                dest=self.config.global_config.temp_dir,
                 missing_ok=True,
             )
             extract(self.config.addon_dir)
@@ -527,7 +527,7 @@ class Manager:
         if not keep_folders:
             trash(
                 [self.config.addon_dir / f.name for f in pkg.folders],
-                dest=self.config.temp_dir,
+                dest=self.config.global_config.temp_dir,
                 missing_ok=True,
             )
 
@@ -537,7 +537,7 @@ class Manager:
     @_with_lock('load catalogue', False)
     async def synchronise(self) -> Catalogue:
         "Fetch the catalogue from the interwebs and load it."
-        catalogue_json = self.config.temp_dir / self._catalogue_filename
+        catalogue_json = self.config.global_config.temp_dir / self._catalogue_filename
         if await t(is_not_stale)(catalogue_json, {'hours': 4}):
             if self._catalogue is None:
                 self._catalogue = Catalogue.parse_raw(
@@ -857,10 +857,10 @@ async def is_outdated() -> tuple[bool, str]:
         return (False, '')
 
     dummy_config = Config.get_dummy_config()
-    if not dummy_config.auto_update_check:
+    if not dummy_config.global_config.auto_update_check:
         return (False, '')
 
-    cache_file = dummy_config.temp_dir / '.pypi_version'
+    cache_file = dummy_config.global_config.temp_dir / '.pypi_version'
     if await t(is_not_stale)(cache_file, {'days': 1}):
         version = cache_file.read_text(encoding='utf-8')
     else:

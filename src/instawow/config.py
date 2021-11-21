@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from collections.abc import Iterable, Set
+import json
 import os
 from pathlib import Path, PurePath
 from tempfile import gettempdir
@@ -9,7 +11,8 @@ from loguru import logger
 from pydantic import BaseSettings, Field, PydanticValueError, validator
 from pydantic.env_settings import SettingsSourceCallable
 
-from .utils import StrEnum, trash
+from .common import Flavour
+from .utils import trash
 
 
 class _PathNotWritableDirectoryError(PydanticValueError):
@@ -20,27 +23,39 @@ class _PathNotWritableDirectoryError(PydanticValueError):
 _novalidate = '__novalidate__'
 
 
-def _get_default_config_dir() -> Path:
-    return Path(click.get_app_dir('instawow'))
-
-
-def _get_default_temp_dir() -> Path:
-    return Path(gettempdir(), 'instawow')
-
-
-def _expand_path(value: Path) -> Path:
+def _expand_path(value: Path):
     return Path(os.path.abspath(os.path.expanduser(value)))
 
 
-def _is_writable_dir(value: Path) -> bool:
+def _is_writable_dir(value: Path):
     return value.is_dir() and os.access(value, os.W_OK)
+
+
+def _ensure_dirs(dirs: Iterable[Path]):
+    for dir_ in dirs:
+        dir_.mkdir(exist_ok=True, parents=True)
+
+
+def _write_config(config: BaseConfig, fields: Set[str]):
+    json_output = config.json(include=fields, indent=2)
+    config.config_file.write_text(json_output, encoding='utf-8')
+
+
+def _read_config(config: BaseConfig, missing_ok: bool = False):
+    try:
+        return json.loads(config.config_file.read_bytes())
+    except FileNotFoundError:
+        if missing_ok:
+            default_config: dict[str, object] = {}
+            return default_config
+        raise
 
 
 def _customise_sources(
     init_settings: SettingsSourceCallable,
     env_settings: SettingsSourceCallable,
     file_secret_settings: SettingsSourceCallable,
-) -> tuple[SettingsSourceCallable, ...]:
+):
     # Prioritise env vars
     return (env_settings, init_settings)
 
@@ -50,34 +65,57 @@ class BaseConfig(
     env_prefix='INSTAWOW_',
     customise_sources=_customise_sources,
 ):
-    pass
+    @property
+    def config_file(self) -> Path:
+        raise NotImplementedError
 
 
-class Flavour(StrEnum):
-    # The latest classic version is always aliased to "classic".
-    # The logic here is that should WoW Classic not be discontinued
-    # it will continue to be updated in place so that new Classic versions
-    # will inherit the "_classic_" folder.  This way we won't have to
-    # perform a migration or require user intervention.
-    retail = 'retail'
-    vanilla_classic = 'vanilla_classic'
-    burning_crusade_classic = 'classic'
-
-
-class Config(BaseConfig):
-    config_dir: Path = Field(default_factory=_get_default_config_dir)
-    profile: str = Field(min_length=1, strip_whitespace=True)
-    addon_dir: Path
-    game_flavour: Flavour
-    temp_dir: Path = Field(default_factory=_get_default_temp_dir)
+class _GlobalConfig(BaseConfig):
+    config_dir: Path = Field(default_factory=lambda: Path(click.get_app_dir('instawow')))
+    temp_dir: Path = Field(default_factory=lambda: Path(gettempdir(), 'instawow'))
     auto_update_check: bool = True
 
-    @validator('config_dir', 'addon_dir', 'temp_dir')
+    @validator('config_dir', 'temp_dir')
     def _expand_path(cls, value: Path) -> Path:
         return _expand_path(value)
 
+    def list_profiles(self) -> list[str]:
+        "Get the names of the profiles contained in ``config_dir``."
+        profiles = [c.parent.name for c in self.config_dir.glob('profiles/*/config.json')]
+        return profiles
+
+    def ensure_dirs(self) -> _GlobalConfig:
+        _ensure_dirs(
+            [
+                self.config_dir,
+                self.temp_dir,
+                self.cache_dir,
+            ]
+        )
+        return self
+
+    def write(self) -> _GlobalConfig:
+        _write_config(self, set())
+        return self
+
+    @property
+    def cache_dir(self) -> Path:
+        return self.temp_dir / 'cache'
+
+    @property
+    def config_file(self) -> Path:
+        return self.config_dir / 'config.json'
+
+
+class Config(BaseConfig):
+    global_config: _GlobalConfig
+    profile: str = Field(min_length=1, strip_whitespace=True)
+    addon_dir: Path
+    game_flavour: Flavour
+
     @validator('addon_dir')
     def _validate_path_is_writable_dir(cls, value: Path) -> Path:
+        value = _expand_path(value)
         if value.name == _novalidate:
             return value
         elif not _is_writable_dir(value):
@@ -100,7 +138,8 @@ class Config(BaseConfig):
     @classmethod
     def get_dummy_config(cls, **kwargs: object) -> Config:
         "Create a dummy configuration with default values."
-        defaults = {
+        defaults: dict[str, object] = {
+            'global_config': {},
             'profile': _novalidate,
             'addon_dir': _novalidate,
             'game_flavour': Flavour.retail,
@@ -109,30 +148,25 @@ class Config(BaseConfig):
         return dummy_config
 
     @classmethod
-    def list_profiles(cls) -> list[str]:
-        "List the profiles contained in ``config_dir``."
-        dummy_config = cls.get_dummy_config()
-        profiles = [c.parent.name for c in dummy_config.config_dir.glob('profiles/*/config.json')]
-        return profiles
-
-    @classmethod
     def read(cls, profile: str) -> Config:
         "Read the configuration from disk."
         dummy_config = cls.get_dummy_config(profile=profile)
-        config = cls.parse_file(dummy_config.config_file, encoding='utf-8')
+        config = cls(
+            global_config=_read_config(dummy_config.global_config, missing_ok=True),
+            **_read_config(dummy_config),
+        )
         return config
 
     def ensure_dirs(self) -> Config:
-        "Create the various folders used by instawow."
-        for dir_ in [
-            self.config_dir,
-            self.profile_dir,
-            self.logging_dir,
-            self.plugin_dir,
-            self.temp_dir,
-            self.cache_dir,
-        ]:
-            dir_.mkdir(exist_ok=True, parents=True)
+        "Create folders used by instawow."
+        self.global_config.ensure_dirs()
+        _ensure_dirs(
+            [
+                self.profile_dir,
+                self.logging_dir,
+                self.plugin_dir,
+            ]
+        )
         return self
 
     def write(self) -> Config:
@@ -143,18 +177,17 @@ class Config(BaseConfig):
         if made during configuration.
         """
         self.ensure_dirs()
-        includes = {'addon_dir', 'game_flavour', 'profile'}
-        output = self.json(include=includes, indent=2)
-        self.config_file.write_text(output, encoding='utf-8')
+        self.global_config.write()
+        _write_config(self, {'addon_dir', 'game_flavour', 'profile'})
         return self
 
     def delete(self) -> None:
         "Delete the configuration files associated with this profile."
-        trash((self.profile_dir,), dest=self.temp_dir, missing_ok=True)
+        trash((self.profile_dir,), dest=self.global_config.temp_dir, missing_ok=True)
 
     @property
     def profile_dir(self) -> Path:
-        return self.config_dir / 'profiles' / self.profile
+        return self.global_config.config_dir / 'profiles' / self.profile
 
     @property
     def logging_dir(self) -> Path:
@@ -171,10 +204,6 @@ class Config(BaseConfig):
     @property
     def db_file(self) -> Path:
         return self.profile_dir / 'db.sqlite'
-
-    @property
-    def cache_dir(self) -> Path:
-        return self.temp_dir / 'cache'
 
 
 def setup_logging(

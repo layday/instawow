@@ -7,8 +7,7 @@ from aiohttp import ClientError
 import pytest
 
 from instawow import results as R
-from instawow.common import Strategy
-from instawow.config import Flavour
+from instawow.common import Flavour, Strategy
 from instawow.manager import Manager, is_outdated
 from instawow.models import Pkg
 from instawow.resolvers import Defn

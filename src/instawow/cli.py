@@ -17,8 +17,8 @@ from . import __version__, _deferred_types, db
 from . import manager as _manager
 from . import models
 from . import results as R
-from .common import Strategy
-from .config import Config, Flavour, setup_logging
+from .common import Flavour, Strategy
+from .config import Config, setup_logging
 from .plugins import load_plugins
 from .resolvers import ChangelogFormat, Defn
 from .utils import StrEnum, cached_property, gather, tabulate, uniq
@@ -66,7 +66,7 @@ class Report:
 
     def generate(self) -> None:
         manager_wrapper: ManagerWrapper | None = click.get_current_context().obj
-        if manager_wrapper and manager_wrapper.manager.config.auto_update_check:
+        if manager_wrapper and manager_wrapper.manager.config.global_config.auto_update_check:
             outdated, new_version = run_with_progress(_manager.is_outdated())
             if outdated:
                 click.echo(f'{self.WARNING_SYMBOL} instawow-{new_version} is available')
@@ -877,7 +877,7 @@ def configure(ctx: click.Context, promptless: bool) -> Config:
         )
         make_config = partial(Config, addon_dir=addon_dir, game_flavour=game_flavour)
 
-    config = make_config(profile=ctx.find_root().params['profile']).write()
+    config = make_config(global_config={}, profile=ctx.find_root().params['profile']).write()
     click.echo(f'Configuration written to: {config.config_file}')
     return config
 

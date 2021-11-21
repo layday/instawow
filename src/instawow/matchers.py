@@ -9,7 +9,7 @@ import sqlalchemy as sa
 from typing_extensions import TypeAlias
 
 from . import manager
-from .config import Flavour
+from .common import Flavour
 from .db import pkg_folder
 from .resolvers import (
     CurseResolver,

@@ -13,7 +13,8 @@ import pytest
 
 from instawow import __version__
 from instawow.cli import main
-from instawow.config import Config, Flavour
+from instawow.common import Flavour
+from instawow.config import Config
 from instawow.manager import Manager
 from instawow.models import PkgList
 
@@ -33,7 +34,7 @@ def run(monkeypatch: pytest.MonkeyPatch, event_loop, iw_config: Config, iw_web_c
         return event_loop.run_until_complete(awaitable)
 
     monkeypatch.setattr('instawow.cli.run_with_progress', runner)
-    monkeypatch.setenv('INSTAWOW_CONFIG_DIR', str(iw_config.config_dir))
+    monkeypatch.setenv('INSTAWOW_CONFIG_DIR', str(iw_config.global_config.config_dir))
     yield partial(CliRunner().invoke, main, catch_exceptions=False)
 
 
@@ -283,7 +284,7 @@ def test_configure__create_new_profile(feed_pt, iw_config, run):
     feed_pt(f'{iw_config.addon_dir}\r\r')
     assert (
         run('-p foo configure').output
-        == f'Configuration written to: {iw_config.config_dir / "profiles/foo/config.json"}\n'
+        == f'Configuration written to: {iw_config.global_config.config_dir / "profiles/foo/config.json"}\n'
     )
 
 
@@ -292,7 +293,7 @@ def test_configure__create_new_profile_promptless(monkeypatch: pytest.MonkeyPatc
     monkeypatch.setenv('INSTAWOW_GAME_FLAVOUR', iw_config.game_flavour.value)
     assert (
         run('-p foo configure --promptless').output
-        == f'Configuration written to: {iw_config.config_dir / "profiles/foo/config.json"}\n'
+        == f'Configuration written to: {iw_config.global_config.config_dir / "profiles/foo/config.json"}\n'
     )
 
 

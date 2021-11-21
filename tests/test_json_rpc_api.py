@@ -21,7 +21,7 @@ dumps = partial(json.dumps, default=str)
 
 @pytest.fixture
 async def ws(iw_config_dict: dict[str, Any], monkeypatch: pytest.MonkeyPatch):
-    monkeypatch.setenv('INSTAWOW_CONFIG_DIR', str(iw_config_dict['config_dir']))
+    monkeypatch.setenv('INSTAWOW_CONFIG_DIR', str(iw_config_dict['global_config']['config_dir']))
     app = await json_rpc_server.create_app()
     server = TestServer(app)
     async with TestClient(server) as client, client.ws_connect('/api') as ws:

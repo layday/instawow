@@ -6,7 +6,8 @@ from typing import Any
 
 import pytest
 
-from instawow.config import Config, Flavour
+from instawow.common import Flavour
+from instawow.config import Config
 
 
 def test_env_vars_have_prio(iw_config_dict: dict[str, Any], monkeypatch: pytest.MonkeyPatch):
@@ -14,7 +15,7 @@ def test_env_vars_have_prio(iw_config_dict: dict[str, Any], monkeypatch: pytest.
     monkeypatch.setenv('INSTAWOW_GAME_FLAVOUR', 'classic')
 
     config = Config(**iw_config_dict)
-    assert config.config_dir == Path('/foo').resolve()
+    assert config.global_config.config_dir == Path('/foo').resolve()
     assert config.game_flavour is Flavour.burning_crusade_classic
 
 
@@ -26,7 +27,7 @@ def test_config_dir_is_populated(iw_config_dict: dict[str, Any]):
 def test_reading_missing_config_from_env_raises(
     iw_config_dict: dict[str, Any], monkeypatch: pytest.MonkeyPatch
 ):
-    monkeypatch.setenv('INSTAWOW_CONFIG_DIR', str(iw_config_dict['config_dir']))
+    monkeypatch.setenv('INSTAWOW_CONFIG_DIR', str(iw_config_dict['global_config']['config_dir']))
     with pytest.raises(FileNotFoundError):
         Config.read('__default__')
 
@@ -42,16 +43,16 @@ def test_default_config_dir_is_platform_appropriate(
 ):
     with monkeypatch.context() as patcher:
         patcher.setattr(sys, 'platform', 'linux')
-        config_dir = Config(**iw_config_dict_no_config_dir).config_dir
+        config_dir = Config(**iw_config_dict_no_config_dir).global_config.config_dir
         assert config_dir == Path.home() / '.config/instawow'
 
         patcher.setenv('XDG_CONFIG_HOME', '/foo')
-        config_dir = Config(**iw_config_dict_no_config_dir).config_dir
+        config_dir = Config(**iw_config_dict_no_config_dir).global_config.config_dir
         assert config_dir == Path('/foo/instawow')
 
     with monkeypatch.context() as patcher:
         patcher.setattr(sys, 'platform', 'darwin')
-        config_dir = Config(**iw_config_dict_no_config_dir).config_dir
+        config_dir = Config(**iw_config_dict_no_config_dir).global_config.config_dir
         assert config_dir == Path.home() / 'Library/Application Support/instawow'
 
 
@@ -60,11 +61,13 @@ def test_default_config_dir_is_win32_appropriate(
     iw_config_dict_no_config_dir: dict[str, Any], monkeypatch: pytest.MonkeyPatch
 ):
     assert (
-        Config(**iw_config_dict_no_config_dir).config_dir
+        Config(**iw_config_dict_no_config_dir).global_config.config_dir
         == Path.home() / 'AppData/Roaming/instawow'
     )
     monkeypatch.delenv('APPDATA')
-    assert Config(**iw_config_dict_no_config_dir).config_dir == Path.home() / 'instawow'
+    assert (
+        Config(**iw_config_dict_no_config_dir).global_config.config_dir == Path.home() / 'instawow'
+    )
 
 
 def test_can_infer_flavour_from_path():
@@ -87,11 +90,14 @@ def test_can_infer_flavour_from_path():
 
 
 def test_can_list_profiles(monkeypatch: pytest.MonkeyPatch, iw_config_dict: dict[str, Any]):
-    monkeypatch.setenv('INSTAWOW_CONFIG_DIR', str(iw_config_dict['config_dir']))
-    assert Config.list_profiles() == []
+    monkeypatch.setenv('INSTAWOW_CONFIG_DIR', str(iw_config_dict['global_config']['config_dir']))
+    assert Config.get_dummy_config().global_config.list_profiles() == []
     Config.parse_obj(iw_config_dict).write()
     Config.parse_obj({**iw_config_dict, 'profile': 'foo'}).write()
-    assert sorted(Config.list_profiles()) == ['__default__', 'foo']
+    assert sorted(Config.get_dummy_config().global_config.list_profiles()) == [
+        '__default__',
+        'foo',
+    ]
 
 
 def test_can_delete_profile(iw_config_dict: dict[str, Any]):

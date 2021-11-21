@@ -16,8 +16,7 @@ from yarl import URL
 from . import _deferred_types, manager, models
 from . import results as R
 from .cataloguer import BaseCatatalogueEntry
-from .common import Strategy
-from .config import Flavour
+from .common import Flavour, Strategy
 from .utils import StrEnum, gather, normalise_names, uniq
 
 if TYPE_CHECKING:  # pragma: no cover

@@ -13,7 +13,8 @@ from typing_extensions import Literal, Protocol, TypeAlias, TypedDict
 from yarl import URL
 
 from . import manager
-from .config import BaseConfig, Flavour
+from .common import Flavour
+from .config import BaseConfig
 from .utils import bucketise, chain_dict, gather
 from .utils import run_in_thread as t
 from .utils import shasum
@@ -182,7 +183,7 @@ class WaCompanionBuilder:
                 logger.info(f'{file} not found')
             else:
                 content = file.read_text(encoding='utf-8-sig', errors='replace')
-                aura_group_cache = self.manager.config.cache_dir / shasum(content)
+                aura_group_cache = self.manager.config.global_config.cache_dir / shasum(content)
                 if aura_group_cache.exists():
                     logger.info(f'loading {file} from cache at {aura_group_cache}')
                     aura_groups = model.parse_file(aura_group_cache)

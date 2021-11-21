@@ -12,7 +12,8 @@ from zipfile import ZipFile
 import pytest
 
 from instawow import __version__
-from instawow.config import Config, Flavour
+from instawow.common import Flavour
+from instawow.config import Config
 from instawow.manager import Manager, init_web_client
 
 inf = float('inf')
@@ -74,16 +75,19 @@ def iw_config_dict_no_config_dir(tmp_path: Path, request, iw_temp_dir: Path):
     addons = tmp_path / 'wow' / 'interface' / 'addons'
     addons.mkdir(parents=True)
     return {
+        'global_config': {
+            'temp_dir': iw_temp_dir,
+        },
         'profile': '__default__',
         'addon_dir': addons,
-        'temp_dir': iw_temp_dir,
         'game_flavour': request.param,
     }
 
 
 @pytest.fixture
 def iw_config_dict(tmp_path: Path, iw_config_dict_no_config_dir: dict[str, Any]):
-    return {**iw_config_dict_no_config_dir, 'config_dir': tmp_path / 'config'}
+    iw_config_dict_no_config_dir['global_config']['config_dir'] = tmp_path / 'config'
+    return iw_config_dict_no_config_dir
 
 
 @pytest.fixture

@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from instawow.config import Flavour
+from instawow.common import Flavour
 from instawow.manager import Manager
 from instawow.matchers import (
     AddonFolder,

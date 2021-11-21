@@ -138,7 +138,7 @@ class DeleteConfigParams(_ProfileParamMixin, BaseParams):
 class ListProfilesParams(BaseParams):
     @t
     def respond(self, managers: _ManagerWorkQueue) -> list[str]:
-        return Config.list_profiles()
+        return Config.get_dummy_config().global_config.list_profiles()
 
 
 class Source(TypedDict):
