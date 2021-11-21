@@ -20,9 +20,6 @@ class _PathNotWritableDirectoryError(PydanticValueError):
     msg_template = '"{path}" is not a writable directory'
 
 
-_novalidate = '__novalidate__'
-
-
 def _expand_path(value: Path):
     return Path(os.path.abspath(os.path.expanduser(value)))
 
@@ -116,12 +113,9 @@ class Config(BaseConfig):
     @validator('addon_dir')
     def _validate_path_is_writable_dir(cls, value: Path) -> Path:
         value = _expand_path(value)
-        if value.name == _novalidate:
-            return value
-        elif not _is_writable_dir(value):
+        if not _is_writable_dir(value):
             raise _PathNotWritableDirectoryError(path=value)
-        else:
-            return value
+        return value
 
     @staticmethod
     def infer_flavour(folder: os.PathLike[str] | str) -> Flavour:
@@ -138,13 +132,14 @@ class Config(BaseConfig):
     @classmethod
     def get_dummy_config(cls, **kwargs: object) -> Config:
         "Create a dummy configuration with default values."
-        defaults: dict[str, object] = {
-            'global_config': {},
-            'profile': _novalidate,
-            'addon_dir': _novalidate,
+        values = {
+            'global_config': _GlobalConfig(),
+            'profile': '__novalidate__',
+            'addon_dir': '__novalidate__',
             'game_flavour': Flavour.retail,
+            **kwargs,
         }
-        dummy_config = cls.parse_obj({**defaults, **kwargs})
+        dummy_config = cls.construct(**values)
         return dummy_config
 
     @classmethod
