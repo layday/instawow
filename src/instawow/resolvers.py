@@ -870,6 +870,7 @@ class GithubResolver(BaseResolver):
         async with self.manager.web_client.get(release_url) as response:
             if response.status == 404:
                 raise R.PkgFileUnavailable('release not found')
+            response.raise_for_status()
 
             response_json = await response.json()
             if defn.strategy is Strategy.latest:
