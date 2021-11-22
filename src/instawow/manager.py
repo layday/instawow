@@ -349,7 +349,7 @@ class Manager:
     ]
 
     _catalogue_url = 'https://raw.githubusercontent.com/layday/instawow-data/data/base-catalogue-v5.compact.json'  # v5
-    _catalogue_filename = 'catalogue.json'
+    _catalogue_filename = 'catalogue-v5.json'
 
     _normalise_search_terms = staticmethod(normalise_names(''))
 
