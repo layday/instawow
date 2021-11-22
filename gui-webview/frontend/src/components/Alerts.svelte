@@ -77,7 +77,7 @@
     backdrop-filter: blur(5px);
     border-bottom-left-radius: 0.25rem;
     border-bottom-right-radius: 0.25rem;
-    box-shadow: 0 1rem 3rem var(--inverse-color-alpha-10);
+    box-shadow: 0 1rem 3rem var(--inverse-color-alpha-10), inset 0 1px var(--base-color-tone-20);
     font-size: 0.8em;
     display: grid;
     grid-template-columns: auto 6rem;
@@ -122,5 +122,9 @@
       width: 1rem;
       fill: var(--inverse-color);
     }
+  }
+
+  .message {
+    word-break: break-all;
   }
 </style>
