@@ -348,7 +348,9 @@ class Manager:
         InstawowResolver,
     ]
 
+    _catalogue_url = 'https://raw.githubusercontent.com/layday/instawow-data/data/base-catalogue-v5.compact.json'  # v5
     _catalogue_filename = 'catalogue.json'
+
     _normalise_search_terms = staticmethod(normalise_names(''))
 
     def __init__(
@@ -544,12 +546,8 @@ class Manager:
                     await t(catalogue_json.read_text)(encoding='utf-8')
                 )
         else:
-            url = (
-                'https://raw.githubusercontent.com/layday/instawow-data/data/'
-                'master-catalogue-v4.compact.json'
-            )  # v4
             async with self.web_client.get(
-                url,
+                self._catalogue_url,
                 trace_request_ctx=_GenericDownloadTraceRequestCtx(
                     report_progress='generic', label='Synchronising catalogue'
                 ),
