@@ -548,6 +548,7 @@ class Manager:
         else:
             async with self.web_client.get(
                 self._catalogue_url,
+                raise_for_status=True,
                 trace_request_ctx=_GenericDownloadTraceRequestCtx(
                     report_progress='generic', label='Synchronising catalogue'
                 ),
