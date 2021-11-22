@@ -40,12 +40,14 @@ export type Profile = string;
 export type Profiles = Profile[];
 
 export type Config = {
+  global_config: {
+    config_dir: string;
+    auto_update_check: boolean;
+    temp_dir: string;
+  };
   addon_dir: string;
-  auto_update_check: boolean;
-  config_dir: string;
   game_flavour: Flavour;
   profile: string;
-  temp_dir: string;
 };
 
 export type Sources = {
