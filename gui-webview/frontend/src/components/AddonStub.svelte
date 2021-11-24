@@ -88,7 +88,7 @@
 </div>
 
 <style lang="scss">
-  @import "scss/vars";
+  @use "scss/vars";
 
   .addon-stub {
     transition: all 0.2s;
@@ -116,7 +116,7 @@
   }
 
   .defn-or-version {
-    font-family: $mono-font-stack;
+    font-family: vars.$mono-font-stack;
     font-size: 0.7rem;
   }
 

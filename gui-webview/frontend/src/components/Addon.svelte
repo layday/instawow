@@ -114,7 +114,7 @@
 </div>
 
 <style lang="scss">
-  @import "scss/vars";
+  @use "scss/vars";
 
   .addon {
     position: relative;
@@ -128,11 +128,11 @@
     }
 
     &.status-outdated {
-      @include striped-background(-45deg, rgba(lime, 0.1));
+      @include vars.striped-background(-45deg, rgba(lime, 0.1));
     }
 
     &.status-pinned {
-      @include striped-background(-45deg, rgba(gold, 0.1));
+      @include vars.striped-background(-45deg, rgba(gold, 0.1));
     }
   }
 
@@ -175,7 +175,7 @@
     .defn,
     .versions {
       margin-top: 0.25rem;
-      font-family: $mono-font-stack;
+      font-family: vars.$mono-font-stack;
       font-size: 0.7em;
       color: var(--inverse-color-tone-20);
     }
@@ -229,8 +229,8 @@
       font-weight: 600;
       border: 0;
       border-radius: $middle-border-radius;
-      background-color: $action-button-bg-color;
-      color: $action-button-text-color;
+      background-color: vars.$action-button-bg-color;
+      color: vars.$action-button-text-color;
       transition: all 0.2s;
 
       &:disabled {
@@ -238,14 +238,14 @@
       }
 
       &:focus {
-        background-color: $action-button-focus-bg-color;
+        background-color: vars.$action-button-focus-bg-color;
       }
 
       :global(.icon) {
         display: block;
         width: 0.8rem;
         height: 0.8rem;
-        fill: $action-button-text-color;
+        fill: vars.$action-button-text-color;
       }
     }
   }
@@ -256,7 +256,7 @@
     margin-left: 0.75em;
 
     :global(circle) {
-      stroke: $action-button-bg-color;
+      stroke: vars.$action-button-bg-color;
     }
   }
 </style>

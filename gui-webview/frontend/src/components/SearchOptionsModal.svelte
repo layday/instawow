@@ -105,8 +105,7 @@
 </Modal>
 
 <style lang="scss">
-  @import "scss/modal";
-  @import "scss/vars";
+  @use "scss/modal";
 
   form {
     .form-grid {
@@ -117,7 +116,7 @@
     }
 
     label {
-      line-height: $form-el-line-height;
+      line-height: modal.$form-el-line-height;
       color: var(--inverse-color-tone-10);
       text-align: right;
     }
@@ -132,7 +131,7 @@
       li {
         cursor: pointer;
         padding: 0.2rem 0.4rem;
-        border-radius: $middle-border-radius;
+        border-radius: modal.$middle-border-radius;
         background-color: var(--inverse-color-tone-20);
         color: var(--base-color);
 
@@ -142,13 +141,13 @@
         }
 
         &:first-child {
-          border-top-left-radius: $edge-border-radius;
-          border-bottom-left-radius: $edge-border-radius;
+          border-top-left-radius: modal.$edge-border-radius;
+          border-bottom-left-radius: modal.$edge-border-radius;
         }
 
         &:last-child {
-          border-top-right-radius: $edge-border-radius;
-          border-bottom-right-radius: $edge-border-radius;
+          border-top-right-radius: modal.$edge-border-radius;
+          border-bottom-right-radius: modal.$edge-border-radius;
         }
       }
     }

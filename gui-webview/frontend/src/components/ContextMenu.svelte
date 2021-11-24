@@ -38,7 +38,7 @@
 </div>
 
 <style lang="scss">
-  @import "scss/vars";
+  @use "scss/vars";
 
   $middle-border-radius: 0.75em;
 

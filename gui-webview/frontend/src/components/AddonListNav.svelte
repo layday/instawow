@@ -211,7 +211,7 @@
 <style lang="scss">
   @use "sass:math";
 
-  @import "scss/vars";
+  @use "scss/vars";
 
   $line-height: 1.8em;
   $middle-border-radius: math.div($line-height, 6);
@@ -315,7 +315,7 @@
     }
 
     &.dirty {
-      @include striped-background(-45deg, rgba(salmon, 0.5));
+      @include vars.striped-background(-45deg, rgba(salmon, 0.5));
     }
 
     &.reconciliation-stage-control {

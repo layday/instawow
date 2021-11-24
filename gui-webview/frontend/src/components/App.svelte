@@ -55,37 +55,37 @@
 {/await}
 
 <style lang="scss">
-  @import "scss/vars";
+  @use "scss/vars";
 
   :global(:root) {
-    --base-color: #{$base-color-light};
-    --base-color-tone-10: #{lighten($base-color-light, 05%)};
-    --base-color-tone-20: #{rgba($inverse-color-light, 0.1)};
-    --base-color-alpha-65: #{rgba($base-color-light, 0.65)};
-    --inverse-color: #{$inverse-color-light};
-    --inverse-color-alpha-05: #{rgba($inverse-color-light, 0.05)};
-    --inverse-color-alpha-10: #{rgba($inverse-color-light, 0.1)};
-    --inverse-color-alpha-20: #{rgba($inverse-color-light, 0.2)};
-    --inverse-color-tone-10: #{lighten($inverse-color-light, 10%)};
-    --inverse-color-tone-20: #{lighten($inverse-color-light, 20%)};
+    --base-color: #{vars.$base-color-light};
+    --base-color-tone-10: #{lighten(vars.$base-color-light, 05%)};
+    --base-color-tone-20: #{rgba(vars.$inverse-color-light, 0.1)};
+    --base-color-alpha-65: #{rgba(vars.$base-color-light, 0.65)};
+    --inverse-color: #{vars.$inverse-color-light};
+    --inverse-color-alpha-05: #{rgba(vars.$inverse-color-light, 0.05)};
+    --inverse-color-alpha-10: #{rgba(vars.$inverse-color-light, 0.1)};
+    --inverse-color-alpha-20: #{rgba(vars.$inverse-color-light, 0.2)};
+    --inverse-color-tone-10: #{lighten(vars.$inverse-color-light, 10%)};
+    --inverse-color-tone-20: #{lighten(vars.$inverse-color-light, 20%)};
     --alert-background-color: #{rgba(salmon, 0.5)};
-    --dropdown-arrow: #{generate-dropdown-arrow($inverse-color-light)};
+    --dropdown-arrow: #{generate-dropdown-arrow(vars.$inverse-color-light)};
   }
 
   @media (prefers-color-scheme: dark) {
     :global(:root) {
-      --base-color: #{$base-color-dark};
-      --base-color-tone-10: #{darken($base-color-dark, 02%)};
-      --base-color-tone-20: #{darken($base-color-dark, 10%)};
-      --base-color-alpha-65: #{rgba($base-color-dark, 0.65)};
-      --inverse-color: #{$inverse-color-dark};
-      --inverse-color-alpha-05: #{rgba($inverse-color-dark, 0.05)};
-      --inverse-color-alpha-10: #{rgba($inverse-color-dark, 0.15)};
-      --inverse-color-alpha-20: #{rgba($inverse-color-dark, 0.25)};
-      --inverse-color-tone-10: #{darken($inverse-color-dark, 05%)};
-      --inverse-color-tone-20: #{darken($inverse-color-dark, 10%)};
+      --base-color: #{vars.$base-color-dark};
+      --base-color-tone-10: #{darken(vars.$base-color-dark, 02%)};
+      --base-color-tone-20: #{darken(vars.$base-color-dark, 10%)};
+      --base-color-alpha-65: #{rgba(vars.$base-color-dark, 0.65)};
+      --inverse-color: #{vars.$inverse-color-dark};
+      --inverse-color-alpha-05: #{rgba(vars.$inverse-color-dark, 0.05)};
+      --inverse-color-alpha-10: #{rgba(vars.$inverse-color-dark, 0.15)};
+      --inverse-color-alpha-20: #{rgba(vars.$inverse-color-dark, 0.25)};
+      --inverse-color-tone-10: #{darken(vars.$inverse-color-dark, 05%)};
+      --inverse-color-tone-20: #{darken(vars.$inverse-color-dark, 10%)};
       --alert-background-color: #{rgba(salmon, 0.5)};
-      --dropdown-arrow: #{generate-dropdown-arrow($inverse-color-dark)};
+      --dropdown-arrow: #{generate-dropdown-arrow(vars.$inverse-color-dark)};
     }
   }
 
@@ -141,7 +141,7 @@
       .instawow-version {
         flex-grow: 1;
         text-align: right;
-        font-family: $mono-font-stack;
+        font-family: vars.$mono-font-stack;
         font-size: 0.7em;
 
         span {

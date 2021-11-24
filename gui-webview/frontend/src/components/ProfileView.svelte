@@ -674,7 +674,7 @@
 {/if}
 
 <style lang="scss">
-  @import "scss/vars";
+  @use "scss/vars";
 
   .placeholder {
     display: flex;

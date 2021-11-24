@@ -1,6 +1,6 @@
 @use "sass:math";
 
-@import "vars";
+@use "vars";
 
 $form-el-line-height: 1.75em;
 $middle-border-radius: math.div($form-el-line-height, 6);
@@ -69,11 +69,11 @@ $edge-border-radius: math.div($form-el-line-height, 4);
     font-weight: 500;
 
     &[type="submit"] {
-      background-color: $action-button-bg-color;
-      color: $action-button-text-color;
+      background-color: vars.$action-button-bg-color;
+      color: vars.$action-button-text-color;
 
       &:focus {
-        background-color: $action-button-focus-bg-color;
+        background-color: vars.$action-button-focus-bg-color;
       }
     }
   }

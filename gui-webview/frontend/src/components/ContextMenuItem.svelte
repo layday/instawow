@@ -11,15 +11,15 @@
 </li>
 
 <style lang="scss">
-  @import "scss/vars";
+  @use "scss/vars";
 
   li {
     padding: 0 0.8rem;
     line-height: 1.2rem;
 
     &:not(.divider):hover {
-      background-color: $action-button-bg-color;
-      color: $action-button-text-color;
+      background-color: vars.$action-button-bg-color;
+      color: vars.$action-button-text-color;
     }
 
     hr {

@@ -153,7 +153,7 @@ will be lost.`
 </dialog>
 
 <style lang="scss">
-  @import "scss/modal";
+  @use "scss/modal";
 
   .modal {
     position: absolute;

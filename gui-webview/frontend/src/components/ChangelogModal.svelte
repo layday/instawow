@@ -34,7 +34,7 @@
 </Modal>
 
 <style lang="scss">
-  @import "scss/modal";
+  @use "scss/modal";
 
   .modal {
     display: flex;

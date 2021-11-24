@@ -13,7 +13,7 @@
 </div>
 
 <style lang="scss">
-  @import "scss/vars";
+  @use "scss/vars";
 
   .modal-wrapper {
     @extend %cover-canvas;
