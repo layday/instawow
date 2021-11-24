@@ -176,7 +176,7 @@ class ManagerWrapper:
         except FileNotFoundError:
             config = self.ctx.invoke(configure, promptless=False)
 
-        setup_logging(config, self.ctx.params['log_level'], self.ctx.params['log_to_stderr'])
+        setup_logging(config.logging_dir, self.ctx.params['log_level'], self.ctx.params['log_to_stderr'])
 
         manager = _manager.Manager.from_config(config)
         self.ctx.call_on_close(manager.database.close)
@@ -947,6 +947,6 @@ def gui(ctx: click.Context) -> None:
 
     dummy_config = Config.get_dummy_config(profile='__jsonrpc__').ensure_dirs()
     params = ctx.find_root().params
-    setup_logging(dummy_config, params['log_level'], params['log_to_stderr'])
+    setup_logging(dummy_config.logging_dir, params['log_level'], params['log_to_stderr'])
 
     InstawowApp(version=__version__).main_loop()

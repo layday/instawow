@@ -201,12 +201,37 @@ class Config(BaseConfig):
         return self.profile_dir / 'db.sqlite'
 
 
-def setup_logging(
-    config: Config, log_level: str = 'INFO', log_to_stderr: bool = False
-) -> int | None:
+def _patch_loguru_enqueue():
+    import queue
+    import threading
+    from types import SimpleNamespace
+
+    import loguru._handler
+
+    # On some systems when instantiating multiprocessing constructs Python
+    # starts the multiprocessing resource monitor.  This is done in a subprocess
+    # with ``sys.executable`` as the first argument.  In briefcase
+    # this points to the same executable that starts the app - there
+    # isn't a separate Python executable.  So with every new resource
+    # monitor that spawns so does a new copy of the app, ad infinitum.
+    # Even when not using briefcase spawning a subprocess slows down start-up,
+    # not least because it imports a second copy of the ``site`` module.
+    # We replace these multiprocessing constructs with their threading
+    # equivalents in loguru since loguru itself does not spawn a subprocesses
+    # but creates a separate thread for its "enqueued" logger and we don't
+    # use multiprocessing in instawow.
+    # This will definitely not come back to bite us.
+    setattr(
+        loguru._handler,
+        'multiprocessing',
+        SimpleNamespace(SimpleQueue=queue.Queue, Event=threading.Event, Lock=threading.Lock),
+    )
+
+
+def _intercept_logging_module_calls(log_level: str):  # pragma: no cover
     import logging
 
-    class InterceptHandler(logging.Handler):  # pragma: no cover
+    class InterceptHandler(logging.Handler):
         logging_filename = getattr(logging, '__file__', None)
 
         def emit(self, record: logging.LogRecord) -> None:
@@ -227,11 +252,20 @@ def setup_logging(
 
     logging.basicConfig(handlers=[InterceptHandler()], level=log_level)
 
+
+def setup_logging(
+    logging_dir: Path, log_level: str = 'INFO', log_to_stderr: bool = False
+) -> int | None:
+    if __debug__:
+        _intercept_logging_module_calls(log_level)
+
     if not log_to_stderr:
+        _patch_loguru_enqueue()
+
         (handler_id,) = logger.configure(
             handlers=[
                 {
-                    'sink': config.logging_dir / 'error.log',
+                    'sink': logging_dir / 'error.log',
                     'level': log_level,
                     'rotation': '5 MB',
                     'retention': 5,  # Number of log files to keep
