@@ -211,8 +211,8 @@ def get_database_state(engine: sa_future.Engine) -> DatabaseState:
 
 
 def migrate_database(engine: sa_future.Engine) -> None:
-    should_migrate = get_database_state(engine)
-    if should_migrate != DatabaseState.current:
+    database_state = get_database_state(engine)
+    if database_state != DatabaseState.current:
         import alembic.command
         import alembic.config
 
@@ -220,7 +220,7 @@ def migrate_database(engine: sa_future.Engine) -> None:
         alembic_config.set_main_option('script_location', f'{__package__}:migrations')
         alembic_config.set_main_option('sqlalchemy.url', str(engine.url))
 
-        if should_migrate == DatabaseState.uninitialised:
+        if database_state == DatabaseState.uninitialised:
             db.metadata.create_all(engine)
             alembic.command.stamp(alembic_config, DB_REVISION)
         else:

@@ -176,7 +176,9 @@ class ManagerWrapper:
         except FileNotFoundError:
             config = self.ctx.invoke(configure, promptless=False)
 
-        setup_logging(config.logging_dir, self.ctx.params['log_level'], self.ctx.params['log_to_stderr'])
+        setup_logging(
+            config.logging_dir, self.ctx.params['log_level'], self.ctx.params['log_to_stderr']
+        )
 
         manager = _manager.Manager.from_config(config)
         self.ctx.call_on_close(manager.database.close)
