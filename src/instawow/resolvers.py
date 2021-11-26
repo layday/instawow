@@ -390,6 +390,7 @@ class CurseResolver(BaseResolver):
                         for s in f['sortableGameVersion']
                     )
                     for f in files
+                    if not f['exposeAsAlternative']
                 ):
                     yield flavour
 
