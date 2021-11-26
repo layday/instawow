@@ -6,11 +6,13 @@ from enum import IntEnum
 from itertools import chain, takewhile
 import re
 import typing
-from typing import TYPE_CHECKING, Any, ClassVar
+from typing import Any, ClassVar
 
 from loguru import logger
 from pydantic import BaseModel
-from typing_extensions import Literal, Protocol, TypedDict
+from typing_extensions import Literal
+from typing_extensions import NotRequired as N
+from typing_extensions import Protocol, TypedDict
 from yarl import URL
 
 from . import _deferred_types, manager, models
@@ -18,9 +20,6 @@ from . import results as R
 from .cataloguer import BaseCatatalogueEntry
 from .common import Flavour, Strategy
 from .utils import StrEnum, gather, normalise_names, uniq
-
-if TYPE_CHECKING:  # pragma: no cover
-    from typing_extensions import NotRequired as N
 
 
 class ChangelogFormat(StrEnum):

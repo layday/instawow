@@ -5,11 +5,13 @@ from functools import partial, reduce
 from itertools import chain, product
 import time
 import typing
-from typing import TYPE_CHECKING, Any, TypeVar
+from typing import Any, TypeVar
 
 from loguru import logger
 from pydantic import BaseModel, Field, validator
-from typing_extensions import Literal, Protocol, TypeAlias, TypedDict
+from typing_extensions import Literal
+from typing_extensions import NotRequired as N
+from typing_extensions import Protocol, TypeAlias, TypedDict
 from yarl import URL
 
 from . import manager
@@ -18,11 +20,6 @@ from .config import BaseConfig
 from .utils import bucketise, chain_dict, gather
 from .utils import run_in_thread as t
 from .utils import shasum
-
-# ``NotRequired`` is provisional and does not exist at runtime
-if TYPE_CHECKING:  # pragma: no cover
-    from typing_extensions import NotRequired as N
-
 
 _TAuras = TypeVar('_TAuras', bound='BaseAuras')
 _Slug = str
