@@ -83,14 +83,17 @@ class Resolver(Protocol):
     @staticmethod
     def get_alias_from_url(url: URL) -> str | None:
         "Attempt to extract a ``Defn`` alias from a given URL."
+        ...
 
     async def resolve(
         self, defns: Sequence[Defn]
     ) -> dict[Defn, models.Pkg | R.ManagerError | R.InternalError]:
         "Resolve multiple ``Defn``s into packages."
+        ...
 
     async def resolve_one(self, defn: Defn, metadata: Any) -> models.Pkg:
         "Resolve a ``Defn`` into a package."
+        ...
 
     @classmethod
     async def catalogue(

@@ -24,10 +24,12 @@ class InstawowPlugin:
     @hookspec
     def instawow_add_commands(self) -> Iterable[click.Command]:
         "Additional commands to register with ``click``."
+        ...
 
     @hookspec
     def instawow_add_resolvers(self) -> Iterable[resolvers.Resolver]:
         "Additional resolvers to load."
+        ...
 
 
 @lru_cache(maxsize=None)
