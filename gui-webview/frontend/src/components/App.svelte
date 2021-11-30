@@ -5,7 +5,7 @@
   import ProfileView from "./ProfileView.svelte";
   import ProfileSwitcher from "./ProfileSwitcher.svelte";
 
-  let statusMessage = "";
+  let statusMessage = " ";
   let installedVersion: string;
   let newVersion: string | null;
 
@@ -24,16 +24,16 @@
 </script>
 
 {#await performInitialSetup()}
-  <main>
-    <header class="section section__menubar" />
-    <section class="section section__main" />
-    <footer class="section section__statusbar">
+  <div class="wrapper">
+    <header class="section menubar" />
+    <main class="section main" />
+    <footer class="section statusbar">
       <div class="status">loading…</div>
     </footer>
-  </main>
+  </div>
 {:then}
-  <main>
-    <header class="section section__menubar">
+  <div class="wrapper">
+    <header class="section menubar">
       <ProfileSwitcher />
       <div class="instawow-version">
         <b>instawow</b><!--
@@ -43,15 +43,15 @@
         </span>
       </div>
     </header>
-    <section class="section section__main">
+    <main class="section main">
       {#each [...$profiles.keys()] as profile (profile)}
         <ProfileView bind:statusMessage {profile} isActive={profile === $activeProfile} />
       {/each}
-    </section>
-    <footer class="section section__statusbar">
+    </main>
+    <footer class="section statusbar">
       <div class="status" in:fade>{statusMessage}</div>
     </footer>
-  </main>
+  </div>
 {/await}
 
 <style lang="scss">
@@ -69,7 +69,7 @@
     --inverse-color-tone-10: #{lighten(vars.$inverse-color-light, 10%)};
     --inverse-color-tone-20: #{lighten(vars.$inverse-color-light, 20%)};
     --alert-background-color: #{rgba(salmon, 0.5)};
-    --dropdown-arrow: #{generate-dropdown-arrow(vars.$inverse-color-light)};
+    --dropdown-arrow: #{vars.generate-dropdown-arrow(vars.$inverse-color-light)};
   }
 
   @media (prefers-color-scheme: dark) {
@@ -85,7 +85,7 @@
       --inverse-color-tone-10: #{darken(vars.$inverse-color-dark, 05%)};
       --inverse-color-tone-20: #{darken(vars.$inverse-color-dark, 10%)};
       --alert-background-color: #{rgba(salmon, 0.5)};
-      --dropdown-arrow: #{generate-dropdown-arrow(vars.$inverse-color-dark)};
+      --dropdown-arrow: #{vars.generate-dropdown-arrow(vars.$inverse-color-dark)};
     }
   }
 
@@ -119,59 +119,55 @@
     user-select: none;
   }
 
-  main {
+  .wrapper {
     display: flex;
     flex-direction: column;
     height: 100vh;
-
-    .section__menubar,
-    .section__statusbar {
-      background-color: var(--base-color);
-    }
   }
 
   .section {
     padding: 0 0.8em;
+  }
 
-    &__menubar {
-      display: flex;
-      align-items: center;
-      min-height: 55px;
+  .menubar {
+    display: flex;
+    align-items: center;
+    min-height: 55px;
 
-      .instawow-version {
-        flex-grow: 1;
-        text-align: right;
-        font-family: vars.$mono-font-stack;
-        font-size: 0.7em;
+    .instawow-version {
+      flex-grow: 1;
+      text-align: right;
+      font-family: vars.$mono-font-stack;
+      font-size: 0.7em;
 
-        span {
-          color: var(--inverse-color-tone-10);
-        }
-      }
-    }
-
-    &__main {
-      @extend %stretch-vertically;
-      z-index: 5;
-      padding-top: 0.8em;
-      background-color: var(--base-color-tone-10);
-      box-shadow: 0 -1px var(--base-color-tone-20), inset 0 -1px var(--base-color-tone-20);
-    }
-
-    &__statusbar {
-      padding-top: 0.5em;
-      padding-bottom: 0.5em;
-
-      .status {
-        font-size: 0.8em;
+      span {
         color: var(--inverse-color-tone-10);
       }
     }
+  }
 
-    &__menubar,
-    &__statusbar {
-      -webkit-user-select: none;
-      user-select: none;
+  .main {
+    @extend %stretch-vertically;
+    z-index: 5;
+    padding-top: 0.8em;
+    background-color: var(--base-color-tone-10);
+    box-shadow: 0 -1px var(--base-color-tone-20), inset 0 -1px var(--base-color-tone-20);
+  }
+
+  .statusbar {
+    padding-top: 0.5em;
+    padding-bottom: 0.5em;
+
+    .status {
+      font-size: 0.8em;
+      color: var(--inverse-color-tone-10);
     }
+  }
+
+  .menubar,
+  .statusbar {
+    background-color: var(--base-color);
+    -webkit-user-select: none;
+    user-select: none;
   }
 </style>
