@@ -1,3 +1,10 @@
+<script context="module" lang="ts">
+  export type Alert = {
+    heading: string;
+    message: string;
+  };
+</script>
+
 <script lang="ts">
   import {
     faArrowAltCircleLeft,
@@ -7,10 +14,7 @@
   import { fade } from "svelte/transition";
   import Icon from "./SvgIcon.svelte";
 
-  export let alerts: {
-    heading: string;
-    message: string;
-  }[];
+  export let alerts: Alert[];
 
   let alertIndex = 0;
 

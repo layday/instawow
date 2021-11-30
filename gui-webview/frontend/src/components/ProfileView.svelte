@@ -9,11 +9,13 @@
     AnyResult,
     Sources,
   } from "../api";
+  import type { Alert } from "./Alerts.svelte";
   import { ChangelogFormat, ReconciliationStage, Strategy, addonToDefn } from "../api";
   import { View } from "../constants";
   import bbobHTML from "@bbob/html";
   import bbobPresetHTML5 from "@bbob/preset-html5";
   import { faQuestion } from "@fortawesome/free-solid-svg-icons";
+  import { JSONRPCError } from "@open-rpc/client-js";
   import * as commonmark from "commonmark";
   import lodash from "lodash";
   import { onMount } from "svelte";
@@ -128,10 +130,7 @@
   } = defaultSearchState;
   let searchIsDirty = false;
 
-  let alerts: {
-    heading: string;
-    message: string;
-  }[] = [];
+  let alerts: Alert[] = [];
 
   let reconcileStage: ReconciliationStage = reconcileStages[0];
   let reconcileSelections: Addon[];
@@ -155,7 +154,7 @@
     yOffset: number;
   };
 
-  const updateAlerts = (method: string, combinedResult: (readonly [Addon, AnyResult])[]) => {
+  const alertAddonOpFailed = (method: string, combinedResult: (readonly [Addon, AnyResult])[]) => {
     const newAlerts = combinedResult
       .filter((c): c is [Addon, ErrorResult] => c[1].status !== "success")
       .map(([a, r]) => ({
@@ -165,12 +164,25 @@
     alerts = [...newAlerts, ...alerts];
   };
 
-  const countUpdates = () =>
-    (installedOutdatedCount = addons__Installed.reduce(
+  const maybeAlertJsonRpcError = (error: any) => {
+    if (error instanceof JSONRPCError) {
+      const alert_: Alert = {
+        heading: error.message,
+        message: (error.data as any).traceback_exception.filter(Boolean).slice(-1),
+      };
+      alerts = [alert_, ...alerts];
+    } else {
+      throw error;
+    }
+  };
+
+  const countUpdates = () => {
+    installedOutdatedCount = addons__Installed.reduce(
       (val, [thisAddon, otherAddon]) =>
         val + (otherAddon && thisAddon.version !== otherAddon.version ? 1 : 0),
       0
-    ));
+    );
+  };
 
   const regenerateFilteredAddons = () => {
     addons__FilterInstalled = addons__Installed.filter(([a]) =>
@@ -187,7 +199,7 @@
     });
   };
 
-  const scheduleDownloadProgressPolling = (delay: number = 1000) => {
+  const scheduleDownloadProgressPolling = (delay: number) => {
     const ticker = setInterval(async () => {
       const downloadProgress = await profileApi.getDownloadProgress();
       addonDownloadProgress = lodash.fromPairs(
@@ -195,9 +207,7 @@
       );
     }, delay);
 
-    return {
-      cancel: () => clearInterval(ticker),
-    };
+    return () => clearInterval(ticker);
   };
 
   const modifyAddons = async (
@@ -207,7 +217,7 @@
   ) => {
     const addonTolens = addons.map(createAddonToken);
     installedAddonsBeingModified = [...installedAddonsBeingModified, ...addonTolens];
-    const cancelDownloadProgessPolling = scheduleDownloadProgressPolling(1000).cancel;
+    const cancelDownloadProgessPolling = scheduleDownloadProgressPolling(1000);
 
     try {
       const modifyResults = await profileApi.modifyAddons(
@@ -234,7 +244,7 @@
         regenerateFilteredAddons();
         regenerateSearchAddons();
       }
-      updateAlerts(
+      alertAddonOpFailed(
         method,
         addons.map((a, i) => [a, modifyResults[i]])
       );
@@ -284,6 +294,7 @@
 
     try {
       const searchTermsSnapshot = searchTerms;
+
       if (searchTermsSnapshot) {
         let results: AnyResult[];
 
@@ -334,6 +345,8 @@
         regenerateSearchAddons();
         activeView = View.Search;
       }
+    } catch (error) {
+      maybeAlertJsonRpcError(error);
     } finally {
       searchesInProgress--;
     }
@@ -362,7 +375,7 @@
             thisAddon.name.toLowerCase(),
           ]
         );
-        updateAlerts("resolve", addonsToResults);
+        alertAddonOpFailed("resolve", addonsToResults);
       } finally {
         // Keep actions disabled for a little while longer while the add-ons
         // are being reshuffled to prevent misclicking
