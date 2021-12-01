@@ -367,7 +367,7 @@
         addons__Installed = lodash.sortBy(
           addonsToResults.map(([thisAddon, result]) => [
             thisAddon,
-            result.status === "success" ? result?.addon : thisAddon,
+            result.status === "success" ? result.addon : thisAddon,
           ]),
           // Haul outdated add-ons up to the top
           ([thisAddon, { version: otherVersion }]) => [
