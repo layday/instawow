@@ -36,7 +36,7 @@ from instawow.resolvers import Defn
 from instawow.utils import run_in_thread as t
 from instawow.utils import uniq
 
-from . import frontend, templates
+from . import frontend
 
 _T = TypeVar('_T')
 _P = ParamSpec('_P')
@@ -518,7 +518,7 @@ class _ManagerWorkQueue:
         return ((p, r()) for m, p, r in self._progress_reporters if m is manager)
 
 
-async def create_app() -> aiohttp.web.Application:
+async def create_app():
     managers = _ManagerWorkQueue()
 
     async def start_managers(app: aiohttp.web.Application):
@@ -530,7 +530,7 @@ async def create_app() -> aiohttp.web.Application:
     async def get_index(request: aiohttp.web.Request):
         return aiohttp.web.Response(
             content_type='text/html',
-            text=importlib.resources.read_text(templates, 'index.html'),
+            text=importlib.resources.read_text(frontend, 'index.html'),
         )
 
     async def get_static_file(request: aiohttp.web.Request):
@@ -571,7 +571,7 @@ async def create_app() -> aiohttp.web.Application:
     return app
 
 
-async def prepare() -> tuple[URL, Callable[[], Awaitable[None]]]:
+async def prepare():
     "Fire up the server."
     app = await create_app()
     app_runner = aiohttp.web.AppRunner(app)
