@@ -1,9 +1,9 @@
 <script lang="ts">
-  import type { Config } from "../api";
   import { fade } from "svelte/transition";
+  import type { Config } from "../api";
   import { activeProfile, api, profiles } from "../store";
-  import ProfileView from "./ProfileView.svelte";
   import ProfileSwitcher from "./ProfileSwitcher.svelte";
+  import ProfileView from "./ProfileView.svelte";
 
   let statusMessage = " ";
   let installedVersion: string;

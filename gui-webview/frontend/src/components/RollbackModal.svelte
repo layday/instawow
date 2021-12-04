@@ -1,9 +1,9 @@
 <script lang="ts">
-  import type { Addon } from "../api";
-  import { Strategy } from "../api";
   import { DateTime } from "luxon";
   import { createEventDispatcher } from "svelte";
   import { scale } from "svelte/transition";
+  import type { Addon } from "../api";
+  import { Strategy } from "../api";
   import Modal from "./Modal.svelte";
 
   export let show: boolean, addon: Addon;

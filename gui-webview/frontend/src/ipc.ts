@@ -1,4 +1,4 @@
-import { RequestManager, Client, WebSocketTransport } from "@open-rpc/client-js";
+import { Client, RequestManager, WebSocketTransport } from "@open-rpc/client-js";
 import { Lock } from "semaphore-async-await";
 
 /**

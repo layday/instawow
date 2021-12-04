@@ -1,7 +1,4 @@
 <script lang="ts">
-  import type { Addon, AddonWithMeta } from "../api";
-  import { Strategy } from "../api";
-  import { api } from "../store";
   import {
     faEllipsisH,
     faExternalLinkSquareAlt,
@@ -10,6 +7,9 @@
   import { DateTime } from "luxon";
   import { createEventDispatcher } from "svelte";
   import { fade } from "svelte/transition";
+  import type { Addon, AddonWithMeta } from "../api";
+  import { Strategy } from "../api";
+  import { api } from "../store";
   import ProgressIndicator from "./ProgressIndicator.svelte";
   import Icon from "./SvgIcon.svelte";
 

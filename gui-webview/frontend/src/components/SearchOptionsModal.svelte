@@ -1,9 +1,9 @@
 <script lang="ts">
-  import type { Sources } from "../api";
-  import { Flavour, Strategy } from "../api";
   import { DateTime } from "luxon";
   import { createEventDispatcher } from "svelte";
   import { fly, scale } from "svelte/transition";
+  import type { Sources } from "../api";
+  import { Flavour, Strategy } from "../api";
   import Modal from "./Modal.svelte";
 
   export let show: boolean,

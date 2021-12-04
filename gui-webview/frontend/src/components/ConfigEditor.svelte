@@ -1,12 +1,11 @@
 <script lang="ts">
-  import type { Config, PydanticValidationError } from "../api";
   import { faFolderOpen, faTrashAlt } from "@fortawesome/free-solid-svg-icons";
   import { JSONRPCError } from "@open-rpc/client-js";
   import lodash from "lodash";
   import { fade } from "svelte/transition";
+  import type { Config, PydanticValidationError } from "../api";
   import { Flavour } from "../api";
-  import { api } from "../store";
-  import { activeProfile, profiles } from "../store";
+  import { activeProfile, api, profiles } from "../store";
   import Icon from "./SvgIcon.svelte";
 
   export let editing: "new" | "existing" | false;

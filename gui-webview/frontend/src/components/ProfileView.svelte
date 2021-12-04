@@ -1,18 +1,7 @@
 <script context="module" lang="ts">
-  import type {
-    Addon,
-    AddonWithMeta,
-    CatalogueEntry,
-    Defn,
-    SuccessResult,
-    ErrorResult,
-    AnyResult,
-    Sources,
-  } from "../api";
-  import type { Alert } from "./Alerts.svelte";
-  import { ChangelogFormat, ReconciliationStage, Strategy, addonToDefn } from "../api";
-  import { View } from "../constants";
+  // @ts-ignore
   import bbobHTML from "@bbob/html";
+  // @ts-ignore
   import bbobPresetHTML5 from "@bbob/preset-html5";
   import { faQuestion } from "@fortawesome/free-solid-svg-icons";
   import { JSONRPCError } from "@open-rpc/client-js";
@@ -21,10 +10,24 @@
   import { onMount } from "svelte";
   import { flip } from "svelte/animate";
   import { fade } from "svelte/transition";
+  import type {
+    Addon,
+    AddonWithMeta,
+    AnyResult,
+    CatalogueEntry,
+    Defn,
+    ErrorResult,
+    Sources,
+    SuccessResult,
+  } from "../api";
+  import { addonToDefn, ChangelogFormat, ReconciliationStage, Strategy } from "../api";
+  import { View } from "../constants";
+  import { api, profiles } from "../store";
   import AddonComponent from "./Addon.svelte";
   import AddonContextMenu from "./AddonContextMenu.svelte";
   import AddonListNav from "./AddonListNav.svelte";
   import AddonStub from "./AddonStub.svelte";
+  import type { Alert } from "./Alerts.svelte";
   import Alerts from "./Alerts.svelte";
   import ChangelogModal from "./ChangelogModal.svelte";
   import RollbackModal from "./RollbackModal.svelte";
@@ -95,8 +98,6 @@
 </script>
 
 <script lang="ts">
-  import { api, profiles } from "../store";
-
   export let profile: string, isActive: boolean, statusMessage: string;
 
   const config = $profiles.get(profile)!;

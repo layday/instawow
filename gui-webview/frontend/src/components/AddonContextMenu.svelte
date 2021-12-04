@@ -1,6 +1,6 @@
 <script lang="ts">
-  import type { Addon } from "../api";
   import { createEventDispatcher } from "svelte";
+  import type { Addon } from "../api";
   import { Strategy } from "../api";
   import ContextMenu from "./ContextMenu.svelte";
   import ContextMenuItem from "./ContextMenuItem.svelte";

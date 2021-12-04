@@ -1,5 +1,5 @@
-import type { Config, Profile } from "./api";
 import { readable, writable } from "svelte/store";
+import type { Config, Profile } from "./api";
 import { Api } from "./api";
 import { RClient } from "./ipc";
 
