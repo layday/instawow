@@ -28,7 +28,7 @@
 
 {#if alert}
   <div class="alerts-wrapper">
-    <div class="alerts" transition:fade={{ duration: 200 }}>
+    <div class="alerts" role="alert" transition:fade={{ duration: 200 }}>
       <div class="current-alert">
         <h1>{alert.heading}</h1>
         <p class="message">{alert.message}</p>
