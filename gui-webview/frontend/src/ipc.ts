@@ -1,6 +1,8 @@
 import { Client, RequestManager, WebSocketTransport } from "@open-rpc/client-js";
 import { Lock } from "semaphore-async-await";
 
+export type RequestObject = Parameters<Client["request"]>[0];
+
 /**
  * A client wrapper which retrieves the server address from the backend and
  * automatically re-establishes the connection to the server when it drops.

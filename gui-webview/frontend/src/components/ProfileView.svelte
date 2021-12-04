@@ -20,8 +20,9 @@
     Sources,
     SuccessResult,
   } from "../api";
-  import { addonToDefn, ChangelogFormat, ReconciliationStage, Strategy } from "../api";
+  import { addonToDefn, Api, ChangelogFormat, ReconciliationStage, Strategy } from "../api";
   import { View } from "../constants";
+  import type { RequestObject } from "../ipc";
   import { api, profiles } from "../store";
   import AddonComponent from "./Addon.svelte";
   import AddonContextMenu from "./AddonContextMenu.svelte";
@@ -100,8 +101,19 @@
 <script lang="ts">
   export let profile: string, isActive: boolean, statusMessage: string;
 
+  class AlertOnErrorApi extends Api {
+    async request(requestObject: RequestObject) {
+      try {
+        return await super.request(requestObject);
+      } catch (error) {
+        alertForJsonRpcError(error);
+        throw error;
+      }
+    }
+  }
+
   const config = $profiles.get(profile)!;
-  const profileApi = $api.withProfile(profile);
+  const profileApi = $api.withProfile(profile, AlertOnErrorApi);
 
   let sources: Sources = {};
   let uriSchemes: string[];
@@ -165,15 +177,13 @@
     alerts = [...newAlerts, ...alerts];
   };
 
-  const maybeAlertJsonRpcError = (error: any) => {
+  const alertForJsonRpcError = (error: any) => {
     if (error instanceof JSONRPCError) {
       const alert_: Alert = {
         heading: error.message,
         message: (error.data as any).traceback_exception.filter(Boolean).slice(-1),
       };
       alerts = [alert_, ...alerts];
-    } else {
-      throw error;
     }
   };
 
@@ -346,8 +356,6 @@
         regenerateSearchAddons();
         activeView = View.Search;
       }
-    } catch (error) {
-      maybeAlertJsonRpcError(error);
     } finally {
       searchesInProgress--;
     }
