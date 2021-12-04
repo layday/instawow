@@ -12,7 +12,7 @@ from collections.abc import (
     Sequence,
     Set,
 )
-from contextlib import asynccontextmanager, contextmanager
+from contextlib import asynccontextmanager, contextmanager, nullcontext
 import contextvars as cv
 from datetime import datetime
 from enum import IntEnum
@@ -377,11 +377,13 @@ class Manager:
         *,
         web_client: _deferred_types.aiohttp.ClientSession | None = None,
         locks: defaultdict[str, asyncio.Lock] | None = None,
-    ) -> None:
+    ) -> nullcontext[None]:
         if web_client is not None:
             _web_client.set(web_client)
         if locks is not None:
             _locks.set(locks)
+
+        return nullcontext()
 
     @classmethod
     def from_config(cls, config: Config) -> Manager:

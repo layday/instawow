@@ -152,7 +152,7 @@ class Source(TypedDict):
 @_register_method('sources/list')
 class ListSourcesParams(_ProfileParamMixin, BaseParams):
     async def respond(self, managers: _ManagerWorkQueue) -> list[Source]:
-        manager = await managers.run(self.profile, _get_manager)
+        manager = await managers.get_manager(self.profile)
         return [
             {
                 'source': r.source,
@@ -168,7 +168,7 @@ class ListSourcesParams(_ProfileParamMixin, BaseParams):
 @_register_method('list')
 class ListInstalledParams(_ProfileParamMixin, BaseParams):
     async def respond(self, managers: _ManagerWorkQueue) -> list[models.Pkg]:
-        manager = await managers.run(self.profile, _get_manager)
+        manager = await managers.get_manager(self.profile)
         installed_pkgs = (
             manager.database.execute(sa.select(db.pkg).order_by(sa.func.lower(db.pkg.c.name)))
             .mappings()
@@ -354,7 +354,7 @@ class GetDownloadProgressParams(_ProfileParamMixin, BaseParams):
     async def respond(self, managers: _ManagerWorkQueue) -> list[DownloadProgressReport]:
         return [
             {'defn': Defn.from_pkg(p), 'progress': r}
-            for p, r in await managers.get_download_progress(self.profile)
+            for p, r in await managers.get_manager_download_progress(self.profile)
         ]
 
 
@@ -456,12 +456,8 @@ def _init_json_rpc_web_client(
     return init_web_client(trace_configs=[trace_config])
 
 
-async def _get_manager(manager: Manager):
-    return manager
-
-
 class _ManagerWorkQueue:
-    def __init__(self) -> None:
+    def __init__(self):
         self._loop = asyncio.get_running_loop()
         self._managers: dict[str, Manager] = {}
         self._queue: asyncio.Queue[_ManagerWorkQueueItem] = asyncio.Queue()
@@ -479,32 +475,31 @@ class _ManagerWorkQueue:
         if manager:
             manager.database.close()
 
+    async def _schedule_item(
+        self, future: asyncio.Future[Any], profile: str, coro_fn: Callable[..., Awaitable[Any]]
+    ):
+        try:
+            async with self._locks[f"load profile '{profile}'"]:
+                try:
+                    manager = self._managers[profile]
+                except KeyError:
+                    with _reraise_validation_error(_ConfigError):
+                        config = await t(Config.read)(profile)
+
+                    manager = self._managers[profile] = Manager.from_config(config)
+
+            result = await coro_fn(manager)
+        except BaseException as exc:
+            future.set_exception(exc)
+        else:
+            future.set_result(result)
+
     async def listen(self) -> None:
-        async def schedule(
-            future: asyncio.Future[Any], profile: str, coro_fn: Callable[..., Awaitable[Any]]
-        ):
-            try:
-                async with self._locks[f"load profile '{profile}'"]:
-                    try:
-                        manager = self._managers[profile]
-                    except KeyError:
-                        with _reraise_validation_error(_ConfigError):
-                            config = await t(Config.read)(profile)
-
-                        manager = self._managers[profile] = Manager.from_config(config)
-
-                result = await coro_fn(manager)
-            except BaseException as exc:
-                future.set_exception(exc)
-            else:
-                future.set_result(result)
-
-        Manager.contextualise(web_client=self._web_client, locks=self._locks)
-
-        while True:
-            item = await self._queue.get()
-            asyncio.create_task(schedule(*item))
-            self._queue.task_done()
+        with Manager.contextualise(web_client=self._web_client, locks=self._locks):
+            while True:
+                item = await self._queue.get()
+                asyncio.create_task(self._schedule_item(*item))
+                self._queue.task_done()
 
     async def run(
         self, profile: str, coro_fn: Callable[Concatenate[Manager, _P], Awaitable[_T]]
@@ -513,8 +508,14 @@ class _ManagerWorkQueue:
         self._queue.put_nowait((future, profile, coro_fn))
         return await asyncio.wait_for(future, None)
 
-    async def get_download_progress(self, profile: str) -> Iterator[tuple[models.Pkg, float]]:
-        manager = await self.run(profile, _get_manager)
+    async def get_manager(self, profile: str):
+        async def get_manager(manager: Manager):
+            return manager
+
+        return await self.run(profile, get_manager)
+
+    async def get_manager_download_progress(self, profile: str):
+        manager = await self.get_manager(profile)
         return ((p, r()) for m, p, r in self._progress_reporters if m is manager)
 
 
