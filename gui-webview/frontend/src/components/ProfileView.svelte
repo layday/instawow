@@ -17,7 +17,7 @@
     CatalogueEntry,
     Defn,
     ErrorResult,
-    Sources,
+    Source,
     SuccessResult,
   } from "../api";
   import { addonToDefn, Api, ChangelogFormat, ReconciliationStage, Strategy } from "../api";
@@ -115,7 +115,7 @@
   const config = $profiles.get(profile)!;
   const profileApi = $api.withProfile(profile, AlertOnErrorApi);
 
-  let sources: Sources = {};
+  let sources: { [source: string]: Source } = {};
   let uriSchemes: string[];
 
   let activeView: View = View.Installed;
@@ -533,8 +533,9 @@
   };
 
   onMount(async () => {
-    sources = await profileApi.listSources();
-    uriSchemes = [...Object.keys(sources), "http", "https"].map((s) => `${s}:`);
+    const apiSources = await profileApi.listSources();
+    sources = lodash.fromPairs(apiSources.map((s) => [s.source, s]));
+    uriSchemes = [...apiSources.map((s) => s.source), "http", "https"].map((s) => `${s}:`);
     await refreshInstalled(true);
     // Switch over to reconciliation if no add-ons are installed
     if (!addons__Installed.length) {

@@ -51,14 +51,12 @@ export type Config = {
   profile: string;
 };
 
-export type Sources = {
-  [source: string]: {
-    source: string;
-    name: string;
-    supported_strategies: string[];
-    supports_rollback: boolean;
-    changelog_format: ChangelogFormat;
-  };
+export type Source = {
+  source: string;
+  name: string;
+  supported_strategies: string[];
+  supports_rollback: boolean;
+  changelog_format: ChangelogFormat;
 };
 
 export type Addon = {
@@ -182,12 +180,11 @@ export class Api {
     return await this.request({ method: "config/list" });
   }
 
-  async listSources(): Promise<Sources> {
-    const result = await this.request({
+  async listSources(): Promise<Source[]> {
+    return await this.request({
       method: "sources/list",
       params: { profile: this.profile },
     });
-    return lodash.fromPairs(result.map((i: Sources["foo"]) => [i.source, i]));
   }
 
   async list(): Promise<ListResult> {
