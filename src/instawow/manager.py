@@ -269,7 +269,7 @@ def init_web_client(**kwargs: Any) -> _deferred_types.aiohttp.ClientSession:
         'connector': make_connector(),
         'headers': {'User-Agent': USER_AGENT},
         'trust_env': True,  # Respect the 'http_proxy' env var
-        'timeout': ClientTimeout(connect=60, sock_connect=10, sock_read=10),
+        'timeout': ClientTimeout(connect=60, sock_connect=10, sock_read=20),
         **kwargs,
     }
     return ClientSession(**kwargs)
