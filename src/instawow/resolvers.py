@@ -114,10 +114,9 @@ class BaseResolver(Resolver):
         async def resolve_one(self: BaseResolver, defn: Defn, metadata: Any) -> models.Pkg:
             if defn.strategy not in self.strategies:
                 raise R.PkgStrategyUnsupported(defn.strategy)
-
             return await orig_resolve_one(self, defn, metadata)
 
-        cls.resolve_one = resolve_one  # type: ignore
+        setattr(cls, 'resolve_one', resolve_one)
 
     @staticmethod
     def get_alias_from_url(url: URL) -> str | None:
