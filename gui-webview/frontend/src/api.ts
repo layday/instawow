@@ -207,7 +207,7 @@ export class Api {
         search_terms: searchTerms,
         limit: limit,
         sources: sources,
-        start_date: startDate ? new Date(startDate) : null,
+        start_date: startDate !== null ? new Date(startDate) : startDate,
       },
     });
   }
