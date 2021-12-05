@@ -15,7 +15,6 @@ from collections.abc import (
 from contextlib import asynccontextmanager, contextmanager, nullcontext
 import contextvars as cv
 from datetime import datetime
-from enum import IntEnum
 from functools import lru_cache, partial, wraps
 from itertools import chain, compress, filterfalse, repeat, starmap, takewhile
 import json
@@ -27,7 +26,6 @@ import urllib.parse
 
 from loguru import logger
 import sqlalchemy as sa
-import sqlalchemy.exc as sa_exc
 import sqlalchemy.future as sa_future
 from typing_extensions import Concatenate, Literal, ParamSpec, TypeAlias, TypedDict
 from yarl import URL
@@ -185,48 +183,6 @@ async def cache_response(
     return json.loads(text) if is_json else text
 
 
-class DatabaseState(IntEnum):
-    current = 0
-    old = 1
-    uninitialised = 2
-
-
-def get_database_state(engine: sa_future.Engine) -> DatabaseState:
-    with engine.connect() as connection:
-        try:
-            state = connection.execute(
-                sa.text(
-                    'SELECT ifnull((SELECT 0 FROM alembic_version WHERE version_num == :version_num), 1)',
-                ),
-                {'version_num': DB_REVISION},
-            ).scalar()
-        except sa_exc.OperationalError:
-            state = connection.execute(
-                sa.text(
-                    'SELECT ifnull((SELECT 1 FROM sqlite_master WHERE type = "table" LIMIT 1), 2)',
-                )
-            ).scalar()
-
-    return DatabaseState(state)
-
-
-def migrate_database(engine: sa_future.Engine) -> None:
-    database_state = get_database_state(engine)
-    if database_state != DatabaseState.current:
-        import alembic.command
-        import alembic.config
-
-        alembic_config = alembic.config.Config()
-        alembic_config.set_main_option('script_location', f'{__package__}:migrations')
-        alembic_config.set_main_option('sqlalchemy.url', str(engine.url))
-
-        if database_state == DatabaseState.uninitialised:
-            db.metadata.create_all(engine)
-            alembic.command.stamp(alembic_config, DB_REVISION)
-        else:
-            alembic.command.upgrade(alembic_config, DB_REVISION)
-
-
 def prepare_database(config: Config) -> sa_future.Engine:
     engine = sa.create_engine(
         f'sqlite:///{config.db_file}',
@@ -236,7 +192,7 @@ def prepare_database(config: Config) -> sa_future.Engine:
         # echo=True,
         future=True,
     )
-    migrate_database(engine)
+    db.migrate_database(engine, DB_REVISION)
     return engine
 
 

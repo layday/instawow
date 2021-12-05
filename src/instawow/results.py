@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from typing import ClassVar
 
 from typing_extensions import Literal
 
@@ -10,8 +9,8 @@ from .common import Strategy
 
 
 class ManagerResult:
-    status: ClassVar[str]
-    template: ClassVar[str]
+    status: str
+    template: str
 
     @property
     def message(self) -> str:
@@ -19,7 +18,7 @@ class ManagerResult:
 
 
 class PkgInstalled(ManagerResult):
-    status: ClassVar[Literal['success']] = 'success'
+    status: Literal['success'] = 'success'
     template = 'installed {self.pkg.version}'
 
     def __init__(self, pkg: models.Pkg) -> None:
@@ -28,7 +27,7 @@ class PkgInstalled(ManagerResult):
 
 
 class PkgUpdated(ManagerResult):
-    status: ClassVar[Literal['success']] = 'success'
+    status: Literal['success'] = 'success'
     template = 'updated {self.old_pkg.version} to {self.new_pkg.version}'
 
     def __init__(self, old_pkg: models.Pkg, new_pkg: models.Pkg) -> None:
@@ -38,7 +37,7 @@ class PkgUpdated(ManagerResult):
 
 
 class PkgRemoved(ManagerResult):
-    status: ClassVar[Literal['success']] = 'success'
+    status: Literal['success'] = 'success'
     template = 'removed'
 
     def __init__(self, old_pkg: models.Pkg) -> None:
@@ -47,7 +46,7 @@ class PkgRemoved(ManagerResult):
 
 
 class ManagerError(ManagerResult, Exception):
-    status: ClassVar[Literal['failure']] = 'failure'
+    status: Literal['failure'] = 'failure'
 
 
 class PkgAlreadyInstalled(ManagerError):
@@ -122,7 +121,7 @@ class PkgStrategyUnsupported(ManagerError):
 
 
 class InternalError(ManagerResult, Exception):
-    status: ClassVar[Literal['error']] = 'error'
+    status: Literal['error'] = 'error'
 
     def __init__(self, error: BaseException) -> None:
         super().__init__()

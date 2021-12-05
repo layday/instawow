@@ -8,7 +8,6 @@ from datetime import datetime
 from functools import partial
 import importlib.resources
 import os
-from types import SimpleNamespace
 import typing
 from typing import Any, TypeVar
 
@@ -430,7 +429,7 @@ def _init_json_rpc_web_client(
 ) -> aiohttp.ClientSession:
     async def do_on_request_end(
         client_session: aiohttp.ClientSession,
-        trace_config_ctx: SimpleNamespace,
+        trace_config_ctx: Any,
         params: aiohttp.TraceRequestEndParams,
     ) -> None:
         trace_request_ctx: TraceRequestCtx = trace_config_ctx.trace_request_ctx

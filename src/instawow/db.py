@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from enum import IntEnum
 
 from sqlalchemy import (
     Column,
@@ -11,7 +12,10 @@ from sqlalchemy import (
     Table,
     TypeDecorator,
     func,
+    text,
 )
+from sqlalchemy.exc import OperationalError
+from sqlalchemy.future import Engine
 
 
 class TZDateTime(TypeDecorator[datetime]):
@@ -105,3 +109,45 @@ pkg_version_log = Table(
         name='fk_pkg_version_log_pkg_source_and_id',
     ),
 )
+
+
+class DatabaseState(IntEnum):
+    current = 0
+    old = 1
+    uninitialised = 2
+
+
+def get_database_state(engine: Engine, revision: str):
+    with engine.connect() as connection:
+        try:
+            state = connection.execute(
+                text(
+                    'SELECT ifnull((SELECT 0 FROM alembic_version WHERE version_num == :revision), 1)',
+                ),
+                {'revision': revision},
+            ).scalar()
+        except OperationalError:
+            state = connection.execute(
+                text(
+                    'SELECT ifnull((SELECT 1 FROM sqlite_master WHERE type = "table" LIMIT 1), 2)',
+                )
+            ).scalar()
+
+    return DatabaseState(state)
+
+
+def migrate_database(engine: Engine, revision: str):
+    database_state = get_database_state(engine, revision)
+    if database_state != DatabaseState.current:
+        import alembic.command
+        import alembic.config
+
+        alembic_config = alembic.config.Config()
+        alembic_config.set_main_option('script_location', f'{__package__}:migrations')
+        alembic_config.set_main_option('sqlalchemy.url', str(engine.url))
+
+        if database_state == DatabaseState.uninitialised:
+            metadata.create_all(engine)
+            alembic.command.stamp(alembic_config, revision)
+        else:
+            alembic.command.upgrade(alembic_config, revision)
