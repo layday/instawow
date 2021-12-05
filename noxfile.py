@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from pathlib import Path
-from shutil import rmtree
 from textwrap import dedent
 
 import nox
@@ -74,7 +72,12 @@ def test(session: nox.Session, constraints: str):
 
     session.install('-c', constraints_txt, '.[gui, test]', './tests/plugin')
     session.run(
-        *('coverage', 'run', '-m', 'pytest', '-n', 'auto'),
+        'coverage',
+        'run',
+        '-m',
+        'pytest',
+        '-n',
+        'auto',
         env={'COVERAGE_PROCESS_START': 'pyproject.toml'},
     )
     session.run('coverage', 'combine')
@@ -92,9 +95,7 @@ def type_check(session: nox.Session):
 @nox.session(python=False)
 def bundle_frontend(session: nox.Session):
     "Bundle the frontend."
-    for file in Path().glob('gui-webview/src/instawow_gui/frontend/svelte-*'):
-        file.unlink()
-
+    session.run('git', 'clean', '-fX', 'gui-webview/src/instawow_gui/frontend', external=True)
     session.chdir('gui-webview/frontend')
     session.run('npx', 'rollup', '-c', external=True)
 
@@ -102,7 +103,7 @@ def bundle_frontend(session: nox.Session):
 @nox.session
 def build_dists(session: nox.Session):
     "Build an sdist and wheel."
-    rmtree('dist', ignore_errors=True)
+    session.run('git', 'clean', '-fdX', 'dist', external=True)
     session.install(
         'build',
         'poetry-core @ git+https://github.com/layday/poetry-core@fix-multi-package-srcs',
@@ -147,4 +148,4 @@ def freeze_cli(session: nox.Session):
         '--console',
         main_py,
     )
-    Path('instawow-standalone.spec').unlink()
+    session.run('git', 'clean', '-fX', 'instawow-standalone.spec', external=True)
