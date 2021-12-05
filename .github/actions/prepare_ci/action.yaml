@@ -1,0 +1,15 @@
+---
+runs:
+  using: "composite"
+  steps:
+    - name: Install nox
+      run: pipx install nox
+      shell: bash
+    - name: Install test Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-install-version || matrix.python-version }}
+    - name: Install libgirepository
+      run: sudo apt-get install -y libgirepository1.0-dev
+      if: matrix.os == 'ubuntu-latest'
+      shell: bash

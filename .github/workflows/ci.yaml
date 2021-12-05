@@ -18,26 +18,34 @@ jobs:
     steps:
       - name: Clone the repo
         uses: actions/checkout@v2
-      - name: Install Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v2
-        with:
-          python-version: ${{ matrix.python-install-version || matrix.python-version }}
-      - name: Install Toga Linux dependencies
-        run: sudo apt-get install -y libgirepository1.0-dev
-        if: matrix.os == 'ubuntu-latest'
-      - name: Install nox
-        run: python -m pip install nox
-      - name: Run pytest
+      - name: Prepare environment
+        uses: ./.github/actions/prepare_ci
+      - name: Run tests
         run: >-
-          python -m nox
+          nox
           --force-python ${{ matrix.python-version }} --error-on-missing-interpreters
           -s test
-      - name: Install Node 16
+  type-check:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, ubuntu-latest, windows-latest]
+        python-version: ["3.7", "3.8", "3.9", "3.10"]
+        exclude:
+          - os: windows-latest
+            python-version: "3.10"
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Clone the repo
+        uses: actions/checkout@v2
+      - name: Prepare environment
+        uses: ./.github/actions/prepare_ci
+      - name: Install Node 16 for Pyright
         uses: actions/setup-node@v2
         with:
-          node-version: '16'
-      - name: Run pyright
+          node-version: "16"
+      - name: Type check
         run: >-
-          python -m nox
+          nox
           --force-python ${{ matrix.python-version }} --error-on-missing-interpreters
           -s type_check
