@@ -2,12 +2,12 @@
   import { DateTime } from "luxon";
   import { createEventDispatcher } from "svelte";
   import { fly, scale } from "svelte/transition";
-  import type { Sources } from "../api";
+  import type { Source } from "../api";
   import { Flavour, Strategy } from "../api";
   import Modal from "./Modal.svelte";
 
   export let show: boolean,
-    sources: Sources,
+    sources: Source[],
     flavour: Flavour,
     searchSources: string[],
     searchFromAlias: boolean,
@@ -55,7 +55,7 @@
           disabled={searchFromAlias}
           bind:value={searchSources}
         >
-          {#each Object.values(sources) as { source, name }}
+          {#each sources as { source, name }}
             <option value={source}>{name}</option>
           {/each}
         </select>

@@ -617,8 +617,8 @@
     {/if}
     {#if searchOptionsModal}
       <SearchOptionsModal
-        {sources}
         flavour={config.game_flavour}
+        sources={Object.values(sources)}
         on:requestSearch={() => search()}
         on:requestReset={() => resetSearchState()}
         bind:show={searchOptionsModal}
