@@ -1,3 +1,5 @@
+@use "sass:math";
+
 $mono-font-stack: Menlo, Monaco, Consolas, monospace;
 
 $base-color-light: rgb(236, 236, 236);
@@ -8,6 +10,10 @@ $inverse-color-dark: invert($base-color-dark);
 $action-button-bg-color: rgb(24, 136, 255);
 $action-button-focus-bg-color: rgb(0, 104, 217);
 $action-button-text-color: #efefef;
+
+$modal-form-el-line-height: 1.75em;
+$modal-middle-border-radius: math.div($modal-form-el-line-height, 6);
+$modal-edge-border-radius: math.div($modal-form-el-line-height, 4);
 
 %unstyle-list {
   list-style: none;

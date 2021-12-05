@@ -1,0 +1,213 @@
+@use "vars";
+
+:root {
+  --base-color: #{vars.$base-color-light};
+  --base-color-tone-10: #{lighten(vars.$base-color-light, 05%)};
+  --base-color-tone-20: #{rgba(vars.$inverse-color-light, 0.1)};
+  --base-color-alpha-65: #{rgba(vars.$base-color-light, 0.65)};
+  --inverse-color: #{vars.$inverse-color-light};
+  --inverse-color-alpha-05: #{rgba(vars.$inverse-color-light, 0.05)};
+  --inverse-color-alpha-10: #{rgba(vars.$inverse-color-light, 0.1)};
+  --inverse-color-alpha-20: #{rgba(vars.$inverse-color-light, 0.2)};
+  --inverse-color-tone-10: #{lighten(vars.$inverse-color-light, 10%)};
+  --inverse-color-tone-20: #{lighten(vars.$inverse-color-light, 20%)};
+  --alert-background-color: #{rgba(salmon, 0.5)};
+  --dropdown-arrow: #{vars.generate-dropdown-arrow(vars.$inverse-color-light)};
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --base-color: #{vars.$base-color-dark};
+    --base-color-tone-10: #{darken(vars.$base-color-dark, 02%)};
+    --base-color-tone-20: #{darken(vars.$base-color-dark, 10%)};
+    --base-color-alpha-65: #{rgba(vars.$base-color-dark, 0.65)};
+    --inverse-color: #{vars.$inverse-color-dark};
+    --inverse-color-alpha-05: #{rgba(vars.$inverse-color-dark, 0.05)};
+    --inverse-color-alpha-10: #{rgba(vars.$inverse-color-dark, 0.15)};
+    --inverse-color-alpha-20: #{rgba(vars.$inverse-color-dark, 0.25)};
+    --inverse-color-tone-10: #{darken(vars.$inverse-color-dark, 05%)};
+    --inverse-color-tone-20: #{darken(vars.$inverse-color-dark, 10%)};
+    --alert-background-color: #{rgba(salmon, 0.5)};
+    --dropdown-arrow: #{vars.generate-dropdown-arrow(vars.$inverse-color-dark)};
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+:focus {
+  outline-style: none; // Revisit for a11y
+}
+
+body {
+  color: var(--inverse-color);
+  margin: 0;
+  font-family: -apple-system, system-ui;
+  overflow: hidden; // Prevent rubber banding on macOS
+}
+
+input,
+button,
+select,
+textarea {
+  font: inherit;
+  background-color: inherit;
+  color: inherit;
+}
+
+a {
+  text-decoration: none;
+}
+
+menu,
+nav {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.modal {
+  background: none;
+  position: unset;
+  max-width: 75vw;
+  padding: 0;
+  border: 0;
+  border-radius: 0.25rem;
+  box-shadow: 0 1rem 3rem var(--inverse-color-alpha-10);
+  color: var(--inverse-color);
+
+  .content,
+  .title-bar {
+    padding: 1.25rem;
+    background-color: var(--base-color-alpha-65);
+    -webkit-backdrop-filter: blur(5px);
+    backdrop-filter: blur(5px);
+  }
+
+  .title-bar {
+    padding: 0.65rem 1.25rem;
+    border-radius: 0.25rem 0.25rem 0 0;
+    background-color: var(--inverse-color-alpha-05);
+    font-size: 0.9em;
+    font-weight: 600;
+  }
+
+  .content {
+    border-radius: 0 0 0.25rem 0.25rem;
+
+    &:first-child {
+      border-radius: 0.25rem;
+    }
+  }
+
+  button,
+  input[type="text"],
+  select {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    line-height: vars.$modal-form-el-line-height;
+    padding: 0 0.5em;
+    border: 0;
+    border-radius: vars.$modal-edge-border-radius;
+    background-color: var(--inverse-color-alpha-10);
+    transition: background-color 0.2s;
+
+    &:disabled {
+      opacity: 0.5;
+    }
+
+    &:focus {
+      background-color: var(--inverse-color-alpha-20);
+    }
+
+    &.error {
+      background-color: salmon;
+    }
+
+    .icon {
+      height: 1rem;
+      width: 1rem;
+      fill: var(--inverse-color-tone-20);
+      vertical-align: text-bottom;
+    }
+  }
+
+  button {
+    justify-content: center;
+    font-weight: 500;
+
+    &[type="submit"] {
+      background-color: vars.$action-button-bg-color;
+      color: vars.$action-button-text-color;
+
+      &:focus {
+        background-color: vars.$action-button-focus-bg-color;
+      }
+    }
+  }
+
+  select {
+    min-width: 12rem;
+    -webkit-appearance: none;
+
+    &:not([multiple]) {
+      padding-right: 1.25rem;
+      background-image: var(--dropdown-arrow);
+      background-size: 10px;
+      background-repeat: no-repeat;
+      background-position: top 9px right 7px;
+    }
+
+    &[multiple] {
+      padding-top: 0.35rem;
+      padding-bottom: 0.35rem;
+    }
+  }
+
+  .row + .row {
+    margin-top: 0.5rem;
+  }
+
+  .input-array {
+    display: flex;
+
+    button,
+    input {
+      margin: 0;
+      border-radius: vars.$modal-middle-border-radius;
+
+      + button,
+      + input {
+        margin-left: 4px;
+      }
+    }
+
+    button {
+      width: auto;
+    }
+
+    :first-child {
+      flex-grow: 1;
+      border-top-left-radius: vars.$modal-edge-border-radius;
+      border-bottom-left-radius: vars.$modal-edge-border-radius;
+    }
+
+    :last-child {
+      border-top-right-radius: vars.$modal-edge-border-radius;
+      border-bottom-right-radius: vars.$modal-edge-border-radius;
+    }
+  }
+
+  .error-text {
+    line-height: 1;
+    color: salmon;
+    font-size: 0.9em;
+
+    :not(:first-child) {
+      padding-top: 0.25rem;
+    }
+  }
+}

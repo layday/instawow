@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { fade } from "svelte/transition";
+  import { fade, scale } from "svelte/transition";
 
   export let show: boolean;
 
@@ -9,7 +9,15 @@
 <svelte:window on:keydown={dismissOnEsc} />
 
 <div class="modal-wrapper" transition:fade={{ duration: 200 }} on:click={() => (show = false)}>
-  <slot />
+  <dialog
+    open
+    class="modal"
+    aria-modal="true"
+    in:scale={{ duration: 200 }}
+    on:click|stopPropagation
+  >
+    <slot />
+  </dialog>
 </div>
 
 <style lang="scss">
@@ -21,5 +29,11 @@
     align-items: center;
     justify-content: center;
     background-color: var(--base-color-alpha-65);
+  }
+
+  .modal {
+    display: flex;
+    flex-direction: column;
+    max-height: 75%;
   }
 </style>

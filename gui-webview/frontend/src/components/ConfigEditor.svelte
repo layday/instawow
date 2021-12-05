@@ -152,8 +152,6 @@ will be lost.`
 </dialog>
 
 <style lang="scss">
-  @use "scss/modal";
-
   .modal {
     position: absolute;
     top: calc(100% + 4px);
