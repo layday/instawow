@@ -28,6 +28,10 @@ jobs:
           python -m nox
           --force-python ${{ matrix.python-version }} --error-on-missing-interpreters
           -s test
+      - name: Install Node 16
+        uses: actions/setup-node@v2
+        with:
+          node-version: '16'
       - name: Run pyright
         run: >-
           python -m nox
