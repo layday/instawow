@@ -1,5 +1,4 @@
 import type { Client } from "@open-rpc/client-js";
-import lodash from "lodash";
 import type { RequestObject } from "./ipc";
 
 export enum Flavour {
