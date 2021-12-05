@@ -7,6 +7,7 @@ from functools import partial
 import json
 import platform
 
+from loguru import logger
 import toga
 import toga.style
 
@@ -27,6 +28,7 @@ class InstawowApp(toga.App):
 
     async def _startup(self, native_app: object) -> None:
         server_url, serve = await json_rpc_server.prepare()
+        logger.debug(f'JSON-RPC server running on {server_url}')
         self._iw_web_view.url = str(server_url)
         await serve()
 
