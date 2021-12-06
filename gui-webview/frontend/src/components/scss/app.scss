@@ -74,31 +74,30 @@ nav {
   max-width: 75vw;
   padding: 0;
   border: 0;
-  border-radius: 0.25rem;
-  box-shadow: 0 1rem 3rem var(--inverse-color-alpha-10);
+  border-radius: vars.$standard-border-radius;
+  box-shadow: 0 1rem 3rem var(--inverse-color-alpha-20);
   color: var(--inverse-color);
 
   .content,
   .title-bar {
+    @extend %blur-background;
     padding: 1.25rem;
     background-color: var(--base-color-alpha-65);
-    -webkit-backdrop-filter: blur(5px);
-    backdrop-filter: blur(5px);
   }
 
   .title-bar {
     padding: 0.65rem 1.25rem;
-    border-radius: 0.25rem 0.25rem 0 0;
+    border-radius: vars.$standard-border-radius vars.$standard-border-radius 0 0;
     background-color: var(--inverse-color-alpha-05);
     font-size: 0.9em;
     font-weight: 600;
   }
 
   .content {
-    border-radius: 0 0 0.25rem 0.25rem;
+    border-radius: 0 0 vars.$standard-border-radius vars.$standard-border-radius;
 
     &:first-child {
-      border-radius: 0.25rem;
+      border-radius: vars.$standard-border-radius;
     }
   }
 

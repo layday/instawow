@@ -40,21 +40,16 @@
 <style lang="scss">
   @use "scss/vars";
 
-  $middle-border-radius: 0.75em;
-
   .context-menu-wrapper {
     @extend %cover-canvas;
   }
 
   .context-menu {
+    @extend %pop-out;
     position: fixed;
     z-index: 40;
-    border-radius: $middle-border-radius;
     padding: 0.5em 0;
     background-color: var(--base-color-alpha-65);
-    -webkit-backdrop-filter: blur(5px);
-    backdrop-filter: blur(5px);
-    box-shadow: 0 1rem 3rem var(--inverse-color-alpha-10);
     cursor: default;
     white-space: nowrap;
 

@@ -546,8 +546,11 @@
   $: activeView !== View.Search &&
     searchTerms === "" &&
     (console.debug(profile, "resetting search state"), resetSearchState());
-  $: searchFilterInstalled === undefined ||
-    (console.debug(profile, "filter status changed, resetting search state"), resetSearchState());
+  $: {
+    searchFilterInstalled;
+    console.debug(profile, "filter status changed, resetting search state");
+    resetSearchState();
+  }
   $: searchStartDate === "" &&
     (searchStartDate = (console.debug(profile, "resetting `searchStartDate`"), null));
   $: searchIsDirty = [

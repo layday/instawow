@@ -28,7 +28,6 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background-color: var(--base-color-alpha-65);
   }
 
   .modal {

@@ -18,11 +18,10 @@
 
   let alertIndex = 0;
 
-  const resetAlerts = () => {
-    alerts = [];
+  $: {
+    alerts;
     alertIndex = 0;
-  };
-
+  }
   $: alert = alerts[alertIndex];
 </script>
 
@@ -31,7 +30,7 @@
     <div class="alerts" role="alert" transition:fade={{ duration: 200 }}>
       <div class="current-alert">
         <h1>{alert.heading}</h1>
-        <p class="message">{alert.message}</p>
+        <p>{alert.message}</p>
       </div>
       <div class="alert-nav">
         <button
@@ -41,7 +40,7 @@
         >
           <Icon icon={faArrowAltCircleLeft} />
         </button>
-        <button title="dismiss alerts" on:click={() => resetAlerts()}>
+        <button title="dismiss alerts" on:click={() => (alerts = [])}>
           <Icon icon={faTimesCircle} />
         </button>
         <button
@@ -59,6 +58,8 @@
 <style lang="scss">
   @use "sass:math";
 
+  @use "scss/vars";
+
   $line-height: 1.8em;
   $edge-border-radius: math.div($line-height, 4);
 
@@ -69,23 +70,20 @@
     right: 0;
     display: flex;
     justify-content: center;
-    margin-top: calc(-0.8rem - 1px);
+    margin-top: calc(-0.8rem - 2px);
     z-index: 20;
   }
 
   .alerts {
+    @extend %pop-out;
     max-width: 75vw;
     padding: 0 0.8rem;
     background-color: var(--alert-background-color);
-    -webkit-backdrop-filter: blur(5px);
-    backdrop-filter: blur(5px);
-    border-bottom-left-radius: 0.25rem;
-    border-bottom-right-radius: 0.25rem;
-    box-shadow: 0 1rem 3rem var(--inverse-color-alpha-10), inset 0 1px var(--base-color-tone-20);
     font-size: 0.8em;
     display: grid;
     grid-template-columns: auto 6rem;
     grid-column-gap: 0.8rem;
+    word-break: break-all;
   }
 
   .current-alert {
@@ -126,9 +124,5 @@
       width: 1rem;
       fill: var(--inverse-color);
     }
-  }
-
-  .message {
-    word-break: break-all;
   }
 </style>

@@ -11,6 +11,8 @@ $action-button-bg-color: rgb(24, 136, 255);
 $action-button-focus-bg-color: rgb(0, 104, 217);
 $action-button-text-color: #efefef;
 
+$standard-border-radius: 0.75em;
+
 $modal-form-el-line-height: 1.75em;
 $modal-middle-border-radius: math.div($modal-form-el-line-height, 6);
 $modal-edge-border-radius: math.div($modal-form-el-line-height, 4);
@@ -49,6 +51,17 @@ $modal-edge-border-radius: math.div($modal-form-el-line-height, 4);
   left: 0;
   right: 0;
   z-index: 30;
+}
+
+%blur-background {
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+}
+
+%pop-out {
+  @extend %blur-background;
+  border-radius: $standard-border-radius;
+  box-shadow: 0 1rem 3rem var(--inverse-color-alpha-20);
 }
 
 @mixin striped-background($direction, $color) {
