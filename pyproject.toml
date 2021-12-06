@@ -23,7 +23,7 @@ packages = [
 ]
 include = [
   { path = "COPYING", format = "sdist" },
-  { path = "gui-webview/src/instawow_gui/frontend/svelte-*" },
+  { path = "gui-webview/src/instawow_gui/frontend/*" },
   { path = "tests", format = "sdist" },
 ]
 
