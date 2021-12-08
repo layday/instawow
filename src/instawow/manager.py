@@ -2,16 +2,7 @@ from __future__ import annotations
 
 import asyncio
 from collections import defaultdict
-from collections.abc import (
-    AsyncIterator,
-    Awaitable,
-    Callable,
-    Iterable,
-    Iterator,
-    Mapping,
-    Sequence,
-    Set,
-)
+from collections.abc import Awaitable, Callable, Iterable, Mapping, Sequence, Set
 from contextlib import asynccontextmanager, contextmanager, nullcontext
 import contextvars as cv
 from datetime import datetime
@@ -21,7 +12,7 @@ import json
 from pathlib import Path, PurePath
 from shutil import copy
 from tempfile import NamedTemporaryFile
-from typing import TYPE_CHECKING, Any, TypeVar
+from typing import Any, TypeVar
 import urllib.parse
 
 from loguru import logger
@@ -60,11 +51,6 @@ from .utils import (
 from .utils import run_in_thread as t
 from .utils import shasum, trash, uniq
 
-if TYPE_CHECKING:  # pragma: no cover
-    _BaseResolverDict: TypeAlias = 'dict[str, Resolver]'
-else:
-    _BaseResolverDict = dict
-
 _P = ParamSpec('_P')
 _T = TypeVar('_T')
 _CManager: TypeAlias = 'Callable[Concatenate[Manager, _P], Awaitable[_T]]'
@@ -95,7 +81,7 @@ _move_async = t(move)
 
 
 @asynccontextmanager
-async def _open_temp_writer() -> AsyncIterator[tuple[Path, Callable[[bytes], Awaitable[int]]]]:
+async def _open_temp_writer():
     fh = await _AsyncNamedTemporaryFile(delete=False)
     path = Path(fh.name)
     try:
@@ -109,7 +95,7 @@ async def _open_temp_writer() -> AsyncIterator[tuple[Path, Callable[[bytes], Awa
 
 
 @contextmanager
-def _open_pkg_archive(path: PurePath) -> Iterator[tuple[set[str], Callable[[Path], None]]]:
+def _open_pkg_archive(path: PurePath):
     from zipfile import ZipFile
 
     with ZipFile(path) as archive:
@@ -122,9 +108,7 @@ def _open_pkg_archive(path: PurePath) -> Iterator[tuple[set[str], Callable[[Path
         yield (base_dirs, extract)
 
 
-async def _download_pkg_archive(
-    manager: Manager, pkg: models.Pkg, *, chunk_size: int = 4096
-) -> Path:
+async def _download_pkg_archive(manager: Manager, pkg: models.Pkg, *, chunk_size: int = 4096):
     url = pkg.download_url
     dest = manager.config.global_config.cache_dir / shasum(
         pkg.source, pkg.id, pkg.version, manager.config.game_flavour
@@ -241,7 +225,7 @@ class _DummyResolver(BaseResolver):
         return dict.fromkeys(defns, R.PkgSourceInvalid())
 
 
-class _ResolverDict(_BaseResolverDict):
+class _ResolverDict(dict):  # type: ignore
     def __missing__(self, key: str) -> Resolver:
         return _DummyResolver
 
@@ -265,10 +249,10 @@ async def capture_manager_exc_async(
 
 
 class _DummyLock:
-    async def __aenter__(self) -> None:
+    async def __aenter__(self):
         pass
 
-    async def __aexit__(self, *args: object) -> None:
+    async def __aexit__(self, *args: object):
         pass
 
 
@@ -321,7 +305,7 @@ class Manager:
         resolver_classes = chain(
             (r for g in plugin_hook.instawow_add_resolvers() for r in g), self.RESOLVERS
         )
-        self.resolvers: _ResolverDict = _ResolverDict(
+        self.resolvers: dict[str, Resolver] = _ResolverDict(
             (r.source, r(self)) for r in resolver_classes
         )
 

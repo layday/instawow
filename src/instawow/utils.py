@@ -234,7 +234,7 @@ def file_uri_to_path(file_uri: str) -> str:
     return unprefixed_path
 
 
-def normalise_names(replace_delim: str):
+def normalise_names(replace_delim: str) -> Callable[[str], str]:
     import string
 
     trans_table = str.maketrans(dict.fromkeys(string.punctuation, ' '))

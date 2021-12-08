@@ -131,7 +131,7 @@ def _init_cli_web_client(
 
 
 @contextmanager
-def _cancel_tickers() -> Iterator[set[asyncio.Task[None]]]:
+def _cancel_tickers():
     tickers: set[asyncio.Task[None]] = set()
     try:
         yield tickers
@@ -152,7 +152,7 @@ def run_with_progress(awaitable: Awaitable[_T]) -> _T:
     return asyncio.run(run())
 
 
-def _override_asyncio_loop_policy() -> None:
+def _override_asyncio_loop_policy():
     # The proactor event loop which became the default loop on Windows
     # in Python 3.8 is causing issues with aiohttp.
     # See https://github.com/aio-libs/aiohttp/issues/4324
@@ -161,7 +161,7 @@ def _override_asyncio_loop_policy() -> None:
         asyncio.set_event_loop_policy(policy())
 
 
-def _apply_patches() -> None:
+def _apply_patches():
     _override_asyncio_loop_policy()
 
 
@@ -193,9 +193,7 @@ class ManagerWrapper:
         return wrapper  # type: ignore
 
 
-def _with_manager(
-    fn: Callable[..., object]
-) -> Callable[[click.Context, click.Parameter, object], object]:
+def _with_manager(fn: Callable[..., object]):
     def wrapper(ctx: click.Context, __: click.Parameter, value: object):
         return fn(ctx.obj.manager, value)
 
@@ -222,7 +220,7 @@ class EnumParam(click.Choice):
         return self.choice_enum[parent_result]
 
 
-def _register_plugin_commands(group: click.Group) -> click.Group:
+def _register_plugin_commands(group: click.Group):
     plugin_hook = load_plugins()
     additional_commands = (c for g in plugin_hook.instawow_add_commands() for c in g)
     for command in additional_commands:
@@ -230,7 +228,7 @@ def _register_plugin_commands(group: click.Group) -> click.Group:
     return group
 
 
-def _set_log_level(_: click.Context, __: click.Parameter, value: bool) -> str:
+def _set_log_level(_: click.Context, __: click.Parameter, value: bool):
     return 'DEBUG' if value else 'INFO'
 
 
@@ -320,7 +318,7 @@ def _combine_addons(
     ctx: click.Context,
     __: click.Parameter,
     value: object,
-) -> None:
+):
     addons: list[Defn] = ctx.params.setdefault('addons', [])
     if value:
         addons.extend(fn(ctx.obj.manager, value))
@@ -575,13 +573,11 @@ def reconcile(manager: _manager.Manager, auto: bool, list_unreconciled: bool) ->
         click.echo(tabulate(table_rows))
 
 
-def _concat_search_terms(_: click.Context, __: click.Parameter, value: tuple[str, ...]) -> str:
+def _concat_search_terms(_: click.Context, __: click.Parameter, value: tuple[str, ...]):
     return ' '.join(value)
 
 
-def _parse_iso_date_into_datetime(
-    _: click.Context, __: click.Parameter, value: str | None
-) -> datetime | None:
+def _parse_iso_date_into_datetime(_: click.Context, __: click.Parameter, value: str | None):
     if value is not None:
         return datetime.strptime(value, '%Y-%m-%d').replace(tzinfo=timezone.utc)
 
@@ -832,7 +828,7 @@ def view_changelog(manager: _manager.Manager, addon: Defn | None, convert: bool)
         )
 
 
-def _show_active_config(ctx: click.Context, __: click.Parameter, value: bool) -> None:
+def _show_active_config(ctx: click.Context, __: click.Parameter, value: bool):
     if value:
         click.echo(ctx.obj.manager.config.json(indent=2))
         ctx.exit()

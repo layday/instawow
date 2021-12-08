@@ -117,7 +117,7 @@ class DatabaseState(IntEnum):
     uninitialised = 2
 
 
-def get_database_state(engine: Engine, revision: str):
+def get_database_state(engine: Engine, revision: str) -> DatabaseState:
     with engine.connect() as connection:
         try:
             state = connection.execute(
@@ -136,7 +136,7 @@ def get_database_state(engine: Engine, revision: str):
     return DatabaseState(state)
 
 
-def migrate_database(engine: Engine, revision: str):
+def migrate_database(engine: Engine, revision: str) -> None:
     database_state = get_database_state(engine, revision)
     if database_state != DatabaseState.current:
         import alembic.command
