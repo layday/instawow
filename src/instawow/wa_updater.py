@@ -194,33 +194,26 @@ class WaCompanionBuilder:
     async def _fetch_wago_metadata(
         self, api_url: URL, aura_ids: Iterable[str]
     ) -> list[WagoApiResponse]:
-        from aiohttp import ClientResponseError
-
-        try:
-            return sorted(
-                await manager.cache_response(
-                    self.manager,
-                    api_url.with_query(ids=','.join(aura_ids)),
-                    {'minutes': 30},
-                    label='Fetching aura metadata',
-                    request_extra={'headers': {'api-key': self.builder_config.wago_api_key or ''}},
-                ),
-                key=lambda r: r['slug'],
-            )
-        except ClientResponseError as error:
-            if error.status != 404:
-                raise
-            return []
+        async with self.manager.cache_client.request(
+            api_url.with_query(ids=','.join(aura_ids)),
+            {'minutes': 30},
+            label='Fetching aura metadata',
+            headers={'api-key': self.builder_config.wago_api_key or ''},
+        ) as response:
+            if response.status == 404:
+                return []
+            response.raise_for_status()
+            return sorted(await response.json(), key=lambda r: r['slug'])
 
     async def _fetch_wago_import_string(self, aura: WagoApiResponse) -> str:
-        return await manager.cache_response(
-            self.manager,
+        async with self.manager.cache_client.request(
             IMPORT_API_URL.with_query(id=aura['_id']).with_fragment(str(aura['version'])),
             {'days': 30},
+            headers={'api-key': self.builder_config.wago_api_key or ''},
             label=f"Fetching aura '{aura['slug']}'",
-            is_json=False,
-            request_extra={'headers': {'api-key': self.builder_config.wago_api_key or ''}},
-        )
+        ) as response:
+            response.raise_for_status()
+            return await response.text()
 
     async def get_remote_auras(self, auras: BaseAuras) -> _AuraGroup:
         if not auras.__root__:

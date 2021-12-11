@@ -462,7 +462,7 @@ class _ManagerWorkQueue:
         self._queue: asyncio.Queue[_ManagerWorkQueueItem] = asyncio.Queue()
         self._progress_reporters: set[tuple[Manager, models.Pkg, Callable[[], float]]] = set()
         self._web_client = _init_json_rpc_web_client(self._progress_reporters)
-        self._locks: defaultdict[str, asyncio.Lock] = defaultdict(asyncio.Lock)
+        self._locks: defaultdict[str | tuple[int, str], asyncio.Lock] = defaultdict(asyncio.Lock)
 
     async def cleanup(self) -> None:
         for manager in self._managers.values():

@@ -123,12 +123,7 @@ ignore = [
   "src/instawow/migrations",
   "gui-webview/src/instawow_gui/cef_adapter.py",
 ]
-useLibraryCodeForTypes = true
-typeCheckingMode = "strict"
-reportMissingTypeStubs = "information"
-# `TYPE_CHECKING` and lazy imports produce spurious import cycle errors
-reportImportCycles = false
-reportUnknownMemberType = false
+strict = ["src"]
 
 
 ## FORMATTING ##

@@ -253,27 +253,31 @@ class CurseResolver(BaseResolver):
     async def resolve(
         self, defns: Sequence[Defn]
     ) -> dict[Defn, models.Pkg | R.ManagerError | R.InternalError]:
-        from aiohttp import ClientResponseError
-
         catalogue = await self.manager.synchronise()
 
-        defns_to_ids = {d: d.id or catalogue.curse_slugs.get(d.alias) or d.alias for d in defns}
-        numeric_ids = uniq(i for i in defns_to_ids.values() if i.isdigit())
-        try:
-            json_response: list[_CurseAddon] = await manager.cache_response(
-                self.manager,
-                self.addon_api_url,
-                {'minutes': 5},
-                request_extra={'method': 'POST', 'json': numeric_ids},
-            )
-        except ClientResponseError as error:
-            if error.status != 404:
-                raise
-            json_response = []
+        defns_to_maybe_numeric_ids = {
+            d: i if i.isdigit() else None
+            for d in defns
+            for i in (d.id or catalogue.curse_slugs.get(d.alias) or d.alias,)
+        }
+        async with self.manager.cache_client.request(
+            self.addon_api_url,
+            {'minutes': 5},
+            method='POST',
+            json=[i for i in defns_to_maybe_numeric_ids.values() if i is not None],
+        ) as response:
+            if response.status == 404:
+                addons: list[_CurseAddon] = []
+            else:
+                response.raise_for_status()
+                addons = await response.json()
 
-        api_results = {str(r['id']): r for r in json_response}
+        numeric_ids_to_addons = {str(r['id']): r for r in addons}
         results = await gather(
-            (self.resolve_one(d, api_results.get(i)) for d, i in defns_to_ids.items()),
+            (
+                self.resolve_one(d, numeric_ids_to_addons.get(i) if i is not None else i)
+                for d, i in defns_to_maybe_numeric_ids.items()
+            ),
             manager.capture_manager_exc_async,
         )
         return dict(zip(defns, results))
@@ -283,12 +287,13 @@ class CurseResolver(BaseResolver):
             raise R.PkgNonexistent
 
         if defn.strategy is Strategy.version:
-            all_files: list[_CurseFile] = await manager.cache_response(
-                self.manager,
+            async with self.manager.cache_client.request(
                 self.addon_api_url / str(metadata['id']) / 'files',
                 {'hours': 1},
                 label=f'Fetching metadata from {self.name}',
-            )
+            ) as response:
+                response.raise_for_status()
+                all_files: list[_CurseFile] = await response.json()
 
             file = next((f for f in all_files if defn.version == f['displayName']), None)
             if file is None:
@@ -524,35 +529,33 @@ class WowiResolver(BaseResolver):
                 match = re.match(r'^(?:download|info)(?P<id>\d+)', url.name)
                 return match and match['id']
 
-    async def _synchronise(self) -> dict[str, _WowiListApiItem]:
+    async def _synchronise(self):
         async with self.manager.locks['load WoWI catalogue']:
-            list_api_items = await manager.cache_response(
-                self.manager,
+            async with self.manager.cache_client.request(
                 self.list_api_url,
                 {'hours': 1},
                 label=f'Synchronising {self.name} catalogue',
-            )
-            return {i['UID']: i for i in list_api_items}
+            ) as response:
+                response.raise_for_status()
+                list_api_items: list[_WowiListApiItem] = await response.json()
+                return {i['UID']: i for i in list_api_items}
 
     async def resolve(
         self, defns: Sequence[Defn]
     ) -> dict[Defn, models.Pkg | R.ManagerError | R.InternalError]:
-        from aiohttp import ClientResponseError
-
         list_api_items = await self._synchronise()
 
         defns_to_ids = {d: ''.join(takewhile(str.isdigit, d.alias)) for d in defns}
         numeric_ids = frozenset(filter(None, defns_to_ids.values()))
-        try:
-            details_api_items: list[_WowiDetailsApiItem] = await manager.cache_response(
-                self.manager,
-                self.details_api_url / f'{",".join(numeric_ids)}.json',
-                {'minutes': 5},
-            )
-        except ClientResponseError as error:
-            if error.status != 404:
-                raise
-            details_api_items = []
+        async with self.manager.cache_client.request(
+            self.details_api_url / f'{",".join(numeric_ids)}.json',
+            {'minutes': 5},
+        ) as response:
+            if response.status == 404:
+                details_api_items: list[_WowiDetailsApiItem] = []
+            else:
+                response.raise_for_status()
+                details_api_items = await response.json()
 
         combined_items: dict[str, Any] = {
             i['UID']: {**list_api_items[i['UID']], **i} for i in details_api_items
@@ -670,20 +673,22 @@ class TukuiResolver(BaseResolver):
 
     async def _synchronise(self) -> dict[str, _TukuiAddon | _TukuiUi]:
         async def fetch_ui(ui_slug: str):
-            addon: _TukuiUi = await manager.cache_response(
-                self.manager,
+            async with self.manager.cache_client.request(
                 self.api_url.with_query({'ui': ui_slug}),
                 {'minutes': 5},
-            )
+            ) as response:
+                response.raise_for_status()
+                addon: _TukuiUi = await response.json()
             return [(str(addon['id']), addon), (ui_slug, addon)]
 
         async def fetch_addons(flavour: Flavour):
-            addons: list[_TukuiAddon] = await manager.cache_response(
-                self.manager,
+            async with self.manager.cache_client.request(
                 self.api_url.with_query({self.query_flavours[flavour]: 'all'}),
                 {'minutes': 30},
                 label=f'Synchronising {self.name} {flavour} catalogue',
-            )
+            ) as response:
+                response.raise_for_status()
+                addons: list[_TukuiAddon] = await response.json()
             return [(str(a['id']), a) for a in addons]
 
         async with self.manager.locks['load Tukui catalogue']:
@@ -844,18 +849,13 @@ class GithubResolver(BaseResolver):
             return '/'.join(url.parts[1:3])
 
     async def resolve_one(self, defn: Defn, metadata: None) -> models.Pkg:
-        from aiohttp import ClientResponseError
-
         repo_url = self.repos_api_url / defn.alias
 
-        try:
-            project_metadata: _GithubRepo = await manager.cache_response(
-                self.manager, repo_url, {'hours': 1}
-            )
-        except ClientResponseError as error:
-            if error.status == 404:
+        async with self.manager.cache_client.request(repo_url, {'hours': 1}) as response:
+            if response.status == 404:
                 raise R.PkgNonexistent
-            raise
+            response.raise_for_status()
+            project_metadata: _GithubRepo = await response.json()
 
         if defn.strategy is Strategy.version:
             assert defn.version
@@ -918,9 +918,12 @@ class GithubResolver(BaseResolver):
         else:
             logger.info(f'reading metadata for {defn} from release.json')
 
-            packager_metadata: _PackagerReleaseJson = await manager.cache_response(
-                self.manager, release_json['browser_download_url'], {'days': 1}
-            )
+            async with self.manager.cache_client.request(
+                release_json['browser_download_url'], {'days': 1}
+            ) as response:
+                response.raise_for_status()
+                packager_metadata: _PackagerReleaseJson = await response.json()
+
             releases = packager_metadata['releases']
             if not releases:
                 raise R.PkgFileUnavailable('no files available for download')

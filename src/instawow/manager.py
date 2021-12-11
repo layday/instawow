@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 from collections import defaultdict
-from collections.abc import Awaitable, Callable, Iterable, Mapping, Sequence, Set
+from collections.abc import AsyncIterator, Awaitable, Callable, Iterable, Mapping, Sequence, Set
 from contextlib import asynccontextmanager, contextmanager, nullcontext
 import contextvars as cv
 from datetime import datetime
@@ -133,38 +133,55 @@ async def _download_pkg_archive(manager: Manager, pkg: models.Pkg, *, chunk_size
     return dest
 
 
-async def cache_response(
-    manager: Manager,
-    url: str | URL,
-    ttl: Mapping[str, float],
-    *,
-    label: str | None = None,
-    is_json: bool = True,
-    request_extra: Mapping[str, Any] = {},
-) -> Any:
-    async def make_request():
-        kwargs: dict[str, Any] = {
-            'method': 'GET',
-            'url': url,
-            'raise_for_status': True,
-            **request_extra,
-        }
-        if label:
-            kwargs['trace_request_ctx'] = _GenericDownloadTraceRequestCtx(
-                report_progress='generic', label=label
-            )
-        async with manager.web_client.request(**kwargs) as response:
-            return await response.text()
+class _ResponseWrapper:
+    def __init__(self, response_obj: _deferred_types.aiohttp.ClientResponse | None, text: str):
+        self._response_obj = response_obj
+        self._text = text
 
-    dest = manager.config.global_config.cache_dir / shasum(url, request_extra)
-    if await t(is_not_stale)(dest, ttl):
-        logger.debug(f'{url} is cached at {dest} (ttl: {ttl})')
-        text = await t(dest.read_text)(encoding='utf-8')
-    else:
-        text = await make_request()
-        await t(dest.write_text)(text, encoding='utf-8')
+    async def text(self) -> str:
+        return self._text
 
-    return json.loads(text) if is_json else text
+    async def json(self) -> Any:
+        return json.loads(await self.text())
+
+    def raise_for_status(self) -> None:
+        if self._response_obj is not None:
+            self._response_obj.raise_for_status()
+
+    @property
+    def status(self) -> int:
+        return self._response_obj.status if self._response_obj is not None else 200
+
+
+class _CacheClient:
+    def __init__(self, cache_dir: Path):
+        self._cache_dir = cache_dir
+
+    @asynccontextmanager
+    async def request(
+        self, url: str | URL, ttl: Mapping[str, float], label: str | None = None, **kwargs: Any
+    ) -> AsyncIterator[_ResponseWrapper]:
+        async def make_request():
+            web_client = _web_client.get()
+            request_kwargs: dict[str, Any] = {'method': 'GET', 'url': url, **kwargs}
+            if label:
+                request_kwargs['trace_request_ctx'] = _GenericDownloadTraceRequestCtx(
+                    report_progress='generic', label=label
+                )
+            async with web_client.request(**request_kwargs) as response:
+                return (response, await response.text())
+
+        dest = self._cache_dir / shasum(url, ttl, kwargs)
+        response = None
+        if await t(is_not_stale)(dest, ttl):
+            logger.debug(f'{url} is cached at {dest} (ttl: {ttl})')
+            text = await t(dest.read_text)(encoding='utf-8')
+        else:
+            response, text = await make_request()
+            if response.ok:
+                await t(dest.write_text)(text, encoding='utf-8')
+
+        yield _ResponseWrapper(response, text)
 
 
 def prepare_database(config: Config) -> sa_future.Engine:
@@ -263,7 +280,7 @@ def _with_lock(
     def outer(coro_fn: _CManager[_P, _T]) -> _CManager[_P, _T]:
         @wraps(coro_fn)
         async def inner(self: Manager, *args: _P.args, **kwargs: _P.kwargs):
-            async with self.locks[f'{id(self)}-{lock_name}' if manager_bound else lock_name]:
+            async with self.locks[(id(self), lock_name) if manager_bound else lock_name]:
                 return await coro_fn(self, *args, **kwargs)
 
         return inner
@@ -273,8 +290,8 @@ def _with_lock(
 
 _web_client: cv.ContextVar[_deferred_types.aiohttp.ClientSession] = cv.ContextVar('_web_client')
 
-_dummy_locks: defaultdict[str, Any] = defaultdict(_DummyLock)
-_locks: cv.ContextVar[defaultdict[str, asyncio.Lock]] = cv.ContextVar(
+_dummy_locks: defaultdict[str | tuple[int, str], Any] = defaultdict(_DummyLock)
+_locks: cv.ContextVar[defaultdict[str | tuple[int, str], asyncio.Lock]] = cv.ContextVar(
     '_locks', default=_dummy_locks
 )
 
@@ -309,6 +326,8 @@ class Manager:
             (r.source, r(self)) for r in resolver_classes
         )
 
+        self.cache_client: _CacheClient = _CacheClient(self.config.global_config.cache_dir)
+
         self._catalogue = None
 
     @classmethod
@@ -316,7 +335,7 @@ class Manager:
         cls,
         *,
         web_client: _deferred_types.aiohttp.ClientSession | None = None,
-        locks: defaultdict[str, asyncio.Lock] | None = None,
+        locks: defaultdict[str | tuple[int, str], asyncio.Lock] | None = None,
     ) -> nullcontext[None]:
         if web_client is not None:
             _web_client.set(web_client)
@@ -335,7 +354,7 @@ class Manager:
         return _web_client.get()
 
     @property
-    def locks(self) -> defaultdict[str, asyncio.Lock]:
+    def locks(self) -> defaultdict[str | tuple[int, str], asyncio.Lock]:
         "Lock factory used to synchronise async operations."
         return _locks.get()
 
@@ -554,12 +573,9 @@ class Manager:
         if url.scheme == 'data' and url.raw_path.startswith(','):
             return urllib.parse.unquote(url.raw_path[1:])
         elif url.scheme in {'http', 'https'}:
-            return await cache_response(
-                self,
-                url,
-                {'days': 1},
-                is_json=False,
-            )
+            async with self.cache_client.request(url, {'days': 1}) as response:
+                response.raise_for_status()
+                return await response.text()
         elif url.scheme == 'file':
             return await t(Path(file_uri_to_path(uri)).read_text)(encoding='utf-8')
         else:
