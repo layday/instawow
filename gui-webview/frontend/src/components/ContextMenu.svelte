@@ -1,26 +1,18 @@
 <script lang="ts">
-  import { afterUpdate } from "svelte";
+  export let show: boolean, eventX: number, eventY: number;
 
-  export let show: boolean, xOffset: number, yOffset: number;
-
-  let menuHeight: number;
+  let menuX = 0;
+  let menuY = 0;
   let menuWidth: number;
-  let menuTopOffset = 0;
-  let menuLeftOffset = 0;
+  let menuHeight: number;
 
   const dismissOnEsc = (e: KeyboardEvent) => e.key === "Escape" && (show = false);
 
-  const adjustPosition = () => {
-    menuTopOffset = yOffset + menuHeight < window.innerHeight ? yOffset : yOffset - menuHeight;
-    menuLeftOffset = xOffset + menuWidth < window.innerWidth ? xOffset : xOffset - menuWidth;
-  };
-
-  afterUpdate(() => {
-    adjustPosition();
-  });
+  $: menuX = eventX + menuWidth < window.innerWidth ? eventX : eventX - menuWidth;
+  $: menuY = eventY + menuHeight < window.innerHeight ? eventY : eventY - menuHeight;
 </script>
 
-<svelte:window on:keydown={dismissOnEsc} />
+<svelte:window on:keydown={dismissOnEsc} on:resize={() => (show = false)} />
 
 <div class="context-menu-wrapper" on:click={() => (show = false)}>
   <div
@@ -28,8 +20,8 @@
     bind:offsetWidth={menuWidth}
     class="context-menu"
     style={`
-      --menu-top-offset: ${menuTopOffset}px;
-      --menu-left-offset: ${menuLeftOffset}px;
+      --menu-x-offset: ${menuX}px;
+      --menu-y-offset: ${menuY}px;
     `}
     on:click|stopPropagation
   >
@@ -49,8 +41,8 @@
   .context-menu {
     @extend %pop-out;
     position: fixed;
-    top: var(--menu-top-offset);
-    left: var(--menu-left-offset);
+    top: var(--menu-y-offset);
+    left: var(--menu-x-offset);
     z-index: 40;
     padding: 0.5em 0;
     background-color: var(--base-color-alpha-65);

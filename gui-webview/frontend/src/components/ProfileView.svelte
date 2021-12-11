@@ -163,8 +163,8 @@
     addon: Addon;
     installed: boolean;
     supportsRollback: boolean;
-    xOffset: number;
-    yOffset: number;
+    eventX: number;
+    eventY: number;
   };
 
   const alertAddonOpFailed = (method: string, combinedResult: (readonly [Addon, AnyResult])[]) => {
@@ -418,8 +418,8 @@
       addon,
       installed,
       supportsRollback: supportsRollback(addon),
-      xOffset: mouseEvent.clientX,
-      yOffset: mouseEvent.clientY,
+      eventX: mouseEvent.clientX,
+      eventY: mouseEvent.clientY,
     };
     addonContextMenu = true;
   };

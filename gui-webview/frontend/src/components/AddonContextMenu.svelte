@@ -6,8 +6,8 @@
   import ContextMenuItem from "./ContextMenuItem.svelte";
 
   export let show: boolean,
-    xOffset: number,
-    yOffset: number,
+    eventX: number,
+    eventY: number,
     addon: Addon,
     installed: boolean,
     supportsRollback: boolean;
@@ -20,7 +20,7 @@
   }>();
 </script>
 
-<ContextMenu bind:show {xOffset} {yOffset}>
+<ContextMenu bind:show {eventX} {eventY}>
   {#if installed}
     <ContextMenuItem
       on:click={() =>
