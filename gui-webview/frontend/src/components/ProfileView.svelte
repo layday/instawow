@@ -462,7 +462,7 @@
       reconcileStages.indexOf(fromStage)
     )) {
       const results = await profileApi.reconcile(stage);
-      if (results.reconciled.length || !(index + 1 in reconcileStages)) {
+      if (results.some((r) => r.matches.length) || !(index + 1 in reconcileStages)) {
         return [stage, results] as const;
       }
     }
@@ -490,9 +490,9 @@
       const nextStage = reconcileStages[reconcileStages.indexOf(fromStage) + 1];
       if (nextStage) {
         if (recursive) {
-          const nextSelections = (await profileApi.reconcile(fromStage)).reconciled.map(
-            ({ matches: [addon] }) => addon
-          );
+          const nextSelections = (await profileApi.reconcile(fromStage))
+            .filter((r) => r.matches.length)
+            .map(({ matches: [addon] }) => addon);
           await installReconciled(nextStage, nextSelections, true);
         } else {
           reconcileStage = nextStage;
@@ -641,7 +641,7 @@
           <div>Hold on tight!</div>
         </div>
       {:then result}
-        {#if result && (result.reconciled.length || result.unreconciled.length)}
+        {#if result && result.length}
           <div class="preamble">
             <Icon icon={faQuestion} />
             <!-- prettier-ignore -->
@@ -657,7 +657,7 @@
             </p>
           </div>
           <ul class="addon-list">
-            {#each result.reconciled.concat(result.unreconciled) as { folders, matches }, idx}
+            {#each result as { folders, matches }, idx}
               <li>
                 <AddonStub
                   bind:selections={reconcileSelections}

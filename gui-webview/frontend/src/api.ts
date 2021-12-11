@@ -112,11 +112,6 @@ export type AddonMatch = {
   matches: Addon[];
 };
 
-export type ReconcileResult = {
-  reconciled: AddonMatch[];
-  unreconciled: AddonMatch[];
-};
-
 export enum ReconciliationStage {
   toc_source_ids = "toc_source_ids",
   folder_name_subsets = "folder_name_subsets",
@@ -236,7 +231,7 @@ export class Api {
     });
   }
 
-  async reconcile(matcher: ReconciliationStage): Promise<ReconcileResult> {
+  async reconcile(matcher: ReconciliationStage): Promise<AddonMatch[]> {
     return await this.request({
       method: "reconcile",
       params: { profile: this.profile, matcher: matcher },

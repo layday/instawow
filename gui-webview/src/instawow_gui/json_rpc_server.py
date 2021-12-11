@@ -324,17 +324,12 @@ class GetChangelogParams(_ProfileParamMixin, BaseParams):
         )
 
 
-class ReconcileResult(TypedDict):
-    reconciled: list[ReconcileResult_AddonMatch]
-    unreconciled: list[ReconcileResult_AddonMatch]
-
-
-class ReconcileResult_AddonMatch(TypedDict):
-    folders: list[ReconcileResult_AddonFolder]
+class AddonMatch(TypedDict):
+    folders: list[AddonMatch_AddonFolder]
     matches: list[models.Pkg]
 
 
-class ReconcileResult_AddonFolder(TypedDict):
+class AddonMatch_AddonFolder(TypedDict):
     name: str
     version: str
 
@@ -345,7 +340,7 @@ class ReconcileParams(_ProfileParamMixin, BaseParams):
 
     async def respond(
         self, managers: _ManagerWorkQueue, app_window: toga.MainWindow | None
-    ) -> ReconcileResult:
+    ) -> list[AddonMatch]:
         leftovers = await managers.run(self.profile, t(matchers.get_unreconciled_folder_set))
         match_groups: matchers.FolderAndDefnPairs = await managers.run(
             self.profile, partial(getattr(matchers, f'match_{self.matcher}'), leftovers=leftovers)
@@ -354,22 +349,19 @@ class ReconcileParams(_ProfileParamMixin, BaseParams):
         resolve_results = await managers.run(
             self.profile, partial(Manager.resolve, defns=uniq_defns)
         )
-        return {
-            'reconciled': [
-                {
-                    'folders': [{'name': f.name, 'version': f.version} for f in a],
-                    'matches': [r for i in d for r in (resolve_results[i],) if models.is_pkg(r)],
-                }
-                for a, d in match_groups
-            ],
-            'unreconciled': [
-                {
-                    'folders': [{'name': f.name, 'version': f.version}],
-                    'matches': [],
-                }
-                for f in sorted(leftovers - frozenset(i for a, _ in match_groups for i in a))
-            ],
-        }
+        matches = [
+            (a, m)
+            for a, s in match_groups
+            for m in ([r for d in s for r in (resolve_results[d],) if models.is_pkg(r)],)
+            if m
+        ]
+        return [
+            AddonMatch(folders=[{'name': f.name, 'version': f.version} for f in a], matches=m)
+            for a, m in matches
+        ] + [
+            AddonMatch(folders=[{'name': f.name, 'version': f.version}], matches=[])
+            for f in sorted(leftovers - frozenset(i for a, _ in matches for i in a))
+        ]
 
 
 class DownloadProgressReport(TypedDict):
