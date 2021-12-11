@@ -299,7 +299,8 @@
 
     &[type="checkbox"],
     &[type="radio"] {
-      display: none;
+      position: absolute;
+      opacity: 0;
 
       &:checked + label {
         background-color: var(--inverse-color-tone-b) !important;
@@ -312,6 +313,10 @@
 
       &:disabled + label {
         opacity: 0.5;
+      }
+
+      &:focus + label {
+        background-color: var(--inverse-color-alpha-10);
       }
     }
 
