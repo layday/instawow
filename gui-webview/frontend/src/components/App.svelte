@@ -19,7 +19,7 @@
   ];
 
   const pickRandomBorderColour = () => {
-    const index = Math.round(Math.random() * colourPalette.length);
+    const index = Math.max(0, Math.round(Math.random() * colourPalette.length) - 1);
     return `
       --random-border-color: ${colourPalette[index]};
     `;
