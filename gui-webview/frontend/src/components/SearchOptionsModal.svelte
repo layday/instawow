@@ -26,7 +26,7 @@
     },
   ];
 
-  const dispatch = createEventDispatcher();
+  const dispatch = createEventDispatcher<{ [type: string]: void }>();
 
   const requestSearch = () => {
     dispatch("requestSearch");

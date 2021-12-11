@@ -689,7 +689,7 @@
               {otherAddon}
               beingModified={installedAddonsBeingModified.includes(token)}
               showCondensed={addonsCondensed}
-              {installedIsRefreshing}
+              isRefreshing={installedIsRefreshing}
               downloadProgress={addonDownloadProgress[token] || 0}
             />
           </li>

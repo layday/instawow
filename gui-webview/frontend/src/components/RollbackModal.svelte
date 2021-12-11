@@ -7,7 +7,7 @@
 
   export let show: boolean, addon: Addon;
 
-  const dispatch = createEventDispatcher();
+  const dispatch = createEventDispatcher<{ requestRollback: Addon }>();
 
   let version: string;
 

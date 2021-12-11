@@ -12,7 +12,12 @@
     installed: boolean,
     supportsRollback: boolean;
 
-  const dispatch = createEventDispatcher();
+  const dispatch = createEventDispatcher<{
+    requestHandleContextMenuSelection: {
+      addon: Addon;
+      selection: string;
+    };
+  }>();
 </script>
 
 <ContextMenu bind:show {xOffset} {yOffset}>

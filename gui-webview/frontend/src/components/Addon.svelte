@@ -17,10 +17,17 @@
     otherAddon: Addon,
     beingModified: boolean,
     showCondensed: boolean,
-    installedIsRefreshing: boolean,
+    isRefreshing: boolean,
     downloadProgress: number;
 
-  const dispatch = createEventDispatcher();
+  const dispatch = createEventDispatcher<{
+    requestInstall: void;
+    requestUpdate: void;
+    requestRemove: void;
+    requestShowChangelogModal: void;
+    requestShowAddonInstalledContextMenu: MouseEvent;
+    requestShowAddonNotInstalledContextMenu: MouseEvent;
+  }>();
 
   $: isOutdated = addon.version !== otherAddon.version;
 </script>
@@ -56,7 +63,7 @@
         {#if isOutdated}
           <li>
             <button
-              disabled={installedIsRefreshing}
+              disabled={isRefreshing}
               on:click|stopPropagation={() => dispatch("requestUpdate")}>update</button
             >
           </li>
@@ -70,7 +77,7 @@
           <button
             aria-label="remove"
             title="remove"
-            disabled={installedIsRefreshing}
+            disabled={isRefreshing}
             on:click|stopPropagation={() => dispatch("requestRemove")}
           >
             <Icon icon={faTrashAlt} />

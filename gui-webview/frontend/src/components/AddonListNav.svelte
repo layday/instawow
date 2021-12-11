@@ -19,7 +19,7 @@
     reconcileInstallationInProgress: boolean,
     reconcileStage: ReconciliationStage;
 
-  const dispatch = createEventDispatcher();
+  const dispatch = createEventDispatcher<{ [type: string]: void }>();
 
   let searchBox: HTMLInputElement;
 
