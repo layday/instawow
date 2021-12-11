@@ -294,7 +294,6 @@
 
     &:focus {
       background-color: var(--inverse-color-alpha-10);
-      box-shadow: inset 0 0 0 1px var(--inverse-color-alpha-20);
     }
 
     &[type="checkbox"],
