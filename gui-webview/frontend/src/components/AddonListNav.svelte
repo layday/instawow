@@ -250,6 +250,7 @@
       &,
       &::-webkit-search-cancel-button {
         -webkit-appearance: none;
+        appearance: none;
       }
 
       &:not(:focus) {
@@ -325,7 +326,6 @@
       background-size: 10px;
       background-repeat: no-repeat;
       background-position: top calc(50% + 1px) right 7px;
-      -webkit-appearance: none;
     }
 
     :global(.icon) {
