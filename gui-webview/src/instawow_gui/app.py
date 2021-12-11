@@ -1,6 +1,3 @@
-# pyright: reportGeneralTypeIssues=warning
-# pyright: reportUnknownArgumentType=false
-
 from __future__ import annotations
 
 from functools import partial
@@ -15,8 +12,6 @@ from . import json_rpc_server
 
 
 class InstawowApp(toga.App):
-    app: InstawowApp
-
     def __init__(self, **kwargs: object) -> None:
         super().__init__(
             formal_name='instawow-gui',
@@ -27,7 +22,8 @@ class InstawowApp(toga.App):
         )
 
     async def _startup(self, native_app: object) -> None:
-        server_url, serve = await json_rpc_server.prepare()
+        web_app = await json_rpc_server.create_app(self.main_window)
+        server_url, serve = await json_rpc_server.run_app(web_app)
         logger.debug(f'JSON-RPC server running on {server_url}')
         self._iw_web_view.url = str(server_url)
         await serve()
