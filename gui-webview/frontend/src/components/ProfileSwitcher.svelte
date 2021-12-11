@@ -88,7 +88,6 @@
       background-repeat: no-repeat;
       background-position: top calc(50% + 1px) right 7px;
       min-width: 200px;
-      -webkit-appearance: none;
     }
 
     :first-child {

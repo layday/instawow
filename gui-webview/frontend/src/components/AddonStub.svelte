@@ -111,7 +111,7 @@
 
     .remaining-folders {
       font-size: 0.8em;
-      color: var(--inverse-color-tone-20);
+      color: var(--inverse-color-tone-b);
     }
   }
 
@@ -123,7 +123,7 @@
   .selection-controls {
     margin-top: -0.25rem;
     padding-top: 0;
-    color: var(--inverse-color-tone-20);
+    color: var(--inverse-color-tone-b);
 
     .selection-grid {
       display: grid;
@@ -150,7 +150,7 @@
         display: block;
         height: 1rem;
         width: 1rem;
-        fill: var(--inverse-color-tone-20);
+        fill: var(--inverse-color-tone-b);
       }
     }
 
@@ -176,7 +176,7 @@
       &:first-child {
         margin-top: 0.18rem;
         padding-top: 0.18rem;
-        border-top: 1px solid var(--inverse-color-tone-20);
+        border-top: 1px solid var(--inverse-color-tone-b);
       }
 
       label {
@@ -197,7 +197,7 @@
     }
 
     .open-url {
-      color: var(--inverse-color-tone-20);
+      color: var(--inverse-color-tone-b);
     }
   }
 </style>

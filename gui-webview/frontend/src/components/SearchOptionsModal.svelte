@@ -117,7 +117,7 @@
 
     label {
       line-height: vars.$modal-form-el-line-height;
-      color: var(--inverse-color-tone-10);
+      color: var(--inverse-color-tone-a);
       text-align: right;
     }
 
@@ -132,7 +132,7 @@
         cursor: pointer;
         padding: 0.2rem 0.4rem;
         border-radius: vars.$modal-middle-border-radius;
-        background-color: var(--inverse-color-tone-20);
+        background-color: var(--inverse-color-tone-b);
         color: var(--base-color);
 
         &.disabled {

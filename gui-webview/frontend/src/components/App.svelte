@@ -5,6 +5,26 @@
   import ProfileSwitcher from "./ProfileSwitcher.svelte";
   import ProfileView from "./ProfileView.svelte";
 
+  // Nicked from Peacock
+  const colourPalette = [
+    "#dd0531",
+    "#007fff",
+    "#f9e64f",
+    "#1857a4",
+    "#215732",
+    "#61dafb",
+    "#832561",
+    "#ff3d00",
+    "#42b883",
+  ];
+
+  const pickRandomBorderColour = () => {
+    const index = Math.round(Math.random() * colourPalette.length);
+    return `
+      --random-border-color: ${colourPalette[index]};
+    `;
+  };
+
   let statusMessage = " ";
   let installedVersion: string;
   let newVersion: string | null;
@@ -29,16 +49,14 @@
   </style>
 </svelte:head>
 
-{#await performInitialSetup()}
-  <div class="wrapper">
+<div class="wrapper" style={pickRandomBorderColour()}>
+  {#await performInitialSetup()}
     <header class="section menubar" />
     <main class="section main" />
     <footer class="section statusbar">
       <div class="status">loading…</div>
     </footer>
-  </div>
-{:then}
-  <div class="wrapper">
+  {:then}
     <header class="section menubar">
       <ProfileSwitcher />
       <div class="instawow-version">
@@ -57,8 +75,8 @@
     <footer class="section statusbar">
       <div class="status" in:fade>{statusMessage}</div>
     </footer>
-  </div>
-{/await}
+  {/await}
+</div>
 
 <style lang="scss">
   @use "scss/vars";
@@ -69,14 +87,11 @@
     height: 100vh;
   }
 
-  .section {
-    padding: 0 0.8em;
-  }
-
   .menubar {
     display: flex;
     align-items: center;
     min-height: 55px;
+    background-color: var(--base-color);
 
     .instawow-version {
       flex-grow: 1;
@@ -85,33 +100,35 @@
       font-size: 0.7em;
 
       span {
-        color: var(--inverse-color-tone-10);
+        color: var(--inverse-color-tone-a);
       }
     }
   }
 
   .main {
     @extend %stretch-vertically;
+    padding: 0;
     z-index: 5;
-    padding-top: 0.8em;
-    background-color: var(--base-color-tone-10);
-    box-shadow: 0 -1px var(--base-color-tone-20), inset 0 -1px var(--base-color-tone-20);
+    background-color: var(--base-color-tone-a);
+    border-top: 4px solid var(--random-border-color);
+  }
+
+  .menubar,
+  .statusbar {
+    padding: 0 0.8em;
+    -webkit-user-select: none;
+    user-select: none;
   }
 
   .statusbar {
     padding-top: 0.5em;
     padding-bottom: 0.5em;
+    background-color: var(--base-color);
+    box-shadow: inset 0 1px var(--base-color-tone-b);
 
     .status {
       font-size: 0.8em;
-      color: var(--inverse-color-tone-10);
+      color: var(--inverse-color-tone-a);
     }
-  }
-
-  .menubar,
-  .statusbar {
-    background-color: var(--base-color);
-    -webkit-user-select: none;
-    user-select: none;
   }
 </style>

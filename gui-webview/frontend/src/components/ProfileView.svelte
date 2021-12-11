@@ -575,28 +575,30 @@
 </script>
 
 {#if isActive}
-  <AddonListNav
-    on:requestSearch={() => search()}
-    on:requestShowSearchOptionsModal={() => (searchOptionsModal = true)}
-    on:requestRefresh={() => refreshInstalled()}
-    on:requestUpdateAll={() => updateAddons(true)}
-    on:requestInstallReconciled={() => installReconciled(reconcileStage, reconcileSelections)}
-    on:requestAutomateReconciliation={() =>
-      installReconciled(reconcileStage, reconcileSelections, true)}
-    bind:activeView
-    bind:addonsCondensed
-    bind:searchTerms
-    bind:searchFilterInstalled
-    bind:searchFromAlias
-    {searchIsDirty}
-    searchIsSearching={searchesInProgress > 0}
-    installedIsModifying={installedAddonsBeingModified.length > 0}
-    {installedIsRefreshing}
-    {installedOutdatedCount}
-    bind:reconcileStage
-    {reconcileInstallationInProgress}
-  />
-  <div class="addon-list-wrapper" class:prevent-scrolling={changelogModal || rollbackModal}>
+  <div class="addon-list-wrapper">
+    <div class="addon-list-nav-wrapper">
+      <AddonListNav
+        on:requestSearch={() => search()}
+        on:requestShowSearchOptionsModal={() => (searchOptionsModal = true)}
+        on:requestRefresh={() => refreshInstalled()}
+        on:requestUpdateAll={() => updateAddons(true)}
+        on:requestInstallReconciled={() => installReconciled(reconcileStage, reconcileSelections)}
+        on:requestAutomateReconciliation={() =>
+          installReconciled(reconcileStage, reconcileSelections, true)}
+        bind:activeView
+        bind:addonsCondensed
+        bind:searchTerms
+        bind:searchFilterInstalled
+        bind:searchFromAlias
+        {searchIsDirty}
+        searchIsSearching={searchesInProgress > 0}
+        installedIsModifying={installedAddonsBeingModified.length > 0}
+        {installedIsRefreshing}
+        {installedOutdatedCount}
+        bind:reconcileStage
+        {reconcileInstallationInProgress}
+      />
+    </div>
     <Alerts bind:alerts />
     {#if addonContextMenu}
       <AddonContextMenu
@@ -717,15 +719,22 @@
     @extend %stretch-vertically;
     position: relative;
     overflow-y: auto;
-    padding: 0.8rem;
-    margin: 0 -0.8rem;
-    box-shadow: inset 0 1px 0px 0 var(--inverse-color-alpha-10);
     -webkit-user-select: none;
     user-select: none;
+  }
 
-    &.prevent-scrolling {
-      overflow-y: hidden;
-    }
+  .addon-list-nav-wrapper,
+  .addon-list {
+    padding: 0 0.8em;
+  }
+
+  .addon-list-nav-wrapper {
+    @extend %blur-background;
+    background-color: var(--base-color-tone-a-alpha-85);
+    box-shadow: inset 0 -1px 0px 0 var(--base-color-tone-b);
+    position: sticky;
+    top: 0;
+    z-index: 20;
   }
 
   .preamble {
@@ -733,11 +742,10 @@
     grid-template-columns: 3rem 1fr;
     grid-column-gap: 0.5rem;
     align-items: center;
-    margin: -0.4rem -0.8rem 0.8rem;
     padding: 0 0.8rem;
     font-size: 0.85em;
     background-image: linear-gradient(45deg, rgba(pink, 0.2), rgba(orange, 0.2));
-    color: var(--inverse-color-tone-10);
+    color: var(--inverse-color-tone-a);
 
     p {
       margin: 0.75rem 0;
@@ -746,12 +754,13 @@
     :global(.icon) {
       width: 3rem;
       height: 3rem;
-      fill: var(--inverse-color-tone-20);
+      fill: var(--inverse-color-tone-b);
     }
   }
 
   .addon-list {
     @extend %unstyle-list;
+    margin: 0.8em 0;
 
     li {
       border-radius: 4px;
@@ -761,7 +770,7 @@
       }
 
       &:nth-child(odd) {
-        background-color: var(--inverse-color-alpha-05);
+        background-color: var(--base-color);
       }
     }
   }

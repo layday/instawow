@@ -3,17 +3,16 @@
 
   export let show: boolean, xOffset: number, yOffset: number;
 
-  let offsetHeight: number;
-  let offsetWidth: number;
-
-  let topOffset = 0;
-  let leftOffset = 0;
+  let menuHeight: number;
+  let menuWidth: number;
+  let menuTopOffset = 0;
+  let menuLeftOffset = 0;
 
   const dismissOnEsc = (e: KeyboardEvent) => e.key === "Escape" && (show = false);
 
   const adjustPosition = () => {
-    topOffset = yOffset + offsetHeight < window.innerHeight ? yOffset : yOffset - offsetHeight;
-    leftOffset = xOffset + offsetWidth < window.innerWidth ? xOffset : xOffset - offsetWidth;
+    menuTopOffset = yOffset + menuHeight < window.innerHeight ? yOffset : yOffset - menuHeight;
+    menuLeftOffset = xOffset + menuWidth < window.innerWidth ? xOffset : xOffset - menuWidth;
   };
 
   afterUpdate(() => {
@@ -25,10 +24,13 @@
 
 <div class="context-menu-wrapper" on:click={() => (show = false)}>
   <div
-    bind:offsetHeight
-    bind:offsetWidth
+    bind:offsetHeight={menuHeight}
+    bind:offsetWidth={menuWidth}
     class="context-menu"
-    style={`top: ${topOffset}px; left: ${leftOffset}px;`}
+    style={`
+      --menu-top-offset: ${menuTopOffset}px;
+      --menu-left-offset: ${menuLeftOffset}px;
+    `}
     on:click|stopPropagation
   >
     <menu>
@@ -47,6 +49,8 @@
   .context-menu {
     @extend %pop-out;
     position: fixed;
+    top: var(--menu-top-offset);
+    left: var(--menu-left-offset);
     z-index: 40;
     padding: 0.5em 0;
     background-color: var(--base-color-alpha-65);

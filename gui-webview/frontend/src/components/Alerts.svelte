@@ -65,12 +65,11 @@
 
   .alerts-wrapper {
     position: fixed;
-    width: 100%;
     left: 0;
     right: 0;
     display: flex;
     justify-content: center;
-    margin-top: calc(-0.8rem - 2px);
+    margin-top: calc(3rem + 4px);
     z-index: 20;
   }
 

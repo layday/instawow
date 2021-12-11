@@ -230,7 +230,7 @@
   .addon-list-nav {
     @extend %nav-grid;
     grid-template-columns: repeat(3, 1fr);
-    margin-bottom: 0.5em;
+    height: 3rem;
 
     > div {
       @extend %center-flex;
@@ -301,7 +301,7 @@
       display: none;
 
       &:checked + label {
-        background-color: var(--inverse-color-tone-20) !important;
+        background-color: var(--inverse-color-tone-b) !important;
         color: var(--base-color);
 
         :global(.icon) {
@@ -332,7 +332,7 @@
       height: 1rem;
       width: 1rem;
       vertical-align: text-bottom;
-      fill: var(--inverse-color-tone-20);
+      fill: var(--inverse-color-tone-b);
     }
   }
 

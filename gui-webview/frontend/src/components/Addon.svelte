@@ -184,7 +184,7 @@
       margin-top: 0.25rem;
       font-family: vars.$mono-font-stack;
       font-size: 0.7em;
-      color: var(--inverse-color-tone-20);
+      color: var(--inverse-color-tone-b);
     }
 
     .description {
