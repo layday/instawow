@@ -260,10 +260,10 @@ class CurseResolver(BaseResolver):
             for d in defns
             for i in (d.id or catalogue.curse_slugs.get(d.alias) or d.alias,)
         }
-        async with self.manager.cache_client.request(
+        async with self.manager.web_cache.request(
+            'POST',
             self.addon_api_url,
             {'minutes': 5},
-            method='POST',
             json=[i for i in defns_to_maybe_numeric_ids.values() if i is not None],
         ) as response:
             if response.status == 404:
@@ -287,7 +287,7 @@ class CurseResolver(BaseResolver):
             raise R.PkgNonexistent
 
         if defn.strategy is Strategy.version:
-            async with self.manager.cache_client.request(
+            async with self.manager.web_cache.get(
                 self.addon_api_url / str(metadata['id']) / 'files',
                 {'hours': 1},
                 label=f'Fetching metadata from {self.name}',
@@ -531,7 +531,7 @@ class WowiResolver(BaseResolver):
 
     async def _synchronise(self):
         async with self.manager.locks['load WoWI catalogue']:
-            async with self.manager.cache_client.request(
+            async with self.manager.web_cache.get(
                 self.list_api_url,
                 {'hours': 1},
                 label=f'Synchronising {self.name} catalogue',
@@ -547,7 +547,7 @@ class WowiResolver(BaseResolver):
 
         defns_to_ids = {d: ''.join(takewhile(str.isdigit, d.alias)) for d in defns}
         numeric_ids = frozenset(filter(None, defns_to_ids.values()))
-        async with self.manager.cache_client.request(
+        async with self.manager.web_cache.get(
             self.details_api_url / f'{",".join(numeric_ids)}.json',
             {'minutes': 5},
         ) as response:
@@ -673,7 +673,7 @@ class TukuiResolver(BaseResolver):
 
     async def _synchronise(self) -> dict[str, _TukuiAddon | _TukuiUi]:
         async def fetch_ui(ui_slug: str):
-            async with self.manager.cache_client.request(
+            async with self.manager.web_cache.get(
                 self.api_url.with_query({'ui': ui_slug}),
                 {'minutes': 5},
             ) as response:
@@ -682,7 +682,7 @@ class TukuiResolver(BaseResolver):
             return [(str(addon['id']), addon), (ui_slug, addon)]
 
         async def fetch_addons(flavour: Flavour):
-            async with self.manager.cache_client.request(
+            async with self.manager.web_cache.get(
                 self.api_url.with_query({self.query_flavours[flavour]: 'all'}),
                 {'minutes': 30},
                 label=f'Synchronising {self.name} {flavour} catalogue',
@@ -851,7 +851,7 @@ class GithubResolver(BaseResolver):
     async def resolve_one(self, defn: Defn, metadata: None) -> models.Pkg:
         repo_url = self.repos_api_url / defn.alias
 
-        async with self.manager.cache_client.request(repo_url, {'hours': 1}) as response:
+        async with self.manager.web_cache.get(repo_url, {'hours': 1}) as response:
             if response.status == 404:
                 raise R.PkgNonexistent
             response.raise_for_status()
@@ -868,7 +868,7 @@ class GithubResolver(BaseResolver):
             # See: https://docs.github.com/en/free-pro-team@latest/rest/reference/repos#get-the-latest-release
             release_url = repo_url / 'releases/latest'
 
-        async with self.manager.web_client.get(release_url) as response:
+        async with self.manager.web_cache.get(release_url, {'minutes': 5}) as response:
             if response.status == 404:
                 raise R.PkgFileUnavailable('release not found')
             response.raise_for_status()
@@ -918,7 +918,7 @@ class GithubResolver(BaseResolver):
         else:
             logger.info(f'reading metadata for {defn} from release.json')
 
-            async with self.manager.cache_client.request(
+            async with self.manager.web_cache.get(
                 release_json['browser_download_url'], {'days': 1}
             ) as response:
                 response.raise_for_status()

@@ -194,7 +194,7 @@ class WaCompanionBuilder:
     async def _fetch_wago_metadata(
         self, api_url: URL, aura_ids: Iterable[str]
     ) -> list[WagoApiResponse]:
-        async with self.manager.cache_client.request(
+        async with self.manager.web_cache.get(
             api_url.with_query(ids=','.join(aura_ids)),
             {'minutes': 30},
             label='Fetching aura metadata',
@@ -206,7 +206,7 @@ class WaCompanionBuilder:
             return sorted(await response.json(), key=lambda r: r['slug'])
 
     async def _fetch_wago_import_string(self, aura: WagoApiResponse) -> str:
-        async with self.manager.cache_client.request(
+        async with self.manager.web_cache.get(
             IMPORT_API_URL.with_query(id=aura['_id']).with_fragment(str(aura['version'])),
             {'days': 30},
             headers={'api-key': self.builder_config.wago_api_key or ''},

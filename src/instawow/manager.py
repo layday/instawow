@@ -3,7 +3,12 @@ from __future__ import annotations
 import asyncio
 from collections import defaultdict
 from collections.abc import AsyncIterator, Awaitable, Callable, Iterable, Mapping, Sequence, Set
-from contextlib import asynccontextmanager, contextmanager, nullcontext
+from contextlib import (
+    AbstractAsyncContextManager,
+    asynccontextmanager,
+    contextmanager,
+    nullcontext,
+)
 import contextvars as cv
 from datetime import datetime
 from functools import lru_cache, partial, wraps
@@ -153,17 +158,22 @@ class _ResponseWrapper:
         return self._response_obj.status if self._response_obj is not None else 200
 
 
-class _CacheClient:
+class _CacheFauxClientSession:
     def __init__(self, cache_dir: Path):
         self._cache_dir = cache_dir
 
     @asynccontextmanager
     async def request(
-        self, url: str | URL, ttl: Mapping[str, float], label: str | None = None, **kwargs: Any
+        self,
+        method: str,
+        url: str | URL,
+        ttl: Mapping[str, float],
+        label: str | None = None,
+        **kwargs: Any,
     ) -> AsyncIterator[_ResponseWrapper]:
         async def make_request():
             web_client = _web_client.get()
-            request_kwargs: dict[str, Any] = {'method': 'GET', 'url': url, **kwargs}
+            request_kwargs: dict[str, Any] = {'method': method, 'url': url, **kwargs}
             if label:
                 request_kwargs['trace_request_ctx'] = _GenericDownloadTraceRequestCtx(
                     report_progress='generic', label=label
@@ -182,6 +192,15 @@ class _CacheClient:
                 await t(dest.write_text)(text, encoding='utf-8')
 
         yield _ResponseWrapper(response, text)
+
+    def get(
+        self,
+        url: str | URL,
+        ttl: Mapping[str, float],
+        label: str | None = None,
+        **kwargs: Any,
+    ) -> AbstractAsyncContextManager[_ResponseWrapper]:
+        return self.request('GET', url, ttl, label, **kwargs)
 
 
 def prepare_database(config: Config) -> sa_future.Engine:
@@ -326,7 +345,9 @@ class Manager:
             (r.source, r(self)) for r in resolver_classes
         )
 
-        self.cache_client: _CacheClient = _CacheClient(self.config.global_config.cache_dir)
+        self.web_cache: _CacheFauxClientSession = _CacheFauxClientSession(
+            self.config.global_config.cache_dir
+        )
 
         self._catalogue = None
 
@@ -573,7 +594,7 @@ class Manager:
         if url.scheme == 'data' and url.raw_path.startswith(','):
             return urllib.parse.unquote(url.raw_path[1:])
         elif url.scheme in {'http', 'https'}:
-            async with self.cache_client.request(url, {'days': 1}) as response:
+            async with self.web_cache.get(url, {'days': 1}) as response:
                 response.raise_for_status()
                 return await response.text()
         elif url.scheme == 'file':
