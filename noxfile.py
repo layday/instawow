@@ -4,7 +4,7 @@ from textwrap import dedent
 
 import nox
 
-nox.options.sessions = ['reformat', 'test', 'type_check']
+nox.options.sessions = ['format', 'test', 'type_check']
 
 
 def _mirror_project(session: nox.Session):
@@ -17,17 +17,27 @@ def _install_coverage_hook(session: nox.Session):
     session.run('python', 'tests/install_coverage_hook.py')
 
 
-@nox.session(reuse_venv=True)
-def reformat(session: nox.Session):
-    "Reformat Python source code using Black and JavaScript using Prettier."
+@nox.session(name='format', reuse_venv=True)
+def format_(session: nox.Session):
+    "Format source code."
     session.install('isort', 'black')
+
+    check = '--check' in session.posargs
     for cmd in ['isort', 'black']:
-        session.run(cmd, 'src', 'gui-webview/src', 'tests', 'noxfile.py')
+        session.run(
+            cmd, *['--check'] if check else [], 'src', 'gui-webview/src', 'tests', 'noxfile.py'
+        )
 
     if '--skip-prettier' not in session.posargs:
         session.chdir('gui-webview/frontend')
         session.run(
-            *('npx', 'prettier', '-w', 'src', 'package.json', 'rollup.config.js', 'tsconfig.json'),
+            'npx',
+            'prettier',
+            '--check' if check else '--write',
+            'src',
+            'package.json',
+            'rollup.config.js',
+            'tsconfig.json',
             external=True,
         )
 

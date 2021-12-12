@@ -49,3 +49,16 @@ jobs:
           nox
           --force-python ${{ matrix.python-version }} --error-on-missing-interpreters
           -s type_check
+  check-format:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone the repo
+        uses: actions/checkout@v2
+      - name: Install nox
+        run: pipx install nox
+      - name: Install Node 16 for Prettier
+        uses: actions/setup-node@v2
+        with:
+          node-version: "16"
+      - name: Check code formatting
+        run: nox -s format -- --check
