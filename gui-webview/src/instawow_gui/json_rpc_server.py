@@ -23,7 +23,7 @@ from loguru import logger
 from pydantic import BaseModel, ValidationError
 import sqlalchemy as sa
 import toga
-from typing_extensions import Concatenate, Literal, ParamSpec, TypeAlias, TypedDict
+from typing_extensions import Concatenate, Literal, ParamSpec, TypedDict
 from yarl import URL
 
 from instawow import __version__, db, matchers, models
@@ -31,7 +31,7 @@ from instawow import results as R
 from instawow.cataloguer import CatalogueEntry
 from instawow.common import Strategy
 from instawow.config import Config
-from instawow.manager import Manager, TraceRequestCtx, init_web_client, is_outdated
+from instawow.manager import LocksType, Manager, TraceRequestCtx, init_web_client, is_outdated
 from instawow.resolvers import Defn
 from instawow.utils import run_in_thread as t
 from instawow.utils import uniq
@@ -40,7 +40,6 @@ from . import frontend
 
 _T = TypeVar('_T')
 _P = ParamSpec('_P')
-_ManagerWorkQueueItem: TypeAlias = 'tuple[asyncio.Future[Any], str, Callable[..., Awaitable[Any]]]'
 
 
 LOCALHOST = '127.0.0.1'
@@ -489,21 +488,25 @@ def _init_json_rpc_web_client(
 class _ManagerWorkQueue:
     def __init__(self):
         self._loop = asyncio.get_running_loop()
-        self._managers: dict[str, Manager] = {}
-        self._queue: asyncio.Queue[_ManagerWorkQueueItem] = asyncio.Queue()
+
+        self._queue: asyncio.Queue[
+            tuple[asyncio.Future[Any], str, Callable[..., Awaitable[Any]]]
+        ] = asyncio.Queue()
+        self._managers: dict[str, tuple[Manager, Callable[[], None]]] = {}
         self._progress_reporters: set[tuple[Manager, models.Pkg, Callable[[], float]]] = set()
+
         self._web_client = _init_json_rpc_web_client(self._progress_reporters)
-        self._locks: defaultdict[str | tuple[int, str], asyncio.Lock] = defaultdict(asyncio.Lock)
+        self._locks: LocksType = defaultdict(asyncio.Lock)
 
     async def cleanup(self):
-        for manager in self._managers.values():
-            manager.database.close()
+        for _, close_db_conn in self._managers.values():
+            close_db_conn()
         await self._web_client.close()
 
     def unload(self, profile: str):
-        manager = self._managers.pop(profile, None)
-        if manager:
-            manager.database.close()
+        _, close_db_conn = self._managers.pop(profile, (None, None))
+        if close_db_conn is not None:
+            close_db_conn()
 
     async def _schedule_item(
         self, future: asyncio.Future[Any], profile: str, coro_fn: Callable[..., Awaitable[Any]]
@@ -511,12 +514,13 @@ class _ManagerWorkQueue:
         try:
             async with self._locks[f"load profile '{profile}'"]:
                 try:
-                    manager = self._managers[profile]
+                    manager, _ = self._managers[profile]
                 except KeyError:
                     with _reraise_validation_error(_ConfigError):
                         config = await t(Config.read)(profile)
 
-                    manager = self._managers[profile] = Manager.from_config(config)
+                    self._managers[profile] = Manager.from_config(config)
+                    manager, _ = self._managers[profile]
 
             result = await coro_fn(manager)
         except BaseException as exc:
@@ -525,11 +529,11 @@ class _ManagerWorkQueue:
             future.set_result(result)
 
     async def listen(self):
-        with Manager.contextualise(web_client=self._web_client, locks=self._locks):
-            while True:
-                item = await self._queue.get()
-                asyncio.create_task(self._schedule_item(*item))
-                self._queue.task_done()
+        Manager.contextualise(web_client=self._web_client, locks=self._locks)
+        while True:
+            item = await self._queue.get()
+            asyncio.create_task(self._schedule_item(*item))
+            self._queue.task_done()
 
     async def run(
         self, profile: str, coro_fn: Callable[Concatenate[Manager, _P], Awaitable[_T]]

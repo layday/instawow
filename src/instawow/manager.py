@@ -1,14 +1,8 @@
 from __future__ import annotations
 
-import asyncio
 from collections import defaultdict
 from collections.abc import AsyncIterator, Awaitable, Callable, Iterable, Mapping, Sequence, Set
-from contextlib import (
-    AbstractAsyncContextManager,
-    asynccontextmanager,
-    contextmanager,
-    nullcontext,
-)
+from contextlib import AbstractAsyncContextManager, asynccontextmanager, contextmanager
 import contextvars as cv
 from datetime import datetime
 from functools import lru_cache, partial, wraps
@@ -58,7 +52,6 @@ from .utils import shasum, trash, uniq
 
 _P = ParamSpec('_P')
 _T = TypeVar('_T')
-_CManager: TypeAlias = 'Callable[Concatenate[Manager, _P], Awaitable[_T]]'
 
 
 USER_AGENT = 'instawow (https://github.com/layday/instawow)'
@@ -111,31 +104,6 @@ def _open_pkg_archive(path: PurePath):
         names = archive.namelist()
         base_dirs = set(find_addon_zip_base_dirs(names))
         yield (base_dirs, extract)
-
-
-async def _download_pkg_archive(manager: Manager, pkg: models.Pkg, *, chunk_size: int = 4096):
-    url = pkg.download_url
-    dest = manager.config.global_config.cache_dir / shasum(
-        pkg.source, pkg.id, pkg.version, manager.config.game_flavour
-    )
-    if await t(dest.exists)():
-        logger.debug(f'{url} is cached at {dest}')
-    elif url.startswith('file://'):
-        await _copy_async(file_uri_to_path(url), dest)
-    else:
-        async with manager.web_client.wrapped.get(
-            url,
-            raise_for_status=True,
-            trace_request_ctx=_PkgDownloadTraceRequestCtx(
-                report_progress='pkg_download', manager=manager, pkg=pkg
-            ),
-        ) as response, _open_temp_writer() as (temp_path, write):
-            async for chunk in response.content.iter_chunked(chunk_size):
-                await write(chunk)
-
-        await _move_async(temp_path, dest)
-
-    return dest
 
 
 class _ResponseWrapper:
@@ -210,19 +178,6 @@ class _CacheFauxClientSession:
         **kwargs: Any,
     ) -> AbstractAsyncContextManager[_ResponseWrapper]:
         return self.request('GET', url, ttl, label, **kwargs)
-
-
-def prepare_database(config: Config) -> sa_future.Engine:
-    engine = sa.create_engine(
-        f'sqlite:///{config.db_file}',
-        # We wanna be able to operate on the database from executor threads
-        # when performing disk I/O
-        connect_args={'check_same_thread': False},
-        # echo=True,
-        future=True,
-    )
-    db.migrate_database(engine, DB_REVISION)
-    return engine
 
 
 @lru_cache(None)
@@ -305,7 +260,9 @@ def _with_lock(
     lock_name: str,
     manager_bound: bool = True,
 ):
-    def outer(coro_fn: _CManager[_P, _T]) -> _CManager[_P, _T]:
+    def outer(
+        coro_fn: Callable[Concatenate[Manager, _P], Awaitable[_T]]
+    ) -> Callable[Concatenate[Manager, _P], Awaitable[_T]]:
         @wraps(coro_fn)
         async def inner(self: Manager, *args: _P.args, **kwargs: _P.kwargs):
             async with self.locks[(id(self), lock_name) if manager_bound else lock_name]:
@@ -318,10 +275,23 @@ def _with_lock(
 
 _web_client: cv.ContextVar[_deferred_types.aiohttp.ClientSession] = cv.ContextVar('_web_client')
 
-_dummy_locks: defaultdict[str | tuple[int, str], Any] = defaultdict(_DummyLock)
-_locks: cv.ContextVar[defaultdict[str | tuple[int, str], asyncio.Lock]] = cv.ContextVar(
-    '_locks', default=_dummy_locks
-)
+LocksType: TypeAlias = 'defaultdict[str | tuple[int, str], AbstractAsyncContextManager[None]]'
+
+_dummy_locks: LocksType = defaultdict(_DummyLock)
+_locks: cv.ContextVar[LocksType] = cv.ContextVar('_locks', default=_dummy_locks)
+
+
+def prepare_database(config: Config) -> sa_future.Engine:
+    engine = sa.create_engine(
+        f'sqlite:///{config.db_file}',
+        # We wanna be able to operate on the database from executor threads
+        # when performing disk I/O
+        connect_args={'check_same_thread': False},
+        # echo=True,
+        future=True,
+    )
+    db.migrate_database(engine, DB_REVISION)
+    return engine
 
 
 class Manager:
@@ -365,21 +335,20 @@ class Manager:
         cls,
         *,
         web_client: _deferred_types.aiohttp.ClientSession | None = None,
-        locks: defaultdict[str | tuple[int, str], asyncio.Lock] | None = None,
-    ) -> nullcontext[None]:
+        locks: LocksType | None = None,
+    ) -> None:
         if web_client is not None:
             _web_client.set(web_client)
         if locks is not None:
             _locks.set(locks)
 
-        return nullcontext()
-
     @classmethod
-    def from_config(cls, config: Config) -> Manager:
-        return cls(config, prepare_database(config).connect())
+    def from_config(cls, config: Config) -> tuple[Manager, Callable[[], None]]:
+        db_conn = prepare_database(config).connect()
+        return (cls(config, db_conn), db_conn.close)
 
     @property
-    def locks(self) -> defaultdict[str | tuple[int, str], asyncio.Lock]:
+    def locks(self) -> LocksType:
         "Lock factory used to synchronise async operations."
         return _locks.get()
 
@@ -604,7 +573,7 @@ class Manager:
         elif url.scheme == 'file':
             return await t(Path(file_uri_to_path(uri)).read_text)(encoding='utf-8')
         else:
-            raise ValueError('Unsupported URL with scheme', url.scheme)
+            raise ValueError('Unsupported URI with scheme', url.scheme)
 
     async def search(
         self,
@@ -670,6 +639,29 @@ class Manager:
         )
         return [e for _, e in weighted_entries[:limit]]
 
+    async def _download_pkg_archive(self, pkg: models.Pkg, *, chunk_size: int = 4096):
+        url = pkg.download_url
+        dest = self.config.global_config.cache_dir / shasum(url)
+
+        if await t(dest.exists)():
+            logger.debug(f'{url} is cached at {dest}')
+        elif url.startswith('file://'):
+            await _copy_async(file_uri_to_path(url), dest)
+        else:
+            async with self.web_client.wrapped.get(
+                url,
+                raise_for_status=True,
+                trace_request_ctx=_PkgDownloadTraceRequestCtx(
+                    report_progress='pkg_download', manager=self, pkg=pkg
+                ),
+            ) as response, _open_temp_writer() as (temp_path, write):
+                async for chunk in response.content.iter_chunked(chunk_size):
+                    await write(chunk)
+
+            await _move_async(temp_path, dest)
+
+        return dest
+
     @_with_lock('change state')
     async def install(
         self, defns: Sequence[Defn], replace: bool
@@ -689,7 +681,7 @@ class Manager:
         )
         installables = {d: r for d, r in resolve_results.items() if models.is_pkg(r)}
         archives = await gather(
-            (_download_pkg_archive(self, r) for r in installables.values()),
+            (self._download_pkg_archive(r) for r in installables.values()),
             capture_manager_exc_async,
         )
         results = chain_dict(
@@ -736,7 +728,7 @@ class Manager:
             if n.version != o.version
         }
         archives = await gather(
-            (_download_pkg_archive(self, n) for _, n in updatables.values()),
+            (self._download_pkg_archive(n) for _, n in updatables.values()),
             capture_manager_exc_async,
         )
         results = chain_dict(
