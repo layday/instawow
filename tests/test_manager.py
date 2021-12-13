@@ -250,7 +250,7 @@ async def test_get_changelog_from_url_encoded_data_url(iw_manager: Manager):
 
 @pytest.mark.asyncio
 async def test_get_malformed_changelog(iw_manager: Manager):
-    with pytest.raises(ValueError, match='Unsupported URL with scheme'):
+    with pytest.raises(ValueError, match='Unsupported URI with scheme'):
         await iw_manager.get_changelog('')
 
 
