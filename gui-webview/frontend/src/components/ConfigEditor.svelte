@@ -15,8 +15,8 @@
   let configParams = (
     createNew
       ? ({ global_config: {}, game_flavour: "retail" } as Config)
-      : $profiles.get($activeProfile as string)
-  )!;
+      : $profiles.get($activeProfile!)!
+  );
   let errors: { [key: string]: string } = {};
 
   const selectFolder = async () => {
