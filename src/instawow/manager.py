@@ -123,7 +123,7 @@ async def _download_pkg_archive(manager: Manager, pkg: models.Pkg, *, chunk_size
     elif url.startswith('file://'):
         await _copy_async(file_uri_to_path(url), dest)
     else:
-        async with manager.web_client.get(
+        async with manager.web_client.wrapped.get(
             url,
             raise_for_status=True,
             trace_request_ctx=_PkgDownloadTraceRequestCtx(
@@ -146,7 +146,7 @@ class _ResponseWrapper:
     async def text(self) -> str:
         return self._text
 
-    async def json(self) -> Any:
+    async def json(self, **kwargs: Any) -> Any:
         return json.loads(await self.text())
 
     def raise_for_status(self) -> None:
@@ -162,41 +162,50 @@ class _CacheFauxClientSession:
     def __init__(self, cache_dir: Path):
         self._cache_dir = cache_dir
 
+    @property
+    def wrapped(self) -> _deferred_types.aiohttp.ClientSession:
+        return _web_client.get()
+
     @asynccontextmanager
     async def request(
         self,
         method: str,
         url: str | URL,
-        ttl: Mapping[str, float],
+        ttl: Mapping[str, float] | None = None,
         label: str | None = None,
         **kwargs: Any,
     ) -> AsyncIterator[_ResponseWrapper]:
-        async def make_request():
-            web_client = _web_client.get()
+        def prepare_request_kwargs():
             request_kwargs: dict[str, Any] = {'method': method, 'url': url, **kwargs}
             if label:
                 request_kwargs['trace_request_ctx'] = _GenericDownloadTraceRequestCtx(
                     report_progress='generic', label=label
                 )
-            async with web_client.request(**request_kwargs) as response:
+            return request_kwargs
+
+        async def make_request():
+            async with self.wrapped.request(**prepare_request_kwargs()) as response:
                 return (response, await response.text())
 
-        dest = self._cache_dir / shasum(url, ttl, kwargs)
-        response = None
-        if await t(is_not_stale)(dest, ttl):
-            logger.debug(f'{url} is cached at {dest} (ttl: {ttl})')
-            text = await t(dest.read_text)(encoding='utf-8')
-        else:
+        if ttl is None:
             response, text = await make_request()
-            if response.ok:
-                await t(dest.write_text)(text, encoding='utf-8')
+        else:
+            dest = self._cache_dir / shasum(url, ttl, kwargs)
+            response = None
+            if await t(is_not_stale)(dest, ttl):
+                logger.debug(f'{url} is cached at {dest} (ttl: {ttl})')
+                text = await t(dest.read_text)(encoding='utf-8')
+            else:
+                response, text = await make_request()
+                if response.ok:
+                    await t(dest.write_text)(text, encoding='utf-8')
 
         yield _ResponseWrapper(response, text)
 
     def get(
         self,
         url: str | URL,
-        ttl: Mapping[str, float],
+        ttl: Mapping[str, float] | None = None,
         label: str | None = None,
         **kwargs: Any,
     ) -> AbstractAsyncContextManager[_ResponseWrapper]:
@@ -345,7 +354,7 @@ class Manager:
             (r.source, r(self)) for r in resolver_classes
         )
 
-        self.web_cache: _CacheFauxClientSession = _CacheFauxClientSession(
+        self.web_client: _CacheFauxClientSession = _CacheFauxClientSession(
             self.config.global_config.cache_dir
         )
 
@@ -368,11 +377,6 @@ class Manager:
     @classmethod
     def from_config(cls, config: Config) -> Manager:
         return cls(config, prepare_database(config).connect())
-
-    @property
-    def web_client(self) -> _deferred_types.aiohttp.ClientSession:
-        "The web client session."
-        return _web_client.get()
 
     @property
     def locks(self) -> defaultdict[str | tuple[int, str], asyncio.Lock]:
@@ -594,7 +598,7 @@ class Manager:
         if url.scheme == 'data' and url.raw_path.startswith(','):
             return urllib.parse.unquote(url.raw_path[1:])
         elif url.scheme in {'http', 'https'}:
-            async with self.web_cache.get(url, {'days': 1}) as response:
+            async with self.web_client.get(url, {'days': 1}) as response:
                 response.raise_for_status()
                 return await response.text()
         elif url.scheme == 'file':
