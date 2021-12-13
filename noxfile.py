@@ -7,13 +7,13 @@ import nox
 nox.options.sessions = ['format', 'test', 'type_check']
 
 
-def _mirror_project(session: nox.Session):
-    tmp_dir = session.create_tmp()
-    session.run('git', 'clone', '.', tmp_dir, external=True)
-    session.chdir(tmp_dir)
+def mirror_repo(session: nox.Session):
+    repo_dir = f'{session.create_tmp()}/instawow'
+    session.run('git', 'clone', '.', repo_dir, external=True)
+    session.chdir(repo_dir)
 
 
-def _install_coverage_hook(session: nox.Session):
+def install_coverage_hook(session: nox.Session):
     session.run('python', 'tests/install_coverage_hook.py')
 
 
@@ -73,8 +73,8 @@ def format_(session: nox.Session):
 )
 def test(session: nox.Session, constraints: str):
     "Run the test suite."
-    _mirror_project(session)
-    _install_coverage_hook(session)
+    mirror_repo(session)
+    install_coverage_hook(session)
 
     constraints_txt = 'constraints.txt'
     with open(constraints_txt, 'w') as file:
@@ -97,7 +97,7 @@ def test(session: nox.Session, constraints: str):
 @nox.session(python='3.9')
 def type_check(session: nox.Session):
     "Run Pyright."
-    _mirror_project(session)
+    mirror_repo(session)
     session.install('.[gui, types]')
     session.run('npx', 'pyright', external=True)
 
@@ -124,7 +124,7 @@ def build_dists(session: nox.Session):
 
 @nox.session
 def publish_dists(session: nox.Session):
-    "Build, validate and upload dists to PyPI."
+    "Validate and upload dists to PyPI."
     session.install('twine')
     for subcmd in ['check', 'upload']:
         session.run('twine', subcmd, 'dist/*')

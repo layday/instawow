@@ -5,7 +5,7 @@ build-backend = "poetry.core.masonry.api"
 [tool.poetry-dynamic-versioning]
 enable = true
 vcs = "git"
-substitution = { files = ["src/instawow/_version.py"] }
+substitution.files = ["src/instawow/_version.py"]
 
 [tool.poetry]
 name = "instawow"
@@ -16,7 +16,7 @@ authors = [
   "layday <layday@protonmail.com>",
 ]
 readme = "README.rst"
-urls = { homepage = "http://github.com/layday/instawow" }
+urls.homepage = "http://github.com/layday/instawow"
 packages = [
   { include = "instawow", from = "src" },
   { include = "instawow_gui", from = "gui-webview/src" },
@@ -26,6 +26,7 @@ include = [
   { path = "gui-webview/src/instawow_gui/frontend/*" },
   { path = "tests", format = "sdist" },
 ]
+scripts.instawow = "instawow.cli:main"
 
 [tool.poetry.dependencies]
 python = ">=3.7"
@@ -78,10 +79,6 @@ test = [
 types = [
   "sqlalchemy2-stubs",
 ]
-
-[tool.poetry.scripts]
-instawow = "instawow.cli:main"
-
 
 ## TESTS ##
 

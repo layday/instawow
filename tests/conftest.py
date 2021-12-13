@@ -67,7 +67,7 @@ def make_addon_zip(*folders: str):
 def iw_temp_dir(tmp_path_factory: pytest.TempPathFactory):
     temp_dir = tmp_path_factory.mktemp('temp')
     os.environ['INSTAWOW_TEMP_DIR'] = str(temp_dir)
-    yield temp_dir
+    return temp_dir
 
 
 @pytest.fixture(params=Flavour)
@@ -92,7 +92,7 @@ def iw_config_dict(tmp_path: Path, iw_config_dict_no_config_dir: dict[str, Any])
 
 @pytest.fixture
 def iw_config(iw_config_dict: dict[str, Any]):
-    yield Config(**iw_config_dict).write()
+    return Config(**iw_config_dict).write()
 
 
 @pytest.fixture
@@ -103,9 +103,8 @@ async def iw_web_client():
 
 @pytest.fixture
 def iw_manager(iw_config: Config, iw_web_client):
-    manager = Manager.from_config(iw_config)
-    manager.contextualise(web_client=iw_web_client)
-    yield manager
+    Manager.contextualise(web_client=iw_web_client)
+    yield Manager.from_config(iw_config)
 
 
 @pytest.fixture
