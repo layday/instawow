@@ -12,11 +12,9 @@
 
   const createNew = editing === "new";
 
-  let configParams = (
-    createNew
-      ? ({ global_config: {}, game_flavour: "retail" } as Config)
-      : $profiles.get($activeProfile!)!
-  );
+  let configParams = createNew
+    ? ({ global_config: {}, game_flavour: "retail" } as Config)
+    : $profiles.get($activeProfile!)!;
   let errors: { [key: string]: string } = {};
 
   const selectFolder = async () => {
