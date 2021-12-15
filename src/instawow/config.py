@@ -99,6 +99,7 @@ class _GlobalConfig(_BaseSettings):
         return self
 
     def write(self) -> _GlobalConfig:
+        self.ensure_dirs()
         _write_config(self, {'auto_update_check', 'access_tokens'})
         return self
 
@@ -178,8 +179,8 @@ class Config(_BaseSettings):
         instawow.  This means that environment overrides should only be persisted
         if made during configuration.
         """
-        self.ensure_dirs()
         self.global_config.write()
+        self.ensure_dirs()
         _write_config(self, {'addon_dir', 'game_flavour', 'profile'})
         return self
 

@@ -832,7 +832,7 @@ class GithubResolver(BaseResolver):
             return '/'.join(url.parts[1:3])
 
     async def resolve_one(self, defn: Defn, metadata: None) -> models.Pkg:
-        github_get = partial(self.manager.web_client.get)
+        github_get = self.manager.web_client.get
         github_token = self.manager.config.global_config.access_tokens.github
         if github_token is not None:
             github_get = partial(github_get, headers={'Authorization': f'token {github_token}'})
