@@ -9,7 +9,7 @@ import typing
 
 import click
 from loguru import logger
-from pydantic import BaseModel, BaseSettings, Field, PydanticValueError, validator
+from pydantic import BaseModel, BaseSettings, Field, PydanticValueError, SecretStr, validator
 from pydantic.env_settings import SettingsSourceCallable
 
 from .common import Flavour
@@ -34,8 +34,8 @@ def _ensure_dirs(dirs: Iterable[Path]):
         dir_.mkdir(exist_ok=True, parents=True)
 
 
-def _write_config(config: _BaseSettings, fields: Set[str]):
-    json_output = config.json(include=fields, indent=2)
+def _write_config(config: _BaseSettings, fields: Set[str], **kwargs: object):
+    json_output = config.json(include=fields, indent=2, **kwargs)
     config.config_file.write_text(json_output, encoding='utf-8')
 
 
@@ -58,19 +58,21 @@ def _customise_sources(
     return (env_settings, init_settings)
 
 
-class _BaseSettings(
-    BaseSettings,
-    env_prefix='INSTAWOW_',
-    customise_sources=_customise_sources,
-):
+class _BaseSettings(BaseSettings, env_prefix='INSTAWOW_', customise_sources=_customise_sources):
     @property
     def config_file(self) -> Path:
         raise NotImplementedError
 
 
 class _AccessTokens(BaseModel):
-    github: typing.Optional[str]
-    wago: typing.Optional[str]
+    github: typing.Optional[SecretStr]
+    wago: typing.Optional[SecretStr]
+
+
+def _encode_reveal_secret_str(value: object):
+    if isinstance(value, SecretStr):
+        return value.get_secret_value()
+    raise TypeError('Unencodable value', value)
 
 
 class _GlobalConfig(_BaseSettings):
@@ -100,7 +102,9 @@ class _GlobalConfig(_BaseSettings):
 
     def write(self) -> _GlobalConfig:
         self.ensure_dirs()
-        _write_config(self, {'auto_update_check', 'access_tokens'})
+        _write_config(
+            self, {'auto_update_check', 'access_tokens'}, encoder=_encode_reveal_secret_str
+        )
         return self
 
     @property
