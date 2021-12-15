@@ -80,7 +80,7 @@ async def test_curse_version_pinning(iw_manager: Manager):
 
 
 @pytest.mark.parametrize(
-    'iw_config_dict_no_config_dir',
+    'iw_config_values',
     [Flavour.retail],
     indirect=True,
 )
@@ -133,7 +133,7 @@ async def test_tukui_basic(iw_manager: Manager):
 
 
 @pytest.mark.parametrize(
-    'iw_config_dict_no_config_dir',
+    'iw_config_values',
     [Flavour.retail],
     indirect=True,
 )

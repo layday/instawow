@@ -12,24 +12,28 @@
 
   const createNew = editing === "new";
 
-  let configParams = createNew
-    ? ({ global_config: {}, game_flavour: "retail" } as Config)
-    : $profiles.get($activeProfile!)!;
+  let profile: string;
+  let addon_dir: string;
+  let game_flavour: Flavour;
+
   let errors: { [key: string]: string } = {};
 
+  if (createNew) {
+    game_flavour = Flavour.retail;
+  } else {
+    ({ profile, addon_dir, game_flavour } = $profiles.get($activeProfile!)!);
+  }
+
   const selectFolder = async () => {
-    const { selection } = await $api.selectFolder(configParams.addon_dir);
+    const { selection } = await $api.selectFolder(addon_dir);
     if (selection !== null) {
-      configParams.addon_dir = selection;
+      addon_dir = selection;
     }
   };
 
   const saveConfig = async () => {
-    if (
-      (createNew && $profiles.has(configParams.profile)) ||
-      (!configParams.profile && $profiles.has("__default__"))
-    ) {
-      if (!configParams.profile) {
+    if ((createNew && $profiles.has(profile)) || (!profile && $profiles.has("__default__"))) {
+      if (!profile) {
         errors = { profile: "a default profile already exists" };
       } else {
         errors = { profile: "a profile with that name already exists" };
@@ -39,7 +43,7 @@
 
     let result: Config;
     try {
-      result = await $api.writeProfile(configParams, createNew);
+      result = await $api.writeProfile({ profile, addon_dir, game_flavour }, createNew);
     } catch (error) {
       if (error instanceof JSONRPCError) {
         errors = lodash.fromPairs(
@@ -70,8 +74,8 @@ a new profile for this folder and your rollback history \
 will be lost.`
     );
     if (ok) {
-      await $api.deleteProfile(configParams.profile);
-      $profiles.delete(configParams.profile);
+      await $api.deleteProfile(profile);
+      $profiles.delete(profile);
       $profiles = $profiles; // Trigger update in Svelte
       $activeProfile = $profiles.keys().next().value;
       editing = false;
@@ -95,7 +99,7 @@ will be lost.`
         type="text"
         label="profile"
         placeholder="profile"
-        bind:value={configParams.profile}
+        bind:value={profile}
       />
     {/if}
     {#if errors.addon_dir}
@@ -108,7 +112,7 @@ will be lost.`
         type="text"
         disabled
         placeholder="add-on folder"
-        value={configParams.addon_dir || ""}
+        value={addon_dir || ""}
       />
       <button
         aria-label="select folder"
@@ -126,7 +130,7 @@ will be lost.`
         aria-label="game flavour"
         class="row"
         class:error={errors.game_flavour}
-        bind:value={configParams.game_flavour}
+        bind:value={game_flavour}
       >
         {#each Object.values(Flavour) as flavour}
           <option value={flavour}>{flavour}</option>

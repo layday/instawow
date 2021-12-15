@@ -163,7 +163,10 @@ export class Api {
     return await this.request({ method: "config/read", params: { profile: profile } });
   }
 
-  async writeProfile(config: Config, infer_game_flavour: boolean): Promise<Config> {
+  async writeProfile(
+    config: Omit<Config, "global_config">,
+    infer_game_flavour: boolean
+  ): Promise<Config> {
     return await this.request({
       method: "config/write",
       params: { values: config, infer_game_flavour: infer_game_flavour },

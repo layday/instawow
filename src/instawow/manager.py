@@ -24,7 +24,7 @@ from . import _deferred_types, db, models
 from . import results as R
 from .cataloguer import Catalogue, CatalogueEntry
 from .common import Strategy
-from .config import Config
+from .config import Config, GlobalConfig
 from .plugins import load_plugins
 from .resolvers import (
     BaseResolver,
@@ -830,11 +830,11 @@ async def is_outdated() -> tuple[bool, str]:
     if __version__ == '0.0.0':
         return (False, '')
 
-    dummy_config = Config.get_dummy_config()
-    if not dummy_config.global_config.auto_update_check:
+    global_config = GlobalConfig.read()
+    if not global_config.auto_update_check:
         return (False, '')
 
-    cache_file = dummy_config.global_config.temp_dir / '.pypi_version'
+    cache_file = global_config.temp_dir / '.pypi_version'
     if await t(is_not_stale)(cache_file, {'days': 1}):
         version = cache_file.read_text(encoding='utf-8')
     else:

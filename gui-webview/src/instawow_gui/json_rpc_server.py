@@ -30,7 +30,7 @@ from instawow import __version__, db, matchers, models
 from instawow import results as R
 from instawow.cataloguer import CatalogueEntry
 from instawow.common import Strategy
-from instawow.config import Config
+from instawow.config import Config, GlobalConfig
 from instawow.manager import LocksType, Manager, TraceRequestCtx, init_web_client, is_outdated
 from instawow.resolvers import Defn
 from instawow.utils import run_in_thread as t
@@ -108,13 +108,18 @@ class WriteConfigParams(BaseParams):
     @t
     def respond(self, managers: _ManagerWorkQueue, app_window: toga.MainWindow | None) -> Config:
         with _reraise_validation_error(_ConfigError):
-            config = Config(**self.values)
+
+            global_config = GlobalConfig.read()
+            config = Config(global_config=global_config, **self.values)
             if self.infer_game_flavour:
-                config.game_flavour = Config.infer_flavour(config.addon_dir)
+                values = {**config.dict(), 'game_flavour': Config.infer_flavour(config.addon_dir)}
+                config = Config(**values)
+
+            global_config.ensure_dirs()
             config.write()
 
-        # Dispose of the ``Manager`` corresponding to the profile if any
-        # so that the configuration is reloaded on next invocation
+        # Unload the ``Manager`` corresponding to the profile so that the config
+        # is reloaded on next invocation
         managers.unload(config.profile)
         return config
 
@@ -124,7 +129,7 @@ class ReadConfigParams(_ProfileParamMixin, BaseParams):
     @t
     def respond(self, managers: _ManagerWorkQueue, app_window: toga.MainWindow | None) -> Config:
         with _reraise_validation_error(_ConfigError):
-            return Config.read(self.profile)
+            return Config.read(GlobalConfig.read(), self.profile)
 
 
 @_register_method('config/delete')
@@ -145,7 +150,7 @@ class ListProfilesParams(BaseParams):
     def respond(
         self, managers: _ManagerWorkQueue, app_window: toga.MainWindow | None
     ) -> list[str]:
-        return Config.get_dummy_config().global_config.list_profiles()
+        return GlobalConfig().list_profiles()
 
 
 class Source(TypedDict):
@@ -504,8 +509,8 @@ class _ManagerWorkQueue:
         await self._web_client.close()
 
     def unload(self, profile: str):
-        _, close_db_conn = self._managers.pop(profile, (None, None))
-        if close_db_conn is not None:
+        if profile in self._managers:
+            _, close_db_conn = self._managers.pop(profile)
             close_db_conn()
 
     async def _schedule_item(
@@ -517,7 +522,8 @@ class _ManagerWorkQueue:
                     manager, _ = self._managers[profile]
                 except KeyError:
                     with _reraise_validation_error(_ConfigError):
-                        config = await t(Config.read)(profile)
+                        global_config = await t(GlobalConfig.read)()
+                        config = await t(Config.read)(global_config, profile)
 
                     self._managers[profile] = Manager.from_config(config)
                     manager, _ = self._managers[profile]

@@ -199,7 +199,7 @@ def test_install_with_github_alias(run):
     )
 
 
-def test_version_strategy_lifecycle(iw_config: Config, run):
+def test_version_strategy_lifecycle(run):
     assert run('install curse:molinari').output.startswith(
         '✓ curse:molinari\n  installed 90100.79-Release'
     )

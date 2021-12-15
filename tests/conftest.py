@@ -15,7 +15,7 @@ import pytest
 
 from instawow import __version__
 from instawow.common import Flavour
-from instawow.config import Config
+from instawow.config import Config, GlobalConfig
 from instawow.manager import Manager, init_web_client
 
 inf = float('inf')
@@ -72,29 +72,22 @@ def iw_temp_dir(tmp_path_factory: pytest.TempPathFactory):
     return temp_dir
 
 
+@pytest.fixture
+def iw_global_config_values(tmp_path: Path, iw_temp_dir: Path):
+    return {'temp_dir': iw_temp_dir, 'config_dir': tmp_path / 'config'}
+
+
 @pytest.fixture(params=Flavour)
-def iw_config_dict_no_config_dir(tmp_path: Path, request, iw_temp_dir: Path):
+def iw_config_values(request, tmp_path: Path):
     addons = tmp_path / 'wow' / 'interface' / 'addons'
     addons.mkdir(parents=True)
-    return {
-        'global_config': {
-            'temp_dir': iw_temp_dir,
-        },
-        'profile': '__default__',
-        'addon_dir': addons,
-        'game_flavour': request.param,
-    }
+    return {'profile': '__default__', 'addon_dir': addons, 'game_flavour': request.param}
 
 
 @pytest.fixture
-def iw_config_dict(tmp_path: Path, iw_config_dict_no_config_dir: dict[str, Any]):
-    iw_config_dict_no_config_dir['global_config']['config_dir'] = tmp_path / 'config'
-    return iw_config_dict_no_config_dir
-
-
-@pytest.fixture
-def iw_config(iw_config_dict: dict[str, Any]):
-    return Config(**iw_config_dict).write()
+def iw_config(iw_config_values: dict[str, Any], iw_global_config_values: dict[str, Any]):
+    global_config = GlobalConfig(**iw_global_config_values).write()
+    return Config(global_config=global_config, **iw_config_values).write()
 
 
 @pytest.fixture

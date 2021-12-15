@@ -75,7 +75,7 @@ def _encode_reveal_secret_str(value: object):
     raise TypeError('Unencodable value', value)
 
 
-class _GlobalConfig(_BaseSettings):
+class GlobalConfig(_BaseSettings):
     config_dir: Path = Field(default_factory=lambda: Path(click.get_app_dir('instawow')))
     temp_dir: Path = Field(default_factory=lambda: Path(gettempdir(), 'instawow'))
     auto_update_check: bool = True
@@ -90,7 +90,13 @@ class _GlobalConfig(_BaseSettings):
         profiles = [c.parent.name for c in self.config_dir.glob('profiles/*/config.json')]
         return profiles
 
-    def ensure_dirs(self) -> _GlobalConfig:
+    @classmethod
+    def read(cls) -> GlobalConfig:
+        dummy_config = cls()
+        maybe_config_values = _read_config(dummy_config, missing_ok=True)
+        return cls(**maybe_config_values) if maybe_config_values is not None else dummy_config
+
+    def ensure_dirs(self) -> GlobalConfig:
         _ensure_dirs(
             [
                 self.config_dir,
@@ -100,7 +106,13 @@ class _GlobalConfig(_BaseSettings):
         )
         return self
 
-    def write(self) -> _GlobalConfig:
+    def write(self) -> GlobalConfig:
+        """Write the configuration on disk.
+
+        ``write`` should only be called when configuring instawow.
+        This means that environment overrides should only be persisted
+        if made during configuration.
+        """
         self.ensure_dirs()
         _write_config(
             self, {'auto_update_check', 'access_tokens'}, encoder=_encode_reveal_secret_str
@@ -117,7 +129,7 @@ class _GlobalConfig(_BaseSettings):
 
 
 class Config(_BaseSettings):
-    global_config: _GlobalConfig
+    global_config: GlobalConfig
     profile: str = Field(min_length=1, strip_whitespace=True)
     addon_dir: Path
     game_flavour: Flavour
@@ -142,31 +154,12 @@ class Config(_BaseSettings):
             return Flavour.retail
 
     @classmethod
-    def get_dummy_config(cls, **kwargs: object) -> Config:
-        "Create a dummy configuration with default values."
-        values = {
-            'global_config': _GlobalConfig(),
-            'profile': '__novalidate__',
-            'addon_dir': '__novalidate__',
-            'game_flavour': Flavour.retail,
-            **kwargs,
-        }
-        dummy_config = cls.construct(**values)
-        return dummy_config
-
-    @classmethod
-    def read(cls, profile: str) -> Config:
-        "Read the configuration from disk."
-        dummy_config = cls.get_dummy_config(profile=profile)
-        config = cls(
-            global_config=_read_config(dummy_config.global_config, missing_ok=True),
-            **_read_config(dummy_config),
-        )
+    def read(cls, global_config: GlobalConfig, profile: str) -> Config:
+        dummy_config = cls.construct(global_config=global_config, profile=profile)
+        config = cls(global_config=global_config, **_read_config(dummy_config))
         return config
 
     def ensure_dirs(self) -> Config:
-        "Create folders used by instawow."
-        self.global_config.ensure_dirs()
         _ensure_dirs(
             [
                 self.profile_dir,
@@ -177,19 +170,11 @@ class Config(_BaseSettings):
         return self
 
     def write(self) -> Config:
-        """Write the configuration on disk.
-
-        ``write``, unlike ``ensure_dirs``, should only be called when configuring
-        instawow.  This means that environment overrides should only be persisted
-        if made during configuration.
-        """
-        self.global_config.write()
         self.ensure_dirs()
         _write_config(self, {'addon_dir', 'game_flavour', 'profile'})
         return self
 
     def delete(self) -> None:
-        "Delete the configuration files associated with this profile."
         trash((self.profile_dir,), dest=self.global_config.temp_dir, missing_ok=True)
 
     @property

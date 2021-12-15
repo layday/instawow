@@ -29,7 +29,7 @@ from . import manager as _manager
 from . import models
 from . import results as R
 from .common import Flavour, Strategy
-from .config import Config, setup_logging
+from .config import Config, GlobalConfig, setup_logging
 from .plugins import load_plugins
 from .resolvers import ChangelogFormat, Defn
 from .utils import StrEnum, cached_property, gather, tabulate, uniq
@@ -182,8 +182,9 @@ class ManagerWrapper:
 
     @cached_property
     def manager(self) -> _manager.Manager:
+        global_config = GlobalConfig.read()
         try:
-            config = Config.read(self.ctx.params['profile']).ensure_dirs()
+            config = Config.read(global_config, self.ctx.params['profile']).ensure_dirs()
         except FileNotFoundError:
             config = self.ctx.invoke(configure)
 
@@ -897,11 +898,15 @@ def configure(
         }
 
     profile = ctx.find_root().params['profile']
+
+    orig_global_config = GlobalConfig.read()
+    global_config_values = orig_global_config.dict()
     try:
-        values: dict[str, Any] = Config.read(profile).dict()
+        profile_config_values = Config.read(orig_global_config, profile).dict(
+            exclude={'global_config'}
+        )
     except FileNotFoundError:
-        values = {
-            'global_config': {},
+        profile_config_values = {
             'profile': profile,
         }
 
@@ -914,7 +919,7 @@ def configure(
                 validate=PydanticValidator(Config, 'addon_dir'),
             )
         )
-        values['addon_dir'] = addon_dir
+        profile_config_values['addon_dir'] = addon_dir
 
     if _EditableConfigOptions.game_flavour in config_options:
         game_flavour = ask(
@@ -924,10 +929,10 @@ def configure(
                 initial_choice=Config.infer_flavour(addon_dir) if addon_dir is not None else None,
             )
         )
-        values['game_flavour'] = game_flavour
+        profile_config_values['game_flavour'] = game_flavour
 
     if _EditableConfigOptions.auto_update_check in config_options:
-        values['global_config']['auto_update_check'] = ask(
+        global_config_values['auto_update_check'] = ask(
             confirm('Periodically check for instawow updates?')
         )
 
@@ -935,12 +940,15 @@ def configure(
         confirm('Set up GitHub authentication?')
     ):
         github_access_token = run_with_progress(_github_oauth_flow())
-        values['global_config'].setdefault('access_tokens', {})['github'] = github_access_token
+        global_config_values['access_tokens']['github'] = github_access_token
 
-    config = Config(**values).write()
+    global_config = GlobalConfig(**global_config_values).write()
+    config = Config(global_config=global_config, **profile_config_values).write()
+
     click.echo('Configuration written to:')
-    click.echo(f'  {config.global_config.config_file}')
+    click.echo(f'  {global_config.config_file}')
     click.echo(f'  {config.config_file}')
+
     return config
 
 
@@ -1005,8 +1013,11 @@ def gui(ctx: click.Context) -> None:
     "Fire up the GUI."
     from instawow_gui.app import InstawowApp
 
-    dummy_config = Config.get_dummy_config(profile='__jsonrpc__').ensure_dirs()
+    global_config = GlobalConfig.read()
+    dummy_jsonrpc_config = Config.construct(
+        global_config=global_config, profile='__jsonrpc__'
+    ).ensure_dirs()
     params = ctx.find_root().params
-    setup_logging(dummy_config.logging_dir, params['log_level'], params['log_to_stderr'])
+    setup_logging(dummy_jsonrpc_config.logging_dir, params['log_level'], params['log_to_stderr'])
 
     InstawowApp(version=__version__).main_loop()

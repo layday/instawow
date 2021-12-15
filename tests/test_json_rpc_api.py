@@ -20,8 +20,8 @@ dumps = partial(json.dumps, default=str)
 
 
 @pytest.fixture
-async def ws(iw_config_dict: dict[str, Any], monkeypatch: pytest.MonkeyPatch):
-    monkeypatch.setenv('INSTAWOW_CONFIG_DIR', str(iw_config_dict['global_config']['config_dir']))
+async def ws(monkeypatch: pytest.MonkeyPatch, iw_global_config_values: dict[str, Any]):
+    monkeypatch.setenv('INSTAWOW_CONFIG_DIR', str(iw_global_config_values['config_dir']))
     app = await json_rpc_server.create_app()
     server = TestServer(app)
     async with TestClient(server) as client, client.ws_connect('/api') as ws:
@@ -30,9 +30,12 @@ async def ws(iw_config_dict: dict[str, Any], monkeypatch: pytest.MonkeyPatch):
 
 @pytest.mark.asyncio
 async def test_write_config(
-    request: pytest.FixtureRequest, iw_config_dict: dict[str, Any], ws: ClientWebSocketResponse
+    request,
+    iw_global_config_values: dict[str, Any],
+    iw_config_values: dict[str, Any],
+    ws: ClientWebSocketResponse,
 ):
-    config_values = {**iw_config_dict, 'profile': request.node.name}
+    config_values = {**iw_config_values, 'profile': request.node.name}
     rpc_request = {
         'jsonrpc': '2.0',
         'method': 'config/write',
@@ -42,18 +45,20 @@ async def test_write_config(
     await ws.send_json(rpc_request, dumps=dumps)
     rpc_response = await ws.receive_json()
     assert rpc_response['id'] == request.node.name
-    assert Config.parse_obj(rpc_response['result']) == Config.parse_obj(config_values)
+    assert Config(**rpc_response['result']) == Config(
+        global_config=iw_global_config_values, **config_values
+    )
 
 
 @pytest.mark.asyncio
 async def test_write_config_with_invalid_params(
-    request: pytest.FixtureRequest, iw_config_dict: dict[str, Any], ws: ClientWebSocketResponse
+    request, iw_config_values: dict[str, Any], ws: ClientWebSocketResponse
 ):
     rpc_request = {
         'jsonrpc': '2.0',
         'method': 'config/write',
         'params': {
-            'values': {**iw_config_dict, 'game_flavour': 'strawberry'},
+            'values': {**iw_config_values, 'game_flavour': 'strawberry'},
             'infer_game_flavour': False,
         },
         'id': request.node.name,
@@ -75,9 +80,7 @@ async def test_write_config_with_invalid_params(
 
 
 @pytest.mark.asyncio
-async def test_install_with_invalid_params(
-    request: pytest.FixtureRequest, ws: ClientWebSocketResponse
-):
+async def test_install_with_invalid_params(request, ws: ClientWebSocketResponse):
     rpc_request = {
         'jsonrpc': '2.0',
         'method': 'install',
@@ -91,9 +94,7 @@ async def test_install_with_invalid_params(
 
 @pytest.mark.xfail
 @pytest.mark.asyncio
-async def test_install_with_uninitialised_profile(
-    request: pytest.FixtureRequest, ws: ClientWebSocketResponse
-):
+async def test_install_with_uninitialised_profile(request, ws: ClientWebSocketResponse):
     rpc_request = {
         'jsonrpc': '2.0',
         'method': 'install',
