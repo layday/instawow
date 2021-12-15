@@ -61,7 +61,7 @@ $modal-edge-border-radius: math.div($modal-form-el-line-height, 4);
 %pop-out {
   @extend %blur-background;
   border-radius: $standard-border-radius;
-  box-shadow: 0 1rem 3rem var(--inverse-color-alpha-20);
+  box-shadow: 0 1rem 3rem var(--inverse-color-alpha-10);
 }
 
 @mixin striped-background($direction, $color) {

@@ -79,18 +79,16 @@ select {
 }
 
 .modal {
+  @extend %pop-out;
   background: none;
   position: unset;
   max-width: 75vw;
   padding: 0;
   border: 0;
-  border-radius: vars.$standard-border-radius;
-  box-shadow: 0 1rem 3rem var(--inverse-color-alpha-20);
   color: var(--inverse-color);
 
   .content,
   .title-bar {
-    @extend %blur-background;
     padding: 1.25rem;
     background-color: var(--base-color-alpha-65);
   }
@@ -109,6 +107,10 @@ select {
     &:first-child {
       border-radius: vars.$standard-border-radius;
     }
+  }
+
+  label {
+    line-height: vars.$modal-form-el-line-height;
   }
 
   button,
