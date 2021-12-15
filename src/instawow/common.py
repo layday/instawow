@@ -20,3 +20,10 @@ class Strategy(StrEnum):
     latest = 'latest'
     any_flavour = 'any_flavour'
     version = 'version'
+
+
+class ChangelogFormat(StrEnum):
+    html = 'html'
+    markdown = 'markdown'
+    bbcode = 'bbcode'
+    raw = 'raw'

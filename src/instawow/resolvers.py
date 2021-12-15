@@ -19,24 +19,14 @@ from yarl import URL
 from . import _deferred_types, manager, models
 from . import results as R
 from .cataloguer import BaseCatatalogueEntry
-from .common import Flavour, Strategy
-from .utils import StrEnum, gather, normalise_names, uniq
+from .common import ChangelogFormat, Flavour, Strategy
+from .utils import gather, normalise_names, uniq
 
 
-class ChangelogFormat(StrEnum):
-    html = 'html'
-    markdown = 'markdown'
-    bbcode = 'bbcode'
-    raw = 'raw'
-
-
-class Defn(
-    BaseModel,
-    frozen=True,
-):
+class Defn(BaseModel, frozen=True):
     source: str
-    alias: str
     id: typing.Optional[str] = None
+    alias: str
     strategy: Strategy = Strategy.default
     version: typing.Optional[str] = None
 
@@ -46,11 +36,7 @@ class Defn(
     @classmethod
     def from_pkg(cls, pkg: models.Pkg) -> Defn:
         return cls(
-            source=pkg.source,
-            alias=pkg.slug,
-            id=pkg.id,
-            strategy=pkg.options.strategy,
-            version=pkg.version,
+            pkg.source, pkg.slug, id=pkg.id, strategy=pkg.options.strategy, version=pkg.version
         )
 
     def with_(self, **kwargs: Any) -> Defn:
@@ -239,7 +225,6 @@ class CurseResolver(BaseResolver):
     )
     changelog_format = ChangelogFormat.html
 
-    # Reference: https://twitchappapi.docs.apiary.io/
     addon_api_url = URL('https://addons-ecs.forgesvc.net/api/v2/addon')
 
     @staticmethod
@@ -392,13 +377,15 @@ class CurseResolver(BaseResolver):
                 flavour: Flavour,
             ):
                 if any(
-                    f['gameVersionFlavor'] == curse_flavor
-                    or any(
-                        s.get('gameVersionTypeId') == curse_type_id
-                        for s in f['sortableGameVersion']
+                    f['exposeAsAlternative']
+                    and (
+                        f['gameVersionFlavor'] == curse_flavor
+                        or any(
+                            s.get('gameVersionTypeId') == curse_type_id
+                            for s in f['sortableGameVersion']
+                        )
                     )
                     for f in files
-                    if not f['exposeAsAlternative']
                 ):
                     yield flavour
 
@@ -418,6 +405,9 @@ class CurseResolver(BaseResolver):
                 Flavour.burning_crusade_classic,
             )
 
+        def get_folders(files: list[_CurseAddon_File]):
+            return uniq(frozenset(m['foldername'] for m in f['modules']) for f in files)
+
         step = 50
         sort_order = '3'  # Alphabetical
         for index in range(0, 10001 - step, step):
@@ -432,20 +422,17 @@ class CurseResolver(BaseResolver):
                 break
 
             for item in items:
-                folders = uniq(
-                    frozenset(m['foldername'] for m in f['modules'])
-                    for f in item['latestFiles']
-                    if not f['exposeAsAlternative']
-                )
                 yield BaseCatatalogueEntry(
                     source=cls.source,
                     id=item['id'],
                     slug=item['slug'],
                     name=item['name'],
                     game_flavours=supports_x(item['latestFiles']),
-                    folders=folders,
+                    folders=get_folders(item['latestFiles']),
                     download_count=item['downloadCount'],
-                    last_updated=item['dateReleased'],
+                    last_updated=datetime.fromisoformat(
+                        f'{item["dateReleased"].rstrip("Z")}+00:00'
+                    ),
                 )
 
 
@@ -602,7 +589,7 @@ class WowiResolver(BaseResolver):
                 folders=[item['UIDir']],
                 game_flavours=flavours,
                 download_count=item['UIDownloadTotal'],
-                last_updated=item['UIDate'],
+                last_updated=datetime.fromtimestamp(item['UIDate'], timezone.utc),
             )
 
 
@@ -759,22 +746,17 @@ class TukuiResolver(BaseResolver):
     async def catalogue(
         cls, web_client: _deferred_types.aiohttp.ClientSession
     ) -> AsyncIterator[BaseCatatalogueEntry]:
-        async def fetch_ui(ui_slug: str) -> list[_TukuiUi]:
-            async with web_client.get(cls.api_url.with_query({'ui': ui_slug})) as response:
-                return [await response.json(content_type=None)]  # text/html
-
-        async def fetch_addons(query: str) -> list[_TukuiAddon]:
-            async with web_client.get(cls.api_url.with_query({query: 'all'})) as response:
-                return await response.json(content_type=None)  # text/html
-
-        for flavours, item_coro in [
-            ({Flavour.retail}, fetch_ui('tukui')),
-            ({Flavour.retail}, fetch_ui('elvui')),
-            ({Flavour.retail}, fetch_addons('addons')),
-            ({Flavour.vanilla_classic}, fetch_addons('classic-addons')),
-            ({Flavour.burning_crusade_classic}, fetch_addons('classic-tbc-addons')),
+        for flavours, query in [
+            ({Flavour.retail}, {'ui': 'tukui'}),
+            ({Flavour.retail}, {'ui': 'elvui'}),
+            *(({f}, {q: 'all'}) for f, q in cls.query_flavours.items()),
         ]:
-            for item in await item_coro:
+            async with web_client.get(cls.api_url.with_query(query)) as response:
+                items: _TukuiUi | list[_TukuiAddon] = await response.json(
+                    content_type=None  # text/html
+                )
+
+            for item in items if isinstance(items, list) else [items]:
                 yield BaseCatatalogueEntry(
                     source=cls.source,
                     id=item['id'],
