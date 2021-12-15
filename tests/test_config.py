@@ -51,6 +51,10 @@ def test_init_with_nonexistent_addon_dir_raises(
         Config(global_config=global_config, **{**iw_config_values, 'addon_dir': 'foo'})
 
 
+@pytest.mark.skipif(
+    sys.platform == 'win32',
+    reason='requires absence of platform-specific env var',
+)
 def test_default_config_dir_is_platform_appropriate(
     monkeypatch: pytest.MonkeyPatch,
 ):
