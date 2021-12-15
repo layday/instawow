@@ -44,6 +44,10 @@ export type Config = {
     config_dir: string;
     auto_update_check: boolean;
     temp_dir: string;
+    access_tokens: {
+      github: string | null;
+      wago: string | null;
+    };
   };
   addon_dir: string;
   game_flavour: Flavour;

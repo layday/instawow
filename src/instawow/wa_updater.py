@@ -14,23 +14,17 @@ from typing_extensions import NotRequired as N
 from typing_extensions import Protocol, TypeAlias, TypedDict
 from yarl import URL
 
-from . import manager
 from .common import Flavour
-from .config import BaseConfig
+from .manager import Manager
 from .utils import bucketise, chain_dict, gather
 from .utils import run_in_thread as t
 from .utils import shasum
 
 _TAuras = TypeVar('_TAuras', bound='BaseAuras')
-_Slug = str
-_ImportString = str
+_ImportString = _Slug = str
 _AuraGroup: TypeAlias = 'Sequence[tuple[Sequence[WeakAura], WagoApiResponse, _ImportString]]'
 
 IMPORT_API_URL = URL('https://data.wago.io/api/raw/encoded')
-
-
-class BuilderConfig(BaseConfig):
-    wago_api_key: typing.Optional[str] = None
 
 
 class BaseAuras(
@@ -151,9 +145,10 @@ class WagoApiResponse_Changelog(TypedDict):
 class WaCompanionBuilder:
     """A WeakAuras Companion port for shellfolk."""
 
-    def __init__(self, manager: manager.Manager, builder_config: BuilderConfig) -> None:
+    def __init__(self, manager: Manager) -> None:
         self.manager = manager
-        self.builder_config = builder_config
+
+        self.access_token = self.manager.config.global_config.access_tokens.wago
 
         output_folder = self.manager.config.plugin_dir / __name__
         self.addon_zip_path = output_folder / 'WeakAurasCompanion.zip'
@@ -170,9 +165,9 @@ class WaCompanionBuilder:
 
     def extract_installed_auras(self) -> Iterator[WeakAuras | Plateroos]:
         flavour_root = self.manager.config.addon_dir.parents[1]
-        saved_vars_of_every_account = flavour_root.glob('WTF/Account/*/SavedVariables')
+        saved_vars_by_account = flavour_root.glob('WTF/Account/*/SavedVariables')
         for saved_vars, model in product(
-            saved_vars_of_every_account,
+            saved_vars_by_account,
             [WeakAuras, Plateroos],
         ):
             file = saved_vars / model.Meta.filename
@@ -191,25 +186,26 @@ class WaCompanionBuilder:
                     aura_group_cache.write_text(aura_groups.json(), encoding='utf-8')
                 yield aura_groups
 
-    async def _fetch_wago_metadata(
-        self, api_url: URL, aura_ids: Iterable[str]
-    ) -> list[WagoApiResponse]:
+    async def _fetch_wago_metadata(self, api_url: URL, aura_ids: Iterable[str]):
         async with self.manager.web_client.get(
             api_url.with_query(ids=','.join(aura_ids)),
             {'minutes': 30},
             label='Fetching aura metadata',
-            headers={'api-key': self.builder_config.wago_api_key or ''},
+            headers={'api-key': self.access_token or ''},
         ) as response:
+            metadata: list[WagoApiResponse]
             if response.status == 404:
-                return []
+                metadata = []
+                return metadata
             response.raise_for_status()
-            return sorted(await response.json(), key=lambda r: r['slug'])
+            metadata = await response.json()
+            return sorted(metadata, key=lambda r: r['slug'])
 
-    async def _fetch_wago_import_string(self, aura: WagoApiResponse) -> str:
+    async def _fetch_wago_import_string(self, aura: WagoApiResponse):
         async with self.manager.web_client.get(
             IMPORT_API_URL.with_query(id=aura['_id']).with_fragment(str(aura['version'])),
             {'days': 30},
-            headers={'api-key': self.builder_config.wago_api_key or ''},
+            headers={'api-key': self.access_token or ''},
             label=f"Fetching aura '{aura['slug']}'",
         ) as response:
             response.raise_for_status()

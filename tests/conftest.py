@@ -9,6 +9,8 @@ import re
 from typing import Any
 from zipfile import ZipFile
 
+import aiohttp
+import aresponses
 import pytest
 
 from instawow import __version__
@@ -102,7 +104,7 @@ async def iw_web_client():
 
 
 @pytest.fixture
-def iw_manager(iw_config: Config, iw_web_client):
+def iw_manager(iw_config: Config, iw_web_client: aiohttp.ClientSession):
     Manager.contextualise(web_client=iw_web_client)
     manager, close_db_conn = Manager.from_config(iw_config)
     yield manager
@@ -111,7 +113,7 @@ def iw_manager(iw_config: Config, iw_web_client):
 
 @pytest.fixture
 @should_mock
-def mock_pypi(aresponses):
+def mock_pypi(aresponses: aresponses.ResponsesMockServer):
     aresponses.add(
         'pypi.org',
         '/pypi/instawow/json',
@@ -123,7 +125,7 @@ def mock_pypi(aresponses):
 
 @pytest.fixture
 @should_mock
-def mock_master_catalogue(aresponses):
+def mock_master_catalogue(aresponses: aresponses.ResponsesMockServer):
     aresponses.add(
         'raw.githubusercontent.com',
         aresponses.ANY,
@@ -135,7 +137,7 @@ def mock_master_catalogue(aresponses):
 
 @pytest.fixture
 @should_mock
-def mock_curse(aresponses, mock_master_catalogue):
+def mock_curse(aresponses: aresponses.ResponsesMockServer, mock_master_catalogue):
     aresponses.add(
         'addons-ecs.forgesvc.net',
         '/api/v2/addon',
@@ -168,7 +170,7 @@ def mock_curse(aresponses, mock_master_catalogue):
 
 @pytest.fixture
 @should_mock
-def mock_wowi(aresponses, mock_master_catalogue):
+def mock_wowi(aresponses: aresponses.ResponsesMockServer):
     aresponses.add(
         'api.mmoui.com',
         '/v3/game/WOW/filelist.json',
@@ -194,7 +196,7 @@ def mock_wowi(aresponses, mock_master_catalogue):
 
 @pytest.fixture
 @should_mock
-def mock_tukui(aresponses, mock_master_catalogue):
+def mock_tukui(aresponses: aresponses.ResponsesMockServer):
     aresponses.add(
         'www.tukui.org',
         '/api.php?ui=tukui',
@@ -269,7 +271,7 @@ def mock_tukui(aresponses, mock_master_catalogue):
 
 @pytest.fixture
 @should_mock
-def mock_github(aresponses):
+def mock_github_addons(aresponses: aresponses.ResponsesMockServer):
     aresponses.add(
         'api.github.com',
         '/repos/nebularg/PackagerTest',
@@ -371,6 +373,25 @@ def mock_github(aresponses):
     )
 
 
+@pytest.fixture
+@should_mock
+def mock_github_oauth(aresponses: aresponses.ResponsesMockServer):
+    aresponses.add(
+        'github.com',
+        '/login/device/code',
+        'post',
+        load_json_fixture('github-oauth-login-device-code.json'),
+        repeat=inf,
+    )
+    aresponses.add(
+        'github.com',
+        '/login/oauth/access_token',
+        'post',
+        load_json_fixture('github-oauth-login-access-token.json'),
+        repeat=inf,
+    )
+
+
 @pytest.fixture(autouse=True)
 @should_mock
 def mock_all(
@@ -379,6 +400,7 @@ def mock_all(
     mock_curse,
     mock_wowi,
     mock_tukui,
-    mock_github,
+    mock_github_addons,
+    mock_github_oauth,
 ):
     pass

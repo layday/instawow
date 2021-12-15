@@ -14,12 +14,14 @@ http get https://addons-ecs.forgesvc.net/api/v2/addon/20338/files -b \
 http get https://addons-ecs.forgesvc.net/api/v2/addon/20338/file/3475338/changelog -b \
     > "$DIR"/curse-addon-changelog.txt
 
+
 http get https://api.mmoui.com/v3/game/WOW/filelist.json -b \
     | jq -r '.[] | select(.UID == "13188") | [.]' \
     > "$DIR"/wowi-filelist.json
 http get https://api.mmoui.com/v3/game/WOW/filedetails/13188.json -b \
     | jq -r \
     > "$DIR"/wowi-filedetails.json
+
 
 http get 'https://www.tukui.org/api.php?ui=tukui' -b \
     | jq -r \
@@ -69,6 +71,25 @@ http get 'https://api.github.com/repos/AdiAddons/AdiButtonAuras/releases/tags/2.
     | jq -r \
     > "$DIR"/github-release-no-assets.json
 
+
 http get https://raw.githubusercontent.com/layday/instawow-data/data/master-catalogue-v4.json -b \
     | jq -r \
     > "$DIR"/master-catalogue.json
+
+
+echo '{
+  "device_code": "3584d83530557fdd1f46af8289938c8ef79f9dc5",
+  "user_code": "WDJB-MJHT",
+  "verification_uri": "https://github.com/login/device",
+  "expires_in": 900,
+  "interval": 5
+}' \
+    | jq -r \
+    > "$DIR"/github-oauth-login-device-code.json
+echo '{
+  "access_token": "gho_16C7e42F292c6912E7710c838347Ae178B4a",
+  "token_type": "bearer",
+  "scope": "repo,gist"
+}' \
+    | jq -r \
+    > "$DIR"/github-oauth-login-access-token.json

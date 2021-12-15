@@ -276,24 +276,28 @@ def test_install_argument_is_not_required(run, molinari_version_suffix):
     )
 
 
-def test_configure__display_active_profile(iw_config: Config, run):
-    assert run('configure --active').output == iw_config.json(indent=2) + '\n'
+def test_configure__show_active_profile(iw_config: Config, run):
+    assert run('configure --show-active').output == iw_config.json(indent=2) + '\n'
 
 
-def test_configure__create_new_profile(feed_pt, iw_config, run):
-    feed_pt(f'{iw_config.addon_dir}\r\r')
-    assert (
-        run('-p foo configure').output
-        == f'Configuration written to: {iw_config.global_config.config_dir / "profiles/foo/config.json"}\n'
+def test_configure__create_new_profile(feed_pt, iw_config: Config, run):
+    feed_pt(f'{iw_config.addon_dir}\r\rY\r')
+    assert run('-p foo configure').output == (
+        'Navigate to https://github.com/login/device and paste the code below:\n'
+        '  WDJB-MJHT\n'
+        'Waiting...\n'
+        'Configuration written to:\n'
+        f'  {iw_config.global_config.config_dir / "config.json"}\n'
+        f'  {iw_config.global_config.config_dir / "profiles/foo/config.json"}\n'
     )
 
 
-def test_configure__create_new_profile_promptless(monkeypatch: pytest.MonkeyPatch, iw_config, run):
-    monkeypatch.setenv('INSTAWOW_ADDON_DIR', str(iw_config.addon_dir))
-    monkeypatch.setenv('INSTAWOW_GAME_FLAVOUR', iw_config.game_flavour.value)
-    assert (
-        run('-p foo configure --promptless').output
-        == f'Configuration written to: {iw_config.global_config.config_dir / "profiles/foo/config.json"}\n'
+def test_configure__update_existing_profile_with_opts(feed_pt, iw_config: Config, run):
+    feed_pt(f'Y\r')
+    assert run('configure auto_update_check').output == (
+        'Configuration written to:\n'
+        f'  {iw_config.global_config.config_dir / "config.json"}\n'
+        f'  {iw_config.global_config.config_dir / "profiles/__default__/config.json"}\n'
     )
 
 

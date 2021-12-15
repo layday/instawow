@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import AsyncIterator, Sequence, Set
 from datetime import datetime, timezone
 from enum import IntEnum
+from functools import partial
 from itertools import chain, takewhile
 import re
 import typing
@@ -849,9 +850,14 @@ class GithubResolver(BaseResolver):
             return '/'.join(url.parts[1:3])
 
     async def resolve_one(self, defn: Defn, metadata: None) -> models.Pkg:
+        github_get = partial(self.manager.web_client.get)
+        github_token = self.manager.config.global_config.access_tokens.github
+        if github_token is not None:
+            github_get = partial(github_get, headers={'Authorization': f'token {github_token}'})
+
         repo_url = self.repos_api_url / defn.alias
 
-        async with self.manager.web_client.get(repo_url, {'hours': 1}) as response:
+        async with github_get(repo_url, {'hours': 1}) as response:
             if response.status == 404:
                 raise R.PkgNonexistent
             response.raise_for_status()
@@ -868,7 +874,7 @@ class GithubResolver(BaseResolver):
             # See: https://docs.github.com/en/free-pro-team@latest/rest/reference/repos#get-the-latest-release
             release_url = repo_url / 'releases/latest'
 
-        async with self.manager.web_client.get(release_url, {'minutes': 5}) as response:
+        async with github_get(release_url, {'minutes': 5}) as response:
             if response.status == 404:
                 raise R.PkgFileUnavailable('release not found')
             response.raise_for_status()
@@ -986,9 +992,9 @@ class InstawowResolver(BaseResolver):
         except StopIteration:
             raise R.PkgNonexistent
 
-        from .wa_updater import BuilderConfig, WaCompanionBuilder
+        from .wa_updater import WaCompanionBuilder
 
-        builder = WaCompanionBuilder(self.manager, BuilderConfig())
+        builder = WaCompanionBuilder(self.manager)
         if source_id == '1':
             await builder.build()
 

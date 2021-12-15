@@ -5,10 +5,11 @@ import json
 import os
 from pathlib import Path, PurePath
 from tempfile import gettempdir
+import typing
 
 import click
 from loguru import logger
-from pydantic import BaseSettings, Field, PydanticValueError, validator
+from pydantic import BaseModel, BaseSettings, Field, PydanticValueError, validator
 from pydantic.env_settings import SettingsSourceCallable
 
 from .common import Flavour
@@ -33,12 +34,12 @@ def _ensure_dirs(dirs: Iterable[Path]):
         dir_.mkdir(exist_ok=True, parents=True)
 
 
-def _write_config(config: BaseConfig, fields: Set[str]):
+def _write_config(config: _BaseSettings, fields: Set[str]):
     json_output = config.json(include=fields, indent=2)
     config.config_file.write_text(json_output, encoding='utf-8')
 
 
-def _read_config(config: BaseConfig, missing_ok: bool = False):
+def _read_config(config: _BaseSettings, missing_ok: bool = False):
     try:
         return json.loads(config.config_file.read_bytes())
     except FileNotFoundError:
@@ -57,7 +58,7 @@ def _customise_sources(
     return (env_settings, init_settings)
 
 
-class BaseConfig(
+class _BaseSettings(
     BaseSettings,
     env_prefix='INSTAWOW_',
     customise_sources=_customise_sources,
@@ -67,10 +68,16 @@ class BaseConfig(
         raise NotImplementedError
 
 
-class _GlobalConfig(BaseConfig):
+class _AccessTokens(BaseModel):
+    github: typing.Optional[str]
+    wago: typing.Optional[str]
+
+
+class _GlobalConfig(_BaseSettings):
     config_dir: Path = Field(default_factory=lambda: Path(click.get_app_dir('instawow')))
     temp_dir: Path = Field(default_factory=lambda: Path(gettempdir(), 'instawow'))
     auto_update_check: bool = True
+    access_tokens: _AccessTokens = _AccessTokens(github=None, wago=None)
 
     @validator('config_dir', 'temp_dir')
     def _expand_path(cls, value: Path) -> Path:
@@ -92,7 +99,7 @@ class _GlobalConfig(BaseConfig):
         return self
 
     def write(self) -> _GlobalConfig:
-        _write_config(self, set())
+        _write_config(self, {'auto_update_check', 'access_tokens'})
         return self
 
     @property
@@ -104,7 +111,7 @@ class _GlobalConfig(BaseConfig):
         return self.config_dir / 'config.json'
 
 
-class Config(BaseConfig):
+class Config(_BaseSettings):
     global_config: _GlobalConfig
     profile: str = Field(min_length=1, strip_whitespace=True)
     addon_dir: Path

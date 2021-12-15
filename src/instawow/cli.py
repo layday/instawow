@@ -3,7 +3,16 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Awaitable, Callable, Generator, Iterable, Iterator, Sequence, Set
+from collections.abc import (
+    Awaitable,
+    Callable,
+    Collection,
+    Generator,
+    Iterable,
+    Iterator,
+    Sequence,
+    Set,
+)
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from enum import Enum
@@ -176,14 +185,14 @@ class ManagerWrapper:
         try:
             config = Config.read(self.ctx.params['profile']).ensure_dirs()
         except FileNotFoundError:
-            config = self.ctx.invoke(configure, promptless=False)
+            config = self.ctx.invoke(configure)
 
         setup_logging(
             config.logging_dir, self.ctx.params['log_level'], self.ctx.params['log_to_stderr']
         )
-
         manager, close_db_conn = _manager.Manager.from_config(config)
         self.ctx.call_on_close(close_db_conn)
+
         return manager
 
     @staticmethod
@@ -636,7 +645,7 @@ def search(
         click.echo('No results found.')
 
 
-class ListFormats(StrEnum):
+class _ListFormats(StrEnum):
     simple = 'simple'
     detailed = 'detailed'
     json = 'json'
@@ -650,14 +659,14 @@ class ListFormats(StrEnum):
     '--format',
     '-f',
     'output_format',
-    type=EnumParam(ListFormats),
-    default=ListFormats.simple,
+    type=EnumParam(_ListFormats),
+    default=_ListFormats.simple,
     show_default=True,
     help='Change the output format.',
 )
 @ManagerWrapper.pass_manager
 def list_installed(
-    manager: _manager.Manager, addons: Sequence[Defn], output_format: ListFormats
+    manager: _manager.Manager, addons: Sequence[Defn], output_format: _ListFormats
 ) -> None:
     "List installed add-ons."
     import sqlalchemy as sa
@@ -698,10 +707,10 @@ def list_installed(
         .all()
     )
 
-    if output_format is ListFormats.json:
+    if output_format is _ListFormats.json:
         click.echo(models.PkgList.parse_obj(list(row_mappings_to_pkgs())).json(indent=2))
 
-    elif output_format is ListFormats.detailed:
+    elif output_format is _ListFormats.detailed:
         formatter = click.HelpFormatter(max_width=99)
         for pkg in row_mappings_to_pkgs():
             with formatter.section(Defn.from_pkg(pkg).to_urn()):
@@ -731,7 +740,7 @@ def list_installed(
 @click.pass_context
 def info(ctx: click.Context, addon: Defn) -> None:
     "Alias of `list -f detailed`."
-    ctx.invoke(list_installed, addons=(addon,), output_format=ListFormats.detailed)
+    ctx.invoke(list_installed, addons=(addon,), output_format=_ListFormats.detailed)
 
 
 @main.command()
@@ -836,10 +845,30 @@ def _show_active_config(ctx: click.Context, __: click.Parameter, value: bool):
         ctx.exit()
 
 
+async def _github_oauth_flow():
+    from .github_auth import get_codes, poll_for_access_token
+
+    async with _manager.init_web_client() as web_client:
+        codes = await get_codes(web_client)
+        click.echo(f'Navigate to {codes["verification_uri"]} and paste the code below:')
+        click.echo(f'  {codes["user_code"]}')
+        click.echo('Waiting...')
+        access_token = await poll_for_access_token(
+            web_client, codes['device_code'], codes['interval']
+        )
+        return access_token
+
+
+class _EditableConfigOptions(StrEnum):
+    addon_dir = 'addon_dir'
+    game_flavour = 'game_flavour'
+    auto_update_check = 'auto_update_check'
+    access_tokens = 'access_tokens'
+
+
 @main.command()
 @click.option(
-    '--active',
-    'show_active',
+    '--show-active',
     is_flag=True,
     default=False,
     expose_value=False,
@@ -847,20 +876,40 @@ def _show_active_config(ctx: click.Context, __: click.Parameter, value: bool):
     callback=_show_active_config,
     help='Show the active configuration and exit.',
 )
-@click.option(
-    '--promptless',
-    is_flag=True,
-    default=False,
-    help='Do not prompt for input and derive the configuration from the environment.',
+@click.argument(
+    'config-options',
+    nargs=-1,
+    type=EnumParam(_EditableConfigOptions),
 )
 @click.pass_context
-def configure(ctx: click.Context, promptless: bool) -> Config:
+def configure(
+    ctx: click.Context,
+    config_options: Collection[_EditableConfigOptions],
+) -> Config:
     "Configure instawow."
-    if promptless:
-        make_config = Config
-    else:
-        from .prompts import PydanticValidator, ask, path, select
+    from .prompts import PydanticValidator, ask, confirm, path, select
 
+    if not config_options:
+        config_options = {
+            _EditableConfigOptions.addon_dir,
+            _EditableConfigOptions.game_flavour,
+            _EditableConfigOptions.access_tokens,
+        }
+
+    profile = ctx.find_root().params['profile']
+
+    try:
+        existing_config: dict[str, Any] = Config.read(profile).dict()
+    except FileNotFoundError:
+        existing_config = {'global_config': {}}
+
+    values = {
+        **existing_config,
+        'profile': profile,
+    }
+
+    addon_dir = None
+    if _EditableConfigOptions.addon_dir in config_options:
         addon_dir = ask(
             path(
                 'Add-on directory:',
@@ -868,17 +917,33 @@ def configure(ctx: click.Context, promptless: bool) -> Config:
                 validate=PydanticValidator(Config, 'addon_dir'),
             )
         )
+        values['addon_dir'] = addon_dir
+
+    if _EditableConfigOptions.game_flavour in config_options:
         game_flavour = ask(
             select(
                 'Game flavour:',
                 choices=list(Flavour),
-                initial_choice=Config.infer_flavour(addon_dir),
+                initial_choice=Config.infer_flavour(addon_dir) if addon_dir is not None else None,
             )
         )
-        make_config = partial(Config, addon_dir=addon_dir, game_flavour=game_flavour)
+        values['game_flavour'] = game_flavour
 
-    config = make_config(global_config={}, profile=ctx.find_root().params['profile']).write()
-    click.echo(f'Configuration written to: {config.config_file}')
+    if _EditableConfigOptions.auto_update_check in config_options:
+        values['global_config']['auto_update_check'] = ask(
+            confirm('Periodically check for instawow updates?')
+        )
+
+    if _EditableConfigOptions.access_tokens in config_options and ask(
+        confirm('Set up GitHub authentication?')
+    ):
+        github_access_token = run_with_progress(_github_oauth_flow())
+        values['global_config'].setdefault('access_tokens', {})['github'] = github_access_token
+
+    config = Config(**values).write()
+    click.echo('Configuration written to:')
+    click.echo(f'  {config.global_config.config_file}')
+    click.echo(f'  {config.config_file}')
     return config
 
 
@@ -891,20 +956,18 @@ def _weakauras_group() -> None:
 @ManagerWrapper.pass_manager
 def build_weakauras_companion(manager: _manager.Manager) -> None:
     "Build the WeakAuras Companion add-on."
-    from .wa_updater import BuilderConfig, WaCompanionBuilder
+    from .wa_updater import WaCompanionBuilder
 
-    config = BuilderConfig()
-    run_with_progress(WaCompanionBuilder(manager, config).build())
+    run_with_progress(WaCompanionBuilder(manager).build())
 
 
 @_weakauras_group.command('list')
 @ManagerWrapper.pass_manager
 def list_installed_wago_auras(manager: _manager.Manager) -> None:
     "List WeakAuras installed from Wago."
-    from .wa_updater import BuilderConfig, WaCompanionBuilder
+    from .wa_updater import WaCompanionBuilder
 
-    config = BuilderConfig()
-    aura_groups = WaCompanionBuilder(manager, config).extract_installed_auras()
+    aura_groups = WaCompanionBuilder(manager).extract_installed_auras()
     installed_auras = sorted(
         (g.Meta.filename, textwrap.fill(a.id, width=30, max_lines=1), a.url)
         for g in aura_groups
