@@ -897,16 +897,13 @@ def configure(
         }
 
     profile = ctx.find_root().params['profile']
-
     try:
-        existing_config: dict[str, Any] = Config.read(profile).dict()
+        values: dict[str, Any] = Config.read(profile).dict()
     except FileNotFoundError:
-        existing_config = {'global_config': {}}
-
-    values = {
-        **existing_config,
-        'profile': profile,
-    }
+        values = {
+            'global_config': {},
+            'profile': profile,
+        }
 
     addon_dir = None
     if _EditableConfigOptions.addon_dir in config_options:
