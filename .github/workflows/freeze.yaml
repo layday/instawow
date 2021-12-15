@@ -58,7 +58,7 @@ jobs:
           # on some plats when Cythonised.
           PIP_NO_BINARY: pydantic
       - name: Upload artefact
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v2.2.4
         with:
           name: instawow-cli-${{ needs.get-version.outputs.instawow-version }}-${{ matrix.os }}
           path: ./dist/instawow-standalone
