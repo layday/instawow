@@ -65,7 +65,7 @@ async def test_reconcile_invalid_addons_discarded(iw_manager: Manager, invalid_a
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     'test_func',
-    [match_toc_source_ids, match_addon_names_with_folder_names, match_folder_name_subsets],
+    [match_toc_source_ids, match_folder_name_subsets, match_addon_names_with_folder_names],
 )
 async def test_reconcile_multiple_defns_per_addon_contained_in_results(
     iw_manager: Manager,
@@ -73,7 +73,10 @@ async def test_reconcile_multiple_defns_per_addon_contained_in_results(
     test_func: Callable[[Manager, frozenset[AddonFolder]], Awaitable[FolderAndDefnPairs]],
 ):
     ((_, matches),) = await test_func(iw_manager, get_unreconciled_folder_set(iw_manager))
-    assert {Defn('curse', '20338'), Defn('wowi', '13188')} == set(matches)
+    expected = {Defn('curse', '20338'), Defn('wowi', '13188')}
+    if test_func is match_addon_names_with_folder_names:
+        expected.add(Defn('github', 'p3lim-wow/Molinari'))
+    assert expected == set(matches)
 
 
 @pytest.mark.asyncio
