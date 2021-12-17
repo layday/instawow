@@ -9,7 +9,7 @@ from pydantic import BaseModel
 
 from . import manager
 from .config import Flavour
-from .utils import bucketise, cached_property, normalise_names
+from .utils import bucketise, normalise_names
 
 
 class _SameAs(BaseModel):
@@ -48,9 +48,10 @@ class BaseCatalogue(BaseModel, json_encoders={set: sorted}):
             return cls(entries=entries)
 
 
-class Catalogue(BaseModel, keep_untouched=(cached_property,)):
+class Catalogue(BaseModel):
     version = 1
     entries: typing.List[CatalogueEntry]
+    curse_slugs: typing.Dict[str, str]
 
     @classmethod
     def from_base_catalogue(cls, raw_base_catalogue: Sequence[Any], start_date: datetime | None):
@@ -72,8 +73,7 @@ class Catalogue(BaseModel, keep_untouched=(cached_property,)):
             )
             for e in base_entries
         ]
-        return cls(entries=entries)
-
-    @cached_property
-    def curse_slugs(self):
-        return {a.slug: a.id for a in self.entries if a.source == 'curse'}
+        return cls(
+            entries=entries,
+            curse_slugs={e.slug: e.id for e in entries if e.source == 'curse'},
+        )
