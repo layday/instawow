@@ -69,7 +69,9 @@ class Catalogue(BaseModel):
             CatalogueEntry(
                 **e.__dict__,
                 normalised_name=normalise(e.name),
-                derived_download_score=e.download_count / most_downloads_per_source[e.source],
+                derived_download_score=0
+                if e.source == 'github'
+                else e.download_count / most_downloads_per_source[e.source],
             )
             for e in base_entries
         ]

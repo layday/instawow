@@ -191,7 +191,11 @@ class WaCompanionBuilder:
             api_url.with_query(ids=','.join(aura_ids)),
             {'minutes': 30},
             label='Fetching aura metadata',
-            headers={'api-key': self.access_token or ''},
+            headers={
+                'api-key': self.access_token.get_secret_value()
+                if self.access_token is not None
+                else ''
+            },
         ) as response:
             metadata: list[WagoApiResponse]
             if response.status == 404:
@@ -205,7 +209,11 @@ class WaCompanionBuilder:
         async with self.manager.web_client.get(
             IMPORT_API_URL.with_query(id=aura['_id']).with_fragment(str(aura['version'])),
             {'days': 30},
-            headers={'api-key': self.access_token or ''},
+            headers={
+                'api-key': self.access_token.get_secret_value()
+                if self.access_token is not None
+                else ''
+            },
             label=f"Fetching aura '{aura['slug']}'",
         ) as response:
             response.raise_for_status()

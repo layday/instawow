@@ -861,7 +861,9 @@ class GithubResolver(BaseResolver):
         github_get = self.manager.web_client.get
         github_token = self.manager.config.global_config.access_tokens.github
         if github_token is not None:
-            github_get = partial(github_get, headers={'Authorization': f'token {github_token}'})
+            github_get = partial(
+                github_get, headers={'Authorization': f'token {github_token.get_secret_value()}'}
+            )
 
         repo_url = self.repos_api_url / defn.alias
 
