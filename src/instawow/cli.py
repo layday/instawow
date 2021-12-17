@@ -984,24 +984,23 @@ def list_installed_wago_auras(manager: _manager.Manager) -> None:
 
 
 @main.command(hidden=True)
-@click.argument('filename', type=click.Path(dir_okay=False))
 @click.option(
     '--start-date',
     callback=_parse_iso_date_into_datetime,
     help='Omit results before this date.',
     metavar='YYYY-MM-DD',
 )
-def generate_catalogue(filename: str, start_date: datetime | None) -> None:
+def generate_catalogue(start_date: datetime | None) -> None:
     "Generate the master catalogue."
     from .cataloguer import BaseCatalogue
 
     catalogue = asyncio.run(BaseCatalogue.collate(start_date))
-    file = Path(filename)
-    file.write_text(
+    catalogue_path = Path(f'base-catalogue-v{catalogue.version}.json').resolve()
+    catalogue_path.write_text(
         catalogue.json(indent=2),
         encoding='utf-8',
     )
-    file.with_suffix(f'.compact{file.suffix}').write_text(
+    catalogue_path.with_suffix(f'.compact{catalogue_path.suffix}').write_text(
         catalogue.json(separators=(',', ':')),
         encoding='utf-8',
     )

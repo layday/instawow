@@ -72,9 +72,9 @@ http get 'https://api.github.com/repos/AdiAddons/AdiButtonAuras/releases/tags/2.
     > "$DIR"/github-release-no-assets.json
 
 
-http get https://raw.githubusercontent.com/layday/instawow-data/data/master-catalogue-v4.json -b \
+http get https://raw.githubusercontent.com/layday/instawow-data/data/base-catalogue-v5.compact.json -b \
     | jq -r \
-    > "$DIR"/master-catalogue.json
+    > "$DIR"/base-catalogue-v5.compact.json
 
 
 echo '{

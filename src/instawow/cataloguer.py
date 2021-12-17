@@ -12,15 +12,22 @@ from .config import Flavour
 from .utils import bucketise, cached_property, normalise_names
 
 
+class _SameAs(BaseModel):
+    source: str
+    id: str
+
+
 class BaseCatatalogueEntry(BaseModel):
     source: str
     id: str
     slug: str = ''
     name: str
+    url: str
     game_flavours: typing.Set[Flavour]
-    folders: typing.List[typing.Set[str]] = []
     download_count: int
     last_updated: datetime
+    folders: typing.List[typing.Set[str]] = []
+    same_as: typing.List[_SameAs] = []
 
 
 class CatalogueEntry(BaseCatatalogueEntry):
@@ -29,7 +36,8 @@ class CatalogueEntry(BaseCatatalogueEntry):
 
 
 class BaseCatalogue(BaseModel, json_encoders={set: sorted}):
-    __root__: typing.List[BaseCatatalogueEntry]
+    version = 5
+    entries: typing.List[BaseCatatalogueEntry]
 
     @classmethod
     async def collate(cls, start_date: datetime | None):
@@ -37,17 +45,18 @@ class BaseCatalogue(BaseModel, json_encoders={set: sorted}):
             entries = [e for r in manager.Manager.RESOLVERS async for e in r.catalogue(web_client)]
             if start_date is not None:
                 entries = [e for e in entries if e.last_updated >= start_date]
-            return cls.parse_obj(entries)
+            return cls(entries=entries)
 
 
 class Catalogue(BaseModel, keep_untouched=(cached_property,)):
-    __root__: typing.List[CatalogueEntry]
+    version = 1
+    entries: typing.List[CatalogueEntry]
 
     @classmethod
     def from_base_catalogue(cls, raw_base_catalogue: Sequence[Any], start_date: datetime | None):
         normalise = normalise_names('')
 
-        base_entries = BaseCatalogue.parse_obj(raw_base_catalogue).__root__
+        base_entries = BaseCatalogue.parse_obj(raw_base_catalogue).entries
         if start_date is not None:
             base_entries = [e for e in base_entries if e.last_updated >= start_date]
 
@@ -63,8 +72,8 @@ class Catalogue(BaseModel, keep_untouched=(cached_property,)):
             )
             for e in base_entries
         ]
-        return cls.parse_obj(entries)
+        return cls(entries=entries)
 
     @cached_property
     def curse_slugs(self):
-        return {a.slug: a.id for a in self.__root__ if a.source == 'curse'}
+        return {a.slug: a.id for a in self.entries if a.source == 'curse'}

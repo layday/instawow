@@ -119,9 +119,9 @@ def mock_aiohttp_requests(aresponses: aresponses.ResponsesMockServer):
 
     aresponses.add(
         'raw.githubusercontent.com',
-        aresponses.ANY,
+        '/layday/instawow-data/data/base-catalogue-v5.compact.json',
         'get',
-        load_json_fixture('master-catalogue.json'),
+        load_json_fixture('base-catalogue-v5.compact.json'),
         repeat=inf,
     )
 

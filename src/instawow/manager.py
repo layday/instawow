@@ -22,7 +22,7 @@ from yarl import URL
 
 from . import _deferred_types, db, models
 from . import results as R
-from .cataloguer import Catalogue, CatalogueEntry
+from .cataloguer import BaseCatalogue, Catalogue, CatalogueEntry
 from .common import Strategy
 from .config import Config, GlobalConfig
 from .plugins import load_plugins
@@ -303,8 +303,11 @@ class Manager:
         InstawowResolver,
     ]
 
-    _catalogue_url = 'https://raw.githubusercontent.com/layday/instawow-data/data/base-catalogue-v5.compact.json'  # v5
-    _catalogue_filename = 'catalogue-v5.json'
+    _base_catalogue_url = (
+        f'https://raw.githubusercontent.com/layday/instawow-data/data/'
+        f'base-catalogue-v{BaseCatalogue.construct().version}.compact.json'
+    )
+    _catalogue_filename = f'catalogue-v{Catalogue.construct().version}.json'
 
     _normalise_search_terms = staticmethod(normalise_names(''))
 
@@ -502,7 +505,7 @@ class Manager:
                 )
         else:
             async with self.web_client.get(
-                self._catalogue_url,
+                self._base_catalogue_url,
                 raise_for_status=True,
                 trace_request_ctx=_GenericDownloadTraceRequestCtx(
                     report_progress='generic', label='Synchronising catalogue'
@@ -567,8 +570,7 @@ class Manager:
         if url.scheme == 'data' and url.raw_path.startswith(','):
             return urllib.parse.unquote(url.raw_path[1:])
         elif url.scheme in {'http', 'https'}:
-            async with self.web_client.get(url, {'days': 1}) as response:
-                response.raise_for_status()
+            async with self.web_client.get(url, {'days': 1}, raise_for_status=True) as response:
                 return await response.text()
         elif url.scheme == 'file':
             return await t(Path(file_uri_to_path(uri)).read_text)(encoding='utf-8')
@@ -623,7 +625,7 @@ class Manager:
         s = self._normalise_search_terms(search_terms)
 
         tokens_to_entries = bucketise(
-            ((e.normalised_name, e) for e in catalogue.__root__ if all(f(e) for f in filter_fns)),
+            ((e.normalised_name, e) for e in catalogue.entries if all(f(e) for f in filter_fns)),
             key=lambda v: v[0],
         )
         matches = rapidfuzz.process.extract(

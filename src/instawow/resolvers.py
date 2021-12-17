@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from collections.abc import AsyncIterator, Sequence, Set
 from datetime import datetime, timezone
 from enum import IntEnum
@@ -411,11 +412,14 @@ class CurseResolver(BaseResolver):
         step = 50
         sort_order = '3'  # Alphabetical
         for index in range(0, 10001 - step, step):
-            async with web_client.get(
-                (cls.addon_api_url / 'search').with_query(
-                    gameId='1', sort=sort_order, pageSize=step, index=index
-                )
-            ) as response:
+            # Try not to get rate limited
+            await asyncio.sleep(2)
+
+            url = (cls.addon_api_url / 'search').with_query(
+                gameId='1', sort=sort_order, pageSize=step, index=index
+            )
+            logger.debug(f'retrieving {url}')
+            async with web_client.get(url) as response:
                 items: list[_CurseAddon] = await response.json()
 
             if not items:
@@ -427,10 +431,11 @@ class CurseResolver(BaseResolver):
                     id=item['id'],
                     slug=item['slug'],
                     name=item['name'],
+                    url=item['websiteUrl'],
                     game_flavours=supports_x(item['latestFiles']),
-                    folders=get_folders(item['latestFiles']),
                     download_count=item['downloadCount'],
                     last_updated=item['dateReleased'],
+                    folders=get_folders(item['latestFiles']),
                 )
 
 
@@ -576,6 +581,7 @@ class WowiResolver(BaseResolver):
     ) -> AsyncIterator[BaseCatatalogueEntry]:
         flavours = set(Flavour)
 
+        logger.debug(f'retrieving {cls.list_api_url}')
         async with web_client.get(cls.list_api_url) as response:
             items: list[_WowiListApiItem] = await response.json()
 
@@ -584,10 +590,11 @@ class WowiResolver(BaseResolver):
                 source=cls.source,
                 id=item['UID'],
                 name=item['UIName'],
-                folders=[item['UIDir']],
+                url=item['UIFileInfoURL'],
                 game_flavours=flavours,
                 download_count=item['UIDownloadTotal'],
                 last_updated=datetime.fromtimestamp(item['UIDate'] / 1000, timezone.utc),
+                folders=[item['UIDir']],
             )
 
 
@@ -749,7 +756,9 @@ class TukuiResolver(BaseResolver):
             ({Flavour.retail}, {'ui': 'elvui'}),
             *(({f}, {q: 'all'}) for f, q in cls.query_flavours.items()),
         ]:
-            async with web_client.get(cls.api_url.with_query(query)) as response:
+            url = cls.api_url.with_query(query)
+            logger.debug(f'retrieving {url}')
+            async with web_client.get(url) as response:
                 items: _TukuiUi | list[_TukuiAddon] = await response.json(
                     content_type=None  # text/html
                 )
@@ -759,6 +768,7 @@ class TukuiResolver(BaseResolver):
                     source=cls.source,
                     id=item['id'],
                     name=item['name'],
+                    url=item['web_url'],
                     game_flavours=flavours,
                     # Split Tukui and ElvUI downloads evenly between them.
                     # They both have the exact same number of downloads so
@@ -818,11 +828,29 @@ class GithubResolver(BaseResolver):
 
     repos_api_url = URL('https://api.github.com/repos')
 
-    release_json_flavours = {
-        Flavour.retail: 'mainline',
-        Flavour.vanilla_classic: 'classic',
-        Flavour.burning_crusade_classic: 'bcc',
-    }
+    generated_catalogue_csv_url = (
+        'https://raw.githubusercontent.com/layday/github-wow-addon-catalogue/main/addons.csv'
+    )
+
+    @staticmethod
+    def _flavour_to_release_json_flavour(flavour: Flavour):
+        if flavour is Flavour.retail:
+            return 'mainline'
+        elif flavour is Flavour.vanilla_classic:
+            return 'classic'
+        elif flavour is Flavour.burning_crusade_classic:
+            return 'bcc'
+
+    @staticmethod
+    def _release_json_flavour_to_flavour(flavour: str):
+        if flavour == 'mainline':
+            return Flavour.retail
+        elif flavour == 'classic':
+            return Flavour.vanilla_classic
+        elif flavour == 'bcc':
+            return Flavour.burning_crusade_classic
+        else:
+            raise ValueError('Unknown falvour', flavour)
 
     @staticmethod
     def get_alias_from_url(url: URL) -> str | None:
@@ -914,15 +942,15 @@ class GithubResolver(BaseResolver):
             if not releases:
                 raise R.PkgFileUnavailable('no files available for download')
 
+            wanted_flavour = self._flavour_to_release_json_flavour(
+                self.manager.config.game_flavour
+            )
             matching_release = next(
                 (
                     r
                     for r in releases
                     if r['nolib'] is False
-                    and any(
-                        m['flavor'] == self.release_json_flavours[self.manager.config.game_flavour]
-                        for m in r['metadata']
-                    )
+                    and any(m['flavor'] == wanted_flavour for m in r['metadata'])
                 ),
                 None,
             )
@@ -953,6 +981,37 @@ class GithubResolver(BaseResolver):
             changelog_url=_format_data_changelog(release_metadata['body']),
             options={'strategy': defn.strategy},
         )
+
+    @classmethod
+    async def catalogue(
+        cls, web_client: _deferred_types.aiohttp.ClientSession
+    ) -> AsyncIterator[BaseCatatalogueEntry]:
+        import csv
+        import io
+
+        logger.debug(f'retrieving {cls.generated_catalogue_csv_url}')
+        async with web_client.get(cls.generated_catalogue_csv_url) as response:
+            catalogue_csv = await response.text()
+
+        for entry in csv.DictReader(io.StringIO(catalogue_csv)):
+            yield BaseCatatalogueEntry(
+                source=cls.source,
+                id=entry['full_name'],
+                slug=entry['full_name'].lower(),
+                name=entry['name'],
+                url=entry['url'],
+                game_flavours={
+                    cls._release_json_flavour_to_flavour(f) for f in entry['flavors'].split(',')
+                },
+                download_count=1,
+                last_updated=datetime.fromisoformat(entry['last_updated']),
+                same_as=[
+                    {'source': i, 'id': v}
+                    for i in ('curse', 'wowi')
+                    for v in (entry[f'{i}_id'],)
+                    if v
+                ],
+            )
 
 
 class InstawowResolver(BaseResolver):
@@ -1001,10 +1060,11 @@ class InstawowResolver(BaseResolver):
             id='1',
             slug='weakauras-companion-autoupdate',
             name='WeakAuras Companion',
-            folders=[
-                ['WeakAurasCompanion'],
-            ],
+            url='https://github.com/layday/instawow',
             game_flavours=set(Flavour),
             download_count=1,
             last_updated=datetime.now(timezone.utc),
+            folders=[
+                ['WeakAurasCompanion'],
+            ],
         )

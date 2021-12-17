@@ -143,7 +143,7 @@ async def match_folder_name_subsets(
     catalogue = await manager.synchronise()
     matches = [
         (frozenset(e for e in leftovers if e.name in f), Defn(i.source, i.id))
-        for i in catalogue.__root__
+        for i in catalogue.entries
         if manager.config.game_flavour in i.game_flavours
         for f in i.folders
         if f <= leftovers
@@ -166,7 +166,7 @@ async def match_addon_names_with_folder_names(
 
     catalogue = await manager.synchronise()
     addon_names_to_catalogue_entries = bucketise(
-        catalogue.__root__, key=lambda i: normalise(i.name)
+        catalogue.entries, key=lambda i: normalise(i.name)
     )
     matches = (
         (a, addon_names_to_catalogue_entries.get(normalise(a.name))) for a in sorted(leftovers)
