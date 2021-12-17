@@ -413,7 +413,8 @@ def test_reconcile__reconciliation_complete(run):
     assert run('reconcile').output == 'No add-ons left to reconcile.\n'
 
 
-def test_search__no_results(feed_pt, run):
+@pytest.mark.skip
+def test_search__no_results(run):
     assert run('search ∅').output == 'No results found.\n'
 
 
