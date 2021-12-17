@@ -378,7 +378,7 @@ class CurseResolver(BaseResolver):
                 flavour: Flavour,
             ):
                 if any(
-                    f['exposeAsAlternative']
+                    not f['exposeAsAlternative']
                     and (
                         f['gameVersionFlavor'] == curse_flavor
                         or any(
