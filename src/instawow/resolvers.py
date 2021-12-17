@@ -850,7 +850,7 @@ class GithubResolver(BaseResolver):
         elif flavour == 'bcc':
             return Flavour.burning_crusade_classic
         else:
-            raise ValueError('Unknown falvour', flavour)
+            raise ValueError('Unknown flavour', flavour)
 
     @staticmethod
     def get_alias_from_url(url: URL) -> str | None:
