@@ -430,9 +430,7 @@ class CurseResolver(BaseResolver):
                     game_flavours=supports_x(item['latestFiles']),
                     folders=get_folders(item['latestFiles']),
                     download_count=item['downloadCount'],
-                    last_updated=datetime.fromisoformat(
-                        f'{item["dateReleased"].rstrip("Z")}+00:00'
-                    ),
+                    last_updated=item['dateReleased'],
                 )
 
 
@@ -589,7 +587,7 @@ class WowiResolver(BaseResolver):
                 folders=[item['UIDir']],
                 game_flavours=flavours,
                 download_count=item['UIDownloadTotal'],
-                last_updated=datetime.fromtimestamp(item['UIDate'], timezone.utc),
+                last_updated=datetime.fromtimestamp(item['UIDate'] / 1000, timezone.utc),
             )
 
 
