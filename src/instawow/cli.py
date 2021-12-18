@@ -862,7 +862,7 @@ class _EditableConfigOptions(StrEnum):
     addon_dir = 'addon_dir'
     game_flavour = 'game_flavour'
     auto_update_check = 'auto_update_check'
-    access_tokens = 'access_tokens'
+    github_access_token = 'access_tokens.github'
 
 
 @main.command()
@@ -892,7 +892,7 @@ def configure(
         config_options = {
             _EditableConfigOptions.addon_dir,
             _EditableConfigOptions.game_flavour,
-            _EditableConfigOptions.access_tokens,
+            _EditableConfigOptions.github_access_token,
         }
 
     profile = ctx.find_root().params['profile']
@@ -934,7 +934,7 @@ def configure(
             confirm('Periodically check for instawow updates?')
         )
 
-    if _EditableConfigOptions.access_tokens in config_options and ask(
+    if _EditableConfigOptions.github_access_token in config_options and ask(
         confirm('Set up GitHub authentication?')
     ):
         github_access_token = run_with_progress(_github_oauth_flow())
