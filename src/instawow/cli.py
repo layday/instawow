@@ -15,7 +15,6 @@ from collections.abc import (
 )
 from contextlib import contextmanager
 from datetime import datetime, timezone
-from enum import Enum
 from functools import partial, wraps
 from itertools import chain, repeat
 from pathlib import Path
@@ -212,24 +211,23 @@ def _with_manager(fn: Callable[..., object]):
     return wrapper
 
 
-class EnumParam(click.Choice):
+class StrEnumParam(click.Choice):
     def __init__(
         self,
-        choice_enum: type[Enum],
-        excludes: Set[Enum] = frozenset(),
+        choice_enum: type[StrEnum],
+        excludes: Set[StrEnum] = frozenset(),
         case_sensitive: bool = True,
     ) -> None:
         self.choice_enum = choice_enum
         super().__init__(
-            choices=[c.name for c in choice_enum if c not in excludes],
+            choices=[c for c in choice_enum if c not in excludes],
             case_sensitive=case_sensitive,
         )
 
     def convert(
         self, value: str, param: click.Parameter | None, ctx: click.Context | None
-    ) -> Enum:
-        parent_result = super().convert(value, param, ctx)
-        return self.choice_enum[parent_result]
+    ) -> StrEnum:
+        return self.choice_enum(super().convert(value, param, ctx))
 
 
 def _register_plugin_commands(group: click.Group):
@@ -347,7 +345,7 @@ _EXCLUDED_STRATEGIES = frozenset({Strategy.default, Strategy.version})
     '--with-strategy',
     '-s',
     multiple=True,
-    type=(EnumParam(Strategy, _EXCLUDED_STRATEGIES), str),
+    type=(StrEnumParam(Strategy, _EXCLUDED_STRATEGIES), str),
     expose_value=False,
     callback=partial(_combine_addons, parse_into_defn_with_strategy),
     metavar='<STRATEGY ADDON>...',
@@ -660,7 +658,7 @@ class _ListFormats(StrEnum):
     '--format',
     '-f',
     'output_format',
-    type=EnumParam(_ListFormats),
+    type=StrEnumParam(_ListFormats),
     default=_ListFormats.simple,
     show_default=True,
     help='Change the output format.',
@@ -880,7 +878,7 @@ class _EditableConfigOptions(StrEnum):
 @click.argument(
     'config-options',
     nargs=-1,
-    type=EnumParam(_EditableConfigOptions),
+    type=StrEnumParam(_EditableConfigOptions),
 )
 @click.pass_context
 def configure(
