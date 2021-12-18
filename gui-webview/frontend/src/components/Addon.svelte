@@ -9,8 +9,8 @@
   import { fade } from "svelte/transition";
   import type { Addon, AddonWithMeta } from "../api";
   import { Strategy } from "../api";
+  import { ListFormat } from "../constants";
   import { api } from "../store";
-  import { ListFormat } from "./ProfileView.svelte";
   import ProgressIndicator from "./ProgressIndicator.svelte";
   import Icon from "./SvgIcon.svelte";
 

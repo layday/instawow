@@ -4,3 +4,9 @@ export enum View {
   Search,
   Reconcile,
 }
+
+export enum ListFormat {
+  Dense,
+  Compact,
+  Expanded,
+}

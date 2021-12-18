@@ -21,7 +21,7 @@
     SuccessResult,
   } from "../api";
   import { addonToDefn, Api, ChangelogFormat, ReconciliationStage, Strategy } from "../api";
-  import { View } from "../constants";
+  import { ListFormat, View } from "../constants";
   import type { RequestObject } from "../ipc";
   import { api, profiles } from "../store";
   import AddonComponent from "./Addon.svelte";
@@ -96,12 +96,6 @@
       return [format === ChangelogFormat.html, changelog];
     }
   };
-
-  export enum ListFormat {
-    Dense,
-    Compact,
-    Expanded,
-  }
 
   const cycleListFormat = (currentFormat: ListFormat) => {
     const listFormatKey = ListFormat[currentFormat + 1] as keyof typeof ListFormat;
