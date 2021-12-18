@@ -4,3 +4,9 @@ __pycache__
 /.nox
 /build
 /dist
+
+# Pyenv file
+.python-version
+
+# Editor files
+.vscode

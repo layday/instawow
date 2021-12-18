@@ -29,7 +29,7 @@ include = [
 scripts.instawow = "instawow.cli:main"
 
 [tool.poetry.dependencies]
-python = ">=3.7"
+python = ">=3.7,<4.0"
 
 aiohttp = "^3.7.4"
 alembic = ">=1.7.0"
@@ -58,7 +58,7 @@ pytest = { version = "^6.0.1", optional = true }
 pytest-asyncio = { version = ">=0.14", optional = true }
 pytest-xdist = { version = "^2.2.1", optional = true }
 
-sqlalchemy2-stubs = { version = "*", optional = true }
+sqlalchemy2-stubs = { version = ">=0.0.2a19", optional = true }
 
 [tool.poetry.extras]
 gui = [
