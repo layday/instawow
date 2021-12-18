@@ -181,7 +181,7 @@ class ManagerWrapper:
 
     @cached_property
     def manager(self) -> _manager.Manager:
-        global_config = GlobalConfig.read()
+        global_config = GlobalConfig.read().ensure_dirs()
         try:
             config = Config.read(global_config, self.ctx.params['profile']).ensure_dirs()
         except FileNotFoundError:
@@ -1010,7 +1010,7 @@ def gui(ctx: click.Context) -> None:
     "Fire up the GUI."
     from instawow_gui.app import InstawowApp
 
-    global_config = GlobalConfig.read()
+    global_config = GlobalConfig.read().ensure_dirs()
     dummy_jsonrpc_config = Config.construct(
         global_config=global_config, profile='__jsonrpc__'
     ).ensure_dirs()
