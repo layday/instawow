@@ -96,6 +96,17 @@
       return [format === ChangelogFormat.html, changelog];
     }
   };
+
+  export enum ListFormat {
+    Dense,
+    Compact,
+    Expanded,
+  }
+
+  const cycleListFormat = (currentFormat: ListFormat) => {
+    const listFormatKey = ListFormat[currentFormat + 1] as keyof typeof ListFormat;
+    return ListFormat[listFormatKey] || ListFormat.Dense;
+  };
 </script>
 
 <script lang="ts">
@@ -119,7 +130,8 @@
   let uriSchemes: string[];
 
   let activeView: View = View.Installed;
-  let addonsCondensed = false;
+  let installedListFormat = ListFormat.Compact;
+  let searchListFormat = ListFormat.Expanded;
 
   let addons__Installed: AddonTuple[] = [];
   let filteredCatalogueEntries: CatalogueEntry[] = [];
@@ -532,6 +544,14 @@
     } = defaultSearchState);
   };
 
+  const cycleDisplayedListFormat = () => {
+    if (activeView === View.Installed || activeView === View.FilterInstalled) {
+      installedListFormat = cycleListFormat(installedListFormat);
+    } else if (activeView === View.Search) {
+      searchListFormat = cycleListFormat(searchListFormat);
+    }
+  };
+
   onMount(async () => {
     const apiSources = await profileApi.listSources();
     sources = lodash.fromPairs(apiSources.map((s) => [s.source, s]));
@@ -585,18 +605,18 @@
         on:requestInstallReconciled={() => installReconciled(reconcileStage, reconcileSelections)}
         on:requestAutomateReconciliation={() =>
           installReconciled(reconcileStage, reconcileSelections, true)}
+        on:requestCycleListFormat={() => cycleDisplayedListFormat()}
         bind:activeView
-        bind:addonsCondensed
         bind:searchTerms
         bind:searchFilterInstalled
         bind:searchFromAlias
-        {searchIsDirty}
-        searchIsSearching={searchesInProgress > 0}
-        installedIsModifying={installedAddonsBeingModified.length > 0}
-        {installedIsRefreshing}
-        {installedOutdatedCount}
         bind:reconcileStage
+        {searchIsDirty}
+        {installedOutdatedCount}
         {reconcileInstallationInProgress}
+        isRefreshing={installedIsRefreshing}
+        isModifying={installedAddonsBeingModified.length > 0}
+        isSearching={searchesInProgress > 0}
       />
     </div>
     <Alerts bind:alerts />
@@ -690,7 +710,7 @@
               {addon}
               {otherAddon}
               beingModified={installedAddonsBeingModified.includes(token)}
-              showCondensed={addonsCondensed}
+              format={activeView === View.Search ? searchListFormat : installedListFormat}
               isRefreshing={installedIsRefreshing}
               downloadProgress={addonDownloadProgress[token] || 0}
             />

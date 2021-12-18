@@ -7,14 +7,13 @@
   import Icon from "./SvgIcon.svelte";
 
   export let activeView: View,
-    addonsCondensed: boolean,
     searchTerms: string,
     searchFilterInstalled: boolean,
     searchFromAlias: boolean,
     searchIsDirty: boolean,
-    searchIsSearching: boolean,
-    installedIsModifying: boolean,
-    installedIsRefreshing: boolean,
+    isRefreshing: boolean,
+    isModifying: boolean,
+    isSearching: boolean,
     installedOutdatedCount: number,
     reconcileInstallationInProgress: boolean,
     reconcileStage: ReconciliationStage;
@@ -76,7 +75,7 @@
           class="control"
           aria-label="condense/expand add-on cells"
           disabled={activeView === View.Reconcile}
-          on:click={() => (addonsCondensed = !addonsCondensed)}
+          on:click={() => dispatch("requestCycleListFormat")}
         >
           <Icon icon={faGripLines} />
         </button>
@@ -128,7 +127,7 @@
         </li>
       {/if}
     </menu>
-    <div class="progress-indicator" class:hidden={!searchIsSearching}>
+    <div class="progress-indicator" class:hidden={!isSearching}>
       <ProgressIndicator diameter={18} progress={0} />
     </div>
   </div>
@@ -141,7 +140,7 @@
         <li>
           <button
             class="control"
-            disabled={installedIsRefreshing}
+            disabled={isRefreshing}
             on:click={() => dispatch("requestRefresh")}
           >
             refresh
@@ -150,7 +149,7 @@
         <li>
           <button
             class="control"
-            disabled={installedIsModifying || installedIsRefreshing || !installedOutdatedCount}
+            disabled={isModifying || isRefreshing || !installedOutdatedCount}
             on:click={() => dispatch("requestUpdateAll")}
           >
             {installedOutdatedCount ? `update ${installedOutdatedCount}` : "no updates"}

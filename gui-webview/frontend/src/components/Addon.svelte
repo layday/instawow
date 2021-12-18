@@ -10,13 +10,14 @@
   import type { Addon, AddonWithMeta } from "../api";
   import { Strategy } from "../api";
   import { api } from "../store";
+  import { ListFormat } from "./ProfileView.svelte";
   import ProgressIndicator from "./ProgressIndicator.svelte";
   import Icon from "./SvgIcon.svelte";
 
   export let addon: AddonWithMeta,
     otherAddon: Addon,
     beingModified: boolean,
-    showCondensed: boolean,
+    format: ListFormat,
     isRefreshing: boolean,
     downloadProgress: number;
 
@@ -38,7 +39,7 @@
   class:status-pinned={addon.options.strategy === Strategy.version}
   class:status-being-modified={beingModified}
 >
-  <ul class="addon-details" class:two-col={showCondensed}>
+  <ul class="addon-details" class:two-col={format === ListFormat.Dense}>
     <li class="name">{addon.name}</li>
     <li class="versions">
       {addon.version}
@@ -48,9 +49,11 @@
       </span>
       {#if otherAddon.options.strategy !== Strategy.default}@ {otherAddon.options.strategy}{/if}
     </li>
-    {#if !showCondensed}
+    {#if format !== ListFormat.Dense}
       <li class="defn">{addon.source}:{addon.id}</li>
-      <li class="description">{addon.description || "No description."}</li>
+      {#if format === ListFormat.Expanded}
+        <li class="description">{addon.description || "No description."}</li>
+      {/if}
     {/if}
   </ul>
   {#if beingModified}
