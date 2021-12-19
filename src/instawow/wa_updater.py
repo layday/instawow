@@ -11,7 +11,7 @@ from loguru import logger
 from pydantic import BaseModel, Field, validator
 from typing_extensions import Literal
 from typing_extensions import NotRequired as N
-from typing_extensions import Protocol, TypeAlias, TypedDict
+from typing_extensions import Protocol, Self, TypeAlias, TypedDict
 from yarl import URL
 
 from .common import Flavour
@@ -36,8 +36,10 @@ class BaseAuras(
         api_url: URL
         filename: str
 
+    __root__: typing.Dict[_Slug, typing.List[Any]]
+
     @classmethod
-    def from_lua_table(cls: type[_TAuras], lua_table: Any) -> _TAuras:
+    def from_lua_table(cls, lua_table: Any) -> Self:
         raise NotImplementedError
 
 
@@ -61,7 +63,7 @@ class WeakAura(
     version: int
 
     @classmethod
-    def from_lua_table(cls, lua_table: Any) -> WeakAura | None:
+    def from_lua_table(cls, lua_table: Any):
         url_string = lua_table.get('url')
         if url_string is not None:
             url = URL(url_string)
@@ -69,7 +71,7 @@ class WeakAura(
                 return cls.parse_obj({**lua_table, 'url': url})
 
     @validator('url', pre=True)
-    def _url_to_URL(cls, value: str | URL) -> URL:
+    def _url_to_URL(cls, value: str | URL):
         if not isinstance(value, URL):
             value = URL(value)
         return value
@@ -83,7 +85,7 @@ class WeakAuras(BaseAuras):
     __root__: typing.Dict[_Slug, typing.List[WeakAura]]
 
     @classmethod
-    def from_lua_table(cls, lua_table: Any) -> WeakAuras:
+    def from_lua_table(cls, lua_table: Any):
         auras = (
             a for t in lua_table['displays'].values() for a in (WeakAura.from_lua_table(t),) if a
         )
@@ -104,7 +106,7 @@ class Plateroos(BaseAuras):
     __root__: typing.Dict[_Slug, typing.List[Plateroo]]
 
     @classmethod
-    def from_lua_table(cls, lua_table: Any) -> Plateroos:
+    def from_lua_table(cls, lua_table: Any):
         auras = (
             a
             for n, p in lua_table['profiles'].items()

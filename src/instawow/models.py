@@ -13,24 +13,28 @@ from . import db
 from .common import Strategy
 
 
-class _PkgOptions(BaseModel):
+class _FrozenBaseModel(BaseModel, frozen=True):
+    pass
+
+
+class _PkgOptions(_FrozenBaseModel):
     strategy: Strategy
 
 
-class _PkgFolder(BaseModel):
+class _PkgFolder(_FrozenBaseModel):
     name: str
 
 
-class _PkgDep(BaseModel):
+class _PkgDep(_FrozenBaseModel):
     id: str
 
 
-class _PkgLoggedVersion(BaseModel):
+class _PkgLoggedVersion(_FrozenBaseModel):
     version: str
     install_time: datetime
 
 
-class Pkg(BaseModel):
+class Pkg(_FrozenBaseModel):
     source: str
     id: str
     slug: str
@@ -143,12 +147,8 @@ class Pkg(BaseModel):
         )
         connection.commit()
 
-    # Pydantic sets this to ``None`` unless the model is marked as "frozen",
-    # presumably because it overrides ``__eq__``, which we're not interested in.
-    __hash__ = object.__hash__
 
-
-class PkgList(BaseModel):
+class PkgList(_FrozenBaseModel):
     __root__: typing.List[Pkg]
 
 

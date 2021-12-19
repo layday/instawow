@@ -350,21 +350,27 @@ class CurseResolver(BaseResolver):
                     f'using {defn.strategy} strategy'
                 )
 
-        return models.Pkg(
-            source=self.source,
-            id=metadata['id'],
-            slug=metadata['slug'],
-            name=metadata['name'],
-            description=metadata['summary'],
-            url=metadata['websiteUrl'],
-            download_url=file['downloadUrl'],
-            date_published=file['fileDate'],
-            version=file['displayName'],
-            changelog_url=str(
-                self.addon_api_url / str(metadata['id']) / 'file' / str(file['id']) / 'changelog'
-            ),
-            options={'strategy': defn.strategy},
-            deps=[{'id': d['addonId']} for d in file['dependencies'] if d['type'] == 3],
+        return models.Pkg.parse_obj(
+            {
+                'source': self.source,
+                'id': metadata['id'],
+                'slug': metadata['slug'],
+                'name': metadata['name'],
+                'description': metadata['summary'],
+                'url': metadata['websiteUrl'],
+                'download_url': file['downloadUrl'],
+                'date_published': file['fileDate'],
+                'version': file['displayName'],
+                'changelog_url': str(
+                    self.addon_api_url
+                    / str(metadata['id'])
+                    / 'file'
+                    / str(file['id'])
+                    / 'changelog'
+                ),
+                'options': {'strategy': defn.strategy},
+                'deps': [{'id': d['addonId']} for d in file['dependencies'] if d['type'] == 3],
+            }
         )
 
     @classmethod
@@ -426,16 +432,18 @@ class CurseResolver(BaseResolver):
                 break
 
             for item in items:
-                yield BaseCatatalogueEntry(
-                    source=cls.source,
-                    id=item['id'],
-                    slug=item['slug'],
-                    name=item['name'],
-                    url=item['websiteUrl'],
-                    game_flavours=supports_x(item['latestFiles']),
-                    download_count=item['downloadCount'],
-                    last_updated=item['dateReleased'],
-                    folders=get_folders(item['latestFiles']),
+                yield BaseCatatalogueEntry.parse_obj(
+                    {
+                        'source': cls.source,
+                        'id': item['id'],
+                        'slug': item['slug'],
+                        'name': item['name'],
+                        'url': item['websiteUrl'],
+                        'game_flavours': supports_x(item['latestFiles']),
+                        'download_count': item['downloadCount'],
+                        'last_updated': item['dateReleased'],
+                        'folders': get_folders(item['latestFiles']),
+                    }
                 )
 
 
@@ -561,18 +569,20 @@ class WowiResolver(BaseResolver):
         if metadata is None:
             raise R.PkgNonexistent
 
-        return models.Pkg(
-            source=self.source,
-            id=metadata['UID'],
-            slug=slugify(f'{metadata["UID"]} {metadata["UIName"]}'),
-            name=metadata['UIName'],
-            description=metadata['UIDescription'],
-            url=metadata['UIFileInfoURL'],
-            download_url=metadata['UIDownload'],
-            date_published=metadata['UIDate'],
-            version=metadata['UIVersion'],
-            changelog_url=_format_data_changelog(metadata['UIChangeLog']),
-            options={'strategy': defn.strategy},
+        return models.Pkg.parse_obj(
+            {
+                'source': self.source,
+                'id': metadata['UID'],
+                'slug': slugify(f'{metadata["UID"]} {metadata["UIName"]}'),
+                'name': metadata['UIName'],
+                'description': metadata['UIDescription'],
+                'url': metadata['UIFileInfoURL'],
+                'download_url': metadata['UIDownload'],
+                'date_published': metadata['UIDate'],
+                'version': metadata['UIVersion'],
+                'changelog_url': _format_data_changelog(metadata['UIChangeLog']),
+                'options': {'strategy': defn.strategy},
+            }
         )
 
     @classmethod
@@ -586,15 +596,17 @@ class WowiResolver(BaseResolver):
             items: list[_WowiListApiItem] = await response.json()
 
         for item in items:
-            yield BaseCatatalogueEntry(
-                source=cls.source,
-                id=item['UID'],
-                name=item['UIName'],
-                url=item['UIFileInfoURL'],
-                game_flavours=flavours,
-                download_count=item['UIDownloadTotal'],
-                last_updated=datetime.fromtimestamp(item['UIDate'] / 1000, timezone.utc),
-                folders=[item['UIDir']],
+            yield BaseCatatalogueEntry.parse_obj(
+                {
+                    'source': cls.source,
+                    'id': item['UID'],
+                    'name': item['UIName'],
+                    'url': item['UIFileInfoURL'],
+                    'game_flavours': flavours,
+                    'download_count': item['UIDownloadTotal'],
+                    'last_updated': datetime.fromtimestamp(item['UIDate'] / 1000, timezone.utc),
+                    'folders': [item['UIDir']],
+                }
             )
 
 
@@ -724,27 +736,29 @@ class TukuiResolver(BaseResolver):
         else:
             slug = slugify(f'{metadata["id"]} {metadata["name"]}')
 
-        return models.Pkg(
-            source=self.source,
-            id=str(metadata['id']),
-            slug=slug,
-            name=metadata['name'],
-            description=metadata['small_desc'],
-            url=metadata['web_url'],
-            download_url=metadata['url'],
-            date_published=datetime.fromisoformat(metadata['lastupdate']).replace(
-                tzinfo=timezone.utc
-            ),
-            version=metadata['version'],
-            changelog_url=(
-                # The changelog URL is not versioned - adding fragment to allow caching
-                str(URL(metadata['changelog']).with_fragment(metadata['version']))
-                if metadata['id'] in {-1, -2}
-                # Regular add-ons don't have dedicated changelogs but rather
-                # link to the changelog tab on the add-on page
-                else _format_data_changelog(metadata['changelog'])
-            ),
-            options={'strategy': defn.strategy},
+        return models.Pkg.parse_obj(
+            {
+                'source': self.source,
+                'id': str(metadata['id']),
+                'slug': slug,
+                'name': metadata['name'],
+                'description': metadata['small_desc'],
+                'url': metadata['web_url'],
+                'download_url': metadata['url'],
+                'date_published': datetime.fromisoformat(metadata['lastupdate']).replace(
+                    tzinfo=timezone.utc
+                ),
+                'version': metadata['version'],
+                'changelog_url': (
+                    # The changelog URL is not versioned - adding fragment to allow caching
+                    str(URL(metadata['changelog']).with_fragment(metadata['version']))
+                    if metadata['id'] in {-1, -2}
+                    # Regular add-ons don't have dedicated changelogs but rather
+                    # link to the changelog tab on the add-on page
+                    else _format_data_changelog(metadata['changelog'])
+                ),
+                'options': {'strategy': defn.strategy},
+            }
         )
 
     @classmethod
@@ -764,21 +778,24 @@ class TukuiResolver(BaseResolver):
                 )
 
             for item in items if isinstance(items, list) else [items]:
-                yield BaseCatatalogueEntry(
-                    source=cls.source,
-                    id=item['id'],
-                    name=item['name'],
-                    url=item['web_url'],
-                    game_flavours=flavours,
-                    # Split Tukui and ElvUI downloads evenly between them.
-                    # They both have the exact same number of downloads so
-                    # I'm assuming they're being counted together.
-                    # This should help with scoring other add-ons on the
-                    # Tukui catalogue higher
-                    download_count=int(item['downloads']) // (2 if item['id'] in {-1, -2} else 1),
-                    last_updated=datetime.fromisoformat(item['lastupdate']).replace(
-                        tzinfo=timezone.utc
-                    ),
+                yield BaseCatatalogueEntry.parse_obj(
+                    {
+                        'source': cls.source,
+                        'id': item['id'],
+                        'name': item['name'],
+                        'url': item['web_url'],
+                        'game_flavours': flavours,
+                        # Split Tukui and ElvUI downloads evenly between them.
+                        # They both have the exact same number of downloads so
+                        # I'm assuming they're being counted together.
+                        # This should help with scoring other add-ons on the
+                        # Tukui catalogue higher
+                        'download_count': int(item['downloads'])
+                        // (2 if item['id'] in {-1, -2} else 1),
+                        'last_updated': datetime.fromisoformat(item['lastupdate']).replace(
+                            tzinfo=timezone.utc
+                        ),
+                    }
                 )
 
 
@@ -970,18 +987,20 @@ class GithubResolver(BaseResolver):
             if matching_asset is None:
                 raise R.PkgFileUnavailable(f'{matching_release["filename"]} not found')
 
-        return models.Pkg(
-            source=self.source,
-            id=project_metadata['full_name'],
-            slug=project_metadata['full_name'].lower(),
-            name=project_metadata['name'],
-            description=project_metadata['description'] or '',
-            url=project_metadata['html_url'],
-            download_url=matching_asset['browser_download_url'],
-            date_published=release_metadata['published_at'],
-            version=release_metadata['tag_name'],
-            changelog_url=_format_data_changelog(release_metadata['body']),
-            options={'strategy': defn.strategy},
+        return models.Pkg.parse_obj(
+            {
+                'source': self.source,
+                'id': project_metadata['full_name'],
+                'slug': project_metadata['full_name'].lower(),
+                'name': project_metadata['name'],
+                'description': project_metadata['description'] or '',
+                'url': project_metadata['html_url'],
+                'download_url': matching_asset['browser_download_url'],
+                'date_published': release_metadata['published_at'],
+                'version': release_metadata['tag_name'],
+                'changelog_url': _format_data_changelog(release_metadata['body']),
+                'options': {'strategy': defn.strategy},
+            }
         )
 
     @classmethod
@@ -996,23 +1015,26 @@ class GithubResolver(BaseResolver):
             catalogue_csv = await response.text()
 
         for entry in csv.DictReader(io.StringIO(catalogue_csv)):
-            yield BaseCatatalogueEntry(
-                source=cls.source,
-                id=entry['full_name'],
-                slug=entry['full_name'].lower(),
-                name=entry['name'],
-                url=entry['url'],
-                game_flavours={
-                    cls._release_json_flavour_to_flavour(f) for f in entry['flavors'].split(',')
-                },
-                download_count=1,
-                last_updated=datetime.fromisoformat(entry['last_updated']),
-                same_as=[
-                    {'source': i, 'id': v}
-                    for i in ('curse', 'wowi')
-                    for v in (entry[f'{i}_id'],)
-                    if v
-                ],
+            yield BaseCatatalogueEntry.parse_obj(
+                {
+                    'source': cls.source,
+                    'id': entry['full_name'],
+                    'slug': entry['full_name'].lower(),
+                    'name': entry['name'],
+                    'url': entry['url'],
+                    'game_flavours': {
+                        cls._release_json_flavour_to_flavour(f)
+                        for f in entry['flavors'].split(',')
+                    },
+                    'download_count': 1,
+                    'last_updated': datetime.fromisoformat(entry['last_updated']),
+                    'same_as': [
+                        {'source': i, 'id': v}
+                        for i in ('curse', 'wowi')
+                        for v in (entry[f'{i}_id'],)
+                        if v
+                    ],
+                }
             )
 
 
@@ -1039,34 +1061,38 @@ class InstawowResolver(BaseResolver):
         if source_id == '1':
             await builder.build()
 
-        return models.Pkg(
-            source=self.source,
-            id=source_id,
-            slug=slug,
-            name='WeakAuras Companion',
-            description='A WeakAuras Companion clone.',
-            url='https://github.com/layday/instawow',
-            download_url=builder.addon_zip_path.as_uri(),
-            date_published=datetime.now(timezone.utc),
-            version=(await builder.get_checksum())[:7],
-            changelog_url=builder.changelog_path.as_uri(),
-            options={'strategy': defn.strategy},
+        return models.Pkg.parse_obj(
+            {
+                'source': self.source,
+                'id': source_id,
+                'slug': slug,
+                'name': 'WeakAuras Companion',
+                'description': 'A WeakAuras Companion clone.',
+                'url': 'https://github.com/layday/instawow',
+                'download_url': builder.addon_zip_path.as_uri(),
+                'date_published': datetime.now(timezone.utc),
+                'version': (await builder.get_checksum())[:7],
+                'changelog_url': builder.changelog_path.as_uri(),
+                'options': {'strategy': defn.strategy},
+            }
         )
 
     @classmethod
     async def catalogue(
         cls, web_client: _deferred_types.aiohttp.ClientSession
     ) -> AsyncIterator[BaseCatatalogueEntry]:
-        yield BaseCatatalogueEntry(
-            source=cls.source,
-            id='1',
-            slug='weakauras-companion-autoupdate',
-            name='WeakAuras Companion',
-            url='https://github.com/layday/instawow',
-            game_flavours=set(Flavour),
-            download_count=1,
-            last_updated=datetime.now(timezone.utc),
-            folders=[
-                ['WeakAurasCompanion'],
-            ],
+        yield BaseCatatalogueEntry.parse_obj(
+            {
+                'source': cls.source,
+                'id': '1',
+                'slug': 'weakauras-companion-autoupdate',
+                'name': 'WeakAuras Companion',
+                'url': 'https://github.com/layday/instawow',
+                'game_flavours': set(Flavour),
+                'download_count': 1,
+                'last_updated': datetime.now(timezone.utc),
+                'folders': [
+                    {'WeakAurasCompanion'},
+                ],
+            }
         )

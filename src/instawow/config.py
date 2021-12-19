@@ -6,6 +6,7 @@ import os
 from pathlib import Path, PurePath
 from tempfile import gettempdir
 import typing
+from typing import Any
 
 import click
 from loguru import logger
@@ -44,7 +45,7 @@ def _read_config(config: _BaseSettings, missing_ok: bool = False):
         return json.loads(config.config_file.read_bytes())
     except FileNotFoundError:
         if missing_ok:
-            default_config: dict[str, object] = {}
+            default_config: dict[str, Any] = {}
             return default_config
         raise
 
