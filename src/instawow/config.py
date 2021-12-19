@@ -70,7 +70,9 @@ class _AccessTokens(BaseModel):
 
 
 def _encode_reveal_secret_str(value: object):
-    if isinstance(value, SecretStr):
+    if isinstance(value, BaseModel):
+        return value.dict()
+    elif isinstance(value, SecretStr):
         return value.get_secret_value()
     raise TypeError('Unencodable value', value)
 
