@@ -13,28 +13,24 @@ from . import db
 from .common import Strategy
 
 
-class _FrozenBaseModel(BaseModel, frozen=True):
-    pass
-
-
-class _PkgOptions(_FrozenBaseModel):
+class _PkgOptions(BaseModel):
     strategy: Strategy
 
 
-class _PkgFolder(_FrozenBaseModel):
+class _PkgFolder(BaseModel):
     name: str
 
 
-class _PkgDep(_FrozenBaseModel):
+class _PkgDep(BaseModel):
     id: str
 
 
-class _PkgLoggedVersion(_FrozenBaseModel):
+class _PkgLoggedVersion(BaseModel):
     version: str
     install_time: datetime
 
 
-class Pkg(_FrozenBaseModel):
+class Pkg(BaseModel):
     source: str
     id: str
     slug: str
@@ -147,8 +143,12 @@ class Pkg(_FrozenBaseModel):
         )
         connection.commit()
 
+    # Make the model hashable again
+    __eq__ = object.__eq__
+    __hash__ = object.__hash__  # type: ignore
 
-class PkgList(_FrozenBaseModel):
+
+class PkgList(BaseModel):
     __root__: typing.List[Pkg]
 
 
