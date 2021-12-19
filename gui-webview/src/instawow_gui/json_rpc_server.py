@@ -8,6 +8,7 @@ from datetime import datetime
 from functools import partial
 import importlib.resources
 import os
+from pathlib import Path
 import typing
 from typing import Any, TypeVar
 
@@ -29,7 +30,7 @@ from yarl import URL
 from instawow import __version__, db, matchers, models
 from instawow import results as R
 from instawow.cataloguer import CatalogueEntry
-from instawow.common import Strategy
+from instawow.common import Flavour, Strategy
 from instawow.config import Config, GlobalConfig
 from instawow.manager import LocksType, Manager, TraceRequestCtx, init_web_client, is_outdated
 from instawow.resolvers import Defn
@@ -101,27 +102,36 @@ class _DefnParamMixin(BaseModel):
 
 
 @_register_method('config/write')
-class WriteConfigParams(BaseParams):
-    values: typing.Dict[str, Any]
+class WriteConfigParams(_ProfileParamMixin, BaseParams):
+    addon_dir: Path
+    game_flavour: Flavour
     infer_game_flavour: bool
 
-    @t
-    def respond(self, managers: _ManagerWorkQueue, app_window: toga.MainWindow | None) -> Config:
-        with _reraise_validation_error(_ConfigError):
+    async def respond(
+        self, managers: _ManagerWorkQueue, app_window: toga.MainWindow | None
+    ) -> Config:
+        async with managers.locks[f"load profile '{self.profile}'"]:
+            with _reraise_validation_error(_ConfigError):
+                config = Config(
+                    global_config=await t(GlobalConfig.read)(),
+                    profile=self.profile,
+                    addon_dir=self.addon_dir,
+                    game_flavour=self.game_flavour,
+                )
+                if self.infer_game_flavour:
+                    values = {
+                        **config.dict(),
+                        'game_flavour': Config.infer_flavour(config.addon_dir),
+                    }
+                    config = Config(**values)
 
-            global_config = GlobalConfig.read()
-            config = Config(global_config=global_config, **self.values)
-            if self.infer_game_flavour:
-                values = {**config.dict(), 'game_flavour': Config.infer_flavour(config.addon_dir)}
-                config = Config(**values)
+                await t(config.write)()
 
-            global_config.ensure_dirs()
-            config.write()
+            # Unload the ``Manager`` instance corresponding to this profile for
+            # the config to be reloaded on the next request
+            managers.unload(config.profile)
 
-        # Unload the ``Manager`` corresponding to the profile so that the config
-        # is reloaded on next invocation
-        managers.unload(config.profile)
-        return config
+            return config
 
 
 @_register_method('config/read')
@@ -501,7 +511,7 @@ class _ManagerWorkQueue:
         self._progress_reporters: set[tuple[Manager, models.Pkg, Callable[[], float]]] = set()
 
         self._web_client = _init_json_rpc_web_client(self._progress_reporters)
-        self._locks: LocksType = defaultdict(asyncio.Lock)
+        self.locks: LocksType = defaultdict(asyncio.Lock)
 
     async def cleanup(self):
         for _, close_db_conn in self._managers.values():
@@ -517,7 +527,7 @@ class _ManagerWorkQueue:
         self, future: asyncio.Future[Any], profile: str, coro_fn: Callable[..., Awaitable[Any]]
     ):
         try:
-            async with self._locks[f"load profile '{profile}'"]:
+            async with self.locks[f"load profile '{profile}'"]:
                 try:
                     manager, _ = self._managers[profile]
                 except KeyError:
@@ -535,7 +545,7 @@ class _ManagerWorkQueue:
             future.set_result(result)
 
     async def listen(self):
-        Manager.contextualise(web_client=self._web_client, locks=self._locks)
+        Manager.contextualise(web_client=self._web_client, locks=self.locks)
         while True:
             item = await self._queue.get()
             asyncio.create_task(self._schedule_item(*item))

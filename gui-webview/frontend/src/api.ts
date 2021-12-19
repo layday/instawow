@@ -160,21 +160,28 @@ export class Api {
   }
 
   async readProfile(profile: string): Promise<Config> {
-    return await this.request({ method: "config/read", params: { profile: profile } });
+    return await this.request({ method: "config/read", params: { profile } });
   }
 
   async writeProfile(
-    config: Omit<Config, "global_config">,
-    infer_game_flavour: boolean
+    profile: string,
+    addonDir: string,
+    gameFlavour: Flavour,
+    inferGameFlavour: boolean
   ): Promise<Config> {
     return await this.request({
       method: "config/write",
-      params: { values: config, infer_game_flavour: infer_game_flavour },
+      params: {
+        profile,
+        addon_dir: addonDir,
+        game_flavour: gameFlavour,
+        infer_game_flavour: inferGameFlavour,
+      },
     });
   }
 
   async deleteProfile(profile: string): Promise<void> {
-    return await this.request({ method: "config/delete", params: { profile: profile } });
+    return await this.request({ method: "config/delete", params: { profile } });
   }
 
   async listProfiles(): Promise<Profiles> {
