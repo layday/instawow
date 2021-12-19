@@ -21,36 +21,25 @@ class InstawowApp(toga.App):
             **kwargs,
         )
 
-    async def _startup(self, native_app: object) -> None:
-        web_app = await json_rpc_server.create_app(self.main_window)
-        server_url, serve = await json_rpc_server.run_app(web_app)
-        logger.debug(f'JSON-RPC server running on {server_url}')
-        self._iw_web_view.url = str(server_url)
-        await serve()
-
     def startup(self) -> None:
-        self.main_window = self.iw_window = toga.MainWindow(
-            title=self.formal_name, size=(800, 600)
-        )
+        self.main_window = toga.MainWindow(title=self.formal_name, size=(800, 600))
         if platform.system() == 'Windows':
             from . import cef_adapter
 
             cef_adapter.load()
 
-            self.iw_window.content = self._iw_web_view = toga.WebView(
+            self.main_window.content = web_view = toga.WebView(
                 style=toga.style.Pack(flex=1), factory=cef_adapter.Factory
             )
 
         else:
-            self.iw_window.content = self._iw_web_view = toga.WebView(
-                style=toga.style.Pack(flex=1)
-            )
+            self.main_window.content = web_view = toga.WebView(style=toga.style.Pack(flex=1))
 
         def dispatch_js_keyboard_event(_: toga.Command, *, action: str):
             event_args = json.dumps(
                 {'detail': {'action': action}, 'bubbles': True, 'cancelable': True}
             )
-            self._iw_web_view.invoke_javascript(
+            web_view.invoke_javascript(
                 f'document.dispatchEvent(new CustomEvent("togaSimulateKeypress", {event_args}));'
             )
 
@@ -88,6 +77,13 @@ class InstawowApp(toga.App):
             ),
         )
 
-        self.add_background_task(self._startup)
+        async def startup() -> None:
+            web_app = await json_rpc_server.create_app(self.main_window)
+            server_url, serve = await json_rpc_server.run_app(web_app)
+            logger.debug(f'JSON-RPC server running on {server_url}')
+            web_view.url = str(server_url)
+            await serve()
 
-        self.iw_window.show()
+        self._impl.loop.create_task(startup())
+
+        self.main_window.show()
