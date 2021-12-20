@@ -39,7 +39,7 @@ async def test_write_config(
     rpc_request = {
         'jsonrpc': '2.0',
         'method': 'config/write',
-        'params': {'values': config_values, 'infer_game_flavour': False},
+        'params': {**config_values, 'infer_game_flavour': False},
         'id': request.node.name,
     }
     await ws.send_json(rpc_request, dumps=dumps)
@@ -58,7 +58,8 @@ async def test_write_config_with_invalid_params(
         'jsonrpc': '2.0',
         'method': 'config/write',
         'params': {
-            'values': {**iw_config_values, 'game_flavour': 'strawberry'},
+            **iw_config_values,
+            'game_flavour': 'strawberry',
             'infer_game_flavour': False,
         },
         'id': request.node.name,
@@ -67,8 +68,8 @@ async def test_write_config_with_invalid_params(
     rpc_response = await ws.receive_json()
     assert rpc_response['id'] == request.node.name
     assert rpc_response['error']
-    assert rpc_response['error']['code'] == -32001
-    assert rpc_response['error']['message'] == 'invalid configuration parameters'
+    assert rpc_response['error']['code'] == -32602
+    assert rpc_response['error']['message'] == 'Invalid method parameter(s).'
     assert rpc_response['error']['data'] == [
         {
             'loc': ['game_flavour'],
