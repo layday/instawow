@@ -141,20 +141,21 @@ def _init_cli_web_client(
 
 
 @contextmanager
-def _cancel_tickers():
+def _cancel_tickers(progress_bar: _deferred_types.prompt_toolkit.shortcuts.ProgressBar):
     tickers: set[asyncio.Task[None]] = set()
     try:
         yield tickers
     finally:
         for ticker in tickers:
             ticker.cancel()
+        progress_bar.invalidate()
 
 
 def run_with_progress(awaitable: Awaitable[_T]) -> _T:
     from .prompts import make_progress_bar
 
     async def run():
-        with make_progress_bar() as progress_bar, _cancel_tickers() as tickers:
+        with make_progress_bar() as progress_bar, _cancel_tickers(progress_bar) as tickers:
             async with _init_cli_web_client(progress_bar, tickers) as web_client:
                 _manager.Manager.contextualise(web_client=web_client)
                 return await awaitable
