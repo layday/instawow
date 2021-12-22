@@ -607,7 +607,29 @@ async def create_app(app_window: toga.MainWindow | None = None):
     )
     rpc_server.add_methods([m.bind(n, managers, app_window) for n, m in methods])
 
-    app = aiohttp.web.Application()
+    @aiohttp.web.middleware
+    async def enforce_same_origin(
+        request: aiohttp.web.Request,
+        handler: Callable[[aiohttp.web.Request], Awaitable[aiohttp.web.StreamResponse]],
+    ):
+        if request.remote != LOCALHOST:
+            raise aiohttp.web.HTTPUnauthorized
+
+        if request.path.startswith('/api'):
+            origin = request.headers.get(aiohttp.hdrs.ORIGIN)
+            if origin is None:
+                raise aiohttp.web.HTTPUnauthorized
+            origin_url = URL(origin)
+            if (
+                origin_url.scheme != request.url.scheme
+                or origin_url.host != request.url.host
+                or origin_url.port != request.url.port
+            ):
+                raise aiohttp.web.HTTPUnauthorized
+
+        return await handler(request)
+
+    app = aiohttp.web.Application(middlewares=[enforce_same_origin])
     app.add_routes(
         [
             aiohttp.web.get('/', get_index),

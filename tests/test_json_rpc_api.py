@@ -1,12 +1,15 @@
 from __future__ import annotations
 
+from collections.abc import Callable as C
 from functools import partial
+from itertools import product
 import json
 from typing import Any
 
-from aiohttp import ClientWebSocketResponse
+from aiohttp import ClientWebSocketResponse, WSServerHandshakeError
 from aiohttp.test_utils import TestClient, TestServer
 import pytest
+from yarl import URL
 
 from instawow.config import Config
 
@@ -20,12 +23,43 @@ dumps = partial(json.dumps, default=str)
 
 
 @pytest.fixture
-async def ws(monkeypatch: pytest.MonkeyPatch, iw_global_config_values: dict[str, Any]):
+async def ws_client(monkeypatch: pytest.MonkeyPatch, iw_global_config_values: dict[str, Any]):
     monkeypatch.setenv('INSTAWOW_CONFIG_DIR', str(iw_global_config_values['config_dir']))
     app = await json_rpc_server.create_app()
     server = TestServer(app)
-    async with TestClient(server) as client, client.ws_connect('/api') as ws:
+    async with TestClient(server) as client:
+        yield client
+
+
+@pytest.fixture
+async def ws(ws_client: TestClient):
+    async with ws_client.ws_connect('/api', origin=str(ws_client.make_url(''))) as ws:
         yield ws
+
+
+@pytest.mark.asyncio
+async def test_no_origin_api_request_rejected(ws_client: TestClient):
+    with pytest.raises(WSServerHandshakeError):
+        async with ws_client.ws_connect('/api'):
+            pass
+
+
+@pytest.mark.parametrize(
+    'transform',
+    [
+        lambda u: u.with_scheme('ftp'),
+        lambda u: u.with_host('example.com'),
+        lambda u: u.with_port(21),
+    ],
+)
+@pytest.mark.asyncio
+async def test_disparate_origin_api_request_rejected(
+    ws_client: TestClient,
+    transform: C[[URL], URL],
+):
+    with pytest.raises(WSServerHandshakeError):
+        async with ws_client.ws_connect('/api', origin=str(transform(ws_client.make_url('')))):
+            pass
 
 
 @pytest.mark.asyncio
