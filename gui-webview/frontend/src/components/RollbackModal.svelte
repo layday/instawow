@@ -11,12 +11,10 @@
 
   let version: string;
 
-  const requestRollback = () => {
-    dispatch("requestRollback", {
-      ...addon,
-      version: version,
-      options: { ...addon.options, strategy: Strategy.version },
-    });
+  const requestRollbackAndHide = () => {
+    const newAddon = { ...addon, version };
+    newAddon.options.strategy = Strategy.version;
+    dispatch("requestRollback", newAddon);
     show = false;
   };
 </script>
