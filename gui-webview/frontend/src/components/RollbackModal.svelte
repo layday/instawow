@@ -17,12 +17,22 @@
     dispatch("requestRollback", newAddon);
     show = false;
   };
+
+  // https://github.com/sveltejs/svelte/issues/7041
+  const fixSelection = (node: HTMLSelectElement) => {
+    for (const option of node.options) {
+      if (!option.disabled) {
+        option.selected = true;
+        return;
+      }
+    }
+  };
 </script>
 
 <Modal bind:show>
   <div class="title-bar">rollback</div>
-  <form class="content" on:submit|preventDefault={() => requestRollback()}>
-    <select class="row" aria-label="strategy" bind:value={version}>
+  <form class="content" on:submit|preventDefault={() => requestRollbackAndHide()}>
+    <select class="row" aria-label="strategy" bind:value={version} use:fixSelection>
       {#each addon.logged_versions as version}
         <option value={version.version} disabled={addon.version === version.version}>
           {version.version}
