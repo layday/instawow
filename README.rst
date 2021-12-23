@@ -22,14 +22,17 @@ Some of the features of *instawow* are:
 - Wago integration – a WeakAuras Companion clone which can be managed like
   any other add-on
 
-.. figure:: https://asciinema.org/a/8m36ncAoyTmig4MXfQM8YjE6a.svg
-   :alt: Asciicast demonstrating the operation of instawow
-   :target: https://asciinema.org/a/8m36ncAoyTmig4MXfQM8YjE6a?autoplay=1
-   :width: 640
+.. list-table::
+   :widths: 50 50
 
-.. figure:: https://raw.githubusercontent.com/layday/instawow/main/gui-webview/screenshots/v1.34.1.png
-   :target: https://github.com/layday/instawow/releases/latest
-   :alt: instawow-gui main window
+   * - .. figure:: https://asciinema.org/a/8m36ncAoyTmig4MXfQM8YjE6a.svg
+          :target: https://asciinema.org/a/8m36ncAoyTmig4MXfQM8YjE6a?autoplay=1
+          :alt: Asciicast demonstrating the operation of instawow
+          :width: 640
+     - .. figure:: https://raw.githubusercontent.com/layday/instawow/main/gui-webview/screenshots/v1.34.1.png
+          :target: https://github.com/layday/instawow/releases/latest
+          :alt: instawow-gui main window
+          :width: 640
 
 Installation
 ------------
