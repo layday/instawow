@@ -35,7 +35,6 @@ EXPONENTS = frozenset('Ee')
 WHITESPACE = frozenset(string.whitespace)
 WHITESPACE_OR_CLOSING_SQ_BR = WHITESPACE | frozenset(']')
 NEWLINE = frozenset('\r\n')
-KEYWORDS = {'true': True, 'false': False, 'nil': None}
 
 match_bare_word = re.compile(r'^[a-z_]\w*$', flags=re.IGNORECASE)
 
@@ -51,7 +50,7 @@ class _Sentinel(str):
 _sentinel = _Sentinel()
 
 
-class SLPP:
+class _SLPP:
     def __init__(self, text: str):
         self._iter_text = iter(text)
         self._next()
@@ -186,7 +185,14 @@ class SLPP:
                 break
 
         self._next()
-        return KEYWORDS.get(s, s)
+
+        if s == "true":
+            return True
+        elif s == "false":
+            return False
+        elif s == "nil":
+            return None
+        return s
 
     def _decode_number(self):
         def get_digits():
@@ -260,3 +266,7 @@ class SLPP:
             return self._decode_number()
         else:
             return self._decode_bare_word()
+
+
+def loads(s: str) -> Any:
+    return _SLPP(s).decode()

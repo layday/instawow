@@ -159,11 +159,11 @@ class WaCompanionBuilder:
 
     @staticmethod
     def extract_auras(model: type[_TAuras], source: str) -> _TAuras:
-        from ._custom_slpp import SLPP
+        from ._custom_slpp import loads
 
-        source_after_assignment = source[source.find('=') + 1 :]
-        lua_table = SLPP(source_after_assignment).decode()
-        return model.from_lua_table(lua_table)
+        lua_table = loads(f'{{{source}}}')
+        (aura_table,) = lua_table.values()
+        return model.from_lua_table(aura_table)
 
     def extract_installed_auras(self) -> Iterator[WeakAuras | Plateroos]:
         flavour_root = self.manager.config.addon_dir.parents[1]

@@ -24,27 +24,23 @@ from __future__ import annotations
 
 import pytest
 
-from instawow._custom_slpp import SLPP, ParseError
-
-
-def decode(value: str):
-    return SLPP(value).decode()
+from instawow._custom_slpp import ParseError, loads
 
 
 def test_numbers():
     # int and float
-    assert decode('3') == 3
-    assert decode('3.') == 3
-    assert decode('3.1') == 3.1
+    assert loads('3') == 3
+    assert loads('3.') == 3
+    assert loads('3.1') == 3.1
     # negative float
-    assert decode('-0.45') == -0.45
+    assert loads('-0.45') == -0.45
     # scientific
-    assert decode('3e-07') == 3e-7
-    assert decode('-3.23e+17') == -3.23e17
+    assert loads('3e-07') == 3e-7
+    assert loads('-3.23e+17') == -3.23e17
     # hex
-    assert decode('0x3a') == 0x3A
+    assert loads('0x3a') == 0x3A
     assert (
-        decode(
+        loads(
             '''{
                 ID = 0x74fa4cae,
                 Version = 0x07c2,
@@ -56,55 +52,55 @@ def test_numbers():
 
 
 def test_bool():
-    assert decode('true') == True
-    assert decode('false') == False
-    assert decode('falser') == 'falser'
+    assert loads('true') == True
+    assert loads('false') == False
+    assert loads('falser') == 'falser'
 
 
 def test_bool_keys_are_not_nums():
-    assert decode('{ [false] = "", [true] = "" }') == {False: '', True: ''}
-    assert decode('{ [false] = "", [true] = "", [3] = "" }') == {False: '', True: '', 3: ''}
+    assert loads('{ [false] = "", [true] = "" }') == {False: '', True: ''}
+    assert loads('{ [false] = "", [true] = "", [3] = "" }') == {False: '', True: '', 3: ''}
 
 
 def test_nil():
-    decode('nil') == None
+    loads('nil') == None
 
 
 def test_simple_table():
     # bracketed key
-    assert decode('{ [10] = 11 }') == {10: 11}
-    assert decode('{ [false] = 0 }') == {False: 0}
-    assert decode('{ [true] = 1 }') == {True: 1}
+    assert loads('{ [10] = 11 }') == {10: 11}
+    assert loads('{ [false] = 0 }') == {False: 0}
+    assert loads('{ [true] = 1 }') == {True: 1}
     # bracketed string key - not supported
-    # assert decode('{ [ [[10]] ] = 1 }') == {"10": 1}
+    # assert loads('{ [ [[10]] ] = 1 }') == {"10": 1}
     # keywords in table
-    assert decode('{ false, true }') == [False, True]
+    assert loads('{ false, true }') == [False, True]
     # void table
-    assert decode('{ nil }') == {}
+    assert loads('{ nil }') == {}
     # values-only table
-    assert decode('{ "10" }') == ["10"]
+    assert loads('{ "10" }') == ["10"]
     # last zero
-    assert decode('{ 0, 1, 0 }') == [0, 1, 0]
+    assert loads('{ 0, 1, 0 }') == [0, 1, 0]
 
 
 def test_string_with_and_without_escape():
-    assert decode("'test\\'s string'") == "test's string"
-    assert decode('"test\\\'s string"') == "test\\'s string"
-    assert decode('"test\'s string"') == "test's string"
-    assert decode("[[test\\'s string]]") == "test\\'s string"
-    assert decode("[[test's string]]") == "test's string"
+    assert loads("'test\\'s string'") == "test's string"
+    assert loads('"test\\\'s string"') == "test\\'s string"
+    assert loads('"test\'s string"') == "test's string"
+    assert loads("[[test\\'s string]]") == "test\\'s string"
+    assert loads("[[test's string]]") == "test's string"
     # https://github.com/SirAnthony/slpp/issues/23
-    assert decode("'--3'") == '--3'
+    assert loads("'--3'") == '--3'
 
 
 def test_table_keys():
-    assert decode('{ [ [[false]] ] = "" }') == {'false': ''}
+    assert loads('{ [ [[false]] ] = "" }') == {'false': ''}
     with pytest.raises(ParseError):
-        decode('{ [[false]] = "" }')
+        loads('{ [[false]] = "" }')
 
 
 def test_table_palooza():
-    assert decode(
+    assert loads(
         '''{ -- δκσξδφξ
         array = { 65, 23, 5 }, -- 3493
         dict =     {  -- !!!,11
@@ -126,7 +122,7 @@ def test_table_palooza():
 
 
 def test_table_key_overrides():
-    assert decode(
+    assert loads(
         '{ 43, 54.3, false, string = "value", 9, [4] = 111, [1] = 222, [2.1] = "text" }'
     ) == {
         1: 43,
@@ -136,7 +132,7 @@ def test_table_key_overrides():
         'string': 'value',
         2.1: 'text',
     }
-    assert decode('{ 43, 54.3, false, 9, [5] = 111, [7] = 222 }') == {
+    assert loads('{ 43, 54.3, false, 9, [5] = 111, [7] = 222 }') == {
         1: 43,
         2: 54.3,
         3: False,
@@ -144,7 +140,7 @@ def test_table_key_overrides():
         5: 111,
         7: 222,
     }
-    assert decode('{ [7] = 111, [5] = 222, 43, 54.3, false, 9 }') == {
+    assert loads('{ [7] = 111, [5] = 222, 43, 54.3, false, 9 }') == {
         7: 111,
         5: 222,
         1: 43,
@@ -152,21 +148,21 @@ def test_table_key_overrides():
         3: False,
         4: 9,
     }
-    assert decode('{ 43, 54.3, false, 9, [4] = 111, [5] = 52.1 }') == [
+    assert loads('{ 43, 54.3, false, 9, [4] = 111, [5] = 52.1 }') == [
         43,
         54.3,
         False,
         9,
         52.1,
     ]
-    assert decode('{ [5] = 111, [4] = 52.1, 43, [3] = 54.3, false, 9 }') == {
+    assert loads('{ [5] = 111, [4] = 52.1, 43, [3] = 54.3, false, 9 }') == {
         5: 111,
         4: 52.1,
         1: 43,
         2: False,
         3: 9,
     }
-    assert decode('{ [1] = 1, [2] = "2", 3, 4, [5] = 5, [5] = 6 }') == {
+    assert loads('{ [1] = 1, [2] = "2", 3, 4, [5] = 5, [5] = 6 }') == {
         1: 3,
         2: 4,
         5: 6,
