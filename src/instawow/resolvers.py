@@ -1015,6 +1015,9 @@ class GithubResolver(BaseResolver):
             catalogue_csv = await response.text()
 
         for entry in csv.DictReader(io.StringIO(catalogue_csv)):
+            if entry['has_release_json'] != 'True':
+                continue
+
             yield BaseCatatalogueEntry.parse_obj(
                 {
                     'source': cls.source,
