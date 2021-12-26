@@ -65,14 +65,14 @@
   "releases_url": "https://api.github.com/repos/AdiAddons/AdiBags/releases{/id}",
   "deployments_url": "https://api.github.com/repos/AdiAddons/AdiBags/deployments",
   "created_at": "2010-04-29T22:58:42Z",
-  "updated_at": "2021-03-19T13:58:07Z",
-  "pushed_at": "2021-04-03T21:43:15Z",
+  "updated_at": "2021-11-12T16:28:48Z",
+  "pushed_at": "2021-11-12T16:28:44Z",
   "git_url": "git://github.com/AdiAddons/AdiBags.git",
   "ssh_url": "git@github.com:AdiAddons/AdiBags.git",
   "clone_url": "https://github.com/AdiAddons/AdiBags.git",
   "svn_url": "https://github.com/AdiAddons/AdiBags",
   "homepage": "https://www.wowace.com/projects/adibags",
-  "size": 1332,
+  "size": 1353,
   "stargazers_count": 89,
   "watchers_count": 89,
   "language": "Lua",
@@ -81,11 +81,11 @@
   "has_downloads": true,
   "has_wiki": false,
   "has_pages": false,
-  "forks_count": 70,
+  "forks_count": 73,
   "mirror_url": null,
   "archived": false,
   "disabled": false,
-  "open_issues_count": 153,
+  "open_issues_count": 177,
   "license": {
     "key": "gpl-3.0",
     "name": "GNU General Public License v3.0",
@@ -93,8 +93,17 @@
     "url": "https://api.github.com/licenses/gpl-3.0",
     "node_id": "MDc6TGljZW5zZTk="
   },
-  "forks": 70,
-  "open_issues": 153,
+  "allow_forking": true,
+  "is_template": false,
+  "topics": [
+    "addon",
+    "inventory",
+    "lua",
+    "world-of-warcraft"
+  ],
+  "visibility": "public",
+  "forks": 73,
+  "open_issues": 177,
   "watchers": 89,
   "default_branch": "master",
   "temp_clone_token": null,
@@ -118,6 +127,6 @@
     "type": "Organization",
     "site_admin": false
   },
-  "network_count": 70,
-  "subscribers_count": 15
+  "network_count": 73,
+  "subscribers_count": 13
 }

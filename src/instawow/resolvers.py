@@ -5,7 +5,7 @@ from collections.abc import AsyncIterator, Sequence, Set
 from datetime import datetime, timezone
 from enum import IntEnum
 from functools import partial
-from itertools import chain, takewhile
+from itertools import takewhile
 import re
 import typing
 from typing import Any, ClassVar
@@ -894,11 +894,11 @@ class GithubResolver(BaseResolver):
             assert defn.version
             release_url = repo_url / 'releases/tags' / defn.version
         elif defn.strategy is Strategy.latest:
+            # Includes pre-releases
             release_url = (repo_url / 'releases').with_query(per_page='1')
         else:
-            # The latest release is the most recent non-prerelease,
-            # non-draft release, sorted by the ``created_at`` attribute.
-            # See: https://docs.github.com/en/free-pro-team@latest/rest/reference/repos#get-the-latest-release
+            # The latest release is the most recent release which is neither
+            # a pre-release nor a draft
             release_url = repo_url / 'releases/latest'
 
         async with github_get(release_url, {'minutes': 5}) as response:
@@ -918,74 +918,41 @@ class GithubResolver(BaseResolver):
             None,
         )
         if release_json is None:
-            logger.info(f'no release.json found for {defn}; inspecting assets')
+            raise R.PkgFileUnavailable('no `release.json` attached to release')
 
-            def is_valid_asset(asset: _GithubRelease_Asset):
-                return (
-                    # There is something of a convention that Classic archives
-                    # end in '-classic' and lib-less archives end in '-nolib'.
-                    # Archives produced by packager follow this convention
-                    not asset['name'].endswith(('-nolib.zip', '-nolib-classic.zip'))
-                    and asset['content_type']
-                    in {'application/zip', 'application/x-zip-compressed'}
-                    # A failed upload has a state value of 'starter'
-                    and asset['state'] == 'uploaded'
-                )
+        async with self.manager.web_client.get(
+            release_json['browser_download_url'], {'days': 1}
+        ) as response:
+            response.raise_for_status()
+            packager_metadata: _PackagerReleaseJson = await response.json()
 
-            matching_asset = next(
-                chain(
-                    (
-                        a
-                        for a in assets
-                        if is_valid_asset(a)
-                        and a['name'].endswith('-classic.zip')
-                        is (self.manager.config.game_flavour is Flavour.vanilla_classic)
-                    ),
-                    filter(is_valid_asset, assets),
-                ),
-                None,
-            )
-            if matching_asset is None:
-                raise R.PkgFileUnavailable
+        releases = packager_metadata['releases']
+        if not releases:
+            raise R.PkgFileUnavailable('no files available for download')
 
-        else:
-            logger.info(f'reading metadata for {defn} from release.json')
+        wanted_flavour = self._flavour_to_release_json_flavour(self.manager.config.game_flavour)
+        matching_release = next(
+            (
+                r
+                for r in releases
+                if r['nolib'] is False
+                and any(m['flavor'] == wanted_flavour for m in r['metadata'])
+            ),
+            None,
+        )
+        if matching_release is None:
+            raise R.PkgFileUnavailable(f'no files matching {self.manager.config.game_flavour}')
 
-            async with self.manager.web_client.get(
-                release_json['browser_download_url'], {'days': 1}
-            ) as response:
-                response.raise_for_status()
-                packager_metadata: _PackagerReleaseJson = await response.json()
-
-            releases = packager_metadata['releases']
-            if not releases:
-                raise R.PkgFileUnavailable('no files available for download')
-
-            wanted_flavour = self._flavour_to_release_json_flavour(
-                self.manager.config.game_flavour
-            )
-            matching_release = next(
-                (
-                    r
-                    for r in releases
-                    if r['nolib'] is False
-                    and any(m['flavor'] == wanted_flavour for m in r['metadata'])
-                ),
-                None,
-            )
-            if matching_release is None:
-                raise R.PkgFileUnavailable(f'no files matching {self.manager.config.game_flavour}')
-
-            matching_asset = next(
-                (
-                    a
-                    for a in assets
-                    if a['name'] == matching_release['filename'] and a['state'] == 'uploaded'
-                ),
-                None,
-            )
-            if matching_asset is None:
-                raise R.PkgFileUnavailable(f'{matching_release["filename"]} not found')
+        matching_asset = next(
+            (
+                a
+                for a in assets
+                if a['name'] == matching_release['filename'] and a['state'] == 'uploaded'
+            ),
+            None,
+        )
+        if matching_asset is None:
+            raise R.PkgFileUnavailable(f'{matching_release["filename"]} not found')
 
         return models.Pkg.parse_obj(
             {

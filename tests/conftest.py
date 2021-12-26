@@ -263,52 +263,30 @@ def mock_aiohttp_requests(aresponses: aresponses.ResponsesMockServer):
     )
     aresponses.add(
         'github.com',
-        '/nebularg/PackagerTest/releases/download/v1.9.6/release.json',
+        '/nebularg/PackagerTest/releases/download/v1.9.7/release.json',
         'get',
         load_json_fixture('github-release-release-json-release-json.json'),
         repeat=inf,
     )
     aresponses.add(
         'api.github.com',
-        '/repos/AdiAddons/AdiButtonAuras',
-        'get',
-        load_json_fixture('github-repo-legacy-lib-and-nolib.json'),
-        repeat=inf,
-    )
-    aresponses.add(
-        'api.github.com',
-        '/repos/AdiAddons/AdiButtonAuras/releases/latest',
-        'get',
-        load_json_fixture('github-release-legacy-lib-and-nolib.json'),
-        repeat=inf,
-    )
-    aresponses.add(
-        'api.github.com',
-        '/repos/AdiAddons/AdiButtonAuras/releases?per_page=1',
-        'get',
-        [load_json_fixture('github-release-legacy-lib-and-nolib.json')],
-        match_querystring=True,
-        repeat=inf,
-    )
-    aresponses.add(
-        'api.github.com',
-        '/repos/AdiAddons/AdiButtonAuras/releases/tags/2.1.0',
-        'get',
-        load_json_fixture('github-release-legacy-lib-and-nolib-older-version.json'),
-        repeat=inf,
-    )
-    aresponses.add(
-        'api.github.com',
         '/repos/p3lim-wow/Molinari',
         'get',
-        load_json_fixture('github-repo-legacy-retail-and-classic.json'),
+        load_json_fixture('github-repo-molinari.json'),
         repeat=inf,
     )
     aresponses.add(
         'api.github.com',
         '/repos/p3lim-wow/Molinari/releases/latest',
         'get',
-        load_json_fixture('github-release-legacy-retail-and-classic.json'),
+        load_json_fixture('github-release-molinari.json'),
+        repeat=inf,
+    )
+    aresponses.add(
+        'github.com',
+        '/p3lim-wow/Molinari/releases/download/90105.81-Release/release.json',
+        'get',
+        load_json_fixture('github-release-molinari-release-json.json'),
         repeat=inf,
     )
     aresponses.add(

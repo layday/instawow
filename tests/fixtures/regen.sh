@@ -11,7 +11,7 @@ echo '[2382,20338,23350,288981,322865,2398,326516,333072,402180]' \
 http get https://addons-ecs.forgesvc.net/api/v2/addon/20338/files -b \
     | jq -r \
     > "$DIR"/curse-addon-files.json
-http get https://addons-ecs.forgesvc.net/api/v2/addon/20338/file/3475338/changelog -b \
+http get https://addons-ecs.forgesvc.net/api/v2/addon/20338/file/3576747/changelog -b \
     > "$DIR"/curse-addon-changelog.txt
 
 
@@ -46,24 +46,18 @@ http get 'https://api.github.com/repos/nebularg/PackagerTest' -b \
 http get 'https://api.github.com/repos/nebularg/PackagerTest/releases/latest' -b \
     | jq -r \
     > "$DIR"/github-release-release-json.json
-http --follow get 'https://github.com/nebularg/PackagerTest/releases/download/v1.9.6/release.json' -b \
+http --follow get 'https://github.com/nebularg/PackagerTest/releases/download/v1.9.7/release.json' -b \
     | jq -r \
     > "$DIR"/github-release-release-json-release-json.json
-http get 'https://api.github.com/repos/AdiAddons/AdiButtonAuras' -b \
-    | jq -r \
-    > "$DIR"/github-repo-legacy-lib-and-nolib.json
-http get 'https://api.github.com/repos/AdiAddons/AdiButtonAuras/releases/latest' -b \
-    | jq -r \
-    > "$DIR"/github-release-legacy-lib-and-nolib.json
-http get 'https://api.github.com/repos/AdiAddons/AdiButtonAuras/releases/tags/2.1.0' -b \
-    | jq -r \
-    > "$DIR"/github-release-legacy-lib-and-nolib-older-version.json
 http get 'https://api.github.com/repos/p3lim-wow/Molinari' -b \
     | jq -r \
-    > "$DIR"/github-repo-legacy-retail-and-classic.json
+    > "$DIR"/github-repo-molinari.json
 http get 'https://api.github.com/repos/p3lim-wow/Molinari/releases/latest' -b \
     | jq -r \
-    > "$DIR"/github-release-legacy-retail-and-classic.json
+    > "$DIR"/github-release-molinari.json
+http --follow get 'https://github.com/p3lim-wow/Molinari/releases/download/90105.81-Release/release.json' -b \
+    | jq -r \
+    > "$DIR"/github-release-molinari-release-json.json
 http get 'https://api.github.com/repos/AdiAddons/AdiBags' -b \
     | jq -r \
     > "$DIR"/github-repo-no-releases.json

@@ -1,6 +1,6 @@
-<h3>Changes in 90100.79-Release:</h3>
+<h3>Changes in 90105.81-Release:</h3>
 <ul>
-<li>Fixed: Packager not releasing correctly to classic/tbc (again)</li>
-<li>Fixed: Disenchanting two-handed maces not working (classic/tbc)</li>
-<li>Fixed: Disenchanting shirts not prevented (classic/tbc)</li>
+<li>Added: Support for 9.1 lockboxes</li>
+<li>Added: Preliminary support for 9.2 lockboxes, ores, and herbs</li>
+<li>Fixed: Incorrect ID used for Tiny Titanium Lockbox</li>
 </ul>

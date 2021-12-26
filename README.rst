@@ -171,7 +171,8 @@ GitHub
 
 *instawow* supports WoW add-ons *released* on GitHub – that is to say that
 the repository must have a release (tags won't work) and the release must
-have a ZIP file attached to it as an asset.
+have a ZIP file attached to it as an asset.  In addition, releases must have
+a `release.json` file which maps release archives to game versions.
 *instawow* will not install or build add-ons directly from
 source, or from tarballs or 'zipballs', and will not validate
 the contents of the ZIP file.

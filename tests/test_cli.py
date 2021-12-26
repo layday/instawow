@@ -214,24 +214,24 @@ def test_install_with_wowi_alias(
 def test_install_with_github_alias(
     run: C[[str], Result],
 ):
-    assert run('install github:AdiAddons/AdiButtonAuras').output.startswith(
-        '✓ github:AdiAddons/AdiButtonAuras\n  installed'
+    assert run('install github:p3lim-wow/Molinari').output.startswith(
+        '✓ github:p3lim-wow/Molinari\n  installed'
     )
     assert (
-        run('install github:adiaddons/adibuttonauras').output
-        == '✗ github:adiaddons/adibuttonauras\n  package already installed\n'
+        run('install github:p3lim-wow/molinari').output
+        == '✗ github:p3lim-wow/molinari\n  package already installed\n'
     )
     assert (
-        run('install https://github.com/AdiAddons/AdiButtonAuras').output
-        == '✗ github:AdiAddons/AdiButtonAuras\n  package already installed\n'
+        run('install https://github.com/p3lim-wow/Molinari').output
+        == '✗ github:p3lim-wow/Molinari\n  package already installed\n'
     )
     assert (
-        run('install https://github.com/AdiAddons/AdiButtonAuras/releases').output
-        == '✗ github:AdiAddons/AdiButtonAuras\n  package already installed\n'
+        run('install https://github.com/p3lim-wow/Molinari/releases').output
+        == '✗ github:p3lim-wow/Molinari\n  package already installed\n'
     )
     assert (
-        run('remove github:adiaddons/adibuttonauras').output
-        == '✓ github:adiaddons/adibuttonauras\n  removed\n'
+        run('remove github:p3lim-wow/molinari').output
+        == '✓ github:p3lim-wow/molinari\n  removed\n'
     )
 
 
@@ -239,7 +239,7 @@ def test_version_strategy_lifecycle(
     run: C[[str], Result],
 ):
     assert run('install curse:molinari').output.startswith(
-        '✓ curse:molinari\n  installed 90100.79-Release'
+        '✓ curse:molinari\n  installed 90105.81-Release'
     )
     assert (
         run('install --version foo curse:molinari').output
@@ -272,7 +272,7 @@ def test_install_options(
     ).output == dedent(
         f'''\
         ✓ curse:molinari
-          installed 90100.79-Release{molinari_version_suffix}
+          installed 90105.81-Release{molinari_version_suffix}
         ✗ curse:molinari
           package folders conflict with installed package Molinari
             (curse:20338)
@@ -314,7 +314,7 @@ def test_install_argument_is_not_required(
     ).output == dedent(
         f'''\
         ✓ curse:molinari
-          installed 90100.79-Release{molinari_version_suffix}
+          installed 90105.81-Release{molinari_version_suffix}
         ✗ curse:molinari
           package folders conflict with installed package Molinari
             (curse:20338)
@@ -403,7 +403,7 @@ def test_rollback__multiple_versions(
     assert run('rollback curse:molinari').output == dedent(
         f'''\
         ✓ curse:molinari
-          updated 90100.79-Release{molinari_version_suffix} to 80000.57-Release
+          updated 90105.81-Release{molinari_version_suffix} to 80000.57-Release
         '''
     )
 
@@ -418,7 +418,7 @@ def test_rollback__multiple_versions_promptless(
     assert run('rollback --version 80000.57-Release curse:molinari').output == dedent(
         f'''\
         ✓ curse:molinari
-          updated 90100.79-Release{molinari_version_suffix} to 80000.57-Release
+          updated 90105.81-Release{molinari_version_suffix} to 80000.57-Release
         '''
     )
 
@@ -437,7 +437,7 @@ def test_rollback__rollback_multiple_versions(
     assert run(f'rollback {options} curse:molinari').output == dedent(
         f'''\
         ✓ curse:molinari
-          updated 80000.57-Release to 90100.79-Release{molinari_version_suffix}
+          updated 80000.57-Release to 90105.81-Release{molinari_version_suffix}
         '''
     )
 
@@ -469,7 +469,7 @@ def test_reconcile__auto_reconcile(
     assert pretend_install_molinari_and_run('reconcile --auto').output == dedent(
         f'''\
         ✓ curse:molinari
-          installed 90100.79-Release{molinari_version_suffix}
+          installed 90105.81-Release{molinari_version_suffix}
         '''
     )
 
@@ -492,7 +492,7 @@ def test_reconcile__complete_interactive_reconciliation(
         dedent(
             f'''\
             ✓ curse:molinari
-              installed 90100.79-Release{molinari_version_suffix}
+              installed 90105.81-Release{molinari_version_suffix}
             '''
         )
     )
@@ -536,7 +536,7 @@ def test_search__install_one(
     assert run('search molinari --source curse').output == dedent(
         f'''\
         ✓ curse:molinari
-          installed 90100.79-Release{molinari_version_suffix}
+          installed 90105.81-Release{molinari_version_suffix}
         '''
     )
 
@@ -549,7 +549,7 @@ def test_search__install_multiple_conflicting(
     assert run('search molinari').output == dedent(
         f'''\
         ✓ wowi:13188-molinari
-          installed 90100.79-Release
+          installed 90105.81-Release
         ✗ curse:molinari
           package folders conflict with installed package Molinari
             (wowi:13188)
@@ -561,9 +561,9 @@ def test_changelog_output(
     install_molinari_and_run: C[[str], Result],
 ):
     output = (
-        'Changes in 90100.79-Release:'
+        'Changes in 90105.81-Release:'
         if shutil.which('pandoc')
-        else '<h3>Changes in 90100.79-Release:</h3>'
+        else '<h3>Changes in 90105.81-Release:</h3>'
     )
     assert install_molinari_and_run('view-changelog curse:molinari').output.startswith(output)
 
@@ -573,16 +573,16 @@ def test_changelog_output_no_convert(
 ):
     assert install_molinari_and_run(
         'view-changelog --no-convert curse:molinari'
-    ).output.startswith('<h3>Changes in 90100.79-Release:</h3>')
+    ).output.startswith('<h3>Changes in 90105.81-Release:</h3>')
 
 
 def test_argless_changelog_output(
     install_molinari_and_run: C[[str], Result],
 ):
     output = (
-        'curse:molinari:\n  Changes in 90100.79-Release:'
+        'curse:molinari:\n  Changes in 90105.81-Release:'
         if shutil.which('pandoc')
-        else 'curse:molinari:\n  <h3>Changes in 90100.79-Release:</h3>'
+        else 'curse:molinari:\n  <h3>Changes in 90105.81-Release:</h3>'
     )
     assert install_molinari_and_run('view-changelog').output.startswith(output)
 
@@ -591,7 +591,7 @@ def test_argless_changelog_output_no_convert(
     install_molinari_and_run: C[[str], Result],
 ):
     assert install_molinari_and_run('view-changelog --no-convert').output.startswith(
-        'curse:molinari:\n  <h3>Changes in 90100.79-Release:</h3>'
+        'curse:molinari:\n  <h3>Changes in 90105.81-Release:</h3>'
     )
 
 

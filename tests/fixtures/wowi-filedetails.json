@@ -2,18 +2,18 @@
   {
     "UID": "13188",
     "UICATID": "40",
-    "UIVersion": "90100.79-Release",
-    "UIDate": 1632806923000,
-    "UIMD5": "e45152488c1df35537ca832f1be3a8d5",
-    "UIFileName": "Molinari-90100.79-Release.zip",
-    "UIDownload": "https://cdn.wowinterface.com/downloads/getfile.php?id=13188&d=1632806923&minion",
+    "UIVersion": "90105.81-Release",
+    "UIDate": 1640188595000,
+    "UIMD5": "3cf20cc5d83678981ea84da3cfba8f0d",
+    "UIFileName": "Molinari-90105.81-Release.zip",
+    "UIDownload": "https://cdn.wowinterface.com/downloads/getfile.php?id=13188&d=1640188595&minion",
     "UIPending": "0",
     "UIName": "Molinari",
     "UIAuthorName": "p3lim",
     "UIDescription": "[color=YellowGreen][size=3]Description[/size][/color]\r\n\r\nMolinari was made to aid the player in processing various items throughout the game.  \r\nAs an example; when you'd want to mill herbs, you would normally cast [url=http://wowhead.com/spell=51005]Milling[/url] and then click the item in your bags.  \r\nWith Molinari, you simply hold down the [i]Alt[/i] key and click the item directly.\r\n\r\nThe following spells/processes are supported:\r\n\r\n[list][*][url=http://wowhead.com/spell=51005]Milling[/url] & [url=http://wowhead.com/item=114942]Draenic Mortar[/url]\r\n[*][url=http://wowhead.com/spell=31252]Prospecting[/url]\r\n[*][url=http://wowhead.com/spell=13262]Disenchanting[/url]\r\n[*][url=http://wowhead.com/spell=1804]Lockpicking[/url]\r\n[*][url=http://www.wowhead.com/items/name:key?filter=86;2;0]Skeleton keys[/url]\r\n[*][url=http://www.wowhead.com/items/name:lock?filter=86;7;0]Jeweled keys[/url][/list]\r\n\r\nIn addition, Molinari also works for lockpicking in the trade window.\r\n\r\n[color=YellowGreen][size=3]Feedback[/size][/color]\r\n\r\nIf you have a question, please use the comments section on Curse/WoWInterface.  \r\nIf you would like to report a bug or contribute to the project, please follow [url=https://github.com/p3lim-wow/Molinari/issues?q=]this link[/url] to get started.\r\n\r\n[color=YellowGreen][size=3]Legal[/size][/color]\r\n\r\nPlease see the [url=https://github.com/p3lim-wow/Molinari/blob/master/LICENSE.txt]LICENSE[/url] file.",
-    "UIChangeLog": "[size=\"4\"]Changes in 90100.79-Release:[/size]\r\n\r\n[list]\r\n[*]Fixed: Packager not releasing correctly to classic/tbc (again)\r\n[*]Fixed: Disenchanting two-handed maces not working (classic/tbc)\r\n[*]Fixed: Disenchanting shirts not prevented (classic/tbc)\r\n[/list]",
-    "UIHitCount": "63411",
-    "UIHitCountMonthly": "46",
+    "UIChangeLog": "[size=\"4\"]Changes in 90105.81-Release:[/size]\r\n\r\n[list]\r\n[*]Added: Support for 9.1 lockboxes\r\n[*]Added: Preliminary support for 9.2 lockboxes, ores, and herbs\r\n[*]Fixed: Incorrect ID used for Tiny Titanium Lockbox\r\n[/list]",
+    "UIHitCount": "63552",
+    "UIHitCountMonthly": "73",
     "UIFavoriteTotal": "419"
   }
 ]

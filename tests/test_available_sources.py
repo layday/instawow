@@ -158,65 +158,39 @@ async def test_tukui_changelog_url_for_addon_type(iw_manager: Manager):
     results = await iw_manager.resolve([ui_suite, regular_addon])
 
     if iw_manager.config.game_flavour is Flavour.retail:
-        assert results[ui_suite].changelog_url == 'https://www.tukui.org/ui/tukui/changelog#20.17'
+        assert results[ui_suite].changelog_url == 'https://www.tukui.org/ui/tukui/changelog#20.23'
     assert results[regular_addon].changelog_url.startswith('data:,')
 
 
 @pytest.mark.asyncio
 async def test_github_basic(iw_manager: Manager):
     release_json = Defn('github', 'nebularg/PackagerTest')
-    legacy_lib_and_nolib = Defn('github', 'AdiAddons/AdiButtonAuras')
-    legacy_latest = Defn('github', 'AdiAddons/AdiButtonAuras', strategy=Strategy.latest)
-    legacy_older_version = Defn('github', 'AdiAddons/AdiButtonAuras').with_version('2.1.0')
-    legacy_assetless = Defn('github', 'AdiAddons/AdiButtonAuras').with_version('2.0.19')
-    legacy_retail_and_classic = Defn('github', 'p3lim-wow/Molinari')
     releaseless = Defn('github', 'AdiAddons/AdiBags')
     nonexistent = Defn('github', 'layday/foobar')
 
-    results = await iw_manager.resolve(
-        [
-            release_json,
-            legacy_lib_and_nolib,
-            legacy_latest,
-            legacy_older_version,
-            legacy_assetless,
-            legacy_retail_and_classic,
-            releaseless,
-            nonexistent,
-        ]
-    )
+    results = await iw_manager.resolve([release_json, releaseless, nonexistent])
+
+    release_json_result = results[release_json]
     if iw_manager.config.game_flavour is Flavour.burning_crusade_classic:
-        assert type(results[release_json]) is R.PkgFileUnavailable
+        assert type(release_json_result) is R.PkgFileUnavailable
     else:
-        assert ('classic' in results[release_json].download_url) is (
-            iw_manager.config.game_flavour is Flavour.vanilla_classic
-        )
-        assert 'nolib' not in results[release_json].download_url
-    assert 'nolib' not in results[legacy_lib_and_nolib].download_url
+        assert type(release_json_result) is Pkg
+        if iw_manager.config.game_flavour is Flavour.vanilla_classic:
+            assert 'classic' in release_json_result.download_url
+        assert 'nolib' not in release_json_result.download_url
+    releaseless_result = results[releaseless]
     assert (
-        results[legacy_latest].options.strategy == Strategy.latest
-        and 'nolib' not in results[legacy_latest].download_url
-    )
-    assert (
-        results[legacy_older_version].options.strategy == Strategy.version
-        and results[legacy_older_version].version == '2.1.0'
-    )
-    assert type(results[legacy_assetless]) is R.PkgFileUnavailable
-    assert ('classic' in results[legacy_retail_and_classic].download_url) is (
-        iw_manager.config.game_flavour is Flavour.vanilla_classic
-    )
-    assert (
-        type(results[releaseless]) is R.PkgFileUnavailable
-        and results[releaseless].message == 'release not found'
+        type(releaseless_result) is R.PkgFileUnavailable
+        and releaseless_result.message == 'release not found'
     )
     assert type(results[nonexistent]) is R.PkgNonexistent
 
 
 @pytest.mark.asyncio
 async def test_github_changelog_is_data_url(iw_manager: Manager):
-    adibuttonauras = Defn('github', 'AdiAddons/AdiButtonAuras')
-    results = await iw_manager.resolve([adibuttonauras])
-    assert results[adibuttonauras].changelog_url.startswith('data:,')
+    defn = Defn('github', 'p3lim-wow/Molinari')
+    results = await iw_manager.resolve([defn])
+    assert results[defn].changelog_url.startswith('data:,')
 
 
 @pytest.mark.parametrize('resolver', Manager.RESOLVERS)
