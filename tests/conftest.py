@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from functools import lru_cache
 from io import BytesIO
 import json
@@ -10,7 +11,7 @@ from typing import Any
 from zipfile import ZipFile
 
 import aiohttp
-import aresponses
+from aresponses import ResponsesMockServer
 import pytest
 
 from instawow import __version__
@@ -23,15 +24,15 @@ inf = float('inf')
 FIXTURES = Path(__file__).parent / 'fixtures'
 
 
-def pytest_addoption(parser):
+def pytest_addoption(parser: pytest.Parser):
     parser.addoption('--iw-no-mock', action='store_true')
 
 
-def should_mock(fn):
+def should_mock(fn: Callable[..., object]):
     import inspect
     import warnings
 
-    def wrapper(request):
+    def wrapper(request: pytest.FixtureRequest):
         if request.config.getoption('--iw-no-mock'):
             warnings.warn('not mocking')
             return None
@@ -80,7 +81,7 @@ def iw_global_config_values(tmp_path: Path, iw_temp_dir: Path):
 
 
 @pytest.fixture(params=Flavour)
-def iw_config_values(request, tmp_path: Path):
+def iw_config_values(request: Any, tmp_path: Path):
     addons = tmp_path / 'wow' / 'interface' / 'addons'
     addons.mkdir(parents=True)
     return {'profile': '__default__', 'addon_dir': addons, 'game_flavour': request.param}
@@ -108,7 +109,7 @@ def iw_manager(iw_config: Config, iw_web_client: aiohttp.ClientSession):
 
 @pytest.fixture(autouse=True)
 @should_mock
-def mock_aiohttp_requests(aresponses: aresponses.ResponsesMockServer):
+def mock_aiohttp_requests(aresponses: ResponsesMockServer):
     aresponses.add(
         'pypi.org',
         '/pypi/instawow/json',

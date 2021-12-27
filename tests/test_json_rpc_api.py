@@ -23,7 +23,10 @@ dumps = partial(json.dumps, default=str)
 
 
 @pytest.fixture
-async def ws_client(monkeypatch: pytest.MonkeyPatch, iw_global_config_values: dict[str, Any]):
+async def ws_client(
+    monkeypatch: pytest.MonkeyPatch,
+    iw_global_config_values: dict[str, Any],
+):
     monkeypatch.setenv('INSTAWOW_CONFIG_DIR', str(iw_global_config_values['config_dir']))
     app = await json_rpc_server.create_app()
     server = TestServer(app)
@@ -64,7 +67,7 @@ async def test_disparate_origin_api_request_rejected(
 
 @pytest.mark.asyncio
 async def test_write_config(
-    request,
+    request: pytest.FixtureRequest,
     iw_global_config_values: dict[str, Any],
     iw_config_values: dict[str, Any],
     ws: ClientWebSocketResponse,
@@ -86,7 +89,9 @@ async def test_write_config(
 
 @pytest.mark.asyncio
 async def test_write_config_with_invalid_params(
-    request, iw_config_values: dict[str, Any], ws: ClientWebSocketResponse
+    request: pytest.FixtureRequest,
+    iw_config_values: dict[str, Any],
+    ws: ClientWebSocketResponse,
 ):
     rpc_request = {
         'jsonrpc': '2.0',
@@ -115,7 +120,10 @@ async def test_write_config_with_invalid_params(
 
 
 @pytest.mark.asyncio
-async def test_install_with_invalid_params(request, ws: ClientWebSocketResponse):
+async def test_install_with_invalid_params(
+    request: pytest.FixtureRequest,
+    ws: ClientWebSocketResponse,
+):
     rpc_request = {
         'jsonrpc': '2.0',
         'method': 'install',
@@ -129,7 +137,10 @@ async def test_install_with_invalid_params(request, ws: ClientWebSocketResponse)
 
 @pytest.mark.xfail
 @pytest.mark.asyncio
-async def test_install_with_uninitialised_profile(request, ws: ClientWebSocketResponse):
+async def test_install_with_uninitialised_profile(
+    request: pytest.FixtureRequest,
+    ws: ClientWebSocketResponse,
+):
     rpc_request = {
         'jsonrpc': '2.0',
         'method': 'install',

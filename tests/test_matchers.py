@@ -26,12 +26,6 @@ def write_addons(iw_manager: Manager, *addons: str):
 
 
 @pytest.fixture
-def invalid_addons(iw_manager: Manager):
-    (iw_manager.config.addon_dir / 'foo').mkdir()
-    (iw_manager.config.addon_dir / 'bar').touch()
-
-
-@pytest.fixture
 def molinari(iw_manager: Manager):
     molinari_folder = iw_manager.config.addon_dir / 'Molinari'
     molinari_folder.mkdir()
@@ -55,7 +49,9 @@ def test_reconcile_addon_folder_can_extract_defns_from_toc(molinari: Path):
 
 
 @pytest.mark.asyncio
-async def test_reconcile_invalid_addons_discarded(iw_manager: Manager, invalid_addons: None):
+async def test_reconcile_invalid_addons_discarded(iw_manager: Manager):
+    iw_manager.config.addon_dir.joinpath('foo').mkdir()
+    iw_manager.config.addon_dir.joinpath('bar').touch()
     folders = get_unreconciled_folder_set(iw_manager)
     assert folders == frozenset()
     assert await match_toc_source_ids(iw_manager, folders) == []

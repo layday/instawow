@@ -4,6 +4,7 @@ import datetime
 from pathlib import Path
 
 from aiohttp import ClientError
+from aresponses import ResponsesMockServer
 import pytest
 
 from instawow import results as R
@@ -271,7 +272,7 @@ async def test_get_changelog_from_web_url(iw_manager: Manager):
 @pytest.mark.iw_no_mock
 @pytest.mark.asyncio
 async def test_is_outdated_works_in_variety_of_scenarios(
-    monkeypatch: pytest.MonkeyPatch, aresponses, iw_temp_dir: Path
+    monkeypatch: pytest.MonkeyPatch, aresponses: ResponsesMockServer, iw_temp_dir: Path
 ):
     pypi_version = iw_temp_dir.joinpath('.pypi_version')
     if pypi_version.exists():
