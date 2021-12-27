@@ -542,7 +542,7 @@ def reconcile(manager: _manager.Manager, auto: bool, list_unreconciled: bool) ->
         uniq_defns = uniq(d for _, b in groups for d in b)
         results = run_with_progress(manager.resolve(uniq_defns))
         for addons, defns in groups:
-            shortlist: list[models.Pkg] = list(filter(models.is_pkg, (results[d] for d in defns)))
+            shortlist = [r for d in defns for r in (results[d],) if isinstance(r, models.Pkg)]
             if shortlist:
                 selection = Defn.from_pkg(shortlist[0]) if auto else prompt_one(addons, shortlist)
                 selection and (yield selection)
@@ -634,7 +634,7 @@ def search(
     pkgs = (
         (d.with_(alias=r.slug), r)
         for d, r in run_with_progress(manager.resolve(defns)).items()
-        if models.is_pkg(r)
+        if isinstance(r, models.Pkg)
     )
     choices = [PkgChoice(f'{p.name}  ({d.to_urn()}=={p.version})', d, pkg=p) for d, p in pkgs]
     if choices:

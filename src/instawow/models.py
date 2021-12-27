@@ -7,7 +7,6 @@ from typing import Any, Mapping
 from pydantic import BaseModel
 import sqlalchemy as sa
 import sqlalchemy.future as sa_future
-from typing_extensions import TypeAlias, TypeGuard
 
 from . import db
 from .common import Strategy
@@ -50,33 +49,26 @@ class Pkg(BaseModel):
     def from_row_mapping(
         cls, connection: sa_future.Connection, row_mapping: Mapping[str, Any]
     ) -> Pkg:
+        source_and_id = {'pkg_source': row_mapping['source'], 'pkg_id': row_mapping['id']}
         return cls.parse_obj(
             {
                 **row_mapping,
-                'folders': connection.execute(
-                    sa.select(db.pkg_folder.c.name).filter_by(
-                        pkg_source=row_mapping['source'], pkg_id=row_mapping['id']
-                    )
-                )
-                .mappings()
-                .all(),
                 'options': connection.execute(
-                    sa.select(db.pkg_options.c.strategy).filter_by(
-                        pkg_source=row_mapping['source'], pkg_id=row_mapping['id']
-                    )
+                    sa.select(db.pkg_options.c.strategy).filter_by(**source_and_id)
                 )
                 .mappings()
                 .one(),
-                'deps': connection.execute(
-                    sa.select(db.pkg_dep.c.id).filter_by(
-                        pkg_source=row_mapping['source'], pkg_id=row_mapping['id']
-                    )
+                'folders': connection.execute(
+                    sa.select(db.pkg_folder.c.name).filter_by(**source_and_id)
                 )
+                .mappings()
+                .all(),
+                'deps': connection.execute(sa.select(db.pkg_dep.c.id).filter_by(**source_and_id))
                 .mappings()
                 .all(),
                 'logged_versions': connection.execute(
                     sa.select(db.pkg_version_log)
-                    .filter_by(pkg_source=row_mapping['source'], pkg_id=row_mapping['id'])
+                    .filter_by(**source_and_id)
                     .order_by(db.pkg_version_log.c.install_time.desc())
                     .limit(10)
                 )
@@ -86,61 +78,29 @@ class Pkg(BaseModel):
         )
 
     def insert(self, connection: sa_future.Connection) -> None:
-        pkg_dict = self.dict()
+        values = self.dict()
+        source_and_id = {'pkg_source': values['source'], 'pkg_id': values['id']}
+        connection.execute(sa.insert(db.pkg), [values])
         connection.execute(
-            sa.insert(db.pkg),
-            [pkg_dict],
+            sa.insert(db.pkg_folder), [{**f, **source_and_id} for f in values['folders']]
         )
-        connection.execute(
-            sa.insert(db.pkg_folder),
-            [
-                {**f, 'pkg_source': pkg_dict['source'], 'pkg_id': pkg_dict['id']}
-                for f in pkg_dict['folders']
-            ],
-        )
-        connection.execute(
-            sa.insert(db.pkg_options),
-            [
-                {
-                    **pkg_dict['options'],
-                    'pkg_source': pkg_dict['source'],
-                    'pkg_id': pkg_dict['id'],
-                }
-            ],
-        )
-        if pkg_dict['deps']:
+        connection.execute(sa.insert(db.pkg_options), [{**values['options'], **source_and_id}])
+        if values['deps']:
             connection.execute(
-                sa.insert(db.pkg_dep),
-                [
-                    {**f, 'pkg_source': pkg_dict['source'], 'pkg_id': pkg_dict['id']}
-                    for f in pkg_dict['deps']
-                ],
+                sa.insert(db.pkg_dep), [{**d, **source_and_id} for d in values['deps']]
             )
         connection.execute(
             sa.insert(db.pkg_version_log).prefix_with('OR IGNORE'),
-            [
-                {
-                    'version': pkg_dict['version'],
-                    'pkg_source': pkg_dict['source'],
-                    'pkg_id': pkg_dict['id'],
-                }
-            ],
+            [{'version': values['version'], **source_and_id}],
         )
         connection.commit()
 
     def delete(self, connection: sa_future.Connection) -> None:
-        connection.execute(
-            sa.delete(db.pkg_dep).filter_by(pkg_source=self.source, pkg_id=self.id),
-        )
-        connection.execute(
-            sa.delete(db.pkg_folder).filter_by(pkg_source=self.source, pkg_id=self.id),
-        )
-        connection.execute(
-            sa.delete(db.pkg_options).filter_by(pkg_source=self.source, pkg_id=self.id),
-        )
-        connection.execute(
-            sa.delete(db.pkg).filter_by(source=self.source, id=self.id),
-        )
+        source_and_id = {'pkg_source': self.source, 'pkg_id': self.id}
+        connection.execute(sa.delete(db.pkg_dep).filter_by(**source_and_id))
+        connection.execute(sa.delete(db.pkg_folder).filter_by(**source_and_id))
+        connection.execute(sa.delete(db.pkg_options).filter_by(**source_and_id))
+        connection.execute(sa.delete(db.pkg).filter_by(source=self.source, id=self.id))
         connection.commit()
 
     # Make the model hashable again
@@ -150,10 +110,3 @@ class Pkg(BaseModel):
 
 class PkgList(BaseModel):
     __root__: typing.List[Pkg]
-
-
-def is_pkg(value: object) -> TypeGuard[Pkg]:
-    return isinstance(value, Pkg)
-
-
-PkgLike: TypeAlias = Any

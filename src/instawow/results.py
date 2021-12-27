@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+from typing import Any
 
 from typing_extensions import Literal
 
@@ -54,7 +55,7 @@ class PkgAlreadyInstalled(ManagerError):
 
 
 class PkgConflictsWithInstalled(ManagerError):
-    def __init__(self, conflicting_pkgs: Sequence[models.PkgLike]) -> None:
+    def __init__(self, conflicting_pkgs: Sequence[Any]) -> None:
         super().__init__()
         self.conflicting_pkgs = conflicting_pkgs
 

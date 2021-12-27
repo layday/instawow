@@ -10,7 +10,7 @@ import importlib.resources
 import os
 from pathlib import Path
 import typing
-from typing import Any, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar
 
 import aiohttp
 import aiohttp.web
@@ -24,7 +24,7 @@ from loguru import logger
 from pydantic import BaseModel, ValidationError
 import sqlalchemy as sa
 import toga
-from typing_extensions import Concatenate, Literal, ParamSpec, TypedDict
+from typing_extensions import Concatenate, Literal, ParamSpec, TypeAlias, TypedDict
 from yarl import URL
 
 from instawow import __version__, db, matchers, models
@@ -41,6 +41,7 @@ from . import frontend
 
 _T = TypeVar('_T')
 _P = ParamSpec('_P')
+ManagerBoundCoroFn: TypeAlias = 'Callable[Concatenate[Manager, _P], Awaitable[_T]]'
 
 
 LOCALHOST = '127.0.0.1'
@@ -60,8 +61,14 @@ def _reraise_validation_error(
         yield
     except ValidationError as error:
         errors = error.errors()
-        logger.info(f'received invalid request: {(values, errors)}')
+        logger.info(f'invalid request: {(values, errors)}')
         raise error_class(data=errors) from error
+
+
+@t
+def _read_config(profile: str) -> Config:
+    with _reraise_validation_error(_ConfigError):
+        return Config.read(GlobalConfig.read(), profile)
 
 
 methods: list[tuple[str, type[BaseParams]]] = []
@@ -110,7 +117,7 @@ class WriteConfigParams(_ProfileParamMixin, BaseParams):
     async def respond(
         self, managers: _ManagerWorkQueue, app_window: toga.MainWindow | None
     ) -> Config:
-        async with managers.locks[f"load profile '{self.profile}'"]:
+        async with managers.locks['modify profile', self.profile]:
             with _reraise_validation_error(_ConfigError):
                 config = Config(
                     global_config=await t(GlobalConfig.read)(),
@@ -136,10 +143,10 @@ class WriteConfigParams(_ProfileParamMixin, BaseParams):
 
 @_register_method('config/read')
 class ReadConfigParams(_ProfileParamMixin, BaseParams):
-    @t
-    def respond(self, managers: _ManagerWorkQueue, app_window: toga.MainWindow | None) -> Config:
-        with _reraise_validation_error(_ConfigError):
-            return Config.read(GlobalConfig.read(), self.profile)
+    async def respond(
+        self, managers: _ManagerWorkQueue, app_window: toga.MainWindow | None
+    ) -> Config:
+        return await _read_config(self.profile)
 
 
 @_register_method('config/delete')
@@ -254,7 +261,7 @@ class ResolveParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
         results = await managers.run(self.profile, self._resolve)
         return [
             {'status': 'success', 'addon': r}
-            if models.is_pkg(r)
+            if isinstance(r, models.Pkg)
             else {'status': r.status, 'message': r.message}
             for r in results.values()
         ]
@@ -366,7 +373,7 @@ class ReconcileParams(_ProfileParamMixin, BaseParams):
         matches = [
             (a, m)
             for a, s in match_groups
-            for m in ([r for d in s for r in (resolve_results[d],) if models.is_pkg(r)],)
+            for m in ([r for d in s for r in (resolve_results[d],) if isinstance(r, models.Pkg)],)
             if m
         ]
         return [
@@ -505,7 +512,7 @@ class _ManagerWorkQueue:
         self._loop = asyncio.get_running_loop()
 
         self._queue: asyncio.Queue[
-            tuple[asyncio.Future[Any], str, Callable[..., Awaitable[Any]]]
+            tuple[asyncio.Future[object], str, ManagerBoundCoroFn[..., object]]
         ] = asyncio.Queue()
         self._managers: dict[str, tuple[Manager, Callable[[], None]]] = {}
         self._progress_reporters: set[tuple[Manager, models.Pkg, Callable[[], float]]] = set()
@@ -524,17 +531,17 @@ class _ManagerWorkQueue:
             close_db_conn()
 
     async def _schedule_item(
-        self, future: asyncio.Future[Any], profile: str, coro_fn: Callable[..., Awaitable[Any]]
+        self,
+        future: asyncio.Future[object],
+        profile: str,
+        coro_fn: ManagerBoundCoroFn[_P, object],
     ):
         try:
-            async with self.locks[f"load profile '{profile}'"]:
+            async with self.locks['modify profile', profile]:
                 try:
                     manager, _ = self._managers[profile]
                 except KeyError:
-                    with _reraise_validation_error(_ConfigError):
-                        global_config = await t(GlobalConfig.read)()
-                        config = await t(Config.read)(global_config, profile)
-
+                    config = await _read_config(profile)
                     self._managers[profile] = Manager.from_config(config)
                     manager, _ = self._managers[profile]
 
@@ -551,9 +558,7 @@ class _ManagerWorkQueue:
             asyncio.create_task(self._schedule_item(*item))
             self._queue.task_done()
 
-    async def run(
-        self, profile: str, coro_fn: Callable[Concatenate[Manager, _P], Awaitable[_T]]
-    ) -> _T:
+    async def run(self, profile: str, coro_fn: ManagerBoundCoroFn[..., _T]) -> _T:
         future = self._loop.create_future()
         self._queue.put_nowait((future, profile, coro_fn))
         return await asyncio.wait_for(future, None)
@@ -619,6 +624,7 @@ async def create_app(app_window: toga.MainWindow | None = None):
             origin = request.headers.get(aiohttp.hdrs.ORIGIN)
             if origin is None:
                 raise aiohttp.web.HTTPUnauthorized
+
             origin_url = URL(origin)
             if (
                 origin_url.scheme != request.url.scheme

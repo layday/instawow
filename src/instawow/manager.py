@@ -6,7 +6,7 @@ from contextlib import AbstractAsyncContextManager, asynccontextmanager, context
 import contextvars as cv
 from datetime import datetime
 from functools import lru_cache, partial, wraps
-from itertools import chain, compress, filterfalse, repeat, starmap, takewhile
+from itertools import chain, filterfalse, repeat, starmap, takewhile
 import json
 from pathlib import Path, PurePath
 from shutil import copy
@@ -275,7 +275,7 @@ def _with_lock(
 
 _web_client: cv.ContextVar[_deferred_types.aiohttp.ClientSession] = cv.ContextVar('_web_client')
 
-LocksType: TypeAlias = 'defaultdict[str | tuple[int, str], AbstractAsyncContextManager[None]]'
+LocksType: TypeAlias = 'defaultdict[object, AbstractAsyncContextManager[None]]'
 
 _dummy_locks: LocksType = defaultdict(_DummyLock)
 _locks: cv.ContextVar[LocksType] = cv.ContextVar('_locks', default=_dummy_locks)
@@ -374,7 +374,7 @@ class Manager:
     def check_pkg_exists(self, defn: Defn) -> bool:
         return (
             self.database.execute(
-                sa.select(sa.func.count())
+                sa.select(sa.text('1'))
                 .select_from(db.pkg)
                 .filter(
                     db.pkg.c.source == defn.source,
@@ -383,7 +383,7 @@ class Manager:
                     | (db.pkg.c.slug == defn.alias),
                 )
             ).scalar()
-            != 0
+            == 1
         )
 
     def get_pkg(self, defn: Defn, partial_match: bool = False) -> models.Pkg | None:
@@ -526,7 +526,7 @@ class Manager:
         complexity for something that I would never expect to
         encounter in the wild.
         """
-        pkgs = [r for r in results if models.is_pkg(r)]
+        pkgs = [r for r in results if isinstance(r, models.Pkg)]
         dep_defns = uniq(
             filterfalse(
                 {(p.source, p.id) for p in pkgs}.__contains__,
@@ -538,11 +538,13 @@ class Manager:
 
         deps = await self.resolve(list(starmap(Defn, dep_defns)))
         pretty_deps = {
-            d.with_(alias=r.slug) if models.is_pkg(r) else d: r for d, r in deps.items()
+            d.with_(alias=r.slug) if isinstance(r, models.Pkg) else d: r for d, r in deps.items()
         }
         return pretty_deps
 
-    async def resolve(self, defns: Sequence[Defn], with_deps: bool = False) -> dict[Defn, Any]:
+    async def resolve(
+        self, defns: Sequence[Defn], with_deps: bool = False
+    ) -> dict[Defn, models.Pkg | R.ManagerError | R.InternalError]:
         "Resolve definitions into packages."
         if not defns:
             return {}
@@ -552,7 +554,7 @@ class Manager:
             (self.resolvers[s].resolve(b) for s, b in defns_by_source.items()),
             capture_manager_exc_async,
         )
-        results_by_defn = chain_dict(
+        results_by_defn: dict[Defn, Any] = chain_dict(
             defns,
             None,
             *(
@@ -673,27 +675,27 @@ class Manager:
         # doing it this way isn't particularly efficient but avoids having to
         # deal with local state in `resolve()`
         resolve_results = await self.resolve(
-            list(compress(defns, (not self.check_pkg_exists(d) for d in defns))),
-            with_deps=True,
+            [d for d in defns if not self.check_pkg_exists(d)], with_deps=True
         )
-        resolve_results = dict(
-            compress(
-                resolve_results.items(), (not self.check_pkg_exists(d) for d in resolve_results)
-            )
-        )
-        installables = {d: r for d, r in resolve_results.items() if models.is_pkg(r)}
+        resolve_results = {
+            d: r for d, r in resolve_results.items() if not self.check_pkg_exists(d)
+        }
+        installables = {d: r for d, r in resolve_results.items() if isinstance(r, models.Pkg)}
         archives = await gather(
             (self._download_pkg_archive(r) for r in installables.values()),
             capture_manager_exc_async,
         )
-        results = chain_dict(
+        results: dict[Defn, Any] = chain_dict(
             defns,
             R.PkgAlreadyInstalled(),
             resolve_results.items(),
             [
-                (d, await capture_manager_exc_async(t(self.install_pkg)(p, a, replace)))
-                if isinstance(a, PurePath)
-                else (d, a)
+                (
+                    d,
+                    await capture_manager_exc_async(t(self.install_pkg)(p, a, replace))
+                    if isinstance(a, PurePath)
+                    else a,
+                )
                 for (d, p), a in zip(installables.items(), archives)
             ],
         )
@@ -722,7 +724,7 @@ class Manager:
         resolve_results = {
             resolve_defns[d]: r for d, r in (await self.resolve(list(resolve_defns))).items()
         }
-        installables = {d: r for d, r in resolve_results.items() if models.is_pkg(r)}
+        installables = {d: r for d, r in resolve_results.items() if isinstance(r, models.Pkg)}
         updatables = {
             d: (o, n)
             for d, n in installables.items()
@@ -733,7 +735,7 @@ class Manager:
             (self._download_pkg_archive(n) for _, n in updatables.values()),
             capture_manager_exc_async,
         )
-        results = chain_dict(
+        results: dict[Defn, Any] = chain_dict(
             defns,
             R.PkgNotInstalled(),
             resolve_results.items(),
@@ -742,9 +744,12 @@ class Manager:
                 for d, p in installables.items()
             ),
             [
-                (d, await capture_manager_exc_async(t(self.update_pkg)(o, n, a)))
-                if isinstance(a, PurePath)
-                else (d, a)
+                (
+                    d,
+                    await capture_manager_exc_async(t(self.update_pkg)(o, n, a))
+                    if isinstance(a, PurePath)
+                    else a,
+                )
                 for (d, (o, n)), a in zip(updatables.items(), archives)
             ],
         )
