@@ -1,6 +1,11 @@
 from __future__ import annotations
 
+import io
+import os.path
+import posixpath
 from textwrap import dedent
+from urllib.request import urlopen
+from zipfile import ZipFile
 
 import nox
 
@@ -107,7 +112,30 @@ def bundle_frontend(session: nox.Session):
     "Bundle the frontend."
     session.run('git', 'clean', '-fX', 'gui-webview/src/instawow_gui/frontend', external=True)
     session.chdir('gui-webview/frontend')
+    session.run('npm', 'install', external=True)
     session.run('npx', 'rollup', '-c', external=True)
+
+
+@nox.session(python=False)
+def install_webview2_libs(session: nox.Session):
+    version = '1.0.1054.31'
+    with urlopen(
+        f'https://www.nuget.org/api/v2/package/Microsoft.Web.WebView2/{version}'
+    ) as response:
+        with ZipFile(io.BytesIO(response.read())) as nupkg:
+            for file_path in [
+                'LICENSE.txt',
+                'lib/net45/Microsoft.Web.WebView2.Core.dll',
+                'lib/net45/Microsoft.Web.WebView2.WinForms.dll',
+                'runtimes/win-x64/native/WebView2Loader.dll',
+            ]:
+                with nupkg.open(file_path) as file_in, open(
+                    os.path.join(
+                        'gui-webview/src/instawow_gui/webview2', posixpath.basename(file_path)
+                    ),
+                    'wb',
+                ) as file_out:
+                    file_out.write(file_in.read())
 
 
 @nox.session

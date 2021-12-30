@@ -24,6 +24,7 @@ packages = [
 include = [
   { path = "COPYING", format = "sdist" },
   { path = "gui-webview/src/instawow_gui/frontend/*" },
+  { path = "gui-webview/src/instawow_gui/webview2/*" },
   { path = "tests", format = "sdist" },
 ]
 scripts.instawow = "instawow.cli:main"
@@ -119,6 +120,7 @@ include = [
 ignore = [
   "src/instawow/migrations",
   "gui-webview/src/instawow_gui/cef_adapter.py",
+  "gui-webview/src/instawow_gui/webview2_adapter.py",
 ]
 strict = ["src"]
 

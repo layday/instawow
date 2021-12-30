@@ -98,9 +98,11 @@ jobs:
           python-version: ${{ matrix.build-env.python-version }}
       - name: Bundle the frontend
         run: |
-          npm install
-          npx rollup -c
-        working-directory: gui-webview/frontend
+          pipx run nox -s bundle_frontend
+      - name: Install WebView2 libraries
+        run: |
+          pipx run nox -s install_webview2_libs
+        if: matrix.build-env.os == 'windows-latest'
       - name: Patch in the version number
         run: sed -i.bak
           's/version = "0.0.0"/version = "${{ needs.get-version.outputs.instawow-version }}"/'

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from functools import partial
 import json
-import platform
+import os
 
 from loguru import logger
 import toga
@@ -23,13 +23,16 @@ class InstawowApp(toga.App):
 
     def startup(self) -> None:
         self.main_window = toga.MainWindow(title=self.formal_name, size=(800, 600))
-        if platform.system() == 'Windows':
-            from . import cef_adapter
+        if os.name == 'nt':
+            import ctypes
 
-            cef_adapter.load()
+            from . import webview2_adapter
+
+            # Enable high DPI support.
+            ctypes.windll.user32.SetProcessDPIAware()
 
             self.main_window.content = web_view = toga.WebView(
-                style=toga.style.Pack(flex=1), factory=cef_adapter.Factory
+                style=toga.style.Pack(flex=1), factory=webview2_adapter.Factory
             )
 
         else:
