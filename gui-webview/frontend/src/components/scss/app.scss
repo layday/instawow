@@ -199,13 +199,13 @@ select {
       width: auto;
     }
 
-    :first-child {
+    > :first-child {
       flex-grow: 1;
       border-top-left-radius: vars.$modal-edge-border-radius;
       border-bottom-left-radius: vars.$modal-edge-border-radius;
     }
 
-    :last-child {
+    > :last-child {
       border-top-right-radius: vars.$modal-edge-border-radius;
       border-bottom-right-radius: vars.$modal-edge-border-radius;
     }

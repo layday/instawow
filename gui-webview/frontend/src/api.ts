@@ -39,16 +39,17 @@ export type Profile = string;
 
 export type Profiles = Profile[];
 
-export type Config = {
-  global_config: {
-    config_dir: string;
-    auto_update_check: boolean;
-    temp_dir: string;
-    access_tokens: {
-      github: string | null;
-      wago: string | null;
-    };
+export type GlobalConfig = {
+  config_dir: string;
+  auto_update_check: boolean;
+  temp_dir: string;
+  access_tokens: {
+    github: string | null;
+    wago: string | null;
   };
+};
+
+export type Config = {
   addon_dir: string;
   game_flavour: Flavour;
   profile: string;

@@ -1,7 +1,6 @@
 <script lang="ts">
   import { faFolderOpen, faTrashAlt } from "@fortawesome/free-solid-svg-icons";
   import { JSONRPCError } from "@open-rpc/client-js";
-  import lodash from "lodash";
   import { fade } from "svelte/transition";
   import type { Config, PydanticValidationError } from "../api";
   import { Flavour } from "../api";
@@ -16,7 +15,7 @@
   let addonDir: string;
   let gameFlavour: Flavour;
 
-  let errors: { [key: string]: string } = {};
+  let errors = new Map<string, string>();
 
   if (createNew) {
     gameFlavour = Flavour.retail;
@@ -37,11 +36,11 @@
 
   const saveConfig = async () => {
     if ((createNew && $profiles.has(profile)) || (!profile && $profiles.has("__default__"))) {
-      if (!profile) {
-        errors = { profile: "a default profile already exists" };
-      } else {
-        errors = { profile: "a profile with that name already exists" };
-      }
+      errors.set(
+        "profile",
+        profile ? "a profile with that name already exists" : "a default profile already exists"
+      );
+      errors = errors;
       return;
     }
 
@@ -50,8 +49,8 @@
       result = await $api.writeProfile(profile, addonDir, gameFlavour, createNew);
     } catch (error) {
       if (error instanceof JSONRPCError) {
-        errors = lodash.fromPairs(
-          (error.data as PydanticValidationError[]).map(({ loc, msg }) => [loc, msg])
+        errors = new Map(
+          (error.data as PydanticValidationError[]).map(({ loc: [loc], msg }) => [loc, msg])
         );
         return;
       } else {
@@ -93,26 +92,26 @@ will be lost.`
 
 <dialog open class="modal" transition:fade={{ duration: 200 }}>
   <form class="content" on:submit|preventDefault={() => saveConfig()}>
-    {#if errors.profile}
-      <div class="row error-text">{errors.profile}</div>
+    {#if errors.has("profile")}
+      <div class="row error-text">{errors.get("profile")}</div>
     {/if}
     {#if createNew}
       <input
         class="row"
-        class:error={errors.profile}
+        class:error={errors.has("profile")}
         type="text"
         label="profile"
         placeholder="profile"
         bind:value={profile}
       />
     {/if}
-    {#if errors.addon_dir}
-      <div class="row error-text">{errors.addon_dir}</div>
+    {#if errors.has("addon_dir")}
+      <div class="row error-text">{errors.get("addon_dir")}</div>
     {/if}
     <div class="row input-array">
       <input
         aria-label="add-on folder"
-        class:error={errors.addon_dir}
+        class:error={errors.has("addon_dir")}
         type="text"
         disabled
         placeholder="add-on folder"
@@ -127,13 +126,13 @@ will be lost.`
       </button>
     </div>
     {#if !createNew}
-      {#if errors.game_flavour}
-        <div class="row error-text">{errors.game_flavour}</div>
+      {#if errors.has("game_flavour")}
+        <div class="row error-text">{errors.get("game_flavour")}</div>
       {/if}
       <select
         aria-label="game flavour"
         class="row"
-        class:error={errors.game_flavour}
+        class:error={errors.has("game_flavour")}
         bind:value={gameFlavour}
       >
         {#each Object.values(Flavour) as flavour}

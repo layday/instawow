@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { faCog, faFilter, faGripLines, faLink } from "@fortawesome/free-solid-svg-icons";
+  import { faFilter, faGripLines, faSlidersH } from "@fortawesome/free-solid-svg-icons";
   import { createEventDispatcher } from "svelte";
   import { ReconciliationStage } from "../api";
   import { View } from "../constants";
@@ -9,7 +9,6 @@
   export let activeView: View,
     searchTerms: string,
     searchFilterInstalled: boolean,
-    searchFromAlias: boolean,
     searchIsDirty: boolean,
     isRefreshing: boolean,
     isModifying: boolean,
@@ -54,32 +53,33 @@
         <input
           class="control"
           type="radio"
-          id="__radio-googoo"
+          id="__radio-installed"
           value={View.Installed}
           bind:group={activeView}
         />
-        <label class="control" for="__radio-googoo">installed</label>
+        <label class="control" for="__radio-installed">installed</label>
       </li>
       <li class="segmented-control">
         <input
           class="control"
           type="radio"
-          id="__radio-gaga"
+          id="__radio-unreconciled"
           value={View.Reconcile}
           bind:group={activeView}
         />
-        <label class="control" for="__radio-gaga">unreconciled</label>
+        <label class="control" for="__radio-unreconciled">unreconciled</label>
       </li>
-      <li>
-        <button
-          class="control"
-          aria-label="condense/expand add-on cells"
-          disabled={activeView === View.Reconcile}
-          on:click={() => dispatch("requestCycleListFormat")}
-        >
-          <Icon icon={faGripLines} />
-        </button>
-      </li>
+      {#if activeView !== View.Reconcile}
+        <li>
+          <button
+            class="control"
+            aria-label="condense/expand add-on cells"
+            on:click={() => dispatch("requestCycleListFormat")}
+          >
+            <Icon icon={faGripLines} />
+          </button>
+        </li>
+      {/if}
     </menu>
   </div>
   <div class="search">
@@ -101,15 +101,15 @@
         <li>
           <input
             class="control"
-            id="__search-filter-installed"
+            id="__search-installed"
             type="checkbox"
             bind:checked={searchFilterInstalled}
           />
           <label
             class="control"
-            for="__search-filter-installed"
-            aria-label="filter installed add-ons"
-            title="filter installed add-ons"
+            for="__search-installed"
+            aria-label="search installed add-ons"
+            title="search installed add-ons"
           >
             <Icon icon={faFilter} />
           </label>
@@ -157,30 +157,13 @@
         </li>
       {:else if activeView === View.Search}
         <li>
-          <input
-            class="control"
-            id="__interpret-as-uri"
-            type="checkbox"
-            bind:checked={searchFromAlias}
-            on:change={() => dispatch("requestSearch")}
-          />
-          <label
-            class="control"
-            for="__interpret-as-uri"
-            aria-label="interpret query as add-on URI"
-            title="interpret query as add-on URI"
-          >
-            <Icon icon={faLink} />
-          </label>
-        </li>
-        <li>
           <button
             class="control"
             class:dirty={searchIsDirty}
             aria-label="show search options"
             on:click={() => dispatch("requestShowSearchOptionsModal")}
           >
-            <Icon icon={faCog} />
+            <Icon icon={faSlidersH} />
           </button>
         </li>
       {:else if activeView === View.Reconcile}

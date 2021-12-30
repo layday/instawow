@@ -51,6 +51,10 @@
     display: flex;
     font-size: 0.95em;
 
+    > :not(:first-child) {
+      margin-left: 4px;
+    }
+
     button,
     select {
       line-height: $line-height;
@@ -77,17 +81,17 @@
     button {
       display: flex;
       place-items: center;
-      margin-left: 4px;
     }
 
     select {
       padding-left: 0.65em;
+      padding-right: 1.25rem;
       box-shadow: inset 0 0 0 1px var(--inverse-color-alpha-10);
       background-image: var(--dropdown-arrow);
       background-size: 10px;
       background-repeat: no-repeat;
       background-position: top calc(50% + 1px) right 7px;
-      min-width: 200px;
+      min-width: 180px;
     }
 
     :first-child {

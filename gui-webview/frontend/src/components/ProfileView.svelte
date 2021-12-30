@@ -603,7 +603,6 @@
         bind:activeView
         bind:searchTerms
         bind:searchFilterInstalled
-        bind:searchFromAlias
         bind:reconcileStage
         {searchIsDirty}
         {installedOutdatedCount}
