@@ -19,7 +19,17 @@ winforms_lib = importlib.resources.path(
 clr.AddReference(os.fspath(core_lib))
 clr.AddReference(os.fspath(winforms_lib))
 
+from Microsoft.Web.WebView2.Core import CoreWebView2Environment, WebView2RuntimeNotFoundException
 from Microsoft.Web.WebView2.WinForms import WebView2
+
+
+def is_webview2_installed():
+    try:
+        CoreWebView2Environment.GetAvailableBrowserVersionString()
+    except WebView2RuntimeNotFoundException:
+        return False
+    else:
+        return True
 
 
 class WebView2Widget(Widget):
