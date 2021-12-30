@@ -80,7 +80,7 @@ class AddonFolder:
     def __lt__(self, other: object) -> bool:
         if isinstance(other, self.__class__):
             other = other.name
-        if not isinstance(other, str):
+        elif not isinstance(other, str):
             return NotImplemented
         return self.name < other
 
