@@ -603,11 +603,11 @@ async def create_app(app_window: toga.MainWindow | None = None):
             text=importlib.resources.read_text(frontend, filename),
         )
 
-    def _json_serialize(value: dict[str, Any]) -> str:
+    def json_serialize(value: dict[str, Any]):
         return BaseModel.construct(**value).json()
 
     rpc_server = WsJsonRpcServer(
-        json_serialize=_json_serialize,
+        json_serialize=json_serialize,
         middlewares=rpc_middlewares.DEFAULT_MIDDLEWARES,
     )
     rpc_server.add_methods([m.bind(n, managers, app_window) for n, m in methods])
