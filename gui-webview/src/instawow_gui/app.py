@@ -112,6 +112,7 @@ class InstawowApp(toga.App):
             web_view.url = str(server_url)
             await serve()
 
-        self._impl.loop.create_task(startup())
+        serve_task = self._impl.loop.create_task(startup())
+        self.on_exit = lambda _: serve_task.cancel()
 
         self.main_window.show()
