@@ -65,13 +65,27 @@ class Catalogue(BaseModel):
             s: max(e.download_count for e in i)
             for s, i in bucketise(base_entries, key=lambda e: e.source).items()
         }
+        same_as_from_github = {
+            (s.source, s.id): [
+                _SameAs(source=e.source, id=e.id),
+                *(i for i in e.same_as if i.source != s.source),
+            ]
+            for e in base_entries
+            if e.source == 'github' and e.same_as
+            for s in e.same_as
+        }
         entries = [
-            CatalogueEntry(
-                **e.__dict__,
-                normalised_name=normalise(e.name),
-                derived_download_score=0
-                if e.source == 'github'
-                else e.download_count / most_downloads_per_source[e.source],
+            CatalogueEntry.parse_obj(
+                {
+                    **e.__dict__,
+                    'same_as': e.same_as
+                    if e.source == 'github'
+                    else (same_as_from_github.get((e.source, e.id)) or e.same_as),
+                    'normalised_name': normalise(e.name),
+                    'derived_download_score': 0
+                    if e.source == 'github'
+                    else e.download_count / most_downloads_per_source[e.source],
+                }
             )
             for e in base_entries
         ]
