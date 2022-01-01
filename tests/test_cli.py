@@ -386,8 +386,7 @@ def test_rollback__single_version(
 ):
     assert run('install curse:molinari').exit_code == 0
     assert (
-        run(f'rollback curse:molinari').output
-        == '✗ curse:molinari\n  cannot find older versions\n'
+        run('rollback curse:molinari').output == '✗ curse:molinari\n  cannot find older versions\n'
     )
 
 
@@ -445,9 +444,9 @@ def test_rollback__rollback_multiple_versions(
 def test_rollback__cannot_use_version_with_undo(
     run: C[[str], Result],
 ):
-    result = run(f'rollback --version foo --undo curse:molinari')
+    result = run('rollback --version foo --undo curse:molinari')
     assert result.exit_code == 2
-    assert 'Cannot use "--version" and "--undo" together' in result.output
+    assert 'Cannot use "--version" with "--undo"' in result.output
 
 
 def test_reconcile__list_unreconciled(
