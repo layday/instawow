@@ -362,7 +362,7 @@ class ReconcileParams(_ProfileParamMixin, BaseParams):
     async def respond(
         self, managers: _ManagerWorkQueue, app_window: toga.MainWindow | None
     ) -> list[AddonMatch]:
-        leftovers = await managers.run(self.profile, t(matchers.get_unreconciled_folder_set))
+        leftovers = await managers.run(self.profile, t(matchers.get_unreconciled_folders))
         match_groups: matchers.FolderAndDefnPairs = await managers.run(
             self.profile, partial(getattr(matchers, f'match_{self.matcher}'), leftovers=leftovers)
         )

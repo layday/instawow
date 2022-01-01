@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from collections.abc import Iterable
 from contextlib import suppress
 from functools import total_ordering
 import re
@@ -97,7 +96,7 @@ class AddonFolder:
         return self.toc_reader['Version', 'X-Packaged-Version', 'X-Curse-Packaged-Version'] or ''
 
 
-def get_unreconciled_folders(manager: manager.Manager) -> Iterable[AddonFolder]:
+def _get_unreconciled_folders(manager: manager.Manager):
     pkg_folders = manager.database.execute(sa.select(pkg_folder.c.name)).scalars().all()
     unreconciled_folder_paths = (
         p
@@ -113,8 +112,8 @@ def get_unreconciled_folders(manager: manager.Manager) -> Iterable[AddonFolder]:
                 break
 
 
-def get_unreconciled_folder_set(manager: manager.Manager) -> frozenset[AddonFolder]:
-    return frozenset(get_unreconciled_folders(manager))
+def get_unreconciled_folders(manager: manager.Manager) -> frozenset[AddonFolder]:
+    return frozenset(_get_unreconciled_folders(manager))
 
 
 async def match_toc_source_ids(

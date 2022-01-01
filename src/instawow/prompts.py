@@ -57,7 +57,9 @@ qstyle = Style(
     ]
 )
 
-skip = Choice([('', 'skip')], ())
+
+SKIP = ()
+skip = Choice([('', 'skip')], SKIP)
 
 confirm = partial(_confirm, qmark='?', style=qstyle)
 path = partial(_path, qmark='>', style=qstyle)

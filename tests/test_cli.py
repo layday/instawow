@@ -504,6 +504,21 @@ def test_reconcile__reconciliation_complete(
     assert run('reconcile').output == 'No add-ons left to reconcile.\n'
 
 
+def test_reconcile__rereconcile(
+    feed_pt: C[[str], None],
+    install_molinari_and_run: C[[str], Result],
+):
+    feed_pt('\r\r')
+    assert install_molinari_and_run('reconcile --installed').output == dedent(
+        f'''\
+        ✓ curse:molinari
+          removed
+        ✓ github:p3lim-wow/molinari
+          installed 90105.81-Release
+        '''
+    )
+
+
 @pytest.mark.skip
 def test_search__no_results(
     run: C[[str], Result],

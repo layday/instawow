@@ -271,21 +271,24 @@ def mock_aiohttp_requests(aresponses: ResponsesMockServer):
     )
     aresponses.add(
         'api.github.com',
-        '/repos/p3lim-wow/Molinari',
+        re.compile(r'^/repos/p3lim-wow/Molinari$', re.IGNORECASE),
         'get',
         load_json_fixture('github-repo-molinari.json'),
         repeat=inf,
     )
     aresponses.add(
         'api.github.com',
-        '/repos/p3lim-wow/Molinari/releases/latest',
+        re.compile(r'^/repos/p3lim-wow/Molinari/releases/latest$', re.IGNORECASE),
         'get',
         load_json_fixture('github-release-molinari.json'),
         repeat=inf,
     )
     aresponses.add(
         'github.com',
-        '/p3lim-wow/Molinari/releases/download/90105.81-Release/release.json',
+        re.compile(
+            r'^/p3lim-wow/Molinari/releases/download/90105\.81-Release/release\.json$',
+            re.IGNORECASE,
+        ),
         'get',
         load_json_fixture('github-release-molinari-release-json.json'),
         repeat=inf,

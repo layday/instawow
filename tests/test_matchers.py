@@ -10,7 +10,7 @@ from instawow.manager import Manager
 from instawow.matchers import (
     AddonFolder,
     FolderAndDefnPairs,
-    get_unreconciled_folder_set,
+    get_unreconciled_folders,
     match_addon_names_with_folder_names,
     match_folder_name_subsets,
     match_toc_source_ids,
@@ -52,7 +52,7 @@ def test_reconcile_addon_folder_can_extract_defns_from_toc(molinari: Path):
 async def test_reconcile_invalid_addons_discarded(iw_manager: Manager):
     iw_manager.config.addon_dir.joinpath('foo').mkdir()
     iw_manager.config.addon_dir.joinpath('bar').touch()
-    folders = get_unreconciled_folder_set(iw_manager)
+    folders = get_unreconciled_folders(iw_manager)
     assert folders == frozenset()
     assert await match_toc_source_ids(iw_manager, folders) == []
     assert await match_folder_name_subsets(iw_manager, folders) == []
@@ -68,7 +68,7 @@ async def test_reconcile_multiple_defns_per_addon_contained_in_results(
     molinari: Path,
     test_func: Callable[[Manager, frozenset[AddonFolder]], Awaitable[FolderAndDefnPairs]],
 ):
-    ((_, matches),) = await test_func(iw_manager, get_unreconciled_folder_set(iw_manager))
+    ((_, matches),) = await test_func(iw_manager, get_unreconciled_folders(iw_manager))
     expected = {Defn('curse', '20338'), Defn('wowi', '13188')}
     if test_func is match_addon_names_with_folder_names:
         expected.add(Defn('github', 'p3lim-wow/Molinari'))
@@ -79,7 +79,7 @@ async def test_reconcile_multiple_defns_per_addon_contained_in_results(
 async def test_reconcile_results_vary_by_game_flavour(iw_manager: Manager):
     write_addons(iw_manager, 'AdiBags', 'AdiBags_Config')
     ((_, matches),) = await match_folder_name_subsets(
-        iw_manager, get_unreconciled_folder_set(iw_manager)
+        iw_manager, get_unreconciled_folders(iw_manager)
     )
     if iw_manager.config.game_flavour is Flavour.retail:
         assert {

@@ -31,7 +31,7 @@ from .common import Flavour, Strategy
 from .config import Config, GlobalConfig, setup_logging
 from .plugins import load_plugins
 from .resolvers import ChangelogFormat, Defn
-from .utils import StrEnum, cached_property, gather, tabulate, uniq
+from .utils import StrEnum, all_eq, cached_property, gather, tabulate, uniq
 
 _T = TypeVar('_T')
 _F = TypeVar('_F', bound='Callable[..., object]')
@@ -442,7 +442,7 @@ def rollback(manager: _manager.Manager, addon: Defn, version: str | None, undo: 
     from .prompts import Choice, ask, select
 
     if version and undo:
-        raise click.UsageError('Cannot use "--version" and "--undo" together')
+        raise click.UsageError('Cannot use "--version" with "--undo"')
 
     pkg = manager.get_pkg(addon)
     if not pkg:
@@ -489,19 +489,96 @@ def rollback(manager: _manager.Manager, addon: Defn, version: str | None, undo: 
     '--auto', '-a', is_flag=True, default=False, help='Do not ask for user confirmation.'
 )
 @click.option(
+    '--installed',
+    'rereconcile',
+    is_flag=True,
+    default=False,
+    help='Re-reconcile installed add-ons.',
+)
+@click.option(
     '--list-unreconciled', is_flag=True, default=False, help='List unreconciled add-ons and exit.'
 )
 @ManagerWrapper.pass_manager
-def reconcile(manager: _manager.Manager, auto: bool, list_unreconciled: bool) -> None:
+def reconcile(
+    manager: _manager.Manager, auto: bool, rereconcile: bool, list_unreconciled: bool
+) -> None:
     "Reconcile pre-installed add-ons."
     from .matchers import (
         AddonFolder,
-        get_unreconciled_folder_set,
+        get_unreconciled_folders,
         match_addon_names_with_folder_names,
         match_folder_name_subsets,
         match_toc_source_ids,
     )
     from .prompts import PkgChoice, ask, confirm, select, skip
+
+    def construct_choice(pkg: models.Pkg, highlight_version: bool, disabled: bool):
+        defn = Defn.from_pkg(pkg)
+        return PkgChoice(
+            [
+                ('', f'{defn.to_urn()}=='),
+                ('class:highlight-sub' if highlight_version else '', pkg.version),
+            ],
+            pkg=pkg,
+            value=defn,
+            disabled=disabled,
+        )
+
+    def gather_selections(
+        groups: Sequence[tuple[Any, Sequence[Defn]]],
+        selector: Callable[[Any, Sequence[models.Pkg]], Defn | None],
+    ):
+        results = run_with_progress(manager.resolve(uniq(d for _, b in groups for d in b)))
+        for addons_or_pkg, defns in groups:
+            shortlist = [r for d in defns for r in (results[d],) if isinstance(r, models.Pkg)]
+            if shortlist:
+                selection = selector(addons_or_pkg, shortlist)
+                yield selection
+
+    if rereconcile:
+        if auto:
+            raise click.UsageError('Cannot use "--auto" with "--installed"')
+
+        import sqlalchemy as sa
+
+        catalogue = run_with_progress(manager.synchronise())
+
+        def prompt_reconciled(installed_pkg: models.Pkg, pkgs: Sequence[models.Pkg]):
+            highlight_version = not all_eq(i.version for i in (installed_pkg, *pkgs))
+            choices = [
+                construct_choice(installed_pkg, highlight_version, True),
+                *(construct_choice(p, highlight_version, False) for p in pkgs),
+                skip,
+            ]
+            selection = ask(select(installed_pkg.name, choices))
+            return selection or None
+
+        installed_pkgs = (
+            models.Pkg.from_row_mapping(manager.database, p)
+            for p in manager.database.execute(sa.select(db.pkg)).mappings().all()
+        )
+        groups = [
+            (p, [Defn(s.source, s.id) for s in e.same_as])
+            for p in installed_pkgs
+            for e in (catalogue.keyed_entries.get((p.source, p.id)),)
+            if e and e.same_as
+        ]
+        selections = [
+            (p, s) for (p, _), s in zip(groups, gather_selections(groups, prompt_reconciled)) if s
+        ]
+        if selections and ask(confirm('Install selected add-ons?')):
+            Report(
+                run_with_progress(
+                    manager.remove([Defn.from_pkg(p) for p, _ in selections], False),
+                ).items()
+            ).generate()
+            Report(
+                run_with_progress(
+                    manager.install([s for _, s in selections], False),
+                ).items()
+            ).generate()
+
+        return
 
     preamble = textwrap.dedent(
         '''\
@@ -522,42 +599,35 @@ def reconcile(manager: _manager.Manager, auto: bool, list_unreconciled: bool) ->
         '''
     )
 
-    def prompt_one(addons: list[AddonFolder], pkgs: list[models.Pkg]) -> Defn | tuple[()]:
-        def construct_choice(pkg: models.Pkg):
-            defn = Defn.from_pkg(pkg)
-            title = [
-                ('', f'{defn.to_urn()}=='),
-                ('class:highlight-sub' if highlight_version else '', pkg.version),
-            ]
-            return PkgChoice(title, pkg=pkg, value=defn)
+    def prompt_unreconciled(addons: Sequence[AddonFolder], pkgs: Sequence[models.Pkg]):
+        def combine_names():
+            return textwrap.shorten(', '.join(a.name for a in addons), 60)
 
         # Highlight version if there's multiple of them
-        highlight_version = len({i.version for i in chain(addons, pkgs)}) > 1
-        choices = list(chain(map(construct_choice, pkgs), (skip,)))
-        addon = addons[0]
-        selection = ask(select(f'{addon.name} [{addon.version or "?"}]', choices))
-        return selection
+        highlight_version = not all_eq(i.version for i in chain(addons, pkgs))
+        choices = [
+            *(construct_choice(p, highlight_version, False) for p in pkgs),
+            skip,
+        ]
+        selection = ask(select(f'{combine_names()} [{addons[0].version or "?"}]', choices))
+        return selection or None
 
-    def prompt(groups: Sequence[tuple[list[AddonFolder], list[Defn]]]) -> Iterable[Defn]:
-        uniq_defns = uniq(d for _, b in groups for d in b)
-        results = run_with_progress(manager.resolve(uniq_defns))
-        for addons, defns in groups:
-            shortlist = [r for d in defns for r in (results[d],) if isinstance(r, models.Pkg)]
-            if shortlist:
-                selection = Defn.from_pkg(shortlist[0]) if auto else prompt_one(addons, shortlist)
-                selection and (yield selection)
+    def pick_first(addons: Sequence[AddonFolder], pkgs: Sequence[models.Pkg]):
+        return Defn.from_pkg(pkgs[0])
 
-    def match_all() -> Generator[list[Defn], frozenset[AddonFolder], None]:
+    def match_all(
+        selector: Callable[[Any, Sequence[models.Pkg]], Defn | None]
+    ) -> Generator[list[Defn], frozenset[AddonFolder], None]:
         # Match in order of increasing heuristicitivenessitude
-        for fn in (
+        for fn in [
             match_toc_source_ids,
             match_folder_name_subsets,
             match_addon_names_with_folder_names,
-        ):
+        ]:
             groups = run_with_progress(fn(manager, (yield [])))
-            yield list(prompt(groups))
+            yield list(filter(None, gather_selections(groups, selector)))
 
-    leftovers = get_unreconciled_folder_set(manager)
+    leftovers = get_unreconciled_folders(manager)
     if list_unreconciled:
         table_rows = [('unreconciled',), *((f.name,) for f in sorted(leftovers))]
         click.echo(tabulate(table_rows))
@@ -569,14 +639,14 @@ def reconcile(manager: _manager.Manager, auto: bool, list_unreconciled: bool) ->
     if not auto:
         click.echo(preamble)
 
-    matcher = match_all()
+    matcher = match_all(pick_first if auto else prompt_unreconciled)
     for _ in matcher:  # Skip over consumer yields
         selections = matcher.send(leftovers)
         if selections and (auto or ask(confirm('Install selected add-ons?'))):
-            results = run_with_progress(manager.install(selections, replace=True))
+            results = run_with_progress(manager.install(selections, True))
             Report(results.items()).generate()
 
-        leftovers = get_unreconciled_folder_set(manager)
+        leftovers = get_unreconciled_folders(manager)
 
     if leftovers:
         click.echo()

@@ -6,7 +6,7 @@ from collections.abc import Awaitable, Callable, Iterable, Iterator, Mapping, Se
 from datetime import datetime, timedelta
 import enum
 from functools import partial, wraps
-from itertools import chain, repeat
+from itertools import chain, groupby, repeat
 import os
 from pathlib import Path, PurePath
 import posixpath
@@ -84,6 +84,12 @@ def chain_dict(
 def uniq(it: Iterable[_H]) -> list[_H]:
     "Deduplicate hashable items in an iterable maintaining insertion order."
     return list(dict.fromkeys(it))
+
+
+def all_eq(it: Iterable[object]) -> bool:
+    "Check that all elements of an iterable are equal."
+    groups = groupby(it)
+    return next(groups, True) and not next(groups, False)
 
 
 def merge_intersecting_sets(it: Iterable[frozenset[_T]]) -> Iterator[frozenset[_T]]:
