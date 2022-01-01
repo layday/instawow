@@ -1041,7 +1041,7 @@ def list_installed_wago_auras(manager: _manager.Manager) -> None:
 
     aura_groups = WaCompanionBuilder(manager).extract_installed_auras()
     installed_auras = sorted(
-        (g.Meta.filename, textwrap.fill(a.id, width=30, max_lines=1), a.url)
+        (g.filename, textwrap.fill(a.id, width=30, max_lines=1), a.url)
         for g in aura_groups
         for v in g.__root__.values()
         for a in v

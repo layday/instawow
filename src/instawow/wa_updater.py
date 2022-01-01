@@ -5,13 +5,13 @@ from functools import partial, reduce
 from itertools import chain, product
 import time
 import typing
-from typing import Any, TypeVar
+from typing import Any, ClassVar, TypeVar
 
 from loguru import logger
 from pydantic import BaseModel, Field, validator
 from typing_extensions import Literal
 from typing_extensions import NotRequired as N
-from typing_extensions import Protocol, Self, TypeAlias, TypedDict
+from typing_extensions import Self, TypeAlias, TypedDict
 from yarl import URL
 
 from .common import Flavour
@@ -32,9 +32,8 @@ class BaseAuras(
     arbitrary_types_allowed=True,
     json_encoders={URL: str},
 ):
-    class Meta(Protocol):
-        api_url: URL
-        filename: str
+    api_url: ClassVar[URL]
+    filename: ClassVar[str]
 
     __root__: typing.Dict[_Slug, typing.List[Any]]
 
@@ -78,9 +77,8 @@ class WeakAura(
 
 
 class WeakAuras(BaseAuras):
-    class Meta:
-        api_url = URL('https://data.wago.io/api/check/weakauras')
-        filename = 'WeakAuras.lua'
+    api_url = URL('https://data.wago.io/api/check/weakauras')
+    filename = 'WeakAuras.lua'
 
     __root__: typing.Dict[_Slug, typing.List[WeakAura]]
 
@@ -99,9 +97,8 @@ class Plateroo(WeakAura):
 
 
 class Plateroos(BaseAuras):
-    class Meta:
-        api_url = URL('https://data.wago.io/api/check/plater')
-        filename = 'Plater.lua'
+    api_url = URL('https://data.wago.io/api/check/plater')
+    filename = 'Plater.lua'
 
     __root__: typing.Dict[_Slug, typing.List[Plateroo]]
 
@@ -172,7 +169,7 @@ class WaCompanionBuilder:
             saved_vars_by_account,
             [WeakAuras, Plateroos],
         ):
-            file = saved_vars / model.Meta.filename
+            file = saved_vars / model.filename
             if not file.exists():
                 logger.info(f'{file} not found')
             else:
@@ -225,7 +222,7 @@ class WaCompanionBuilder:
         if not auras.__root__:
             return []
 
-        metadata = await self._fetch_wago_metadata(auras.Meta.api_url, auras.__root__)
+        metadata = await self._fetch_wago_metadata(auras.api_url, auras.__root__)
         import_strings = await gather(self._fetch_wago_import_string(r) for r in metadata)
         return [(auras.__root__[r['slug']], r, i) for r, i in zip(metadata, import_strings)]
 
