@@ -518,6 +518,14 @@ def test_reconcile__rereconcile(
     )
 
 
+def test_reconcile__cannot_use_auto_with_installed(
+    run: C[[str], Result],
+):
+    result = run('reconcile --auto --installed')
+    assert result.exit_code == 2
+    assert 'Cannot use "--auto" with "--installed"' in result.output
+
+
 @pytest.mark.skip
 def test_search__no_results(
     run: C[[str], Result],
