@@ -485,9 +485,7 @@ def rollback(manager: _manager.Manager, addon: Defn, version: str | None, undo: 
 
 
 @main.command()
-@click.option(
-    '--auto', '-a', is_flag=True, default=False, help='Do not ask for user input.'
-)
+@click.option('--auto', '-a', is_flag=True, default=False, help='Do not ask for user input.')
 @click.option(
     '--installed',
     'rereconcile',
