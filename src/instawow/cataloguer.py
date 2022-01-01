@@ -49,7 +49,7 @@ class BaseCatalogue(BaseModel, json_encoders={set: sorted}):
 
 
 class Catalogue(BaseModel, keep_untouched=(cached_property,)):
-    version = 2
+    version = 1
     entries: typing.List[CatalogueEntry]
     curse_slugs: typing.Dict[str, str]
 
