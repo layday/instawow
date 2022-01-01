@@ -1,15 +1,19 @@
 <script lang="ts">
   import { faChevronCircleDown, faChevronCircleUp } from "@fortawesome/free-solid-svg-icons";
-  import type { Addon, AddonMatch } from "../api";
+  import type { Addon } from "../api";
   import { api } from "../store";
   import Icon from "./SvgIcon.svelte";
 
-  export let selections: Addon[], folders: AddonMatch["folders"], choices: Addon[], idx: number;
+  export let selections: Addon[],
+    folders: { name: string; version: string }[],
+    choices: Addon[],
+    idx: number,
+    expanded: boolean = false;
 
   let selectionIdx = 0;
   let selection: Addon;
 
-  const getVersion = () => folders.find((f) => f.version)?.version || "?";
+  const getVersion = () => folders.find((f) => f.version)?.version || "";
 
   $: selection = selections[idx] = choices[selectionIdx];
 </script>
@@ -28,7 +32,7 @@
   </div>
   {#if choices.length}
     <!-- open={false} is needed for the [open] CSS selector to be compiled -->
-    <details class="selection-controls" open={false}>
+    <details class="selection-controls" open={expanded}>
       <summary>
         <div class="selection-grid">
           <div aria-label="installed version" class="defn-or-version">
@@ -132,9 +136,11 @@
     }
 
     summary {
+      list-style: none;
       line-height: 1rem;
 
-      &::-webkit-details-marker {
+      &::-webkit-details-marker,
+      &::marker {
         display: none;
       }
 

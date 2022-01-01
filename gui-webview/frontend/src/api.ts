@@ -123,6 +123,11 @@ export enum ReconciliationStage {
   addon_names_with_folder_names = "addon_names_with_folder_names",
 }
 
+export type ReconcileInstalledCandidate = {
+  installed_addon: Addon;
+  alternative_addons: Addon[];
+};
+
 export type DownloadProgressReport = {
   defn: Defn;
   progress: number;
@@ -250,6 +255,13 @@ export class Api {
     return await this.request({
       method: "reconcile",
       params: { profile: this.profile, matcher: matcher },
+    });
+  }
+
+  async getReconcileInstalledCandidates(): Promise<ReconcileInstalledCandidate[]> {
+    return await this.request({
+      method: "get_reconcile_installed_candidates",
+      params: { profile: this.profile },
     });
   }
 

@@ -210,16 +210,6 @@ class ListInstalledParams(_ProfileParamMixin, BaseParams):
         return [models.Pkg.from_row_mapping(manager.database, p) for p in installed_pkgs]
 
 
-class SuccessResult(TypedDict):
-    status: Literal['success']
-    addon: models.Pkg
-
-
-class ErrorResult(TypedDict):
-    status: Literal['failure', 'error']
-    message: str
-
-
 @_register_method('search')
 class SearchParams(_ProfileParamMixin, BaseParams):
     search_terms: str
@@ -240,6 +230,16 @@ class SearchParams(_ProfileParamMixin, BaseParams):
                 start_date=self.start_date,
             ),
         )
+
+
+class SuccessResult(TypedDict):
+    status: Literal['success']
+    addon: models.Pkg
+
+
+class ErrorResult(TypedDict):
+    status: Literal['failure', 'error']
+    message: str
 
 
 @_register_method('resolve')
@@ -366,9 +366,9 @@ class ReconcileParams(_ProfileParamMixin, BaseParams):
         match_groups: matchers.FolderAndDefnPairs = await managers.run(
             self.profile, partial(getattr(matchers, f'match_{self.matcher}'), leftovers=leftovers)
         )
-        uniq_defns = uniq(d for _, b in match_groups for d in b)
         resolve_results = await managers.run(
-            self.profile, partial(Manager.resolve, defns=uniq_defns)
+            self.profile,
+            partial(Manager.resolve, defns=uniq(d for _, b in match_groups for d in b)),
         )
         matches = [
             (a, m)
@@ -382,6 +382,44 @@ class ReconcileParams(_ProfileParamMixin, BaseParams):
         ] + [
             AddonMatch(folders=[{'name': f.name, 'version': f.version}], matches=[])
             for f in sorted(leftovers - frozenset(i for a, _ in matches for i in a))
+        ]
+
+
+class ReconcileInstalledCandidate(TypedDict):
+    installed_addon: models.Pkg
+    alternative_addons: list[models.Pkg]
+
+
+@_register_method('get_reconcile_installed_candidates')
+class GetReconcileInstalledCandidatesParams(_ProfileParamMixin, BaseParams):
+    async def respond(
+        self, managers: _ManagerWorkQueue, app_window: toga.MainWindow | None
+    ) -> list[ReconcileInstalledCandidate]:
+        manager = await managers.get_manager(self.profile)
+        catalogue = await managers.run(self.profile, Manager.synchronise)
+        installed_pkgs = (
+            models.Pkg.from_row_mapping(manager.database, p)
+            for p in manager.database.execute(
+                sa.select(db.pkg).order_by(sa.func.lower(db.pkg.c.name))
+            )
+            .mappings()
+            .all()
+        )
+        match_groups = [
+            (p, [Defn(s.source, s.id) for s in e.same_as])
+            for p in installed_pkgs
+            for e in (catalogue.keyed_entries.get((p.source, p.id)),)
+            if e and e.same_as
+        ]
+        resolve_results = await managers.run(
+            self.profile,
+            partial(Manager.resolve, defns=uniq(d for _, b in match_groups for d in b)),
+        )
+        return [
+            {'installed_addon': p, 'alternative_addons': m}
+            for p, s in match_groups
+            for m in ([r for d in s for r in (resolve_results[d],) if isinstance(r, models.Pkg)],)
+            if m
         ]
 
 

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { faFilter, faGripLines, faSlidersH } from "@fortawesome/free-solid-svg-icons";
+  import { faExchange, faFilter, faSlidersH, faThList } from "@fortawesome/free-solid-svg-icons";
   import { createEventDispatcher } from "svelte";
   import { ReconciliationStage } from "../api";
   import { View } from "../constants";
@@ -69,14 +69,34 @@
         />
         <label class="control" for="__radio-unreconciled">unreconciled</label>
       </li>
-      {#if activeView !== View.Reconcile}
+      {#if activeView === View.Installed || activeView === View.ReconcileInstalled}
+        <li>
+          <input
+            class="control"
+            id="__radio-reconcile-installed"
+            type="radio"
+            value={View.ReconcileInstalled}
+            bind:group={activeView}
+          />
+          <label
+            class="control"
+            for="__radio-reconcile-installed"
+            aria-label="change add-on sources"
+            title="change add-on sources"
+          >
+            <Icon icon={faExchange} />
+          </label>
+        </li>
+      {/if}
+      {#if activeView !== View.Reconcile && activeView !== View.ReconcileInstalled}
         <li>
           <button
             class="control"
             aria-label="condense/expand add-on cells"
+            title="condense/expand add-on cells"
             on:click={() => dispatch("requestCycleListFormat")}
           >
-            <Icon icon={faGripLines} />
+            <Icon icon={faThList} />
           </button>
         </li>
       {/if}
@@ -97,7 +117,7 @@
             {/each}
           </select>
         </li>
-      {:else}
+      {:else if activeView !== View.ReconcileInstalled}
         <li>
           <input
             class="control"
@@ -185,6 +205,16 @@
             automate
           </button>
         </li>
+      {:else if activeView === View.ReconcileInstalled}
+        <li>
+          <button
+            class="control"
+            disabled={reconcileInstallationInProgress}
+            on:click={() => dispatch("requestInstallReconciledInstalled")}
+          >
+            switch sources
+          </button>
+        </li>
       {/if}
     </menu>
   </div>
@@ -195,7 +225,7 @@
 
   @use "scss/vars";
 
-  $line-height: 1.8em;
+  $line-height: 1.875em;
   $middle-border-radius: math.div($line-height, 6);
   $edge-border-radius: math.div($line-height, 4);
 
@@ -220,14 +250,11 @@
   }
 
   .search {
-    .control-set {
-      font-size: 1rem;
-    }
-
     .search-control {
       border-top-right-radius: $edge-border-radius;
       border-bottom-right-radius: $edge-border-radius;
       box-shadow: inset 0 0 0 1px var(--inverse-color-alpha-10);
+      font-size: 1rem;
 
       &,
       &::-webkit-search-cancel-button {

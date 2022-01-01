@@ -1,6 +1,7 @@
 export enum View {
   Installed,
   FilterInstalled,
+  ReconcileInstalled,
   Search,
   Reconcile,
 }

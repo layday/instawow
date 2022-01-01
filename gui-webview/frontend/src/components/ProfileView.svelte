@@ -54,7 +54,7 @@
     createAddonToken(addon),
   ];
 
-  const isSameAddon = ([thisAddon]: AddonTuple, otherAddon: Addon) =>
+  const isSameAddon = (thisAddon: Addon, otherAddon: Addon) =>
     thisAddon.source === otherAddon.source && thisAddon.id === otherAddon.id;
 
   const markAddonInstalled = (addon: Addon, installed: boolean = true): AddonWithMeta => ({
@@ -154,6 +154,9 @@
   let reconcileStage: ReconciliationStage = reconcileStages[0];
   let reconcileSelections: Addon[];
 
+  let reconcileInstalledAddons: Addon[];
+  let reconcileInstalledSelections: Addon[];
+
   let installedIsRefreshing = false;
   let searchesInProgress = 0;
   let reconcileInstallationInProgress = false;
@@ -185,11 +188,11 @@
 
   const alertForJsonRpcError = (error: any) => {
     if (error instanceof JSONRPCError) {
-      const alert_: Alert = {
+      const newAlert: Alert = {
         heading: error.message,
         message: (error.data as any).traceback_exception.filter(Boolean).slice(-1),
       };
-      alerts = [alert_, ...alerts];
+      alerts = [newAlert, ...alerts];
     }
   };
 
@@ -210,7 +213,7 @@
   const regenerateSearchAddons = () => {
     addons__Search = addonsFromSearch.map((addon) => {
       const installedAddon = addons__Installed.find((installedAddon) =>
-        isSameAddon(installedAddon, addon)
+        isSameAddon(installedAddon[0], addon)
       );
       return [installedAddon?.[0] || markAddonInstalled(addon, false), addon] as const;
     });
@@ -250,7 +253,7 @@
         // Reversing `modifiedAddons` for new add-ons to be prepended in alphabetical order
         for (const addon of [...modifiedAddons].reverse()) {
           const newAddon = [markAddonInstalled(addon, method !== "remove"), addon] as const;
-          const index = addons__Installed.findIndex((value) => isSameAddon(value, addon));
+          const index = addons__Installed.findIndex((value) => isSameAddon(value[0], addon));
           if (index === -1) {
             installedAddons.unshift(newAddon);
           } else {
@@ -512,6 +515,35 @@
     }
   };
 
+  const prepareReconcileInstalled = async () => {
+    const alternativeDefnsPerAddon = await profileApi.getReconcileInstalledCandidates();
+    reconcileInstalledAddons = alternativeDefnsPerAddon.map(
+      ({ installed_addon }) => installed_addon
+    );
+    reconcileInstalledSelections = [];
+    return alternativeDefnsPerAddon;
+  };
+
+  const installReconciledInstalled = async () => {
+    reconcileInstallationInProgress = true;
+    try {
+      const addonsToRereconcile = reconcileInstalledSelections
+        .map((a, i) => [a, reconcileInstalledAddons[i]] as const)
+        .filter(([a, b]) => a && !isSameAddon(a, b));
+      await removeAddons(
+        addonsToRereconcile.map(([, a]) => a),
+        false
+      );
+      await installAddons(
+        addonsToRereconcile.map(([a]) => a),
+        false
+      );
+      activeView = View.Installed;
+    } finally {
+      reconcileInstallationInProgress = false;
+    }
+  };
+
   const supportsRollback = (addon: Addon) => !!sources[addon.source]?.supports_rollback;
 
   const generateStatusMessage = () => {
@@ -599,6 +631,7 @@
         on:requestInstallReconciled={() => installReconciled(reconcileStage, reconcileSelections)}
         on:requestAutomateReconciliation={() =>
           installReconciled(reconcileStage, reconcileSelections, true)}
+        on:requestInstallReconciledInstalled={() => installReconciledInstalled()}
         on:requestCycleListFormat={() => cycleDisplayedListFormat()}
         bind:activeView
         bind:searchTerms
@@ -684,6 +717,32 @@
         {:else}
           <div class="placeholder" in:fade>
             <div>Reconciliation complete.</div>
+          </div>
+        {/if}
+      {/await}
+    {:else if activeView === View.ReconcileInstalled}
+      {#await prepareReconcileInstalled()}
+        <div class="placeholder" in:fade>
+          <div>Hold on tight!</div>
+        </div>
+      {:then result}
+        {#if result.length}
+          <ul class="addon-list">
+            {#each result as { installed_addon, alternative_addons }, idx}
+              <li>
+                <AddonStub
+                  selections={reconcileInstalledSelections}
+                  folders={[{ name: installed_addon.name, version: "" }]}
+                  choices={[installed_addon, ...alternative_addons]}
+                  {idx}
+                  expanded={true}
+                />
+              </li>
+            {/each}
+          </ul>
+        {:else}
+          <div class="placeholder" in:fade>
+            <div>No alternative sources available.</div>
           </div>
         {/if}
       {/await}
