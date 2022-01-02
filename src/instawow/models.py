@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from contextlib import contextmanager
 from datetime import datetime
 import typing
 from typing import Any, Mapping
@@ -10,6 +11,17 @@ import sqlalchemy.future as sa_future
 
 from . import db
 from .common import Strategy
+
+
+@contextmanager
+def _faux_transaction(connection: sa_future.Connection):
+    try:
+        yield
+    except BaseException:
+        connection.rollback()
+        raise
+    else:
+        connection.commit()
 
 
 class _PkgOptions(BaseModel):
@@ -80,28 +92,28 @@ class Pkg(BaseModel):
     def insert(self, connection: sa_future.Connection) -> None:
         values = self.dict()
         source_and_id = {'pkg_source': values['source'], 'pkg_id': values['id']}
-        connection.execute(sa.insert(db.pkg), [values])
-        connection.execute(
-            sa.insert(db.pkg_folder), [{**f, **source_and_id} for f in values['folders']]
-        )
-        connection.execute(sa.insert(db.pkg_options), [{**values['options'], **source_and_id}])
-        if values['deps']:
+        with _faux_transaction(connection):
+            connection.execute(sa.insert(db.pkg), [values])
             connection.execute(
-                sa.insert(db.pkg_dep), [{**d, **source_and_id} for d in values['deps']]
+                sa.insert(db.pkg_folder), [{**f, **source_and_id} for f in values['folders']]
             )
-        connection.execute(
-            sa.insert(db.pkg_version_log).prefix_with('OR IGNORE'),
-            [{'version': values['version'], **source_and_id}],
-        )
-        connection.commit()
+            connection.execute(sa.insert(db.pkg_options), [{**values['options'], **source_and_id}])
+            if values['deps']:
+                connection.execute(
+                    sa.insert(db.pkg_dep), [{**d, **source_and_id} for d in values['deps']]
+                )
+            connection.execute(
+                sa.insert(db.pkg_version_log).prefix_with('OR IGNORE'),
+                [{'version': values['version'], **source_and_id}],
+            )
 
     def delete(self, connection: sa_future.Connection) -> None:
         source_and_id = {'pkg_source': self.source, 'pkg_id': self.id}
-        connection.execute(sa.delete(db.pkg_dep).filter_by(**source_and_id))
-        connection.execute(sa.delete(db.pkg_folder).filter_by(**source_and_id))
-        connection.execute(sa.delete(db.pkg_options).filter_by(**source_and_id))
-        connection.execute(sa.delete(db.pkg).filter_by(source=self.source, id=self.id))
-        connection.commit()
+        with _faux_transaction(connection):
+            connection.execute(sa.delete(db.pkg_dep).filter_by(**source_and_id))
+            connection.execute(sa.delete(db.pkg_folder).filter_by(**source_and_id))
+            connection.execute(sa.delete(db.pkg_options).filter_by(**source_and_id))
+            connection.execute(sa.delete(db.pkg).filter_by(source=self.source, id=self.id))
 
     # Make the model hashable again
     __eq__ = object.__eq__
