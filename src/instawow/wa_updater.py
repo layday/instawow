@@ -237,7 +237,7 @@ class WaCompanionBuilder:
     def _get_toc_number(self) -> str:
         game_flavour: Flavour = self.manager.config.game_flavour
         if game_flavour is Flavour.retail:
-            return '90100'
+            return '90105'
         elif game_flavour is Flavour.vanilla_classic:
             return '11400'
         elif game_flavour is Flavour.burning_crusade_classic:
