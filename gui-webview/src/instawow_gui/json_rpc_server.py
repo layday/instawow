@@ -396,7 +396,6 @@ class GetReconcileInstalledCandidatesParams(_ProfileParamMixin, BaseParams):
         self, managers: _ManagerWorkQueue, app_window: toga.MainWindow | None
     ) -> list[ReconcileInstalledCandidate]:
         manager = await managers.get_manager(self.profile)
-        catalogue = await managers.run(self.profile, Manager.synchronise)
         installed_pkgs = (
             models.Pkg.from_row_mapping(manager.database, p)
             for p in manager.database.execute(
@@ -405,19 +404,16 @@ class GetReconcileInstalledCandidatesParams(_ProfileParamMixin, BaseParams):
             .mappings()
             .all()
         )
-        match_groups = [
-            (p, [Defn(s.source, s.id) for s in e.same_as])
-            for p in installed_pkgs
-            for e in (catalogue.keyed_entries.get((p.source, p.id)),)
-            if e and e.same_as
-        ]
+        defn_groups = await managers.run(
+            self.profile, partial(Manager.find_equivalent_pkg_defns, pkgs=installed_pkgs)
+        )
         resolve_results = await managers.run(
             self.profile,
-            partial(Manager.resolve, defns=uniq(d for _, b in match_groups for d in b)),
+            partial(Manager.resolve, defns=uniq(d for b in defn_groups.values() for d in b)),
         )
         return [
             {'installed_addon': p, 'alternative_addons': m}
-            for p, s in match_groups
+            for p, s in defn_groups.items()
             for m in ([r for d in s for r in (resolve_results[d],) if isinstance(r, models.Pkg)],)
             if m
         ]

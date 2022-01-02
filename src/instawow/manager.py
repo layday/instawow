@@ -518,6 +518,42 @@ class Manager:
 
         return self._catalogue
 
+    async def find_equivalent_pkg_defns(
+        self, pkgs: Iterable[models.Pkg]
+    ) -> dict[models.Pkg, list[Defn]]:
+        "Given a list of packages, find ``Defn``s of each package from other sources."
+        from .matchers import AddonFolder
+
+        catalogue = await self.synchronise()
+
+        def get_catalogue_defns(pkg: models.Pkg) -> frozenset[Defn]:
+            entry = catalogue.keyed_entries.get((pkg.source, pkg.id))
+            if entry:
+                return frozenset(Defn(s.source, s.id) for s in entry.same_as)
+            else:
+                return frozenset()
+
+        def extract_addon_toc_defns(pkg: models.Pkg):
+            return frozenset(
+                d
+                for f in pkg.folders
+                for a in (
+                    AddonFolder.from_addon_path(
+                        self.config.game_flavour, self.config.addon_dir / f.name
+                    ),
+                )
+                if a
+                for d in a.defns_from_toc
+                if d.source != pkg.source
+            )
+
+        return {
+            p: list(d)
+            for p in pkgs
+            for d in (get_catalogue_defns(p) | await t(extract_addon_toc_defns)(p),)
+            if d
+        }
+
     async def _resolve_deps(self, results: Iterable[Any]) -> dict[Defn, Any]:
         """Resolve package dependencies.
 

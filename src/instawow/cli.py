@@ -539,8 +539,6 @@ def reconcile(
 
         import sqlalchemy as sa
 
-        catalogue = run_with_progress(manager.synchronise())
-
         def prompt_reconciled(installed_pkg: models.Pkg, pkgs: Sequence[models.Pkg]):
             highlight_version = not all_eq(i.version for i in (installed_pkg, *pkgs))
             choices = [
@@ -555,12 +553,7 @@ def reconcile(
             models.Pkg.from_row_mapping(manager.database, p)
             for p in manager.database.execute(sa.select(db.pkg)).mappings().all()
         )
-        groups = [
-            (p, [Defn(s.source, s.id) for s in e.same_as])
-            for p in installed_pkgs
-            for e in (catalogue.keyed_entries.get((p.source, p.id)),)
-            if e and e.same_as
-        ]
+        groups = list(run_with_progress(manager.find_equivalent_pkg_defns(installed_pkgs)).items())
         selections = [
             (p, s) for (p, _), s in zip(groups, gather_selections(groups, prompt_reconciled)) if s
         ]

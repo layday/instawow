@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-from contextlib import suppress
 from functools import total_ordering
+from pathlib import Path
 import re
 
 import sqlalchemy as sa
-from typing_extensions import TypeAlias
+from typing_extensions import Self, TypeAlias
 
 from . import manager
 from .common import Flavour
@@ -83,6 +83,15 @@ class AddonFolder:
             return NotImplemented
         return self.name < other
 
+    @classmethod
+    def from_addon_path(cls, flavour: Flavour, path: Path) -> Self | None:
+        for suffix in _flavour_toc_suffixes[flavour]:
+            try:
+                toc_reader = TocReader.from_addon_path(path, suffix)
+                return cls(path.name, toc_reader)
+            except FileNotFoundError:
+                pass
+
     @cached_property
     def defns_from_toc(self) -> frozenset[Defn]:
         return frozenset(
@@ -103,13 +112,10 @@ def _get_unreconciled_folders(manager: manager.Manager):
         for p in manager.config.addon_dir.iterdir()
         if p.name not in pkg_folders and p.is_dir() and not p.is_symlink()
     )
-    suppress_not_found_error = suppress(FileNotFoundError)
     for path in unreconciled_folder_paths:
-        for suffix in _flavour_toc_suffixes[manager.config.game_flavour]:
-            with suppress_not_found_error:
-                toc_reader = TocReader.from_addon_path(path, suffix)
-                yield AddonFolder(path.name, toc_reader)
-                break
+        addon_folder = AddonFolder.from_addon_path(manager.config.game_flavour, path)
+        if addon_folder:
+            yield addon_folder
 
 
 def get_unreconciled_folders(manager: manager.Manager) -> frozenset[AddonFolder]:
