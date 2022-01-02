@@ -296,10 +296,10 @@ def prepare_database(config: Config) -> sa_future.Engine:
 
 class Manager:
     RESOLVERS = [
+        GithubResolver,
         CurseResolver,
         WowiResolver,
         TukuiResolver,
-        GithubResolver,
         InstawowResolver,
     ]
 
@@ -547,8 +547,10 @@ class Manager:
                 if d.source != pkg.source
             )
 
+        resolver_sources = list(self.resolvers.keys())
+
         return {
-            p: list(d)
+            p: sorted(d, key=lambda d: resolver_sources.index(d.source))
             for p in pkgs
             for d in (get_catalogue_defns(p) | await t(extract_addon_toc_defns)(p),)
             if d

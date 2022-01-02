@@ -10,33 +10,20 @@ from typing_extensions import Self, TypeAlias
 from . import manager
 from .common import Flavour
 from .db import pkg_folder
-from .resolvers import (
-    CurseResolver,
-    Defn,
-    GithubResolver,
-    InstawowResolver,
-    TukuiResolver,
-    WowiResolver,
-)
+from .resolvers import CurseResolver, Defn, TukuiResolver, WowiResolver
 from .utils import TocReader, bucketise, cached_property, merge_intersecting_sets, uniq
 
 FolderAndDefnPairs: TypeAlias = 'list[tuple[list[AddonFolder], list[Defn]]]'
 
 
-_source_toc_ids = {
+_SOURCE_TOC_IDS = {
     'X-Curse-Project-ID': CurseResolver.source,
     'X-Tukui-ProjectID': TukuiResolver.source,
     'X-WoWI-ID': WowiResolver.source,
 }
-_source_sort_order = [
-    GithubResolver.source,
-    CurseResolver.source,
-    WowiResolver.source,
-    TukuiResolver.source,
-    InstawowResolver.source,
-]
-# See https://github.com/Stanzilla/WoWUIBugs/issues/68#issuecomment-830351390
-_flavour_toc_suffixes = {
+
+# https://github.com/Stanzilla/WoWUIBugs/issues/68#issuecomment-830351390
+_FLAVOUR_TOC_SUFFIXES = {
     Flavour.retail: [
         '_Mainline.toc',
         '-Mainline.toc',
@@ -85,7 +72,7 @@ class AddonFolder:
 
     @classmethod
     def from_addon_path(cls, flavour: Flavour, path: Path) -> Self | None:
-        for suffix in _flavour_toc_suffixes[flavour]:
+        for suffix in _FLAVOUR_TOC_SUFFIXES[flavour]:
             try:
                 toc_reader = TocReader.from_addon_path(path, suffix)
                 return cls(path.name, toc_reader)
@@ -96,7 +83,7 @@ class AddonFolder:
     def defns_from_toc(self) -> frozenset[Defn]:
         return frozenset(
             Defn(s, i)
-            for s, i in ((s, self.toc_reader[k]) for k, s in _source_toc_ids.items())
+            for s, i in ((s, self.toc_reader[k]) for k, s in _SOURCE_TOC_IDS.items())
             if i
         )
 
@@ -132,8 +119,9 @@ async def match_toc_source_ids(
     folders_grouped_by_overlapping_defns = bucketise(
         addons_with_toc_source_ids, lambda a: next(d for d in merged_defns if a.defns_from_toc & d)
     )
+    source_sort_order = list(manager.resolvers.keys())
     return [
-        (f, sorted(b, key=lambda d: _source_sort_order.index(d.source)))
+        (f, sorted(b, key=lambda d: source_sort_order.index(d.source)))
         for b, f in folders_grouped_by_overlapping_defns.items()
     ]
 
@@ -141,11 +129,8 @@ async def match_toc_source_ids(
 async def match_folder_name_subsets(
     manager: manager.Manager, leftovers: frozenset[AddonFolder]
 ) -> FolderAndDefnPairs:
-    def sort_key(value: tuple[frozenset[AddonFolder], Defn]):
-        folders, defn = value
-        return (-len(folders), _source_sort_order.index(defn.source))
-
     catalogue = await manager.synchronise()
+
     matches = [
         (frozenset(e for e in leftovers if e.name in f), Defn(i.source, i.id))
         for i in catalogue.entries
@@ -157,8 +142,14 @@ async def match_folder_name_subsets(
     matches_grouped_by_overlapping_folder_names = bucketise(
         matches, lambda v: next(f for f in merged_folders if v[0] & f)
     )
+
+    source_sort_order = list(manager.resolvers.keys())
+
+    def sort_key(folders: frozenset[AddonFolder], defn: Defn):
+        return (-len(folders), source_sort_order.index(defn.source))
+
     return [
-        (sorted(f), uniq(d for _, d in sorted(b, key=sort_key)))
+        (sorted(f), uniq(d for _, d in sorted(b, key=lambda v: sort_key(*v))))
         for f, b in matches_grouped_by_overlapping_folder_names.items()
     ]
 
@@ -170,6 +161,7 @@ async def match_addon_names_with_folder_names(
         return re.sub(r'[^0-9A-Za-z]', '', value.casefold())
 
     catalogue = await manager.synchronise()
+
     addon_names_to_catalogue_entries = bucketise(
         catalogue.entries, key=lambda i: normalise(i.name)
     )
