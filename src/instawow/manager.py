@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from collections import defaultdict
 from collections.abc import AsyncIterator, Awaitable, Callable, Iterable, Mapping, Sequence, Set
 from contextlib import AbstractAsyncContextManager, asynccontextmanager, contextmanager
@@ -73,14 +74,14 @@ class _PkgDownloadTraceRequestCtx(TypedDict):
 TraceRequestCtx: TypeAlias = '_GenericDownloadTraceRequestCtx | _PkgDownloadTraceRequestCtx | None'
 
 
-_AsyncNamedTemporaryFile = t(NamedTemporaryFile)
 _copy_async = t(copy)
 _move_async = t(move)
 
 
 @asynccontextmanager
 async def _open_temp_writer():
-    fh = await _AsyncNamedTemporaryFile(delete=False)
+    loop = asyncio.get_running_loop()
+    fh = await loop.run_in_executor(None, lambda: NamedTemporaryFile(delete=False))
     path = Path(fh.name)
     try:
         yield (path, t(fh.write))
