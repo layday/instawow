@@ -256,7 +256,7 @@ def _intercept_logging_module_calls(log_level: str):  # pragma: no cover
 def setup_logging(
     logging_dir: Path, log_level: str = 'INFO', log_to_stderr: bool = False
 ) -> int | None:
-    if __debug__:
+    if log_level == 'DEBUG':
         _intercept_logging_module_calls(log_level)
 
     if not log_to_stderr:
