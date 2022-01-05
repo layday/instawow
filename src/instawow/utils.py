@@ -14,9 +14,12 @@ from shutil import move as _move
 from tempfile import mkdtemp
 from typing import Any, Generic, Hashable, TypeVar, overload
 
+from typing_extensions import ParamSpec
+
 _T = TypeVar('_T')
 _U = TypeVar('_U')
 _H = TypeVar('_H', bound=Hashable)
+_P = ParamSpec('_P')
 
 
 class StrEnum(str, enum.Enum):
@@ -136,7 +139,7 @@ def run_in_thread(
 
 
 @overload
-def run_in_thread(fn: Callable[..., _U]) -> Callable[..., Awaitable[_U]]:
+def run_in_thread(fn: Callable[_P, _U]) -> Callable[_P, Awaitable[_U]]:
     ...
 
 
