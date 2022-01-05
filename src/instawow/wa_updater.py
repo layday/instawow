@@ -42,7 +42,7 @@ class BaseAuras(
         raise NotImplementedError
 
 
-def _merge_auras(auras: Iterable[_TAuras]) -> dict[type, _TAuras]:
+def _merge_auras(auras: Iterable[_TAuras]) -> dict[type[_TAuras], _TAuras]:
     "Merge auras of the same type."
     return {
         t: t(__root__=reduce(lambda a, b: {**a, **b}, (i.__root__ for i in a)))
