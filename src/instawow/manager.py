@@ -875,7 +875,7 @@ async def is_outdated() -> tuple[bool, str]:
     if __version__ == '0.0.0':
         return (False, '')
 
-    global_config = GlobalConfig.read()
+    global_config = await t(GlobalConfig.read)()
     if not global_config.auto_update_check:
         return (False, '')
 
