@@ -325,10 +325,10 @@ def parse_into_defn_with_version(
 
 
 def _combine_addons(
-    fn: Callable[[_manager.Manager, object], Iterable[Defn]],
+    fn: Callable[[_manager.Manager, _T], Iterable[Defn]],
     ctx: click.Context,
-    __: click.Parameter,
-    value: object,
+    _: click.Parameter,
+    value: _T,
 ):
     addons: list[Defn] = ctx.params.setdefault('addons', [])
     if value:
