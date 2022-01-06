@@ -79,13 +79,13 @@ def format_(session: nox.Session):
 def test(session: nox.Session, constraints: str):
     "Run the test suite."
     mirror_repo(session)
-    install_coverage_hook(session)
 
     constraints_txt = 'constraints.txt'
     with open(constraints_txt, 'w') as file:
         file.write(constraints)
 
     session.install('-c', constraints_txt, '.[gui, test]', './tests/plugin')
+    install_coverage_hook(session)
     session.run(
         'coverage',
         'run',
