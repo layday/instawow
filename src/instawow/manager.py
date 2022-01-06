@@ -446,7 +446,7 @@ class Manager:
         pkg.insert(self.database)
         return R.PkgInstalled(pkg)
 
-    def update_pkg(self, pkg1: models.Pkg, pkg2: models.Pkg, archive: Path) -> R.PkgUpdated:
+    def update_pkg(self, old_pkg: models.Pkg, new_pkg: models.Pkg, archive: Path) -> R.PkgUpdated:
         "Update a package."
         with _open_pkg_archive(archive) as (top_level_folders, extract):
             installed_conflicts = self.database.execute(
@@ -454,31 +454,34 @@ class Manager:
                 .distinct()
                 .join(db.pkg_folder)
                 .filter(
-                    db.pkg_folder.c.pkg_source != pkg2.source,
-                    db.pkg_folder.c.pkg_id != pkg2.id,
+                    db.pkg_folder.c.pkg_source != new_pkg.source,
+                    db.pkg_folder.c.pkg_id != new_pkg.id,
                     db.pkg_folder.c.name.in_(top_level_folders),
                 )
             ).all()
             if installed_conflicts:
                 raise R.PkgConflictsWithInstalled(installed_conflicts)
 
-            unreconciled_conflicts = top_level_folders - {f.name for f in pkg1.folders} & {
+            unreconciled_conflicts = top_level_folders - {f.name for f in old_pkg.folders} & {
                 f.name for f in self.config.addon_dir.iterdir()
             }
             if unreconciled_conflicts:
                 raise R.PkgConflictsWithUnreconciled(unreconciled_conflicts)
 
             trash(
-                [self.config.addon_dir / f.name for f in pkg1.folders],
+                [self.config.addon_dir / f.name for f in old_pkg.folders],
                 dest=self.config.global_config.temp_dir,
                 missing_ok=True,
             )
+            old_pkg.delete(self.database)
+
             extract(self.config.addon_dir)
 
-        pkg2 = evolve_model_obj(pkg2, folders=[{'name': f} for f in sorted(top_level_folders)])
-        pkg1.delete(self.database)
-        pkg2.insert(self.database)
-        return R.PkgUpdated(pkg1, pkg2)
+        new_pkg = evolve_model_obj(
+            new_pkg, folders=[{'name': f} for f in sorted(top_level_folders)]
+        )
+        new_pkg.insert(self.database)
+        return R.PkgUpdated(old_pkg, new_pkg)
 
     def remove_pkg(self, pkg: models.Pkg, keep_folders: bool) -> R.PkgRemoved:
         "Remove a package."
