@@ -670,6 +670,7 @@
       <SearchOptionsModal
         flavour={config.game_flavour}
         sources={Object.values(sources)}
+        {searchFilterInstalled}
         on:requestSearch={() => search()}
         on:requestReset={() => resetSearchState()}
         bind:show={searchOptionsModal}

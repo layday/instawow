@@ -7,8 +7,9 @@
   import Modal from "./Modal.svelte";
 
   export let show: boolean,
-    sources: Source[],
     flavour: Flavour,
+    sources: Source[],
+    searchFilterInstalled: boolean,
     searchSources: string[],
     searchFromAlias: boolean,
     searchStartDate: string | null,
@@ -80,7 +81,11 @@
           {/each}
         </ul>
         <label for="__search-strategy">strategy:</label>
-        <select id="__search-strategy" bind:value={searchStrategy}>
+        <select
+          id="__search-strategy"
+          disabled={searchFilterInstalled}
+          bind:value={searchStrategy}
+        >
           {#each Object.values(Strategy) as strategy}
             <option value={strategy}>{strategy}</option>
           {/each}

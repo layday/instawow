@@ -34,11 +34,6 @@
       searchFilterInstalled = !searchFilterInstalled;
       if (searchFilterInstalled) {
         searchBox.focus();
-        if (searchTerms) {
-          dispatch("requestSearch");
-        }
-      } else {
-        activeView = View.Installed;
       }
     }
   };
@@ -175,7 +170,7 @@
             {installedOutdatedCount ? `update ${installedOutdatedCount}` : "no updates"}
           </button>
         </li>
-      {:else if activeView === View.Search}
+      {:else if activeView === View.Search || activeView === View.FilterInstalled}
         <li>
           <button
             class="control"
