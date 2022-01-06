@@ -40,6 +40,7 @@ from .resolvers import (
 from .utils import (
     bucketise,
     chain_dict,
+    evolve_model_obj,
     file_uri_to_path,
     find_addon_zip_base_dirs,
     gather,
@@ -441,9 +442,7 @@ class Manager:
 
             extract(self.config.addon_dir)
 
-        pkg = models.Pkg.parse_obj(
-            {**pkg.__dict__, 'folders': [{'name': f} for f in sorted(top_level_folders)]}
-        )
+        pkg = evolve_model_obj(pkg, folders=[{'name': f} for f in sorted(top_level_folders)])
         pkg.insert(self.database)
         return R.PkgInstalled(pkg)
 
@@ -476,9 +475,7 @@ class Manager:
             )
             extract(self.config.addon_dir)
 
-        pkg2 = models.Pkg.parse_obj(
-            {**pkg2.__dict__, 'folders': [{'name': f} for f in sorted(top_level_folders)]}
-        )
+        pkg2 = evolve_model_obj(pkg2, folders=[{'name': f} for f in sorted(top_level_folders)])
         pkg1.delete(self.database)
         pkg2.insert(self.database)
         return R.PkgUpdated(pkg1, pkg2)
@@ -577,7 +574,8 @@ class Manager:
 
         deps = await self.resolve(list(starmap(Defn, dep_defns)))
         pretty_deps = {
-            d.with_(alias=r.slug) if isinstance(r, models.Pkg) else d: r for d, r in deps.items()
+            evolve_model_obj(d, alias=r.slug) if isinstance(r, models.Pkg) else d: r
+            for d, r in deps.items()
         }
         return pretty_deps
 
@@ -756,7 +754,7 @@ class Manager:
             # corresponding installed package.  Using the ID has the benefit
             # of resolving installed-but-renamed packages - the slug is
             # transient but the ID isn't
-            d.with_(id=p.id) if retain_defn_strategy else Defn.from_pkg(p): d
+            evolve_model_obj(d, id=p.id) if retain_defn_strategy else Defn.from_pkg(p): d
             for d, p in defns_to_pkgs.items()
         }
         # Discard the reconstructed ``Defn``s

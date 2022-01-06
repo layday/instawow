@@ -21,7 +21,7 @@ from . import _deferred_types, manager, models
 from . import results as R
 from .cataloguer import BaseCatatalogueEntry
 from .common import ChangelogFormat, Flavour, Strategy
-from .utils import gather, normalise_names, uniq
+from .utils import evolve_model_obj, gather, normalise_names, uniq
 
 
 class Defn(BaseModel, frozen=True):
@@ -40,11 +40,8 @@ class Defn(BaseModel, frozen=True):
             pkg.source, pkg.slug, id=pkg.id, strategy=pkg.options.strategy, version=pkg.version
         )
 
-    def with_(self, **kwargs: Any) -> Defn:
-        return self.__class__(**{**self.__dict__, **kwargs})
-
     def with_version(self, version: str) -> Defn:
-        return self.with_(strategy=Strategy.version, version=version)
+        return evolve_model_obj(self, strategy=Strategy.version, version=version)
 
     def to_urn(self) -> str:
         return f'{self.source}:{self.alias}'

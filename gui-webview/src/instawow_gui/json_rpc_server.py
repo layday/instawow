@@ -10,7 +10,7 @@ import importlib.resources
 import os
 from pathlib import Path
 import typing
-from typing import TYPE_CHECKING, Any, TypeVar
+from typing import Any, TypeVar
 
 import aiohttp
 import aiohttp.web
@@ -34,6 +34,7 @@ from instawow.common import Flavour, Strategy
 from instawow.config import Config, GlobalConfig
 from instawow.manager import LocksType, Manager, TraceRequestCtx, init_web_client, is_outdated
 from instawow.resolvers import Defn
+from instawow.utils import evolve_model_obj
 from instawow.utils import run_in_thread as t
 from instawow.utils import uniq
 
@@ -250,7 +251,7 @@ class ResolveParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
                 pair = manager.pair_uri(defn.alias)
                 if pair:
                     source, alias = pair
-                    defn = defn.with_(source=source, alias=alias)
+                    defn = evolve_model_obj(defn, source=source, alias=alias)
             return defn
 
         return await manager.resolve(list(map(extract_source, self.defns)))

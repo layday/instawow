@@ -31,7 +31,7 @@ from .common import Flavour, Strategy
 from .config import Config, GlobalConfig, setup_logging
 from .plugins import load_plugins
 from .resolvers import ChangelogFormat, Defn
-from .utils import StrEnum, all_eq, cached_property, gather, tabulate, uniq
+from .utils import StrEnum, all_eq, cached_property, evolve_model_obj, gather, tabulate, uniq
 
 _T = TypeVar('_T')
 _F = TypeVar('_F', bound='Callable[..., object]')
@@ -314,7 +314,7 @@ def parse_into_defn_with_strategy(
     manager: _manager.Manager, value: Sequence[tuple[Strategy, str]]
 ) -> Iterator[Defn]:
     defns = parse_into_defn(manager, [d for _, d in value])
-    return map(lambda d, s: d.with_(strategy=s), defns, (s for s, _ in value))
+    return map(lambda d, s: evolve_model_obj(d, strategy=s), defns, (s for s, _ in value))
 
 
 def parse_into_defn_with_version(
@@ -693,7 +693,7 @@ def search(
     )
     defns = [Defn(e.source, e.id) for e in entries]
     pkgs = (
-        (d.with_(alias=r.slug), r)
+        (evolve_model_obj(d, alias=r.slug), r)
         for d, r in run_with_progress(manager.resolve(defns)).items()
         if isinstance(r, models.Pkg)
     )

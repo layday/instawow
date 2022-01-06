@@ -17,6 +17,7 @@ from instawow.resolvers import (
     TukuiResolver,
     WowiResolver,
 )
+from instawow.utils import evolve_model_obj
 
 
 @pytest.mark.asyncio
@@ -198,7 +199,7 @@ async def test_github_changelog_is_data_url(iw_manager: Manager):
 async def test_unsupported_strategies(iw_manager: Manager, resolver: Resolver):
     defn = Defn(resolver.source, 'foo')
     for strategy in set(Strategy) - {Strategy.version} - resolver.strategies:
-        strategy_defn = defn.with_(strategy=strategy)
+        strategy_defn = evolve_model_obj(defn, strategy=strategy)
 
         results = await iw_manager.resolve([strategy_defn])
 
