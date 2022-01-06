@@ -15,7 +15,7 @@ from prompt_toolkit.output import DummyOutput
 import pytest
 
 from instawow import __version__
-from instawow.cli import main
+from instawow.cli import cli
 from instawow.common import Flavour
 from instawow.config import Config
 from instawow.models import PkgList
@@ -38,7 +38,7 @@ def run(
     monkeypatch.setattr('prompt_toolkit.shortcuts.progress_bar.ProgressBar', mock.MagicMock())
     monkeypatch.setattr('asyncio.run', event_loop.run_until_complete)
     monkeypatch.setenv('INSTAWOW_CONFIG_DIR', str(iw_config.global_config.config_dir))
-    yield partial(CliRunner().invoke, main, catch_exceptions=False)
+    yield partial(CliRunner().invoke, cli, catch_exceptions=False)
 
 
 @pytest.fixture

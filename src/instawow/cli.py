@@ -22,6 +22,7 @@ import textwrap
 from typing import Any, NoReturn, TypeVar, overload
 
 import click
+from loguru import logger
 
 from . import __version__, _deferred_types, db
 from . import manager as _manager
@@ -268,10 +269,13 @@ def _set_log_level(_: click.Context, __: click.Parameter, value: bool):
     help='Activate the specified profile.',
 )
 @click.pass_context
-def main(ctx: click.Context, log_level: str, log_to_stderr: bool, profile: str) -> None:
+def cli(ctx: click.Context, log_level: str, log_to_stderr: bool, profile: str) -> None:
     "Add-on manager for World of Warcraft."
     _apply_patches()
     ctx.obj = ManagerWrapper(ctx)
+
+
+main = logger.catch(reraise=True)(cli)
 
 
 @overload
@@ -338,7 +342,7 @@ def _combine_addons(
 _EXCLUDED_STRATEGIES = frozenset({Strategy.default, Strategy.version})
 
 
-@main.command()
+@cli.command()
 @click.argument(
     'addons', nargs=-1, callback=partial(_combine_addons, parse_into_defn), expose_value=False
 )
@@ -375,7 +379,7 @@ def install(manager: _manager.Manager, addons: Sequence[Defn], replace: bool) ->
     Report(results.items()).generate_and_exit()
 
 
-@main.command()
+@cli.command()
 @click.argument('addons', nargs=-1, callback=_with_manager(parse_into_defn))
 @ManagerWrapper.pass_manager
 def update(manager: _manager.Manager, addons: Sequence[Defn]) -> None:
@@ -409,7 +413,7 @@ def update(manager: _manager.Manager, addons: Sequence[Defn]) -> None:
     Report(results.items(), filter_results).generate_and_exit()
 
 
-@main.command()
+@cli.command()
 @click.argument('addons', nargs=-1, required=True, callback=_with_manager(parse_into_defn))
 @click.option(
     '--keep-folders',
@@ -424,7 +428,7 @@ def remove(manager: _manager.Manager, addons: Sequence[Defn], keep_folders: bool
     Report(results.items()).generate_and_exit()
 
 
-@main.command()
+@cli.command()
 @click.argument('addon', callback=_with_manager(parse_into_defn))
 @click.option(
     '--version',
@@ -484,7 +488,7 @@ def rollback(manager: _manager.Manager, addon: Defn, version: str | None, undo: 
     ).generate_and_exit()
 
 
-@main.command()
+@cli.command()
 @click.option('--auto', '-a', is_flag=True, default=False, help='Do not ask for user input.')
 @click.option(
     '--installed',
@@ -654,7 +658,7 @@ def _parse_iso_date_into_datetime(_: click.Context, __: click.Parameter, value: 
         return datetime.strptime(value, '%Y-%m-%d').replace(tzinfo=timezone.utc)
 
 
-@main.command()
+@cli.command()
 @click.argument('search-terms', nargs=-1, required=True, callback=_concat_search_terms)
 @click.option(
     '--limit',
@@ -712,7 +716,7 @@ class _ListFormats(StrEnum):
     json = 'json'
 
 
-@main.command('list')
+@cli.command('list')
 @click.argument(
     'addons', nargs=-1, callback=_with_manager(partial(parse_into_defn, raise_invalid=False))
 )
@@ -796,7 +800,7 @@ def list_installed(
         )
 
 
-@main.command(hidden=True)
+@cli.command(hidden=True)
 @click.argument('addon', callback=_with_manager(partial(parse_into_defn, raise_invalid=False)))
 @click.pass_context
 def info(ctx: click.Context, addon: Defn) -> None:
@@ -804,7 +808,7 @@ def info(ctx: click.Context, addon: Defn) -> None:
     ctx.invoke(list_installed, addons=(addon,), output_format=_ListFormats.detailed)
 
 
-@main.command()
+@cli.command()
 @click.argument('addon', callback=_with_manager(partial(parse_into_defn, raise_invalid=False)))
 @ManagerWrapper.pass_manager
 def reveal(manager: _manager.Manager, addon: Defn) -> None:
@@ -816,7 +820,7 @@ def reveal(manager: _manager.Manager, addon: Defn) -> None:
         Report([(addon, R.PkgNotInstalled())]).generate_and_exit()
 
 
-@main.command()
+@cli.command()
 @click.argument(
     'addon', callback=_with_manager(partial(parse_into_defn, raise_invalid=False)), required=False
 )
@@ -927,7 +931,7 @@ class _EditableConfigOptions(StrEnum):
     github_access_token = 'access_tokens.github'
 
 
-@main.command()
+@cli.command()
 @click.option(
     '--show-active',
     is_flag=True,
@@ -1012,7 +1016,7 @@ def configure(
     return config
 
 
-@main.group('weakauras-companion')
+@cli.group('weakauras-companion')
 def _weakauras_group() -> None:
     "Manage your WeakAuras."
 
@@ -1043,7 +1047,7 @@ def list_installed_wago_auras(manager: _manager.Manager) -> None:
     click.echo(tabulate([('in file', 'name', 'URL'), *installed_auras]))
 
 
-@main.command(hidden=True)
+@cli.command(hidden=True)
 @click.option(
     '--start-date',
     callback=_parse_iso_date_into_datetime,
@@ -1066,7 +1070,7 @@ def generate_catalogue(start_date: datetime | None) -> None:
     )
 
 
-@main.command()
+@cli.command()
 @click.pass_context
 def gui(ctx: click.Context) -> None:
     "Fire up the GUI."
