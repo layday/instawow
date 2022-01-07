@@ -91,6 +91,13 @@ combine = [
   "src/instawow", "**/instawow",
 ]
 
+[tool.coverage.report]
+exclude_lines = [
+  "pragma: no cover",
+  "raise NotImplementedError",
+  "@overload"
+]
+
 [tool.pytest.ini_options]
 markers = [
   "iw_no_mock",
