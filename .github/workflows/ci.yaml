@@ -21,6 +21,8 @@ jobs:
           nox
           --force-python ${{ matrix.python-version }} --error-on-missing-interpreters
           -s test
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v2
   type-check:
     strategy:
       fail-fast: false

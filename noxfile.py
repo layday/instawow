@@ -97,6 +97,7 @@ def test(session: nox.Session, constraints: str):
     )
     session.run('coverage', 'combine')
     session.run('coverage', 'report', '-m')
+    session.run('coverage', 'xml')
 
 
 @nox.session(python='3.9')
