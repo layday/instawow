@@ -269,7 +269,7 @@ async def test_get_changelog_from_web_url(iw_manager: Manager):
     ).startswith('<h3>Changes in 90105.81-Release:</h3>')
 
 
-@pytest.mark.iw_no_mock
+@pytest.mark.iw_no_mock_http
 @pytest.mark.asyncio
 async def test_is_outdated_works_in_variety_of_scenarios(
     monkeypatch: pytest.MonkeyPatch, aresponses: ResponsesMockServer, iw_temp_dir: Path

@@ -100,7 +100,7 @@ exclude_lines = [
 
 [tool.pytest.ini_options]
 markers = [
-  "iw_no_mock",
+  "iw_no_mock_http",
 ]
 xfail_strict = true
 filterwarnings = [

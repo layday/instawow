@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from collections.abc import Callable as C
 from functools import partial
-from itertools import product
 import json
 from typing import Any
 
@@ -17,6 +16,8 @@ try:
     from instawow_gui import json_rpc_server
 except ImportError:
     pytestmark = pytest.mark.skip(reason='instawow_gui is not available')
+else:
+    pytestmark = pytest.mark.iw_no_mock_http
 
 
 dumps = partial(json.dumps, default=str)
@@ -82,8 +83,8 @@ async def test_write_config(
     await ws.send_json(rpc_request, dumps=dumps)
     rpc_response = await ws.receive_json()
     assert rpc_response['id'] == request.node.name
-    assert Config(**rpc_response['result']) == Config(
-        global_config=iw_global_config_values, **config_values
+    assert Config.parse_obj(rpc_response['result']) == Config.parse_obj(
+        {'global_config': iw_global_config_values, **config_values}
     )
 
 

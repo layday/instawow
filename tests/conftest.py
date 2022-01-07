@@ -25,7 +25,7 @@ FIXTURES = Path(__file__).parent / 'fixtures'
 
 
 def pytest_addoption(parser: pytest.Parser):
-    parser.addoption('--iw-no-mock', action='store_true')
+    parser.addoption('--iw-no-mock-http', action='store_true')
 
 
 def should_mock(fn: Callable[..., object]):
@@ -33,13 +33,10 @@ def should_mock(fn: Callable[..., object]):
     import warnings
 
     def wrapper(request: pytest.FixtureRequest):
-        if request.config.getoption('--iw-no-mock'):
+        if request.config.getoption('--iw-no-mock-http'):
             warnings.warn('not mocking')
             return None
-        elif any(m.name == 'iw_no_mock' for m in request.node.iter_markers()):
-            return None
-        elif request.module.__name__ == 'test_json_rpc_api':
-            # aresponses conflicts with aiohttp's own test server
+        elif any(m.name == 'iw_no_mock_http' for m in request.node.iter_markers()):
             return None
 
         args = (request.getfixturevalue(p) for p in inspect.signature(fn).parameters)
