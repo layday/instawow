@@ -1,3 +1,6 @@
+[build-system]
+requires = ["briefcase @ git+https://github.com/layday/briefcase@instawow"]
+
 [tool.briefcase]
 project_name = "instawow-gui"
 bundle = "org.instawow"
