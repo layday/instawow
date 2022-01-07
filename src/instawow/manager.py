@@ -625,6 +625,7 @@ class Manager:
         limit: int,
         sources: Set[str] = frozenset(),
         start_date: datetime | None = None,
+        installed_only: bool = False,
     ) -> list[CatalogueEntry]:
         "Search the master catalogue for packages by name."
         import rapidfuzz
@@ -633,6 +634,8 @@ class Manager:
 
         ew = 0.5
         dw = 1 - ew
+
+        threshold = 0 if search_terms == '*' else 70
 
         if not sources:
             sources = self.resolvers.keys()
@@ -666,12 +669,26 @@ class Manager:
 
         s = self._normalise_search_terms(search_terms)
 
+        if installed_only:
+            entries = (
+                e
+                for p in self.database.execute(sa.select(db.pkg.c.source, db.pkg.c.id)).all()
+                for e in (catalogue.keyed_entries.get(p),)
+                if e
+            )
+        else:
+            entries = catalogue.entries
+
         tokens_to_entries = bucketise(
-            ((e.normalised_name, e) for e in catalogue.entries if all(f(e) for f in filter_fns)),
+            ((e.normalised_name, e) for e in entries if all(f(e) for f in filter_fns)),
             key=lambda v: v[0],
         )
         matches = rapidfuzz.process.extract(
-            s, list(tokens_to_entries), scorer=rapidfuzz.fuzz.WRatio, limit=limit * 2
+            s,
+            list(tokens_to_entries),
+            scorer=rapidfuzz.fuzz.WRatio,
+            limit=limit * 2,
+            score_cutoff=threshold,
         )
         weighted_entries = sorted(
             (

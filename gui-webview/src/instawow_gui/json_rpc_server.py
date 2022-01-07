@@ -217,6 +217,7 @@ class SearchParams(_ProfileParamMixin, BaseParams):
     limit: int
     sources: typing.Set[str]
     start_date: typing.Optional[datetime]
+    installed_only: bool
 
     async def respond(
         self, managers: _ManagerWorkQueue, app_window: toga.MainWindow | None
@@ -229,6 +230,7 @@ class SearchParams(_ProfileParamMixin, BaseParams):
                 limit=self.limit,
                 sources=self.sources,
                 start_date=self.start_date,
+                installed_only=self.installed_only,
             ),
         )
 

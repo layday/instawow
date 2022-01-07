@@ -332,7 +332,8 @@
             searchTermsSnapshot,
             searchLimit,
             searchSources,
-            searchStartDate
+            searchStartDate,
+            searchFilterInstalled
           );
 
           if (searchTermsSnapshot !== searchTerms) {

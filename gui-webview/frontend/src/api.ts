@@ -212,7 +212,8 @@ export class Api {
     searchTerms: string,
     limit: number,
     sources: string[],
-    startDate: string | null
+    startDate: string | null,
+    installedOnly: boolean
   ): Promise<CatalogueEntry[]> {
     return await this.request({
       method: "search",
@@ -222,6 +223,7 @@ export class Api {
         limit: limit,
         sources: sources,
         start_date: startDate !== null ? new Date(startDate) : startDate,
+        installed_only: installedOnly,
       },
     });
   }

@@ -196,7 +196,7 @@ async def test_removing_pkg_with_missing_folders(iw_manager: Manager, keep_folde
 async def test_basic_search(iw_manager: Manager):
     limit = 5
     results = await iw_manager.search('molinari', limit=limit)
-    assert len(results) == limit
+    assert len(results) <= 5
     assert {('curse', 'molinari'), ('wowi', '13188')} <= {
         (e.source, e.slug or e.id) for e in results
     }
