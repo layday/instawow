@@ -9,7 +9,11 @@ jobs:
       fail-fast: false
       matrix:
         os: [macos-latest, ubuntu-latest, windows-latest]
-        python-version: ["3.7", "3.8", "3.9", "3.10"]
+        python-version: ["3.9", "3.10"]
+        include:
+          - { os: ubuntu-latest, python-version: "3.7" }
+          - { os: ubuntu-latest, python-version: "3.8" }
+          - { os: windows-latest, python-version: "3.8" }
     runs-on: ${{ matrix.os }}
     steps:
       - name: Clone the repo
@@ -28,7 +32,11 @@ jobs:
       fail-fast: false
       matrix:
         os: [macos-latest, ubuntu-latest, windows-latest]
-        python-version: ["3.7", "3.8", "3.9", "3.10"]
+        python-version: ["3.9", "3.10"]
+        include:
+          - { os: ubuntu-latest, python-version: "3.7" }
+          - { os: ubuntu-latest, python-version: "3.8" }
+          - { os: windows-latest, python-version: "3.8" }
     runs-on: ${{ matrix.os }}
     steps:
       - name: Clone the repo
@@ -44,7 +52,7 @@ jobs:
           nox
           --force-python ${{ matrix.python-version }} --error-on-missing-interpreters
           -s type_check
-  check-format:
+  format-check:
     runs-on: ubuntu-latest
     steps:
       - name: Clone the repo
