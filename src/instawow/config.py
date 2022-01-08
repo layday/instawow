@@ -4,6 +4,7 @@ from collections.abc import Iterable, Set
 import json
 import os
 from pathlib import Path, PurePath
+import sys
 from tempfile import gettempdir
 import typing
 from typing import Any
@@ -259,18 +260,25 @@ def setup_logging(
     if log_level == 'DEBUG':
         _intercept_logging_module_calls(log_level)
 
-    if not log_to_stderr:
-        _patch_loguru_enqueue()
+    _patch_loguru_enqueue()
 
-        (handler_id,) = logger.configure(
-            handlers=[
-                {
-                    'sink': logging_dir / 'error.log',
-                    'level': log_level,
-                    'rotation': '5 MB',
-                    'retention': 5,  # Number of log files to keep
-                    'enqueue': True,
-                },
-            ]
-        )
-        return handler_id
+    values = {
+        'level': log_level,
+        'enqueue': True,
+    }
+    (handler_id,) = logger.configure(
+        handlers=[
+            {
+                **values,
+                'sink': sys.stderr,
+            }
+            if log_to_stderr
+            else {
+                **values,
+                'sink': logging_dir / 'error.log',
+                'rotation': '5 MB',
+                'retention': 5,  # Number of log files to keep
+            },
+        ]
+    )
+    return handler_id
