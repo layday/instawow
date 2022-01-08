@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from datetime import datetime
+import json
 import typing
 from typing import Any
 
@@ -12,7 +13,7 @@ from .config import Flavour
 from .utils import bucketise, cached_property, normalise_names
 
 
-class _SameAs(BaseModel):
+class _BaseCatalogueSameAs(BaseModel):
     source: str
     id: str
 
@@ -27,10 +28,22 @@ class BaseCatatalogueEntry(BaseModel):
     download_count: int
     last_updated: datetime
     folders: typing.List[typing.Set[str]] = []
-    same_as: typing.List[_SameAs] = []
+    same_as: typing.List[_BaseCatalogueSameAs] = []
 
 
-class CatalogueEntry(BaseCatatalogueEntry):
+class _SerialisedClassNameModel(BaseModel):
+    def dict(self, *args: object, **kwargs: object):
+        dict_ = super().dict(*args, **kwargs)
+        dict_['_type'] = self.__class__.__name__
+        return dict_
+
+
+class _CatalogueSameAs(_SerialisedClassNameModel, _BaseCatalogueSameAs):
+    pass
+
+
+class CatalogueEntry(_SerialisedClassNameModel, BaseCatatalogueEntry):
+    same_as: typing.List[_CatalogueSameAs] = []  # type: ignore
     normalised_name: str
     derived_download_score: float
 
@@ -49,15 +62,17 @@ class BaseCatalogue(BaseModel, json_encoders={set: sorted}):
 
 
 class Catalogue(BaseModel, keep_untouched=(cached_property,)):
-    version = 1
+    version = 2
     entries: typing.List[CatalogueEntry]
     curse_slugs: typing.Dict[str, str]
 
     @classmethod
-    def from_base_catalogue(cls, raw_base_catalogue: Sequence[Any], start_date: datetime | None):
+    def from_base_catalogue(
+        cls, base_catalogue_values: Sequence[object], start_date: datetime | None
+    ):
         normalise = normalise_names('')
 
-        base_entries = BaseCatalogue.parse_obj(raw_base_catalogue).entries
+        base_entries = BaseCatalogue.parse_obj(base_catalogue_values).entries
         if start_date is not None:
             base_entries = [e for e in base_entries if e.last_updated >= start_date]
 
@@ -67,7 +82,7 @@ class Catalogue(BaseModel, keep_untouched=(cached_property,)):
         }
         same_as_from_github = {
             (s.source, s.id): [
-                _SameAs(source=e.source, id=e.id),
+                _CatalogueSameAs(source=e.source, id=e.id),
                 *(i for i in e.same_as if i.source != s.source),
             ]
             for e in base_entries
@@ -93,6 +108,27 @@ class Catalogue(BaseModel, keep_untouched=(cached_property,)):
             entries=entries,
             curse_slugs={e.slug: e.id for e in entries if e.source == 'curse'},
         )
+
+    @classmethod
+    def from_cache(cls, raw_catalogue: bytes):
+        def parse_model_obj(values: Mapping[str, Any]):
+            if '_type' not in values:
+                return values
+            elif values['_type'] == '_CatalogueSameAs':
+                return _CatalogueSameAs.construct(**values)
+            elif values['_type'] == 'CatalogueEntry':
+                return CatalogueEntry.construct(
+                    **{
+                        **values,
+                        'game_flavours': {Flavour(f) for f in values['game_flavours']},
+                        'last_updated': datetime.fromisoformat(values['last_updated']),
+                        'folders': [set(f) for f in values['folders']],
+                    }
+                )
+            else:
+                raise ValueError('Unknown type', values['_type'])
+
+        return cls.construct(**json.loads(raw_catalogue, object_hook=parse_model_obj))
 
     @cached_property
     def keyed_entries(self) -> dict[tuple[str, str], CatalogueEntry]:

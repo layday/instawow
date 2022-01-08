@@ -181,7 +181,9 @@ class WaCompanionBuilder:
                 else:
                     start = time.perf_counter()
                     aura_groups = self.extract_auras(model, content)
-                    logger.debug(f'{model.__name__} extracted in {time.perf_counter() - start}s')
+                    logger.debug(
+                        f'extracted {model.__name__} in {time.perf_counter() - start:.3f}s'
+                    )
                     aura_group_cache.write_text(aura_groups.json(), encoding='utf-8')
                 yield aura_groups
 
