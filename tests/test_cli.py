@@ -77,7 +77,9 @@ def molinari_version_suffix(
         return ''
 
 
-@pytest.mark.parametrize('alias', ['curse:molinari', 'wowi:13188-molinari', 'tukui:1'])
+@pytest.mark.parametrize(
+    'alias', ['curse:molinari', 'wowi:13188-molinari', 'tukui:1', 'github:p3lim-wow/Molinari']
+)
 def test_valid_pkg_lifecycle(
     run: C[[str], Result],
     alias: str,
@@ -91,7 +93,7 @@ def test_valid_pkg_lifecycle(
 
 
 @pytest.mark.parametrize('alias', ['curse:gargantuan-wigs'])
-def test_invalid_alias_pkg_lifecycle(
+def test_nonexistent_pkg_lifecycle(
     run: C[[str], Result],
     alias: str,
 ):
@@ -101,7 +103,7 @@ def test_invalid_alias_pkg_lifecycle(
 
 
 @pytest.mark.parametrize('alias', ['foo:bar'])
-def test_invalid_source_pkg_lifecycle(
+def test_invalid_source_lifecycle(
     run: C[[str], Result],
     alias: str,
 ):
@@ -144,95 +146,6 @@ def test_keep_folders_on_remove(
         == '✓ curse:molinari\n  removed\n'
     )
     assert iw_config.addon_dir.joinpath('Molinari').is_dir()
-
-
-def test_install_with_curse_alias(
-    run: C[[str], Result],
-):
-    assert run('install curse:molinari').output.startswith('✓ curse:molinari\n  installed')
-    assert run('install curse:20338').output == '✗ curse:20338\n  package already installed\n'
-    assert (
-        run('install https://www.curseforge.com/wow/addons/molinari').output
-        == '✗ curse:molinari\n  package already installed\n'
-    )
-    assert (
-        run('install https://www.curseforge.com/wow/addons/molinari/download').output
-        == '✗ curse:molinari\n  package already installed\n'
-    )
-
-
-def test_install_with_tukui_alias(
-    iw_config: Config,
-    run: C[[str], Result],
-):
-    if iw_config.game_flavour is Flavour.retail:
-        assert run('install tukui:-1').output.startswith('✓ tukui:-1\n  installed')
-        assert run('install tukui:tukui').output == '✗ tukui:tukui\n  package already installed\n'
-        assert (
-            run('install https://www.tukui.org/download.php?ui=tukui').output
-            == '✗ tukui:tukui\n  package already installed\n'
-        )
-    else:
-        assert run('install tukui:-1').output == '✗ tukui:-1\n  package does not exist\n'
-        assert run('install tukui:tukui').output == '✗ tukui:tukui\n  package does not exist\n'
-        assert (
-            run('install https://www.tukui.org/download.php?ui=tukui').output
-            == '✗ tukui:tukui\n  package does not exist\n'
-        )
-    assert run('install https://www.tukui.org/addons.php?id=1').output.startswith(
-        '✓ tukui:1\n  installed'
-    )
-    assert run('install tukui:1').output == '✗ tukui:1\n  package already installed\n'
-
-
-def test_install_with_wowi_alias(
-    run: C[[str], Result],
-):
-    assert run('install wowi:13188').output.startswith('✓ wowi:13188\n  installed')
-    assert (
-        run('install wowi:13188-molinari').output
-        == '✗ wowi:13188-molinari\n  package already installed\n'
-    )
-    assert (
-        run('install https://www.wowinterface.com/downloads/landing.php?fileid=13188').output
-        == '✗ wowi:13188\n  package already installed\n'
-    )
-    assert (
-        run('install https://www.wowinterface.com/downloads/fileinfo.php?id=13188').output
-        == '✗ wowi:13188\n  package already installed\n'
-    )
-    assert (
-        run('install https://www.wowinterface.com/downloads/download13188-Molinari').output
-        == '✗ wowi:13188\n  package already installed\n'
-    )
-    assert (
-        run('install https://www.wowinterface.com/downloads/info13188-Molinari.html').output
-        == '✗ wowi:13188\n  package already installed\n'
-    )
-
-
-def test_install_with_github_alias(
-    run: C[[str], Result],
-):
-    assert run('install github:p3lim-wow/Molinari').output.startswith(
-        '✓ github:p3lim-wow/Molinari\n  installed'
-    )
-    assert (
-        run('install github:p3lim-wow/molinari').output
-        == '✗ github:p3lim-wow/molinari\n  package already installed\n'
-    )
-    assert (
-        run('install https://github.com/p3lim-wow/Molinari').output
-        == '✗ github:p3lim-wow/Molinari\n  package already installed\n'
-    )
-    assert (
-        run('install https://github.com/p3lim-wow/Molinari/releases').output
-        == '✗ github:p3lim-wow/Molinari\n  package already installed\n'
-    )
-    assert (
-        run('remove github:p3lim-wow/molinari').output
-        == '✓ github:p3lim-wow/molinari\n  removed\n'
-    )
 
 
 def test_version_strategy_lifecycle(
