@@ -19,7 +19,19 @@ def mirror_repo(session: nox.Session):
 
 
 def install_coverage_hook(session: nox.Session):
-    session.run('python', 'tests/install_coverage_hook.py')
+    session.run(
+        'python',
+        '-c',
+        '''\
+from pathlib import Path
+import sysconfig
+
+(Path(sysconfig.get_path('purelib')) / 'coverage.pth').write_text(
+    'import coverage; coverage.process_startup()',
+    encoding='utf-8',
+)
+''',
+    )
 
 
 @nox.session(name='format', reuse_venv=True)
