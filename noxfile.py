@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import io
-import os.path
+from pathlib import Path
 import posixpath
 from textwrap import dedent
 from urllib.request import urlopen
@@ -86,7 +86,7 @@ def format_(session: nox.Session):
         ),
     ],
     [
-        'none',
+        'latest',
         'minimum-versions',
     ],
 )
@@ -95,18 +95,13 @@ def test(session: nox.Session, constraints: str):
     mirror_repo(session)
 
     constraints_txt = 'constraints.txt'
-    with open(constraints_txt, 'w') as file:
-        file.write(constraints)
+    Path(constraints_txt).write_text(constraints)
 
     session.install('-c', constraints_txt, '.[gui, test]', './tests/plugin')
     install_coverage_hook(session)
+
     session.run(
-        'coverage',
-        'run',
-        '-m',
-        'pytest',
-        '-n',
-        'auto',
+        *'coverage run -m pytest -n auto'.split(),
         env={'COVERAGE_PROCESS_START': 'pyproject.toml'},
     )
     session.run('coverage', 'combine')
@@ -143,12 +138,9 @@ def bundle_webview2_libs(session: nox.Session):
                 'lib/net45/Microsoft.Web.WebView2.WinForms.dll',
                 'runtimes/win-x64/native/WebView2Loader.dll',
             ]:
-                with nupkg.open(file_path) as file_in, open(
-                    os.path.join(
-                        'gui-webview/src/instawow_gui/webview2', posixpath.basename(file_path)
-                    ),
-                    'wb',
-                ) as file_out:
+                with nupkg.open(file_path) as file_in, Path(
+                    'gui-webview/src/instawow_gui/webview2', posixpath.basename(file_path)
+                ).open('wb') as file_out:
                     file_out.write(file_in.read())
 
 

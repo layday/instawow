@@ -20,13 +20,20 @@ jobs:
         uses: actions/checkout@v2
       - name: Prepare environment
         uses: ./.github/actions/prepare_ci
-      - name: Run tests
+      - name: Run tests (latest)
         run: >-
           nox
-          --force-python ${{ matrix.python-version }} --error-on-missing-interpreters
-          -s test
+          --error-on-missing-interpreters
+          --force-python ${{ matrix.python-version }}
+          -s 'test-${{ matrix.python-version }}(latest)'
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v2
+      - name: Run tests (minimum versions)
+        run: >-
+          nox
+          --error-on-missing-interpreters
+          --force-python ${{ matrix.python-version }}
+          -s 'test-${{ matrix.python-version }}(minimum-versions)'
   type-check:
     strategy:
       fail-fast: false
@@ -50,7 +57,8 @@ jobs:
       - name: Type check
         run: >-
           nox
-          --force-python ${{ matrix.python-version }} --error-on-missing-interpreters
+          --error-on-missing-interpreters
+          --force-python ${{ matrix.python-version }}
           -s type_check
   format-check:
     runs-on: ubuntu-latest
