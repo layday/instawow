@@ -120,3 +120,16 @@ def test_can_delete_profile(
     assert config.profile_dir.exists()
     config.delete()
     assert not config.profile_dir.exists()
+
+
+def test_can_omit_global_config(
+    monkeypatch: pytest.MonkeyPatch,
+    iw_global_config_values: dict[str, Any],
+    iw_config_values: dict[str, Any],
+):
+    global_config = GlobalConfig(**iw_global_config_values)
+    Config(global_config=global_config, **iw_config_values).write()
+
+    monkeypatch.setenv('INSTAWOW_CONFIG_DIR', str(iw_global_config_values['config_dir']))
+    config = Config.read(None, iw_config_values['profile'])
+    assert config.global_config.dict() == global_config.dict()
