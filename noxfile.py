@@ -11,6 +11,8 @@ import nox
 
 nox.options.sessions = ['format', 'test', 'type_check']
 
+WEBVIEW2_VERSION = '1.0.1054.31'
+
 
 def mirror_repo(session: nox.Session):
     repo_dir = f'{session.create_tmp()}/instawow'
@@ -130,10 +132,9 @@ def bundle_frontend(session: nox.Session):
 
 
 @nox.session(python=False)
-def install_webview2_libs(session: nox.Session):
-    version = '1.0.1054.31'
+def bundle_webview2_libs(session: nox.Session):
     with urlopen(
-        f'https://www.nuget.org/api/v2/package/Microsoft.Web.WebView2/{version}'
+        f'https://www.nuget.org/api/v2/package/Microsoft.Web.WebView2/{WEBVIEW2_VERSION}'
     ) as response:
         with ZipFile(io.BytesIO(response.read())) as nupkg:
             for file_path in [
