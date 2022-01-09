@@ -1,10 +1,6 @@
 ---
 name: Create instawow executables
-on:
-  push:
-    # tags:
-    # - v*
-  workflow_dispatch:
+on: [push, workflow_dispatch]
 env:
   FORCE_COLOR: "1"
 defaults:
@@ -25,12 +21,10 @@ jobs:
         with:
           python-version: "3.9"
       - name: Install dunamai
-        run: |
-          python -m pip install dunamai
+        run: python -m pip install dunamai
       - name: Grab the version
         id: get-version
-        run: |
-          echo "::set-output name=INSTAWOW_VERSION::$(dunamai from git --no-metadata)"
+        run: echo "::set-output name=INSTAWOW_VERSION::$(dunamai from git --no-metadata)"
   freeze-cli:
     needs: get-version
     strategy:
@@ -48,16 +42,14 @@ jobs:
         with:
           python-version: "3.9"
       - name: Install nox
-        run: |
-          python -m pip install nox
+        run: python -m pip install nox
       - name: Freeze the CLI
-        run: |
-          python -m nox -s freeze_cli
+        run: nox -s freeze_cli
         env:
           # Install a pure Python copy of Pydantic, it's well over 40 MB
           # on some plats when Cythonised.
           PIP_NO_BINARY: pydantic
-      - name: Upload artefact
+      - name: Upload artifact
         uses: actions/upload-artifact@v2.2.4
         with:
           name: instawow-cli-${{ needs.get-version.outputs.instawow-version }}-${{ matrix.os }}
@@ -97,14 +89,11 @@ jobs:
         with:
           python-version: ${{ matrix.build-env.python-version }}
       - name: Install Nox
-        run: |
-          python -m pip install nox
+        run: python -m pip install nox
       - name: Bundle the frontend
-        run: |
-          nox -s bundle_frontend
+        run: nox -s bundle_frontend
       - name: Install WebView2 libraries
-        run: |
-          nox -s install_webview2_libs
+        run: nox -s install_webview2_libs
         if: matrix.build-env.os == 'windows-latest'
       - name: Patch in the version number
         run: sed -i.bak
@@ -122,8 +111,22 @@ jobs:
           PIP_NO_BINARY: pydantic
           DEPLOY_GTK_VERSION: 3
         working-directory: gui-webview
-      - name: Upload artefact
+      - name: Upload artifact
         uses: actions/upload-artifact@v2
         with:
           name: instawow-gui-${{ needs.get-version.outputs.instawow-version }}-${{ matrix.build-env.os }}
           path: ${{ env.INSTAWOW_ARTIFACT_PATH }}
+  create-release:
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: [freeze-cli, freeze-gui]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download built artifacts
+        uses: actions/download-artifact@v2
+        with:
+          path: release-assets
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        with:
+          draft: true
+          files: release-assets/instawow-*/*
