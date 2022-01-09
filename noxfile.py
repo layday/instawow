@@ -66,20 +66,20 @@ def format_(session: nox.Session):
         '',
         dedent(
             '''\
-            aiohttp ==3.7.4
-            alembic ==1.7.0
-            click ==7.1
-            jinja2 ==2.11.0
-            loguru ==0.5.3
-            pluggy ==0.13.0
-            prompt-toolkit ==3.0.15
-            pydantic ==1.9.0
-            questionary ==1.10.0
-            rapidfuzz ==1.4.1
-            sqlalchemy ==1.4.23
-            typing-extensions ==4.0.0
-            yarl ==1.6.3
-            aiohttp-rpc ==1.0.0
+            aiohttp == 3.7.4
+            alembic == 1.7.0
+            click == 8.0.0
+            jinja2 == 3.0.0
+            loguru == 0.5.3
+            pluggy == 0.13.0
+            prompt-toolkit == 3.0.15
+            pydantic == 1.9.0
+            questionary == 1.10.0
+            rapidfuzz == 1.4.1
+            sqlalchemy == 1.4.23
+            typing-extensions == 4.0.0
+            yarl == 1.6.3
+            aiohttp-rpc == 1.0.0
             '''
         ),
     ],
