@@ -72,8 +72,8 @@ class _BaseSettings(
 
 
 class _AccessTokens(BaseModel):
-    github: typing.Optional[SecretStr]
-    wago: typing.Optional[SecretStr]
+    github: typing.Optional[SecretStr] = None
+    wago: typing.Optional[SecretStr] = None
 
 
 def _encode_reveal_secret_str(value: object):
@@ -88,7 +88,7 @@ class GlobalConfig(_BaseSettings):
     config_dir: Path = Field(default_factory=lambda: Path(click.get_app_dir('instawow')))
     temp_dir: Path = Field(default_factory=lambda: Path(gettempdir(), 'instawow'))
     auto_update_check: bool = True
-    access_tokens: _AccessTokens = _AccessTokens(github=None, wago=None)
+    access_tokens: _AccessTokens = _AccessTokens()
 
     @validator('config_dir', 'temp_dir')
     def _expand_path(cls, value: Path) -> Path:
