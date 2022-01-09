@@ -125,8 +125,19 @@ jobs:
         uses: actions/download-artifact@v2
         with:
           path: release-assets
+      - name: Zip up CLI directories
+        run: |
+          set +x
+
+          for d in instawow-cli-*
+          do
+              zip -r "${d%/}.zip" "$d"
+          done
+        working-directory: release-assets
       - name: Release
         uses: softprops/action-gh-release@v1
         with:
           draft: true
-          files: release-assets/instawow-*/*
+          files: |
+            release-assets/instawow-cli-*.zip
+            release-assets/instawow-gui-*/*
