@@ -60,7 +60,12 @@ def _customise_sources(
     return (env_settings, init_settings)
 
 
-class _BaseSettings(BaseSettings, env_prefix='INSTAWOW_', customise_sources=_customise_sources):
+class _BaseSettings(
+    BaseSettings,
+    env_prefix='INSTAWOW_',
+    env_nested_delimiter='__',
+    customise_sources=_customise_sources,
+):
     @property
     def config_file(self) -> Path:
         raise NotImplementedError
