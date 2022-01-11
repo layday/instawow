@@ -17,12 +17,11 @@ from typing_extensions import NotRequired as N
 from typing_extensions import Protocol, TypedDict
 from yarl import URL
 
-from instawow.config import GlobalConfig
-
 from . import _deferred_types, manager, models
 from . import results as R
 from .cataloguer import BaseCatatalogueEntry
 from .common import ChangelogFormat, Flavour, Strategy
+from .config import GlobalConfig
 from .utils import StrEnum, evolve_model_obj, gather, normalise_names, uniq
 
 
