@@ -5,7 +5,7 @@ from collections.abc import AsyncIterator, Sequence, Set
 from datetime import datetime, timezone
 from enum import IntEnum
 from functools import partial
-from itertools import takewhile
+from itertools import count, takewhile
 import re
 import typing
 from typing import Any, ClassVar
@@ -17,11 +17,13 @@ from typing_extensions import NotRequired as N
 from typing_extensions import Protocol, TypedDict
 from yarl import URL
 
+from instawow.config import GlobalConfig
+
 from . import _deferred_types, manager, models
 from . import results as R
 from .cataloguer import BaseCatatalogueEntry
 from .common import ChangelogFormat, Flavour, Strategy
-from .utils import evolve_model_obj, gather, normalise_names, uniq
+from .utils import StrEnum, evolve_model_obj, gather, normalise_names, uniq
 
 
 class Defn(BaseModel, frozen=True):
@@ -65,8 +67,8 @@ class Resolver(Protocol):
     def __init__(self, manager: manager.Manager) -> None:
         ...
 
-    @staticmethod
-    def get_alias_from_url(url: URL) -> str | None:
+    @classmethod
+    def get_alias_from_url(cls, url: URL) -> str | None:
         "Attempt to extract a ``Defn`` alias from a given URL."
         ...
 
@@ -103,8 +105,8 @@ class BaseResolver(Resolver):
 
         setattr(cls, 'resolve_one', resolve_one)
 
-    @staticmethod
-    def get_alias_from_url(url: URL) -> str | None:
+    @classmethod
+    def get_alias_from_url(cls, url: URL) -> str | None:
         return None
 
     async def resolve(
@@ -126,13 +128,18 @@ class BaseResolver(Resolver):
         yield
 
 
-_CurseFlavor = Literal['wow_burning_crusade', 'wow_classic', 'wow_retail']
+class _CurseFlavor(StrEnum):
+    retail = 'wow_retail'
+    vanilla_classic = 'wow_classic'
+    burning_crusade_classic = 'wow_burning_crusade'
+    classic = burning_crusade_classic
 
 
 class _CurseGameVersionTypeId(IntEnum):
     retail = 517
     vanilla_classic = 67408
     burning_crusade_classic = 73246
+    classic = burning_crusade_classic
 
 
 # Only documenting the fields we're actually using.
@@ -225,8 +232,8 @@ class CurseResolver(BaseResolver):
 
     addon_api_url = URL('https://addons-ecs.forgesvc.net/api/v2/addon')
 
-    @staticmethod
-    def get_alias_from_url(url: URL) -> str | None:
+    @classmethod
+    def get_alias_from_url(cls, url: URL) -> str | None:
         if (
             url.host == 'www.curseforge.com'
             and len(url.parts) > 3
@@ -251,10 +258,10 @@ class CurseResolver(BaseResolver):
             json=[i for i in defns_to_maybe_numeric_ids.values() if i is not None],
         ) as response:
             if response.status == 404:
-                addons: list[_CurseAddon] = []
+                return await super().resolve(defns)
             else:
                 response.raise_for_status()
-                addons = await response.json()
+                addons: list[_CurseAddon] = await response.json()
 
         numeric_ids_to_addons = {str(r['id']): r for r in addons}
         results = await gather(
@@ -299,32 +306,17 @@ class CurseResolver(BaseResolver):
 
                 if defn.strategy is not Strategy.any_flavour:
 
-                    def supports_x(
-                        curse_flavor: _CurseFlavor, curse_type_id: _CurseGameVersionTypeId
-                    ):
-                        def excise_flavour(f: _CurseAddon_File):
-                            return f['gameVersionFlavor'] == curse_flavor or any(
-                                s.get('gameVersionTypeId') == curse_type_id
-                                for s in f['sortableGameVersion']
-                            )
+                    game_flavour = self.manager.config.game_flavour
+                    curse_flavor = _CurseFlavor[game_flavour]
+                    curse_type_id = _CurseGameVersionTypeId[game_flavour]
 
-                        return excise_flavour
+                    def supports_flavour(f: _CurseAddon_File):
+                        return f['gameVersionFlavor'] == curse_flavor or any(
+                            s.get('gameVersionTypeId') == curse_type_id
+                            for s in f['sortableGameVersion']
+                        )
 
-                    if self.manager.config.game_flavour is Flavour.retail:
-                        yield supports_x(
-                            'wow_retail',
-                            _CurseGameVersionTypeId.retail,
-                        )
-                    elif self.manager.config.game_flavour is Flavour.vanilla_classic:
-                        yield supports_x(
-                            'wow_classic',
-                            _CurseGameVersionTypeId.vanilla_classic,
-                        )
-                    elif self.manager.config.game_flavour is Flavour.burning_crusade_classic:
-                        yield supports_x(
-                            'wow_burning_crusade',
-                            _CurseGameVersionTypeId.burning_crusade_classic,
-                        )
+                    yield supports_flavour
 
                 if defn.strategy is not Strategy.latest:
 
@@ -359,11 +351,7 @@ class CurseResolver(BaseResolver):
                 'date_published': file['fileDate'],
                 'version': file['displayName'],
                 'changelog_url': str(
-                    self.addon_api_url
-                    / str(metadata['id'])
-                    / 'file'
-                    / str(file['id'])
-                    / 'changelog'
+                    self.addon_api_url / f'{metadata["id"]}/file/{file["id"]}/changelog'
                 ),
                 'options': {'strategy': defn.strategy},
                 'deps': [{'id': d['addonId']} for d in file['dependencies'] if d['type'] == 3],
@@ -374,40 +362,20 @@ class CurseResolver(BaseResolver):
     async def catalogue(
         cls, web_client: _deferred_types.aiohttp.ClientSession
     ) -> AsyncIterator[BaseCatatalogueEntry]:
-        def supports_x(files: list[_CurseAddon_File]):
-            def excise_flavour(
-                curse_flavor: _CurseFlavor,
-                curse_type_id: _CurseGameVersionTypeId,
-                flavour: Flavour,
-            ):
+        def excise_flavours(files: list[_CurseAddon_File]):
+            for flavour in Flavour:
                 if any(
                     not f['exposeAsAlternative']
                     and (
-                        f['gameVersionFlavor'] == curse_flavor
+                        f['gameVersionFlavor'] == _CurseFlavor[flavour]
                         or any(
-                            s.get('gameVersionTypeId') == curse_type_id
+                            s.get('gameVersionTypeId') == _CurseGameVersionTypeId[flavour]
                             for s in f['sortableGameVersion']
                         )
                     )
                     for f in files
                 ):
                     yield flavour
-
-            yield from excise_flavour(
-                'wow_retail',
-                _CurseGameVersionTypeId.retail,
-                Flavour.retail,
-            )
-            yield from excise_flavour(
-                'wow_classic',
-                _CurseGameVersionTypeId.vanilla_classic,
-                Flavour.vanilla_classic,
-            )
-            yield from excise_flavour(
-                'wow_burning_crusade',
-                _CurseGameVersionTypeId.burning_crusade_classic,
-                Flavour.burning_crusade_classic,
-            )
 
         def get_folders(files: list[_CurseAddon_File]):
             return uniq(frozenset(m['foldername'] for m in f['modules']) for f in files)
@@ -436,10 +404,428 @@ class CurseResolver(BaseResolver):
                         'slug': item['slug'],
                         'name': item['name'],
                         'url': item['websiteUrl'],
-                        'game_flavours': supports_x(item['latestFiles']),
+                        'game_flavours': excise_flavours(item['latestFiles']),
                         'download_count': item['downloadCount'],
                         'last_updated': item['dateReleased'],
                         'folders': get_folders(item['latestFiles']),
+                    }
+                )
+
+
+class _CfCoreModLinks(TypedDict):
+    websiteUrl: str
+    wikiUrl: str
+    issuesUrl: str
+    sourceUrl: str
+
+
+class _CfCoreModStatus(IntEnum):
+    new = 1
+    changed_required = 2
+    under_soft_review = 3
+    approved = 4
+    rejected = 5
+    changes_made = 6
+    inactive = 7
+    abandoned = 8
+    deleted = 9
+    under_review = 10
+
+
+class _CfCoreCategory(TypedDict):
+    id: int
+    gameId: int
+    name: str
+    slug: str
+    url: str
+    iconUrl: str
+    dateModified: str  # date-time
+    isClass: bool
+    classId: int
+    parentCategoryId: int
+
+
+class _CfCoreModAuthor(TypedDict):
+    id: int
+    name: str
+    url: str
+
+
+class _CfCoreModAsset(TypedDict):
+    id: int
+    modId: int
+    title: str
+    description: str
+    thumbnailUrl: str
+    url: str
+
+
+class _CfCoreFileIndex(TypedDict):
+    gameVersion: str
+    fileId: int
+    filename: str
+    releaseType: _CfCoreFileReleaseType
+    gameVersionTypeId: int
+    modLoader: int
+
+
+class _CfCoreFileStatus(IntEnum):
+    processing = 1
+    changes_required = 2
+    under_review = 3
+    approved = 4
+    rejected = 5
+    malware_detected = 6
+    deleted = 7
+    archived = 8
+    testing = 9
+    released = 10
+    ready_for_review = 11
+    deprecated = 12
+    baking = 13
+    awaiting_publishing = 14
+    failed_publishing = 15
+
+
+class _CfCoreFileReleaseType(IntEnum):
+    release = 1
+    beta = 2
+    alpha = 3
+
+
+class _CfCoreHashAlgo(IntEnum):
+    sha1 = 1
+    md5 = 2
+
+
+class _CfCoreFileHash(TypedDict):
+    value: str
+    algo: _CfCoreHashAlgo
+
+
+class _CfCoreSortableGameVersionTypeId(IntEnum):
+    retail = 517
+    vanilla_classic = 67408
+    burning_crusade_classic = 73246
+    classic = burning_crusade_classic
+
+
+class _CfCoreSortableGameVersion(TypedDict):
+    gameVersionName: str
+    gameVersionPadded: str
+    gameVersion: str
+    gameVersionReleaseDate: str  # date-time
+    gameVersionTypeId: _CfCoreSortableGameVersionTypeId
+
+
+class _CfCoreFileRelationType(IntEnum):
+    embedded_library = 1
+    optional_dependency = 2
+    required_dependency = 3
+    tool = 4
+    incompatible = 5
+    include = 6
+
+
+class _CfCoreFileDependency(TypedDict):
+    modId: int
+    fileId: int
+    relationType: _CfCoreFileRelationType
+
+
+class _CfCoreFileModule(TypedDict):
+    name: str
+    fingerprint: int
+
+
+class _CfCoreFile(TypedDict):
+    id: int
+    gameId: int
+    modId: int
+    isAvailable: bool
+    displayName: str
+    fileName: str
+    releaseType: _CfCoreFileReleaseType
+    fileStatus: _CfCoreFileStatus
+    hashes: list[_CfCoreFileHash]
+    fileDate: str  # date-time
+    fileLength: int
+    downloadCount: int
+    downloadUrl: str
+    gameVersions: list[str]
+    sortableGameVersions: list[_CfCoreSortableGameVersion]
+    dependencies: list[_CfCoreFileDependency]
+    exposeAsAlternative: N[bool]
+    parentProjectFileId: N[int]
+    alternateFileId: int
+    isServerPack: bool
+    serverPackFileId: N[int]
+    fileFingerprint: int
+    modules: list[_CfCoreFileModule]
+
+
+class _CfCoreMod(TypedDict):
+    id: int
+    gameId: int
+    name: str
+    slug: str
+    links: _CfCoreModLinks
+    summary: str
+    status: _CfCoreModStatus
+    downloadCount: int
+    isFeatured: bool
+    primaryCategoryId: int
+    categories: list[_CfCoreCategory]
+    authors: list[_CfCoreModAuthor]
+    logo: _CfCoreModAsset
+    screenshots: list[_CfCoreModAsset]
+    mainFileId: int
+    latestFiles: list[_CfCoreFile]
+    latestFilesIndexes: list[_CfCoreFileIndex]
+    dateCreated: str  # date-time
+    dateModified: str  # date-time
+    dateReleased: str  # date-time
+
+
+class _CfCoreModsSearchSortField(IntEnum):
+    featured = 1
+    popularity = 2
+    last_updated = 3
+    name_ = 4
+    author = 5
+    total_downloads = 6
+    category = 7
+    game_version = 8
+
+
+class _CfCoreModsResponsePagination(TypedDict):
+    index: int
+    pageSize: int
+    resultCount: int
+    totalCount: int | None
+
+
+class _CfCoreModsResponseSansPagination(TypedDict):
+    data: list[_CfCoreMod]
+
+
+class _CfCoreModsResponse(TypedDict):
+    data: list[_CfCoreMod]
+    pagination: _CfCoreModsResponsePagination
+
+
+class _CfCoreFilesResponse(TypedDict):
+    data: list[_CfCoreFile]
+    pagination: _CfCoreModsResponsePagination
+
+
+class CfCoreResolver(BaseResolver):
+    source = 'curse'
+    name = 'CurseForge'
+    strategies = frozenset(
+        {
+            Strategy.default,
+            Strategy.latest,
+            Strategy.any_flavour,
+            Strategy.version,
+        }
+    )
+    changelog_format = ChangelogFormat.html
+
+    # Ref: https://docs.curseforge.com/
+    mod_api_url = URL('https://api.curseforge.com/v1/mods')
+
+    @classmethod
+    def get_alias_from_url(cls, url: URL) -> str | None:
+        if (
+            url.host == 'www.curseforge.com'
+            and len(url.parts) > 3
+            and url.parts[1:3] == ('wow', 'addons')
+        ):
+            return url.parts[3].lower()
+
+    @classmethod
+    def _get_access_token(cls, global_config: GlobalConfig):
+        maybe_access_token = global_config.access_tokens.cfcore
+        if maybe_access_token is None:
+            raise ValueError('CFCore access token not configured')
+        return maybe_access_token.get_secret_value()
+
+    async def resolve(
+        self, defns: Sequence[Defn]
+    ) -> dict[Defn, models.Pkg | R.ManagerError | R.InternalError]:
+        catalogue = await self.manager.synchronise()
+
+        defns_to_maybe_numeric_ids = {
+            d: i if i.isdigit() else None
+            for d in defns
+            for i in (d.id or catalogue.curse_slugs.get(d.alias) or d.alias,)
+        }
+        async with self.manager.web_client.request(
+            'POST',
+            self.mod_api_url,
+            {'minutes': 5},
+            headers={'x-api-key': self._get_access_token(self.manager.config.global_config)},
+            json={'modIds': [i for i in defns_to_maybe_numeric_ids.values() if i is not None]},
+        ) as response:
+            if response.status == 404:
+                return await super().resolve(defns)
+            else:
+                response.raise_for_status()
+                response_json: _CfCoreModsResponseSansPagination = await response.json()
+
+        numeric_ids_to_addons = {str(r['id']): r for r in response_json['data']}
+        results = await gather(
+            (
+                self.resolve_one(d, numeric_ids_to_addons.get(i) if i is not None else i)
+                for d, i in defns_to_maybe_numeric_ids.items()
+            ),
+            manager.capture_manager_exc_async,
+        )
+        return dict(zip(defns, results))
+
+    async def resolve_one(self, defn: Defn, metadata: _CfCoreMod | None) -> models.Pkg:
+        if metadata is None:
+            raise R.PkgNonexistent
+
+        if defn.strategy is Strategy.version:
+            async with self.manager.web_client.get(
+                (self.mod_api_url / str(metadata['id']) / 'files').with_query(
+                    gameVersionTypeId=_CfCoreSortableGameVersionTypeId[
+                        self.manager.config.game_flavour
+                    ],
+                    pageSize=9999,
+                ),
+                {'hours': 1},
+                headers={'x-api-key': self._get_access_token(self.manager.config.global_config)},
+                label=f'Fetching metadata from {self.name}',
+            ) as response:
+                response.raise_for_status()
+                response_json: _CfCoreFilesResponse = await response.json()
+
+            file = next(
+                (f for f in response_json['data'] if defn.version == f['displayName']), None
+            )
+            if file is None:
+                raise R.PkgFileUnavailable(f'version {defn.version} not found')
+
+        else:
+            latest_files = metadata['latestFiles']
+            if not latest_files:
+                raise R.PkgFileUnavailable('no files available for download')
+
+            def make_filter():
+                def is_not_libless(f: _CfCoreFile):
+                    return not f.get('exposeAsAlternative', False)
+
+                yield is_not_libless
+
+                if defn.strategy is not Strategy.any_flavour:
+
+                    type_id = _CfCoreSortableGameVersionTypeId[self.manager.config.game_flavour]
+
+                    def supports_flavour(f: _CfCoreFile):
+                        return any(
+                            s['gameVersionTypeId'] == type_id for s in f['sortableGameVersions']
+                        )
+
+                    yield supports_flavour
+
+                if defn.strategy is not Strategy.latest:
+
+                    def is_stable_release(f: _CfCoreFile):
+                        return f['releaseType'] == _CfCoreFileReleaseType.release
+
+                    yield is_stable_release
+
+            filter_fns = list(make_filter())
+
+            file = max(
+                (f for f in latest_files if all(l(f) for l in filter_fns)),
+                # The ``id`` is just a counter so we don't have to go digging around dates
+                key=lambda f: f['id'],
+                default=None,
+            )
+            if file is None:
+                raise R.PkgFileUnavailable(
+                    f'no files matching {self.manager.config.game_flavour} '
+                    f'using {defn.strategy} strategy'
+                )
+
+        return models.Pkg.parse_obj(
+            {
+                'source': self.source,
+                'id': metadata['id'],
+                'slug': metadata['slug'],
+                'name': metadata['name'],
+                'description': metadata['summary'],
+                'url': metadata['links']['websiteUrl'],
+                'download_url': file['downloadUrl'],
+                'date_published': file['fileDate'],
+                'version': file['displayName'],
+                'changelog_url': str(
+                    self.mod_api_url / f'{metadata["id"]}/file/{file["id"]}/changelog'
+                ),
+                'options': {'strategy': defn.strategy},
+                'deps': [
+                    {'id': d['modId']}
+                    for d in file['dependencies']
+                    if d['relationType'] == _CfCoreFileRelationType.required_dependency
+                ],
+            }
+        )
+
+    @classmethod
+    async def catalogue(
+        cls, web_client: _deferred_types.aiohttp.ClientSession
+    ) -> AsyncIterator[BaseCatatalogueEntry]:
+        from .config import GlobalConfig
+
+        def excise_flavours(files: list[_CfCoreFile]):
+            for flavour in Flavour:
+                if any(
+                    not f.get('exposeAsAlternative', False)
+                    and any(
+                        s['gameVersionTypeId'] == _CfCoreSortableGameVersionTypeId[flavour]
+                        for s in f['sortableGameVersions']
+                    )
+                    for f in files
+                ):
+                    yield flavour
+
+        def excise_folders(files: list[_CfCoreFile]):
+            return uniq(frozenset(m['name'] for m in f['modules']) for f in files)
+
+        api_key = cls._get_access_token(GlobalConfig())
+
+        step = 20
+        for index in count():
+            url = (cls.mod_api_url / 'search').with_query(
+                gameId='1',
+                sortField=_CfCoreModsSearchSortField.name_,
+                pageSize=step,
+                index=index * step,
+            )
+            logger.debug(f'retrieving {url}')
+            async with web_client.get(url, headers={'x-api-key': api_key}) as response:
+                response_json: _CfCoreModsResponse = await response.json()
+
+            items = response_json['data']
+            if not items:
+                break
+
+            for item in items:
+                yield BaseCatatalogueEntry.parse_obj(
+                    {
+                        'source': cls.source,
+                        'id': item['id'],
+                        'slug': item['slug'],
+                        'name': item['name'],
+                        'url': item['links']['websiteUrl'],
+                        'game_flavours': excise_flavours(item['latestFiles']),
+                        'download_count': item['downloadCount'],
+                        'last_updated': item['dateReleased'],
+                        'folders': excise_folders(item['latestFiles']),
                     }
                 )
 
@@ -510,8 +896,8 @@ class WowiResolver(BaseResolver):
     list_api_url = 'https://api.mmoui.com/v3/game/WOW/filelist.json'
     details_api_url = URL('https://api.mmoui.com/v3/game/WOW/filedetails/')
 
-    @staticmethod
-    def get_alias_from_url(url: URL) -> str | None:
+    @classmethod
+    def get_alias_from_url(cls, url: URL) -> str | None:
         if (
             url.host in {'wowinterface.com', 'www.wowinterface.com'}
             and len(url.parts) == 3
@@ -548,7 +934,7 @@ class WowiResolver(BaseResolver):
             {'minutes': 5},
         ) as response:
             if response.status == 404:
-                details_api_items: list[_WowiDetailsApiItem] = []
+                return await super().resolve(defns)
             else:
                 response.raise_for_status()
                 details_api_items = await response.json()
@@ -665,8 +1051,8 @@ class TukuiResolver(BaseResolver):
         Flavour.burning_crusade_classic: 'classic-tbc-addons',
     }
 
-    @staticmethod
-    def get_alias_from_url(url: URL) -> str | None:
+    @classmethod
+    def get_alias_from_url(cls, url: URL) -> str | None:
         if url.host == 'www.tukui.org':
             if url.path in {'/addons.php', '/classic-addons.php', '/classic-tbc-addons.php'}:
                 return url.query.get('id')
@@ -846,8 +1232,8 @@ class GithubResolver(BaseResolver):
         'https://raw.githubusercontent.com/layday/github-wow-addon-catalogue/main/addons.csv'
     )
 
-    @staticmethod
-    def _flavour_to_release_json_flavour(flavour: Flavour):
+    @classmethod
+    def _flavour_to_release_json_flavour(cls, flavour: Flavour):
         if flavour is Flavour.retail:
             return 'mainline'
         elif flavour is Flavour.vanilla_classic:
@@ -855,8 +1241,8 @@ class GithubResolver(BaseResolver):
         elif flavour is Flavour.burning_crusade_classic:
             return 'bcc'
 
-    @staticmethod
-    def _release_json_flavour_to_flavour(flavour: str):
+    @classmethod
+    def _release_json_flavour_to_flavour(cls, flavour: str):
         if flavour == 'mainline':
             return Flavour.retail
         elif flavour == 'classic':
@@ -866,8 +1252,8 @@ class GithubResolver(BaseResolver):
         else:
             raise ValueError('Unknown flavour', flavour)
 
-    @staticmethod
-    def get_alias_from_url(url: URL) -> str | None:
+    @classmethod
+    def get_alias_from_url(cls, url: URL) -> str | None:
         if url.host == 'github.com' and len(url.parts) > 2:
             return '/'.join(url.parts[1:3])
 
@@ -997,7 +1383,7 @@ class GithubResolver(BaseResolver):
                     'last_updated': datetime.fromisoformat(entry['last_updated']),
                     'same_as': [
                         {'source': i, 'id': v}
-                        for i in ('curse', 'wowi')
+                        for i in ['curse', 'wowi']
                         for v in (entry[f'{i}_id'],)
                         if v
                     ],

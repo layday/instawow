@@ -74,6 +74,7 @@ class _BaseSettings(
 class _AccessTokens(BaseModel):
     github: typing.Optional[SecretStr] = None
     wago: typing.Optional[SecretStr] = None
+    cfcore: typing.Optional[SecretStr] = None
 
 
 def _encode_reveal_secret_str(value: object):
