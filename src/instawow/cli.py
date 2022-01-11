@@ -188,9 +188,7 @@ class ManagerWrapper:
         except FileNotFoundError:
             config = self.ctx.invoke(configure)
 
-        setup_logging(
-            config.logging_dir, self.ctx.params['log_level'], self.ctx.params['log_to_stderr']
-        )
+        setup_logging(config.logging_dir, self.ctx.params['log_level'])
         manager, close_db_conn = _manager.Manager.from_config(config)
         self.ctx.call_on_close(close_db_conn)
 
@@ -255,20 +253,13 @@ def _set_log_level(_: click.Context, __: click.Parameter, value: bool):
     help='Log more things.',
 )
 @click.option(
-    '--log-to-stderr',
-    is_flag=True,
-    default=False,
-    help='Log to stderr for development.',
-    hidden=True,
-)
-@click.option(
     '--profile',
     '-p',
     default='__default__',
     help='Activate the specified profile.',
 )
 @click.pass_context
-def cli(ctx: click.Context, log_level: str, log_to_stderr: bool, profile: str) -> None:
+def cli(ctx: click.Context, log_level: str, profile: str) -> None:
     "Add-on manager for World of Warcraft."
     _apply_patches()
     ctx.obj = ManagerWrapper(ctx)
@@ -1080,6 +1071,6 @@ def gui(ctx: click.Context) -> None:
         global_config=global_config, profile='__jsonrpc__'
     ).ensure_dirs()
     params = ctx.find_root().params
-    setup_logging(dummy_jsonrpc_config.logging_dir, params['log_level'], params['log_to_stderr'])
+    setup_logging(dummy_jsonrpc_config.logging_dir, params['log_level'])
 
     InstawowApp(version=__version__).main_loop()
