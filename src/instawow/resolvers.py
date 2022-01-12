@@ -867,11 +867,11 @@ class _WowiListApiItem(_WowiCommonTerms):
     # dependencies (probably not) but it's so underused as to be worthless.
     # ``null`` if would be empty
     UISiblings: list[str] | None
-    UIDonationLink: str | None  # Absent from the first item on the list (!)
+    UIDonationLink: N[str | None]  # Absent from the first item on the list (!)
 
 
 class _WowiDetailsApiItem(_WowiCommonTerms):
-    UIMD5: str | None  # Archive hash, ``null` when UI is pending
+    UIMD5: str | None  # Archive hash, ``null` when review pending
     UIFileName: str  # The actual filename, e.g. 'foo.zip'
     UIDownload: str  # Download URL
     UIPending: Literal['0', '1']  # Set to '1' if the file is awaiting approval
