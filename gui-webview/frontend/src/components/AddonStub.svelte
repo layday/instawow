@@ -31,7 +31,6 @@
     {/if}
   </div>
   {#if choices.length}
-    <!-- open={false} is needed for the [open] CSS selector to be compiled -->
     <details class="selection-controls" open={expanded}>
       <summary>
         <div class="selection-grid">
