@@ -77,7 +77,6 @@ class _PkgDownloadTraceRequestCtx(TypedDict):
 TraceRequestCtx: TypeAlias = '_GenericDownloadTraceRequestCtx | _PkgDownloadTraceRequestCtx | None'
 
 
-_copy_async = t(copy)
 _move_async = t(move)
 
 
@@ -716,7 +715,8 @@ class Manager:
         if await t(dest.exists)():
             logger.debug(f'{url} is cached at {dest}')
         elif url.startswith('file://'):
-            await _copy_async(file_uri_to_path(url), dest)
+            loop = asyncio.get_running_loop()
+            await loop.run_in_executor(None, lambda: copy(file_uri_to_path(url), dest))
         else:
             async with self.web_client.wrapped.get(
                 url,
