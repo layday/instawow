@@ -1,6 +1,7 @@
 import commonjs from "@rollup/plugin-commonjs";
 import json from "@rollup/plugin-json";
 import resolve from "@rollup/plugin-node-resolve";
+import replace from "@rollup/plugin-replace";
 import typescript from "@rollup/plugin-typescript";
 import copy from "rollup-plugin-copy";
 import css from "rollup-plugin-css-only";
@@ -65,6 +66,10 @@ export default [
         inlineSources: !PRODUCTION,
       }),
       commonjs(),
+      replace({
+        preventAssignment: true,
+        values: { "process.env.NODE_ENV": JSON.stringify("production") },
+      }),
       json(),
       !PRODUCTION && livereload(BUILD_DIR),
       PRODUCTION && terser(),
