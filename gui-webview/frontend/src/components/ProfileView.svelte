@@ -1,8 +1,4 @@
 <script context="module" lang="ts">
-  // @ts-ignore
-  import bbobHTML from "@bbob/html";
-  // @ts-ignore
-  import bbobPresetHTML5 from "@bbob/preset-html5";
   import { faQuestion } from "@fortawesome/free-solid-svg-icons";
   import { JSONRPCError } from "@open-rpc/client-js";
   import * as commonmark from "commonmark";
@@ -85,9 +81,7 @@
   };
 
   const htmlify = (changelog: string, format: ChangelogFormat): [boolean, string] => {
-    if (format === ChangelogFormat.bbcode) {
-      return [true, bbobHTML(changelog, bbobPresetHTML5())];
-    } else if (format === ChangelogFormat.markdown) {
+    if (format === ChangelogFormat.markdown) {
       return [
         true,
         new commonmark.HtmlRenderer().render(new commonmark.Parser().parse(changelog)),

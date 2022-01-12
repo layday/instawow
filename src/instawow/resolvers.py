@@ -889,7 +889,7 @@ class WowiResolver(BaseResolver):
     source = 'wowi'
     name = 'WoWInterface'
     strategies = frozenset({Strategy.default})
-    changelog_format = ChangelogFormat.bbcode
+    changelog_format = ChangelogFormat.raw
 
     # Reference: https://api.mmoui.com/v3/globalconfig.json
     # There's also a v4 API corresponding to the as yet unreleased Minion v4,

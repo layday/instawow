@@ -36,8 +36,6 @@
     "typescript": ">=4.2.4 <4.4.2 || ^4.4.3"
   },
   "dependencies": {
-    "@bbob/html": "^2.7.1",
-    "@bbob/preset-html5": "^2.7.1",
     "@open-rpc/client-js": "^1.6.3",
     "commonmark": "^0.30.0",
     "lodash": "^4.17.21",

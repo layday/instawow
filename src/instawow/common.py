@@ -25,5 +25,4 @@ class Strategy(StrEnum):
 class ChangelogFormat(StrEnum):
     html = 'html'
     markdown = 'markdown'
-    bbcode = 'bbcode'
     raw = 'raw'

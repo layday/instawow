@@ -17,7 +17,6 @@ export enum Strategy {
 export enum ChangelogFormat {
   html = "html",
   markdown = "markdown",
-  bbcode = "bbcode",
   raw = "raw",
 }
 
