@@ -3,12 +3,12 @@ from __future__ import annotations
 import asyncio
 from collections.abc import AsyncIterator, Sequence, Set
 from datetime import datetime, timezone
-from enum import IntEnum
+from enum import Enum, IntEnum
 from functools import partial
 from itertools import count, takewhile
 import re
 import typing
-from typing import Any, ClassVar
+from typing import Any, ClassVar, TypeVar
 
 from loguru import logger
 from pydantic import BaseModel
@@ -127,18 +127,23 @@ class BaseResolver(Resolver):
         yield
 
 
+_TEnum = TypeVar('_TEnum', bound=Enum)
+
+
+def _from_flavour_keyed(enum: type[_TEnum], flavour: Flavour) -> _TEnum:
+    return enum[flavour.name]
+
+
 class _CurseFlavor(StrEnum):
     retail = 'wow_retail'
     vanilla_classic = 'wow_classic'
     burning_crusade_classic = 'wow_burning_crusade'
-    classic = burning_crusade_classic
 
 
 class _CurseGameVersionTypeId(IntEnum):
     retail = 517
     vanilla_classic = 67408
     burning_crusade_classic = 73246
-    classic = burning_crusade_classic
 
 
 # Only documenting the fields we're actually using.
@@ -213,7 +218,7 @@ class _CurseFile(TypedDict):
     releaseType: Literal[1, 2, 3]  # 1 = stable; 2 = beta; 3 = alpha
     dependencies: list[_CurseAddon_FileDependency]
     modules: list[_CurseAddon_FileModules]
-    gameVersionFlavor: Literal['wow_burning_crusade', 'wow_classic', 'wow_retail']
+    gameVersionFlavor: _CurseFlavor
 
 
 class CurseResolver(BaseResolver):
@@ -305,12 +310,14 @@ class CurseResolver(BaseResolver):
 
                 if defn.strategy is not Strategy.any_flavour:
 
-                    game_flavour = self.manager.config.game_flavour
-                    curse_flavor = _CurseFlavor[game_flavour]
-                    curse_type_id = _CurseGameVersionTypeId[game_flavour]
+                    curse_type_id = _from_flavour_keyed(
+                        _CurseGameVersionTypeId, self.manager.config.game_flavour
+                    )
 
                     def supports_flavour(f: _CurseAddon_File):
-                        return f['gameVersionFlavor'] == curse_flavor or any(
+                        return f['gameVersionFlavor'] == _from_flavour_keyed(
+                            _CurseFlavor, self.manager.config.game_flavour
+                        ) or any(
                             s.get('gameVersionTypeId') == curse_type_id
                             for s in f['sortableGameVersion']
                         )
@@ -366,9 +373,10 @@ class CurseResolver(BaseResolver):
                 if any(
                     not f['exposeAsAlternative']
                     and (
-                        f['gameVersionFlavor'] == _CurseFlavor[flavour]
+                        f['gameVersionFlavor'] == _from_flavour_keyed(_CurseFlavor, flavour)
                         or any(
-                            s.get('gameVersionTypeId') == _CurseGameVersionTypeId[flavour]
+                            s.get('gameVersionTypeId')
+                            == _from_flavour_keyed(_CurseGameVersionTypeId, flavour)
                             for s in f['sortableGameVersion']
                         )
                     )
@@ -506,7 +514,6 @@ class _CfCoreSortableGameVersionTypeId(IntEnum):
     retail = 517
     vanilla_classic = 67408
     burning_crusade_classic = 73246
-    classic = burning_crusade_classic
 
 
 class _CfCoreSortableGameVersion(TypedDict):
@@ -690,9 +697,9 @@ class CfCoreResolver(BaseResolver):
         if defn.strategy is Strategy.version:
             async with self.manager.web_client.get(
                 (self.mod_api_url / str(metadata['id']) / 'files').with_query(
-                    gameVersionTypeId=_CfCoreSortableGameVersionTypeId[
-                        self.manager.config.game_flavour
-                    ],
+                    gameVersionTypeId=_from_flavour_keyed(
+                        _CfCoreSortableGameVersionTypeId, self.manager.config.game_flavour
+                    ),
                     pageSize=9999,
                 ),
                 {'hours': 1},
@@ -721,7 +728,9 @@ class CfCoreResolver(BaseResolver):
 
                 if defn.strategy is not Strategy.any_flavour:
 
-                    type_id = _CfCoreSortableGameVersionTypeId[self.manager.config.game_flavour]
+                    type_id = _from_flavour_keyed(
+                        _CfCoreSortableGameVersionTypeId, self.manager.config.game_flavour
+                    )
 
                     def supports_flavour(f: _CfCoreFile):
                         return any(
@@ -785,7 +794,8 @@ class CfCoreResolver(BaseResolver):
                 if any(
                     not f.get('exposeAsAlternative', False)
                     and any(
-                        s['gameVersionTypeId'] == _CfCoreSortableGameVersionTypeId[flavour]
+                        s['gameVersionTypeId']
+                        == _from_flavour_keyed(_CfCoreSortableGameVersionTypeId, flavour)
                         for s in f['sortableGameVersions']
                     )
                     for f in files
@@ -1215,8 +1225,14 @@ class _PackagerReleaseJson_Release(TypedDict):
 
 
 class _PackagerReleaseJson_Release_Metadata(TypedDict):
-    flavor: Literal['mainline', 'classic', 'bcc']
+    flavor: _PackagerReleaseJsonFlavor
     interface: int
+
+
+class _PackagerReleaseJsonFlavor(StrEnum):
+    retail = 'mainline'
+    vanilla_classic = 'classic'
+    burning_crusade_classic = 'bcc'
 
 
 class GithubResolver(BaseResolver):
@@ -1230,26 +1246,6 @@ class GithubResolver(BaseResolver):
     generated_catalogue_csv_url = (
         'https://raw.githubusercontent.com/layday/github-wow-addon-catalogue/main/addons.csv'
     )
-
-    @classmethod
-    def _flavour_to_release_json_flavour(cls, flavour: Flavour):
-        if flavour is Flavour.retail:
-            return 'mainline'
-        elif flavour is Flavour.vanilla_classic:
-            return 'classic'
-        elif flavour is Flavour.burning_crusade_classic:
-            return 'bcc'
-
-    @classmethod
-    def _release_json_flavour_to_flavour(cls, flavour: str):
-        if flavour == 'mainline':
-            return Flavour.retail
-        elif flavour == 'classic':
-            return Flavour.vanilla_classic
-        elif flavour == 'bcc':
-            return Flavour.burning_crusade_classic
-        else:
-            raise ValueError('Unknown flavour', flavour)
 
     @classmethod
     def get_alias_from_url(cls, url: URL) -> str | None:
@@ -1312,7 +1308,9 @@ class GithubResolver(BaseResolver):
         if not releases:
             raise R.PkgFileUnavailable('no files available for download')
 
-        wanted_flavour = self._flavour_to_release_json_flavour(self.manager.config.game_flavour)
+        wanted_flavour = _from_flavour_keyed(
+            _PackagerReleaseJsonFlavor, self.manager.config.game_flavour
+        )
         matching_release = next(
             (
                 r
@@ -1375,7 +1373,7 @@ class GithubResolver(BaseResolver):
                     'name': entry['name'],
                     'url': entry['url'],
                     'game_flavours': {
-                        cls._release_json_flavour_to_flavour(f)
+                        Flavour[_PackagerReleaseJsonFlavor(f).name]
                         for f in entry['flavors'].split(',')
                     },
                     'download_count': 1,
