@@ -286,8 +286,8 @@ class CurseResolver(BaseResolver):
                 self.addon_api_url / str(metadata['id']) / 'files',
                 {'hours': 1},
                 label=f'Fetching metadata from {self.name}',
+                raise_for_status=True,
             ) as response:
-                response.raise_for_status()
                 all_files: list[_CurseFile] = await response.json()
 
             file = next((f for f in all_files if defn.version == f['displayName']), None)
@@ -705,8 +705,8 @@ class CfCoreResolver(BaseResolver):
                 {'hours': 1},
                 headers={'x-api-key': self._get_access_token(self.manager.config.global_config)},
                 label=f'Fetching metadata from {self.name}',
+                raise_for_status=True,
             ) as response:
-                response.raise_for_status()
                 response_json: _CfCoreFilesResponse = await response.json()
 
             file = next(
@@ -926,8 +926,8 @@ class WowiResolver(BaseResolver):
                 self.list_api_url,
                 {'hours': 1},
                 label=f'Synchronising {self.name} catalogue',
+                raise_for_status=True,
             ) as response:
-                response.raise_for_status()
                 list_api_items: list[_WowiListApiItem] = await response.json()
                 return {i['UID']: i for i in list_api_items}
 
@@ -1073,8 +1073,8 @@ class TukuiResolver(BaseResolver):
             async with self.manager.web_client.get(
                 self.api_url.with_query({'ui': ui_slug}),
                 {'minutes': 5},
+                raise_for_status=True,
             ) as response:
-                response.raise_for_status()
                 addon: _TukuiUi = await response.json()
             return [(str(addon['id']), addon), (ui_slug, addon)]
 
@@ -1083,8 +1083,8 @@ class TukuiResolver(BaseResolver):
                 self.api_url.with_query({self.query_flavours[flavour]: 'all'}),
                 {'minutes': 30},
                 label=f'Synchronising {self.name} {flavour} catalogue',
+                raise_for_status=True,
             ) as response:
-                response.raise_for_status()
                 addons: list[_TukuiAddon] = await response.json()
             return [(str(a['id']), a) for a in addons]
 
@@ -1299,9 +1299,8 @@ class GithubResolver(BaseResolver):
             raise R.PkgFileUnavailable('no `release.json` attached to release')
 
         async with self.manager.web_client.get(
-            release_json['browser_download_url'], {'days': 1}
+            release_json['browser_download_url'], {'days': 1}, raise_for_status=True
         ) as response:
-            response.raise_for_status()
             packager_metadata: _PackagerReleaseJson = await response.json()
 
         releases = packager_metadata['releases']
