@@ -216,8 +216,8 @@ class WaCompanionBuilder:
                 else ''
             },
             label=f"Fetching aura '{aura['slug']}'",
+            raise_for_status=True,
         ) as response:
-            response.raise_for_status()
             return await response.text()
 
     async def get_remote_auras(self, auras: BaseAuras) -> _AuraGroup:
