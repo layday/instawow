@@ -41,7 +41,6 @@ async def ws(ws_client: TestClient):
         yield ws
 
 
-@pytest.mark.asyncio
 async def test_no_origin_api_request_rejected(ws_client: TestClient):
     with pytest.raises(WSServerHandshakeError):
         async with ws_client.ws_connect('/api'):
@@ -56,7 +55,6 @@ async def test_no_origin_api_request_rejected(ws_client: TestClient):
         lambda u: u.with_port(21),
     ],
 )
-@pytest.mark.asyncio
 async def test_disparate_origin_api_request_rejected(
     ws_client: TestClient,
     transform: C[[URL], URL],
@@ -66,7 +64,6 @@ async def test_disparate_origin_api_request_rejected(
             pass
 
 
-@pytest.mark.asyncio
 async def test_write_config(
     request: pytest.FixtureRequest,
     iw_global_config_values: dict[str, Any],
@@ -88,7 +85,6 @@ async def test_write_config(
     )
 
 
-@pytest.mark.asyncio
 async def test_write_config_with_invalid_params(
     request: pytest.FixtureRequest,
     iw_config_values: dict[str, Any],
@@ -120,7 +116,6 @@ async def test_write_config_with_invalid_params(
     ]
 
 
-@pytest.mark.asyncio
 async def test_install_with_invalid_params(
     request: pytest.FixtureRequest,
     ws: ClientWebSocketResponse,
@@ -137,7 +132,6 @@ async def test_install_with_invalid_params(
 
 
 @pytest.mark.xfail
-@pytest.mark.asyncio
 async def test_install_with_uninitialised_profile(
     request: pytest.FixtureRequest,
     ws: ClientWebSocketResponse,

@@ -20,7 +20,6 @@ from instawow.resolvers import (
 from instawow.utils import evolve_model_obj
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize('strategy', [Strategy.default, Strategy.latest])
 async def test_curse_simple_strategies(iw_manager: Manager, strategy: Strategy):
     flavourful = Defn('curse', 'molinari', strategy=strategy)
@@ -60,7 +59,6 @@ async def test_curse_simple_strategies(iw_manager: Manager, strategy: Strategy):
         assert False
 
 
-@pytest.mark.asyncio
 async def test_curse_any_flavour_strategy(iw_manager: Manager):
     flavourful = Defn('curse', 'molinari', strategy=Strategy.any_flavour)
     retail_only = Defn('curse', 'mythic-dungeon-tools', strategy=Strategy.any_flavour)
@@ -70,7 +68,6 @@ async def test_curse_any_flavour_strategy(iw_manager: Manager):
     assert all(type(r) is Pkg for r in results.values())
 
 
-@pytest.mark.asyncio
 async def test_curse_version_pinning(iw_manager: Manager):
     defn = Defn('curse', 'molinari').with_version('70300.51-Release')
     results = await iw_manager.resolve([defn])
@@ -85,7 +82,6 @@ async def test_curse_version_pinning(iw_manager: Manager):
     [Flavour.retail],
     indirect=True,
 )
-@pytest.mark.asyncio
 async def test_curse_deps_retrieved(iw_manager: Manager):
     defn = Defn('curse', 'bigwigs-voice-korean')
 
@@ -93,7 +89,6 @@ async def test_curse_deps_retrieved(iw_manager: Manager):
     assert {'bigwigs-voice-korean', 'big-wigs'} == {d.slug for d in results.values()}
 
 
-@pytest.mark.asyncio
 async def test_curse_changelog_is_url(iw_manager: Manager):
     molinari = Defn('curse', 'molinari')
 
@@ -104,21 +99,18 @@ async def test_curse_changelog_is_url(iw_manager: Manager):
     )
 
 
-@pytest.mark.asyncio
 async def test_wowi_basic(iw_manager: Manager):
     defn = Defn('wowi', '13188-molinari')
     results = await iw_manager.resolve([defn])
     assert type(results[defn]) is Pkg
 
 
-@pytest.mark.asyncio
 async def test_wowi_changelog_is_data_url(iw_manager: Manager):
     molinari = Defn('wowi', '13188-molinari')
     results = await iw_manager.resolve([molinari])
     assert results[molinari].changelog_url.startswith('data:,')
 
 
-@pytest.mark.asyncio
 async def test_tukui_basic(iw_manager: Manager):
     regular = Defn('tukui', '1')
     ui_suite = Defn('tukui', '-1')
@@ -138,7 +130,6 @@ async def test_tukui_basic(iw_manager: Manager):
     [Flavour.retail],
     indirect=True,
 )
-@pytest.mark.asyncio
 async def test_tukui_ui_suite_aliases_for_retail(iw_manager: Manager):
     tukui_id = Defn('tukui', '-1')
     tukui_slug = Defn('tukui', 'tukui')
@@ -151,7 +142,6 @@ async def test_tukui_ui_suite_aliases_for_retail(iw_manager: Manager):
     assert results[elvui_id].id == results[elvui_slug].id
 
 
-@pytest.mark.asyncio
 async def test_tukui_changelog_url_for_addon_type(iw_manager: Manager):
     ui_suite = Defn('tukui', '-1')
     regular_addon = Defn('tukui', '1')
@@ -163,7 +153,6 @@ async def test_tukui_changelog_url_for_addon_type(iw_manager: Manager):
     assert results[regular_addon].changelog_url.startswith('data:,')
 
 
-@pytest.mark.asyncio
 async def test_github_basic(iw_manager: Manager):
     release_json = Defn('github', 'nebularg/PackagerTest')
     releaseless = Defn('github', 'AdiAddons/AdiBags')
@@ -187,7 +176,6 @@ async def test_github_basic(iw_manager: Manager):
     assert type(results[nonexistent]) is R.PkgNonexistent
 
 
-@pytest.mark.asyncio
 async def test_github_changelog_is_data_url(iw_manager: Manager):
     defn = Defn('github', 'p3lim-wow/Molinari')
     results = await iw_manager.resolve([defn])
@@ -195,7 +183,6 @@ async def test_github_changelog_is_data_url(iw_manager: Manager):
 
 
 @pytest.mark.parametrize('resolver', Manager.RESOLVERS)
-@pytest.mark.asyncio
 async def test_unsupported_strategies(iw_manager: Manager, resolver: Resolver):
     defn = Defn(resolver.source, 'foo')
     for strategy in set(Strategy) - {Strategy.version} - resolver.strategies:

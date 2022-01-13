@@ -132,7 +132,6 @@ def test_file_uri_to_path_win32_leading_slash_is_stripped():
     assert file_uri_to_path(uri) == 'C:/foo/bar'
 
 
-@pytest.mark.asyncio
 async def test_generator_in_run_in_thread_does_not_lock_up_loop():
     def foo():
         time.sleep(2)

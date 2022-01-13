@@ -121,7 +121,6 @@ def test_can_build_addon_with_empty_seq(builder: WaCompanionBuilder):
     builder._generate_addon([])
 
 
-@pytest.mark.asyncio
 async def test_can_build_addon_with_mock_saved_vars(
     builder: WaCompanionBuilder, wa_saved_vars: None
 ):
@@ -140,7 +139,6 @@ def test_changelog_is_generated(builder: WaCompanionBuilder):
     assert builder.changelog_path.read_text() == 'n/a'
 
 
-@pytest.mark.asyncio
 async def test_can_resolve_wa_companion_pkg(builder: WaCompanionBuilder):
     await builder.build()
     defn = Defn('instawow', 'weakauras-companion')
@@ -148,7 +146,6 @@ async def test_can_resolve_wa_companion_pkg(builder: WaCompanionBuilder):
     assert type(resolve_results[defn]) is Pkg
 
 
-@pytest.mark.asyncio
 async def test_can_resolve_wa_companion_autoupdate_pkg(builder: WaCompanionBuilder):
     defn = Defn('instawow', 'weakauras-companion-autoupdate')
     resolve_results = await builder.manager.resolve([defn])

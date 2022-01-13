@@ -52,7 +52,7 @@ toga = { version = ">=0.3.0.dev30", optional = true }
 aresponses = { version = ">=2.1.4 ", optional = true }
 coverage = { version = ">=6.2", extras = ["toml"], optional = true }
 pytest = { version = ">=6.2.5", optional = true }
-pytest-asyncio = { version = ">=0.16.0", optional = true }
+pytest-asyncio = { version = ">=0.17.0", optional = true }
 pytest-xdist = { version = ">=2.5.0", optional = true }
 
 sqlalchemy2-stubs = { version = "*", optional = true }
@@ -106,6 +106,7 @@ filterwarnings = [
   "error",
   "once::DeprecationWarning:asyncio.base_events",
 ]
+asyncio_mode = "auto"
 
 
 ## TYPE CHECKING ##

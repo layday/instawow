@@ -48,7 +48,6 @@ def test_reconcile_addon_folder_can_extract_defns_from_toc(molinari: Path):
     assert addon_folder.defns_from_toc == {Defn('curse', '20338'), Defn('wowi', '13188')}
 
 
-@pytest.mark.asyncio
 async def test_reconcile_invalid_addons_discarded(iw_manager: Manager):
     iw_manager.config.addon_dir.joinpath('foo').mkdir()
     iw_manager.config.addon_dir.joinpath('bar').touch()
@@ -58,7 +57,6 @@ async def test_reconcile_invalid_addons_discarded(iw_manager: Manager):
     assert await match_folder_name_subsets(iw_manager, folders) == []
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize(
     'test_func',
     [match_toc_source_ids, match_folder_name_subsets, match_addon_names_with_folder_names],
@@ -75,7 +73,6 @@ async def test_reconcile_multiple_defns_per_addon_contained_in_results(
     assert expected == set(matches)
 
 
-@pytest.mark.asyncio
 async def test_reconcile_results_vary_by_game_flavour(iw_manager: Manager):
     write_addons(iw_manager, 'AdiBags', 'AdiBags_Config')
     ((_, matches),) = await match_folder_name_subsets(
