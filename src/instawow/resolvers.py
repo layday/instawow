@@ -3,12 +3,12 @@ from __future__ import annotations
 import asyncio
 from collections.abc import AsyncIterator, Sequence, Set
 from datetime import datetime, timezone
-from enum import Enum, IntEnum
+from enum import IntEnum
 from functools import partial
 from itertools import count, takewhile
 import re
 import typing
-from typing import Any, ClassVar, TypeVar
+from typing import Any, ClassVar
 
 from loguru import logger
 from pydantic import BaseModel
@@ -125,13 +125,6 @@ class BaseResolver(Resolver):
     ) -> AsyncIterator[BaseCatatalogueEntry]:
         return
         yield
-
-
-_TEnum = TypeVar('_TEnum', bound=Enum)
-
-
-def _from_flavour_keyed(enum: type[_TEnum], flavour: Flavour) -> _TEnum:
-    return enum[flavour.name]
 
 
 class _CurseFlavor(StrEnum):
@@ -310,12 +303,12 @@ class CurseResolver(BaseResolver):
 
                 if defn.strategy is not Strategy.any_flavour:
 
-                    curse_type_id = _from_flavour_keyed(
+                    curse_type_id = Flavour.to_flavour_keyed_enum(
                         _CurseGameVersionTypeId, self.manager.config.game_flavour
                     )
 
                     def supports_flavour(f: _CurseAddon_File):
-                        return f['gameVersionFlavor'] == _from_flavour_keyed(
+                        return f['gameVersionFlavor'] == Flavour.to_flavour_keyed_enum(
                             _CurseFlavor, self.manager.config.game_flavour
                         ) or any(
                             s.get('gameVersionTypeId') == curse_type_id
@@ -373,10 +366,11 @@ class CurseResolver(BaseResolver):
                 if any(
                     not f['exposeAsAlternative']
                     and (
-                        f['gameVersionFlavor'] == _from_flavour_keyed(_CurseFlavor, flavour)
+                        f['gameVersionFlavor']
+                        == Flavour.to_flavour_keyed_enum(_CurseFlavor, flavour)
                         or any(
                             s.get('gameVersionTypeId')
-                            == _from_flavour_keyed(_CurseGameVersionTypeId, flavour)
+                            == Flavour.to_flavour_keyed_enum(_CurseGameVersionTypeId, flavour)
                             for s in f['sortableGameVersion']
                         )
                     )
@@ -697,7 +691,7 @@ class CfCoreResolver(BaseResolver):
         if defn.strategy is Strategy.version:
             async with self.manager.web_client.get(
                 (self.mod_api_url / str(metadata['id']) / 'files').with_query(
-                    gameVersionTypeId=_from_flavour_keyed(
+                    gameVersionTypeId=Flavour.to_flavour_keyed_enum(
                         _CfCoreSortableGameVersionTypeId, self.manager.config.game_flavour
                     ),
                     pageSize=9999,
@@ -728,7 +722,7 @@ class CfCoreResolver(BaseResolver):
 
                 if defn.strategy is not Strategy.any_flavour:
 
-                    type_id = _from_flavour_keyed(
+                    type_id = Flavour.to_flavour_keyed_enum(
                         _CfCoreSortableGameVersionTypeId, self.manager.config.game_flavour
                     )
 
@@ -795,7 +789,7 @@ class CfCoreResolver(BaseResolver):
                     not f.get('exposeAsAlternative', False)
                     and any(
                         s['gameVersionTypeId']
-                        == _from_flavour_keyed(_CfCoreSortableGameVersionTypeId, flavour)
+                        == Flavour.to_flavour_keyed_enum(_CfCoreSortableGameVersionTypeId, flavour)
                         for s in f['sortableGameVersions']
                     )
                     for f in files
@@ -1307,7 +1301,7 @@ class GithubResolver(BaseResolver):
         if not releases:
             raise R.PkgFileUnavailable('no files available for download')
 
-        wanted_flavour = _from_flavour_keyed(
+        wanted_flavour = Flavour.to_flavour_keyed_enum(
             _PackagerReleaseJsonFlavor, self.manager.config.game_flavour
         )
         matching_release = next(
@@ -1372,8 +1366,7 @@ class GithubResolver(BaseResolver):
                     'name': entry['name'],
                     'url': entry['url'],
                     'game_flavours': {
-                        Flavour[_PackagerReleaseJsonFlavor(f).name]
-                        for f in entry['flavors'].split(',')
+                        _PackagerReleaseJsonFlavor(f).name for f in entry['flavors'].split(',')
                     },
                     'download_count': 1,
                     'last_updated': datetime.fromisoformat(entry['last_updated']),

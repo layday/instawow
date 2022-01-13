@@ -1,6 +1,22 @@
 from __future__ import annotations
 
+from enum import Enum
+from typing import TypeVar
+
+from typing_extensions import Protocol
+
 from .utils import StrEnum
+
+_TEnum = TypeVar('_TEnum', bound=Enum)
+
+
+class _FlavourKeyedEnum(Protocol[_TEnum]):
+    retail: _TEnum
+    vanilla_classic: _TEnum
+    burning_crusade_classic: _TEnum
+
+    def __getitem__(self, __key: str) -> _TEnum:
+        ...
 
 
 class Flavour(StrEnum):
@@ -13,6 +29,10 @@ class Flavour(StrEnum):
     retail = 'retail'
     vanilla_classic = 'vanilla_classic'
     burning_crusade_classic = 'classic'
+
+    @classmethod
+    def to_flavour_keyed_enum(cls, enum: _FlavourKeyedEnum[_TEnum], flavour: Flavour) -> _TEnum:
+        return enum[flavour.name]
 
 
 class Strategy(StrEnum):

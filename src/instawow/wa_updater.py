@@ -16,7 +16,7 @@ from yarl import URL
 
 from .common import Flavour
 from .manager import Manager
-from .utils import bucketise, chain_dict, gather
+from .utils import StrEnum, bucketise, chain_dict, gather
 from .utils import run_in_thread as t
 from .utils import shasum
 
@@ -141,6 +141,12 @@ class WagoApiResponse_Changelog(TypedDict):
     text: N[str]
 
 
+class _TocNumbers(StrEnum):
+    retail = '90105'
+    vanilla_classic = '11400'
+    burning_crusade_classic = '20502'
+
+
 class WaCompanionBuilder:
     """A WeakAuras Companion port for shellfolk."""
 
@@ -236,15 +242,6 @@ class WaCompanionBuilder:
     async def get_checksum(self) -> str:
         return await t(self.checksum_txt_path.read_text)(encoding='utf-8')
 
-    def _get_toc_number(self) -> str:
-        game_flavour: Flavour = self.manager.config.game_flavour
-        if game_flavour is Flavour.retail:
-            return '90105'
-        elif game_flavour is Flavour.vanilla_classic:
-            return '11400'
-        elif game_flavour is Flavour.burning_crusade_classic:
-            return '20502'
-
     def _generate_addon(
         self, auras: Iterable[tuple[type[WeakAuras | Plateroos], _AuraGroup]]
     ) -> None:
@@ -333,7 +330,11 @@ class WaCompanionBuilder:
             write_tpl('init.lua', {})
             write_tpl(
                 'WeakAurasCompanion.toc',
-                {'interface': self._get_toc_number()},
+                {
+                    'interface': Flavour.to_flavour_keyed_enum(
+                        _TocNumbers, self.manager.config.game_flavour
+                    )
+                },
             )
 
         self.changelog_path.write_text(
