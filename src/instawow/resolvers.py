@@ -1366,7 +1366,8 @@ class GithubResolver(BaseResolver):
                     'name': entry['name'],
                     'url': entry['url'],
                     'game_flavours': {
-                        _PackagerReleaseJsonFlavor(f).name for f in entry['flavors'].split(',')
+                        Flavour.from_flavour_keyed_enum(_PackagerReleaseJsonFlavor(f))
+                        for f in entry['flavors'].split(',')
                     },
                     'download_count': 1,
                     'last_updated': datetime.fromisoformat(entry['last_updated']),

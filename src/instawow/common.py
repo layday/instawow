@@ -31,6 +31,10 @@ class Flavour(StrEnum):
     burning_crusade_classic = 'classic'
 
     @classmethod
+    def from_flavour_keyed_enum(cls, enum: Enum) -> Flavour:
+        return cls[enum.name]
+
+    @classmethod
     def to_flavour_keyed_enum(cls, enum: _FlavourKeyedEnum[_TEnum], flavour: Flavour) -> _TEnum:
         return enum[flavour.name]
 
