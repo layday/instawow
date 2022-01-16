@@ -198,9 +198,5 @@
         content: "(x) ";
       }
     }
-
-    .open-url {
-      color: var(--inverse-color-tone-b);
-    }
   }
 </style>
