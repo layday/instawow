@@ -79,7 +79,7 @@ def _reraise_validation_error(
 @t
 def _read_config(profile: str) -> Config:
     with _reraise_validation_error(_ConfigError):
-        return Config.read(None, profile)
+        return Config.read(GlobalConfig.read(), profile)
 
 
 methods: list[tuple[str, type[BaseParams]]] = []

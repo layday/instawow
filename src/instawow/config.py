@@ -164,9 +164,7 @@ class Config(_BaseSettings):
             return Flavour.retail
 
     @classmethod
-    def read(cls, global_config: GlobalConfig | None, profile: str) -> Config:
-        if global_config is None:
-            global_config = GlobalConfig.read()
+    def read(cls, global_config: GlobalConfig, profile: str) -> Config:
         dummy_config = cls.construct(global_config=global_config, profile=profile)
         config = cls(global_config=global_config, **_read_config(dummy_config))
         return config

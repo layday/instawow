@@ -183,8 +183,9 @@ class ManagerWrapper:
 
     @cached_property
     def manager(self) -> _manager.Manager:
+        global_config = GlobalConfig.read().ensure_dirs()
         try:
-            config = Config.read(None, self.ctx.params['profile']).ensure_dirs()
+            config = Config.read(global_config, self.ctx.params['profile']).ensure_dirs()
         except FileNotFoundError:
             config = self.ctx.invoke(configure)
 
