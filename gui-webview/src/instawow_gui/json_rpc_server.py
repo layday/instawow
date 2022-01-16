@@ -16,8 +16,7 @@ import aiohttp
 import aiohttp.web
 from aiohttp_rpc import JsonRpcMethod
 from aiohttp_rpc import middlewares as rpc_middlewares
-from aiohttp_rpc.errors import InvalidParams as InvalidParamsError
-from aiohttp_rpc.errors import ServerError
+from aiohttp_rpc.errors import InvalidParams, ServerError
 from aiohttp_rpc.server import WsJsonRpcServer
 import click
 from loguru import logger
@@ -50,7 +49,10 @@ from . import frontend
 
 _T = TypeVar('_T')
 _P = ParamSpec('_P')
-ManagerBoundCoroFn: TypeAlias = 'Callable[Concatenate[Manager, _P], Awaitable[_T]]'
+_ManagerBoundCoroFn: TypeAlias = 'Callable[Concatenate[Manager, _P], Awaitable[_T]]'
+_ManagerQueue: TypeAlias = (
+    'asyncio.Queue[tuple[asyncio.Future[object], str, _ManagerBoundCoroFn[..., object]]]'
+)
 
 
 LOCALHOST = '127.0.0.1'
@@ -63,7 +65,7 @@ class _ConfigError(ServerError):
 
 @contextmanager
 def _reraise_validation_error(
-    error_class: type[ServerError | InvalidParamsError] = ServerError,
+    error_class: type[ServerError | InvalidParams] = ServerError,
     values: dict[Any, Any] | None = None,
 ) -> Iterator[None]:
     try:
@@ -97,7 +99,7 @@ class BaseParams(BaseModel):
         cls, method: str, managers: _ManagerWorkQueue, app_window: toga.MainWindow | None
     ) -> JsonRpcMethod:
         async def respond(**kwargs: Any) -> BaseModel:
-            with _reraise_validation_error(InvalidParamsError, kwargs):
+            with _reraise_validation_error(InvalidParams, kwargs):
                 params = cls.parse_obj(kwargs)
             return await params.respond(managers, app_window)
 
@@ -448,11 +450,14 @@ class ReconcileParams(_ProfileParamMixin, BaseParams):
             if m
         ]
         return [
-            AddonMatch(folders=[{'name': f.name, 'version': f.version} for f in a], matches=m)
-            for a, m in matches
-        ] + [
-            AddonMatch(folders=[{'name': f.name, 'version': f.version}], matches=[])
-            for f in sorted(leftovers - frozenset(i for a, _ in matches for i in a))
+            *(
+                AddonMatch(folders=[{'name': f.name, 'version': f.version} for f in a], matches=m)
+                for a, m in matches
+            ),
+            *(
+                AddonMatch(folders=[{'name': f.name, 'version': f.version}], matches=[])
+                for f in sorted(leftovers - frozenset(i for a, _ in matches for i in a))
+            ),
         ]
 
 
@@ -581,9 +586,7 @@ class ConfirmDialogueParams(BaseParams):
         return {'ok': ok}
 
 
-def _init_json_rpc_web_client(
-    progress_reporters: set[tuple[Manager, models.Pkg, Callable[[], float]]],
-) -> aiohttp.ClientSession:
+def _init_json_rpc_web_client():
     async def do_on_request_end(
         client_session: aiohttp.ClientSession,
         trace_config_ctx: Any,
@@ -606,24 +609,26 @@ def _init_json_rpc_web_client(
             progress_reporters.add(entry)
             content.on_eof(lambda: progress_reporters.remove(entry))
 
+    progress_reporters: set[tuple[Manager, models.Pkg, Callable[[], float]]] = set()
+
     trace_config = aiohttp.TraceConfig()
     trace_config.on_request_end.append(do_on_request_end)
     trace_config.freeze()
-    return init_web_client(trace_configs=[trace_config])
+
+    return (init_web_client(trace_configs=[trace_config]), progress_reporters)
 
 
 class _ManagerWorkQueue:
     def __init__(self):
         self._loop = asyncio.get_running_loop()
 
-        self._queue: asyncio.Queue[
-            tuple[asyncio.Future[object], str, ManagerBoundCoroFn[..., object]]
-        ] = asyncio.Queue()
-        self._managers: dict[str, tuple[Manager, Callable[[], None]]] = {}
-        self._progress_reporters: set[tuple[Manager, models.Pkg, Callable[[], float]]] = set()
+        self._queue: _ManagerQueue = asyncio.Queue()
 
-        self.web_client = _init_json_rpc_web_client(self._progress_reporters)
         self.locks: LocksType = defaultdict(asyncio.Lock)
+
+        self._managers: dict[str, tuple[Manager, Callable[[], None]]] = {}
+
+        self._web_client, self._download_progress_reporters = _init_json_rpc_web_client()
 
         self._github_auth_device_codes = None
         self._github_auth_flow_task = None
@@ -634,7 +639,7 @@ class _ManagerWorkQueue:
     async def __aexit__(self, *args: object):
         self._listener.cancel()
         self.unload_all()
-        await self.web_client.close()
+        await self._web_client.close()
 
     def unload(self, profile: str):
         if profile in self._managers:
@@ -650,7 +655,7 @@ class _ManagerWorkQueue:
         self,
         future: asyncio.Future[object],
         profile: str,
-        coro_fn: ManagerBoundCoroFn[_P, object],
+        coro_fn: _ManagerBoundCoroFn[_P, object],
     ):
         try:
             async with self.locks['modify profile', profile]:
@@ -668,13 +673,13 @@ class _ManagerWorkQueue:
             future.set_result(result)
 
     async def _listen(self):
-        contextualise(web_client=self.web_client, locks=self.locks)
+        contextualise(web_client=self._web_client, locks=self.locks)
         while True:
             item = await self._queue.get()
             asyncio.create_task(self._schedule_item(*item))
             self._queue.task_done()
 
-    async def run(self, profile: str, coro_fn: ManagerBoundCoroFn[..., _T]) -> _T:
+    async def run(self, profile: str, coro_fn: _ManagerBoundCoroFn[..., _T]) -> _T:
         future = self._loop.create_future()
         self._queue.put_nowait((future, profile, coro_fn))
         return await future
@@ -687,12 +692,12 @@ class _ManagerWorkQueue:
 
     async def get_manager_download_progress(self, profile: str):
         manager = await self.get_manager(profile)
-        return ((p, r()) for m, p, r in self._progress_reporters if m is manager)
+        return ((p, r()) for m, p, r in self._download_progress_reporters if m is manager)
 
     async def initiate_github_auth_flow(self):
         async def _finalise_github_auth_flow():
             result = await poll_for_access_token(
-                self.web_client, codes['device_code'], codes['interval']
+                self._web_client, codes['device_code'], codes['interval']
             )
 
             async with self.locks['update global config']:
@@ -708,7 +713,7 @@ class _ManagerWorkQueue:
             self.unload_all()
 
         if self._github_auth_device_codes is None:
-            self._github_auth_device_codes = codes = await get_codes(self.web_client)
+            self._github_auth_device_codes = codes = await get_codes(self._web_client)
             self._github_auth_flow_task = self._loop.create_task(_finalise_github_auth_flow())
         return self._github_auth_device_codes
 
