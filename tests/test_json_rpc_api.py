@@ -73,7 +73,7 @@ async def test_write_config(
     config_values = {**iw_config_values, 'profile': request.node.name}
     rpc_request = {
         'jsonrpc': '2.0',
-        'method': 'config/write',
+        'method': 'config/write_profile',
         'params': {**config_values, 'infer_game_flavour': False},
         'id': request.node.name,
     }
@@ -92,7 +92,7 @@ async def test_write_config_with_invalid_params(
 ):
     rpc_request = {
         'jsonrpc': '2.0',
-        'method': 'config/write',
+        'method': 'config/write_profile',
         'params': {
             **iw_config_values,
             'game_flavour': 'strawberry',
