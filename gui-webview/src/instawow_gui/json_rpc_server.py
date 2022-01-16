@@ -677,7 +677,7 @@ class _ManagerWorkQueue:
     async def run(self, profile: str, coro_fn: ManagerBoundCoroFn[..., _T]) -> _T:
         future = self._loop.create_future()
         self._queue.put_nowait((future, profile, coro_fn))
-        return await asyncio.wait_for(future, None)
+        return await future
 
     async def get_manager(self, profile: str):
         async def get_manager(manager: Manager):
