@@ -391,7 +391,7 @@ class CurseResolver(BaseResolver):
                 gameId='1', sort=sort_order, pageSize=step, index=index
             )
             logger.debug(f'retrieving {url}')
-            async with web_client.get(url) as response:
+            async with web_client.get(url, raise_for_status=True) as response:
                 items: list[_CurseAddon] = await response.json()
 
             if not items:
@@ -621,7 +621,7 @@ class _CfCoreFilesResponse(TypedDict):
 
 class CfCoreResolver(BaseResolver):
     source = 'curse'
-    name = 'CurseForge'
+    name = 'CFCore'
     strategies = frozenset(
         {
             Strategy.default,
@@ -810,7 +810,9 @@ class CfCoreResolver(BaseResolver):
                 index=index * step,
             )
             logger.debug(f'retrieving {url}')
-            async with web_client.get(url, headers={'x-api-key': api_key}) as response:
+            async with web_client.get(
+                url, headers={'x-api-key': api_key}, raise_for_status=True
+            ) as response:
                 response_json: _CfCoreModsResponse = await response.json()
 
             items = response_json['data']
@@ -978,7 +980,7 @@ class WowiResolver(BaseResolver):
         flavours = set(Flavour)
 
         logger.debug(f'retrieving {cls.list_api_url}')
-        async with web_client.get(cls.list_api_url) as response:
+        async with web_client.get(cls.list_api_url, raise_for_status=True) as response:
             items: list[_WowiListApiItem] = await response.json()
 
         for item in items:
@@ -1158,7 +1160,7 @@ class TukuiResolver(BaseResolver):
         ]:
             url = cls.api_url.with_query(query)
             logger.debug(f'retrieving {url}')
-            async with web_client.get(url) as response:
+            async with web_client.get(url, raise_for_status=True) as response:
                 items: _TukuiUi | list[_TukuiAddon] = await response.json(
                     content_type=None  # text/html
                 )
@@ -1351,7 +1353,9 @@ class GithubResolver(BaseResolver):
         import io
 
         logger.debug(f'retrieving {cls.generated_catalogue_csv_url}')
-        async with web_client.get(cls.generated_catalogue_csv_url) as response:
+        async with web_client.get(
+            cls.generated_catalogue_csv_url, raise_for_status=True
+        ) as response:
             catalogue_csv = await response.text()
 
         for entry in csv.DictReader(io.StringIO(catalogue_csv)):
