@@ -186,17 +186,19 @@ class UpdateGlobalConfigParams(BaseParams):
     async def respond(
         self, managers: _ManagerWorkQueue, app_window: toga.MainWindow | None
     ) -> GlobalConfig:
-        with _reraise_validation_error(_ConfigError):
-            existing_global_config = await t(GlobalConfig.read)()
-            new_global_config = evolve_model_obj(
-                existing_global_config,
-                access_tokens=evolve_model_obj(
-                    existing_global_config.access_tokens, cfcore=self.cfcore_access_token
-                ),
-            )
-            await t(new_global_config.write)()
-            managers.unload_all()
-            return new_global_config
+        async with managers.locks['update global config']:
+            with _reraise_validation_error(_ConfigError):
+                existing_global_config = await t(GlobalConfig.read)()
+                new_global_config = evolve_model_obj(
+                    existing_global_config,
+                    access_tokens=evolve_model_obj(
+                        existing_global_config.access_tokens, cfcore=self.cfcore_access_token
+                    ),
+                )
+                await t(new_global_config.write)()
+
+        managers.unload_all()
+        return new_global_config
 
 
 @_register_method('config/read_global')
@@ -230,7 +232,7 @@ class QueryGithubAuthFlowStatusParams(BaseParams):
     async def respond(
         self, managers: _ManagerWorkQueue, app_window: toga.MainWindow | None
     ) -> GithubAuthFlowStatusReport:
-        return {'status': await managers.wait_for_github_auth_flow()}
+        return {'status': await managers.wait_for_github_auth_completion()}
 
 
 @_register_method('config/cancel_github_auth_flow')
@@ -624,7 +626,7 @@ class _ManagerWorkQueue:
         self.locks: LocksType = defaultdict(asyncio.Lock)
 
         self._github_auth_device_codes = None
-        self._github_auth_poll_task = None
+        self._github_auth_flow_task = None
 
     async def __aenter__(self):
         self._listener = self._loop.create_task(self._listen())
@@ -692,33 +694,39 @@ class _ManagerWorkQueue:
             result = await poll_for_access_token(
                 self.web_client, codes['device_code'], codes['interval']
             )
-            existing_global_config = await t(GlobalConfig.read)()
-            new_global_config = evolve_model_obj(
-                existing_global_config,
-                access_tokens=evolve_model_obj(
-                    existing_global_config.access_tokens, github=result
-                ),
-            )
-            await t(new_global_config.write)()
+
+            async with self.locks['update global config']:
+                existing_global_config = await t(GlobalConfig.read)()
+                new_global_config = evolve_model_obj(
+                    existing_global_config,
+                    access_tokens=evolve_model_obj(
+                        existing_global_config.access_tokens, github=result
+                    ),
+                )
+                await t(new_global_config.write)()
+
             self.unload_all()
 
-        codes = await get_codes(self.web_client)
-        self._github_auth_poll_task = self._loop.create_task(_finalise_github_auth_flow())
-        return codes
+        if self._github_auth_device_codes is None:
+            self._github_auth_device_codes = codes = await get_codes(self.web_client)
+            self._github_auth_flow_task = self._loop.create_task(_finalise_github_auth_flow())
+        return self._github_auth_device_codes
 
-    async def wait_for_github_auth_flow(self):
-        if self._github_auth_poll_task is not None:
+    async def wait_for_github_auth_completion(self):
+        if self._github_auth_flow_task is not None:
             try:
-                await self._github_auth_poll_task
+                await self._github_auth_flow_task
             except BaseException:
                 return 'failure'
-            self._github_auth_poll_task = None
+            self._github_auth_flow_task = None
+        self._github_auth_device_codes = None
         return 'success'
 
     def cancel_github_auth_polling(self):
-        if self._github_auth_poll_task is not None:
-            self._github_auth_poll_task.cancel()
-            self._github_auth_poll_task = None
+        if self._github_auth_flow_task is not None:
+            self._github_auth_flow_task.cancel()
+            self._github_auth_flow_task = None
+        self._github_auth_device_codes = None
 
 
 async def create_app(app_window: toga.MainWindow | None = None):
