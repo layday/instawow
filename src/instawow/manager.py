@@ -285,6 +285,7 @@ _locks: cv.ContextVar[LocksType] = cv.ContextVar('_locks', default=_dummy_locks)
 
 
 def prepare_database(config: Config) -> sa_future.Engine:
+    "Connect to and optionally create or migrate the database from a configuration object."
     engine = sa.create_engine(
         f'sqlite:///{config.db_file}',
         # We wanna be able to operate on the database from executor threads
@@ -297,6 +298,18 @@ def prepare_database(config: Config) -> sa_future.Engine:
     return engine
 
 
+def contextualise(
+    *,
+    web_client: _deferred_types.aiohttp.ClientSession | None = None,
+    locks: LocksType | None = None,
+) -> None:
+    "Set variables for the current context."
+    if web_client is not None:
+        _web_client.set(web_client)
+    if locks is not None:
+        _locks.set(locks)
+
+
 class Manager:
     RESOLVERS: list[type[Resolver]] = [
         GithubResolver,
@@ -305,6 +318,7 @@ class Manager:
         TukuiResolver,
         InstawowResolver,
     ]
+    "Default resolvers."
 
     _base_catalogue_url = (
         f'https://raw.githubusercontent.com/layday/instawow-data/data/'
@@ -342,19 +356,8 @@ class Manager:
         self._catalogue = None
 
     @classmethod
-    def contextualise(
-        cls,
-        *,
-        web_client: _deferred_types.aiohttp.ClientSession | None = None,
-        locks: LocksType | None = None,
-    ) -> None:
-        if web_client is not None:
-            _web_client.set(web_client)
-        if locks is not None:
-            _locks.set(locks)
-
-    @classmethod
     def from_config(cls, config: Config) -> tuple[Manager, Callable[[], None]]:
+        "Instantiate the manager from a configuration object."
         db_conn = prepare_database(config).connect()
         return (cls(config, db_conn), db_conn.close)
 
@@ -364,7 +367,7 @@ class Manager:
         return _locks.get()
 
     def pair_uri(self, value: str) -> tuple[str, str] | None:
-        "Attempt to extract the package source and alias from a URI."
+        "Attempt to extract the definition source and alias from a URI."
 
         def from_urn():
             source, alias = value.partition(':')[::2]
@@ -380,6 +383,7 @@ class Manager:
         return next(chain(aliases_from_url, from_urn(), (None,)))
 
     def check_pkg_exists(self, defn: Defn) -> bool:
+        "Check that a package exists in the database."
         return (
             self.database.execute(
                 sa.select(sa.text('1'))
@@ -395,7 +399,7 @@ class Manager:
         )
 
     def get_pkg(self, defn: Defn, partial_match: bool = False) -> models.Pkg | None:
-        "Retrieve an installed package from a definition."
+        "Retrieve a package from the database."
         maybe_row_mapping = (
             self.database.execute(
                 sa.select(db.pkg).filter(
@@ -615,7 +619,7 @@ class Manager:
         return results_by_defn
 
     async def get_changelog(self, uri: str) -> str:
-        "Retrieve a changelog from its URL."
+        "Retrieve a changelog from a URI."
         url = URL(uri)
         if url.scheme == 'data' and url.raw_path.startswith(','):
             return urllib.parse.unquote(url.raw_path[1:])
@@ -855,7 +859,7 @@ class Manager:
         to ``Strategies.version`` for installed packages from sources
         that support it.  The net effect is the same as if the package
         had been reinstalled with the version strategy.
-        Conversely a ``Defn`` with the default strategy will unpin the
+        Conversely, a ``Defn`` with the default strategy will unpin the
         package.
         """
 
@@ -888,7 +892,7 @@ class Manager:
 
 
 async def is_outdated() -> tuple[bool, str]:
-    """Check on PyPI to see if the installed copy of instawow is outdated.
+    """Check on PyPI to see if instawow is outdated.
 
     The response is cached for 24 hours.
     """

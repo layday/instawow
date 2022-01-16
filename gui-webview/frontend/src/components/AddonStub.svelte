@@ -63,14 +63,12 @@
             />
             <label for="addon-selection-{idx}-{choiceIdx}">
               <span class="defn-or-version">{choice.source}:{choice.slug}=={choice.version}</span>
-              <a
-                class="open-url"
-                title="open in browser"
-                href="__openUrl"
+              <button
+                role="link"
                 on:click|preventDefault|stopPropagation={() => $api.openUrl(choice.url)}
               >
                 [↗]
-              </a>
+              </button>
             </label>
           </li>
         {/each}

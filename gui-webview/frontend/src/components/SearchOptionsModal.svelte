@@ -1,14 +1,14 @@
 <script lang="ts">
   import { DateTime } from "luxon";
   import { createEventDispatcher } from "svelte";
-  import { fly, scale } from "svelte/transition";
-  import type { Source } from "../api";
+  import { fly } from "svelte/transition";
+  import type { Sources } from "../api";
   import { Flavour, Strategy } from "../api";
   import Modal from "./Modal.svelte";
 
   export let show: boolean,
     flavour: Flavour,
-    sources: Source[],
+    sources: Sources,
     searchFilterInstalled: boolean,
     searchSources: string[],
     searchFromAlias: boolean,
@@ -36,77 +36,83 @@
 </script>
 
 <Modal bind:show>
-  <dialog open class="modal" in:scale={{ duration: 200 }} on:click|stopPropagation>
-    <form
-      class="content"
-      on:submit|preventDefault={() => requestSearch()}
-      on:reset={() => dispatch("requestReset")}
-    >
-      <div class="row form-grid">
-        <label for="__search-limit">results:</label>
-        <select id="__search-limit" disabled={searchFromAlias} bind:value={searchLimit}>
-          <option value={20}>20</option>
-          <option value={50}>50</option>
-          <option value={100}>100</option>
-        </select>
-        <label for="__search-source">sources:</label>
-        <select
-          id="__search-source"
-          multiple
-          disabled={searchFromAlias}
-          bind:value={searchSources}
-        >
-          {#each sources as { source, name }}
-            <option value={source}>{name}</option>
-          {/each}
-        </select>
-        <label for="__search-start-date">updated on/after:</label>
+  <form
+    class="content"
+    on:submit|preventDefault={() => requestSearch()}
+    on:reset={() => dispatch("requestReset")}
+  >
+    <div class="row form-grid">
+      <label for="__search-limit">results:</label>
+      <select
+        id="__search-limit"
+        class="form-control"
+        disabled={searchFromAlias}
+        bind:value={searchLimit}
+      >
+        <option value={20}>20</option>
+        <option value={50}>50</option>
+        <option value={100}>100</option>
+      </select>
+      <label for="__search-source">sources:</label>
+      <select
+        id="__search-source"
+        class="form-control"
+        multiple
+        disabled={searchFromAlias}
+        bind:value={searchSources}
+      >
+        {#each Object.entries(sources) as [source, { name }]}
+          <option value={source}>{name}</option>
+        {/each}
+      </select>
+      <label for="__search-start-date">updated on/after:</label>
+      <input
+        type="text"
+        id="__search-start-date"
+        class="form-control"
+        placeholder="YYYY-MM-DD"
+        disabled={searchFromAlias}
+        bind:value={searchStartDate}
+      />
+      <ul class="start-date-suggestions">
+        {#each startDateSuggestions as { date, label, flavour: suggestionFlavour }}
+          {#if !suggestionFlavour || flavour === suggestionFlavour}
+            <li
+              class:disabled={searchFromAlias}
+              on:click={() => !searchFromAlias && (searchStartDate = date)}
+            >
+              {label}
+            </li>
+          {/if}
+        {/each}
+      </ul>
+      <label for="__search-strategy">strategy:</label>
+      <select
+        id="__search-strategy"
+        class="form-control"
+        disabled={searchFilterInstalled}
+        bind:value={searchStrategy}
+      >
+        {#each Object.values(Strategy) as strategy}
+          <option value={strategy}>{strategy}</option>
+        {/each}
+      </select>
+      {#if searchStrategy === Strategy.version}
         <input
           type="text"
-          id="__search-start-date"
-          placeholder="YYYY-MM-DD"
-          disabled={searchFromAlias}
-          bind:value={searchStartDate}
+          class="form-control hanging-box"
+          placeholder="version"
+          aria-label="version"
+          bind:value={searchVersion}
+          in:fly={{ duration: 200, y: -64 }}
         />
-        <ul class="start-date-suggestions">
-          {#each startDateSuggestions as { date, label, flavour: suggestionFlavour }}
-            {#if !suggestionFlavour || flavour === suggestionFlavour}
-              <li
-                class:disabled={searchFromAlias}
-                on:click={() => !searchFromAlias && (searchStartDate = date)}
-              >
-                {label}
-              </li>
-            {/if}
-          {/each}
-        </ul>
-        <label for="__search-strategy">strategy:</label>
-        <select
-          id="__search-strategy"
-          disabled={searchFilterInstalled}
-          bind:value={searchStrategy}
-        >
-          {#each Object.values(Strategy) as strategy}
-            <option value={strategy}>{strategy}</option>
-          {/each}
-        </select>
-        {#if searchStrategy === Strategy.version}
-          <input
-            type="text"
-            class="version"
-            placeholder="version"
-            aria-label="version"
-            bind:value={searchVersion}
-            in:fly={{ duration: 200, y: -64 }}
-          />
-        {/if}
-      </div>
-      <div class="row input-array">
-        <button type="submit">search</button>
-        <button type="reset">reset</button>
-      </div>
-    </form>
-  </dialog>
+      {/if}
+    </div>
+    <div class="row input-array">
+      <button class="form-control" type="submit">search</button>
+      <button class="form-control" type="reset">reset</button>
+    </div>
+  </form>
 </Modal>
 
 <style lang="scss">
@@ -127,7 +133,7 @@
     }
 
     .start-date-suggestions {
-      @extend %unstyle-list;
+      @extend %unstyle-list, .hanging-box;
       display: inline-flex;
       gap: 0.2rem;
       font-size: 0.8em;
@@ -157,8 +163,7 @@
       }
     }
 
-    .start-date-suggestions,
-    .version {
+    .hanging-box {
       grid-column-start: 2;
       margin-top: -0.3em;
     }

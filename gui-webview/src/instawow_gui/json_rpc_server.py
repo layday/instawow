@@ -30,9 +30,17 @@ from yarl import URL
 from instawow import __version__, db, matchers, models
 from instawow import results as R
 from instawow.cataloguer import CatalogueEntry
-from instawow.common import Flavour, Strategy
+from instawow.common import ChangelogFormat, Flavour, Strategy
 from instawow.config import Config, GlobalConfig
-from instawow.manager import LocksType, Manager, TraceRequestCtx, init_web_client, is_outdated
+from instawow.github_auth import DeviceCodeResponse, get_codes, poll_for_access_token
+from instawow.manager import (
+    LocksType,
+    Manager,
+    TraceRequestCtx,
+    contextualise,
+    init_web_client,
+    is_outdated,
+)
 from instawow.resolvers import Defn
 from instawow.utils import evolve_model_obj
 from instawow.utils import run_in_thread as t
@@ -109,8 +117,8 @@ class _DefnParamMixin(BaseModel):
     defns: typing.List[Defn]
 
 
-@_register_method('config/write')
-class WriteConfigParams(_ProfileParamMixin, BaseParams):
+@_register_method('config/write_profile')
+class WriteProfileConfigParams(_ProfileParamMixin, BaseParams):
     addon_dir: Path
     game_flavour: Flavour
     infer_game_flavour: bool
@@ -142,16 +150,16 @@ class WriteConfigParams(_ProfileParamMixin, BaseParams):
             return config
 
 
-@_register_method('config/read')
-class ReadConfigParams(_ProfileParamMixin, BaseParams):
+@_register_method('config/read_profile')
+class ReadProfileConfigParams(_ProfileParamMixin, BaseParams):
     async def respond(
         self, managers: _ManagerWorkQueue, app_window: toga.MainWindow | None
     ) -> Config:
         return await _read_config(self.profile)
 
 
-@_register_method('config/delete')
-class DeleteConfigParams(_ProfileParamMixin, BaseParams):
+@_register_method('config/delete_profile')
+class DeleteProfileConfigParams(_ProfileParamMixin, BaseParams):
     async def respond(
         self, managers: _ManagerWorkQueue, app_window: toga.MainWindow | None
     ) -> None:
@@ -162,7 +170,7 @@ class DeleteConfigParams(_ProfileParamMixin, BaseParams):
         await managers.run(self.profile, delete_profile)
 
 
-@_register_method('config/list')
+@_register_method('config/list_profiles')
 class ListProfilesParams(BaseParams):
     @t
     def respond(
@@ -171,30 +179,88 @@ class ListProfilesParams(BaseParams):
         return GlobalConfig().list_profiles()
 
 
+@_register_method('config/update_global')
+class UpdateGlobalConfigParams(BaseParams):
+    cfcore_access_token: typing.Optional[str]
+
+    async def respond(
+        self, managers: _ManagerWorkQueue, app_window: toga.MainWindow | None
+    ) -> GlobalConfig:
+        with _reraise_validation_error(_ConfigError):
+            existing_global_config = await t(GlobalConfig.read)()
+            new_global_config = evolve_model_obj(
+                existing_global_config,
+                access_tokens=evolve_model_obj(
+                    existing_global_config.access_tokens, cfcore=self.cfcore_access_token
+                ),
+            )
+            await t(new_global_config.write)()
+            managers.unload_all()
+            return new_global_config
+
+
+@_register_method('config/read_global')
+class ReadGlobalConfigParams(BaseParams):
+    @t
+    def respond(
+        self, managers: _ManagerWorkQueue, app_window: toga.MainWindow | None
+    ) -> GlobalConfig:
+        return GlobalConfig.read()
+
+
+class GithubCodesResponse(TypedDict):
+    user_code: str
+    verification_uri: str
+
+
+@_register_method('config/initiate_github_auth_flow')
+class InitiateGithubAuthFlowParams(BaseParams):
+    async def respond(
+        self, managers: _ManagerWorkQueue, app_window: toga.MainWindow | None
+    ) -> GithubCodesResponse:
+        return await managers.initiate_github_auth_flow()
+
+
+class GithubAuthFlowStatusReport(TypedDict):
+    status: Literal['success', 'failure']
+
+
+@_register_method('config/query_github_auth_flow_status')
+class QueryGithubAuthFlowStatusParams(BaseParams):
+    async def respond(
+        self, managers: _ManagerWorkQueue, app_window: toga.MainWindow | None
+    ) -> GithubAuthFlowStatusReport:
+        return {'status': await managers.wait_for_github_auth_flow()}
+
+
+@_register_method('config/cancel_github_auth_flow')
+class CancelGithubAuthFlowParams(BaseParams):
+    async def respond(
+        self, managers: _ManagerWorkQueue, app_window: toga.MainWindow | None
+    ) -> None:
+        managers.cancel_github_auth_polling()
+
+
 class Source(TypedDict):
-    source: str
     name: str
     supported_strategies: list[Strategy]
-    supports_rollback: bool
-    changelog_format: str
+    changelog_format: ChangelogFormat
 
 
 @_register_method('sources/list')
 class ListSourcesParams(_ProfileParamMixin, BaseParams):
     async def respond(
         self, managers: _ManagerWorkQueue, app_window: toga.MainWindow | None
-    ) -> list[Source]:
+    ) -> dict[str, Source]:
         manager = await managers.get_manager(self.profile)
-        return [
-            {
-                'source': r.source,
+        return {
+            r.source: {
                 'name': r.name,
                 'supported_strategies': sorted(r.strategies, key=list(Strategy).index),
-                'supports_rollback': Strategy.version in r.strategies,
-                'changelog_format': r.changelog_format.value,
+                'changelog_format': r.changelog_format,
             }
             for r in manager.resolvers.values()
-        ]
+        }
 
 
 @_register_method('list')
@@ -554,18 +620,29 @@ class _ManagerWorkQueue:
         self._managers: dict[str, tuple[Manager, Callable[[], None]]] = {}
         self._progress_reporters: set[tuple[Manager, models.Pkg, Callable[[], float]]] = set()
 
-        self._web_client = _init_json_rpc_web_client(self._progress_reporters)
+        self.web_client = _init_json_rpc_web_client(self._progress_reporters)
         self.locks: LocksType = defaultdict(asyncio.Lock)
 
-    async def cleanup(self):
-        for _, close_db_conn in self._managers.values():
-            close_db_conn()
-        await self._web_client.close()
+        self._github_auth_device_codes = None
+        self._github_auth_poll_task = None
+
+    async def __aenter__(self):
+        self._listener = self._loop.create_task(self._listen())
+
+    async def __aexit__(self, *args: object):
+        self._listener.cancel()
+        self.unload_all()
+        await self.web_client.close()
 
     def unload(self, profile: str):
         if profile in self._managers:
+            logger.debug(f'unloading {profile}')
             _, close_db_conn = self._managers.pop(profile)
             close_db_conn()
+
+    def unload_all(self):
+        for profile in self._managers:
+            self.unload(profile)
 
     async def _schedule_item(
         self,
@@ -588,8 +665,8 @@ class _ManagerWorkQueue:
         else:
             future.set_result(result)
 
-    async def listen(self):
-        Manager.contextualise(web_client=self._web_client, locks=self.locks)
+    async def _listen(self):
+        contextualise(web_client=self.web_client, locks=self.locks)
         while True:
             item = await self._queue.get()
             asyncio.create_task(self._schedule_item(*item))
@@ -610,15 +687,46 @@ class _ManagerWorkQueue:
         manager = await self.get_manager(profile)
         return ((p, r()) for m, p, r in self._progress_reporters if m is manager)
 
+    async def initiate_github_auth_flow(self):
+        async def _finalise_github_auth_flow():
+            result = await poll_for_access_token(
+                self.web_client, codes['device_code'], codes['interval']
+            )
+            existing_global_config = await t(GlobalConfig.read)()
+            new_global_config = evolve_model_obj(
+                existing_global_config,
+                access_tokens=evolve_model_obj(
+                    existing_global_config.access_tokens, github=result
+                ),
+            )
+            await t(new_global_config.write)()
+            self.unload_all()
+
+        codes = await get_codes(self.web_client)
+        self._github_auth_poll_task = self._loop.create_task(_finalise_github_auth_flow())
+        return codes
+
+    async def wait_for_github_auth_flow(self):
+        if self._github_auth_poll_task is not None:
+            try:
+                await self._github_auth_poll_task
+            except BaseException:
+                return 'failure'
+            self._github_auth_poll_task = None
+        return 'success'
+
+    def cancel_github_auth_polling(self):
+        if self._github_auth_poll_task is not None:
+            self._github_auth_poll_task.cancel()
+            self._github_auth_poll_task = None
+
 
 async def create_app(app_window: toga.MainWindow | None = None):
     managers = _ManagerWorkQueue()
 
-    async def start_managers(app: aiohttp.web.Application):
-        managers_listen = asyncio.create_task(managers.listen())
-        yield
-        managers_listen.cancel()
-        await managers.cleanup()
+    async def listen(app: aiohttp.web.Application):
+        async with managers:
+            yield
 
     async def get_index(request: aiohttp.web.Request):
         return aiohttp.web.Response(
@@ -682,7 +790,7 @@ async def create_app(app_window: toga.MainWindow | None = None):
             aiohttp.web.get('/api', rpc_server.handle_http_request),
         ]
     )
-    app.cleanup_ctx.append(start_managers)
+    app.cleanup_ctx.append(listen)
     app.freeze()
     return app
 

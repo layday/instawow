@@ -97,7 +97,7 @@ will be lost.`
     {/if}
     {#if createNew}
       <input
-        class="row"
+        class="row form-control"
         class:error={errors.has("profile")}
         type="text"
         label="profile"
@@ -111,6 +111,7 @@ will be lost.`
     <div class="row input-array">
       <input
         aria-label="add-on folder"
+        class="form-control"
         class:error={errors.has("addon_dir")}
         type="text"
         disabled
@@ -119,6 +120,7 @@ will be lost.`
       />
       <button
         aria-label="select folder"
+        class="form-control"
         type="button"
         on:click|preventDefault={() => selectFolder()}
       >
@@ -131,7 +133,7 @@ will be lost.`
       {/if}
       <select
         aria-label="game flavour"
-        class="row"
+        class="row form-control"
         class:error={errors.has("game_flavour")}
         bind:value={gameFlavour}
       >
@@ -141,9 +143,10 @@ will be lost.`
       </select>
     {/if}
     <div class="row input-array">
-      <button type="submit">save</button>
+      <button class="form-control" type="submit">save</button>
       {#if !createNew}
         <button
+          class="form-control"
           aria-label="delete profile"
           title="delete profile"
           type="button"

@@ -539,7 +539,8 @@
     }
   };
 
-  const supportsRollback = (addon: Addon) => !!sources[addon.source]?.supports_rollback;
+  const supportsRollback = (addon: Addon) =>
+    !!sources[addon.source]?.supported_strategies.includes(Strategy.version);
 
   const generateStatusMessage = () => {
     if (installedIsRefreshing) {
@@ -574,9 +575,8 @@
   };
 
   onMount(async () => {
-    const apiSources = await profileApi.listSources();
-    sources = lodash.fromPairs(apiSources.map((s) => [s.source, s]));
-    uriSchemes = [...apiSources.map((s) => s.source), "http", "https"].map((s) => `${s}:`);
+    sources = await profileApi.listSources();
+    uriSchemes = [...Object.keys(sources), "http", "https"].map((s) => `${s}:`);
     await refreshInstalled(true);
     // Switch over to reconciliation if no add-ons are installed
     if (!addons__Installed.length) {
@@ -664,7 +664,7 @@
     {#if searchOptionsModal}
       <SearchOptionsModal
         flavour={config.game_flavour}
-        sources={Object.values(sources)}
+        {sources}
         {searchFilterInstalled}
         on:requestSearch={() => search()}
         on:requestReset={() => resetSearchState()}

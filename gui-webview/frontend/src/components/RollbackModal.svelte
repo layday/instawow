@@ -32,7 +32,7 @@
 <Modal bind:show>
   <div class="title-bar">rollback</div>
   <form class="content" on:submit|preventDefault={() => requestRollbackAndHide()}>
-    <select class="row" aria-label="strategy" bind:value={version} use:fixSelection>
+    <select class="row form-control" aria-label="strategy" bind:value={version} use:fixSelection>
       {#each addon.logged_versions as version}
         <option value={version.version} disabled={addon.version === version.version}>
           {version.version}
@@ -41,6 +41,6 @@
         </option>
       {/each}
     </select>
-    <button class="row" type="submit">rollback</button>
+    <button class="row form-control" type="submit">rollback</button>
   </form>
 </Modal>

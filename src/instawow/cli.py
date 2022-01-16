@@ -158,7 +158,7 @@ def run_with_progress(awaitable: Awaitable[_T]) -> _T:
     async def run():
         with make_progress_bar() as progress_bar, _cancel_tickers(progress_bar) as tickers:
             async with _init_cli_web_client(progress_bar, tickers) as web_client:
-                _manager.Manager.contextualise(web_client=web_client)
+                _manager.contextualise(web_client=web_client)
                 return await awaitable
 
     return asyncio.run(run())
@@ -993,7 +993,7 @@ def configure(
     if _EditableConfigOptions.github_access_token in config_options and ask(
         confirm('Set up GitHub authentication?')
     ):
-        github_access_token = run_with_progress(_github_oauth_flow())
+        github_access_token = asyncio.run(_github_oauth_flow())
         global_config_values['access_tokens']['github'] = github_access_token
 
     global_config = GlobalConfig(**global_config_values).write()

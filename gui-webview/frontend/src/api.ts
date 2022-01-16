@@ -45,6 +45,7 @@ export type GlobalConfig = {
   access_tokens: {
     github: string | null;
     wago: string | null;
+    cfcore: string | null;
   };
 };
 
@@ -54,12 +55,23 @@ export type Config = {
   profile: string;
 };
 
+export type GithubCodesResponse = {
+  user_code: string;
+  verification_uri: string;
+};
+
+export type GithubAuthFlowStatusReport = {
+  status: "success" | "failure";
+};
+
 export type Source = {
-  source: string;
   name: string;
   supported_strategies: string[];
-  supports_rollback: boolean;
   changelog_format: ChangelogFormat;
+};
+
+export type Sources = {
+  [source: string]: Source;
 };
 
 export type Addon = {
@@ -165,7 +177,7 @@ export class Api {
   }
 
   async readProfile(profile: string): Promise<Config> {
-    return await this.request({ method: "config/read", params: { profile } });
+    return await this.request({ method: "config/read_profile", params: { profile } });
   }
 
   async writeProfile(
@@ -175,7 +187,7 @@ export class Api {
     inferGameFlavour: boolean
   ): Promise<Config> {
     return await this.request({
-      method: "config/write",
+      method: "config/write_profile",
       params: {
         profile,
         addon_dir: addonDir,
@@ -186,14 +198,37 @@ export class Api {
   }
 
   async deleteProfile(profile: string): Promise<void> {
-    return await this.request({ method: "config/delete", params: { profile } });
+    return await this.request({ method: "config/delete_profile", params: { profile } });
   }
 
   async listProfiles(): Promise<Profiles> {
-    return await this.request({ method: "config/list" });
+    return await this.request({ method: "config/list_profiles" });
   }
 
-  async listSources(): Promise<Source[]> {
+  async updateGlobalConfig(cfcoreAccessToken: string | null): Promise<void> {
+    return await this.request({
+      method: "config/update_global",
+      params: { cfcore_access_token: cfcoreAccessToken },
+    });
+  }
+
+  async readGlobalConfig(): Promise<GlobalConfig> {
+    return await this.request({ method: "config/read_global" });
+  }
+
+  async initiateGithubAuthFlow(): Promise<GithubCodesResponse> {
+    return await this.request({ method: "config/initiate_github_auth_flow" });
+  }
+
+  async queryGithubAuthFlowStatus(): Promise<GithubAuthFlowStatusReport> {
+    return await this.request({ method: "config/query_github_auth_flow_status" });
+  }
+
+  async cancelGithubAuthFlow(): Promise<void> {
+    return await this.request({ method: "config/cancel_github_auth_flow" });
+  }
+
+  async listSources(): Promise<Sources> {
     return await this.request({
       method: "sources/list",
       params: { profile: this.profile },

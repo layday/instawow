@@ -63,6 +63,20 @@ a {
   text-decoration: none;
 }
 
+button[role="link"] {
+  background-color: var(--inverse-color-alpha-05);
+  margin: 0;
+  padding: 0 0.2rem;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+
+  &:hover {
+    background-color: var(--inverse-color-alpha-10);
+  }
+}
+
 menu,
 nav {
   -webkit-user-select: none;
@@ -76,6 +90,11 @@ select {
   &:disabled {
     pointer-events: none;
   }
+}
+
+code {
+  -webkit-user-select: text;
+  user-select: text;
 }
 
 .modal {
@@ -113,9 +132,7 @@ select {
     line-height: vars.$modal-form-el-line-height;
   }
 
-  button,
-  input[type="text"],
-  select {
+  .form-control {
     display: flex;
     align-items: center;
     width: 100%;
@@ -146,10 +163,11 @@ select {
     }
   }
 
-  button {
+  button.form-control {
     justify-content: center;
     font-weight: 500;
 
+    &.primary,
     &[type="submit"] {
       background-color: vars.$action-button-bg-color;
       color: vars.$action-button-text-color;
@@ -160,7 +178,7 @@ select {
     }
   }
 
-  select {
+  select.form-control {
     min-width: 12rem;
 
     &:not([multiple]) {
@@ -184,8 +202,7 @@ select {
   .input-array {
     display: flex;
 
-    button,
-    input {
+    .form-control {
       margin: 0;
       border-radius: vars.$modal-middle-border-radius;
 
@@ -195,7 +212,7 @@ select {
       }
     }
 
-    button {
+    button.form-control {
       width: auto;
     }
 

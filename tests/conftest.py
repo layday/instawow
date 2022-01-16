@@ -17,7 +17,7 @@ import pytest
 from instawow import __version__
 from instawow.common import Flavour
 from instawow.config import Config, GlobalConfig
-from instawow.manager import Manager, init_web_client
+from instawow.manager import Manager, contextualise, init_web_client
 
 inf = float('inf')
 
@@ -98,7 +98,7 @@ async def iw_web_client():
 
 @pytest.fixture
 def iw_manager(iw_config: Config, iw_web_client: aiohttp.ClientSession):
-    Manager.contextualise(web_client=iw_web_client)
+    contextualise(web_client=iw_web_client)
     manager, close_db_conn = Manager.from_config(iw_config)
     yield manager
     close_db_conn()

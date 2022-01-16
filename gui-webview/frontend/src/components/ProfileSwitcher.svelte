@@ -1,15 +1,24 @@
 <script lang="ts">
+  import { faCog } from "@fortawesome/free-solid-svg-icons";
   import { onMount } from "svelte";
   import { activeProfile, profiles } from "../store";
-  import ConfigEditor from "./ConfigEditor.svelte";
+  import ConfigModal from "./ConfigModal.svelte";
+  import ProfileConfigEditor from "./ProfileConfigEditor.svelte";
+  import Icon from "./SvgIcon.svelte";
 
-  let editing: "new" | "existing" | false = false;
+  let editing: "new" | "existing" | "auth" | false = false;
 
   onMount(() => !$activeProfile && (editing = "new"));
 </script>
 
 <div class="profile-switcher-wrapper">
   <div class="profile-switcher">
+    <button
+      aria-label="configure access tokens"
+      on:click={() => (editing = editing === "auth" ? false : "auth")}
+    >
+      <Icon icon={faCog} />
+    </button>
     <select aria-label="profile" bind:value={$activeProfile} disabled={!!editing}>
       {#each [...$profiles.keys()] as profile (profile)}
         <option value={profile}>{profile}</option>
@@ -30,9 +39,11 @@
     </button>
   </div>
   {#if editing === "new"}
-    <ConfigEditor bind:editing />
+    <ProfileConfigEditor bind:editing />
   {:else if editing === "existing"}
-    <ConfigEditor bind:editing />
+    <ProfileConfigEditor bind:editing />
+  {:else if editing === "auth"}
+    <ConfigModal bind:editing />
   {/if}
 </div>
 
@@ -102,6 +113,13 @@
     :last-child {
       border-top-right-radius: $edge-border-radius;
       border-bottom-right-radius: $edge-border-radius;
+    }
+
+    :global(.icon) {
+      height: 1rem;
+      width: 1rem;
+      vertical-align: text-bottom;
+      fill: var(--inverse-color-tone-b);
     }
   }
 </style>
