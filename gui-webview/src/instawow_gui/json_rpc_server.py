@@ -695,26 +695,34 @@ class _ManagerWorkQueue:
         return ((p, r()) for m, p, r in self._download_progress_reporters if m is manager)
 
     async def initiate_github_auth_flow(self):
-        async def _finalise_github_auth_flow():
-            result = await poll_for_access_token(
-                self._web_client, codes['device_code'], codes['interval']
-            )
+        async with self.locks['initiate github auth flow']:
+            if self._github_auth_device_codes is None:
 
-            async with self.locks['update global config']:
-                existing_global_config = await t(GlobalConfig.read)()
-                new_global_config = evolve_model_obj(
-                    existing_global_config,
-                    access_tokens=evolve_model_obj(
-                        existing_global_config.access_tokens, github=result
-                    ),
-                )
-                await t(new_global_config.write)()
+                async def finalise_github_auth_flow():
+                    result = await poll_for_access_token(
+                        self._web_client, codes['device_code'], codes['interval']
+                    )
 
-            self.unload_all()
+                    async with self.locks['update global config']:
+                        existing_global_config = await t(GlobalConfig.read)()
+                        new_global_config = evolve_model_obj(
+                            existing_global_config,
+                            access_tokens=evolve_model_obj(
+                                existing_global_config.access_tokens, github=result
+                            ),
+                        )
+                        await t(new_global_config.write)()
 
-        if self._github_auth_device_codes is None:
-            self._github_auth_device_codes = codes = await get_codes(self._web_client)
-            self._github_auth_flow_task = self._loop.create_task(_finalise_github_auth_flow())
+                    self.unload_all()
+
+                def on_task_complete(future: object):
+                    self._github_auth_flow_task = None
+                    self._github_auth_device_codes = None
+
+                self._github_auth_device_codes = codes = await get_codes(self._web_client)
+                self._github_auth_flow_task = self._loop.create_task(finalise_github_auth_flow())
+                self._github_auth_flow_task.add_done_callback(on_task_complete)
+
         return self._github_auth_device_codes
 
     async def wait_for_github_auth_completion(self):
@@ -723,15 +731,11 @@ class _ManagerWorkQueue:
                 await self._github_auth_flow_task
             except BaseException:
                 return 'failure'
-            self._github_auth_flow_task = None
-        self._github_auth_device_codes = None
         return 'success'
 
     def cancel_github_auth_polling(self):
         if self._github_auth_flow_task is not None:
             self._github_auth_flow_task.cancel()
-            self._github_auth_flow_task = None
-        self._github_auth_device_codes = None
 
 
 async def create_app(app_window: toga.MainWindow | None = None):
