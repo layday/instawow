@@ -90,17 +90,17 @@ class Resolver(Protocol):
         yield
 
 
-class BaseResolver(Resolver):
+class BaseResolver:
     def __init__(self, manager: manager.Manager) -> None:
         self.manager = manager
 
-    def __init_subclass__(cls) -> None:
+    def __init_subclass__(cls: type[Resolver]) -> None:
         orig_resolve_one = cls.resolve_one
 
-        async def resolve_one(self: BaseResolver, defn: Defn, metadata: Any) -> models.Pkg:
-            if defn.strategy not in self.strategies:
+        async def resolve_one(resolver: Resolver, defn: Defn, metadata: Any) -> models.Pkg:
+            if defn.strategy not in resolver.strategies:
                 raise R.PkgStrategyUnsupported(defn.strategy)
-            return await orig_resolve_one(self, defn, metadata)
+            return await orig_resolve_one(resolver, defn, metadata)
 
         setattr(cls, 'resolve_one', resolve_one)
 

@@ -29,7 +29,6 @@ from .common import Strategy
 from .config import Config, GlobalConfig
 from .plugins import load_plugins
 from .resolvers import (
-    BaseResolver,
     CfCoreResolver,
     CurseResolver,
     Defn,
@@ -219,18 +218,11 @@ def init_web_client(**kwargs: Any) -> _deferred_types.aiohttp.ClientSession:
 
 
 @object.__new__
-class _DummyResolver(BaseResolver):
-    strategies = frozenset()
-
+class _DummyResolver:
     async def resolve(
         self, defns: Sequence[Defn]
     ) -> dict[Defn, models.Pkg | R.ManagerError | R.InternalError]:
         return dict.fromkeys(defns, R.PkgSourceInvalid())
-
-
-class _ResolverDict(dict):  # type: ignore
-    def __missing__(self, key: str) -> Resolver:
-        return _DummyResolver
 
 
 async def capture_manager_exc_async(
@@ -345,9 +337,7 @@ class Manager:
         resolver_classes: Iterable[type[Resolver]] = chain(
             (r for g in plugin_hook.instawow_add_resolvers() for r in g), base_resolver_classes
         )
-        self.resolvers: dict[str, Resolver] = _ResolverDict(
-            (r.source, r(self)) for r in resolver_classes
-        )
+        self.resolvers: dict[str, Resolver] = {r.source: r(self) for r in resolver_classes}
 
         self.web_client: _CacheFauxClientSession = _CacheFauxClientSession(
             self.config.global_config.cache_dir
@@ -603,7 +593,7 @@ class Manager:
 
         defns_by_source = bucketise(defns, key=lambda v: v.source)
         results = await gather(
-            (self.resolvers[s].resolve(b) for s, b in defns_by_source.items()),
+            (self.resolvers.get(s, _DummyResolver).resolve(b) for s, b in defns_by_source.items()),
             capture_manager_exc_async,
         )
         results_by_defn: dict[Defn, Any] = chain_dict(
