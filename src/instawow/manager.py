@@ -818,7 +818,7 @@ class Manager:
     @_with_lock('change state')
     async def remove(
         self, defns: Sequence[Defn], keep_folders: bool
-    ) -> dict[Defn, R.PkgRemoved | R.ManagerError | R.InternalError]:
+    ) -> dict[Defn, R.PkgRemoved | R.PkgNotInstalled | R.ManagerError | R.InternalError]:
         "Remove packages by their definition."
         results = chain_dict(
             defns,
