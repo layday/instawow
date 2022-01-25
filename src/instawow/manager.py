@@ -14,7 +14,6 @@ from shutil import copy
 from tempfile import NamedTemporaryFile
 import time
 from typing import Any, TypeVar
-import urllib.parse
 
 from loguru import logger
 import sqlalchemy as sa
@@ -608,18 +607,11 @@ class Manager:
             results_by_defn.update(await self._resolve_deps(results_by_defn.values()))
         return results_by_defn
 
-    async def get_changelog(self, uri: str) -> str:
+    async def get_changelog(self, source: str, uri: str) -> str:
         "Retrieve a changelog from a URI."
-        url = URL(uri)
-        if url.scheme == 'data' and url.raw_path.startswith(','):
-            return urllib.parse.unquote(url.raw_path[1:])
-        elif url.scheme in {'http', 'https'}:
-            async with self.web_client.get(url, {'days': 1}, raise_for_status=True) as response:
-                return await response.text()
-        elif url.scheme == 'file':
-            return await t(Path(file_uri_to_path(uri)).read_text)(encoding='utf-8')
-        else:
-            raise ValueError('Unsupported URI with scheme', url.scheme)
+        if source not in self.resolvers:
+            raise R.PkgSourceInvalid
+        return await self.resolvers[source].get_changelog(uri)
 
     async def search(
         self,

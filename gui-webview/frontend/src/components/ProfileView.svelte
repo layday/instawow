@@ -399,7 +399,7 @@
 
   const showChangelogModal = async (addon: Addon) => {
     const changelogFormat = sources[addon.source].changelog_format;
-    const changelog = await profileApi.getChangelog(addon.changelog_url);
+    const changelog = await profileApi.getChangelog(addon.source, addon.changelog_url);
     const [renderAsHtml, changelogText] = htmlify(changelog, changelogFormat);
     changelogModalProps = {
       changelog: changelogText,

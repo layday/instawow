@@ -280,10 +280,10 @@ export class Api {
     });
   }
 
-  async getChangelog(changelogUrl: string): Promise<string> {
+  async getChangelog(source: string, changelogUrl: string): Promise<string> {
     return await this.request({
       method: "get_changelog",
-      params: { profile: this.profile, changelog_url: changelogUrl },
+      params: { profile: this.profile, source, changelog_url: changelogUrl },
     });
   }
 

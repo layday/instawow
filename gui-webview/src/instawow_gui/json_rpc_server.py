@@ -408,13 +408,15 @@ class PinParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
 
 @_register_method('get_changelog')
 class GetChangelogParams(_ProfileParamMixin, BaseParams):
+    source: str
     changelog_url: str
 
     async def respond(
         self, managers: _ManagerWorkQueue, app_window: toga.MainWindow | None
     ) -> str:
         return await managers.run(
-            self.profile, partial(Manager.get_changelog, uri=self.changelog_url)
+            self.profile,
+            partial(Manager.get_changelog, source=self.source, uri=self.changelog_url),
         )
 
 

@@ -219,22 +219,22 @@ async def test_search_unknown_source(iw_manager: Manager):
 
 
 async def test_get_changelog_from_empty_data_url(iw_manager: Manager):
-    assert (await iw_manager.get_changelog('data:,')) == ''
+    assert (await iw_manager.get_changelog('github', 'data:,')) == ''
 
 
 async def test_get_changelog_from_url_encoded_data_url(iw_manager: Manager):
-    assert (await iw_manager.get_changelog('data:,foo%20bar')) == 'foo bar'
+    assert (await iw_manager.get_changelog('github', 'data:,foo%20bar')) == 'foo bar'
 
 
 async def test_get_malformed_changelog(iw_manager: Manager):
     with pytest.raises(ValueError, match='Unsupported URI with scheme'):
-        await iw_manager.get_changelog('')
+        await iw_manager.get_changelog('github', '')
 
 
 async def test_get_changelog_from_file_uri(iw_manager: Manager):
     assert (
         await iw_manager.get_changelog(
-            (Path(__file__).parent / 'fixtures' / 'curse-addon-changelog.txt').as_uri()
+            'curse', (Path(__file__).parent / 'fixtures' / 'curse-addon-changelog.txt').as_uri()
         )
     ).startswith('<h3>Changes in 90105.81-Release:</h3>')
 
@@ -242,7 +242,7 @@ async def test_get_changelog_from_file_uri(iw_manager: Manager):
 async def test_get_changelog_from_web_url(iw_manager: Manager):
     assert (
         await iw_manager.get_changelog(
-            'https://addons-ecs.forgesvc.net/api/v2/addon/20338/file/3475338/changelog'
+            'curse', 'https://addons-ecs.forgesvc.net/api/v2/addon/20338/file/3475338/changelog'
         )
     ).startswith('<h3>Changes in 90105.81-Release:</h3>')
 

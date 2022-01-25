@@ -857,7 +857,7 @@ def view_changelog(manager: _manager.Manager, addon: Defn | None, convert: bool)
     if addon:
         pkg = manager.get_pkg(addon, partial_match=True)
         if pkg:
-            changelog = run_with_progress(manager.get_changelog(pkg.changelog_url))
+            changelog = run_with_progress(manager.get_changelog(pkg.source, pkg.changelog_url))
             if convert:
                 changelog = make_converter()(pkg.source, changelog)
             click.echo_via_pager(changelog)
@@ -880,7 +880,10 @@ def view_changelog(manager: _manager.Manager, addon: Defn | None, convert: bool)
             )
         ).all()
         changelogs = run_with_progress(
-            gather(manager.get_changelog(m.changelog_url) for m in last_installed_changelog_urls)
+            gather(
+                manager.get_changelog(m.source, m.changelog_url)
+                for m in last_installed_changelog_urls
+            )
         )
         if convert:
             do_convert = make_converter()

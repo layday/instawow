@@ -6,9 +6,11 @@ from datetime import datetime, timezone
 from enum import IntEnum
 from functools import partial
 from itertools import count, takewhile
+from pathlib import Path
 import re
 import typing
 from typing import Any, ClassVar
+import urllib.parse
 
 from loguru import logger
 from pydantic import BaseModel
@@ -22,7 +24,15 @@ from . import results as R
 from .cataloguer import BaseCatatalogueEntry
 from .common import ChangelogFormat, Flavour, Strategy
 from .config import GlobalConfig
-from .utils import StrEnum, evolve_model_obj, gather, normalise_names, uniq
+from .utils import (
+    StrEnum,
+    evolve_model_obj,
+    file_uri_to_path,
+    gather,
+    normalise_names,
+    run_in_thread,
+    uniq,
+)
 
 
 class Defn(BaseModel, frozen=True):
@@ -52,8 +62,6 @@ slugify = normalise_names('-')
 
 
 def _format_data_changelog(changelog: str = '') -> str:
-    import urllib.parse
-
     return f'data:,{urllib.parse.quote(changelog)}'
 
 
@@ -79,6 +87,10 @@ class Resolver(Protocol):
 
     async def resolve_one(self, defn: Defn, metadata: Any) -> models.Pkg:
         "Resolve a ``Defn`` into a package."
+        ...
+
+    async def get_changelog(self, uri: str) -> str:
+        "Retrieve a changelog from a URI."
         ...
 
     @classmethod
@@ -118,6 +130,20 @@ class BaseResolver:
 
     async def resolve_one(self, defn: Defn, metadata: Any) -> models.Pkg:
         raise NotImplementedError
+
+    async def get_changelog(self, uri: str) -> str:
+        url = URL(uri)
+        if url.scheme == 'data' and url.raw_path.startswith(','):
+            return urllib.parse.unquote(url.raw_path[1:])
+        elif url.scheme in {'http', 'https'}:
+            async with self.manager.web_client.get(
+                url, {'days': 1}, raise_for_status=True
+            ) as response:
+                return await response.text()
+        elif url.scheme == 'file':
+            return await run_in_thread(Path(file_uri_to_path(uri)).read_text)(encoding='utf-8')
+        else:
+            raise ValueError('Unsupported URI with scheme', url.scheme)
 
     @classmethod
     async def catalogue(
@@ -598,6 +624,10 @@ class _CfCoreModsSearchSortField(IntEnum):
     game_version = 8
 
 
+class _CfCoreStringDataResponse(TypedDict):
+    data: str
+
+
 class _CfCoreModsResponsePagination(TypedDict):
     index: int
     pageSize: int
@@ -766,7 +796,7 @@ class CfCoreResolver(BaseResolver):
                 'date_published': file['fileDate'],
                 'version': file['displayName'],
                 'changelog_url': str(
-                    self.mod_api_url / f'{metadata["id"]}/file/{file["id"]}/changelog'
+                    self.mod_api_url / f'{metadata["id"]}/files/{file["id"]}/changelog'
                 ),
                 'options': {'strategy': defn.strategy},
                 'deps': [
@@ -776,6 +806,19 @@ class CfCoreResolver(BaseResolver):
                 ],
             }
         )
+
+    async def get_changelog(self, uri: str) -> str:
+        url = URL(uri)
+        # Old Curse API URL
+        if url.host != self.mod_api_url.host:
+            return await super().get_changelog(uri)
+
+        headers = {'x-api-key': self._get_access_token(self.manager.config.global_config)}
+        async with self.manager.web_client.get(
+            uri, {'days': 1}, headers=headers, raise_for_status=True
+        ) as response:
+            response_json: _CfCoreStringDataResponse = await response.json()
+            return response_json['data']
 
     @classmethod
     async def catalogue(
