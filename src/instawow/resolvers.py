@@ -89,7 +89,7 @@ class Resolver(Protocol):
         "Resolve a ``Defn`` into a package."
         ...
 
-    async def get_changelog(self, uri: str) -> str:
+    async def get_changelog(self, uri: URL) -> str:
         "Retrieve a changelog from a URI."
         ...
 
@@ -131,19 +131,20 @@ class BaseResolver:
     async def resolve_one(self, defn: Defn, metadata: Any) -> models.Pkg:
         raise NotImplementedError
 
-    async def get_changelog(self, uri: str) -> str:
-        url = URL(uri)
-        if url.scheme == 'data' and url.raw_path.startswith(','):
-            return urllib.parse.unquote(url.raw_path[1:])
-        elif url.scheme in {'http', 'https'}:
+    async def get_changelog(self, uri: URL) -> str:
+        if uri.scheme == 'data' and uri.raw_path.startswith(','):
+            return urllib.parse.unquote(uri.raw_path[1:])
+        elif uri.scheme in {'http', 'https'}:
             async with self.manager.web_client.get(
-                url, {'days': 1}, raise_for_status=True
+                uri, {'days': 1}, raise_for_status=True
             ) as response:
                 return await response.text()
-        elif url.scheme == 'file':
-            return await run_in_thread(Path(file_uri_to_path(uri)).read_text)(encoding='utf-8')
+        elif uri.scheme == 'file':
+            return await run_in_thread(Path(file_uri_to_path(str(uri))).read_text)(
+                encoding='utf-8'
+            )
         else:
-            raise ValueError('Unsupported URI with scheme', url.scheme)
+            raise ValueError('Unsupported URI with scheme', uri.scheme)
 
     @classmethod
     async def catalogue(
@@ -807,10 +808,9 @@ class CfCoreResolver(BaseResolver):
             }
         )
 
-    async def get_changelog(self, uri: str) -> str:
-        url = URL(uri)
+    async def get_changelog(self, uri: URL) -> str:
         # Old Curse API URL
-        if url.host != self.mod_api_url.host:
+        if uri.host != self.mod_api_url.host:
             return await super().get_changelog(uri)
 
         headers = {'x-api-key': self._get_access_token(self.manager.config.global_config)}

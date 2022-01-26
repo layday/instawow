@@ -611,7 +611,7 @@ class Manager:
         "Retrieve a changelog from a URI."
         if source not in self.resolvers:
             raise R.PkgSourceInvalid
-        return await self.resolvers[source].get_changelog(uri)
+        return await self.resolvers[source].get_changelog(URL(uri))
 
     async def search(
         self,
