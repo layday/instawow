@@ -1,3 +1,5 @@
+# pyright: reportMissingTypeStubs=false
+
 from __future__ import annotations
 
 from collections.abc import Iterable
@@ -5,9 +7,11 @@ from functools import lru_cache
 from typing import Any
 
 import click
-import pluggy
+import pluggy as _pluggy
 
 from . import resolvers
+
+pluggy: Any = _pluggy
 
 _project_name = __package__
 
