@@ -612,7 +612,6 @@ class _CfCoreMod(TypedDict):
     dateCreated: str  # date-time
     dateModified: str  # date-time
     dateReleased: str  # date-time
-    allowModDistribution: bool | None
 
 
 class _CfCoreModsSearchSortField(IntEnum):
@@ -864,10 +863,6 @@ class CfCoreResolver(BaseResolver):
                 break
 
             for item in items:
-                if item['allowModDistribution'] is False:
-                    logger.info(f'{item["links"]["websiteUrl"]} disallows distribution; skipping')
-                    continue
-
                 yield BaseCatatalogueEntry.parse_obj(
                     {
                         'source': cls.source,
