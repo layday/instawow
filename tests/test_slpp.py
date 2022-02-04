@@ -100,8 +100,9 @@ def test_table_keys():
 
 
 def test_table_palooza():
-    assert loads(
-        '''{ -- δκσξδφξ
+    assert (
+        loads(
+            '''{ -- δκσξδφξ
         array = { 65, 23, 5 }, -- 3493
         dict =     {  -- !!!,11
             [false]       =    "value"      ,  -- what's up
@@ -111,14 +112,16 @@ def test_table_palooza():
             mixed = { 43, 54.3, false, string = "value", 9 }    -- wazzup
         }                   -- foo
 } -- bar'''
-    ) == {
-        'array': [65, 23, 5],
-        'dict': {
-            False: 'value',
-            'array': [3, '6', 4],
-            'mixed': {1: 43, 2: 54.3, 3: False, 'string': 'value', 4: 9},
-        },
-    }
+        )
+        == {
+            'array': [65, 23, 5],
+            'dict': {
+                False: 'value',
+                'array': [3, '6', 4],
+                'mixed': {1: 43, 2: 54.3, 3: False, 'string': 'value', 4: 9},
+            },
+        }
+    )
 
 
 def test_table_key_overrides():
