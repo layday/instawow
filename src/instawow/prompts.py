@@ -16,9 +16,7 @@ from prompt_toolkit.shortcuts.progress_bar import ProgressBar, formatters
 from prompt_toolkit.styles import Style
 from prompt_toolkit.validation import ValidationError, Validator
 import pydantic
-from questionary import Choice
-from questionary import confirm as _confirm
-from questionary import path as _path
+from questionary import Choice, confirm as _confirm, path as _path
 from questionary.prompts.common import InquirerControl, Separator, create_inquirer_layout
 from questionary.question import Question
 

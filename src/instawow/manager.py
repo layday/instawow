@@ -21,8 +21,7 @@ import sqlalchemy.future as sa_future
 from typing_extensions import Concatenate, Literal, ParamSpec, TypeAlias, TypedDict
 from yarl import URL
 
-from . import _deferred_types, db, models
-from . import results as R
+from . import _deferred_types, db, models, results as R
 from .cataloguer import BaseCatalogue, Catalogue, CatalogueEntry
 from .common import Strategy
 from .config import Config, GlobalConfig
@@ -48,9 +47,11 @@ from .utils import (
     make_zip_member_filter,
     move,
     normalise_names,
+    run_in_thread as t,
+    shasum,
+    trash,
+    uniq,
 )
-from .utils import run_in_thread as t
-from .utils import shasum, trash, uniq
 
 _P = ParamSpec('_P')
 _T = TypeVar('_T')

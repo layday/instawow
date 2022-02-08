@@ -9,16 +9,12 @@ from typing import Any, ClassVar, TypeVar
 
 from loguru import logger
 from pydantic import BaseModel, Field, validator
-from typing_extensions import Literal
-from typing_extensions import NotRequired as N
-from typing_extensions import Self, TypeAlias, TypedDict
+from typing_extensions import Literal, NotRequired as N, Self, TypeAlias, TypedDict
 from yarl import URL
 
 from .common import Flavour
 from .manager import Manager
-from .utils import StrEnum, bucketise, chain_dict, gather
-from .utils import run_in_thread as t
-from .utils import shasum
+from .utils import StrEnum, bucketise, chain_dict, gather, run_in_thread as t, shasum
 
 _TAuras = TypeVar('_TAuras', bound='BaseAuras')
 _ImportString = _Slug = str

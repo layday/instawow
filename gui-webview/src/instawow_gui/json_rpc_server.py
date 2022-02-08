@@ -14,8 +14,7 @@ from typing import Any, TypeVar
 
 import aiohttp
 import aiohttp.web
-from aiohttp_rpc import JsonRpcMethod
-from aiohttp_rpc import middlewares as rpc_middlewares
+from aiohttp_rpc import JsonRpcMethod, middlewares as rpc_middlewares
 from aiohttp_rpc.errors import InvalidParams, ServerError
 from aiohttp_rpc.server import WsJsonRpcServer
 import click
@@ -26,8 +25,7 @@ import toga
 from typing_extensions import Concatenate, Literal, ParamSpec, TypeAlias, TypedDict
 from yarl import URL
 
-from instawow import __version__, db, matchers, models
-from instawow import results as R
+from instawow import __version__, db, matchers, models, results as R
 from instawow.cataloguer import CatalogueEntry
 from instawow.common import ChangelogFormat, Flavour, Strategy
 from instawow.config import Config, GlobalConfig
@@ -41,9 +39,7 @@ from instawow.manager import (
     is_outdated,
 )
 from instawow.resolvers import Defn
-from instawow.utils import evolve_model_obj
-from instawow.utils import run_in_thread as t
-from instawow.utils import uniq
+from instawow.utils import evolve_model_obj, run_in_thread as t, uniq
 
 from . import frontend
 

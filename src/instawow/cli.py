@@ -24,10 +24,7 @@ from typing import Any, NoReturn, TypeVar, overload
 import click
 from loguru import logger
 
-from . import __version__, _deferred_types, db
-from . import manager as _manager
-from . import models
-from . import results as R
+from . import __version__, _deferred_types, db, manager as _manager, models, results as R
 from .common import Flavour, Strategy
 from .config import Config, GlobalConfig, setup_logging
 from .plugins import load_plugins

@@ -14,13 +14,10 @@ import urllib.parse
 
 from loguru import logger
 from pydantic import BaseModel
-from typing_extensions import Literal
-from typing_extensions import NotRequired as N
-from typing_extensions import Protocol, TypedDict
+from typing_extensions import Literal, NotRequired as N, Protocol, TypedDict
 from yarl import URL
 
-from . import _deferred_types, manager, models
-from . import results as R
+from . import _deferred_types, manager, models, results as R
 from .cataloguer import BaseCatatalogueEntry
 from .common import ChangelogFormat, Flavour, Strategy
 from .config import GlobalConfig
