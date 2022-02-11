@@ -609,6 +609,7 @@ class _CfCoreMod(TypedDict):
     dateCreated: str  # date-time
     dateModified: str  # date-time
     dateReleased: str  # date-time
+    allowModDistribution: bool | None
 
 
 class _CfCoreModsSearchSortField(IntEnum):
