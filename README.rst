@@ -8,19 +8,8 @@
 *instawow* is an add-on manager for World of Warcraft.
 It can be used to install, update and remove add-ons from GitHub,
 CurseForge, WoWInterface and Tukui.
-Some of the features of *instawow* are:
-
-- Interoperable CLI and GUI
-- Fuzzy search with download scoring, backed by a catalogue which
-  combines add-ons from WoWInterface, CurseForge, Tukui and GitHub
-- Support for add-on URLs and *instawow*-specific URNs
-- Add-on reconciliation which works with all three major hosts
-- Rollback – the ability to revert problematic updates
-- Multiple update channels
-- Automatic installation of add-on dependencies
-- Version pinning of CurseForge and GitHub add-ons
-- Wago integration – a WeakAuras Companion clone which can be managed like
-  any other add-on
+*instawow* has an interoperable CLI and GUI, fuzzy search with download scoring
+and several other goodies.
 
 .. list-table::
    :widths: 50 50
