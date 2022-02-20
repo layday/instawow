@@ -260,8 +260,9 @@ def _intercept_logging_module_calls(log_level: str):  # pragma: no cover
     logging.basicConfig(handlers=[InterceptHandler()], level=log_level)
 
 
-def setup_logging(logging_dir: Path, log_level: str = 'INFO') -> None:
-    debug = log_level == 'DEBUG'
+def setup_logging(logging_dir: Path, debug: bool) -> None:
+    log_level = 'DEBUG' if debug else 'INFO'
+
     if debug:
         _intercept_logging_module_calls(log_level)
 

@@ -1,5 +1,3 @@
-# pyright: reportUnknownMemberType=false
-
 from __future__ import annotations
 
 import asyncio
@@ -73,7 +71,7 @@ class Report:
         )
 
     def generate(self) -> None:
-        manager_wrapper: ManagerWrapper | None = click.get_current_context().obj
+        manager_wrapper: _CtxWrapper | None = click.get_current_context().obj
         if manager_wrapper and manager_wrapper.manager.config.global_config.auto_update_check:
             outdated, new_version = run_with_progress(_manager.is_outdated())
             if outdated:
@@ -114,7 +112,7 @@ def _init_cli_web_client(
             )
             # The encoded size is not exposed in the aiohttp streaming API
             # so we cannot display progress when the payload is encoded.
-            # When ``None`` the progress bar is "indeterminate".
+            # When the total is ``None`` the progress bar is "indeterminate".
             total = None if hdrs.CONTENT_ENCODING in response.headers else response.content_length
 
             async def ticker():
@@ -124,7 +122,7 @@ def _init_cli_web_client(
                 progress_bar.counters.append(counter)
                 try:
                     while not response.content.is_eof():
-                        counter.items_completed = response.content.total_bytes
+                        counter.items_completed = response.content.total_bytes  # type: ignore
                         progress_bar.invalidate()
                         await asyncio.sleep(TICK_INTERVAL)
                 finally:
@@ -174,26 +172,26 @@ def _apply_patches():
     _override_asyncio_loop_policy()
 
 
-class ManagerWrapper:
+class _CtxWrapper:
     def __init__(self, ctx: click.Context) -> None:
-        self.ctx = ctx
+        self._ctx = ctx
 
     @cached_property
     def manager(self) -> _manager.Manager:
         global_config = GlobalConfig.read().ensure_dirs()
         try:
-            config = Config.read(global_config, self.ctx.params['profile']).ensure_dirs()
+            config = Config.read(global_config, self._ctx.params['profile']).ensure_dirs()
         except FileNotFoundError:
-            config = self.ctx.invoke(configure)
+            config = self._ctx.invoke(configure)
 
-        setup_logging(config.logging_dir, self.ctx.params['log_level'])
+        setup_logging(config.logging_dir, self._ctx.params['debug'])
         manager, close_db_conn = _manager.Manager.from_config(config)
-        self.ctx.call_on_close(close_db_conn)
+        self._ctx.call_on_close(close_db_conn)
 
         return manager
 
-    @staticmethod
-    def pass_manager(fn: _F) -> _F:
+    @classmethod
+    def pass_manager(cls, fn: _F) -> _F:
         @wraps(fn)
         def wrapper(*args: object, **kwargs: object):
             return fn(click.get_current_context().obj.manager, *args, **kwargs)
@@ -235,19 +233,14 @@ def _register_plugin_commands(group: click.Group):
     return group
 
 
-def _set_log_level(_: click.Context, __: click.Parameter, value: bool):
-    return 'DEBUG' if value else 'INFO'
-
-
 @_register_plugin_commands
 @click.group(context_settings={'help_option_names': ('-h', '--help')})
 @click.version_option(__version__, prog_name=__package__)
 @click.option(
     '--debug',
-    'log_level',
+    'debug',
     is_flag=True,
     default=False,
-    callback=_set_log_level,
     help='Log more things.',
 )
 @click.option(
@@ -257,10 +250,10 @@ def _set_log_level(_: click.Context, __: click.Parameter, value: bool):
     help='Activate the specified profile.',
 )
 @click.pass_context
-def cli(ctx: click.Context, log_level: str, profile: str) -> None:
+def cli(ctx: click.Context, **__: object) -> None:
     "Add-on manager for World of Warcraft."
     _apply_patches()
-    ctx.obj = ManagerWrapper(ctx)
+    ctx.obj = _CtxWrapper(ctx)
 
 
 main = logger.catch(reraise=True)(cli)
@@ -355,7 +348,7 @@ _EXCLUDED_STRATEGIES = frozenset({Strategy.default, Strategy.version})
     help='A version followed by an add-on definition.',
 )
 @click.option('--replace', is_flag=True, default=False, help='Replace unreconciled add-ons.')
-@ManagerWrapper.pass_manager
+@_CtxWrapper.pass_manager
 def install(manager: _manager.Manager, addons: Sequence[Defn], replace: bool) -> None:
     "Install add-ons."
     if not addons:
@@ -369,7 +362,7 @@ def install(manager: _manager.Manager, addons: Sequence[Defn], replace: bool) ->
 
 @cli.command()
 @click.argument('addons', nargs=-1, callback=_with_manager(parse_into_defn))
-@ManagerWrapper.pass_manager
+@_CtxWrapper.pass_manager
 def update(manager: _manager.Manager, addons: Sequence[Defn]) -> None:
     "Update installed add-ons."
     import sqlalchemy as sa
@@ -409,7 +402,7 @@ def update(manager: _manager.Manager, addons: Sequence[Defn]) -> None:
     default=False,
     help="Do not delete the add-on folders.",
 )
-@ManagerWrapper.pass_manager
+@_CtxWrapper.pass_manager
 def remove(manager: _manager.Manager, addons: Sequence[Defn], keep_folders: bool) -> None:
     "Remove add-ons."
     results = run_with_progress(manager.remove(addons, keep_folders))
@@ -428,7 +421,7 @@ def remove(manager: _manager.Manager, addons: Sequence[Defn], keep_folders: bool
     default=False,
     help='Undo rollback by reinstalling an add-on using the default strategy.',
 )
-@ManagerWrapper.pass_manager
+@_CtxWrapper.pass_manager
 def rollback(manager: _manager.Manager, addon: Defn, version: str | None, undo: bool) -> None:
     "Roll an add-on back to an older version."
     from .prompts import Choice, ask, select
@@ -488,7 +481,7 @@ def rollback(manager: _manager.Manager, addon: Defn, version: str | None, undo: 
 @click.option(
     '--list-unreconciled', is_flag=True, default=False, help='List unreconciled add-ons and exit.'
 )
-@ManagerWrapper.pass_manager
+@_CtxWrapper.pass_manager
 def reconcile(
     manager: _manager.Manager, auto: bool, rereconcile: bool, list_unreconciled: bool
 ) -> None:
@@ -717,7 +710,7 @@ class _ListFormats(StrEnum):
     show_default=True,
     help='Change the output format.',
 )
-@ManagerWrapper.pass_manager
+@_CtxWrapper.pass_manager
 def list_installed(
     manager: _manager.Manager, addons: Sequence[Defn], output_format: _ListFormats
 ) -> None:
@@ -798,7 +791,7 @@ def info(ctx: click.Context, addon: Defn) -> None:
 
 @cli.command()
 @click.argument('addon', callback=_with_manager(partial(parse_into_defn, raise_invalid=False)))
-@ManagerWrapper.pass_manager
+@_CtxWrapper.pass_manager
 def reveal(manager: _manager.Manager, addon: Defn) -> None:
     "Bring an add-on up in your file manager."
     pkg = manager.get_pkg(addon, partial_match=True)
@@ -818,7 +811,7 @@ def reveal(manager: _manager.Manager, addon: Defn) -> None:
     show_default=True,
     help='Convert HTML and Markdown changelogs to plain text using pandoc.',
 )
-@ManagerWrapper.pass_manager
+@_CtxWrapper.pass_manager
 def view_changelog(manager: _manager.Manager, addon: Defn | None, convert: bool) -> None:
     """View the changelog of an installed add-on.
 
@@ -1013,7 +1006,7 @@ def _weakauras_group() -> None:
 
 
 @_weakauras_group.command('build')
-@ManagerWrapper.pass_manager
+@_CtxWrapper.pass_manager
 def build_weakauras_companion(manager: _manager.Manager) -> None:
     "Build the WeakAuras Companion add-on."
     from .wa_updater import WaCompanionBuilder
@@ -1022,7 +1015,7 @@ def build_weakauras_companion(manager: _manager.Manager) -> None:
 
 
 @_weakauras_group.command('list')
-@ManagerWrapper.pass_manager
+@_CtxWrapper.pass_manager
 def list_installed_wago_auras(manager: _manager.Manager) -> None:
     "List WeakAuras installed from Wago."
     from .wa_updater import WaCompanionBuilder
@@ -1072,6 +1065,6 @@ def gui(ctx: click.Context) -> None:
         global_config=global_config, profile='__jsonrpc__'
     ).ensure_dirs()
     params = ctx.find_root().params
-    setup_logging(dummy_jsonrpc_config.logging_dir, params['log_level'])
+    setup_logging(dummy_jsonrpc_config.logging_dir, params['debug'])
 
-    InstawowApp(version=__version__).main_loop()
+    InstawowApp(version=__version__).main_loop()  # type: ignore
