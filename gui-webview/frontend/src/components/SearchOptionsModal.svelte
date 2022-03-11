@@ -18,7 +18,7 @@
     searchLimit: number;
 
   const startDateSuggestions = [
-    { date: "2021-11-02", label: "9.1.5", flavour: Flavour.retail },
+    { date: "2022-02-22", label: "9.2.0", flavour: Flavour.retail },
     { date: "2020-10-13", label: "9.0.1", flavour: Flavour.retail },
     {
       date: DateTime.now().minus({ days: 1 }).toISODate(),
