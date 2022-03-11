@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from functools import total_ordering
+from itertools import chain
 from pathlib import Path
 import re
 
@@ -27,23 +28,22 @@ _FLAVOUR_TOC_SUFFIXES = {
     Flavour.retail: [
         '_Mainline.toc',
         '-Mainline.toc',
-        '.toc',
     ],
     Flavour.vanilla_classic: [
         '_Vanilla.toc',
         '-Vanilla.toc',
         '_Classic.toc',
         '-Classic.toc',
-        '.toc',
     ],
     Flavour.burning_crusade_classic: [
         '_TBC.toc',
         '-TBC.toc',
         '_BCC.toc',
         '-BCC.toc',
-        '.toc',
     ],
 }
+
+FLAVOUR_TOC_SUFFIX_REVERSE_MAPPING = {i: k for k, v in _FLAVOUR_TOC_SUFFIXES.items() for i in v}
 
 
 @total_ordering
@@ -72,7 +72,7 @@ class AddonFolder:
 
     @classmethod
     def from_addon_path(cls, flavour: Flavour, path: Path) -> Self | None:
-        for suffix in _FLAVOUR_TOC_SUFFIXES[flavour]:
+        for suffix in chain(_FLAVOUR_TOC_SUFFIXES[flavour], ('.toc',)):
             try:
                 toc_reader = TocReader.from_addon_path(path, suffix)
                 return cls(path.name, toc_reader)

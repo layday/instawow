@@ -41,7 +41,7 @@ from .utils import (
     chain_dict,
     evolve_model_obj,
     file_uri_to_path,
-    find_addon_zip_base_dirs,
+    find_addon_zip_tocs,
     gather,
     is_not_stale,
     make_zip_member_filter,
@@ -104,7 +104,7 @@ def _open_pkg_archive(path: PurePath):
             archive.extractall(parent, members=filter(make_zip_member_filter(base_dirs), names))
 
         names = archive.namelist()
-        base_dirs = set(find_addon_zip_base_dirs(names))
+        base_dirs = {h for _, h in find_addon_zip_tocs(names)}
         yield (base_dirs, extract)
 
 

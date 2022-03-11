@@ -24,7 +24,9 @@ from .config import GlobalConfig
 from .utils import (
     StrEnum,
     evolve_model_obj,
+    extract_byte_range_offset,
     file_uri_to_path,
+    find_addon_zip_tocs,
     gather,
     normalise_names,
     run_in_thread,
@@ -1290,12 +1292,12 @@ class GithubResolver(BaseResolver):
             return '/'.join(url.parts[1:3])
 
     async def resolve_one(self, defn: Defn, metadata: None) -> models.Pkg:
+        github_headers = {}
         github_get = self.manager.web_client.get
         github_token = self.manager.config.global_config.access_tokens.github
-        if github_token is not None:
-            github_get = partial(
-                github_get, headers={'Authorization': f'token {github_token.get_secret_value()}'}
-            )
+        if github_token:
+            github_headers = {'Authorization': f'token {github_token.get_secret_value()}'}
+            github_get = partial(github_get, headers=github_headers)
 
         repo_url = self.repos_api_url / defn.alias
 
@@ -1332,43 +1334,122 @@ class GithubResolver(BaseResolver):
             (a for a in assets if a['name'] == 'release.json' and a['state'] == 'uploaded'),
             None,
         )
+
         if release_json is None:
-            raise R.PkgFileUnavailable('no `release.json` attached to release')
-
-        async with self.manager.web_client.get(
-            release_json['browser_download_url'], {'days': 1}, raise_for_status=True
-        ) as response:
-            packager_metadata: _PackagerReleaseJson = await response.json()
-
-        releases = packager_metadata['releases']
-        if not releases:
-            raise R.PkgFileUnavailable('no files available for download')
-
-        wanted_flavour = Flavour.to_flavour_keyed_enum(
-            _PackagerReleaseJsonFlavor, self.manager.config.game_flavour
-        )
-        matching_release = next(
-            (
-                r
-                for r in releases
-                if r['nolib'] is False
-                and any(m['flavor'] == wanted_flavour for m in r['metadata'])
-            ),
-            None,
-        )
-        if matching_release is None:
-            raise R.PkgFileUnavailable(f'no files matching {self.manager.config.game_flavour}')
-
-        matching_asset = next(
-            (
+            candidates = [
                 a
                 for a in assets
-                if a['name'] == matching_release['filename'] and a['state'] == 'uploaded'
-            ),
-            None,
-        )
-        if matching_asset is None:
-            raise R.PkgFileUnavailable(f'{matching_release["filename"]} not found')
+                if a['state'] == 'uploaded'
+                and a['content_type'] in {'application/zip', 'application/x-zip-compressed'}
+                and a['name'].endswith('.zip')
+            ]
+            if candidates is None:
+                raise R.PkgFileUnavailable(
+                    'no `release.json` attached to release, no add-on zips found'
+                )
+
+            from io import BytesIO
+            import zipfile
+
+            from aiohttp import hdrs
+
+            from .matchers import FLAVOUR_TOC_SUFFIX_REVERSE_MAPPING
+
+            matching_asset = None
+
+            for candidate in candidates:
+                addon_zip_stream = BytesIO()
+                dynamic_addon_zip = None
+
+                for offset in range(25_000, 100_000, 25_000):
+                    async with self.manager.web_client.wrapped.get(
+                        candidate['browser_download_url'],
+                        headers={**github_headers, hdrs.RANGE: f'bytes=-{offset}'},
+                    ) as directory_range_response:
+                        if not directory_range_response.ok:
+                            break
+
+                        addon_zip_stream.seek(
+                            extract_byte_range_offset(
+                                directory_range_response.headers[hdrs.CONTENT_RANGE]
+                            )
+                        )
+                        addon_zip_stream.write(await directory_range_response.read())
+
+                        try:
+                            dynamic_addon_zip = zipfile.ZipFile(addon_zip_stream)
+                        except zipfile.BadZipFile:
+                            logger.debug(f'directory marker not found in last {offset} bytes')
+                            continue
+                        else:
+                            break
+
+                if dynamic_addon_zip is None:
+                    logger.debug('directory marker not found')
+                    continue
+
+                toc_filenames = {
+                    n
+                    for n, _ in find_addon_zip_tocs(f.filename for f in dynamic_addon_zip.filelist)
+                }
+                if not toc_filenames:
+                    continue
+
+                game_flavours_from_filenames = {
+                    v
+                    for n in toc_filenames
+                    for l in (n.lower(),)
+                    for s, v in FLAVOUR_TOC_SUFFIX_REVERSE_MAPPING.items()
+                    if l.endswith(s)
+                }
+                if self.manager.config.game_flavour in game_flavours_from_filenames:
+                    matching_asset = candidate
+                    break
+
+                if not game_flavours_from_filenames:
+                    matching_asset = candidate
+
+            else:
+                if matching_asset is None:
+                    raise R.PkgFileUnavailable(
+                        'unable to find matching game version in add-on zips'
+                    )
+
+        else:
+            async with self.manager.web_client.get(
+                release_json['browser_download_url'], {'days': 1}, raise_for_status=True
+            ) as response:
+                packager_metadata: _PackagerReleaseJson = await response.json()
+
+            releases = packager_metadata['releases']
+            if not releases:
+                raise R.PkgFileUnavailable('no files available for download')
+
+            wanted_flavour = Flavour.to_flavour_keyed_enum(
+                _PackagerReleaseJsonFlavor, self.manager.config.game_flavour
+            )
+            matching_release = next(
+                (
+                    r
+                    for r in releases
+                    if r['nolib'] is False
+                    and any(m['flavor'] == wanted_flavour for m in r['metadata'])
+                ),
+                None,
+            )
+            if matching_release is None:
+                raise R.PkgFileUnavailable(f'no files matching {self.manager.config.game_flavour}')
+
+            matching_asset = next(
+                (
+                    a
+                    for a in assets
+                    if a['name'] == matching_release['filename'] and a['state'] == 'uploaded'
+                ),
+                None,
+            )
+            if matching_asset is None:
+                raise R.PkgFileUnavailable(f'{matching_release["filename"]} not found')
 
         return models.Pkg.parse_obj(
             {

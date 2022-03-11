@@ -213,13 +213,13 @@ def is_not_stale(path: Path, ttl: Mapping[str, float]) -> bool:
     )
 
 
-def find_addon_zip_base_dirs(names: Sequence[str]) -> Iterator[str]:
+def find_addon_zip_tocs(names: Iterable[str]) -> Iterator[tuple[str, str]]:
     "Find top-level folders in a list of ZIP member paths."
     for name in names:
         if name.count(posixpath.sep) == 1:
             head, tail = posixpath.split(name)
             if tail.startswith(head) and tail[-4:].lower() == '.toc':
-                yield head
+                yield (name, head)
 
 
 def make_zip_member_filter(base_dirs: Set[str]) -> Callable[[str], bool]:
@@ -243,6 +243,10 @@ def file_uri_to_path(file_uri: str) -> str:
     if PurePath(unprefixed_path[1:]).drive:
         unprefixed_path = unprefixed_path[1:]
     return unprefixed_path
+
+
+def extract_byte_range_offset(content_range: str):
+    return int(content_range.replace('bytes ', '').partition('-')[0])
 
 
 def normalise_names(replace_delim: str) -> Callable[[str], str]:
