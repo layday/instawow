@@ -8,7 +8,7 @@ import time
 
 import pytest
 
-from instawow.manager import find_addon_zip_base_dirs, make_zip_member_filter
+from instawow.manager import find_addon_zip_tocs, make_zip_member_filter
 from instawow.utils import (
     TocReader,
     bucketise,
@@ -24,29 +24,29 @@ def fake_addon():
     yield Path(__file__).parent / 'fixtures' / 'FakeAddon'
 
 
-def test_find_addon_zip_base_dirs_can_find_explicit_dirs():
-    assert set(find_addon_zip_base_dirs(['b/', 'b/b.toc'])) == {'b'}
+def test_find_addon_zip_tocs_can_find_explicit_dirs():
+    assert {h for _, h in find_addon_zip_tocs(['b/', 'b/b.toc'])} == {'b'}
 
 
-def test_find_addon_zip_base_dirs_can_find_implicit_dirs():
-    assert set(find_addon_zip_base_dirs(['b/b.toc'])) == {'b'}
+def test_find_addon_zip_tocs_can_find_implicit_dirs():
+    assert {h for _, h in find_addon_zip_tocs(['b/b.toc'])} == {'b'}
 
 
-def test_find_addon_zip_base_dirs_discards_tocless_paths():
-    assert set(find_addon_zip_base_dirs(['a', 'b/b.toc', 'c/'])) == {'b'}
+def test_find_addon_zip_tocs_discards_tocless_paths():
+    assert {h for _, h in find_addon_zip_tocs(['a', 'b/b.toc', 'c/'])} == {'b'}
 
 
-def test_find_addon_zip_base_dirs_discards_mismatched_tocs():
-    assert not set(find_addon_zip_base_dirs(['a', 'a/b.toc']))
+def test_find_addon_zip_tocs_discards_mismatched_tocs():
+    assert not {h for _, h in find_addon_zip_tocs(['a', 'a/b.toc'])}
 
 
-def test_find_addon_zip_base_dirs_accepts_multitoc():
-    assert set(find_addon_zip_base_dirs(['a', 'a/a_mainline.toc'])) == {'a'}
+def test_find_addon_zip_tocs_accepts_multitoc():
+    assert {h for _, h in find_addon_zip_tocs(['a', 'a/a_mainline.toc'])} == {'a'}
 
 
 @pytest.mark.parametrize('ext', product('Tt', 'Oo', 'Cc'))
-def test_find_addon_zip_base_dirs_toc_is_case_insensitive(ext: tuple[str, ...]):
-    assert set(find_addon_zip_base_dirs([f'a/a.{"".join(ext)}'])) == {'a'}
+def test_find_addon_zip_tocs_toc_is_case_insensitive(ext: tuple[str, ...]):
+    assert {h for _, h in find_addon_zip_tocs([f'a/a.{"".join(ext)}'])} == {'a'}
 
 
 def test_make_zip_member_filter_discards_names_with_prefix_not_in_dirs():
