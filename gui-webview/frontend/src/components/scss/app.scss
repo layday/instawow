@@ -39,6 +39,10 @@
   box-sizing: border-box;
 }
 
+:root {
+  color-scheme: light dark;
+}
+
 :focus {
   outline-style: none; // Revisit for a11y
 }

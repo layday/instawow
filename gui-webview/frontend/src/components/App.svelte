@@ -91,7 +91,6 @@
     display: flex;
     align-items: center;
     min-height: 55px;
-    background-color: var(--base-color);
 
     .instawow-version {
       flex-grow: 1;
