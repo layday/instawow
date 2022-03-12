@@ -198,7 +198,7 @@ def _load_certifi_certs():
 def init_web_client(**kwargs: Any) -> _deferred_types.aiohttp.ClientSession:
     from aiohttp import ClientSession, ClientTimeout, TCPConnector
 
-    make_connector = partial(TCPConnector, force_close=True, limit_per_host=10)
+    make_connector = partial(TCPConnector, limit_per_host=10)
     certifi_certs = _load_certifi_certs()
     if certifi_certs:
         import ssl
