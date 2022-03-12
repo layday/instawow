@@ -1,3 +1,6 @@
+# pyright: reportUnknownMemberType = false
+# pyright: reportUnknownParameterType = false
+
 from __future__ import annotations
 
 import asyncio
@@ -21,7 +24,7 @@ import click
 from loguru import logger
 from pydantic import BaseModel, ValidationError
 import sqlalchemy as sa
-import toga
+import toga  # pyright: ignore[reportMissingTypeStubs]
 from typing_extensions import Concatenate, Literal, ParamSpec, TypeAlias, TypedDict
 from yarl import URL
 
@@ -29,7 +32,7 @@ from instawow import __version__, db, matchers, models, results as R
 from instawow.cataloguer import CatalogueEntry
 from instawow.common import ChangelogFormat, Flavour, Strategy
 from instawow.config import Config, GlobalConfig
-from instawow.github_auth import DeviceCodeResponse, get_codes, poll_for_access_token
+from instawow.github_auth import get_codes, poll_for_access_token
 from instawow.manager import (
     LocksType,
     Manager,
@@ -170,11 +173,10 @@ class DeleteProfileConfigParams(_ProfileParamMixin, BaseParams):
 
 @_register_method('config/list_profiles')
 class ListProfilesParams(BaseParams):
-    @t
-    def respond(
+    async def respond(
         self, managers: _ManagerWorkQueue, app_window: toga.MainWindow | None
     ) -> list[str]:
-        return GlobalConfig().list_profiles()
+        return await t(GlobalConfig().list_profiles)()
 
 
 @_register_method('config/update_global')
@@ -201,11 +203,10 @@ class UpdateGlobalConfigParams(BaseParams):
 
 @_register_method('config/read_global')
 class ReadGlobalConfigParams(BaseParams):
-    @t
-    def respond(
+    async def respond(
         self, managers: _ManagerWorkQueue, app_window: toga.MainWindow | None
     ) -> GlobalConfig:
-        return GlobalConfig.read()
+        return await t(GlobalConfig.read)()
 
 
 class GithubCodesResponse(TypedDict):
@@ -560,7 +561,9 @@ class SelectFolderParams(BaseParams):
         if not app_window:
             raise RuntimeError('No app to bind to')
         try:
-            (selection,) = app_window.select_folder_dialog('Select folder', self.initial_folder)
+            (
+                selection,  # pyright: ignore[reportUnknownVariableType]
+            ) = app_window.select_folder_dialog('Select folder', self.initial_folder)
         except ValueError:
             selection = None
         return {'selection': selection}
@@ -580,7 +583,9 @@ class ConfirmDialogueParams(BaseParams):
     ) -> ConfirmDialogueResult:
         if not app_window:
             raise RuntimeError('No app to bind to')
-        ok = app_window.confirm_dialog(self.title, self.message)
+        ok = app_window.confirm_dialog(  # pyright: ignore[reportUnknownVariableType]
+            self.title, self.message
+        )
         return {'ok': ok}
 
 

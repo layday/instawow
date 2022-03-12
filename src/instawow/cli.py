@@ -196,7 +196,7 @@ class _CtxWrapper:
         def wrapper(*args: object, **kwargs: object):
             return fn(click.get_current_context().obj.manager, *args, **kwargs)
 
-        return wrapper  # type: ignore
+        return wrapper  # pyright: ignore[reportGeneralTypeIssues]
 
 
 def _with_manager(fn: Callable[..., object]):
@@ -1067,4 +1067,4 @@ def gui(ctx: click.Context) -> None:
     params = ctx.find_root().params
     setup_logging(dummy_jsonrpc_config.logging_dir, params['debug'])
 
-    InstawowApp(version=__version__).main_loop()  # type: ignore
+    InstawowApp(version=__version__).main_loop()  # pyright: ignore[reportUnknownMemberType]

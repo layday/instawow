@@ -94,7 +94,7 @@ combine = ["src/instawow", "**/instawow"]
 exclude_lines = [
   "pragma: no cover",
   "raise NotImplementedError",
-  "@overload"
+  "@overload",
 ]
 
 [tool.pytest.ini_options]
@@ -120,7 +120,7 @@ ignore = [
   "src/instawow/migrations",
   "gui-webview/src/instawow_gui/webview2_adapter.py",
 ]
-strict = ["src"]
+strict = ["src", "gui-webview/src/instawow_gui/json_rpc_server.py"]
 
 
 ## FORMATTING ##

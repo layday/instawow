@@ -1,5 +1,3 @@
-# pyright: reportUnusedFunction=false
-
 from __future__ import annotations
 
 import asyncio
@@ -84,11 +82,11 @@ def checkbox(message: str, choices: Sequence[Choice], **inquirer_kwargs: Any) ->
 
     @bindings.add(Keys.ControlQ, eager=True)
     @bindings.add(Keys.ControlC, eager=True)
-    def abort(event: KeyPressEvent):
+    def abort(event: KeyPressEvent):  # pyright: ignore[reportUnusedFunction]
         event.app.exit(exception=KeyboardInterrupt, style='class:aborting')
 
     @bindings.add(' ', eager=True)
-    def toggle(event: KeyPressEvent):
+    def toggle(event: KeyPressEvent):  # pyright: ignore[reportUnusedFunction]
         pointed_choice = ic.get_pointed_at().value
         if pointed_choice in ic.selected_options:
             ic.selected_options.remove(pointed_choice)
@@ -96,7 +94,7 @@ def checkbox(message: str, choices: Sequence[Choice], **inquirer_kwargs: Any) ->
             ic.selected_options.append(pointed_choice)
 
     @bindings.add('i', eager=True)
-    def invert(event: KeyPressEvent):
+    def invert(event: KeyPressEvent):  # pyright: ignore[reportUnusedFunction]
         inverted_selection = [
             c.value
             for c in ic.choices
@@ -108,25 +106,25 @@ def checkbox(message: str, choices: Sequence[Choice], **inquirer_kwargs: Any) ->
 
     @bindings.add(Keys.Down, eager=True)
     @bindings.add('j', eager=True)
-    def move_cursor_down(event: KeyPressEvent):
+    def move_cursor_down(event: KeyPressEvent):  # pyright: ignore[reportUnusedFunction]
         ic.select_next()
         while not ic.is_selection_valid():
             ic.select_next()
 
     @bindings.add(Keys.Up, eager=True)
     @bindings.add('k', eager=True)
-    def move_cursor_up(event: KeyPressEvent):
+    def move_cursor_up(event: KeyPressEvent):  # pyright: ignore[reportUnusedFunction]
         ic.select_previous()
         while not ic.is_selection_valid():
             ic.select_previous()
 
     @bindings.add(Keys.ControlM, eager=True)
-    def set_answer(event: KeyPressEvent):
+    def set_answer(event: KeyPressEvent):  # pyright: ignore[reportUnusedFunction]
         ic.is_answered = True
         event.app.exit(result=[c.value for c in ic.get_selected_values()])
 
     @bindings.add('o', eager=True)
-    def open_url(event: KeyPressEvent):
+    def open_url(event: KeyPressEvent):  # pyright: ignore[reportUnusedFunction]
         choice = ic.get_pointed_at()
         if isinstance(choice, PkgChoice):
             import webbrowser
@@ -134,7 +132,7 @@ def checkbox(message: str, choices: Sequence[Choice], **inquirer_kwargs: Any) ->
             webbrowser.open(choice.pkg.url)
 
     @bindings.add(Keys.Any)
-    def default(event: KeyPressEvent):
+    def default(event: KeyPressEvent):  # pyright: ignore[reportUnusedFunction]
         # Disallow inserting other text
         pass
 
@@ -174,30 +172,30 @@ def select(
 
     @bindings.add(Keys.ControlQ, eager=True)
     @bindings.add(Keys.ControlC, eager=True)
-    def abort(event: KeyPressEvent):
+    def abort(event: KeyPressEvent):  # pyright: ignore[reportUnusedFunction]
         event.app.exit(exception=KeyboardInterrupt, style='class:aborting')
 
     @bindings.add(Keys.Down, eager=True)
     @bindings.add('j', eager=True)
-    def move_cursor_down(event: KeyPressEvent):
+    def move_cursor_down(event: KeyPressEvent):  # pyright: ignore[reportUnusedFunction]
         ic.select_next()
         while not ic.is_selection_valid():
             ic.select_next()
 
     @bindings.add(Keys.Up, eager=True)
     @bindings.add('k', eager=True)
-    def move_cursor_up(event: KeyPressEvent):
+    def move_cursor_up(event: KeyPressEvent):  # pyright: ignore[reportUnusedFunction]
         ic.select_previous()
         while not ic.is_selection_valid():
             ic.select_previous()
 
     @bindings.add(Keys.ControlM, eager=True)
-    def set_answer(event: KeyPressEvent):
+    def set_answer(event: KeyPressEvent):  # pyright: ignore[reportUnusedFunction]
         ic.is_answered = True
         event.app.exit(result=ic.get_pointed_at().value)
 
     @bindings.add('o', eager=True)
-    def open_url(event: KeyPressEvent):
+    def open_url(event: KeyPressEvent):  # pyright: ignore[reportUnusedFunction]
         choice = ic.get_pointed_at()
         if isinstance(choice, PkgChoice):
             import webbrowser
@@ -207,12 +205,12 @@ def select(
     if skip in ic.choices:
 
         @bindings.add('s', eager=True)
-        def skip_question(event: KeyPressEvent):
+        def skip_question(event: KeyPressEvent):  # pyright: ignore[reportUnusedFunction]
             ic.pointed_at = -1
             set_answer(event)
 
     @bindings.add(Keys.Any)
-    def default(event: KeyPressEvent):
+    def default(event: KeyPressEvent):  # pyright: ignore[reportUnusedFunction]
         # Disallow inserting other text
         pass
 

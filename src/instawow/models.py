@@ -117,7 +117,7 @@ class Pkg(BaseModel):
 
     # Make the model hashable again
     __eq__ = object.__eq__
-    __hash__ = object.__hash__  # type: ignore
+    __hash__ = object.__hash__  # pyright: ignore[reportGeneralTypeIssues]
 
 
 class PkgList(BaseModel):

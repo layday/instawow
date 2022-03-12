@@ -1,5 +1,3 @@
-# pyright: reportMissingTypeStubs=false
-
 from __future__ import annotations
 
 from collections.abc import Iterable
@@ -7,7 +5,7 @@ from functools import lru_cache
 from typing import Any
 
 import click
-import pluggy as _pluggy
+import pluggy as _pluggy  # pyright: ignore[reportMissingTypeStubs]
 
 from . import resolvers
 
