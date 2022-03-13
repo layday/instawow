@@ -1335,7 +1335,6 @@ class GithubResolver(BaseResolver):
             (a for a in assets if a['name'] == 'release.json' and a['state'] == 'uploaded'),
             None,
         )
-
         if release_json is None:
             candidates = [
                 a
@@ -1343,6 +1342,7 @@ class GithubResolver(BaseResolver):
                 if a['state'] == 'uploaded'
                 and a['content_type'] in {'application/zip', 'application/x-zip-compressed'}
                 and a['name'].endswith('.zip')
+                # TODO: Is there a better way to detect nolib?
                 and '-nolib' not in a['name']
             ]
             if not candidates:
@@ -1368,6 +1368,9 @@ class GithubResolver(BaseResolver):
                     logger.debug(
                         f'fetching {abs(directory_offset):,d} bytes from end of {candidate["name"]}'
                     )
+
+                    # TODO: Take min of (directory_offset, remaining size from prev request)
+                    #       to avoid 416 error if a small zip has an inordinately large directory.
 
                     async with self.manager.web_client.wrapped.get(
                         candidate['browser_download_url'],
@@ -1449,6 +1452,8 @@ class GithubResolver(BaseResolver):
                         for f, n in zip_longest(a, b)
                         if f.filename == main_toc_filename
                     )
+                    # If this is the last file in the list, download to eof. In theory,
+                    # we could detect where the zip directory starts.
                     following_file_offset = following_file.header_offset if following_file else ''
 
                     logger.debug(f'fetching {main_toc_filename} from {candidate["name"]}')
