@@ -1383,8 +1383,8 @@ class GithubResolver(BaseResolver):
                                     candidate['browser_download_url'],
                                     {'days': 30},
                                     headers=github_headers,
+                                    raise_for_status=True,
                                 ) as addon_zip_response:
-                                    addon_zip_response.raise_for_status()
                                     addon_zip_stream.write(await addon_zip_response.read())
 
                                 is_zip_complete = True
@@ -1466,6 +1466,7 @@ class GithubResolver(BaseResolver):
                             **github_headers,
                             hdrs.RANGE: f'bytes={main_toc_file_offset}-{following_file_offset}',
                         },
+                        raise_for_status=True,
                     ) as toc_file_range_response:
                         toc_file_body = await toc_file_range_response.read()
 
