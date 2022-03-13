@@ -1445,19 +1445,18 @@ class GithubResolver(BaseResolver):
 
                 addon_zip_stream.seek(main_toc_file_offset)
                 addon_zip_stream.write(toc_file_body)
-                with dynamic_addon_zip.open(main_toc_filename) as toc_file:
-                    toc_file_text = toc_file.read().decode()
 
+                toc_file_text = dynamic_addon_zip.read(main_toc_filename).decode()
                 toc_reader = TocReader(toc_file_text)
                 interface_version = toc_reader['Interface']
-                logger.debug(f'found interface version {interface_version} in {main_toc_filename}')
-                if interface_version:
-                    is_matching_version = FlavourVersion.is_within_version(
-                        self.manager.config.game_flavour, int(interface_version)
-                    )
-                    if is_matching_version:
-                        matching_asset = candidate
-                        break
+                logger.debug(
+                    f'found interface version {interface_version!r} in {main_toc_filename}'
+                )
+                if interface_version and FlavourVersion.is_within_version(
+                    self.manager.config.game_flavour, int(interface_version)
+                ):
+                    matching_asset = candidate
+                    break
 
             else:
                 if matching_asset is None:
