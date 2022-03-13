@@ -109,23 +109,26 @@ def _open_pkg_archive(path: PurePath):
 
 
 class _ResponseWrapper:
-    def __init__(self, response_obj: _deferred_types.aiohttp.ClientResponse | None, text: str):
-        self._response_obj = response_obj
-        self._text = text
+    def __init__(self, response: _deferred_types.aiohttp.ClientResponse | None, response_body: bytes):
+        self._response = response
+        self._response_body = response_body
+
+    async def read(self) -> bytes:
+        return self._response_body
 
     async def text(self) -> str:
-        return self._text
+        return self._response_body.decode()
 
     async def json(self, **kwargs: Any) -> Any:
-        return json.loads(await self.text())
+        return json.loads(await self.read())
 
     def raise_for_status(self) -> None:
-        if self._response_obj is not None:
-            self._response_obj.raise_for_status()
+        if self._response is not None:
+            self._response.raise_for_status()
 
     @property
     def status(self) -> int:
-        return self._response_obj.status if self._response_obj is not None else 200
+        return self._response.status if self._response is not None else 200
 
 
 class _CacheFauxClientSession:
@@ -155,22 +158,22 @@ class _CacheFauxClientSession:
 
         async def make_request():
             async with self.wrapped.request(**prepare_request_kwargs()) as response:
-                return (response, await response.text())
+                return (response, await response.read())
 
         if ttl is None:
-            response, text = await make_request()
+            response, response_body = await make_request()
         else:
             dest = self._cache_dir / shasum(url, ttl, kwargs)
             response = None
             if await t(is_not_stale)(dest, ttl):
                 logger.debug(f'{url} is cached at {dest} (ttl: {ttl})')
-                text = await t(dest.read_text)(encoding='utf-8')
+                response_body = await t(dest.read_bytes)()
             else:
-                response, text = await make_request()
+                response, response_body = await make_request()
                 if response.ok:
-                    await t(dest.write_text)(text, encoding='utf-8')
+                    await t(dest.write_bytes)(response_body)
 
-        yield _ResponseWrapper(response, text)
+        yield _ResponseWrapper(response, response_body)
 
     def get(
         self,

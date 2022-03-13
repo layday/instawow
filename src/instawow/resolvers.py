@@ -4,7 +4,6 @@ import asyncio
 from collections.abc import AsyncIterator, Sequence, Set
 from datetime import datetime, timezone
 from enum import IntEnum
-from functools import partial
 from itertools import count, takewhile, tee, zip_longest
 from pathlib import Path
 import re
@@ -1293,16 +1292,15 @@ class GithubResolver(BaseResolver):
             return '/'.join(url.parts[1:3])
 
     async def resolve_one(self, defn: Defn, metadata: None) -> models.Pkg:
-        github_headers = {}
-        github_get = self.manager.web_client.get
         github_token = self.manager.config.global_config.access_tokens.github
-        if github_token:
-            github_headers = {'Authorization': f'token {github_token.get_secret_value()}'}
-            github_get = partial(github_get, headers=github_headers)
+        github_headers = (
+            {'Authorization': f'token {github_token.get_secret_value()}'} if github_token else {}
+        )
 
         repo_url = self.repos_api_url / defn.alias
-
-        async with github_get(repo_url, {'hours': 1}) as response:
+        async with self.manager.web_client.get(
+            repo_url, {'hours': 1}, headers=github_headers
+        ) as response:
             if response.status == 404:
                 raise R.PkgNonexistent
             response.raise_for_status()
@@ -1319,7 +1317,9 @@ class GithubResolver(BaseResolver):
             # a pre-release nor a draft
             release_url = repo_url / 'releases/latest'
 
-        async with github_get(release_url, {'minutes': 5}) as response:
+        async with self.manager.web_client.get(
+            release_url, {'minutes': 5}, headers=github_headers
+        ) as response:
             if response.status == 404:
                 raise R.PkgFileUnavailable('release not found')
             response.raise_for_status()
@@ -1379,8 +1379,10 @@ class GithubResolver(BaseResolver):
                         if not directory_range_response.ok:
                             # File size under 25 KB.
                             if directory_range_response.status == 416:  # Range Not Satisfiable
-                                async with self.manager.web_client.wrapped.get(
-                                    candidate['browser_download_url'], headers=github_headers
+                                async with self.manager.web_client.get(
+                                    candidate['browser_download_url'],
+                                    {'days': 30},
+                                    headers=github_headers,
                                 ) as addon_zip_response:
                                     addon_zip_response.raise_for_status()
                                     addon_zip_stream.write(await addon_zip_response.read())
@@ -1457,8 +1459,9 @@ class GithubResolver(BaseResolver):
                     following_file_offset = following_file.header_offset if following_file else ''
 
                     logger.debug(f'fetching {main_toc_filename} from {candidate["name"]}')
-                    async with self.manager.web_client.wrapped.get(
+                    async with self.manager.web_client.get(
                         candidate['browser_download_url'],
+                        {'days': 30},
                         headers={
                             **github_headers,
                             hdrs.RANGE: f'bytes={main_toc_file_offset}-{following_file_offset}',
@@ -1486,7 +1489,10 @@ class GithubResolver(BaseResolver):
 
         else:
             async with self.manager.web_client.get(
-                release_json['browser_download_url'], {'days': 1}, raise_for_status=True
+                release_json['browser_download_url'],
+                {'days': 1},
+                headers=github_headers,
+                raise_for_status=True,
             ) as response:
                 packager_metadata: _PackagerReleaseJson = await response.json()
 
