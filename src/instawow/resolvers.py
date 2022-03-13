@@ -1415,7 +1415,7 @@ class GithubResolver(BaseResolver):
                 toc_filenames = {
                     n
                     for n, h in find_addon_zip_tocs(f.filename for f in dynamic_addon_zip.filelist)
-                    if h in candidate['name']  # Folder name substring of zip name.
+                    if h in candidate['name']  # Folder name is a substring of zip name.
                 }
                 if not toc_filenames:
                     continue
