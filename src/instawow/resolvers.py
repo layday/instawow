@@ -5,7 +5,7 @@ from collections.abc import AsyncIterator, Sequence, Set
 from datetime import datetime, timezone
 from enum import IntEnum
 from functools import partial
-from itertools import count, takewhile, tee
+from itertools import count, takewhile, tee, zip_longest
 from pathlib import Path
 import re
 import typing
@@ -1446,7 +1446,7 @@ class GithubResolver(BaseResolver):
                     next(b, None)
                     main_toc_file_offset, following_file = next(
                         (f.header_offset, n)
-                        for f, n in zip(a, b)
+                        for f, n in zip_longest(a, b)
                         if f.filename == main_toc_filename
                     )
                     following_file_offset = following_file.header_offset if following_file else ''
