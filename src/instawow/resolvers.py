@@ -1345,7 +1345,7 @@ class GithubResolver(BaseResolver):
                 and a['name'].endswith('.zip')
                 and '-nolib' not in a['name']
             ]
-            if candidates is None:
+            if not candidates:
                 raise R.PkgFileUnavailable(
                     'no `release.json` attached to release, no add-on zips found'
                 )
