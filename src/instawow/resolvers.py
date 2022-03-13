@@ -5,7 +5,7 @@ from collections.abc import AsyncIterator, Sequence, Set
 from datetime import datetime, timezone
 from enum import IntEnum
 from functools import partial
-from itertools import count, takewhile
+from itertools import count, takewhile, tee
 from pathlib import Path
 import re
 import typing
@@ -19,10 +19,11 @@ from yarl import URL
 
 from . import _deferred_types, manager, models, results as R
 from .cataloguer import BaseCatatalogueEntry
-from .common import ChangelogFormat, Flavour, Strategy
+from .common import ChangelogFormat, Flavour, FlavourVersion, Strategy
 from .config import GlobalConfig
 from .utils import (
     StrEnum,
+    TocReader,
     evolve_model_obj,
     extract_byte_range_offset,
     file_uri_to_path,
@@ -1353,7 +1354,7 @@ class GithubResolver(BaseResolver):
 
             from aiohttp import hdrs
 
-            from .matchers import FLAVOUR_TOC_SUFFIX_REVERSE_MAPPING
+            from .matchers import NORMALISED_FLAVOUR_TOC_SUFFIXES
 
             matching_asset = None
 
@@ -1361,10 +1362,14 @@ class GithubResolver(BaseResolver):
                 addon_zip_stream = BytesIO()
                 dynamic_addon_zip = None
 
-                for offset in range(25_000, 100_000, 25_000):
+                for directory_offset in range(-25_000, -100_000, -25_000):
+                    logger.debug(
+                        f'fetching {abs(directory_offset):,d} bytes from end of {candidate["name"]}'
+                    )
+
                     async with self.manager.web_client.wrapped.get(
                         candidate['browser_download_url'],
-                        headers={**github_headers, hdrs.RANGE: f'bytes=-{offset}'},
+                        headers={**github_headers, hdrs.RANGE: f'bytes={directory_offset}'},
                     ) as directory_range_response:
                         if not directory_range_response.ok:
                             break
@@ -1379,7 +1384,6 @@ class GithubResolver(BaseResolver):
                         try:
                             dynamic_addon_zip = zipfile.ZipFile(addon_zip_stream)
                         except zipfile.BadZipFile:
-                            logger.debug(f'directory marker not found in last {offset} bytes')
                             continue
                         else:
                             break
@@ -1390,29 +1394,75 @@ class GithubResolver(BaseResolver):
 
                 toc_filenames = {
                     n
-                    for n, _ in find_addon_zip_tocs(f.filename for f in dynamic_addon_zip.filelist)
+                    for n, h in find_addon_zip_tocs(f.filename for f in dynamic_addon_zip.filelist)
+                    if h in candidate['name']  # Folder name substring of zip name.
                 }
                 if not toc_filenames:
                     continue
 
-                game_flavours_from_filenames = {
-                    v
+                game_flavour_from_toc_filename = any(
+                    n.lower().endswith(
+                        NORMALISED_FLAVOUR_TOC_SUFFIXES[self.manager.config.game_flavour]
+                    )
                     for n in toc_filenames
-                    for l in (n.lower(),)
-                    for s, v in FLAVOUR_TOC_SUFFIX_REVERSE_MAPPING.items()
-                    if l.endswith(s)
-                }
-                if self.manager.config.game_flavour in game_flavours_from_filenames:
+                )
+                if game_flavour_from_toc_filename:
                     matching_asset = candidate
                     break
 
-                if not game_flavours_from_filenames:
-                    matching_asset = candidate
+                try:
+                    main_toc_filename = min(
+                        (
+                            n
+                            for n in toc_filenames
+                            if not n.lower().endswith(
+                                tuple(
+                                    i for s in NORMALISED_FLAVOUR_TOC_SUFFIXES.values() for i in s
+                                )
+                            )
+                        ),
+                        key=len,
+                    )
+                except ValueError:
+                    continue
+
+                a, b = tee(dynamic_addon_zip.filelist)
+                next(b, None)
+                main_toc_file_offset, following_file = next(
+                    (f.header_offset, n) for f, n in zip(a, b) if f.filename == main_toc_filename
+                )
+                following_file_offset = following_file.header_offset if following_file else ''
+
+                logger.debug(f'fetching {main_toc_filename} from {candidate["name"]}')
+                async with self.manager.web_client.wrapped.get(
+                    candidate['browser_download_url'],
+                    headers={
+                        **github_headers,
+                        hdrs.RANGE: f'bytes={main_toc_file_offset}-{following_file_offset}',
+                    },
+                ) as toc_file_range_response:
+                    toc_file_body = await toc_file_range_response.read()
+
+                addon_zip_stream.seek(main_toc_file_offset)
+                addon_zip_stream.write(toc_file_body)
+                with dynamic_addon_zip.open(main_toc_filename) as toc_file:
+                    toc_file_text = toc_file.read().decode()
+
+                toc_reader = TocReader(toc_file_text)
+                interface_version = toc_reader['Interface']
+                logger.debug(f'found interface version {interface_version} in {main_toc_filename}')
+                if interface_version:
+                    is_matching_version = FlavourVersion.is_within_version(
+                        self.manager.config.game_flavour, int(interface_version)
+                    )
+                    if is_matching_version:
+                        matching_asset = candidate
+                        break
 
             else:
                 if matching_asset is None:
                     raise R.PkgFileUnavailable(
-                        'unable to find matching game version in add-on zips'
+                        f'no files matching {self.manager.config.game_flavour}'
                     )
 
         else:

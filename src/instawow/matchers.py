@@ -24,26 +24,28 @@ _SOURCE_TOC_IDS = {
 }
 
 # https://github.com/Stanzilla/WoWUIBugs/issues/68#issuecomment-830351390
-_FLAVOUR_TOC_SUFFIXES = {
-    Flavour.retail: [
+FLAVOUR_TOC_SUFFIXES = {
+    Flavour.retail: (
         '_Mainline.toc',
         '-Mainline.toc',
-    ],
-    Flavour.vanilla_classic: [
+    ),
+    Flavour.vanilla_classic: (
         '_Vanilla.toc',
         '-Vanilla.toc',
         '_Classic.toc',
         '-Classic.toc',
-    ],
-    Flavour.burning_crusade_classic: [
+    ),
+    Flavour.burning_crusade_classic: (
         '_TBC.toc',
         '-TBC.toc',
         '_BCC.toc',
         '-BCC.toc',
-    ],
+    ),
 }
 
-FLAVOUR_TOC_SUFFIX_REVERSE_MAPPING = {i: k for k, v in _FLAVOUR_TOC_SUFFIXES.items() for i in v}
+NORMALISED_FLAVOUR_TOC_SUFFIXES = {
+    k: tuple(i.lower() for i in v) for k, v in FLAVOUR_TOC_SUFFIXES.items()
+}
 
 
 @total_ordering
@@ -72,7 +74,7 @@ class AddonFolder:
 
     @classmethod
     def from_addon_path(cls, flavour: Flavour, path: Path) -> Self | None:
-        for suffix in chain(_FLAVOUR_TOC_SUFFIXES[flavour], ('.toc',)):
+        for suffix in chain(FLAVOUR_TOC_SUFFIXES[flavour], ('.toc',)):
             try:
                 toc_reader = TocReader.from_addon_path(path, suffix)
                 return cls(path.name, toc_reader)
