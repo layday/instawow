@@ -109,7 +109,9 @@ def _open_pkg_archive(path: PurePath):
 
 
 class _ResponseWrapper:
-    def __init__(self, response: _deferred_types.aiohttp.ClientResponse | None, response_body: bytes):
+    def __init__(
+        self, response: _deferred_types.aiohttp.ClientResponse | None, response_body: bytes
+    ):
         self._response = response
         self._response_body = response_body
 
@@ -363,7 +365,7 @@ class Manager:
         "Attempt to extract the definition source and alias from a URI."
 
         def from_urn():
-            source, alias = value.partition(':')[::2]
+            source, _, alias = value.partition(':')
             if alias:
                 yield (source, alias)
 
