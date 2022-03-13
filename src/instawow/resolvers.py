@@ -1362,7 +1362,7 @@ class GithubResolver(BaseResolver):
                 addon_zip_stream = BytesIO()
                 dynamic_addon_zip = None
 
-                for directory_offset in range(-25_000, -100_000, -25_000):
+                for directory_offset in range(-25_000, -100_001, -25_000):
                     logger.debug(
                         f'fetching {abs(directory_offset):,d} bytes from end of {candidate["name"]}'
                     )
