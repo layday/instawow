@@ -40,20 +40,20 @@ class Flavour(StrEnum):
 
 
 class FlavourVersion(Enum):
-    retail = range(100, 1100)
-    vanilla_classic = range(113, 200)
-    burning_crusade_classic = range(205, 300)
+    retail = range(10000, 100000)
+    vanilla_classic = range(11300, 20000)
+    burning_crusade_classic = range(20500, 30000)
 
     @classmethod
     def is_within_version(cls, flavour: Flavour, version_number: int) -> bool:
-        is_within_version_ = version_number / 100 in cls[flavour].value
+        is_within_version_ = version_number in cls[flavour].value
         if not is_within_version_:
             return False
         elif flavour is Flavour.retail:
             return not any(
                 version_number in r.value
                 for f, r in cls.__members__.items()
-                if f is not Flavour.retail
+                if f != Flavour.retail
             )
         return True
 
