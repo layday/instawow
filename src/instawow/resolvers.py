@@ -1477,10 +1477,7 @@ class GithubResolver(BaseResolver):
                     break
 
             else:
-                if matching_asset is None:
-                    raise R.PkgFileUnavailable(
-                        f'no files matching {self.manager.config.game_flavour}'
-                    )
+                raise R.PkgFileUnavailable(f'no files matching {self.manager.config.game_flavour}')
 
         else:
             async with self.manager.web_client.get(
