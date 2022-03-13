@@ -1343,6 +1343,7 @@ class GithubResolver(BaseResolver):
                 if a['state'] == 'uploaded'
                 and a['content_type'] in {'application/zip', 'application/x-zip-compressed'}
                 and a['name'].endswith('.zip')
+                and '-nolib' not in a['name']
             ]
             if candidates is None:
                 raise R.PkgFileUnavailable(
@@ -1361,6 +1362,7 @@ class GithubResolver(BaseResolver):
             for candidate in candidates:
                 addon_zip_stream = BytesIO()
                 dynamic_addon_zip = None
+                is_zip_complete = False
 
                 for directory_offset in range(-25_000, -100_001, -25_000):
                     logger.debug(
@@ -1372,21 +1374,34 @@ class GithubResolver(BaseResolver):
                         headers={**github_headers, hdrs.RANGE: f'bytes={directory_offset}'},
                     ) as directory_range_response:
                         if not directory_range_response.ok:
-                            break
+                            # File size under 25 KB.
+                            if directory_range_response.status == 416:  # Range Not Satisfiable
+                                async with self.manager.web_client.wrapped.get(
+                                    candidate['browser_download_url'], headers=github_headers
+                                ) as addon_zip_response:
+                                    addon_zip_response.raise_for_status()
+                                    addon_zip_stream.write(await addon_zip_response.read())
 
-                        addon_zip_stream.seek(
-                            extract_byte_range_offset(
-                                directory_range_response.headers[hdrs.CONTENT_RANGE]
-                            )
-                        )
-                        addon_zip_stream.write(await directory_range_response.read())
+                                is_zip_complete = True
+                                dynamic_addon_zip = zipfile.ZipFile(addon_zip_stream)
+                                break
 
-                        try:
-                            dynamic_addon_zip = zipfile.ZipFile(addon_zip_stream)
-                        except zipfile.BadZipFile:
-                            continue
+                            directory_range_response.raise_for_status()
+
                         else:
-                            break
+                            addon_zip_stream.seek(
+                                extract_byte_range_offset(
+                                    directory_range_response.headers[hdrs.CONTENT_RANGE]
+                                )
+                            )
+                            addon_zip_stream.write(await directory_range_response.read())
+
+                            try:
+                                dynamic_addon_zip = zipfile.ZipFile(addon_zip_stream)
+                            except zipfile.BadZipFile:
+                                continue
+                            else:
+                                break
 
                 if dynamic_addon_zip is None:
                     logger.debug('directory marker not found')
@@ -1426,25 +1441,28 @@ class GithubResolver(BaseResolver):
                 except ValueError:
                     continue
 
-                a, b = tee(dynamic_addon_zip.filelist)
-                next(b, None)
-                main_toc_file_offset, following_file = next(
-                    (f.header_offset, n) for f, n in zip(a, b) if f.filename == main_toc_filename
-                )
-                following_file_offset = following_file.header_offset if following_file else ''
+                if not is_zip_complete:
+                    a, b = tee(dynamic_addon_zip.filelist)
+                    next(b, None)
+                    main_toc_file_offset, following_file = next(
+                        (f.header_offset, n)
+                        for f, n in zip(a, b)
+                        if f.filename == main_toc_filename
+                    )
+                    following_file_offset = following_file.header_offset if following_file else ''
 
-                logger.debug(f'fetching {main_toc_filename} from {candidate["name"]}')
-                async with self.manager.web_client.wrapped.get(
-                    candidate['browser_download_url'],
-                    headers={
-                        **github_headers,
-                        hdrs.RANGE: f'bytes={main_toc_file_offset}-{following_file_offset}',
-                    },
-                ) as toc_file_range_response:
-                    toc_file_body = await toc_file_range_response.read()
+                    logger.debug(f'fetching {main_toc_filename} from {candidate["name"]}')
+                    async with self.manager.web_client.wrapped.get(
+                        candidate['browser_download_url'],
+                        headers={
+                            **github_headers,
+                            hdrs.RANGE: f'bytes={main_toc_file_offset}-{following_file_offset}',
+                        },
+                    ) as toc_file_range_response:
+                        toc_file_body = await toc_file_range_response.read()
 
-                addon_zip_stream.seek(main_toc_file_offset)
-                addon_zip_stream.write(toc_file_body)
+                    addon_zip_stream.seek(main_toc_file_offset)
+                    addon_zip_stream.write(toc_file_body)
 
                 toc_file_text = dynamic_addon_zip.read(main_toc_filename).decode()
                 toc_reader = TocReader(toc_file_text)
