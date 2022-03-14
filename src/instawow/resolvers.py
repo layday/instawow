@@ -1473,7 +1473,7 @@ class GithubResolver(BaseResolver):
                     addon_zip_stream.seek(main_toc_file_offset)
                     addon_zip_stream.write(toc_file_body)
 
-                toc_file_text = dynamic_addon_zip.read(main_toc_filename).decode()
+                toc_file_text = dynamic_addon_zip.read(main_toc_filename).decode('utf-8-sig')
                 toc_reader = TocReader(toc_file_text)
                 interface_version = toc_reader['Interface']
                 logger.debug(
