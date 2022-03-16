@@ -342,7 +342,7 @@ class Manager:
         resolver_classes: Iterable[type[Resolver]] = chain(
             (r for g in plugin_hook.instawow_add_resolvers() for r in g), base_resolver_classes
         )
-        self.resolvers: dict[str, Resolver] = {r.source: r(self) for r in resolver_classes}
+        self.resolvers: Mapping[str, Resolver] = {r.source: r(self) for r in resolver_classes}
 
         self.web_client: _CacheFauxClientSession = _CacheFauxClientSession(
             self.config.global_config.cache_dir
