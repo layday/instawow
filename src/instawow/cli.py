@@ -13,7 +13,7 @@ from collections.abc import (
 )
 from contextlib import contextmanager
 from datetime import datetime, timezone
-from functools import partial, wraps
+from functools import partial
 from itertools import chain, repeat
 from pathlib import Path
 import textwrap
@@ -71,9 +71,9 @@ class Report:
         )
 
     def generate(self) -> None:
-        manager_wrapper: _CtxWrapper | None = click.get_current_context().obj
-        if manager_wrapper and manager_wrapper.manager.config.global_config.auto_update_check:
-            outdated, new_version = run_with_progress(_manager.is_outdated())
+        mw: _CtxObjWrapper | None = click.get_current_context().obj
+        if mw and mw.manager.config.global_config.auto_update_check:
+            outdated, new_version = mw.run_with_progress(_manager.is_outdated())
             if outdated:
                 click.echo(f'{self.WARNING_SYMBOL} instawow-{new_version} is available')
 
@@ -147,18 +147,6 @@ def _cancel_tickers(progress_bar: _deferred_types.prompt_toolkit.shortcuts.Progr
         progress_bar.invalidate()
 
 
-def run_with_progress(awaitable: Awaitable[_T]) -> _T:
-    from .prompts import make_progress_bar
-
-    async def run():
-        with make_progress_bar() as progress_bar, _cancel_tickers(progress_bar) as tickers:
-            async with _init_cli_web_client(progress_bar, tickers) as web_client:
-                _manager.contextualise(web_client=web_client)
-                return await awaitable
-
-    return asyncio.run(run())
-
-
 def _override_asyncio_loop_policy():
     # The proactor event loop which became the default loop on Windows
     # in Python 3.8 is causing issues with aiohttp.
@@ -172,7 +160,7 @@ def _apply_patches():
     _override_asyncio_loop_policy()
 
 
-class _CtxWrapper:
+class _CtxObjWrapper:
     def __init__(self, ctx: click.Context) -> None:
         self._ctx = ctx
 
@@ -190,13 +178,24 @@ class _CtxWrapper:
 
         return manager
 
-    @classmethod
-    def pass_manager(cls, fn: _F) -> _F:
-        @wraps(fn)
-        def wrapper(*args: object, **kwargs: object):
-            return fn(click.get_current_context().obj.manager, *args, **kwargs)
+    def run_with_progress(self, awaitable: Awaitable[_T]) -> _T:
+        if self._ctx.params['debug']:
 
-        return wrapper  # pyright: ignore[reportGeneralTypeIssues]
+            async def run():
+                async with _manager.init_web_client() as web_client:
+                    _manager.contextualise(web_client=web_client)
+                    return await awaitable
+
+        else:
+            from .prompts import make_progress_bar
+
+            async def run():
+                with make_progress_bar() as progress_bar, _cancel_tickers(progress_bar) as tickers:
+                    async with _init_cli_web_client(progress_bar, tickers) as web_client:
+                        _manager.contextualise(web_client=web_client)
+                        return await awaitable
+
+        return asyncio.run(run())
 
 
 def _with_manager(fn: Callable[..., object]):
@@ -253,7 +252,7 @@ def _register_plugin_commands(group: click.Group):
 def cli(ctx: click.Context, **__: object) -> None:
     "Add-on manager for World of Warcraft."
     _apply_patches()
-    ctx.obj = _CtxWrapper(ctx)
+    ctx.obj = _CtxObjWrapper(ctx)
 
 
 main = logger.catch(reraise=True)(cli)
@@ -348,22 +347,22 @@ _EXCLUDED_STRATEGIES = frozenset({Strategy.default, Strategy.version})
     help='A version followed by an add-on definition.',
 )
 @click.option('--replace', is_flag=True, default=False, help='Replace unreconciled add-ons.')
-@_CtxWrapper.pass_manager
-def install(manager: _manager.Manager, addons: Sequence[Defn], replace: bool) -> None:
+@click.pass_obj
+def install(mw: _CtxObjWrapper, addons: Sequence[Defn], replace: bool) -> None:
     "Install add-ons."
     if not addons:
         raise click.UsageError(
             'You must provide at least one of "ADDONS", "--with-strategy" or "--version"'
         )
 
-    results = run_with_progress(manager.install(addons, replace))
+    results = mw.run_with_progress(mw.manager.install(addons, replace))
     Report(results.items()).generate_and_exit()
 
 
 @cli.command()
 @click.argument('addons', nargs=-1, callback=_with_manager(parse_into_defn))
-@_CtxWrapper.pass_manager
-def update(manager: _manager.Manager, addons: Sequence[Defn]) -> None:
+@click.pass_obj
+def update(mw: _CtxObjWrapper, addons: Sequence[Defn]) -> None:
     "Update installed add-ons."
     import sqlalchemy as sa
 
@@ -378,7 +377,7 @@ def update(manager: _manager.Manager, addons: Sequence[Defn]) -> None:
 
     update_defns = addons or [
         Defn(**v)
-        for v in manager.database.execute(
+        for v in mw.manager.database.execute(
             sa.select(
                 db.pkg.c.source,
                 db.pkg.c.id,
@@ -390,7 +389,7 @@ def update(manager: _manager.Manager, addons: Sequence[Defn]) -> None:
         .mappings()
         .all()
     ]
-    results = run_with_progress(manager.update(update_defns, False))
+    results = mw.run_with_progress(mw.manager.update(update_defns, False))
     Report(results.items(), filter_results).generate_and_exit()
 
 
@@ -402,10 +401,10 @@ def update(manager: _manager.Manager, addons: Sequence[Defn]) -> None:
     default=False,
     help="Do not delete the add-on folders.",
 )
-@_CtxWrapper.pass_manager
-def remove(manager: _manager.Manager, addons: Sequence[Defn], keep_folders: bool) -> None:
+@click.pass_obj
+def remove(mw: _CtxObjWrapper, addons: Sequence[Defn], keep_folders: bool) -> None:
     "Remove add-ons."
-    results = run_with_progress(manager.remove(addons, keep_folders))
+    results = mw.run_with_progress(mw.manager.remove(addons, keep_folders))
     Report(results.items()).generate_and_exit()
 
 
@@ -421,24 +420,24 @@ def remove(manager: _manager.Manager, addons: Sequence[Defn], keep_folders: bool
     default=False,
     help='Undo rollback by reinstalling an add-on using the default strategy.',
 )
-@_CtxWrapper.pass_manager
-def rollback(manager: _manager.Manager, addon: Defn, version: str | None, undo: bool) -> None:
+@click.pass_obj
+def rollback(mw: _CtxObjWrapper, addon: Defn, version: str | None, undo: bool) -> None:
     "Roll an add-on back to an older version."
     from .prompts import Choice, ask, select
 
     if version and undo:
         raise click.UsageError('Cannot use "--version" with "--undo"')
 
-    pkg = manager.get_pkg(addon)
+    pkg = mw.manager.get_pkg(addon)
     if not pkg:
         report: Report = Report([(addon, R.PkgNotInstalled())])
         report.generate_and_exit()
 
-    if Strategy.version not in manager.resolvers[pkg.source].strategies:
+    if Strategy.version not in mw.manager.resolvers[pkg.source].strategies:
         Report([(addon, R.PkgStrategyUnsupported(Strategy.version))]).generate_and_exit()
 
     if undo:
-        Report(run_with_progress(manager.update([addon], True)).items()).generate_and_exit()
+        Report(mw.run_with_progress(mw.manager.update([addon], True)).items()).generate_and_exit()
 
     reconstructed_defn = Defn.from_pkg(pkg)
     if version:
@@ -463,8 +462,8 @@ def rollback(manager: _manager.Manager, addon: Defn, version: str | None, undo: 
         )
 
     Report(
-        run_with_progress(
-            manager.update([reconstructed_defn.with_version(selection)], True)
+        mw.run_with_progress(
+            mw.manager.update([reconstructed_defn.with_version(selection)], True)
         ).items()
     ).generate_and_exit()
 
@@ -481,10 +480,8 @@ def rollback(manager: _manager.Manager, addon: Defn, version: str | None, undo: 
 @click.option(
     '--list-unreconciled', is_flag=True, default=False, help='List unreconciled add-ons and exit.'
 )
-@_CtxWrapper.pass_manager
-def reconcile(
-    manager: _manager.Manager, auto: bool, rereconcile: bool, list_unreconciled: bool
-) -> None:
+@click.pass_obj
+def reconcile(mw: _CtxObjWrapper, auto: bool, rereconcile: bool, list_unreconciled: bool) -> None:
     "Reconcile pre-installed add-ons."
     from .matchers import (
         AddonFolder,
@@ -511,7 +508,7 @@ def reconcile(
         groups: Sequence[tuple[Any, Sequence[Defn]]],
         selector: Callable[[Any, Sequence[models.Pkg]], Defn | None],
     ):
-        results = run_with_progress(manager.resolve(uniq(d for _, b in groups for d in b)))
+        results = mw.run_with_progress(mw.manager.resolve(uniq(d for _, b in groups for d in b)))
         for addons_or_pkg, defns in groups:
             shortlist = [r for d in defns for r in (results[d],) if isinstance(r, models.Pkg)]
             if shortlist:
@@ -535,22 +532,24 @@ def reconcile(
             return selection or None
 
         installed_pkgs = (
-            models.Pkg.from_row_mapping(manager.database, p)
-            for p in manager.database.execute(sa.select(db.pkg)).mappings().all()
+            models.Pkg.from_row_mapping(mw.manager.database, p)
+            for p in mw.manager.database.execute(sa.select(db.pkg)).mappings().all()
         )
-        groups = list(run_with_progress(manager.find_equivalent_pkg_defns(installed_pkgs)).items())
+        groups = list(
+            mw.run_with_progress(mw.manager.find_equivalent_pkg_defns(installed_pkgs)).items()
+        )
         selections = [
             (p, s) for (p, _), s in zip(groups, gather_selections(groups, prompt_reconciled)) if s
         ]
         if selections and ask(confirm('Install selected add-ons?')):
             Report(
-                run_with_progress(
-                    manager.remove([Defn.from_pkg(p) for p, _ in selections], False),
+                mw.run_with_progress(
+                    mw.manager.remove([Defn.from_pkg(p) for p, _ in selections], False),
                 ).items()
             ).generate()
             Report(
-                run_with_progress(
-                    manager.install([s for _, s in selections], False),
+                mw.run_with_progress(
+                    mw.manager.install([s for _, s in selections], False),
                 ).items()
             ).generate_and_exit()
 
@@ -600,10 +599,10 @@ def reconcile(
             match_folder_name_subsets,
             match_addon_names_with_folder_names,
         ]:
-            groups = run_with_progress(fn(manager, (yield [])))
+            groups = mw.run_with_progress(fn(mw.manager, (yield [])))
             yield list(filter(None, gather_selections(groups, selector)))
 
-    leftovers = get_unreconciled_folders(manager)
+    leftovers = get_unreconciled_folders(mw.manager)
     if list_unreconciled:
         table_rows = [('unreconciled',), *((f.name,) for f in sorted(leftovers))]
         click.echo(tabulate(table_rows))
@@ -619,10 +618,10 @@ def reconcile(
     for _ in matcher:  # Skip over consumer yields
         selections = matcher.send(leftovers)
         if selections and (auto or ask(confirm('Install selected add-ons?'))):
-            results = run_with_progress(manager.install(selections, True))
+            results = mw.run_with_progress(mw.manager.install(selections, True))
             Report(results.items()).generate()
 
-        leftovers = get_unreconciled_folders(manager)
+        leftovers = get_unreconciled_folders(mw.manager)
 
     if leftovers:
         click.echo()
@@ -671,15 +670,15 @@ def search(
     "Search for add-ons to install."
     from .prompts import PkgChoice, ask, checkbox, confirm
 
-    manager: _manager.Manager = ctx.obj.manager
+    mw: _CtxObjWrapper = ctx.obj
 
-    entries = run_with_progress(
-        manager.search(search_terms, limit, frozenset(sources), start_date)
+    entries = mw.run_with_progress(
+        mw.manager.search(search_terms, limit, frozenset(sources), start_date)
     )
     defns = [Defn(e.source, e.id) for e in entries]
     pkgs = (
         (evolve_model_obj(d, alias=r.slug), r)
-        for d, r in run_with_progress(manager.resolve(defns)).items()
+        for d, r in mw.run_with_progress(mw.manager.resolve(defns)).items()
         if isinstance(r, models.Pkg)
     )
     choices = [PkgChoice(f'{p.name}  ({d.to_urn()}=={p.version})', d, pkg=p) for d, p in pkgs]
@@ -710,9 +709,9 @@ class _ListFormats(StrEnum):
     show_default=True,
     help='Change the output format.',
 )
-@_CtxWrapper.pass_manager
+@click.pass_obj
 def list_installed(
-    manager: _manager.Manager, addons: Sequence[Defn], output_format: _ListFormats
+    mw: _CtxObjWrapper, addons: Sequence[Defn], output_format: _ListFormats
 ) -> None:
     "List installed add-ons."
     import sqlalchemy as sa
@@ -722,17 +721,17 @@ def list_installed(
             Defn(pkg.source, s or e.id).to_urn()
             for e in pkg.deps
             for s in (
-                manager.database.execute(
+                mw.manager.database.execute(
                     sa.select(db.pkg.c.slug).filter_by(source=pkg.source, id=e.id)
                 ).scalar_one_or_none(),
             )
         )
 
     def row_mappings_to_pkgs():
-        return map(models.Pkg.from_row_mapping, repeat(manager.database), pkg_mappings)
+        return map(models.Pkg.from_row_mapping, repeat(mw.manager.database), pkg_mappings)
 
     pkg_mappings = (
-        manager.database.execute(
+        mw.manager.database.execute(
             sa.select(db.pkg)
             .filter(
                 sa.or_(
@@ -791,12 +790,12 @@ def info(ctx: click.Context, addon: Defn) -> None:
 
 @cli.command()
 @click.argument('addon', callback=_with_manager(partial(parse_into_defn, raise_invalid=False)))
-@_CtxWrapper.pass_manager
-def reveal(manager: _manager.Manager, addon: Defn) -> None:
+@click.pass_obj
+def reveal(mw: _CtxObjWrapper, addon: Defn) -> None:
     "Bring an add-on up in your file manager."
-    pkg = manager.get_pkg(addon, partial_match=True)
+    pkg = mw.manager.get_pkg(addon, partial_match=True)
     if pkg:
-        click.launch(str(manager.config.addon_dir / pkg.folders[0].name), locate=True)
+        click.launch(str(mw.manager.config.addon_dir / pkg.folders[0].name), locate=True)
     else:
         Report([(addon, R.PkgNotInstalled())]).generate_and_exit()
 
@@ -811,8 +810,8 @@ def reveal(manager: _manager.Manager, addon: Defn) -> None:
     show_default=True,
     help='Convert HTML and Markdown changelogs to plain text using pandoc.',
 )
-@_CtxWrapper.pass_manager
-def view_changelog(manager: _manager.Manager, addon: Defn | None, convert: bool) -> None:
+@click.pass_obj
+def view_changelog(mw: _CtxObjWrapper, addon: Defn | None, convert: bool) -> None:
     """View the changelog of an installed add-on.
 
     If `addon` is not provided, displays the changelogs of all add-ons
@@ -834,7 +833,7 @@ def view_changelog(manager: _manager.Manager, addon: Defn | None, convert: bool)
             def real_convert(source: str, changelog: str):
                 import subprocess
 
-                changelog_format = manager.resolvers[source].changelog_format
+                changelog_format = mw.manager.resolvers[source].changelog_format
                 if changelog_format not in {ChangelogFormat.html, ChangelogFormat.markdown}:
                     return changelog
                 else:
@@ -845,9 +844,11 @@ def view_changelog(manager: _manager.Manager, addon: Defn | None, convert: bool)
             return real_convert
 
     if addon:
-        pkg = manager.get_pkg(addon, partial_match=True)
+        pkg = mw.manager.get_pkg(addon, partial_match=True)
         if pkg:
-            changelog = run_with_progress(manager.get_changelog(pkg.source, pkg.changelog_url))
+            changelog = mw.run_with_progress(
+                mw.manager.get_changelog(pkg.source, pkg.changelog_url)
+            )
             if convert:
                 changelog = make_converter()(pkg.source, changelog)
             click.echo_via_pager(changelog)
@@ -857,7 +858,7 @@ def view_changelog(manager: _manager.Manager, addon: Defn | None, convert: bool)
     else:
         import sqlalchemy as sa
 
-        last_installed_changelog_urls = manager.database.execute(
+        last_installed_changelog_urls = mw.manager.database.execute(
             sa.select(db.pkg.c.source, db.pkg.c.slug, db.pkg.c.changelog_url)
             .join(db.pkg_version_log)
             .filter(
@@ -869,9 +870,9 @@ def view_changelog(manager: _manager.Manager, addon: Defn | None, convert: bool)
                 .scalar_subquery()
             )
         ).all()
-        changelogs = run_with_progress(
+        changelogs = mw.run_with_progress(
             gather(
-                manager.get_changelog(m.source, m.changelog_url)
+                mw.manager.get_changelog(m.source, m.changelog_url)
                 for m in last_installed_changelog_urls
             )
         )
@@ -1006,21 +1007,21 @@ def _weakauras_group() -> None:
 
 
 @_weakauras_group.command('build')
-@_CtxWrapper.pass_manager
-def build_weakauras_companion(manager: _manager.Manager) -> None:
+@click.pass_obj
+def build_weakauras_companion(mw: _CtxObjWrapper) -> None:
     "Build the WeakAuras Companion add-on."
     from .wa_updater import WaCompanionBuilder
 
-    run_with_progress(WaCompanionBuilder(manager).build())
+    mw.run_with_progress(WaCompanionBuilder(mw.manager).build())
 
 
 @_weakauras_group.command('list')
-@_CtxWrapper.pass_manager
-def list_installed_wago_auras(manager: _manager.Manager) -> None:
+@click.pass_obj
+def list_installed_wago_auras(mw: _CtxObjWrapper) -> None:
     "List WeakAuras installed from Wago."
     from .wa_updater import WaCompanionBuilder
 
-    aura_groups = WaCompanionBuilder(manager).extract_installed_auras()
+    aura_groups = WaCompanionBuilder(mw.manager).extract_installed_auras()
     installed_auras = sorted(
         (g.filename, textwrap.fill(a.id, width=30, max_lines=1), a.url)
         for g in aura_groups
