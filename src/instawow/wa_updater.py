@@ -12,7 +12,6 @@ from pydantic import BaseModel, Field, validator
 from typing_extensions import Literal, NotRequired as N, Self, TypeAlias, TypedDict
 from yarl import URL
 
-from .common import Flavour
 from .manager import Manager
 from .utils import StrEnum, bucketise, chain_dict, gather, run_in_thread as t, shasum
 
@@ -326,11 +325,7 @@ class WaCompanionBuilder:
             write_tpl('init.lua', {})
             write_tpl(
                 'WeakAurasCompanion.toc',
-                {
-                    'interface': Flavour.to_flavour_keyed_enum(
-                        _TocNumbers, self.manager.config.game_flavour
-                    )
-                },
+                {'interface': self.manager.config.game_flavour.to_flavour_keyed_enum(_TocNumbers)},
             )
 
         self.changelog_path.write_text(

@@ -34,9 +34,8 @@ class Flavour(StrEnum):
     def from_flavour_keyed_enum(cls, enum: Enum) -> Flavour:
         return cls[enum.name]
 
-    @classmethod
-    def to_flavour_keyed_enum(cls, enum: _FlavourKeyedEnum[_TEnum], flavour: Flavour) -> _TEnum:
-        return enum[flavour.name]
+    def to_flavour_keyed_enum(self, enum: _FlavourKeyedEnum[_TEnum]) -> _TEnum:
+        return enum[self.name]
 
 
 class FlavourVersion(Enum):

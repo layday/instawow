@@ -329,13 +329,15 @@ class CurseResolver(BaseResolver):
 
                 if defn.strategy is not Strategy.any_flavour:
 
-                    curse_type_id = Flavour.to_flavour_keyed_enum(
-                        _CurseGameVersionTypeId, self.manager.config.game_flavour
+                    curse_type_id = self.manager.config.game_flavour.to_flavour_keyed_enum(
+                        _CurseGameVersionTypeId
                     )
 
                     def supports_flavour(f: _CurseAddon_File):
-                        return f['gameVersionFlavor'] == Flavour.to_flavour_keyed_enum(
-                            _CurseFlavor, self.manager.config.game_flavour
+                        return f[
+                            'gameVersionFlavor'
+                        ] == self.manager.config.game_flavour.to_flavour_keyed_enum(
+                            _CurseFlavor
                         ) or any(
                             s.get('gameVersionTypeId') == curse_type_id
                             for s in f['sortableGameVersion']
@@ -392,11 +394,10 @@ class CurseResolver(BaseResolver):
                 if any(
                     not f['exposeAsAlternative']
                     and (
-                        f['gameVersionFlavor']
-                        == Flavour.to_flavour_keyed_enum(_CurseFlavor, flavour)
+                        f['gameVersionFlavor'] == flavour.to_flavour_keyed_enum(_CurseFlavor)
                         or any(
                             s.get('gameVersionTypeId')
-                            == Flavour.to_flavour_keyed_enum(_CurseGameVersionTypeId, flavour)
+                            == flavour.to_flavour_keyed_enum(_CurseGameVersionTypeId)
                             for s in f['sortableGameVersion']
                         )
                     )
@@ -722,8 +723,8 @@ class CfCoreResolver(BaseResolver):
         if defn.strategy is Strategy.version:
             async with self.manager.web_client.get(
                 (self.mod_api_url / str(metadata['id']) / 'files').with_query(
-                    gameVersionTypeId=Flavour.to_flavour_keyed_enum(
-                        _CfCoreSortableGameVersionTypeId, self.manager.config.game_flavour
+                    gameVersionTypeId=self.manager.config.game_flavour.to_flavour_keyed_enum(
+                        _CfCoreSortableGameVersionTypeId
                     ),
                     pageSize=9999,
                 ),
@@ -753,8 +754,8 @@ class CfCoreResolver(BaseResolver):
 
                 if defn.strategy is not Strategy.any_flavour:
 
-                    type_id = Flavour.to_flavour_keyed_enum(
-                        _CfCoreSortableGameVersionTypeId, self.manager.config.game_flavour
+                    type_id = self.manager.config.game_flavour.to_flavour_keyed_enum(
+                        _CfCoreSortableGameVersionTypeId
                     )
 
                     def supports_flavour(f: _CfCoreFile):
@@ -832,7 +833,7 @@ class CfCoreResolver(BaseResolver):
                     not f.get('exposeAsAlternative', False)
                     and any(
                         s['gameVersionTypeId']
-                        == Flavour.to_flavour_keyed_enum(_CfCoreSortableGameVersionTypeId, flavour)
+                        == flavour.to_flavour_keyed_enum(_CfCoreSortableGameVersionTypeId)
                         for s in f['sortableGameVersions']
                     )
                     for f in files
@@ -1501,8 +1502,8 @@ class GithubResolver(BaseResolver):
             if not releases:
                 raise R.PkgFileUnavailable('no files available for download')
 
-            wanted_flavour = Flavour.to_flavour_keyed_enum(
-                _PackagerReleaseJsonFlavor, self.manager.config.game_flavour
+            wanted_flavour = self.manager.config.game_flavour.to_flavour_keyed_enum(
+                _PackagerReleaseJsonFlavor
             )
             matching_release = next(
                 (
