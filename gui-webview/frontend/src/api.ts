@@ -1,5 +1,4 @@
-import type { Client } from "@open-rpc/client-js";
-import type { RequestObject } from "./ipc";
+import type { RClient, RequestObject } from "./ipc";
 
 export enum Flavour {
   retail = "retail",
@@ -165,14 +164,14 @@ export type PydanticValidationError = {
 };
 
 export class Api {
-  constructor(private clientWrapper: { client: Promise<Client> }, public profile?: string) {}
+  constructor(private readonly _clientWrapper: RClient, public readonly profile?: string) {}
 
   withProfile(profile: string, apiClass: typeof Api = Api) {
-    return new apiClass(this.clientWrapper, profile);
+    return new apiClass(this._clientWrapper, profile);
   }
 
   async request(requestObject: RequestObject) {
-    const client = await this.clientWrapper.client;
+    const client = await this._clientWrapper.client;
     return await client.request(requestObject, 0);
   }
 
