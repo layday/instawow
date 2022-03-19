@@ -1469,10 +1469,8 @@ class GithubResolver(BaseResolver):
                         },
                         raise_for_status=True,
                     ) as toc_file_range_response:
-                        toc_file_body = await toc_file_range_response.read()
-
-                    addon_zip_stream.seek(main_toc_file_offset)
-                    addon_zip_stream.write(toc_file_body)
+                        addon_zip_stream.seek(main_toc_file_offset)
+                        addon_zip_stream.write(await toc_file_range_response.read())
 
                 toc_file_text = dynamic_addon_zip.read(main_toc_filename).decode('utf-8-sig')
                 toc_reader = TocReader(toc_file_text)
@@ -1549,7 +1547,7 @@ class GithubResolver(BaseResolver):
         cls, web_client: _deferred_types.aiohttp.ClientSession
     ) -> AsyncIterator[BaseCatatalogueEntry]:
         import csv
-        import io
+        from io import StringIO
 
         logger.debug(f'retrieving {cls.generated_catalogue_csv_url}')
         async with web_client.get(
@@ -1557,7 +1555,7 @@ class GithubResolver(BaseResolver):
         ) as response:
             catalogue_csv = await response.text()
 
-        for entry in csv.DictReader(io.StringIO(catalogue_csv)):
+        for entry in csv.DictReader(StringIO(catalogue_csv)):
             if entry['has_release_json'] != 'True':
                 continue
 
