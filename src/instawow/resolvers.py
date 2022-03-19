@@ -844,8 +844,8 @@ class CfCoreResolver(BaseResolver):
             return uniq(frozenset(m['name'] for m in f['modules']) for f in files)
 
         api_key = cls._get_access_token(GlobalConfig())
+        step = 50
 
-        step = 20
         for index in count():
             url = (cls.mod_api_url / 'search').with_query(
                 gameId='1',
