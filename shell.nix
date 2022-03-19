@@ -17,11 +17,8 @@ pkgs.mkShell {
   PIP_ONLY_BINARY = ":all:";
 
   postVenvCreation = ''
-    python -m pip install -U pip ipython nox frontend-editables
+    python -m pip install -U pip ipython nox
     python -m pip uninstall -y setuptools
-    SETUPTOOLS_USE_DISTUTILS=0 python -m frontend_editables.transitional_cli \
-      --method lax_symlink --spec ".[gui, test, types]" \
-      src/instawow instawow \
-      gui-webview/src/instawow_gui instawow_gui
+    python -m pip install -e ".[gui, test, types]"
   '';
 }
