@@ -17,7 +17,7 @@ from typing_extensions import Literal, NotRequired as N, Protocol, TypedDict
 from yarl import URL
 
 from . import _deferred_types, manager, models, results as R
-from .cataloguer import BaseCatalogueEntry, BaseCatalogue_SameAs
+from .cataloguer import BaseCatalogue_SameAs, BaseCatalogueEntry
 from .common import ChangelogFormat, Flavour, FlavourVersion, Strategy
 from .config import GlobalConfig
 from .utils import (
