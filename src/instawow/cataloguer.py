@@ -18,7 +18,7 @@ class _BaseCatalogueSameAs(BaseModel):
     id: str
 
 
-class BaseCatatalogueEntry(BaseModel):
+class BaseCatalogueEntry(BaseModel):
     source: str
     id: str
     slug: str = ''
