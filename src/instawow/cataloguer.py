@@ -31,18 +31,12 @@ class BaseCatatalogueEntry(BaseModel):
     same_as: typing.List[_BaseCatalogueSameAs] = []
 
 
-class _SerialisedClassNameModel(BaseModel):
-    def dict(self, *args: object, **kwargs: object):
-        dict_ = super().dict(*args, **kwargs)
-        dict_['_type'] = self.__class__.__name__
-        return dict_
+class _CatalogueSameAs(_BaseCatalogueSameAs):
+    type_ = '_CatalogueSameAs'
 
 
-class _CatalogueSameAs(_SerialisedClassNameModel, _BaseCatalogueSameAs):
-    pass
-
-
-class CatalogueEntry(_SerialisedClassNameModel, BaseCatatalogueEntry):
+class CatalogueEntry(BaseCatalogueEntry):
+    type_ = 'CatalogueEntry'
     same_as: typing.List[_CatalogueSameAs] = []  # type: ignore
     normalised_name: str
     derived_download_score: float
@@ -50,7 +44,7 @@ class CatalogueEntry(_SerialisedClassNameModel, BaseCatatalogueEntry):
 
 class BaseCatalogue(BaseModel, json_encoders={set: sorted}):
     version = 5
-    entries: typing.List[BaseCatatalogueEntry]
+    entries: typing.List[BaseCatalogueEntry]
 
     @classmethod
     async def collate(cls, start_date: datetime | None):
@@ -62,7 +56,7 @@ class BaseCatalogue(BaseModel, json_encoders={set: sorted}):
 
 
 class Catalogue(BaseModel, keep_untouched=(cached_property,)):
-    version = 2
+    version = 3
     entries: typing.List[CatalogueEntry]
     curse_slugs: typing.Dict[str, str]
 
@@ -112,11 +106,11 @@ class Catalogue(BaseModel, keep_untouched=(cached_property,)):
     @classmethod
     def from_cache(cls, raw_catalogue: bytes):
         def parse_model_obj(values: Mapping[str, Any]):
-            if '_type' not in values:
+            if 'type_' not in values:
                 return values
-            elif values['_type'] == '_CatalogueSameAs':
+            elif values['type_'] == '_CatalogueSameAs':
                 return _CatalogueSameAs.construct(**values)
-            elif values['_type'] == 'CatalogueEntry':
+            elif values['type_'] == 'CatalogueEntry':
                 return CatalogueEntry.construct(
                     **{
                         **values,
@@ -126,7 +120,7 @@ class Catalogue(BaseModel, keep_untouched=(cached_property,)):
                     }
                 )
             else:
-                raise ValueError('Unknown type', values['_type'])
+                raise ValueError('Unknown type', values['type_'])
 
         return cls.construct(**json.loads(raw_catalogue, object_hook=parse_model_obj))
 

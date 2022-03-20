@@ -17,7 +17,7 @@ from typing_extensions import Literal, NotRequired as N, Protocol, TypedDict
 from yarl import URL
 
 from . import _deferred_types, manager, models, results as R
-from .cataloguer import BaseCatatalogueEntry
+from .cataloguer import BaseCatalogueEntry
 from .common import ChangelogFormat, Flavour, FlavourVersion, Strategy
 from .config import GlobalConfig
 from .utils import (
@@ -95,7 +95,7 @@ class Resolver(Protocol):
     @classmethod
     async def catalogue(
         cls, web_client: _deferred_types.aiohttp.ClientSession
-    ) -> AsyncIterator[BaseCatatalogueEntry]:
+    ) -> AsyncIterator[BaseCatalogueEntry]:
         "Yield add-ons from source for cataloguing."
         return
         yield
@@ -148,7 +148,7 @@ class BaseResolver:
     @classmethod
     async def catalogue(
         cls, web_client: _deferred_types.aiohttp.ClientSession
-    ) -> AsyncIterator[BaseCatatalogueEntry]:
+    ) -> AsyncIterator[BaseCatalogueEntry]:
         return
         yield
 
@@ -388,7 +388,7 @@ class CurseResolver(BaseResolver):
     @classmethod
     async def catalogue(
         cls, web_client: _deferred_types.aiohttp.ClientSession
-    ) -> AsyncIterator[BaseCatatalogueEntry]:
+    ) -> AsyncIterator[BaseCatalogueEntry]:
         def excise_flavours(files: list[_CurseAddon_File]):
             for flavour in Flavour:
                 if any(
@@ -425,7 +425,7 @@ class CurseResolver(BaseResolver):
                 break
 
             for item in items:
-                yield BaseCatatalogueEntry.parse_obj(
+                yield BaseCatalogueEntry.parse_obj(
                     {
                         'source': cls.source,
                         'id': item['id'],
@@ -824,7 +824,7 @@ class CfCoreResolver(BaseResolver):
     @classmethod
     async def catalogue(
         cls, web_client: _deferred_types.aiohttp.ClientSession
-    ) -> AsyncIterator[BaseCatatalogueEntry]:
+    ) -> AsyncIterator[BaseCatalogueEntry]:
         from .config import GlobalConfig
 
         def excise_flavours(files: list[_CfCoreFile]):
@@ -864,7 +864,7 @@ class CfCoreResolver(BaseResolver):
                 break
 
             for item in items:
-                yield BaseCatatalogueEntry.parse_obj(
+                yield BaseCatalogueEntry.parse_obj(
                     {
                         'source': cls.source,
                         'id': item['id'],
@@ -1022,25 +1022,32 @@ class WowiResolver(BaseResolver):
     @classmethod
     async def catalogue(
         cls, web_client: _deferred_types.aiohttp.ClientSession
-    ) -> AsyncIterator[BaseCatatalogueEntry]:
-        flavours = set(Flavour)
-
+    ) -> AsyncIterator[BaseCatalogueEntry]:
         logger.debug(f'retrieving {cls.list_api_url}')
+
         async with web_client.get(cls.list_api_url, raise_for_status=True) as response:
             items: list[_WowiListApiItem] = await response.json()
 
         for item in items:
-            yield BaseCatatalogueEntry.parse_obj(
-                {
-                    'source': cls.source,
-                    'id': item['UID'],
-                    'name': item['UIName'],
-                    'url': item['UIFileInfoURL'],
-                    'game_flavours': flavours,
-                    'download_count': item['UIDownloadTotal'],
-                    'last_updated': datetime.fromtimestamp(item['UIDate'] / 1000, timezone.utc),
-                    'folders': [item['UIDir']],
+            if item['UICompatibility'] is None or len(item['UICompatibility']) < 2:
+                game_flavours = set(Flavour)
+            else:
+                game_flavours = {
+                    Flavour.from_flavour_keyed_enum(f)
+                    for c in item['UICompatibility']
+                    for f in FlavourVersion.multiple_from_version_string(c['version'])
                 }
+
+            yield BaseCatalogueEntry(
+                source=cls.source,
+                id=item['UID'],
+                name=item['UIName'],
+                url=item['UIFileInfoURL'],
+                game_flavours=game_flavours,
+                download_count=int(item['UIDownloadTotal']),
+                last_updated=datetime.fromtimestamp(item['UIDate'] / 1000, timezone.utc),
+                folders=[set(item['UIDir'])],
+                same_as=[],
             )
 
 
@@ -1198,7 +1205,7 @@ class TukuiResolver(BaseResolver):
     @classmethod
     async def catalogue(
         cls, web_client: _deferred_types.aiohttp.ClientSession
-    ) -> AsyncIterator[BaseCatatalogueEntry]:
+    ) -> AsyncIterator[BaseCatalogueEntry]:
         for flavours, query in [
             ({Flavour.retail}, {'ui': 'tukui'}),
             ({Flavour.retail}, {'ui': 'elvui'}),
@@ -1212,7 +1219,7 @@ class TukuiResolver(BaseResolver):
                 )
 
             for item in items if isinstance(items, list) else [items]:
-                yield BaseCatatalogueEntry.parse_obj(
+                yield BaseCatalogueEntry.parse_obj(
                     {
                         'source': cls.source,
                         'id': item['id'],
@@ -1480,9 +1487,9 @@ class GithubResolver(BaseResolver):
                 logger.debug(
                     f'found interface version {interface_version!r} in {main_toc_filename}'
                 )
-                if interface_version and FlavourVersion.is_within_version(
-                    self.manager.config.game_flavour, int(interface_version)
-                ):
+                if interface_version and self.manager.config.game_flavour.to_flavour_keyed_enum(
+                    FlavourVersion
+                ).is_within_version(int(interface_version)):
                     matching_asset = candidate
                     break
 
@@ -1547,7 +1554,7 @@ class GithubResolver(BaseResolver):
     @classmethod
     async def catalogue(
         cls, web_client: _deferred_types.aiohttp.ClientSession
-    ) -> AsyncIterator[BaseCatatalogueEntry]:
+    ) -> AsyncIterator[BaseCatalogueEntry]:
         import csv
         from io import StringIO
 
@@ -1561,7 +1568,7 @@ class GithubResolver(BaseResolver):
             if entry['has_release_json'] != 'True':
                 continue
 
-            yield BaseCatatalogueEntry.parse_obj(
+            yield BaseCatalogueEntry.parse_obj(
                 {
                     'source': cls.source,
                     'id': entry['full_name'],
@@ -1626,8 +1633,8 @@ class InstawowResolver(BaseResolver):
     @classmethod
     async def catalogue(
         cls, web_client: _deferred_types.aiohttp.ClientSession
-    ) -> AsyncIterator[BaseCatatalogueEntry]:
-        yield BaseCatatalogueEntry.parse_obj(
+    ) -> AsyncIterator[BaseCatalogueEntry]:
+        yield BaseCatalogueEntry.parse_obj(
             {
                 'source': cls.source,
                 'id': '1',

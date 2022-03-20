@@ -39,22 +39,22 @@ class Flavour(StrEnum):
 
 
 class FlavourVersion(Enum):
-    retail = range(10000, 100000)
-    vanilla_classic = range(11300, 20000)
-    burning_crusade_classic = range(20500, 30000)
+    retail = (range(1_00_00, 1_13_00), range(2_00_00, 2_05_00), range(3_00_00, 11_00_00))
+    vanilla_classic = (range(1_13_00, 2_00_00),)
+    burning_crusade_classic = (range(2_05_00, 3_00_00),)
 
     @classmethod
-    def is_within_version(cls, flavour: Flavour, version_number: int) -> bool:
-        is_within_version_ = version_number in cls[flavour].value
-        if not is_within_version_:
-            return False
-        elif flavour is Flavour.retail:
-            return not any(
-                version_number in r.value
-                for f, r in cls.__members__.items()
-                if f != Flavour.retail
-            )
-        return True
+    def multiple_from_version_string(cls, version_string: str) -> set[FlavourVersion]:
+        major, minor, patch = map(int, version_string.split('.'))
+        version_number = major * 1_00_00 + minor * 1_00 + patch * 10
+        return cls.multiple_from_version_number(version_number)
+
+    @classmethod
+    def multiple_from_version_number(cls, version_number: int) -> set[FlavourVersion]:
+        return {f for f in cls if f.is_within_version(version_number)}
+
+    def is_within_version(self, version_number: int) -> bool:
+        return any(version_number in r for r in self.value)
 
 
 class Strategy(StrEnum):
