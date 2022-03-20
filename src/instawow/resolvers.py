@@ -878,6 +878,8 @@ class CfCoreResolver(BaseResolver):
                     }
                 )
 
+            await asyncio.sleep(0.5)
+
 
 class _WowiCommonTerms(TypedDict):
     UID: str  # Unique add-on ID
