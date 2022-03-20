@@ -46,7 +46,7 @@ class FlavourVersion(Enum):
     @classmethod
     def multiple_from_version_string(cls, version_string: str) -> set[FlavourVersion]:
         major, minor, patch = map(int, version_string.split('.'))
-        version_number = major * 1_00_00 + minor * 1_00 + patch * 10
+        version_number = major * 1_00_00 + minor * 1_00 + patch
         return cls.multiple_from_version_number(version_number)
 
     @classmethod
