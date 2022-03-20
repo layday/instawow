@@ -17,7 +17,7 @@ from typing_extensions import Literal, NotRequired as N, Protocol, TypedDict
 from yarl import URL
 
 from . import _deferred_types, manager, models, results as R
-from .cataloguer import BaseCatalogueEntry
+from .cataloguer import BaseCatalogueEntry, BaseCatalogue_SameAs
 from .common import ChangelogFormat, Flavour, FlavourVersion, Strategy
 from .config import GlobalConfig
 from .utils import (
@@ -1052,7 +1052,6 @@ class WowiResolver(BaseResolver):
                 download_count=int(item['UIDownloadTotal']),
                 last_updated=datetime.fromtimestamp(item['UIDate'] / 1000, timezone.utc),
                 folders=[set(item['UIDir'])],
-                same_as=[],
             )
 
 
@@ -1224,24 +1223,21 @@ class TukuiResolver(BaseResolver):
                 )
 
             for item in items if isinstance(items, list) else [items]:
-                yield BaseCatalogueEntry.parse_obj(
-                    {
-                        'source': cls.source,
-                        'id': item['id'],
-                        'name': item['name'],
-                        'url': item['web_url'],
-                        'game_flavours': flavours,
-                        # Split Tukui and ElvUI downloads evenly between them.
-                        # They both have the exact same number of downloads so
-                        # I'm assuming they're being counted together.
-                        # This should help with scoring other add-ons on the
-                        # Tukui catalogue higher
-                        'download_count': int(item['downloads'])
-                        // (2 if item['id'] in {-1, -2} else 1),
-                        'last_updated': datetime.fromisoformat(item['lastupdate']).replace(
-                            tzinfo=timezone.utc
-                        ),
-                    }
+                yield BaseCatalogueEntry(
+                    source=cls.source,
+                    id=str(item['id']),
+                    name=item['name'],
+                    url=item['web_url'],
+                    game_flavours=flavours,
+                    # Split Tukui and ElvUI downloads evenly between them.
+                    # They both have the exact same number of downloads so
+                    # I'm assuming they're being counted together.
+                    # This should help with scoring other add-ons on the
+                    # Tukui catalogue higher
+                    download_count=int(item['downloads']) // (2 if item['id'] in {-1, -2} else 1),
+                    last_updated=datetime.fromisoformat(item['lastupdate']).replace(
+                        tzinfo=timezone.utc
+                    ),
                 )
 
 
@@ -1570,29 +1566,24 @@ class GithubResolver(BaseResolver):
             catalogue_csv = await response.text()
 
         for entry in csv.DictReader(StringIO(catalogue_csv)):
-            if entry['has_release_json'] != 'True':
-                continue
-
-            yield BaseCatalogueEntry.parse_obj(
-                {
-                    'source': cls.source,
-                    'id': entry['full_name'],
-                    'slug': entry['full_name'].lower(),
-                    'name': entry['name'],
-                    'url': entry['url'],
-                    'game_flavours': {
-                        Flavour.from_flavour_keyed_enum(_PackagerReleaseJsonFlavor(f))
-                        for f in entry['flavors'].split(',')
-                    },
-                    'download_count': 1,
-                    'last_updated': datetime.fromisoformat(entry['last_updated']),
-                    'same_as': [
-                        {'source': i, 'id': v}
-                        for i in ['curse', 'wowi']
-                        for v in (entry[f'{i}_id'],)
-                        if v
-                    ],
-                }
+            yield BaseCatalogueEntry(
+                source=cls.source,
+                id=entry['full_name'],
+                slug=entry['full_name'].lower(),
+                name=entry['name'],
+                url=entry['url'],
+                game_flavours={
+                    Flavour.from_flavour_keyed_enum(_PackagerReleaseJsonFlavor(f))
+                    for f in entry['flavors'].split(',')
+                },
+                download_count=1,
+                last_updated=datetime.fromisoformat(entry['last_updated']),
+                same_as=[
+                    BaseCatalogue_SameAs(source=i, id=v)
+                    for i in ['curse', 'wowi']
+                    for v in (entry[f'{i}_id'],)
+                    if v
+                ],
             )
 
 

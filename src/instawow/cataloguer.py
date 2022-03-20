@@ -13,7 +13,7 @@ from .config import Flavour
 from .utils import bucketise, cached_property, normalise_names
 
 
-class _BaseCatalogueSameAs(BaseModel):
+class BaseCatalogue_SameAs(BaseModel):
     source: str
     id: str
 
@@ -28,16 +28,16 @@ class BaseCatalogueEntry(BaseModel):
     download_count: int
     last_updated: datetime
     folders: typing.List[typing.Set[str]] = []
-    same_as: typing.List[_BaseCatalogueSameAs] = []
+    same_as: typing.List[BaseCatalogue_SameAs] = []
 
 
-class _CatalogueSameAs(_BaseCatalogueSameAs):
-    type_ = '_CatalogueSameAs'
+class _Catalogue_SameAs(BaseCatalogue_SameAs):
+    type_ = '_Catalogue_SameAs'
 
 
 class CatalogueEntry(BaseCatalogueEntry):
     type_ = 'CatalogueEntry'
-    same_as: typing.List[_CatalogueSameAs] = []  # type: ignore
+    same_as: typing.List[_Catalogue_SameAs] = []  # type: ignore
     normalised_name: str
     derived_download_score: float
 
@@ -76,7 +76,7 @@ class Catalogue(BaseModel, keep_untouched=(cached_property,)):
         }
         same_as_from_github = {
             (s.source, s.id): [
-                _CatalogueSameAs(source=e.source, id=e.id),
+                _Catalogue_SameAs(source=e.source, id=e.id),
                 *(i for i in e.same_as if i.source != s.source),
             ]
             for e in base_entries
@@ -108,8 +108,8 @@ class Catalogue(BaseModel, keep_untouched=(cached_property,)):
         def parse_model_obj(values: Mapping[str, Any]):
             if 'type_' not in values:
                 return values
-            elif values['type_'] == '_CatalogueSameAs':
-                return _CatalogueSameAs.construct(**values)
+            elif values['type_'] == '_Catalogue_SameAs':
+                return _Catalogue_SameAs.construct(**values)
             elif values['type_'] == 'CatalogueEntry':
                 return CatalogueEntry.construct(
                     **{
