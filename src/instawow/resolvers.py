@@ -1029,13 +1029,18 @@ class WowiResolver(BaseResolver):
             items: list[_WowiListApiItem] = await response.json()
 
         for item in items:
-            if item['UICompatibility'] is None or len(item['UICompatibility']) < 2:
-                game_flavours = set(Flavour)
+            if item['UICATID'] == '160':
+                game_flavours = {Flavour.vanilla_classic}
+            elif item['UICATID'] == '161':
+                game_flavours = {Flavour.burning_crusade_classic}
+            elif item['UICompatibility'] is None or len(item['UICompatibility']) < 2:
+                game_flavours = {Flavour.retail}
             else:
                 game_flavours = {
                     Flavour.from_flavour_keyed_enum(f)
                     for c in item['UICompatibility']
-                    for f in FlavourVersion.multiple_from_version_string(c['version'])
+                    for f in (FlavourVersion.from_version_string(c['version']),)
+                    if f
                 }
 
             yield BaseCatalogueEntry(

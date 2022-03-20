@@ -6,7 +6,7 @@ from collections.abc import Awaitable, Callable, Iterable, Iterator, Mapping, Se
 from datetime import datetime, timedelta
 import enum
 from functools import partial, wraps
-from itertools import chain, groupby, repeat
+from itertools import chain, groupby, islice, repeat
 import os
 from pathlib import Path, PurePath
 import posixpath
@@ -69,6 +69,11 @@ class cached_property(Generic[_T, _U]):
         else:
             o.__dict__[self.f.__name__] = v = self.f(o)
             return v
+
+
+def fill(it: Iterable[_T], fill: _T, number: int) -> Iterable[_T]:
+    "Append entries to a sized iterable."
+    return islice(chain(it, repeat(fill)), 0, number)
 
 
 def bucketise(iterable: Iterable[_U], key: Callable[[_U], _T]) -> defaultdict[_T, list[_U]]:

@@ -3,9 +3,9 @@ from __future__ import annotations
 from enum import Enum
 from typing import TypeVar
 
-from typing_extensions import Protocol
+from typing_extensions import Protocol, Self
 
-from .utils import StrEnum
+from .utils import StrEnum, fill
 
 _TEnum = TypeVar('_TEnum', bound=Enum)
 
@@ -31,7 +31,7 @@ class Flavour(StrEnum):
     burning_crusade_classic = 'classic'
 
     @classmethod
-    def from_flavour_keyed_enum(cls, enum: Enum) -> Flavour:
+    def from_flavour_keyed_enum(cls, enum: Enum) -> Self:
         return cls[enum.name]
 
     def to_flavour_keyed_enum(self, enum: _FlavourKeyedEnum[_TEnum]) -> _TEnum:
@@ -44,14 +44,14 @@ class FlavourVersion(Enum):
     burning_crusade_classic = (range(2_05_00, 3_00_00),)
 
     @classmethod
-    def multiple_from_version_string(cls, version_string: str) -> set[FlavourVersion]:
-        major, minor, patch = map(int, version_string.split('.'))
+    def from_version_string(cls, version_string: str) -> Self | None:
+        major, minor, patch = fill(map(int, version_string.split('.')), 0, 3)
         version_number = major * 1_00_00 + minor * 1_00 + patch
-        return cls.multiple_from_version_number(version_number)
+        return cls.from_version_number(version_number)
 
     @classmethod
-    def multiple_from_version_number(cls, version_number: int) -> set[FlavourVersion]:
-        return {f for f in cls if f.is_within_version(version_number)}
+    def from_version_number(cls, version_number: int) -> Self | None:
+        return next((f for f in cls if f.is_within_version(version_number)), None)
 
     def is_within_version(self, version_number: int) -> bool:
         return any(version_number in r for r in self.value)
