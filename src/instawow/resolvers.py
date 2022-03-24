@@ -878,7 +878,7 @@ class CfCoreResolver(BaseResolver):
                     }
                 )
 
-            await asyncio.sleep(0.5)
+            await asyncio.sleep(0.75)
 
 
 class _WowiCommonTerms(TypedDict):
