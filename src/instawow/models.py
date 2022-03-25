@@ -116,8 +116,8 @@ class Pkg(BaseModel):
             connection.execute(sa.delete(db.pkg).filter_by(source=self.source, id=self.id))
 
     # Make the model hashable again
-    __eq__ = object.__eq__
-    __hash__ = object.__hash__  # pyright: ignore[reportGeneralTypeIssues]
+    __eq__ = object.__eq__ # type: ignore
+    __hash__ = object.__hash__  # type: ignore
 
 
 class PkgList(BaseModel):
