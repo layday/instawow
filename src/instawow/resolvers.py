@@ -878,7 +878,8 @@ class CfCoreResolver(BaseResolver):
                     }
                 )
 
-            await asyncio.sleep(0.75)
+            if index % 10 == 0:
+                await asyncio.sleep(5)
 
 
 class _WowiCommonTerms(TypedDict):
