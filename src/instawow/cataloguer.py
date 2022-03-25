@@ -31,13 +31,8 @@ class BaseCatalogueEntry(BaseModel):
     same_as: typing.List[BaseCatalogue_SameAs] = []
 
 
-class _Catalogue_SameAs(BaseCatalogue_SameAs):
-    type_ = '_Catalogue_SameAs'
-
-
 class CatalogueEntry(BaseCatalogueEntry):
     type_ = 'CatalogueEntry'
-    same_as: typing.List[_Catalogue_SameAs] = []  # type: ignore
     normalised_name: str
     derived_download_score: float
 
@@ -76,7 +71,7 @@ class Catalogue(BaseModel, keep_untouched=(cached_property,)):
         }
         same_as_from_github = {
             (s.source, s.id): [
-                _Catalogue_SameAs(source=e.source, id=e.id),
+                BaseCatalogue_SameAs(source=e.source, id=e.id),
                 *(i for i in e.same_as if i.source != s.source),
             ]
             for e in base_entries
@@ -108,8 +103,6 @@ class Catalogue(BaseModel, keep_untouched=(cached_property,)):
         def parse_model_obj(values: Mapping[str, Any]):
             if 'type_' not in values:
                 return values
-            elif values['type_'] == '_Catalogue_SameAs':
-                return _Catalogue_SameAs.construct(**values)
             elif values['type_'] == 'CatalogueEntry':
                 return CatalogueEntry.construct(
                     **{
@@ -117,6 +110,7 @@ class Catalogue(BaseModel, keep_untouched=(cached_property,)):
                         'game_flavours': {Flavour(f) for f in values['game_flavours']},
                         'last_updated': datetime.fromisoformat(values['last_updated']),
                         'folders': [set(f) for f in values['folders']],
+                        'same_as': [BaseCatalogue_SameAs.construct(**v) for v in values['same_as']]
                     }
                 )
             else:
