@@ -204,8 +204,8 @@ class Config(_BaseSettings):
         return self.profile_dir / 'config.json'
 
     @property
-    def db_file(self) -> Path:
-        return self.profile_dir / 'db.sqlite'
+    def db_uri(self) -> str:
+        return f"sqlite:///{self.profile_dir / 'db.sqlite'}"
 
 
 def _patch_loguru_enqueue():

@@ -281,20 +281,6 @@ _dummy_locks: LocksType = defaultdict(_DummyLock)
 _locks: cv.ContextVar[LocksType] = cv.ContextVar('_locks', default=_dummy_locks)
 
 
-def prepare_database(config: Config) -> sa_future.Engine:
-    "Connect to and optionally create or migrate the database from a configuration object."
-    engine = sa.create_engine(
-        f'sqlite:///{config.db_file}',
-        # We wanna be able to operate on the database from executor threads
-        # when performing disk I/O
-        connect_args={'check_same_thread': False},
-        # echo=True,
-        future=True,
-    )
-    db.migrate_database(engine, DB_REVISION)
-    return engine
-
-
 def contextualise(
     *,
     web_client: _deferred_types.aiohttp.ClientSession | None = None,
@@ -353,7 +339,7 @@ class Manager:
     @classmethod
     def from_config(cls, config: Config) -> tuple[Manager, Callable[[], None]]:
         "Instantiate the manager from a configuration object."
-        db_conn = prepare_database(config).connect()
+        db_conn = db.prepare_database(config.db_uri, DB_REVISION).connect()
         return (cls(config, db_conn), db_conn.close)
 
     @property

@@ -11,6 +11,7 @@ from sqlalchemy import (
     String,
     Table,
     TypeDecorator,
+    create_engine,
     func,
     text,
 )
@@ -136,7 +137,17 @@ def get_database_state(engine: Engine, revision: str) -> DatabaseState:
     return DatabaseState(state)
 
 
-def migrate_database(engine: Engine, revision: str) -> None:
+def prepare_database(uri: str, revision: str) -> Engine:
+    "Connect to and optionally create or migrate the database from a configuration object."
+    engine = create_engine(
+        uri,
+        # We wanna be able to operate on the database from executor threads
+        # when performing disk I/O
+        connect_args={'check_same_thread': False},
+        # echo=True,
+        future=True,
+    )
+
     database_state = get_database_state(engine, revision)
     if database_state != DatabaseState.current:
         import alembic.command
@@ -151,3 +162,5 @@ def migrate_database(engine: Engine, revision: str) -> None:
             alembic.command.stamp(alembic_config, revision)
         else:
             alembic.command.upgrade(alembic_config, revision)
+
+    return engine
