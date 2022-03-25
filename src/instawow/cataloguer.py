@@ -110,7 +110,9 @@ class Catalogue(BaseModel, keep_untouched=(cached_property,)):
                         'game_flavours': {Flavour(f) for f in values['game_flavours']},
                         'last_updated': datetime.fromisoformat(values['last_updated']),
                         'folders': [set(f) for f in values['folders']],
-                        'same_as': [BaseCatalogue_SameAs.construct(**v) for v in values['same_as']]
+                        'same_as': [
+                            BaseCatalogue_SameAs.construct(**v) for v in values['same_as']
+                        ],
                     }
                 )
             else:
