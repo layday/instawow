@@ -43,10 +43,16 @@
   }
 
   .indeterminate {
-    animation: 0.75s 0s infinite normal none running rotate;
+    animation-duration: 0.75s;
+    animation-iteration-count: infinite;
+    animation-name: rotate;
   }
 
   @keyframes rotate {
+    from {
+      transform: rotate(0);
+    }
+
     to {
       transform: rotate(1turn);
     }
