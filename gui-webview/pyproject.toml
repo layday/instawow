@@ -19,3 +19,8 @@ requires = [
   "..[gui]",
   "certifi",
 ]
+
+[tool.briefcase.app.instawow-gui-wrapper.macOS]
+requires = [
+  "std-nslog",
+]
