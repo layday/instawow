@@ -233,7 +233,9 @@ def _register_plugin_commands(group: click.Group):
 
 
 @_register_plugin_commands
-@click.group(context_settings={'help_option_names': ('-h', '--help')})
+@click.group(  # pyright: ignore[reportUnknownMemberType]
+    context_settings={'help_option_names': ('-h', '--help')}
+)
 @click.version_option(__version__, prog_name=__package__)
 @click.option(
     '--debug',
