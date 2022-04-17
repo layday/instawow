@@ -13,6 +13,7 @@ import urllib.parse
 
 from loguru import logger
 from pydantic import BaseModel
+from pydantic.datetime_parse import parse_datetime
 from typing_extensions import Literal, NotRequired as N, Protocol, TypedDict
 from yarl import URL
 
@@ -864,18 +865,16 @@ class CfCoreResolver(BaseResolver):
                 break
 
             for item in items:
-                yield BaseCatalogueEntry.parse_obj(
-                    {
-                        'source': cls.source,
-                        'id': item['id'],
-                        'slug': item['slug'],
-                        'name': item['name'],
-                        'url': item['links']['websiteUrl'],
-                        'game_flavours': excise_flavours(item['latestFiles']),
-                        'download_count': item['downloadCount'],
-                        'last_updated': item['dateReleased'],
-                        'folders': excise_folders(item['latestFiles']),
-                    }
+                yield BaseCatalogueEntry(
+                    source=cls.source,
+                    id=str(item['id']),
+                    slug=item['slug'],
+                    name=item['name'],
+                    url=item['links']['websiteUrl'],
+                    game_flavours=frozenset(excise_flavours(item['latestFiles'])),
+                    download_count=item['downloadCount'],
+                    last_updated=parse_datetime(item['dateReleased']),
+                    folders=excise_folders(item['latestFiles']),
                 )
 
             if index % 10 == 0:
@@ -1049,10 +1048,10 @@ class WowiResolver(BaseResolver):
                 id=item['UID'],
                 name=item['UIName'],
                 url=item['UIFileInfoURL'],
-                game_flavours=game_flavours,
+                game_flavours=frozenset(game_flavours),
                 download_count=int(item['UIDownloadTotal']),
                 last_updated=datetime.fromtimestamp(item['UIDate'] / 1000, timezone.utc),
-                folders=[set(item['UIDir'])],
+                folders=[frozenset(item['UIDir'])],
             )
 
 
@@ -1212,9 +1211,9 @@ class TukuiResolver(BaseResolver):
         cls, web_client: _deferred_types.aiohttp.ClientSession
     ) -> AsyncIterator[BaseCatalogueEntry]:
         for flavours, query in [
-            ({Flavour.retail}, {'ui': 'tukui'}),
-            ({Flavour.retail}, {'ui': 'elvui'}),
-            *(({f}, {q: 'all'}) for f, q in cls.query_flavours.items()),
+            (frozenset({Flavour.retail}), {'ui': 'tukui'}),
+            (frozenset({Flavour.retail}), {'ui': 'elvui'}),
+            *((frozenset({f}), {q: 'all'}) for f, q in cls.query_flavours.items()),
         ]:
             url = cls.api_url.with_query(query)
             logger.debug(f'retrieving {url}')
@@ -1573,11 +1572,11 @@ class GithubResolver(BaseResolver):
                 slug=entry['full_name'].lower(),
                 name=entry['name'],
                 url=entry['url'],
-                game_flavours={
+                game_flavours=frozenset(
                     Flavour.from_flavour_keyed_enum(_PackagerReleaseJsonFlavor(f))
                     for f in entry['flavors'].split(',')
                     if f
-                },
+                ),
                 download_count=1,
                 last_updated=datetime.fromisoformat(entry['last_updated']),
                 same_as=[
@@ -1632,18 +1631,16 @@ class InstawowResolver(BaseResolver):
     async def catalogue(
         cls, web_client: _deferred_types.aiohttp.ClientSession
     ) -> AsyncIterator[BaseCatalogueEntry]:
-        yield BaseCatalogueEntry.parse_obj(
-            {
-                'source': cls.source,
-                'id': '1',
-                'slug': 'weakauras-companion-autoupdate',
-                'name': 'WeakAuras Companion',
-                'url': 'https://github.com/layday/instawow',
-                'game_flavours': set(Flavour),
-                'download_count': 1,
-                'last_updated': datetime.now(timezone.utc),
-                'folders': [
-                    {'WeakAurasCompanion'},
-                ],
-            }
+        yield BaseCatalogueEntry(
+            source=cls.source,
+            id='1',
+            slug='weakauras-companion-autoupdate',
+            name='WeakAuras Companion',
+            url='https://github.com/layday/instawow',
+            game_flavours=frozenset(Flavour),
+            download_count=1,
+            last_updated=datetime.now(timezone.utc),
+            folders=[
+                frozenset({'WeakAurasCompanion'}),
+            ],
         )
