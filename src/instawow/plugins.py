@@ -5,7 +5,7 @@ from functools import lru_cache
 from typing import Any
 
 import click
-import pluggy as _pluggy  # pyright: ignore[reportMissingTypeStubs]
+import pluggy as _pluggy  # pyright: ignore
 
 from . import resolvers
 

@@ -24,10 +24,10 @@ class BaseCatalogueEntry(BaseModel):
     slug: str = ''
     name: str
     url: str
-    game_flavours: typing.Set[Flavour]
+    game_flavours: typing.FrozenSet[Flavour]
     download_count: int
     last_updated: datetime
-    folders: typing.List[typing.Set[str]] = []
+    folders: typing.List[typing.FrozenSet[str]] = []
     same_as: typing.List[BaseCatalogue_SameAs] = []
 
 

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import AsyncIterator, Sequence, Set
+from collections.abc import AsyncIterator, Sequence
 from datetime import datetime, timezone
 from enum import IntEnum
 from itertools import count, takewhile, tee, zip_longest
@@ -67,7 +67,7 @@ def _format_data_changelog(changelog: str = '') -> str:
 class Resolver(Protocol):
     source: ClassVar[str]
     name: ClassVar[str]
-    strategies: ClassVar[Set[Strategy]]
+    strategies: ClassVar[frozenset[Strategy]]
     changelog_format: ClassVar[ChangelogFormat]
 
     def __init__(self, manager: manager.Manager) -> None:

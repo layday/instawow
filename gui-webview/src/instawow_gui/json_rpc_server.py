@@ -24,7 +24,7 @@ import click
 from loguru import logger
 from pydantic import BaseModel, ValidationError
 import sqlalchemy as sa
-import toga  # pyright: ignore[reportMissingTypeStubs]
+import toga  # pyright: ignore
 from typing_extensions import Concatenate, Literal, ParamSpec, TypeAlias, TypedDict
 from yarl import URL
 
@@ -658,7 +658,7 @@ class _ManagerWorkQueue:
         self,
         future: asyncio.Future[object],
         profile: str,
-        coro_fn: _ManagerBoundCoroFn[_P, object],
+        coro_fn: _ManagerBoundCoroFn[..., object],
     ):
         try:
             async with self.locks['modify profile', profile]:
