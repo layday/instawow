@@ -23,10 +23,8 @@ from instawow.models import PkgList
 
 @pytest.fixture
 def feed_pt():
-    pipe_input = create_pipe_input()
-    with create_app_session(input=pipe_input, output=DummyOutput()):
-        yield pipe_input.send_text
-    pipe_input.close()
+    with create_pipe_input() as input_, create_app_session(input=input_, output=DummyOutput()):
+        yield input_.send_text
 
 
 @pytest.fixture
