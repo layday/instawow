@@ -74,7 +74,7 @@ def format_(session: nox.Session):
             jinja2 == 3.0.0
             loguru == 0.5.3
             pluggy == 0.13.0
-            prompt-toolkit == 3.0.15
+            prompt-toolkit == 3.0.19
             pydantic == 1.9.0
             questionary == 1.10.0
             rapidfuzz == 1.4.1
