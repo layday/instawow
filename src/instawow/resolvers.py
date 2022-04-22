@@ -94,12 +94,11 @@ class Resolver(Protocol):
         ...
 
     @classmethod
-    async def catalogue(
+    def catalogue(
         cls, web_client: _deferred_types.aiohttp.ClientSession
     ) -> AsyncIterator[BaseCatalogueEntry]:
         "Yield add-ons from source for cataloguing."
-        return
-        yield
+        ...
 
 
 class BaseResolver:

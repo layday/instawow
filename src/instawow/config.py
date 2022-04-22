@@ -68,7 +68,7 @@ class _BaseSettings(
 ):
     @property
     def config_file(self) -> Path:
-        raise NotImplementedError
+        ...
 
 
 class _AccessTokens(BaseModel):
