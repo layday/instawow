@@ -3,55 +3,65 @@ from __future__ import annotations
 from collections.abc import Sequence
 from typing import Any
 
-from typing_extensions import Literal
+from typing_extensions import Final, Protocol
 
 from . import models
 from .common import Strategy
 
 
-class ManagerResult:
-    status: str
-    template: str
-
+class ManagerResult(Protocol):
     @property
     def message(self) -> str:
-        return self.template.format(self=self)
+        ...
 
 
-class PkgInstalled(ManagerResult):
-    status: Literal['success'] = 'success'
-    template = 'installed {self.pkg.version}'
+class _SuccessResult:
+    status: Final = 'success'
 
+
+class PkgInstalled(ManagerResult, _SuccessResult):
     def __init__(self, pkg: models.Pkg) -> None:
         super().__init__()
         self.pkg = pkg
 
+    @property
+    def message(self) -> str:
+        return f'installed {self.pkg.version}'
 
-class PkgUpdated(ManagerResult):
-    status: Literal['success'] = 'success'
-    template = 'updated {self.old_pkg.version} to {self.new_pkg.version}'
 
+class PkgUpdated(ManagerResult, _SuccessResult):
     def __init__(self, old_pkg: models.Pkg, new_pkg: models.Pkg) -> None:
         super().__init__()
         self.old_pkg = old_pkg
         self.new_pkg = new_pkg
 
+    @property
+    def message(self) -> str:
+        return f'updated {self.old_pkg.version} to {self.new_pkg.version}'
 
-class PkgRemoved(ManagerResult):
-    status: Literal['success'] = 'success'
-    template = 'removed'
 
+class PkgRemoved(ManagerResult, _SuccessResult):
     def __init__(self, old_pkg: models.Pkg) -> None:
         super().__init__()
         self.old_pkg = old_pkg
 
+    @property
+    def message(self) -> str:
+        return 'removed'
+
 
 class ManagerError(ManagerResult, Exception):
-    status: Literal['failure'] = 'failure'
+    status: Final = 'failure'
+
+    @property
+    def message(self) -> str:
+        raise NotImplementedError
 
 
 class PkgAlreadyInstalled(ManagerError):
-    template = 'package already installed'
+    @property
+    def message(self) -> str:
+        return 'package already installed'
 
 
 class PkgConflictsWithInstalled(ManagerError):
@@ -80,27 +90,31 @@ class PkgConflictsWithUnreconciled(ManagerError):
 
 
 class PkgNonexistent(ManagerError):
-    template = 'package does not exist'
+    @property
+    def message(self) -> str:
+        return 'package does not exist'
 
 
 class PkgFileUnavailable(ManagerError):
-    template = 'package file is not available for download'
-
     def __init__(self, custom_message: str | None = None) -> None:
         super().__init__()
         self._custom_message = custom_message
 
     @property
     def message(self) -> str:
-        return self._custom_message or super().message
+        return self._custom_message or 'package file is not available for download'
 
 
 class PkgNotInstalled(ManagerError):
-    template = 'package is not installed'
+    @property
+    def message(self) -> str:
+        return 'package is not installed'
 
 
 class PkgSourceInvalid(ManagerError):
-    template = 'package source is invalid'
+    @property
+    def message(self) -> str:
+        return 'package source is invalid'
 
 
 class PkgUpToDate(ManagerError):
@@ -114,20 +128,18 @@ class PkgUpToDate(ManagerError):
 
 
 class PkgStrategyUnsupported(ManagerError):
-    template = "'{self.strategy}' strategy is not valid for source"
-
     def __init__(self, strategy: Strategy) -> None:
         super().__init__()
         self.strategy = strategy
 
+    @property
+    def message(self) -> str:
+        return f"'{self.strategy}' strategy is not valid for source"
+
 
 class InternalError(ManagerResult, Exception):
-    status: Literal['error'] = 'error'
-
-    def __init__(self, error: BaseException) -> None:
-        super().__init__()
-        self.error = error
+    status: Final = 'error'
 
     @property
     def message(self) -> str:
-        return f'internal error: "{self.error}"'
+        return f'internal error: "{self.args[0]}"'
