@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from contextlib import contextmanager
 from datetime import datetime
 import typing
 from typing import Any, Mapping
@@ -11,17 +10,6 @@ import sqlalchemy.future as sa_future
 
 from . import db
 from .common import Strategy
-
-
-@contextmanager
-def _faux_transaction(connection: sa_future.Connection):
-    try:
-        yield
-    except BaseException:
-        connection.rollback()
-        raise
-    else:
-        connection.commit()
 
 
 class _PkgOptions(BaseModel):
@@ -92,7 +80,7 @@ class Pkg(BaseModel):
     def insert(self, connection: sa_future.Connection) -> None:
         values = self.dict()
         source_and_id = {'pkg_source': values['source'], 'pkg_id': values['id']}
-        with _faux_transaction(connection):
+        with db.faux_transact(connection):
             connection.execute(sa.insert(db.pkg), [values])
             connection.execute(
                 sa.insert(db.pkg_folder), [{**f, **source_and_id} for f in values['folders']]
@@ -109,7 +97,7 @@ class Pkg(BaseModel):
 
     def delete(self, connection: sa_future.Connection) -> None:
         source_and_id = {'pkg_source': self.source, 'pkg_id': self.id}
-        with _faux_transaction(connection):
+        with db.faux_transact(connection):
             connection.execute(sa.delete(db.pkg_dep).filter_by(**source_and_id))
             connection.execute(sa.delete(db.pkg_folder).filter_by(**source_and_id))
             connection.execute(sa.delete(db.pkg_options).filter_by(**source_and_id))

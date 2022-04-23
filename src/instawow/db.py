@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from contextlib import contextmanager
 from datetime import datetime, timezone
 from enum import IntEnum
 
@@ -16,7 +17,7 @@ from sqlalchemy import (
     text,
 )
 from sqlalchemy.exc import OperationalError
-from sqlalchemy.future import Engine
+from sqlalchemy.future import Connection, Engine
 
 
 class TZDateTime(TypeDecorator[datetime]):
@@ -112,13 +113,13 @@ pkg_version_log = Table(
 )
 
 
-class DatabaseState(IntEnum):
+class _DatabaseState(IntEnum):
     current = 0
     old = 1
     uninitialised = 2
 
 
-def get_database_state(engine: Engine, revision: str) -> DatabaseState:
+def _get_database_state(engine: Engine, revision: str) -> _DatabaseState:
     with engine.connect() as connection:
         try:
             state = connection.execute(
@@ -134,7 +135,7 @@ def get_database_state(engine: Engine, revision: str) -> DatabaseState:
                 )
             ).scalar()
 
-    return DatabaseState(state)
+    return _DatabaseState(state)
 
 
 def prepare_database(uri: str, revision: str) -> Engine:
@@ -148,8 +149,8 @@ def prepare_database(uri: str, revision: str) -> Engine:
         future=True,
     )
 
-    database_state = get_database_state(engine, revision)
-    if database_state != DatabaseState.current:
+    database_state = _get_database_state(engine, revision)
+    if database_state != _DatabaseState.current:
         import alembic.command
         import alembic.config
 
@@ -157,10 +158,21 @@ def prepare_database(uri: str, revision: str) -> Engine:
         alembic_config.set_main_option('script_location', f'{__package__}:migrations')
         alembic_config.set_main_option('sqlalchemy.url', str(engine.url))
 
-        if database_state == DatabaseState.uninitialised:
+        if database_state == _DatabaseState.uninitialised:
             metadata.create_all(engine)
             alembic.command.stamp(alembic_config, revision)
         else:
             alembic.command.upgrade(alembic_config, revision)
 
     return engine
+
+
+@contextmanager
+def faux_transact(connection: Connection):
+    try:
+        yield
+    except BaseException:
+        connection.rollback()
+        raise
+    else:
+        connection.commit()
