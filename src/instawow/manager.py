@@ -328,7 +328,7 @@ class Manager:
         resolver_classes: Iterable[type[Resolver]] = chain(
             (r for g in plugin_hook.instawow_add_resolvers() for r in g), base_resolver_classes
         )
-        self.resolvers: Mapping[str, Resolver] = {r.source: r(self) for r in resolver_classes}
+        self.resolvers: Mapping[str, Resolver] = {r.metadata.id: r(self) for r in resolver_classes}
 
         self.web_client: _CacheFauxClientSession = _CacheFauxClientSession(
             self.config.global_config.cache_dir
@@ -356,7 +356,7 @@ class Manager:
                 yield (source, alias)
 
         aliases_from_url = (
-            (r.source, a)
+            (r.metadata.id, a)
             for r in self.resolvers.values()
             for a in (r.get_alias_from_url(URL(value)),)
             if a
@@ -844,7 +844,7 @@ class Manager:
             if not pkg:
                 raise R.PkgNotInstalled
 
-            elif {defn.strategy} <= strategies <= self.resolvers[pkg.source].strategies:
+            elif {defn.strategy} <= strategies <= self.resolvers[pkg.source].metadata.strategies:
                 self.database.execute(
                     sa.update(db.pkg_options)
                     .filter_by(pkg_source=pkg.source, pkg_id=pkg.id)

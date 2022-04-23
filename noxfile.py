@@ -70,6 +70,7 @@ def format_(session: nox.Session):
             '''\
             aiohttp == 3.7.4
             alembic == 1.7.0
+            attrs == 21.4.0
             click == 8.0.0
             jinja2 == 3.0.0
             loguru == 0.5.3

@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+from collections.abc import Set
 from enum import Enum
 from typing import TypeVar
 
+from attr import frozen
 from typing_extensions import Protocol, Self
 
 from .utils import StrEnum, fill
@@ -68,3 +70,11 @@ class ChangelogFormat(StrEnum):
     html = 'html'
     markdown = 'markdown'
     raw = 'raw'
+
+
+@frozen
+class SourceMetadata:
+    id: str
+    name: str
+    strategies: Set[Strategy]
+    changelog_format: ChangelogFormat

@@ -255,12 +255,13 @@ class ListSourcesParams(_ProfileParamMixin, BaseParams):
     ) -> dict[str, Source]:
         manager = await managers.get_manager(self.profile)
         return {
-            r.source: {
-                'name': r.name,
-                'supported_strategies': sorted(r.strategies, key=list(Strategy).index),
-                'changelog_format': r.changelog_format,
+            m.id: {
+                'name': m.name,
+                'supported_strategies': sorted(m.strategies, key=list(Strategy).index),
+                'changelog_format': m.changelog_format,
             }
             for r in manager.resolvers.values()
+            for m in (r.metadata,)
         }
 
 

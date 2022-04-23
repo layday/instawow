@@ -2,10 +2,10 @@ from datetime import datetime
 
 import click
 
-from instawow.common import Strategy
+from instawow.common import ChangelogFormat, SourceMetadata, Strategy
 from instawow.models import Pkg
 import instawow.plugins
-from instawow.resolvers import BaseResolver, ChangelogFormat, Defn
+from instawow.resolvers import BaseResolver, Defn
 
 
 @click.command()
@@ -15,14 +15,16 @@ def foo():
 
 
 class MyResolver(BaseResolver):
-    source = 'me'
-    name = "It's me"
-    strategies = frozenset({Strategy.default})
-    changelog_format = ChangelogFormat.markdown
+    metadata = SourceMetadata(
+        id='me',
+        name="It's me",
+        strategies=frozenset({Strategy.default}),
+        changelog_format=ChangelogFormat.markdown,
+    )
 
     async def resolve_one(self, defn: Defn, metadata: None) -> Pkg:
         return Pkg(
-            source=self.source,
+            source=self.metadata.id,
             id='bar',
             slug='bar',
             name='Bar',

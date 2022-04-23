@@ -435,7 +435,7 @@ def rollback(mw: _CtxObjWrapper, addon: Defn, version: str | None, undo: bool) -
         report: Report = Report([(addon, R.PkgNotInstalled())])
         report.generate_and_exit()
 
-    if Strategy.version not in mw.manager.resolvers[pkg.source].strategies:
+    if Strategy.version not in mw.manager.resolvers[pkg.source].metadata.strategies:
         Report([(addon, R.PkgStrategyUnsupported(Strategy.version))]).generate_and_exit()
 
     if undo:
@@ -835,7 +835,7 @@ def view_changelog(mw: _CtxObjWrapper, addon: Defn | None, convert: bool) -> Non
             def real_convert(source: str, changelog: str):
                 import subprocess
 
-                changelog_format = mw.manager.resolvers[source].changelog_format
+                changelog_format = mw.manager.resolvers[source].metadata.changelog_format
                 if changelog_format not in {ChangelogFormat.html, ChangelogFormat.markdown}:
                     return changelog
                 else:

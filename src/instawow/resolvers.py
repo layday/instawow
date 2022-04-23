@@ -4,7 +4,7 @@ import asyncio
 from collections.abc import AsyncIterator, Sequence
 from datetime import datetime, timezone
 from enum import IntEnum
-from itertools import count, takewhile, tee, zip_longest
+from itertools import chain, count, takewhile, tee, zip_longest
 from pathlib import Path
 import re
 import typing
@@ -19,7 +19,7 @@ from yarl import URL
 
 from . import _deferred_types, manager, models, results as R
 from .cataloguer import BaseCatalogue_SameAs, BaseCatalogueEntry
-from .common import ChangelogFormat, Flavour, FlavourVersion, Strategy
+from .common import ChangelogFormat, Flavour, FlavourVersion, SourceMetadata, Strategy
 from .config import GlobalConfig
 from .utils import (
     StrEnum,
@@ -58,7 +58,7 @@ class Defn(BaseModel, frozen=True):
         return f'{self.source}:{self.alias}'
 
 
-slugify = normalise_names('-')
+_slugify = normalise_names('-')
 
 
 def _format_data_changelog(changelog: str = '') -> str:
@@ -66,10 +66,7 @@ def _format_data_changelog(changelog: str = '') -> str:
 
 
 class Resolver(Protocol):
-    source: ClassVar[str]
-    name: ClassVar[str]
-    strategies: ClassVar[frozenset[Strategy]]
-    changelog_format: ClassVar[ChangelogFormat]
+    metadata: ClassVar[SourceMetadata]
 
     def __init__(self, manager: manager.Manager) -> None:
         ...
@@ -97,7 +94,7 @@ class Resolver(Protocol):
     def catalogue(
         cls, web_client: _deferred_types.aiohttp.ClientSession
     ) -> AsyncIterator[BaseCatalogueEntry]:
-        "Yield add-ons from source for cataloguing."
+        "Enumerate add-ons from the source."
         ...
 
 
@@ -109,7 +106,7 @@ class BaseResolver:
         orig_resolve_one = cls.resolve_one
 
         async def resolve_one(resolver: Resolver, defn: Defn, metadata: Any) -> models.Pkg:
-            if defn.strategy not in resolver.strategies:
+            if defn.strategy not in resolver.metadata.strategies:
                 raise R.PkgStrategyUnsupported(defn.strategy)
             return await orig_resolve_one(resolver, defn, metadata)
 
@@ -241,17 +238,19 @@ class _CurseFile(TypedDict):
 
 
 class CurseResolver(BaseResolver):
-    source = 'curse'
-    name = 'CurseForge'
-    strategies = frozenset(
-        {
-            Strategy.default,
-            Strategy.latest,
-            Strategy.any_flavour,
-            Strategy.version,
-        }
+    metadata = SourceMetadata(
+        id='curse',
+        name='CurseForge',
+        strategies=frozenset(
+            {
+                Strategy.default,
+                Strategy.latest,
+                Strategy.any_flavour,
+                Strategy.version,
+            }
+        ),
+        changelog_format=ChangelogFormat.html,
     )
-    changelog_format = ChangelogFormat.html
 
     addon_api_url = URL('https://addons-ecs.forgesvc.net/api/v2/addon')
 
@@ -304,7 +303,7 @@ class CurseResolver(BaseResolver):
             async with self.manager.web_client.get(
                 self.addon_api_url / str(metadata['id']) / 'files',
                 {'hours': 1},
-                label=f'Fetching metadata from {self.name}',
+                label=f'Fetching metadata from {self.metadata.name}',
                 raise_for_status=True,
             ) as response:
                 all_files: list[_CurseFile] = await response.json()
@@ -368,7 +367,7 @@ class CurseResolver(BaseResolver):
 
         return models.Pkg.parse_obj(
             {
-                'source': self.source,
+                'source': self.metadata.id,
                 'id': metadata['id'],
                 'slug': metadata['slug'],
                 'name': metadata['name'],
@@ -427,7 +426,7 @@ class CurseResolver(BaseResolver):
             for item in items:
                 yield BaseCatalogueEntry.parse_obj(
                     {
-                        'source': cls.source,
+                        'source': cls.metadata.id,
                         'id': item['id'],
                         'slug': item['slug'],
                         'name': item['name'],
@@ -652,17 +651,19 @@ class _CfCoreFilesResponse(TypedDict):
 
 
 class CfCoreResolver(BaseResolver):
-    source = 'curse'
-    name = 'CFCore'
-    strategies = frozenset(
-        {
-            Strategy.default,
-            Strategy.latest,
-            Strategy.any_flavour,
-            Strategy.version,
-        }
+    metadata = SourceMetadata(
+        id='curse',
+        name='CFCore',
+        strategies=frozenset(
+            {
+                Strategy.default,
+                Strategy.latest,
+                Strategy.any_flavour,
+                Strategy.version,
+            }
+        ),
+        changelog_format=ChangelogFormat.html,
     )
-    changelog_format = ChangelogFormat.html
 
     # Ref: https://docs.curseforge.com/
     mod_api_url = URL('https://api.curseforge.com/v1/mods')
@@ -730,7 +731,7 @@ class CfCoreResolver(BaseResolver):
                 ),
                 {'hours': 1},
                 headers={'x-api-key': self._get_access_token(self.manager.config.global_config)},
-                label=f'Fetching metadata from {self.name}',
+                label=f'Fetching metadata from {self.metadata.name}',
                 raise_for_status=True,
             ) as response:
                 response_json: _CfCoreFilesResponse = await response.json()
@@ -788,7 +789,7 @@ class CfCoreResolver(BaseResolver):
 
         return models.Pkg.parse_obj(
             {
-                'source': self.source,
+                'source': self.metadata.id,
                 'id': metadata['id'],
                 'slug': metadata['slug'],
                 'name': metadata['name'],
@@ -865,7 +866,7 @@ class CfCoreResolver(BaseResolver):
 
             for item in items:
                 yield BaseCatalogueEntry(
-                    source=cls.source,
+                    source=cls.metadata.id,
                     id=str(item['id']),
                     slug=item['slug'],
                     name=item['name'],
@@ -927,10 +928,12 @@ class _WowiCombinedItem(_WowiListApiItem, _WowiDetailsApiItem):
 
 
 class WowiResolver(BaseResolver):
-    source = 'wowi'
-    name = 'WoWInterface'
-    strategies = frozenset({Strategy.default})
-    changelog_format = ChangelogFormat.raw
+    metadata = SourceMetadata(
+        id='wowi',
+        name='WoWInterface',
+        strategies=frozenset({Strategy.default}),
+        changelog_format=ChangelogFormat.raw,
+    )
 
     # Reference: https://api.mmoui.com/v3/globalconfig.json
     # There's also a v4 API corresponding to the as yet unreleased Minion v4,
@@ -966,7 +969,7 @@ class WowiResolver(BaseResolver):
             async with self.manager.web_client.get(
                 self.list_api_url,
                 {'hours': 1},
-                label=f'Synchronising {self.name} catalogue',
+                label=f'Synchronising {self.metadata.name} catalogue',
                 raise_for_status=True,
             ) as response:
                 list_api_items: list[_WowiListApiItem] = await response.json()
@@ -1004,9 +1007,9 @@ class WowiResolver(BaseResolver):
 
         return models.Pkg.parse_obj(
             {
-                'source': self.source,
+                'source': self.metadata.id,
                 'id': metadata['UID'],
-                'slug': slugify(f'{metadata["UID"]} {metadata["UIName"]}'),
+                'slug': _slugify(f'{metadata["UID"]} {metadata["UIName"]}'),
                 'name': metadata['UIName'],
                 'description': metadata['UIDescription'],
                 'url': metadata['UIFileInfoURL'],
@@ -1043,7 +1046,7 @@ class WowiResolver(BaseResolver):
                 }
 
             yield BaseCatalogueEntry(
-                source=cls.source,
+                source=cls.metadata.id,
                 id=item['UID'],
                 name=item['UIName'],
                 url=item['UIFileInfoURL'],
@@ -1094,19 +1097,21 @@ class _TukuiAddon(TypedDict):
 
 
 class TukuiResolver(BaseResolver):
-    source = 'tukui'
-    name = 'Tukui'
-    strategies = frozenset({Strategy.default})
-    changelog_format = ChangelogFormat.html
+    metadata = SourceMetadata(
+        id='tukui',
+        name='Tukui',
+        strategies=frozenset({Strategy.default}),
+        changelog_format=ChangelogFormat.html,
+    )
 
     # There's also a ``/client-api.php`` endpoint which is apparently
     # used by the Tukui client itself to check for updates for the two retail
     # UIs only.  The response body appears to be identical to ``/api.php``
     api_url = URL('https://www.tukui.org/api.php')
 
-    retail_ui_suites = {'elvui', 'tukui'}
+    _retail_ui_suites = {'elvui', 'tukui'}
 
-    query_flavours = {
+    _query_flavours = {
         Flavour.retail: 'addons',
         Flavour.vanilla_classic: 'classic-addons',
         Flavour.burning_crusade_classic: 'classic-tbc-addons',
@@ -1128,38 +1133,40 @@ class TukuiResolver(BaseResolver):
                 raise_for_status=True,
             ) as response:
                 addon: _TukuiUi = await response.json()
-            return [(str(addon['id']), addon), (ui_slug, addon)]
+                return [(str(addon['id']), addon), (ui_slug, addon)]
 
         async def fetch_addons(flavour: Flavour):
             async with self.manager.web_client.get(
-                self.api_url.with_query({self.query_flavours[flavour]: 'all'}),
+                self.api_url.with_query({self._query_flavours[flavour]: 'all'}),
                 {'minutes': 30},
-                label=f'Synchronising {self.name} {flavour} catalogue',
+                label=f'Synchronising {self.metadata.name} {flavour} catalogue',
                 raise_for_status=True,
             ) as response:
                 addons: list[_TukuiAddon] = await response.json()
-            return [(str(a['id']), a) for a in addons]
+                return [(str(a['id']), a) for a in addons]
 
         async with self.manager.locks['load Tukui catalogue']:
-            addon_lists = await gather(
-                [
-                    *map(
-                        fetch_ui,
-                        self.retail_ui_suites
-                        if self.manager.config.game_flavour is Flavour.retail
-                        else [],
-                    ),
-                    fetch_addons(self.manager.config.game_flavour),
-                ]
-            )
-            return {k: v for l in addon_lists for k, v in l}
+            return {
+                k: v
+                for l in await gather(
+                    chain(
+                        (
+                            (fetch_ui(s) for s in self._retail_ui_suites)
+                            if self.manager.config.game_flavour is Flavour.retail
+                            else ()
+                        ),
+                        (fetch_addons(self.manager.config.game_flavour),),
+                    )
+                )
+                for k, v in l
+            }
 
     async def resolve(
         self, defns: Sequence[Defn]
     ) -> dict[Defn, models.Pkg | R.ManagerError | R.InternalError]:
         addons = await self._synchronise()
         ids = (
-            d.alias[:p] if d.alias not in self.retail_ui_suites and p != -1 else d.alias
+            d.alias[:p] if d.alias not in self._retail_ui_suites and p != -1 else d.alias
             for d in defns
             for p in (d.alias.find('-', 1),)
         )
@@ -1178,11 +1185,11 @@ class TukuiResolver(BaseResolver):
         elif metadata['id'] == -2:
             slug = 'elvui'
         else:
-            slug = slugify(f'{metadata["id"]} {metadata["name"]}')
+            slug = _slugify(f'{metadata["id"]} {metadata["name"]}')
 
         return models.Pkg.parse_obj(
             {
-                'source': self.source,
+                'source': self.metadata.id,
                 'id': str(metadata['id']),
                 'slug': slug,
                 'name': metadata['name'],
@@ -1212,7 +1219,7 @@ class TukuiResolver(BaseResolver):
         for flavours, query in [
             (frozenset({Flavour.retail}), {'ui': 'tukui'}),
             (frozenset({Flavour.retail}), {'ui': 'elvui'}),
-            *((frozenset({f}), {q: 'all'}) for f, q in cls.query_flavours.items()),
+            *((frozenset({f}), {q: 'all'}) for f, q in cls._query_flavours.items()),
         ]:
             url = cls.api_url.with_query(query)
             logger.debug(f'retrieving {url}')
@@ -1223,7 +1230,7 @@ class TukuiResolver(BaseResolver):
 
             for item in items if isinstance(items, list) else [items]:
                 yield BaseCatalogueEntry(
-                    source=cls.source,
+                    source=cls.metadata.id,
                     id=str(item['id']),
                     name=item['name'],
                     url=item['web_url'],
@@ -1285,10 +1292,12 @@ class _PackagerReleaseJsonFlavor(StrEnum):
 
 
 class GithubResolver(BaseResolver):
-    source = 'github'
-    name = 'GitHub'
-    strategies = frozenset({Strategy.default, Strategy.latest, Strategy.version})
-    changelog_format = ChangelogFormat.markdown
+    metadata = SourceMetadata(
+        id='github',
+        name='GitHub',
+        strategies=frozenset({Strategy.default, Strategy.latest, Strategy.version}),
+        changelog_format=ChangelogFormat.markdown,
+    )
 
     repos_api_url = URL('https://api.github.com/repos')
 
@@ -1537,7 +1546,7 @@ class GithubResolver(BaseResolver):
 
         return models.Pkg.parse_obj(
             {
-                'source': self.source,
+                'source': self.metadata.id,
                 'id': project_metadata['full_name'],
                 'slug': project_metadata['full_name'].lower(),
                 'name': project_metadata['name'],
@@ -1566,7 +1575,7 @@ class GithubResolver(BaseResolver):
 
         for entry in csv.DictReader(StringIO(catalogue_csv)):
             yield BaseCatalogueEntry(
-                source=cls.source,
+                source=cls.metadata.id,
                 id=entry['full_name'],
                 slug=entry['full_name'].lower(),
                 name=entry['name'],
@@ -1588,10 +1597,12 @@ class GithubResolver(BaseResolver):
 
 
 class InstawowResolver(BaseResolver):
-    source = 'instawow'
-    name = 'instawow'
-    strategies = frozenset({Strategy.default})
-    changelog_format = ChangelogFormat.markdown
+    metadata = SourceMetadata(
+        id='instawow',
+        name='instawow',
+        strategies=frozenset({Strategy.default}),
+        changelog_format=ChangelogFormat.markdown,
+    )
 
     _addons = {
         ('0', 'weakauras-companion'),
@@ -1612,7 +1623,7 @@ class InstawowResolver(BaseResolver):
 
         return models.Pkg.parse_obj(
             {
-                'source': self.source,
+                'source': self.metadata.id,
                 'id': source_id,
                 'slug': slug,
                 'name': 'WeakAuras Companion',
@@ -1631,7 +1642,7 @@ class InstawowResolver(BaseResolver):
         cls, web_client: _deferred_types.aiohttp.ClientSession
     ) -> AsyncIterator[BaseCatalogueEntry]:
         yield BaseCatalogueEntry(
-            source=cls.source,
+            source=cls.metadata.id,
             id='1',
             slug='weakauras-companion-autoupdate',
             name='WeakAuras Companion',
