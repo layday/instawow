@@ -91,6 +91,7 @@ def test_can_infer_flavour_from_path():
     assert infer('/foo/bar/_classic_beta_/Interface/AddOns') is Flavour.burning_crusade_classic
     assert infer('/foo/bar/_classic_ptr_/Interface/AddOns') is Flavour.burning_crusade_classic
     assert infer('_classic_era_/Interface/AddOns') is Flavour.vanilla_classic
+    assert infer('_classic_era_beta_/Interface/AddOns') is Flavour.vanilla_classic
     assert infer('_classic_era_ptr_/Interface/AddOns') is Flavour.vanilla_classic
     assert infer('wowzerz/_retail_/Interface/AddOns') is Flavour.retail
     assert infer('anything goes') is Flavour.retail
