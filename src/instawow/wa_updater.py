@@ -136,10 +136,10 @@ class WagoApiResponse_Changelog(TypedDict):
     text: N[str]
 
 
-class _TocNumbers(StrEnum):
-    retail = '90105'
-    vanilla_classic = '11400'
-    burning_crusade_classic = '20502'
+class _TocNumber(StrEnum):
+    retail = '90200'
+    vanilla_classic = '11403'
+    burning_crusade_classic = '20504'
 
 
 class WaCompanionBuilder:
@@ -325,7 +325,7 @@ class WaCompanionBuilder:
             write_tpl('init.lua', {})
             write_tpl(
                 'WeakAurasCompanion.toc',
-                {'interface': self.manager.config.game_flavour.to_flavour_keyed_enum(_TocNumbers)},
+                {'interface': self.manager.config.game_flavour.to_flavour_keyed_enum(_TocNumber)},
             )
 
         self.changelog_path.write_text(
