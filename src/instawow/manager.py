@@ -59,7 +59,7 @@ _T = TypeVar('_T')
 
 USER_AGENT = 'instawow (https://github.com/layday/instawow)'
 
-DB_REVISION = '75f69831f74f'
+DB_REVISION = 'e13430219249'
 
 
 class _GenericDownloadTraceRequestCtx(TypedDict):

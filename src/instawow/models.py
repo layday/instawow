@@ -96,11 +96,7 @@ class Pkg(BaseModel):
             )
 
     def delete(self, connection: sa_future.Connection) -> None:
-        source_and_id = {'pkg_source': self.source, 'pkg_id': self.id}
         with db.faux_transact(connection):
-            connection.execute(sa.delete(db.pkg_dep).filter_by(**source_and_id))
-            connection.execute(sa.delete(db.pkg_folder).filter_by(**source_and_id))
-            connection.execute(sa.delete(db.pkg_options).filter_by(**source_and_id))
             connection.execute(sa.delete(db.pkg).filter_by(source=self.source, id=self.id))
 
     # Make the model hashable again

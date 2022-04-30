@@ -3,6 +3,7 @@ from __future__ import annotations
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from enum import IntEnum
+import sqlite3
 
 from sqlalchemy import (
     Column,
@@ -16,6 +17,7 @@ from sqlalchemy import (
     func,
     text,
 )
+from sqlalchemy.event import listen
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.future import Connection, Engine
 
@@ -69,6 +71,7 @@ pkg_options = Table(
         ['pkg_source', 'pkg_id'],
         ['pkg.source', 'pkg.id'],
         name='fk_pkg_options_pkg_source_and_id',
+        ondelete='CASCADE',
     ),
 )
 
@@ -82,6 +85,7 @@ pkg_folder = Table(
         ['pkg_source', 'pkg_id'],
         ['pkg.source', 'pkg.id'],
         name='fk_pkg_folder_pkg_source_and_id',
+        ondelete='CASCADE',
     ),
 )
 
@@ -95,6 +99,7 @@ pkg_dep = Table(
         ['pkg_source', 'pkg_id'],
         ['pkg.source', 'pkg.id'],
         name='fk_pkg_dep_pkg_source_and_id',
+        ondelete='CASCADE',
     ),
 )
 
@@ -105,11 +110,6 @@ pkg_version_log = Table(
     Column('install_time', TZDateTime, nullable=False, server_default=func.now()),
     Column('pkg_source', String, primary_key=True),
     Column('pkg_id', String, primary_key=True),
-    ForeignKeyConstraint(
-        ['pkg_source', 'pkg_id'],
-        ['pkg.source', 'pkg.id'],
-        name='fk_pkg_version_log_pkg_source_and_id',
-    ),
 )
 
 
@@ -138,6 +138,12 @@ def _get_database_state(engine: Engine, revision: str) -> _DatabaseState:
     return _DatabaseState(state)
 
 
+def _set_sqlite_pragma(dbapi_connection: sqlite3.Connection, connection_record: object):
+    cursor = dbapi_connection.cursor()
+    cursor.execute('PRAGMA foreign_keys = ON')
+    cursor.close()
+
+
 def prepare_database(uri: str, revision: str) -> Engine:
     "Connect to and optionally create or migrate the database from a configuration object."
     engine = create_engine(
@@ -148,6 +154,7 @@ def prepare_database(uri: str, revision: str) -> Engine:
         # echo=True,
         future=True,
     )
+    listen(engine, 'connect', _set_sqlite_pragma)
 
     database_state = _get_database_state(engine, revision)
     if database_state != _DatabaseState.current:

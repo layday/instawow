@@ -860,15 +860,19 @@ def view_changelog(mw: _CtxObjWrapper, addon: Defn | None, convert: bool) -> Non
     else:
         import sqlalchemy as sa
 
+        join_clause = (db.pkg.c.source == db.pkg_version_log.c.pkg_source) & (
+            db.pkg.c.id == db.pkg_version_log.c.pkg_id
+        )
+
         last_installed_changelog_urls = mw.manager.database.execute(
             sa.select(db.pkg.c.source, db.pkg.c.slug, db.pkg.c.changelog_url)
-            .join(db.pkg_version_log)
+            .join(db.pkg_version_log, join_clause)
             .filter(
                 db.pkg_version_log.c.install_time
                 >= sa.select(
                     sa.func.datetime(sa.func.max(db.pkg_version_log.c.install_time), '-1 minute')
                 )
-                .join(db.pkg)
+                .join(db.pkg, join_clause)
                 .scalar_subquery()
             )
         ).all()
