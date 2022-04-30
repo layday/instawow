@@ -294,7 +294,7 @@ def contextualise(
 
 
 class Manager:
-    RESOLVERS: list[type[Resolver]] = [
+    RESOLVERS: Sequence[type[Resolver]] = [
         GithubResolver,
         CfCoreResolver,
         WowiResolver,
@@ -319,13 +319,12 @@ class Manager:
         self.config: Config = config
         self.database: sa_future.Connection = database
 
-        base_resolver_classes = self.RESOLVERS
+        base_resolver_classes = list(self.RESOLVERS)
         if self.config.global_config.access_tokens.cfcore is None:
-            base_resolver_classes = base_resolver_classes[:]
             base_resolver_classes[base_resolver_classes.index(CfCoreResolver)] = CurseResolver
 
         plugin_hook = load_plugins()
-        resolver_classes: Iterable[type[Resolver]] = chain(
+        resolver_classes = chain(
             (r for g in plugin_hook.instawow_add_resolvers() for r in g), base_resolver_classes
         )
         self.resolvers: Mapping[str, Resolver] = {r.metadata.id: r(self) for r in resolver_classes}
