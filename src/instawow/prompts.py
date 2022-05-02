@@ -5,6 +5,7 @@ from collections.abc import Sequence
 from functools import partial
 from typing import TYPE_CHECKING, Any
 
+from attr import attrib as attrs_attrib
 import attrs
 import cattrs
 from exceptiongroup import ExceptionGroup
@@ -34,13 +35,14 @@ class AttrFieldValidator(Validator):
         self._FieldWrapper = attrs.make_class(
             '_FieldWrapper',
             {
-                self._field_name: attrs.field(
+                self._field_name: attrs_attrib(
                     default=attribute.default,
                     validator=attribute.validator,
                     repr=attribute.repr,
                     hash=attribute.hash,
                     init=attribute.init,
                     metadata=attribute.metadata,
+                    type=attribute.type,
                     converter=attribute.converter,
                     kw_only=attribute.kw_only,
                     eq=attribute.eq,
