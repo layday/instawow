@@ -27,7 +27,7 @@ if TYPE_CHECKING:
 
 
 class AttrFieldValidator(Validator):
-    "One-off validators for Pydantic model fields."
+    "One-off validators for attrs fields."
 
     def __init__(self, attribute: attrs.Attribute[object], converter: cattrs.GenConverter) -> None:
         self._field_name = attribute.name
