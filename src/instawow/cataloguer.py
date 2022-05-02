@@ -84,7 +84,7 @@ class Catalogue:
                 *(i for i in e.same_as if i.source != s.source),
             ]
             for e in base_entries
-            if e.source == 'github' and e.same_as
+            if e.source == GithubResolver.metadata.id and e.same_as
             for s in e.same_as
         }
         entries = [
@@ -96,7 +96,7 @@ class Catalogue:
                     else (same_as_from_github.get((e.source, e.id)) or e.same_as),
                     'normalised_name': normalise(e.name),
                     'derived_download_score': 0
-                    if e.source == 'github'
+                    if e.source == GithubResolver.metadata.id
                     else e.download_count / most_downloads_per_source[e.source],
                 }
             )
