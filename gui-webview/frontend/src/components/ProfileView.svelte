@@ -540,7 +540,7 @@
   };
 
   const supportsRollback = (addon: Addon) =>
-    !!sources[addon.source]?.supported_strategies.includes(Strategy.version);
+    !!sources[addon.source]?.strategies.includes(Strategy.version);
 
   const generateStatusMessage = () => {
     if (installedIsRefreshing) {

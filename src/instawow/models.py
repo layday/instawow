@@ -4,32 +4,45 @@ from datetime import datetime
 import typing
 from typing import Any, Mapping
 
-from pydantic import BaseModel
+from attrs import asdict, frozen
+from cattrs import GenConverter
+from cattrs.preconf.json import configure_converter
 import sqlalchemy as sa
 import sqlalchemy.future as sa_future
 
 from . import db
 from .common import Strategy
 
+pkg_converter = GenConverter()
+configure_converter(pkg_converter)
 
-class _PkgOptions(BaseModel):
+_db_pkg_converter = GenConverter()
+_db_pkg_converter.register_structure_hook(datetime, lambda d, _: d)
+
+
+@frozen(kw_only=True)
+class PkgOptions:
     strategy: Strategy
 
 
-class _PkgFolder(BaseModel):
+@frozen(kw_only=True)
+class PkgFolder:
     name: str
 
 
-class _PkgDep(BaseModel):
+@frozen(kw_only=True)
+class PkgDep:
     id: str
 
 
-class _PkgLoggedVersion(BaseModel):
+@frozen(kw_only=True)
+class PkgLoggedVersion:
     version: str
     install_time: datetime
 
 
-class Pkg(BaseModel):
+@frozen(kw_only=True, eq=False)
+class Pkg:
     source: str
     id: str
     slug: str
@@ -40,17 +53,17 @@ class Pkg(BaseModel):
     date_published: datetime
     version: str
     changelog_url: str
-    options: _PkgOptions  # pkg_options
-    folders: typing.List[_PkgFolder] = []  # pkg_folder
-    deps: typing.List[_PkgDep] = []  # pkg_dep
-    logged_versions: typing.List[_PkgLoggedVersion] = []  # pkg_version_log
+    options: PkgOptions  # pkg_options
+    folders: typing.List[PkgFolder] = []  # pkg_folder
+    deps: typing.List[PkgDep] = []  # pkg_dep
+    logged_versions: typing.List[PkgLoggedVersion] = []  # pkg_version_log
 
     @classmethod
     def from_row_mapping(
         cls, connection: sa_future.Connection, row_mapping: Mapping[str, Any]
     ) -> Pkg:
         source_and_id = {'pkg_source': row_mapping['source'], 'pkg_id': row_mapping['id']}
-        return cls.parse_obj(
+        return _db_pkg_converter.structure(
             {
                 **row_mapping,
                 'options': connection.execute(
@@ -74,11 +87,12 @@ class Pkg(BaseModel):
                 )
                 .mappings()
                 .all(),
-            }
+            },
+            cls,
         )
 
     def insert(self, connection: sa_future.Connection) -> None:
-        values = self.dict()
+        values = asdict(self)
         source_and_id = {'pkg_source': values['source'], 'pkg_id': values['id']}
         with db.faux_transact(connection):
             connection.execute(sa.insert(db.pkg), [values])
@@ -98,11 +112,3 @@ class Pkg(BaseModel):
     def delete(self, connection: sa_future.Connection) -> None:
         with db.faux_transact(connection):
             connection.execute(sa.delete(db.pkg).filter_by(source=self.source, id=self.id))
-
-    # Make the model hashable again
-    __eq__ = object.__eq__  # type: ignore
-    __hash__ = object.__hash__  # type: ignore
-
-
-class PkgList(BaseModel):
-    __root__: typing.List[Pkg]

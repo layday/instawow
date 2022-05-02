@@ -43,7 +43,7 @@ WeakAurasSaved = {
     },
 }
 ''',
-        ).__root__
+        ).root
         == {}
     )
 
@@ -61,7 +61,7 @@ WeakAurasSaved = {
     },
 }
 ''',
-        ).__root__
+        ).root
         == {}
     )
 
@@ -90,7 +90,7 @@ WeakAurasSaved = {
     },
 }
 ''',
-        ).__root__
+        ).root
         == {'foo': [aura]}
     )
 
@@ -112,7 +112,7 @@ WeakAurasSaved = {
     },
 }
 ''',
-        ).__root__
+        ).root
         == {}
     )
 

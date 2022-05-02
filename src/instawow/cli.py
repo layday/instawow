@@ -19,15 +19,16 @@ from pathlib import Path
 import textwrap
 from typing import Any, NoReturn, TypeVar, overload
 
+from attrs import asdict, evolve, fields, resolve_types
 import click
 from loguru import logger
 
 from . import __version__, _deferred_types, db, manager as _manager, models, results as R
 from .common import Flavour, Strategy
-from .config import Config, GlobalConfig, setup_logging
+from .config import Config, GlobalConfig, make_config_converter, setup_logging
 from .plugins import load_plugins
 from .resolvers import ChangelogFormat, Defn
-from .utils import StrEnum, all_eq, cached_property, evolve_model_obj, gather, tabulate, uniq
+from .utils import StrEnum, all_eq, cached_property, gather, tabulate, uniq
 
 _T = TypeVar('_T')
 _F = TypeVar('_F', bound='Callable[..., object]')
@@ -300,7 +301,7 @@ def parse_into_defn_with_strategy(
     manager: _manager.Manager, value: Sequence[tuple[Strategy, str]]
 ) -> Iterator[Defn]:
     defns = parse_into_defn(manager, [d for _, d in value])
-    return map(lambda d, s: evolve_model_obj(d, strategy=s), defns, (s for s, _ in value))
+    return map(lambda d, s: evolve(d, strategy=s), defns, (s for s, _ in value))
 
 
 def parse_into_defn_with_version(
@@ -679,7 +680,7 @@ def search(
     )
     defns = [Defn(e.source, e.id) for e in entries]
     pkgs = (
-        (evolve_model_obj(d, alias=r.slug), r)
+        (evolve(d, alias=r.slug), r)
         for d, r in mw.run_with_progress(mw.manager.resolve(defns)).items()
         if isinstance(r, models.Pkg)
     )
@@ -755,7 +756,17 @@ def list_installed(
     )
 
     if output_format is _ListFormats.json:
-        click.echo(models.PkgList.parse_obj(list(row_mappings_to_pkgs())).json(indent=2))
+        import json
+        import typing
+
+        click.echo(
+            json.dumps(
+                models.pkg_converter.unstructure(  # pyright: ignore[reportUnknownMemberType]
+                    row_mappings_to_pkgs(), typing.List[models.Pkg]
+                ),
+                indent=2,
+            )
+        )
 
     elif output_format is _ListFormats.detailed:
         formatter = click.HelpFormatter(max_width=99)
@@ -897,7 +908,7 @@ def view_changelog(mw: _CtxObjWrapper, addon: Defn | None, convert: bool) -> Non
 
 def _show_active_config(ctx: click.Context, __: click.Parameter, value: bool):
     if value:
-        click.echo(ctx.obj.manager.config.json(indent=2))
+        click.echo(ctx.obj.manager.config.encode_for_display())
         ctx.exit()
 
 
@@ -943,7 +954,8 @@ def configure(
     config_options: Collection[_EditableConfigOptions],
 ) -> Config:
     "Configure instawow."
-    from .prompts import PydanticValidator, ask, confirm, path, select
+    from .common import infer_flavour_from_path
+    from .prompts import AttrFieldValidator, ask, confirm, path, select
 
     if not config_options:
         config_options = {
@@ -955,11 +967,10 @@ def configure(
     profile = ctx.find_root().params['profile']
 
     orig_global_config = GlobalConfig.read()
-    global_config_values = orig_global_config.dict()
+    global_config_values = asdict(orig_global_config)
     try:
-        profile_config_values = Config.read(orig_global_config, profile).dict(
-            exclude={'global_config'}
-        )
+        profile_config_values = asdict(Config.read(orig_global_config, profile))
+        del profile_config_values['global_config']
     except FileNotFoundError:
         profile_config_values = {
             'profile': profile,
@@ -971,7 +982,9 @@ def configure(
             path(
                 'Add-on directory:',
                 only_directories=True,
-                validate=PydanticValidator(Config, 'addon_dir'),
+                validate=AttrFieldValidator(
+                    fields(resolve_types(Config)).addon_dir, make_config_converter()
+                ),
             )
         )
         profile_config_values['addon_dir'] = addon_dir
@@ -981,7 +994,9 @@ def configure(
             select(
                 'Game flavour:',
                 choices=list(Flavour),
-                initial_choice=Config.infer_flavour(addon_dir) if addon_dir is not None else None,
+                initial_choice=infer_flavour_from_path(addon_dir)
+                if addon_dir is not None
+                else None,
             )
         )
         profile_config_values['game_flavour'] = game_flavour
@@ -997,8 +1012,11 @@ def configure(
         github_access_token = asyncio.run(_github_oauth_flow())
         global_config_values['access_tokens']['github'] = github_access_token
 
-    global_config = GlobalConfig(**global_config_values).write()
-    config = Config(global_config=global_config, **profile_config_values).write()
+    converter = make_config_converter()
+    global_config = converter.structure(global_config_values, GlobalConfig).write()
+    config = converter.structure(
+        {'global_config': global_config_values, **profile_config_values}, Config
+    ).write()
 
     click.echo('Configuration written to:')
     click.echo(f'  {global_config.config_file}')
@@ -1031,7 +1049,7 @@ def list_installed_wago_auras(mw: _CtxObjWrapper) -> None:
     installed_auras = sorted(
         (g.filename, textwrap.fill(a.id, width=30, max_lines=1), a.url)
         for g in aura_groups
-        for v in g.__root__.values()
+        for v in g.root.values()
         for a in v
         if not a.parent
     )
@@ -1047,16 +1065,19 @@ def list_installed_wago_auras(mw: _CtxObjWrapper) -> None:
 )
 def generate_catalogue(start_date: datetime | None) -> None:
     "Generate the master catalogue."
-    from .cataloguer import BaseCatalogue
+    import json
+
+    from .cataloguer import BaseCatalogue, catalogue_converter
 
     catalogue = asyncio.run(BaseCatalogue.collate(start_date))
+    catalogue_json = catalogue_converter.unstructure(catalogue)
     catalogue_path = Path(f'base-catalogue-v{catalogue.version}.json').resolve()
     catalogue_path.write_text(
-        catalogue.json(indent=2),
+        json.dumps(catalogue_json, indent=2),
         encoding='utf-8',
     )
     catalogue_path.with_suffix(f'.compact{catalogue_path.suffix}').write_text(
-        catalogue.json(separators=(',', ':')),
+        json.dumps(catalogue_json, separators=(',', ':')),
         encoding='utf-8',
     )
 
@@ -1068,7 +1089,7 @@ def gui(ctx: click.Context) -> None:
     from instawow_gui.app import InstawowApp
 
     global_config = GlobalConfig.read().ensure_dirs()
-    dummy_jsonrpc_config = Config.construct(
+    dummy_jsonrpc_config = Config.make_dummy_config(
         global_config=global_config, profile='__jsonrpc__'
     ).ensure_dirs()
     params = ctx.find_root().params

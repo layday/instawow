@@ -3,56 +3,39 @@ from __future__ import annotations
 from collections.abc import Iterable, Iterator, Sequence
 from functools import partial, reduce
 from itertools import chain, product
+import json
 import time
 import typing
-from typing import Any, ClassVar, TypeVar
+from typing import Any
 
+from attrs import frozen
+from cattrs import GenConverter
 from loguru import logger
-from pydantic import BaseModel, Field, validator
-from typing_extensions import Literal, NotRequired as N, Self, TypeAlias, TypedDict
+from typing_extensions import Literal, NotRequired as N, TypeAlias, TypedDict
 from yarl import URL
 
 from .manager import Manager
 from .utils import StrEnum, bucketise, chain_dict, gather, run_in_thread as t, shasum
 
-_TAuras = TypeVar('_TAuras', bound='BaseAuras')
-_ImportString = _Slug = str
-_AuraGroup: TypeAlias = 'Sequence[tuple[Sequence[WeakAura], WagoApiResponse, _ImportString]]'
+_Slug = str
+_ImportString = str
+_AuraGroup: TypeAlias = (
+    'Sequence[tuple[Sequence[WeakAura | Plateroo], _WagoApiResponse, _ImportString]]'
+)
 
-IMPORT_API_URL = URL('https://data.wago.io/api/raw/encoded')
+_CHECK_API_URL = URL('https://data.wago.io/api/check')
+_IMPORT_STRING_API_URL = URL('https://data.wago.io/api/raw/encoded')
 
-
-class BaseAuras(
-    BaseModel,
-    arbitrary_types_allowed=True,
-    json_encoders={URL: str},
-):
-    api_url: ClassVar[URL]
-    filename: ClassVar[str]
-
-    __root__: typing.Dict[_Slug, typing.List[Any]]
-
-    @classmethod
-    def from_lua_table(cls, lua_table: Any) -> Self:
-        raise NotImplementedError
+_aura_converter = GenConverter()
+_aura_converter.register_structure_hook(URL, lambda v, _: URL(v))
+_aura_converter.register_unstructure_hook(URL, str)
 
 
-def _merge_auras(auras: Iterable[_TAuras]) -> dict[type[_TAuras], _TAuras]:
-    "Merge auras of the same type."
-    return {
-        t: t(__root__=reduce(lambda a, b: {**a, **b}, (i.__root__ for i in a)))
-        for t, a in bucketise(auras, key=type).items()
-    }
-
-
-class WeakAura(
-    BaseModel,
-    allow_population_by_field_name=True,
-    arbitrary_types_allowed=True,
-):
+@frozen(kw_only=True)
+class WeakAura:
     id: str
     uid: str
-    parent: typing.Optional[str]
+    parent: typing.Optional[str] = None
     url: URL
     version: int
 
@@ -60,61 +43,64 @@ class WeakAura(
     def from_lua_table(cls, lua_table: Any):
         url_string = lua_table.get('url')
         if url_string is not None:
-            url = URL(url_string)
-            if url.host == 'wago.io':
-                return cls.parse_obj({**lua_table, 'url': url})
-
-    @validator('url', pre=True)
-    def _url_to_URL(cls, value: str | URL):
-        if not isinstance(value, URL):
-            value = URL(value)
-        return value
+            weakaura = _aura_converter.structure(lua_table, cls)
+            if weakaura.url.host == 'wago.io':
+                return weakaura
 
 
-class WeakAuras(BaseAuras):
-    api_url = URL('https://data.wago.io/api/check/weakauras')
+@frozen(kw_only=True)
+class Plateroo(WeakAura):
+    uid: str = ''
+
+    @classmethod
+    def from_lua_table(cls, lua_table: Any):
+        return super().from_lua_table({**lua_table, 'id': lua_table['Name']})
+
+
+@frozen
+class WeakAuras:
+    api_ep = 'weakauras'
     filename = 'WeakAuras.lua'
 
-    __root__: typing.Dict[_Slug, typing.List[WeakAura]]
+    root: typing.Mapping[_Slug, typing.Sequence[WeakAura]]
 
     @classmethod
     def from_lua_table(cls, lua_table: Any):
-        auras = (
-            a for t in lua_table['displays'].values() for a in (WeakAura.from_lua_table(t),) if a
-        )
-        sorted_auras = sorted(auras, key=lambda a: a.id)
-        return cls(__root__=bucketise(sorted_auras, key=lambda a: a.url.parts[1]))
+        auras = (WeakAura.from_lua_table(t) for t in lua_table['displays'].values())
+        sorted_auras = sorted(filter(None, auras), key=lambda a: a.id)
+        return cls(bucketise(sorted_auras, key=lambda a: a.url.parts[1]))
 
 
-class Plateroo(WeakAura):
-    id: str = Field(alias='Name')
-    uid = ''
-
-
-class Plateroos(BaseAuras):
-    api_url = URL('https://data.wago.io/api/check/plater')
+@frozen
+class Plateroos:
+    api_ep = 'plater'
     filename = 'Plater.lua'
 
-    __root__: typing.Dict[_Slug, typing.List[Plateroo]]
+    root: typing.Mapping[_Slug, typing.Sequence[Plateroo]]
 
     @classmethod
     def from_lua_table(cls, lua_table: Any):
         auras = (
-            a
+            Plateroo.from_lua_table(t)
             for n, p in lua_table['profiles'].items()
             for t in chain(
                 ({**p, 'Name': f'__profile_{n}__'},),
                 p.get('script_data') or (),
                 p.get('hook_data') or (),
             )
-            for a in (Plateroo.from_lua_table(t),)
-            if a
         )
-        sorted_auras = sorted(auras, key=lambda a: a.id)
-        return cls(__root__={a.url.parts[1]: [a] for a in sorted_auras})
+        sorted_auras = sorted(filter(None, auras), key=lambda a: a.id)
+        return cls({a.url.parts[1]: [a] for a in sorted_auras})
 
 
-class WagoApiResponse(TypedDict):
+def _merge_auras(auras: Iterable[WeakAuras | Plateroos]):
+    return {
+        t: t(reduce(lambda a, b: {**a, **b}, (i.root for i in a)))
+        for t, a in bucketise(auras, key=type).items()
+    }
+
+
+class _WagoApiResponse(TypedDict):
     _id: str  # +   # Alphanumeric ID
     name: str  # +  # User-facing name
     slug: str  # +  # Slug if it has one; otherwise same as ``_id``
@@ -126,12 +112,12 @@ class WagoApiResponse(TypedDict):
     version: int  # +   # Version counter, incremented with every update
     # Semver auto-generated from ``version`` - for presentation only
     versionString: str
-    changelog: WagoApiResponse_Changelog  # +
+    changelog: _WagoApiResponse_Changelog  # +
     forkOf: N[str]  # Only present on forks
     regionType: N[str]  # Only present on WAs
 
 
-class WagoApiResponse_Changelog(TypedDict):
+class _WagoApiResponse_Changelog(TypedDict):
     format: N[Literal['bbcode', 'markdown']]
     text: N[str]
 
@@ -148,15 +134,16 @@ class WaCompanionBuilder:
     def __init__(self, manager: Manager) -> None:
         self.manager = manager
 
-        self.access_token = self.manager.config.global_config.access_tokens.wago
-
         output_folder = self.manager.config.plugin_dir / __name__
         self.addon_zip_path = output_folder / 'WeakAurasCompanion.zip'
         self.changelog_path = output_folder / 'CHANGELOG.md'
-        self.checksum_txt_path = output_folder / 'checksum.txt'
+        self.version_txt_path = output_folder / 'version.txt'
+
+    def _get_access_token(self):
+        return self.manager.config.global_config.access_tokens.wago or ''
 
     @staticmethod
-    def extract_auras(model: type[_TAuras], source: str) -> _TAuras:
+    def extract_auras(model: type[WeakAuras | Plateroos], source: str) -> WeakAuras | Plateroos:
         from ._custom_slpp import loads
 
         lua_table = loads(f'{{{source}}}')
@@ -178,28 +165,28 @@ class WaCompanionBuilder:
                 aura_group_cache = self.manager.config.global_config.cache_dir / shasum(content)
                 if aura_group_cache.exists():
                     logger.info(f'loading {file} from cache at {aura_group_cache}')
-                    aura_groups = model.parse_file(aura_group_cache)
+                    aura_groups_json = json.loads(aura_group_cache.read_bytes())
+                    aura_groups = _aura_converter.structure({'root': aura_groups_json}, model)
                 else:
                     start = time.perf_counter()
                     aura_groups = self.extract_auras(model, content)
                     logger.debug(
                         f'extracted {model.__name__} in {time.perf_counter() - start:.3f}s'
                     )
-                    aura_group_cache.write_text(aura_groups.json(), encoding='utf-8')
+                    aura_group_cache.write_text(
+                        json.dumps(_aura_converter.unstructure(aura_groups.root)),
+                        encoding='utf-8',
+                    )
                 yield aura_groups
 
-    async def _fetch_wago_metadata(self, api_url: URL, aura_ids: Iterable[str]):
+    async def _fetch_wago_metadata(self, api_ep: str, aura_ids: Iterable[str]):
         async with self.manager.web_client.get(
-            api_url.with_query(ids=','.join(aura_ids)),
+            (_CHECK_API_URL / api_ep).with_query(ids=','.join(aura_ids)),
             {'minutes': 30},
             label='Fetching aura metadata',
-            headers={
-                'api-key': self.access_token.get_secret_value()
-                if self.access_token is not None
-                else ''
-            },
+            headers={'api-key': self._get_access_token()},
         ) as response:
-            metadata: list[WagoApiResponse]
+            metadata: list[_WagoApiResponse]
             if response.status == 404:
                 metadata = []
                 return metadata
@@ -207,39 +194,30 @@ class WaCompanionBuilder:
             metadata = await response.json()
             return sorted(metadata, key=lambda r: r['slug'])
 
-    async def _fetch_wago_import_string(self, aura: WagoApiResponse):
+    async def _fetch_wago_import_string(self, aura: _WagoApiResponse):
         async with self.manager.web_client.get(
-            IMPORT_API_URL.with_query(id=aura['_id']).with_fragment(str(aura['version'])),
+            _IMPORT_STRING_API_URL.with_query(id=aura['_id']).with_fragment(str(aura['version'])),
             {'days': 30},
-            headers={
-                'api-key': self.access_token.get_secret_value()
-                if self.access_token is not None
-                else ''
-            },
+            headers={'api-key': self._get_access_token()},
             label=f"Fetching aura '{aura['slug']}'",
             raise_for_status=True,
         ) as response:
             return await response.text()
 
-    async def get_remote_auras(self, auras: BaseAuras) -> _AuraGroup:
-        if not auras.__root__:
+    async def get_remote_auras(self, auras: WeakAuras | Plateroos) -> _AuraGroup:
+        if not auras.root:
             return []
 
-        metadata = await self._fetch_wago_metadata(auras.api_url, auras.__root__)
+        metadata = await self._fetch_wago_metadata(auras.api_ep, auras.root)
         import_strings = await gather(self._fetch_wago_import_string(r) for r in metadata)
-        return [(auras.__root__[r['slug']], r, i) for r, i in zip(metadata, import_strings)]
+        return [(auras.root[r['slug']], r, i) for r, i in zip(metadata, import_strings)]
 
-    def _checksum(self) -> str:
+    def _checksum(self):
         from hashlib import sha256
 
         return sha256(self.addon_zip_path.read_bytes()).hexdigest()
 
-    async def get_checksum(self) -> str:
-        return await t(self.checksum_txt_path.read_text)(encoding='utf-8')
-
-    def _generate_addon(
-        self, auras: Iterable[tuple[type[WeakAuras | Plateroos], _AuraGroup]]
-    ) -> None:
+    def _generate_addon(self, auras: Iterable[tuple[type, _AuraGroup]]):
         from importlib.resources import read_text
         from zipfile import ZipFile, ZipInfo
 
@@ -351,8 +329,8 @@ class WaCompanionBuilder:
             encoding='utf-8',
         )
 
-        self.checksum_txt_path.write_text(
-            self._checksum(),
+        self.version_txt_path.write_text(
+            self._checksum()[:7],
             encoding='utf-8',
         )
 
@@ -361,3 +339,6 @@ class WaCompanionBuilder:
         installed_auras_by_type = _merge_auras(installed_auras)
         aura_groups = await gather(map(self.get_remote_auras, installed_auras_by_type.values()))
         await t(self._generate_addon)(zip(installed_auras_by_type, aura_groups))
+
+    def get_version(self) -> str:
+        return self.version_txt_path.read_text(encoding='utf-8')

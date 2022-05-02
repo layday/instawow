@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import re
 
+from attrs import evolve
 import pytest
 from yarl import URL
 
@@ -17,7 +18,6 @@ from instawow.resolvers import (
     TukuiResolver,
     WowiResolver,
 )
-from instawow.utils import evolve_model_obj
 
 
 @pytest.mark.parametrize('strategy', [Strategy.default, Strategy.latest])
@@ -184,9 +184,9 @@ async def test_github_changelog_is_data_url(iw_manager: Manager):
 
 @pytest.mark.parametrize('resolver', Manager.RESOLVERS)
 async def test_unsupported_strategies(iw_manager: Manager, resolver: Resolver):
-    defn = Defn(resolver.source, 'foo')
-    for strategy in set(Strategy) - {Strategy.version} - resolver.strategies:
-        strategy_defn = evolve_model_obj(defn, strategy=strategy)
+    defn = Defn(resolver.metadata.id, 'foo')
+    for strategy in set(Strategy) - {Strategy.version} - resolver.metadata.strategies:
+        strategy_defn = evolve(defn, strategy=strategy)
 
         results = await iw_manager.resolve([strategy_defn])
 

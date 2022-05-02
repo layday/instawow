@@ -3,8 +3,11 @@ from __future__ import annotations
 import asyncio
 from collections.abc import Sequence
 from functools import partial
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
+import attrs
+import cattrs
+from exceptiongroup import ExceptionGroup
 from prompt_toolkit.application import Application
 from prompt_toolkit.document import Document
 from prompt_toolkit.formatted_text.html import HTML
@@ -13,28 +16,46 @@ from prompt_toolkit.keys import Keys
 from prompt_toolkit.shortcuts.progress_bar import ProgressBar, formatters
 from prompt_toolkit.styles import Style
 from prompt_toolkit.validation import ValidationError, Validator
-import pydantic
 from questionary import Choice, confirm as _confirm, path as _path
 from questionary.prompts.common import InquirerControl, Separator, create_inquirer_layout
 from questionary.question import Question
 
 from . import models
 
+if TYPE_CHECKING:
+    ExceptionGroup = ExceptionGroup[Exception]
 
-class PydanticValidator(Validator):
+
+class AttrFieldValidator(Validator):
     "One-off validators for Pydantic model fields."
 
-    def __init__(self, model: type[pydantic.BaseModel], field: str) -> None:
-        self.model = model
-        self.field = field
+    def __init__(self, attribute: attrs.Attribute[object], converter: cattrs.GenConverter) -> None:
+        self._field_name = attribute.name
+        self._FieldWrapper = attrs.make_class(
+            '_FieldWrapper',
+            {
+                self._field_name: attrs.field(
+                    default=attribute.default,
+                    validator=attribute.validator,
+                    repr=attribute.repr,
+                    hash=attribute.hash,
+                    init=attribute.init,
+                    metadata=attribute.metadata,
+                    converter=attribute.converter,
+                    kw_only=attribute.kw_only,
+                    eq=attribute.eq,
+                    order=attribute.order,
+                    on_setattr=attribute.on_setattr,
+                )
+            },
+        )
+        self._converter = converter
 
     def validate(self, document: Document) -> None:
         try:
-            self.model.parse_obj({self.field: document.text})
-        except pydantic.ValidationError as error:
-            error_at_loc = next((e for e in error.errors() if e['loc'] == (self.field,)), None)
-            if error_at_loc:
-                raise ValidationError(0, error_at_loc['msg'])
+            self._converter.structure({self._field_name: document.text}, self._FieldWrapper)
+        except ExceptionGroup as exc:
+            raise ValidationError(0, '\n'.join(map(str, exc.exceptions)))
 
 
 class PkgChoice(Choice):

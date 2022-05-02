@@ -10,7 +10,7 @@ from aiohttp.test_utils import TestClient, TestServer
 import pytest
 from yarl import URL
 
-from instawow.config import Config
+from instawow.config import Config, make_config_converter
 
 try:
     from instawow_gui import json_rpc_server
@@ -80,8 +80,9 @@ async def test_write_config(
     await ws.send_json(rpc_request, dumps=dumps)
     rpc_response = await ws.receive_json()
     assert rpc_response['id'] == request.node.name
-    assert Config.parse_obj(rpc_response['result']) == Config.parse_obj(
-        {'global_config': iw_global_config_values, **config_values}
+    converter = make_config_converter()
+    assert converter.structure(rpc_response['result'], Config) == converter.structure(
+        {'global_config': iw_global_config_values, **config_values}, Config
     )
 
 

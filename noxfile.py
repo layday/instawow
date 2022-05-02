@@ -71,12 +71,14 @@ def format_(session: nox.Session):
             aiohttp == 3.7.4
             alembic == 1.7.0
             attrs == 21.4.0
+            cattrs == 22.1.0
             click == 8.0.0
+            exceptiongroup == 1.0.0rc5
+            iso8601 == 1.0.2
             jinja2 == 3.0.0
             loguru == 0.5.3
             pluggy == 0.13.0
             prompt-toolkit == 3.0.29
-            pydantic == 1.9.0
             questionary == 1.10.0
             rapidfuzz == 1.4.1
             sqlalchemy == 1.4.23

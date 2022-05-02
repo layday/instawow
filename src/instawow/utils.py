@@ -14,13 +14,11 @@ from shutil import move as _move
 from tempfile import mkdtemp
 from typing import Any, Generic, Hashable, TypeVar, overload
 
-import pydantic
 from typing_extensions import ParamSpec
 
 _T = TypeVar('_T')
 _U = TypeVar('_U')
 _THashable = TypeVar('_THashable', bound=Hashable)
-_TBaseModel = TypeVar('_TBaseModel', bound=pydantic.BaseModel)
 _P = ParamSpec('_P')
 
 
@@ -263,7 +261,3 @@ def normalise_names(replace_delim: str) -> Callable[[str], str]:
         return replace_delim.join(value.casefold().translate(trans_table).split())
 
     return normalise
-
-
-def evolve_model_obj(model_obj: _TBaseModel, **kwargs: object) -> _TBaseModel:
-    return model_obj.__class__.parse_obj({**model_obj.__dict__, **kwargs})

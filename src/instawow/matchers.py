@@ -18,9 +18,9 @@ FolderAndDefnPairs: TypeAlias = 'list[tuple[list[AddonFolder], list[Defn]]]'
 
 
 _SOURCE_TOC_IDS = {
-    'X-Curse-Project-ID': CurseResolver.source,
-    'X-Tukui-ProjectID': TukuiResolver.source,
-    'X-WoWI-ID': WowiResolver.source,
+    'X-Curse-Project-ID': CurseResolver.metadata.id,
+    'X-Tukui-ProjectID': TukuiResolver.metadata.id,
+    'X-WoWI-ID': WowiResolver.metadata.id,
 }
 
 # https://github.com/Stanzilla/WoWUIBugs/issues/68#issuecomment-830351390

@@ -65,12 +65,12 @@ export type GithubAuthFlowStatusReport = {
 
 export type Source = {
   name: string;
-  supported_strategies: string[];
+  strategies: string[];
   changelog_format: ChangelogFormat;
 };
 
 export type Sources = {
-  [source: string]: Source;
+  [id: string]: Source;
 };
 
 export type Addon = {

@@ -5,24 +5,28 @@ from __future__ import annotations
 
 import asyncio
 from collections import defaultdict
-from collections.abc import Awaitable, Callable, Iterator
+from collections.abc import Awaitable, Callable, Iterator, Set
 from contextlib import contextmanager
 from datetime import datetime
 from functools import partial
 import importlib.resources
+import json
 import os
 from pathlib import Path
 import typing
-from typing import Any, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar
 
 import aiohttp
 import aiohttp.web
 from aiohttp_rpc import JsonRpcMethod, middlewares as rpc_middlewares
 from aiohttp_rpc.errors import InvalidParams, ServerError
 from aiohttp_rpc.server import WsJsonRpcServer
+from attrs import evolve, frozen
+from cattrs import GenConverter
+from cattrs.preconf.json import configure_converter
 import click
+from exceptiongroup import ExceptionGroup
 from loguru import logger
-from pydantic import BaseModel, ValidationError
 import sqlalchemy as sa
 import toga  # pyright: ignore
 from typing_extensions import Concatenate, Literal, ParamSpec, TypeAlias, TypedDict
@@ -30,8 +34,8 @@ from yarl import URL
 
 from instawow import __version__, db, matchers, models, results as R
 from instawow.cataloguer import CatalogueEntry
-from instawow.common import ChangelogFormat, Flavour, Strategy
-from instawow.config import Config, GlobalConfig
+from instawow.common import Flavour, SourceMetadata, infer_flavour_from_path
+from instawow.config import Config, GlobalConfig, SecretStr
 from instawow.github_auth import get_codes, poll_for_access_token
 from instawow.manager import (
     LocksType,
@@ -42,9 +46,12 @@ from instawow.manager import (
     is_outdated,
 )
 from instawow.resolvers import Defn
-from instawow.utils import evolve_model_obj, run_in_thread as t, uniq
+from instawow.utils import run_in_thread as t, uniq
 
 from . import frontend
+
+if TYPE_CHECKING:
+    ExceptionGroup = ExceptionGroup[Exception]
 
 _T = TypeVar('_T')
 _P = ParamSpec('_P')
@@ -55,6 +62,11 @@ _ManagerQueue: TypeAlias = (
 
 
 LOCALHOST = '127.0.0.1'
+
+_converter = GenConverter(unstruct_collection_overrides={Set: sorted})
+configure_converter(_converter)
+_converter.register_structure_hook(Path, lambda v, _: Path(v))
+_converter.register_unstructure_hook(Path, str)
 
 
 class _ConfigError(ServerError):
@@ -69,10 +81,9 @@ def _reraise_validation_error(
 ) -> Iterator[None]:
     try:
         yield
-    except ValidationError as error:
-        errors = error.errors()
-        logger.info(f'invalid request: {(values, errors)}')
-        raise error_class(data=errors) from error
+    except ExceptionGroup as exc:
+        logger.info(f'invalid request: {(values, exc)}')
+        raise error_class(data=list(map(str, exc.exceptions)))
 
 
 @t
@@ -87,20 +98,30 @@ methods: list[tuple[str, type[BaseParams]]] = []
 def _register_method(method: str):
     def inner(param_class: type[BaseParams]):
         methods.append((method, param_class))
-        return param_class
+        return frozen(slots=False)(param_class)
 
     return inner
 
 
-class BaseParams(BaseModel):
+@frozen(slots=False)
+class _ProfileParamMixin:
+    profile: str
+
+
+@frozen(slots=False)
+class _DefnParamMixin:
+    defns: typing.List[Defn]
+
+
+class BaseParams:
     @classmethod
     def bind(
         cls, method: str, managers: _ManagerWorkQueue, app_window: toga.MainWindow | None
     ) -> JsonRpcMethod:
-        async def respond(**kwargs: Any) -> BaseModel:
+        async def respond(**kwargs: Any):
             with _reraise_validation_error(InvalidParams, kwargs):
-                params = cls.parse_obj(kwargs)
-            return await params.respond(managers, app_window)
+                self = _converter.structure(kwargs, cls)
+            return await self.respond(managers, app_window)
 
         return JsonRpcMethod(respond, name=method)
 
@@ -108,14 +129,6 @@ class BaseParams(BaseModel):
         self, managers: _ManagerWorkQueue, app_window: toga.MainWindow | None
     ) -> Any:
         raise NotImplementedError
-
-
-class _ProfileParamMixin(BaseModel):
-    profile: str
-
-
-class _DefnParamMixin(BaseModel):
-    defns: typing.List[Defn]
 
 
 @_register_method('config/write_profile')
@@ -136,16 +149,14 @@ class WriteProfileConfigParams(_ProfileParamMixin, BaseParams):
                     game_flavour=self.game_flavour,
                 )
                 if self.infer_game_flavour:
-                    values = {
-                        **config.dict(),
-                        'game_flavour': Config.infer_flavour(config.addon_dir),
-                    }
-                    config = Config(**values)
-
+                    config = evolve(
+                        config,
+                        game_flavour=infer_flavour_from_path(config.addon_dir),
+                    )
                 await t(config.write)()
 
-            # Unload the ``Manager`` instance corresponding to this profile for
-            # the config to be reloaded on the next request
+            # Unload the corresponding ``Manager`` instance for the
+            # config to be reloaded on the next request
             managers.unload(config.profile)
 
             return config
@@ -188,17 +199,17 @@ class UpdateGlobalConfigParams(BaseParams):
     ) -> GlobalConfig:
         async with managers.locks['update global config']:
             with _reraise_validation_error(_ConfigError):
-                existing_global_config = await t(GlobalConfig.read)()
-                new_global_config = evolve_model_obj(
-                    existing_global_config,
-                    access_tokens=evolve_model_obj(
-                        existing_global_config.access_tokens, cfcore=self.cfcore_access_token
+                global_config = await t(GlobalConfig.read)()
+                global_config = evolve(
+                    global_config,
+                    access_tokens=evolve(
+                        global_config.access_tokens, cfcore=SecretStr(self.cfcore_access_token)
                     ),
                 )
-                await t(new_global_config.write)()
+                await t(global_config.write)()
 
         managers.unload_all()
-        return new_global_config
+        return global_config
 
 
 @_register_method('config/read_global')
@@ -242,27 +253,13 @@ class CancelGithubAuthFlowParams(BaseParams):
         managers.cancel_github_auth_polling()
 
 
-class Source(TypedDict):
-    name: str
-    supported_strategies: list[Strategy]
-    changelog_format: ChangelogFormat
-
-
 @_register_method('sources/list')
 class ListSourcesParams(_ProfileParamMixin, BaseParams):
     async def respond(
         self, managers: _ManagerWorkQueue, app_window: toga.MainWindow | None
-    ) -> dict[str, Source]:
+    ) -> dict[str, SourceMetadata]:
         manager = await managers.get_manager(self.profile)
-        return {
-            m.id: {
-                'name': m.name,
-                'supported_strategies': sorted(m.strategies, key=list(Strategy).index),
-                'changelog_format': m.changelog_format,
-            }
-            for r in manager.resolvers.values()
-            for m in (r.metadata,)
-        }
+        return {r.metadata.id: r.metadata for r in manager.resolvers.values()}
 
 
 @_register_method('list')
@@ -321,7 +318,7 @@ class ResolveParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
                 pair = manager.pair_uri(defn.alias)
                 if pair:
                     source, alias = pair
-                    defn = evolve_model_obj(defn, source=source, alias=alias)
+                    defn = evolve(defn, source=source, alias=alias)
             return defn
 
         return await manager.resolve(list(map(extract_source, self.defns)))
@@ -708,14 +705,14 @@ class _ManagerWorkQueue:
                     )
 
                     async with self.locks['update global config']:
-                        existing_global_config = await t(GlobalConfig.read)()
-                        new_global_config = evolve_model_obj(
-                            existing_global_config,
-                            access_tokens=evolve_model_obj(
-                                existing_global_config.access_tokens, github=result
+                        global_config = await t(GlobalConfig.read)()
+                        global_config = evolve(
+                            global_config,
+                            access_tokens=evolve(
+                                global_config.access_tokens, cfcore=SecretStr(result)
                             ),
                         )
-                        await t(new_global_config.write)()
+                        await t(global_config.write)()
 
                     self.unload_all()
 
@@ -770,7 +767,7 @@ async def create_app(app_window: toga.MainWindow | None = None):
         )
 
     def json_serialize(value: dict[str, Any]):
-        return BaseModel.construct(**value).json()
+        return json.dumps(_converter.unstructure(value))
 
     rpc_server = WsJsonRpcServer(
         json_serialize=json_serialize,

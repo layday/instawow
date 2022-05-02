@@ -1,24 +1,29 @@
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Set
 from datetime import datetime
-import json
 import typing
-from typing import Any
 
-from pydantic import BaseModel
+from attrs import asdict, frozen
+from cattrs import GenConverter
+from cattrs.preconf.json import configure_converter
 
 from . import manager
 from .config import Flavour
 from .utils import bucketise, cached_property, normalise_names
 
+catalogue_converter = GenConverter(unstruct_collection_overrides={Set: sorted})
+configure_converter(catalogue_converter)
 
-class BaseCatalogue_SameAs(BaseModel):
+
+@frozen(kw_only=True)
+class CatalogueSameAs:
     source: str
     id: str
 
 
-class BaseCatalogueEntry(BaseModel):
+@frozen(kw_only=True)
+class BaseCatalogueEntry:
     source: str
     id: str
     slug: str = ''
@@ -28,17 +33,18 @@ class BaseCatalogueEntry(BaseModel):
     download_count: int
     last_updated: datetime
     folders: typing.List[typing.FrozenSet[str]] = []
-    same_as: typing.List[BaseCatalogue_SameAs] = []
+    same_as: typing.List[CatalogueSameAs] = []
 
 
+@frozen(kw_only=True)
 class CatalogueEntry(BaseCatalogueEntry):
-    type_ = 'CatalogueEntry'
     normalised_name: str
     derived_download_score: float
 
 
-class BaseCatalogue(BaseModel, json_encoders={set: sorted}):
-    version = 5
+@frozen(kw_only=True)
+class BaseCatalogue:
+    version: int = 5
     entries: typing.List[BaseCatalogueEntry]
 
     @classmethod
@@ -50,18 +56,21 @@ class BaseCatalogue(BaseModel, json_encoders={set: sorted}):
             return cls(entries=entries)
 
 
-class Catalogue(BaseModel, keep_untouched=(cached_property,)):
-    version = 3
+@frozen(kw_only=True, slots=False)
+class Catalogue:
+    version: int = 3
     entries: typing.List[CatalogueEntry]
     curse_slugs: typing.Dict[str, str]
 
     @classmethod
-    def from_base_catalogue(
-        cls, base_catalogue_values: Sequence[object], start_date: datetime | None
-    ):
+    def from_base_catalogue(cls, unstructured_base_catalogue: object, start_date: datetime | None):
+        from .resolvers import CurseResolver, GithubResolver
+
         normalise = normalise_names('')
 
-        base_entries = BaseCatalogue.parse_obj(base_catalogue_values).entries
+        base_entries = catalogue_converter.structure(
+            unstructured_base_catalogue, BaseCatalogue
+        ).entries
         if start_date is not None:
             base_entries = [e for e in base_entries if e.last_updated >= start_date]
 
@@ -71,7 +80,7 @@ class Catalogue(BaseModel, keep_untouched=(cached_property,)):
         }
         same_as_from_github = {
             (s.source, s.id): [
-                BaseCatalogue_SameAs(source=e.source, id=e.id),
+                CatalogueSameAs(source=e.source, id=e.id),
                 *(i for i in e.same_as if i.source != s.source),
             ]
             for e in base_entries
@@ -79,11 +88,11 @@ class Catalogue(BaseModel, keep_untouched=(cached_property,)):
             for s in e.same_as
         }
         entries = [
-            CatalogueEntry.parse_obj(
-                {
-                    **e.__dict__,
+            CatalogueEntry(
+                **{
+                    **asdict(e),
                     'same_as': e.same_as
-                    if e.source == 'github'
+                    if e.source == GithubResolver.metadata.id
                     else (same_as_from_github.get((e.source, e.id)) or e.same_as),
                     'normalised_name': normalise(e.name),
                     'derived_download_score': 0
@@ -95,30 +104,8 @@ class Catalogue(BaseModel, keep_untouched=(cached_property,)):
         ]
         return cls(
             entries=entries,
-            curse_slugs={e.slug: e.id for e in entries if e.source == 'curse'},
+            curse_slugs={e.slug: e.id for e in entries if e.source == CurseResolver.metadata.id},
         )
-
-    @classmethod
-    def from_cache(cls, raw_catalogue: bytes):
-        def parse_model_obj(values: Mapping[str, Any]):
-            if 'type_' not in values:
-                return values
-            elif values['type_'] == 'CatalogueEntry':
-                return CatalogueEntry.construct(
-                    **{
-                        **values,
-                        'game_flavours': {Flavour(f) for f in values['game_flavours']},
-                        'last_updated': datetime.fromisoformat(values['last_updated']),
-                        'folders': [set(f) for f in values['folders']],
-                        'same_as': [
-                            BaseCatalogue_SameAs.construct(**v) for v in values['same_as']
-                        ],
-                    }
-                )
-            else:
-                raise ValueError('Unknown type', values['type_'])
-
-        return cls.construct(**json.loads(raw_catalogue, object_hook=parse_model_obj))
 
     @cached_property
     def keyed_entries(self) -> dict[tuple[str, str], CatalogueEntry]:

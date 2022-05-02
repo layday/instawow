@@ -6,7 +6,7 @@ from typing import Any
 
 import pytest
 
-from instawow.common import Flavour
+from instawow.common import Flavour, infer_flavour_from_path
 from instawow.config import Config, GlobalConfig
 
 
@@ -15,13 +15,17 @@ def test_env_vars_have_prio(
     iw_global_config_values: dict[str, Any],
     iw_config_values: dict[str, Any],
 ):
-    monkeypatch.setenv('INSTAWOW_CONFIG_DIR', '/foo')
+    monkeypatch.setenv('INSTAWOW_CONFIG_DIR', str(iw_global_config_values['config_dir']))
     monkeypatch.setenv('INSTAWOW_GAME_FLAVOUR', 'classic')
 
-    global_config = GlobalConfig(**iw_global_config_values)
-    config = Config(global_config=global_config, **iw_config_values)
+    global_config = GlobalConfig(**iw_global_config_values).write().read()
+    config = (
+        Config(global_config=global_config, **iw_config_values)
+        .write()
+        .read(global_config, iw_config_values['profile'])
+    )
 
-    assert global_config.config_dir == Path('/foo').resolve()
+    assert global_config.config_dir == iw_global_config_values['config_dir']
     assert config.game_flavour is Flavour.burning_crusade_classic
 
 
@@ -48,7 +52,7 @@ def test_init_with_nonexistent_addon_dir_raises(
 ):
     global_config = GlobalConfig(**iw_global_config_values).write()
     with pytest.raises(ValueError, match='not a writable directory'):
-        Config(global_config=global_config, **{**iw_config_values, 'addon_dir': 'foo'})
+        Config(global_config=global_config, **{**iw_config_values, 'addon_dir': '#@$foo'})
 
 
 @pytest.mark.skipif(
@@ -86,15 +90,16 @@ def test_default_config_dir_is_unplatform_appropriate(
 
 
 def test_can_infer_flavour_from_path():
-    infer = Config.infer_flavour
-    assert infer('wowzerz/_classic_/Interface/AddOns') is Flavour.burning_crusade_classic
-    assert infer('/foo/bar/_classic_beta_/Interface/AddOns') is Flavour.burning_crusade_classic
-    assert infer('/foo/bar/_classic_ptr_/Interface/AddOns') is Flavour.burning_crusade_classic
-    assert infer('_classic_era_/Interface/AddOns') is Flavour.vanilla_classic
-    assert infer('_classic_era_beta_/Interface/AddOns') is Flavour.vanilla_classic
-    assert infer('_classic_era_ptr_/Interface/AddOns') is Flavour.vanilla_classic
-    assert infer('wowzerz/_retail_/Interface/AddOns') is Flavour.retail
-    assert infer('anything goes') is Flavour.retail
+    # fmt: off
+    assert infer_flavour_from_path('wowzerz/_classic_/Interface/AddOns') is Flavour.burning_crusade_classic
+    assert infer_flavour_from_path('/foo/bar/_classic_beta_/Interface/AddOns') is Flavour.burning_crusade_classic
+    assert infer_flavour_from_path('/foo/bar/_classic_ptr_/Interface/AddOns') is Flavour.burning_crusade_classic
+    assert infer_flavour_from_path('_classic_era_/Interface/AddOns') is Flavour.vanilla_classic
+    assert infer_flavour_from_path('_classic_era_beta_/Interface/AddOns') is Flavour.vanilla_classic
+    assert infer_flavour_from_path('_classic_era_ptr_/Interface/AddOns') is Flavour.vanilla_classic
+    assert infer_flavour_from_path('wowzerz/_retail_/Interface/AddOns') is Flavour.retail
+    assert infer_flavour_from_path('anything goes') is Flavour.retail
+    # fmt: on
 
 
 def test_can_list_profiles(
@@ -104,7 +109,7 @@ def test_can_list_profiles(
 ):
     monkeypatch.setenv('INSTAWOW_CONFIG_DIR', str(iw_global_config_values['config_dir']))
 
-    global_config = GlobalConfig()
+    global_config = GlobalConfig.read()
     assert global_config.list_profiles() == []
 
     Config(global_config=global_config, **iw_config_values).write()

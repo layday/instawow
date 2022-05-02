@@ -18,7 +18,6 @@ from instawow import __version__
 from instawow.cli import cli
 from instawow.common import Flavour
 from instawow.config import Config
-from instawow.models import PkgList
 
 
 @pytest.fixture
@@ -238,7 +237,7 @@ def test_configure__show_active_profile(
     iw_config: Config,
     run: C[[str], Result],
 ):
-    assert run('configure --show-active').output == iw_config.json(indent=2) + '\n'
+    assert run('configure --show-active').output == iw_config.encode_for_display() + '\n'
 
 
 def test_configure__create_new_profile(
@@ -562,7 +561,7 @@ def test_json_export(
     install_molinari_and_run: C[[str], Result],
 ):
     output = install_molinari_and_run('list -f json').output
-    assert PkgList.parse_raw(output).__root__[0].name == 'Molinari'
+    assert json.loads(output)[0]['name'] == 'Molinari'
 
 
 def test_show_version(

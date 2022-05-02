@@ -11,20 +11,19 @@ import typing
 from typing import Any, ClassVar
 import urllib.parse
 
+from attrs import evolve, frozen
+import iso8601
 from loguru import logger
-from pydantic import BaseModel
-from pydantic.datetime_parse import parse_datetime
-from typing_extensions import Literal, NotRequired as N, Protocol, TypedDict
+from typing_extensions import Literal, NotRequired as N, Protocol, Self, TypedDict
 from yarl import URL
 
 from . import _deferred_types, manager, models, results as R
-from .cataloguer import BaseCatalogue_SameAs, BaseCatalogueEntry
+from .cataloguer import BaseCatalogueEntry, CatalogueSameAs
 from .common import ChangelogFormat, Flavour, FlavourVersion, SourceMetadata, Strategy
 from .config import GlobalConfig
 from .utils import (
     StrEnum,
     TocReader,
-    evolve_model_obj,
     extract_byte_range_offset,
     file_uri_to_path,
     find_addon_zip_tocs,
@@ -35,24 +34,20 @@ from .utils import (
 )
 
 
-class Defn(BaseModel, frozen=True):
+@frozen(hash=True)
+class Defn:
     source: str
-    id: typing.Optional[str] = None
     alias: str
+    id: typing.Optional[str] = None
     strategy: Strategy = Strategy.default
     version: typing.Optional[str] = None
 
-    def __init__(self, source: str, alias: str, **kwargs: Any) -> None:
-        super().__init__(source=source, alias=alias, **kwargs)
-
     @classmethod
     def from_pkg(cls, pkg: models.Pkg) -> Defn:
-        return cls(
-            pkg.source, pkg.slug, id=pkg.id, strategy=pkg.options.strategy, version=pkg.version
-        )
+        return cls(pkg.source, pkg.slug, pkg.id, pkg.options.strategy, pkg.version)
 
     def with_version(self, version: str) -> Defn:
-        return evolve_model_obj(self, strategy=Strategy.version, version=version)
+        return evolve(self, strategy=Strategy.version, version=version)
 
     def to_urn(self) -> str:
         return f'{self.source}:{self.alias}'
@@ -98,19 +93,21 @@ class Resolver(Protocol):
         ...
 
 
-class BaseResolver:
+class BaseResolver(Resolver):
+    metadata: ClassVar[SourceMetadata]
+
     def __init__(self, manager: manager.Manager) -> None:
-        self.manager = manager
+        self._manager = manager
 
-    def __init_subclass__(cls: type[Resolver]) -> None:
-        orig_resolve_one = cls.resolve_one
-
-        async def resolve_one(resolver: Resolver, defn: Defn, metadata: Any) -> models.Pkg:
-            if defn.strategy not in resolver.metadata.strategies:
+    def __init_subclass__(cls) -> None:
+        async def resolve_one(self: Self, defn: Defn, metadata: Any) -> models.Pkg:
+            if defn.strategy not in self.metadata.strategies:
                 raise R.PkgStrategyUnsupported(defn.strategy)
-            return await orig_resolve_one(resolver, defn, metadata)
+            return await orig_resolve_one(self, defn, metadata)
 
-        setattr(cls, 'resolve_one', resolve_one)
+        kls = cls
+        orig_resolve_one = kls.resolve_one
+        kls.resolve_one = resolve_one
 
     @classmethod
     def get_alias_from_url(cls, url: URL) -> str | None:
@@ -131,7 +128,7 @@ class BaseResolver:
         if uri.scheme == 'data' and uri.raw_path.startswith(','):
             return urllib.parse.unquote(uri.raw_path[1:])
         elif uri.scheme in {'http', 'https'}:
-            async with self.manager.web_client.get(
+            async with self._manager.web_client.get(
                 uri, {'days': 1}, raise_for_status=True
             ) as response:
                 return await response.text()
@@ -266,14 +263,14 @@ class CurseResolver(BaseResolver):
     async def resolve(
         self, defns: Sequence[Defn]
     ) -> dict[Defn, models.Pkg | R.ManagerError | R.InternalError]:
-        catalogue = await self.manager.synchronise()
+        catalogue = await self._manager.synchronise()
 
         defns_to_maybe_numeric_ids = {
             d: i if i.isdigit() else None
             for d in defns
             for i in (d.id or catalogue.curse_slugs.get(d.alias) or d.alias,)
         }
-        async with self.manager.web_client.request(
+        async with self._manager.web_client.request(
             'POST',
             self.addon_api_url,
             {'minutes': 5},
@@ -300,7 +297,7 @@ class CurseResolver(BaseResolver):
             raise R.PkgNonexistent
 
         if defn.strategy is Strategy.version:
-            async with self.manager.web_client.get(
+            async with self._manager.web_client.get(
                 self.addon_api_url / str(metadata['id']) / 'files',
                 {'hours': 1},
                 label=f'Fetching metadata from {self.metadata.name}',
@@ -328,14 +325,14 @@ class CurseResolver(BaseResolver):
 
                 if defn.strategy is not Strategy.any_flavour:
 
-                    curse_type_id = self.manager.config.game_flavour.to_flavour_keyed_enum(
+                    curse_type_id = self._manager.config.game_flavour.to_flavour_keyed_enum(
                         _CurseGameVersionTypeId
                     )
 
                     def supports_flavour(f: _CurseAddon_File):
                         return f[
                             'gameVersionFlavor'
-                        ] == self.manager.config.game_flavour.to_flavour_keyed_enum(
+                        ] == self._manager.config.game_flavour.to_flavour_keyed_enum(
                             _CurseFlavor
                         ) or any(
                             s.get('gameVersionTypeId') == curse_type_id
@@ -361,27 +358,27 @@ class CurseResolver(BaseResolver):
             )
             if file is None:
                 raise R.PkgFileUnavailable(
-                    f'no files matching {self.manager.config.game_flavour} '
+                    f'no files matching {self._manager.config.game_flavour} '
                     f'using {defn.strategy} strategy'
                 )
 
-        return models.Pkg.parse_obj(
-            {
-                'source': self.metadata.id,
-                'id': metadata['id'],
-                'slug': metadata['slug'],
-                'name': metadata['name'],
-                'description': metadata['summary'],
-                'url': metadata['websiteUrl'],
-                'download_url': file['downloadUrl'],
-                'date_published': file['fileDate'],
-                'version': file['displayName'],
-                'changelog_url': str(
-                    self.addon_api_url / f'{metadata["id"]}/file/{file["id"]}/changelog'
-                ),
-                'options': {'strategy': defn.strategy},
-                'deps': [{'id': d['addonId']} for d in file['dependencies'] if d['type'] == 3],
-            }
+        return models.Pkg(
+            source=self.metadata.id,
+            id=str(metadata['id']),
+            slug=metadata['slug'],
+            name=metadata['name'],
+            description=metadata['summary'],
+            url=metadata['websiteUrl'],
+            download_url=file['downloadUrl'],
+            date_published=iso8601.parse_date(file['fileDate']),
+            version=file['displayName'],
+            changelog_url=str(
+                self.addon_api_url / f'{metadata["id"]}/file/{file["id"]}/changelog'
+            ),
+            options=models.PkgOptions(strategy=defn.strategy),
+            deps=[
+                models.PkgDep(id=str(d['addonId'])) for d in file['dependencies'] if d['type'] == 3
+            ],
         )
 
     @classmethod
@@ -424,18 +421,16 @@ class CurseResolver(BaseResolver):
                 break
 
             for item in items:
-                yield BaseCatalogueEntry.parse_obj(
-                    {
-                        'source': cls.metadata.id,
-                        'id': item['id'],
-                        'slug': item['slug'],
-                        'name': item['name'],
-                        'url': item['websiteUrl'],
-                        'game_flavours': excise_flavours(item['latestFiles']),
-                        'download_count': item['downloadCount'],
-                        'last_updated': item['dateReleased'],
-                        'folders': get_folders(item['latestFiles']),
-                    }
+                yield BaseCatalogueEntry(
+                    source=cls.metadata.id,
+                    id=str(item['id']),
+                    slug=item['slug'],
+                    name=item['name'],
+                    url=item['websiteUrl'],
+                    game_flavours=frozenset(excise_flavours(item['latestFiles'])),
+                    download_count=item['downloadCount'],
+                    last_updated=iso8601.parse_date(item['dateReleased']),
+                    folders=get_folders(item['latestFiles']),
                 )
 
 
@@ -682,30 +677,34 @@ class CfCoreResolver(BaseResolver):
         maybe_access_token = global_config.access_tokens.cfcore
         if maybe_access_token is None:
             raise ValueError('CFCore access token not configured')
-        return maybe_access_token.get_secret_value()
+        return maybe_access_token
 
     async def resolve(
         self, defns: Sequence[Defn]
     ) -> dict[Defn, models.Pkg | R.ManagerError | R.InternalError]:
-        catalogue = await self.manager.synchronise()
+        catalogue = await self._manager.synchronise()
 
         defns_to_maybe_numeric_ids = {
             d: i if i.isdigit() else None
             for d in defns
             for i in (d.id or catalogue.curse_slugs.get(d.alias) or d.alias,)
         }
-        async with self.manager.web_client.request(
+        numeric_ids = [i for i in defns_to_maybe_numeric_ids.values() if i is not None]
+        if not numeric_ids:
+            return await super().resolve(defns)
+
+        async with self._manager.web_client.request(
             'POST',
             self.mod_api_url,
             {'minutes': 5},
-            headers={'x-api-key': self._get_access_token(self.manager.config.global_config)},
-            json={'modIds': [i for i in defns_to_maybe_numeric_ids.values() if i is not None]},
+            headers={'x-api-key': self._get_access_token(self._manager.config.global_config)},
+            json={'modIds': numeric_ids},
         ) as response:
             if response.status == 404:
                 return await super().resolve(defns)
-            else:
-                response.raise_for_status()
-                response_json: _CfCoreModsResponseSansPagination = await response.json()
+
+            response.raise_for_status()
+            response_json: _CfCoreModsResponseSansPagination = await response.json()
 
         numeric_ids_to_addons = {str(r['id']): r for r in response_json['data']}
         results = await gather(
@@ -722,15 +721,15 @@ class CfCoreResolver(BaseResolver):
             raise R.PkgNonexistent
 
         if defn.strategy is Strategy.version:
-            async with self.manager.web_client.get(
+            async with self._manager.web_client.get(
                 (self.mod_api_url / str(metadata['id']) / 'files').with_query(
-                    gameVersionTypeId=self.manager.config.game_flavour.to_flavour_keyed_enum(
+                    gameVersionTypeId=self._manager.config.game_flavour.to_flavour_keyed_enum(
                         _CfCoreSortableGameVersionTypeId
                     ),
                     pageSize=9999,
                 ),
                 {'hours': 1},
-                headers={'x-api-key': self._get_access_token(self.manager.config.global_config)},
+                headers={'x-api-key': self._get_access_token(self._manager.config.global_config)},
                 label=f'Fetching metadata from {self.metadata.name}',
                 raise_for_status=True,
             ) as response:
@@ -755,7 +754,7 @@ class CfCoreResolver(BaseResolver):
 
                 if defn.strategy is not Strategy.any_flavour:
 
-                    type_id = self.manager.config.game_flavour.to_flavour_keyed_enum(
+                    type_id = self._manager.config.game_flavour.to_flavour_keyed_enum(
                         _CfCoreSortableGameVersionTypeId
                     )
 
@@ -783,31 +782,27 @@ class CfCoreResolver(BaseResolver):
             )
             if file is None:
                 raise R.PkgFileUnavailable(
-                    f'no files matching {self.manager.config.game_flavour} '
+                    f'no files matching {self._manager.config.game_flavour} '
                     f'using {defn.strategy} strategy'
                 )
 
-        return models.Pkg.parse_obj(
-            {
-                'source': self.metadata.id,
-                'id': metadata['id'],
-                'slug': metadata['slug'],
-                'name': metadata['name'],
-                'description': metadata['summary'],
-                'url': metadata['links']['websiteUrl'],
-                'download_url': file['downloadUrl'],
-                'date_published': file['fileDate'],
-                'version': file['displayName'],
-                'changelog_url': str(
-                    self.mod_api_url / f'{metadata["id"]}/files/{file["id"]}/changelog'
-                ),
-                'options': {'strategy': defn.strategy},
-                'deps': [
-                    {'id': d['modId']}
-                    for d in file['dependencies']
-                    if d['relationType'] == _CfCoreFileRelationType.required_dependency
-                ],
-            }
+        return models.Pkg(
+            source=self.metadata.id,
+            id=str(metadata['id']),
+            slug=metadata['slug'],
+            name=metadata['name'],
+            description=metadata['summary'],
+            url=metadata['links']['websiteUrl'],
+            download_url=file['downloadUrl'],
+            date_published=iso8601.parse_date(file['fileDate']),
+            version=file['displayName'],
+            changelog_url=str(self.mod_api_url / f'{metadata["id"]}/files/{file["id"]}/changelog'),
+            options=models.PkgOptions(strategy=defn.strategy),
+            deps=[
+                models.PkgDep(id=str(d['modId']))
+                for d in file['dependencies']
+                if d['relationType'] == _CfCoreFileRelationType.required_dependency
+            ],
         )
 
     async def get_changelog(self, uri: URL) -> str:
@@ -815,15 +810,15 @@ class CfCoreResolver(BaseResolver):
         if uri.host != self.mod_api_url.host:
             return await super().get_changelog(uri)
 
-        headers = {'x-api-key': self._get_access_token(self.manager.config.global_config)}
-        async with self.manager.web_client.get(
+        headers = {'x-api-key': self._get_access_token(self._manager.config.global_config)}
+        async with self._manager.web_client.get(
             uri, {'days': 1}, headers=headers, raise_for_status=True
         ) as response:
             response_json: _CfCoreStringDataResponse = await response.json()
             return response_json['data']
 
     @classmethod
-    async def catalogue(
+    async def catalogue_(
         cls, web_client: _deferred_types.aiohttp.ClientSession
     ) -> AsyncIterator[BaseCatalogueEntry]:
         from .config import GlobalConfig
@@ -873,7 +868,7 @@ class CfCoreResolver(BaseResolver):
                     url=item['links']['websiteUrl'],
                     game_flavours=frozenset(excise_flavours(item['latestFiles'])),
                     download_count=item['downloadCount'],
-                    last_updated=parse_datetime(item['dateReleased']),
+                    last_updated=iso8601.parse_date(item['dateReleased']),
                     folders=excise_folders(item['latestFiles']),
                 )
 
@@ -950,6 +945,10 @@ class WowiResolver(BaseResolver):
     details_api_url = URL('https://api.mmoui.com/v3/game/WOW/filedetails/')
 
     @classmethod
+    def _timestamp_to_datetime(cls, timestamp: int):
+        return datetime.fromtimestamp(timestamp / 1000, timezone.utc)
+
+    @classmethod
     def get_alias_from_url(cls, url: URL) -> str | None:
         if (
             url.host in {'wowinterface.com', 'www.wowinterface.com'}
@@ -965,8 +964,8 @@ class WowiResolver(BaseResolver):
                 return match and match['id']
 
     async def _synchronise(self):
-        async with self.manager.locks['load WoWI catalogue']:
-            async with self.manager.web_client.get(
+        async with self._manager.locks['load WoWI catalogue']:
+            async with self._manager.web_client.get(
                 self.list_api_url,
                 {'hours': 1},
                 label=f'Synchronising {self.metadata.name} catalogue',
@@ -982,7 +981,7 @@ class WowiResolver(BaseResolver):
 
         defns_to_ids = {d: ''.join(takewhile(str.isdigit, d.alias)) for d in defns}
         numeric_ids = frozenset(filter(None, defns_to_ids.values()))
-        async with self.manager.web_client.get(
+        async with self._manager.web_client.get(
             self.details_api_url / f'{",".join(numeric_ids)}.json',
             {'minutes': 5},
         ) as response:
@@ -1005,20 +1004,18 @@ class WowiResolver(BaseResolver):
         if metadata is None:
             raise R.PkgNonexistent
 
-        return models.Pkg.parse_obj(
-            {
-                'source': self.metadata.id,
-                'id': metadata['UID'],
-                'slug': _slugify(f'{metadata["UID"]} {metadata["UIName"]}'),
-                'name': metadata['UIName'],
-                'description': metadata['UIDescription'],
-                'url': metadata['UIFileInfoURL'],
-                'download_url': metadata['UIDownload'],
-                'date_published': metadata['UIDate'],
-                'version': metadata['UIVersion'],
-                'changelog_url': _format_data_changelog(metadata['UIChangeLog']),
-                'options': {'strategy': defn.strategy},
-            }
+        return models.Pkg(
+            source=self.metadata.id,
+            id=metadata['UID'],
+            slug=_slugify(f'{metadata["UID"]} {metadata["UIName"]}'),
+            name=metadata['UIName'],
+            description=metadata['UIDescription'],
+            url=metadata['UIFileInfoURL'],
+            download_url=metadata['UIDownload'],
+            date_published=self._timestamp_to_datetime(metadata['UIDate']),
+            version=metadata['UIVersion'],
+            changelog_url=_format_data_changelog(metadata['UIChangeLog']),
+            options=models.PkgOptions(strategy=defn.strategy),
         )
 
     @classmethod
@@ -1052,7 +1049,7 @@ class WowiResolver(BaseResolver):
                 url=item['UIFileInfoURL'],
                 game_flavours=frozenset(game_flavours),
                 download_count=int(item['UIDownloadTotal']),
-                last_updated=datetime.fromtimestamp(item['UIDate'] / 1000, timezone.utc),
+                last_updated=cls._timestamp_to_datetime(item['UIDate']),
                 folders=[frozenset(item['UIDir'])],
             )
 
@@ -1127,7 +1124,7 @@ class TukuiResolver(BaseResolver):
 
     async def _synchronise(self) -> dict[str, _TukuiAddon | _TukuiUi]:
         async def fetch_ui(ui_slug: str):
-            async with self.manager.web_client.get(
+            async with self._manager.web_client.get(
                 self.api_url.with_query({'ui': ui_slug}),
                 {'minutes': 5},
                 raise_for_status=True,
@@ -1136,7 +1133,7 @@ class TukuiResolver(BaseResolver):
                 return [(str(addon['id']), addon), (ui_slug, addon)]
 
         async def fetch_addons(flavour: Flavour):
-            async with self.manager.web_client.get(
+            async with self._manager.web_client.get(
                 self.api_url.with_query({self._query_flavours[flavour]: 'all'}),
                 {'minutes': 30},
                 label=f'Synchronising {self.metadata.name} {flavour} catalogue',
@@ -1145,17 +1142,17 @@ class TukuiResolver(BaseResolver):
                 addons: list[_TukuiAddon] = await response.json()
                 return [(str(a['id']), a) for a in addons]
 
-        async with self.manager.locks['load Tukui catalogue']:
+        async with self._manager.locks['load Tukui catalogue']:
             return {
                 k: v
                 for l in await gather(
                     chain(
                         (
                             (fetch_ui(s) for s in self._retail_ui_suites)
-                            if self.manager.config.game_flavour is Flavour.retail
+                            if self._manager.config.game_flavour is Flavour.retail
                             else ()
                         ),
-                        (fetch_addons(self.manager.config.game_flavour),),
+                        (fetch_addons(self._manager.config.game_flavour),),
                     )
                 )
                 for k, v in l
@@ -1187,29 +1184,27 @@ class TukuiResolver(BaseResolver):
         else:
             slug = _slugify(f'{metadata["id"]} {metadata["name"]}')
 
-        return models.Pkg.parse_obj(
-            {
-                'source': self.metadata.id,
-                'id': str(metadata['id']),
-                'slug': slug,
-                'name': metadata['name'],
-                'description': metadata['small_desc'],
-                'url': metadata['web_url'],
-                'download_url': metadata['url'],
-                'date_published': datetime.fromisoformat(metadata['lastupdate']).replace(
-                    tzinfo=timezone.utc
-                ),
-                'version': metadata['version'],
-                'changelog_url': (
-                    # The changelog URL is not versioned - adding fragment to allow caching
-                    str(URL(metadata['changelog']).with_fragment(metadata['version']))
-                    if metadata['id'] in {-1, -2}
-                    # Regular add-ons don't have dedicated changelogs but rather
-                    # link to the changelog tab on the add-on page
-                    else _format_data_changelog(metadata['changelog'])
-                ),
-                'options': {'strategy': defn.strategy},
-            }
+        return models.Pkg(
+            source=self.metadata.id,
+            id=str(metadata['id']),
+            slug=slug,
+            name=metadata['name'],
+            description=metadata['small_desc'],
+            url=metadata['web_url'],
+            download_url=metadata['url'],
+            date_published=datetime.fromisoformat(metadata['lastupdate']).replace(
+                tzinfo=timezone.utc
+            ),
+            version=metadata['version'],
+            changelog_url=(
+                # The changelog URL is not versioned - adding fragment to allow caching
+                str(URL(metadata['changelog']).with_fragment(metadata['version']))
+                if metadata['id'] in {-1, -2}
+                # Regular add-ons don't have dedicated changelogs but rather
+                # link to the changelog tab on the add-on page
+                else _format_data_changelog(metadata['changelog'])
+            ),
+            options=models.PkgOptions(strategy=defn.strategy),
         )
 
     @classmethod
@@ -1311,13 +1306,11 @@ class GithubResolver(BaseResolver):
             return '/'.join(url.parts[1:3])
 
     async def resolve_one(self, defn: Defn, metadata: None) -> models.Pkg:
-        github_token = self.manager.config.global_config.access_tokens.github
-        github_headers = (
-            {'Authorization': f'token {github_token.get_secret_value()}'} if github_token else {}
-        )
+        github_token = self._manager.config.global_config.access_tokens.github
+        github_headers = {'Authorization': f'token {github_token}'} if github_token else {}
 
         repo_url = self.repos_api_url / defn.alias
-        async with self.manager.web_client.get(
+        async with self._manager.web_client.get(
             repo_url, {'hours': 1}, headers=github_headers
         ) as response:
             if response.status == 404:
@@ -1336,7 +1329,7 @@ class GithubResolver(BaseResolver):
             # a pre-release nor a draft
             release_url = repo_url / 'releases/latest'
 
-        async with self.manager.web_client.get(
+        async with self._manager.web_client.get(
             release_url, {'minutes': 5}, headers=github_headers
         ) as response:
             if response.status == 404:
@@ -1391,14 +1384,14 @@ class GithubResolver(BaseResolver):
                     # TODO: Take min of (directory_offset, remaining size from prev request)
                     #       to avoid 416 error if a small zip has an inordinately large directory.
 
-                    async with self.manager.web_client.wrapped.get(
+                    async with self._manager.web_client.wrapped.get(
                         candidate['browser_download_url'],
                         headers={**github_headers, hdrs.RANGE: f'bytes={directory_offset}'},
                     ) as directory_range_response:
                         if not directory_range_response.ok:
                             # File size under 25 KB.
                             if directory_range_response.status == 416:  # Range Not Satisfiable
-                                async with self.manager.web_client.get(
+                                async with self._manager.web_client.get(
                                     candidate['browser_download_url'],
                                     {'days': 30},
                                     headers=github_headers,
@@ -1441,7 +1434,7 @@ class GithubResolver(BaseResolver):
 
                 game_flavour_from_toc_filename = any(
                     n.lower().endswith(
-                        NORMALISED_FLAVOUR_TOC_SUFFIXES[self.manager.config.game_flavour]
+                        NORMALISED_FLAVOUR_TOC_SUFFIXES[self._manager.config.game_flavour]
                     )
                     for n in toc_filenames
                 )
@@ -1478,7 +1471,7 @@ class GithubResolver(BaseResolver):
                     following_file_offset = following_file.header_offset if following_file else ''
 
                     logger.debug(f'fetching {main_toc_filename} from {candidate["name"]}')
-                    async with self.manager.web_client.get(
+                    async with self._manager.web_client.get(
                         candidate['browser_download_url'],
                         {'days': 30},
                         headers={
@@ -1496,17 +1489,19 @@ class GithubResolver(BaseResolver):
                 logger.debug(
                     f'found interface version {interface_version!r} in {main_toc_filename}'
                 )
-                if interface_version and self.manager.config.game_flavour.to_flavour_keyed_enum(
+                if interface_version and self._manager.config.game_flavour.to_flavour_keyed_enum(
                     FlavourVersion
                 ).is_within_version(int(interface_version)):
                     matching_asset = candidate
                     break
 
             else:
-                raise R.PkgFileUnavailable(f'no files matching {self.manager.config.game_flavour}')
+                raise R.PkgFileUnavailable(
+                    f'no files matching {self._manager.config.game_flavour}'
+                )
 
         else:
-            async with self.manager.web_client.get(
+            async with self._manager.web_client.get(
                 release_json['browser_download_url'],
                 {'days': 1},
                 headers=github_headers,
@@ -1518,7 +1513,7 @@ class GithubResolver(BaseResolver):
             if not releases:
                 raise R.PkgFileUnavailable('no files available for download')
 
-            wanted_flavour = self.manager.config.game_flavour.to_flavour_keyed_enum(
+            wanted_flavour = self._manager.config.game_flavour.to_flavour_keyed_enum(
                 _PackagerReleaseJsonFlavor
             )
             matching_release = next(
@@ -1531,7 +1526,9 @@ class GithubResolver(BaseResolver):
                 None,
             )
             if matching_release is None:
-                raise R.PkgFileUnavailable(f'no files matching {self.manager.config.game_flavour}')
+                raise R.PkgFileUnavailable(
+                    f'no files matching {self._manager.config.game_flavour}'
+                )
 
             matching_asset = next(
                 (
@@ -1544,20 +1541,20 @@ class GithubResolver(BaseResolver):
             if matching_asset is None:
                 raise R.PkgFileUnavailable(f'{matching_release["filename"]} not found')
 
-        return models.Pkg.parse_obj(
-            {
-                'source': self.metadata.id,
-                'id': project_metadata['full_name'],
-                'slug': project_metadata['full_name'].lower(),
-                'name': project_metadata['name'],
-                'description': project_metadata['description'] or '',
-                'url': project_metadata['html_url'],
-                'download_url': matching_asset['browser_download_url'],
-                'date_published': release_metadata['published_at'],
-                'version': release_metadata['tag_name'],
-                'changelog_url': _format_data_changelog(release_metadata['body']),
-                'options': {'strategy': defn.strategy},
-            }
+        return models.Pkg(
+            source=self.metadata.id,
+            id=project_metadata['full_name'],
+            slug=project_metadata['full_name'].lower(),
+            name=project_metadata['name'],
+            description=project_metadata['description'] or '',
+            url=project_metadata['html_url'],
+            download_url=matching_asset['browser_download_url'],
+            date_published=iso8601.parse_date(release_metadata['published_at']),
+            version=release_metadata['tag_name'],
+            changelog_url=_format_data_changelog(release_metadata['body']),
+            options=models.PkgOptions(
+                strategy=defn.strategy,
+            ),
         )
 
     @classmethod
@@ -1588,7 +1585,7 @@ class GithubResolver(BaseResolver):
                 download_count=1,
                 last_updated=datetime.fromisoformat(entry['last_updated']),
                 same_as=[
-                    BaseCatalogue_SameAs(source=i, id=v)
+                    CatalogueSameAs(source=i, id=v)
                     for i in ['curse', 'wowi']
                     for v in (entry[f'{i}_id'],)
                     if v
@@ -1617,24 +1614,22 @@ class InstawowResolver(BaseResolver):
 
         from .wa_updater import WaCompanionBuilder
 
-        builder = WaCompanionBuilder(self.manager)
+        builder = WaCompanionBuilder(self._manager)
         if source_id == '1':
             await builder.build()
 
-        return models.Pkg.parse_obj(
-            {
-                'source': self.metadata.id,
-                'id': source_id,
-                'slug': slug,
-                'name': 'WeakAuras Companion',
-                'description': 'A WeakAuras Companion clone.',
-                'url': 'https://github.com/layday/instawow',
-                'download_url': builder.addon_zip_path.as_uri(),
-                'date_published': datetime.now(timezone.utc),
-                'version': (await builder.get_checksum())[:7],
-                'changelog_url': builder.changelog_path.as_uri(),
-                'options': {'strategy': defn.strategy},
-            }
+        return models.Pkg(
+            source=self.metadata.id,
+            id=source_id,
+            slug=slug,
+            name='WeakAuras Companion',
+            description='A WeakAuras Companion clone.',
+            url='https://github.com/layday/instawow',
+            download_url=builder.addon_zip_path.as_uri(),
+            date_published=datetime.now(timezone.utc),
+            version=await run_in_thread(builder.get_version)(),
+            changelog_url=builder.changelog_path.as_uri(),
+            options=models.PkgOptions(strategy=defn.strategy),
         )
 
     @classmethod

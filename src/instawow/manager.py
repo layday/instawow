@@ -15,6 +15,7 @@ from tempfile import NamedTemporaryFile
 import time
 from typing import Any, TypeVar
 
+from attrs import evolve, fields
 from loguru import logger
 import sqlalchemy as sa
 import sqlalchemy.future as sa_future
@@ -22,9 +23,10 @@ from typing_extensions import Concatenate, Literal, ParamSpec, TypeAlias, TypedD
 from yarl import URL
 
 from . import _deferred_types, db, models, results as R
-from .cataloguer import BaseCatalogue, Catalogue, CatalogueEntry
+from .cataloguer import BaseCatalogue, Catalogue, CatalogueEntry, catalogue_converter
 from .common import Strategy
 from .config import Config, GlobalConfig
+from .models import PkgFolder
 from .plugins import load_plugins
 from .resolvers import (
     CfCoreResolver,
@@ -39,7 +41,6 @@ from .resolvers import (
 from .utils import (
     bucketise,
     chain_dict,
-    evolve_model_obj,
     file_uri_to_path,
     find_addon_zip_tocs,
     gather,
@@ -305,9 +306,9 @@ class Manager:
 
     _base_catalogue_url = (
         f'https://raw.githubusercontent.com/layday/instawow-data/data/'
-        f'base-catalogue-v{BaseCatalogue.construct().version}.compact.json'
+        f'base-catalogue-v{fields(BaseCatalogue).version.default}.compact.json'
     )
-    _catalogue_filename = f'catalogue-v{Catalogue.construct().version}.json'
+    _catalogue_filename = f'catalogue-v{fields(Catalogue).version.default}.json'
 
     _normalise_search_terms = staticmethod(normalise_names(''))
 
@@ -368,7 +369,7 @@ class Manager:
             self.database.execute(
                 sa.select(sa.text('1'))
                 .select_from(db.pkg)
-                .filter(
+                .where(
                     db.pkg.c.source == defn.source,
                     (db.pkg.c.id == defn.alias)
                     | (db.pkg.c.id == defn.id)
@@ -382,7 +383,7 @@ class Manager:
         "Retrieve a package from the database."
         maybe_row_mapping = (
             self.database.execute(
-                sa.select(db.pkg).filter(
+                sa.select(db.pkg).where(
                     db.pkg.c.source == defn.source,
                     (db.pkg.c.id == defn.alias)
                     | (db.pkg.c.id == defn.id)
@@ -396,7 +397,7 @@ class Manager:
             maybe_row_mapping = (
                 self.database.execute(
                     sa.select(db.pkg)
-                    .filter(db.pkg.c.slug.contains(defn.alias))
+                    .where(db.pkg.c.slug.contains(defn.alias))
                     .order_by(db.pkg.c.name)
                 )
                 .mappings()
@@ -412,7 +413,7 @@ class Manager:
                 sa.select(db.pkg)
                 .distinct()
                 .join(db.pkg_folder)
-                .filter(db.pkg_folder.c.name.in_(top_level_folders))
+                .where(db.pkg_folder.c.name.in_(top_level_folders))
             ).all()
             if installed_conflicts:
                 raise R.PkgConflictsWithInstalled(installed_conflicts)
@@ -432,7 +433,7 @@ class Manager:
 
             extract(self.config.addon_dir)
 
-        pkg = evolve_model_obj(pkg, folders=[{'name': f} for f in sorted(top_level_folders)])
+        pkg = evolve(pkg, folders=[PkgFolder(name=f) for f in sorted(top_level_folders)])
         pkg.insert(self.database)
         return R.PkgInstalled(pkg)
 
@@ -443,7 +444,7 @@ class Manager:
                 sa.select(db.pkg)
                 .distinct()
                 .join(db.pkg_folder)
-                .filter(
+                .where(
                     db.pkg_folder.c.pkg_source != new_pkg.source,
                     db.pkg_folder.c.pkg_id != new_pkg.id,
                     db.pkg_folder.c.name.in_(top_level_folders),
@@ -467,9 +468,7 @@ class Manager:
 
             extract(self.config.addon_dir)
 
-        new_pkg = evolve_model_obj(
-            new_pkg, folders=[{'name': f} for f in sorted(top_level_folders)]
-        )
+        new_pkg = evolve(new_pkg, folders=[PkgFolder(name=f) for f in sorted(top_level_folders)])
         new_pkg.insert(self.database)
         return R.PkgUpdated(old_pkg, new_pkg)
 
@@ -494,7 +493,9 @@ class Manager:
                 raw_catalogue = await t(catalogue_json.read_bytes)()
                 start = time.perf_counter()
                 # Skip validation when loading the catalogue from cache.
-                self._catalogue = Catalogue.from_cache(raw_catalogue)
+                self._catalogue = catalogue_converter.structure(
+                    json.loads(raw_catalogue), Catalogue
+                )
                 logger.debug(f'loaded catalogue from cache in {time.perf_counter() - start:.3f}s')
         else:
             async with self.web_client.get(
@@ -507,7 +508,9 @@ class Manager:
                 raw_catalogue = await response.json(content_type=None)
 
             self._catalogue = Catalogue.from_base_catalogue(raw_catalogue, None)
-            await t(catalogue_json.write_text)(self._catalogue.json(), encoding='utf-8')
+            await t(catalogue_json.write_text)(
+                json.dumps(catalogue_converter.unstructure(self._catalogue)), encoding='utf-8'
+            )
 
         return self._catalogue
 
@@ -569,8 +572,7 @@ class Manager:
 
         deps = await self.resolve(list(starmap(Defn, dep_defns)))
         pretty_deps = {
-            evolve_model_obj(d, alias=r.slug) if isinstance(r, models.Pkg) else d: r
-            for d, r in deps.items()
+            evolve(d, alias=r.slug) if isinstance(r, models.Pkg) else d: r for d, r in deps.items()
         }
         return pretty_deps
 
@@ -761,7 +763,7 @@ class Manager:
             # corresponding installed package.  Using the ID has the benefit
             # of resolving installed-but-renamed packages - the slug is
             # transient but the ID isn't
-            evolve_model_obj(d, id=p.id) if retain_defn_strategy else Defn.from_pkg(p): d
+            evolve(d, id=p.id) if retain_defn_strategy else Defn.from_pkg(p): d
             for d, p in defns_to_pkgs.items()
         }
         # Discard the reconstructed ``Defn``s
