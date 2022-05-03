@@ -818,7 +818,7 @@ class CfCoreResolver(BaseResolver):
             return response_json['data']
 
     @classmethod
-    async def catalogue_(
+    async def catalogue(
         cls, web_client: _deferred_types.aiohttp.ClientSession
     ) -> AsyncIterator[BaseCatalogueEntry]:
         from .config import GlobalConfig
