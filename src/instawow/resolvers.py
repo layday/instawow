@@ -821,6 +821,8 @@ class CfCoreResolver(BaseResolver):
     async def catalogue(
         cls, web_client: _deferred_types.aiohttp.ClientSession
     ) -> AsyncIterator[BaseCatalogueEntry]:
+        from aiohttp import ClientTimeout
+
         from .config import GlobalConfig
 
         def excise_flavours(files: list[_CfCoreFile]):
@@ -839,7 +841,8 @@ class CfCoreResolver(BaseResolver):
         def excise_folders(files: list[_CfCoreFile]):
             return uniq(frozenset(m['name'] for m in f['modules']) for f in files)
 
-        api_key = cls._get_access_token(GlobalConfig.from_env())
+        timeout = ClientTimeout(total=10)
+        headers = {'x-api-key': cls._get_access_token(GlobalConfig.from_env())}
         step = 50
 
         for index in count():
@@ -850,10 +853,20 @@ class CfCoreResolver(BaseResolver):
                 index=index * step,
             )
             logger.debug(f'retrieving {url}')
-            async with web_client.get(
-                url, headers={'x-api-key': api_key}, raise_for_status=True
-            ) as response:
-                response_json: _CfCoreModsResponse = await response.json()
+
+            for attempt in count(1):
+                try:
+                    async with web_client.get(
+                        url, headers=headers, raise_for_status=True, timeout=timeout
+                    ) as response:
+                        response_json: _CfCoreModsResponse = await response.json()
+                        break
+                except asyncio.TimeoutError:
+                    logger.debug(f'request timed out; attempt {attempt} of 3')
+                    if attempt < 3:
+                        continue
+            else:
+                raise RuntimeError('maximum number of attempts exceeded')
 
             items = response_json['data']
             if not items:
@@ -871,9 +884,6 @@ class CfCoreResolver(BaseResolver):
                     last_updated=iso8601.parse_date(item['dateReleased']),
                     folders=excise_folders(item['latestFiles']),
                 )
-
-            if index % 5 == 0:
-                await asyncio.sleep(5)
 
 
 class _WowiCommonTerms(TypedDict):
