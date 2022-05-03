@@ -872,7 +872,7 @@ class CfCoreResolver(BaseResolver):
                     folders=excise_folders(item['latestFiles']),
                 )
 
-            if index % 10 == 0:
+            if index % 5 == 0:
                 await asyncio.sleep(5)
 
 
