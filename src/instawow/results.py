@@ -137,7 +137,7 @@ class PkgStrategyUnsupported(ManagerError):
         return f"'{self.strategy}' strategy is not valid for source"
 
 
-class InternalError(ManagerResult, Exception):
+class InternalError(Exception, ManagerResult):
     status: Final = 'error'
 
     @property
