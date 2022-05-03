@@ -149,15 +149,15 @@ class GlobalConfig:
     )
 
     @classmethod
-    def read(cls) -> Self:
+    def from_env(cls, **values: object) -> Self:
         converter = make_config_converter()
-        env_only_config = converter.structure(_read_env_vars(cls), cls)
+        return converter.structure(_read_env_vars(cls, **values), cls)
+
+    @classmethod
+    def read(cls) -> Self:
+        env_only_config = cls.from_env()
         config_values = _read_config(env_only_config.config_file, missing_ok=True)
-        return (
-            converter.structure(_read_env_vars(cls, **config_values), cls)
-            if config_values is not None
-            else env_only_config
-        )
+        return cls.from_env(**config_values) if config_values is not None else env_only_config
 
     def list_profiles(self) -> list[str]:
         "Get the names of the profiles contained in ``config_dir``."
@@ -208,16 +208,16 @@ class Config:
         return object.__new__(type(f'Dummy{cls.__name__}', (cls,), values))
 
     @classmethod
-    def read(cls, global_config: GlobalConfig, profile: str) -> Self:
-        dummy_config = cls.make_dummy_config(global_config=global_config, profile=profile)
+    def from_env(cls, **values: object) -> Self:
         converter = make_config_converter()
         converter.register_structure_hook(GlobalConfig, lambda c, _: c)
-        return converter.structure(
-            {
-                **_read_env_vars(cls, **_read_config(dummy_config.config_file)),
-                'global_config': global_config,
-            },
-            cls,
+        return converter.structure(_read_env_vars(cls, **values), cls)
+
+    @classmethod
+    def read(cls, global_config: GlobalConfig, profile: str) -> Self:
+        dummy_config = cls.make_dummy_config(global_config=global_config, profile=profile)
+        return cls.from_env(
+            **{**_read_config(dummy_config.config_file), 'global_config': global_config}
         )
 
     def encode_for_display(self) -> str:

@@ -839,7 +839,7 @@ class CfCoreResolver(BaseResolver):
         def excise_folders(files: list[_CfCoreFile]):
             return uniq(frozenset(m['name'] for m in f['modules']) for f in files)
 
-        api_key = cls._get_access_token(GlobalConfig())
+        api_key = cls._get_access_token(GlobalConfig.from_env())
         step = 50
 
         for index in count():
