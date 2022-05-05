@@ -20,7 +20,6 @@ from typing_extensions import Self
 from .common import Flavour
 from .utils import trash
 
-
 _T = TypeVar('_T')
 
 _MISSING = object()
