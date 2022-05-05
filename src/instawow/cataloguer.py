@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Set
 from datetime import datetime
 import typing
 
@@ -11,7 +12,7 @@ from . import manager
 from .config import Flavour
 from .utils import bucketise, cached_property, normalise_names
 
-catalogue_converter = GenConverter(unstruct_collection_overrides={frozenset: sorted})
+catalogue_converter = GenConverter(unstruct_collection_overrides={Set: sorted})
 configure_converter(catalogue_converter)
 
 
