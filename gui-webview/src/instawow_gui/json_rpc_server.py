@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import asyncio
 from collections import defaultdict
-from collections.abc import Awaitable, Callable, Iterator, Set
+from collections.abc import Awaitable, Callable, Iterable, Iterator, Set
 from contextlib import contextmanager
 from datetime import datetime
 from functools import partial
@@ -35,7 +35,7 @@ from yarl import URL
 from instawow import __version__, db, matchers, models, results as R
 from instawow.cataloguer import CatalogueEntry
 from instawow.common import Flavour, SourceMetadata, infer_flavour_from_path
-from instawow.config import Config, GlobalConfig, SecretStr
+from instawow.config import Config, GlobalConfig, SecretStr, config_converter
 from instawow.github_auth import get_codes, poll_for_access_token
 from instawow.manager import (
     LocksType,
@@ -74,6 +74,15 @@ class _ConfigError(ServerError):
     message = 'invalid configuration parameters'
 
 
+def _structure_excs(excs: Iterable[BaseException]):
+    return [
+        {'loc': [n], 'msg': str(e)}
+        for e in excs
+        for *_, n in (getattr(e, '__note__', '').rpartition(' '),)
+        if n.isidentifier()
+    ]
+
+
 @contextmanager
 def _reraise_validation_error(
     error_class: type[ServerError | InvalidParams] = ServerError,
@@ -81,9 +90,9 @@ def _reraise_validation_error(
 ) -> Iterator[None]:
     try:
         yield
-    except ExceptionGroup as exc:
-        logger.info(f'invalid request: {(values, exc)}')
-        raise error_class(data=list(map(str, exc.exceptions)))
+    except ExceptionGroup as exc_group:
+        logger.info(f'invalid request: {(values, exc_group)}')
+        raise error_class(data=_structure_excs(exc_group.exceptions))
 
 
 @t
@@ -142,11 +151,14 @@ class WriteProfileConfigParams(_ProfileParamMixin, BaseParams):
     ) -> Config:
         async with managers.locks['modify profile', self.profile]:
             with _reraise_validation_error(_ConfigError):
-                config = Config(
-                    global_config=await t(GlobalConfig.read)(),
-                    profile=self.profile,
-                    addon_dir=self.addon_dir,
-                    game_flavour=self.game_flavour,
+                config = config_converter.structure(
+                    {
+                        'global_config': await t(GlobalConfig.read)(),
+                        'profile': self.profile,
+                        'addon_dir': self.addon_dir,
+                        'game_flavour': self.game_flavour,
+                    },
+                    Config,
                 )
                 if self.infer_game_flavour:
                     config = evolve(

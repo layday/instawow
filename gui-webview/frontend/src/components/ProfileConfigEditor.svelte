@@ -28,7 +28,7 @@
   }
 
   const selectFolder = async () => {
-    const { selection } = await $api.selectFolder(addonDir);
+    const { selection } = await $api.selectFolder(addonDir ?? null);
     if (selection !== null) {
       addonDir = selection;
     }

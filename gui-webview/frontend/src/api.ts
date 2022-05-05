@@ -157,10 +157,8 @@ export type ConfirmDialogueResult = {
 };
 
 export type PydanticValidationError = {
-  ctx: object;
   loc: string[];
   msg: string;
-  type: string;
 };
 
 export class Api {

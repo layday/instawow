@@ -1,13 +1,13 @@
 from __future__ import annotations
 
-from collections.abc import Iterable, Set, Sized
+from collections.abc import Callable, Iterable, Set, Sized
 import json
 import os
 from pathlib import Path
 import sys
 from tempfile import gettempdir
 import typing
-from typing import Any
+from typing import Any, TypeVar
 
 from attrs import Attribute, field, fields, frozen
 from cattrs import GenConverter
@@ -19,6 +19,9 @@ from typing_extensions import Self
 
 from .common import Flavour
 from .utils import trash
+
+
+_T = TypeVar('_T')
 
 _MISSING = object()
 
@@ -44,14 +47,29 @@ def _ensure_dirs(dirs: Iterable[Path]):
         dir_.mkdir(exist_ok=True, parents=True)
 
 
+def _enrich_validator_exc(validator: Callable[[object, Attribute[_T], _T], None]):
+    def wrapper(model: object, attr: Attribute[_T], value: _T):
+        try:
+            validator(model, attr, value)
+        except BaseException as exc:
+            note = f'Structuring class {model.__class__.__name__} @ attribute {attr.name}'
+            exc.__note__ = note  # pyright: ignore
+            raise exc
+
+    return wrapper
+
+
+@_enrich_validator_exc
 def _validate_path_is_writable_dir(model: object, attr: Attribute[Path], value: Path):
     if not _is_writable_dir(value):
         raise ValueError(f'"{value}" is not a writable directory')
 
 
 def _make_validate_min_length(min_length: int):
+    @_enrich_validator_exc
     def _validate_min_length(model: object, attr: Attribute[Sized], value: Sized):
-        return len(value) >= min_length
+        if len(value) < min_length:
+            raise ValueError(f'value must have a minimum length of {min_length}')
 
     return _validate_min_length
 
@@ -150,8 +168,7 @@ class GlobalConfig:
 
     @classmethod
     def from_env(cls, **values: object) -> Self:
-        converter = make_config_converter()
-        return converter.structure(_read_env_vars(cls, **values), cls)
+        return config_converter.structure(_read_env_vars(cls, **values), cls)
 
     @classmethod
     def read(cls) -> Self:
@@ -209,9 +226,7 @@ class Config:
 
     @classmethod
     def from_env(cls, **values: object) -> Self:
-        converter = make_config_converter()
-        converter.register_structure_hook(GlobalConfig, lambda c, _: c)
-        return converter.structure(_read_env_vars(cls, **values), cls)
+        return config_converter.structure(_read_env_vars(cls, **values), cls)
 
     @classmethod
     def read(cls, global_config: GlobalConfig, profile: str) -> Self:
@@ -260,6 +275,13 @@ class Config:
     @property
     def db_uri(self) -> str:
         return f"sqlite:///{self.profile_dir / 'db.sqlite'}"
+
+
+config_converter = make_config_converter()
+config_converter.register_structure_hook(
+    GlobalConfig,
+    lambda c, t: c if isinstance(c, t) else config_converter.structure_attrs_fromdict(c, t),
+)
 
 
 def _patch_loguru_enqueue():

@@ -25,7 +25,7 @@ from loguru import logger
 
 from . import __version__, _deferred_types, db, manager as _manager, models, results as R
 from .common import Flavour, Strategy
-from .config import Config, GlobalConfig, make_config_converter, setup_logging
+from .config import Config, GlobalConfig, config_converter, setup_logging
 from .plugins import load_plugins
 from .resolvers import ChangelogFormat, Defn
 from .utils import StrEnum, all_eq, cached_property, gather, tabulate, uniq
@@ -983,7 +983,7 @@ def configure(
                 'Add-on directory:',
                 only_directories=True,
                 validate=AttrFieldValidator(
-                    fields(resolve_types(Config)).addon_dir, make_config_converter()
+                    fields(resolve_types(Config)).addon_dir, config_converter
                 ),
             )
         )
@@ -1012,10 +1012,9 @@ def configure(
         github_access_token = asyncio.run(_github_oauth_flow())
         global_config_values['access_tokens']['github'] = github_access_token
 
-    converter = make_config_converter()
-    global_config = converter.structure(global_config_values, GlobalConfig).write()
-    config = converter.structure(
-        {'global_config': global_config_values, **profile_config_values}, Config
+    global_config = config_converter.structure(global_config_values, GlobalConfig).write()
+    config = config_converter.structure(
+        {**profile_config_values, 'global_config': global_config}, Config
     ).write()
 
     click.echo('Configuration written to:')
