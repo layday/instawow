@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from contextlib import contextmanager
 from io import BytesIO
 import re
 from typing import Any
@@ -12,7 +11,7 @@ import pytest
 from instawow.common import Flavour
 from instawow.manager import Manager
 from instawow.resolvers import Defn, GithubResolver
-from instawow.results import ManagerError
+from instawow.results import PkgFileUnavailable
 
 ZIPS = {
     'flavoured-toc-only': {
@@ -62,16 +61,6 @@ def package_json_less_addon(
     }
 
 
-@contextmanager
-def handle_flavour(flavour: Flavour, flavours: set[Flavour]):
-    try:
-        yield
-    except ManagerError:
-        assert flavour not in flavours
-    else:
-        assert flavour in flavours
-
-
 @pytest.mark.xfail
 async def test_package_json_less_addon(
     aresponses: ResponsesMockServer,
@@ -85,6 +74,11 @@ async def test_package_json_less_addon(
         aresponses.Response(body=package_json_less_addon['addon']),
     )
 
-    defn = Defn('github', 'ketho-wow/RaidFadeMore')
-    with handle_flavour(iw_manager.config.game_flavour, package_json_less_addon['flavours']):
-        await GithubResolver(iw_manager).resolve_one(defn, None)
+    try:
+        await GithubResolver(iw_manager).resolve_one(
+            Defn('github', 'ketho-wow/RaidFadeMore'), None
+        )
+    except PkgFileUnavailable:
+        assert iw_manager.config.game_flavour not in package_json_less_addon['flavours']
+    else:
+        assert iw_manager.config.game_flavour in package_json_less_addon['flavours']
