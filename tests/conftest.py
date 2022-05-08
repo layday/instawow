@@ -292,6 +292,20 @@ def mock_aiohttp_requests(aresponses: ResponsesMockServer):
     )
     aresponses.add(
         'api.github.com',
+        '/repos/ketho-wow/RaidFadeMore',
+        'get',
+        load_json_fixture('github-repo-no-release-json.json'),
+        repeat=inf,
+    )
+    aresponses.add(
+        'api.github.com',
+        '/repos/ketho-wow/RaidFadeMore/releases/latest',
+        'get',
+        load_json_fixture('github-release-no-release-json.json'),
+        repeat=inf,
+    )
+    aresponses.add(
+        'api.github.com',
         '/repos/AdiAddons/AdiBags',
         'get',
         load_json_fixture('github-repo-no-releases.json'),

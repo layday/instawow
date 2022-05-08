@@ -58,6 +58,12 @@ http get 'https://api.github.com/repos/p3lim-wow/Molinari/releases/latest' -b \
 http --follow get 'https://github.com/p3lim-wow/Molinari/releases/download/90105.81-Release/release.json' -b \
     | jq -r \
     > "$DIR"/github-release-molinari-release-json.json
+http get 'https://api.github.com/repos/ketho-wow/RaidFadeMore' -b \
+    | jq -r \
+    > "$DIR"/github-repo-no-release-json.json
+http get 'https://api.github.com/repos/ketho-wow/RaidFadeMore/releases/latest' -b \
+    | jq -r \
+    > "$DIR"/github-release-no-release-json.json
 http get 'https://api.github.com/repos/AdiAddons/AdiBags' -b \
     | jq -r \
     > "$DIR"/github-repo-no-releases.json

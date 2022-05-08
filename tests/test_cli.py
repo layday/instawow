@@ -76,7 +76,13 @@ def molinari_version(
 
 
 @pytest.mark.parametrize(
-    'alias', ['curse:molinari', 'wowi:13188-molinari', 'tukui:1', 'github:p3lim-wow/Molinari']
+    'alias',
+    [
+        'curse:molinari',
+        'wowi:13188-molinari',
+        'tukui:1',
+        'github:p3lim-wow/Molinari',
+    ],
 )
 def test_valid_pkg_lifecycle(
     run: C[[str], Result],

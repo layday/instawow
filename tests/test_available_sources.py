@@ -149,7 +149,7 @@ async def test_tukui_changelog_url_for_addon_type(iw_manager: Manager):
     results = await iw_manager.resolve([ui_suite, regular_addon])
 
     if iw_manager.config.game_flavour is Flavour.retail:
-        assert results[ui_suite].changelog_url == 'https://www.tukui.org/ui/tukui/changelog#20.23'
+        assert results[ui_suite].changelog_url == 'https://www.tukui.org/ui/tukui/changelog#20.27'
     assert results[regular_addon].changelog_url.startswith('data:,')
 
 
