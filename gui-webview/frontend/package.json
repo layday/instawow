@@ -11,7 +11,7 @@
   "private": true,
   "devDependencies": {
     "@fortawesome/free-solid-svg-icons": "^6.1.0",
-    "@rollup/plugin-commonjs": "^21.0.1",
+    "@rollup/plugin-commonjs": "^22.0.0",
     "@rollup/plugin-json": "^4.1.0",
     "@rollup/plugin-node-resolve": "^13.0.0",
     "@rollup/plugin-replace": "^4.0.0",
@@ -34,7 +34,7 @@
     "svelte-check": "^2.2.8",
     "svelte-preprocess": "^4.9.8",
     "tslib": "^2.2.0",
-    "typescript": ">=4.2.4 <4.4.2 || ^4.4.3"
+    "typescript": "^4.4.3"
   },
   "dependencies": {
     "@open-rpc/client-js": "^1.6.3",
