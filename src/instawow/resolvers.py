@@ -270,11 +270,12 @@ class CurseResolver(BaseResolver):
             for d in defns
             for i in (d.id or catalogue.curse_slugs.get(d.alias) or d.alias,)
         }
+        numeric_ids = uniq(i for i in defns_to_maybe_numeric_ids.values() if i is not None)
         async with self._manager.web_client.request(
             'POST',
             self.addon_api_url,
             {'minutes': 5},
-            json=[i for i in defns_to_maybe_numeric_ids.values() if i is not None],
+            json=numeric_ids,
         ) as response:
             if response.status == 404:
                 return await super().resolve(defns)
@@ -689,7 +690,7 @@ class CfCoreResolver(BaseResolver):
             for d in defns
             for i in (d.id or catalogue.curse_slugs.get(d.alias) or d.alias,)
         }
-        numeric_ids = [i for i in defns_to_maybe_numeric_ids.values() if i is not None]
+        numeric_ids = uniq(i for i in defns_to_maybe_numeric_ids.values() if i is not None)
         if not numeric_ids:
             return await super().resolve(defns)
 
@@ -706,10 +707,12 @@ class CfCoreResolver(BaseResolver):
             response.raise_for_status()
             response_json: _CfCoreModsResponseSansPagination = await response.json()
 
-        numeric_ids_to_addons = {str(r['id']): r for r in response_json['data']}
+        numeric_ids_to_addons: dict[str | None, _CfCoreMod] = {
+            str(r['id']): r for r in response_json['data']
+        }
         results = await gather(
             (
-                self.resolve_one(d, numeric_ids_to_addons.get(i) if i is not None else i)
+                self.resolve_one(d, numeric_ids_to_addons.get(i))
                 for d, i in defns_to_maybe_numeric_ids.items()
             ),
             manager.capture_manager_exc_async,
