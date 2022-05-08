@@ -931,6 +931,7 @@ class _EditableConfigOptions(StrEnum):
     game_flavour = 'game_flavour'
     auto_update_check = 'auto_update_check'
     github_access_token = 'access_tokens.github'
+    cfcore_access_token = 'access_tokens.cfcore'
 
 
 @cli.command()
@@ -955,7 +956,7 @@ def configure(
 ) -> Config:
     "Configure instawow."
     from .common import infer_flavour_from_path
-    from .prompts import AttrFieldValidator, ask, confirm, path, select
+    from .prompts import AttrFieldValidator, ask, confirm, password, path, select
 
     if not config_options:
         config_options = {
@@ -1011,6 +1012,11 @@ def configure(
     ):
         github_access_token = asyncio.run(_github_oauth_flow())
         global_config_values['access_tokens']['github'] = github_access_token
+
+    if _EditableConfigOptions.cfcore_access_token in config_options:
+        global_config_values['access_tokens']['cfcore'] = ask(
+            password('Enter CFCore access token:')
+        )
 
     global_config = config_converter.structure(global_config_values, GlobalConfig).write()
     config = config_converter.structure(

@@ -17,7 +17,7 @@ from prompt_toolkit.keys import Keys
 from prompt_toolkit.shortcuts.progress_bar import ProgressBar, formatters
 from prompt_toolkit.styles import Style
 from prompt_toolkit.validation import ValidationError, Validator
-from questionary import Choice, confirm as _confirm, path as _path
+from questionary import Choice, confirm as _confirm, password as _password, path as _path
 from questionary.prompts.common import InquirerControl, Separator, create_inquirer_layout
 from questionary.question import Question
 
@@ -82,6 +82,7 @@ skip = Choice([('', 'skip')], SKIP)
 
 confirm = partial(_confirm, qmark='?', style=qstyle)
 path = partial(_path, qmark='>', style=qstyle)
+password = partial(_password, style=qstyle)
 
 
 def checkbox(message: str, choices: Sequence[Choice], **inquirer_kwargs: Any) -> Question:
