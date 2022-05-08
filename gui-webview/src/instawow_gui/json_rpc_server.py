@@ -441,31 +441,38 @@ class AddonMatch_AddonFolder(TypedDict):
 class ReconcileParams(_ProfileParamMixin, BaseParams):
     matcher: Literal['toc_source_ids', 'folder_name_subsets', 'addon_names_with_folder_names']
 
+    _MATCHERS = {
+        'toc_source_ids': matchers.match_toc_source_ids,
+        'folder_name_subsets': matchers.match_folder_name_subsets,
+        'addon_names_with_folder_names': matchers.match_addon_names_with_folder_names,
+    }
+
     async def respond(
         self, managers: _ManagerWorkQueue, app_window: toga.MainWindow | None
     ) -> list[AddonMatch]:
         leftovers = await managers.run(self.profile, t(matchers.get_unreconciled_folders))
-        match_groups: matchers.FolderAndDefnPairs = await managers.run(
-            self.profile, partial(getattr(matchers, f'match_{self.matcher}'), leftovers=leftovers)
+        match_groups = await managers.run(
+            self.profile, partial(self._MATCHERS[self.matcher], leftovers=leftovers)
         )
-        resolve_results = await managers.run(
+        resolved_defns = await managers.run(
             self.profile,
             partial(Manager.resolve, defns=uniq(d for _, b in match_groups for d in b)),
         )
-        matches = [
+        resolved_pkgs = {k: v for k, v in resolved_defns.items() if isinstance(v, models.Pkg)}
+        matched_pkgs = [
             (a, m)
             for a, s in match_groups
-            for m in ([r for d in s for r in (resolve_results[d],) if isinstance(r, models.Pkg)],)
+            for m in ([i for i in (resolved_pkgs.get(d) for d in s) if i],)
             if m
         ]
         return [
             *(
                 AddonMatch(folders=[{'name': f.name, 'version': f.version} for f in a], matches=m)
-                for a, m in matches
+                for a, m in matched_pkgs
             ),
             *(
                 AddonMatch(folders=[{'name': f.name, 'version': f.version}], matches=[])
-                for f in sorted(leftovers - frozenset(i for a, _ in matches for i in a))
+                for f in sorted(leftovers - frozenset(i for a, _ in matched_pkgs for i in a))
             ),
         ]
 
@@ -492,14 +499,15 @@ class GetReconcileInstalledCandidatesParams(_ProfileParamMixin, BaseParams):
         defn_groups = await managers.run(
             self.profile, partial(Manager.find_equivalent_pkg_defns, pkgs=installed_pkgs)
         )
-        resolve_results = await managers.run(
+        resolved_defns = await managers.run(
             self.profile,
             partial(Manager.resolve, defns=uniq(d for b in defn_groups.values() for d in b)),
         )
+        resolved_pkgs = {k: v for k, v in resolved_defns.items() if isinstance(v, models.Pkg)}
         return [
             {'installed_addon': p, 'alternative_addons': m}
             for p, s in defn_groups.items()
-            for m in ([r for d in s for r in (resolve_results[d],) if isinstance(r, models.Pkg)],)
+            for m in ([i for i in (resolved_pkgs.get(d) for d in s) if i],)
             if m
         ]
 

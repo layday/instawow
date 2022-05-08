@@ -9,7 +9,7 @@ from tempfile import gettempdir
 import typing
 from typing import Any, TypeVar
 
-from attrs import Attribute, field, fields, frozen
+from attrs import Attribute, field, fields, frozen, has, resolve_types
 from cattrs import GenConverter
 from cattrs.gen import make_dict_unstructure_fn, override  # pyright: ignore
 from cattrs.preconf.json import configure_converter
@@ -80,7 +80,7 @@ def _encode_config_for_display(config: object):
 
 
 def _write_config(config: object, config_path: Path, fields_to_include: Set[str]):
-    config_cls = type(config)
+    config_cls = config.__class__
     converter = make_config_converter()
     converter.register_unstructure_hook(
         config_cls,
@@ -277,9 +277,11 @@ class Config:
 
 
 config_converter = make_config_converter()
-config_converter.register_structure_hook(
-    GlobalConfig,
-    lambda c, t: c if isinstance(c, t) else config_converter.structure_attrs_fromdict(c, t),
+config_converter.register_structure_hook_func(
+    has,
+    lambda c, t: (
+        c if isinstance(c, t) else config_converter.structure_attrs_fromdict(c, resolve_types(t))
+    ),
 )
 
 

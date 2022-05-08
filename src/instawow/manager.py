@@ -543,10 +543,10 @@ class Manager:
                 if d.source != pkg.source
             )
 
-        resolver_sources = list(self.resolvers.keys())
+        source_ids = list(self.resolvers)
 
         return {
-            p: sorted(d, key=lambda d: resolver_sources.index(d.source))
+            p: sorted(d, key=lambda d: source_ids.index(d.source))
             for p in pkgs
             for d in (get_catalogue_defns(p) | await t(extract_addon_toc_defns)(p),)
             if d
