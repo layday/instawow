@@ -11,3 +11,15 @@ export enum ListFormat {
   Compact,
   Expanded,
 }
+
+export enum AddonAction {
+  VisitHomepage,
+  ViewChangelog,
+  RevealFolder,
+  Resolve,
+  Rollback,
+  Pin,
+  Unpin,
+  Unreconcile,
+  InstallAndReplace,
+}

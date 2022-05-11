@@ -17,7 +17,7 @@
     SuccessResult,
   } from "../api";
   import { addonToDefn, Api, ChangelogFormat, ReconciliationStage, Strategy } from "../api";
-  import { ListFormat, View } from "../constants";
+  import { AddonAction, ListFormat, View } from "../constants";
   import type { RequestObject } from "../ipc";
   import { api, profiles } from "../store";
   import AddonComponent from "./Addon.svelte";
@@ -428,16 +428,16 @@
     addonContextMenu = true;
   };
 
-  const handleAddonContextMenuSelection = async (addon: Addon, selection: string) => {
+  const handleAddonContextMenuSelection = async (addon: Addon, selection: AddonAction) => {
     addonContextMenu = false;
 
-    if (selection === "visit-home-page") {
+    if (selection === AddonAction.VisitHomepage) {
       profileApi.openUrl(addon.url);
-    } else if (selection === "view-changelog") {
+    } else if (selection === AddonAction.ViewChangelog) {
       showChangelogModal(addon);
-    } else if (selection === "reveal-folder") {
+    } else if (selection === AddonAction.RevealFolder) {
       profileApi.revealFolder([config.addon_dir, addon.folders[0].name]);
-    } else if (selection === "resolve") {
+    } else if (selection === AddonAction.Resolve) {
       resetSearchState();
       [searchTerms, searchFromAlias, searchStrategy, searchVersion] = [
         createAddonToken(addon),
@@ -446,17 +446,17 @@
         addon.version,
       ];
       await search();
-    } else if (selection === "rollback") {
+    } else if (selection === AddonAction.Rollback) {
       showRollbackModal(addon);
-    } else if (selection === "pin" || selection === "unpin") {
+    } else if (selection === AddonAction.Pin || selection === AddonAction.Unpin) {
       const pinnedAddon = {
         ...addon,
-        options: { strategy: selection === "pin" ? Strategy.version : Strategy.default },
+        options: { strategy: selection === AddonAction.Pin ? Strategy.version : Strategy.default },
       };
       await pinAddons([pinnedAddon]);
-    } else if (selection === "unreconcile") {
+    } else if (selection === AddonAction.Unreconcile) {
       await removeAddons([addon], true);
-    } else if (selection === "install-and-replace") {
+    } else if (selection === AddonAction.InstallAndReplace) {
       await installAddons([addon], true);
     }
   };
