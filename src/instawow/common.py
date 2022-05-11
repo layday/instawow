@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from collections.abc import Set
 from enum import Enum
 import os
 from pathlib import PurePath
+import typing
 from typing import TypeVar
 
 from attrs import frozen
@@ -90,5 +90,5 @@ class ChangelogFormat(StrEnum):
 class SourceMetadata:
     id: str
     name: str
-    strategies: Set[Strategy]
+    strategies: typing.FrozenSet[Strategy]
     changelog_format: ChangelogFormat
