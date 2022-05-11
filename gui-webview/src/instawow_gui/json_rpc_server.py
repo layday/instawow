@@ -1,5 +1,4 @@
-# pyright: reportUnknownMemberType = false
-# pyright: reportUnknownParameterType = false
+# pyright: reportUnknownMemberType=false, reportUnknownParameterType=false
 
 from __future__ import annotations
 
@@ -566,7 +565,7 @@ class RevealFolderParams(BaseParams):
 
 
 class SelectFolderResult(TypedDict):
-    selection: str | None
+    selection: Path | None
 
 
 @_register_method('assist/select_folder')
@@ -578,10 +577,10 @@ class SelectFolderParams(BaseParams):
     ) -> SelectFolderResult:
         if not app_window:
             raise RuntimeError('No app to bind to')
+
+        selection: Path | None
         try:
-            (
-                selection,  # pyright: ignore[reportUnknownVariableType]
-            ) = app_window.select_folder_dialog('Select folder', self.initial_folder)
+            selection = await app_window.select_folder_dialog('Select folder', self.initial_folder)
         except ValueError:
             selection = None
         return {'selection': selection}
@@ -601,9 +600,8 @@ class ConfirmDialogueParams(BaseParams):
     ) -> ConfirmDialogueResult:
         if not app_window:
             raise RuntimeError('No app to bind to')
-        ok = app_window.confirm_dialog(  # pyright: ignore[reportUnknownVariableType]
-            self.title, self.message
-        )
+
+        ok: bool = await app_window.confirm_dialog(self.title, self.message)
         return {'ok': ok}
 
 
