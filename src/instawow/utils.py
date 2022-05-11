@@ -74,12 +74,12 @@ def fill(it: Iterable[_T], fill: _T, number: int) -> Iterable[_T]:
     return islice(chain(it, repeat(fill)), 0, number)
 
 
-def bucketise(iterable: Iterable[_U], key: Callable[[_U], _T]) -> defaultdict[_T, list[_U]]:
+def bucketise(iterable: Iterable[_U], key: Callable[[_U], _T]) -> dict[_T, list[_U]]:
     "Place the elements of an iterable in a bucket according to ``key``."
     bucket: defaultdict[_T, list[_U]] = defaultdict(list)
     for value in iterable:
         bucket[key(value)].append(value)
-    return bucket
+    return dict(bucket)
 
 
 def chain_dict(
