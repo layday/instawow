@@ -239,6 +239,14 @@ def test_install_argument_is_not_required(
     )
 
 
+def test_install_invalid_defn(
+    run: C[[str], Result],
+):
+    result = run('install foo')
+    assert result.exit_code == 2
+    assert result.output.endswith("Error: Invalid value for '[ADDONS]...': foo\n")
+
+
 def test_configure__show_active_profile(
     iw_config: Config,
     run: C[[str], Result],
@@ -246,13 +254,15 @@ def test_configure__show_active_profile(
     assert run('configure --show-active').output == iw_config.encode_for_display() + '\n'
 
 
+@pytest.mark.parametrize('command', ['configure', 'list'], ids=['explicit', 'implicit'])
 def test_configure__create_new_profile(
     feed_pt: C[[str], None],
     iw_config: Config,
     run: C[[str], Result],
+    command: str,
 ):
     feed_pt(f'{iw_config.addon_dir}\r\rY\r')
-    assert run('-p foo configure').output == (
+    assert run(f'-p foo {command}').output == (
         'Navigate to https://github.com/login/device and paste the code below:\n'
         '  WDJB-MJHT\n'
         'Waiting...\n'
@@ -378,6 +388,20 @@ def test_reconcile__list_unreconciled(
     )
 
 
+def test_reconcile_leftovers(
+    feed_pt: C[[str], None],
+    pretend_install_molinari_and_run: C[[str], Result],
+):
+    feed_pt('sss')  # Skip
+    assert pretend_install_molinari_and_run('reconcile').output.endswith(
+        # fmt: off
+        'unreconciled\n'
+        '------------\n'
+        'Molinari    \n'
+        # fmt: on
+    )
+
+
 def test_reconcile__auto_reconcile(
     pretend_install_molinari_and_run: C[[str], Result],
     molinari_version: str,
@@ -443,7 +467,6 @@ def test_reconcile__cannot_use_auto_with_installed(
     assert 'Cannot use "--auto" with "--installed"' in result.output
 
 
-@pytest.mark.skip
 def test_search__no_results(
     run: C[[str], Result],
 ):
