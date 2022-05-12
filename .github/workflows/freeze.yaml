@@ -17,7 +17,7 @@ jobs:
         with:
           fetch-depth: 0
       - name: Install Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v3
         with:
           python-version: "3.9"
       - name: Install dunamai
@@ -38,7 +38,7 @@ jobs:
         with:
           fetch-depth: 0
       - name: Install Python 3.9
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v3
         with:
           python-version: "3.9"
       - name: Install nox
@@ -81,7 +81,7 @@ jobs:
           libgirepository1.0-dev gir1.2-javascriptcoregtk-4.0 gir1.2-webkit2-4.0
         if: matrix.build-env.os == 'ubuntu-18.04'
       - name: Install Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v3
         with:
           python-version: ${{ matrix.build-env.python-version }}
       - name: Install Nox
