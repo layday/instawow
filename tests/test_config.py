@@ -15,17 +15,14 @@ def test_env_vars_have_prio(
     iw_global_config_values: dict[str, Any],
     iw_config_values: dict[str, Any],
 ):
-    monkeypatch.setenv('INSTAWOW_CONFIG_DIR', str(iw_global_config_values['config_dir']))
+    monkeypatch.setenv('INSTAWOW_CONFIG_DIR', '/foo')
     monkeypatch.setenv('INSTAWOW_GAME_FLAVOUR', 'classic')
 
-    global_config = GlobalConfig(**iw_global_config_values).write().read()
-    config = (
-        Config(global_config=global_config, **iw_config_values)
-        .write()
-        .read(global_config, iw_config_values['profile'])
+    config = Config.from_env(
+        global_config=GlobalConfig.from_env(**iw_global_config_values),
+        **iw_config_values,
     )
-
-    assert global_config.config_dir == iw_global_config_values['config_dir']
+    assert config.global_config.config_dir == Path('/foo')
     assert config.game_flavour is Flavour.burning_crusade_classic
 
 
