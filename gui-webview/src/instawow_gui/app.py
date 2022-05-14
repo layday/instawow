@@ -3,6 +3,7 @@ from __future__ import annotations
 from functools import partial
 import json
 import os
+from typing import Any
 
 from loguru import logger
 import toga
@@ -32,6 +33,15 @@ class InstawowApp(toga.App):
             ctypes.windll.user32.SetProcessDPIAware()
 
         self.main_window.content = web_view = toga.WebView(style=toga.style.Pack(flex=1))
+
+        if os.name == 'nt':
+            from toga_winforms.widgets.webview import TogaWebBrowser
+
+            def configure_webview2(sender: TogaWebBrowser, event_args: Any):
+                if event_args.IsSuccess:
+                    sender.CoreWebView2.Settings.AreBrowserAcceleratorKeysEnabled = False
+
+            web_view.native.CoreWebView2InitializationCompleted += configure_webview2
 
         def dispatch_js_keyboard_event(_: toga.Command, *, action: str):
             event_args = json.dumps(
