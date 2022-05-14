@@ -1,17 +1,11 @@
 from __future__ import annotations
 
-import io
 from pathlib import Path
-import posixpath
 from textwrap import dedent
-from urllib.request import urlopen
-from zipfile import ZipFile
 
 import nox
 
 nox.options.sessions = ['format', 'test', 'type_check']
-
-WEBVIEW2_VERSION = '1.0.1054.31'
 
 
 def mirror_repo(session: nox.Session):
@@ -127,24 +121,6 @@ def bundle_frontend(session: nox.Session):
     session.chdir('gui-webview/frontend')
     session.run('npm', 'install', external=True)
     session.run('npx', 'rollup', '-c', external=True)
-
-
-@nox.session(python=False)
-def bundle_webview2_libs(session: nox.Session):
-    with urlopen(
-        f'https://www.nuget.org/api/v2/package/Microsoft.Web.WebView2/{WEBVIEW2_VERSION}'
-    ) as response:
-        with ZipFile(io.BytesIO(response.read())) as nupkg:
-            for file_path in [
-                'LICENSE.txt',
-                'lib/net45/Microsoft.Web.WebView2.Core.dll',
-                'lib/net45/Microsoft.Web.WebView2.WinForms.dll',
-                'runtimes/win-x64/native/WebView2Loader.dll',
-            ]:
-                with nupkg.open(file_path) as file_in, Path(
-                    'gui-webview/src/instawow_gui/webview2', posixpath.basename(file_path)
-                ).open('wb') as file_out:
-                    file_out.write(file_in.read())
 
 
 @nox.session

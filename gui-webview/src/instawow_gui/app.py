@@ -4,7 +4,6 @@ from functools import partial
 import json
 import os
 
-import click
 from loguru import logger
 import toga
 import toga.constants
@@ -25,43 +24,14 @@ class InstawowApp(toga.App):
 
     def startup(self) -> None:
         self.main_window = toga.MainWindow(title=self.formal_name, size=(800, 600))
+
         if os.name == 'nt':
             import ctypes
-
-            from . import webview2_adapter
 
             # Enable high DPI support.
             ctypes.windll.user32.SetProcessDPIAware()
 
-            if not webview2_adapter.is_webview2_installed():
-                self.main_window.content = toga.Box(
-                    style=toga.style.Pack(
-                        alignment=toga.constants.CENTER, direction=toga.constants.COLUMN
-                    ),
-                    children=[
-                        toga.Label(
-                            'WebView2 is required to run instawow.  Please install it '
-                            'and restart instawow.',
-                            style=toga.style.Pack(text_align=toga.constants.CENTER, padding=10),
-                        ),
-                        toga.Button(
-                            'Download WebView2',
-                            on_press=lambda _: click.launch(
-                                'https://developer.microsoft.com/en-us/microsoft-edge/webview2/'
-                            ),
-                            style=toga.style.Pack(width=200),
-                        ),
-                    ],
-                )
-                self.main_window.show()
-                return
-
-            self.main_window.content = web_view = toga.WebView(
-                style=toga.style.Pack(flex=1), factory=webview2_adapter.Factory
-            )
-
-        else:
-            self.main_window.content = web_view = toga.WebView(style=toga.style.Pack(flex=1))
+        self.main_window.content = web_view = toga.WebView(style=toga.style.Pack(flex=1))
 
         def dispatch_js_keyboard_event(_: toga.Command, *, action: str):
             event_args = json.dumps(

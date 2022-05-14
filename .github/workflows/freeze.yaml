@@ -88,9 +88,6 @@ jobs:
         run: python -m pip install nox
       - name: Bundle the frontend
         run: nox -s bundle_frontend
-      - name: Bundle WebView2 libraries
-        run: nox -s bundle_webview2_libs
-        if: matrix.build-env.os == 'windows-latest'
       - name: Patch in the version number
         run: sed -i.bak
           's/version = "0.0.0"/version = "${{ needs.get-version.outputs.instawow-version }}"/'
