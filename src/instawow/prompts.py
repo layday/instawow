@@ -56,8 +56,10 @@ class AttrFieldValidator(Validator):
     def validate(self, document: Document) -> None:
         try:
             self._converter.structure({self._field_name: document.text}, self._FieldWrapper)
-        except ExceptionGroup as exc:
-            raise ValidationError(0, '\n'.join(map(str, exc.exceptions)))
+        except ExceptionGroup as exc_group:
+            raise ValidationError(0, '\n'.join(map(str, exc_group.exceptions)))
+        except Exception as exc:
+            raise ValidationError(0, str(exc))
 
 
 class PkgChoice(Choice):
