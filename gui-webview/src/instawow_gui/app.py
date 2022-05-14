@@ -41,7 +41,7 @@ class InstawowApp(toga.App):
                 if event_args.IsSuccess:
                     sender.CoreWebView2.Settings.AreBrowserAcceleratorKeysEnabled = False
 
-            web_view.native.CoreWebView2InitializationCompleted += configure_webview2
+            web_view._impl.native.CoreWebView2InitializationCompleted += configure_webview2
 
         def dispatch_js_keyboard_event(_: toga.Command, *, action: str):
             event_args = json.dumps(
