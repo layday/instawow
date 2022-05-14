@@ -45,7 +45,7 @@ from instawow.manager import (
     is_outdated,
 )
 from instawow.resolvers import Defn
-from instawow.utils import run_in_thread as t, uniq
+from instawow.utils import reveal_folder, run_in_thread as t, uniq
 
 from . import frontend
 
@@ -561,7 +561,7 @@ class RevealFolderParams(BaseParams):
     async def respond(
         self, managers: _ManagerWorkQueue, app_window: toga.MainWindow | None
     ) -> None:
-        click.launch(os.path.join(*self.path_parts), locate=True)
+        reveal_folder(os.path.join(*self.path_parts))
 
 
 class SelectFolderResult(TypedDict):

@@ -28,7 +28,7 @@ from .common import Flavour, Strategy
 from .config import Config, GlobalConfig, config_converter, setup_logging
 from .plugins import load_plugins
 from .resolvers import ChangelogFormat, Defn
-from .utils import StrEnum, all_eq, cached_property, gather, tabulate, uniq
+from .utils import StrEnum, all_eq, cached_property, gather, reveal_folder, tabulate, uniq
 
 _T = TypeVar('_T')
 _F = TypeVar('_F', bound='Callable[..., object]')
@@ -808,7 +808,7 @@ def reveal(mw: _CtxObjWrapper, addon: Defn) -> None:
     "Bring an add-on up in your file manager."
     pkg = mw.manager.get_pkg(addon, partial_match=True)
     if pkg:
-        click.launch(str(mw.manager.config.addon_dir / pkg.folders[0].name), locate=True)
+        reveal_folder(mw.manager.config.addon_dir / pkg.folders[0].name)
     else:
         Report([(addon, R.PkgNotInstalled())]).generate_and_exit()
 

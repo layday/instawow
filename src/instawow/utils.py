@@ -11,6 +11,7 @@ import os
 from pathlib import Path, PurePath
 import posixpath
 from shutil import move as _move
+import sys
 from tempfile import mkdtemp
 from typing import Any, Generic, Hashable, TypeVar, overload
 
@@ -261,3 +262,12 @@ def normalise_names(replace_delim: str) -> Callable[[str], str]:
         return replace_delim.join(value.casefold().translate(trans_table).split())
 
     return normalise
+
+
+def reveal_folder(path: str | os.PathLike[str]) -> None:
+    if sys.platform == 'win32':
+        os.startfile(path, 'explore')
+    else:
+        import click
+
+        click.launch(os.fspath(path), locate=True)
