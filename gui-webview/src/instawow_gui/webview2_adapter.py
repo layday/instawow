@@ -37,8 +37,9 @@ class WebView2Widget(Widget):
         self.native = WebView2()
         self.native.interface = self.interface
 
-        def on_initialization_completed(sender, event_args):
-            pass
+        def on_initialization_completed(sender, event):
+            if event.IsSuccess:
+                sender.CoreWebView2.Settings.AreBrowserAcceleratorKeysEnabled = False
 
         self.native.CoreWebView2InitializationCompleted += on_initialization_completed
 
