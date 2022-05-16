@@ -2,7 +2,7 @@
   import { faFolderOpen, faTrashAlt } from "@fortawesome/free-solid-svg-icons";
   import { JSONRPCError } from "@open-rpc/client-js";
   import { fade } from "svelte/transition";
-  import type { Config, PydanticValidationError } from "../api";
+  import type { Config, ValidationError } from "../api";
   import { Flavour } from "../api";
   import { activeProfile, api, profiles } from "../store";
   import Icon from "./SvgIcon.svelte";
@@ -50,7 +50,7 @@
     } catch (error) {
       if (error instanceof JSONRPCError) {
         errors = new Map(
-          (error.data as PydanticValidationError[]).map(({ loc: [loc], msg }) => [loc, msg])
+          (error.data as ValidationError[]).map(({ loc: [loc], msg }) => [loc, msg])
         );
         return;
       } else {

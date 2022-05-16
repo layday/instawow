@@ -156,7 +156,7 @@ export type ConfirmDialogueResult = {
   ok: boolean;
 };
 
-export type PydanticValidationError = {
+export type ValidationError = {
   loc: string[];
   msg: string;
 };
