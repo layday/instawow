@@ -11,7 +11,7 @@ from instawow.common import Flavour, Strategy
 from instawow.manager import Manager
 from instawow.models import Pkg
 from instawow.resolvers import (
-    CurseResolver,
+    CfCoreResolver,
     Defn,
     GithubResolver,
     Resolver,
@@ -29,16 +29,17 @@ async def test_curse_simple_strategies(iw_manager: Manager, strategy: Strategy):
     results = await iw_manager.resolve([flavourful, retail_only, classic_only])
 
     if iw_manager.config.game_flavour is Flavour.vanilla_classic:
-        assert results[flavourful].version.endswith('Release-classic')
-        assert (
-            type(results[retail_only]) is R.PkgFileUnavailable
-            and results[retail_only].message
-            == f"no files matching vanilla_classic using {strategy} strategy"
-        )
+        if strategy is Strategy.default:
+            assert (
+                type(results[retail_only]) is R.PkgFileUnavailable
+                and results[retail_only].message
+                == f"no files matching vanilla_classic using {strategy} strategy"
+            )
+        else:
+            assert type(results[retail_only]) is Pkg
         assert type(results[classic_only]) is Pkg
 
     elif iw_manager.config.game_flavour is Flavour.burning_crusade_classic:
-        assert results[flavourful].version.endswith('Release-bcc')
         assert (
             type(results[retail_only]) is R.PkgFileUnavailable
             and results[retail_only].message
@@ -47,7 +48,6 @@ async def test_curse_simple_strategies(iw_manager: Manager, strategy: Strategy):
         assert type(results[classic_only]) is Pkg
 
     elif iw_manager.config.game_flavour is Flavour.retail:
-        assert results[flavourful].version.endswith('Release')
         assert type(results[retail_only]) is Pkg
         assert (
             type(results[classic_only]) is R.PkgFileUnavailable
@@ -69,11 +69,11 @@ async def test_curse_any_flavour_strategy(iw_manager: Manager):
 
 
 async def test_curse_version_pinning(iw_manager: Manager):
-    defn = Defn('curse', 'molinari').with_version('70300.51-Release')
+    defn = Defn('curse', 'molinari').with_version('80000.58-Release')
     results = await iw_manager.resolve([defn])
     assert (
         results[defn].options.strategy == Strategy.version
-        and results[defn].version == '70300.51-Release'
+        and results[defn].version == '80000.58-Release'
     )
 
 
@@ -94,7 +94,7 @@ async def test_curse_changelog_is_url(iw_manager: Manager):
 
     results = await iw_manager.resolve([molinari])
     assert re.match(
-        r'https://addons-ecs\.forgesvc\.net/api/v2/addon/\d+/file/\d+/changelog',
+        r'https://api\.curseforge\.com/v1/mods/\d+/files/\d+/changelog',
         results[molinari].changelog_url,
     )
 
@@ -199,8 +199,8 @@ async def test_unsupported_strategies(iw_manager: Manager, resolver: Resolver):
 @pytest.mark.parametrize(
     ('resolver', 'url', 'extracted_alias'),
     [
-        (CurseResolver, 'https://www.curseforge.com/wow/addons/molinari', 'molinari'),
-        (CurseResolver, 'https://www.curseforge.com/wow/addons/molinari/download', 'molinari'),
+        (CfCoreResolver, 'https://www.curseforge.com/wow/addons/molinari', 'molinari'),
+        (CfCoreResolver, 'https://www.curseforge.com/wow/addons/molinari/download', 'molinari'),
         (WowiResolver, 'https://www.wowinterface.com/downloads/landing.php?fileid=13188', '13188'),
         (WowiResolver, 'https://wowinterface.com/downloads/landing.php?fileid=13188', '13188'),
         (WowiResolver, 'https://www.wowinterface.com/downloads/fileinfo.php?id=13188', '13188'),

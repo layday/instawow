@@ -10,7 +10,7 @@ from aiohttp.test_utils import TestClient, TestServer
 import pytest
 from yarl import URL
 
-from instawow.config import Config, make_config_converter
+from instawow.config import Config, GlobalConfig, config_converter
 
 try:
     from instawow_gui import json_rpc_server
@@ -65,11 +65,14 @@ async def test_disparate_origin_api_request_rejected(
 
 
 async def test_write_config(
+    monkeypatch: pytest.MonkeyPatch,
     request: pytest.FixtureRequest,
     iw_global_config_values: dict[str, Any],
     iw_config_values: dict[str, Any],
     ws: ClientWebSocketResponse,
 ):
+    monkeypatch.setenv('INSTAWOW_CONFIG_DIR', str(iw_global_config_values['config_dir']))
+    global_config = config_converter.structure(iw_global_config_values, GlobalConfig).write()
     config_values = {**iw_config_values, 'profile': request.node.name}
     rpc_request = {
         'jsonrpc': '2.0',
@@ -80,10 +83,9 @@ async def test_write_config(
     await ws.send_json(rpc_request, dumps=dumps)
     rpc_response = await ws.receive_json()
     assert rpc_response['id'] == request.node.name
-    converter = make_config_converter()
-    assert converter.structure(rpc_response['result'], Config) == converter.structure(
-        {'global_config': iw_global_config_values, **config_values}, Config
-    )
+    assert config_converter.structure(
+        rpc_response['result'], Config
+    ) == config_converter.structure({'global_config': global_config, **config_values}, Config)
 
 
 async def test_write_config_with_invalid_params(

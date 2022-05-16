@@ -1,32 +1,20 @@
 {
   "releases": [
     {
-      "filename": "Molinari-90105.81-Release-bcc.zip",
-      "nolib": false,
-      "metadata": [
-        {
-          "flavor": "bcc",
-          "interface": 20502
-        }
-      ]
-    },
-    {
-      "filename": "Molinari-90105.81-Release-classic.zip",
+      "filename": "Molinari-90200.82-Release.zip",
       "nolib": false,
       "metadata": [
         {
           "flavor": "classic",
-          "interface": 11400
-        }
-      ]
-    },
-    {
-      "filename": "Molinari-90105.81-Release.zip",
-      "nolib": false,
-      "metadata": [
+          "interface": 11401
+        },
         {
           "flavor": "mainline",
-          "interface": 90105
+          "interface": 90200
+        },
+        {
+          "flavor": "bcc",
+          "interface": 20503
         }
       ]
     }

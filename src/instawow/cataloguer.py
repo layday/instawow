@@ -64,7 +64,7 @@ class Catalogue:
 
     @classmethod
     def from_base_catalogue(cls, unstructured_base_catalogue: object, start_date: datetime | None):
-        from .resolvers import CurseResolver, GithubResolver
+        from .resolvers import CfCoreResolver, GithubResolver
 
         normalise = normalise_names('')
 
@@ -104,7 +104,7 @@ class Catalogue:
         ]
         return cls(
             entries=entries,
-            curse_slugs={e.slug: e.id for e in entries if e.source == CurseResolver.metadata.id},
+            curse_slugs={e.slug: e.id for e in entries if e.source == CfCoreResolver.metadata.id},
         )
 
     @cached_property

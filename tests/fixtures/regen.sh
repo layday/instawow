@@ -4,15 +4,19 @@
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null 2>&1 && pwd)"
 
 
-echo '[2382,20338,23350,288981,322865,2398,326516,333072,402180]' \
-    | http post https://addons-ecs.forgesvc.net/api/v2/addon -b \
+echo '{"modIds": [2382, 20338, 23350, 288981, 322865, 2398, 326516, 333072, 402180]}' \
+    | http post https://api.curseforge.com/v1/mods \
+        x-api-key:$CFCORE_API_KEY -b \
     | jq -r \
     > "$DIR"/curse-addon--all.json
-http get https://addons-ecs.forgesvc.net/api/v2/addon/20338/files -b \
+http get https://api.curseforge.com/v1/mods/20338/files \
+        x-api-key:$CFCORE_API_KEY -b \
     | jq -r \
     > "$DIR"/curse-addon-files.json
-http get https://addons-ecs.forgesvc.net/api/v2/addon/20338/file/3576747/changelog -b \
-    > "$DIR"/curse-addon-changelog.txt
+http get https://api.curseforge.com/v1/mods/20338/files/3657564/changelog \
+        x-api-key:$CFCORE_API_KEY -b \
+    | jq -r \
+    > "$DIR"/curse-addon-changelog.json
 
 
 http get https://api.mmoui.com/v3/game/WOW/filelist.json -b \
@@ -55,7 +59,7 @@ http get 'https://api.github.com/repos/p3lim-wow/Molinari' -b \
 http get 'https://api.github.com/repos/p3lim-wow/Molinari/releases/latest' -b \
     | jq -r \
     > "$DIR"/github-release-molinari.json
-http --follow get 'https://github.com/p3lim-wow/Molinari/releases/download/90105.81-Release/release.json' -b \
+http --follow get 'https://github.com/p3lim-wow/Molinari/releases/download/90200.82-Release/release.json' -b \
     | jq -r \
     > "$DIR"/github-release-molinari-release-json.json
 http get 'https://api.github.com/repos/ketho-wow/RaidFadeMore' -b \

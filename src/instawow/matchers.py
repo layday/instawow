@@ -11,14 +11,14 @@ from typing_extensions import Self, TypeAlias
 from . import manager
 from .common import Flavour
 from .db import pkg_folder
-from .resolvers import CurseResolver, Defn, TukuiResolver, WowiResolver
+from .resolvers import CfCoreResolver, Defn, TukuiResolver, WowiResolver
 from .utils import TocReader, bucketise, cached_property, merge_intersecting_sets, uniq
 
 FolderAndDefnPairs: TypeAlias = 'list[tuple[list[AddonFolder], list[Defn]]]'
 
 
 _SOURCE_TOC_IDS = {
-    'X-Curse-Project-ID': CurseResolver.metadata.id,
+    'X-Curse-Project-ID': CfCoreResolver.metadata.id,
     'X-Tukui-ProjectID': TukuiResolver.metadata.id,
     'X-WoWI-ID': WowiResolver.metadata.id,
 }
@@ -121,9 +121,14 @@ async def match_toc_source_ids(
     folders_grouped_by_overlapping_defns = bucketise(
         addons_with_toc_source_ids, lambda a: next(d for d in merged_defns if a.defns_from_toc & d)
     )
-    source_sort_order = list(manager.resolvers.keys())
+
+    source_sort_order = {n: i for i, n in enumerate(manager.resolvers)}
+
     return [
-        (f, sorted(b, key=lambda d: source_sort_order.index(d.source)))
+        (
+            f,
+            sorted(b, key=lambda d: source_sort_order.get(d.source, -1)),
+        )
         for b, f in folders_grouped_by_overlapping_defns.items()
     ]
 
@@ -145,10 +150,10 @@ async def match_folder_name_subsets(
         matches, lambda v: next(f for f in merged_folders if v[0] & f)
     )
 
-    source_sort_order = list(manager.resolvers.keys())
+    source_sort_order = {n: i for i, n in enumerate(manager.resolvers)}
 
     def sort_key(folders: frozenset[AddonFolder], defn: Defn):
-        return (-len(folders), source_sort_order.index(defn.source))
+        return (-len(folders), source_sort_order.get(defn.source, -1))
 
     return [
         (sorted(f), uniq(d for _, d in sorted(b, key=lambda v: sort_key(*v))))

@@ -16,7 +16,7 @@ import pytest
 
 from instawow import __version__
 from instawow.common import Flavour
-from instawow.config import Config, GlobalConfig
+from instawow.config import Config, GlobalConfig, SecretStr, _AccessTokens
 from instawow.manager import Manager, contextualise, init_web_client
 
 inf = float('inf')
@@ -74,7 +74,11 @@ def iw_temp_dir(tmp_path_factory: pytest.TempPathFactory):
 
 @pytest.fixture
 def iw_global_config_values(tmp_path: Path, iw_temp_dir: Path):
-    return {'temp_dir': iw_temp_dir, 'config_dir': tmp_path / 'config'}
+    return {
+        'temp_dir': iw_temp_dir,
+        'config_dir': tmp_path / 'config',
+        'access_tokens': _AccessTokens(cfcore=SecretStr('foo')),
+    }
 
 
 @pytest.fixture(params=Flavour)
@@ -124,24 +128,24 @@ def mock_aiohttp_requests(aresponses: ResponsesMockServer):
     )
 
     aresponses.add(
-        'addons-ecs.forgesvc.net',
-        '/api/v2/addon',
+        'api.curseforge.com',
+        '/v1/mods',
         'post',
         load_json_fixture('curse-addon--all.json'),
         repeat=inf,
     )
     aresponses.add(
-        'addons-ecs.forgesvc.net',
-        '/api/v2/addon/20338/files',
+        'api.curseforge.com',
+        '/v1/mods/20338/files',
         'get',
         load_json_fixture('curse-addon-files.json'),
         repeat=inf,
     )
     aresponses.add(
-        'addons-ecs.forgesvc.net',
-        re.compile(r'^/api/v2/addon/20338/file/(\d+)/changelog'),
+        'api.curseforge.com',
+        re.compile(r'^/v1/mods/20338/files/(\d+)/changelog'),
         'get',
-        aresponses.Response(text=load_fixture('curse-addon-changelog.txt').decode()),
+        load_json_fixture('curse-addon-changelog.json'),
         repeat=inf,
     )
     aresponses.add(
@@ -283,7 +287,7 @@ def mock_aiohttp_requests(aresponses: ResponsesMockServer):
     aresponses.add(
         'github.com',
         re.compile(
-            r'^/p3lim-wow/Molinari/releases/download/90105\.81-Release/release\.json$',
+            fr'^/{re.escape("p3lim-wow/Molinari/releases/download/90200.82-Release/release.json")}$',
             re.IGNORECASE,
         ),
         'get',

@@ -54,7 +54,7 @@ async def test_resolve_rewraps_exception_appropriately_from_resolve(
     async def resolve_one(self, defn, metadata):
         raise exception
 
-    monkeypatch.setattr('instawow.resolvers.CurseResolver.resolve_one', resolve_one)
+    monkeypatch.setattr('instawow.resolvers.CfCoreResolver.resolve_one', resolve_one)
 
     defn = Defn('curse', 'molinari')
     results = await iw_manager.resolve([defn])
@@ -69,7 +69,7 @@ async def test_resolve_rewraps_exception_appropriately_from_batch_resolve(
     async def resolve(self, defns):
         raise exception
 
-    monkeypatch.setattr('instawow.resolvers.CurseResolver.resolve', resolve)
+    monkeypatch.setattr('instawow.resolvers.CfCoreResolver.resolve', resolve)
 
     defn = Defn('curse', 'molinari')
     results = await iw_manager.resolve([defn])
@@ -231,20 +231,18 @@ async def test_get_malformed_changelog(iw_manager: Manager):
         await iw_manager.get_changelog('github', '')
 
 
-async def test_get_changelog_from_file_uri(iw_manager: Manager):
-    assert (
-        await iw_manager.get_changelog(
-            'curse', (Path(__file__).parent / 'fixtures' / 'curse-addon-changelog.txt').as_uri()
-        )
-    ).startswith('<h3>Changes in 90105.81-Release:</h3>')
+async def test_get_changelog_from_file_uri(iw_manager: Manager, tmp_path: Path):
+    changelog = tmp_path / 'changelog.txt'
+    changelog.write_text('test')
+    assert (await iw_manager.get_changelog('github', changelog.as_uri())) == 'test'
 
 
 async def test_get_changelog_from_web_url(iw_manager: Manager):
     assert (
         await iw_manager.get_changelog(
-            'curse', 'https://addons-ecs.forgesvc.net/api/v2/addon/20338/file/3475338/changelog'
+            'curse', 'https://api.curseforge.com/v1/mods/20338/files/3657564/changelog'
         )
-    ).startswith('<h3>Changes in 90105.81-Release:</h3>')
+    ).startswith('<h3>Changes in 90200.82-Release:</h3>')
 
 
 @pytest.mark.iw_no_mock_http

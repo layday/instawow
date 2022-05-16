@@ -147,294 +147,6 @@ class BaseResolver(Resolver):
         yield
 
 
-class _CurseFlavor(StrEnum):
-    retail = 'wow_retail'
-    vanilla_classic = 'wow_classic'
-    burning_crusade_classic = 'wow_burning_crusade'
-
-
-class _CurseGameVersionTypeId(IntEnum):
-    retail = 517
-    vanilla_classic = 67408
-    burning_crusade_classic = 73246
-
-
-# Only documenting the fields we're actually using.
-class _CurseAddon(TypedDict):
-    id: int
-    name: str  # User-facing add-on name
-    websiteUrl: str  # e.g. 'https://www.curseforge.com/wow/addons/molinari'
-    summary: str  # One-line description of the add-on
-    downloadCount: int  # Total number of downloads
-    latestFiles: list[_CurseAddon_File]
-    gameVersionLatestFiles: list[_CurseAddon_GameVersionFile]
-    slug: str  # URL slug; 'molinari' in 'https://www.curseforge.com/wow/addons/molinari'
-    dateReleased: str  # ISO datetime of latest release
-
-
-class _CurseAddon_File(TypedDict):
-    id: int  # Unique file ID
-    displayName: str  # Tends to be the version
-    downloadUrl: str
-    fileDate: str  # Upload datetime in ISO, e.g. '2020-02-02T12:12:12Z'
-    releaseType: Literal[1, 2, 3]  # 1 = stable; 2 = beta; 3 = alpha
-    dependencies: list[_CurseAddon_FileDependency]
-    modules: list[_CurseAddon_FileModules]
-    exposeAsAlternative: bool | None
-    gameVersionFlavor: _CurseFlavor
-    sortableGameVersion: list[_CurseAddon_FileSortableGameVersion]
-
-
-class _CurseAddon_GameVersionFile(TypedDict):
-    projectFileName: str
-    gameVersionFlavor: _CurseFlavor
-    gameVersionTypeId: N[_CurseGameVersionTypeId]
-
-
-class _CurseAddon_FileDependency(TypedDict):
-    id: int  # Unique dependency ID
-    addonId: int  # The ID of the add-on we're depending on
-    # The type of dependency.  One of:
-    #   1 = embedded library
-    #   2 = optional dependency
-    #   3 = required dependency (this is the one we're after)
-    #   4 = tool
-    #   5 = incompatible
-    #   6 = include (wat)
-    type: Literal[1, 2, 3, 4, 5, 6]
-    fileId: int  # The ID of the parent file which has this as a dependency
-
-
-class _CurseAddon_FileModules(TypedDict):
-    foldername: str
-    fingerprint: int  # Folder fingerprint used by Curse for reconciliation
-    # One of:
-    #   1 = package
-    #   2 = module
-    #   3 = main module
-    #   4 = file
-    #   5 = referenced file
-    # For WoW add-ons the main folder will have type "3" and the rest
-    # of them type "2"
-    type: Literal[1, 2, 3, 4, 5]
-
-
-class _CurseAddon_FileSortableGameVersion(TypedDict):
-    gameVersionTypeId: N[_CurseGameVersionTypeId]
-
-
-class _CurseFile(TypedDict):
-    id: int
-    displayName: str
-    downloadUrl: str
-    fileDate: str  # Upload datetime in ISO, e.g. '2020-02-02T12:12:12Z'
-    releaseType: Literal[1, 2, 3]  # 1 = stable; 2 = beta; 3 = alpha
-    dependencies: list[_CurseAddon_FileDependency]
-    modules: list[_CurseAddon_FileModules]
-    gameVersionFlavor: _CurseFlavor
-
-
-class CurseResolver(BaseResolver):
-    metadata = SourceMetadata(
-        id='curse',
-        name='CurseForge',
-        strategies=frozenset(
-            {
-                Strategy.default,
-                Strategy.latest,
-                Strategy.any_flavour,
-                Strategy.version,
-            }
-        ),
-        changelog_format=ChangelogFormat.html,
-    )
-
-    addon_api_url = URL('https://addons-ecs.forgesvc.net/api/v2/addon')
-
-    @classmethod
-    def get_alias_from_url(cls, url: URL) -> str | None:
-        if (
-            url.host == 'www.curseforge.com'
-            and len(url.parts) > 3
-            and url.parts[1:3] == ('wow', 'addons')
-        ):
-            return url.parts[3].lower()
-
-    async def resolve(
-        self, defns: Sequence[Defn]
-    ) -> dict[Defn, models.Pkg | R.ManagerError | R.InternalError]:
-        catalogue = await self._manager.synchronise()
-
-        defns_to_maybe_numeric_ids = {
-            d: i if i.isdigit() else None
-            for d in defns
-            for i in (d.id or catalogue.curse_slugs.get(d.alias) or d.alias,)
-        }
-        numeric_ids = uniq(i for i in defns_to_maybe_numeric_ids.values() if i is not None)
-        async with self._manager.web_client.request(
-            'POST',
-            self.addon_api_url,
-            {'minutes': 5},
-            json=numeric_ids,
-        ) as response:
-            if response.status == 404:
-                return await super().resolve(defns)
-            else:
-                response.raise_for_status()
-                addons: list[_CurseAddon] = await response.json()
-
-        numeric_ids_to_addons = {str(r['id']): r for r in addons}
-        results = await gather(
-            (
-                self.resolve_one(d, numeric_ids_to_addons.get(i) if i is not None else i)
-                for d, i in defns_to_maybe_numeric_ids.items()
-            ),
-            manager.capture_manager_exc_async,
-        )
-        return dict(zip(defns, results))
-
-    async def resolve_one(self, defn: Defn, metadata: _CurseAddon | None) -> models.Pkg:
-        if metadata is None:
-            raise R.PkgNonexistent
-
-        if defn.strategy is Strategy.version:
-            async with self._manager.web_client.get(
-                self.addon_api_url / str(metadata['id']) / 'files',
-                {'hours': 1},
-                label=f'Fetching metadata from {self.metadata.name}',
-                raise_for_status=True,
-            ) as response:
-                all_files: list[_CurseFile] = await response.json()
-
-            file = next((f for f in all_files if defn.version == f['displayName']), None)
-            if file is None:
-                raise R.PkgFileUnavailable(f'version {defn.version} not found')
-
-        else:
-            latest_files = metadata['latestFiles']
-            if not latest_files:
-                raise R.PkgFileUnavailable('no files available for download')
-
-            def make_filter():
-                def is_not_libless(f: _CurseAddon_File):
-                    # There's also an 'isAlternate' field that's missing from some
-                    # 50 lib-less files from c. 2008.  'exposeAsAlternative' is
-                    # absent from the /file endpoint
-                    return not f['exposeAsAlternative']
-
-                yield is_not_libless
-
-                if defn.strategy is not Strategy.any_flavour:
-
-                    curse_type_id = self._manager.config.game_flavour.to_flavour_keyed_enum(
-                        _CurseGameVersionTypeId
-                    )
-
-                    def supports_flavour(f: _CurseAddon_File):
-                        return f[
-                            'gameVersionFlavor'
-                        ] == self._manager.config.game_flavour.to_flavour_keyed_enum(
-                            _CurseFlavor
-                        ) or any(
-                            s.get('gameVersionTypeId') == curse_type_id
-                            for s in f['sortableGameVersion']
-                        )
-
-                    yield supports_flavour
-
-                if defn.strategy is not Strategy.latest:
-
-                    def is_stable_release(f: _CurseAddon_File):
-                        return f['releaseType'] == 1
-
-                    yield is_stable_release
-
-            filter_fns = list(make_filter())
-
-            file = max(
-                (f for f in latest_files if all(l(f) for l in filter_fns)),
-                # The ``id`` is just a counter so we don't have to go digging around dates
-                key=lambda f: f['id'],
-                default=None,
-            )
-            if file is None:
-                raise R.PkgFileUnavailable(
-                    f'no files matching {self._manager.config.game_flavour} '
-                    f'using {defn.strategy} strategy'
-                )
-
-        return models.Pkg(
-            source=self.metadata.id,
-            id=str(metadata['id']),
-            slug=metadata['slug'],
-            name=metadata['name'],
-            description=metadata['summary'],
-            url=metadata['websiteUrl'],
-            download_url=file['downloadUrl'],
-            date_published=iso8601.parse_date(file['fileDate']),
-            version=file['displayName'],
-            changelog_url=str(
-                self.addon_api_url / f'{metadata["id"]}/file/{file["id"]}/changelog'
-            ),
-            options=models.PkgOptions(strategy=defn.strategy),
-            deps=[
-                models.PkgDep(id=str(d['addonId'])) for d in file['dependencies'] if d['type'] == 3
-            ],
-        )
-
-    @classmethod
-    async def catalogue(
-        cls, web_client: _deferred_types.aiohttp.ClientSession
-    ) -> AsyncIterator[BaseCatalogueEntry]:
-        def excise_flavours(files: list[_CurseAddon_File]):
-            for flavour in Flavour:
-                if any(
-                    not f['exposeAsAlternative']
-                    and (
-                        f['gameVersionFlavor'] == flavour.to_flavour_keyed_enum(_CurseFlavor)
-                        or any(
-                            s.get('gameVersionTypeId')
-                            == flavour.to_flavour_keyed_enum(_CurseGameVersionTypeId)
-                            for s in f['sortableGameVersion']
-                        )
-                    )
-                    for f in files
-                ):
-                    yield flavour
-
-        def get_folders(files: list[_CurseAddon_File]):
-            return uniq(frozenset(m['foldername'] for m in f['modules']) for f in files)
-
-        step = 50
-        sort_order = '3'  # Alphabetical
-        for index in range(0, 10001 - step, step):
-            # Try not to get rate limited
-            await asyncio.sleep(2)
-
-            url = (cls.addon_api_url / 'search').with_query(
-                gameId='1', sort=sort_order, pageSize=step, index=index
-            )
-            logger.debug(f'retrieving {url}')
-            async with web_client.get(url, raise_for_status=True) as response:
-                items: list[_CurseAddon] = await response.json()
-
-            if not items:
-                break
-
-            for item in items:
-                yield BaseCatalogueEntry(
-                    source=cls.metadata.id,
-                    id=str(item['id']),
-                    slug=item['slug'],
-                    name=item['name'],
-                    url=item['websiteUrl'],
-                    game_flavours=frozenset(excise_flavours(item['latestFiles'])),
-                    download_count=item['downloadCount'],
-                    last_updated=iso8601.parse_date(item['dateReleased']),
-                    folders=get_folders(item['latestFiles']),
-                )
-
-
 class _CfCoreModLinks(TypedDict):
     websiteUrl: str
     wikiUrl: str
@@ -662,7 +374,7 @@ class CfCoreResolver(BaseResolver):
     )
 
     # Ref: https://docs.curseforge.com/
-    mod_api_url = URL('https://api.curseforge.com/v1/mods')
+    _mod_api_url = URL('https://api.curseforge.com/v1/mods')
 
     @classmethod
     def get_alias_from_url(cls, url: URL) -> str | None:
@@ -696,7 +408,7 @@ class CfCoreResolver(BaseResolver):
 
         async with self._manager.web_client.request(
             'POST',
-            self.mod_api_url,
+            self._mod_api_url,
             {'minutes': 5},
             headers={'x-api-key': self._get_access_token(self._manager.config.global_config)},
             json={'modIds': numeric_ids},
@@ -725,7 +437,7 @@ class CfCoreResolver(BaseResolver):
 
         if defn.strategy is Strategy.version:
             async with self._manager.web_client.get(
-                (self.mod_api_url / str(metadata['id']) / 'files').with_query(
+                (self._mod_api_url / str(metadata['id']) / 'files').with_query(
                     gameVersionTypeId=self._manager.config.game_flavour.to_flavour_keyed_enum(
                         _CfCoreSortableGameVersionTypeId
                     ),
@@ -799,7 +511,9 @@ class CfCoreResolver(BaseResolver):
             download_url=file['downloadUrl'],
             date_published=iso8601.parse_date(file['fileDate']),
             version=file['displayName'],
-            changelog_url=str(self.mod_api_url / f'{metadata["id"]}/files/{file["id"]}/changelog'),
+            changelog_url=str(
+                self._mod_api_url / f'{metadata["id"]}/files/{file["id"]}/changelog'
+            ),
             options=models.PkgOptions(strategy=defn.strategy),
             deps=[
                 models.PkgDep(id=str(d['modId']))
@@ -809,10 +523,6 @@ class CfCoreResolver(BaseResolver):
         )
 
     async def get_changelog(self, uri: URL) -> str:
-        # Old Curse API URL
-        if uri.host != self.mod_api_url.host:
-            return await super().get_changelog(uri)
-
         headers = {'x-api-key': self._get_access_token(self._manager.config.global_config)}
         async with self._manager.web_client.get(
             uri, {'days': 1}, headers=headers, raise_for_status=True
@@ -849,7 +559,7 @@ class CfCoreResolver(BaseResolver):
         step = 50
 
         for index in count():
-            url = (cls.mod_api_url / 'search').with_query(
+            url = (cls._mod_api_url / 'search').with_query(
                 gameId='1',
                 sortField=_CfCoreModsSearchSortField.name_,
                 pageSize=step,
@@ -954,8 +664,8 @@ class WowiResolver(BaseResolver):
     # classic version.  Hoooowever the download link always points to the
     # 'retail' version, which for single-file add-ons belonging to the
     # classic category would be an add-on for classic.
-    list_api_url = 'https://api.mmoui.com/v3/game/WOW/filelist.json'
-    details_api_url = URL('https://api.mmoui.com/v3/game/WOW/filedetails/')
+    _list_api_url = 'https://api.mmoui.com/v3/game/WOW/filelist.json'
+    _details_api_url = URL('https://api.mmoui.com/v3/game/WOW/filedetails/')
 
     @classmethod
     def _timestamp_to_datetime(cls, timestamp: int):
@@ -979,7 +689,7 @@ class WowiResolver(BaseResolver):
     async def _synchronise(self):
         async with self._manager.locks['load WoWI catalogue']:
             async with self._manager.web_client.get(
-                self.list_api_url,
+                self._list_api_url,
                 {'hours': 1},
                 label=f'Synchronising {self.metadata.name} catalogue',
                 raise_for_status=True,
@@ -995,7 +705,7 @@ class WowiResolver(BaseResolver):
         defns_to_ids = {d: ''.join(takewhile(str.isdigit, d.alias)) for d in defns}
         numeric_ids = frozenset(filter(None, defns_to_ids.values()))
         async with self._manager.web_client.get(
-            self.details_api_url / f'{",".join(numeric_ids)}.json',
+            self._details_api_url / f'{",".join(numeric_ids)}.json',
             {'minutes': 5},
         ) as response:
             if response.status == 404:
@@ -1035,9 +745,9 @@ class WowiResolver(BaseResolver):
     async def catalogue(
         cls, web_client: _deferred_types.aiohttp.ClientSession
     ) -> AsyncIterator[BaseCatalogueEntry]:
-        logger.debug(f'retrieving {cls.list_api_url}')
+        logger.debug(f'retrieving {cls._list_api_url}')
 
-        async with web_client.get(cls.list_api_url, raise_for_status=True) as response:
+        async with web_client.get(cls._list_api_url, raise_for_status=True) as response:
             items: list[_WowiListApiItem] = await response.json()
 
         for item in items:
@@ -1307,9 +1017,9 @@ class GithubResolver(BaseResolver):
         changelog_format=ChangelogFormat.markdown,
     )
 
-    repos_api_url = URL('https://api.github.com/repos')
+    _repos_api_url = URL('https://api.github.com/repos')
 
-    generated_catalogue_csv_url = (
+    _generated_catalogue_csv_url = (
         'https://raw.githubusercontent.com/layday/github-wow-addon-catalogue/main/addons.csv'
     )
 
@@ -1322,7 +1032,7 @@ class GithubResolver(BaseResolver):
         github_token = self._manager.config.global_config.access_tokens.github
         github_headers = {'Authorization': f'token {github_token}'} if github_token else {}
 
-        repo_url = self.repos_api_url / defn.alias
+        repo_url = self._repos_api_url / defn.alias
         async with self._manager.web_client.get(
             repo_url, {'hours': 1}, headers=github_headers
         ) as response:
@@ -1577,9 +1287,9 @@ class GithubResolver(BaseResolver):
         import csv
         from io import StringIO
 
-        logger.debug(f'retrieving {cls.generated_catalogue_csv_url}')
+        logger.debug(f'retrieving {cls._generated_catalogue_csv_url}')
         async with web_client.get(
-            cls.generated_catalogue_csv_url, raise_for_status=True
+            cls._generated_catalogue_csv_url, raise_for_status=True
         ) as response:
             catalogue_csv = await response.text()
 

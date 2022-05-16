@@ -30,7 +30,6 @@ from .models import PkgFolder
 from .plugins import load_plugins
 from .resolvers import (
     CfCoreResolver,
-    CurseResolver,
     Defn,
     GithubResolver,
     InstawowResolver,
@@ -320,13 +319,13 @@ class Manager:
         self.config: Config = config
         self.database: sa_future.Connection = database
 
-        base_resolver_classes = list(self.RESOLVERS)
+        builtin_resolver_classes = list(self.RESOLVERS)
         if self.config.global_config.access_tokens.cfcore is None:
-            base_resolver_classes[base_resolver_classes.index(CfCoreResolver)] = CurseResolver
+            builtin_resolver_classes.remove(CfCoreResolver)
 
         plugin_hook = load_plugins()
         resolver_classes = chain(
-            (r for g in plugin_hook.instawow_add_resolvers() for r in g), base_resolver_classes
+            (r for g in plugin_hook.instawow_add_resolvers() for r in g), builtin_resolver_classes
         )
         self.resolvers: Mapping[str, Resolver] = {r.metadata.id: r(self) for r in resolver_classes}
 
