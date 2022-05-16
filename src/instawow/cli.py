@@ -517,6 +517,8 @@ def reconcile(mw: _CtxObjWrapper, auto: bool, rereconcile: bool, list_unreconcil
             if shortlist:
                 selection = selector(addons_or_pkg, shortlist)
                 yield selection
+            else:
+                yield None
 
     if rereconcile:
         if auto:
