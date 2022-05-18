@@ -80,7 +80,7 @@ qstyle = Style(
 
 
 SKIP = ()
-skip = Choice([('', 'skip')], SKIP)
+skip = Choice([('underline', 's'), ('', 'kip')], SKIP)
 
 confirm = partial(_confirm, qmark='?', style=qstyle)
 path = partial(_path, qmark='>', style=qstyle)
