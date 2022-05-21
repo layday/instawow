@@ -18,6 +18,11 @@ sources = ["src/instawow_gui_wrapper"]
 requires = [
   "..[gui]",
   "certifi",
+  "toga @ git+https://github.com/beeware/toga@6510c11",
+  "toga-core @ git+https://github.com/beeware/toga@6510c11#subdirectory=src/core",
+  'toga-cocoa @ git+https://github.com/beeware/toga@6510c11#subdirectory=src/cocoa; sys_platform == "darwin"',
+  'toga-gtk @ git+https://github.com/beeware/toga@6510c11#subdirectory=src/gtk; sys_platform == "linux"',
+  'toga-winforms @ git+https://github.com/beeware/toga@6510c11#subdirectory=src/winforms; sys_platform == "win32"',
 ]
 
 [tool.briefcase.app.instawow-gui-wrapper.macOS]
