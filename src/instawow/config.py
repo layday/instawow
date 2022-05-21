@@ -76,7 +76,10 @@ def _make_validate_min_length(min_length: int):
 def _encode_config_for_display(config: object):
     converter = make_config_converter()
     converter.register_unstructure_hook(SecretStr, _convert_secret_string)
-    return json.dumps(converter.unstructure(config), indent=2)
+    return json.dumps(
+        converter.unstructure(config),  # pyright: ignore[reportUnknownMemberType]
+        indent=2,
+    )
 
 
 def _write_config(config: object, config_path: Path, fields_to_include: Set[str]):
@@ -94,7 +97,12 @@ def _write_config(config: object, config_path: Path, fields_to_include: Set[str]
             },
         ),
     )
-    config_path.write_text(json.dumps(converter.unstructure(config), indent=2), encoding='utf-8')
+    config_path.write_text(
+        json.dumps(
+            converter.unstructure(config), indent=2  # pyright: ignore[reportUnknownMemberType]
+        ),
+        encoding='utf-8',
+    )
 
 
 def _read_config(config_path: Path, missing_ok: bool = False):

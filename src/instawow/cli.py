@@ -1077,7 +1077,9 @@ def generate_catalogue(start_date: datetime | None) -> None:
     from .cataloguer import BaseCatalogue, catalogue_converter
 
     catalogue = asyncio.run(BaseCatalogue.collate(start_date))
-    catalogue_json = catalogue_converter.unstructure(catalogue)
+    catalogue_json = catalogue_converter.unstructure(  # pyright: ignore[reportUnknownMemberType]
+        catalogue
+    )
     catalogue_path = Path(f'base-catalogue-v{catalogue.version}.json').resolve()
     catalogue_path.write_text(
         json.dumps(catalogue_json, indent=2),

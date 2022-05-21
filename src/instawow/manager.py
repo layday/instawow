@@ -508,7 +508,12 @@ class Manager:
 
             self._catalogue = Catalogue.from_base_catalogue(raw_catalogue, None)
             await t(catalogue_json.write_text)(
-                json.dumps(catalogue_converter.unstructure(self._catalogue)), encoding='utf-8'
+                json.dumps(
+                    catalogue_converter.unstructure(  # pyright: ignore[reportUnknownMemberType]
+                        self._catalogue
+                    )
+                ),
+                encoding='utf-8',
             )
 
         return self._catalogue

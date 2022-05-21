@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 from collections import defaultdict
-from collections.abc import Awaitable, Callable, Iterable, Iterator, Set
+from collections.abc import Awaitable, Callable, Iterable, Iterator
 from contextlib import contextmanager
 from datetime import datetime
 from functools import partial
@@ -62,7 +62,12 @@ _ManagerQueue: TypeAlias = (
 
 LOCALHOST = '127.0.0.1'
 
-_converter = GenConverter(unstruct_collection_overrides={Set: sorted})
+_converter = GenConverter(
+    unstruct_collection_overrides={
+        # TODO: Replace with ``collections.abc.Set``
+        frozenset: sorted,
+    }
+)
 configure_converter(_converter)
 _converter.register_structure_hook(Path, lambda v, _: Path(v))
 _converter.register_unstructure_hook(Path, str)

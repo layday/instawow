@@ -174,7 +174,11 @@ class WaCompanionBuilder:
                         f'extracted {model.__name__} in {time.perf_counter() - start:.3f}s'
                     )
                     aura_group_cache.write_text(
-                        json.dumps(_aura_converter.unstructure(aura_groups.root)),
+                        json.dumps(
+                            _aura_converter.unstructure(  # pyright: ignore[reportUnknownMemberType]
+                                aura_groups.root
+                            )
+                        ),
                         encoding='utf-8',
                     )
                 yield aura_groups

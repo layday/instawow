@@ -34,7 +34,7 @@ python = ">=3.7"
 aiohttp = ">=3.7.4, <4"
 alembic = ">=1.7.0"
 attrs = ">=21.4.0"
-cattrs = { url = "git+https://github.com/python-attrs/cattrs@a10ad1c" }
+cattrs = ">=22.1.0"
 click = ">=8.0.0"
 exceptiongroup = "==1.0.0rc5"
 iso8601 = ">=1.0.2"
