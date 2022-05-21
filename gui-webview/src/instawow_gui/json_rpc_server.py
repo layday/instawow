@@ -219,7 +219,10 @@ class UpdateGlobalConfigParams(BaseParams):
                 global_config = evolve(
                     global_config,
                     access_tokens=evolve(
-                        global_config.access_tokens, cfcore=SecretStr(self.cfcore_access_token)
+                        global_config.access_tokens,
+                        cfcore=self.cfcore_access_token
+                        if self.cfcore_access_token is None
+                        else SecretStr(self.cfcore_access_token),
                     ),
                 )
                 await t(global_config.write)()
