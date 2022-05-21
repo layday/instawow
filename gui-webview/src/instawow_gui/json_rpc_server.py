@@ -672,7 +672,7 @@ class _ManagerWorkQueue:
             close_db_conn()
 
     def unload_all(self):
-        for profile in self._managers:
+        for profile in list(self._managers):
             self.unload(profile)
 
     async def _schedule_item(
