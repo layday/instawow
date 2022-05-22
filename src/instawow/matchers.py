@@ -122,12 +122,12 @@ async def match_toc_source_ids(
         addons_with_toc_source_ids, lambda a: next(d for d in merged_defns if a.defns_from_toc & d)
     )
 
-    source_sort_order = {n: i for i, n in enumerate(manager.resolvers)}
+    source_priority = {n: i for i, n in enumerate(manager.resolvers)}
 
     return [
         (
             f,
-            sorted(b, key=lambda d: source_sort_order.get(d.source, -1)),
+            sorted(b, key=lambda d: source_priority.get(d.source, float('inf'))),
         )
         for b, f in folders_grouped_by_overlapping_defns.items()
     ]
@@ -150,10 +150,10 @@ async def match_folder_name_subsets(
         matches, lambda v: next(f for f in merged_folders if v[0] & f)
     )
 
-    source_sort_order = {n: i for i, n in enumerate(manager.resolvers)}
+    source_priority = {n: i for i, n in enumerate(manager.resolvers)}
 
     def sort_key(folders: frozenset[AddonFolder], defn: Defn):
-        return (-len(folders), source_sort_order.get(defn.source, -1))
+        return (-len(folders), source_priority.get(defn.source, float('inf')))
 
     return [
         (sorted(f), uniq(d for _, d in sorted(b, key=lambda v: sort_key(*v))))
