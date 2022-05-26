@@ -96,8 +96,7 @@
                 $api.openUrl("https://console.curseforge.com/")}
             >
               CFCore
-            </button> to generate an access token. The unauthenticated CurseForge API will stop working
-            in the future.
+            </button> to generate an access token.
           </div>
         </div>
       </div>
