@@ -285,7 +285,7 @@ class _CfCoreFile(TypedDict):
     fileDate: str  # date-time
     fileLength: int
     downloadCount: int
-    downloadUrl: str
+    downloadUrl: str | None  # null if distribution is forbidden
     gameVersions: list[str]
     sortableGameVersions: list[_CfCoreSortableGameVersion]
     dependencies: list[_CfCoreFileDependency]
@@ -389,7 +389,7 @@ class CfCoreResolver(BaseResolver):
     def _get_access_token(cls, global_config: GlobalConfig):
         maybe_access_token = global_config.access_tokens.cfcore
         if maybe_access_token is None:
-            raise ValueError('CFCore access token not configured')
+            raise ValueError(f'{cls.metadata.name} access token not configured')
         return maybe_access_token
 
     async def resolve(
@@ -500,6 +500,12 @@ class CfCoreResolver(BaseResolver):
                     f'no files matching {self._manager.config.game_flavour} '
                     f'using {defn.strategy} strategy'
                 )
+
+        if file['downloadUrl'] is None:
+            if metadata['allowModDistribution'] is False:
+                raise R.PkgFileUnavailable('package distribution is forbidden')
+            else:
+                raise R.PkgFileUnavailable
 
         return models.Pkg(
             source=self.metadata.id,
