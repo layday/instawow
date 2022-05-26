@@ -18,6 +18,7 @@
     searchLimit: number;
 
   const startDateSuggestions = [
+    { date: "2022-05-31", label: "9.2.5", flavour: Flavour.retail },
     { date: "2022-02-22", label: "9.2.0", flavour: Flavour.retail },
     { date: "2020-10-13", label: "9.0.1", flavour: Flavour.retail },
     {
