@@ -93,16 +93,14 @@ class Catalogue:
         }
         entries = [
             CatalogueEntry(
-                **{
-                    **asdict(e),
-                    'same_as': e.same_as
-                    if e.source == GithubResolver.metadata.id
-                    else (same_as_from_github.get((e.source, e.id)) or e.same_as),
-                    'normalised_name': normalise(e.name),
-                    'derived_download_score': 0
-                    if e.source == GithubResolver.metadata.id
-                    else e.download_count / most_downloads_per_source[e.source],
-                }
+                **asdict(e, filter=lambda a, _: a.name != 'same_as'),
+                same_as=e.same_as
+                if e.source == GithubResolver.metadata.id
+                else (same_as_from_github.get((e.source, e.id)) or e.same_as),
+                normalised_name=normalise(e.name),
+                derived_download_score=0
+                if e.source == GithubResolver.metadata.id
+                else e.download_count / most_downloads_per_source[e.source],
             )
             for e in base_entries
         ]
