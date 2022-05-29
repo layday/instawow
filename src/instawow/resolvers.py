@@ -1038,7 +1038,7 @@ class GithubResolver(BaseResolver):
             return '/'.join(url.parts[1:3])
 
     @staticmethod
-    @lru_cache
+    @lru_cache()
     def _make_auth_headers(access_token: str | None):
         return {'Authorization': f'token {access_token}'} if access_token else {}
 
