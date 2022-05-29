@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import AsyncIterator, Sequence
+from collections.abc import AsyncIterator, Iterable, Sequence
 from datetime import datetime, timezone
 from enum import IntEnum
+from functools import lru_cache
 from itertools import chain, count, takewhile, tee, zip_longest
 from pathlib import Path
 import re
@@ -985,6 +986,8 @@ class _GithubRelease(TypedDict):
     published_at: str  # ISO datetime
     assets: list[_GithubRelease_Asset]
     body: str
+    draft: bool
+    prerelease: bool
 
 
 class _GithubRelease_Asset(TypedDict):
@@ -1034,9 +1037,207 @@ class GithubResolver(BaseResolver):
         if url.host == 'github.com' and len(url.parts) > 2:
             return '/'.join(url.parts[1:3])
 
+    @staticmethod
+    @lru_cache
+    def _make_auth_headers(access_token: str | None):
+        return {'Authorization': f'token {access_token}'} if access_token else {}
+
+    async def _find_matching_asset_from_zip_contents(self, assets: list[_GithubRelease_Asset]):
+        candidates = [
+            a
+            for a in assets
+            if a['state'] == 'uploaded'
+            and a['content_type'] in {'application/zip', 'application/x-zip-compressed'}
+            and a['name'].endswith('.zip')
+            # TODO: Is there a better way to detect nolib?
+            and '-nolib' not in a['name']
+        ]
+        if not candidates:
+            return None
+
+        from io import BytesIO
+        import zipfile
+
+        from aiohttp import hdrs
+
+        from .matchers import NORMALISED_FLAVOUR_TOC_SUFFIXES
+
+        github_headers = self._make_auth_headers(
+            self._manager.config.global_config.access_tokens.github
+        )
+
+        matching_asset = None
+
+        for candidate in candidates:
+            addon_zip_stream = BytesIO()
+            dynamic_addon_zip = None
+            is_zip_complete = False
+
+            for directory_offset in range(-25_000, -100_001, -25_000):
+                logger.debug(
+                    f'fetching {abs(directory_offset):,d} bytes from end of {candidate["name"]}'
+                )
+
+                # TODO: Take min of (directory_offset, remaining size from prev request)
+                #       to avoid 416 error if a small zip has an inordinately large directory.
+
+                async with self._manager.web_client.wrapped.get(
+                    candidate['browser_download_url'],
+                    headers={**github_headers, hdrs.RANGE: f'bytes={directory_offset}'},
+                ) as directory_range_response:
+                    if not directory_range_response.ok:
+                        # File size under 25 KB.
+                        if directory_range_response.status == 416:  # Range Not Satisfiable
+                            async with self._manager.web_client.get(
+                                candidate['browser_download_url'],
+                                {'days': 30},
+                                headers=github_headers,
+                                raise_for_status=True,
+                            ) as addon_zip_response:
+                                addon_zip_stream.write(await addon_zip_response.read())
+
+                            is_zip_complete = True
+                            dynamic_addon_zip = zipfile.ZipFile(addon_zip_stream)
+                            break
+
+                        directory_range_response.raise_for_status()
+
+                    else:
+                        addon_zip_stream.seek(
+                            extract_byte_range_offset(
+                                directory_range_response.headers[hdrs.CONTENT_RANGE]
+                            )
+                        )
+                        addon_zip_stream.write(await directory_range_response.read())
+
+                        try:
+                            dynamic_addon_zip = zipfile.ZipFile(addon_zip_stream)
+                        except zipfile.BadZipFile:
+                            continue
+                        else:
+                            break
+
+            if dynamic_addon_zip is None:
+                logger.debug('directory marker not found')
+                continue
+
+            toc_filenames = {
+                n
+                for n, h in find_addon_zip_tocs(f.filename for f in dynamic_addon_zip.filelist)
+                if h in candidate['name']  # Folder name is a substring of zip name.
+            }
+            if not toc_filenames:
+                continue
+
+            game_flavour_from_toc_filename = any(
+                n.lower().endswith(
+                    NORMALISED_FLAVOUR_TOC_SUFFIXES[self._manager.config.game_flavour]
+                )
+                for n in toc_filenames
+            )
+            if game_flavour_from_toc_filename:
+                matching_asset = candidate
+                break
+
+            try:
+                main_toc_filename = min(
+                    (
+                        n
+                        for n in toc_filenames
+                        if not n.lower().endswith(
+                            tuple(i for s in NORMALISED_FLAVOUR_TOC_SUFFIXES.values() for i in s)
+                        )
+                    ),
+                    key=len,
+                )
+            except ValueError:
+                continue
+
+            if not is_zip_complete:
+                a, b = tee(dynamic_addon_zip.filelist)
+                next(b, None)
+                main_toc_file_offset, following_file = next(
+                    (f.header_offset, n)
+                    for f, n in zip_longest(a, b)
+                    if f.filename == main_toc_filename
+                )
+                # If this is the last file in the list, download to eof. In theory,
+                # we could detect where the zip directory starts.
+                following_file_offset = following_file.header_offset if following_file else ''
+
+                logger.debug(f'fetching {main_toc_filename} from {candidate["name"]}')
+                async with self._manager.web_client.get(
+                    candidate['browser_download_url'],
+                    {'days': 30},
+                    headers={
+                        **github_headers,
+                        hdrs.RANGE: f'bytes={main_toc_file_offset}-{following_file_offset}',
+                    },
+                    raise_for_status=True,
+                ) as toc_file_range_response:
+                    addon_zip_stream.seek(main_toc_file_offset)
+                    addon_zip_stream.write(await toc_file_range_response.read())
+
+            toc_file_text = dynamic_addon_zip.read(main_toc_filename).decode('utf-8-sig')
+            toc_reader = TocReader(toc_file_text)
+            interface_version = toc_reader['Interface']
+            logger.debug(f'found interface version {interface_version!r} in {main_toc_filename}')
+            if interface_version and self._manager.config.game_flavour.to_flavour_keyed_enum(
+                FlavourVersion
+            ).is_within_version(int(interface_version)):
+                matching_asset = candidate
+                break
+
+        return matching_asset
+
+    async def _find_matching_asset_from_release_json(
+        self, assets: list[_GithubRelease_Asset], release_json_asset: _GithubRelease_Asset
+    ):
+        github_headers = self._make_auth_headers(
+            self._manager.config.global_config.access_tokens.github
+        )
+
+        async with self._manager.web_client.get(
+            release_json_asset['browser_download_url'],
+            {'days': 1},
+            headers=github_headers,
+            raise_for_status=True,
+        ) as response:
+            packager_metadata: _PackagerReleaseJson = await response.json()
+
+        releases = packager_metadata['releases']
+        if not releases:
+            return None
+
+        wanted_flavour = self._manager.config.game_flavour.to_flavour_keyed_enum(
+            _PackagerReleaseJsonFlavor
+        )
+        matching_release = next(
+            (
+                r
+                for r in releases
+                if r['nolib'] is False
+                and any(m['flavor'] == wanted_flavour for m in r['metadata'])
+            ),
+            None,
+        )
+        if matching_release is None:
+            return None
+
+        matching_asset = next(
+            (
+                a
+                for a in assets
+                if a['name'] == matching_release['filename'] and a['state'] == 'uploaded'
+            ),
+            None,
+        )
+        return matching_asset
+
     async def resolve_one(self, defn: Defn, metadata: None) -> models.Pkg:
-        github_token = self._manager.config.global_config.access_tokens.github
-        github_headers = {'Authorization': f'token {github_token}'} if github_token else {}
+        github_headers = self._make_auth_headers(
+            self._manager.config.global_config.access_tokens.github
+        )
 
         repo_url = self._repos_api_url / defn.alias
         async with self._manager.web_client.get(
@@ -1045,18 +1246,17 @@ class GithubResolver(BaseResolver):
             if response.status == 404:
                 raise R.PkgNonexistent
             response.raise_for_status()
-            project_metadata: _GithubRepo = await response.json()
+            project: _GithubRepo = await response.json()
 
         if defn.strategy is Strategy.version:
             assert defn.version
             release_url = repo_url / 'releases/tags' / defn.version
-        elif defn.strategy is Strategy.latest:
-            # Includes pre-releases
-            release_url = (repo_url / 'releases').with_query(per_page='1')
         else:
-            # The latest release is the most recent release which is neither
-            # a pre-release nor a draft
-            release_url = repo_url / 'releases/latest'
+            # Includes pre-releases
+            release_url = (repo_url / 'releases').with_query(
+                # Default is 30 but we're more conservative
+                per_page='10'
+            )
 
         async with self._manager.web_client.get(
             release_url, {'minutes': 5}, headers=github_headers
@@ -1066,221 +1266,51 @@ class GithubResolver(BaseResolver):
             response.raise_for_status()
 
             response_json = await response.json()
-            if defn.strategy is Strategy.latest:
-                (response_json,) = response_json
-            release_metadata: _GithubRelease = response_json
+            if defn.strategy is Strategy.version:
+                response_json = [response_json]
+            releases: Iterable[_GithubRelease] = response_json
 
-        assets = release_metadata['assets']
+        # Only users with push access will receive draft releases
+        # but let's filter them out just in case.
+        releases = (r for r in releases if r['draft'] is False)
 
-        release_json = next(
-            (a for a in assets if a['name'] == 'release.json' and a['state'] == 'uploaded'),
-            None,
-        )
-        if release_json is None:
-            candidates = [
-                a
-                for a in assets
-                if a['state'] == 'uploaded'
-                and a['content_type'] in {'application/zip', 'application/x-zip-compressed'}
-                and a['name'].endswith('.zip')
-                # TODO: Is there a better way to detect nolib?
-                and '-nolib' not in a['name']
-            ]
-            if not candidates:
-                raise R.PkgFileUnavailable(
-                    'no `release.json` attached to release, no add-on zips found'
-                )
+        if defn.strategy is not Strategy.latest:
+            releases = (r for r in releases if r['prerelease'] is False)
 
-            from io import BytesIO
-            import zipfile
-
-            from aiohttp import hdrs
-
-            from .matchers import NORMALISED_FLAVOUR_TOC_SUFFIXES
-
+        seen_release_json = False
+        for release in releases:
+            assets = release['assets']
             matching_asset = None
 
-            for candidate in candidates:
-                addon_zip_stream = BytesIO()
-                dynamic_addon_zip = None
-                is_zip_complete = False
-
-                for directory_offset in range(-25_000, -100_001, -25_000):
-                    logger.debug(
-                        f'fetching {abs(directory_offset):,d} bytes from end of {candidate["name"]}'
-                    )
-
-                    # TODO: Take min of (directory_offset, remaining size from prev request)
-                    #       to avoid 416 error if a small zip has an inordinately large directory.
-
-                    async with self._manager.web_client.wrapped.get(
-                        candidate['browser_download_url'],
-                        headers={**github_headers, hdrs.RANGE: f'bytes={directory_offset}'},
-                    ) as directory_range_response:
-                        if not directory_range_response.ok:
-                            # File size under 25 KB.
-                            if directory_range_response.status == 416:  # Range Not Satisfiable
-                                async with self._manager.web_client.get(
-                                    candidate['browser_download_url'],
-                                    {'days': 30},
-                                    headers=github_headers,
-                                    raise_for_status=True,
-                                ) as addon_zip_response:
-                                    addon_zip_stream.write(await addon_zip_response.read())
-
-                                is_zip_complete = True
-                                dynamic_addon_zip = zipfile.ZipFile(addon_zip_stream)
-                                break
-
-                            directory_range_response.raise_for_status()
-
-                        else:
-                            addon_zip_stream.seek(
-                                extract_byte_range_offset(
-                                    directory_range_response.headers[hdrs.CONTENT_RANGE]
-                                )
-                            )
-                            addon_zip_stream.write(await directory_range_response.read())
-
-                            try:
-                                dynamic_addon_zip = zipfile.ZipFile(addon_zip_stream)
-                            except zipfile.BadZipFile:
-                                continue
-                            else:
-                                break
-
-                if dynamic_addon_zip is None:
-                    logger.debug('directory marker not found')
-                    continue
-
-                toc_filenames = {
-                    n
-                    for n, h in find_addon_zip_tocs(f.filename for f in dynamic_addon_zip.filelist)
-                    if h in candidate['name']  # Folder name is a substring of zip name.
-                }
-                if not toc_filenames:
-                    continue
-
-                game_flavour_from_toc_filename = any(
-                    n.lower().endswith(
-                        NORMALISED_FLAVOUR_TOC_SUFFIXES[self._manager.config.game_flavour]
-                    )
-                    for n in toc_filenames
+            release_json = next(
+                (a for a in assets if a['name'] == 'release.json' and a['state'] == 'uploaded'),
+                None,
+            )
+            if not seen_release_json and release_json is None:
+                matching_asset = await self._find_matching_asset_from_zip_contents(assets)
+            elif release_json is not None:
+                seen_release_json = True
+                matching_asset = await self._find_matching_asset_from_release_json(
+                    assets, release_json
                 )
-                if game_flavour_from_toc_filename:
-                    matching_asset = candidate
-                    break
 
-                try:
-                    main_toc_filename = min(
-                        (
-                            n
-                            for n in toc_filenames
-                            if not n.lower().endswith(
-                                tuple(
-                                    i for s in NORMALISED_FLAVOUR_TOC_SUFFIXES.values() for i in s
-                                )
-                            )
-                        ),
-                        key=len,
-                    )
-                except ValueError:
-                    continue
-
-                if not is_zip_complete:
-                    a, b = tee(dynamic_addon_zip.filelist)
-                    next(b, None)
-                    main_toc_file_offset, following_file = next(
-                        (f.header_offset, n)
-                        for f, n in zip_longest(a, b)
-                        if f.filename == main_toc_filename
-                    )
-                    # If this is the last file in the list, download to eof. In theory,
-                    # we could detect where the zip directory starts.
-                    following_file_offset = following_file.header_offset if following_file else ''
-
-                    logger.debug(f'fetching {main_toc_filename} from {candidate["name"]}')
-                    async with self._manager.web_client.get(
-                        candidate['browser_download_url'],
-                        {'days': 30},
-                        headers={
-                            **github_headers,
-                            hdrs.RANGE: f'bytes={main_toc_file_offset}-{following_file_offset}',
-                        },
-                        raise_for_status=True,
-                    ) as toc_file_range_response:
-                        addon_zip_stream.seek(main_toc_file_offset)
-                        addon_zip_stream.write(await toc_file_range_response.read())
-
-                toc_file_text = dynamic_addon_zip.read(main_toc_filename).decode('utf-8-sig')
-                toc_reader = TocReader(toc_file_text)
-                interface_version = toc_reader['Interface']
-                logger.debug(
-                    f'found interface version {interface_version!r} in {main_toc_filename}'
-                )
-                if interface_version and self._manager.config.game_flavour.to_flavour_keyed_enum(
-                    FlavourVersion
-                ).is_within_version(int(interface_version)):
-                    matching_asset = candidate
-                    break
-
-            else:
-                raise R.PkgFileUnavailable(
-                    f'no files matching {self._manager.config.game_flavour}'
-                )
+            if matching_asset is not None:
+                break
 
         else:
-            async with self._manager.web_client.get(
-                release_json['browser_download_url'],
-                {'days': 1},
-                headers=github_headers,
-                raise_for_status=True,
-            ) as response:
-                packager_metadata: _PackagerReleaseJson = await response.json()
-
-            releases = packager_metadata['releases']
-            if not releases:
-                raise R.PkgFileUnavailable('no files available for download')
-
-            wanted_flavour = self._manager.config.game_flavour.to_flavour_keyed_enum(
-                _PackagerReleaseJsonFlavor
-            )
-            matching_release = next(
-                (
-                    r
-                    for r in releases
-                    if r['nolib'] is False
-                    and any(m['flavor'] == wanted_flavour for m in r['metadata'])
-                ),
-                None,
-            )
-            if matching_release is None:
-                raise R.PkgFileUnavailable(
-                    f'no files matching {self._manager.config.game_flavour}'
-                )
-
-            matching_asset = next(
-                (
-                    a
-                    for a in assets
-                    if a['name'] == matching_release['filename'] and a['state'] == 'uploaded'
-                ),
-                None,
-            )
-            if matching_asset is None:
-                raise R.PkgFileUnavailable(f'{matching_release["filename"]} not found')
+            raise R.PkgFileUnavailable(f'no files matching {self._manager.config.game_flavour}')
 
         return models.Pkg(
             source=self.metadata.id,
-            id=project_metadata['full_name'],
-            slug=project_metadata['full_name'].lower(),
-            name=project_metadata['name'],
-            description=project_metadata['description'] or '',
-            url=project_metadata['html_url'],
+            id=project['full_name'],
+            slug=project['full_name'].lower(),
+            name=project['name'],
+            description=project['description'] or '',
+            url=project['html_url'],
             download_url=matching_asset['browser_download_url'],
-            date_published=iso8601.parse_date(release_metadata['published_at']),
-            version=release_metadata['tag_name'],
-            changelog_url=_format_data_changelog(release_metadata['body']),
+            date_published=iso8601.parse_date(release['published_at']),
+            version=release['tag_name'],
+            changelog_url=_format_data_changelog(release['body']),
             options=models.PkgOptions(
                 strategy=defn.strategy,
             ),

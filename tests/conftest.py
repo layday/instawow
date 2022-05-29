@@ -258,9 +258,10 @@ def mock_aiohttp_requests(aresponses: ResponsesMockServer):
     )
     aresponses.add(
         'api.github.com',
-        '/repos/nebularg/PackagerTest/releases/latest',
+        '/repos/nebularg/PackagerTest/releases?per_page=10',
         'get',
         load_json_fixture('github-release-release-json.json'),
+        match_querystring=True,
         repeat=inf,
     )
     aresponses.add(
@@ -279,9 +280,10 @@ def mock_aiohttp_requests(aresponses: ResponsesMockServer):
     )
     aresponses.add(
         'api.github.com',
-        re.compile(r'^/repos/p3lim-wow/Molinari/releases/latest$', re.IGNORECASE),
+        re.compile(r'^/repos/p3lim-wow/Molinari/releases\?per_page=10$', re.IGNORECASE),
         'get',
         load_json_fixture('github-release-molinari.json'),
+        match_querystring=True,
         repeat=inf,
     )
     aresponses.add(
@@ -303,9 +305,10 @@ def mock_aiohttp_requests(aresponses: ResponsesMockServer):
     )
     aresponses.add(
         'api.github.com',
-        '/repos/ketho-wow/RaidFadeMore/releases/latest',
+        '/repos/ketho-wow/RaidFadeMore/releases?per_page=10',
         'get',
         load_json_fixture('github-release-no-release-json.json'),
+        match_querystring=True,
         repeat=inf,
     )
     aresponses.add(
@@ -317,9 +320,10 @@ def mock_aiohttp_requests(aresponses: ResponsesMockServer):
     )
     aresponses.add(
         'api.github.com',
-        '/repos/AdiAddons/AdiBags/releases/latest',
+        '/repos/AdiAddons/AdiBags/releases?per_page=10',
         'get',
         aresponses.Response(body=b'', status=404),
+        match_querystring=True,
         repeat=inf,
     )
     aresponses.add(

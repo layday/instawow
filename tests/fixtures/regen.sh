@@ -47,7 +47,7 @@ http get 'https://www.tukui.org/api.php?classic-tbc-addons' -b \
 http get 'https://api.github.com/repos/nebularg/PackagerTest' -b \
     | jq -r \
     > "$DIR"/github-repo-release-json.json
-http get 'https://api.github.com/repos/nebularg/PackagerTest/releases/latest' -b \
+http get 'https://api.github.com/repos/nebularg/PackagerTest/releases?per_page=1' -b \
     | jq -r \
     > "$DIR"/github-release-release-json.json
 http --follow get 'https://github.com/nebularg/PackagerTest/releases/download/v1.9.7/release.json' -b \
@@ -56,7 +56,7 @@ http --follow get 'https://github.com/nebularg/PackagerTest/releases/download/v1
 http get 'https://api.github.com/repos/p3lim-wow/Molinari' -b \
     | jq -r \
     > "$DIR"/github-repo-molinari.json
-http get 'https://api.github.com/repos/p3lim-wow/Molinari/releases/latest' -b \
+http get 'https://api.github.com/repos/p3lim-wow/Molinari/releases?per_page=1' -b \
     | jq -r \
     > "$DIR"/github-release-molinari.json
 http --follow get 'https://github.com/p3lim-wow/Molinari/releases/download/90200.82-Release/release.json' -b \
@@ -65,7 +65,7 @@ http --follow get 'https://github.com/p3lim-wow/Molinari/releases/download/90200
 http get 'https://api.github.com/repos/ketho-wow/RaidFadeMore' -b \
     | jq -r \
     > "$DIR"/github-repo-no-release-json.json
-http get 'https://api.github.com/repos/ketho-wow/RaidFadeMore/releases/latest' -b \
+http get 'https://api.github.com/repos/ketho-wow/RaidFadeMore/releases?per_page=1' -b \
     | jq -r \
     > "$DIR"/github-release-no-release-json.json
 http get 'https://api.github.com/repos/AdiAddons/AdiBags' -b \
