@@ -247,12 +247,8 @@ async def test_get_changelog_from_web_url(iw_manager: Manager):
 
 @pytest.mark.iw_no_mock_http
 async def test_is_outdated_works_in_variety_of_scenarios(
-    monkeypatch: pytest.MonkeyPatch, aresponses: ResponsesMockServer, iw_temp_dir: Path
+    monkeypatch: pytest.MonkeyPatch, aresponses: ResponsesMockServer
 ):
-    pypi_version = iw_temp_dir.joinpath('.pypi_version')
-    if pypi_version.exists():
-        pypi_version.unlink()
-
     # version == '0.0.0', version not cached
     with monkeypatch.context() as patcher:
         patcher.setattr('instawow.__version__', '0.0.0')

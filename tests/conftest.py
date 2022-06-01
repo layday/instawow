@@ -4,7 +4,6 @@ from collections.abc import Callable
 from functools import lru_cache
 from io import BytesIO
 import json
-import os
 from pathlib import Path
 import re
 from typing import Any
@@ -65,17 +64,10 @@ def make_addon_zip(*folders: str):
     return buffer.getvalue()
 
 
-@pytest.fixture(scope='session', autouse=True)
-def iw_temp_dir(tmp_path_factory: pytest.TempPathFactory):
-    temp_dir = tmp_path_factory.mktemp('temp') / 'instawow'
-    os.environ['INSTAWOW_TEMP_DIR'] = str(temp_dir)
-    return temp_dir
-
-
 @pytest.fixture
-def iw_global_config_values(tmp_path: Path, iw_temp_dir: Path):
+def iw_global_config_values(tmp_path: Path):
     return {
-        'temp_dir': iw_temp_dir,
+        'temp_dir': tmp_path / 'temp',
         'config_dir': tmp_path / 'config',
         'access_tokens': _AccessTokens(cfcore=SecretStr('foo')),
     }
@@ -110,7 +102,7 @@ def iw_manager(iw_config: Config, iw_web_client: aiohttp.ClientSession):
 
 @pytest.fixture(autouse=True)
 @should_mock
-def mock_aiohttp_requests(aresponses: ResponsesMockServer):
+def iw_mock_aiohttp_requests(aresponses: ResponsesMockServer):
     aresponses.add(
         'pypi.org',
         '/pypi/instawow/json',
@@ -298,21 +290,6 @@ def mock_aiohttp_requests(aresponses: ResponsesMockServer):
     )
     aresponses.add(
         'api.github.com',
-        '/repos/ketho-wow/RaidFadeMore',
-        'get',
-        load_json_fixture('github-repo-no-release-json.json'),
-        repeat=inf,
-    )
-    aresponses.add(
-        'api.github.com',
-        '/repos/ketho-wow/RaidFadeMore/releases?per_page=10',
-        'get',
-        load_json_fixture('github-release-no-release-json.json'),
-        match_querystring=True,
-        repeat=inf,
-    )
-    aresponses.add(
-        'api.github.com',
         '/repos/AdiAddons/AdiBags',
         'get',
         load_json_fixture('github-repo-no-releases.json'),
@@ -361,4 +338,23 @@ def mock_aiohttp_requests(aresponses: ResponsesMockServer):
         'post',
         load_json_fixture('github-oauth-login-access-token.json'),
         repeat=inf,
+    )
+
+
+@pytest.fixture
+def iw_mock_aiohttp_raidfademore_requests(aresponses: ResponsesMockServer):
+    aresponses.add(
+        'api.github.com',
+        '/repos/ketho-wow/RaidFadeMore',
+        'get',
+        load_json_fixture('github-repo-no-release-json.json'),
+        repeat=aresponses.INFINITY,
+    )
+    aresponses.add(
+        'api.github.com',
+        '/repos/ketho-wow/RaidFadeMore/releases?per_page=10',
+        'get',
+        load_json_fixture('github-release-no-release-json.json'),
+        match_querystring=True,
+        repeat=aresponses.INFINITY,
     )

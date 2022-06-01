@@ -5,6 +5,8 @@ import re
 from typing import Any
 from zipfile import ZipFile
 
+import aiohttp.hdrs
+import aiohttp.web
 from aresponses import ResponsesMockServer
 import pytest
 
@@ -13,47 +15,52 @@ from instawow.manager import Manager
 from instawow.resolvers import Defn, GithubResolver
 from instawow.results import PkgFileUnavailable
 
+ADDON_NAME = 'RaidFadeMore'
+
 ZIPS = {
     'flavoured-toc-only': {
-        'files': {
-            'Foo/Foo_TBC.toc': b'',
+        'toc_files': {
+            '_TBC': b'',
         },
         'flavours': {Flavour.burning_crusade_classic},
     },
     'flavoured-and-unflavoured-toc-without-interface-version': {
-        'files': {'Foo/Foo_TBC.toc': b'', 'Foo/Foo.toc': b''},
+        'toc_files': {
+            '_TBC': b'',
+            '': b'',
+        },
         'flavours': {Flavour.burning_crusade_classic},
     },
     'flavoured-and-unflavoured-toc-with-interface-version': {
-        'files': {
-            'Foo/Foo_TBC.toc': b'',
-            'Foo/Foo.toc': b'# Interface: 11300\n',
+        'toc_files': {
+            '_TBC': b'',
+            '': b'## Interface: 11300\n',
         },
         'flavours': {Flavour.vanilla_classic, Flavour.burning_crusade_classic},
     },
     'unflavoured-toc-only-without-interface-version': {
-        'files': {
-            'Foo/Foo.toc': b'',
+        'toc_files': {
+            '': b'',
         },
         'flavours': set(),
     },
     'unflavoured-toc-only-with-interface-version': {
-        'files': {
-            'Foo/Foo.toc': b'# Interface: 11300\n',
+        'toc_files': {
+            '': b'## Interface: 11300\n',
         },
         'flavours': {Flavour.vanilla_classic},
     },
 }
 
 
-@pytest.fixture(params=ZIPS.values(), ids=ZIPS.keys())
+@pytest.fixture(params=ZIPS.values(), ids=list(ZIPS))
 def package_json_less_addon(
-    request: pytest.FixtureRequest,
+    request: Any,
 ):
     addon = BytesIO()
     with ZipFile(addon, 'w') as file:
-        for filename, content in request.param['files'].items():
-            file.writestr(filename, content)
+        for flavour_suffix, content in request.param['toc_files'].items():
+            file.writestr(f'{ADDON_NAME}/{ADDON_NAME}{flavour_suffix}.toc', content)
 
     return {
         'addon': addon.getvalue(),
@@ -61,17 +68,27 @@ def package_json_less_addon(
     }
 
 
-@pytest.mark.xfail
+@pytest.mark.iw_no_mock_http
 async def test_package_json_less_addon(
     aresponses: ResponsesMockServer,
     iw_manager: Manager,
+    iw_mock_aiohttp_raidfademore_requests: object,
     package_json_less_addon: dict[str, Any],
 ):
+    async def handle_request(request: aiohttp.web.Request):
+        if aiohttp.hdrs.RANGE in request.headers:
+            raise aiohttp.web.HTTPRequestRangeNotSatisfiable
+
+        response = aiohttp.web.Response(body=package_json_less_addon['addon'])
+        await response.prepare(request)
+        return response
+
     aresponses.add(
         'github.com',
         re.compile(r'^(/[^/]*){2}/releases/download'),
         'get',
-        aresponses.Response(body=package_json_less_addon['addon']),
+        handle_request,
+        repeat=aresponses.INFINITY,
     )
 
     try:

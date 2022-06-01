@@ -35,6 +35,8 @@ def run(
     monkeypatch.setattr('prompt_toolkit.shortcuts.progress_bar.ProgressBar', mock.MagicMock())
     monkeypatch.setattr('asyncio.run', event_loop.run_until_complete)
     monkeypatch.setenv('INSTAWOW_CONFIG_DIR', str(iw_config.global_config.config_dir))
+    monkeypatch.setenv('INSTAWOW_TEMP_DIR', str(iw_config.global_config.temp_dir))
+
     yield partial(CliRunner().invoke, cli, catch_exceptions=False)
 
 
