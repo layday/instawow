@@ -1324,12 +1324,18 @@ class GithubResolver(BaseResolver):
         from io import StringIO
 
         logger.debug(f'retrieving {cls._generated_catalogue_csv_url}')
+
         async with web_client.get(
             cls._generated_catalogue_csv_url, raise_for_status=True
         ) as response:
             catalogue_csv = await response.text()
 
-        for entry in csv.DictReader(StringIO(catalogue_csv)):
+        dict_reader = csv.DictReader(StringIO(catalogue_csv))
+        id_keys = [
+            (k, k[: -len('_id')]) for k in dict_reader.fieldnames or [] if k.endswith('_id')
+        ]
+
+        for entry in dict_reader:
             yield BaseCatalogueEntry(
                 source=cls.metadata.id,
                 id=entry['full_name'],
@@ -1344,10 +1350,7 @@ class GithubResolver(BaseResolver):
                 download_count=1,
                 last_updated=datetime.fromisoformat(entry['last_updated']),
                 same_as=[
-                    CatalogueSameAs(source=i, id=v)
-                    for i in ['curse', 'wowi']
-                    for v in (entry[f'{i}_id'],)
-                    if v
+                    CatalogueSameAs(source=s, id=i) for k, s in id_keys for i in (entry[k],) if i
                 ],
             )
 
