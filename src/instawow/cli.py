@@ -123,7 +123,7 @@ def _init_cli_web_client(
                 progress_bar.counters.append(counter)
                 try:
                     while not response.content.is_eof():
-                        counter.items_completed = response.content.total_bytes  # type: ignore
+                        counter.items_completed = response.content.total_bytes
                         progress_bar.invalidate()
                         await asyncio.sleep(TICK_INTERVAL)
                 finally:
