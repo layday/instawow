@@ -545,14 +545,16 @@ class CfCoreResolver(BaseResolver):
 
         from .config import GlobalConfig
 
+        flavours_and_version_types = [
+            (f, f.to_flavour_keyed_enum(_CfCoreSortableGameVersionTypeId)) for f in Flavour
+        ]
+
         def excise_flavours(files: list[_CfCoreFile]):
-            for flavour in Flavour:
+            for flavour, version_type in flavours_and_version_types:
                 if any(
                     not f.get('exposeAsAlternative', False)
                     and any(
-                        s['gameVersionTypeId']
-                        == flavour.to_flavour_keyed_enum(_CfCoreSortableGameVersionTypeId)
-                        for s in f['sortableGameVersions']
+                        s['gameVersionTypeId'] == version_type for s in f['sortableGameVersions']
                     )
                     for f in files
                 ):
@@ -834,9 +836,9 @@ class TukuiResolver(BaseResolver):
     # There's also a ``/client-api.php`` endpoint which is apparently
     # used by the Tukui client itself to check for updates for the two retail
     # UIs only.  The response body appears to be identical to ``/api.php``
-    api_url = URL('https://www.tukui.org/api.php')
+    _api_url = URL('https://www.tukui.org/api.php')
 
-    _retail_ui_suites = {'elvui', 'tukui'}
+    _retail_ui_suites = frozenset({'elvui', 'tukui'})
 
     _query_flavours = {
         Flavour.retail: 'addons',
@@ -855,7 +857,7 @@ class TukuiResolver(BaseResolver):
     async def _synchronise(self) -> dict[str, _TukuiAddon | _TukuiUi]:
         async def fetch_ui(ui_slug: str):
             async with self._manager.web_client.get(
-                self.api_url.with_query({'ui': ui_slug}),
+                self._api_url.with_query({'ui': ui_slug}),
                 {'minutes': 5},
                 raise_for_status=True,
             ) as response:
@@ -864,7 +866,7 @@ class TukuiResolver(BaseResolver):
 
         async def fetch_addons(flavour: Flavour):
             async with self._manager.web_client.get(
-                self.api_url.with_query({self._query_flavours[flavour]: 'all'}),
+                self._api_url.with_query({self._query_flavours[flavour]: 'all'}),
                 {'minutes': 30},
                 label=f'Synchronising {self.metadata.name} {flavour} catalogue',
                 raise_for_status=True,
@@ -878,9 +880,12 @@ class TukuiResolver(BaseResolver):
                 for l in await gather(
                     chain(
                         (
-                            (fetch_ui(s) for s in self._retail_ui_suites)
-                            if self._manager.config.game_flavour is Flavour.retail
-                            else ()
+                            fetch_ui(s)
+                            for s in (
+                                self._retail_ui_suites
+                                if self._manager.config.game_flavour is Flavour.retail
+                                else ()
+                            )
                         ),
                         (fetch_addons(self._manager.config.game_flavour),),
                     )
@@ -930,8 +935,8 @@ class TukuiResolver(BaseResolver):
                 # The changelog URL is not versioned - adding fragment to allow caching
                 str(URL(metadata['changelog']).with_fragment(metadata['version']))
                 if metadata['id'] in {-1, -2}
-                # Regular add-ons don't have dedicated changelogs but rather
-                # link to the changelog tab on the add-on page
+                # Regular add-ons don't have dedicated changelogs
+                # but link to the changelog tab on the add-on page
                 else _format_data_changelog(metadata['changelog'])
             ),
             options=models.PkgOptions(strategy=defn.strategy),
@@ -946,7 +951,7 @@ class TukuiResolver(BaseResolver):
             (frozenset({Flavour.retail}), {'ui': 'elvui'}),
             *((frozenset({f}), {q: 'all'}) for f, q in cls._query_flavours.items()),
         ]:
-            url = cls.api_url.with_query(query)
+            url = cls._api_url.with_query(query)
             logger.debug(f'retrieving {url}')
             async with web_client.get(url, raise_for_status=True) as response:
                 items: _TukuiUi | list[_TukuiAddon] = await response.json(
@@ -1038,7 +1043,7 @@ class GithubResolver(BaseResolver):
             return '/'.join(url.parts[1:3])
 
     @staticmethod
-    @lru_cache()
+    @lru_cache(1)
     def _make_auth_headers(access_token: str | None):
         return {'Authorization': f'token {access_token}'} if access_token else {}
 
@@ -1073,6 +1078,8 @@ class GithubResolver(BaseResolver):
             dynamic_addon_zip = None
             is_zip_complete = False
 
+            download_url = candidate['browser_download_url']
+
             for directory_offset in range(-25_000, -100_001, -25_000):
                 logger.debug(
                     f'fetching {abs(directory_offset):,d} bytes from end of {candidate["name"]}'
@@ -1082,14 +1089,14 @@ class GithubResolver(BaseResolver):
                 #       to avoid 416 error if a small zip has an inordinately large directory.
 
                 async with self._manager.web_client.wrapped.get(
-                    candidate['browser_download_url'],
+                    download_url,
                     headers={**github_headers, hdrs.RANGE: f'bytes={directory_offset}'},
                 ) as directory_range_response:
                     if not directory_range_response.ok:
                         # File size under 25 KB.
                         if directory_range_response.status == 416:  # Range Not Satisfiable
                             async with self._manager.web_client.get(
-                                candidate['browser_download_url'],
+                                download_url,
                                 {'days': 30},
                                 headers=github_headers,
                                 raise_for_status=True,
@@ -1167,7 +1174,7 @@ class GithubResolver(BaseResolver):
 
                 logger.debug(f'fetching {main_toc_filename} from {candidate["name"]}')
                 async with self._manager.web_client.get(
-                    candidate['browser_download_url'],
+                    download_url,
                     {'days': 30},
                     headers={
                         **github_headers,
