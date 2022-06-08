@@ -8,6 +8,10 @@ if __name__ == '__main__':
 
         multiprocessing.freeze_support()
 
+        # Ensure IDNA encoding is imported and available to sub-threads.
+        # Ref: https://github.com/layday/instawow/issues/108
+        ''.encode('idna')
+
         prog_name = sys.executable
     else:
         prog_name = None
