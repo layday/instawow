@@ -195,11 +195,13 @@ def trash(paths: Sequence[PurePath], *, dest: PurePath, missing_ok: bool = False
     if not paths:
         return
 
+    exc_class = FileNotFoundError if missing_ok else ()
+
     parent_folder = mkdtemp(dir=dest, prefix=f'deleted-{paths[0].name}-')
     for path in paths:
         try:
             move(path, dest=parent_folder)
-        except (FileNotFoundError if missing_ok else ()):
+        except exc_class:
             pass
 
 
