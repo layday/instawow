@@ -695,7 +695,7 @@ def search(
         click.echo('No results found.')
 
 
-class _ListFormats(StrEnum):
+class _ListFormat(StrEnum):
     simple = 'simple'
     detailed = 'detailed'
     json = 'json'
@@ -709,14 +709,14 @@ class _ListFormats(StrEnum):
     '--format',
     '-f',
     'output_format',
-    type=StrEnumParam(_ListFormats),
-    default=_ListFormats.simple,
+    type=StrEnumParam(_ListFormat),
+    default=_ListFormat.simple,
     show_default=True,
     help='Change the output format.',
 )
 @click.pass_obj
 def list_installed(
-    mw: _CtxObjWrapper, addons: Sequence[Defn], output_format: _ListFormats
+    mw: _CtxObjWrapper, addons: Sequence[Defn], output_format: _ListFormat
 ) -> None:
     "List installed add-ons."
     import sqlalchemy as sa
@@ -757,7 +757,7 @@ def list_installed(
         .all()
     )
 
-    if output_format is _ListFormats.json:
+    if output_format is _ListFormat.json:
         import json
         import typing
 
@@ -770,7 +770,7 @@ def list_installed(
             )
         )
 
-    elif output_format is _ListFormats.detailed:
+    elif output_format is _ListFormat.detailed:
         formatter = click.HelpFormatter(max_width=99)
         for pkg in row_mappings_to_pkgs():
             with formatter.section(Defn.from_pkg(pkg).to_urn()):
@@ -800,7 +800,7 @@ def list_installed(
 @click.pass_context
 def info(ctx: click.Context, addon: Defn) -> None:
     "Alias of `list -f detailed`."
-    ctx.invoke(list_installed, addons=(addon,), output_format=_ListFormats.detailed)
+    ctx.invoke(list_installed, addons=(addon,), output_format=_ListFormat.detailed)
 
 
 @cli.command()
