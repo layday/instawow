@@ -9,7 +9,7 @@ from itertools import chain, count, takewhile, tee, zip_longest
 from pathlib import Path
 import re
 import typing
-from typing import Any, ClassVar
+from typing import Any, ClassVar, Generic, TypeVar
 import urllib.parse
 
 from attrs import evolve, frozen
@@ -33,6 +33,8 @@ from .utils import (
     run_in_thread,
     uniq,
 )
+
+_T = TypeVar('_T')
 
 
 @frozen(hash=True)
@@ -334,29 +336,32 @@ class _CfCoreModsSearchSortField(IntEnum):
     game_version = 8
 
 
-class _CfCoreStringDataResponse(TypedDict):
-    data: str
-
-
-class _CfCoreModsResponsePagination(TypedDict):
+class _CfCoreResponsePagination(TypedDict):
     index: int
     pageSize: int
     resultCount: int
     totalCount: int | None
 
 
-class _CfCoreModsResponseSansPagination(TypedDict):
+class _CfCorePaginatedResponse(TypedDict, Generic[_T]):
+    data: _T
+    pagination: _CfCoreResponsePagination
+
+
+class _CfCoreStringDataResponse(TypedDict):
+    data: str
+
+
+class _CfCoreUnpaginatedModsResponse(TypedDict):
     data: list[_CfCoreMod]
 
 
-class _CfCoreModsResponse(TypedDict):
-    data: list[_CfCoreMod]
-    pagination: _CfCoreModsResponsePagination
+class _CfCoreModsResponse(_CfCorePaginatedResponse['list[_CfCoreMod]']):
+    pass
 
 
-class _CfCoreFilesResponse(TypedDict):
-    data: list[_CfCoreFile]
-    pagination: _CfCoreModsResponsePagination
+class _CfCoreFilesResponse(_CfCorePaginatedResponse['list[_CfCoreFile]']):
+    pass
 
 
 class CfCoreResolver(BaseResolver):
@@ -418,7 +423,7 @@ class CfCoreResolver(BaseResolver):
                 return await super().resolve(defns)
 
             response.raise_for_status()
-            response_json: _CfCoreModsResponseSansPagination = await response.json()
+            response_json: _CfCoreUnpaginatedModsResponse = await response.json()
 
         numeric_ids_to_addons: dict[str | None, _CfCoreMod] = {
             str(r['id']): r for r in response_json['data']

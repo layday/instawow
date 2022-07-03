@@ -45,7 +45,7 @@ prompt-toolkit = ">=3.0.29, <4"
 questionary = ">=1.10"
 rapidfuzz = ">=1.4.1"
 sqlalchemy = ">=1.4.23"
-typing-extensions = ">=4.2.0"
+typing-extensions = ">=4.3.0"
 yarl = ">=1.6.3"
 
 aiohttp-rpc = { version = ">=1.0.0", optional = true }
