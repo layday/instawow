@@ -214,7 +214,10 @@ class WaCompanionBuilder:
 
         metadata = await self._fetch_wago_metadata(auras.api_ep, auras.root)
         import_strings = await gather(self._fetch_wago_import_string(r) for r in metadata)
-        return [(auras.root[r['slug']], r, i) for r, i in zip(metadata, import_strings)]
+        return [
+            (auras.root.get(r['slug']) or auras.root[r['_id']], r, i)
+            for r, i in zip(metadata, import_strings)
+        ]
 
     def _checksum(self):
         from hashlib import sha256
