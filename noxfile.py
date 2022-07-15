@@ -76,7 +76,7 @@ def format_(session: nox.Session):
             questionary == 1.10.0
             rapidfuzz == 1.4.1
             sqlalchemy == 1.4.23
-            typing-extensions == 4.2.0
+            typing-extensions == 4.3.0
             yarl == 1.6.3
             aiohttp-rpc == 1.0.0
             '''
