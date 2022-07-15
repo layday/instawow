@@ -713,9 +713,7 @@ class _ListFormat(StrEnum):
     help='Change the output format.',
 )
 @click.pass_obj
-def list_installed(
-    mw: _CtxObjWrapper, addons: Sequence[Defn], output_format: _ListFormat
-) -> None:
+def list_installed(mw: _CtxObjWrapper, addons: Sequence[Defn], output_format: _ListFormat) -> None:
     "List installed add-ons."
     import sqlalchemy as sa
 
