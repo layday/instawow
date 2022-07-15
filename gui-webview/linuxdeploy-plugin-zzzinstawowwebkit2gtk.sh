@@ -76,7 +76,7 @@ if [ -z "$LINUXDEPLOY" ]; then
 fi
 
 echo "Deploy proot"
-curl -L https://gitlab.com/proot/proot/-/jobs/1316384571/artifacts/download -o proot.zip
+curl -L https://gitlab.com/proot/proot/-/jobs/2370229665/artifacts/download -o proot.zip
 unzip proot
 chmod +x dist/proot
 cp dist/proot "$APPDIR/usr/bin"
