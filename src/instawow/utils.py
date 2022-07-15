@@ -158,18 +158,18 @@ def run_in_thread(fn: Callable[..., object]) -> Callable[..., Awaitable[object]]
     return wrapper
 
 
-def tabulate(rows: Sequence[Sequence[object]], *, max_col_width: int = 60) -> str:
+def tabulate(rows: Sequence[tuple[object, ...]], *, max_col_width: int = 60) -> str:
     "Produce an ASCII table from equal-length elements in a sequence."
     from textwrap import fill
 
     def apply_max_col_width(value: object):
         return fill(str(value), width=max_col_width, max_lines=1)
 
-    def calc_resultant_col_widths(rows: Sequence[Sequence[str]]):
+    def calc_resultant_col_widths(rows: Sequence[tuple[str, ...]]):
         cols = zip(*rows)
         return [max(map(len, c)) for c in cols]
 
-    rows = [tuple(map(apply_max_col_width, r)) for r in rows]
+    rows = [tuple(apply_max_col_width(i) for i in r) for r in rows]
     head, *tail = rows
 
     base_template = '  '.join(f'{{{{{{0}}{w}}}}}' for w in calc_resultant_col_widths(rows))
