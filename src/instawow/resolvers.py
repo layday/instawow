@@ -4,7 +4,7 @@ import asyncio
 from collections.abc import AsyncIterator, Iterable, Sequence
 from datetime import datetime, timezone
 from enum import IntEnum
-from functools import lru_cache
+from functools import lru_cache, update_wrapper
 from itertools import chain, count, takewhile, tee, zip_longest
 from pathlib import Path
 import re
@@ -106,11 +106,10 @@ class BaseResolver(Resolver):
         async def resolve_one(self: Self, defn: Defn, metadata: Any) -> models.Pkg:
             if defn.strategy not in self.metadata.strategies:
                 raise R.PkgStrategyUnsupported(defn.strategy)
-            return await orig_resolve_one(self, defn, metadata)
+            return await cls_resolve_one(self, defn, metadata)
 
-        kls = cls
-        orig_resolve_one = kls.resolve_one
-        kls.resolve_one = resolve_one
+        cls_resolve_one = cls.resolve_one
+        cls.resolve_one = update_wrapper(resolve_one, cls.resolve_one)
 
     @classmethod
     def get_alias_from_url(cls, url: URL) -> str | None:
