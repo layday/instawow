@@ -1347,6 +1347,15 @@ class GithubResolver(BaseResolver):
             (k, k[: -len('_id')]) for k in dict_reader.fieldnames or [] if k.endswith('_id')
         ]
 
+        def extract_flavours(flavours: str):
+            for flavour in filter(None, flavours.split(',')):
+                try:
+                    release_json_flavor = _PackagerReleaseJsonFlavor(flavour)
+                except ValueError:
+                    continue
+                else:
+                    yield Flavour.from_flavour_keyed_enum(release_json_flavor)
+
         for entry in dict_reader:
             yield BaseCatalogueEntry(
                 source=cls.metadata.id,
@@ -1354,11 +1363,7 @@ class GithubResolver(BaseResolver):
                 slug=entry['full_name'].lower(),
                 name=entry['name'],
                 url=entry['url'],
-                game_flavours=frozenset(
-                    Flavour.from_flavour_keyed_enum(_PackagerReleaseJsonFlavor(f))
-                    for f in entry['flavors'].split(',')
-                    if f
-                ),
+                game_flavours=frozenset(extract_flavours(entry['flavors'])),
                 download_count=1,
                 last_updated=datetime.fromisoformat(entry['last_updated']),
                 same_as=[
