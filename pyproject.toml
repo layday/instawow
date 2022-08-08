@@ -129,7 +129,7 @@ strict = ["src", "gui-webview/src/instawow_gui/json_rpc_server.py"]
 [tool.black]
 line_length = 99
 skip_string_normalization = true
-target_version = ["py37", "py38", "py39", "py310"]
+target_version = ["py37", "py38", "py39", "py310", "py311"]
 
 [tool.isort]
 profile = "black"
