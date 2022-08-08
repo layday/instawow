@@ -8,10 +8,10 @@
   let show = true;
 
   let githubAuthFlowShouldStart = false;
-  let newCfcoreAccessToken: string | null = null;
+  let newCfcoreAccessToken: string | null;
 
   const updateCfCoreAccessToken = async () => {
-    await $api.updateGlobalConfig(newCfcoreAccessToken || null);
+    await $api.updateGlobalConfig({ cfcore: newCfcoreAccessToken });
   };
 
   const queryGithubAuthFlowStatus = async () => {
@@ -81,15 +81,15 @@
             class="form-control"
             type="password"
             value={access_tokens.cfcore}
-            on:input={(e) => (newCfcoreAccessToken = e.currentTarget.value)}
+            on:input={(e) => (newCfcoreAccessToken = e.currentTarget.value || null)}
           />
           <button
             class="form-control primary"
-            disabled={newCfcoreAccessToken === null}
+            disabled={newCfcoreAccessToken === undefined}
             on:click={() => updateCfCoreAccessToken()}>update</button
           >
           <div class="description">
-            Log in to
+            A CFCore access token is required to use CurseForge. Log in to
             <button
               role="link"
               on:click|preventDefault|stopPropagation={() =>
@@ -107,11 +107,15 @@
 <style lang="scss">
   @use "scss/vars";
 
+  .content {
+    overflow: auto;
+  }
+
   .form-grid {
     display: grid;
     grid-template-columns: 1fr 2fr;
     column-gap: 0.5rem;
-    row-gap: 0.5rem;
+    row-gap: 0.75rem;
 
     label,
     .label-like {

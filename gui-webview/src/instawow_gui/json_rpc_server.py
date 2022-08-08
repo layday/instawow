@@ -208,7 +208,7 @@ class ListProfilesParams(BaseParams):
 
 @_register_method('config/update_global')
 class UpdateGlobalConfigParams(BaseParams):
-    cfcore_access_token: typing.Optional[str]
+    access_tokens: typing.Dict[str, typing.Optional[str]]
 
     async def respond(
         self, managers: _ManagerWorkQueue, app_window: toga.MainWindow | None
@@ -220,9 +220,10 @@ class UpdateGlobalConfigParams(BaseParams):
                     global_config,
                     access_tokens=evolve(
                         global_config.access_tokens,
-                        cfcore=self.cfcore_access_token
-                        if self.cfcore_access_token is None
-                        else SecretStr(self.cfcore_access_token),
+                        **{
+                            k: t if t is None else SecretStr(t)
+                            for k, t in self.access_tokens.items()
+                        },
                     ),
                 )
                 await t(global_config.write)()

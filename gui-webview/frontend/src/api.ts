@@ -202,10 +202,10 @@ export class Api {
     return await this.request({ method: "config/list_profiles" });
   }
 
-  async updateGlobalConfig(cfcoreAccessToken: string | null): Promise<void> {
+  async updateGlobalConfig(accessTokens: Record<string, string | null>): Promise<void> {
     return await this.request({
       method: "config/update_global",
-      params: { cfcore_access_token: cfcoreAccessToken },
+      params: { access_tokens: accessTokens },
     });
   }
 
