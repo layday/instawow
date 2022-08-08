@@ -139,8 +139,8 @@ def build_dists(session: nox.Session):
 def publish_dists(session: nox.Session):
     "Validate and upload dists to PyPI."
     session.install('twine')
-    session.run('twine', 'check', '--strict', 'dist/*')
-    session.run('twine', 'upload', 'dist/*')
+    session.run('twine', '--verbose', 'check', '--strict', 'dist/*')
+    session.run('twine', '--verbose', 'upload', 'dist/*')
 
 
 @nox.session
