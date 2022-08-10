@@ -24,3 +24,9 @@ requires = [
 requires = [
   "std-nslog",
 ]
+
+[tool.briefcase.app.instawow-gui-wrapper.linux]
+linuxdeploy_plugins = [
+  "DEPLOY_GTK_VERSION=3 gtk",
+  "./linuxdeploy-plugin-zzzinstawowwebkit2gtk.sh",
+]

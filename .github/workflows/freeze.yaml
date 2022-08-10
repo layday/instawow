@@ -100,8 +100,6 @@ jobs:
           python -m briefcase package ${{ matrix.build-env.briefcase-package-opts }} | tee >(
               echo "INSTAWOW_ARTIFACT_PATH=gui-webview/$(tail -n 1 | cut -c 33-)" >> $GITHUB_ENV
             )
-        env:
-          DEPLOY_GTK_VERSION: 3
         working-directory: gui-webview
       - name: Upload artifact
         uses: actions/upload-artifact@v2
