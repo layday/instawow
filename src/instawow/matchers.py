@@ -9,9 +9,12 @@ import sqlalchemy as sa
 from typing_extensions import Self, TypeAlias
 
 from . import manager
+from ._sources.cfcore import CfCoreResolver
+from ._sources.tukui import TukuiResolver
+from ._sources.wowi import WowiResolver
 from .common import Flavour
 from .db import pkg_folder
-from .resolvers import CfCoreResolver, Defn, TukuiResolver, WowiResolver
+from .resolvers import Defn
 from .utils import TocReader, bucketise, cached_property, merge_intersecting_sets, uniq
 
 FolderAndDefnPairs: TypeAlias = 'list[tuple[list[AddonFolder], list[Defn]]]'

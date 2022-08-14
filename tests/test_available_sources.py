@@ -7,17 +7,14 @@ import pytest
 from yarl import URL
 
 from instawow import results as R
+from instawow._sources.cfcore import CfCoreResolver
+from instawow._sources.github import GithubResolver
+from instawow._sources.tukui import TukuiResolver
+from instawow._sources.wowi import WowiResolver
 from instawow.common import Flavour, Strategy
 from instawow.manager import Manager
 from instawow.models import Pkg
-from instawow.resolvers import (
-    CfCoreResolver,
-    Defn,
-    GithubResolver,
-    Resolver,
-    TukuiResolver,
-    WowiResolver,
-)
+from instawow.resolvers import Defn, Resolver
 
 
 @pytest.mark.parametrize('strategy', [Strategy.default, Strategy.latest])

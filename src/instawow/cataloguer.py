@@ -68,7 +68,8 @@ class Catalogue:
 
     @classmethod
     def from_base_catalogue(cls, unstructured_base_catalogue: object, start_date: datetime | None):
-        from .resolvers import CfCoreResolver, GithubResolver
+        from ._sources.cfcore import CfCoreResolver
+        from ._sources.github import GithubResolver
 
         normalise = normalise_names('')
 

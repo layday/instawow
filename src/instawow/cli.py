@@ -24,10 +24,10 @@ import click
 from loguru import logger
 
 from . import __version__, _deferred_types, db, manager as _manager, models, results as R
-from .common import Flavour, Strategy
+from .common import ChangelogFormat, Flavour, Strategy
 from .config import Config, GlobalConfig, config_converter, setup_logging
 from .plugins import load_plugins
-from .resolvers import ChangelogFormat, Defn
+from .resolvers import Defn
 from .utils import StrEnum, all_eq, cached_property, gather, reveal_folder, tabulate, uniq
 
 _T = TypeVar('_T')

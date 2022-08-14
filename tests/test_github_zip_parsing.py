@@ -10,9 +10,10 @@ import aiohttp.web
 from aresponses import ResponsesMockServer
 import pytest
 
+from instawow._sources.github import GithubResolver
 from instawow.common import Flavour
 from instawow.manager import Manager
-from instawow.resolvers import Defn, GithubResolver
+from instawow.resolvers import Defn
 from instawow.results import PkgFileUnavailable
 
 ADDON_NAME = 'RaidFadeMore'

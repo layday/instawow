@@ -23,20 +23,17 @@ from typing_extensions import Concatenate, Literal, ParamSpec, TypeAlias, TypedD
 from yarl import URL
 
 from . import _deferred_types, db, models, results as R
+from ._sources.cfcore import CfCoreResolver
+from ._sources.github import GithubResolver
+from ._sources.instawow import InstawowResolver
+from ._sources.tukui import TukuiResolver
+from ._sources.wowi import WowiResolver
 from .cataloguer import BaseCatalogue, Catalogue, CatalogueEntry, catalogue_converter
 from .common import Strategy
 from .config import Config, GlobalConfig
 from .models import PkgFolder
 from .plugins import load_plugins
-from .resolvers import (
-    CfCoreResolver,
-    Defn,
-    GithubResolver,
-    InstawowResolver,
-    Resolver,
-    TukuiResolver,
-    WowiResolver,
-)
+from .resolvers import Defn, Resolver
 from .utils import (
     bucketise,
     chain_dict,

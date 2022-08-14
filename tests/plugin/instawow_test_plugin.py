@@ -3,7 +3,7 @@ from datetime import datetime
 import click
 
 from instawow.common import ChangelogFormat, SourceMetadata, Strategy
-from instawow.models import Pkg
+from instawow.models import Pkg, PkgOptions
 import instawow.plugins
 from instawow.resolvers import BaseResolver, Defn
 
@@ -34,7 +34,7 @@ class MyResolver(BaseResolver):
             date_published=datetime.now(),
             version='0',
             changelog_url='data:,',
-            options={'strategy': defn.strategy},
+            options=PkgOptions(strategy=defn.strategy),
         )
 
 

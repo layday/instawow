@@ -16,7 +16,6 @@ import pytest
 
 from instawow import __version__
 from instawow.cli import cli
-from instawow.common import Flavour
 from instawow.config import Config
 
 
