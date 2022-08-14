@@ -231,12 +231,12 @@ class WaCompanionBuilder:
 
         from jinja2 import Environment, FunctionLoader
 
-        from . import wa_templates
+        from . import _wa_templates
 
         jinja_env = Environment(
             trim_blocks=True,
             lstrip_blocks=True,
-            loader=FunctionLoader(partial(read_text, wa_templates)),
+            loader=FunctionLoader(partial(read_text, _wa_templates)),
         )
         aura_dict = chain_dict((WeakAuras, Plateroos), (), auras)
 
