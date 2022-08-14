@@ -54,7 +54,7 @@ async def test_resolve_rewraps_exception_appropriately_from_resolve(
     async def resolve_one(self, defn, metadata):
         raise exception
 
-    monkeypatch.setattr('instawow.resolvers.CfCoreResolver.resolve_one', resolve_one)
+    monkeypatch.setattr('instawow._sources.cfcore.CfCoreResolver.resolve_one', resolve_one)
 
     defn = Defn('curse', 'molinari')
     results = await iw_manager.resolve([defn])
@@ -69,7 +69,7 @@ async def test_resolve_rewraps_exception_appropriately_from_batch_resolve(
     async def resolve(self, defns):
         raise exception
 
-    monkeypatch.setattr('instawow.resolvers.CfCoreResolver.resolve', resolve)
+    monkeypatch.setattr('instawow._sources.cfcore.CfCoreResolver.resolve', resolve)
 
     defn = Defn('curse', 'molinari')
     results = await iw_manager.resolve([defn])
