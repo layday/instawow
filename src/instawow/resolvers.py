@@ -71,6 +71,10 @@ class Resolver(Protocol):
         "Attempt to extract a ``Defn`` alias from a given URL."
         ...
 
+    async def make_auth_headers(self) -> dict[str, str] | None:
+        "Create authentication headers."
+        ...
+
     async def resolve(
         self, defns: Sequence[Defn]
     ) -> dict[Defn, models.Pkg | R.ManagerError | R.InternalError]:
@@ -112,6 +116,9 @@ class BaseResolver(Resolver):
     def get_alias_from_url(cls, url: URL) -> str | None:
         return None
 
+    async def make_auth_headers(self) -> dict[str, str] | None:
+        return None
+
     async def resolve(
         self, defns: Sequence[Defn]
     ) -> dict[Defn, models.Pkg | R.ManagerError | R.InternalError]:
@@ -128,7 +135,7 @@ class BaseResolver(Resolver):
             return urllib.parse.unquote(uri.raw_path[1:])
         elif uri.scheme in {'http', 'https'}:
             async with self._manager.web_client.get(
-                uri, {'days': 1}, raise_for_status=True
+                uri, {'days': 1}, headers=await self.make_auth_headers(), raise_for_status=True
             ) as response:
                 return await response.text()
         elif uri.scheme == 'file':
@@ -397,6 +404,9 @@ class CfCoreResolver(BaseResolver):
             raise ValueError(f'{cls.metadata.name} access token not configured')
         return maybe_access_token
 
+    async def make_auth_headers(self) -> dict[str, str] | None:
+        return {'x-api-key': self._get_access_token(self._manager.config.global_config)}
+
     async def resolve(
         self, defns: Sequence[Defn]
     ) -> dict[Defn, models.Pkg | R.ManagerError | R.InternalError]:
@@ -415,7 +425,7 @@ class CfCoreResolver(BaseResolver):
             'POST',
             self._mod_api_url,
             {'minutes': 5},
-            headers={'x-api-key': self._get_access_token(self._manager.config.global_config)},
+            headers=await self.make_auth_headers(),
             json={'modIds': numeric_ids},
         ) as response:
             if response.status == 404:
@@ -449,7 +459,7 @@ class CfCoreResolver(BaseResolver):
                     pageSize=9999,
                 ),
                 {'hours': 1},
-                headers={'x-api-key': self._get_access_token(self._manager.config.global_config)},
+                headers=await self.make_auth_headers(),
                 label=f'Fetching metadata from {self.metadata.name}',
                 raise_for_status=True,
             ) as response:
@@ -534,9 +544,8 @@ class CfCoreResolver(BaseResolver):
         )
 
     async def get_changelog(self, uri: URL) -> str:
-        headers = {'x-api-key': self._get_access_token(self._manager.config.global_config)}
         async with self._manager.web_client.get(
-            uri, {'days': 1}, headers=headers, raise_for_status=True
+            uri, {'days': 1}, headers=await self.make_auth_headers(), raise_for_status=True
         ) as response:
             response_json: _CfCoreStringDataResponse = await response.json()
             return response_json['data']

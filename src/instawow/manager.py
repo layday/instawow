@@ -708,7 +708,11 @@ class Manager:
                 trace_request_ctx=_PkgDownloadTraceRequestCtx(
                     report_progress='pkg_download', manager=self, pkg=pkg
                 ),
-            ) as response, _open_temp_writer() as (temp_path, write):
+                headers=await self.resolvers[pkg.source].make_auth_headers(),
+            ) as response, _open_temp_writer() as (
+                temp_path,
+                write,
+            ):
                 async for chunk in response.content.iter_chunked(chunk_size):
                     await write(chunk)
 
