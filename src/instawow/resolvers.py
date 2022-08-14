@@ -52,9 +52,6 @@ class Defn:
     def with_version(self, version: str) -> Defn:
         return evolve(self, strategy=Strategy.version, version=version)
 
-    def to_urn(self) -> str:
-        return f'{self.source}:{self.alias}'
-
 
 _slugify = normalise_names('-')
 

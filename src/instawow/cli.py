@@ -65,7 +65,7 @@ class Report:
 
     def __str__(self) -> str:
         return '\n'.join(
-            f'{self._result_type_to_symbol(r)} {click.style(a.to_urn(), bold=True)}\n'
+            f'{self._result_type_to_symbol(r)} {click.style(defn_to_urn(a), bold=True)}\n'
             f'{textwrap.fill(r.message, initial_indent=" " * 2, subsequent_indent=" " * 4)}'
             for a, r in self.results
             if self.filter_fn(r)
@@ -107,7 +107,7 @@ def _init_cli_web_client(
             response = params.response
             label = (
                 'Downloading '
-                + Defn(trace_request_ctx['pkg'].source, trace_request_ctx['pkg'].slug).to_urn()
+                + defn_to_urn(Defn(trace_request_ctx['pkg'].source, trace_request_ctx['pkg'].slug))
                 if trace_request_ctx['report_progress'] == 'pkg_download'
                 else trace_request_ctx['label']
             )
@@ -231,6 +231,10 @@ def _register_plugin_commands(group: click.Group):
     for command in additional_commands:
         group.add_command(command)
     return group
+
+
+def defn_to_urn(defn: Defn) -> str:
+    return f'{defn.source}:{defn.alias}'
 
 
 @_register_plugin_commands
@@ -459,7 +463,7 @@ def rollback(mw: _CtxObjWrapper, addon: Defn, version: str | None, undo: bool) -
             for v in versions
         ]
         selection = ask(
-            select(f'Select version of {reconstructed_defn.to_urn()} for rollback', choices)
+            select(f'Select version of {defn_to_urn(reconstructed_defn)} for rollback', choices)
         )
 
     Report(
@@ -497,7 +501,7 @@ def reconcile(mw: _CtxObjWrapper, auto: bool, rereconcile: bool, list_unreconcil
         defn = Defn.from_pkg(pkg)
         return PkgChoice(
             [
-                ('', f'{defn.to_urn()}=='),
+                ('', f'{defn_to_urn(defn)}=='),
                 ('class:highlight-sub' if highlight_version else '', pkg.version),
             ],
             pkg=pkg,
@@ -684,7 +688,7 @@ def search(
         for d, r in mw.run_with_progress(mw.manager.resolve(defns)).items()
         if isinstance(r, models.Pkg)
     )
-    choices = [PkgChoice(f'{p.name}  ({d.to_urn()}=={p.version})', d, pkg=p) for d, p in pkgs]
+    choices = [PkgChoice(f'{p.name}  ({defn_to_urn(d)}=={p.version})', d, pkg=p) for d, p in pkgs]
     if choices:
         selections: list[Defn] = ask(checkbox('Select add-ons to install', choices=choices))
         if selections and ask(confirm('Install selected add-ons?')):
@@ -719,7 +723,7 @@ def list_installed(mw: _CtxObjWrapper, addons: Sequence[Defn], output_format: _L
 
     def format_deps(pkg: models.Pkg):
         return (
-            Defn(pkg.source, s or e.id).to_urn()
+            defn_to_urn(Defn(pkg.source, s or e.id))
             for e in pkg.deps
             for s in (
                 mw.manager.database.execute(
@@ -769,7 +773,7 @@ def list_installed(mw: _CtxObjWrapper, addons: Sequence[Defn], output_format: _L
     elif output_format is _ListFormat.detailed:
         formatter = click.HelpFormatter(max_width=99)
         for pkg in row_mappings_to_pkgs():
-            with formatter.section(Defn.from_pkg(pkg).to_urn()):
+            with formatter.section(defn_to_urn(Defn.from_pkg(pkg))):
                 formatter.write_dl(
                     [
                         ('name', pkg.name),
@@ -786,7 +790,7 @@ def list_installed(mw: _CtxObjWrapper, addons: Sequence[Defn], output_format: _L
 
     else:
         click.echo(
-            ''.join(f'{Defn(p["source"], p["slug"]).to_urn()}\n' for p in pkg_mappings),
+            ''.join(f'{defn_to_urn(Defn(p["source"], p["slug"]))}\n' for p in pkg_mappings),
             nl=False,
         )
 
@@ -898,7 +902,7 @@ def view_changelog(mw: _CtxObjWrapper, addon: Defn | None, convert: bool) -> Non
             )
         click.echo_via_pager(
             '\n\n'.join(
-                Defn(m.source, m.slug).to_urn() + ':\n' + textwrap.indent(c, '  ')
+                defn_to_urn(Defn(m.source, m.slug)) + ':\n' + textwrap.indent(c, '  ')
                 for m, c in zip(last_installed_changelog_urls, changelogs)
             )
         )
