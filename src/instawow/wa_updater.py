@@ -123,7 +123,7 @@ class _WagoApiResponse_Changelog(TypedDict):
 
 
 class _TocNumber(StrEnum):
-    retail = '90200'
+    retail = '90205'
     vanilla_classic = '11403'
     burning_crusade_classic = '20504'
 
