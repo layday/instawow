@@ -18,6 +18,7 @@ class _FlavourKeyedEnum(Protocol[_TEnum]):
     retail: _TEnum
     vanilla_classic: _TEnum
     burning_crusade_classic: _TEnum
+    wrath_classic: _TEnum
 
     def __getitem__(self, __key: str) -> _TEnum:
         ...
@@ -33,6 +34,7 @@ class Flavour(StrEnum):
     retail = 'retail'
     vanilla_classic = 'vanilla_classic'
     burning_crusade_classic = 'classic'
+    wrath_classic = 'wrath_classic_prerelease'
 
     @classmethod
     def from_flavour_keyed_enum(cls, enum: Enum) -> Self:
@@ -43,9 +45,12 @@ class Flavour(StrEnum):
 
 
 class FlavourVersion(Enum):
-    retail = (range(1_00_00, 1_13_00), range(2_00_00, 2_05_00), range(3_00_00, 11_00_00))
+    retail = (
+        range(1_00_00, 1_13_00), range(2_00_00, 2_05_00), range(3_00_00, 3_04_00), range(4_00_00, 11_00_00)  # fmt: skip
+    )
     vanilla_classic = (range(1_13_00, 2_00_00),)
     burning_crusade_classic = (range(2_05_00, 3_00_00),)
+    wrath_classic = (range(3_04_00, 4_00_00),)
 
     @classmethod
     def from_version_string(cls, version_string: str) -> Self | None:
@@ -67,8 +72,10 @@ def infer_flavour_from_path(path: os.PathLike[str] | str) -> Flavour:
         return Flavour.retail
     elif tail[0] in {'_classic_era_', '_classic_era_beta_', '_classic_era_ptr_'}:
         return Flavour.vanilla_classic
-    elif tail[0] in {'_classic_', '_classic_beta_', '_classic_ptr_'}:
+    elif tail[0] in {'_classic_'}:
         return Flavour.burning_crusade_classic
+    elif tail[0] in {'_classic_beta_', '_classic_ptr_'}:
+        return Flavour.wrath_classic
     else:
         return Flavour.retail
 

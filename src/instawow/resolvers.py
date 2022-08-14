@@ -5,7 +5,7 @@ from collections.abc import AsyncIterator, Iterable, Sequence
 from datetime import datetime, timezone
 from enum import IntEnum
 from functools import lru_cache, update_wrapper
-from itertools import chain, count, takewhile, tee, zip_longest
+from itertools import count, takewhile, tee, zip_longest
 from pathlib import Path
 import re
 import typing
@@ -241,9 +241,12 @@ class _CfCoreFileHash(TypedDict):
 
 
 class _CfCoreSortableGameVersionTypeId(IntEnum):
+    "Extracted from https://api.curseforge.com/v1/games/1/version-types."
+
     retail = 517
     vanilla_classic = 67408
     burning_crusade_classic = 73246
+    wrath_classic = 73713
 
 
 class _CfCoreSortableGameVersion(TypedDict):
@@ -768,6 +771,8 @@ class WowiResolver(BaseResolver):
                 game_flavours = {Flavour.vanilla_classic}
             elif item['UICATID'] == '161':
                 game_flavours = {Flavour.burning_crusade_classic}
+            elif item['UICATID'] == '162':
+                game_flavours = {Flavour.wrath_classic}
             elif item['UICompatibility'] is None or len(item['UICompatibility']) < 2:
                 game_flavours = {Flavour.retail}
             else:
@@ -829,6 +834,12 @@ class _TukuiAddon(TypedDict):
     web_url: str
 
 
+class _TukuiFlavourQueryParam(StrEnum):
+    retail = 'addons'
+    vanilla_classic = 'classic-addons'
+    burning_crusade_classic = 'classic-tbc-addons'
+
+
 class TukuiResolver(BaseResolver):
     metadata = SourceMetadata(
         id='tukui',
@@ -842,18 +853,14 @@ class TukuiResolver(BaseResolver):
     # UIs only.  The response body appears to be identical to ``/api.php``
     _api_url = URL('https://www.tukui.org/api.php')
 
-    _retail_ui_suites = frozenset({'elvui', 'tukui'})
+    _RETAIL_UI_SUITES = frozenset(('elvui', 'tukui'))
 
-    _query_flavours = {
-        Flavour.retail: 'addons',
-        Flavour.vanilla_classic: 'classic-addons',
-        Flavour.burning_crusade_classic: 'classic-tbc-addons',
-    }
+    _FLAVOUR_URL_PATHS = frozenset(f'/{p}.php' for p in _TukuiFlavourQueryParam)
 
     @classmethod
     def get_alias_from_url(cls, url: URL) -> str | None:
         if url.host == 'www.tukui.org':
-            if url.path in {'/addons.php', '/classic-addons.php', '/classic-tbc-addons.php'}:
+            if url.path in cls._FLAVOUR_URL_PATHS:
                 return url.query.get('id')
             elif url.path == '/download.php':
                 return url.query.get('ui')
@@ -869,29 +876,33 @@ class TukuiResolver(BaseResolver):
                 return [(str(addon['id']), addon), (ui_slug, addon)]
 
         async def fetch_addons(flavour: Flavour):
-            async with self._manager.web_client.get(
-                self._api_url.with_query({self._query_flavours[flavour]: 'all'}),
-                {'minutes': 30},
-                label=f'Synchronising {self.metadata.name} {flavour} catalogue',
-                raise_for_status=True,
-            ) as response:
-                addons: list[_TukuiAddon] = await response.json()
-                return [(str(a['id']), a) for a in addons]
+            addons: list[tuple[str, _TukuiAddon]] = []
+
+            if self._manager.config.game_flavour is Flavour.wrath_classic:
+                async with self._manager.web_client.get(
+                    self._api_url.with_query({_TukuiFlavourQueryParam[flavour].value: 'all'}),
+                    {'minutes': 30},
+                    label=f'Synchronising {self.metadata.name} {flavour} catalogue',
+                    raise_for_status=True,
+                ) as response:
+                    addons = [(str(a['id']), a) for a in await response.json()]
+
+            return addons
 
         async with self._manager.locks['load Tukui catalogue']:
             return {
                 k: v
                 for l in await gather(
-                    chain(
-                        (
+                    (
+                        *(
                             fetch_ui(s)
                             for s in (
-                                self._retail_ui_suites
+                                self._RETAIL_UI_SUITES
                                 if self._manager.config.game_flavour is Flavour.retail
                                 else ()
                             )
                         ),
-                        (fetch_addons(self._manager.config.game_flavour),),
+                        fetch_addons(self._manager.config.game_flavour),
                     )
                 )
                 for k, v in l
@@ -902,7 +913,7 @@ class TukuiResolver(BaseResolver):
     ) -> dict[Defn, models.Pkg | R.ManagerError | R.InternalError]:
         addons = await self._synchronise()
         ids = (
-            d.alias[:p] if d.alias not in self._retail_ui_suites and p != -1 else d.alias
+            d.alias[:p] if d.alias not in self._RETAIL_UI_SUITES and p != -1 else d.alias
             for d in defns
             for p in (d.alias.find('-', 1),)
         )
@@ -953,7 +964,10 @@ class TukuiResolver(BaseResolver):
         for flavours, query in [
             (frozenset({Flavour.retail}), {'ui': 'tukui'}),
             (frozenset({Flavour.retail}), {'ui': 'elvui'}),
-            *((frozenset({f}), {q: 'all'}) for f, q in cls._query_flavours.items()),
+            *(
+                (frozenset({Flavour(f)}), {q: 'all'})
+                for f, q in _TukuiFlavourQueryParam.__members__
+            ),
         ]:
             url = cls._api_url.with_query(query)
             logger.debug(f'retrieving {url}')
@@ -1025,6 +1039,7 @@ class _PackagerReleaseJsonFlavor(StrEnum):
     retail = 'mainline'
     vanilla_classic = 'classic'
     burning_crusade_classic = 'bcc'
+    wrath_classic = 'wrath'
 
 
 class GithubResolver(BaseResolver):
