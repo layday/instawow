@@ -97,7 +97,7 @@ class TukuiResolver(BaseResolver):
         async def fetch_addons(flavour: Flavour):
             addons: list[tuple[str, _TukuiAddon]] = []
 
-            if self._manager.config.game_flavour is Flavour.wrath_classic:
+            if self._manager.config.game_flavour is not Flavour.wrath_classic:
                 async with self._manager.web_client.get(
                     self._api_url.with_query({_TukuiFlavourQueryParam[flavour].value: 'all'}),
                     {'minutes': 30},
