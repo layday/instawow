@@ -57,6 +57,7 @@ class _TukuiFlavourQueryParam(StrEnum):
     retail = 'addons'
     vanilla_classic = 'classic-addons'
     burning_crusade_classic = 'classic-tbc-addons'
+    wrath_classic = ...
 
 
 class TukuiResolver(BaseResolver):
@@ -99,7 +100,13 @@ class TukuiResolver(BaseResolver):
 
             if self._manager.config.game_flavour is not Flavour.wrath_classic:
                 async with self._manager.web_client.get(
-                    self._api_url.with_query({_TukuiFlavourQueryParam[flavour].value: 'all'}),
+                    self._api_url.with_query(
+                        {
+                            self._manager.config.game_flavour.to_flavour_keyed_enum(
+                                _TukuiFlavourQueryParam
+                            ).value: 'all'
+                        }
+                    ),
                     {'minutes': 30},
                     label=f'Synchronising {self.metadata.name} {flavour} catalogue',
                     raise_for_status=True,
