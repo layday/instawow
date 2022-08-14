@@ -970,7 +970,7 @@ def configure(
     try:
         profile_config_values = asdict(Config.read(orig_global_config, profile))
         del profile_config_values['global_config']
-    except FileNotFoundError:
+    except Exception:
         profile_config_values = {
             'profile': profile,
         }
