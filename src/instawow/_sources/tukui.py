@@ -54,6 +54,8 @@ class _TukuiAddon(TypedDict):
 
 
 class _TukuiFlavourQueryParam(StrEnum):
+    _ignore_ = ['wrath_classic']
+
     retail = 'addons'
     vanilla_classic = 'classic-addons'
     burning_crusade_classic = 'classic-tbc-addons'
@@ -98,15 +100,15 @@ class TukuiResolver(BaseResolver):
         async def fetch_addons(flavour: Flavour):
             addons: list[tuple[str, _TukuiAddon]] = []
 
-            if self._manager.config.game_flavour is not Flavour.wrath_classic:
+            try:
+                param = self._manager.config.game_flavour.to_flavour_keyed_enum(
+                    _TukuiFlavourQueryParam
+                )
+            except KeyError:
+                pass
+            else:
                 async with self._manager.web_client.get(
-                    self._api_url.with_query(
-                        {
-                            self._manager.config.game_flavour.to_flavour_keyed_enum(
-                                _TukuiFlavourQueryParam
-                            ).value: 'all'
-                        }
-                    ),
+                    self._api_url.with_query({param.value: 'all'}),
                     {'minutes': 30},
                     label=f'Synchronising {self.metadata.name} {flavour} catalogue',
                     raise_for_status=True,
@@ -191,8 +193,8 @@ class TukuiResolver(BaseResolver):
             (frozenset({Flavour.retail}), {'ui': 'tukui'}),
             (frozenset({Flavour.retail}), {'ui': 'elvui'}),
             *(
-                (frozenset({Flavour(f)}), {q: 'all'})
-                for f, q in _TukuiFlavourQueryParam.__members__
+                (frozenset({Flavour.from_flavour_keyed_enum(p)}), {p.value: 'all'})
+                for p in _TukuiFlavourQueryParam
             ),
         ]:
             url = cls._api_url.with_query(query)
