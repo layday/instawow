@@ -48,7 +48,7 @@ class CatalogueEntry(BaseCatalogueEntry):
 
 @frozen(kw_only=True)
 class BaseCatalogue:
-    version: int = 5
+    version: int = 6
     entries: typing.List[BaseCatalogueEntry]
 
     @classmethod
