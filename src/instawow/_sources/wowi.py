@@ -4,7 +4,6 @@ from collections.abc import AsyncIterator, Sequence
 from datetime import datetime, timezone
 from itertools import takewhile
 import re
-from typing import Any
 
 from loguru import logger
 from typing_extensions import Literal, NotRequired as N, TypedDict
@@ -130,9 +129,9 @@ class WowiResolver(BaseResolver):
                 return await super().resolve(defns)
             else:
                 response.raise_for_status()
-                details_api_items = await response.json()
+                details_api_items: list[_WowiDetailsApiItem] = await response.json()
 
-        combined_items: dict[str, Any] = {
+        combined_items: dict[str, _WowiCombinedItem] = {
             i['UID']: {**list_api_items[i['UID']], **i} for i in details_api_items
         }
         results = await gather(
