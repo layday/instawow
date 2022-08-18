@@ -165,6 +165,9 @@ class GithubResolver(BaseResolver):
                             from zipfile import _ECD_OFFSET, _EndRecData  # pyright: ignore
 
                             end_rec_data = _EndRecData(addon_zip_stream)  # pyright: ignore
+                            if end_rec_data is None:
+                                break
+
                             directory_offset = f'{end_rec_data[_ECD_OFFSET]}-'
                         else:
                             break
