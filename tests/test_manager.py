@@ -148,6 +148,23 @@ async def test_update_lifecycle_while_varying_retain_defn_strategy(iw_manager: M
     assert result[defn].new_pkg.options.strategy == Strategy.default
 
 
+async def test_update_reinstalls_corrupted_pkgs(iw_manager: Manager):
+    defn = Defn('curse', 'molinari')
+
+    result = await iw_manager.install([defn], replace=False)
+    assert type(result[defn]) is R.PkgInstalled
+
+    folders = [iw_manager.config.addon_dir / f.name for f in result[defn].pkg.folders]
+
+    first_folder = folders[0]
+    first_folder.rename(first_folder.with_name('foo'))
+    assert not all(f.is_dir() for f in folders)
+
+    result = await iw_manager.update([defn], retain_defn_strategy=False)
+    assert type(result[defn]) is R.PkgUpdated
+    assert all(f.is_dir() for f in folders)
+
+
 @pytest.mark.parametrize('keep_folders', [True, False])
 async def test_deleting_and_retaining_folders_on_remove(iw_manager: Manager, keep_folders: bool):
     defn = Defn('curse', 'molinari')

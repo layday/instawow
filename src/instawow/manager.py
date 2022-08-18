@@ -717,6 +717,14 @@ class Manager:
 
         return dest
 
+    def _check_installed_pkg_integrity(self, pkg: models.Pkg) -> bool:
+        return all((self.config.addon_dir / p.name).exists() for p in pkg.folders)
+
+    async def _should_update_pkg(self, old_pkg: models.Pkg, new_pkg: models.Pkg) -> bool:
+        return old_pkg.version != new_pkg.version or not await t(
+            self._check_installed_pkg_integrity
+        )(old_pkg)
+
     @_with_lock('change state')
     async def install(
         self, defns: Sequence[Defn], replace: bool
@@ -780,7 +788,7 @@ class Manager:
             d: (o, n)
             for d, n in installables.items()
             for o in (defns_to_pkgs[d],)
-            if n.version != o.version
+            if await self._should_update_pkg(o, n)
         }
         archives = await gather(
             (self._download_pkg_archive(n) for _, n in updatables.values()),
