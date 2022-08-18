@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from functools import total_ordering
-from itertools import chain
+from itertools import chain, product
 from pathlib import Path
 import re
 
@@ -27,23 +27,21 @@ _SOURCE_TOC_IDS = {
 }
 
 # https://github.com/Stanzilla/WoWUIBugs/issues/68#issuecomment-830351390
-FLAVOUR_TOC_SUFFIXES = {
-    Flavour.retail: (
-        '_Mainline.toc',
-        '-Mainline.toc',
-    ),
+FLAVOUR_TOC_IDS = {
+    Flavour.retail: ('Mainline',),
     Flavour.vanilla_classic: (
-        '_Vanilla.toc',
-        '-Vanilla.toc',
-        '_Classic.toc',
-        '-Classic.toc',
+        'Vanilla',
+        'Classic',
     ),
     Flavour.burning_crusade_classic: (
-        '_TBC.toc',
-        '-TBC.toc',
-        '_BCC.toc',
-        '-BCC.toc',
+        'TBC',
+        'BCC',
     ),
+    Flavour.wrath_classic: ('Wrath',),
+}
+
+FLAVOUR_TOC_SUFFIXES = {
+    k: tuple(f'{s}{f}.toc' for s, f in product('-_', v)) for k, v in FLAVOUR_TOC_IDS.items()
 }
 
 NORMALISED_FLAVOUR_TOC_SUFFIXES = {
