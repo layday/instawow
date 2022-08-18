@@ -123,13 +123,12 @@ class GithubResolver(BaseResolver):
 
             download_url = candidate['browser_download_url']
 
-            for directory_offset in range(-25_000, -100_001, -25_000):
-                logger.debug(
-                    f'fetching {abs(directory_offset):,d} bytes from end of {candidate["name"]}'
-                )
+            # A large enough initial offset that we won't typically have to
+            # resort to extracting the ECD.
+            directory_offset = str(-25_000)
 
-                # TODO: Take min of (directory_offset, remaining size from prev request)
-                #       to avoid 416 error if a small zip has an inordinately large directory.
+            for _ in range(2):
+                logger.debug(f'fetching {directory_offset} from {candidate["name"]}')
 
                 async with self._manager.web_client.wrapped.get(
                     download_url,
@@ -163,12 +162,15 @@ class GithubResolver(BaseResolver):
                         try:
                             dynamic_addon_zip = zipfile.ZipFile(addon_zip_stream)
                         except zipfile.BadZipFile:
-                            continue
+                            from zipfile import _ECD_OFFSET, _EndRecData  # pyright: ignore
+
+                            end_rec_data = _EndRecData(addon_zip_stream)  # pyright: ignore
+                            directory_offset = f'{end_rec_data[_ECD_OFFSET]}-'
                         else:
                             break
 
             if dynamic_addon_zip is None:
-                logger.debug('directory marker not found')
+                logger.warning('directory marker not found')
                 continue
 
             toc_filenames = {
