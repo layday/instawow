@@ -168,7 +168,8 @@ def freeze_cli(session: nox.Session):
         'instawow',
         '--exclude-module',
         'instawow_gui',
+        '--additional-hooks-dir',
+        'pyinstaller-hooks',
         '--console',
         main_py,
     )
-    session.run('git', 'clean', '-fX', 'instawow-standalone.spec', external=True)
