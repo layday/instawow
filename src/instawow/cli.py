@@ -1028,6 +1028,12 @@ def configure(
         global_config_values['access_tokens']['github'] = github_access_token
 
     if _EditableConfigOptions.cfcore_access_token in config_options:
+        click.echo(
+            textwrap.fill(
+                'An access token is required to use CurseForge. '
+                'Log in to https://console.curseforge.com/ to generate an access token.'
+            )
+        )
         global_config_values['access_tokens']['cfcore'] = ask(
             password('Enter CFCore access token:')
         )
