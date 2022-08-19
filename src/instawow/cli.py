@@ -833,6 +833,8 @@ def view_changelog(mw: _CtxObjWrapper, addon: Defn | None, convert: bool) -> Non
     to have been installed within one minute of the last add-on.
     """
 
+    MAX_LINES = 100
+
     def make_converter():
         import shutil
 
@@ -857,6 +859,16 @@ def view_changelog(mw: _CtxObjWrapper, addon: Defn | None, convert: bool) -> Non
                     )
 
             return real_convert
+
+    def format_combined_changelong_entry(source: str, slug: str, changelong: str):
+        lines = changelong.splitlines()
+        body = '\n'.join(
+            (
+                *(f'  {l}' for l in lines[:MAX_LINES]),
+                *(('  [...]',) if len(lines) > MAX_LINES else ()),
+            )
+        )
+        return f'{defn_to_urn(Defn(source, slug))}:\n{body}'
 
     if addon:
         pkg = mw.manager.get_pkg(addon, partial_match=True)
@@ -902,7 +914,7 @@ def view_changelog(mw: _CtxObjWrapper, addon: Defn | None, convert: bool) -> Non
             )
         click.echo_via_pager(
             '\n\n'.join(
-                defn_to_urn(Defn(m.source, m.slug)) + ':\n' + textwrap.indent(c, '  ')
+                format_combined_changelong_entry(m.source, m.slug, c)
                 for m, c in zip(last_installed_changelog_urls, changelogs)
             )
         )
