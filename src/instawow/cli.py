@@ -1035,7 +1035,7 @@ def configure(
             )
         )
         global_config_values['access_tokens']['cfcore'] = ask(
-            password('Enter CFCore access token:')
+            password('CFCore access token: ', validate=bool)
         )
 
     global_config = config_converter.structure(global_config_values, GlobalConfig).write()
