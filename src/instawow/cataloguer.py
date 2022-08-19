@@ -11,6 +11,10 @@ from . import manager
 from .config import Flavour
 from .utils import bucketise, cached_property, normalise_names
 
+BASE_CATALOGUE_VERSION = 6
+CATALOGUE_VERSION = 3
+
+
 catalogue_converter = GenConverter(
     unstruct_collection_overrides={
         # TODO: Replace with ``collections.abc.Set``
@@ -48,7 +52,7 @@ class CatalogueEntry(BaseCatalogueEntry):
 
 @frozen(kw_only=True)
 class BaseCatalogue:
-    version: int = 6
+    version = BASE_CATALOGUE_VERSION
     entries: typing.List[BaseCatalogueEntry]
 
     @classmethod
@@ -62,7 +66,7 @@ class BaseCatalogue:
 
 @frozen(kw_only=True, slots=False)
 class Catalogue:
-    version: int = 3
+    version = CATALOGUE_VERSION
     entries: typing.List[CatalogueEntry]
     curse_slugs: typing.Dict[str, str]
 

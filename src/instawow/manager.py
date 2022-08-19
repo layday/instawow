@@ -15,7 +15,7 @@ from tempfile import NamedTemporaryFile
 import time
 from typing import Any, TypeVar
 
-from attrs import evolve, fields
+from attrs import evolve
 from loguru import logger
 import sqlalchemy as sa
 import sqlalchemy.future as sa_future
@@ -28,7 +28,13 @@ from ._sources.github import GithubResolver
 from ._sources.instawow import InstawowResolver
 from ._sources.tukui import TukuiResolver
 from ._sources.wowi import WowiResolver
-from .cataloguer import BaseCatalogue, Catalogue, CatalogueEntry, catalogue_converter
+from .cataloguer import (
+    BASE_CATALOGUE_VERSION,
+    CATALOGUE_VERSION,
+    Catalogue,
+    CatalogueEntry,
+    catalogue_converter,
+)
 from .common import Strategy
 from .config import Config, GlobalConfig
 from .models import PkgFolder
@@ -302,9 +308,9 @@ class Manager:
 
     _base_catalogue_url = (
         f'https://raw.githubusercontent.com/layday/instawow-data/data/'
-        f'base-catalogue-v{fields(BaseCatalogue).version.default}.compact.json'
+        f'base-catalogue-v{BASE_CATALOGUE_VERSION}.compact.json'
     )
-    _catalogue_filename = f'catalogue-v{fields(Catalogue).version.default}.json'
+    _catalogue_filename = f'catalogue-v{CATALOGUE_VERSION}.json'
 
     _normalise_search_terms = staticmethod(normalise_names(''))
 
