@@ -751,7 +751,7 @@ def list_installed(mw: _CtxObjWrapper, addons: Sequence[Defn], output_format: _L
                 if addons
                 else True
             )
-            .order_by(db.pkg.c.source, db.pkg.c.name)
+            .order_by(db.pkg.c.source, sa.func.lower(db.pkg.c.name))
         )
         .mappings()
         .all()
