@@ -860,8 +860,8 @@ def view_changelog(mw: _CtxObjWrapper, addon: Defn | None, convert: bool) -> Non
 
             return real_convert
 
-    def format_combined_changelong_entry(source: str, slug: str, changelong: str):
-        lines = changelong.splitlines()
+    def format_combined_changelog_entry(source: str, slug: str, changelog: str):
+        lines = changelog.splitlines()
         body = '\n'.join(
             (
                 *(f'  {l}' for l in lines[:MAX_LINES]),
@@ -914,7 +914,7 @@ def view_changelog(mw: _CtxObjWrapper, addon: Defn | None, convert: bool) -> Non
             )
         click.echo_via_pager(
             '\n\n'.join(
-                format_combined_changelong_entry(m.source, m.slug, c)
+                format_combined_changelog_entry(m.source, m.slug, c)
                 for m, c in zip(last_installed_changelog_urls, changelogs)
             )
         )
