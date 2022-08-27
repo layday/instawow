@@ -232,6 +232,9 @@ class _DummyResolver:
     ) -> dict[Defn, models.Pkg | R.ManagerError | R.InternalError]:
         return dict.fromkeys(defns, R.PkgSourceInvalid())
 
+    async def get_changelog(self, uri: URL) -> str:
+        raise R.PkgSourceInvalid
+
 
 async def capture_manager_exc_async(
     awaitable: Awaitable[_T],
@@ -609,9 +612,7 @@ class Manager:
 
     async def get_changelog(self, source: str, uri: str) -> str:
         "Retrieve a changelog from a URI."
-        if source not in self.resolvers:
-            raise R.PkgSourceInvalid
-        return await self.resolvers[source].get_changelog(URL(uri))
+        return await self.resolvers.get(source, _DummyResolver).get_changelog(URL(uri))
 
     async def search(
         self,
