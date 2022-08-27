@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Iterable, Set, Sized
+from functools import lru_cache
 import json
 import os
 from pathlib import Path
@@ -74,8 +75,7 @@ def _make_validate_min_length(min_length: int):
 
 
 def _encode_config_for_display(config: object):
-    converter = make_config_converter()
-    converter.register_unstructure_hook(SecretStr, _convert_secret_string)
+    converter = _make_display_converter()
     return json.dumps(
         converter.unstructure(config),  # pyright: ignore[reportUnknownMemberType]
         indent=2,
@@ -83,20 +83,7 @@ def _encode_config_for_display(config: object):
 
 
 def _write_config(config: object, config_path: Path, fields_to_include: Set[str]):
-    config_cls = config.__class__
-    converter = make_config_converter()
-    converter.register_unstructure_hook(
-        config_cls,
-        make_dict_unstructure_fn(  # pyright: ignore
-            config_cls,
-            converter,
-            **{
-                f.name: override(omit=True)
-                for f in fields(config_cls)
-                if f.name not in fields_to_include
-            },
-        ),
-    )
+    converter = _make_write_converter(config.__class__, fields_to_include)
     config_path.write_text(
         json.dumps(
             converter.unstructure(config), indent=2  # pyright: ignore[reportUnknownMemberType]
@@ -128,7 +115,7 @@ def _compute_var(field: Attribute[object], default: object):
         return value
 
 
-def _read_env_vars(config_cls: type, **values: object):
+def _read_env_vars(config_cls: Any, **values: object):
     return {
         f.name: v
         for f in fields(config_cls)
@@ -142,6 +129,30 @@ def make_config_converter():
     configure_converter(converter)
     converter.register_structure_hook(Path, lambda v, _: Path(v))
     converter.register_unstructure_hook(Path, str)
+    return converter
+
+
+@lru_cache(1)
+def _make_display_converter():
+    converter = make_config_converter()
+    converter.register_unstructure_hook(SecretStr, _convert_secret_string)
+    return converter
+
+
+def _make_write_converter(config_cls: Any, fields_to_include: Set[str]):
+    converter = make_config_converter()
+    converter.register_unstructure_hook(
+        config_cls,
+        make_dict_unstructure_fn(  # pyright: ignore
+            config_cls,
+            converter,
+            **{
+                f.name: override(omit=True)
+                for f in fields(config_cls)
+                if f.name not in fields_to_include
+            },
+        ),
+    )
     return converter
 
 
