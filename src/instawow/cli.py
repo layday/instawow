@@ -510,8 +510,8 @@ def reconcile(mw: _CtxObjWrapper, auto: bool, rereconcile: bool, list_unreconcil
         )
 
     def gather_selections(
-        groups: Sequence[tuple[Any, Sequence[Defn]]],
-        selector: Callable[[Any, Sequence[models.Pkg]], Defn | None],
+        groups: Collection[tuple[_T, Sequence[Defn]]],
+        selector: Callable[[_T, Sequence[models.Pkg]], Defn | None],
     ):
         results = mw.run_with_progress(mw.manager.resolve(uniq(d for _, b in groups for d in b)))
         for addons_or_pkg, defns in groups:
@@ -542,11 +542,13 @@ def reconcile(mw: _CtxObjWrapper, auto: bool, rereconcile: bool, list_unreconcil
             models.Pkg.from_row_mapping(mw.manager.database, p)
             for p in mw.manager.database.execute(sa.select(db.pkg)).mappings().all()
         )
-        groups = list(
-            mw.run_with_progress(mw.manager.find_equivalent_pkg_defns(installed_pkgs)).items()
-        )
+        groups = mw.run_with_progress(mw.manager.find_equivalent_pkg_defns(installed_pkgs))
         selections = [
-            (p, s) for (p, _), s in zip(groups, gather_selections(groups, prompt_reconciled)) if s
+            (p, s)
+            for (p, _), s in zip(
+                groups.items(), gather_selections(groups.items(), prompt_reconciled)
+            )
+            if s
         ]
         if selections and ask(confirm('Install selected add-ons?')):
             Report(
