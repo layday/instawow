@@ -55,9 +55,6 @@ if TYPE_CHECKING:
 _T = TypeVar('_T')
 _P = ParamSpec('_P')
 _ManagerBoundCoroFn: TypeAlias = 'Callable[Concatenate[Manager, _P], Awaitable[_T]]'
-_ManagerQueue: TypeAlias = (
-    'asyncio.Queue[tuple[asyncio.Future[object], str, _ManagerBoundCoroFn[..., object]]]'
-)
 
 
 LOCALHOST = '127.0.0.1'
@@ -105,12 +102,12 @@ def _read_config(profile: str) -> Config:
         return Config.read(GlobalConfig.read(), profile)
 
 
-methods: list[tuple[str, type[BaseParams]]] = []
+_methods: list[tuple[str, type[BaseParams]]] = []
 
 
 def _register_method(method: str):
     def inner(param_class: type[BaseParams]):
-        methods.append((method, param_class))
+        _methods.append((method, param_class))
         return frozen(slots=False)(param_class)
 
     return inner
@@ -650,7 +647,9 @@ class _ManagerWorkQueue:
     def __init__(self):
         self._loop = asyncio.get_running_loop()
 
-        self._queue: _ManagerQueue = asyncio.Queue()
+        self._queue: asyncio.Queue[
+            tuple[asyncio.Future[object], str, _ManagerBoundCoroFn[..., object]]
+        ] = asyncio.Queue()
 
         self.locks: LocksType = defaultdict(asyncio.Lock)
 
@@ -665,6 +664,7 @@ class _ManagerWorkQueue:
         self._listener = self._loop.create_task(self._listen())
 
     async def __aexit__(self, *args: object):
+        self.cancel_github_auth_polling()
         self._listener.cancel()
         self.unload_all()
         await self._web_client.close()
@@ -690,9 +690,9 @@ class _ManagerWorkQueue:
                 try:
                     manager, _ = self._managers[profile]
                 except KeyError:
-                    config = await _read_config(profile)
-                    self._managers[profile] = Manager.from_config(config)
-                    manager, _ = self._managers[profile]
+                    manager, _ = self._managers[profile] = Manager.from_config(
+                        await _read_config(profile)
+                    )
 
             result = await coro_fn(manager)
         except BaseException as exc:
@@ -800,7 +800,7 @@ async def create_app(app_window: toga.MainWindow | None = None):
         json_serialize=json_serialize,
         middlewares=rpc_middlewares.DEFAULT_MIDDLEWARES,
     )
-    rpc_server.add_methods([m.bind(n, managers, app_window) for n, m in methods])
+    rpc_server.add_methods([m.bind(n, managers, app_window) for n, m in _methods])
 
     @aiohttp.web.middleware
     async def enforce_same_origin(
