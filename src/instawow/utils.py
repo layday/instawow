@@ -4,7 +4,6 @@ import asyncio
 from collections import defaultdict
 from collections.abc import Awaitable, Callable, Iterable, Iterator, Mapping, Sequence, Set
 from datetime import datetime, timedelta
-import enum
 from functools import partial, wraps
 from itertools import chain, groupby, islice, repeat
 import os
@@ -23,8 +22,13 @@ _THashable = TypeVar('_THashable', bound=Hashable)
 _P = ParamSpec('_P')
 
 
-class StrEnum(str, enum.Enum):
-    pass
+if sys.version_info >= (3, 11):
+    from enum import StrEnum as StrEnum
+else:
+    from enum import Enum
+
+    class StrEnum(str, Enum):
+        pass
 
 
 class TocReader:
