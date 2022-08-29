@@ -60,7 +60,7 @@ jobs:
             briefcase-build-opts: ""
             briefcase-package-opts: "--no-sign"
           - os: ubuntu-18.04
-            python-version: "3.9"
+            python-version: "3.10"
             briefcase-build-opts: "--no-docker"
             briefcase-package-opts: ""
           - os: windows-latest
