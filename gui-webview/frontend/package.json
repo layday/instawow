@@ -19,7 +19,7 @@
     "@tsconfig/svelte": "^3.0.0",
     "@types/commonmark": "^0.27.4",
     "@types/lodash": "^4.14.168",
-    "@types/luxon": "^2.0.5",
+    "@types/luxon": "^3.0.0",
     "events": "^3.3.0",
     "prettier": "^2.2.1",
     "prettier-plugin-svelte": "^2.2.0",
@@ -40,7 +40,7 @@
     "@open-rpc/client-js": "^1.6.3",
     "commonmark": "^0.30.0",
     "lodash": "^4.17.21",
-    "luxon": "^2.0.2",
+    "luxon": "^3.0.2",
     "semaphore-async-await": "^1.5.1",
     "string-strip-html": "^9.0.4"
   },
