@@ -1,16 +1,7 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import (
-    Awaitable,
-    Callable,
-    Collection,
-    Generator,
-    Iterable,
-    Iterator,
-    Sequence,
-    Set,
-)
+from collections.abc import Awaitable, Callable, Collection, Iterable, Iterator, Sequence, Set
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from functools import partial
@@ -528,7 +519,7 @@ def reconcile(mw: _CtxObjWrapper, auto: bool, rereconcile: bool, list_unreconcil
 
         import sqlalchemy as sa
 
-        def prompt_reconciled(installed_pkg: models.Pkg, pkgs: Sequence[models.Pkg]):
+        def select_alternative_pkg(installed_pkg: models.Pkg, pkgs: Sequence[models.Pkg]):
             highlight_version = not all_eq(i.version for i in (installed_pkg, *pkgs))
             choices = [
                 construct_choice(installed_pkg, highlight_version, True),
@@ -546,7 +537,7 @@ def reconcile(mw: _CtxObjWrapper, auto: bool, rereconcile: bool, list_unreconcil
         selections = [
             (p, s)
             for (p, _), s in zip(
-                groups.items(), gather_selections(groups.items(), prompt_reconciled)
+                groups.items(), gather_selections(groups.items(), select_alternative_pkg)
             )
             if s
         ]
@@ -562,80 +553,79 @@ def reconcile(mw: _CtxObjWrapper, auto: bool, rereconcile: bool, list_unreconcil
                 ).items()
             ).generate_and_exit()
 
-        return
+    else:
+        PREAMBLE = textwrap.dedent(
+            '''\
+            Use the arrow keys to navigate, <o> to open an add-on in your browser,
+            enter to make a selection and <s> to skip to the next item.
 
-    preamble = textwrap.dedent(
-        '''\
-        Use the arrow keys to navigate, <o> to open an add-on in your browser,
-        enter to make a selection and <s> to skip to the next item.
+            Versions that differ from the installed version or differ between
+            choices are highlighted in purple.
 
-        Versions that differ from the installed version or differ between
-        choices are highlighted in purple.
+            instawow will perform three passes in decreasing order of accuracy,
+            looking to match source IDs and add-on names in TOC files, and folders.
 
-        The reconciler will perform three passes in decreasing order of accuracy,
-        looking to match source IDs and add-on names in TOC files, and folders.
+            Selected add-ons will be reinstalled.
 
-        Selected add-ons will be reinstalled.
+            You can also run `reconcile` in automatic mode by passing
+            the `--auto` flag.  In this mode, add-ons will be reconciled
+            without user input.
+            '''
+        )
 
-        You can also run `reconcile` in promptless mode by passing
-        the `--auto` flag.  In this mode, add-ons will be reconciled
-        without user input.
-        '''
-    )
+        leftovers = get_unreconciled_folders(mw.manager)
+        if list_unreconciled:
+            table_rows = [('unreconciled',), *((f.name,) for f in sorted(leftovers))]
+            click.echo(tabulate(table_rows))
+            return
+        elif not leftovers:
+            click.echo('No add-ons left to reconcile.')
+            return
 
-    def prompt_unreconciled(addons: Sequence[AddonFolder], pkgs: Sequence[models.Pkg]):
-        def combine_names():
-            return textwrap.shorten(', '.join(a.name for a in addons), 60)
+        if not auto:
+            click.echo(PREAMBLE)
 
-        # Highlight version if there's multiple of them
-        highlight_version = not all_eq(i.version for i in chain(addons, pkgs))
-        choices = [
-            *(construct_choice(p, highlight_version, False) for p in pkgs),
-            skip,
-        ]
-        selection = ask(select(f'{combine_names()} [{addons[0].version or "?"}]', choices))
-        return selection or None
+        def select_pkg(addons: Sequence[AddonFolder], pkgs: Sequence[models.Pkg]):
+            def combine_names():
+                return textwrap.shorten(', '.join(a.name for a in addons), 60)
 
-    def pick_first(addons: Sequence[AddonFolder], pkgs: Sequence[models.Pkg]):
-        return Defn.from_pkg(pkgs[0])
+            # Highlight version if there's multiple of them
+            highlight_version = not all_eq(i.version for i in chain(addons, pkgs))
+            choices = [
+                *(construct_choice(p, highlight_version, False) for p in pkgs),
+                skip,
+            ]
+            selection = ask(select(f'{combine_names()} [{addons[0].version or "?"}]', choices))
+            return selection or None
 
-    def match_all(
-        selector: Callable[[Any, Sequence[models.Pkg]], Defn | None]
-    ) -> Generator[list[Defn], frozenset[AddonFolder], None]:
+        def pick_first_pkg(addons: Sequence[AddonFolder], pkgs: Sequence[models.Pkg]):
+            return Defn.from_pkg(pkgs[0])
+
+        select_pkg_ = pick_first_pkg if auto else select_pkg
+        confirm_install = (
+            (lambda: True) if auto else (lambda: ask(confirm('Install selected add-ons?')))
+        )
+
         # Match in order of increasing heuristicitivenessitude
         for fn in [
             match_toc_source_ids,
             match_folder_name_subsets,
             match_addon_names_with_folder_names,
         ]:
-            groups = mw.run_with_progress(fn(mw.manager, (yield [])))
-            yield list(filter(None, gather_selections(groups, selector)))
+            groups = mw.run_with_progress(fn(mw.manager, leftovers))
+            selections = [s for s in gather_selections(groups, select_pkg_) if s is not None]
+            if selections and confirm_install():
+                results = mw.run_with_progress(mw.manager.install(selections, True))
+                Report(results.items()).generate()
 
-    leftovers = get_unreconciled_folders(mw.manager)
-    if list_unreconciled:
-        table_rows = [('unreconciled',), *((f.name,) for f in sorted(leftovers))]
-        click.echo(tabulate(table_rows))
-        return
-    elif not leftovers:
-        click.echo('No add-ons left to reconcile.')
-        return
+            leftovers = get_unreconciled_folders(mw.manager)
+            if not leftovers:
+                break
 
-    if not auto:
-        click.echo(preamble)
-
-    matcher = match_all(pick_first if auto else prompt_unreconciled)
-    for _ in matcher:  # Skip over consumer yields
-        selections = matcher.send(leftovers)
-        if selections and (auto or ask(confirm('Install selected add-ons?'))):
-            results = mw.run_with_progress(mw.manager.install(selections, True))
-            Report(results.items()).generate()
-
-        leftovers = get_unreconciled_folders(mw.manager)
-
-    if leftovers:
-        click.echo()
-        table_rows = [('unreconciled',), *((f.name,) for f in sorted(leftovers))]
-        click.echo(tabulate(table_rows))
+        if leftovers:
+            click.echo()
+            table_rows = [('unreconciled',), *((f.name,) for f in sorted(leftovers))]
+            click.echo(tabulate(table_rows))
 
 
 def _concat_search_terms(_: click.Context, __: click.Parameter, value: tuple[str, ...]):
