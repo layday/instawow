@@ -6,7 +6,7 @@ from typing import Any
 
 import pytest
 
-from instawow.common import Flavour, infer_flavour_from_path
+from instawow.common import Flavour
 from instawow.config import Config, GlobalConfig
 
 
@@ -84,19 +84,6 @@ def test_default_config_dir_is_unplatform_appropriate(
     assert GlobalConfig().config_dir == Path.home() / 'AppData/Roaming/instawow'
     monkeypatch.delenv('APPDATA')
     assert GlobalConfig().config_dir == Path.home() / 'instawow'
-
-
-def test_can_infer_flavour_from_path():
-    # fmt: off
-    assert infer_flavour_from_path('wowzerz/_classic_/Interface/AddOns') is Flavour.burning_crusade_classic
-    assert infer_flavour_from_path('/foo/bar/_classic_beta_/Interface/AddOns') is Flavour.wrath_classic
-    assert infer_flavour_from_path('/foo/bar/_classic_ptr_/Interface/AddOns') is Flavour.wrath_classic
-    assert infer_flavour_from_path('_classic_era_/Interface/AddOns') is Flavour.vanilla_classic
-    assert infer_flavour_from_path('_classic_era_beta_/Interface/AddOns') is Flavour.vanilla_classic
-    assert infer_flavour_from_path('_classic_era_ptr_/Interface/AddOns') is Flavour.vanilla_classic
-    assert infer_flavour_from_path('wowzerz/_retail_/Interface/AddOns') is Flavour.retail
-    assert infer_flavour_from_path('anything goes') is Flavour.retail
-    # fmt: on
 
 
 def test_can_list_profiles(

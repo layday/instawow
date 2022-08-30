@@ -1,0 +1,44 @@
+from enum import Enum
+
+from instawow.common import Flavour, FlavourVersion, infer_flavour_from_path
+
+
+def test_can_convert_between_flavour_keyed_enum_and_flavour():
+    class Foo(Enum):
+        retail = 1
+
+    assert Flavour.from_flavour_keyed_enum(Foo.retail) is Flavour.retail
+    assert Flavour.retail.to_flavour_keyed_enum(Foo) is Foo.retail
+
+
+def test_can_extract_flavour_from_version_number():
+    assert FlavourVersion.from_version_number(95000) is FlavourVersion.retail
+    assert FlavourVersion.from_version_number(34000) is FlavourVersion.wrath_classic
+    assert FlavourVersion.from_version_number(20500) is FlavourVersion.burning_crusade_classic
+    assert FlavourVersion.from_version_number(12300) is FlavourVersion.vanilla_classic
+
+
+def test_can_extract_flavour_from_version_string():
+    assert FlavourVersion.from_version_string('9.50.0') is FlavourVersion.retail
+    assert FlavourVersion.from_version_string('3.40.0') is FlavourVersion.wrath_classic
+    assert FlavourVersion.from_version_string('2.5.0') is FlavourVersion.burning_crusade_classic
+    assert FlavourVersion.from_version_string('1.23.0') is FlavourVersion.vanilla_classic
+
+
+def test_can_extract_flavour_from_partial_version_string():
+    assert FlavourVersion.from_version_string('9.2') is FlavourVersion.retail
+    assert FlavourVersion.from_version_string('3.4') is FlavourVersion.wrath_classic
+    assert FlavourVersion.from_version_string('3') is FlavourVersion.retail
+
+
+def test_can_infer_flavour_from_path():
+    # fmt: off
+    assert infer_flavour_from_path('wowzerz/_classic_/Interface/AddOns') is Flavour.burning_crusade_classic
+    assert infer_flavour_from_path('/foo/bar/_classic_beta_/Interface/AddOns') is Flavour.wrath_classic
+    assert infer_flavour_from_path('/foo/bar/_classic_ptr_/Interface/AddOns') is Flavour.wrath_classic
+    assert infer_flavour_from_path('_classic_era_/Interface/AddOns') is Flavour.vanilla_classic
+    assert infer_flavour_from_path('_classic_era_beta_/Interface/AddOns') is Flavour.vanilla_classic
+    assert infer_flavour_from_path('_classic_era_ptr_/Interface/AddOns') is Flavour.vanilla_classic
+    assert infer_flavour_from_path('wowzerz/_retail_/Interface/AddOns') is Flavour.retail
+    assert infer_flavour_from_path('anything goes') is Flavour.retail
+    # fmt: on
