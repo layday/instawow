@@ -23,7 +23,7 @@ def test_env_vars_have_prio(
         **iw_config_values,
     )
     assert config.global_config.config_dir == Path('/foo').resolve()
-    assert config.game_flavour is Flavour.burning_crusade_classic
+    assert config.game_flavour is Flavour.classic
 
 
 def test_config_dir_is_populated(

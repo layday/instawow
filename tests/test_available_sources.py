@@ -36,7 +36,7 @@ async def test_curse_simple_strategies(iw_manager: Manager, strategy: Strategy):
             assert type(results[retail_only]) is Pkg
         assert type(results[classic_only]) is Pkg
 
-    elif iw_manager.config.game_flavour is Flavour.burning_crusade_classic:
+    elif iw_manager.config.game_flavour is Flavour.classic:
         assert (
             type(results[retail_only]) is R.PkgFileUnavailable
             and results[retail_only].message
@@ -158,7 +158,7 @@ async def test_github_basic(iw_manager: Manager):
     results = await iw_manager.resolve([release_json, releaseless, nonexistent])
 
     release_json_result = results[release_json]
-    if iw_manager.config.game_flavour is Flavour.burning_crusade_classic:
+    if iw_manager.config.game_flavour is Flavour.classic:
         assert type(release_json_result) is R.PkgFileUnavailable
     else:
         assert type(release_json_result) is Pkg

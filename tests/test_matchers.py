@@ -85,17 +85,16 @@ async def test_reconcile_results_vary_by_game_flavour(iw_manager: Manager):
             Defn('curse', '333072'),
             Defn('curse', '431557'),
         } == set(matches)
-    elif iw_manager.config.game_flavour is Flavour.burning_crusade_classic:
+    elif iw_manager.config.game_flavour is Flavour.classic:
         assert {
             Defn('curse', '23350'),
             Defn('curse', '333072'),
             Defn('wowi', '26025'),
         } == set(matches)
-
     elif iw_manager.config.game_flavour is Flavour.vanilla_classic:
         assert {
             Defn('curse', '23350'),
             Defn('curse', '333072'),
         } == set(matches)
     else:
-        assert_never()
+        assert_never(iw_manager.config.game_flavour)

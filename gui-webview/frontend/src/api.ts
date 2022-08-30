@@ -3,7 +3,7 @@ import type { RClient, RequestObject } from "./ipc";
 export enum Flavour {
   retail = "retail",
   vanilla_classic = "vanilla_classic",
-  burning_crusade_classic = "classic",
+  classic = "classic",
 }
 
 export enum Strategy {

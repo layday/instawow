@@ -21,23 +21,23 @@ ADDON_NAME = 'RaidFadeMore'
 ZIPS = {
     'flavoured-toc-only': {
         'toc_files': {
-            '_TBC': b'',
+            '_Wrath': b'',
         },
-        'flavours': {Flavour.burning_crusade_classic},
+        'flavours': {Flavour.classic},
     },
     'flavoured-and-unflavoured-toc-without-interface-version': {
         'toc_files': {
-            '_TBC': b'',
+            '_Wrath': b'',
             '': b'',
         },
-        'flavours': {Flavour.burning_crusade_classic},
+        'flavours': {Flavour.classic},
     },
     'flavoured-and-unflavoured-toc-with-interface-version': {
         'toc_files': {
-            '_TBC': b'',
+            '_Wrath': b'',
             '': b'## Interface: 11300\n',
         },
-        'flavours': {Flavour.vanilla_classic, Flavour.burning_crusade_classic},
+        'flavours': {Flavour.vanilla_classic, Flavour.classic},
     },
     'unflavoured-toc-only-without-interface-version': {
         'toc_files': {

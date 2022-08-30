@@ -73,7 +73,7 @@ def iw_global_config_values(tmp_path: Path):
     }
 
 
-@pytest.fixture(params=[f for f in Flavour if f is not Flavour.wrath_classic])
+@pytest.fixture(params=Flavour)
 def iw_config_values(request: Any, tmp_path: Path):
     addons = tmp_path / 'wow' / 'interface' / 'addons'
     addons.mkdir(parents=True)

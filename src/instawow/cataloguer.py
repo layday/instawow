@@ -11,8 +11,8 @@ from . import manager
 from .config import Flavour
 from .utils import bucketise, cached_property, normalise_names
 
-BASE_CATALOGUE_VERSION = 6
-CATALOGUE_VERSION = 3
+BASE_CATALOGUE_VERSION = 7
+CATALOGUE_VERSION = 4
 
 
 catalogue_converter = GenConverter(

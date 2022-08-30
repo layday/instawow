@@ -171,9 +171,10 @@ class WowiResolver(BaseResolver):
             if item['UICATID'] == '160':
                 game_flavours = {Flavour.vanilla_classic}
             elif item['UICATID'] == '161':
-                game_flavours = {Flavour.burning_crusade_classic}
+                # TBC Classic
+                continue
             elif item['UICATID'] == '162':
-                game_flavours = {Flavour.wrath_classic}
+                game_flavours = {Flavour.classic}
             elif item['UICompatibility'] is None or len(item['UICompatibility']) < 2:
                 game_flavours = {Flavour.retail}
             else:

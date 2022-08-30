@@ -33,11 +33,7 @@ FLAVOUR_TOC_IDS = {
         'Vanilla',
         'Classic',
     ),
-    Flavour.burning_crusade_classic: (
-        'TBC',
-        'BCC',
-    ),
-    Flavour.wrath_classic: ('Wrath',),
+    Flavour.classic: ('Wrath',),
 }
 
 FLAVOUR_TOC_SUFFIXES = {

@@ -54,12 +54,9 @@ class _TukuiAddon(TypedDict):
 
 
 class _TukuiFlavourQueryParam(StrEnum):
-    _ignore_ = ['wrath_classic']
-
     retail = 'addons'
     vanilla_classic = 'classic-addons'
-    burning_crusade_classic = 'classic-tbc-addons'
-    wrath_classic = ...
+    classic = 'classic-wotlk-addons'
 
 
 class TukuiResolver(BaseResolver):
@@ -98,24 +95,20 @@ class TukuiResolver(BaseResolver):
                 return [(str(addon['id']), addon), (ui_slug, addon)]
 
         async def fetch_addons(flavour: Flavour):
-            addons: list[tuple[str, _TukuiAddon]] = []
-
-            try:
-                param = self._manager.config.game_flavour.to_flavour_keyed_enum(
-                    _TukuiFlavourQueryParam
-                )
-            except KeyError:
-                pass
-            else:
-                async with self._manager.web_client.get(
-                    self._api_url.with_query({param.value: 'all'}),
-                    {'minutes': 30},
-                    label=f'Synchronising {self.metadata.name} {flavour} catalogue',
-                    raise_for_status=True,
-                ) as response:
-                    addons = [(str(a['id']), a) for a in await response.json()]
-
-            return addons
+            async with self._manager.web_client.get(
+                self._api_url.with_query(
+                    {
+                        self._manager.config.game_flavour.to_flavour_keyed_enum(
+                            _TukuiFlavourQueryParam
+                        ).value: 'all'
+                    }
+                ),
+                {'minutes': 30},
+                label=f'Synchronising {self.metadata.name} {flavour} catalogue',
+                raise_for_status=True,
+            ) as response:
+                addons: list[_TukuiAddon] = await response.json()
+                return [(str(a['id']), a) for a in addons]
 
         async with self._manager.locks['load Tukui catalogue']:
             return {
