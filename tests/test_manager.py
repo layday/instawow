@@ -9,6 +9,7 @@ import pytest
 
 from instawow import results as R
 from instawow.common import Flavour, Strategy
+from instawow.config import Config
 from instawow.manager import Manager, is_outdated
 from instawow.models import Pkg
 from instawow.resolvers import Defn
@@ -264,7 +265,7 @@ async def test_get_changelog_from_web_url(iw_manager: Manager):
 
 @pytest.mark.iw_no_mock_http
 async def test_is_outdated_works_in_variety_of_scenarios(
-    monkeypatch: pytest.MonkeyPatch, aresponses: ResponsesMockServer
+    monkeypatch: pytest.MonkeyPatch, aresponses: ResponsesMockServer, iw_config: Config
 ):
     # version == '0.0.0', version not cached
     with monkeypatch.context() as patcher:
