@@ -990,7 +990,8 @@ def configure(
                 'Add-on directory:',
                 only_directories=True,
                 validate=AttrFieldValidator(
-                    fields(resolve_types(Config)).addon_dir, config_converter
+                    fields(resolve_types(Config)).addon_dir,  # pyright: ignore
+                    config_converter,
                 ),
             )
         )
