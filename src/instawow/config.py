@@ -156,6 +156,14 @@ def _make_write_converter(config_cls: Any, fields_to_include: Set[str]):
     return converter
 
 
+def _get_default_config_dir():
+    return Path(click.get_app_dir('instawow'))
+
+
+def _get_default_temp_dir():
+    return Path(gettempdir(), 'instawow')
+
+
 @frozen
 class _AccessTokens:
     github: typing.Optional[SecretStr] = None
@@ -166,12 +174,12 @@ class _AccessTokens:
 @frozen
 class GlobalConfig:
     config_dir: Path = field(
-        factory=lambda: Path(click.get_app_dir('instawow')),
+        factory=_get_default_config_dir,
         converter=_expand_path,
         metadata={'env': True},
     )
     temp_dir: Path = field(
-        factory=lambda: Path(gettempdir(), 'instawow'),
+        factory=_get_default_temp_dir,
         converter=_expand_path,
         metadata={'env': True},
     )
