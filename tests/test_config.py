@@ -87,12 +87,8 @@ def test_default_config_dir_is_unplatform_appropriate(
 
 
 def test_can_list_profiles(
-    monkeypatch: pytest.MonkeyPatch,
-    iw_global_config_values: dict[str, Any],
     iw_config_values: dict[str, Any],
 ):
-    monkeypatch.setenv('INSTAWOW_CONFIG_DIR', str(iw_global_config_values['config_dir']))
-
     global_config = GlobalConfig.read()
     assert global_config.list_profiles() == []
 
