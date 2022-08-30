@@ -50,6 +50,7 @@ from .utils import (
     make_zip_member_filter,
     move,
     normalise_names,
+    read_resource_as_text,
     run_in_thread as t,
     shasum,
     trash,
@@ -190,17 +191,15 @@ class _CacheFauxClientSession:
         return self.request('GET', url, ttl, label, **kwargs)
 
 
-@lru_cache(None)
+@lru_cache(1)
 def _load_certifi_certs():
     try:
         import certifi
     except ModuleNotFoundError:
         pass
     else:
-        from importlib.resources import read_text
-
         logger.info('loading certifi certs')
-        return read_text(certifi, 'cacert.pem', encoding='ascii')
+        return read_resource_as_text(certifi, 'cacert.pem', encoding='ascii')
 
 
 def init_web_client(**kwargs: Any) -> _deferred_types.aiohttp.ClientSession:

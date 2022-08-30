@@ -8,7 +8,6 @@ from collections.abc import Awaitable, Callable, Iterable, Iterator
 from contextlib import contextmanager
 from datetime import datetime
 from functools import partial
-import importlib.resources
 import json
 import os
 from pathlib import Path
@@ -45,7 +44,7 @@ from instawow.manager import (
     is_outdated,
 )
 from instawow.resolvers import Defn
-from instawow.utils import reveal_folder, run_in_thread as t, uniq
+from instawow.utils import read_resource_as_text, reveal_folder, run_in_thread as t, uniq
 
 from . import frontend
 
@@ -776,7 +775,7 @@ async def create_app(app_window: toga.MainWindow | None = None):
     async def get_index(request: aiohttp.web.Request):
         return aiohttp.web.Response(
             content_type='text/html',
-            text=importlib.resources.read_text(frontend, 'index.html'),
+            text=read_resource_as_text(frontend, 'index.html'),
         )
 
     async def get_static_file(request: aiohttp.web.Request):
@@ -790,7 +789,7 @@ async def create_app(app_window: toga.MainWindow | None = None):
 
         return aiohttp.web.Response(
             content_type=content_type,
-            text=importlib.resources.read_text(frontend, filename),
+            text=read_resource_as_text(frontend, filename),
         )
 
     def json_serialize(value: dict[str, Any]):

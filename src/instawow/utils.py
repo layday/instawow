@@ -5,6 +5,7 @@ from collections import defaultdict
 from collections.abc import Awaitable, Callable, Iterable, Iterator, Mapping, Sequence, Set
 from datetime import datetime, timedelta
 from functools import partial, wraps
+import importlib.resources
 from itertools import chain, groupby, islice, repeat
 import os
 from pathlib import Path, PurePath
@@ -12,6 +13,7 @@ import posixpath
 from shutil import move as _move
 import sys
 from tempfile import mkdtemp
+from types import ModuleType
 from typing import Any, Generic, Hashable, TypeVar, overload
 
 from typing_extensions import ParamSpec
@@ -29,6 +31,17 @@ else:
 
     class StrEnum(str, Enum):
         pass
+
+
+if sys.version_info >= (3, 9):
+
+    def read_resource_as_text(package: ModuleType, resource: str, encoding: str = 'utf-8') -> str:
+        return importlib.resources.files(package).joinpath(resource).read_text(encoding)
+
+else:
+
+    def read_resource_as_text(package: ModuleType, resource: str, encoding: str = 'utf-8') -> str:
+        return importlib.resources.read_text(package, resource, encoding=encoding)
 
 
 class TocReader:

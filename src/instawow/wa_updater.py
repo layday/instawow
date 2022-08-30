@@ -15,7 +15,15 @@ from typing_extensions import Literal, NotRequired as N, TypeAlias, TypedDict
 from yarl import URL
 
 from .manager import Manager
-from .utils import StrEnum, bucketise, chain_dict, gather, run_in_thread as t, shasum
+from .utils import (
+    StrEnum,
+    bucketise,
+    chain_dict,
+    gather,
+    read_resource_as_text,
+    run_in_thread as t,
+    shasum,
+)
 
 _Slug = str
 _ImportString = str
@@ -226,7 +234,6 @@ class WaCompanionBuilder:
         return sha256(self.addon_zip_path.read_bytes()).hexdigest()
 
     def _generate_addon(self, auras: Iterable[tuple[type, _AuraGroup]]):
-        from importlib.resources import read_text
         from zipfile import ZipFile, ZipInfo
 
         from jinja2 import Environment, FunctionLoader
@@ -236,8 +243,9 @@ class WaCompanionBuilder:
         jinja_env = Environment(
             trim_blocks=True,
             lstrip_blocks=True,
-            loader=FunctionLoader(partial(read_text, _wa_templates)),
+            loader=FunctionLoader(partial(read_resource_as_text, _wa_templates)),
         )
+
         aura_dict = chain_dict((WeakAuras, Plateroos), (), auras)
 
         self.addon_zip_path.parent.mkdir(exist_ok=True)
