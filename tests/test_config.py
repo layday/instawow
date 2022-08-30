@@ -30,7 +30,7 @@ def test_config_dir_is_populated(
     iw_global_config_values: dict[str, Any],
     iw_config_values: dict[str, Any],
 ):
-    global_config = GlobalConfig(**iw_global_config_values)
+    global_config = GlobalConfig.from_env(**iw_global_config_values)
     config = Config(global_config=global_config, **iw_config_values).write()
     assert {i.name for i in config.profile_dir.iterdir()} == {'config.json', 'logs', 'plugins'}
 
@@ -47,7 +47,7 @@ def test_init_with_nonexistent_addon_dir_raises(
     iw_global_config_values: dict[str, Any],
     iw_config_values: dict[str, Any],
 ):
-    global_config = GlobalConfig(**iw_global_config_values).write()
+    global_config = GlobalConfig.from_env(**iw_global_config_values).write()
     with pytest.raises(ValueError, match='not a writable directory'):
         Config(global_config=global_config, **{**iw_config_values, 'addon_dir': '#@$foo'})
 
@@ -105,7 +105,7 @@ def test_can_delete_profile(
     iw_global_config_values: dict[str, Any],
     iw_config_values: dict[str, Any],
 ):
-    global_config = GlobalConfig(**iw_global_config_values).write()
+    global_config = GlobalConfig.from_env(**iw_global_config_values).write()
     config = Config(global_config=global_config, **iw_config_values).write()
     assert config.profile_dir.exists()
     config.delete()

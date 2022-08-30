@@ -15,7 +15,7 @@ import pytest
 
 from instawow import __version__
 from instawow.common import Flavour
-from instawow.config import Config, GlobalConfig, SecretStr, _AccessTokens
+from instawow.config import Config, GlobalConfig
 from instawow.manager import Manager, contextualise, init_web_client
 
 inf = float('inf')
@@ -69,7 +69,7 @@ def iw_global_config_values(tmp_path: Path):
     return {
         'temp_dir': tmp_path / 'temp',
         'config_dir': tmp_path / 'config',
-        'access_tokens': _AccessTokens(cfcore=SecretStr('foo')),
+        'access_tokens': {'github': None, 'wago': None, 'cfcore': 'foo'},
     }
 
 
@@ -82,7 +82,7 @@ def iw_config_values(request: Any, tmp_path: Path):
 
 @pytest.fixture
 def iw_config(iw_config_values: dict[str, Any], iw_global_config_values: dict[str, Any]):
-    global_config = GlobalConfig(**iw_global_config_values).write()
+    global_config = GlobalConfig.from_env(**iw_global_config_values).write()
     return Config(global_config=global_config, **iw_config_values).write()
 
 
@@ -98,6 +98,15 @@ def iw_manager(iw_config: Config, iw_web_client: aiohttp.ClientSession):
     manager, close_db_conn = Manager.from_config(iw_config)
     yield manager
     close_db_conn()
+
+
+@pytest.fixture(autouse=True)
+async def _iw_global_config_defaults(
+    monkeypatch: pytest.MonkeyPatch,
+    iw_global_config_values: dict[str, Any],
+):
+    monkeypatch.setenv('INSTAWOW_CONFIG_DIR', str(iw_global_config_values['config_dir']))
+    monkeypatch.setenv('INSTAWOW_TEMP_DIR', str(iw_global_config_values['temp_dir']))
 
 
 @pytest.fixture(autouse=True)

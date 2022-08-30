@@ -24,13 +24,7 @@ dumps = partial(json.dumps, default=str)
 
 
 @pytest.fixture
-async def ws_client(
-    monkeypatch: pytest.MonkeyPatch,
-    iw_global_config_values: dict[str, Any],
-):
-    monkeypatch.setenv('INSTAWOW_CONFIG_DIR', str(iw_global_config_values['config_dir']))
-    monkeypatch.setenv('INSTAWOW_TEMP_DIR', str(iw_global_config_values['temp_dir']))
-
+async def ws_client():
     app = await json_rpc_server.create_app()
     server = TestServer(app)
     async with TestClient(server) as client:
@@ -67,15 +61,11 @@ async def test_disparate_origin_api_request_rejected(
 
 
 async def test_write_config(
-    monkeypatch: pytest.MonkeyPatch,
     request: pytest.FixtureRequest,
     iw_global_config_values: dict[str, Any],
     iw_config_values: dict[str, Any],
     ws: ClientWebSocketResponse,
 ):
-    monkeypatch.setenv('INSTAWOW_CONFIG_DIR', str(iw_global_config_values['config_dir']))
-    monkeypatch.setenv('INSTAWOW_TEMP_DIR', str(iw_global_config_values['temp_dir']))
-
     global_config = config_converter.structure(iw_global_config_values, GlobalConfig).write()
     config_values = {**iw_config_values, 'profile': request.node.name}
     rpc_request = {
