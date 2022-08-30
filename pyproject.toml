@@ -106,7 +106,6 @@ markers = [
 xfail_strict = true
 filterwarnings = [
   "error",
-  "once::DeprecationWarning:asyncio.base_events",
 ]
 asyncio_mode = "auto"
 
