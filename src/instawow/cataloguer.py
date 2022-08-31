@@ -6,8 +6,8 @@ import typing
 from attrs import asdict, frozen
 from cattrs import GenConverter
 from cattrs.preconf.json import configure_converter
+from typing_extensions import Self
 
-from . import manager
 from .config import Flavour
 from .utils import bucketise, cached_property, normalise_names
 
@@ -56,9 +56,11 @@ class BaseCatalogue:
     entries: typing.List[BaseCatalogueEntry]
 
     @classmethod
-    async def collate(cls, start_date: datetime | None):
-        async with manager.init_web_client() as web_client:
-            entries = [e for r in manager.Manager.RESOLVERS async for e in r.catalogue(web_client)]
+    async def collate(cls, start_date: datetime | None) -> Self:
+        from .manager import Manager, init_web_client
+
+        async with init_web_client() as web_client:
+            entries = [e for r in Manager.RESOLVERS async for e in r.catalogue(web_client)]
             if start_date is not None:
                 entries = [e for e in entries if e.last_updated >= start_date]
             return cls(entries=entries)
@@ -71,7 +73,9 @@ class Catalogue:
     curse_slugs: typing.Dict[str, str]
 
     @classmethod
-    def from_base_catalogue(cls, unstructured_base_catalogue: object, start_date: datetime | None):
+    def from_base_catalogue(
+        cls, unstructured_base_catalogue: object, start_date: datetime | None
+    ) -> Self:
         from ._sources.cfcore import CfCoreResolver
         from ._sources.github import GithubResolver
 
