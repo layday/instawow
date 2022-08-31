@@ -72,7 +72,7 @@ class TukuiResolver(BaseResolver):
     # UIs only.  The response body appears to be identical to ``/api.php``
     _api_url = URL('https://www.tukui.org/api.php')
 
-    _RETAIL_UI_SUITES = frozenset(('elvui', 'tukui'))
+    _UI_SUITES = frozenset(('elvui', 'tukui'))
 
     _FLAVOUR_URL_PATHS = frozenset(f'/{p}.php' for p in _TukuiFlavourQueryParam)
 
@@ -92,40 +92,35 @@ class TukuiResolver(BaseResolver):
                 raise_for_status=True,
             ) as response:
                 addon: _TukuiUi = await response.json()
-                return [(str(addon['id']), addon), (ui_slug, addon)]
+            return ((str(addon['id']), addon), (ui_slug, addon))
 
         async def fetch_addons(flavour: Flavour):
+            tukui_flavour = self._manager.config.game_flavour.to_flavour_keyed_enum(
+                _TukuiFlavourQueryParam
+            )
             async with self._manager.web_client.get(
-                self._api_url.with_query(
-                    {
-                        self._manager.config.game_flavour.to_flavour_keyed_enum(
-                            _TukuiFlavourQueryParam
-                        ).value: 'all'
-                    }
-                ),
+                self._api_url.with_query({tukui_flavour.value: ''}),
                 {'minutes': 30},
                 label=f'Synchronising {self.metadata.name} {flavour} catalogue',
                 raise_for_status=True,
             ) as response:
                 addons: list[_TukuiAddon] = await response.json()
-                return [(str(a['id']), a) for a in addons]
+            return ((str(a['id']), a) for a in addons)
+
+        def get_fetch_coros(flavour: Flavour):
+            # Tukui is multi-TOC
+            yield fetch_ui('tukui')
+
+            # ElvUI has separate releases per flavour w/ "elvui" being retail only
+            if flavour is Flavour.retail:
+                yield fetch_ui('elvui')
+
+            yield fetch_addons(flavour)
 
         async with self._manager.locks['load Tukui catalogue']:
             return {
                 k: v
-                for l in await gather(
-                    (
-                        *(
-                            fetch_ui(s)
-                            for s in (
-                                self._RETAIL_UI_SUITES
-                                if self._manager.config.game_flavour is Flavour.retail
-                                else ()
-                            )
-                        ),
-                        fetch_addons(self._manager.config.game_flavour),
-                    )
-                )
+                for l in await gather(get_fetch_coros(self._manager.config.game_flavour))
                 for k, v in l
             }
 
@@ -134,7 +129,7 @@ class TukuiResolver(BaseResolver):
     ) -> dict[Defn, models.Pkg | R.ManagerError | R.InternalError]:
         addons = await self._synchronise()
         ids = (
-            d.alias[:p] if d.alias not in self._RETAIL_UI_SUITES and p != -1 else d.alias
+            d.alias[:p] if d.alias not in self._UI_SUITES and p != -1 else d.alias
             for d in defns
             for p in (d.alias.find('-', 1),)
         )
@@ -186,7 +181,7 @@ class TukuiResolver(BaseResolver):
             (frozenset({Flavour.retail}), {'ui': 'tukui'}),
             (frozenset({Flavour.retail}), {'ui': 'elvui'}),
             *(
-                (frozenset({Flavour.from_flavour_keyed_enum(p)}), {p.value: 'all'})
+                (frozenset({Flavour.from_flavour_keyed_enum(p)}), {p.value: ''})
                 for p in _TukuiFlavourQueryParam
             ),
         ]:
