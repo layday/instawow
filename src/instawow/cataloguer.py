@@ -52,7 +52,7 @@ class CatalogueEntry(BaseCatalogueEntry):
 
 @frozen(kw_only=True)
 class BaseCatalogue:
-    version = BASE_CATALOGUE_VERSION
+    version: int = BASE_CATALOGUE_VERSION
     entries: typing.List[BaseCatalogueEntry]
 
     @classmethod
@@ -66,7 +66,7 @@ class BaseCatalogue:
 
 @frozen(kw_only=True, slots=False)
 class Catalogue:
-    version = CATALOGUE_VERSION
+    version: int = CATALOGUE_VERSION
     entries: typing.List[CatalogueEntry]
     curse_slugs: typing.Dict[str, str]
 
