@@ -73,7 +73,7 @@ def iw_global_config_values(tmp_path: Path):
     }
 
 
-@pytest.fixture(params=Flavour)
+@pytest.fixture(params=[Flavour.retail, Flavour.vanilla_classic])
 def iw_config_values(request: Any, tmp_path: Path):
     addons = tmp_path / 'wow' / 'interface' / 'addons'
     addons.mkdir(parents=True)
@@ -122,9 +122,9 @@ def iw_mock_aiohttp_requests(aresponses: ResponsesMockServer):
 
     aresponses.add(
         'raw.githubusercontent.com',
-        '/layday/instawow-data/data/base-catalogue-v6.compact.json',
+        '/layday/instawow-data/data/base-catalogue-v7.compact.json',
         'get',
-        load_json_fixture('base-catalogue-v6.compact.json'),
+        load_json_fixture('base-catalogue-v7.compact.json'),
         repeat=inf,
     )
 
@@ -197,7 +197,7 @@ def iw_mock_aiohttp_requests(aresponses: ResponsesMockServer):
     )
     aresponses.add(
         'www.tukui.org',
-        '/api.php?addons=all',
+        '/api.php?addons=',
         'get',
         load_json_fixture('tukui-retail-addons.json'),
         match_querystring=True,
@@ -205,7 +205,7 @@ def iw_mock_aiohttp_requests(aresponses: ResponsesMockServer):
     )
     aresponses.add(
         'www.tukui.org',
-        '/api.php?classic-addons=all',
+        '/api.php?classic-addons=',
         'get',
         load_json_fixture('tukui-classic-addons.json'),
         match_querystring=True,
@@ -213,9 +213,9 @@ def iw_mock_aiohttp_requests(aresponses: ResponsesMockServer):
     )
     aresponses.add(
         'www.tukui.org',
-        '/api.php?classic-tbc-addons=all',
+        '/api.php?classic-wotlk-addons=',
         'get',
-        load_json_fixture('tukui-classic-tbc-addons.json'),
+        load_json_fixture('tukui-classic-wotlk-addons.json'),
         match_querystring=True,
         repeat=inf,
     )

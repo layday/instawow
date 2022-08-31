@@ -63,7 +63,7 @@
         "content_type": "application/zip",
         "state": "uploaded",
         "size": 121944,
-        "download_count": 24,
+        "download_count": 42,
         "created_at": "2022-02-22T18:06:13Z",
         "updated_at": "2022-02-22T18:06:13Z",
         "browser_download_url": "https://github.com/p3lim-wow/Molinari/releases/download/90200.82-Release/Molinari-90200.82-Release.zip"
@@ -97,7 +97,7 @@
         "content_type": "application/json",
         "state": "uploaded",
         "size": 201,
-        "download_count": 1178,
+        "download_count": 2780,
         "created_at": "2022-02-22T18:06:14Z",
         "updated_at": "2022-02-22T18:06:14Z",
         "browser_download_url": "https://github.com/p3lim-wow/Molinari/releases/download/90200.82-Release/release.json"

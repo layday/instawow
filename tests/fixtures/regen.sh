@@ -37,11 +37,11 @@ http get 'https://www.tukui.org/api.php?addons' -b \
     | jq -r '.[] | select(.id == "1") | [.]' \
     > "$DIR"/tukui-retail-addons.json
 http get 'https://www.tukui.org/api.php?classic-addons' -b \
-    | jq -r '.[] | select(.id == "1") | [.]' \
+    | jq -r '.[] | select(.id == "2") | [.]' \
     > "$DIR"/tukui-classic-addons.json
-http get 'https://www.tukui.org/api.php?classic-tbc-addons' -b \
-    | jq -r '.[] | select(.id == "1") | [.]' \
-    > "$DIR"/tukui-classic-tbc-addons.json
+http get 'https://www.tukui.org/api.php?classic-wotlk-addons' -b \
+    | jq -r '.[] | select(.id == "2") | [.]' \
+    > "$DIR"/tukui-classic-wotlk-addons.json
 
 
 http get 'https://api.github.com/repos/nebularg/PackagerTest' -b \

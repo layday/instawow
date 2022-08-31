@@ -13,7 +13,7 @@
       },
       "summary": "Modular, lightweight, non-intrusive approach to boss encounter warnings. The efficiently coded alternative to Deadly Boss Mods (DBM) for spell & ability timers.",
       "status": 4,
-      "downloadCount": 74204706,
+      "downloadCount": 76444917,
       "isFeatured": false,
       "primaryCategoryId": 1014,
       "categories": [
@@ -86,31 +86,31 @@
           "url": "https://media.forgecdn.net/attachments/89/2/bars.png"
         }
       ],
-      "mainFileId": 3787160,
+      "mainFileId": 3959868,
       "latestFiles": [
         {
-          "id": 3787116,
+          "id": 3865108,
           "gameId": 1,
           "modId": 2382,
           "isAvailable": true,
-          "displayName": "v38.1-classic",
-          "fileName": "BigWigs-v38.1-classic.zip",
-          "releaseType": 1,
+          "displayName": "v41.1-classic-2-ge838e86",
+          "fileName": "BigWigs-v41.1-classic-2-ge838e86.zip",
+          "releaseType": 3,
           "fileStatus": 4,
           "hashes": [
             {
-              "value": "1d619b460d81702dbde421cbd8783a8654550aa9",
+              "value": "7abcfcb5a0b56715bf37c339432e47f12cfb9049",
               "algo": 1
             },
             {
-              "value": "86b0694455b09e42e8b91d932fafc98d",
+              "value": "54d124047ed10eb90d297c7c2b0a00a5",
               "algo": 2
             }
           ],
-          "fileDate": "2022-05-11T15:24:38.73Z",
-          "fileLength": 3938607,
-          "downloadCount": 5,
-          "downloadUrl": "https://edge.forgecdn.net/files/3787/116/BigWigs-v38.1-classic.zip",
+          "fileDate": "2022-07-09T04:34:05.783Z",
+          "fileLength": 3943637,
+          "downloadCount": 0,
+          "downloadUrl": "https://edge.forgecdn.net/files/3865/108/BigWigs-v41.1-classic-2-ge838e86.zip",
           "gameVersions": [
             "1.14.3"
           ],
@@ -125,7 +125,7 @@
           ],
           "dependencies": [
             {
-              "modId": 27889,
+              "modId": 14320,
               "relationType": 1
             },
             {
@@ -133,11 +133,7 @@
               "relationType": 1
             },
             {
-              "modId": 18909,
-              "relationType": 1
-            },
-            {
-              "modId": 51580,
+              "modId": 27889,
               "relationType": 1
             },
             {
@@ -145,472 +141,95 @@
               "relationType": 1
             },
             {
-              "modId": 14320,
+              "modId": 13376,
               "relationType": 1
             },
             {
-              "modId": 13376,
+              "modId": 51580,
+              "relationType": 1
+            },
+            {
+              "modId": 18909,
               "relationType": 1
             }
           ],
           "alternateFileId": 0,
           "isServerPack": false,
-          "fileFingerprint": 1419948370,
+          "fileFingerprint": 3628420398,
           "modules": [
             {
               "name": "BigWigs_Core",
-              "fingerprint": 728960324
+              "fingerprint": 3387968108
             },
             {
               "name": "BigWigs_Options",
-              "fingerprint": 4078606183
+              "fingerprint": 1995008999
             },
             {
               "name": "BigWigs_Plugins",
-              "fingerprint": 2369767333
+              "fingerprint": 3049178193
             },
             {
               "name": "BigWigs_Onyxia",
-              "fingerprint": 3771832995
+              "fingerprint": 987704098
             },
             {
               "name": "BigWigs_MoltenCore",
-              "fingerprint": 1552965447
+              "fingerprint": 3913431662
             },
             {
               "name": "BigWigs_World",
-              "fingerprint": 1396585314
+              "fingerprint": 110591497
             },
             {
               "name": "BigWigs_BlackwingLair",
-              "fingerprint": 2163141352
+              "fingerprint": 362766334
             },
             {
               "name": "BigWigs_ZulGurub",
-              "fingerprint": 551343933
+              "fingerprint": 4156154389
             },
             {
               "name": "BigWigs_AhnQirajRuins",
-              "fingerprint": 2896104264
+              "fingerprint": 2386229124
             },
             {
               "name": "BigWigs_AhnQirajTemple",
-              "fingerprint": 1780918369
+              "fingerprint": 3334106727
             },
             {
               "name": "BigWigs_Naxxramas",
-              "fingerprint": 1986143342
+              "fingerprint": 3282729488
             },
             {
               "name": "BigWigs",
-              "fingerprint": 3988104396
+              "fingerprint": 3694721429
             }
           ]
         },
         {
-          "id": 3787117,
+          "id": 3865112,
           "gameId": 1,
           "modId": 2382,
           "isAvailable": true,
-          "displayName": "v38.1-classic-bcc",
-          "fileName": "BigWigs-v38.1-classic-bcc.zip",
-          "releaseType": 1,
-          "fileStatus": 4,
-          "hashes": [
-            {
-              "value": "a7a3691b0bef2b072b3424fe2ea9f5c6b9437d58",
-              "algo": 1
-            },
-            {
-              "value": "a347dc7b789796ce8e5682051ab55deb",
-              "algo": 2
-            }
-          ],
-          "fileDate": "2022-05-11T15:25:46.55Z",
-          "fileLength": 4139973,
-          "downloadCount": 983,
-          "downloadUrl": "https://edge.forgecdn.net/files/3787/117/BigWigs-v38.1-classic-bcc.zip",
-          "gameVersions": [
-            "2.5.4"
-          ],
-          "sortableGameVersions": [
-            {
-              "gameVersionName": "2.5.4",
-              "gameVersionPadded": "0000000002.0000000005.0000000004",
-              "gameVersion": "2.5.4",
-              "gameVersionReleaseDate": "2022-03-22T00:00:00Z",
-              "gameVersionTypeId": 73246
-            }
-          ],
-          "dependencies": [
-            {
-              "modId": 14320,
-              "relationType": 1
-            },
-            {
-              "modId": 51580,
-              "relationType": 1
-            },
-            {
-              "modId": 14324,
-              "relationType": 1
-            },
-            {
-              "modId": 15552,
-              "relationType": 1
-            },
-            {
-              "modId": 18909,
-              "relationType": 1
-            },
-            {
-              "modId": 13376,
-              "relationType": 1
-            },
-            {
-              "modId": 27889,
-              "relationType": 1
-            }
-          ],
-          "alternateFileId": 0,
-          "isServerPack": false,
-          "fileFingerprint": 1233463889,
-          "modules": [
-            {
-              "name": "BigWigs_Core",
-              "fingerprint": 3041534971
-            },
-            {
-              "name": "BigWigs_Options",
-              "fingerprint": 966391786
-            },
-            {
-              "name": "BigWigs_Plugins",
-              "fingerprint": 2649447431
-            },
-            {
-              "name": "BigWigs_Onyxia",
-              "fingerprint": 495887433
-            },
-            {
-              "name": "BigWigs_MoltenCore",
-              "fingerprint": 2341390026
-            },
-            {
-              "name": "BigWigs_World",
-              "fingerprint": 1106995549
-            },
-            {
-              "name": "BigWigs_BlackwingLair",
-              "fingerprint": 3934933745
-            },
-            {
-              "name": "BigWigs_ZulGurub",
-              "fingerprint": 3698675223
-            },
-            {
-              "name": "BigWigs_AhnQirajRuins",
-              "fingerprint": 1422428725
-            },
-            {
-              "name": "BigWigs_AhnQirajTemple",
-              "fingerprint": 1499700285
-            },
-            {
-              "name": "BigWigs_Naxxramas",
-              "fingerprint": 2510870318
-            },
-            {
-              "name": "BigWigs_Outland",
-              "fingerprint": 3048756032
-            },
-            {
-              "name": "BigWigs_Karazhan",
-              "fingerprint": 2738483387
-            },
-            {
-              "name": "BigWigs_Serpentshrine",
-              "fingerprint": 2563820782
-            },
-            {
-              "name": "BigWigs_TempestKeep",
-              "fingerprint": 373004103
-            },
-            {
-              "name": "BigWigs_Hyjal",
-              "fingerprint": 3696772996
-            },
-            {
-              "name": "BigWigs_BlackTemple",
-              "fingerprint": 1582743238
-            },
-            {
-              "name": "BigWigs_ZulAman",
-              "fingerprint": 181780162
-            },
-            {
-              "name": "BigWigs_Sunwell",
-              "fingerprint": 386580884
-            },
-            {
-              "name": "BigWigs",
-              "fingerprint": 2780676233
-            }
-          ]
-        },
-        {
-          "id": 3787160,
-          "gameId": 1,
-          "modId": 2382,
-          "isAvailable": true,
-          "displayName": "v241.3",
-          "fileName": "BigWigs-v241.3.zip",
-          "releaseType": 1,
-          "fileStatus": 4,
-          "hashes": [
-            {
-              "value": "bc9be99e7059a909d5aedbf91c0e05e7c56565c1",
-              "algo": 1
-            },
-            {
-              "value": "28288a7f2241a04c9941ae947dd43698",
-              "algo": 2
-            }
-          ],
-          "fileDate": "2022-05-11T16:10:09.877Z",
-          "fileLength": 3759902,
-          "downloadCount": 344,
-          "downloadUrl": "https://edge.forgecdn.net/files/3787/160/BigWigs-v241.3.zip",
-          "gameVersions": [
-            "9.2.0"
-          ],
-          "sortableGameVersions": [
-            {
-              "gameVersionName": "9.2.0",
-              "gameVersionPadded": "0000000009.0000000002.0000000000",
-              "gameVersion": "9.2.0",
-              "gameVersionReleaseDate": "2022-02-20T00:00:00Z",
-              "gameVersionTypeId": 517
-            }
-          ],
-          "dependencies": [
-            {
-              "modId": 14324,
-              "relationType": 1
-            },
-            {
-              "modId": 19651,
-              "relationType": 1
-            },
-            {
-              "modId": 27889,
-              "relationType": 1
-            },
-            {
-              "modId": 615588,
-              "relationType": 1
-            },
-            {
-              "modId": 14320,
-              "relationType": 1
-            },
-            {
-              "modId": 15552,
-              "relationType": 1
-            },
-            {
-              "modId": 18909,
-              "relationType": 1
-            },
-            {
-              "modId": 51580,
-              "relationType": 1
-            },
-            {
-              "modId": 13376,
-              "relationType": 1
-            }
-          ],
-          "alternateFileId": 0,
-          "isServerPack": false,
-          "fileFingerprint": 1162837920,
-          "modules": [
-            {
-              "name": "BigWigs_Core",
-              "fingerprint": 3832577280
-            },
-            {
-              "name": "BigWigs_Options",
-              "fingerprint": 2956529444
-            },
-            {
-              "name": "BigWigs_Plugins",
-              "fingerprint": 2839756063
-            },
-            {
-              "name": "BigWigs_CastleNathria",
-              "fingerprint": 3774472118
-            },
-            {
-              "name": "BigWigs_SanctumOfDomination",
-              "fingerprint": 3048390084
-            },
-            {
-              "name": "BigWigs_SepulcherOfTheFirstOnes",
-              "fingerprint": 726770682
-            },
-            {
-              "name": "BigWigs_Shadowlands",
-              "fingerprint": 1566851684
-            },
-            {
-              "name": "BigWigs",
-              "fingerprint": 2903023398
-            }
-          ]
-        },
-        {
-          "id": 3788262,
-          "gameId": 1,
-          "modId": 2382,
-          "isAvailable": true,
-          "displayName": "v38.1-classic-2-g3078c14",
-          "fileName": "BigWigs-v38.1-classic-2-g3078c14.zip",
+          "displayName": "v41.1-classic-2-ge838e86-bcc",
+          "fileName": "BigWigs-v41.1-classic-2-ge838e86-bcc.zip",
           "releaseType": 3,
           "fileStatus": 4,
           "hashes": [
             {
-              "value": "c8acf0e76b03f8b8e46464435dd6d0fb69e0c277",
+              "value": "0bdc778795e4d4f75747de42dcda0644df7d2326",
               "algo": 1
             },
             {
-              "value": "f98502363ff097806a250057a02b58df",
+              "value": "d77b4bd35c477955feca91bb72f93bb4",
               "algo": 2
             }
           ],
-          "fileDate": "2022-05-12T18:47:51.937Z",
-          "fileLength": 3943599,
-          "downloadCount": 5,
-          "downloadUrl": "https://edge.forgecdn.net/files/3788/262/BigWigs-v38.1-classic-2-g3078c14.zip",
-          "gameVersions": [
-            "1.14.3"
-          ],
-          "sortableGameVersions": [
-            {
-              "gameVersionName": "1.14.3",
-              "gameVersionPadded": "0000000001.0000000014.0000000003",
-              "gameVersion": "1.14.3",
-              "gameVersionReleaseDate": "2022-04-20T00:00:00Z",
-              "gameVersionTypeId": 67408
-            }
-          ],
-          "dependencies": [
-            {
-              "modId": 15552,
-              "relationType": 1
-            },
-            {
-              "modId": 51580,
-              "relationType": 1
-            },
-            {
-              "modId": 13376,
-              "relationType": 1
-            },
-            {
-              "modId": 18909,
-              "relationType": 1
-            },
-            {
-              "modId": 14320,
-              "relationType": 1
-            },
-            {
-              "modId": 27889,
-              "relationType": 1
-            },
-            {
-              "modId": 14324,
-              "relationType": 1
-            }
-          ],
-          "alternateFileId": 0,
-          "isServerPack": false,
-          "fileFingerprint": 3167069747,
-          "modules": [
-            {
-              "name": "BigWigs_Core",
-              "fingerprint": 2696568934
-            },
-            {
-              "name": "BigWigs_Options",
-              "fingerprint": 2709134630
-            },
-            {
-              "name": "BigWigs_Plugins",
-              "fingerprint": 890953940
-            },
-            {
-              "name": "BigWigs_Onyxia",
-              "fingerprint": 2137316147
-            },
-            {
-              "name": "BigWigs_MoltenCore",
-              "fingerprint": 3168861106
-            },
-            {
-              "name": "BigWigs_World",
-              "fingerprint": 509095507
-            },
-            {
-              "name": "BigWigs_BlackwingLair",
-              "fingerprint": 2258045417
-            },
-            {
-              "name": "BigWigs_ZulGurub",
-              "fingerprint": 2646673505
-            },
-            {
-              "name": "BigWigs_AhnQirajRuins",
-              "fingerprint": 1034380963
-            },
-            {
-              "name": "BigWigs_AhnQirajTemple",
-              "fingerprint": 669086065
-            },
-            {
-              "name": "BigWigs_Naxxramas",
-              "fingerprint": 2109976140
-            },
-            {
-              "name": "BigWigs",
-              "fingerprint": 2189387502
-            }
-          ]
-        },
-        {
-          "id": 3788264,
-          "gameId": 1,
-          "modId": 2382,
-          "isAvailable": true,
-          "displayName": "v38.1-classic-2-g3078c14-bcc",
-          "fileName": "BigWigs-v38.1-classic-2-g3078c14-bcc.zip",
-          "releaseType": 3,
-          "fileStatus": 4,
-          "hashes": [
-            {
-              "value": "663b143166455c87e7a4fe46ed818755a075ed48",
-              "algo": 1
-            },
-            {
-              "value": "b77217b7cf7cf3e200bc18004bca826f",
-              "algo": 2
-            }
-          ],
-          "fileDate": "2022-05-12T18:48:57.567Z",
-          "fileLength": 4145061,
-          "downloadCount": 1,
-          "downloadUrl": "https://edge.forgecdn.net/files/3788/264/BigWigs-v38.1-classic-2-g3078c14-bcc.zip",
+          "fileDate": "2022-07-09T04:35:13.917Z",
+          "fileLength": 4145374,
+          "downloadCount": 0,
+          "downloadUrl": "https://edge.forgecdn.net/files/3865/112/BigWigs-v41.1-classic-2-ge838e86-bcc.zip",
           "gameVersions": [
             "2.5.4"
           ],
@@ -629,7 +248,11 @@
               "relationType": 1
             },
             {
-              "modId": 13376,
+              "modId": 15552,
+              "relationType": 1
+            },
+            {
+              "modId": 14320,
               "relationType": 1
             },
             {
@@ -637,7 +260,253 @@
               "relationType": 1
             },
             {
+              "modId": 51580,
+              "relationType": 1
+            },
+            {
+              "modId": 18909,
+              "relationType": 1
+            },
+            {
+              "modId": 13376,
+              "relationType": 1
+            }
+          ],
+          "alternateFileId": 0,
+          "isServerPack": false,
+          "fileFingerprint": 3419374649,
+          "modules": [
+            {
+              "name": "BigWigs_Core",
+              "fingerprint": 3147961769
+            },
+            {
+              "name": "BigWigs_Options",
+              "fingerprint": 636258311
+            },
+            {
+              "name": "BigWigs_Plugins",
+              "fingerprint": 1570386218
+            },
+            {
+              "name": "BigWigs_Onyxia",
+              "fingerprint": 1598566425
+            },
+            {
+              "name": "BigWigs_MoltenCore",
+              "fingerprint": 3078866837
+            },
+            {
+              "name": "BigWigs_World",
+              "fingerprint": 671695517
+            },
+            {
+              "name": "BigWigs_BlackwingLair",
+              "fingerprint": 1573750043
+            },
+            {
+              "name": "BigWigs_ZulGurub",
+              "fingerprint": 16297185
+            },
+            {
+              "name": "BigWigs_AhnQirajRuins",
+              "fingerprint": 1508012110
+            },
+            {
+              "name": "BigWigs_AhnQirajTemple",
+              "fingerprint": 2541710403
+            },
+            {
+              "name": "BigWigs_Naxxramas",
+              "fingerprint": 1757146656
+            },
+            {
+              "name": "BigWigs_Outland",
+              "fingerprint": 611492053
+            },
+            {
+              "name": "BigWigs_Karazhan",
+              "fingerprint": 1321241922
+            },
+            {
+              "name": "BigWigs_Serpentshrine",
+              "fingerprint": 2057301260
+            },
+            {
+              "name": "BigWigs_TempestKeep",
+              "fingerprint": 2490530879
+            },
+            {
+              "name": "BigWigs_Hyjal",
+              "fingerprint": 15882871
+            },
+            {
+              "name": "BigWigs_BlackTemple",
+              "fingerprint": 605118591
+            },
+            {
+              "name": "BigWigs_ZulAman",
+              "fingerprint": 486307210
+            },
+            {
+              "name": "BigWigs_Sunwell",
+              "fingerprint": 945421064
+            },
+            {
+              "name": "BigWigs",
+              "fingerprint": 2952143552
+            }
+          ]
+        },
+        {
+          "id": 3956328,
+          "gameId": 1,
+          "modId": 2382,
+          "isAvailable": true,
+          "displayName": "v246-3-gbe4cb25",
+          "fileName": "BigWigs-v246-3-gbe4cb25.zip",
+          "releaseType": 3,
+          "fileStatus": 4,
+          "hashes": [
+            {
+              "value": "b5f291c06d50c4e8711a1b6cf7cbdef4da54669b",
+              "algo": 1
+            },
+            {
+              "value": "c6e40ad45c3f0282bb2eed07d36e21d0",
+              "algo": 2
+            }
+          ],
+          "fileDate": "2022-08-28T23:06:07.277Z",
+          "fileLength": 3777131,
+          "downloadCount": 0,
+          "downloadUrl": "https://edge.forgecdn.net/files/3956/328/BigWigs-v246-3-gbe4cb25.zip",
+          "gameVersions": [
+            "9.2.7"
+          ],
+          "sortableGameVersions": [
+            {
+              "gameVersionName": "9.2.7",
+              "gameVersionPadded": "0000000009.0000000002.0000000007",
+              "gameVersion": "9.2.7",
+              "gameVersionReleaseDate": "2022-08-16T00:00:00Z",
+              "gameVersionTypeId": 517
+            }
+          ],
+          "dependencies": [
+            {
+              "modId": 19651,
+              "relationType": 1
+            },
+            {
+              "modId": 27889,
+              "relationType": 1
+            },
+            {
+              "modId": 14324,
+              "relationType": 1
+            },
+            {
+              "modId": 615588,
+              "relationType": 1
+            },
+            {
               "modId": 15552,
+              "relationType": 1
+            },
+            {
+              "modId": 51580,
+              "relationType": 1
+            },
+            {
+              "modId": 18909,
+              "relationType": 1
+            },
+            {
+              "modId": 13376,
+              "relationType": 1
+            },
+            {
+              "modId": 14320,
+              "relationType": 1
+            }
+          ],
+          "alternateFileId": 0,
+          "isServerPack": false,
+          "fileFingerprint": 2125656769,
+          "modules": [
+            {
+              "name": "BigWigs_Core",
+              "fingerprint": 1752087226
+            },
+            {
+              "name": "BigWigs_Options",
+              "fingerprint": 2688417523
+            },
+            {
+              "name": "BigWigs_Plugins",
+              "fingerprint": 3177465918
+            },
+            {
+              "name": "BigWigs_CastleNathria",
+              "fingerprint": 762430223
+            },
+            {
+              "name": "BigWigs_SanctumOfDomination",
+              "fingerprint": 1563542070
+            },
+            {
+              "name": "BigWigs_SepulcherOfTheFirstOnes",
+              "fingerprint": 1041946032
+            },
+            {
+              "name": "BigWigs_Shadowlands",
+              "fingerprint": 2902476095
+            },
+            {
+              "name": "BigWigs",
+              "fingerprint": 1050425125
+            }
+          ]
+        },
+        {
+          "id": 3956386,
+          "gameId": 1,
+          "modId": 2382,
+          "isAvailable": true,
+          "displayName": "v246.1",
+          "fileName": "BigWigs-v246.1.zip",
+          "releaseType": 1,
+          "fileStatus": 4,
+          "hashes": [
+            {
+              "value": "e81c55e8e15f6fa25653e7ad8750b84a05972364",
+              "algo": 1
+            },
+            {
+              "value": "5bb967ffc4bdb74c886e81afed583ead",
+              "algo": 2
+            }
+          ],
+          "fileDate": "2022-08-29T00:13:16.073Z",
+          "fileLength": 3777053,
+          "downloadCount": 0,
+          "downloadUrl": "https://edge.forgecdn.net/files/3956/386/BigWigs-v246.1.zip",
+          "gameVersions": [
+            "9.2.7"
+          ],
+          "sortableGameVersions": [
+            {
+              "gameVersionName": "9.2.7",
+              "gameVersionPadded": "0000000009.0000000002.0000000007",
+              "gameVersion": "9.2.7",
+              "gameVersionReleaseDate": "2022-08-16T00:00:00Z",
+              "gameVersionTypeId": 517
+            }
+          ],
+          "dependencies": [
+            {
+              "modId": 27889,
               "relationType": 1
             },
             {
@@ -650,133 +519,6 @@
             },
             {
               "modId": 18909,
-              "relationType": 1
-            }
-          ],
-          "alternateFileId": 0,
-          "isServerPack": false,
-          "fileFingerprint": 2233102762,
-          "modules": [
-            {
-              "name": "BigWigs_Core",
-              "fingerprint": 516795397
-            },
-            {
-              "name": "BigWigs_Options",
-              "fingerprint": 683601917
-            },
-            {
-              "name": "BigWigs_Plugins",
-              "fingerprint": 51217292
-            },
-            {
-              "name": "BigWigs_Onyxia",
-              "fingerprint": 2787019047
-            },
-            {
-              "name": "BigWigs_MoltenCore",
-              "fingerprint": 2033633174
-            },
-            {
-              "name": "BigWigs_World",
-              "fingerprint": 673763180
-            },
-            {
-              "name": "BigWigs_BlackwingLair",
-              "fingerprint": 1105923569
-            },
-            {
-              "name": "BigWigs_ZulGurub",
-              "fingerprint": 3223438736
-            },
-            {
-              "name": "BigWigs_AhnQirajRuins",
-              "fingerprint": 199076571
-            },
-            {
-              "name": "BigWigs_AhnQirajTemple",
-              "fingerprint": 794078480
-            },
-            {
-              "name": "BigWigs_Naxxramas",
-              "fingerprint": 474963838
-            },
-            {
-              "name": "BigWigs_Outland",
-              "fingerprint": 3602104803
-            },
-            {
-              "name": "BigWigs_Karazhan",
-              "fingerprint": 648187195
-            },
-            {
-              "name": "BigWigs_Serpentshrine",
-              "fingerprint": 3352198892
-            },
-            {
-              "name": "BigWigs_TempestKeep",
-              "fingerprint": 2293773795
-            },
-            {
-              "name": "BigWigs_Hyjal",
-              "fingerprint": 2241716866
-            },
-            {
-              "name": "BigWigs_BlackTemple",
-              "fingerprint": 1762750771
-            },
-            {
-              "name": "BigWigs_ZulAman",
-              "fingerprint": 3303129633
-            },
-            {
-              "name": "BigWigs_Sunwell",
-              "fingerprint": 116020200
-            },
-            {
-              "name": "BigWigs",
-              "fingerprint": 2616256056
-            }
-          ]
-        },
-        {
-          "id": 3788321,
-          "gameId": 1,
-          "modId": 2382,
-          "isAvailable": true,
-          "displayName": "v241.3-1-g589adc0",
-          "fileName": "BigWigs-v241.3-1-g589adc0.zip",
-          "releaseType": 3,
-          "fileStatus": 4,
-          "hashes": [
-            {
-              "value": "ca74e0a30741879fdd5b5ab70d917f6f39368315",
-              "algo": 1
-            },
-            {
-              "value": "1d240bd2b9f70ce84098d767c80ad16c",
-              "algo": 2
-            }
-          ],
-          "fileDate": "2022-05-12T19:43:02.267Z",
-          "fileLength": 3760019,
-          "downloadCount": 2,
-          "downloadUrl": "https://edge.forgecdn.net/files/3788/321/BigWigs-v241.3-1-g589adc0.zip",
-          "gameVersions": [
-            "9.2.0"
-          ],
-          "sortableGameVersions": [
-            {
-              "gameVersionName": "9.2.0",
-              "gameVersionPadded": "0000000009.0000000002.0000000000",
-              "gameVersion": "9.2.0",
-              "gameVersionReleaseDate": "2022-02-20T00:00:00Z",
-              "gameVersionTypeId": 517
-            }
-          ],
-          "dependencies": [
-            {
-              "modId": 615588,
               "relationType": 1
             },
             {
@@ -788,11 +530,221 @@
               "relationType": 1
             },
             {
-              "modId": 27889,
+              "modId": 14324,
+              "relationType": 1
+            },
+            {
+              "modId": 615588,
+              "relationType": 1
+            },
+            {
+              "modId": 13376,
+              "relationType": 1
+            }
+          ],
+          "alternateFileId": 0,
+          "isServerPack": false,
+          "fileFingerprint": 2251192697,
+          "modules": [
+            {
+              "name": "BigWigs_Core",
+              "fingerprint": 2311714624
+            },
+            {
+              "name": "BigWigs_Options",
+              "fingerprint": 1670260374
+            },
+            {
+              "name": "BigWigs_Plugins",
+              "fingerprint": 3029677851
+            },
+            {
+              "name": "BigWigs_CastleNathria",
+              "fingerprint": 3677506239
+            },
+            {
+              "name": "BigWigs_SanctumOfDomination",
+              "fingerprint": 456482185
+            },
+            {
+              "name": "BigWigs_SepulcherOfTheFirstOnes",
+              "fingerprint": 846259981
+            },
+            {
+              "name": "BigWigs_Shadowlands",
+              "fingerprint": 2902476095
+            },
+            {
+              "name": "BigWigs",
+              "fingerprint": 3799723147
+            }
+          ]
+        },
+        {
+          "id": 3959865,
+          "gameId": 1,
+          "modId": 2382,
+          "isAvailable": true,
+          "displayName": "v42.2-classic",
+          "fileName": "BigWigs-v42.2-classic.zip",
+          "releaseType": 1,
+          "fileStatus": 4,
+          "hashes": [
+            {
+              "value": "e70ef1f7e94ab3fc7ae8c4a369dd492fcfe9603c",
+              "algo": 1
+            },
+            {
+              "value": "9eccfbe4f1df0e79a03286cd9793b941",
+              "algo": 2
+            }
+          ],
+          "fileDate": "2022-08-31T04:13:17.403Z",
+          "fileLength": 3967270,
+          "downloadCount": 0,
+          "downloadUrl": "https://edge.forgecdn.net/files/3959/865/BigWigs-v42.2-classic.zip",
+          "gameVersions": [
+            "1.14.3"
+          ],
+          "sortableGameVersions": [
+            {
+              "gameVersionName": "1.14.3",
+              "gameVersionPadded": "0000000001.0000000014.0000000003",
+              "gameVersion": "1.14.3",
+              "gameVersionReleaseDate": "2022-04-20T00:00:00Z",
+              "gameVersionTypeId": 67408
+            }
+          ],
+          "dependencies": [
+            {
+              "modId": 13376,
               "relationType": 1
             },
             {
               "modId": 14320,
+              "relationType": 1
+            },
+            {
+              "modId": 15552,
+              "relationType": 1
+            },
+            {
+              "modId": 18909,
+              "relationType": 1
+            },
+            {
+              "modId": 14324,
+              "relationType": 1
+            },
+            {
+              "modId": 51580,
+              "relationType": 1
+            },
+            {
+              "modId": 27889,
+              "relationType": 1
+            }
+          ],
+          "alternateFileId": 0,
+          "isServerPack": false,
+          "fileFingerprint": 3986055265,
+          "modules": [
+            {
+              "name": "BigWigs_Core",
+              "fingerprint": 3722890542
+            },
+            {
+              "name": "BigWigs_Options",
+              "fingerprint": 3294971787
+            },
+            {
+              "name": "BigWigs_Plugins",
+              "fingerprint": 141420303
+            },
+            {
+              "name": "BigWigs_Onyxia",
+              "fingerprint": 1625103686
+            },
+            {
+              "name": "BigWigs_MoltenCore",
+              "fingerprint": 208680588
+            },
+            {
+              "name": "BigWigs_World",
+              "fingerprint": 2193183077
+            },
+            {
+              "name": "BigWigs_BlackwingLair",
+              "fingerprint": 1044023070
+            },
+            {
+              "name": "BigWigs_ZulGurub",
+              "fingerprint": 2828855795
+            },
+            {
+              "name": "BigWigs_AhnQirajRuins",
+              "fingerprint": 3798406666
+            },
+            {
+              "name": "BigWigs_AhnQirajTemple",
+              "fingerprint": 3748387660
+            },
+            {
+              "name": "BigWigs_Naxxramas",
+              "fingerprint": 785592414
+            },
+            {
+              "name": "BigWigs",
+              "fingerprint": 2191507561
+            }
+          ]
+        },
+        {
+          "id": 3959868,
+          "gameId": 1,
+          "modId": 2382,
+          "isAvailable": true,
+          "displayName": "v42.2-classic-wrath",
+          "fileName": "BigWigs-v42.2-classic-wrath.zip",
+          "releaseType": 1,
+          "fileStatus": 4,
+          "hashes": [
+            {
+              "value": "7ae62c97aabe6e4c0c9a5a1b44b9496dd4193f6a",
+              "algo": 1
+            },
+            {
+              "value": "11f1db98b1654ff93014b10a52a84a61",
+              "algo": 2
+            }
+          ],
+          "fileDate": "2022-08-31T04:14:30.76Z",
+          "fileLength": 4169996,
+          "downloadCount": 0,
+          "downloadUrl": "https://edge.forgecdn.net/files/3959/868/BigWigs-v42.2-classic-wrath.zip",
+          "gameVersions": [
+            "3.4.0",
+            "2.5.4"
+          ],
+          "sortableGameVersions": [
+            {
+              "gameVersionName": "3.4.0",
+              "gameVersionPadded": "0000000003.0000000004.0000000000",
+              "gameVersion": "3.4.0",
+              "gameVersionReleaseDate": "2022-07-14T00:00:00Z",
+              "gameVersionTypeId": 73713
+            },
+            {
+              "gameVersionName": "2.5.4",
+              "gameVersionPadded": "0000000002.0000000005.0000000004",
+              "gameVersion": "2.5.4",
+              "gameVersionReleaseDate": "2022-03-22T00:00:00Z",
+              "gameVersionTypeId": 73246
+            }
+          ],
+          "dependencies": [
+            {
+              "modId": 15552,
               "relationType": 1
             },
             {
@@ -804,100 +756,200 @@
               "relationType": 1
             },
             {
-              "modId": 13376,
+              "modId": 51580,
               "relationType": 1
             },
             {
-              "modId": 51580,
+              "modId": 14320,
+              "relationType": 1
+            },
+            {
+              "modId": 19651,
+              "relationType": 1
+            },
+            {
+              "modId": 27889,
+              "relationType": 1
+            },
+            {
+              "modId": 13376,
               "relationType": 1
             }
           ],
           "alternateFileId": 0,
           "isServerPack": false,
-          "fileFingerprint": 4068290028,
+          "fileFingerprint": 3303316163,
           "modules": [
             {
               "name": "BigWigs_Core",
-              "fingerprint": 3931068480
+              "fingerprint": 3725741756
             },
             {
               "name": "BigWigs_Options",
-              "fingerprint": 2392861726
+              "fingerprint": 903779768
             },
             {
               "name": "BigWigs_Plugins",
-              "fingerprint": 3995101039
+              "fingerprint": 1629676862
             },
             {
-              "name": "BigWigs_CastleNathria",
-              "fingerprint": 490146298
+              "name": "BigWigs_Onyxia",
+              "fingerprint": 1446722232
             },
             {
-              "name": "BigWigs_SanctumOfDomination",
-              "fingerprint": 3747813565
+              "name": "BigWigs_MoltenCore",
+              "fingerprint": 3797268256
             },
             {
-              "name": "BigWigs_SepulcherOfTheFirstOnes",
-              "fingerprint": 2544018147
+              "name": "BigWigs_World",
+              "fingerprint": 3564948682
             },
             {
-              "name": "BigWigs_Shadowlands",
-              "fingerprint": 1566851684
+              "name": "BigWigs_BlackwingLair",
+              "fingerprint": 1928557601
+            },
+            {
+              "name": "BigWigs_ZulGurub",
+              "fingerprint": 2287371819
+            },
+            {
+              "name": "BigWigs_AhnQirajRuins",
+              "fingerprint": 41019688
+            },
+            {
+              "name": "BigWigs_AhnQirajTemple",
+              "fingerprint": 1320417695
+            },
+            {
+              "name": "BigWigs_Naxxramas",
+              "fingerprint": 3687667852
+            },
+            {
+              "name": "BigWigs_Outland",
+              "fingerprint": 4051933815
+            },
+            {
+              "name": "BigWigs_Karazhan",
+              "fingerprint": 3065525752
+            },
+            {
+              "name": "BigWigs_Serpentshrine",
+              "fingerprint": 3847784434
+            },
+            {
+              "name": "BigWigs_TempestKeep",
+              "fingerprint": 2915736291
+            },
+            {
+              "name": "BigWigs_Hyjal",
+              "fingerprint": 2676993056
+            },
+            {
+              "name": "BigWigs_BlackTemple",
+              "fingerprint": 1528225173
+            },
+            {
+              "name": "BigWigs_ZulAman",
+              "fingerprint": 4065441377
+            },
+            {
+              "name": "BigWigs_Sunwell",
+              "fingerprint": 2336338000
             },
             {
               "name": "BigWigs",
-              "fingerprint": 1340434584
+              "fingerprint": 3686919911
             }
           ]
         }
       ],
       "latestFilesIndexes": [
         {
-          "gameVersion": "9.2.0",
-          "fileId": 3788321,
-          "filename": "BigWigs-v241.3-1-g589adc0.zip",
+          "gameVersion": "2.5.4",
+          "fileId": 3959868,
+          "filename": "BigWigs-v42.2-classic-wrath.zip",
+          "releaseType": 1,
+          "gameVersionTypeId": 73246,
+          "modLoader": null
+        },
+        {
+          "gameVersion": "3.4.0",
+          "fileId": 3959868,
+          "filename": "BigWigs-v42.2-classic-wrath.zip",
+          "releaseType": 1,
+          "gameVersionTypeId": 73713,
+          "modLoader": null
+        },
+        {
+          "gameVersion": "1.14.3",
+          "fileId": 3959865,
+          "filename": "BigWigs-v42.2-classic.zip",
+          "releaseType": 1,
+          "gameVersionTypeId": 67408,
+          "modLoader": null
+        },
+        {
+          "gameVersion": "9.2.7",
+          "fileId": 3956386,
+          "filename": "BigWigs-v246.1.zip",
+          "releaseType": 1,
+          "gameVersionTypeId": 517,
+          "modLoader": null
+        },
+        {
+          "gameVersion": "9.2.7",
+          "fileId": 3956328,
+          "filename": "BigWigs-v246-3-gbe4cb25.zip",
           "releaseType": 3,
           "gameVersionTypeId": 517,
           "modLoader": null
         },
         {
+          "gameVersion": "9.2.5",
+          "fileId": 3939329,
+          "filename": "BigWigs-v244.3-4-ga191030.zip",
+          "releaseType": 3,
+          "gameVersionTypeId": 517,
+          "modLoader": null
+        },
+        {
+          "gameVersion": "9.2.5",
+          "fileId": 3935745,
+          "filename": "BigWigs-v244.3.zip",
+          "releaseType": 1,
+          "gameVersionTypeId": 517,
+          "modLoader": null
+        },
+        {
           "gameVersion": "2.5.4",
-          "fileId": 3788264,
-          "filename": "BigWigs-v38.1-classic-2-g3078c14-bcc.zip",
+          "fileId": 3865112,
+          "filename": "BigWigs-v41.1-classic-2-ge838e86-bcc.zip",
           "releaseType": 3,
           "gameVersionTypeId": 73246,
           "modLoader": null
         },
         {
           "gameVersion": "1.14.3",
-          "fileId": 3788262,
-          "filename": "BigWigs-v38.1-classic-2-g3078c14.zip",
+          "fileId": 3865108,
+          "filename": "BigWigs-v41.1-classic-2-ge838e86.zip",
           "releaseType": 3,
           "gameVersionTypeId": 67408,
           "modLoader": null
         },
         {
           "gameVersion": "9.2.0",
-          "fileId": 3787160,
-          "filename": "BigWigs-v241.3.zip",
-          "releaseType": 1,
+          "fileId": 3812305,
+          "filename": "BigWigs-v242.3-3-gc177e60.zip",
+          "releaseType": 3,
           "gameVersionTypeId": 517,
           "modLoader": null
         },
         {
-          "gameVersion": "2.5.4",
-          "fileId": 3787117,
-          "filename": "BigWigs-v38.1-classic-bcc.zip",
+          "gameVersion": "9.2.0",
+          "fileId": 3803415,
+          "filename": "BigWigs-v242.3.zip",
           "releaseType": 1,
-          "gameVersionTypeId": 73246,
-          "modLoader": null
-        },
-        {
-          "gameVersion": "1.14.3",
-          "fileId": 3787116,
-          "filename": "BigWigs-v38.1-classic.zip",
-          "releaseType": 1,
-          "gameVersionTypeId": 67408,
+          "gameVersionTypeId": 517,
           "modLoader": null
         },
         {
@@ -1966,10 +2018,10 @@
         }
       ],
       "dateCreated": "2008-03-26T02:56:51Z",
-      "dateModified": "2022-05-12T19:44:42.193Z",
-      "dateReleased": "2022-05-12T19:43:02.267Z",
+      "dateModified": "2022-08-31T04:32:14.797Z",
+      "dateReleased": "2022-08-31T04:14:30.76Z",
       "allowModDistribution": true,
-      "gamePopularityRank": 13,
+      "gamePopularityRank": 12,
       "isAvailable": true,
       "thumbsUpCount": 0
     },
@@ -1986,21 +2038,21 @@
       },
       "summary": "One-click Milling, Prospecting, Disenchanting and Lockpicking!",
       "status": 4,
-      "downloadCount": 732880,
+      "downloadCount": 740999,
       "isFeatured": false,
       "primaryCategoryId": 1015,
       "categories": [
         {
-          "id": 1027,
+          "id": 1045,
           "gameId": 1,
-          "name": "Rogue",
-          "slug": "rogue",
-          "url": "https://www.curseforge.com/wow/addons/class/rogue",
-          "iconUrl": "https://media.forgecdn.net/avatars/54/476/636135209851425101.png",
-          "dateModified": "2016-10-31T19:29:45.143Z",
+          "name": "Enchanting",
+          "slug": "enchanting",
+          "url": "https://www.curseforge.com/wow/addons/professions/enchanting",
+          "iconUrl": "https://media.forgecdn.net/avatars/54/491/636135209936129920.png",
+          "dateModified": "2016-10-31T19:29:53.63Z",
           "isClass": false,
           "classId": 1,
-          "parentCategoryId": 1020
+          "parentCategoryId": 1015
         },
         {
           "id": 1050,
@@ -2027,16 +2079,16 @@
           "parentCategoryId": 1015
         },
         {
-          "id": 1045,
+          "id": 1027,
           "gameId": 1,
-          "name": "Enchanting",
-          "slug": "enchanting",
-          "url": "https://www.curseforge.com/wow/addons/professions/enchanting",
-          "iconUrl": "https://media.forgecdn.net/avatars/54/491/636135209936129920.png",
-          "dateModified": "2016-10-31T19:29:53.63Z",
+          "name": "Rogue",
+          "slug": "rogue",
+          "url": "https://www.curseforge.com/wow/addons/class/rogue",
+          "iconUrl": "https://media.forgecdn.net/avatars/54/476/636135209851425101.png",
+          "dateModified": "2016-10-31T19:29:45.143Z",
           "isClass": false,
           "classId": 1,
-          "parentCategoryId": 1015
+          "parentCategoryId": 1020
         },
         {
           "id": 1015,
@@ -2598,7 +2650,7 @@
       "dateModified": "2022-02-22T18:10:11.64Z",
       "dateReleased": "2022-02-22T18:06:10.65Z",
       "allowModDistribution": false,
-      "gamePopularityRank": 474,
+      "gamePopularityRank": 646,
       "isAvailable": true,
       "thumbsUpCount": 0
     },
@@ -2615,7 +2667,7 @@
       },
       "summary": "Adirelle's bag addon.",
       "status": 4,
-      "downloadCount": 5014552,
+      "downloadCount": 5224206,
       "isFeatured": false,
       "primaryCategoryId": 1009,
       "categories": [
@@ -2658,7 +2710,7 @@
           "url": "https://media.forgecdn.net/attachments/111/88/adibags.jpg"
         }
       ],
-      "mainFileId": 3523553,
+      "mainFileId": 3954352,
       "latestFiles": [
         {
           "id": 837644,
@@ -2821,311 +2873,328 @@
           ]
         },
         {
-          "id": 2991325,
+          "id": 3954288,
           "gameId": 1,
           "modId": 23350,
           "isAvailable": true,
-          "displayName": "v1.9.20-classic",
-          "fileName": "AdiBags-v1.9.20-classic.zip",
+          "displayName": "v1.9.34-2-gdf5f499-alpha",
+          "fileName": "AdiBags-v1.9.34-2-gdf5f499-alpha.zip",
+          "releaseType": 3,
+          "fileStatus": 4,
+          "hashes": [
+            {
+              "value": "01229e5d6981dff4c6ce2fe198f7e12ff346e9f1",
+              "algo": 1
+            },
+            {
+              "value": "6162006ea53a3fa8f7176ef74befbea7",
+              "algo": 2
+            }
+          ],
+          "fileDate": "2022-08-27T15:38:47.387Z",
+          "fileLength": 286655,
+          "downloadCount": 1,
+          "downloadUrl": "https://edge.forgecdn.net/files/3954/288/AdiBags-v1.9.34-2-gdf5f499-alpha.zip",
+          "gameVersions": [
+            "9.2.7"
+          ],
+          "sortableGameVersions": [
+            {
+              "gameVersionName": "9.2.7",
+              "gameVersionPadded": "0000000009.0000000002.0000000007",
+              "gameVersion": "9.2.7",
+              "gameVersionReleaseDate": "2022-08-16T00:00:00Z",
+              "gameVersionTypeId": 517
+            }
+          ],
+          "dependencies": [],
+          "alternateFileId": 3954289,
+          "isServerPack": false,
+          "fileFingerprint": 2835876256,
+          "modules": [
+            {
+              "name": "AdiBags_Config",
+              "fingerprint": 3772219015
+            },
+            {
+              "name": "AdiBags",
+              "fingerprint": 2093903062
+            }
+          ]
+        },
+        {
+          "id": 3954289,
+          "gameId": 1,
+          "modId": 23350,
+          "isAvailable": true,
+          "displayName": "v1.9.34-2-gdf5f499-alpha-nolib",
+          "fileName": "AdiBags-v1.9.34-2-gdf5f499-alpha-nolib.zip",
+          "releaseType": 3,
+          "fileStatus": 4,
+          "hashes": [
+            {
+              "value": "56045d99e7165a2ebe210e0e2f06d3681c3d9f48",
+              "algo": 1
+            },
+            {
+              "value": "a3c955ef5c8ca70684d221b4f0ddca30",
+              "algo": 2
+            }
+          ],
+          "fileDate": "2022-08-27T15:38:51.07Z",
+          "fileLength": 148744,
+          "downloadCount": 1,
+          "downloadUrl": "https://edge.forgecdn.net/files/3954/289/AdiBags-v1.9.34-2-gdf5f499-alpha-nolib.zip",
+          "gameVersions": [
+            "9.2.7"
+          ],
+          "sortableGameVersions": [
+            {
+              "gameVersionName": "9.2.7",
+              "gameVersionPadded": "0000000009.0000000002.0000000007",
+              "gameVersion": "9.2.7",
+              "gameVersionReleaseDate": "2022-08-16T00:00:00Z",
+              "gameVersionTypeId": 517
+            }
+          ],
+          "dependencies": [],
+          "exposeAsAlternative": true,
+          "parentProjectFileId": 3954288,
+          "alternateFileId": 0,
+          "isServerPack": false,
+          "fileFingerprint": 4232475213,
+          "modules": [
+            {
+              "name": "AdiBags_Config",
+              "fingerprint": 2448159359
+            },
+            {
+              "name": "AdiBags",
+              "fingerprint": 1296562974
+            }
+          ]
+        },
+        {
+          "id": 3954352,
+          "gameId": 1,
+          "modId": 23350,
+          "isAvailable": true,
+          "displayName": "v1.9.35",
+          "fileName": "AdiBags-v1.9.35.zip",
           "releaseType": 1,
           "fileStatus": 4,
           "hashes": [
             {
-              "value": "bf020f86fda854d3fce3beec39dfd25b45c83e15",
+              "value": "c24bf789382f5c94246d6c22ac0c2a3716c61538",
               "algo": 1
             },
             {
-              "value": "552e45cd66e6b185301dfe4564e2bc9c",
+              "value": "5dd5bc7041b4122316b711013727cbdd",
               "algo": 2
             }
           ],
-          "fileDate": "2020-06-28T17:24:36.25Z",
-          "fileLength": 324911,
-          "downloadCount": 66109,
-          "downloadUrl": "https://edge.forgecdn.net/files/2991/325/AdiBags-v1.9.20-classic.zip",
+          "fileDate": "2022-08-27T16:38:54.79Z",
+          "fileLength": 286615,
+          "downloadCount": 31680,
+          "downloadUrl": "https://edge.forgecdn.net/files/3954/352/AdiBags-v1.9.35.zip",
           "gameVersions": [
-            "1.13.4"
+            "1.14.3",
+            "3.4.0",
+            "2.5.4",
+            "9.2.7"
           ],
           "sortableGameVersions": [
             {
-              "gameVersionName": "1.13.4",
-              "gameVersionPadded": "0000000001.0000000013.0000000004",
-              "gameVersion": "1.13.4",
-              "gameVersionReleaseDate": "2020-03-10T00:00:00Z",
+              "gameVersionName": "1.14.3",
+              "gameVersionPadded": "0000000001.0000000014.0000000003",
+              "gameVersion": "1.14.3",
+              "gameVersionReleaseDate": "2022-04-20T00:00:00Z",
               "gameVersionTypeId": 67408
-            }
-          ],
-          "dependencies": [],
-          "alternateFileId": 2991326,
-          "isServerPack": false,
-          "fileFingerprint": 690601106,
-          "modules": [
-            {
-              "name": "AdiBags_Config",
-              "fingerprint": 800095791
             },
             {
-              "name": "AdiBags",
-              "fingerprint": 3518468986
-            }
-          ]
-        },
-        {
-          "id": 3244701,
-          "gameId": 1,
-          "modId": 23350,
-          "isAvailable": true,
-          "displayName": "v1.9.23-3-gabafc31-alpha",
-          "fileName": "AdiBags-v1.9.23-3-gabafc31-alpha.zip",
-          "releaseType": 3,
-          "fileStatus": 4,
-          "hashes": [
-            {
-              "value": "8449690d43ad1457f14e3d1480bd688766d77e00",
-              "algo": 1
+              "gameVersionName": "3.4.0",
+              "gameVersionPadded": "0000000003.0000000004.0000000000",
+              "gameVersion": "3.4.0",
+              "gameVersionReleaseDate": "2022-07-14T00:00:00Z",
+              "gameVersionTypeId": 73713
             },
             {
-              "value": "286d2dea8dc540415523eecc1274363f",
-              "algo": 2
-            }
-          ],
-          "fileDate": "2021-03-19T13:58:30.537Z",
-          "fileLength": 279350,
-          "downloadCount": 1105,
-          "downloadUrl": "https://edge.forgecdn.net/files/3244/701/AdiBags-v1.9.23-3-gabafc31-alpha.zip",
-          "gameVersions": [
-            "9.0.5"
-          ],
-          "sortableGameVersions": [
-            {
-              "gameVersionName": "9.0.5",
-              "gameVersionPadded": "0000000009.0000000000.0000000005",
-              "gameVersion": "9.0.5",
-              "gameVersionReleaseDate": "2021-03-09T00:00:00Z",
-              "gameVersionTypeId": 517
-            }
-          ],
-          "dependencies": [],
-          "alternateFileId": 3244702,
-          "isServerPack": false,
-          "fileFingerprint": 2088498907,
-          "modules": [
-            {
-              "name": "AdiBags_Config",
-              "fingerprint": 3658579141
-            },
-            {
-              "name": "AdiBags",
-              "fingerprint": 1827494329
-            }
-          ]
-        },
-        {
-          "id": 3244702,
-          "gameId": 1,
-          "modId": 23350,
-          "isAvailable": true,
-          "displayName": "v1.9.23-3-gabafc31-alpha-nolib",
-          "fileName": "AdiBags-v1.9.23-3-gabafc31-alpha-nolib.zip",
-          "releaseType": 3,
-          "fileStatus": 4,
-          "hashes": [
-            {
-              "value": "72cf5c3ffaf87b80f028cbe5a00afcf7a142a1cf",
-              "algo": 1
-            },
-            {
-              "value": "4458025b830b49f70a6e063ce72a0105",
-              "algo": 2
-            }
-          ],
-          "fileDate": "2021-03-19T13:58:33.717Z",
-          "fileLength": 141592,
-          "downloadCount": 825,
-          "downloadUrl": "https://edge.forgecdn.net/files/3244/702/AdiBags-v1.9.23-3-gabafc31-alpha-nolib.zip",
-          "gameVersions": [
-            "9.0.5"
-          ],
-          "sortableGameVersions": [
-            {
-              "gameVersionName": "9.0.5",
-              "gameVersionPadded": "0000000009.0000000000.0000000005",
-              "gameVersion": "9.0.5",
-              "gameVersionReleaseDate": "2021-03-09T00:00:00Z",
-              "gameVersionTypeId": 517
-            }
-          ],
-          "dependencies": [],
-          "exposeAsAlternative": true,
-          "parentProjectFileId": 3244701,
-          "alternateFileId": 0,
-          "isServerPack": false,
-          "fileFingerprint": 1553228110,
-          "modules": [
-            {
-              "name": "AdiBags_Config",
-              "fingerprint": 1894720285
-            },
-            {
-              "name": "AdiBags",
-              "fingerprint": 3901412738
-            }
-          ]
-        },
-        {
-          "id": 3460625,
-          "gameId": 1,
-          "modId": 23350,
-          "isAvailable": true,
-          "displayName": "v1.9.26-bcc",
-          "fileName": "AdiBags-v1.9.26-bcc.zip",
-          "releaseType": 1,
-          "fileStatus": 4,
-          "hashes": [
-            {
-              "value": "de629397bcf810e5007dd99801429ff1e774113b",
-              "algo": 1
-            },
-            {
-              "value": "750d86fed1e0fd682f74fbc656999a1d",
-              "algo": 2
-            }
-          ],
-          "fileDate": "2021-09-15T20:02:57.64Z",
-          "fileLength": 271845,
-          "downloadCount": 28997,
-          "downloadUrl": "https://edge.forgecdn.net/files/3460/625/AdiBags-v1.9.26-bcc.zip",
-          "gameVersions": [
-            "2.5.2"
-          ],
-          "sortableGameVersions": [
-            {
-              "gameVersionName": "2.5.2",
-              "gameVersionPadded": "0000000002.0000000005.0000000002",
-              "gameVersion": "2.5.2",
-              "gameVersionReleaseDate": "2021-08-31T00:00:00Z",
+              "gameVersionName": "2.5.4",
+              "gameVersionPadded": "0000000002.0000000005.0000000004",
+              "gameVersion": "2.5.4",
+              "gameVersionReleaseDate": "2022-03-22T00:00:00Z",
               "gameVersionTypeId": 73246
-            }
-          ],
-          "dependencies": [],
-          "alternateFileId": 3460626,
-          "isServerPack": false,
-          "fileFingerprint": 3140783755,
-          "modules": [
-            {
-              "name": "AdiBags_Config",
-              "fingerprint": 1339184901
             },
             {
-              "name": "AdiBags",
-              "fingerprint": 3042532004
-            }
-          ]
-        },
-        {
-          "id": 3523553,
-          "gameId": 1,
-          "modId": 23350,
-          "isAvailable": true,
-          "displayName": "v1.9.26",
-          "fileName": "AdiBags-v1.9.26.zip",
-          "releaseType": 1,
-          "fileStatus": 4,
-          "hashes": [
-            {
-              "value": "c330d9eecd557a091b7168465b04a6b19d0d0e35",
-              "algo": 1
-            },
-            {
-              "value": "5bbd3ac1f3ed9bb1e5f44e09bfb61eaa",
-              "algo": 2
-            }
-          ],
-          "fileDate": "2021-11-12T16:29:11.497Z",
-          "fileLength": 279132,
-          "downloadCount": 109804,
-          "downloadUrl": "https://edge.forgecdn.net/files/3523/553/AdiBags-v1.9.26.zip",
-          "gameVersions": [
-            "9.1.5"
-          ],
-          "sortableGameVersions": [
-            {
-              "gameVersionName": "9.1.5",
-              "gameVersionPadded": "0000000009.0000000001.0000000005",
-              "gameVersion": "9.1.5",
-              "gameVersionReleaseDate": "2021-09-02T00:00:00Z",
+              "gameVersionName": "9.2.7",
+              "gameVersionPadded": "0000000009.0000000002.0000000007",
+              "gameVersion": "9.2.7",
+              "gameVersionReleaseDate": "2022-08-16T00:00:00Z",
               "gameVersionTypeId": 517
             }
           ],
-          "dependencies": [],
-          "alternateFileId": 3523554,
+          "dependencies": [
+            {
+              "modId": 14320,
+              "relationType": 1
+            },
+            {
+              "modId": 14328,
+              "relationType": 1
+            },
+            {
+              "modId": 13380,
+              "relationType": 1
+            },
+            {
+              "modId": 13376,
+              "relationType": 1
+            },
+            {
+              "modId": 15049,
+              "relationType": 1
+            }
+          ],
+          "alternateFileId": 3954353,
           "isServerPack": false,
-          "fileFingerprint": 3429310122,
+          "fileFingerprint": 2881389880,
           "modules": [
             {
               "name": "AdiBags_Config",
-              "fingerprint": 4014010447
+              "fingerprint": 54053398
             },
             {
               "name": "AdiBags",
-              "fingerprint": 2833574825
+              "fingerprint": 1754675833
             }
           ]
         },
         {
-          "id": 3523554,
+          "id": 3954353,
           "gameId": 1,
           "modId": 23350,
           "isAvailable": true,
-          "displayName": "v1.9.26-nolib",
-          "fileName": "AdiBags-v1.9.26-nolib.zip",
+          "displayName": "v1.9.35-nolib",
+          "fileName": "AdiBags-v1.9.35-nolib.zip",
           "releaseType": 1,
           "fileStatus": 4,
           "hashes": [
             {
-              "value": "48ab6e125ef5312137a3f6d63f78fa3746485893",
+              "value": "9bd9755740309a57feac6d484a056dc6a1ad7e07",
               "algo": 1
             },
             {
-              "value": "76d6fd696c95c2848a4e8db339bf970c",
+              "value": "c492ee0c41f3b58ded79b4a06dc541d4",
               "algo": 2
             }
           ],
-          "fileDate": "2021-11-12T16:29:15.38Z",
-          "fileLength": 141360,
-          "downloadCount": 2110,
-          "downloadUrl": "https://edge.forgecdn.net/files/3523/554/AdiBags-v1.9.26-nolib.zip",
+          "fileDate": "2022-08-27T16:38:57.69Z",
+          "fileLength": 148699,
+          "downloadCount": 263,
+          "downloadUrl": "https://edge.forgecdn.net/files/3954/353/AdiBags-v1.9.35-nolib.zip",
           "gameVersions": [
-            "9.1.5"
+            "1.14.3",
+            "3.4.0",
+            "2.5.4",
+            "9.2.7"
           ],
           "sortableGameVersions": [
             {
-              "gameVersionName": "9.1.5",
-              "gameVersionPadded": "0000000009.0000000001.0000000005",
-              "gameVersion": "9.1.5",
-              "gameVersionReleaseDate": "2021-09-02T00:00:00Z",
+              "gameVersionName": "1.14.3",
+              "gameVersionPadded": "0000000001.0000000014.0000000003",
+              "gameVersion": "1.14.3",
+              "gameVersionReleaseDate": "2022-04-20T00:00:00Z",
+              "gameVersionTypeId": 67408
+            },
+            {
+              "gameVersionName": "3.4.0",
+              "gameVersionPadded": "0000000003.0000000004.0000000000",
+              "gameVersion": "3.4.0",
+              "gameVersionReleaseDate": "2022-07-14T00:00:00Z",
+              "gameVersionTypeId": 73713
+            },
+            {
+              "gameVersionName": "2.5.4",
+              "gameVersionPadded": "0000000002.0000000005.0000000004",
+              "gameVersion": "2.5.4",
+              "gameVersionReleaseDate": "2022-03-22T00:00:00Z",
+              "gameVersionTypeId": 73246
+            },
+            {
+              "gameVersionName": "9.2.7",
+              "gameVersionPadded": "0000000009.0000000002.0000000007",
+              "gameVersion": "9.2.7",
+              "gameVersionReleaseDate": "2022-08-16T00:00:00Z",
               "gameVersionTypeId": 517
             }
           ],
           "dependencies": [],
           "exposeAsAlternative": true,
-          "parentProjectFileId": 3523553,
+          "parentProjectFileId": 3954352,
           "alternateFileId": 0,
           "isServerPack": false,
-          "fileFingerprint": 3841038888,
+          "fileFingerprint": 343628574,
           "modules": [
             {
               "name": "AdiBags_Config",
-              "fingerprint": 2597870437
+              "fingerprint": 3858305145
             },
             {
               "name": "AdiBags",
-              "fingerprint": 2546939002
+              "fingerprint": 1067631789
             }
           ]
         }
       ],
       "latestFilesIndexes": [
+        {
+          "gameVersion": "9.2.7",
+          "fileId": 3954352,
+          "filename": "AdiBags-v1.9.35.zip",
+          "releaseType": 1,
+          "gameVersionTypeId": 517,
+          "modLoader": null
+        },
+        {
+          "gameVersion": "1.14.3",
+          "fileId": 3954352,
+          "filename": "AdiBags-v1.9.35.zip",
+          "releaseType": 1,
+          "gameVersionTypeId": 67408,
+          "modLoader": null
+        },
+        {
+          "gameVersion": "3.4.0",
+          "fileId": 3954352,
+          "filename": "AdiBags-v1.9.35.zip",
+          "releaseType": 1,
+          "gameVersionTypeId": 73713,
+          "modLoader": null
+        },
+        {
+          "gameVersion": "2.5.4",
+          "fileId": 3954352,
+          "filename": "AdiBags-v1.9.35.zip",
+          "releaseType": 1,
+          "gameVersionTypeId": 73246,
+          "modLoader": null
+        },
+        {
+          "gameVersion": "9.2.7",
+          "fileId": 3954288,
+          "filename": "AdiBags-v1.9.34-2-gdf5f499-alpha.zip",
+          "releaseType": 3,
+          "gameVersionTypeId": 517,
+          "modLoader": null
+        },
+        {
+          "gameVersion": "9.1.5",
+          "fileId": 3798482,
+          "filename": "AdiBags-v1.9.26-1-gdd415b1-alpha.zip",
+          "releaseType": 3,
+          "gameVersionTypeId": 517,
+          "modLoader": null
+        },
         {
           "gameVersion": "9.1.5",
           "fileId": 3523553,
@@ -3736,10 +3805,10 @@
         }
       ],
       "dateCreated": "2010-05-07T18:48:16.793Z",
-      "dateModified": "2021-11-12T16:30:34.367Z",
-      "dateReleased": "2021-11-12T16:29:15.38Z",
+      "dateModified": "2022-08-30T20:46:56.783Z",
+      "dateReleased": "2022-08-27T16:38:57.69Z",
       "allowModDistribution": true,
-      "gamePopularityRank": 151,
+      "gamePopularityRank": 125,
       "isAvailable": true,
       "thumbsUpCount": 0
     },
@@ -3756,10 +3825,22 @@
       },
       "summary": "World of Warcraft AddOn for planning and optimizing Mythic+ dungeon runs",
       "status": 4,
-      "downloadCount": 26509304,
+      "downloadCount": 29637756,
       "isFeatured": false,
       "primaryCategoryId": 1011,
       "categories": [
+        {
+          "id": 1017,
+          "gameId": 1,
+          "name": "Miscellaneous",
+          "slug": "miscellaneous",
+          "url": "https://www.curseforge.com/wow/addons/miscellaneous",
+          "iconUrl": "https://media.forgecdn.net/avatars/54/453/636135209712202362.png",
+          "dateModified": "2016-10-31T19:29:31.22Z",
+          "isClass": false,
+          "classId": 1,
+          "parentCategoryId": 1
+        },
         {
           "id": 1014,
           "gameId": 1,
@@ -3795,18 +3876,6 @@
           "isClass": false,
           "classId": 1,
           "parentCategoryId": 1
-        },
-        {
-          "id": 1017,
-          "gameId": 1,
-          "name": "Miscellaneous",
-          "slug": "miscellaneous",
-          "url": "https://www.curseforge.com/wow/addons/miscellaneous",
-          "iconUrl": "https://media.forgecdn.net/avatars/54/453/636135209712202362.png",
-          "dateModified": "2016-10-31T19:29:31.22Z",
-          "isClass": false,
-          "classId": 1,
-          "parentCategoryId": 1
         }
       ],
       "classId": 1,
@@ -3815,11 +3884,6 @@
           "id": 188024,
           "name": "Nnoggie",
           "url": "https://www.curseforge.com/members/24699562-nnoggie?username=nnoggie"
-        },
-        {
-          "id": 503493,
-          "name": "siweia",
-          "url": "https://www.curseforge.com/members/19219812-siweia?username=siweia"
         }
       ],
       "logo": {
@@ -3848,7 +3912,7 @@
           "url": "https://media.forgecdn.net/attachments/360/273/nnoggievideo_2021-05-01_10-26-24.jpg"
         }
       ],
-      "mainFileId": 3784428,
+      "mainFileId": 3960302,
       "latestFiles": [
         {
           "id": 2781420,
@@ -3943,103 +4007,127 @@
           ]
         },
         {
-          "id": 3782421,
+          "id": 3913169,
           "gameId": 1,
           "modId": 288981,
           "isAvailable": true,
-          "displayName": "v3.9.1.1-alpha",
-          "fileName": "MythicDungeonTools-v3.9.1.1-alpha.zip",
+          "displayName": "3.9.3.1-alpha",
+          "fileName": "MythicDungeonTools-3.9.3.1-alpha.zip",
           "releaseType": 3,
           "fileStatus": 4,
           "hashes": [
             {
-              "value": "ca3bd176ee4e7e84025108227aa3ee4730335713",
+              "value": "9b85595990586ff4954230871cf38e2a5679e34c",
               "algo": 1
             },
             {
-              "value": "cb5f75789e111f7647945dd98367d44d",
+              "value": "d61add6c9013d0c881a4d0855138c48d",
               "algo": 2
             }
           ],
-          "fileDate": "2022-05-07T02:26:01.883Z",
-          "fileLength": 1121740,
+          "fileDate": "2022-08-02T19:38:46.19Z",
+          "fileLength": 1116782,
           "downloadCount": 0,
-          "downloadUrl": "https://edge.forgecdn.net/files/3782/421/MythicDungeonTools-v3.9.1.1-alpha.zip",
+          "downloadUrl": "https://edge.forgecdn.net/files/3913/169/MythicDungeonTools-3.9.3.1-alpha.zip",
           "gameVersions": [
-            "9.2.0"
+            "9.2.5"
           ],
           "sortableGameVersions": [
             {
-              "gameVersionName": "9.2.0",
-              "gameVersionPadded": "0000000009.0000000002.0000000000",
-              "gameVersion": "9.2.0",
-              "gameVersionReleaseDate": "2022-02-20T00:00:00Z",
+              "gameVersionName": "9.2.5",
+              "gameVersionPadded": "0000000009.0000000002.0000000005",
+              "gameVersion": "9.2.5",
+              "gameVersionReleaseDate": "2022-05-30T00:00:00Z",
               "gameVersionTypeId": 517
             }
           ],
           "dependencies": [],
           "alternateFileId": 0,
           "isServerPack": false,
-          "fileFingerprint": 1846923386,
+          "fileFingerprint": 1651920970,
           "modules": [
             {
               "name": "MythicDungeonTools",
-              "fingerprint": 4129325523
+              "fingerprint": 409833126
             }
           ]
         },
         {
-          "id": 3784428,
+          "id": 3960302,
           "gameId": 1,
           "modId": 288981,
           "isAvailable": true,
-          "displayName": "v3.9.2.2",
-          "fileName": "MythicDungeonTools-v3.9.2.2.zip",
+          "displayName": "v3.9.6.9",
+          "fileName": "MythicDungeonTools-v3.9.6.9.zip",
           "releaseType": 1,
           "fileStatus": 4,
           "hashes": [
             {
-              "value": "f963f0f8d0ca92d8c03276cb5041ec5374bf8bd4",
+              "value": "95f97c350842e811df67d1f37678fcad4bcaa419",
               "algo": 1
             },
             {
-              "value": "1dce4a69b602942f2e8a0b8dc6bfa34b",
+              "value": "e34f33dc9eefd4d357fcb9945dd3115f",
               "algo": 2
             }
           ],
-          "fileDate": "2022-05-08T20:00:21.823Z",
-          "fileLength": 1121033,
-          "downloadCount": 226,
-          "downloadUrl": "https://edge.forgecdn.net/files/3784/428/MythicDungeonTools-v3.9.2.2.zip",
+          "fileDate": "2022-08-31T11:49:02.617Z",
+          "fileLength": 1150100,
+          "downloadCount": 0,
+          "downloadUrl": "https://edge.forgecdn.net/files/3960/302/MythicDungeonTools-v3.9.6.9.zip",
           "gameVersions": [
-            "9.2.0"
+            "9.2.7"
           ],
           "sortableGameVersions": [
             {
-              "gameVersionName": "9.2.0",
-              "gameVersionPadded": "0000000009.0000000002.0000000000",
-              "gameVersion": "9.2.0",
-              "gameVersionReleaseDate": "2022-02-20T00:00:00Z",
+              "gameVersionName": "9.2.7",
+              "gameVersionPadded": "0000000009.0000000002.0000000007",
+              "gameVersion": "9.2.7",
+              "gameVersionReleaseDate": "2022-08-16T00:00:00Z",
               "gameVersionTypeId": 517
             }
           ],
           "dependencies": [],
           "alternateFileId": 0,
           "isServerPack": false,
-          "fileFingerprint": 36842997,
+          "fileFingerprint": 4093095544,
           "modules": [
             {
               "name": "MythicDungeonTools",
-              "fingerprint": 2667895447
+              "fingerprint": 1708526087
             }
           ]
         }
       ],
       "latestFilesIndexes": [
         {
+          "gameVersion": "9.2.7",
+          "fileId": 3960302,
+          "filename": "MythicDungeonTools-v3.9.6.9.zip",
+          "releaseType": 1,
+          "gameVersionTypeId": 517,
+          "modLoader": null
+        },
+        {
+          "gameVersion": "9.2.5",
+          "fileId": 3937971,
+          "filename": "MythicDungeonTools-v3.9.6.zip",
+          "releaseType": 1,
+          "gameVersionTypeId": 517,
+          "modLoader": null
+        },
+        {
+          "gameVersion": "9.2.5",
+          "fileId": 3913169,
+          "filename": "MythicDungeonTools-3.9.3.1-alpha.zip",
+          "releaseType": 3,
+          "gameVersionTypeId": 517,
+          "modLoader": null
+        },
+        {
           "gameVersion": "9.2.0",
-          "fileId": 3784428,
-          "filename": "MythicDungeonTools-v3.9.2.2.zip",
+          "fileId": 3797102,
+          "filename": "MythicDungeonTools-v3.9.3.zip",
           "releaseType": 1,
           "gameVersionTypeId": 517,
           "modLoader": null
@@ -4182,8 +4270,8 @@
         }
       ],
       "dateCreated": "2018-02-24T03:29:30.783Z",
-      "dateModified": "2022-05-08T20:05:54.323Z",
-      "dateReleased": "2022-05-08T20:00:21.823Z",
+      "dateModified": "2022-08-31T12:08:30.26Z",
+      "dateReleased": "2022-08-31T11:49:02.617Z",
       "allowModDistribution": false,
       "gamePopularityRank": 8,
       "isAvailable": true,
@@ -4192,7 +4280,7 @@
     {
       "id": 322865,
       "gameId": 1,
-      "name": "Classic Castbars (TBC & Classic)",
+      "name": "Classic Castbars",
       "slug": "classiccastbars",
       "links": {
         "websiteUrl": "https://www.curseforge.com/wow/addons/classiccastbars",
@@ -4202,21 +4290,21 @@
       },
       "summary": "Adds customizable castbars to various unitframes.",
       "status": 4,
-      "downloadCount": 14284123,
+      "downloadCount": 14656051,
       "isFeatured": false,
       "primaryCategoryId": 1019,
       "categories": [
         {
-          "id": 1034,
+          "id": 1019,
           "gameId": 1,
-          "name": "Caster",
-          "slug": "caster",
-          "url": "https://www.curseforge.com/wow/addons/combat/caster",
-          "iconUrl": "https://media.forgecdn.net/avatars/54/484/636135209896962644.png",
-          "dateModified": "2016-10-31T19:29:49.697Z",
+          "name": "Combat",
+          "slug": "combat",
+          "url": "https://www.curseforge.com/wow/addons/combat",
+          "iconUrl": "https://media.forgecdn.net/avatars/54/455/636135209724699753.png",
+          "dateModified": "2016-10-31T19:29:32.47Z",
           "isClass": false,
           "classId": 1,
-          "parentCategoryId": 1019
+          "parentCategoryId": 1
         },
         {
           "id": 1004,
@@ -4255,16 +4343,16 @@
           "parentCategoryId": 1
         },
         {
-          "id": 1019,
+          "id": 1034,
           "gameId": 1,
-          "name": "Combat",
-          "slug": "combat",
-          "url": "https://www.curseforge.com/wow/addons/combat",
-          "iconUrl": "https://media.forgecdn.net/avatars/54/455/636135209724699753.png",
-          "dateModified": "2016-10-31T19:29:32.47Z",
+          "name": "Caster",
+          "slug": "caster",
+          "url": "https://www.curseforge.com/wow/addons/combat/caster",
+          "iconUrl": "https://media.forgecdn.net/avatars/54/484/636135209896962644.png",
+          "dateModified": "2016-10-31T19:29:49.697Z",
           "isClass": false,
           "classId": 1,
-          "parentCategoryId": 1
+          "parentCategoryId": 1019
         }
       ],
       "classId": 1,
@@ -4293,14 +4381,6 @@
           "url": "https://media.forgecdn.net/attachments/253/529/wowscrnshot_053019_132315.jpg"
         },
         {
-          "id": 259393,
-          "modId": 322865,
-          "title": "options",
-          "description": "Options Panel",
-          "thumbnailUrl": "https://media.forgecdn.net/attachments/thumbnails/259/393/310/172/options.jpg",
-          "url": "https://media.forgecdn.net/attachments/259/393/options.jpg"
-        },
-        {
           "id": 259394,
           "modId": 322865,
           "title": "Target",
@@ -4325,40 +4405,40 @@
           "url": "https://media.forgecdn.net/attachments/253/530/wowscrnshot_052319_094625.jpg"
         }
       ],
-      "mainFileId": 3777987,
+      "mainFileId": 3937527,
       "latestFiles": [
         {
-          "id": 3777986,
+          "id": 3937522,
           "gameId": 1,
           "modId": 322865,
           "isAvailable": true,
-          "displayName": "v1.4.5-classic",
-          "fileName": "ClassicCastbars-v1.4.5-classic.zip",
+          "displayName": "v1.5.1-classic",
+          "fileName": "ClassicCastbars-v1.5.1-classic.zip",
           "releaseType": 1,
           "fileStatus": 4,
           "hashes": [
             {
-              "value": "ae0c8bf1b6367bcc4a31c7dbf4042520f90ffe2e",
+              "value": "1db5d9a0ab8cc0a32a3ab8505d63102accc0425f",
               "algo": 1
             },
             {
-              "value": "138e06e3007393b8df77490bd6618c7d",
+              "value": "92c9f2c505a0d4b32d0cbb5b6568e6a2",
               "algo": 2
             }
           ],
-          "fileDate": "2022-05-02T22:46:08.863Z",
-          "fileLength": 206177,
+          "fileDate": "2022-08-16T18:29:19.88Z",
+          "fileLength": 207144,
           "downloadCount": 0,
-          "downloadUrl": "https://edge.forgecdn.net/files/3777/986/ClassicCastbars-v1.4.5-classic.zip",
+          "downloadUrl": "https://edge.forgecdn.net/files/3937/522/ClassicCastbars-v1.5.1-classic.zip",
           "gameVersions": [
-            "1.14.2"
+            "1.14.3"
           ],
           "sortableGameVersions": [
             {
-              "gameVersionName": "1.14.2",
-              "gameVersionPadded": "0000000001.0000000014.0000000002",
-              "gameVersion": "1.14.2",
-              "gameVersionReleaseDate": "2022-02-08T00:00:00Z",
+              "gameVersionName": "1.14.3",
+              "gameVersionPadded": "0000000001.0000000014.0000000003",
+              "gameVersion": "1.14.3",
+              "gameVersionReleaseDate": "2022-04-20T00:00:00Z",
               "gameVersionTypeId": 67408
             }
           ],
@@ -4368,11 +4448,7 @@
               "relationType": 1
             },
             {
-              "modId": 14320,
-              "relationType": 1
-            },
-            {
-              "modId": 14328,
+              "modId": 13376,
               "relationType": 1
             },
             {
@@ -4380,47 +4456,51 @@
               "relationType": 1
             },
             {
-              "modId": 13376,
+              "modId": 14320,
+              "relationType": 1
+            },
+            {
+              "modId": 14328,
               "relationType": 1
             }
           ],
           "alternateFileId": 0,
           "isServerPack": false,
-          "fileFingerprint": 1289139095,
+          "fileFingerprint": 1778370957,
           "modules": [
             {
               "name": "ClassicCastbars_Options",
-              "fingerprint": 4098788739
+              "fingerprint": 1288959410
             },
             {
               "name": "ClassicCastbars",
-              "fingerprint": 903119839
+              "fingerprint": 3219883390
             }
           ]
         },
         {
-          "id": 3777987,
+          "id": 3937525,
           "gameId": 1,
           "modId": 322865,
           "isAvailable": true,
-          "displayName": "v1.4.5-bcc",
-          "fileName": "ClassicCastbars-v1.4.5-bcc.zip",
+          "displayName": "v1.5.1-bcc",
+          "fileName": "ClassicCastbars-v1.5.1-bcc.zip",
           "releaseType": 1,
           "fileStatus": 4,
           "hashes": [
             {
-              "value": "a8eb9dc7e312e9a7f7138a6622ade69538679dde",
+              "value": "2d0a2018126422d0877efa657c226fc42afc0d80",
               "algo": 1
             },
             {
-              "value": "4548cb6666d22d5d67f330aedcaa85f4",
+              "value": "42b84f0e2b2271c1daea7b9fc290e4bf",
               "algo": 2
             }
           ],
-          "fileDate": "2022-05-02T22:46:21.937Z",
-          "fileLength": 206180,
+          "fileDate": "2022-08-16T18:29:37.983Z",
+          "fileLength": 207167,
           "downloadCount": 0,
-          "downloadUrl": "https://edge.forgecdn.net/files/3777/987/ClassicCastbars-v1.4.5-bcc.zip",
+          "downloadUrl": "https://edge.forgecdn.net/files/3937/525/ClassicCastbars-v1.5.1-bcc.zip",
           "gameVersions": [
             "2.5.4"
           ],
@@ -4435,6 +4515,148 @@
           ],
           "dependencies": [
             {
+              "modId": 13376,
+              "relationType": 1
+            },
+            {
+              "modId": 14320,
+              "relationType": 1
+            },
+            {
+              "modId": 15049,
+              "relationType": 1
+            },
+            {
+              "modId": 13380,
+              "relationType": 1
+            },
+            {
+              "modId": 14328,
+              "relationType": 1
+            }
+          ],
+          "alternateFileId": 0,
+          "isServerPack": false,
+          "fileFingerprint": 2141085048,
+          "modules": [
+            {
+              "name": "ClassicCastbars_Options",
+              "fingerprint": 3489602990
+            },
+            {
+              "name": "ClassicCastbars",
+              "fingerprint": 3458001841
+            }
+          ]
+        },
+        {
+          "id": 3937526,
+          "gameId": 1,
+          "modId": 322865,
+          "isAvailable": true,
+          "displayName": "v1.5.1-wrath",
+          "fileName": "ClassicCastbars-v1.5.1-wrath.zip",
+          "releaseType": 1,
+          "fileStatus": 4,
+          "hashes": [
+            {
+              "value": "2ac66d4457f1396369f8d7210511586872dbc8cd",
+              "algo": 1
+            },
+            {
+              "value": "124183753061de6cd99c8ad0f64401e8",
+              "algo": 2
+            }
+          ],
+          "fileDate": "2022-08-16T18:29:57.523Z",
+          "fileLength": 207170,
+          "downloadCount": 0,
+          "downloadUrl": "https://edge.forgecdn.net/files/3937/526/ClassicCastbars-v1.5.1-wrath.zip",
+          "gameVersions": [
+            "3.4.0"
+          ],
+          "sortableGameVersions": [
+            {
+              "gameVersionName": "3.4.0",
+              "gameVersionPadded": "0000000003.0000000004.0000000000",
+              "gameVersion": "3.4.0",
+              "gameVersionReleaseDate": "2022-07-14T00:00:00Z",
+              "gameVersionTypeId": 73713
+            }
+          ],
+          "dependencies": [
+            {
+              "modId": 14320,
+              "relationType": 1
+            },
+            {
+              "modId": 15049,
+              "relationType": 1
+            },
+            {
+              "modId": 13380,
+              "relationType": 1
+            },
+            {
+              "modId": 13376,
+              "relationType": 1
+            },
+            {
+              "modId": 14328,
+              "relationType": 1
+            }
+          ],
+          "alternateFileId": 0,
+          "isServerPack": false,
+          "fileFingerprint": 389341780,
+          "modules": [
+            {
+              "name": "ClassicCastbars_Options",
+              "fingerprint": 2867925450
+            },
+            {
+              "name": "ClassicCastbars",
+              "fingerprint": 2793025760
+            }
+          ]
+        },
+        {
+          "id": 3937527,
+          "gameId": 1,
+          "modId": 322865,
+          "isAvailable": true,
+          "displayName": "v1.5.1",
+          "fileName": "ClassicCastbars-v1.5.1.zip",
+          "releaseType": 1,
+          "fileStatus": 4,
+          "hashes": [
+            {
+              "value": "42139baa8be34f0b38f3abdac7ccc715f89f9087",
+              "algo": 1
+            },
+            {
+              "value": "c8a964352777ec8310f3b3455cafc446",
+              "algo": 2
+            }
+          ],
+          "fileDate": "2022-08-16T18:30:15.793Z",
+          "fileLength": 207170,
+          "downloadCount": 0,
+          "downloadUrl": "https://edge.forgecdn.net/files/3937/527/ClassicCastbars-v1.5.1.zip",
+          "gameVersions": [
+            "9.2.5"
+          ],
+          "sortableGameVersions": [
+            {
+              "gameVersionName": "9.2.5",
+              "gameVersionPadded": "0000000009.0000000002.0000000005",
+              "gameVersion": "9.2.5",
+              "gameVersionReleaseDate": "2022-05-30T00:00:00Z",
+              "gameVersionTypeId": 517
+            }
+          ],
+          "dependencies": [
+            {
               "modId": 15049,
               "relationType": 1
             },
@@ -4457,32 +4679,56 @@
           ],
           "alternateFileId": 0,
           "isServerPack": false,
-          "fileFingerprint": 3271653984,
+          "fileFingerprint": 2201279047,
           "modules": [
             {
               "name": "ClassicCastbars_Options",
-              "fingerprint": 997000012
+              "fingerprint": 1128786357
             },
             {
               "name": "ClassicCastbars",
-              "fingerprint": 2826093209
+              "fingerprint": 2594922797
             }
           ]
         }
       ],
       "latestFilesIndexes": [
         {
+          "gameVersion": "9.2.5",
+          "fileId": 3937527,
+          "filename": "ClassicCastbars-v1.5.1.zip",
+          "releaseType": 1,
+          "gameVersionTypeId": 517,
+          "modLoader": null
+        },
+        {
+          "gameVersion": "3.4.0",
+          "fileId": 3937526,
+          "filename": "ClassicCastbars-v1.5.1-wrath.zip",
+          "releaseType": 1,
+          "gameVersionTypeId": 73713,
+          "modLoader": null
+        },
+        {
           "gameVersion": "2.5.4",
-          "fileId": 3777987,
-          "filename": "ClassicCastbars-v1.4.5-bcc.zip",
+          "fileId": 3937525,
+          "filename": "ClassicCastbars-v1.5.1-bcc.zip",
           "releaseType": 1,
           "gameVersionTypeId": 73246,
           "modLoader": null
         },
         {
+          "gameVersion": "1.14.3",
+          "fileId": 3937522,
+          "filename": "ClassicCastbars-v1.5.1-classic.zip",
+          "releaseType": 1,
+          "gameVersionTypeId": 67408,
+          "modLoader": null
+        },
+        {
           "gameVersion": "1.14.2",
-          "fileId": 3777986,
-          "filename": "ClassicCastbars-v1.4.5-classic.zip",
+          "fileId": 3918420,
+          "filename": "ClassicCastbars-v1.4.6-classic.zip",
           "releaseType": 1,
           "gameVersionTypeId": 67408,
           "modLoader": null
@@ -4577,10 +4823,10 @@
         }
       ],
       "dateCreated": "2019-05-28T12:47:28.853Z",
-      "dateModified": "2022-05-02T22:55:03.883Z",
-      "dateReleased": "2022-05-02T22:46:21.937Z",
+      "dateModified": "2022-08-16T18:36:02.783Z",
+      "dateReleased": "2022-08-16T18:30:15.793Z",
       "allowModDistribution": true,
-      "gamePopularityRank": 67,
+      "gamePopularityRank": 58,
       "isAvailable": true,
       "thumbsUpCount": 0
     },
@@ -4597,10 +4843,22 @@
       },
       "summary": "EBB adds groups of bars to your screen showing you which (de)buffs currently affect your toon or some other units.",
       "status": 4,
-      "downloadCount": 1848816,
+      "downloadCount": 1869016,
       "isFeatured": false,
       "primaryCategoryId": 1005,
       "categories": [
+        {
+          "id": 1020,
+          "gameId": 1,
+          "name": "Class",
+          "slug": "class",
+          "url": "https://www.curseforge.com/wow/addons/class",
+          "iconUrl": "https://media.forgecdn.net/avatars/54/456/636135209731887359.png",
+          "dateModified": "2016-10-31T19:29:33.19Z",
+          "isClass": false,
+          "classId": 1,
+          "parentCategoryId": 1
+        },
         {
           "id": 1005,
           "gameId": 1,
@@ -4614,13 +4872,13 @@
           "parentCategoryId": 1
         },
         {
-          "id": 1020,
+          "id": 1019,
           "gameId": 1,
-          "name": "Class",
-          "slug": "class",
-          "url": "https://www.curseforge.com/wow/addons/class",
-          "iconUrl": "https://media.forgecdn.net/avatars/54/456/636135209731887359.png",
-          "dateModified": "2016-10-31T19:29:33.19Z",
+          "name": "Combat",
+          "slug": "combat",
+          "url": "https://www.curseforge.com/wow/addons/combat",
+          "iconUrl": "https://media.forgecdn.net/avatars/54/455/636135209724699753.png",
+          "dateModified": "2016-10-31T19:29:32.47Z",
           "isClass": false,
           "classId": 1,
           "parentCategoryId": 1
@@ -4636,18 +4894,6 @@
           "isClass": false,
           "classId": 1,
           "parentCategoryId": 1063
-        },
-        {
-          "id": 1019,
-          "gameId": 1,
-          "name": "Combat",
-          "slug": "combat",
-          "url": "https://www.curseforge.com/wow/addons/combat",
-          "iconUrl": "https://media.forgecdn.net/avatars/54/455/636135209724699753.png",
-          "dateModified": "2016-10-31T19:29:32.47Z",
-          "isClass": false,
-          "classId": 1,
-          "parentCategoryId": 1
         }
       ],
       "classId": 1,
@@ -5582,7 +5828,7 @@
       "dateModified": "2022-03-20T15:11:24.34Z",
       "dateReleased": "2022-03-20T13:30:28.363Z",
       "allowModDistribution": true,
-      "gamePopularityRank": 445,
+      "gamePopularityRank": 502,
       "isAvailable": true,
       "thumbsUpCount": 0
     },
@@ -5599,10 +5845,22 @@
       },
       "summary": "Shows the possible loot from the bosses",
       "status": 4,
-      "downloadCount": 24316582,
+      "downloadCount": 25429927,
       "isFeatured": false,
       "primaryCategoryId": 1014,
       "categories": [
+        {
+          "id": 1015,
+          "gameId": 1,
+          "name": "Professions",
+          "slug": "professions",
+          "url": "https://www.curseforge.com/wow/addons/professions",
+          "iconUrl": "https://media.forgecdn.net/avatars/54/451/636135209701693840.png",
+          "dateModified": "2016-10-31T19:29:30.187Z",
+          "isClass": false,
+          "classId": 1,
+          "parentCategoryId": 1
+        },
         {
           "id": 1040,
           "gameId": 1,
@@ -5623,18 +5881,6 @@
           "url": "https://www.curseforge.com/wow/addons/map-minimap",
           "iconUrl": "https://media.forgecdn.net/avatars/54/447/636135209673867865.png",
           "dateModified": "2016-10-31T19:29:27.403Z",
-          "isClass": false,
-          "classId": 1,
-          "parentCategoryId": 1
-        },
-        {
-          "id": 1015,
-          "gameId": 1,
-          "name": "Professions",
-          "slug": "professions",
-          "url": "https://www.curseforge.com/wow/addons/professions",
-          "iconUrl": "https://media.forgecdn.net/avatars/54/451/636135209701693840.png",
-          "dateModified": "2016-10-31T19:29:30.187Z",
           "isClass": false,
           "classId": 1,
           "parentCategoryId": 1
@@ -5710,7 +5956,7 @@
           "url": "https://media.forgecdn.net/attachments/257/814/bossview.jpg"
         }
       ],
-      "mainFileId": 3785217,
+      "mainFileId": 3789300,
       "latestFiles": [
         {
           "id": 3241401,
@@ -5808,204 +6054,6 @@
             {
               "name": "AtlasLootClassic",
               "fingerprint": 3317017879
-            }
-          ]
-        },
-        {
-          "id": 3521446,
-          "gameId": 1,
-          "modId": 326516,
-          "isAvailable": true,
-          "displayName": "v2.4.0-beta1-classic",
-          "fileName": "AtlasLootClassic-v2.4.0-beta1-classic.zip",
-          "releaseType": 2,
-          "fileStatus": 4,
-          "hashes": [
-            {
-              "value": "aabbf03e52663ef9f4676c8253cf12cbd5175b9b",
-              "algo": 1
-            },
-            {
-              "value": "444cca01502187e81e3399c8f0e439b0",
-              "algo": 2
-            }
-          ],
-          "fileDate": "2021-11-10T15:11:10.617Z",
-          "fileLength": 796335,
-          "downloadCount": 167,
-          "downloadUrl": "https://edge.forgecdn.net/files/3521/446/AtlasLootClassic-v2.4.0-beta1-classic.zip",
-          "gameVersions": [
-            "1.14.1"
-          ],
-          "sortableGameVersions": [
-            {
-              "gameVersionName": "1.14.1",
-              "gameVersionPadded": "0000000001.0000000014.0000000001",
-              "gameVersion": "1.14.1",
-              "gameVersionReleaseDate": "2021-10-07T00:00:00Z",
-              "gameVersionTypeId": 67408
-            }
-          ],
-          "dependencies": [
-            {
-              "modId": 14320,
-              "relationType": 1
-            },
-            {
-              "modId": 13376,
-              "relationType": 1
-            },
-            {
-              "modId": 15552,
-              "relationType": 1
-            },
-            {
-              "modId": 15049,
-              "relationType": 1
-            },
-            {
-              "modId": 14328,
-              "relationType": 1
-            },
-            {
-              "modId": 13380,
-              "relationType": 1
-            }
-          ],
-          "alternateFileId": 0,
-          "isServerPack": false,
-          "fileFingerprint": 686941402,
-          "modules": [
-            {
-              "name": "AtlasLootClassic_Crafting",
-              "fingerprint": 4111530434
-            },
-            {
-              "name": "AtlasLootClassic_DungeonsAndRaids",
-              "fingerprint": 2495481345
-            },
-            {
-              "name": "AtlasLootClassic_PvP",
-              "fingerprint": 3004778703
-            },
-            {
-              "name": "AtlasLootClassic_Collections",
-              "fingerprint": 2014630610
-            },
-            {
-              "name": "AtlasLootClassic_Factions",
-              "fingerprint": 1418698998
-            },
-            {
-              "name": "AtlasLootClassic_Options",
-              "fingerprint": 3853839277
-            },
-            {
-              "name": "AtlasLootClassic_Data",
-              "fingerprint": 773771551
-            },
-            {
-              "name": "AtlasLootClassic",
-              "fingerprint": 1181304474
-            }
-          ]
-        },
-        {
-          "id": 3521450,
-          "gameId": 1,
-          "modId": 326516,
-          "isAvailable": true,
-          "displayName": "v2.4.0-beta1-bcc",
-          "fileName": "AtlasLootClassic-v2.4.0-beta1-bcc.zip",
-          "releaseType": 2,
-          "fileStatus": 4,
-          "hashes": [
-            {
-              "value": "a6bf4a6221bda1ee6f77d124d2b82d56fabc99a6",
-              "algo": 1
-            },
-            {
-              "value": "b065ce78e828b496a483e56d91173564",
-              "algo": 2
-            }
-          ],
-          "fileDate": "2021-11-10T15:13:38.097Z",
-          "fileLength": 882981,
-          "downloadCount": 161,
-          "downloadUrl": "https://edge.forgecdn.net/files/3521/450/AtlasLootClassic-v2.4.0-beta1-bcc.zip",
-          "gameVersions": [
-            "2.5.2"
-          ],
-          "sortableGameVersions": [
-            {
-              "gameVersionName": "2.5.2",
-              "gameVersionPadded": "0000000002.0000000005.0000000002",
-              "gameVersion": "2.5.2",
-              "gameVersionReleaseDate": "2021-08-31T00:00:00Z",
-              "gameVersionTypeId": 73246
-            }
-          ],
-          "dependencies": [
-            {
-              "modId": 15552,
-              "relationType": 1
-            },
-            {
-              "modId": 14320,
-              "relationType": 1
-            },
-            {
-              "modId": 13380,
-              "relationType": 1
-            },
-            {
-              "modId": 14328,
-              "relationType": 1
-            },
-            {
-              "modId": 13376,
-              "relationType": 1
-            },
-            {
-              "modId": 15049,
-              "relationType": 1
-            }
-          ],
-          "alternateFileId": 0,
-          "isServerPack": false,
-          "fileFingerprint": 3110390998,
-          "modules": [
-            {
-              "name": "AtlasLootClassic_Crafting",
-              "fingerprint": 3171082762
-            },
-            {
-              "name": "AtlasLootClassic_DungeonsAndRaids",
-              "fingerprint": 559900362
-            },
-            {
-              "name": "AtlasLootClassic_PvP",
-              "fingerprint": 3160463318
-            },
-            {
-              "name": "AtlasLootClassic_Collections",
-              "fingerprint": 2413742600
-            },
-            {
-              "name": "AtlasLootClassic_Factions",
-              "fingerprint": 763342097
-            },
-            {
-              "name": "AtlasLootClassic_Options",
-              "fingerprint": 2515858360
-            },
-            {
-              "name": "AtlasLootClassic_Data",
-              "fingerprint": 2832370705
-            },
-            {
-              "name": "AtlasLootClassic",
-              "fingerprint": 2855769804
             }
           ]
         },
@@ -6109,28 +6157,28 @@
           ]
         },
         {
-          "id": 3785217,
+          "id": 3789300,
           "gameId": 1,
           "modId": 326516,
           "isAvailable": true,
-          "displayName": "v2.4.3-bcc",
-          "fileName": "AtlasLootClassic-v2.4.3-bcc.zip",
+          "displayName": "v2.4.4-bcc",
+          "fileName": "AtlasLootClassic-v2.4.4-bcc.zip",
           "releaseType": 1,
           "fileStatus": 4,
           "hashes": [
             {
-              "value": "b01d9184d1e74e4204e93c7417ad51420bc8870d",
+              "value": "be5359d3ebb2f8be519fa7fa5321d393c581cd06",
               "algo": 1
             },
             {
-              "value": "19192630dcb10b72fb777dfdbbf60eb9",
+              "value": "1065ea3cf736ff5413aced59d8778e7f",
               "algo": 2
             }
           ],
-          "fileDate": "2022-05-09T14:26:32.3Z",
-          "fileLength": 891083,
+          "fileDate": "2022-05-13T18:21:47.123Z",
+          "fileLength": 891969,
           "downloadCount": 0,
-          "downloadUrl": "https://edge.forgecdn.net/files/3785/217/AtlasLootClassic-v2.4.3-bcc.zip",
+          "downloadUrl": "https://edge.forgecdn.net/files/3789/300/AtlasLootClassic-v2.4.4-bcc.zip",
           "gameVersions": [
             "2.5.4"
           ],
@@ -6149,15 +6197,7 @@
               "relationType": 1
             },
             {
-              "modId": 15049,
-              "relationType": 1
-            },
-            {
-              "modId": 13376,
-              "relationType": 1
-            },
-            {
-              "modId": 14328,
+              "modId": 331895,
               "relationType": 1
             },
             {
@@ -6165,54 +6205,205 @@
               "relationType": 1
             },
             {
+              "modId": 14328,
+              "relationType": 1
+            },
+            {
+              "modId": 13376,
+              "relationType": 1
+            },
+            {
               "modId": 15552,
+              "relationType": 1
+            },
+            {
+              "modId": 15049,
               "relationType": 1
             }
           ],
           "alternateFileId": 0,
           "isServerPack": false,
-          "fileFingerprint": 1275526889,
+          "fileFingerprint": 1750010018,
           "modules": [
             {
               "name": "AtlasLootClassic_Crafting",
-              "fingerprint": 4135512140
+              "fingerprint": 2917208510
             },
             {
               "name": "AtlasLootClassic_DungeonsAndRaids",
-              "fingerprint": 3492662594
+              "fingerprint": 1729804152
             },
             {
               "name": "AtlasLootClassic_PvP",
-              "fingerprint": 167064515
+              "fingerprint": 2806209289
             },
             {
               "name": "AtlasLootClassic_Collections",
-              "fingerprint": 2115668265
+              "fingerprint": 76422025
             },
             {
               "name": "AtlasLootClassic_Factions",
-              "fingerprint": 3491979448
+              "fingerprint": 3012586812
             },
             {
               "name": "AtlasLootClassic_Options",
-              "fingerprint": 2049648102
+              "fingerprint": 3302473901
             },
             {
               "name": "AtlasLootClassic_Data",
-              "fingerprint": 1014149806
+              "fingerprint": 4038216111
             },
             {
               "name": "AtlasLootClassic",
-              "fingerprint": 3231238916
+              "fingerprint": 4003011558
+            }
+          ]
+        },
+        {
+          "id": 3960070,
+          "gameId": 1,
+          "modId": 326516,
+          "isAvailable": true,
+          "displayName": "v3.0.0-beta1",
+          "fileName": "AtlasLootClassic-v3.0.0-beta1.zip",
+          "releaseType": 2,
+          "fileStatus": 4,
+          "hashes": [
+            {
+              "value": "8d2c1a702c0480660e6d4caf8120b29da84f9435",
+              "algo": 1
+            },
+            {
+              "value": "244bef32f40927d677b4f92d51b6d09f",
+              "algo": 2
+            }
+          ],
+          "fileDate": "2022-08-31T08:17:25.1Z",
+          "fileLength": 1063962,
+          "downloadCount": 0,
+          "downloadUrl": "https://edge.forgecdn.net/files/3960/70/AtlasLootClassic-v3.0.0-beta1.zip",
+          "gameVersions": [
+            "1.14.3",
+            "3.4.0",
+            "2.5.4"
+          ],
+          "sortableGameVersions": [
+            {
+              "gameVersionName": "1.14.3",
+              "gameVersionPadded": "0000000001.0000000014.0000000003",
+              "gameVersion": "1.14.3",
+              "gameVersionReleaseDate": "2022-04-20T00:00:00Z",
+              "gameVersionTypeId": 67408
+            },
+            {
+              "gameVersionName": "3.4.0",
+              "gameVersionPadded": "0000000003.0000000004.0000000000",
+              "gameVersion": "3.4.0",
+              "gameVersionReleaseDate": "2022-07-14T00:00:00Z",
+              "gameVersionTypeId": 73713
+            },
+            {
+              "gameVersionName": "2.5.4",
+              "gameVersionPadded": "0000000002.0000000005.0000000004",
+              "gameVersion": "2.5.4",
+              "gameVersionReleaseDate": "2022-03-22T00:00:00Z",
+              "gameVersionTypeId": 73246
+            }
+          ],
+          "dependencies": [
+            {
+              "modId": 13380,
+              "relationType": 1
+            },
+            {
+              "modId": 15552,
+              "relationType": 1
+            },
+            {
+              "modId": 14320,
+              "relationType": 1
+            },
+            {
+              "modId": 13376,
+              "relationType": 1
+            },
+            {
+              "modId": 15049,
+              "relationType": 1
+            },
+            {
+              "modId": 14328,
+              "relationType": 1
+            }
+          ],
+          "alternateFileId": 0,
+          "isServerPack": false,
+          "fileFingerprint": 3592891370,
+          "modules": [
+            {
+              "name": "AtlasLootClassic_Crafting",
+              "fingerprint": 202991668
+            },
+            {
+              "name": "AtlasLootClassic_DungeonsAndRaids",
+              "fingerprint": 3787624972
+            },
+            {
+              "name": "AtlasLootClassic_PvP",
+              "fingerprint": 3676326502
+            },
+            {
+              "name": "AtlasLootClassic_Collections",
+              "fingerprint": 2183058514
+            },
+            {
+              "name": "AtlasLootClassic_Factions",
+              "fingerprint": 802237747
+            },
+            {
+              "name": "AtlasLootClassic_Options",
+              "fingerprint": 663484211
+            },
+            {
+              "name": "AtlasLootClassic_Data",
+              "fingerprint": 721046821
+            },
+            {
+              "name": "AtlasLootClassic",
+              "fingerprint": 849858561
             }
           ]
         }
       ],
       "latestFilesIndexes": [
         {
+          "gameVersion": "1.14.3",
+          "fileId": 3960070,
+          "filename": "AtlasLootClassic-v3.0.0-beta1.zip",
+          "releaseType": 2,
+          "gameVersionTypeId": 67408,
+          "modLoader": null
+        },
+        {
           "gameVersion": "2.5.4",
-          "fileId": 3785217,
-          "filename": "AtlasLootClassic-v2.4.3-bcc.zip",
+          "fileId": 3960070,
+          "filename": "AtlasLootClassic-v3.0.0-beta1.zip",
+          "releaseType": 2,
+          "gameVersionTypeId": 73246,
+          "modLoader": null
+        },
+        {
+          "gameVersion": "3.4.0",
+          "fileId": 3960070,
+          "filename": "AtlasLootClassic-v3.0.0-beta1.zip",
+          "releaseType": 2,
+          "gameVersionTypeId": 73713,
+          "modLoader": null
+        },
+        {
+          "gameVersion": "2.5.4",
+          "fileId": 3789300,
+          "filename": "AtlasLootClassic-v2.4.4-bcc.zip",
           "releaseType": 1,
           "gameVersionTypeId": 73246,
           "modLoader": null
@@ -6395,10 +6586,10 @@
         }
       ],
       "dateCreated": "2019-07-07T09:34:57.023Z",
-      "dateModified": "2022-05-09T14:29:10.973Z",
-      "dateReleased": "2022-05-09T14:26:32.3Z",
+      "dateModified": "2022-08-31T19:37:52.203Z",
+      "dateReleased": "2022-08-31T08:17:25.1Z",
       "allowModDistribution": true,
-      "gamePopularityRank": 12,
+      "gamePopularityRank": 23,
       "isAvailable": true,
       "thumbsUpCount": 0
     },
@@ -6415,7 +6606,7 @@
       },
       "summary": "This is a modified version of AdiBags, which will skin it, so it looks like ElvUI again!",
       "status": 4,
-      "downloadCount": 527872,
+      "downloadCount": 542263,
       "isFeatured": false,
       "primaryCategoryId": 1009,
       "categories": [
@@ -6742,7 +6933,7 @@
       "dateModified": "2021-05-19T19:13:30.807Z",
       "dateReleased": "2021-05-19T19:01:30.583Z",
       "allowModDistribution": true,
-      "gamePopularityRank": 453,
+      "gamePopularityRank": 483,
       "isAvailable": true,
       "thumbsUpCount": 0
     },
@@ -6759,7 +6950,7 @@
       },
       "summary": "A plugin for BigWigs that will play Text-To-Speech sounds for boss abilities in Korean.",
       "status": 4,
-      "downloadCount": 28266,
+      "downloadCount": 30608,
       "isFeatured": false,
       "primaryCategoryId": 1014,
       "categories": [
@@ -6817,40 +7008,40 @@
         "url": "https://media.forgecdn.net/avatars/293/559/637329740036480589.png"
       },
       "screenshots": [],
-      "mainFileId": 3725052,
+      "mainFileId": 3819440,
       "latestFiles": [
         {
-          "id": 3725052,
+          "id": 3819440,
           "gameId": 1,
           "modId": 402180,
           "isAvailable": true,
-          "displayName": "v9.2-6",
-          "fileName": "BigWigs_Voice-v9.2-6.zip",
+          "displayName": "v9.2.5-2",
+          "fileName": "BigWigs_Voice-v9.2.5-2.zip",
           "releaseType": 1,
           "fileStatus": 4,
           "hashes": [
             {
-              "value": "9315e024618fe46089d2e6bb29b14366b092375c",
+              "value": "fc0f64b8524fbcc8c7423cdeac13df82cfba5189",
               "algo": 1
             },
             {
-              "value": "ab2c9a4f1dc43a41a34aa337d0bddc93",
+              "value": "e7b6c609ead0cf1180aed5e7502b6162",
               "algo": 2
             }
           ],
-          "fileDate": "2022-03-31T01:15:25.43Z",
-          "fileLength": 10657785,
+          "fileDate": "2022-06-06T11:38:19.883Z",
+          "fileLength": 17991142,
           "downloadCount": 0,
-          "downloadUrl": "https://edge.forgecdn.net/files/3725/52/BigWigs_Voice-v9.2-6.zip",
+          "downloadUrl": "https://edge.forgecdn.net/files/3819/440/BigWigs_Voice-v9.2.5-2.zip",
           "gameVersions": [
-            "9.2.0"
+            "9.2.5"
           ],
           "sortableGameVersions": [
             {
-              "gameVersionName": "9.2.0",
-              "gameVersionPadded": "0000000009.0000000002.0000000000",
-              "gameVersion": "9.2.0",
-              "gameVersionReleaseDate": "2022-02-20T00:00:00Z",
+              "gameVersionName": "9.2.5",
+              "gameVersionPadded": "0000000009.0000000002.0000000005",
+              "gameVersion": "9.2.5",
+              "gameVersionReleaseDate": "2022-05-30T00:00:00Z",
               "gameVersionTypeId": 517
             }
           ],
@@ -6862,16 +7053,24 @@
           ],
           "alternateFileId": 0,
           "isServerPack": false,
-          "fileFingerprint": 2363906839,
+          "fileFingerprint": 3615963462,
           "modules": [
             {
               "name": "BigWigs_Voice",
-              "fingerprint": 224817447
+              "fingerprint": 391447864
             }
           ]
         }
       ],
       "latestFilesIndexes": [
+        {
+          "gameVersion": "9.2.5",
+          "fileId": 3819440,
+          "filename": "BigWigs_Voice-v9.2.5-2.zip",
+          "releaseType": 1,
+          "gameVersionTypeId": 517,
+          "modLoader": null
+        },
         {
           "gameVersion": "9.2.0",
           "fileId": 3725052,
@@ -6882,10 +7081,10 @@
         }
       ],
       "dateCreated": "2020-08-14T03:53:23.617Z",
-      "dateModified": "2022-03-31T01:19:08.477Z",
-      "dateReleased": "2022-03-31T01:15:25.43Z",
+      "dateModified": "2022-06-06T11:40:46.367Z",
+      "dateReleased": "2022-06-06T11:38:19.883Z",
       "allowModDistribution": true,
-      "gamePopularityRank": 1127,
+      "gamePopularityRank": 1416,
       "isAvailable": true,
       "thumbsUpCount": 0
     }

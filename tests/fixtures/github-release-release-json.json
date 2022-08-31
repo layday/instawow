@@ -63,7 +63,7 @@
         "content_type": "application/json",
         "state": "uploaded",
         "size": 224,
-        "download_count": 14,
+        "download_count": 20,
         "created_at": "2021-05-19T04:19:00Z",
         "updated_at": "2021-05-19T04:19:00Z",
         "browser_download_url": "https://github.com/nebularg/PackagerTest/releases/download/v1.9.7/release.json"

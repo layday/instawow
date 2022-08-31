@@ -63,7 +63,7 @@
         "content_type": "application/zip",
         "state": "uploaded",
         "size": 2713,
-        "download_count": 5,
+        "download_count": 6,
         "created_at": "2021-05-05T17:20:57Z",
         "updated_at": "2021-05-05T17:20:57Z",
         "browser_download_url": "https://github.com/ketho-wow/RaidFadeMore/releases/download/v1.1.1/RaidFadeMore-v1.1.1-bc.zip"
@@ -97,7 +97,7 @@
         "content_type": "application/zip",
         "state": "uploaded",
         "size": 2712,
-        "download_count": 5,
+        "download_count": 6,
         "created_at": "2021-05-05T17:20:53Z",
         "updated_at": "2021-05-05T17:20:53Z",
         "browser_download_url": "https://github.com/ketho-wow/RaidFadeMore/releases/download/v1.1.1/RaidFadeMore-v1.1.1-classic.zip"
@@ -131,7 +131,7 @@
         "content_type": "application/zip",
         "state": "uploaded",
         "size": 2713,
-        "download_count": 7,
+        "download_count": 10,
         "created_at": "2021-05-05T17:21:01Z",
         "updated_at": "2021-05-05T17:21:01Z",
         "browser_download_url": "https://github.com/ketho-wow/RaidFadeMore/releases/download/v1.1.1/RaidFadeMore-v1.1.1.zip"

@@ -1,0 +1,19 @@
+[
+  {
+    "id": "2",
+    "name": "ElvUI",
+    "small_desc": "A user interface designed around user-friendliness with extra features that are not included in the standard UI.",
+    "author": "Elv",
+    "version": "3.00",
+    "screenshot_url": "https://www.tukui.org/addons/Elv/1618532665/screenshot.png",
+    "url": "https://www.tukui.org/classic-wotlk-addons.php?download=2",
+    "category": "Interfaces",
+    "downloads": "2928681",
+    "lastupdate": "2022-08-30 15:26:02",
+    "patch": "3.4.0",
+    "web_url": "https://www.tukui.org/classic-wotlk-addons.php?id=2",
+    "last_download": "2022-08-31 20:19:59",
+    "changelog": "https://www.tukui.org/classic-wotlk-addons.php?id=2&changelog",
+    "donate_url": "https://www.tukui.org/support.php"
+  }
+]
