@@ -178,7 +178,7 @@ class TukuiResolver(BaseResolver):
         cls, web_client: _deferred_types.aiohttp.ClientSession
     ) -> AsyncIterator[BaseCatalogueEntry]:
         for flavours, query in [
-            (frozenset({Flavour.retail}), {'ui': 'tukui'}),
+            (frozenset(Flavour), {'ui': 'tukui'}),
             (frozenset({Flavour.retail}), {'ui': 'elvui'}),
             *(
                 (frozenset({Flavour.from_flavour_keyed_enum(p)}), {p.value: ''})
