@@ -127,12 +127,8 @@ def bundle_frontend(session: nox.Session):
 def build_dists(session: nox.Session):
     "Build an sdist and wheel."
     session.run('git', 'clean', '-fdX', 'dist', external=True)
-    session.install(
-        'build',
-        'poetry-core @ git+https://github.com/python-poetry/poetry-core@af08f1c',
-        'poetry-dynamic-versioning',
-    )
-    session.run('python', '-m', 'build', '-n')
+    session.install('build')
+    session.run('python', '-m', 'build')
 
 
 @nox.session
