@@ -13,6 +13,7 @@ from yarl import URL
 from .. import _deferred_types, models, results as R
 from ..cataloguer import BaseCatalogueEntry, CatalogueSameAs
 from ..common import ChangelogFormat, Flavour, FlavourVersion, SourceMetadata, Strategy
+from ..http import CACHE_INDEFINITELY
 from ..resolvers import BaseResolver, Defn, format_data_changelog
 from ..utils import StrEnum, TocReader, extract_byte_range_offset, find_addon_zip_tocs
 
@@ -131,6 +132,7 @@ class GithubResolver(BaseResolver):
 
                 async with self._manager.web_client.get(
                     download_url,
+                    expire_after=CACHE_INDEFINITELY,
                     headers={**github_headers, hdrs.RANGE: f'bytes={directory_offset}'},
                 ) as directory_range_response:
                     if not directory_range_response.ok:
@@ -138,6 +140,7 @@ class GithubResolver(BaseResolver):
                         if directory_range_response.status == 416:  # Range Not Satisfiable
                             async with self._manager.web_client.get(
                                 download_url,
+                                expire_after=CACHE_INDEFINITELY,
                                 headers=github_headers,
                                 raise_for_status=True,
                             ) as addon_zip_response:
@@ -221,6 +224,7 @@ class GithubResolver(BaseResolver):
                 logger.debug(f'fetching {main_toc_filename} from {candidate["name"]}')
                 async with self._manager.web_client.get(
                     download_url,
+                    expire_after=CACHE_INDEFINITELY,
                     headers={
                         **github_headers,
                         hdrs.RANGE: f'bytes={main_toc_file_offset}-{following_file_offset}',

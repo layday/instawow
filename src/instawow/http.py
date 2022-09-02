@@ -77,9 +77,11 @@ def init_web_client(
         from aiohttp_client_cache.session import CachedSession
 
         kwargs['cache'] = SQLiteBackend(
+            allowed_codes=[200, 206],
             allowed_methods=['GET', 'POST'],
             cache_name=os.fspath(cache_dir / '_cache'),
             expire_after=_DEFAULT_EXPIRE,
+            include_headers=True,
         )
         return CachedSession(**kwargs)
     else:
