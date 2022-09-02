@@ -79,7 +79,7 @@ def init_web_client(
         kwargs['cache'] = SQLiteBackend(
             allowed_codes=[200, 206],
             allowed_methods=['GET', 'POST'],
-            cache_name=os.fspath(cache_dir / '_cache'),
+            cache_name=os.fspath(cache_dir / '_aiohttp-cache'),
             expire_after=_DEFAULT_EXPIRE,
             include_headers=True,
         )
