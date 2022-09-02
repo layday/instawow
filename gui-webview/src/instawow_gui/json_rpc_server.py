@@ -651,6 +651,11 @@ class _ManagerWorkQueue:
         self._github_auth_flow_task = None
 
     async def __aenter__(self):
+        self.global_config = await _read_global_config()
+        self._web_client, self._download_progress_reporters = _init_json_rpc_web_client(
+            self.global_config.cache_dir
+        )
+        contextualise(web_client=self._web_client, locks=self.locks)
         self._listener = self._loop.create_task(self._listen())
 
     async def __aexit__(self, *args: object):
@@ -701,12 +706,6 @@ class _ManagerWorkQueue:
             future.set_result(result)
 
     async def _listen(self):
-        self.global_config = await _read_global_config()
-        self._web_client, self._download_progress_reporters = _init_json_rpc_web_client(
-            self.global_config.cache_dir
-        )
-        contextualise(web_client=self._web_client, locks=self.locks)
-
         while True:
             item = await self._queue.get()
             asyncio.create_task(self._schedule_item(*item))
