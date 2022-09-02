@@ -95,7 +95,15 @@ def test(session: nox.Session, constraints: str):
     constraints_txt = 'constraints.txt'
     Path(constraints_txt).write_text(constraints)
 
-    session.install('-c', constraints_txt, '.[gui, test]', './tests/plugin')
+    session.install(
+        '-c',
+        constraints_txt,
+        '.[gui, test]',
+        './tests/plugin',
+        env={'PIP_NO_BINARY': 'aiohttp', 'AIOHTTP_NO_EXTENSIONS': '1'}
+        if session.python == '3.11'
+        else {},
+    )
     install_coverage_hook(session)
 
     session.run(
@@ -111,7 +119,12 @@ def test(session: nox.Session, constraints: str):
 def type_check(session: nox.Session):
     "Run Pyright."
     mirror_repo(session)
-    session.install('.[gui, types]')
+    session.install(
+        '.[gui, types]',
+        env={'PIP_NO_BINARY': 'aiohttp', 'AIOHTTP_NO_EXTENSIONS': '1'}
+        if session.python == '3.11'
+        else {},
+    )
     session.run('npx', 'pyright', external=True)
 
 
