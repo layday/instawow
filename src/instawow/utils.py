@@ -44,6 +44,30 @@ else:
         return importlib.resources.read_text(package, resource, encoding=encoding)
 
 
+if sys.version_info >= (3, 8):
+    from functools import cached_property as cached_property
+else:
+
+    class cached_property(Generic[_T, _U]):
+        def __init__(self, f: Callable[[_T], _U]) -> None:
+            self.f = f
+
+        @overload
+        def __get__(self, o: None, t: type[_T] | None = ...) -> cached_property[_T, _U]:
+            ...
+
+        @overload
+        def __get__(self, o: _T, t: type[_T] | None = ...) -> _U:
+            ...
+
+        def __get__(self, o: _T | None, t: type[_T] | None = None) -> cached_property[_T, _U] | _U:
+            if o is None:
+                return self
+            else:
+                o.__dict__[self.f.__name__] = v = self.f(o)
+                return v
+
+
 class TocReader:
     """Extracts key–value pairs from TOC files."""
 
@@ -65,26 +89,6 @@ class TocReader:
     @classmethod
     def from_addon_path(cls, path: Path, suffix: str = '.toc') -> TocReader:
         return cls((path / (path.name + suffix)).read_text(encoding='utf-8-sig', errors='replace'))
-
-
-class cached_property(Generic[_T, _U]):
-    def __init__(self, f: Callable[[_T], _U]) -> None:
-        self.f = f
-
-    @overload
-    def __get__(self, o: None, t: type[_T] | None = ...) -> cached_property[_T, _U]:
-        ...
-
-    @overload
-    def __get__(self, o: _T, t: type[_T] | None = ...) -> _U:
-        ...
-
-    def __get__(self, o: _T | None, t: type[_T] | None = None) -> cached_property[_T, _U] | _U:
-        if o is None:
-            return self
-        else:
-            o.__dict__[self.f.__name__] = v = self.f(o)
-            return v
 
 
 def fill(it: Iterable[_T], fill: _T, number: int) -> Iterable[_T]:
