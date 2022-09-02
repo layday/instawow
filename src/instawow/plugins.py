@@ -41,7 +41,7 @@ class _InstawowPluginHookRelay(Protocol):
         ...
 
 
-@lru_cache(maxsize=None)
+@lru_cache(1)
 def load_plugins() -> _InstawowPluginHookRelay:
     plugin_manager = pluggy.PluginManager(_project_name)
     plugin_manager.add_hookspecs(InstawowPlugin)
