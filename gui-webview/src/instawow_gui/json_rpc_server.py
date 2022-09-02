@@ -735,7 +735,7 @@ class _ManagerWorkQueue:
                         global_config = evolve(
                             global_config,
                             access_tokens=evolve(
-                                global_config.access_tokens, cfcore=SecretStr(result)
+                                global_config.access_tokens, github=SecretStr(result)
                             ),
                         )
                         await t(global_config.write)()
