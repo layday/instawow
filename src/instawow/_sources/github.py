@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import AsyncIterator, Iterable
-from datetime import datetime
+from datetime import datetime, timedelta
 from functools import lru_cache
 from itertools import tee, zip_longest
 
@@ -129,7 +129,7 @@ class GithubResolver(BaseResolver):
             for _ in range(2):
                 logger.debug(f'fetching {directory_offset} from {candidate["name"]}')
 
-                async with self._manager.web_client.wrapped.get(
+                async with self._manager.web_client.get(
                     download_url,
                     headers={**github_headers, hdrs.RANGE: f'bytes={directory_offset}'},
                 ) as directory_range_response:
@@ -138,7 +138,6 @@ class GithubResolver(BaseResolver):
                         if directory_range_response.status == 416:  # Range Not Satisfiable
                             async with self._manager.web_client.get(
                                 download_url,
-                                {'days': 30},
                                 headers=github_headers,
                                 raise_for_status=True,
                             ) as addon_zip_response:
@@ -222,7 +221,6 @@ class GithubResolver(BaseResolver):
                 logger.debug(f'fetching {main_toc_filename} from {candidate["name"]}')
                 async with self._manager.web_client.get(
                     download_url,
-                    {'days': 30},
                     headers={
                         **github_headers,
                         hdrs.RANGE: f'bytes={main_toc_file_offset}-{following_file_offset}',
@@ -253,11 +251,13 @@ class GithubResolver(BaseResolver):
 
         async with self._manager.web_client.get(
             release_json_asset['browser_download_url'],
-            {'days': 1},
+            expire_after=timedelta(days=1),
             headers=github_headers,
             raise_for_status=True,
         ) as response:
-            packager_metadata: _PackagerReleaseJson = await response.json()
+            packager_metadata: _PackagerReleaseJson = await response.json(
+                content_type=None  # application/octet-stream
+            )
 
         releases = packager_metadata['releases']
         if not releases:
@@ -295,7 +295,7 @@ class GithubResolver(BaseResolver):
 
         repo_url = self._repos_api_url / defn.alias
         async with self._manager.web_client.get(
-            repo_url, {'hours': 1}, headers=github_headers
+            repo_url, expire_after=timedelta(hours=1), headers=github_headers
         ) as response:
             if response.status == 404:
                 raise R.PkgNonexistent
@@ -313,7 +313,7 @@ class GithubResolver(BaseResolver):
             )
 
         async with self._manager.web_client.get(
-            release_url, {'minutes': 5}, headers=github_headers
+            release_url, expire_after=timedelta(minutes=5), headers=github_headers
         ) as response:
             if response.status == 404:
                 raise R.PkgFileUnavailable('release not found')

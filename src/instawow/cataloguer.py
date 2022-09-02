@@ -57,9 +57,10 @@ class BaseCatalogue:
 
     @classmethod
     async def collate(cls, start_date: datetime | None) -> Self:
-        from .manager import Manager, init_web_client
+        from .http import init_web_client
+        from .manager import Manager
 
-        async with init_web_client() as web_client:
+        async with init_web_client(None) as web_client:
             entries = [e for r in Manager.RESOLVERS async for e in r.catalogue(web_client)]
             if start_date is not None:
                 entries = [e for e in entries if e.last_updated >= start_date]

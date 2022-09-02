@@ -2,11 +2,11 @@ from __future__ import annotations
 
 import asyncio
 from collections import defaultdict
-from collections.abc import AsyncIterator, Awaitable, Callable, Iterable, Mapping, Sequence, Set
+from collections.abc import Awaitable, Callable, Iterable, Mapping, Sequence, Set
 from contextlib import AbstractAsyncContextManager, asynccontextmanager, contextmanager
 import contextvars as cv
 from datetime import datetime
-from functools import lru_cache, partial, wraps
+from functools import wraps
 from itertools import chain, filterfalse, repeat, starmap, takewhile
 import json
 from pathlib import Path, PurePath
@@ -19,7 +19,7 @@ from attrs import evolve
 from loguru import logger
 import sqlalchemy as sa
 import sqlalchemy.future as sa_future
-from typing_extensions import Concatenate, Literal, ParamSpec, TypeAlias, TypedDict
+from typing_extensions import Concatenate, ParamSpec, TypeAlias
 from yarl import URL
 
 from . import _deferred_types, db, models, results as R
@@ -37,6 +37,7 @@ from .cataloguer import (
 )
 from .common import Strategy
 from .config import Config, GlobalConfig
+from .http import make_generic_progress_ctx, make_pkg_progress_ctx
 from .models import PkgFolder
 from .plugins import load_plugins
 from .resolvers import Defn, Resolver
@@ -46,11 +47,11 @@ from .utils import (
     file_uri_to_path,
     find_addon_zip_tocs,
     gather,
+    is_file_uri,
     is_not_stale,
     make_zip_member_filter,
     move,
     normalise_names,
-    read_resource_as_text,
     run_in_thread as t,
     shasum,
     trash,
@@ -60,25 +61,7 @@ from .utils import (
 _P = ParamSpec('_P')
 _T = TypeVar('_T')
 
-
-USER_AGENT = 'instawow (https://github.com/layday/instawow)'
-
 DB_REVISION = 'e13430219249'
-
-
-class _GenericDownloadTraceRequestCtx(TypedDict):
-    report_progress: Literal['generic']
-    label: str
-
-
-class _PkgDownloadTraceRequestCtx(TypedDict):
-    report_progress: Literal['pkg_download']
-    manager: Manager
-    pkg: models.Pkg
-
-
-TraceRequestCtx: TypeAlias = '_GenericDownloadTraceRequestCtx | _PkgDownloadTraceRequestCtx | None'
-
 
 _move_async = t(move)
 
@@ -110,118 +93,6 @@ def _open_pkg_archive(path: PurePath):
         names = archive.namelist()
         base_dirs = {h for _, h in find_addon_zip_tocs(names)}
         yield (base_dirs, extract)
-
-
-class _ResponseWrapper:
-    def __init__(
-        self, response: _deferred_types.aiohttp.ClientResponse | None, response_body: bytes
-    ):
-        self._response = response
-        self._response_body = response_body
-
-    async def read(self) -> bytes:
-        return self._response_body
-
-    async def text(self) -> str:
-        return self._response_body.decode()
-
-    async def json(self, **kwargs: Any) -> Any:
-        return json.loads(await self.read())
-
-    def raise_for_status(self) -> None:
-        if self._response is not None:
-            self._response.raise_for_status()
-
-    @property
-    def status(self) -> int:
-        return self._response.status if self._response is not None else 200
-
-
-class _CacheFauxClientSession:
-    def __init__(self, cache_dir: Path):
-        self._cache_dir = cache_dir
-
-    @property
-    def wrapped(self) -> _deferred_types.aiohttp.ClientSession:
-        return _web_client.get()
-
-    @asynccontextmanager
-    async def request(
-        self,
-        method: str,
-        url: str | URL,
-        ttl: Mapping[str, float] | None = None,
-        label: str | None = None,
-        **kwargs: Any,
-    ) -> AsyncIterator[_ResponseWrapper]:
-        def prepare_request_kwargs():
-            request_kwargs: dict[str, Any] = {'method': method, 'url': url, **kwargs}
-            if label:
-                request_kwargs['trace_request_ctx'] = _GenericDownloadTraceRequestCtx(
-                    report_progress='generic', label=label
-                )
-            return request_kwargs
-
-        async def make_request():
-            async with self.wrapped.request(**prepare_request_kwargs()) as response:
-                return (response, await response.read())
-
-        if ttl is None:
-            response, response_body = await make_request()
-        else:
-            dest = self._cache_dir / shasum(url, ttl, kwargs)
-            response = None
-            if await t(is_not_stale)(dest, ttl):
-                logger.debug(f'{url} is cached at {dest} (ttl: {ttl})')
-                response_body = await t(dest.read_bytes)()
-            else:
-                response, response_body = await make_request()
-                if response.ok:
-                    await t(dest.write_bytes)(response_body)
-
-        yield _ResponseWrapper(response, response_body)
-
-    def get(
-        self,
-        url: str | URL,
-        ttl: Mapping[str, float] | None = None,
-        label: str | None = None,
-        **kwargs: Any,
-    ) -> AbstractAsyncContextManager[_ResponseWrapper]:
-        return self.request('GET', url, ttl, label, **kwargs)
-
-
-@lru_cache(1)
-def _load_certifi_certs():
-    try:
-        import certifi
-    except ModuleNotFoundError:
-        pass
-    else:
-        logger.info('loading certifi certs')
-        return read_resource_as_text(certifi, 'cacert.pem', encoding='ascii')
-
-
-def init_web_client(**kwargs: Any) -> _deferred_types.aiohttp.ClientSession:
-    from aiohttp import ClientSession, ClientTimeout, TCPConnector
-
-    make_connector = partial(TCPConnector, limit_per_host=10)
-    certifi_certs = _load_certifi_certs()
-    if certifi_certs:
-        import ssl
-
-        make_connector = partial(
-            make_connector, ssl=ssl.create_default_context(cadata=certifi_certs)
-        )
-
-    kwargs = {
-        'connector': make_connector(),
-        'headers': {'User-Agent': USER_AGENT},
-        'trust_env': True,  # Respect the 'http_proxy' env var
-        'timeout': ClientTimeout(connect=60, sock_connect=10, sock_read=20),
-        **kwargs,
-    }
-    return ClientSession(**kwargs)
 
 
 @object.__new__
@@ -334,10 +205,6 @@ class Manager:
         )
         self.resolvers: Mapping[str, Resolver] = {r.metadata.id: r(self) for r in resolver_classes}
 
-        self.web_client: _CacheFauxClientSession = _CacheFauxClientSession(
-            self.config.global_config.cache_dir
-        )
-
         self._catalogue = None
 
     @classmethod
@@ -350,6 +217,10 @@ class Manager:
     def locks(self) -> LocksType:
         "Lock factory used to synchronise async operations."
         return _locks.get()
+
+    @property
+    def web_client(self) -> _deferred_types.aiohttp.ClientSession:
+        return _web_client.get()
 
     def pair_uri(self, value: str) -> tuple[str, str] | None:
         "Attempt to extract the definition source and alias from a URI."
@@ -505,9 +376,7 @@ class Manager:
             async with self.web_client.get(
                 self._base_catalogue_url,
                 raise_for_status=True,
-                trace_request_ctx=_GenericDownloadTraceRequestCtx(
-                    report_progress='generic', label='Synchronising catalogue'
-                ),
+                trace_request_ctx=make_generic_progress_ctx('Synchronising catalogue'),
             ) as response:
                 raw_catalogue = await response.json(content_type=None)
 
@@ -701,17 +570,15 @@ class Manager:
 
         if await t(dest.exists)():
             logger.debug(f'{url} is cached at {dest}')
-        elif url.startswith('file://'):
+        elif is_file_uri(url):
             loop = asyncio.get_running_loop()
             await loop.run_in_executor(None, lambda: copy(file_uri_to_path(url), dest))
         else:
-            async with self.web_client.wrapped.get(
+            async with self.web_client.get(
                 url,
-                raise_for_status=True,
-                trace_request_ctx=_PkgDownloadTraceRequestCtx(
-                    report_progress='pkg_download', manager=self, pkg=pkg
-                ),
                 headers=await self.resolvers[pkg.source].make_auth_headers(),
+                raise_for_status=True,
+                trace_request_ctx=make_pkg_progress_ctx(self.config.profile, pkg),
             ) as response, _open_temp_writer() as (
                 temp_path,
                 write,
@@ -894,6 +761,7 @@ async def is_outdated() -> tuple[bool, str]:
     from aiohttp.client import ClientError
 
     from . import __version__
+    from .http import init_web_client
 
     def parse_version(version: str):
         version_parts = takewhile(lambda p: all(c in '0123456789' for c in p), version.split('.'))
@@ -911,7 +779,7 @@ async def is_outdated() -> tuple[bool, str]:
         version = cache_file.read_text(encoding='utf-8')
     else:
         try:
-            async with init_web_client(raise_for_status=True) as web_client, web_client.get(
+            async with init_web_client(None, raise_for_status=True) as web_client, web_client.get(
                 'https://pypi.org/pypi/instawow/json'
             ) as response:
                 version = (await response.json())['info']['version']

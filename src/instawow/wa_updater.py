@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterable, Iterator, Sequence
+from datetime import timedelta
 from functools import partial, reduce
 from itertools import chain, product
 import json
@@ -14,6 +15,7 @@ from loguru import logger
 from typing_extensions import Literal, NotRequired as N, TypeAlias, TypedDict
 from yarl import URL
 
+from .http import CACHE_INDEFINITELY, make_generic_progress_ctx
 from .manager import Manager
 from .utils import (
     StrEnum,
@@ -194,9 +196,9 @@ class WaCompanionBuilder:
     async def _fetch_wago_metadata(self, api_ep: str, aura_ids: Iterable[str]):
         async with self.manager.web_client.get(
             (_CHECK_API_URL / api_ep).with_query(ids=','.join(aura_ids)),
-            {'minutes': 30},
-            label='Fetching aura metadata',
+            expire_after=timedelta(minutes=30),
             headers={'api-key': self._get_access_token()},
+            trace_request_ctx=make_generic_progress_ctx('Fetching aura metadata'),
         ) as response:
             metadata: list[_WagoApiResponse]
             if response.status == 404:
@@ -209,10 +211,10 @@ class WaCompanionBuilder:
     async def _fetch_wago_import_string(self, aura: _WagoApiResponse):
         async with self.manager.web_client.get(
             _IMPORT_STRING_API_URL.with_query(id=aura['_id']).with_fragment(str(aura['version'])),
-            {'days': 30},
+            expire_after=CACHE_INDEFINITELY,
             headers={'api-key': self._get_access_token()},
-            label=f"Fetching aura '{aura['slug']}'",
             raise_for_status=True,
+            trace_request_ctx=make_generic_progress_ctx(f"Fetching aura '{aura['slug']}'"),
         ) as response:
             return await response.text()
 

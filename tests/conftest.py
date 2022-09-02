@@ -16,7 +16,8 @@ import pytest
 from instawow import __version__
 from instawow.common import Flavour
 from instawow.config import Config, GlobalConfig
-from instawow.manager import Manager, contextualise, init_web_client
+from instawow.http import init_web_client
+from instawow.manager import Manager, contextualise
 
 inf = float('inf')
 
@@ -87,8 +88,8 @@ def iw_config(iw_config_values: dict[str, Any], iw_global_config_values: dict[st
 
 
 @pytest.fixture
-async def iw_web_client():
-    async with init_web_client() as web_client:
+async def iw_web_client(iw_config: Config):
+    async with init_web_client(iw_config.global_config.cache_dir) as web_client:
         yield web_client
 
 

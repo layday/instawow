@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import asyncio
 
-import aiohttp
 from typing_extensions import TypedDict
+
+from . import _deferred_types
 
 CLIENT_ID = 'aa178904bdf5143e93ec'
 
@@ -22,7 +23,7 @@ class AccessTokenResponse(TypedDict):
     scope: str
 
 
-async def get_codes(web_client: aiohttp.ClientSession) -> DeviceCodeResponse:
+async def get_codes(web_client: _deferred_types.aiohttp.ClientSession) -> DeviceCodeResponse:
     async with web_client.post(
         'https://github.com/login/device/code',
         headers={'Accept': 'application/json'},
@@ -33,7 +34,7 @@ async def get_codes(web_client: aiohttp.ClientSession) -> DeviceCodeResponse:
 
 
 async def poll_for_access_token(
-    web_client: aiohttp.ClientSession, device_code: str, polling_interval: int = 5
+    web_client: _deferred_types.aiohttp.ClientSession, device_code: str, polling_interval: int = 5
 ) -> str:
     while True:
         async with web_client.post(

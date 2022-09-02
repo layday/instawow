@@ -32,6 +32,7 @@ scripts.instawow = "instawow.cli:main"
 python = ">=3.7"
 
 aiohttp = ">=3.7.4, <4"
+aiohttp-client-cache = { version = ">=0.7.3", extras = ["sqlite"] }
 alembic = ">=1.7.0"
 attrs = ">=21.4.0"
 cattrs = ">=22.1.0"

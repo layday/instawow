@@ -17,6 +17,7 @@ from loguru import logger
 from . import __version__, _deferred_types, db, manager as _manager, models, results as R
 from .common import ChangelogFormat, Flavour, Strategy
 from .config import Config, GlobalConfig, config_converter, setup_logging
+from .http import TraceRequestCtx, init_web_client
 from .plugins import load_plugins
 from .resolvers import Defn
 from .utils import StrEnum, all_eq, cached_property, gather, reveal_folder, tabulate, uniq
@@ -80,6 +81,7 @@ class Report:
 
 
 def _init_cli_web_client(
+    cache_dir: Path,
     progress_bar: _deferred_types.prompt_toolkit.shortcuts.ProgressBar,
     tickers: set[asyncio.Task[None]],
 ) -> _deferred_types.aiohttp.ClientSession:
@@ -93,7 +95,7 @@ def _init_cli_web_client(
         trace_config_ctx: Any,
         params: _deferred_types.aiohttp.TraceRequestEndParams,
     ):
-        trace_request_ctx: _manager.TraceRequestCtx = trace_config_ctx.trace_request_ctx
+        trace_request_ctx: TraceRequestCtx = trace_config_ctx.trace_request_ctx
         if trace_request_ctx:
             response = params.response
             label = (
@@ -125,7 +127,7 @@ def _init_cli_web_client(
     trace_config = TraceConfig()
     trace_config.on_request_end.append(do_on_request_end)
     trace_config.freeze()
-    return _manager.init_web_client(trace_configs=[trace_config])
+    return init_web_client(cache_dir, trace_configs=[trace_config])
 
 
 @contextmanager
@@ -171,10 +173,12 @@ class _CtxObjWrapper:
         return manager
 
     def run_with_progress(self, awaitable: Awaitable[_T]) -> _T:
+        cache_dir = self.manager.config.global_config.cache_dir
+
         if self._ctx.params['debug']:
 
             async def run():
-                async with _manager.init_web_client() as web_client:
+                async with init_web_client(cache_dir) as web_client:
                     _manager.contextualise(web_client=web_client)
                     return await awaitable
 
@@ -183,7 +187,9 @@ class _CtxObjWrapper:
 
             async def run():
                 with make_progress_bar() as progress_bar, _cancel_tickers(progress_bar) as tickers:
-                    async with _init_cli_web_client(progress_bar, tickers) as web_client:
+                    async with _init_cli_web_client(
+                        cache_dir, progress_bar, tickers
+                    ) as web_client:
                         _manager.contextualise(web_client=web_client)
                         return await awaitable
 
@@ -921,7 +927,7 @@ def _show_active_config(ctx: click.Context, __: click.Parameter, value: bool):
 async def _github_oauth_flow():
     from .github_auth import get_codes, poll_for_access_token
 
-    async with _manager.init_web_client() as web_client:
+    async with init_web_client(None) as web_client:
         codes = await get_codes(web_client)
         click.echo(f'Navigate to {codes["verification_uri"]} and paste the code below:')
         click.echo(f'  {codes["user_code"]}')

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import AsyncIterator, Sequence
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from loguru import logger
 from typing_extensions import Literal, TypedDict
@@ -10,6 +10,7 @@ from yarl import URL
 from .. import _deferred_types, manager, models, results as R
 from ..cataloguer import BaseCatalogueEntry
 from ..common import ChangelogFormat, Flavour, SourceMetadata, Strategy
+from ..http import make_generic_progress_ctx
 from ..resolvers import BaseResolver, Defn, format_data_changelog, slugify
 from ..utils import StrEnum, gather
 
@@ -88,7 +89,7 @@ class TukuiResolver(BaseResolver):
         async def fetch_ui(ui_slug: str):
             async with self._manager.web_client.get(
                 self._api_url.with_query({'ui': ui_slug}),
-                {'minutes': 5},
+                expire_after=timedelta(minutes=5),
                 raise_for_status=True,
             ) as response:
                 addon: _TukuiUi = await response.json()
@@ -100,9 +101,11 @@ class TukuiResolver(BaseResolver):
             )
             async with self._manager.web_client.get(
                 self._api_url.with_query({tukui_flavour.value: ''}),
-                {'minutes': 30},
-                label=f'Synchronising {self.metadata.name} {flavour} catalogue',
+                expire_after=timedelta(minutes=30),
                 raise_for_status=True,
+                trace_request_ctx=make_generic_progress_ctx(
+                    f'Synchronising {self.metadata.name} {flavour} catalogue'
+                ),
             ) as response:
                 addons: list[_TukuiAddon] = await response.json()
             return ((str(a['id']), a) for a in addons)

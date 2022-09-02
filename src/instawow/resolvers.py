@@ -14,6 +14,7 @@ from yarl import URL
 from . import _deferred_types, manager, models, results as R
 from .cataloguer import BaseCatalogueEntry
 from .common import SourceMetadata, Strategy
+from .http import CACHE_INDEFINITELY
 from .utils import file_uri_to_path, gather, normalise_names, run_in_thread
 
 
@@ -115,7 +116,10 @@ class BaseResolver(Resolver):
             return urllib.parse.unquote(uri.raw_path[1:])
         elif uri.scheme in {'http', 'https'}:
             async with self._manager.web_client.get(
-                uri, {'days': 1}, headers=await self.make_auth_headers(), raise_for_status=True
+                uri,
+                expire_after=CACHE_INDEFINITELY,
+                headers=await self.make_auth_headers(),
+                raise_for_status=True,
             ) as response:
                 return await response.text()
         elif uri.scheme == 'file':

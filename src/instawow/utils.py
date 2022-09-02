@@ -226,7 +226,7 @@ def shasum(*values: object) -> str:
     "Base-16-encode a string using SHA-256 truncated to 32 characters."
     from hashlib import sha256
 
-    return sha256(''.join(map(str, values)).encode()).hexdigest()[:32]
+    return sha256(''.join(map(str, filter(None, values))).encode()).hexdigest()[:32]
 
 
 def is_not_stale(path: Path, ttl: Mapping[str, float]) -> bool:
@@ -253,6 +253,10 @@ def make_zip_member_filter(base_dirs: Set[str]) -> Callable[[str], bool]:
         return head in base_dirs if sep else False
 
     return is_subpath
+
+
+def is_file_uri(uri: str) -> bool:
+    return uri.startswith('file://')
 
 
 def file_uri_to_path(file_uri: str) -> str:

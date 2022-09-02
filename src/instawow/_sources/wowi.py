@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import AsyncIterator, Sequence
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from itertools import takewhile
 import re
 
@@ -12,6 +12,7 @@ from yarl import URL
 from .. import _deferred_types, manager, models, results as R
 from ..cataloguer import BaseCatalogueEntry
 from ..common import ChangelogFormat, Flavour, FlavourVersion, SourceMetadata, Strategy
+from ..http import make_generic_progress_ctx
 from ..resolvers import BaseResolver, Defn, format_data_changelog, slugify
 from ..utils import gather
 
@@ -107,9 +108,11 @@ class WowiResolver(BaseResolver):
         async with self._manager.locks['load WoWI catalogue']:
             async with self._manager.web_client.get(
                 self._list_api_url,
-                {'hours': 1},
-                label=f'Synchronising {self.metadata.name} catalogue',
+                expire_after=timedelta(hours=1),
                 raise_for_status=True,
+                trace_request_ctx=make_generic_progress_ctx(
+                    f'Synchronising {self.metadata.name} catalogue'
+                ),
             ) as response:
                 list_api_items: list[_WowiListApiItem] = await response.json()
                 return {i['UID']: i for i in list_api_items}
@@ -123,13 +126,13 @@ class WowiResolver(BaseResolver):
         numeric_ids = frozenset(filter(None, defns_to_ids.values()))
         async with self._manager.web_client.get(
             self._details_api_url / f'{",".join(numeric_ids)}.json',
-            {'minutes': 5},
+            expire_after=timedelta(minutes=5),
         ) as response:
             if response.status == 404:
                 return await super().resolve(defns)
-            else:
-                response.raise_for_status()
-                details_api_items: list[_WowiDetailsApiItem] = await response.json()
+
+            response.raise_for_status()
+            details_api_items: list[_WowiDetailsApiItem] = await response.json()
 
         combined_items: dict[str, _WowiCombinedItem] = {
             i['UID']: {**list_api_items[i['UID']], **i} for i in details_api_items

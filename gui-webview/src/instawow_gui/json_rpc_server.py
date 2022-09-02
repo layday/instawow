@@ -35,14 +35,8 @@ from instawow.cataloguer import CatalogueEntry
 from instawow.common import Flavour, SourceMetadata, infer_flavour_from_path
 from instawow.config import Config, GlobalConfig, SecretStr, config_converter
 from instawow.github_auth import get_codes, poll_for_access_token
-from instawow.manager import (
-    LocksType,
-    Manager,
-    TraceRequestCtx,
-    contextualise,
-    init_web_client,
-    is_outdated,
-)
+from instawow.http import TraceRequestCtx, init_web_client
+from instawow.manager import LocksType, Manager, contextualise, is_outdated
 from instawow.resolvers import Defn
 from instawow.utils import read_resource_as_text, reveal_folder, run_in_thread as t, uniq
 
@@ -96,9 +90,15 @@ def _reraise_validation_error(
 
 
 @t
-def _read_config(profile: str) -> Config:
+def _read_global_config() -> GlobalConfig:
     with _reraise_validation_error(_ConfigError):
-        return Config.read(GlobalConfig.read(), profile)
+        return GlobalConfig.read()
+
+
+@t
+def _read_config(global_config: GlobalConfig, profile: str) -> Config:
+    with _reraise_validation_error(_ConfigError):
+        return Config.read(global_config, profile)
 
 
 _methods: list[tuple[str, type[BaseParams]]] = []
@@ -179,7 +179,7 @@ class ReadProfileConfigParams(_ProfileParamMixin, BaseParams):
     async def respond(
         self, managers: _ManagerWorkQueue, app_window: toga.MainWindow | None
     ) -> Config:
-        return await _read_config(self.profile)
+        return await _read_config(managers.global_config, self.profile)
 
 
 @_register_method('config/delete_profile')
@@ -209,23 +209,16 @@ class UpdateGlobalConfigParams(BaseParams):
     async def respond(
         self, managers: _ManagerWorkQueue, app_window: toga.MainWindow | None
     ) -> GlobalConfig:
-        async with managers.locks['update global config']:
-            with _reraise_validation_error(_ConfigError):
-                global_config = await t(GlobalConfig.read)()
-                global_config = evolve(
-                    global_config,
-                    access_tokens=evolve(
-                        global_config.access_tokens,
-                        **{
-                            k: t if t is None else SecretStr(t)
-                            for k, t in self.access_tokens.items()
-                        },
-                    ),
-                )
-                await t(global_config.write)()
+        def update_global_config_cb(global_config: GlobalConfig):
+            return evolve(
+                global_config,
+                access_tokens=evolve(
+                    global_config.access_tokens,
+                    **{k: t if t is None else SecretStr(t) for k, t in self.access_tokens.items()},
+                ),
+            )
 
-        managers.unload_all()
-        return global_config
+        return await managers.update_global_config(update_global_config_cb)
 
 
 @_register_method('config/read_global')
@@ -610,7 +603,7 @@ class ConfirmDialogueParams(BaseParams):
         return {'ok': ok}
 
 
-def _init_json_rpc_web_client():
+def _init_json_rpc_web_client(cache_dir: Path):
     async def do_on_request_end(
         client_session: aiohttp.ClientSession,
         trace_config_ctx: Any,
@@ -626,20 +619,20 @@ def _init_json_rpc_web_client():
             content = params.response.content
             content_length = params.response.content_length
             entry = (
-                trace_request_ctx['manager'],
+                trace_request_ctx['profile'],
                 trace_request_ctx['pkg'],
                 lambda: content.total_bytes / content_length,
             )
             progress_reporters.add(entry)
             content.on_eof(lambda: progress_reporters.remove(entry))
 
-    progress_reporters: set[tuple[Manager, models.Pkg, Callable[[], float]]] = set()
+    progress_reporters: set[tuple[str, models.Pkg, Callable[[], float]]] = set()
 
     trace_config = aiohttp.TraceConfig()
     trace_config.on_request_end.append(do_on_request_end)
     trace_config.freeze()
 
-    return (init_web_client(trace_configs=[trace_config]), progress_reporters)
+    return (init_web_client(cache_dir, trace_configs=[trace_config]), progress_reporters)
 
 
 class _ManagerWorkQueue:
@@ -653,8 +646,6 @@ class _ManagerWorkQueue:
         self.locks: LocksType = defaultdict(asyncio.Lock)
 
         self._managers: dict[str, tuple[Manager, Callable[[], None]]] = {}
-
-        self._web_client, self._download_progress_reporters = _init_json_rpc_web_client()
 
         self._github_auth_device_codes = None
         self._github_auth_flow_task = None
@@ -678,6 +669,16 @@ class _ManagerWorkQueue:
         for profile in list(self._managers):
             self.unload(profile)
 
+    async def update_global_config(
+        self, update_cb: Callable[[GlobalConfig], GlobalConfig]
+    ) -> GlobalConfig:
+        async with self.locks['update global config']:
+            with _reraise_validation_error(_ConfigError):
+                self.global_config = update_cb(self.global_config)
+                await t(self.global_config.write)()
+            self.unload_all()
+            return self.global_config
+
     async def _schedule_item(
         self,
         future: asyncio.Future[object],
@@ -690,7 +691,7 @@ class _ManagerWorkQueue:
                     manager, _ = self._managers[profile]
                 except KeyError:
                     manager, _ = self._managers[profile] = Manager.from_config(
-                        await _read_config(profile)
+                        await _read_config(self.global_config, profile)
                     )
 
             result = await coro_fn(manager)
@@ -700,7 +701,12 @@ class _ManagerWorkQueue:
             future.set_result(result)
 
     async def _listen(self):
+        self.global_config = await _read_global_config()
+        self._web_client, self._download_progress_reporters = _init_json_rpc_web_client(
+            self.global_config.cache_dir
+        )
         contextualise(web_client=self._web_client, locks=self.locks)
+
         while True:
             item = await self._queue.get()
             asyncio.create_task(self._schedule_item(*item))
@@ -719,7 +725,11 @@ class _ManagerWorkQueue:
 
     async def get_manager_download_progress(self, profile: str):
         manager = await self.get_manager(profile)
-        return ((p, r()) for m, p, r in self._download_progress_reporters if m is manager)
+        return (
+            (p, r())
+            for m, p, r in self._download_progress_reporters
+            if m == manager.config.profile
+        )
 
     async def initiate_github_auth_flow(self):
         async with self.locks['initiate github auth flow']:
@@ -730,17 +740,15 @@ class _ManagerWorkQueue:
                         self._web_client, codes['device_code'], codes['interval']
                     )
 
-                    async with self.locks['update global config']:
-                        global_config = await t(GlobalConfig.read)()
-                        global_config = evolve(
+                    def update_global_config_cb(global_config: GlobalConfig):
+                        return evolve(
                             global_config,
                             access_tokens=evolve(
                                 global_config.access_tokens, github=SecretStr(result)
                             ),
                         )
-                        await t(global_config.write)()
 
-                    self.unload_all()
+                    await self.update_global_config(update_global_config_cb)
 
                 def on_task_complete(future: object):
                     self._github_auth_flow_task = None

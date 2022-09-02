@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import AsyncIterator, Sequence
+from datetime import timedelta
 from enum import IntEnum
 from itertools import count
 from typing import Generic, TypeVar
@@ -15,6 +16,7 @@ from .. import _deferred_types, manager, models, results as R
 from ..cataloguer import BaseCatalogueEntry
 from ..common import ChangelogFormat, Flavour, SourceMetadata, Strategy
 from ..config import GlobalConfig
+from ..http import CACHE_INDEFINITELY, make_generic_progress_ctx
 from ..resolvers import BaseResolver, Defn
 from ..utils import gather, uniq
 
@@ -288,10 +290,9 @@ class CfCoreResolver(BaseResolver):
         if not numeric_ids:
             return await super().resolve(defns)
 
-        async with self._manager.web_client.request(
-            'POST',
+        async with self._manager.web_client.post(
             self._mod_api_url,
-            {'minutes': 5},
+            expire_after=timedelta(minutes=5),
             headers=await self.make_auth_headers(),
             json={'modIds': numeric_ids},
         ) as response:
@@ -318,17 +319,20 @@ class CfCoreResolver(BaseResolver):
             raise R.PkgNonexistent
 
         if defn.strategy is Strategy.version:
-            async with self._manager.web_client.get(
-                (self._mod_api_url / str(metadata['id']) / 'files').with_query(
-                    gameVersionTypeId=self._manager.config.game_flavour.to_flavour_keyed_enum(
-                        _CfCoreSortableGameVersionTypeId
-                    ),
-                    pageSize=9999,
+            files_url = (self._mod_api_url / str(metadata['id']) / 'files').with_query(
+                gameVersionTypeId=self._manager.config.game_flavour.to_flavour_keyed_enum(
+                    _CfCoreSortableGameVersionTypeId
                 ),
-                {'hours': 1},
+                pageSize=9999,
+            )
+            async with self._manager.web_client.get(
+                files_url,
+                expire_after=timedelta(hours=1),
                 headers=await self.make_auth_headers(),
-                label=f'Fetching metadata from {self.metadata.name}',
                 raise_for_status=True,
+                trace_request_ctx=make_generic_progress_ctx(
+                    f'Fetching metadata from {self.metadata.name}'
+                ),
             ) as response:
                 response_json: _CfCoreFilesResponse = await response.json()
 
@@ -412,7 +416,10 @@ class CfCoreResolver(BaseResolver):
 
     async def get_changelog(self, uri: URL) -> str:
         async with self._manager.web_client.get(
-            uri, {'days': 1}, headers=await self.make_auth_headers(), raise_for_status=True
+            uri,
+            expire_after=CACHE_INDEFINITELY,
+            headers=await self.make_auth_headers(),
+            raise_for_status=True,
         ) as response:
             response_json: _CfCoreStringDataResponse = await response.json()
             return response_json['data']
