@@ -62,7 +62,7 @@ def format_(session: nox.Session):
         '',
         dedent(
             '''\
-            aiohttp == 3.7.4
+            aiohttp == 3.8
             aiohttp-client-cache == 0.7.3
             alembic == 1.7.0
             attrs == 21.4.0
