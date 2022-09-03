@@ -184,7 +184,7 @@ class _CtxObjWrapper:
                     return await awaitable
 
         else:
-            from .prompts import make_progress_bar
+            from ._cli_prompts import make_progress_bar
 
             async def run():
                 with make_progress_bar() as progress_bar, _cancel_tickers(progress_bar) as tickers:
@@ -426,7 +426,7 @@ def remove(mw: _CtxObjWrapper, addons: Sequence[Defn], keep_folders: bool) -> No
 @click.pass_obj
 def rollback(mw: _CtxObjWrapper, addon: Defn, version: str | None, undo: bool) -> None:
     "Roll an add-on back to an older version."
-    from .prompts import Choice, ask, select
+    from ._cli_prompts import Choice, ask, select
 
     if version and undo:
         raise click.UsageError('Cannot use "--version" with "--undo"')
@@ -486,6 +486,7 @@ def rollback(mw: _CtxObjWrapper, addon: Defn, version: str | None, undo: bool) -
 @click.pass_obj
 def reconcile(mw: _CtxObjWrapper, auto: bool, rereconcile: bool, list_unreconciled: bool) -> None:
     "Reconcile pre-installed add-ons."
+    from ._cli_prompts import PkgChoice, ask, confirm, select, skip
     from .matchers import (
         AddonFolder,
         get_unreconciled_folders,
@@ -493,7 +494,6 @@ def reconcile(mw: _CtxObjWrapper, auto: bool, rereconcile: bool, list_unreconcil
         match_folder_name_subsets,
         match_toc_source_ids,
     )
-    from .prompts import PkgChoice, ask, confirm, select, skip
 
     def construct_choice(pkg: models.Pkg, highlight_version: bool, disabled: bool):
         defn = Defn.from_pkg(pkg)
@@ -674,7 +674,7 @@ def search(
     start_date: datetime | None,
 ) -> None:
     "Search for add-ons to install."
-    from .prompts import PkgChoice, ask, checkbox, confirm
+    from ._cli_prompts import PkgChoice, ask, checkbox, confirm
 
     mw: _CtxObjWrapper = ctx.obj
 
@@ -968,8 +968,8 @@ def configure(
     config_options: Collection[_EditableConfigOptions],
 ) -> Config:
     "Configure instawow."
+    from ._cli_prompts import AttrFieldValidator, ask, confirm, password, path, select
     from .common import infer_flavour_from_path
-    from .prompts import AttrFieldValidator, ask, confirm, password, path, select
 
     if not config_options:
         config_options = {
