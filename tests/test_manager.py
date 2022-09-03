@@ -270,12 +270,12 @@ async def test_is_outdated_works_in_variety_of_scenarios(
     # version == '0.0.0', version not cached
     with monkeypatch.context() as patcher:
         patcher.setattr('instawow.__version__', '0.0.0')
-        assert await is_outdated() == (False, '')
+        assert await is_outdated(iw_config.global_config) == (False, '')
 
     # Update check disabled, version not cached
     with monkeypatch.context() as patcher:
         patcher.setenv('INSTAWOW_AUTO_UPDATE_CHECK', '0')
-        assert await is_outdated() == (False, '')
+        assert await is_outdated(iw_config.global_config) == (False, '')
 
     # Endpoint not responsive, version not cached
     with monkeypatch.context() as patcher:
@@ -286,7 +286,7 @@ async def test_is_outdated_works_in_variety_of_scenarios(
             'get',
             aresponses.Response(status=500),
         )
-        assert await is_outdated() == (False, '0.1.0')
+        assert await is_outdated(iw_config.global_config) == (False, '0.1.0')
 
     # Endpoint responsive, version not cached and version different
     with monkeypatch.context() as patcher:
@@ -297,17 +297,17 @@ async def test_is_outdated_works_in_variety_of_scenarios(
             'get',
             {'info': {'version': '1.0.0'}},
         )
-        assert await is_outdated() == (True, '1.0.0')
+        assert await is_outdated(iw_config.global_config) == (True, '1.0.0')
 
     # version == '0.0.0', version cached
     with monkeypatch.context() as patcher:
         patcher.setattr('instawow.__version__', '0.0.0')
-        assert await is_outdated() == (False, '')
+        assert await is_outdated(iw_config.global_config) == (False, '')
 
     # Update check disabled, version cached
     with monkeypatch.context() as patcher:
         patcher.setenv('INSTAWOW_AUTO_UPDATE_CHECK', '0')
-        assert await is_outdated() == (False, '')
+        assert await is_outdated(iw_config.global_config) == (False, '')
 
     # Endpoint not responsive, version cached
     with monkeypatch.context() as patcher:
@@ -318,7 +318,7 @@ async def test_is_outdated_works_in_variety_of_scenarios(
             'get',
             aresponses.Response(status=500),
         )
-        assert await is_outdated() == (True, '1.0.0')
+        assert await is_outdated(iw_config.global_config) == (True, '1.0.0')
 
     # Endpoint responsive, version cached and version same
     with monkeypatch.context() as patcher:
@@ -329,7 +329,7 @@ async def test_is_outdated_works_in_variety_of_scenarios(
             'get',
             {'info': {'version': '1.0.0'}},
         )
-        assert await is_outdated() == (True, '1.0.0')
+        assert await is_outdated(iw_config.global_config) == (True, '1.0.0')
 
     # Endpoint responsive, version cached and version different
     with monkeypatch.context() as patcher:
@@ -340,4 +340,4 @@ async def test_is_outdated_works_in_variety_of_scenarios(
             'get',
             {'info': {'version': '1.0.0'}},
         )
-        assert await is_outdated() == (False, '1.0.0')
+        assert await is_outdated(iw_config.global_config) == (False, '1.0.0')

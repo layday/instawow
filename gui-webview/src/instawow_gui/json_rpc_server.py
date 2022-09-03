@@ -535,7 +535,7 @@ class GetVersionParams(BaseParams):
     async def respond(
         self, managers: _ManagerWorkQueue, app_window: toga.MainWindow | None
     ) -> GetVersionResult:
-        outdated, new_version = await is_outdated()
+        outdated, new_version = await is_outdated(managers.global_config)
         return {
             'installed_version': __version__,
             'new_version': new_version if outdated else None,
