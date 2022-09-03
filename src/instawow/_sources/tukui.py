@@ -73,7 +73,8 @@ class TukuiResolver(BaseResolver):
     # UIs only.  The response body appears to be identical to ``/api.php``
     _api_url = URL('https://www.tukui.org/api.php')
 
-    _UI_SUITES = frozenset(('elvui', 'tukui'))
+    _UI_SUITES = {-2: 'elvui', -1: 'tukui'}
+    _UI_SUITE_SLUGS = frozenset(_UI_SUITES.values())
 
     _FLAVOUR_URL_PATHS = frozenset(f'/{p}.php' for p in _TukuiFlavourQueryParam)
 
@@ -132,7 +133,7 @@ class TukuiResolver(BaseResolver):
     ) -> dict[Defn, models.Pkg | R.ManagerError | R.InternalError]:
         addons = await self._synchronise()
         ids = (
-            d.alias[:p] if d.alias not in self._UI_SUITES and p != -1 else d.alias
+            d.alias[:p] if d.alias not in self._UI_SUITE_SLUGS and p != -1 else d.alias
             for d in defns
             for p in (d.alias.find('-', 1),)
         )
@@ -146,17 +147,12 @@ class TukuiResolver(BaseResolver):
         if metadata is None:
             raise R.PkgNonexistent
 
-        if metadata['id'] == -1:
-            slug = 'tukui'
-        elif metadata['id'] == -2:
-            slug = 'elvui'
-        else:
-            slug = slugify(f'{metadata["id"]} {metadata["name"]}')
-
         return models.Pkg(
             source=self.metadata.id,
             id=str(metadata['id']),
-            slug=slug,
+            slug=self._UI_SUITES[metadata['id']]
+            if metadata['id'] in self._UI_SUITES
+            else slugify(f'{metadata["id"]} {metadata["name"]}'),
             name=metadata['name'],
             description=metadata['small_desc'],
             url=metadata['web_url'],
