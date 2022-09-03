@@ -691,13 +691,16 @@ class _ManagerWorkQueue:
         coro_fn: _ManagerBoundCoroFn[..., object],
     ):
         try:
-            async with self.locks['modify profile', profile]:
-                try:
-                    manager, _ = self._managers[profile]
-                except KeyError:
-                    manager, _ = self._managers[profile] = Manager.from_config(
-                        await _read_config(self.global_config, profile)
-                    )
+            try:
+                manager, _ = self._managers[profile]
+            except KeyError:
+                async with self.locks['modify profile', profile]:
+                    try:
+                        manager, _ = self._managers[profile]
+                    except KeyError:
+                        manager, _ = self._managers[profile] = Manager.from_config(
+                            await _read_config(self.global_config, profile)
+                        )
 
             result = await coro_fn(manager)
         except BaseException as exc:
