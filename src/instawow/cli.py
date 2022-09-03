@@ -23,7 +23,6 @@ from .resolvers import Defn
 from .utils import StrEnum, all_eq, cached_property, gather, reveal_folder, tabulate, uniq
 
 _T = TypeVar('_T')
-_F = TypeVar('_F', bound='Callable[..., object]')
 
 
 class Report:
