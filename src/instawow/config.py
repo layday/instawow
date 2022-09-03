@@ -92,13 +92,12 @@ def _write_config(config: object, config_path: Path, fields_to_include: Set[str]
     )
 
 
-def _read_config(config_path: Path, missing_ok: bool = False):
+def _read_config(config_path: Path, missing_ok: bool = False) -> dict[str, Any]:
     try:
         return json.loads(config_path.read_bytes())
     except FileNotFoundError:
         if missing_ok:
-            default_config: dict[str, Any] = {}
-            return default_config
+            return {}
         raise
 
 
@@ -200,7 +199,7 @@ class GlobalConfig:
     def read(cls) -> Self:
         env_only_config = cls.from_env()
         config_values = _read_config(env_only_config.config_file, missing_ok=True)
-        return cls.from_env(**config_values) if config_values is not None else env_only_config
+        return cls.from_env(**config_values) if config_values else env_only_config
 
     def list_profiles(self) -> list[str]:
         "Get the names of the profiles contained in ``config_dir``."
