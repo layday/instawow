@@ -209,7 +209,7 @@ class StrEnumParam(click.Choice):
         excludes: Set[StrEnum] = frozenset(),
         case_sensitive: bool = True,
     ) -> None:
-        self.choice_enum = choice_enum
+        self._choice_enum = choice_enum
         super().__init__(
             choices=[c for c in choice_enum if c not in excludes],
             case_sensitive=case_sensitive,
@@ -218,7 +218,7 @@ class StrEnumParam(click.Choice):
     def convert(
         self, value: str, param: click.Parameter | None, ctx: click.Context | None
     ) -> StrEnum:
-        return self.choice_enum(super().convert(value, param, ctx))
+        return self._choice_enum(super().convert(value, param, ctx))
 
 
 def _register_plugin_commands(group: click.Group):
