@@ -84,7 +84,7 @@ source_pkgs = [
   "instawow",
 ]
 omit = [
-  "**/instawow/migrations/*",
+  "**/instawow/_migrations/*",
 ]
 parallel = true
 branch = true
@@ -119,7 +119,7 @@ include = [
   "gui-webview/src",
 ]
 ignore = [
-  "src/instawow/migrations",
+  "src/instawow/_migrations",
 ]
 strict = ["src", "gui-webview/src/instawow_gui/json_rpc_server.py"]
 
