@@ -363,7 +363,7 @@ class Manager:
     async def synchronise(self) -> Catalogue:
         "Fetch the catalogue from the interwebs and load it."
         catalogue_json = self.config.global_config.temp_dir / self._catalogue_filename
-        if await t(is_not_stale)(catalogue_json, {'hours': 4}):
+        if await t(is_not_stale)(catalogue_json, timedelta(hours=4)):
             if self._catalogue is None:
                 raw_catalogue = await t(catalogue_json.read_bytes)()
                 start = time.perf_counter()

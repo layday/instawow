@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 from collections import defaultdict
-from collections.abc import Awaitable, Callable, Iterable, Iterator, Mapping, Sequence, Set
+from collections.abc import Awaitable, Callable, Iterable, Iterator, Sequence, Set
 from datetime import datetime, timedelta
 from functools import partial, wraps
 import importlib.resources
@@ -233,10 +233,10 @@ def shasum(*values: object) -> str:
     return sha256(''.join(map(str, filter(None, values))).encode()).hexdigest()[:32]
 
 
-def is_not_stale(path: Path, ttl: Mapping[str, float]) -> bool:
+def is_not_stale(path: Path, ttl: timedelta) -> bool:
     "Check if a file is older than ``ttl``."
     return path.exists() and (
-        (datetime.now() - datetime.fromtimestamp(path.stat().st_mtime)) < timedelta(**ttl)
+        (datetime.now() - datetime.fromtimestamp(path.stat().st_mtime)) < ttl
     )
 
 
