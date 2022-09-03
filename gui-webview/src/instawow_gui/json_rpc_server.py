@@ -169,7 +169,7 @@ class WriteProfileConfigParams(_ProfileParamMixin, BaseParams):
 
             # Unload the corresponding ``Manager`` instance for the
             # config to be reloaded on the next request
-            managers.unload(config.profile)
+            managers.unload_profile(config.profile)
 
             return config
 
@@ -189,7 +189,7 @@ class DeleteProfileConfigParams(_ProfileParamMixin, BaseParams):
     ) -> None:
         async def delete_profile(manager: Manager):
             await t(manager.config.delete)()
-            managers.unload(self.profile)
+            managers.unload_profile(self.profile)
 
         await managers.run(self.profile, delete_profile)
 
@@ -661,18 +661,17 @@ class _ManagerWorkQueue:
     async def __aexit__(self, *args: object):
         self.cancel_github_auth_polling()
         self._listener.cancel()
-        self.unload_all()
+        self._unload_all_profiles()
         await self._web_client.close()
 
-    def unload(self, profile: str):
+    def unload_profile(self, profile: str):
         if profile in self._managers:
-            logger.debug(f'unloading {profile}')
             _, close_db_conn = self._managers.pop(profile)
             close_db_conn()
 
-    def unload_all(self):
+    def _unload_all_profiles(self):
         for profile in list(self._managers):
-            self.unload(profile)
+            self.unload_profile(profile)
 
     async def update_global_config(
         self, update_cb: Callable[[GlobalConfig], GlobalConfig]
@@ -681,14 +680,14 @@ class _ManagerWorkQueue:
             with _reraise_validation_error(_ConfigError):
                 self.global_config = update_cb(self.global_config)
                 await t(self.global_config.write)()
-            self.unload_all()
+            self._unload_all_profiles()
             return self.global_config
 
-    async def _schedule_item(
+    async def _taskify(
         self,
-        future: asyncio.Future[object],
+        future: asyncio.Future[_T],
         profile: str,
-        coro_fn: _ManagerBoundCoroFn[..., object],
+        coro_fn: _ManagerBoundCoroFn[..., _T],
     ):
         try:
             try:
@@ -711,7 +710,7 @@ class _ManagerWorkQueue:
     async def _listen(self):
         while True:
             item = await self._queue.get()
-            asyncio.create_task(self._schedule_item(*item))
+            asyncio.create_task(self._taskify(*item))
             self._queue.task_done()
 
     async def run(self, profile: str, coro_fn: _ManagerBoundCoroFn[..., _T]) -> _T:
