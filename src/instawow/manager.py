@@ -590,13 +590,14 @@ class Manager:
 
         return dest
 
+    @t
     def _check_installed_pkg_integrity(self, pkg: models.Pkg) -> bool:
         return all((self.config.addon_dir / p.name).exists() for p in pkg.folders)
 
     async def _should_update_pkg(self, old_pkg: models.Pkg, new_pkg: models.Pkg) -> bool:
-        return old_pkg.version != new_pkg.version or not await t(
-            self._check_installed_pkg_integrity
-        )(old_pkg)
+        return old_pkg.version != new_pkg.version or not await self._check_installed_pkg_integrity(
+            old_pkg
+        )
 
     @_with_lock('change state')
     async def install(
@@ -727,6 +728,7 @@ class Manager:
 
         strategies = frozenset({Strategy.default, Strategy.version})
 
+        @t
         def pin(defn: Defn, pkg: models.Pkg | None) -> R.PkgInstalled:
             if not pkg:
                 raise R.PkgNotInstalled
@@ -750,7 +752,7 @@ class Manager:
             else:
                 raise R.PkgStrategyUnsupported(Strategy.version)
 
-        return {d: await capture_manager_exc_async(t(pin)(d, self.get_pkg(d))) for d in defns}
+        return {d: await capture_manager_exc_async(pin(d, self.get_pkg(d))) for d in defns}
 
 
 async def is_outdated() -> tuple[bool, str]:
