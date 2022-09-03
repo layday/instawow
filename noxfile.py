@@ -65,7 +65,7 @@ def format_(session: nox.Session):
             aiohttp == 3.8
             aiohttp-client-cache == 0.7.3
             alembic == 1.7.0
-            attrs == 21.4.0
+            attrs == 22.1.0
             cattrs == 22.1.0
             click == 8.0.0
             exceptiongroup == 1.0.0rc5
@@ -75,10 +75,10 @@ def format_(session: nox.Session):
             pluggy == 0.13.0
             prompt-toolkit == 3.0.29
             questionary == 1.10.0
-            rapidfuzz == 1.4.1
+            rapidfuzz == 2.5.0
             sqlalchemy == 1.4.23
             typing-extensions == 4.3.0
-            yarl == 1.6.3
+            yarl == 1.8.1
             aiohttp-rpc == 1.0.0
             '''
         ),
