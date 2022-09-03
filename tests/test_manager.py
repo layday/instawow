@@ -5,11 +5,12 @@ from pathlib import Path
 
 from aiohttp import ClientError
 from aresponses import ResponsesMockServer
+from attrs import evolve
 import pytest
 
 from instawow import results as R
 from instawow.common import Flavour, Strategy
-from instawow.config import Config
+from instawow.config import GlobalConfig
 from instawow.manager import Manager, is_outdated
 from instawow.models import Pkg
 from instawow.resolvers import Defn
@@ -265,17 +266,19 @@ async def test_get_changelog_from_web_url(iw_manager: Manager):
 
 @pytest.mark.iw_no_mock_http
 async def test_is_outdated_works_in_variety_of_scenarios(
-    monkeypatch: pytest.MonkeyPatch, aresponses: ResponsesMockServer, iw_config: Config
+    monkeypatch: pytest.MonkeyPatch,
+    aresponses: ResponsesMockServer,
+    iw_global_config_values: dict[str, object],
 ):
+    global_config = GlobalConfig.from_env(**iw_global_config_values)
+
     # version == '0.0.0', version not cached
     with monkeypatch.context() as patcher:
         patcher.setattr('instawow.__version__', '0.0.0')
-        assert await is_outdated(iw_config.global_config) == (False, '')
+        assert await is_outdated(global_config) == (False, '')
 
     # Update check disabled, version not cached
-    with monkeypatch.context() as patcher:
-        patcher.setenv('INSTAWOW_AUTO_UPDATE_CHECK', '0')
-        assert await is_outdated(iw_config.global_config) == (False, '')
+    assert await is_outdated(evolve(global_config, auto_update_check=False)) == (False, '')
 
     # Endpoint not responsive, version not cached
     with monkeypatch.context() as patcher:
@@ -286,7 +289,7 @@ async def test_is_outdated_works_in_variety_of_scenarios(
             'get',
             aresponses.Response(status=500),
         )
-        assert await is_outdated(iw_config.global_config) == (False, '0.1.0')
+        assert await is_outdated(global_config) == (False, '0.1.0')
 
     # Endpoint responsive, version not cached and version different
     with monkeypatch.context() as patcher:
@@ -297,17 +300,15 @@ async def test_is_outdated_works_in_variety_of_scenarios(
             'get',
             {'info': {'version': '1.0.0'}},
         )
-        assert await is_outdated(iw_config.global_config) == (True, '1.0.0')
+        assert await is_outdated(global_config) == (True, '1.0.0')
 
     # version == '0.0.0', version cached
     with monkeypatch.context() as patcher:
         patcher.setattr('instawow.__version__', '0.0.0')
-        assert await is_outdated(iw_config.global_config) == (False, '')
+        assert await is_outdated(global_config) == (False, '')
 
     # Update check disabled, version cached
-    with monkeypatch.context() as patcher:
-        patcher.setenv('INSTAWOW_AUTO_UPDATE_CHECK', '0')
-        assert await is_outdated(iw_config.global_config) == (False, '')
+    assert await is_outdated(evolve(global_config, auto_update_check=False)) == (False, '')
 
     # Endpoint not responsive, version cached
     with monkeypatch.context() as patcher:
@@ -318,7 +319,7 @@ async def test_is_outdated_works_in_variety_of_scenarios(
             'get',
             aresponses.Response(status=500),
         )
-        assert await is_outdated(iw_config.global_config) == (True, '1.0.0')
+        assert await is_outdated(global_config) == (True, '1.0.0')
 
     # Endpoint responsive, version cached and version same
     with monkeypatch.context() as patcher:
@@ -329,7 +330,7 @@ async def test_is_outdated_works_in_variety_of_scenarios(
             'get',
             {'info': {'version': '1.0.0'}},
         )
-        assert await is_outdated(iw_config.global_config) == (True, '1.0.0')
+        assert await is_outdated(global_config) == (True, '1.0.0')
 
     # Endpoint responsive, version cached and version different
     with monkeypatch.context() as patcher:
@@ -340,4 +341,4 @@ async def test_is_outdated_works_in_variety_of_scenarios(
             'get',
             {'info': {'version': '1.0.0'}},
         )
-        assert await is_outdated(iw_config.global_config) == (False, '1.0.0')
+        assert await is_outdated(global_config) == (False, '1.0.0')
