@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Callable, Iterable, Set, Sized
+from collections.abc import Callable, Iterable, Sized
 from functools import lru_cache
 import json
 import os
@@ -82,7 +82,7 @@ def _encode_config_for_display(config: object):
     )
 
 
-def _write_config(config: object, config_path: Path, fields_to_include: Set[str]):
+def _write_config(config: object, config_path: Path, fields_to_include: frozenset[str]):
     converter = _make_write_converter(config.__class__, fields_to_include)
     config_path.write_text(
         json.dumps(
@@ -138,7 +138,8 @@ def _make_display_converter():
     return converter
 
 
-def _make_write_converter(config_cls: Any, fields_to_include: Set[str]):
+@lru_cache(2)
+def _make_write_converter(config_cls: Any, fields_to_include: frozenset[str]):
     converter = make_config_converter()
     converter.register_unstructure_hook(
         config_cls,
@@ -218,7 +219,7 @@ class GlobalConfig:
 
     def write(self) -> Self:
         self.ensure_dirs()
-        _write_config(self, self.config_file, {'auto_update_check', 'access_tokens'})
+        _write_config(self, self.config_file, frozenset({'auto_update_check', 'access_tokens'}))
         return self
 
     @property
@@ -275,7 +276,7 @@ class Config:
 
     def write(self) -> Self:
         self.ensure_dirs()
-        _write_config(self, self.config_file, {'addon_dir', 'game_flavour', 'profile'})
+        _write_config(self, self.config_file, frozenset({'addon_dir', 'game_flavour', 'profile'}))
         return self
 
     def delete(self) -> None:
