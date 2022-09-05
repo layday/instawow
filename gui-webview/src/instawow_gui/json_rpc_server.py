@@ -15,6 +15,7 @@ import typing
 from typing import TYPE_CHECKING, Any, TypeVar
 
 import aiohttp
+import aiohttp.typedefs
 import aiohttp.web
 from aiohttp_rpc import JsonRpcMethod, middlewares as rpc_middlewares
 from aiohttp_rpc.errors import InvalidParams, ServerError
@@ -813,7 +814,7 @@ async def create_app(app_window: toga.MainWindow | None = None):
     @aiohttp.web.middleware
     async def enforce_same_origin(
         request: aiohttp.web.Request,
-        handler: Callable[[aiohttp.web.Request], Awaitable[aiohttp.web.StreamResponse]],
+        handler: aiohttp.typedefs.Handler,
     ):
         if request.remote != LOCALHOST:
             raise aiohttp.web.HTTPUnauthorized
