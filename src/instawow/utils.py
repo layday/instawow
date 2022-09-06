@@ -91,9 +91,9 @@ class TocReader:
         return cls((path / (path.name + suffix)).read_text(encoding='utf-8-sig', errors='replace'))
 
 
-def fill(it: Iterable[_T], fill: _T, number: int) -> Iterable[_T]:
-    "Append entries to a sized iterable."
-    return islice(chain(it, repeat(fill)), 0, number)
+def fill(it: Iterable[_T], fill: _T, length: int) -> Iterable[_T]:
+    "Fill an iterable of specified length."
+    return islice(chain(it, repeat(fill)), 0, length)
 
 
 def bucketise(iterable: Iterable[_U], key: Callable[[_U], _T]) -> dict[_T, list[_U]]:
@@ -249,7 +249,7 @@ def find_addon_zip_tocs(names: Iterable[str]) -> Iterator[tuple[str, str]]:
                 yield (name, head)
 
 
-def make_zip_member_filter(base_dirs: Set[str]) -> Callable[[str], bool]:
+def make_zip_member_filter_fn(base_dirs: Set[str]) -> Callable[[str], bool]:
     "Filter out items which are not sub-paths of top-level folders in a ZIP."
 
     def is_subpath(name: str):

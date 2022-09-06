@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 from collections import defaultdict
-from collections.abc import Awaitable, Callable, Iterable, Mapping, Sequence, Set
+from collections.abc import Awaitable, Callable, Collection, Iterable, Mapping, Sequence, Set
 from contextlib import AbstractAsyncContextManager, asynccontextmanager, contextmanager
 import contextvars as cv
 from datetime import datetime, timedelta
@@ -13,7 +13,8 @@ from pathlib import Path, PurePath
 from shutil import copy
 from tempfile import NamedTemporaryFile
 import time
-from typing import Any, TypeVar
+import typing
+from typing import NoReturn, TypeVar
 
 from attrs import evolve
 from loguru import logger
@@ -38,18 +39,18 @@ from .cataloguer import (
 from .common import Strategy
 from .config import Config, GlobalConfig
 from .http import make_generic_progress_ctx, make_pkg_progress_ctx
-from .models import PkgFolder
 from .plugins import load_plugins
 from .resolvers import Defn, Resolver
 from .utils import (
     bucketise,
+    cached_property,
     chain_dict,
     file_uri_to_path,
     find_addon_zip_tocs,
     gather,
     is_file_uri,
     is_not_stale,
-    make_zip_member_filter,
+    make_zip_member_filter_fn,
     move,
     normalise_names,
     run_in_thread as t,
@@ -60,10 +61,24 @@ from .utils import (
 
 _P = ParamSpec('_P')
 _T = TypeVar('_T')
+_ResultOrError: TypeAlias = '_T | R.ManagerError | R.InternalError'
 
 DB_REVISION = 'e13430219249'
 
 _move_async = t(move)
+
+
+_ERROR_CLASSES = (R.ManagerError, R.InternalError)
+
+
+def _bucketise_results(
+    value: Iterable[tuple[Defn, _ResultOrError[_T]]],
+) -> tuple[Mapping[Defn, _T], Mapping[Defn, _ResultOrError[NoReturn]]]:
+    def get_bucket_dict(key: bool):
+        return dict(buckets.get(key, ()))
+
+    buckets = bucketise(value, lambda v: isinstance(v[1], _ERROR_CLASSES))
+    return (get_bucket_dict(False), get_bucket_dict(True))  # pyright: ignore
 
 
 @asynccontextmanager
@@ -88,7 +103,7 @@ def _open_pkg_archive(path: PurePath):
     with ZipFile(path) as archive:
 
         def extract(parent: Path) -> None:
-            archive.extractall(parent, members=filter(make_zip_member_filter(base_dirs), names))
+            archive.extractall(parent, members=filter(make_zip_member_filter_fn(base_dirs), names))
 
         names = archive.namelist()
         base_dirs = {h for _, h in find_addon_zip_tocs(names)}
@@ -97,9 +112,7 @@ def _open_pkg_archive(path: PurePath):
 
 @object.__new__
 class _DummyResolver:
-    async def resolve(
-        self, defns: Sequence[Defn]
-    ) -> dict[Defn, models.Pkg | R.ManagerError | R.InternalError]:
+    async def resolve(self, defns: Sequence[Defn]) -> dict[Defn, _ResultOrError[models.Pkg]]:
         return dict.fromkeys(defns, R.PkgSourceInvalid())
 
     async def get_changelog(self, uri: URL) -> str:
@@ -108,7 +121,7 @@ class _DummyResolver:
 
 async def capture_manager_exc_async(
     awaitable: Awaitable[_T],
-) -> _T | R.ManagerError | R.InternalError:
+) -> _ResultOrError[_T]:
     "Capture and log an exception raised in a coroutine."
     from aiohttp import ClientError
 
@@ -147,6 +160,20 @@ def _with_lock(
         return inner
 
     return outer
+
+
+class _Resolvers(typing.Dict[str, Resolver]):
+    @cached_property
+    def priority_dict(self) -> _ResolverPriorityDict:
+        return _ResolverPriorityDict(self)
+
+
+class _ResolverPriorityDict(typing.Dict[str, float]):
+    def __init__(self, resolvers: _Resolvers) -> None:
+        super().__init__((n, i) for i, n in enumerate(resolvers))
+
+    def __missing__(self, key: str) -> float:
+        return float('inf')
 
 
 _web_client: cv.ContextVar[_deferred_types.aiohttp.ClientSession] = cv.ContextVar('_web_client')
@@ -203,7 +230,7 @@ class Manager:
         resolver_classes = chain(
             (r for g in plugin_hook.instawow_add_resolvers() for r in g), builtin_resolver_classes
         )
-        self.resolvers: Mapping[str, Resolver] = {r.metadata.id: r(self) for r in resolver_classes}
+        self.resolvers = _Resolvers((r.metadata.id, r(self)) for r in resolver_classes)
 
         self._catalogue = None
 
@@ -281,7 +308,8 @@ class Manager:
         if maybe_row_mapping is not None:
             return models.Pkg.from_row_mapping(self.database, maybe_row_mapping)
 
-    def install_pkg(self, pkg: models.Pkg, archive: Path, replace: bool) -> R.PkgInstalled:
+    @t
+    def _install_pkg(self, pkg: models.Pkg, archive: Path, replace: bool) -> R.PkgInstalled:
         "Install a package."
         with _open_pkg_archive(archive) as (top_level_folders, extract):
             installed_conflicts = self.database.execute(
@@ -308,11 +336,12 @@ class Manager:
 
             extract(self.config.addon_dir)
 
-        pkg = evolve(pkg, folders=[PkgFolder(name=f) for f in sorted(top_level_folders)])
+        pkg = evolve(pkg, folders=[models.PkgFolder(name=f) for f in sorted(top_level_folders)])
         pkg.insert(self.database)
         return R.PkgInstalled(pkg)
 
-    def update_pkg(self, old_pkg: models.Pkg, new_pkg: models.Pkg, archive: Path) -> R.PkgUpdated:
+    @t
+    def _update_pkg(self, old_pkg: models.Pkg, new_pkg: models.Pkg, archive: Path) -> R.PkgUpdated:
         "Update a package."
         with _open_pkg_archive(archive) as (top_level_folders, extract):
             installed_conflicts = self.database.execute(
@@ -343,11 +372,14 @@ class Manager:
 
             extract(self.config.addon_dir)
 
-        new_pkg = evolve(new_pkg, folders=[PkgFolder(name=f) for f in sorted(top_level_folders)])
+        new_pkg = evolve(
+            new_pkg, folders=[models.PkgFolder(name=f) for f in sorted(top_level_folders)]
+        )
         new_pkg.insert(self.database)
         return R.PkgUpdated(old_pkg, new_pkg)
 
-    def remove_pkg(self, pkg: models.Pkg, keep_folders: bool) -> R.PkgRemoved:
+    @t
+    def _remove_pkg(self, pkg: models.Pkg, keep_folders: bool) -> R.PkgRemoved:
         "Remove a package."
         if not keep_folders:
             trash(
@@ -421,16 +453,16 @@ class Manager:
                 if d.source != pkg.source
             )
 
-        source_priority = {n: i for i, n in enumerate(self.resolvers)}
-
         return {
-            p: sorted(d, key=lambda d: source_priority.get(d.source, float('inf')))
+            p: sorted(d, key=lambda d: self.resolvers.priority_dict[d.source])
             for p in pkgs
             for d in (get_catalogue_defns(p) | await t(extract_addon_toc_defns)(p),)
             if d
         }
 
-    async def _resolve_deps(self, results: Iterable[Any]) -> dict[Defn, Any]:
+    async def _resolve_deps(
+        self, results: Collection[_ResultOrError[models.Pkg]]
+    ) -> Mapping[Defn, _ResultOrError[models.Pkg]]:
         """Resolve package dependencies.
 
         The resolver will not follow dependencies
@@ -455,8 +487,8 @@ class Manager:
         return pretty_deps
 
     async def resolve(
-        self, defns: Sequence[Defn], with_deps: bool = False
-    ) -> dict[Defn, models.Pkg | R.ManagerError | R.InternalError]:
+        self, defns: Collection[Defn], with_deps: bool = False
+    ) -> Mapping[Defn, _ResultOrError[models.Pkg]]:
         "Resolve definitions into packages."
         if not defns:
             return {}
@@ -466,9 +498,9 @@ class Manager:
             (self.resolvers.get(s, _DummyResolver).resolve(b) for s, b in defns_by_source.items()),
             capture_manager_exc_async,
         )
-        results_by_defn: dict[Defn, Any] = chain_dict(
+        results_by_defn = chain_dict(
             defns,
-            None,
+            R.ManagerError(),
             *(
                 r.items() if isinstance(r, dict) else zip(d, repeat(r))
                 for d, r in zip(defns_by_source.values(), results)
@@ -508,7 +540,7 @@ class Manager:
             if unknown_sources:
                 raise ValueError(f'Unknown sources: {", ".join(unknown_sources)}')
 
-        def make_filter():
+        def make_filter_fns():
             def filter_game_flavour(entry: CatalogueEntry):
                 return self.config.game_flavour in entry.game_flavours
 
@@ -529,7 +561,7 @@ class Manager:
 
                 yield filter_age
 
-        filter_fns = list(make_filter())
+        filter_fns = list(make_filter_fns())
 
         s = self._normalise_search_terms(search_terms)
 
@@ -565,17 +597,20 @@ class Manager:
         return [e for _, e in weighted_entries[:limit]]
 
     async def _download_pkg_archive(self, pkg: models.Pkg, *, chunk_size: int = 4096):
-        url = pkg.download_url
-        dest = self.config.global_config.cache_dir / shasum(url)
+        dest = self.config.global_config.cache_dir / shasum(pkg.download_url)
 
         if await t(dest.exists)():
-            logger.debug(f'{url} is cached at {dest}')
-        elif is_file_uri(url):
+            pass
+
+        elif is_file_uri(pkg.download_url):
             loop = asyncio.get_running_loop()
-            await loop.run_in_executor(None, lambda: copy(file_uri_to_path(url), dest))
+            await loop.run_in_executor(
+                None, lambda: copy(file_uri_to_path(pkg.download_url), dest)
+            )
+
         else:
             async with self.web_client.get(
-                url,
+                pkg.download_url,
                 headers=await self.resolvers[pkg.source].make_auth_headers(),
                 raise_for_status=True,
                 trace_request_ctx=make_pkg_progress_ctx(self.config.profile, pkg),
@@ -585,7 +620,6 @@ class Manager:
             ):
                 async for chunk in response.content.iter_chunked(chunk_size):
                     await write(chunk)
-
             await _move_async(temp_path, dest)
 
         return dest
@@ -595,41 +629,44 @@ class Manager:
         return all((self.config.addon_dir / p.name).exists() for p in pkg.folders)
 
     async def _should_update_pkg(self, old_pkg: models.Pkg, new_pkg: models.Pkg) -> bool:
-        return old_pkg.version != new_pkg.version or not await self._check_installed_pkg_integrity(
-            old_pkg
+        return old_pkg.version != new_pkg.version or (
+            not await self._check_installed_pkg_integrity(old_pkg)
         )
 
     @_with_lock('change state')
     async def install(
         self, defns: Sequence[Defn], replace: bool
-    ) -> dict[Defn, R.PkgInstalled | R.ManagerError | R.InternalError]:
+    ) -> Mapping[Defn, _ResultOrError[R.PkgInstalled]]:
         "Install packages from a definition list."
         # We'll weed out installed deps from the results after resolving -
         # doing it this way isn't particularly efficient but avoids having to
-        # deal with local state in `resolve()`
+        # deal with local state in ``resolve``
         resolve_results = await self.resolve(
             [d for d in defns if not self.check_pkg_exists(d)], with_deps=True
         )
-        resolve_results = {
-            d: r for d, r in resolve_results.items() if not self.check_pkg_exists(d)
-        }
-        installables = {d: r for d, r in resolve_results.items() if isinstance(r, models.Pkg)}
-        archives = await gather(
-            (self._download_pkg_archive(r) for r in installables.values()),
-            capture_manager_exc_async,
+        pkgs, resolve_errors = _bucketise_results(
+            (d, r) for d, r in resolve_results.items() if not self.check_pkg_exists(d)
         )
-        results: dict[Defn, Any] = chain_dict(
+        archive_paths, download_errors = _bucketise_results(
+            zip(
+                pkgs,
+                await gather(
+                    (self._download_pkg_archive(r) for r in pkgs.values()),
+                    capture_manager_exc_async,
+                ),
+            )
+        )
+        results = chain_dict(
             defns,
             R.PkgAlreadyInstalled(),
-            resolve_results.items(),
+            resolve_errors.items(),
+            download_errors.items(),
             [
                 (
                     d,
-                    await capture_manager_exc_async(t(self.install_pkg)(p, a, replace))
-                    if isinstance(a, PurePath)
-                    else a,
+                    await capture_manager_exc_async(self._install_pkg(pkgs[d], a, replace)),
                 )
-                for (d, p), a in zip(installables.items(), archives)
+                for d, a in archive_paths.items()
             ],
         )
         return results
@@ -637,7 +674,7 @@ class Manager:
     @_with_lock('change state')
     async def update(
         self, defns: Sequence[Defn], retain_defn_strategy: bool
-    ) -> dict[Defn, R.PkgUpdated | R.ManagerError | R.InternalError]:
+    ) -> Mapping[Defn, _ResultOrError[R.PkgInstalled | R.PkgUpdated]]:
         """Update installed packages from a definition list.
 
         A ``retain_defn_strategy`` value of false will instruct ``update``
@@ -653,37 +690,45 @@ class Manager:
             evolve(d, id=p.id) if retain_defn_strategy else Defn.from_pkg(p): d
             for d, p in defns_to_pkgs.items()
         }
+        resolve_results = await self.resolve(resolve_defns, with_deps=True)
         # Discard the reconstructed ``Defn``s
-        resolve_results = {
-            resolve_defns[d]: r for d, r in (await self.resolve(list(resolve_defns))).items()
-        }
-        installables = {d: r for d, r in resolve_results.items() if isinstance(r, models.Pkg)}
+        orig_defn_resolve_results = (
+            (resolve_defns.get(d, d), r) for d, r in resolve_results.items()
+        )
+        pkgs, resolve_errors = _bucketise_results(orig_defn_resolve_results)
         updatables = {
             d: (o, n)
-            for d, n in installables.items()
-            for o in (defns_to_pkgs[d],)
-            if await self._should_update_pkg(o, n)
+            for d, n in pkgs.items()
+            for o in (defns_to_pkgs.get(d),)
+            if not o or await self._should_update_pkg(o, n)
         }
-        archives = await gather(
-            (self._download_pkg_archive(n) for _, n in updatables.values()),
-            capture_manager_exc_async,
+        archive_paths, download_errors = _bucketise_results(
+            zip(
+                updatables,
+                await gather(
+                    (self._download_pkg_archive(n) for _, n in updatables.values()),
+                    capture_manager_exc_async,
+                ),
+            )
         )
-        results: dict[Defn, Any] = chain_dict(
+        results = chain_dict(
             defns,
             R.PkgNotInstalled(),
-            resolve_results.items(),
+            resolve_errors.items(),
             (
-                (d, R.PkgUpToDate(is_pinned=p.options.strategy == Strategy.version))
-                for d, p in installables.items()
+                (d, R.PkgUpToDate(is_pinned=pkgs[d].options.strategy is Strategy.version))
+                for d in pkgs.keys() - updatables.keys()
             ),
+            download_errors.items(),
             [
                 (
                     d,
-                    await capture_manager_exc_async(t(self.update_pkg)(o, n, a))
-                    if isinstance(a, PurePath)
-                    else a,
+                    await capture_manager_exc_async(
+                        self._update_pkg(o, n, a) if o else self._install_pkg(n, a, False)
+                    ),
                 )
-                for (d, (o, n)), a in zip(updatables.items(), archives)
+                for d, a in archive_paths.items()
+                for o, n in (updatables[d],)
             ],
         )
         return results
@@ -691,31 +736,20 @@ class Manager:
     @_with_lock('change state')
     async def remove(
         self, defns: Sequence[Defn], keep_folders: bool
-    ) -> dict[Defn, R.PkgRemoved | R.PkgNotInstalled | R.ManagerError | R.InternalError]:
+    ) -> Mapping[Defn, _ResultOrError[R.PkgRemoved]]:
         "Remove packages by their definition."
-        results = chain_dict(
-            defns,
-            R.PkgNotInstalled(),
-            [
-                (d, await capture_manager_exc_async(t(self.remove_pkg)(p, keep_folders)))
-                for d in defns
-                for p in (self.get_pkg(d),)
+        return {
+            d: (
+                await capture_manager_exc_async(self._remove_pkg(p, keep_folders))
                 if p
-            ],
-        )
-        return results
+                else R.PkgNotInstalled()
+            )
+            for d in defns
+            for p in (self.get_pkg(d),)
+        }
 
     @_with_lock('change state')
-    async def pin(
-        self, defns: Sequence[Defn]
-    ) -> dict[
-        Defn,
-        R.PkgNotInstalled
-        | R.PkgInstalled
-        | R.PkgStrategyUnsupported
-        | R.ManagerError
-        | R.InternalError,
-    ]:
+    async def pin(self, defns: Sequence[Defn]) -> Mapping[Defn, _ResultOrError[R.PkgInstalled]]:
         """Pin and unpin installed packages.
 
         instawow does not have true pinning.  This sets the strategy
@@ -726,33 +760,33 @@ class Manager:
         package.
         """
 
-        strategies = frozenset({Strategy.default, Strategy.version})
+        PINNING_STRATEGIES = frozenset({Strategy.default, Strategy.version})
 
         @t
-        def pin(defn: Defn, pkg: models.Pkg | None) -> R.PkgInstalled:
+        def pin(defn: Defn) -> R.PkgInstalled:
+            pkg = self.get_pkg(defn)
             if not pkg:
                 raise R.PkgNotInstalled
 
-            elif {defn.strategy} <= strategies <= self.resolvers[pkg.source].metadata.strategies:
-                self.database.execute(
-                    sa.update(db.pkg_options)
-                    .filter_by(pkg_source=pkg.source, pkg_id=pkg.id)
-                    .values(strategy=defn.strategy)
-                )
-                self.database.commit()
-                row_mapping = (
+            resolver = self.resolvers.get(pkg.source)
+            if resolver is None:
+                raise R.PkgSourceInvalid
+
+            if {defn.strategy} <= PINNING_STRATEGIES <= resolver.metadata.strategies:
+                with db.faux_transact(self.database):
                     self.database.execute(
-                        sa.select(db.pkg).filter_by(source=pkg.source, id=pkg.id)
+                        sa.update(db.pkg_options)
+                        .filter_by(pkg_source=pkg.source, pkg_id=pkg.id)
+                        .values(strategy=defn.strategy)
                     )
-                    .mappings()
-                    .one()
-                )
-                return R.PkgInstalled(models.Pkg.from_row_mapping(self.database, row_mapping))
+
+                new_pkg = evolve(pkg, options=evolve(pkg.options, strategy=defn.strategy))
+                return R.PkgInstalled(new_pkg)
 
             else:
                 raise R.PkgStrategyUnsupported(Strategy.version)
 
-        return {d: await capture_manager_exc_async(pin(d, self.get_pkg(d))) for d in defns}
+        return {d: await capture_manager_exc_async(pin(d)) for d in defns}
 
 
 async def is_outdated(global_config: GlobalConfig) -> tuple[bool, str]:

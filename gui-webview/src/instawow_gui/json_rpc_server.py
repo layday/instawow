@@ -322,12 +322,12 @@ class ErrorResult(TypedDict):
 
 @_register_method('resolve')
 class ResolveParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
-    async def _resolve(self, manager: Manager) -> dict[Defn, Any]:
+    async def _resolve(self, manager: Manager):
         def extract_source(defn: Defn):
             if defn.source == '*':
-                pair = manager.pair_uri(defn.alias)
-                if pair:
-                    source, alias = pair
+                match = manager.pair_uri(defn.alias)
+                if match:
+                    source, alias = match
                     defn = evolve(defn, source=source, alias=alias)
             return defn
 
@@ -374,6 +374,8 @@ class UpdateParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
         return [
             {'status': r.status, 'addon': r.new_pkg}
             if isinstance(r, R.PkgUpdated)
+            else {'status': r.status, 'addon': r.pkg}
+            if isinstance(r, R.PkgInstalled)
             else {'status': r.status, 'message': r.message}
             for r in results.values()
         ]

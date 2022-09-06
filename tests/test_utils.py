@@ -8,7 +8,7 @@ import time
 
 import pytest
 
-from instawow.manager import find_addon_zip_tocs, make_zip_member_filter
+from instawow.manager import find_addon_zip_tocs, make_zip_member_filter_fn
 from instawow.utils import (
     TocReader,
     bucketise,
@@ -49,8 +49,8 @@ def test_find_addon_zip_tocs_toc_is_case_insensitive(ext: tuple[str, ...]):
     assert {h for _, h in find_addon_zip_tocs([f'a/a.{"".join(ext)}'])} == {'a'}
 
 
-def test_make_zip_member_filter_discards_names_with_prefix_not_in_dirs():
-    is_member = make_zip_member_filter({'b'})
+def test_make_zip_member_filter_fn_discards_names_with_prefix_not_in_dirs():
+    is_member = make_zip_member_filter_fn({'b'})
     assert list(filter(is_member, ['a/', 'b/', 'aa/', 'bb/', 'b/c', 'a/d'])) == ['b/', 'b/c']
 
 

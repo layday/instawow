@@ -157,7 +157,7 @@ def prepare_database(uri: str, revision: str) -> Engine:
     listen(engine, 'connect', _set_sqlite_pragma)
 
     database_state = _get_database_state(engine, revision)
-    if database_state != _DatabaseState.current:
+    if database_state is not _DatabaseState.current:
         import alembic.command
         import alembic.config
 
@@ -165,7 +165,7 @@ def prepare_database(uri: str, revision: str) -> Engine:
         alembic_config.set_main_option('script_location', f'{__package__}:_migrations')
         alembic_config.set_main_option('sqlalchemy.url', str(engine.url))
 
-        if database_state == _DatabaseState.uninitialised:
+        if database_state is _DatabaseState.uninitialised:
             metadata.create_all(engine)
             alembic.command.stamp(alembic_config, revision)
         else:
