@@ -115,6 +115,15 @@ which do not have Classic releases but are known to work just as well::
 
     instawow -p classic install -s any_flavour https://www.curseforge.com/wow/addons/colorpickerplus
 
+
+Migrating Classic profiles
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+With the exception of "Classic Era" profiles
+(``vanilla_classic`` in *instawow* parlance), classic profiles will start
+receiving updates for the latest Classic release once it is supported by
+*instawow*.  No user intervention is necessary, save for updating *instawow*.
+
 WeakAura updater
 ~~~~~~~~~~~~~~~~
 
