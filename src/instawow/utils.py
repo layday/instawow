@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 from collections import defaultdict
-from collections.abc import Awaitable, Callable, Iterable, Iterator, Sequence, Set
+from collections.abc import Awaitable, Callable, Collection, Iterable, Iterator, Sequence, Set
 from contextlib import contextmanager
 from datetime import datetime, timedelta
 from functools import partial, wraps
@@ -214,17 +214,19 @@ def move(src: str | os.PathLike[str], dest: str | os.PathLike[str]) -> Any:
     )
 
 
-def trash(paths: Sequence[PurePath], *, dest: PurePath, missing_ok: bool = False) -> None:
+def trash(paths: Collection[PurePath], *, dest: PurePath, missing_ok: bool = False) -> None:
     if not paths:
         return
 
-    exc_class = FileNotFoundError if missing_ok else ()
+    exc_classes = FileNotFoundError if missing_ok else ()
 
-    parent_folder = mkdtemp(dir=dest, prefix=f'deleted-{paths[0].name}-')
+    first_path_name = next(iter(paths)).name
+    parent_folder = mkdtemp(dir=dest, prefix=f'deleted-{first_path_name}-')
+
     for path in paths:
         try:
             move(path, dest=parent_folder)
-        except exc_class:
+        except exc_classes:
             pass
 
 
