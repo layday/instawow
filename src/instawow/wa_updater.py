@@ -142,15 +142,17 @@ class WaCompanionBuilder:
     """A WeakAuras Companion port for shellfolk."""
 
     def __init__(self, manager: Manager) -> None:
-        self.manager = manager
+        self._manager = manager
 
-        output_folder = self.manager.config.plugin_dir / __name__
+        output_folder = self._manager.config.plugin_dir / __name__
         self.addon_zip_path = output_folder / 'WeakAurasCompanion.zip'
         self.changelog_path = output_folder / 'CHANGELOG.md'
         self.version_txt_path = output_folder / 'version.txt'
 
-    def _get_access_token(self):
-        return self.manager.config.global_config.access_tokens.wago or ''
+    def _make_auth_headers(self):
+        access_token = self._manager.config.global_config.access_tokens.wago
+        if access_token:
+            return {'api-key': access_token}
 
     @staticmethod
     def extract_auras(model: type[WeakAuras | Plateroos], source: str) -> WeakAuras | Plateroos:
@@ -161,7 +163,7 @@ class WaCompanionBuilder:
         return model.from_lua_table(aura_table)
 
     def extract_installed_auras(self) -> Iterator[WeakAuras | Plateroos]:
-        flavour_root = self.manager.config.addon_dir.parents[1]
+        flavour_root = self._manager.config.addon_dir.parents[1]
         saved_vars_by_account = flavour_root.glob('WTF/Account/*/SavedVariables')
         for saved_vars, model in product(
             saved_vars_by_account,
@@ -172,7 +174,7 @@ class WaCompanionBuilder:
                 logger.info(f'{file} not found')
             else:
                 content = file.read_text(encoding='utf-8-sig', errors='replace')
-                aura_group_cache = self.manager.config.global_config.cache_dir / shasum(content)
+                aura_group_cache = self._manager.config.global_config.cache_dir / shasum(content)
                 if aura_group_cache.exists():
                     logger.info(f'loading {file} from cache at {aura_group_cache}')
                     aura_groups_json = json.loads(aura_group_cache.read_bytes())
@@ -193,25 +195,27 @@ class WaCompanionBuilder:
                 yield aura_groups
 
     async def _fetch_wago_metadata(self, api_ep: str, aura_ids: Iterable[str]):
-        async with self.manager.web_client.get(
+        async with self._manager.web_client.get(
             (_CHECK_API_URL / api_ep).with_query(ids=','.join(aura_ids)),
             expire_after=timedelta(minutes=30),
-            headers={'api-key': self._get_access_token()},
+            headers=self._make_auth_headers(),
             trace_request_ctx=make_generic_progress_ctx('Fetching aura metadata'),
         ) as response:
             metadata: list[_WagoApiResponse]
             if response.status == 404:
                 metadata = []
                 return metadata
+
             response.raise_for_status()
+
             metadata = await response.json()
             return sorted(metadata, key=lambda r: r['slug'])
 
     async def _fetch_wago_import_string(self, aura: _WagoApiResponse):
-        async with self.manager.web_client.get(
+        async with self._manager.web_client.get(
             _IMPORT_STRING_API_URL.with_query(id=aura['_id']).with_fragment(str(aura['version'])),
             expire_after=CACHE_INDEFINITELY,
-            headers={'api-key': self._get_access_token()},
+            headers=self._make_auth_headers(),
             raise_for_status=True,
             trace_request_ctx=make_generic_progress_ctx(f"Fetching aura '{aura['slug']}'"),
         ) as response:
@@ -319,7 +323,7 @@ class WaCompanionBuilder:
             write_tpl('init.lua', {})
             write_tpl(
                 'WeakAurasCompanion.toc',
-                {'interface': self.manager.config.game_flavour.to_flavour_keyed_enum(_TocNumber)},
+                {'interface': self._manager.config.game_flavour.to_flavour_keyed_enum(_TocNumber)},
             )
 
         self.changelog_path.write_text(
