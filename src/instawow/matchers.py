@@ -33,7 +33,10 @@ FLAVOUR_TOC_IDS = {
         'Vanilla',
         'Classic',
     ),
-    Flavour.classic: ('Wrath',),
+    Flavour.classic: (
+        'Wrath',
+        'WOTLKC',
+    ),
 }
 
 FLAVOUR_TOC_SUFFIXES = {
