@@ -12,7 +12,6 @@ import json
 from pathlib import Path, PurePath
 from shutil import copy
 from tempfile import NamedTemporaryFile
-import time
 import typing
 from typing import NoReturn, TypeVar
 
@@ -55,6 +54,7 @@ from .utils import (
     normalise_names,
     run_in_thread as t,
     shasum,
+    time_op,
     trash,
     uniq,
 )
@@ -397,13 +397,11 @@ class Manager:
         catalogue_json = self.config.global_config.temp_dir / self._catalogue_filename
         if await t(is_not_stale)(catalogue_json, timedelta(hours=4)):
             if self._catalogue is None:
-                raw_catalogue = await t(catalogue_json.read_bytes)()
-                start = time.perf_counter()
-                # Skip validation when loading the catalogue from cache.
-                self._catalogue = catalogue_converter.structure(
-                    json.loads(raw_catalogue), Catalogue
-                )
-                logger.debug(f'loaded catalogue from cache in {time.perf_counter() - start:.3f}s')
+                with time_op(lambda t: logger.debug(f'loaded catalogue from cache in {t:.3f}s')):
+                    raw_catalogue = await t(catalogue_json.read_bytes)()
+                    self._catalogue = catalogue_converter.structure(
+                        json.loads(raw_catalogue), Catalogue
+                    )
         else:
             async with self.web_client.get(
                 self._base_catalogue_url,

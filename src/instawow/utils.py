@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 from collections import defaultdict
 from collections.abc import Awaitable, Callable, Iterable, Iterator, Sequence, Set
+from contextlib import contextmanager
 from datetime import datetime, timedelta
 from functools import partial, wraps
 import importlib.resources
@@ -13,6 +14,7 @@ import posixpath
 from shutil import move as _move
 import sys
 from tempfile import mkdtemp
+import time
 from types import ModuleType
 from typing import Any, Generic, Hashable, TypeVar, overload
 
@@ -298,3 +300,10 @@ def reveal_folder(path: str | os.PathLike[str]) -> None:
         import click
 
         click.launch(os.fspath(path), locate=True)
+
+
+@contextmanager
+def time_op(on_complete: Callable[[float], None]) -> Iterator[None]:
+    start = time.perf_counter()
+    yield
+    on_complete(time.perf_counter() - start)

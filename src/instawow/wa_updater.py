@@ -5,7 +5,6 @@ from datetime import timedelta
 from functools import partial, reduce
 from itertools import chain, product
 import json
-import time
 import typing
 from typing import Any
 
@@ -25,6 +24,7 @@ from .utils import (
     read_resource_as_text,
     run_in_thread as t,
     shasum,
+    time_op,
 )
 
 _Slug = str
@@ -178,11 +178,10 @@ class WaCompanionBuilder:
                     aura_groups_json = json.loads(aura_group_cache.read_bytes())
                     aura_groups = _aura_converter.structure({'root': aura_groups_json}, model)
                 else:
-                    start = time.perf_counter()
-                    aura_groups = self.extract_auras(model, content)
-                    logger.debug(
-                        f'extracted {model.__name__} in {time.perf_counter() - start:.3f}s'
-                    )
+                    with time_op(
+                        lambda t: logger.debug(f'extracted {model.__name__} in {t:.3f}s')
+                    ):
+                        aura_groups = self.extract_auras(model, content)
                     aura_group_cache.write_text(
                         json.dumps(
                             _aura_converter.unstructure(  # pyright: ignore[reportUnknownMemberType]
