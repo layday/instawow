@@ -971,16 +971,18 @@ def configure(
     from ._cli_prompts import AttrFieldValidator, ask, confirm, password, path, select
     from .common import infer_flavour_from_path
 
+    profile = ctx.find_root().params['profile']
+
+    orig_global_config = GlobalConfig.read()
+
     if not config_options:
         config_options = {
             _EditableConfigOptions.addon_dir,
             _EditableConfigOptions.game_flavour,
-            _EditableConfigOptions.github_access_token,
         }
+        if orig_global_config.access_tokens.github is None:
+            config_options.add(_EditableConfigOptions.github_access_token)
 
-    profile = ctx.find_root().params['profile']
-
-    orig_global_config = GlobalConfig.read()
     global_config_values = asdict(orig_global_config)
     try:
         profile_config_values = asdict(Config.read(orig_global_config, profile))
