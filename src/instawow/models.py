@@ -10,6 +10,7 @@ from cattrs import GenConverter
 from cattrs.preconf.json import configure_converter
 import sqlalchemy as sa
 import sqlalchemy.future as sa_future
+from typing_extensions import Self
 
 from . import db
 from .common import Strategy
@@ -62,7 +63,7 @@ class Pkg:
     @classmethod
     def from_row_mapping(
         cls, connection: sa_future.Connection, row_mapping: Mapping[str, Any]
-    ) -> Pkg:
+    ) -> Self:
         source_and_id = {'pkg_source': row_mapping['source'], 'pkg_id': row_mapping['id']}
         return _db_pkg_converter.structure(
             {
