@@ -99,22 +99,22 @@ the ``default`` strategy.
 Profiles
 ~~~~~~~~
 
-*instawow* supports multiple game versions through the use of profiles.
+*instawow* supports multiple game versions by means of profiles.
 Assuming your default profile is configured for retail,
-you can create a pristine profile for classic by running::
+you can create a pristine profile for classic with::
 
     instawow -p classic configure
 
-You can create profiles for other versions of the game (e.g. TBC, PTR or beta)
-in the same way.
-Prefix ``-p <profile>`` to *instawow* commands
-to manage each respective profile.
+"``classic``" is simply the name of the profile; you will be asked to select
+the game flavour that it corresponds to.  You can have several profiles
+of the same flavour (think alpha, beta and PTR).
 
-The ``any_flavour`` strategy can be used to install add-ons from CurseForge
-which do not have Classic releases but are known to work just as well::
+``-p`` is a global option. You can prefix any *instawow* command with ``-p``.
+For instance, to update your Classic add-ons, you would run::
 
-    instawow -p classic install -s any_flavour https://www.curseforge.com/wow/addons/colorpickerplus
+    instawow -p classic update
 
+You can omit ``-p`` for the default profile if one exists.
 
 Migrating Classic profiles
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
