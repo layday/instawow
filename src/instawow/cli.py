@@ -167,7 +167,8 @@ class _CtxObjWrapper:
         except FileNotFoundError:
             config = self._ctx.invoke(configure)
 
-        setup_logging(config.logging_dir, self._ctx.params['debug'])
+        setup_logging(config.logging_dir, *self._ctx.params['debug'])
+
         manager, close_db_conn = _manager.Manager.from_config(config)
         self._ctx.call_on_close(close_db_conn)
 
@@ -235,15 +236,21 @@ def defn_to_urn(defn: Defn) -> str:
     return f'{defn.source}:{defn.alias}'
 
 
+def _parse_debug_option(
+    _: click.Context, __: click.Parameter, value: float
+) -> tuple[bool, bool, bool]:
+    return (value > 0, value > 1, value > 2)
+
+
 @_register_plugin_commands
 @click.group(context_settings={'help_option_names': ('-h', '--help')})
 @click.version_option(__version__, prog_name=__package__)
 @click.option(
     '--debug',
-    'debug',
-    is_flag=True,
-    default=False,
-    help='Log more things.',
+    '-d',
+    count=True,
+    help='Log incrementally more things.  Additive.',
+    callback=_parse_debug_option,
 )
 @click.option(
     '--profile',
@@ -1121,7 +1128,8 @@ def gui(ctx: click.Context) -> None:
     dummy_jsonrpc_config = Config.make_dummy_config(
         global_config=global_config, profile='__jsonrpc__'
     ).ensure_dirs()
+
     params = ctx.find_root().params
-    setup_logging(dummy_jsonrpc_config.logging_dir, params['debug'])
+    setup_logging(dummy_jsonrpc_config.logging_dir, *params['debug'])
 
     InstawowApp(version=__version__).main_loop()  # pyright: ignore[reportUnknownMemberType]

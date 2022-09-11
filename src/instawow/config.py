@@ -364,16 +364,18 @@ def _intercept_logging_module_calls(log_level: str):  # pragma: no cover
     logging.basicConfig(handlers=[InterceptHandler()], level=log_level)
 
 
-def setup_logging(logging_dir: Path, debug: bool) -> None:
+def setup_logging(
+    logging_dir: Path, log_to_stderr: bool, debug: bool, intercept_logging_module_calls: bool
+) -> None:
     log_level = 'DEBUG' if debug else 'INFO'
 
-    if debug:
+    if intercept_logging_module_calls:
         _intercept_logging_module_calls(log_level)
 
     _patch_loguru_enqueue()
 
     values = {
-        'level': log_level,
+        'level': 'DEBUG' if debug else 'INFO',
         'enqueue': True,
     }
     logger.configure(
@@ -386,7 +388,7 @@ def setup_logging(logging_dir: Path, debug: bool) -> None:
             },
         ]
     )
-    if debug:
+    if log_to_stderr:
         logger.add(
             **values,
             sink=sys.stderr,
