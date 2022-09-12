@@ -111,20 +111,15 @@ class TukuiResolver(BaseResolver):
                 addons: list[_TukuiAddon] = await response.json()
             return ((str(a['id']), a) for a in addons)
 
-        def get_fetch_coros(flavour: Flavour):
-            # Tukui is multi-TOC
-            yield fetch_ui('tukui')
-
-            # ElvUI has separate releases per flavour w/ "elvui" being retail only
-            if flavour is Flavour.retail:
-                yield fetch_ui('elvui')
-
-            yield fetch_addons(flavour)
-
         async with self._manager.locks['load Tukui catalogue']:
             return {
                 k: v
-                for l in await gather(get_fetch_coros(self._manager.config.game_flavour))
+                for l in await gather(
+                    (
+                        *(fetch_ui(u) for u in self._UI_SUITE_SLUGS),
+                        fetch_addons(self._manager.config.game_flavour),
+                    )
+                )
                 for k, v in l
             }
 
