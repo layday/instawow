@@ -521,8 +521,7 @@ class Manager:
         installed_only: bool = False,
     ) -> list[CatalogueEntry]:
         "Search the master catalogue for packages by name."
-        import rapidfuzz.fuzz
-        import rapidfuzz.process
+        import rapidfuzz
 
         catalogue = await self.synchronise()
 
