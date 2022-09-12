@@ -269,30 +269,32 @@ main = logger.catch(reraise=True)(cli)
 
 
 @overload
-def parse_into_defn(manager: _manager.Manager, value: str, *, raise_invalid: bool = True) -> Defn:
+def _parse_into_defn(manager: _manager.Manager, value: str, *, raise_invalid: bool = True) -> Defn:
     ...
 
 
 @overload
-def parse_into_defn(
+def _parse_into_defn(
     manager: _manager.Manager, value: list[str], *, raise_invalid: bool = True
 ) -> list[Defn]:
     ...
 
 
 @overload
-def parse_into_defn(manager: _manager.Manager, value: None, *, raise_invalid: bool = True) -> None:
+def _parse_into_defn(
+    manager: _manager.Manager, value: None, *, raise_invalid: bool = True
+) -> None:
     ...
 
 
-def parse_into_defn(
+def _parse_into_defn(
     manager: _manager.Manager, value: str | list[str] | None, *, raise_invalid: bool = True
 ) -> Defn | list[Defn] | None:
     if value is None:
         return None
 
     if not isinstance(value, str):
-        defns = (parse_into_defn(manager, v, raise_invalid=raise_invalid) for v in value)
+        defns = (_parse_into_defn(manager, v, raise_invalid=raise_invalid) for v in value)
         return uniq(defns)
 
     pair = manager.pair_uri(value)
@@ -304,17 +306,17 @@ def parse_into_defn(
     return Defn(*pair)
 
 
-def parse_into_defn_with_strategy(
+def _parse_into_defn_with_strategy(
     manager: _manager.Manager, value: Sequence[tuple[Strategy, str]]
 ) -> Iterator[Defn]:
-    defns = parse_into_defn(manager, [d for _, d in value])
+    defns = _parse_into_defn(manager, [d for _, d in value])
     return map(lambda d, s: evolve(d, strategy=s), defns, (s for s, _ in value))
 
 
-def parse_into_defn_with_version(
+def _parse_into_defn_with_version(
     manager: _manager.Manager, value: Sequence[tuple[str, str]]
 ) -> Iterator[Defn]:
-    defns = parse_into_defn(manager, [d for _, d in value])
+    defns = _parse_into_defn(manager, [d for _, d in value])
     return map(Defn.with_version, defns, (v for v, _ in value))
 
 
@@ -334,7 +336,7 @@ _EXCLUDED_STRATEGIES = frozenset({Strategy.default, Strategy.version})
 
 @cli.command()
 @click.argument(
-    'addons', nargs=-1, callback=partial(_combine_addons, parse_into_defn), expose_value=False
+    'addons', nargs=-1, callback=partial(_combine_addons, _parse_into_defn), expose_value=False
 )
 @click.option(
     '--with-strategy',
@@ -342,7 +344,7 @@ _EXCLUDED_STRATEGIES = frozenset({Strategy.default, Strategy.version})
     multiple=True,
     type=(StrEnumParam(Strategy, _EXCLUDED_STRATEGIES), str),
     expose_value=False,
-    callback=partial(_combine_addons, parse_into_defn_with_strategy),
+    callback=partial(_combine_addons, _parse_into_defn_with_strategy),
     metavar='<STRATEGY ADDON>...',
     help='A strategy followed by an add-on definition.  '
     f'One of: {", ".join(s for s in Strategy if s not in _EXCLUDED_STRATEGIES)}.',
@@ -352,7 +354,7 @@ _EXCLUDED_STRATEGIES = frozenset({Strategy.default, Strategy.version})
     multiple=True,
     type=(str, str),
     expose_value=False,
-    callback=partial(_combine_addons, parse_into_defn_with_version),
+    callback=partial(_combine_addons, _parse_into_defn_with_version),
     metavar='<VERSION ADDON>...',
     help='A version followed by an add-on definition.',
 )
@@ -370,7 +372,7 @@ def install(mw: _CtxObjWrapper, addons: Sequence[Defn], replace: bool) -> None:
 
 
 @cli.command()
-@click.argument('addons', nargs=-1, callback=_with_manager(parse_into_defn))
+@click.argument('addons', nargs=-1, callback=_with_manager(_parse_into_defn))
 @click.pass_obj
 def update(mw: _CtxObjWrapper, addons: Sequence[Defn]) -> None:
     "Update installed add-ons."
@@ -404,7 +406,7 @@ def update(mw: _CtxObjWrapper, addons: Sequence[Defn]) -> None:
 
 
 @cli.command()
-@click.argument('addons', nargs=-1, required=True, callback=_with_manager(parse_into_defn))
+@click.argument('addons', nargs=-1, required=True, callback=_with_manager(_parse_into_defn))
 @click.option(
     '--keep-folders',
     is_flag=True,
@@ -419,7 +421,7 @@ def remove(mw: _CtxObjWrapper, addons: Sequence[Defn], keep_folders: bool) -> No
 
 
 @cli.command()
-@click.argument('addon', callback=_with_manager(parse_into_defn))
+@click.argument('addon', callback=_with_manager(_parse_into_defn))
 @click.option(
     '--version',
     help='Version to roll back to.',
@@ -715,7 +717,7 @@ class _ListFormat(StrEnum):
 
 @cli.command('list')
 @click.argument(
-    'addons', nargs=-1, callback=_with_manager(partial(parse_into_defn, raise_invalid=False))
+    'addons', nargs=-1, callback=_with_manager(partial(_parse_into_defn, raise_invalid=False))
 )
 @click.option(
     '--format',
@@ -806,7 +808,7 @@ def list_installed(mw: _CtxObjWrapper, addons: Sequence[Defn], output_format: _L
 
 
 @cli.command(hidden=True)
-@click.argument('addon', callback=_with_manager(partial(parse_into_defn, raise_invalid=False)))
+@click.argument('addon', callback=_with_manager(partial(_parse_into_defn, raise_invalid=False)))
 @click.pass_context
 def info(ctx: click.Context, addon: Defn) -> None:
     "Alias of `list -f detailed`."
@@ -814,7 +816,7 @@ def info(ctx: click.Context, addon: Defn) -> None:
 
 
 @cli.command()
-@click.argument('addon', callback=_with_manager(partial(parse_into_defn, raise_invalid=False)))
+@click.argument('addon', callback=_with_manager(partial(_parse_into_defn, raise_invalid=False)))
 @click.pass_obj
 def reveal(mw: _CtxObjWrapper, addon: Defn) -> None:
     "Bring an add-on up in your file manager."
@@ -827,7 +829,7 @@ def reveal(mw: _CtxObjWrapper, addon: Defn) -> None:
 
 @cli.command()
 @click.argument(
-    'addon', callback=_with_manager(partial(parse_into_defn, raise_invalid=False)), required=False
+    'addon', callback=_with_manager(partial(_parse_into_defn, raise_invalid=False)), required=False
 )
 @click.option(
     '--convert/--no-convert',
