@@ -27,10 +27,10 @@ class Defn:
     version: typing.Optional[str] = None
 
     @classmethod
-    def from_pkg(cls, pkg: models.Pkg) -> Defn:
+    def from_pkg(cls, pkg: models.Pkg) -> Self:
         return cls(pkg.source, pkg.slug, pkg.id, pkg.options.strategy, pkg.version)
 
-    def with_version(self, version: str) -> Defn:
+    def with_version(self, version: str) -> Self:
         return evolve(self, strategy=Strategy.version, version=version)
 
 
