@@ -375,7 +375,7 @@ def setup_logging(
     _patch_loguru_enqueue()
 
     values = {
-        'level': 'DEBUG' if debug else 'INFO',
+        'level': log_level,
         'enqueue': True,
     }
     logger.configure(
