@@ -177,7 +177,7 @@ class _CtxObjWrapper:
     def run_with_progress(self, awaitable: Awaitable[_T]) -> _T:
         cache_dir = self.manager.config.global_config.cache_dir
 
-        if self._ctx.params['debug']:
+        if any(self._ctx.params['debug']):
 
             async def run():
                 async with init_web_client(cache_dir) as web_client:
