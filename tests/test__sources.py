@@ -104,13 +104,8 @@ async def test_tukui_basic(iw_manager: Manager):
         if iw_manager.config.game_flavour is Flavour.retail
         else 'ElvUI'
     )
-
     assert type(results[tukui_suite]) is Pkg and results[tukui_suite].name == 'Tukui'
-
-    if iw_manager.config.game_flavour is Flavour.retail:
-        assert type(results[elvui_suite]) is Pkg and results[elvui_suite].name == 'ElvUI'
-    else:
-        assert type(results[elvui_suite]) is R.PkgNonexistent
+    assert type(results[elvui_suite]) is Pkg and results[elvui_suite].name == 'ElvUI'
 
 
 @pytest.mark.parametrize(
