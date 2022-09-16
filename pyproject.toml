@@ -9,7 +9,7 @@ substitution.files = ["src/instawow/_version.py"]
 
 [tool.poetry]
 name = "instawow"
-version = "0.0.0"
+version = "0+dev"
 description = "World of Warcraft add-on manager"
 license = "GPL-3.0-or-later"
 authors = [

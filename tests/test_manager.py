@@ -272,9 +272,9 @@ async def test_is_outdated_works_in_variety_of_scenarios(
 ):
     global_config = GlobalConfig.from_env(**iw_global_config_values)
 
-    # version == '0.0.0', version not cached
+    # version == '0+dev', version not cached
     with monkeypatch.context() as patcher:
-        patcher.setattr('instawow.__version__', '0.0.0')
+        patcher.setattr('instawow.__version__', '0+dev')
         assert await is_outdated(global_config) == (False, '')
 
     # Update check disabled, version not cached
@@ -302,9 +302,9 @@ async def test_is_outdated_works_in_variety_of_scenarios(
         )
         assert await is_outdated(global_config) == (True, '1.0.0')
 
-    # version == '0.0.0', version cached
+    # version == '0+dev', version cached
     with monkeypatch.context() as patcher:
-        patcher.setattr('instawow.__version__', '0.0.0')
+        patcher.setattr('instawow.__version__', '0+dev')
         assert await is_outdated(global_config) == (False, '')
 
     # Update check disabled, version cached

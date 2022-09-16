@@ -797,7 +797,7 @@ async def is_outdated(global_config: GlobalConfig) -> tuple[bool, str]:
 
     from . import __version__
 
-    if __version__ == '0.0.0':
+    if __version__ == '0+dev':
         return (False, '')
 
     from aiohttp.client import ClientError
