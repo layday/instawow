@@ -93,7 +93,7 @@ class TukuiResolver(BaseResolver):
                 expire_after=timedelta(minutes=5),
                 raise_for_status=True,
             ) as response:
-                addon: _TukuiUi = await response.json()
+                addon: _TukuiUi = await response.json(content_type=None)  # text/html
             return ((str(addon['id']), addon), (ui_slug, addon))
 
         async def fetch_addons(flavour: Flavour):
@@ -108,7 +108,7 @@ class TukuiResolver(BaseResolver):
                     f'Synchronising {self.metadata.name} {flavour} catalogue'
                 ),
             ) as response:
-                addons: list[_TukuiAddon] = await response.json()
+                addons: list[_TukuiAddon] = await response.json(content_type=None)  # text/html
             return ((str(a['id']), a) for a in addons)
 
         async with self._manager.locks['load Tukui catalogue']:
