@@ -3,14 +3,16 @@ import json from "@rollup/plugin-json";
 import resolve from "@rollup/plugin-node-resolve";
 import replace from "@rollup/plugin-replace";
 import typescript from "@rollup/plugin-typescript";
+import path from "path";
 import copy from "rollup-plugin-copy";
 import css from "rollup-plugin-css-only";
 import livereload from "rollup-plugin-livereload";
+import nodePolyfills from "rollup-plugin-polyfill-node";
 import svelte from "rollup-plugin-svelte";
 import { terser } from "rollup-plugin-terser";
 import sveltePreprocess from "svelte-preprocess";
 
-const BUILD_DIR = "../src/instawow_gui/frontend";
+const BUILD_DIR = path.resolve(__dirname, "../src/instawow_gui/frontend");
 
 const PRODUCTION = !process.env.ROLLUP_WATCH;
 
@@ -20,7 +22,7 @@ export default [
     output: {
       sourcemap: !PRODUCTION,
       format: "iife",
-      file: `${BUILD_DIR}/svelte-bundle.js`,
+      file: path.resolve(BUILD_DIR, "svelte-bundle.js"),
       exports: "auto",
       name: "instawow_gui",
     },
@@ -66,6 +68,7 @@ export default [
         inlineSources: !PRODUCTION,
       }),
       commonjs(),
+      nodePolyfills(),
       replace({
         preventAssignment: true,
         values: { "process.env.NODE_ENV": JSON.stringify("production") },
@@ -74,5 +77,8 @@ export default [
       !PRODUCTION && livereload(BUILD_DIR),
       PRODUCTION && terser(),
     ],
+    onwarn: (warning, warn) => {
+      warning.code !== "CIRCULAR_DEPENDENCY" && warn(warning);
+    },
   },
 ];
