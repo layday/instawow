@@ -142,14 +142,18 @@
         </li>
       {/if}
     </menu>
-    <div class="progress-indicator" class:hidden={!isSearching}>
-      <ProgressIndicator diameter={18} progress={0} />
-    </div>
+    {#if isSearching}
+      <div class="progress-indicator">
+        <ProgressIndicator diameter={18} progress={0} />
+      </div>
+    {/if}
   </div>
   <div>
-    <div class="progress-indicator" class:hidden={!reconcileInstallationInProgress}>
-      <ProgressIndicator diameter={18} progress={0} />
-    </div>
+    {#if reconcileInstallationInProgress}
+      <div class="progress-indicator">
+        <ProgressIndicator diameter={18} progress={0} />
+      </div>
+    {/if}
     <menu class="control-set">
       {#if activeView === View.Installed}
         <li>
