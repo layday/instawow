@@ -62,7 +62,7 @@ def format_(session: nox.Session):
         '',
         dedent(
             '''\
-            aiohttp == 3.8
+            aiohttp == 3.8.2
             aiohttp-client-cache == 0.7.3
             alembic == 1.7.0
             attrs == 22.1.0
@@ -95,15 +95,7 @@ def test(session: nox.Session, constraints: str):
     constraints_txt = 'constraints.txt'
     Path(constraints_txt).write_text(constraints)
 
-    session.install(
-        '-c',
-        constraints_txt,
-        '.[gui, test]',
-        './tests/plugin',
-        env={'PIP_NO_BINARY': 'aiohttp', 'AIOHTTP_NO_EXTENSIONS': '1'}
-        if session.python == '3.11'
-        else {},
-    )
+    session.install('-c', constraints_txt, '.[gui, test]', './tests/plugin')
     install_coverage_hook(session)
 
     session.run(
@@ -119,12 +111,7 @@ def test(session: nox.Session, constraints: str):
 def type_check(session: nox.Session):
     "Run Pyright."
     mirror_repo(session)
-    session.install(
-        '.[gui, types]',
-        env={'PIP_NO_BINARY': 'aiohttp', 'AIOHTTP_NO_EXTENSIONS': '1'}
-        if session.python == '3.11'
-        else {},
-    )
+    session.install('.[gui, types]')
     session.run('npx', 'pyright', external=True)
 
 
