@@ -323,7 +323,11 @@ class WaCompanionBuilder:
             write_tpl('init.lua', {})
             write_tpl(
                 'WeakAurasCompanion.toc',
-                {'interface': self._manager.config.game_flavour.to_flavour_keyed_enum(_TocNumber)},
+                {
+                    'interface': self._manager.config.game_flavour.to_flavour_keyed_enum(
+                        _TocNumber
+                    ).value
+                },
             )
 
         self.changelog_path.write_text(
