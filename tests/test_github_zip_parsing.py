@@ -9,6 +9,7 @@ import aiohttp.hdrs
 import aiohttp.web
 from aresponses import ResponsesMockServer
 import pytest
+from yarl import URL
 
 from instawow._sources.github import GithubResolver
 from instawow.common import Flavour
@@ -69,11 +70,19 @@ def package_json_less_addon(
     }
 
 
-@pytest.mark.iw_no_mock_http
+@pytest.mark.parametrize(
+    'iw_mock_aiohttp_requests',
+    [
+        {
+            URL('//api.github.com/repos/ketho-wow/RaidFadeMore'),
+            URL('//api.github.com/repos/ketho-wow/RaidFadeMore/releases?per_page=10'),
+        }
+    ],
+    indirect=True,
+)
 async def test_package_json_less_addon(
     aresponses: ResponsesMockServer,
     iw_manager: Manager,
-    iw_mock_aiohttp_raidfademore_requests: object,
     package_json_less_addon: dict[str, Any],
 ):
     async def handle_request(request: aiohttp.web.Request):

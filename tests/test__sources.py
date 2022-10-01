@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import logging
 import re
 
+from aresponses import ResponsesMockServer
 from attrs import evolve
 import pytest
 from typing_extensions import assert_never
@@ -167,6 +169,61 @@ async def test_github_changelog_is_data_url(iw_manager: Manager):
     defn = Defn('github', 'p3lim-wow/Molinari')
     results = await iw_manager.resolve([defn])
     assert results[defn].changelog_url.startswith('data:,')
+
+
+@pytest.mark.parametrize(
+    ['iw_config_values', 'flavor', 'interface'],
+    [
+        (Flavour.retail, 'mainline', 30400),
+        (Flavour.classic, 'wrath', 90207),
+        (Flavour.vanilla_classic, 'classic', 90207),
+    ],
+    indirect=['iw_config_values'],
+)
+@pytest.mark.parametrize(
+    'iw_mock_aiohttp_requests',
+    [
+        {
+            URL('//api.github.com/repos/nebularg/PackagerTest'),
+            URL('//api.github.com/repos/nebularg/PackagerTest/releases?per_page=10'),
+        }
+    ],
+    indirect=True,
+)
+async def test_github_flavor_and_interface_mismatch(
+    caplog: pytest.LogCaptureFixture,
+    aresponses: ResponsesMockServer,
+    iw_manager: Manager,
+    flavor: str,
+    interface: int,
+):
+    aresponses.add(
+        'github.com',
+        '/nebularg/PackagerTest/releases/download/v1.9.7/release.json',
+        'GET',
+        {
+            "releases": [
+                {
+                    "filename": "TestGit-v1.9.7.zip",
+                    "nolib": False,
+                    "metadata": [{"flavor": flavor, "interface": interface}],
+                }
+            ]
+        },
+    )
+
+    defn = Defn('github', 'nebularg/PackagerTest')
+    results = await iw_manager.resolve([defn])
+    mismatch_result = results[defn]
+
+    assert type(mismatch_result) is R.PkgFileUnavailable
+
+    (log_record,) = caplog.record_tuples
+    assert log_record == (
+        'instawow._sources.github',
+        logging.INFO,
+        f'interface number "{interface}" and flavor "{flavor}" mismatch',
+    )
 
 
 @pytest.mark.parametrize('resolver', Manager.RESOLVERS)

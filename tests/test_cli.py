@@ -19,6 +19,14 @@ from instawow.cli import cli
 from instawow.config import Config
 
 
+@pytest.fixture(autouse=True, scope='module')
+def __mock_pt_progress_bar():
+    monkeypatch = pytest.MonkeyPatch()
+    monkeypatch.setattr('prompt_toolkit.shortcuts.progress_bar.ProgressBar', mock.MagicMock())
+    yield
+    monkeypatch.undo()
+
+
 @pytest.fixture
 def feed_pt():
     with create_pipe_input() as input_, create_app_session(input=input_, output=DummyOutput()):
@@ -31,7 +39,6 @@ def run(
     event_loop: asyncio.AbstractEventLoop,
     iw_config: Config,
 ):
-    monkeypatch.setattr('prompt_toolkit.shortcuts.progress_bar.ProgressBar', mock.MagicMock())
     monkeypatch.setattr('asyncio.run', event_loop.run_until_complete)
     yield partial(CliRunner().invoke, cli, catch_exceptions=False)
 
@@ -65,7 +72,7 @@ def pretend_install_molinari_and_run(
     [
         'curse:molinari',
         'wowi:13188-molinari',
-        # 'tukui:1',
+        'tukui:1',
         'github:p3lim-wow/Molinari',
     ],
 )

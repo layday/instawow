@@ -236,6 +236,7 @@ class GithubResolver(BaseResolver):
 
             toc_file_text = dynamic_addon_zip.read(main_toc_filename).decode('utf-8-sig')
             toc_reader = TocReader(toc_file_text)
+
             interface_version = toc_reader['Interface']
             logger.debug(f'found interface version {interface_version!r} in {main_toc_filename}')
             if interface_version and self._manager.config.game_flavour.to_flavour_keyed_enum(
@@ -249,6 +250,25 @@ class GithubResolver(BaseResolver):
     async def _find_matching_asset_from_release_json(
         self, assets: list[_GithubRelease_Asset], release_json_asset: _GithubRelease_Asset
     ):
+        def is_compatible_release(release: _PackagerReleaseJson_Release):
+            if release['nolib']:
+                return False
+
+            for metadata in release['metadata']:
+                if metadata['flavor'] != wanted_flavour:
+                    continue
+
+                interface_version = metadata['interface']
+                if not wanted_flavour_version.is_within_version(interface_version):
+                    logger.info(
+                        f'interface number "{interface_version}" and flavor "{wanted_flavour}" mismatch'
+                    )
+                    continue
+
+                return True
+
+            return False
+
         github_headers = self._make_auth_headers(
             self._manager.config.global_config.access_tokens.github
         )
@@ -270,13 +290,11 @@ class GithubResolver(BaseResolver):
         wanted_flavour = self._manager.config.game_flavour.to_flavour_keyed_enum(
             _PackagerReleaseJsonFlavor
         )
+        wanted_flavour_version = self._manager.config.game_flavour.to_flavour_keyed_enum(
+            FlavourVersion
+        )
         matching_release = next(
-            (
-                r
-                for r in releases
-                if r['nolib'] is False
-                and any(m['flavor'] == wanted_flavour for m in r['metadata'])
-            ),
+            filter(is_compatible_release, releases),
             None,
         )
         if matching_release is None:
