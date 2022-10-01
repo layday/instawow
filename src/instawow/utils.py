@@ -200,7 +200,7 @@ def tabulate(rows: Sequence[tuple[object, ...]], *, max_col_width: int = 60) -> 
     table = '\n'.join(
         (
             base_template.format(':^').format(*head),
-            base_template.format(f'0:-<').format(''),
+            base_template.format('0:-<').format(''),
             *(row_template.format(*r) for r in tail),
         )
     )
