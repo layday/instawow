@@ -66,6 +66,7 @@ class TukuiResolver(BaseResolver):
         name='Tukui',
         strategies=frozenset({Strategy.default}),
         changelog_format=ChangelogFormat.html,
+        addon_toc_key='X-Tukui-ProjectID',
     )
 
     # There's also a ``/client-api.php`` endpoint which is apparently

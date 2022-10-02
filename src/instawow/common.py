@@ -94,3 +94,4 @@ class SourceMetadata:
     name: str
     strategies: typing.FrozenSet[Strategy]
     changelog_format: ChangelogFormat
+    addon_toc_key: str | None

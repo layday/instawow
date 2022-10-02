@@ -16,6 +16,7 @@ class InstawowResolver(BaseResolver):
         name='instawow',
         strategies=frozenset({Strategy.default}),
         changelog_format=ChangelogFormat.markdown,
+        addon_toc_key=None,
     )
 
     _addons = {

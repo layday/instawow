@@ -252,6 +252,7 @@ class CfCoreResolver(BaseResolver):
             }
         ),
         changelog_format=ChangelogFormat.html,
+        addon_toc_key='X-Curse-Project-ID',
     )
 
     # Ref: https://docs.curseforge.com/

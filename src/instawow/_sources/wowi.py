@@ -69,6 +69,7 @@ class WowiResolver(BaseResolver):
         name='WoWInterface',
         strategies=frozenset({Strategy.default}),
         changelog_format=ChangelogFormat.raw,
+        addon_toc_key='X-WoWI-ID',
     )
 
     # Reference: https://api.mmoui.com/v3/globalconfig.json

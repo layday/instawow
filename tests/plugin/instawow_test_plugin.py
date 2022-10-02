@@ -20,6 +20,7 @@ class MyResolver(BaseResolver):
         name="It's me",
         strategies=frozenset({Strategy.default}),
         changelog_format=ChangelogFormat.markdown,
+        addon_toc_key=None,
     )
 
     async def resolve_one(self, defn: Defn, metadata: None) -> Pkg:

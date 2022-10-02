@@ -72,6 +72,7 @@ class GithubResolver(BaseResolver):
         name='GitHub',
         strategies=frozenset({Strategy.default, Strategy.latest, Strategy.version}),
         changelog_format=ChangelogFormat.markdown,
+        addon_toc_key=None,
     )
 
     _repos_api_url = URL('https://api.github.com/repos')

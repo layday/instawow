@@ -488,14 +488,14 @@ class GetReconcileInstalledCandidatesParams(_ProfileParamMixin, BaseParams):
         self, managers: _ManagerWorkQueue, app_window: toga.MainWindow | None
     ) -> list[ReconcileInstalledCandidate]:
         manager = await managers.get_manager(self.profile)
-        installed_pkgs = (
+        installed_pkgs = [
             models.Pkg.from_row_mapping(manager.database, p)
             for p in manager.database.execute(
                 sa.select(db.pkg).order_by(sa.func.lower(db.pkg.c.name))
             )
             .mappings()
             .all()
-        )
+        ]
         defn_groups = await managers.run(
             self.profile, partial(Manager.find_equivalent_pkg_defns, pkgs=installed_pkgs)
         )

@@ -39,9 +39,11 @@ def molinari(iw_manager: Manager):
     yield molinari_folder
 
 
-def test_reconcile_addon_folder_can_extract_defns_from_toc(molinari: Path):
-    addon_folder = AddonFolder(molinari.name, TocReader.from_addon_path(molinari))
-    assert addon_folder.defns_from_toc == {Defn('curse', '20338'), Defn('wowi', '13188')}
+def test_can_extract_defns_from_addon_folder_toc(iw_manager: Manager, molinari: Path):
+    addon_folder = AddonFolder(molinari, TocReader.from_addon_path(molinari))
+    assert addon_folder.get_defns_from_toc_keys(
+        iw_manager.resolvers.addon_toc_key_and_id_pairs
+    ) == {Defn('curse', '20338'), Defn('wowi', '13188')}
 
 
 async def test_reconcile_invalid_addons_discarded(iw_manager: Manager):

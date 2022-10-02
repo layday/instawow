@@ -545,14 +545,14 @@ def reconcile(mw: _CtxObjWrapper, auto: bool, rereconcile: bool, list_unreconcil
             selection = ask(select(installed_pkg.name, choices))
             return selection or None
 
-        installed_pkgs = (
+        installed_pkgs = [
             models.Pkg.from_row_mapping(mw.manager.database, p)
             for p in mw.manager.database.execute(
                 sa.select(db.pkg).order_by(sa.func.lower(db.pkg.c.name))
             )
             .mappings()
             .all()
-        )
+        ]
         groups = mw.run_with_progress(mw.manager.find_equivalent_pkg_defns(installed_pkgs))
         selections = [
             (p, s)

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Awaitable
-from functools import total_ordering
+from collections.abc import Awaitable, Iterable
 from itertools import chain, product
 from pathlib import Path
 import re
@@ -11,9 +10,6 @@ import sqlalchemy as sa
 from typing_extensions import Protocol, Self
 
 from . import manager
-from ._sources.cfcore import CfCoreResolver
-from ._sources.tukui import TukuiResolver
-from ._sources.wowi import WowiResolver
 from .common import Flavour
 from .db import pkg_folder
 from .resolvers import Defn
@@ -22,7 +18,6 @@ from .utils import (
     as_decorated_type,
     bucketise,
     cached_property,
-    gather,
     merge_intersecting_sets,
     uniq,
 )
@@ -34,12 +29,6 @@ class Matcher(Protocol):
     ) -> Awaitable[list[tuple[list[AddonFolder], list[Defn]]]]:
         ...
 
-
-_SOURCE_TOC_IDS = {
-    'X-Curse-Project-ID': CfCoreResolver.metadata.id,
-    'X-Tukui-ProjectID': TukuiResolver.metadata.id,
-    'X-WoWI-ID': WowiResolver.metadata.id,
-}
 
 # https://github.com/Stanzilla/WoWUIBugs/issues/68#issuecomment-830351390
 FLAVOUR_TOC_IDS = {
@@ -63,20 +52,14 @@ NORMALISED_FLAVOUR_TOC_SUFFIXES = {
 }
 
 
-@total_ordering
-@frozen(order=False, slots=False)
+@frozen(order=True, slots=False)
 class AddonFolder:
-    path: Path = field(eq=False)
-    toc_reader: TocReader = field(eq=False)
+    path: Path = field(eq=False, order=False)
+    toc_reader: TocReader = field(eq=False, order=False)
     name: str = field(init=False)
 
     def __attrs_post_init__(self) -> None:
         object.__setattr__(self, 'name', self.path.name)
-
-    def __lt__(self, other: object) -> bool:
-        if not isinstance(other, self.__class__):
-            return NotImplemented
-        return self.name < other.name
 
     @classmethod
     def from_addon_path(cls, flavour: Flavour, path: Path) -> Self | None:
@@ -87,13 +70,8 @@ class AddonFolder:
             except FileNotFoundError:
                 pass
 
-    @cached_property
-    def defns_from_toc(self) -> frozenset[Defn]:
-        return frozenset(
-            Defn(s, i)
-            for s, i in ((s, self.toc_reader[k]) for k, s in _SOURCE_TOC_IDS.items())
-            if i
-        )
+    def get_defns_from_toc_keys(self, keys_and_ids: Iterable[tuple[str, str]]) -> frozenset[Defn]:
+        return frozenset(Defn(s, i) for k, s in keys_and_ids for i in (self.toc_reader[k],) if i)
 
     @cached_property
     def version(self) -> str:
@@ -119,17 +97,22 @@ def get_unreconciled_folders(manager: manager.Manager) -> frozenset[AddonFolder]
 
 @as_decorated_type(Matcher)
 async def match_toc_source_ids(manager: manager.Manager, leftovers: frozenset[AddonFolder]):
-    addons_with_toc_source_ids = [a for a in sorted(leftovers) if a.defns_from_toc]
-    merged_defns = list(
-        merge_intersecting_sets(a.defns_from_toc for a in addons_with_toc_source_ids)
-    )
+    addons_with_toc_source_ids = [
+        (a, d)
+        for a in sorted(leftovers)
+        for d in (a.get_defns_from_toc_keys(manager.resolvers.addon_toc_key_and_id_pairs),)
+        if d
+    ]
+    merged_defns_by_constituent_defn = {
+        i: s for s in merge_intersecting_sets(d for _, d in addons_with_toc_source_ids) for i in s
+    }
     folders_grouped_by_overlapping_defns = bucketise(
-        addons_with_toc_source_ids, lambda a: next(d for d in merged_defns if a.defns_from_toc & d)
+        addons_with_toc_source_ids,
+        lambda i: merged_defns_by_constituent_defn[next(iter(i[1]))],
     )
-
     return [
         (
-            f,
+            [n for n, _ in f],
             sorted(b, key=lambda d: manager.resolvers.priority_dict[d.source]),
         )
         for b, f in folders_grouped_by_overlapping_defns.items()
@@ -150,9 +133,11 @@ async def match_folder_name_subsets(manager: manager.Manager, leftovers: frozens
         for m in (f & leftovers_by_name.keys(),)
         if m
     ]
-    merged_folders = list(merge_intersecting_sets(f for f, _ in matches))
+    merged_folders_by_constituent_folder = {
+        i: s for s in merge_intersecting_sets(f for f, _ in matches) for i in s
+    }
     matches_grouped_by_overlapping_folder_names = bucketise(
-        matches, lambda v: next(f for f in merged_folders if v[0] & f)
+        matches, lambda v: merged_folders_by_constituent_folder[next(iter(v[0]))]
     )
 
     def sort_key(folders: frozenset[AddonFolder], defn: Defn):

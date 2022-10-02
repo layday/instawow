@@ -167,6 +167,14 @@ class _Resolvers(typing.Dict[str, Resolver]):
     def priority_dict(self) -> _ResolverPriorityDict:
         return _ResolverPriorityDict(self)
 
+    @cached_property
+    def addon_toc_key_and_id_pairs(self) -> Collection[tuple[str, str]]:
+        return [
+            (r.metadata.addon_toc_key, r.metadata.id)
+            for r in self.values()
+            if r.metadata.addon_toc_key
+        ]
+
 
 class _ResolverPriorityDict(typing.Dict[str, float]):
     def __init__(self, resolvers: _Resolvers) -> None:
@@ -423,12 +431,28 @@ class Manager:
         return self._catalogue
 
     async def find_equivalent_pkg_defns(
-        self, pkgs: Iterable[models.Pkg]
+        self, pkgs: Collection[models.Pkg]
     ) -> dict[models.Pkg, list[Defn]]:
         "Given a list of packages, find ``Defn``s of each package from other sources."
         from .matchers import AddonFolder
 
         catalogue = await self.synchronise()
+
+        @t
+        def collect_addon_folders():
+            return {
+                p: frozenset(
+                    a
+                    for f in p.folders
+                    for a in (
+                        AddonFolder.from_addon_path(
+                            self.config.game_flavour, self.config.addon_dir / f.name
+                        ),
+                    )
+                    if a
+                )
+                for p in pkgs
+            }
 
         def get_catalogue_defns(pkg: models.Pkg) -> frozenset[Defn]:
             entry = catalogue.keyed_entries.get((pkg.source, pkg.id))
@@ -437,24 +461,20 @@ class Manager:
             else:
                 return frozenset()
 
-        def extract_addon_toc_defns(pkg: models.Pkg):
+        def get_addon_toc_defns(pkg_source: str, addon_folders: Collection[AddonFolder]):
             return frozenset(
                 d
-                for f in pkg.folders
-                for a in (
-                    AddonFolder.from_addon_path(
-                        self.config.game_flavour, self.config.addon_dir / f.name
-                    ),
-                )
-                if a
-                for d in a.defns_from_toc
-                if d.source != pkg.source
+                for a in addon_folders
+                for d in a.get_defns_from_toc_keys(self.resolvers.addon_toc_key_and_id_pairs)
+                if d.source != pkg_source
             )
+
+        folders_per_pkg = await collect_addon_folders()
 
         return {
             p: sorted(d, key=lambda d: self.resolvers.priority_dict[d.source])
             for p in pkgs
-            for d in (get_catalogue_defns(p) | await t(extract_addon_toc_defns)(p),)
+            for d in (get_catalogue_defns(p) | get_addon_toc_defns(p.source, folders_per_pkg[p]),)
             if d
         }
 
