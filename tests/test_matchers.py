@@ -10,7 +10,7 @@ from instawow.common import Flavour
 from instawow.manager import Manager
 from instawow.matchers import (
     AddonFolder,
-    FolderAndDefnPairs,
+    Matcher,
     get_unreconciled_folders,
     match_addon_names_with_folder_names,
     match_folder_name_subsets,
@@ -39,11 +39,6 @@ def molinari(iw_manager: Manager):
     yield molinari_folder
 
 
-def test_reconcile_addon_folder_is_comparable_to_str(molinari: Path):
-    addon_folder = AddonFolder(molinari.name, TocReader.from_addon_path(molinari))
-    assert isinstance(addon_folder, AddonFolder) and addon_folder <= 'Molinari'
-
-
 def test_reconcile_addon_folder_can_extract_defns_from_toc(molinari: Path):
     addon_folder = AddonFolder(molinari.name, TocReader.from_addon_path(molinari))
     assert addon_folder.defns_from_toc == {Defn('curse', '20338'), Defn('wowi', '13188')}
@@ -65,7 +60,7 @@ async def test_reconcile_invalid_addons_discarded(iw_manager: Manager):
 async def test_reconcile_multiple_defns_per_addon_contained_in_results(
     iw_manager: Manager,
     molinari: Path,
-    test_func: Callable[[Manager, frozenset[AddonFolder]], Awaitable[FolderAndDefnPairs]],
+    test_func: Matcher,
 ):
     ((_, matches),) = await test_func(iw_manager, get_unreconciled_folders(iw_manager))
     expected = {Defn('curse', '20338'), Defn('wowi', '13188')}

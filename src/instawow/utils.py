@@ -26,6 +26,10 @@ _THashable = TypeVar('_THashable', bound=Hashable)
 _P = ParamSpec('_P')
 
 
+def as_decorated_type(__type: type[_T]) -> Callable[[_T], _T]:
+    return lambda v: v
+
+
 if sys.version_info >= (3, 11):
     from enum import StrEnum as StrEnum
 else:

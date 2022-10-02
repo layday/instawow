@@ -1,12 +1,14 @@
 from __future__ import annotations
 
+from collections.abc import Awaitable
 from functools import total_ordering
 from itertools import chain, product
 from pathlib import Path
 import re
 
+from attrs import field, frozen
 import sqlalchemy as sa
-from typing_extensions import Self, TypeAlias
+from typing_extensions import Protocol, Self
 
 from . import manager
 from ._sources.cfcore import CfCoreResolver
@@ -15,9 +17,22 @@ from ._sources.wowi import WowiResolver
 from .common import Flavour
 from .db import pkg_folder
 from .resolvers import Defn
-from .utils import TocReader, bucketise, cached_property, merge_intersecting_sets, uniq
+from .utils import (
+    TocReader,
+    as_decorated_type,
+    bucketise,
+    cached_property,
+    gather,
+    merge_intersecting_sets,
+    uniq,
+)
 
-FolderAndDefnPairs: TypeAlias = 'list[tuple[list[AddonFolder], list[Defn]]]'
+
+class Matcher(Protocol):
+    def __call__(
+        self, manager: manager.Manager, leftovers: frozenset[AddonFolder]
+    ) -> Awaitable[list[tuple[list[AddonFolder], list[Defn]]]]:
+        ...
 
 
 _SOURCE_TOC_IDS = {
@@ -49,35 +64,26 @@ NORMALISED_FLAVOUR_TOC_SUFFIXES = {
 
 
 @total_ordering
+@frozen(order=False, slots=False)
 class AddonFolder:
-    def __init__(self, name: str, toc_reader: TocReader) -> None:
-        self.name = name
-        self.toc_reader = toc_reader
+    path: Path = field(eq=False)
+    toc_reader: TocReader = field(eq=False)
+    name: str = field(init=False)
 
-    def __repr__(self) -> str:
-        return f'<{self.__class__.__name__}: {self.name}>'
-
-    def __hash__(self) -> int:
-        return hash(self.name)
-
-    def __eq__(self, other: object) -> bool:
-        if not isinstance(other, (self.__class__, str)):
-            return NotImplemented
-        return self.name == other
+    def __attrs_post_init__(self) -> None:
+        object.__setattr__(self, 'name', self.path.name)
 
     def __lt__(self, other: object) -> bool:
-        if isinstance(other, self.__class__):
-            other = other.name
-        elif not isinstance(other, str):
+        if not isinstance(other, self.__class__):
             return NotImplemented
-        return self.name < other
+        return self.name < other.name
 
     @classmethod
     def from_addon_path(cls, flavour: Flavour, path: Path) -> Self | None:
         for suffix in chain(FLAVOUR_TOC_SUFFIXES[flavour], ('.toc',)):
             try:
                 toc_reader = TocReader.from_addon_path(path, suffix)
-                return cls(path.name, toc_reader)
+                return cls(path, toc_reader)
             except FileNotFoundError:
                 pass
 
@@ -111,9 +117,8 @@ def get_unreconciled_folders(manager: manager.Manager) -> frozenset[AddonFolder]
     return frozenset(_get_unreconciled_folders(manager))
 
 
-async def match_toc_source_ids(
-    manager: manager.Manager, leftovers: frozenset[AddonFolder]
-) -> FolderAndDefnPairs:
+@as_decorated_type(Matcher)
+async def match_toc_source_ids(manager: manager.Manager, leftovers: frozenset[AddonFolder]):
     addons_with_toc_source_ids = [a for a in sorted(leftovers) if a.defns_from_toc]
     merged_defns = list(
         merge_intersecting_sets(a.defns_from_toc for a in addons_with_toc_source_ids)
@@ -131,17 +136,19 @@ async def match_toc_source_ids(
     ]
 
 
-async def match_folder_name_subsets(
-    manager: manager.Manager, leftovers: frozenset[AddonFolder]
-) -> FolderAndDefnPairs:
+@as_decorated_type(Matcher)
+async def match_folder_name_subsets(manager: manager.Manager, leftovers: frozenset[AddonFolder]):
     catalogue = await manager.synchronise()
 
+    leftovers_by_name = {l.name: l for l in leftovers}
+
     matches = [
-        (frozenset(e for e in leftovers if e.name in f), Defn(i.source, i.id))
+        (frozenset(leftovers_by_name[n] for n in m), Defn(i.source, i.id))
         for i in catalogue.entries
         if manager.config.game_flavour in i.game_flavours
         for f in i.folders
-        if f <= leftovers
+        for m in (f & leftovers_by_name.keys(),)
+        if m
     ]
     merged_folders = list(merge_intersecting_sets(f for f, _ in matches))
     matches_grouped_by_overlapping_folder_names = bucketise(
@@ -157,9 +164,10 @@ async def match_folder_name_subsets(
     ]
 
 
+@as_decorated_type(Matcher)
 async def match_addon_names_with_folder_names(
     manager: manager.Manager, leftovers: frozenset[AddonFolder]
-) -> FolderAndDefnPairs:
+):
     def normalise(value: str):
         return re.sub(r'[^0-9A-Za-z]', '', value.casefold())
 
