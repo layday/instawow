@@ -53,7 +53,9 @@ def _enrich_validator_exc(validator: Callable[[object, Attribute[_T], _T], None]
             validator(model, attr, value)
         except BaseException as exc:
             note = f'Structuring class {model.__class__.__name__} @ attribute {attr.name}'
-            exc.__note__ = note  # pyright: ignore
+            notes = [*getattr(exc, '__notes__', []), note]
+            exc.__note__ = note  # pyright: ignore  # TODO: Rm when new version of cattrs is out
+            exc.__notes__ = notes  # pyright: ignore
             raise exc
 
     return wrapper

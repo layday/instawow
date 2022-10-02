@@ -69,13 +69,20 @@ class _ConfigError(ServerError):
     message = 'invalid configuration parameters'
 
 
+def _extract_loc_from_note(exc: BaseException):
+    notes = getattr(exc, '__notes__', None)
+    if notes is not None:
+        note = notes[-1]
+    else:
+        note = getattr(exc, '__note__', '')
+
+    *_, field = note.rpartition(' ')
+    if field.isidentifier():
+        return field
+
+
 def _structure_excs(excs: Iterable[BaseException]):
-    return [
-        {'loc': [n], 'msg': str(e)}
-        for e in excs
-        for *_, n in (getattr(e, '__note__', '').rpartition(' '),)
-        if n.isidentifier()
-    ]
+    return [{'loc': [l], 'msg': str(e)} for e in excs for l in (_extract_loc_from_note(e),) if l]
 
 
 @contextmanager
