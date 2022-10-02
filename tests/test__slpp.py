@@ -57,30 +57,8 @@ def test_bool():
     assert loads('falser') == 'falser'
 
 
-def test_bool_keys_are_not_nums():
-    assert loads('{ [false] = "", [true] = "" }') == {False: '', True: ''}
-    assert loads('{ [false] = "", [true] = "", [3] = "" }') == {False: '', True: '', 3: ''}
-
-
 def test_nil():
     loads('nil') == None
-
-
-def test_simple_table():
-    # bracketed key
-    assert loads('{ [10] = 11 }') == {10: 11}
-    assert loads('{ [false] = 0 }') == {False: 0}
-    assert loads('{ [true] = 1 }') == {True: 1}
-    # bracketed string key - not supported
-    # assert loads('{ [ [[10]] ] = 1 }') == {"10": 1}
-    # keywords in table
-    assert loads('{ false, true }') == [False, True]
-    # void table
-    assert loads('{ nil }') == {}
-    # values-only table
-    assert loads('{ "10" }') == ["10"]
-    # last zero
-    assert loads('{ 0, 1, 0 }') == [0, 1, 0]
 
 
 def test_string_with_and_without_escape():
@@ -93,35 +71,33 @@ def test_string_with_and_without_escape():
     assert loads("'--3'") == '--3'
 
 
-def test_table_keys():
+def test_array_like_table():
+    # keyword values
+    assert loads('{ false, true }') == [False, True]
+    # nil is erased
+    assert loads('{ nil }') == {}
+    # string literals
+    assert loads('{ "10" }') == ["10"]
+    # trailing zero
+    assert loads('{ 0, 1, 0 }') == [0, 1, 0]
+
+
+def test_dict_like_table():
+    # bracketed keyword keys
+    assert loads('{ [10] = 11 }') == {10: 11}
+    assert loads('{ [false] = 0 }') == {False: 0}
+    assert loads('{ [true] = 1 }') == {True: 1}
+    # bracketed string keys
+    assert loads('{ [ [[10]] ] = 1 }') == {"10": 1}
     assert loads('{ [ [[false]] ] = "" }') == {'false': ''}
+    # syntax error
     with pytest.raises(ParseError):
         loads('{ [[false]] = "" }')
 
 
-def test_table_palooza():
-    assert (
-        loads(
-            '''{ -- δκσξδφξ
-        array = { 65, 23, 5 }, -- 3493
-        dict =     {  -- !!!,11
-            [false]       =    "value"      ,  -- what's up
-            ["array"] = {  -- waddup
-                3, [[6]],   -- wassup
-                4 }, -- [2]
-            mixed = { 43, 54.3, false, string = "value", 9 }    -- wazzup
-        }                   -- foo
-} -- bar'''
-        )
-        == {
-            'array': [65, 23, 5],
-            'dict': {
-                False: 'value',
-                'array': [3, '6', 4],
-                'mixed': {1: 43, 2: 54.3, 3: False, 'string': 'value', 4: 9},
-            },
-        }
-    )
+def test_boolean_keys_are_not_numeric():
+    assert loads('{ [false] = "", [true] = "" }') == {False: '', True: ''}
+    assert loads('{ [false] = "", [true] = "", [3] = "" }') == {False: '', True: '', 3: ''}
 
 
 def test_table_key_overrides():
@@ -170,3 +146,28 @@ def test_table_key_overrides():
         2: 4,
         5: 6,
     }
+
+
+def test_table_palooza():
+    assert (
+        loads(
+            '''{ -- δκσξδφξ
+        array = { 65, 23, 5 }, -- 3493
+        dict =     {  -- !!!,11
+            [false]       =    "value"      ,  -- what's up
+            ["array"] = {  -- waddup
+                3, [[6]],   -- wassup
+                4 }, -- [2]
+            mixed = { 43, 54.3, false, string = "value", 9 }    -- wazzup
+        }                   -- foo
+} -- bar'''
+        )
+        == {
+            'array': [65, 23, 5],
+            'dict': {
+                False: 'value',
+                'array': [3, '6', 4],
+                'mixed': {1: 43, 2: 54.3, 3: False, 'string': 'value', 4: 9},
+            },
+        }
+    )
