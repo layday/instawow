@@ -71,7 +71,12 @@ def iw_global_config_values(request: pytest.FixtureRequest, tmp_path: Path):
     return {
         'temp_dir': tmp_path / 'temp',
         'config_dir': tmp_path / 'config',
-        'access_tokens': {'github': None, 'wago': request.param, 'cfcore': request.param},
+        'access_tokens': {
+            'cfcore': request.param,
+            'github': None,
+            'wago': None,
+            'wago_addons': request.param,
+        },
     }
 
 
