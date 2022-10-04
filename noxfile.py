@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import os
 from pathlib import Path
 from textwrap import dedent
 
 import nox
 
+nox.options.envdir = os.environ.get('NOX_ENVDIR')
 nox.options.sessions = ['format', 'test', 'type_check']
 
 
