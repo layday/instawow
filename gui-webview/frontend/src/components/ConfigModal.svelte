@@ -110,7 +110,7 @@
             id="__wago-input-box"
             class="form-control"
             type="password"
-            value={access_tokens.wago}
+            value={access_tokens.wago_addons}
             on:input={(e) => (newWagoAccessToken = e.currentTarget.value || null)}
           />
           <button
