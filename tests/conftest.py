@@ -53,13 +53,14 @@ def caplog(caplog: pytest.LogCaptureFixture):
 
 
 class _StrictResponsesMockServer(ResponsesMockServer):
-    def _find_response(self, request: aiohttp.web.Request):
-        response = super()._find_response(request)
+    async def _find_response(self, request: aiohttp.web.Request):
+        response = await super()._find_response(request)
         if response == (None, None):
             raise NoRouteFoundError(request)
         return response
 
 
+@pytest.fixture
 async def aresponses(event_loop: asyncio.AbstractEventLoop):
     async with _StrictResponsesMockServer(loop=event_loop) as server:
         yield server
