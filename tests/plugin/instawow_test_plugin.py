@@ -22,6 +22,7 @@ class MyResolver(BaseResolver):
         changelog_format=ChangelogFormat.markdown,
         addon_toc_key=None,
     )
+    requires_access_token = None
 
     async def resolve_one(self, defn: Defn, metadata: None) -> Pkg:
         return Pkg(

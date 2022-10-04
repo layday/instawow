@@ -117,11 +117,16 @@ asyncio_mode = "auto"
 include = [
   "src",
   "gui-webview/src",
+  "tests/plugin",
 ]
 ignore = [
   "src/instawow/_migrations",
 ]
-strict = ["src", "gui-webview/src/instawow_gui/json_rpc_server.py"]
+strict = [
+  "src",
+  "gui-webview/src/instawow_gui/json_rpc_server.py",
+  "tests/plugin",
+]
 
 
 ## FORMATTING ##
