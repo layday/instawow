@@ -1066,7 +1066,7 @@ def configure(
                 'See https://addons.wago.io/patreon for more information.'
             )
         )
-        global_config_values['access_tokens']['wago'] = ask(
+        global_config_values['access_tokens']['wago_addons'] = ask(
             password('Wago Addons access token:', validate=bool)
         )
 

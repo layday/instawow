@@ -16,7 +16,7 @@
   };
 
   const updateWagoAccessToken = async () => {
-    await $api.updateGlobalConfig({ wago: newWagoAccessToken });
+    await $api.updateGlobalConfig({ wago_addons: newWagoAccessToken });
   };
 
   const queryGithubAuthFlowStatus = async () => {

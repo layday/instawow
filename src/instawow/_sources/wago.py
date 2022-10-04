@@ -100,7 +100,7 @@ class WagoResolver(BaseResolver):
         changelog_format=ChangelogFormat.markdown,
         addon_toc_key='X-Wago-ID',
     )
-    requires_access_token = 'wago'
+    requires_access_token = 'wago_addons'
 
     _wago_external_api_url = URL('https://addons.wago.io/api/external')
 

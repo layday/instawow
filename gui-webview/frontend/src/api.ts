@@ -42,9 +42,10 @@ export type GlobalConfig = {
   auto_update_check: boolean;
   temp_dir: string;
   access_tokens: {
+    cfcore: string | null;
     github: string | null;
     wago: string | null;
-    cfcore: string | null;
+    wago_addons: string | null;
   };
 };
 
