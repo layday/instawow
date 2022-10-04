@@ -20,8 +20,8 @@ from instawow.utils import (
 
 
 @pytest.fixture
-def fake_addon():
-    yield Path(__file__).parent / 'fixtures' / 'FakeAddon'
+def fake_addon_toc():
+    yield Path(__file__).parent / 'fixtures' / 'FakeAddon' / 'FakeAddon.toc'
 
 
 def test_find_addon_zip_tocs_can_find_explicit_dirs():
@@ -54,22 +54,22 @@ def test_make_zip_member_filter_fn_discards_names_with_prefix_not_in_dirs():
     assert list(filter(is_member, ['a/', 'b/', 'aa/', 'bb/', 'b/c', 'a/d'])) == ['b/', 'b/c']
 
 
-def test_loading_toc_from_addon_path(fake_addon: Path):
-    TocReader.from_addon_path(fake_addon)
+def test_loading_toc_from_path(fake_addon_toc: Path):
+    TocReader.from_path(fake_addon_toc)
     with pytest.raises(FileNotFoundError):
-        TocReader.from_addon_path(fake_addon.parent / 'MissingAddon')
+        TocReader.from_path(fake_addon_toc.parent / 'MissingAddon.toc')
 
 
-def test_parsing_toc_entries(fake_addon: Path):
-    toc_reader = TocReader.from_addon_path(fake_addon)
+def test_parsing_toc_entries(fake_addon_toc: Path):
+    toc_reader = TocReader.from_path(fake_addon_toc)
     assert toc_reader.entries == {
         'Normal': 'Normal entry',
         'Compact': 'Compact entry',
     }
 
 
-def test_toc_entry_indexing(fake_addon: Path):
-    toc_reader = TocReader.from_addon_path(fake_addon)
+def test_toc_entry_indexing(fake_addon_toc: Path):
+    toc_reader = TocReader.from_path(fake_addon_toc)
     assert toc_reader['Normal'] == 'Normal entry'
     assert toc_reader['Compact'] == 'Compact entry'
     assert toc_reader['Indented'] is None
@@ -77,8 +77,8 @@ def test_toc_entry_indexing(fake_addon: Path):
     assert toc_reader['Nonexistent'] is None
 
 
-def test_toc_entry_multiindexing(fake_addon: Path):
-    toc_reader = TocReader.from_addon_path(fake_addon)
+def test_toc_entry_multiindexing(fake_addon_toc: Path):
+    toc_reader = TocReader.from_path(fake_addon_toc)
     assert toc_reader['Normal', 'Compact'] == 'Normal entry'
     assert toc_reader['Compact', 'Normal'] == 'Compact entry'
     assert toc_reader['Indented', 'Normal'] == 'Normal entry'
@@ -90,8 +90,8 @@ def test_bucketise_bucketises_by_putting_things_in_a_bucketing_bucket():
     assert bucketise(iter([1, 1, 0, 1]), bool) == {True: [1, 1, 1], False: [0]}
 
 
-def test_tabulate_spits_out_ascii_table(fake_addon: Path):
-    toc_reader = TocReader.from_addon_path(fake_addon)
+def test_tabulate_spits_out_ascii_table(fake_addon_toc: Path):
+    toc_reader = TocReader.from_path(fake_addon_toc)
     data = [('key', 'value'), *toc_reader.entries.items()]
     assert tabulate(data) == (
         '  key        value    \n'

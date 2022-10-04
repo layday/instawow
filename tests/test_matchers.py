@@ -17,7 +17,6 @@ from instawow.matchers import (
     match_toc_source_ids,
 )
 from instawow.resolvers import Defn
-from instawow.utils import TocReader
 
 MOLINARI_HASH = '2da096db5769138b5428a068343cddf3'
 
@@ -42,14 +41,14 @@ def molinari(iw_manager: Manager):
 
 
 def test_can_extract_defns_from_addon_folder_toc(iw_manager: Manager, molinari: Path):
-    addon_folder = AddonFolder(molinari, TocReader.from_addon_path(molinari))
+    addon_folder = AddonFolder.from_addon_path(iw_manager.config.game_flavour, molinari)
     assert addon_folder.get_defns_from_toc_keys(
         iw_manager.resolvers.addon_toc_key_and_id_pairs
     ) == {Defn('curse', '20338'), Defn('wowi', '13188')}
 
 
-def test_addon_folder_is_hashable(molinari: Path):
-    addon_folder = AddonFolder(molinari, TocReader.from_addon_path(molinari))
+def test_addon_folder_is_hashable(iw_manager: Manager, molinari: Path):
+    addon_folder = AddonFolder.from_addon_path(iw_manager.config.game_flavour, molinari)
     assert addon_folder.hash_contents(AddonHashMethod.wowup) == MOLINARI_HASH
 
 

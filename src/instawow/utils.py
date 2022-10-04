@@ -93,8 +93,8 @@ class TocReader:
             return self.entries.get(key)
 
     @classmethod
-    def from_addon_path(cls, path: Path, suffix: str = '.toc') -> TocReader:
-        return cls((path / (path.name + suffix)).read_text(encoding='utf-8-sig', errors='replace'))
+    def from_path(cls, path: Path) -> TocReader:
+        return cls(path.read_text(encoding='utf-8-sig', errors='replace'))
 
 
 def fill(it: Iterable[_T], fill: _T, length: int) -> Iterable[_T]:

@@ -67,7 +67,7 @@ class AddonFolder:
     def from_addon_path(cls, flavour: Flavour, path: Path) -> Self | None:
         for suffix in chain(FLAVOUR_TOC_SUFFIXES[flavour], ('.toc',)):
             try:
-                toc_reader = TocReader.from_addon_path(path, suffix)
+                toc_reader = TocReader.from_path(path / (path.name + suffix))
                 return cls(path, toc_reader)
             except FileNotFoundError:
                 pass
