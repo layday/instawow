@@ -275,10 +275,6 @@
     :global(circle) {
       stroke: currentColor;
     }
-
-    &.hidden {
-      visibility: hidden;
-    }
   }
 
   .control {
