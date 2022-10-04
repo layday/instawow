@@ -97,15 +97,17 @@ jobs:
         run: |
           python -m pip install 'briefcase @ git+https://github.com/layday/briefcase@instawow'
           python -m briefcase build ${{ matrix.build-env.briefcase-build-opts }}
-          python -m briefcase package ${{ matrix.build-env.briefcase-package-opts }} | tee >(
-              echo "INSTAWOW_ARTIFACT_PATH=gui-webview/$(tail -n 1 | cut -c 33-)" >> $GITHUB_ENV
-            )
+          python -m briefcase package ${{ matrix.build-env.briefcase-package-opts }}
         working-directory: gui-webview
       - name: Upload artifact
         uses: actions/upload-artifact@v2
         with:
           name: instawow-gui-${{ needs.get-version.outputs.instawow-version }}-${{ matrix.build-env.os }}
-          path: ${{ env.INSTAWOW_ARTIFACT_PATH }}
+          path: |
+            gui-webview/linux/instawow-gui-*.AppImage
+            gui-webview/macOS/instawow-gui-*.dmg
+            gui-webview/windows/instawow-gui-*.msi
+          if-no-files-found: error
   create-release:
     if: startsWith(github.ref, 'refs/tags/')
     needs: [freeze-cli, freeze-gui]
@@ -130,4 +132,4 @@ jobs:
           draft: true
           files: |
             release-assets/instawow-cli-*.zip
-            release-assets/instawow-gui-*/*
+            release-assets/instawow-gui-*/*/*
