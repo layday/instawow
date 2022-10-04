@@ -11,11 +11,11 @@ from loguru import logger
 
 _TOC_FILE_PATH_PATTERN = re.compile(
     # TODO: Add ``wrath|wotlkc`` once Wago supports them.
-    r'^(?P<name>[^/]+)[/\\](?P=name)(?:[-_](?:mainline|bcc|tbc|classic|vanilla))?\.toc$',
+    r'^(?P<name>[^/]+)/(?P=name)(?:[-_](?:mainline|bcc|tbc|classic|vanilla))?\.toc$',
     flags=re.I,
 )
 _BINDINGS_XML_FILE_PATH_PATTERN = re.compile(
-    r'^[^/\\]+[/\\]Bindings\.xml$',
+    r'^[^/]+/Bindings\.xml$',
     flags=re.I,
 )
 _TOC_COMMENT_PATTERN = re.compile(
@@ -43,10 +43,10 @@ _INCLUDE_FILE_PATTERNS = {
 
 def _scan_addon_folder(folder: Path, root_folder: Path) -> Iterator[Path]:
     for entry in map(Path, os.scandir(folder)):
-        relative_str_path = os.fspath(entry.relative_to(root_folder))
-        if _TOC_FILE_PATH_PATTERN.match(relative_str_path):
+        relative_posix_path = entry.relative_to(root_folder).as_posix()
+        if _TOC_FILE_PATH_PATTERN.match(relative_posix_path):
             yield from _scan_includes(entry)
-        elif _BINDINGS_XML_FILE_PATH_PATTERN.match(relative_str_path):
+        elif _BINDINGS_XML_FILE_PATH_PATTERN.match(relative_posix_path):
             yield entry
         elif entry.is_dir():
             yield from _scan_addon_folder(entry, root_folder)
