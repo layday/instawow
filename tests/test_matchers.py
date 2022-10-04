@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from collections.abc import Awaitable, Callable
 from pathlib import Path
 
 import pytest
@@ -13,6 +12,7 @@ from instawow.matchers import (
     Matcher,
     get_unreconciled_folders,
     match_addon_names_with_folder_names,
+    match_folder_hashes,
     match_folder_name_subsets,
     match_toc_source_ids,
 )
@@ -63,19 +63,34 @@ async def test_reconcile_invalid_addons_discarded(iw_manager: Manager):
 
 
 @pytest.mark.parametrize(
-    'test_func',
-    [match_toc_source_ids, match_folder_name_subsets, match_addon_names_with_folder_names],
+    ('test_func', 'expected_defns'),
+    [
+        (
+            match_toc_source_ids,
+            {Defn('curse', '20338'), Defn('wowi', '13188')},
+        ),
+        (
+            match_folder_hashes,
+            {Defn('wago', 'WqKQQEKx')},
+        ),
+        (
+            match_folder_name_subsets,
+            {Defn('curse', '20338'), Defn('wowi', '13188')},
+        ),
+        (
+            match_addon_names_with_folder_names,
+            {Defn('curse', '20338'), Defn('wowi', '13188'), Defn('github', 'p3lim-wow/Molinari')},
+        ),
+    ],
 )
 async def test_reconcile_multiple_defns_per_addon_contained_in_results(
     iw_manager: Manager,
     molinari: Path,
     test_func: Matcher,
+    expected_defns: set[Defn],
 ):
     ((_, matches),) = await test_func(iw_manager, get_unreconciled_folders(iw_manager))
-    expected = {Defn('curse', '20338'), Defn('wowi', '13188')}
-    if test_func is match_addon_names_with_folder_names:
-        expected.add(Defn('github', 'p3lim-wow/Molinari'))
-    assert expected == set(matches)
+    assert expected_defns == set(matches)
 
 
 async def test_reconcile_results_vary_by_game_flavour(iw_manager: Manager):

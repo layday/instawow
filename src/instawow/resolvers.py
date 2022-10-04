@@ -14,6 +14,7 @@ from yarl import URL
 from . import _deferred_types, manager, models, results as R
 from .cataloguer import BaseCatalogueEntry
 from .common import AddonHashMethod, SourceMetadata, Strategy
+from .config import GlobalConfig
 from .http import CACHE_INDEFINITELY
 from .utils import file_uri_to_path, gather, normalise_names, run_in_thread
 
@@ -53,6 +54,7 @@ TFolderHashCandidate = TypeVar('TFolderHashCandidate', bound=FolderHashCandidate
 
 class Resolver(Protocol):
     metadata: ClassVar[SourceMetadata]
+    requires_access_token: ClassVar[str | None]
 
     def __init__(self, manager: manager.Manager) -> None:
         ...
@@ -94,11 +96,13 @@ class Resolver(Protocol):
         ...
 
 
-class BaseResolver(Resolver):
-    metadata: ClassVar[SourceMetadata]
+class BaseResolver(Resolver, Protocol):
+    _manager: manager.Manager
 
     def __init__(self, manager: manager.Manager) -> None:
         self._manager = manager
+
+    __orig_init = __init__
 
     def __init_subclass__(cls) -> None:
         async def resolve_one(self: Self, defn: Defn, metadata: Any) -> models.Pkg:
@@ -106,8 +110,20 @@ class BaseResolver(Resolver):
                 raise R.PkgStrategyUnsupported(defn.strategy)
             return await cls_resolve_one(self, defn, metadata)
 
+        cls.__init__ = cls.__orig_init  # ``Protocol`` clobbers ``__init__`` in Python < 3.11
         cls_resolve_one = cls.resolve_one
         cls.resolve_one = update_wrapper(resolve_one, cls.resolve_one)
+
+    @classmethod
+    def _get_access_token(cls, global_config: GlobalConfig) -> str:
+        maybe_access_token = None
+        if cls.requires_access_token is not None:
+            maybe_access_token = getattr(
+                global_config.access_tokens, cls.requires_access_token, None
+            )
+        if maybe_access_token is None:
+            raise ValueError(f'{cls.metadata.name} access token is not configured')
+        return maybe_access_token
 
     @classmethod
     def get_alias_from_url(cls, url: URL) -> str | None:

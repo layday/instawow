@@ -27,6 +27,7 @@ from ._sources.cfcore import CfCoreResolver
 from ._sources.github import GithubResolver
 from ._sources.instawow import InstawowResolver
 from ._sources.tukui import TukuiResolver
+from ._sources.wago import WagoResolver
 from ._sources.wowi import WowiResolver
 from .cataloguer import (
     BASE_CATALOGUE_VERSION,
@@ -211,6 +212,7 @@ class Manager:
         WowiResolver,
         TukuiResolver,
         InstawowResolver,
+        WagoResolver,
     ]
     "Default resolvers."
 
@@ -231,8 +233,14 @@ class Manager:
         self.database: sa_future.Connection = database
 
         builtin_resolver_classes = list(self.RESOLVERS)
-        if self.config.global_config.access_tokens.cfcore is None:
-            builtin_resolver_classes.remove(CfCoreResolver)
+
+        for resolver, access_token in (
+            (r, getattr(self.config.global_config.access_tokens, r.requires_access_token, None))
+            for r in self.RESOLVERS
+            if r.requires_access_token is not None
+        ):
+            if access_token is None:
+                builtin_resolver_classes.remove(resolver)
 
         plugin_hook = load_plugins()
         resolver_classes = chain(

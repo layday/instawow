@@ -9,9 +9,14 @@
 
   let githubAuthFlowShouldStart = false;
   let newCfcoreAccessToken: string | null;
+  let newWagoAccessToken: string | null;
 
   const updateCfCoreAccessToken = async () => {
     await $api.updateGlobalConfig({ cfcore: newCfcoreAccessToken });
+  };
+
+  const updateWagoAccessToken = async () => {
+    await $api.updateGlobalConfig({ wago: newWagoAccessToken });
   };
 
   const queryGithubAuthFlowStatus = async () => {
@@ -97,6 +102,31 @@
             >
               CFCore
             </button> to generate an access token.
+          </div>
+        </div>
+        <label for="__wago-input-box">Wago:</label>
+        <div class="value-rows">
+          <input
+            id="__wago-input-box"
+            class="form-control"
+            type="password"
+            value={access_tokens.wago}
+            on:input={(e) => (newWagoAccessToken = e.currentTarget.value || null)}
+          />
+          <button
+            class="form-control primary"
+            disabled={newWagoAccessToken === undefined}
+            on:click={() => updateWagoAccessToken()}>update</button
+          >
+          <div class="description">
+            An access token is required to use Wago Addons. Wago issues tokens to some
+            <button
+              role="link"
+              on:click|preventDefault|stopPropagation={() =>
+                $api.openUrl("https://addons.wago.io/patreon")}
+            >
+              Patreon
+            </button> subscribers.
           </div>
         </div>
       </div>

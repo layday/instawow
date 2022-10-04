@@ -18,6 +18,7 @@ class InstawowResolver(BaseResolver):
         changelog_format=ChangelogFormat.markdown,
         addon_toc_key=None,
     )
+    requires_access_token = None
 
     _addons = {
         ('0', 'weakauras-companion'),

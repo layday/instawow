@@ -66,12 +66,12 @@ async def aresponses(event_loop: asyncio.AbstractEventLoop):
         yield server
 
 
-@pytest.fixture
-def iw_global_config_values(tmp_path: Path):
+@pytest.fixture(params=['foo'])
+def iw_global_config_values(request: pytest.FixtureRequest, tmp_path: Path):
     return {
         'temp_dir': tmp_path / 'temp',
         'config_dir': tmp_path / 'config',
-        'access_tokens': {'github': None, 'wago': None, 'cfcore': 'foo'},
+        'access_tokens': {'github': None, 'wago': request.param, 'cfcore': request.param},
     }
 
 

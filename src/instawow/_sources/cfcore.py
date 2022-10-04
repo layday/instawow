@@ -254,6 +254,7 @@ class CfCoreResolver(BaseResolver):
         changelog_format=ChangelogFormat.html,
         addon_toc_key='X-Curse-Project-ID',
     )
+    requires_access_token = 'cfcore'
 
     # Ref: https://docs.curseforge.com/
     _mod_api_url = URL('https://api.curseforge.com/v1/mods')
@@ -266,13 +267,6 @@ class CfCoreResolver(BaseResolver):
             and url.parts[1:3] == ('wow', 'addons')
         ):
             return url.parts[3].lower()
-
-    @classmethod
-    def _get_access_token(cls, global_config: GlobalConfig):
-        maybe_access_token = global_config.access_tokens.cfcore
-        if maybe_access_token is None:
-            raise ValueError(f'{cls.metadata.name} access token not configured')
-        return maybe_access_token
 
     async def make_auth_headers(self) -> dict[str, str] | None:
         return {'x-api-key': self._get_access_token(self._manager.config.global_config)}

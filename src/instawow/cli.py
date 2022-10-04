@@ -346,8 +346,10 @@ _EXCLUDED_STRATEGIES = frozenset({Strategy.default, Strategy.version})
     expose_value=False,
     callback=partial(_combine_addons, _parse_into_defn_with_strategy),
     metavar='<STRATEGY ADDON>...',
-    help='A strategy followed by an add-on definition.  '
-    f'One of: {", ".join(s for s in Strategy if s not in _EXCLUDED_STRATEGIES)}.',
+    help=(
+        'A strategy followed by an add-on definition.  '
+        f'One of: {", ".join(s for s in Strategy if s not in _EXCLUDED_STRATEGIES)}.'
+    ),
 )
 @click.option(
     '--version',
@@ -960,6 +962,7 @@ class _EditableConfigOptions(StrEnum):
     auto_update_check = 'auto_update_check'
     github_access_token = 'access_tokens.github'
     cfcore_access_token = 'access_tokens.cfcore'
+    wago_access_token = 'access_tokens.wago'
 
 
 @cli.command()
@@ -1053,6 +1056,18 @@ def configure(
         )
         global_config_values['access_tokens']['cfcore'] = ask(
             password('CFCore access token:', validate=bool)
+        )
+
+    if _EditableConfigOptions.wago_access_token in config_options:
+        click.echo(
+            textwrap.fill(
+                'An access token is required to use Wago Addons. '
+                'Wago issues tokens to Patreon subscribers above a certain tier. '
+                'See https://addons.wago.io/patreon for more information.'
+            )
+        )
+        global_config_values['access_tokens']['wago'] = ask(
+            password('Wago Addons access token:', validate=bool)
         )
 
     global_config = config_converter.structure(global_config_values, GlobalConfig).write()

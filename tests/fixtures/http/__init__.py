@@ -79,14 +79,15 @@ def _make_route_dict_entry(route: Route):
 ROUTES = dict(
     map(
         _make_route_dict_entry,
-        # fmt: off
         [
             Route(
                 URL('//pypi.org/pypi/instawow/json'),
                 {'info': {'version': __version__}},
             ),
             Route(
-                URL('//raw.githubusercontent.com/layday/instawow-data/data/base-catalogue-v7.compact.json'),
+                URL(
+                    '//raw.githubusercontent.com/layday/instawow-data/data/base-catalogue-v7.compact.json'
+                ),
                 _load_json_fixture('base-catalogue-v7.compact.json'),
             ),
             Route(
@@ -187,7 +188,9 @@ ROUTES = dict(
                 match_querystring=True,
             ),
             Route(
-                URL('//github.com/p3lim-wow/Molinari/releases/download/90200.82-Release/release.json'),
+                URL(
+                    '//github.com/p3lim-wow/Molinari/releases/download/90200.82-Release/release.json'
+                ),
                 _load_json_fixture('github-release-molinari-release-json.json'),
                 case_insensitive=True,
             ),
@@ -231,8 +234,12 @@ ROUTES = dict(
                 URL('//api.github.com/repos/ketho-wow/RaidFadeMore/releases?per_page=10'),
                 _load_json_fixture('github-release-no-release-json.json'),
                 match_querystring=True,
-            )
+            ),
+            Route(
+                URL('//addons.wago.io/api/external/addons/_match'),
+                _load_json_fixture('wago-match-addons.json'),
+                method='POST',
+            ),
         ],
-        # fmt: on
     )
 )

@@ -1,0 +1,37 @@
+{
+  "addons": [
+    {
+      "id": "WqKQQEKx",
+      "name": "Molinari",
+      "authors": [
+        "p3lim"
+      ],
+      "website_url": "https://addons.wago.io/addons/molinari",
+      "thumbnail": null,
+      "matched_release": {
+        "id": "kwX3VMdb",
+        "label": "90207.84-Release",
+        "patch": "9.2.7",
+        "created_at": "2022-09-21T20:39:36.000000Z",
+        "link": "https://addons.wago.io/external/download/abc?link=def"
+      },
+      "modules": {
+        "Molinari": {
+          "hash": "2da096db5769138b5428a068343cddf3"
+        }
+      },
+      "cf": "20338",
+      "wowi": "13188",
+      "wago": "WqKQQEKx",
+      "recent_releases": {
+        "stable": {
+          "id": "RQ0OkG6W",
+          "label": "90207.85-Release",
+          "patch": "9.2.7",
+          "created_at": "2022-10-03T20:15:36.000000Z",
+          "link": "https://addons.wago.io/external/download/abc?link=def"
+        }
+      }
+    }
+  ]
+}

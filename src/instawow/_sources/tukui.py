@@ -68,6 +68,7 @@ class TukuiResolver(BaseResolver):
         changelog_format=ChangelogFormat.html,
         addon_toc_key='X-Tukui-ProjectID',
     )
+    requires_access_token = None
 
     # There's also a ``/client-api.php`` endpoint which is apparently
     # used by the Tukui client itself to check for updates for the two retail

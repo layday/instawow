@@ -74,6 +74,7 @@ class GithubResolver(BaseResolver):
         changelog_format=ChangelogFormat.markdown,
         addon_toc_key=None,
     )
+    requires_access_token = None
 
     _repos_api_url = URL('https://api.github.com/repos')
 

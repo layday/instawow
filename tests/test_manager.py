@@ -16,6 +16,23 @@ from instawow.models import Pkg
 from instawow.resolvers import Defn
 
 
+def test_auth_bound_resolvers_are_not_unloaded_if_tokens_set(iw_manager: Manager):
+    assert {
+        r.metadata.id for r in iw_manager.RESOLVERS if r.requires_access_token is not None
+    }.issubset(iw_manager.resolvers)
+
+
+@pytest.mark.parametrize(
+    'iw_global_config_values',
+    [None],
+    indirect=True,
+)
+def test_auth_bound_resolvers_are_unloaded_if_tokens_unset(iw_manager: Manager):
+    assert {
+        r.metadata.id for r in iw_manager.RESOLVERS if r.requires_access_token is not None
+    }.isdisjoint(iw_manager.resolvers)
+
+
 async def test_pinning_supported_pkg(iw_manager: Manager):
     defn = Defn('curse', 'molinari')
     install_result = await iw_manager.install([defn], False)
