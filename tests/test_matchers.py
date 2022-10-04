@@ -95,27 +95,38 @@ async def test_reconcile_multiple_defns_per_addon_contained_in_results(
     assert expected_defns == set(matches)
 
 
-async def test_reconcile_results_vary_by_game_flavour(iw_manager: Manager):
+@pytest.mark.parametrize(
+    ('iw_config_values', 'expected_defns'),
+    [
+        (
+            Flavour.retail,
+            {
+                Defn('curse', '23350'),
+                Defn('curse', '333072'),
+                Defn('curse', '431557'),
+            },
+        ),
+        (
+            Flavour.classic,
+            {
+                Defn('curse', '23350'),
+            },
+        ),
+        (
+            Flavour.vanilla_classic,
+            {
+                Defn('curse', '23350'),
+                Defn('curse', '333072'),
+            },
+        ),
+    ],
+    indirect=['iw_config_values'],
+)
+async def test_reconcile_results_vary_by_game_flavour(
+    iw_manager: Manager, expected_defns: set[Defn]
+):
     write_addons(iw_manager, 'AdiBags', 'AdiBags_Config')
     ((_, matches),) = await match_folder_name_subsets(
         iw_manager, get_unreconciled_folders(iw_manager)
     )
-    if iw_manager.config.game_flavour is Flavour.retail:
-        assert {
-            Defn('curse', '23350'),
-            Defn('curse', '333072'),
-            Defn('curse', '431557'),
-        } == set(matches)
-    elif iw_manager.config.game_flavour is Flavour.classic:
-        assert {
-            Defn('curse', '23350'),
-            Defn('curse', '333072'),
-            Defn('wowi', '26025'),
-        } == set(matches)
-    elif iw_manager.config.game_flavour is Flavour.vanilla_classic:
-        assert {
-            Defn('curse', '23350'),
-            Defn('curse', '333072'),
-        } == set(matches)
-    else:
-        assert_never(iw_manager.config.game_flavour)
+    assert expected_defns == set(matches)

@@ -225,6 +225,11 @@ async def test_basic_search(iw_manager: Manager):
     }
 
 
+@pytest.mark.parametrize(
+    'iw_config_values',
+    Flavour,
+    indirect=True,
+)
 async def test_search_flavour_filtering(iw_manager: Manager):
     results = await iw_manager.search('AtlasLootClassic', limit=5)
     faux_defns = {(e.source, e.slug or e.id) for e in results}

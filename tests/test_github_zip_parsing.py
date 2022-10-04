@@ -80,6 +80,11 @@ def package_json_less_addon(
     ],
     indirect=True,
 )
+@pytest.mark.parametrize(
+    'iw_config_values',
+    Flavour,
+    indirect=True,
+)
 async def test_package_json_less_addon(
     aresponses: ResponsesMockServer,
     iw_manager: Manager,
