@@ -20,6 +20,11 @@ from instawow.models import Pkg
 from instawow.resolvers import Defn, Resolver
 
 
+@pytest.mark.parametrize(
+    'iw_config_values',
+    Flavour,
+    indirect=True,
+)
 async def test_curse_simple_strategies(iw_manager: Manager):
     flavourful = Defn('curse', 'classiccastbars')
     retail_only = Defn('curse', 'mythic-dungeon-tools')
@@ -60,11 +65,6 @@ async def test_curse_version_pinning(iw_manager: Manager):
     )
 
 
-@pytest.mark.parametrize(
-    'iw_config_values',
-    [Flavour.retail],
-    indirect=True,
-)
 async def test_curse_deps_retrieved(iw_manager: Manager):
     defn = Defn('curse', 'bigwigs-voice-korean')
 
@@ -94,6 +94,11 @@ async def test_wowi_changelog_is_data_url(iw_manager: Manager):
     assert results[molinari].changelog_url.startswith('data:,')
 
 
+@pytest.mark.parametrize(
+    'iw_config_values',
+    Flavour,
+    indirect=True,
+)
 async def test_tukui_basic(iw_manager: Manager):
     regular_addon = Defn('tukui', '1' if iw_manager.config.game_flavour is Flavour.retail else '2')
     tukui_suite = Defn('tukui', '-1')
@@ -110,11 +115,6 @@ async def test_tukui_basic(iw_manager: Manager):
     assert type(results[elvui_suite]) is Pkg and results[elvui_suite].name == 'ElvUI'
 
 
-@pytest.mark.parametrize(
-    'iw_config_values',
-    [Flavour.retail],
-    indirect=True,
-)
 async def test_tukui_ui_suite_aliases_for_retail(iw_manager: Manager):
     tukui_id = Defn('tukui', '-1')
     tukui_slug = Defn('tukui', 'tukui')
@@ -129,7 +129,7 @@ async def test_tukui_ui_suite_aliases_for_retail(iw_manager: Manager):
 
 async def test_tukui_changelog_url_for_addon_type(iw_manager: Manager):
     ui_suite = Defn('tukui', '-1')
-    regular_addon = Defn('tukui', '1' if iw_manager.config.game_flavour is Flavour.retail else '2')
+    regular_addon = Defn('tukui', '1')
 
     results = await iw_manager.resolve([ui_suite, regular_addon])
 
@@ -144,27 +144,14 @@ async def test_github_basic(iw_manager: Manager):
 
     results = await iw_manager.resolve([release_json, releaseless, nonexistent])
 
-    release_json_result = results[release_json]
-    if iw_manager.config.game_flavour is Flavour.classic:
-        assert type(release_json_result) is R.PkgFileUnavailable
-    else:
-        assert type(release_json_result) is Pkg
-        if iw_manager.config.game_flavour is Flavour.vanilla_classic:
-            assert 'classic' in release_json_result.download_url
-        assert 'nolib' not in release_json_result.download_url
-    releaseless_result = results[releaseless]
+    assert type(results[release_json]) is Pkg
     assert (
-        type(releaseless_result) is R.PkgFileUnavailable
-        and releaseless_result.message == 'release not found'
+        type(results[releaseless]) is R.PkgFileUnavailable
+        and results[releaseless].message == 'release not found'
     )
     assert type(results[nonexistent]) is R.PkgNonexistent
 
 
-@pytest.mark.parametrize(
-    'iw_config_values',
-    [Flavour.retail],
-    indirect=True,
-)
 async def test_github_changelog_is_data_url(iw_manager: Manager):
     defn = Defn('github', 'p3lim-wow/Molinari')
     results = await iw_manager.resolve([defn])
@@ -172,13 +159,13 @@ async def test_github_changelog_is_data_url(iw_manager: Manager):
 
 
 @pytest.mark.parametrize(
-    ['iw_config_values', 'flavor', 'interface'],
+    ('iw_config_values', 'flavor', 'interface'),
     [
         (Flavour.retail, 'mainline', 30400),
         (Flavour.classic, 'wrath', 90207),
         (Flavour.vanilla_classic, 'classic', 90207),
     ],
-    indirect=['iw_config_values'],
+    indirect=('iw_config_values',),
 )
 @pytest.mark.parametrize(
     'iw_mock_aiohttp_requests',

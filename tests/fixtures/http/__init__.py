@@ -22,12 +22,10 @@ _HERE = Path(__file__).parent
 _match_any = re.compile(r'.*')
 
 
-@lru_cache(maxsize=None)
 def _load_fixture(filename: str):
     return (_HERE / filename).read_bytes()
 
 
-@lru_cache(maxsize=None)
 def _load_json_fixture(filename: str):
     return json.loads(_load_fixture(filename))
 
