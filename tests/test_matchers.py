@@ -31,12 +31,15 @@ def write_addons(iw_manager: Manager, *addons: str):
 def molinari(iw_manager: Manager):
     molinari_folder = iw_manager.config.addon_dir / 'Molinari'
     molinari_folder.mkdir()
-    (molinari_folder / 'Molinari.toc').write_text(
-        '''\
+
+    with open(molinari_folder / 'Molinari.toc', 'w', newline='\n') as toc_file:
+        toc_file.write(
+            '''\
 ## X-Curse-Project-ID: 20338
 ## X-WoWI-ID: 13188
-'''
-    )
+''',
+        )
+
     yield molinari_folder
 
 
