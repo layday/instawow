@@ -105,14 +105,17 @@ class BaseResolver(Resolver, Protocol):
     __orig_init = __init__
 
     def __init_subclass__(cls) -> None:
-        async def resolve_one(self: Self, defn: Defn, metadata: Any) -> models.Pkg:
-            if defn.strategy not in self.metadata.strategies:
-                raise R.PkgStrategyUnsupported(defn.strategy)
-            return await cls_resolve_one(self, defn, metadata)
-
         cls.__init__ = cls.__orig_init  # ``Protocol`` clobbers ``__init__`` in Python < 3.11
-        cls_resolve_one = cls.resolve_one
-        cls.resolve_one = update_wrapper(resolve_one, cls.resolve_one)
+
+        if cls.resolve_one is not super().resolve_one:
+
+            async def resolve_one(self: Self, defn: Defn, metadata: Any) -> models.Pkg:
+                if defn.strategy not in self.metadata.strategies:
+                    raise R.PkgStrategyUnsupported(defn.strategy)
+                return await cls_resolve_one(self, defn, metadata)
+
+            cls_resolve_one = cls.resolve_one
+            setattr(cls, cls.resolve_one.__name__, update_wrapper(resolve_one, cls.resolve_one))
 
     @classmethod
     def _get_access_token(cls, global_config: GlobalConfig) -> str:
@@ -139,9 +142,6 @@ class BaseResolver(Resolver, Protocol):
             (self.resolve_one(d, None) for d in defns), manager.capture_manager_exc_async
         )
         return dict(zip(defns, results))
-
-    async def resolve_one(self, defn: Defn, metadata: Any) -> models.Pkg:
-        raise NotImplementedError
 
     async def get_changelog(self, uri: URL) -> str:
         if uri.scheme == 'data' and uri.raw_path.startswith(','):
