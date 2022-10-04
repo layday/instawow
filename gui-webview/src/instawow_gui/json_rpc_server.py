@@ -446,11 +446,14 @@ class AddonMatch_AddonFolder(TypedDict):
 
 @_register_method('reconcile')
 class ReconcileParams(_ProfileParamMixin, BaseParams):
-    matcher: Literal['toc_source_ids', 'folder_name_subsets', 'addon_names_with_folder_names']
+    matcher: Literal[
+        'toc_source_ids', 'folder_hashes', 'folder_name_subsets', 'addon_names_with_folder_names'
+    ]
 
     _MATCHERS = {
         'toc_source_ids': matchers.match_toc_source_ids,
         'folder_name_subsets': matchers.match_folder_name_subsets,
+        'folder_hashes': matchers.match_folder_hashes,
         'addon_names_with_folder_names': matchers.match_addon_names_with_folder_names,
     }
 

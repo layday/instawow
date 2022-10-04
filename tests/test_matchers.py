@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 from typing_extensions import assert_never
 
-from instawow.common import Flavour
+from instawow.common import AddonHashMethod, Flavour
 from instawow.manager import Manager
 from instawow.matchers import (
     AddonFolder,
@@ -18,6 +18,8 @@ from instawow.matchers import (
 )
 from instawow.resolvers import Defn
 from instawow.utils import TocReader
+
+MOLINARI_HASH = '2da096db5769138b5428a068343cddf3'
 
 
 def write_addons(iw_manager: Manager, *addons: str):
@@ -44,6 +46,11 @@ def test_can_extract_defns_from_addon_folder_toc(iw_manager: Manager, molinari: 
     assert addon_folder.get_defns_from_toc_keys(
         iw_manager.resolvers.addon_toc_key_and_id_pairs
     ) == {Defn('curse', '20338'), Defn('wowi', '13188')}
+
+
+def test_addon_folder_is_hashable(molinari: Path):
+    addon_folder = AddonFolder(molinari, TocReader.from_addon_path(molinari))
+    assert addon_folder.hash_contents(AddonHashMethod.wowup) == MOLINARI_HASH
 
 
 async def test_reconcile_invalid_addons_discarded(iw_manager: Manager):

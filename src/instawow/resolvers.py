@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from collections.abc import AsyncIterator, Sequence
+from collections.abc import AsyncIterator, Collection, Iterable, Sequence
 from functools import update_wrapper
 from pathlib import Path
 import typing
-from typing import Any, ClassVar
+from typing import Any, ClassVar, TypeVar
 import urllib.parse
 
 from attrs import evolve, frozen
@@ -13,7 +13,7 @@ from yarl import URL
 
 from . import _deferred_types, manager, models, results as R
 from .cataloguer import BaseCatalogueEntry
-from .common import SourceMetadata, Strategy
+from .common import AddonHashMethod, SourceMetadata, Strategy
 from .http import CACHE_INDEFINITELY
 from .utils import file_uri_to_path, gather, normalise_names, run_in_thread
 
@@ -39,6 +39,16 @@ slugify = normalise_names('-')
 
 def format_data_changelog(changelog: str = '') -> str:
     return f'data:,{urllib.parse.quote(changelog)}'
+
+
+class FolderHashCandidate(Protocol):
+    name: str
+
+    def hash_contents(self, __method: AddonHashMethod) -> str:
+        ...
+
+
+TFolderHashCandidate = TypeVar('TFolderHashCandidate', bound=FolderHashCandidate)
 
 
 class Resolver(Protocol):
@@ -68,6 +78,12 @@ class Resolver(Protocol):
 
     async def get_changelog(self, uri: URL) -> str:
         "Retrieve a changelog from a URI."
+        ...
+
+    async def get_folder_hash_matches(
+        self, candidates: Collection[TFolderHashCandidate]
+    ) -> Iterable[tuple[Defn, frozenset[TFolderHashCandidate]]]:
+        "Find ``Defn``s from folder fingerprint."
         ...
 
     @classmethod
@@ -128,6 +144,11 @@ class BaseResolver(Resolver):
             )
         else:
             raise ValueError('Unsupported URI with scheme', uri.scheme)
+
+    async def get_folder_hash_matches(
+        self, candidates: Collection[TFolderHashCandidate]
+    ) -> Iterable[tuple[Defn, frozenset[TFolderHashCandidate]]]:
+        return []
 
     @classmethod
     async def catalogue(

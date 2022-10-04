@@ -10,7 +10,8 @@ import sqlalchemy as sa
 from typing_extensions import Protocol, Self
 
 from . import manager
-from .common import Flavour
+from ._addon_hashing import generate_wowup_addon_hash
+from .common import AddonHashMethod, Flavour
 from .db import pkg_folder
 from .resolvers import Defn
 from .utils import (
@@ -18,6 +19,7 @@ from .utils import (
     as_decorated_type,
     bucketise,
     cached_property,
+    gather,
     merge_intersecting_sets,
     uniq,
 )
@@ -70,6 +72,9 @@ class AddonFolder:
             except FileNotFoundError:
                 pass
 
+    def hash_contents(self, __method: AddonHashMethod) -> str:
+        return generate_wowup_addon_hash(self.path)
+
     def get_defns_from_toc_keys(self, keys_and_ids: Iterable[tuple[str, str]]) -> frozenset[Defn]:
         return frozenset(Defn(s, i) for k, s in keys_and_ids for i in (self.toc_reader[k],) if i)
 
@@ -117,6 +122,27 @@ async def match_toc_source_ids(manager: manager.Manager, leftovers: frozenset[Ad
         )
         for b, f in folders_grouped_by_overlapping_defns.items()
     ]
+
+
+@as_decorated_type(Matcher)
+async def match_folder_hashes(manager: manager.Manager, leftovers: frozenset[AddonFolder]):
+    matches = await gather(
+        r.get_folder_hash_matches(leftovers) for r in manager.resolvers.values()
+    )
+    flattened_matches = [t for g in matches for t in g]
+    merged_folders_by_constituent_folder = {
+        i: s for s in merge_intersecting_sets(f for _, f in flattened_matches) for i in s
+    }
+    matches_grouped_by_overlapping_folder_names = bucketise(
+        flattened_matches, lambda v: merged_folders_by_constituent_folder[next(iter(v[1]))]
+    )
+    return sorted(
+        (
+            sorted(f),
+            sorted(uniq(d for d, _ in b), key=lambda d: manager.resolvers.priority_dict[d.source]),
+        )
+        for f, b in matches_grouped_by_overlapping_folder_names.items()
+    )
 
 
 @as_decorated_type(Matcher)

@@ -500,6 +500,7 @@ def reconcile(mw: _CtxObjWrapper, auto: bool, rereconcile: bool, list_unreconcil
         AddonFolder,
         get_unreconciled_folders,
         match_addon_names_with_folder_names,
+        match_folder_hashes,
         match_folder_name_subsets,
         match_toc_source_ids,
     )
@@ -630,6 +631,7 @@ def reconcile(mw: _CtxObjWrapper, auto: bool, rereconcile: bool, list_unreconcil
         for fn in [
             match_toc_source_ids,
             match_folder_name_subsets,
+            match_folder_hashes,
             match_addon_names_with_folder_names,
         ]:
             groups = mw.run_with_progress(fn(mw.manager, leftovers))

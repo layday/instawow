@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from enum import Enum
+from enum import Enum, auto as enum_auto
 import os
 from pathlib import PurePath
 import typing
@@ -95,3 +95,7 @@ class SourceMetadata:
     strategies: typing.FrozenSet[Strategy]
     changelog_format: ChangelogFormat
     addon_toc_key: str | None
+
+
+class AddonHashMethod(Enum):
+    wowup = enum_auto()
