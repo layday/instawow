@@ -23,6 +23,7 @@ from .resolvers import Defn
 from .utils import StrEnum, all_eq, cached_property, gather, reveal_folder, tabulate, uniq
 
 _T = TypeVar('_T')
+_TStrEnum = TypeVar('_TStrEnum', bound=StrEnum)
 
 
 class Report:
@@ -205,23 +206,22 @@ def _with_manager(fn: Callable[..., object]):
     return wrapper
 
 
-class StrEnumParam(click.Choice):
+class _StrEnumParam(click.Choice):
     def __init__(
         self,
-        choice_enum: type[StrEnum],
-        excludes: Set[StrEnum] = frozenset(),
+        choice_enum: type[_TStrEnum],
+        excludes: Set[_TStrEnum] = frozenset(),
         case_sensitive: bool = True,
     ) -> None:
-        self._choice_enum = choice_enum
         super().__init__(
             choices=[c for c in choice_enum if c not in excludes],
             case_sensitive=case_sensitive,
         )
+        self.__choice_enum = choice_enum
 
-    def convert(
-        self, value: str, param: click.Parameter | None, ctx: click.Context | None
-    ) -> StrEnum:
-        return self._choice_enum(super().convert(value, param, ctx))
+    def convert(self, value: Any, param: click.Parameter | None, ctx: click.Context | None) -> Any:
+        converted_value = super().convert(value, param, ctx)
+        return self.__choice_enum(converted_value)
 
 
 def _register_plugin_commands(group: click.Group):
@@ -342,7 +342,7 @@ _EXCLUDED_STRATEGIES = frozenset({Strategy.default, Strategy.version})
     '--with-strategy',
     '-s',
     multiple=True,
-    type=(StrEnumParam(Strategy, _EXCLUDED_STRATEGIES), str),
+    type=(_StrEnumParam(Strategy, _EXCLUDED_STRATEGIES), str),
     expose_value=False,
     callback=partial(_combine_addons, _parse_into_defn_with_strategy),
     metavar='<STRATEGY ADDON>...',
@@ -727,7 +727,7 @@ class _ListFormat(StrEnum):
     '--format',
     '-f',
     'output_format',
-    type=StrEnumParam(_ListFormat),
+    type=_StrEnumParam(_ListFormat),
     default=_ListFormat.simple,
     show_default=True,
     help='Change the output format.',
@@ -978,7 +978,7 @@ class _EditableConfigOptions(StrEnum):
 @click.argument(
     'config-options',
     nargs=-1,
-    type=StrEnumParam(_EditableConfigOptions),
+    type=_StrEnumParam(_EditableConfigOptions),
 )
 @click.pass_context
 def configure(
