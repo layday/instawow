@@ -13,8 +13,8 @@ from .. import _deferred_types, manager, models, results as R
 from ..cataloguer import BaseCatalogueEntry
 from ..common import ChangelogFormat, Flavour, FlavourVersion, SourceMetadata, Strategy
 from ..http import make_generic_progress_ctx
-from ..resolvers import BaseResolver, Defn, format_data_changelog, slugify
-from ..utils import gather
+from ..resolvers import BaseResolver, Defn
+from ..utils import as_plain_text_data_url, gather, slugify
 
 
 class _WowiCommonTerms(TypedDict):
@@ -159,7 +159,7 @@ class WowiResolver(BaseResolver):
             download_url=metadata['UIDownload'],
             date_published=self._timestamp_to_datetime(metadata['UIDate']),
             version=metadata['UIVersion'],
-            changelog_url=format_data_changelog(metadata['UIChangeLog']),
+            changelog_url=as_plain_text_data_url(metadata['UIChangeLog']),
             options=models.PkgOptions(strategy=defn.strategy),
         )
 

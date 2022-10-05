@@ -14,8 +14,14 @@ from .. import _deferred_types, models, results as R
 from ..cataloguer import BaseCatalogueEntry, CatalogueSameAs
 from ..common import ChangelogFormat, Flavour, FlavourVersion, SourceMetadata, Strategy
 from ..http import CACHE_INDEFINITELY
-from ..resolvers import BaseResolver, Defn, format_data_changelog
-from ..utils import StrEnum, TocReader, extract_byte_range_offset, find_addon_zip_tocs
+from ..resolvers import BaseResolver, Defn
+from ..utils import (
+    StrEnum,
+    TocReader,
+    as_plain_text_data_url,
+    extract_byte_range_offset,
+    find_addon_zip_tocs,
+)
 
 
 # Not exhaustive (as you might've guessed).  Reference:
@@ -388,7 +394,7 @@ class GithubResolver(BaseResolver):
             download_url=matching_asset['browser_download_url'],
             date_published=iso8601.parse_date(release['published_at']),
             version=release['tag_name'],
-            changelog_url=format_data_changelog(release['body']),
+            changelog_url=as_plain_text_data_url(release['body']),
             options=models.PkgOptions(
                 strategy=defn.strategy,
             ),

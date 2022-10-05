@@ -11,8 +11,8 @@ from .. import _deferred_types, manager, models, results as R
 from ..cataloguer import BaseCatalogueEntry
 from ..common import ChangelogFormat, Flavour, SourceMetadata, Strategy
 from ..http import make_generic_progress_ctx
-from ..resolvers import BaseResolver, Defn, format_data_changelog, slugify
-from ..utils import StrEnum, gather
+from ..resolvers import BaseResolver, Defn
+from ..utils import StrEnum, as_plain_text_data_url, gather, slugify
 
 
 class _TukuiUi(TypedDict):
@@ -164,7 +164,7 @@ class TukuiResolver(BaseResolver):
                 if metadata['id'] in {-1, -2}
                 # Regular add-ons don't have dedicated changelogs
                 # but link to the changelog tab on the add-on page
-                else format_data_changelog(metadata['changelog'])
+                else as_plain_text_data_url(metadata['changelog'])
             ),
             options=models.PkgOptions(strategy=defn.strategy),
         )

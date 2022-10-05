@@ -16,7 +16,7 @@ from .cataloguer import BaseCatalogueEntry
 from .common import AddonHashMethod, SourceMetadata, Strategy
 from .config import GlobalConfig
 from .http import CACHE_INDEFINITELY
-from .utils import file_uri_to_path, gather, normalise_names, run_in_thread
+from .utils import file_uri_to_path, gather, run_in_thread
 
 
 @frozen(hash=True)
@@ -33,13 +33,6 @@ class Defn:
 
     def with_version(self, version: str) -> Self:
         return evolve(self, strategy=Strategy.version, version=version)
-
-
-slugify = normalise_names('-')
-
-
-def format_data_changelog(changelog: str = '') -> str:
-    return f'data:,{urllib.parse.quote(changelog)}'
 
 
 class FolderHashCandidate(Protocol):

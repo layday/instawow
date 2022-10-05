@@ -11,8 +11,8 @@ from yarl import URL
 from .. import models, results as R
 from ..common import AddonHashMethod, ChangelogFormat, SourceMetadata, Strategy
 from ..http import make_generic_progress_ctx
-from ..resolvers import BaseResolver, Defn, TFolderHashCandidate, format_data_changelog
-from ..utils import StrEnum, run_in_thread
+from ..resolvers import BaseResolver, Defn, TFolderHashCandidate
+from ..utils import StrEnum, as_plain_text_data_url, run_in_thread
 
 _WagoStability = Literal['stable', 'beta', 'alpha']
 
@@ -156,7 +156,7 @@ class WagoResolver(BaseResolver):
             download_url=file['download_link'],
             date_published=file_date,
             version=file['label'],
-            changelog_url=format_data_changelog(file['changelog']),
+            changelog_url=as_plain_text_data_url(file['changelog']),
             options=models.PkgOptions(strategy=defn.strategy),
         )
 

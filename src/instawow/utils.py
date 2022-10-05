@@ -17,6 +17,7 @@ from tempfile import mkdtemp
 import time
 from types import ModuleType
 from typing import Any, Generic, Hashable, TypeVar, overload
+import urllib.parse
 
 from typing_extensions import ParamSpec
 
@@ -284,6 +285,10 @@ def file_uri_to_path(file_uri: str) -> str:
     return unprefixed_path
 
 
+def as_plain_text_data_url(body: str = '') -> str:
+    return f'data:,{urllib.parse.quote(body)}'
+
+
 def extract_byte_range_offset(content_range: str):
     return int(content_range.replace('bytes ', '').partition('-')[0])
 
@@ -297,6 +302,9 @@ def normalise_names(replace_delim: str) -> Callable[[str], str]:
         return replace_delim.join(value.casefold().translate(trans_table).split())
 
     return normalise
+
+
+slugify = normalise_names('-')
 
 
 def reveal_folder(path: str | os.PathLike[str]) -> None:
