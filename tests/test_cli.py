@@ -158,7 +158,7 @@ def test_version_strategy_lifecycle(
     assert run('remove curse:molinari').output == '✓ curse:molinari\n  removed\n'
     assert (
         run('install --version foo curse:molinari').output
-        == f"✗ curse:molinari\n  version foo not found\n"
+        == '✗ curse:molinari\n  version foo not found\n'
     )
     assert (
         run('install --version 80000.57-Release curse:molinari').output
@@ -178,7 +178,7 @@ def test_install_options(
         ' -s latest curse:molinari'
         ' --version 80000.57-Release curse:molinari'
     ).output == dedent(
-        f'''\
+        '''\
         ✓ curse:molinari
           installed 90200.82-Release
         ✗ curse:molinari
@@ -219,7 +219,7 @@ def test_install_argument_is_not_required(
     assert run(
         'install -s latest curse:molinari --version 80000.57-Release curse:molinari'
     ).output == dedent(
-        f'''\
+        '''\
         ✓ curse:molinari
           installed 90200.82-Release
         ✗ curse:molinari
@@ -267,7 +267,7 @@ def test_configure__update_existing_profile_with_opts(
     iw_config: Config,
     run: C[[str], Result],
 ):
-    feed_pt(f'Y\r')
+    feed_pt('Y\r')
     assert run('configure auto_update_check').output == (
         'Configuration written to:\n'
         f'  {iw_config.global_config.config_dir / "config.json"}\n'
@@ -316,7 +316,7 @@ def test_rollback__multiple_versions(
     assert run('install curse:molinari').exit_code == 0
     feed_pt('\r\r')
     assert run('rollback curse:molinari').output == dedent(
-        f'''\
+        '''\
         ✓ curse:molinari
           updated 90200.82-Release to 80000.57-Release
         '''
@@ -330,7 +330,7 @@ def test_rollback__multiple_versions_promptless(
     assert run('remove curse:molinari').exit_code == 0
     assert run('install curse:molinari').exit_code == 0
     assert run('rollback --version 80000.57-Release curse:molinari').output == dedent(
-        f'''\
+        '''\
         ✓ curse:molinari
           updated 90200.82-Release to 80000.57-Release
         '''
@@ -348,7 +348,7 @@ def test_rollback__rollback_multiple_versions(
     assert run('install --version 80000.57-Release curse:molinari').exit_code == 0
     feed_pt('\r\r')
     assert run(f'rollback {options} curse:molinari').output == dedent(
-        f'''\
+        '''\
         ✓ curse:molinari
           updated 80000.57-Release to 90200.82-Release
         '''
@@ -393,7 +393,7 @@ def test_reconcile__auto_reconcile(
     pretend_install_molinari_and_run: C[[str], Result],
 ):
     assert pretend_install_molinari_and_run('reconcile --auto').output == dedent(
-        f'''\
+        '''\
         ✓ curse:molinari
           installed 90200.82-Release
         '''
@@ -415,7 +415,7 @@ def test_reconcile__complete_interactive_reconciliation(
     feed_pt('\r\r')
     assert pretend_install_molinari_and_run('reconcile').output.endswith(
         dedent(
-            f'''\
+            '''\
             ✓ curse:molinari
               installed 90200.82-Release
             '''
@@ -435,7 +435,7 @@ def test_reconcile__rereconcile(
 ):
     feed_pt('\r\r')
     assert install_molinari_and_run('reconcile --installed').output == dedent(
-        f'''\
+        '''\
         ✓ curse:molinari
           removed
         ✓ github:p3lim-wow/molinari
@@ -480,7 +480,7 @@ def test_search__install_one(
 ):
     feed_pt(' \r\r')  # space, enter, enter
     assert run('search molinari --source curse').output == dedent(
-        f'''\
+        '''\
         ✓ curse:molinari
           installed 90200.82-Release
         '''
@@ -493,7 +493,7 @@ def test_search__install_multiple_conflicting(
 ):
     feed_pt(' \x1b[B \r\r')  # space, arrow down, space, enter, enter
     assert run('search molinari').output == dedent(
-        f'''\
+        '''\
         ✓ wowi:13188-molinari
           installed 90200.82-Release
         ✗ curse:molinari
