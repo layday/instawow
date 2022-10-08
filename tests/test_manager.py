@@ -296,7 +296,7 @@ async def test_is_outdated_works_in_variety_of_scenarios(
     aresponses: ResponsesMockServer,
     iw_global_config_values: dict[str, object],
 ):
-    global_config = GlobalConfig.from_env(**iw_global_config_values)
+    global_config = GlobalConfig.from_env(**iw_global_config_values).write()
 
     # version == '0+dev', version not cached
     with monkeypatch.context() as patcher:

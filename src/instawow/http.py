@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from functools import lru_cache, partial
-import os
 from pathlib import Path
 from typing import Any
 
@@ -51,9 +52,10 @@ def _load_certifi_certs():
         return read_resource_as_text(certifi, 'cacert.pem', encoding='ascii')
 
 
-def init_web_client(
+@asynccontextmanager
+async def init_web_client(
     cache_dir: Path | None, **kwargs: Any
-) -> _deferred_types.aiohttp.ClientSession:
+) -> AsyncIterator[_deferred_types.aiohttp.ClientSession]:
     from aiohttp import ClientSession, ClientTimeout, TCPConnector
 
     make_connector = partial(TCPConnector, limit_per_host=10)
@@ -68,21 +70,27 @@ def init_web_client(
     kwargs = {
         'connector': make_connector(),
         'headers': {'User-Agent': _USER_AGENT},
-        'trust_env': True,  # Respect the 'http_proxy' env var
+        'trust_env': True,  # Respect the ``http(s)_proxy`` env var
         'timeout': ClientTimeout(connect=60, sock_connect=10, sock_read=20),
         **kwargs,
     }
     if cache_dir is not None:
-        from aiohttp_client_cache.backends.sqlite import SQLiteBackend
         from aiohttp_client_cache.session import CachedSession
 
-        kwargs['cache'] = SQLiteBackend(
-            allowed_codes=[200, 206],
-            allowed_methods=['GET', 'POST'],
-            cache_name=os.fspath(cache_dir / '_aiohttp-cache'),
-            expire_after=_DEFAULT_EXPIRE,
-            include_headers=True,
-        )
-        return CachedSession(**kwargs)
+        from ._http_cache_db import SQLiteBackend, acquire_cache_db_conn
+
+        with acquire_cache_db_conn(cache_dir / '_aiohttp-cache.sqlite') as db_conn:
+            async with CachedSession(
+                cache=SQLiteBackend(
+                    allowed_codes=[200, 206],
+                    allowed_methods=['GET', 'POST'],
+                    db_conn=db_conn,
+                    expire_after=_DEFAULT_EXPIRE,
+                    include_headers=True,
+                ),
+                **kwargs,
+            ) as client_session:
+                yield client_session
     else:
-        return ClientSession(**kwargs)
+        async with ClientSession(**kwargs) as client_session:
+            yield client_session

@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 from collections import defaultdict
 from collections.abc import Awaitable, Callable, Iterable, Iterator
-from contextlib import contextmanager
+from contextlib import AsyncExitStack, contextmanager
 from datetime import datetime
 from functools import partial
 import json
@@ -652,6 +652,8 @@ class _ManagerWorkQueue:
     def __init__(self):
         self._loop = asyncio.get_running_loop()
 
+        self._exit_stack = AsyncExitStack()
+
         self._queue: asyncio.Queue[
             tuple[asyncio.Future[object], str, _ManagerBoundCoroFn[..., object]]
         ] = asyncio.Queue()
@@ -665,17 +667,17 @@ class _ManagerWorkQueue:
 
     async def __aenter__(self):
         self.global_config = await _read_global_config()
-        self._web_client, self._download_progress_reporters = _init_json_rpc_web_client(
+        init_json_rpc_web_client, self._download_progress_reporters = _init_json_rpc_web_client(
             self.global_config.cache_dir
         )
+        self._web_client = await self._exit_stack.enter_async_context(init_json_rpc_web_client)
         contextualise(web_client=self._web_client, locks=self.locks)
-        self._listener = self._loop.create_task(self._listen())
+        self._exit_stack.callback(self._loop.create_task(self._listen()).cancel)
 
     async def __aexit__(self, *args: object):
         self.cancel_github_auth_polling()
-        self._listener.cancel()
         self._unload_all_profiles()
-        await self._web_client.close()
+        await self._exit_stack.aclose()
 
     def unload_profile(self, profile: str):
         if profile in self._managers:

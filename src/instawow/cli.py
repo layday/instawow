@@ -86,7 +86,7 @@ def _init_cli_web_client(
     cache_dir: Path,
     progress_bar: _deferred_types.prompt_toolkit.shortcuts.ProgressBar,
     tickers: set[asyncio.Task[None]],
-) -> _deferred_types.aiohttp.ClientSession:
+):
     from aiohttp import TraceConfig, hdrs
     from prompt_toolkit.shortcuts import ProgressBarCounter
 

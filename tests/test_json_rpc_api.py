@@ -24,7 +24,7 @@ dumps = partial(json.dumps, default=str)
 
 
 @pytest.fixture
-async def ws_client():
+async def ws_client(iw_config: object):
     app = await json_rpc_server.create_app()
     server = TestServer(app)
     async with TestClient(server) as client:
