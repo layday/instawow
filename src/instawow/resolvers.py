@@ -98,7 +98,10 @@ class BaseResolver(Resolver, Protocol):
     __orig_init = __init__
 
     def __init_subclass__(cls) -> None:
-        cls.__init__ = cls.__orig_init  # ``Protocol`` clobbers ``__init__`` in Python < 3.11
+        # ``Protocol`` clobbers ``__init__`` in Python < 3.11.  The fix was
+        # also backported to 3.9 and 3.10 at some point.
+        if cls.__init__ is _DummyResolver.__init__:
+            cls.__init__ = cls.__orig_init
 
         if cls.resolve_one is not super().resolve_one:
 
@@ -165,3 +168,7 @@ class BaseResolver(Resolver, Protocol):
     ) -> AsyncIterator[BaseCatalogueEntry]:
         return
         yield
+
+
+class _DummyResolver(Resolver):  # pyright: ignore
+    pass
