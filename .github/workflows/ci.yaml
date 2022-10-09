@@ -101,7 +101,7 @@ jobs:
           --force-python ${{ matrix.python-version }}
           -s type_check
           -- '${{ steps.download-wheel.outputs.download-path }}/${{ needs.build-package.outputs.wheel-name }}'
-  format-check:
+  lint:
     runs-on: ubuntu-latest
     steps:
       - name: Clone the repo
