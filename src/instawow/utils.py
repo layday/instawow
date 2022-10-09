@@ -27,8 +27,9 @@ _THashable = TypeVar('_THashable', bound=Hashable)
 _P = ParamSpec('_P')
 
 
-def as_decorated_type(__type: type[_T]) -> Callable[[_T], _T]:
-    return lambda v: v
+class assert_decorated_type(Generic[_T]):
+    def __new__(cls, value: _T) -> _T:
+        return value
 
 
 if sys.version_info >= (3, 11):
