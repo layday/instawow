@@ -106,23 +106,27 @@ def _init_cli_web_client(
                 if trace_request_ctx['report_progress'] == 'pkg_download'
                 else trace_request_ctx['label']
             )
-            # The encoded size is not exposed in the aiohttp streaming API
-            # so we cannot display progress when the payload is encoded.
-            # When the total is ``None`` the progress bar is "indeterminate".
+            # When the total is ``None`` the progress bar is
+            # in an "indeterminate" state.
+            # We cannot display progress for encoded responses because
+            # the size before decoding is not exposed by the
+            # aiohttp streaming API
             total = None if hdrs.CONTENT_ENCODING in response.headers else response.content_length
 
+            counters = progress_bar.counters
+
             async def ticker():
-                counter: ProgressBarCounter[None] = ProgressBarCounter(
+                counter = ProgressBarCounter[object](
                     progress_bar=progress_bar, label=label, total=total
                 )
-                progress_bar.counters.append(counter)
+                counters.append(counter)
                 try:
                     while not response.content.is_eof():
                         counter.items_completed = response.content.total_bytes
                         progress_bar.invalidate()
                         await asyncio.sleep(TICK_INTERVAL)
                 finally:
-                    progress_bar.counters.remove(counter)
+                    counters.remove(counter)
 
             tickers.add(asyncio.create_task(ticker()))
 
