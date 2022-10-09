@@ -16,11 +16,11 @@ jobs:
       instawow-version: ${{ steps.get-version.outputs.INSTAWOW_VERSION }}
     steps:
       - name: Clone the repo
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           fetch-depth: 0
       - name: Install Python
-        uses: actions/setup-python@v3
+        uses: actions/setup-python@v4
         with:
           python-version: "3.9"
       - name: Install dunamai
@@ -37,11 +37,11 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - name: Clone the repo
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           fetch-depth: 0
       - name: Install Python 3.10
-        uses: actions/setup-python@v3
+        uses: actions/setup-python@v4
         with:
           python-version: "3.10"
       - name: Install nox
@@ -74,7 +74,7 @@ jobs:
     runs-on: ${{ matrix.build-env.os }}
     steps:
       - name: Clone the repo
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           fetch-depth: 0
       - name: Install briefcase Linux dependencies
@@ -84,7 +84,7 @@ jobs:
           libgirepository1.0-dev gir1.2-javascriptcoregtk-4.0 gir1.2-webkit2-4.0
         if: matrix.build-env.os == 'ubuntu-18.04'
       - name: Install Python
-        uses: actions/setup-python@v3
+        uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.build-env.python-version }}
       - name: Install Nox
@@ -117,7 +117,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Download built artifacts
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           path: release-assets
       - name: Zip up CLI directories
