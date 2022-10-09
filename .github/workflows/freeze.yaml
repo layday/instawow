@@ -13,7 +13,7 @@ jobs:
   get-version:
     runs-on: ubuntu-latest
     outputs:
-      instawow-version: ${{ steps.get-version.outputs.INSTAWOW_VERSION }}
+      instawow-version: ${{ steps.get-version.outputs.instawow-version }}
     steps:
       - name: Clone the repo
         uses: actions/checkout@v3
@@ -22,12 +22,12 @@ jobs:
       - name: Install Python
         uses: actions/setup-python@v4
         with:
-          python-version: "3.9"
+          python-version: "3.10"
       - name: Install dunamai
         run: python -m pip install dunamai
       - name: Grab the version
         id: get-version
-        run: echo "::set-output name=INSTAWOW_VERSION::$(dunamai from git --no-metadata)"
+        run: echo "::set-output name=instawow-version::$(dunamai from git --no-metadata)"
   freeze-cli:
     needs: get-version
     strategy:
