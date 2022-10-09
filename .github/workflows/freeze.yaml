@@ -1,6 +1,9 @@
 ---
 name: Create instawow executables
 on: [push, workflow_dispatch]
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 env:
   FORCE_COLOR: "1"
 defaults:
