@@ -6,8 +6,24 @@ concurrency:
   cancel-in-progress: true
 env:
   FORCE_COLOR: "1"
+defaults:
+  run:
+    shell: bash
 jobs:
+  build-package:
+    runs-on: ubuntu-latest
+    outputs:
+      wheel-name: ${{ steps.build-package.outputs.wheel-name }}
+    steps:
+      - name: Clone the repo
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - name: Build package
+        id: build-package
+        uses: ./.github/actions/build-package
   test:
+    needs: build-package
     strategy:
       fail-fast: false
       matrix:
@@ -24,14 +40,21 @@ jobs:
     steps:
       - name: Clone the repo
         uses: actions/checkout@v3
+      - name: Download pre-built wheel
+        uses: actions/download-artifact@v3
+        id: download-wheel
+        with:
+          name: ${{ needs.build-package.outputs.wheel-name }}
+          path: ./dist
       - name: Prepare environment
-        uses: ./.github/actions/prepare_ci
+        uses: ./.github/actions/prepare-ci
       - name: Run tests (latest)
         run: >-
           nox
           --error-on-missing-interpreters
           --force-python ${{ matrix.python-version }}
           -s 'test-${{ matrix.python-version }}(latest)'
+          -- '${{ steps.download-wheel.outputs.download-path }}/${{ needs.build-package.outputs.wheel-name }}'
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v2
       - name: Run tests (minimum versions)
@@ -40,7 +63,9 @@ jobs:
           --error-on-missing-interpreters
           --force-python ${{ matrix.python-version }}
           -s 'test-${{ matrix.python-version }}(minimum-versions)'
+          -- '${{ steps.download-wheel.outputs.download-path }}/${{ needs.build-package.outputs.wheel-name }}'
   type-check:
+    needs: build-package
     strategy:
       fail-fast: false
       matrix:
@@ -57,8 +82,14 @@ jobs:
     steps:
       - name: Clone the repo
         uses: actions/checkout@v3
+      - name: Download pre-built wheel
+        uses: actions/download-artifact@v3
+        id: download-wheel
+        with:
+          name: ${{ needs.build-package.outputs.wheel-name }}
+          path: ./dist
       - name: Prepare environment
-        uses: ./.github/actions/prepare_ci
+        uses: ./.github/actions/prepare-ci
       - name: Install Node 16 for Pyright
         uses: actions/setup-node@v2
         with:
@@ -69,6 +100,7 @@ jobs:
           --error-on-missing-interpreters
           --force-python ${{ matrix.python-version }}
           -s type_check
+          -- '${{ steps.download-wheel.outputs.download-path }}/${{ needs.build-package.outputs.wheel-name }}'
   format-check:
     runs-on: ubuntu-latest
     steps:

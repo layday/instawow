@@ -1,11 +1,11 @@
 ---
 runs:
-  using: "composite"
+  using: composite
   steps:
     - name: Install nox
       run: pipx install nox
       shell: bash
-    - name: Install test Python ${{ matrix.python-version }}
+    - name: Install Python ${{ matrix.python-version }}
       uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python-install-version || matrix.python-version }}

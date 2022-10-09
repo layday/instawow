@@ -1,0 +1,50 @@
+---
+inputs:
+  python-version:
+    required: false
+    default: "3.10"
+  with-frontend-assets:
+    required: false
+    default: false
+outputs:
+  wheel-name:
+    value: ${{ steps.get-wheel-info.outputs.wheel-name }}
+runs:
+  using: composite
+  steps:
+    - name: Install nox
+      run: pipx install nox
+      shell: bash
+    - name: Install Python ${{ inputs.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ inputs.python-version }}
+    - name: Install Node 16
+      uses: actions/setup-node@v2
+      with:
+        node-version: "16"
+      if: ${{ inputs.with-frontend-assets }}
+    - name: Bundle frontend
+      run: nox -s bundle_frontend
+      if: ${{ inputs.with-frontend-assets }}
+      shell: bash
+    - name: Build package
+      run: >-
+        nox
+        --error-on-missing-interpreters
+        --force-python ${{ inputs.python-version }}
+        -s build_dists-${{ inputs.python-version }}
+      shell: bash
+    - name: Get wheel info
+      id: get-wheel-info
+      run: |
+        WHEEL_PATH=$(ls "$PWD"/dist/*.whl)
+        echo "::set-output name=wheel-path::$WHEEL_PATH"
+        echo "::set-output name=wheel-name::$(basename "$WHEEL_PATH")"
+      shell: bash
+    - name: Upload artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: ${{ steps.get-wheel-info.outputs.wheel-name }}
+        path: ${{ steps.get-wheel-info.outputs.wheel-path }}
+        if-no-files-found: error

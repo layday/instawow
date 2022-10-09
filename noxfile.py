@@ -57,7 +57,7 @@ def format_(session: nox.Session):
         )
 
 
-@nox.session(python='3.9')
+@nox.session(python='3.10')
 @nox.parametrize(
     'constraints',
     [
@@ -97,7 +97,12 @@ def test(session: nox.Session, constraints: str):
     constraints_txt = 'constraints.txt'
     Path(constraints_txt).write_text(constraints)
 
-    session.install('-c', constraints_txt, '.[gui, test]', './tests/plugin')
+    if session.posargs:
+        (package_path,) = session.posargs
+    else:
+        package_path = '.'
+
+    session.install('-c', constraints_txt, f'{package_path}[gui, test]', './tests/plugin')
     install_coverage_hook(session)
 
     session.run(
@@ -109,11 +114,17 @@ def test(session: nox.Session, constraints: str):
     session.run('coverage', 'xml')
 
 
-@nox.session(python='3.9')
+@nox.session(python='3.10')
 def type_check(session: nox.Session):
     "Run Pyright."
     mirror_repo(session)
-    session.install('.[gui, types]')
+
+    if session.posargs:
+        (package_path,) = session.posargs
+    else:
+        package_path = '.'
+
+    session.install(f'{package_path}[gui, types]')
     session.run('npx', 'pyright', external=True)
 
 
@@ -126,7 +137,7 @@ def bundle_frontend(session: nox.Session):
     session.run('npx', 'rollup', '-c', external=True)
 
 
-@nox.session
+@nox.session(python='3.10')
 def build_dists(session: nox.Session):
     "Build an sdist and wheel."
     session.run('git', 'clean', '-fdX', 'dist', external=True)
