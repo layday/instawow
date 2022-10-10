@@ -71,11 +71,7 @@ class _ConfigError(ServerError):
 
 def _extract_loc_from_note(exc: BaseException):
     notes = getattr(exc, '__notes__', None)
-    if notes is not None:
-        note = notes[-1]
-    else:
-        note = getattr(exc, '__note__', '')
-
+    note = notes[-1] if notes else ''
     *_, field = note.rpartition(' ')
     if field.isidentifier():
         return field

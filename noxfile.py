@@ -68,9 +68,9 @@ def format_(session: nox.Session):
             aiohttp-client-cache == 0.7.3
             alembic == 1.7.0
             attrs == 22.1.0
-            cattrs == 22.1.0
+            cattrs == 22.2.0
             click == 8.0.0
-            exceptiongroup == 1.0.0rc5
+            exceptiongroup == 1.0.0rc9
             iso8601 == 1.0.2
             jinja2 == 3.0.0
             loguru == 0.5.3
