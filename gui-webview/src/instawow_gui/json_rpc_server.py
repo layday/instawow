@@ -21,7 +21,7 @@ from aiohttp_rpc import JsonRpcMethod, middlewares as rpc_middlewares
 from aiohttp_rpc.errors import InvalidParams, ServerError
 from aiohttp_rpc.server import WsJsonRpcServer
 from attrs import evolve, frozen
-from cattrs import GenConverter
+from cattrs import Converter
 from cattrs.preconf.json import configure_converter
 import click
 from exceptiongroup import ExceptionGroup
@@ -53,7 +53,7 @@ _ManagerBoundCoroFn: TypeAlias = 'Callable[Concatenate[Manager, _P], Awaitable[_
 
 LOCALHOST = '127.0.0.1'
 
-_converter = GenConverter(
+_converter = Converter(
     unstruct_collection_overrides={
         # TODO: Replace with ``collections.abc.Set``
         frozenset: sorted,

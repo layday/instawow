@@ -11,7 +11,7 @@ import typing
 from typing import Any, TypeVar
 
 from attrs import Attribute, field, fields, frozen, has, resolve_types
-from cattrs import GenConverter
+from cattrs import Converter
 from cattrs.gen import make_dict_unstructure_fn, override  # pyright: ignore
 from cattrs.preconf.json import configure_converter
 import click
@@ -125,7 +125,7 @@ def _read_env_vars(config_cls: Any, **values: object):
 
 
 def make_config_converter():
-    converter = GenConverter()
+    converter = Converter()
     configure_converter(converter)
     converter.register_structure_hook(Path, lambda v, _: Path(v))
     converter.register_unstructure_hook(Path, str)

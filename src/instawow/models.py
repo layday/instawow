@@ -6,7 +6,7 @@ import typing
 from typing import Any
 
 from attrs import asdict, frozen
-from cattrs import GenConverter
+from cattrs import Converter
 from cattrs.preconf.json import configure_converter
 import sqlalchemy as sa
 import sqlalchemy.future as sa_future
@@ -15,10 +15,10 @@ from typing_extensions import Self
 from . import db
 from .common import Strategy
 
-pkg_converter = GenConverter()
+pkg_converter = Converter()
 configure_converter(pkg_converter)
 
-_db_pkg_converter = GenConverter()
+_db_pkg_converter = Converter()
 _db_pkg_converter.register_structure_hook(datetime, lambda d, _: d)
 
 

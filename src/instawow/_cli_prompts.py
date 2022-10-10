@@ -30,7 +30,7 @@ if TYPE_CHECKING:
 class AttrFieldValidator(Validator):
     "One-off validators for attrs fields."
 
-    def __init__(self, attribute: attrs.Attribute[object], converter: cattrs.GenConverter) -> None:
+    def __init__(self, attribute: attrs.Attribute[object], converter: cattrs.Converter) -> None:
         self._field_name = attribute.name
         self._FieldWrapper = attrs.make_class(
             '_FieldWrapper',

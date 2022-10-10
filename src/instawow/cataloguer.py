@@ -4,7 +4,7 @@ from datetime import datetime
 import typing
 
 from attrs import asdict, frozen
-from cattrs import GenConverter
+from cattrs import Converter
 from cattrs.preconf.json import configure_converter
 from typing_extensions import Self
 
@@ -15,7 +15,7 @@ BASE_CATALOGUE_VERSION = 7
 CATALOGUE_VERSION = 4
 
 
-catalogue_converter = GenConverter(
+catalogue_converter = Converter(
     unstruct_collection_overrides={
         # TODO: Replace with ``collections.abc.Set``
         frozenset: sorted,

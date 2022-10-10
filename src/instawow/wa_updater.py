@@ -9,7 +9,7 @@ import typing
 from typing import Any
 
 from attrs import frozen
-from cattrs import GenConverter
+from cattrs import Converter
 from loguru import logger
 from typing_extensions import Literal, NotRequired as N, TypeAlias, TypedDict
 from yarl import URL
@@ -36,7 +36,7 @@ _AuraGroup: TypeAlias = (
 _CHECK_API_URL = URL('https://data.wago.io/api/check')
 _IMPORT_STRING_API_URL = URL('https://data.wago.io/api/raw/encoded')
 
-_aura_converter = GenConverter()
+_aura_converter = Converter()
 _aura_converter.register_structure_hook(URL, lambda v, _: URL(v))
 _aura_converter.register_unstructure_hook(URL, str)
 
