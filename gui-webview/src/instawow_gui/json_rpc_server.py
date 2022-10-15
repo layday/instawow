@@ -157,7 +157,7 @@ class WriteProfileConfigParams(_ProfileParamMixin, BaseParams):
             with _reraise_validation_error(_ConfigError):
                 config = config_converter.structure(
                     {
-                        'global_config': await t(GlobalConfig.read)(),
+                        'global_config': await _read_global_config(),
                         'profile': self.profile,
                         'addon_dir': self.addon_dir,
                         'game_flavour': self.game_flavour,
@@ -203,7 +203,7 @@ class ListProfilesParams(BaseParams):
     async def respond(
         self, managers: _ManagerWorkQueue, app_window: toga.MainWindow | None
     ) -> list[str]:
-        return await t(GlobalConfig().list_profiles)()
+        return await t(managers.global_config.list_profiles)()
 
 
 @_register_method('config/update_global')
@@ -230,7 +230,7 @@ class ReadGlobalConfigParams(BaseParams):
     async def respond(
         self, managers: _ManagerWorkQueue, app_window: toga.MainWindow | None
     ) -> GlobalConfig:
-        return await t(GlobalConfig.read)()
+        return await _read_global_config()
 
 
 class GithubCodesResponse(TypedDict):
