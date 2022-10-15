@@ -20,7 +20,7 @@ runs:
       with:
         python-version: ${{ inputs.python-version }}
     - name: Install Node 16
-      uses: actions/setup-node@v2
+      uses: actions/setup-node@v3
       with:
         node-version: "16"
       if: ${{ inputs.with-frontend-assets }}

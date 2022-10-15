@@ -91,7 +91,7 @@ jobs:
       - name: Prepare environment
         uses: ./.github/actions/prepare-ci
       - name: Install Node 16 for Pyright
-        uses: actions/setup-node@v2
+        uses: actions/setup-node@v3
         with:
           node-version: "16"
       - name: Type check
@@ -109,7 +109,7 @@ jobs:
       - name: Install nox
         run: pipx install nox
       - name: Install Node 16 for Prettier
-        uses: actions/setup-node@v2
+        uses: actions/setup-node@v3
         with:
           node-version: "16"
       - name: Check code formatting
