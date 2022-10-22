@@ -14,7 +14,7 @@ from ..cataloguer import BaseCatalogueEntry
 from ..common import ChangelogFormat, Flavour, FlavourVersion, SourceMetadata, Strategy
 from ..http import make_generic_progress_ctx
 from ..resolvers import BaseResolver, Defn
-from ..utils import as_plain_text_data_url, gather, slugify
+from ..utils import as_plain_text_data_url, gather, slugify, uniq
 
 
 class _WowiCommonTerms(TypedDict):
@@ -116,31 +116,39 @@ class WowiResolver(BaseResolver):
                     f'Synchronising {self.metadata.name} catalogue'
                 ),
             ) as response:
-                list_api_items: list[_WowiListApiItem] = await response.json()
-                return {i['UID']: i for i in list_api_items}
+                list_items_by_id: dict[str, _WowiListApiItem] = {
+                    i['UID']: i for i in await response.json()
+                }
+                return list_items_by_id
 
     async def resolve(
         self, defns: Sequence[Defn]
     ) -> dict[Defn, models.Pkg | R.ManagerError | R.InternalError]:
-        list_api_items = await self._synchronise()
+        list_items_by_id = await self._synchronise()
 
         defns_to_ids = {d: ''.join(takewhile(str.isdigit, d.alias)) for d in defns}
-        numeric_ids = frozenset(filter(None, defns_to_ids.values()))
         async with self._manager.web_client.get(
-            self._details_api_url / f'{",".join(numeric_ids)}.json',
+            (
+                self._details_api_url
+                / f'{",".join(uniq(i for i in defns_to_ids.values() if i))}.json'
+            ),
             expire_after=timedelta(minutes=5),
         ) as response:
             if response.status == 404:
                 return await super().resolve(defns)
 
             response.raise_for_status()
-            details_api_items: list[_WowiDetailsApiItem] = await response.json()
 
-        combined_items: dict[str, _WowiCombinedItem] = {
-            i['UID']: {**list_api_items[i['UID']], **i} for i in details_api_items
-        }
+            details_items_by_id: dict[str, _WowiDetailsApiItem] = {
+                i['UID']: i for i in await response.json()
+            }
+
         results = await gather(
-            (self.resolve_one(d, combined_items.get(i)) for d, i in defns_to_ids.items()),
+            (
+                self.resolve_one(d, {**a, **b} if a and b else None)
+                for d, i in defns_to_ids.items()
+                for a, b in ((list_items_by_id.get(i), details_items_by_id.get(i)),)
+            ),
             manager.capture_manager_exc_async,
         )
         return dict(zip(defns, results))
