@@ -2,7 +2,16 @@ from __future__ import annotations
 
 import asyncio
 from collections import defaultdict
-from collections.abc import Awaitable, Callable, Collection, Iterable, Iterator, Sequence, Set
+from collections.abc import (
+    Awaitable,
+    Callable,
+    Collection,
+    Hashable,
+    Iterable,
+    Iterator,
+    Sequence,
+    Set,
+)
 from contextlib import contextmanager
 from datetime import datetime, timedelta
 from functools import partial, wraps
@@ -16,7 +25,7 @@ import sys
 from tempfile import mkdtemp
 import time
 from types import ModuleType
-from typing import Any, Generic, Hashable, TypeVar, overload
+from typing import Any, Generic, TypeVar, overload
 import urllib.parse
 
 from typing_extensions import ParamSpec
