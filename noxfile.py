@@ -134,6 +134,7 @@ def bundle_frontend(session: nox.Session):
     session.run('git', 'clean', '-fX', 'gui-webview/src/instawow_gui/frontend', external=True)
     session.chdir('gui-webview/frontend')
     session.run('npm', 'install', external=True)
+    session.run('npx', 'svelte-check', external=True)
     session.run('npx', 'rollup', '-c', external=True)
 
 
