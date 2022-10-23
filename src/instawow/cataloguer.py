@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-import typing
+from functools import cached_property
 
 from attrs import asdict, frozen
 from cattrs import Converter
@@ -9,7 +9,7 @@ from cattrs.preconf.json import configure_converter
 from typing_extensions import Self
 
 from .config import Flavour
-from .utils import bucketise, cached_property, normalise_names
+from .utils import bucketise, normalise_names
 
 BASE_CATALOGUE_VERSION = 7
 CATALOGUE_VERSION = 4
@@ -37,11 +37,11 @@ class BaseCatalogueEntry:
     slug: str = ''
     name: str
     url: str
-    game_flavours: typing.FrozenSet[Flavour]
+    game_flavours: frozenset[Flavour]
     download_count: int
     last_updated: datetime
-    folders: typing.List[typing.FrozenSet[str]] = []
-    same_as: typing.List[CatalogueSameAs] = []
+    folders: list[frozenset[str]] = []
+    same_as: list[CatalogueSameAs] = []
 
 
 @frozen(kw_only=True)
@@ -53,7 +53,7 @@ class CatalogueEntry(BaseCatalogueEntry):
 @frozen(kw_only=True)
 class BaseCatalogue:
     version: int = BASE_CATALOGUE_VERSION
-    entries: typing.List[BaseCatalogueEntry]
+    entries: list[BaseCatalogueEntry]
 
     @classmethod
     async def collate(cls, start_date: datetime | None) -> Self:
@@ -70,8 +70,8 @@ class BaseCatalogue:
 @frozen(kw_only=True, slots=False)
 class Catalogue:
     version: int = CATALOGUE_VERSION
-    entries: typing.List[CatalogueEntry]
-    curse_slugs: typing.Dict[str, str]
+    entries: list[CatalogueEntry]
+    curse_slugs: dict[str, str]
 
     @classmethod
     def from_base_catalogue(

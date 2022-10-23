@@ -29,7 +29,7 @@ include = [
 scripts.instawow = "instawow.cli:main"
 
 [tool.poetry.dependencies]
-python = ">=3.7"
+python = ">=3.9"
 
 aiohttp = ">=3.8.2, <4"
 aiohttp-client-cache = ">=0.7.3"
@@ -134,7 +134,7 @@ strict = [
 [tool.black]
 line_length = 99
 skip_string_normalization = true
-target_version = ["py37", "py38", "py39", "py310", "py311"]
+target_version = ["py39", "py310", "py311"]
 
 [tool.isort]
 profile = "black"

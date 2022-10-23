@@ -4,16 +4,15 @@ import asyncio
 from collections.abc import Awaitable, Callable, Collection, Iterable, Sequence, Set
 from contextlib import contextmanager
 from datetime import datetime, timezone
-from functools import partial
+from functools import cached_property, partial
 from itertools import chain, repeat
 from pathlib import Path
 import textwrap
-from typing import Any, NoReturn, TypeVar, overload
+from typing import Any, Literal, NoReturn, TypeVar, overload
 
 from attrs import asdict, evolve, fields, resolve_types
 import click
 from loguru import logger
-from typing_extensions import Literal
 
 from . import __version__, _deferred_types, db, manager as _manager, models, results as R
 from .common import ChangelogFormat, Flavour, Strategy
@@ -21,7 +20,7 @@ from .config import Config, GlobalConfig, config_converter, setup_logging
 from .http import TraceRequestCtx, init_web_client
 from .plugins import load_plugins
 from .resolvers import Defn
-from .utils import StrEnum, all_eq, cached_property, gather, reveal_folder, tabulate, uniq
+from .utils import StrEnum, all_eq, gather, reveal_folder, tabulate, uniq
 
 _T = TypeVar('_T')
 _TStrEnum = TypeVar('_TStrEnum', bound=StrEnum)
@@ -774,13 +773,10 @@ def list_installed(mw: _CtxObjWrapper, addons: Sequence[Defn], output_format: _L
 
     if output_format is _ListFormat.json:
         import json
-        import typing
 
         click.echo(
             json.dumps(
-                models.pkg_converter.unstructure(  # pyright: ignore[reportUnknownMemberType]
-                    row_mappings_to_pkgs(), typing.List[models.Pkg]
-                ),
+                models.pkg_converter.unstructure(row_mappings_to_pkgs(), list[models.Pkg]),
                 indent=2,
             )
         )
@@ -1126,9 +1122,7 @@ def generate_catalogue(start_date: datetime | None) -> None:
     from .cataloguer import BaseCatalogue, catalogue_converter
 
     catalogue = asyncio.run(BaseCatalogue.collate(start_date))
-    catalogue_json = catalogue_converter.unstructure(  # pyright: ignore[reportUnknownMemberType]
-        catalogue
-    )
+    catalogue_json = catalogue_converter.unstructure(catalogue)
     catalogue_path = Path(f'base-catalogue-v{catalogue.version}.json').resolve()
     catalogue_path.write_text(
         json.dumps(catalogue_json, indent=2),

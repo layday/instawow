@@ -2,10 +2,10 @@ from __future__ import annotations
 
 from collections.abc import Collection, Iterable
 from datetime import timedelta
-from typing import NoReturn
+from typing import Literal, NoReturn
 
 import iso8601
-from typing_extensions import Literal, TypedDict
+from typing_extensions import TypedDict
 from yarl import URL
 
 from .. import models, results as R

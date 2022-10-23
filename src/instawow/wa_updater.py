@@ -6,12 +6,12 @@ from functools import partial, reduce
 from itertools import chain, product
 import json
 import typing
-from typing import Any
+from typing import Any, Literal
 
 from attrs import frozen
 from cattrs import Converter
 from loguru import logger
-from typing_extensions import Literal, NotRequired as N, TypeAlias, TypedDict
+from typing_extensions import NotRequired as N, TypeAlias, TypedDict
 from yarl import URL
 
 from .http import CACHE_INDEFINITELY, make_generic_progress_ctx
@@ -185,11 +185,7 @@ class WaCompanionBuilder:
                     ):
                         aura_groups = self.extract_auras(model, content)
                     aura_group_cache.write_text(
-                        json.dumps(
-                            _aura_converter.unstructure(  # pyright: ignore[reportUnknownMemberType]
-                                aura_groups.root
-                            )
-                        ),
+                        json.dumps(_aura_converter.unstructure(aura_groups.root)),
                         encoding='utf-8',
                     )
                 yield aura_groups

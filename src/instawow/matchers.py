@@ -1,14 +1,15 @@
 from __future__ import annotations
 
 from collections.abc import Awaitable, Iterable
+from functools import cached_property
 from itertools import chain, product
 from pathlib import Path
 import re
-from typing import TypeVar
+from typing import Protocol, TypeVar
 
 from attrs import field, frozen
 import sqlalchemy as sa
-from typing_extensions import Protocol, Self
+from typing_extensions import Self
 
 from . import manager
 from ._addon_hashing import generate_wowup_addon_hash
@@ -19,7 +20,6 @@ from .utils import (
     TocReader,
     assert_decorated_type,
     bucketise,
-    cached_property,
     gather,
     merge_intersecting_sets,
     uniq,

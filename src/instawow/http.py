@@ -4,10 +4,10 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from functools import lru_cache, partial
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 from loguru import logger
-from typing_extensions import Literal, TypeAlias, TypedDict
+from typing_extensions import TypeAlias, TypedDict
 
 from . import _deferred_types, models
 from .utils import read_resource_as_text

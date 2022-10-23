@@ -4,9 +4,10 @@ from collections.abc import AsyncIterator, Sequence
 from datetime import datetime, timedelta, timezone
 from itertools import takewhile
 import re
+from typing import Literal
 
 from loguru import logger
-from typing_extensions import Literal, NotRequired as N, TypedDict
+from typing_extensions import NotRequired as N, TypedDict
 from yarl import URL
 
 from .. import _deferred_types, manager, models, results as R

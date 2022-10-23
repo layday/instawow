@@ -12,7 +12,7 @@ import json
 import os
 from pathlib import Path
 import typing
-from typing import TYPE_CHECKING, Any, TypeVar
+from typing import TYPE_CHECKING, Any, Literal, TypeVar
 
 import aiohttp
 import aiohttp.typedefs
@@ -28,7 +28,7 @@ from exceptiongroup import ExceptionGroup
 from loguru import logger
 import sqlalchemy as sa
 import toga  # pyright: ignore
-from typing_extensions import Concatenate, Literal, ParamSpec, TypeAlias, TypedDict
+from typing_extensions import Concatenate, ParamSpec, TypeAlias, TypedDict
 from yarl import URL
 
 from instawow import __version__, db, matchers, models, results as R
@@ -123,7 +123,7 @@ class _ProfileParamMixin:
 
 @frozen(slots=False)
 class _DefnParamMixin:
-    defns: typing.List[Defn]
+    defns: list[Defn]
 
 
 class BaseParams:
@@ -208,7 +208,7 @@ class ListProfilesParams(BaseParams):
 
 @_register_method('config/update_global')
 class UpdateGlobalConfigParams(BaseParams):
-    access_tokens: typing.Dict[str, typing.Union[str, None]]
+    access_tokens: dict[str, typing.Union[str, None]]
 
     async def respond(
         self, managers: _ManagerWorkQueue, app_window: toga.MainWindow | None
@@ -293,7 +293,7 @@ class ListInstalledParams(_ProfileParamMixin, BaseParams):
 class SearchParams(_ProfileParamMixin, BaseParams):
     search_terms: str
     limit: int
-    sources: typing.Set[str]
+    sources: set[str]
     start_date: typing.Union[datetime, None]
     installed_only: bool
 
@@ -563,7 +563,7 @@ class OpenUrlParams(BaseParams):
 
 @_register_method('assist/reveal_folder')
 class RevealFolderParams(BaseParams):
-    path_parts: typing.List[str]
+    path_parts: list[str]
 
     async def respond(
         self, managers: _ManagerWorkQueue, app_window: toga.MainWindow | None

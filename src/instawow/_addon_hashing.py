@@ -87,7 +87,7 @@ def _md5hash_hashes(value: Iterator[str]):
     return _md5hash_bytes(''.join(sorted(value)).encode())
 
 
-@lru_cache()
+@lru_cache
 def generate_wowup_addon_hash(path: Path):
     files_to_hash = frozenset(_scan_addon_folder(path, path.parent))
     combined_hash = _md5hash_hashes(_md5hash_file(f) for f in files_to_hash)

@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from datetime import datetime
-import typing
 from typing import Any
 
 from attrs import asdict, frozen
@@ -65,9 +64,9 @@ class Pkg:
     version: str
     changelog_url: str
     options: PkgOptions  # pkg_options
-    folders: typing.List[PkgFolder] = []  # pkg_folder
-    deps: typing.List[PkgDep] = []  # pkg_dep
-    logged_versions: typing.List[PkgLoggedVersion] = []  # pkg_version_log
+    folders: list[PkgFolder] = []  # pkg_folder
+    deps: list[PkgDep] = []  # pkg_dep
+    logged_versions: list[PkgLoggedVersion] = []  # pkg_version_log
 
     @classmethod
     def from_row_mapping(

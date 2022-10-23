@@ -4,10 +4,10 @@ import enum
 import os
 from pathlib import PurePath
 import typing
-from typing import TypeVar
+from typing import Literal, Protocol, TypeVar
 
 from attrs import asdict, frozen
-from typing_extensions import Literal, Protocol, Self
+from typing_extensions import Self
 
 from .utils import StrEnum, fill
 
@@ -104,7 +104,7 @@ class ChangelogFormat(StrEnum):
 class SourceMetadata:
     id: str
     name: str
-    strategies: typing.FrozenSet[Strategy]
+    strategies: frozenset[Strategy]
     changelog_format: ChangelogFormat
     addon_toc_key: str | None
 

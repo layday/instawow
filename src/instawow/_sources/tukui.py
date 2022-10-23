@@ -2,9 +2,10 @@ from __future__ import annotations
 
 from collections.abc import AsyncIterator, Sequence
 from datetime import datetime, timedelta, timezone
+from typing import Literal
 
 from loguru import logger
-from typing_extensions import Literal, TypedDict
+from typing_extensions import TypedDict
 from yarl import URL
 
 from .. import _deferred_types, manager, models, results as R

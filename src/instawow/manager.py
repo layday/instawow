@@ -6,13 +6,12 @@ from collections.abc import Awaitable, Callable, Collection, Iterable, Mapping, 
 from contextlib import AbstractAsyncContextManager, asynccontextmanager, contextmanager
 import contextvars as cv
 from datetime import datetime, timedelta
-from functools import wraps
+from functools import cached_property, wraps
 from itertools import chain, filterfalse, product, repeat, starmap, takewhile
 import json
 from pathlib import Path, PurePath
 from shutil import copy
 from tempfile import NamedTemporaryFile
-import typing
 from typing import NoReturn, TypeVar
 
 from attrs import evolve
@@ -43,7 +42,6 @@ from .plugins import load_plugins
 from .resolvers import Defn, Resolver
 from .utils import (
     bucketise,
-    cached_property,
     chain_dict,
     file_uri_to_path,
     find_addon_zip_tocs,
@@ -163,7 +161,7 @@ def _with_lock(
     return outer
 
 
-class _Resolvers(typing.Dict[str, Resolver]):
+class _Resolvers(dict[str, Resolver]):
     @cached_property
     def priority_dict(self) -> _ResolverPriorityDict:
         return _ResolverPriorityDict(self)
@@ -177,7 +175,7 @@ class _Resolvers(typing.Dict[str, Resolver]):
         ]
 
 
-class _ResolverPriorityDict(typing.Dict[str, float]):
+class _ResolverPriorityDict(dict[str, float]):
     def __init__(self, resolvers: _Resolvers) -> None:
         super().__init__((n, i) for i, n in enumerate(resolvers))
 
@@ -428,11 +426,7 @@ class Manager:
 
             self._catalogue = Catalogue.from_base_catalogue(raw_catalogue, None)
             await t(catalogue_json.write_text)(
-                json.dumps(
-                    catalogue_converter.unstructure(  # pyright: ignore[reportUnknownMemberType]
-                        self._catalogue
-                    )
-                ),
+                json.dumps(catalogue_converter.unstructure(self._catalogue)),
                 encoding='utf-8',
             )
 

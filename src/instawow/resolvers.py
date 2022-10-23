@@ -4,11 +4,11 @@ from collections.abc import AsyncIterator, Collection, Iterable, Sequence
 from functools import update_wrapper
 from pathlib import Path
 import typing
-from typing import Any, ClassVar, TypeVar
+from typing import Any, ClassVar, Protocol, TypeVar
 import urllib.parse
 
 from attrs import evolve, frozen
-from typing_extensions import Protocol, Self
+from typing_extensions import Self
 from yarl import URL
 
 from . import _deferred_types, manager, models, results as R

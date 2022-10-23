@@ -4,10 +4,11 @@ from collections.abc import AsyncIterator, Iterable
 from datetime import datetime, timedelta
 from functools import lru_cache
 from itertools import tee, zip_longest
+from typing import Literal
 
 import iso8601
 from loguru import logger
-from typing_extensions import Literal, NotRequired as N, TypedDict
+from typing_extensions import NotRequired as N, TypedDict
 from yarl import URL
 
 from .. import _deferred_types, models, results as R

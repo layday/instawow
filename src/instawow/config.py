@@ -12,7 +12,7 @@ from typing import Any, TypeVar
 
 from attrs import Attribute, field, fields, frozen, has, resolve_types
 from cattrs import Converter
-from cattrs.gen import make_dict_unstructure_fn, override  # pyright: ignore
+from cattrs.gen import make_dict_unstructure_fn, override
 from cattrs.preconf.json import configure_converter
 import click
 from loguru import logger
@@ -78,7 +78,7 @@ def _make_validate_min_length(min_length: int):
 def _encode_config_for_display(config: object):
     converter = _make_display_converter()
     return json.dumps(
-        converter.unstructure(config),  # pyright: ignore[reportUnknownMemberType]
+        converter.unstructure(config),
         indent=2,
     )
 
@@ -86,9 +86,7 @@ def _encode_config_for_display(config: object):
 def _write_config(config: object, config_path: Path, fields_to_include: frozenset[str]):
     converter = _make_write_converter(config.__class__, fields_to_include)
     config_path.write_text(
-        json.dumps(
-            converter.unstructure(config), indent=2  # pyright: ignore[reportUnknownMemberType]
-        ),
+        json.dumps(converter.unstructure(config), indent=2),
         encoding='utf-8',
     )
 
@@ -144,7 +142,7 @@ def _make_write_converter(config_cls: Any, fields_to_include: frozenset[str]):
     converter = make_config_converter()
     converter.register_unstructure_hook(
         config_cls,
-        make_dict_unstructure_fn(  # pyright: ignore
+        make_dict_unstructure_fn(
             config_cls,
             converter,
             **{

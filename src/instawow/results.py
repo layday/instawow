@@ -1,10 +1,9 @@
 from __future__ import annotations
 
 from collections.abc import Collection
-from typing import Any
+from typing import Any, Final, Protocol
 
 from attrs import asdict
-from typing_extensions import Final, Protocol
 
 from . import models
 from .common import Strategy, StrategyValues

@@ -2,11 +2,10 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 from functools import lru_cache
-from typing import Any
+from typing import Any, Protocol
 
 import click
 import pluggy as _pluggy  # pyright: ignore
-from typing_extensions import Protocol
 
 from . import resolvers
 
