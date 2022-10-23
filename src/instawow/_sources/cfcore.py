@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import AsyncIterator, Sequence
+from collections.abc import AsyncIterator, Callable, Generator, Sequence
 from datetime import timedelta
 from enum import IntEnum
 from itertools import count
@@ -245,10 +245,9 @@ class CfCoreResolver(BaseResolver):
         name='CFCore',
         strategies=frozenset(
             {
-                Strategy.default,
-                Strategy.latest,
+                Strategy.any_release_type,
                 Strategy.any_flavour,
-                Strategy.version,
+                Strategy.version_eq,
             }
         ),
         changelog_format=ChangelogFormat.html,
@@ -297,12 +296,10 @@ class CfCoreResolver(BaseResolver):
             response.raise_for_status()
             response_json: _CfCoreUnpaginatedModsResponse = await response.json()
 
-        numeric_ids_to_addons: dict[str | None, _CfCoreMod] = {
-            str(r['id']): r for r in response_json['data']
-        }
+        addons_by_id = {str(r['id']): r for r in response_json['data']}
         results = await gather(
             (
-                self.resolve_one(d, numeric_ids_to_addons.get(i))
+                self.resolve_one(d, addons_by_id.get(i) if i else None)
                 for d, i in defns_to_maybe_numeric_ids.items()
             ),
             manager.capture_manager_exc_async,
@@ -313,12 +310,12 @@ class CfCoreResolver(BaseResolver):
         if metadata is None:
             raise R.PkgNonexistent
 
-        if defn.strategy is Strategy.version:
+        if defn.strategies.version_eq:
+            game_version_type_id = self._manager.config.game_flavour.to_flavour_keyed_enum(
+                _CfCoreSortableGameVersionTypeId
+            )
             files_url = (self._mod_api_url / str(metadata['id']) / 'files').with_query(
-                gameVersionTypeId=self._manager.config.game_flavour.to_flavour_keyed_enum(
-                    _CfCoreSortableGameVersionTypeId
-                ),
-                pageSize=9999,
+                gameVersionTypeId=game_version_type_id, pageSize=999
             )
             async with self._manager.web_client.get(
                 files_url,
@@ -331,62 +328,48 @@ class CfCoreResolver(BaseResolver):
             ) as response:
                 response_json: _CfCoreFilesResponse = await response.json()
 
-            file = next(
-                (f for f in response_json['data'] if defn.version == f['displayName']), None
-            )
-            if file is None:
-                raise R.PkgFileUnavailable(f'version {defn.version} not found')
+            files = response_json['data']
 
         else:
-            latest_files = metadata['latestFiles']
-            if not latest_files:
-                raise R.PkgFileUnavailable('no files available for download')
+            files = metadata['latestFiles']
 
-            def make_filter():
-                def is_not_libless(f: _CfCoreFile):
-                    return not f.get('exposeAsAlternative', False)
+        if not files:
+            raise R.PkgFilesMissing
 
-                yield is_not_libless
+        def make_filter_fns() -> Generator[Callable[[_CfCoreFile], bool], None, None]:
+            yield lambda f: not f.get('exposeAsAlternative', False)
 
-                if defn.strategy is not Strategy.any_flavour:
+            if not defn.strategies.any_flavour:
 
-                    type_id = self._manager.config.game_flavour.to_flavour_keyed_enum(
-                        _CfCoreSortableGameVersionTypeId
-                    )
-
-                    def supports_flavour(f: _CfCoreFile):
-                        return any(
-                            s['gameVersionTypeId'] == type_id for s in f['sortableGameVersions']
-                        )
-
-                    yield supports_flavour
-
-                if defn.strategy is not Strategy.latest:
-
-                    def is_stable_release(f: _CfCoreFile):
-                        return f['releaseType'] == _CfCoreFileReleaseType.release
-
-                    yield is_stable_release
-
-            filter_fns = list(make_filter())
-
-            file = max(
-                (f for f in latest_files if all(l(f) for l in filter_fns)),
-                # The ``id`` is just a counter so we don't have to go digging around dates
-                key=lambda f: f['id'],
-                default=None,
-            )
-            if file is None:
-                raise R.PkgFileUnavailable(
-                    f'no files matching {self._manager.config.game_flavour} '
-                    f'using {defn.strategy} strategy'
+                type_id = self._manager.config.game_flavour.to_flavour_keyed_enum(
+                    _CfCoreSortableGameVersionTypeId
                 )
+                yield lambda f: any(
+                    s['gameVersionTypeId'] == type_id for s in f['sortableGameVersions']
+                )
+
+            if not defn.strategies.any_release_type:
+                yield lambda f: f['releaseType'] == _CfCoreFileReleaseType.release
+
+            if defn.strategies.version_eq:
+                yield lambda f: f['displayName'] == defn.strategies.version_eq
+
+        filter_fns = list(make_filter_fns())
+
+        file = max(
+            (f for f in files if all(l(f) for l in filter_fns)),
+            # The ``id`` is just a counter so we don't have to go digging around dates
+            key=lambda f: f['id'],
+            default=None,
+        )
+        if file is None:
+            raise R.PkgFilesNotMatching(defn.strategies)
 
         if file['downloadUrl'] is None:
             if metadata['allowModDistribution'] is False:
-                raise R.PkgFileUnavailable('package distribution is forbidden')
+                raise R.PkgFilesMissing('package distribution is forbidden')
             else:
-                raise R.PkgFileUnavailable
+                raise R.PkgFilesMissing
 
         return models.Pkg(
             source=self.metadata.id,
@@ -401,7 +384,7 @@ class CfCoreResolver(BaseResolver):
             changelog_url=str(
                 self._mod_api_url / f'{metadata["id"]}/files/{file["id"]}/changelog'
             ),
-            options=models.PkgOptions(strategy=defn.strategy),
+            options=models.PkgOptions.from_strategy_values(defn.strategies),
             deps=[
                 models.PkgDep(id=str(d['modId']))
                 for d in file['dependencies']

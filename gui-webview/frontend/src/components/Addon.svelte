@@ -7,15 +7,16 @@
   import { DateTime } from "luxon";
   import { createEventDispatcher } from "svelte";
   import { fade } from "svelte/transition";
-  import type { Addon, AddonWithMeta } from "../api";
+  import type { Addon } from "../api";
   import { Strategy } from "../api";
   import { ListFormat } from "../constants";
   import { api } from "../store";
   import ProgressIndicator from "./ProgressIndicator.svelte";
   import Icon from "./SvgIcon.svelte";
 
-  export let addon: AddonWithMeta,
+  export let addon: Addon,
     otherAddon: Addon,
+    isInstalled: boolean,
     beingModified: boolean,
     format: ListFormat,
     isRefreshing: boolean,
@@ -36,7 +37,7 @@
 <div
   class="addon"
   class:status-outdated={isOutdated}
-  class:status-pinned={addon.options.strategy === Strategy.version}
+  class:status-pinned={addon.options[Strategy.version_eq]}
   class:status-being-modified={beingModified}
 >
   <ul class="addon-details" class:two-col={format === ListFormat.Dense}>
@@ -47,7 +48,10 @@
       <span class="date" title={otherAddon.date_published}>
         ({DateTime.fromISO(otherAddon.date_published).toRelative()})
       </span>
-      {#if otherAddon.options.strategy !== Strategy.default}@ {otherAddon.options.strategy}{/if}
+      {#if Object.values(otherAddon.options).some(Boolean)}{Object.entries(otherAddon.options)
+          .filter(([, v]) => v)
+          .map(([k]) => ` @ ${k}`)
+          .join("")}{/if}
     </li>
     {#if format !== ListFormat.Dense}
       <li class="defn">{addon.source}:{addon.id}</li>
@@ -62,7 +66,7 @@
     </div>
   {:else}
     <menu class="addon-actions">
-      {#if addon.__installed__}
+      {#if isInstalled}
         {#if isOutdated}
           <li>
             <button

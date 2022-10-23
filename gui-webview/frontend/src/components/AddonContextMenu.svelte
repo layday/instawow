@@ -1,7 +1,6 @@
 <script lang="ts">
   import { createEventDispatcher } from "svelte";
   import type { Addon } from "../api";
-  import { Strategy } from "../api";
   import { AddonAction } from "../constants";
   import ContextMenu from "./ContextMenu.svelte";
   import ContextMenuItem from "./ContextMenuItem.svelte";
@@ -60,7 +59,7 @@
             })}>Rollback</ContextMenuItem
         >
       {/if}
-      {#if addon.options.strategy === Strategy.version}
+      {#if addon.options.version_eq}
         <ContextMenuItem
           on:click={() =>
             dispatch("requestHandleContextMenuSelection", { addon, selection: AddonAction.Unpin })}

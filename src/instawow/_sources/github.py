@@ -76,7 +76,12 @@ class GithubResolver(BaseResolver):
     metadata = SourceMetadata(
         id='github',
         name='GitHub',
-        strategies=frozenset({Strategy.default, Strategy.latest, Strategy.version}),
+        strategies=frozenset(
+            {
+                Strategy.any_release_type,
+                Strategy.version_eq,
+            }
+        ),
         changelog_format=ChangelogFormat.markdown,
         addon_toc_key=None,
     )
@@ -136,7 +141,7 @@ class GithubResolver(BaseResolver):
             directory_offset = str(-25_000)
 
             for _ in range(2):
-                logger.debug(f'fetching {directory_offset} from {candidate["name"]}')
+                logger.debug(f'fetching {directory_offset} bytes from {candidate["name"]}')
 
                 async with self._manager.web_client.get(
                     download_url,
@@ -332,9 +337,8 @@ class GithubResolver(BaseResolver):
             response.raise_for_status()
             project: _GithubRepo = await response.json()
 
-        if defn.strategy is Strategy.version:
-            assert defn.version
-            release_url = repo_url / 'releases/tags' / defn.version
+        if defn.strategies.version_eq:
+            release_url = repo_url / 'releases/tags' / defn.strategies.version_eq
         else:
             # Includes pre-releases
             release_url = (repo_url / 'releases').with_query(
@@ -346,19 +350,19 @@ class GithubResolver(BaseResolver):
             release_url, expire_after=timedelta(minutes=5), headers=github_headers
         ) as response:
             if response.status == 404:
-                raise R.PkgFileUnavailable('release not found')
+                raise R.PkgFilesMissing('release not found')
             response.raise_for_status()
 
             response_json = await response.json()
-            if defn.strategy is Strategy.version:
+            if defn.strategies.version_eq:
                 response_json = [response_json]
             releases: Iterable[_GithubRelease] = response_json
 
-        # Only users with push access will receive draft releases
+        # Only users with push access will get draft releases
         # but let's filter them out just in case.
         releases = (r for r in releases if r['draft'] is False)
 
-        if defn.strategy is not Strategy.latest:
+        if defn.strategies.any_release_type:
             releases = (r for r in releases if r['prerelease'] is False)
 
         seen_release_json = False
@@ -382,7 +386,7 @@ class GithubResolver(BaseResolver):
                 break
 
         else:
-            raise R.PkgFileUnavailable(f'no files matching {self._manager.config.game_flavour}')
+            raise R.PkgFilesNotMatching(defn.strategies)
 
         return models.Pkg(
             source=self.metadata.id,
@@ -395,9 +399,7 @@ class GithubResolver(BaseResolver):
             date_published=iso8601.parse_date(release['published_at']),
             version=release['tag_name'],
             changelog_url=as_plain_text_data_url(release['body']),
-            options=models.PkgOptions(
-                strategy=defn.strategy,
-            ),
+            options=models.PkgOptions.from_strategy_values(defn.strategies),
         )
 
     @classmethod

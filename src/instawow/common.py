@@ -1,17 +1,17 @@
 from __future__ import annotations
 
-from enum import Enum, auto as enum_auto
+import enum
 import os
 from pathlib import PurePath
 import typing
 from typing import TypeVar
 
-from attrs import frozen
-from typing_extensions import Protocol, Self
+from attrs import asdict, frozen
+from typing_extensions import Literal, Protocol, Self
 
 from .utils import StrEnum, fill
 
-_TEnum = TypeVar('_TEnum', bound=Enum)
+_TEnum = TypeVar('_TEnum', bound=enum.Enum)
 
 
 class _FlavourKeyedEnum(Protocol[_TEnum]):
@@ -35,14 +35,14 @@ class Flavour(StrEnum):
     classic = 'classic'
 
     @classmethod
-    def from_flavour_keyed_enum(cls, enum: Enum) -> Self:
-        return cls[enum.name]
+    def from_flavour_keyed_enum(cls, flavour_keyed_enum: enum.Enum) -> Self:
+        return cls[flavour_keyed_enum.name]
 
-    def to_flavour_keyed_enum(self, enum: _FlavourKeyedEnum[_TEnum]) -> _TEnum:
-        return enum[self.name]
+    def to_flavour_keyed_enum(self, flavour_keyed_enum: _FlavourKeyedEnum[_TEnum]) -> _TEnum:
+        return flavour_keyed_enum[self.name]
 
 
-class FlavourVersion(Enum):
+class FlavourVersion(enum.Enum):
     retail = (
         range(1_00_00, 1_13_00), range(2_00_00, 2_05_00), range(3_00_00, 3_04_00), range(4_00_00, 11_00_00)  # fmt: skip
     )
@@ -67,19 +67,31 @@ def infer_flavour_from_path(path: os.PathLike[str] | str) -> Flavour:
     tail = tuple(map(str.casefold, PurePath(path).parts[-3:]))
     if len(tail) != 3 or tail[1:] != ('interface', 'addons'):
         return Flavour.retail
-    elif tail[0] in {'_classic_era_', '_classic_era_beta_', '_classic_era_ptr_'}:
+
+    flavour_dir = tail[0]
+    if flavour_dir in {'_classic_era_', '_classic_era_beta_', '_classic_era_ptr_'}:
         return Flavour.vanilla_classic
-    elif tail[0] in {'_classic_', '_classic_beta_', '_classic_ptr_'}:
+    elif flavour_dir in {'_classic_', '_classic_beta_', '_classic_ptr_'}:
         return Flavour.classic
     else:
         return Flavour.retail
 
 
 class Strategy(StrEnum):
-    default = 'default'
-    latest = 'latest'
     any_flavour = 'any_flavour'
-    version = 'version'
+    any_release_type = 'any_release_type'
+    version_eq = 'version_eq'
+
+
+@frozen
+class StrategyValues:
+    any_flavour: Literal[True, None] = None
+    any_release_type: Literal[True, None] = None
+    version_eq: typing.Union[str, None] = None
+
+    @property
+    def filled_strategies(self) -> frozenset[Strategy]:
+        return frozenset(Strategy(p) for p, v in asdict(self).items() if v is not None)
 
 
 class ChangelogFormat(StrEnum):
@@ -97,5 +109,5 @@ class SourceMetadata:
     addon_toc_key: str | None
 
 
-class AddonHashMethod(Enum):
-    wowup = enum_auto()
+class AddonHashMethod(enum.Enum):
+    wowup = enum.auto()

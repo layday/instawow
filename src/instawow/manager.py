@@ -64,7 +64,7 @@ _P = ParamSpec('_P')
 _T = TypeVar('_T')
 _ResultOrError: TypeAlias = '_T | R.ManagerError | R.InternalError'
 
-DB_REVISION = 'e13430219249'
+DB_REVISION = '98716a7301f8'
 
 _move_async = t(move)
 
@@ -739,7 +739,7 @@ class Manager:
             # corresponding installed package.  Using the ID has the benefit
             # of resolving installed-but-renamed packages - the slug is
             # transient but the ID isn't
-            evolve(d, id=p.id) if retain_defn_strategy else Defn.from_pkg(p): d
+            evolve(d, id=p.id) if retain_defn_strategy else p.to_defn(): d
             for d, p in defns_to_pkgs.items()
         }
         resolve_results = await self.resolve(resolve_defns, with_deps=True)
@@ -768,7 +768,7 @@ class Manager:
             R.PkgNotInstalled(),
             resolve_errors.items(),
             (
-                (d, R.PkgUpToDate(is_pinned=pkgs[d].options.strategy is Strategy.version))
+                (d, R.PkgUpToDate(is_pinned=pkgs[d].options.version_eq))
                 for d in pkgs.keys() - updatables.keys()
             ),
             download_errors.items(),
@@ -804,39 +804,38 @@ class Manager:
     async def pin(self, defns: Sequence[Defn]) -> Mapping[Defn, _ResultOrError[R.PkgInstalled]]:
         """Pin and unpin installed packages.
 
-        instawow does not have true pinning.  This sets the strategy
-        to ``Strategies.version`` for installed packages from sources
-        that support it.  The net effect is the same as if the package
-        had been reinstalled with the version strategy.
-        Conversely, a ``Defn`` with the default strategy will unpin the
-        package.
+        instawow does not have true pinning.  This flips ``Strategy.version_eq``
+        on for installed packages from sources that support it.
+        The net effect is the same as if the package
+        had been reinstalled with the ``version_eq`` strategy.
         """
-
-        PINNING_STRATEGIES = frozenset({Strategy.default, Strategy.version})
 
         @t
         def pin(defn: Defn) -> R.PkgInstalled:
+            resolver = self.resolvers.get(defn.source)
+            if resolver is None:
+                raise R.PkgSourceInvalid
+
+            if Strategy.version_eq not in resolver.metadata.strategies:
+                raise R.PkgStrategiesUnsupported({Strategy.version_eq})
+
             pkg = self.get_pkg(defn)
             if not pkg:
                 raise R.PkgNotInstalled
 
-            resolver = self.resolvers.get(pkg.source)
-            if resolver is None:
-                raise R.PkgSourceInvalid
+            version = defn.strategies.version_eq
+            if version and pkg.version != version:
+                R.PkgFilesNotMatching(defn.strategies)
 
-            if {defn.strategy} <= PINNING_STRATEGIES <= resolver.metadata.strategies:
-                with db.faux_transact(self.database):
-                    self.database.execute(
-                        sa.update(db.pkg_options)
-                        .filter_by(pkg_source=pkg.source, pkg_id=pkg.id)
-                        .values(strategy=defn.strategy)
-                    )
+            with db.faux_transact(self.database):
+                self.database.execute(
+                    sa.update(db.pkg_options)
+                    .filter_by(pkg_source=pkg.source, pkg_id=pkg.id)
+                    .values(version_eq=version is not None)
+                )
 
-                new_pkg = evolve(pkg, options=evolve(pkg.options, strategy=defn.strategy))
-                return R.PkgInstalled(new_pkg)
-
-            else:
-                raise R.PkgStrategyUnsupported(Strategy.version)
+            new_pkg = evolve(pkg, options=evolve(pkg.options, version_eq=version is not None))
+            return R.PkgInstalled(new_pkg)
 
         return {d: await capture_manager_exc_async(pin(d)) for d in defns}
 

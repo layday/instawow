@@ -1,12 +1,13 @@
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Collection
 from typing import Any
 
+from attrs import asdict
 from typing_extensions import Final, Protocol
 
 from . import models
-from .common import Strategy
+from .common import Strategy, StrategyValues
 
 
 class ManagerResult(Protocol):
@@ -65,7 +66,7 @@ class PkgAlreadyInstalled(ManagerError):
 
 
 class PkgConflictsWithInstalled(ManagerError):
-    def __init__(self, conflicting_pkgs: Sequence[Any]) -> None:
+    def __init__(self, conflicting_pkgs: Collection[Any]) -> None:
         super().__init__()
         self.conflicting_pkgs = conflicting_pkgs
 
@@ -95,14 +96,26 @@ class PkgNonexistent(ManagerError):
         return 'package does not exist'
 
 
-class PkgFileUnavailable(ManagerError):
+class PkgFilesMissing(ManagerError):
     def __init__(self, custom_message: str | None = None) -> None:
         super().__init__()
         self._custom_message = custom_message
 
     @property
     def message(self) -> str:
-        return self._custom_message or 'package file is not available for download'
+        return self._custom_message or 'no files are available for download'
+
+
+class PkgFilesNotMatching(ManagerError):
+    def __init__(self, strategies: StrategyValues) -> None:
+        super().__init__()
+        self._strategies = strategies
+
+    @property
+    def message(self) -> str:
+        return 'no files found for: ' + "; ".join(
+            f"{s}={v!r}" for s, v in asdict(self._strategies).items()
+        )
 
 
 class PkgNotInstalled(ManagerError):
@@ -127,14 +140,14 @@ class PkgUpToDate(ManagerError):
         return f'package is {"pinned" if self.is_pinned else "up to date"}'
 
 
-class PkgStrategyUnsupported(ManagerError):
-    def __init__(self, strategy: Strategy) -> None:
+class PkgStrategiesUnsupported(ManagerError):
+    def __init__(self, strategies: Collection[Strategy]) -> None:
         super().__init__()
-        self.strategy = strategy
+        self.strategies = strategies
 
     @property
     def message(self) -> str:
-        return f"'{self.strategy}' strategy is not valid for source"
+        return f'strategies are not valid for source: {", ".join(self.strategies)}'
 
 
 class InternalError(Exception, ManagerResult):

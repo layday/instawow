@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 
 from .. import _deferred_types, models, results as R
 from ..cataloguer import BaseCatalogueEntry
-from ..common import ChangelogFormat, Flavour, SourceMetadata, Strategy
+from ..common import ChangelogFormat, Flavour, SourceMetadata
 from ..resolvers import BaseResolver, Defn
 from ..utils import run_in_thread
 
@@ -14,20 +14,20 @@ class InstawowResolver(BaseResolver):
     metadata = SourceMetadata(
         id='instawow',
         name='instawow',
-        strategies=frozenset({Strategy.default}),
+        strategies=frozenset(),
         changelog_format=ChangelogFormat.markdown,
         addon_toc_key=None,
     )
     requires_access_token = None
 
-    _addons = {
+    _ADDONS = {
         ('0', 'weakauras-companion'),
         ('1', 'weakauras-companion-autoupdate'),
     }
 
     async def resolve_one(self, defn: Defn, metadata: None) -> models.Pkg:
         try:
-            source_id, slug = next(p for p in self._addons if defn.alias in p)
+            source_id, slug = next(p for p in self._ADDONS if defn.alias in p)
         except StopIteration:
             raise R.PkgNonexistent
 
@@ -48,7 +48,7 @@ class InstawowResolver(BaseResolver):
             date_published=datetime.now(timezone.utc),
             version=await run_in_thread(builder.get_version)(),
             changelog_url=builder.changelog_path.as_uri(),
-            options=models.PkgOptions(strategy=defn.strategy),
+            options=models.PkgOptions.from_strategy_values(defn.strategies),
         )
 
     @classmethod

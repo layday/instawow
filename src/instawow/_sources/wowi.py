@@ -11,7 +11,7 @@ from yarl import URL
 
 from .. import _deferred_types, manager, models, results as R
 from ..cataloguer import BaseCatalogueEntry
-from ..common import ChangelogFormat, Flavour, FlavourVersion, SourceMetadata, Strategy
+from ..common import ChangelogFormat, Flavour, FlavourVersion, SourceMetadata
 from ..http import make_generic_progress_ctx
 from ..resolvers import BaseResolver, Defn
 from ..utils import as_plain_text_data_url, gather, slugify, uniq
@@ -67,7 +67,7 @@ class WowiResolver(BaseResolver):
     metadata = SourceMetadata(
         id='wowi',
         name='WoWInterface',
-        strategies=frozenset({Strategy.default}),
+        strategies=frozenset(),
         changelog_format=ChangelogFormat.raw,
         addon_toc_key='X-WoWI-ID',
     )
@@ -168,7 +168,7 @@ class WowiResolver(BaseResolver):
             date_published=self._timestamp_to_datetime(metadata['UIDate']),
             version=metadata['UIVersion'],
             changelog_url=as_plain_text_data_url(metadata['UIChangeLog']),
-            options=models.PkgOptions(strategy=defn.strategy),
+            options=models.PkgOptions.from_strategy_values(defn.strategies),
         )
 
     @classmethod

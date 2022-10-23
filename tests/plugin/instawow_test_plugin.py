@@ -2,7 +2,7 @@ from datetime import datetime
 
 import click
 
-from instawow.common import ChangelogFormat, SourceMetadata, Strategy
+from instawow.common import ChangelogFormat, SourceMetadata
 from instawow.models import Pkg, PkgOptions
 import instawow.plugins
 from instawow.resolvers import BaseResolver, Defn
@@ -18,7 +18,7 @@ class MyResolver(BaseResolver):
     metadata = SourceMetadata(
         id='me',
         name="It's me",
-        strategies=frozenset({Strategy.default}),
+        strategies=frozenset(),
         changelog_format=ChangelogFormat.markdown,
         addon_toc_key=None,
     )
@@ -36,7 +36,7 @@ class MyResolver(BaseResolver):
             date_published=datetime.now(),
             version='0',
             changelog_url='data:,',
-            options=PkgOptions(strategy=defn.strategy),
+            options=PkgOptions.from_strategy_values(defn.strategies),
         )
 
 

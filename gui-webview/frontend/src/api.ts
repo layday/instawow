@@ -7,31 +7,28 @@ export enum Flavour {
 }
 
 export enum Strategy {
-  default = "default",
-  latest = "latest",
   any_flavour = "any_flavour",
-  version = "version",
+  any_release_type = "any_release_type",
+  version_eq = "version_eq",
 }
+
+export type Strategies = {
+  [Strategy.any_flavour]: true | null;
+  [Strategy.any_release_type]: true | null;
+  [Strategy.version_eq]: string | null;
+};
+
+export type Defn = {
+  source: string;
+  alias: string;
+  strategies: Strategies;
+};
 
 export enum ChangelogFormat {
   html = "html",
   markdown = "markdown",
   raw = "raw",
 }
-
-type BaseDefn = {
-  source: string;
-  alias: string;
-};
-
-type SimpleDefn = BaseDefn & { strategy?: Exclude<Strategy, Strategy.version> };
-
-type VersionDefn = BaseDefn & {
-  strategy: Strategy.version;
-  version: string;
-};
-
-export type Defn = SimpleDefn | VersionDefn;
 
 export type Profile = string;
 
@@ -50,9 +47,9 @@ export type GlobalConfig = {
 };
 
 export type Config = {
+  profile: string;
   addon_dir: string;
   game_flavour: Flavour;
-  profile: string;
 };
 
 export type GithubCodesResponse = {
@@ -86,13 +83,13 @@ export type Addon = {
   version: string;
   changelog_url: string;
   folders: { name: string }[];
-  options: { strategy: Strategy };
+  options: {
+    [Strategy.any_flavour]: boolean;
+    [Strategy.any_release_type]: boolean;
+    [Strategy.version_eq]: boolean;
+  };
   deps: { id: string }[];
   logged_versions: { version: string; install_time: string }[];
-};
-
-export type AddonWithMeta = Addon & {
-  __installed__: boolean;
 };
 
 export type ListResult = Addon[];
@@ -119,6 +116,8 @@ export type CatalogueEntry = {
   game_flavours: Flavour[];
   download_count: number;
   last_updated: string;
+  folders: string[][];
+  same_as: Pick<CatalogueEntry, "source" | "id">;
   normalised_name: string;
   derived_download_score: number;
 };
@@ -337,6 +336,10 @@ export class Api {
 export const addonToDefn = (addon: Addon): Defn => ({
   source: addon.source,
   alias: addon.id,
-  strategy: addon.options.strategy,
-  version: addon.version,
+  strategies: Object.fromEntries(
+    Object.entries(addon.options).map(([k, v]) => [
+      k,
+      !v ? null : k === Strategy.version_eq && v ? addon.version : v,
+    ])
+  ) as Strategies,
 });

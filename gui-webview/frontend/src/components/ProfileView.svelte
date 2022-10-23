@@ -8,12 +8,12 @@
   import { fade } from "svelte/transition";
   import type {
     Addon,
-    AddonWithMeta,
     AnyResult,
     CatalogueEntry,
     Defn,
     ErrorResult,
     Source,
+    Strategies,
     SuccessResult,
   } from "../api";
   import { addonToDefn, Api, ChangelogFormat, ReconciliationStage, Strategy } from "../api";
@@ -31,53 +31,45 @@
   import SearchOptionsModal from "./SearchOptionsModal.svelte";
   import Icon from "./SvgIcon.svelte";
 
-  // Two-tuple of reference and resolved add-on.  When listing installed add-ons
-  // the reference add-on is the installed add-on.  If an installed add-on
-  // cannot be resolved the resolved add-on is identical to the reference add-on
-  // which is the installed add-on.
-  // When searching for add-ons the reference add-on is the installed
-  // add-on if the add-on is installed.  Otherwise it is the same as the
-  // resolved add-on.  Reference add-ons must have an `__installed__` property
-  // set to either true or false (see `AddonWithMeta`).
-  type AddonTuple = readonly [AddonWithMeta, Addon];
+  type AddonTriplet = readonly [Addon, Addon, boolean];
 
   const createAddonToken = (value: Addon | Defn) =>
     [value.source, (value as Addon).id || (value as Defn).alias].join(":");
 
-  const attachTokentoAddon = ([addon, otherAddon]: AddonTuple): [AddonWithMeta, Addon, string] => [
-    addon,
-    otherAddon,
-    createAddonToken(addon),
-  ];
+  const tripletWithAddonToken = ([addon, ...rest]: AddonTriplet) =>
+    [addon, ...rest, createAddonToken(addon)] as const;
 
   const isSameAddon = (thisAddon: Addon, otherAddon: Addon) =>
     thisAddon.source === otherAddon.source && thisAddon.id === otherAddon.id;
 
-  const markAddonInstalled = (addon: Addon, installed: boolean = true): AddonWithMeta => ({
-    __installed__: installed,
-    ...addon,
-  });
-
   const reconcileStages = Object.values(ReconciliationStage);
+
+  export type SearchStrategies = {
+    [K in keyof Strategies]: NonNullable<
+      Strategies[K] extends boolean | null ? boolean : Strategies[K]
+    >;
+  };
 
   const defaultSearchState: {
     searchTerms: string;
     searchFilterInstalled: boolean;
     searchFromAlias: boolean;
-    searchSources: string[];
-    searchStrategy: Strategy;
-    searchVersion: string;
-    searchStartDate: string | null;
     searchLimit: number;
+    searchSources: string[];
+    searchStartDate: string | null;
+    searchStrategies: SearchStrategies;
   } = {
     searchTerms: "",
     searchFilterInstalled: false,
     searchFromAlias: false,
-    searchSources: [],
-    searchStrategy: Strategy.default,
-    searchVersion: "",
-    searchStartDate: null,
     searchLimit: 20,
+    searchSources: [],
+    searchStartDate: null,
+    searchStrategies: {
+      [Strategy.any_flavour]: false,
+      [Strategy.any_release_type]: false,
+      [Strategy.version_eq]: "",
+    },
   };
 
   const htmlify = (changelog: string, format: ChangelogFormat): [boolean, string] => {
@@ -91,9 +83,9 @@
     }
   };
 
-  const cycleListFormat = (currentFormat: ListFormat) => {
-    const listFormatKey = ListFormat[currentFormat + 1] as keyof typeof ListFormat;
-    return ListFormat[listFormatKey] || ListFormat.Dense;
+  const cycleListFormat = (currentFormat: ListFormat): ListFormat => {
+    const listFormat = currentFormat + 1;
+    return ListFormat[listFormat] ? listFormat : ListFormat.Dense;
   };
 </script>
 
@@ -121,11 +113,11 @@
   let installedListFormat = ListFormat.Compact;
   let searchListFormat = ListFormat.Expanded;
 
-  let addons__Installed: AddonTuple[] = [];
+  let addons__Installed: AddonTriplet[] = [];
   let filteredCatalogueEntries: CatalogueEntry[] = [];
-  let addons__FilterInstalled: AddonTuple[] = [];
+  let addons__FilterInstalled: AddonTriplet[] = [];
   let addonsFromSearch: Addon[] = [];
-  let addons__Search: AddonTuple[] = [];
+  let addons__Search: AddonTriplet[] = [];
   let installedOutdatedCount: number;
   let installedAddonsBeingModified: string[] = [];
 
@@ -135,12 +127,11 @@
     searchTerms,
     searchFilterInstalled,
     searchFromAlias,
-    searchSources,
-    searchStrategy,
-    searchVersion,
-    searchStartDate,
     searchLimit,
-  } = defaultSearchState;
+    searchSources,
+    searchStartDate,
+    searchStrategies,
+  } = lodash.cloneDeep(defaultSearchState);
   let searchIsDirty = false;
 
   let alerts: Alert[] = [];
@@ -208,8 +199,8 @@
     addons__Search = addonsFromSearch.map((addon) => {
       const installedAddon = addons__Installed.find((installedAddon) =>
         isSameAddon(installedAddon[0], addon)
-      );
-      return [installedAddon?.[0] || markAddonInstalled(addon, false), addon] as const;
+      )?.[0];
+      return [installedAddon ?? addon, addon, !!installedAddon] as const;
     });
   };
 
@@ -246,7 +237,7 @@
         const installedAddons = [...addons__Installed];
         // Reversing `modifiedAddons` for new add-ons to be prepended in alphabetical order
         for (const addon of [...modifiedAddons].reverse()) {
-          const newAddon = [markAddonInstalled(addon, method !== "remove"), addon] as const;
+          const newAddon = [addon, addon, method !== "remove"] as const;
           const index = addons__Installed.findIndex((value) => isSameAddon(value[0], addon));
           if (index === -1) {
             installedAddons.unshift(newAddon);
@@ -300,7 +291,7 @@
   };
 
   const isSearchFromAlias = () => {
-    return uriSchemes.some((s) => searchTerms.startsWith(s));
+    return uriSchemes?.some((s) => searchTerms.startsWith(s));
   };
 
   const search = async () => {
@@ -312,13 +303,16 @@
       if (searchTermsSnapshot) {
         let results: AnyResult[];
 
+        const condensedStrategies = Object.fromEntries(
+          Object.entries(searchStrategies).map(([k, v]) => [k, v || null])
+        ) as Strategies;
+
         if (searchFromAlias) {
           results = await profileApi.resolve([
             {
               source: "*",
               alias: searchTermsSnapshot,
-              strategy: searchStrategy,
-              version: searchVersion,
+              strategies: condensedStrategies,
             },
           ]);
         } else {
@@ -344,8 +338,7 @@
           const defns = catalogueEntries.map((e) => ({
             source: e.source,
             alias: e.id,
-            strategy: searchStrategy,
-            version: searchVersion,
+            strategies: condensedStrategies,
           }));
           results = await profileApi.resolve(defns);
         }
@@ -369,11 +362,9 @@
     if (!installedIsRefreshing) {
       installedIsRefreshing = true;
       try {
-        const installedAddons = (await profileApi.list()).map((addon) =>
-          markAddonInstalled(addon)
-        );
+        const installedAddons = await profileApi.list();
         if (flash) {
-          addons__Installed = installedAddons.map((a) => [a, a]);
+          addons__Installed = installedAddons.map((a) => [a, a, true]);
         }
         const resolveResults = await profileApi.resolve(installedAddons.map(addonToDefn));
         const addonsToResults = installedAddons.map((a, i) => [a, resolveResults[i]] as const);
@@ -381,8 +372,9 @@
           addonsToResults.map(([thisAddon, result]) => [
             thisAddon,
             result.status === "success" ? result.addon : thisAddon,
+            true,
           ]),
-          // Haul outdated add-ons up to the top
+          // Haul outdated add-ons to the top
           ([thisAddon, { version: otherVersion }]) => [
             thisAddon.version === otherVersion,
             thisAddon.name.toLowerCase(),
@@ -439,20 +431,20 @@
       profileApi.revealFolder([config.addon_dir, addon.folders[0].name]);
     } else if (selection === AddonAction.Resolve) {
       resetSearchState();
-      [searchTerms, searchFromAlias, searchStrategy, searchVersion] = [
+      [searchTerms, searchFromAlias, searchStrategies] = [
         createAddonToken(addon),
         true,
-        addon.options.strategy,
-        addon.version,
+        {
+          ...addon.options,
+          [Strategy.version_eq]: addon.options[Strategy.version_eq] ? addon.version : "",
+        },
       ];
       await search();
     } else if (selection === AddonAction.Rollback) {
       showRollbackModal(addon);
     } else if (selection === AddonAction.Pin || selection === AddonAction.Unpin) {
-      const pinnedAddon = {
-        ...addon,
-        options: { strategy: selection === AddonAction.Pin ? Strategy.version : Strategy.default },
-      };
+      const pinnedAddon = lodash.cloneDeep(addon);
+      pinnedAddon.options.version_eq = selection === AddonAction.Pin;
       await pinAddons([pinnedAddon]);
     } else if (selection === AddonAction.Unreconcile) {
       await removeAddons([addon], true);
@@ -540,7 +532,7 @@
   };
 
   const supportsRollback = (addon: Addon) =>
-    !!sources[addon.source]?.strategies.includes(Strategy.version);
+    !!sources[addon.source]?.strategies.includes(Strategy.version_eq);
 
   const generateStatusMessage = () => {
     if (installedIsRefreshing) {
@@ -548,22 +540,13 @@
     } else if (reconcileInstallationInProgress) {
       return "installing…";
     } else {
-      return `installed add-ons: ${addons__Installed.reduce(
-        (a, [c]) => a + (c.__installed__ ? 1 : 0),
-        0
-      )}`;
+      return `installed add-ons: ${addons__Installed.length}`;
     }
   };
 
   const resetSearchState = () => {
-    ({
-      searchFromAlias,
-      searchSources,
-      searchStrategy,
-      searchVersion,
-      searchStartDate,
-      searchLimit,
-    } = defaultSearchState);
+    ({ searchFromAlias, searchLimit, searchSources, searchStartDate, searchStrategies } =
+      lodash.cloneDeep(defaultSearchState));
   };
 
   const cycleDisplayedListFormat = () => {
@@ -584,35 +567,54 @@
     }
   });
 
-  $: activeView !== View.Search &&
-    searchTerms === "" &&
-    (console.debug(profile, "resetting search state"), resetSearchState());
+  $: if (activeView !== View.Search && searchTerms === "") {
+    console.debug(profile, "resetting search state");
+    resetSearchState();
+  }
+
   $: {
     searchFilterInstalled;
     console.debug(profile, "filter status changed, resetting search state");
     resetSearchState();
   }
-  $: searchStartDate === "" &&
-    (searchStartDate = (console.debug(profile, "resetting `searchStartDate`"), null));
-  $: searchIsDirty = [
-    [searchSources, defaultSearchState.searchSources],
-    [searchStartDate, defaultSearchState.searchStartDate],
-    [searchStrategy, defaultSearchState.searchStrategy],
-  ].some(([a, b]) => !lodash.isEqual(a, b));
-  $: searchTerms &&
-    (searchFromAlias =
-      (console.debug(profile, "updating `searchFromAlias`"), isSearchFromAlias()));
+
+  $: searchIsDirty = !lodash.isEqual(
+    [searchSources, searchStartDate, searchStrategies],
+    [
+      defaultSearchState.searchSources,
+      defaultSearchState.searchStartDate,
+      defaultSearchState.searchStrategies,
+    ]
+  );
+
+  $: {
+    searchTerms;
+    searchFromAlias = (console.debug(profile, "updating `searchFromAlias`"), isSearchFromAlias());
+  }
+
   $: addons =
     activeView === View.Search
       ? addons__Search
       : activeView === View.FilterInstalled
       ? addons__FilterInstalled
       : addons__Installed;
-  $: activeView === View.Reconcile && (reconcileStage = reconcileStages[0]);
-  $: addons__Installed && (console.debug(profile, "recounting updates"), countUpdates());
-  $: isActive &&
-    (addons__Installed || reconcileInstallationInProgress || installedIsRefreshing) &&
-    (statusMessage = generateStatusMessage());
+
+  $: if (activeView === View.Reconcile) {
+    reconcileStage = reconcileStages[0];
+  }
+
+  $: {
+    addons__Installed;
+    console.debug(profile, "recounting updates");
+    countUpdates();
+  }
+
+  $: if (
+    isActive &&
+    (addons__Installed || reconcileInstallationInProgress || installedIsRefreshing)
+  ) {
+    statusMessage = generateStatusMessage();
+  }
 </script>
 
 {#if isActive}
@@ -671,10 +673,9 @@
         bind:show={searchOptionsModal}
         bind:searchSources
         bind:searchFromAlias
-        bind:searchStartDate
-        bind:searchStrategy
-        bind:searchVersion
         bind:searchLimit
+        bind:searchStartDate
+        bind:searchStrategies
       />
     {/if}
     {#if activeView === View.Reconcile}
@@ -744,7 +745,7 @@
       {/await}
     {:else}
       <ul class="addon-list">
-        {#each addons.map(attachTokentoAddon) as [addon, otherAddon, token] (token)}
+        {#each addons.map(tripletWithAddonToken) as [addon, otherAddon, isInstalled, token] (token)}
           <li animate:flip={{ duration: 200 }}>
             <AddonComponent
               on:requestInstall={() => installAddons([otherAddon])}
@@ -757,6 +758,7 @@
                 showAddonContextMenu(otherAddon, false, e.detail)}
               {addon}
               {otherAddon}
+              {isInstalled}
               beingModified={installedAddonsBeingModified.includes(token)}
               format={activeView === View.Search ? searchListFormat : installedListFormat}
               isRefreshing={installedIsRefreshing}

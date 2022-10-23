@@ -41,29 +41,33 @@ async def test_pinning_supported_pkg(iw_manager: Manager):
 
     for new_defn in (defn.with_version(pkg.version), defn):
         pin_result = await iw_manager.pin([new_defn])
-        pinned_pkg = pin_result[new_defn].pkg
-        assert pkg.options.strategy is Strategy.default
-        assert pinned_pkg.options.strategy is new_defn.strategy
-        assert version == pinned_pkg.version
+        updated_pkg = pin_result[new_defn].pkg
+        assert updated_pkg.options.version_eq is bool(new_defn.strategies.version_eq)
+        assert version == updated_pkg.version
 
 
 async def test_pinning_unsupported_pkg(iw_manager: Manager):
     molinari_defn = Defn('wowi', '13188')
     await iw_manager.install([molinari_defn], False)
     installed_pkg = iw_manager.get_pkg(molinari_defn)
-    assert installed_pkg.options.strategy == Strategy.default
+    assert installed_pkg.options.version_eq is False
     result = await iw_manager.pin([molinari_defn])
-    assert (
-        type(result[molinari_defn]) is R.PkgStrategyUnsupported
-        and result[molinari_defn].strategy is Strategy.version
-    )
-    assert installed_pkg.options.strategy == Strategy.default
+    assert type(result[molinari_defn]) is R.PkgStrategiesUnsupported and result[
+        molinari_defn
+    ].strategies == {Strategy.version_eq}
+    assert installed_pkg.options.version_eq is False
 
 
 async def test_pinning_nonexistent_pkg(iw_manager: Manager):
-    molinari_defn = Defn('wowi', '13188')
+    molinari_defn = Defn('curse', 'molinari')
     result = await iw_manager.pin([molinari_defn])
     assert type(result[molinari_defn]) is R.PkgNotInstalled
+
+
+async def test_pinning_unsupported_nonexistent_pkg(iw_manager: Manager):
+    molinari_defn = Defn('wowi', '13188')
+    result = await iw_manager.pin([molinari_defn])
+    assert type(result[molinari_defn]) is R.PkgStrategiesUnsupported
 
 
 @pytest.mark.parametrize('exception', [ValueError('foo'), ClientError('bar')])
@@ -144,7 +148,6 @@ async def test_update_lifecycle_while_varying_retain_defn_strategy(iw_manager: M
 
     result = await iw_manager.install([defn], replace=False)
     assert type(result[defn]) is R.PkgInstalled
-    assert result[defn].pkg.options.strategy == Strategy.default
 
     result = await iw_manager.update([defn], retain_defn_strategy=False)
     assert type(result[defn]) is R.PkgUpToDate
@@ -156,7 +159,7 @@ async def test_update_lifecycle_while_varying_retain_defn_strategy(iw_manager: M
 
     result = await iw_manager.update([versioned_defn], retain_defn_strategy=True)
     assert type(result[versioned_defn]) is R.PkgUpdated
-    assert result[versioned_defn].new_pkg.options.strategy == Strategy.version
+    assert result[versioned_defn].new_pkg.options.version_eq is True
 
     result = await iw_manager.update([defn], retain_defn_strategy=False)
     assert type(result[defn]) is R.PkgUpToDate
@@ -164,7 +167,7 @@ async def test_update_lifecycle_while_varying_retain_defn_strategy(iw_manager: M
 
     result = await iw_manager.update([defn], retain_defn_strategy=True)
     assert type(result[defn]) is R.PkgUpdated
-    assert result[defn].new_pkg.options.strategy == Strategy.default
+    assert result[defn].new_pkg.options.version_eq is False
 
 
 async def test_update_reinstalls_corrupted_pkgs(iw_manager: Manager):

@@ -96,7 +96,7 @@ class WagoResolver(BaseResolver):
     metadata = SourceMetadata(
         id='wago',
         name='Wago Addons',
-        strategies=frozenset({Strategy.default, Strategy.latest}),
+        strategies=frozenset({Strategy.any_release_type}),
         changelog_format=ChangelogFormat.markdown,
         addon_toc_key='X-Wago-ID',
     )
@@ -133,7 +133,7 @@ class WagoResolver(BaseResolver):
             addon_metadata: _WagoAddon = await response.json()
 
         recent_releases = dict(addon_metadata['recent_release'])
-        if defn.strategy is Strategy.default:
+        if defn.strategies.any_release_type:
             files = filter(None, (recent_releases.get('stable'),))
         else:
             files = recent_releases.values()
@@ -142,7 +142,7 @@ class WagoResolver(BaseResolver):
             ((iso8601.parse_date(f['created_at']), f) for f in files), default=None
         )
         if matching_file is None:
-            raise R.PkgFileUnavailable
+            raise R.PkgFilesMissing
         else:
             file_date, file = matching_file
 
@@ -157,7 +157,7 @@ class WagoResolver(BaseResolver):
             date_published=file_date,
             version=file['label'],
             changelog_url=as_plain_text_data_url(file['changelog']),
-            options=models.PkgOptions(strategy=defn.strategy),
+            options=models.PkgOptions.from_strategy_values(defn.strategies),
         )
 
     @run_in_thread

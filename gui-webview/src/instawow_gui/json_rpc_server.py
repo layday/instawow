@@ -208,7 +208,7 @@ class ListProfilesParams(BaseParams):
 
 @_register_method('config/update_global')
 class UpdateGlobalConfigParams(BaseParams):
-    access_tokens: typing.Dict[str, typing.Optional[str]]
+    access_tokens: typing.Dict[str, typing.Union[str, None]]
 
     async def respond(
         self, managers: _ManagerWorkQueue, app_window: toga.MainWindow | None
@@ -294,7 +294,7 @@ class SearchParams(_ProfileParamMixin, BaseParams):
     search_terms: str
     limit: int
     sources: typing.Set[str]
-    start_date: typing.Optional[datetime]
+    start_date: typing.Union[datetime, None]
     installed_only: bool
 
     async def respond(
@@ -529,7 +529,7 @@ class GetDownloadProgressParams(_ProfileParamMixin, BaseParams):
         self, managers: _ManagerWorkQueue, app_window: toga.MainWindow | None
     ) -> list[DownloadProgressReport]:
         return [
-            {'defn': Defn.from_pkg(p), 'progress': r}
+            {'defn': p.to_defn(), 'progress': r}
             for p, r in await managers.get_manager_download_progress(self.profile)
         ]
 
@@ -577,7 +577,7 @@ class SelectFolderResult(TypedDict):
 
 @_register_method('assist/select_folder')
 class SelectFolderParams(BaseParams):
-    initial_folder: typing.Optional[str]
+    initial_folder: typing.Union[str, None]
 
     async def respond(
         self, managers: _ManagerWorkQueue, app_window: toga.MainWindow | None

@@ -9,7 +9,7 @@ from yarl import URL
 
 from .. import _deferred_types, manager, models, results as R
 from ..cataloguer import BaseCatalogueEntry
-from ..common import ChangelogFormat, Flavour, SourceMetadata, Strategy
+from ..common import ChangelogFormat, Flavour, SourceMetadata
 from ..http import make_generic_progress_ctx
 from ..resolvers import BaseResolver, Defn
 from ..utils import StrEnum, as_plain_text_data_url, gather, slugify
@@ -64,7 +64,7 @@ class TukuiResolver(BaseResolver):
     metadata = SourceMetadata(
         id='tukui',
         name='Tukui',
-        strategies=frozenset({Strategy.default}),
+        strategies=frozenset(),
         changelog_format=ChangelogFormat.html,
         addon_toc_key='X-Tukui-ProjectID',
     )
@@ -166,7 +166,7 @@ class TukuiResolver(BaseResolver):
                 # but link to the changelog tab on the add-on page
                 else as_plain_text_data_url(metadata['changelog'])
             ),
-            options=models.PkgOptions(strategy=defn.strategy),
+            options=models.PkgOptions.from_strategy_values(defn.strategies),
         )
 
     @classmethod

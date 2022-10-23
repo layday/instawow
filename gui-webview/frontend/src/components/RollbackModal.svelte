@@ -2,8 +2,8 @@
   import { DateTime } from "luxon";
   import { createEventDispatcher } from "svelte";
   import type { Addon } from "../api";
-  import { Strategy } from "../api";
   import Modal from "./Modal.svelte";
+  import lodash from "lodash";
 
   export let show: boolean, addon: Addon;
 
@@ -12,8 +12,9 @@
   let version: string;
 
   const requestRollbackAndHide = () => {
-    const newAddon = { ...addon, version };
-    newAddon.options.strategy = Strategy.version;
+    const newAddon = lodash.cloneDeep(addon);
+    newAddon.version = version;
+    newAddon.options.version_eq = true;
     dispatch("requestRollback", newAddon);
     show = false;
   };

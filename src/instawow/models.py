@@ -13,7 +13,8 @@ import sqlalchemy.future as sa_future
 from typing_extensions import Self
 
 from . import db
-from .common import Strategy
+from .common import StrategyValues
+from .resolvers import Defn
 
 pkg_converter = Converter()
 configure_converter(pkg_converter)
@@ -24,7 +25,15 @@ _db_pkg_converter.register_structure_hook(datetime, lambda d, _: d)
 
 @frozen(kw_only=True)
 class PkgOptions:
-    strategy: Strategy
+    any_flavour: bool
+    any_release_type: bool
+    version_eq: bool
+
+    @classmethod
+    def from_strategy_values(cls, strategies: StrategyValues) -> Self:
+        return cls(
+            **{k: bool(v) for k, v in asdict(strategies).items()},
+        )
 
 
 @frozen(kw_only=True)
@@ -68,9 +77,7 @@ class Pkg:
         return _db_pkg_converter.structure(
             {
                 **row_mapping,
-                'options': connection.execute(
-                    sa.select(db.pkg_options.c.strategy).filter_by(**source_and_id)
-                )
+                'options': connection.execute(sa.select(db.pkg_options).filter_by(**source_and_id))
                 .mappings()
                 .one(),
                 'folders': connection.execute(
@@ -114,3 +121,15 @@ class Pkg:
     def delete(self, connection: sa_future.Connection) -> None:
         with db.faux_transact(connection):
             connection.execute(sa.delete(db.pkg).filter_by(source=self.source, id=self.id))
+
+    def to_defn(self) -> Defn:
+        return Defn(
+            source=self.source,
+            alias=self.slug,
+            id=self.id,
+            strategies=StrategyValues(
+                any_flavour=self.options.any_flavour or None,
+                any_release_type=self.options.any_release_type or None,
+                version_eq=self.version if self.options.version_eq else None,
+            ),
+        )

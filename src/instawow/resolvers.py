@@ -13,7 +13,7 @@ from yarl import URL
 
 from . import _deferred_types, manager, models, results as R
 from .cataloguer import BaseCatalogueEntry
-from .common import AddonHashMethod, SourceMetadata, Strategy
+from .common import AddonHashMethod, SourceMetadata, StrategyValues
 from .config import GlobalConfig
 from .http import CACHE_INDEFINITELY
 from .utils import file_uri_to_path, gather, run_in_thread
@@ -23,16 +23,14 @@ from .utils import file_uri_to_path, gather, run_in_thread
 class Defn:
     source: str
     alias: str
-    id: typing.Optional[str] = None
-    strategy: Strategy = Strategy.default
-    version: typing.Optional[str] = None
-
-    @classmethod
-    def from_pkg(cls, pkg: models.Pkg) -> Self:
-        return cls(pkg.source, pkg.slug, pkg.id, pkg.options.strategy, pkg.version)
+    id: typing.Union[str, None] = None
+    strategies: StrategyValues = StrategyValues()
 
     def with_version(self, version: str) -> Self:
-        return evolve(self, strategy=Strategy.version, version=version)
+        return evolve(
+            self,
+            strategies=evolve(self.strategies, version_eq=version),
+        )
 
 
 class FolderHashCandidate(Protocol):
@@ -106,8 +104,11 @@ class BaseResolver(Resolver, Protocol):
         if cls.resolve_one is not super().resolve_one:
 
             async def resolve_one(self: Self, defn: Defn, metadata: Any) -> models.Pkg:
-                if defn.strategy not in self.metadata.strategies:
-                    raise R.PkgStrategyUnsupported(defn.strategy)
+                extraneous_strategies = (
+                    defn.strategies.filled_strategies - self.metadata.strategies
+                )
+                if extraneous_strategies:
+                    raise R.PkgStrategiesUnsupported(extraneous_strategies)
                 return await cls_resolve_one(self, defn, metadata)
 
             cls_resolve_one = cls.resolve_one

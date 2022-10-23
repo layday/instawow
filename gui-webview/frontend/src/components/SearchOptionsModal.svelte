@@ -1,10 +1,10 @@
 <script lang="ts">
   import { DateTime } from "luxon";
   import { createEventDispatcher } from "svelte";
-  import { fly } from "svelte/transition";
   import type { Sources } from "../api";
   import { Flavour, Strategy } from "../api";
   import Modal from "./Modal.svelte";
+  import type { SearchStrategies } from "./ProfileView.svelte";
 
   export let show: boolean,
     flavour: Flavour,
@@ -12,14 +12,17 @@
     searchFilterInstalled: boolean,
     searchSources: string[],
     searchFromAlias: boolean,
+    searchLimit: number,
     searchStartDate: string | null,
-    searchStrategy: Strategy,
-    searchVersion: string,
-    searchLimit: number;
+    searchStrategies: SearchStrategies;
 
-  const startDateSuggestions = [
+  const CHECKBOXES = [
+    [Strategy.any_flavour, "any flavour"],
+    [Strategy.any_release_type, "any release type"],
+  ] as const;
+
+  const START_DATE_SUGGESTIONS = [
     { date: "2022-05-31", label: "9.2.5", flavour: Flavour.retail },
-    { date: "2022-02-22", label: "9.2.0", flavour: Flavour.retail },
     { date: "2020-10-13", label: "9.0.1", flavour: Flavour.retail },
     {
       date: DateTime.now().minus({ days: 1 }).toISODate(),
@@ -34,6 +37,12 @@
     dispatch("requestSearch");
     show = false;
   };
+
+  $: if (searchStartDate === "") {
+    searchStartDate = null;
+  }
+
+  $: console.log(searchStrategies);
 </script>
 
 <Modal bind:show>
@@ -76,38 +85,42 @@
         bind:value={searchStartDate}
       />
       <ul class="start-date-suggestions">
-        {#each startDateSuggestions as { date, label, flavour: suggestionFlavour }}
+        {#each START_DATE_SUGGESTIONS as { date, label, flavour: suggestionFlavour }}
           {#if !suggestionFlavour || flavour === suggestionFlavour}
             <li
               class:disabled={searchFromAlias}
-              on:click={() => !searchFromAlias && (searchStartDate = date)}
+              on:click={() => {
+                if (!searchFromAlias) {
+                  searchStartDate = date;
+                }
+              }}
             >
               {label}
             </li>
           {/if}
         {/each}
       </ul>
-      <label for="__search-strategy">strategy:</label>
-      <select
-        id="__search-strategy"
+      {#each CHECKBOXES as [strategy, label]}
+        <label class="control" for="__{strategy}-control">{label}:</label>
+        <div class="form-control checkbox-container">
+          <input
+            id="__{strategy}-control"
+            type="checkbox"
+            disabled={searchFilterInstalled}
+            bind:checked={searchStrategies[strategy]}
+          />
+        </div>
+      {/each}
+      <label class="control" for="__version-control">version:</label>
+      <input
+        id="__version-control"
+        type="text"
         class="form-control"
+        placeholder="version"
+        aria-label="version"
         disabled={searchFilterInstalled}
-        bind:value={searchStrategy}
-      >
-        {#each Object.values(Strategy) as strategy}
-          <option value={strategy}>{strategy}</option>
-        {/each}
-      </select>
-      {#if searchStrategy === Strategy.version}
-        <input
-          type="text"
-          class="form-control hanging-box"
-          placeholder="version"
-          aria-label="version"
-          bind:value={searchVersion}
-          in:fly={{ duration: 200, y: -64 }}
-        />
-      {/if}
+        bind:value={searchStrategies[Strategy.version_eq]}
+      />
     </div>
     <div class="row input-array">
       <button class="form-control" type="submit">search</button>
@@ -134,9 +147,11 @@
     }
 
     .start-date-suggestions {
-      @extend %unstyle-list, .hanging-box;
+      @extend %unstyle-list;
       display: inline-flex;
       gap: 0.2rem;
+      grid-column-start: 2;
+      margin-top: -0.3em;
       font-size: 0.8em;
       font-weight: 600;
 
@@ -163,10 +178,10 @@
         }
       }
     }
+  }
 
-    .hanging-box {
-      grid-column-start: 2;
-      margin-top: -0.3em;
-    }
+  .form-control.checkbox-container {
+    background-color: transparent;
+    padding-left: 0;
   }
 </style>

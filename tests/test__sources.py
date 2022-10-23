@@ -14,7 +14,7 @@ from instawow._sources.cfcore import CfCoreResolver
 from instawow._sources.github import GithubResolver
 from instawow._sources.tukui import TukuiResolver
 from instawow._sources.wowi import WowiResolver
-from instawow.common import Flavour, Strategy
+from instawow.common import Flavour, Strategy, StrategyValues
 from instawow.manager import Manager
 from instawow.models import Pkg
 from instawow.resolvers import Defn, Resolver
@@ -38,9 +38,9 @@ async def test_curse_simple_strategies(iw_manager: Manager):
         or iw_manager.config.game_flavour is Flavour.classic
     ):
         assert (
-            type(results[retail_only]) is R.PkgFileUnavailable
+            type(results[retail_only]) is R.PkgFilesNotMatching
             and results[retail_only].message
-            == f"no files matching {iw_manager.config.game_flavour} using default strategy"
+            == f"no files found for: any_flavour=None; any_release_type=None; version_eq=None"
         )
     elif iw_manager.config.game_flavour is Flavour.retail:
         assert type(results[retail_only]) is Pkg
@@ -49,20 +49,19 @@ async def test_curse_simple_strategies(iw_manager: Manager):
 
 
 async def test_curse_any_flavour_strategy(iw_manager: Manager):
-    flavourful = Defn('curse', 'classiccastbars', strategy=Strategy.any_flavour)
-    retail_only = Defn('curse', 'mythic-dungeon-tools', strategy=Strategy.any_flavour)
+    flavourful = Defn('curse', 'classiccastbars', strategies=StrategyValues(any_flavour=True))
+    retail_only = Defn(
+        'curse', 'mythic-dungeon-tools', strategies=StrategyValues(any_flavour=True)
+    )
 
     results = await iw_manager.resolve([flavourful, retail_only])
     assert all(type(r) is Pkg for r in results.values())
 
 
 async def test_curse_version_pinning(iw_manager: Manager):
-    defn = Defn('curse', 'molinari').with_version('80000.58-Release')
+    defn = Defn('curse', 'molinari', strategies=StrategyValues(version_eq='80000.58-Release'))
     results = await iw_manager.resolve([defn])
-    assert (
-        results[defn].options.strategy == Strategy.version
-        and results[defn].version == '80000.58-Release'
-    )
+    assert results[defn].options.version_eq is True and results[defn].version == '80000.58-Release'
 
 
 async def test_curse_deps_retrieved(iw_manager: Manager):
@@ -146,7 +145,7 @@ async def test_github_basic(iw_manager: Manager):
 
     assert type(results[release_json]) is Pkg
     assert (
-        type(results[releaseless]) is R.PkgFileUnavailable
+        type(results[releaseless]) is R.PkgFilesMissing
         and results[releaseless].message == 'release not found'
     )
     assert type(results[nonexistent]) is R.PkgNonexistent
@@ -203,7 +202,7 @@ async def test_github_flavor_and_interface_mismatch(
     results = await iw_manager.resolve([defn])
     mismatch_result = results[defn]
 
-    assert type(mismatch_result) is R.PkgFileUnavailable
+    assert type(mismatch_result) is R.PkgFilesNotMatching
 
     (log_record,) = caplog.record_tuples
     assert log_record == (
@@ -216,14 +215,18 @@ async def test_github_flavor_and_interface_mismatch(
 @pytest.mark.parametrize('resolver', Manager.RESOLVERS)
 async def test_unsupported_strategies(iw_manager: Manager, resolver: Resolver):
     defn = Defn(resolver.metadata.id, 'foo')
-    for strategy in set(Strategy) - {Strategy.version} - resolver.metadata.strategies:
-        strategy_defn = evolve(defn, strategy=strategy)
+    for strategy in {
+        Strategy.any_flavour,
+        Strategy.any_release_type,
+    } - resolver.metadata.strategies:
+        strategy_defn = evolve(defn, strategies=StrategyValues(**{strategy: True}))
 
         results = await iw_manager.resolve([strategy_defn])
 
         assert (
-            type(results[strategy_defn]) is R.PkgStrategyUnsupported
-            and results[strategy_defn].message == f"'{strategy}' strategy is not valid for source"
+            type(results[strategy_defn]) is R.PkgStrategiesUnsupported
+            and results[strategy_defn].message
+            == f"strategies are not valid for source: {strategy}"
         )
 
 

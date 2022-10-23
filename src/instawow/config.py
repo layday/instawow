@@ -167,10 +167,10 @@ def _get_default_temp_dir():
 
 @frozen
 class _AccessTokens:
-    cfcore: typing.Optional[SecretStr] = None
-    github: typing.Optional[SecretStr] = None
-    wago: typing.Optional[SecretStr] = None
-    wago_addons: typing.Optional[SecretStr] = None
+    cfcore: typing.Union[SecretStr, None] = None
+    github: typing.Union[SecretStr, None] = None
+    wago: typing.Union[SecretStr, None] = None
+    wago_addons: typing.Union[SecretStr, None] = None
 
 
 @frozen

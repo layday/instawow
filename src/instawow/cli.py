@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Awaitable, Callable, Collection, Iterable, Iterator, Sequence, Set
+from collections.abc import Awaitable, Callable, Collection, Iterable, Sequence, Set
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from functools import partial
@@ -13,6 +13,7 @@ from typing import Any, NoReturn, TypeVar, overload
 from attrs import asdict, evolve, fields, resolve_types
 import click
 from loguru import logger
+from typing_extensions import Literal
 
 from . import __version__, _deferred_types, db, manager as _manager, models, results as R
 from .common import ChangelogFormat, Flavour, Strategy
@@ -310,68 +311,72 @@ def _parse_into_defn(
     return Defn(*pair)
 
 
-def _parse_into_defn_with_strategy(
-    manager: _manager.Manager, value: Sequence[tuple[Strategy, str]]
-) -> Iterator[Defn]:
-    defns = _parse_into_defn(manager, [d for _, d in value])
-    return map(lambda d, s: evolve(d, strategy=s), defns, (s for s, _ in value))
+def _parse_into_defn_and_extend_addons(ctx: click.Context, __: click.Parameter, value: list[str]):
+    addons: list[Defn] = ctx.params.setdefault('addons', [])
+    defns = _parse_into_defn(ctx.obj.manager, value)
+    addons.extend(defns)
 
 
-def _parse_into_defn_with_version(
-    manager: _manager.Manager, value: Sequence[tuple[str, str]]
-) -> Iterator[Defn]:
-    defns = _parse_into_defn(manager, [d for _, d in value])
-    return map(Defn.with_version, defns, (v for v, _ in value))
-
-
-def _combine_addons(
-    fn: Callable[[_manager.Manager, _T], Iterable[Defn]],
-    ctx: click.Context,
-    _: click.Parameter,
-    value: _T,
+def _parse_into_defn_with_version_and_extend_addons(
+    ctx: click.Context, __: click.Parameter, value: Sequence[tuple[str, str]]
 ):
     addons: list[Defn] = ctx.params.setdefault('addons', [])
+    defns = _parse_into_defn(ctx.obj.manager, [d for _, d in value])
+    addons.extend(map(Defn.with_version, defns, (v for v, _ in value)))
+
+
+def _extend_strategies(strategy: Strategy, ctx: click.Context, __: click.Parameter, value: bool):
+    strategies = ctx.params.setdefault('strategies', set())
     if value:
-        addons.extend(fn(ctx.obj.manager, value))
-
-
-_EXCLUDED_STRATEGIES = frozenset({Strategy.default, Strategy.version})
+        strategies.add(strategy)
 
 
 @cli.command()
 @click.argument(
-    'addons', nargs=-1, callback=partial(_combine_addons, _parse_into_defn), expose_value=False
-)
-@click.option(
-    '--with-strategy',
-    '-s',
-    multiple=True,
-    type=(_StrEnumParam(Strategy, _EXCLUDED_STRATEGIES), str),
-    expose_value=False,
-    callback=partial(_combine_addons, _parse_into_defn_with_strategy),
-    metavar='<STRATEGY ADDON>...',
-    help=(
-        'A strategy followed by an add-on definition.  '
-        f'One of: {", ".join(s for s in Strategy if s not in _EXCLUDED_STRATEGIES)}.'
-    ),
+    'addons', nargs=-1, expose_value=False, callback=_parse_into_defn_and_extend_addons
 )
 @click.option(
     '--version',
+    expose_value=False,
     multiple=True,
     type=(str, str),
-    expose_value=False,
-    callback=partial(_combine_addons, _parse_into_defn_with_version),
-    metavar='<VERSION ADDON>...',
+    callback=_parse_into_defn_with_version_and_extend_addons,
+    metavar='<VERSION ADDON>',
     help='A version followed by an add-on definition.',
+)
+@click.option(
+    '--any-flavour',
+    expose_value=False,
+    is_flag=True,
+    default=False,
+    callback=partial(_extend_strategies, Strategy.any_flavour),
+    help='Ignore game flavour compatibility.  Global option.',
+)
+@click.option(
+    '--any-release-type',
+    expose_value=False,
+    is_flag=True,
+    default=False,
+    callback=partial(_extend_strategies, Strategy.any_release_type),
+    help='Ignore add-on stability.  Global option.',
 )
 @click.option('--replace', is_flag=True, default=False, help='Replace unreconciled add-ons.')
 @click.pass_obj
-def install(mw: _CtxObjWrapper, addons: Sequence[Defn], replace: bool) -> None:
+def install(
+    mw: _CtxObjWrapper,
+    addons: Sequence[Defn],
+    strategies: Set[Literal[Strategy.any_flavour, Strategy.any_release_type]],
+    replace: bool,
+) -> None:
     "Install add-ons."
     if not addons:
-        raise click.UsageError(
-            'You must provide at least one of "ADDONS", "--with-strategy" or "--version"'
-        )
+        raise click.UsageError('You must provide at least one of "ADDONS" or "--version"')
+
+    if strategies:
+        addons = [
+            evolve(a, strategies=evolve(a.strategies, **{s: True for s in strategies}))
+            for a in addons
+        ]
 
     results = mw.run_with_progress(mw.manager.install(addons, replace))
     Report(results.items()).generate_and_exit()
@@ -393,21 +398,13 @@ def update(mw: _CtxObjWrapper, addons: Sequence[Defn]) -> None:
         else:
             return result.is_pinned
 
-    update_defns = addons or [
-        Defn(**v)
-        for v in mw.manager.database.execute(
-            sa.select(
-                db.pkg.c.source,
-                db.pkg.c.id,
-                db.pkg.c.slug.label('alias'),
-                db.pkg.c.version,
-                db.pkg_options.c.strategy,
-            ).join(db.pkg_options)
-        )
-        .mappings()
-        .all()
-    ]
-    results = mw.run_with_progress(mw.manager.update(update_defns, False))
+    def installed_pkgs_to_defns():
+        return [
+            models.Pkg.from_row_mapping(mw.manager.database, p).to_defn()
+            for p in mw.manager.database.execute(sa.select(db.pkg)).mappings().all()
+        ]
+
+    results = mw.run_with_progress(mw.manager.update(addons or installed_pkgs_to_defns(), False))
     Report(results.items(), filter_results).generate_and_exit()
 
 
@@ -451,21 +448,19 @@ def rollback(mw: _CtxObjWrapper, addon: Defn, version: str | None, undo: bool) -
         report: Report = Report([(addon, R.PkgNotInstalled())])
         report.generate_and_exit()
 
-    if Strategy.version not in mw.manager.resolvers[pkg.source].metadata.strategies:
-        Report([(addon, R.PkgStrategyUnsupported(Strategy.version))]).generate_and_exit()
+    if Strategy.version_eq not in mw.manager.resolvers[pkg.source].metadata.strategies:
+        Report([(addon, R.PkgStrategiesUnsupported({Strategy.version_eq}))]).generate_and_exit()
 
     if undo:
         Report(mw.run_with_progress(mw.manager.update([addon], True)).items()).generate_and_exit()
 
-    reconstructed_defn = Defn.from_pkg(pkg)
+    reconstructed_defn = pkg.to_defn()
     if version:
         selection = version
     else:
         versions = pkg.logged_versions
         if len(versions) <= 1:
-            Report(
-                [(addon, R.PkgFileUnavailable('cannot find older versions'))]
-            ).generate_and_exit()
+            Report([(addon, R.PkgFilesMissing('cannot find older versions'))]).generate_and_exit()
 
         choices = [
             Choice(
@@ -512,7 +507,7 @@ def reconcile(mw: _CtxObjWrapper, auto: bool, rereconcile: bool, list_unreconcil
     )
 
     def construct_choice(pkg: models.Pkg, highlight_version: bool, disabled: bool):
-        defn = Defn.from_pkg(pkg)
+        defn = pkg.to_defn()
         return PkgChoice(
             [
                 ('', f'{defn_to_urn(defn)}=='),
@@ -571,7 +566,7 @@ def reconcile(mw: _CtxObjWrapper, auto: bool, rereconcile: bool, list_unreconcil
         if selections and ask(confirm('Install selected add-ons?')):
             Report(
                 mw.run_with_progress(
-                    mw.manager.remove([Defn.from_pkg(p) for p, _ in selections], False),
+                    mw.manager.remove([p.to_defn() for p, _ in selections], False),
                 ).items()
             ).generate()
             Report(
@@ -626,7 +621,7 @@ def reconcile(mw: _CtxObjWrapper, auto: bool, rereconcile: bool, list_unreconcil
             return selection or None
 
         def pick_first_pkg(addons: Sequence[AddonFolder], pkgs: Sequence[models.Pkg]):
-            return Defn.from_pkg(pkgs[0])
+            return pkgs[0].to_defn()
 
         select_pkg_ = pick_first_pkg if auto else select_pkg
         confirm_install = (
@@ -712,7 +707,7 @@ def search(
     if choices:
         selections: list[Defn] = ask(checkbox('Select add-ons to install', choices=choices))
         if selections and ask(confirm('Install selected add-ons?')):
-            ctx.invoke(install, addons=selections)
+            ctx.invoke(install, addons=selections, strategies=frozenset(), replace=False)
     else:
         click.echo('No results found.')
 
@@ -793,7 +788,7 @@ def list_installed(mw: _CtxObjWrapper, addons: Sequence[Defn], output_format: _L
     elif output_format is _ListFormat.detailed:
         formatter = click.HelpFormatter(max_width=99)
         for pkg in row_mappings_to_pkgs():
-            with formatter.section(defn_to_urn(Defn.from_pkg(pkg))):
+            with formatter.section(defn_to_urn(pkg.to_defn())):
                 formatter.write_dl(
                     [
                         ('name', pkg.name),
@@ -803,7 +798,7 @@ def list_installed(mw: _CtxObjWrapper, addons: Sequence[Defn], output_format: _L
                         ('date_published', pkg.date_published.isoformat(' ', 'minutes')[:-6]),
                         ('folders', ', '.join(f.name for f in pkg.folders)),
                         ('deps', ', '.join(format_deps(pkg))),
-                        ('options.strategy', pkg.options.strategy),
+                        ('options', '\n'.join(f'{s}={v}' for s, v in asdict(pkg.options).items())),
                     ]
                 )
         click.echo(formatter.getvalue(), nl=False)

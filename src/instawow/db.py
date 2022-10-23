@@ -6,6 +6,7 @@ from enum import IntEnum
 import sqlite3
 
 from sqlalchemy import (
+    Boolean,
     Column,
     DateTime,
     ForeignKeyConstraint,
@@ -64,7 +65,9 @@ pkg = Table(
 pkg_options = Table(
     'pkg_options',
     metadata,
-    Column('strategy', String, nullable=False),
+    Column('any_flavour', Boolean, nullable=False),
+    Column('any_release_type', Boolean, nullable=False),
+    Column('version_eq', Boolean, nullable=False),
     Column('pkg_source', String, primary_key=True),
     Column('pkg_id', String, primary_key=True),
     ForeignKeyConstraint(

@@ -15,7 +15,7 @@ from instawow._sources.github import GithubResolver
 from instawow.common import Flavour
 from instawow.manager import Manager
 from instawow.resolvers import Defn
-from instawow.results import PkgFileUnavailable
+from instawow.results import PkgFilesNotMatching
 
 ADDON_NAME = 'RaidFadeMore'
 
@@ -110,7 +110,7 @@ async def test_package_json_less_addon(
         await GithubResolver(iw_manager).resolve_one(
             Defn('github', 'ketho-wow/RaidFadeMore'), None
         )
-    except PkgFileUnavailable:
+    except PkgFilesNotMatching:
         assert iw_manager.config.game_flavour not in package_json_less_addon['flavours']
     else:
         assert iw_manager.config.game_flavour in package_json_less_addon['flavours']

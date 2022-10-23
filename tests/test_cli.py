@@ -156,9 +156,12 @@ def test_version_strategy_lifecycle(
     )
     assert run('update curse:molinari').output == '✗ curse:molinari\n  package is up to date\n'
     assert run('remove curse:molinari').output == '✓ curse:molinari\n  removed\n'
-    assert (
-        run('install --version foo curse:molinari').output
-        == '✗ curse:molinari\n  version foo not found\n'
+    assert run('install --version foo curse:molinari').output == dedent(
+        '''\
+        ✗ curse:molinari
+          no files found for: any_flavour=None; any_release_type=None;
+            version_eq='foo'
+        '''
     )
     assert (
         run('install --version 80000.57-Release curse:molinari').output
@@ -173,32 +176,28 @@ def test_install_options(
     run: C[[str], Result],
 ):
     assert run(
-        'install'
-        ' curse:molinari'
-        ' -s latest curse:molinari'
-        ' --version 80000.57-Release curse:molinari'
+        'install' ' --any-release-type' ' --any-flavour' ' curse:molinari'
     ).output == dedent(
         '''\
         ✓ curse:molinari
           installed 90200.82-Release
-        ✗ curse:molinari
-          package folders conflict with installed package Molinari
-            (curse:20338)
-        ✗ curse:molinari
-          package folders conflict with installed package Molinari
-            (curse:20338)
         '''
     )
 
 
-def test_install_option_order_is_respected(
+@pytest.mark.parametrize('step', [1, -1])
+def test_install_order_is_stable(
     run: C[[str], Result],
+    step: int,
 ):
     assert run(
-        'install'
-        ' --version 80000.57-Release curse:molinari'
-        ' -s latest curse:molinari'
-        ' curse:molinari'
+        'install '
+        + ' '.join(
+            (
+                'curse:molinari',
+                '--version 80000.57-Release curse:molinari',
+            )[::step]
+        )
     ).output == dedent(
         '''\
         ✓ curse:molinari
@@ -206,25 +205,17 @@ def test_install_option_order_is_respected(
         ✗ curse:molinari
           package folders conflict with installed package Molinari
             (curse:20338)
-        ✗ curse:molinari
-          package folders conflict with installed package Molinari
-            (curse:20338)
         '''
     )
 
 
-def test_install_argument_is_not_required(
+def test_install_argument_is_optional(
     run: C[[str], Result],
 ):
-    assert run(
-        'install -s latest curse:molinari --version 80000.57-Release curse:molinari'
-    ).output == dedent(
+    assert run('install --version 80000.57-Release curse:molinari').output == dedent(
         '''\
         ✓ curse:molinari
-          installed 90200.82-Release
-        ✗ curse:molinari
-          package folders conflict with installed package Molinari
-            (curse:20338)
+          installed 80000.57-Release
         '''
     )
 
@@ -294,7 +285,7 @@ def test_rollback__unsupported(
     assert run('install wowi:13188-molinari').exit_code == 0
     assert (
         run(f'rollback {options} wowi:13188-molinari').output
-        == "✗ wowi:13188-molinari\n  'version' strategy is not valid for source\n"
+        == "✗ wowi:13188-molinari\n  strategies are not valid for source: version_eq\n"
     )
 
 
