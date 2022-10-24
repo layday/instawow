@@ -363,7 +363,7 @@ class GithubResolver(BaseResolver):
         # but let's filter them out just in case.
         releases = (r for r in releases if r['draft'] is False)
 
-        if defn.strategies.any_release_type:
+        if not defn.strategies.any_release_type:
             releases = (r for r in releases if r['prerelease'] is False)
 
         seen_release_json = False
