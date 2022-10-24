@@ -39,8 +39,8 @@ runs:
       id: get-wheel-info
       run: |
         WHEEL_PATH=$(ls "$PWD"/dist/*.whl)
-        echo "::set-output name=wheel-path::$WHEEL_PATH"
-        echo "::set-output name=wheel-name::$(basename "$WHEEL_PATH")"
+        echo "wheel-path=$WHEEL_PATH" >> $GITHUB_OUTPUT
+        echo "wheel-name=$(basename "$WHEEL_PATH")" >> $GITHUB_OUTPUT
       shell: bash
     - name: Upload artifact
       uses: actions/upload-artifact@v2

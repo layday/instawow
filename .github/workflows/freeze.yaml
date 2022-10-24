@@ -27,7 +27,7 @@ jobs:
         run: python -m pip install dunamai
       - name: Grab the version
         id: get-version
-        run: echo "::set-output name=instawow-version::$(dunamai from git --no-metadata)"
+        run: echo "instawow-version=$(dunamai from git --no-metadata)" >> $GITHUB_OUTPUT
   freeze-cli:
     needs: get-version
     strategy:
