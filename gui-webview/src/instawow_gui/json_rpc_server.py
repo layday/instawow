@@ -25,6 +25,7 @@ from cattrs import Converter
 from cattrs.preconf.json import configure_converter
 import click
 from exceptiongroup import ExceptionGroup
+import iso8601
 from loguru import logger
 import sqlalchemy as sa
 import toga  # pyright: ignore
@@ -61,6 +62,7 @@ _converter = Converter(
 )
 configure_converter(_converter)
 _converter.register_structure_hook(Path, lambda v, _: Path(v))
+_converter.register_structure_hook(datetime, lambda v, _: iso8601.parse_date(v))
 _converter.register_unstructure_hook(Path, str)
 
 
