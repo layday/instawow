@@ -31,9 +31,7 @@ jobs:
         python-version: ["3.10"]
         include:
           - { os: ubuntu-latest, python-version: "3.9" }
-          - os: ubuntu-latest
-            python-version: "3.11"
-            python-install-version: 3.11-dev
+          - { os: ubuntu-latest, python-version: "3.11" }
     runs-on: ${{ matrix.os }}
     steps:
       - name: Clone the repo
@@ -71,9 +69,7 @@ jobs:
         python-version: ["3.10"]
         include:
           - { os: ubuntu-latest, python-version: "3.9" }
-          - os: ubuntu-latest
-            python-version: "3.11"
-            python-install-version: 3.11-dev
+          - { os: ubuntu-latest, python-version: "3.11" }
     runs-on: ${{ matrix.os }}
     steps:
       - name: Clone the repo
