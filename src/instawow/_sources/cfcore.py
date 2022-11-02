@@ -4,6 +4,7 @@ import asyncio
 from collections.abc import AsyncIterator, Callable, Generator, Sequence
 from datetime import timedelta
 from enum import IntEnum
+from functools import partial
 from itertools import count
 from typing import Generic, TypeVar
 
@@ -426,24 +427,28 @@ class CfCoreResolver(BaseResolver):
         def excise_folders(files: list[_CfCoreFile]):
             return uniq(frozenset(m['name'] for m in f['modules']) for f in files)
 
-        timeout = ClientTimeout(total=10)
-        headers = {'x-api-key': cls._get_access_token(GlobalConfig.from_env())}
-        step = 50
+        STEP = 50
+        MAX_OFFSET = 10_000  # The CF API craps out after 9,999 results
 
-        for index in count():
+        get = partial(
+            web_client.get,
+            headers={'x-api-key': cls._get_access_token(GlobalConfig.from_env())},
+            raise_for_status=True,
+            timeout=ClientTimeout(total=10),
+        )
+
+        for offset in range(0, MAX_OFFSET, STEP):
             url = (cls._mod_api_url / 'search').with_query(
                 gameId='1',
-                sortField=_CfCoreModsSearchSortField.name_,
-                pageSize=step,
-                index=index * step,
+                sortField=_CfCoreModsSearchSortField.last_updated,
+                pageSize=STEP,
+                index=offset,
             )
             logger.debug(f'retrieving {url}')
 
             for attempt in count(1):
                 try:
-                    async with web_client.get(
-                        url, headers=headers, raise_for_status=True, timeout=timeout
-                    ) as response:
+                    async with get(url) as response:
                         response_json: _CfCoreModsResponse = await response.json()
                         break
                 except asyncio.TimeoutError:
