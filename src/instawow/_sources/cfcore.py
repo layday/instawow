@@ -441,6 +441,7 @@ class CfCoreResolver(BaseResolver):
             url = (cls._mod_api_url / 'search').with_query(
                 gameId='1',
                 sortField=_CfCoreModsSearchSortField.last_updated,
+                sortOrder='desc',
                 pageSize=STEP,
                 index=offset,
             )
