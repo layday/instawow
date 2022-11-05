@@ -419,7 +419,7 @@ class GithubResolver(BaseResolver):
 
         dict_reader = csv.DictReader(StringIO(catalogue_csv))
         id_keys = [
-            (k, k[: -len('_id')]) for k in dict_reader.fieldnames or [] if k.endswith('_id')
+            (k, k.removesuffix('_id')) for k in dict_reader.fieldnames or [] if k.endswith('_id')
         ]
 
         def extract_flavours(flavours: str):

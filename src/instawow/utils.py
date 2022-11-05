@@ -255,7 +255,7 @@ def file_uri_to_path(file_uri: str) -> str:
     "Convert a file URI to a path that works both on Windows and *nix."
     from urllib.parse import unquote
 
-    unprefixed_path = unquote(file_uri[7:])  # len('file://')
+    unprefixed_path = unquote(file_uri.removeprefix('file://'))
     # A slash is prepended to the path even when there isn't one there
     # on Windows.  The ``PurePath`` instance will inherit from either
     # ``PurePosixPath`` or ``PureWindowsPath``; this will be a no-op on POSIX.
