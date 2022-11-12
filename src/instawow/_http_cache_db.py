@@ -13,7 +13,8 @@ from typing_extensions import LiteralString
 @contextmanager
 def acquire_cache_db_conn(db_path: os.PathLike[str]):
     db_conn = sqlite3.connect(db_path)
-    db_conn.execute('PRAGMA synchronous = 0')
+    db_conn.execute('PRAGMA journal_mode = wal')
+    db_conn.execute('PRAGMA synchronous = normal')
     yield db_conn
     db_conn.close()
 
