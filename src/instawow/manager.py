@@ -657,7 +657,7 @@ class Manager:
         else:
             async with self.web_client.get(
                 pkg.download_url,
-                headers=await self.resolvers[pkg.source].make_headers(
+                headers=await self.resolvers[pkg.source].make_request_headers(
                     intent=HeadersIntent.download
                 ),
                 raise_for_status=True,

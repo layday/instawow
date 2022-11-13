@@ -98,7 +98,7 @@ class GithubResolver(BaseResolver):
         if url.host == 'github.com' and len(url.parts) > 2:
             return '/'.join(url.parts[1:3])
 
-    async def make_headers(self, intent: HeadersIntent | None = None) -> dict[str, str]:
+    async def make_request_headers(self, intent: HeadersIntent | None = None) -> dict[str, str]:
         headers = dict[str, str]()
 
         if intent is HeadersIntent.download:
@@ -130,7 +130,7 @@ class GithubResolver(BaseResolver):
 
         from ..matchers import NORMALISED_FLAVOUR_TOC_SUFFIXES
 
-        download_headers = await self.make_headers(HeadersIntent.download)
+        download_headers = await self.make_request_headers(HeadersIntent.download)
 
         matching_asset = None
 
@@ -290,7 +290,7 @@ class GithubResolver(BaseResolver):
 
             return False
 
-        download_headers = await self.make_headers(HeadersIntent.download)
+        download_headers = await self.make_request_headers(HeadersIntent.download)
 
         async with self._manager.web_client.get(
             release_json_asset['url'],
@@ -330,7 +330,7 @@ class GithubResolver(BaseResolver):
         return matching_asset
 
     async def resolve_one(self, defn: Defn, metadata: None) -> models.Pkg:
-        github_headers = await self.make_headers()
+        github_headers = await self.make_request_headers()
 
         repo_url = self._repos_api_url / defn.alias
         async with self._manager.web_client.get(

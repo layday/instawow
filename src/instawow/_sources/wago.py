@@ -109,7 +109,7 @@ class WagoResolver(BaseResolver):
         if url.host == 'addons.wago.io' and len(url.parts) > 2 and url.parts[1] == 'addons':
             return url.parts[2]
 
-    async def make_headers(self, intent: HeadersIntent | None = None) -> dict[str, str]:
+    async def make_request_headers(self, intent: HeadersIntent | None = None) -> dict[str, str]:
         maybe_access_token = self._get_access_token(self._manager.config.global_config)
         if maybe_access_token is None:
             raise ValueError(f'{self.metadata.name} access token is not configured')
@@ -125,7 +125,7 @@ class WagoResolver(BaseResolver):
                 game_version=wago_game_version.value,
             ),
             expire_after=timedelta(minutes=5),
-            headers=await self.make_headers(),
+            headers=await self.make_request_headers(),
         ) as response:
             if response.status == 404:
                 raise R.PkgNonexistent
@@ -184,7 +184,7 @@ class WagoResolver(BaseResolver):
         async with self._manager.web_client.post(
             self._wago_external_api_url / 'addons/_match',
             expire_after=timedelta(minutes=15),
-            headers=await self.make_headers(),
+            headers=await self.make_request_headers(),
             json=await self._make_match_params(candidates),
             raise_for_status=True,
             trace_request_ctx=make_generic_progress_ctx('Finding matching Wago add-ons'),
