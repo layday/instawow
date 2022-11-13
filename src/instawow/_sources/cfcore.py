@@ -18,7 +18,7 @@ from ..cataloguer import BaseCatalogueEntry
 from ..common import ChangelogFormat, Flavour, SourceMetadata, Strategy
 from ..config import GlobalConfig
 from ..http import CACHE_INDEFINITELY, make_generic_progress_ctx
-from ..resolvers import BaseResolver, Defn
+from ..resolvers import BaseResolver, Defn, HeadersIntent
 from ..utils import gather, uniq
 
 _T = TypeVar('_T')
@@ -268,8 +268,14 @@ class CfCoreResolver(BaseResolver):
         ):
             return url.parts[3].lower()
 
-    async def make_auth_headers(self) -> dict[str, str] | None:
-        return {'x-api-key': self._get_access_token(self._manager.config.global_config)}
+    async def make_headers(self, intent: HeadersIntent | None = None) -> dict[str, str] | None:
+        if intent is HeadersIntent.download:
+            return None
+
+        maybe_access_token = self._get_access_token(self._manager.config.global_config)
+        if maybe_access_token is None:
+            raise ValueError(f'{self.metadata.name} access token is not configured')
+        return {'x-api-key': maybe_access_token}
 
     async def resolve(
         self, defns: Sequence[Defn]
@@ -288,7 +294,7 @@ class CfCoreResolver(BaseResolver):
         async with self._manager.web_client.post(
             self._mod_api_url,
             expire_after=timedelta(minutes=5),
-            headers=await self.make_auth_headers(),
+            headers=await self.make_headers(),
             json={'modIds': numeric_ids},
         ) as response:
             if response.status == 404:
@@ -321,7 +327,7 @@ class CfCoreResolver(BaseResolver):
             async with self._manager.web_client.get(
                 files_url,
                 expire_after=timedelta(hours=1),
-                headers=await self.make_auth_headers(),
+                headers=await self.make_headers(),
                 raise_for_status=True,
                 trace_request_ctx=make_generic_progress_ctx(
                     f'Fetching metadata from {self.metadata.name}'
@@ -397,7 +403,7 @@ class CfCoreResolver(BaseResolver):
         async with self._manager.web_client.get(
             uri,
             expire_after=CACHE_INDEFINITELY,
-            headers=await self.make_auth_headers(),
+            headers=await self.make_headers(),
             raise_for_status=True,
         ) as response:
             response_json: _CfCoreStringDataResponse = await response.json()

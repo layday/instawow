@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from collections.abc import AsyncIterator, Iterable
 from datetime import datetime, timedelta
-from functools import lru_cache
 from itertools import tee, zip_longest
 from typing import Literal
 
@@ -15,7 +14,7 @@ from .. import _deferred_types, models, results as R
 from ..cataloguer import BaseCatalogueEntry, CatalogueSameAs
 from ..common import ChangelogFormat, Flavour, FlavourVersion, SourceMetadata, Strategy
 from ..http import CACHE_INDEFINITELY
-from ..resolvers import BaseResolver, Defn
+from ..resolvers import BaseResolver, Defn, HeadersIntent
 from ..utils import (
     StrEnum,
     TocReader,
@@ -44,10 +43,10 @@ class _GithubRelease(TypedDict):
 
 
 class _GithubRelease_Asset(TypedDict):
+    url: str
     name: str  # filename
     content_type: str  # mime type
     state: Literal['starter', 'uploaded']
-    browser_download_url: str
 
 
 class _PackagerReleaseJson(TypedDict):
@@ -99,10 +98,17 @@ class GithubResolver(BaseResolver):
         if url.host == 'github.com' and len(url.parts) > 2:
             return '/'.join(url.parts[1:3])
 
-    @staticmethod
-    @lru_cache(1)
-    def _make_auth_headers(access_token: str | None):
-        return {'Authorization': f'token {access_token}'} if access_token else {}
+    async def make_headers(self, intent: HeadersIntent | None = None) -> dict[str, str]:
+        headers = dict[str, str]()
+
+        if intent is HeadersIntent.download:
+            headers['Accept'] = 'application/octet-stream'
+
+        access_token = self._get_access_token(self._manager.config.global_config, 'github')
+        if access_token:
+            headers['Authorization'] = f'token {access_token}'
+
+        return headers
 
     async def _find_matching_asset_from_zip_contents(self, assets: list[_GithubRelease_Asset]):
         candidates = [
@@ -124,9 +130,7 @@ class GithubResolver(BaseResolver):
 
         from ..matchers import NORMALISED_FLAVOUR_TOC_SUFFIXES
 
-        github_headers = self._make_auth_headers(
-            self._manager.config.global_config.access_tokens.github
-        )
+        download_headers = await self.make_headers(HeadersIntent.download)
 
         matching_asset = None
 
@@ -135,7 +139,7 @@ class GithubResolver(BaseResolver):
             dynamic_addon_zip = None
             is_zip_complete = False
 
-            download_url = candidate['browser_download_url']
+            download_url = candidate['url']
 
             # A large enough initial offset that we won't typically have to
             # resort to extracting the ECD.
@@ -147,7 +151,10 @@ class GithubResolver(BaseResolver):
                 async with self._manager.web_client.get(
                     download_url,
                     expire_after=CACHE_INDEFINITELY,
-                    headers={**github_headers, hdrs.RANGE: f'bytes={directory_offset}'},
+                    headers={
+                        **download_headers,
+                        hdrs.RANGE: f'bytes={directory_offset}',
+                    },
                 ) as directory_range_response:
                     if not directory_range_response.ok:
                         # File size under 25 KB.
@@ -155,7 +162,7 @@ class GithubResolver(BaseResolver):
                             async with self._manager.web_client.get(
                                 download_url,
                                 expire_after=CACHE_INDEFINITELY,
-                                headers=github_headers,
+                                headers=download_headers,
                                 raise_for_status=True,
                             ) as addon_zip_response:
                                 addon_zip_stream.write(await addon_zip_response.read())
@@ -240,7 +247,7 @@ class GithubResolver(BaseResolver):
                     download_url,
                     expire_after=CACHE_INDEFINITELY,
                     headers={
-                        **github_headers,
+                        **download_headers,
                         hdrs.RANGE: f'bytes={main_toc_file_offset}-{following_file_offset}',
                     },
                     raise_for_status=True,
@@ -283,14 +290,12 @@ class GithubResolver(BaseResolver):
 
             return False
 
-        github_headers = self._make_auth_headers(
-            self._manager.config.global_config.access_tokens.github
-        )
+        download_headers = await self.make_headers(HeadersIntent.download)
 
         async with self._manager.web_client.get(
-            release_json_asset['browser_download_url'],
+            release_json_asset['url'],
             expire_after=timedelta(days=1),
-            headers=github_headers,
+            headers=download_headers,
             raise_for_status=True,
         ) as response:
             packager_metadata: _PackagerReleaseJson = await response.json(
@@ -325,9 +330,7 @@ class GithubResolver(BaseResolver):
         return matching_asset
 
     async def resolve_one(self, defn: Defn, metadata: None) -> models.Pkg:
-        github_headers = self._make_auth_headers(
-            self._manager.config.global_config.access_tokens.github
-        )
+        github_headers = await self.make_headers()
 
         repo_url = self._repos_api_url / defn.alias
         async with self._manager.web_client.get(
@@ -396,7 +399,7 @@ class GithubResolver(BaseResolver):
             name=project['name'],
             description=project['description'] or '',
             url=project['html_url'],
-            download_url=matching_asset['browser_download_url'],
+            download_url=matching_asset['url'],
             date_published=iso8601.parse_date(release['published_at']),
             version=release['tag_name'],
             changelog_url=as_plain_text_data_url(release['body']),

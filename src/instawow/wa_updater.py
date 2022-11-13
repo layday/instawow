@@ -149,7 +149,7 @@ class WaCompanionBuilder:
         self.changelog_path = output_folder / 'CHANGELOG.md'
         self.version_txt_path = output_folder / 'version.txt'
 
-    def _make_auth_headers(self):
+    def _make_headers(self):
         access_token = self._manager.config.global_config.access_tokens.wago
         if access_token:
             return {'api-key': access_token}
@@ -194,7 +194,7 @@ class WaCompanionBuilder:
         async with self._manager.web_client.get(
             (_CHECK_API_URL / api_ep).with_query(ids=','.join(aura_ids)),
             expire_after=timedelta(minutes=30),
-            headers=self._make_auth_headers(),
+            headers=self._make_headers(),
             trace_request_ctx=make_generic_progress_ctx('Fetching aura metadata'),
         ) as response:
             metadata: list[_WagoApiResponse]
@@ -211,7 +211,7 @@ class WaCompanionBuilder:
         async with self._manager.web_client.get(
             _IMPORT_STRING_API_URL.with_query(id=aura['_id']).with_fragment(str(aura['version'])),
             expire_after=CACHE_INDEFINITELY,
-            headers=self._make_auth_headers(),
+            headers=self._make_headers(),
             raise_for_status=True,
             trace_request_ctx=make_generic_progress_ctx(f"Fetching aura '{aura['slug']}'"),
         ) as response:

@@ -11,7 +11,7 @@ from yarl import URL
 from .. import models, results as R
 from ..common import AddonHashMethod, ChangelogFormat, SourceMetadata, Strategy
 from ..http import make_generic_progress_ctx
-from ..resolvers import BaseResolver, Defn, TFolderHashCandidate
+from ..resolvers import BaseResolver, Defn, HeadersIntent, TFolderHashCandidate
 from ..utils import StrEnum, as_plain_text_data_url, run_in_thread
 
 _WagoStability = Literal['stable', 'beta', 'alpha']
@@ -109,10 +109,11 @@ class WagoResolver(BaseResolver):
         if url.host == 'addons.wago.io' and len(url.parts) > 2 and url.parts[1] == 'addons':
             return url.parts[2]
 
-    async def make_auth_headers(self) -> dict[str, str]:
-        return {
-            'Authorization': f'Bearer {self._get_access_token(self._manager.config.global_config)}'
-        }
+    async def make_headers(self, intent: HeadersIntent | None = None) -> dict[str, str]:
+        maybe_access_token = self._get_access_token(self._manager.config.global_config)
+        if maybe_access_token is None:
+            raise ValueError(f'{self.metadata.name} access token is not configured')
+        return {'Authorization': f'Bearer {maybe_access_token}'}
 
     async def resolve_one(self, defn: Defn, metadata: None) -> models.Pkg:
         wago_game_version = self._manager.config.game_flavour.to_flavour_keyed_enum(
@@ -124,7 +125,7 @@ class WagoResolver(BaseResolver):
                 game_version=wago_game_version.value,
             ),
             expire_after=timedelta(minutes=5),
-            headers=await self.make_auth_headers(),
+            headers=await self.make_headers(),
         ) as response:
             if response.status == 404:
                 raise R.PkgNonexistent
@@ -183,7 +184,7 @@ class WagoResolver(BaseResolver):
         async with self._manager.web_client.post(
             self._wago_external_api_url / 'addons/_match',
             expire_after=timedelta(minutes=15),
-            headers=await self.make_auth_headers(),
+            headers=await self.make_headers(),
             json=await self._make_match_params(candidates),
             raise_for_status=True,
             trace_request_ctx=make_generic_progress_ctx('Finding matching Wago add-ons'),

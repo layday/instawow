@@ -39,7 +39,7 @@ from .common import Strategy
 from .config import Config, GlobalConfig
 from .http import make_generic_progress_ctx, make_pkg_progress_ctx
 from .plugins import load_plugins
-from .resolvers import Defn, Resolver
+from .resolvers import Defn, HeadersIntent, Resolver
 from .utils import (
     bucketise,
     chain_dict,
@@ -657,7 +657,9 @@ class Manager:
         else:
             async with self.web_client.get(
                 pkg.download_url,
-                headers=await self.resolvers[pkg.source].make_auth_headers(),
+                headers=await self.resolvers[pkg.source].make_headers(
+                    intent=HeadersIntent.download
+                ),
                 raise_for_status=True,
                 trace_request_ctx=make_pkg_progress_ctx(self.config.profile, pkg),
             ) as response, _open_temp_writer() as (

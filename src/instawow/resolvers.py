@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import AsyncIterator, Collection, Iterable, Sequence
+import enum
 from functools import update_wrapper
 from pathlib import Path
 import typing
@@ -43,6 +44,10 @@ class FolderHashCandidate(Protocol):
 TFolderHashCandidate = TypeVar('TFolderHashCandidate', bound=FolderHashCandidate)
 
 
+class HeadersIntent(enum.IntEnum):
+    download = enum.auto()
+
+
 class Resolver(Protocol):
     metadata: ClassVar[SourceMetadata]
     requires_access_token: ClassVar[str | None]
@@ -55,7 +60,7 @@ class Resolver(Protocol):
         "Attempt to extract a ``Defn`` alias from a given URL."
         ...
 
-    async def make_auth_headers(self) -> dict[str, str] | None:
+    async def make_headers(self, intent: HeadersIntent | None = None) -> dict[str, str] | None:
         "Create authentication headers."
         ...
 
@@ -115,21 +120,16 @@ class BaseResolver(Resolver, Protocol):
             setattr(cls, cls.resolve_one.__name__, update_wrapper(resolve_one, cls.resolve_one))
 
     @classmethod
-    def _get_access_token(cls, global_config: GlobalConfig) -> str:
-        maybe_access_token = None
-        if cls.requires_access_token is not None:
-            maybe_access_token = getattr(
-                global_config.access_tokens, cls.requires_access_token, None
-            )
-        if maybe_access_token is None:
-            raise ValueError(f'{cls.metadata.name} access token is not configured')
-        return maybe_access_token
+    def _get_access_token(cls, global_config: GlobalConfig, name: str | None = None) -> str | None:
+        name = name or cls.requires_access_token
+        if name is not None:
+            return getattr(global_config.access_tokens, name, None)
 
     @classmethod
     def get_alias_from_url(cls, url: URL) -> str | None:
         return None
 
-    async def make_auth_headers(self) -> dict[str, str] | None:
+    async def make_headers(self, intent: HeadersIntent | None = None) -> dict[str, str] | None:
         return None
 
     async def resolve(
@@ -147,7 +147,7 @@ class BaseResolver(Resolver, Protocol):
             async with self._manager.web_client.get(
                 uri,
                 expire_after=CACHE_INDEFINITELY,
-                headers=await self.make_auth_headers(),
+                headers=await self.make_headers(),
                 raise_for_status=True,
             ) as response:
                 return await response.text()
