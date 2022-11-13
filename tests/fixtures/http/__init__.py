@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from functools import lru_cache
+from functools import cache
 from io import BytesIO
 import json
 from pathlib import Path
@@ -30,7 +30,7 @@ def _load_json_fixture(filename: str):
     return json.loads(_load_fixture(filename))
 
 
-@lru_cache(maxsize=None)
+@cache
 def _make_addon_zip(*folders: str):
     buffer = BytesIO()
     with ZipFile(buffer, 'w') as file:
@@ -100,7 +100,7 @@ ROUTES = dict(
                 _load_json_fixture('curse-addon-files.json'),
             ),
             Route(
-                URL('//api.curseforge.com/v1/mods/20338/files/__id/changelog'),
+                URL('//api.curseforge.com/v1/mods/20338/files/{id}/changelog'),
                 _load_json_fixture('curse-addon-changelog.json'),
                 path_pattern=re.compile(r'^/v1/mods/20338/files/(\d+)/changelog$'),
             ),
@@ -114,7 +114,7 @@ ROUTES = dict(
                 _load_json_fixture('wowi-filelist.json'),
             ),
             Route(
-                URL('//api.mmoui.com/v3/game/WOW/filedetails/__id.json'),
+                URL('//api.mmoui.com/v3/game/WOW/filedetails/{id}.json'),
                 _load_json_fixture('wowi-filedetails.json'),
                 path_pattern=re.compile(r'^/v3/game/WOW/filedetails/(\d*)\.json$'),
             ),
@@ -173,7 +173,7 @@ ROUTES = dict(
                 match_querystring=True,
             ),
             Route(
-                URL('//github.com/nebularg/PackagerTest/releases/download/v1.9.7/release.json'),
+                URL('//api.github.com/repos/nebularg/PackagerTest/releases/assets/37156458'),
                 _load_json_fixture('github-release-release-json-release-json.json'),
             ),
             Route(
@@ -188,9 +188,7 @@ ROUTES = dict(
                 match_querystring=True,
             ),
             Route(
-                URL(
-                    '//github.com/p3lim-wow/Molinari/releases/download/90200.82-Release/release.json'
-                ),
+                URL('//api.github.com/repos/p3lim-wow/Molinari/releases/assets/57617676'),
                 _load_json_fixture('github-release-molinari-release-json.json'),
                 case_insensitive=True,
             ),
@@ -212,9 +210,9 @@ ROUTES = dict(
                 lambda: Response(body=b'', status=404),
             ),
             Route(
-                URL('//github.com/__x/__y/releases/download'),
+                URL('//api.github.com/repos/{x}/{y}/releases/asssets/{z}'),
                 lambda: Response(body=_make_addon_zip('Foo')),
-                path_pattern=re.compile(r'^(/[^/]*){2}/releases/download'),
+                path_pattern=re.compile(r'^/repos(/[^/]*){2}/releases/assets/'),
             ),
             Route(
                 URL('//github.com/login/device/code'),

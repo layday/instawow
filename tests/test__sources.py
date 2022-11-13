@@ -184,8 +184,8 @@ async def test_github_flavor_and_interface_mismatch(
     interface: int,
 ):
     aresponses.add(
-        'github.com',
-        '/nebularg/PackagerTest/releases/download/v1.9.7/release.json',
+        'api.github.com',
+        re.compile(r'^/repos/nebularg/PackagerTest/releases/assets/'),
         'GET',
         {
             "releases": [
@@ -214,6 +214,9 @@ async def test_github_flavor_and_interface_mismatch(
 
 @pytest.mark.parametrize('resolver', Manager.RESOLVERS)
 async def test_unsupported_strategies(iw_manager: Manager, resolver: Resolver):
+    if resolver.metadata.id not in iw_manager.resolvers:
+        pytest.skip('resolver not loaded')
+
     defn = Defn(resolver.metadata.id, 'foo')
     for strategy in {
         Strategy.any_flavour,

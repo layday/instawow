@@ -99,8 +99,8 @@ async def test_package_json_less_addon(
         return response
 
     aresponses.add(
-        'github.com',
-        re.compile(r'^(/[^/]*){2}/releases/download'),
+        'api.github.com',
+        re.compile(r'^/repos(/[^/]*){2}/releases/assets/'),
         'get',
         handle_request,
         repeat=aresponses.INFINITY,
