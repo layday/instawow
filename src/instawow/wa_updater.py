@@ -19,7 +19,6 @@ from .manager import Manager
 from .utils import (
     StrEnum,
     bucketise,
-    chain_dict,
     gather,
     read_resource_as_text,
     run_in_thread as t,
@@ -27,11 +26,7 @@ from .utils import (
     time_op,
 )
 
-_Slug = str
-_ImportString = str
-_AuraGroup: TypeAlias = (
-    'Sequence[tuple[Sequence[WeakAura | Plateroo], _WagoApiResponse, _ImportString]]'
-)
+_Slug: TypeAlias = str
 
 _CHECK_API_URL = URL('https://data.wago.io/api/check')
 _IMPORT_STRING_API_URL = URL('https://data.wago.io/api/raw/encoded')
@@ -72,7 +67,7 @@ class WeakAuras:
     api_ep = 'weakauras'
     filename = 'WeakAuras.lua'
 
-    root: typing.Mapping[_Slug, typing.Sequence[WeakAura]]
+    root: dict[_Slug, list[WeakAura]]
 
     @classmethod
     def from_lua_table(cls, lua_table: Any):
@@ -86,7 +81,7 @@ class Plateroos:
     api_ep = 'plater'
     filename = 'Plater.lua'
 
-    root: typing.Mapping[_Slug, typing.Sequence[Plateroo]]
+    root: dict[_Slug, list[Plateroo]]
 
     @classmethod
     def from_lua_table(cls, lua_table: Any):
@@ -106,7 +101,7 @@ class Plateroos:
 def _merge_auras(auras: Iterable[WeakAuras | Plateroos]):
     return {
         t: t(reduce(lambda a, b: {**a, **b}, (i.root for i in a)))
-        for t, a in bucketise(auras, key=type).items()
+        for t, a in bucketise(auras, key=type[WeakAuras | Plateroos]).items()
     }
 
 
@@ -217,7 +212,9 @@ class WaCompanionBuilder:
         ) as response:
             return await response.text()
 
-    async def get_remote_auras(self, auras: WeakAuras | Plateroos) -> _AuraGroup:
+    async def get_remote_auras(
+        self, auras: WeakAuras | Plateroos
+    ) -> list[tuple[Sequence[WeakAura | Plateroo], _WagoApiResponse, str]]:
         if not auras.root:
             return []
 
@@ -233,7 +230,15 @@ class WaCompanionBuilder:
 
         return sha256(self.addon_zip_path.read_bytes()).hexdigest()
 
-    def _generate_addon(self, auras: Iterable[tuple[type, _AuraGroup]]):
+    def _generate_addon(
+        self,
+        auras: Iterable[
+            tuple[
+                type[WeakAuras | Plateroos],
+                list[tuple[Sequence[WeakAura | Plateroo], _WagoApiResponse, str]],
+            ]
+        ],
+    ):
         from zipfile import ZipFile, ZipInfo
 
         from jinja2 import Environment, FunctionLoader
@@ -246,7 +251,7 @@ class WaCompanionBuilder:
             loader=FunctionLoader(partial(read_resource_as_text, _wa_templates)),
         )
 
-        aura_dict = chain_dict((WeakAuras, Plateroos), (), auras)
+        aura_dict = dict.fromkeys((WeakAuras, Plateroos), []) | dict(auras)
 
         self.addon_zip_path.parent.mkdir(exist_ok=True)
         with ZipFile(self.addon_zip_path, 'w') as file:
@@ -357,7 +362,9 @@ class WaCompanionBuilder:
     async def build(self) -> None:
         installed_auras = await t(list)(self.extract_installed_auras())
         installed_auras_by_type = _merge_auras(installed_auras)
-        aura_groups = await gather(map(self.get_remote_auras, installed_auras_by_type.values()))
+        aura_groups = await gather(
+            self.get_remote_auras(r) for r in installed_auras_by_type.values()
+        )
         await t(self._generate_addon)(zip(installed_auras_by_type, aura_groups))
 
     def get_version(self) -> str:

@@ -185,7 +185,7 @@ class _ResolverPriorityDict(dict[str, float]):
 
 _web_client: cv.ContextVar[_deferred_types.aiohttp.ClientSession] = cv.ContextVar('_web_client')
 
-LocksType: TypeAlias = 'defaultdict[object, AbstractAsyncContextManager[None]]'
+LocksType: TypeAlias = defaultdict[object, AbstractAsyncContextManager[None]]
 
 _dummy_locks: LocksType = defaultdict(_DummyLock)
 _locks: cv.ContextVar[LocksType] = cv.ContextVar('_locks', default=_dummy_locks)

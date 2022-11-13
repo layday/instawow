@@ -117,13 +117,13 @@ class TukuiResolver(BaseResolver):
         async with self._manager.locks['load Tukui catalogue']:
             return {
                 k: v
-                for l in await gather(
+                for a in await gather(
                     (
                         *(fetch_ui(u) for u in self._UI_SUITE_SLUGS),
                         fetch_addons(self._manager.config.game_flavour),
                     )
                 )
-                for k, v in l
+                for k, v in a
             }
 
     async def resolve(

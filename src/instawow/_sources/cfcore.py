@@ -366,7 +366,7 @@ class CfCoreResolver(BaseResolver):
         filter_fns = list(make_filter_fns())
 
         file = max(
-            (f for f in files if all(l(f) for l in filter_fns)),
+            (f for f in files if all(r(f) for r in filter_fns)),
             # The ``id`` is just a counter so we don't have to go digging around dates
             key=lambda f: f['id'],
             default=None,

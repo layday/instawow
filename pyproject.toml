@@ -77,7 +77,41 @@ types = [
 ]
 
 
-## TESTING ##
+[tool.pyright]
+include = [
+  "src",
+  "gui-webview/src",
+  "tests/plugin",
+]
+ignore = [
+  "src/instawow/_migrations",
+]
+strict = [
+  "src",
+  "gui-webview/src/instawow_gui/json_rpc_server.py",
+  "tests/plugin",
+]
+
+[tool.ruff]
+select = [
+  "B",
+  "C",
+  "E",
+  "F",
+  "M",
+  "U",
+  "W",
+]
+ignore = [
+  "E501", # LineTooLong
+]
+target-version = "py39"
+
+[tool.black]
+line-length = 99
+skip-string-normalization = true
+target-version = ["py39", "py310", "py311"]
+
 
 [tool.coverage.run]
 source_pkgs = [
@@ -109,32 +143,6 @@ filterwarnings = [
   "error",
 ]
 asyncio_mode = "auto"
-
-
-## TYPE CHECKING ##
-
-[tool.pyright]
-include = [
-  "src",
-  "gui-webview/src",
-  "tests/plugin",
-]
-ignore = [
-  "src/instawow/_migrations",
-]
-strict = [
-  "src",
-  "gui-webview/src/instawow_gui/json_rpc_server.py",
-  "tests/plugin",
-]
-
-
-## FORMATTING ##
-
-[tool.black]
-line_length = 99
-skip_string_normalization = true
-target_version = ["py39", "py310", "py311"]
 
 [tool.isort]
 profile = "black"

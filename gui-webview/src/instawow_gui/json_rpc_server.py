@@ -49,7 +49,7 @@ if TYPE_CHECKING:
 
 _T = TypeVar('_T')
 _P = ParamSpec('_P')
-_ManagerBoundCoroFn: TypeAlias = 'Callable[Concatenate[Manager, _P], Awaitable[_T]]'
+_ManagerBoundCoroFn: TypeAlias = Callable[Concatenate[Manager, _P], Awaitable[_T]]
 
 
 LOCALHOST = '127.0.0.1'
@@ -80,7 +80,7 @@ def _extract_loc_from_note(exc: BaseException):
 
 
 def _structure_excs(excs: Iterable[BaseException]):
-    return [{'loc': [l], 'msg': str(e)} for e in excs for l in (_extract_loc_from_note(e),) if l]
+    return [{'loc': [c], 'msg': str(e)} for e in excs for c in (_extract_loc_from_note(e),) if c]
 
 
 @contextmanager

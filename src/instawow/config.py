@@ -332,10 +332,8 @@ def _patch_loguru_enqueue():
     # but creates a separate thread for its "enqueued" logger and we don't
     # use multiprocessing in instawow.
     # This will definitely not come back to bite us.
-    setattr(
-        loguru._handler,
-        'multiprocessing',
-        SimpleNamespace(SimpleQueue=queue.Queue, Event=threading.Event, Lock=threading.Lock),
+    loguru._handler.multiprocessing = SimpleNamespace(  # pyright: ignore[reportPrivateImportUsage]
+        SimpleQueue=queue.Queue, Event=threading.Event, Lock=threading.Lock
     )
 
 

@@ -2,7 +2,6 @@
 Add UNIQUE constraint that was missing from ``pkg_dep``.
 """
 from alembic import op
-import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = '3b37d2faccd2'

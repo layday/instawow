@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import aiohttp
-import pytest
 
 from instawow.github_auth import get_codes, poll_for_access_token
 

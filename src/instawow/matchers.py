@@ -157,7 +157,7 @@ async def match_folder_hashes(manager: manager.Manager, leftovers: frozenset[Add
 async def match_folder_name_subsets(manager: manager.Manager, leftovers: frozenset[AddonFolder]):
     catalogue = await manager.synchronise()
 
-    leftovers_by_name = {l.name: l for l in leftovers}
+    leftovers_by_name = {e.name: e for e in leftovers}
 
     matches = [
         (frozenset(leftovers_by_name[n] for n in m), Defn(i.source, i.id))

@@ -4,7 +4,6 @@ Rename the 'origin' column to 'source'.
 from functools import partial
 
 from alembic import op
-import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = '8f6ba74cfa82'

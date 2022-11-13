@@ -17,8 +17,11 @@ def __getattr__(name: str) -> object:
         if spec is None:
             # ``AttributeError`` is converted to an ``ImportError`` by the import machinery
             raise AttributeError
+
         sys.modules[fullname] = module = importlib.util.module_from_spec(spec)
-        assert spec.loader
+        if spec.loader is None:
+            raise AttributeError
+
         lazy_loader = importlib.util.LazyLoader(spec.loader)
         lazy_loader.exec_module(module)
         return module

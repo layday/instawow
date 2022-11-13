@@ -40,7 +40,7 @@ async def test_curse_simple_strategies(iw_manager: Manager):
         assert (
             type(results[retail_only]) is R.PkgFilesNotMatching
             and results[retail_only].message
-            == f"no files found for: any_flavour=None; any_release_type=None; version_eq=None"
+            == "no files found for: any_flavour=None; any_release_type=None; version_eq=None"
         )
     elif iw_manager.config.game_flavour is Flavour.retail:
         assert type(results[retail_only]) is Pkg

@@ -3,7 +3,6 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-from typing_extensions import assert_never
 
 from instawow.common import AddonHashMethod, Flavour
 from instawow.manager import Manager

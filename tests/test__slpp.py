@@ -52,13 +52,13 @@ def test_numbers():
 
 
 def test_bool():
-    assert loads('true') == True
-    assert loads('false') == False
+    assert loads('true') is True
+    assert loads('false') is False
     assert loads('falser') == 'falser'
 
 
 def test_nil():
-    loads('nil') == None
+    assert loads('nil') is None
 
 
 def test_string_with_and_without_escape():

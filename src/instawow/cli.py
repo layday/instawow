@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 from functools import cached_property, partial
 from itertools import chain, repeat
 from pathlib import Path
+import sys
 import textwrap
 from typing import Any, Literal, NoReturn, TypeVar, overload
 
@@ -82,78 +83,12 @@ class Report:
         ctx.exit(self.exit_code)
 
 
-def _init_cli_web_client(
-    cache_dir: Path,
-    progress_bar: _deferred_types.prompt_toolkit.shortcuts.ProgressBar,
-    tickers: set[asyncio.Task[None]],
-):
-    from aiohttp import TraceConfig, hdrs
-    from prompt_toolkit.shortcuts import ProgressBarCounter
-
-    TICK_INTERVAL = 0.1
-
-    async def do_on_request_end(
-        client_session: _deferred_types.aiohttp.ClientSession,
-        trace_config_ctx: Any,
-        params: _deferred_types.aiohttp.TraceRequestEndParams,
-    ):
-        trace_request_ctx: TraceRequestCtx = trace_config_ctx.trace_request_ctx
-        if trace_request_ctx:
-            response = params.response
-            label = (
-                'Downloading '
-                + defn_to_urn(Defn(trace_request_ctx['pkg'].source, trace_request_ctx['pkg'].slug))
-                if trace_request_ctx['report_progress'] == 'pkg_download'
-                else trace_request_ctx['label']
-            )
-            # When the total is ``None`` the progress bar is
-            # in an "indeterminate" state.
-            # We cannot display progress for encoded responses because
-            # the size before decoding is not exposed by the
-            # aiohttp streaming API
-            total = None if hdrs.CONTENT_ENCODING in response.headers else response.content_length
-
-            counters = progress_bar.counters
-
-            async def ticker():
-                counter = ProgressBarCounter[object](
-                    progress_bar=progress_bar, label=label, total=total
-                )
-                counters.append(counter)
-                try:
-                    while not response.content.is_eof():
-                        counter.items_completed = response.content.total_bytes
-                        progress_bar.invalidate()
-                        await asyncio.sleep(TICK_INTERVAL)
-                finally:
-                    counters.remove(counter)
-
-            tickers.add(asyncio.create_task(ticker()))
-
-    trace_config = TraceConfig()
-    trace_config.on_request_end.append(do_on_request_end)
-    trace_config.freeze()
-    return init_web_client(cache_dir, trace_configs=[trace_config])
-
-
-@contextmanager
-def _cancel_tickers(progress_bar: _deferred_types.prompt_toolkit.shortcuts.ProgressBar):
-    tickers: set[asyncio.Task[None]] = set()
-    try:
-        yield tickers
-    finally:
-        for ticker in tickers:
-            ticker.cancel()
-        progress_bar.invalidate()
-
-
 def _override_asyncio_loop_policy():
     # The proactor event loop which became the default loop on Windows
     # in Python 3.8 is causing issues with aiohttp.
     # See https://github.com/aio-libs/aiohttp/issues/4324
-    policy = getattr(asyncio, 'WindowsSelectorEventLoopPolicy', None)
-    if policy:
-        asyncio.set_event_loop_policy(policy())
+    if sys.platform == 'win32' and sys.version_info < (3, 11):
+        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
 
 def _apply_patches():
@@ -190,13 +125,82 @@ class _CtxObjWrapper:
                     return await awaitable
 
         else:
+            from aiohttp import TraceConfig, hdrs
+            from prompt_toolkit.shortcuts import ProgressBar, ProgressBarCounter
+
             from ._cli_prompts import make_progress_bar
 
+            def init_cli_web_client(
+                cache_dir: Path,
+                progress_bar: ProgressBar,
+                tickers: set[asyncio.Task[None]],
+            ):
+                TICK_INTERVAL = 0.1
+
+                async def do_on_request_end(
+                    client_session: _deferred_types.aiohttp.ClientSession,
+                    trace_config_ctx: Any,
+                    params: _deferred_types.aiohttp.TraceRequestEndParams,
+                ):
+                    trace_request_ctx: TraceRequestCtx = trace_config_ctx.trace_request_ctx
+                    if trace_request_ctx:
+                        response = params.response
+                        label = (
+                            'Downloading '
+                            + defn_to_urn(
+                                Defn(
+                                    trace_request_ctx['pkg'].source, trace_request_ctx['pkg'].slug
+                                )
+                            )
+                            if trace_request_ctx['report_progress'] == 'pkg_download'
+                            else trace_request_ctx['label']
+                        )
+                        # When the total is ``None`` the progress bar is
+                        # in an "indeterminate" state.
+                        # We cannot display progress for encoded responses because
+                        # the size before decoding is not exposed by the
+                        # aiohttp streaming API
+                        total = (
+                            None
+                            if hdrs.CONTENT_ENCODING in response.headers
+                            else response.content_length
+                        )
+
+                        counters = progress_bar.counters
+
+                        async def ticker():
+                            counter = ProgressBarCounter[object](
+                                progress_bar=progress_bar, label=label, total=total
+                            )
+                            counters.append(counter)
+                            try:
+                                while not response.content.is_eof():
+                                    counter.items_completed = response.content.total_bytes
+                                    progress_bar.invalidate()
+                                    await asyncio.sleep(TICK_INTERVAL)
+                            finally:
+                                counters.remove(counter)
+
+                        tickers.add(asyncio.create_task(ticker()))
+
+                trace_config = TraceConfig()
+                trace_config.on_request_end.append(do_on_request_end)
+                trace_config.freeze()
+                return init_web_client(cache_dir, trace_configs=[trace_config])
+
+            @contextmanager
+            def cancel_tickers(progress_bar: ProgressBar):
+                tickers: set[asyncio.Task[None]] = set()
+                try:
+                    yield tickers
+                finally:
+                    for ticker in tickers:
+                        ticker.cancel()
+                    progress_bar.invalidate()
+
             async def run():
-                with make_progress_bar() as progress_bar, _cancel_tickers(progress_bar) as tickers:
-                    async with _init_cli_web_client(
-                        cache_dir, progress_bar, tickers
-                    ) as web_client:
+                with make_progress_bar() as progress_bar, cancel_tickers(progress_bar) as tickers:
+                    async with init_cli_web_client(cache_dir, progress_bar, tickers) as web_client:
                         _manager.contextualise(web_client=web_client)
                         return await awaitable
 
@@ -875,7 +879,7 @@ def view_changelog(mw: _CtxObjWrapper, addon: Defn | None, convert: bool) -> Non
         lines = changelog.splitlines()
         body = '\n'.join(
             (
-                *(f'  {l}' for l in lines[:MAX_LINES]),
+                *(f'  {i}' for i in lines[:MAX_LINES]),
                 *(('  [...]',) if len(lines) > MAX_LINES else ()),
             )
         )
