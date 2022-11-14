@@ -1,14 +1,14 @@
 from __future__ import annotations
 
-from io import BytesIO
 import re
+from io import BytesIO
 from typing import Any
 from zipfile import ZipFile
 
 import aiohttp.hdrs
 import aiohttp.web
-from aresponses import ResponsesMockServer
 import pytest
+from aresponses import ResponsesMockServer
 from yarl import URL
 
 from instawow._sources.github import GithubResolver

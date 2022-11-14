@@ -7,10 +7,12 @@ from typing import Literal
 
 import iso8601
 from loguru import logger
-from typing_extensions import NotRequired as N, TypedDict
+from typing_extensions import NotRequired as N
+from typing_extensions import TypedDict
 from yarl import URL
 
-from .. import _deferred_types, models, results as R
+from .. import _deferred_types, models
+from .. import results as R
 from ..cataloguer import BaseCatalogueEntry, CatalogueSameAs
 from ..common import ChangelogFormat, Flavour, FlavourVersion, SourceMetadata, Strategy
 from ..http import CACHE_INDEFINITELY
@@ -123,8 +125,8 @@ class GithubResolver(BaseResolver):
         if not candidates:
             return None
 
-        from io import BytesIO
         import zipfile
+        from io import BytesIO
 
         from aiohttp import hdrs
 
@@ -184,7 +186,10 @@ class GithubResolver(BaseResolver):
                         try:
                             dynamic_addon_zip = zipfile.ZipFile(addon_zip_stream)
                         except zipfile.BadZipFile:
-                            from zipfile import _ECD_OFFSET, _EndRecData  # pyright: ignore
+                            from zipfile import (  # noqa: I001
+                                _ECD_OFFSET,  # pyright: ignore
+                                _EndRecData,  # pyright: ignore
+                            )
 
                             end_rec_data = _EndRecData(addon_zip_stream)  # pyright: ignore
                             if end_rec_data is None:

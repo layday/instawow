@@ -7,10 +7,10 @@ from typing import Any
 
 import aiohttp
 import aiohttp.web
+import pytest
 from aresponses import ResponsesMockServer
 from aresponses.errors import NoRouteFoundError
 from loguru import logger
-import pytest
 
 from instawow.common import Flavour
 from instawow.config import Config, GlobalConfig

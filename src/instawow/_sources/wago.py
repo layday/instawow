@@ -8,7 +8,8 @@ import iso8601
 from typing_extensions import TypedDict
 from yarl import URL
 
-from .. import models, results as R
+from .. import models
+from .. import results as R
 from ..common import AddonHashMethod, ChangelogFormat, SourceMetadata, Strategy
 from ..http import make_generic_progress_ctx
 from ..resolvers import BaseResolver, Defn, HeadersIntent, TFolderHashCandidate

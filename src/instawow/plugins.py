@@ -2,14 +2,12 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 from functools import lru_cache
-from typing import Any, Protocol
+from typing import Protocol
 
 import click
-import pluggy as _pluggy  # pyright: ignore
+import pluggy
 
 from . import resolvers
-
-pluggy: Any = _pluggy
 
 _project_name = __package__
 _entry_point = f'{_project_name}.plugins'

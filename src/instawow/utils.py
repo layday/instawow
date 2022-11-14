@@ -1,6 +1,12 @@
 from __future__ import annotations
 
 import asyncio
+import importlib.resources
+import os
+import posixpath
+import sys
+import time
+import urllib.parse
 from collections import defaultdict
 from collections.abc import (
     Awaitable,
@@ -15,18 +21,12 @@ from collections.abc import (
 from contextlib import contextmanager
 from datetime import datetime, timedelta
 from functools import partial, wraps
-import importlib.resources
 from itertools import chain, groupby, islice, repeat
-import os
 from pathlib import Path, PurePath
-import posixpath
 from shutil import move as _move
-import sys
 from tempfile import mkdtemp
-import time
 from types import ModuleType
 from typing import Any, Generic, TypeVar, overload
-import urllib.parse
 
 from typing_extensions import ParamSpec
 

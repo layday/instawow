@@ -1,27 +1,28 @@
 from __future__ import annotations
 
 import asyncio
+import contextvars as cv
+import json
 from collections import defaultdict
 from collections.abc import Awaitable, Callable, Collection, Iterable, Mapping, Sequence, Set
 from contextlib import AbstractAsyncContextManager, asynccontextmanager, contextmanager
-import contextvars as cv
 from datetime import datetime, timedelta
 from functools import cached_property, wraps
 from itertools import chain, filterfalse, product, repeat, starmap, takewhile
-import json
 from pathlib import Path, PurePath
 from shutil import copy
 from tempfile import NamedTemporaryFile
 from typing import NoReturn, TypeVar
 
-from attrs import evolve
-from loguru import logger
 import sqlalchemy as sa
 import sqlalchemy.future as sa_future
+from attrs import evolve
+from loguru import logger
 from typing_extensions import Concatenate, ParamSpec, TypeAlias
 from yarl import URL
 
-from . import _deferred_types, db, models, results as R
+from . import _deferred_types, db, models
+from . import results as R
 from ._sources.cfcore import CfCoreResolver
 from ._sources.github import GithubResolver
 from ._sources.instawow import InstawowResolver
@@ -51,12 +52,12 @@ from .utils import (
     make_zip_member_filter_fn,
     move,
     normalise_names,
-    run_in_thread as t,
     shasum,
     time_op,
     trash,
     uniq,
 )
+from .utils import run_in_thread as t
 
 _P = ParamSpec('_P')
 _T = TypeVar('_T')

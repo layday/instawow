@@ -2,9 +2,9 @@ from datetime import datetime
 
 import click
 
+import instawow.plugins
 from instawow.common import ChangelogFormat, SourceMetadata
 from instawow.models import Pkg, PkgOptions
-import instawow.plugins
 from instawow.resolvers import BaseResolver, Defn
 
 

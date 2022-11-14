@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
+import json
+import re
 from collections.abc import Callable
 from functools import cache
 from io import BytesIO
-import json
 from pathlib import Path
-import re
 from typing import Any
 from zipfile import ZipFile
 

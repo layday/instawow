@@ -1,8 +1,8 @@
 """
 Create the ``pkg_version_log`` table to track previously-installed package versions.
 """
-from alembic import op
 import sqlalchemy as sa
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = 'd3f542de5ff4'

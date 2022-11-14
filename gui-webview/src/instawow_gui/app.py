@@ -1,14 +1,14 @@
 from __future__ import annotations
 
-from functools import partial
 import json
 import os
+from functools import partial
 from typing import Any
 
-from loguru import logger
 import toga
 import toga.constants
 import toga.style
+from loguru import logger
 
 from . import json_rpc_server
 

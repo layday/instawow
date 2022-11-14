@@ -1,30 +1,24 @@
 from __future__ import annotations
 
+import json
+import typing
 from collections.abc import Iterable, Iterator, Sequence
 from datetime import timedelta
 from functools import partial, reduce
 from itertools import chain, product
-import json
-import typing
 from typing import Any, Literal
 
 from attrs import frozen
 from cattrs import Converter
 from loguru import logger
-from typing_extensions import NotRequired as N, TypeAlias, TypedDict
+from typing_extensions import NotRequired as N
+from typing_extensions import TypeAlias, TypedDict
 from yarl import URL
 
 from .http import CACHE_INDEFINITELY, make_generic_progress_ctx
 from .manager import Manager
-from .utils import (
-    StrEnum,
-    bucketise,
-    gather,
-    read_resource_as_text,
-    run_in_thread as t,
-    shasum,
-    time_op,
-)
+from .utils import StrEnum, bucketise, gather, read_resource_as_text, shasum, time_op
+from .utils import run_in_thread as t
 
 _Slug: TypeAlias = str
 

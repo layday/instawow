@@ -8,8 +8,8 @@ Create Date: 2020-09-08 14:39:34.957011
 """
 from contextlib import suppress
 
-from alembic import op
 import sqlalchemy as sa
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = 'e4921edb1154'

@@ -1,13 +1,13 @@
 from __future__ import annotations
 
+import json
 from collections.abc import Callable as C
 from functools import partial
-import json
 from typing import Any
 
+import pytest
 from aiohttp import ClientWebSocketResponse, WSServerHandshakeError
 from aiohttp.test_utils import TestClient, TestServer
-import pytest
 from yarl import URL
 
 from instawow.config import Config, GlobalConfig, config_converter

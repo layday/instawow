@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 import asyncio
-from itertools import product
-from pathlib import Path
 import sys
 import time
+from itertools import product
+from pathlib import Path
 
 import pytest
 

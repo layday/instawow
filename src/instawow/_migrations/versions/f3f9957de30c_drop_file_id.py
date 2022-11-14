@@ -1,8 +1,8 @@
 """
 Drop the package table's ``file_id`` column.
 """
-from alembic import op
 import sqlalchemy as sa
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = 'f3f9957de30c'

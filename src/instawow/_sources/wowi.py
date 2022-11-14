@@ -1,16 +1,18 @@
 from __future__ import annotations
 
+import re
 from collections.abc import AsyncIterator, Sequence
 from datetime import datetime, timedelta, timezone
 from itertools import takewhile
-import re
 from typing import Literal
 
 from loguru import logger
-from typing_extensions import NotRequired as N, TypedDict
+from typing_extensions import NotRequired as N
+from typing_extensions import TypedDict
 from yarl import URL
 
-from .. import _deferred_types, manager, models, results as R
+from .. import _deferred_types, manager, models
+from .. import results as R
 from ..cataloguer import BaseCatalogueEntry
 from ..common import ChangelogFormat, Flavour, FlavourVersion, SourceMetadata
 from ..http import make_generic_progress_ctx

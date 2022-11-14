@@ -1,14 +1,14 @@
 from __future__ import annotations
 
+import re
 from collections.abc import Awaitable, Iterable
 from functools import cached_property
 from itertools import chain, product
 from pathlib import Path
-import re
 from typing import Protocol, TypeVar
 
-from attrs import field, frozen
 import sqlalchemy as sa
+from attrs import field, frozen
 from typing_extensions import Self
 
 from . import manager

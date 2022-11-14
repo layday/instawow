@@ -5,9 +5,9 @@ from collections.abc import Sequence
 from functools import partial
 from typing import TYPE_CHECKING, Any
 
-from attr import attrib as attrs_attrib
 import attrs
 import cattrs
+from attr import attrib as attrs_attrib
 from exceptiongroup import ExceptionGroup
 from prompt_toolkit.application import Application
 from prompt_toolkit.document import Document
@@ -17,7 +17,10 @@ from prompt_toolkit.keys import Keys
 from prompt_toolkit.shortcuts.progress_bar import ProgressBar, formatters
 from prompt_toolkit.styles import Style
 from prompt_toolkit.validation import ValidationError, Validator
-from questionary import Choice, confirm as _confirm, password as _password, path as _path
+from questionary import Choice
+from questionary import confirm as _confirm
+from questionary import password as _password
+from questionary import path as _path
 from questionary.prompts.common import InquirerControl, Separator, create_inquirer_layout
 from questionary.question import Question
 

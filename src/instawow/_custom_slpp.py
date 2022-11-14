@@ -22,11 +22,11 @@
 
 from __future__ import annotations
 
+import re
+import string
 from collections.abc import Container
 from itertools import count, islice
 from operator import eq
-import re
-import string
 from typing import Any
 
 DIGITS = frozenset(string.digits)

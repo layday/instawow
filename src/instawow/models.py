@@ -4,11 +4,11 @@ from collections.abc import Mapping
 from datetime import datetime
 from typing import Any
 
+import sqlalchemy as sa
+import sqlalchemy.future as sa_future
 from attrs import asdict, frozen
 from cattrs import Converter
 from cattrs.preconf.json import configure_converter
-import sqlalchemy as sa
-import sqlalchemy.future as sa_future
 from typing_extensions import Self
 
 from . import db

@@ -3,9 +3,9 @@ from __future__ import annotations
 import logging
 import re
 
+import pytest
 from aresponses import ResponsesMockServer
 from attrs import evolve
-import pytest
 from typing_extensions import assert_never
 from yarl import URL
 

@@ -1,21 +1,23 @@
 from __future__ import annotations
 
 import asyncio
+import sys
+import textwrap
 from collections.abc import Awaitable, Callable, Collection, Iterable, Sequence, Set
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from functools import cached_property, partial
 from itertools import chain, repeat
 from pathlib import Path
-import sys
-import textwrap
 from typing import Any, Literal, NoReturn, TypeVar, overload
 
-from attrs import asdict, evolve, fields, resolve_types
 import click
+from attrs import asdict, evolve, fields, resolve_types
 from loguru import logger
 
-from . import __version__, _deferred_types, db, manager as _manager, models, results as R
+from . import __version__, _deferred_types, db, models
+from . import manager as _manager
+from . import results as R
 from .common import ChangelogFormat, Flavour, Strategy
 from .config import Config, GlobalConfig, config_converter, setup_logging
 from .http import TraceRequestCtx, init_web_client

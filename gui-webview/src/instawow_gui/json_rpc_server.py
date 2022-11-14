@@ -1,38 +1,38 @@
-# pyright: reportUnknownMemberType=false, reportUnknownParameterType=false
-
 from __future__ import annotations
 
 import asyncio
+import json
+import os
+import typing
 from collections import defaultdict
 from collections.abc import Awaitable, Callable, Iterable, Iterator
 from contextlib import AsyncExitStack, contextmanager
 from datetime import datetime
 from functools import partial
-import json
-import os
 from pathlib import Path
-import typing
 from typing import TYPE_CHECKING, Any, Literal, TypeVar
 
 import aiohttp
 import aiohttp.typedefs
 import aiohttp.web
-from aiohttp_rpc import JsonRpcMethod, middlewares as rpc_middlewares
+import click
+import iso8601
+import sqlalchemy as sa
+import toga
+from aiohttp_rpc import JsonRpcMethod
+from aiohttp_rpc import middlewares as rpc_middlewares
 from aiohttp_rpc.errors import InvalidParams, ServerError
 from aiohttp_rpc.server import WsJsonRpcServer
 from attrs import evolve, frozen
 from cattrs import Converter
 from cattrs.preconf.json import configure_converter
-import click
 from exceptiongroup import ExceptionGroup
-import iso8601
 from loguru import logger
-import sqlalchemy as sa
-import toga  # pyright: ignore
 from typing_extensions import Concatenate, ParamSpec, TypeAlias, TypedDict
 from yarl import URL
 
-from instawow import __version__, db, matchers, models, results as R
+from instawow import __version__, db, matchers, models
+from instawow import results as R
 from instawow.cataloguer import CatalogueEntry
 from instawow.common import Flavour, SourceMetadata, infer_flavour_from_path
 from instawow.config import Config, GlobalConfig, SecretStr, config_converter
@@ -40,7 +40,8 @@ from instawow.github_auth import get_codes, poll_for_access_token
 from instawow.http import TraceRequestCtx, init_web_client
 from instawow.manager import LocksType, Manager, contextualise, is_outdated
 from instawow.resolvers import Defn
-from instawow.utils import read_resource_as_text, reveal_folder, run_in_thread as t, uniq
+from instawow.utils import read_resource_as_text, reveal_folder, uniq
+from instawow.utils import run_in_thread as t
 
 from . import frontend
 
@@ -819,9 +820,11 @@ async def create_app(app_window: toga.MainWindow | None = None):
 
     rpc_server = WsJsonRpcServer(
         json_serialize=json_serialize,
-        middlewares=rpc_middlewares.DEFAULT_MIDDLEWARES,
+        middlewares=rpc_middlewares.DEFAULT_MIDDLEWARES,  # pyright: ignore[reportUnknownMemberType]
     )
-    rpc_server.add_methods([m.bind(n, managers, app_window) for n, m in _methods])
+    rpc_server.add_methods(  # pyright: ignore[reportUnknownMemberType]
+        [m.bind(n, managers, app_window) for n, m in _methods]
+    )
 
     @aiohttp.web.middleware
     async def enforce_same_origin(

@@ -10,6 +10,14 @@ nox.options.envdir = os.environ.get('NOX_ENVDIR')
 nox.options.sessions = ['format', 'test', 'type_check']
 
 
+LINT_PATHS = [
+    'src',
+    'gui-webview/src',
+    'tests',
+    'noxfile.py',
+]
+
+
 def mirror_repo(session: nox.Session):
     repo_dir = f'{session.create_tmp()}/instawow'
     session.run('git', 'clone', '.', repo_dir, external=True)
@@ -35,24 +43,25 @@ import sysconfig
 @nox.session(name='format', reuse_venv=True)
 def format_(session: nox.Session):
     "Format source code."
-    session.install('isort', 'black')
+    session.install('black', 'ruff')
 
     check = '--check' in session.posargs
-    for cmd in ['isort', 'black']:
-        session.run(
-            cmd, *['--check'] if check else [], 'src', 'gui-webview/src', 'tests', 'noxfile.py'
-        )
+    session.run('ruff', '--select', 'I', *[] if check else ['--fix'], *LINT_PATHS)
+    session.run('black', *['--check'] if check else [], *LINT_PATHS)
 
     if '--skip-prettier' not in session.posargs:
+        paths = [
+            'package.json',
+            'rollup.config.js',
+            'src',
+            'tsconfig.json',
+        ]
         session.chdir('gui-webview/frontend')
         session.run(
             'npx',
             'prettier',
             '--check' if check else '--write',
-            'src',
-            'package.json',
-            'rollup.config.js',
-            'tsconfig.json',
+            *paths,
             external=True,
         )
 

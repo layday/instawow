@@ -3,7 +3,8 @@ from __future__ import annotations
 from collections.abc import AsyncIterator
 from datetime import datetime, timezone
 
-from .. import _deferred_types, models, results as R
+from .. import _deferred_types, models
+from .. import results as R
 from ..cataloguer import BaseCatalogueEntry
 from ..common import ChangelogFormat, Flavour, SourceMetadata
 from ..resolvers import BaseResolver, Defn

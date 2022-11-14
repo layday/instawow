@@ -1,18 +1,19 @@
 from __future__ import annotations
 
-from collections.abc import AsyncIterator, Collection, Iterable, Sequence
 import enum
+import typing
+import urllib.parse
+from collections.abc import AsyncIterator, Collection, Iterable, Sequence
 from functools import update_wrapper
 from pathlib import Path
-import typing
 from typing import Any, ClassVar, Protocol, TypeVar
-import urllib.parse
 
 from attrs import evolve, frozen
 from typing_extensions import Self
 from yarl import URL
 
-from . import _deferred_types, manager, models, results as R
+from . import _deferred_types, manager, models
+from . import results as R
 from .cataloguer import BaseCatalogueEntry
 from .common import AddonHashMethod, SourceMetadata, StrategyValues
 from .config import GlobalConfig

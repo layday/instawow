@@ -3,10 +3,10 @@ from __future__ import annotations
 import datetime
 from pathlib import Path
 
+import pytest
 from aiohttp import ClientError
 from aresponses import ResponsesMockServer
 from attrs import evolve
-import pytest
 
 from instawow import results as R
 from instawow.common import Flavour, Strategy

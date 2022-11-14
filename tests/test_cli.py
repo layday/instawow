@@ -1,18 +1,18 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Callable as C
-from functools import partial
 import json
 import shutil
+from collections.abc import Callable as C
+from functools import partial
 from textwrap import dedent
 from unittest import mock
 
+import pytest
 from click.testing import CliRunner, Result
 from prompt_toolkit.application import create_app_session
 from prompt_toolkit.input import create_pipe_input
 from prompt_toolkit.output import DummyOutput
-import pytest
 
 from instawow import __version__
 from instawow.cli import cli
