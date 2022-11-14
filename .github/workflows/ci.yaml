@@ -104,5 +104,5 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: "16"
-      - name: Check code formatting
-        run: nox -s format -- --check
+      - name: Lint
+        run: nox -s lint

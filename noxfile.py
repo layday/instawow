@@ -7,7 +7,7 @@ from textwrap import dedent
 import nox
 
 nox.options.envdir = os.environ.get('NOX_ENVDIR')
-nox.options.sessions = ['format', 'test', 'type_check']
+nox.options.sessions = ['format', 'lint', 'test', 'type_check']
 
 
 LINT_PATHS = [
@@ -64,6 +64,14 @@ def format_(session: nox.Session):
             *paths,
             external=True,
         )
+
+
+@nox.session(reuse_venv=True)
+def lint(session: nox.Session):
+    "Lint source code."
+    session.install('ruff')
+    session.run('ruff', *LINT_PATHS)
+    session.notify('format', ['--check'])
 
 
 @nox.session(python='3.10')
