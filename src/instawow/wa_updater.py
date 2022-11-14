@@ -94,7 +94,7 @@ class Plateroos:
 
 def _merge_auras(auras: Iterable[WeakAuras | Plateroos]):
     return {
-        t: t(reduce(lambda a, b: {**a, **b}, (i.root for i in a)))
+        t: t(reduce(lambda a, b: a | b, (i.root for i in a)))
         for t, a in bucketise(auras, key=type['WeakAuras | Plateroos']).items()
     }
 
@@ -226,11 +226,9 @@ class WaCompanionBuilder:
 
     def _generate_addon(
         self,
-        auras: Iterable[
-            tuple[
-                type[WeakAuras | Plateroos],
-                list[tuple[Sequence[WeakAura | Plateroo], _WagoApiResponse, str]],
-            ]
+        auras: dict[
+            type,
+            list[tuple[Sequence[WeakAura | Plateroo], _WagoApiResponse, str]],
         ],
     ):
         from zipfile import ZipFile, ZipInfo
@@ -359,7 +357,8 @@ class WaCompanionBuilder:
         aura_groups = await gather(
             self.get_remote_auras(r) for r in installed_auras_by_type.values()
         )
-        await t(self._generate_addon)(zip(installed_auras_by_type, aura_groups))
+        aura_groups_by_type = dict(zip(installed_auras_by_type, aura_groups))
+        await t(self._generate_addon)(aura_groups_by_type)
 
     def get_version(self) -> str:
         return self.version_txt_path.read_text(encoding='utf-8')
