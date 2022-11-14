@@ -211,7 +211,7 @@ class ListProfilesParams(BaseParams):
 
 @_register_method('config/update_global')
 class UpdateGlobalConfigParams(BaseParams):
-    access_tokens: dict[str, typing.Union[str, None]]
+    access_tokens: dict[str, typing.Union[str, None]]  # noqa: U007
 
     async def respond(
         self, managers: _ManagerWorkQueue, app_window: toga.MainWindow | None
@@ -297,7 +297,7 @@ class SearchParams(_ProfileParamMixin, BaseParams):
     search_terms: str
     limit: int
     sources: set[str]
-    start_date: typing.Union[datetime, None]
+    start_date: typing.Union[datetime, None]  # noqa: U007
     installed_only: bool
 
     async def respond(
@@ -580,7 +580,7 @@ class SelectFolderResult(TypedDict):
 
 @_register_method('assist/select_folder')
 class SelectFolderParams(BaseParams):
-    initial_folder: typing.Union[str, None]
+    initial_folder: typing.Union[str, None]  # noqa: U007
 
     async def respond(
         self, managers: _ManagerWorkQueue, app_window: toga.MainWindow | None

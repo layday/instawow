@@ -163,12 +163,15 @@ def _get_default_temp_dir():
     return Path(gettempdir(), 'instawow')
 
 
+_AccessToken = typing.Union[SecretStr, None]  # noqa: U007
+
+
 @frozen
 class _AccessTokens:
-    cfcore: typing.Union[SecretStr, None] = None
-    github: typing.Union[SecretStr, None] = None
-    wago: typing.Union[SecretStr, None] = None
-    wago_addons: typing.Union[SecretStr, None] = None
+    cfcore: _AccessToken = None
+    github: _AccessToken = None
+    wago: _AccessToken = None
+    wago_addons: _AccessToken = None
 
 
 @frozen
