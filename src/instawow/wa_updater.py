@@ -95,7 +95,7 @@ class Plateroos:
 def _merge_auras(auras: Iterable[WeakAuras | Plateroos]):
     return {
         t: t(reduce(lambda a, b: {**a, **b}, (i.root for i in a)))
-        for t, a in bucketise(auras, key=type[WeakAuras | Plateroos]).items()
+        for t, a in bucketise(auras, key=type['WeakAuras | Plateroos']).items()
     }
 
 
