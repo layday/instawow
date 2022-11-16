@@ -87,7 +87,7 @@ class Strategy(StrEnum):
 class StrategyValues:
     any_flavour: Literal[True, None] = None
     any_release_type: Literal[True, None] = None
-    version_eq: typing.Union[str, None] = None  # noqa: U007
+    version_eq: typing.Union[str, None] = None
 
     @property
     def filled_strategies(self) -> frozenset[Strategy]:

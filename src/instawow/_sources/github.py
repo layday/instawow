@@ -186,7 +186,7 @@ class GithubResolver(BaseResolver):
                         try:
                             dynamic_addon_zip = zipfile.ZipFile(addon_zip_stream)
                         except zipfile.BadZipFile:
-                            from zipfile import (  # noqa: I001
+                            from zipfile import (
                                 _ECD_OFFSET,  # pyright: ignore
                                 _EndRecData,  # pyright: ignore
                             )

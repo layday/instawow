@@ -25,7 +25,7 @@ from .utils import file_uri_to_path, gather, run_in_thread
 class Defn:
     source: str
     alias: str
-    id: typing.Union[str, None] = None  # noqa: U007
+    id: typing.Union[str, None] = None
     strategies: StrategyValues = StrategyValues()
 
     def with_version(self, version: str) -> Self:

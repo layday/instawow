@@ -163,7 +163,7 @@ def _get_default_temp_dir():
     return Path(gettempdir(), 'instawow')
 
 
-_AccessToken = typing.Union[SecretStr, None]  # noqa: U007
+_AccessToken = typing.Union[SecretStr, None]
 
 
 @frozen

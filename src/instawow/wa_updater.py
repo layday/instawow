@@ -34,7 +34,7 @@ _aura_converter.register_unstructure_hook(URL, str)
 class WeakAura:
     id: str
     uid: str
-    parent: typing.Union[str, None] = None  # noqa: U007
+    parent: typing.Union[str, None] = None
     url: URL
     version: int
 
