@@ -93,6 +93,6 @@ class InstawowApp(toga.App):
             await serve()
 
         serve_task = self._impl.loop.create_task(startup())
-        self.on_exit = lambda _: serve_task.cancel()  # noqa: E731
+        self.on_exit = lambda _: serve_task.cancel()
 
         self.main_window.show()
