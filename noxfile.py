@@ -46,7 +46,7 @@ def format_(session: nox.Session):
     session.install('black', 'ruff')
 
     check = '--check' in session.posargs
-    session.run('ruff', '--select', 'I', *[] if check else ['--fix'], *LINT_PATHS)
+    session.run('ruff', '--select', 'I0', *[] if check else ['--fix'], *LINT_PATHS)
     session.run('black', *['--check'] if check else [], *LINT_PATHS)
 
     if '--skip-prettier' not in session.posargs:

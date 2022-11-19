@@ -95,10 +95,10 @@ strict = [
 [tool.ruff]
 select = [
   "B",
-  "C",
+  "C4",
   "E",
   "F",
-  "I",
+  "I0",
   "M",
   "U",
   "W",
