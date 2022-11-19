@@ -1105,7 +1105,7 @@ def list_installed_wago_auras(mw: _CtxObjWrapper) -> None:
 
     aura_groups = WaCompanionBuilder(mw.manager).extract_installed_auras()
     installed_auras = sorted(
-        (g.filename, textwrap.fill(a.id, width=30, max_lines=1), a.url)
+        (g.addon_name, textwrap.fill(a.id, width=30, max_lines=1), a.url)
         for g in aura_groups
         for v in g.root.values()
         for a in v

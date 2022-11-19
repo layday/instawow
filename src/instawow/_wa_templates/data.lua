@@ -1,29 +1,9 @@
 -- file generated automatically
-WeakAurasCompanion = {
-  slugs = {
-  {% for slug, aura_metadata in weakauras %}
-    [ [=[{{ slug }}]=] ] = {
-    {% for key, value in aura_metadata.items() %}
-      {{ key }} = [=[{{ value }}]=],
-    {% endfor %}
-    },
-  {% endfor %}
-  },
-  uids = {
-  {% for uid, slug in weakaura_uids %}
-    [ [=[{{ uid }}]=] ] = [=[{{ slug }}]=],
-  {% endfor %}
-  },
-  ids = {
-  {% for id, slug in weakaura_ids %}
-    [ [=[{{ id }}]=] ] = [=[{{ slug }}]=],
-  {% endfor %}
-  },
-  stash = {
-  },
-  Plater = {
+WeakAurasCompanionData = {
+  {% for addon_name, addon_payload in addons|items %}
+  {{ addon_name }} = {
     slugs = {
-    {% for slug, aura_metadata in plateroos %}
+    {% for slug, aura_metadata in addon_payload %}
       [ [=[{{ slug }}]=] ] = {
       {% for key, value in aura_metadata.items() %}
         {{ key }} = [=[{{ value }}]=],
@@ -31,14 +11,10 @@ WeakAurasCompanion = {
       },
     {% endfor %}
     },
-    uids = {
-    },
-    ids = {
-    {% for id, slug in plater_ids %}
-      [ [=[{{ id }}]=] ] = [=[{{ slug }}]=],
-    {% endfor %}
-    },
     stash = {
-    }
-  }
+    },
+    stopmotionFiles = {
+    },
+  },
+  {% endfor %}
 }
