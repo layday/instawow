@@ -240,52 +240,6 @@ class WaCompanionBuilder:
 
         aura_dict = dict.fromkeys((WeakAuras, Plateroos), []) | dict(auras)
 
-        addon_data = {
-            'addons': {
-                WeakAuras.addon_name: [
-                    (
-                        metadata['slug'],
-                        {
-                            'name': metadata['name'],
-                            'author': metadata.get('username', '__unknown__'),
-                            'encoded': import_string,
-                            'wagoVersion': metadata['version'],
-                            # ``wagoSemver`` is supposed to be the ``versionString``
-                            # from Wago but there is a bug where the ``version``
-                            # is sometimes not appended to the semver.
-                            # The Companion add-on's version is derived from its checksum
-                            # so if ``wagoSemver`` were to change between requests
-                            # we'd be triggering spurious updates in instawow.
-                            'wagoSemver': metadata['version'],
-                            'versionNote': metadata['changelog'].get('text', ''),
-                            'source': 'Wago',
-                        },
-                    )
-                    for _, metadata, import_string in aura_dict[WeakAuras]
-                ],
-                Plateroos.addon_name: [
-                    (
-                        metadata['slug'],
-                        {
-                            'name': metadata['name'],
-                            'author': metadata.get('username', '__unknown__'),
-                            'encoded': import_string,
-                            'wagoVersion': metadata['version'],
-                            'wagoSemver': metadata['version'],
-                            'versionNote': metadata['changelog'].get('text', ''),
-                            'source': 'Wago',
-                        },
-                    )
-                    for _, metadata, import_string in aura_dict[Plateroos]
-                ],
-            },
-        }
-        interface_version = self._manager.config.game_flavour.to_flavour_keyed_enum(
-            _TocNumber
-        ).value
-
-        addon_version = shasum(aura_dict, interface_version)[:7]
-
         self.addon_zip_path.parent.mkdir(exist_ok=True)
         with ZipFile(self.addon_zip_path, 'w') as file:
 
@@ -294,10 +248,60 @@ class WaCompanionBuilder:
                 # 'cause the timestamp would be set to the current time
                 # which would render the build unreproducible
                 zip_info = ZipInfo(filename=f'WeakAurasCompanion/{filename}')
-                file.writestr(zip_info, jinja_env.get_template(filename).render(ctx))
+                output = jinja_env.get_template(filename).render(ctx)
+                file.writestr(zip_info, output)
+                return output
 
-            write_tpl('data.lua', addon_data)
-            write_tpl('init.lua', {})
+            data_output = write_tpl(
+                'data.lua',
+                {
+                    'addons': {
+                        WeakAuras.addon_name: [
+                            (
+                                metadata['slug'],
+                                {
+                                    'name': metadata['name'],
+                                    'author': metadata.get('username', '__unknown__'),
+                                    'encoded': import_string,
+                                    'wagoVersion': metadata['version'],
+                                    # ``wagoSemver`` is supposed to be the ``versionString``
+                                    # from Wago but there is a bug where the ``version``
+                                    # is sometimes not appended to the semver.
+                                    # The Companion add-on's version is derived from its checksum
+                                    # so if ``wagoSemver`` were to change between requests
+                                    # we'd be triggering spurious updates in instawow.
+                                    'wagoSemver': metadata['version'],
+                                    'versionNote': metadata['changelog'].get('text', ''),
+                                    'source': 'Wago',
+                                },
+                            )
+                            for _, metadata, import_string in aura_dict[WeakAuras]
+                        ],
+                        Plateroos.addon_name: [
+                            (
+                                metadata['slug'],
+                                {
+                                    'name': metadata['name'],
+                                    'author': metadata.get('username', '__unknown__'),
+                                    'encoded': import_string,
+                                    'wagoVersion': metadata['version'],
+                                    'wagoSemver': metadata['version'],
+                                    'versionNote': metadata['changelog'].get('text', ''),
+                                    'source': 'Wago',
+                                },
+                            )
+                            for _, metadata, import_string in aura_dict[Plateroos]
+                        ],
+                    },
+                },
+            )
+            init_output = write_tpl('init.lua', {})
+
+            interface_version = self._manager.config.game_flavour.to_flavour_keyed_enum(
+                _TocNumber
+            ).value
+            addon_version = shasum(data_output, init_output, interface_version)[:7]
+
             write_tpl(
                 'WeakAurasCompanion.toc',
                 {'interface': interface_version, 'version': addon_version},
