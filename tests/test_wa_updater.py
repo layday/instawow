@@ -15,7 +15,7 @@ def wa_saved_vars(iw_manager: Manager):
         iw_manager.config.addon_dir.parents[1] / 'WTF' / 'Account' / 'test' / 'SavedVariables'
     )
     saved_vars.mkdir(parents=True)
-    (saved_vars / WeakAuras.filename).write_text(
+    (saved_vars / WeakAuras.addon_name).with_suffix('.lua').write_text(
         '''\
 WeakAurasSaved = {
     ["displays"] = {
@@ -129,9 +129,9 @@ async def test_can_build_addon_with_mock_saved_vars(
 
 def test_build_is_reproducible(builder: WaCompanionBuilder):
     builder._generate_addon([])
-    checksum = builder._checksum()
+    checksum = builder.get_version()
     builder._generate_addon([])
-    assert checksum == builder._checksum()
+    assert checksum == builder.get_version()
 
 
 def test_changelog_is_generated(builder: WaCompanionBuilder):
