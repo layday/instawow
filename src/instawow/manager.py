@@ -10,7 +10,6 @@ from datetime import datetime, timedelta
 from functools import cached_property, wraps
 from itertools import chain, filterfalse, product, repeat, starmap, takewhile
 from pathlib import Path, PurePath
-from shutil import copy
 from tempfile import NamedTemporaryFile
 from typing import NoReturn, TypeVar
 
@@ -644,18 +643,11 @@ class Manager:
         return [e for _, e in weighted_entries[:limit]]
 
     async def _download_pkg_archive(self, pkg: models.Pkg, *, chunk_size: int = 4096):
+        if is_file_uri(pkg.download_url):
+            return Path(file_uri_to_path(pkg.download_url))
+
         dest = self.config.global_config.cache_dir / shasum(pkg.download_url)
-
-        if await t(dest.exists)():
-            pass
-
-        elif is_file_uri(pkg.download_url):
-            loop = asyncio.get_running_loop()
-            await loop.run_in_executor(
-                None, lambda: copy(file_uri_to_path(pkg.download_url), dest)
-            )
-
-        else:
+        if not await t(dest.exists)():
             async with self.web_client.get(
                 pkg.download_url,
                 headers=await self.resolvers[pkg.source].make_request_headers(
