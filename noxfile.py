@@ -87,7 +87,7 @@ def lint(session: nox.Session):
             attrs == 22.1.0
             cattrs == 22.2.0
             click == 8.0.0
-            exceptiongroup == 1.0.0rc9
+            exceptiongroup == 1.0.0
             iso8601 == 1.0.2
             jinja2 == 3.1.0
             loguru == 0.5.3
