@@ -30,9 +30,9 @@ class Flavour(StrEnum):
     # will inherit the "_classic_" folder.  This means we won't have to
     # migrate Classic profiles either automatically or by requiring user
     # intervention for new Classic releases.
-    retail = 'retail'
-    vanilla_classic = 'vanilla_classic'
-    classic = 'classic'
+    retail = enum.auto()
+    vanilla_classic = enum.auto()
+    classic = enum.auto()
 
     @classmethod
     def from_flavour_keyed_enum(cls, flavour_keyed_enum: enum.Enum) -> Self:
@@ -78,9 +78,9 @@ def infer_flavour_from_path(path: os.PathLike[str] | str) -> Flavour:
 
 
 class Strategy(StrEnum):
-    any_flavour = 'any_flavour'
-    any_release_type = 'any_release_type'
-    version_eq = 'version_eq'
+    any_flavour = enum.auto()
+    any_release_type = enum.auto()
+    version_eq = enum.auto()
 
 
 @frozen
@@ -95,9 +95,9 @@ class StrategyValues:
 
 
 class ChangelogFormat(StrEnum):
-    html = 'html'
-    markdown = 'markdown'
-    raw = 'raw'
+    html = enum.auto()
+    markdown = enum.auto()
+    raw = enum.auto()
 
 
 @frozen

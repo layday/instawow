@@ -21,7 +21,7 @@ def acquire_cache_db_conn(db_path: os.PathLike[str]):
 
 class SQLiteBackend(CacheBackend):
     def __init__(self, db_conn: sqlite3.Connection, **kwargs: object):
-        super().__init__(**kwargs)  # pyright: ignore
+        super().__init__(**kwargs)  # pyright: ignore[reportUnknownMemberType]
         self.responses = _SQLiteResponseCache(db_conn)
         self.redirects = _SQLiteRedirectCache(db_conn)
 
@@ -30,7 +30,7 @@ class _SQLiteBaseCache(BaseCache):
     TABLE: LiteralString
 
     def __init__(self, db_conn: sqlite3.Connection):
-        super().__init__()  # pyright: ignore
+        super().__init__()  # pyright: ignore[reportUnknownMemberType]
         self._db_conn = db_conn
         self._db_conn.execute(
             f'CREATE TABLE IF NOT EXISTS "{self.TABLE}" (key PRIMARY KEY, value)'

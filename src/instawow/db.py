@@ -142,9 +142,7 @@ def _get_database_state(engine: Engine, revision: str) -> _DatabaseState:
 
 
 def _set_sqlite_pragma(dbapi_connection: sqlite3.Connection, connection_record: object):
-    cursor = dbapi_connection.cursor()
-    cursor.execute('PRAGMA foreign_keys = ON')
-    cursor.close()
+    dbapi_connection.execute('PRAGMA foreign_keys = ON')
 
 
 def prepare_database(uri: str, revision: str) -> Engine:

@@ -94,14 +94,14 @@ strict = [
 
 [tool.ruff]
 select = [
-  "B",
-  "C4",
-  "E",
-  "F",
-  "I0",
-  "M",
-  "U",
-  "W",
+  "B",  # bugbear
+  "C4", # comprehensions
+  "E",  # pycodestyle
+  "F",  # pyflakes
+  "I0", # isort
+  "M",  # meta
+  "U",  # pyupgrade
+  "W",  # pycodestyle
 ]
 ignore = [
   "E501", # LineTooLong

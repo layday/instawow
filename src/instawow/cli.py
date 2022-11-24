@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 import asyncio
+import enum
 import sys
 import textwrap
 from collections.abc import Awaitable, Callable, Collection, Iterable, Sequence, Set
-from contextlib import contextmanager
 from datetime import datetime, timezone
 from functools import cached_property, partial
 from itertools import chain, repeat
@@ -68,12 +68,12 @@ class Report:
 
     def generate(self) -> None:
         mw: _CtxObjWrapper | None = click.get_current_context().obj
-        if mw:
+        if mw and mw.manager.config.global_config.auto_update_check:
             outdated, new_version = mw.run_with_progress(
                 _manager.is_outdated(mw.manager.config.global_config)
             )
             if outdated:
-                click.echo(f'{self.WARNING_SYMBOL} instawow-{new_version} is available')
+                click.echo(f'{self.WARNING_SYMBOL} instawow v{new_version} is available')
 
         report = str(self)
         if report:
@@ -81,7 +81,7 @@ class Report:
 
     def generate_and_exit(self) -> NoReturn:
         self.generate()
-        ctx: click.Context = click.get_current_context()
+        ctx = click.get_current_context()
         ctx.exit(self.exit_code)
 
 
@@ -127,6 +127,8 @@ class _CtxObjWrapper:
                     return await awaitable
 
         else:
+            from contextlib import contextmanager
+
             from aiohttp import TraceConfig, hdrs
             from prompt_toolkit.shortcuts import ProgressBar, ProgressBarCounter
 
@@ -220,11 +222,10 @@ class _StrEnumParam(click.Choice):
     def __init__(
         self,
         choice_enum: type[_TStrEnum],
-        excludes: Set[_TStrEnum] = frozenset(),
         case_sensitive: bool = True,
     ) -> None:
         super().__init__(
-            choices=[c for c in choice_enum if c not in excludes],
+            choices=list(choice_enum),
             case_sensitive=case_sensitive,
         )
         self.__choice_enum = choice_enum
@@ -287,13 +288,6 @@ def _parse_into_defn(manager: _manager.Manager, value: str, *, raise_invalid: bo
 def _parse_into_defn(
     manager: _manager.Manager, value: list[str], *, raise_invalid: bool = True
 ) -> list[Defn]:
-    ...
-
-
-@overload
-def _parse_into_defn(
-    manager: _manager.Manager, value: None, *, raise_invalid: bool = True
-) -> None:
     ...
 
 
@@ -450,13 +444,10 @@ def rollback(mw: _CtxObjWrapper, addon: Defn, version: str | None, undo: bool) -
 
     pkg = mw.manager.get_pkg(addon)
     if not pkg:
-        report: Report = Report([(addon, R.PkgNotInstalled())])
-        report.generate_and_exit()
-
-    if Strategy.version_eq not in mw.manager.resolvers[pkg.source].metadata.strategies:
+        Report([(addon, R.PkgNotInstalled())]).generate_and_exit()
+    elif Strategy.version_eq not in mw.manager.resolvers[pkg.source].metadata.strategies:
         Report([(addon, R.PkgStrategiesUnsupported({Strategy.version_eq}))]).generate_and_exit()
-
-    if undo:
+    elif undo:
         Report(mw.run_with_progress(mw.manager.update([addon], True)).items()).generate_and_exit()
 
     reconstructed_defn = pkg.to_defn()
@@ -718,9 +709,9 @@ def search(
 
 
 class _ListFormat(StrEnum):
-    simple = 'simple'
-    detailed = 'detailed'
-    json = 'json'
+    simple = enum.auto()
+    detailed = enum.auto()
+    json = enum.auto()
 
 
 @cli.command('list')

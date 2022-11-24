@@ -20,7 +20,10 @@ from .manager import Manager
 from .utils import StrEnum, bucketise, gather, read_resource_as_text, shasum, time_op
 from .utils import run_in_thread as t
 
-_Slug: TypeAlias = str
+
+_Aura: TypeAlias = 'WeakAura | Plateroo'
+_Auras: TypeAlias = 'WeakAuras | Plateroos'
+_Matches: TypeAlias = list[tuple[Sequence[_Aura], '_WagoApiResponse', str]]
 
 _CHECK_API_URL = URL('https://data.wago.io/api/check')
 _IMPORT_STRING_API_URL = URL('https://data.wago.io/api/raw/encoded')
@@ -61,7 +64,7 @@ class WeakAuras:
     api_ep = 'weakauras'
     addon_name = 'WeakAuras'
 
-    root: dict[_Slug, list[WeakAura]]
+    root: dict[str, list[WeakAura]]
 
     @classmethod
     def from_lua_table(cls, lua_table: Any):
@@ -75,7 +78,7 @@ class Plateroos:
     api_ep = 'plater'
     addon_name = 'Plater'
 
-    root: dict[_Slug, list[Plateroo]]
+    root: dict[str, list[Plateroo]]
 
     @classmethod
     def from_lua_table(cls, lua_table: Any):
@@ -144,14 +147,14 @@ class WaCompanionBuilder:
             return {'api-key': access_token}
 
     @staticmethod
-    def extract_auras(model: type[WeakAuras | Plateroos], source: str) -> WeakAuras | Plateroos:
+    def extract_auras(model: type[_Auras], source: str) -> _Auras:
         from ._custom_slpp import loads
 
         lua_table = loads(f'{{{source}}}')
         (aura_table,) = lua_table.values()
         return model.from_lua_table(aura_table)
 
-    def extract_installed_auras(self) -> Iterator[WeakAuras | Plateroos]:
+    def extract_installed_auras(self) -> Iterator[_Auras]:
         flavour_root = self._manager.config.addon_dir.parents[1]
         saved_vars_by_account = flavour_root.glob('WTF/Account/*/SavedVariables')
         for saved_vars, model in product(
@@ -206,9 +209,7 @@ class WaCompanionBuilder:
         ) as response:
             return await response.text()
 
-    async def get_remote_auras(
-        self, auras: WeakAuras | Plateroos
-    ) -> list[tuple[Sequence[WeakAura | Plateroo], _WagoApiResponse, str]]:
+    async def get_remote_auras(self, auras: _Auras) -> _Matches:
         if not auras.root:
             return []
 
@@ -219,13 +220,7 @@ class WaCompanionBuilder:
             for r, i in zip(metadata, import_strings)
         ]
 
-    def _generate_addon(
-        self,
-        auras: dict[
-            type,
-            list[tuple[Sequence[WeakAura | Plateroo], _WagoApiResponse, str]],
-        ],
-    ):
+    def _generate_addon(self, auras: Iterable[tuple[type[_Auras], _Matches]]):
         from zipfile import ZipFile, ZipInfo
 
         from jinja2 import Environment, FunctionLoader
@@ -256,7 +251,7 @@ class WaCompanionBuilder:
                 'data.lua',
                 {
                     'addons': {
-                        WeakAuras.addon_name: [
+                        c.addon_name: [
                             (
                                 metadata['slug'],
                                 {
@@ -275,23 +270,9 @@ class WaCompanionBuilder:
                                     'source': 'Wago',
                                 },
                             )
-                            for _, metadata, import_string in aura_dict[WeakAuras]
-                        ],
-                        Plateroos.addon_name: [
-                            (
-                                metadata['slug'],
-                                {
-                                    'name': metadata['name'],
-                                    'author': metadata.get('username', '__unknown__'),
-                                    'encoded': import_string,
-                                    'wagoVersion': metadata['version'],
-                                    'wagoSemver': metadata['version'],
-                                    'versionNote': metadata['changelog'].get('text', ''),
-                                    'source': 'Wago',
-                                },
-                            )
-                            for _, metadata, import_string in aura_dict[Plateroos]
-                        ],
+                            for _, metadata, import_string in v
+                        ]
+                        for c, v in aura_dict.items()
                     },
                 },
             )
@@ -341,8 +322,7 @@ class WaCompanionBuilder:
         aura_groups = await gather(
             self.get_remote_auras(r) for r in installed_auras_by_type.values()
         )
-        aura_groups_by_type = dict(zip(installed_auras_by_type, aura_groups))
-        await t(self._generate_addon)(aura_groups_by_type)
+        await t(self._generate_addon)(zip(installed_auras_by_type, aura_groups))
 
     def get_version(self) -> str:
         return self.version_txt_path.read_text(encoding='utf-8')

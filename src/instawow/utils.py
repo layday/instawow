@@ -47,7 +47,8 @@ else:
     from enum import Enum
 
     class StrEnum(str, Enum):
-        pass
+        def _generate_next_value_(name: str, start: int, count: int, last_values: list[object]):
+            return name.lower()
 
 
 def read_resource_as_text(package: ModuleType, resource: str, encoding: str = 'utf-8') -> str:

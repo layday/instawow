@@ -70,7 +70,7 @@ def format_(session: nox.Session):
 def lint(session: nox.Session):
     "Lint source code."
     session.install('ruff')
-    session.run('ruff', *session.posargs, *LINT_PATHS)
+    session.run('ruff', '--show-source', *session.posargs, *LINT_PATHS)
     session.notify('format', ['--check'])
 
 

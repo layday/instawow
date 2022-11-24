@@ -76,7 +76,7 @@ def _scan_includes(file_path: Path) -> Iterator[Path]:
 
 
 def _md5hash_bytes(value: bytes):
-    return hashlib.md5(value).hexdigest()
+    return hashlib.md5(value, usedforsecurity=False).hexdigest()
 
 
 def _md5hash_file(path: Path):
