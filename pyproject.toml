@@ -104,7 +104,8 @@ select = [
   "W",  # pycodestyle
 ]
 ignore = [
-  "E501", # LineTooLong
+  "B9",   # bugbear opinionated rules
+  "E501", # pycodestyle `LineTooLong`
 ]
 line-length = 99
 target-version = "py39"
