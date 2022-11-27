@@ -43,7 +43,7 @@ import sysconfig
 @nox.session(name='format', reuse_venv=True)
 def format_(session: nox.Session):
     "Format source code."
-    session.install('black', 'ruff')
+    session.install('-U', 'black', 'ruff')
 
     check = '--check' in session.posargs
     session.run('ruff', '--select', 'I0', *[] if check else ['--fix'], *LINT_PATHS)
@@ -69,7 +69,7 @@ def format_(session: nox.Session):
 @nox.session(reuse_venv=True)
 def lint(session: nox.Session):
     "Lint source code."
-    session.install('ruff')
+    session.install('-U', 'ruff')
     session.run('ruff', '--show-source', *session.posargs, *LINT_PATHS)
     session.notify('format', ['--check'])
 
