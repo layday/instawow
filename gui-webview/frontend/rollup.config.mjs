@@ -1,16 +1,19 @@
 import commonjs from "@rollup/plugin-commonjs";
 import json from "@rollup/plugin-json";
-import resolve from "@rollup/plugin-node-resolve";
+import nodeResolve from "@rollup/plugin-node-resolve";
 import replace from "@rollup/plugin-replace";
+import terser from "@rollup/plugin-terser";
 import typescript from "@rollup/plugin-typescript";
-import path from "path";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import copy from "rollup-plugin-copy";
 import css from "rollup-plugin-css-only";
 import livereload from "rollup-plugin-livereload";
 import nodePolyfills from "rollup-plugin-polyfill-node";
 import svelte from "rollup-plugin-svelte";
-import { terser } from "rollup-plugin-terser";
 import sveltePreprocess from "svelte-preprocess";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const BUILD_DIR = path.resolve(__dirname, "../src/instawow_gui/frontend");
 
@@ -58,7 +61,7 @@ export default [
       // some cases you'll need additional configuration -
       // consult the documentation for details:
       // https://github.com/rollup/plugins/tree/master/packages/commonjs
-      resolve({
+      nodeResolve({
         browser: true,
         dedupe: ["svelte"],
         preferBuiltins: false,
