@@ -20,11 +20,6 @@ from .manager import Manager
 from .utils import StrEnum, bucketise, gather, read_resource_as_text, shasum, time_op
 from .utils import run_in_thread as t
 
-
-_Aura: TypeAlias = 'WeakAura | Plateroo'
-_Auras: TypeAlias = 'WeakAuras | Plateroos'
-_Matches: TypeAlias = list[tuple[Sequence[_Aura], '_WagoApiResponse', str]]
-
 _CHECK_API_URL = URL('https://data.wago.io/api/check')
 _IMPORT_STRING_API_URL = URL('https://data.wago.io/api/raw/encoded')
 
@@ -130,6 +125,11 @@ class _TocNumber(StrEnum):
     classic = '30400'
 
 
+_Aura: TypeAlias = 'WeakAura | Plateroo'
+_Auras: TypeAlias = 'WeakAuras | Plateroos'
+_Matches: TypeAlias = list[tuple[Sequence[_Aura], '_WagoApiResponse', str]]
+
+
 class WaCompanionBuilder:
     """A WeakAuras Companion port for shellfolk."""
 
@@ -173,7 +173,9 @@ class WaCompanionBuilder:
                     aura_groups = _aura_converter.structure({'root': aura_groups_json}, model)
                 else:
                     with time_op(
-                        lambda t: logger.debug(f'extracted {model.__name__} in {t:.3f}s')
+                        lambda t: logger.debug(
+                            f'extracted {model.__name__} in {t:.3f}s'  # noqa: B023
+                        )
                     ):
                         aura_groups = self.extract_auras(model, content)
                     aura_group_cache.write_text(
