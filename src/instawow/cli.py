@@ -118,11 +118,12 @@ class _CtxObjWrapper:
 
     def run_with_progress(self, awaitable: Awaitable[_T]) -> _T:
         cache_dir = self.manager.config.global_config.cache_dir
+        params = self._ctx.params
 
-        if any(self._ctx.params['debug']):
+        if any(params['debug']):
 
             async def run():
-                async with init_web_client(cache_dir) as web_client:
+                async with init_web_client(cache_dir, no_cache=params['no_cache']) as web_client:
                     _manager.contextualise(web_client=web_client)
                     return await awaitable
 
@@ -134,11 +135,7 @@ class _CtxObjWrapper:
 
             from ._cli_prompts import make_progress_bar
 
-            def init_cli_web_client(
-                cache_dir: Path,
-                progress_bar: ProgressBar,
-                tickers: set[asyncio.Task[None]],
-            ):
+            def init_cli_web_client(progress_bar: ProgressBar, tickers: set[asyncio.Task[None]]):
                 TICK_INTERVAL = 0.1
 
                 async def do_on_request_end(
@@ -190,7 +187,9 @@ class _CtxObjWrapper:
                 trace_config = TraceConfig()
                 trace_config.on_request_end.append(do_on_request_end)
                 trace_config.freeze()
-                return init_web_client(cache_dir, trace_configs=[trace_config])
+                return init_web_client(
+                    cache_dir, no_cache=params['no_cache'], trace_configs=[trace_config]
+                )
 
             @contextmanager
             def cancel_tickers(progress_bar: ProgressBar):
@@ -204,7 +203,7 @@ class _CtxObjWrapper:
 
             async def run():
                 with make_progress_bar() as progress_bar, cancel_tickers(progress_bar) as tickers:
-                    async with init_cli_web_client(cache_dir, progress_bar, tickers) as web_client:
+                    async with init_cli_web_client(progress_bar, tickers) as web_client:
                         _manager.contextualise(web_client=web_client)
                         return await awaitable
 
@@ -262,6 +261,12 @@ def _parse_debug_option(
     count=True,
     help='Log incrementally more things.  Additive.',
     callback=_parse_debug_option,
+)
+@click.option(
+    '--no-cache',
+    is_flag=True,
+    default=False,
+    help='Disable the HTTP cache.',
 )
 @click.option(
     '--profile',

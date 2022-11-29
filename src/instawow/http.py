@@ -54,7 +54,7 @@ def _load_certifi_certs():
 
 @asynccontextmanager
 async def init_web_client(
-    cache_dir: Path | None, **kwargs: Any
+    cache_dir: Path | None, *, no_cache: bool = False, **kwargs: Any
 ) -> AsyncIterator[_deferred_types.aiohttp.ClientSession]:
     from aiohttp import ClientSession, ClientTimeout, TCPConnector
 
@@ -74,23 +74,29 @@ async def init_web_client(
         'timeout': ClientTimeout(connect=60, sock_connect=10, sock_read=20),
         **kwargs,
     }
+
     if cache_dir is not None:
         from aiohttp_client_cache.session import CachedSession
 
         from ._http_cache_db import SQLiteBackend, acquire_cache_db_conn
 
         with acquire_cache_db_conn(cache_dir / '_aiohttp-cache.sqlite') as db_conn:
+            cache_backend = SQLiteBackend(
+                allowed_codes=[200, 206],
+                allowed_methods=['GET', 'POST'],
+                db_conn=db_conn,
+                expire_after=_DEFAULT_EXPIRE,
+                include_headers=True,
+            )
+            if no_cache:
+                cache_backend.disabled = True
+
             async with CachedSession(
-                cache=SQLiteBackend(
-                    allowed_codes=[200, 206],
-                    allowed_methods=['GET', 'POST'],
-                    db_conn=db_conn,
-                    expire_after=_DEFAULT_EXPIRE,
-                    include_headers=True,
-                ),
+                cache=cache_backend,
                 **kwargs,
             ) as client_session:
                 yield client_session
     else:
+
         async with ClientSession(**kwargs) as client_session:
             yield client_session
