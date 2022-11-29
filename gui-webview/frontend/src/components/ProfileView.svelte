@@ -12,6 +12,7 @@
     CatalogueEntry,
     Defn,
     ErrorResult,
+    JsonRpcError,
     Source,
     Strategies,
     SuccessResult,
@@ -171,11 +172,14 @@
     alerts = [...newAlerts, ...alerts];
   };
 
-  const alertForJsonRpcError = (error: any) => {
+  const alertForJsonRpcError = (error: unknown) => {
     if (error instanceof JSONRPCError) {
       const newAlert: Alert = {
         heading: error.message,
-        message: (error.data as any).traceback_exception.filter(Boolean).slice(-1),
+        message: (error.data as JsonRpcError).traceback_exception
+          .filter(Boolean)
+          .slice(-1)
+          .join(""),
       };
       alerts = [newAlert, ...alerts];
     }
@@ -218,7 +222,7 @@
   const modifyAddons = async (
     method: "install" | "update" | "remove" | "pin",
     addons: Addon[],
-    extraParams: { [key: string]: any } = {}
+    extraParams: { [key: string]: unknown } = {}
   ) => {
     const addonTolens = addons.map(createAddonToken);
     installedAddonsBeingModified = [...installedAddonsBeingModified, ...addonTolens];

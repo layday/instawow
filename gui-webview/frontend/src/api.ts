@@ -157,6 +157,10 @@ export type ConfirmDialogueResult = {
   ok: boolean;
 };
 
+export type JsonRpcError = {
+  traceback_exception: string[];
+};
+
 export type ValidationError = {
   loc: string[];
   msg: string;
@@ -270,7 +274,7 @@ export class Api {
   async modifyAddons(
     method: "install" | "update" | "remove" | "pin",
     defns: object[],
-    extraParams: { [key: string]: any } = {}
+    extraParams: { [key: string]: unknown } = {}
   ): Promise<MultiResult> {
     return await this.request({
       method: method,
