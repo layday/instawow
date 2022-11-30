@@ -138,7 +138,7 @@
   let alerts: Alert[] = [];
 
   let reconcileStage: ReconciliationStage = reconcileStages[0];
-  let reconcileSelections: Addon[];
+  let reconcileSelections: Addon[] = [];
 
   let reconcileInstalledAddons: Addon[];
   let reconcileInstalledSelections: Addon[];
@@ -641,6 +641,7 @@
         {searchIsDirty}
         {installedOutdatedCount}
         {reconcileInstallationInProgress}
+        canReconcile={reconcileSelections.length > 0}
         isRefreshing={installedIsRefreshing}
         isModifying={installedAddonsBeingModified.length > 0}
         isSearching={searchesInProgress > 0}

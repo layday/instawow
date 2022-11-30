@@ -15,7 +15,8 @@
     isSearching: boolean,
     installedOutdatedCount: number,
     reconcileInstallationInProgress: boolean,
-    reconcileStage: ReconciliationStage;
+    reconcileStage: ReconciliationStage,
+    canReconcile: boolean;
 
   const dispatch = createEventDispatcher<{ [type: string]: void }>();
 
@@ -189,7 +190,7 @@
         <li>
           <button
             class="control"
-            disabled={reconcileInstallationInProgress}
+            disabled={!canReconcile || reconcileInstallationInProgress}
             on:click={() => dispatch("requestInstallReconciled")}
           >
             install
