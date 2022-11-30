@@ -814,9 +814,10 @@
   .preamble {
     display: grid;
     grid-template-columns: 3rem 1fr;
-    grid-column-gap: 0.5rem;
+    grid-column-gap: 0.8rem;
     align-items: center;
-    padding: 0 0.8rem;
+    margin-top: 0.4rem;
+    padding: 0 1.6rem;
     font-size: 0.85em;
     background-image: linear-gradient(45deg, rgba(pink, 0.2), rgba(orange, 0.2));
     color: var(--inverse-color-tone-a);
