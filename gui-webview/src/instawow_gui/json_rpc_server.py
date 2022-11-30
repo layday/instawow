@@ -5,12 +5,12 @@ import json
 import os
 import typing
 from collections import defaultdict
-from collections.abc import Awaitable, Callable, Iterable, Iterator
+from collections.abc import Awaitable, Callable, Iterator
 from contextlib import AsyncExitStack, contextmanager
 from datetime import datetime
 from functools import partial
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Literal, TypeVar
+from typing import Any, Literal, TypeVar, cast
 
 import aiohttp
 import aiohttp.typedefs
@@ -45,9 +45,6 @@ from instawow.utils import run_in_thread as t
 
 from . import frontend
 
-if TYPE_CHECKING:
-    ExceptionGroup = ExceptionGroup[Exception]
-
 _T = TypeVar('_T')
 _P = ParamSpec('_P')
 _ManagerBoundCoroFn: TypeAlias = Callable[Concatenate[Manager, _P], Awaitable[_T]]
@@ -80,7 +77,12 @@ def _extract_loc_from_note(exc: BaseException):
         return field
 
 
-def _structure_excs(excs: Iterable[BaseException]):
+def _structure_excs(exc: BaseException):
+    excs = (
+        cast('ExceptionGroup[Exception]', exc).exceptions
+        if isinstance(exc, ExceptionGroup)
+        else (exc,)
+    )
     return [{'loc': [c], 'msg': str(e)} for e in excs for c in (_extract_loc_from_note(e),) if c]
 
 
@@ -91,9 +93,9 @@ def _reraise_validation_error(
 ) -> Iterator[None]:
     try:
         yield
-    except ExceptionGroup as exc_group:
-        logger.info(f'invalid request: {(values, exc_group)}')
-        raise error_class(data=_structure_excs(exc_group.exceptions))
+    except BaseException as exc:
+        logger.info(f'invalid request: {(values, exc)}')
+        raise error_class(data=_structure_excs(exc))
 
 
 @t
