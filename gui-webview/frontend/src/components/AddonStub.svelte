@@ -8,7 +8,7 @@
     folders: { name: string; version: string }[],
     choices: Addon[],
     idx: number,
-    expanded: boolean = false;
+    expanded = false;
 
   let selectionIdx = 0;
   let selection: Addon;
@@ -19,15 +19,20 @@
 </script>
 
 <div class="addon-stub">
-  <div class="folders">
-    <span class="main-folder">{folders[0].name}</span>
-    {#if folders.length > 1}
-      <span class="remaining-folders">
-        {folders
-          .slice(1)
-          .map((f) => f.name)
-          .join(", ")}
-      </span>
+  <div class="header">
+    <div class="folders">
+      <span class="main-folder">{folders[0].name}</span>
+      {#if folders.length > 1}
+        <span class="remaining-folders">
+          {folders
+            .slice(1)
+            .map((f) => f.name)
+            .join(", ")}
+        </span>
+      {/if}
+    </div>
+    {#if !choices.length}
+      <p class="unreconciled-message">no matches found</p>
     {/if}
   </div>
   {#if choices.length}
@@ -95,9 +100,17 @@
     transition: all 0.2s;
   }
 
-  .folders,
+  .header,
   .selection-controls {
     padding: 0.4em 0.75em;
+  }
+
+  .header {
+    display: flex;
+    flex-direction: row;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
   }
 
   .folders {
@@ -198,5 +211,11 @@
         content: "(x) ";
       }
     }
+  }
+
+  .unreconciled-message {
+    margin: 0;
+    font-size: 0.75em;
+    color: var(--inverse-color-tone-b);
   }
 </style>
