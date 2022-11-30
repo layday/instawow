@@ -10,8 +10,7 @@ from pathlib import Path
 from loguru import logger
 
 _TOC_FILE_PATH_PATTERN = re.compile(
-    # TODO: Add ``wrath|wotlkc`` once Wago supports them.
-    r'^(?P<name>[^/]+)/(?P=name)(?:[-_](?:mainline|bcc|tbc|classic|vanilla))?\.toc$',
+    r'^(?P<name>[^/]+)/(?P=name)(?:[-_](?:mainline|bcc|tbc|classic|vanilla|wrath|wotlkc))?\.toc$',
     flags=re.I,
 )
 _BINDINGS_XML_FILE_PATH_PATTERN = re.compile(
