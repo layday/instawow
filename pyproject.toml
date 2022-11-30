@@ -116,6 +116,9 @@ known-first-party = [
   "instawow_gui",
 ]
 
+[tool.ruff.pyupgrade]
+keep-runtime-typing = true
+
 [tool.black]
 line-length = 99
 skip-string-normalization = true

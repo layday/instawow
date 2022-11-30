@@ -52,7 +52,7 @@ def format_(session: nox.Session):
     if '--skip-prettier' not in session.posargs:
         paths = [
             'package.json',
-            'rollup.config.js',
+            'rollup.config.mjs',
             'src',
             'tsconfig.json',
         ]
@@ -70,7 +70,7 @@ def format_(session: nox.Session):
 def lint(session: nox.Session):
     "Lint source code."
     session.install('-U', 'ruff')
-    session.run('ruff', '--show-source', *session.posargs, *LINT_PATHS)
+    session.run('ruff', '--format', 'grouped', '--show-source', *session.posargs, *LINT_PATHS)
     session.notify('format', ['--check'])
 
 
