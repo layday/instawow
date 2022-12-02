@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from enum import Enum
 
-from instawow.common import Flavour, FlavourVersion, infer_flavour_from_path
+from instawow.common import Flavour, FlavourVersionRange, infer_flavour_from_path
 
 
 def test_can_convert_between_flavour_keyed_enum_and_flavour():
@@ -14,21 +14,21 @@ def test_can_convert_between_flavour_keyed_enum_and_flavour():
 
 
 def test_can_extract_flavour_from_version_number():
-    assert FlavourVersion.from_version_number(95000) is FlavourVersion.retail
-    assert FlavourVersion.from_version_number(34000) is FlavourVersion.classic
-    assert FlavourVersion.from_version_number(12300) is FlavourVersion.vanilla_classic
+    assert FlavourVersionRange.from_version_number(95000) is FlavourVersionRange.retail
+    assert FlavourVersionRange.from_version_number(34000) is FlavourVersionRange.classic
+    assert FlavourVersionRange.from_version_number(12300) is FlavourVersionRange.vanilla_classic
 
 
 def test_can_extract_flavour_from_version_string():
-    assert FlavourVersion.from_version_string('9.50.0') is FlavourVersion.retail
-    assert FlavourVersion.from_version_string('3.40.0') is FlavourVersion.classic
-    assert FlavourVersion.from_version_string('1.23.0') is FlavourVersion.vanilla_classic
+    assert FlavourVersionRange.from_version_string('9.50.0') is FlavourVersionRange.retail
+    assert FlavourVersionRange.from_version_string('3.40.0') is FlavourVersionRange.classic
+    assert FlavourVersionRange.from_version_string('1.23.0') is FlavourVersionRange.vanilla_classic
 
 
 def test_can_extract_flavour_from_partial_version_string():
-    assert FlavourVersion.from_version_string('9.2') is FlavourVersion.retail
-    assert FlavourVersion.from_version_string('3.4') is FlavourVersion.classic
-    assert FlavourVersion.from_version_string('3') is FlavourVersion.retail
+    assert FlavourVersionRange.from_version_string('9.2') is FlavourVersionRange.retail
+    assert FlavourVersionRange.from_version_string('3.4') is FlavourVersionRange.classic
+    assert FlavourVersionRange.from_version_string('3') is FlavourVersionRange.retail
 
 
 def test_can_infer_flavour_from_path():

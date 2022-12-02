@@ -14,7 +14,7 @@ from yarl import URL
 from .. import _deferred_types, manager, models
 from .. import results as R
 from ..cataloguer import BaseCatalogueEntry
-from ..common import ChangelogFormat, Flavour, FlavourVersion, SourceMetadata
+from ..common import ChangelogFormat, Flavour, FlavourVersionRange, SourceMetadata
 from ..http import make_generic_progress_ctx
 from ..resolvers import BaseResolver, Defn
 from ..utils import as_plain_text_data_url, gather, slugify, uniq
@@ -197,7 +197,7 @@ class WowiResolver(BaseResolver):
                 game_flavours = {
                     Flavour.from_flavour_keyed_enum(f)
                     for c in item['UICompatibility']
-                    for f in (FlavourVersion.from_version_string(c['version']),)
+                    for f in (FlavourVersionRange.from_version_string(c['version']),)
                     if f
                 }
 

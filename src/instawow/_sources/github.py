@@ -14,7 +14,7 @@ from yarl import URL
 from .. import _deferred_types, models
 from .. import results as R
 from ..cataloguer import BaseCatalogueEntry, CatalogueSameAs
-from ..common import ChangelogFormat, Flavour, FlavourVersion, SourceMetadata, Strategy
+from ..common import ChangelogFormat, Flavour, FlavourVersionRange, SourceMetadata, Strategy
 from ..http import CACHE_INDEFINITELY
 from ..resolvers import BaseResolver, Defn, HeadersIntent
 from ..utils import (
@@ -186,10 +186,7 @@ class GithubResolver(BaseResolver):
                         try:
                             dynamic_addon_zip = zipfile.ZipFile(addon_zip_stream)
                         except zipfile.BadZipFile:
-                            from zipfile import (
-                                _ECD_OFFSET,  # pyright: ignore
-                                _EndRecData,  # pyright: ignore
-                            )
+                            from zipfile import _ECD_OFFSET, _EndRecData  # pyright: ignore
 
                             end_rec_data = _EndRecData(addon_zip_stream)  # pyright: ignore
                             if end_rec_data is None:
@@ -266,7 +263,7 @@ class GithubResolver(BaseResolver):
             interface_version = toc_reader['Interface']
             logger.debug(f'found interface version {interface_version!r} in {main_toc_filename}')
             if interface_version and self._manager.config.game_flavour.to_flavour_keyed_enum(
-                FlavourVersion
+                FlavourVersionRange
             ).is_within_version(int(interface_version)):
                 matching_asset = candidate
                 break
@@ -276,24 +273,6 @@ class GithubResolver(BaseResolver):
     async def _find_matching_asset_from_release_json(
         self, assets: list[_GithubRelease_Asset], release_json_asset: _GithubRelease_Asset
     ):
-        def is_compatible_release(release: _PackagerReleaseJson_Release):
-            if release['nolib']:
-                return False
-
-            for metadata in release['metadata']:
-                if metadata['flavor'] != wanted_flavour:
-                    continue
-
-                interface_version = metadata['interface']
-                if not wanted_flavour_version.is_within_version(interface_version):
-                    logger.info(
-                        f'interface number "{interface_version}" and flavor "{wanted_flavour}" mismatch'
-                    )
-                    continue
-
-                return True
-
-            return False
 
         download_headers = await self.make_request_headers(HeadersIntent.download)
 
@@ -315,12 +294,29 @@ class GithubResolver(BaseResolver):
             _PackagerReleaseJsonFlavor
         )
         wanted_flavour_version = self._manager.config.game_flavour.to_flavour_keyed_enum(
-            FlavourVersion
+            FlavourVersionRange
         )
-        matching_release = next(
-            filter(is_compatible_release, releases),
-            None,
-        )
+
+        def is_compatible_release(release: _PackagerReleaseJson_Release):
+            if release['nolib']:
+                return False
+
+            for metadata in release['metadata']:
+                if metadata['flavor'] != wanted_flavour:
+                    continue
+
+                interface_version = metadata['interface']
+                if not wanted_flavour_version.is_within_version(interface_version):
+                    logger.info(
+                        f'interface number "{interface_version}" and flavor "{wanted_flavour}" mismatch'
+                    )
+                    continue
+
+                return True
+
+            return False
+
+        matching_release = next(filter(is_compatible_release, releases), None)
         if matching_release is None:
             return None
 

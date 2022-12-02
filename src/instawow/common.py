@@ -42,7 +42,7 @@ class Flavour(StrEnum):
         return flavour_keyed_enum[self.name]
 
 
-class FlavourVersion(enum.Enum):
+class FlavourVersionRange(enum.Enum):
     retail = (
         range(1_00_00, 1_13_00), range(2_00_00, 2_05_00), range(3_00_00, 3_04_00), range(4_00_00, 11_00_00)  # fmt: skip
     )
