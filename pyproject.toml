@@ -94,18 +94,17 @@ strict = [
 
 [tool.ruff]
 select = [
-  "B",  # bugbear
-  "C4", # comprehensions
-  "E",  # pycodestyle
-  "F",  # pyflakes
-  "I0", # isort
-  "M",  # meta
-  "U",  # pyupgrade
-  "W",  # pycodestyle
+  "B0",     # bugbear (without opinionated rules)
+  "C4",     # comprehensions
+  "E",      # pycodestyle
+  "F",      # pyflakes
+  "I0",     # isort
+  "RUF100", # ruff: `UnusedNOQA`
+  "UP",     # pyupgrade
+  "W",      # pycodestyle
 ]
 ignore = [
-  "B9",   # bugbear opinionated rules
-  "E501", # pycodestyle `LineTooLong`
+  "E501", # pycodestyle: `LineTooLong`
 ]
 line-length = 99
 target-version = "py39"
