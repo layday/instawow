@@ -94,7 +94,7 @@ def lint(session: nox.Session):
             pluggy == 0.13.0
             prompt-toolkit == 3.0.29
             questionary == 1.10.0
-            rapidfuzz == 2.5.0
+            rapidfuzz == 2.12.0
             sqlalchemy == 1.4.23
             typing-extensions == 4.3.0
             yarl == 1.8.1
@@ -196,8 +196,6 @@ def freeze_cli(session: nox.Session):
         'instawow',
         '--exclude-module',
         'instawow_gui',
-        '--additional-hooks-dir',
-        'pyinstaller-hooks',
         '--console',
         main_py,
     )
