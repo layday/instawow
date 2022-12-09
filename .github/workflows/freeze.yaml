@@ -58,7 +58,7 @@ jobs:
     strategy:
       matrix:
         build-env:
-          - os: macos-latest
+          - os: macos-12
             python-version: "3.10"
             briefcase-build-opts: ""
             briefcase-package-opts: "--no-sign"
