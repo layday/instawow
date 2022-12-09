@@ -4,7 +4,7 @@ import json
 import typing
 from collections.abc import Iterable, Iterator, Sequence
 from datetime import timedelta
-from functools import partial, reduce
+from functools import reduce
 from itertools import chain, product
 from typing import Any, Literal
 
@@ -225,27 +225,24 @@ class WaCompanionBuilder:
     def _generate_addon(self, auras: Iterable[tuple[type[_Auras], _Matches]]):
         from zipfile import ZipFile, ZipInfo
 
-        from jinja2 import Environment, FunctionLoader
+        from mako.template import Template
 
         from . import _wa_templates
 
-        jinja_env = Environment(
-            trim_blocks=True,
-            lstrip_blocks=True,
-            loader=FunctionLoader(partial(read_resource_as_text, _wa_templates)),
-        )
+        def render_template(filename: str, ctx: dict[str, object]):
+            return Template(read_resource_as_text(_wa_templates, filename)).render(**ctx)
 
         aura_dict = dict.fromkeys((WeakAuras, Plateroos), []) | dict(auras)
 
         self.addon_zip_path.parent.mkdir(exist_ok=True)
         with ZipFile(self.addon_zip_path, 'w') as file:
 
-            def write_tpl(filename: str, ctx: dict[str, Any]):
+            def write_tpl(filename: str, ctx: dict[str, object]):
                 # Not using a plain string as the first argument to ``writestr``
                 # 'cause the timestamp would be set to the current time
                 # which would render the build unreproducible
                 zip_info = ZipInfo(filename=f'WeakAurasCompanion/{filename}')
-                output = jinja_env.get_template(filename).render(ctx)
+                output = render_template(filename, ctx)
                 file.writestr(zip_info, output)
                 return output
 
@@ -291,7 +288,8 @@ class WaCompanionBuilder:
             )
 
         self.changelog_path.write_text(
-            jinja_env.get_template(self.changelog_path.name).render(
+            render_template(
+                self.changelog_path.name,
                 {
                     'changelog_entries': [
                         (
@@ -307,7 +305,7 @@ class WaCompanionBuilder:
                         )
                         if a.version != metadata['version']
                     ]
-                }
+                },
             )
             or 'n/a',
             encoding='utf-8',

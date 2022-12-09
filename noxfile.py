@@ -14,6 +14,7 @@ LINT_PATHS = [
     'src',
     'gui-webview/src',
     'tests',
+    'typings',
     'noxfile.py',
 ]
 
@@ -89,8 +90,8 @@ def lint(session: nox.Session):
             click == 8.0.0
             exceptiongroup == 1.0.0
             iso8601 == 1.0.2
-            jinja2 == 3.1.0
             loguru == 0.5.3
+            mako == 1.2.4
             pluggy == 0.13.0
             prompt-toolkit == 3.0.29
             questionary == 1.10.0
