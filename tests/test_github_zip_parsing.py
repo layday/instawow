@@ -12,9 +12,8 @@ from aresponses import ResponsesMockServer
 from yarl import URL
 
 from instawow._sources.github import GithubResolver
-from instawow.common import Flavour
+from instawow.common import Defn, Flavour
 from instawow.manager import Manager
-from instawow.resolvers import Defn
 from instawow.results import PkgFilesNotMatching
 
 ADDON_NAME = 'RaidFadeMore'

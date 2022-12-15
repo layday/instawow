@@ -18,11 +18,10 @@ from loguru import logger
 from . import __version__, _deferred_types, db, models
 from . import manager as _manager
 from . import results as R
-from .common import ChangelogFormat, Flavour, Strategy
+from .common import ChangelogFormat, Defn, Flavour, Strategy
 from .config import Config, GlobalConfig, config_converter, setup_logging
 from .http import TraceRequestCtx, init_web_client
 from .plugins import load_plugins
-from .resolvers import Defn
 from .utils import StrEnum, all_eq, gather, reveal_folder, tabulate, uniq
 
 _T = TypeVar('_T')

@@ -9,11 +9,10 @@ from aresponses import ResponsesMockServer
 from attrs import evolve
 
 from instawow import results as R
-from instawow.common import Flavour, Strategy
+from instawow.common import Defn, Flavour, Strategy
 from instawow.config import GlobalConfig
 from instawow.manager import Manager, is_outdated
 from instawow.models import Pkg
-from instawow.resolvers import Defn
 
 
 def test_auth_bound_resolvers_are_not_unloaded_if_tokens_set(iw_manager: Manager):

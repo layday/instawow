@@ -35,11 +35,11 @@ from .cataloguer import (
     CatalogueEntry,
     catalogue_converter,
 )
-from .common import Strategy
+from .common import Defn, Strategy
 from .config import Config, GlobalConfig
 from .http import make_generic_progress_ctx, make_pkg_progress_ctx
 from .plugins import load_plugins
-from .resolvers import Defn, HeadersIntent, Resolver
+from .resolvers import HeadersIntent, Resolver
 from .utils import (
     bucketise,
     chain_dict,

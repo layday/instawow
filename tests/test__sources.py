@@ -14,10 +14,10 @@ from instawow._sources.cfcore import CfCoreResolver
 from instawow._sources.github import GithubResolver
 from instawow._sources.tukui import TukuiResolver
 from instawow._sources.wowi import WowiResolver
-from instawow.common import Flavour, Strategy, StrategyValues
+from instawow.common import Defn, Flavour, Strategy, StrategyValues
 from instawow.manager import Manager
 from instawow.models import Pkg
-from instawow.resolvers import Defn, Resolver
+from instawow.resolvers import Resolver
 
 
 @pytest.mark.parametrize(

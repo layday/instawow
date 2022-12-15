@@ -6,8 +6,8 @@ from datetime import datetime, timezone
 from .. import _deferred_types, models
 from .. import results as R
 from ..cataloguer import BaseCatalogueEntry
-from ..common import ChangelogFormat, Flavour, SourceMetadata
-from ..resolvers import BaseResolver, Defn
+from ..common import ChangelogFormat, Defn, Flavour, SourceMetadata
+from ..resolvers import BaseResolver
 from ..utils import run_in_thread
 
 

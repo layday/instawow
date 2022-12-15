@@ -10,9 +10,9 @@ from yarl import URL
 
 from .. import models
 from .. import results as R
-from ..common import AddonHashMethod, ChangelogFormat, SourceMetadata, Strategy
+from ..common import AddonHashMethod, ChangelogFormat, Defn, SourceMetadata, Strategy
 from ..http import make_generic_progress_ctx
-from ..resolvers import BaseResolver, Defn, HeadersIntent, TFolderHashCandidate
+from ..resolvers import BaseResolver, HeadersIntent, TFolderHashCandidate
 from ..utils import StrEnum, as_plain_text_data_url, run_in_thread
 
 _WagoStability = Literal['stable', 'beta', 'alpha']

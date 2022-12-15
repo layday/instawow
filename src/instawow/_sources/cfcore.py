@@ -17,10 +17,10 @@ from yarl import URL
 from .. import _deferred_types, manager, models
 from .. import results as R
 from ..cataloguer import BaseCatalogueEntry
-from ..common import ChangelogFormat, Flavour, SourceMetadata, Strategy
+from ..common import ChangelogFormat, Defn, Flavour, SourceMetadata, Strategy
 from ..config import GlobalConfig
 from ..http import CACHE_INDEFINITELY, make_generic_progress_ctx
-from ..resolvers import BaseResolver, Defn, HeadersIntent
+from ..resolvers import BaseResolver, HeadersIntent
 from ..utils import gather, uniq
 
 _T = TypeVar('_T')

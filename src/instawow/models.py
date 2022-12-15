@@ -12,8 +12,7 @@ from cattrs.preconf.json import configure_converter
 from typing_extensions import Self
 
 from . import db
-from .common import StrategyValues
-from .resolvers import Defn
+from .common import Defn, StrategyValues
 
 pkg_converter = Converter()
 configure_converter(pkg_converter)

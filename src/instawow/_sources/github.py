@@ -14,9 +14,9 @@ from yarl import URL
 from .. import _deferred_types, models
 from .. import results as R
 from ..cataloguer import BaseCatalogueEntry, CatalogueSameAs
-from ..common import ChangelogFormat, Flavour, FlavourVersionRange, SourceMetadata, Strategy
+from ..common import ChangelogFormat, Defn, Flavour, FlavourVersionRange, SourceMetadata, Strategy
 from ..http import CACHE_INDEFINITELY
-from ..resolvers import BaseResolver, Defn, HeadersIntent
+from ..resolvers import BaseResolver, HeadersIntent
 from ..utils import (
     StrEnum,
     TocReader,

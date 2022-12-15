@@ -3,9 +3,9 @@ from __future__ import annotations
 import pytest
 from yarl import URL
 
+from instawow.common import Defn
 from instawow.manager import Manager
 from instawow.models import Pkg
-from instawow.resolvers import Defn
 from instawow.wa_updater import WaCompanionBuilder, WeakAura, WeakAuras
 
 

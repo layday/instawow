@@ -6,7 +6,7 @@ import typing
 from pathlib import PurePath
 from typing import Literal, Protocol, TypeVar
 
-from attrs import asdict, frozen
+from attrs import asdict, evolve, frozen
 from typing_extensions import Self
 
 from .utils import StrEnum, fill
@@ -83,17 +83,6 @@ class Strategy(StrEnum):
     version_eq = enum.auto()
 
 
-@frozen
-class StrategyValues:
-    any_flavour: Literal[True, None] = None
-    any_release_type: Literal[True, None] = None
-    version_eq: typing.Union[str, None] = None
-
-    @property
-    def filled_strategies(self) -> frozenset[Strategy]:
-        return frozenset(Strategy(p) for p, v in asdict(self).items() if v is not None)
-
-
 class ChangelogFormat(StrEnum):
     html = enum.auto()
     markdown = enum.auto()
@@ -107,6 +96,28 @@ class SourceMetadata:
     strategies: frozenset[Strategy]
     changelog_format: ChangelogFormat
     addon_toc_key: str | None
+
+
+@frozen
+class StrategyValues:
+    any_flavour: Literal[True, None] = None
+    any_release_type: Literal[True, None] = None
+    version_eq: typing.Union[str, None] = None
+
+    @property
+    def filled_strategies(self) -> frozenset[Strategy]:
+        return frozenset(Strategy(p) for p, v in asdict(self).items() if v is not None)
+
+
+@frozen(hash=True)
+class Defn:
+    source: str
+    alias: str
+    id: typing.Union[str, None] = None
+    strategies: StrategyValues = StrategyValues()
+
+    def with_version(self, version: str) -> Self:
+        return evolve(self, strategies=evolve(self.strategies, version_eq=version))
 
 
 class AddonHashMethod(enum.Enum):

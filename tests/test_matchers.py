@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from instawow.common import AddonHashMethod, Flavour
+from instawow.common import AddonHashMethod, Defn, Flavour
 from instawow.manager import Manager
 from instawow.matchers import (
     AddonFolder,
@@ -15,7 +15,6 @@ from instawow.matchers import (
     match_folder_name_subsets,
     match_toc_source_ids,
 )
-from instawow.resolvers import Defn
 
 MOLINARI_HASH = '2da096db5769138b5428a068343cddf3'
 

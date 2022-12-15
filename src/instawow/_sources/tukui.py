@@ -11,9 +11,9 @@ from yarl import URL
 from .. import _deferred_types, manager, models
 from .. import results as R
 from ..cataloguer import BaseCatalogueEntry
-from ..common import ChangelogFormat, Flavour, SourceMetadata
+from ..common import ChangelogFormat, Defn, Flavour, SourceMetadata
 from ..http import make_generic_progress_ctx
-from ..resolvers import BaseResolver, Defn
+from ..resolvers import BaseResolver
 from ..utils import StrEnum, as_plain_text_data_url, gather, slugify
 
 

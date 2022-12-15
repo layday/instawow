@@ -3,9 +3,9 @@ from datetime import datetime
 import click
 
 import instawow.plugins
-from instawow.common import ChangelogFormat, SourceMetadata
+from instawow.common import ChangelogFormat, Defn, SourceMetadata
 from instawow.models import Pkg, PkgOptions
-from instawow.resolvers import BaseResolver, Defn
+from instawow.resolvers import BaseResolver
 
 
 @click.command()

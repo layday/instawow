@@ -1,38 +1,22 @@
 from __future__ import annotations
 
 import enum
-import typing
 import urllib.parse
 from collections.abc import AsyncIterator, Collection, Iterable, Sequence
 from functools import update_wrapper
 from pathlib import Path
 from typing import Any, ClassVar, Protocol, TypeVar
 
-from attrs import evolve, frozen
 from typing_extensions import Self
 from yarl import URL
 
 from . import _deferred_types, models
 from . import results as R
 from .cataloguer import BaseCatalogueEntry
-from .common import AddonHashMethod, SourceMetadata, StrategyValues
+from .common import AddonHashMethod, Defn, SourceMetadata
 from .config import GlobalConfig
 from .http import CACHE_INDEFINITELY
 from .utils import file_uri_to_path, gather, run_in_thread
-
-
-@frozen(hash=True)
-class Defn:
-    source: str
-    alias: str
-    id: typing.Union[str, None] = None
-    strategies: StrategyValues = StrategyValues()
-
-    def with_version(self, version: str) -> Self:
-        return evolve(
-            self,
-            strategies=evolve(self.strategies, version_eq=version),
-        )
 
 
 class FolderHashCandidate(Protocol):
