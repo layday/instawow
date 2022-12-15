@@ -59,6 +59,7 @@ pytest-asyncio = { version = ">=0.17.0", optional = true }
 pytest-xdist = { version = ">=2.5.0", optional = true }
 
 sqlalchemy2-stubs = { version = "*", optional = true }
+types-certifi = { version = "*", optional = true }
 
 [tool.poetry.extras]
 gui = [
@@ -74,6 +75,7 @@ test = [
 ]
 types = [
   "sqlalchemy2-stubs",
+  "types-certifi",
 ]
 
 
