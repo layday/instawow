@@ -12,7 +12,7 @@ from attrs import evolve, frozen
 from typing_extensions import Self
 from yarl import URL
 
-from . import _deferred_types, manager, models
+from . import _deferred_types, models
 from . import results as R
 from .cataloguer import BaseCatalogueEntry
 from .common import AddonHashMethod, SourceMetadata, StrategyValues
@@ -53,7 +53,7 @@ class Resolver(Protocol):
     metadata: ClassVar[SourceMetadata]
     requires_access_token: ClassVar[str | None]
 
-    def __init__(self, manager: manager.Manager) -> None:
+    def __init__(self, manager: _deferred_types.manager.Manager) -> None:
         ...
 
     @classmethod
@@ -96,9 +96,9 @@ class Resolver(Protocol):
 
 
 class BaseResolver(Resolver, Protocol):
-    _manager: manager.Manager
+    _manager: _deferred_types.manager.Manager
 
-    def __init__(self, manager: manager.Manager) -> None:
+    def __init__(self, manager: _deferred_types.manager.Manager) -> None:
         self._manager = manager
 
     __orig_init = __init__
@@ -140,8 +140,10 @@ class BaseResolver(Resolver, Protocol):
     async def resolve(
         self, defns: Sequence[Defn]
     ) -> dict[Defn, models.Pkg | R.ManagerError | R.InternalError]:
+        from .manager import capture_manager_exc_async
+
         results = await gather(
-            (self.resolve_one(d, None) for d in defns), manager.capture_manager_exc_async
+            (self.resolve_one(d, None) for d in defns), capture_manager_exc_async
         )
         return dict(zip(defns, results))
 

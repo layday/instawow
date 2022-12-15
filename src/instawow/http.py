@@ -9,7 +9,7 @@ from typing import Any, Literal
 from loguru import logger
 from typing_extensions import TypeAlias, TypedDict
 
-from . import _deferred_types, models
+from . import _deferred_types
 from .utils import read_resource_as_text
 
 _USER_AGENT = 'instawow (+https://github.com/layday/instawow)'
@@ -27,13 +27,15 @@ class _GenericDownloadTraceRequestCtx(TypedDict):
 class _PkgDownloadTraceRequestCtx(TypedDict):
     report_progress: Literal['pkg_download']
     profile: str
-    pkg: models.Pkg
+    pkg: _deferred_types.models.Pkg
 
 
 TraceRequestCtx: TypeAlias = '_GenericDownloadTraceRequestCtx | _PkgDownloadTraceRequestCtx | None'
 
 
-def make_pkg_progress_ctx(profile: str, pkg: models.Pkg) -> _PkgDownloadTraceRequestCtx:
+def make_pkg_progress_ctx(
+    profile: str, pkg: _deferred_types.models.Pkg
+) -> _PkgDownloadTraceRequestCtx:
     return {'report_progress': 'pkg_download', 'profile': profile, 'pkg': pkg}
 
 
