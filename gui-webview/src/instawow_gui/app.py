@@ -54,7 +54,7 @@ class InstawowApp(toga.App):
         self.commands.add(
             toga.Command(
                 partial(dispatch_js_keyboard_event, action='toggleSearchFilter'),
-                label='Toggle Search Filter',
+                text='Toggle Search Filter',
                 shortcut=toga.Key.MOD_1 + toga.Key.G,
                 group=toga.Group.EDIT,
                 section=20,
@@ -62,7 +62,7 @@ class InstawowApp(toga.App):
             ),
             toga.Command(
                 partial(dispatch_js_keyboard_event, action='activateViewInstalled'),
-                label='Installed',
+                text='Installed',
                 shortcut=toga.Key.MOD_1 + toga.Key.L,
                 group=toga.Group.WINDOW,
                 section=20,
@@ -70,14 +70,14 @@ class InstawowApp(toga.App):
             ),
             toga.Command(
                 partial(dispatch_js_keyboard_event, action='activateViewReconcile'),
-                label='Unreconciled',
+                text='Unreconciled',
                 group=toga.Group.WINDOW,
                 section=20,
                 order=20,
             ),
             toga.Command(
                 partial(dispatch_js_keyboard_event, action='activateViewSearch'),
-                label='Search',
+                text='Search',
                 shortcut=toga.Key.MOD_1 + toga.Key.F,
                 group=toga.Group.WINDOW,
                 section=20,
