@@ -226,7 +226,7 @@ def shasum(*values: object) -> str:
 def is_not_stale(path: Path, ttl: timedelta) -> bool:
     "Check if a file is older than ``ttl``."
     return path.exists() and (
-        (datetime.now() - datetime.fromtimestamp(path.stat().st_mtime)) < ttl
+        (datetime.now() - datetime.fromtimestamp(path.stat().st_mtime)) < ttl  # noqa: DTZ
     )
 
 

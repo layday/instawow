@@ -98,9 +98,11 @@ strict = [
 select = [
   "B0",     # bugbear (without opinionated rules)
   "C4",     # comprehensions
+  "DTZ",    # datetimez
   "E",      # pycodestyle
   "F",      # pyflakes
   "I0",     # isort
+  "PGH",    # pygrep-hooks
   "RUF100", # ruff: `UnusedNOQA`
   "UP",     # pyupgrade
   "W",      # pycodestyle

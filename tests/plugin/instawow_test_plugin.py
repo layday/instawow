@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
 import click
 
@@ -33,7 +33,7 @@ class MyResolver(BaseResolver):
             description='The quintessential bar add-on, brought to you by yours truly',
             url='http://example.com/',
             download_url='file:///...',
-            date_published=datetime.now(),
+            date_published=datetime.now(timezone.utc),
             version='0',
             changelog_url='data:,',
             options=PkgOptions.from_strategy_values(defn.strategies),
