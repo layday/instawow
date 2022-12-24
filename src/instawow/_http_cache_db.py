@@ -6,13 +6,21 @@ from collections.abc import Set
 from contextlib import contextmanager
 from typing import NoReturn
 
+import attrs
 from aiohttp_client_cache.backends.base import BaseCache, CacheBackend, ResponseOrKey
 from typing_extensions import LiteralString
 
 
 @contextmanager
 def acquire_cache_db_conn(db_path: os.PathLike[str]):
-    db_conn = sqlite3.connect(db_path)
+    db_conn = sqlite3.connect(
+        os.path.join(
+            db_path,
+            # The response is a frozen attrs instance which is pickled;
+            # the pickled representation can change between attrs releases.
+            f'_aiohttp-cache-{attrs.__version__}.sqlite',
+        )
+    )
     db_conn.execute('PRAGMA journal_mode = wal')
     db_conn.execute('PRAGMA synchronous = normal')
     yield db_conn

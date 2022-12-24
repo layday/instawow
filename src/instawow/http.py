@@ -82,7 +82,7 @@ async def init_web_client(
 
         from ._http_cache_db import SQLiteBackend, acquire_cache_db_conn
 
-        with acquire_cache_db_conn(cache_dir / '_aiohttp-cache.sqlite') as db_conn:
+        with acquire_cache_db_conn(cache_dir) as db_conn:
             cache_backend = SQLiteBackend(
                 allowed_codes=[200, 206],
                 allowed_methods=['GET', 'POST'],
