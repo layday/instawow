@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import asyncio
 import enum
-import sys
 import textwrap
 from collections.abc import Awaitable, Callable, Collection, Iterable, Sequence, Set
 from datetime import datetime, timezone
@@ -82,18 +81,6 @@ class Report:
         self.generate()
         ctx = click.get_current_context()
         ctx.exit(self.exit_code)
-
-
-def _override_asyncio_loop_policy():
-    # The proactor event loop which became the default loop on Windows
-    # in Python 3.8 is causing issues with aiohttp.
-    # See https://github.com/aio-libs/aiohttp/issues/4324
-    if sys.platform == 'win32' and sys.version_info < (3, 11):
-        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
-
-
-def _apply_patches():
-    _override_asyncio_loop_policy()
 
 
 class _CtxObjWrapper:
@@ -276,7 +263,6 @@ def _parse_debug_option(
 @click.pass_context
 def cli(ctx: click.Context, **__: object) -> None:
     "Add-on manager for World of Warcraft."
-    _apply_patches()
     ctx.obj = _CtxObjWrapper(ctx)
 
 
