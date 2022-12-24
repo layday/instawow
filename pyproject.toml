@@ -79,21 +79,6 @@ types = [
 ]
 
 
-[tool.pyright]
-include = [
-  "src",
-  "gui-webview/src",
-  "tests/plugin",
-]
-ignore = [
-  "src/instawow/_migrations",
-]
-strict = [
-  "src",
-  "gui-webview/src/instawow_gui/json_rpc_server.py",
-  "tests/plugin",
-]
-
 [tool.ruff]
 select = [
   "B0",     # bugbear (without opinionated rules)
