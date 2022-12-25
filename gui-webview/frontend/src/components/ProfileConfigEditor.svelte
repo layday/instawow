@@ -97,10 +97,10 @@ will be lost.`
     {/if}
     {#if createNew}
       <input
+        aria-label="profile"
         class="row form-control"
         class:error={errors.has("profile")}
         type="text"
-        label="profile"
         placeholder="profile"
         bind:value={profile}
       />

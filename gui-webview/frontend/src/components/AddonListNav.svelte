@@ -22,7 +22,7 @@
 
   let searchBox: HTMLInputElement;
 
-  const handleKeypress = (e: CustomEvent) => {
+  const handleKeypress = (e: CustomEvent<{ action: string }>) => {
     const { action } = e.detail;
     if (action === "activateViewInstalled") {
       activeView = View.Installed;
