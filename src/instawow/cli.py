@@ -320,7 +320,7 @@ def _extend_strategies(strategy: Strategy, ctx: click.Context, __: click.Paramet
         strategies.add(strategy)
 
 
-@cli.command()
+@cli.command
 @click.argument(
     'addons', nargs=-1, expose_value=False, callback=_parse_into_defn_and_extend_addons
 )
@@ -371,7 +371,7 @@ def install(
     Report(results.items()).generate_and_exit()
 
 
-@cli.command()
+@cli.command
 @click.argument('addons', nargs=-1, callback=_with_manager(_parse_into_defn))
 @click.pass_obj
 def update(mw: _CtxObjWrapper, addons: Sequence[Defn]) -> None:
@@ -397,7 +397,7 @@ def update(mw: _CtxObjWrapper, addons: Sequence[Defn]) -> None:
     Report(results.items(), filter_results).generate_and_exit()
 
 
-@cli.command()
+@cli.command
 @click.argument('addons', nargs=-1, required=True, callback=_with_manager(_parse_into_defn))
 @click.option(
     '--keep-folders',
@@ -412,7 +412,7 @@ def remove(mw: _CtxObjWrapper, addons: Sequence[Defn], keep_folders: bool) -> No
     Report(results.items()).generate_and_exit()
 
 
-@cli.command()
+@cli.command
 @click.argument('addon', callback=_with_manager(_parse_into_defn))
 @click.option(
     '--version',
@@ -467,7 +467,7 @@ def rollback(mw: _CtxObjWrapper, addon: Defn, version: str | None, undo: bool) -
     ).generate_and_exit()
 
 
-@cli.command()
+@cli.command
 @click.option('--auto', '-a', is_flag=True, default=False, help='Do not ask for user input.')
 @click.option(
     '--installed',
@@ -646,7 +646,7 @@ def _parse_iso_date_into_datetime(_: click.Context, __: click.Parameter, value: 
         return datetime.strptime(value, '%Y-%m-%d').replace(tzinfo=timezone.utc)
 
 
-@cli.command()
+@cli.command
 @click.argument('search-terms', nargs=-1, required=True, callback=_concat_search_terms)
 @click.option(
     '--limit',
@@ -801,7 +801,7 @@ def info(ctx: click.Context, addon: Defn) -> None:
     ctx.invoke(list_installed, addons=(addon,), output_format=_ListFormat.detailed)
 
 
-@cli.command()
+@cli.command
 @click.argument('addon', callback=_with_manager(partial(_parse_into_defn, raise_invalid=False)))
 @click.pass_obj
 def reveal(mw: _CtxObjWrapper, addon: Defn) -> None:
@@ -813,7 +813,7 @@ def reveal(mw: _CtxObjWrapper, addon: Defn) -> None:
         Report([(addon, R.PkgNotInstalled())]).generate_and_exit()
 
 
-@cli.command()
+@cli.command
 @click.argument(
     'addon', callback=_with_manager(partial(_parse_into_defn, raise_invalid=False)), required=False
 )
@@ -947,7 +947,7 @@ class _EditableConfigOptions(StrEnum):
     wago_access_token = 'access_tokens.wago'
 
 
-@cli.command()
+@cli.command
 @click.option(
     '--show-active',
     is_flag=True,
@@ -1121,7 +1121,7 @@ def generate_catalogue(start_date: datetime | None) -> None:
     )
 
 
-@cli.command()
+@cli.command
 @click.pass_context
 def gui(ctx: click.Context) -> None:
     "Fire up the GUI."
