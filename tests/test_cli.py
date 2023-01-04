@@ -40,7 +40,7 @@ def run(
     iw_config: Config,
 ):
     monkeypatch.setattr('asyncio.run', event_loop.run_until_complete)
-    yield partial(CliRunner().invoke, cli, catch_exceptions=False)
+    return partial(CliRunner().invoke, cli, catch_exceptions=False)
 
 
 @pytest.fixture
@@ -48,7 +48,7 @@ def install_molinari_and_run(
     run: C[[str], Result],
 ):
     run('install curse:molinari')
-    yield run
+    return run
 
 
 @pytest.fixture
@@ -64,7 +64,7 @@ def pretend_install_molinari_and_run(
 ## X-WoWI-ID: 13188
 '''
     )
-    yield run
+    return run
 
 
 @pytest.mark.parametrize(
@@ -533,7 +533,7 @@ def test_argless_changelog_output_no_convert(
 
 
 @pytest.mark.parametrize(
-    'command, exit_code',
+    ('command', 'exit_code'),
     [
         ('list mol', 0),
         ('info foo', 0),

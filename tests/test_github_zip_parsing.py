@@ -70,7 +70,7 @@ def package_json_less_addon(
 
 
 @pytest.mark.parametrize(
-    'iw_mock_aiohttp_requests',
+    '_iw_mock_aiohttp_requests',
     [
         {
             URL('//api.github.com/repos/ketho-wow/RaidFadeMore'),

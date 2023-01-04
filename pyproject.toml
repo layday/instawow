@@ -81,14 +81,17 @@ types = [
 
 [tool.ruff]
 select = [
-  "B0",     # bugbear (without opinionated rules)
-  "C4",     # comprehensions
-  "DTZ",    # datetimez
+  "B0",     # flake8-bugbear (without opinionated rules)
+  "C4",     # flake8-comprehensions
+  "DTZ",    # flake8-datetimez
   "E",      # pycodestyle
   "F",      # pyflakes
   "I0",     # isort
+  "PIE",    # flake8-pie
   "PGH",    # pygrep-hooks
+  "PT",     # flake8-pytest-style
   "RUF100", # ruff: `UnusedNOQA`
+  "SIM",    # flake8-simplify
   "UP",     # pyupgrade
   "W",      # pycodestyle
 ]
@@ -97,6 +100,10 @@ ignore = [
 ]
 line-length = 99
 target-version = "py39"
+
+[tool.ruff.flake8-pytest-style]
+fixture-parentheses = false
+mark-parentheses = false
 
 [tool.ruff.isort]
 known-first-party = [

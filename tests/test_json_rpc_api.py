@@ -123,7 +123,8 @@ async def test_install_with_invalid_params(
     }
     await ws.send_json(rpc_request, dumps=dumps)
     rpc_response = await ws.receive_json()
-    assert rpc_response['error'] and rpc_response['error']['code'] == -32602
+    assert rpc_response['error']
+    assert rpc_response['error']['code'] == -32602
 
 
 @pytest.mark.xfail
@@ -143,4 +144,5 @@ async def test_install_with_uninitialised_profile(
     }
     await ws.send_json(rpc_request, dumps=dumps)
     rpc_response = await ws.receive_json()
-    assert rpc_response['error'] and rpc_response['error']['code'] == -32001
+    assert rpc_response['error']
+    assert rpc_response['error']['code'] == -32001

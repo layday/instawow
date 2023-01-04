@@ -21,7 +21,7 @@ from instawow.utils import (
 
 @pytest.fixture
 def fake_addon_toc():
-    yield Path(__file__).parent / 'fixtures' / 'FakeAddon' / 'FakeAddon.toc'
+    return Path(__file__).parent / 'fixtures' / 'FakeAddon' / 'FakeAddon.toc'
 
 
 def test_find_addon_zip_tocs_can_find_explicit_dirs():

@@ -51,9 +51,8 @@ async def test_pinning_unsupported_pkg(iw_manager: Manager):
     installed_pkg = iw_manager.get_pkg(molinari_defn)
     assert installed_pkg.options.version_eq is False
     result = await iw_manager.pin([molinari_defn])
-    assert type(result[molinari_defn]) is R.PkgStrategiesUnsupported and result[
-        molinari_defn
-    ].strategies == {Strategy.version_eq}
+    assert type(result[molinari_defn]) is R.PkgStrategiesUnsupported
+    assert result[molinari_defn].strategies == {Strategy.version_eq}
     assert installed_pkg.options.version_eq is False
 
 
@@ -289,7 +288,7 @@ async def test_get_changelog_from_web_url(iw_manager: Manager):
 
 
 @pytest.mark.parametrize(
-    'iw_mock_aiohttp_requests',
+    '_iw_mock_aiohttp_requests',
     [set()],
     indirect=True,
 )

@@ -118,7 +118,7 @@ def iw_manager(iw_config: Config, iw_web_client: aiohttp.ClientSession):
 
 @pytest.fixture(autouse=True, params=['all'])
 @should_mock
-def iw_mock_aiohttp_requests(
+def _iw_mock_aiohttp_requests(
     request: pytest.FixtureRequest, aresponses: _StrictResponsesMockServer
 ):
     if request.param == 'all':

@@ -38,7 +38,7 @@ def molinari(iw_manager: Manager):
 ''',
         )
 
-    yield molinari_folder
+    return molinari_folder
 
 
 def test_can_extract_defns_from_addon_folder_toc(iw_manager: Manager, molinari: Path):

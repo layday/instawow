@@ -10,7 +10,7 @@ from instawow.wa_updater import WaCompanionBuilder, WeakAura, WeakAuras
 
 
 @pytest.fixture
-def wa_saved_vars(iw_manager: Manager):
+def _wa_saved_vars(iw_manager: Manager):
     saved_vars = (
         iw_manager.config.addon_dir.parents[1] / 'WTF' / 'Account' / 'test' / 'SavedVariables'
     )
@@ -30,7 +30,7 @@ WeakAurasSaved = {
 
 @pytest.fixture
 def builder(iw_manager: Manager):
-    yield WaCompanionBuilder(iw_manager)
+    return WaCompanionBuilder(iw_manager)
 
 
 def test_can_parse_empty_displays_table(builder: WaCompanionBuilder):
@@ -121,9 +121,8 @@ def test_can_build_addon_with_empty_seq(builder: WaCompanionBuilder):
     builder._generate_addon([])
 
 
-async def test_can_build_addon_with_mock_saved_vars(
-    builder: WaCompanionBuilder, wa_saved_vars: None
-):
+@pytest.mark.usefixtures(_wa_saved_vars)
+async def test_can_build_addon_with_mock_saved_vars(builder: WaCompanionBuilder):
     await builder.build()
 
 

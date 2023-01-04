@@ -37,9 +37,9 @@ async def test_curse_simple_strategies(iw_manager: Manager):
         iw_manager.config.game_flavour is Flavour.vanilla_classic
         or iw_manager.config.game_flavour is Flavour.classic
     ):
+        assert type(results[retail_only]) is R.PkgFilesNotMatching
         assert (
-            type(results[retail_only]) is R.PkgFilesNotMatching
-            and results[retail_only].message
+            results[retail_only].message
             == "no files found for: any_flavour=None; any_release_type=None; version_eq=None"
         )
     elif iw_manager.config.game_flavour is Flavour.retail:
@@ -61,7 +61,8 @@ async def test_curse_any_flavour_strategy(iw_manager: Manager):
 async def test_curse_version_pinning(iw_manager: Manager):
     defn = Defn('curse', 'molinari', strategies=StrategyValues(version_eq='80000.58-Release'))
     results = await iw_manager.resolve([defn])
-    assert results[defn].options.version_eq is True and results[defn].version == '80000.58-Release'
+    assert results[defn].options.version_eq is True
+    assert results[defn].version == '80000.58-Release'
 
 
 async def test_curse_deps_retrieved(iw_manager: Manager):
@@ -105,13 +106,16 @@ async def test_tukui_basic(iw_manager: Manager):
 
     results = await iw_manager.resolve([regular_addon, tukui_suite, elvui_suite])
 
-    assert type(results[regular_addon]) is Pkg and (
+    assert type(results[regular_addon]) is Pkg
+    assert (
         results[regular_addon].name == 'MerathilisUI'
         if iw_manager.config.game_flavour is Flavour.retail
         else 'ElvUI'
     )
-    assert type(results[tukui_suite]) is Pkg and results[tukui_suite].name == 'Tukui'
-    assert type(results[elvui_suite]) is Pkg and results[elvui_suite].name == 'ElvUI'
+    assert type(results[tukui_suite]) is Pkg
+    assert results[tukui_suite].name == 'Tukui'
+    assert type(results[elvui_suite]) is Pkg
+    assert results[elvui_suite].name == 'ElvUI'
 
 
 async def test_tukui_ui_suite_aliases_for_retail(iw_manager: Manager):
@@ -144,10 +148,8 @@ async def test_github_basic(iw_manager: Manager):
     results = await iw_manager.resolve([release_json, releaseless, nonexistent])
 
     assert type(results[release_json]) is Pkg
-    assert (
-        type(results[releaseless]) is R.PkgFilesMissing
-        and results[releaseless].message == 'release not found'
-    )
+    assert type(results[releaseless]) is R.PkgFilesMissing
+    assert results[releaseless].message == 'release not found'
     assert type(results[nonexistent]) is R.PkgNonexistent
 
 
@@ -167,7 +169,7 @@ async def test_github_changelog_is_data_url(iw_manager: Manager):
     indirect=('iw_config_values',),
 )
 @pytest.mark.parametrize(
-    'iw_mock_aiohttp_requests',
+    '_iw_mock_aiohttp_requests',
     [
         {
             URL('//api.github.com/repos/nebularg/PackagerTest'),
@@ -226,11 +228,8 @@ async def test_unsupported_strategies(iw_manager: Manager, resolver: Resolver):
 
         results = await iw_manager.resolve([strategy_defn])
 
-        assert (
-            type(results[strategy_defn]) is R.PkgStrategiesUnsupported
-            and results[strategy_defn].message
-            == f"strategies are not valid for source: {strategy}"
-        )
+        assert type(results[strategy_defn]) is R.PkgStrategiesUnsupported
+        assert results[strategy_defn].message == f"strategies are not valid for source: {strategy}"
 
 
 @pytest.mark.parametrize(
