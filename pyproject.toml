@@ -91,7 +91,6 @@ select = [
   "PGH",    # pygrep-hooks
   "PT",     # flake8-pytest-style
   "RUF100", # ruff: `UnusedNOQA`
-  "SIM",    # flake8-simplify
   "UP",     # pyupgrade
   "W",      # pycodestyle
 ]
