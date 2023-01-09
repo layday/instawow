@@ -42,7 +42,7 @@
     "@open-rpc/client-js": "^1.6.3",
     "commonmark": "^0.30.0",
     "lodash": "^4.17.21",
-    "luxon": "^3.1.0",
+    "luxon": "^3.2.1",
     "semaphore-async-await": "^1.5.1",
     "string-strip-html": "^9.0.4"
   },
