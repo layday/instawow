@@ -121,7 +121,7 @@ def test_can_build_addon_with_empty_seq(builder: WaCompanionBuilder):
     builder._generate_addon([])
 
 
-@pytest.mark.usefixtures(_wa_saved_vars)
+@pytest.mark.usefixtures('_wa_saved_vars')
 async def test_can_build_addon_with_mock_saved_vars(builder: WaCompanionBuilder):
     await builder.build()
 
