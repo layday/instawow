@@ -90,6 +90,7 @@ select = [
   "PIE",    # flake8-pie
   "PGH",    # pygrep-hooks
   "PT",     # flake8-pytest-style
+  "Q",      # flake8-quotes
   "RUF100", # ruff: `UnusedNOQA`
   "UP",     # pyupgrade
   "W",      # pycodestyle
@@ -103,6 +104,11 @@ target-version = "py39"
 [tool.ruff.flake8-pytest-style]
 fixture-parentheses = false
 mark-parentheses = false
+
+[tool.ruff.flake8-quotes]
+docstring-quotes = "double"
+inline-quotes = "single"
+multiline-quotes = "single"
 
 [tool.ruff.isort]
 known-first-party = [

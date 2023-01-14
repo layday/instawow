@@ -112,8 +112,8 @@ class PkgFilesNotMatching(ManagerError):
 
     @property
     def message(self) -> str:
-        return 'no files found for: ' + "; ".join(
-            f"{s}={v!r}" for s, v in asdict(self._strategies).items()
+        return 'no files found for: ' + '; '.join(
+            f'{s}={v!r}' for s, v in asdict(self._strategies).items()
         )
 
 

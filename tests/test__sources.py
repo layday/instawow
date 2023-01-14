@@ -40,7 +40,7 @@ async def test_curse_simple_strategies(iw_manager: Manager):
         assert type(results[retail_only]) is R.PkgFilesNotMatching
         assert (
             results[retail_only].message
-            == "no files found for: any_flavour=None; any_release_type=None; version_eq=None"
+            == 'no files found for: any_flavour=None; any_release_type=None; version_eq=None'
         )
     elif iw_manager.config.game_flavour is Flavour.retail:
         assert type(results[retail_only]) is Pkg
@@ -190,11 +190,11 @@ async def test_github_flavor_and_interface_mismatch(
         re.compile(r'^/repos/nebularg/PackagerTest/releases/assets/'),
         'GET',
         {
-            "releases": [
+            'releases': [
                 {
-                    "filename": "TestGit-v1.9.7.zip",
-                    "nolib": False,
-                    "metadata": [{"flavor": flavor, "interface": interface}],
+                    'filename': 'TestGit-v1.9.7.zip',
+                    'nolib': False,
+                    'metadata': [{'flavor': flavor, 'interface': interface}],
                 }
             ]
         },
@@ -229,7 +229,7 @@ async def test_unsupported_strategies(iw_manager: Manager, resolver: Resolver):
         results = await iw_manager.resolve([strategy_defn])
 
         assert type(results[strategy_defn]) is R.PkgStrategiesUnsupported
-        assert results[strategy_defn].message == f"strategies are not valid for source: {strategy}"
+        assert results[strategy_defn].message == f'strategies are not valid for source: {strategy}'
 
 
 @pytest.mark.parametrize(

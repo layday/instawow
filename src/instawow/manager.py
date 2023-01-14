@@ -212,7 +212,7 @@ class Manager:
         InstawowResolver,
         WagoResolver,
     ]
-    "Default resolvers."
+    'Default resolvers.'
 
     _base_catalogue_url = (
         f'https://raw.githubusercontent.com/layday/instawow-data/data/'

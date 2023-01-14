@@ -187,11 +187,11 @@ class _SLPP:
 
         self._next()
 
-        if s == "true":
+        if s == 'true':
             return True
-        elif s == "false":
+        elif s == 'false':
             return False
-        elif s == "nil":
+        elif s == 'nil':
             return None
         return s
 

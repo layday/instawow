@@ -403,7 +403,7 @@ def update(mw: _CtxObjWrapper, addons: Sequence[Defn]) -> None:
     '--keep-folders',
     is_flag=True,
     default=False,
-    help="Do not delete the add-on folders.",
+    help='Do not delete the add-on folders.',
 )
 @click.pass_obj
 def remove(mw: _CtxObjWrapper, addons: Sequence[Defn], keep_folders: bool) -> None:

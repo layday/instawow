@@ -77,7 +77,7 @@ def test_array_like_table():
     # nil is erased
     assert loads('{ nil }') == {}
     # string literals
-    assert loads('{ "10" }') == ["10"]
+    assert loads('{ "10" }') == ['10']
     # trailing zero
     assert loads('{ 0, 1, 0 }') == [0, 1, 0]
 
@@ -88,7 +88,7 @@ def test_dict_like_table():
     assert loads('{ [false] = 0 }') == {False: 0}
     assert loads('{ [true] = 1 }') == {True: 1}
     # bracketed string keys
-    assert loads('{ [ [[10]] ] = 1 }') == {"10": 1}
+    assert loads('{ [ [[10]] ] = 1 }') == {'10': 1}
     assert loads('{ [ [[false]] ] = "" }') == {'false': ''}
     # syntax error
     with pytest.raises(ParseError):

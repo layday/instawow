@@ -285,7 +285,7 @@ def test_rollback__unsupported(
     assert run('install wowi:13188-molinari').exit_code == 0
     assert (
         run(f'rollback {options} wowi:13188-molinari').output
-        == "✗ wowi:13188-molinari\n  strategies are not valid for source: version_eq\n"
+        == '✗ wowi:13188-molinari\n  strategies are not valid for source: version_eq\n'
     )
 
 
