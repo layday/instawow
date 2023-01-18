@@ -59,7 +59,7 @@ jobs:
       matrix:
         build-env:
           - os: macos-12
-            python-version: "3.10"
+            python-version: "3.11"
             briefcase-build-opts: ""
             briefcase-package-opts: "--no-sign"
           - os: ubuntu-18.04
