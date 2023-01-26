@@ -120,9 +120,9 @@ class _WagoApiResponse_Changelog(TypedDict):
 
 
 class _TocNumber(StrEnum):
-    retail = '100002'
+    retail = '100005'
     vanilla_classic = '11403'
-    classic = '30400'
+    classic = '30401'
 
 
 _Aura: TypeAlias = 'WeakAura | Plateroo'
