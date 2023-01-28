@@ -1,6 +1,6 @@
 { pkgs ? import <nixpkgs> { } }:
 let
-  python = pkgs.python310;
+  python = pkgs.python311;
   venvDir = toString ./venvs + ("/" + python.pythonVersion);
 in
 pkgs.mkShell {
