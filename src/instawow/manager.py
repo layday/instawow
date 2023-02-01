@@ -579,9 +579,7 @@ class Manager:
 
         threshold = 0 if search_terms == '*' else 70
 
-        if not sources:
-            sources = self.resolvers.keys()
-        else:
+        if sources:
             unknown_sources = sources - self.resolvers.keys()
             if unknown_sources:
                 raise ValueError(f'Unknown sources: {", ".join(unknown_sources)}')
@@ -592,7 +590,7 @@ class Manager:
 
             yield filter_game_flavour
 
-            if sources is not None:
+            if sources:
 
                 def filter_sources(entry: CatalogueEntry):
                     return entry.source in sources
