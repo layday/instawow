@@ -273,7 +273,6 @@ class GithubResolver(BaseResolver):
     async def _find_matching_asset_from_release_json(
         self, assets: list[_GithubRelease_Asset], release_json_asset: _GithubRelease_Asset
     ):
-
         download_headers = await self.make_request_headers(HeadersIntent.download)
 
         async with self._manager.web_client.get(

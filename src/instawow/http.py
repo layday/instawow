@@ -99,6 +99,5 @@ async def init_web_client(
             ) as client_session:
                 yield client_session
     else:
-
         async with ClientSession(**kwargs) as client_session:
             yield client_session

@@ -351,7 +351,6 @@ class CfCoreResolver(BaseResolver):
             yield lambda f: not f.get('exposeAsAlternative', False)
 
             if not defn.strategies.any_flavour:
-
                 type_id = self._manager.config.game_flavour.to_flavour_keyed_enum(
                     _CfCoreSortableGameVersionTypeId
                 )

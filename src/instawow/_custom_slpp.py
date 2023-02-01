@@ -86,7 +86,6 @@ class _SLPP:
             self._next_not_eq(WHITESPACE)
 
             if self.c == '}':
-
                 # Convert table to list if k(0) = 1 and k = k(n-1) + 1, ...
                 if (
                     table
@@ -100,11 +99,9 @@ class _SLPP:
                 return table
 
             elif self.c == ',':
-
                 self._next()
 
             else:
-
                 is_val_long_string_literal = False
 
                 if self.c == '[':
@@ -216,7 +213,6 @@ class _SLPP:
             c = self.c
             self._next()
             if self.c == '-':
-
                 # This is a comment - skip to the end of the line
                 self._next_eq(NEWLINE)
                 return None
@@ -228,7 +224,6 @@ class _SLPP:
 
         n += self.c + get_digits()
         if n == '0' and self.c in HEXDELIMS:
-
             n += self.c
 
             for c in self._iter_text:
@@ -241,7 +236,6 @@ class _SLPP:
                 self.c = _sentinel
 
         else:
-
             if self.c == '.':
                 n += self.c + get_digits()
 
