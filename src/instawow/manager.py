@@ -612,7 +612,9 @@ class Manager:
         if installed_only:
             entries = (
                 e
-                for p in self.database.execute(sa.select(db.pkg.c.source, db.pkg.c.id)).all()
+                for p in self.database.execute(sa.select(db.pkg.c.source, db.pkg.c.id))
+                .tuples()
+                .all()
                 for e in (catalogue.keyed_entries.get(p),)
                 if e
             )

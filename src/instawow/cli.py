@@ -738,21 +738,21 @@ def list_installed(mw: _CtxObjWrapper, addons: Sequence[Defn], output_format: _L
 
     pkg_mappings = (
         mw.manager.database.execute(
-            sa.select(db.pkg)
-            .filter(
-                sa.or_(
-                    *(
-                        db.pkg.c.slug.contains(d.alias)
-                        if d.source == '*'
-                        else (db.pkg.c.source == d.source)
-                        & ((db.pkg.c.id == d.alias) | (db.pkg.c.slug == d.alias))
-                        for d in addons
+            (
+                sa.select(db.pkg).filter(
+                    sa.or_(
+                        *(
+                            db.pkg.c.slug.contains(d.alias)
+                            if d.source == '*'
+                            else (db.pkg.c.source == d.source)
+                            & ((db.pkg.c.id == d.alias) | (db.pkg.c.slug == d.alias))
+                            for d in addons
+                        )
                     )
                 )
                 if addons
-                else True
-            )
-            .order_by(db.pkg.c.source, sa.func.lower(db.pkg.c.name))
+                else sa.select(db.pkg)
+            ).order_by(db.pkg.c.source, sa.func.lower(db.pkg.c.name))
         )
         .mappings()
         .all()

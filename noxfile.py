@@ -86,7 +86,7 @@ def lint(session: nox.Session):
             '''\
             aiohttp == 3.8.2
             aiohttp-client-cache == 0.8.0
-            alembic == 1.7.0
+            alembic == 1.9.0
             attrs == 22.1.0
             cattrs == 22.2.0
             click == 8.1.0
@@ -98,7 +98,7 @@ def lint(session: nox.Session):
             prompt-toolkit == 3.0.29
             questionary == 1.10.0
             rapidfuzz == 2.12.0
-            sqlalchemy == 1.4.23
+            sqlalchemy == 2.0.0
             typing-extensions == 4.3.0
             yarl == 1.8.1
             aiohttp-rpc == 1.0.0
