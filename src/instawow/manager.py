@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import asyncio
 import contextvars as cv
 import json
 from collections import defaultdict
@@ -64,6 +63,7 @@ _ResultOrError: TypeAlias = '_T | R.ManagerError | R.InternalError'
 
 DB_REVISION = '98716a7301f8'
 
+_AsyncNamedTemporaryFile = t(NamedTemporaryFile)
 _move_async = t(move)
 
 
@@ -82,8 +82,7 @@ def _bucketise_results(
 
 @asynccontextmanager
 async def _open_temp_writer():
-    loop = asyncio.get_running_loop()
-    fh = await loop.run_in_executor(None, lambda: NamedTemporaryFile(delete=False))
+    fh = await _AsyncNamedTemporaryFile(delete=False)
     path = Path(fh.name)
     try:
         yield (path, t(fh.write))
