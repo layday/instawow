@@ -14,7 +14,6 @@ from tempfile import NamedTemporaryFile
 from typing import NoReturn, TypeVar
 
 import sqlalchemy as sa
-import sqlalchemy.future as sa_future
 from attrs import evolve
 from loguru import logger
 from typing_extensions import Concatenate, ParamSpec, TypeAlias
@@ -224,10 +223,10 @@ class Manager:
     def __init__(
         self,
         config: Config,
-        database: sa_future.Connection,
+        database: sa.Connection,
     ) -> None:
         self.config: Config = config
-        self.database: sa_future.Connection = database
+        self.database: sa.Connection = database
 
         builtin_resolver_classes = list(self.RESOLVERS)
 

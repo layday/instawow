@@ -8,7 +8,9 @@ from enum import IntEnum
 from sqlalchemy import (
     Boolean,
     Column,
+    Connection,
     DateTime,
+    Engine,
     ForeignKeyConstraint,
     MetaData,
     String,
@@ -20,7 +22,6 @@ from sqlalchemy import (
 )
 from sqlalchemy.event import listen
 from sqlalchemy.exc import OperationalError
-from sqlalchemy.future import Connection, Engine
 
 
 class TZDateTime(TypeDecorator[datetime]):

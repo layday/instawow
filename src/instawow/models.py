@@ -5,7 +5,6 @@ from datetime import datetime
 from typing import Any
 
 import sqlalchemy as sa
-import sqlalchemy.future as sa_future
 from attrs import asdict, frozen
 from cattrs import Converter
 from cattrs.preconf.json import configure_converter
@@ -68,9 +67,7 @@ class Pkg:
     logged_versions: list[PkgLoggedVersion] = []  # pkg_version_log
 
     @classmethod
-    def from_row_mapping(
-        cls, connection: sa_future.Connection, row_mapping: Mapping[str, Any]
-    ) -> Self:
+    def from_row_mapping(cls, connection: sa.Connection, row_mapping: Mapping[str, Any]) -> Self:
         source_and_id = {'pkg_source': row_mapping['source'], 'pkg_id': row_mapping['id']}
         return _db_pkg_converter.structure(
             {
@@ -98,7 +95,7 @@ class Pkg:
             cls,
         )
 
-    def insert(self, connection: sa_future.Connection) -> None:
+    def insert(self, connection: sa.Connection) -> None:
         values = asdict(self)
         source_and_id = {'pkg_source': values['source'], 'pkg_id': values['id']}
         with db.faux_transact(connection):
@@ -116,7 +113,7 @@ class Pkg:
                 [{'version': values['version'], **source_and_id}],
             )
 
-    def delete(self, connection: sa_future.Connection) -> None:
+    def delete(self, connection: sa.Connection) -> None:
         with db.faux_transact(connection):
             connection.execute(sa.delete(db.pkg).filter_by(source=self.source, id=self.id))
 
