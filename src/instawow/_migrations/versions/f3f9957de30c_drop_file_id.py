@@ -1,6 +1,8 @@
 """
 Drop the package table's ``file_id`` column.
 """
+from __future__ import annotations
+
 import sqlalchemy as sa
 from alembic import op
 

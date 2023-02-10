@@ -6,6 +6,8 @@ Revises: 764fa963cc71
 Create Date: 2021-09-25 18:29:27.577648
 
 """
+from __future__ import annotations
+
 from alembic import op
 
 # revision identifiers, used by Alembic.

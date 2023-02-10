@@ -2,6 +2,8 @@
 Change the `pkg_options` table's `strategy` column to be
 one of 'default', 'latest'.
 """
+from __future__ import annotations
+
 from functools import partial, update_wrapper
 
 from alembic import op

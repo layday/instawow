@@ -1,6 +1,8 @@
 """
 Add UNIQUE constraint that was missing from ``pkg_dep``.
 """
+from __future__ import annotations
+
 from alembic import op
 
 # revision identifiers, used by Alembic.
