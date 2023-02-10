@@ -146,21 +146,9 @@ async def gather(
     return await asyncio.gather(*it)
 
 
-@overload
-def run_in_thread(
-    fn: type[list[object]],
-) -> Callable[[Iterable[_U]], Awaitable[list[_U]]]:
-    ...
-
-
-@overload
 def run_in_thread(fn: Callable[_P, _U]) -> Callable[_P, Awaitable[_U]]:
-    ...
-
-
-def run_in_thread(fn: Callable[..., object]) -> Callable[..., Awaitable[object]]:
     @wraps(fn)
-    def wrapper(*args: object, **kwargs: object):
+    def wrapper(*args: _P.args, **kwargs: _P.kwargs):
         loop = asyncio.get_running_loop()
         return loop.run_in_executor(None, partial(fn, *args, **kwargs))
 

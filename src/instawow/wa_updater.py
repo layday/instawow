@@ -317,7 +317,7 @@ class WaCompanionBuilder:
         )
 
     async def build(self) -> None:
-        installed_auras = await t(list)(self.extract_installed_auras())
+        installed_auras = await t(list[_Auras])(self.extract_installed_auras())
         installed_auras_by_type = _merge_auras(installed_auras)
         aura_groups = await gather(
             self.get_remote_auras(r) for r in installed_auras_by_type.values()
