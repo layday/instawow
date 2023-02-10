@@ -23,10 +23,10 @@ from datetime import datetime, timedelta
 from functools import partial, wraps
 from itertools import chain, groupby, islice, repeat
 from pathlib import Path, PurePath
-from shutil import move as _move
+from shutil import move
 from tempfile import mkdtemp
 from types import ModuleType
-from typing import Any, Generic, TypeVar, overload
+from typing import Generic, TypeVar, overload
 
 from typing_extensions import ParamSpec
 
@@ -181,13 +181,6 @@ def tabulate(rows: Sequence[tuple[object, ...]], *, max_col_width: int = 60) -> 
     return table
 
 
-def move(src: str | os.PathLike[str], dest: str | os.PathLike[str]) -> Any:
-    return _move(
-        os.fspath(src),  # See https://bugs.python.org/issue32689
-        dest,
-    )
-
-
 def trash(paths: Collection[PurePath], *, dest: PurePath, missing_ok: bool = False) -> None:
     if not paths:
         return
@@ -199,7 +192,7 @@ def trash(paths: Collection[PurePath], *, dest: PurePath, missing_ok: bool = Fal
 
     for path in paths:
         try:
-            move(path, dest=parent_folder)
+            move(path, parent_folder)
         except exc_classes:
             pass
 

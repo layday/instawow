@@ -9,6 +9,7 @@ from datetime import datetime, timedelta
 from functools import cached_property, wraps
 from itertools import chain, filterfalse, product, repeat, starmap, takewhile
 from pathlib import Path, PurePath
+from shutil import move
 from tempfile import NamedTemporaryFile
 from typing import NoReturn, TypeVar
 
@@ -48,7 +49,6 @@ from .utils import (
     is_file_uri,
     is_not_stale,
     make_zip_member_filter_fn,
-    move,
     normalise_names,
     shasum,
     time_op,
