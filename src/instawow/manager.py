@@ -695,18 +695,14 @@ class Manager:
                 ),
             )
         )
-        results = chain_dict(
-            defns,
-            R.PkgAlreadyInstalled(),
-            resolve_errors.items(),
-            download_errors.items(),
-            [
-                (
-                    d,
-                    await capture_manager_exc_async(self._install_pkg(pkgs[d], a, replace)),
-                )
+        results = (
+            dict.fromkeys(defns, R.PkgAlreadyInstalled())
+            | resolve_errors
+            | download_errors
+            | {
+                d: await capture_manager_exc_async(self._install_pkg(pkgs[d], a, replace))
                 for d, a in archive_paths.items()
-            ],
+            }
         )
         return results
 
@@ -750,25 +746,21 @@ class Manager:
                 ),
             )
         )
-        results = chain_dict(
-            defns,
-            R.PkgNotInstalled(),
-            resolve_errors.items(),
-            (
-                (d, R.PkgUpToDate(is_pinned=pkgs[d].options.version_eq))
+        results = (
+            dict.fromkeys(defns, R.PkgNotInstalled())
+            | resolve_errors
+            | {
+                d: R.PkgUpToDate(is_pinned=pkgs[d].options.version_eq)
                 for d in pkgs.keys() - updatables.keys()
-            ),
-            download_errors.items(),
-            [
-                (
-                    d,
-                    await capture_manager_exc_async(
-                        self._update_pkg(o, n, a) if o else self._install_pkg(n, a, False)
-                    ),
+            }
+            | download_errors
+            | {
+                d: await capture_manager_exc_async(
+                    self._update_pkg(o, n, a) if o else self._install_pkg(n, a, False)
                 )
                 for d, a in archive_paths.items()
                 for o, n in (updatables[d],)
-            ],
+            }
         )
         return results
 

@@ -4,7 +4,7 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from functools import lru_cache, partial
 from pathlib import Path
-from typing import Any, Literal
+from typing import Literal
 
 from loguru import logger
 from typing_extensions import TypeAlias, TypedDict
@@ -56,7 +56,7 @@ def _load_certifi_certs():
 
 @asynccontextmanager
 async def init_web_client(
-    cache_dir: Path | None, *, no_cache: bool = False, **kwargs: Any
+    cache_dir: Path | None, *, no_cache: bool = False, **kwargs: object
 ) -> AsyncIterator[_deferred_types.aiohttp.ClientSession]:
     from aiohttp import ClientSession, ClientTimeout, TCPConnector
 

@@ -37,7 +37,7 @@ class WeakAura:
     version: int
 
     @classmethod
-    def from_lua_table(cls, lua_table: Any):
+    def from_lua_table(cls, lua_table: dict[str, Any]):
         url_string = lua_table.get('url')
         if url_string is not None:
             weakaura = _aura_converter.structure(lua_table, cls)
@@ -50,7 +50,7 @@ class Plateroo(WeakAura):
     uid: str = ''
 
     @classmethod
-    def from_lua_table(cls, lua_table: Any):
+    def from_lua_table(cls, lua_table: dict[str, Any]):
         return super().from_lua_table({**lua_table, 'id': lua_table['Name']})
 
 
@@ -125,9 +125,8 @@ class _TocNumber(StrEnum):
     classic = '30401'
 
 
-_Aura: TypeAlias = 'WeakAura | Plateroo'
 _Auras: TypeAlias = 'WeakAuras | Plateroos'
-_Matches: TypeAlias = list[tuple[Sequence[_Aura], '_WagoApiResponse', str]]
+_Matches: TypeAlias = list[tuple[Sequence['WeakAura | Plateroo'], _WagoApiResponse, str]]
 
 
 class WaCompanionBuilder:

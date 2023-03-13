@@ -101,7 +101,11 @@ class BaseResolver(Resolver, Protocol):
                 )
                 if extraneous_strategies:
                     raise R.PkgStrategiesUnsupported(extraneous_strategies)
-                return await cls_resolve_one(self, defn, metadata)
+                return await cls_resolve_one(
+                    self,  # pyright: ignore
+                    defn,
+                    metadata,
+                )
 
             cls_resolve_one = cls.resolve_one
             setattr(cls, cls.resolve_one.__name__, update_wrapper(resolve_one, cls.resolve_one))
