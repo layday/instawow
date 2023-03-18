@@ -89,6 +89,8 @@ select = [
   "PGH",    # pygrep-hooks
   "PT",     # flake8-pytest-style
   "Q",      # flake8-quotes
+  "RUF005", # ruff: unpack-instead-of-concatenating-to-collection-literal
+  "RUF006", # ruff: asyncio-dangling-task
   "RUF100", # ruff: unused-noqa
   "UP",     # pyupgrade
   "W",      # pycodestyle

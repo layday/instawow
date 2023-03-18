@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import contextvars
 import json
 import os
 import typing
@@ -47,6 +48,8 @@ from . import frontend
 _T = TypeVar('_T')
 _P = ParamSpec('_P')
 _ManagerBoundCoroFn: TypeAlias = Callable[Concatenate[Manager, _P], Awaitable[_T]]
+
+_toga_app_window = contextvars.ContextVar[toga.MainWindow]('_toga_app_window')
 
 
 LOCALHOST = '127.0.0.1'
@@ -132,19 +135,15 @@ class _DefnParamMixin:
 
 class BaseParams:
     @classmethod
-    def bind(
-        cls, method: str, managers: _ManagerWorkQueue, app_window: toga.MainWindow | None
-    ) -> JsonRpcMethod:
+    def bind(cls, method: str, managers: _ManagerWorkQueue) -> JsonRpcMethod:
         async def respond(**kwargs: Any):
             with _reraise_validation_error(InvalidParams, kwargs):
                 self = _converter.structure(kwargs, cls)
-            return await self.respond(managers, app_window)
+            return await self.respond(managers)
 
         return JsonRpcMethod(respond, name=method)
 
-    async def respond(
-        self, managers: _ManagerWorkQueue, app_window: toga.MainWindow | None
-    ) -> Any:
+    async def respond(self, managers: _ManagerWorkQueue) -> Any:
         raise NotImplementedError
 
 
@@ -154,9 +153,7 @@ class WriteProfileConfigParams(_ProfileParamMixin, BaseParams):
     game_flavour: Flavour
     infer_game_flavour: bool
 
-    async def respond(
-        self, managers: _ManagerWorkQueue, app_window: toga.MainWindow | None
-    ) -> Config:
+    async def respond(self, managers: _ManagerWorkQueue) -> Config:
         async with managers.locks['modify profile', self.profile]:
             with _reraise_validation_error(_ConfigError):
                 config = config_converter.structure(
@@ -184,17 +181,13 @@ class WriteProfileConfigParams(_ProfileParamMixin, BaseParams):
 
 @_register_method('config/read_profile')
 class ReadProfileConfigParams(_ProfileParamMixin, BaseParams):
-    async def respond(
-        self, managers: _ManagerWorkQueue, app_window: toga.MainWindow | None
-    ) -> Config:
+    async def respond(self, managers: _ManagerWorkQueue) -> Config:
         return await _read_config(managers.global_config, self.profile)
 
 
 @_register_method('config/delete_profile')
 class DeleteProfileConfigParams(_ProfileParamMixin, BaseParams):
-    async def respond(
-        self, managers: _ManagerWorkQueue, app_window: toga.MainWindow | None
-    ) -> None:
+    async def respond(self, managers: _ManagerWorkQueue) -> None:
         async def delete_profile(manager: Manager):
             await t(manager.config.delete)()
             managers.unload_profile(self.profile)
@@ -204,9 +197,7 @@ class DeleteProfileConfigParams(_ProfileParamMixin, BaseParams):
 
 @_register_method('config/list_profiles')
 class ListProfilesParams(BaseParams):
-    async def respond(
-        self, managers: _ManagerWorkQueue, app_window: toga.MainWindow | None
-    ) -> list[str]:
+    async def respond(self, managers: _ManagerWorkQueue) -> list[str]:
         return await t(managers.global_config.list_profiles)()
 
 
@@ -214,9 +205,7 @@ class ListProfilesParams(BaseParams):
 class UpdateGlobalConfigParams(BaseParams):
     access_tokens: dict[str, typing.Union[str, None]]
 
-    async def respond(
-        self, managers: _ManagerWorkQueue, app_window: toga.MainWindow | None
-    ) -> GlobalConfig:
+    async def respond(self, managers: _ManagerWorkQueue) -> GlobalConfig:
         def update_global_config_cb(global_config: GlobalConfig):
             return evolve(
                 global_config,
@@ -231,9 +220,7 @@ class UpdateGlobalConfigParams(BaseParams):
 
 @_register_method('config/read_global')
 class ReadGlobalConfigParams(BaseParams):
-    async def respond(
-        self, managers: _ManagerWorkQueue, app_window: toga.MainWindow | None
-    ) -> GlobalConfig:
+    async def respond(self, managers: _ManagerWorkQueue) -> GlobalConfig:
         return await _read_global_config()
 
 
@@ -244,9 +231,7 @@ class GithubCodesResponse(TypedDict):
 
 @_register_method('config/initiate_github_auth_flow')
 class InitiateGithubAuthFlowParams(BaseParams):
-    async def respond(
-        self, managers: _ManagerWorkQueue, app_window: toga.MainWindow | None
-    ) -> GithubCodesResponse:
+    async def respond(self, managers: _ManagerWorkQueue) -> GithubCodesResponse:
         return await managers.initiate_github_auth_flow()
 
 
@@ -256,34 +241,26 @@ class GithubAuthFlowStatusReport(TypedDict):
 
 @_register_method('config/query_github_auth_flow_status')
 class QueryGithubAuthFlowStatusParams(BaseParams):
-    async def respond(
-        self, managers: _ManagerWorkQueue, app_window: toga.MainWindow | None
-    ) -> GithubAuthFlowStatusReport:
+    async def respond(self, managers: _ManagerWorkQueue) -> GithubAuthFlowStatusReport:
         return {'status': await managers.wait_for_github_auth_completion()}
 
 
 @_register_method('config/cancel_github_auth_flow')
 class CancelGithubAuthFlowParams(BaseParams):
-    async def respond(
-        self, managers: _ManagerWorkQueue, app_window: toga.MainWindow | None
-    ) -> None:
+    async def respond(self, managers: _ManagerWorkQueue) -> None:
         managers.cancel_github_auth_polling()
 
 
 @_register_method('sources/list')
 class ListSourcesParams(_ProfileParamMixin, BaseParams):
-    async def respond(
-        self, managers: _ManagerWorkQueue, app_window: toga.MainWindow | None
-    ) -> dict[str, SourceMetadata]:
+    async def respond(self, managers: _ManagerWorkQueue) -> dict[str, SourceMetadata]:
         manager = await managers.get_manager(self.profile)
         return {r.metadata.id: r.metadata for r in manager.resolvers.values()}
 
 
 @_register_method('list')
 class ListInstalledParams(_ProfileParamMixin, BaseParams):
-    async def respond(
-        self, managers: _ManagerWorkQueue, app_window: toga.MainWindow | None
-    ) -> list[models.Pkg]:
+    async def respond(self, managers: _ManagerWorkQueue) -> list[models.Pkg]:
         manager = await managers.get_manager(self.profile)
         installed_pkgs = (
             manager.database.execute(sa.select(db.pkg).order_by(sa.func.lower(db.pkg.c.name)))
@@ -301,9 +278,7 @@ class SearchParams(_ProfileParamMixin, BaseParams):
     start_date: typing.Union[datetime, None]
     installed_only: bool
 
-    async def respond(
-        self, managers: _ManagerWorkQueue, app_window: toga.MainWindow | None
-    ) -> list[CatalogueEntry]:
+    async def respond(self, managers: _ManagerWorkQueue) -> list[CatalogueEntry]:
         return await managers.run(
             self.profile,
             partial(
@@ -340,9 +315,7 @@ class ResolveParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
 
         return await manager.resolve(list(map(extract_source, self.defns)))
 
-    async def respond(
-        self, managers: _ManagerWorkQueue, app_window: toga.MainWindow | None
-    ) -> list[SuccessResult | ErrorResult]:
+    async def respond(self, managers: _ManagerWorkQueue) -> list[SuccessResult | ErrorResult]:
         results = await managers.run(self.profile, self._resolve)
         return [
             {'status': 'success', 'addon': r}
@@ -356,9 +329,7 @@ class ResolveParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
 class InstallParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
     replace: bool
 
-    async def respond(
-        self, managers: _ManagerWorkQueue, app_window: toga.MainWindow | None
-    ) -> list[SuccessResult | ErrorResult]:
+    async def respond(self, managers: _ManagerWorkQueue) -> list[SuccessResult | ErrorResult]:
         results = await managers.run(
             self.profile, partial(Manager.install, defns=self.defns, replace=self.replace)
         )
@@ -372,9 +343,7 @@ class InstallParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
 
 @_register_method('update')
 class UpdateParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
-    async def respond(
-        self, managers: _ManagerWorkQueue, app_window: toga.MainWindow | None
-    ) -> list[SuccessResult | ErrorResult]:
+    async def respond(self, managers: _ManagerWorkQueue) -> list[SuccessResult | ErrorResult]:
         results = await managers.run(
             self.profile, partial(Manager.update, defns=self.defns, retain_defn_strategy=True)
         )
@@ -392,9 +361,7 @@ class UpdateParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
 class RemoveParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
     keep_folders: bool
 
-    async def respond(
-        self, managers: _ManagerWorkQueue, app_window: toga.MainWindow | None
-    ) -> list[SuccessResult | ErrorResult]:
+    async def respond(self, managers: _ManagerWorkQueue) -> list[SuccessResult | ErrorResult]:
         results = await managers.run(
             self.profile, partial(Manager.remove, defns=self.defns, keep_folders=self.keep_folders)
         )
@@ -408,9 +375,7 @@ class RemoveParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
 
 @_register_method('pin')
 class PinParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
-    async def respond(
-        self, managers: _ManagerWorkQueue, app_window: toga.MainWindow | None
-    ) -> list[SuccessResult | ErrorResult]:
+    async def respond(self, managers: _ManagerWorkQueue) -> list[SuccessResult | ErrorResult]:
         results = await managers.run(self.profile, partial(Manager.pin, defns=self.defns))
         return [
             {'status': r.status, 'addon': r.pkg}
@@ -425,9 +390,7 @@ class GetChangelogParams(_ProfileParamMixin, BaseParams):
     source: str
     changelog_url: str
 
-    async def respond(
-        self, managers: _ManagerWorkQueue, app_window: toga.MainWindow | None
-    ) -> str:
+    async def respond(self, managers: _ManagerWorkQueue) -> str:
         return await managers.run(
             self.profile,
             partial(Manager.get_changelog, source=self.source, uri=self.changelog_url),
@@ -457,9 +420,7 @@ class ReconcileParams(_ProfileParamMixin, BaseParams):
         'addon_names_with_folder_names': matchers.match_addon_names_with_folder_names,
     }
 
-    async def respond(
-        self, managers: _ManagerWorkQueue, app_window: toga.MainWindow | None
-    ) -> list[AddonMatch]:
+    async def respond(self, managers: _ManagerWorkQueue) -> list[AddonMatch]:
         leftovers = await managers.run(self.profile, t(matchers.get_unreconciled_folders))
         match_groups = await managers.run(
             self.profile, partial(self._MATCHERS[self.matcher], leftovers=leftovers)
@@ -494,9 +455,7 @@ class ReconcileInstalledCandidate(TypedDict):
 
 @_register_method('get_reconcile_installed_candidates')
 class GetReconcileInstalledCandidatesParams(_ProfileParamMixin, BaseParams):
-    async def respond(
-        self, managers: _ManagerWorkQueue, app_window: toga.MainWindow | None
-    ) -> list[ReconcileInstalledCandidate]:
+    async def respond(self, managers: _ManagerWorkQueue) -> list[ReconcileInstalledCandidate]:
         manager = await managers.get_manager(self.profile)
         installed_pkgs = [
             models.Pkg.from_row_mapping(manager.database, p)
@@ -529,9 +488,7 @@ class DownloadProgressReport(TypedDict):
 
 @_register_method('get_download_progress')
 class GetDownloadProgressParams(_ProfileParamMixin, BaseParams):
-    async def respond(
-        self, managers: _ManagerWorkQueue, app_window: toga.MainWindow | None
-    ) -> list[DownloadProgressReport]:
+    async def respond(self, managers: _ManagerWorkQueue) -> list[DownloadProgressReport]:
         return [
             {'defn': p.to_defn(), 'progress': r}
             for p, r in await managers.get_manager_download_progress(self.profile)
@@ -545,9 +502,7 @@ class GetVersionResult(TypedDict):
 
 @_register_method('meta/get_version')
 class GetVersionParams(BaseParams):
-    async def respond(
-        self, managers: _ManagerWorkQueue, app_window: toga.MainWindow | None
-    ) -> GetVersionResult:
+    async def respond(self, managers: _ManagerWorkQueue) -> GetVersionResult:
         outdated, new_version = await is_outdated(managers.global_config)
         return {
             'installed_version': __version__,
@@ -559,9 +514,7 @@ class GetVersionParams(BaseParams):
 class OpenUrlParams(BaseParams):
     url: str
 
-    async def respond(
-        self, managers: _ManagerWorkQueue, app_window: toga.MainWindow | None
-    ) -> None:
+    async def respond(self, managers: _ManagerWorkQueue) -> None:
         click.launch(self.url)
 
 
@@ -569,9 +522,7 @@ class OpenUrlParams(BaseParams):
 class RevealFolderParams(BaseParams):
     path_parts: list[str]
 
-    async def respond(
-        self, managers: _ManagerWorkQueue, app_window: toga.MainWindow | None
-    ) -> None:
+    async def respond(self, managers: _ManagerWorkQueue) -> None:
         reveal_folder(os.path.join(*self.path_parts))
 
 
@@ -583,11 +534,8 @@ class SelectFolderResult(TypedDict):
 class SelectFolderParams(BaseParams):
     initial_folder: typing.Union[str, None]
 
-    async def respond(
-        self, managers: _ManagerWorkQueue, app_window: toga.MainWindow | None
-    ) -> SelectFolderResult:
-        if not app_window:
-            raise RuntimeError('No app to bind to')
+    async def respond(self, managers: _ManagerWorkQueue) -> SelectFolderResult:
+        app_window = _toga_app_window.get()
 
         selection: Path | None
         try:
@@ -606,11 +554,8 @@ class ConfirmDialogueParams(BaseParams):
     title: str
     message: str
 
-    async def respond(
-        self, managers: _ManagerWorkQueue, app_window: toga.MainWindow | None
-    ) -> ConfirmDialogueResult:
-        if not app_window:
-            raise RuntimeError('No app to bind to')
+    async def respond(self, managers: _ManagerWorkQueue) -> ConfirmDialogueResult:
+        app_window = _toga_app_window.get()
 
         ok: bool = await app_window.confirm_dialog(self.title, self.message)
         return {'ok': ok}
@@ -654,13 +599,13 @@ class _ManagerWorkQueue:
 
         self._exit_stack = AsyncExitStack()
 
-        self._queue: asyncio.Queue[
+        self._queue = asyncio.Queue[
             tuple[asyncio.Future[object], str, _ManagerBoundCoroFn[..., object]]
-        ] = asyncio.Queue()
+        ]()
 
         self.locks: LocksType = defaultdict(asyncio.Lock)
 
-        self._managers: dict[str, tuple[Manager, Callable[[], None]]] = {}
+        self._managers = dict[str, tuple[Manager, Callable[[], None]]]()
 
         self._github_auth_device_codes = None
         self._github_auth_flow_task = None
@@ -698,34 +643,35 @@ class _ManagerWorkQueue:
             self._unload_all_profiles()
             return self.global_config
 
-    async def _taskify(
-        self,
-        future: asyncio.Future[_T],
-        profile: str,
-        coro_fn: _ManagerBoundCoroFn[..., _T],
-    ):
-        try:
-            try:
-                manager, _ = self._managers[profile]
-            except KeyError:
-                async with self.locks['modify profile', profile]:
-                    try:
-                        manager, _ = self._managers[profile]
-                    except KeyError:
-                        manager, _ = self._managers[profile] = Manager.from_config(
-                            await _read_config(self.global_config, profile)
-                        )
-
-            result = await coro_fn(manager)
-        except BaseException as exc:
-            future.set_exception(exc)
-        else:
-            future.set_result(result)
-
     async def _listen(self):
+        async def taskify(
+            future: asyncio.Future[_T],
+            profile: str,
+            coro_fn: _ManagerBoundCoroFn[..., _T],
+        ):
+            try:
+                try:
+                    manager, _ = self._managers[profile]
+                except KeyError:
+                    async with self.locks['modify profile', profile]:
+                        try:
+                            manager, _ = self._managers[profile]
+                        except KeyError:
+                            manager, _ = self._managers[profile] = Manager.from_config(
+                                await _read_config(self.global_config, profile)
+                            )
+
+                future.set_result(await coro_fn(manager))
+            except BaseException as exc:
+                future.set_exception(exc)
+
+        background_tasks = set[asyncio.Task[None]]()
+
         while True:
             item = await self._queue.get()
-            asyncio.create_task(self._taskify(*item))
+            task = self._loop.create_task(taskify(*item))
+            background_tasks.add(task)
+            task.add_done_callback(background_tasks.discard)
             self._queue.task_done()
 
     async def run(self, profile: str, coro_fn: _ManagerBoundCoroFn[..., _T]) -> _T:
@@ -766,7 +712,7 @@ class _ManagerWorkQueue:
 
                     await self.update_global_config(update_global_config_cb)
 
-                def on_task_complete(future: object):
+                def on_task_complete(task: object):
                     self._github_auth_flow_task = None
                     self._github_auth_device_codes = None
 
@@ -789,7 +735,7 @@ class _ManagerWorkQueue:
             self._github_auth_flow_task.cancel()
 
 
-async def create_app(app_window: toga.MainWindow | None = None):
+async def create_app(toga_app_window: toga.MainWindow | None = None):
     managers = _ManagerWorkQueue()
 
     async def listen(app: aiohttp.web.Application):
@@ -824,7 +770,7 @@ async def create_app(app_window: toga.MainWindow | None = None):
         middlewares=rpc_middlewares.DEFAULT_MIDDLEWARES,  # pyright: ignore[reportUnknownMemberType]
     )
     rpc_server.add_methods(  # pyright: ignore[reportUnknownMemberType]
-        [m.bind(n, managers, app_window) for n, m in _methods]
+        [m.bind(n, managers) for n, m in _methods]
     )
 
     @aiohttp.web.middleware
@@ -850,7 +796,16 @@ async def create_app(app_window: toga.MainWindow | None = None):
 
         return await handler(request)
 
-    app = aiohttp.web.Application(middlewares=[enforce_same_origin])
+    @aiohttp.web.middleware
+    async def inject_toga_app_window(
+        request: aiohttp.web.Request,
+        handler: aiohttp.typedefs.Handler,
+    ):
+        if toga_app_window is not None:
+            _toga_app_window.set(toga_app_window)
+        return await handler(request)
+
+    app = aiohttp.web.Application(middlewares=[enforce_same_origin, inject_toga_app_window])
     app.add_routes(
         [
             aiohttp.web.get('/', get_index),
