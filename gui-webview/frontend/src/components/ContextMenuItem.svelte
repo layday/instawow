@@ -1,8 +1,24 @@
 <script lang="ts">
-  export let divider: boolean = false;
+  import { createEventDispatcher, getContext } from "svelte";
+  import type { ContextMenuHandle } from "./ContextMenu.svelte";
+
+  export let divider = false;
+
+  const contextMenu = getContext<ContextMenuHandle>("contextMenu");
+
+  const dispatch = createEventDispatcher<{
+    click: void;
+  }>();
+
+  const handleClick = () => {
+    if (!divider) {
+      contextMenu.hide();
+      dispatch("click");
+    }
+  };
 </script>
 
-<li class:divider on:click|stopPropagation>
+<li class:divider on:click|stopPropagation={handleClick}>
   {#if divider}
     <hr />
   {:else}

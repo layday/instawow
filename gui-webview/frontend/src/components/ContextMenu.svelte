@@ -1,35 +1,73 @@
-<script lang="ts">
-  export let show: boolean, eventX: number, eventY: number;
+<script lang="ts" context="module">
+  export interface EventCoords {
+    x: number;
+    y: number;
+  }
 
-  let menuX = 0;
-  let menuY = 0;
+  export interface ContextMenuHandle {
+    hide(): void;
+  }
+</script>
+
+<script lang="ts">
+  import { setContext } from "svelte";
+
+  let eventCoords: EventCoords | undefined;
+
   let menuWidth: number;
   let menuHeight: number;
 
-  const dismissOnEsc = (e: KeyboardEvent) => e.key === "Escape" && (show = false);
+  let menuCoords = {
+    x: 0,
+    y: 0,
+  };
 
-  $: menuX = eventX + menuWidth < window.innerWidth ? eventX : eventX - menuWidth;
-  $: menuY = eventY + menuHeight < window.innerHeight ? eventY : eventY - menuHeight;
+  export const show = (theseEventCoords: EventCoords) => {
+    eventCoords = theseEventCoords;
+  };
+
+  export const hide = () => {
+    eventCoords = undefined;
+  };
+
+  const dismissOnEsc = (e: KeyboardEvent) => {
+    if (e.key === "Escape") {
+      hide();
+    }
+  };
+
+  setContext("contextMenu", {
+    hide,
+  });
+
+  $: if (eventCoords) {
+    menuCoords.x =
+      eventCoords.x + menuWidth < window.innerWidth ? eventCoords.x : eventCoords.x - menuWidth;
+    menuCoords.y =
+      eventCoords.y + menuHeight < window.innerHeight ? eventCoords.y : eventCoords.y - menuHeight;
+  }
 </script>
 
-<svelte:window on:keydown={dismissOnEsc} on:resize={() => (show = false)} />
+<svelte:window on:keydown={dismissOnEsc} on:resize={hide} />
 
-<div class="context-menu-wrapper" on:click={() => (show = false)}>
-  <div
-    bind:offsetHeight={menuHeight}
-    bind:offsetWidth={menuWidth}
-    class="context-menu"
-    style={`
-      --menu-x-offset: ${menuX}px;
-      --menu-y-offset: ${menuY}px;
+{#if eventCoords}
+  <div class="context-menu-wrapper" on:click={hide}>
+    <div
+      bind:offsetHeight={menuHeight}
+      bind:offsetWidth={menuWidth}
+      class="context-menu"
+      style={`
+      --menu-x-offset: ${menuCoords.x}px;
+      --menu-y-offset: ${menuCoords.y}px;
     `}
-    on:click|stopPropagation
-  >
-    <menu>
-      <slot />
-    </menu>
+      on:click|stopPropagation
+    >
+      <menu>
+        <slot />
+      </menu>
+    </div>
   </div>
-</div>
+{/if}
 
 <style lang="scss">
   @use "scss/vars";

@@ -153,14 +153,7 @@
   let rollbackModalProps: { addon: Addon };
   let searchOptionsModal = false;
 
-  let addonContextMenu = false;
-  let addonContextMenuProps: {
-    addon: Addon;
-    installed: boolean;
-    supportsRollback: boolean;
-    eventX: number;
-    eventY: number;
-  };
+  let addonContextMenu: AddonContextMenu;
 
   const alertAddonOpFailed = (method: string, combinedResult: (readonly [Addon, AnyResult])[]) => {
     const newAlerts = combinedResult
@@ -409,24 +402,22 @@
     rollbackModal = true;
   };
 
-  const showAddonContextMenu = async (
+  const showAddonContextMenu = (
     addon: Addon,
     installed: boolean,
-    mouseEvent: MouseEvent
+    { clientX, clientY }: MouseEvent
   ) => {
-    addonContextMenuProps = {
-      addon,
-      installed,
-      supportsRollback: supportsRollback(addon),
-      eventX: mouseEvent.clientX,
-      eventY: mouseEvent.clientY,
-    };
-    addonContextMenu = true;
+    addonContextMenu.show(
+      { x: clientX, y: clientY },
+      {
+        addon,
+        installed,
+        supportsRollback: supportsRollback(addon),
+      }
+    );
   };
 
   const handleAddonContextMenuSelection = async (addon: Addon, selection: AddonAction) => {
-    addonContextMenu = false;
-
     if (selection === AddonAction.VisitHomepage) {
       profileApi.openUrl(addon.url);
     } else if (selection === AddonAction.ViewChangelog) {
@@ -648,16 +639,12 @@
       />
     </div>
     <Alerts bind:alerts />
-    {#if addonContextMenu}
-      <AddonContextMenu
-        bind:show={addonContextMenu}
-        {...addonContextMenuProps}
-        on:requestHandleContextMenuSelection={(e) => {
-          const { addon, selection } = e.detail;
-          handleAddonContextMenuSelection(addon, selection);
-        }}
-      />
-    {/if}
+    <AddonContextMenu
+      bind:this={addonContextMenu}
+      on:selectItem={({ detail: { addon, selection } }) => {
+        handleAddonContextMenuSelection(addon, selection);
+      }}
+    />
     {#if changelogModal}
       <ChangelogModal bind:show={changelogModal} {...changelogModalProps} />
     {/if}
@@ -757,10 +744,10 @@
               on:requestUpdate={() => updateAddons([otherAddon])}
               on:requestRemove={() => removeAddons([addon], false)}
               on:requestShowChangelogModal={() => showChangelogModal(otherAddon)}
-              on:requestShowAddonInstalledContextMenu={(e) =>
-                showAddonContextMenu(addon, true, e.detail)}
-              on:requestShowAddonNotInstalledContextMenu={(e) =>
-                showAddonContextMenu(otherAddon, false, e.detail)}
+              on:requestShowAddonInstalledContextMenu={({ detail }) =>
+                showAddonContextMenu(addon, true, detail)}
+              on:requestShowAddonNotInstalledContextMenu={({ detail }) =>
+                showAddonContextMenu(otherAddon, false, detail)}
               {addon}
               {otherAddon}
               {isInstalled}
