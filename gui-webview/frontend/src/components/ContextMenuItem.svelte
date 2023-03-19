@@ -18,27 +18,35 @@
   };
 </script>
 
-<li class:divider on:click|stopPropagation={handleClick}>
+<li class="menu-item" on:click|stopPropagation={handleClick}>
   {#if divider}
     <hr />
   {:else}
-    <slot />
+    <button><slot /></button>
   {/if}
 </li>
 
 <style lang="scss">
   @use "scss/vars";
 
-  li {
-    padding: 0 0.8rem;
-    line-height: 1.2rem;
+  .menu-item {
+    button {
+      margin: 0;
+      padding: 0 0.8rem;
+      border: 0;
+      line-height: 1.38rem;
+      width: 100%;
+      text-align: left;
 
-    &:not(.divider):hover {
-      background-color: vars.$action-button-bg-color;
-      color: vars.$action-button-text-color;
+      &:focus,
+      &:hover {
+        background-color: vars.$action-button-bg-color;
+        color: vars.$action-button-text-color;
+      }
     }
 
     hr {
+      margin: 0.4rem;
       border: 1px solid var(--inverse-color-alpha-20);
     }
   }

@@ -51,15 +51,15 @@
 <svelte:window on:keydown={dismissOnEsc} on:resize={hide} />
 
 {#if eventCoords}
-  <div class="context-menu-wrapper" on:click={hide}>
+  <div class="context-menu-wrapper" tabindex="-1" on:click={hide}>
     <div
-      bind:offsetHeight={menuHeight}
-      bind:offsetWidth={menuWidth}
       class="context-menu"
       style={`
       --menu-x-offset: ${menuCoords.x}px;
       --menu-y-offset: ${menuCoords.y}px;
     `}
+      bind:offsetHeight={menuHeight}
+      bind:offsetWidth={menuWidth}
       on:click|stopPropagation
     >
       <menu>
