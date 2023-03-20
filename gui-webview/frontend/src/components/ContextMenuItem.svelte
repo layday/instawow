@@ -18,11 +18,11 @@
   };
 </script>
 
-<li class="menu-item" on:click|stopPropagation={handleClick}>
+<li class="menu-item">
   {#if divider}
     <hr />
   {:else}
-    <button><slot /></button>
+    <button on:click|stopPropagation={handleClick}><slot /></button>
   {/if}
 </li>
 

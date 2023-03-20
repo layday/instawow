@@ -87,15 +87,17 @@
       <ul class="start-date-suggestions">
         {#each START_DATE_SUGGESTIONS as { date, label, flavour: suggestionFlavour }}
           {#if !suggestionFlavour || flavour === suggestionFlavour}
-            <li
-              class:disabled={searchFromAlias}
-              on:click={() => {
-                if (!searchFromAlias) {
-                  searchStartDate = date;
-                }
-              }}
-            >
-              {label}
+            <li class:disabled={searchFromAlias}>
+              <button
+                type="button"
+                on:click={() => {
+                  if (!searchFromAlias) {
+                    searchStartDate = date;
+                  }
+                }}
+              >
+                {label}</button
+              >
             </li>
           {/if}
         {/each}
@@ -156,23 +158,27 @@
       font-weight: 600;
 
       li {
-        cursor: pointer;
-        padding: 0.2rem 0.4rem;
-        border-radius: vars.$modal-middle-border-radius;
-        background-color: var(--inverse-color-tone-b);
-        color: var(--base-color);
+        button {
+          cursor: pointer;
+          margin: 0;
+          padding: 0.2rem 0.4rem;
+          border: 0;
+          border-radius: vars.$modal-middle-border-radius;
+          background-color: var(--inverse-color-tone-b);
+          color: var(--base-color);
+        }
 
-        &.disabled {
+        &.disabled button {
           cursor: default;
           opacity: 0.5;
         }
 
-        &:first-child {
+        &:first-child button {
           border-top-left-radius: vars.$modal-edge-border-radius;
           border-bottom-left-radius: vars.$modal-edge-border-radius;
         }
 
-        &:last-child {
+        &:last-child button {
           border-top-right-radius: vars.$modal-edge-border-radius;
           border-bottom-right-radius: vars.$modal-edge-border-radius;
         }
