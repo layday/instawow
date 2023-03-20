@@ -30,9 +30,10 @@
     eventCoords = undefined;
   };
 
-  const dismissOnEsc = (e: KeyboardEvent) => {
-    if (e.key === "Escape") {
+  const dismissOnEsc = (event: KeyboardEvent) => {
+    if (event.key === "Escape" && eventCoords) {
       hide();
+      event.preventDefault();
     }
   };
 

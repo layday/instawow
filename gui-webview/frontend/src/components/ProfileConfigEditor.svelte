@@ -85,7 +85,12 @@ will be lost.`
     }
   };
 
-  const dismissOnEsc = (e: KeyboardEvent) => e.key === "Escape" && (editing = false);
+  const dismissOnEsc = (event: KeyboardEvent) => {
+    if (event.key === "Escape" && editing) {
+      editing = false;
+      event.preventDefault();
+    }
+  };
 </script>
 
 <svelte:window on:keydown={dismissOnEsc} />

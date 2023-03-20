@@ -3,7 +3,12 @@
 
   export let show: boolean;
 
-  const dismissOnEsc = (e: KeyboardEvent) => e.key === "Escape" && (show = false);
+  const dismissOnEsc = (event: KeyboardEvent) => {
+    if (event.key === "Escape" && show) {
+      show = false;
+      event.preventDefault();
+    }
+  };
 </script>
 
 <svelte:window on:keydown={dismissOnEsc} />
