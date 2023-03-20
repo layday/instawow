@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { partial } from "lodash";
   import { createEventDispatcher } from "svelte";
   import type { Addon } from "../api";
   import { AddonAction } from "../constants";
@@ -11,111 +12,77 @@
     supportsRollback: boolean;
   }
 
+  const dispatch = createEventDispatcher<{
+    selectItem: {
+      addon: Addon;
+      action: AddonAction;
+    };
+  }>();
+
   let contextMenu: ContextMenu;
 
-  let details: Details;
+  let details: Details | undefined;
 
   export const show = (eventCoords: EventCoords, theseDetails: Details) => {
     details = theseDetails;
     contextMenu.show(eventCoords);
   };
 
-  const dispatch = createEventDispatcher<{
-    selectItem: {
-      addon: Addon;
-      selection: AddonAction;
-    };
-  }>();
+  const unsetDetails = () => {
+    details = undefined;
+  };
+
+  const selectItem = partial(dispatch, "selectItem");
 </script>
 
-<ContextMenu bind:this={contextMenu}>
-  {#if details?.installed}
-    <ContextMenuItem
-      on:click={() =>
-        dispatch("selectItem", {
-          addon: details.addon,
-          selection: AddonAction.VisitHomepage,
-        })}>Visit home page</ContextMenuItem
-    >
-    <ContextMenuItem
-      on:click={() =>
-        dispatch("selectItem", {
-          addon: details.addon,
-          selection: AddonAction.ViewChangelog,
-        })}>View changelog</ContextMenuItem
-    >
-    <ContextMenuItem
-      on:click={() =>
-        dispatch("selectItem", {
-          addon: details.addon,
-          selection: AddonAction.RevealFolder,
-        })}>Reveal folder</ContextMenuItem
-    >
-    <ContextMenuItem
-      on:click={() =>
-        dispatch("selectItem", {
-          addon: details.addon,
-          selection: AddonAction.Resolve,
-        })}>Resolve</ContextMenuItem
-    >
-    <ContextMenuItem divider />
-    {#if details?.supportsRollback}
-      {#if details.addon.logged_versions.length > 1}
-        <ContextMenuItem
-          on:click={() =>
-            dispatch("selectItem", {
-              addon: details.addon,
-              selection: AddonAction.Rollback,
-            })}>Rollback</ContextMenuItem
-        >
+<ContextMenu bind:this={contextMenu} on:hide={unsetDetails}>
+  {#if details}
+    {@const { addon } = details}
+    {#if details.installed}
+      <ContextMenuItem on:click={() => selectItem({ addon, action: AddonAction.VisitHomepage })}
+        >Visit home page</ContextMenuItem
+      >
+      <ContextMenuItem on:click={() => selectItem({ addon, action: AddonAction.ViewChangelog })}
+        >View changelog</ContextMenuItem
+      >
+      <ContextMenuItem on:click={() => selectItem({ addon, action: AddonAction.RevealFolder })}
+        >Reveal folder</ContextMenuItem
+      >
+      <ContextMenuItem on:click={() => selectItem({ addon, action: AddonAction.Resolve })}
+        >Resolve</ContextMenuItem
+      >
+      <ContextMenuItem divider />
+      {#if details.supportsRollback}
+        {#if details.addon.logged_versions.length > 1}
+          <ContextMenuItem on:click={() => selectItem({ addon, action: AddonAction.Rollback })}
+            >Rollback</ContextMenuItem
+          >
+        {/if}
+        {#if details.addon.options.version_eq}
+          <ContextMenuItem on:click={() => selectItem({ addon, action: AddonAction.Unpin })}
+            >Unpin</ContextMenuItem
+          >
+        {:else}
+          <ContextMenuItem on:click={() => selectItem({ addon, action: AddonAction.Pin })}
+            >Pin</ContextMenuItem
+          >
+        {/if}
       {/if}
-      {#if details.addon.options.version_eq}
-        <ContextMenuItem
-          on:click={() =>
-            dispatch("selectItem", {
-              addon: details.addon,
-              selection: AddonAction.Unpin,
-            })}>Unpin</ContextMenuItem
-        >
-      {:else}
-        <ContextMenuItem
-          on:click={() =>
-            dispatch("selectItem", {
-              addon: details.addon,
-              selection: AddonAction.Pin,
-            })}>Pin</ContextMenuItem
-        >
-      {/if}
+      <ContextMenuItem on:click={() => selectItem({ addon, action: AddonAction.Unreconcile })}
+        >Unreconcile</ContextMenuItem
+      >
+    {:else}
+      <ContextMenuItem
+        on:click={() => selectItem({ addon, action: AddonAction.InstallAndReplace })}
+        >Install and replace</ContextMenuItem
+      >
+      <ContextMenuItem on:click={() => selectItem({ addon, action: AddonAction.ViewChangelog })}
+        >View changelog</ContextMenuItem
+      >
+      <ContextMenuItem divider><hr /></ContextMenuItem>
+      <ContextMenuItem on:click={() => selectItem({ addon, action: AddonAction.Resolve })}
+        >Resolve</ContextMenuItem
+      >
     {/if}
-    <ContextMenuItem
-      on:click={() =>
-        dispatch("selectItem", {
-          addon: details.addon,
-          selection: AddonAction.Unreconcile,
-        })}>Unreconcile</ContextMenuItem
-    >
-  {:else}
-    <ContextMenuItem
-      on:click={() =>
-        dispatch("selectItem", {
-          addon: details.addon,
-          selection: AddonAction.InstallAndReplace,
-        })}>Install and replace</ContextMenuItem
-    >
-    <ContextMenuItem
-      on:click={() =>
-        dispatch("selectItem", {
-          addon: details.addon,
-          selection: AddonAction.ViewChangelog,
-        })}>View changelog</ContextMenuItem
-    >
-    <ContextMenuItem divider><hr /></ContextMenuItem>
-    <ContextMenuItem
-      on:click={() =>
-        dispatch("selectItem", {
-          addon: details.addon,
-          selection: AddonAction.Resolve,
-        })}>Resolve</ContextMenuItem
-    >
   {/if}
 </ContextMenu>

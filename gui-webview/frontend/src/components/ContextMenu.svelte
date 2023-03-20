@@ -10,7 +10,11 @@
 </script>
 
 <script lang="ts">
-  import { setContext } from "svelte";
+  import { createEventDispatcher, setContext } from "svelte";
+
+  const dispatch = createEventDispatcher<{
+    hide: void;
+  }>();
 
   let eventCoords: EventCoords | undefined;
 
@@ -28,6 +32,7 @@
 
   export const hide = () => {
     eventCoords = undefined;
+    dispatch("hide");
   };
 
   const dismissOnEsc = (event: KeyboardEvent) => {

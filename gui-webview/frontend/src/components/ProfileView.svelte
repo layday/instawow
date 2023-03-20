@@ -641,8 +641,8 @@
     <Alerts bind:alerts />
     <AddonContextMenu
       bind:this={addonContextMenu}
-      on:selectItem={({ detail: { addon, selection } }) => {
-        handleAddonContextMenuSelection(addon, selection);
+      on:selectItem={({ detail: { addon, action } }) => {
+        handleAddonContextMenuSelection(addon, action);
       }}
     />
     {#if changelogModal}
