@@ -22,8 +22,7 @@
   ] as const;
 
   const START_DATE_SUGGESTIONS = [
-    { date: "2022-05-31", label: "9.2.5", flavour: Flavour.retail },
-    { date: "2020-10-13", label: "9.0.1", flavour: Flavour.retail },
+    { date: "2022-11-15", label: "10.0.2", flavour: Flavour.retail },
     {
       date: DateTime.now().minus({ days: 1 }).toISODate(),
       label: "yesterday",
