@@ -79,7 +79,7 @@
       <ContextMenuItem on:click={() => selectItem({ addon, action: AddonAction.ViewChangelog })}
         >View changelog</ContextMenuItem
       >
-      <ContextMenuItem divider><hr /></ContextMenuItem>
+      <ContextMenuItem divider />
       <ContextMenuItem on:click={() => selectItem({ addon, action: AddonAction.Resolve })}
         >Resolve</ContextMenuItem
       >
