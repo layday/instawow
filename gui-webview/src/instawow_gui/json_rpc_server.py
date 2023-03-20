@@ -600,7 +600,7 @@ class _ManagerWorkQueue:
         self._exit_stack = AsyncExitStack()
 
         self._queue = asyncio.Queue[
-            tuple[asyncio.Future[object], str, _ManagerBoundCoroFn[..., object]]
+            'tuple[asyncio.Future[object], str, _ManagerBoundCoroFn[..., object]]'
         ]()
 
         self.locks: LocksType = defaultdict(asyncio.Lock)
