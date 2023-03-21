@@ -32,7 +32,7 @@
   import SearchOptionsModal from "./SearchOptionsModal.svelte";
   import Icon from "./SvgIcon.svelte";
 
-  type AddonTriplet = readonly [Addon, Addon, boolean];
+  type AddonTriplet = readonly [addon: Addon, otherAddon: Addon, isInstalled: boolean];
 
   const createAddonToken = (value: Addon | Defn) =>
     [value.source, (value as Addon).id || (value as Defn).alias].join(":");
@@ -194,10 +194,12 @@
 
   const regenerateSearchAddons = () => {
     addons__Search = addonsFromSearch.map((addon) => {
-      const installedAddon = addons__Installed.find((installedAddon) =>
-        isSameAddon(installedAddon[0], addon)
-      )?.[0];
-      return [installedAddon ?? addon, addon, !!installedAddon] as const;
+      const installedAddonTriplet = addons__Installed.find(([a]) => isSameAddon(a, addon));
+      if (installedAddonTriplet) {
+        const [installedAddon, , isInstalled] = installedAddonTriplet;
+        return [installedAddon, addon, isInstalled];
+      }
+      return [addon, addon, false] as const;
     });
   };
 
@@ -227,21 +229,24 @@
         addons.map(addonToDefn),
         extraParams
       );
+
       const modifiedAddons = modifyResults
         .filter((result): result is SuccessResult => result.status === "success")
         .map(({ addon }) => addon);
       if (modifiedAddons.length) {
         const installedAddons = [...addons__Installed];
+
         // Reversing `modifiedAddons` for new add-ons to be prepended in alphabetical order
         for (const addon of [...modifiedAddons].reverse()) {
           const newAddon = [addon, addon, method !== "remove"] as const;
-          const index = addons__Installed.findIndex((value) => isSameAddon(value[0], addon));
+          const index = addons__Installed.findIndex(([a]) => isSameAddon(a, addon));
           if (index === -1) {
             installedAddons.unshift(newAddon);
           } else {
             installedAddons[index] = newAddon;
           }
         }
+
         addons__Installed = installedAddons;
         regenerateFilteredAddons();
         regenerateSearchAddons();
