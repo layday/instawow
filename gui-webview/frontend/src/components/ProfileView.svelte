@@ -223,8 +223,8 @@
     addons: Addon[],
     extraParams: { [key: string]: unknown } = {}
   ) => {
-    const addonTolens = addons.map(createAddonToken);
-    installedAddonsBeingModified = [...installedAddonsBeingModified, ...addonTolens];
+    const addonTokens = addons.map(createAddonToken);
+    installedAddonsBeingModified = [...installedAddonsBeingModified, ...addonTokens];
 
     try {
       const modifyResults = await withDownloadProgress(
@@ -259,7 +259,7 @@
         addons.map((a, i) => [a, modifyResults[i]])
       );
     } finally {
-      installedAddonsBeingModified = lodash.difference(installedAddonsBeingModified, addonTolens);
+      installedAddonsBeingModified = lodash.difference(installedAddonsBeingModified, addonTokens);
     }
   };
 
