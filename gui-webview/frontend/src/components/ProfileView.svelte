@@ -203,15 +203,19 @@
     });
   };
 
-  const scheduleDownloadProgressPolling = (delay: number) => {
+  const withDownloadProgress = async <T>(promise: Promise<T>, pollingInterval: number) => {
     const ticker = setInterval(async () => {
       const downloadProgress = await profileApi.getDownloadProgress();
       addonDownloadProgress = lodash.fromPairs(
         downloadProgress.map(({ defn, progress }) => [createAddonToken(defn), progress])
       );
-    }, delay);
+    }, pollingInterval);
 
-    return () => clearInterval(ticker);
+    try {
+      return await promise;
+    } finally {
+      clearInterval(ticker);
+    }
   };
 
   const modifyAddons = async (
@@ -221,13 +225,11 @@
   ) => {
     const addonTolens = addons.map(createAddonToken);
     installedAddonsBeingModified = [...installedAddonsBeingModified, ...addonTolens];
-    const cancelDownloadProgessPolling = scheduleDownloadProgressPolling(1000);
 
     try {
-      const modifyResults = await profileApi.modifyAddons(
-        method,
-        addons.map(addonToDefn),
-        extraParams
+      const modifyResults = await withDownloadProgress(
+        profileApi.modifyAddons(method, addons.map(addonToDefn), extraParams),
+        1000
       );
 
       const modifiedAddons = modifyResults
@@ -251,19 +253,13 @@
         regenerateFilteredAddons();
         regenerateSearchAddons();
       }
+
       alertAddonOpFailed(
         method,
         addons.map((a, i) => [a, modifyResults[i]])
       );
     } finally {
-      try {
-        cancelDownloadProgessPolling();
-      } finally {
-        installedAddonsBeingModified = lodash.difference(
-          installedAddonsBeingModified,
-          addonTolens
-        );
-      }
+      installedAddonsBeingModified = lodash.difference(installedAddonsBeingModified, addonTolens);
     }
   };
 
