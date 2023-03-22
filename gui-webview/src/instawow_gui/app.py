@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+from contextlib import suppress
 from functools import partial
 from typing import Any
 
@@ -14,7 +15,7 @@ from . import json_rpc_server
 
 
 class InstawowApp(toga.App):
-    def __init__(self, **kwargs: object) -> None:
+    def __init__(self, debug: bool, **kwargs: object) -> None:
         super().__init__(
             formal_name='instawow-gui',
             app_id='org.instawow.instawow_gui',
@@ -22,6 +23,7 @@ class InstawowApp(toga.App):
             icon='resources/instawow_gui',
             **kwargs,
         )
+        self._debug = debug
 
     def startup(self) -> None:
         self.main_window = toga.MainWindow(title=self.formal_name, size=(800, 600))
@@ -33,6 +35,12 @@ class InstawowApp(toga.App):
             ctypes.windll.user32.SetProcessDPIAware()
 
         self.main_window.content = web_view = toga.WebView(style=toga.style.Pack(flex=1))
+
+        if self._debug:
+            with suppress(AttributeError):
+                web_view._impl.native.configuration.preferences.setValue(
+                    True, forKey='developerExtrasEnabled'
+                )
 
         if os.name == 'nt':
             from toga_winforms.widgets.webview import TogaWebBrowser
