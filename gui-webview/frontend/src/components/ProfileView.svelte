@@ -418,34 +418,58 @@
     );
   };
 
-  const handleAddonContextMenuSelection = async (addon: Addon, selection: AddonAction) => {
-    if (selection === AddonAction.VisitHomepage) {
-      profileApi.openUrl(addon.url);
-    } else if (selection === AddonAction.ViewChangelog) {
-      showChangelogModal(addon);
-    } else if (selection === AddonAction.RevealFolder) {
-      profileApi.revealFolder([config.addon_dir, addon.folders[0].name]);
-    } else if (selection === AddonAction.Resolve) {
-      resetSearchState();
-      [searchTerms, searchFromAlias, searchStrategies] = [
-        createAddonToken(addon),
-        true,
-        {
+  const handleAddonContextMenuSelection = (addon: Addon, selection: AddonAction) => {
+    switch (selection) {
+      case AddonAction.VisitHomepage:
+        profileApi.openUrl(addon.url);
+        break;
+
+      case AddonAction.ViewChangelog:
+        showChangelogModal(addon);
+        break;
+
+      case AddonAction.RevealFolder: {
+        const {
+          folders: [{ name: folderName }],
+        } = addon;
+        profileApi.revealFolder([config.addon_dir, folderName]);
+
+        break;
+      }
+
+      case AddonAction.Resolve: {
+        resetSearchState();
+        searchTerms = createAddonToken(addon);
+        searchFromAlias = true;
+        searchStrategies = {
           ...addon.options,
           [Strategy.version_eq]: addon.options[Strategy.version_eq] ? addon.version : "",
-        },
-      ];
-      await search();
-    } else if (selection === AddonAction.Rollback) {
-      showRollbackModal(addon);
-    } else if (selection === AddonAction.Pin || selection === AddonAction.Unpin) {
-      const pinnedAddon = lodash.cloneDeep(addon);
-      pinnedAddon.options.version_eq = selection === AddonAction.Pin;
-      await pinAddons([pinnedAddon]);
-    } else if (selection === AddonAction.Unreconcile) {
-      await removeAddons([addon], true);
-    } else if (selection === AddonAction.InstallAndReplace) {
-      await installAddons([addon], true);
+        };
+        search();
+
+        break;
+      }
+
+      case AddonAction.Rollback:
+        showRollbackModal(addon);
+        break;
+
+      case AddonAction.Pin:
+      case AddonAction.Unpin: {
+        const pinnedAddon = lodash.merge(addon);
+        pinnedAddon.options.version_eq = selection === AddonAction.Pin;
+        pinAddons([pinnedAddon]);
+
+        break;
+      }
+
+      case AddonAction.Unreconcile:
+        removeAddons([addon], true);
+        break;
+
+      case AddonAction.InstallAndReplace:
+        installAddons([addon], true);
+        break;
     }
   };
 
@@ -745,10 +769,8 @@
               on:requestUpdate={() => updateAddons([otherAddon])}
               on:requestRemove={() => removeAddons([addon], false)}
               on:requestShowChangelogModal={() => showChangelogModal(otherAddon)}
-              on:requestShowAddonInstalledContextMenu={({ detail }) =>
-                showAddonContextMenu(addon, true, detail)}
-              on:requestShowAddonNotInstalledContextMenu={({ detail }) =>
-                showAddonContextMenu(otherAddon, false, detail)}
+              on:requestShowAddonContextMenu={({ detail: { mouseEvent } }) =>
+                showAddonContextMenu(isInstalled ? addon : otherAddon, isInstalled, mouseEvent)}
               {addon}
               {otherAddon}
               {isInstalled}

@@ -27,8 +27,9 @@
     requestUpdate: void;
     requestRemove: void;
     requestShowChangelogModal: void;
-    requestShowAddonInstalledContextMenu: MouseEvent;
-    requestShowAddonNotInstalledContextMenu: MouseEvent;
+    requestShowAddonContextMenu: {
+      mouseEvent: MouseEvent;
+    };
   }>();
 
   $: isOutdated = addon.version !== otherAddon.version;
@@ -94,7 +95,8 @@
           <button
             aria-label="show options"
             title="show options"
-            on:click|stopPropagation={(e) => dispatch("requestShowAddonInstalledContextMenu", e)}
+            on:click|stopPropagation={(mouseEvent) =>
+              dispatch("requestShowAddonContextMenu", { mouseEvent })}
           >
             <Icon icon={faEllipsisH} />
           </button>
@@ -116,8 +118,8 @@
           <button
             aria-label="show options"
             title="show options"
-            on:click|stopPropagation={(e) =>
-              dispatch("requestShowAddonNotInstalledContextMenu", e)}
+            on:click|stopPropagation={(mouseEvent) =>
+              dispatch("requestShowAddonContextMenu", { mouseEvent })}
           >
             <Icon icon={faEllipsisH} />
           </button>
