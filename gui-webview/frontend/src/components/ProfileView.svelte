@@ -104,7 +104,7 @@
     }
   }
 
-  const config = $profiles.get(profile)!;
+  const config = $profiles[profile];
   const profileApi = $api.withProfile(profile, AlertOnErrorApi);
 
   let sources: { [source: string]: Source } = {};

@@ -20,7 +20,7 @@
       <Icon icon={faCog} />
     </button>
     <select aria-label="profile" bind:value={$activeProfile} disabled={!!editing}>
-      {#each [...$profiles.keys()] as profile (profile)}
+      {#each Object.keys($profiles) as profile (profile)}
         <option value={profile}>{profile}</option>
       {/each}
     </select>

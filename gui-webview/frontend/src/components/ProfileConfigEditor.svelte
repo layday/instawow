@@ -1,6 +1,7 @@
 <script lang="ts">
   import { faFolderOpen, faTrashAlt } from "@fortawesome/free-solid-svg-icons";
   import { JSONRPCError } from "@open-rpc/client-js";
+  import { omit } from "lodash";
   import { fade } from "svelte/transition";
   import type { Config, ValidationError } from "../api";
   import { Flavour } from "../api";
@@ -24,7 +25,7 @@
       profile,
       addon_dir: addonDir,
       game_flavour: gameFlavour,
-    } = $profiles.get($activeProfile!)!);
+    } = $profiles[$activeProfile as string]);
   }
 
   const selectFolder = async () => {
@@ -35,7 +36,7 @@
   };
 
   const saveConfig = async () => {
-    if ((createNew && $profiles.has(profile)) || (!profile && $profiles.has("__default__"))) {
+    if ((createNew && profile in $profiles) || (!profile && "__default__" in $profiles)) {
       errors.set(
         "profile",
         profile ? "a profile with that name already exists" : "a default profile already exists"
@@ -58,7 +59,7 @@
       }
     }
 
-    $profiles = $profiles.set(result.profile, result);
+    $profiles = { ...$profiles, [result.profile]: result };
     if (createNew) {
       $activeProfile = result.profile;
     }
@@ -78,9 +79,8 @@ will be lost.`
     );
     if (ok) {
       await $api.deleteProfile(profile);
-      $profiles.delete(profile);
-      $profiles = $profiles; // Trigger update in Svelte
-      $activeProfile = $profiles.keys().next().value;
+      $profiles = omit($profiles, profile);
+      [$activeProfile] = Object.keys($profiles);
       editing = false;
     }
   };

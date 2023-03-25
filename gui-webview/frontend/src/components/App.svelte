@@ -31,15 +31,16 @@
 
   const performInitialSetup = async () => {
     ({ installed_version: installedVersion, new_version: newVersion } = await $api.getVersion());
+
     const profileConfigs = await Promise.allSettled(
       (await $api.listProfiles()).map(async (p) => await $api.readProfile(p))
     );
-    $profiles = new Map(
+    $profiles = Object.fromEntries(
       profileConfigs
         .filter((r): r is PromiseFulfilledResult<Config> => r.status === "fulfilled")
         .map(({ value }) => [value.profile, value])
     );
-    $activeProfile = $profiles.keys().next().value;
+    [$activeProfile] = Object.keys($profiles);
   };
 </script>
 
@@ -68,7 +69,7 @@
       </div>
     </header>
     <main class="section main">
-      {#each [...$profiles.keys()] as profile (profile)}
+      {#each Object.keys($profiles) as profile (profile)}
         <ProfileView bind:statusMessage {profile} isActive={profile === $activeProfile} />
       {/each}
     </main>
