@@ -1,6 +1,6 @@
 {
   "name": "instawow-gui",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "GUI for the World of Warcraft add-on manager instawow",
   "main": "build",
   "author": "layday <layday@protonmail.com>",

@@ -9,6 +9,8 @@ inputs:
 outputs:
   wheel-name:
     value: ${{ steps.get-wheel-info.outputs.wheel-name }}
+  wheel-version:
+    value: ${{ steps.get-wheel-info.outputs.wheel-version }}
 runs:
   using: composite
   steps:
@@ -41,6 +43,7 @@ runs:
         WHEEL_PATH=$(ls "$PWD"/dist/*.whl)
         echo "wheel-path=$WHEEL_PATH" >> $GITHUB_OUTPUT
         echo "wheel-name=$(basename "$WHEEL_PATH")" >> $GITHUB_OUTPUT
+        echo "wheel-version=$(nox -s extract_version -- "$WHEEL_PATH")" >> $GITHUB_OUTPUT
       shell: bash
     - name: Upload artifact
       uses: actions/upload-artifact@v2

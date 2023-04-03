@@ -200,3 +200,35 @@ def freeze_cli(session: nox.Session):
         '--console',
         main_py,
     )
+
+
+@nox.session(python=False)
+def extract_version(session: nox.Session):
+    from importlib.metadata import Distribution
+
+    (instawow,) = Distribution.discover(name='instawow', path=list(session.posargs))
+    print(instawow.version, end='')
+
+
+@nox.session(python=False)
+def patch_frontend_spec(session: nox.Session):
+    import argparse
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--version')
+    parser.add_argument('--wheel-file')
+
+    options = parser.parse_args(session.posargs)
+
+    spec_path = Path(__file__).parent.joinpath('gui-webview', 'pyproject.toml')
+    spec = spec_path.read_text(encoding='utf-8')
+
+    if options.version:
+        spec = spec.replace('version = "0.1.0"', f'version = "{options.version}"')
+
+    if options.wheel_file:
+        spec = spec.replace(
+            '"..[gui]"', f'"instawow[gui] @ {Path(options.wheel_file).resolve().as_uri()}"'
+        )
+
+    spec_path.write_text(spec, encoding='utf-8')
