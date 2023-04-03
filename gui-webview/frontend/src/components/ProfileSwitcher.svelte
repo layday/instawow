@@ -2,13 +2,18 @@
   import { faCog } from "@fortawesome/free-solid-svg-icons";
   import { onMount } from "svelte";
   import { activeProfile, profiles } from "../store";
-  import ConfigModal from "./ConfigModal.svelte";
+  import ConfigModalContents from "./ConfigModalContents.svelte";
+  import Modal from "./modal/Modal.svelte";
   import ProfileConfigEditor from "./ProfileConfigEditor.svelte";
   import Icon from "./SvgIcon.svelte";
 
   let editing: "new" | "existing" | "auth" | false = false;
 
-  onMount(() => !$activeProfile && (editing = "new"));
+  onMount(() => {
+    if (!$activeProfile) {
+      editing = "new";
+    }
+  });
 </script>
 
 <div class="profile-switcher-wrapper">
@@ -43,7 +48,9 @@
   {:else if editing === "existing"}
     <ProfileConfigEditor bind:editing />
   {:else if editing === "auth"}
-    <ConfigModal bind:editing />
+    <Modal on:dismiss={() => (editing = false)}>
+      <ConfigModalContents />
+    </Modal>
   {/if}
 </div>
 

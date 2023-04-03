@@ -5,7 +5,7 @@
   import lodash from "lodash";
   import { onMount } from "svelte";
   import { flip } from "svelte/animate";
-  import { fade } from "svelte/transition";
+  import { fade, slide } from "svelte/transition";
   import type {
     Addon,
     AnyResult,
@@ -27,10 +27,12 @@
   import AddonStub from "./AddonStub.svelte";
   import type { Alert } from "./Alerts.svelte";
   import Alerts from "./Alerts.svelte";
-  import ChangelogModal from "./ChangelogModal.svelte";
-  import RollbackModal from "./RollbackModal.svelte";
-  import SearchOptionsModal from "./SearchOptionsModal.svelte";
+  import ChangelogModalContents from "./ChangelogModalContents.svelte";
+  import Modal from "./modal/Modal.svelte";
+  import RollbackModalContents from "./RollbackModalContents.svelte";
+  import SearchOptionsModalContents from "./SearchOptionsModalContents.svelte";
   import Icon from "./SvgIcon.svelte";
+  import type { ComponentProps } from "svelte";
 
   type AddonTriplet = readonly [addon: Addon, otherAddon: Addon, isInstalled: boolean];
 
@@ -51,36 +53,35 @@
     >;
   };
 
-  const defaultSearchState: {
-    searchTerms: string;
-    searchFilterInstalled: boolean;
-    searchFromAlias: boolean;
-    searchLimit: number;
-    searchSources: string[];
-    searchStartDate: string | null;
-    searchStrategies: SearchStrategies;
+  const defaultSearchOptions: {
+    fromAlias: boolean;
+    limit: number;
+    sources: string[];
+    startDate: string | null;
+    strategies: SearchStrategies;
   } = {
-    searchTerms: "",
-    searchFilterInstalled: false,
-    searchFromAlias: false,
-    searchLimit: 20,
-    searchSources: [],
-    searchStartDate: null,
-    searchStrategies: {
+    fromAlias: false,
+    limit: 20,
+    sources: [],
+    startDate: null,
+    strategies: {
       [Strategy.any_flavour]: false,
       [Strategy.any_release_type]: false,
       [Strategy.version_eq]: "",
     },
   };
 
-  const htmlify = (changelog: string, format: ChangelogFormat): [boolean, string] => {
+  const htmlify = (changelog: string, format: ChangelogFormat) => {
     if (format === ChangelogFormat.markdown) {
-      return [
-        true,
-        new commonmark.HtmlRenderer().render(new commonmark.Parser().parse(changelog)),
-      ];
+      return {
+        renderAsHtml: true,
+        changelog: new commonmark.HtmlRenderer().render(new commonmark.Parser().parse(changelog)),
+      };
     } else {
-      return [format === ChangelogFormat.html, changelog];
+      return {
+        renderAsHtml: format === ChangelogFormat.html,
+        changelog,
+      };
     }
   };
 
@@ -114,25 +115,22 @@
   let installedListFormat = ListFormat.Compact;
   let searchListFormat = ListFormat.Expanded;
 
-  let addons__Installed: AddonTriplet[] = [];
   let filteredCatalogueEntries: CatalogueEntry[] = [];
-  let addons__FilterInstalled: AddonTriplet[] = [];
   let addonsFromSearch: Addon[] = [];
-  let addons__Search: AddonTriplet[] = [];
   let installedOutdatedCount: number;
   let installedAddonsBeingModified: string[] = [];
 
+  const addonsByView = {
+    [View.Installed]: [] as AddonTriplet[],
+    [View.FilterInstalled]: [] as AddonTriplet[],
+    [View.Search]: [] as AddonTriplet[],
+  };
+
   let addonDownloadProgress: { [token: string]: number } = {};
 
-  let {
-    searchTerms,
-    searchFilterInstalled,
-    searchFromAlias,
-    searchLimit,
-    searchSources,
-    searchStartDate,
-    searchStrategies,
-  } = lodash.cloneDeep(defaultSearchState);
+  let searchTerms = "";
+  let searchFilterInstalled = false;
+  let searchOptions = lodash.cloneDeep(defaultSearchOptions);
   let searchIsDirty = false;
 
   let alerts: Alert[] = [];
@@ -147,11 +145,11 @@
   let searchesInProgress = 0;
   let reconcileInstallationInProgress = false;
 
-  let changelogModal = false;
-  let changelogModalProps: { changelog: string; renderAsHtml: boolean };
-  let rollbackModal = false;
-  let rollbackModalProps: { addon: Addon };
-  let searchOptionsModal = false;
+  let modal:
+    | { id: "changelog"; dynamicProps: ComponentProps<ChangelogModalContents> }
+    | { id: "rollback"; dynamicProps: ComponentProps<RollbackModalContents> }
+    | { id: "searchOptions" }
+    | undefined;
 
   let addonContextMenu: AddonContextMenu;
 
@@ -178,8 +176,12 @@
     }
   };
 
+  const countInstalled = () => {
+    return addonsByView[View.Installed].reduce((val, [, , installed]) => val + +installed, 0);
+  };
+
   const countUpdates = () => {
-    installedOutdatedCount = addons__Installed.reduce(
+    return addonsByView[View.Installed].reduce(
       (val, [thisAddon, otherAddon]) =>
         val + (otherAddon && thisAddon.version !== otherAddon.version ? 1 : 0),
       0
@@ -187,17 +189,19 @@
   };
 
   const regenerateFilteredAddons = () => {
-    addons__FilterInstalled = addons__Installed.filter(([a]) =>
+    return addonsByView[View.Installed].filter(([a]) =>
       filteredCatalogueEntries.some((e) => a.source === e.source && a.id === e.id)
     );
   };
 
   const regenerateSearchAddons = () => {
-    addons__Search = addonsFromSearch.map((addon) => {
-      const installedAddonTriplet = addons__Installed.find(([a]) => isSameAddon(a, addon));
+    return addonsFromSearch.map((addon) => {
+      const installedAddonTriplet = addonsByView[View.Installed].find(([a]) =>
+        isSameAddon(a, addon)
+      );
       if (installedAddonTriplet) {
         const [installedAddon, , isInstalled] = installedAddonTriplet;
-        return [installedAddon, addon, isInstalled];
+        return [installedAddon, addon, isInstalled] as const;
       }
       return [addon, addon, false] as const;
     });
@@ -206,7 +210,7 @@
   const withDownloadProgress = async <T>(promise: Promise<T>, pollingInterval: number) => {
     const ticker = setInterval(async () => {
       const downloadProgress = await profileApi.getDownloadProgress();
-      addonDownloadProgress = lodash.fromPairs(
+      addonDownloadProgress = Object.fromEntries(
         downloadProgress.map(({ defn, progress }) => [createAddonToken(defn), progress])
       );
     }, pollingInterval);
@@ -236,12 +240,12 @@
         .filter((result): result is SuccessResult => result.status === "success")
         .map(({ addon }) => addon);
       if (modifiedAddons.length) {
-        const installedAddons = [...addons__Installed];
+        const installedAddons = [...addonsByView[View.Installed]];
 
         // Reversing `modifiedAddons` for new add-ons to be prepended in alphabetical order
         for (const addon of [...modifiedAddons].reverse()) {
           const newAddon = [addon, addon, method !== "remove"] as const;
-          const index = addons__Installed.findIndex(([a]) => isSameAddon(a, addon));
+          const index = addonsByView[View.Installed].findIndex(([a]) => isSameAddon(a, addon));
           if (index === -1) {
             installedAddons.unshift(newAddon);
           } else {
@@ -249,9 +253,7 @@
           }
         }
 
-        addons__Installed = installedAddons;
-        regenerateFilteredAddons();
-        regenerateSearchAddons();
+        addonsByView[View.Installed] = installedAddons;
       }
 
       alertAddonOpFailed(
@@ -269,7 +271,7 @@
 
   const updateAddons = async (addons: Addon[] | true) => {
     if (addons === true) {
-      const outdatedAddons = addons__Installed
+      const outdatedAddons = addonsByView[View.Installed]
         .filter(
           ([{ version: thisVersion }, { version: otherVersion }]) => thisVersion !== otherVersion
         )
@@ -302,10 +304,10 @@
         let results: AnyResult[];
 
         const condensedStrategies = Object.fromEntries(
-          Object.entries(searchStrategies).map(([k, v]) => [k, v || null])
+          Object.entries(searchOptions.strategies).map(([k, v]) => [k, v || null])
         ) as Strategies;
 
-        if (searchFromAlias) {
+        if (searchOptions.fromAlias) {
           results = await profileApi.resolve([
             {
               source: "*",
@@ -316,9 +318,9 @@
         } else {
           const catalogueEntries = await profileApi.search(
             searchTermsSnapshot,
-            searchLimit,
-            searchSources,
-            searchStartDate,
+            searchOptions.limit,
+            searchOptions.sources,
+            searchOptions.startDate,
             searchFilterInstalled
           );
 
@@ -328,7 +330,6 @@
 
           if (searchFilterInstalled) {
             filteredCatalogueEntries = catalogueEntries;
-            regenerateFilteredAddons();
             activeView = View.FilterInstalled;
             return;
           }
@@ -348,7 +349,6 @@
         addonsFromSearch = results
           .filter((result): result is SuccessResult => result.status === "success")
           .map(({ addon }) => addon);
-        regenerateSearchAddons();
         activeView = View.Search;
       }
     } finally {
@@ -362,11 +362,11 @@
       try {
         const installedAddons = await profileApi.list();
         if (flash) {
-          addons__Installed = installedAddons.map((a) => [a, a, true]);
+          addonsByView[View.Installed] = installedAddons.map((a) => [a, a, true]);
         }
         const resolveResults = await profileApi.resolve(installedAddons.map(addonToDefn));
         const addonsToResults = installedAddons.map((a, i) => [a, resolveResults[i]] as const);
-        addons__Installed = lodash.sortBy(
+        addonsByView[View.Installed] = lodash.sortBy(
           addonsToResults.map(([thisAddon, result]) => [
             thisAddon,
             result.status === "success" ? result.addon : thisAddon,
@@ -388,19 +388,28 @@
   };
 
   const showChangelogModal = async (addon: Addon) => {
-    const changelogFormat = sources[addon.source].changelog_format;
     const changelog = await profileApi.getChangelog(addon.source, addon.changelog_url);
-    const [renderAsHtml, changelogText] = htmlify(changelog, changelogFormat);
-    changelogModalProps = {
-      changelog: changelogText,
-      renderAsHtml: renderAsHtml,
+    modal = {
+      id: "changelog",
+      dynamicProps: htmlify(changelog, sources[addon.source].changelog_format),
     };
-    changelogModal = true;
   };
 
   const showRollbackModal = (addon: Addon) => {
-    rollbackModalProps = { addon };
-    rollbackModal = true;
+    modal = {
+      id: "rollback",
+      dynamicProps: { addon },
+    };
+  };
+
+  const showSearchOptionsModal = () => {
+    modal = {
+      id: "searchOptions",
+    };
+  };
+
+  const resetModal = () => {
+    modal = undefined;
   };
 
   const showAddonContextMenu = (
@@ -438,13 +447,15 @@
       }
 
       case AddonAction.Resolve: {
-        resetSearchState();
-        searchTerms = createAddonToken(addon);
-        searchFromAlias = true;
-        searchStrategies = {
-          ...addon.options,
-          [Strategy.version_eq]: addon.options[Strategy.version_eq] ? addon.version : "",
+        searchOptions = {
+          ...lodash.cloneDeep(defaultSearchOptions),
+          fromAlias: true,
+          strategies: {
+            ...addon.options,
+            [Strategy.version_eq]: addon.options[Strategy.version_eq] ? addon.version : "",
+          },
         };
+        searchTerms = createAddonToken(addon);
         search();
 
         break;
@@ -554,19 +565,8 @@
   const supportsRollback = (addon: Addon) =>
     !!sources[addon.source]?.strategies.includes(Strategy.version_eq);
 
-  const generateStatusMessage = () => {
-    if (installedIsRefreshing) {
-      return "refreshing…";
-    } else if (reconcileInstallationInProgress) {
-      return "installing…";
-    } else {
-      return `installed add-ons: ${addons__Installed.length}`;
-    }
-  };
-
   const resetSearchState = () => {
-    ({ searchFromAlias, searchLimit, searchSources, searchStartDate, searchStrategies } =
-      lodash.cloneDeep(defaultSearchState));
+    searchOptions = lodash.cloneDeep(defaultSearchOptions);
   };
 
   const cycleDisplayedListFormat = () => {
@@ -582,7 +582,7 @@
     uriSchemes = [...Object.keys(sources), "http", "https"].map((s) => `${s}:`);
     await refreshInstalled(true);
     // Switch over to reconciliation if no add-ons are installed
-    if (!addons__Installed.length) {
+    if (!addonsByView[View.Installed].length) {
       activeView = View.Reconcile;
     }
   });
@@ -594,46 +594,60 @@
 
   $: {
     searchFilterInstalled;
+
     console.debug(profile, "filter status changed, resetting search state");
     resetSearchState();
   }
 
   $: searchIsDirty = !lodash.isEqual(
-    [searchSources, searchStartDate, searchStrategies],
-    [
-      defaultSearchState.searchSources,
-      defaultSearchState.searchStartDate,
-      defaultSearchState.searchStrategies,
-    ]
+    [searchOptions.sources, searchOptions.startDate, searchOptions.strategies],
+    [defaultSearchOptions.sources, defaultSearchOptions.startDate, defaultSearchOptions.strategies]
   );
 
   $: {
     searchTerms;
-    searchFromAlias = (console.debug(profile, "updating `searchFromAlias`"), isSearchFromAlias());
-  }
 
-  $: addons =
-    activeView === View.Search
-      ? addons__Search
-      : activeView === View.FilterInstalled
-      ? addons__FilterInstalled
-      : addons__Installed;
+    searchOptions.fromAlias =
+      (console.debug(profile, "updating `searchFromAlias`"), isSearchFromAlias());
+  }
 
   $: if (activeView === View.Reconcile) {
     reconcileStage = reconcileStages[0];
   }
 
   $: {
-    addons__Installed;
+    addonsByView[View.Installed];
+
     console.debug(profile, "recounting updates");
-    countUpdates();
+    installedOutdatedCount = countUpdates();
   }
 
-  $: if (
-    isActive &&
-    (addons__Installed || reconcileInstallationInProgress || installedIsRefreshing)
-  ) {
-    statusMessage = generateStatusMessage();
+  $: {
+    addonsByView[View.Installed], filteredCatalogueEntries;
+
+    addonsByView[View.FilterInstalled] = regenerateFilteredAddons();
+  }
+
+  $: {
+    addonsByView[View.Installed], addonsFromSearch;
+
+    addonsByView[View.Search] = regenerateSearchAddons();
+  }
+
+  $: {
+    addonsByView[View.Installed];
+
+    console.debug(profile, "updating status message");
+
+    if (isActive) {
+      if (installedIsRefreshing) {
+        statusMessage = "refreshing…";
+      } else if (reconcileInstallationInProgress) {
+        statusMessage = "installing…";
+      } else {
+        statusMessage = `installed add-ons: ${countInstalled()}`;
+      }
+    }
   }
 </script>
 
@@ -642,7 +656,7 @@
     <div class="addon-list-nav-wrapper">
       <AddonListNav
         on:requestSearch={() => search()}
-        on:requestShowSearchOptionsModal={() => (searchOptionsModal = true)}
+        on:requestShowSearchOptionsModal={() => showSearchOptionsModal()}
         on:requestRefresh={() => refreshInstalled()}
         on:requestUpdateAll={() => updateAddons(true)}
         on:requestInstallReconciled={() => installReconciled(reconcileStage, reconcileSelections)}
@@ -663,38 +677,38 @@
         isSearching={searchesInProgress > 0}
       />
     </div>
+
     <Alerts bind:alerts />
+
     <AddonContextMenu
       bind:this={addonContextMenu}
       on:selectItem={({ detail: { addon, action } }) => {
         handleAddonContextMenuSelection(addon, action);
       }}
     />
-    {#if changelogModal}
-      <ChangelogModal bind:show={changelogModal} {...changelogModalProps} />
+
+    {#if modal}
+      <Modal on:dismiss={resetModal}>
+        {#if modal.id === "changelog"}
+          <ChangelogModalContents {...modal.dynamicProps} />
+        {:else if modal.id === "rollback"}
+          <RollbackModalContents
+            on:requestRollback={({ detail }) => updateAddons([detail])}
+            {...modal.dynamicProps}
+          />
+        {:else if modal.id === "searchOptions"}
+          <SearchOptionsModalContents
+            flavour={config.game_flavour}
+            {sources}
+            {searchFilterInstalled}
+            bind:searchOptions
+            on:requestSearch={search}
+            on:requestReset={resetSearchState}
+          />
+        {/if}
+      </Modal>
     {/if}
-    {#if rollbackModal}
-      <RollbackModal
-        on:requestRollback={(event) => updateAddons([event.detail])}
-        bind:show={rollbackModal}
-        {...rollbackModalProps}
-      />
-    {/if}
-    {#if searchOptionsModal}
-      <SearchOptionsModal
-        flavour={config.game_flavour}
-        {sources}
-        {searchFilterInstalled}
-        on:requestSearch={() => search()}
-        on:requestReset={() => resetSearchState()}
-        bind:show={searchOptionsModal}
-        bind:searchSources
-        bind:searchFromAlias
-        bind:searchLimit
-        bind:searchStartDate
-        bind:searchStrategies
-      />
-    {/if}
+
     {#if activeView === View.Reconcile}
       {#await prepareReconcile(reconcileStage)}
         <div class="placeholder" in:fade>
@@ -761,27 +775,29 @@
         {/if}
       {/await}
     {:else}
-      <ul class="addon-list">
-        {#each addons.map(tripletWithAddonToken) as [addon, otherAddon, isInstalled, token] (token)}
-          <li animate:flip={{ duration: 200 }}>
-            <AddonComponent
-              on:requestInstall={() => installAddons([otherAddon])}
-              on:requestUpdate={() => updateAddons([otherAddon])}
-              on:requestRemove={() => removeAddons([addon], false)}
-              on:requestShowChangelogModal={() => showChangelogModal(otherAddon)}
-              on:requestShowAddonContextMenu={({ detail: { mouseEvent } }) =>
-                showAddonContextMenu(isInstalled ? addon : otherAddon, isInstalled, mouseEvent)}
-              {addon}
-              {otherAddon}
-              {isInstalled}
-              beingModified={installedAddonsBeingModified.includes(token)}
-              format={activeView === View.Search ? searchListFormat : installedListFormat}
-              isRefreshing={installedIsRefreshing}
-              downloadProgress={addonDownloadProgress[token] || 0}
-            />
-          </li>
-        {/each}
-      </ul>
+      {#key activeView}
+        <ul class="addon-list" in:slide={{ duration: 250 }}>
+          {#each addonsByView[activeView].map(tripletWithAddonToken) as [addon, otherAddon, isInstalled, token] (token)}
+            <li animate:flip={{ duration: 250 }}>
+              <AddonComponent
+                on:requestInstall={() => installAddons([otherAddon])}
+                on:requestUpdate={() => updateAddons([otherAddon])}
+                on:requestRemove={() => removeAddons([addon], false)}
+                on:requestShowChangelogModal={() => showChangelogModal(otherAddon)}
+                on:requestShowAddonContextMenu={({ detail: { mouseEvent } }) =>
+                  showAddonContextMenu(isInstalled ? addon : otherAddon, isInstalled, mouseEvent)}
+                {addon}
+                {otherAddon}
+                {isInstalled}
+                beingModified={installedAddonsBeingModified.includes(token)}
+                format={activeView === View.Search ? searchListFormat : installedListFormat}
+                isRefreshing={installedIsRefreshing}
+                downloadProgress={addonDownloadProgress[token] || 0}
+              />
+            </li>
+          {/each}
+        </ul>
+      {/key}
     {/if}
   </div>
 {/if}
