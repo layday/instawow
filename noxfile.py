@@ -14,7 +14,7 @@ LINT_PATHS = [
     'src',
     'gui-webview/src',
     'tests',
-    'typings',
+    'types',
     'noxfile.py',
 ]
 
