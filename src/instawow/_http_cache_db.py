@@ -7,13 +7,13 @@ from contextlib import contextmanager
 from typing import NoReturn
 
 import attrs
-from aiohttp_client_cache.backends.base import BaseCache, CacheBackend, ResponseOrKey
+from aiohttp_client_cache import BaseCache, CacheBackend, ResponseOrKey
 from typing_extensions import LiteralString
 
 
 @contextmanager
-def acquire_cache_db_conn(db_path: os.PathLike[str]):
-    db_conn = sqlite3.connect(
+def acquire_cache_connection(db_path: os.PathLike[str]):
+    connection = sqlite3.connect(
         os.path.join(
             db_path,
             # The response is a frozen attrs instance which is pickled;
@@ -21,95 +21,86 @@ def acquire_cache_db_conn(db_path: os.PathLike[str]):
             f'_aiohttp-cache-{attrs.__version__}.sqlite',
         )
     )
-    db_conn.execute('PRAGMA journal_mode = wal')
-    db_conn.execute('PRAGMA synchronous = normal')
-    yield db_conn
-    db_conn.close()
+    connection.execute('PRAGMA journal_mode = wal')
+    connection.execute('PRAGMA synchronous = normal')
+    yield connection
+    connection.close()
 
 
 class SQLiteBackend(CacheBackend):
-    def __init__(self, db_conn: sqlite3.Connection, **kwargs: object):
+    def __init__(self, connection: sqlite3.Connection, **kwargs: object):
         super().__init__(**kwargs)  # pyright: ignore[reportUnknownMemberType]
-        self.responses = _SQLiteResponseCache(db_conn)
-        self.redirects = _SQLiteRedirectCache(db_conn)
+        self.responses = _SQLitePickleCache().attach('responses', connection)
+        self.redirects = _SQLiteSimpleCache().attach('redirects', connection)
 
 
-class _SQLiteBaseCache(BaseCache):
-    TABLE: LiteralString
-
-    def __init__(self, db_conn: sqlite3.Connection):
-        super().__init__()  # pyright: ignore[reportUnknownMemberType]
-        self._db_conn = db_conn
-        self._db_conn.execute(
-            f'CREATE TABLE IF NOT EXISTS "{self.TABLE}" (key PRIMARY KEY, value)'
+class _SQLiteSimpleCache(BaseCache):
+    def attach(self, table_name: LiteralString, connection: sqlite3.Connection):
+        self.table_name = table_name
+        self._connection = connection
+        self._connection.execute(
+            f'CREATE TABLE IF NOT EXISTS "{self.table_name}" (key PRIMARY KEY, value)'
         )
+        return self
 
-    async def clear(self):
-        self._db_conn.execute(f'DELETE FROM "{self.TABLE}"')
-        self._db_conn.execute('VACUUM')
-        self._db_conn.commit()
+    async def clear(self) -> NoReturn:
+        raise NotImplementedError
 
     async def contains(self, key: str):
-        cursor = self._db_conn.execute(
-            f'SELECT 1 FROM "{self.TABLE}" WHERE key = ?',
+        cursor = self._connection.execute(
+            f'SELECT 1 FROM "{self.table_name}" WHERE key = ?',
             (key,),
         )
         (value,) = cursor.fetchone() or (0,)
         return value
 
     async def delete(self, key: str):
-        self._db_conn.execute(
-            f'DELETE FROM "{self.TABLE}" WHERE key = ?',
+        self._connection.execute(
+            f'DELETE FROM "{self.table_name}" WHERE key = ?',
             (key,),
         )
-        self._db_conn.commit()
+        self._connection.commit()
 
     async def bulk_delete(self, keys: Set[str]) -> NoReturn:
         raise NotImplementedError
 
     async def keys(self):
-        cursor = self._db_conn.execute(f'SELECT key FROM "{self.TABLE}"')
+        cursor = self._connection.execute(f'SELECT key FROM "{self.table_name}"')
         for (value,) in cursor:
             yield value
 
     async def read(self, key: str):
-        cursor = self._db_conn.execute(
-            f'SELECT value FROM "{self.TABLE}" WHERE key = ?',
+        cursor = self._connection.execute(
+            f'SELECT value FROM "{self.table_name}" WHERE key = ?',
             (key,),
         )
         (value,) = cursor.fetchone() or (None,)
         return value
 
     async def size(self):
-        cursor = self._db_conn.execute(f'SELECT COUNT(key) FROM "{self.TABLE}"')
+        cursor = self._connection.execute(f'SELECT COUNT(key) FROM "{self.table_name}"')
         (value,) = cursor.fetchone()
         return value
 
     async def values(self):
-        cursor = self._db_conn.execute(f'SELECT value FROM "{self.TABLE}"')
+        cursor = self._connection.execute(f'SELECT value FROM "{self.table_name}"')
         for (value,) in cursor:
             yield value
 
     async def write(self, key: str, item: ResponseOrKey):
-        self._db_conn.execute(
-            f'INSERT OR REPLACE INTO "{self.TABLE}" (key, value) VALUES (?, ?)',
+        self._connection.execute(
+            f'INSERT OR REPLACE INTO "{self.table_name}" (key, value) VALUES (?, ?)',
             (key, item),
         )
-        self._db_conn.commit()
+        self._connection.commit()
 
 
-class _SQLiteRedirectCache(_SQLiteBaseCache):
-    TABLE = 'redirects'
-
-
-class _SQLiteResponseCache(_SQLiteBaseCache):
-    TABLE = 'responses'
-
+class _SQLitePickleCache(_SQLiteSimpleCache):
     async def read(self, key: str):
         return self.deserialize(await super().read(key))
 
     async def values(self):
-        cursor = self._db_conn.execute(f'SELECT value FROM "{self.TABLE}"')
+        cursor = self._connection.execute(f'SELECT value FROM "{self.table_name}"')
         for (value,) in cursor:
             yield self.deserialize(value)
 
