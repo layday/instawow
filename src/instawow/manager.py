@@ -19,7 +19,7 @@ from loguru import logger
 from typing_extensions import Concatenate, ParamSpec, TypeAlias
 from yarl import URL
 
-from . import _deferred_types, db, models
+from . import db, http, models
 from . import results as R
 from ._sources.cfcore import CfCoreResolver
 from ._sources.github import GithubResolver
@@ -181,7 +181,7 @@ class _ResolverPriorityDict(dict[str, float]):
         return float('inf')
 
 
-_web_client: cv.ContextVar[_deferred_types.aiohttp.ClientSession] = cv.ContextVar('_web_client')
+_web_client = cv.ContextVar[http.ClientSessionType]('_web_client')
 
 LocksType: TypeAlias = defaultdict[object, AbstractAsyncContextManager[None]]
 
@@ -191,7 +191,7 @@ _locks: cv.ContextVar[LocksType] = cv.ContextVar('_locks', default=_dummy_locks)
 
 def contextualise(
     *,
-    web_client: _deferred_types.aiohttp.ClientSession | None = None,
+    web_client: http.ClientSessionType | None = None,
     locks: LocksType | None = None,
 ) -> None:
     "Set variables for the current context."
@@ -258,7 +258,7 @@ class Manager:
         return _locks.get()
 
     @property
-    def web_client(self) -> _deferred_types.aiohttp.ClientSession:
+    def web_client(self) -> http.ClientSessionType:
         return _web_client.get()
 
     def pair_uri(self, value: str) -> tuple[str, str] | None:

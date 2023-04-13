@@ -24,7 +24,7 @@ from questionary import path as _path
 from questionary.prompts.common import InquirerControl, Separator, create_inquirer_layout
 from questionary.question import Question
 
-from . import _deferred_types
+from . import models
 
 if TYPE_CHECKING:
     ExceptionGroup = ExceptionGroup[Exception]
@@ -66,7 +66,7 @@ class AttrFieldValidator(Validator):
 
 
 class PkgChoice(Choice):
-    def __init__(self, *args: Any, pkg: _deferred_types.models.Pkg, **kwargs: Any) -> None:
+    def __init__(self, *args: Any, pkg: models.Pkg, **kwargs: object) -> None:
         super().__init__(*args, **kwargs)
         self.pkg = pkg
 

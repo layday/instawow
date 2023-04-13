@@ -14,7 +14,7 @@ import click
 from attrs import asdict, evolve, fields, resolve_types
 from loguru import logger
 
-from . import __version__, _deferred_types, db, models
+from . import __version__, db, models
 from . import manager as _manager
 from . import results as R
 from .common import ChangelogFormat, Defn, Flavour, Strategy
@@ -116,7 +116,7 @@ class _CtxObjWrapper:
         else:
             from contextlib import contextmanager
 
-            from aiohttp import TraceConfig, hdrs
+            import aiohttp
             from prompt_toolkit.shortcuts import ProgressBar, ProgressBarCounter
 
             from ._cli_prompts import make_progress_bar
@@ -125,9 +125,9 @@ class _CtxObjWrapper:
                 TICK_INTERVAL = 0.1
 
                 async def do_on_request_end(
-                    client_session: _deferred_types.aiohttp.ClientSession,
+                    client_session: aiohttp.ClientSession,
                     trace_config_ctx: Any,
-                    params: _deferred_types.aiohttp.TraceRequestEndParams,
+                    params: aiohttp.TraceRequestEndParams,
                 ):
                     trace_request_ctx: TraceRequestCtx = trace_config_ctx.trace_request_ctx
                     if trace_request_ctx:
@@ -149,7 +149,7 @@ class _CtxObjWrapper:
                         # aiohttp streaming API
                         total = (
                             None
-                            if hdrs.CONTENT_ENCODING in response.headers
+                            if aiohttp.hdrs.CONTENT_ENCODING in response.headers
                             else response.content_length
                         )
 
@@ -170,7 +170,7 @@ class _CtxObjWrapper:
 
                         tickers.add(asyncio.create_task(ticker()))
 
-                trace_config = TraceConfig()
+                trace_config = aiohttp.TraceConfig()
                 trace_config.on_request_end.append(do_on_request_end)
                 trace_config.freeze()
                 return init_web_client(

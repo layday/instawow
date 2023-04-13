@@ -14,12 +14,12 @@ from typing_extensions import NotRequired as N
 from typing_extensions import TypedDict
 from yarl import URL
 
-from .. import _deferred_types, manager, models
+from .. import manager, models
 from .. import results as R
 from ..cataloguer import BaseCatalogueEntry
 from ..common import ChangelogFormat, Defn, Flavour, SourceMetadata, Strategy
 from ..config import GlobalConfig
-from ..http import CACHE_INDEFINITELY, make_generic_progress_ctx
+from ..http import CACHE_INDEFINITELY, ClientSessionType, make_generic_progress_ctx
 from ..resolvers import BaseResolver, HeadersIntent
 from ..utils import gather, uniq
 
@@ -413,9 +413,7 @@ class CfCoreResolver(BaseResolver):
             return response_json['data']
 
     @classmethod
-    async def catalogue(
-        cls, web_client: _deferred_types.aiohttp.ClientSession
-    ) -> AsyncIterator[BaseCatalogueEntry]:
+    async def catalogue(cls, web_client: ClientSessionType) -> AsyncIterator[BaseCatalogueEntry]:
         from aiohttp import ClientTimeout
 
         flavours_and_version_types = [

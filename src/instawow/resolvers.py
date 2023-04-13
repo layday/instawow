@@ -10,7 +10,7 @@ from typing import Any, ClassVar, Protocol, TypeVar
 from typing_extensions import Self
 from yarl import URL
 
-from . import _deferred_types, models
+from . import http, manager, models
 from . import results as R
 from .cataloguer import BaseCatalogueEntry
 from .common import AddonHashMethod, Defn, SourceMetadata
@@ -37,7 +37,7 @@ class Resolver(Protocol):
     metadata: ClassVar[SourceMetadata]
     requires_access_token: ClassVar[str | None]
 
-    def __init__(self, manager: _deferred_types.manager.Manager) -> None:
+    def __init__(self, manager: manager.Manager) -> None:
         ...
 
     @classmethod
@@ -72,17 +72,15 @@ class Resolver(Protocol):
         ...
 
     @classmethod
-    def catalogue(
-        cls, web_client: _deferred_types.aiohttp.ClientSession
-    ) -> AsyncIterator[BaseCatalogueEntry]:
+    def catalogue(cls, web_client: http.ClientSessionType) -> AsyncIterator[BaseCatalogueEntry]:
         "Enumerate add-ons from the source."
         ...
 
 
 class BaseResolver(Resolver, Protocol):
-    _manager: _deferred_types.manager.Manager
+    _manager: manager.Manager
 
-    def __init__(self, manager: _deferred_types.manager.Manager) -> None:
+    def __init__(self, manager: manager.Manager) -> None:
         self._manager = manager
 
     __orig_init = __init__
@@ -160,7 +158,7 @@ class BaseResolver(Resolver, Protocol):
 
     @classmethod
     async def catalogue(
-        cls, web_client: _deferred_types.aiohttp.ClientSession
+        cls, web_client: http.ClientSessionType
     ) -> AsyncIterator[BaseCatalogueEntry]:
         return
         yield

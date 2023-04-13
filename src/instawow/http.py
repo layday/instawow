@@ -4,13 +4,20 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from functools import lru_cache, partial
 from pathlib import Path
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 
 from loguru import logger
 from typing_extensions import TypeAlias, TypedDict
 
-from . import _deferred_types
+from . import models
 from .utils import read_resource_as_text
+
+if TYPE_CHECKING:
+    import aiohttp
+
+    ClientSessionType: TypeAlias = aiohttp.ClientSession
+else:
+    ClientSessionType = type
 
 _USER_AGENT = 'instawow (+https://github.com/layday/instawow)'
 
@@ -27,15 +34,13 @@ class _GenericDownloadTraceRequestCtx(TypedDict):
 class _PkgDownloadTraceRequestCtx(TypedDict):
     report_progress: Literal['pkg_download']
     profile: str
-    pkg: _deferred_types.models.Pkg
+    pkg: models.Pkg
 
 
 TraceRequestCtx: TypeAlias = '_GenericDownloadTraceRequestCtx | _PkgDownloadTraceRequestCtx | None'
 
 
-def make_pkg_progress_ctx(
-    profile: str, pkg: _deferred_types.models.Pkg
-) -> _PkgDownloadTraceRequestCtx:
+def make_pkg_progress_ctx(profile: str, pkg: models.Pkg) -> _PkgDownloadTraceRequestCtx:
     return {'report_progress': 'pkg_download', 'profile': profile, 'pkg': pkg}
 
 
@@ -57,7 +62,7 @@ def _load_certifi_certs():
 @asynccontextmanager
 async def init_web_client(
     cache_dir: Path | None, *, no_cache: bool = False, **kwargs: object
-) -> AsyncIterator[_deferred_types.aiohttp.ClientSession]:
+) -> AsyncIterator[ClientSessionType]:
     from aiohttp import ClientSession, ClientTimeout, TCPConnector
 
     make_connector = partial(TCPConnector, limit_per_host=10)
@@ -80,13 +85,13 @@ async def init_web_client(
     if cache_dir is not None:
         from aiohttp_client_cache.session import CachedSession
 
-        from ._http_cache_db import SQLiteBackend, acquire_cache_db_conn
+        from ._http_cache_db import SQLiteBackend, acquire_cache_connection
 
-        with acquire_cache_db_conn(cache_dir) as db_conn:
+        with acquire_cache_connection(cache_dir) as connection:
             cache_backend = SQLiteBackend(
                 allowed_codes=[200, 206],
                 allowed_methods=['GET', 'POST'],
-                db_conn=db_conn,
+                connection=connection,
                 expire_after=_DEFAULT_EXPIRE,
                 include_headers=True,
             )

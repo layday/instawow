@@ -11,11 +11,11 @@ from typing_extensions import NotRequired as N
 from typing_extensions import TypedDict
 from yarl import URL
 
-from .. import _deferred_types, manager, models
+from .. import manager, models
 from .. import results as R
 from ..cataloguer import BaseCatalogueEntry
 from ..common import ChangelogFormat, Defn, Flavour, FlavourVersionRange, SourceMetadata
-from ..http import make_generic_progress_ctx
+from ..http import ClientSessionType, make_generic_progress_ctx
 from ..resolvers import BaseResolver
 from ..utils import as_plain_text_data_url, gather, slugify, uniq
 
@@ -175,9 +175,7 @@ class WowiResolver(BaseResolver):
         )
 
     @classmethod
-    async def catalogue(
-        cls, web_client: _deferred_types.aiohttp.ClientSession
-    ) -> AsyncIterator[BaseCatalogueEntry]:
+    async def catalogue(cls, web_client: ClientSessionType) -> AsyncIterator[BaseCatalogueEntry]:
         logger.debug(f'retrieving {cls._list_api_url}')
 
         async with web_client.get(cls._list_api_url, raise_for_status=True) as response:

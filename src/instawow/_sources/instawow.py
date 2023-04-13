@@ -3,10 +3,11 @@ from __future__ import annotations
 from collections.abc import AsyncIterator
 from datetime import datetime, timezone
 
-from .. import _deferred_types, models
+from .. import models
 from .. import results as R
 from ..cataloguer import BaseCatalogueEntry
 from ..common import ChangelogFormat, Defn, Flavour, SourceMetadata
+from ..http import ClientSessionType
 from ..resolvers import BaseResolver
 from ..utils import run_in_thread
 
@@ -53,9 +54,7 @@ class InstawowResolver(BaseResolver):
         )
 
     @classmethod
-    async def catalogue(
-        cls, web_client: _deferred_types.aiohttp.ClientSession
-    ) -> AsyncIterator[BaseCatalogueEntry]:
+    async def catalogue(cls, web_client: ClientSessionType) -> AsyncIterator[BaseCatalogueEntry]:
         yield BaseCatalogueEntry(
             source=cls.metadata.id,
             id='1',

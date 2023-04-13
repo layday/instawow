@@ -11,11 +11,11 @@ from typing_extensions import NotRequired as N
 from typing_extensions import TypedDict
 from yarl import URL
 
-from .. import _deferred_types, models
+from .. import models
 from .. import results as R
 from ..cataloguer import BaseCatalogueEntry, CatalogueSameAs
 from ..common import ChangelogFormat, Defn, Flavour, FlavourVersionRange, SourceMetadata, Strategy
-from ..http import CACHE_INDEFINITELY
+from ..http import CACHE_INDEFINITELY, ClientSessionType
 from ..resolvers import BaseResolver, HeadersIntent
 from ..utils import (
     StrEnum,
@@ -407,9 +407,7 @@ class GithubResolver(BaseResolver):
         )
 
     @classmethod
-    async def catalogue(
-        cls, web_client: _deferred_types.aiohttp.ClientSession
-    ) -> AsyncIterator[BaseCatalogueEntry]:
+    async def catalogue(cls, web_client: ClientSessionType) -> AsyncIterator[BaseCatalogueEntry]:
         import csv
         from io import StringIO
 
