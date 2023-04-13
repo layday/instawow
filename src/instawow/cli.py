@@ -1076,13 +1076,13 @@ def list_installed_wago_auras(mw: _CtxObjWrapper) -> None:
 
     aura_groups = WaCompanionBuilder(mw.manager).extract_installed_auras()
     installed_auras = sorted(
-        (g.addon_name, textwrap.fill(a.id, width=30, max_lines=1), a.url)
+        (g.addon_name, a.id, a.url)
         for g in aura_groups
         for v in g.root.values()
         for a in v
         if not a.parent
     )
-    click.echo(tabulate([('in file', 'name', 'URL'), *installed_auras]))
+    click.echo(tabulate([('type', 'name', 'URL'), *installed_auras]))
 
 
 @cli.command(hidden=True)
