@@ -138,14 +138,14 @@ def test_changelog_is_generated(builder: WaCompanionBuilder):
     assert builder.changelog_path.read_text() == 'n/a'
 
 
-async def test_can_resolve_wa_companion_pkg(builder: WaCompanionBuilder):
+async def test_can_resolve_wa_companion_pkg(builder: WaCompanionBuilder, iw_manager: Manager):
     await builder.build()
     defn = Defn('instawow', 'weakauras-companion')
-    resolve_results = await builder._manager.resolve([defn])
+    resolve_results = await iw_manager.resolve([defn])
     assert type(resolve_results[defn]) is Pkg
 
 
-async def test_can_resolve_wa_companion_autoupdate_pkg(builder: WaCompanionBuilder):
+async def test_can_resolve_wa_companion_autoupdate_pkg(iw_manager: Manager):
     defn = Defn('instawow', 'weakauras-companion-autoupdate')
-    resolve_results = await builder._manager.resolve([defn])
+    resolve_results = await iw_manager.resolve([defn])
     assert type(resolve_results[defn]) is Pkg
