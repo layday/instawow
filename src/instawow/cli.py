@@ -66,9 +66,12 @@ class Report:
 
     def generate(self) -> None:
         mw: _CtxObjWrapper | None = click.get_current_context().obj
+
         if mw and mw.manager.config.global_config.auto_update_check:
+            from ._version import is_outdated
+
             outdated, new_version = mw.run_with_progress(
-                _manager.is_outdated(mw.manager.config.global_config)
+                is_outdated(mw.manager.config.global_config)
             )
             if outdated:
                 click.echo(f'{self.WARNING_SYMBOL} instawow v{new_version} is available')

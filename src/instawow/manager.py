@@ -7,7 +7,7 @@ from collections.abc import Awaitable, Callable, Collection, Iterable, Mapping, 
 from contextlib import AbstractAsyncContextManager, asynccontextmanager, contextmanager
 from datetime import datetime, timedelta
 from functools import cached_property, wraps
-from itertools import chain, filterfalse, product, repeat, starmap, takewhile
+from itertools import chain, filterfalse, product, repeat, starmap
 from pathlib import Path, PurePath
 from shutil import move
 from tempfile import NamedTemporaryFile
@@ -35,7 +35,7 @@ from .cataloguer import (
     catalogue_converter,
 )
 from .common import Defn, Strategy
-from .config import Config, GlobalConfig
+from .config import Config
 from .http import make_generic_progress_ctx, make_pkg_progress_ctx
 from .plugins import load_plugins
 from .resolvers import HeadersIntent, Resolver
@@ -817,38 +817,3 @@ class Manager:
             return R.PkgInstalled(new_pkg)
 
         return {d: await capture_manager_exc_async(pin(d)) for d in defns}
-
-
-async def is_outdated(global_config: GlobalConfig) -> tuple[bool, str]:
-    """Check on PyPI to see if instawow is outdated.
-
-    The response is cached for 24 hours.
-    """
-
-    if not global_config.auto_update_check:
-        return (False, '')
-
-    from . import __version__
-
-    if __version__ == '0+dev':
-        return (False, '')
-
-    from aiohttp.client import ClientError
-
-    from .http import init_web_client
-
-    def parse_version(version: str):
-        version_parts = takewhile(lambda p: all(c in '0123456789' for c in p), version.split('.'))
-        return tuple(map(int, version_parts))
-
-    try:
-        async with init_web_client(
-            global_config.cache_dir, raise_for_status=True
-        ) as web_client, web_client.get(
-            'https://pypi.org/pypi/instawow/json', expire_after=timedelta(days=1)
-        ) as response:
-            version = (await response.json())['info']['version']
-    except ClientError:
-        version = __version__
-
-    return (parse_version(version) > parse_version(__version__), version)

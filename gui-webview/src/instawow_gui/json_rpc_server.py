@@ -34,12 +34,13 @@ from yarl import URL
 
 from instawow import __version__, db, matchers, models
 from instawow import results as R
+from instawow._version import is_outdated
 from instawow.cataloguer import CatalogueEntry
 from instawow.common import Defn, Flavour, SourceMetadata, infer_flavour_from_path
 from instawow.config import Config, GlobalConfig, SecretStr, config_converter
 from instawow.github_auth import get_codes, poll_for_access_token
 from instawow.http import TraceRequestCtx, init_web_client
-from instawow.manager import LocksType, Manager, contextualise, is_outdated
+from instawow.manager import LocksType, Manager, contextualise
 from instawow.utils import read_resource_as_text, reveal_folder, uniq
 from instawow.utils import run_in_thread as t
 

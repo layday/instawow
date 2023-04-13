@@ -92,6 +92,7 @@ def lint(session: nox.Session):
             iso8601 == 1.0.2
             loguru == 0.7.0
             mako == 1.2.4
+            packaging == 23.0
             pluggy == 0.13.0
             prompt-toolkit == 3.0.29
             questionary == 1.10.0
