@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-from collections.abc import Awaitable, Iterable
+from collections.abc import Awaitable, Iterable, Mapping
 from functools import cached_property
 from itertools import chain, product
 from pathlib import Path
@@ -198,3 +198,12 @@ async def match_addon_names_with_folder_names(
         (a, addon_names_to_catalogue_entries.get(normalise(a.name))) for a in sorted(leftovers)
     )
     return [([a], uniq(Defn(i.source, i.id) for i in m)) for a, m in matches if m]
+
+
+# In order of increasing heuristicitivenessitude
+DEFAULT_MATCHERS: Mapping[str, Matcher] = {
+    'toc_source_ids': match_toc_source_ids,
+    'folder_name_subsets': match_folder_name_subsets,
+    'folder_hashes': match_folder_hashes,
+    'addon_names_with_folder_names': match_addon_names_with_folder_names,
+}

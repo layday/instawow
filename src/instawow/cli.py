@@ -486,14 +486,7 @@ def rollback(mw: _CtxObjWrapper, addon: Defn, version: str | None, undo: bool) -
 def reconcile(mw: _CtxObjWrapper, auto: bool, rereconcile: bool, list_unreconciled: bool) -> None:
     "Reconcile pre-installed add-ons."
     from ._cli_prompts import PkgChoice, ask, confirm, select, skip
-    from .matchers import (
-        AddonFolder,
-        get_unreconciled_folders,
-        match_addon_names_with_folder_names,
-        match_folder_hashes,
-        match_folder_name_subsets,
-        match_toc_source_ids,
-    )
+    from .matchers import DEFAULT_MATCHERS, AddonFolder, get_unreconciled_folders
 
     def construct_choice(pkg: models.Pkg, highlight_version: bool, disabled: bool):
         defn = pkg.to_defn()
@@ -617,13 +610,7 @@ def reconcile(mw: _CtxObjWrapper, auto: bool, rereconcile: bool, list_unreconcil
             (lambda: True) if auto else (lambda: ask(confirm('Install selected add-ons?')))
         )
 
-        # Match in order of increasing heuristicitivenessitude
-        for fn in [
-            match_toc_source_ids,
-            match_folder_name_subsets,
-            match_folder_hashes,
-            match_addon_names_with_folder_names,
-        ]:
+        for fn in DEFAULT_MATCHERS.values():
             groups = mw.run_with_progress(fn(mw.manager, leftovers))
             selections = [s for s in gather_selections(groups, select_pkg_) if s is not None]
             if selections and confirm_install():

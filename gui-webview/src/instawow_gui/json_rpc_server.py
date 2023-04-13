@@ -409,42 +409,26 @@ class AddonMatch_AddonFolder(TypedDict):
 
 @_register_method('reconcile')
 class ReconcileParams(_ProfileParamMixin, BaseParams):
-    matcher: Literal[
-        'toc_source_ids', 'folder_hashes', 'folder_name_subsets', 'addon_names_with_folder_names'
-    ]
-
-    _MATCHERS = {
-        'toc_source_ids': matchers.match_toc_source_ids,
-        'folder_name_subsets': matchers.match_folder_name_subsets,
-        'folder_hashes': matchers.match_folder_hashes,
-        'addon_names_with_folder_names': matchers.match_addon_names_with_folder_names,
-    }
+    matcher: str
 
     async def respond(self, managers: _ManagerWorkQueue) -> list[AddonMatch]:
-        leftovers = await managers.run(self.profile, t(matchers.get_unreconciled_folders))
-        match_groups = await managers.run(
-            self.profile, partial(self._MATCHERS[self.matcher], leftovers=leftovers)
-        )
-        resolved_defns = await managers.run(
-            self.profile,
-            partial(Manager.resolve, defns=uniq(d for _, b in match_groups for d in b)),
-        )
-        resolved_pkgs, _ = bucketise_results(resolved_defns.items())
+        manager = await managers.get_manager(self.profile)
+
+        leftovers = await t(matchers.get_unreconciled_folders)(manager)
+
+        match_groups = await matchers.DEFAULT_MATCHERS[self.matcher](manager, leftovers=leftovers)
+
+        resolved_defns = await manager.resolve(uniq(d for _, b in match_groups for d in b))
+        pkgs, _ = bucketise_results(resolved_defns.items())
         matched_pkgs = [
-            (a, m)
-            for a, s in match_groups
-            for m in ([i for i in (resolved_pkgs.get(d) for d in s) if i],)
-            if m
+            (a, [i for i in (pkgs.get(d) for d in s) if i]) for a, s in match_groups
         ]
         return [
-            *(
-                AddonMatch(folders=[{'name': f.name, 'version': f.version} for f in a], matches=m)
-                for a, m in matched_pkgs
-            ),
-            *(
-                AddonMatch(folders=[{'name': f.name, 'version': f.version}], matches=[])
-                for f in sorted(leftovers - frozenset(i for a, _ in matched_pkgs for i in a))
-            ),
+            {'folders': [{'name': f.name, 'version': f.version} for f in a], 'matches': m}
+            for a, m in [
+                *matched_pkgs,
+                (sorted(leftovers - frozenset(i for a, _ in matched_pkgs for i in a)), []),
+            ]
         ]
 
 
@@ -457,6 +441,7 @@ class ReconcileInstalledCandidate(TypedDict):
 class GetReconcileInstalledCandidatesParams(_ProfileParamMixin, BaseParams):
     async def respond(self, managers: _ManagerWorkQueue) -> list[ReconcileInstalledCandidate]:
         manager = await managers.get_manager(self.profile)
+
         installed_pkgs = [
             models.Pkg.from_row_mapping(manager.database, p)
             for p in manager.database.execute(
@@ -465,6 +450,7 @@ class GetReconcileInstalledCandidatesParams(_ProfileParamMixin, BaseParams):
             .mappings()
             .all()
         ]
+
         defn_groups = await managers.run(
             self.profile, partial(Manager.find_equivalent_pkg_defns, pkgs=installed_pkgs)
         )
@@ -472,11 +458,11 @@ class GetReconcileInstalledCandidatesParams(_ProfileParamMixin, BaseParams):
             self.profile,
             partial(Manager.resolve, defns=uniq(d for b in defn_groups.values() for d in b)),
         )
-        resolved_pkgs, _ = bucketise_results(resolved_defns.items())
+        pkgs, _ = bucketise_results(resolved_defns.items())
         return [
             {'installed_addon': p, 'alternative_addons': m}
             for p, s in defn_groups.items()
-            for m in ([i for i in (resolved_pkgs.get(d) for d in s) if i],)
+            for m in ([i for i in (pkgs.get(d) for d in s) if i],)
             if m
         ]
 
