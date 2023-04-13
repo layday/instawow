@@ -14,7 +14,7 @@ from prompt_toolkit.document import Document
 from prompt_toolkit.formatted_text.html import HTML
 from prompt_toolkit.key_binding import KeyBindings, KeyPressEvent
 from prompt_toolkit.keys import Keys
-from prompt_toolkit.shortcuts.progress_bar import ProgressBar, formatters
+from prompt_toolkit.shortcuts.progress_bar import ProgressBar, ProgressBarCounter, formatters
 from prompt_toolkit.styles import Style
 from prompt_toolkit.validation import ValidationError, Validator
 from questionary import Choice
@@ -90,7 +90,7 @@ path = partial(_path, qmark='>', style=qstyle)
 password = partial(_password, style=qstyle)
 
 
-def checkbox(message: str, choices: Sequence[Choice], **inquirer_kwargs: Any) -> Question:
+def checkbox(message: str, choices: Sequence[Choice], **inquirer_kwargs: object) -> Question:
     def get_prompt_tokens():
         tokens: list[tuple[str, str]] = [('class:question', message)]
         if ic.is_answered:
@@ -173,7 +173,7 @@ def select(
     message: str,
     choices: Sequence[str] | Sequence[Choice],
     initial_choice: str | Choice | None = None,
-    **inquirer_kwargs: Any,
+    **inquirer_kwargs: object,
 ) -> Question:
     def get_prompt_tokens():
         tokens: list[tuple[str, str]] = [('class:qmark', '- '), ('class:question', message)]
@@ -258,7 +258,7 @@ def _format_mb(value: int):
 class _DownloadProgress(formatters.Progress):
     template = '<current>{current:>3}</current>/<total>{total:>3}</total>MB'
 
-    def format(self, progress_bar: ProgressBar, progress: Any, width: int):
+    def format(self, progress_bar: ProgressBar, progress: ProgressBarCounter[object], width: int):
         return HTML(self.template).format(
             current=_format_mb(progress.items_completed),
             total=_format_mb(progress.total) if progress.total is not None else '?',

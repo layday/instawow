@@ -167,10 +167,10 @@ def tabulate(rows: Sequence[tuple[object, ...]], *, max_col_width: int = 60) -> 
         cols = zip(*rows)
         return [max(map(len, c)) for c in cols]
 
-    rows = [tuple(apply_max_col_width(i) for i in r) for r in rows]
-    head, *tail = rows
+    norm_rows = [tuple(apply_max_col_width(i) for i in r) for r in rows]
+    head, *tail = norm_rows
 
-    base_template = '  '.join(f'{{{{{{0}}{w}}}}}' for w in calc_resultant_col_widths(rows))
+    base_template = '  '.join(f'{{{{{{0}}{w}}}}}' for w in calc_resultant_col_widths(norm_rows))
     row_template = base_template.format(':<')
     table = '\n'.join(
         (
