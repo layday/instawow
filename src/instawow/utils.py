@@ -27,6 +27,7 @@ from shutil import move
 from tempfile import mkdtemp
 from types import ModuleType
 from typing import Generic, TypeVar, overload
+from weakref import WeakValueDictionary
 
 from typing_extensions import ParamSpec
 
@@ -283,3 +284,16 @@ def time_op(on_complete: Callable[[float], None]) -> Iterator[None]:
     start = time.perf_counter()
     yield
     on_complete(time.perf_counter() - start)
+
+
+class WeakValueDefaultDictionary(WeakValueDictionary[_T, _U]):
+    def __init__(self, default_factory: Callable[[], _U]) -> None:
+        super().__init__()
+        self.__default_factory = default_factory
+
+    def __getitem__(self, key: _T) -> _U:
+        try:
+            return super().__getitem__(key)
+        except KeyError:
+            default = self[key] = self.__default_factory()
+            return default

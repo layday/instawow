@@ -5,7 +5,6 @@ import contextvars
 import json
 import os
 import typing
-from collections import defaultdict
 from collections.abc import Awaitable, Callable, Iterator
 from contextlib import AsyncExitStack, contextmanager
 from datetime import datetime
@@ -41,7 +40,7 @@ from instawow.config import Config, GlobalConfig, SecretStr, config_converter
 from instawow.github_auth import get_codes, poll_for_access_token
 from instawow.http import TraceRequestCtx, init_web_client
 from instawow.manager import LocksType, Manager, contextualise
-from instawow.utils import read_resource_as_text, reveal_folder, uniq
+from instawow.utils import WeakValueDefaultDictionary, read_resource_as_text, reveal_folder, uniq
 from instawow.utils import run_in_thread as t
 
 from . import frontend
@@ -604,7 +603,7 @@ class _ManagerWorkQueue:
             'tuple[asyncio.Future[object], str, _ManagerBoundCoroFn[..., object]]'
         ]()
 
-        self.locks: LocksType = defaultdict(asyncio.Lock)
+        self.locks: LocksType = WeakValueDefaultDictionary(asyncio.Lock)
 
         self._managers = dict[str, tuple[Manager, Callable[[], None]]]()
 

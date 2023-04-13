@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import contextvars as cv
 import json
-from collections import defaultdict
 from collections.abc import Awaitable, Callable, Collection, Iterable, Mapping, Sequence, Set
 from contextlib import AbstractAsyncContextManager, asynccontextmanager, contextmanager
 from datetime import datetime, timedelta
@@ -40,6 +39,7 @@ from .http import make_generic_progress_ctx, make_pkg_progress_ctx
 from .plugins import load_plugins
 from .resolvers import HeadersIntent, Resolver
 from .utils import (
+    WeakValueDefaultDictionary,
     bucketise,
     chain_dict,
     file_uri_to_path,
@@ -183,10 +183,9 @@ class _ResolverPriorityDict(dict[str, float]):
 
 _web_client = cv.ContextVar[http.ClientSessionType]('_web_client')
 
-LocksType: TypeAlias = defaultdict[object, AbstractAsyncContextManager[None]]
+LocksType: TypeAlias = Mapping[object, AbstractAsyncContextManager[None]]
 
-_dummy_locks: LocksType = defaultdict(_DummyLock)
-_locks: cv.ContextVar[LocksType] = cv.ContextVar('_locks', default=_dummy_locks)
+_locks = cv.ContextVar[LocksType]('_locks', default=WeakValueDefaultDictionary(_DummyLock))
 
 
 def contextualise(
