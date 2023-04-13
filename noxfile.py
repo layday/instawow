@@ -90,7 +90,7 @@ def lint(session: nox.Session):
             click == 8.1.0
             exceptiongroup == 1.0.0
             iso8601 == 1.0.2
-            loguru == 0.5.3
+            loguru == 0.7.0
             mako == 1.2.4
             pluggy == 0.13.0
             prompt-toolkit == 3.0.29

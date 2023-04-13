@@ -343,9 +343,9 @@ def _patch_loguru_enqueue():
 def _intercept_logging_module_calls(log_level: str):  # pragma: no cover
     import logging
 
-    class InterceptHandler(logging.Handler):
-        logging_filename = getattr(logging, '__file__', None)
+    logging_filename = getattr(logging, '__file__', None)
 
+    class InterceptHandler(logging.Handler):
         def emit(self, record: logging.LogRecord) -> None:
             # Get the corresponding Loguru level if it exists
             try:
@@ -354,26 +354,26 @@ def _intercept_logging_module_calls(log_level: str):  # pragma: no cover
                 level = record.levelno
 
             # Find caller from where the logged message originated
-            frame = logging.currentframe()
-            depth = 2
-            while frame and frame.f_code.co_filename == self.logging_filename:
+            depth = 6
+            frame = sys._getframe(depth)  # pyright: ignore[reportPrivateUsage]
+            while frame and frame.f_code.co_filename == logging_filename:
                 frame = frame.f_back
                 depth += 1
 
             logger.opt(depth=depth, exception=record.exc_info).log(level, record.getMessage())
 
-    logging.basicConfig(handlers=[InterceptHandler()], level=log_level)
+    logging.basicConfig(handlers=[InterceptHandler()], level=log_level, force=True)
 
 
 def setup_logging(
     logging_dir: Path, log_to_stderr: bool, debug: bool, intercept_logging_module_calls: bool
 ) -> None:
+    _patch_loguru_enqueue()
+
     log_level = 'DEBUG' if debug else 'INFO'
 
     if intercept_logging_module_calls:
         _intercept_logging_module_calls(log_level)
-
-    _patch_loguru_enqueue()
 
     values = {
         'level': log_level,
