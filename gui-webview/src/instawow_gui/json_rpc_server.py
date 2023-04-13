@@ -420,9 +420,7 @@ class ReconcileParams(_ProfileParamMixin, BaseParams):
 
         resolved_defns = await manager.resolve(uniq(d for _, b in match_groups for d in b))
         pkgs, _ = bucketise_results(resolved_defns.items())
-        matched_pkgs = [
-            (a, [i for i in (pkgs.get(d) for d in s) if i]) for a, s in match_groups
-        ]
+        matched_pkgs = [(a, [i for i in (pkgs.get(d) for d in s) if i]) for a, s in match_groups]
         return [
             {'folders': [{'name': f.name, 'version': f.version} for f in a], 'matches': m}
             for a, m in [
