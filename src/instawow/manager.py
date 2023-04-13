@@ -69,7 +69,7 @@ _move_async = t(move)
 _ERROR_CLASSES = (R.ManagerError, R.InternalError)
 
 
-def _bucketise_results(
+def bucketise_results(
     value: Iterable[tuple[Defn, _ResultOrError[_T]]],
 ) -> tuple[Mapping[Defn, _T], Mapping[Defn, _ResultOrError[NoReturn]]]:
     def get_bucket_dict(key: bool):
@@ -682,10 +682,10 @@ class Manager:
         resolve_results = await self.resolve(
             [d for d in defns if not self.check_pkg_exists(d)], with_deps=True
         )
-        pkgs, resolve_errors = _bucketise_results(
+        pkgs, resolve_errors = bucketise_results(
             (d, r) for d, r in resolve_results.items() if not self.check_pkg_exists(d)
         )
-        archive_paths, download_errors = _bucketise_results(
+        archive_paths, download_errors = bucketise_results(
             zip(
                 pkgs,
                 await gather(
@@ -729,14 +729,14 @@ class Manager:
         orig_defn_resolve_results = (
             (resolve_defns.get(d, d), r) for d, r in resolve_results.items()
         )
-        pkgs, resolve_errors = _bucketise_results(orig_defn_resolve_results)
+        pkgs, resolve_errors = bucketise_results(orig_defn_resolve_results)
         updatables = {
             d: (o, n)
             for d, n in pkgs.items()
             for o in (defns_to_pkgs.get(d),)
             if not o or await self._should_update_pkg(o, n)
         }
-        archive_paths, download_errors = _bucketise_results(
+        archive_paths, download_errors = bucketise_results(
             zip(
                 updatables,
                 await gather(

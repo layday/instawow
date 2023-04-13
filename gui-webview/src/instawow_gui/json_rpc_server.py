@@ -39,7 +39,7 @@ from instawow.common import Defn, Flavour, SourceMetadata, infer_flavour_from_pa
 from instawow.config import Config, GlobalConfig, SecretStr, config_converter
 from instawow.github_auth import get_codes, poll_for_access_token
 from instawow.http import TraceRequestCtx, init_web_client
-from instawow.manager import LocksType, Manager, contextualise
+from instawow.manager import LocksType, Manager, bucketise_results, contextualise
 from instawow.utils import WeakValueDefaultDictionary, read_resource_as_text, reveal_folder, uniq
 from instawow.utils import run_in_thread as t
 
@@ -429,7 +429,7 @@ class ReconcileParams(_ProfileParamMixin, BaseParams):
             self.profile,
             partial(Manager.resolve, defns=uniq(d for _, b in match_groups for d in b)),
         )
-        resolved_pkgs = {k: v for k, v in resolved_defns.items() if isinstance(v, models.Pkg)}
+        resolved_pkgs, _ = bucketise_results(resolved_defns.items())
         matched_pkgs = [
             (a, m)
             for a, s in match_groups
@@ -472,7 +472,7 @@ class GetReconcileInstalledCandidatesParams(_ProfileParamMixin, BaseParams):
             self.profile,
             partial(Manager.resolve, defns=uniq(d for b in defn_groups.values() for d in b)),
         )
-        resolved_pkgs = {k: v for k, v in resolved_defns.items() if isinstance(v, models.Pkg)}
+        resolved_pkgs, _ = bucketise_results(resolved_defns.items())
         return [
             {'installed_addon': p, 'alternative_addons': m}
             for p, s in defn_groups.items()
