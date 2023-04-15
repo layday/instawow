@@ -262,12 +262,14 @@ class ListSourcesParams(_ProfileParamMixin, BaseParams):
 class ListInstalledParams(_ProfileParamMixin, BaseParams):
     async def respond(self, managers: _ManagerWorkQueue) -> list[models.Pkg]:
         manager = await managers.get_manager(self.profile)
-        installed_pkgs = (
-            manager.database.execute(sa.select(db.pkg).order_by(sa.func.lower(db.pkg.c.name)))
-            .mappings()
-            .all()
-        )
-        return [models.Pkg.from_row_mapping(manager.database, p) for p in installed_pkgs]
+
+        with manager.database.connect() as connection:
+            installed_pkgs = (
+                connection.execute(sa.select(db.pkg).order_by(sa.func.lower(db.pkg.c.name)))
+                .mappings()
+                .all()
+            )
+            return [models.Pkg.from_row_mapping(connection, p) for p in installed_pkgs]
 
 
 @_register_method('search')
@@ -440,14 +442,15 @@ class GetReconcileInstalledCandidatesParams(_ProfileParamMixin, BaseParams):
     async def respond(self, managers: _ManagerWorkQueue) -> list[ReconcileInstalledCandidate]:
         manager = await managers.get_manager(self.profile)
 
-        installed_pkgs = [
-            models.Pkg.from_row_mapping(manager.database, p)
-            for p in manager.database.execute(
-                sa.select(db.pkg).order_by(sa.func.lower(db.pkg.c.name))
-            )
-            .mappings()
-            .all()
-        ]
+        with manager.database.connect() as connection:
+            installed_pkgs = [
+                models.Pkg.from_row_mapping(connection, p)
+                for p in connection.execute(
+                    sa.select(db.pkg).order_by(sa.func.lower(db.pkg.c.name))
+                )
+                .mappings()
+                .all()
+            ]
 
         defn_groups = await managers.run(
             self.profile, partial(Manager.find_equivalent_pkg_defns, pkgs=installed_pkgs)
@@ -589,7 +592,7 @@ class _ManagerWorkQueue:
 
         self.locks: LocksType = WeakValueDefaultDictionary(asyncio.Lock)
 
-        self._managers = dict[str, tuple[Manager, Callable[[], None]]]()
+        self._managers = dict[str, Manager]()
 
         self._github_auth_device_codes = None
         self._github_auth_flow_task = None
@@ -605,17 +608,14 @@ class _ManagerWorkQueue:
 
     async def __aexit__(self, *args: object):
         self.cancel_github_auth_polling()
-        self._unload_all_profiles()
         await self._exit_stack.aclose()
 
     def unload_profile(self, profile: str):
         if profile in self._managers:
-            _, close_db_conn = self._managers.pop(profile)
-            close_db_conn()
+            del self._managers[profile]
 
     def _unload_all_profiles(self):
-        for profile in list(self._managers):
-            self.unload_profile(profile)
+        self._managers.clear()
 
     async def update_global_config(
         self, update_cb: Callable[[GlobalConfig], GlobalConfig]
@@ -635,13 +635,13 @@ class _ManagerWorkQueue:
         ):
             try:
                 try:
-                    manager, _ = self._managers[profile]
+                    manager = self._managers[profile]
                 except KeyError:
                     async with self.locks['modify profile', profile]:
                         try:
-                            manager, _ = self._managers[profile]
+                            manager = self._managers[profile]
                         except KeyError:
-                            manager, _ = self._managers[profile] = Manager.from_config(
+                            manager = self._managers[profile] = Manager.from_config(
                                 await _read_config(self.global_config, profile)
                             )
 

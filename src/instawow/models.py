@@ -96,27 +96,26 @@ class Pkg:
             cls,
         )
 
-    def insert(self, connection: sa.Connection) -> None:
+    def insert(self, transaction: sa.Connection) -> None:
         values = asdict(self)
         source_and_id = {'pkg_source': values['source'], 'pkg_id': values['id']}
-        with db.faux_transact(connection):
-            connection.execute(sa.insert(db.pkg), [values])
-            connection.execute(
-                sa.insert(db.pkg_folder), [{**f, **source_and_id} for f in values['folders']]
-            )
-            connection.execute(sa.insert(db.pkg_options), [{**values['options'], **source_and_id}])
-            if values['deps']:
-                connection.execute(
-                    sa.insert(db.pkg_dep), [{**d, **source_and_id} for d in values['deps']]
-                )
-            connection.execute(
-                sa.insert(db.pkg_version_log).prefix_with('OR IGNORE'),
-                [{'version': values['version'], **source_and_id}],
-            )
 
-    def delete(self, connection: sa.Connection) -> None:
-        with db.faux_transact(connection):
-            connection.execute(sa.delete(db.pkg).filter_by(source=self.source, id=self.id))
+        transaction.execute(sa.insert(db.pkg), [values])
+        transaction.execute(
+            sa.insert(db.pkg_folder), [{**f, **source_and_id} for f in values['folders']]
+        )
+        transaction.execute(sa.insert(db.pkg_options), [{**values['options'], **source_and_id}])
+        if values['deps']:
+            transaction.execute(
+                sa.insert(db.pkg_dep), [{**d, **source_and_id} for d in values['deps']]
+            )
+        transaction.execute(
+            sa.insert(db.pkg_version_log).prefix_with('OR IGNORE'),
+            [{'version': values['version'], **source_and_id}],
+        )
+
+    def delete(self, transaction: sa.Connection) -> None:
+        transaction.execute(sa.delete(db.pkg).filter_by(source=self.source, id=self.id))
 
     def to_defn(self) -> Defn:
         return Defn(

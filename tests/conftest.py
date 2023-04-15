@@ -111,9 +111,7 @@ async def iw_web_client(iw_config: Config):
 @pytest.fixture
 def iw_manager(iw_config: Config, iw_web_client: aiohttp.ClientSession):
     contextualise(web_client=iw_web_client)
-    manager, close_db_conn = Manager.from_config(iw_config)
-    yield manager
-    close_db_conn()
+    return Manager.from_config(iw_config)
 
 
 @pytest.fixture(autouse=True, params=['all'])

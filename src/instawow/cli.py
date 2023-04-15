@@ -100,10 +100,7 @@ class _CtxObjWrapper:
 
         setup_logging(config.logging_dir, *self._ctx.params['debug'])
 
-        manager, close_db_conn = _manager.Manager.from_config(config)
-        self._ctx.call_on_close(close_db_conn)
-
-        return manager
+        return _manager.Manager.from_config(config)
 
     def run_with_progress(self, awaitable: Awaitable[_T]) -> _T:
         cache_dir = self.manager.config.global_config.cache_dir
@@ -391,10 +388,11 @@ def update(mw: _CtxObjWrapper, addons: Sequence[Defn]) -> None:
             return result.is_pinned
 
     def installed_pkgs_to_defns():
-        return [
-            models.Pkg.from_row_mapping(mw.manager.database, p).to_defn()
-            for p in mw.manager.database.execute(sa.select(db.pkg)).mappings().all()
-        ]
+        with mw.manager.database.connect() as connection:
+            return [
+                models.Pkg.from_row_mapping(connection, p).to_defn()
+                for p in connection.execute(sa.select(db.pkg)).mappings().all()
+            ]
 
     results = mw.run_with_progress(mw.manager.update(addons or installed_pkgs_to_defns(), False))
     Report(results.items(), filter_results).generate_and_exit()
@@ -529,14 +527,16 @@ def reconcile(mw: _CtxObjWrapper, auto: bool, rereconcile: bool, list_unreconcil
             selection = ask(select(installed_pkg.name, choices))
             return selection or None
 
-        installed_pkgs = [
-            models.Pkg.from_row_mapping(mw.manager.database, p)
-            for p in mw.manager.database.execute(
-                sa.select(db.pkg).order_by(sa.func.lower(db.pkg.c.name))
-            )
-            .mappings()
-            .all()
-        ]
+        with mw.manager.database.connect() as connection:
+            installed_pkgs = [
+                models.Pkg.from_row_mapping(connection, p)
+                for p in connection.execute(
+                    sa.select(db.pkg).order_by(sa.func.lower(db.pkg.c.name))
+                )
+                .mappings()
+                .all()
+            ]
+
         groups = mw.run_with_progress(mw.manager.find_equivalent_pkg_defns(installed_pkgs))
         selections = [
             (p, s)
@@ -712,75 +712,80 @@ def list_installed(mw: _CtxObjWrapper, addons: Sequence[Defn], output_format: _L
     "List installed add-ons."
     import sqlalchemy as sa
 
-    def format_deps(pkg: models.Pkg):
-        return (
-            defn_to_urn(Defn(pkg.source, s or e.id))
-            for e in pkg.deps
-            for s in (
-                mw.manager.database.execute(
-                    sa.select(db.pkg.c.slug).filter_by(source=pkg.source, id=e.id)
-                ).scalar_one_or_none(),
+    with mw.manager.database.connect() as connection:
+
+        def format_deps(pkg: models.Pkg):
+            return (
+                defn_to_urn(Defn(pkg.source, s or e.id))
+                for e in pkg.deps
+                for s in (
+                    connection.execute(
+                        sa.select(db.pkg.c.slug).filter_by(source=pkg.source, id=e.id)
+                    ).scalar_one_or_none(),
+                )
             )
-        )
 
-    def row_mappings_to_pkgs():
-        return map(models.Pkg.from_row_mapping, repeat(mw.manager.database), pkg_mappings)
+        def row_mappings_to_pkgs():
+            return map(models.Pkg.from_row_mapping, repeat(connection), pkg_mappings)
 
-    pkg_mappings = (
-        mw.manager.database.execute(
-            (
-                sa.select(db.pkg).filter(
-                    sa.or_(
-                        *(
-                            db.pkg.c.slug.contains(d.alias)
-                            if d.source == '*'
-                            else (db.pkg.c.source == d.source)
-                            & ((db.pkg.c.id == d.alias) | (db.pkg.c.slug == d.alias))
-                            for d in addons
+        pkg_mappings = (
+            connection.execute(
+                (
+                    sa.select(db.pkg).filter(
+                        sa.or_(
+                            *(
+                                db.pkg.c.slug.contains(d.alias)
+                                if d.source == '*'
+                                else (db.pkg.c.source == d.source)
+                                & ((db.pkg.c.id == d.alias) | (db.pkg.c.slug == d.alias))
+                                for d in addons
+                            )
                         )
                     )
-                )
-                if addons
-                else sa.select(db.pkg)
-            ).order_by(db.pkg.c.source, sa.func.lower(db.pkg.c.name))
-        )
-        .mappings()
-        .all()
-    )
-
-    if output_format is _ListFormat.json:
-        import json
-
-        click.echo(
-            json.dumps(
-                models.pkg_converter.unstructure(row_mappings_to_pkgs(), list[models.Pkg]),
-                indent=2,
+                    if addons
+                    else sa.select(db.pkg)
+                ).order_by(db.pkg.c.source, sa.func.lower(db.pkg.c.name))
             )
+            .mappings()
+            .all()
         )
 
-    elif output_format is _ListFormat.detailed:
-        formatter = click.HelpFormatter(max_width=99)
-        for pkg in row_mappings_to_pkgs():
-            with formatter.section(defn_to_urn(pkg.to_defn())):
-                formatter.write_dl(
-                    [
-                        ('name', pkg.name),
-                        ('description', textwrap.shorten(pkg.description, 280)),
-                        ('url', pkg.url),
-                        ('version', pkg.version),
-                        ('date_published', pkg.date_published.isoformat(' ', 'minutes')[:-6]),
-                        ('folders', ', '.join(f.name for f in pkg.folders)),
-                        ('deps', ', '.join(format_deps(pkg))),
-                        ('options', '\n'.join(f'{s}={v}' for s, v in asdict(pkg.options).items())),
-                    ]
+        if output_format is _ListFormat.json:
+            import json
+
+            click.echo(
+                json.dumps(
+                    models.pkg_converter.unstructure(row_mappings_to_pkgs(), list[models.Pkg]),
+                    indent=2,
                 )
-        click.echo(formatter.getvalue(), nl=False)
+            )
 
-    else:
-        click.echo(
-            ''.join(f'{defn_to_urn(Defn(p["source"], p["slug"]))}\n' for p in pkg_mappings),
-            nl=False,
-        )
+        elif output_format is _ListFormat.detailed:
+            formatter = click.HelpFormatter(max_width=99)
+            for pkg in row_mappings_to_pkgs():
+                with formatter.section(defn_to_urn(pkg.to_defn())):
+                    formatter.write_dl(
+                        [
+                            ('name', pkg.name),
+                            ('description', textwrap.shorten(pkg.description, 280)),
+                            ('url', pkg.url),
+                            ('version', pkg.version),
+                            ('date_published', pkg.date_published.isoformat(' ', 'minutes')[:-6]),
+                            ('folders', ', '.join(f.name for f in pkg.folders)),
+                            ('deps', ', '.join(format_deps(pkg))),
+                            (
+                                'options',
+                                '\n'.join(f'{s}={v}' for s, v in asdict(pkg.options).items()),
+                            ),
+                        ]
+                    )
+            click.echo(formatter.getvalue(), nl=False)
+
+        else:
+            click.echo(
+                ''.join(f'{defn_to_urn(Defn(p["source"], p["slug"]))}\n' for p in pkg_mappings),
+                nl=False,
+            )
 
 
 @cli.command(hidden=True)
@@ -873,22 +878,25 @@ def view_changelog(mw: _CtxObjWrapper, addon: Defn | None, convert: bool) -> Non
     else:
         import sqlalchemy as sa
 
-        join_clause = (db.pkg.c.source == db.pkg_version_log.c.pkg_source) & (
-            db.pkg.c.id == db.pkg_version_log.c.pkg_id
-        )
-
-        last_installed_changelog_urls = mw.manager.database.execute(
-            sa.select(db.pkg.c.source, db.pkg.c.slug, db.pkg.c.changelog_url)
-            .join(db.pkg_version_log, join_clause)
-            .filter(
-                db.pkg_version_log.c.install_time
-                >= sa.select(
-                    sa.func.datetime(sa.func.max(db.pkg_version_log.c.install_time), '-1 minute')
-                )
-                .join(db.pkg, join_clause)
-                .scalar_subquery()
+        with mw.manager.database.connect() as connection:
+            join_clause = (db.pkg.c.source == db.pkg_version_log.c.pkg_source) & (
+                db.pkg.c.id == db.pkg_version_log.c.pkg_id
             )
-        ).all()
+            last_installed_changelog_urls = connection.execute(
+                sa.select(db.pkg.c.source, db.pkg.c.slug, db.pkg.c.changelog_url)
+                .join(db.pkg_version_log, join_clause)
+                .filter(
+                    db.pkg_version_log.c.install_time
+                    >= sa.select(
+                        sa.func.datetime(
+                            sa.func.max(db.pkg_version_log.c.install_time), '-1 minute'
+                        )
+                    )
+                    .join(db.pkg, join_clause)
+                    .scalar_subquery()
+                )
+            ).all()
+
         changelogs = mw.run_with_progress(
             gather(
                 mw.manager.get_changelog(m.source, m.changelog_url)
@@ -900,6 +908,7 @@ def view_changelog(mw: _CtxObjWrapper, addon: Defn | None, convert: bool) -> Non
             changelogs = (
                 do_convert(m.source, c) for m, c in zip(last_installed_changelog_urls, changelogs)
             )
+
         click.echo_via_pager(
             '\n\n'.join(
                 format_combined_changelog_entry(m.source, m.slug, c)

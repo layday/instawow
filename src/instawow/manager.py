@@ -15,7 +15,7 @@ from typing import NoReturn, TypeVar
 import sqlalchemy as sa
 from attrs import evolve
 from loguru import logger
-from typing_extensions import Concatenate, ParamSpec, TypeAlias
+from typing_extensions import Concatenate, ParamSpec, Self, TypeAlias
 from yarl import URL
 
 from . import db, http, models
@@ -222,10 +222,10 @@ class Manager:
     def __init__(
         self,
         config: Config,
-        database: sa.Connection,
+        database: sa.Engine,
     ) -> None:
         self.config: Config = config
-        self.database: sa.Connection = database
+        self.database: sa.Engine = database
 
         builtin_resolver_classes = list(self.RESOLVERS)
 
@@ -246,10 +246,10 @@ class Manager:
         self._catalogue = None
 
     @classmethod
-    def from_config(cls, config: Config) -> tuple[Manager, Callable[[], None]]:
+    def from_config(cls, config: Config) -> Self:
         "Instantiate the manager from a configuration object."
-        db_conn = db.prepare_database(config.db_uri, DB_REVISION).connect()
-        return (cls(config, db_conn), db_conn.close)
+        database = db.prepare_database(config.db_uri, DB_REVISION)
+        return cls(config, database)
 
     @property
     def locks(self) -> LocksType:
@@ -278,57 +278,60 @@ class Manager:
 
     def check_pkg_exists(self, defn: Defn) -> bool:
         "Check that a package exists in the database."
-        return (
-            self.database.execute(
-                sa.select(sa.text('1'))
-                .select_from(db.pkg)
-                .where(
-                    db.pkg.c.source == defn.source,
-                    (db.pkg.c.id == defn.alias)
-                    | (db.pkg.c.id == defn.id)
-                    | (db.pkg.c.slug == defn.alias),
-                )
-            ).scalar()
-            == 1
-        )
+        with self.database.connect() as connection:
+            return (
+                connection.execute(
+                    sa.select(sa.text('1'))
+                    .select_from(db.pkg)
+                    .where(
+                        db.pkg.c.source == defn.source,
+                        (db.pkg.c.id == defn.alias)
+                        | (db.pkg.c.id == defn.id)
+                        | (db.pkg.c.slug == defn.alias),
+                    )
+                ).scalar()
+                == 1
+            )
 
     def get_pkg(self, defn: Defn, partial_match: bool = False) -> models.Pkg | None:
         "Retrieve a package from the database."
-        maybe_row_mapping = (
-            self.database.execute(
-                sa.select(db.pkg).where(
-                    db.pkg.c.source == defn.source,
-                    (db.pkg.c.id == defn.alias)
-                    | (db.pkg.c.id == defn.id)
-                    | (db.pkg.c.slug == defn.alias),
-                )
-            )
-            .mappings()
-            .one_or_none()
-        )
-        if maybe_row_mapping is None and partial_match:
+        with self.database.connect() as connection:
             maybe_row_mapping = (
-                self.database.execute(
-                    sa.select(db.pkg)
-                    .where(db.pkg.c.slug.contains(defn.alias))
-                    .order_by(db.pkg.c.name)
+                connection.execute(
+                    sa.select(db.pkg).where(
+                        db.pkg.c.source == defn.source,
+                        (db.pkg.c.id == defn.alias)
+                        | (db.pkg.c.id == defn.id)
+                        | (db.pkg.c.slug == defn.alias),
+                    )
                 )
                 .mappings()
-                .first()
+                .one_or_none()
             )
-        if maybe_row_mapping is not None:
-            return models.Pkg.from_row_mapping(self.database, maybe_row_mapping)
+            if maybe_row_mapping is None and partial_match:
+                maybe_row_mapping = (
+                    connection.execute(
+                        sa.select(db.pkg)
+                        .where(db.pkg.c.slug.contains(defn.alias))
+                        .order_by(db.pkg.c.name)
+                    )
+                    .mappings()
+                    .first()
+                )
+            if maybe_row_mapping is not None:
+                return models.Pkg.from_row_mapping(connection, maybe_row_mapping)
 
     @t
     def _install_pkg(self, pkg: models.Pkg, archive: Path, replace: bool) -> R.PkgInstalled:
         "Install a package."
         with _open_pkg_archive(archive) as (top_level_folders, extract):
-            installed_conflicts = self.database.execute(
-                sa.select(db.pkg)
-                .distinct()
-                .join(db.pkg_folder)
-                .where(db.pkg_folder.c.name.in_(top_level_folders))
-            ).all()
+            with self.database.connect() as connection:
+                installed_conflicts = connection.execute(
+                    sa.select(db.pkg)
+                    .distinct()
+                    .join(db.pkg_folder)
+                    .where(db.pkg_folder.c.name.in_(top_level_folders))
+                ).all()
             if installed_conflicts:
                 raise R.PkgConflictsWithInstalled(installed_conflicts)
 
@@ -348,23 +351,26 @@ class Manager:
             extract(self.config.addon_dir)
 
         pkg = evolve(pkg, folders=[models.PkgFolder(name=f) for f in sorted(top_level_folders)])
-        pkg.insert(self.database)
+        with self.database.begin() as transaction:
+            pkg.insert(transaction)
+
         return R.PkgInstalled(pkg)
 
     @t
     def _update_pkg(self, old_pkg: models.Pkg, new_pkg: models.Pkg, archive: Path) -> R.PkgUpdated:
         "Update a package."
         with _open_pkg_archive(archive) as (top_level_folders, extract):
-            installed_conflicts = self.database.execute(
-                sa.select(db.pkg)
-                .distinct()
-                .join(db.pkg_folder)
-                .where(
-                    db.pkg_folder.c.pkg_source != new_pkg.source,
-                    db.pkg_folder.c.pkg_id != new_pkg.id,
-                    db.pkg_folder.c.name.in_(top_level_folders),
-                )
-            ).all()
+            with self.database.connect() as connection:
+                installed_conflicts = connection.execute(
+                    sa.select(db.pkg)
+                    .distinct()
+                    .join(db.pkg_folder)
+                    .where(
+                        db.pkg_folder.c.pkg_source != new_pkg.source,
+                        db.pkg_folder.c.pkg_id != new_pkg.id,
+                        db.pkg_folder.c.name.in_(top_level_folders),
+                    )
+                ).all()
             if installed_conflicts:
                 raise R.PkgConflictsWithInstalled(installed_conflicts)
 
@@ -379,14 +385,15 @@ class Manager:
                 dest=self.config.global_config.temp_dir,
                 missing_ok=True,
             )
-            old_pkg.delete(self.database)
-
             extract(self.config.addon_dir)
 
         new_pkg = evolve(
             new_pkg, folders=[models.PkgFolder(name=f) for f in sorted(top_level_folders)]
         )
-        new_pkg.insert(self.database)
+        with self.database.begin() as transaction:
+            old_pkg.delete(transaction)
+            new_pkg.insert(transaction)
+
         return R.PkgUpdated(old_pkg, new_pkg)
 
     @t
@@ -399,7 +406,9 @@ class Manager:
                 missing_ok=True,
             )
 
-        pkg.delete(self.database)
+        with self.database.begin() as transaction:
+            pkg.delete(transaction)
+
         return R.PkgRemoved(pkg)
 
     @_with_lock('load catalogue', False)
@@ -607,14 +616,15 @@ class Manager:
         s = self._normalise_search_terms(search_terms)
 
         if installed_only:
-            entries = (
-                e
-                for p in self.database.execute(sa.select(db.pkg.c.source, db.pkg.c.id))
-                .tuples()
-                .all()
-                for e in (catalogue.keyed_entries.get(p),)
-                if e
-            )
+            with self.database.connect() as connection:
+                entries = (
+                    e
+                    for p in connection.execute(sa.select(db.pkg.c.source, db.pkg.c.id))
+                    .tuples()
+                    .all()
+                    for e in (catalogue.keyed_entries.get(p),)
+                    if e
+                )
         else:
             entries = catalogue.entries
 
@@ -805,8 +815,8 @@ class Manager:
             if version and pkg.version != version:
                 R.PkgFilesNotMatching(defn.strategies)
 
-            with db.faux_transact(self.database):
-                self.database.execute(
+            with self.database.begin() as transaction:
+                transaction.execute(
                     sa.update(db.pkg_options)
                     .filter_by(pkg_source=pkg.source, pkg_id=pkg.id)
                     .values(version_eq=version is not None)

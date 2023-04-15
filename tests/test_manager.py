@@ -31,25 +31,28 @@ def test_auth_bound_resolvers_are_unloaded_if_tokens_unset(iw_manager: Manager):
 
 async def test_pinning_supported_pkg(iw_manager: Manager):
     defn = Defn('curse', 'molinari')
-    install_result = await iw_manager.install([defn], False)
-    pkg = install_result[defn].pkg
-    version = pkg.version
 
-    for new_defn in (defn.with_version(pkg.version), defn):
-        pin_result = await iw_manager.pin([new_defn])
-        updated_pkg = pin_result[new_defn].pkg
-        assert updated_pkg.options.version_eq is bool(new_defn.strategies.version_eq)
-        assert version == updated_pkg.version
+    install_result = (await iw_manager.install([defn], False))[defn]
+    assert type(install_result) is R.PkgInstalled
+
+    for new_defn in (defn.with_version(install_result.pkg.version), defn):
+        pin_result = (await iw_manager.pin([new_defn]))[new_defn]
+        assert type(pin_result) is R.PkgInstalled
+        assert pin_result.pkg.options.version_eq is bool(new_defn.strategies.version_eq)
+        assert install_result.pkg.version == pin_result.pkg.version
 
 
 async def test_pinning_unsupported_pkg(iw_manager: Manager):
     molinari_defn = Defn('wowi', '13188')
+
     await iw_manager.install([molinari_defn], False)
     installed_pkg = iw_manager.get_pkg(molinari_defn)
+    assert installed_pkg is not None
     assert installed_pkg.options.version_eq is False
-    result = await iw_manager.pin([molinari_defn])
-    assert type(result[molinari_defn]) is R.PkgStrategiesUnsupported
-    assert result[molinari_defn].strategies == {Strategy.version_eq}
+
+    result = (await iw_manager.pin([molinari_defn]))[molinari_defn]
+    assert type(result) is R.PkgStrategiesUnsupported
+    assert result.strategies == {Strategy.version_eq}
     assert installed_pkg.options.version_eq is False
 
 
@@ -75,9 +78,9 @@ async def test_resolve_rewraps_exception_appropriately_from_resolve(
     monkeypatch.setattr('instawow._sources.cfcore.CfCoreResolver.resolve_one', resolve_one)
 
     defn = Defn('curse', 'molinari')
-    results = await iw_manager.resolve([defn])
-    assert type(results[defn]) is R.InternalError
-    assert results[defn].message == f'internal error: "{exception}"'
+    result = (await iw_manager.resolve([defn]))[defn]
+    assert type(result) is R.InternalError
+    assert result.message == f'internal error: "{exception}"'
 
 
 @pytest.mark.parametrize('exception', [ValueError('foo'), ClientError('bar')])
@@ -90,9 +93,9 @@ async def test_resolve_rewraps_exception_appropriately_from_batch_resolve(
     monkeypatch.setattr('instawow._sources.cfcore.CfCoreResolver.resolve', resolve)
 
     defn = Defn('curse', 'molinari')
-    results = await iw_manager.resolve([defn])
-    assert type(results[defn]) is R.InternalError
-    assert results[defn].message == f'internal error: "{exception}"'
+    result = (await iw_manager.resolve([defn]))[defn]
+    assert type(result) is R.InternalError
+    assert result.message == f'internal error: "{exception}"'
 
 
 async def test_resolve_invalid_source(iw_manager: Manager):
@@ -141,37 +144,39 @@ async def test_update_lifecycle_while_varying_retain_defn_strategy(iw_manager: M
     defn = Defn('curse', 'molinari')
     versioned_defn = defn.with_version('80000.57-Release')
 
-    result = await iw_manager.install([defn], replace=False)
-    assert type(result[defn]) is R.PkgInstalled
+    result = (await iw_manager.install([defn], replace=False))[defn]
+    assert type(result) is R.PkgInstalled
 
-    result = await iw_manager.update([defn], retain_defn_strategy=False)
-    assert type(result[defn]) is R.PkgUpToDate
-    assert result[defn].is_pinned is False
+    result = (await iw_manager.update([defn], retain_defn_strategy=False))[defn]
+    assert type(result) is R.PkgUpToDate
+    assert result.is_pinned is False
 
-    result = await iw_manager.update([versioned_defn], retain_defn_strategy=False)
-    assert type(result[versioned_defn]) is R.PkgUpToDate
-    assert result[versioned_defn].is_pinned is False
+    result = (await iw_manager.update([versioned_defn], retain_defn_strategy=False))[
+        versioned_defn
+    ]
+    assert type(result) is R.PkgUpToDate
+    assert result.is_pinned is False
 
-    result = await iw_manager.update([versioned_defn], retain_defn_strategy=True)
-    assert type(result[versioned_defn]) is R.PkgUpdated
-    assert result[versioned_defn].new_pkg.options.version_eq is True
+    result = (await iw_manager.update([versioned_defn], retain_defn_strategy=True))[versioned_defn]
+    assert type(result) is R.PkgUpdated
+    assert result.new_pkg.options.version_eq is True
 
-    result = await iw_manager.update([defn], retain_defn_strategy=False)
-    assert type(result[defn]) is R.PkgUpToDate
-    assert result[defn].is_pinned is True
+    result = (await iw_manager.update([defn], retain_defn_strategy=False))[defn]
+    assert type(result) is R.PkgUpToDate
+    assert result.is_pinned is True
 
-    result = await iw_manager.update([defn], retain_defn_strategy=True)
-    assert type(result[defn]) is R.PkgUpdated
-    assert result[defn].new_pkg.options.version_eq is False
+    result = (await iw_manager.update([defn], retain_defn_strategy=True))[defn]
+    assert type(result) is R.PkgUpdated
+    assert result.new_pkg.options.version_eq is False
 
 
 async def test_update_reinstalls_corrupted_pkgs(iw_manager: Manager):
     defn = Defn('curse', 'molinari')
 
-    result = await iw_manager.install([defn], replace=False)
-    assert type(result[defn]) is R.PkgInstalled
+    result = (await iw_manager.install([defn], replace=False))[defn]
+    assert type(result) is R.PkgInstalled
 
-    folders = [iw_manager.config.addon_dir / f.name for f in result[defn].pkg.folders]
+    folders = [iw_manager.config.addon_dir / f.name for f in result.pkg.folders]
 
     first_folder = folders[0]
     first_folder.rename(first_folder.with_name('foo'))

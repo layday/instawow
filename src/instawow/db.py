@@ -1,14 +1,12 @@
 from __future__ import annotations
 
 import sqlite3
-from contextlib import contextmanager
 from datetime import datetime, timezone
 from enum import IntEnum
 
 from sqlalchemy import (
     Boolean,
     Column,
-    Connection,
     DateTime,
     Engine,
     ForeignKeyConstraint,
@@ -150,11 +148,7 @@ def prepare_database(uri: str, revision: str) -> Engine:
     "Connect to and optionally create or migrate the database from a configuration object."
     engine = create_engine(
         uri,
-        # We wanna be able to operate on the database from executor threads
-        # when performing disk I/O
-        connect_args={'check_same_thread': False},
         # echo=True,
-        future=True,
     )
     listen(engine, 'connect', _set_sqlite_pragma)
 
@@ -174,14 +168,3 @@ def prepare_database(uri: str, revision: str) -> Engine:
             alembic.command.upgrade(alembic_config, revision)
 
     return engine
-
-
-@contextmanager
-def faux_transact(connection: Connection):
-    try:
-        yield
-    except BaseException:
-        connection.rollback()
-        raise
-    else:
-        connection.commit()

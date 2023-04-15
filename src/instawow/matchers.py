@@ -91,7 +91,9 @@ class AddonFolder:
 
 
 def _get_unreconciled_folders(manager: manager.Manager):
-    pkg_folders = manager.database.execute(sa.select(pkg_folder.c.name)).scalars().all()
+    with manager.database.connect() as connection:
+        pkg_folders = connection.execute(sa.select(pkg_folder.c.name)).scalars().all()
+
     unreconciled_folder_paths = (
         p
         for p in manager.config.addon_dir.iterdir()
