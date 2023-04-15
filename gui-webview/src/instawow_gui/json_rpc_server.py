@@ -98,7 +98,7 @@ def _reraise_validation_error(
         yield
     except BaseException as exc:
         logger.info(f'invalid request: {(values, exc)}')
-        raise error_class(data=_structure_excs(exc))
+        raise error_class(data=_structure_excs(exc)) from exc
 
 
 @t

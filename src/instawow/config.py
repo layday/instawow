@@ -55,7 +55,7 @@ def _enrich_validator_exc(validator: Callable[[object, Attribute[_T], _T], None]
             note = f'Structuring class {model.__class__.__name__} @ attribute {attr.name}'
             notes = [*getattr(exc, '__notes__', []), note]
             exc.__notes__ = notes  # pyright: ignore
-            raise exc
+            raise
 
     return wrapper
 

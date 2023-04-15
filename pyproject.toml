@@ -82,29 +82,37 @@ types = [
 
 [tool.ruff]
 select = [
-  "B0",     # flake8-bugbear (without opinionated rules)
-  "C4",     # flake8-comprehensions
-  "DTZ",    # flake8-datetimez
-  "E",      # pycodestyle
-  "F",      # pyflakes
-  "I",      # isort
-  "PIE",    # flake8-pie
-  "PGH",    # pygrep-hooks
-  "PT",     # flake8-pytest-style
-  "Q",      # flake8-quotes
-  "RUF005", # ruff: unpack-instead-of-concatenating-to-collection-literal
-  "RUF006", # ruff: asyncio-dangling-task
-  "RUF100", # ruff: unused-noqa
-  "UP",     # pyupgrade
-  "W",      # pycodestyle
+  "B0",  # flake8-bugbear (without opinionated rules)
+  "C4",  # flake8-comprehensions
+  "DTZ", # flake8-datetimez
+  "E",   # pycodestyle
+  "F",   # pyflakes
+  "I",   # isort
+  "PGH", # pygrep-hooks
+  "PIE", # flake8-pie
+  "PT",  # flake8-pytest-style
+  "PYI", # flake8-pyi
+  "Q",   # flake8-quotes
+  "RUF", # ruff: unused-noqa
+  "TRY", # tryceratops
+  "UP",  # pyupgrade
+  "W",   # pycodestyle
+  "YTT", # flake8-2020
 ]
 ignore = [
-  "E501", # pycodestyle: line-too-long
+  "E501",   # pycodestyle: line-too-long
+  "RUF001", # ruff: ambiguous-unicode-character-string
+  "RUF002", # ruff: ambiguous-unicode-character-docstring
+  "RUF003", # ruff: ambiguous-unicode-character-comment
+  "TRY003", # tryceratops: raise-vanilla-args
 ]
 line-length = 99
 target-version = "py39"
 
 [tool.ruff.per-file-ignores]
+"**.py" = [
+  "PYI",
+]
 "**.pyi" = [
   "I002", # isort: missing-required-import
 ]
