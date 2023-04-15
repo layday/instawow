@@ -1,15 +1,19 @@
 from __future__ import annotations
 
+import asyncio
 import json
 import os
 from contextlib import suppress
 from functools import partial
 from typing import Any
 
+import anyio.from_thread
+import anyio.to_thread
 import toga
 import toga.constants
 import toga.style
 from loguru import logger
+from typing_extensions import Self
 
 from . import json_rpc_server
 
@@ -93,14 +97,29 @@ class InstawowApp(toga.App):
             ),
         )
 
-        async def startup() -> None:
-            web_app = await json_rpc_server.create_app(self.main_window)
-            server_url, serve = await json_rpc_server.run_app(web_app)
-            logger.debug(f'JSON-RPC server running on {server_url}')
-            web_view.url = str(server_url)
-            await serve()
+        async def startup(app: Self):
+            async with anyio.from_thread.BlockingPortal() as portal:
 
-        serve_task = self._impl.loop.create_task(startup())
-        self.on_exit = lambda _: serve_task.cancel()
+                def run_json_rpc_server():
+                    async def run():
+                        web_app = await json_rpc_server.create_app((app.main_window, portal))
+                        server_url, serve_forever = await json_rpc_server.run_app(web_app)
 
+                        logger.debug(f'JSON-RPC server running on {server_url}')
+
+                        set_server_url = partial(setattr, web_view, 'url')
+                        portal.call(set_server_url, str(server_url))
+
+                        await serve_forever()
+
+                    # We don't want to inherit the parent thread's event loop policy,
+                    # i.e. the rubicon loop on macOS.
+                    policy = asyncio.DefaultEventLoopPolicy()
+                    policy.new_event_loop().run_until_complete(run())
+
+                await anyio.to_thread.run_sync(run_json_rpc_server)
+
+                await portal.sleep_until_stopped()
+
+        self.add_background_task(startup)
         self.main_window.show()
