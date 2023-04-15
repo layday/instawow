@@ -9,6 +9,7 @@ from collections.abc import Awaitable, Callable, Iterator
 from contextlib import AsyncExitStack, contextmanager
 from datetime import datetime
 from functools import partial
+from itertools import chain
 from pathlib import Path
 from typing import Any, Literal, TypeVar, cast
 
@@ -422,13 +423,17 @@ class ReconcileParams(_ProfileParamMixin, BaseParams):
 
         resolved_defns = await manager.resolve(uniq(d for _, b in match_groups for d in b))
         pkgs, _ = bucketise_results(resolved_defns.items())
-        matched_pkgs = [(a, [i for i in (pkgs.get(d) for d in s) if i]) for a, s in match_groups]
+
+        matched_folders = [
+            (a, [i for i in (pkgs.get(d) for d in s) if i]) for a, s in match_groups
+        ]
+        unmatched_folders = (
+            ([a], list[models.Pkg]())
+            for a in sorted(leftovers - frozenset(i for a, _ in matched_folders for i in a))
+        )
         return [
             {'folders': [{'name': f.name, 'version': f.version} for f in a], 'matches': m}
-            for a, m in [
-                *matched_pkgs,
-                (sorted(leftovers - frozenset(i for a, _ in matched_pkgs for i in a)), []),
-            ]
+            for a, m in chain(matched_folders, unmatched_folders)
         ]
 
 
