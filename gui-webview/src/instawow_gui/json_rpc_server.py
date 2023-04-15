@@ -591,8 +591,6 @@ def _init_json_rpc_web_client(cache_dir: Path):
 
 class _ManagersManager:
     def __init__(self):
-        self._loop = asyncio.get_running_loop()
-
         self._exit_stack = AsyncExitStack()
 
         self.locks: LocksType = WeakValueDefaultDictionary(asyncio.Lock)
@@ -636,24 +634,19 @@ class _ManagersManager:
     async def run(self, profile: str, coro_fn: _ManagerBoundCoroFn[..., _T]) -> _T:
         async def taskify():
             try:
-                try:
-                    manager = self._managers[profile]
-                except KeyError:
-                    async with self.locks['modify profile', profile]:
-                        try:
-                            manager = self._managers[profile]
-                        except KeyError:
-                            manager = self._managers[profile] = Manager.from_config(
-                                await _read_config(self.global_config, profile)
-                            )
+                manager = self._managers[profile]
+            except KeyError:
+                async with self.locks['modify profile', profile]:
+                    try:
+                        manager = self._managers[profile]
+                    except KeyError:
+                        manager = self._managers[profile] = Manager.from_config(
+                            await _read_config(self.global_config, profile)
+                        )
 
-                future.set_result(await coro_fn(manager))
-            except BaseException as exc:
-                future.set_exception(exc)
+            return await coro_fn(manager)
 
-        future = self._loop.create_future()
-        self._loop.create_task(taskify())
-        return await future
+        return await asyncio.create_task(taskify())
 
     async def get_manager(self, profile: str):
         async def get_manager(manager: Manager):
@@ -693,7 +686,7 @@ class _ManagersManager:
                     self._github_auth_device_codes = None
 
                 self._github_auth_device_codes = codes = await get_codes(self._web_client)
-                self._github_auth_flow_task = self._loop.create_task(finalise_github_auth_flow())
+                self._github_auth_flow_task = asyncio.create_task(finalise_github_auth_flow())
                 self._github_auth_flow_task.add_done_callback(on_task_complete)
 
         return self._github_auth_device_codes
