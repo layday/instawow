@@ -86,7 +86,7 @@ def lint(session: nox.Session):
             aiohttp-client-cache == 0.8.0
             alembic == 1.9.0
             anyio == 3.6.2
-            attrs == 22.1.0
+            attrs == 23.1.0
             cattrs == 22.2.0
             click == 8.1.0
             exceptiongroup == 1.0.0
