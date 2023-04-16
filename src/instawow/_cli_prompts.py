@@ -7,7 +7,6 @@ from typing import TYPE_CHECKING, Any
 
 import attrs
 import cattrs
-from attr import attrib as attrs_attrib
 from exceptiongroup import ExceptionGroup
 from prompt_toolkit.application import Application
 from prompt_toolkit.document import Document
@@ -38,7 +37,7 @@ class AttrFieldValidator(Validator):
         self._FieldWrapper = attrs.make_class(
             '_FieldWrapper',
             {
-                self._field_name: attrs_attrib(
+                self._field_name: attrs.field(
                     default=attribute.default,
                     validator=attribute.validator,
                     repr=attribute.repr,
