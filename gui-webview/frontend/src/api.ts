@@ -157,7 +157,7 @@ export type ConfirmDialogueResult = {
   ok: boolean;
 };
 
-export type JsonRpcError = {
+export type InternalError = {
   traceback_exception: string[];
 };
 
@@ -169,8 +169,8 @@ export type ValidationError = {
 export class Api {
   constructor(private readonly _clientWrapper: RClient, public readonly profile?: string) {}
 
-  withProfile(profile: string, apiClass: typeof Api = Api) {
-    return new apiClass(this._clientWrapper, profile);
+  withProfile(profile: string) {
+    return new Api(this._clientWrapper, profile);
   }
 
   async request(requestObject: RequestObject) {

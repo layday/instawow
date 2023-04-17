@@ -1,7 +1,7 @@
 <script lang="ts">
   import { faCog } from "@fortawesome/free-solid-svg-icons";
   import { onMount } from "svelte";
-  import { activeProfile, profiles } from "../store";
+  import { activeProfile, profiles } from "../stores";
   import ConfigModalContents from "./ConfigModalContents.svelte";
   import Modal from "./modal/Modal.svelte";
   import ProfileConfigEditor from "./ProfileConfigEditor.svelte";

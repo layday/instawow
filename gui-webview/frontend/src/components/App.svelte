@@ -1,9 +1,10 @@
 <script lang="ts">
   import { fade } from "svelte/transition";
-  import type { Config } from "../api";
-  import { activeProfile, api, profiles } from "../store";
+  import { activeProfile, api, profiles } from "../stores";
   import ProfileSwitcher from "./ProfileSwitcher.svelte";
   import ProfileView from "./ProfileView.svelte";
+  import type { Config } from "../api";
+  import Alerts from "./Alerts.svelte";
 
   // Nicked from Peacock
   const colourPalette = [
@@ -32,11 +33,11 @@
   const performInitialSetup = async () => {
     ({ installed_version: installedVersion, new_version: newVersion } = await $api.getVersion());
 
-    const profileConfigs = await Promise.allSettled(
-      (await $api.listProfiles()).map(async (p) => await $api.readProfile(p))
-    );
+    const profileNames = await $api.listProfiles();
+    const profileResults = await Promise.allSettled(profileNames.map((p) => $api.readProfile(p)));
+
     $profiles = Object.fromEntries(
-      profileConfigs
+      profileResults
         .filter((r): r is PromiseFulfilledResult<Config> => r.status === "fulfilled")
         .map(({ value }) => [value.profile, value])
     );
@@ -77,6 +78,7 @@
       <div class="status" in:fade>{statusMessage}</div>
     </footer>
   {/await}
+  <Alerts />
 </div>
 
 <style lang="scss">

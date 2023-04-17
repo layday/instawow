@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onDestroy } from "svelte";
-  import { api } from "../store";
+  import { api } from "../stores";
 
   let githubAuthFlowShouldStart = false;
   let newCfcoreAccessToken: string | null;

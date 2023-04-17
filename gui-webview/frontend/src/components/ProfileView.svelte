@@ -1,6 +1,5 @@
 <script context="module" lang="ts">
   import { faQuestion } from "@fortawesome/free-solid-svg-icons";
-  import { JSONRPCError } from "@open-rpc/client-js";
   import * as commonmark from "commonmark";
   import lodash from "lodash";
   import { onMount } from "svelte";
@@ -12,21 +11,17 @@
     CatalogueEntry,
     Defn,
     ErrorResult,
-    JsonRpcError,
     Source,
     Strategies,
     SuccessResult,
   } from "../api";
-  import { addonToDefn, Api, ChangelogFormat, ReconciliationStage, Strategy } from "../api";
+  import { addonToDefn, ChangelogFormat, ReconciliationStage, Strategy } from "../api";
   import { AddonAction, ListFormat, View } from "../constants";
-  import type { RequestObject } from "../ipc";
-  import { api, profiles } from "../store";
+  import { alerts, api, profiles } from "../stores";
   import AddonComponent from "./Addon.svelte";
   import AddonContextMenu from "./AddonContextMenu.svelte";
   import AddonListNav from "./AddonListNav.svelte";
   import AddonStub from "./AddonStub.svelte";
-  import type { Alert } from "./Alerts.svelte";
-  import Alerts from "./Alerts.svelte";
   import ChangelogModalContents from "./ChangelogModalContents.svelte";
   import Modal from "./modal/Modal.svelte";
   import RollbackModalContents from "./RollbackModalContents.svelte";
@@ -94,19 +89,8 @@
 <script lang="ts">
   export let profile: string, isActive: boolean, statusMessage: string;
 
-  class AlertOnErrorApi extends Api {
-    async request(requestObject: RequestObject) {
-      try {
-        return await super.request(requestObject);
-      } catch (error) {
-        alertForJsonRpcError(error);
-        throw error;
-      }
-    }
-  }
-
   const config = $profiles[profile];
-  const profileApi = $api.withProfile(profile, AlertOnErrorApi);
+  const profileApi = $api.withProfile(profile);
 
   let sources: { [source: string]: Source } = {};
   let uriSchemes: string[];
@@ -133,8 +117,6 @@
   let searchOptions = lodash.cloneDeep(defaultSearchOptions);
   let searchIsDirty = false;
 
-  let alerts: Alert[] = [];
-
   let reconcileStage: ReconciliationStage = reconcileStages[0];
   let reconcileSelections: Addon[] = [];
 
@@ -160,20 +142,10 @@
         heading: `failed to ${method} ${a.name} (${createAddonToken(a)})`,
         message: r.message,
       }));
-    alerts = [...newAlerts, ...alerts];
-  };
-
-  const alertForJsonRpcError = (error: unknown) => {
-    if (error instanceof JSONRPCError) {
-      const newAlert: Alert = {
-        heading: error.message,
-        message: (error.data as JsonRpcError).traceback_exception
-          .filter(Boolean)
-          .slice(-1)
-          .join(""),
-      };
-      alerts = [newAlert, ...alerts];
-    }
+    $alerts = {
+      ...$alerts,
+      [profile]: [...newAlerts, ...($alerts[profile] ?? [])],
+    };
   };
 
   const countInstalled = () => {
@@ -677,8 +649,6 @@
         isSearching={searchesInProgress > 0}
       />
     </div>
-
-    <Alerts bind:alerts />
 
     <AddonContextMenu
       bind:this={addonContextMenu}

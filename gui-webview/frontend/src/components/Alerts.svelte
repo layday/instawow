@@ -1,10 +1,3 @@
-<script context="module" lang="ts">
-  export type Alert = {
-    heading: string;
-    message: string;
-  };
-</script>
-
 <script lang="ts">
   import {
     faArrowAltCircleLeft,
@@ -13,19 +6,27 @@
   } from "@fortawesome/free-solid-svg-icons";
   import { fade } from "svelte/transition";
   import Icon from "./SvgIcon.svelte";
+  import { alerts } from "../stores";
+  import { activeProfile } from "../stores";
+  import { ANY_PROFILE, type Alert } from "../stores/alerts";
 
-  export let alerts: Alert[];
+  const handleDismissAlerts = () => {
+    $alerts = {};
+  };
 
-  let alertIndex = 0;
+  let combinedAlerts: Alert[] = [];
+  let selectedAlertIndex = 0;
 
   $: {
-    alerts;
-    alertIndex = 0;
+    combinedAlerts = [$alerts[ANY_PROFILE], $alerts[$activeProfile as string]]
+      .filter(Boolean)
+      .flat();
+    selectedAlertIndex = 0;
   }
-  $: alert = alerts[alertIndex];
 </script>
 
-{#if alert}
+{#if selectedAlertIndex in combinedAlerts}
+  {@const alert = combinedAlerts[selectedAlertIndex]}
   <div class="alerts-wrapper">
     <div class="alerts" role="alert" transition:fade={{ duration: 200 }}>
       <div class="current-alert">
@@ -35,18 +36,18 @@
       <div class="alert-nav">
         <button
           title="previous alert"
-          disabled={!(alertIndex - 1 in alerts)}
-          on:click={() => (alertIndex -= 1)}
+          disabled={!(selectedAlertIndex - 1 in combinedAlerts)}
+          on:click={() => (selectedAlertIndex -= 1)}
         >
           <Icon icon={faArrowAltCircleLeft} />
         </button>
-        <button title="dismiss alerts" on:click={() => (alerts = [])}>
+        <button title="dismiss alerts" on:click={handleDismissAlerts}>
           <Icon icon={faTimesCircle} />
         </button>
         <button
           title="next alert"
-          disabled={!(alertIndex + 1 in alerts)}
-          on:click={() => (alertIndex += 1)}
+          disabled={!(selectedAlertIndex + 1 in combinedAlerts)}
+          on:click={() => (selectedAlertIndex += 1)}
         >
           <Icon icon={faArrowAltCircleRight} />
         </button>

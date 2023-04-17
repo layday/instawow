@@ -10,7 +10,7 @@
   import type { Addon } from "../api";
   import { Strategy } from "../api";
   import { ListFormat } from "../constants";
-  import { api } from "../store";
+  import { api } from "../stores";
   import ProgressIndicator from "./ProgressIndicator.svelte";
   import Icon from "./SvgIcon.svelte";
 
