@@ -9,7 +9,7 @@ def __getattr__(name: str) -> object:
 
     Importing this in ``__init__`` will overwrite relative imports.
     """
-    fullname = __package__ + '.' + name
+    fullname = __spec__.parent + '.' + name
     try:
         return sys.modules[fullname]
     except KeyError:

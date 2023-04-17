@@ -9,7 +9,7 @@ import pluggy
 
 from . import resolvers
 
-_project_name = __package__
+_project_name = __spec__.parent
 _entry_point = f'{_project_name}.plugins'
 
 hookspec = pluggy.HookspecMarker(_project_name)

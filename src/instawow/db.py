@@ -158,7 +158,7 @@ def prepare_database(uri: str, revision: str) -> Engine:
         import alembic.config
 
         alembic_config = alembic.config.Config()
-        alembic_config.set_main_option('script_location', f'{__package__}:_migrations')
+        alembic_config.set_main_option('script_location', f'{__spec__.parent}:_migrations')
         alembic_config.set_main_option('sqlalchemy.url', str(engine.url))
 
         if database_state is _DatabaseState.uninitialised:
