@@ -751,11 +751,15 @@ def list_installed(mw: _CtxObjWrapper, addons: Sequence[Defn], output_format: _L
         )
 
         if output_format is _ListFormat.json:
-            import json
+            from cattrs.preconf.json import (
+                make_converter,  # pyright: ignore[reportUnknownVariableType]
+            )
 
+            json_converter = make_converter()
             click.echo(
-                json.dumps(
-                    models.pkg_converter.unstructure(row_mappings_to_pkgs(), list[models.Pkg]),
+                json_converter.dumps(  # pyright: ignore[reportUnknownMemberType]
+                    row_mappings_to_pkgs(),
+                    list[models.Pkg],
                     indent=2,
                 )
             )

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Set
 from datetime import datetime
 from functools import cached_property
 
@@ -17,8 +18,7 @@ CATALOGUE_VERSION = 4
 
 catalogue_converter = Converter(
     unstruct_collection_overrides={
-        # TODO: Replace with ``collections.abc.Set``
-        frozenset: sorted,
+        Set: sorted,
     }
 )
 configure_converter(catalogue_converter)

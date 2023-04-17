@@ -5,7 +5,7 @@ import contextvars
 import json
 import os
 import typing
-from collections.abc import Awaitable, Callable, Iterator
+from collections.abc import Awaitable, Callable, Iterator, Set
 from contextlib import AsyncExitStack, contextmanager
 from datetime import datetime
 from functools import partial
@@ -57,8 +57,7 @@ LOCALHOST = '127.0.0.1'
 
 _converter = Converter(
     unstruct_collection_overrides={
-        # TODO: Replace with ``collections.abc.Set``
-        frozenset: sorted,
+        Set: sorted,
     }
 )
 configure_converter(_converter)
