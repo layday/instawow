@@ -4,7 +4,7 @@ from datetime import timedelta
 
 from typing_extensions import TypedDict
 
-from .config import GlobalConfig
+from . import config
 
 __version__ = '0+dev'
 
@@ -13,7 +13,7 @@ class _SimpleApiProject(TypedDict):
     versions: list[str]
 
 
-async def is_outdated(global_config: GlobalConfig) -> tuple[bool, str]:
+async def is_outdated(global_config: config.GlobalConfig) -> tuple[bool, str]:
     """Check on PyPI to see if instawow is outdated.
 
     The response is cached for 24 hours.
