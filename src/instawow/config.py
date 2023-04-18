@@ -235,6 +235,10 @@ class GlobalConfig:
         return self.temp_dir / 'cache'
 
     @property
+    def logging_dir(self) -> Path:
+        return self.config_dir / 'logs'
+
+    @property
     def profiles_dir(self) -> Path:
         return self.config_dir / 'profiles'
 

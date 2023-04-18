@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 import enum
 import textwrap
-from collections.abc import Awaitable, Callable, Collection, Iterable, Sequence, Set
+from collections.abc import Awaitable, Callable, Collection, Iterable, Mapping, Sequence, Set
 from datetime import datetime, timezone
 from functools import cached_property, partial
 from itertools import chain, repeat
@@ -11,8 +11,10 @@ from pathlib import Path
 from typing import Any, Literal, NoReturn, TypeVar, overload
 
 import click
+import click.types
 from attrs import asdict, evolve, fields, resolve_types
 from loguru import logger
+from typing_extensions import Self
 
 from . import __version__, db, models
 from . import manager as _manager
@@ -203,7 +205,7 @@ def _with_manager(fn: Callable[..., object]):
     return wrapper
 
 
-class _StrEnumParam(click.Choice):
+class _StrEnumChoiceParam(click.Choice):
     def __init__(
         self,
         choice_enum: type[_TStrEnum],
@@ -218,6 +220,41 @@ class _StrEnumParam(click.Choice):
     def convert(self, value: Any, param: click.Parameter | None, ctx: click.Context | None) -> Any:
         converted_value = super().convert(value, param, ctx)
         return self.__choice_enum(converted_value)
+
+
+class _ManyOptionalChoiceValueParam(click.types.CompositeParamType):
+    def __init__(
+        self,
+        choice_param: click.Choice,
+        *,
+        value_types: Mapping[str, click.types.ParamType] = {},
+    ) -> None:
+        super().__init__()
+        self.__choice_param = choice_param
+        self.__value_types = value_types
+
+    def __parse_value(self, value: tuple[str, ...]):
+        return (
+            (k, v, self.__choice_param, vc)
+            for r in value
+            for k, _, v in (r.partition('='),)
+            for vc in (self.__value_types.get(k),)
+        )
+
+    @property
+    def arity(self) -> int:
+        return -1
+
+    def convert(
+        self, value: tuple[str, ...], param: click.Parameter | None, ctx: click.Context | None
+    ) -> Any:
+        return {
+            kc.convert(k, param, ctx): vc.convert(v, param, ctx) if vc and v else (v or None)
+            for k, v, kc, vc in self.__parse_value(value)
+        }
+
+    def get_metavar(self, param: click.Parameter) -> str:
+        return f'{{{",".join(self.__choice_param.choices)}}}[=VALUE]'
 
 
 def _register_plugin_commands(group: click.Group):
@@ -702,7 +739,7 @@ class _ListFormat(StrEnum):
     '--format',
     '-f',
     'output_format',
-    type=_StrEnumParam(_ListFormat),
+    type=_StrEnumChoiceParam(_ListFormat),
     default=_ListFormat.simple,
     show_default=True,
     help='Change the output format.',
@@ -942,12 +979,19 @@ async def _github_oauth_flow():
 
 
 class _EditableConfigOptions(StrEnum):
-    addon_dir = 'addon_dir'
-    game_flavour = 'game_flavour'
-    auto_update_check = 'auto_update_check'
-    github_access_token = 'access_tokens.github'
-    cfcore_access_token = 'access_tokens.cfcore'
-    wago_access_token = 'access_tokens.wago'
+    AddonDir = 'addon_dir'
+    GameFlavour = 'game_flavour'
+    AutoUpdateCheck = 'global_config.auto_update_check'
+    GithubAccessToken = 'global_config.access_tokens.github'
+    CfcoreAccessToken = 'global_config.access_tokens.cfcore'
+    WagoAddonsAccessToken = 'global_config.access_tokens.wago_addons'
+
+    path: tuple[str, ...]
+
+    def __new__(cls, value: str) -> Self:
+        self = str.__new__(cls, value)
+        self.path = tuple(value.split('.'))
+        return self
 
 
 @cli.command
@@ -961,43 +1005,64 @@ class _EditableConfigOptions(StrEnum):
     help='Show the active configuration and exit.',
 )
 @click.argument(
-    'config-options',
+    'editable-config-values',
     nargs=-1,
-    type=_StrEnumParam(_EditableConfigOptions),
+    type=_ManyOptionalChoiceValueParam(
+        _StrEnumChoiceParam(_EditableConfigOptions),
+        value_types={
+            _EditableConfigOptions.AutoUpdateCheck: click.types.BoolParamType(),
+        },
+    ),
 )
 @click.pass_context
 def configure(
     ctx: click.Context,
-    config_options: Collection[_EditableConfigOptions],
+    editable_config_values: Mapping[_EditableConfigOptions, Any],
 ) -> Config:
-    "Configure instawow."
+    """Configure instawow.
+
+    You can pass configuration keys as arguments to reconfigure an existing
+    profile.  Pass a value to bypass the interactive prompt.  For example:
+
+    \b
+    * ``configure addon_dir`` will initiate an interactive session
+      with autocompletion
+    * ``configure "addon_dir=~/foo"` will set ``addon_dir``'s value
+      to ``~/foo`` directly
+    """
     from ._cli_prompts import AttrFieldValidator, ask, confirm, password, path, select
     from .common import infer_flavour_from_path
 
     profile = ctx.find_root().params['profile']
 
-    orig_global_config = GlobalConfig.read()
+    existing_global_config = GlobalConfig.read()
 
-    if not config_options:
-        config_options = {
-            _EditableConfigOptions.addon_dir,
-            _EditableConfigOptions.game_flavour,
-        }
-        if orig_global_config.access_tokens.github is None:
-            config_options.add(_EditableConfigOptions.github_access_token)
-
-    global_config_values = asdict(orig_global_config)
+    config_values: dict[str, Any] | None = None
     try:
-        profile_config_values = asdict(Config.read(orig_global_config, profile))
-        del profile_config_values['global_config']
+        config_values = asdict(Config.read(existing_global_config, profile))
+    except FileNotFoundError:
+        pass
     except Exception:
-        profile_config_values = {
-            'profile': profile,
-        }
+        logger.exception('unable to read existing config')
 
-    addon_dir = None
-    if _EditableConfigOptions.addon_dir in config_options:
-        addon_dir = ask(
+    if config_values is None:
+        config_values = {'profile': profile, 'global_config': asdict(existing_global_config)}
+
+    editable_config_values = dict(editable_config_values)
+    if not editable_config_values:
+        default_keys = {
+            _EditableConfigOptions.AddonDir,
+            _EditableConfigOptions.GameFlavour,
+        }
+        if existing_global_config.access_tokens.github is None:
+            default_keys.add(_EditableConfigOptions.GithubAccessToken)
+
+        editable_config_values = dict.fromkeys(default_keys)
+
+    interactive_editable_config_keys = {k for k, v in editable_config_values.items() if v is None}
+
+    if _EditableConfigOptions.AddonDir in interactive_editable_config_keys:
+        editable_config_values[_EditableConfigOptions.AddonDir] = ask(
             path(
                 'Add-on directory:',
                 only_directories=True,
@@ -1007,43 +1072,41 @@ def configure(
                 ),
             )
         )
-        profile_config_values['addon_dir'] = addon_dir
 
-    if _EditableConfigOptions.game_flavour in config_options:
-        game_flavour = ask(
+    if _EditableConfigOptions.GameFlavour in interactive_editable_config_keys:
+        editable_config_values[_EditableConfigOptions.GameFlavour] = ask(
             select(
                 'Game flavour:',
                 choices=list(Flavour),
-                initial_choice=infer_flavour_from_path(addon_dir)
-                if addon_dir is not None
-                else None,
+                initial_choice=config_values.get('addon_dir')
+                and infer_flavour_from_path(config_values['addon_dir']),
             )
         )
-        profile_config_values['game_flavour'] = game_flavour
 
-    if _EditableConfigOptions.auto_update_check in config_options:
-        global_config_values['auto_update_check'] = ask(
+    if _EditableConfigOptions.AutoUpdateCheck in interactive_editable_config_keys:
+        editable_config_values[_EditableConfigOptions.AutoUpdateCheck] = ask(
             confirm('Periodically check for instawow updates?')
         )
 
-    if _EditableConfigOptions.github_access_token in config_options and ask(
+    if _EditableConfigOptions.GithubAccessToken in interactive_editable_config_keys and ask(
         confirm('Set up GitHub authentication?')
     ):
-        github_access_token = asyncio.run(_github_oauth_flow())
-        global_config_values['access_tokens']['github'] = github_access_token
+        editable_config_values[_EditableConfigOptions.GithubAccessToken] = asyncio.run(
+            _github_oauth_flow()
+        )
 
-    if _EditableConfigOptions.cfcore_access_token in config_options:
+    if _EditableConfigOptions.CfcoreAccessToken in interactive_editable_config_keys:
         click.echo(
             textwrap.fill(
                 'An access token is required to use CurseForge. '
                 'Log in to https://console.curseforge.com/ to generate an access token.'
             )
         )
-        global_config_values['access_tokens']['cfcore'] = ask(
-            password('CFCore access token:', validate=bool)
+        editable_config_values[_EditableConfigOptions.CfcoreAccessToken] = (
+            ask(password('CFCore access token:')) or None
         )
 
-    if _EditableConfigOptions.wago_access_token in config_options:
+    if _EditableConfigOptions.WagoAddonsAccessToken in interactive_editable_config_keys:
         click.echo(
             textwrap.fill(
                 'An access token is required to use Wago Addons. '
@@ -1051,17 +1114,22 @@ def configure(
                 'See https://addons.wago.io/patreon for more information.'
             )
         )
-        global_config_values['access_tokens']['wago_addons'] = ask(
-            password('Wago Addons access token:', validate=bool)
+        editable_config_values[_EditableConfigOptions.WagoAddonsAccessToken] = (
+            ask(password('Wago Addons access token:')) or None
         )
 
-    global_config = config_converter.structure(global_config_values, GlobalConfig).write()
-    config = config_converter.structure(
-        {**profile_config_values, 'global_config': global_config}, Config
-    ).write()
+    for key, value in editable_config_values.items():
+        parent = config_values
+        for part in key.path[:-1]:
+            parent = parent[part]
+        parent[key.path[-1]] = value
+
+    config = config_converter.structure(config_values, Config)
+    config.global_config.write()
+    config.write()
 
     click.echo('Configuration written to:')
-    click.echo(f'  {global_config.config_file}')
+    click.echo(f'  {config.global_config.config_file}')
     click.echo(f'  {config.config_file}')
 
     return config

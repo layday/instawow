@@ -253,13 +253,24 @@ def test_configure__create_new_profile(
     )
 
 
-def test_configure__update_existing_profile_with_opts(
+def test_configure__update_existing_profile_interactively(
     feed_pt: C[[str], None],
     iw_config: Config,
     run: C[[str], Result],
 ):
     feed_pt('Y\r')
-    assert run('configure auto_update_check').output == (
+    assert run('configure global_config.auto_update_check').output == (
+        'Configuration written to:\n'
+        f'  {iw_config.global_config.config_dir / "config.json"}\n'
+        f'  {iw_config.global_config.config_dir / "profiles/__default__/config.json"}\n'
+    )
+
+
+def test_configure__update_existing_profile_directly(
+    iw_config: Config,
+    run: C[[str], Result],
+):
+    assert run('configure global_config.auto_update_check=0').output == (
         'Configuration written to:\n'
         f'  {iw_config.global_config.config_dir / "config.json"}\n'
         f'  {iw_config.global_config.config_dir / "profiles/__default__/config.json"}\n'
