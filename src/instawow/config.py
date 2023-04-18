@@ -30,10 +30,6 @@ class SecretStr(str):
     pass
 
 
-def _convert_secret_string(value: str):
-    return '**********' if value else ''
-
-
 def _expand_path(value: Path):
     return Path(os.path.abspath(os.path.expanduser(value)))
 
@@ -132,8 +128,17 @@ def make_config_converter():
 
 @lru_cache(1)
 def _make_display_converter():
+    def convert_secret_string(value: str):
+        return '**********'
+
+    def convert_global_config(global_config: GlobalConfig):
+        return converter.unstructure_attrs_asdict(global_config) | {
+            'profiles': global_config.list_profiles()
+        }
+
     converter = make_config_converter()
-    converter.register_unstructure_hook(SecretStr, _convert_secret_string)
+    converter.register_unstructure_hook(GlobalConfig, convert_global_config)
+    converter.register_unstructure_hook(SecretStr, convert_secret_string)
     return converter
 
 
@@ -207,7 +212,7 @@ class GlobalConfig:
 
     def list_profiles(self) -> list[str]:
         "Get the names of the profiles contained in ``config_dir``."
-        profiles = [c.parent.name for c in self.config_dir.glob('profiles/*/config.json')]
+        profiles = [c.parent.name for c in self.profiles_dir.glob('*/config.json')]
         return profiles
 
     def ensure_dirs(self) -> Self:
@@ -228,6 +233,10 @@ class GlobalConfig:
     @property
     def cache_dir(self) -> Path:
         return self.temp_dir / 'cache'
+
+    @property
+    def profiles_dir(self) -> Path:
+        return self.config_dir / 'profiles'
 
     @property
     def config_file(self) -> Path:
@@ -287,7 +296,7 @@ class Config:
 
     @property
     def profile_dir(self) -> Path:
-        return self.global_config.config_dir / 'profiles' / self.profile
+        return self.global_config.profiles_dir / self.profile
 
     @property
     def logging_dir(self) -> Path:
