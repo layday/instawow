@@ -22,7 +22,7 @@ from .utils import run_in_thread as t
 
 _LuaTable: TypeAlias = Mapping[str, '_LuaTable']
 _Auras: TypeAlias = 'WeakAuras | Plateroos'
-_Matches: TypeAlias = list[tuple[Sequence['WeakAura | Plateroo'], '_WagoApiResponse', str]]
+_Match: TypeAlias = tuple[Sequence['WeakAura | Plateroo'], '_WagoApiResponse', str]
 
 
 class _WagoApiResponse(TypedDict):
@@ -213,7 +213,7 @@ class WaCompanionBuilder:
         ) as response:
             return await response.text()
 
-    async def get_remote_auras(self, aura_group: _Auras) -> _Matches:
+    async def get_remote_auras(self, aura_group: _Auras) -> list[_Match]:
         if not aura_group.root:
             return []
 
@@ -224,7 +224,7 @@ class WaCompanionBuilder:
             for r, i in zip(metadata, import_strings)
         ]
 
-    def _generate_addon(self, auras: Iterable[tuple[type[_Auras], _Matches]]):
+    def _generate_addon(self, auras: Iterable[tuple[type[_Auras], list[_Match]]]):
         from zipfile import ZipFile, ZipInfo
 
         from mako.template import Template
@@ -234,7 +234,7 @@ class WaCompanionBuilder:
         def render_template(filename: str, ctx: dict[str, object]):
             return Template(read_resource_as_text(_wa_templates, filename)).render(**ctx)
 
-        aura_dict = dict.fromkeys((WeakAuras, Plateroos), []) | dict(auras)
+        aura_dict = dict.fromkeys((WeakAuras, Plateroos), list[_Match]()) | dict(auras)
 
         self.addon_zip_path.parent.mkdir(exist_ok=True)
         with ZipFile(self.addon_zip_path, 'w') as file:
