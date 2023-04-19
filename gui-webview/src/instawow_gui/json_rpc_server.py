@@ -631,21 +631,18 @@ class _ManagersManager:
             return self.global_config
 
     async def run(self, profile: str, coro_fn: _ManagerBoundCoroFn[..., _T]) -> _T:
-        async def taskify():
-            try:
-                manager = self._managers[profile]
-            except KeyError:
-                async with self.locks['modify profile', profile]:
-                    try:
-                        manager = self._managers[profile]
-                    except KeyError:
-                        manager = self._managers[profile] = Manager.from_config(
-                            await _read_config(self.global_config, profile)
-                        )
+        try:
+            manager = self._managers[profile]
+        except KeyError:
+            async with self.locks['modify profile', profile]:
+                try:
+                    manager = self._managers[profile]
+                except KeyError:
+                    manager = self._managers[profile] = Manager.from_config(
+                        await _read_config(self.global_config, profile)
+                    )
 
-            return await coro_fn(manager)
-
-        return await asyncio.create_task(taskify())
+        return await coro_fn(manager)
 
     async def get_manager(self, profile: str):
         async def get_manager(manager: Manager):
