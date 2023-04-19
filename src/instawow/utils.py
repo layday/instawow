@@ -19,7 +19,6 @@ from collections.abc import (
     Set,
 )
 from contextlib import contextmanager
-from datetime import datetime, timedelta
 from functools import partial, wraps
 from itertools import chain, groupby, islice, repeat
 from pathlib import Path, PurePath
@@ -203,13 +202,6 @@ def shasum(*values: object) -> str:
     from hashlib import sha256
 
     return sha256(''.join(map(str, filter(None, values))).encode()).hexdigest()[:32]
-
-
-def is_not_stale(path: Path, ttl: timedelta) -> bool:
-    "Check if a file is older than ``ttl``."
-    return path.exists() and (
-        (datetime.now() - datetime.fromtimestamp(path.stat().st_mtime)) < ttl  # noqa: DTZ
-    )
 
 
 def find_addon_zip_tocs(names: Iterable[str]) -> Iterator[tuple[str, str]]:

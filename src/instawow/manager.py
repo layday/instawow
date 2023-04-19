@@ -5,7 +5,7 @@ import json
 from collections.abc import Awaitable, Callable, Collection, Iterable, Mapping, Sequence, Set
 from contextlib import AbstractAsyncContextManager, asynccontextmanager, contextmanager
 from datetime import datetime, timedelta
-from functools import cached_property, wraps
+from functools import cached_property, lru_cache, wraps
 from itertools import chain, filterfalse, product, repeat, starmap
 from pathlib import Path, PurePath
 from shutil import move
@@ -28,10 +28,8 @@ from ._sources.wago import WagoResolver
 from ._sources.wowi import WowiResolver
 from .cataloguer import (
     BASE_CATALOGUE_VERSION,
-    CATALOGUE_VERSION,
     Catalogue,
     CatalogueEntry,
-    catalogue_converter,
 )
 from .common import Defn, Strategy
 from .config import Config
@@ -46,7 +44,6 @@ from .utils import (
     find_addon_zip_tocs,
     gather,
     is_file_uri,
-    is_not_stale,
     make_zip_member_filter_fn,
     normalise_names,
     shasum,
@@ -151,7 +148,7 @@ def _with_lock(
     ) -> Callable[Concatenate[Manager, _P], Awaitable[_T]]:
         @wraps(coro_fn)
         async def inner(self: Manager, *args: _P.args, **kwargs: _P.kwargs):
-            async with self.locks[(id(self), lock_name) if manager_bound else lock_name]:
+            async with self.locks[(lock_name, id(self)) if manager_bound else lock_name]:
                 return await coro_fn(self, *args, **kwargs)
 
         return inner
@@ -200,6 +197,12 @@ def contextualise(
         _locks.set(locks)
 
 
+@lru_cache(1)
+def _parse_catalogue(raw_catalogue: bytes):
+    with time_op(lambda t: logger.debug(f'parsed catalogue in {t:.3f}s')):
+        return Catalogue.from_base_catalogue(json.loads(raw_catalogue), None)
+
+
 class Manager:
     RESOLVERS: Sequence[type[Resolver]] = [
         GithubResolver,
@@ -215,7 +218,7 @@ class Manager:
         f'https://raw.githubusercontent.com/layday/instawow-data/data/'
         f'base-catalogue-v{BASE_CATALOGUE_VERSION}.compact.json'
     )
-    _catalogue_filename = f'catalogue-v{CATALOGUE_VERSION}.json'
+    _catalogue_ttl = timedelta(hours=4)
 
     _normalise_search_terms = staticmethod(normalise_names(''))
 
@@ -242,8 +245,6 @@ class Manager:
             (r for g in plugin_hook.instawow_add_resolvers() for r in g), builtin_resolver_classes
         )
         self.resolvers = _Resolvers((r.metadata.id, r(self)) for r in resolver_classes)
-
-        self._catalogue = None
 
     @classmethod
     def from_config(cls, config: Config) -> Self:
@@ -414,29 +415,14 @@ class Manager:
     @_with_lock('load catalogue', False)
     async def synchronise(self) -> Catalogue:
         "Fetch the catalogue from the interwebs and load it."
-        catalogue_json = self.config.global_config.temp_dir / self._catalogue_filename
-        if await t(is_not_stale)(catalogue_json, timedelta(hours=4)):
-            if self._catalogue is None:
-                with time_op(lambda t: logger.debug(f'loaded catalogue from cache in {t:.3f}s')):
-                    raw_catalogue = await t(catalogue_json.read_bytes)()
-                    self._catalogue = catalogue_converter.structure(
-                        json.loads(raw_catalogue), Catalogue
-                    )
-        else:
-            async with self.web_client.get(
-                self._base_catalogue_url,
-                raise_for_status=True,
-                trace_request_ctx=make_generic_progress_ctx('Synchronising catalogue'),
-            ) as response:
-                raw_catalogue = await response.json(content_type=None)
-
-            self._catalogue = Catalogue.from_base_catalogue(raw_catalogue, None)
-            await t(catalogue_json.write_text)(
-                json.dumps(catalogue_converter.unstructure(self._catalogue)),
-                encoding='utf-8',
-            )
-
-        return self._catalogue
+        async with self.web_client.get(
+            self._base_catalogue_url,
+            expire_after=self._catalogue_ttl,
+            raise_for_status=True,
+            trace_request_ctx=make_generic_progress_ctx('Synchronising catalogue'),
+        ) as response:
+            raw_catalogue = await response.read()
+        return _parse_catalogue(raw_catalogue)
 
     async def find_equivalent_pkg_defns(
         self, pkgs: Collection[models.Pkg]
