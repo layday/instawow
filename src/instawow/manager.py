@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import contextvars as cv
+import enum
 import json
 from collections.abc import Awaitable, Callable, Collection, Iterable, Mapping, Sequence, Set
 from contextlib import AbstractAsyncContextManager, asynccontextmanager, contextmanager
@@ -37,6 +38,7 @@ from .http import make_generic_progress_ctx, make_pkg_progress_ctx
 from .plugins import load_plugins
 from .resolvers import HeadersIntent, Resolver
 from .utils import (
+    StrEnum,
     WeakValueDefaultDictionary,
     bucketise,
     chain_dict,
@@ -141,6 +143,7 @@ class _DummyLock:
 
 def _with_lock(
     lock_name: str,
+    *,
     manager_bound: bool = True,
 ):
     def outer(
@@ -154,6 +157,11 @@ def _with_lock(
         return inner
 
     return outer
+
+
+class _StandardLocks(StrEnum):
+    LoadCatalogue = enum.auto()
+    MutatePkgs = enum.auto()
 
 
 class _Resolvers(dict[str, Resolver]):
@@ -412,7 +420,7 @@ class Manager:
 
         return R.PkgRemoved(pkg)
 
-    @_with_lock('load catalogue', False)
+    @_with_lock(_StandardLocks.LoadCatalogue, manager_bound=False)
     async def synchronise(self) -> Catalogue:
         "Fetch the catalogue from the interwebs and load it."
         async with self.web_client.get(
@@ -667,7 +675,7 @@ class Manager:
             not await self._check_installed_pkg_integrity(old_pkg)
         )
 
-    @_with_lock('change state')
+    @_with_lock(_StandardLocks.MutatePkgs)
     async def install(
         self, defns: Sequence[Defn], replace: bool
     ) -> Mapping[Defn, _ResultOrError[R.PkgInstalled]]:
@@ -701,7 +709,7 @@ class Manager:
         )
         return results
 
-    @_with_lock('change state')
+    @_with_lock(_StandardLocks.MutatePkgs)
     async def update(
         self, defns: Sequence[Defn], retain_defn_strategy: bool
     ) -> Mapping[Defn, _ResultOrError[R.PkgInstalled | R.PkgUpdated]]:
@@ -759,7 +767,7 @@ class Manager:
         )
         return results
 
-    @_with_lock('change state')
+    @_with_lock(_StandardLocks.MutatePkgs)
     async def remove(
         self, defns: Sequence[Defn], keep_folders: bool
     ) -> Mapping[Defn, _ResultOrError[R.PkgRemoved]]:
@@ -774,7 +782,7 @@ class Manager:
             for p in (self.get_pkg(d),)
         }
 
-    @_with_lock('change state')
+    @_with_lock(_StandardLocks.MutatePkgs)
     async def pin(self, defns: Sequence[Defn]) -> Mapping[Defn, _ResultOrError[R.PkgInstalled]]:
         """Pin and unpin installed packages.
 
