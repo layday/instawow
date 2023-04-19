@@ -1030,7 +1030,7 @@ def configure(
     * ``configure "addon_dir=~/foo"` will set ``addon_dir``'s value
       to ``~/foo`` directly
     """
-    from ._cli_prompts import AttrFieldValidator, ask, confirm, password, path, select
+    from ._cli_prompts import AttrsFieldValidator, ask, confirm, password, path, select
     from .common import infer_flavour_from_path
 
     profile = ctx.find_root().params['profile']
@@ -1066,7 +1066,7 @@ def configure(
             path(
                 'Add-on directory:',
                 only_directories=True,
-                validate=AttrFieldValidator(
+                validate=AttrsFieldValidator(
                     fields(resolve_types(Config)).addon_dir,
                     config_converter,
                 ),

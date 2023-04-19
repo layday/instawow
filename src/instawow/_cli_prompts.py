@@ -29,7 +29,7 @@ if TYPE_CHECKING:
     ExceptionGroup = ExceptionGroup[Exception]
 
 
-class AttrFieldValidator(Validator):
+class AttrsFieldValidator(Validator):
     "One-off validators for attrs fields."
 
     def __init__(self, attribute: attrs.Attribute[object], converter: cattrs.Converter) -> None:
