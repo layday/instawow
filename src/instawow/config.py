@@ -19,7 +19,7 @@ from loguru import logger
 from typing_extensions import Self
 
 from .common import Flavour
-from .utils import trash
+from .utils import add_exc_note, trash
 
 _T = TypeVar('_T')
 
@@ -49,8 +49,7 @@ def _enrich_validator_exc(validator: Callable[[object, Attribute[_T], _T], None]
             validator(model, attr, value)
         except BaseException as exc:
             note = f'Structuring class {model.__class__.__name__} @ attribute {attr.name}'
-            notes = [*getattr(exc, '__notes__', []), note]
-            exc.__notes__ = notes  # pyright: ignore
+            add_exc_note(exc, note)
             raise
 
     return wrapper

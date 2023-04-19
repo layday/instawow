@@ -75,7 +75,10 @@ def bucketise_results(
         return dict(buckets.get(key, ()))
 
     buckets = bucketise(value, lambda v: isinstance(v[1], _ERROR_CLASSES))
-    return (get_bucket_dict(False), get_bucket_dict(True))  # pyright: ignore
+    return (
+        get_bucket_dict(False),
+        get_bucket_dict(True),
+    )  # pyright: ignore[reportGeneralTypeIssues]
 
 
 @asynccontextmanager

@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import AsyncIterator, Iterable
 from datetime import datetime, timedelta
 from itertools import tee, zip_longest
-from typing import Literal
+from typing import Any, Literal
 
 import iso8601
 from loguru import logger
@@ -186,13 +186,13 @@ class GithubResolver(BaseResolver):
                         try:
                             dynamic_addon_zip = zipfile.ZipFile(addon_zip_stream)
                         except zipfile.BadZipFile:
-                            from zipfile import _ECD_OFFSET, _EndRecData  # pyright: ignore
+                            zipfile_internal: Any = zipfile
 
-                            end_rec_data = _EndRecData(addon_zip_stream)  # pyright: ignore
+                            end_rec_data = zipfile_internal._EndRecData(addon_zip_stream)
                             if end_rec_data is None:
                                 break
 
-                            directory_offset = f'{end_rec_data[_ECD_OFFSET]}-'
+                            directory_offset = f'{end_rec_data[zipfile_internal._ECD_OFFSET]}-'
                         else:
                             break
 

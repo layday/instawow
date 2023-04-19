@@ -93,17 +93,13 @@ class BaseResolver(Resolver, Protocol):
 
         if cls.resolve_one is not super().resolve_one:
 
-            async def resolve_one(self: Self, defn: Defn, metadata: Any) -> models.Pkg:
+            async def resolve_one(self: type[Self], defn: Defn, metadata: Any) -> models.Pkg:
                 extraneous_strategies = (
                     defn.strategies.filled_strategies - self.metadata.strategies
                 )
                 if extraneous_strategies:
                     raise R.PkgStrategiesUnsupported(extraneous_strategies)
-                return await cls_resolve_one(
-                    self,  # pyright: ignore
-                    defn,
-                    metadata,
-                )
+                return await cls_resolve_one(self, defn, metadata)
 
             cls_resolve_one = cls.resolve_one
             setattr(cls, cls.resolve_one.__name__, update_wrapper(resolve_one, cls.resolve_one))
@@ -164,5 +160,5 @@ class BaseResolver(Resolver, Protocol):
         yield
 
 
-class _DummyResolver(Resolver):  # pyright: ignore
+class _DummyResolver(Resolver):  # pyright: ignore  # noqa: PGH003
     pass

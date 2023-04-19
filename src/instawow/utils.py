@@ -25,7 +25,7 @@ from pathlib import Path, PurePath
 from shutil import move
 from tempfile import mkdtemp
 from types import ModuleType
-from typing import Generic, TypeVar, overload
+from typing import Any, Generic, TypeVar, overload
 from weakref import WeakValueDictionary
 
 from typing_extensions import ParamSpec
@@ -289,3 +289,15 @@ class WeakValueDefaultDictionary(WeakValueDictionary[_T, _U]):
         except KeyError:
             default = self[key] = self.__default_factory()
             return default
+
+
+def add_exc_note(exc: BaseException, note: str) -> None:
+    if sys.version_info >= (3, 11):
+        exc.add_note(note)
+
+    else:
+        exc_without_notes: Any = exc
+
+        if not hasattr(exc, '__notes__'):
+            exc_without_notes.__notes__ = list[str]()
+        exc_without_notes.__notes__.append(note)
