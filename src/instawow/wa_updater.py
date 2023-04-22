@@ -90,7 +90,8 @@ class WeakAuras:
 
     @classmethod
     def from_lua_table(cls, lua_table: _LuaTable):
-        auras = (WeakAura.from_lua_table(t) for t in lua_table['displays'].values())
+        raw_auras = lua_table['WeakAurasSaved']['displays']
+        auras = (WeakAura.from_lua_table(t) for t in raw_auras.values())
         sorted_auras = sorted(filter(None, auras), key=lambda a: a.id)
         return cls(bucketise(sorted_auras, key=lambda a: a.url.parts[1]))
 
@@ -104,9 +105,10 @@ class Plateroos:
 
     @classmethod
     def from_lua_table(cls, lua_table: _LuaTable):
+        raw_auras = lua_table['PlaterDB']['profiles']
         auras = (
             Plateroo.from_lua_table(t)
-            for n, p in lua_table['profiles'].items()
+            for n, p in raw_auras.items()
             for t in chain(
                 ({**p, 'Name': f'__profile_{n}__'},),
                 p.get('script_data') or (),
@@ -150,9 +152,7 @@ class WaCompanionBuilder:
     def extract_auras(model: type[_Auras], source: str) -> _Auras:
         from ._custom_slpp import loads
 
-        lua_table = loads(f'{{{source}}}')
-        (aura_table,) = lua_table.values()
-        return model.from_lua_table(aura_table)
+        return model.from_lua_table(loads(f'{{{source}}}'))
 
     def extract_installed_auras(self) -> Iterator[_Auras]:
         flavour_root = self._manager.config.addon_dir.parents[1]

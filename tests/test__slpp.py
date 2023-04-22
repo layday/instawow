@@ -171,3 +171,20 @@ def test_table_palooza():
             },
         }
     )
+
+
+def test_parse_undelimited_entries():
+    # Not valid Lua but we allow it for the purpose of parsing saved var scripts
+    # containing more than one variable.
+    assert (
+        loads(
+            '''{
+                foo = {}
+                bar = 1
+            }'''
+        )
+        == {
+            'foo': {},
+            'bar': 1,
+        }
+    )
