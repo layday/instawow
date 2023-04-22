@@ -136,4 +136,4 @@ jobs:
           draft: true
           files: |
             release-assets/instawow-cli-*.zip
-            release-assets/instawow-gui-*/*/*
+            release-assets/instawow-gui-*/*
