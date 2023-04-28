@@ -689,14 +689,13 @@ class Manager:
         resolve_results = await self.resolve(
             [d for d in defns if not self.check_pkg_exists(d)], with_deps=True
         )
-        pkgs, resolve_errors = bucketise_results(
-            (d, r) for d, r in resolve_results.items() if not self.check_pkg_exists(d)
-        )
+        pkgs, resolve_errors = bucketise_results(resolve_results.items())
+        new_pkgs = {d: p for d, p in pkgs.items() if not self.check_pkg_exists(p.to_defn())}
         archive_paths, download_errors = bucketise_results(
             zip(
-                pkgs,
+                new_pkgs,
                 await gather(
-                    (self._download_pkg_archive(r) for r in pkgs.values()),
+                    (self._download_pkg_archive(r) for r in new_pkgs.values()),
                     capture_manager_exc_async,
                 ),
             )
@@ -706,7 +705,7 @@ class Manager:
             | resolve_errors
             | download_errors
             | {
-                d: await capture_manager_exc_async(self._install_pkg(pkgs[d], a, replace))
+                d: await capture_manager_exc_async(self._install_pkg(new_pkgs[d], a, replace))
                 for d, a in archive_paths.items()
             }
         )

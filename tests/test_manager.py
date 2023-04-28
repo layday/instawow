@@ -5,6 +5,7 @@ from pathlib import Path
 
 import pytest
 from aiohttp import ClientError
+from attrs import evolve
 
 from instawow import results as R
 from instawow.common import Defn, Flavour, Strategy
@@ -138,6 +139,33 @@ async def test_install_cannot_replace_reconciled_folders(iw_manager: Manager):
 
     result = await iw_manager.install([wowi_defn], replace=True)
     assert type(result[wowi_defn]) is R.PkgConflictsWithInstalled
+
+
+async def test_install_recognises_renamed_pkg_from_id(
+    monkeypatch: pytest.MonkeyPatch, iw_manager: Manager
+):
+    old_defn = Defn('curse', 'molinari')
+    new_defn = Defn('curse', 'molinarifico')
+
+    result = await iw_manager.install([old_defn], replace=False)
+    assert type(result[old_defn]) is R.PkgInstalled
+
+    result = await iw_manager.install([old_defn], replace=False)
+    assert type(result[old_defn]) is R.PkgAlreadyInstalled
+
+    result = await iw_manager.install([new_defn], replace=False)
+    assert type(result[new_defn]) is R.PkgNonexistent
+
+    async def resolve(defns, with_deps=False):
+        result = await orig_resolve([old_defn])
+        pkg = evolve(result[old_defn], slug=new_defn.alias)
+        return {new_defn: pkg}
+
+    orig_resolve = iw_manager.resolve
+    monkeypatch.setattr(iw_manager, 'resolve', resolve)
+
+    result = await iw_manager.install([new_defn], replace=False)
+    assert type(result[new_defn]) is R.PkgAlreadyInstalled
 
 
 async def test_update_lifecycle_while_varying_retain_defn_strategy(iw_manager: Manager):
