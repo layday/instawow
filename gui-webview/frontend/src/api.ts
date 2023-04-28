@@ -21,6 +21,7 @@ export type Strategies = {
 export type Defn = {
   source: string;
   alias: string;
+  id?: string;
   strategies: Strategies;
 };
 
@@ -339,7 +340,8 @@ export class Api {
 
 export const addonToDefn = (addon: Addon): Defn => ({
   source: addon.source,
-  alias: addon.id,
+  alias: addon.slug,
+  id: addon.id,
   strategies: Object.fromEntries(
     Object.entries(addon.options).map(([k, v]) => [
       k,
