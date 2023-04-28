@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from collections.abc import Mapping
 from datetime import datetime
 
 import sqlalchemy as sa
@@ -62,9 +61,7 @@ class Pkg:
     logged_versions: list[PkgLoggedVersion] = []  # pkg_version_log
 
     @classmethod
-    def from_row_mapping(
-        cls, connection: sa.Connection, row_mapping: Mapping[str, object]
-    ) -> Self:
+    def from_row_mapping(cls, connection: sa.Connection, row_mapping: sa.RowMapping) -> Self:
         source_and_id = {'pkg_source': row_mapping['source'], 'pkg_id': row_mapping['id']}
         return _db_pkg_converter.structure(
             {
