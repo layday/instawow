@@ -37,7 +37,10 @@ class PkgUpdated(ManagerResult, _SuccessResult):
 
     @property
     def message(self) -> str:
-        return f'updated {self.old_pkg.version} to {self.new_pkg.version}'
+        message = f'updated {self.old_pkg.version} to {self.new_pkg.version}'
+        if self.old_pkg.slug != self.new_pkg.slug:
+            message += f' with new slug {self.new_pkg.slug!r}'
+        return message
 
 
 class PkgRemoved(ManagerResult, _SuccessResult):
