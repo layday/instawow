@@ -29,6 +29,7 @@ from ..utils import (
 # Not exhaustive (as you might've guessed).  Reference:
 # https://docs.github.com/en/rest/reference/repos
 class _GithubRepo(TypedDict):
+    id: int  # Unique, stable repository ID
     name: str  # the repo in user-or-org/repo
     full_name: str  # user-or-org/repo
     description: str | None
@@ -394,7 +395,7 @@ class GithubResolver(BaseResolver):
 
         return models.Pkg(
             source=self.metadata.id,
-            id=project['full_name'],
+            id=str(project['id']),
             slug=project['full_name'].lower(),
             name=project['name'],
             description=project['description'] or '',
