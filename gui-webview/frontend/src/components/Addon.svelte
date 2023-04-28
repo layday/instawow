@@ -55,7 +55,7 @@
           .join("")}{/if}
     </li>
     {#if format !== ListFormat.Dense}
-      <li class="defn">{addon.source}:{addon.id}</li>
+      <li class="defn">{addon.source}:{addon.slug}</li>
       {#if format === ListFormat.Expanded}
         <li class="description">{addon.description || "No description."}</li>
       {/if}
