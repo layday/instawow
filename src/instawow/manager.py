@@ -299,7 +299,7 @@ class Manager:
                         db.pkg.c.source == defn.source,
                         (db.pkg.c.id == defn.alias)
                         | (db.pkg.c.id == defn.id)
-                        | (db.pkg.c.slug == defn.alias),
+                        | (sa.func.lower(db.pkg.c.slug) == sa.func.lower(defn.alias)),
                     )
                 ).scalar()
                 == 1
@@ -314,7 +314,7 @@ class Manager:
                         db.pkg.c.source == defn.source,
                         (db.pkg.c.id == defn.alias)
                         | (db.pkg.c.id == defn.id)
-                        | (db.pkg.c.slug == defn.alias),
+                        | (sa.func.lower(db.pkg.c.slug) == sa.func.lower(defn.alias)),
                     )
                 )
                 .mappings()

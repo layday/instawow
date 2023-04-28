@@ -774,7 +774,10 @@ def list_installed(mw: _CtxObjWrapper, addons: Sequence[Defn], output_format: _L
                                 db.pkg.c.slug.contains(d.alias)
                                 if d.source == '*'
                                 else (db.pkg.c.source == d.source)
-                                & ((db.pkg.c.id == d.alias) | (db.pkg.c.slug == d.alias))
+                                & (
+                                    (db.pkg.c.id == d.alias)
+                                    | (sa.func.lower(db.pkg.c.slug) == sa.func.lower(d.alias))
+                                )
                                 for d in addons
                             )
                         )
