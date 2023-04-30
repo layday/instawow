@@ -56,7 +56,7 @@ class _StrictResponsesMockServer(ResponsesMockServer):
     async def _find_response(self, request: aiohttp.web.Request):
         response = await super()._find_response(request)
         if response == (None, None):
-            raise NoRouteFoundError(request)
+            raise NoRouteFoundError(f'No match found for <{request.method} {request.url}>')
         return response
 
 
@@ -94,7 +94,7 @@ def iw_config(iw_config_values: dict[str, Any], iw_global_config_values: dict[st
 
 
 @pytest.fixture(autouse=True)
-async def __iw_global_config_defaults(
+async def _iw_global_config_defaults(
     monkeypatch: pytest.MonkeyPatch,
     iw_global_config_values: dict[str, Any],
 ):
