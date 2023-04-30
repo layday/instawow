@@ -127,7 +127,6 @@ async def test_install_with_invalid_params(
     assert rpc_response['error']['code'] == -32602
 
 
-@pytest.mark.xfail
 async def test_install_with_uninitialised_profile(
     request: pytest.FixtureRequest,
     ws: ClientWebSocketResponse,
@@ -137,7 +136,7 @@ async def test_install_with_uninitialised_profile(
         'method': 'install',
         'params': {
             'profile': request.node.name,
-            'defns': [{'source': 'curse', 'name': 'molinari'}],
+            'defns': [{'source': 'curse', 'alias': 'molinari'}],
             'replace': False,
         },
         'id': request.node.name,
@@ -146,3 +145,4 @@ async def test_install_with_uninitialised_profile(
     rpc_response = await ws.receive_json()
     assert rpc_response['error']
     assert rpc_response['error']['code'] == -32001
+    assert rpc_response['error']['message'] == 'invalid configuration parameters'
