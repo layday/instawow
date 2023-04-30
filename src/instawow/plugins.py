@@ -16,7 +16,7 @@ hookspec = pluggy.HookspecMarker(_project_name)
 hookimpl = pluggy.HookimplMarker(_project_name)
 
 
-class InstawowPlugin:
+class InstawowPlugin(Protocol):
     "The plug-in interface."
 
     @hookspec
