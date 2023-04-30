@@ -8,20 +8,29 @@ export type RequestObject = Parameters<Client["request"]>[0];
  * automatically re-establishes the connection to the server when it drops.
  */
 export class RClient {
-  private readonly _clientInitialisationLock = new Lock();
-  private _transport?: WebSocketTransport;
-  private _client?: Client;
+  readonly #clientInitialisationLock = new Lock();
+
+  #handle?: [Client, WebSocketTransport];
 
   get client(): Promise<Client> {
-    return this._clientInitialisationLock.execute(async () => {
-      if (
-        this._client === undefined ||
-        [WebSocket.CLOSING, WebSocket.CLOSED].includes(this._transport!.connection.readyState)
-      ) {
-        this._transport = new WebSocketTransport(`ws://${location.host}/api`);
-        this._client = new Client(new RequestManager([this._transport]));
+    return this.#clientInitialisationLock.execute(() => {
+      let runningClient: Client | undefined;
+
+      if (this.#handle) {
+        const [client, transport] = this.#handle;
+        if (![WebSocket.CLOSING, WebSocket.CLOSED].includes(transport.connection.readyState)) {
+          runningClient = client;
+        }
       }
-      return this._client;
+
+      if (!runningClient) {
+        const transport = new WebSocketTransport(`ws://${location.host}/api`),
+          requestManager = new RequestManager([transport]);
+        runningClient = new Client(requestManager);
+        this.#handle = [runningClient, transport];
+      }
+
+      return runningClient;
     });
   }
 }
