@@ -101,9 +101,6 @@ select = [
 ]
 ignore = [
   "E501",   # pycodestyle: line-too-long
-  "RUF001", # ruff: ambiguous-unicode-character-string
-  "RUF002", # ruff: ambiguous-unicode-character-docstring
-  "RUF003", # ruff: ambiguous-unicode-character-comment
   "TRY003", # tryceratops: raise-vanilla-args
 ]
 line-length = 99

@@ -57,7 +57,7 @@ def read_resource_as_text(package: ModuleType, resource: str, encoding: str = 'u
 
 
 class TocReader:
-    """Extracts key–value pairs from TOC files."""
+    """Extracts key-value pairs from TOC files."""
 
     def __init__(self, contents: str) -> None:
         self.entries = {
