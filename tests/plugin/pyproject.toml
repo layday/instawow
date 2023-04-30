@@ -1,5 +1,9 @@
 [build-system]
-requires = [
-  "setuptools >= 42",
-]
-build-backend = "setuptools.build_meta"
+requires = ["flit-core >=3.8.0"]
+build-backend = "flit_core.buildapi"
+
+[project]
+name = "instawow_test_plugin"
+version = "0.0.0"
+description = "A plug-in used to test plug-ins"
+entry-points."instawow.plugins" = { instawow_test_plugin = "instawow_test_plugin" }

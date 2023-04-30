@@ -10,7 +10,7 @@ from instawow.models import Pkg, PkgOptions
 from instawow.resolvers import BaseResolver
 
 
-@click.command()
+@click.command
 def foo():
     "don't foo where you bar"
     print('success!')
