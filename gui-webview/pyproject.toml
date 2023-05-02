@@ -30,8 +30,3 @@ linuxdeploy_plugins = [
   "DEPLOY_GTK_VERSION=3 gtk",
   "./linuxdeploy-plugin-zzzinstawowwebkit2gtk.sh",
 ]
-
-[tool.briefcase.app.instawow-gui-wrapper.windows]
-requires = [
-  "clr-loader <2",
-]
