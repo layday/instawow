@@ -1,6 +1,4 @@
-/include
-/linux
-/macOS
-/windows
-
-node_modules
+node_modules/
+/build/
+/dist/
+/logs/
