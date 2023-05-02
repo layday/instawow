@@ -345,7 +345,7 @@ export const addonToDefn = (addon: Addon): Defn => ({
   strategies: Object.fromEntries(
     Object.entries(addon.options).map(([k, v]) => [
       k,
-      !v ? null : k === Strategy.version_eq && v ? addon.version : v,
+      !v ? null : k === Strategy.version_eq ? addon.version : v,
     ])
   ) as Strategies,
 });
