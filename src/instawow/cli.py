@@ -882,16 +882,31 @@ def view_changelog(mw: _CtxObjWrapper, addon: Defn | None, convert: bool) -> Non
 
             return noop_convert
         else:
+            import subprocess
 
             def real_convert(source: str, changelog: str):
-                import subprocess
-
                 changelog_format = mw.manager.resolvers[source].metadata.changelog_format
                 if changelog_format not in {ChangelogFormat.html, ChangelogFormat.markdown}:
                     return changelog
                 else:
+                    INPUT_FORMAT_CORRESPONDENCES = {
+                        ChangelogFormat.html: 'html',
+                        # The "markdown" format will treat a list without a preceding
+                        # empty line as a paragraph, which breaks the changelog
+                        # of at least one popular add-on.
+                        ChangelogFormat.markdown: 'commonmark',
+                    }
+
                     return subprocess.check_output(
-                        [pandoc, '-f', changelog_format, '-t', 'plain'], input=changelog, text=True
+                        [
+                            pandoc,
+                            '-f',
+                            INPUT_FORMAT_CORRESPONDENCES[changelog_format],
+                            '-t',
+                            'plain',
+                        ],
+                        input=changelog,
+                        text=True,
                     )
 
             return real_convert
