@@ -4,6 +4,7 @@ import asyncio
 import importlib.resources
 import os
 import posixpath
+import string
 import sys
 import time
 import urllib.parse
@@ -250,9 +251,8 @@ def extract_byte_range_offset(content_range: str):
 
 
 def normalise_names(replace_delim: str) -> Callable[[str], str]:
-    import string
-
-    trans_table = str.maketrans(dict.fromkeys(string.punctuation, ' '))
+    char_map = dict.fromkeys(string.punctuation, ' ')
+    trans_table = str.maketrans(char_map)
 
     def normalise(value: str):
         return replace_delim.join(value.casefold().translate(trans_table).split())
