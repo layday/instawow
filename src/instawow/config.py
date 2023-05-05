@@ -250,7 +250,7 @@ class GlobalConfig:
 class Config:
     global_config: GlobalConfig
     profile: str = field(
-        converter=lambda v: v.strip(),
+        converter=str.strip,
         validator=_make_validate_min_length(1),
         metadata={'env': True},
     )
