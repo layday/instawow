@@ -349,7 +349,7 @@ class Manager:
 
             if replace:
                 trash(
-                    [self.config.addon_dir / f for f in top_level_folders],
+                    (self.config.addon_dir / f for f in top_level_folders),
                     dest=self.config.global_config.temp_dir,
                     missing_ok=True,
                 )
@@ -393,7 +393,7 @@ class Manager:
                 raise R.PkgConflictsWithUnreconciled(unreconciled_conflicts)
 
             trash(
-                [self.config.addon_dir / f.name for f in old_pkg.folders],
+                (self.config.addon_dir / f.name for f in old_pkg.folders),
                 dest=self.config.global_config.temp_dir,
                 missing_ok=True,
             )
@@ -413,7 +413,7 @@ class Manager:
         "Remove a package."
         if not keep_folders:
             trash(
-                [self.config.addon_dir / f.name for f in pkg.folders],
+                (self.config.addon_dir / f.name for f in pkg.folders),
                 dest=self.config.global_config.temp_dir,
                 missing_ok=True,
             )
