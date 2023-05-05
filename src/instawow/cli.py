@@ -765,26 +765,25 @@ def list_installed(mw: _CtxObjWrapper, addons: Sequence[Defn], output_format: _L
         def row_mappings_to_pkgs():
             return map(models.Pkg.from_row_mapping, repeat(connection), pkg_mappings)
 
+        pkg_select_query = sa.select(db.pkg)
+        if addons:
+            pkg_select_query = pkg_select_query.filter(
+                sa.or_(
+                    *(
+                        db.pkg.c.slug.contains(d.alias)
+                        if d.source == '*'
+                        else (db.pkg.c.source == d.source)
+                        & (
+                            (db.pkg.c.id == d.alias)
+                            | (sa.func.lower(db.pkg.c.slug) == sa.func.lower(d.alias))
+                        )
+                        for d in addons
+                    )
+                )
+            )
         pkg_mappings = (
             connection.execute(
-                (
-                    sa.select(db.pkg).filter(
-                        sa.or_(
-                            *(
-                                db.pkg.c.slug.contains(d.alias)
-                                if d.source == '*'
-                                else (db.pkg.c.source == d.source)
-                                & (
-                                    (db.pkg.c.id == d.alias)
-                                    | (sa.func.lower(db.pkg.c.slug) == sa.func.lower(d.alias))
-                                )
-                                for d in addons
-                            )
-                        )
-                    )
-                    if addons
-                    else sa.select(db.pkg)
-                ).order_by(db.pkg.c.source, sa.func.lower(db.pkg.c.name))
+                pkg_select_query.order_by(db.pkg.c.source, sa.func.lower(db.pkg.c.name))
             )
             .mappings()
             .all()
