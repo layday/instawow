@@ -396,7 +396,7 @@ def install(
 ) -> None:
     "Install add-ons."
     if not addons:
-        raise click.UsageError('You must provide at least one of "ADDONS" or "--version"')
+        raise click.UsageError('You must specify an add-on')
 
     if strategies:
         addons = [
