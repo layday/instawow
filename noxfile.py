@@ -75,7 +75,7 @@ def lint(session: nox.Session):
     session.notify('format', ['--check'])
 
 
-@nox.session(python='3.10')
+@nox.session(python='3.11')
 @nox.parametrize(
     'constraints',
     [
@@ -134,7 +134,7 @@ def test(session: nox.Session, constraints: str):
     session.run('coverage', 'xml')
 
 
-@nox.session(python='3.10')
+@nox.session(python='3.11')
 def type_check(session: nox.Session):
     "Run Pyright."
     mirror_repo(session)
@@ -158,7 +158,7 @@ def bundle_frontend(session: nox.Session):
     session.run('npx', 'rollup', '-c', external=True)
 
 
-@nox.session(python='3.10')
+@nox.session(python='3.11')
 def build_dists(session: nox.Session):
     "Build an sdist and wheel."
     session.run('git', 'clean', '-fdX', 'dist', external=True)

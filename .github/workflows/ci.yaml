@@ -28,10 +28,10 @@ jobs:
       fail-fast: false
       matrix:
         os: [macos-latest, ubuntu-latest, windows-latest]
-        python-version: ["3.10"]
+        python-version: ["3.11"]
         include:
           - { os: ubuntu-latest, python-version: "3.9" }
-          - { os: ubuntu-latest, python-version: "3.11" }
+          - { os: ubuntu-latest, python-version: "3.10" }
     runs-on: ${{ matrix.os }}
     steps:
       - name: Clone the repo
@@ -66,10 +66,10 @@ jobs:
       fail-fast: false
       matrix:
         os: [macos-latest, ubuntu-latest, windows-latest]
-        python-version: ["3.10"]
+        python-version: ["3.11"]
         include:
           - { os: ubuntu-latest, python-version: "3.9" }
-          - { os: ubuntu-latest, python-version: "3.11" }
+          - { os: ubuntu-latest, python-version: "3.10" }
     runs-on: ${{ matrix.os }}
     steps:
       - name: Clone the repo
