@@ -11,7 +11,6 @@ from collections import defaultdict
 from collections.abc import (
     Awaitable,
     Callable,
-    Collection,
     Hashable,
     Iterable,
     Iterator,
@@ -181,16 +180,18 @@ def tabulate(rows: Sequence[tuple[object, ...]], *, max_col_width: int = 60) -> 
     return table
 
 
-def trash(paths: Collection[PurePath], *, dest: PurePath, missing_ok: bool = False) -> None:
-    if not paths:
+def trash(paths: Iterable[PurePath], *, dest: PurePath, missing_ok: bool = False) -> None:
+    paths_iter = iter(paths)
+    first_path = next(paths_iter, None)
+
+    if first_path is None:
         return
 
     exc_classes = FileNotFoundError if missing_ok else ()
 
-    first_path_name = next(iter(paths)).name
-    parent_folder = mkdtemp(dir=dest, prefix=f'deleted-{first_path_name}-')
+    parent_folder = mkdtemp(dir=dest, prefix=f'deleted-{first_path.name}-')
 
-    for path in paths:
+    for path in paths_iter:
         try:
             move(path, parent_folder)
         except exc_classes:
