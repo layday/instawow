@@ -192,7 +192,7 @@ def trash(paths: Iterable[PurePath], *, dest: PurePath, missing_ok: bool = False
 
     parent_folder = mkdtemp(dir=dest, prefix=f'deleted-{first_path.name}-')
 
-    for path in paths_iter:
+    for path in chain((first_path,), paths_iter):
         try:
             move(path, parent_folder)
         except exc_classes:
