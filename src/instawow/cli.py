@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 from functools import cached_property, partial
 from itertools import chain, repeat
 from pathlib import Path
-from typing import Any, Literal, NoReturn, TypeVar, overload
+from typing import Any, Generic, Literal, NoReturn, TypeVar, overload
 
 import click
 import click.types
@@ -205,7 +205,7 @@ def _with_manager(fn: Callable[..., object]):
     return wrapper
 
 
-class _StrEnumChoiceParam(click.Choice):
+class _StrEnumChoiceParam(Generic[_TStrEnum], click.Choice):
     def __init__(
         self,
         choice_enum: type[_TStrEnum],
@@ -217,7 +217,9 @@ class _StrEnumChoiceParam(click.Choice):
         )
         self.__choice_enum = choice_enum
 
-    def convert(self, value: Any, param: click.Parameter | None, ctx: click.Context | None) -> Any:
+    def convert(
+        self, value: Any, param: click.Parameter | None, ctx: click.Context | None
+    ) -> _TStrEnum:
         converted_value = super().convert(value, param, ctx)
         return self.__choice_enum(converted_value)
 
