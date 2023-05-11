@@ -509,9 +509,9 @@ def test_changelog_output(
     install_molinari_and_run: C[[str], Result],
 ):
     output = (
-        'Changes in 90200.82-Release:'
+        'curse:molinari:\n  Changes in 90200.82-Release:'
         if shutil.which('pandoc')
-        else '<h3>Changes in 90200.82-Release:</h3>'
+        else 'curse:molinari:\n  <h3>Changes in 90200.82-Release:</h3>'
     )
     assert install_molinari_and_run('view-changelog curse:molinari').output.startswith(output)
 
@@ -521,7 +521,7 @@ def test_changelog_output_no_convert(
 ):
     assert install_molinari_and_run(
         'view-changelog --no-convert curse:molinari'
-    ).output.startswith('<h3>Changes in 90200.82-Release:</h3>')
+    ).output.startswith('curse:molinari:\n  <h3>Changes in 90200.82-Release:</h3>')
 
 
 def test_argless_changelog_output(

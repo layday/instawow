@@ -931,7 +931,9 @@ def view_changelog(mw: _CtxObjWrapper, addon: Defn | None, convert: bool) -> Non
             )
             if convert:
                 changelog = make_converter()(pkg.source, changelog)
-            click.echo_via_pager(changelog)
+
+            click.echo_via_pager(format_combined_changelog_entry(pkg.source, pkg.slug, changelog))
+
         else:
             Report([(addon, R.PkgNotInstalled())]).generate_and_exit()
 
