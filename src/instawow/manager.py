@@ -335,7 +335,6 @@ class Manager:
 
     @t
     def _install_pkg(self, pkg: models.Pkg, archive: Path, replace: bool) -> R.PkgInstalled:
-        "Install a package."
         with _open_pkg_archive(archive) as (top_level_folders, extract):
             with self.database.connect() as connection:
                 installed_conflicts = connection.execute(
@@ -370,7 +369,6 @@ class Manager:
 
     @t
     def _update_pkg(self, old_pkg: models.Pkg, new_pkg: models.Pkg, archive: Path) -> R.PkgUpdated:
-        "Update a package."
         with _open_pkg_archive(archive) as (top_level_folders, extract):
             with self.database.connect() as connection:
                 installed_conflicts = connection.execute(
@@ -410,7 +408,6 @@ class Manager:
 
     @t
     def _remove_pkg(self, pkg: models.Pkg, keep_folders: bool) -> R.PkgRemoved:
-        "Remove a package."
         if not keep_folders:
             trash(
                 (self.config.addon_dir / f.name for f in pkg.folders),
