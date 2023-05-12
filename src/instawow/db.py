@@ -118,9 +118,9 @@ pkg_version_log = Table(
 
 
 class _DatabaseState(IntEnum):
-    current = 0
-    old = 1
-    uninitialised = 2
+    Current = 0
+    Old = 1
+    Uninitialised = 2
 
 
 def _get_database_state(engine: Engine, revision: str) -> _DatabaseState:
@@ -155,7 +155,7 @@ def prepare_database(uri: str) -> Engine:
     listen(engine, 'connect', _set_sqlite_pragma)
 
     database_state = _get_database_state(engine, DB_REVISION)
-    if database_state is not _DatabaseState.current:
+    if database_state is not _DatabaseState.Current:
         import alembic.command
         import alembic.config
 
@@ -163,7 +163,7 @@ def prepare_database(uri: str) -> Engine:
         alembic_config.set_main_option('script_location', f'{__spec__.parent}:_migrations')
         alembic_config.set_main_option('sqlalchemy.url', str(engine.url))
 
-        if database_state is _DatabaseState.uninitialised:
+        if database_state is _DatabaseState.Uninitialised:
             metadata.create_all(engine)
             alembic.command.stamp(alembic_config, DB_REVISION)
         else:
