@@ -3,12 +3,12 @@ from __future__ import annotations
 import asyncio
 import enum
 import textwrap
-from collections.abc import Awaitable, Callable, Collection, Iterable, Mapping, Sequence, Set
+from collections.abc import Awaitable, Callable, Collection, Iterable, Mapping, Sequence
 from datetime import datetime, timezone
 from functools import cached_property, partial
 from itertools import chain, repeat
 from pathlib import Path
-from typing import Any, Generic, Literal, NoReturn, TypeVar, overload
+from typing import Any, Generic, NoReturn, TypeVar, overload
 
 import click
 import click.types
@@ -339,53 +339,55 @@ def _parse_into_defn(
     return Defn(*pair)
 
 
-def _parse_into_defn_and_extend_addons(ctx: click.Context, __: click.Parameter, value: list[str]):
-    addons: list[Defn] = ctx.params.setdefault('addons', [])
+def _extend_addons(ctx: click.Context, __: click.Parameter, value: list[str]):
+    addons = ctx.params.setdefault('addons', list[Defn]())
     defns = _parse_into_defn(ctx.obj.manager, value)
     addons.extend(defns)
 
 
-def _parse_into_defn_with_version_and_extend_addons(
+def _extend_addons_with_version(
     ctx: click.Context, __: click.Parameter, value: Sequence[tuple[str, str]]
 ):
-    addons: list[Defn] = ctx.params.setdefault('addons', [])
+    addons = ctx.params.setdefault('addons', list[Defn]())
     defns = _parse_into_defn(ctx.obj.manager, [d for _, d in value])
     addons.extend(map(Defn.with_version, defns, (v for v, _ in value)))
 
 
 def _extend_strategies(strategy: Strategy, ctx: click.Context, __: click.Parameter, value: bool):
-    strategies = ctx.params.setdefault('strategies', set())
     if value:
-        strategies.add(strategy)
+        ctx.params['addons'] = [
+            evolve(a, strategies=evolve(a.strategies, **{strategy: True}))
+            for a in ctx.params.get('addons', list[Defn]())
+        ]
 
 
 @cli.command
-@click.argument(
-    'addons', nargs=-1, expose_value=False, callback=_parse_into_defn_and_extend_addons
-)
+@click.argument('addons', nargs=-1, expose_value=False, callback=_extend_addons)
 @click.option(
     '--version',
     expose_value=False,
     multiple=True,
     type=(str, str),
-    callback=_parse_into_defn_with_version_and_extend_addons,
+    callback=_extend_addons_with_version,
     metavar='<VERSION ADDON>',
     help='A version followed by an add-on definition.',
 )
 @click.option(
     '--any-flavour',
     expose_value=False,
+    callback=partial(_extend_strategies, Strategy.any_flavour),
+    is_eager=True,
     is_flag=True,
     default=False,
-    callback=partial(_extend_strategies, Strategy.any_flavour),
     help='Ignore game flavour compatibility.  Global option.',
 )
 @click.option(
     '--any-release-type',
     expose_value=False,
+    callback=partial(_extend_strategies, Strategy.any_release_type),
+    is_eager=True,
     is_flag=True,
     default=False,
-    callback=partial(_extend_strategies, Strategy.any_release_type),
     help='Ignore add-on stability.  Global option.',
 )
 @click.option('--replace', is_flag=True, default=False, help='Replace unreconciled add-ons.')
@@ -393,18 +395,11 @@ def _extend_strategies(strategy: Strategy, ctx: click.Context, __: click.Paramet
 def install(
     mw: _CtxObjWrapper,
     addons: Sequence[Defn],
-    strategies: Set[Literal[Strategy.any_flavour, Strategy.any_release_type]],
     replace: bool,
 ) -> None:
     "Install add-ons."
     if not addons:
         raise click.UsageError('You must specify an add-on')
-
-    if strategies:
-        addons = [
-            evolve(a, strategies=evolve(a.strategies, **{s: True for s in strategies}))
-            for a in addons
-        ]
 
     results = mw.run_with_progress(mw.manager.install(addons, replace))
     Report(results.items()).generate_and_exit()
@@ -722,7 +717,7 @@ def search(
     if choices:
         selections: list[Defn] = ask(checkbox('Select add-ons to install', choices=choices))
         if selections and ask(confirm('Install selected add-ons?')):
-            ctx.invoke(install, addons=selections, strategies=frozenset(), replace=False)
+            ctx.invoke(install, addons=selections, replace=False)
     else:
         click.echo('No results found.')
 
