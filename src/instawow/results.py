@@ -20,24 +20,29 @@ class _SuccessResult:
 
 
 class PkgInstalled(ManagerResult, _SuccessResult):
-    def __init__(self, pkg: models.Pkg) -> None:
+    def __init__(self, pkg: models.Pkg, *, dry_run: bool = False) -> None:
         super().__init__()
         self.pkg = pkg
+        self.dry_run = dry_run
 
     @property
     def message(self) -> str:
-        return f'installed {self.pkg.version}'
+        return f'{"would have installed" if self.dry_run else "installed"} {self.pkg.version}'
 
 
 class PkgUpdated(ManagerResult, _SuccessResult):
-    def __init__(self, old_pkg: models.Pkg, new_pkg: models.Pkg) -> None:
+    def __init__(self, old_pkg: models.Pkg, new_pkg: models.Pkg, *, dry_run: bool = False) -> None:
         super().__init__()
         self.old_pkg = old_pkg
         self.new_pkg = new_pkg
+        self.dry_run = dry_run
 
     @property
     def message(self) -> str:
-        message = f'updated {self.old_pkg.version} to {self.new_pkg.version}'
+        message = (
+            f'{"would have updated" if self.dry_run else "updated"}'
+            f' {self.old_pkg.version} to {self.new_pkg.version}'
+        )
         if self.old_pkg.slug != self.new_pkg.slug:
             message += f' with new slug {self.new_pkg.slug!r}'
         return message

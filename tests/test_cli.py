@@ -226,6 +226,17 @@ def test_install_invalid_defn(
     assert result.output.endswith("Error: Invalid value for '[ADDONS]...': foo\n")
 
 
+def test_install_dry_run(
+    run: C[[str], Result],
+):
+    assert run('install --dry-run curse:molinari').output == dedent(
+        '''\
+        ✓ curse:molinari
+          would have installed 90200.82-Release
+        '''
+    )
+
+
 def test_configure__show_active_profile(
     iw_config: Config,
     run: C[[str], Result],

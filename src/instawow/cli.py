@@ -391,24 +391,39 @@ def _extend_strategies(strategy: Strategy, ctx: click.Context, __: click.Paramet
     help='Ignore add-on stability.  Global option.',
 )
 @click.option('--replace', is_flag=True, default=False, help='Replace unreconciled add-ons.')
+@click.option(
+    '--dry-run',
+    is_flag=True,
+    default=False,
+    help='Pretend to install add-ons.  Add-on archives will not be download and the '
+    'database will not be modified.',
+)
 @click.pass_obj
 def install(
     mw: _CtxObjWrapper,
     addons: Sequence[Defn],
     replace: bool,
+    dry_run: bool,
 ) -> None:
     "Install add-ons."
     if not addons:
         raise click.UsageError('You must specify an add-on')
 
-    results = mw.run_with_progress(mw.manager.install(addons, replace))
+    results = mw.run_with_progress(mw.manager.install(addons, replace, dry_run))
     Report(results.items()).generate_and_exit()
 
 
 @cli.command
 @click.argument('addons', nargs=-1, callback=_with_manager(_parse_into_defn))
+@click.option(
+    '--dry-run',
+    is_flag=True,
+    default=False,
+    help='Pretend to update add-ons.  Add-on archives will not be download and the '
+    'database will not be modified.  Use this option to check for updates.',
+)
 @click.pass_obj
-def update(mw: _CtxObjWrapper, addons: Sequence[Defn]) -> None:
+def update(mw: _CtxObjWrapper, addons: Sequence[Defn], dry_run: bool) -> None:
     "Update installed add-ons."
     import sqlalchemy as sa
 
@@ -428,7 +443,9 @@ def update(mw: _CtxObjWrapper, addons: Sequence[Defn]) -> None:
                 for p in connection.execute(sa.select(db.pkg)).mappings().all()
             ]
 
-    results = mw.run_with_progress(mw.manager.update(addons or installed_pkgs_to_defns(), False))
+    results = mw.run_with_progress(
+        mw.manager.update(addons or installed_pkgs_to_defns(), False, dry_run)
+    )
     Report(results.items(), filter_results).generate_and_exit()
 
 
@@ -438,7 +455,7 @@ def update(mw: _CtxObjWrapper, addons: Sequence[Defn]) -> None:
     '--keep-folders',
     is_flag=True,
     default=False,
-    help='Do not delete the add-on folders.',
+    help='Remove the add-on from the database but do not delete its folders.',
 )
 @click.pass_obj
 def remove(mw: _CtxObjWrapper, addons: Sequence[Defn], keep_folders: bool) -> None:
@@ -717,7 +734,7 @@ def search(
     if choices:
         selections: list[Defn] = ask(checkbox('Select add-ons to install', choices=choices))
         if selections and ask(confirm('Install selected add-ons?')):
-            ctx.invoke(install, addons=selections, replace=False)
+            ctx.invoke(install, addons=selections, replace=False, dry_run=False)
     else:
         click.echo('No results found.')
 

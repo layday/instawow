@@ -680,7 +680,7 @@ class Manager:
 
     @_with_lock(_StandardLocks.MutatePkgs)
     async def install(
-        self, defns: Sequence[Defn], replace: bool
+        self, defns: Sequence[Defn], replace: bool, dry_run: bool = False
     ) -> Mapping[Defn, _ResultOrError[R.PkgInstalled]]:
         "Install packages from a definition list."
 
@@ -693,6 +693,11 @@ class Manager:
         pkgs, resolve_errors = bucketise_results(resolve_results.items())
         new_pkgs = {d: p for d, p in pkgs.items() if not self.check_pkg_exists(p.to_defn())}
 
+        results = dict.fromkeys(defns, R.PkgAlreadyInstalled()) | resolve_errors
+
+        if dry_run:
+            return results | {d: R.PkgInstalled(p, dry_run=True) for d, p in new_pkgs.items()}
+
         download_results = zip(
             new_pkgs,
             await gather(
@@ -702,20 +707,18 @@ class Manager:
         )
         archive_paths, download_errors = bucketise_results(download_results)
 
-        results = (
-            dict.fromkeys(defns, R.PkgAlreadyInstalled())
-            | resolve_errors
+        return (
+            results
             | download_errors
             | {
                 d: await capture_manager_exc_async(self._install_pkg(new_pkgs[d], a, replace))
                 for d, a in archive_paths.items()
             }
         )
-        return results
 
     @_with_lock(_StandardLocks.MutatePkgs)
     async def update(
-        self, defns: Sequence[Defn], retain_defn_strategy: bool
+        self, defns: Sequence[Defn], retain_defn_strategy: bool, dry_run: bool = False
     ) -> Mapping[Defn, _ResultOrError[R.PkgInstalled | R.PkgUpdated]]:
         """Update installed packages from a definition list.
 
@@ -739,12 +742,28 @@ class Manager:
             (resolve_defns.get(d, d), r) for d, r in resolve_results.items()
         )
         pkgs, resolve_errors = bucketise_results(orig_defn_resolve_results)
+
         updatables = {
             d: (o, n)
             for d, n in pkgs.items()
             for o in (defns_to_pkgs.get(d),)
             if not o or await self._should_update_pkg(o, n)
         }
+
+        results = (
+            dict.fromkeys(defns, R.PkgNotInstalled())
+            | resolve_errors
+            | {
+                d: R.PkgUpToDate(is_pinned=pkgs[d].options.version_eq)
+                for d in pkgs.keys() - updatables.keys()
+            }
+        )
+
+        if dry_run:
+            return results | {
+                d: R.PkgUpdated(o, n, dry_run=True) if o else R.PkgInstalled(n, dry_run=True)
+                for d, (o, n) in updatables.items()
+            }
 
         download_results = zip(
             updatables,
@@ -755,13 +774,8 @@ class Manager:
         )
         archive_paths, download_errors = bucketise_results(download_results)
 
-        results = (
-            dict.fromkeys(defns, R.PkgNotInstalled())
-            | resolve_errors
-            | {
-                d: R.PkgUpToDate(is_pinned=pkgs[d].options.version_eq)
-                for d in pkgs.keys() - updatables.keys()
-            }
+        return (
+            results
             | download_errors
             | {
                 d: await capture_manager_exc_async(
@@ -771,7 +785,6 @@ class Manager:
                 for o, n in (updatables[d],)
             }
         )
-        return results
 
     @_with_lock(_StandardLocks.MutatePkgs)
     async def remove(
