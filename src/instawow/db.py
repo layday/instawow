@@ -21,6 +21,8 @@ from sqlalchemy import (
 from sqlalchemy.event import listen
 from sqlalchemy.exc import OperationalError
 
+DB_REVISION = '98716a7301f8'
+
 
 class TZDateTime(TypeDecorator[datetime]):
     impl = DateTime
@@ -144,7 +146,7 @@ def _set_sqlite_pragma(dbapi_connection: sqlite3.Connection, connection_record: 
     dbapi_connection.execute('PRAGMA foreign_keys = ON')
 
 
-def prepare_database(uri: str, revision: str) -> Engine:
+def prepare_database(uri: str) -> Engine:
     "Connect to and optionally create or migrate the database from a configuration object."
     engine = create_engine(
         uri,
@@ -152,7 +154,7 @@ def prepare_database(uri: str, revision: str) -> Engine:
     )
     listen(engine, 'connect', _set_sqlite_pragma)
 
-    database_state = _get_database_state(engine, revision)
+    database_state = _get_database_state(engine, DB_REVISION)
     if database_state is not _DatabaseState.current:
         import alembic.command
         import alembic.config
@@ -163,8 +165,8 @@ def prepare_database(uri: str, revision: str) -> Engine:
 
         if database_state is _DatabaseState.uninitialised:
             metadata.create_all(engine)
-            alembic.command.stamp(alembic_config, revision)
+            alembic.command.stamp(alembic_config, DB_REVISION)
         else:
-            alembic.command.upgrade(alembic_config, revision)
+            alembic.command.upgrade(alembic_config, DB_REVISION)
 
     return engine

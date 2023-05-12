@@ -59,8 +59,6 @@ _P = ParamSpec('_P')
 _T = TypeVar('_T')
 _ResultOrError: TypeAlias = '_T | R.ManagerError | R.InternalError'
 
-DB_REVISION = '98716a7301f8'
-
 _AsyncNamedTemporaryFile = t(NamedTemporaryFile)
 _move_async = t(move)
 
@@ -260,8 +258,7 @@ class Manager:
     @classmethod
     def from_config(cls, config: Config) -> Self:
         "Instantiate the manager from a configuration object."
-        database = db.prepare_database(config.db_uri, DB_REVISION)
-        return cls(config, database)
+        return cls(config, db.prepare_database(config.db_uri))
 
     @property
     def locks(self) -> LocksType:
