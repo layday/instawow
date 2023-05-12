@@ -683,6 +683,7 @@ class Manager:
         self, defns: Sequence[Defn], replace: bool
     ) -> Mapping[Defn, _ResultOrError[R.PkgInstalled]]:
         "Install packages from a definition list."
+
         # We'll weed out installed deps from the results after resolving -
         # doing it this way isn't particularly efficient but avoids having to
         # deal with local state in ``resolve``
@@ -691,15 +692,16 @@ class Manager:
         )
         pkgs, resolve_errors = bucketise_results(resolve_results.items())
         new_pkgs = {d: p for d, p in pkgs.items() if not self.check_pkg_exists(p.to_defn())}
-        archive_paths, download_errors = bucketise_results(
-            zip(
-                new_pkgs,
-                await gather(
-                    (self._download_pkg_archive(r) for r in new_pkgs.values()),
-                    capture_manager_exc_async,
-                ),
-            )
+
+        download_results = zip(
+            new_pkgs,
+            await gather(
+                (self._download_pkg_archive(r) for r in new_pkgs.values()),
+                capture_manager_exc_async,
+            ),
         )
+        archive_paths, download_errors = bucketise_results(download_results)
+
         results = (
             dict.fromkeys(defns, R.PkgAlreadyInstalled())
             | resolve_errors
@@ -721,6 +723,7 @@ class Manager:
         to extract the strategy from the installed package; otherwise
         the ``Defn`` strategy will be used.
         """
+
         defns_to_pkgs = {d: p for d in defns for p in (self.get_pkg(d),) if p}
         resolve_defns = {
             # Attach the source ID to each ``Defn`` from the
@@ -742,15 +745,16 @@ class Manager:
             for o in (defns_to_pkgs.get(d),)
             if not o or await self._should_update_pkg(o, n)
         }
-        archive_paths, download_errors = bucketise_results(
-            zip(
-                updatables,
-                await gather(
-                    (self._download_pkg_archive(n) for _, n in updatables.values()),
-                    capture_manager_exc_async,
-                ),
-            )
+
+        download_results = zip(
+            updatables,
+            await gather(
+                (self._download_pkg_archive(n) for _, n in updatables.values()),
+                capture_manager_exc_async,
+            ),
         )
+        archive_paths, download_errors = bucketise_results(download_results)
+
         results = (
             dict.fromkeys(defns, R.PkgNotInstalled())
             | resolve_errors
