@@ -127,9 +127,9 @@ def _merge_auras(auras: Iterable[_Auras]):
 
 
 class _TocNumber(StrEnum):
-    retail = '100100'
-    vanilla_classic = '11403'
-    classic = '30401'
+    Retail = '100100'
+    VanillaClassic = '11403'
+    Classic = '30401'
 
 
 class WaCompanionBuilder:

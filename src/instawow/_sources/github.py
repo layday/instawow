@@ -70,9 +70,9 @@ class _PackagerReleaseJson_Release_Metadata(TypedDict):
 
 
 class _PackagerReleaseJsonFlavor(StrEnum):
-    retail = 'mainline'
-    vanilla_classic = 'classic'
-    classic = 'wrath'
+    Retail = 'mainline'
+    VanillaClassic = 'classic'
+    Classic = 'wrath'
 
 
 class GithubResolver(BaseResolver):
@@ -81,11 +81,11 @@ class GithubResolver(BaseResolver):
         name='GitHub',
         strategies=frozenset(
             {
-                Strategy.any_release_type,
-                Strategy.version_eq,
+                Strategy.AnyReleaseType,
+                Strategy.VersionEq,
             }
         ),
-        changelog_format=ChangelogFormat.markdown,
+        changelog_format=ChangelogFormat.Markdown,
         addon_toc_key=None,
     )
     requires_access_token = None

@@ -41,7 +41,7 @@ class TukuiResolver(BaseResolver):
         id='tukui',
         name='Tukui',
         strategies=frozenset(),
-        changelog_format=ChangelogFormat.html,
+        changelog_format=ChangelogFormat.Html,
         addon_toc_key='X-Tukui-ProjectID',
     )
     requires_access_token = None

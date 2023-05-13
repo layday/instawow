@@ -38,7 +38,7 @@
 <div
   class="addon"
   class:status-outdated={isOutdated}
-  class:status-pinned={addon.options[Strategy.version_eq]}
+  class:status-pinned={addon.options[Strategy.VersionEq]}
   class:status-being-modified={beingModified}
 >
   <ul class="addon-details" class:two-col={format === ListFormat.Dense}>

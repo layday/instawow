@@ -60,21 +60,21 @@
     sources: [],
     startDate: null,
     strategies: {
-      [Strategy.any_flavour]: false,
-      [Strategy.any_release_type]: false,
-      [Strategy.version_eq]: "",
+      [Strategy.AnyFlavour]: false,
+      [Strategy.AnyReleaseType]: false,
+      [Strategy.VersionEq]: "",
     },
   };
 
   const htmlify = (changelog: string, format: ChangelogFormat) => {
-    if (format === ChangelogFormat.markdown) {
+    if (format === ChangelogFormat.Markdown) {
       return {
         renderAsHtml: true,
         changelog: new commonmark.HtmlRenderer().render(new commonmark.Parser().parse(changelog)),
       };
     } else {
       return {
-        renderAsHtml: format === ChangelogFormat.html,
+        renderAsHtml: format === ChangelogFormat.Html,
         changelog,
       };
     }
@@ -424,7 +424,7 @@
           fromAlias: true,
           strategies: {
             ...addon.options,
-            [Strategy.version_eq]: addon.options[Strategy.version_eq] ? addon.version : "",
+            [Strategy.VersionEq]: addon.options[Strategy.VersionEq] ? addon.version : "",
           },
         };
         searchTerms = createAddonToken(addon);
@@ -535,7 +535,7 @@
   };
 
   const supportsRollback = (addon: Addon) =>
-    !!sources[addon.source]?.strategies.includes(Strategy.version_eq);
+    !!sources[addon.source]?.strategies.includes(Strategy.VersionEq);
 
   const resetSearchState = () => {
     searchOptions = lodash.cloneDeep(defaultSearchOptions);

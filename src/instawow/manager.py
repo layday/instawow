@@ -802,10 +802,10 @@ class Manager:
     async def pin(self, defns: Sequence[Defn]) -> Mapping[Defn, _ResultOrError[R.PkgInstalled]]:
         """Pin and unpin installed packages.
 
-        instawow does not have true pinning.  This flips ``Strategy.version_eq``
+        instawow does not have true pinning.  This flips ``Strategy.VersionEq``
         on for installed packages from sources that support it.
         The net effect is the same as if the package
-        had been reinstalled with the ``version_eq`` strategy.
+        had been reinstalled with the ``VersionEq`` strategy.
         """
 
         @t
@@ -814,8 +814,8 @@ class Manager:
             if resolver is None:
                 raise R.PkgSourceInvalid
 
-            if Strategy.version_eq not in resolver.metadata.strategies:
-                raise R.PkgStrategiesUnsupported({Strategy.version_eq})
+            if Strategy.VersionEq not in resolver.metadata.strategies:
+                raise R.PkgStrategiesUnsupported({Strategy.VersionEq})
 
             pkg = self.get_pkg(defn)
             if not pkg:

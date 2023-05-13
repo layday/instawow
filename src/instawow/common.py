@@ -15,9 +15,9 @@ _TEnum = TypeVar('_TEnum', bound=enum.Enum)
 
 
 class _FlavourKeyedEnum(Protocol[_TEnum]):
-    retail: _TEnum
-    vanilla_classic: _TEnum
-    classic: _TEnum
+    Retail: _TEnum
+    VanillaClassic: _TEnum
+    Classic: _TEnum
 
     def __getitem__(self, __key: str) -> _TEnum:
         ...
@@ -30,9 +30,9 @@ class Flavour(StrEnum):
     # will inherit the "_classic_" folder.  This means we won't have to
     # migrate Classic profiles either automatically or by requiring user
     # intervention for new Classic releases.
-    retail = enum.auto()
-    vanilla_classic = enum.auto()
-    classic = enum.auto()
+    Retail = 'retail'
+    VanillaClassic = 'vanilla_classic'
+    Classic = 'classic'
 
     @classmethod
     def from_flavour_keyed_enum(cls, flavour_keyed_enum: enum.Enum) -> Self:
@@ -43,11 +43,11 @@ class Flavour(StrEnum):
 
 
 class FlavourVersionRange(enum.Enum):
-    retail = (
+    Retail = (
         range(1_00_00, 1_13_00), range(2_00_00, 2_05_00), range(3_00_00, 3_04_00), range(4_00_00, 11_00_00)  # fmt: skip
     )
-    vanilla_classic = (range(1_13_00, 2_00_00),)
-    classic = (range(3_04_00, 4_00_00),)
+    VanillaClassic = (range(1_13_00, 2_00_00),)
+    Classic = (range(3_04_00, 4_00_00),)
 
     @classmethod
     def from_version_string(cls, version_string: str) -> Self | None:
@@ -66,27 +66,27 @@ class FlavourVersionRange(enum.Enum):
 def infer_flavour_from_path(path: os.PathLike[str] | str) -> Flavour:
     tail = tuple(map(str.casefold, PurePath(path).parts[-3:]))
     if len(tail) != 3 or tail[1:] != ('interface', 'addons'):
-        return Flavour.retail
+        return Flavour.Retail
 
     flavour_dir = tail[0]
     if flavour_dir in {'_classic_era_', '_classic_era_beta_', '_classic_era_ptr_'}:
-        return Flavour.vanilla_classic
+        return Flavour.VanillaClassic
     elif flavour_dir in {'_classic_', '_classic_beta_', '_classic_ptr_'}:
-        return Flavour.classic
+        return Flavour.Classic
     else:
-        return Flavour.retail
+        return Flavour.Retail
 
 
 class Strategy(StrEnum):
-    any_flavour = enum.auto()
-    any_release_type = enum.auto()
-    version_eq = enum.auto()
+    AnyFlavour = 'any_flavour'
+    AnyReleaseType = 'any_release_type'
+    VersionEq = 'version_eq'
 
 
 class ChangelogFormat(StrEnum):
-    html = enum.auto()
-    markdown = enum.auto()
-    raw = enum.auto()
+    Html = 'html'
+    Markdown = 'markdown'
+    Raw = 'raw'
 
 
 @frozen
@@ -121,4 +121,4 @@ class Defn:
 
 
 class AddonHashMethod(enum.Enum):
-    wowup = enum.auto()
+    Wowup = enum.auto()

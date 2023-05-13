@@ -21,7 +21,7 @@ class MyResolver(BaseResolver):
         id='me',
         name="It's me",
         strategies=frozenset(),
-        changelog_format=ChangelogFormat.markdown,
+        changelog_format=ChangelogFormat.Markdown,
         addon_toc_key=None,
     )
     requires_access_token = None

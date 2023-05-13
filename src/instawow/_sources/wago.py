@@ -19,9 +19,9 @@ _WagoStability = Literal['stable', 'beta', 'alpha']
 
 
 class _WagoGameVersion(StrEnum):
-    retail = 'retail'
-    vanilla_classic = 'classic'
-    classic = 'wotlk'
+    Retail = 'retail'
+    VanillaClassic = 'classic'
+    Classic = 'wotlk'
 
 
 class _WagoMatchRequest(TypedDict):
@@ -97,8 +97,8 @@ class WagoResolver(BaseResolver):
     metadata = SourceMetadata(
         id='wago',
         name='Wago Addons',
-        strategies=frozenset({Strategy.any_release_type}),
-        changelog_format=ChangelogFormat.markdown,
+        strategies=frozenset({Strategy.AnyReleaseType}),
+        changelog_format=ChangelogFormat.Markdown,
         addon_toc_key='X-Wago-ID',
     )
     requires_access_token = 'wago_addons'
@@ -173,7 +173,7 @@ class WagoResolver(BaseResolver):
             'addons': [
                 {
                     'name': c.name,
-                    'hash': c.hash_contents(AddonHashMethod.wowup),
+                    'hash': c.hash_contents(AddonHashMethod.Wowup),
                 }
                 for c in candidates
             ],

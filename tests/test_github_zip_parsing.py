@@ -23,21 +23,21 @@ ZIPS = {
         'toc_files': {
             '_Wrath': b'',
         },
-        'flavours': {Flavour.classic},
+        'flavours': {Flavour.Classic},
     },
     'flavoured-and-unflavoured-toc-without-interface-version': {
         'toc_files': {
             '_Wrath': b'',
             '': b'',
         },
-        'flavours': {Flavour.classic},
+        'flavours': {Flavour.Classic},
     },
     'flavoured-and-unflavoured-toc-with-interface-version': {
         'toc_files': {
             '_Wrath': b'',
             '': b'## Interface: 11300\n',
         },
-        'flavours': {Flavour.vanilla_classic, Flavour.classic},
+        'flavours': {Flavour.VanillaClassic, Flavour.Classic},
     },
     'unflavoured-toc-only-without-interface-version': {
         'toc_files': {
@@ -49,7 +49,7 @@ ZIPS = {
         'toc_files': {
             '': b'## Interface: 11300\n',
         },
-        'flavours': {Flavour.vanilla_classic},
+        'flavours': {Flavour.VanillaClassic},
     },
 }
 

@@ -120,9 +120,9 @@ class _CfCoreFileHash(TypedDict):
 class _CfCoreSortableGameVersionTypeId(IntEnum):
     "Extracted from https://api.curseforge.com/v1/games/1/version-types."
 
-    retail = 517
-    vanilla_classic = 67408
-    classic = 73713
+    Retail = 517
+    VanillaClassic = 67408
+    Classic = 73713
 
 
 class _CfCoreSortableGameVersion(TypedDict):
@@ -248,12 +248,12 @@ class CfCoreResolver(BaseResolver):
         name='CFCore',
         strategies=frozenset(
             {
-                Strategy.any_release_type,
-                Strategy.any_flavour,
-                Strategy.version_eq,
+                Strategy.AnyReleaseType,
+                Strategy.AnyFlavour,
+                Strategy.VersionEq,
             }
         ),
-        changelog_format=ChangelogFormat.html,
+        changelog_format=ChangelogFormat.Html,
         addon_toc_key='X-Curse-Project-ID',
     )
     requires_access_token = 'cfcore'

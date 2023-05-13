@@ -71,7 +71,7 @@ class WowiResolver(BaseResolver):
         id='wowi',
         name='WoWInterface',
         strategies=frozenset(),
-        changelog_format=ChangelogFormat.raw,
+        changelog_format=ChangelogFormat.Raw,
         addon_toc_key='X-WoWI-ID',
     )
     requires_access_token = None
@@ -183,14 +183,14 @@ class WowiResolver(BaseResolver):
 
         for item in items:
             if item['UICATID'] == '160':
-                game_flavours = {Flavour.vanilla_classic}
+                game_flavours = {Flavour.VanillaClassic}
             elif item['UICATID'] == '161':
                 # TBC Classic
                 continue
             elif item['UICATID'] == '162':
-                game_flavours = {Flavour.classic}
+                game_flavours = {Flavour.Classic}
             elif item['UICompatibility'] is None or len(item['UICompatibility']) < 2:
-                game_flavours = {Flavour.retail}
+                game_flavours = {Flavour.Retail}
             else:
                 game_flavours = {
                     Flavour.from_flavour_keyed_enum(f)

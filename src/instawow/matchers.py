@@ -41,12 +41,12 @@ class assert_matcher(assert_decorated_type[_TMatcher]):
 
 # https://github.com/Stanzilla/WoWUIBugs/issues/68#issuecomment-830351390
 FLAVOUR_TOC_IDS = {
-    Flavour.retail: ('Mainline',),
-    Flavour.vanilla_classic: (
+    Flavour.Retail: ('Mainline',),
+    Flavour.VanillaClassic: (
         'Vanilla',
         'Classic',
     ),
-    Flavour.classic: (
+    Flavour.Classic: (
         'Wrath',
         'WOTLKC',
     ),

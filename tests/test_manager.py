@@ -53,7 +53,7 @@ async def test_pinning_unsupported_pkg(iw_manager: Manager):
 
     result = (await iw_manager.pin([molinari_defn]))[molinari_defn]
     assert type(result) is R.PkgStrategiesUnsupported
-    assert result.strategies == {Strategy.version_eq}
+    assert result.strategies == {Strategy.VersionEq}
     assert installed_pkg.options.version_eq is False
 
 
@@ -265,8 +265,8 @@ async def test_search_flavour_filtering(iw_manager: Manager):
     results = await iw_manager.search('AtlasLootClassic', limit=5)
     faux_defns = {(e.source, e.slug or e.id) for e in results}
     if iw_manager.config.game_flavour in {
-        Flavour.vanilla_classic,
-        Flavour.classic,
+        Flavour.VanillaClassic,
+        Flavour.Classic,
     }:
         assert ('curse', 'atlaslootclassic') in faux_defns
     else:

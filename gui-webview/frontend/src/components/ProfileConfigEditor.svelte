@@ -19,7 +19,7 @@
   let errors = new Map<string, string>();
 
   if (createNew) {
-    gameFlavour = Flavour.retail;
+    gameFlavour = Flavour.Retail;
   } else {
     ({
       profile,

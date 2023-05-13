@@ -34,15 +34,15 @@ async def test_curse_simple_strategies(iw_manager: Manager):
     assert type(results[flavourful]) is Pkg
 
     if (
-        iw_manager.config.game_flavour is Flavour.vanilla_classic
-        or iw_manager.config.game_flavour is Flavour.classic
+        iw_manager.config.game_flavour is Flavour.VanillaClassic
+        or iw_manager.config.game_flavour is Flavour.Classic
     ):
         assert type(results[retail_only]) is R.PkgFilesNotMatching
         assert (
             results[retail_only].message
             == 'no files found for: any_flavour=None; any_release_type=None; version_eq=None'
         )
-    elif iw_manager.config.game_flavour is Flavour.retail:
+    elif iw_manager.config.game_flavour is Flavour.Retail:
         assert type(results[retail_only]) is Pkg
     else:
         assert_never(iw_manager.config.game_flavour)
@@ -153,9 +153,9 @@ async def test_github_changelog_is_data_url(iw_manager: Manager):
 @pytest.mark.parametrize(
     ('iw_config_values', 'flavor', 'interface'),
     [
-        (Flavour.retail, 'mainline', 30400),
-        (Flavour.classic, 'wrath', 90207),
-        (Flavour.vanilla_classic, 'classic', 90207),
+        (Flavour.Retail, 'mainline', 30400),
+        (Flavour.Classic, 'wrath', 90207),
+        (Flavour.VanillaClassic, 'classic', 90207),
     ],
     indirect=('iw_config_values',),
 )
@@ -212,8 +212,8 @@ async def test_unsupported_strategies(iw_manager: Manager, resolver: Resolver):
 
     defn = Defn(resolver.metadata.id, 'foo')
     for strategy in {
-        Strategy.any_flavour,
-        Strategy.any_release_type,
+        Strategy.AnyFlavour,
+        Strategy.AnyReleaseType,
     } - resolver.metadata.strategies:
         strategy_defn = evolve(defn, strategies=StrategyValues(**{strategy: True}))
 

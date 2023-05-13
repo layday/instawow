@@ -375,7 +375,7 @@ def _extend_strategies(strategy: Strategy, ctx: click.Context, __: click.Paramet
 @click.option(
     '--any-flavour',
     expose_value=False,
-    callback=partial(_extend_strategies, Strategy.any_flavour),
+    callback=partial(_extend_strategies, Strategy.AnyFlavour),
     is_eager=True,
     is_flag=True,
     default=False,
@@ -384,7 +384,7 @@ def _extend_strategies(strategy: Strategy, ctx: click.Context, __: click.Paramet
 @click.option(
     '--any-release-type',
     expose_value=False,
-    callback=partial(_extend_strategies, Strategy.any_release_type),
+    callback=partial(_extend_strategies, Strategy.AnyReleaseType),
     is_eager=True,
     is_flag=True,
     default=False,
@@ -487,8 +487,8 @@ def rollback(mw: _CtxObjWrapper, addon: Defn, version: str | None, undo: bool) -
     pkg = mw.manager.get_pkg(addon)
     if not pkg:
         Report([(addon, R.PkgNotInstalled())]).generate_and_exit()
-    elif Strategy.version_eq not in mw.manager.resolvers[pkg.source].metadata.strategies:
-        Report([(addon, R.PkgStrategiesUnsupported({Strategy.version_eq}))]).generate_and_exit()
+    elif Strategy.VersionEq not in mw.manager.resolvers[pkg.source].metadata.strategies:
+        Report([(addon, R.PkgStrategiesUnsupported({Strategy.VersionEq}))]).generate_and_exit()
     elif undo:
         Report(mw.run_with_progress(mw.manager.update([addon], True)).items()).generate_and_exit()
 
@@ -900,15 +900,15 @@ def view_changelog(mw: _CtxObjWrapper, addon: Defn | None, convert: bool) -> Non
 
             def real_convert(source: str, changelog: str):
                 changelog_format = mw.manager.resolvers[source].metadata.changelog_format
-                if changelog_format not in {ChangelogFormat.html, ChangelogFormat.markdown}:
+                if changelog_format not in {ChangelogFormat.Html, ChangelogFormat.Markdown}:
                     return changelog
                 else:
                     INPUT_FORMAT_CORRESPONDENCES = {
-                        ChangelogFormat.html: 'html',
+                        ChangelogFormat.Html: 'html',
                         # The "markdown" format will treat a list without a preceding
                         # empty line as a paragraph, which breaks the changelog
                         # of at least one popular add-on.
-                        ChangelogFormat.markdown: 'commonmark',
+                        ChangelogFormat.Markdown: 'commonmark',
                     }
 
                     return subprocess.check_output(

@@ -80,7 +80,7 @@ def iw_global_config_values(request: pytest.FixtureRequest, tmp_path: Path):
     }
 
 
-@pytest.fixture(params=[Flavour.retail])
+@pytest.fixture(params=[Flavour.Retail])
 def iw_config_values(request: pytest.FixtureRequest, tmp_path: Path):
     addons = tmp_path / 'wow' / 'interface' / 'addons'
     addons.mkdir(parents=True)

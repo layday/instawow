@@ -1,21 +1,21 @@
 import type { RClient, RequestObject } from "./ipc";
 
 export enum Flavour {
-  retail = "retail",
-  vanilla_classic = "vanilla_classic",
-  classic = "classic",
+  Retail = "retail",
+  VanillaClassic = "vanilla_classic",
+  Classic = "classic",
 }
 
 export enum Strategy {
-  any_flavour = "any_flavour",
-  any_release_type = "any_release_type",
-  version_eq = "version_eq",
+  AnyFlavour = "any_flavour",
+  AnyReleaseType = "any_release_type",
+  VersionEq = "version_eq",
 }
 
 export type Strategies = {
-  [Strategy.any_flavour]: true | null;
-  [Strategy.any_release_type]: true | null;
-  [Strategy.version_eq]: string | null;
+  [Strategy.AnyFlavour]: true | null;
+  [Strategy.AnyReleaseType]: true | null;
+  [Strategy.VersionEq]: string | null;
 };
 
 export type Defn = {
@@ -26,9 +26,9 @@ export type Defn = {
 };
 
 export enum ChangelogFormat {
-  html = "html",
-  markdown = "markdown",
-  raw = "raw",
+  Html = "html",
+  Markdown = "markdown",
+  Raw = "raw",
 }
 
 export type Profile = string;
@@ -85,9 +85,9 @@ export type Addon = {
   changelog_url: string;
   folders: { name: string }[];
   options: {
-    [Strategy.any_flavour]: boolean;
-    [Strategy.any_release_type]: boolean;
-    [Strategy.version_eq]: boolean;
+    [Strategy.AnyFlavour]: boolean;
+    [Strategy.AnyReleaseType]: boolean;
+    [Strategy.VersionEq]: boolean;
   };
   deps: { id: string }[];
   logged_versions: { version: string; install_time: string }[];
@@ -345,7 +345,7 @@ export const addonToDefn = (addon: Addon): Defn => ({
   strategies: Object.fromEntries(
     Object.entries(addon.options).map(([k, v]) => [
       k,
-      !v ? null : k === Strategy.version_eq ? addon.version : v,
+      !v ? null : k === Strategy.VersionEq ? addon.version : v,
     ])
   ) as Strategies,
 });

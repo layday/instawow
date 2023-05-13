@@ -50,7 +50,7 @@ def test_can_extract_defns_from_addon_folder_toc(iw_manager: Manager, molinari: 
 
 def test_addon_folder_is_hashable(iw_manager: Manager, molinari: Path):
     addon_folder = AddonFolder.from_addon_path(iw_manager.config.game_flavour, molinari)
-    assert addon_folder.hash_contents(AddonHashMethod.wowup) == MOLINARI_HASH
+    assert addon_folder.hash_contents(AddonHashMethod.Wowup) == MOLINARI_HASH
 
 
 async def test_reconcile_invalid_addons_discarded(iw_manager: Manager):
@@ -97,7 +97,7 @@ async def test_reconcile_multiple_defns_per_addon_contained_in_results(
     ('iw_config_values', 'expected_defns'),
     [
         (
-            Flavour.retail,
+            Flavour.Retail,
             {
                 Defn('curse', '23350'),
                 Defn('curse', '333072'),
@@ -105,13 +105,13 @@ async def test_reconcile_multiple_defns_per_addon_contained_in_results(
             },
         ),
         (
-            Flavour.classic,
+            Flavour.Classic,
             {
                 Defn('curse', '23350'),
             },
         ),
         (
-            Flavour.vanilla_classic,
+            Flavour.VanillaClassic,
             {
                 Defn('curse', '23350'),
                 Defn('curse', '333072'),

@@ -18,12 +18,12 @@
     };
 
   const CHECKBOXES = [
-    [Strategy.any_flavour, "any flavour"],
-    [Strategy.any_release_type, "any release type"],
+    [Strategy.AnyFlavour, "any flavour"],
+    [Strategy.AnyReleaseType, "any release type"],
   ] as const;
 
   const START_DATE_SUGGESTIONS = [
-    { date: "2022-11-15", label: "10.0.2", flavour: Flavour.retail },
+    { date: "2022-11-15", label: "10.0.2", flavour: Flavour.Retail },
     {
       date: DateTime.now().minus({ days: 1 }).toISODate(),
       label: "yesterday",
@@ -120,7 +120,7 @@
       placeholder="version"
       aria-label="version"
       disabled={searchFilterInstalled}
-      bind:value={searchOptions.strategies[Strategy.version_eq]}
+      bind:value={searchOptions.strategies[Strategy.VersionEq]}
     />
   </div>
   <div class="row input-array">
