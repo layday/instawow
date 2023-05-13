@@ -72,7 +72,7 @@ def pretend_install_molinari_and_run(
     [
         'curse:molinari',
         'wowi:13188-molinari',
-        'tukui:1',
+        'tukui:tukui',
         'github:p3lim-wow/Molinari',
     ],
 )

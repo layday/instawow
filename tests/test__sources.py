@@ -100,25 +100,18 @@ async def test_wowi_changelog_is_data_url(iw_manager: Manager):
     indirect=True,
 )
 async def test_tukui_basic(iw_manager: Manager):
-    regular_addon = Defn('tukui', '1' if iw_manager.config.game_flavour is Flavour.retail else '2')
     tukui_suite = Defn('tukui', '-1')
     elvui_suite = Defn('tukui', '-2')
 
-    results = await iw_manager.resolve([regular_addon, tukui_suite, elvui_suite])
+    results = await iw_manager.resolve([tukui_suite, elvui_suite])
 
-    assert type(results[regular_addon]) is Pkg
-    assert (
-        results[regular_addon].name == 'MerathilisUI'
-        if iw_manager.config.game_flavour is Flavour.retail
-        else 'ElvUI'
-    )
     assert type(results[tukui_suite]) is Pkg
     assert results[tukui_suite].name == 'Tukui'
     assert type(results[elvui_suite]) is Pkg
     assert results[elvui_suite].name == 'ElvUI'
 
 
-async def test_tukui_ui_suite_aliases_for_retail(iw_manager: Manager):
+async def test_tukui_ui_suite_aliases(iw_manager: Manager):
     tukui_id = Defn('tukui', '-1')
     tukui_slug = Defn('tukui', 'tukui')
     elvui_id = Defn('tukui', '-2')
@@ -130,14 +123,12 @@ async def test_tukui_ui_suite_aliases_for_retail(iw_manager: Manager):
     assert results[elvui_id].id == results[elvui_slug].id
 
 
-async def test_tukui_changelog_url_for_addon_type(iw_manager: Manager):
+async def test_tukui_changelog_url(iw_manager: Manager):
     ui_suite = Defn('tukui', '-1')
-    regular_addon = Defn('tukui', '1')
 
-    results = await iw_manager.resolve([ui_suite, regular_addon])
+    results = await iw_manager.resolve([ui_suite])
 
     assert results[ui_suite].changelog_url == 'https://www.tukui.org/ui/tukui/changelog#20.28'
-    assert results[regular_addon].changelog_url.startswith('data:,')
 
 
 async def test_github_basic(iw_manager: Manager):
@@ -248,9 +239,6 @@ async def test_unsupported_strategies(iw_manager: Manager, resolver: Resolver):
         (WowiResolver, 'https://www.wowinterface.com/downloads/info13188', '13188'),
         (WowiResolver, 'https://wowinterface.com/downloads/info13188', '13188'),
         (TukuiResolver, 'https://www.tukui.org/download.php?ui=tukui', 'tukui'),
-        (TukuiResolver, 'https://www.tukui.org/addons.php?id=1', '1'),
-        (TukuiResolver, 'https://www.tukui.org/classic-addons.php?id=1', '1'),
-        (TukuiResolver, 'https://www.tukui.org/classic-wotlk-addons.php?id=1', '1'),
         (
             GithubResolver,
             'https://github.com/AdiAddons/AdiButtonAuras',
