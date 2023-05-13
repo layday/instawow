@@ -740,9 +740,9 @@ def search(
 
 
 class _ListFormat(StrEnum):
-    simple = enum.auto()
-    detailed = enum.auto()
-    json = enum.auto()
+    Simple = enum.auto()
+    Detailed = enum.auto()
+    Json = enum.auto()
 
 
 @cli.command('list')
@@ -754,7 +754,7 @@ class _ListFormat(StrEnum):
     '-f',
     'output_format',
     type=_StrEnumChoiceParam(_ListFormat),
-    default=_ListFormat.simple,
+    default=_ListFormat.Simple,
     show_default=True,
     help='Change the output format.',
 )
@@ -803,7 +803,7 @@ def list_installed(mw: _CtxObjWrapper, addons: Sequence[Defn], output_format: _L
             .all()
         )
 
-        if output_format is _ListFormat.json:
+        if output_format is _ListFormat.Json:
             from cattrs.preconf.json import (
                 make_converter,  # pyright: ignore[reportUnknownVariableType]
             )
@@ -817,7 +817,7 @@ def list_installed(mw: _CtxObjWrapper, addons: Sequence[Defn], output_format: _L
                 )
             )
 
-        elif output_format is _ListFormat.detailed:
+        elif output_format is _ListFormat.Detailed:
             formatter = click.HelpFormatter(max_width=99)
             for pkg in row_mappings_to_pkgs():
                 with formatter.section(defn_to_urn(pkg.to_defn())):
@@ -850,7 +850,7 @@ def list_installed(mw: _CtxObjWrapper, addons: Sequence[Defn], output_format: _L
 @click.pass_context
 def info(ctx: click.Context, addon: Defn) -> None:
     "Alias of `list -f detailed`."
-    ctx.invoke(list_installed, addons=(addon,), output_format=_ListFormat.detailed)
+    ctx.invoke(list_installed, addons=(addon,), output_format=_ListFormat.Detailed)
 
 
 @cli.command
