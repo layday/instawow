@@ -114,14 +114,14 @@ class PkgFilesMissing(ManagerError):
 
 
 class PkgFilesNotMatching(ManagerError):
-    def __init__(self, strategies: StrategyValues) -> None:
+    def __init__(self, strategy_values: StrategyValues) -> None:
         super().__init__()
-        self._strategies = strategies
+        self._strategy_values = strategy_values
 
     @property
     def message(self) -> str:
         return 'no files found for: ' + '; '.join(
-            f'{s}={v!r}' for s, v in asdict(self._strategies).items()
+            f'{s}={v!r}' for s, v in asdict(self._strategy_values).items()
         )
 
 
