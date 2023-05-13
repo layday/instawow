@@ -1125,7 +1125,7 @@ def configure(
         confirm('Set up GitHub authentication?')
     ):
         editable_config_values[_EditableConfigOptions.GithubAccessToken] = asyncio.run(
-            _github_oauth_flow()
+            asyncio.wait_for(_github_oauth_flow(), timeout=60 * 5)
         )
 
     if _EditableConfigOptions.CfcoreAccessToken in interactive_editable_config_keys:
