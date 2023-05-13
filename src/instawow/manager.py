@@ -80,7 +80,7 @@ def bucketise_results(
 
 
 @asynccontextmanager
-async def _open_temp_writer():
+async def _open_temp_writer_async():
     fh = await _AsyncNamedTemporaryFile(delete=False)
     path = Path(fh.name)
     try:
@@ -163,6 +163,7 @@ def _with_lock(
 class _StandardLocks(StrEnum):
     LoadCatalogue = enum.auto()
     MutatePkgs = enum.auto()
+    DownloadPkg = enum.auto()
 
 
 class _Resolvers(dict[str, Resolver]):
@@ -644,24 +645,26 @@ class Manager:
         if is_file_uri(pkg.download_url):
             return Path(file_uri_to_path(pkg.download_url))
 
-        dest = self.config.global_config.cache_dir / shasum(pkg.download_url)
-        if not await t(dest.exists)():
-            async with self.web_client.get(
-                pkg.download_url,
-                headers=await self.resolvers[pkg.source].make_request_headers(
-                    intent=HeadersIntent.download
-                ),
-                raise_for_status=True,
-                trace_request_ctx=make_pkg_progress_ctx(self.config.profile, pkg),
-            ) as response, _open_temp_writer() as (
-                temp_path,
-                write,
-            ):
-                async for chunk in response.content.iter_chunked(chunk_size):
-                    await write(chunk)
-            await _move_async(temp_path, dest)
+        async with self.locks[_StandardLocks.DownloadPkg, pkg.download_url]:
+            dest = self.config.global_config.cache_dir / shasum(pkg.download_url)
+            if not await t(dest.exists)():
+                async with self.web_client.get(
+                    pkg.download_url,
+                    headers=await self.resolvers[pkg.source].make_request_headers(
+                        intent=HeadersIntent.download
+                    ),
+                    raise_for_status=True,
+                    trace_request_ctx=make_pkg_progress_ctx(self.config.profile, pkg),
+                ) as response, _open_temp_writer_async() as (
+                    temp_path,
+                    write,
+                ):
+                    async for chunk in response.content.iter_chunked(chunk_size):
+                        await write(chunk)
 
-        return dest
+                await _move_async(temp_path, dest)
+
+            return dest
 
     @t
     def _check_installed_pkg_integrity(self, pkg: models.Pkg) -> bool:
