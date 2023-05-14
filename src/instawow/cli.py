@@ -730,8 +730,9 @@ def search(
     pkgs, _ = _manager.bucketise_results(results.items())
     if pkgs:
         choices = [
-            PkgChoice(f'{p.name}  ({defn_to_urn(evolve(d, alias=p.slug))}=={p.version})', d, pkg=p)
+            PkgChoice(f'{p.name}  ({defn_to_urn(e)}=={p.version})', e, pkg=p)
             for d, p in pkgs.items()
+            for e in (evolve(d, alias=p.slug, id=p.id),)
         ]
         selections: list[Defn] = ask(checkbox('Select add-ons to install', choices=choices))
         if selections:
