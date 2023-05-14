@@ -1,5 +1,5 @@
 [build-system]
-requires = ["poetry-core >=1.1.0, < 1.6", "poetry-dynamic-versioning >=0.18.0"]
+requires = ["poetry-core >=1.1.0", "poetry-dynamic-versioning >=0.21.5"]
 build-backend = "poetry_dynamic_versioning.backend"
 
 [tool.poetry-dynamic-versioning]
