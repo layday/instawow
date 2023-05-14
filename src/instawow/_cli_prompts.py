@@ -98,7 +98,8 @@ def checkbox(message: str, choices: Sequence[Choice], **inquirer_kwargs: object)
             tokens.append(
                 (
                     'class:instruction',
-                    '  (use arrow keys to move, <space> to select, <o> to view in your browser)',
+                    '  (use arrow keys to move, <space> to select, <o> to open in browser'
+                    ' and <enter> to continue)',
                 )
             )
         return tokens

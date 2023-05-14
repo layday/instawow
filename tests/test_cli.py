@@ -474,7 +474,9 @@ def test_search__exit_without_selecting(
     run: C[[str], Result],
 ):
     feed_pt('\r')  # enter
-    assert run('search molinari').output == ''
+    assert run('search molinari').output == (
+        'Nothing was selected; select add-ons with <space> and confirm by pressing <enter>.\n'
+    )
 
 
 def test_search__exit_after_selection(

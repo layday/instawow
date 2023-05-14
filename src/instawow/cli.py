@@ -721,20 +721,28 @@ def search(
 
     mw: _CtxObjWrapper = ctx.obj
 
-    entries = mw.run_with_progress(
+    catalogue_entries = mw.run_with_progress(
         mw.manager.search(search_terms, limit, frozenset(sources), start_date)
     )
-    defns = [Defn(e.source, e.id) for e in entries]
-    pkgs = (
-        (evolve(d, alias=r.slug), r)
-        for d, r in mw.run_with_progress(mw.manager.resolve(defns)).items()
-        if isinstance(r, models.Pkg)
+    results = mw.run_with_progress(
+        mw.manager.resolve([Defn(e.source, e.id) for e in catalogue_entries])
     )
-    choices = [PkgChoice(f'{p.name}  ({defn_to_urn(d)}=={p.version})', d, pkg=p) for d, p in pkgs]
-    if choices:
+    pkgs, _ = _manager.bucketise_results(results.items())
+    if pkgs:
+        choices = [
+            PkgChoice(f'{p.name}  ({defn_to_urn(evolve(d, alias=p.slug))}=={p.version})', d, pkg=p)
+            for d, p in pkgs.items()
+        ]
         selections: list[Defn] = ask(checkbox('Select add-ons to install', choices=choices))
-        if selections and ask(confirm('Install selected add-ons?')):
-            ctx.invoke(install, addons=selections, replace=False, dry_run=False)
+        if selections:
+            if ask(confirm('Install selected add-ons?')):
+                ctx.invoke(install, addons=selections, replace=False, dry_run=False)
+        else:
+            click.echo(
+                'Nothing was selected; select add-ons with <space>'
+                ' and confirm by pressing <enter>.'
+            )
+
     else:
         click.echo('No results found.')
 
