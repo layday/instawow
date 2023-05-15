@@ -19,7 +19,7 @@ from typing_extensions import Self
 from . import __version__, db, models
 from . import manager as _manager
 from . import results as R
-from .common import ChangelogFormat, Defn, Flavour, Strategy
+from .common import ChangelogFormat, Defn, Flavour, SourceMetadata, Strategy
 from .config import Config, GlobalConfig, config_converter, setup_logging
 from .http import TraceRequestCtx, init_web_client
 from .plugins import load_plugins
@@ -1018,6 +1018,33 @@ def view_changelog(mw: _CtxObjWrapper, addon: Defn | None, convert: bool) -> Non
                 for m, c in zip(last_installed_changelog_urls, changelogs)
             )
         )
+
+
+@cli.command
+@click.option(
+    '--format',
+    '-f',
+    'output_format',
+    type=click.Choice([_ListFormat.Json]),
+    default=_ListFormat.Json,
+    show_default=True,
+    help='Change the output format.',
+)
+@click.pass_obj
+def list_sources(mw: _CtxObjWrapper, output_format: _ListFormat) -> None:
+    "Print source metadata."
+    from cattrs.preconf.json import (
+        make_converter,  # pyright: ignore[reportUnknownVariableType]
+    )
+
+    json_converter = make_converter()
+    click.echo(
+        json_converter.dumps(  # pyright: ignore[reportUnknownMemberType]
+            [r.metadata for r in mw.manager.resolvers.values()],
+            list[SourceMetadata],
+            indent=2,
+        )
+    )
 
 
 def _show_active_config(ctx: click.Context, __: click.Parameter, value: bool):

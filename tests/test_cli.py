@@ -9,6 +9,7 @@ from textwrap import dedent
 from unittest import mock
 
 import pytest
+from cattrs.preconf.json import make_converter as make_json_converter
 from click.testing import CliRunner, Result
 from prompt_toolkit.application import create_app_session
 from prompt_toolkit.input import create_pipe_input
@@ -16,6 +17,7 @@ from prompt_toolkit.output import DummyOutput
 
 from instawow import __version__
 from instawow.cli import cli
+from instawow.common import SourceMetadata
 from instawow.config import Config
 
 
@@ -588,6 +590,16 @@ def test_json_export(
 ):
     output = install_molinari_and_run('list -f json').output
     assert json.loads(output)[0]['name'] == 'Molinari'
+
+
+def test_list_sources(
+    run: C[[str], Result],
+):
+    json_converter = make_json_converter()
+
+    output = run('list-sources').output
+    source_metadata = json_converter.loads(output, list[SourceMetadata])
+    assert len(source_metadata) > 1
 
 
 def test_show_version(
