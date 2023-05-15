@@ -693,8 +693,9 @@ def _parse_iso_date_into_datetime(_: click.Context, __: click.Parameter, value: 
     '--limit',
     '-l',
     default=10,
+    show_default=True,
     type=click.IntRange(1, 20, clamp=True),
-    help='A number to limit results to.',
+    help='Maximum results to return.',
 )
 @click.option(
     '--start-date',
@@ -706,7 +707,7 @@ def _parse_iso_date_into_datetime(_: click.Context, __: click.Parameter, value: 
     '--source',
     'sources',
     multiple=True,
-    help='A source to search in.  Repeatable.',
+    help='Search only in the specified source.  Multiple option.',
 )
 @click.option(
     '--prefer-source',
