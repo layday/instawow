@@ -3,9 +3,6 @@ inputs:
   python-version:
     required: false
     default: "3.11"
-  with-frontend-assets:
-    required: false
-    default: false
 outputs:
   wheel-name:
     value: ${{ steps.get-wheel-info.outputs.wheel-name }}
@@ -25,10 +22,8 @@ runs:
       uses: actions/setup-node@v3
       with:
         node-version: "18"
-      if: ${{ inputs.with-frontend-assets }}
     - name: Bundle frontend
       run: nox -s bundle_frontend
-      if: ${{ inputs.with-frontend-assets }}
       shell: bash
     - name: Build package
       run: >-
