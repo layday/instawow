@@ -95,7 +95,7 @@ class SourceMetadata:
     name: str
     strategies: frozenset[Strategy]
     changelog_format: ChangelogFormat
-    addon_toc_key: str | None
+    addon_toc_key: typing.Union[str, None]
 
 
 @frozen
