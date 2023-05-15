@@ -709,6 +709,10 @@ def _parse_iso_date_into_datetime(_: click.Context, __: click.Parameter, value: 
     help='A source to search in.  Repeatable.',
 )
 @click.option(
+    '--prefer-source',
+    help='Hide duplicates from other sources.',
+)
+@click.option(
     '--no-exclude-installed',
     is_flag=True,
     default=False,
@@ -720,6 +724,7 @@ def search(
     search_terms: str,
     limit: int,
     sources: Sequence[str],
+    prefer_source: str | None,
     start_date: datetime | None,
     no_exclude_installed: bool,
 ) -> None:
@@ -733,6 +738,7 @@ def search(
             search_terms,
             limit=limit,
             sources=frozenset(sources),
+            prefer_source=prefer_source,
             start_date=start_date,
             filter_installed='ident' if no_exclude_installed else 'exclude_from_all_sources',
         )

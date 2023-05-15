@@ -574,6 +574,7 @@ class Manager:
         *,
         limit: int,
         sources: Set[str] = frozenset(),
+        prefer_source: str | None = None,
         start_date: datetime | None = None,
         filter_installed: Literal[
             'ident', 'include_only', 'exclude', 'exclude_from_all_sources'
@@ -593,6 +594,9 @@ class Manager:
             unknown_sources = sources - self.resolvers.keys()
             if unknown_sources:
                 raise ValueError(f'Unknown sources: {", ".join(unknown_sources)}')
+
+        if prefer_source and prefer_source not in self.resolvers:
+            raise ValueError(f'Unknown preferred source: {prefer_source}')
 
         def get_installed_pkg_keys():
             with self.database.connect() as connection:
@@ -623,13 +627,16 @@ class Manager:
 
         filter_fns = list(make_filter_fns())
 
+        entries = catalogue.entries
+
+        if prefer_source:
+            entries = (e for e in entries if not any(s.source == prefer_source for s in e.same_as))
+
         if filter_installed == 'include_only':
             installed_pkg_keys = get_installed_pkg_keys()
             entries = (
                 e for k in installed_pkg_keys for e in (catalogue.keyed_entries.get(k),) if e
             )
-        else:
-            entries = catalogue.entries
 
         s = self._normalise_search_terms(search_terms)
 

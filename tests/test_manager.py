@@ -322,6 +322,18 @@ async def test_search_filter_installed(iw_manager: Manager):
     } == set()
 
 
+async def test_search_prefer_source(iw_manager: Manager):
+    results = await iw_manager.search('molinari', limit=5, prefer_source=None)
+    assert {('curse', 'molinari'), ('github', 'p3lim-wow/molinari')} <= {
+        (e.source, e.slug) for e in results
+    }
+
+    results = await iw_manager.search('molinari', limit=5, prefer_source='github')
+    assert {('curse', 'molinari'), ('github', 'p3lim-wow/molinari')} & {
+        (e.source, e.slug) for e in results
+    } == {('github', 'p3lim-wow/molinari')}
+
+
 async def test_get_changelog_from_empty_data_url(iw_manager: Manager):
     assert (await iw_manager.get_changelog('github', 'data:,')) == ''
 
