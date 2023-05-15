@@ -276,7 +276,7 @@ async def test_search_flavour_filtering(iw_manager: Manager):
 async def test_search_source_filtering(iw_manager: Manager):
     results = await iw_manager.search('molinari', limit=5, sources={'curse'})
     assert all(e.source == 'curse' for e in results)
-    assert {('curse', 'molinari')} <= {(e.source, e.slug) for e in results}
+    assert ('curse', 'molinari') in {(e.source, e.slug) for e in results}
 
 
 async def test_search_date_filtering(iw_manager: Manager):
@@ -288,6 +288,38 @@ async def test_search_date_filtering(iw_manager: Manager):
 async def test_search_unknown_source(iw_manager: Manager):
     with pytest.raises(ValueError, match='Unknown source'):
         await iw_manager.search('molinari', limit=5, sources={'foo'})
+
+
+async def test_search_filter_installed(iw_manager: Manager):
+    results = await iw_manager.search('molinari', limit=5, filter_installed='include_only')
+    assert not results
+
+    defn = Defn('curse', 'molinari')
+
+    install_result = (await iw_manager.install([defn], False))[defn]
+    assert type(install_result) is R.PkgInstalled
+
+    results = await iw_manager.search('molinari', limit=5)
+    assert {('curse', 'molinari'), ('github', 'p3lim-wow/molinari')} <= {
+        (e.source, e.slug) for e in results
+    }
+
+    results = await iw_manager.search('molinari', limit=5, filter_installed='include_only')
+    assert {('curse', 'molinari'), ('github', 'p3lim-wow/molinari')} & {
+        (e.source, e.slug) for e in results
+    } == {('curse', 'molinari')}
+
+    results = await iw_manager.search('molinari', limit=5, filter_installed='exclude')
+    assert {('curse', 'molinari'), ('github', 'p3lim-wow/molinari')} & {
+        (e.source, e.slug) for e in results
+    } == {('github', 'p3lim-wow/molinari')}
+
+    results = await iw_manager.search(
+        'molinari', limit=5, filter_installed='exclude_from_all_sources'
+    )
+    assert {('curse', 'molinari'), ('github', 'p3lim-wow/molinari')} & {
+        (e.source, e.slug) for e in results
+    } == set()
 
 
 async def test_get_changelog_from_empty_data_url(iw_manager: Manager):

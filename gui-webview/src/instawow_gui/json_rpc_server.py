@@ -289,7 +289,7 @@ class SearchParams(_ProfileParamMixin, BaseParams):
                 limit=self.limit,
                 sources=self.sources,
                 start_date=self.start_date,
-                installed_only=self.installed_only,
+                filter_installed='include_only' if self.installed_only else 'ident',
             ),
         )
 

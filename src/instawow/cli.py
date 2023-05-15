@@ -708,6 +708,12 @@ def _parse_iso_date_into_datetime(_: click.Context, __: click.Parameter, value: 
     multiple=True,
     help='A source to search in.  Repeatable.',
 )
+@click.option(
+    '--no-exclude-installed',
+    is_flag=True,
+    default=False,
+    help='Do not exclude installed add-ons from search results.',
+)
 @click.pass_context
 def search(
     ctx: click.Context,
@@ -715,6 +721,7 @@ def search(
     limit: int,
     sources: Sequence[str],
     start_date: datetime | None,
+    no_exclude_installed: bool,
 ) -> None:
     "Search for add-ons to install."
     from ._cli_prompts import PkgChoice, ask, checkbox, confirm
@@ -722,7 +729,13 @@ def search(
     mw: _CtxObjWrapper = ctx.obj
 
     catalogue_entries = mw.run_with_progress(
-        mw.manager.search(search_terms, limit, frozenset(sources), start_date)
+        mw.manager.search(
+            search_terms,
+            limit=limit,
+            sources=frozenset(sources),
+            start_date=start_date,
+            filter_installed='ident' if no_exclude_installed else 'exclude_from_all_sources',
+        )
     )
     results = mw.run_with_progress(
         mw.manager.resolve([Defn(e.source, e.id) for e in catalogue_entries])

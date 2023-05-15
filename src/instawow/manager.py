@@ -3,7 +3,16 @@ from __future__ import annotations
 import contextvars as cv
 import enum
 import json
-from collections.abc import Awaitable, Callable, Collection, Iterable, Mapping, Sequence, Set
+from collections.abc import (
+    Awaitable,
+    Callable,
+    Collection,
+    Iterable,
+    Iterator,
+    Mapping,
+    Sequence,
+    Set,
+)
 from contextlib import AbstractAsyncContextManager, asynccontextmanager, contextmanager
 from datetime import datetime, timedelta
 from functools import cached_property, lru_cache, wraps
@@ -11,7 +20,7 @@ from itertools import chain, filterfalse, product, repeat, starmap
 from pathlib import Path, PurePath
 from shutil import move
 from tempfile import NamedTemporaryFile
-from typing import NoReturn, TypeVar
+from typing import Literal, NoReturn, TypeVar
 
 import sqlalchemy as sa
 from attrs import evolve
@@ -562,12 +571,15 @@ class Manager:
     async def search(
         self,
         search_terms: str,
+        *,
         limit: int,
         sources: Set[str] = frozenset(),
         start_date: datetime | None = None,
-        installed_only: bool = False,
+        filter_installed: Literal[
+            'ident', 'include_only', 'exclude', 'exclude_from_all_sources'
+        ] = 'ident',
     ) -> list[CatalogueEntry]:
-        "Search the master catalogue for packages by name."
+        "Search the catalogue for packages by name."
         import rapidfuzz
 
         catalogue = await self.synchronise()
@@ -582,43 +594,44 @@ class Manager:
             if unknown_sources:
                 raise ValueError(f'Unknown sources: {", ".join(unknown_sources)}')
 
-        def make_filter_fns():
-            def filter_game_flavour(entry: CatalogueEntry):
-                return self.config.game_flavour in entry.game_flavours
+        def get_installed_pkg_keys():
+            with self.database.connect() as connection:
+                return connection.execute(sa.select(db.pkg.c.source, db.pkg.c.id)).tuples().all()
 
-            yield filter_game_flavour
+        def make_filter_fns() -> Iterator[Callable[[CatalogueEntry], bool]]:
+            yield lambda e: self.config.game_flavour in e.game_flavours
 
             if sources:
-
-                def filter_sources(entry: CatalogueEntry):
-                    return entry.source in sources
-
-                yield filter_sources
+                yield lambda e: e.source in sources
 
             if start_date is not None:
                 start_date_ = start_date
+                yield lambda e: e.last_updated >= start_date_
 
-                def filter_age(entry: CatalogueEntry):
-                    return entry.last_updated >= start_date_
+            if filter_installed in {'exclude', 'exclude_from_all_sources'}:
+                installed_pkg_keys = set(get_installed_pkg_keys())
+                if filter_installed == 'exclude_from_all_sources':
+                    installed_pkg_keys |= {
+                        (s.source, s.id)
+                        for k in installed_pkg_keys
+                        for e in (catalogue.keyed_entries.get(k),)
+                        if e
+                        for s in e.same_as
+                    }
 
-                yield filter_age
+                yield lambda e: (e.source, e.id) not in installed_pkg_keys
 
         filter_fns = list(make_filter_fns())
 
-        s = self._normalise_search_terms(search_terms)
-
-        if installed_only:
-            with self.database.connect() as connection:
-                entries = (
-                    e
-                    for p in connection.execute(sa.select(db.pkg.c.source, db.pkg.c.id))
-                    .tuples()
-                    .all()
-                    for e in (catalogue.keyed_entries.get(p),)
-                    if e
-                )
+        if filter_installed == 'include_only':
+            installed_pkg_keys = get_installed_pkg_keys()
+            entries = (
+                e for k in installed_pkg_keys for e in (catalogue.keyed_entries.get(k),) if e
+            )
         else:
             entries = catalogue.entries
+
+        s = self._normalise_search_terms(search_terms)
 
         tokens_to_entries = bucketise(
             ((e.normalised_name, e) for e in entries if all(f(e) for f in filter_fns)),
