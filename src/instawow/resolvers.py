@@ -95,7 +95,7 @@ class BaseResolver(Resolver, Protocol):
 
             async def resolve_one(self: type[Self], defn: Defn, metadata: Any) -> models.Pkg:
                 extraneous_strategies = (
-                    defn.strategies.filled_strategies - self.metadata.strategies
+                    defn.strategies.filled_strategies.keys() - self.metadata.strategies
                 )
                 if extraneous_strategies:
                     raise R.PkgStrategiesUnsupported(extraneous_strategies)

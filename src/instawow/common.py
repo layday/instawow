@@ -3,11 +3,14 @@ from __future__ import annotations
 import enum
 import os
 import typing
+from collections.abc import Iterable
+from functools import partial
 from pathlib import PurePath
 from typing import Literal, Protocol, TypeVar
 
 from attrs import asdict, evolve, frozen
 from typing_extensions import Self
+from yarl import URL
 
 from .utils import StrEnum, fill
 
@@ -105,8 +108,8 @@ class StrategyValues:
     version_eq: typing.Union[str, None] = None
 
     @property
-    def filled_strategies(self) -> frozenset[Strategy]:
-        return frozenset(Strategy(p) for p, v in asdict(self).items() if v is not None)
+    def filled_strategies(self) -> dict[Strategy, object]:
+        return {Strategy(p): v for p, v in asdict(self).items() if v is not None}
 
 
 @frozen(hash=True)
@@ -116,8 +119,64 @@ class Defn:
     id: typing.Union[str, None] = None
     strategies: StrategyValues = StrategyValues()
 
+    @classmethod
+    def from_uri(
+        cls,
+        uri: str,
+        *,
+        known_sources: Iterable[str],
+        allow_unsourced: bool,
+        include_strategies: bool = False,
+    ) -> Self:
+        """Construct a ``Defn`` from a URI."""
+        url = URL(uri)
+
+        if url.scheme not in known_sources:
+            if not allow_unsourced:
+                raise ValueError(f'Unable to extract source from {uri}')
+
+            make_cls = partial(cls, source='*', alias=uri)
+        else:
+            make_cls = partial(cls, source=url.scheme, alias=url.path)
+
+        if include_strategies:
+            strategy_values = {
+                s: v for f in url.fragment.split(';') for s, _, v in (f.partition('='),) if s
+            }
+            if strategy_values:
+                unknown_strategies = strategy_values.keys() - set(Strategy)
+                if unknown_strategies:
+                    raise ValueError(f'Unknown strategies: {", ".join(unknown_strategies)}')
+
+                make_cls = partial(
+                    make_cls,
+                    strategies=StrategyValues(
+                        any_flavour='any_flavour' in strategy_values or None,
+                        any_release_type='any_release_type' in strategy_values or None,
+                        version_eq=strategy_values.get('version_eq'),
+                    ),
+                )
+
+        return make_cls()
+
+    def as_uri(self, include_strategies: bool = False) -> str:
+        uri = f'{self.source}:{self.alias}'
+
+        if include_strategies:
+            filled_strategies = self.strategies.filled_strategies
+            if filled_strategies:
+                uri += f'''#{";".join(
+                    s if v is True else f"{s}={v}" for s, v in filled_strategies.items()
+                )}'''
+
+        return uri
+
     def with_version(self, version: str) -> Self:
         return evolve(self, strategies=evolve(self.strategies, version_eq=version))
+
+    @property
+    def is_unsourced(self) -> bool:
+        return self.source == '*'
 
 
 class AddonHashMethod(enum.Enum):
