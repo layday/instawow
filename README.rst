@@ -85,6 +85,19 @@ Search uses a collated add-on catalogue which is updated
 `once daily <https://github.com/layday/instawow-data/tree/data>`__.
 You can install multiple add-ons directly from search.
 
+Install strategies
+~~~~~~~~~~~~~~~~~~
+
+Add-ons take a number of options which determine how they are resolved:
+
+- ``any_flavour`` to ignore game version compatibility
+- ``any_release_type`` to ignore add-on stability
+- ``version_eq=[VERSION]`` to install a specific add-on version
+
+In the CLI, you can pass strategies in the fragment portion of the add-on URI,
+separated by a semicolon, e.g. ``instawow install 'curse:molinari#any_release_type;any_flavour'``.
+Strategies are respected by the ``install`` and ``update`` commands.
+
 Reverting add-on updates
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
