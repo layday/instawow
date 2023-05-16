@@ -22,6 +22,7 @@ packages = [
   { include = "instawow_gui", from = "gui-webview/src" },
 ]
 include = [
+  { path = "CHANGELOG.rst", format = "sdist" },
   { path = "COPYING", format = "sdist" },
   { path = "gui-webview/src/instawow_gui/frontend/*" },
   { path = "tests", format = "sdist" },
