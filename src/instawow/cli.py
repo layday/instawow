@@ -455,12 +455,9 @@ def remove(mw: _CtxObjWrapper, addons: Sequence[Defn], keep_folders: bool) -> No
     help='Undo rollback by reinstalling an add-on using the default strategy.',
 )
 @click.pass_obj
-def rollback(mw: _CtxObjWrapper, addon: Defn, version: str | None, undo: bool) -> None:
+def rollback(mw: _CtxObjWrapper, addon: Defn, undo: bool) -> None:
     "Roll an add-on back to an older version."
     from ._cli_prompts import Choice, ask, select
-
-    if version and undo:
-        raise click.UsageError('Cannot use "--version" with "--undo"')
 
     pkg = mw.manager.get_pkg(addon)
     if not pkg:
@@ -471,24 +468,22 @@ def rollback(mw: _CtxObjWrapper, addon: Defn, version: str | None, undo: bool) -
         Report(mw.run_with_progress(mw.manager.update([addon], True)).items()).generate_and_exit()
 
     reconstructed_defn = pkg.to_defn()
-    if version:
-        selection = version
-    else:
-        versions = pkg.logged_versions
-        if len(versions) <= 1:
-            Report([(addon, R.PkgFilesMissing('cannot find older versions'))]).generate_and_exit()
 
-        choices = [
-            Choice(
-                [('', v.version)],
-                value=v.version,
-                disabled='installed version' if v.version == pkg.version else None,
-            )
-            for v in versions
-        ]
-        selection = ask(
-            select(f'Select version of {defn_to_urn(reconstructed_defn)} for rollback', choices)
+    versions = pkg.logged_versions
+    if len(versions) <= 1:
+        Report([(addon, R.PkgFilesMissing('cannot find older versions'))]).generate_and_exit()
+
+    choices = [
+        Choice(
+            [('', v.version)],
+            value=v.version,
+            disabled='installed version' if v.version == pkg.version else None,
         )
+        for v in versions
+    ]
+    selection = ask(
+        select(f'Select version of {reconstructed_defn.as_uri()} for rollback', choices)
+    )
 
     Report(
         mw.run_with_progress(
