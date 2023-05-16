@@ -157,9 +157,12 @@ def test_version_strategy_lifecycle(
         == '✗ curse:molinari\n  package already installed\n'
     )
     assert run('update curse:molinari').output == '✗ curse:molinari\n  package is up to date\n'
-    assert (
-        run('update curse:molinari#version_eq=80000.57-Release').output
-        == '✓ curse:molinari\n  updated 90200.82-Release to 80000.57-Release\n'
+    assert run('update curse:molinari#version_eq=80000.57-Release').output == dedent(
+        '''\
+        ✓ curse:molinari
+          updated 90200.82-Release to 80000.57-Release with new strategies:
+            version_eq='80000.57-Release'
+        '''
     )
     assert run('remove curse:molinari').output == '✓ curse:molinari\n  removed\n'
     assert run('install curse:molinari#version_eq=foo').output == dedent(
@@ -174,9 +177,12 @@ def test_version_strategy_lifecycle(
         == '✓ curse:molinari\n  installed 80000.57-Release\n'
     )
     assert run('update').output == '✗ curse:molinari\n  package is pinned\n'
-    assert (
-        run('update curse:molinari').output
-        == '✓ curse:molinari\n  updated 80000.57-Release to 90200.82-Release\n'
+    assert run('update curse:molinari').output == dedent(
+        '''\
+        ✓ curse:molinari
+          updated 80000.57-Release to 90200.82-Release with new strategies:
+            version_eq=None
+        '''
     )
     assert run('remove curse:molinari').output == '✓ curse:molinari\n  removed\n'
 
@@ -327,7 +333,8 @@ def test_rollback__multiple_versions(
     assert run('rollback curse:molinari').output == dedent(
         '''\
         ✓ curse:molinari
-          updated 90200.82-Release to 80000.57-Release
+          updated 90200.82-Release to 80000.57-Release with new strategies:
+            version_eq='80000.57-Release'
         '''
     )
 
@@ -344,6 +351,12 @@ def test_rollback__rollback_multiple_versions(
     feed_pt('\r\r')
     assert run(f'rollback {options} curse:molinari').output == dedent(
         '''\
+        ✓ curse:molinari
+          updated 80000.57-Release to 90200.82-Release with new strategies:
+            version_eq=None
+        '''
+        if options == '--undo'
+        else '''\
         ✓ curse:molinari
           updated 80000.57-Release to 90200.82-Release
         '''

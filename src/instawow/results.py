@@ -43,8 +43,18 @@ class PkgUpdated(ManagerResult, _SuccessResult):
             f'{"would have updated" if self.dry_run else "updated"}'
             f' {self.old_pkg.version} to {self.new_pkg.version}'
         )
+
         if self.old_pkg.slug != self.new_pkg.slug:
             message += f' with new slug {self.new_pkg.slug!r}'
+
+        if self.old_pkg.options != self.new_pkg.options:
+            old_strategies = asdict(self.old_pkg.to_defn().strategies)
+            new_strategies = asdict(self.new_pkg.to_defn().strategies)
+            message += ' with new strategies: '
+            message += '; '.join(
+                f'{s}={v!r}' for s, v in new_strategies.items() - old_strategies.items()
+            )
+
         return message
 
 
