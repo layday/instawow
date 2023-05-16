@@ -157,6 +157,10 @@ def test_version_strategy_lifecycle(
         == '✗ curse:molinari\n  package already installed\n'
     )
     assert run('update curse:molinari').output == '✗ curse:molinari\n  package is up to date\n'
+    assert (
+        run('update curse:molinari#version_eq=80000.57-Release').output
+        == '✓ curse:molinari\n  updated 90200.82-Release to 80000.57-Release\n'
+    )
     assert run('remove curse:molinari').output == '✓ curse:molinari\n  removed\n'
     assert run('install curse:molinari#version_eq=foo').output == dedent(
         '''\
@@ -170,7 +174,10 @@ def test_version_strategy_lifecycle(
         == '✓ curse:molinari\n  installed 80000.57-Release\n'
     )
     assert run('update').output == '✗ curse:molinari\n  package is pinned\n'
-    assert run('update curse:molinari').output == '✗ curse:molinari\n  package is pinned\n'
+    assert (
+        run('update curse:molinari').output
+        == '✓ curse:molinari\n  updated 80000.57-Release to 90200.82-Release\n'
+    )
     assert run('remove curse:molinari').output == '✓ curse:molinari\n  removed\n'
 
 

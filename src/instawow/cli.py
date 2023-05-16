@@ -394,7 +394,9 @@ def install(
 
 
 @cli.command
-@click.argument('addons', nargs=-1, callback=_with_manager(_parse_uri))
+@click.argument(
+    'addons', nargs=-1, callback=_with_manager(partial(_parse_uri, include_strategies=True))
+)
 @click.option(
     '--dry-run',
     is_flag=True,
@@ -424,7 +426,7 @@ def update(mw: _CtxObjWrapper, addons: Sequence[Defn], dry_run: bool) -> None:
             ]
 
     results = mw.run_with_progress(
-        mw.manager.update(addons or installed_pkgs_to_defns(), False, dry_run)
+        mw.manager.update(addons or installed_pkgs_to_defns(), bool(addons), dry_run)
     )
     Report(results.items(), filter_results).generate_and_exit()
 
