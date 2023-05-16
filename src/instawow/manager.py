@@ -280,20 +280,14 @@ class Manager:
         return _web_client.get()
 
     def pair_uri(self, value: str) -> tuple[str, str] | None:
-        "Attempt to extract the definition source and alias from a URI."
-
-        def from_urn():
-            source, _, alias = value.partition(':')
-            if alias:
-                yield (source, alias)
-
+        "Attempt to extract a valid ``Defn`` source and alias from a URL."
         aliases_from_url = (
             (r.metadata.id, a)
             for r in self.resolvers.values()
             for a in (r.get_alias_from_url(URL(value)),)
             if a
         )
-        return next(chain(aliases_from_url, from_urn(), (None,)))
+        return next(aliases_from_url, None)
 
     def check_pkg_exists(self, defn: Defn) -> bool:
         "Check that a package exists in the database."

@@ -60,7 +60,7 @@ class Report:
 
     def __str__(self) -> str:
         return '\n'.join(
-            f'{self._result_type_to_symbol(r)} {click.style(defn_to_urn(a), bold=True)}\n'
+            f'{self._result_type_to_symbol(r)} {click.style(a.as_uri(), bold=True)}\n'
             f'{textwrap.fill(r.message, initial_indent=" " * 2, subsequent_indent=" " * 4)}'
             for a, r in self.results
             if self.filter_fn(r)
@@ -136,11 +136,9 @@ class _CtxObjWrapper:
                         response = params.response
                         label = (
                             'Downloading '
-                            + defn_to_urn(
-                                Defn(
-                                    trace_request_ctx['pkg'].source, trace_request_ctx['pkg'].slug
-                                )
-                            )
+                            + Defn(
+                                trace_request_ctx['pkg'].source, trace_request_ctx['pkg'].slug
+                            ).as_uri()
                             if trace_request_ctx['report_progress'] == 'pkg_download'
                             else trace_request_ctx['label']
                         )
@@ -267,10 +265,6 @@ def _register_plugin_commands(group: click.Group):
     return group
 
 
-def defn_to_urn(defn: Defn) -> str:
-    return f'{defn.source}:{defn.alias}'
-
-
 def _parse_debug_option(
     _: click.Context, __: click.Parameter, value: float
 ) -> tuple[bool, bool, bool]:
@@ -309,88 +303,77 @@ main = logger.catch(reraise=True)(cli)
 
 
 @overload
-def _parse_into_defn(manager: _manager.Manager, value: str, *, raise_invalid: bool = True) -> Defn:
+def _parse_uri(
+    manager: _manager.Manager,
+    value: str,
+    *,
+    raise_invalid: bool = True,
+    include_strategies: bool = False,
+) -> Defn:
     ...
 
 
 @overload
-def _parse_into_defn(
-    manager: _manager.Manager, value: list[str], *, raise_invalid: bool = True
+def _parse_uri(
+    manager: _manager.Manager,
+    value: list[str],
+    *,
+    raise_invalid: bool = True,
+    include_strategies: bool = False,
 ) -> list[Defn]:
     ...
 
 
-def _parse_into_defn(
-    manager: _manager.Manager, value: str | list[str] | None, *, raise_invalid: bool = True
+def _parse_uri(
+    manager: _manager.Manager,
+    value: str | list[str] | None,
+    *,
+    raise_invalid: bool = True,
+    include_strategies: bool = False,
 ) -> Defn | list[Defn] | None:
     if value is None:
         return None
 
     if not isinstance(value, str):
-        defns = (_parse_into_defn(manager, v, raise_invalid=raise_invalid) for v in value)
+        defns = (
+            _parse_uri(
+                manager, v, raise_invalid=raise_invalid, include_strategies=include_strategies
+            )
+            for v in value
+        )
         return uniq(defns)
 
-    pair = manager.pair_uri(value)
-    if not pair:
-        if raise_invalid:
+    try:
+        defn = Defn.from_uri(
+            value,
+            known_sources=manager.resolvers,
+            allow_unsourced=True,
+            include_strategies=include_strategies,
+        )
+    except ValueError as exc:
+        raise click.BadParameter(exc.args[0]) from None
+
+    if defn.is_unsourced:
+        match = manager.pair_uri(defn.alias)
+        if match:
+            source, alias = match
+            defn = evolve(defn, source=source, alias=alias)
+        elif raise_invalid and ':' not in defn.alias:
             raise click.BadParameter(value)
 
-        pair = ('*', value)
-    return Defn(*pair)
-
-
-def _extend_addons(ctx: click.Context, __: click.Parameter, value: list[str]):
-    addons = ctx.params.setdefault('addons', list[Defn]())
-    defns = _parse_into_defn(ctx.obj.manager, value)
-    addons.extend(defns)
-
-
-def _extend_addons_with_version(
-    ctx: click.Context, __: click.Parameter, value: Sequence[tuple[str, str]]
-):
-    addons = ctx.params.setdefault('addons', list[Defn]())
-    defns = _parse_into_defn(ctx.obj.manager, [d for _, d in value])
-    addons.extend(map(Defn.with_version, defns, (v for v, _ in value)))
-
-
-def _extend_strategies(strategy: Strategy, ctx: click.Context, __: click.Parameter, value: bool):
-    if value:
-        ctx.params['addons'] = [
-            evolve(a, strategies=evolve(a.strategies, **{strategy: True}))
-            for a in ctx.params.get('addons', list[Defn]())
-        ]
+    return defn
 
 
 @cli.command
-@click.argument('addons', nargs=-1, expose_value=False, callback=_extend_addons)
-@click.option(
-    '--version',
-    expose_value=False,
-    multiple=True,
-    type=(str, str),
-    callback=_extend_addons_with_version,
-    metavar='<VERSION ADDON>',
-    help='A version followed by an add-on definition.',
+@click.argument(
+    'addons', nargs=-1, callback=_with_manager(partial(_parse_uri, include_strategies=True))
 )
 @click.option(
-    '--any-flavour',
-    expose_value=False,
-    callback=partial(_extend_strategies, Strategy.AnyFlavour),
-    is_eager=True,
+    '--replace',
     is_flag=True,
     default=False,
-    help='Ignore game flavour compatibility.  Global option.',
+    help='Replace unreconciled add-ons.',
 )
-@click.option(
-    '--any-release-type',
-    expose_value=False,
-    callback=partial(_extend_strategies, Strategy.AnyReleaseType),
-    is_eager=True,
-    is_flag=True,
-    default=False,
-    help='Ignore add-on stability.  Global option.',
-)
-@click.option('--replace', is_flag=True, default=False, help='Replace unreconciled add-ons.')
 @click.option(
     '--dry-run',
     is_flag=True,
@@ -406,15 +389,12 @@ def install(
     dry_run: bool,
 ) -> None:
     "Install add-ons."
-    if not addons:
-        raise click.UsageError('You must specify an add-on')
-
     results = mw.run_with_progress(mw.manager.install(addons, replace, dry_run))
     Report(results.items()).generate_and_exit()
 
 
 @cli.command
-@click.argument('addons', nargs=-1, callback=_with_manager(_parse_into_defn))
+@click.argument('addons', nargs=-1, callback=_with_manager(_parse_uri))
 @click.option(
     '--dry-run',
     is_flag=True,
@@ -450,7 +430,7 @@ def update(mw: _CtxObjWrapper, addons: Sequence[Defn], dry_run: bool) -> None:
 
 
 @cli.command
-@click.argument('addons', nargs=-1, required=True, callback=_with_manager(_parse_into_defn))
+@click.argument('addons', nargs=-1, required=True, callback=_with_manager(_parse_uri))
 @click.option(
     '--keep-folders',
     is_flag=True,
@@ -465,11 +445,7 @@ def remove(mw: _CtxObjWrapper, addons: Sequence[Defn], keep_folders: bool) -> No
 
 
 @cli.command
-@click.argument('addon', callback=_with_manager(_parse_into_defn))
-@click.option(
-    '--version',
-    help='Version to roll back to.',
-)
+@click.argument('addon', callback=_with_manager(_parse_uri))
 @click.option(
     '--undo',
     is_flag=True,
@@ -541,7 +517,7 @@ def reconcile(mw: _CtxObjWrapper, auto: bool, rereconcile: bool, list_unreconcil
         defn = pkg.to_defn()
         return PkgChoice(
             [
-                ('', f'{defn_to_urn(defn)}=='),
+                ('', f'{defn.as_uri()}=='),
                 ('class:highlight-sub' if highlight_version else '', pkg.version),
             ],
             pkg=pkg,
@@ -750,7 +726,7 @@ def search(
     pkgs, _ = _manager.bucketise_results(results.items())
     if pkgs:
         choices = [
-            PkgChoice(f'{p.name}  ({defn_to_urn(e)}=={p.version})', e, pkg=p)
+            PkgChoice(f'{p.name}  ({e.as_uri()}=={p.version})', e, pkg=p)
             for d, p in pkgs.items()
             for e in (evolve(d, alias=p.slug, id=p.id),)
         ]
@@ -776,7 +752,7 @@ class _ListFormat(StrEnum):
 
 @cli.command('list')
 @click.argument(
-    'addons', nargs=-1, callback=_with_manager(partial(_parse_into_defn, raise_invalid=False))
+    'addons', nargs=-1, callback=_with_manager(partial(_parse_uri, raise_invalid=False))
 )
 @click.option(
     '--format',
@@ -796,7 +772,7 @@ def list_installed(mw: _CtxObjWrapper, addons: Sequence[Defn], output_format: _L
 
         def format_deps(pkg: models.Pkg):
             return (
-                defn_to_urn(Defn(pkg.source, s or e.id))
+                Defn(pkg.source, s or e.id).as_uri()
                 for e in pkg.deps
                 for s in (
                     connection.execute(
@@ -814,7 +790,7 @@ def list_installed(mw: _CtxObjWrapper, addons: Sequence[Defn], output_format: _L
                 sa.or_(
                     *(
                         db.pkg.c.slug.contains(d.alias)
-                        if d.source == '*'
+                        if d.is_unsourced
                         else (db.pkg.c.source == d.source)
                         & (
                             (db.pkg.c.id == d.alias)
@@ -849,7 +825,7 @@ def list_installed(mw: _CtxObjWrapper, addons: Sequence[Defn], output_format: _L
         elif output_format is _ListFormat.Detailed:
             formatter = click.HelpFormatter(max_width=99)
             for pkg in row_mappings_to_pkgs():
-                with formatter.section(defn_to_urn(pkg.to_defn())):
+                with formatter.section(pkg.to_defn().as_uri()):
                     formatter.write_dl(
                         [
                             ('name', pkg.name),
@@ -869,13 +845,13 @@ def list_installed(mw: _CtxObjWrapper, addons: Sequence[Defn], output_format: _L
 
         else:
             click.echo(
-                ''.join(f'{defn_to_urn(Defn(p["source"], p["slug"]))}\n' for p in pkg_mappings),
+                ''.join(f'{Defn(p["source"], p["slug"]).as_uri()}\n' for p in pkg_mappings),
                 nl=False,
             )
 
 
 @cli.command(hidden=True)
-@click.argument('addon', callback=_with_manager(partial(_parse_into_defn, raise_invalid=False)))
+@click.argument('addon', callback=_with_manager(partial(_parse_uri, raise_invalid=False)))
 @click.pass_context
 def info(ctx: click.Context, addon: Defn) -> None:
     "Alias of `list -f detailed`."
@@ -883,7 +859,7 @@ def info(ctx: click.Context, addon: Defn) -> None:
 
 
 @cli.command
-@click.argument('addon', callback=_with_manager(partial(_parse_into_defn, raise_invalid=False)))
+@click.argument('addon', callback=_with_manager(partial(_parse_uri, raise_invalid=False)))
 @click.pass_obj
 def reveal(mw: _CtxObjWrapper, addon: Defn) -> None:
     "Bring an add-on up in your file manager."
@@ -896,7 +872,7 @@ def reveal(mw: _CtxObjWrapper, addon: Defn) -> None:
 
 @cli.command
 @click.argument(
-    'addon', callback=_with_manager(partial(_parse_into_defn, raise_invalid=False)), required=False
+    'addon', callback=_with_manager(partial(_parse_uri, raise_invalid=False)), required=False
 )
 @click.option(
     '--convert/--no-convert',
@@ -962,7 +938,7 @@ def view_changelog(mw: _CtxObjWrapper, addon: Defn | None, convert: bool) -> Non
                 *(('  [...]',) if len(lines) > MAX_LINES else ()),
             )
         )
-        return f'{defn_to_urn(Defn(source, slug))}:\n{body}'
+        return f'{Defn(source, slug).as_uri()}:\n{body}'
 
     if addon:
         pkg = mw.manager.get_pkg(addon, partial_match=True)

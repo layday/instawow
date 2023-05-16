@@ -105,9 +105,9 @@ def test_invalid_source_lifecycle(
     run: C[[str], Result],
     alias: str,
 ):
-    assert run(f'install {alias}').output == f'✗ {alias}\n  package source is invalid\n'
-    assert run(f'update {alias}').output == f'✗ {alias}\n  package is not installed\n'
-    assert run(f'remove {alias}').output == f'✗ {alias}\n  package is not installed\n'
+    assert run(f'install {alias}').output == f'✗ *:{alias}\n  package source is invalid\n'
+    assert run(f'update {alias}').output == f'✗ *:{alias}\n  package is not installed\n'
+    assert run(f'remove {alias}').output == f'✗ *:{alias}\n  package is not installed\n'
 
 
 def test_reconciled_folder_conflict_on_install(
@@ -153,12 +153,12 @@ def test_version_strategy_lifecycle(
         '✓ curse:molinari\n  installed 90200.82-Release'
     )
     assert (
-        run('install --version foo curse:molinari').output
+        run('install curse:molinari#version_eq=foo').output
         == '✗ curse:molinari\n  package already installed\n'
     )
     assert run('update curse:molinari').output == '✗ curse:molinari\n  package is up to date\n'
     assert run('remove curse:molinari').output == '✓ curse:molinari\n  removed\n'
-    assert run('install --version foo curse:molinari').output == dedent(
+    assert run('install curse:molinari#version_eq=foo').output == dedent(
         '''\
         ✗ curse:molinari
           no files found for: any_flavour=None; any_release_type=None;
@@ -166,7 +166,7 @@ def test_version_strategy_lifecycle(
         '''
     )
     assert (
-        run('install --version 80000.57-Release curse:molinari').output
+        run('install curse:molinari#version_eq=80000.57-Release').output
         == '✓ curse:molinari\n  installed 80000.57-Release\n'
     )
     assert run('update').output == '✗ curse:molinari\n  package is pinned\n'
@@ -177,7 +177,7 @@ def test_version_strategy_lifecycle(
 def test_install_options(
     run: C[[str], Result],
 ):
-    assert run('install --any-release-type --any-flavour curse:molinari').output == dedent(
+    assert run('install curse:molinari#any_release_type;any_flavour').output == dedent(
         '''\
         ✓ curse:molinari
           installed 90200.82-Release
@@ -186,36 +186,25 @@ def test_install_options(
 
 
 @pytest.mark.parametrize('step', [1, -1])
-def test_install_order_is_stable(
+def test_install_order_is_respected(
     run: C[[str], Result],
     step: int,
 ):
     assert run(
         'install '
         + ' '.join(
-            (
+            [
                 'curse:molinari',
-                '--version 80000.57-Release curse:molinari',
-            )[::step]
+                'curse:molinari#version_eq=80000.57-Release',
+            ][::step]
         )
     ).output == dedent(
-        '''\
+        f'''\
         ✓ curse:molinari
-          installed 80000.57-Release
+          installed {'90200.82-Release' if step == 1 else '80000.57-Release'}
         ✗ curse:molinari
           package folders conflict with installed package Molinari
             (curse:20338)
-        '''
-    )
-
-
-def test_install_argument_is_optional(
-    run: C[[str], Result],
-):
-    assert run('install --version 80000.57-Release curse:molinari').output == dedent(
-        '''\
-        ✓ curse:molinari
-          installed 80000.57-Release
         '''
     )
 
@@ -324,7 +313,7 @@ def test_rollback__multiple_versions(
     feed_pt: C[[str], None],
     run: C[[str], Result],
 ):
-    assert run('install --version 80000.57-Release curse:molinari').exit_code == 0
+    assert run('install curse:molinari#version_eq=80000.57-Release').exit_code == 0
     assert run('remove curse:molinari').exit_code == 0
     assert run('install curse:molinari').exit_code == 0
     feed_pt('\r\r')
@@ -358,7 +347,7 @@ def test_rollback__rollback_multiple_versions(
 ):
     assert run('install curse:molinari').exit_code == 0
     assert run('remove curse:molinari').exit_code == 0
-    assert run('install --version 80000.57-Release curse:molinari').exit_code == 0
+    assert run('install curse:molinari#version_eq=80000.57-Release').exit_code == 0
     feed_pt('\r\r')
     assert run(f'rollback {options} curse:molinari').output == dedent(
         '''\

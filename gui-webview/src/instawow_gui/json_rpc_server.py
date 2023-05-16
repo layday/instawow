@@ -308,7 +308,7 @@ class ErrorResult(TypedDict):
 class ResolveParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
     async def _resolve(self, manager: Manager):
         def extract_source(defn: Defn):
-            if defn.source == '*':
+            if defn.is_unsourced:
                 match = manager.pair_uri(defn.alias)
                 if match:
                     source, alias = match
