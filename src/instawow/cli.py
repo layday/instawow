@@ -398,6 +398,12 @@ def install(
     'addons', nargs=-1, callback=_with_manager(partial(_parse_uri, include_strategies=True))
 )
 @click.option(
+    '--retain-strategies',
+    is_flag=True,
+    default=False,
+    help='Respect the strategies of [ADDONS] if they result in a change.',
+)
+@click.option(
     '--dry-run',
     is_flag=True,
     default=False,
@@ -405,7 +411,12 @@ def install(
     'database will not be modified.  Use this option to check for updates.',
 )
 @click.pass_obj
-def update(mw: _CtxObjWrapper, addons: Sequence[Defn], dry_run: bool) -> None:
+def update(
+    mw: _CtxObjWrapper,
+    addons: Sequence[Defn],
+    retain_strategies: bool,
+    dry_run: bool,
+) -> None:
     "Update installed add-ons."
     import sqlalchemy as sa
 
@@ -426,7 +437,9 @@ def update(mw: _CtxObjWrapper, addons: Sequence[Defn], dry_run: bool) -> None:
             ]
 
     results = mw.run_with_progress(
-        mw.manager.update(addons or installed_pkgs_to_defns(), bool(addons), dry_run)
+        mw.manager.update(
+            addons or installed_pkgs_to_defns(), retain_strategies if addons else False, dry_run
+        )
     )
     Report(results.items(), filter_results).generate_and_exit()
 

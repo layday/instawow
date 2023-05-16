@@ -10,10 +10,10 @@ CLI
 - Added add-on definition mini-DSL replacing the various strategy install options.
   Strategies can now be passed as URL fragments of the add-on ``Defn``,
   e.g. ``foo:bar#any_flavour;version_eq=1``.
-- Strategies passed to the ``update`` command will be respected *if* they result
+- Strategies passed to ``update --retain-strategies`` will be respected *if* they result
   in a change.  This opens up several possibilities, e.g. a bare ``source:alias``
   will unpin an add-on that was previously rolled back.
-- Removed ``--version`` option from ``rollback``.  Use the ``update`` command to
+- Removed ``--version`` option from ``rollback``.  Use ``update --retain-strategies`` to
   roll back to a known version.
 - Added ``--dry-run`` option to ``install`` and ``update``.
   Issue ``instawow update --dry-run`` to check for add-on updates.
