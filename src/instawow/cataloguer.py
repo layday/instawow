@@ -3,8 +3,9 @@ from __future__ import annotations
 from collections.abc import Set
 from datetime import datetime
 from functools import cached_property
+from typing import Any
 
-from attrs import asdict, frozen
+from attrs import frozen
 from cattrs import Converter
 from cattrs.preconf.json import configure_converter
 from typing_extensions import Self
@@ -22,6 +23,8 @@ catalogue_converter = Converter(
     }
 )
 configure_converter(catalogue_converter)
+
+_normalise_name = normalise_names('')
 
 
 @frozen(kw_only=True)
@@ -74,49 +77,50 @@ class Catalogue:
     curse_slugs: dict[str, str]
 
     @classmethod
-    def from_base_catalogue(
-        cls, unstructured_base_catalogue: object, start_date: datetime | None
-    ) -> Self:
+    def from_base_catalogue(cls, unstructured_base_catalogue: dict[str, Any]) -> Self:
         from ._sources.cfcore import CfCoreResolver
         from ._sources.github import GithubResolver
 
-        normalise = normalise_names('')
+        normalise_name = _normalise_name
 
-        base_entries = catalogue_converter.structure(
-            unstructured_base_catalogue, BaseCatalogue
-        ).entries
-        if start_date is not None:
-            base_entries = [e for e in base_entries if e.last_updated >= start_date]
+        base_entries = unstructured_base_catalogue['entries']
 
         most_downloads_per_source = {
-            s: max(e.download_count for e in i)
-            for s, i in bucketise(base_entries, key=lambda e: e.source).items()
+            s: max(e['download_count'] for e in i)
+            for s, i in bucketise(base_entries, key=lambda e: e['source']).items()
         }
         same_as_from_github = {
-            (s.source, s.id): [
-                CatalogueSameAs(source=e.source, id=e.id),
-                *(i for i in e.same_as if i.source != s.source),
+            (s['source'], s['id']): [
+                e,
+                *(i for i in e['same_as'] if i['source'] != s['source']),
             ]
             for e in base_entries
-            if e.source == GithubResolver.metadata.id and e.same_as
-            for s in e.same_as
+            if e['source'] == GithubResolver.metadata.id and e['same_as']
+            for s in e['same_as']
         }
-        entries = [
-            CatalogueEntry(
-                **asdict(e, filter=lambda a, _: a.name != 'same_as'),
-                same_as=e.same_as
-                if e.source == GithubResolver.metadata.id
-                else (same_as_from_github.get((e.source, e.id)) or e.same_as),
-                normalised_name=normalise(e.name),
-                derived_download_score=0
-                if e.source == GithubResolver.metadata.id
-                else e.download_count / most_downloads_per_source[e.source],
-            )
-            for e in base_entries
-        ]
-        return cls(
-            entries=entries,
-            curse_slugs={e.slug: e.id for e in entries if e.source == CfCoreResolver.metadata.id},
+
+        return catalogue_converter.structure(
+            {
+                'entries': (
+                    e
+                    | {
+                        'same_as': e['same_as']
+                        if e['source'] == GithubResolver.metadata.id
+                        else (same_as_from_github.get((e['source'], e['id'])) or e['same_as']),
+                        'normalised_name': normalise_name(e['name']),
+                        'derived_download_score': 0
+                        if e['source'] == GithubResolver.metadata.id
+                        else e['download_count'] / most_downloads_per_source[e['source']],
+                    }
+                    for e in base_entries
+                ),
+                'curse_slugs': {
+                    e['slug']: e['id']
+                    for e in base_entries
+                    if e['source'] == CfCoreResolver.metadata.id
+                },
+            },
+            cls,
         )
 
     @cached_property

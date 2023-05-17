@@ -219,7 +219,7 @@ def contextualise(
 @lru_cache(1)
 def _parse_catalogue(raw_catalogue: bytes):
     with time_op(lambda t: logger.debug(f'parsed catalogue in {t:.3f}s')):
-        return Catalogue.from_base_catalogue(json.loads(raw_catalogue), None)
+        return Catalogue.from_base_catalogue(json.loads(raw_catalogue))
 
 
 class Manager:
