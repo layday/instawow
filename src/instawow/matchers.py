@@ -5,7 +5,7 @@ from collections.abc import Awaitable, Iterable, Mapping
 from functools import cached_property
 from itertools import chain, product
 from pathlib import Path
-from typing import Protocol, TypeVar
+from typing import Protocol
 
 import sqlalchemy as sa
 from attrs import field, frozen
@@ -17,7 +17,6 @@ from .common import AddonHashMethod, Defn, Flavour
 from .db import pkg_folder
 from .utils import (
     TocReader,
-    assert_decorated_type,
     bucketise,
     gather,
     merge_intersecting_sets,
@@ -30,13 +29,6 @@ class Matcher(Protocol):
         self, manager: manager.Manager, leftovers: frozenset[AddonFolder]
     ) -> Awaitable[list[tuple[list[AddonFolder], list[Defn]]]]:
         ...
-
-
-_TMatcher = TypeVar('_TMatcher', bound=Matcher)
-
-
-class assert_matcher(assert_decorated_type[_TMatcher]):
-    pass
 
 
 # https://github.com/Stanzilla/WoWUIBugs/issues/68#issuecomment-830351390
@@ -109,7 +101,6 @@ def get_unreconciled_folders(manager: manager.Manager) -> frozenset[AddonFolder]
     return frozenset(_get_unreconciled_folders(manager))
 
 
-@assert_matcher
 async def match_toc_source_ids(manager: manager.Manager, leftovers: frozenset[AddonFolder]):
     addons_with_toc_source_ids = [
         (a, d)
@@ -133,7 +124,6 @@ async def match_toc_source_ids(manager: manager.Manager, leftovers: frozenset[Ad
     ]
 
 
-@assert_matcher
 async def match_folder_hashes(manager: manager.Manager, leftovers: frozenset[AddonFolder]):
     matches = await gather(
         r.get_folder_hash_matches(leftovers) for r in manager.resolvers.values()
@@ -154,7 +144,6 @@ async def match_folder_hashes(manager: manager.Manager, leftovers: frozenset[Add
     )
 
 
-@assert_matcher
 async def match_folder_name_subsets(manager: manager.Manager, leftovers: frozenset[AddonFolder]):
     catalogue = await manager.synchronise()
 
@@ -184,7 +173,6 @@ async def match_folder_name_subsets(manager: manager.Manager, leftovers: frozens
     ]
 
 
-@assert_matcher
 async def match_addon_names_with_folder_names(
     manager: manager.Manager, leftovers: frozenset[AddonFolder]
 ):

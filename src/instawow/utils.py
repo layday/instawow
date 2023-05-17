@@ -25,7 +25,7 @@ from pathlib import Path, PurePath
 from shutil import move
 from tempfile import mkdtemp
 from types import ModuleType
-from typing import Any, Generic, TypeVar, overload
+from typing import Any, TypeVar, overload
 from weakref import WeakValueDictionary
 
 from typing_extensions import ParamSpec
@@ -34,11 +34,6 @@ _T = TypeVar('_T')
 _U = TypeVar('_U')
 _THashable = TypeVar('_THashable', bound=Hashable)
 _P = ParamSpec('_P')
-
-
-class assert_decorated_type(Generic[_T]):
-    def __new__(cls, value: _T) -> _T:
-        return value
 
 
 if sys.version_info >= (3, 11):
