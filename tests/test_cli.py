@@ -192,7 +192,7 @@ def test_version_strategy_lifecycle(
 def test_install_options(
     run: C[[str], Result],
 ):
-    assert run('install curse:molinari#any_release_type;any_flavour').output == dedent(
+    assert run('install curse:molinari#any_release_type,any_flavour').output == dedent(
         '''\
         ✓ curse:molinari
           installed 90200.82-Release

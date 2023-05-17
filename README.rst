@@ -95,7 +95,7 @@ Add-ons take a number of options which determine how they are resolved:
 - ``version_eq=[VERSION]`` to install a specific add-on version
 
 In the CLI, you can pass strategies in the fragment portion of the add-on URI,
-separated by a semicolon, e.g. ``instawow install 'curse:molinari#any_release_type;any_flavour'``.
+separated by a semicolon, e.g. ``instawow install curse:molinari#any_release_type,any_flavour``.
 Strategies are respected by ``install`` and ``update --retain-strategies``.
 
 Reverting add-on updates

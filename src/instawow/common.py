@@ -112,6 +112,9 @@ class StrategyValues:
         return {Strategy(p): v for p, v in asdict(self).items() if v is not None}
 
 
+_UNSOURCE = '*'
+
+
 @frozen(hash=True)
 class Defn:
     source: str
@@ -135,13 +138,13 @@ class Defn:
             if not allow_unsourced:
                 raise ValueError(f'Unable to extract source from {uri}')
 
-            make_cls = partial(cls, source='*', alias=uri)
+            make_cls = partial(cls, source=_UNSOURCE, alias=uri)
         else:
             make_cls = partial(cls, source=url.scheme, alias=url.path)
 
         if include_strategies:
             strategy_values = {
-                s: v for f in url.fragment.split(';') for s, _, v in (f.partition('='),) if s
+                s: v for f in url.fragment.split(',') for s, _, v in (f.partition('='),) if s
             }
             if strategy_values:
                 unknown_strategies = strategy_values.keys() - set(Strategy)
@@ -176,7 +179,7 @@ class Defn:
 
     @property
     def is_unsourced(self) -> bool:
-        return self.source == '*'
+        return self.source == _UNSOURCE
 
 
 class AddonHashMethod(enum.Enum):
