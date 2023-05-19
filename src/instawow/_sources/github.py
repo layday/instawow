@@ -104,7 +104,7 @@ class GithubResolver(BaseResolver):
     async def make_request_headers(self, intent: HeadersIntent | None = None) -> dict[str, str]:
         headers = dict[str, str]()
 
-        if intent is HeadersIntent.download:
+        if intent is HeadersIntent.Download:
             headers['Accept'] = 'application/octet-stream'
 
         access_token = self._get_access_token(self._manager.config.global_config, 'github')
@@ -133,7 +133,7 @@ class GithubResolver(BaseResolver):
 
         from ..matchers import NORMALISED_FLAVOUR_TOC_SUFFIXES
 
-        download_headers = await self.make_request_headers(HeadersIntent.download)
+        download_headers = await self.make_request_headers(HeadersIntent.Download)
 
         matching_asset = None
 
@@ -274,7 +274,7 @@ class GithubResolver(BaseResolver):
     async def _find_matching_asset_from_release_json(
         self, assets: list[_GithubRelease_Asset], release_json_asset: _GithubRelease_Asset
     ):
-        download_headers = await self.make_request_headers(HeadersIntent.download)
+        download_headers = await self.make_request_headers(HeadersIntent.Download)
 
         async with self._manager.web_client.get(
             release_json_asset['url'],

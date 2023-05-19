@@ -665,7 +665,7 @@ class Manager:
                 async with self.web_client.get(
                     pkg.download_url,
                     headers=await self.resolvers[pkg.source].make_request_headers(
-                        intent=HeadersIntent.download
+                        intent=HeadersIntent.Download
                     ),
                     raise_for_status=True,
                     trace_request_ctx=make_pkg_progress_ctx(self.config.profile, pkg),

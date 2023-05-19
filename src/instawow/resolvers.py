@@ -30,7 +30,7 @@ TFolderHashCandidate = TypeVar('TFolderHashCandidate', bound=FolderHashCandidate
 
 
 class HeadersIntent(enum.IntEnum):
-    download = enum.auto()
+    Download = enum.auto()
 
 
 class Resolver(Protocol):

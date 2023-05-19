@@ -273,7 +273,7 @@ class CfCoreResolver(BaseResolver):
     async def make_request_headers(
         self, intent: HeadersIntent | None = None
     ) -> dict[str, str] | None:
-        if intent is HeadersIntent.download:
+        if intent is HeadersIntent.Download:
             return None
 
         maybe_access_token = self._get_access_token(self._manager.config.global_config)
