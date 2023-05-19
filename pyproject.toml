@@ -103,6 +103,7 @@ select = [
 ignore = [
   "E501",   # pycodestyle: line-too-long
   "TRY003", # tryceratops: raise-vanilla-args
+  "UP007",  # pyupgrade: non-pep604-annotation; enable after raising the min Python version to 3.10
 ]
 line-length = 99
 target-version = "py39"
@@ -132,9 +133,6 @@ known-first-party = [
 required-imports = [
   "from __future__ import annotations",
 ]
-
-[tool.ruff.pyupgrade]
-keep-runtime-typing = true
 
 [tool.black]
 line-length = 99
