@@ -223,6 +223,8 @@ class _StrEnumChoiceParam(Generic[_TStrEnum], click.Choice):
 
 
 class _ManyOptionalChoiceValueParam(click.types.CompositeParamType):
+    name = 'optional-choice-value'
+
     def __init__(
         self,
         choice_param: click.Choice,
