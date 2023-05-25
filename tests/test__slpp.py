@@ -160,7 +160,7 @@ def test_table_palooza():
                 4 }, -- [2]
             mixed = { 43, 54.3, false, string = "value", 9 }    -- wazzup
         }                   -- foo
-} -- bar'''  # noqa: RUF001
+} -- bar'''
         )
         == {
             'array': [65, 23, 5],
