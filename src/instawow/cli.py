@@ -1099,16 +1099,29 @@ def configure(
     """Configure instawow.
 
     You can pass configuration keys as arguments to reconfigure an existing
-    profile.  Pass a value to bypass the interactive prompt.  For example:
+    profile.  Pass a value to suppress the interactive prompt.  For example:
 
     \b
     * ``configure addon_dir`` will initiate an interactive session
       with autocompletion
     * ``configure "addon_dir=~/foo"` will set ``addon_dir``'s value
-      to ``~/foo`` directly
+      to ``~/foo`` immediately
     """
-    from ._cli_prompts import AttrsFieldValidator, ask, confirm, password, path, select
-    from .common import infer_flavour_from_path
+    from ._cli_prompts import (
+        AttrsFieldValidator,
+        Choice,
+        ask,
+        confirm,
+        password,
+        path,
+        select,
+        skip,
+    )
+    from .wow_installations import (
+        ADDON_DIR_PARTS,
+        find_installations,
+        infer_flavour_from_addon_dir,
+    )
 
     profile = ctx.find_root().params['profile']
 
@@ -1122,7 +1135,8 @@ def configure(
     except Exception:
         logger.exception('unable to read existing config')
 
-    if config_values is None:
+    is_new_profile = config_values is None
+    if is_new_profile:
         config_values = {'profile': profile, 'global_config': asdict(existing_global_config)}
 
     editable_config_values = dict(editable_config_values)
@@ -1138,7 +1152,53 @@ def configure(
 
     interactive_editable_config_keys = {k for k, v in editable_config_values.items() if v is None}
 
-    if _EditableConfigOptions.AddonDir in interactive_editable_config_keys:
+    # 0 = Unconfigured
+    # 1 = `addon_dir` configured
+    # 2 = both `addon_dir` and `game_flavour` configured
+    installation_configured = 0
+    if (
+        is_new_profile
+        and {_EditableConfigOptions.AddonDir, _EditableConfigOptions.GameFlavour}
+        <= interactive_editable_config_keys
+    ):
+        known_intallations = {
+            Config.read(existing_global_config, p).addon_dir.parent.parent
+            for p in existing_global_config.list_profiles()
+        }
+        available_installations = [
+            (k, v)
+            for k, v in find_installations()
+            if not any(d.samefile(k) for d in known_intallations)
+        ]
+        if available_installations:
+            selection: tuple[Path, Flavour | None] | tuple[()] = ask(
+                select(
+                    'Installation:',
+                    choices=[
+                        *(
+                            Choice(title=f'{k}  [{v}]', value=(k, v))
+                            for k, v in available_installations
+                        ),
+                        skip,
+                    ],
+                )
+            )
+            if selection:
+                (installation_path, flavour) = selection
+
+                addon_dir = installation_path.joinpath(*ADDON_DIR_PARTS)
+                addon_dir.mkdir(exist_ok=True)
+
+                editable_config_values |= {
+                    _EditableConfigOptions.AddonDir: addon_dir,
+                    _EditableConfigOptions.GameFlavour: flavour,
+                }
+                installation_configured = 2 if flavour else 1
+
+    if (
+        installation_configured == 0
+        and _EditableConfigOptions.AddonDir in interactive_editable_config_keys
+    ):
         editable_config_values[_EditableConfigOptions.AddonDir] = ask(
             path(
                 'Add-on directory:',
@@ -1150,13 +1210,16 @@ def configure(
             )
         )
 
-    if _EditableConfigOptions.GameFlavour in interactive_editable_config_keys:
+    if (
+        installation_configured < 2
+        and _EditableConfigOptions.GameFlavour in interactive_editable_config_keys
+    ):
         editable_config_values[_EditableConfigOptions.GameFlavour] = ask(
             select(
                 'Game flavour:',
                 choices=list(Flavour),
                 initial_choice=config_values.get('addon_dir')
-                and infer_flavour_from_path(config_values['addon_dir']),
+                and infer_flavour_from_addon_dir(config_values['addon_dir']),
             )
         )
 

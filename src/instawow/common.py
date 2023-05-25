@@ -1,11 +1,9 @@
 from __future__ import annotations
 
 import enum
-import os
 import typing
 from collections.abc import Iterable
 from functools import partial
-from pathlib import PurePath
 from typing import Literal, Protocol, TypeVar
 
 from attrs import asdict, evolve, frozen
@@ -64,20 +62,6 @@ class FlavourVersionRange(enum.Enum):
 
     def is_within_version(self, version_number: int) -> bool:
         return any(version_number in r for r in self.value)
-
-
-def infer_flavour_from_path(path: os.PathLike[str] | str) -> Flavour:
-    tail = tuple(map(str.casefold, PurePath(path).parts[-3:]))
-    if len(tail) != 3 or tail[1:] != ('interface', 'addons'):
-        return Flavour.Retail
-
-    flavour_dir = tail[0]
-    if flavour_dir in {'_classic_era_', '_classic_era_beta_', '_classic_era_ptr_'}:
-        return Flavour.VanillaClassic
-    elif flavour_dir in {'_classic_', '_classic_beta_', '_classic_ptr_'}:
-        return Flavour.Classic
-    else:
-        return Flavour.Retail
 
 
 class Strategy(StrEnum):

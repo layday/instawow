@@ -7,6 +7,9 @@ v3.0.0
 CLI
 ---
 
+- Added WoW installation finder (Mac only).  Located installations will be
+  offered as suggestions bypassing manual add-on directory and flavour entry
+  when configuring *instawow*.
 - Added add-on definition mini-DSL replacing the various strategy install options.
   Strategies can now be passed as URL fragments of the add-on ``Defn``,
   e.g. ``foo:bar#any_flavour,version_eq=1``.
