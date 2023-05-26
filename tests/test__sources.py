@@ -100,8 +100,8 @@ async def test_wowi_changelog_is_data_url(iw_manager: Manager):
     indirect=True,
 )
 async def test_tukui_basic(iw_manager: Manager):
-    tukui_suite = Defn('tukui', '-1')
-    elvui_suite = Defn('tukui', '-2')
+    tukui_suite = Defn('tukui', 'tukui')
+    elvui_suite = Defn('tukui', 'elvui')
 
     results = await iw_manager.resolve([tukui_suite, elvui_suite])
 
@@ -111,24 +111,14 @@ async def test_tukui_basic(iw_manager: Manager):
     assert results[elvui_suite].name == 'ElvUI'
 
 
-async def test_tukui_ui_suite_aliases(iw_manager: Manager):
-    tukui_id = Defn('tukui', '-1')
-    tukui_slug = Defn('tukui', 'tukui')
-    elvui_id = Defn('tukui', '-2')
-    elvui_slug = Defn('tukui', 'elvui')
-
-    results = await iw_manager.resolve([tukui_id, tukui_slug, elvui_id, elvui_slug])
-
-    assert results[tukui_id].id == results[tukui_slug].id
-    assert results[elvui_id].id == results[elvui_slug].id
-
-
 async def test_tukui_changelog_url(iw_manager: Manager):
-    ui_suite = Defn('tukui', '-1')
+    ui_suite = Defn('tukui', 'tukui')
 
     results = await iw_manager.resolve([ui_suite])
 
-    assert results[ui_suite].changelog_url == 'https://www.tukui.org/ui/tukui/changelog#20.28'
+    assert (
+        results[ui_suite].changelog_url == 'https://tukui-api.acidweb.dev/v1/changelog/tukui#20.37'
+    )
 
 
 async def test_github_basic(iw_manager: Manager):

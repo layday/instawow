@@ -1,19 +1,25 @@
 {
-  "name": "ElvUI",
-  "author": "Elv",
-  "url": "https://www.tukui.org/downloads/elvui-12.85.zip",
-  "version": "12.85",
-  "changelog": "https://www.tukui.org/ui/elvui/changelog",
-  "ticket": "https://git.tukui.org/elvui/elvui/issues",
-  "git": "https://git.tukui.org/elvui/elvui",
   "id": -2,
-  "patch": "9.2.7",
-  "lastupdate": "2022-09-12",
+  "author": "Elv",
+  "name": "ElvUI",
+  "url": "https://tukui-api.acidweb.dev/v1/download/elvui/1hPudQFCjmJYKNEgcITaqXQasJI1TZUM",
+  "version": "13.33",
+  "changelog_url": "https://tukui-api.acidweb.dev/v1/changelog/elvui",
+  "ticket_url": "https://github.com/tukui-org/ElvUI/issues",
+  "git_url": "https://github.com/tukui-org/ElvUI",
+  "patch": [
+    "10.1.0",
+    "1.14.3",
+    "3.4.1"
+  ],
+  "last_update": "2023-05-25",
   "web_url": "https://www.tukui.org/download.php?ui=elvui",
-  "lastdownload": "2022-09-12 20:30:01",
   "donate_url": "http://www.tukui.org/support.php",
-  "small_desc": "A user interface designed around user-friendliness with extra features that are not included in the standard ui",
-  "screenshot_url": "https://www.tukui.org/images/screenshots/DarkTheme_ThickBorders_DPS.jpg",
-  "downloads": 2147483000,
-  "category": "Full UI Replacements"
+  "small_desc": "A user interface designed around user-friendliness with extra features that are not included in the standard UI.",
+  "screenshot_url": "https://tukui-storage-public.acidweb.dev/elvui.jpg",
+  "directories": [
+    "ElvUI",
+    "ElvUI_Libraries",
+    "ElvUI_Options"
+  ]
 }

@@ -1,19 +1,23 @@
 {
-  "name": "Tukui",
-  "author": "Tukz",
-  "url": "https://www.tukui.org/downloads/tukui-20.28.zip",
-  "version": "20.28",
-  "changelog": "https://www.tukui.org/ui/tukui/changelog",
-  "ticket": "https://git.tukui.org/Tukz/Tukui/issues",
-  "git": "https://git.tukui.org/Tukz/Tukui",
   "id": -1,
-  "patch": "9.2.7",
-  "lastupdate": "2022-09-10",
+  "author": "Tukz",
+  "name": "Tukui",
+  "url": "https://tukui-api.acidweb.dev/v1/download/tukui/1hPudQFCjmJYKNEgcITaqXQasJI1TZUM",
+  "version": "20.37",
+  "changelog_url": "https://tukui-api.acidweb.dev/v1/changelog/tukui",
+  "ticket_url": "https://github.com/tukui-org/Tukui/issues",
+  "git_url": "https://github.com/tukui-org/Tukui",
+  "patch": [
+    "10.1.0",
+    "1.14.3",
+    "3.4.1"
+  ],
+  "last_update": "2023-05-08",
   "web_url": "https://www.tukui.org/download.php?ui=tukui",
-  "lastdownload": "2022-09-12 20:30:01",
   "donate_url": "http://www.tukui.org/support.php",
-  "small_desc": "Minimalistic and lightweight world of warcraft user interface",
-  "screenshot_url": "https://www.tukui.org/images/screenshots/t18.jpg",
-  "downloads": 2147483000,
-  "category": "Full UI Replacements"
+  "small_desc": "Minimalistic and lightweight World of Warcraft user interface.",
+  "screenshot_url": "https://tukui-storage-public.acidweb.dev/tukui.jpg",
+  "directories": [
+    "Tukui"
+  ]
 }

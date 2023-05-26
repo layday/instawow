@@ -124,44 +124,17 @@ ROUTES = dict(
                 path_pattern=_match_any,
             ),
             Route(
-                URL('//www.tukui.org/api.php?ui=tukui'),
+                URL('//tukui-api.acidweb.dev/v1/addon/tukui'),
                 _load_json_fixture('tukui-ui--tukui.json'),
-                match_querystring=True,
             ),
             Route(
-                URL('//www.tukui.org/api.php?ui=elvui'),
+                URL('//tukui-api.acidweb.dev/v1/addon/elvui'),
                 _load_json_fixture('tukui-ui--elvui.json'),
-                match_querystring=True,
             ),
             Route(
-                URL('//www.tukui.org/api.php?addons='),
-                _load_json_fixture('tukui-retail-addons.json'),
-                match_querystring=True,
-            ),
-            Route(
-                URL('//www.tukui.org/api.php?classic-addons='),
-                _load_json_fixture('tukui-classic-addons.json'),
-                match_querystring=True,
-            ),
-            Route(
-                URL('//www.tukui.org/api.php?classic-wotlk-addons='),
-                _load_json_fixture('tukui-classic-wotlk-addons.json'),
-                match_querystring=True,
-            ),
-            Route(
-                URL('//www.tukui.org/downloads/tukui'),
+                URL('//tukui-api.acidweb.dev/v1/download/'),
                 lambda: Response(body=_make_addon_zip('Tukui')),
-                path_pattern=re.compile(r'^/downloads/tukui'),
-            ),
-            Route(
-                URL('//www.tukui.org/addons.php?download=1'),
-                lambda: Response(body=_make_addon_zip('ElvUI_MerathilisUI')),
-                match_querystring=True,
-            ),
-            Route(
-                URL('//www.tukui.org/classic-addons.php?download=1'),
-                lambda: Response(body=_make_addon_zip('Tukui')),
-                match_querystring=True,
+                path_pattern=re.compile(r'^/v1/download/'),
             ),
             Route(
                 URL('//api.github.com/repos/nebularg/PackagerTest'),
