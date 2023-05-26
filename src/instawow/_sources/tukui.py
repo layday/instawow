@@ -102,7 +102,12 @@ class TukuiResolver(BaseResolver):
                 id=str(item['id']),
                 name=item['name'],
                 url=item['web_url'],
-                game_flavours=frozenset(Flavour),
+                game_flavours=frozenset(
+                    Flavour.from_flavour_keyed_enum(r)
+                    for g in item['patch']
+                    for r in (FlavourVersionRange.from_version_string(g),)
+                    if r
+                ),
                 download_count=1,
                 last_updated=datetime.fromisoformat(item['last_update']).replace(
                     tzinfo=timezone.utc
