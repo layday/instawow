@@ -97,6 +97,7 @@ class StrategyValues:
 
 
 _UNSOURCE = '*'
+_UNSOURCE_NAME = 'ASTERISK'  # unicodedata.name(_UNSOURCE)
 
 _STRATEGY_SEP = ','
 
@@ -123,6 +124,8 @@ class Defn:
         if url.scheme not in known_sources:
             if not allow_unsourced:
                 raise ValueError(f'Unable to extract source from {uri}')
+            elif url.scheme == _UNSOURCE:
+                raise ValueError(f'{_UNSOURCE} ({_UNSOURCE_NAME}) is not valid as a source')
 
             make_cls = partial(cls, source=_UNSOURCE, alias=uri)
         else:
