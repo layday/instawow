@@ -98,6 +98,8 @@ class StrategyValues:
 
 _UNSOURCE = '*'
 
+_STRATEGY_SEP = ','
+
 
 @frozen(hash=True)
 class Defn:
@@ -128,7 +130,10 @@ class Defn:
 
         if include_strategies:
             strategy_values = {
-                s: v for f in url.fragment.split(',') for s, _, v in (f.partition('='),) if s
+                s: v
+                for f in url.fragment.split(_STRATEGY_SEP)
+                for s, _, v in (f.partition('='),)
+                if s
             }
             if strategy_values:
                 unknown_strategies = strategy_values.keys() - set(Strategy)
@@ -152,7 +157,7 @@ class Defn:
         if include_strategies:
             filled_strategies = self.strategies.filled_strategies
             if filled_strategies:
-                uri += f'''#{";".join(
+                uri += f'''#{_STRATEGY_SEP.join(
                     s if v is True else f"{s}={v}" for s, v in filled_strategies.items()
                 )}'''
 
