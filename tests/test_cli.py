@@ -252,11 +252,15 @@ def test_configure__show_active_profile(
 
 @pytest.mark.parametrize('command', ['configure', 'list'], ids=['explicit', 'implicit'])
 def test_configure__create_new_profile(
+    monkeypatch: pytest.MonkeyPatch,
     feed_pt: C[[str], None],
     iw_config: Config,
     run: C[[str], Result],
     command: str,
 ):
+    # In case there is a WoW installation in the test environment.
+    monkeypatch.setattr('instawow.wow_installations.find_installations', lambda: iter([]))
+
     feed_pt(f'{iw_config.addon_dir}\r\rY\r')
     assert run(f'-p foo {command}').output == (
         'Navigate to https://github.com/login/device and paste the code below:\n'
