@@ -1,8 +1,9 @@
 {
   "id": -1,
+  "slug": "tukui",
   "author": "Tukz",
   "name": "Tukui",
-  "url": "https://tukui-api.acidweb.dev/v1/download/tukui/1hPudQFCjmJYKNEgcITaqXQasJI1TZUM",
+  "url": "https://tukui-api.acidweb.dev/v1/download/tukui/2WMWXhDcQ5HUJZp3S3CLh5PZ8dG6Wxze",
   "version": "20.37",
   "changelog_url": "https://tukui-api.acidweb.dev/v1/changelog/tukui",
   "ticket_url": "https://github.com/tukui-org/Tukui/issues",

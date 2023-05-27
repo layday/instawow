@@ -17,6 +17,7 @@ from ..resolvers import BaseResolver
 
 class _TukuiAddon(TypedDict):
     id: int
+    slug: str
     author: str
     name: str
     url: str
@@ -72,7 +73,7 @@ class TukuiResolver(BaseResolver):
         return models.Pkg(
             source=self.metadata.id,
             id=str(ui_metadata['id']),
-            slug=response.url.name,
+            slug=ui_metadata['slug'],
             name=ui_metadata['name'],
             description=ui_metadata['small_desc'],
             url=ui_metadata['web_url'],
@@ -100,6 +101,7 @@ class TukuiResolver(BaseResolver):
             yield BaseCatalogueEntry(
                 source=cls.metadata.id,
                 id=str(item['id']),
+                slug=item['slug'],
                 name=item['name'],
                 url=item['web_url'],
                 game_flavours=frozenset(

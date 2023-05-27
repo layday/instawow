@@ -1,8 +1,9 @@
 {
   "id": -2,
+  "slug": "elvui",
   "author": "Elv",
   "name": "ElvUI",
-  "url": "https://tukui-api.acidweb.dev/v1/download/elvui/1hPudQFCjmJYKNEgcITaqXQasJI1TZUM",
+  "url": "https://tukui-api.acidweb.dev/v1/download/elvui/2WMWXhDcQ5HUJZp3S3CLh5PZ8dG6Wxze",
   "version": "13.33",
   "changelog_url": "https://tukui-api.acidweb.dev/v1/changelog/elvui",
   "ticket_url": "https://github.com/tukui-org/ElvUI/issues",
