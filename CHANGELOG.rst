@@ -1,11 +1,20 @@
-v3.0.0
-~~~~~~
+Changelog
+=========
 
-- Dropped support for Tukui add-ons other than ElvUI and the Tukui suite.
-  The Tukui add-on index has fallen into disuse and will be retired.
+v3.0.0
+------
+
+- Dropped support for Tukui add-ons other than the two headline UI suites,
+  having switched from the official API at https://www.tukui.org/api.php
+  to https://tukui-api.acidweb.dev/v1.
+  The new API is hosted by the author of
+  `CurseBreaker <https://github.com/AcidWeb/CurseBreaker>`_.
+  The official API is unmaintained and the add-on index has fallen into disuse.
+- Numeric aliases are no longer valid for Tukui add-ons; use ``tukui:elvui`` for
+  ElvUI and ``tukui:tukui`` for Tukui.
 
 CLI
----
+~~~
 
 - Added WoW installation finder (Mac only).  Located installations will be
   offered as suggestions bypassing manual add-on directory and flavour entry
@@ -32,7 +41,7 @@ CLI
   with list formatting.
 
 API
----
+~~~
 
 - Public enum members are now capitalised.
 - Exposed ``plugins.InstawowPlugin`` protocol.  *instawow* plug-ins shouldd
