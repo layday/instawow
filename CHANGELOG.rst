@@ -44,5 +44,5 @@ API
 ~~~
 
 - Public enum members are now capitalised.
-- Exposed ``plugins.InstawowPlugin`` protocol.  *instawow* plug-ins shouldd
+- Exposed ``plugins.InstawowPlugin`` protocol.  *instawow* plug-ins should
   conform to this protocol.
