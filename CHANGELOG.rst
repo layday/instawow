@@ -5,11 +5,11 @@ v3.0.0
 ------
 
 - Dropped support for Tukui add-ons other than the two headline UI suites,
-  having switched from the official API at https://www.tukui.org/api.php
+  having switched from the original API at https://www.tukui.org/api.php
   to https://tukui-api.acidweb.dev/v1.
   The new API is hosted by the author of
   `CurseBreaker <https://github.com/AcidWeb/CurseBreaker>`_.
-  The official API is unmaintained and the add-on index has fallen into disuse.
+  The original API is unmaintained and the add-on index has fallen into disuse.
 - Numeric aliases are no longer valid for Tukui add-ons; use ``tukui:elvui`` for
   ElvUI and ``tukui:tukui`` for Tukui.
 
