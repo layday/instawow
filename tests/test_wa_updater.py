@@ -5,7 +5,7 @@ from yarl import URL
 
 from instawow.common import Defn
 from instawow.manager import Manager
-from instawow.models import Pkg
+from instawow.pkg_models import Pkg
 from instawow.wa_updater import WaCompanionBuilder, WeakAura, WeakAuras
 
 

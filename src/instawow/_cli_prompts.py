@@ -23,7 +23,7 @@ from questionary import path as _path
 from questionary.prompts.common import InquirerControl, Separator, create_inquirer_layout
 from questionary.question import Question
 
-from . import models
+from . import pkg_models
 
 if TYPE_CHECKING:
     ExceptionGroup = ExceptionGroup[Exception]
@@ -65,7 +65,7 @@ class AttrsFieldValidator(Validator):
 
 
 class PkgChoice(Choice):
-    def __init__(self, *args: Any, pkg: models.Pkg, **kwargs: object) -> None:
+    def __init__(self, *args: Any, pkg: pkg_models.Pkg, **kwargs: object) -> None:
         super().__init__(*args, **kwargs)
         self.pkg = pkg
 

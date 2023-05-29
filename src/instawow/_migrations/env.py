@@ -3,7 +3,7 @@ from __future__ import annotations
 from alembic import context
 from sqlalchemy import engine_from_config, pool
 
-from instawow.db import metadata as target_metadata
+from instawow.pkg_db import metadata as target_metadata
 
 
 def run_offline() -> None:

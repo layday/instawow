@@ -7,7 +7,7 @@ from loguru import logger
 from typing_extensions import TypedDict
 from yarl import URL
 
-from .. import models
+from .. import pkg_models
 from .. import results as R
 from ..cataloguer import CatalogueEntry
 from ..common import ChangelogFormat, Defn, Flavour, FlavourVersionRange, SourceMetadata
@@ -51,7 +51,7 @@ class TukuiResolver(BaseResolver):
         if url.host == 'www.tukui.org' and url.path == '/download.php':
             return url.query.get('ui')
 
-    async def resolve_one(self, defn: Defn, metadata: None) -> models.Pkg:
+    async def resolve_one(self, defn: Defn, metadata: None) -> pkg_models.Pkg:
         async with self._manager.web_client.get(
             self._api_url / 'addon' / defn.alias,
             expire_after=timedelta(minutes=5),
@@ -70,7 +70,7 @@ class TukuiResolver(BaseResolver):
         ):
             raise R.PkgFilesNotMatching(defn.strategies)
 
-        return models.Pkg(
+        return pkg_models.Pkg(
             source=self.metadata.id,
             id=str(ui_metadata['id']),
             slug=ui_metadata['slug'],
@@ -86,7 +86,7 @@ class TukuiResolver(BaseResolver):
                 # The changelog URL is not versioned - add fragment to allow caching.
                 str(URL(ui_metadata['changelog_url']).with_fragment(ui_metadata['version']))
             ),
-            options=models.PkgOptions.from_strategy_values(defn.strategies),
+            options=pkg_models.PkgOptions.from_strategy_values(defn.strategies),
         )
 
     @classmethod

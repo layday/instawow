@@ -11,7 +11,7 @@ from typing_extensions import NotRequired as N
 from typing_extensions import TypedDict
 from yarl import URL
 
-from .. import models
+from .. import pkg_models
 from .. import results as R
 from ..cataloguer import AddonKey, CatalogueEntry
 from ..common import ChangelogFormat, Defn, Flavour, FlavourVersionRange, SourceMetadata, Strategy
@@ -330,7 +330,7 @@ class GithubResolver(BaseResolver):
         )
         return matching_asset
 
-    async def resolve_one(self, defn: Defn, metadata: None) -> models.Pkg:
+    async def resolve_one(self, defn: Defn, metadata: None) -> pkg_models.Pkg:
         github_headers = await self.make_request_headers()
 
         repo_url = self._repos_api_url / defn.alias
@@ -393,7 +393,7 @@ class GithubResolver(BaseResolver):
         else:
             raise R.PkgFilesNotMatching(defn.strategies)
 
-        return models.Pkg(
+        return pkg_models.Pkg(
             source=self.metadata.id,
             id=str(project['id']),
             slug=project['full_name'].lower(),
@@ -404,7 +404,7 @@ class GithubResolver(BaseResolver):
             date_published=iso8601.parse_date(release['published_at']),
             version=release['tag_name'],
             changelog_url=as_plain_text_data_url(release['body']),
-            options=models.PkgOptions.from_strategy_values(defn.strategies),
+            options=pkg_models.PkgOptions.from_strategy_values(defn.strategies),
         )
 
     @classmethod

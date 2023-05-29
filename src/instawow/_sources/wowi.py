@@ -11,7 +11,7 @@ from typing_extensions import NotRequired as N
 from typing_extensions import TypedDict
 from yarl import URL
 
-from .. import manager, models
+from .. import manager, pkg_models
 from .. import results as R
 from ..cataloguer import CatalogueEntry
 from ..common import ChangelogFormat, Defn, Flavour, FlavourVersionRange, SourceMetadata
@@ -126,7 +126,7 @@ class WowiResolver(BaseResolver):
 
     async def resolve(
         self, defns: Sequence[Defn]
-    ) -> dict[Defn, models.Pkg | R.ManagerError | R.InternalError]:
+    ) -> dict[Defn, pkg_models.Pkg | R.ManagerError | R.InternalError]:
         list_items_by_id = await self._synchronise()
 
         defns_to_ids = {d: ''.join(takewhile(str.isdigit, d.alias)) for d in defns}
@@ -156,11 +156,11 @@ class WowiResolver(BaseResolver):
         )
         return dict(zip(defns, results))
 
-    async def resolve_one(self, defn: Defn, metadata: _WowiCombinedItem | None) -> models.Pkg:
+    async def resolve_one(self, defn: Defn, metadata: _WowiCombinedItem | None) -> pkg_models.Pkg:
         if metadata is None:
             raise R.PkgNonexistent
 
-        return models.Pkg(
+        return pkg_models.Pkg(
             source=self.metadata.id,
             id=metadata['UID'],
             slug=slugify(f'{metadata["UID"]} {metadata["UIName"]}'),
@@ -171,7 +171,7 @@ class WowiResolver(BaseResolver):
             date_published=self._timestamp_to_datetime(metadata['UIDate']),
             version=metadata['UIVersion'],
             changelog_url=as_plain_text_data_url(metadata['UIChangeLog']),
-            options=models.PkgOptions.from_strategy_values(defn.strategies),
+            options=pkg_models.PkgOptions.from_strategy_values(defn.strategies),
         )
 
     @classmethod

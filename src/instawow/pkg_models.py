@@ -7,7 +7,7 @@ from attrs import asdict, frozen
 from cattrs import Converter
 from typing_extensions import Self
 
-from . import db
+from . import pkg_db
 from .common import Defn, StrategyValues
 
 _db_pkg_converter = Converter()
@@ -66,21 +66,25 @@ class Pkg:
         return _db_pkg_converter.structure(
             {
                 **row_mapping,
-                'options': connection.execute(sa.select(db.pkg_options).filter_by(**source_and_id))
+                'options': connection.execute(
+                    sa.select(pkg_db.pkg_options).filter_by(**source_and_id)
+                )
                 .mappings()
                 .one(),
                 'folders': connection.execute(
-                    sa.select(db.pkg_folder.c.name).filter_by(**source_and_id)
+                    sa.select(pkg_db.pkg_folder.c.name).filter_by(**source_and_id)
                 )
                 .mappings()
                 .all(),
-                'deps': connection.execute(sa.select(db.pkg_dep.c.id).filter_by(**source_and_id))
+                'deps': connection.execute(
+                    sa.select(pkg_db.pkg_dep.c.id).filter_by(**source_and_id)
+                )
                 .mappings()
                 .all(),
                 'logged_versions': connection.execute(
-                    sa.select(db.pkg_version_log)
+                    sa.select(pkg_db.pkg_version_log)
                     .filter_by(**source_and_id)
-                    .order_by(db.pkg_version_log.c.install_time.desc())
+                    .order_by(pkg_db.pkg_version_log.c.install_time.desc())
                     .limit(10)
                 )
                 .mappings()
@@ -93,22 +97,24 @@ class Pkg:
         values = asdict(self)
         source_and_id = {'pkg_source': values['source'], 'pkg_id': values['id']}
 
-        transaction.execute(sa.insert(db.pkg), [values])
+        transaction.execute(sa.insert(pkg_db.pkg), [values])
         transaction.execute(
-            sa.insert(db.pkg_folder), [{**f, **source_and_id} for f in values['folders']]
+            sa.insert(pkg_db.pkg_folder), [{**f, **source_and_id} for f in values['folders']]
         )
-        transaction.execute(sa.insert(db.pkg_options), [{**values['options'], **source_and_id}])
+        transaction.execute(
+            sa.insert(pkg_db.pkg_options), [{**values['options'], **source_and_id}]
+        )
         if values['deps']:
             transaction.execute(
-                sa.insert(db.pkg_dep), [{**d, **source_and_id} for d in values['deps']]
+                sa.insert(pkg_db.pkg_dep), [{**d, **source_and_id} for d in values['deps']]
             )
         transaction.execute(
-            sa.insert(db.pkg_version_log).prefix_with('OR IGNORE'),
+            sa.insert(pkg_db.pkg_version_log).prefix_with('OR IGNORE'),
             [{'version': values['version'], **source_and_id}],
         )
 
     def delete(self, transaction: sa.Connection) -> None:
-        transaction.execute(sa.delete(db.pkg).filter_by(source=self.source, id=self.id))
+        transaction.execute(sa.delete(pkg_db.pkg).filter_by(source=self.source, id=self.id))
 
     def to_defn(self) -> Defn:
         return Defn(

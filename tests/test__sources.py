@@ -16,7 +16,7 @@ from instawow._sources.tukui import TukuiResolver
 from instawow._sources.wowi import WowiResolver
 from instawow.common import Defn, Flavour, Strategy, StrategyValues
 from instawow.manager import Manager
-from instawow.models import Pkg
+from instawow.pkg_models import Pkg
 from instawow.resolvers import Resolver
 
 

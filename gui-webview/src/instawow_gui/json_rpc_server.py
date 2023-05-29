@@ -32,7 +32,7 @@ from loguru import logger
 from typing_extensions import Concatenate, ParamSpec, TypeAlias, TypedDict
 from yarl import URL
 
-from instawow import __version__, db, matchers, models
+from instawow import __version__, matchers, pkg_db, pkg_models
 from instawow import results as R
 from instawow._version import is_outdated
 from instawow.cataloguer import ComputedCatalogueEntry
@@ -262,16 +262,18 @@ class ListSourcesParams(_ProfileParamMixin, BaseParams):
 
 @_register_method('list')
 class ListInstalledParams(_ProfileParamMixin, BaseParams):
-    async def respond(self, managers: _ManagersManager) -> list[models.Pkg]:
+    async def respond(self, managers: _ManagersManager) -> list[pkg_models.Pkg]:
         manager = await managers.get_manager(self.profile)
 
         with manager.database.connect() as connection:
             installed_pkgs = (
-                connection.execute(sa.select(db.pkg).order_by(sa.func.lower(db.pkg.c.name)))
+                connection.execute(
+                    sa.select(pkg_db.pkg).order_by(sa.func.lower(pkg_db.pkg.c.name))
+                )
                 .mappings()
                 .all()
             )
-            return [models.Pkg.from_row_mapping(connection, p) for p in installed_pkgs]
+            return [pkg_models.Pkg.from_row_mapping(connection, p) for p in installed_pkgs]
 
 
 @_register_method('search')
@@ -298,7 +300,7 @@ class SearchParams(_ProfileParamMixin, BaseParams):
 
 class SuccessResult(TypedDict):
     status: Literal['success']
-    addon: models.Pkg
+    addon: pkg_models.Pkg
 
 
 class ErrorResult(TypedDict):
@@ -323,7 +325,7 @@ class ResolveParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
         results = await managers.run(self.profile, self._resolve)
         return [
             {'status': 'success', 'addon': r}
-            if isinstance(r, models.Pkg)
+            if isinstance(r, pkg_models.Pkg)
             else {'status': r.status, 'message': r.message}
             for r in results.values()
         ]
@@ -403,7 +405,7 @@ class GetChangelogParams(_ProfileParamMixin, BaseParams):
 
 class AddonMatch(TypedDict):
     folders: list[AddonMatch_AddonFolder]
-    matches: list[models.Pkg]
+    matches: list[pkg_models.Pkg]
 
 
 class AddonMatch_AddonFolder(TypedDict):
@@ -429,7 +431,7 @@ class ReconcileParams(_ProfileParamMixin, BaseParams):
             (a, [i for i in (pkgs.get(d) for d in s) if i]) for a, s in match_groups
         ]
         unmatched_folders = (
-            ([a], list[models.Pkg]())
+            ([a], list[pkg_models.Pkg]())
             for a in sorted(leftovers - frozenset(i for a, _ in matched_folders for i in a))
         )
         return [
@@ -439,8 +441,8 @@ class ReconcileParams(_ProfileParamMixin, BaseParams):
 
 
 class ReconcileInstalledCandidate(TypedDict):
-    installed_addon: models.Pkg
-    alternative_addons: list[models.Pkg]
+    installed_addon: pkg_models.Pkg
+    alternative_addons: list[pkg_models.Pkg]
 
 
 @_register_method('get_reconcile_installed_candidates')
@@ -450,9 +452,9 @@ class GetReconcileInstalledCandidatesParams(_ProfileParamMixin, BaseParams):
 
         with manager.database.connect() as connection:
             installed_pkgs = [
-                models.Pkg.from_row_mapping(connection, p)
+                pkg_models.Pkg.from_row_mapping(connection, p)
                 for p in connection.execute(
-                    sa.select(db.pkg).order_by(sa.func.lower(db.pkg.c.name))
+                    sa.select(pkg_db.pkg).order_by(sa.func.lower(pkg_db.pkg.c.name))
                 )
                 .mappings()
                 .all()
@@ -581,7 +583,7 @@ def _init_json_rpc_web_client(cache_dir: Path):
             progress_reporters.add(entry)
             content.on_eof(lambda: progress_reporters.remove(entry))
 
-    progress_reporters: set[tuple[str, models.Pkg, Callable[[], float]]] = set()
+    progress_reporters: set[tuple[str, pkg_models.Pkg, Callable[[], float]]] = set()
 
     trace_config = aiohttp.TraceConfig()
     trace_config.on_request_end.append(do_on_request_end)

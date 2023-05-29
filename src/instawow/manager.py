@@ -28,7 +28,7 @@ from loguru import logger
 from typing_extensions import Concatenate, ParamSpec, Self, TypeAlias
 from yarl import URL
 
-from . import db, http, models
+from . import http, pkg_db, pkg_models
 from . import results as R
 from ._sources.cfcore import CfCoreResolver
 from ._sources.github import GithubResolver
@@ -118,7 +118,7 @@ def _open_pkg_archive(path: PurePath):
 
 @object.__new__
 class _DummyResolver:
-    async def resolve(self, defns: Sequence[Defn]) -> dict[Defn, _ResultOrError[models.Pkg]]:
+    async def resolve(self, defns: Sequence[Defn]) -> dict[Defn, _ResultOrError[pkg_models.Pkg]]:
         return dict.fromkeys(defns, R.PkgSourceInvalid())
 
     async def get_changelog(self, uri: URL) -> str:
@@ -268,7 +268,7 @@ class Manager:
     @classmethod
     def from_config(cls, config: Config) -> Self:
         "Instantiate the manager from a configuration object."
-        return cls(config, db.prepare_database(config.db_uri))
+        return cls(config, pkg_db.prepare_database(config.db_uri))
 
     @property
     def locks(self) -> LocksType:
@@ -295,27 +295,27 @@ class Manager:
             return (
                 connection.execute(
                     sa.select(sa.text('1'))
-                    .select_from(db.pkg)
+                    .select_from(pkg_db.pkg)
                     .where(
-                        db.pkg.c.source == defn.source,
-                        (db.pkg.c.id == defn.alias)
-                        | (db.pkg.c.id == defn.id)
-                        | (sa.func.lower(db.pkg.c.slug) == sa.func.lower(defn.alias)),
+                        pkg_db.pkg.c.source == defn.source,
+                        (pkg_db.pkg.c.id == defn.alias)
+                        | (pkg_db.pkg.c.id == defn.id)
+                        | (sa.func.lower(pkg_db.pkg.c.slug) == sa.func.lower(defn.alias)),
                     )
                 ).scalar()
                 == 1
             )
 
-    def get_pkg(self, defn: Defn, partial_match: bool = False) -> models.Pkg | None:
+    def get_pkg(self, defn: Defn, partial_match: bool = False) -> pkg_models.Pkg | None:
         "Retrieve a package from the database."
         with self.database.connect() as connection:
             maybe_row_mapping = (
                 connection.execute(
-                    sa.select(db.pkg).where(
-                        db.pkg.c.source == defn.source,
-                        (db.pkg.c.id == defn.alias)
-                        | (db.pkg.c.id == defn.id)
-                        | (sa.func.lower(db.pkg.c.slug) == sa.func.lower(defn.alias)),
+                    sa.select(pkg_db.pkg).where(
+                        pkg_db.pkg.c.source == defn.source,
+                        (pkg_db.pkg.c.id == defn.alias)
+                        | (pkg_db.pkg.c.id == defn.id)
+                        | (sa.func.lower(pkg_db.pkg.c.slug) == sa.func.lower(defn.alias)),
                     )
                 )
                 .mappings()
@@ -324,25 +324,25 @@ class Manager:
             if maybe_row_mapping is None and partial_match:
                 maybe_row_mapping = (
                     connection.execute(
-                        sa.select(db.pkg)
-                        .where(db.pkg.c.slug.contains(defn.alias))
-                        .order_by(db.pkg.c.name)
+                        sa.select(pkg_db.pkg)
+                        .where(pkg_db.pkg.c.slug.contains(defn.alias))
+                        .order_by(pkg_db.pkg.c.name)
                     )
                     .mappings()
                     .first()
                 )
             if maybe_row_mapping is not None:
-                return models.Pkg.from_row_mapping(connection, maybe_row_mapping)
+                return pkg_models.Pkg.from_row_mapping(connection, maybe_row_mapping)
 
     @t
-    def _install_pkg(self, pkg: models.Pkg, archive: Path, replace: bool) -> R.PkgInstalled:
+    def _install_pkg(self, pkg: pkg_models.Pkg, archive: Path, replace: bool) -> R.PkgInstalled:
         with _open_pkg_archive(archive) as (top_level_folders, extract):
             with self.database.connect() as connection:
                 installed_conflicts = connection.execute(
-                    sa.select(db.pkg)
+                    sa.select(pkg_db.pkg)
                     .distinct()
-                    .join(db.pkg_folder)
-                    .where(db.pkg_folder.c.name.in_(top_level_folders))
+                    .join(pkg_db.pkg_folder)
+                    .where(pkg_db.pkg_folder.c.name.in_(top_level_folders))
                 ).all()
             if installed_conflicts:
                 raise R.PkgConflictsWithInstalled(installed_conflicts)
@@ -362,24 +362,28 @@ class Manager:
 
             extract(self.config.addon_dir)
 
-        pkg = evolve(pkg, folders=[models.PkgFolder(name=f) for f in sorted(top_level_folders)])
+        pkg = evolve(
+            pkg, folders=[pkg_models.PkgFolder(name=f) for f in sorted(top_level_folders)]
+        )
         with self.database.begin() as transaction:
             pkg.insert(transaction)
 
         return R.PkgInstalled(pkg)
 
     @t
-    def _update_pkg(self, old_pkg: models.Pkg, new_pkg: models.Pkg, archive: Path) -> R.PkgUpdated:
+    def _update_pkg(
+        self, old_pkg: pkg_models.Pkg, new_pkg: pkg_models.Pkg, archive: Path
+    ) -> R.PkgUpdated:
         with _open_pkg_archive(archive) as (top_level_folders, extract):
             with self.database.connect() as connection:
                 installed_conflicts = connection.execute(
-                    sa.select(db.pkg)
+                    sa.select(pkg_db.pkg)
                     .distinct()
-                    .join(db.pkg_folder)
+                    .join(pkg_db.pkg_folder)
                     .where(
-                        db.pkg_folder.c.pkg_source != new_pkg.source,
-                        db.pkg_folder.c.pkg_id != new_pkg.id,
-                        db.pkg_folder.c.name.in_(top_level_folders),
+                        pkg_db.pkg_folder.c.pkg_source != new_pkg.source,
+                        pkg_db.pkg_folder.c.pkg_id != new_pkg.id,
+                        pkg_db.pkg_folder.c.name.in_(top_level_folders),
                     )
                 ).all()
             if installed_conflicts:
@@ -399,7 +403,7 @@ class Manager:
             extract(self.config.addon_dir)
 
         new_pkg = evolve(
-            new_pkg, folders=[models.PkgFolder(name=f) for f in sorted(top_level_folders)]
+            new_pkg, folders=[pkg_models.PkgFolder(name=f) for f in sorted(top_level_folders)]
         )
         with self.database.begin() as transaction:
             old_pkg.delete(transaction)
@@ -408,7 +412,7 @@ class Manager:
         return R.PkgUpdated(old_pkg, new_pkg)
 
     @t
-    def _remove_pkg(self, pkg: models.Pkg, keep_folders: bool) -> R.PkgRemoved:
+    def _remove_pkg(self, pkg: pkg_models.Pkg, keep_folders: bool) -> R.PkgRemoved:
         if not keep_folders:
             trash(
                 (self.config.addon_dir / f.name for f in pkg.folders),
@@ -434,8 +438,8 @@ class Manager:
         return _parse_catalogue(raw_catalogue)
 
     async def find_equivalent_pkg_defns(
-        self, pkgs: Collection[models.Pkg]
-    ) -> dict[models.Pkg, list[Defn]]:
+        self, pkgs: Collection[pkg_models.Pkg]
+    ) -> dict[pkg_models.Pkg, list[Defn]]:
         "Given a list of packages, find ``Defn``s of each package from other sources."
         from .matchers import AddonFolder
 
@@ -466,7 +470,7 @@ class Manager:
                 )
             ]
 
-            defns_per_pkg: dict[models.Pkg, frozenset[Defn]] = {
+            defns_per_pkg: dict[pkg_models.Pkg, frozenset[Defn]] = {
                 p: frozenset() for p in folders_per_pkg
             }
             for (pkg, orig_folders), (defn, matched_folders) in product(
@@ -477,7 +481,7 @@ class Manager:
 
             return defns_per_pkg
 
-        def get_catalogue_defns(pkg: models.Pkg) -> frozenset[Defn]:
+        def get_catalogue_defns(pkg: pkg_models.Pkg) -> frozenset[Defn]:
             entry = catalogue.keyed_entries.get((pkg.source, pkg.id))
             if entry:
                 return frozenset(Defn(s.source, s.id) for s in entry.same_as)
@@ -509,8 +513,8 @@ class Manager:
         }
 
     async def _resolve_deps(
-        self, results: Collection[_ResultOrError[models.Pkg]]
-    ) -> Mapping[Defn, _ResultOrError[models.Pkg]]:
+        self, results: Collection[_ResultOrError[pkg_models.Pkg]]
+    ) -> Mapping[Defn, _ResultOrError[pkg_models.Pkg]]:
         """Resolve package dependencies.
 
         The resolver will not follow dependencies
@@ -518,7 +522,7 @@ class Manager:
         complexity for something that I would never expect to
         encounter in the wild.
         """
-        pkgs = [r for r in results if isinstance(r, models.Pkg)]
+        pkgs = [r for r in results if isinstance(r, pkg_models.Pkg)]
         dep_defns = uniq(
             filterfalse(
                 {(p.source, p.id) for p in pkgs}.__contains__,
@@ -530,13 +534,14 @@ class Manager:
 
         deps = await self.resolve(list(starmap(Defn, dep_defns)))
         pretty_deps = {
-            evolve(d, alias=r.slug) if isinstance(r, models.Pkg) else d: r for d, r in deps.items()
+            evolve(d, alias=r.slug) if isinstance(r, pkg_models.Pkg) else d: r
+            for d, r in deps.items()
         }
         return pretty_deps
 
     async def resolve(
         self, defns: Collection[Defn], with_deps: bool = False
-    ) -> Mapping[Defn, _ResultOrError[models.Pkg]]:
+    ) -> Mapping[Defn, _ResultOrError[pkg_models.Pkg]]:
         "Resolve definitions into packages."
         if not defns:
             return {}
@@ -594,7 +599,11 @@ class Manager:
 
         def get_installed_pkg_keys():
             with self.database.connect() as connection:
-                return connection.execute(sa.select(db.pkg.c.source, db.pkg.c.id)).tuples().all()
+                return (
+                    connection.execute(sa.select(pkg_db.pkg.c.source, pkg_db.pkg.c.id))
+                    .tuples()
+                    .all()
+                )
 
         def make_filter_fns() -> Iterator[Callable[[ComputedCatalogueEntry], bool]]:
             yield lambda e: self.config.game_flavour in e.game_flavours
@@ -655,7 +664,7 @@ class Manager:
         )
         return [e for _, e in weighted_entries[:limit]]
 
-    async def _download_pkg_archive(self, pkg: models.Pkg, *, chunk_size: int = 4096):
+    async def _download_pkg_archive(self, pkg: pkg_models.Pkg, *, chunk_size: int = 4096):
         if is_file_uri(pkg.download_url):
             return Path(file_uri_to_path(pkg.download_url))
 
@@ -681,10 +690,10 @@ class Manager:
             return dest
 
     @t
-    def _check_installed_pkg_integrity(self, pkg: models.Pkg) -> bool:
+    def _check_installed_pkg_integrity(self, pkg: pkg_models.Pkg) -> bool:
         return all((self.config.addon_dir / p.name).exists() for p in pkg.folders)
 
-    async def _should_update_pkg(self, old_pkg: models.Pkg, new_pkg: models.Pkg) -> bool:
+    async def _should_update_pkg(self, old_pkg: pkg_models.Pkg, new_pkg: pkg_models.Pkg) -> bool:
         return old_pkg.version != new_pkg.version or (
             not await self._check_installed_pkg_integrity(old_pkg)
         )
@@ -841,7 +850,7 @@ class Manager:
 
             with self.database.begin() as transaction:
                 transaction.execute(
-                    sa.update(db.pkg_options)
+                    sa.update(pkg_db.pkg_options)
                     .filter_by(pkg_source=pkg.source, pkg_id=pkg.id)
                     .values(version_eq=version is not None)
                 )

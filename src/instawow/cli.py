@@ -16,7 +16,7 @@ from attrs import asdict, evolve, fields, resolve_types
 from loguru import logger
 from typing_extensions import Self
 
-from . import __version__, db, models
+from . import __version__, pkg_db, pkg_models
 from . import manager as _manager
 from . import results as R
 from .common import ChangelogFormat, Defn, Flavour, SourceMetadata, Strategy
@@ -434,8 +434,8 @@ def update(
     def installed_pkgs_to_defns():
         with mw.manager.database.connect() as connection:
             return [
-                models.Pkg.from_row_mapping(connection, p).to_defn()
-                for p in connection.execute(sa.select(db.pkg)).mappings().all()
+                pkg_models.Pkg.from_row_mapping(connection, p).to_defn()
+                for p in connection.execute(sa.select(pkg_db.pkg)).mappings().all()
             ]
 
     results = mw.run_with_progress(
@@ -525,7 +525,7 @@ def reconcile(mw: _CtxObjWrapper, auto: bool, rereconcile: bool, list_unreconcil
     from ._cli_prompts import PkgChoice, ask, confirm, select, skip
     from .matchers import DEFAULT_MATCHERS, AddonFolder, get_unreconciled_folders
 
-    def construct_choice(pkg: models.Pkg, highlight_version: bool, disabled: bool):
+    def construct_choice(pkg: pkg_models.Pkg, highlight_version: bool, disabled: bool):
         defn = pkg.to_defn()
         return PkgChoice(
             [
@@ -539,11 +539,11 @@ def reconcile(mw: _CtxObjWrapper, auto: bool, rereconcile: bool, list_unreconcil
 
     def gather_selections(
         groups: Collection[tuple[_T, Sequence[Defn]]],
-        selector: Callable[[_T, Sequence[models.Pkg]], Defn | None],
+        selector: Callable[[_T, Sequence[pkg_models.Pkg]], Defn | None],
     ):
         results = mw.run_with_progress(mw.manager.resolve(uniq(d for _, b in groups for d in b)))
         for addons_or_pkg, defns in groups:
-            shortlist = [r for d in defns for r in (results[d],) if isinstance(r, models.Pkg)]
+            shortlist = [r for d in defns for r in (results[d],) if isinstance(r, pkg_models.Pkg)]
             if shortlist:
                 selection = selector(addons_or_pkg, shortlist)
                 yield selection
@@ -556,7 +556,7 @@ def reconcile(mw: _CtxObjWrapper, auto: bool, rereconcile: bool, list_unreconcil
 
         import sqlalchemy as sa
 
-        def select_alternative_pkg(installed_pkg: models.Pkg, pkgs: Sequence[models.Pkg]):
+        def select_alternative_pkg(installed_pkg: pkg_models.Pkg, pkgs: Sequence[pkg_models.Pkg]):
             highlight_version = not all_eq(i.version for i in (installed_pkg, *pkgs))
             choices = [
                 construct_choice(installed_pkg, highlight_version, True),
@@ -568,9 +568,9 @@ def reconcile(mw: _CtxObjWrapper, auto: bool, rereconcile: bool, list_unreconcil
 
         with mw.manager.database.connect() as connection:
             installed_pkgs = [
-                models.Pkg.from_row_mapping(connection, p)
+                pkg_models.Pkg.from_row_mapping(connection, p)
                 for p in connection.execute(
-                    sa.select(db.pkg).order_by(sa.func.lower(db.pkg.c.name))
+                    sa.select(pkg_db.pkg).order_by(sa.func.lower(pkg_db.pkg.c.name))
                 )
                 .mappings()
                 .all()
@@ -628,7 +628,7 @@ def reconcile(mw: _CtxObjWrapper, auto: bool, rereconcile: bool, list_unreconcil
         if not auto:
             click.echo(PREAMBLE)
 
-        def select_pkg(addons: Sequence[AddonFolder], pkgs: Sequence[models.Pkg]):
+        def select_pkg(addons: Sequence[AddonFolder], pkgs: Sequence[pkg_models.Pkg]):
             def combine_names():
                 return textwrap.shorten(', '.join(a.name for a in addons), 60)
 
@@ -641,7 +641,7 @@ def reconcile(mw: _CtxObjWrapper, auto: bool, rereconcile: bool, list_unreconcil
             selection = ask(select(f'{combine_names()} [{addons[0].version or "?"}]', choices))
             return selection or None
 
-        def pick_first_pkg(addons: Sequence[AddonFolder], pkgs: Sequence[models.Pkg]):
+        def pick_first_pkg(addons: Sequence[AddonFolder], pkgs: Sequence[pkg_models.Pkg]):
             return pkgs[0].to_defn()
 
         select_pkg_ = pick_first_pkg if auto else select_pkg
@@ -782,31 +782,31 @@ def list_installed(mw: _CtxObjWrapper, addons: Sequence[Defn], output_format: _L
 
     with mw.manager.database.connect() as connection:
 
-        def format_deps(pkg: models.Pkg):
+        def format_deps(pkg: pkg_models.Pkg):
             return (
                 Defn(pkg.source, s or e.id).as_uri()
                 for e in pkg.deps
                 for s in (
                     connection.execute(
-                        sa.select(db.pkg.c.slug).filter_by(source=pkg.source, id=e.id)
+                        sa.select(pkg_db.pkg.c.slug).filter_by(source=pkg.source, id=e.id)
                     ).scalar_one_or_none(),
                 )
             )
 
         def row_mappings_to_pkgs():
-            return map(models.Pkg.from_row_mapping, repeat(connection), pkg_mappings)
+            return map(pkg_models.Pkg.from_row_mapping, repeat(connection), pkg_mappings)
 
-        pkg_select_query = sa.select(db.pkg)
+        pkg_select_query = sa.select(pkg_db.pkg)
         if addons:
             pkg_select_query = pkg_select_query.filter(
                 sa.or_(
                     *(
-                        db.pkg.c.slug.contains(d.alias)
+                        pkg_db.pkg.c.slug.contains(d.alias)
                         if d.is_unsourced
-                        else (db.pkg.c.source == d.source)
+                        else (pkg_db.pkg.c.source == d.source)
                         & (
-                            (db.pkg.c.id == d.alias)
-                            | (sa.func.lower(db.pkg.c.slug) == sa.func.lower(d.alias))
+                            (pkg_db.pkg.c.id == d.alias)
+                            | (sa.func.lower(pkg_db.pkg.c.slug) == sa.func.lower(d.alias))
                         )
                         for d in addons
                     )
@@ -814,7 +814,7 @@ def list_installed(mw: _CtxObjWrapper, addons: Sequence[Defn], output_format: _L
             )
         pkg_mappings = (
             connection.execute(
-                pkg_select_query.order_by(db.pkg.c.source, sa.func.lower(db.pkg.c.name))
+                pkg_select_query.order_by(pkg_db.pkg.c.source, sa.func.lower(pkg_db.pkg.c.name))
             )
             .mappings()
             .all()
@@ -829,7 +829,7 @@ def list_installed(mw: _CtxObjWrapper, addons: Sequence[Defn], output_format: _L
             click.echo(
                 json_converter.dumps(  # pyright: ignore[reportUnknownMemberType]
                     row_mappings_to_pkgs(),
-                    list[models.Pkg],
+                    list[pkg_models.Pkg],
                     indent=2,
                 )
             )
@@ -970,20 +970,20 @@ def view_changelog(mw: _CtxObjWrapper, addon: Defn | None, convert: bool) -> Non
         import sqlalchemy as sa
 
         with mw.manager.database.connect() as connection:
-            join_clause = (db.pkg.c.source == db.pkg_version_log.c.pkg_source) & (
-                db.pkg.c.id == db.pkg_version_log.c.pkg_id
+            join_clause = (pkg_db.pkg.c.source == pkg_db.pkg_version_log.c.pkg_source) & (
+                pkg_db.pkg.c.id == pkg_db.pkg_version_log.c.pkg_id
             )
             last_installed_changelog_urls = connection.execute(
-                sa.select(db.pkg.c.source, db.pkg.c.slug, db.pkg.c.changelog_url)
-                .join(db.pkg_version_log, join_clause)
+                sa.select(pkg_db.pkg.c.source, pkg_db.pkg.c.slug, pkg_db.pkg.c.changelog_url)
+                .join(pkg_db.pkg_version_log, join_clause)
                 .filter(
-                    db.pkg_version_log.c.install_time
+                    pkg_db.pkg_version_log.c.install_time
                     >= sa.select(
                         sa.func.datetime(
-                            sa.func.max(db.pkg_version_log.c.install_time), '-1 minute'
+                            sa.func.max(pkg_db.pkg_version_log.c.install_time), '-1 minute'
                         )
                     )
-                    .join(db.pkg, join_clause)
+                    .join(pkg_db.pkg, join_clause)
                     .scalar_subquery()
                 )
             ).all()

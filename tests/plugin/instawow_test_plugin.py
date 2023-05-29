@@ -6,7 +6,7 @@ import click
 
 import instawow.plugins
 from instawow.common import ChangelogFormat, Defn, SourceMetadata
-from instawow.models import Pkg, PkgOptions
+from instawow.pkg_models import Pkg, PkgOptions
 from instawow.resolvers import BaseResolver
 
 

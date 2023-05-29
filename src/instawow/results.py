@@ -5,7 +5,7 @@ from typing import Any, Final, Protocol
 
 from attrs import asdict
 
-from . import models
+from . import pkg_models
 from .common import Strategy, StrategyValues
 
 
@@ -20,7 +20,7 @@ class _SuccessResult:
 
 
 class PkgInstalled(ManagerResult, _SuccessResult):
-    def __init__(self, pkg: models.Pkg, *, dry_run: bool = False) -> None:
+    def __init__(self, pkg: pkg_models.Pkg, *, dry_run: bool = False) -> None:
         super().__init__()
         self.pkg = pkg
         self.dry_run = dry_run
@@ -31,7 +31,9 @@ class PkgInstalled(ManagerResult, _SuccessResult):
 
 
 class PkgUpdated(ManagerResult, _SuccessResult):
-    def __init__(self, old_pkg: models.Pkg, new_pkg: models.Pkg, *, dry_run: bool = False) -> None:
+    def __init__(
+        self, old_pkg: pkg_models.Pkg, new_pkg: pkg_models.Pkg, *, dry_run: bool = False
+    ) -> None:
         super().__init__()
         self.old_pkg = old_pkg
         self.new_pkg = new_pkg
@@ -59,7 +61,7 @@ class PkgUpdated(ManagerResult, _SuccessResult):
 
 
 class PkgRemoved(ManagerResult, _SuccessResult):
-    def __init__(self, old_pkg: models.Pkg) -> None:
+    def __init__(self, old_pkg: pkg_models.Pkg) -> None:
         super().__init__()
         self.old_pkg = old_pkg
 

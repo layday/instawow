@@ -10,7 +10,7 @@ from attrs import evolve
 from instawow import results as R
 from instawow.common import Defn, Flavour, Strategy
 from instawow.manager import Manager
-from instawow.models import Pkg
+from instawow.pkg_models import Pkg
 
 
 def test_auth_bound_resolvers_are_not_unloaded_if_tokens_set(iw_manager: Manager):

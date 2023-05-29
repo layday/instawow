@@ -14,7 +14,7 @@ from typing_extensions import NotRequired as N
 from typing_extensions import TypedDict
 from yarl import URL
 
-from .. import manager, models
+from .. import manager, pkg_models
 from .. import results as R
 from ..cataloguer import CatalogueEntry
 from ..common import ChangelogFormat, Defn, Flavour, SourceMetadata, Strategy
@@ -283,7 +283,7 @@ class CfCoreResolver(BaseResolver):
 
     async def resolve(
         self, defns: Sequence[Defn]
-    ) -> dict[Defn, models.Pkg | R.ManagerError | R.InternalError]:
+    ) -> dict[Defn, pkg_models.Pkg | R.ManagerError | R.InternalError]:
         catalogue = await self._manager.synchronise()
 
         defns_to_maybe_numeric_ids = {
@@ -317,7 +317,7 @@ class CfCoreResolver(BaseResolver):
         )
         return dict(zip(defns, results))
 
-    async def resolve_one(self, defn: Defn, metadata: _CfCoreMod | None) -> models.Pkg:
+    async def resolve_one(self, defn: Defn, metadata: _CfCoreMod | None) -> pkg_models.Pkg:
         if metadata is None:
             raise R.PkgNonexistent
 
@@ -381,7 +381,7 @@ class CfCoreResolver(BaseResolver):
             else:
                 raise R.PkgFilesMissing
 
-        return models.Pkg(
+        return pkg_models.Pkg(
             source=self.metadata.id,
             id=str(metadata['id']),
             slug=metadata['slug'],
@@ -394,9 +394,9 @@ class CfCoreResolver(BaseResolver):
             changelog_url=str(
                 self._mod_api_url / f'{metadata["id"]}/files/{file["id"]}/changelog'
             ),
-            options=models.PkgOptions.from_strategy_values(defn.strategies),
+            options=pkg_models.PkgOptions.from_strategy_values(defn.strategies),
             deps=[
-                models.PkgDep(id=str(d['modId']))
+                pkg_models.PkgDep(id=str(d['modId']))
                 for d in file['dependencies']
                 if d['relationType'] == _CfCoreFileRelationType.required_dependency
             ],

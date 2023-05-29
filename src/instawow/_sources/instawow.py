@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import AsyncIterator
 from datetime import datetime, timezone
 
-from .. import models
+from .. import pkg_models
 from .. import results as R
 from ..cataloguer import CatalogueEntry
 from ..common import ChangelogFormat, Defn, Flavour, SourceMetadata
@@ -27,7 +27,7 @@ class InstawowResolver(BaseResolver):
         ('1', 'weakauras-companion-autoupdate'),
     }
 
-    async def resolve_one(self, defn: Defn, metadata: None) -> models.Pkg:
+    async def resolve_one(self, defn: Defn, metadata: None) -> pkg_models.Pkg:
         try:
             source_id, slug = next(p for p in self._ADDONS if defn.alias in p)
         except StopIteration:
@@ -39,7 +39,7 @@ class InstawowResolver(BaseResolver):
         if source_id == '1':
             await builder.build()
 
-        return models.Pkg(
+        return pkg_models.Pkg(
             source=self.metadata.id,
             id=source_id,
             slug=slug,
@@ -50,7 +50,7 @@ class InstawowResolver(BaseResolver):
             date_published=datetime.now(timezone.utc),
             version=await run_in_thread(builder.get_version)(),
             changelog_url=builder.changelog_path.as_uri(),
-            options=models.PkgOptions.from_strategy_values(defn.strategies),
+            options=pkg_models.PkgOptions.from_strategy_values(defn.strategies),
         )
 
     @classmethod

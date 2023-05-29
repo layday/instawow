@@ -8,7 +8,7 @@ import iso8601
 from typing_extensions import TypedDict
 from yarl import URL
 
-from .. import models
+from .. import pkg_models
 from .. import results as R
 from ..common import AddonHashMethod, ChangelogFormat, Defn, SourceMetadata, Strategy
 from ..http import make_generic_progress_ctx
@@ -116,7 +116,7 @@ class WagoResolver(BaseResolver):
             raise ValueError(f'{self.metadata.name} access token is not configured')
         return {'Authorization': f'Bearer {maybe_access_token}'}
 
-    async def resolve_one(self, defn: Defn, metadata: None) -> models.Pkg:
+    async def resolve_one(self, defn: Defn, metadata: None) -> pkg_models.Pkg:
         wago_game_version = self._manager.config.game_flavour.to_flavour_keyed_enum(
             _WagoGameVersion
         )
@@ -148,7 +148,7 @@ class WagoResolver(BaseResolver):
         else:
             file_date, file = matching_file
 
-        return models.Pkg(
+        return pkg_models.Pkg(
             source=self.metadata.id,
             id=addon_metadata['id'],
             slug=addon_metadata['slug'],
@@ -159,7 +159,7 @@ class WagoResolver(BaseResolver):
             date_published=file_date,
             version=file['label'],
             changelog_url=as_plain_text_data_url(file['changelog']),
-            options=models.PkgOptions.from_strategy_values(defn.strategies),
+            options=pkg_models.PkgOptions.from_strategy_values(defn.strategies),
         )
 
     @run_in_thread

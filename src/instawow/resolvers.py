@@ -10,7 +10,7 @@ from typing import Any, ClassVar, Protocol, TypeVar
 from typing_extensions import Self
 from yarl import URL
 
-from . import http, manager, models
+from . import http, manager, pkg_models
 from . import results as R
 from .cataloguer import CatalogueEntry
 from .common import AddonHashMethod, Defn, SourceMetadata
@@ -53,11 +53,11 @@ class Resolver(Protocol):
 
     async def resolve(
         self, defns: Sequence[Defn]
-    ) -> dict[Defn, models.Pkg | R.ManagerError | R.InternalError]:
+    ) -> dict[Defn, pkg_models.Pkg | R.ManagerError | R.InternalError]:
         "Resolve multiple ``Defn``s into packages."
         ...
 
-    async def resolve_one(self, defn: Defn, metadata: Any) -> models.Pkg:
+    async def resolve_one(self, defn: Defn, metadata: Any) -> pkg_models.Pkg:
         "Resolve a ``Defn`` into a package."
         ...
 
@@ -93,7 +93,7 @@ class BaseResolver(Resolver, Protocol):
 
         if cls.resolve_one is not super().resolve_one:
 
-            async def resolve_one(self: type[Self], defn: Defn, metadata: Any) -> models.Pkg:
+            async def resolve_one(self: type[Self], defn: Defn, metadata: Any) -> pkg_models.Pkg:
                 extraneous_strategies = (
                     defn.strategies.filled_strategies.keys() - self.metadata.strategies
                 )
@@ -121,7 +121,7 @@ class BaseResolver(Resolver, Protocol):
 
     async def resolve(
         self, defns: Sequence[Defn]
-    ) -> dict[Defn, models.Pkg | R.ManagerError | R.InternalError]:
+    ) -> dict[Defn, pkg_models.Pkg | R.ManagerError | R.InternalError]:
         from .manager import capture_manager_exc_async
 
         results = await gather(

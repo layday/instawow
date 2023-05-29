@@ -14,7 +14,7 @@ from typing_extensions import Self
 from . import manager
 from ._addon_hashing import generate_wowup_addon_hash
 from .common import AddonHashMethod, Defn, Flavour
-from .db import pkg_folder
+from .pkg_db import pkg_folder
 from .utils import (
     TocReader,
     bucketise,
