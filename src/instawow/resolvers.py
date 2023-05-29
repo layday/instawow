@@ -12,7 +12,7 @@ from yarl import URL
 
 from . import http, manager, models
 from . import results as R
-from .cataloguer import BaseCatalogueEntry
+from .cataloguer import CatalogueEntry
 from .common import AddonHashMethod, Defn, SourceMetadata
 from .config import GlobalConfig
 from .http import CACHE_INDEFINITELY
@@ -72,7 +72,7 @@ class Resolver(Protocol):
         ...
 
     @classmethod
-    def catalogue(cls, web_client: http.ClientSessionType) -> AsyncIterator[BaseCatalogueEntry]:
+    def catalogue(cls, web_client: http.ClientSessionType) -> AsyncIterator[CatalogueEntry]:
         "Enumerate add-ons from the source."
         ...
 
@@ -153,9 +153,7 @@ class BaseResolver(Resolver, Protocol):
         return []
 
     @classmethod
-    async def catalogue(
-        cls, web_client: http.ClientSessionType
-    ) -> AsyncIterator[BaseCatalogueEntry]:
+    async def catalogue(cls, web_client: http.ClientSessionType) -> AsyncIterator[CatalogueEntry]:
         return
         yield
 

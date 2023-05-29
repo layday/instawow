@@ -9,7 +9,7 @@ from yarl import URL
 
 from .. import models
 from .. import results as R
-from ..cataloguer import BaseCatalogueEntry
+from ..cataloguer import CatalogueEntry
 from ..common import ChangelogFormat, Defn, Flavour, FlavourVersionRange, SourceMetadata
 from ..http import ClientSessionType
 from ..resolvers import BaseResolver
@@ -90,7 +90,7 @@ class TukuiResolver(BaseResolver):
         )
 
     @classmethod
-    async def catalogue(cls, web_client: ClientSessionType) -> AsyncIterator[BaseCatalogueEntry]:
+    async def catalogue(cls, web_client: ClientSessionType) -> AsyncIterator[CatalogueEntry]:
         url = cls._api_url / 'addons'
         logger.debug(f'retrieving {url}')
 
@@ -98,7 +98,7 @@ class TukuiResolver(BaseResolver):
             items: list[_TukuiAddon] = await response.json()
 
         for item in items:
-            yield BaseCatalogueEntry(
+            yield CatalogueEntry(
                 source=cls.metadata.id,
                 id=str(item['id']),
                 slug=item['slug'],

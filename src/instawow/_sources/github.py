@@ -13,7 +13,7 @@ from yarl import URL
 
 from .. import models
 from .. import results as R
-from ..cataloguer import BaseCatalogueEntry, CatalogueSameAs
+from ..cataloguer import AddonKey, CatalogueEntry
 from ..common import ChangelogFormat, Defn, Flavour, FlavourVersionRange, SourceMetadata, Strategy
 from ..http import CACHE_INDEFINITELY, ClientSessionType
 from ..resolvers import BaseResolver, HeadersIntent
@@ -408,7 +408,7 @@ class GithubResolver(BaseResolver):
         )
 
     @classmethod
-    async def catalogue(cls, web_client: ClientSessionType) -> AsyncIterator[BaseCatalogueEntry]:
+    async def catalogue(cls, web_client: ClientSessionType) -> AsyncIterator[CatalogueEntry]:
         import csv
         from io import StringIO
 
@@ -434,7 +434,7 @@ class GithubResolver(BaseResolver):
                     yield Flavour.from_flavour_keyed_enum(release_json_flavor)
 
         for entry in dict_reader:
-            yield BaseCatalogueEntry(
+            yield CatalogueEntry(
                 source=cls.metadata.id,
                 id=entry['full_name'],
                 slug=entry['full_name'].lower(),
@@ -443,7 +443,5 @@ class GithubResolver(BaseResolver):
                 game_flavours=frozenset(extract_flavours(entry['flavors'])),
                 download_count=1,
                 last_updated=datetime.fromisoformat(entry['last_updated']),
-                same_as=[
-                    CatalogueSameAs(source=s, id=i) for k, s in id_keys for i in (entry[k],) if i
-                ],
+                same_as=[AddonKey(source=s, id=i) for k, s in id_keys for i in (entry[k],) if i],
             )

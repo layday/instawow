@@ -37,9 +37,9 @@ from ._sources.tukui import TukuiResolver
 from ._sources.wago import WagoResolver
 from ._sources.wowi import WowiResolver
 from .cataloguer import (
-    BASE_CATALOGUE_VERSION,
-    Catalogue,
-    CatalogueEntry,
+    CATALOGUE_VERSION,
+    ComputedCatalogue,
+    ComputedCatalogueEntry,
 )
 from .common import Defn, Strategy
 from .config import Config
@@ -219,7 +219,7 @@ def contextualise(
 @lru_cache(1)
 def _parse_catalogue(raw_catalogue: bytes):
     with time_op(lambda t: logger.debug(f'parsed catalogue in {t:.3f}s')):
-        return Catalogue.from_base_catalogue(json.loads(raw_catalogue))
+        return ComputedCatalogue.from_base_catalogue(json.loads(raw_catalogue))
 
 
 class Manager:
@@ -235,7 +235,7 @@ class Manager:
 
     _base_catalogue_url = (
         f'https://raw.githubusercontent.com/layday/instawow-data/data/'
-        f'base-catalogue-v{BASE_CATALOGUE_VERSION}.compact.json'
+        f'base-catalogue-v{CATALOGUE_VERSION}.compact.json'
     )
     _catalogue_ttl = timedelta(hours=4)
 
@@ -422,7 +422,7 @@ class Manager:
         return R.PkgRemoved(pkg)
 
     @_with_lock(_StandardLocks.LoadCatalogue, manager_bound=False)
-    async def synchronise(self) -> Catalogue:
+    async def synchronise(self) -> ComputedCatalogue:
         "Fetch the catalogue from the interwebs and load it."
         async with self.web_client.get(
             self._base_catalogue_url,
@@ -573,7 +573,7 @@ class Manager:
         filter_installed: Literal[
             'ident', 'include_only', 'exclude', 'exclude_from_all_sources'
         ] = 'ident',
-    ) -> list[CatalogueEntry]:
+    ) -> list[ComputedCatalogueEntry]:
         "Search the catalogue for packages by name."
         import rapidfuzz
 
@@ -596,7 +596,7 @@ class Manager:
             with self.database.connect() as connection:
                 return connection.execute(sa.select(db.pkg.c.source, db.pkg.c.id)).tuples().all()
 
-        def make_filter_fns() -> Iterator[Callable[[CatalogueEntry], bool]]:
+        def make_filter_fns() -> Iterator[Callable[[ComputedCatalogueEntry], bool]]:
             yield lambda e: self.config.game_flavour in e.game_flavours
 
             if sources:

@@ -35,7 +35,7 @@ from yarl import URL
 from instawow import __version__, db, matchers, models
 from instawow import results as R
 from instawow._version import is_outdated
-from instawow.cataloguer import CatalogueEntry
+from instawow.cataloguer import ComputedCatalogueEntry
 from instawow.common import Defn, Flavour, SourceMetadata
 from instawow.config import Config, GlobalConfig, SecretStr, config_converter
 from instawow.github_auth import get_codes, poll_for_access_token
@@ -282,7 +282,7 @@ class SearchParams(_ProfileParamMixin, BaseParams):
     start_date: typing.Union[datetime, None]
     installed_only: bool
 
-    async def respond(self, managers: _ManagersManager) -> list[CatalogueEntry]:
+    async def respond(self, managers: _ManagersManager) -> list[ComputedCatalogueEntry]:
         return await managers.run(
             self.profile,
             partial(

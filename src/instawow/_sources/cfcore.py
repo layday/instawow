@@ -16,7 +16,7 @@ from yarl import URL
 
 from .. import manager, models
 from .. import results as R
-from ..cataloguer import BaseCatalogueEntry
+from ..cataloguer import CatalogueEntry
 from ..common import ChangelogFormat, Defn, Flavour, SourceMetadata, Strategy
 from ..config import GlobalConfig
 from ..http import CACHE_INDEFINITELY, ClientSessionType, make_generic_progress_ctx
@@ -413,7 +413,7 @@ class CfCoreResolver(BaseResolver):
             return response_json['data']
 
     @classmethod
-    async def catalogue(cls, web_client: ClientSessionType) -> AsyncIterator[BaseCatalogueEntry]:
+    async def catalogue(cls, web_client: ClientSessionType) -> AsyncIterator[CatalogueEntry]:
         from aiohttp import ClientTimeout
 
         flavours_and_version_types = [
@@ -471,7 +471,7 @@ class CfCoreResolver(BaseResolver):
                 break
 
             for item in items:
-                yield BaseCatalogueEntry(
+                yield CatalogueEntry(
                     source=cls.metadata.id,
                     id=str(item['id']),
                     slug=item['slug'],

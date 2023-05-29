@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 
 from .. import models
 from .. import results as R
-from ..cataloguer import BaseCatalogueEntry
+from ..cataloguer import CatalogueEntry
 from ..common import ChangelogFormat, Defn, Flavour, SourceMetadata
 from ..http import ClientSessionType
 from ..resolvers import BaseResolver
@@ -54,8 +54,8 @@ class InstawowResolver(BaseResolver):
         )
 
     @classmethod
-    async def catalogue(cls, web_client: ClientSessionType) -> AsyncIterator[BaseCatalogueEntry]:
-        yield BaseCatalogueEntry(
+    async def catalogue(cls, web_client: ClientSessionType) -> AsyncIterator[CatalogueEntry]:
+        yield CatalogueEntry(
             source=cls.metadata.id,
             id='1',
             slug='weakauras-companion-autoupdate',

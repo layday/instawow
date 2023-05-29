@@ -13,8 +13,8 @@ from typing_extensions import Self
 from .config import Flavour
 from .utils import bucketise, normalise_names
 
-BASE_CATALOGUE_VERSION = 7
-CATALOGUE_VERSION = 4
+CATALOGUE_VERSION = 7
+COMPUTED_CATALOGUE_VERSION = 4
 
 
 catalogue_converter = Converter(
@@ -28,15 +28,13 @@ _normalise_name = normalise_names('')
 
 
 @frozen(kw_only=True)
-class CatalogueSameAs:
+class AddonKey:
     source: str
     id: str
 
 
 @frozen(kw_only=True)
-class BaseCatalogueEntry:
-    source: str
-    id: str
+class CatalogueEntry(AddonKey):
     slug: str = ''
     name: str
     url: str
@@ -44,19 +42,19 @@ class BaseCatalogueEntry:
     download_count: int
     last_updated: datetime
     folders: list[frozenset[str]] = []
-    same_as: list[CatalogueSameAs] = []
+    same_as: list[AddonKey] = []
 
 
 @frozen(kw_only=True)
-class CatalogueEntry(BaseCatalogueEntry):
+class ComputedCatalogueEntry(CatalogueEntry):
     normalised_name: str
     derived_download_score: float
 
 
 @frozen(kw_only=True)
-class BaseCatalogue:
-    version: int = BASE_CATALOGUE_VERSION
-    entries: list[BaseCatalogueEntry]
+class Catalogue:
+    version: int = CATALOGUE_VERSION
+    entries: list[CatalogueEntry]
 
     @classmethod
     async def collate(cls, start_date: datetime | None) -> Self:
@@ -71,9 +69,9 @@ class BaseCatalogue:
 
 
 @frozen(kw_only=True, slots=False)
-class Catalogue:
-    version: int = CATALOGUE_VERSION
-    entries: list[CatalogueEntry]
+class ComputedCatalogue:
+    version: int = COMPUTED_CATALOGUE_VERSION
+    entries: list[ComputedCatalogueEntry]
     curse_slugs: dict[str, str]
 
     @classmethod
@@ -124,5 +122,5 @@ class Catalogue:
         )
 
     @cached_property
-    def keyed_entries(self) -> dict[tuple[str, str], CatalogueEntry]:
+    def keyed_entries(self) -> dict[tuple[str, str], ComputedCatalogueEntry]:
         return {(e.source, e.id): e for e in self.entries}

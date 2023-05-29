@@ -13,7 +13,7 @@ from yarl import URL
 
 from .. import manager, models
 from .. import results as R
-from ..cataloguer import BaseCatalogueEntry
+from ..cataloguer import CatalogueEntry
 from ..common import ChangelogFormat, Defn, Flavour, FlavourVersionRange, SourceMetadata
 from ..http import ClientSessionType, make_generic_progress_ctx
 from ..resolvers import BaseResolver
@@ -175,7 +175,7 @@ class WowiResolver(BaseResolver):
         )
 
     @classmethod
-    async def catalogue(cls, web_client: ClientSessionType) -> AsyncIterator[BaseCatalogueEntry]:
+    async def catalogue(cls, web_client: ClientSessionType) -> AsyncIterator[CatalogueEntry]:
         logger.debug(f'retrieving {cls._list_api_url}')
 
         async with web_client.get(cls._list_api_url, raise_for_status=True) as response:
@@ -199,7 +199,7 @@ class WowiResolver(BaseResolver):
                     if f
                 }
 
-            yield BaseCatalogueEntry(
+            yield CatalogueEntry(
                 source=cls.metadata.id,
                 id=item['UID'],
                 name=item['UIName'],
