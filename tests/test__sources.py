@@ -116,9 +116,7 @@ async def test_tukui_changelog_url(iw_manager: Manager):
 
     results = await iw_manager.resolve([ui_suite])
 
-    assert (
-        results[ui_suite].changelog_url == 'https://api.tukui.org/v1/changelog/tukui#20.37'
-    )
+    assert results[ui_suite].changelog_url == 'https://api.tukui.org/v1/changelog/tukui#20.37'
 
 
 async def test_github_basic(iw_manager: Manager):
