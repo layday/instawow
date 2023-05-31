@@ -44,7 +44,7 @@ class TukuiResolver(BaseResolver):
     )
     requires_access_token = None
 
-    _api_url = URL('https://tukui-api.acidweb.dev/v1/')
+    _api_url = URL('https://api.tukui.org/v1/')
 
     @classmethod
     def get_alias_from_url(cls, url: URL) -> str | None:

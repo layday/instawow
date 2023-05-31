@@ -124,15 +124,15 @@ ROUTES = dict(
                 path_pattern=_match_any,
             ),
             Route(
-                URL('//tukui-api.acidweb.dev/v1/addon/tukui'),
+                URL('//api.tukui.org/v1/addon/tukui'),
                 _load_json_fixture('tukui-ui--tukui.json'),
             ),
             Route(
-                URL('//tukui-api.acidweb.dev/v1/addon/elvui'),
+                URL('//api.tukui.org/v1/addon/elvui'),
                 _load_json_fixture('tukui-ui--elvui.json'),
             ),
             Route(
-                URL('//tukui-api.acidweb.dev/v1/download/'),
+                URL('//api.tukui.org/v1/download/'),
                 lambda: Response(body=_make_addon_zip('Tukui')),
                 path_pattern=re.compile(r'^/v1/download/'),
             ),

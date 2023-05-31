@@ -3,9 +3,9 @@
   "slug": "elvui",
   "author": "Elv",
   "name": "ElvUI",
-  "url": "https://tukui-api.acidweb.dev/v1/download/elvui/2WMWXhDcQ5HUJZp3S3CLh5PZ8dG6Wxze",
+  "url": "https://api.tukui.org/v1/download/elvui/CkliK4mxtvOswN0WgjAl98BfRonArDaT",
   "version": "13.33",
-  "changelog_url": "https://tukui-api.acidweb.dev/v1/changelog/elvui",
+  "changelog_url": "https://api.tukui.org/v1/changelog/elvui",
   "ticket_url": "https://github.com/tukui-org/ElvUI/issues",
   "git_url": "https://github.com/tukui-org/ElvUI",
   "patch": [
@@ -14,10 +14,10 @@
     "3.4.1"
   ],
   "last_update": "2023-05-25",
-  "web_url": "https://www.tukui.org/download.php?ui=elvui",
-  "donate_url": "http://www.tukui.org/support.php",
+  "web_url": "https://tukui.org/elvui",
+  "donate_url": "http://tukui.org/support",
   "small_desc": "A user interface designed around user-friendliness with extra features that are not included in the standard UI.",
-  "screenshot_url": "https://tukui-storage-public.acidweb.dev/elvui.jpg",
+  "screenshot_url": "https://storage.tukui.org/elvui.jpg",
   "directories": [
     "ElvUI",
     "ElvUI_Libraries",

@@ -27,10 +27,10 @@ http get https://api.mmoui.com/v3/game/WOW/filedetails/13188.json -b \
     > "$DIR"/wowi-filedetails.json
 
 
-http get 'https://tukui-api.acidweb.dev/v1/addon/tukui' -b \
+http get 'https://api.tukui.org/v1/addon/tukui' -b \
     | jq -r \
     > "$DIR"/tukui-ui--tukui.json
-http get 'https://tukui-api.acidweb.dev/v1/addon/elvui' -b \
+http get 'https://api.tukui.org/v1/addon/elvui' -b \
     | jq -r \
     > "$DIR"/tukui-ui--elvui.json
 

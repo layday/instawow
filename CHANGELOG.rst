@@ -6,7 +6,7 @@ v3.0.0
 
 - Dropped support for Tukui add-ons other than the two headline UI suites,
   having switched from the original API at https://www.tukui.org/api.php
-  to https://tukui-api.acidweb.dev/v1.
+  to https://api.tukui.org/v1.
   The new API is hosted by the author of
   `CurseBreaker <https://github.com/AcidWeb/CurseBreaker>`_.
   The original API is unmaintained and the add-on index has fallen into disuse.
