@@ -51,20 +51,22 @@ To install add-ons, you can search for them using the ``search`` command::
     instawow search molinari
 
 In addition, *instawow* is able to interpret add-on URLs and *instawow*-specific
-URNs of slugs and host IDs.
-All of the following will install Molinari from CurseForge::
+URIs of slugs and host IDs.
+All of the following will install Molinari::
 
     instawow install https://www.curseforge.com/wow/addons/molinari
     instawow install curse:molinari
     instawow install curse:20338
+    instawow install https://github.com/p3lim-wow/Molinari
+    instawow install github:p3lim-wow/molinari
 
 You can ``update`` add-ons and ``remove`` them just as you'd install them.
 If ``update`` is invoked without arguments, it will update all of your
 installed add-ons.  You can ``list`` add-ons and view detailed information about
 them using ``list --format detailed``.
 For ``list`` and similarly non-destructive commands, the source can be omitted
-and the slug can be abbreviated, e.g. ``instawow reveal moli``
-will open the Molinari add-on folder in your file manager.
+and the alias can be shortened, e.g. ``instawow reveal moli``
+will bring up the Molinari add-on folder in your file manager.
 
 Add-on reconciliation
 ~~~~~~~~~~~~~~~~~~~~~
