@@ -821,13 +821,11 @@ def list_installed(mw: _CtxObjWrapper, addons: Sequence[Defn], output_format: _L
         )
 
         if output_format is _ListFormat.Json:
-            from cattrs.preconf.json import (
-                make_converter,  # pyright: ignore[reportUnknownVariableType]
-            )
+            from cattrs.preconf.json import make_converter
 
             json_converter = make_converter()
             click.echo(
-                json_converter.dumps(  # pyright: ignore[reportUnknownMemberType]
+                json_converter.dumps(
                     row_mappings_to_pkgs(),
                     list[pkg_models.Pkg],
                     indent=2,
@@ -1021,13 +1019,11 @@ def view_changelog(mw: _CtxObjWrapper, addon: Defn | None, convert: bool) -> Non
 @click.pass_obj
 def list_sources(mw: _CtxObjWrapper, output_format: _ListFormat) -> None:
     "Print source metadata."
-    from cattrs.preconf.json import (
-        make_converter,  # pyright: ignore[reportUnknownVariableType]
-    )
+    from cattrs.preconf.json import make_converter
 
     json_converter = make_converter()
     click.echo(
-        json_converter.dumps(  # pyright: ignore[reportUnknownMemberType]
+        json_converter.dumps(
             [r.metadata for r in mw.manager.resolvers.values()],
             list[SourceMetadata],
             indent=2,
