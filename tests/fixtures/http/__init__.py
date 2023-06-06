@@ -161,7 +161,7 @@ ROUTES = dict(
                 match_querystring=True,
             ),
             Route(
-                URL('//api.github.com/repos/p3lim-wow/Molinari/releases/assets/57617676'),
+                URL('//api.github.com/repos/p3lim-wow/Molinari/releases/assets/108929561'),
                 _load_json_fixture('github-release-molinari-release-json.json'),
                 case_insensitive=True,
             ),
@@ -198,11 +198,11 @@ ROUTES = dict(
                 method='POST',
             ),
             Route(
-                URL('//api.github.com/repos/ketho-wow/RaidFadeMore'),
+                URL('//api.github.com/repos/28/NoteworthyII'),
                 _load_json_fixture('github-repo-no-release-json.json'),
             ),
             Route(
-                URL('//api.github.com/repos/ketho-wow/RaidFadeMore/releases?per_page=10'),
+                URL('//api.github.com/repos/28/NoteworthyII/releases?per_page=10'),
                 _load_json_fixture('github-release-no-release-json.json'),
                 match_querystring=True,
             ),

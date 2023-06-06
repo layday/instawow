@@ -1,10 +1,10 @@
 [
   {
-    "url": "https://api.github.com/repos/ketho-wow/RaidFadeMore/releases/42492778",
-    "assets_url": "https://api.github.com/repos/ketho-wow/RaidFadeMore/releases/42492778/assets",
-    "upload_url": "https://uploads.github.com/repos/ketho-wow/RaidFadeMore/releases/42492778/assets{?name,label}",
-    "html_url": "https://github.com/ketho-wow/RaidFadeMore/releases/tag/v1.1.1",
-    "id": 42492778,
+    "url": "https://api.github.com/repos/28/NoteworthyII/releases/102775381",
+    "assets_url": "https://api.github.com/repos/28/NoteworthyII/releases/102775381/assets",
+    "upload_url": "https://uploads.github.com/repos/28/NoteworthyII/releases/102775381/assets{?name,label}",
+    "html_url": "https://github.com/28/NoteworthyII/releases/tag/v2.4.5",
+    "id": 102775381,
     "author": {
       "login": "github-actions[bot]",
       "id": 41898282,
@@ -25,20 +25,20 @@
       "type": "Bot",
       "site_admin": false
     },
-    "node_id": "MDc6UmVsZWFzZTQyNDkyNzc4",
-    "tag_name": "v1.1.1",
+    "node_id": "RE_kwDOCRmLQ84GIDpV",
+    "tag_name": "v2.4.5",
     "target_commitish": "master",
-    "name": "v1.1.1",
+    "name": "v2.4.5",
     "draft": false,
     "prerelease": false,
-    "created_at": "2021-05-05T17:19:31Z",
-    "published_at": "2021-05-05T17:20:52Z",
+    "created_at": "2023-05-12T11:56:42Z",
+    "published_at": "2023-05-12T11:59:42Z",
     "assets": [
       {
-        "url": "https://api.github.com/repos/ketho-wow/RaidFadeMore/releases/assets/36456847",
-        "id": 36456847,
-        "node_id": "MDEyOlJlbGVhc2VBc3NldDM2NDU2ODQ3",
-        "name": "RaidFadeMore-v1.1.1-bc.zip",
+        "url": "https://api.github.com/repos/28/NoteworthyII/releases/assets/107856114",
+        "id": 107856114,
+        "node_id": "RA_kwDOCRmLQ84GbcDy",
+        "name": "hash.md5",
         "label": "",
         "uploader": {
           "login": "github-actions[bot]",
@@ -60,19 +60,19 @@
           "type": "Bot",
           "site_admin": false
         },
-        "content_type": "application/zip",
+        "content_type": "application/octet-stream",
         "state": "uploaded",
-        "size": 2713,
-        "download_count": 6,
-        "created_at": "2021-05-05T17:20:57Z",
-        "updated_at": "2021-05-05T17:20:57Z",
-        "browser_download_url": "https://github.com/ketho-wow/RaidFadeMore/releases/download/v1.1.1/RaidFadeMore-v1.1.1-bc.zip"
+        "size": 33,
+        "download_count": 0,
+        "created_at": "2023-05-12T11:59:43Z",
+        "updated_at": "2023-05-12T11:59:43Z",
+        "browser_download_url": "https://github.com/28/NoteworthyII/releases/download/v2.4.5/hash.md5"
       },
       {
-        "url": "https://api.github.com/repos/ketho-wow/RaidFadeMore/releases/assets/36456846",
-        "id": 36456846,
-        "node_id": "MDEyOlJlbGVhc2VBc3NldDM2NDU2ODQ2",
-        "name": "RaidFadeMore-v1.1.1-classic.zip",
+        "url": "https://api.github.com/repos/28/NoteworthyII/releases/assets/107856116",
+        "id": 107856116,
+        "node_id": "RA_kwDOCRmLQ84GbcD0",
+        "name": "hash.sha1",
         "label": "",
         "uploader": {
           "login": "github-actions[bot]",
@@ -94,19 +94,19 @@
           "type": "Bot",
           "site_admin": false
         },
-        "content_type": "application/zip",
+        "content_type": "application/octet-stream",
         "state": "uploaded",
-        "size": 2712,
-        "download_count": 6,
-        "created_at": "2021-05-05T17:20:53Z",
-        "updated_at": "2021-05-05T17:20:53Z",
-        "browser_download_url": "https://github.com/ketho-wow/RaidFadeMore/releases/download/v1.1.1/RaidFadeMore-v1.1.1-classic.zip"
+        "size": 41,
+        "download_count": 0,
+        "created_at": "2023-05-12T11:59:43Z",
+        "updated_at": "2023-05-12T11:59:43Z",
+        "browser_download_url": "https://github.com/28/NoteworthyII/releases/download/v2.4.5/hash.sha1"
       },
       {
-        "url": "https://api.github.com/repos/ketho-wow/RaidFadeMore/releases/assets/36456851",
-        "id": 36456851,
-        "node_id": "MDEyOlJlbGVhc2VBc3NldDM2NDU2ODUx",
-        "name": "RaidFadeMore-v1.1.1.zip",
+        "url": "https://api.github.com/repos/28/NoteworthyII/releases/assets/107856115",
+        "id": 107856115,
+        "node_id": "RA_kwDOCRmLQ84GbcDz",
+        "name": "NoteworthyII_v2.4.5.zip",
         "label": "",
         "uploader": {
           "login": "github-actions[bot]",
@@ -130,15 +130,15 @@
         },
         "content_type": "application/zip",
         "state": "uploaded",
-        "size": 2713,
-        "download_count": 10,
-        "created_at": "2021-05-05T17:21:01Z",
-        "updated_at": "2021-05-05T17:21:01Z",
-        "browser_download_url": "https://github.com/ketho-wow/RaidFadeMore/releases/download/v1.1.1/RaidFadeMore-v1.1.1.zip"
+        "size": 52381,
+        "download_count": 5,
+        "created_at": "2023-05-12T11:59:43Z",
+        "updated_at": "2023-05-12T11:59:43Z",
+        "browser_download_url": "https://github.com/28/NoteworthyII/releases/download/v2.4.5/NoteworthyII_v2.4.5.zip"
       }
     ],
-    "tarball_url": "https://api.github.com/repos/ketho-wow/RaidFadeMore/tarball/v1.1.1",
-    "zipball_url": "https://api.github.com/repos/ketho-wow/RaidFadeMore/zipball/v1.1.1",
-    "body": "# RaidFadeMore\r\n\r\n## [v1.1.1](https://github.com/ketho-wow/RaidFadeMore/tree/v1.1.1) (2021-05-05)\r\n[Full Changelog](https://github.com/ketho-wow/RaidFadeMore/commits/v1.1.1) [Previous Releases](https://github.com/ketho-wow/RaidFadeMore/releases)\r\n\r\n- Update for retail 9.0.5, classic 1.13.7, bcc 2.5.1  \r\n- Bump TOC  \r\n- Bump TOC  \r\n- Bumped TOC  \r\n- Bump TOC  \r\n- Fixed an error with the new nameplates; Removed fading animation  \r\n- Bumped TOC to 60200  \r\n- Update to v0.6  \r\n- Clean up code  \r\n- Forgot to change TOC  \r\n- Update to v0.4  \r\n- Update to v0.3  \r\n- Initial commit  \r\n"
+    "tarball_url": "https://api.github.com/repos/28/NoteworthyII/tarball/v2.4.5",
+    "zipball_url": "https://api.github.com/repos/28/NoteworthyII/zipball/v2.4.5",
+    "body": "## V2.4.5\n- General\n  - Remove 'Noteworthy II loaded' chat message on log-on\n  - Update interface version for Retail\n- UI\n  - Enrich Options screen with more description and hint text\n  - Added chat commands info to Options screen\n  - Increase the frame strata to DIALOG\n  - Redesign floating button"
   }
 ]

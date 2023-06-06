@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import re
 from io import BytesIO
-from typing import Any
 from zipfile import ZipFile
 
 import aiohttp.hdrs
@@ -16,7 +15,9 @@ from instawow.common import Defn, Flavour
 from instawow.manager import Manager
 from instawow.results import PkgFilesNotMatching
 
-ADDON_NAME = 'RaidFadeMore'
+defn = Defn('github', '28/NoteworthyII')
+addon_name = URL(defn.alias).name
+
 
 ZIPS = {
     'flavoured-toc-only': {
@@ -56,25 +57,23 @@ ZIPS = {
 
 @pytest.fixture(params=ZIPS.values(), ids=list(ZIPS))
 def package_json_less_addon(
-    request: Any,
+    request: pytest.FixtureRequest,
 ):
     addon = BytesIO()
+
     with ZipFile(addon, 'w') as file:
         for flavour_suffix, content in request.param['toc_files'].items():
-            file.writestr(f'{ADDON_NAME}/{ADDON_NAME}{flavour_suffix}.toc', content)
+            file.writestr(f'{addon_name}/{addon_name}{flavour_suffix}.toc', content)
 
-    return {
-        'addon': addon.getvalue(),
-        'flavours': request.param['flavours'],
-    }
+    return (addon.getvalue(), request.param['flavours'])
 
 
 @pytest.mark.parametrize(
     '_iw_mock_aiohttp_requests',
     [
         {
-            URL('//api.github.com/repos/ketho-wow/RaidFadeMore'),
-            URL('//api.github.com/repos/ketho-wow/RaidFadeMore/releases?per_page=10'),
+            URL(f'//api.github.com/repos/{defn.alias}'),
+            URL(f'//api.github.com/repos/{defn.alias}/releases?per_page=10'),
         }
     ],
     indirect=True,
@@ -87,13 +86,13 @@ def package_json_less_addon(
 async def test_package_json_less_addon(
     aresponses: ResponsesMockServer,
     iw_manager: Manager,
-    package_json_less_addon: dict[str, Any],
+    package_json_less_addon: tuple[bytes, set[Flavour]],
 ):
     async def handle_request(request: aiohttp.web.Request):
         if aiohttp.hdrs.RANGE in request.headers:
             raise aiohttp.web.HTTPRequestRangeNotSatisfiable
 
-        response = aiohttp.web.Response(body=package_json_less_addon['addon'])
+        response = aiohttp.web.Response(body=addon)
         await response.prepare(request)
         return response
 
@@ -105,11 +104,10 @@ async def test_package_json_less_addon(
         repeat=aresponses.INFINITY,
     )
 
+    addon, flavours = package_json_less_addon
     try:
-        await GithubResolver(iw_manager).resolve_one(
-            Defn('github', 'ketho-wow/RaidFadeMore'), None
-        )
+        await GithubResolver(iw_manager).resolve_one(defn, None)
     except PkgFilesNotMatching:
-        assert iw_manager.config.game_flavour not in package_json_less_addon['flavours']
+        assert iw_manager.config.game_flavour not in flavours
     else:
-        assert iw_manager.config.game_flavour in package_json_less_addon['flavours']
+        assert iw_manager.config.game_flavour in flavours

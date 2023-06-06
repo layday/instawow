@@ -1,10 +1,10 @@
 [
   {
-    "url": "https://api.github.com/repos/p3lim-wow/Molinari/releases/60157246",
-    "assets_url": "https://api.github.com/repos/p3lim-wow/Molinari/releases/60157246/assets",
-    "upload_url": "https://uploads.github.com/repos/p3lim-wow/Molinari/releases/60157246/assets{?name,label}",
-    "html_url": "https://github.com/p3lim-wow/Molinari/releases/tag/90200.82-Release",
-    "id": 60157246,
+    "url": "https://api.github.com/repos/p3lim-wow/Molinari/releases/103641796",
+    "assets_url": "https://api.github.com/repos/p3lim-wow/Molinari/releases/103641796/assets",
+    "upload_url": "https://uploads.github.com/repos/p3lim-wow/Molinari/releases/103641796/assets{?name,label}",
+    "html_url": "https://github.com/p3lim-wow/Molinari/releases/tag/100100.105-Release",
+    "id": 103641796,
     "author": {
       "login": "github-actions[bot]",
       "id": 41898282,
@@ -25,20 +25,20 @@
       "type": "Bot",
       "site_admin": false
     },
-    "node_id": "RE_kwDOAAXuPs4Dle0-",
-    "tag_name": "90200.82-Release",
+    "node_id": "RE_kwDOAAXuPs4GLXLE",
+    "tag_name": "100100.105-Release",
     "target_commitish": "master",
-    "name": "90200.82-Release",
+    "name": "100100.105-Release",
     "draft": false,
     "prerelease": false,
-    "created_at": "2022-02-22T18:05:23Z",
-    "published_at": "2022-02-22T18:06:12Z",
+    "created_at": "2023-05-19T17:34:55Z",
+    "published_at": "2023-05-19T17:35:53Z",
     "assets": [
       {
-        "url": "https://api.github.com/repos/p3lim-wow/Molinari/releases/assets/57617675",
-        "id": 57617675,
-        "node_id": "RA_kwDOAAXuPs4Dby0L",
-        "name": "Molinari-90200.82-Release.zip",
+        "url": "https://api.github.com/repos/p3lim-wow/Molinari/releases/assets/108929560",
+        "id": 108929560,
+        "node_id": "RA_kwDOAAXuPs4GfiIY",
+        "name": "Molinari-100100.105-Release.zip",
         "label": "",
         "uploader": {
           "login": "github-actions[bot]",
@@ -62,16 +62,16 @@
         },
         "content_type": "application/zip",
         "state": "uploaded",
-        "size": 121944,
-        "download_count": 42,
-        "created_at": "2022-02-22T18:06:13Z",
-        "updated_at": "2022-02-22T18:06:13Z",
-        "browser_download_url": "https://github.com/p3lim-wow/Molinari/releases/download/90200.82-Release/Molinari-90200.82-Release.zip"
+        "size": 182139,
+        "download_count": 12,
+        "created_at": "2023-05-19T17:35:54Z",
+        "updated_at": "2023-05-19T17:35:54Z",
+        "browser_download_url": "https://github.com/p3lim-wow/Molinari/releases/download/100100.105-Release/Molinari-100100.105-Release.zip"
       },
       {
-        "url": "https://api.github.com/repos/p3lim-wow/Molinari/releases/assets/57617676",
-        "id": 57617676,
-        "node_id": "RA_kwDOAAXuPs4Dby0M",
+        "url": "https://api.github.com/repos/p3lim-wow/Molinari/releases/assets/108929561",
+        "id": 108929561,
+        "node_id": "RA_kwDOAAXuPs4GfiIZ",
         "name": "release.json",
         "label": "",
         "uploader": {
@@ -96,15 +96,15 @@
         },
         "content_type": "application/json",
         "state": "uploaded",
-        "size": 201,
-        "download_count": 2780,
-        "created_at": "2022-02-22T18:06:14Z",
-        "updated_at": "2022-02-22T18:06:14Z",
-        "browser_download_url": "https://github.com/p3lim-wow/Molinari/releases/download/90200.82-Release/release.json"
+        "size": 255,
+        "download_count": 540,
+        "created_at": "2023-05-19T17:35:55Z",
+        "updated_at": "2023-05-19T17:35:55Z",
+        "browser_download_url": "https://github.com/p3lim-wow/Molinari/releases/download/100100.105-Release/release.json"
       }
     ],
-    "tarball_url": "https://api.github.com/repos/p3lim-wow/Molinari/tarball/90200.82-Release",
-    "zipball_url": "https://api.github.com/repos/p3lim-wow/Molinari/zipball/90200.82-Release",
-    "body": "### Changes in 90200.82-Release:\r\n\r\n- Changed: Update Interface version\r\n\r\n"
+    "tarball_url": "https://api.github.com/repos/p3lim-wow/Molinari/tarball/100100.105-Release",
+    "zipball_url": "https://api.github.com/repos/p3lim-wow/Molinari/zipball/100100.105-Release",
+    "body": "### Changes in 100100.105-Release:\r\n\r\n- Fixed: Disenchanting wrong item when holding shift\r\n- Fixed: Sparkles not respecting modifiers and settings\r\n\r\n"
   }
 ]

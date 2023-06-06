@@ -2,26 +2,26 @@
   {
     "UID": "13188",
     "UICATID": "40",
-    "UIVersion": "90200.82-Release",
-    "UIDate": 1645553171000,
+    "UIVersion": "100100.105-Release",
+    "UIDate": 1684517751000,
     "UIName": "Molinari",
     "UIAuthorName": "p3lim",
     "UIFileInfoURL": "https://www.wowinterface.com/downloads/info13188-Molinari.html",
-    "UIDownloadTotal": "63860",
-    "UIDownloadMonthly": "21",
+    "UIDownloadTotal": "64734",
+    "UIDownloadMonthly": "115",
     "UIFavoriteTotal": "419",
     "UICompatibility": [
       {
-        "version": "9.2.0",
-        "name": "Eternity's End"
+        "version": "10.1.0",
+        "name": "Embers of Neltharion"
       },
       {
-        "version": "2.5.3",
-        "name": "TBC Patch"
+        "version": "3.4.1",
+        "name": "WOTLK Patch"
       },
       {
-        "version": "1.14.1",
-        "name": "Classic Patch"
+        "version": "1.14.3",
+        "name": "Classic"
       }
     ],
     "UIDir": [

@@ -102,12 +102,14 @@ async def test_reconcile_multiple_defns_per_addon_contained_in_results(
                 Defn('curse', '23350'),
                 Defn('curse', '333072'),
                 Defn('curse', '431557'),
+                Defn('curse', '674779'),
             },
         ),
         (
             Flavour.Classic,
             {
                 Defn('curse', '23350'),
+                Defn('curse', '674779'),
             },
         ),
         (
@@ -115,6 +117,7 @@ async def test_reconcile_multiple_defns_per_addon_contained_in_results(
             {
                 Defn('curse', '23350'),
                 Defn('curse', '333072'),
+                Defn('curse', '674779'),
             },
         ),
     ],

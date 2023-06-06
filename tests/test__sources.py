@@ -26,42 +26,37 @@ from instawow.resolvers import Resolver
 )
 async def test_curse_simple_strategies(iw_manager: Manager):
     flavourful = Defn('curse', 'classiccastbars')
-    retail_only = Defn('curse', 'mythic-dungeon-tools')
+    classics_only = Defn('curse', 'atlaslootclassic')
 
-    results = await iw_manager.resolve([flavourful, retail_only])
+    results = await iw_manager.resolve([flavourful, classics_only])
 
     assert type(results[flavourful]) is Pkg
 
-    if (
-        iw_manager.config.game_flavour is Flavour.VanillaClassic
-        or iw_manager.config.game_flavour is Flavour.Classic
-    ):
-        assert type(results[retail_only]) is R.PkgFilesNotMatching
+    if iw_manager.config.game_flavour in {Flavour.VanillaClassic, Flavour.Classic}:
+        assert type(results[classics_only]) is Pkg
+    elif iw_manager.config.game_flavour is Flavour.Retail:
+        assert type(results[classics_only]) is R.PkgFilesNotMatching
         assert (
-            results[retail_only].message
+            results[classics_only].message
             == 'no files found for: any_flavour=None; any_release_type=None; version_eq=None'
         )
-    elif iw_manager.config.game_flavour is Flavour.Retail:
-        assert type(results[retail_only]) is Pkg
     else:
         assert_never(iw_manager.config.game_flavour)
 
 
 async def test_curse_any_flavour_strategy(iw_manager: Manager):
     flavourful = Defn('curse', 'classiccastbars', strategies=StrategyValues(any_flavour=True))
-    retail_only = Defn(
-        'curse', 'mythic-dungeon-tools', strategies=StrategyValues(any_flavour=True)
-    )
+    classics_only = Defn('curse', 'atlaslootclassic', strategies=StrategyValues(any_flavour=True))
 
-    results = await iw_manager.resolve([flavourful, retail_only])
+    results = await iw_manager.resolve([flavourful, classics_only])
     assert all(type(r) is Pkg for r in results.values())
 
 
 async def test_curse_version_pinning(iw_manager: Manager):
-    defn = Defn('curse', 'molinari', strategies=StrategyValues(version_eq='80000.58-Release'))
+    defn = Defn('curse', 'molinari', strategies=StrategyValues(version_eq='100005.97-Release'))
     results = await iw_manager.resolve([defn])
     assert results[defn].options.version_eq is True
-    assert results[defn].version == '80000.58-Release'
+    assert results[defn].version == '100005.97-Release'
 
 
 async def test_curse_deps_retrieved(iw_manager: Manager):

@@ -63,7 +63,7 @@
         "content_type": "application/json",
         "state": "uploaded",
         "size": 224,
-        "download_count": 20,
+        "download_count": 27,
         "created_at": "2021-05-19T04:19:00Z",
         "updated_at": "2021-05-19T04:19:00Z",
         "browser_download_url": "https://github.com/nebularg/PackagerTest/releases/download/v1.9.7/release.json"
@@ -97,7 +97,7 @@
         "content_type": "application/zip",
         "state": "uploaded",
         "size": 81363,
-        "download_count": 1,
+        "download_count": 2,
         "created_at": "2021-05-19T04:18:49Z",
         "updated_at": "2021-05-19T04:18:50Z",
         "browser_download_url": "https://github.com/nebularg/PackagerTest/releases/download/v1.9.7/TestGit-v1.9.7-classic.zip"
@@ -131,7 +131,7 @@
         "content_type": "application/zip",
         "state": "uploaded",
         "size": 58790,
-        "download_count": 1,
+        "download_count": 3,
         "created_at": "2021-05-19T04:18:58Z",
         "updated_at": "2021-05-19T04:18:58Z",
         "browser_download_url": "https://github.com/nebularg/PackagerTest/releases/download/v1.9.7/TestGit-v1.9.7.zip"

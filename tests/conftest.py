@@ -122,6 +122,9 @@ def _iw_mock_aiohttp_requests(
     if request.param == 'all':
         routes = ROUTES.values()
     else:
+        if not request.param.issubset(ROUTES.keys()):
+            raise ValueError('Supplied routes must be subset of all routes')
+
         routes = (ROUTES[k] for k in ROUTES.keys() & request.param)
 
     for route in routes:

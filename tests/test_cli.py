@@ -150,7 +150,7 @@ def test_version_strategy_lifecycle(
     run: C[[str], Result],
 ):
     assert run('install curse:molinari').output.startswith(
-        '✓ curse:molinari\n  installed 90200.82-Release'
+        '✓ curse:molinari\n  installed 100100.105-Release'
     )
     assert (
         run('install curse:molinari#version_eq=foo').output
@@ -158,12 +158,12 @@ def test_version_strategy_lifecycle(
     )
     assert run('update curse:molinari').output == '✗ curse:molinari\n  package is up to date\n'
     assert run(
-        'update --retain-strategies curse:molinari#version_eq=80000.57-Release'
+        'update --retain-strategies curse:molinari#version_eq=100005.97-Release'
     ).output == dedent(
         '''\
         ✓ curse:molinari
-          updated 90200.82-Release to 80000.57-Release with new strategies:
-            version_eq='80000.57-Release'
+          updated 100100.105-Release to 100005.97-Release with new strategies:
+            version_eq='100005.97-Release'
         '''
     )
     assert run('remove curse:molinari').output == '✓ curse:molinari\n  removed\n'
@@ -175,14 +175,14 @@ def test_version_strategy_lifecycle(
         '''
     )
     assert (
-        run('install curse:molinari#version_eq=80000.57-Release').output
-        == '✓ curse:molinari\n  installed 80000.57-Release\n'
+        run('install curse:molinari#version_eq=100005.97-Release').output
+        == '✓ curse:molinari\n  installed 100005.97-Release\n'
     )
     assert run('update').output == '✗ curse:molinari\n  package is pinned\n'
     assert run('update --retain-strategies curse:molinari').output == dedent(
         '''\
         ✓ curse:molinari
-          updated 80000.57-Release to 90200.82-Release with new strategies:
+          updated 100005.97-Release to 100100.105-Release with new strategies:
             version_eq=None
         '''
     )
@@ -195,7 +195,7 @@ def test_install_options(
     assert run('install curse:molinari#any_release_type,any_flavour').output == dedent(
         '''\
         ✓ curse:molinari
-          installed 90200.82-Release
+          installed 100100.105-Release
         '''
     )
 
@@ -210,13 +210,13 @@ def test_install_order_is_respected(
         + ' '.join(
             [
                 'curse:molinari',
-                'curse:molinari#version_eq=80000.57-Release',
+                'curse:molinari#version_eq=100005.97-Release',
             ][::step]
         )
     ).output == dedent(
         f'''\
         ✓ curse:molinari
-          installed {'90200.82-Release' if step == 1 else '80000.57-Release'}
+          installed {'100100.105-Release' if step == 1 else '100005.97-Release'}
         ✗ curse:molinari
           package folders conflict with installed package Molinari
             (curse:20338)
@@ -238,7 +238,7 @@ def test_install_dry_run(
     assert run('install --dry-run curse:molinari').output == dedent(
         '''\
         ✓ curse:molinari
-          would have installed 90200.82-Release
+          would have installed 100100.105-Release
         '''
     )
 
@@ -332,15 +332,15 @@ def test_rollback__multiple_versions(
     feed_pt: C[[str], None],
     run: C[[str], Result],
 ):
-    assert run('install curse:molinari#version_eq=80000.57-Release').exit_code == 0
+    assert run('install curse:molinari#version_eq=100005.97-Release').exit_code == 0
     assert run('remove curse:molinari').exit_code == 0
     assert run('install curse:molinari').exit_code == 0
     feed_pt('\r\r')
     assert run('rollback curse:molinari').output == dedent(
         '''\
         ✓ curse:molinari
-          updated 90200.82-Release to 80000.57-Release with new strategies:
-            version_eq='80000.57-Release'
+          updated 100100.105-Release to 100005.97-Release with new strategies:
+            version_eq='100005.97-Release'
         '''
     )
 
@@ -353,18 +353,18 @@ def test_rollback__rollback_multiple_versions(
 ):
     assert run('install curse:molinari').exit_code == 0
     assert run('remove curse:molinari').exit_code == 0
-    assert run('install curse:molinari#version_eq=80000.57-Release').exit_code == 0
+    assert run('install curse:molinari#version_eq=100005.97-Release').exit_code == 0
     feed_pt('\r\r')
     assert run(f'rollback {options} curse:molinari').output == dedent(
         '''\
         ✓ curse:molinari
-          updated 80000.57-Release to 90200.82-Release with new strategies:
+          updated 100005.97-Release to 100100.105-Release with new strategies:
             version_eq=None
         '''
         if options == '--undo'
         else '''\
         ✓ curse:molinari
-          updated 80000.57-Release to 90200.82-Release
+          updated 100005.97-Release to 100100.105-Release
         '''
     )
 
@@ -401,7 +401,7 @@ def test_reconcile__auto_reconcile(
     assert pretend_install_molinari_and_run('reconcile --auto').output == dedent(
         '''\
         ✓ curse:molinari
-          installed 90200.82-Release
+          installed 100100.105-Release
         '''
     )
 
@@ -423,7 +423,7 @@ def test_reconcile__complete_interactive_reconciliation(
         dedent(
             '''\
             ✓ curse:molinari
-              installed 90200.82-Release
+              installed 100100.105-Release
             '''
         )
     )
@@ -445,7 +445,7 @@ def test_reconcile__rereconcile(
         ✓ curse:molinari
           removed
         ✓ github:p3lim-wow/molinari
-          installed 90200.82-Release
+          installed 100100.105-Release
         '''
     )
 
@@ -490,7 +490,7 @@ def test_search__install_one(
     assert run('search molinari --source curse').output == dedent(
         '''\
         ✓ curse:molinari
-          installed 90200.82-Release
+          installed 100100.105-Release
         '''
     )
 
@@ -503,7 +503,7 @@ def test_search__install_multiple_conflicting(
     assert run('search molinari').output == dedent(
         '''\
         ✓ wowi:13188-molinari
-          installed 90200.82-Release
+          installed 100100.105-Release
         ✗ curse:molinari
           package folders conflict with installed package Molinari
             (wowi:13188)
@@ -517,7 +517,7 @@ def test_changelog_output(
     output = (
         'curse:molinari:\n  Changes in 90200.82-Release:'
         if shutil.which('pandoc')
-        else 'curse:molinari:\n  <h3>Changes in 90200.82-Release:</h3>'
+        else 'curse:molinari:\n  <h3>Changes in'
     )
     assert install_molinari_and_run('view-changelog curse:molinari').output.startswith(output)
 
@@ -527,7 +527,7 @@ def test_changelog_output_no_convert(
 ):
     assert install_molinari_and_run(
         'view-changelog --no-convert curse:molinari'
-    ).output.startswith('curse:molinari:\n  <h3>Changes in 90200.82-Release:</h3>')
+    ).output.startswith('curse:molinari:\n  <h3>Changes in')
 
 
 def test_argless_changelog_output(
@@ -536,7 +536,7 @@ def test_argless_changelog_output(
     output = (
         'curse:molinari:\n  Changes in 90200.82-Release:'
         if shutil.which('pandoc')
-        else 'curse:molinari:\n  <h3>Changes in 90200.82-Release:</h3>'
+        else 'curse:molinari:\n  <h3>Changes in'
     )
     assert install_molinari_and_run('view-changelog').output.startswith(output)
 
@@ -545,7 +545,7 @@ def test_argless_changelog_output_no_convert(
     install_molinari_and_run: C[[str], Result],
 ):
     assert install_molinari_and_run('view-changelog --no-convert').output.startswith(
-        'curse:molinari:\n  <h3>Changes in 90200.82-Release:</h3>'
+        'curse:molinari:\n  <h3>Changes in'
     )
 
 

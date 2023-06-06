@@ -50,13 +50,13 @@ http get 'https://api.github.com/repos/p3lim-wow/Molinari' -b \
 http get 'https://api.github.com/repos/p3lim-wow/Molinari/releases?per_page=1' -b \
     | jq -r \
     > "$DIR"/github-release-molinari.json
-http --follow get 'https://github.com/p3lim-wow/Molinari/releases/download/90200.82-Release/release.json' -b \
+http --follow get 'https://github.com/p3lim-wow/Molinari/releases/download/100100.105-Release/release.json' -b \
     | jq -r \
     > "$DIR"/github-release-molinari-release-json.json
-http get 'https://api.github.com/repos/ketho-wow/RaidFadeMore' -b \
+http get 'https://api.github.com/repos/28/NoteworthyII' -b \
     | jq -r \
     > "$DIR"/github-repo-no-release-json.json
-http get 'https://api.github.com/repos/ketho-wow/RaidFadeMore/releases?per_page=1' -b \
+http get 'https://api.github.com/repos/28/NoteworthyII/releases?per_page=1' -b \
     | jq -r \
     > "$DIR"/github-release-no-release-json.json
 http get 'https://api.github.com/repos/AdiAddons/AdiBags' -b \

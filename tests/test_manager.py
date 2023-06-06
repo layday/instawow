@@ -170,7 +170,7 @@ async def test_install_recognises_renamed_pkg_from_id(
 
 async def test_update_lifecycle_while_varying_retain_defn_strategy(iw_manager: Manager):
     defn = Defn('curse', 'molinari')
-    versioned_defn = defn.with_version('80000.57-Release')
+    versioned_defn = defn.with_version('100005.97-Release')
 
     result = (await iw_manager.install([defn], replace=False))[defn]
     assert type(result) is R.PkgInstalled
@@ -358,4 +358,4 @@ async def test_get_changelog_from_web_url(iw_manager: Manager):
         await iw_manager.get_changelog(
             'curse', 'https://api.curseforge.com/v1/mods/20338/files/3657564/changelog'
         )
-    ).startswith('<h3>Changes in 90200.82-Release:</h3>')
+    ).startswith('<h3>Changes in')

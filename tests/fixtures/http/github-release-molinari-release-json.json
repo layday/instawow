@@ -1,20 +1,22 @@
 {
   "releases": [
     {
-      "filename": "Molinari-90200.82-Release.zip",
+      "name": "Molinari",
+      "version": "100100.105-Release",
+      "filename": "Molinari-100100.105-Release.zip",
       "nolib": false,
       "metadata": [
         {
-          "flavor": "classic",
-          "interface": 11401
-        },
-        {
           "flavor": "mainline",
-          "interface": 90200
+          "interface": 100100
         },
         {
-          "flavor": "bcc",
-          "interface": 20503
+          "flavor": "wrath",
+          "interface": 30401
+        },
+        {
+          "flavor": "classic",
+          "interface": 11403
         }
       ]
     }
