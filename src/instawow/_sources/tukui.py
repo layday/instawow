@@ -46,11 +46,6 @@ class TukuiResolver(BaseResolver):
 
     _api_url = URL('https://api.tukui.org/v1/')
 
-    @classmethod
-    def get_alias_from_url(cls, url: URL) -> str | None:
-        if url.host == 'www.tukui.org' and url.path == '/download.php':
-            return url.query.get('ui')
-
     async def resolve_one(self, defn: Defn, metadata: None) -> pkg_models.Pkg:
         async with self._manager.web_client.get(
             self._api_url / 'addon' / defn.alias,

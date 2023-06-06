@@ -12,7 +12,6 @@ from yarl import URL
 from instawow import results as R
 from instawow._sources.cfcore import CfCoreResolver
 from instawow._sources.github import GithubResolver
-from instawow._sources.tukui import TukuiResolver
 from instawow._sources.wowi import WowiResolver
 from instawow.common import Defn, Flavour, Strategy, StrategyValues
 from instawow.manager import Manager
@@ -226,7 +225,6 @@ async def test_unsupported_strategies(iw_manager: Manager, resolver: Resolver):
         (WowiResolver, 'https://wowinterface.com/downloads/info13188-Molinari.html', '13188'),
         (WowiResolver, 'https://www.wowinterface.com/downloads/info13188', '13188'),
         (WowiResolver, 'https://wowinterface.com/downloads/info13188', '13188'),
-        (TukuiResolver, 'https://www.tukui.org/download.php?ui=tukui', 'tukui'),
         (
             GithubResolver,
             'https://github.com/AdiAddons/AdiButtonAuras',
