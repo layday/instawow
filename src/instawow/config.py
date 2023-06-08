@@ -160,7 +160,7 @@ def _make_write_converter():
             make_dict_unstructure_fn(
                 config_cls,
                 converter,
-                **{
+                **{  # pyright: ignore[reportGeneralTypeIssues]  # See microsoft/pyright#5255
                     f.name: override(omit=True)
                     for f in fields(config_cls)
                     if not f.metadata.get('write_on_disk')
@@ -395,26 +395,28 @@ def setup_logging(
     if intercept_logging_module_calls:
         _intercept_logging_module_calls(log_level)
 
-    values = {
-        'level': log_level,
-        'enqueue': True,
-    }
-    logger.configure(
-        handlers=[
-            {
-                **values,
-                'sink': logging_dir / 'error.log',
-                'rotation': '5 MB',
-                'retention': 5,  # Number of log files to keep
-            },
-        ]
-    )
+    handlers = [
+        {
+            'level': log_level,
+            'enqueue': True,
+            'sink': logging_dir / 'error.log',
+            'rotation': '5 MB',
+            'retention': 5,  # Number of log files to keep
+        },
+    ]
     if log_to_stderr:
-        logger.add(
-            **values,
-            sink=sys.stderr,
-            format='<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | '
-            '<level>{level: <8}</level> | '
-            '<cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan>\n'
-            '  <level>{message}</level>',
-        )
+        handlers += [
+            {
+                'level': log_level,
+                'enqueue': True,
+                'sink': sys.stderr,
+                'format': (
+                    '<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | '
+                    '<level>{level: <8}</level> | '
+                    '<cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan>\n'
+                    '  <level>{message}</level>'
+                ),
+            }
+        ]
+
+    logger.configure(handlers=handlers)

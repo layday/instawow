@@ -69,7 +69,7 @@ class AttrsFieldValidator(Validator):
 
 
 class PkgChoice(Choice):
-    def __init__(self, *args: Any, pkg: pkg_models.Pkg, **kwargs: object) -> None:
+    def __init__(self, *args: Any, pkg: pkg_models.Pkg, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.pkg = pkg
 
@@ -93,7 +93,7 @@ path = partial(_path, qmark='>', style=qstyle)
 password = partial(_password, style=qstyle)
 
 
-def checkbox(message: str, choices: Sequence[Choice], **inquirer_kwargs: object) -> Question:
+def checkbox(message: str, choices: Sequence[Choice], **inquirer_kwargs: Any) -> Question:
     def get_prompt_tokens():
         tokens: list[tuple[str, str]] = [('class:question', message)]
         if ic.is_answered:
@@ -177,7 +177,7 @@ def select(
     message: str,
     choices: Sequence[str] | Sequence[Choice],
     initial_choice: str | Choice | None = None,
-    **inquirer_kwargs: object,
+    **inquirer_kwargs: Any,
 ) -> Question:
     def get_prompt_tokens():
         tokens: list[tuple[str, str]] = [('class:qmark', '- '), ('class:question', message)]

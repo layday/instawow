@@ -4,7 +4,7 @@ import os
 import sqlite3
 from collections.abc import Set
 from contextlib import contextmanager
-from typing import NoReturn
+from typing import Any, NoReturn
 
 from aiohttp_client_cache import BaseCache, CacheBackend, ResponseOrKey
 from typing_extensions import LiteralString
@@ -19,7 +19,7 @@ def acquire_cache_connection(parent_folder_path: os.PathLike[str]):
 
 
 class SQLiteBackend(CacheBackend):
-    def __init__(self, connection: sqlite3.Connection, **kwargs: object):
+    def __init__(self, connection: sqlite3.Connection, **kwargs: Any):
         super().__init__(**kwargs)  # pyright: ignore[reportUnknownMemberType]
         self.responses = _SQLitePickleCache().attach('responses', connection)
         self.redirects = _SQLiteSimpleCache().attach('redirects', connection)
