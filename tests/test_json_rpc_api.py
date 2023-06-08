@@ -105,8 +105,8 @@ async def test_write_config_with_invalid_params(
     assert rpc_response['error']['message'] == 'Invalid method parameter(s).'
     assert rpc_response['error']['data'] == [
         {
-            'loc': ['game_flavour'],
-            'msg': "'strawberry' is not a valid Flavour",
+            'path': ['game_flavour'],
+            'message': "'strawberry' is not a valid Flavour",
         }
     ]
 

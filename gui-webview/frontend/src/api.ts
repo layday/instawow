@@ -163,8 +163,8 @@ export type InternalError = {
 };
 
 export type ValidationError = {
-  loc: string[];
-  msg: string;
+  path: (string | number)[];
+  message: string;
 };
 
 export class Api {

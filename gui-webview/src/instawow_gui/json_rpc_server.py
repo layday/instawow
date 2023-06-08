@@ -11,12 +11,13 @@ from datetime import datetime
 from functools import partial
 from itertools import chain
 from pathlib import Path
-from typing import Any, Literal, TypeVar, cast
+from typing import Any, Literal, TypeVar
 
 import aiohttp
 import aiohttp.typedefs
 import aiohttp.web
 import anyio
+import cattrs
 import click
 import iso8601
 import sqlalchemy as sa
@@ -25,9 +26,7 @@ from aiohttp_rpc import middlewares as rpc_middlewares
 from aiohttp_rpc.errors import InvalidParams, ServerError
 from aiohttp_rpc.server import WsJsonRpcServer
 from attrs import evolve, frozen
-from cattrs import Converter
 from cattrs.preconf.json import configure_converter
-from exceptiongroup import ExceptionGroup
 from loguru import logger
 from typing_extensions import Concatenate, ParamSpec, TypeAlias, TypedDict
 from yarl import URL
@@ -56,7 +55,7 @@ _toga_handle = contextvars.ContextVar[tuple[Any, anyio.from_thread.BlockingPorta
 
 LOCALHOST = '127.0.0.1'
 
-_converter = Converter(
+_converter = cattrs.Converter(
     unstruct_collection_overrides={
         Set: sorted,
     }
@@ -72,44 +71,63 @@ class _ConfigError(ServerError):
     message = 'invalid configuration parameters'
 
 
-def _extract_loc_from_note(exc: BaseException):
-    notes = getattr(exc, '__notes__', None)
-    note = notes[-1] if notes else ''
-    *_, field = note.rpartition(' ')
-    if field.isidentifier():
-        return field
+class _ValidationErrorResponse(TypedDict):
+    path: tuple[str | int, ...]
+    message: str
 
 
-def _structure_excs(exc: BaseException):
-    excs = (
-        cast('ExceptionGroup[Exception]', exc).exceptions
-        if isinstance(exc, ExceptionGroup)
-        else (exc,)
-    )
-    return [{'loc': [c], 'msg': str(e)} for e in excs for c in (_extract_loc_from_note(e),) if c]
+def _transform_validation_errors(
+    exc: cattrs.ClassValidationError | cattrs.IterableValidationError | BaseException,
+    path: tuple[str | int, ...] = (),
+) -> Iterator[_ValidationErrorResponse]:
+    if isinstance(exc, cattrs.IterableValidationError):
+        with_notes, _ = exc.group_exceptions()
+        for exc, note in with_notes:
+            new_path = (*path, note.index)
+            if isinstance(exc, (cattrs.ClassValidationError, cattrs.IterableValidationError)):
+                yield from _transform_validation_errors(exc, new_path)
+            else:
+                yield {
+                    'path': new_path,
+                    'message': str(exc),
+                }
+    elif isinstance(exc, cattrs.ClassValidationError):
+        with_notes, _ = exc.group_exceptions()
+        for exc, note in with_notes:
+            new_path = (*path, note.name)
+            if isinstance(exc, (cattrs.ClassValidationError, cattrs.IterableValidationError)):
+                yield from _transform_validation_errors(exc, new_path)
+            else:
+                yield {
+                    'path': new_path,
+                    'message': str(exc),
+                }
 
 
 @contextmanager
-def _reraise_validation_error(
+def _reraise_validation_errors(
     error_class: type[ServerError | InvalidParams] = ServerError,
     values: dict[Any, Any] | None = None,
 ) -> Iterator[None]:
     try:
         yield
+    except (cattrs.ClassValidationError, cattrs.IterableValidationError) as exc_group:
+        logger.info(f'invalid request: {(values, exc_group)}')
+        raise error_class(data=list(_transform_validation_errors(exc_group))) from exc_group
     except BaseException as exc:
         logger.info(f'invalid request: {(values, exc)}')
-        raise error_class(data=_structure_excs(exc)) from exc
+        raise error_class() from exc
 
 
 @t
 def _read_global_config() -> GlobalConfig:
-    with _reraise_validation_error(_ConfigError):
+    with _reraise_validation_errors(_ConfigError):
         return GlobalConfig.read()
 
 
 @t
 def _read_config(global_config: GlobalConfig, profile: str) -> Config:
-    with _reraise_validation_error(_ConfigError):
+    with _reraise_validation_errors(_ConfigError):
         return Config.read(global_config, profile)
 
 
@@ -138,7 +156,7 @@ class BaseParams:
     @classmethod
     def bind(cls, method: str, managers: _ManagersManager) -> JsonRpcMethod:
         async def respond(**kwargs: Any):
-            with _reraise_validation_error(InvalidParams, kwargs):
+            with _reraise_validation_errors(InvalidParams, kwargs):
                 self = _converter.structure(kwargs, cls)
             return await self.respond(managers)
 
@@ -156,7 +174,7 @@ class WriteProfileConfigParams(_ProfileParamMixin, BaseParams):
 
     async def respond(self, managers: _ManagersManager) -> Config:
         async with managers.locks['modify profile', self.profile]:
-            with _reraise_validation_error(_ConfigError):
+            with _reraise_validation_errors(_ConfigError):
                 config = config_converter.structure(
                     {
                         'global_config': await _read_global_config(),
@@ -626,7 +644,7 @@ class _ManagersManager:
         self, update_cb: Callable[[GlobalConfig], GlobalConfig]
     ) -> GlobalConfig:
         async with self.locks['update global config']:
-            with _reraise_validation_error(_ConfigError):
+            with _reraise_validation_errors(_ConfigError):
                 self.global_config = update_cb(self.global_config)
                 await t(self.global_config.write)()
 

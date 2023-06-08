@@ -3,11 +3,10 @@ from __future__ import annotations
 import asyncio
 from collections.abc import Sequence
 from functools import partial
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 import attrs
 import cattrs
-from exceptiongroup import ExceptionGroup
 from prompt_toolkit.application import Application
 from prompt_toolkit.document import Document
 from prompt_toolkit.formatted_text.html import HTML
@@ -24,9 +23,6 @@ from questionary.prompts.common import InquirerControl, Separator, create_inquir
 from questionary.question import Question
 
 from . import pkg_models
-
-if TYPE_CHECKING:
-    ExceptionGroup = ExceptionGroup[Exception]
 
 
 class AttrsFieldValidator(Validator):
@@ -58,10 +54,18 @@ class AttrsFieldValidator(Validator):
     def validate(self, document: Document) -> None:
         try:
             self._converter.structure({self._field_name: document.text}, self._FieldWrapper)
-        except ExceptionGroup as exc_group:
-            raise ValidationError(0, '\n'.join(map(str, exc_group.exceptions))) from exc_group
         except Exception as exc:
-            raise ValidationError(0, str(exc)) from exc
+            raise ValidationError(
+                0,
+                '\n'.join(
+                    cattrs.transform_error(  # pyright: ignore[reportUnknownMemberType]
+                        exc,
+                        format_exception=lambda e, _: str(  # pyright: ignore[reportUnknownLambdaType]
+                            e
+                        ),
+                    )
+                ),
+            ) from exc
 
 
 class PkgChoice(Choice):

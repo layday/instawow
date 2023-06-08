@@ -4,17 +4,17 @@ import json
 import os
 import sys
 import typing
-from collections.abc import Callable, Iterable, Sized
-from functools import lru_cache
+from collections.abc import Callable, Iterable, Mapping, Sized
+from functools import lru_cache, partial
 from pathlib import Path
 from tempfile import gettempdir
 from typing import Any, TypeVar
 
+import cattrs.preconf.json
 import click
-from attrs import Attribute, field, fields, frozen, has, resolve_types
-from cattrs import Converter
+from attrs import Attribute, field, fields, frozen, has
+from cattrs import AttributeValidationNote, Converter
 from cattrs.gen import make_dict_unstructure_fn, override
-from cattrs.preconf.json import configure_converter
 from loguru import logger
 from typing_extensions import Self
 
@@ -43,26 +43,26 @@ def _ensure_dirs(dirs: Iterable[Path]):
         dir_.mkdir(exist_ok=True, parents=True)
 
 
-def _enrich_validator_exc(validator: Callable[[object, Attribute[_T], _T], None]):
+def _enrich_validator_exc(type_: type, validator: Callable[[object, Attribute[_T], _T], None]):
     def wrapper(model: object, attr: Attribute[_T], value: _T):
         try:
             validator(model, attr, value)
         except BaseException as exc:
             note = f'Structuring class {model.__class__.__name__} @ attribute {attr.name}'
-            add_exc_note(exc, note)
+            add_exc_note(exc, AttributeValidationNote(note, attr.name, type_))
             raise
 
     return wrapper
 
 
-@_enrich_validator_exc
+@partial(_enrich_validator_exc, Path)
 def _validate_path_is_writable_dir(_model: object, _attr: Attribute[Path], value: Path):
     if not _is_writable_dir(value):
         raise ValueError(f'"{value}" is not a writable directory')
 
 
 def _make_validate_min_length(min_length: int):
-    @_enrich_validator_exc
+    @partial(_enrich_validator_exc, str)
     def _validate_min_length(_model: object, _attr: Attribute[Sized], value: Sized):
         if len(value) < min_length:
             raise ValueError(f'value must have a minimum length of {min_length}')
@@ -78,8 +78,8 @@ def _encode_config_for_display(config: object):
     )
 
 
-def _write_config(config: object, config_path: Path, fields_to_include: frozenset[str]):
-    converter = _make_write_converter(config.__class__, fields_to_include)
+def _write_config(config: object, config_path: Path):
+    converter = _make_write_converter()
     config_path.write_text(
         json.dumps(converter.unstructure(config), indent=2),
         encoding='utf-8',
@@ -117,9 +117,19 @@ def _read_env_vars(config_cls: Any, **values: object):
     }
 
 
+def _make_attrs_instance_hook_factory(converter: Converter, type_: type):
+    "Allow passing in a structured attrs instance to ``structure``."
+    structure = converter.gen_structure_attrs_fromdict(type_)
+
+    def structure_wrapper(value: Mapping[str, Any], type_: type):
+        return value if isinstance(value, type_) else structure(value, type_)
+
+    return structure_wrapper
+
+
 def make_config_converter():
     converter = Converter()
-    configure_converter(converter)
+    cattrs.preconf.json.configure_converter(converter)
     converter.register_structure_hook(Path, lambda v, _: Path(v))
     converter.register_unstructure_hook(Path, str)
     return converter
@@ -141,21 +151,22 @@ def _make_display_converter():
     return converter
 
 
-@lru_cache(2)
-def _make_write_converter(config_cls: Any, fields_to_include: frozenset[str]):
+@lru_cache(1)
+def _make_write_converter():
     converter = make_config_converter()
-    converter.register_unstructure_hook(
-        config_cls,
-        make_dict_unstructure_fn(
+    for config_cls in [GlobalConfig, Config]:
+        converter.register_unstructure_hook(
             config_cls,
-            converter,
-            **{
-                f.name: override(omit=True)
-                for f in fields(config_cls)
-                if f.name not in fields_to_include
-            },
-        ),
-    )
+            make_dict_unstructure_fn(
+                config_cls,
+                converter,
+                **{
+                    f.name: override(omit=True)
+                    for f in fields(config_cls)
+                    if not f.metadata.get('write_on_disk')
+                },
+            ),
+        )
     return converter
 
 
@@ -192,11 +203,11 @@ class GlobalConfig:
     )
     auto_update_check: bool = field(
         default=True,
-        metadata={'env': True, 'as_json': True},
+        metadata={'env': True, 'as_json': True, 'write_on_disk': True},
     )
     access_tokens: _AccessTokens = field(
         default=_AccessTokens(),
-        metadata={'env': True, 'as_json': True},
+        metadata={'env': True, 'as_json': True, 'write_on_disk': True},
     )
 
     @classmethod
@@ -226,7 +237,7 @@ class GlobalConfig:
 
     def write(self) -> Self:
         self.ensure_dirs()
-        _write_config(self, self.config_file, frozenset({'auto_update_check', 'access_tokens'}))
+        _write_config(self, self.config_file)
         return self
 
     @property
@@ -252,14 +263,14 @@ class Config:
     profile: str = field(
         converter=str.strip,
         validator=_make_validate_min_length(1),
-        metadata={'env': True},
+        metadata={'env': True, 'write_on_disk': True},
     )
     addon_dir: Path = field(
         converter=_expand_path,
         validator=_validate_path_is_writable_dir,
-        metadata={'env': True},
+        metadata={'env': True, 'write_on_disk': True},
     )
-    game_flavour: Flavour = field(metadata={'env': True})
+    game_flavour: Flavour = field(metadata={'env': True, 'write_on_disk': True})
 
     @classmethod
     def make_dummy_config(cls, **values: object) -> Self:
@@ -291,7 +302,7 @@ class Config:
 
     def write(self) -> Self:
         self.ensure_dirs()
-        _write_config(self, self.config_file, frozenset({'addon_dir', 'game_flavour', 'profile'}))
+        _write_config(self, self.config_file)
         return self
 
     def delete(self) -> None:
@@ -319,11 +330,8 @@ class Config:
 
 
 config_converter = make_config_converter()
-config_converter.register_structure_hook_func(
-    has,
-    lambda c, t: (
-        c if isinstance(c, t) else config_converter.structure_attrs_fromdict(c, resolve_types(t))
-    ),
+config_converter.register_structure_hook_factory(
+    has, partial(_make_attrs_instance_hook_factory, config_converter)
 )
 
 

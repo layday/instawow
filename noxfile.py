@@ -87,9 +87,8 @@ def lint(session: nox.Session):
             alembic == 1.9.0
             anyio == 3.6.2
             attrs == 23.1.0
-            cattrs == 22.2.0
+            cattrs == 23.1.2
             click == 8.1.0
-            exceptiongroup == 1.0.0
             iso8601 == 1.0.2
             loguru == 0.7.0
             mako == 1.2.4

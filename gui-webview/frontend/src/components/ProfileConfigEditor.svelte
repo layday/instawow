@@ -50,8 +50,12 @@
       result = await $api.writeProfile(profile, addonDir, gameFlavour, createNew);
     } catch (error) {
       if (error instanceof JSONRPCError) {
+        console.log(error);
         errors = new Map(
-          (error.data as ValidationError[]).map(({ loc: [loc], msg }) => [loc, msg])
+          (error.data as ValidationError[]).map(({ path: [path], message }) => [
+            String(path),
+            message,
+          ])
         );
         return;
       } else {
