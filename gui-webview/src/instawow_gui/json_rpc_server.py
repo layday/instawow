@@ -111,12 +111,9 @@ def _reraise_validation_errors(
 ) -> Iterator[None]:
     try:
         yield
-    except (cattrs.ClassValidationError, cattrs.IterableValidationError) as exc_group:
-        logger.info(f'invalid request: {(values, exc_group)}')
-        raise error_class(data=list(_transform_validation_errors(exc_group))) from exc_group
     except BaseException as exc:
         logger.info(f'invalid request: {(values, exc)}')
-        raise error_class() from exc
+        raise error_class(data=list(_transform_validation_errors(exc))) from exc
 
 
 @t
