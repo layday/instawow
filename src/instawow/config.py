@@ -8,7 +8,7 @@ from collections.abc import Callable, Iterable, Mapping, Sized
 from functools import lru_cache, partial
 from pathlib import Path
 from tempfile import gettempdir
-from typing import Any, TypeVar
+from typing import Any, TypedDict, TypeVar
 
 import cattrs.preconf.json
 import click
@@ -96,7 +96,7 @@ def _read_config(config_path: Path, missing_ok: bool = False) -> dict[str, Any]:
 
 
 def _compute_var(field_: Attribute[object], default: object):
-    if not field_.metadata.get('env'):
+    if not field_.metadata.get('from_env'):
         return default
 
     value = os.environ.get(f'instawow_{field_.name}'.upper())
@@ -178,6 +178,12 @@ def _get_default_temp_dir():
     return Path(gettempdir(), 'instawow')
 
 
+class _ConfigMetadata(TypedDict, total=False):
+    from_env: bool
+    as_json: bool
+    write_on_disk: bool
+
+
 _AccessToken = typing.Union[SecretStr, None]
 
 
@@ -194,20 +200,20 @@ class GlobalConfig:
     config_dir: Path = field(
         factory=_get_default_config_dir,
         converter=_expand_path,
-        metadata={'env': True},
+        metadata=_ConfigMetadata(from_env=True),
     )
     temp_dir: Path = field(
         factory=_get_default_temp_dir,
         converter=_expand_path,
-        metadata={'env': True},
+        metadata=_ConfigMetadata(from_env=True),
     )
     auto_update_check: bool = field(
         default=True,
-        metadata={'env': True, 'as_json': True, 'write_on_disk': True},
+        metadata=_ConfigMetadata(from_env=True, as_json=True, write_on_disk=True),
     )
     access_tokens: _AccessTokens = field(
         default=_AccessTokens(),
-        metadata={'env': True, 'as_json': True, 'write_on_disk': True},
+        metadata=_ConfigMetadata(from_env=True, as_json=True, write_on_disk=True),
     )
 
     @classmethod
@@ -263,14 +269,14 @@ class Config:
     profile: str = field(
         converter=str.strip,
         validator=_make_validate_min_length(1),
-        metadata={'env': True, 'write_on_disk': True},
+        metadata=_ConfigMetadata(from_env=True, write_on_disk=True),
     )
     addon_dir: Path = field(
         converter=_expand_path,
         validator=_validate_path_is_writable_dir,
-        metadata={'env': True, 'write_on_disk': True},
+        metadata=_ConfigMetadata(from_env=True, write_on_disk=True),
     )
-    game_flavour: Flavour = field(metadata={'env': True, 'write_on_disk': True})
+    game_flavour: Flavour = field(metadata=_ConfigMetadata(from_env=True, write_on_disk=True))
 
     @classmethod
     def make_dummy_config(cls, **values: object) -> Self:
