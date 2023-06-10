@@ -6,7 +6,7 @@ in
 pkgs.mkShell {
   buildInputs = [
     pkgs.nixpkgs-fmt
-    pkgs.nodejs-18_x
+    pkgs.nodejs_20
     pkgs.rnix-lsp
     python
     python.pkgs.venvShellHook
