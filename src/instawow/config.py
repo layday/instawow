@@ -217,8 +217,12 @@ class GlobalConfig:
     )
 
     @classmethod
+    def from_values(cls, **values: object) -> Self:
+        return config_converter.structure(values, cls)
+
+    @classmethod
     def from_env(cls, **values: object) -> Self:
-        return config_converter.structure(_read_env_vars(cls, **values), cls)
+        return cls.from_values(**_read_env_vars(cls, **values))
 
     @classmethod
     def read(cls) -> Self:
@@ -283,8 +287,12 @@ class Config:
         return object.__new__(type(f'Dummy{cls.__name__}', (cls,), values))
 
     @classmethod
+    def from_values(cls, **values: object) -> Self:
+        return config_converter.structure(values, cls)
+
+    @classmethod
     def from_env(cls, **values: object) -> Self:
-        return config_converter.structure(_read_env_vars(cls, **values), cls)
+        return cls.from_values(**_read_env_vars(cls, **values))
 
     @classmethod
     def read(cls, global_config: GlobalConfig, profile: str) -> Self:
