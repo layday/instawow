@@ -15,7 +15,6 @@ from . import results as R
 from .cataloguer import CatalogueEntry
 from .common import AddonHashMethod, Defn, SourceMetadata
 from .config import GlobalConfig
-from .http import CACHE_INDEFINITELY
 from .utils import file_uri_to_path, gather, run_in_thread
 
 
@@ -135,7 +134,7 @@ class BaseResolver(Resolver, Protocol):
         elif uri.scheme in {'http', 'https'}:
             async with self._manager.web_client.get(
                 uri,
-                expire_after=CACHE_INDEFINITELY,
+                expire_after=http.CACHE_INDEFINITELY,
                 headers=await self.make_request_headers(),
                 raise_for_status=True,
             ) as response:
