@@ -439,7 +439,7 @@ class CfCoreResolver(BaseResolver):
 
         get = partial(
             web_client.get,
-            headers={'x-api-key': cls._get_access_token(GlobalConfig.from_env())},
+            headers={'x-api-key': cls._get_access_token(GlobalConfig.from_values(env=True))},
             raise_for_status=True,
             timeout=ClientTimeout(total=10),
         )

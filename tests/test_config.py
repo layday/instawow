@@ -18,10 +18,8 @@ def test_env_vars_have_prio(
     monkeypatch.setenv('INSTAWOW_CONFIG_DIR', '/foo')
     monkeypatch.setenv('INSTAWOW_GAME_FLAVOUR', 'classic')
 
-    config = Config.from_env(
-        global_config=GlobalConfig.from_env(**iw_global_config_values),
-        **iw_config_values,
-    )
+    global_config = GlobalConfig.from_values(iw_global_config_values, env=True)
+    config = Config.from_values({'global_config': global_config, **iw_config_values}, env=True)
     assert config.global_config.config_dir == Path('/foo').resolve()
     assert config.game_flavour is Flavour.Classic
 
@@ -30,8 +28,8 @@ def test_config_dir_is_populated(
     iw_global_config_values: dict[str, Any],
     iw_config_values: dict[str, Any],
 ):
-    global_config = GlobalConfig.from_env(**iw_global_config_values)
-    config = Config(global_config=global_config, **iw_config_values).write()
+    global_config = GlobalConfig.from_values(iw_global_config_values)
+    config = Config.from_values({'global_config': global_config, **iw_config_values}).write()
     assert {i.name for i in config.profile_dir.iterdir()} == {'config.json', 'logs', 'plugins'}
 
 
@@ -47,7 +45,7 @@ def test_init_with_nonexistent_addon_dir_raises(
     iw_global_config_values: dict[str, Any],
     iw_config_values: dict[str, Any],
 ):
-    global_config = GlobalConfig.from_env(**iw_global_config_values).write()
+    global_config = GlobalConfig.from_values(iw_global_config_values).write()
     with pytest.raises(ValueError, match='not a writable directory'):
         Config(global_config=global_config, **{**iw_config_values, 'addon_dir': '#@$foo'})
 
@@ -92,7 +90,7 @@ def test_can_list_profiles(
     global_config = GlobalConfig.read()
     assert global_config.list_profiles() == []
 
-    Config(global_config=global_config, **iw_config_values).write()
+    Config.from_values({'global_config': global_config, **iw_config_values}).write()
     Config(global_config=global_config, **{**iw_config_values, 'profile': 'foo'}).write()
     assert set(global_config.list_profiles()) == {'__default__', 'foo'}
 
@@ -101,8 +99,8 @@ def test_can_delete_profile(
     iw_global_config_values: dict[str, Any],
     iw_config_values: dict[str, Any],
 ):
-    global_config = GlobalConfig.from_env(**iw_global_config_values).write()
-    config = Config(global_config=global_config, **iw_config_values).write()
+    global_config = GlobalConfig.from_values(iw_global_config_values).write()
+    config = Config.from_values({'global_config': global_config, **iw_config_values}).write()
     assert config.profile_dir.exists()
     config.delete()
     assert not config.profile_dir.exists()

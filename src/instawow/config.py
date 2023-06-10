@@ -108,7 +108,7 @@ def _compute_var(field_: Attribute[object], default: object):
         return value
 
 
-def _read_env_vars(config_cls: Any, **values: object):
+def _read_env_vars(config_cls: Any, values: Mapping[str, object]):
     return {
         f.name: v
         for f in fields(config_cls)
@@ -217,18 +217,16 @@ class GlobalConfig:
     )
 
     @classmethod
-    def from_values(cls, **values: object) -> Self:
+    def from_values(cls, values: Mapping[str, object] = {}, *, env: bool = False) -> Self:
+        if env:
+            values = _read_env_vars(cls, values)
         return config_converter.structure(values, cls)
 
     @classmethod
-    def from_env(cls, **values: object) -> Self:
-        return cls.from_values(**_read_env_vars(cls, **values))
-
-    @classmethod
     def read(cls) -> Self:
-        env_only_config = cls.from_env()
+        env_only_config = cls.from_values(env=True)
         config_values = _read_config(env_only_config.config_file, missing_ok=True)
-        return cls.from_env(**config_values) if config_values else env_only_config
+        return cls.from_values(config_values, env=True) if config_values else env_only_config
 
     def list_profiles(self) -> list[str]:
         "Get the names of the profiles contained in ``config_dir``."
@@ -287,18 +285,17 @@ class Config:
         return object.__new__(type(f'Dummy{cls.__name__}', (cls,), values))
 
     @classmethod
-    def from_values(cls, **values: object) -> Self:
+    def from_values(cls, values: Mapping[str, object] = {}, *, env: bool = False) -> Self:
+        if env:
+            values = _read_env_vars(cls, values)
         return config_converter.structure(values, cls)
-
-    @classmethod
-    def from_env(cls, **values: object) -> Self:
-        return cls.from_values(**_read_env_vars(cls, **values))
 
     @classmethod
     def read(cls, global_config: GlobalConfig, profile: str) -> Self:
         dummy_config = cls.make_dummy_config(global_config=global_config, profile=profile)
-        return cls.from_env(
-            **{**_read_config(dummy_config.config_file), 'global_config': global_config}
+        return cls.from_values(
+            {**_read_config(dummy_config.config_file), 'global_config': global_config},
+            env=True,
         )
 
     def encode_for_display(self) -> str:

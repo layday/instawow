@@ -89,8 +89,8 @@ def iw_config_values(request: pytest.FixtureRequest, tmp_path: Path):
 
 @pytest.fixture
 def iw_config(iw_config_values: dict[str, Any], iw_global_config_values: dict[str, Any]):
-    global_config = GlobalConfig.from_env(**iw_global_config_values).write()
-    return Config(global_config=global_config, **iw_config_values).write()
+    global_config = GlobalConfig.from_values(iw_global_config_values).write()
+    return Config.from_values({'global_config': global_config, **iw_config_values}).write()
 
 
 @pytest.fixture(autouse=True)

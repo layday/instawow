@@ -1260,7 +1260,7 @@ def configure(
             parent = parent[part]
         parent[key.path[-1]] = value
 
-    config = Config.from_values(**config_values)
+    config = Config.from_values(config_values)
     config.global_config.write()
     config.write()
 
