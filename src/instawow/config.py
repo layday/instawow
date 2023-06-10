@@ -43,26 +43,26 @@ def _ensure_dirs(dirs: Iterable[Path]):
         dir_.mkdir(exist_ok=True, parents=True)
 
 
-def _enrich_validator_exc(type_: type, validator: Callable[[object, Attribute[_T], _T], None]):
+def _enrich_validator_exc(validator: Callable[[object, Attribute[_T], _T], None]):
     def wrapper(model: object, attr: Attribute[_T], value: _T):
         try:
             validator(model, attr, value)
         except BaseException as exc:
             note = f'Structuring class {model.__class__.__name__} @ attribute {attr.name}'
-            add_exc_note(exc, AttributeValidationNote(note, attr.name, type_))
+            add_exc_note(exc, AttributeValidationNote(note, attr.name, attr.type))
             raise
 
     return wrapper
 
 
-@partial(_enrich_validator_exc, Path)
+@_enrich_validator_exc
 def _validate_path_is_writable_dir(_model: object, _attr: Attribute[Path], value: Path):
     if not _is_writable_dir(value):
         raise ValueError(f'"{value}" is not a writable directory')
 
 
 def _make_validate_min_length(min_length: int):
-    @partial(_enrich_validator_exc, str)
+    @_enrich_validator_exc
     def _validate_min_length(_model: object, _attr: Attribute[Sized], value: Sized):
         if len(value) < min_length:
             raise ValueError(f'value must have a minimum length of {min_length}')
