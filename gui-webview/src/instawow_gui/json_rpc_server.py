@@ -11,7 +11,7 @@ from datetime import datetime
 from functools import partial
 from itertools import chain
 from pathlib import Path
-from typing import Any, Literal, TypeVar
+from typing import Any, Literal, TypeVar, cast
 
 import aiohttp
 import aiohttp.typedefs
@@ -81,6 +81,9 @@ def _transform_validation_errors(
     path: tuple[str | int, ...] = (),
 ) -> Iterator[_ValidationErrorResponse]:
     if isinstance(exc, cattrs.IterableValidationError):
+        exc = cast(
+            cattrs.IterableValidationError, exc
+        )  # FIXME: Rm once a new ver of cattrs is out
         with_notes, _ = exc.group_exceptions()
         for exc, note in with_notes:
             new_path = (*path, note.index)
