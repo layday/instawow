@@ -81,7 +81,7 @@ def fill(it: Iterable[_T], fill: _T, length: int) -> Iterable[_T]:
 
 def bucketise(iterable: Iterable[_U], key: Callable[[_U], _T]) -> dict[_T, list[_U]]:
     "Place the elements of an iterable in a bucket according to ``key``."
-    bucket: defaultdict[_T, list[_U]] = defaultdict(list)
+    bucket = defaultdict[_T, list[_U]](list)
     for value in iterable:
         bucket[key(value)].append(value)
     return dict(bucket)

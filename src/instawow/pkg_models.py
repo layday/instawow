@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 
 import sqlalchemy as sa
-from attrs import asdict, frozen
+from attrs import asdict, field, frozen
 from cattrs import Converter
 from typing_extensions import Self
 
@@ -56,9 +56,9 @@ class Pkg:
     version: str
     changelog_url: str
     options: PkgOptions  # pkg_options
-    folders: list[PkgFolder] = []  # pkg_folder
-    deps: list[PkgDep] = []  # pkg_dep
-    logged_versions: list[PkgLoggedVersion] = []  # pkg_version_log
+    folders: list[PkgFolder] = field(factory=list)  # pkg_folder
+    deps: list[PkgDep] = field(factory=list)  # pkg_dep
+    logged_versions: list[PkgLoggedVersion] = field(factory=list)  # pkg_version_log
 
     @classmethod
     def from_row_mapping(cls, connection: sa.Connection, row_mapping: sa.RowMapping) -> Self:

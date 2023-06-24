@@ -5,7 +5,7 @@ from datetime import datetime
 from functools import cached_property
 from typing import Any
 
-from attrs import frozen
+from attrs import field, frozen
 from cattrs import Converter
 from cattrs.preconf.json import configure_converter
 from typing_extensions import Self
@@ -41,8 +41,8 @@ class CatalogueEntry(AddonKey):
     game_flavours: frozenset[Flavour]
     download_count: int
     last_updated: datetime
-    folders: list[frozenset[str]] = []
-    same_as: list[AddonKey] = []
+    folders: list[frozenset[str]] = field(factory=list)
+    same_as: list[AddonKey] = field(factory=list)
 
 
 @frozen(kw_only=True)

@@ -11,6 +11,11 @@ from ..http import ClientSessionType
 from ..resolvers import BaseResolver
 from ..utils import run_in_thread
 
+_ADDONS = {
+    ('0', 'weakauras-companion'),
+    ('1', 'weakauras-companion-autoupdate'),
+}
+
 
 class InstawowResolver(BaseResolver):
     metadata = SourceMetadata(
@@ -22,14 +27,9 @@ class InstawowResolver(BaseResolver):
     )
     requires_access_token = None
 
-    _ADDONS = {
-        ('0', 'weakauras-companion'),
-        ('1', 'weakauras-companion-autoupdate'),
-    }
-
     async def resolve_one(self, defn: Defn, metadata: None) -> pkg_models.Pkg:
         try:
-            source_id, slug = next(p for p in self._ADDONS if defn.alias in p)
+            source_id, slug = next(p for p in _ADDONS if defn.alias in p)
         except StopIteration:
             raise R.PkgNonexistent
 
