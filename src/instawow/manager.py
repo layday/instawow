@@ -20,12 +20,12 @@ from itertools import chain, filterfalse, product, repeat, starmap
 from pathlib import Path, PurePath
 from shutil import move
 from tempfile import NamedTemporaryFile
-from typing import Literal, NoReturn, TypeVar
+from typing import Literal, TypeVar
 
 import sqlalchemy as sa
 from attrs import evolve
 from loguru import logger
-from typing_extensions import Concatenate, ParamSpec, Self, TypeAlias
+from typing_extensions import Concatenate, Never, ParamSpec, Self, TypeAlias
 from yarl import URL
 
 from . import http, pkg_db, pkg_models
@@ -66,26 +66,24 @@ from .utils import run_in_thread as t
 
 _P = ParamSpec('_P')
 _T = TypeVar('_T')
-_ResultOrError: TypeAlias = '_T | R.ManagerError | R.InternalError'
 
 _AsyncNamedTemporaryFile = t(NamedTemporaryFile)
 _move_async = t(move)
 
 
-_ERROR_CLASSES = (R.ManagerError, R.InternalError)
-
-
 def bucketise_results(
-    value: Iterable[tuple[Defn, _ResultOrError[_T]]],
-) -> tuple[Mapping[Defn, _T], Mapping[Defn, _ResultOrError[NoReturn]]]:
-    def get_bucket_dict(key: bool):
-        return dict(buckets.get(key, ()))
+    values: Iterable[tuple[Defn, R.AnyResult[_T]]],
+) -> tuple[Mapping[Defn, _T], Mapping[Defn, R.AnyResult[Never]]]:
+    ts: dict[Defn, _T] = {}
+    errors: dict[Defn, R.AnyResult[Never]] = {}
 
-    buckets = bucketise(value, lambda v: isinstance(v[1], _ERROR_CLASSES))
-    return (
-        get_bucket_dict(False),
-        get_bucket_dict(True),
-    )  # pyright: ignore[reportGeneralTypeIssues]
+    for defn, value in values:
+        if isinstance(value, (R.ManagerError, R.InternalError)):
+            errors[defn] = value
+        else:
+            ts[defn] = value
+
+    return ts, errors
 
 
 @asynccontextmanager
@@ -118,7 +116,7 @@ def _open_pkg_archive(path: PurePath):
 
 @object.__new__
 class _DummyResolver:
-    async def resolve(self, defns: Sequence[Defn]) -> dict[Defn, _ResultOrError[pkg_models.Pkg]]:
+    async def resolve(self, defns: Sequence[Defn]) -> dict[Defn, R.AnyResult[pkg_models.Pkg]]:
         return dict.fromkeys(defns, R.PkgSourceInvalid())
 
     async def get_changelog(self, uri: URL) -> str:
@@ -127,7 +125,7 @@ class _DummyResolver:
 
 async def capture_manager_exc_async(
     awaitable: Awaitable[_T],
-) -> _ResultOrError[_T]:
+) -> R.AnyResult[_T]:
     "Capture and log an exception raised in a coroutine."
     from aiohttp import ClientError
 
@@ -513,8 +511,8 @@ class Manager:
         }
 
     async def _resolve_deps(
-        self, results: Collection[_ResultOrError[pkg_models.Pkg]]
-    ) -> Mapping[Defn, _ResultOrError[pkg_models.Pkg]]:
+        self, results: Collection[R.AnyResult[pkg_models.Pkg]]
+    ) -> Mapping[Defn, R.AnyResult[pkg_models.Pkg]]:
         """Resolve package dependencies.
 
         The resolver will not follow dependencies
@@ -541,7 +539,7 @@ class Manager:
 
     async def resolve(
         self, defns: Collection[Defn], with_deps: bool = False
-    ) -> Mapping[Defn, _ResultOrError[pkg_models.Pkg]]:
+    ) -> Mapping[Defn, R.AnyResult[pkg_models.Pkg]]:
         "Resolve definitions into packages."
         if not defns:
             return {}
@@ -701,7 +699,7 @@ class Manager:
     @_with_lock(_StandardLocks.MutatePkgs)
     async def install(
         self, defns: Sequence[Defn], replace: bool, dry_run: bool = False
-    ) -> Mapping[Defn, _ResultOrError[R.PkgInstalled]]:
+    ) -> Mapping[Defn, R.AnyResult[R.PkgInstalled]]:
         "Install packages from a definition list."
 
         # We'll weed out installed deps from the results after resolving -
@@ -739,7 +737,7 @@ class Manager:
     @_with_lock(_StandardLocks.MutatePkgs)
     async def update(
         self, defns: Sequence[Defn], retain_defn_strategy: bool, dry_run: bool = False
-    ) -> Mapping[Defn, _ResultOrError[R.PkgInstalled | R.PkgUpdated]]:
+    ) -> Mapping[Defn, R.AnyResult[R.PkgInstalled | R.PkgUpdated]]:
         """Update installed packages from a definition list.
 
         A ``retain_defn_strategy`` value of false will instruct ``update``
@@ -809,7 +807,7 @@ class Manager:
     @_with_lock(_StandardLocks.MutatePkgs)
     async def remove(
         self, defns: Sequence[Defn], keep_folders: bool
-    ) -> Mapping[Defn, _ResultOrError[R.PkgRemoved]]:
+    ) -> Mapping[Defn, R.AnyResult[R.PkgRemoved]]:
         "Remove packages by their definition."
         return {
             d: (
@@ -822,7 +820,7 @@ class Manager:
         }
 
     @_with_lock(_StandardLocks.MutatePkgs)
-    async def pin(self, defns: Sequence[Defn]) -> Mapping[Defn, _ResultOrError[R.PkgInstalled]]:
+    async def pin(self, defns: Sequence[Defn]) -> Mapping[Defn, R.AnyResult[R.PkgInstalled]]:
         """Pin and unpin installed packages.
 
         instawow does not have true pinning.  This flips ``Strategy.VersionEq``

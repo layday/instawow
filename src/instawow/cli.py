@@ -36,8 +36,8 @@ class Report:
 
     def __init__(
         self,
-        results: Iterable[tuple[Defn, R.ManagerResult]],
-        filter_fn: Callable[[R.ManagerResult], bool] = lambda _: True,
+        results: Iterable[tuple[Defn, R.Result]],
+        filter_fn: Callable[[R.Result], bool] = lambda _: True,
     ) -> None:
         self.results = list(results)
         self.filter_fn = filter_fn
@@ -50,7 +50,7 @@ class Report:
         )
 
     @classmethod
-    def _result_type_to_symbol(cls, result: R.ManagerResult) -> str:
+    def _result_type_to_symbol(cls, result: R.Result) -> str:
         if isinstance(result, R.InternalError):
             return cls.WARNING_SYMBOL
         elif isinstance(result, R.ManagerError):
@@ -422,7 +422,7 @@ def update(
     "Update installed add-ons."
     import sqlalchemy as sa
 
-    def filter_results(result: R.ManagerResult):
+    def filter_results(result: R.Result):
         # Hide packages from output if they are up to date
         # and ``update`` was invoked without args,
         # provided that they are not pinned

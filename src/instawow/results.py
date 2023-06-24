@@ -1,15 +1,20 @@
 from __future__ import annotations
 
 from collections.abc import Collection
-from typing import Any, Final, Protocol
+from typing import Any, Final, Protocol, TypeVar
 
 from attrs import asdict
+from typing_extensions import TypeAlias
 
 from . import pkg_models
 from .common import Strategy, StrategyValues
 
+_T = TypeVar('_T')
 
-class ManagerResult(Protocol):
+AnyResult: TypeAlias = '_T | ManagerError | InternalError'
+
+
+class Result(Protocol):
     @property
     def message(self) -> str:
         ...
@@ -19,7 +24,7 @@ class _SuccessResult:
     status: Final = 'success'
 
 
-class PkgInstalled(ManagerResult, _SuccessResult):
+class PkgInstalled(Result, _SuccessResult):
     def __init__(self, pkg: pkg_models.Pkg, *, dry_run: bool = False) -> None:
         super().__init__()
         self.pkg = pkg
@@ -30,7 +35,7 @@ class PkgInstalled(ManagerResult, _SuccessResult):
         return f'{"would have installed" if self.dry_run else "installed"} {self.pkg.version}'
 
 
-class PkgUpdated(ManagerResult, _SuccessResult):
+class PkgUpdated(Result, _SuccessResult):
     def __init__(
         self, old_pkg: pkg_models.Pkg, new_pkg: pkg_models.Pkg, *, dry_run: bool = False
     ) -> None:
@@ -60,7 +65,7 @@ class PkgUpdated(ManagerResult, _SuccessResult):
         return message
 
 
-class PkgRemoved(ManagerResult, _SuccessResult):
+class PkgRemoved(Result, _SuccessResult):
     def __init__(self, old_pkg: pkg_models.Pkg) -> None:
         super().__init__()
         self.old_pkg = old_pkg
@@ -70,7 +75,7 @@ class PkgRemoved(ManagerResult, _SuccessResult):
         return 'removed'
 
 
-class ManagerError(ManagerResult, Exception):
+class ManagerError(Result, Exception):
     status: Final = 'failure'
 
     @property
@@ -169,7 +174,7 @@ class PkgStrategiesUnsupported(ManagerError):
         return f'strategies are not valid for source: {", ".join(self.strategies)}'
 
 
-class InternalError(Exception, ManagerResult):
+class InternalError(Result, Exception):
     status: Final = 'error'
 
     @property
