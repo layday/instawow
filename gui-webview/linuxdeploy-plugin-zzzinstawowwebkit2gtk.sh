@@ -76,10 +76,9 @@ if [ -z "$LINUXDEPLOY" ]; then
 fi
 
 echo "Deploy proot"
-curl -L https://gitlab.com/proot/proot/-/jobs/2370229665/artifacts/download -o proot.zip
-unzip proot
-chmod +x dist/proot
-cp dist/proot "$APPDIR/usr/bin"
+curl -LO https://proot.gitlab.io/proot/bin/proot
+chmod +x proot
+mv proot "$APPDIR/usr/bin"
 
 echo "Installing gi.repository typelibdir"
 gir_typelibdir="$("$PKG_CONFIG" --variable=typelibdir gobject-introspection-1.0)"
