@@ -51,18 +51,13 @@ def format_(session: nox.Session):
     session.run('black', *['--check'] if check else [], *LINT_PATHS)
 
     if '--skip-prettier' not in session.posargs:
-        paths = [
-            'package.json',
-            'rollup.config.mjs',
-            'src',
-            'tsconfig.json',
-        ]
         session.chdir('gui-webview/frontend')
+        session.run('npm', 'install', external=True)
         session.run(
             'npx',
             'prettier',
             '--check' if check else '--write',
-            *paths,
+            '.',
             external=True,
         )
 
