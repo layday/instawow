@@ -51,8 +51,12 @@ jobs:
           --force-python ${{ matrix.python-version }}
           -s 'test-${{ matrix.python-version }}(latest)'
           -- '${{ steps.download-wheel.outputs.download-path }}/${{ needs.build-package.outputs.wheel-name }}'
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v2
+      - name: Upload coverage data
+        uses: actions/upload-artifact@v3
+        with:
+          name: coverage-data
+          path: .coverage.*
+          if-no-files-found: ignore
       - name: Run tests (minimum versions)
         run: >-
           nox
@@ -106,3 +110,24 @@ jobs:
           node-version: "18"
       - name: Lint
         run: nox -s lint
+  # Nicked from attrs.
+  coverage:
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - name: Clone the repo
+        uses: actions/checkout@v3
+      - name: Download coverage data
+        uses: actions/download-artifact@v3
+        with:
+          name: coverage-data
+      - name: Install nox
+        run: pipx install nox
+      - name: Produce coverage report
+        run: |
+          nox -s produce_coverage_report
+      - name: Upload HTML report
+        uses: actions/upload-artifact@v3
+        with:
+          name: html-report
+          path: htmlcov

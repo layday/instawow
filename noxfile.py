@@ -123,9 +123,15 @@ def test(session: nox.Session, constraints: str):
         *'coverage run -m pytest -n auto'.split(),
         env={'COVERAGE_PROCESS_START': 'pyproject.toml'},
     )
+
+
+@nox.session
+def produce_coverage_report(session: nox.Session):
+    "Produce coverage report."
+    session.install('coverage[toml]')
     session.run('coverage', 'combine')
+    session.run('coverage', 'html', '--skip-covered', '--skip-empty')
     session.run('coverage', 'report', '-m')
-    session.run('coverage', 'xml')
 
 
 @nox.session(python='3.11')
