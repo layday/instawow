@@ -20,9 +20,10 @@ LINT_PATHS = [
 
 
 def mirror_repo(session: nox.Session):
-    repo_dir = f'{session.create_tmp()}/instawow'
-    session.run('git', 'clone', '.', repo_dir, external=True)
-    session.chdir(repo_dir)
+    if not os.environ.get('CI'):
+        repo_dir = f'{session.create_tmp()}/instawow'
+        session.run('git', 'clone', '.', repo_dir, external=True)
+        session.chdir(repo_dir)
 
 
 def install_coverage_hook(session: nox.Session):
