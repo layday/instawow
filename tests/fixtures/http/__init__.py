@@ -150,6 +150,10 @@ ROUTES = dict(
                 _load_json_fixture('github-release-release-json-release-json.json'),
             ),
             Route(
+                URL('//api.github.com/repositories/388670'),
+                _load_json_fixture('github-repo-molinari.json'),
+            ),
+            Route(
                 URL('//api.github.com/repos/p3lim-wow/Molinari'),
                 _load_json_fixture('github-repo-molinari.json'),
                 case_insensitive=True,

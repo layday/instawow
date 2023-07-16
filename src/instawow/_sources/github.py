@@ -33,6 +33,7 @@ class _GithubRepo(TypedDict):
     name: str  # the repo in user-or-org/repo
     full_name: str  # user-or-org/repo
     description: str | None
+    url: str
     html_url: str
 
 
@@ -90,7 +91,7 @@ class GithubResolver(BaseResolver):
     )
     requires_access_token = None
 
-    _repos_api_url = URL('https://api.github.com/repos')
+    _api_url = URL('https://api.github.com/')
 
     _generated_catalogue_csv_url = (
         'https://raw.githubusercontent.com/layday/github-wow-addon-catalogue/main/addons.csv'
@@ -333,7 +334,15 @@ class GithubResolver(BaseResolver):
     async def resolve_one(self, defn: Defn, metadata: None) -> pkg_models.Pkg:
         github_headers = await self.make_request_headers()
 
-        repo_url = self._repos_api_url / defn.alias
+        if (
+            defn.id
+            # Back compat; ID used to be equal to the full name.
+            and defn.id.isdigit()
+        ):
+            repo_url = self._api_url / 'repositories' / defn.id
+        else:
+            repo_url = self._api_url / 'repos' / defn.alias
+
         async with self._manager.web_client.get(
             repo_url, expire_after=timedelta(hours=1), headers=github_headers
         ) as response:
@@ -343,10 +352,10 @@ class GithubResolver(BaseResolver):
             project: _GithubRepo = await response.json()
 
         if defn.strategies.version_eq:
-            release_url = repo_url / 'releases/tags' / defn.strategies.version_eq
+            release_url = URL(project['url']) / 'releases/tags' / defn.strategies.version_eq
         else:
             # Includes pre-releases
-            release_url = (repo_url / 'releases').with_query(
+            release_url = (URL(project['url']) / 'releases').with_query(
                 # Default is 30 but we're more conservative
                 per_page='10'
             )
