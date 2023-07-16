@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import enum
+import sys
 import textwrap
 from collections.abc import Awaitable, Callable, Collection, Iterable, Mapping, Sequence
 from datetime import datetime, timezone
@@ -27,6 +28,20 @@ from .utils import StrEnum, all_eq, gather, reveal_folder, tabulate, uniq
 
 _T = TypeVar('_T')
 _TStrEnum = TypeVar('_TStrEnum', bound=StrEnum)
+
+
+def _patch_asyncio():
+    # See https://github.com/aio-libs/aiohttp/issues/4324.
+    # We are not using pipes on Windows or async subprocesses so it's ok
+    # to just override the loop policy.
+    if sys.platform == 'win32' and sys.version_info < (3, 10):
+        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+
+
+@logger.catch(reraise=True)
+def main(*args: Any, **kwargs: Any) -> None:
+    _patch_asyncio()
+    cli(*args, **kwargs)
 
 
 class Report:
@@ -303,9 +318,6 @@ def _parse_debug_option(
 def cli(ctx: click.Context, **__: object) -> None:
     "Add-on manager for World of Warcraft."
     ctx.obj = _CtxObjWrapper(ctx)
-
-
-main = logger.catch(reraise=True)(cli)
 
 
 @overload
