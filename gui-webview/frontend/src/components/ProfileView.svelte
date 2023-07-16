@@ -280,10 +280,22 @@
         ) as Strategies;
 
         if (searchOptions.fromAlias) {
+          let source = "*",
+            alias = searchTermsSnapshot;
+
+          const colonIndex = searchTermsSnapshot.indexOf(":");
+          if (colonIndex !== -1) {
+            const sourceCandidate = searchTermsSnapshot.slice(0, colonIndex);
+            if (sourceCandidate in sources) {
+              source = sourceCandidate;
+              alias = searchTermsSnapshot.slice(colonIndex + 1);
+            }
+          }
+
           results = await profileApi.resolve([
             {
-              source: "*",
-              alias: searchTermsSnapshot,
+              source,
+              alias,
               strategies: condensedStrategies,
             },
           ]);
@@ -427,7 +439,7 @@
             [Strategy.VersionEq]: addon.options[Strategy.VersionEq] ? addon.version : "",
           },
         };
-        searchTerms = createAddonToken(addon);
+        searchTerms = `${addon.source}:${addon.slug}`;
         search();
 
         break;
