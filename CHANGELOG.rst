@@ -1,6 +1,19 @@
 Changelog
 =========
 
+v3.0.1
+------
+
+CLI
+~~~
+
+- Restored asyncio event loop policy override on Windows for Python 3.9.
+
+GUI
+~~~
+
+- Fixed add-on alias and URL search.
+
 v3.0.0
 ------
 
