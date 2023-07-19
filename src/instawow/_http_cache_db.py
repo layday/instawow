@@ -20,7 +20,7 @@ def acquire_cache_connection(parent_folder_path: os.PathLike[str]):
 
 class SQLiteBackend(CacheBackend):
     def __init__(self, connection: sqlite3.Connection, **kwargs: Any):
-        super().__init__(**kwargs)  # pyright: ignore[reportUnknownMemberType]
+        super().__init__(**kwargs)
         self.responses = _SQLitePickleCache().attach('responses', connection)
         self.redirects = _SQLiteSimpleCache().attach('redirects', connection)
 
