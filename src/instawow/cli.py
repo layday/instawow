@@ -289,11 +289,7 @@ def _parse_debug_option(
 
 
 @_register_plugin_commands
-@click.group(
-    # Redundant; overload w/out type var default remains unsolved: https://github.com/pallets/click/issues/2558
-    cls=None,
-    context_settings={'help_option_names': ('-h', '--help')},
-)
+@click.group(context_settings={'help_option_names': ('-h', '--help')})
 @click.version_option(__version__, prog_name=__spec__.parent)
 @click.option(
     '--debug',
