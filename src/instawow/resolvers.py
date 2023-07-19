@@ -92,7 +92,7 @@ class BaseResolver(Resolver, Protocol):
 
         if cls.resolve_one is not super().resolve_one:
 
-            async def resolve_one(self: type[Self], defn: Defn, metadata: Any) -> pkg_models.Pkg:
+            async def resolve_one(self: Self, defn: Defn, metadata: Any) -> pkg_models.Pkg:
                 extraneous_strategies = (
                     defn.strategies.filled_strategies.keys() - self.metadata.strategies
                 )
