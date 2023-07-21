@@ -167,33 +167,56 @@ def publish_dists(session: nox.Session):
     session.run('twine', 'upload', '--verbose', 'dist/*')
 
 
-@nox.session
+@nox.session(python=False)
 def freeze_cli(session: nox.Session):
-    session.install(
-        'pyinstaller',
-        '.',
-    )
-    main_py = session.run(
-        'python',
-        '-c',
-        'import instawow.__main__; print(instawow.__main__.__file__, end="")',
-        silent=True,
-    )
-    assert main_py
-    session.run(
-        'pyinstaller',
-        '--clean',
-        '-y',
-        '--onedir',
-        '-n',
-        'instawow-standalone',
-        '--collect-all',
-        'instawow',
-        '--exclude-module',
-        'instawow_gui',
-        '--console',
-        main_py,
-    )
+    import argparse
+    import shutil
+    import tempfile
+
+    PYAPP_VERSION = 'v0.12.0'
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--wheel-file', required=True)
+    parser.add_argument('--out-dir', required=True)
+    parser.add_argument('--cargo-command')
+
+    options = parser.parse_args(session.posargs)
+
+    pyapp_configuration = {
+        'PYAPP_PROJECT_PATH': os.fspath(Path(options.wheel_file).absolute()),
+        'PYAPP_EXEC_MODULE': 'instawow',
+        'PYAPP_PYTHON_VERSION': '3.11',
+        'PYAPP_DISTRIBUTION_EMBED': '1',
+        'PYAPP_PIP_EXTERNAL': '1',
+        'PYAPP_PIP_EXTRA_ARGS': '--only-binary :all:',
+    }
+
+    with tempfile.TemporaryDirectory() as app_temp_dir:
+        session.run(
+            options.cargo_command or 'cargo',
+            'install',
+            '--git',
+            'https://github.com/ofek/pyapp',
+            '--tag',
+            PYAPP_VERSION,
+            '--force',
+            '--root',
+            app_temp_dir,
+            external=True,
+            env=pyapp_configuration,
+        )
+
+        for suffix in ['', '.exe']:
+            from_path = Path(app_temp_dir, 'bin', 'pyapp').with_suffix(suffix)
+            if not from_path.exists():
+                continue
+
+            to_path = Path(options.out_dir, 'instawow').with_suffix(suffix)
+            to_path.parent.mkdir(parents=True)
+            shutil.copy(from_path, to_path)
+
+            print(to_path, end='')
+            break
 
 
 @nox.session(python=False)

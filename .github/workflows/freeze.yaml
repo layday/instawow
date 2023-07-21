@@ -28,26 +28,62 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest]
-    runs-on: ${{ matrix.os }}
+        build-env:
+          - os: macos-12
+            rust-target: aarch64-apple-darwin
+          - os: macos-12
+            rust-target: x86_64-apple-darwin
+          - os: ubuntu-22.04
+            rust-target: aarch64-unknown-linux-gnu
+          - os: ubuntu-22.04
+            rust-target: x86_64-unknown-linux-gnu
+          # - os: windows-2022
+          #   rust-target: aarch64-pc-windows-msvc
+          - os: windows-2022
+            rust-target: x86_64-pc-windows-msvc
+    runs-on: ${{ matrix.build-env.os }}
     steps:
       - name: Clone the repo
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
+      - name: Download pre-built wheel
+        uses: actions/download-artifact@v3
+        id: download-wheel
+        with:
+          name: ${{ needs.build-package.outputs.wheel-name }}
+          path: ./dist
       - name: Install Python 3.11
         uses: actions/setup-python@v4
         with:
           python-version: "3.11"
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          target: ${{ matrix.build-env.rust-target }}
+      - name: Install cross-compilation toolchain
+        uses: taiki-e/setup-cross-toolchain-action@v1
+        with:
+          target: ${{ matrix.build-env.rust-target }}
+      - name: Install cross
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cross
+        if: startsWith(matrix.build-env.os, 'ubuntu-')
       - name: Install nox
         run: python -m pip install nox
       - name: Freeze the CLI
-        run: nox -s freeze_cli
+        run: nox -s freeze_cli --
+          --wheel-file '${{ steps.download-wheel.outputs.download-path }}/${{ needs.build-package.outputs.wheel-name }}'
+          --out-dir ./dist-cli
+        env:
+          CARGO_BUILD_TARGET: ${{ matrix.build-env.rust-target }}
       - name: Upload artifact
-        uses: actions/upload-artifact@v2.2.4
+        uses: actions/upload-artifact@v3
         with:
-          name: instawow-cli-${{ needs.build-package.outputs.wheel-version }}-${{ matrix.os }}
-          path: ./dist/instawow-standalone
+          name: instawow-cli-${{ needs.build-package.outputs.wheel-version }}-${{ matrix.build-env.rust-target }}
+          path: ./dist-cli/instawow*
   freeze-gui:
     needs: build-package
     strategy:
@@ -106,7 +142,7 @@ jobs:
           python -m briefcase package ${{ matrix.build-env.briefcase-package-opts }}
         working-directory: gui-webview
       - name: Upload artifact
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: instawow-gui-${{ needs.build-package.outputs.wheel-version }}-${{ matrix.build-env.os }}
           path: |
