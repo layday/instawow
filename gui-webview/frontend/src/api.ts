@@ -168,7 +168,10 @@ export type ValidationError = {
 };
 
 export class Api {
-  constructor(private readonly _clientWrapper: RClient, public readonly profile?: string) {}
+  constructor(
+    private readonly _clientWrapper: RClient,
+    public readonly profile?: string,
+  ) {}
 
   withProfile(profile: string) {
     return new Api(this._clientWrapper, profile);
@@ -187,7 +190,7 @@ export class Api {
     profile: string,
     addonDir: string,
     gameFlavour: Flavour,
-    inferGameFlavour: boolean
+    inferGameFlavour: boolean,
   ): Promise<Config> {
     return await this.request({
       method: "config/write_profile",
@@ -250,7 +253,7 @@ export class Api {
     limit: number,
     sources: string[],
     startDate: string | null,
-    installedOnly: boolean
+    installedOnly: boolean,
   ): Promise<CatalogueEntry[]> {
     return await this.request({
       method: "search",
@@ -275,7 +278,7 @@ export class Api {
   async modifyAddons(
     method: "install" | "update" | "remove" | "pin",
     defns: object[],
-    extraParams: { [key: string]: unknown } = {}
+    extraParams: { [key: string]: unknown } = {},
   ): Promise<MultiResult> {
     return await this.request({
       method: method,
@@ -346,6 +349,6 @@ export const addonToDefn = (addon: Addon): Defn => ({
     Object.entries(addon.options).map(([k, v]) => [
       k,
       !v ? null : k === Strategy.VersionEq ? addon.version : v,
-    ])
+    ]),
   ) as Strategies,
 });

@@ -40,7 +40,7 @@ export default [
                 .toString()
                 .replace(
                   "__csp__",
-                  "script-src 'self'" + (!PRODUCTION ? " http://127.0.0.1:35729/" : "")
+                  "script-src 'self'" + (!PRODUCTION ? " http://127.0.0.1:35729/" : ""),
                 ),
           },
         ],
