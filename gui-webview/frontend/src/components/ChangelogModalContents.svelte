@@ -25,6 +25,7 @@
 <div class="content">
   {#if renderAsHtml}
     <blockquote>
+      <!-- eslint-disable-next-line svelte/no-at-html-tags -->
       {@html stripHtml(changelog, {
         ignoreTags: ALLOWED_TAGS,
         dumpLinkHrefsNearby: {
