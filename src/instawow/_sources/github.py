@@ -445,7 +445,7 @@ class GithubResolver(BaseResolver):
         for entry in dict_reader:
             yield CatalogueEntry(
                 source=cls.metadata.id,
-                id=entry['full_name'],
+                id=entry['id'],
                 slug=entry['full_name'].lower(),
                 name=entry['name'],
                 url=entry['url'],
