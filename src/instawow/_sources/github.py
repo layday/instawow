@@ -334,12 +334,9 @@ class GithubResolver(BaseResolver):
     async def resolve_one(self, defn: Defn, metadata: None) -> pkg_models.Pkg:
         github_headers = await self.make_request_headers()
 
-        if (
-            defn.id
-            # Back compat; ID used to be equal to the full name.
-            and defn.id.isdigit()
-        ):
-            repo_url = self._api_url / 'repositories' / defn.id
+        id_or_alias = defn.id or defn.alias
+        if id_or_alias.isdigit():
+            repo_url = self._api_url / 'repositories' / id_or_alias
         else:
             repo_url = self._api_url / 'repos' / defn.alias
 
