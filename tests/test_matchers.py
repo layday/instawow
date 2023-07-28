@@ -67,19 +67,33 @@ async def test_reconcile_invalid_addons_discarded(iw_manager: Manager):
     [
         (
             match_toc_source_ids,
-            {Defn('curse', '20338'), Defn('wowi', '13188')},
+            {
+                Defn('curse', '20338'),
+                Defn('wowi', '13188'),
+                Defn('github', '388670'),
+                Defn('wago', 'WqKQQEKx'),
+            },
         ),
         (
             match_folder_hashes,
-            {Defn('wago', 'WqKQQEKx')},
+            {
+                Defn('wago', 'WqKQQEKx'),
+            },
         ),
         (
             match_folder_name_subsets,
-            {Defn('curse', '20338'), Defn('wowi', '13188')},
+            {
+                Defn('curse', '20338'),
+                Defn('wowi', '13188'),
+            },
         ),
         (
             match_addon_names_with_folder_names,
-            {Defn('curse', '20338'), Defn('wowi', '13188'), Defn('github', 'p3lim-wow/Molinari')},
+            {
+                Defn('curse', '20338'),
+                Defn('wowi', '13188'),
+                Defn('github', '388670'),
+            },
         ),
     ],
 )

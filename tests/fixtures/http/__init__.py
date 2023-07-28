@@ -188,7 +188,7 @@ ROUTES = dict(
             ),
             Route(
                 URL('//api.github.com/repos/{x}/{y}/releases/asssets/{z}'),
-                lambda: Response(body=_make_addon_zip('Foo')),
+                lambda: Response(body=_make_addon_zip('Molinari')),
                 path_pattern=re.compile(r'^/repos(/[^/]*){2}/releases/assets/'),
             ),
             Route(

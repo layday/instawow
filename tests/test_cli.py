@@ -400,7 +400,7 @@ def test_reconcile__auto_reconcile(
 ):
     assert pretend_install_molinari_and_run('reconcile --auto').output == dedent(
         '''\
-        ✓ curse:molinari
+        ✓ github:p3lim-wow/molinari
           installed 100100.105-Release
         '''
     )
@@ -422,7 +422,7 @@ def test_reconcile__complete_interactive_reconciliation(
     assert pretend_install_molinari_and_run('reconcile').output.endswith(
         dedent(
             '''\
-            ✓ curse:molinari
+            ✓ github:p3lim-wow/molinari
               installed 100100.105-Release
             '''
         )

@@ -102,17 +102,28 @@ def get_unreconciled_folders(manager: manager.Manager) -> frozenset[AddonFolder]
 
 
 async def match_toc_source_ids(manager: manager.Manager, leftovers: frozenset[AddonFolder]):
-    addons_with_toc_source_ids = [
-        (a, d)
-        for a in sorted(leftovers)
-        for d in (a.get_defns_from_toc_keys(manager.resolvers.addon_toc_key_and_id_pairs),)
-        if d
-    ]
+    catalogue = await manager.synchronise()
+
+    def get_catalogue_defns(extracted_defns: Iterable[Defn]):
+        for defn in extracted_defns:
+            entry = catalogue.keyed_entries.get((defn.source, defn.alias))
+            if entry:
+                for addon_key in entry.same_as:
+                    if addon_key.source in manager.resolvers:
+                        yield Defn(addon_key.source, addon_key.id)
+
+    def get_addon_and_defn_pairs():
+        for addon in sorted(leftovers):
+            defns = addon.get_defns_from_toc_keys(manager.resolvers.addon_toc_key_and_id_pairs)
+            if defns:
+                yield (addon, defns | frozenset(get_catalogue_defns(defns)))
+
+    matches = list(get_addon_and_defn_pairs())
     merged_defns_by_constituent_defn = {
-        i: s for s in merge_intersecting_sets(d for _, d in addons_with_toc_source_ids) for i in s
+        i: s for s in merge_intersecting_sets(d for _, d in matches) for i in s
     }
     folders_grouped_by_overlapping_defns = bucketise(
-        addons_with_toc_source_ids,
+        matches,
         lambda i: merged_defns_by_constituent_defn[next(iter(i[1]))],
     )
     return [
