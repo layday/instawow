@@ -1,17 +1,18 @@
 from __future__ import annotations
 
-from collections.abc import Set
+from collections.abc import AsyncIterator, Iterable, Set
 from datetime import datetime
 from functools import cached_property
-from typing import Any
+from typing import Any, Protocol
 
 from attrs import field, frozen
 from cattrs import Converter
 from cattrs.preconf.json import configure_converter
 from typing_extensions import Self
 
-from .config import Flavour
-from .utils import bucketise, normalise_names
+from .. import http
+from ..config import Flavour
+from ..utils import bucketise, normalise_names
 
 CATALOGUE_VERSION = 7
 COMPUTED_CATALOGUE_VERSION = 4
@@ -25,6 +26,11 @@ catalogue_converter = Converter(
 configure_converter(catalogue_converter)
 
 _normalise_name = normalise_names('')
+
+
+class _CatalogueFn(Protocol):
+    def __call__(self, web_client: http.ClientSessionType) -> AsyncIterator[CatalogueEntry]:
+        ...
 
 
 @frozen(kw_only=True)
@@ -57,12 +63,11 @@ class Catalogue:
     entries: list[CatalogueEntry]
 
     @classmethod
-    async def collate(cls, start_date: datetime | None) -> Self:
-        from .http import init_web_client
-        from .manager import Manager
-
-        async with init_web_client(None) as web_client:
-            entries = [e for r in Manager.RESOLVERS async for e in r.catalogue(web_client)]
+    async def collate(
+        cls, catalogue_fns: Iterable[_CatalogueFn], start_date: datetime | None
+    ) -> Self:
+        async with http.init_web_client(None) as web_client:
+            entries = [e for r in catalogue_fns async for e in r(web_client)]
             if start_date is not None:
                 entries = [e for e in entries if e.last_updated >= start_date]
             return cls(entries=entries)
@@ -75,7 +80,7 @@ class ComputedCatalogue:
 
     @classmethod
     def from_base_catalogue(cls, unstructured_base_catalogue: dict[str, Any]) -> Self:
-        from ._sources.github import GithubResolver
+        from .._sources.github import GithubResolver
 
         normalise_name = _normalise_name
 
@@ -104,9 +109,8 @@ class ComputedCatalogue:
                         if e['source'] == GithubResolver.metadata.id
                         else (same_as_from_github.get((e['source'], e['id'])) or e['same_as']),
                         'normalised_name': normalise_name(e['name']),
-                        'derived_download_score': 0
-                        if e['source'] == GithubResolver.metadata.id
-                        else e['download_count'] / most_downloads_per_source[e['source']],
+                        'derived_download_score': e['download_count']
+                        / most_downloads_per_source[e['source']],
                     }
                     for e in base_entries
                 ),

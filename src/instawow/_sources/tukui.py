@@ -9,7 +9,7 @@ from yarl import URL
 
 from .. import pkg_models
 from .. import results as R
-from ..cataloguer import CatalogueEntry
+from ..catalogue.cataloguer import CatalogueEntry
 from ..common import ChangelogFormat, Defn, Flavour, FlavourVersionRange, SourceMetadata
 from ..http import ClientSessionType
 from ..resolvers import BaseResolver

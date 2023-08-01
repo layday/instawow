@@ -12,7 +12,7 @@ from yarl import URL
 
 from . import http, manager, pkg_models
 from . import results as R
-from .cataloguer import CatalogueEntry
+from .catalogue.cataloguer import CatalogueEntry
 from .common import AddonHashMethod, Defn, SourceMetadata
 from .config import GlobalConfig
 from .utils import file_uri_to_path, gather, run_in_thread

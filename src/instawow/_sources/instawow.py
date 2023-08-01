@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 
 from .. import pkg_models
 from .. import results as R
-from ..cataloguer import CatalogueEntry
+from ..catalogue.cataloguer import CatalogueEntry
 from ..common import ChangelogFormat, Defn, Flavour, SourceMetadata
 from ..http import ClientSessionType
 from ..resolvers import BaseResolver

@@ -13,7 +13,7 @@ from yarl import URL
 
 from .. import manager, pkg_models
 from .. import results as R
-from ..cataloguer import CatalogueEntry
+from ..catalogue.cataloguer import CatalogueEntry
 from ..common import ChangelogFormat, Defn, Flavour, FlavourVersionRange, SourceMetadata
 from ..http import ClientSessionType, make_generic_progress_ctx
 from ..resolvers import BaseResolver

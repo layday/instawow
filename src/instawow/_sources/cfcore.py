@@ -16,7 +16,7 @@ from yarl import URL
 
 from .. import manager, pkg_models
 from .. import results as R
-from ..cataloguer import CatalogueEntry
+from ..catalogue.cataloguer import CatalogueEntry
 from ..common import ChangelogFormat, Defn, Flavour, SourceMetadata, Strategy
 from ..config import GlobalConfig
 from ..http import CACHE_INDEFINITELY, ClientSessionType, make_generic_progress_ctx

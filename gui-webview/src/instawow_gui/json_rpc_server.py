@@ -34,7 +34,8 @@ from yarl import URL
 from instawow import __version__, matchers, pkg_db, pkg_models
 from instawow import results as R
 from instawow._version import is_outdated
-from instawow.cataloguer import ComputedCatalogueEntry
+from instawow.catalogue.cataloguer import ComputedCatalogueEntry
+from instawow.catalogue.search import search
 from instawow.common import Defn, Flavour, SourceMetadata
 from instawow.config import Config, GlobalConfig, SecretStr, config_converter
 from instawow.github_auth import get_codes, poll_for_access_token
@@ -303,7 +304,7 @@ class SearchParams(_ProfileParamMixin, BaseParams):
         return await managers.run(
             self.profile,
             partial(
-                Manager.search,
+                search,
                 search_terms=self.search_terms,
                 limit=self.limit,
                 sources=self.sources,

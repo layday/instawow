@@ -731,11 +731,13 @@ def search(
 ) -> None:
     "Search for add-ons to install."
     from ._cli_prompts import PkgChoice, ask, checkbox, confirm
+    from .catalogue.search import search
 
     mw: _CtxObjWrapper = ctx.obj
 
     catalogue_entries = mw.run_with_progress(
-        mw.manager.search(
+        search(
+            mw.manager,
             search_terms,
             limit=limit,
             sources=frozenset(sources),
@@ -1325,10 +1327,13 @@ def generate_catalogue(start_date: datetime | None) -> None:
     "Generate the master catalogue."
     import json
 
-    from .cataloguer import Catalogue, catalogue_converter
+    from .catalogue.cataloguer import Catalogue, catalogue_converter
 
-    catalogue = asyncio.run(Catalogue.collate(start_date))
+    catalogue = asyncio.run(
+        Catalogue.collate((r.catalogue for r in _manager.Manager.RESOLVERS), start_date)
+    )
     catalogue_json = catalogue_converter.unstructure(catalogue)
+
     catalogue_path = Path(f'base-catalogue-v{catalogue.version}.json').resolve()
     catalogue_path.write_text(
         json.dumps(catalogue_json, indent=2),

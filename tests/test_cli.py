@@ -502,11 +502,11 @@ def test_search__install_multiple_conflicting(
     feed_pt(' \x1b[B \r\r')  # space, arrow down, space, enter, enter
     assert run('search molinari').output == dedent(
         '''\
-        ✓ wowi:13188-molinari
+        ✓ github:p3lim-wow/molinari
           installed 100105.109-Release
-        ✗ curse:molinari
+        ✗ wowi:13188-molinari
           package folders conflict with installed package Molinari
-            (wowi:13188)
+            (github:388670)
         '''
     )
 
