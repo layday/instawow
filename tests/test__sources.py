@@ -18,6 +18,18 @@ from instawow.manager import Manager
 from instawow.pkg_models import Pkg
 from instawow.resolvers import Resolver
 
+CURSE_IDS = {
+    'big-wigs': '2382',
+    'molinari': '20338',
+    'adibags': '23350',
+    'mythic-dungeon-tools': '288981',
+    'classiccastbars': '322865',
+    'elkbuffbars': '2398',
+    'atlaslootclassic': '326516',
+    'elvui-adibags': '333072',
+    'bigwigs-voice-korean': '402180',
+}
+
 
 @pytest.mark.parametrize(
     'iw_config_values',
@@ -25,8 +37,8 @@ from instawow.resolvers import Resolver
     indirect=True,
 )
 async def test_curse_simple_strategies(iw_manager: Manager):
-    flavourful = Defn('curse', 'classiccastbars')
-    classics_only = Defn('curse', 'atlaslootclassic')
+    flavourful = Defn('curse', CURSE_IDS['classiccastbars'])
+    classics_only = Defn('curse', CURSE_IDS['atlaslootclassic'])
 
     results = await iw_manager.resolve([flavourful, classics_only])
 
@@ -45,11 +57,21 @@ async def test_curse_simple_strategies(iw_manager: Manager):
 
 
 async def test_curse_any_flavour_strategy(iw_manager: Manager):
-    flavourful = Defn('curse', 'classiccastbars', strategies=StrategyValues(any_flavour=True))
-    classics_only = Defn('curse', 'atlaslootclassic', strategies=StrategyValues(any_flavour=True))
+    flavourful = Defn(
+        'curse', CURSE_IDS['classiccastbars'], strategies=StrategyValues(any_flavour=True)
+    )
+    classics_only = Defn(
+        'curse', CURSE_IDS['atlaslootclassic'], strategies=StrategyValues(any_flavour=True)
+    )
 
     results = await iw_manager.resolve([flavourful, classics_only])
     assert all(type(r) is Pkg for r in results.values())
+
+
+async def test_curse_slug_match(iw_manager: Manager):
+    defn = Defn('curse', 'molinari')
+    results = await iw_manager.resolve([defn])
+    assert results[defn].id == CURSE_IDS['molinari']
 
 
 async def test_curse_version_pinning(iw_manager: Manager):
@@ -60,14 +82,14 @@ async def test_curse_version_pinning(iw_manager: Manager):
 
 
 async def test_curse_deps_retrieved(iw_manager: Manager):
-    defn = Defn('curse', 'bigwigs-voice-korean')
+    defn = Defn('curse', CURSE_IDS['bigwigs-voice-korean'])
 
     results = await iw_manager.resolve([defn], with_deps=True)
     assert {'bigwigs-voice-korean', 'big-wigs'} == {d.slug for d in results.values()}
 
 
 async def test_curse_changelog_is_url(iw_manager: Manager):
-    classiccastbars = Defn('curse', 'classiccastbars')
+    classiccastbars = Defn('curse', CURSE_IDS['classiccastbars'])
 
     results = await iw_manager.resolve([classiccastbars])
     assert re.match(
@@ -110,7 +132,7 @@ async def test_tukui_changelog_url(iw_manager: Manager):
 
     results = await iw_manager.resolve([ui_suite])
 
-    assert results[ui_suite].changelog_url == 'https://api.tukui.org/v1/changelog/tukui#20.37'
+    assert results[ui_suite].changelog_url == 'https://api.tukui.org/v1/changelog/tukui#20.38'
 
 
 async def test_github_basic(iw_manager: Manager):

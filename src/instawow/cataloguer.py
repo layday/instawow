@@ -72,11 +72,9 @@ class Catalogue:
 class ComputedCatalogue:
     version: int = COMPUTED_CATALOGUE_VERSION
     entries: list[ComputedCatalogueEntry]
-    curse_slugs: dict[str, str]
 
     @classmethod
     def from_base_catalogue(cls, unstructured_base_catalogue: dict[str, Any]) -> Self:
-        from ._sources.cfcore import CfCoreResolver
         from ._sources.github import GithubResolver
 
         normalise_name = _normalise_name
@@ -112,11 +110,6 @@ class ComputedCatalogue:
                     }
                     for e in base_entries
                 ),
-                'curse_slugs': {
-                    e['slug']: e['id']
-                    for e in base_entries
-                    if e['source'] == CfCoreResolver.metadata.id
-                },
             },
             cls,
         )

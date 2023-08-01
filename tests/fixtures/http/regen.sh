@@ -1,6 +1,8 @@
 #! /usr/bin/env nix-shell
 #! nix-shell -i bash -p httpie jq
 
+set -ex
+
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null 2>&1 && pwd)"
 
 
@@ -9,6 +11,10 @@ echo '{"modIds": [2382, 20338, 23350, 288981, 322865, 2398, 326516, 333072, 4021
         x-api-key:$CFCORE_API_KEY -b \
     | jq -r \
     > "$DIR"/curse-addon--all.json
+http get 'https://api.curseforge.com/v1/mods/search?gameId=1&slug=molinari' \
+        x-api-key:$CFCORE_API_KEY -b \
+    | jq -r \
+    > "$DIR"/curse-addon-slug-search.json
 http get https://api.curseforge.com/v1/mods/20338/files \
         x-api-key:$CFCORE_API_KEY -b \
     | jq -r \
@@ -50,7 +56,11 @@ http get 'https://api.github.com/repos/p3lim-wow/Molinari' -b \
 http get 'https://api.github.com/repos/p3lim-wow/Molinari/releases?per_page=1' -b \
     | jq -r \
     > "$DIR"/github-release-molinari.json
-http --follow get 'https://github.com/p3lim-wow/Molinari/releases/download/100100.105-Release/release.json' -b \
+http --follow get $(
+    jq -r \
+        '.[].assets[] | select(.name == "release.json") | .browser_download_url' \
+        "$DIR"/github-release-molinari.json
+) -b \
     | jq -r \
     > "$DIR"/github-release-molinari-release-json.json
 http get 'https://api.github.com/repos/28/NoteworthyII' -b \

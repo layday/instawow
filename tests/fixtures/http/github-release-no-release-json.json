@@ -1,10 +1,10 @@
 [
   {
-    "url": "https://api.github.com/repos/28/NoteworthyII/releases/102775381",
-    "assets_url": "https://api.github.com/repos/28/NoteworthyII/releases/102775381/assets",
-    "upload_url": "https://uploads.github.com/repos/28/NoteworthyII/releases/102775381/assets{?name,label}",
-    "html_url": "https://github.com/28/NoteworthyII/releases/tag/v2.4.5",
-    "id": 102775381,
+    "url": "https://api.github.com/repos/28/NoteworthyII/releases/113983569",
+    "assets_url": "https://api.github.com/repos/28/NoteworthyII/releases/113983569/assets",
+    "upload_url": "https://uploads.github.com/repos/28/NoteworthyII/releases/113983569/assets{?name,label}",
+    "html_url": "https://github.com/28/NoteworthyII/releases/tag/v2.4.6",
+    "id": 113983569,
     "author": {
       "login": "github-actions[bot]",
       "id": 41898282,
@@ -25,19 +25,19 @@
       "type": "Bot",
       "site_admin": false
     },
-    "node_id": "RE_kwDOCRmLQ84GIDpV",
-    "tag_name": "v2.4.5",
+    "node_id": "RE_kwDOCRmLQ84Gy0BR",
+    "tag_name": "v2.4.6",
     "target_commitish": "master",
-    "name": "v2.4.5",
+    "name": "v2.4.6",
     "draft": false,
     "prerelease": false,
-    "created_at": "2023-05-12T11:56:42Z",
-    "published_at": "2023-05-12T11:59:42Z",
+    "created_at": "2023-07-28T12:21:10Z",
+    "published_at": "2023-07-28T12:22:42Z",
     "assets": [
       {
-        "url": "https://api.github.com/repos/28/NoteworthyII/releases/assets/107856114",
-        "id": 107856114,
-        "node_id": "RA_kwDOCRmLQ84GbcDy",
+        "url": "https://api.github.com/repos/28/NoteworthyII/releases/assets/119052108",
+        "id": 119052108,
+        "node_id": "RA_kwDOCRmLQ84HGJdM",
         "name": "hash.md5",
         "label": "",
         "uploader": {
@@ -64,14 +64,14 @@
         "state": "uploaded",
         "size": 33,
         "download_count": 0,
-        "created_at": "2023-05-12T11:59:43Z",
-        "updated_at": "2023-05-12T11:59:43Z",
-        "browser_download_url": "https://github.com/28/NoteworthyII/releases/download/v2.4.5/hash.md5"
+        "created_at": "2023-07-28T12:22:42Z",
+        "updated_at": "2023-07-28T12:22:42Z",
+        "browser_download_url": "https://github.com/28/NoteworthyII/releases/download/v2.4.6/hash.md5"
       },
       {
-        "url": "https://api.github.com/repos/28/NoteworthyII/releases/assets/107856116",
-        "id": 107856116,
-        "node_id": "RA_kwDOCRmLQ84GbcD0",
+        "url": "https://api.github.com/repos/28/NoteworthyII/releases/assets/119052109",
+        "id": 119052109,
+        "node_id": "RA_kwDOCRmLQ84HGJdN",
         "name": "hash.sha1",
         "label": "",
         "uploader": {
@@ -98,15 +98,15 @@
         "state": "uploaded",
         "size": 41,
         "download_count": 0,
-        "created_at": "2023-05-12T11:59:43Z",
-        "updated_at": "2023-05-12T11:59:43Z",
-        "browser_download_url": "https://github.com/28/NoteworthyII/releases/download/v2.4.5/hash.sha1"
+        "created_at": "2023-07-28T12:22:42Z",
+        "updated_at": "2023-07-28T12:22:42Z",
+        "browser_download_url": "https://github.com/28/NoteworthyII/releases/download/v2.4.6/hash.sha1"
       },
       {
-        "url": "https://api.github.com/repos/28/NoteworthyII/releases/assets/107856115",
-        "id": 107856115,
-        "node_id": "RA_kwDOCRmLQ84GbcDz",
-        "name": "NoteworthyII_v2.4.5.zip",
+        "url": "https://api.github.com/repos/28/NoteworthyII/releases/assets/119052107",
+        "id": 119052107,
+        "node_id": "RA_kwDOCRmLQ84HGJdL",
+        "name": "NoteworthyII_v2.4.6.zip",
         "label": "",
         "uploader": {
           "login": "github-actions[bot]",
@@ -130,15 +130,15 @@
         },
         "content_type": "application/zip",
         "state": "uploaded",
-        "size": 52381,
-        "download_count": 5,
-        "created_at": "2023-05-12T11:59:43Z",
-        "updated_at": "2023-05-12T11:59:43Z",
-        "browser_download_url": "https://github.com/28/NoteworthyII/releases/download/v2.4.5/NoteworthyII_v2.4.5.zip"
+        "size": 52519,
+        "download_count": 2,
+        "created_at": "2023-07-28T12:22:42Z",
+        "updated_at": "2023-07-28T12:22:42Z",
+        "browser_download_url": "https://github.com/28/NoteworthyII/releases/download/v2.4.6/NoteworthyII_v2.4.6.zip"
       }
     ],
-    "tarball_url": "https://api.github.com/repos/28/NoteworthyII/tarball/v2.4.5",
-    "zipball_url": "https://api.github.com/repos/28/NoteworthyII/zipball/v2.4.5",
-    "body": "## V2.4.5\n- General\n  - Remove 'Noteworthy II loaded' chat message on log-on\n  - Update interface version for Retail\n- UI\n  - Enrich Options screen with more description and hint text\n  - Added chat commands info to Options screen\n  - Increase the frame strata to DIALOG\n  - Redesign floating button"
+    "tarball_url": "https://api.github.com/repos/28/NoteworthyII/tarball/v2.4.6",
+    "zipball_url": "https://api.github.com/repos/28/NoteworthyII/zipball/v2.4.6",
+    "body": "## V2.4.6\n- General\n  - Update interface version for Retail\n  - Update interface version for Wrath"
   }
 ]

@@ -5,6 +5,7 @@ from pathlib import Path
 
 import pytest
 from aiohttp import ClientError
+from aresponses import ResponsesMockServer
 from attrs import evolve
 
 from instawow import results as R
@@ -142,10 +143,17 @@ async def test_install_cannot_replace_reconciled_folders(iw_manager: Manager):
 
 
 async def test_install_recognises_renamed_pkg_from_id(
-    monkeypatch: pytest.MonkeyPatch, iw_manager: Manager
+    monkeypatch: pytest.MonkeyPatch, aresponses: ResponsesMockServer, iw_manager: Manager
 ):
-    old_defn = Defn('curse', 'molinari')
-    new_defn = Defn('curse', 'molinarifico')
+    aresponses.add(
+        'api.github.com',
+        '/repos/p3lim-wow/molinarifico',
+        'get',
+        aresponses.Response(status=404),
+    )
+
+    old_defn = Defn('github', 'p3lim-wow/molinari')
+    new_defn = Defn('github', 'p3lim-wow/molinarifico')
 
     result = await iw_manager.install([old_defn], replace=False)
     assert type(result[old_defn]) is R.PkgInstalled
@@ -262,7 +270,7 @@ async def test_basic_search(iw_manager: Manager):
     indirect=True,
 )
 async def test_search_flavour_filtering(iw_manager: Manager):
-    results = await iw_manager.search('AtlasLootClassic', limit=5)
+    results = await iw_manager.search('AtlasLootClassic', limit=10)
     faux_defns = {(e.source, e.slug or e.id) for e in results}
     if iw_manager.config.game_flavour in {
         Flavour.VanillaClassic,

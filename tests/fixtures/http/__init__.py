@@ -96,6 +96,11 @@ ROUTES = dict(
                 method='POST',
             ),
             Route(
+                URL('//api.curseforge.com/v1/mods/search?gameId=1&slug=molinari'),
+                _load_json_fixture('curse-addon-slug-search.json'),
+                match_querystring=True,
+            ),
+            Route(
                 URL('//api.curseforge.com/v1/mods/20338/files'),
                 _load_json_fixture('curse-addon-files.json'),
             ),
@@ -165,7 +170,13 @@ ROUTES = dict(
                 match_querystring=True,
             ),
             Route(
-                URL('//api.github.com/repos/p3lim-wow/Molinari/releases/assets/108929561'),
+                URL(
+                    next(
+                        a['url']
+                        for a in _load_json_fixture('github-release-molinari.json')[0]['assets']
+                        if a['name'] == 'release.json'
+                    )
+                ).with_scheme(''),
                 _load_json_fixture('github-release-molinari-release-json.json'),
                 case_insensitive=True,
             ),

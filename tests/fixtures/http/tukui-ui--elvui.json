@@ -3,17 +3,17 @@
   "slug": "elvui",
   "author": "Elv",
   "name": "ElvUI",
-  "url": "https://api.tukui.org/v1/download/elvui/foo",
-  "version": "13.33",
+  "url": "https://api.tukui.org/v1/download/elvui/G-rxI9kB1dxhE8S-jsY3bb7YZVtomZr9dIvFPO0pL24Rh7ucFHRGutpDSxkEuIVdBZN9Z6EiSRmiQDBcPcc8zWZh3rEj2_W2IOoGwcVKGLWYAfZTVBC0YERh62Z151kkiwwu8KfDEY5k6rQU5Xuy4BI5o-2JrtjKI342lAza3Y4nuSYnftb-Y43bKBesprFVLtdR9HQubV3lc9hGauhSR1GTom13hGWojM4tUaEgeXRjatKVNmmNCdWeX9Cp5v2TUwKoquo6y3RLnsE7tGGY60-4W3dvW5SNRx95GPNfFB2fxCSblmMTW04ae2PrkdVE2VP_jBJG2EGvE5LoM33Mhg",
+  "version": "13.38",
   "changelog_url": "https://api.tukui.org/v1/changelog/elvui",
   "ticket_url": "https://github.com/tukui-org/ElvUI/issues",
   "git_url": "https://github.com/tukui-org/ElvUI",
   "patch": [
-    "10.1.0",
-    "1.14.3",
-    "3.4.1"
+    "10.1.5",
+    "3.4.2",
+    "1.14.3"
   ],
-  "last_update": "2023-05-25",
+  "last_update": "2023-07-13",
   "web_url": "https://tukui.org/elvui",
   "donate_url": "http://tukui.org/support",
   "small_desc": "A user interface designed around user-friendliness with extra features that are not included in the standard UI.",

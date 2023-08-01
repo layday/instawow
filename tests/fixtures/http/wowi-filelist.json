@@ -2,22 +2,22 @@
   {
     "UID": "13188",
     "UICATID": "40",
-    "UIVersion": "100100.105-Release",
-    "UIDate": 1684517751000,
+    "UIVersion": "100105.109-Release",
+    "UIDate": 1689355842000,
     "UIName": "Molinari",
     "UIAuthorName": "p3lim",
     "UIFileInfoURL": "https://www.wowinterface.com/downloads/info13188-Molinari.html",
-    "UIDownloadTotal": "64734",
-    "UIDownloadMonthly": "115",
-    "UIFavoriteTotal": "419",
+    "UIDownloadTotal": "64920",
+    "UIDownloadMonthly": "105",
+    "UIFavoriteTotal": "420",
     "UICompatibility": [
       {
-        "version": "10.1.0",
-        "name": "Embers of Neltharion"
+        "version": "10.1.5",
+        "name": "Fractures in Time"
       },
       {
-        "version": "3.4.1",
-        "name": "WOTLK Patch"
+        "version": "3.4.2",
+        "name": "WotLK Patch"
       },
       {
         "version": "1.14.3",

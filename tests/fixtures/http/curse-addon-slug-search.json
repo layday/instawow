@@ -1,0 +1,764 @@
+{
+  "data": [
+    {
+      "id": 20338,
+      "gameId": 1,
+      "name": "Molinari",
+      "slug": "molinari",
+      "links": {
+        "websiteUrl": "https://www.curseforge.com/wow/addons/molinari",
+        "wikiUrl": "",
+        "issuesUrl": "https://github.com/p3lim-wow/Molinari/issues?q=",
+        "sourceUrl": "https://github.com/p3lim-wow/Molinari"
+      },
+      "summary": "One-click Milling, Prospecting, Disenchanting and Lockpicking!",
+      "status": 4,
+      "downloadCount": 1000795,
+      "isFeatured": false,
+      "primaryCategoryId": 1015,
+      "categories": [
+        {
+          "id": 1059,
+          "gameId": 1,
+          "name": "Inscription",
+          "slug": "inscription",
+          "url": "https://www.curseforge.com/wow/addons/professions/inscription",
+          "iconUrl": "https://media.forgecdn.net/avatars/54/501/636135209993347320.png",
+          "dateModified": "2016-10-31T19:29:59.333Z",
+          "isClass": false,
+          "classId": 1,
+          "parentCategoryId": 1015
+        },
+        {
+          "id": 1050,
+          "gameId": 1,
+          "name": "Jewelcrafting",
+          "slug": "jewelcrafting",
+          "url": "https://www.curseforge.com/wow/addons/professions/jewelcrafting",
+          "iconUrl": "https://media.forgecdn.net/avatars/54/496/636135209964510099.png",
+          "dateModified": "2016-10-31T19:29:56.45Z",
+          "isClass": false,
+          "classId": 1,
+          "parentCategoryId": 1015
+        },
+        {
+          "id": 1045,
+          "gameId": 1,
+          "name": "Enchanting",
+          "slug": "enchanting",
+          "url": "https://www.curseforge.com/wow/addons/professions/enchanting",
+          "iconUrl": "https://media.forgecdn.net/avatars/54/491/636135209936129920.png",
+          "dateModified": "2016-10-31T19:29:53.63Z",
+          "isClass": false,
+          "classId": 1,
+          "parentCategoryId": 1015
+        },
+        {
+          "id": 1027,
+          "gameId": 1,
+          "name": "Rogue",
+          "slug": "rogue",
+          "url": "https://www.curseforge.com/wow/addons/class/rogue",
+          "iconUrl": "https://media.forgecdn.net/avatars/54/476/636135209851425101.png",
+          "dateModified": "2016-10-31T19:29:45.143Z",
+          "isClass": false,
+          "classId": 1,
+          "parentCategoryId": 1020
+        },
+        {
+          "id": 1015,
+          "gameId": 1,
+          "name": "Professions",
+          "slug": "professions",
+          "url": "https://www.curseforge.com/wow/addons/professions",
+          "iconUrl": "https://media.forgecdn.net/avatars/54/451/636135209701693840.png",
+          "dateModified": "2016-10-31T19:29:30.187Z",
+          "isClass": false,
+          "classId": 1,
+          "parentCategoryId": 1
+        }
+      ],
+      "classId": 1,
+      "authors": [
+        {
+          "id": 68336,
+          "name": "p3lim",
+          "url": "https://www.curseforge.com/members/68336-p3lim?username=p3lim"
+        }
+      ],
+      "logo": {
+        "id": 60949,
+        "modId": 20338,
+        "title": "636141586082612330.png",
+        "description": "",
+        "thumbnailUrl": "https://media.forgecdn.net/avatars/thumbnails/60/949/256/256/636141586082612330.png",
+        "url": "https://media.forgecdn.net/avatars/60/949/636141586082612330.png"
+      },
+      "screenshots": [
+        {
+          "id": 101518,
+          "modId": 20338,
+          "title": "v2_curse.png",
+          "description": "<p>Screenshot</p>\n",
+          "thumbnailUrl": "https://media.forgecdn.net/attachments/thumbnails/101/518/310/172/v2_curse.png",
+          "url": "https://media.forgecdn.net/attachments/101/518/v2_curse.png"
+        }
+      ],
+      "mainFileId": 4644001,
+      "latestFiles": [
+        {
+          "id": 618477,
+          "gameId": 1,
+          "modId": 20338,
+          "isAvailable": true,
+          "displayName": "50001.22-Beta",
+          "fileName": "Molinari-50001.22-Beta.zip",
+          "releaseType": 2,
+          "fileStatus": 4,
+          "hashes": [
+            {
+              "value": "c145294384635ad04cccb028c2981872",
+              "algo": 2
+            }
+          ],
+          "fileDate": "2012-08-30T11:42:54.82Z",
+          "fileLength": 7810,
+          "downloadCount": 10261,
+          "downloadUrl": "https://edge.forgecdn.net/files/618/477/Molinari-50001.22-Beta.zip",
+          "gameVersions": [
+            "5.0.4"
+          ],
+          "sortableGameVersions": [
+            {
+              "gameVersionName": "5.0.4",
+              "gameVersionPadded": "0000000005.0000000000.0000000004",
+              "gameVersion": "5.0.4",
+              "gameVersionReleaseDate": "2012-08-28T00:00:00Z",
+              "gameVersionTypeId": 517
+            }
+          ],
+          "dependencies": [],
+          "alternateFileId": 0,
+          "isServerPack": false,
+          "fileFingerprint": 1480180278,
+          "modules": [
+            {
+              "name": "Molinari",
+              "fingerprint": 442847837
+            }
+          ]
+        },
+        {
+          "id": 2574334,
+          "gameId": 1,
+          "modId": 20338,
+          "isAvailable": true,
+          "displayName": "70300.52-Release-2-g09b9479-alpha",
+          "fileName": "Molinari-70300.52-Release-2-g09b9479-alpha.zip",
+          "releaseType": 3,
+          "fileStatus": 4,
+          "hashes": [
+            {
+              "value": "5c6a0ecd243910e427ff6072155d2738483d80aa",
+              "algo": 1
+            },
+            {
+              "value": "a7ef8328a2a826f4b72f2ffb4700d509",
+              "algo": 2
+            }
+          ],
+          "fileDate": "2018-06-19T14:48:14.98Z",
+          "fileLength": 31696,
+          "downloadCount": 112,
+          "downloadUrl": "https://edge.forgecdn.net/files/2574/334/Molinari-70300.52-Release-2-g09b9479-alpha.zip",
+          "gameVersions": [
+            "7.3.5"
+          ],
+          "sortableGameVersions": [
+            {
+              "gameVersionName": "7.3.5",
+              "gameVersionPadded": "0000000007.0000000003.0000000005",
+              "gameVersion": "7.3.5",
+              "gameVersionReleaseDate": "2018-01-16T06:00:00Z",
+              "gameVersionTypeId": 517
+            }
+          ],
+          "dependencies": [
+            {
+              "modId": 14328,
+              "relationType": 1
+            }
+          ],
+          "alternateFileId": 0,
+          "isServerPack": false,
+          "fileFingerprint": 1225238992,
+          "modules": [
+            {
+              "name": "Molinari",
+              "fingerprint": 1447483660
+            }
+          ]
+        },
+        {
+          "id": 4419396,
+          "gameId": 1,
+          "modId": 20338,
+          "isAvailable": true,
+          "displayName": "100005.97-Release",
+          "fileName": "Molinari-100005.97-Release.zip",
+          "releaseType": 1,
+          "fileStatus": 4,
+          "hashes": [
+            {
+              "value": "b2c761f09affb240593df07b0c82202a7f0bf6b0",
+              "algo": 1
+            },
+            {
+              "value": "a3f2e3ae7870887c3aa920056a489473",
+              "algo": 2
+            }
+          ],
+          "fileDate": "2023-03-03T09:24:27.633Z",
+          "fileLength": 127767,
+          "downloadCount": 18381,
+          "downloadUrl": "https://edge.forgecdn.net/files/4419/396/Molinari-100005.97-Release.zip",
+          "gameVersions": [
+            "10.0.5",
+            "1.14.3",
+            "3.4.1",
+            "2.5.4"
+          ],
+          "sortableGameVersions": [
+            {
+              "gameVersionName": "10.0.5",
+              "gameVersionPadded": "0000000010.0000000000.0000000005",
+              "gameVersion": "10.0.5",
+              "gameVersionReleaseDate": "2023-01-17T00:00:00Z",
+              "gameVersionTypeId": 517
+            },
+            {
+              "gameVersionName": "1.14.3",
+              "gameVersionPadded": "0000000001.0000000014.0000000003",
+              "gameVersion": "1.14.3",
+              "gameVersionReleaseDate": "2022-04-20T00:00:00Z",
+              "gameVersionTypeId": 67408
+            },
+            {
+              "gameVersionName": "3.4.1",
+              "gameVersionPadded": "0000000003.0000000004.0000000001",
+              "gameVersion": "3.4.1",
+              "gameVersionReleaseDate": "2022-12-08T00:00:00Z",
+              "gameVersionTypeId": 73713
+            },
+            {
+              "gameVersionName": "2.5.4",
+              "gameVersionPadded": "0000000002.0000000005.0000000004",
+              "gameVersion": "2.5.4",
+              "gameVersionReleaseDate": "2022-03-22T00:00:00Z",
+              "gameVersionTypeId": 73246
+            }
+          ],
+          "dependencies": [
+            {
+              "modId": 14328,
+              "relationType": 1
+            },
+            {
+              "modId": 15049,
+              "relationType": 1
+            },
+            {
+              "modId": 13376,
+              "relationType": 1
+            }
+          ],
+          "alternateFileId": 0,
+          "isServerPack": false,
+          "fileFingerprint": 3692372046,
+          "modules": [
+            {
+              "name": "Molinari",
+              "fingerprint": 1359717709
+            }
+          ]
+        },
+        {
+          "id": 4644001,
+          "gameId": 1,
+          "modId": 20338,
+          "isAvailable": true,
+          "displayName": "100105.109-Release",
+          "fileName": "Molinari-100105.109-Release.zip",
+          "releaseType": 1,
+          "fileStatus": 4,
+          "hashes": [
+            {
+              "value": "44a8a6460f6a3fd0735942e05229f2de6152f2b9",
+              "algo": 1
+            },
+            {
+              "value": "fa0aeb39d3974abf77bc2451d350ad00",
+              "algo": 2
+            }
+          ],
+          "fileDate": "2023-07-14T17:30:41.273Z",
+          "fileLength": 182321,
+          "downloadCount": 12455,
+          "downloadUrl": "https://edge.forgecdn.net/files/4644/1/Molinari-100105.109-Release.zip",
+          "gameVersions": [
+            "10.1.5",
+            "3.4.2",
+            "1.14.3"
+          ],
+          "sortableGameVersions": [
+            {
+              "gameVersionName": "10.1.5",
+              "gameVersionPadded": "0000000010.0000000001.0000000005",
+              "gameVersion": "10.1.5",
+              "gameVersionReleaseDate": "2023-05-14T00:00:00Z",
+              "gameVersionTypeId": 517
+            },
+            {
+              "gameVersionName": "3.4.2",
+              "gameVersionPadded": "0000000003.0000000004.0000000002",
+              "gameVersion": "3.4.2",
+              "gameVersionReleaseDate": "2023-05-04T00:00:00Z",
+              "gameVersionTypeId": 73713
+            },
+            {
+              "gameVersionName": "1.14.3",
+              "gameVersionPadded": "0000000001.0000000014.0000000003",
+              "gameVersion": "1.14.3",
+              "gameVersionReleaseDate": "2022-04-20T00:00:00Z",
+              "gameVersionTypeId": 67408
+            }
+          ],
+          "dependencies": [
+            {
+              "modId": 15049,
+              "relationType": 1
+            },
+            {
+              "modId": 13376,
+              "relationType": 1
+            },
+            {
+              "modId": 14328,
+              "relationType": 1
+            }
+          ],
+          "alternateFileId": 0,
+          "isServerPack": false,
+          "fileFingerprint": 3987520905,
+          "modules": [
+            {
+              "name": "Molinari",
+              "fingerprint": 584608668
+            }
+          ]
+        }
+      ],
+      "latestFilesIndexes": [
+        {
+          "gameVersion": "1.14.3",
+          "fileId": 4644001,
+          "filename": "Molinari-100105.109-Release.zip",
+          "releaseType": 1,
+          "gameVersionTypeId": 67408
+        },
+        {
+          "gameVersion": "3.4.2",
+          "fileId": 4644001,
+          "filename": "Molinari-100105.109-Release.zip",
+          "releaseType": 1,
+          "gameVersionTypeId": 73713
+        },
+        {
+          "gameVersion": "10.1.5",
+          "fileId": 4644001,
+          "filename": "Molinari-100105.109-Release.zip",
+          "releaseType": 1,
+          "gameVersionTypeId": 517
+        },
+        {
+          "gameVersion": "10.1.0",
+          "fileId": 4606095,
+          "filename": "Molinari-100100.108-Release.zip",
+          "releaseType": 1,
+          "gameVersionTypeId": 517
+        },
+        {
+          "gameVersion": "3.4.1",
+          "fileId": 4585547,
+          "filename": "Molinari-100100.106-Release.zip",
+          "releaseType": 1,
+          "gameVersionTypeId": 73713
+        },
+        {
+          "gameVersion": "2.5.4",
+          "fileId": 4419396,
+          "filename": "Molinari-100005.97-Release.zip",
+          "releaseType": 1,
+          "gameVersionTypeId": 73246
+        },
+        {
+          "gameVersion": "10.0.5",
+          "fileId": 4419396,
+          "filename": "Molinari-100005.97-Release.zip",
+          "releaseType": 1,
+          "gameVersionTypeId": 517
+        },
+        {
+          "gameVersion": "3.4.0",
+          "fileId": 4286161,
+          "filename": "Molinari-100002.95-Release.zip",
+          "releaseType": 1,
+          "gameVersionTypeId": 73713
+        },
+        {
+          "gameVersion": "10.0.2",
+          "fileId": 4286161,
+          "filename": "Molinari-100002.95-Release.zip",
+          "releaseType": 1,
+          "gameVersionTypeId": 517
+        },
+        {
+          "gameVersion": "10.0.0",
+          "fileId": 4065098,
+          "filename": "Molinari-100000.89-Release.zip",
+          "releaseType": 1,
+          "gameVersionTypeId": 517
+        },
+        {
+          "gameVersion": "9.2.7",
+          "fileId": 4017359,
+          "filename": "Molinari-90207.85-Release.zip",
+          "releaseType": 1,
+          "gameVersionTypeId": 517
+        },
+        {
+          "gameVersion": "9.2.5",
+          "fileId": 3999931,
+          "filename": "Molinari-90207.83-Release.zip",
+          "releaseType": 1,
+          "gameVersionTypeId": 517
+        },
+        {
+          "gameVersion": "1.14.1",
+          "fileId": 3657564,
+          "filename": "Molinari-90200.82-Release.zip",
+          "releaseType": 1,
+          "gameVersionTypeId": 67408
+        },
+        {
+          "gameVersion": "9.2.0",
+          "fileId": 3657564,
+          "filename": "Molinari-90200.82-Release.zip",
+          "releaseType": 1,
+          "gameVersionTypeId": 517
+        },
+        {
+          "gameVersion": "2.5.3",
+          "fileId": 3657564,
+          "filename": "Molinari-90200.82-Release.zip",
+          "releaseType": 1,
+          "gameVersionTypeId": 73246
+        },
+        {
+          "gameVersion": "2.5.2",
+          "fileId": 3576750,
+          "filename": "Molinari-90105.81-Release-bcc.zip",
+          "releaseType": 1,
+          "gameVersionTypeId": 73246
+        },
+        {
+          "gameVersion": "1.14.0",
+          "fileId": 3576748,
+          "filename": "Molinari-90105.81-Release-classic.zip",
+          "releaseType": 1,
+          "gameVersionTypeId": 67408
+        },
+        {
+          "gameVersion": "9.1.5",
+          "fileId": 3576747,
+          "filename": "Molinari-90105.81-Release.zip",
+          "releaseType": 1,
+          "gameVersionTypeId": 517
+        },
+        {
+          "gameVersion": "1.13.7",
+          "fileId": 3475339,
+          "filename": "Molinari-90100.79-Release-classic.zip",
+          "releaseType": 1,
+          "gameVersionTypeId": 67408
+        },
+        {
+          "gameVersion": "9.1.0",
+          "fileId": 3475338,
+          "filename": "Molinari-90100.79-Release.zip",
+          "releaseType": 1,
+          "gameVersionTypeId": 517
+        },
+        {
+          "gameVersion": "2.5.1",
+          "fileId": 3325306,
+          "filename": "Molinari-90000.75-Release-bcc.zip",
+          "releaseType": 1,
+          "gameVersionTypeId": 73246
+        },
+        {
+          "gameVersion": "9.0.5",
+          "fileId": 3325303,
+          "filename": "Molinari-90000.75-Release.zip",
+          "releaseType": 1,
+          "gameVersionTypeId": 517
+        },
+        {
+          "gameVersion": "1.13.6",
+          "fileId": 3152269,
+          "filename": "Molinari-90000.73-Release-classic.zip",
+          "releaseType": 1,
+          "gameVersionTypeId": 67408
+        },
+        {
+          "gameVersion": "9.0.2",
+          "fileId": 3152268,
+          "filename": "Molinari-90000.73-Release.zip",
+          "releaseType": 1,
+          "gameVersionTypeId": 517
+        },
+        {
+          "gameVersion": "1.13.5",
+          "fileId": 3088695,
+          "filename": "Molinari-90000.71-Release-classic.zip",
+          "releaseType": 1,
+          "gameVersionTypeId": 67408
+        },
+        {
+          "gameVersion": "9.0.1",
+          "fileId": 3088694,
+          "filename": "Molinari-90000.71-Release.zip",
+          "releaseType": 1,
+          "gameVersionTypeId": 517
+        },
+        {
+          "gameVersion": "1.13.3",
+          "fileId": 2892083,
+          "filename": "Molinari-80300.66-Release.zip",
+          "releaseType": 1,
+          "gameVersionTypeId": 67408
+        },
+        {
+          "gameVersion": "8.3.0",
+          "fileId": 2892082,
+          "filename": "Molinari-80300.66-Release.zip",
+          "releaseType": 1,
+          "gameVersionTypeId": 517
+        },
+        {
+          "gameVersion": "1.13.2",
+          "fileId": 2842743,
+          "filename": "Molinari-80200.64-Release-classic.zip",
+          "releaseType": 1,
+          "gameVersionTypeId": 67408
+        },
+        {
+          "gameVersion": "8.2.5",
+          "fileId": 2842742,
+          "filename": "Molinari-80200.64-Release.zip",
+          "releaseType": 1,
+          "gameVersionTypeId": 517
+        },
+        {
+          "gameVersion": "8.2.0",
+          "fileId": 2779132,
+          "filename": "Molinari-80200.63-Release.zip",
+          "releaseType": 1,
+          "gameVersionTypeId": 517
+        },
+        {
+          "gameVersion": "8.0.1",
+          "fileId": 2590174,
+          "filename": "Molinari-80000.58-Release.zip",
+          "releaseType": 1,
+          "gameVersionTypeId": 517
+        },
+        {
+          "gameVersion": "7.3.5",
+          "fileId": 2574338,
+          "filename": "Molinari-70300.53-Release.zip",
+          "releaseType": 1,
+          "gameVersionTypeId": 517
+        },
+        {
+          "gameVersion": "7.3.5",
+          "fileId": 2574334,
+          "filename": "Molinari-70300.52-Release-2-g09b9479-alpha.zip",
+          "releaseType": 3,
+          "gameVersionTypeId": 517
+        },
+        {
+          "gameVersion": "7.3.0",
+          "fileId": 2480707,
+          "filename": "Molinari-70300.50-Release.zip",
+          "releaseType": 1,
+          "gameVersionTypeId": 517
+        },
+        {
+          "gameVersion": "7.3.0",
+          "fileId": 2480705,
+          "filename": "Molinari-70300.49-Release-1-g7316666-alpha.zip",
+          "releaseType": 3,
+          "gameVersionTypeId": 517
+        },
+        {
+          "gameVersion": "7.2.0",
+          "fileId": 2418427,
+          "filename": "Molinari-70200.49-Release.zip",
+          "releaseType": 1,
+          "gameVersionTypeId": 517
+        },
+        {
+          "gameVersion": "7.2.0",
+          "fileId": 2418426,
+          "filename": "Molinari-70200.47-Release-2-g83e1761-alpha.zip",
+          "releaseType": 3,
+          "gameVersionTypeId": 517
+        },
+        {
+          "gameVersion": "7.0.3",
+          "fileId": 2390612,
+          "filename": "Molinari-70100.43-Release.zip",
+          "releaseType": 1,
+          "gameVersionTypeId": 517
+        },
+        {
+          "gameVersion": "7.0.3",
+          "fileId": 2390610,
+          "filename": "Molinari-ed0c113-alpha.zip",
+          "releaseType": 3,
+          "gameVersionTypeId": 517
+        },
+        {
+          "gameVersion": "7.1.0",
+          "fileId": 2349329,
+          "filename": "Molinari-70100.42-Release.zip",
+          "releaseType": 1,
+          "gameVersionTypeId": 517
+        },
+        {
+          "gameVersion": "6.0.3",
+          "fileId": 840515,
+          "filename": "Molinari-60000.35-Release.zip",
+          "releaseType": 1,
+          "gameVersionTypeId": 517
+        },
+        {
+          "gameVersion": "6.0.2",
+          "fileId": 821850,
+          "filename": "Molinari-60000.33-Release.zip",
+          "releaseType": 1,
+          "gameVersionTypeId": 517
+        },
+        {
+          "gameVersion": "5.4.8",
+          "fileId": 812761,
+          "filename": "Molinari-50400.30-Release.zip",
+          "releaseType": 1,
+          "gameVersionTypeId": 517
+        },
+        {
+          "gameVersion": "5.2.0",
+          "fileId": 795977,
+          "filename": "Molinari-50200.24-Release.zip",
+          "releaseType": 1,
+          "gameVersionTypeId": 517
+        },
+        {
+          "gameVersion": "5.3.0",
+          "fileId": 708646,
+          "filename": "Molinari-50300.26-Release.zip",
+          "releaseType": 1,
+          "gameVersionTypeId": 517
+        },
+        {
+          "gameVersion": "5.0.4",
+          "fileId": 618477,
+          "filename": "Molinari-50001.22-Beta.zip",
+          "releaseType": 2,
+          "gameVersionTypeId": 517
+        },
+        {
+          "gameVersion": "4.3.4",
+          "fileId": 609648,
+          "filename": "Molinari-40300.20-Beta.zip",
+          "releaseType": 2,
+          "gameVersionTypeId": 517
+        },
+        {
+          "gameVersion": "4.3.0",
+          "fileId": 572666,
+          "filename": "Molinari-40300.14-Beta.zip",
+          "releaseType": 2,
+          "gameVersionTypeId": 517
+        },
+        {
+          "gameVersion": "4.2.0",
+          "fileId": 572665,
+          "filename": "Molinari-40200.13-Beta.zip",
+          "releaseType": 2,
+          "gameVersionTypeId": 517
+        },
+        {
+          "gameVersion": "4.1.0",
+          "fileId": 531875,
+          "filename": "Molinari-40100.10-Beta.zip",
+          "releaseType": 2,
+          "gameVersionTypeId": 517
+        },
+        {
+          "gameVersion": "4.0.6",
+          "fileId": 531874,
+          "filename": "Molinari-40000.9-Beta.zip",
+          "releaseType": 2,
+          "gameVersionTypeId": 517
+        },
+        {
+          "gameVersion": "3.3.5",
+          "fileId": 531871,
+          "filename": "Molinari-30300.6-Beta.zip",
+          "releaseType": 2,
+          "gameVersionTypeId": 517
+        },
+        {
+          "gameVersion": "3.3.0",
+          "fileId": 406756,
+          "filename": "Molinari-30300.3-Beta.zip",
+          "releaseType": 2,
+          "gameVersionTypeId": 517
+        },
+        {
+          "gameVersion": "3.2.0",
+          "fileId": 375145,
+          "filename": "Molinari-30200.1-Beta.zip",
+          "releaseType": 2,
+          "gameVersionTypeId": 517
+        }
+      ],
+      "latestEarlyAccessFilesIndexes": [],
+      "dateCreated": "2009-08-08T17:47:01.43Z",
+      "dateModified": "2023-07-14T17:37:30.633Z",
+      "dateReleased": "2023-07-14T17:30:41.273Z",
+      "allowModDistribution": false,
+      "gamePopularityRank": 242,
+      "isAvailable": true,
+      "thumbsUpCount": 0
+    }
+  ],
+  "pagination": {
+    "index": 0,
+    "pageSize": 50,
+    "resultCount": 1,
+    "totalCount": 1
+  }
+}

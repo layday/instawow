@@ -284,42 +284,55 @@ class CfCoreResolver(BaseResolver):
     async def resolve(
         self, defns: Sequence[Defn]
     ) -> dict[Defn, pkg_models.Pkg | R.ManagerError | R.InternalError]:
-        catalogue = await self._manager.synchronise()
-
-        defns_to_maybe_numeric_ids = {
-            d: i if i.isdigit() else None
-            for d in defns
-            for i in (d.id or catalogue.curse_slugs.get(d.alias) or d.alias,)
-        }
-        numeric_ids = uniq(i for i in defns_to_maybe_numeric_ids.values() if i is not None)
+        numeric_ids = uniq(i for d in defns if (i := d.id or d.alias).isdigit())
         if not numeric_ids:
-            return await super().resolve(defns)
+            return await super().resolve(defns)  # Fast path.
 
         async with self._manager.web_client.post(
             self._mod_api_url,
             expire_after=timedelta(minutes=5),
             headers=await self.make_request_headers(),
             json={'modIds': numeric_ids},
+            raise_for_status=True,
         ) as response:
-            if response.status == 404:
-                return await super().resolve(defns)
-
-            response.raise_for_status()
             response_json: _CfCoreUnpaginatedModsResponse = await response.json()
 
         addons_by_id = {str(r['id']): r for r in response_json['data']}
+
         results = await gather(
-            (
-                self.resolve_one(d, addons_by_id.get(i) if i else None)
-                for d, i in defns_to_maybe_numeric_ids.items()
-            ),
+            (self.resolve_one(d, addons_by_id.get(d.id or d.alias)) for d in defns),
             manager.capture_manager_exc_async,
         )
         return dict(zip(defns, results))
 
     async def resolve_one(self, defn: Defn, metadata: _CfCoreMod | None) -> pkg_models.Pkg:
         if metadata is None:
-            raise R.PkgNonexistent
+            if defn.alias.isdigit():
+                async with self._manager.web_client.get(
+                    self._mod_api_url / defn.alias,
+                    expire_after=timedelta(minutes=15),
+                    headers=await self.make_request_headers(),
+                ) as mod_response:
+                    if mod_response.status == 404:
+                        raise R.PkgNonexistent
+
+                    mod_response.raise_for_status()
+
+                    metadata = await mod_response.json()
+                    assert metadata
+
+            else:
+                async with self._manager.web_client.get(
+                    (self._mod_api_url / 'search').with_query(gameId=1, slug=defn.alias),
+                    expire_after=timedelta(minutes=15),
+                    headers=await self.make_request_headers(),
+                    raise_for_status=True,
+                ) as mod_response:
+                    mod_response_json: _CfCoreModsResponse = await mod_response.json()
+                    if not mod_response_json['data']:
+                        raise R.PkgNonexistent
+
+                    [metadata] = mod_response_json['data']
 
         if defn.strategies.version_eq:
             game_version_type_id = self._manager.config.game_flavour.to_flavour_keyed_enum(
@@ -336,10 +349,10 @@ class CfCoreResolver(BaseResolver):
                 trace_request_ctx=make_generic_progress_ctx(
                     f'Fetching metadata from {self.metadata.name}'
                 ),
-            ) as response:
-                response_json: _CfCoreFilesResponse = await response.json()
+            ) as files_response:
+                files_response_json: _CfCoreFilesResponse = await files_response.json()
 
-            files = response_json['data']
+            files = files_response_json['data']
 
         else:
             files = metadata['latestFiles']

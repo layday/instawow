@@ -3,17 +3,17 @@
   "slug": "tukui",
   "author": "Tukz",
   "name": "Tukui",
-  "url": "https://api.tukui.org/v1/download/tukui/foo",
-  "version": "20.37",
+  "url": "https://api.tukui.org/v1/download/tukui/i6o5gsuXbn4Jdt1V8P5GYoeRkowKfbg0iuyntXuVihoLtlke3e9P-J9rQuFN7XaXUBwkS32m3d8t4NA0GpGMMGXtUjNGwbZ43zs4bZLyOL3Ny0wxWj5WMr2WlFJhayml8p_JjPqsn9OQvjdNxyd4cUQgBZaFyPHNevE2yjKGFP4PKY5R4qPg_1-DhgGIGOyCcuaTj5ZAwjORh0DpjmyhKju_4yVORHtvuBWJDsO2npBN8A3Voun6K_PwluYUcMPCF0paC0T6OhrVwb8sIxvpzvNVXuAOD-8S1EWyXcTWKX6DQS_3wMMyDa7yOqk85akE76rdjyNsttV4rHCobMAYVA",
+  "version": "20.38",
   "changelog_url": "https://api.tukui.org/v1/changelog/tukui",
   "ticket_url": "https://github.com/tukui-org/Tukui/issues",
   "git_url": "https://github.com/tukui-org/Tukui",
   "patch": [
-    "10.1.0",
-    "1.14.3",
-    "3.4.1"
+    "10.1.5",
+    "3.4.2",
+    "1.14.3"
   ],
-  "last_update": "2023-05-08",
+  "last_update": "2023-07-27",
   "web_url": "https://tukui.org/tukui",
   "donate_url": "http://tukui.org/support",
   "small_desc": "Minimalistic and lightweight World of Warcraft user interface.",
