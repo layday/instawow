@@ -126,18 +126,18 @@ class _DatabaseState(IntEnum):
 def _get_database_state(engine: Engine, revision: str) -> _DatabaseState:
     with engine.connect() as connection:
         try:
-            state = connection.execute(
+            (state,) = connection.execute(
                 text(
                     'SELECT ifnull((SELECT 0 FROM alembic_version WHERE version_num == :revision), 1)',
                 ),
                 {'revision': revision},
-            ).scalar()
+            ).one()
         except OperationalError:
-            state = connection.execute(
+            (state,) = connection.execute(
                 text(
                     'SELECT ifnull((SELECT 1 FROM sqlite_master WHERE type = "table" LIMIT 1), 2)',
                 )
-            ).scalar()
+            ).one()
 
     return _DatabaseState(state)
 
