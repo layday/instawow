@@ -53,7 +53,6 @@ from .utils import (
     gather,
     is_file_uri,
     make_zip_member_filter_fn,
-    normalise_names,
     shasum,
     time_op,
     trash,
@@ -233,8 +232,6 @@ class Manager:
         f'base-catalogue-v{CATALOGUE_VERSION}.compact.json'
     )
     _catalogue_ttl = timedelta(hours=4)
-
-    _normalise_search_terms = staticmethod(normalise_names(''))
 
     def __init__(
         self,
