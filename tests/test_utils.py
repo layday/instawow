@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from instawow.manager import find_addon_zip_tocs, make_zip_member_filter_fn
+from instawow.pkg_management import find_addon_zip_tocs, make_zip_member_filter_fn
 from instawow.utils import (
     TocReader,
     bucketise,

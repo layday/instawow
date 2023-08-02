@@ -14,7 +14,8 @@ from instawow._sources.cfcore import CfCoreResolver
 from instawow._sources.github import GithubResolver
 from instawow._sources.wowi import WowiResolver
 from instawow.common import Defn, Flavour, Strategy, StrategyValues
-from instawow.manager import Manager
+from instawow.manager_ctx import ManagerCtx
+from instawow.pkg_management import PkgManager
 from instawow.pkg_models import Pkg
 from instawow.resolvers import Resolver
 
@@ -36,7 +37,7 @@ CURSE_IDS = {
     Flavour,
     indirect=True,
 )
-async def test_curse_simple_strategies(iw_manager: Manager):
+async def test_curse_simple_strategies(iw_manager: PkgManager):
     flavourful = Defn('curse', CURSE_IDS['classiccastbars'])
     classics_only = Defn('curse', CURSE_IDS['atlaslootclassic'])
 
@@ -44,19 +45,19 @@ async def test_curse_simple_strategies(iw_manager: Manager):
 
     assert type(results[flavourful]) is Pkg
 
-    if iw_manager.config.game_flavour in {Flavour.VanillaClassic, Flavour.Classic}:
+    if iw_manager.ctx.config.game_flavour in {Flavour.VanillaClassic, Flavour.Classic}:
         assert type(results[classics_only]) is Pkg
-    elif iw_manager.config.game_flavour is Flavour.Retail:
+    elif iw_manager.ctx.config.game_flavour is Flavour.Retail:
         assert type(results[classics_only]) is R.PkgFilesNotMatching
         assert (
             results[classics_only].message
             == 'no files found for: any_flavour=None; any_release_type=None; version_eq=None'
         )
     else:
-        assert_never(iw_manager.config.game_flavour)
+        assert_never(iw_manager.ctx.config.game_flavour)
 
 
-async def test_curse_any_flavour_strategy(iw_manager: Manager):
+async def test_curse_any_flavour_strategy(iw_manager: PkgManager):
     flavourful = Defn(
         'curse', CURSE_IDS['classiccastbars'], strategies=StrategyValues(any_flavour=True)
     )
@@ -68,27 +69,27 @@ async def test_curse_any_flavour_strategy(iw_manager: Manager):
     assert all(type(r) is Pkg for r in results.values())
 
 
-async def test_curse_slug_match(iw_manager: Manager):
+async def test_curse_slug_match(iw_manager: PkgManager):
     defn = Defn('curse', 'molinari')
     results = await iw_manager.resolve([defn])
     assert results[defn].id == CURSE_IDS['molinari']
 
 
-async def test_curse_version_pinning(iw_manager: Manager):
+async def test_curse_version_pinning(iw_manager: PkgManager):
     defn = Defn('curse', 'molinari', strategies=StrategyValues(version_eq='100005.97-Release'))
     results = await iw_manager.resolve([defn])
     assert results[defn].options.version_eq is True
     assert results[defn].version == '100005.97-Release'
 
 
-async def test_curse_deps_retrieved(iw_manager: Manager):
+async def test_curse_deps_retrieved(iw_manager: PkgManager):
     defn = Defn('curse', CURSE_IDS['bigwigs-voice-korean'])
 
     results = await iw_manager.resolve([defn], with_deps=True)
     assert {'bigwigs-voice-korean', 'big-wigs'} == {d.slug for d in results.values()}
 
 
-async def test_curse_changelog_is_url(iw_manager: Manager):
+async def test_curse_changelog_is_url(iw_manager: PkgManager):
     classiccastbars = Defn('curse', CURSE_IDS['classiccastbars'])
 
     results = await iw_manager.resolve([classiccastbars])
@@ -98,13 +99,13 @@ async def test_curse_changelog_is_url(iw_manager: Manager):
     )
 
 
-async def test_wowi_basic(iw_manager: Manager):
+async def test_wowi_basic(iw_manager: PkgManager):
     defn = Defn('wowi', '13188-molinari')
     results = await iw_manager.resolve([defn])
     assert type(results[defn]) is Pkg
 
 
-async def test_wowi_changelog_is_data_url(iw_manager: Manager):
+async def test_wowi_changelog_is_data_url(iw_manager: PkgManager):
     molinari = Defn('wowi', '13188-molinari')
     results = await iw_manager.resolve([molinari])
     assert results[molinari].changelog_url.startswith('data:,')
@@ -115,7 +116,7 @@ async def test_wowi_changelog_is_data_url(iw_manager: Manager):
     Flavour,
     indirect=True,
 )
-async def test_tukui_basic(iw_manager: Manager):
+async def test_tukui_basic(iw_manager: PkgManager):
     tukui_suite = Defn('tukui', 'tukui')
     elvui_suite = Defn('tukui', 'elvui')
 
@@ -127,7 +128,7 @@ async def test_tukui_basic(iw_manager: Manager):
     assert results[elvui_suite].name == 'ElvUI'
 
 
-async def test_tukui_changelog_url(iw_manager: Manager):
+async def test_tukui_changelog_url(iw_manager: PkgManager):
     ui_suite = Defn('tukui', 'tukui')
 
     results = await iw_manager.resolve([ui_suite])
@@ -135,7 +136,7 @@ async def test_tukui_changelog_url(iw_manager: Manager):
     assert results[ui_suite].changelog_url == 'https://api.tukui.org/v1/changelog/tukui#20.38'
 
 
-async def test_github_basic(iw_manager: Manager):
+async def test_github_basic(iw_manager: PkgManager):
     release_json = Defn('github', 'nebularg/PackagerTest')
     releaseless = Defn('github', 'AdiAddons/AdiBags')
     nonexistent = Defn('github', 'layday/foobar')
@@ -148,7 +149,7 @@ async def test_github_basic(iw_manager: Manager):
     assert type(results[nonexistent]) is R.PkgNonexistent
 
 
-async def test_github_changelog_is_data_url(iw_manager: Manager):
+async def test_github_changelog_is_data_url(iw_manager: PkgManager):
     defn = Defn('github', 'p3lim-wow/Molinari')
     results = await iw_manager.resolve([defn])
     assert results[defn].changelog_url.startswith('data:,')
@@ -176,7 +177,7 @@ async def test_github_changelog_is_data_url(iw_manager: Manager):
 async def test_github_flavor_and_interface_mismatch(
     caplog: pytest.LogCaptureFixture,
     aresponses: ResponsesMockServer,
-    iw_manager: Manager,
+    iw_manager: PkgManager,
     flavor: str,
     interface: int,
 ):
@@ -209,9 +210,9 @@ async def test_github_flavor_and_interface_mismatch(
     )
 
 
-@pytest.mark.parametrize('resolver', Manager.RESOLVERS)
-async def test_unsupported_strategies(iw_manager: Manager, resolver: Resolver):
-    if resolver.metadata.id not in iw_manager.resolvers:
+@pytest.mark.parametrize('resolver', ManagerCtx.RESOLVERS)
+async def test_unsupported_strategies(iw_manager: PkgManager, resolver: Resolver):
+    if resolver.metadata.id not in iw_manager.ctx.resolvers:
         pytest.skip('resolver not loaded')
 
     defn = Defn(resolver.metadata.id, 'foo')

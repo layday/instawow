@@ -108,7 +108,7 @@ class GithubResolver(BaseResolver):
         if intent is HeadersIntent.Download:
             headers['Accept'] = 'application/octet-stream'
 
-        access_token = self._get_access_token(self._manager.config.global_config, 'github')
+        access_token = self._get_access_token(self._manager_ctx.config.global_config, 'github')
         if access_token:
             headers['Authorization'] = f'token {access_token}'
 
@@ -152,7 +152,7 @@ class GithubResolver(BaseResolver):
             for _ in range(2):
                 logger.debug(f'fetching {directory_offset} bytes from {candidate["name"]}')
 
-                async with self._manager.web_client.get(
+                async with self._manager_ctx.web_client.get(
                     download_url,
                     expire_after=CACHE_INDEFINITELY,
                     headers={
@@ -163,7 +163,7 @@ class GithubResolver(BaseResolver):
                     if not directory_range_response.ok:
                         # File size under 25 KB.
                         if directory_range_response.status == 416:  # Range Not Satisfiable
-                            async with self._manager.web_client.get(
+                            async with self._manager_ctx.web_client.get(
                                 download_url,
                                 expire_after=CACHE_INDEFINITELY,
                                 headers=download_headers,
@@ -212,7 +212,7 @@ class GithubResolver(BaseResolver):
 
             game_flavour_from_toc_filename = any(
                 n.lower().endswith(
-                    NORMALISED_FLAVOUR_TOC_SUFFIXES[self._manager.config.game_flavour]
+                    NORMALISED_FLAVOUR_TOC_SUFFIXES[self._manager_ctx.config.game_flavour]
                 )
                 for n in toc_filenames
             )
@@ -247,7 +247,7 @@ class GithubResolver(BaseResolver):
                 following_file_offset = following_file.header_offset if following_file else ''
 
                 logger.debug(f'fetching {main_toc_filename} from {candidate["name"]}')
-                async with self._manager.web_client.get(
+                async with self._manager_ctx.web_client.get(
                     download_url,
                     expire_after=CACHE_INDEFINITELY,
                     headers={
@@ -264,7 +264,7 @@ class GithubResolver(BaseResolver):
 
             interface_version = toc_reader['Interface']
             logger.debug(f'found interface version {interface_version!r} in {main_toc_filename}')
-            if interface_version and self._manager.config.game_flavour.to_flavour_keyed_enum(
+            if interface_version and self._manager_ctx.config.game_flavour.to_flavour_keyed_enum(
                 FlavourVersionRange
             ).is_within_version(int(interface_version)):
                 matching_asset = candidate
@@ -277,7 +277,7 @@ class GithubResolver(BaseResolver):
     ):
         download_headers = await self.make_request_headers(HeadersIntent.Download)
 
-        async with self._manager.web_client.get(
+        async with self._manager_ctx.web_client.get(
             release_json_asset['url'],
             expire_after=timedelta(days=1),
             headers=download_headers,
@@ -291,10 +291,10 @@ class GithubResolver(BaseResolver):
         if not releases:
             return None
 
-        wanted_flavour = self._manager.config.game_flavour.to_flavour_keyed_enum(
+        wanted_flavour = self._manager_ctx.config.game_flavour.to_flavour_keyed_enum(
             _PackagerReleaseJsonFlavor
         )
-        wanted_flavour_version = self._manager.config.game_flavour.to_flavour_keyed_enum(
+        wanted_flavour_version = self._manager_ctx.config.game_flavour.to_flavour_keyed_enum(
             FlavourVersionRange
         )
 
@@ -340,7 +340,7 @@ class GithubResolver(BaseResolver):
         else:
             repo_url = self._api_url / 'repos' / defn.alias
 
-        async with self._manager.web_client.get(
+        async with self._manager_ctx.web_client.get(
             repo_url, expire_after=timedelta(hours=1), headers=github_headers
         ) as response:
             if response.status == 404:
@@ -357,7 +357,7 @@ class GithubResolver(BaseResolver):
                 per_page='10'
             )
 
-        async with self._manager.web_client.get(
+        async with self._manager_ctx.web_client.get(
             release_url, expire_after=timedelta(minutes=5), headers=github_headers
         ) as response:
             if response.status == 404:

@@ -4,8 +4,7 @@ from collections.abc import Callable, Iterator, Set
 from datetime import datetime
 from typing import Literal
 
-from .. import manager as _manager
-from .. import pkg_db
+from .. import manager_ctx, pkg_db
 from ..utils import bucketise, normalise_names
 from . import cataloguer
 
@@ -13,7 +12,7 @@ _normalise_search_terms = normalise_names('')
 
 
 async def search(
-    manager: _manager.Manager,
+    manager_ctx: manager_ctx.ManagerCtx,
     search_terms: str,
     *,
     limit: int,
@@ -28,7 +27,7 @@ async def search(
     import rapidfuzz
     import sqlalchemy as sa
 
-    catalogue = await manager.synchronise()
+    catalogue = await manager_ctx.synchronise()
 
     ew = 0.5
     dw = 1 - ew
@@ -36,21 +35,21 @@ async def search(
     threshold = 0 if search_terms == '*' else 70
 
     if sources:
-        unknown_sources = sources - manager.resolvers.keys()
+        unknown_sources = sources - manager_ctx.resolvers.keys()
         if unknown_sources:
             raise ValueError(f'Unknown sources: {", ".join(unknown_sources)}')
 
-    if prefer_source and prefer_source not in manager.resolvers:
+    if prefer_source and prefer_source not in manager_ctx.resolvers:
         raise ValueError(f'Unknown preferred source: {prefer_source}')
 
     def get_installed_pkg_keys():
-        with manager.database.connect() as connection:
+        with manager_ctx.database.connect() as connection:
             return (
                 connection.execute(sa.select(pkg_db.pkg.c.source, pkg_db.pkg.c.id)).tuples().all()
             )
 
     def make_filter_fns() -> Iterator[Callable[[cataloguer.ComputedCatalogueEntry], bool]]:
-        yield lambda e: manager.config.game_flavour in e.game_flavours
+        yield lambda e: manager_ctx.config.game_flavour in e.game_flavours
 
         if sources:
             yield lambda e: e.source in sources

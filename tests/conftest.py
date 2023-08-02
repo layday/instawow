@@ -15,7 +15,8 @@ from loguru import logger
 from instawow.common import Flavour
 from instawow.config import Config, GlobalConfig
 from instawow.http import init_web_client
-from instawow.manager import Manager, contextualise
+from instawow.manager_ctx import ManagerCtx, contextualise
+from instawow.pkg_management import PkgManager
 
 from .fixtures.http import ROUTES
 
@@ -109,9 +110,14 @@ async def iw_web_client(iw_config: Config):
 
 
 @pytest.fixture
-def iw_manager(iw_config: Config, iw_web_client: aiohttp.ClientSession):
+def iw_manager_ctx(iw_config: Config, iw_web_client: aiohttp.ClientSession):
     contextualise(web_client=iw_web_client)
-    return Manager.from_config(iw_config)
+    return ManagerCtx.from_config(iw_config)
+
+
+@pytest.fixture
+def iw_manager(iw_manager_ctx: ManagerCtx):
+    return PkgManager(iw_manager_ctx)
 
 
 @pytest.fixture(autouse=True, params=['all'])

@@ -4,15 +4,18 @@ import pytest
 from yarl import URL
 
 from instawow.common import Defn
-from instawow.manager import Manager
+from instawow.manager_ctx import ManagerCtx
+from instawow.pkg_management import PkgManager
 from instawow.pkg_models import Pkg
 from instawow.wa_updater import WaCompanionBuilder, WeakAura, WeakAuras
 
 
 @pytest.fixture
-def _wa_saved_vars(iw_manager: Manager):
+def _wa_saved_vars(
+    iw_manager_ctx: ManagerCtx,
+):
     saved_vars = (
-        iw_manager.config.addon_dir.parents[1] / 'WTF' / 'Account' / 'test' / 'SavedVariables'
+        iw_manager_ctx.config.addon_dir.parents[1] / 'WTF' / 'Account' / 'test' / 'SavedVariables'
     )
     saved_vars.mkdir(parents=True)
     (saved_vars / WeakAuras.addon_name).with_suffix('.lua').write_text(
@@ -29,11 +32,15 @@ WeakAurasSaved = {
 
 
 @pytest.fixture
-def builder(iw_manager: Manager):
-    return WaCompanionBuilder(iw_manager)
+def builder(
+    iw_manager_ctx: ManagerCtx,
+):
+    return WaCompanionBuilder(iw_manager_ctx)
 
 
-def test_can_parse_empty_displays_table(builder: WaCompanionBuilder):
+def test_can_parse_empty_displays_table(
+    builder: WaCompanionBuilder,
+):
     assert (
         builder.extract_auras(
             WeakAuras,
@@ -48,7 +55,9 @@ WeakAurasSaved = {
     )
 
 
-def test_urlless_display_is_discarded(builder: WaCompanionBuilder):
+def test_urlless_display_is_discarded(
+    builder: WaCompanionBuilder,
+):
     assert (
         builder.extract_auras(
             WeakAuras,
@@ -66,7 +75,9 @@ WeakAurasSaved = {
     )
 
 
-def test_can_parse_minimal_wago_display(builder: WaCompanionBuilder):
+def test_can_parse_minimal_wago_display(
+    builder: WaCompanionBuilder,
+):
     aura = WeakAura(
         id='foo',
         uid='foo',
@@ -95,7 +106,9 @@ WeakAurasSaved = {
     )
 
 
-def test_url_host_not_wago_display_is_discarded(builder: WaCompanionBuilder):
+def test_url_host_not_wago_display_is_discarded(
+    builder: WaCompanionBuilder,
+):
     assert (
         builder.extract_auras(
             WeakAuras,
@@ -117,35 +130,48 @@ WeakAurasSaved = {
     )
 
 
-def test_can_build_addon_with_empty_seq(builder: WaCompanionBuilder):
+def test_can_build_addon_with_empty_seq(
+    builder: WaCompanionBuilder,
+):
     builder._generate_addon([])
 
 
 @pytest.mark.usefixtures('_wa_saved_vars')
-async def test_can_build_addon_with_mock_saved_vars(builder: WaCompanionBuilder):
+async def test_can_build_addon_with_mock_saved_vars(
+    builder: WaCompanionBuilder,
+):
     await builder.build()
 
 
-def test_build_is_reproducible(builder: WaCompanionBuilder):
+def test_build_is_reproducible(
+    builder: WaCompanionBuilder,
+):
     builder._generate_addon([])
     checksum = builder.get_version()
     builder._generate_addon([])
     assert checksum == builder.get_version()
 
 
-def test_changelog_is_generated(builder: WaCompanionBuilder):
+def test_changelog_is_generated(
+    builder: WaCompanionBuilder,
+):
     builder._generate_addon([])
     assert builder.changelog_path.read_text() == 'n/a'
 
 
-async def test_can_resolve_wa_companion_pkg(builder: WaCompanionBuilder, iw_manager: Manager):
+async def test_can_resolve_wa_companion_pkg(
+    builder: WaCompanionBuilder,
+    iw_manager: PkgManager,
+):
     await builder.build()
     defn = Defn('instawow', 'weakauras-companion')
     resolve_results = await iw_manager.resolve([defn])
     assert type(resolve_results[defn]) is Pkg
 
 
-async def test_can_resolve_wa_companion_autoupdate_pkg(iw_manager: Manager):
+async def test_can_resolve_wa_companion_autoupdate_pkg(
+    iw_manager: PkgManager,
+):
     defn = Defn('instawow', 'weakauras-companion-autoupdate')
     resolve_results = await iw_manager.resolve([defn])
     assert type(resolve_results[defn]) is Pkg

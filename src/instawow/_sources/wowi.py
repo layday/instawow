@@ -11,7 +11,7 @@ from typing_extensions import NotRequired as N
 from typing_extensions import TypedDict
 from yarl import URL
 
-from .. import manager, pkg_models
+from .. import pkg_models
 from .. import results as R
 from ..catalogue.cataloguer import CatalogueEntry
 from ..common import ChangelogFormat, Defn, Flavour, FlavourVersionRange, SourceMetadata
@@ -110,8 +110,8 @@ class WowiResolver(BaseResolver):
                 return match and match['id']
 
     async def _synchronise(self):
-        async with self._manager.locks['load WoWI catalogue']:
-            async with self._manager.web_client.get(
+        async with self._manager_ctx.locks['load WoWI catalogue']:
+            async with self._manager_ctx.web_client.get(
                 self._list_api_url,
                 expire_after=timedelta(hours=1),
                 raise_for_status=True,
@@ -130,7 +130,7 @@ class WowiResolver(BaseResolver):
         list_items_by_id = await self._synchronise()
 
         defns_to_ids = {d: ''.join(takewhile(str.isdigit, d.alias)) for d in defns}
-        async with self._manager.web_client.get(
+        async with self._manager_ctx.web_client.get(
             (
                 self._details_api_url
                 / f'{",".join(uniq(i for i in defns_to_ids.values() if i))}.json'
@@ -152,7 +152,7 @@ class WowiResolver(BaseResolver):
                 for d, i in defns_to_ids.items()
                 for a, b in ((list_items_by_id.get(i), details_items_by_id.get(i)),)
             ),
-            manager.capture_manager_exc_async,
+            R.resultify_async_exc,
         )
         return dict(zip(defns, results))
 

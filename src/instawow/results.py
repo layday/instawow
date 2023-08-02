@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-from collections.abc import Collection
+from collections.abc import Awaitable, Collection
 from typing import Any, Final, Protocol, TypeVar
 
 from attrs import asdict
+from loguru import logger
 from typing_extensions import TypeAlias
 
 from . import pkg_models
@@ -180,3 +181,21 @@ class InternalError(Result, Exception):
     @property
     def message(self) -> str:
         return f'internal error: "{self.args[0]}"'
+
+
+async def resultify_async_exc(
+    awaitable: Awaitable[_T],
+) -> AnyResult[_T]:
+    "Capture and log an exception raised in a coroutine."
+    from aiohttp import ClientError
+
+    try:
+        return await awaitable
+    except (ManagerError, InternalError) as error:
+        return error
+    except ClientError as error:
+        logger.opt(exception=True).info('network error')
+        return InternalError(error)
+    except BaseException as error:
+        logger.exception('unclassed error')
+        return InternalError(error)

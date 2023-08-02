@@ -10,7 +10,7 @@ from typing import Any, ClassVar, Protocol, TypeVar
 from typing_extensions import Self
 from yarl import URL
 
-from . import http, manager, pkg_models
+from . import http, manager_ctx, pkg_models
 from . import results as R
 from .catalogue.cataloguer import CatalogueEntry
 from .common import AddonHashMethod, Defn, SourceMetadata
@@ -36,7 +36,7 @@ class Resolver(Protocol):
     metadata: ClassVar[SourceMetadata]
     requires_access_token: ClassVar[str | None]
 
-    def __init__(self, manager: manager.Manager) -> None:
+    def __init__(self, manager_ctx: manager_ctx.ManagerCtx) -> None:
         ...
 
     @classmethod
@@ -77,10 +77,10 @@ class Resolver(Protocol):
 
 
 class BaseResolver(Resolver, Protocol):
-    _manager: manager.Manager
+    _manager_ctx: manager_ctx.ManagerCtx
 
-    def __init__(self, manager: manager.Manager) -> None:
-        self._manager = manager
+    def __init__(self, manager_ctx: manager_ctx.ManagerCtx) -> None:
+        self._manager_ctx = manager_ctx
 
     __orig_init = __init__
 
@@ -121,18 +121,14 @@ class BaseResolver(Resolver, Protocol):
     async def resolve(
         self, defns: Sequence[Defn]
     ) -> dict[Defn, pkg_models.Pkg | R.ManagerError | R.InternalError]:
-        from .manager import capture_manager_exc_async
-
-        results = await gather(
-            (self.resolve_one(d, None) for d in defns), capture_manager_exc_async
-        )
+        results = await gather((self.resolve_one(d, None) for d in defns), R.resultify_async_exc)
         return dict(zip(defns, results))
 
     async def get_changelog(self, uri: URL) -> str:
         if uri.scheme == 'data' and uri.raw_path.startswith(','):
             return urllib.parse.unquote(uri.raw_path[1:])
         elif uri.scheme in {'http', 'https'}:
-            async with self._manager.web_client.get(
+            async with self._manager_ctx.web_client.get(
                 uri,
                 expire_after=http.CACHE_INDEFINITELY,
                 headers=await self.make_request_headers(),

@@ -14,7 +14,7 @@ from typing_extensions import NotRequired as N
 from typing_extensions import TypedDict
 from yarl import URL
 
-from .. import manager, pkg_models
+from .. import pkg_models
 from .. import results as R
 from ..catalogue.cataloguer import CatalogueEntry
 from ..common import ChangelogFormat, Defn, Flavour, SourceMetadata, Strategy
@@ -276,7 +276,7 @@ class CfCoreResolver(BaseResolver):
         if intent is HeadersIntent.Download:
             return None
 
-        maybe_access_token = self._get_access_token(self._manager.config.global_config)
+        maybe_access_token = self._get_access_token(self._manager_ctx.config.global_config)
         if maybe_access_token is None:
             raise ValueError(f'{self.metadata.name} access token is not configured')
         return {'x-api-key': maybe_access_token}
@@ -288,7 +288,7 @@ class CfCoreResolver(BaseResolver):
         if not numeric_ids:
             return await super().resolve(defns)  # Fast path.
 
-        async with self._manager.web_client.post(
+        async with self._manager_ctx.web_client.post(
             self._mod_api_url,
             expire_after=timedelta(minutes=5),
             headers=await self.make_request_headers(),
@@ -301,14 +301,14 @@ class CfCoreResolver(BaseResolver):
 
         results = await gather(
             (self.resolve_one(d, addons_by_id.get(d.id or d.alias)) for d in defns),
-            manager.capture_manager_exc_async,
+            R.resultify_async_exc,
         )
         return dict(zip(defns, results))
 
     async def resolve_one(self, defn: Defn, metadata: _CfCoreMod | None) -> pkg_models.Pkg:
         if metadata is None:
             if defn.alias.isdigit():
-                async with self._manager.web_client.get(
+                async with self._manager_ctx.web_client.get(
                     self._mod_api_url / defn.alias,
                     expire_after=timedelta(minutes=15),
                     headers=await self.make_request_headers(),
@@ -322,7 +322,7 @@ class CfCoreResolver(BaseResolver):
                     assert metadata
 
             else:
-                async with self._manager.web_client.get(
+                async with self._manager_ctx.web_client.get(
                     (self._mod_api_url / 'search').with_query(gameId=1, slug=defn.alias),
                     expire_after=timedelta(minutes=15),
                     headers=await self.make_request_headers(),
@@ -335,13 +335,13 @@ class CfCoreResolver(BaseResolver):
                     [metadata] = mod_response_json['data']
 
         if defn.strategies.version_eq:
-            game_version_type_id = self._manager.config.game_flavour.to_flavour_keyed_enum(
+            game_version_type_id = self._manager_ctx.config.game_flavour.to_flavour_keyed_enum(
                 _CfCoreSortableGameVersionTypeId
             )
             files_url = (self._mod_api_url / str(metadata['id']) / 'files').with_query(
                 gameVersionTypeId=game_version_type_id, pageSize=999
             )
-            async with self._manager.web_client.get(
+            async with self._manager_ctx.web_client.get(
                 files_url,
                 expire_after=timedelta(hours=1),
                 headers=await self.make_request_headers(),
@@ -364,7 +364,7 @@ class CfCoreResolver(BaseResolver):
             yield lambda f: not f.get('exposeAsAlternative', False)
 
             if not defn.strategies.any_flavour:
-                type_id = self._manager.config.game_flavour.to_flavour_keyed_enum(
+                type_id = self._manager_ctx.config.game_flavour.to_flavour_keyed_enum(
                     _CfCoreSortableGameVersionTypeId
                 )
                 yield lambda f: any(
@@ -416,7 +416,7 @@ class CfCoreResolver(BaseResolver):
         )
 
     async def get_changelog(self, uri: URL) -> str:
-        async with self._manager.web_client.get(
+        async with self._manager_ctx.web_client.get(
             uri,
             expire_after=CACHE_INDEFINITELY,
             headers=await self.make_request_headers(),

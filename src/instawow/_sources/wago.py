@@ -111,17 +111,17 @@ class WagoResolver(BaseResolver):
             return url.parts[2]
 
     async def make_request_headers(self, intent: HeadersIntent | None = None) -> dict[str, str]:
-        maybe_access_token = self._get_access_token(self._manager.config.global_config)
+        maybe_access_token = self._get_access_token(self._manager_ctx.config.global_config)
         if maybe_access_token is None:
             raise ValueError(f'{self.metadata.name} access token is not configured')
         return {'Authorization': f'Bearer {maybe_access_token}'}
 
     async def resolve_one(self, defn: Defn, metadata: None) -> pkg_models.Pkg:
-        wago_game_version = self._manager.config.game_flavour.to_flavour_keyed_enum(
+        wago_game_version = self._manager_ctx.config.game_flavour.to_flavour_keyed_enum(
             _WagoGameVersion
         )
 
-        async with self._manager.web_client.get(
+        async with self._manager_ctx.web_client.get(
             (self._wago_external_api_url / 'addons' / defn.alias).with_query(
                 game_version=wago_game_version.value,
             ),
@@ -167,7 +167,7 @@ class WagoResolver(BaseResolver):
         self, candidates: Collection[TFolderHashCandidate]
     ) -> _WagoMatchRequest:
         return {
-            'game_version': self._manager.config.game_flavour.to_flavour_keyed_enum(
+            'game_version': self._manager_ctx.config.game_flavour.to_flavour_keyed_enum(
                 _WagoGameVersion
             ),
             'addons': [
@@ -182,7 +182,7 @@ class WagoResolver(BaseResolver):
     async def get_folder_hash_matches(
         self, candidates: Collection[TFolderHashCandidate]
     ) -> Iterable[tuple[Defn, frozenset[TFolderHashCandidate]]]:
-        async with self._manager.web_client.post(
+        async with self._manager_ctx.web_client.post(
             self._wago_external_api_url / 'addons/_match',
             expire_after=timedelta(minutes=15),
             headers=await self.make_request_headers(),

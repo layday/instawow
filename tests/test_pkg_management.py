@@ -9,14 +9,16 @@ from attrs import evolve
 
 from instawow import results as R
 from instawow.common import Defn, Strategy
-from instawow.manager import Manager
+from instawow.pkg_management import PkgManager
 from instawow.pkg_models import Pkg
 
 
-def test_auth_bound_resolvers_are_not_unloaded_if_tokens_set(iw_manager: Manager):
+def test_auth_bound_resolvers_are_not_unloaded_if_tokens_set(
+    iw_manager: PkgManager,
+):
     assert {
-        r.metadata.id for r in iw_manager.RESOLVERS if r.requires_access_token is not None
-    }.issubset(iw_manager.resolvers)
+        r.metadata.id for r in iw_manager.ctx.RESOLVERS if r.requires_access_token is not None
+    }.issubset(iw_manager.ctx.resolvers)
 
 
 @pytest.mark.parametrize(
@@ -24,13 +26,17 @@ def test_auth_bound_resolvers_are_not_unloaded_if_tokens_set(iw_manager: Manager
     [None],
     indirect=True,
 )
-def test_auth_bound_resolvers_are_unloaded_if_tokens_unset(iw_manager: Manager):
+def test_auth_bound_resolvers_are_unloaded_if_tokens_unset(
+    iw_manager: PkgManager,
+):
     assert {
-        r.metadata.id for r in iw_manager.RESOLVERS if r.requires_access_token is not None
-    }.isdisjoint(iw_manager.resolvers)
+        r.metadata.id for r in iw_manager.ctx.RESOLVERS if r.requires_access_token is not None
+    }.isdisjoint(iw_manager.ctx.resolvers)
 
 
-async def test_pinning_supported_pkg(iw_manager: Manager):
+async def test_pinning_supported_pkg(
+    iw_manager: PkgManager,
+):
     defn = Defn('curse', 'molinari')
 
     install_result = (await iw_manager.install([defn], False))[defn]
@@ -43,7 +49,9 @@ async def test_pinning_supported_pkg(iw_manager: Manager):
         assert install_result.pkg.version == pin_result.pkg.version
 
 
-async def test_pinning_unsupported_pkg(iw_manager: Manager):
+async def test_pinning_unsupported_pkg(
+    iw_manager: PkgManager,
+):
     molinari_defn = Defn('wowi', '13188')
 
     await iw_manager.install([molinari_defn], False)
@@ -57,13 +65,17 @@ async def test_pinning_unsupported_pkg(iw_manager: Manager):
     assert installed_pkg.options.version_eq is False
 
 
-async def test_pinning_nonexistent_pkg(iw_manager: Manager):
+async def test_pinning_nonexistent_pkg(
+    iw_manager: PkgManager,
+):
     molinari_defn = Defn('curse', 'molinari')
     result = await iw_manager.pin([molinari_defn])
     assert type(result[molinari_defn]) is R.PkgNotInstalled
 
 
-async def test_pinning_unsupported_nonexistent_pkg(iw_manager: Manager):
+async def test_pinning_unsupported_nonexistent_pkg(
+    iw_manager: PkgManager,
+):
     molinari_defn = Defn('wowi', '13188')
     result = await iw_manager.pin([molinari_defn])
     assert type(result[molinari_defn]) is R.PkgStrategiesUnsupported
@@ -71,7 +83,9 @@ async def test_pinning_unsupported_nonexistent_pkg(iw_manager: Manager):
 
 @pytest.mark.parametrize('exception', [ValueError('foo'), ClientError('bar')])
 async def test_resolve_rewraps_exception_appropriately_from_resolve(
-    monkeypatch: pytest.MonkeyPatch, iw_manager: Manager, exception: Exception
+    monkeypatch: pytest.MonkeyPatch,
+    iw_manager: PkgManager,
+    exception: Exception,
 ):
     async def resolve_one(self, defn, metadata):
         raise exception
@@ -86,7 +100,9 @@ async def test_resolve_rewraps_exception_appropriately_from_resolve(
 
 @pytest.mark.parametrize('exception', [ValueError('foo'), ClientError('bar')])
 async def test_resolve_rewraps_exception_appropriately_from_batch_resolve(
-    monkeypatch: pytest.MonkeyPatch, iw_manager: Manager, exception: Exception
+    monkeypatch: pytest.MonkeyPatch,
+    iw_manager: PkgManager,
+    exception: Exception,
 ):
     async def resolve(self, defns):
         raise exception
@@ -99,21 +115,27 @@ async def test_resolve_rewraps_exception_appropriately_from_batch_resolve(
     assert result.message == f'internal error: "{exception}"'
 
 
-async def test_resolve_invalid_source(iw_manager: Manager):
+async def test_resolve_invalid_source(
+    iw_manager: PkgManager,
+):
     defn = Defn('bar', 'baz')
     results = await iw_manager.resolve([defn])
     assert type(results[defn]) is R.PkgSourceInvalid
 
 
-async def test_resolve_plugin_hook_source(iw_manager: Manager):
+async def test_resolve_plugin_hook_source(
+    iw_manager: PkgManager,
+):
     pytest.importorskip('instawow_test_plugin')
     defn = Defn('me', 'bar')
     results = await iw_manager.resolve([defn])
     assert type(results[defn]) is Pkg
 
 
-async def test_install_can_replace_unreconciled_folders(iw_manager: Manager):
-    molinari = iw_manager.config.addon_dir / 'Molinari'
+async def test_install_can_replace_unreconciled_folders(
+    iw_manager: PkgManager,
+):
+    molinari = iw_manager.ctx.config.addon_dir / 'Molinari'
     molinari.mkdir()
 
     defn = Defn('curse', 'molinari')
@@ -127,7 +149,9 @@ async def test_install_can_replace_unreconciled_folders(iw_manager: Manager):
     assert any(molinari.iterdir())
 
 
-async def test_install_cannot_replace_reconciled_folders(iw_manager: Manager):
+async def test_install_cannot_replace_reconciled_folders(
+    iw_manager: PkgManager,
+):
     curse_defn = Defn('curse', 'molinari')
     wowi_defn = Defn('wowi', '13188-molinari')
 
@@ -142,7 +166,9 @@ async def test_install_cannot_replace_reconciled_folders(iw_manager: Manager):
 
 
 async def test_install_recognises_renamed_pkg_from_id(
-    monkeypatch: pytest.MonkeyPatch, aresponses: ResponsesMockServer, iw_manager: Manager
+    monkeypatch: pytest.MonkeyPatch,
+    aresponses: ResponsesMockServer,
+    iw_manager: PkgManager,
 ):
     aresponses.add(
         'api.github.com',
@@ -175,7 +201,9 @@ async def test_install_recognises_renamed_pkg_from_id(
     assert type(result[new_defn]) is R.PkgAlreadyInstalled
 
 
-async def test_update_lifecycle_while_varying_retain_defn_strategy(iw_manager: Manager):
+async def test_update_lifecycle_while_varying_retain_defn_strategy(
+    iw_manager: PkgManager,
+):
     defn = Defn('curse', 'molinari')
     versioned_defn = defn.with_version('100005.97-Release')
 
@@ -205,13 +233,15 @@ async def test_update_lifecycle_while_varying_retain_defn_strategy(iw_manager: M
     assert result.new_pkg.options.version_eq is False
 
 
-async def test_update_reinstalls_corrupted_pkgs(iw_manager: Manager):
+async def test_update_reinstalls_corrupted_pkgs(
+    iw_manager: PkgManager,
+):
     defn = Defn('curse', 'molinari')
 
     result = (await iw_manager.install([defn], replace=False))[defn]
     assert type(result) is R.PkgInstalled
 
-    folders = [iw_manager.config.addon_dir / f.name for f in result.pkg.folders]
+    folders = [iw_manager.ctx.config.addon_dir / f.name for f in result.pkg.folders]
 
     first_folder = folders[0]
     first_folder.rename(first_folder.with_name('foo'))
@@ -223,11 +253,16 @@ async def test_update_reinstalls_corrupted_pkgs(iw_manager: Manager):
 
 
 @pytest.mark.parametrize('keep_folders', [True, False])
-async def test_deleting_and_retaining_folders_on_remove(iw_manager: Manager, keep_folders: bool):
+async def test_deleting_and_retaining_folders_on_remove(
+    iw_manager: PkgManager, keep_folders: bool
+):
     defn = Defn('curse', 'molinari')
 
     await iw_manager.install([defn], False)
-    folders = [iw_manager.config.addon_dir / f.name for f in iw_manager.get_pkg(defn).folders]
+    pkg = iw_manager.get_pkg(defn)
+    assert pkg
+
+    folders = [iw_manager.ctx.config.addon_dir / f.name for f in pkg.folders]
     assert all(f.is_dir() for f in folders)
 
     result = await iw_manager.remove([defn], keep_folders=keep_folders)
@@ -240,11 +275,15 @@ async def test_deleting_and_retaining_folders_on_remove(iw_manager: Manager, kee
 
 
 @pytest.mark.parametrize('keep_folders', [True, False])
-async def test_removing_pkg_with_missing_folders(iw_manager: Manager, keep_folders: bool):
+async def test_removing_pkg_with_missing_folders(
+    iw_manager: PkgManager,
+    keep_folders: bool,
+):
     defn = Defn('curse', 'molinari')
 
     result = await iw_manager.install([defn], False)
-    folders = [iw_manager.config.addon_dir / f.name for f in result[defn].pkg.folders]
+
+    folders = [iw_manager.ctx.config.addon_dir / f.name for f in result[defn].pkg.folders]
     for folder in folders:
         folder.rename(folder.with_name(f'Not_{folder.name}'))
     assert not any(f.is_dir() for f in folders)
@@ -254,26 +293,37 @@ async def test_removing_pkg_with_missing_folders(iw_manager: Manager, keep_folde
     assert not iw_manager.get_pkg(defn)
 
 
-async def test_get_changelog_from_empty_data_url(iw_manager: Manager):
+async def test_get_changelog_from_empty_data_url(
+    iw_manager: PkgManager,
+):
     assert (await iw_manager.get_changelog('github', 'data:,')) == ''
 
 
-async def test_get_changelog_from_url_encoded_data_url(iw_manager: Manager):
+async def test_get_changelog_from_url_encoded_data_url(
+    iw_manager: PkgManager,
+):
     assert (await iw_manager.get_changelog('github', 'data:,foo%20bar')) == 'foo bar'
 
 
-async def test_get_malformed_changelog(iw_manager: Manager):
+async def test_get_malformed_changelog(
+    iw_manager: PkgManager,
+):
     with pytest.raises(ValueError, match='Unsupported URI with scheme'):
         await iw_manager.get_changelog('github', '')
 
 
-async def test_get_changelog_from_file_uri(iw_manager: Manager, tmp_path: Path):
+async def test_get_changelog_from_file_uri(
+    iw_manager: PkgManager,
+    tmp_path: Path,
+):
     changelog = tmp_path / 'changelog.txt'
     changelog.write_text('test')
     assert (await iw_manager.get_changelog('github', changelog.as_uri())) == 'test'
 
 
-async def test_get_changelog_from_web_url(iw_manager: Manager):
+async def test_get_changelog_from_web_url(
+    iw_manager: PkgManager,
+):
     assert (
         await iw_manager.get_changelog(
             'curse', 'https://api.curseforge.com/v1/mods/20338/files/3657564/changelog'

@@ -16,7 +16,7 @@ from typing_extensions import TypeAlias, TypedDict
 from yarl import URL
 
 from .http import CACHE_INDEFINITELY, make_generic_progress_ctx
-from .manager import Manager
+from .manager_ctx import ManagerCtx
 from .utils import StrEnum, bucketise, gather, read_resource_as_text, shasum, time_op
 from .utils import run_in_thread as t
 
@@ -135,16 +135,16 @@ class _TocNumber(StrEnum):
 class WaCompanionBuilder:
     """A WeakAuras Companion port for shellfolk."""
 
-    def __init__(self, manager: Manager) -> None:
-        self._manager = manager
+    def __init__(self, manager_ctx: ManagerCtx) -> None:
+        self._manager_ctx = manager_ctx
 
-        output_folder = self._manager.config.plugin_dir / __name__
+        output_folder = self._manager_ctx.config.plugin_dir / __name__
         self.addon_zip_path = output_folder / 'WeakAurasCompanion.zip'
         self.changelog_path = output_folder / 'CHANGELOG.md'
         self.version_txt_path = output_folder / 'version.txt'
 
     def _make_request_headers(self):
-        access_token = self._manager.config.global_config.access_tokens.wago
+        access_token = self._manager_ctx.config.global_config.access_tokens.wago
         if access_token:
             return {'api-key': access_token}
 
@@ -155,7 +155,7 @@ class WaCompanionBuilder:
         return model.from_lua_table(loads(f'{{{source}}}'))
 
     def extract_installed_auras(self) -> Iterator[_Auras]:
-        flavour_root = self._manager.config.addon_dir.parents[1]
+        flavour_root = self._manager_ctx.config.addon_dir.parents[1]
         saved_vars_by_account = flavour_root.glob('WTF/Account/*/SavedVariables')
         for saved_vars, model in product(
             saved_vars_by_account,
@@ -166,7 +166,9 @@ class WaCompanionBuilder:
                 logger.info(f'{file} not found')
             else:
                 content = file.read_text(encoding='utf-8-sig', errors='replace')
-                aura_group_cache = self._manager.config.global_config.cache_dir / shasum(content)
+                aura_group_cache = self._manager_ctx.config.global_config.cache_dir / shasum(
+                    content
+                )
                 if aura_group_cache.exists():
                     logger.info(f'loading {file} from cache at {aura_group_cache}')
                     aura_group_json = json.loads(aura_group_cache.read_bytes())
@@ -185,7 +187,7 @@ class WaCompanionBuilder:
                 yield aura_group
 
     async def _fetch_wago_metadata(self, api_ep: str, aura_ids: Iterable[str]):
-        async with self._manager.web_client.get(
+        async with self._manager_ctx.web_client.get(
             (_CHECK_API_URL / api_ep).with_query(ids=','.join(aura_ids)),
             expire_after=timedelta(minutes=30),
             headers=self._make_request_headers(),
@@ -202,7 +204,7 @@ class WaCompanionBuilder:
             return sorted(metadata, key=lambda r: r['slug'])
 
     async def _fetch_wago_import_string(self, remote_aura: _WagoApiResponse):
-        async with self._manager.web_client.get(
+        async with self._manager_ctx.web_client.get(
             _IMPORT_STRING_API_URL.with_query(id=remote_aura['_id']).with_fragment(
                 str(remote_aura['version'])
             ),
@@ -279,7 +281,7 @@ class WaCompanionBuilder:
             )
             init_output = write_tpl('init.lua', {})
 
-            interface_version = self._manager.config.game_flavour.to_flavour_keyed_enum(
+            interface_version = self._manager_ctx.config.game_flavour.to_flavour_keyed_enum(
                 _TocNumber
             ).value
             addon_version = shasum(data_output, init_output, interface_version)[:7]

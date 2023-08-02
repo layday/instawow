@@ -12,8 +12,8 @@ from yarl import URL
 
 from instawow._sources.github import GithubResolver
 from instawow.common import Defn, Flavour
-from instawow.manager import Manager
 from instawow.results import PkgFilesNotMatching
+from tests.conftest import ManagerCtx
 
 defn = Defn('github', '28/NoteworthyII')
 addon_name = URL(defn.alias).name
@@ -85,7 +85,7 @@ def package_json_less_addon(
 )
 async def test_package_json_less_addon(
     aresponses: ResponsesMockServer,
-    iw_manager: Manager,
+    iw_manager_ctx: ManagerCtx,
     package_json_less_addon: tuple[bytes, set[Flavour]],
 ):
     async def handle_request(request: aiohttp.web.Request):
@@ -106,8 +106,8 @@ async def test_package_json_less_addon(
 
     addon, flavours = package_json_less_addon
     try:
-        await GithubResolver(iw_manager).resolve_one(defn, None)
+        await GithubResolver(iw_manager_ctx).resolve_one(defn, None)
     except PkgFilesNotMatching:
-        assert iw_manager.config.game_flavour not in flavours
+        assert iw_manager_ctx.config.game_flavour not in flavours
     else:
-        assert iw_manager.config.game_flavour in flavours
+        assert iw_manager_ctx.config.game_flavour in flavours

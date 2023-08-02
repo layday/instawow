@@ -17,8 +17,7 @@ from attrs import asdict, evolve, fields, resolve_types
 from loguru import logger
 from typing_extensions import Self
 
-from . import __version__, pkg_db, pkg_models
-from . import manager as _manager
+from . import __version__, manager_ctx, pkg_db, pkg_management, pkg_models
 from . import results as R
 from .common import ChangelogFormat, Defn, Flavour, SourceMetadata, Strategy
 from .config import Config, GlobalConfig, config_converter, setup_logging
@@ -84,11 +83,11 @@ class Report:
     def generate(self) -> None:
         mw: _CtxObjWrapper | None = click.get_current_context().obj
 
-        if mw and mw.manager.config.global_config.auto_update_check:
+        if mw and mw.manager.ctx.config.global_config.auto_update_check:
             from ._version import is_outdated
 
             outdated, new_version = mw.run_with_progress(
-                is_outdated(mw.manager.config.global_config)
+                is_outdated(mw.manager.ctx.config.global_config)
             )
             if outdated:
                 click.echo(f'{self.WARNING_SYMBOL} instawow v{new_version} is available')
@@ -108,7 +107,7 @@ class _CtxObjWrapper:
         self._ctx = ctx
 
     @cached_property
-    def manager(self) -> _manager.Manager:
+    def manager(self) -> pkg_management.PkgManager:
         global_config = GlobalConfig.read().ensure_dirs()
         try:
             config = Config.read(global_config, self._ctx.params['profile']).ensure_dirs()
@@ -117,17 +116,18 @@ class _CtxObjWrapper:
 
         setup_logging(config.logging_dir, *self._ctx.params['debug'])
 
-        return _manager.Manager.from_config(config)
+        ctx = manager_ctx.ManagerCtx.from_config(config)
+        return pkg_management.PkgManager(ctx)
 
     def run_with_progress(self, awaitable: Awaitable[_T]) -> _T:
-        cache_dir = self.manager.config.global_config.cache_dir
+        cache_dir = self.manager.ctx.config.global_config.cache_dir
         params = self._ctx.params
 
         if any(params['debug']):
 
             async def run():
                 async with init_web_client(cache_dir, no_cache=params['no_cache']) as web_client:
-                    _manager.contextualise(web_client=web_client)
+                    manager_ctx.contextualise(web_client=web_client)
                     return await awaitable
 
         else:
@@ -205,7 +205,7 @@ class _CtxObjWrapper:
             async def run():
                 with make_progress_bar() as progress_bar, cancel_tickers(progress_bar) as tickers:
                     async with init_cli_web_client(progress_bar, tickers) as web_client:
-                        _manager.contextualise(web_client=web_client)
+                        manager_ctx.contextualise(web_client=web_client)
                         return await awaitable
 
         return asyncio.run(run())
@@ -318,7 +318,7 @@ def cli(ctx: click.Context, **__: object) -> None:
 
 @overload
 def _parse_uri(
-    manager: _manager.Manager,
+    manager: pkg_management.PkgManager,
     value: str,
     *,
     raise_invalid: bool = True,
@@ -329,7 +329,7 @@ def _parse_uri(
 
 @overload
 def _parse_uri(
-    manager: _manager.Manager,
+    manager: pkg_management.PkgManager,
     value: list[str],
     *,
     raise_invalid: bool = True,
@@ -339,7 +339,7 @@ def _parse_uri(
 
 
 def _parse_uri(
-    manager: _manager.Manager,
+    manager: pkg_management.PkgManager,
     value: str | list[str] | None,
     *,
     raise_invalid: bool = True,
@@ -360,7 +360,7 @@ def _parse_uri(
     try:
         defn = Defn.from_uri(
             value,
-            known_sources=manager.resolvers,
+            known_sources=manager.ctx.resolvers,
             allow_unsourced=True,
             include_strategies=include_strategies,
         )
@@ -444,7 +444,7 @@ def update(
             return result.is_pinned
 
     def installed_pkgs_to_defns():
-        with mw.manager.database.connect() as connection:
+        with mw.manager.ctx.database.connect() as connection:
             return [
                 pkg_models.Pkg.from_row_mapping(connection, p).to_defn()
                 for p in connection.execute(sa.select(pkg_db.pkg)).mappings().all()
@@ -489,7 +489,7 @@ def rollback(mw: _CtxObjWrapper, addon: Defn, undo: bool) -> None:
     pkg = mw.manager.get_pkg(addon)
     if not pkg:
         Report([(addon, R.PkgNotInstalled())]).generate_and_exit()
-    elif Strategy.VersionEq not in mw.manager.resolvers[pkg.source].metadata.strategies:
+    elif Strategy.VersionEq not in mw.manager.ctx.resolvers[pkg.source].metadata.strategies:
         Report([(addon, R.PkgStrategiesUnsupported({Strategy.VersionEq}))]).generate_and_exit()
     elif undo:
         Report(mw.run_with_progress(mw.manager.update([addon], True)).items()).generate_and_exit()
@@ -578,7 +578,7 @@ def reconcile(mw: _CtxObjWrapper, auto: bool, rereconcile: bool, list_unreconcil
             selection = ask(select(installed_pkg.name, choices))
             return selection or None
 
-        with mw.manager.database.connect() as connection:
+        with mw.manager.ctx.database.connect() as connection:
             installed_pkgs = [
                 pkg_models.Pkg.from_row_mapping(connection, p)
                 for p in connection.execute(
@@ -628,7 +628,7 @@ def reconcile(mw: _CtxObjWrapper, auto: bool, rereconcile: bool, list_unreconcil
             '''
         )
 
-        leftovers = get_unreconciled_folders(mw.manager)
+        leftovers = get_unreconciled_folders(mw.manager.ctx)
         if list_unreconciled:
             table_rows = [('unreconciled',), *((f.name,) for f in sorted(leftovers))]
             click.echo(tabulate(table_rows))
@@ -662,13 +662,13 @@ def reconcile(mw: _CtxObjWrapper, auto: bool, rereconcile: bool, list_unreconcil
         )
 
         for fn in DEFAULT_MATCHERS.values():
-            groups = mw.run_with_progress(fn(mw.manager, leftovers))
+            groups = mw.run_with_progress(fn(mw.manager.ctx, leftovers))
             selections = [s for s in gather_selections(groups, select_pkg_) if s is not None]
             if selections and confirm_install():
                 results = mw.run_with_progress(mw.manager.install(selections, True))
                 Report(results.items()).generate()
 
-            leftovers = get_unreconciled_folders(mw.manager)
+            leftovers = get_unreconciled_folders(mw.manager.ctx)
             if not leftovers:
                 break
 
@@ -737,7 +737,7 @@ def search(
 
     catalogue_entries = mw.run_with_progress(
         search(
-            mw.manager,
+            mw.manager.ctx,
             search_terms,
             limit=limit,
             sources=frozenset(sources),
@@ -749,7 +749,7 @@ def search(
     results = mw.run_with_progress(
         mw.manager.resolve([Defn(e.source, e.id) for e in catalogue_entries])
     )
-    pkgs, _ = _manager.bucketise_results(results.items())
+    pkgs, _ = pkg_management.bucketise_results(results.items())
     if pkgs:
         choices = [
             PkgChoice(f'{p.name}  ({e.as_uri()}=={p.version})', e, pkg=p)
@@ -794,7 +794,7 @@ def list_installed(mw: _CtxObjWrapper, addons: Sequence[Defn], output_format: _L
     "List installed add-ons."
     import sqlalchemy as sa
 
-    with mw.manager.database.connect() as connection:
+    with mw.manager.ctx.database.connect() as connection:
 
         def format_deps(pkg: pkg_models.Pkg):
             return (
@@ -889,7 +889,7 @@ def reveal(mw: _CtxObjWrapper, addon: Defn) -> None:
     "Bring an add-on up in your file manager."
     pkg = mw.manager.get_pkg(addon, partial_match=True)
     if pkg:
-        reveal_folder(mw.manager.config.addon_dir / pkg.folders[0].name)
+        reveal_folder(mw.manager.ctx.config.addon_dir / pkg.folders[0].name)
     else:
         Report([(addon, R.PkgNotInstalled())]).generate_and_exit()
 
@@ -928,7 +928,7 @@ def view_changelog(mw: _CtxObjWrapper, addon: Defn | None, convert: bool) -> Non
             import subprocess
 
             def real_convert(source: str, changelog: str):
-                changelog_format = mw.manager.resolvers[source].metadata.changelog_format
+                changelog_format = mw.manager.ctx.resolvers[source].metadata.changelog_format
                 if changelog_format not in {ChangelogFormat.Html, ChangelogFormat.Markdown}:
                     return changelog
                 else:
@@ -981,7 +981,7 @@ def view_changelog(mw: _CtxObjWrapper, addon: Defn | None, convert: bool) -> Non
     else:
         import sqlalchemy as sa
 
-        with mw.manager.database.connect() as connection:
+        with mw.manager.ctx.database.connect() as connection:
             join_clause = (pkg_db.pkg.c.source == pkg_db.pkg_version_log.c.pkg_source) & (
                 pkg_db.pkg.c.id == pkg_db.pkg_version_log.c.pkg_id
             )
@@ -1038,7 +1038,7 @@ def list_sources(mw: _CtxObjWrapper, output_format: _ListFormat) -> None:
     json_converter = make_converter()
     click.echo(
         json_converter.dumps(
-            [r.metadata for r in mw.manager.resolvers.values()],
+            [r.metadata for r in mw.manager.ctx.resolvers.values()],
             list[SourceMetadata],
             indent=2,
         )
@@ -1047,7 +1047,7 @@ def list_sources(mw: _CtxObjWrapper, output_format: _ListFormat) -> None:
 
 def _show_active_config(ctx: click.Context, __: click.Parameter, value: bool):
     if value:
-        click.echo(ctx.obj.manager.config.encode_for_display())
+        click.echo(ctx.obj.manager.ctx.config.encode_for_display())
         ctx.exit()
 
 
@@ -1296,7 +1296,7 @@ def build_weakauras_companion(mw: _CtxObjWrapper) -> None:
     "Build the WeakAuras Companion add-on."
     from .wa_updater import WaCompanionBuilder
 
-    mw.run_with_progress(WaCompanionBuilder(mw.manager).build())
+    mw.run_with_progress(WaCompanionBuilder(mw.manager.ctx).build())
 
 
 @_weakauras_group.command('list')
@@ -1305,7 +1305,7 @@ def list_installed_wago_auras(mw: _CtxObjWrapper) -> None:
     "List WeakAuras installed from Wago."
     from .wa_updater import WaCompanionBuilder
 
-    aura_groups = WaCompanionBuilder(mw.manager).extract_installed_auras()
+    aura_groups = WaCompanionBuilder(mw.manager.ctx).extract_installed_auras()
     installed_auras = sorted(
         (g.addon_name, a.id, a.url)
         for g in aura_groups
@@ -1330,7 +1330,7 @@ def generate_catalogue(start_date: datetime | None) -> None:
     from .catalogue.cataloguer import Catalogue, catalogue_converter
 
     catalogue = asyncio.run(
-        Catalogue.collate((r.catalogue for r in _manager.Manager.RESOLVERS), start_date)
+        Catalogue.collate((r.catalogue for r in manager_ctx.ManagerCtx.RESOLVERS), start_date)
     )
     catalogue_json = catalogue_converter.unstructure(catalogue)
 

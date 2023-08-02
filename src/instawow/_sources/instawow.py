@@ -35,7 +35,7 @@ class InstawowResolver(BaseResolver):
 
         from ..wa_updater import WaCompanionBuilder
 
-        builder = WaCompanionBuilder(self._manager)
+        builder = WaCompanionBuilder(self._manager_ctx)
         if source_id == '1':
             await builder.build()
 

@@ -1,8 +1,5 @@
 from __future__ import annotations
 
-import contextvars as cv
-import enum
-import json
 from collections.abc import (
     Awaitable,
     Callable,
@@ -11,10 +8,9 @@ from collections.abc import (
     Mapping,
     Sequence,
 )
-from contextlib import AbstractAsyncContextManager, asynccontextmanager, contextmanager
-from datetime import timedelta
-from functools import cached_property, lru_cache, wraps
-from itertools import chain, filterfalse, product, repeat, starmap
+from contextlib import asynccontextmanager, contextmanager
+from functools import wraps
+from itertools import filterfalse, product, repeat, starmap
 from pathlib import Path, PurePath
 from shutil import move
 from tempfile import NamedTemporaryFile
@@ -23,29 +19,16 @@ from typing import TypeVar
 import sqlalchemy as sa
 from attrs import evolve
 from loguru import logger
-from typing_extensions import Concatenate, Never, ParamSpec, Self, TypeAlias
+from typing_extensions import Concatenate, Never, ParamSpec
 from yarl import URL
 
-from . import http, pkg_db, pkg_models
+from . import pkg_db, pkg_models
 from . import results as R
-from ._sources.cfcore import CfCoreResolver
-from ._sources.github import GithubResolver
-from ._sources.instawow import InstawowResolver
-from ._sources.tukui import TukuiResolver
-from ._sources.wago import WagoResolver
-from ._sources.wowi import WowiResolver
-from .catalogue.cataloguer import (
-    CATALOGUE_VERSION,
-    ComputedCatalogue,
-)
 from .common import Defn, Strategy
-from .config import Config
-from .http import make_generic_progress_ctx, make_pkg_progress_ctx
-from .plugins import load_plugins
-from .resolvers import HeadersIntent, Resolver
+from .http import make_pkg_progress_ctx
+from .manager_ctx import ManagerCtx
+from .resolvers import HeadersIntent
 from .utils import (
-    StrEnum,
-    WeakValueDefaultDictionary,
     bucketise,
     chain_dict,
     file_uri_to_path,
@@ -53,18 +36,21 @@ from .utils import (
     gather,
     is_file_uri,
     make_zip_member_filter_fn,
+    run_in_thread,
     shasum,
     time_op,
     trash,
     uniq,
 )
-from .utils import run_in_thread as t
 
 _P = ParamSpec('_P')
 _T = TypeVar('_T')
 
-_AsyncNamedTemporaryFile = t(NamedTemporaryFile)
-_move_async = t(move)
+_AsyncNamedTemporaryFile = run_in_thread(NamedTemporaryFile)
+_move_async = run_in_thread(move)
+
+_MUTATE_PKGS_LOCK = '_MUTATE_PKGS_'
+_DOWNLOAD_PKG_LOCK = '_DOWNLOAD_PKG_'
 
 
 def bucketise_results(
@@ -87,13 +73,13 @@ async def _open_temp_writer_async():
     fh = await _AsyncNamedTemporaryFile(delete=False)
     path = Path(fh.name)
     try:
-        yield (path, t(fh.write))
+        yield (path, run_in_thread(fh.write))
     except BaseException:
-        await t(fh.close)()
-        await t(path.unlink)()
+        await run_in_thread(fh.close)()
+        await run_in_thread(path.unlink)()
         raise
     else:
-        await t(fh.close)()
+        await run_in_thread(fh.close)()
 
 
 @contextmanager
@@ -119,43 +105,17 @@ class _DummyResolver:
         raise R.PkgSourceInvalid
 
 
-async def capture_manager_exc_async(
-    awaitable: Awaitable[_T],
-) -> R.AnyResult[_T]:
-    "Capture and log an exception raised in a coroutine."
-    from aiohttp import ClientError
-
-    try:
-        return await awaitable
-    except (R.ManagerError, R.InternalError) as error:
-        return error
-    except ClientError as error:
-        logger.opt(exception=True).info('network error')
-        return R.InternalError(error)
-    except BaseException as error:
-        logger.exception('unclassed error')
-        return R.InternalError(error)
-
-
-class _DummyLock:
-    async def __aenter__(self):
-        pass
-
-    async def __aexit__(self, *args: object):
-        pass
-
-
 def _with_lock(
     lock_name: str,
     *,
     manager_bound: bool = True,
 ):
     def outer(
-        coro_fn: Callable[Concatenate[Manager, _P], Awaitable[_T]]
-    ) -> Callable[Concatenate[Manager, _P], Awaitable[_T]]:
+        coro_fn: Callable[Concatenate[PkgManager, _P], Awaitable[_T]]
+    ) -> Callable[Concatenate[PkgManager, _P], Awaitable[_T]]:
         @wraps(coro_fn)
-        async def inner(self: Manager, *args: _P.args, **kwargs: _P.kwargs):
-            async with self.locks[(lock_name, id(self)) if manager_bound else lock_name]:
+        async def inner(self: PkgManager, *args: _P.args, **kwargs: _P.kwargs):
+            async with self.ctx.locks[(lock_name, id(self)) if manager_bound else lock_name]:
                 return await coro_fn(self, *args, **kwargs)
 
         return inner
@@ -163,119 +123,109 @@ def _with_lock(
     return outer
 
 
-class _StandardLocks(StrEnum):
-    LoadCatalogue = enum.auto()
-    MutatePkgs = enum.auto()
-    DownloadPkg = enum.auto()
+@run_in_thread
+def _install_pkg(
+    ctx: ManagerCtx, pkg: pkg_models.Pkg, archive: Path, replace: bool
+) -> R.PkgInstalled:
+    with _open_pkg_archive(archive) as (top_level_folders, extract):
+        with ctx.database.connect() as connection:
+            installed_conflicts = connection.execute(
+                sa.select(pkg_db.pkg)
+                .distinct()
+                .join(pkg_db.pkg_folder)
+                .where(pkg_db.pkg_folder.c.name.in_(top_level_folders))
+            ).all()
+        if installed_conflicts:
+            raise R.PkgConflictsWithInstalled(installed_conflicts)
+
+        if replace:
+            trash(
+                (ctx.config.addon_dir / f for f in top_level_folders),
+                dest=ctx.config.global_config.temp_dir,
+                missing_ok=True,
+            )
+        else:
+            unreconciled_conflicts = top_level_folders & {
+                f.name for f in ctx.config.addon_dir.iterdir()
+            }
+            if unreconciled_conflicts:
+                raise R.PkgConflictsWithUnreconciled(unreconciled_conflicts)
+
+        extract(ctx.config.addon_dir)
+
+    pkg = evolve(pkg, folders=[pkg_models.PkgFolder(name=f) for f in sorted(top_level_folders)])
+    with ctx.database.begin() as transaction:
+        pkg.insert(transaction)
+
+    return R.PkgInstalled(pkg)
 
 
-class _Resolvers(dict[str, Resolver]):
-    @cached_property
-    def priority_dict(self) -> _ResolverPriorityDict:
-        return _ResolverPriorityDict(self)
+@run_in_thread
+def _update_pkg(
+    ctx: ManagerCtx, old_pkg: pkg_models.Pkg, new_pkg: pkg_models.Pkg, archive: Path
+) -> R.PkgUpdated:
+    with _open_pkg_archive(archive) as (top_level_folders, extract):
+        with ctx.database.connect() as connection:
+            installed_conflicts = connection.execute(
+                sa.select(pkg_db.pkg)
+                .distinct()
+                .join(pkg_db.pkg_folder)
+                .where(
+                    pkg_db.pkg_folder.c.pkg_source != new_pkg.source,
+                    pkg_db.pkg_folder.c.pkg_id != new_pkg.id,
+                    pkg_db.pkg_folder.c.name.in_(top_level_folders),
+                )
+            ).all()
+        if installed_conflicts:
+            raise R.PkgConflictsWithInstalled(installed_conflicts)
 
-    @cached_property
-    def addon_toc_key_and_id_pairs(self) -> Collection[tuple[str, str]]:
-        return [
-            (r.metadata.addon_toc_key, r.metadata.id)
-            for r in self.values()
-            if r.metadata.addon_toc_key
-        ]
+        unreconciled_conflicts = top_level_folders - {f.name for f in old_pkg.folders} & {
+            f.name for f in ctx.config.addon_dir.iterdir()
+        }
+        if unreconciled_conflicts:
+            raise R.PkgConflictsWithUnreconciled(unreconciled_conflicts)
 
-
-class _ResolverPriorityDict(dict[str, float]):
-    def __init__(self, resolvers: _Resolvers) -> None:
-        super().__init__((n, i) for i, n in enumerate(resolvers))
-
-    def __missing__(self, key: str) -> float:
-        return float('inf')
-
-
-_web_client = cv.ContextVar[http.ClientSessionType]('_web_client')
-
-LocksType: TypeAlias = Mapping[object, AbstractAsyncContextManager[None]]
-
-_locks = cv.ContextVar[LocksType]('_locks', default=WeakValueDefaultDictionary(_DummyLock))
-
-
-def contextualise(
-    *,
-    web_client: http.ClientSessionType | None = None,
-    locks: LocksType | None = None,
-) -> None:
-    "Set variables for the current context."
-    if web_client is not None:
-        _web_client.set(web_client)
-    if locks is not None:
-        _locks.set(locks)
-
-
-@lru_cache(1)
-def _parse_catalogue(raw_catalogue: bytes):
-    with time_op(lambda t: logger.debug(f'parsed catalogue in {t:.3f}s')):
-        return ComputedCatalogue.from_base_catalogue(json.loads(raw_catalogue))
-
-
-class Manager:
-    RESOLVERS: Sequence[type[Resolver]] = [
-        GithubResolver,
-        CfCoreResolver,
-        WowiResolver,
-        TukuiResolver,
-        InstawowResolver,
-        WagoResolver,
-    ]
-    'Default resolvers.'
-
-    _base_catalogue_url = (
-        f'https://raw.githubusercontent.com/layday/instawow-data/data/'
-        f'base-catalogue-v{CATALOGUE_VERSION}.compact.json'
-    )
-    _catalogue_ttl = timedelta(hours=4)
-
-    def __init__(
-        self,
-        config: Config,
-        database: sa.Engine,
-    ) -> None:
-        self.config: Config = config
-        self.database: sa.Engine = database
-
-        builtin_resolver_classes = list(self.RESOLVERS)
-
-        for resolver, access_token in (
-            (r, getattr(self.config.global_config.access_tokens, r.requires_access_token, None))
-            for r in self.RESOLVERS
-            if r.requires_access_token is not None
-        ):
-            if access_token is None:
-                builtin_resolver_classes.remove(resolver)
-
-        plugin_hook = load_plugins()
-        resolver_classes = chain(
-            (r for g in plugin_hook.instawow_add_resolvers() for r in g), builtin_resolver_classes
+        trash(
+            (ctx.config.addon_dir / f.name for f in old_pkg.folders),
+            dest=ctx.config.global_config.temp_dir,
+            missing_ok=True,
         )
-        self.resolvers = _Resolvers((r.metadata.id, r(self)) for r in resolver_classes)
+        extract(ctx.config.addon_dir)
 
-    @classmethod
-    def from_config(cls, config: Config) -> Self:
-        "Instantiate the manager from a configuration object."
-        return cls(config, pkg_db.prepare_database(config.db_uri))
+    new_pkg = evolve(
+        new_pkg, folders=[pkg_models.PkgFolder(name=f) for f in sorted(top_level_folders)]
+    )
+    with ctx.database.begin() as transaction:
+        old_pkg.delete(transaction)
+        new_pkg.insert(transaction)
 
-    @property
-    def locks(self) -> LocksType:
-        "Lock factory used to synchronise async operations."
-        return _locks.get()
+    return R.PkgUpdated(old_pkg, new_pkg)
 
-    @property
-    def web_client(self) -> http.ClientSessionType:
-        return _web_client.get()
+
+@run_in_thread
+def _remove_pkg(ctx: ManagerCtx, pkg: pkg_models.Pkg, keep_folders: bool) -> R.PkgRemoved:
+    if not keep_folders:
+        trash(
+            (ctx.config.addon_dir / f.name for f in pkg.folders),
+            dest=ctx.config.global_config.temp_dir,
+            missing_ok=True,
+        )
+
+    with ctx.database.begin() as transaction:
+        pkg.delete(transaction)
+
+    return R.PkgRemoved(pkg)
+
+
+class PkgManager:
+    def __init__(self, ctx: ManagerCtx) -> None:
+        self.ctx = ctx
 
     def pair_uri(self, value: str) -> tuple[str, str] | None:
         "Attempt to extract a valid ``Defn`` source and alias from a URL."
         aliases_from_url = (
             (r.metadata.id, a)
-            for r in self.resolvers.values()
+            for r in self.ctx.resolvers.values()
             for a in (r.get_alias_from_url(URL(value)),)
             if a
         )
@@ -283,7 +233,7 @@ class Manager:
 
     def check_pkg_exists(self, defn: Defn) -> bool:
         "Check that a package exists in the database."
-        with self.database.connect() as connection:
+        with self.ctx.database.connect() as connection:
             return (
                 connection.execute(
                     sa.select(sa.text('1'))
@@ -300,7 +250,7 @@ class Manager:
 
     def get_pkg(self, defn: Defn, partial_match: bool = False) -> pkg_models.Pkg | None:
         "Retrieve a package from the database."
-        with self.database.connect() as connection:
+        with self.ctx.database.connect() as connection:
             maybe_row_mapping = (
                 connection.execute(
                     sa.select(pkg_db.pkg).where(
@@ -326,118 +276,15 @@ class Manager:
             if maybe_row_mapping is not None:
                 return pkg_models.Pkg.from_row_mapping(connection, maybe_row_mapping)
 
-    @t
-    def _install_pkg(self, pkg: pkg_models.Pkg, archive: Path, replace: bool) -> R.PkgInstalled:
-        with _open_pkg_archive(archive) as (top_level_folders, extract):
-            with self.database.connect() as connection:
-                installed_conflicts = connection.execute(
-                    sa.select(pkg_db.pkg)
-                    .distinct()
-                    .join(pkg_db.pkg_folder)
-                    .where(pkg_db.pkg_folder.c.name.in_(top_level_folders))
-                ).all()
-            if installed_conflicts:
-                raise R.PkgConflictsWithInstalled(installed_conflicts)
-
-            if replace:
-                trash(
-                    (self.config.addon_dir / f for f in top_level_folders),
-                    dest=self.config.global_config.temp_dir,
-                    missing_ok=True,
-                )
-            else:
-                unreconciled_conflicts = top_level_folders & {
-                    f.name for f in self.config.addon_dir.iterdir()
-                }
-                if unreconciled_conflicts:
-                    raise R.PkgConflictsWithUnreconciled(unreconciled_conflicts)
-
-            extract(self.config.addon_dir)
-
-        pkg = evolve(
-            pkg, folders=[pkg_models.PkgFolder(name=f) for f in sorted(top_level_folders)]
-        )
-        with self.database.begin() as transaction:
-            pkg.insert(transaction)
-
-        return R.PkgInstalled(pkg)
-
-    @t
-    def _update_pkg(
-        self, old_pkg: pkg_models.Pkg, new_pkg: pkg_models.Pkg, archive: Path
-    ) -> R.PkgUpdated:
-        with _open_pkg_archive(archive) as (top_level_folders, extract):
-            with self.database.connect() as connection:
-                installed_conflicts = connection.execute(
-                    sa.select(pkg_db.pkg)
-                    .distinct()
-                    .join(pkg_db.pkg_folder)
-                    .where(
-                        pkg_db.pkg_folder.c.pkg_source != new_pkg.source,
-                        pkg_db.pkg_folder.c.pkg_id != new_pkg.id,
-                        pkg_db.pkg_folder.c.name.in_(top_level_folders),
-                    )
-                ).all()
-            if installed_conflicts:
-                raise R.PkgConflictsWithInstalled(installed_conflicts)
-
-            unreconciled_conflicts = top_level_folders - {f.name for f in old_pkg.folders} & {
-                f.name for f in self.config.addon_dir.iterdir()
-            }
-            if unreconciled_conflicts:
-                raise R.PkgConflictsWithUnreconciled(unreconciled_conflicts)
-
-            trash(
-                (self.config.addon_dir / f.name for f in old_pkg.folders),
-                dest=self.config.global_config.temp_dir,
-                missing_ok=True,
-            )
-            extract(self.config.addon_dir)
-
-        new_pkg = evolve(
-            new_pkg, folders=[pkg_models.PkgFolder(name=f) for f in sorted(top_level_folders)]
-        )
-        with self.database.begin() as transaction:
-            old_pkg.delete(transaction)
-            new_pkg.insert(transaction)
-
-        return R.PkgUpdated(old_pkg, new_pkg)
-
-    @t
-    def _remove_pkg(self, pkg: pkg_models.Pkg, keep_folders: bool) -> R.PkgRemoved:
-        if not keep_folders:
-            trash(
-                (self.config.addon_dir / f.name for f in pkg.folders),
-                dest=self.config.global_config.temp_dir,
-                missing_ok=True,
-            )
-
-        with self.database.begin() as transaction:
-            pkg.delete(transaction)
-
-        return R.PkgRemoved(pkg)
-
-    @_with_lock(_StandardLocks.LoadCatalogue, manager_bound=False)
-    async def synchronise(self) -> ComputedCatalogue:
-        "Fetch the catalogue from the interwebs and load it."
-        async with self.web_client.get(
-            self._base_catalogue_url,
-            expire_after=self._catalogue_ttl,
-            raise_for_status=True,
-            trace_request_ctx=make_generic_progress_ctx('Synchronising catalogue'),
-        ) as response:
-            raw_catalogue = await response.read()
-        return _parse_catalogue(raw_catalogue)
-
     async def find_equivalent_pkg_defns(
         self, pkgs: Collection[pkg_models.Pkg]
     ) -> dict[pkg_models.Pkg, list[Defn]]:
         "Given a list of packages, find ``Defn``s of each package from other sources."
         from .matchers import AddonFolder
 
-        catalogue = await self.synchronise()
+        catalogue = await self.ctx.synchronise()
 
-        @t
+        @run_in_thread
         def collect_addon_folders():
             return {
                 p: frozenset(
@@ -445,7 +292,8 @@ class Manager:
                     for f in p.folders
                     for a in (
                         AddonFolder.from_addon_path(
-                            self.config.game_flavour, self.config.addon_dir / f.name
+                            self.ctx.config.game_flavour,
+                            self.ctx.config.addon_dir / f.name,
                         ),
                     )
                     if a
@@ -456,7 +304,7 @@ class Manager:
         async def collect_hashed_folder_defns():
             matches = [
                 m
-                for r in self.resolvers.values()
+                for r in self.ctx.resolvers.values()
                 for m in await r.get_folder_hash_matches(
                     [a for p, f in folders_per_pkg.items() if p.source != r.metadata.id for a in f]
                 )
@@ -484,7 +332,7 @@ class Manager:
             return frozenset(
                 d
                 for a in addon_folders
-                for d in a.get_defns_from_toc_keys(self.resolvers.addon_toc_key_and_id_pairs)
+                for d in a.get_defns_from_toc_keys(self.ctx.resolvers.addon_toc_key_and_id_pairs)
                 if d.source != pkg_source
             )
 
@@ -494,7 +342,7 @@ class Manager:
             hashed_folder_defns = await collect_hashed_folder_defns()
 
         return {
-            p: sorted(d, key=lambda d: self.resolvers.priority_dict[d.source])
+            p: sorted(d, key=lambda d: self.ctx.resolvers.priority_dict[d.source])
             for p in pkgs
             for d in (
                 get_catalogue_defns(p)
@@ -540,8 +388,11 @@ class Manager:
 
         defns_by_source = bucketise(defns, key=lambda v: v.source)
         results = await gather(
-            (self.resolvers.get(s, _DummyResolver).resolve(b) for s, b in defns_by_source.items()),
-            capture_manager_exc_async,
+            (
+                self.ctx.resolvers.get(s, _DummyResolver).resolve(b)
+                for s, b in defns_by_source.items()
+            ),
+            R.resultify_async_exc,
         )
         results_by_defn = chain_dict(
             defns,
@@ -557,22 +408,22 @@ class Manager:
 
     async def get_changelog(self, source: str, uri: str) -> str:
         "Retrieve a changelog from a URI."
-        return await self.resolvers.get(source, _DummyResolver).get_changelog(URL(uri))
+        return await self.ctx.resolvers.get(source, _DummyResolver).get_changelog(URL(uri))
 
     async def _download_pkg_archive(self, pkg: pkg_models.Pkg, *, chunk_size: int = 4096):
         if is_file_uri(pkg.download_url):
             return Path(file_uri_to_path(pkg.download_url))
 
-        async with self.locks[_StandardLocks.DownloadPkg, pkg.download_url]:
-            dest = self.config.global_config.cache_dir / shasum(pkg.download_url)
-            if not await t(dest.exists)():
-                async with self.web_client.get(
+        async with self.ctx.locks[_DOWNLOAD_PKG_LOCK, pkg.download_url]:
+            dest = self.ctx.config.global_config.cache_dir / shasum(pkg.download_url)
+            if not await run_in_thread(dest.exists)():
+                async with self.ctx.web_client.get(
                     pkg.download_url,
-                    headers=await self.resolvers[pkg.source].make_request_headers(
+                    headers=await self.ctx.resolvers[pkg.source].make_request_headers(
                         intent=HeadersIntent.Download
                     ),
                     raise_for_status=True,
-                    trace_request_ctx=make_pkg_progress_ctx(self.config.profile, pkg),
+                    trace_request_ctx=make_pkg_progress_ctx(self.ctx.config.profile, pkg),
                 ) as response, _open_temp_writer_async() as (
                     temp_path,
                     write,
@@ -584,16 +435,16 @@ class Manager:
 
             return dest
 
-    @t
+    @run_in_thread
     def _check_installed_pkg_integrity(self, pkg: pkg_models.Pkg) -> bool:
-        return all((self.config.addon_dir / p.name).exists() for p in pkg.folders)
+        return all((self.ctx.config.addon_dir / p.name).exists() for p in pkg.folders)
 
     async def _should_update_pkg(self, old_pkg: pkg_models.Pkg, new_pkg: pkg_models.Pkg) -> bool:
         return old_pkg.version != new_pkg.version or (
             not await self._check_installed_pkg_integrity(old_pkg)
         )
 
-    @_with_lock(_StandardLocks.MutatePkgs)
+    @_with_lock(_MUTATE_PKGS_LOCK)
     async def install(
         self, defns: Sequence[Defn], replace: bool, dry_run: bool = False
     ) -> Mapping[Defn, R.AnyResult[R.PkgInstalled]]:
@@ -617,7 +468,7 @@ class Manager:
             new_pkgs,
             await gather(
                 (self._download_pkg_archive(r) for r in new_pkgs.values()),
-                capture_manager_exc_async,
+                R.resultify_async_exc,
             ),
         )
         archive_paths, download_errors = bucketise_results(download_results)
@@ -626,12 +477,12 @@ class Manager:
             results
             | download_errors
             | {
-                d: await capture_manager_exc_async(self._install_pkg(new_pkgs[d], a, replace))
+                d: await R.resultify_async_exc(_install_pkg(self.ctx, new_pkgs[d], a, replace))
                 for d, a in archive_paths.items()
             }
         )
 
-    @_with_lock(_StandardLocks.MutatePkgs)
+    @_with_lock(_MUTATE_PKGS_LOCK)
     async def update(
         self, defns: Sequence[Defn], retain_defn_strategy: bool, dry_run: bool = False
     ) -> Mapping[Defn, R.AnyResult[R.PkgInstalled | R.PkgUpdated]]:
@@ -684,7 +535,7 @@ class Manager:
             updatables,
             await gather(
                 (self._download_pkg_archive(n) for _, n in updatables.values()),
-                capture_manager_exc_async,
+                R.resultify_async_exc,
             ),
         )
         archive_paths, download_errors = bucketise_results(download_results)
@@ -693,22 +544,22 @@ class Manager:
             results
             | download_errors
             | {
-                d: await capture_manager_exc_async(
-                    self._update_pkg(o, n, a) if o else self._install_pkg(n, a, False)
+                d: await R.resultify_async_exc(
+                    _update_pkg(self.ctx, o, n, a) if o else _install_pkg(self.ctx, n, a, False)
                 )
                 for d, a in archive_paths.items()
                 for o, n in (updatables[d],)
             }
         )
 
-    @_with_lock(_StandardLocks.MutatePkgs)
+    @_with_lock(_MUTATE_PKGS_LOCK)
     async def remove(
         self, defns: Sequence[Defn], keep_folders: bool
     ) -> Mapping[Defn, R.AnyResult[R.PkgRemoved]]:
         "Remove packages by their definition."
         return {
             d: (
-                await capture_manager_exc_async(self._remove_pkg(p, keep_folders))
+                await R.resultify_async_exc(_remove_pkg(self.ctx, p, keep_folders))
                 if p
                 else R.PkgNotInstalled()
             )
@@ -716,7 +567,7 @@ class Manager:
             for p in (self.get_pkg(d),)
         }
 
-    @_with_lock(_StandardLocks.MutatePkgs)
+    @_with_lock(_MUTATE_PKGS_LOCK)
     async def pin(self, defns: Sequence[Defn]) -> Mapping[Defn, R.AnyResult[R.PkgInstalled]]:
         """Pin and unpin installed packages.
 
@@ -726,9 +577,9 @@ class Manager:
         had been reinstalled with the ``VersionEq`` strategy.
         """
 
-        @t
+        @run_in_thread
         def pin(defn: Defn) -> R.PkgInstalled:
-            resolver = self.resolvers.get(defn.source)
+            resolver = self.ctx.resolvers.get(defn.source)
             if resolver is None:
                 raise R.PkgSourceInvalid
 
@@ -743,7 +594,7 @@ class Manager:
             if version and pkg.version != version:
                 R.PkgFilesNotMatching(defn.strategies)
 
-            with self.database.begin() as transaction:
+            with self.ctx.database.begin() as transaction:
                 transaction.execute(
                     sa.update(pkg_db.pkg_options)
                     .filter_by(pkg_source=pkg.source, pkg_id=pkg.id)
@@ -753,4 +604,4 @@ class Manager:
             new_pkg = evolve(pkg, options=evolve(pkg.options, version_eq=version is not None))
             return R.PkgInstalled(new_pkg)
 
-        return {d: await capture_manager_exc_async(pin(d)) for d in defns}
+        return {d: await R.resultify_async_exc(pin(d)) for d in defns}

@@ -38,12 +38,17 @@ from instawow.wow_installations import find_installations, infer_flavour_from_ad
         ),
     ],
 )
-def test_can_infer_flavour_from_addon_dir(path: str, flavour: Flavour | None):
+def test_can_infer_flavour_from_addon_dir(
+    path: str,
+    flavour: Flavour | None,
+):
     assert infer_flavour_from_addon_dir(path) is flavour
 
 
 @pytest.mark.skipif(sys.platform != 'darwin', reason='Only supported on Mac')
-def test_can_find_mac_installations(monkeypatch: pytest.MonkeyPatch):
+def test_can_find_mac_installations(
+    monkeypatch: pytest.MonkeyPatch,
+):
     with monkeypatch.context() as patcher:
 
         def check_output_no_installation(*args, **kwargs):

@@ -47,7 +47,7 @@ class TukuiResolver(BaseResolver):
     _api_url = URL('https://api.tukui.org/v1/')
 
     async def resolve_one(self, defn: Defn, metadata: None) -> pkg_models.Pkg:
-        async with self._manager.web_client.get(
+        async with self._manager_ctx.web_client.get(
             self._api_url / 'addon' / defn.alias,
             expire_after=timedelta(minutes=5),
         ) as response:
@@ -58,7 +58,7 @@ class TukuiResolver(BaseResolver):
             ui_metadata: _TukuiAddon = await response.json()
 
         if not any(
-            Flavour.from_flavour_keyed_enum(r) is self._manager.config.game_flavour
+            Flavour.from_flavour_keyed_enum(r) is self._manager_ctx.config.game_flavour
             for g in ui_metadata['patch']
             for r in (FlavourVersionRange.from_version_string(g),)
             if r

@@ -40,7 +40,8 @@ from instawow.common import Defn, Flavour, SourceMetadata
 from instawow.config import Config, GlobalConfig, SecretStr, config_converter
 from instawow.github_auth import get_codes, poll_for_access_token
 from instawow.http import TraceRequestCtx, init_web_client
-from instawow.manager import LocksType, Manager, bucketise_results, contextualise
+from instawow.manager_ctx import LocksType, ManagerCtx, contextualise
+from instawow.pkg_management import PkgManager, bucketise_results
 from instawow.utils import WeakValueDefaultDictionary, read_resource_as_text, reveal_folder, uniq
 from instawow.utils import run_in_thread as t
 from instawow.wow_installations import infer_flavour_from_addon_dir
@@ -49,7 +50,7 @@ from . import frontend
 
 _T = TypeVar('_T')
 _P = ParamSpec('_P')
-_ManagerBoundCoroFn: TypeAlias = Callable[Concatenate[Manager, _P], Awaitable[_T]]
+_ManagerBoundCoroFn: TypeAlias = Callable[Concatenate[PkgManager, _P], Awaitable[_T]]
 
 _toga_handle = contextvars.ContextVar[tuple[Any, anyio.from_thread.BlockingPortal]]('_toga_handle')
 
@@ -206,8 +207,8 @@ class ReadProfileConfigParams(_ProfileParamMixin, BaseParams):
 @_register_method('config/delete_profile')
 class DeleteProfileConfigParams(_ProfileParamMixin, BaseParams):
     async def respond(self, managers: _ManagersManager) -> None:
-        async def delete_profile(manager: Manager):
-            await t(manager.config.delete)()
+        async def delete_profile(manager: PkgManager):
+            await t(manager.ctx.config.delete)()
             managers.unload_profile(self.profile)
 
         await managers.run(self.profile, delete_profile)
@@ -273,7 +274,7 @@ class CancelGithubAuthFlowParams(BaseParams):
 class ListSourcesParams(_ProfileParamMixin, BaseParams):
     async def respond(self, managers: _ManagersManager) -> dict[str, SourceMetadata]:
         manager = await managers.get_manager(self.profile)
-        return {r.metadata.id: r.metadata for r in manager.resolvers.values()}
+        return {r.metadata.id: r.metadata for r in manager.ctx.resolvers.values()}
 
 
 @_register_method('list')
@@ -281,7 +282,7 @@ class ListInstalledParams(_ProfileParamMixin, BaseParams):
     async def respond(self, managers: _ManagersManager) -> list[pkg_models.Pkg]:
         manager = await managers.get_manager(self.profile)
 
-        with manager.database.connect() as connection:
+        with manager.ctx.database.connect() as connection:
             installed_pkgs = (
                 connection.execute(
                     sa.select(pkg_db.pkg).order_by(sa.func.lower(pkg_db.pkg.c.name))
@@ -301,16 +302,14 @@ class SearchParams(_ProfileParamMixin, BaseParams):
     installed_only: bool
 
     async def respond(self, managers: _ManagersManager) -> list[ComputedCatalogueEntry]:
-        return await managers.run(
-            self.profile,
-            partial(
-                search,
-                search_terms=self.search_terms,
-                limit=self.limit,
-                sources=self.sources,
-                start_date=self.start_date,
-                filter_installed='include_only' if self.installed_only else 'ident',
-            ),
+        manager = await managers.get_manager(self.profile)
+        return await search(
+            manager.ctx,
+            self.search_terms,
+            limit=self.limit,
+            sources=self.sources,
+            start_date=self.start_date,
+            filter_installed='include_only' if self.installed_only else 'ident',
         )
 
 
@@ -326,7 +325,7 @@ class ErrorResult(TypedDict):
 
 @_register_method('resolve')
 class ResolveParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
-    async def _resolve(self, manager: Manager):
+    async def _resolve(self, manager: PkgManager):
         def extract_source(defn: Defn):
             if defn.is_unsourced:
                 match = manager.pair_uri(defn.alias)
@@ -353,7 +352,7 @@ class InstallParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
 
     async def respond(self, managers: _ManagersManager) -> list[SuccessResult | ErrorResult]:
         results = await managers.run(
-            self.profile, partial(Manager.install, defns=self.defns, replace=self.replace)
+            self.profile, partial(PkgManager.install, defns=self.defns, replace=self.replace)
         )
         return [
             {'status': r.status, 'addon': r.pkg}
@@ -367,7 +366,7 @@ class InstallParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
 class UpdateParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
     async def respond(self, managers: _ManagersManager) -> list[SuccessResult | ErrorResult]:
         results = await managers.run(
-            self.profile, partial(Manager.update, defns=self.defns, retain_defn_strategy=True)
+            self.profile, partial(PkgManager.update, defns=self.defns, retain_defn_strategy=True)
         )
         return [
             {'status': r.status, 'addon': r.new_pkg}
@@ -385,7 +384,8 @@ class RemoveParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
 
     async def respond(self, managers: _ManagersManager) -> list[SuccessResult | ErrorResult]:
         results = await managers.run(
-            self.profile, partial(Manager.remove, defns=self.defns, keep_folders=self.keep_folders)
+            self.profile,
+            partial(PkgManager.remove, defns=self.defns, keep_folders=self.keep_folders),
         )
         return [
             {'status': r.status, 'addon': r.old_pkg}
@@ -398,7 +398,7 @@ class RemoveParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
 @_register_method('pin')
 class PinParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
     async def respond(self, managers: _ManagersManager) -> list[SuccessResult | ErrorResult]:
-        results = await managers.run(self.profile, partial(Manager.pin, defns=self.defns))
+        results = await managers.run(self.profile, partial(PkgManager.pin, defns=self.defns))
         return [
             {'status': r.status, 'addon': r.pkg}
             if isinstance(r, R.PkgInstalled)
@@ -415,7 +415,7 @@ class GetChangelogParams(_ProfileParamMixin, BaseParams):
     async def respond(self, managers: _ManagersManager) -> str:
         return await managers.run(
             self.profile,
-            partial(Manager.get_changelog, source=self.source, uri=self.changelog_url),
+            partial(PkgManager.get_changelog, source=self.source, uri=self.changelog_url),
         )
 
 
@@ -436,9 +436,11 @@ class ReconcileParams(_ProfileParamMixin, BaseParams):
     async def respond(self, managers: _ManagersManager) -> list[AddonMatch]:
         manager = await managers.get_manager(self.profile)
 
-        leftovers = await t(matchers.get_unreconciled_folders)(manager)
+        leftovers = await t(matchers.get_unreconciled_folders)(manager.ctx)
 
-        match_groups = await matchers.DEFAULT_MATCHERS[self.matcher](manager, leftovers=leftovers)
+        match_groups = await matchers.DEFAULT_MATCHERS[self.matcher](
+            manager.ctx, leftovers=leftovers
+        )
 
         resolved_defns = await manager.resolve(uniq(d for _, b in match_groups for d in b))
         pkgs, _ = bucketise_results(resolved_defns.items())
@@ -466,7 +468,7 @@ class GetReconcileInstalledCandidatesParams(_ProfileParamMixin, BaseParams):
     async def respond(self, managers: _ManagersManager) -> list[ReconcileInstalledCandidate]:
         manager = await managers.get_manager(self.profile)
 
-        with manager.database.connect() as connection:
+        with manager.ctx.database.connect() as connection:
             installed_pkgs = [
                 pkg_models.Pkg.from_row_mapping(connection, p)
                 for p in connection.execute(
@@ -477,11 +479,11 @@ class GetReconcileInstalledCandidatesParams(_ProfileParamMixin, BaseParams):
             ]
 
         defn_groups = await managers.run(
-            self.profile, partial(Manager.find_equivalent_pkg_defns, pkgs=installed_pkgs)
+            self.profile, partial(PkgManager.find_equivalent_pkg_defns, pkgs=installed_pkgs)
         )
         resolved_defns = await managers.run(
             self.profile,
-            partial(Manager.resolve, defns=uniq(d for b in defn_groups.values() for d in b)),
+            partial(PkgManager.resolve, defns=uniq(d for b in defn_groups.values() for d in b)),
         )
         pkgs, _ = bucketise_results(resolved_defns.items())
         return [
@@ -614,7 +616,7 @@ class _ManagersManager:
 
         self.locks: LocksType = WeakValueDefaultDictionary(asyncio.Lock)
 
-        self._managers = dict[str, Manager]()
+        self._managers = dict[str, PkgManager]()
 
         self._github_auth_device_codes = None
         self._github_auth_flow_task = None
@@ -658,14 +660,15 @@ class _ManagersManager:
                 try:
                     manager = self._managers[profile]
                 except KeyError:
-                    manager = self._managers[profile] = Manager.from_config(
+                    manager_ctx = ManagerCtx.from_config(
                         await _read_config(self.global_config, profile)
                     )
+                    manager = self._managers[profile] = PkgManager(manager_ctx)
 
         return await coro_fn(manager)
 
     async def get_manager(self, profile: str):
-        async def get_manager(manager: Manager):
+        async def get_manager(manager: PkgManager):
             return manager
 
         return await self.run(profile, get_manager)
@@ -675,7 +678,7 @@ class _ManagersManager:
         return (
             (p, r())
             for m, p, r in self._download_progress_reporters
-            if m == manager.config.profile
+            if m == manager.ctx.config.profile
         )
 
     async def initiate_github_auth_flow(self):
