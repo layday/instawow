@@ -172,3 +172,4 @@ filterwarnings = [
   "error",
 ]
 asyncio_mode = "auto"
+addopts = ["-ra", "--strict-config", "--strict-markers"]
