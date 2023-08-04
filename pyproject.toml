@@ -82,7 +82,7 @@ types = [
 
 [tool.ruff]
 select = [
-  "B0",  # flake8-bugbear (without opinionated rules)
+  "B",   # flake8-bugbear (without opinionated rules)
   "C4",  # flake8-comprehensions
   "DTZ", # flake8-datetimez
   "E",   # pycodestyle

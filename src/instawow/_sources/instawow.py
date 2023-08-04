@@ -31,7 +31,7 @@ class InstawowResolver(BaseResolver):
         try:
             source_id, slug = next(p for p in _ADDONS if defn.alias in p)
         except StopIteration:
-            raise R.PkgNonexistent
+            raise R.PkgNonexistent from None
 
         from ..wa_updater import WaCompanionBuilder
 
