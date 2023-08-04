@@ -26,6 +26,9 @@ from ..utils import gather, uniq
 _T = TypeVar('_T')
 
 
+_CF_WOW_GAME_ID = 1
+
+
 class _CfCoreModLinks(TypedDict):
     websiteUrl: str
     wikiUrl: str
@@ -323,7 +326,9 @@ class CfCoreResolver(BaseResolver):
 
             else:
                 async with self._manager_ctx.web_client.get(
-                    (self._mod_api_url / 'search').with_query(gameId=1, slug=defn.alias),
+                    (self._mod_api_url / 'search').with_query(
+                        gameId=_CF_WOW_GAME_ID, slug=defn.alias
+                    ),
                     expire_after=timedelta(minutes=15),
                     headers=await self.make_request_headers(),
                     raise_for_status=True,
@@ -459,7 +464,7 @@ class CfCoreResolver(BaseResolver):
 
         for offset in range(0, MAX_OFFSET, STEP):
             url = (cls._mod_api_url / 'search').with_query(
-                gameId='1',
+                gameId=_CF_WOW_GAME_ID,
                 sortField=_CfCoreModsSearchSortField.last_updated,
                 sortOrder='desc',
                 pageSize=STEP,

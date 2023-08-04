@@ -105,17 +105,13 @@ class _DummyResolver:
         raise R.PkgSourceInvalid
 
 
-def _with_lock(
-    lock_name: str,
-    *,
-    manager_bound: bool = True,
-):
+def _with_lock(lock_name: str):
     def outer(
         coro_fn: Callable[Concatenate[PkgManager, _P], Awaitable[_T]]
     ) -> Callable[Concatenate[PkgManager, _P], Awaitable[_T]]:
         @wraps(coro_fn)
         async def inner(self: PkgManager, *args: _P.args, **kwargs: _P.kwargs):
-            async with self.ctx.locks[(lock_name, id(self)) if manager_bound else lock_name]:
+            async with self.ctx.locks[lock_name, id(self)]:
                 return await coro_fn(self, *args, **kwargs)
 
         return inner

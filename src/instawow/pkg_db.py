@@ -24,7 +24,7 @@ from sqlalchemy.exc import OperationalError
 DB_REVISION = '98716a7301f8'
 
 
-class TZDateTime(TypeDecorator[datetime]):
+class _TZDateTime(TypeDecorator[datetime]):
     impl = DateTime
     cache_ok = True
 
@@ -58,7 +58,7 @@ pkg = Table(
     Column('description', String, nullable=False),
     Column('url', String, nullable=False),
     Column('download_url', String, nullable=False),
-    Column('date_published', TZDateTime, nullable=False),
+    Column('date_published', _TZDateTime, nullable=False),
     Column('version', String, nullable=False),
     Column('changelog_url', String, nullable=False),
 )
@@ -111,7 +111,7 @@ pkg_version_log = Table(
     'pkg_version_log',
     metadata,
     Column('version', String, primary_key=True),
-    Column('install_time', TZDateTime, nullable=False, server_default=func.now()),
+    Column('install_time', _TZDateTime, nullable=False, server_default=func.now()),
     Column('pkg_source', String, primary_key=True),
     Column('pkg_id', String, primary_key=True),
 )
