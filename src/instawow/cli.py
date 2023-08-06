@@ -152,7 +152,7 @@ class _CtxObjWrapper:
                         label = (
                             'Downloading '
                             + Defn(
-                                trace_request_ctx['pkg'].source, trace_request_ctx['pkg'].slug
+                                trace_request_ctx['defn'].source, trace_request_ctx['defn'].alias
                             ).as_uri()
                             if trace_request_ctx['report_progress'] == 'pkg_download'
                             else trace_request_ctx['label']

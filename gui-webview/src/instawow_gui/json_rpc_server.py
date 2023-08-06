@@ -503,8 +503,8 @@ class DownloadProgressReport(TypedDict):
 class GetDownloadProgressParams(_ProfileParamMixin, BaseParams):
     async def respond(self, managers: _ManagersManager) -> list[DownloadProgressReport]:
         return [
-            {'defn': p.to_defn(), 'progress': r}
-            for p, r in await managers.get_manager_download_progress(self.profile)
+            {'defn': d, 'progress': r}
+            for d, r in await managers.get_manager_download_progress(self.profile)
         ]
 
 
@@ -595,13 +595,13 @@ def _init_json_rpc_web_client(cache_dir: Path):
             content_length = params.response.content_length
             entry = (
                 trace_request_ctx['profile'],
-                trace_request_ctx['pkg'],
+                trace_request_ctx['defn'],
                 lambda: content.total_bytes / content_length,
             )
             progress_reporters.add(entry)
             content.on_eof(lambda: progress_reporters.remove(entry))
 
-    progress_reporters: set[tuple[str, pkg_models.Pkg, Callable[[], float]]] = set()
+    progress_reporters: set[tuple[str, Defn, Callable[[], float]]] = set()
 
     trace_config = aiohttp.TraceConfig()
     trace_config.on_request_end.append(do_on_request_end)
@@ -676,8 +676,8 @@ class _ManagersManager:
     async def get_manager_download_progress(self, profile: str):
         manager = await self.get_manager(profile)
         return (
-            (p, r())
-            for m, p, r in self._download_progress_reporters
+            (d, r())
+            for m, d, r in self._download_progress_reporters
             if m == manager.ctx.config.profile
         )
 

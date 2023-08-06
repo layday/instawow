@@ -25,7 +25,7 @@ from yarl import URL
 from . import pkg_db, pkg_models
 from . import results as R
 from .common import Defn, Strategy
-from .http import make_pkg_progress_ctx
+from .http import make_defn_progress_ctx
 from .manager_ctx import ManagerCtx
 from .resolvers import HeadersIntent
 from .utils import (
@@ -406,7 +406,9 @@ class PkgManager:
         "Retrieve a changelog from a URI."
         return await self.ctx.resolvers.get(source, _DummyResolver).get_changelog(URL(uri))
 
-    async def _download_pkg_archive(self, pkg: pkg_models.Pkg, *, chunk_size: int = 4096):
+    async def _download_pkg_archive(
+        self, defn: Defn, pkg: pkg_models.Pkg, *, chunk_size: int = 4096
+    ):
         if is_file_uri(pkg.download_url):
             return Path(file_uri_to_path(pkg.download_url))
 
@@ -419,7 +421,7 @@ class PkgManager:
                         intent=HeadersIntent.Download
                     ),
                     raise_for_status=True,
-                    trace_request_ctx=make_pkg_progress_ctx(self.ctx.config.profile, pkg),
+                    trace_request_ctx=make_defn_progress_ctx(self.ctx.config.profile, defn),
                 ) as response, _open_temp_writer_async() as (
                     temp_path,
                     write,
@@ -463,7 +465,7 @@ class PkgManager:
         download_results = zip(
             new_pkgs,
             await gather(
-                (self._download_pkg_archive(r) for r in new_pkgs.values()),
+                (self._download_pkg_archive(d, r) for d, r in new_pkgs.items()),
                 R.resultify_async_exc,
             ),
         )
@@ -530,7 +532,7 @@ class PkgManager:
         download_results = zip(
             updatables,
             await gather(
-                (self._download_pkg_archive(n) for _, n in updatables.values()),
+                (self._download_pkg_archive(d, n) for d, (_, n) in updatables.items()),
                 R.resultify_async_exc,
             ),
         )

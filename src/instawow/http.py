@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, Any, Literal
 from loguru import logger
 from typing_extensions import TypeAlias, TypedDict
 
-from . import pkg_models
+from . import common
 from .utils import read_resource_as_text
 
 if TYPE_CHECKING:
@@ -31,21 +31,23 @@ class _GenericDownloadTraceRequestCtx(TypedDict):
     label: str
 
 
-class _PkgDownloadTraceRequestCtx(TypedDict):
+class _DefnDownloadTraceRequestCtx(TypedDict):
     report_progress: Literal['pkg_download']
     profile: str
-    pkg: pkg_models.Pkg
+    defn: common.Defn
 
 
-TraceRequestCtx: TypeAlias = '_GenericDownloadTraceRequestCtx | _PkgDownloadTraceRequestCtx | None'
-
-
-def make_pkg_progress_ctx(profile: str, pkg: pkg_models.Pkg) -> _PkgDownloadTraceRequestCtx:
-    return {'report_progress': 'pkg_download', 'profile': profile, 'pkg': pkg}
+TraceRequestCtx: TypeAlias = (
+    '_GenericDownloadTraceRequestCtx | _DefnDownloadTraceRequestCtx | None'
+)
 
 
 def make_generic_progress_ctx(label: str) -> _GenericDownloadTraceRequestCtx:
     return {'report_progress': 'generic', 'label': label}
+
+
+def make_defn_progress_ctx(profile: str, defn: common.Defn) -> _DefnDownloadTraceRequestCtx:
+    return {'report_progress': 'pkg_download', 'profile': profile, 'defn': defn}
 
 
 @lru_cache(1)
