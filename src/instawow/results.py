@@ -187,15 +187,10 @@ async def resultify_async_exc(
     awaitable: Awaitable[_T],
 ) -> AnyResult[_T]:
     "Capture and log an exception raised in a coroutine."
-    from aiohttp import ClientError
-
     try:
         return await awaitable
     except (ManagerError, InternalError) as error:
         return error
-    except ClientError as error:
-        logger.opt(exception=True).info('network error')
-        return InternalError(error)
     except BaseException as error:
         logger.exception('unclassed error')
         return InternalError(error)
