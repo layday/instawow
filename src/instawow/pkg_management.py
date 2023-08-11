@@ -110,7 +110,7 @@ def _with_lock(lock_name: str):
         coro_fn: Callable[Concatenate[PkgManager, _P], Awaitable[_T]]
     ) -> Callable[Concatenate[PkgManager, _P], Awaitable[_T]]:
         @wraps(coro_fn)
-        async def inner(self: PkgManager, *args: _P.args, **kwargs: _P.kwargs):
+        async def inner(self: PkgManager, *args: _P.args, **kwargs: _P.kwargs) -> _T:
             async with self.ctx.locks[lock_name, id(self)]:
                 return await coro_fn(self, *args, **kwargs)
 
