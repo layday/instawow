@@ -30,26 +30,31 @@
 
 <svelte:window on:keydown={dismissOnEsc} />
 
-<div class="modal-wrapper" transition:fade={{ duration: 200 }} on:click={dismiss}>
-  <dialog
-    open
-    class="modal"
-    aria-modal="true"
-    in:scale={{ duration: 200 }}
-    on:click|stopPropagation
-  >
-    <slot />
-  </dialog>
+<div
+  class="modal-overlay"
+  role="presentation"
+  transition:fade={{ duration: 200 }}
+  on:click={dismiss}
+>
+  <div class="modal-wrapper" role="presentation" on:click|stopPropagation>
+    <dialog class="modal" open aria-modal="true" in:scale={{ duration: 200 }}>
+      <slot />
+    </dialog>
+  </div>
 </div>
 
 <style lang="scss">
   @use "../scss/vars";
 
-  .modal-wrapper {
+  .modal-overlay {
     @extend %cover-canvas;
     display: flex;
     align-items: center;
     justify-content: center;
+  }
+
+  .modal-wrapper {
+    display: contents;
   }
 
   .modal {

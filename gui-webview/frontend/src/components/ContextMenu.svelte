@@ -57,9 +57,10 @@
 <svelte:window on:keydown={dismissOnEsc} on:resize={hide} />
 
 {#if eventCoords}
-  <div class="context-menu-wrapper" tabindex="-1" on:click={hide}>
+  <div class="context-menu-wrapper" role="presentation" tabindex="-1" on:click={hide}>
     <div
       class="context-menu"
+      role="presentation"
       style={`
       --menu-x-offset: ${menuCoords.x}px;
       --menu-y-offset: ${menuCoords.y}px;
