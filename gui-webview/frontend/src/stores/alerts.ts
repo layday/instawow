@@ -6,6 +6,8 @@ export interface Alert {
   message: string;
 }
 
-export const ANY_PROFILE = "*";
+export const ANY_PROFILE: unique symbol = Symbol("*");
 
-export const alerts = writable<Record<typeof ANY_PROFILE | Profile, Alert[]>>({});
+export const alerts = writable<Record<typeof ANY_PROFILE | Profile, Alert[]>>({
+  [ANY_PROFILE]: [],
+});

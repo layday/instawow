@@ -11,14 +11,16 @@
   import { ANY_PROFILE, type Alert } from "../stores/alerts";
 
   const handleDismissAlerts = () => {
-    $alerts = {};
+    $alerts = {
+      [ANY_PROFILE]: [],
+    };
   };
 
   let combinedAlerts: Alert[] = [];
   let selectedAlertIndex = 0;
 
   $: {
-    combinedAlerts = [$alerts[ANY_PROFILE], $alerts[$activeProfile as string]]
+    combinedAlerts = [$alerts[ANY_PROFILE], $activeProfile ? $alerts[$activeProfile] : []]
       .filter(Boolean)
       .flat();
     selectedAlertIndex = 0;
