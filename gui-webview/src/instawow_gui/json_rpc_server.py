@@ -8,6 +8,7 @@ import typing
 from collections.abc import Awaitable, Callable, Iterator, Set
 from contextlib import AsyncExitStack, contextmanager
 from datetime import datetime
+from enum import StrEnum
 from functools import partial
 from itertools import chain
 from pathlib import Path
@@ -53,6 +54,14 @@ _P = ParamSpec('_P')
 _ManagerBoundCoroFn: TypeAlias = Callable[Concatenate[PkgManager, _P], Awaitable[_T]]
 
 _toga_handle = contextvars.ContextVar[tuple[Any, anyio.from_thread.BlockingPortal]]('_toga_handle')
+
+_LOCK_PREFIX = object()
+
+
+class _LockOperation(StrEnum):
+    ModifyProfile = '_MODIFY_PROFILE_'
+    UpdateGlobalConfig = '_UPDATE_GLOBAL_CONFIG'
+    InitiateGithubAuthFlow = '_INITIATE_GITHUB_AUTH_FLOW_'
 
 
 LOCALHOST = '127.0.0.1'
@@ -172,7 +181,7 @@ class WriteProfileConfigParams(_ProfileParamMixin, BaseParams):
     infer_game_flavour: bool
 
     async def respond(self, managers: _ManagersManager) -> Config:
-        async with managers.locks['modify profile', self.profile]:
+        async with managers.locks[_LOCK_PREFIX, _LockOperation.ModifyProfile, self.profile]:
             with _reraise_validation_errors(_ConfigError):
                 config = config_converter.structure(
                     {
@@ -643,7 +652,7 @@ class _ManagersManager:
     async def update_global_config(
         self, update_cb: Callable[[GlobalConfig], GlobalConfig]
     ) -> GlobalConfig:
-        async with self.locks['update global config']:
+        async with self.locks[_LOCK_PREFIX, _LockOperation.UpdateGlobalConfig]:
             with _reraise_validation_errors(_ConfigError):
                 self.global_config = update_cb(self.global_config)
                 await t(self.global_config.write)()
@@ -656,7 +665,7 @@ class _ManagersManager:
         try:
             manager = self._managers[profile]
         except KeyError:
-            async with self.locks['modify profile', profile]:
+            async with self.locks[_LOCK_PREFIX, _LockOperation.ModifyProfile, profile]:
                 try:
                     manager = self._managers[profile]
                 except KeyError:
@@ -682,7 +691,7 @@ class _ManagersManager:
         )
 
     async def initiate_github_auth_flow(self):
-        async with self.locks['initiate github auth flow']:
+        async with self.locks[_LOCK_PREFIX, _LockOperation.InitiateGithubAuthFlow]:
             if self._github_auth_device_codes is None:
 
                 async def finalise_github_auth_flow():

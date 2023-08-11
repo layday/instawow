@@ -19,6 +19,10 @@ from ..http import ClientSessionType, make_generic_progress_ctx
 from ..resolvers import BaseResolver
 from ..utils import as_plain_text_data_url, gather, slugify, uniq
 
+_LOCK_PREFIX = object()
+
+_LOAD_WOWI_CATALOGUE_LOCK = '_LOAD_WOWI_CATALOGUE_LOCK_'
+
 
 class _WowiCommonTerms(TypedDict):
     UID: str  # Unique add-on ID
@@ -110,7 +114,7 @@ class WowiResolver(BaseResolver):
                 return match and match['id']
 
     async def _synchronise(self):
-        async with self._manager_ctx.locks['load WoWI catalogue']:
+        async with self._manager_ctx.locks[_LOCK_PREFIX, _LOAD_WOWI_CATALOGUE_LOCK]:
             async with self._manager_ctx.web_client.get(
                 self._list_api_url,
                 expire_after=timedelta(hours=1),
