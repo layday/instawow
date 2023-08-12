@@ -2,7 +2,7 @@
   import { faExchange, faFilter, faSlidersH, faThList } from "@fortawesome/free-solid-svg-icons";
   import { createEventDispatcher } from "svelte";
   import { ReconciliationStage } from "../api";
-  import { View } from "../constants";
+  import { View, type TogaSimulateKeypressAction } from "../constants";
   import ProgressIndicator from "./ProgressIndicator.svelte";
   import Icon from "./SvgIcon.svelte";
 
@@ -22,20 +22,26 @@
 
   let searchBox: HTMLInputElement;
 
-  const handleKeypress = (e: CustomEvent<{ action: string }>) => {
-    const { action } = e.detail;
-    if (action === "activateViewInstalled") {
-      activeView = View.Installed;
-    } else if (action === "activateViewReconcile") {
-      activeView = View.Reconcile;
-    } else if (action === "activateViewSearch") {
-      activeView = View.Search;
-      searchBox.focus();
-    } else if (action === "toggleSearchFilter") {
-      searchFilterInstalled = !searchFilterInstalled;
-      if (searchFilterInstalled) {
+  const handleKeypress = ({
+    detail: { action },
+  }: CustomEvent<{ action: TogaSimulateKeypressAction }>) => {
+    switch (action) {
+      case "activateViewInstalled":
+        activeView = View.Installed;
+        break;
+      case "activateViewReconcile":
+        activeView = View.Reconcile;
+        break;
+      case "activateViewSearch":
+        activeView = View.Search;
         searchBox.focus();
-      }
+        break;
+      case "toggleSearchFilter":
+        searchFilterInstalled = !searchFilterInstalled;
+        if (searchFilterInstalled) {
+          searchBox.focus();
+        }
+        break;
     }
   };
 </script>

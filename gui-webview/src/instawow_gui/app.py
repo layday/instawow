@@ -15,7 +15,16 @@ import toga.style
 from loguru import logger
 from typing_extensions import Self
 
+from instawow.utils import StrEnum
+
 from . import json_rpc_server
+
+
+class _TogaSimulateKeypressAction(StrEnum):
+    ToggleSearchFilter = 'toggleSearchFilter'
+    ActivateViewInstalled = 'activateViewInstalled'
+    ActivateViewReconcile = 'activateViewReconcile'
+    ActivateViewSearch = 'activateViewSearch'
 
 
 class InstawowApp(toga.App):
@@ -65,7 +74,10 @@ class InstawowApp(toga.App):
 
         self.commands.add(
             toga.Command(
-                partial(dispatch_js_keyboard_event, action='toggleSearchFilter'),
+                partial(
+                    dispatch_js_keyboard_event,
+                    action=_TogaSimulateKeypressAction.ToggleSearchFilter,
+                ),
                 text='Toggle Search Filter',
                 shortcut=toga.Key.MOD_1 + toga.Key.G,
                 group=toga.Group.EDIT,
@@ -73,7 +85,10 @@ class InstawowApp(toga.App):
                 order=10,
             ),
             toga.Command(
-                partial(dispatch_js_keyboard_event, action='activateViewInstalled'),
+                partial(
+                    dispatch_js_keyboard_event,
+                    action=_TogaSimulateKeypressAction.ActivateViewInstalled,
+                ),
                 text='Installed',
                 shortcut=toga.Key.MOD_1 + toga.Key.L,
                 group=toga.Group.WINDOW,
@@ -81,14 +96,20 @@ class InstawowApp(toga.App):
                 order=10,
             ),
             toga.Command(
-                partial(dispatch_js_keyboard_event, action='activateViewReconcile'),
+                partial(
+                    dispatch_js_keyboard_event,
+                    action=_TogaSimulateKeypressAction.ActivateViewReconcile,
+                ),
                 text='Unreconciled',
                 group=toga.Group.WINDOW,
                 section=20,
                 order=20,
             ),
             toga.Command(
-                partial(dispatch_js_keyboard_event, action='activateViewSearch'),
+                partial(
+                    dispatch_js_keyboard_event,
+                    action=_TogaSimulateKeypressAction.ActivateViewSearch,
+                ),
                 text='Search',
                 shortcut=toga.Key.MOD_1 + toga.Key.F,
                 group=toga.Group.WINDOW,
