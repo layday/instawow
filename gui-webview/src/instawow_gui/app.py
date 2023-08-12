@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import json
-import os
+import sys
 from contextlib import suppress
 from functools import partial
 from typing import Any
@@ -41,7 +41,7 @@ class InstawowApp(toga.App):
     def startup(self) -> None:
         self.main_window = toga.MainWindow(title=self.formal_name, size=(800, 600))
 
-        if os.name == 'nt':
+        if sys.platform == 'win32':
             import ctypes
 
             # Enable high DPI support.
@@ -55,7 +55,7 @@ class InstawowApp(toga.App):
                     True, forKey='developerExtrasEnabled'
                 )
 
-        if os.name == 'nt':
+        if sys.platform == 'win32':
             from toga_winforms.widgets.webview import TogaWebBrowser
 
             def configure_webview2(sender: TogaWebBrowser, event_args: Any):
