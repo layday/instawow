@@ -58,7 +58,7 @@ def test_default_config_dir(
 
         patcher.setenv('XDG_CONFIG_HOME', '/foo')
         config_dir = GlobalConfig().config_dir
-        assert config_dir == Path('/foo/instawow')
+        assert config_dir == Path('/foo/instawow').resolve()
 
     with monkeypatch.context() as patcher:
         patcher.setattr(sys, 'platform', 'darwin')
@@ -73,7 +73,7 @@ def test_default_config_dir(
         assert GlobalConfig().config_dir == Path.home() / '.config' / 'instawow'
 
         patcher.setenv('APPDATA', '/foo')
-        assert GlobalConfig().config_dir == Path('/foo/instawow')
+        assert GlobalConfig().config_dir == Path('/foo/instawow').resolve()
 
 
 def test_config_dir_xdg_env_var_is_respected_on_all_plats(
