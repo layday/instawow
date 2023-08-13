@@ -70,8 +70,9 @@ async def aresponses(event_loop: asyncio.AbstractEventLoop):
 @pytest.fixture(params=['foo'])
 def iw_global_config_values(request: pytest.FixtureRequest, tmp_path: Path):
     return {
-        'temp_dir': tmp_path / 'temp',
-        'config_dir': tmp_path / 'config',
+        'config_dir': tmp_path / '__config__' / 'config',
+        'temp_dir': tmp_path / '__config__' / 'temp',
+        'state_dir': tmp_path / '__config__' / 'state',
         'access_tokens': {
             'cfcore': request.param,
             'github': None,
@@ -101,6 +102,7 @@ async def _iw_global_config_defaults(
 ):
     monkeypatch.setenv('INSTAWOW_CONFIG_DIR', str(iw_global_config_values['config_dir']))
     monkeypatch.setenv('INSTAWOW_TEMP_DIR', str(iw_global_config_values['temp_dir']))
+    monkeypatch.setenv('INSTAWOW_STATE_DIR', str(iw_global_config_values['state_dir']))
 
 
 @pytest.fixture

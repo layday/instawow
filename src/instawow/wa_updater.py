@@ -138,7 +138,7 @@ class WaCompanionBuilder:
     def __init__(self, manager_ctx: ManagerCtx) -> None:
         self._manager_ctx = manager_ctx
 
-        output_folder = self._manager_ctx.config.plugin_dir / __name__
+        output_folder = self._manager_ctx.config.plugins_dir / __name__
         self.addon_zip_path = output_folder / 'WeakAurasCompanion.zip'
         self.changelog_path = output_folder / 'CHANGELOG.md'
         self.version_txt_path = output_folder / 'version.txt'

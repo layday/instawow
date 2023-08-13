@@ -178,6 +178,19 @@ def _get_default_temp_dir():
     return Path(gettempdir(), 'instawow')
 
 
+def _get_default_state_dir():
+    state_parent_dir = os.environ.get('XDG_STATE_HOME')
+    if not state_parent_dir and sys.platform not in {'darwin', 'win32'}:
+        state_parent_dir = Path.home() / '.local' / 'state'
+
+    if state_parent_dir:
+        state_dir = Path(state_parent_dir, 'instawow')
+    else:
+        state_dir = _get_default_config_dir()
+
+    return state_dir
+
+
 class _ConfigMetadata(TypedDict, total=False):
     from_env: bool
     as_json: bool
@@ -207,6 +220,11 @@ class GlobalConfig:
         converter=_expand_path,
         metadata=_ConfigMetadata(from_env=True),
     )
+    state_dir: Path = field(
+        factory=_get_default_state_dir,
+        converter=_expand_path,
+        metadata=_ConfigMetadata(from_env=True),
+    )
     auto_update_check: bool = field(
         default=True,
         metadata=_ConfigMetadata(from_env=True, as_json=True, write_on_disk=True),
@@ -230,7 +248,7 @@ class GlobalConfig:
 
     def list_profiles(self) -> list[str]:
         "Get the names of the profiles contained in ``config_dir``."
-        profiles = [c.parent.name for c in self.profiles_dir.glob('*/config.json')]
+        profiles = [c.parent.name for c in self.profiles_config_dir.glob('*/config.json')]
         return profiles
 
     def ensure_dirs(self) -> Self:
@@ -238,6 +256,7 @@ class GlobalConfig:
             [
                 self.config_dir,
                 self.temp_dir,
+                self.state_dir,
                 self.cache_dir,
             ]
         )
@@ -253,16 +272,16 @@ class GlobalConfig:
         return self.temp_dir / 'cache'
 
     @property
-    def logging_dir(self) -> Path:
-        return self.config_dir / 'logs'
+    def config_file(self) -> Path:
+        return self.config_dir / 'config.json'
 
     @property
-    def profiles_dir(self) -> Path:
+    def profiles_config_dir(self) -> Path:
         return self.config_dir / 'profiles'
 
     @property
-    def config_file(self) -> Path:
-        return self.config_dir / 'config.json'
+    def profiles_state_dir(self) -> Path:
+        return self.state_dir / 'profiles'
 
 
 @frozen
@@ -304,9 +323,10 @@ class Config:
     def ensure_dirs(self) -> Self:
         _ensure_dirs(
             [
-                self.profile_dir,
+                self.config_dir,
+                self.state_dir,
                 self.logging_dir,
-                self.plugin_dir,
+                self.plugins_dir,
             ]
         )
         return self
@@ -317,27 +337,31 @@ class Config:
         return self
 
     def delete(self) -> None:
-        trash((self.profile_dir,), dest=self.global_config.temp_dir, missing_ok=True)
+        trash((self.config_dir,), dest=self.global_config.temp_dir, missing_ok=True)
 
     @property
-    def profile_dir(self) -> Path:
-        return self.global_config.profiles_dir / self.profile
+    def config_dir(self) -> Path:
+        return self.global_config.profiles_config_dir / self.profile
+
+    @property
+    def state_dir(self) -> Path:
+        return self.global_config.profiles_state_dir / self.profile
 
     @property
     def logging_dir(self) -> Path:
-        return self.profile_dir / 'logs'
+        return self.state_dir / 'logs'
 
     @property
-    def plugin_dir(self) -> Path:
-        return self.profile_dir / 'plugins'
+    def plugins_dir(self) -> Path:
+        return self.state_dir / 'plugins'
 
     @property
     def config_file(self) -> Path:
-        return self.profile_dir / 'config.json'
+        return self.config_dir / 'config.json'
 
     @property
     def db_uri(self) -> str:
-        return f"sqlite:///{self.profile_dir / 'db.sqlite'}"
+        return f"sqlite:///{self.config_dir / 'db.sqlite'}"
 
 
 config_converter = make_config_converter()
