@@ -11,7 +11,6 @@ from tempfile import gettempdir
 from typing import Any, TypedDict, TypeVar
 
 import cattrs.preconf.json
-import click
 from attrs import Attribute, field, fields, frozen, has
 from cattrs import AttributeValidationNote, Converter
 from cattrs.gen import make_dict_unstructure_fn, override
@@ -24,6 +23,8 @@ from .utils import add_exc_note, trash
 _T = TypeVar('_T')
 
 _MISSING = object()
+
+_BOTTOM_DIR_NAME = 'instawow'
 
 
 class SecretStr(str):
@@ -171,24 +172,34 @@ def _make_write_converter():
 
 
 def _get_default_config_dir():
-    return Path(click.get_app_dir('instawow'))
+    config_parent_dir = os.environ.get('XDG_CONFIG_HOME')
+
+    if not config_parent_dir:
+        if sys.platform == 'darwin':
+            config_parent_dir = Path.home() / 'Library' / 'Application Support'
+        elif sys.platform == 'win32':
+            config_parent_dir = os.environ.get('APPDATA')
+
+    if not config_parent_dir:
+        config_parent_dir = Path.home() / '.config'
+
+    return Path(config_parent_dir, _BOTTOM_DIR_NAME)
 
 
 def _get_default_temp_dir():
-    return Path(gettempdir(), 'instawow')
+    return Path(gettempdir(), _BOTTOM_DIR_NAME)
 
 
 def _get_default_state_dir():
     state_parent_dir = os.environ.get('XDG_STATE_HOME')
+
     if not state_parent_dir and sys.platform not in {'darwin', 'win32'}:
         state_parent_dir = Path.home() / '.local' / 'state'
 
-    if state_parent_dir:
-        state_dir = Path(state_parent_dir, 'instawow')
-    else:
-        state_dir = _get_default_config_dir()
+    if not state_parent_dir:
+        return _get_default_config_dir()
 
-    return state_dir
+    return Path(state_parent_dir, _BOTTOM_DIR_NAME)
 
 
 class _ConfigMetadata(TypedDict, total=False):

@@ -10,17 +10,21 @@ from instawow.common import Flavour
 from instawow.config import Config, GlobalConfig
 
 
-def test_env_vars_have_prio(
+def test_env_vars_always_takes_precedence(
     monkeypatch: pytest.MonkeyPatch,
     iw_global_config_values: dict[str, Any],
     iw_config_values: dict[str, Any],
 ):
-    monkeypatch.setenv('INSTAWOW_CONFIG_DIR', '/foo')
+    monkeypatch.setenv('INSTAWOW_AUTO_UPDATE_CHECK', '1')
     monkeypatch.setenv('INSTAWOW_GAME_FLAVOUR', 'classic')
 
-    global_config = GlobalConfig.from_values(iw_global_config_values, env=True)
-    config = Config.from_values({'global_config': global_config, **iw_config_values}, env=True)
-    assert config.global_config.config_dir == Path('/foo').resolve()
+    global_config = GlobalConfig.from_values(
+        {**iw_global_config_values, 'auto_update_check': False}, env=True
+    )
+    config = Config.from_values(
+        {'global_config': global_config, **iw_config_values, 'game_flavour': 'retail'}, env=True
+    )
+    assert global_config.auto_update_check is True
     assert config.game_flavour is Flavour.Classic
 
 
@@ -41,15 +45,14 @@ def test_init_with_nonexistent_addon_dir_raises(
         Config(global_config=global_config, **{**iw_config_values, 'addon_dir': '#@$foo'})
 
 
-@pytest.mark.skipif(
-    sys.platform == 'win32',
-    reason='requires absence of platform-specific env var',
-)
-def test_default_config_dir_is_platform_appropriate(
+def test_default_config_dir(
     monkeypatch: pytest.MonkeyPatch,
 ):
+    monkeypatch.delenv('XDG_CONFIG_HOME', False)
+
     with monkeypatch.context() as patcher:
         patcher.setattr(sys, 'platform', 'linux')
+
         config_dir = GlobalConfig().config_dir
         assert config_dir == Path.home() / '.config/instawow'
 
@@ -59,32 +62,58 @@ def test_default_config_dir_is_platform_appropriate(
 
     with monkeypatch.context() as patcher:
         patcher.setattr(sys, 'platform', 'darwin')
+
         config_dir = GlobalConfig().config_dir
         assert config_dir == Path.home() / 'Library/Application Support/instawow'
 
+    with monkeypatch.context() as patcher:
+        patcher.setattr(sys, 'platform', 'win32')
 
-@pytest.mark.skipif(
-    sys.platform != 'win32',
-    reason='requires presence of platform-specific env var',
-)
-def test_default_config_dir_is_unplatform_appropriate(
+        patcher.delenv('APPDATA', False)
+        assert GlobalConfig().config_dir == Path.home() / '.config' / 'instawow'
+
+        patcher.setenv('APPDATA', '/foo')
+        assert GlobalConfig().config_dir == Path('/foo/instawow')
+
+
+def test_config_dir_xdg_env_var_is_respected_on_all_plats(
     monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
 ):
-    assert GlobalConfig().config_dir == Path.home() / 'AppData/Roaming/instawow'
-    monkeypatch.delenv('APPDATA')
-    assert GlobalConfig().config_dir == Path.home() / 'instawow'
+    config_parent_dir = tmp_path / 'instawow_config_parent_dir'
+    monkeypatch.setenv('XDG_CONFIG_HOME', str(config_parent_dir))
+    config = GlobalConfig()
+    assert config.config_dir == config_parent_dir / 'instawow'
 
 
-def test_state_dir_xdg_compliance_sans_env_var(
+def test_config_dir_instawow_specific_env_var_takes_precedence(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+):
+    test_config_dir_xdg_env_var_is_respected_on_all_plats(monkeypatch, tmp_path)
+
+    config_dir = tmp_path / 'instawow_config_dir'
+    monkeypatch.setenv('INSTAWOW_CONFIG_DIR', str(config_dir))
+    config = GlobalConfig.from_values(env=True)
+    assert config.config_dir == config_dir
+
+
+def test_default_state_dir(
     monkeypatch: pytest.MonkeyPatch,
 ):
     monkeypatch.delenv('XDG_STATE_HOME', False)
 
-    config = GlobalConfig()
-    if sys.platform in {'darwin', 'win32'}:
-        assert config.config_dir == config.state_dir
-    else:
-        assert config.state_dir == Path.home() / '.local' / 'state' / 'instawow'
+    with monkeypatch.context() as patcher:
+        patcher.setattr(sys, 'platform', 'linux')
+
+        assert GlobalConfig().state_dir == Path.home() / '.local' / 'state' / 'instawow'
+
+    for platform in {'darwin', 'win32'}:
+        with monkeypatch.context() as patcher:
+            patcher.setattr(sys, 'platform', platform)
+
+            config = GlobalConfig()
+            assert config.config_dir == config.state_dir
 
 
 def test_state_dir_xdg_env_var_is_respected_on_all_plats(
