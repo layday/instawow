@@ -8,7 +8,6 @@ from yarl import URL
 
 from instawow import results as R
 from instawow._sources.cfcore import CfCoreResolver
-from instawow._sources.wowi import WowiResolver
 from instawow.common import Defn, Flavour, StrategyValues
 from instawow.pkg_management import PkgManager
 from instawow.pkg_models import Pkg
@@ -94,33 +93,11 @@ async def test_curse_changelog_is_url(iw_manager: PkgManager):
     )
 
 
-async def test_wowi_basic(iw_manager: PkgManager):
-    defn = Defn('wowi', '13188-molinari')
-    results = await iw_manager.resolve([defn])
-    assert type(results[defn]) is Pkg
-
-
-async def test_wowi_changelog_is_data_url(iw_manager: PkgManager):
-    molinari = Defn('wowi', '13188-molinari')
-    results = await iw_manager.resolve([molinari])
-    assert results[molinari].changelog_url.startswith('data:,')
-
-
 @pytest.mark.parametrize(
     ('resolver', 'url', 'extracted_alias'),
     [
         (CfCoreResolver, 'https://www.curseforge.com/wow/addons/molinari', 'molinari'),
         (CfCoreResolver, 'https://www.curseforge.com/wow/addons/molinari/download', 'molinari'),
-        (WowiResolver, 'https://www.wowinterface.com/downloads/landing.php?fileid=13188', '13188'),
-        (WowiResolver, 'https://wowinterface.com/downloads/landing.php?fileid=13188', '13188'),
-        (WowiResolver, 'https://www.wowinterface.com/downloads/fileinfo.php?id=13188', '13188'),
-        (WowiResolver, 'https://wowinterface.com/downloads/fileinfo.php?id=13188', '13188'),
-        (WowiResolver, 'https://www.wowinterface.com/downloads/download13188-Molinari', '13188'),
-        (WowiResolver, 'https://wowinterface.com/downloads/download13188-Molinari', '13188'),
-        (WowiResolver, 'https://www.wowinterface.com/downloads/info13188-Molinari.html', '13188'),
-        (WowiResolver, 'https://wowinterface.com/downloads/info13188-Molinari.html', '13188'),
-        (WowiResolver, 'https://www.wowinterface.com/downloads/info13188', '13188'),
-        (WowiResolver, 'https://wowinterface.com/downloads/info13188', '13188'),
     ],
 )
 def test_get_alias_from_url(resolver: Resolver, url: str, extracted_alias: str):
