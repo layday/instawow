@@ -7,6 +7,7 @@ v3.1.0
 - Reconciliation was made to cross-reference add-ons from the GitHub catalogue.
 - XDG env vars are now respected on all platforms; if `$XDG_CONFIG_HOME` is set,
   it will be preferred over the platform-native configuration directory.
+  This is a behaviour change on macOS and Windows.
 - Logs and plug-in data are stored under `$XDG_STATE_HOME` on Linuxes by default.
 
 v3.0.1
