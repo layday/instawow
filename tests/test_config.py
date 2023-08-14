@@ -189,6 +189,10 @@ def test_validate_profile_name(
     assert note.name == 'profile'
 
 
+@pytest.mark.skipif(
+    sys.platform == 'win32',
+    reason='chmod has no effect on Windows',
+)
 def test_validate_addon_dir(
     tmp_path: Path,
     iw_global_config_values: dict[str, Any],
