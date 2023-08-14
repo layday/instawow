@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from cattrs import AttributeValidationNote, ClassValidationError
 
 from instawow.common import Flavour
 from instawow.config import Config, GlobalConfig
@@ -168,3 +169,45 @@ def test_can_delete_profile(
     assert config.config_dir.exists()
     config.delete()
     assert not config.config_dir.exists()
+
+
+def test_validate_profile_name(
+    iw_global_config_values: dict[str, Any],
+    iw_config_values: dict[str, Any],
+):
+    global_config = GlobalConfig.from_values(iw_global_config_values)
+
+    with pytest.raises(ClassValidationError) as exc_info:
+        Config.from_values({'global_config': global_config, **iw_config_values, 'profile': ''})
+
+    (value_error,) = exc_info.value.exceptions
+    assert value_error.args == ('Value must have a minimum length of 1',)
+
+    (note,) = value_error.__notes__
+    assert note == 'Structuring class Config @ attribute profile'
+    assert type(note) is AttributeValidationNote
+    assert note.name == 'profile'
+
+
+def test_validate_addon_dir(
+    tmp_path: Path,
+    iw_global_config_values: dict[str, Any],
+    iw_config_values: dict[str, Any],
+):
+    global_config = GlobalConfig.from_values(iw_global_config_values)
+
+    non_writeable_dir = tmp_path / 'non-writeable-dir'
+    non_writeable_dir.mkdir(0o400)
+
+    with pytest.raises(ClassValidationError) as exc_info:
+        Config.from_values(
+            {'global_config': global_config, **iw_config_values, 'addon_dir': non_writeable_dir}
+        )
+
+    (value_error,) = exc_info.value.exceptions
+    assert value_error.args == (f'"{non_writeable_dir}" is not a writable directory',)
+
+    (note,) = value_error.__notes__
+    assert note == 'Structuring class Config @ attribute addon_dir'
+    assert type(note) is AttributeValidationNote
+    assert note.name == 'addon_dir'

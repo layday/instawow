@@ -66,7 +66,7 @@ def _make_validate_min_length(min_length: int):
     @_enrich_validator_exc
     def _validate_min_length(_model: object, _attr: Attribute[Sized], value: Sized):
         if len(value) < min_length:
-            raise ValueError(f'value must have a minimum length of {min_length}')
+            raise ValueError(f'Value must have a minimum length of {min_length}')
 
     return _validate_min_length
 
