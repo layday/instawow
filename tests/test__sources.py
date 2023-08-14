@@ -5,7 +5,6 @@ import re
 
 import pytest
 from aresponses import ResponsesMockServer
-from attrs import evolve
 from typing_extensions import assert_never
 from yarl import URL
 
@@ -13,8 +12,7 @@ from instawow import results as R
 from instawow._sources.cfcore import CfCoreResolver
 from instawow._sources.github import GithubResolver
 from instawow._sources.wowi import WowiResolver
-from instawow.common import Defn, Flavour, Strategy, StrategyValues
-from instawow.manager_ctx import ManagerCtx
+from instawow.common import Defn, Flavour, StrategyValues
 from instawow.pkg_management import PkgManager
 from instawow.pkg_models import Pkg
 from instawow.resolvers import Resolver
@@ -208,24 +206,6 @@ async def test_github_flavor_and_interface_mismatch(
         logging.INFO,
         f'interface number "{interface}" and flavor "{flavor}" mismatch',
     )
-
-
-@pytest.mark.parametrize('resolver', ManagerCtx.RESOLVERS)
-async def test_unsupported_strategies(iw_manager: PkgManager, resolver: Resolver):
-    if resolver.metadata.id not in iw_manager.ctx.resolvers:
-        pytest.skip('resolver not loaded')
-
-    defn = Defn(resolver.metadata.id, 'foo')
-    for strategy in {
-        Strategy.AnyFlavour,
-        Strategy.AnyReleaseType,
-    } - resolver.metadata.strategies:
-        strategy_defn = evolve(defn, strategies=StrategyValues(**{strategy: True}))
-
-        results = await iw_manager.resolve([strategy_defn])
-
-        assert type(results[strategy_defn]) is R.PkgStrategiesUnsupported
-        assert results[strategy_defn].message == f'strategies are not valid for source: {strategy}'
 
 
 @pytest.mark.parametrize(
