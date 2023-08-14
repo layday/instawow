@@ -15,7 +15,7 @@ _T = TypeVar('_T')
 AnyResult: TypeAlias = '_T | ManagerError | InternalError'
 
 
-class Result(Protocol):
+class Result(Protocol):  # pragma: no cover
     @property
     def message(self) -> str:
         ...

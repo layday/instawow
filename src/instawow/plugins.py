@@ -16,7 +16,7 @@ hookspec = pluggy.HookspecMarker(_project_name)
 hookimpl = pluggy.HookimplMarker(_project_name)
 
 
-class InstawowPlugin(Protocol):
+class InstawowPlugin(Protocol):  # pragma: no cover
     "The plug-in interface."
 
     @hookspec
@@ -30,7 +30,7 @@ class InstawowPlugin(Protocol):
         ...
 
 
-class _InstawowPluginHookRelay(Protocol):
+class _InstawowPluginHookRelay(Protocol):  # pragma: no cover
     def instawow_add_commands(self) -> Iterable[Iterable[click.Command]]:
         ...
 

@@ -24,7 +24,7 @@ from .utils import (
 )
 
 
-class Matcher(Protocol):
+class Matcher(Protocol):  # pragma: no cover
     def __call__(
         self, manager_ctx: manager_ctx.ManagerCtx, leftovers: frozenset[AddonFolder]
     ) -> Awaitable[list[tuple[list[AddonFolder], list[Defn]]]]:

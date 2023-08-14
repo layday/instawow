@@ -28,7 +28,7 @@ configure_converter(catalogue_converter)
 _normalise_name = normalise_names('')
 
 
-class _CatalogueFn(Protocol):
+class _CatalogueFn(Protocol):  # pragma: no cover
     def __call__(self, web_client: http.ClientSessionType) -> AsyncIterator[CatalogueEntry]:
         ...
 

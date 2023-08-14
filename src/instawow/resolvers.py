@@ -18,7 +18,7 @@ from .config import GlobalConfig
 from .utils import file_uri_to_path, gather, run_in_thread
 
 
-class FolderHashCandidate(Protocol):
+class FolderHashCandidate(Protocol):  # pragma: no cover
     name: str
 
     def hash_contents(self, __method: AddonHashMethod) -> str:
@@ -32,7 +32,7 @@ class HeadersIntent(enum.IntEnum):
     Download = enum.auto()
 
 
-class Resolver(Protocol):
+class Resolver(Protocol):  # pragma: no cover
     metadata: ClassVar[SourceMetadata]
     requires_access_token: ClassVar[str | None]
 

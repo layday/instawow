@@ -20,7 +20,7 @@ class _FlavourKeyedEnum(Protocol[_TEnum]):
     VanillaClassic: _TEnum
     Classic: _TEnum
 
-    def __getitem__(self, __key: str) -> _TEnum:
+    def __getitem__(self, __key: str) -> _TEnum:  # pragma: no cover
         ...
 
 
