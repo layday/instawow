@@ -10,7 +10,7 @@ from instawow.common import Flavour
 from instawow.config import Config, GlobalConfig
 
 
-def test_env_vars_always_takes_precedence(
+def test_env_vars_always_take_precedence(
     monkeypatch: pytest.MonkeyPatch,
     iw_global_config_values: dict[str, Any],
     iw_config_values: dict[str, Any],
