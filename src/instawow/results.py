@@ -172,7 +172,7 @@ class PkgStrategiesUnsupported(ManagerError):
 
     @property
     def message(self) -> str:
-        return f'strategies are not valid for source: {", ".join(self.strategies)}'
+        return f'strategies are not valid for source: {", ".join(sorted(self.strategies))}'
 
 
 class InternalError(Result, Exception):
