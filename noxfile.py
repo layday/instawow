@@ -131,7 +131,7 @@ def produce_coverage_report(session: nox.Session):
     "Produce coverage report."
     session.install('coverage[toml]')
     session.run('coverage', 'combine')
-    session.run('coverage', 'html', '--skip-covered', '--skip-empty')
+    session.run('coverage', 'html', '--skip-empty')
     session.run('coverage', 'report', '-m')
 
 
