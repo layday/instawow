@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 from functools import lru_cache
-from typing import Protocol
+from typing import Protocol, cast
 
 import click
 import pluggy
@@ -43,4 +43,4 @@ def load_plugins() -> _InstawowPluginHookRelay:
     plugin_manager = pluggy.PluginManager(_project_name)
     plugin_manager.add_hookspecs(InstawowPlugin)
     plugin_manager.load_setuptools_entrypoints(_entry_point)
-    return plugin_manager.hook
+    return cast(_InstawowPluginHookRelay, plugin_manager.hook)
