@@ -1,16 +1,13 @@
 from __future__ import annotations
 
-import logging
 import re
 
 import pytest
-from aresponses import ResponsesMockServer
 from typing_extensions import assert_never
 from yarl import URL
 
 from instawow import results as R
 from instawow._sources.cfcore import CfCoreResolver
-from instawow._sources.github import GithubResolver
 from instawow._sources.wowi import WowiResolver
 from instawow.common import Defn, Flavour, StrategyValues
 from instawow.pkg_management import PkgManager
@@ -134,80 +131,6 @@ async def test_tukui_changelog_url(iw_manager: PkgManager):
     assert results[ui_suite].changelog_url == 'https://api.tukui.org/v1/changelog/tukui#20.38'
 
 
-async def test_github_basic(iw_manager: PkgManager):
-    release_json = Defn('github', 'nebularg/PackagerTest')
-    releaseless = Defn('github', 'AdiAddons/AdiBags')
-    nonexistent = Defn('github', 'layday/foobar')
-
-    results = await iw_manager.resolve([release_json, releaseless, nonexistent])
-
-    assert type(results[release_json]) is Pkg
-    assert type(results[releaseless]) is R.PkgFilesMissing
-    assert results[releaseless].message == 'release not found'
-    assert type(results[nonexistent]) is R.PkgNonexistent
-
-
-async def test_github_changelog_is_data_url(iw_manager: PkgManager):
-    defn = Defn('github', 'p3lim-wow/Molinari')
-    results = await iw_manager.resolve([defn])
-    assert results[defn].changelog_url.startswith('data:,')
-
-
-@pytest.mark.parametrize(
-    ('iw_config_values', 'flavor', 'interface'),
-    [
-        (Flavour.Retail, 'mainline', 30400),
-        (Flavour.Classic, 'wrath', 90207),
-        (Flavour.VanillaClassic, 'classic', 90207),
-    ],
-    indirect=('iw_config_values',),
-)
-@pytest.mark.parametrize(
-    '_iw_mock_aiohttp_requests',
-    [
-        {
-            URL('//api.github.com/repos/nebularg/PackagerTest'),
-            URL('//api.github.com/repos/nebularg/PackagerTest/releases?per_page=10'),
-        }
-    ],
-    indirect=True,
-)
-async def test_github_flavor_and_interface_mismatch(
-    caplog: pytest.LogCaptureFixture,
-    aresponses: ResponsesMockServer,
-    iw_manager: PkgManager,
-    flavor: str,
-    interface: int,
-):
-    aresponses.add(
-        'api.github.com',
-        re.compile(r'^/repos/nebularg/PackagerTest/releases/assets/'),
-        'GET',
-        {
-            'releases': [
-                {
-                    'filename': 'TestGit-v1.9.7.zip',
-                    'nolib': False,
-                    'metadata': [{'flavor': flavor, 'interface': interface}],
-                }
-            ]
-        },
-    )
-
-    defn = Defn('github', 'nebularg/PackagerTest')
-    results = await iw_manager.resolve([defn])
-    mismatch_result = results[defn]
-
-    assert type(mismatch_result) is R.PkgFilesNotMatching
-
-    (log_record,) = caplog.record_tuples
-    assert log_record == (
-        'instawow._sources.github',
-        logging.INFO,
-        f'interface number "{interface}" and flavor "{flavor}" mismatch',
-    )
-
-
 @pytest.mark.parametrize(
     ('resolver', 'url', 'extracted_alias'),
     [
@@ -223,16 +146,6 @@ async def test_github_flavor_and_interface_mismatch(
         (WowiResolver, 'https://wowinterface.com/downloads/info13188-Molinari.html', '13188'),
         (WowiResolver, 'https://www.wowinterface.com/downloads/info13188', '13188'),
         (WowiResolver, 'https://wowinterface.com/downloads/info13188', '13188'),
-        (
-            GithubResolver,
-            'https://github.com/AdiAddons/AdiButtonAuras',
-            'AdiAddons/AdiButtonAuras',
-        ),
-        (
-            GithubResolver,
-            'https://github.com/AdiAddons/AdiButtonAuras/releases',
-            'AdiAddons/AdiButtonAuras',
-        ),
     ],
 )
 def test_get_alias_from_url(resolver: Resolver, url: str, extracted_alias: str):
