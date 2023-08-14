@@ -99,7 +99,7 @@ async def test_search_filter_installed(
     } == set()
 
 
-async def test_search_prefer_source(
+async def test_search_prefer_known_source(
     iw_manager_ctx: ManagerCtx,
 ):
     results = await search(iw_manager_ctx, 'molinari', limit=5, prefer_source=None)
@@ -111,3 +111,10 @@ async def test_search_prefer_source(
     assert {('curse', 'molinari'), ('github', 'p3lim-wow/molinari')} & {
         (e.source, e.slug) for e in results
     } == {('github', 'p3lim-wow/molinari')}
+
+
+async def test_search_prefer_unknown_source(
+    iw_manager_ctx: ManagerCtx,
+):
+    with pytest.raises(ValueError, match='Unknown preferred source: foo'):
+        await search(iw_manager_ctx, 'molinari', limit=5, prefer_source='foo')
