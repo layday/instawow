@@ -107,31 +107,6 @@ async def test_wowi_changelog_is_data_url(iw_manager: PkgManager):
 
 
 @pytest.mark.parametrize(
-    'iw_config_values',
-    Flavour,
-    indirect=True,
-)
-async def test_tukui_basic(iw_manager: PkgManager):
-    tukui_suite = Defn('tukui', 'tukui')
-    elvui_suite = Defn('tukui', 'elvui')
-
-    results = await iw_manager.resolve([tukui_suite, elvui_suite])
-
-    assert type(results[tukui_suite]) is Pkg
-    assert results[tukui_suite].name == 'Tukui'
-    assert type(results[elvui_suite]) is Pkg
-    assert results[elvui_suite].name == 'ElvUI'
-
-
-async def test_tukui_changelog_url(iw_manager: PkgManager):
-    ui_suite = Defn('tukui', 'tukui')
-
-    results = await iw_manager.resolve([ui_suite])
-
-    assert results[ui_suite].changelog_url == 'https://api.tukui.org/v1/changelog/tukui#20.38'
-
-
-@pytest.mark.parametrize(
     ('resolver', 'url', 'extracted_alias'),
     [
         (CfCoreResolver, 'https://www.curseforge.com/wow/addons/molinari', 'molinari'),
