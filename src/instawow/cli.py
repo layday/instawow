@@ -19,8 +19,9 @@ from typing_extensions import Self
 
 from . import __version__, manager_ctx, pkg_db, pkg_management, pkg_models
 from . import results as R
+from ._logging import setup_logging
 from .common import ChangelogFormat, Defn, Flavour, SourceMetadata, Strategy
-from .config import Config, GlobalConfig, config_converter, setup_logging
+from .config import Config, GlobalConfig, config_converter
 from .http import TraceRequestCtx, init_web_client
 from .plugins import load_plugins
 from .utils import StrEnum, all_eq, gather, reveal_folder, tabulate, uniq
