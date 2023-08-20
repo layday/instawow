@@ -8,7 +8,6 @@ import typing
 from collections.abc import Awaitable, Callable, Iterator, Set
 from contextlib import AsyncExitStack, contextmanager
 from datetime import datetime
-from enum import StrEnum
 from functools import partial
 from itertools import chain
 from pathlib import Path
@@ -43,7 +42,13 @@ from instawow.github_auth import get_codes, poll_for_access_token
 from instawow.http import TraceRequestCtx, init_web_client
 from instawow.manager_ctx import LocksType, ManagerCtx, contextualise
 from instawow.pkg_management import PkgManager, bucketise_results
-from instawow.utils import WeakValueDefaultDictionary, read_resource_as_text, reveal_folder, uniq
+from instawow.utils import (
+    StrEnum,
+    WeakValueDefaultDictionary,
+    read_resource_as_text,
+    reveal_folder,
+    uniq,
+)
 from instawow.utils import run_in_thread as t
 from instawow.wow_installations import infer_flavour_from_addon_dir
 
