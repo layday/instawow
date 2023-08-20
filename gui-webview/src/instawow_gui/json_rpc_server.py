@@ -101,10 +101,12 @@ def _transform_validation_errors(
         for exc, note in with_notes:
             new_path = (*path, note.index)
             if isinstance(exc, (cattrs.ClassValidationError, cattrs.IterableValidationError)):
-                yield from _transform_validation_errors(exc, new_path)
+                yield from _transform_validation_errors(
+                    exc, new_path  # pyright: ignore[reportGeneralTypeIssues]
+                )
             else:
                 yield {
-                    'path': new_path,
+                    'path': new_path,  # pyright: ignore[reportGeneralTypeIssues]
                     'message': str(exc),
                 }
     elif isinstance(exc, cattrs.ClassValidationError):
