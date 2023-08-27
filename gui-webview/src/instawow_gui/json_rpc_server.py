@@ -137,13 +137,13 @@ def _reraise_validation_errors(
 @t
 def _read_global_config() -> GlobalConfig:
     with _reraise_validation_errors(_ConfigError):
-        return GlobalConfig.read()
+        return GlobalConfig.read().ensure_dirs()
 
 
 @t
 def _read_config(global_config: GlobalConfig, profile: str) -> Config:
     with _reraise_validation_errors(_ConfigError):
-        return Config.read(global_config, profile)
+        return Config.read(global_config, profile).ensure_dirs()
 
 
 _methods: list[tuple[str, type[BaseParams]]] = []
