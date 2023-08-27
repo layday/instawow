@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 from functools import lru_cache
-from typing import Protocol, cast
+from typing import Protocol
 
 import click
 import pluggy
@@ -30,17 +30,19 @@ class InstawowPlugin(Protocol):  # pragma: no cover
         ...
 
 
-class _InstawowPluginHookRelay(Protocol):  # pragma: no cover
-    def instawow_add_commands(self) -> Iterable[Iterable[click.Command]]:
-        ...
-
-    def instawow_add_resolvers(self) -> Iterable[Iterable[type[resolvers.Resolver]]]:
-        ...
-
-
 @lru_cache(1)
-def load_plugins() -> _InstawowPluginHookRelay:
+def _load_plugins():
     plugin_manager = pluggy.PluginManager(_project_name)
     plugin_manager.add_hookspecs(InstawowPlugin)
     plugin_manager.load_setuptools_entrypoints(_entry_point)
-    return cast(_InstawowPluginHookRelay, plugin_manager.hook)
+    return plugin_manager.hook
+
+
+def get_plugin_commands() -> Iterable[Iterable[click.Command]]:
+    plugin_hook = _load_plugins()
+    return plugin_hook.instawow_add_commands()
+
+
+def get_plugin_resolvers() -> Iterable[Iterable[type[resolvers.Resolver]]]:
+    plugin_hook = _load_plugins()
+    return plugin_hook.instawow_add_resolvers()

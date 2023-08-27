@@ -23,7 +23,7 @@ from ._logging import setup_logging
 from .common import ChangelogFormat, Defn, Flavour, SourceMetadata, Strategy
 from .config import Config, GlobalConfig, config_converter
 from .http import TraceRequestCtx, init_web_client
-from .plugins import load_plugins
+from .plugins import get_plugin_commands
 from .utils import StrEnum, all_eq, gather, reveal_folder, tabulate, uniq
 
 _T = TypeVar('_T')
@@ -276,8 +276,7 @@ class _ManyOptionalChoiceValueParam(click.types.CompositeParamType):
 
 
 def _register_plugin_commands(group: click.Group):
-    plugin_hook = load_plugins()
-    additional_commands = (c for g in plugin_hook.instawow_add_commands() for c in g)
+    additional_commands = (c for g in get_plugin_commands() for c in g)
     for command in additional_commands:
         group.add_command(command)
     return group

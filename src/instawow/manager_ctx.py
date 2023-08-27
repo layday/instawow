@@ -30,7 +30,7 @@ from .catalogue.cataloguer import (
 )
 from .config import Config
 from .http import make_generic_progress_ctx
-from .plugins import load_plugins
+from .plugins import get_plugin_resolvers
 from .resolvers import Resolver
 from .utils import (
     WeakValueDefaultDictionary,
@@ -139,9 +139,8 @@ class ManagerCtx:
             if access_token is None:
                 builtin_resolver_classes.remove(resolver)
 
-        plugin_hook = load_plugins()
         resolver_classes = chain(
-            (r for g in plugin_hook.instawow_add_resolvers() for r in g), builtin_resolver_classes
+            (r for g in get_plugin_resolvers() for r in g), builtin_resolver_classes
         )
         self.resolvers = _Resolvers((r.metadata.id, r(self)) for r in resolver_classes)
 
