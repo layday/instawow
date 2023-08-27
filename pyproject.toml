@@ -47,6 +47,7 @@ prompt-toolkit = ">=3.0.29, <4"
 questionary = ">=1.10"
 rapidfuzz = ">=2.12.0"
 sqlalchemy = ">=2.0.0"
+truststore = { version = ">=0.7.0", python = ">=3.10" }
 typing-extensions = ">=4.3.0"
 yarl = ">=1.8.1"
 
@@ -60,8 +61,6 @@ pytest = { version = ">=6.2.5", optional = true }
 pytest-asyncio = { version = ">=0.17.0", optional = true }
 pytest-xdist = { version = ">=2.5.0", optional = true }
 
-types-certifi = { version = "*", optional = true }
-
 [tool.poetry.extras]
 gui = [
   "aiohttp-rpc",
@@ -74,9 +73,6 @@ test = [
   "pytest",
   "pytest-asyncio",
   "pytest-xdist",
-]
-types = [
-  "types-certifi",
 ]
 
 

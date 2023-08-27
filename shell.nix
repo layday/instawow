@@ -23,6 +23,6 @@ pkgs.mkShell {
   postVenvCreation = ''
     python -m pip install -U pip ipython nox
     python -m pip uninstall -y setuptools
-    python -m pip install -e ".[gui, test, types]"
+    python -m pip install -e ".[gui, test]"
   '';
 }

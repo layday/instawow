@@ -94,6 +94,7 @@ def lint(session: nox.Session):
             questionary == 1.10.0
             rapidfuzz == 2.12.0
             sqlalchemy == 2.0.0
+            truststore == 0.7.0
             typing-extensions == 4.3.0
             yarl == 1.8.1
             aiohttp-rpc == 1.0.0
@@ -145,7 +146,7 @@ def type_check(session: nox.Session):
     else:
         package_path = '.'
 
-    session.install(f'{package_path}[gui, types]')
+    session.install(f'{package_path}[gui]')
     session.run('npx', 'pyright', external=True)
 
 
@@ -180,7 +181,6 @@ def freeze_cli(session: nox.Session):
     session.install(
         'pyinstaller',
         '.',
-        'certifi',
     )
     main_py = session.run(
         'python',

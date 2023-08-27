@@ -17,7 +17,6 @@ icon = "src/instawow_gui/resources/instawow_gui"
 sources = ["src/instawow_gui_wrapper"]
 requires = [
   "..[gui]",
-  "certifi",
 ]
 
 [tool.briefcase.app.instawow-gui-wrapper.macOS]

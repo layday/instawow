@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+import sys
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from functools import lru_cache, partial
+from functools import partial
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal
 
@@ -10,7 +11,6 @@ from loguru import logger
 from typing_extensions import TypeAlias, TypedDict
 
 from . import common
-from .utils import read_resource_as_text
 
 if TYPE_CHECKING:
     import aiohttp
@@ -50,17 +50,6 @@ def make_defn_progress_ctx(profile: str, defn: common.Defn) -> _DefnDownloadTrac
     return {'report_progress': 'pkg_download', 'profile': profile, 'defn': defn}
 
 
-@lru_cache(1)
-def _load_certifi_certs():
-    try:
-        import certifi
-    except ModuleNotFoundError:
-        pass
-    else:
-        logger.info('loading certifi certs')
-        return read_resource_as_text(certifi, 'cacert.pem', encoding='ascii')
-
-
 @asynccontextmanager
 async def init_web_client(
     cache_dir: Path | None, *, no_cache: bool = False, **kwargs: Any
@@ -68,12 +57,16 @@ async def init_web_client(
     from aiohttp import ClientSession, ClientTimeout, TCPConnector
 
     make_connector = partial(TCPConnector, limit_per_host=10)
-    certifi_certs = _load_certifi_certs()
-    if certifi_certs:
+
+    if sys.version_info >= (3, 10):
         import ssl
 
+        import truststore
+
+        logger.info('using truststore')
+
         make_connector = partial(
-            make_connector, ssl=ssl.create_default_context(cadata=certifi_certs)
+            make_connector, ssl=truststore.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
         )
 
     kwargs = {
