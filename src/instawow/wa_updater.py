@@ -229,12 +229,15 @@ class WaCompanionBuilder:
     def _generate_addon(self, auras: Iterable[tuple[type[_Auras], list[_Match]]]):
         from zipfile import ZipFile, ZipInfo
 
-        from mako.template import Template
+        from mako.template import Template  # pyright: ignore[reportMissingTypeStubs]
 
         from . import _wa_templates
 
-        def render_template(filename: str, ctx: dict[str, object]):
-            return Template(read_resource_as_text(_wa_templates, filename)).render(**ctx)
+        def render_tpl(filename: str, ctx: dict[str, object]) -> str:
+            tpl = Template(read_resource_as_text(_wa_templates, filename))
+            return tpl.render(  # pyright: ignore  # noqa: PGH003
+                **ctx,
+            )
 
         aura_dict = dict.fromkeys((WeakAuras, Plateroos), list[_Match]()) | dict(auras)
 
@@ -246,7 +249,7 @@ class WaCompanionBuilder:
                 # 'cause the timestamp would be set to the current time
                 # which would render the build unreproducible
                 zip_info = ZipInfo(filename=f'WeakAurasCompanion/{filename}')
-                output = render_template(filename, ctx)
+                output = render_tpl(filename, ctx)
                 file.writestr(zip_info, output)
                 return output
 
@@ -292,7 +295,7 @@ class WaCompanionBuilder:
             )
 
         self.changelog_path.write_text(
-            render_template(
+            render_tpl(
                 self.changelog_path.name,
                 {
                     'changelog_entries': [

@@ -5,6 +5,5 @@
     "src",
     "gui-webview/src/instawow_gui/json_rpc_server.py",
     "tests/plugin"
-  ],
-  "stubPath": "types"
+  ]
 }

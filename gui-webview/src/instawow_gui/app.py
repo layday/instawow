@@ -80,7 +80,7 @@ class InstawowApp(toga.App):
                 ),
                 text='Toggle Search Filter',
                 shortcut=toga.Key.MOD_1 + toga.Key.G,
-                group=toga.Group.EDIT,
+                group=toga.Group.EDIT,  # pyright: ignore  # noqa: PGH003
                 section=20,
                 order=10,
             ),
@@ -91,7 +91,7 @@ class InstawowApp(toga.App):
                 ),
                 text='Installed',
                 shortcut=toga.Key.MOD_1 + toga.Key.L,
-                group=toga.Group.WINDOW,
+                group=toga.Group.WINDOW,  # pyright: ignore  # noqa: PGH003
                 section=20,
                 order=10,
             ),
@@ -101,7 +101,7 @@ class InstawowApp(toga.App):
                     action=_TogaSimulateKeypressAction.ActivateViewReconcile,
                 ),
                 text='Unreconciled',
-                group=toga.Group.WINDOW,
+                group=toga.Group.WINDOW,  # pyright: ignore  # noqa: PGH003
                 section=20,
                 order=20,
             ),
@@ -112,7 +112,7 @@ class InstawowApp(toga.App):
                 ),
                 text='Search',
                 shortcut=toga.Key.MOD_1 + toga.Key.F,
-                group=toga.Group.WINDOW,
+                group=toga.Group.WINDOW,  # pyright: ignore  # noqa: PGH003
                 section=20,
                 order=30,
             ),
