@@ -16,7 +16,7 @@ from typing import Any, Literal, TypeVar
 import aiohttp
 import aiohttp.typedefs
 import aiohttp.web
-import anyio
+import anyio.from_thread
 import cattrs
 import click
 import iso8601
