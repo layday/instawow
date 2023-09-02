@@ -856,9 +856,9 @@ def list_installed(mw: _CtxObjWrapper, addons: Sequence[Defn], output_format: _L
                             ('description', textwrap.shorten(pkg.description, 280)),
                             ('url', pkg.url),
                             ('version', pkg.version),
-                            ('date_published', pkg.date_published.isoformat(' ', 'minutes')[:-6]),
+                            ('date published', pkg.date_published.astimezone().ctime()),
                             ('folders', ', '.join(f.name for f in pkg.folders)),
-                            ('deps', ', '.join(format_deps(pkg))),
+                            ('dependencies', ', '.join(format_deps(pkg))),
                             (
                                 'options',
                                 '\n'.join(f'{s}={v}' for s, v in asdict(pkg.options).items()),
