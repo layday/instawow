@@ -121,7 +121,7 @@ def _with_lock(lock_name: str):
 
 @run_in_thread
 def _install_pkg(
-    ctx: ManagerCtx, pkg: pkg_models.Pkg, archive: Path, replace: bool
+    ctx: ManagerCtx, pkg: pkg_models.Pkg, archive: Path, replace_folders: bool
 ) -> R.PkgInstalled:
     with _open_pkg_archive(archive) as (top_level_folders, extract):
         with ctx.database.connect() as connection:
@@ -134,7 +134,7 @@ def _install_pkg(
         if installed_conflicts:
             raise R.PkgConflictsWithInstalled(installed_conflicts)
 
-        if replace:
+        if replace_folders:
             trash(
                 (ctx.config.addon_dir / f for f in top_level_folders),
                 dest=ctx.config.global_config.temp_dir,
@@ -444,7 +444,7 @@ class PkgManager:
 
     @_with_lock(_MUTATE_PKGS_LOCK)
     async def install(
-        self, defns: Sequence[Defn], replace: bool, dry_run: bool = False
+        self, defns: Sequence[Defn], replace_folders: bool, dry_run: bool = False
     ) -> Mapping[Defn, R.AnyResult[R.PkgInstalled]]:
         "Install packages from a definition list."
 
@@ -475,7 +475,9 @@ class PkgManager:
             results
             | download_errors
             | {
-                d: await R.resultify_async_exc(_install_pkg(self.ctx, new_pkgs[d], a, replace))
+                d: await R.resultify_async_exc(
+                    _install_pkg(self.ctx, new_pkgs[d], a, replace_folders)
+                )
                 for d, a in archive_paths.items()
             }
         )

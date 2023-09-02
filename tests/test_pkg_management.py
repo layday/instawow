@@ -140,11 +140,11 @@ async def test_install_can_replace_unreconciled_folders(
 
     defn = Defn('curse', 'molinari')
 
-    result = await iw_manager.install([defn], replace=False)
+    result = await iw_manager.install([defn], replace_folders=False)
     assert type(result[defn]) is R.PkgConflictsWithUnreconciled
     assert not any(molinari.iterdir())
 
-    result = await iw_manager.install([defn], replace=True)
+    result = await iw_manager.install([defn], replace_folders=True)
     assert type(result[defn]) is R.PkgInstalled
     assert any(molinari.iterdir())
 
@@ -155,13 +155,13 @@ async def test_install_cannot_replace_reconciled_folders(
     curse_defn = Defn('curse', 'molinari')
     wowi_defn = Defn('wowi', '13188-molinari')
 
-    result = await iw_manager.install([curse_defn], replace=False)
+    result = await iw_manager.install([curse_defn], replace_folders=False)
     assert type(result[curse_defn]) is R.PkgInstalled
 
-    result = await iw_manager.install([wowi_defn], replace=False)
+    result = await iw_manager.install([wowi_defn], replace_folders=False)
     assert type(result[wowi_defn]) is R.PkgConflictsWithInstalled
 
-    result = await iw_manager.install([wowi_defn], replace=True)
+    result = await iw_manager.install([wowi_defn], replace_folders=True)
     assert type(result[wowi_defn]) is R.PkgConflictsWithInstalled
 
 
@@ -180,13 +180,13 @@ async def test_install_recognises_renamed_pkg_from_id(
     old_defn = Defn('github', 'p3lim-wow/molinari')
     new_defn = Defn('github', 'p3lim-wow/molinarifico')
 
-    result = await iw_manager.install([old_defn], replace=False)
+    result = await iw_manager.install([old_defn], replace_folders=False)
     assert type(result[old_defn]) is R.PkgInstalled
 
-    result = await iw_manager.install([old_defn], replace=False)
+    result = await iw_manager.install([old_defn], replace_folders=False)
     assert type(result[old_defn]) is R.PkgAlreadyInstalled
 
-    result = await iw_manager.install([new_defn], replace=False)
+    result = await iw_manager.install([new_defn], replace_folders=False)
     assert type(result[new_defn]) is R.PkgNonexistent
 
     async def resolve(defns, with_deps=False):
@@ -197,7 +197,7 @@ async def test_install_recognises_renamed_pkg_from_id(
     orig_resolve = iw_manager.resolve
     monkeypatch.setattr(iw_manager, 'resolve', resolve)
 
-    result = await iw_manager.install([new_defn], replace=False)
+    result = await iw_manager.install([new_defn], replace_folders=False)
     assert type(result[new_defn]) is R.PkgAlreadyInstalled
 
 
@@ -207,7 +207,7 @@ async def test_update_lifecycle_while_varying_retain_defn_strategy(
     defn = Defn('curse', 'molinari')
     versioned_defn = defn.with_version('100005.97-Release')
 
-    result = (await iw_manager.install([defn], replace=False))[defn]
+    result = (await iw_manager.install([defn], replace_folders=False))[defn]
     assert type(result) is R.PkgInstalled
 
     result = (await iw_manager.update([defn], retain_defn_strategy=False))[defn]
@@ -238,7 +238,7 @@ async def test_update_reinstalls_corrupted_pkgs(
 ):
     defn = Defn('curse', 'molinari')
 
-    result = (await iw_manager.install([defn], replace=False))[defn]
+    result = (await iw_manager.install([defn], replace_folders=False))[defn]
     assert type(result) is R.PkgInstalled
 
     folders = [iw_manager.ctx.config.addon_dir / f.name for f in result.pkg.folders]

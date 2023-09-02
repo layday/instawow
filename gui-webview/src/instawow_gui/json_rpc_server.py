@@ -368,7 +368,8 @@ class InstallParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
 
     async def respond(self, managers: _ManagersManager) -> list[SuccessResult | ErrorResult]:
         results = await managers.run(
-            self.profile, partial(PkgManager.install, defns=self.defns, replace=self.replace)
+            self.profile,
+            partial(PkgManager.install, defns=self.defns, replace_folders=self.replace),
         )
         return [
             {'status': r.status, 'addon': r.pkg}
