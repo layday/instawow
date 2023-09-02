@@ -230,7 +230,7 @@ def patch_frontend_spec(session: nox.Session):
 
     if options.wheel_file:
         spec = spec.replace(
-            '"..[gui]"', f'"instawow[gui] @ {Path(options.wheel_file).resolve().as_uri()}"'
+            '"instawow[gui]"', f'"instawow[gui] @ {Path(options.wheel_file).resolve().as_uri()}"'
         )
 
     spec_path.write_text(spec, encoding='utf-8')

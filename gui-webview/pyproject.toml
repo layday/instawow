@@ -16,7 +16,7 @@ description = "GUI for the World of Warcraft add-on manager instawow"
 icon = "src/instawow_gui/resources/instawow_gui"
 sources = ["src/instawow_gui_wrapper"]
 requires = [
-  "..[gui]",
+  "instawow[gui]",
 ]
 
 [tool.briefcase.app.instawow-gui-wrapper.macOS]
