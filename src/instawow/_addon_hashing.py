@@ -11,27 +11,27 @@ from loguru import logger
 
 _TOC_FILE_PATH_PATTERN = re.compile(
     r'^(?P<name>[^/]+)/(?P=name)(?:[-_](?:mainline|bcc|tbc|classic|vanilla|wrath|wotlkc))?\.toc$',
-    flags=re.I,
+    flags=re.IGNORECASE,
 )
 _BINDINGS_XML_FILE_PATH_PATTERN = re.compile(
     r'^[^/]+/Bindings\.xml$',
-    flags=re.I,
+    flags=re.IGNORECASE,
 )
 _TOC_COMMENT_PATTERN = re.compile(
     r'\s*#.*$',
-    flags=re.I | re.M,
+    flags=re.IGNORECASE | re.MULTILINE,
 )
 _XML_COMMENT_PATTERN = re.compile(
     r'<!--.*?-->',
-    flags=re.I | re.S,
+    flags=re.IGNORECASE | re.DOTALL,
 )
 _TOC_INCLUDE_PATTERN = re.compile(
     r'^\s*(?P<path>(?:(?<!\.\.).)+\.(?:xml|lua))\s*$',
-    flags=re.I | re.M,
+    flags=re.IGNORECASE | re.MULTILINE,
 )
 _XML_INCLUDE_PATTERN = re.compile(
     r"<(?:Include|Script)\s+file=[\"'](?P<path>(?:(?<!\.\.).)+)[\"']\s*\/>",
-    flags=re.I,
+    flags=re.IGNORECASE,
 )
 
 _INCLUDE_FILE_PATTERNS = {
