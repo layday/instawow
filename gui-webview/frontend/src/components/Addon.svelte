@@ -22,16 +22,16 @@
     isRefreshing: boolean,
     downloadProgress: number;
 
-  const dispatch = createEventDispatcher<{
-    requestInstall: void;
-    requestUpdate: void;
-    requestRemove: void;
-    requestShowChangelogModal: void;
-    requestShowAddonContextMenu: {
-      mouseEvent: MouseEvent;
-    };
-  }>();
+  const dispatch = createEventDispatcher<
+    Record<
+      "requestInstall" | "requestUpdate" | "requestRemove" | "requestShowChangelogModal",
+      void
+    > & {
+      requestShowAddonContextMenu: { mouseEvent: MouseEvent };
+    }
+  >();
 
+  $: dateTimePublished = DateTime.fromISO(otherAddon.date_published).toLocal();
   $: isOutdated = addon.version !== otherAddon.version;
 </script>
 
@@ -46,8 +46,8 @@
     <li class="versions">
       {addon.version}
       {#if isOutdated}{"< "}{otherAddon.version}{/if}
-      <span class="date" title={otherAddon.date_published}>
-        ({DateTime.fromISO(otherAddon.date_published).toRelative()})
+      <span class="date" title={dateTimePublished.toISO()}>
+        ({dateTimePublished.toRelative()})
       </span>
       {#if Object.values(otherAddon.options).some(Boolean)}{Object.entries(otherAddon.options)
           .filter(([, v]) => v)
