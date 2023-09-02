@@ -861,7 +861,7 @@ def list_installed(mw: _CtxObjWrapper, addons: Sequence[Defn], output_format: _L
                             ('dependencies', ', '.join(format_deps(pkg))),
                             (
                                 'options',
-                                '\n'.join(f'{s}={v}' for s, v in asdict(pkg.options).items()),
+                                '; '.join(f'{s}={v!r}' for s, v in asdict(pkg.options).items()),
                             ),
                         ]
                     )
