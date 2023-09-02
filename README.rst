@@ -26,7 +26,7 @@ and several other goodies.
 Installation
 ------------
 
-You can download pre-built binaries of *instawow* from GitHub:
+You can download pre-built binaries of the *instawow* GUI from GitHub:
 
 - `Binaries <https://github.com/layday/instawow/releases/latest>`__
 
