@@ -6,32 +6,8 @@ from pathlib import Path
 from loguru import logger
 
 
-def _patch_loguru_enqueue():
-    import queue
-    import threading
-    from types import SimpleNamespace
-
-    import loguru._handler
-
-    # On some systems when instantiating multiprocessing constructs Python
-    # starts the multiprocessing resource monitor.  This is done in a subprocess
-    # with ``sys.executable`` as the first argument.  In briefcase
-    # this points to the same executable that starts the app - there
-    # isn't a separate Python executable.  So with every new resource
-    # monitor that spawns so does a new copy of the app, ad infinitum.
-    # Even when not using briefcase spawning a subprocess slows down start-up,
-    # not least because it imports a second copy of the ``site`` module.
-    # We replace these multiprocessing constructs with their threading
-    # equivalents in loguru since loguru itself does not spawn a subprocesses
-    # but creates a separate thread for its "enqueued" logger and we don't
-    # use multiprocessing in instawow.
-    # This will definitely not come back to bite us.
-    loguru._handler.multiprocessing = SimpleNamespace(  # pyright: ignore[reportPrivateImportUsage]
-        SimpleQueue=queue.Queue, Event=threading.Event, Lock=threading.Lock
-    )
-
-
 def _intercept_logging_module_calls(log_level: str):  # pragma: no cover
+    import inspect
     import logging
 
     logging_filename = getattr(logging, '__file__', None)
@@ -45,9 +21,9 @@ def _intercept_logging_module_calls(log_level: str):  # pragma: no cover
                 level = record.levelno
 
             # Find caller from where the logged message originated
-            depth = 6
-            frame = sys._getframe(depth)  # pyright: ignore[reportPrivateUsage]
-            while frame and frame.f_code.co_filename == logging_filename:
+            depth = 0
+            frame = inspect.currentframe()
+            while frame and (depth == 0 or frame.f_code.co_filename == logging_filename):
                 frame = frame.f_back
                 depth += 1
 
@@ -59,8 +35,6 @@ def _intercept_logging_module_calls(log_level: str):  # pragma: no cover
 def setup_logging(
     logging_dir: Path, log_to_stderr: bool, debug: bool, intercept_logging_module_calls: bool
 ) -> None:
-    _patch_loguru_enqueue()
-
     log_level = 'DEBUG' if debug else 'INFO'
 
     if intercept_logging_module_calls:
