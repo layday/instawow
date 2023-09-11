@@ -85,7 +85,7 @@ def lint(session: nox.Session):
             cattrs == 23.1.2
             click == 8.1.0
             iso8601 == 1.0.2
-            loguru == 0.7.1
+            loguru == 0.7.2
             mako == 1.2.4
             packaging == 23.0
             pluggy == 0.13.0
