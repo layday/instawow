@@ -87,7 +87,6 @@ select = [
   "PGH", # pygrep-hooks
   "PIE", # flake8-pie
   "PT",  # flake8-pytest-style
-  "PYI", # flake8-pyi
   "Q",   # flake8-quotes
   "RUF", # ruff: unused-noqa
   "TRY", # tryceratops
@@ -103,9 +102,6 @@ line-length = 99
 target-version = "py39"
 
 [tool.ruff.per-file-ignores]
-"**.py" = [
-  "PYI",
-]
 "**.pyi" = [
   "I002", # isort: missing-required-import
 ]
