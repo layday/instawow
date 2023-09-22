@@ -55,7 +55,7 @@ _DOWNLOAD_PKG_LOCK = '_DOWNLOAD_PKG_'
 
 def bucketise_results(
     values: Iterable[tuple[Defn, R.AnyResult[_T]]],
-) -> tuple[Mapping[Defn, _T], Mapping[Defn, R.AnyResult[Never]]]:
+):
     ts: dict[Defn, _T] = {}
     errors: dict[Defn, R.AnyResult[Never]] = {}
 
