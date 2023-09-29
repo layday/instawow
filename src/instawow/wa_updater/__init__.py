@@ -15,10 +15,10 @@ from typing_extensions import NotRequired as N
 from typing_extensions import TypeAlias, TypedDict
 from yarl import URL
 
-from .http import CACHE_INDEFINITELY, make_generic_progress_ctx
-from .manager_ctx import ManagerCtx
-from .utils import StrEnum, bucketise, gather, read_resource_as_text, shasum, time_op
-from .utils import run_in_thread as t
+from ..http import CACHE_INDEFINITELY, make_generic_progress_ctx
+from ..manager_ctx import ManagerCtx
+from ..utils import StrEnum, bucketise, gather, read_resource_as_text, shasum, time_op
+from ..utils import run_in_thread as t
 
 _LuaTable: TypeAlias = Mapping[str, '_LuaTable']
 _Auras: TypeAlias = 'WeakAuras | Plateroos'
@@ -231,10 +231,10 @@ class WaCompanionBuilder:
 
         from mako.template import Template  # pyright: ignore[reportMissingTypeStubs]
 
-        from . import _wa_templates
+        from . import _templates
 
         def render_tpl(filename: str, ctx: dict[str, object]) -> str:
-            tpl = Template(read_resource_as_text(_wa_templates, filename))
+            tpl = Template(read_resource_as_text(_templates, filename))
             return tpl.render(  # pyright: ignore  # noqa: PGH003
                 **ctx,
             )
