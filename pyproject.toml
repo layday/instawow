@@ -162,6 +162,8 @@ markers = [
 xfail_strict = true
 filterwarnings = [
   "error",
+  'ignore:datetime\.datetime\.utcnow\(\) is deprecated:DeprecationWarning:aiohttp',
+  'ignore:datetime\.datetime\.utcnow\(\) is deprecated:DeprecationWarning:aiohttp_client_cache',
 ]
 asyncio_mode = "auto"
 addopts = ["-ra", "--strict-config", "--strict-markers"]
