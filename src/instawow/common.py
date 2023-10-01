@@ -15,12 +15,12 @@ from .utils import StrEnum, fill
 _TEnum = TypeVar('_TEnum', bound=enum.Enum)
 
 
-class _FlavourKeyedEnum(Protocol[_TEnum]):
+class _FlavourKeyedEnum(Protocol[_TEnum]):  # pragma: no cover
     Retail: _TEnum
     VanillaClassic: _TEnum
     Classic: _TEnum
 
-    def __getitem__(self, __key: str) -> _TEnum:  # pragma: no cover
+    def __getitem__(self, __key: str) -> _TEnum:
         ...
 
 
