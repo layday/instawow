@@ -146,9 +146,9 @@ class Defn:
                 make_cls = partial(
                     make_cls,
                     strategies=StrategyValues(
-                        any_flavour='any_flavour' in strategy_values or None,
-                        any_release_type='any_release_type' in strategy_values or None,
-                        version_eq=strategy_values.get('version_eq'),
+                        any_flavour=Strategy.AnyFlavour in strategy_values or None,
+                        any_release_type=Strategy.AnyReleaseType in strategy_values or None,
+                        version_eq=strategy_values.get(Strategy.VersionEq),
                     ),
                 )
 
