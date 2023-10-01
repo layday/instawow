@@ -51,79 +51,69 @@ metadata = MetaData()
 pkg = Table(
     'pkg',
     metadata,
-    *[
-        Column('source', String, primary_key=True),
-        Column('id', String, primary_key=True),
-        Column('slug', String, nullable=False),
-        Column('name', String, nullable=False),
-        Column('description', String, nullable=False),
-        Column('url', String, nullable=False),
-        Column('download_url', String, nullable=False),
-        Column('date_published', _TZDateTime, nullable=False),
-        Column('version', String, nullable=False),
-        Column('changelog_url', String, nullable=False),
-    ],
+    Column('source', String, primary_key=True),
+    Column('id', String, primary_key=True),
+    Column('slug', String, nullable=False),
+    Column('name', String, nullable=False),
+    Column('description', String, nullable=False),
+    Column('url', String, nullable=False),
+    Column('download_url', String, nullable=False),
+    Column('date_published', _TZDateTime, nullable=False),
+    Column('version', String, nullable=False),
+    Column('changelog_url', String, nullable=False),
 )
 
 pkg_options = Table(
     'pkg_options',
     metadata,
-    *[
-        Column('any_flavour', Boolean, nullable=False),
-        Column('any_release_type', Boolean, nullable=False),
-        Column('version_eq', Boolean, nullable=False),
-        Column('pkg_source', String, primary_key=True),
-        Column('pkg_id', String, primary_key=True),
-        ForeignKeyConstraint(
-            ['pkg_source', 'pkg_id'],
-            ['pkg.source', 'pkg.id'],
-            name='fk_pkg_options_pkg_source_and_id',
-            ondelete='CASCADE',
-        ),
-    ],
+    Column('any_flavour', Boolean, nullable=False),
+    Column('any_release_type', Boolean, nullable=False),
+    Column('version_eq', Boolean, nullable=False),
+    Column('pkg_source', String, primary_key=True),
+    Column('pkg_id', String, primary_key=True),
+    ForeignKeyConstraint(
+        ['pkg_source', 'pkg_id'],
+        ['pkg.source', 'pkg.id'],
+        name='fk_pkg_options_pkg_source_and_id',
+        ondelete='CASCADE',
+    ),
 )
 
 pkg_folder = Table(
     'pkg_folder',
     metadata,
-    *[
-        Column('name', String, primary_key=True),
-        Column('pkg_source', String, nullable=False),
-        Column('pkg_id', String, nullable=False),
-        ForeignKeyConstraint(
-            ['pkg_source', 'pkg_id'],
-            ['pkg.source', 'pkg.id'],
-            name='fk_pkg_folder_pkg_source_and_id',
-            ondelete='CASCADE',
-        ),
-    ],
+    Column('name', String, primary_key=True),
+    Column('pkg_source', String, nullable=False),
+    Column('pkg_id', String, nullable=False),
+    ForeignKeyConstraint(
+        ['pkg_source', 'pkg_id'],
+        ['pkg.source', 'pkg.id'],
+        name='fk_pkg_folder_pkg_source_and_id',
+        ondelete='CASCADE',
+    ),
 )
 
 pkg_dep = Table(
     'pkg_dep',
     metadata,
-    *[
-        Column('id', String, primary_key=True),
-        Column('pkg_source', String, primary_key=True),
-        Column('pkg_id', String, primary_key=True),
-        ForeignKeyConstraint(
-            ['pkg_source', 'pkg_id'],
-            ['pkg.source', 'pkg.id'],
-            name='fk_pkg_dep_pkg_source_and_id',
-            ondelete='CASCADE',
-        ),
-    ],
+    Column('id', String, primary_key=True),
+    Column('pkg_source', String, primary_key=True),
+    Column('pkg_id', String, primary_key=True),
+    ForeignKeyConstraint(
+        ['pkg_source', 'pkg_id'],
+        ['pkg.source', 'pkg.id'],
+        name='fk_pkg_dep_pkg_source_and_id',
+        ondelete='CASCADE',
+    ),
 )
 
 pkg_version_log = Table(
     'pkg_version_log',
     metadata,
-    *[
-        Column('version', String, primary_key=True),
-        Column('install_time', _TZDateTime, nullable=False, server_default=func.now()),
-        Column('pkg_source', String, primary_key=True),
-        Column('pkg_id', String, primary_key=True),
-    ],
+    Column('version', String, primary_key=True),
+    Column('install_time', _TZDateTime, nullable=False, server_default=func.now()),
+    Column('pkg_source', String, primary_key=True),
+    Column('pkg_id', String, primary_key=True),
 )
 
 
