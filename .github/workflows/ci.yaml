@@ -28,13 +28,13 @@ jobs:
       fail-fast: false
       matrix:
         os: [macos-latest, ubuntu-latest, windows-latest]
-        python-version: ["3.11"]
+        python-version: ["3.11", "3.12"]
         include:
           - { os: ubuntu-latest, python-version: "3.9" }
           - { os: ubuntu-latest, python-version: "3.10" }
-          - os: ubuntu-latest
-            python-version: "3.12"
-            python-install-version: "3.12-dev"
+          # - os: ubuntu-latest
+          #   python-version: "3.13"
+          #   python-install-version: "3.13-dev"
     runs-on: ${{ matrix.os }}
     steps:
       - name: Clone the repo
@@ -73,13 +73,13 @@ jobs:
       fail-fast: false
       matrix:
         os: [macos-latest, ubuntu-latest, windows-latest]
-        python-version: ["3.11"]
+        python-version: ["3.11", "3.12"]
         include:
           - { os: ubuntu-latest, python-version: "3.9" }
           - { os: ubuntu-latest, python-version: "3.10" }
-          - os: ubuntu-latest
-            python-version: "3.12"
-            python-install-version: "3.12-dev"
+          # - os: ubuntu-latest
+          #   python-version: "3.13"
+          #   python-install-version: "3.13-dev"
     runs-on: ${{ matrix.os }}
     steps:
       - name: Clone the repo
