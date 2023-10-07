@@ -79,7 +79,7 @@ def lint(session: nox.Session):
         '',
         dedent(
             '''\
-            aiohttp == 3.8.2
+            aiohttp == 3.9.0b0
             aiohttp-client-cache == 0.8.0
             alembic == 1.9.0
             anyio == 3.6.2
