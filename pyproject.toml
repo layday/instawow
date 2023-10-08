@@ -39,8 +39,8 @@ scripts.instawow = "instawow.cli:main"
 python = ">=3.9"
 
 aiohttp = ">=3.9.0b0, <4"
-aiohttp-client-cache = ">=0.8.0"
-alembic = ">=1.9.0"
+aiohttp-client-cache = ">=0.9.1"
+alembic = ">=1.12.0"
 attrs = ">=23.1.0"
 cattrs = ">=23.1.2"
 click = ">=8.1.0"
@@ -51,11 +51,11 @@ packaging = ">=23.0"
 pluggy = ">=0.13"
 prompt-toolkit = ">=3.0.29, <4"
 questionary = ">=1.10"
-rapidfuzz = ">=2.12.0"
-sqlalchemy = ">=2.0.0"
+rapidfuzz = ">=3.3.0"
+sqlalchemy = ">=2.0.21"
 truststore = { version = ">=0.7.0", python = ">=3.10" }
 typing-extensions = ">=4.3.0"
-yarl = ">=1.8.1"
+yarl = ">=1.9.2"
 
 aiohttp-rpc = { version = ">=1.0.0", optional = true }
 anyio = { version = ">=3.6.2", optional = true }

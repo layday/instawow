@@ -80,8 +80,8 @@ def lint(session: nox.Session):
         dedent(
             '''\
             aiohttp == 3.9.0b0
-            aiohttp-client-cache == 0.8.0
-            alembic == 1.9.0
+            aiohttp-client-cache == 0.9.1
+            alembic == 1.12.0
             anyio == 3.6.2
             attrs == 23.1.0
             cattrs == 23.1.2
@@ -93,11 +93,11 @@ def lint(session: nox.Session):
             pluggy == 0.13.0
             prompt-toolkit == 3.0.29
             questionary == 1.10.0
-            rapidfuzz == 2.12.0
-            sqlalchemy == 2.0.0
+            rapidfuzz == 3.3.0
+            sqlalchemy == 2.0.21
             truststore == 0.7.0
             typing-extensions == 4.3.0
-            yarl == 1.8.1
+            yarl == 1.9.2
             aiohttp-rpc == 1.0.0
             '''
         ),
