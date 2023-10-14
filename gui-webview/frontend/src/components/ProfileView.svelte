@@ -17,7 +17,9 @@
   } from "../api";
   import { addonToDefn, ChangelogFormat, ReconciliationStage, Strategy } from "../api";
   import { AddonAction, ListFormat, View } from "../constants";
-  import { alerts, api, profiles } from "../stores";
+  import { api } from "../stores/api";
+  import { alerts } from "../stores/alerts";
+  import { profiles } from "../stores/profiles";
   import AddonComponent from "./Addon.svelte";
   import AddonContextMenu from "./AddonContextMenu.svelte";
   import AddonListNav from "./AddonListNav.svelte";

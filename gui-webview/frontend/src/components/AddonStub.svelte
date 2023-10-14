@@ -1,7 +1,7 @@
 <script lang="ts">
   import { faChevronCircleDown, faChevronCircleUp } from "@fortawesome/free-solid-svg-icons";
   import type { Addon } from "../api";
-  import { api } from "../stores";
+  import { api } from "../stores/api";
   import Icon from "./SvgIcon.svelte";
 
   export let selections: Addon[],

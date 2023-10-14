@@ -1,6 +1,7 @@
 <script lang="ts">
   import { fade } from "svelte/transition";
-  import { activeProfile, api, profiles } from "../stores";
+  import { api } from "../stores/api";
+  import { activeProfile, profiles } from "../stores/profiles";
   import ProfileSwitcher from "./ProfileSwitcher.svelte";
   import ProfileView from "./ProfileView.svelte";
   import type { Config } from "../api";

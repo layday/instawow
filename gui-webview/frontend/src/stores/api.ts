@@ -3,7 +3,7 @@ import { Api, type InternalError } from "../api";
 import { RClient, type RequestObject } from "../ipc";
 import { ANY_PROFILE, alerts } from "./alerts";
 import { get, readable } from "svelte/store";
-import { activeProfile as activeProfileRef } from ".";
+import { activeProfile as activeProfileRef } from "./profiles";
 
 class AlertOnErrorApi extends Api {
   #isInternalError(object: unknown): object is InternalError {

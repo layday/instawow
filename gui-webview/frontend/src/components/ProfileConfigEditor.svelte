@@ -5,7 +5,8 @@
   import { fade } from "svelte/transition";
   import type { Config, ValidationError } from "../api";
   import { Flavour } from "../api";
-  import { activeProfile, api, profiles } from "../stores";
+  import { api } from "../stores/api";
+  import { activeProfile, profiles } from "../stores/profiles";
   import Icon from "./SvgIcon.svelte";
 
   export let editing: "new" | "existing" | false;

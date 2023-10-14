@@ -6,8 +6,8 @@
   } from "@fortawesome/free-solid-svg-icons";
   import { fade } from "svelte/transition";
   import Icon from "./SvgIcon.svelte";
-  import { alerts } from "../stores";
-  import { activeProfile } from "../stores";
+  import { alerts } from "../stores/alerts";
+  import { activeProfile } from "../stores/profiles";
   import { ANY_PROFILE, type Alert } from "../stores/alerts";
 
   const handleDismissAlerts = () => {
