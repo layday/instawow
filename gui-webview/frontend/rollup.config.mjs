@@ -7,9 +7,7 @@ import typescript from "@rollup/plugin-typescript";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import copy from "rollup-plugin-copy";
-import css from "rollup-plugin-css-only";
 import livereload from "rollup-plugin-livereload";
-import nodePolyfills from "rollup-plugin-polyfill-node";
 import svelte from "rollup-plugin-svelte";
 import sveltePreprocess from "svelte-preprocess";
 
@@ -52,10 +50,8 @@ export default [
           // enable run-time checks when not in production
           dev: !PRODUCTION,
         },
+        emitCss: false,
       }),
-      // we'll extract any component CSS out into
-      // a separate file - better for performance
-      css({ output: "svelte-bundle.css" }),
       // If you have external dependencies installed from
       // npm, you'll most likely need these plugins. In
       // some cases you'll need additional configuration -
@@ -71,7 +67,6 @@ export default [
         inlineSources: !PRODUCTION,
       }),
       commonjs(),
-      nodePolyfills(),
       replace({
         preventAssignment: true,
         values: { "process.env.NODE_ENV": JSON.stringify("production") },
@@ -80,8 +75,5 @@ export default [
       !PRODUCTION && livereload(BUILD_DIR),
       PRODUCTION && terser(),
     ],
-    onwarn: (warning, warn) => {
-      warning.code !== "CIRCULAR_DEPENDENCY" && warn(warning);
-    },
   },
 ];
