@@ -1,6 +1,17 @@
 Changelog
 =========
 
+v3.1.1
+------
+
+- Added support for Python 3.12.
+
+GUI
+~~~
+
+- Fixed creating non-standard configuration directories.
+- Stopped bundling Mozilla's root certificate store.
+
 v3.1.0
 ------
 
