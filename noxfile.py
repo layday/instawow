@@ -10,14 +10,6 @@ nox.options.envdir = os.environ.get('NOX_ENVDIR')
 nox.options.sessions = ['format', 'lint', 'test', 'type_check']
 
 
-LINT_PATHS = [
-    'src',
-    'gui-webview/src',
-    'tests',
-    'noxfile.py',
-]
-
-
 def mirror_repo(session: nox.Session):
     if not os.environ.get('CI'):
         repo_dir = f'{session.create_tmp()}/instawow'
@@ -29,7 +21,7 @@ def install_coverage_hook(session: nox.Session):
     session.run(
         'python',
         '-c',
-        '''\
+        """\
 from pathlib import Path
 import sysconfig
 
@@ -37,18 +29,18 @@ import sysconfig
     'import coverage; coverage.process_startup()',
     encoding='utf-8',
 )
-''',
+""",
     )
 
 
 @nox.session(name='format', reuse_venv=True)
 def format_(session: nox.Session):
-    "Format source code."
-    session.install('-U', 'black', 'ruff')
+    'Format source code.'
+    session.install('-U', 'ruff')
 
     check = '--check' in session.posargs
-    session.run('ruff', '--select', 'I', '--select', 'Q', *[] if check else ['--fix'], *LINT_PATHS)
-    session.run('black', *['--check'] if check else [], *LINT_PATHS)
+    session.run('ruff', '--select', 'I', *[] if check else ['--fix'], '.')
+    session.run('ruff', 'format', *['--check'] if check else [], '.')
 
     if '--skip-prettier' not in session.posargs:
         session.chdir('gui-webview/frontend')
@@ -64,11 +56,9 @@ def format_(session: nox.Session):
 
 @nox.session(reuse_venv=True)
 def lint(session: nox.Session):
-    "Lint source code."
+    'Lint source code.'
     session.install('-U', 'ruff')
-    session.run(
-        'ruff', '--output-format', 'grouped', '--show-source', *session.posargs, *LINT_PATHS
-    )
+    session.run('ruff', '--output-format', 'grouped', '--show-source', *session.posargs, '.')
     session.notify('format', ['--check'])
 
 
@@ -78,7 +68,7 @@ def lint(session: nox.Session):
     [
         '',
         dedent(
-            '''\
+            """\
             aiohttp == 3.9.0b0
             aiohttp-client-cache == 0.9.1
             alembic == 1.12.0
@@ -99,7 +89,7 @@ def lint(session: nox.Session):
             typing-extensions == 4.3.0
             yarl == 1.9.2
             aiohttp-rpc == 1.0.0
-            '''
+            """
         ),
     ],
     [
@@ -108,7 +98,7 @@ def lint(session: nox.Session):
     ],
 )
 def test(session: nox.Session, constraints: str):
-    "Run the test suite."
+    'Run the test suite.'
     mirror_repo(session)
 
     constraints_txt = 'constraints.txt'
@@ -130,7 +120,7 @@ def test(session: nox.Session, constraints: str):
 
 @nox.session
 def produce_coverage_report(session: nox.Session):
-    "Produce coverage report."
+    'Produce coverage report.'
     session.install('coverage[toml]')
     session.run('coverage', 'combine')
     session.run('coverage', 'html', '--skip-empty')
@@ -139,7 +129,7 @@ def produce_coverage_report(session: nox.Session):
 
 @nox.session(python='3.11')
 def type_check(session: nox.Session):
-    "Run Pyright."
+    'Run Pyright.'
     mirror_repo(session)
 
     if session.posargs:
@@ -153,7 +143,7 @@ def type_check(session: nox.Session):
 
 @nox.session(python=False)
 def bundle_frontend(session: nox.Session):
-    "Bundle the frontend."
+    'Bundle the frontend.'
     session.run('git', 'clean', '-fX', 'gui-webview/src/instawow_gui/frontend', external=True)
     session.chdir('gui-webview/frontend')
     session.run('npm', 'install', external=True)
@@ -163,7 +153,7 @@ def bundle_frontend(session: nox.Session):
 
 @nox.session(python='3.11')
 def build_dists(session: nox.Session):
-    "Build an sdist and wheel."
+    'Build an sdist and wheel.'
     session.run('git', 'clean', '-fdX', 'dist', external=True)
     session.install('build')
     session.run('python', '-m', 'build')
@@ -171,7 +161,7 @@ def build_dists(session: nox.Session):
 
 @nox.session
 def publish_dists(session: nox.Session):
-    "Validate and upload dists to PyPI."
+    'Validate and upload dists to PyPI.'
     session.install('twine')
     session.run('twine', 'check', '--strict', 'dist/*')
     session.run('twine', 'upload', '--verbose', 'dist/*')

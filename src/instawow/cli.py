@@ -312,7 +312,7 @@ def _parse_debug_option(
 )
 @click.pass_context
 def cli(ctx: click.Context, **__: object) -> None:
-    "Add-on manager for World of Warcraft."
+    'Add-on manager for World of Warcraft.'
     ctx.obj = _CtxObjWrapper(ctx)
 
 
@@ -402,7 +402,7 @@ def install(
     replace: bool,
     dry_run: bool,
 ) -> None:
-    "Install add-ons."
+    'Install add-ons.'
     results = mw.run_with_progress(mw.manager.install(addons, replace, dry_run))
     Report(results.items()).generate_and_exit()
 
@@ -431,7 +431,7 @@ def update(
     retain_strategies: bool,
     dry_run: bool,
 ) -> None:
-    "Update installed add-ons."
+    'Update installed add-ons.'
     import sqlalchemy as sa
 
     def filter_results(result: R.Result):
@@ -468,7 +468,7 @@ def update(
 )
 @click.pass_obj
 def remove(mw: _CtxObjWrapper, addons: Sequence[Defn], keep_folders: bool) -> None:
-    "Remove add-ons."
+    'Remove add-ons.'
     results = mw.run_with_progress(mw.manager.remove(addons, keep_folders))
     Report(results.items()).generate_and_exit()
 
@@ -483,7 +483,7 @@ def remove(mw: _CtxObjWrapper, addons: Sequence[Defn], keep_folders: bool) -> No
 )
 @click.pass_obj
 def rollback(mw: _CtxObjWrapper, addon: Defn, undo: bool) -> None:
-    "Roll an add-on back to an older version."
+    'Roll an add-on back to an older version.'
     from ._cli_prompts import Choice, ask, select
 
     pkg = mw.manager.get_pkg(addon)
@@ -533,7 +533,7 @@ def rollback(mw: _CtxObjWrapper, addon: Defn, undo: bool) -> None:
 )
 @click.pass_obj
 def reconcile(mw: _CtxObjWrapper, auto: bool, rereconcile: bool, list_unreconciled: bool) -> None:
-    "Reconcile pre-installed add-ons."
+    'Reconcile pre-installed add-ons.'
     from ._cli_prompts import PkgChoice, ask, confirm, select, skip
     from .matchers import DEFAULT_MATCHERS, AddonFolder, get_unreconciled_folders
 
@@ -610,7 +610,7 @@ def reconcile(mw: _CtxObjWrapper, auto: bool, rereconcile: bool, list_unreconcil
 
     else:
         PREAMBLE = textwrap.dedent(
-            '''\
+            """\
             Use the arrow keys to navigate, <o> to open an add-on in your browser,
             enter to make a selection and <s> to skip to the next item.
 
@@ -625,7 +625,7 @@ def reconcile(mw: _CtxObjWrapper, auto: bool, rereconcile: bool, list_unreconcil
             You can also run `reconcile` in automatic mode by passing
             the `--auto` flag.  In this mode, add-ons will be reconciled
             without user input.
-            '''
+            """
         )
 
         leftovers = get_unreconciled_folders(mw.manager.ctx)
@@ -729,7 +729,7 @@ def search(
     start_date: datetime | None,
     no_exclude_installed: bool,
 ) -> None:
-    "Search for add-ons to install."
+    'Search for add-ons to install.'
     from ._cli_prompts import PkgChoice, ask, checkbox, confirm
     from .catalogue.search import search
 
@@ -791,7 +791,7 @@ class _ListFormat(StrEnum):
 )
 @click.pass_obj
 def list_installed(mw: _CtxObjWrapper, addons: Sequence[Defn], output_format: _ListFormat) -> None:
-    "List installed add-ons."
+    'List installed add-ons.'
     import sqlalchemy as sa
 
     with mw.manager.ctx.database.connect() as connection:
@@ -878,7 +878,7 @@ def list_installed(mw: _CtxObjWrapper, addons: Sequence[Defn], output_format: _L
 @click.argument('addon', callback=_with_manager(partial(_parse_uri, raise_invalid=False)))
 @click.pass_context
 def info(ctx: click.Context, addon: Defn) -> None:
-    "Alias of `list -f detailed`."
+    'Alias of `list -f detailed`.'
     ctx.invoke(list_installed, addons=(addon,), output_format=_ListFormat.Detailed)
 
 
@@ -886,7 +886,7 @@ def info(ctx: click.Context, addon: Defn) -> None:
 @click.argument('addon', callback=_with_manager(partial(_parse_uri, raise_invalid=False)))
 @click.pass_obj
 def reveal(mw: _CtxObjWrapper, addon: Defn) -> None:
-    "Bring an add-on up in your file manager."
+    'Bring an add-on up in your file manager.'
     pkg = mw.manager.get_pkg(addon, partial_match=True)
     if pkg:
         reveal_folder(mw.manager.ctx.config.addon_dir / pkg.folders[0].name)
@@ -1032,7 +1032,7 @@ def view_changelog(mw: _CtxObjWrapper, addon: Defn | None, convert: bool) -> Non
 )
 @click.pass_obj
 def list_sources(mw: _CtxObjWrapper, output_format: _ListFormat) -> None:
-    "Print source metadata."
+    'Print source metadata.'
     from cattrs.preconf.json import make_converter
 
     json_converter = make_converter()
@@ -1287,13 +1287,13 @@ def configure(
 
 @cli.group('weakauras-companion')
 def _weakauras_group() -> None:
-    "Manage your WeakAuras."
+    'Manage your WeakAuras.'
 
 
 @_weakauras_group.command('build')
 @click.pass_obj
 def build_weakauras_companion(mw: _CtxObjWrapper) -> None:
-    "Build the WeakAuras Companion add-on."
+    'Build the WeakAuras Companion add-on.'
     from .wa_updater import WaCompanionBuilder
 
     mw.run_with_progress(WaCompanionBuilder(mw.manager.ctx).build())
@@ -1302,7 +1302,7 @@ def build_weakauras_companion(mw: _CtxObjWrapper) -> None:
 @_weakauras_group.command('list')
 @click.pass_obj
 def list_installed_wago_auras(mw: _CtxObjWrapper) -> None:
-    "List WeakAuras installed from Wago."
+    'List WeakAuras installed from Wago.'
     from .wa_updater import WaCompanionBuilder
 
     aura_groups = WaCompanionBuilder(mw.manager.ctx).extract_installed_auras()
@@ -1324,7 +1324,7 @@ def list_installed_wago_auras(mw: _CtxObjWrapper) -> None:
     metavar='YYYY-MM-DD',
 )
 def generate_catalogue(start_date: datetime | None) -> None:
-    "Generate the master catalogue."
+    'Generate the master catalogue.'
     import json
 
     from .catalogue.cataloguer import Catalogue, catalogue_converter
@@ -1348,7 +1348,7 @@ def generate_catalogue(start_date: datetime | None) -> None:
 @cli.command
 @click.pass_context
 def gui(ctx: click.Context) -> None:
-    "Fire up the GUI."
+    'Fire up the GUI.'
     from instawow_gui.app import InstawowApp
 
     global_config = GlobalConfig.read().ensure_dirs()
@@ -1360,5 +1360,6 @@ def gui(ctx: click.Context) -> None:
     setup_logging(dummy_jsonrpc_config.logging_dir, *params['debug'])
 
     InstawowApp(
-        debug=any(params['debug']), version=__version__
+        debug=any(params['debug']),
+        version=__version__,
     ).main_loop()  # pyright: ignore[reportUnknownMemberType]

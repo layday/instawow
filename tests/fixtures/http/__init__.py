@@ -56,7 +56,7 @@ class Route:
             return self.path_pattern
 
         if self.case_insensitive:
-            return re.compile(fr'^{re.escape(self.url.path_qs)}$', re.IGNORECASE)
+            return re.compile(rf'^{re.escape(self.url.path_qs)}$', re.IGNORECASE)
 
         return self.url.path_qs
 

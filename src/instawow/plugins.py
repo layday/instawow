@@ -17,16 +17,16 @@ hookimpl = pluggy.HookimplMarker(_project_name)
 
 
 class InstawowPlugin(Protocol):  # pragma: no cover
-    "The plug-in interface."
+    'The plug-in interface.'
 
     @hookspec
     def instawow_add_commands(self) -> Iterable[click.Command]:
-        "Additional commands to register with ``click``."
+        'Additional commands to register with ``click``.'
         ...
 
     @hookspec
     def instawow_add_resolvers(self) -> Iterable[type[resolvers.Resolver]]:
-        "Additional resolvers to load."
+        'Additional resolvers to load.'
         ...
 
 

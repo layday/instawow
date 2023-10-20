@@ -26,7 +26,7 @@ from . import pkg_models
 
 
 class AttrsFieldValidator(Validator):
-    "One-off validators for attrs fields."
+    'One-off validators for attrs fields.'
 
     def __init__(self, attribute: attrs.Attribute[object], converter: cattrs.Converter) -> None:
         self._field_name = attribute.name
@@ -270,7 +270,7 @@ class _DownloadProgress(formatters.Progress):
 
 
 def make_progress_bar() -> ProgressBar:
-    "``ProgressBar`` with download progress expressed in megabytes."
+    '``ProgressBar`` with download progress expressed in megabytes.'
     return ProgressBar(
         formatters=[
             formatters.Label(),

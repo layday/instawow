@@ -23,7 +23,7 @@ async def search(
         'ident', 'include_only', 'exclude', 'exclude_from_all_sources'
     ] = 'ident',
 ) -> list[cataloguer.ComputedCatalogueEntry]:
-    "Search the catalogue for packages by name."
+    'Search the catalogue for packages by name.'
     import rapidfuzz
     import sqlalchemy as sa
 

@@ -186,7 +186,7 @@ class InternalError(Result, Exception):
 async def resultify_async_exc(
     awaitable: Awaitable[_T],
 ) -> AnyResult[_T]:
-    "Capture and log an exception raised in a coroutine."
+    'Capture and log an exception raised in a coroutine.'
     try:
         return await awaitable
     except (ManagerError, InternalError) as error:

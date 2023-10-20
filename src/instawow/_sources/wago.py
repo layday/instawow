@@ -25,7 +25,8 @@ class _WagoGameVersion(StrEnum):
 
 
 class _WagoMatchRequest(TypedDict):
-    "``/addons/_match``"
+    '``/addons/_match``'
+
     game_version: _WagoGameVersion
     addons: list[_WagoMatchRequestAddon]
 
@@ -36,7 +37,8 @@ class _WagoMatchRequestAddon(TypedDict):
 
 
 class _WagoMatches(TypedDict):
-    "``/addons/_match``"
+    '``/addons/_match``'
+
     addons: list[_WagoMatchingAddon | None]
 
 
@@ -67,7 +69,8 @@ class _WagoAddonModule(TypedDict):
 
 
 class _WagoAddon(TypedDict):
-    "``/addons/{id}``"
+    '``/addons/{id}``'
+
     id: str
     slug: str
     display_name: str  # Eq to ``WagoRecentAddon.name``

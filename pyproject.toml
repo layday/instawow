@@ -2,7 +2,7 @@
 requires = ["poetry-core >=1.7.0", "poetry-dynamic-versioning >=1.0.1"]
 build-backend = "poetry_dynamic_versioning.backend"
 
-# Not used by Poetry -- solely for Black's and Ruff's benefit.
+# Not used by Poetry -- solely for Ruff's benefit.
 [project]
 dynamic = ["version"]
 name = "instawow"
@@ -93,7 +93,6 @@ select = [
   "PGH", # pygrep-hooks
   "PIE", # flake8-pie
   "PT",  # flake8-pytest-style
-  "Q",   # flake8-quotes
   "RUF", # ruff: unused-noqa
   "TRY", # tryceratops
   "UP",  # pyupgrade
@@ -106,6 +105,9 @@ ignore = [
 ]
 line-length = 99
 
+[tool.ruff.format]
+quote-style = "single"
+
 [tool.ruff.per-file-ignores]
 "**.pyi" = [
   "I002", # isort: missing-required-import
@@ -114,11 +116,6 @@ line-length = 99
 [tool.ruff.flake8-pytest-style]
 fixture-parentheses = false
 mark-parentheses = false
-
-[tool.ruff.flake8-quotes]
-docstring-quotes = "double"
-inline-quotes = "single"
-multiline-quotes = "single"
 
 [tool.ruff.isort]
 known-first-party = [
@@ -131,11 +128,6 @@ required-imports = [
 
 [tool.ruff.pyupgrade]
 keep-runtime-typing = true
-
-
-[tool.black]
-line-length = 99
-skip-string-normalization = true
 
 
 [tool.coverage.run]

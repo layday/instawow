@@ -102,7 +102,8 @@ def _transform_validation_errors(
             new_path = (*path, note.index)
             if isinstance(exc, (cattrs.ClassValidationError, cattrs.IterableValidationError)):
                 yield from _transform_validation_errors(
-                    exc, new_path  # pyright: ignore[reportGeneralTypeIssues]
+                    exc,
+                    new_path,  # pyright: ignore[reportGeneralTypeIssues]
                 )
             else:
                 yield {
@@ -820,7 +821,7 @@ async def create_app(toga_handle: tuple[Any, anyio.from_thread.BlockingPortal] |
 
 
 async def run_app(app: aiohttp.web.Application):
-    "Fire up the server."
+    'Fire up the server.'
     app_runner = aiohttp.web.AppRunner(app)
     await app_runner.setup()
     assert app_runner.server  # Server is created during setup

@@ -41,38 +41,38 @@ class Resolver(Protocol):  # pragma: no cover
 
     @classmethod
     def get_alias_from_url(cls, url: URL) -> str | None:
-        "Attempt to extract a ``Defn`` alias from a given URL."
+        'Attempt to extract a ``Defn`` alias from a given URL.'
         ...
 
     async def make_request_headers(
         self, intent: HeadersIntent | None = None
     ) -> dict[str, str] | None:
-        "Create headers for resolver HTTP requests."
+        'Create headers for resolver HTTP requests.'
         ...
 
     async def resolve(
         self, defns: Sequence[Defn]
     ) -> dict[Defn, pkg_models.Pkg | R.ManagerError | R.InternalError]:
-        "Resolve multiple ``Defn``s into packages."
+        'Resolve multiple ``Defn``s into packages.'
         ...
 
     async def resolve_one(self, defn: Defn, metadata: Any) -> pkg_models.Pkg:
-        "Resolve a ``Defn`` into a package."
+        'Resolve a ``Defn`` into a package.'
         ...
 
     async def get_changelog(self, uri: URL) -> str:
-        "Retrieve a changelog from a URI."
+        'Retrieve a changelog from a URI.'
         ...
 
     async def get_folder_hash_matches(
         self, candidates: Collection[TFolderHashCandidate]
     ) -> Iterable[tuple[Defn, frozenset[TFolderHashCandidate]]]:
-        "Find ``Defn``s from folder fingerprint."
+        'Find ``Defn``s from folder fingerprint.'
         ...
 
     @classmethod
     def catalogue(cls, web_client: http.ClientSessionType) -> AsyncIterator[CatalogueEntry]:
-        "Enumerate add-ons from the source."
+        'Enumerate add-ons from the source.'
         ...
 
 

@@ -39,16 +39,13 @@ def test_numbers():
     assert loads('-3.23e+17') == -3.23e17
     # hex
     assert loads('0x3a') == 0x3A
-    assert (
-        loads(
-            '''{
+    assert loads(
+        """{
                 ID = 0x74fa4cae,
                 Version = 0x07c2,
                 Manufacturer = 0x21544948
-            }'''
-        )
-        == {'ID': 0x74FA4CAE, 'Version': 0x07C2, 'Manufacturer': 0x21544948}
-    )
+            }"""
+    ) == {'ID': 0x74FA4CAE, 'Version': 0x07C2, 'Manufacturer': 0x21544948}
 
 
 def test_bool():
@@ -149,9 +146,8 @@ def test_table_key_overrides():
 
 
 def test_table_palooza():
-    assert (
-        loads(
-            '''{ -- δκσξδφξ
+    assert loads(
+        """{ -- δκσξδφξ
         array = { 65, 23, 5 }, -- 3493
         dict =     {  -- !!!,11
             [false]       =    "value"      ,  -- what's up
@@ -160,31 +156,26 @@ def test_table_palooza():
                 4 }, -- [2]
             mixed = { 43, 54.3, false, string = "value", 9 }    -- wazzup
         }                   -- foo
-} -- bar'''
-        )
-        == {
-            'array': [65, 23, 5],
-            'dict': {
-                False: 'value',
-                'array': [3, '6', 4],
-                'mixed': {1: 43, 2: 54.3, 3: False, 'string': 'value', 4: 9},
-            },
-        }
-    )
+} -- bar"""
+    ) == {
+        'array': [65, 23, 5],
+        'dict': {
+            False: 'value',
+            'array': [3, '6', 4],
+            'mixed': {1: 43, 2: 54.3, 3: False, 'string': 'value', 4: 9},
+        },
+    }
 
 
 def test_parse_undelimited_entries():
     # Not valid Lua but we allow it for the purpose of parsing saved var scripts
     # containing more than one variable.
-    assert (
-        loads(
-            '''{
+    assert loads(
+        """{
                 foo = {}
                 bar = 1
-            }'''
-        )
-        == {
-            'foo': {},
-            'bar': 1,
-        }
-    )
+            }"""
+    ) == {
+        'foo': {},
+        'bar': 1,
+    }

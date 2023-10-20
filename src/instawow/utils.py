@@ -75,12 +75,12 @@ class TocReader:
 
 
 def fill(it: Iterable[_T], fill: _T, length: int) -> Iterable[_T]:
-    "Fill an iterable of specified length."
+    'Fill an iterable of specified length.'
     return islice(chain(it, repeat(fill)), 0, length)
 
 
 def bucketise(iterable: Iterable[_U], key: Callable[[_U], _T]) -> dict[_T, list[_U]]:
-    "Place the elements of an iterable in a bucket according to ``key``."
+    'Place the elements of an iterable in a bucket according to ``key``.'
     bucket = defaultdict[_T, list[_U]](list)
     for value in iterable:
         bucket[key(value)].append(value)
@@ -90,23 +90,23 @@ def bucketise(iterable: Iterable[_U], key: Callable[[_U], _T]) -> dict[_T, list[
 def chain_dict(
     keys: Iterable[_T], default: _U, *overrides: Iterable[tuple[_T, _U]]
 ) -> dict[_T, _U]:
-    "Construct a dictionary from a series of two-tuple iterables with overlapping keys."
+    'Construct a dictionary from a series of two-tuple iterables with overlapping keys.'
     return dict(chain(zip(keys, repeat(default)), *overrides))
 
 
 def uniq(it: Iterable[_THashable]) -> list[_THashable]:
-    "Deduplicate hashable items in an iterable maintaining insertion order."
+    'Deduplicate hashable items in an iterable maintaining insertion order.'
     return list(dict.fromkeys(it))
 
 
 def all_eq(it: Iterable[object]) -> bool:
-    "Check that all elements of an iterable are equal."
+    'Check that all elements of an iterable are equal.'
     groups = groupby(it)
     return next(groups, True) and not next(groups, False)
 
 
 def merge_intersecting_sets(it: Iterable[frozenset[_T]]) -> Iterator[frozenset[_T]]:
-    "Recursively merge intersecting sets in a collection."
+    'Recursively merge intersecting sets in a collection.'
     many_sets = list(it)
     while many_sets:
         this_set = many_sets.pop(0)
@@ -151,7 +151,7 @@ def run_in_thread(fn: Callable[_P, _U]) -> Callable[_P, Awaitable[_U]]:
 
 
 def tabulate(rows: Sequence[tuple[object, ...]], *, max_col_width: int = 60) -> str:
-    "Produce an ASCII table from equal-length elements in a sequence."
+    'Produce an ASCII table from equal-length elements in a sequence.'
     from textwrap import fill
 
     def apply_max_col_width(value: object):
@@ -195,14 +195,14 @@ def trash(paths: Iterable[PurePath], *, dest: PurePath, missing_ok: bool = False
 
 
 def shasum(*values: object) -> str:
-    "Base-16-encode a string using SHA-256 truncated to 32 characters."
+    'Base-16-encode a string using SHA-256 truncated to 32 characters.'
     from hashlib import sha256
 
     return sha256(''.join(map(str, filter(None, values))).encode()).hexdigest()[:32]
 
 
 def find_addon_zip_tocs(names: Iterable[str]) -> Iterator[tuple[str, str]]:
-    "Find top-level folders in a list of ZIP member paths."
+    'Find top-level folders in a list of ZIP member paths.'
     for name in names:
         if name.count(posixpath.sep) == 1:
             head, tail = posixpath.split(name)
@@ -211,7 +211,7 @@ def find_addon_zip_tocs(names: Iterable[str]) -> Iterator[tuple[str, str]]:
 
 
 def make_zip_member_filter_fn(base_dirs: Set[str]) -> Callable[[str], bool]:
-    "Filter out items which are not sub-paths of top-level folders in a ZIP."
+    'Filter out items which are not sub-paths of top-level folders in a ZIP.'
 
     def is_subpath(name: str):
         head, sep, _ = name.partition(posixpath.sep)
@@ -225,7 +225,7 @@ def is_file_uri(uri: str) -> bool:
 
 
 def file_uri_to_path(file_uri: str) -> str:
-    "Convert a file URI to a path that works both on Windows and *nix."
+    'Convert a file URI to a path that works both on Windows and *nix.'
     from urllib.parse import unquote
 
     unprefixed_path = unquote(file_uri.removeprefix('file://'))

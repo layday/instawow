@@ -45,7 +45,10 @@ class Flavour(StrEnum):
 
 class FlavourVersionRange(enum.Enum):
     Retail = (
-        range(1_00_00, 1_13_00), range(2_00_00, 2_05_00), range(3_00_00, 3_04_00), range(4_00_00, 11_00_00)  # fmt: skip
+        range(1_00_00, 1_13_00),
+        range(2_00_00, 2_05_00),
+        range(3_00_00, 3_04_00),
+        range(4_00_00, 11_00_00),
     )
     VanillaClassic = (range(1_13_00, 2_00_00),)
     Classic = (range(3_04_00, 4_00_00),)
@@ -160,9 +163,9 @@ class Defn:
         if include_strategies:
             filled_strategies = self.strategies.filled_strategies
             if filled_strategies:
-                uri += f'''#{_STRATEGY_SEP.join(
+                uri += f"""#{_STRATEGY_SEP.join(
                     s if v is True else f"{s}={v}" for s, v in filled_strategies.items()
-                )}'''
+                )}"""
 
         return uri
 

@@ -85,7 +85,7 @@ def contextualise(
     web_client: http.ClientSessionType | None = None,
     locks: LocksType | None = None,
 ) -> None:
-    "Set variables for the current context."
+    'Set variables for the current context.'
     if web_client is not None:
         _web_client.set(web_client)
     if locks is not None:
@@ -146,12 +146,12 @@ class ManagerCtx:
 
     @classmethod
     def from_config(cls, config: Config) -> Self:
-        "Instantiate the manager from a configuration object."
+        'Instantiate the manager from a configuration object.'
         return cls(config, pkg_db.prepare_database(config.db_uri))
 
     @property
     def locks(self) -> LocksType:
-        "Lock factory used to synchronise async operations."
+        'Lock factory used to synchronise async operations.'
         return _locks.get()
 
     @property
@@ -159,7 +159,7 @@ class ManagerCtx:
         return _web_client.get()
 
     async def synchronise(self) -> ComputedCatalogue:
-        "Fetch the catalogue from the interwebs and load it."
+        'Fetch the catalogue from the interwebs and load it.'
         async with self.locks[_LOAD_CATALOGUE_LOCK], self.web_client.get(
             self._base_catalogue_url,
             expire_after=self._catalogue_ttl,

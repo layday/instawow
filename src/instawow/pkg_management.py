@@ -218,7 +218,7 @@ class PkgManager:
         self.ctx = ctx
 
     def pair_uri(self, value: str) -> tuple[str, str] | None:
-        "Attempt to extract a valid ``Defn`` source and alias from a URL."
+        'Attempt to extract a valid ``Defn`` source and alias from a URL.'
         aliases_from_url = (
             (r.metadata.id, a)
             for r in self.ctx.resolvers.values()
@@ -228,7 +228,7 @@ class PkgManager:
         return next(aliases_from_url, None)
 
     def check_pkg_exists(self, defn: Defn) -> bool:
-        "Check that a package exists in the database."
+        'Check that a package exists in the database.'
         with self.ctx.database.connect() as connection:
             return (
                 connection.execute(
@@ -245,7 +245,7 @@ class PkgManager:
             )
 
     def get_pkg(self, defn: Defn, partial_match: bool = False) -> pkg_models.Pkg | None:
-        "Retrieve a package from the database."
+        'Retrieve a package from the database.'
         with self.ctx.database.connect() as connection:
             maybe_row_mapping = (
                 connection.execute(
@@ -275,7 +275,7 @@ class PkgManager:
     async def find_equivalent_pkg_defns(
         self, pkgs: Collection[pkg_models.Pkg]
     ) -> dict[pkg_models.Pkg, list[Defn]]:
-        "Given a list of packages, find ``Defn``s of each package from other sources."
+        'Given a list of packages, find ``Defn``s of each package from other sources.'
         from .matchers import AddonFolder
 
         catalogue = await self.ctx.synchronise()
@@ -378,7 +378,7 @@ class PkgManager:
     async def resolve(
         self, defns: Collection[Defn], with_deps: bool = False
     ) -> Mapping[Defn, R.AnyResult[pkg_models.Pkg]]:
-        "Resolve definitions into packages."
+        'Resolve definitions into packages.'
         if not defns:
             return {}
 
@@ -403,7 +403,7 @@ class PkgManager:
         return results_by_defn
 
     async def get_changelog(self, source: str, uri: str) -> str:
-        "Retrieve a changelog from a URI."
+        'Retrieve a changelog from a URI.'
         return await self.ctx.resolvers.get(source, _DummyResolver).get_changelog(URL(uri))
 
     async def _download_pkg_archive(
@@ -446,7 +446,7 @@ class PkgManager:
     async def install(
         self, defns: Sequence[Defn], replace_folders: bool, dry_run: bool = False
     ) -> Mapping[Defn, R.AnyResult[R.PkgInstalled]]:
-        "Install packages from a definition list."
+        'Install packages from a definition list.'
 
         # We'll weed out installed deps from the results after resolving -
         # doing it this way isn't particularly efficient but avoids having to
@@ -556,7 +556,7 @@ class PkgManager:
     async def remove(
         self, defns: Sequence[Defn], keep_folders: bool
     ) -> Mapping[Defn, R.AnyResult[R.PkgRemoved]]:
-        "Remove packages by their definition."
+        'Remove packages by their definition.'
         return {
             d: (
                 await R.resultify_async_exc(_remove_pkg(self.ctx, p, keep_folders))

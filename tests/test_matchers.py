@@ -37,10 +37,10 @@ def molinari(
 
     with open(molinari_folder / 'Molinari.toc', 'w', newline='\n') as toc_file:
         toc_file.write(
-            '''\
+            """\
 ## X-Curse-Project-ID: 20338
 ## X-WoWI-ID: 13188
-''',
+""",
         )
 
     return molinari_folder

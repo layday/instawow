@@ -19,7 +19,7 @@ def _wa_saved_vars(
     )
     saved_vars.mkdir(parents=True)
     (saved_vars / WeakAuras.addon_name).with_suffix('.lua').write_text(
-        '''\
+        """\
 WeakAurasSaved = {
     ["displays"] = {
         ["Foo"] = {
@@ -27,7 +27,7 @@ WeakAurasSaved = {
         },
     },
 }
-'''
+"""
     )
 
 
@@ -44,12 +44,12 @@ def test_can_parse_empty_displays_table(
     assert (
         builder.extract_auras(
             WeakAuras,
-            '''\
+            """\
 WeakAurasSaved = {
     ["displays"] = {
     },
 }
-''',
+""",
         ).root
         == {}
     )
@@ -61,7 +61,7 @@ def test_urlless_display_is_discarded(
     assert (
         builder.extract_auras(
             WeakAuras,
-            '''\
+            """\
 WeakAurasSaved = {
     ["displays"] = {
         ["Foo"] = {
@@ -69,7 +69,7 @@ WeakAurasSaved = {
         },
     },
 }
-''',
+""",
         ).root
         == {}
     )
@@ -85,10 +85,9 @@ def test_can_parse_minimal_wago_display(
         url=URL('https://wago.io/foo/1'),
         version=1,
     )
-    assert (
-        builder.extract_auras(
-            WeakAuras,
-            '''\
+    assert builder.extract_auras(
+        WeakAuras,
+        """\
 WeakAurasSaved = {
     ["displays"] = {
         ["Foo"] = {
@@ -100,10 +99,8 @@ WeakAurasSaved = {
         },
     },
 }
-''',
-        ).root
-        == {'foo': [aura]}
-    )
+""",
+    ).root == {'foo': [aura]}
 
 
 def test_url_host_not_wago_display_is_discarded(
@@ -112,7 +109,7 @@ def test_url_host_not_wago_display_is_discarded(
     assert (
         builder.extract_auras(
             WeakAuras,
-            '''\
+            """\
 WeakAurasSaved = {
     ["displays"] = {
         ["Foo"] = {
@@ -124,7 +121,7 @@ WeakAurasSaved = {
         },
     },
 }
-''',
+""",
         ).root
         == {}
     )

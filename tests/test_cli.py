@@ -61,10 +61,10 @@ def pretend_install_molinari_and_run(
     molinari = iw_config.addon_dir / 'Molinari'
     molinari.mkdir()
     (molinari / 'Molinari.toc').write_text(
-        '''\
+        """\
 ## X-Curse-Project-ID: 20338
 ## X-WoWI-ID: 13188
-'''
+"""
     )
     return run
 
@@ -160,19 +160,19 @@ def test_version_strategy_lifecycle(
     assert run(
         'update --retain-strategies curse:molinari#version_eq=100005.97-Release'
     ).output == dedent(
-        '''\
+        """\
         ✓ curse:molinari
           updated 100105.109-Release to 100005.97-Release with new strategies:
             version_eq='100005.97-Release'
-        '''
+        """
     )
     assert run('remove curse:molinari').output == '✓ curse:molinari\n  removed\n'
     assert run('install curse:molinari#version_eq=foo').output == dedent(
-        '''\
+        """\
         ✗ curse:molinari
           no files found for: any_flavour=None; any_release_type=None;
             version_eq='foo'
-        '''
+        """
     )
     assert (
         run('install curse:molinari#version_eq=100005.97-Release').output
@@ -180,11 +180,11 @@ def test_version_strategy_lifecycle(
     )
     assert run('update').output == '✗ curse:molinari\n  package is pinned\n'
     assert run('update --retain-strategies curse:molinari').output == dedent(
-        '''\
+        """\
         ✓ curse:molinari
           updated 100005.97-Release to 100105.109-Release with new strategies:
             version_eq=None
-        '''
+        """
     )
     assert run('remove curse:molinari').output == '✓ curse:molinari\n  removed\n'
 
@@ -193,10 +193,10 @@ def test_install_options(
     run: C[[str], Result],
 ):
     assert run('install curse:molinari#any_release_type,any_flavour').output == dedent(
-        '''\
+        """\
         ✓ curse:molinari
           installed 100105.109-Release
-        '''
+        """
     )
 
 
@@ -214,13 +214,13 @@ def test_install_order_is_respected(
             ][::step]
         )
     ).output == dedent(
-        f'''\
+        f"""\
         ✓ curse:molinari
           installed {'100105.109-Release' if step == 1 else '100005.97-Release'}
         ✗ curse:molinari
           package folders conflict with installed package Molinari
             (curse:20338)
-        '''
+        """
     )
 
 
@@ -236,10 +236,10 @@ def test_install_dry_run(
     run: C[[str], Result],
 ):
     assert run('install --dry-run curse:molinari').output == dedent(
-        '''\
+        """\
         ✓ curse:molinari
           would have installed 100105.109-Release
-        '''
+        """
     )
 
 
@@ -337,11 +337,11 @@ def test_rollback__multiple_versions(
     assert run('install curse:molinari').exit_code == 0
     feed_pt('\r\r')
     assert run('rollback curse:molinari').output == dedent(
-        '''\
+        """\
         ✓ curse:molinari
           updated 100105.109-Release to 100005.97-Release with new strategies:
             version_eq='100005.97-Release'
-        '''
+        """
     )
 
 
@@ -356,28 +356,29 @@ def test_rollback__rollback_multiple_versions(
     assert run('install curse:molinari#version_eq=100005.97-Release').exit_code == 0
     feed_pt('\r\r')
     assert run(f'rollback {options} curse:molinari').output == dedent(
-        '''\
+        """\
         ✓ curse:molinari
           updated 100005.97-Release to 100105.109-Release with new strategies:
             version_eq=None
-        '''
+        """
         if options == '--undo'
-        else '''\
+        else """\
         ✓ curse:molinari
           updated 100005.97-Release to 100105.109-Release
-        '''
+        """
     )
 
 
 def test_reconcile__list_unreconciled(
     pretend_install_molinari_and_run: C[[str], Result],
 ):
-    assert pretend_install_molinari_and_run('reconcile --list-unreconciled').output == (
-        # fmt: off
-        'unreconciled\n'
-        '------------\n'
-        'Molinari    \n'
-        # fmt: on
+    assert (
+        pretend_install_molinari_and_run('reconcile --list-unreconciled').output
+        == (
+            'unreconciled\n'  # fmt: skip
+            '------------\n'
+            'Molinari    \n'
+        )
     )
 
 
@@ -386,12 +387,12 @@ def test_reconcile_leftovers(
     pretend_install_molinari_and_run: C[[str], Result],
 ):
     feed_pt('sss')  # Skip
-    assert pretend_install_molinari_and_run('reconcile').output.endswith(
-        # fmt: off
-        'unreconciled\n'
+    assert pretend_install_molinari_and_run(
+        'reconcile'
+    ).output.endswith(
+        'unreconciled\n'  # fmt: skip
         '------------\n'
         'Molinari    \n'
-        # fmt: on
     )
 
 
@@ -399,10 +400,10 @@ def test_reconcile__auto_reconcile(
     pretend_install_molinari_and_run: C[[str], Result],
 ):
     assert pretend_install_molinari_and_run('reconcile --auto').output == dedent(
-        '''\
+        """\
         ✓ github:p3lim-wow/molinari
           installed 100105.109-Release
-        '''
+        """
     )
 
 
@@ -421,10 +422,10 @@ def test_reconcile__complete_interactive_reconciliation(
     feed_pt('\r\r')
     assert pretend_install_molinari_and_run('reconcile').output.endswith(
         dedent(
-            '''\
+            """\
             ✓ github:p3lim-wow/molinari
               installed 100105.109-Release
-            '''
+            """
         )
     )
 
@@ -441,12 +442,12 @@ def test_reconcile__rereconcile(
 ):
     feed_pt('\r\r')
     assert install_molinari_and_run('reconcile --installed').output == dedent(
-        '''\
+        """\
         ✓ curse:molinari
           removed
         ✓ github:p3lim-wow/molinari
           installed 100105.109-Release
-        '''
+        """
     )
 
 
@@ -488,10 +489,10 @@ def test_search__install_one(
 ):
     feed_pt(' \r\r')  # space, enter, enter
     assert run('search molinari --source curse').output == dedent(
-        '''\
+        """\
         ✓ curse:molinari
           installed 100105.109-Release
-        '''
+        """
     )
 
 
@@ -501,13 +502,13 @@ def test_search__install_multiple_conflicting(
 ):
     feed_pt(' \x1b[B \r\r')  # space, arrow down, space, enter, enter
     assert run('search molinari').output == dedent(
-        '''\
+        """\
         ✓ github:p3lim-wow/molinari
           installed 100105.109-Release
         ✗ wowi:13188-molinari
           package folders conflict with installed package Molinari
             (github:388670)
-        '''
+        """
     )
 
 
