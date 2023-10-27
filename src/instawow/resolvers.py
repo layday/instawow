@@ -19,7 +19,9 @@ from .utils import file_uri_to_path, gather, run_in_thread
 
 
 class FolderHashCandidate(Protocol):  # pragma: no cover
-    name: str
+    @property
+    def name(self) -> str:
+        ...
 
     def hash_contents(self, __method: AddonHashMethod) -> str:
         ...
