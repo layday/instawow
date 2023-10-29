@@ -6,7 +6,7 @@ build-backend = "poetry_dynamic_versioning.backend"
 [project]
 dynamic = ["version"]
 name = "instawow"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 
 [tool.poetry-dynamic-versioning]
 enable = true
@@ -36,7 +36,7 @@ include = [
 scripts.instawow = "instawow.cli:main"
 
 [tool.poetry.dependencies]
-python = ">=3.9"
+python = ">=3.10"
 
 aiohttp = ">=3.9.0b0, <4"
 aiohttp-client-cache = ">=0.9.1"
@@ -53,7 +53,7 @@ prompt-toolkit = ">=3.0.29, <4"
 questionary = ">=1.10"
 rapidfuzz = ">=3.3.0"
 sqlalchemy = ">=2.0.21"
-truststore = { version = ">=0.7.0", python = ">=3.10" }
+truststore = ">=0.7.0"
 typing-extensions = ">=4.3.0"
 yarl = ">=1.9.2"
 
@@ -83,8 +83,14 @@ test = [
 
 
 [tool.ruff]
+line-length = 99
+
+[tool.ruff.format]
+quote-style = "single"
+
+[tool.ruff.lint]
 select = [
-  "B",   # flake8-bugbear (without opinionated rules)
+  "B0",  # flake8-bugbear (without opinionated rules)
   "C4",  # flake8-comprehensions
   "DTZ", # flake8-datetimez
   "E",   # pycodestyle
@@ -93,7 +99,7 @@ select = [
   "PGH", # pygrep-hooks
   "PIE", # flake8-pie
   "PT",  # flake8-pytest-style
-  "RUF", # ruff: unused-noqa
+  "RUF", # ruff
   "TRY", # tryceratops
   "UP",  # pyupgrade
   "W",   # pycodestyle
@@ -103,21 +109,12 @@ ignore = [
   "E501",   # pycodestyle: line-too-long
   "TRY003", # tryceratops: raise-vanilla-args
 ]
-line-length = 99
 
-[tool.ruff.format]
-quote-style = "single"
-
-[tool.ruff.per-file-ignores]
-"**.pyi" = [
-  "I002", # isort: missing-required-import
-]
-
-[tool.ruff.flake8-pytest-style]
+[tool.ruff.lint.flake8-pytest-style]
 fixture-parentheses = false
 mark-parentheses = false
 
-[tool.ruff.isort]
+[tool.ruff.lint.isort]
 known-first-party = [
   "instawow",
   "instawow_gui",
@@ -126,7 +123,7 @@ required-imports = [
   "from __future__ import annotations",
 ]
 
-[tool.ruff.pyupgrade]
+[tool.ruff.lint.pyupgrade]
 keep-runtime-typing = true
 
 

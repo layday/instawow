@@ -14,12 +14,12 @@ from itertools import filterfalse, product, repeat, starmap
 from pathlib import Path, PurePath
 from shutil import move
 from tempfile import NamedTemporaryFile
-from typing import TypeVar
+from typing import Concatenate, TypeVar
 
 import sqlalchemy as sa
 from attrs import evolve
 from loguru import logger
-from typing_extensions import Concatenate, Never, ParamSpec
+from typing_extensions import Never, ParamSpec
 from yarl import URL
 
 from . import pkg_db, pkg_models
@@ -60,7 +60,7 @@ def bucketise_results(
     errors: dict[Defn, R.AnyResult[Never]] = {}
 
     for defn, value in values:
-        if isinstance(value, (R.ManagerError, R.InternalError)):
+        if isinstance(value, R.ManagerError | R.InternalError):
             errors[defn] = value
         else:
             ts[defn] = value

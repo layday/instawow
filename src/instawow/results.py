@@ -1,11 +1,10 @@
 from __future__ import annotations
 
 from collections.abc import Awaitable, Collection
-from typing import Any, Final, Protocol, TypeVar
+from typing import Any, Final, Protocol, TypeAlias, TypeVar
 
 from attrs import asdict
 from loguru import logger
-from typing_extensions import TypeAlias
 
 from . import pkg_models
 from .common import Strategy, StrategyValues

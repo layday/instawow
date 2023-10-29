@@ -11,11 +11,11 @@ from contextlib import AbstractAsyncContextManager
 from datetime import timedelta
 from functools import cached_property, lru_cache
 from itertools import chain
-from typing import TypeVar
+from typing import TypeAlias, TypeVar
 
 import sqlalchemy as sa
 from loguru import logger
-from typing_extensions import Self, TypeAlias
+from typing_extensions import Self
 
 from . import http, pkg_db
 from ._sources.cfcore import CfCoreResolver

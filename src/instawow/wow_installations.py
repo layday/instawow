@@ -5,8 +5,7 @@ import subprocess
 import sys
 from collections.abc import Iterator
 from pathlib import Path, PurePath
-
-from typing_extensions import TypeAlias
+from typing import TypeAlias
 
 from .common import Flavour
 

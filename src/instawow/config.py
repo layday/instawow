@@ -3,7 +3,6 @@ from __future__ import annotations
 import json
 import os
 import sys
-import typing
 from collections.abc import Callable, Iterable, Mapping, Sized
 from functools import lru_cache, partial
 from pathlib import Path
@@ -207,7 +206,7 @@ class _ConfigMetadata(TypedDict, total=False):
     write_on_disk: bool
 
 
-_AccessToken = typing.Union[SecretStr, None]
+_AccessToken = SecretStr | None
 
 
 @frozen

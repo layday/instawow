@@ -4,14 +4,13 @@ import asyncio
 import contextvars
 import json
 import os
-import typing
 from collections.abc import Awaitable, Callable, Iterator, Set
 from contextlib import AsyncExitStack, contextmanager
 from datetime import datetime
 from functools import partial
 from itertools import chain
 from pathlib import Path
-from typing import Any, Literal, TypeVar
+from typing import Any, Concatenate, Literal, TypeAlias, TypeVar
 
 import aiohttp
 import aiohttp.typedefs
@@ -28,7 +27,7 @@ from aiohttp_rpc.server import WsJsonRpcServer
 from attrs import evolve, frozen
 from cattrs.preconf.json import configure_converter
 from loguru import logger
-from typing_extensions import Concatenate, ParamSpec, TypeAlias, TypedDict
+from typing_extensions import ParamSpec, TypedDict
 from yarl import URL
 
 from instawow import __version__, matchers, pkg_db, pkg_models
@@ -100,7 +99,7 @@ def _transform_validation_errors(
         with_notes, _ = exc.group_exceptions()
         for exc, note in with_notes:
             new_path = (*path, note.index)
-            if isinstance(exc, (cattrs.ClassValidationError, cattrs.IterableValidationError)):
+            if isinstance(exc, cattrs.ClassValidationError | cattrs.IterableValidationError):
                 yield from _transform_validation_errors(
                     exc,
                     new_path,  # pyright: ignore[reportGeneralTypeIssues]
@@ -114,7 +113,7 @@ def _transform_validation_errors(
         with_notes, _ = exc.group_exceptions()
         for exc, note in with_notes:
             new_path = (*path, note.name)
-            if isinstance(exc, (cattrs.ClassValidationError, cattrs.IterableValidationError)):
+            if isinstance(exc, cattrs.ClassValidationError | cattrs.IterableValidationError):
                 yield from _transform_validation_errors(exc, new_path)
             else:
                 yield {
@@ -239,7 +238,7 @@ class ListProfilesParams(BaseParams):
 
 @_register_method('config/update_global')
 class UpdateGlobalConfigParams(BaseParams):
-    access_tokens: dict[str, typing.Union[str, None]]
+    access_tokens: dict[str, str | None]
 
     async def respond(self, managers: _ManagersManager) -> GlobalConfig:
         def update_global_config_cb(global_config: GlobalConfig):
@@ -315,7 +314,7 @@ class SearchParams(_ProfileParamMixin, BaseParams):
     search_terms: str
     limit: int
     sources: set[str]
-    start_date: typing.Union[datetime, None]
+    start_date: datetime | None
     installed_only: bool
 
     async def respond(self, managers: _ManagersManager) -> list[ComputedCatalogueEntry]:
@@ -563,7 +562,7 @@ class SelectFolderResult(TypedDict):
 
 @_register_method('assist/select_folder')
 class SelectFolderParams(BaseParams):
-    initial_folder: typing.Union[str, None]
+    initial_folder: str | None
 
     async def respond(self, managers: _ManagersManager) -> SelectFolderResult:
         main_window, portal = _toga_handle.get()

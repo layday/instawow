@@ -1,14 +1,11 @@
 from __future__ import annotations
 
-import sys
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from functools import partial
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Literal
+from typing import TYPE_CHECKING, Any, Literal, TypeAlias
 
-from loguru import logger
-from typing_extensions import TypeAlias, TypedDict
+from typing_extensions import TypedDict
 
 from . import common
 
@@ -54,23 +51,15 @@ def make_defn_progress_ctx(profile: str, defn: common.Defn) -> _DefnDownloadTrac
 async def init_web_client(
     cache_dir: Path | None, *, no_cache: bool = False, **kwargs: Any
 ) -> AsyncIterator[ClientSessionType]:
+    import ssl
+
+    import truststore
     from aiohttp import ClientSession, ClientTimeout, TCPConnector
 
-    make_connector = partial(TCPConnector, limit_per_host=10)
-
-    if sys.version_info >= (3, 10):
-        import ssl
-
-        import truststore
-
-        logger.info('using truststore')
-
-        make_connector = partial(
-            make_connector, ssl=truststore.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
-        )
+    connector = TCPConnector(limit_per_host=10, ssl=truststore.SSLContext(ssl.PROTOCOL_TLS_CLIENT))
 
     kwargs = {
-        'connector': make_connector(),
+        'connector': connector,
         'headers': {'User-Agent': _USER_AGENT},
         'trust_env': True,  # Respect the ``http(s)_proxy`` env var
         'timeout': ClientTimeout(connect=60, sock_connect=10, sock_read=20),

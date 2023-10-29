@@ -1,18 +1,17 @@
 from __future__ import annotations
 
 import json
-import typing
 from collections.abc import Iterable, Iterator, Mapping, Sequence
 from datetime import timedelta
 from functools import reduce
 from itertools import chain, product
-from typing import Literal
+from typing import Literal, TypeAlias
 
 from attrs import frozen
 from cattrs import Converter
 from loguru import logger
 from typing_extensions import NotRequired as N
-from typing_extensions import TypeAlias, TypedDict
+from typing_extensions import TypedDict
 from yarl import URL
 
 from ..http import CACHE_INDEFINITELY, make_generic_progress_ctx
@@ -59,7 +58,7 @@ _aura_converter.register_unstructure_hook(URL, str)
 class WeakAura:
     id: str
     uid: str
-    parent: typing.Union[str, None] = None
+    parent: str | None = None
     url: URL
     version: int
 

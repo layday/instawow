@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import enum
-import typing
 from collections.abc import Iterable
 from functools import partial
 from typing import Literal, Protocol, TypeVar
@@ -85,14 +84,14 @@ class SourceMetadata:
     name: str
     strategies: frozenset[Strategy]
     changelog_format: ChangelogFormat
-    addon_toc_key: typing.Union[str, None]
+    addon_toc_key: str | None
 
 
 @frozen
 class StrategyValues:
     any_flavour: Literal[True, None] = None
     any_release_type: Literal[True, None] = None
-    version_eq: typing.Union[str, None] = None
+    version_eq: str | None = None
 
     @property
     def filled_strategies(self) -> dict[Strategy, object]:
@@ -109,7 +108,7 @@ _STRATEGY_SEP = ','
 class Defn:
     source: str
     alias: str
-    id: typing.Union[str, None] = None
+    id: str | None = None
     strategies: StrategyValues = StrategyValues()
 
     @classmethod
