@@ -127,22 +127,26 @@ class BaseResolver(Resolver, Protocol):
         return dict(zip(defns, results))
 
     async def get_changelog(self, uri: URL) -> str:
-        if uri.scheme == 'data' and uri.raw_path.startswith(','):
-            return urllib.parse.unquote(uri.raw_path[1:])
-        elif uri.scheme in {'http', 'https'}:
-            async with self._manager_ctx.web_client.get(
-                uri,
-                expire_after=http.CACHE_INDEFINITELY,
-                headers=await self.make_request_headers(),
-                raise_for_status=True,
-            ) as response:
-                return await response.text()
-        elif uri.scheme == 'file':
-            return await run_in_thread(Path(file_uri_to_path(str(uri))).read_text)(
-                encoding='utf-8'
-            )
-        else:
-            raise ValueError('Unsupported URI with scheme', uri.scheme)
+        match uri.scheme:
+            case 'data' if uri.raw_path.startswith(','):
+                return urllib.parse.unquote(uri.raw_path[1:])
+
+            case 'file':
+                return await run_in_thread(Path(file_uri_to_path(str(uri))).read_text)(
+                    encoding='utf-8'
+                )
+
+            case 'http' | 'https':
+                async with self._manager_ctx.web_client.get(
+                    uri,
+                    expire_after=http.CACHE_INDEFINITELY,
+                    headers=await self.make_request_headers(),
+                    raise_for_status=True,
+                ) as response:
+                    return await response.text()
+
+            case _:
+                raise ValueError('Unsupported URI with scheme', uri.scheme)
 
     async def get_folder_hash_matches(
         self, candidates: Collection[TFolderHashCandidate]

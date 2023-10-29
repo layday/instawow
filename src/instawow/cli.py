@@ -66,12 +66,13 @@ class Report:
 
     @classmethod
     def _result_type_to_symbol(cls, result: R.Result) -> str:
-        if isinstance(result, R.InternalError):
-            return cls.WARNING_SYMBOL
-        elif isinstance(result, R.ManagerError):
-            return cls.FAILURE_SYMBOL
-        else:
-            return cls.SUCCESS_SYMBOL
+        match result:
+            case R.InternalError():
+                return cls.WARNING_SYMBOL
+            case R.ManagerError():
+                return cls.FAILURE_SYMBOL
+            case _:
+                return cls.SUCCESS_SYMBOL
 
     def __str__(self) -> str:
         return '\n'.join(
@@ -834,44 +835,49 @@ def list_installed(mw: _CtxObjWrapper, addons: Sequence[Defn], output_format: _L
             .all()
         )
 
-        if output_format is _ListFormat.Json:
-            from cattrs.preconf.json import make_converter
+        match output_format:
+            case _ListFormat.Json:
+                from cattrs.preconf.json import make_converter
 
-            json_converter = make_converter()
-            click.echo(
-                json_converter.dumps(
-                    row_mappings_to_pkgs(),
-                    list[pkg_models.Pkg],
-                    indent=2,
-                )
-            )
-
-        elif output_format is _ListFormat.Detailed:
-            formatter = click.HelpFormatter(max_width=99)
-            for pkg in row_mappings_to_pkgs():
-                with formatter.section(pkg.to_defn().as_uri()):
-                    formatter.write_dl(
-                        [
-                            ('name', pkg.name),
-                            ('description', textwrap.shorten(pkg.description, 280)),
-                            ('url', pkg.url),
-                            ('version', pkg.version),
-                            ('date published', pkg.date_published.astimezone().ctime()),
-                            ('folders', ', '.join(f.name for f in pkg.folders)),
-                            ('dependencies', ', '.join(format_deps(pkg))),
-                            (
-                                'options',
-                                '; '.join(f'{s}={v!r}' for s, v in asdict(pkg.options).items()),
-                            ),
-                        ]
+                json_converter = make_converter()
+                click.echo(
+                    json_converter.dumps(
+                        row_mappings_to_pkgs(),
+                        list[pkg_models.Pkg],
+                        indent=2,
                     )
-            click.echo(formatter.getvalue(), nl=False)
+                )
 
-        else:
-            click.echo(
-                ''.join(f'{Defn(p["source"], p["slug"]).as_uri()}\n' for p in pkg_mappings),
-                nl=False,
-            )
+            case _ListFormat.Detailed:
+                formatter = click.HelpFormatter(max_width=99)
+
+                for pkg in row_mappings_to_pkgs():
+                    with formatter.section(pkg.to_defn().as_uri()):
+                        formatter.write_dl(
+                            [
+                                ('name', pkg.name),
+                                ('description', textwrap.shorten(pkg.description, 280)),
+                                ('url', pkg.url),
+                                ('version', pkg.version),
+                                ('date published', pkg.date_published.astimezone().ctime()),
+                                ('folders', ', '.join(f.name for f in pkg.folders)),
+                                ('dependencies', ', '.join(format_deps(pkg))),
+                                (
+                                    'options',
+                                    '; '.join(
+                                        f'{s}={v!r}' for s, v in asdict(pkg.options).items()
+                                    ),
+                                ),
+                            ]
+                        )
+
+                click.echo(formatter.getvalue(), nl=False)
+
+            case _ListFormat.Simple:
+                click.echo(
+                    ''.join(f'{Defn(p["source"], p["slug"]).as_uri()}\n' for p in pkg_mappings),
+                    nl=False,
+                )
 
 
 @cli.command(hidden=True)

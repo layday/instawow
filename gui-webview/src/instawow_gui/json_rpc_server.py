@@ -95,31 +95,34 @@ def _transform_validation_errors(
     exc: cattrs.ClassValidationError | cattrs.IterableValidationError | BaseException,
     path: tuple[str | int, ...] = (),
 ) -> Iterator[_ValidationErrorResponse]:
-    if isinstance(exc, cattrs.IterableValidationError):
-        with_notes, _ = exc.group_exceptions()
-        for exc, note in with_notes:
-            new_path = (*path, note.index)
-            if isinstance(exc, cattrs.ClassValidationError | cattrs.IterableValidationError):
-                yield from _transform_validation_errors(
-                    exc,
-                    new_path,  # pyright: ignore[reportGeneralTypeIssues]
-                )
-            else:
-                yield {
-                    'path': new_path,  # pyright: ignore[reportGeneralTypeIssues]
-                    'message': str(exc),
-                }
-    elif isinstance(exc, cattrs.ClassValidationError):
-        with_notes, _ = exc.group_exceptions()
-        for exc, note in with_notes:
-            new_path = (*path, note.name)
-            if isinstance(exc, cattrs.ClassValidationError | cattrs.IterableValidationError):
-                yield from _transform_validation_errors(exc, new_path)
-            else:
-                yield {
-                    'path': new_path,
-                    'message': str(exc),
-                }
+    match exc:
+        case cattrs.IterableValidationError():
+            with_notes, _ = exc.group_exceptions()
+            for exc, note in with_notes:
+                new_path = (*path, note.index)
+                if isinstance(exc, cattrs.ClassValidationError | cattrs.IterableValidationError):
+                    yield from _transform_validation_errors(
+                        exc,
+                        new_path,  # pyright: ignore[reportGeneralTypeIssues]
+                    )
+                else:
+                    yield {
+                        'path': new_path,  # pyright: ignore[reportGeneralTypeIssues]
+                        'message': str(exc),
+                    }
+        case cattrs.ClassValidationError():
+            with_notes, _ = exc.group_exceptions()
+            for exc, note in with_notes:
+                new_path = (*path, note.name)
+                if isinstance(exc, cattrs.ClassValidationError | cattrs.IterableValidationError):
+                    yield from _transform_validation_errors(exc, new_path)
+                else:
+                    yield {
+                        'path': new_path,
+                        'message': str(exc),
+                    }
+        case _:
+            pass
 
 
 @contextmanager

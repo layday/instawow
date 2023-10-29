@@ -52,7 +52,7 @@ async def test_resolve_flavourful_addon(
     Flavour,
     indirect=True,
 )
-async def test_resolve_classic_onlu_addon(
+async def test_resolve_classic_only_addon(
     iw_manager_ctx: ManagerCtx,
     curse_resolver: CfCoreResolver,
 ):
@@ -60,19 +60,17 @@ async def test_resolve_classic_onlu_addon(
 
     result = (await curse_resolver.resolve([defn]))[defn]
 
-    if (
-        iw_manager_ctx.config.game_flavour is Flavour.VanillaClassic
-        or iw_manager_ctx.config.game_flavour is Flavour.Classic
-    ):
-        assert type(result) is Pkg
-    elif iw_manager_ctx.config.game_flavour is Flavour.Retail:
-        assert type(result) is PkgFilesNotMatching
-        assert (
-            result.message
-            == f'no files found for: {Strategy.AnyFlavour}=None; {Strategy.AnyReleaseType}=None; {Strategy.VersionEq}=None'
-        )
-    else:
-        assert_never(iw_manager_ctx.config.game_flavour)
+    match iw_manager_ctx.config.game_flavour:
+        case Flavour.VanillaClassic | Flavour.Classic:
+            assert type(result) is Pkg
+        case Flavour.Retail:
+            assert type(result) is PkgFilesNotMatching
+            assert (
+                result.message
+                == f'no files found for: {Strategy.AnyFlavour}=None; {Strategy.AnyReleaseType}=None; {Strategy.VersionEq}=None'
+            )
+        case _:
+            assert_never(iw_manager_ctx.config.game_flavour)
 
 
 async def test_curse_any_flavour_strategy(
