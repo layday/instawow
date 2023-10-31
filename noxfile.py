@@ -80,7 +80,7 @@ def lint(session: nox.Session):
             loguru == 0.7.2
             mako == 1.2.4
             packaging == 23.0
-            pluggy == 0.13.0
+            pluggy == 1.3.0
             prompt-toolkit == 3.0.29
             questionary == 1.10.0
             rapidfuzz == 3.3.0
