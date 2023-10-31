@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import asyncio
 import json
 import shutil
 from collections.abc import Callable as C
@@ -22,7 +21,7 @@ from instawow.config import Config
 
 
 @pytest.fixture(autouse=True, scope='module')
-def __mock_pt_progress_bar():
+def _iw_mock_pt_progress_bar():
     monkeypatch = pytest.MonkeyPatch()
     monkeypatch.setattr('prompt_toolkit.shortcuts.progress_bar.ProgressBar', mock.MagicMock())
     yield
@@ -36,12 +35,15 @@ def feed_pt():
 
 
 @pytest.fixture
-def run(
+async def run(
     monkeypatch: pytest.MonkeyPatch,
-    event_loop: asyncio.AbstractEventLoop,
     iw_config: Config,
 ):
-    monkeypatch.setattr('asyncio.run', event_loop.run_until_complete)
+    import asyncio
+
+    loop = asyncio.get_running_loop()
+    monkeypatch.setattr('asyncio.run', loop.run_until_complete)
+
     return partial(CliRunner().invoke, cli, catch_exceptions=False)
 
 

@@ -167,14 +167,14 @@ async def test_install_cannot_replace_reconciled_folders(
 
 async def test_install_recognises_renamed_pkg_from_id(
     monkeypatch: pytest.MonkeyPatch,
-    aresponses: ResponsesMockServer,
+    iw_aresponses: ResponsesMockServer,
     iw_manager: PkgManager,
 ):
-    aresponses.add(
+    iw_aresponses.add(
         'api.github.com',
         '/repos/p3lim-wow/molinarifico',
         'get',
-        aresponses.Response(status=404),
+        iw_aresponses.Response(status=404),
     )
 
     old_defn = Defn('github', 'p3lim-wow/molinari')

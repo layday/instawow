@@ -64,7 +64,7 @@ toga = { version = ">=0.3.0", optional = true }
 aresponses = { version = ">=2.1.4", optional = true }
 coverage = { version = ">=6.2", extras = ["toml"], optional = true }
 pytest = { version = ">=6.2.5", optional = true }
-pytest-asyncio = { version = ">=0.17.0", optional = true }
+pytest-asyncio = { version = ">=0.22.0", optional = true }
 pytest-xdist = { version = ">=2.5.0", optional = true }
 
 [tool.poetry.extras]
@@ -156,6 +156,7 @@ xfail_strict = true
 filterwarnings = [
   "error",
   'ignore:datetime\.datetime\.utcnow\(\) is deprecated:DeprecationWarning:aiohttp_client_cache',
+  'ignore:aresponses is asynchronous and explicitly requests the "event_loop" fixture:pytest.PytestDeprecationWarning:pytest_asyncio',
 ]
 asyncio_mode = "auto"
 addopts = ["-ra", "--strict-config", "--strict-markers"]

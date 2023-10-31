@@ -94,7 +94,7 @@ def package_json_less_addon(
     indirect=True,
 )
 async def test_extracting_flavour_from_zip_contents(
-    aresponses: ResponsesMockServer,
+    iw_aresponses: ResponsesMockServer,
     iw_manager_ctx: ManagerCtx,
     github_resolver: GithubResolver,
     package_json_less_addon: tuple[bytes, set[Flavour]],
@@ -107,12 +107,12 @@ async def test_extracting_flavour_from_zip_contents(
         await response.prepare(request)
         return response
 
-    aresponses.add(
+    iw_aresponses.add(
         'api.github.com',
         re.compile(r'^/repos(/[^/]*){2}/releases/assets/'),
         'get',
         handle_request,
-        repeat=aresponses.INFINITY,
+        repeat=iw_aresponses.INFINITY,
     )
 
     addon, flavours = package_json_less_addon
@@ -183,12 +183,12 @@ async def test_changelog_is_data_url(
 )
 async def test_mismatched_release_is_skipped_and_logged(
     caplog: pytest.LogCaptureFixture,
-    aresponses: ResponsesMockServer,
+    iw_aresponses: ResponsesMockServer,
     github_resolver: GithubResolver,
     flavor: str,
     interface: int,
 ):
-    aresponses.add(
+    iw_aresponses.add(
         'api.github.com',
         re.compile(r'^/repos/nebularg/PackagerTest/releases/assets/'),
         'GET',

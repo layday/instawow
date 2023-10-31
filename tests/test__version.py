@@ -15,7 +15,7 @@ from instawow.config import GlobalConfig
 )
 async def test_is_outdated_works_in_variety_of_scenarios(
     monkeypatch: pytest.MonkeyPatch,
-    aresponses: ResponsesMockServer,
+    iw_aresponses: ResponsesMockServer,
     iw_global_config_values: dict[str, object],
 ):
     global_config = GlobalConfig.from_values(iw_global_config_values).write()
@@ -31,18 +31,18 @@ async def test_is_outdated_works_in_variety_of_scenarios(
     # Endpoint not responsive, version not cached
     with monkeypatch.context() as patcher:
         patcher.setattr('instawow.__version__', '0.1.0')
-        aresponses.add(
+        iw_aresponses.add(
             'pypi.org',
             '/simple/instawow',
             'get',
-            aresponses.Response(status=500),
+            iw_aresponses.Response(status=500),
         )
         assert await is_outdated(global_config) == (False, '0.1.0')
 
     # Endpoint responsive, version not cached and version different
     with monkeypatch.context() as patcher:
         patcher.setattr('instawow.__version__', '0.1.0')
-        aresponses.add(
+        iw_aresponses.add(
             'pypi.org',
             '/simple/instawow',
             'get',
@@ -61,18 +61,18 @@ async def test_is_outdated_works_in_variety_of_scenarios(
     # Endpoint not responsive, version cached
     with monkeypatch.context() as patcher:
         patcher.setattr('instawow.__version__', '0.1.0')
-        aresponses.add(
+        iw_aresponses.add(
             'pypi.org',
             '/simple/instawow',
             'get',
-            aresponses.Response(status=500),
+            iw_aresponses.Response(status=500),
         )
         assert await is_outdated(global_config) == (True, '1.0.0')
 
     # Endpoint responsive, version cached and version same
     with monkeypatch.context() as patcher:
         patcher.setattr('instawow.__version__', '0.1.0')
-        aresponses.add(
+        iw_aresponses.add(
             'pypi.org',
             '/simple/instawow',
             'get',
@@ -83,7 +83,7 @@ async def test_is_outdated_works_in_variety_of_scenarios(
     # Endpoint responsive, version cached and version different
     with monkeypatch.context() as patcher:
         patcher.setattr('instawow.__version__', '1.0.0')
-        aresponses.add(
+        iw_aresponses.add(
             'pypi.org',
             '/simple/instawow',
             'get',

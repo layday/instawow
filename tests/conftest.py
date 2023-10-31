@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import asyncio
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
@@ -62,8 +61,8 @@ class _StrictResponsesMockServer(ResponsesMockServer):
 
 
 @pytest.fixture
-async def aresponses(event_loop: asyncio.AbstractEventLoop):
-    async with _StrictResponsesMockServer(loop=event_loop) as server:
+async def iw_aresponses():
+    async with _StrictResponsesMockServer() as server:
         yield server
 
 
@@ -96,7 +95,7 @@ def iw_config(iw_config_values: dict[str, Any], iw_global_config_values: dict[st
 
 
 @pytest.fixture(autouse=True)
-async def _iw_global_config_defaults(
+def _iw_global_config_defaults(
     monkeypatch: pytest.MonkeyPatch,
     iw_global_config_values: dict[str, Any],
 ):
@@ -125,7 +124,7 @@ def iw_manager(iw_manager_ctx: ManagerCtx):
 @pytest.fixture(autouse=True, params=['all'])
 @should_mock
 def _iw_mock_aiohttp_requests(
-    request: pytest.FixtureRequest, aresponses: _StrictResponsesMockServer
+    request: pytest.FixtureRequest, iw_aresponses: _StrictResponsesMockServer
 ):
     if request.param == 'all':
         routes = ROUTES.values()
@@ -136,4 +135,4 @@ def _iw_mock_aiohttp_requests(
         routes = (ROUTES[k] for k in ROUTES.keys() & request.param)
 
     for route in routes:
-        aresponses.add(**route.to_aresponses_add_args())
+        iw_aresponses.add(**route.to_aresponses_add_args())
