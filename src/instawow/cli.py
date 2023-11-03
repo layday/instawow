@@ -1355,7 +1355,4 @@ def gui(ctx: click.Context) -> None:
     params = ctx.find_root().params
     setup_logging(dummy_jsonrpc_config.logging_dir, *params['debug'])
 
-    InstawowApp(
-        debug=any(params['debug']),
-        version=__version__,
-    ).main_loop()  # pyright: ignore[reportUnknownMemberType]
+    InstawowApp(debug=any(params['debug']), version=__version__).main_loop()

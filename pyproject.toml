@@ -59,7 +59,7 @@ yarl = ">=1.9.2"
 
 aiohttp-rpc = { version = ">=1.0.0", optional = true }
 anyio = { version = ">=3.6.2", optional = true }
-toga = { version = ">=0.3.0", optional = true }
+toga = { version = ">=0.4.0", optional = true }
 
 aresponses = { version = ">=2.1.4", optional = true }
 coverage = { version = ">=6.2", extras = ["toml"], optional = true }

@@ -5,15 +5,14 @@ import json
 import sys
 from contextlib import suppress
 from functools import partial
-from typing import Any
+from typing import cast
 
 import anyio.from_thread
 import anyio.to_thread
 import toga
 import toga.constants
-import toga.style
+import toga.style.pack
 from loguru import logger
-from typing_extensions import Self
 
 from instawow.utils import StrEnum
 
@@ -28,7 +27,9 @@ class _TogaSimulateKeypressAction(StrEnum):
 
 
 class InstawowApp(toga.App):
-    def __init__(self, debug: bool, **kwargs: object) -> None:
+    def __init__(self, debug: bool, **kwargs) -> None:
+        self.__debug = debug
+
         super().__init__(
             formal_name='instawow-gui',
             app_id='org.instawow.instawow_gui',
@@ -36,9 +37,8 @@ class InstawowApp(toga.App):
             icon='resources/instawow_gui',
             **kwargs,
         )
-        self._debug = debug
 
-    def startup(self) -> None:
+    def startup(self, **kwargs) -> None:
         self.main_window = toga.MainWindow(title=self.formal_name, size=(800, 600))
 
         if sys.platform == 'win32':
@@ -47,30 +47,34 @@ class InstawowApp(toga.App):
             # Enable high DPI support.
             ctypes.windll.user32.SetProcessDPIAware()
 
-        self.main_window.content = web_view = toga.WebView(style=toga.style.Pack(flex=1))
+        self.main_window.content = web_view = toga.WebView(style=toga.style.pack.Pack(flex=1))
 
-        if self._debug:
+        if self.__debug:
             with suppress(AttributeError):
                 web_view._impl.native.configuration.preferences.setValue(
                     True, forKey='developerExtrasEnabled'
                 )
 
         if sys.platform == 'win32':
-            from toga_winforms.widgets.webview import TogaWebBrowser
+            web_view_impl = web_view._impl
 
-            def configure_webview2(sender: TogaWebBrowser, event_args: Any):
+            def configure_webview2(sender, event_args):
                 if event_args.IsSuccess:
-                    sender.CoreWebView2.Settings.AreBrowserAcceleratorKeysEnabled = False
+                    web_view_impl.native.CoreWebView2.Settings.AreBrowserAcceleratorKeysEnabled = (
+                        False
+                    )
 
-            web_view._impl.native.CoreWebView2InitializationCompleted += configure_webview2
+            web_view_impl.native.CoreWebView2InitializationCompleted += configure_webview2
 
-        def dispatch_js_keyboard_event(_: toga.Command, *, action: str):
+        def dispatch_js_keyboard_event(command: toga.Command, **kwargs):
             event_args = json.dumps(
-                {'detail': {'action': action}, 'bubbles': True, 'cancelable': True}
+                {'detail': {'action': kwargs['action']}, 'bubbles': True, 'cancelable': True}
             )
-            web_view.invoke_javascript(
+            web_view.evaluate_javascript(
                 f'document.dispatchEvent(new CustomEvent("togaSimulateKeypress", {event_args}));'
             )
+
+            return True
 
         self.commands.add(
             toga.Command(
@@ -80,10 +84,12 @@ class InstawowApp(toga.App):
                 ),
                 text='Toggle Search Filter',
                 shortcut=toga.Key.MOD_1 + toga.Key.G,
-                group=toga.Group.EDIT,  # pyright: ignore  # noqa: PGH003
+                group=cast(toga.Group, toga.Group.EDIT),
                 section=20,
                 order=10,
             ),
+        )
+        self.commands.add(
             toga.Command(
                 partial(
                     dispatch_js_keyboard_event,
@@ -91,20 +97,24 @@ class InstawowApp(toga.App):
                 ),
                 text='Installed',
                 shortcut=toga.Key.MOD_1 + toga.Key.L,
-                group=toga.Group.WINDOW,  # pyright: ignore  # noqa: PGH003
+                group=cast(toga.Group, toga.Group.WINDOW),
                 section=20,
                 order=10,
             ),
+        )
+        self.commands.add(
             toga.Command(
                 partial(
                     dispatch_js_keyboard_event,
                     action=_TogaSimulateKeypressAction.ActivateViewReconcile,
                 ),
                 text='Unreconciled',
-                group=toga.Group.WINDOW,  # pyright: ignore  # noqa: PGH003
+                group=cast(toga.Group, toga.Group.WINDOW),
                 section=20,
                 order=20,
             ),
+        )
+        self.commands.add(
             toga.Command(
                 partial(
                     dispatch_js_keyboard_event,
@@ -112,18 +122,18 @@ class InstawowApp(toga.App):
                 ),
                 text='Search',
                 shortcut=toga.Key.MOD_1 + toga.Key.F,
-                group=toga.Group.WINDOW,  # pyright: ignore  # noqa: PGH003
+                group=cast(toga.Group, toga.Group.WINDOW),
                 section=20,
                 order=30,
             ),
         )
 
-        async def startup(app: Self):
+        async def startup():
             async with anyio.from_thread.BlockingPortal() as portal:
 
                 def run_json_rpc_server():
                     async def run():
-                        web_app = await json_rpc_server.create_app((app.main_window, portal))
+                        web_app = await json_rpc_server.create_app((self.main_window, portal))
                         server_url, serve_forever = await json_rpc_server.run_app(web_app)
 
                         logger.debug(f'JSON-RPC server running on {server_url}')
@@ -142,5 +152,5 @@ class InstawowApp(toga.App):
 
                 await portal.sleep_until_stopped()
 
-        self.add_background_task(startup)
+        self.__main_task = self.loop.create_task(startup())
         self.main_window.show()
