@@ -186,10 +186,11 @@ class WaCompanionBuilder:
                 yield aura_group
 
     async def _fetch_wago_metadata(self, api_ep: str, aura_ids: Iterable[str]):
-        async with self._manager_ctx.web_client.get(
-            (_CHECK_API_URL / api_ep).with_query(ids=','.join(aura_ids)),
+        async with self._manager_ctx.web_client.post(
+            (_CHECK_API_URL / api_ep),
             expire_after=timedelta(minutes=30),
             headers=self._make_request_headers(),
+            json={'ids': list(aura_ids)},
             trace_request_ctx=make_generic_progress_ctx('Fetching aura metadata'),
         ) as response:
             metadata: list[_WagoApiResponse]
