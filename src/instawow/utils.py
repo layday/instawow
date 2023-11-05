@@ -19,7 +19,7 @@ from collections.abc import (
     Set,
 )
 from contextlib import contextmanager
-from functools import partial, wraps
+from functools import wraps
 from itertools import chain, groupby, islice, repeat
 from pathlib import Path, PurePath
 from shutil import move
@@ -144,8 +144,7 @@ async def gather(
 def run_in_thread(fn: Callable[_P, _U]) -> Callable[_P, Awaitable[_U]]:
     @wraps(fn)
     def wrapper(*args: _P.args, **kwargs: _P.kwargs):
-        loop = asyncio.get_running_loop()
-        return loop.run_in_executor(None, partial(fn, *args, **kwargs))
+        return asyncio.to_thread(fn, *args, **kwargs)
 
     return wrapper
 
