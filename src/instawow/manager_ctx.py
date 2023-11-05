@@ -11,7 +11,7 @@ from contextlib import AbstractAsyncContextManager
 from datetime import timedelta
 from functools import cached_property, lru_cache
 from itertools import chain
-from typing import TypeAlias, TypeVar
+from typing import TypeAlias
 
 import sqlalchemy as sa
 from loguru import logger
@@ -38,9 +38,6 @@ from .utils import (
 )
 
 _LOAD_CATALOGUE_LOCK = '_LOAD_CATALOGUE_'
-
-
-_T = TypeVar('_T')
 
 
 class _DummyLock:
