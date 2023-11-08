@@ -62,7 +62,7 @@ anyio = { version = ">=3.6.2", optional = true }
 toga = { version = ">=0.4.0", optional = true }
 
 aresponses = { version = ">=2.1.4", optional = true }
-coverage = { version = ">=6.2", extras = ["toml"], optional = true }
+coverage = { version = ">=7.3.2", extras = ["toml"], optional = true }
 pytest = { version = ">=7.4.0", optional = true }
 pytest-asyncio = { version = ">=0.21.1", optional = true }
 pytest-xdist = { version = ">=2.5.0", optional = true }
@@ -142,8 +142,7 @@ dynamic_context = "test_function"
 combine = ["src/instawow", "**/instawow"]
 
 [tool.coverage.report]
-exclude_lines = [
-  "pragma: no cover",
+exclude_also = [
   "raise NotImplementedError",
   "@overload",
 ]
