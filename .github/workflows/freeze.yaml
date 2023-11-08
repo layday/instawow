@@ -56,7 +56,7 @@ jobs:
           - os: macos-12
             python-version: "3.11"
             briefcase-build-opts: ""
-            briefcase-package-opts: "--adhoc-sign"
+            briefcase-package-opts: ""
           - os: ubuntu-20.04
             python-version: "3.11"
             briefcase-build-opts: "linux appimage --no-docker"
