@@ -1,5 +1,5 @@
 [build-system]
-requires = ["poetry-core >=1.7.0", "poetry-dynamic-versioning >=1.0.1"]
+requires = ["poetry-core>=1.7.0", "poetry-dynamic-versioning>=1.0.1"]
 build-backend = "poetry_dynamic_versioning.backend"
 
 # Not used by Poetry -- solely for Ruff's benefit.
