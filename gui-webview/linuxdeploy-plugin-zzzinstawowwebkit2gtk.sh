@@ -100,5 +100,5 @@ done
 RUNNER="$APPDIR/usr/bin/org.instawow.instawow-gui-wrapper"
 echo "#!/bin/bash
 export PYTHONPATH=\$APPDIR/usr/app:\$APPDIR/usr/app_packages
-\$APPDIR/usr/bin/proot" "${proot_args[@]}" "\$APPDIR/usr/bin/python3 -s -m instawow_gui_wrapper \"\$@\"
+\$APPDIR/usr/bin/proot" "${proot_args[@]}" "\$APPDIR/usr/python/bin/python3 -s -m instawow_gui_wrapper \"\$@\"
 " > "$RUNNER"
