@@ -8,12 +8,11 @@ from instawow.common import Flavour, FlavourVersionRange
 def test_can_convert_between_flavour_keyed_enum_and_flavour():
     class Foo(Enum):
         Retail = 1
+        VanillaClassic = 2
+        Classic = 3
 
     assert Flavour.from_flavour_keyed_enum(Foo.Retail) is Flavour.Retail
-    assert (
-        Flavour.Retail.to_flavour_keyed_enum(Foo)  # pyright: ignore[reportGeneralTypeIssues]
-        is Foo.Retail
-    )
+    assert Flavour.Retail.to_flavour_keyed_enum(Foo) is Foo.Retail
 
 
 def test_can_extract_flavour_from_version_number():

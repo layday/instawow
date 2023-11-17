@@ -309,7 +309,7 @@ class Config:
     game_flavour: Flavour = field(metadata=_ConfigMetadata(from_env=True, write_on_disk=True))
 
     @classmethod
-    def make_dummy_config(cls, **values: object) -> Self:
+    def make_dummy_config(cls, **values: object) -> Config:
         return object.__new__(type(f'Dummy{cls.__name__}', (cls,), values))
 
     @classmethod

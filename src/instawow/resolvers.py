@@ -159,5 +159,5 @@ class BaseResolver(Resolver, Protocol):
         yield
 
 
-class _DummyResolver(Resolver):  # pyright: ignore  # noqa: PGH003
+class _DummyResolver(Resolver):  # pyright: ignore[reportGeneralTypeIssues]
     pass

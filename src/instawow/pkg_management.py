@@ -89,7 +89,8 @@ def _open_pkg_archive(path: PurePath):
     with ZipFile(path) as archive:
 
         def extract(parent: Path) -> None:
-            archive.extractall(parent, members=filter(make_zip_member_filter_fn(base_dirs), names))
+            should_extract = make_zip_member_filter_fn(base_dirs)
+            archive.extractall(parent, members=(n for n in names if should_extract(n)))
 
         names = archive.namelist()
         base_dirs = {h for _, h in find_addon_zip_tocs(names)}

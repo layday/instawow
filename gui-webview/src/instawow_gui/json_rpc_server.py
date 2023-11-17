@@ -99,15 +99,13 @@ def _transform_validation_errors(
         case cattrs.IterableValidationError():
             with_notes, _ = exc.group_exceptions()
             for exc, note in with_notes:
+                assert isinstance(note.index, str | int)  # Dummy assert for type checking.
                 new_path = (*path, note.index)
                 if isinstance(exc, cattrs.ClassValidationError | cattrs.IterableValidationError):
-                    yield from _transform_validation_errors(
-                        exc,
-                        new_path,  # pyright: ignore[reportGeneralTypeIssues]
-                    )
+                    yield from _transform_validation_errors(exc, new_path)
                 else:
                     yield {
-                        'path': new_path,  # pyright: ignore[reportGeneralTypeIssues]
+                        'path': new_path,
                         'message': str(exc),
                     }
         case cattrs.ClassValidationError():
