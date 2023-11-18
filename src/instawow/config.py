@@ -185,7 +185,7 @@ def _get_default_config_dir():
 
 
 def _get_default_temp_dir():
-    return Path(gettempdir(), _BOTTOM_DIR_NAME)
+    return Path(gettempdir(), f'{_BOTTOM_DIR_NAME}t')
 
 
 def _get_default_state_dir():
