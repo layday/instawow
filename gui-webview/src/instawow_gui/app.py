@@ -150,7 +150,11 @@ class InstawowApp(toga.App):
 
                 await anyio.to_thread.run_sync(run_json_rpc_server)
 
-                await portal.sleep_until_stopped()
+        main_task = self.loop.create_task(startup())
 
-        self.__main_task = self.loop.create_task(startup())
+        def on_exit(app: toga.App, **kwargs):
+            return main_task.cancel()
+
+        self.on_exit = on_exit
+
         self.main_window.show()
