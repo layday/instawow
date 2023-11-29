@@ -45,6 +45,7 @@ from .utils import (
 
 _P = ParamSpec('_P')
 _T = TypeVar('_T')
+_TPkgManager = TypeVar('_TPkgManager', bound='PkgManager')
 
 _AsyncNamedTemporaryFile = run_in_thread(NamedTemporaryFile)
 _move_async = run_in_thread(move)
@@ -108,10 +109,10 @@ class _DummyResolver:
 
 def _with_lock(lock_name: str):
     def outer(
-        coro_fn: Callable[Concatenate[PkgManager, _P], Awaitable[_T]]
-    ) -> Callable[Concatenate[PkgManager, _P], Awaitable[_T]]:
+        coro_fn: Callable[Concatenate[_TPkgManager, _P], Awaitable[_T]]
+    ) -> Callable[Concatenate[_TPkgManager, _P], Awaitable[_T]]:
         @wraps(coro_fn)
-        async def inner(self: PkgManager, *args: _P.args, **kwargs: _P.kwargs) -> _T:
+        async def inner(self: _TPkgManager, *args: _P.args, **kwargs: _P.kwargs) -> _T:
             async with self.ctx.locks[lock_name, id(self)]:
                 return await coro_fn(self, *args, **kwargs)
 

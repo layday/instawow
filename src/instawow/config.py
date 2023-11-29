@@ -116,11 +116,11 @@ def _read_env_vars(config_cls: Any, values: Mapping[str, object]):
     }
 
 
-def _make_attrs_instance_hook_factory(converter: Converter, type_: type):
+def _make_attrs_instance_hook_factory(converter: Converter, type_: type[Any]):
     'Allow passing in a structured attrs instance to ``structure``.'
     structure = converter.gen_structure_attrs_fromdict(type_)
 
-    def structure_wrapper(value: Mapping[str, Any], type_: type):
+    def structure_wrapper(value: Mapping[str, Any], type_: type[Any]):
         return value if isinstance(value, type_) else structure(value, type_)
 
     return structure_wrapper
