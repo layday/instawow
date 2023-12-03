@@ -37,8 +37,8 @@ If you'd prefer to install *instawow* from source, you are able to choose from:
 - Vanilla pip:
   ``python -m pip install -U instawow`` or ``python -m pip install -U instawow[gui]`` for the GUI
 
-If you run NixOS, the CLI-only version of instawow is packaged as the
-``instawow`` package.
+If you run `Nix or NixOS <https://nixos.org/>`__, the CLI-only version of *instawow*
+is available as the ``instawow`` package.
 
 CLI operation
 -------------
