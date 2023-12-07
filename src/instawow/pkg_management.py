@@ -109,7 +109,7 @@ class _DummyResolver:
 
 def _with_lock(lock_name: str):
     def outer(
-        coro_fn: Callable[Concatenate[_TPkgManager, _P], Awaitable[_T]]
+        coro_fn: Callable[Concatenate[_TPkgManager, _P], Awaitable[_T]],
     ) -> Callable[Concatenate[_TPkgManager, _P], Awaitable[_T]]:
         @wraps(coro_fn)
         async def inner(self: _TPkgManager, *args: _P.args, **kwargs: _P.kwargs) -> _T:
