@@ -5,7 +5,7 @@ from collections.abc import Iterable, Iterator, Mapping, Sequence
 from datetime import timedelta
 from functools import reduce
 from itertools import chain, product
-from typing import Literal, TypeAlias
+from typing import Literal, TypeAlias, cast
 
 from attrs import frozen
 from cattrs import Converter
@@ -106,7 +106,7 @@ class Plateroos:
     def from_lua_table(cls, lua_table: _LuaTable):
         raw_auras = lua_table['PlaterDB']['profiles']
         auras = (
-            Plateroo.from_lua_table(t)
+            Plateroo.from_lua_table(cast(_LuaTable, t))
             for n, p in raw_auras.items()
             for t in chain(
                 ({**p, 'Name': f'__profile_{n}__'},),
