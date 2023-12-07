@@ -1,6 +1,6 @@
 { pkgs ? import <nixpkgs> { } }:
 let
-  python = pkgs.python311;
+  python = pkgs.python312;
   venvDir = toString ./venvs + ("/" + python.pythonVersion);
 in
 pkgs.mkShell {
@@ -16,13 +16,12 @@ pkgs.mkShell {
   VIRTUAL_ENV_DISABLE_PROMPT = "1";
   SOURCE_DATE_EPOCH = "315532800"; # The year 1980
   PYTHONBREAKPOINT = "IPython.terminal.debugger.set_trace";
-  PIP_ONLY_BINARY = ":all:";
+  # PIP_ONLY_BINARY = ":all:";
 
   inherit venvDir;
 
   postVenvCreation = ''
     python -m pip install -U pip ipython nox
-    python -m pip uninstall -y setuptools
     python -m pip install -e ".[gui, test]"
   '';
 }
