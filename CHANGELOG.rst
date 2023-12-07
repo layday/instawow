@@ -1,10 +1,17 @@
 Changelog
 =========
 
-v3.1.1
+v3.2.0
 ------
 
 - Added support for Python 3.12.
+
+CLI
+~~~
+
+- The CLI is now bundled as a single-file self-extracting
+  executable using `PyApp <https://github.com/ofek/pyapp>`_
+  instead of PyInstaller.
 
 GUI
 ~~~
