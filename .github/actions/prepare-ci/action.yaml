@@ -6,7 +6,7 @@ runs:
       run: pipx install nox
       shell: bash
     - name: Install Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-install-version || matrix.python-version }}
     - name: Install libgirepository

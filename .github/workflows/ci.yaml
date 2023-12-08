@@ -16,7 +16,7 @@ jobs:
       wheel-name: ${{ steps.build-package.outputs.wheel-name }}
     steps:
       - name: Clone the repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - name: Build package
@@ -37,7 +37,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - name: Clone the repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Download pre-built wheel
         uses: actions/download-artifact@v3
         id: download-wheel
@@ -81,7 +81,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - name: Clone the repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Download pre-built wheel
         uses: actions/download-artifact@v3
         id: download-wheel
@@ -91,7 +91,7 @@ jobs:
       - name: Prepare environment
         uses: ./.github/actions/prepare-ci
       - name: Install Node for Pyright
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: "18"
       - name: Type check
@@ -105,11 +105,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Clone the repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Install nox
         run: pipx install nox
       - name: Install Node for Prettier
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: "18"
       - name: Lint
@@ -120,7 +120,7 @@ jobs:
     needs: test
     steps:
       - name: Clone the repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Download coverage data
         uses: actions/download-artifact@v3
         with:

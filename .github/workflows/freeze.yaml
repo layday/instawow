@@ -17,7 +17,7 @@ jobs:
       wheel-version: ${{ steps.build-package.outputs.wheel-version }}
     steps:
       - name: Clone the repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - name: Build package
@@ -44,7 +44,7 @@ jobs:
     runs-on: ${{ matrix.build-env.os }}
     steps:
       - name: Clone the repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - name: Download pre-built wheel
@@ -54,14 +54,11 @@ jobs:
           name: ${{ needs.build-package.outputs.wheel-name }}
           path: ./dist
       - name: Install Python 3.11
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - name: Install Rust toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          target: ${{ matrix.build-env.rust-target }}
+      - name: Install Rust
+        run: rustup update stable
       - name: Install cross-compilation toolchain
         uses: taiki-e/setup-cross-toolchain-action@v1
         with:
@@ -105,7 +102,7 @@ jobs:
     runs-on: ${{ matrix.build-env.os }}
     steps:
       - name: Clone the repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - name: Download pre-built wheel
@@ -121,7 +118,7 @@ jobs:
           libgirepository1.0-dev gir1.2-javascriptcoregtk-4.0 gir1.2-webkit2-4.0
         if: matrix.build-env.os == 'ubuntu-20.04'
       - name: Install Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.build-env.python-version }}
       - name: Install nox
