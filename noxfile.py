@@ -178,7 +178,6 @@ def freeze_cli(session: nox.Session):
     parser = argparse.ArgumentParser()
     parser.add_argument('--wheel-file', required=True)
     parser.add_argument('--out-dir', required=True)
-    parser.add_argument('--cargo-command')
 
     options = parser.parse_args(session.posargs)
 
@@ -193,7 +192,7 @@ def freeze_cli(session: nox.Session):
 
     with tempfile.TemporaryDirectory() as app_temp_dir:
         session.run(
-            options.cargo_command or 'cargo',
+            'cargo',
             'install',
             '--git',
             'https://github.com/ofek/pyapp',
