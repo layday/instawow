@@ -117,7 +117,7 @@ def _read_env_vars(config_cls: Any, values: Mapping[str, object]):
 
 
 def _make_attrs_instance_hook_factory(converter: Converter, type_: type[Any]):
-    'Allow passing in a structured attrs instance to ``structure``.'
+    "Allow passing in a structured attrs instance to ``structure``."
     structure = converter.gen_structure_attrs_fromdict(type_)
 
     def structure_wrapper(value: Mapping[str, Any], type_: type[Any]):
@@ -256,7 +256,7 @@ class GlobalConfig:
         return cls.from_values(config_values, env=True) if config_values else env_only_config
 
     def list_profiles(self) -> list[str]:
-        'Get the names of the profiles contained in ``config_dir``.'
+        "Get the names of the profiles contained in ``config_dir``."
         profiles = [c.parent.name for c in self.profiles_config_dir.glob('*/config.json')]
         return profiles
 

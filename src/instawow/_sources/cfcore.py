@@ -121,7 +121,7 @@ class _CfCoreFileHash(TypedDict):
 
 
 class _CfCoreSortableGameVersionTypeId(IntEnum):
-    'Extracted from https://api.curseforge.com/v1/games/1/version-types.'
+    "Extracted from https://api.curseforge.com/v1/games/1/version-types."
 
     Retail = 517
     VanillaClassic = 67408

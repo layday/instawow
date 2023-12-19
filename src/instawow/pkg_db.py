@@ -147,7 +147,7 @@ def _set_sqlite_pragma(dbapi_connection: sqlite3.Connection, connection_record: 
 
 
 def prepare_database(uri: str) -> Engine:
-    'Connect to and optionally create or migrate the database from a configuration object.'
+    "Connect to and optionally create or migrate the database from a configuration object."
     engine = create_engine(
         uri,
         # echo=True,
