@@ -35,7 +35,7 @@ class Flavour(StrEnum):
     Classic = 'classic'
 
     @classmethod
-    def from_flavour_keyed_enum(cls, flavour_keyed_enum: enum.Enum) -> Flavour:
+    def from_flavour_keyed_enum(cls, flavour_keyed_enum: enum.Enum) -> Self:
         return cls[flavour_keyed_enum.name]
 
     def to_flavour_keyed_enum(self, flavour_keyed_enum: _FlavourKeyedEnum[_TEnum]) -> _TEnum:
@@ -53,13 +53,13 @@ class FlavourVersionRange(enum.Enum):
     Classic = (range(3_04_00, 4_00_00),)
 
     @classmethod
-    def from_version_string(cls, version_string: str) -> FlavourVersionRange | None:
+    def from_version_string(cls, version_string: str) -> Self | None:
         major, minor, patch = fill(map(int, version_string.split('.')), 0, 3)
         version_number = major * 1_00_00 + minor * 1_00 + patch
         return cls.from_version_number(version_number)
 
     @classmethod
-    def from_version_number(cls, version_number: int) -> FlavourVersionRange | None:
+    def from_version_number(cls, version_number: int) -> Self | None:
         return next((f for f in cls if f.is_within_version(version_number)), None)
 
     def is_within_version(self, version_number: int) -> bool:
