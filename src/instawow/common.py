@@ -19,7 +19,7 @@ class _FlavourKeyedEnum(Protocol[_TEnum]):  # pragma: no cover
     VanillaClassic: _TEnum
     Classic: _TEnum
 
-    def __getitem__(self, __key: str) -> _TEnum:
+    def __class_getitem__(cls, __key: str) -> _TEnum:
         ...
 
 
@@ -38,8 +38,8 @@ class Flavour(StrEnum):
     def from_flavour_keyed_enum(cls, flavour_keyed_enum: enum.Enum) -> Self:
         return cls[flavour_keyed_enum.name]
 
-    def to_flavour_keyed_enum(self, flavour_keyed_enum: _FlavourKeyedEnum[_TEnum]) -> _TEnum:
-        return flavour_keyed_enum[self.name]
+    def to_flavour_keyed_enum(self, flavour_keyed_enum: type[_FlavourKeyedEnum[_TEnum]]) -> _TEnum:
+        return flavour_keyed_enum[self.name]  # pyright: ignore[reportGeneralTypeIssues]
 
 
 class FlavourVersionRange(enum.Enum):

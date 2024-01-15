@@ -159,5 +159,5 @@ class BaseResolver(Resolver, Protocol):
         yield
 
 
-class _DummyResolver(Resolver):  # pyright: ignore[reportGeneralTypeIssues]
+class _DummyResolver(Resolver):
     pass
