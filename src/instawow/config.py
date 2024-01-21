@@ -159,7 +159,7 @@ def _make_write_converter():
             make_dict_unstructure_fn(
                 config_cls,
                 converter,
-                **{  # pyright: ignore[reportGeneralTypeIssues]  # See microsoft/pyright#5255
+                **{  # pyright: ignore[reportArgumentType]  # See microsoft/pyright#5255
                     f.name: override(omit=True)
                     for f in fields(config_cls)
                     if not f.metadata.get('write_on_disk')

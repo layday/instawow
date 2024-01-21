@@ -14,13 +14,15 @@ from .utils import StrEnum, fill
 _TEnum = TypeVar('_TEnum', bound=enum.Enum)
 
 
-class _FlavourKeyedEnum(Protocol[_TEnum]):  # pragma: no cover
+class _FlavourKeyedEnumMeta(type(Protocol)):  # pragma: no cover
+    def __getitem__(self: type[_FlavourKeyedEnum[_TEnum]], __key: str) -> _TEnum:
+        ...
+
+
+class _FlavourKeyedEnum(Protocol[_TEnum], metaclass=_FlavourKeyedEnumMeta):  # pragma: no cover
     Retail: _TEnum
     VanillaClassic: _TEnum
     Classic: _TEnum
-
-    def __class_getitem__(cls, __key: str) -> _TEnum:
-        ...
 
 
 class Flavour(StrEnum):
@@ -39,7 +41,7 @@ class Flavour(StrEnum):
         return cls[flavour_keyed_enum.name]
 
     def to_flavour_keyed_enum(self, flavour_keyed_enum: type[_FlavourKeyedEnum[_TEnum]]) -> _TEnum:
-        return flavour_keyed_enum[self.name]  # pyright: ignore[reportGeneralTypeIssues]
+        return flavour_keyed_enum[self.name]
 
 
 class FlavourVersionRange(enum.Enum):
