@@ -24,6 +24,7 @@ from ._sources.instawow import InstawowResolver
 from ._sources.tukui import TukuiResolver
 from ._sources.wago import WagoResolver
 from ._sources.wowi import WowiResolver
+from .archives import ArchiveOpener, open_zip_archive
 from .catalogue.cataloguer import (
     CATALOGUE_VERSION,
     ComputedCatalogue,
@@ -50,6 +51,10 @@ class _DummyLock:
 
 class _Resolvers(dict[str, Resolver]):
     @cached_property
+    def archive_opener_dict(self) -> _ResolverArchiveOpenerDict:
+        return _ResolverArchiveOpenerDict(self)
+
+    @cached_property
     def priority_dict(self) -> _ResolverPriorityDict:
         return _ResolverPriorityDict(self)
 
@@ -60,6 +65,16 @@ class _Resolvers(dict[str, Resolver]):
             for r in self.values()
             if r.metadata.addon_toc_key
         ]
+
+
+class _ResolverArchiveOpenerDict(dict[str, ArchiveOpener]):
+    def __init__(self, resolvers: _Resolvers) -> None:
+        super().__init__(
+            (r.metadata.id, r.archive_opener) for r in resolvers.values() if r.archive_opener
+        )
+
+    def __missing__(self, key: str) -> ArchiveOpener:
+        return open_zip_archive
 
 
 class _ResolverPriorityDict(dict[str, float]):
@@ -139,7 +154,7 @@ class ManagerCtx:
         resolver_classes = chain(
             (r for g in get_plugin_resolvers() for r in g), builtin_resolver_classes
         )
-        self.resolvers = _Resolvers((r.metadata.id, r(self)) for r in resolver_classes)
+        self.resolvers: _Resolvers = _Resolvers((r.metadata.id, r(self)) for r in resolver_classes)
 
     @classmethod
     def from_config(cls, config: Config) -> Self:

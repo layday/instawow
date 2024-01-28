@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Awaitable, Collection
+from collections.abc import Awaitable, Collection, Set
 from typing import Any, Final, Protocol, TypeAlias, TypeVar
 
 from attrs import asdict
@@ -104,7 +104,7 @@ class PkgConflictsWithInstalled(ManagerError):
 
 
 class PkgConflictsWithUnreconciled(ManagerError):
-    def __init__(self, folders: set[str]) -> None:
+    def __init__(self, folders: Set[str]) -> None:
         super().__init__()
         self.folders = folders
 

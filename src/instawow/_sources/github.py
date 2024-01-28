@@ -13,6 +13,7 @@ from yarl import URL
 
 from .. import pkg_models
 from .. import results as R
+from ..archives import find_archive_addon_tocs
 from ..catalogue.cataloguer import AddonKey, CatalogueEntry
 from ..common import ChangelogFormat, Defn, Flavour, FlavourVersionRange, SourceMetadata, Strategy
 from ..http import CACHE_INDEFINITELY, ClientSessionType
@@ -22,7 +23,6 @@ from ..utils import (
     TocReader,
     as_plain_text_data_url,
     extract_byte_range_offset,
-    find_addon_zip_tocs,
 )
 
 
@@ -204,7 +204,7 @@ class GithubResolver(BaseResolver):
 
             toc_filenames = {
                 n
-                for n, h in find_addon_zip_tocs(f.filename for f in dynamic_addon_zip.filelist)
+                for n, h in find_archive_addon_tocs(f.filename for f in dynamic_addon_zip.filelist)
                 if h in candidate['name']  # Folder name is a substring of zip name.
             }
             if not toc_filenames:

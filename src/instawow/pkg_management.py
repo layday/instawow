@@ -8,10 +8,10 @@ from collections.abc import (
     Mapping,
     Sequence,
 )
-from contextlib import asynccontextmanager, contextmanager
+from contextlib import asynccontextmanager
 from functools import wraps
 from itertools import filterfalse, product, repeat, starmap
-from pathlib import Path, PurePath
+from pathlib import Path
 from shutil import move
 from tempfile import NamedTemporaryFile
 from typing import Concatenate, TypeVar
@@ -32,10 +32,8 @@ from .utils import (
     bucketise,
     chain_dict,
     file_uri_to_path,
-    find_addon_zip_tocs,
     gather,
     is_file_uri,
-    make_zip_member_filter_fn,
     run_in_thread,
     shasum,
     time_op,
@@ -83,21 +81,6 @@ async def _open_temp_writer_async():
         await run_in_thread(fh.close)()
 
 
-@contextmanager
-def _open_pkg_archive(path: PurePath):
-    from zipfile import ZipFile
-
-    with ZipFile(path) as archive:
-
-        def extract(parent: Path) -> None:
-            should_extract = make_zip_member_filter_fn(base_dirs)
-            archive.extractall(parent, members=(n for n in names if should_extract(n)))
-
-        names = archive.namelist()
-        base_dirs = {h for _, h in find_addon_zip_tocs(names)}
-        yield (base_dirs, extract)
-
-
 @object.__new__
 class _DummyResolver:
     async def resolve(self, defns: Sequence[Defn]) -> dict[Defn, R.AnyResult[pkg_models.Pkg]]:
@@ -125,7 +108,7 @@ def _with_lock(lock_name: str):
 def _install_pkg(
     ctx: ManagerCtx, pkg: pkg_models.Pkg, archive: Path, replace_folders: bool
 ) -> R.PkgInstalled:
-    with _open_pkg_archive(archive) as (top_level_folders, extract):
+    with ctx.resolvers.archive_opener_dict[pkg.source](archive) as (top_level_folders, extract):
         with ctx.database.connect() as connection:
             installed_conflicts = connection.execute(
                 sa.select(pkg_db.pkg)
@@ -162,7 +145,10 @@ def _install_pkg(
 def _update_pkg(
     ctx: ManagerCtx, old_pkg: pkg_models.Pkg, new_pkg: pkg_models.Pkg, archive: Path
 ) -> R.PkgUpdated:
-    with _open_pkg_archive(archive) as (top_level_folders, extract):
+    with ctx.resolvers.archive_opener_dict[new_pkg.source](archive) as (
+        top_level_folders,
+        extract,
+    ):
         with ctx.database.connect() as connection:
             installed_conflicts = connection.execute(
                 sa.select(pkg_db.pkg)

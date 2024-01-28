@@ -3,7 +3,6 @@ from __future__ import annotations
 import asyncio
 import importlib.resources
 import os
-import posixpath
 import string
 import sys
 import time
@@ -16,7 +15,6 @@ from collections.abc import (
     Iterable,
     Iterator,
     Sequence,
-    Set,
 )
 from contextlib import contextmanager
 from functools import wraps
@@ -198,25 +196,6 @@ def shasum(*values: object) -> str:
     from hashlib import sha256
 
     return sha256(''.join(map(str, filter(None, values))).encode()).hexdigest()[:32]
-
-
-def find_addon_zip_tocs(names: Iterable[str]) -> Iterator[tuple[str, str]]:
-    "Find top-level folders in a list of ZIP member paths."
-    for name in names:
-        if name.count(posixpath.sep) == 1:
-            head, tail = posixpath.split(name)
-            if tail.startswith(head) and tail[-4:].lower() == '.toc':
-                yield (name, head)
-
-
-def make_zip_member_filter_fn(base_dirs: Set[str]) -> Callable[[str], bool]:
-    "Filter out items which are not sub-paths of top-level folders in a ZIP."
-
-    def is_subpath(name: str):
-        head, sep, _ = name.partition(posixpath.sep)
-        return head in base_dirs if sep else False
-
-    return is_subpath
 
 
 def is_file_uri(uri: str) -> bool:

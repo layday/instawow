@@ -3,12 +3,10 @@ from __future__ import annotations
 import asyncio
 import sys
 import time
-from itertools import product
 from pathlib import Path
 
 import pytest
 
-from instawow.pkg_management import find_addon_zip_tocs, make_zip_member_filter_fn
 from instawow.utils import (
     TocReader,
     bucketise,
@@ -22,36 +20,6 @@ from instawow.utils import (
 @pytest.fixture
 def fake_addon_toc():
     return Path(__file__).parent / 'fixtures' / 'FakeAddon' / 'FakeAddon.toc'
-
-
-def test_find_addon_zip_tocs_can_find_explicit_dirs():
-    assert {h for _, h in find_addon_zip_tocs(['b/', 'b/b.toc'])} == {'b'}
-
-
-def test_find_addon_zip_tocs_can_find_implicit_dirs():
-    assert {h for _, h in find_addon_zip_tocs(['b/b.toc'])} == {'b'}
-
-
-def test_find_addon_zip_tocs_discards_tocless_paths():
-    assert {h for _, h in find_addon_zip_tocs(['a', 'b/b.toc', 'c/'])} == {'b'}
-
-
-def test_find_addon_zip_tocs_discards_mismatched_tocs():
-    assert not {h for _, h in find_addon_zip_tocs(['a', 'a/b.toc'])}
-
-
-def test_find_addon_zip_tocs_accepts_multitoc():
-    assert {h for _, h in find_addon_zip_tocs(['a', 'a/a_mainline.toc'])} == {'a'}
-
-
-@pytest.mark.parametrize('ext', product('Tt', 'Oo', 'Cc'))
-def test_find_addon_zip_tocs_toc_is_case_insensitive(ext: tuple[str, ...]):
-    assert {h for _, h in find_addon_zip_tocs([f'a/a.{"".join(ext)}'])} == {'a'}
-
-
-def test_make_zip_member_filter_fn_discards_names_with_prefix_not_in_dirs():
-    is_member = make_zip_member_filter_fn({'b'})
-    assert list(filter(is_member, ['a/', 'b/', 'aa/', 'bb/', 'b/c', 'a/d'])) == ['b/', 'b/c']
 
 
 def test_loading_toc_from_path(fake_addon_toc: Path):

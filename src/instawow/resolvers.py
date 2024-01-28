@@ -10,7 +10,7 @@ from typing import Any, ClassVar, Protocol, TypeVar
 from typing_extensions import Self
 from yarl import URL
 
-from . import http, manager_ctx, pkg_models
+from . import archives, http, manager_ctx, pkg_models
 from . import results as R
 from .catalogue.cataloguer import CatalogueEntry
 from .common import AddonHashMethod, Defn, SourceMetadata
@@ -36,7 +36,13 @@ class HeadersIntent(enum.IntEnum):
 
 class Resolver(Protocol):  # pragma: no cover
     metadata: ClassVar[SourceMetadata]
+    'Static source metadata.'
+
     requires_access_token: ClassVar[str | None]
+    'Access token key or ``None``.'
+
+    archive_opener: ClassVar[archives.ArchiveOpener | None]
+    'Alternative archive opener to use supporting e.g. non-standard archive formats or layouts.'
 
     def __init__(self, manager_ctx: manager_ctx.ManagerCtx) -> None:
         ...
@@ -80,6 +86,8 @@ class Resolver(Protocol):  # pragma: no cover
 
 class BaseResolver(Resolver, Protocol):
     _manager_ctx: manager_ctx.ManagerCtx
+
+    archive_opener = None
 
     def __init__(self, manager_ctx: manager_ctx.ManagerCtx) -> None:
         self._manager_ctx = manager_ctx
