@@ -1,8 +1,8 @@
 Changelog
 =========
 
-Next
-----
+v3.3.0
+------
 
 - Added support for alternative archive openers in plug-ins.
 - Reworked HTTP cache.
