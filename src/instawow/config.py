@@ -267,6 +267,8 @@ class GlobalConfig:
                 self.temp_dir,
                 self.state_dir,
                 self.cache_dir,
+                self.http_cache_dir,
+                self.install_cache_dir,
             ]
         )
         return self
@@ -279,6 +281,14 @@ class GlobalConfig:
     @property
     def cache_dir(self) -> Path:
         return self.temp_dir / 'cache'
+
+    @property
+    def http_cache_dir(self) -> Path:
+        return self.temp_dir / 'cache' / '_http'
+
+    @property
+    def install_cache_dir(self) -> Path:
+        return self.temp_dir / 'cache' / '_install'
 
     @property
     def config_file(self) -> Path:

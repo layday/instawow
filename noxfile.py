@@ -76,6 +76,7 @@ def lint(session: nox.Session):
             attrs == 23.1.0
             cattrs == 23.1.2
             click == 8.1.0
+            diskcache == 5.6.3
             iso8601 == 1.0.2
             loguru == 0.7.2
             mako == 1.2.4

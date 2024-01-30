@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any, Literal, TypeAlias
 
 from typing_extensions import TypedDict
 
-from . import common
+from .. import common
 
 if TYPE_CHECKING:
     import aiohttp
@@ -67,26 +67,23 @@ async def init_web_client(
     }
 
     if cache_dir is not None:
+        from aiohttp_client_cache import CacheBackend
         from aiohttp_client_cache.session import CachedSession
 
-        from ._http_cache_db import SQLiteBackend, acquire_cache_connection
+        from ._cache import make_disk_cache
 
-        with acquire_cache_connection(cache_dir) as connection:
-            cache_backend = SQLiteBackend(
-                allowed_codes=[200, 206],
-                allowed_methods=['GET', 'POST'],
-                connection=connection,
-                expire_after=_DEFAULT_EXPIRE,
-                include_headers=True,
-            )
-            if no_cache:
-                cache_backend.disabled = True
+        cache_backend = CacheBackend(
+            allowed_codes=(200, 206),
+            allowed_methods=('GET', 'POST'),
+            expire_after=_DEFAULT_EXPIRE,
+            include_headers=True,
+        )
+        cache_backend.responses = cache_backend.redirects = make_disk_cache(cache_dir)
+        if no_cache:
+            cache_backend.disabled = True
 
-            async with CachedSession(
-                cache=cache_backend,
-                **kwargs,
-            ) as client_session:
-                yield client_session
+        async with CachedSession(cache=cache_backend, **kwargs) as client_session:
+            yield client_session
     else:
         async with ClientSession(**kwargs) as client_session:
             yield client_session

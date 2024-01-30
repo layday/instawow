@@ -112,7 +112,7 @@ class _CtxObjWrapper:
         return pkg_management.PkgManager(ctx)
 
     def run_with_progress(self, awaitable: Awaitable[_T]) -> _T:
-        cache_dir = self.manager.ctx.config.global_config.cache_dir
+        cache_dir = self.manager.ctx.config.global_config.http_cache_dir
         params = self._ctx.params
 
         if any(params['debug']):

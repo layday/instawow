@@ -642,7 +642,7 @@ class _ManagersManager:
     async def __aenter__(self):
         self.global_config = await _read_global_config()
         init_json_rpc_web_client, self._download_progress_reporters = _init_json_rpc_web_client(
-            self.global_config.cache_dir
+            self.global_config.http_cache_dir
         )
         self._web_client = await self._exit_stack.enter_async_context(init_json_rpc_web_client)
         contextualise(web_client=self._web_client, locks=self.locks)

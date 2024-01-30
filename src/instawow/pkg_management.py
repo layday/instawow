@@ -25,7 +25,7 @@ from yarl import URL
 from . import pkg_db, pkg_models
 from . import results as R
 from .common import Defn, Strategy
-from .http import make_defn_progress_ctx
+from .http import CACHE_INDEFINITELY, make_defn_progress_ctx
 from .manager_ctx import ManagerCtx
 from .resolvers import HeadersIntent
 from .utils import (
@@ -81,27 +81,33 @@ async def _open_temp_writer_async():
         await run_in_thread(fh.close)()
 
 
-@object.__new__
-class _DummyResolver:
-    async def resolve(self, defns: Sequence[Defn]) -> dict[Defn, R.AnyResult[pkg_models.Pkg]]:
-        return dict.fromkeys(defns, R.PkgSourceInvalid())
+async def _download_pkg_archive(ctx: ManagerCtx, defn: Defn, pkg: pkg_models.Pkg):
+    if is_file_uri(pkg.download_url):
+        return Path(file_uri_to_path(pkg.download_url))
 
-    async def get_changelog(self, uri: URL) -> str:
-        raise R.PkgSourceInvalid
+    async with ctx.locks[_DOWNLOAD_PKG_LOCK, pkg.download_url]:
+        headers = await ctx.resolvers[pkg.source].make_request_headers(
+            intent=HeadersIntent.Download
+        )
+        trace_request_ctx = make_defn_progress_ctx(ctx.config.profile, defn)
 
+        async with (
+            ctx.web_client.get(
+                pkg.download_url,
+                headers=headers,
+                raise_for_status=True,
+                trace_request_ctx=trace_request_ctx,
+                expire_after=CACHE_INDEFINITELY,
+            ) as response,
+            _open_temp_writer_async() as (temp_path, write),
+        ):
+            async for chunk, _ in response.content.iter_chunks():
+                await write(chunk)
 
-def _with_lock(lock_name: str):
-    def outer(
-        coro_fn: Callable[Concatenate[_TPkgManager, _P], Awaitable[_T]],
-    ) -> Callable[Concatenate[_TPkgManager, _P], Awaitable[_T]]:
-        @wraps(coro_fn)
-        async def inner(self: _TPkgManager, *args: _P.args, **kwargs: _P.kwargs) -> _T:
-            async with self.ctx.locks[lock_name, id(self)]:
-                return await coro_fn(self, *args, **kwargs)
-
-        return inner
-
-    return outer
+        return await _move_async(
+            temp_path,
+            ctx.config.global_config.install_cache_dir / shasum(pkg.download_url),
+        )
 
 
 @run_in_thread
@@ -199,6 +205,29 @@ def _remove_pkg(ctx: ManagerCtx, pkg: pkg_models.Pkg, keep_folders: bool) -> R.P
         pkg.delete(transaction)
 
     return R.PkgRemoved(pkg)
+
+
+@object.__new__
+class _DummyResolver:
+    async def resolve(self, defns: Sequence[Defn]) -> dict[Defn, R.AnyResult[pkg_models.Pkg]]:
+        return dict.fromkeys(defns, R.PkgSourceInvalid())
+
+    async def get_changelog(self, uri: URL) -> str:
+        raise R.PkgSourceInvalid
+
+
+def _with_lock(lock_name: str):
+    def outer(
+        coro_fn: Callable[Concatenate[_TPkgManager, _P], Awaitable[_T]],
+    ) -> Callable[Concatenate[_TPkgManager, _P], Awaitable[_T]]:
+        @wraps(coro_fn)
+        async def inner(self: _TPkgManager, *args: _P.args, **kwargs: _P.kwargs) -> _T:
+            async with self.ctx.locks[lock_name, id(self)]:
+                return await coro_fn(self, *args, **kwargs)
+
+        return inner
+
+    return outer
 
 
 class PkgManager:
@@ -394,33 +423,6 @@ class PkgManager:
         "Retrieve a changelog from a URI."
         return await self.ctx.resolvers.get(source, _DummyResolver).get_changelog(URL(uri))
 
-    async def _download_pkg_archive(
-        self, defn: Defn, pkg: pkg_models.Pkg, *, chunk_size: int = 4096
-    ):
-        if is_file_uri(pkg.download_url):
-            return Path(file_uri_to_path(pkg.download_url))
-
-        async with self.ctx.locks[_DOWNLOAD_PKG_LOCK, pkg.download_url]:
-            dest = self.ctx.config.global_config.cache_dir / shasum(pkg.download_url)
-            if not await run_in_thread(dest.exists)():
-                async with self.ctx.web_client.get(
-                    pkg.download_url,
-                    headers=await self.ctx.resolvers[pkg.source].make_request_headers(
-                        intent=HeadersIntent.Download
-                    ),
-                    raise_for_status=True,
-                    trace_request_ctx=make_defn_progress_ctx(self.ctx.config.profile, defn),
-                ) as response, _open_temp_writer_async() as (
-                    temp_path,
-                    write,
-                ):
-                    async for chunk in response.content.iter_chunked(chunk_size):
-                        await write(chunk)
-
-                await _move_async(temp_path, dest)
-
-            return dest
-
     @run_in_thread
     def _check_installed_pkg_integrity(self, pkg: pkg_models.Pkg) -> bool:
         return all((self.ctx.config.addon_dir / p.name).exists() for p in pkg.folders)
@@ -453,7 +455,7 @@ class PkgManager:
         download_results = zip(
             new_pkgs,
             await gather(
-                (self._download_pkg_archive(d, r) for d, r in new_pkgs.items()),
+                (_download_pkg_archive(self.ctx, d, r) for d, r in new_pkgs.items()),
                 R.resultify_async_exc,
             ),
         )
@@ -522,7 +524,7 @@ class PkgManager:
         download_results = zip(
             updatables,
             await gather(
-                (self._download_pkg_archive(d, n) for d, (_, n) in updatables.items()),
+                (_download_pkg_archive(self.ctx, d, n) for d, (_, n) in updatables.items()),
                 R.resultify_async_exc,
             ),
         )
