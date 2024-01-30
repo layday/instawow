@@ -2,16 +2,10 @@ from __future__ import annotations
 
 from datetime import datetime
 
-import sqlalchemy as sa
 from attrs import asdict, field, frozen
-from cattrs import Converter
 from typing_extensions import Self
 
-from . import pkg_db
 from .common import Defn, StrategyValues
-
-_db_pkg_converter = Converter()
-_db_pkg_converter.register_structure_hook(datetime, lambda d, _: d)
 
 
 @frozen(kw_only=True)
@@ -59,62 +53,6 @@ class Pkg:
     folders: list[PkgFolder] = field(factory=list)  # pkg_folder
     deps: list[PkgDep] = field(factory=list)  # pkg_dep
     logged_versions: list[PkgLoggedVersion] = field(factory=list)  # pkg_version_log
-
-    @classmethod
-    def from_row_mapping(cls, connection: sa.Connection, row_mapping: sa.RowMapping) -> Self:
-        source_and_id = {'pkg_source': row_mapping['source'], 'pkg_id': row_mapping['id']}
-        return _db_pkg_converter.structure(
-            {
-                **row_mapping,
-                'options': connection.execute(
-                    sa.select(pkg_db.pkg_options).filter_by(**source_and_id)
-                )
-                .mappings()
-                .one(),
-                'folders': connection.execute(
-                    sa.select(pkg_db.pkg_folder.c.name).filter_by(**source_and_id)
-                )
-                .mappings()
-                .all(),
-                'deps': connection.execute(
-                    sa.select(pkg_db.pkg_dep.c.id).filter_by(**source_and_id)
-                )
-                .mappings()
-                .all(),
-                'logged_versions': connection.execute(
-                    sa.select(pkg_db.pkg_version_log)
-                    .filter_by(**source_and_id)
-                    .order_by(pkg_db.pkg_version_log.c.install_time.desc())
-                    .limit(10)
-                )
-                .mappings()
-                .all(),
-            },
-            cls,
-        )
-
-    def insert(self, transaction: sa.Connection) -> None:
-        values = asdict(self)
-        source_and_id = {'pkg_source': values['source'], 'pkg_id': values['id']}
-
-        transaction.execute(sa.insert(pkg_db.pkg), [values])
-        transaction.execute(
-            sa.insert(pkg_db.pkg_folder), [{**f, **source_and_id} for f in values['folders']]
-        )
-        transaction.execute(
-            sa.insert(pkg_db.pkg_options), [{**values['options'], **source_and_id}]
-        )
-        if values['deps']:
-            transaction.execute(
-                sa.insert(pkg_db.pkg_dep), [{**d, **source_and_id} for d in values['deps']]
-            )
-        transaction.execute(
-            sa.insert(pkg_db.pkg_version_log).prefix_with('OR IGNORE'),
-            [{'version': values['version'], **source_and_id}],
-        )
-
-    def delete(self, transaction: sa.Connection) -> None:
-        transaction.execute(sa.delete(pkg_db.pkg).filter_by(source=self.source, id=self.id))
 
     def to_defn(self) -> Defn:
         return Defn(

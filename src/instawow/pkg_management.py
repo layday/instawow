@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import datetime as dt
 from collections.abc import (
     Awaitable,
     Callable,
@@ -9,7 +10,7 @@ from collections.abc import (
     Sequence,
 )
 from contextlib import asynccontextmanager
-from functools import wraps
+from functools import lru_cache, wraps
 from itertools import filterfalse, product, repeat, starmap
 from pathlib import Path
 from shutil import move
@@ -17,7 +18,8 @@ from tempfile import NamedTemporaryFile
 from typing import Concatenate, TypeVar
 
 import sqlalchemy as sa
-from attrs import evolve
+from attrs import asdict, evolve
+from cattrs import Converter
 from loguru import logger
 from typing_extensions import Never, ParamSpec
 from yarl import URL
@@ -50,6 +52,13 @@ _move_async = run_in_thread(move)
 
 _MUTATE_PKGS_LOCK = '_MUTATE_PKGS_'
 _DOWNLOAD_PKG_LOCK = '_DOWNLOAD_PKG_'
+
+
+@lru_cache(1)
+def _make_db_pkg_converter():
+    converter = Converter()
+    converter.register_structure_hook(dt.datetime, lambda d, _: d)
+    return converter
 
 
 def bucketise_results(
@@ -110,6 +119,29 @@ async def _download_pkg_archive(ctx: ManagerCtx, defn: Defn, pkg: pkg_models.Pkg
         )
 
 
+def _insert_db_pkg(pkg: pkg_models.Pkg, transaction: sa.Connection):
+    values = asdict(pkg)
+    source_and_id = {'pkg_source': values['source'], 'pkg_id': values['id']}
+
+    transaction.execute(sa.insert(pkg_db.pkg), [values])
+    transaction.execute(
+        sa.insert(pkg_db.pkg_folder), [{**f, **source_and_id} for f in values['folders']]
+    )
+    transaction.execute(sa.insert(pkg_db.pkg_options), [{**values['options'], **source_and_id}])
+    if values['deps']:
+        transaction.execute(
+            sa.insert(pkg_db.pkg_dep), [{**d, **source_and_id} for d in values['deps']]
+        )
+    transaction.execute(
+        sa.insert(pkg_db.pkg_version_log).prefix_with('OR IGNORE'),
+        [{'version': values['version'], **source_and_id}],
+    )
+
+
+def _delete_db_pkg(pkg: pkg_models.Pkg, transaction: sa.Connection):
+    transaction.execute(sa.delete(pkg_db.pkg).filter_by(source=pkg.source, id=pkg.id))
+
+
 @run_in_thread
 def _install_pkg(
     ctx: ManagerCtx, pkg: pkg_models.Pkg, archive: Path, replace_folders: bool
@@ -142,7 +174,7 @@ def _install_pkg(
 
     pkg = evolve(pkg, folders=[pkg_models.PkgFolder(name=f) for f in sorted(top_level_folders)])
     with ctx.database.begin() as transaction:
-        pkg.insert(transaction)
+        _insert_db_pkg(pkg, transaction)
 
     return R.PkgInstalled(pkg)
 
@@ -186,8 +218,8 @@ def _update_pkg(
         new_pkg, folders=[pkg_models.PkgFolder(name=f) for f in sorted(top_level_folders)]
     )
     with ctx.database.begin() as transaction:
-        old_pkg.delete(transaction)
-        new_pkg.insert(transaction)
+        _delete_db_pkg(old_pkg, transaction)
+        _insert_db_pkg(new_pkg, transaction)
 
     return R.PkgUpdated(old_pkg, new_pkg)
 
@@ -202,7 +234,7 @@ def _remove_pkg(ctx: ManagerCtx, pkg: pkg_models.Pkg, keep_folders: bool) -> R.P
         )
 
     with ctx.database.begin() as transaction:
-        pkg.delete(transaction)
+        _delete_db_pkg(pkg, transaction)
 
     return R.PkgRemoved(pkg)
 
@@ -287,7 +319,41 @@ class PkgManager:
                     .first()
                 )
             if maybe_row_mapping is not None:
-                return pkg_models.Pkg.from_row_mapping(connection, maybe_row_mapping)
+                return self.build_pkg_from_row_mapping(connection, maybe_row_mapping)
+
+    def build_pkg_from_row_mapping(
+        self, connection: sa.Connection, row_mapping: sa.RowMapping
+    ) -> pkg_models.Pkg:
+        source_and_id = {'pkg_source': row_mapping['source'], 'pkg_id': row_mapping['id']}
+        return _make_db_pkg_converter().structure(
+            {
+                **row_mapping,
+                'options': connection.execute(
+                    sa.select(pkg_db.pkg_options).filter_by(**source_and_id)
+                )
+                .mappings()
+                .one(),
+                'folders': connection.execute(
+                    sa.select(pkg_db.pkg_folder.c.name).filter_by(**source_and_id)
+                )
+                .mappings()
+                .all(),
+                'deps': connection.execute(
+                    sa.select(pkg_db.pkg_dep.c.id).filter_by(**source_and_id)
+                )
+                .mappings()
+                .all(),
+                'logged_versions': connection.execute(
+                    sa.select(pkg_db.pkg_version_log)
+                    .filter_by(**source_and_id)
+                    .order_by(pkg_db.pkg_version_log.c.install_time.desc())
+                    .limit(10)
+                )
+                .mappings()
+                .all(),
+            },
+            pkg_models.Pkg,
+        )
 
     async def find_equivalent_pkg_defns(
         self, pkgs: Collection[pkg_models.Pkg]

@@ -437,7 +437,7 @@ def update(
     def installed_pkgs_to_defns():
         with mw.manager.ctx.database.connect() as connection:
             return [
-                pkg_models.Pkg.from_row_mapping(connection, p).to_defn()
+                mw.manager.build_pkg_from_row_mapping(connection, p).to_defn()
                 for p in connection.execute(sa.select(pkg_db.pkg)).mappings().all()
             ]
 
@@ -571,7 +571,7 @@ def reconcile(mw: _CtxObjWrapper, auto: bool, rereconcile: bool, list_unreconcil
 
         with mw.manager.ctx.database.connect() as connection:
             installed_pkgs = [
-                pkg_models.Pkg.from_row_mapping(connection, p)
+                mw.manager.build_pkg_from_row_mapping(connection, p)
                 for p in connection.execute(
                     sa.select(pkg_db.pkg).order_by(sa.func.lower(pkg_db.pkg.c.name))
                 )
@@ -799,7 +799,7 @@ def list_installed(mw: _CtxObjWrapper, addons: Sequence[Defn], output_format: _L
             )
 
         def row_mappings_to_pkgs():
-            return map(pkg_models.Pkg.from_row_mapping, repeat(connection), pkg_mappings)
+            return map(mw.manager.build_pkg_from_row_mapping, repeat(connection), pkg_mappings)
 
         pkg_select_query = sa.select(pkg_db.pkg)
         if addons:

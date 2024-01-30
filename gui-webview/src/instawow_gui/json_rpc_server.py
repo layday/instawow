@@ -307,7 +307,7 @@ class ListInstalledParams(_ProfileParamMixin, BaseParams):
                 .mappings()
                 .all()
             )
-            return [pkg_models.Pkg.from_row_mapping(connection, p) for p in installed_pkgs]
+            return [manager.build_pkg_from_row_mapping(connection, p) for p in installed_pkgs]
 
 
 @_register_method('search')
@@ -488,7 +488,7 @@ class GetReconcileInstalledCandidatesParams(_ProfileParamMixin, BaseParams):
 
         with manager.ctx.database.connect() as connection:
             installed_pkgs = [
-                pkg_models.Pkg.from_row_mapping(connection, p)
+                manager.build_pkg_from_row_mapping(connection, p)
                 for p in connection.execute(
                     sa.select(pkg_db.pkg).order_by(sa.func.lower(pkg_db.pkg.c.name))
                 )
