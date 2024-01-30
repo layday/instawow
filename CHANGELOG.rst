@@ -1,6 +1,17 @@
 Changelog
 =========
 
+Next
+----
+
+- Added support for alternative archive openers in plug-ins.
+- Reworked HTTP cache.
+
+CLI
+~~~
+
+- Extended ``--no-cache`` flag to add-on downloads.
+
 v3.2.0
 ------
 
