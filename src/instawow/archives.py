@@ -9,7 +9,7 @@ from typing import NamedTuple, Protocol
 
 
 class ArchiveOpener(Protocol):  # pragma: no cover
-    def __call__(self, path: Path) -> AbstractContextManager[Archive]:
+    def __call__(self, archive_path: Path) -> AbstractContextManager[Archive]:
         ...
 
 
@@ -38,13 +38,13 @@ def make_archive_member_filter_fn(base_dirs: Set[str]):
 
 
 @contextmanager
-def open_zip_archive(path: Path):
-    with zipfile.ZipFile(path) as archive:
+def open_zip_archive(archive_path: Path):
+    with zipfile.ZipFile(archive_path) as archive:
         names = archive.namelist()
         top_level_folders = {h for _, h in find_archive_addon_tocs(names)}
 
-        def extract(parent: Path) -> None:
+        def extract(parent_path: Path) -> None:
             should_extract = make_archive_member_filter_fn(top_level_folders)
-            archive.extractall(parent, members=(n for n in names if should_extract(n)))
+            archive.extractall(parent_path, members=(n for n in names if should_extract(n)))
 
         yield Archive(top_level_folders, extract)
