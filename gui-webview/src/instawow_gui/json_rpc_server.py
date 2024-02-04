@@ -759,9 +759,12 @@ async def create_app(toga_handle: tuple[Any, anyio.from_thread.BlockingPortal] |
 
     async def get_static_file(request: aiohttp.web.Request):
         filename = request.path.lstrip('/')
-        if filename.startswith('svelte-bundle.js'):
+
+        if filename.endswith('.js'):
             content_type = 'application/javascript'
-        elif filename == 'svelte-bundle.css':
+        elif filename.endswith('.js.map'):
+            content_type = 'application/json'
+        elif filename.endswith('.css'):
             content_type = 'text/css'
         else:
             raise aiohttp.web.HTTPNotFound
@@ -810,7 +813,7 @@ async def create_app(toga_handle: tuple[Any, anyio.from_thread.BlockingPortal] |
         [
             aiohttp.web.get('/', get_index),
             aiohttp.web.get(
-                r'/svelte-bundle{extension:(?:\.css|\.js(?:\.map)?)}', get_static_file
+                r'/assets/{name}{extension:(?:\.css|\.js(?:\.map)?)}', get_static_file
             ),
             aiohttp.web.get('/api', rpc_server.handle_http_request),
         ]

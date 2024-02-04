@@ -1,7 +1,7 @@
 <script lang="ts">
   import { faFolderOpen, faTrashAlt } from "@fortawesome/free-solid-svg-icons";
   import { JSONRPCError } from "@open-rpc/client-js";
-  import { omit } from "lodash";
+  import ld from "lodash-es";
   import { fade } from "svelte/transition";
   import type { Config, ValidationError } from "../api";
   import { Flavour } from "../api";
@@ -9,38 +9,55 @@
   import { activeProfile, profiles } from "../stores/profiles";
   import Icon from "./SvgIcon.svelte";
 
-  export let editing: "new" | "existing" | false;
+  let { editing } = $props<{
+    editing: "new" | "existing" | false;
+  }>();
 
-  const createNew = editing === "new";
+  let createNew = $derived(editing === "new");
 
-  let profile: string;
-  let addonDir: string;
-  let gameFlavour: Flavour;
+  let profileConfig = $state(
+    {} as {
+      profile: string;
+      addonDir: string;
+      gameFlavour: Flavour;
+    },
+  );
 
-  let errors = new Map<string, string>();
+  let errors = $state(new Map<string, string>());
 
-  if (createNew) {
-    gameFlavour = Flavour.Retail;
-  } else {
-    ({
-      profile,
-      addon_dir: addonDir,
-      game_flavour: gameFlavour,
-    } = $profiles[$activeProfile as string]);
-  }
+  $effect.pre(() => {
+    console.log("editing 2", editing);
+  });
+
+  $effect.pre(() => {
+    if (createNew) {
+      profileConfig.gameFlavour = Flavour.Retail;
+    } else {
+      ({
+        profile: profileConfig.profile,
+        addon_dir: profileConfig.addonDir,
+        game_flavour: profileConfig.gameFlavour,
+      } = $profiles[$activeProfile as string]);
+    }
+  });
 
   const selectFolder = async () => {
-    const { selection } = await $api.selectFolder(addonDir ?? null);
+    const { selection } = await $api.selectFolder(profileConfig.addonDir ?? null);
     if (selection !== null) {
-      addonDir = selection;
+      profileConfig.addonDir = selection;
     }
   };
 
   const saveConfig = async () => {
-    if ((createNew && profile in $profiles) || (!profile && "__default__" in $profiles)) {
+    if (
+      (createNew && profileConfig.profile in $profiles) ||
+      (!profileConfig.profile && "__default__" in $profiles)
+    ) {
       errors.set(
         "profile",
-        profile ? "a profile with that name already exists" : "a default profile already exists"
+        profileConfig.profile
+          ? "a profile with that name already exists"
+          : "a default profile already exists",
       );
       errors = errors;
       return;
@@ -48,7 +65,12 @@
 
     let result: Config;
     try {
-      result = await $api.writeProfile(profile, addonDir, gameFlavour, createNew);
+      result = await $api.writeProfile(
+        profileConfig.profile,
+        profileConfig.addonDir,
+        profileConfig.gameFlavour,
+        createNew,
+      );
     } catch (error) {
       if (error instanceof JSONRPCError) {
         console.log(error);
@@ -56,7 +78,7 @@
           (error.data as ValidationError[]).map(({ path: [path], message }) => [
             String(path),
             message,
-          ])
+          ]),
         );
         return;
       } else {
@@ -80,11 +102,11 @@ Deleting a profile does not delete your add-ons; it simply \
 dissociates the add-on folder from instawow.  However, you \
 will have to reconcile your add-ons again if you create \
 a new profile for this folder and your rollback history \
-will be lost.`
+will be lost.`,
     );
     if (ok) {
-      await $api.deleteProfile(profile);
-      $profiles = omit($profiles, profile);
+      await $api.deleteProfile(profileConfig.profile);
+      $profiles = ld.omit($profiles, profileConfig.profile);
       [$activeProfile] = Object.keys($profiles);
       editing = false;
     }
@@ -98,10 +120,16 @@ will be lost.`
   };
 </script>
 
-<svelte:window on:keydown={dismissOnEsc} />
+<svelte:window onkeydown={dismissOnEsc} />
 
 <dialog open class="modal" transition:fade={{ duration: 200 }}>
-  <form class="content" on:submit|preventDefault={() => saveConfig()}>
+  <form
+    class="content"
+    onsubmit={(e) => {
+      e.preventDefault();
+      saveConfig();
+    }}
+  >
     {#if errors.has("profile")}
       <div class="row error-text">{errors.get("profile")}</div>
     {/if}
@@ -112,7 +140,7 @@ will be lost.`
         class:error={errors.has("profile")}
         type="text"
         placeholder="profile"
-        bind:value={profile}
+        bind:value={profileConfig.profile}
       />
     {/if}
     {#if errors.has("addon_dir")}
@@ -126,13 +154,16 @@ will be lost.`
         type="text"
         disabled
         placeholder="add-on folder"
-        value={addonDir || ""}
+        value={profileConfig.addonDir || ""}
       />
       <button
         aria-label="select folder"
         class="form-control"
         type="button"
-        on:click|preventDefault={() => selectFolder()}
+        onclick={(e) => {
+          e.preventDefault();
+          selectFolder();
+        }}
       >
         <Icon icon={faFolderOpen} />
       </button>
@@ -145,7 +176,7 @@ will be lost.`
         aria-label="game flavour"
         class="row form-control"
         class:error={errors.has("game_flavour")}
-        bind:value={gameFlavour}
+        bind:value={profileConfig.gameFlavour}
       >
         {#each Object.values(Flavour) as flavour}
           <option value={flavour}>{flavour}</option>
@@ -160,7 +191,10 @@ will be lost.`
           aria-label="delete profile"
           title="delete profile"
           type="button"
-          on:click|preventDefault={() => deleteConfig()}
+          onclick={(e) => {
+            e.preventDefault();
+            deleteConfig();
+          }}
         >
           <Icon icon={faTrashAlt} />
         </button>

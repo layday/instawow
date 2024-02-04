@@ -18,7 +18,7 @@
     "ul",
   ];
 
-  export let changelog: string, renderAsHtml: boolean;
+  let { changelog, renderAsHtml } = $props<{ changelog: string; renderAsHtml: boolean }>();
 </script>
 
 <div class="title-bar">changelog</div>

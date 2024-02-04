@@ -1,26 +1,58 @@
 <script lang="ts">
   import { faExchange, faFilter, faSlidersH, faThList } from "@fortawesome/free-solid-svg-icons";
-  import { createEventDispatcher } from "svelte";
   import { ReconciliationStage } from "../api";
   import { View, type TogaSimulateKeypressAction } from "../constants";
   import ProgressIndicator from "./ProgressIndicator.svelte";
   import Icon from "./SvgIcon.svelte";
 
-  export let activeView: View,
-    searchTerms: string,
-    searchFilterInstalled: boolean,
-    searchIsDirty: boolean,
-    isRefreshing: boolean,
-    isModifying: boolean,
-    isSearching: boolean,
-    installedOutdatedCount: number,
-    reconcileInstallationInProgress: boolean,
-    reconcileStage: ReconciliationStage,
-    canReconcile: boolean;
+  let {
+    activeView,
+    searchTerms,
+    searchFilterInstalled,
+    searchIsDirty,
+    isRefreshing,
+    isModifying,
+    isSearching,
+    installedOutdatedCount,
+    reconcileInstallationInProgress,
+    reconcileStage,
+    canReconcile,
+    onSearch,
+    onShowSearchOptionsModal,
+    onRefresh,
+    onUpdateAll,
+    onInstallReconciled,
+    onAutomateReconciliation,
+    onInstallReconciledInstalled,
+    onCycleListFormat,
+  } = $props<
+    {
+      activeView: View;
+      searchTerms: string;
+      searchFilterInstalled: boolean;
+      searchIsDirty: boolean;
+      isRefreshing: boolean;
+      isModifying: boolean;
+      isSearching: boolean;
+      installedOutdatedCount: number | undefined;
+      reconcileInstallationInProgress: boolean;
+      reconcileStage: ReconciliationStage;
+      canReconcile: boolean;
+    } & Record<
+      `on${
+        | "Search"
+        | "ShowSearchOptionsModal"
+        | "Refresh"
+        | "UpdateAll"
+        | "InstallReconciled"
+        | "AutomateReconciliation"
+        | "InstallReconciledInstalled"
+        | "CycleListFormat"}`,
+      () => void
+    >
+  >();
 
-  const dispatch = createEventDispatcher<{ [type: string]: void }>();
-
-  let searchBox: HTMLInputElement;
+  let searchBox = $state<HTMLInputElement>();
 
   const handleKeypress = ({
     detail: { action },
@@ -34,19 +66,19 @@
         break;
       case "activateViewSearch":
         activeView = View.Search;
-        searchBox.focus();
+        searchBox?.focus();
         break;
       case "toggleSearchFilter":
         searchFilterInstalled = !searchFilterInstalled;
         if (searchFilterInstalled) {
-          searchBox.focus();
+          searchBox?.focus();
         }
         break;
     }
   };
 </script>
 
-<svelte:window on:togaSimulateKeypress={handleKeypress} />
+<svelte:window ontogaSimulateKeypress={handleKeypress} />
 
 <nav class="addon-list-nav">
   <div>
@@ -96,7 +128,7 @@
             class="control"
             aria-label="condense/expand add-on cells"
             title="condense/expand add-on cells"
-            on:click={() => dispatch("requestCycleListFormat")}
+            onclick={() => onCycleListFormat()}
           >
             <Icon icon={faThList} />
           </button>
@@ -144,7 +176,7 @@
             placeholder="search"
             bind:this={searchBox}
             bind:value={searchTerms}
-            on:keydown={(e) => e.key === "Enter" && dispatch("requestSearch")}
+            onkeydown={(e) => e.key === "Enter" && onSearch()}
           />
         </li>
       {/if}
@@ -164,11 +196,7 @@
     <menu class="control-set">
       {#if activeView === View.Installed}
         <li>
-          <button
-            class="control"
-            disabled={isRefreshing}
-            on:click={() => dispatch("requestRefresh")}
-          >
+          <button class="control" disabled={isRefreshing} onclick={() => onRefresh()}>
             refresh
           </button>
         </li>
@@ -176,7 +204,7 @@
           <button
             class="control"
             disabled={isModifying || isRefreshing || !installedOutdatedCount}
-            on:click={() => dispatch("requestUpdateAll")}
+            onclick={() => onUpdateAll()}
           >
             {installedOutdatedCount ? `update ${installedOutdatedCount}` : "no updates"}
           </button>
@@ -187,7 +215,7 @@
             class="control"
             class:dirty={searchIsDirty}
             aria-label="show search options"
-            on:click={() => dispatch("requestShowSearchOptionsModal")}
+            onclick={() => onShowSearchOptionsModal()}
           >
             <Icon icon={faSlidersH} />
           </button>
@@ -197,7 +225,7 @@
           <button
             class="control"
             disabled={!canReconcile || reconcileInstallationInProgress}
-            on:click={() => dispatch("requestInstallReconciled")}
+            onclick={() => onInstallReconciled()}
           >
             install
           </button>
@@ -206,7 +234,7 @@
           <button
             class="control"
             disabled={reconcileInstallationInProgress}
-            on:click={() => dispatch("requestAutomateReconciliation")}
+            onclick={() => onAutomateReconciliation()}
           >
             automate
           </button>
@@ -216,7 +244,7 @@
           <button
             class="control"
             disabled={reconcileInstallationInProgress}
-            on:click={() => dispatch("requestInstallReconciledInstalled")}
+            onclick={() => onInstallReconciledInstalled()}
           >
             switch sources
           </button>

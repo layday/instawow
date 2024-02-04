@@ -1,44 +1,41 @@
 <script lang="ts" context="module">
   export interface ModalHandle {
-    dismiss(): void;
+    hide(): void;
   }
 </script>
 
 <script lang="ts">
-  import { createEventDispatcher, setContext } from "svelte";
+  import { setContext, type Snippet } from "svelte";
   import { fade, scale } from "svelte/transition";
 
-  const dispatch = createEventDispatcher<{
-    dismiss: void;
+  const { children, onHide } = $props<{
+    children: Snippet;
+    onHide?: () => void;
   }>();
 
-  export const dismiss = () => {
-    dispatch("dismiss");
-  };
-
-  const dismissOnEsc = (event: KeyboardEvent) => {
+  const hideOnEsc = (event: KeyboardEvent) => {
     if (event.key === "Escape") {
-      dismiss();
       event.preventDefault();
+      onHide?.();
     }
   };
 
-  setContext("modal", {
-    dismiss,
+  setContext<ModalHandle>("modal", {
+    hide: () => onHide?.(),
   });
 </script>
 
-<svelte:window on:keydown={dismissOnEsc} />
+<svelte:window onkeydown={hideOnEsc} />
 
 <div
   class="modal-overlay"
   role="presentation"
+  onclick={onHide}
   transition:fade={{ duration: 200 }}
-  on:click={dismiss}
 >
-  <div class="modal-wrapper" role="presentation" on:click|stopPropagation>
+  <div class="modal-wrapper" role="presentation" onclick={(e) => e.stopPropagation()}>
     <dialog class="modal" open aria-modal="true" in:scale={{ duration: 200 }}>
-      <slot />
+      {@render children()}
     </dialog>
   </div>
 </div>

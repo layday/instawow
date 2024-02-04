@@ -1,15 +1,18 @@
 <script lang="ts">
   import { faCog } from "@fortawesome/free-solid-svg-icons";
-  import { onMount } from "svelte";
   import { activeProfile, profiles } from "../stores/profiles";
   import ConfigModalContents from "./ConfigModalContents.svelte";
-  import Modal from "./modal/Modal.svelte";
   import ProfileConfigEditor from "./ProfileConfigEditor.svelte";
   import Icon from "./SvgIcon.svelte";
+  import Modal from "./modal/Modal.svelte";
 
-  let editing: "new" | "existing" | "auth" | false = false;
+  let editing = $state<"new" | "existing" | "auth" | false>(false);
 
-  onMount(() => {
+  $effect(() => {
+    console.log("editing", editing);
+  });
+
+  $effect(() => {
     if (!$activeProfile) {
       editing = "new";
     }
@@ -20,35 +23,35 @@
   <div class="profile-switcher">
     <button
       aria-label="configure access tokens"
-      on:click={() => (editing = editing === "auth" ? false : "auth")}
+      onclick={() => (editing = editing === "auth" ? false : "auth")}
     >
       <Icon icon={faCog} />
     </button>
+
     <select aria-label="profile" bind:value={$activeProfile} disabled={!!editing}>
       {#each Object.keys($profiles) as profile (profile)}
         <option value={profile}>{profile}</option>
       {/each}
     </select>
+
     <button
       aria-label="edit profile"
       disabled={!$activeProfile}
-      on:click={() => (editing = editing === "existing" ? false : "existing")}
+      onclick={() => (editing = editing === "existing" ? false : "existing")}
     >
       edit
     </button>
-    <button
-      aria-label="add profile"
-      on:click={() => (editing = editing === "new" ? false : "new")}
-    >
+    <button aria-label="add profile" onclick={() => (editing = editing === "new" ? false : "new")}>
       add
     </button>
   </div>
+
   {#if editing === "new"}
     <ProfileConfigEditor bind:editing />
   {:else if editing === "existing"}
     <ProfileConfigEditor bind:editing />
   {:else if editing === "auth"}
-    <Modal on:dismiss={() => (editing = false)}>
+    <Modal onHide={() => (editing = false)}>
       <ConfigModalContents />
     </Modal>
   {/if}

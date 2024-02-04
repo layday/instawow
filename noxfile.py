@@ -149,7 +149,7 @@ def bundle_frontend(session: nox.Session):
     session.chdir('gui-webview/frontend')
     session.run('npm', 'install', external=True)
     session.run('npx', 'svelte-check', external=True)
-    session.run('npx', 'rollup', '-c', external=True)
+    session.run('npm', 'run', 'build', external=True)
 
 
 @nox.session(python='3.11')

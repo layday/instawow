@@ -4,18 +4,29 @@
   import { api } from "../stores/api";
   import Icon from "./SvgIcon.svelte";
 
-  export let selections: Addon[],
-    folders: { name: string; version: string }[],
-    choices: Addon[],
-    idx: number,
-    expanded = false;
+  let {
+    selections,
+    folders,
+    choices,
+    idx,
+    expanded = false,
+  } = $props<{
+    selections: Addon[];
+    folders: { name: string; version: string }[];
+    choices: Addon[];
+    idx: number;
+    expanded?: boolean;
+  }>();
 
-  let selectionIdx = 0;
-  let selection: Addon;
+  let selectionIdx = $state(0);
+
+  let selection = $derived(choices[selectionIdx]);
 
   const getVersion = () => folders.find((f) => f.version)?.version || "";
 
-  $: selection = selections[idx] = choices[selectionIdx];
+  $effect(() => {
+    selections[idx] = choices[selectionIdx];
+  });
 </script>
 
 <div class="addon-stub">
@@ -70,7 +81,10 @@
               <span class="defn-or-version">{choice.source}:{choice.slug}=={choice.version}</span>
               <button
                 role="link"
-                on:click|preventDefault|stopPropagation={() => $api.openUrl(choice.url)}
+                onclick={(e) => {
+                  e.stopPropagation();
+                  $api.openUrl(choice.url);
+                }}
               >
                 [↗]
               </button>

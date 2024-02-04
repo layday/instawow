@@ -2,9 +2,9 @@
   import { onDestroy } from "svelte";
   import { api } from "../stores/api";
 
-  let githubAuthFlowShouldStart = false;
-  let newCfcoreAccessToken: string | null;
-  let newWagoAccessToken: string | null;
+  let githubAuthFlowShouldStart = $state(false);
+  let newCfcoreAccessToken = $state<string | null>(null);
+  let newWagoAccessToken = $state<string | null>(null);
 
   const updateCfCoreAccessToken = async () => {
     await $api.updateGlobalConfig({ cfcore: newCfcoreAccessToken });
@@ -37,7 +37,7 @@
         <button
           class="form-control"
           disabled={githubAuthFlowShouldStart}
-          on:click={() => (githubAuthFlowShouldStart = true)}
+          onclick={() => (githubAuthFlowShouldStart = true)}
         >
           {access_tokens.github === null ? "generate" : "regenerate"}
         </button>
@@ -82,7 +82,7 @@
         <button
           class="form-control primary"
           disabled={newCfcoreAccessToken === undefined}
-          on:click={() => updateCfCoreAccessToken()}>update</button
+          onclick={() => updateCfCoreAccessToken()}>update</button
         >
         <div class="description">
           A CFCore access token is required to use CurseForge. Log in to
@@ -107,7 +107,7 @@
         <button
           class="form-control primary"
           disabled={newWagoAccessToken === undefined}
-          on:click={() => updateWagoAccessToken()}>update</button
+          onclick={() => updateWagoAccessToken()}>update</button
         >
         <div class="description">
           An access token is required to use Wago Addons. Wago issues tokens to some

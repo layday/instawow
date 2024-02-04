@@ -1,21 +1,20 @@
 <script lang="ts">
   import { DateTime } from "luxon";
-  import { createEventDispatcher, getContext } from "svelte";
+  import { getContext } from "svelte";
   import type { Sources } from "../api";
   import { Flavour, Strategy } from "../api";
+  import type { SearchOptions } from "./ProfileView.svelte";
   import type { ModalHandle } from "./modal/Modal.svelte";
-  import type { SearchStrategies } from "./ProfileView.svelte";
 
-  export let flavour: Flavour,
-    sources: Sources,
-    searchFilterInstalled: boolean,
-    searchOptions: {
-      sources: string[];
-      fromAlias: boolean;
-      limit: number;
-      startDate: string | null;
-      strategies: SearchStrategies;
-    };
+  let { flavour, sources, searchFilterInstalled, searchOptions, onRequestReset, onRequestSearch } =
+    $props<{
+      flavour: Flavour;
+      sources: Sources;
+      searchFilterInstalled: boolean;
+      searchOptions: SearchOptions;
+      onRequestReset: () => void;
+      onRequestSearch: () => void;
+    }>();
 
   const CHECKBOXES = [
     [Strategy.AnyFlavour, "any flavour"],
@@ -23,7 +22,7 @@
   ] as const;
 
   const START_DATE_SUGGESTIONS = [
-    { date: "2022-11-15", label: "10.0.2", flavour: Flavour.Retail },
+    { date: "2024-01-16", label: "10.2.5", flavour: Flavour.Retail },
     {
       date: DateTime.now().minus({ days: 1 }).toISODate(),
       label: "yesterday",
@@ -31,25 +30,17 @@
     },
   ];
 
-  const dispatch = createEventDispatcher<{ [type: string]: void }>();
+  const { hide } = getContext<ModalHandle>("modal");
 
-  const { dismiss } = getContext<ModalHandle>("modal");
+  const requestSearch = (event: Event) => {
+    event.preventDefault();
 
-  const requestSearch = () => {
-    dispatch("requestSearch");
-    dismiss();
+    onRequestSearch();
+    hide();
   };
-
-  $: if (searchOptions.startDate === "") {
-    searchOptions.startDate = null;
-  }
 </script>
 
-<form
-  class="content"
-  on:submit|preventDefault={() => requestSearch()}
-  on:reset={() => dispatch("requestReset")}
->
+<form class="content" onsubmit={requestSearch} onreset={() => onRequestReset()}>
   <div class="row form-grid">
     <label for="__search-limit">results:</label>
     <select
@@ -89,7 +80,7 @@
           <li class:disabled={searchOptions.fromAlias}>
             <button
               type="button"
-              on:click={() => {
+              onclick={() => {
                 if (!searchOptions.fromAlias) {
                   searchOptions.startDate = date;
                 }

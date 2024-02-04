@@ -1,33 +1,36 @@
 <script lang="ts">
   import { DateTime } from "luxon";
-  import { createEventDispatcher, getContext } from "svelte";
+  import { getContext } from "svelte";
   import type { Addon } from "../api";
   import type { ModalHandle } from "./modal/Modal.svelte";
 
-  export let addon: Addon;
+  let { addon, onRequestRollback } = $props<{
+    addon: Addon;
+    onRequestRollback: (addon: Addon) => void;
+  }>();
 
-  const dispatch = createEventDispatcher<{ requestRollback: Addon }>();
+  const { hide } = getContext<ModalHandle>("modal");
 
-  const { dismiss } = getContext<ModalHandle>("modal");
+  let selectedVersion = $state("");
 
-  let version: string;
+  const onRequestRollbackAndHide = (event: Event) => {
+    event.preventDefault();
 
-  const requestRollbackAndHide = () => {
-    dispatch("requestRollback", {
+    onRequestRollback({
       ...addon,
-      version,
+      version: selectedVersion,
       options: {
         ...addon.options,
         version_eq: true,
       },
     });
-    dismiss();
+    hide();
   };
 </script>
 
 <div class="title-bar">rollback</div>
-<form class="content" on:submit|preventDefault={() => requestRollbackAndHide()}>
-  <select class="row form-control" aria-label="strategy" bind:value={version}>
+<form class="content" onsubmit={onRequestRollbackAndHide}>
+  <select class="row form-control" aria-label="strategy" bind:value={selectedVersion}>
     {#each addon.logged_versions as version}
       <option value={version.version} disabled={addon.version === version.version}>
         {version.version}

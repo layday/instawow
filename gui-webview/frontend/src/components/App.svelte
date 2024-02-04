@@ -27,9 +27,10 @@
     `;
   };
 
-  let statusMessage = " ";
-  let installedVersion: string;
-  let newVersion: string | null;
+  let statusMessage = $state(" ");
+
+  let installedVersion = $state<string>();
+  let newVersion = $state<string | null>();
 
   const performInitialSetup = async () => {
     ({ installed_version: installedVersion, new_version: newVersion } = await $api.getVersion());
@@ -40,7 +41,7 @@
     $profiles = Object.fromEntries(
       profileResults
         .filter((r): r is PromiseFulfilledResult<Config> => r.status === "fulfilled")
-        .map(({ value }) => [value.profile, value])
+        .map(({ value }) => [value.profile, value]),
     );
     [$activeProfile] = Object.keys($profiles);
   };

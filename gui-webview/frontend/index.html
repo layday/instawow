@@ -3,10 +3,10 @@
   <head>
     <meta charset="utf-8" />
     <!-- https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/script-src -->
-    <meta http-equiv="Content-Security-Policy" content="__csp__;" />
-    <script defer src="/svelte-bundle.js"></script>
+    <meta http-equiv="Content-Security-Policy" content="script-src 'self';" />
   </head>
   <body>
-    <!--  -->
+    <div id="app"></div>
+    <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

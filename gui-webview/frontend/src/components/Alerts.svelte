@@ -16,40 +16,46 @@
     };
   };
 
-  let combinedAlerts: Alert[] = [];
-  let selectedAlertIndex = 0;
+  let combinedAlerts: Alert[] = $derived(
+    [$alerts[ANY_PROFILE], $activeProfile ? $alerts[$activeProfile] : []].filter(Boolean).flat(),
+  );
 
-  $: {
-    combinedAlerts = [$alerts[ANY_PROFILE], $activeProfile ? $alerts[$activeProfile] : []]
-      .filter(Boolean)
-      .flat();
+  let selectedAlertIndex = $state(0);
+
+  $effect.pre(() => {
+    $alerts;
+
     selectedAlertIndex = 0;
-  }
+  });
 </script>
 
 {#if selectedAlertIndex in combinedAlerts}
   {@const alert = combinedAlerts[selectedAlertIndex]}
+
   <div class="alerts-wrapper">
     <div class="alerts" role="alert" transition:fade={{ duration: 200 }}>
       <div class="current-alert">
         <h1>{alert.heading}</h1>
         <p>{alert.message}</p>
       </div>
+
       <div class="alert-nav">
         <button
           title="previous alert"
           disabled={!(selectedAlertIndex - 1 in combinedAlerts)}
-          on:click={() => (selectedAlertIndex -= 1)}
+          onclick={() => (selectedAlertIndex -= 1)}
         >
           <Icon icon={faArrowAltCircleLeft} />
         </button>
-        <button title="dismiss alerts" on:click={handleDismissAlerts}>
+
+        <button title="dismiss alerts" onclick={handleDismissAlerts}>
           <Icon icon={faTimesCircle} />
         </button>
+
         <button
           title="next alert"
           disabled={!(selectedAlertIndex + 1 in combinedAlerts)}
-          on:click={() => (selectedAlertIndex += 1)}
+          onclick={() => (selectedAlertIndex += 1)}
         >
           <Icon icon={faArrowAltCircleRight} />
         </button>

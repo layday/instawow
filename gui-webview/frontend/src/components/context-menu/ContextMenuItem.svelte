@@ -1,19 +1,34 @@
 <script lang="ts">
-  import { createEventDispatcher, getContext } from "svelte";
+  import { getContext, type Snippet } from "svelte";
   import type { ContextMenuHandle } from "./ContextMenu.svelte";
-
-  export let divider = false;
 
   const contextMenu = getContext<ContextMenuHandle>("contextMenu");
 
-  const dispatch = createEventDispatcher<{
-    click: void;
-  }>();
+  const {
+    children,
+    divider = false,
+    onSelect,
+  } = $props<
+    (
+      | {
+          children?: never;
+          divider: true;
+        }
+      | {
+          children: Snippet;
+          divider?: never;
+        }
+    ) & {
+      onSelect?: () => void;
+    }
+  >();
 
-  const handleClick = () => {
+  const onSelectWrapped = (event: MouseEvent) => {
+    event.stopPropagation();
+
     if (!divider) {
+      onSelect?.();
       contextMenu.hide();
-      dispatch("click");
     }
   };
 </script>
@@ -22,12 +37,16 @@
   {#if divider}
     <hr />
   {:else}
-    <button on:click|stopPropagation={handleClick}><slot /></button>
+    <button onclick={onSelectWrapped}>
+      {#if children}
+        {@render children()}
+      {/if}
+    </button>
   {/if}
 </li>
 
 <style lang="scss">
-  @use "scss/vars";
+  @use "../scss/vars";
 
   .menu-item {
     button {

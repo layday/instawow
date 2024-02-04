@@ -2,7 +2,7 @@ import type { TogaSimulateKeypressAction } from "./constants";
 
 declare module "svelte/elements" {
   export interface SvelteWindowAttributes {
-    "on:togaSimulateKeypress"?: EventHandler<
+    ontogaSimulateKeypress?: EventHandler<
       CustomEvent<{
         action: TogaSimulateKeypressAction;
       }>,

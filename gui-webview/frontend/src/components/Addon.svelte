@@ -5,7 +5,6 @@
     faTrashAlt,
   } from "@fortawesome/free-solid-svg-icons";
   import { DateTime } from "luxon";
-  import { createEventDispatcher } from "svelte";
   import { fade } from "svelte/transition";
   import type { Addon } from "../api";
   import { Strategy } from "../api";
@@ -14,25 +13,36 @@
   import ProgressIndicator from "./ProgressIndicator.svelte";
   import Icon from "./SvgIcon.svelte";
 
-  export let addon: Addon,
-    otherAddon: Addon,
-    isInstalled: boolean,
-    beingModified: boolean,
-    format: ListFormat,
-    isRefreshing: boolean,
+  let {
+    addon,
+    otherAddon,
+    isInstalled,
+    beingModified,
+    format,
+    isRefreshing,
+    downloadProgress,
+    onInstall,
+    onUpdate,
+    onRemove,
+    onShowChangelogModal,
+    onShowAddonContextMenu,
+  } = $props<{
+    addon: Addon;
+    otherAddon: Addon;
+    isInstalled: boolean;
+    beingModified: boolean;
+    format: ListFormat;
+    isRefreshing: boolean;
     downloadProgress: number;
+    onInstall: () => void;
+    onUpdate: () => void;
+    onRemove: () => void;
+    onShowChangelogModal: () => void;
+    onShowAddonContextMenu: (mouseEvent: MouseEvent) => void;
+  }>();
 
-  const dispatch = createEventDispatcher<
-    Record<
-      "requestInstall" | "requestUpdate" | "requestRemove" | "requestShowChangelogModal",
-      void
-    > & {
-      requestShowAddonContextMenu: { mouseEvent: MouseEvent };
-    }
-  >();
-
-  $: dateTimePublished = DateTime.fromISO(otherAddon.date_published).toLocal();
-  $: isOutdated = addon.version !== otherAddon.version;
+  let dateTimePublished = $derived(DateTime.fromISO(otherAddon.date_published).toLocal());
+  let isOutdated = $derived(addon.version !== otherAddon.version);
 </script>
 
 <div
@@ -70,15 +80,10 @@
       {#if isInstalled}
         {#if isOutdated}
           <li>
-            <button
-              disabled={isRefreshing}
-              on:click|stopPropagation={() => dispatch("requestUpdate")}>update</button
-            >
+            <button disabled={isRefreshing} onclick={() => onUpdate()}>update</button>
           </li>
           <li>
-            <button on:click|stopPropagation={() => dispatch("requestShowChangelogModal")}
-              >changelog</button
-            >
+            <button onclick={() => onShowChangelogModal()}>changelog</button>
           </li>
         {/if}
         <li>
@@ -86,7 +91,7 @@
             aria-label="remove"
             title="remove"
             disabled={isRefreshing}
-            on:click|stopPropagation={() => dispatch("requestRemove")}
+            onclick={() => onRemove()}
           >
             <Icon icon={faTrashAlt} />
           </button>
@@ -95,21 +100,20 @@
           <button
             aria-label="show options"
             title="show options"
-            on:click|stopPropagation={(mouseEvent) =>
-              dispatch("requestShowAddonContextMenu", { mouseEvent })}
+            onclick={(e) => onShowAddonContextMenu(e)}
           >
             <Icon icon={faEllipsisH} />
           </button>
         </li>
       {:else}
         <li>
-          <button on:click|stopPropagation={() => dispatch("requestInstall")}>install</button>
+          <button onclick={() => onInstall()}>install</button>
         </li>
         <li>
           <button
             aria-label="open in browser"
             title="open in browser"
-            on:click|stopPropagation={() => $api.openUrl(addon.url)}
+            onclick={() => $api.openUrl(addon.url)}
           >
             <Icon icon={faExternalLinkSquareAlt} />
           </button>
@@ -118,8 +122,7 @@
           <button
             aria-label="show options"
             title="show options"
-            on:click|stopPropagation={(mouseEvent) =>
-              dispatch("requestShowAddonContextMenu", { mouseEvent })}
+            onclick={(e) => onShowAddonContextMenu(e)}
           >
             <Icon icon={faEllipsisH} />
           </button>

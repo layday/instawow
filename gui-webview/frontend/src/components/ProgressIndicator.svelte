@@ -1,31 +1,34 @@
 <!-- Adapted from https://css-tricks.com/building-progress-ring-quickly/ -->
 <script lang="ts">
-  export let diameter: number, progress: number;
+  let { diameter, progress } = $props<{
+    diameter: number;
+    progress: number;
+  }>();
 
-  const radius = diameter / 2;
-  const stroke = 2;
-  const circumference = (radius - stroke) * 2 * Math.PI;
+  const STROKE = 2;
 
-  $: indeterminate = progress === 0;
-  $: offset = circumference - (indeterminate ? 0.75 : progress) * circumference;
+  let isIndeterminate = $derived(progress === 0);
+  let radius = $derived(diameter / 2);
+  let circumference = $derived((radius - STROKE) * 2 * Math.PI);
+  let offset = $derived(circumference - (isIndeterminate ? 0.75 : progress) * circumference);
 </script>
 
 <div
   role="progressbar"
   aria-valuemin={0}
   aria-valuemax={1}
-  aria-valuenow={indeterminate ? undefined : progress}
+  aria-valuenow={isIndeterminate ? undefined : progress}
 >
   <svg height={diameter} width={diameter} viewBox="0 0 {diameter} {diameter}">
     <circle
-      r={radius - stroke}
+      r={radius - STROKE}
       cx={radius}
       cy={radius}
-      class:indeterminate
+      class:indeterminate={isIndeterminate}
       style={`
         stroke-dasharray: ${circumference} ${circumference};
         stroke-dashoffset: ${offset};
-        stroke-width: ${stroke};
+        stroke-width: ${STROKE};
       `}
     />
   </svg>

@@ -10,21 +10,18 @@
 </script>
 
 <script lang="ts">
-  import { createEventDispatcher, setContext } from "svelte";
+  import { setContext, type Snippet } from "svelte";
 
-  const dispatch = createEventDispatcher<{
-    hide: void;
+  let { children, onHide } = $props<{
+    children: Snippet;
+    onHide?: () => void;
   }>();
 
-  let eventCoords: EventCoords | undefined;
+  let eventCoords = $state<EventCoords>();
 
-  let menuWidth: number;
-  let menuHeight: number;
-
-  let menuCoords = {
-    x: 0,
-    y: 0,
-  };
+  let menuWidth = $state(0);
+  let menuHeight = $state(0);
+  let menuCoords = $state.frozen({ x: 0, y: 0 });
 
   export const show = (theseEventCoords: EventCoords) => {
     eventCoords = theseEventCoords;
@@ -32,32 +29,40 @@
 
   export const hide = () => {
     eventCoords = undefined;
-    dispatch("hide");
+    onHide?.();
   };
 
-  const dismissOnEsc = (event: KeyboardEvent) => {
+  const hideOnEsc = (event: KeyboardEvent) => {
     if (event.key === "Escape" && eventCoords) {
       hide();
       event.preventDefault();
     }
   };
 
-  setContext("contextMenu", {
+  setContext<ContextMenuHandle>("contextMenu", {
     hide,
   });
 
-  $: if (eventCoords) {
-    menuCoords.x =
-      eventCoords.x + menuWidth < window.innerWidth ? eventCoords.x : eventCoords.x - menuWidth;
-    menuCoords.y =
-      eventCoords.y + menuHeight < window.innerHeight ? eventCoords.y : eventCoords.y - menuHeight;
-  }
+  $effect(() => {
+    if (eventCoords) {
+      menuCoords = {
+        x:
+          eventCoords.x + menuWidth < window.innerWidth
+            ? eventCoords.x
+            : eventCoords.x - menuWidth,
+        y:
+          eventCoords.y + menuHeight < window.innerHeight
+            ? eventCoords.y
+            : eventCoords.y - menuHeight,
+      };
+    }
+  });
 </script>
 
-<svelte:window on:keydown={dismissOnEsc} on:resize={hide} />
+<svelte:window onkeydown={hideOnEsc} onresize={hide} />
 
 {#if eventCoords}
-  <div class="context-menu-wrapper" role="presentation" tabindex="-1" on:click={hide}>
+  <div class="context-menu-wrapper" role="presentation" tabindex="-1" onclick={hide}>
     <div
       class="context-menu"
       role="presentation"
@@ -67,17 +72,17 @@
     `}
       bind:offsetHeight={menuHeight}
       bind:offsetWidth={menuWidth}
-      on:click|stopPropagation
+      onclick={(e) => e.stopPropagation()}
     >
       <menu>
-        <slot />
+        {@render children()}
       </menu>
     </div>
   </div>
 {/if}
 
 <style lang="scss">
-  @use "scss/vars";
+  @use "../scss/vars";
 
   .context-menu-wrapper {
     @extend %cover-canvas;
