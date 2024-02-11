@@ -608,4 +608,4 @@ def test_plugin_hook_command_can_be_invoked(
     run: C[[str], Result],
 ):
     pytest.importorskip('instawow_test_plugin')
-    assert run('foo').output == 'success!\n'
+    assert run('plugins foo').output == 'success!\n'
