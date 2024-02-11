@@ -1313,20 +1313,3 @@ def generate_catalogue(start_date: datetime | None) -> None:
         json.dumps(catalogue_json, separators=(',', ':')),
         encoding='utf-8',
     )
-
-
-@cli.command
-@click.pass_context
-def gui(ctx: click.Context) -> None:
-    "Fire up the GUI."
-    from instawow_gui.app import InstawowApp
-
-    global_config = GlobalConfig.read().ensure_dirs()
-    dummy_jsonrpc_config = Config.make_dummy_config(
-        global_config=global_config, profile='__jsonrpc__'
-    ).ensure_dirs()
-
-    params = ctx.find_root().params
-    setup_logging(dummy_jsonrpc_config.logging_dir, *params['debug'])
-
-    InstawowApp(debug=any(params['debug']), version=__version__).main_loop()

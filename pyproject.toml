@@ -84,6 +84,7 @@ test = [
 ]
 
 [tool.poetry.plugins."instawow.plugins"]
+"instawow_gui" = "instawow_gui._plugin"
 "instawow_wa_updater" = "instawow_wa_updater._plugin"
 
 
