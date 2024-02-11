@@ -11,17 +11,17 @@ import sqlalchemy as sa
 from attrs import field, frozen
 from typing_extensions import Self
 
-from . import manager_ctx
-from ._addon_hashing import generate_wowup_addon_hash
-from .common import AddonHashMethod, Defn, Flavour
-from .pkg_db import pkg_folder
-from .utils import (
+from .. import manager_ctx
+from ..common import AddonHashMethod, Defn, Flavour
+from ..pkg_db import pkg_folder
+from ..utils import (
     TocReader,
     bucketise,
     gather,
     merge_intersecting_sets,
     uniq,
 )
+from ._addon_hashing import generate_wowup_addon_hash
 
 
 class Matcher(Protocol):  # pragma: no cover
