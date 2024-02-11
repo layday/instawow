@@ -7,7 +7,7 @@ from instawow.common import Defn
 from instawow.manager_ctx import ManagerCtx
 from instawow.pkg_management import PkgManager
 from instawow.pkg_models import Pkg
-from instawow.wa_updater import WaCompanionBuilder, WeakAura, WeakAuras
+from instawow_wa_updater._core import WaCompanionBuilder, WeakAura, WeakAuras
 
 
 @pytest.fixture

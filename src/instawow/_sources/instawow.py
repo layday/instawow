@@ -33,7 +33,7 @@ class InstawowResolver(BaseResolver):
         except StopIteration:
             raise R.PkgNonexistent from None
 
-        from ..wa_updater import WaCompanionBuilder
+        from instawow_wa_updater._core import WaCompanionBuilder
 
         builder = WaCompanionBuilder(self._manager_ctx)
         if source_id == '1':

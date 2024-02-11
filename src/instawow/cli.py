@@ -73,7 +73,7 @@ class Report:
         )
 
     def generate(self) -> None:
-        mw: _CtxObjWrapper | None = click.get_current_context().obj
+        mw: CtxObjWrapper | None = click.get_current_context().obj
 
         if mw and mw.manager.ctx.config.global_config.auto_update_check:
             from ._version import is_outdated
@@ -94,7 +94,7 @@ class Report:
         ctx.exit(self.exit_code)
 
 
-class _CtxObjWrapper:
+class CtxObjWrapper:
     def __init__(self, ctx: click.Context) -> None:
         self._ctx = ctx
 
@@ -303,7 +303,7 @@ def _parse_debug_option(
 @click.pass_context
 def cli(ctx: click.Context, **__: object) -> None:
     "Add-on manager for World of Warcraft."
-    ctx.obj = _CtxObjWrapper(ctx)
+    ctx.obj = CtxObjWrapper(ctx)
 
 
 @overload
@@ -387,7 +387,7 @@ def _parse_uri(
 )
 @click.pass_obj
 def install(
-    mw: _CtxObjWrapper,
+    mw: CtxObjWrapper,
     addons: Sequence[Defn],
     replace: bool,
     dry_run: bool,
@@ -416,7 +416,7 @@ def install(
 )
 @click.pass_obj
 def update(
-    mw: _CtxObjWrapper,
+    mw: CtxObjWrapper,
     addons: Sequence[Defn],
     retain_strategies: bool,
     dry_run: bool,
@@ -457,7 +457,7 @@ def update(
     help='Remove the add-on from the database but do not delete its folders.',
 )
 @click.pass_obj
-def remove(mw: _CtxObjWrapper, addons: Sequence[Defn], keep_folders: bool) -> None:
+def remove(mw: CtxObjWrapper, addons: Sequence[Defn], keep_folders: bool) -> None:
     "Remove add-ons."
     results = mw.run_with_progress(mw.manager.remove(addons, keep_folders))
     Report(results.items()).generate_and_exit()
@@ -472,7 +472,7 @@ def remove(mw: _CtxObjWrapper, addons: Sequence[Defn], keep_folders: bool) -> No
     help='Undo rollback by reinstalling an add-on using the default strategy.',
 )
 @click.pass_obj
-def rollback(mw: _CtxObjWrapper, addon: Defn, undo: bool) -> None:
+def rollback(mw: CtxObjWrapper, addon: Defn, undo: bool) -> None:
     "Roll an add-on back to an older version."
     from ._cli_prompts import Choice, ask, select
 
@@ -522,7 +522,7 @@ def rollback(mw: _CtxObjWrapper, addon: Defn, undo: bool) -> None:
     '--list-unreconciled', is_flag=True, default=False, help='List unreconciled add-ons and exit.'
 )
 @click.pass_obj
-def reconcile(mw: _CtxObjWrapper, auto: bool, rereconcile: bool, list_unreconciled: bool) -> None:
+def reconcile(mw: CtxObjWrapper, auto: bool, rereconcile: bool, list_unreconciled: bool) -> None:
     "Reconcile pre-installed add-ons."
     from ._cli_prompts import PkgChoice, ask, confirm, select, skip
     from .matchers import DEFAULT_MATCHERS, AddonFolder, get_unreconciled_folders
@@ -723,7 +723,7 @@ def search(
     from ._cli_prompts import PkgChoice, ask, checkbox, confirm
     from .catalogue.search import search
 
-    mw: _CtxObjWrapper = ctx.obj
+    mw: CtxObjWrapper = ctx.obj
 
     catalogue_entries = mw.run_with_progress(
         search(
@@ -780,7 +780,7 @@ class _ListFormat(StrEnum):
     help='Change the output format.',
 )
 @click.pass_obj
-def list_installed(mw: _CtxObjWrapper, addons: Sequence[Defn], output_format: _ListFormat) -> None:
+def list_installed(mw: CtxObjWrapper, addons: Sequence[Defn], output_format: _ListFormat) -> None:
     "List installed add-ons."
     import sqlalchemy as sa
 
@@ -880,7 +880,7 @@ def info(ctx: click.Context, addon: Defn) -> None:
 @cli.command
 @click.argument('addon', callback=_with_manager(partial(_parse_uri, raise_invalid=False)))
 @click.pass_obj
-def reveal(mw: _CtxObjWrapper, addon: Defn) -> None:
+def reveal(mw: CtxObjWrapper, addon: Defn) -> None:
     "Bring an add-on up in your file manager."
     pkg = mw.manager.get_pkg(addon, partial_match=True)
     if pkg:
@@ -900,7 +900,7 @@ def reveal(mw: _CtxObjWrapper, addon: Defn) -> None:
     help='Convert HTML and Markdown changelogs to plain text using pandoc.',
 )
 @click.pass_obj
-def view_changelog(mw: _CtxObjWrapper, addon: Defn | None, convert: bool) -> None:
+def view_changelog(mw: CtxObjWrapper, addon: Defn | None, convert: bool) -> None:
     """View the changelog of an installed add-on.
 
     If `addon` is not provided, displays the changelogs of all add-ons
@@ -1026,7 +1026,7 @@ def view_changelog(mw: _CtxObjWrapper, addon: Defn | None, convert: bool) -> Non
     help='Change the output format.',
 )
 @click.pass_obj
-def list_sources(mw: _CtxObjWrapper, output_format: _ListFormat) -> None:
+def list_sources(mw: CtxObjWrapper, output_format: _ListFormat) -> None:
     "Print source metadata."
     from cattrs.preconf.json import make_converter
 
@@ -1284,37 +1284,6 @@ def configure(
 @cli.group('plugins')
 def _plugin_group() -> None:  # pyright: ignore[reportUnusedFunction]
     "Registered plug-ins."
-
-
-@cli.group('weakauras-companion')
-def _weakauras_group() -> None:
-    "Manage your WeakAuras."
-
-
-@_weakauras_group.command('build')
-@click.pass_obj
-def build_weakauras_companion(mw: _CtxObjWrapper) -> None:
-    "Build the WeakAuras Companion add-on."
-    from .wa_updater import WaCompanionBuilder
-
-    mw.run_with_progress(WaCompanionBuilder(mw.manager.ctx).build())
-
-
-@_weakauras_group.command('list')
-@click.pass_obj
-def list_installed_wago_auras(mw: _CtxObjWrapper) -> None:
-    "List WeakAuras installed from Wago."
-    from .wa_updater import WaCompanionBuilder
-
-    aura_groups = WaCompanionBuilder(mw.manager.ctx).extract_installed_auras()
-    installed_auras = sorted(
-        (g.addon_name, a.id, a.url)
-        for g in aura_groups
-        for v in g.root.values()
-        for a in v
-        if not a.parent
-    )
-    click.echo(tabulate([('type', 'name', 'URL'), *installed_auras]))
 
 
 @cli.command(hidden=True)

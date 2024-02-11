@@ -14,10 +14,10 @@ from typing_extensions import NotRequired as N
 from typing_extensions import TypedDict
 from yarl import URL
 
-from ..http import CACHE_INDEFINITELY, make_generic_progress_ctx
-from ..manager_ctx import ManagerCtx
-from ..utils import StrEnum, bucketise, gather, read_resource_as_text, shasum, time_op
-from ..utils import run_in_thread as t
+from instawow.http import CACHE_INDEFINITELY, make_generic_progress_ctx
+from instawow.manager_ctx import ManagerCtx
+from instawow.utils import StrEnum, bucketise, gather, read_resource_as_text, shasum, time_op
+from instawow.utils import run_in_thread as t
 
 _LuaTable: TypeAlias = Mapping[str, '_LuaTable']
 _Auras: TypeAlias = 'WeakAuras | Plateroos'

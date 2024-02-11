@@ -150,7 +150,7 @@ WeakAura updater
 `WeakAuras Companion <https://weakauras.wtf/>`__.  To use the updater
 and provided that you have WeakAuras installed::
 
-    instawow weakauras-companion build
+    instawow plugins weakauras-companion build
     instawow install instawow:weakauras-companion
 
 You will have to rebuild the companion add-on prior to updating

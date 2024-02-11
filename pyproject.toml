@@ -25,6 +25,7 @@ readme = "README.rst"
 urls.homepage = "http://github.com/layday/instawow"
 packages = [
   { include = "instawow", from = "src" },
+  { include = "instawow_wa_updater", from = "src" },
   { include = "instawow_gui", from = "gui-webview/src" },
 ]
 include = [
@@ -82,6 +83,9 @@ test = [
   "pytest-xdist",
 ]
 
+[tool.poetry.plugins."instawow.plugins"]
+"instawow_wa_updater" = "instawow_wa_updater._plugin"
+
 
 [tool.ruff]
 line-length = 99
@@ -119,6 +123,7 @@ mark-parentheses = false
 known-first-party = [
   "instawow",
   "instawow_gui",
+  "instawow_wa_updater",
 ]
 required-imports = [
   "from __future__ import annotations",
