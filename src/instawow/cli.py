@@ -279,7 +279,6 @@ def _parse_debug_option(
     return (value > 0, value > 1, value > 2)
 
 
-@_register_plugin_commands
 @click.group(context_settings={'help_option_names': ('-h', '--help')})
 @click.version_option(__version__, prog_name=__spec__.parent)
 @click.option(
@@ -1279,6 +1278,12 @@ def configure(
     click.echo(f'  {config.config_file}')
 
     return config
+
+
+@_register_plugin_commands
+@cli.group('plugins')
+def _plugin_group() -> None:  # pyright: ignore[reportUnusedFunction]
+    "Registered plug-ins."
 
 
 @cli.group('weakauras-companion')

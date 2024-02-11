@@ -1,6 +1,14 @@
 Changelog
 =========
 
+Next
+----
+
+CLI
+~~~
+
+- Plug-in commands have been moved under ``instawow plugins``.
+
 v3.3.0
 ------
 
