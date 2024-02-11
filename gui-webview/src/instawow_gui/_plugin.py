@@ -9,8 +9,8 @@ import instawow.plugins
 @click.pass_context
 def _gui_command(ctx: click.Context) -> None:
     "Fire up the GUI."
+    from instawow import __version__
     from instawow._logging import setup_logging
-    from instawow._version import __version__
     from instawow.config import Config, GlobalConfig
 
     from .app import InstawowApp
