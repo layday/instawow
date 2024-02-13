@@ -39,7 +39,7 @@ async def test_pinning_supported_pkg(
 ):
     defn = Defn('curse', 'molinari')
 
-    install_result = (await iw_manager.install([defn], False))[defn]
+    install_result = (await iw_manager.install([defn], replace_folders=False))[defn]
     assert type(install_result) is R.PkgInstalled
 
     for new_defn in (defn.with_version(install_result.pkg.version), defn):
@@ -54,7 +54,7 @@ async def test_pinning_unsupported_pkg(
 ):
     molinari_defn = Defn('wowi', '13188')
 
-    await iw_manager.install([molinari_defn], False)
+    await iw_manager.install([molinari_defn], replace_folders=False)
     installed_pkg = iw_manager.get_pkg(molinari_defn)
     assert installed_pkg is not None
     assert installed_pkg.options.version_eq is False
@@ -201,7 +201,7 @@ async def test_install_recognises_renamed_pkg_from_id(
     assert type(result[new_defn]) is R.PkgAlreadyInstalled
 
 
-async def test_update_lifecycle_while_varying_retain_defn_strategy(
+async def test_update_lifecycle_with_strategy_switch(
     iw_manager: PkgManager,
 ):
     defn = Defn('curse', 'molinari')
@@ -210,27 +210,17 @@ async def test_update_lifecycle_while_varying_retain_defn_strategy(
     result = (await iw_manager.install([defn], replace_folders=False))[defn]
     assert type(result) is R.PkgInstalled
 
-    result = (await iw_manager.update([defn], retain_defn_strategy=False))[defn]
+    result = (await iw_manager.update([defn]))[defn]
     assert type(result) is R.PkgUpToDate
     assert result.is_pinned is False
 
-    result = (await iw_manager.update([versioned_defn], retain_defn_strategy=False))[
-        versioned_defn
-    ]
-    assert type(result) is R.PkgUpToDate
-    assert result.is_pinned is False
-
-    result = (await iw_manager.update([versioned_defn], retain_defn_strategy=True))[versioned_defn]
+    result = (await iw_manager.update([versioned_defn]))[versioned_defn]
     assert type(result) is R.PkgUpdated
     assert result.new_pkg.options.version_eq is True
 
-    result = (await iw_manager.update([defn], retain_defn_strategy=False))[defn]
+    result = (await iw_manager.update([defn]))[defn]
     assert type(result) is R.PkgUpToDate
     assert result.is_pinned is True
-
-    result = (await iw_manager.update([defn], retain_defn_strategy=True))[defn]
-    assert type(result) is R.PkgUpdated
-    assert result.new_pkg.options.version_eq is False
 
 
 async def test_update_reinstalls_corrupted_pkgs(
@@ -247,7 +237,7 @@ async def test_update_reinstalls_corrupted_pkgs(
     first_folder.rename(first_folder.with_name('foo'))
     assert not all(f.is_dir() for f in folders)
 
-    result = await iw_manager.update([defn], retain_defn_strategy=False)
+    result = await iw_manager.update([defn])
     assert type(result[defn]) is R.PkgUpdated
     assert all(f.is_dir() for f in folders)
 
@@ -258,7 +248,7 @@ async def test_deleting_and_retaining_folders_on_remove(
 ):
     defn = Defn('curse', 'molinari')
 
-    await iw_manager.install([defn], False)
+    await iw_manager.install([defn], replace_folders=False)
     pkg = iw_manager.get_pkg(defn)
     assert pkg
 
@@ -281,7 +271,7 @@ async def test_removing_pkg_with_missing_folders(
 ):
     defn = Defn('curse', 'molinari')
 
-    result = await iw_manager.install([defn], False)
+    result = await iw_manager.install([defn], replace_folders=False)
 
     folders = [iw_manager.ctx.config.addon_dir / f.name for f in result[defn].pkg.folders]
     for folder in folders:

@@ -95,15 +95,23 @@ class StrategyValues:
     any_release_type: Literal[True, None] = None
     version_eq: str | None = None
 
+    initialised = True
+
     @property
     def filled_strategies(self) -> dict[Strategy, object]:
         return {Strategy(p): v for p, v in asdict(self).items() if v is not None}
+
+
+@frozen
+class _UninitialisedStrategyValues(StrategyValues):
+    initialised = False
 
 
 _UNSOURCE = '*'
 _UNSOURCE_NAME = 'ASTERISK'  # unicodedata.name(_UNSOURCE)
 
 _STRATEGY_SEP = ','
+_STRATEGY_VALUE_SEP = '='
 
 
 @frozen(hash=True)
@@ -111,7 +119,7 @@ class Defn:
     source: str
     alias: str
     id: str | None = None
-    strategies: StrategyValues = StrategyValues()
+    strategies: StrategyValues = _UninitialisedStrategyValues()
 
     @classmethod
     def from_uri(
@@ -120,7 +128,6 @@ class Defn:
         *,
         known_sources: Iterable[str],
         allow_unsourced: bool,
-        include_strategies: bool = False,
     ) -> Self:
         """Construct a ``Defn`` from a URI."""
         url = URL(uri)
@@ -135,26 +142,28 @@ class Defn:
         else:
             make_cls = partial(cls, source=url.scheme, alias=url.path)
 
-        if include_strategies:
+        if url.fragment == _STRATEGY_VALUE_SEP:
+            make_cls = partial(make_cls, strategies=StrategyValues())
+        elif url.fragment:
             strategy_values = {
                 s: v
                 for f in url.fragment.split(_STRATEGY_SEP)
-                for s, _, v in (f.partition('='),)
+                for s, _, v in (f.partition(_STRATEGY_VALUE_SEP),)
                 if s
             }
-            if strategy_values:
-                unknown_strategies = strategy_values.keys() - set(Strategy)
-                if unknown_strategies:
-                    raise ValueError(f'Unknown strategies: {", ".join(unknown_strategies)}')
 
-                make_cls = partial(
-                    make_cls,
-                    strategies=StrategyValues(
-                        any_flavour=Strategy.AnyFlavour in strategy_values or None,
-                        any_release_type=Strategy.AnyReleaseType in strategy_values or None,
-                        version_eq=strategy_values.get(Strategy.VersionEq),
-                    ),
-                )
+            unknown_strategies = strategy_values.keys() - set(Strategy)
+            if unknown_strategies:
+                raise ValueError(f'Unknown strategies: {", ".join(unknown_strategies)}')
+
+            make_cls = partial(
+                make_cls,
+                strategies=StrategyValues(
+                    any_flavour=Strategy.AnyFlavour in strategy_values or None,
+                    any_release_type=Strategy.AnyReleaseType in strategy_values or None,
+                    version_eq=strategy_values.get(Strategy.VersionEq),
+                ),
+            )
 
         return make_cls()
 
@@ -170,8 +179,17 @@ class Defn:
 
         return uri
 
+    def with_default_strategy_set(self) -> Self:
+        return evolve(
+            self,
+            strategies=StrategyValues(),
+        )
+
     def with_version(self, version: str) -> Self:
-        return evolve(self, strategies=evolve(self.strategies, version_eq=version))
+        return evolve(
+            self,
+            strategies=StrategyValues(**(asdict(self.strategies) | {'version_eq': version})),
+        )
 
     @property
     def is_unsourced(self) -> bool:

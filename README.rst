@@ -102,7 +102,8 @@ Add-ons take a number of options which determine how they are resolved:
 
 In the CLI, you can pass strategies in the fragment portion of the add-on URI,
 separated by a comma, e.g. ``instawow install curse:molinari#any_release_type,any_flavour``.
-Strategies are respected by ``install`` and ``update --retain-strategies``.
+Strategies are respected by ``install`` and ``update``.  To reset an add-on's strategies on update,
+you can pass a ``=`` fragment, e.g. ``instawow update curse:molinari#=``.
 
 Reverting add-on updates
 ~~~~~~~~~~~~~~~~~~~~~~~~

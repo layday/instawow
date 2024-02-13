@@ -383,9 +383,7 @@ class InstallParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
 @_register_method('update')
 class UpdateParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
     async def respond(self, managers: _ManagersManager) -> list[SuccessResult | ErrorResult]:
-        results = await managers.run(
-            self.profile, partial(PkgManager.update, defns=self.defns, retain_defn_strategy=True)
-        )
+        results = await managers.run(self.profile, partial(PkgManager.update, defns=self.defns))
         return [
             {'status': r.status, 'addon': r.new_pkg}
             if isinstance(r, R.PkgUpdated)

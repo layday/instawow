@@ -159,9 +159,7 @@ def test_version_strategy_lifecycle(
         == '✗ curse:molinari\n  package already installed\n'
     )
     assert run('update curse:molinari').output == '✗ curse:molinari\n  package is up to date\n'
-    assert run(
-        'update --retain-strategies curse:molinari#version_eq=100005.97-Release'
-    ).output == dedent(
+    assert run('update curse:molinari#version_eq=100005.97-Release').output == dedent(
         """\
         ✓ curse:molinari
           updated 100105.109-Release to 100005.97-Release with new strategies:
@@ -181,7 +179,7 @@ def test_version_strategy_lifecycle(
         == '✓ curse:molinari\n  installed 100005.97-Release\n'
     )
     assert run('update').output == '✗ curse:molinari\n  package is pinned\n'
-    assert run('update --retain-strategies curse:molinari').output == dedent(
+    assert run('update curse:molinari#=').output == dedent(
         """\
         ✓ curse:molinari
           updated 100005.97-Release to 100105.109-Release with new strategies:

@@ -1,11 +1,20 @@
 from __future__ import annotations
 
-from datetime import datetime
+import datetime as dt
+from functools import lru_cache
 
+import cattrs
 from attrs import asdict, field, frozen
 from typing_extensions import Self
 
 from .common import Defn, StrategyValues
+
+
+@lru_cache(1)
+def make_db_pkg_converter():
+    converter = cattrs.Converter()
+    converter.register_structure_hook(dt.datetime, lambda d, _: d)
+    return converter
 
 
 @frozen(kw_only=True)
@@ -34,7 +43,7 @@ class PkgDep:
 @frozen(kw_only=True)
 class PkgLoggedVersion:
     version: str
-    install_time: datetime
+    install_time: dt.datetime
 
 
 @frozen(kw_only=True, eq=False)
@@ -46,7 +55,7 @@ class Pkg:
     description: str
     url: str
     download_url: str
-    date_published: datetime
+    date_published: dt.datetime
     version: str
     changelog_url: str
     options: PkgOptions  # pkg_options

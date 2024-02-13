@@ -312,7 +312,6 @@ def _parse_uri(
     value: str,
     *,
     raise_invalid: bool = True,
-    include_strategies: bool = False,
 ) -> Defn:
     ...
 
@@ -323,7 +322,6 @@ def _parse_uri(
     value: list[str],
     *,
     raise_invalid: bool = True,
-    include_strategies: bool = False,
 ) -> list[Defn]:
     ...
 
@@ -333,27 +331,16 @@ def _parse_uri(
     value: str | list[str] | None,
     *,
     raise_invalid: bool = True,
-    include_strategies: bool = False,
 ) -> Defn | list[Defn] | None:
     if value is None:
         return None
 
     if not isinstance(value, str):
-        defns = (
-            _parse_uri(
-                manager, v, raise_invalid=raise_invalid, include_strategies=include_strategies
-            )
-            for v in value
-        )
+        defns = (_parse_uri(manager, v, raise_invalid=raise_invalid) for v in value)
         return uniq(defns)
 
     try:
-        defn = Defn.from_uri(
-            value,
-            known_sources=manager.ctx.resolvers,
-            allow_unsourced=True,
-            include_strategies=include_strategies,
-        )
+        defn = Defn.from_uri(value, known_sources=manager.ctx.resolvers, allow_unsourced=True)
     except ValueError as exc:
         raise click.BadParameter(exc.args[0]) from None
 
@@ -369,11 +356,10 @@ def _parse_uri(
 
 
 @cli.command
-@click.argument(
-    'addons', nargs=-1, callback=_with_manager(partial(_parse_uri, include_strategies=True))
-)
+@click.argument('addons', nargs=-1, callback=_with_manager(_parse_uri))
 @click.option(
     '--replace',
+    'replace_folders',
     is_flag=True,
     default=False,
     help='Replace unreconciled add-ons.',
@@ -389,24 +375,18 @@ def _parse_uri(
 def install(
     mw: CtxObjWrapper,
     addons: Sequence[Defn],
-    replace: bool,
+    replace_folders: bool,
     dry_run: bool,
 ) -> None:
     "Install add-ons."
-    results = mw.run_with_progress(mw.manager.install(addons, replace, dry_run))
+    results = mw.run_with_progress(
+        mw.manager.install(addons, replace_folders=replace_folders, dry_run=dry_run)
+    )
     Report(results.items()).generate_and_exit()
 
 
 @cli.command
-@click.argument(
-    'addons', nargs=-1, callback=_with_manager(partial(_parse_uri, include_strategies=True))
-)
-@click.option(
-    '--retain-strategies',
-    is_flag=True,
-    default=False,
-    help='Respect the strategies of [ADDONS] if they result in a change.',
-)
+@click.argument('addons', nargs=-1, callback=_with_manager(_parse_uri))
 @click.option(
     '--dry-run',
     is_flag=True,
@@ -418,7 +398,6 @@ def install(
 def update(
     mw: CtxObjWrapper,
     addons: Sequence[Defn],
-    retain_strategies: bool,
     dry_run: bool,
 ) -> None:
     "Update installed add-ons."
@@ -441,9 +420,7 @@ def update(
             ]
 
     results = mw.run_with_progress(
-        mw.manager.update(
-            addons or installed_pkgs_to_defns(), retain_strategies if addons else False, dry_run
-        )
+        mw.manager.update(addons or installed_pkgs_to_defns(), dry_run=dry_run)
     )
     Report(results.items(), filter_results).generate_and_exit()
 
@@ -459,7 +436,7 @@ def update(
 @click.pass_obj
 def remove(mw: CtxObjWrapper, addons: Sequence[Defn], keep_folders: bool) -> None:
     "Remove add-ons."
-    results = mw.run_with_progress(mw.manager.remove(addons, keep_folders))
+    results = mw.run_with_progress(mw.manager.remove(addons, keep_folders=keep_folders))
     Report(results.items()).generate_and_exit()
 
 
@@ -482,7 +459,9 @@ def rollback(mw: CtxObjWrapper, addon: Defn, undo: bool) -> None:
     elif Strategy.VersionEq not in mw.manager.ctx.resolvers[pkg.source].metadata.strategies:
         Report([(addon, R.PkgStrategiesUnsupported({Strategy.VersionEq}))]).generate_and_exit()
     elif undo:
-        Report(mw.run_with_progress(mw.manager.update([addon], True)).items()).generate_and_exit()
+        Report(
+            mw.run_with_progress(mw.manager.update([addon.with_default_strategy_set()])).items()
+        ).generate_and_exit()
 
     reconstructed_defn = pkg.to_defn()
 
@@ -504,7 +483,7 @@ def rollback(mw: CtxObjWrapper, addon: Defn, undo: bool) -> None:
 
     Report(
         mw.run_with_progress(
-            mw.manager.update([reconstructed_defn.with_version(selection)], True)
+            mw.manager.update([reconstructed_defn.with_version(selection)])
         ).items()
     ).generate_and_exit()
 
@@ -589,12 +568,12 @@ def reconcile(mw: CtxObjWrapper, auto: bool, rereconcile: bool, list_unreconcile
         if selections and ask(confirm('Install selected add-ons?')):
             Report(
                 mw.run_with_progress(
-                    mw.manager.remove([p.to_defn() for p, _ in selections], False),
+                    mw.manager.remove([p.to_defn() for p, _ in selections], keep_folders=False),
                 ).items()
             ).generate()
             Report(
                 mw.run_with_progress(
-                    mw.manager.install([s for _, s in selections], False),
+                    mw.manager.install([s for _, s in selections], replace_folders=False),
                 ).items()
             ).generate_and_exit()
 
@@ -655,7 +634,9 @@ def reconcile(mw: CtxObjWrapper, auto: bool, rereconcile: bool, list_unreconcile
             groups = mw.run_with_progress(fn(mw.manager.ctx, leftovers))
             selections = [s for s in gather_selections(groups, select_pkg_) if s is not None]
             if selections and confirm_install():
-                results = mw.run_with_progress(mw.manager.install(selections, True))
+                results = mw.run_with_progress(
+                    mw.manager.install(selections, replace_folders=True)
+                )
                 Report(results.items()).generate()
 
             leftovers = get_unreconciled_folders(mw.manager.ctx)
@@ -749,7 +730,7 @@ def search(
         selections: list[Defn] = ask(checkbox('Select add-ons to install', choices=choices))
         if selections:
             if ask(confirm('Install selected add-ons?')):
-                ctx.invoke(install, addons=selections, replace=False, dry_run=False)
+                ctx.invoke(install, addons=selections, replace_folders=False, dry_run=False)
         else:
             click.echo(
                 'Nothing was selected; select add-ons with <space>'

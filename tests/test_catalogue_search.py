@@ -73,7 +73,7 @@ async def test_search_filter_installed(
 
     defn = Defn('curse', 'molinari')
 
-    install_result = (await iw_manager.install([defn], False))[defn]
+    install_result = (await iw_manager.install([defn], replace_folders=False))[defn]
     assert type(install_result) is PkgInstalled
 
     results = await search(iw_manager_ctx, 'molinari', limit=5)

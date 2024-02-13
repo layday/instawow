@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import datetime as dt
 from collections.abc import (
     Awaitable,
     Callable,
@@ -10,7 +9,7 @@ from collections.abc import (
     Sequence,
 )
 from contextlib import asynccontextmanager
-from functools import lru_cache, wraps
+from functools import wraps
 from itertools import filterfalse, product, repeat, starmap
 from pathlib import Path
 from shutil import move
@@ -19,7 +18,6 @@ from typing import Concatenate, TypeVar
 
 import sqlalchemy as sa
 from attrs import asdict, evolve
-from cattrs import Converter
 from loguru import logger
 from typing_extensions import Never, ParamSpec
 from yarl import URL
@@ -52,13 +50,6 @@ _move_async = run_in_thread(move)
 
 _MUTATE_PKGS_LOCK = '_MUTATE_PKGS_'
 _DOWNLOAD_PKG_LOCK = '_DOWNLOAD_PKG_'
-
-
-@lru_cache(1)
-def _make_db_pkg_converter():
-    converter = Converter()
-    converter.register_structure_hook(dt.datetime, lambda d, _: d)
-    return converter
 
 
 def bucketise_results(
@@ -325,7 +316,7 @@ class PkgManager:
         self, connection: sa.Connection, row_mapping: sa.RowMapping
     ) -> pkg_models.Pkg:
         source_and_id = {'pkg_source': row_mapping['source'], 'pkg_id': row_mapping['id']}
-        return _make_db_pkg_converter().structure(
+        return pkg_models.make_db_pkg_converter().structure(
             {
                 **row_mapping,
                 'options': connection.execute(
@@ -500,7 +491,7 @@ class PkgManager:
 
     @_with_lock(_MUTATE_PKGS_LOCK)
     async def install(
-        self, defns: Sequence[Defn], replace_folders: bool, dry_run: bool = False
+        self, defns: Sequence[Defn], *, replace_folders: bool, dry_run: bool = False
     ) -> Mapping[Defn, R.AnyResult[R.PkgInstalled]]:
         "Install packages from a definition list."
 
@@ -540,14 +531,9 @@ class PkgManager:
 
     @_with_lock(_MUTATE_PKGS_LOCK)
     async def update(
-        self, defns: Sequence[Defn], retain_defn_strategy: bool, dry_run: bool = False
+        self, defns: Sequence[Defn], *, dry_run: bool = False
     ) -> Mapping[Defn, R.AnyResult[R.PkgInstalled | R.PkgUpdated]]:
-        """Update installed packages from a definition list.
-
-        A ``retain_defn_strategy`` value of false will instruct ``update``
-        to extract the strategy from the installed package; otherwise
-        the ``Defn`` strategy will be used.
-        """
+        """Update installed packages from a definition list."""
 
         defns_to_pkgs = {d: p for d in defns for p in (self.get_pkg(d),) if p}
         resolve_defns = {
@@ -555,7 +541,7 @@ class PkgManager:
             # corresponding installed package.  Using the ID has the benefit
             # of resolving installed-but-renamed packages - the slug is
             # transient but the ID isn't
-            evolve(d, id=p.id) if retain_defn_strategy else p.to_defn(): d
+            evolve(d, id=p.id) if d.strategies.initialised else p.to_defn(): d
             for d, p in defns_to_pkgs.items()
         }
         resolve_results = await self.resolve(resolve_defns, with_deps=True)
@@ -610,7 +596,7 @@ class PkgManager:
 
     @_with_lock(_MUTATE_PKGS_LOCK)
     async def remove(
-        self, defns: Sequence[Defn], keep_folders: bool
+        self, defns: Sequence[Defn], *, keep_folders: bool
     ) -> Mapping[Defn, R.AnyResult[R.PkgRemoved]]:
         "Remove packages by their definition."
         return {
