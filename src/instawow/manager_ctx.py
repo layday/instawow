@@ -1,20 +1,17 @@
 from __future__ import annotations
 
 import contextvars as cv
-import json
 from collections.abc import (
     Collection,
     Mapping,
     Sequence,
 )
 from contextlib import AbstractAsyncContextManager
-from datetime import timedelta
-from functools import cached_property, lru_cache
+from functools import cached_property
 from itertools import chain
 from typing import TypeAlias
 
 import sqlalchemy as sa
-from loguru import logger
 from typing_extensions import Self
 
 from . import http, pkg_db
@@ -25,20 +22,10 @@ from ._sources.tukui import TukuiResolver
 from ._sources.wago import WagoResolver
 from ._sources.wowi import WowiResolver
 from .archives import ArchiveOpener, open_zip_archive
-from .catalogue.cataloguer import (
-    CATALOGUE_VERSION,
-    ComputedCatalogue,
-)
 from .config import Config
-from .http import make_generic_progress_ctx
 from .plugins import get_plugin_resolvers
 from .resolvers import Resolver
-from .utils import (
-    WeakValueDefaultDictionary,
-    time_op,
-)
-
-_LOAD_CATALOGUE_LOCK = '_LOAD_CATALOGUE_'
+from .utils import WeakValueDefaultDictionary
 
 
 class _DummyLock:
@@ -104,12 +91,6 @@ def contextualise(
         _locks.set(locks)
 
 
-@lru_cache(1)
-def _parse_catalogue(raw_catalogue: bytes):
-    with time_op(lambda t: logger.debug(f'parsed catalogue in {t:.3f}s')):
-        return ComputedCatalogue.from_base_catalogue(json.loads(raw_catalogue))
-
-
 class ManagerCtx:
     __slots__ = [
         'config',
@@ -126,12 +107,6 @@ class ManagerCtx:
         WagoResolver,
     ]
     'Default resolvers.'
-
-    _base_catalogue_url = (
-        f'https://raw.githubusercontent.com/layday/instawow-data/data/'
-        f'base-catalogue-v{CATALOGUE_VERSION}.compact.json'
-    )
-    _catalogue_ttl = timedelta(hours=4)
 
     def __init__(
         self,
@@ -169,14 +144,3 @@ class ManagerCtx:
     @property
     def web_client(self) -> http.ClientSessionType:
         return _web_client.get()
-
-    async def synchronise(self) -> ComputedCatalogue:
-        "Fetch the catalogue from the interwebs and load it."
-        async with self.locks[_LOAD_CATALOGUE_LOCK], self.web_client.get(
-            self._base_catalogue_url,
-            expire_after=self._catalogue_ttl,
-            raise_for_status=True,
-            trace_request_ctx=make_generic_progress_ctx('Synchronising catalogue'),
-        ) as response:
-            raw_catalogue = await response.read()
-        return _parse_catalogue(raw_catalogue)

@@ -13,6 +13,7 @@ from attrs import field, frozen
 from typing_extensions import Self
 
 from .. import manager_ctx
+from ..catalogue import synchronise as synchronise_catalogue
 from ..common import Defn, Flavour
 from ..pkg_db import pkg_folder
 from ..utils import (
@@ -109,7 +110,7 @@ def get_unreconciled_folders(manager_ctx: manager_ctx.ManagerCtx) -> frozenset[A
 async def match_toc_source_ids(
     manager_ctx: manager_ctx.ManagerCtx, leftovers: frozenset[AddonFolder]
 ):
-    catalogue = await manager_ctx.synchronise()
+    catalogue = await synchronise_catalogue(manager_ctx)
 
     def get_catalogue_defns(extracted_defns: Iterable[Defn]):
         for defn in extracted_defns:
@@ -169,7 +170,7 @@ async def match_folder_hashes(
 async def match_folder_name_subsets(
     manager_ctx: manager_ctx.ManagerCtx, leftovers: frozenset[AddonFolder]
 ):
-    catalogue = await manager_ctx.synchronise()
+    catalogue = await synchronise_catalogue(manager_ctx)
 
     leftovers_by_name = {e.name: e for e in leftovers}
 
@@ -203,7 +204,7 @@ async def match_addon_names_with_folder_names(
     def normalise(value: str):
         return re.sub(r'[^0-9A-Za-z]', '', value.casefold())
 
-    catalogue = await manager_ctx.synchronise()
+    catalogue = await synchronise_catalogue(manager_ctx)
 
     addon_names_to_catalogue_entries = bucketise(
         catalogue.entries, key=lambda i: normalise(i.name)

@@ -7,6 +7,7 @@ from typing import Literal
 from .. import manager_ctx, pkg_db
 from ..utils import bucketise, normalise_names
 from . import cataloguer
+from . import synchronise as synchronise_catalogue
 
 _normalise_search_terms = normalise_names('')
 
@@ -27,7 +28,7 @@ async def search(
     import rapidfuzz
     import sqlalchemy as sa
 
-    catalogue = await manager_ctx.synchronise()
+    catalogue = await synchronise_catalogue(manager_ctx)
 
     ew = 0.5
     dw = 1 - ew

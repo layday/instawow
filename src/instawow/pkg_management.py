@@ -350,9 +350,10 @@ class PkgManager:
         self, pkgs: Collection[pkg_models.Pkg]
     ) -> dict[pkg_models.Pkg, list[Defn]]:
         "Given a list of packages, find ``Defn``s of each package from other sources."
+        from .catalogue import synchronise as synchronise_catalogue
         from .matchers import AddonFolder
 
-        catalogue = await self.ctx.synchronise()
+        catalogue = await synchronise_catalogue(self.ctx)
 
         @run_in_thread
         def collect_addon_folders():
