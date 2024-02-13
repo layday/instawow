@@ -10,8 +10,9 @@ from yarl import URL
 
 from .. import pkg_models
 from .. import results as R
-from ..common import AddonHashMethod, ChangelogFormat, Defn, SourceMetadata, Strategy
+from ..common import ChangelogFormat, Defn, SourceMetadata, Strategy
 from ..http import make_generic_progress_ctx
+from ..matchers import AddonHashMethod
 from ..resolvers import BaseResolver, HeadersIntent, TFolderHashCandidate
 from ..utils import StrEnum, as_plain_text_data_url, run_in_thread
 

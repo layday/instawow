@@ -10,10 +10,10 @@ from typing import Any, ClassVar, Protocol, TypeVar
 from typing_extensions import Self
 from yarl import URL
 
-from . import archives, http, manager_ctx, pkg_models
+from . import archives, http, manager_ctx, matchers, pkg_models
 from . import results as R
 from .catalogue.cataloguer import CatalogueEntry
-from .common import AddonHashMethod, Defn, SourceMetadata
+from .common import Defn, SourceMetadata
 from .config import GlobalConfig
 from .utils import file_uri_to_path, gather, run_in_thread
 
@@ -23,7 +23,7 @@ class FolderHashCandidate(Protocol):  # pragma: no cover
     def name(self) -> str:
         ...
 
-    def hash_contents(self, __method: AddonHashMethod) -> str:
+    def hash_contents(self, __method: matchers.AddonHashMethod) -> str:
         ...
 
 

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import enum
 import re
 from collections.abc import Awaitable, Iterable, Mapping
 from functools import cached_property
@@ -12,7 +13,7 @@ from attrs import field, frozen
 from typing_extensions import Self
 
 from .. import manager_ctx
-from ..common import AddonHashMethod, Defn, Flavour
+from ..common import Defn, Flavour
 from ..pkg_db import pkg_folder
 from ..utils import (
     TocReader,
@@ -29,6 +30,10 @@ class Matcher(Protocol):  # pragma: no cover
         self, manager_ctx: manager_ctx.ManagerCtx, leftovers: frozenset[AddonFolder]
     ) -> Awaitable[list[tuple[list[AddonFolder], list[Defn]]]]:
         ...
+
+
+class AddonHashMethod(enum.Enum):
+    Wowup = enum.auto()
 
 
 # https://github.com/Stanzilla/WoWUIBugs/issues/68#issuecomment-830351390

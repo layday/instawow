@@ -194,7 +194,3 @@ class Defn:
     @property
     def is_unsourced(self) -> bool:
         return self.source == _UNSOURCE
-
-
-class AddonHashMethod(enum.Enum):
-    Wowup = enum.auto()

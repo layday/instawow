@@ -4,10 +4,11 @@ from pathlib import Path
 
 import pytest
 
-from instawow.common import AddonHashMethod, Defn, Flavour
+from instawow.common import Defn, Flavour
 from instawow.manager_ctx import ManagerCtx
 from instawow.matchers import (
     AddonFolder,
+    AddonHashMethod,
     Matcher,
     get_unreconciled_folders,
     match_addon_names_with_folder_names,
