@@ -4,8 +4,7 @@ import datetime as dt
 from functools import lru_cache
 
 import cattrs
-from attrs import asdict, field, frozen
-from typing_extensions import Self
+from attrs import field, frozen
 
 from .common import Defn, StrategyValues
 
@@ -22,12 +21,6 @@ class PkgOptions:
     any_flavour: bool
     any_release_type: bool
     version_eq: bool
-
-    @classmethod
-    def from_strategy_values(cls, strategies: StrategyValues) -> Self:
-        return cls(
-            **{k: bool(v) for k, v in asdict(strategies).items()},
-        )
 
 
 @frozen(kw_only=True)

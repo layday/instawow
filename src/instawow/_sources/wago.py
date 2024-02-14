@@ -8,12 +8,11 @@ import iso8601
 from typing_extensions import TypedDict
 from yarl import URL
 
-from .. import pkg_models
 from .. import results as R
 from ..common import ChangelogFormat, Defn, SourceMetadata, Strategy
 from ..http import make_generic_progress_ctx
 from ..matchers import AddonHashMethod
-from ..resolvers import BaseResolver, HeadersIntent, TFolderHashCandidate
+from ..resolvers import BaseResolver, HeadersIntent, PkgCandidate, TFolderHashCandidate
 from ..utils import StrEnum, as_plain_text_data_url, run_in_thread
 
 _WagoStability = Literal['stable', 'beta', 'alpha']
@@ -107,7 +106,7 @@ class WagoResolver(BaseResolver):
     )
     requires_access_token = 'wago_addons'
 
-    _wago_external_api_url = URL('https://addons.wago.io/api/external')
+    __wago_external_api_url = URL('https://addons.wago.io/api/external')
 
     @classmethod
     def get_alias_from_url(cls, url: URL) -> str | None:
@@ -120,13 +119,13 @@ class WagoResolver(BaseResolver):
             raise ValueError(f'{self.metadata.name} access token is not configured')
         return {'Authorization': f'Bearer {maybe_access_token}'}
 
-    async def resolve_one(self, defn: Defn, metadata: None) -> pkg_models.Pkg:
+    async def _resolve_one(self, defn: Defn, metadata: None) -> PkgCandidate:
         wago_game_version = self._manager_ctx.config.game_flavour.to_flavour_keyed_enum(
             _WagoGameVersion
         )
 
         async with self._manager_ctx.web_client.get(
-            (self._wago_external_api_url / 'addons' / defn.alias).with_query(
+            (self.__wago_external_api_url / 'addons' / defn.alias).with_query(
                 game_version=wago_game_version.value,
             ),
             expire_after=timedelta(minutes=5),
@@ -152,7 +151,7 @@ class WagoResolver(BaseResolver):
         else:
             file_date, file = matching_file
 
-        return pkg_models.Pkg(
+        return PkgCandidate(
             source=self.metadata.id,
             id=addon_metadata['id'],
             slug=addon_metadata['slug'],
@@ -163,11 +162,10 @@ class WagoResolver(BaseResolver):
             date_published=file_date,
             version=file['label'],
             changelog_url=as_plain_text_data_url(file['changelog']),
-            options=pkg_models.PkgOptions.from_strategy_values(defn.strategies),
         )
 
     @run_in_thread
-    def _make_match_params(
+    def __make_match_params(
         self, candidates: Collection[TFolderHashCandidate]
     ) -> _WagoMatchRequest:
         return {
@@ -187,10 +185,10 @@ class WagoResolver(BaseResolver):
         self, candidates: Collection[TFolderHashCandidate]
     ) -> Iterable[tuple[Defn, frozenset[TFolderHashCandidate]]]:
         async with self._manager_ctx.web_client.post(
-            self._wago_external_api_url / 'addons/_match',
+            self.__wago_external_api_url / 'addons/_match',
             expire_after=timedelta(minutes=15),
             headers=await self.make_request_headers(),
-            json=await self._make_match_params(candidates),
+            json=await self.__make_match_params(candidates),
             raise_for_status=True,
             trace_request_ctx=make_generic_progress_ctx('Finding matching Wago add-ons'),
         ) as response:

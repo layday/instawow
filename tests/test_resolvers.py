@@ -20,7 +20,7 @@ async def test_unsupported_strategies_raise(
             addon_toc_key=None,
         )
 
-        def resolve_one(self, defn: Defn, metadata: Any):
+        def _resolve_one(self, defn: Defn, metadata: Any):
             raise NotImplementedError
 
     defn = Defn(

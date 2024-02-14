@@ -6,8 +6,7 @@ import click
 
 import instawow.plugins
 from instawow.common import ChangelogFormat, Defn, SourceMetadata
-from instawow.pkg_models import Pkg, PkgOptions
-from instawow.resolvers import BaseResolver
+from instawow.resolvers import BaseResolver, PkgCandidate
 
 
 @click.command
@@ -26,8 +25,8 @@ class MyResolver(BaseResolver):
     )
     requires_access_token = None
 
-    async def resolve_one(self, defn: Defn, metadata: None) -> Pkg:
-        return Pkg(
+    async def _resolve_one(self, defn: Defn, metadata: None) -> PkgCandidate:
+        return PkgCandidate(
             source=self.metadata.id,
             id='bar',
             slug='bar',
@@ -38,7 +37,6 @@ class MyResolver(BaseResolver):
             date_published=datetime.now(timezone.utc),
             version='0',
             changelog_url='data:,',
-            options=PkgOptions.from_strategy_values(defn.strategies),
         )
 
 

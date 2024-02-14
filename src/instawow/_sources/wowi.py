@@ -16,10 +16,10 @@ from .. import results as R
 from ..catalogue.cataloguer import CatalogueEntry
 from ..common import ChangelogFormat, Defn, Flavour, FlavourVersionRange, SourceMetadata
 from ..http import ClientSessionType, make_generic_progress_ctx
-from ..resolvers import BaseResolver
+from ..resolvers import BaseResolver, PkgCandidate
 from ..utils import as_plain_text_data_url, gather, slugify, uniq
 
-_LOCK_PREFIX = object()
+_lock_prefix = object()
 
 _LOAD_WOWI_CATALOGUE_LOCK = '_LOAD_WOWI_CATALOGUE_LOCK_'
 
@@ -70,6 +70,10 @@ class _WowiCombinedItem(_WowiListApiItem, _WowiDetailsApiItem):
     pass
 
 
+def _timestamp_to_datetime(timestamp: int):
+    return datetime.fromtimestamp(timestamp / 1000, timezone.utc)
+
+
 class WowiResolver(BaseResolver):
     metadata = SourceMetadata(
         id='wowi',
@@ -91,12 +95,8 @@ class WowiResolver(BaseResolver):
     # classic version.  Hoooowever the download link always points to the
     # 'retail' version, which for single-file add-ons belonging to the
     # classic category would be an add-on for classic.
-    _list_api_url = 'https://api.mmoui.com/v3/game/WOW/filelist.json'
-    _details_api_url = URL('https://api.mmoui.com/v3/game/WOW/filedetails/')
-
-    @classmethod
-    def _timestamp_to_datetime(cls, timestamp: int):
-        return datetime.fromtimestamp(timestamp / 1000, timezone.utc)
+    __list_api_url = 'https://api.mmoui.com/v3/game/WOW/filelist.json'
+    __details_api_url = URL('https://api.mmoui.com/v3/game/WOW/filedetails/')
 
     @classmethod
     def get_alias_from_url(cls, url: URL) -> str | None:
@@ -113,10 +113,10 @@ class WowiResolver(BaseResolver):
                 match = re.match(r'^(?:download|info)(?P<id>\d+)', url.name)
                 return match and match['id']
 
-    async def _synchronise(self):
-        async with self._manager_ctx.locks[_LOCK_PREFIX, _LOAD_WOWI_CATALOGUE_LOCK]:
+    async def __synchronise(self):
+        async with self._manager_ctx.locks[_lock_prefix, _LOAD_WOWI_CATALOGUE_LOCK]:
             async with self._manager_ctx.web_client.get(
-                self._list_api_url,
+                self.__list_api_url,
                 expire_after=timedelta(hours=1),
                 raise_for_status=True,
                 trace_request_ctx=make_generic_progress_ctx(
@@ -131,12 +131,12 @@ class WowiResolver(BaseResolver):
     async def resolve(
         self, defns: Sequence[Defn]
     ) -> dict[Defn, pkg_models.Pkg | R.ManagerError | R.InternalError]:
-        list_items_by_id = await self._synchronise()
+        list_items_by_id = await self.__synchronise()
 
         defns_to_ids = {d: ''.join(takewhile(str.isdigit, d.alias)) for d in defns}
         async with self._manager_ctx.web_client.get(
             (
-                self._details_api_url
+                self.__details_api_url
                 / f'{",".join(uniq(i for i in defns_to_ids.values() if i))}.json'
             ),
             expire_after=timedelta(minutes=5),
@@ -160,11 +160,11 @@ class WowiResolver(BaseResolver):
         )
         return dict(zip(defns, results))
 
-    async def resolve_one(self, defn: Defn, metadata: _WowiCombinedItem | None) -> pkg_models.Pkg:
+    async def _resolve_one(self, defn: Defn, metadata: _WowiCombinedItem | None) -> PkgCandidate:
         if metadata is None:
             raise R.PkgNonexistent
 
-        return pkg_models.Pkg(
+        return PkgCandidate(
             source=self.metadata.id,
             id=metadata['UID'],
             slug=slugify(f'{metadata["UID"]} {metadata["UIName"]}'),
@@ -172,17 +172,16 @@ class WowiResolver(BaseResolver):
             description=metadata['UIDescription'],
             url=metadata['UIFileInfoURL'],
             download_url=metadata['UIDownload'],
-            date_published=self._timestamp_to_datetime(metadata['UIDate']),
+            date_published=_timestamp_to_datetime(metadata['UIDate']),
             version=metadata['UIVersion'],
             changelog_url=as_plain_text_data_url(metadata['UIChangeLog']),
-            options=pkg_models.PkgOptions.from_strategy_values(defn.strategies),
         )
 
     @classmethod
     async def catalogue(cls, web_client: ClientSessionType) -> AsyncIterator[CatalogueEntry]:
-        logger.debug(f'retrieving {cls._list_api_url}')
+        logger.debug(f'retrieving {cls.__list_api_url}')
 
-        async with web_client.get(cls._list_api_url, raise_for_status=True) as response:
+        async with web_client.get(cls.__list_api_url, raise_for_status=True) as response:
             items: list[_WowiListApiItem] = await response.json()
 
         for item in items:
@@ -210,6 +209,6 @@ class WowiResolver(BaseResolver):
                 url=item['UIFileInfoURL'],
                 game_flavours=frozenset(game_flavours),
                 download_count=int(item['UIDownloadTotal']),
-                last_updated=cls._timestamp_to_datetime(item['UIDate']),
+                last_updated=_timestamp_to_datetime(item['UIDate']),
                 folders=[frozenset(item['UIDir'])],
             )

@@ -20,7 +20,7 @@ from ..catalogue.cataloguer import CatalogueEntry
 from ..common import ChangelogFormat, Defn, Flavour, SourceMetadata, Strategy
 from ..config import GlobalConfig
 from ..http import CACHE_INDEFINITELY, ClientSessionType, make_generic_progress_ctx
-from ..resolvers import BaseResolver, HeadersIntent
+from ..resolvers import BaseResolver, HeadersIntent, PkgCandidate
 from ..utils import gather, uniq
 
 _T = TypeVar('_T')
@@ -262,7 +262,7 @@ class CfCoreResolver(BaseResolver):
     requires_access_token = 'cfcore'
 
     # Ref: https://docs.curseforge.com/
-    _mod_api_url = URL('https://api.curseforge.com/v1/mods')
+    __mod_api_url = URL('https://api.curseforge.com/v1/mods')
 
     @classmethod
     def get_alias_from_url(cls, url: URL) -> str | None:
@@ -292,7 +292,7 @@ class CfCoreResolver(BaseResolver):
             return await super().resolve(defns)  # Fast path.
 
         async with self._manager_ctx.web_client.post(
-            self._mod_api_url,
+            self.__mod_api_url,
             expire_after=timedelta(minutes=5),
             headers=await self.make_request_headers(),
             json={'modIds': numeric_ids},
@@ -308,11 +308,11 @@ class CfCoreResolver(BaseResolver):
         )
         return dict(zip(defns, results))
 
-    async def resolve_one(self, defn: Defn, metadata: _CfCoreMod | None) -> pkg_models.Pkg:
+    async def _resolve_one(self, defn: Defn, metadata: _CfCoreMod | None) -> PkgCandidate:
         if metadata is None:
             if defn.alias.isdigit():
                 async with self._manager_ctx.web_client.get(
-                    self._mod_api_url / defn.alias,
+                    self.__mod_api_url / defn.alias,
                     expire_after=timedelta(minutes=15),
                     headers=await self.make_request_headers(),
                 ) as mod_response:
@@ -326,7 +326,7 @@ class CfCoreResolver(BaseResolver):
 
             else:
                 async with self._manager_ctx.web_client.get(
-                    (self._mod_api_url / 'search').with_query(
+                    (self.__mod_api_url / 'search').with_query(
                         gameId=_CF_WOW_GAME_ID, slug=defn.alias
                     ),
                     expire_after=timedelta(minutes=15),
@@ -343,7 +343,7 @@ class CfCoreResolver(BaseResolver):
             game_version_type_id = self._manager_ctx.config.game_flavour.to_flavour_keyed_enum(
                 _CfCoreSortableGameVersionTypeId
             )
-            files_url = (self._mod_api_url / str(metadata['id']) / 'files').with_query(
+            files_url = (self.__mod_api_url / str(metadata['id']) / 'files').with_query(
                 gameVersionTypeId=game_version_type_id, pageSize=999
             )
             async with self._manager_ctx.web_client.get(
@@ -399,7 +399,7 @@ class CfCoreResolver(BaseResolver):
             else:
                 raise R.PkgFilesMissing
 
-        return pkg_models.Pkg(
+        return PkgCandidate(
             source=self.metadata.id,
             id=str(metadata['id']),
             slug=metadata['slug'],
@@ -410,9 +410,8 @@ class CfCoreResolver(BaseResolver):
             date_published=iso8601.parse_date(file['fileDate']),
             version=file['displayName'],
             changelog_url=str(
-                self._mod_api_url / f'{metadata["id"]}/files/{file["id"]}/changelog'
+                self.__mod_api_url / f'{metadata["id"]}/files/{file["id"]}/changelog'
             ),
-            options=pkg_models.PkgOptions.from_strategy_values(defn.strategies),
             deps=[
                 pkg_models.PkgDep(id=str(d['modId']))
                 for d in file['dependencies']
@@ -463,7 +462,7 @@ class CfCoreResolver(BaseResolver):
         )
 
         for offset in range(0, MAX_OFFSET, STEP):
-            url = (cls._mod_api_url / 'search').with_query(
+            url = (cls.__mod_api_url / 'search').with_query(
                 gameId=_CF_WOW_GAME_ID,
                 sortField=_CfCoreModsSearchSortField.last_updated,
                 sortOrder='desc',

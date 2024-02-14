@@ -1,13 +1,14 @@
 from __future__ import annotations
 
+import datetime as dt
 import enum
 import urllib.parse
 from collections.abc import AsyncIterator, Collection, Iterable, Sequence
-from functools import update_wrapper
 from pathlib import Path
-from typing import Any, ClassVar, Protocol, TypeVar
+from typing import Any, ClassVar, Protocol, TypedDict, TypeVar
 
-from typing_extensions import Self
+from attrs import asdict
+from typing_extensions import NotRequired
 from yarl import URL
 
 from . import archives, http, manager_ctx, matchers, pkg_models
@@ -84,6 +85,22 @@ class Resolver(Protocol):  # pragma: no cover
         ...
 
 
+class PkgCandidate(TypedDict):
+    "A subset of the ``Pkg`` constructor's kwargs."
+
+    source: str
+    id: str
+    slug: str
+    name: str
+    description: str
+    url: str
+    download_url: str
+    date_published: dt.datetime
+    version: str
+    changelog_url: str
+    deps: NotRequired[list[pkg_models.PkgDep]]
+
+
 class BaseResolver(Resolver, Protocol):
     _manager_ctx: manager_ctx.ManagerCtx
 
@@ -91,27 +108,6 @@ class BaseResolver(Resolver, Protocol):
 
     def __init__(self, manager_ctx: manager_ctx.ManagerCtx) -> None:
         self._manager_ctx = manager_ctx
-
-    __orig_init = __init__
-
-    def __init_subclass__(cls) -> None:
-        # ``Protocol`` clobbers ``__init__`` in Python < 3.11.  The fix was
-        # also backported to 3.9 and 3.10 at some point.
-        if cls.__init__ is _DummyResolver.__init__:
-            cls.__init__ = cls.__orig_init
-
-        if cls.resolve_one is not super().resolve_one:
-
-            async def resolve_one(self: Self, defn: Defn, metadata: Any) -> pkg_models.Pkg:
-                extraneous_strategies = (
-                    defn.strategies.filled_strategies.keys() - self.metadata.strategies
-                )
-                if extraneous_strategies:
-                    raise R.PkgStrategiesUnsupported(extraneous_strategies)
-                return await cls_resolve_one(self, defn, metadata)
-
-            cls_resolve_one = cls.resolve_one
-            setattr(cls, cls.resolve_one.__name__, update_wrapper(resolve_one, cls.resolve_one))
 
     @classmethod
     def _get_access_token(cls, global_config: GlobalConfig, name: str | None = None) -> str | None:
@@ -133,6 +129,23 @@ class BaseResolver(Resolver, Protocol):
     ) -> dict[Defn, pkg_models.Pkg | R.ManagerError | R.InternalError]:
         results = await gather((self.resolve_one(d, None) for d in defns), R.resultify_async_exc)
         return dict(zip(defns, results))
+
+    async def resolve_one(self, defn: Defn, metadata: Any) -> pkg_models.Pkg:
+        extraneous_strategies = defn.strategies.filled_strategies.keys() - self.metadata.strategies
+        if extraneous_strategies:
+            raise R.PkgStrategiesUnsupported(extraneous_strategies)
+
+        pkg_candidate = await self._resolve_one(defn, metadata)
+        return pkg_models.Pkg(
+            **pkg_candidate,
+            options=pkg_models.PkgOptions(
+                **asdict(defn.strategies, value_serializer=lambda t, a, v: bool(v))
+            ),
+        )
+
+    async def _resolve_one(self, defn: Defn, metadata: Any) -> PkgCandidate:
+        "Resolve a ``Defn`` into a package."
+        ...
 
     async def get_changelog(self, uri: URL) -> str:
         match uri.scheme:
@@ -165,7 +178,3 @@ class BaseResolver(Resolver, Protocol):
     async def catalogue(cls, web_client: http.ClientSessionType) -> AsyncIterator[CatalogueEntry]:
         return
         yield
-
-
-class _DummyResolver(Resolver):
-    pass

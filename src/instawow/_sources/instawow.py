@@ -3,12 +3,11 @@ from __future__ import annotations
 from collections.abc import AsyncIterator
 from datetime import datetime, timezone
 
-from .. import pkg_models
 from .. import results as R
 from ..catalogue.cataloguer import CatalogueEntry
 from ..common import ChangelogFormat, Defn, Flavour, SourceMetadata
 from ..http import ClientSessionType
-from ..resolvers import BaseResolver
+from ..resolvers import BaseResolver, PkgCandidate
 from ..utils import run_in_thread
 
 _ADDONS = {
@@ -27,7 +26,7 @@ class InstawowResolver(BaseResolver):
     )
     requires_access_token = None
 
-    async def resolve_one(self, defn: Defn, metadata: None) -> pkg_models.Pkg:
+    async def _resolve_one(self, defn: Defn, metadata: None) -> PkgCandidate:
         try:
             source_id, slug = next(p for p in _ADDONS if defn.alias in p)
         except StopIteration:
@@ -39,7 +38,7 @@ class InstawowResolver(BaseResolver):
         if source_id == '1':
             await builder.build()
 
-        return pkg_models.Pkg(
+        return PkgCandidate(
             source=self.metadata.id,
             id=source_id,
             slug=slug,
@@ -50,7 +49,6 @@ class InstawowResolver(BaseResolver):
             date_published=datetime.now(timezone.utc),
             version=await run_in_thread(builder.get_version)(),
             changelog_url=builder.changelog_path.as_uri(),
-            options=pkg_models.PkgOptions.from_strategy_values(defn.strategies),
         )
 
     @classmethod

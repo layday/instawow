@@ -11,13 +11,12 @@ from typing_extensions import NotRequired as N
 from typing_extensions import TypedDict
 from yarl import URL
 
-from .. import pkg_models
 from .. import results as R
 from ..archives import find_archive_addon_tocs
 from ..catalogue.cataloguer import AddonKey, CatalogueEntry
 from ..common import ChangelogFormat, Defn, Flavour, FlavourVersionRange, SourceMetadata, Strategy
 from ..http import CACHE_INDEFINITELY, ClientSessionType
-from ..resolvers import BaseResolver, HeadersIntent
+from ..resolvers import BaseResolver, HeadersIntent, PkgCandidate
 from ..utils import (
     StrEnum,
     TocReader,
@@ -91,9 +90,9 @@ class GithubResolver(BaseResolver):
     )
     requires_access_token = None
 
-    _api_url = URL('https://api.github.com/')
+    __api_url = URL('https://api.github.com/')
 
-    _generated_catalogue_csv_url = (
+    __generated_catalogue_csv_url = (
         'https://raw.githubusercontent.com/layday/github-wow-addon-catalogue/main/addons.csv'
     )
 
@@ -114,7 +113,7 @@ class GithubResolver(BaseResolver):
 
         return headers
 
-    async def _find_matching_asset_from_zip_contents(self, assets: list[_GithubRelease_Asset]):
+    async def __find_matching_asset_from_zip_contents(self, assets: list[_GithubRelease_Asset]):
         candidates = [
             a
             for a in assets
@@ -272,7 +271,7 @@ class GithubResolver(BaseResolver):
 
         return matching_asset
 
-    async def _find_matching_asset_from_release_json(
+    async def __find_matching_asset_from_release_json(
         self, assets: list[_GithubRelease_Asset], release_json_asset: _GithubRelease_Asset
     ):
         download_headers = await self.make_request_headers(HeadersIntent.Download)
@@ -331,14 +330,14 @@ class GithubResolver(BaseResolver):
         )
         return matching_asset
 
-    async def resolve_one(self, defn: Defn, metadata: None) -> pkg_models.Pkg:
+    async def _resolve_one(self, defn: Defn, metadata: None) -> PkgCandidate:
         github_headers = await self.make_request_headers()
 
         id_or_alias = defn.id or defn.alias
         if id_or_alias.isdigit():
-            repo_url = self._api_url / 'repositories' / id_or_alias
+            repo_url = self.__api_url / 'repositories' / id_or_alias
         else:
-            repo_url = self._api_url / 'repos' / defn.alias
+            repo_url = self.__api_url / 'repos' / defn.alias
 
         async with self._manager_ctx.web_client.get(
             repo_url, expire_after=timedelta(hours=1), headers=github_headers
@@ -386,10 +385,10 @@ class GithubResolver(BaseResolver):
                 None,
             )
             if not seen_release_json and release_json is None:
-                matching_asset = await self._find_matching_asset_from_zip_contents(assets)
+                matching_asset = await self.__find_matching_asset_from_zip_contents(assets)
             elif release_json is not None:
                 seen_release_json = True
-                matching_asset = await self._find_matching_asset_from_release_json(
+                matching_asset = await self.__find_matching_asset_from_release_json(
                     assets, release_json
                 )
 
@@ -399,7 +398,7 @@ class GithubResolver(BaseResolver):
         else:
             raise R.PkgFilesNotMatching(defn.strategies)
 
-        return pkg_models.Pkg(
+        return PkgCandidate(
             source=self.metadata.id,
             id=str(project['id']),
             slug=project['full_name'].lower(),
@@ -410,7 +409,6 @@ class GithubResolver(BaseResolver):
             date_published=iso8601.parse_date(release['published_at']),
             version=release['tag_name'],
             changelog_url=as_plain_text_data_url(release['body']),
-            options=pkg_models.PkgOptions.from_strategy_values(defn.strategies),
         )
 
     @classmethod
@@ -418,10 +416,10 @@ class GithubResolver(BaseResolver):
         import csv
         from io import StringIO
 
-        logger.debug(f'retrieving {cls._generated_catalogue_csv_url}')
+        logger.debug(f'retrieving {cls.__generated_catalogue_csv_url}')
 
         async with web_client.get(
-            cls._generated_catalogue_csv_url, raise_for_status=True
+            cls.__generated_catalogue_csv_url, raise_for_status=True
         ) as response:
             catalogue_csv = await response.text()
 
