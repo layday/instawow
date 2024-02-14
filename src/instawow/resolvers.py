@@ -109,6 +109,13 @@ class BaseResolver(Resolver, Protocol):
     def __init__(self, manager_ctx: manager_ctx.ManagerCtx) -> None:
         self._manager_ctx = manager_ctx
 
+    __orig_init = __init__
+
+    def __init_subclass__(cls) -> None:
+        # ``Protocol`` clobbers ``__init__`` on Python < 3.11.
+        if cls.__init__ is _DummyResolver.__init__:
+            cls.__init__ = cls.__orig_init
+
     @classmethod
     def _get_access_token(cls, global_config: GlobalConfig, name: str | None = None) -> str | None:
         name = name or cls.requires_access_token
@@ -178,3 +185,7 @@ class BaseResolver(Resolver, Protocol):
     async def catalogue(cls, web_client: http.ClientSessionType) -> AsyncIterator[CatalogueEntry]:
         return
         yield
+
+
+class _DummyResolver(Resolver):
+    pass
