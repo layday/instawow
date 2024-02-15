@@ -4,26 +4,28 @@
     faArrowAltCircleRight,
     faTimesCircle,
   } from "@fortawesome/free-solid-svg-icons";
+  import { getContext } from "svelte";
   import { fade } from "svelte/transition";
+  import { ALERTS_KEY, ANY_PROFILE, type AlertsRef } from "../stores/alerts.svelte";
+  import { ACTIVE_PROFILE_KEY, type ActiveProfileRef } from "../stores/profiles.svelte";
   import Icon from "./SvgIcon.svelte";
-  import { alerts } from "../stores/alerts";
-  import { activeProfile } from "../stores/profiles";
-  import { ANY_PROFILE, type Alert } from "../stores/alerts";
 
-  const handleDismissAlerts = () => {
-    $alerts = {
-      [ANY_PROFILE]: [],
-    };
-  };
+  const activeProfileRef = getContext<ActiveProfileRef>(ACTIVE_PROFILE_KEY);
+  const alertsRef = getContext<AlertsRef>(ALERTS_KEY);
 
-  let combinedAlerts: Alert[] = $derived(
-    [$alerts[ANY_PROFILE], $activeProfile ? $alerts[$activeProfile] : []].filter(Boolean).flat(),
+  let combinedAlerts = $derived(
+    [
+      alertsRef.value[ANY_PROFILE],
+      activeProfileRef.value ? alertsRef.value[activeProfileRef.value] : [],
+    ]
+      .filter(Boolean)
+      .flat(),
   );
 
   let selectedAlertIndex = $state(0);
 
-  $effect.pre(() => {
-    $alerts;
+  $effect(() => {
+    combinedAlerts; // Trigger
 
     selectedAlertIndex = 0;
   });
@@ -48,7 +50,7 @@
           <Icon icon={faArrowAltCircleLeft} />
         </button>
 
-        <button title="dismiss alerts" onclick={handleDismissAlerts}>
+        <button title="dismiss alerts" onclick={alertsRef.reset}>
           <Icon icon={faTimesCircle} />
         </button>
 

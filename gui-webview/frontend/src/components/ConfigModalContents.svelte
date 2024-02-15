@@ -1,33 +1,35 @@
 <script lang="ts">
-  import { onDestroy } from "svelte";
-  import { api } from "../stores/api";
+  import { getContext, onDestroy } from "svelte";
+  import { API_KEY, type Api } from "../stores/api";
+
+  const api = getContext<Api>(API_KEY);
 
   let githubAuthFlowShouldStart = $state(false);
   let newCfcoreAccessToken = $state<string | null>(null);
   let newWagoAccessToken = $state<string | null>(null);
 
   const updateCfCoreAccessToken = async () => {
-    await $api.updateGlobalConfig({ cfcore: newCfcoreAccessToken });
+    await api.updateGlobalConfig({ cfcore: newCfcoreAccessToken });
   };
 
   const updateWagoAccessToken = async () => {
-    await $api.updateGlobalConfig({ wago_addons: newWagoAccessToken });
+    await api.updateGlobalConfig({ wago_addons: newWagoAccessToken });
   };
 
   const queryGithubAuthFlowStatus = async () => {
-    const { status } = await $api.queryGithubAuthFlowStatus();
+    const { status } = await api.queryGithubAuthFlowStatus();
     githubAuthFlowShouldStart = false;
     return status;
   };
 
   onDestroy(() => {
-    $api.cancelGithubAuthFlow();
+    api.cancelGithubAuthFlow();
   });
 </script>
 
 <div class="title-bar">config</div>
 <form class="content" on:submit|preventDefault>
-  {#await $api.readGlobalConfig()}
+  {#await api.readGlobalConfig()}
     <div class="row">Loading...</div>
   {:then { access_tokens }}
     <div class="section-header">access tokens</div>
@@ -43,14 +45,14 @@
         </button>
         <div class="description">
           {#if githubAuthFlowShouldStart}
-            {#await $api.initiateGithubAuthFlow()}
+            {#await api.initiateGithubAuthFlow()}
               Initiating authorisation flow...
             {:then { verification_uri, user_code }}
               {#await queryGithubAuthFlowStatus()}
                 Navigate to
                 <button
                   role="link"
-                  on:click|preventDefault|stopPropagation={() => $api.openUrl(verification_uri)}
+                  on:click|preventDefault|stopPropagation={() => api.openUrl(verification_uri)}
                 >
                   {verification_uri}
                 </button>
@@ -89,7 +91,7 @@
           <button
             role="link"
             on:click|preventDefault|stopPropagation={() =>
-              $api.openUrl("https://console.curseforge.com/")}
+              api.openUrl("https://console.curseforge.com/")}
           >
             CFCore
           </button> to generate an access token.
@@ -114,7 +116,7 @@
           <button
             role="link"
             on:click|preventDefault|stopPropagation={() =>
-              $api.openUrl("https://addons.wago.io/patreon")}
+              api.openUrl("https://addons.wago.io/patreon")}
           >
             Patreon
           </button> subscribers.

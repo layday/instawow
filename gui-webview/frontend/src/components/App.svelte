@@ -1,11 +1,17 @@
 <script lang="ts">
+  import { getContext } from "svelte";
   import { fade } from "svelte/transition";
-  import { api } from "../stores/api";
-  import { activeProfile, profiles } from "../stores/profiles";
+  import { type Config } from "../api";
+  import { API_KEY, type Api } from "../stores/api";
+  import {
+    ACTIVE_PROFILE_KEY,
+    PROFILES_KEY,
+    type ActiveProfileRef,
+    type ProfilesRef,
+  } from "../stores/profiles.svelte";
+  import Alerts from "./Alerts.svelte";
   import ProfileSwitcher from "./ProfileSwitcher.svelte";
   import ProfileView from "./ProfileView.svelte";
-  import type { Config } from "../api";
-  import Alerts from "./Alerts.svelte";
 
   // Nicked from Peacock
   const colourPalette = [
@@ -27,23 +33,27 @@
     `;
   };
 
+  const profilesRef = getContext<ProfilesRef>(PROFILES_KEY);
+  const activeProfileRef = getContext<ActiveProfileRef>(ACTIVE_PROFILE_KEY);
+  const api = getContext<Api>(API_KEY);
+
   let statusMessage = $state(" ");
 
   let installedVersion = $state<string>();
   let newVersion = $state<string | null>();
 
   const performInitialSetup = async () => {
-    ({ installed_version: installedVersion, new_version: newVersion } = await $api.getVersion());
+    ({ installed_version: installedVersion, new_version: newVersion } = await api.getVersion());
 
-    const profileNames = await $api.listProfiles();
-    const profileResults = await Promise.allSettled(profileNames.map((p) => $api.readProfile(p)));
+    const profileNames = await api.listProfiles();
+    const profileConfigs = await Promise.allSettled(profileNames.map((p) => api.readProfile(p)));
 
-    $profiles = Object.fromEntries(
-      profileResults
+    profilesRef.value = Object.fromEntries(
+      profileConfigs
         .filter((r): r is PromiseFulfilledResult<Config> => r.status === "fulfilled")
         .map(({ value }) => [value.profile, value]),
     );
-    [$activeProfile] = Object.keys($profiles);
+    [activeProfileRef.value] = Object.keys(profilesRef.value);
   };
 </script>
 
@@ -72,14 +82,15 @@
       </div>
     </header>
     <main class="section main">
-      {#each Object.keys($profiles) as profile (profile)}
-        <ProfileView bind:statusMessage {profile} isActive={profile === $activeProfile} />
+      {#each Object.keys(profilesRef.value) as profile (profile)}
+        <ProfileView bind:statusMessage {profile} isActive={profile === activeProfileRef.value} />
       {/each}
     </main>
     <footer class="section statusbar">
       <div class="status" in:fade>{statusMessage}</div>
     </footer>
   {/await}
+
   <Alerts />
 </div>
 

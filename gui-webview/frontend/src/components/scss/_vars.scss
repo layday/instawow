@@ -46,10 +46,7 @@ $modal-edge-border-radius: math.div($modal-form-el-line-height, 4);
 
 %cover-canvas {
   position: fixed;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  right: 0;
+  inset: 0;
   z-index: 30;
 }
 

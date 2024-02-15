@@ -1,8 +1,11 @@
 <script lang="ts">
   import { faChevronCircleDown, faChevronCircleUp } from "@fortawesome/free-solid-svg-icons";
-  import type { Addon } from "../api";
-  import { api } from "../stores/api";
+  import { getContext } from "svelte";
+  import { type Addon } from "../api";
+  import { API_KEY, type Api } from "../stores/api";
   import Icon from "./SvgIcon.svelte";
+
+  const api = getContext<Api>(API_KEY);
 
   let {
     selections,
@@ -83,7 +86,7 @@
                 role="link"
                 onclick={(e) => {
                   e.stopPropagation();
-                  $api.openUrl(choice.url);
+                  api.openUrl(choice.url);
                 }}
               >
                 [↗]

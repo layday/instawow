@@ -1,23 +1,31 @@
 import { JSONRPCError } from "@open-rpc/client-js";
+import { getContext } from "svelte";
 import { Api, type InternalError } from "../api";
 import { RClient, type RequestObject } from "../ipc";
-import { ANY_PROFILE, alerts } from "./alerts";
-import { get, readable } from "svelte/store";
-import { activeProfile as activeProfileRef } from "./profiles";
+import { ALERTS_KEY, ANY_PROFILE, type AlertsRef } from "./alerts.svelte";
+import { ACTIVE_PROFILE_KEY, type ActiveProfileRef } from "./profiles.svelte";
 
-class AlertOnErrorApi extends Api {
+class ProfileApi extends Api {
   #isInternalError(object: unknown): object is InternalError {
     return !!object && typeof object === "object" && "traceback_exception" in object;
   }
 
   #alertOnJsonRpcError(error: unknown) {
     if (error instanceof JSONRPCError && this.#isInternalError(error.data)) {
-      const activeProfile = get(activeProfileRef) ?? ANY_PROFILE;
+      const activeProfileRef = getContext<ActiveProfileRef>(ACTIVE_PROFILE_KEY);
+      const alertsRef = getContext<AlertsRef>(ALERTS_KEY);
+
+      const activeProfile = activeProfileRef.value ?? ANY_PROFILE;
+
       const message = error.data.traceback_exception.filter(Boolean).slice(-1).join("");
-      alerts.update((p) => ({
-        ...p,
-        [activeProfile]: [{ heading: error.message, message }, ...(p[activeProfile] ?? [])],
-      }));
+
+      alertsRef.value = {
+        ...alertsRef.value,
+        [activeProfile]: [
+          { heading: error.message, message },
+          ...(alertsRef.value[activeProfile] ?? []),
+        ],
+      };
     }
   }
 
@@ -31,4 +39,8 @@ class AlertOnErrorApi extends Api {
   }
 }
 
-export const api = readable(new AlertOnErrorApi(new RClient()));
+export const API_KEY = "API";
+
+export const makeApi = () => new ProfileApi(new RClient());
+
+export { Api };

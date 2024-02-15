@@ -1,19 +1,24 @@
 <script lang="ts">
   import { faCog } from "@fortawesome/free-solid-svg-icons";
-  import { activeProfile, profiles } from "../stores/profiles";
+  import { getContext } from "svelte";
+  import {
+    ACTIVE_PROFILE_KEY,
+    PROFILES_KEY,
+    type ActiveProfileRef,
+    type ProfilesRef,
+  } from "../stores/profiles.svelte";
   import ConfigModalContents from "./ConfigModalContents.svelte";
   import ProfileConfigEditor from "./ProfileConfigEditor.svelte";
   import Icon from "./SvgIcon.svelte";
   import Modal from "./modal/Modal.svelte";
 
+  const profilesRef = getContext<ProfilesRef>(PROFILES_KEY);
+  const activeProfileRef = getContext<ActiveProfileRef>(ACTIVE_PROFILE_KEY);
+
   let editing = $state<"new" | "existing" | "auth" | false>(false);
 
   $effect(() => {
-    console.log("editing", editing);
-  });
-
-  $effect(() => {
-    if (!$activeProfile) {
+    if (!activeProfileRef.value) {
       editing = "new";
     }
   });
@@ -28,15 +33,15 @@
       <Icon icon={faCog} />
     </button>
 
-    <select aria-label="profile" bind:value={$activeProfile} disabled={!!editing}>
-      {#each Object.keys($profiles) as profile (profile)}
+    <select aria-label="profile" bind:value={activeProfileRef.value} disabled={!!editing}>
+      {#each Object.keys(profilesRef.value) as profile (profile)}
         <option value={profile}>{profile}</option>
       {/each}
     </select>
 
     <button
       aria-label="edit profile"
-      disabled={!$activeProfile}
+      disabled={!activeProfileRef.value}
       onclick={() => (editing = editing === "existing" ? false : "existing")}
     >
       edit

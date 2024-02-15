@@ -260,8 +260,8 @@ export class Api {
       params: {
         profile: this.profile,
         search_terms: searchTerms,
-        limit: limit,
-        sources: sources,
+        limit,
+        sources,
         start_date: startDate !== null ? new Date(startDate) : startDate,
         installed_only: installedOnly,
       },
@@ -271,7 +271,7 @@ export class Api {
   async resolve(defns: Defn[]): Promise<MultiResult> {
     return await this.request({
       method: "resolve",
-      params: { profile: this.profile, defns: defns },
+      params: { profile: this.profile, defns },
     });
   }
 
@@ -282,7 +282,7 @@ export class Api {
   ): Promise<MultiResult> {
     return await this.request({
       method: method,
-      params: { profile: this.profile, defns: defns, ...extraParams },
+      params: { profile: this.profile, defns, ...extraParams },
     });
   }
 
@@ -296,7 +296,7 @@ export class Api {
   async reconcile(matcher: ReconciliationStage): Promise<AddonMatch[]> {
     return await this.request({
       method: "reconcile",
-      params: { profile: this.profile, matcher: matcher },
+      params: { profile: this.profile, matcher },
     });
   }
 

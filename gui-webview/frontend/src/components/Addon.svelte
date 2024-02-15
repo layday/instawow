@@ -5,13 +5,16 @@
     faTrashAlt,
   } from "@fortawesome/free-solid-svg-icons";
   import { DateTime } from "luxon";
+  import { getContext } from "svelte";
   import { fade } from "svelte/transition";
   import type { Addon } from "../api";
   import { Strategy } from "../api";
   import { ListFormat } from "../constants";
-  import { api } from "../stores/api";
+  import { API_KEY, type Api } from "../stores/api";
   import ProgressIndicator from "./ProgressIndicator.svelte";
   import Icon from "./SvgIcon.svelte";
+
+  const api = getContext<Api>(API_KEY);
 
   let {
     addon,
@@ -113,7 +116,7 @@
           <button
             aria-label="open in browser"
             title="open in browser"
-            onclick={() => $api.openUrl(addon.url)}
+            onclick={() => api.openUrl(addon.url)}
           >
             <Icon icon={faExternalLinkSquareAlt} />
           </button>

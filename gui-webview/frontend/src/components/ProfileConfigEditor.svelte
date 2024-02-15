@@ -2,12 +2,22 @@
   import { faFolderOpen, faTrashAlt } from "@fortawesome/free-solid-svg-icons";
   import { JSONRPCError } from "@open-rpc/client-js";
   import ld from "lodash-es";
+  import { getContext } from "svelte";
   import { fade } from "svelte/transition";
   import type { Config, ValidationError } from "../api";
   import { Flavour } from "../api";
-  import { api } from "../stores/api";
-  import { activeProfile, profiles } from "../stores/profiles";
+  import { API_KEY, type Api } from "../stores/api";
+  import {
+    ACTIVE_PROFILE_KEY,
+    PROFILES_KEY,
+    type ActiveProfileRef,
+    type ProfilesRef,
+  } from "../stores/profiles.svelte";
   import Icon from "./SvgIcon.svelte";
+
+  const profilesRef = getContext<ProfilesRef>(PROFILES_KEY);
+  const activeProfileRef = getContext<ActiveProfileRef>(ACTIVE_PROFILE_KEY);
+  const api = getContext<Api>(API_KEY);
 
   let { editing } = $props<{
     editing: "new" | "existing" | false;
@@ -26,10 +36,6 @@
   let errors = $state(new Map<string, string>());
 
   $effect.pre(() => {
-    console.log("editing 2", editing);
-  });
-
-  $effect.pre(() => {
     if (createNew) {
       profileConfig.gameFlavour = Flavour.Retail;
     } else {
@@ -37,12 +43,12 @@
         profile: profileConfig.profile,
         addon_dir: profileConfig.addonDir,
         game_flavour: profileConfig.gameFlavour,
-      } = $profiles[$activeProfile as string]);
+      } = profilesRef.value[activeProfileRef.value as string]);
     }
   });
 
   const selectFolder = async () => {
-    const { selection } = await $api.selectFolder(profileConfig.addonDir ?? null);
+    const { selection } = await api.selectFolder(profileConfig.addonDir ?? null);
     if (selection !== null) {
       profileConfig.addonDir = selection;
     }
@@ -50,8 +56,8 @@
 
   const saveConfig = async () => {
     if (
-      (createNew && profileConfig.profile in $profiles) ||
-      (!profileConfig.profile && "__default__" in $profiles)
+      (createNew && profileConfig.profile in profilesRef.value) ||
+      (!profileConfig.profile && "__default__" in profilesRef.value)
     ) {
       errors.set(
         "profile",
@@ -65,7 +71,7 @@
 
     let result: Config;
     try {
-      result = await $api.writeProfile(
+      result = await api.writeProfile(
         profileConfig.profile,
         profileConfig.addonDir,
         profileConfig.gameFlavour,
@@ -86,15 +92,16 @@
       }
     }
 
-    $profiles = { ...$profiles, [result.profile]: result };
+    profilesRef.value = { ...profilesRef.value, [result.profile]: result };
     if (createNew) {
-      $activeProfile = result.profile;
+      activeProfileRef.value = result.profile;
     }
+
     editing = false;
   };
 
   const deleteConfig = async () => {
-    const { ok } = await $api.confirm(
+    const { ok } = await api.confirm(
       "Delete profile",
       `Do you really want to delete this profile?
 
@@ -105,9 +112,11 @@ a new profile for this folder and your rollback history \
 will be lost.`,
     );
     if (ok) {
-      await $api.deleteProfile(profileConfig.profile);
-      $profiles = ld.omit($profiles, profileConfig.profile);
-      [$activeProfile] = Object.keys($profiles);
+      await api.deleteProfile(profileConfig.profile);
+
+      profilesRef.value = ld.omit(profilesRef.value, profileConfig.profile);
+      [activeProfileRef.value] = Object.keys(profilesRef.value);
+
       editing = false;
     }
   };

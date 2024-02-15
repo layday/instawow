@@ -1,10 +1,10 @@
 <script context="module" lang="ts">
-  import { faQuestion } from "@fortawesome/free-solid-svg-icons";
   import * as commonmark from "commonmark";
   import ld from "lodash-es";
-  import { onMount } from "svelte";
+  import type { ComponentProps } from "svelte";
+  import { getContext, onMount, setContext, unstate } from "svelte";
   import { flip } from "svelte/animate";
-  import { fade, slide } from "svelte/transition";
+  import { isSameAddon } from "../addon";
   import type {
     Addon,
     AnyResult,
@@ -15,21 +15,21 @@
     Strategies,
     SuccessResult,
   } from "../api";
-  import { addonToDefn, ChangelogFormat, ReconciliationStage, Strategy } from "../api";
+  import { Api, ChangelogFormat, Strategy, addonToDefn } from "../api";
   import { AddonAction, ListFormat, View } from "../constants";
-  import { api } from "../stores/api";
-  import { alerts } from "../stores/alerts";
-  import { profiles } from "../stores/profiles";
+  import { ALERTS_KEY, type AlertsRef } from "../stores/alerts.svelte";
+  import { API_KEY } from "../stores/api";
+  import { PROFILES_KEY, type ProfilesRef } from "../stores/profiles.svelte";
   import AddonComponent from "./Addon.svelte";
   import AddonContextMenu from "./AddonContextMenu.svelte";
+  import AddonList from "./AddonList.svelte";
   import AddonListNav from "./AddonListNav.svelte";
-  import AddonStub from "./AddonStub.svelte";
   import ChangelogModalContents from "./ChangelogModalContents.svelte";
-  import Modal from "./modal/Modal.svelte";
+  import Reconciler from "./Reconciler.svelte";
+  import Rereconciler from "./Rereconciler.svelte";
   import RollbackModalContents from "./RollbackModalContents.svelte";
   import SearchOptionsModalContents from "./SearchOptionsModalContents.svelte";
-  import Icon from "./SvgIcon.svelte";
-  import type { ComponentProps } from "svelte";
+  import Modal from "./modal/Modal.svelte";
 
   type AddonTriplet = readonly [addon: Addon, otherAddon: Addon, isInstalled: boolean];
 
@@ -38,11 +38,6 @@
 
   const tripletWithAddonToken = ([addon, ...rest]: AddonTriplet) =>
     [addon, ...rest, createAddonToken(addon)] as const;
-
-  const isSameAddon = (thisAddon: Addon, otherAddon: Addon) =>
-    thisAddon.source === otherAddon.source && thisAddon.id === otherAddon.id;
-
-  const reconcileStages = Object.values(ReconciliationStage);
 
   export type SearchStrategies = {
     [K in keyof Strategies]: NonNullable<
@@ -97,8 +92,12 @@
     statusMessage: string;
   }>();
 
-  const config = $profiles[profile];
-  const profileApi = $api.withProfile(profile);
+  const profilesRef = getContext<ProfilesRef>(PROFILES_KEY);
+  const alertsRef = getContext<AlertsRef>(ALERTS_KEY);
+
+  const api = setContext<Api>(API_KEY, getContext<Api>(API_KEY).withProfile(profile));
+
+  const config = $derived(profilesRef.value[profile]);
 
   let sources = $state.frozen<{
     [source: string]: Source;
@@ -111,7 +110,6 @@
 
   let filteredCatalogueEntries = $state<CatalogueEntry[]>([]);
   let addonsFromSearch = $state<Addon[]>([]);
-  let installedOutdatedCount = $state<number>();
   let installedAddonsBeingModified = $state<string[]>([]);
 
   const addonsByView = $state<
@@ -122,6 +120,14 @@
     [View.Search]: [],
   });
 
+  let installedOutdatedCount = $derived(
+    addonsByView[View.Installed].reduce(
+      (val, [thisAddon, otherAddon]) =>
+        val + (otherAddon && thisAddon.version !== otherAddon.version ? 1 : 0),
+      0,
+    ),
+  );
+
   let addonDownloadProgress = $state.frozen<{
     [token: string]: number;
   }>({});
@@ -129,48 +135,38 @@
   let searchTerms = $state("");
   let searchFilterInstalled = $state(false);
   let searchOptions = $state(ld.cloneDeep(defaultSearchOptions));
-  let searchIsDirty = $state(false);
 
-  let reconcileStage = $state(reconcileStages[0]);
-  let reconcileSelections = $state<Addon[]>([]);
+  let searchIsDirty = $derived.by(() => {
+    const fields = ["sources", "startDate", "strategies"] as const;
 
-  let reconcileInstalledAddons = $state<Addon[]>([]);
-  let reconcileInstalledSelections = $state<Addon[]>([]);
+    return !ld.isEqual(ld.pick(searchOptions, fields), ld.pick(defaultSearchOptions, fields));
+  });
 
   let installedIsRefreshing = $state(false);
   let searchesInProgress = $state(0);
-  let reconcileInstallationInProgress = $state(false);
 
   let modal = $state<
     | { id: "changelog"; dynamicProps: ComponentProps<ChangelogModalContents> }
     | { id: "rollback"; dynamicProps: ComponentProps<RollbackModalContents> }
     | { id: "searchOptions" }
   >();
+
   let addonContextMenu = $state<AddonContextMenu>();
 
   const alertAddonOpFailed = (method: string, combinedResult: (readonly [Addon, AnyResult])[]) => {
-    const newAlerts = combinedResult
-      .filter((c): c is [Addon, ErrorResult] => c[1].status !== "success")
-      .map(([a, r]) => ({
-        heading: `failed to ${method} ${a.name} (${createAddonToken(a)})`,
-        message: r.message,
-      }));
-    $alerts = {
-      ...$alerts,
-      [profile]: [...newAlerts, ...($alerts[profile] ?? [])],
-    };
+    alertsRef.value[profile] = [
+      ...combinedResult
+        .filter((c): c is [Addon, ErrorResult] => c[1].status !== "success")
+        .map(([a, r]) => ({
+          heading: `failed to ${method} ${a.name} (${createAddonToken(a)})`,
+          message: r.message,
+        })),
+      ...(alertsRef.value[profile] ?? []),
+    ];
   };
 
   const countInstalled = () => {
     return addonsByView[View.Installed].reduce((val, [, , installed]) => val + +installed, 0);
-  };
-
-  const countUpdates = () => {
-    return addonsByView[View.Installed].reduce(
-      (val, [thisAddon, otherAddon]) =>
-        val + (otherAddon && thisAddon.version !== otherAddon.version ? 1 : 0),
-      0,
-    );
   };
 
   const regenerateFilteredAddons = () => {
@@ -194,7 +190,7 @@
 
   const withDownloadProgress = async <T,>(promise: Promise<T>, pollingInterval: number) => {
     const ticker = setInterval(async () => {
-      const downloadProgress = await profileApi.getDownloadProgress();
+      const downloadProgress = await api.getDownloadProgress();
       addonDownloadProgress = Object.fromEntries(
         downloadProgress.map(({ defn, progress }) => [createAddonToken(defn), progress]),
       );
@@ -217,7 +213,7 @@
 
     try {
       const modifyResults = await withDownloadProgress(
-        profileApi.modifyAddons(method, addons.map(addonToDefn), extraParams),
+        api.modifyAddons(method, addons.map(addonToDefn), extraParams),
         1000,
       );
 
@@ -251,7 +247,7 @@
   };
 
   const installAddons = async (addons: Addon[], replace = false) => {
-    await modifyAddons("install", addons, { replace: replace });
+    await modifyAddons("install", addons, { replace });
   };
 
   const updateAddons = async (addons: Addon[] | true) => {
@@ -301,7 +297,7 @@
             }
           }
 
-          results = await profileApi.resolve([
+          results = await api.resolve([
             {
               source,
               alias,
@@ -309,7 +305,7 @@
             },
           ]);
         } else {
-          const catalogueEntries = await profileApi.search(
+          const catalogueEntries = await api.search(
             searchTermsSnapshot,
             searchOptions.limit,
             searchOptions.sources,
@@ -332,7 +328,7 @@
             alias: e.id,
             strategies: condensedStrategies,
           }));
-          results = await profileApi.resolve(defns);
+          results = await api.resolve(defns);
         }
 
         if (searchTermsSnapshot !== searchTerms) {
@@ -353,11 +349,11 @@
     if (!installedIsRefreshing) {
       installedIsRefreshing = true;
       try {
-        const installedAddons = await profileApi.list();
+        const installedAddons = await api.list();
         if (flash) {
           addonsByView[View.Installed] = installedAddons.map((a) => [a, a, true]);
         }
-        const resolveResults = await profileApi.resolve(installedAddons.map(addonToDefn));
+        const resolveResults = await api.resolve(installedAddons.map(addonToDefn));
         const addonsToResults = installedAddons.map((a, i) => [a, resolveResults[i]] as const);
         addonsByView[View.Installed] = ld.sortBy(
           addonsToResults.map(([thisAddon, result]) => [
@@ -381,7 +377,7 @@
   };
 
   const showChangelogModal = async (addon: Addon) => {
-    const changelog = await profileApi.getChangelog(addon.source, addon.changelog_url);
+    const changelog = await api.getChangelog(addon.source, addon.changelog_url);
     modal = {
       id: "changelog",
       dynamicProps: htmlify(changelog, sources[addon.source].changelog_format),
@@ -420,13 +416,16 @@
     );
   };
 
-  const handleAddonContextMenuSelection = (a: { addon: Addon; action: AddonAction }) => {
-    console.log(a);
-    const { addon, action } = a;
-
+  const handleAddonContextMenuSelection = ({
+    addon,
+    action,
+  }: {
+    addon: Addon;
+    action: AddonAction;
+  }) => {
     switch (action) {
       case AddonAction.VisitHomepage:
-        profileApi.openUrl(addon.url);
+        api.openUrl(addon.url);
         break;
 
       case AddonAction.ViewChangelog:
@@ -437,7 +436,7 @@
         const {
           folders: [{ name: folderName }],
         } = addon;
-        profileApi.revealFolder([config.addon_dir, folderName]);
+        api.revealFolder([config.addon_dir, folderName]);
 
         break;
       }
@@ -480,84 +479,6 @@
     }
   };
 
-  const reconcile = async (fromStage: ReconciliationStage) => {
-    for (const [index, stage] of Array.from(reconcileStages.entries()).slice(
-      reconcileStages.indexOf(fromStage),
-    )) {
-      const results = await profileApi.reconcile(stage);
-      if (results.some((r) => r.matches.length) || !(index + 1 in reconcileStages)) {
-        return [stage, results] as const;
-      }
-    }
-  };
-
-  const prepareReconcile = async (fromStage: ReconciliationStage) => {
-    const maybeResults = await reconcile(fromStage);
-    if (maybeResults) {
-      [reconcileStage] = maybeResults;
-      const [, reconcileResult] = maybeResults;
-      reconcileSelections = [];
-      return reconcileResult;
-    }
-  };
-
-  const installReconciled = async (
-    fromStage: ReconciliationStage,
-    theseSelections: readonly Addon[],
-    recursive?: boolean,
-  ) => {
-    reconcileInstallationInProgress = true;
-    try {
-      console.debug(profile, "installing selections from", fromStage);
-      await installAddons(theseSelections.filter(Boolean), true);
-      const nextStage = reconcileStages[reconcileStages.indexOf(fromStage) + 1];
-      if (nextStage) {
-        if (recursive) {
-          const nextSelections = (await profileApi.reconcile(fromStage))
-            .filter((r) => r.matches.length)
-            .map(({ matches: [addon] }) => addon);
-          await installReconciled(nextStage, nextSelections, true);
-        } else {
-          reconcileStage = nextStage;
-        }
-      } else {
-        // We might be at `reconcileStage[0]` if `installReconciled` was called recursively
-        reconcileStage = reconcileStages[reconcileStages.indexOf(fromStage) || 0];
-      }
-    } finally {
-      reconcileInstallationInProgress = false;
-    }
-  };
-
-  const prepareReconcileInstalled = async () => {
-    const alternativeDefnsPerAddon = await profileApi.getReconcileInstalledCandidates();
-    reconcileInstalledAddons = alternativeDefnsPerAddon.map(
-      ({ installed_addon }) => installed_addon,
-    );
-    reconcileInstalledSelections = [];
-    return alternativeDefnsPerAddon;
-  };
-
-  const installReconciledInstalled = async () => {
-    reconcileInstallationInProgress = true;
-    try {
-      const addonsToRereconcile = reconcileInstalledSelections
-        .map((a, i) => [a, reconcileInstalledAddons[i]] as const)
-        .filter(([a, b]) => a && !isSameAddon(a, b));
-      await removeAddons(
-        addonsToRereconcile.map(([, a]) => a),
-        false,
-      );
-      await installAddons(
-        addonsToRereconcile.map(([a]) => a),
-        false,
-      );
-      activeView = View.Installed;
-    } finally {
-      reconcileInstallationInProgress = false;
-    }
-  };
-
   const supportsRollback = (addon: Addon) =>
     !!sources[addon.source]?.strategies.includes(Strategy.VersionEq);
 
@@ -574,7 +495,7 @@
   };
 
   onMount(async () => {
-    sources = await profileApi.listSources();
+    sources = await api.listSources();
     uriSchemes = [...Object.keys(sources), "http", "https"].map((s) => `${s}:`);
     await refreshInstalled(true);
     // Switch over to reconciliation if no add-ons are installed
@@ -597,40 +518,16 @@
     resetSearchState();
   });
 
-  $effect.pre(() => {
+  $effect(() => {
     if (searchOptions.startDate === "") {
+      console.debug(profile, "resetting `searchOptions.startDate`");
       searchOptions.startDate = null;
     }
   });
 
   $effect(() => {
-    searchIsDirty = !ld.isEqual(
-      [searchOptions.sources, searchOptions.startDate, searchOptions.strategies],
-      [
-        defaultSearchOptions.sources,
-        defaultSearchOptions.startDate,
-        defaultSearchOptions.strategies,
-      ],
-    );
-  });
-
-  // $effect(() => {
-  //   searchOptions =
-  //     (console.debug(profile, "updating `searchFromAlias`"),
-  //     { ...searchOptions, fromAlias: uriSchemes?.some((s) => searchTerms.startsWith(s)) });
-  // });
-
-  $effect(() => {
-    if (activeView === View.Reconcile) {
-      reconcileStage = reconcileStages[0];
-    }
-  });
-
-  $effect(() => {
-    addonsByView[View.Installed];
-
-    console.debug(profile, "recounting updates");
-    installedOutdatedCount = countUpdates();
+    console.debug(profile, "updating `searchOptions.fromAlias`");
+    searchOptions.fromAlias = uriSchemes?.some((s) => searchTerms.startsWith(s)) ?? false;
   });
 
   $effect(() => {
@@ -653,7 +550,7 @@
     if (isActive) {
       if (installedIsRefreshing) {
         statusMessage = "refreshing…";
-      } else if (reconcileInstallationInProgress) {
+      } else if (false /* reconcileInstallationInProgress */) {
         statusMessage = "installing…";
       } else {
         statusMessage = `installed add-ons: ${countInstalled()}`;
@@ -664,30 +561,26 @@
 
 {#if isActive}
   <div class="addon-list-wrapper">
-    <div class="addon-list-nav-wrapper">
-      <AddonListNav
-        bind:activeView
-        bind:searchTerms
-        bind:searchFilterInstalled
-        bind:reconcileStage
-        {searchIsDirty}
-        {installedOutdatedCount}
-        {reconcileInstallationInProgress}
-        canReconcile={reconcileSelections.length > 0}
-        isRefreshing={installedIsRefreshing}
-        isModifying={installedAddonsBeingModified.length > 0}
-        isSearching={searchesInProgress > 0}
-        onSearch={() => search()}
-        onShowSearchOptionsModal={() => showSearchOptionsModal()}
-        onRefresh={() => refreshInstalled()}
-        onUpdateAll={() => updateAddons(true)}
-        onInstallReconciled={() => installReconciled(reconcileStage, reconcileSelections)}
-        onAutomateReconciliation={() =>
-          installReconciled(reconcileStage, reconcileSelections, true)}
-        onInstallReconciledInstalled={() => installReconciledInstalled()}
-        onCycleListFormat={() => cycleDisplayedListFormat()}
-      />
-    </div>
+    {#snippet addonListNav(props)}
+      <div class="addon-list-nav-wrapper">
+        <AddonListNav
+          bind:activeView
+          bind:searchTerms
+          bind:searchFilterInstalled
+          {searchIsDirty}
+          {installedOutdatedCount}
+          isRefreshing={installedIsRefreshing}
+          isModifying={installedAddonsBeingModified.length > 0}
+          isSearching={searchesInProgress > 0}
+          onSearch={() => search()}
+          onShowSearchOptionsModal={() => showSearchOptionsModal()}
+          onRefresh={() => refreshInstalled()}
+          onUpdateAll={() => updateAddons(true)}
+          onCycleListFormat={() => cycleDisplayedListFormat()}
+          {...props}
+        />
+      </div>
+    {/snippet}
 
     <AddonContextMenu
       bind:this={addonContextMenu}
@@ -714,73 +607,14 @@
     {/if}
 
     {#if activeView === View.Reconcile}
-      {#await prepareReconcile(reconcileStage)}
-        <div class="placeholder" in:fade>
-          <div>Hold on tight!</div>
-        </div>
-      {:then result}
-        {#if result && result.length}
-          <div class="preamble">
-            <Icon icon={faQuestion} />
-            <!-- prettier-ignore -->
-            <p>
-              Reconciliation is the process by which installed add-ons are linked with add-ons from
-              sources. This is done in three stages in decreasing order of accuracy. Add-ons do not
-              always carry source metadata and <i>instawow</i>
-              employs a number of heuristics to reconcile add-ons which cannot be positively
-              identified. If you trust <i>instawow</i>
-              to do this without supervision, press "<b>automate</b>".
-              Otherwise, review your selections below and press "<b>install</b>"
-              to proceed to the next stage. Reconciled add-ons will be reinstalled.
-            </p>
-          </div>
-          <ul class="addon-list">
-            {#each result as { folders, matches }, idx}
-              <li>
-                <AddonStub
-                  bind:selections={reconcileSelections}
-                  {folders}
-                  choices={matches}
-                  {idx}
-                />
-              </li>
-            {/each}
-          </ul>
-        {:else}
-          <div class="placeholder" in:fade>
-            <div>Reconciliation complete.</div>
-          </div>
-        {/if}
-      {/await}
+      <Reconciler {addonListNav} {modifyAddons} />
     {:else if activeView === View.ReconcileInstalled}
-      {#await prepareReconcileInstalled()}
-        <div class="placeholder" in:fade>
-          <div>Hold on tight!</div>
-        </div>
-      {:then result}
-        {#if result.length}
-          <ul class="addon-list">
-            {#each result as { installed_addon, alternative_addons }, idx}
-              <li>
-                <AddonStub
-                  selections={reconcileInstalledSelections}
-                  folders={[{ name: installed_addon.name, version: "" }]}
-                  choices={[installed_addon, ...alternative_addons]}
-                  {idx}
-                  expanded={true}
-                />
-              </li>
-            {/each}
-          </ul>
-        {:else}
-          <div class="placeholder" in:fade>
-            <div>No alternative sources available.</div>
-          </div>
-        {/if}
-      {/await}
+      <Rereconciler bind:activeView {addonListNav} {modifyAddons} />
     {:else}
+      {@render addonListNav({})}
+
       {#key activeView}
-        <ul class="addon-list" in:slide={{ duration: 250 }}>
+        <AddonList>
           {#each addonsByView[activeView].map(tripletWithAddonToken) as [addon, otherAddon, isInstalled, token] (token)}
             <li animate:flip={{ duration: 250 }}>
               <AddonComponent
@@ -800,7 +634,7 @@
               />
             </li>
           {/each}
-        </ul>
+        </AddonList>
       {/key}
     {/if}
   </div>
@@ -808,17 +642,6 @@
 
 <style lang="scss">
   @use "scss/vars";
-
-  .placeholder {
-    display: flex;
-    flex-grow: 1;
-    place-items: center;
-
-    > div {
-      flex-grow: 1;
-      text-align: center;
-    }
-  }
 
   .addon-list-wrapper {
     @extend %stretch-vertically;
@@ -828,11 +651,6 @@
     user-select: none;
   }
 
-  .addon-list-nav-wrapper,
-  .addon-list {
-    padding: 0 0.8em;
-  }
-
   .addon-list-nav-wrapper {
     @extend %blur-background;
     background-color: var(--base-color-tone-a-alpha-85);
@@ -840,44 +658,6 @@
     position: sticky;
     top: 0;
     z-index: 20;
-  }
-
-  .preamble {
-    display: grid;
-    grid-template-columns: 3rem 1fr;
-    grid-column-gap: 0.8rem;
-    align-items: center;
-    margin-top: 0.4rem;
-    padding: 0 1.6rem;
-    font-size: 0.85em;
-    background-image: linear-gradient(45deg, rgba(pink, 0.2), rgba(orange, 0.2));
-    color: var(--inverse-color-tone-a);
-
-    p {
-      margin: 0.75rem 0;
-    }
-
-    :global(.icon) {
-      width: 3rem;
-      height: 3rem;
-      fill: var(--inverse-color-tone-b);
-    }
-  }
-
-  .addon-list {
-    @extend %unstyle-list;
-    margin: 0.8em 0;
-
-    li {
-      border-radius: 4px;
-
-      + li {
-        margin-top: 4px;
-      }
-
-      &:nth-child(odd) {
-        background-color: var(--base-color);
-      }
-    }
+    padding: 0 0.8em;
   }
 </style>
