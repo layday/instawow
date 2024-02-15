@@ -5,7 +5,6 @@ from collections.abc import AsyncIterator, Callable, Generator, Sequence
 from datetime import timedelta
 from enum import IntEnum
 from functools import partial
-from itertools import count
 from typing import Generic, TypeVar
 
 import iso8601
@@ -471,15 +470,13 @@ class CfCoreResolver(BaseResolver):
             )
             logger.debug(f'retrieving {url}')
 
-            for attempt in count(1):
+            for attempt in range(3):
                 try:
                     async with get(url) as response:
                         response_json: _CfCoreModsResponse = await response.json()
                         break
                 except asyncio.TimeoutError:
-                    logger.debug(f'request timed out; attempt {attempt} of 3')
-                    if attempt < 3:
-                        continue
+                    logger.debug(f'request timed out; attempt {attempt + 1} of 3')
             else:
                 raise RuntimeError('maximum number of attempts exceeded')
 

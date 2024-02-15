@@ -185,22 +185,24 @@ class WowiResolver(BaseResolver):
             items: list[_WowiListApiItem] = await response.json()
 
         for item in items:
-            if item['UICATID'] == '160':
-                game_flavours = {Flavour.VanillaClassic}
-            elif item['UICATID'] == '161':
-                # TBC Classic
-                continue
-            elif item['UICATID'] == '162':
-                game_flavours = {Flavour.Classic}
-            elif item['UICompatibility'] is None or len(item['UICompatibility']) < 2:
-                game_flavours = {Flavour.Retail}
-            else:
-                game_flavours = {
-                    Flavour.from_flavour_keyed_enum(f)
-                    for c in item['UICompatibility']
-                    for f in (FlavourVersionRange.from_version_string(c['version']),)
-                    if f
-                }
+            match item:
+                case {'UICATID': '160'}:
+                    game_flavours = (Flavour.VanillaClassic,)
+                case {'UICATID': '161'}:
+                    # TBC Classic
+                    continue
+                case {'UICATID': '162'}:
+                    game_flavours = (Flavour.Classic,)
+                case _:
+                    compatibility = item['UICompatibility']
+                    if compatibility is None or len(compatibility) < 2:
+                        game_flavours = (Flavour.Retail,)
+                    else:
+                        game_flavours = (
+                            Flavour.from_flavour_keyed_enum(f)
+                            for c in compatibility
+                            if (f := FlavourVersionRange.from_version_string(c['version']))
+                        )
 
             yield CatalogueEntry(
                 source=cls.metadata.id,

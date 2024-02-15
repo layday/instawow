@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from typing import final
 
 import click
 
@@ -15,6 +16,7 @@ def foo():
     print('success!')
 
 
+@final
 class MyResolver(BaseResolver):
     metadata = SourceMetadata(
         id='me',

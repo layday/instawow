@@ -43,15 +43,15 @@ def format_(session: nox.Session):
     session.run('ruff', 'format', *['--check'] if check else [], '.')
 
     if '--skip-prettier' not in session.posargs:
-        session.chdir('gui-webview/frontend')
-        session.run('npm', 'install', external=True)
-        session.run(
-            'npx',
-            'prettier',
-            '--check' if check else '--write',
-            '.',
-            external=True,
-        )
+        with session.chdir('gui-webview/frontend'):
+            session.run('npm', 'install', external=True)
+            session.run(
+                'npx',
+                'prettier',
+                '--check' if check else '--write',
+                '.',
+                external=True,
+            )
 
 
 @nox.session(reuse_venv=True)
@@ -145,11 +145,11 @@ def type_check(session: nox.Session):
 @nox.session(python=False)
 def bundle_frontend(session: nox.Session):
     "Bundle the frontend."
-    session.run('git', 'clean', '-fX', 'gui-webview/src/instawow_gui/frontend', external=True)
-    session.chdir('gui-webview/frontend')
-    session.run('npm', 'install', external=True)
-    session.run('npx', 'svelte-check', external=True)
-    session.run('npm', 'run', 'build', external=True)
+    with session.chdir('gui-webview/frontend'):
+        session.run('git', 'clean', '-fX', '../src/instawow_gui/frontend', external=True)
+        session.run('npm', 'install', external=True)
+        session.run('npx', 'svelte-check', external=True)
+        session.run('npm', 'run', 'build', external=True)
 
 
 @nox.session(python='3.11')
