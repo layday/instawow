@@ -1,9 +1,9 @@
 {
-  "include": ["src", "gui-webview/src", "tests/plugin"],
+  "include": ["src", "instawow-gui/src", "tests/plugin"],
   "ignore": ["src/instawow/_migrations"],
   "strict": [
     "src",
-    "gui-webview/src/instawow_gui/json_rpc_server.py",
+    "instawow-gui/src/instawow_gui/json_rpc_server.py",
     "tests/plugin"
   ]
 }

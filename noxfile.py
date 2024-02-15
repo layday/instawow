@@ -43,7 +43,7 @@ def format_(session: nox.Session):
     session.run('ruff', 'format', *['--check'] if check else [], '.')
 
     if '--skip-prettier' not in session.posargs:
-        with session.chdir('gui-webview/frontend'):
+        with session.chdir('instawow-gui/frontend'):
             session.run('npm', 'install', external=True)
             session.run(
                 'npx',
@@ -145,7 +145,7 @@ def type_check(session: nox.Session):
 @nox.session(python=False)
 def bundle_frontend(session: nox.Session):
     "Bundle the frontend."
-    with session.chdir('gui-webview/frontend'):
+    with session.chdir('instawow-gui/frontend'):
         session.run('git', 'clean', '-fX', '../src/instawow_gui/frontend', external=True)
         session.run('npm', 'install', external=True)
         session.run('npx', 'svelte-check', external=True)
@@ -237,7 +237,7 @@ def patch_frontend_spec(session: nox.Session):
 
     options = parser.parse_args(session.posargs)
 
-    spec_path = Path(__file__).parent.joinpath('gui-webview', 'pyproject.toml')
+    spec_path = Path(__file__).parent.joinpath('instawow-gui', 'pyproject.toml')
     spec = spec_path.read_text(encoding='utf-8')
 
     if options.version:

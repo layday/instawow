@@ -18,7 +18,7 @@ and several other goodies.
           :target: https://asciinema.org/a/8m36ncAoyTmig4MXfQM8YjE6a?autoplay=1
           :alt: Asciicast demonstrating the operation of instawow
           :width: 640
-     - .. figure:: https://raw.githubusercontent.com/layday/instawow/main/gui-webview/screenshots/v1.34.1.png
+     - .. figure:: https://raw.githubusercontent.com/layday/instawow/main/instawow-gui/screenshots/v1.34.1.png
           :target: https://github.com/layday/instawow/releases/latest
           :alt: instawow-gui main window
           :width: 640

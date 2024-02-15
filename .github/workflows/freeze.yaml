@@ -137,13 +137,13 @@ jobs:
           python -m pip install 'briefcase @ git+https://github.com/layday/briefcase@instawow'
           python -m briefcase build ${{ matrix.build-env.briefcase-build-opts }}
           python -m briefcase package ${{ matrix.build-env.briefcase-package-opts }}
-        working-directory: gui-webview
+        working-directory: instawow-gui
       - name: Upload artifact
         uses: actions/upload-artifact@v3
         with:
           name: instawow-gui-${{ needs.build-package.outputs.wheel-version }}-${{ matrix.build-env.os }}
           path: |
-            gui-webview/dist/instawow-gui-*
+            instawow-gui/dist/instawow-gui-*
           if-no-files-found: error
   create-release:
     if: startsWith(github.ref, 'refs/tags/')

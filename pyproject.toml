@@ -26,12 +26,12 @@ urls.homepage = "http://github.com/layday/instawow"
 packages = [
   { include = "instawow", from = "src" },
   { include = "instawow_wa_updater", from = "src" },
-  { include = "instawow_gui", from = "gui-webview/src" },
+  { include = "instawow_gui", from = "instawow-gui/src" },
 ]
 include = [
   { path = "CHANGELOG.rst", format = "sdist" },
   { path = "COPYING", format = "sdist" },
-  { path = "gui-webview/src/instawow_gui/frontend/*" },
+  { path = "instawow-gui/src/instawow_gui/frontend/*" },
   { path = "tests", format = "sdist" },
 ]
 scripts.instawow = "instawow.cli:main"
