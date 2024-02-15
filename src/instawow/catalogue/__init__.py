@@ -30,12 +30,15 @@ def _parse_catalogue(raw_catalogue: bytes):
 
 async def synchronise(manager_ctx: manager_ctx.ManagerCtx) -> cataloguer.ComputedCatalogue:
     "Fetch the catalogue from the interwebs and load it."
-    async with manager_ctx.locks[_LOAD_CATALOGUE_LOCK], manager_ctx.web_client.get(
-        _base_catalogue_url,
-        expire_after=_catalogue_ttl,
-        raise_for_status=True,
-        trace_request_ctx=make_generic_progress_ctx('Synchronising catalogue'),
-    ) as response:
+    async with (
+        manager_ctx.locks[_LOAD_CATALOGUE_LOCK],
+        manager_ctx.web_client.get(
+            _base_catalogue_url,
+            expire_after=_catalogue_ttl,
+            raise_for_status=True,
+            trace_request_ctx=make_generic_progress_ctx('Synchronising catalogue'),
+        ) as response,
+    ):
         raw_catalogue = await response.read()
 
     return _parse_catalogue(raw_catalogue)

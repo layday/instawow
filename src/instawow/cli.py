@@ -195,7 +195,10 @@ class CtxObjWrapper:
                     progress_bar.invalidate()
 
             async def run():
-                with make_progress_bar() as progress_bar, cancel_tickers(progress_bar) as tickers:
+                with (
+                    make_progress_bar() as progress_bar,
+                    cancel_tickers(progress_bar) as tickers,
+                ):
                     async with init_cli_web_client(progress_bar, tickers) as web_client:
                         manager_ctx.contextualise(web_client=web_client)
                         return await awaitable

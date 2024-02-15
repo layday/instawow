@@ -33,15 +33,19 @@ async def is_outdated(global_config: config.GlobalConfig) -> tuple[bool, str]:
         return (False, '')
 
     try:
-        async with init_web_client(
-            global_config.cache_dir, raise_for_status=True
-        ) as web_client, web_client.get(
-            'https://pypi.org/simple/instawow',
-            expire_after=timedelta(days=1),
-            headers={
-                'Accept': 'application/vnd.pypi.simple.v1+json',
-            },
-        ) as response:
+        async with (
+            init_web_client(
+                global_config.cache_dir,
+                raise_for_status=True,
+            ) as web_client,
+            web_client.get(
+                'https://pypi.org/simple/instawow',
+                expire_after=timedelta(days=1),
+                headers={
+                    'Accept': 'application/vnd.pypi.simple.v1+json',
+                },
+            ) as response,
+        ):
             metadata: _SimpleApiProject = await response.json()
             version = max(metadata['versions'], key=Version)
     except ClientError:
