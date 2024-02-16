@@ -1,36 +1,30 @@
 <script lang="ts">
-  import { getContext, type ComponentProps, type Snippet } from "svelte";
+  import { getContext, type Snippet } from "svelte";
   import { isSameAddon } from "../addon";
   import { type Addon } from "../api";
-  import { View } from "../constants";
-  import { API_KEY, type Api } from "../stores/api";
+  import { API_KEY, type Api } from "../stores/api.svelte";
   import AddonList from "./AddonList.svelte";
-  import AddonListNav from "./AddonListNav.svelte";
   import AddonStub from "./AddonStub.svelte";
   import CentredPlaceholderText from "./CentredPlaceholderText.svelte";
+  import Spinner from "./Spinner.svelte";
 
   const api = getContext<Api>(API_KEY);
 
-  let { activeView, modifyAddons, addonListNav } = $props<{
-    activeView: View;
-    modifyAddons: (
-      method: "install" | "update" | "remove" | "pin",
-      addons: Addon[],
-      extraParams?: { [key: string]: unknown },
-    ) => Promise<void>;
-    addonListNav: Snippet<[Partial<ComponentProps<AddonListNav>>]>;
+  let { profileNav, onRereconcile } = $props<{
+    profileNav: Snippet<[navMiddle: Snippet | undefined, navEnd: Snippet | undefined]>;
+    onRereconcile: (addonPairs: typeof addonsToRereconcile) => Promise<void>;
   }>();
 
-  let isInstalling = $state(false);
+  let isRereconciling = $state(false);
 
   let installedAddons = $state([] as Addon[]);
   let selections = $state([] as Addon[]);
 
-  let addonListNavProps = $derived.by(() => ({
-    reconcileInstallationInProgress: isInstalling,
-    canReconcile: selections.length > 0,
-    onInstallReconciledInstalled: installReconciledInstalled,
-  }));
+  let addonsToRereconcile = $derived(
+    selections
+      .map((a, i) => [a, installedAddons[i]] as const)
+      .filter(([a, b]) => a && !isSameAddon(a, b)),
+  );
 
   const prepareReconcileInstalled = async () => {
     const results = await api.getReconcileInstalledCandidates();
@@ -38,32 +32,35 @@
     return results;
   };
 
-  const installReconciledInstalled = async () => {
-    isInstalling = true;
-
+  const onRereconcileWrapped = async () => {
+    isRereconciling = true;
     try {
-      const addonsToRereconcile = selections
-        .map((a, i) => [a, installedAddons[i]] as const)
-        .filter(([a, b]) => a && !isSameAddon(a, b));
-
-      await modifyAddons(
-        "remove",
-        addonsToRereconcile.map(([, a]) => a),
-      );
-      await modifyAddons(
-        "install",
-        addonsToRereconcile.map(([a]) => a),
-        { replace: false },
-      );
-
-      activeView = View.Installed;
+      await onRereconcile(addonsToRereconcile);
     } finally {
-      isInstalling = false;
+      isRereconciling = false;
     }
   };
 </script>
 
-{@render addonListNav(addonListNavProps)}
+{#snippet navEnd()}
+  {#if isRereconciling}
+    <Spinner />
+  {/if}
+
+  <menu class="control-set">
+    <li>
+      <button
+        class="control"
+        disabled={isRereconciling || !addonsToRereconcile.length}
+        onclick={onRereconcileWrapped}
+      >
+        switch sources
+      </button>
+    </li>
+  </menu>
+{/snippet}
+
+{@render profileNav(undefined, navEnd)}
 
 {#await prepareReconcileInstalled()}
   <CentredPlaceholderText>Loading…</CentredPlaceholderText>

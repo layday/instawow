@@ -169,16 +169,12 @@ export type ValidationError = {
 
 export class Api {
   constructor(
-    private readonly _clientWrapper: RClient,
+    public readonly clientWrapper: RClient,
     public readonly profile?: string,
   ) {}
 
-  withProfile(profile: string) {
-    return new Api(this._clientWrapper, profile);
-  }
-
   async request(requestObject: RequestObject) {
-    const client = await this._clientWrapper.client;
+    const client = await this.clientWrapper.client;
     return await client.request(requestObject, 0);
   }
 

@@ -1,6 +1,6 @@
 <script lang="ts">
   import { getContext, onDestroy } from "svelte";
-  import { API_KEY, type Api } from "../stores/api";
+  import { API_KEY, type Api } from "../stores/api.svelte";
 
   const api = getContext<Api>(API_KEY);
 

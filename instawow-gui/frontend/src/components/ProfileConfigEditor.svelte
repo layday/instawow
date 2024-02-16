@@ -6,7 +6,7 @@
   import { fade } from "svelte/transition";
   import type { Config, ValidationError } from "../api";
   import { Flavour } from "../api";
-  import { API_KEY, type Api } from "../stores/api";
+  import { API_KEY, type Api } from "../stores/api.svelte";
   import {
     ACTIVE_PROFILE_KEY,
     PROFILES_KEY,

@@ -2,34 +2,37 @@
   import * as commonmark from "commonmark";
   import ld from "lodash-es";
   import type { ComponentProps } from "svelte";
-  import { getContext, onMount, setContext, unstate } from "svelte";
+  import { getContext, onMount, setContext } from "svelte";
   import { flip } from "svelte/animate";
   import { isSameAddon } from "../addon";
-  import type {
-    Addon,
-    AnyResult,
-    CatalogueEntry,
-    Defn,
-    ErrorResult,
-    Source,
-    Strategies,
-    SuccessResult,
+  import {
+    ReconciliationStage,
+    type Addon,
+    type AnyResult,
+    type CatalogueEntry,
+    type Defn,
+    type ErrorResult,
+    type Source,
+    type Strategies,
+    type SuccessResult,
   } from "../api";
-  import { Api, ChangelogFormat, Strategy, addonToDefn } from "../api";
-  import { AddonAction, ListFormat, View } from "../constants";
+  import { ChangelogFormat, Strategy, addonToDefn } from "../api";
+  import { AddonAction, ListFormat, View, type TogaSimulateKeypressAction } from "../constants";
   import { ALERTS_KEY, type AlertsRef } from "../stores/alerts.svelte";
-  import { API_KEY } from "../stores/api";
+  import { API_KEY, Api } from "../stores/api.svelte";
   import { PROFILES_KEY, type ProfilesRef } from "../stores/profiles.svelte";
   import AddonComponent from "./Addon.svelte";
   import AddonContextMenu from "./AddonContextMenu.svelte";
   import AddonList from "./AddonList.svelte";
-  import AddonListNav from "./AddonListNav.svelte";
   import ChangelogModalContents from "./ChangelogModalContents.svelte";
   import Reconciler from "./Reconciler.svelte";
   import Rereconciler from "./Rereconciler.svelte";
   import RollbackModalContents from "./RollbackModalContents.svelte";
   import SearchOptionsModalContents from "./SearchOptionsModalContents.svelte";
   import Modal from "./modal/Modal.svelte";
+  import SvgIcon from "./SvgIcon.svelte";
+  import { faExchange, faFilter, faSlidersH, faThList } from "@fortawesome/free-solid-svg-icons";
+  import Spinner from "./Spinner.svelte";
 
   type AddonTriplet = readonly [addon: Addon, otherAddon: Addon, isInstalled: boolean];
 
@@ -95,7 +98,7 @@
   const profilesRef = getContext<ProfilesRef>(PROFILES_KEY);
   const alertsRef = getContext<AlertsRef>(ALERTS_KEY);
 
-  const api = setContext<Api>(API_KEY, getContext<Api>(API_KEY).withProfile(profile));
+  const api = setContext(API_KEY, new Api(getContext(API_KEY), profile, alertsRef));
 
   const config = $derived(profilesRef.value[profile]);
 
@@ -163,10 +166,6 @@
         })),
       ...(alertsRef.value[profile] ?? []),
     ];
-  };
-
-  const countInstalled = () => {
-    return addonsByView[View.Installed].reduce((val, [, , installed]) => val + +installed, 0);
   };
 
   const regenerateFilteredAddons = () => {
@@ -263,12 +262,44 @@
     }
   };
 
-  const removeAddons = async (addons: Addon[], keepFolders: boolean) => {
+  const removeAddons = async (addons: Addon[], keepFolders = false) => {
     await modifyAddons("remove", addons, { keep_folders: keepFolders });
   };
 
   const pinAddons = async (addons: Addon[]) => {
     await modifyAddons("pin", addons);
+  };
+
+  const reconcileAddons = async (
+    stage: ReconciliationStage,
+    selections: Addon[],
+    recursive?: boolean,
+  ) => {
+    const reconciliationStages = Object.values(ReconciliationStage);
+
+    await installAddons(selections.filter(Boolean), true);
+
+    const nextStage = reconciliationStages[reconciliationStages.indexOf(stage) + 1];
+    if (nextStage) {
+      if (recursive) {
+        const nextSelections = (await api.reconcile(stage))
+          .filter((r) => r.matches.length)
+          .map(({ matches: [addon] }) => addon);
+        await reconcileAddons(nextStage, nextSelections, true);
+      } else {
+        return nextStage;
+      }
+    } else {
+      // We might be at `reconciliationStage[0]` if `reconcileAddons` was called recursively
+      return reconciliationStages[reconciliationStages.indexOf(stage) || 0];
+    }
+  };
+
+  const rereconcileAddons = async (addonPairs: (readonly [Addon, Addon])[]) => {
+    await installAddons(addonPairs.map(([, a]) => a));
+    await removeAddons(addonPairs.map(([a]) => a));
+
+    activeView = View.Installed;
   };
 
   const search = async () => {
@@ -494,6 +525,35 @@
     }
   };
 
+  let searchBox = $state<HTMLInputElement>();
+
+  const handleKeypress = ({
+    detail: { action },
+  }: CustomEvent<{ action: TogaSimulateKeypressAction }>) => {
+    if (!isActive) {
+      return;
+    }
+
+    switch (action) {
+      case "activateViewInstalled":
+        activeView = View.Installed;
+        break;
+      case "activateViewReconcile":
+        activeView = View.Reconcile;
+        break;
+      case "activateViewSearch":
+        activeView = View.Search;
+        searchBox?.focus();
+        break;
+      case "toggleSearchFilter":
+        searchFilterInstalled = !searchFilterInstalled;
+        if (searchFilterInstalled) {
+          searchBox?.focus();
+        }
+        break;
+    }
+  };
+
   onMount(async () => {
     sources = await api.listSources();
     uriSchemes = [...Object.keys(sources), "http", "https"].map((s) => `${s}:`);
@@ -543,45 +603,178 @@
   });
 
   $effect(() => {
-    addonsByView[View.Installed];
+    if (!isActive) {
+      return;
+    }
 
     console.debug(profile, "updating status message");
 
-    if (isActive) {
-      if (installedIsRefreshing) {
-        statusMessage = "refreshing…";
-      } else if (false /* reconcileInstallationInProgress */) {
-        statusMessage = "installing…";
-      } else {
-        statusMessage = `installed add-ons: ${countInstalled()}`;
-      }
+    if (installedIsRefreshing) {
+      statusMessage = "refreshing…";
+    } else {
+      statusMessage = `installed add-ons: ${addonsByView[View.Installed].reduce(
+        (val, [, , installed]) => val + +installed,
+        0,
+      )}`;
     }
   });
 </script>
 
+<svelte:window ontogaSimulateKeypress={handleKeypress} />
+
+{#snippet profileNav(navMiddle, navEnd)}
+  <div class="profile-nav-wrapper">
+    <nav class="profile-nav">
+      <div>
+        <menu class="control-set">
+          <li class="segmented-control">
+            <input
+              class="control"
+              type="radio"
+              id="__radio-installed"
+              value={View.Installed}
+              bind:group={activeView}
+            />
+            <label class="control" for="__radio-installed">installed</label>
+          </li>
+
+          <li class="segmented-control">
+            <input
+              class="control"
+              type="radio"
+              id="__radio-unreconciled"
+              value={View.Reconcile}
+              bind:group={activeView}
+            />
+            <label class="control" for="__radio-unreconciled">unreconciled</label>
+          </li>
+
+          {#if activeView === View.Installed || activeView === View.ReconcileInstalled}
+            <li>
+              <input
+                class="control"
+                id="__radio-reconcile-installed"
+                type="radio"
+                value={View.ReconcileInstalled}
+                bind:group={activeView}
+              />
+              <label
+                class="control"
+                for="__radio-reconcile-installed"
+                aria-label="change add-on sources"
+                title="change add-on sources"
+              >
+                <SvgIcon icon={faExchange} />
+              </label>
+            </li>
+          {/if}
+
+          {#if activeView !== View.Reconcile && activeView !== View.ReconcileInstalled}
+            <li>
+              <button
+                class="control"
+                aria-label="condense/expand add-on cells"
+                title="condense/expand add-on cells"
+                onclick={cycleDisplayedListFormat}
+              >
+                <SvgIcon icon={faThList} />
+              </button>
+            </li>
+          {/if}
+        </menu>
+      </div>
+
+      <div>
+        {#if navMiddle}
+          {@render navMiddle()}
+        {/if}
+      </div>
+
+      <div>
+        {#if navEnd}
+          {@render navEnd()}
+        {/if}
+      </div>
+    </nav>
+  </div>
+{/snippet}
+
+{#snippet profileNavMiddle()}
+  <menu class="control-set">
+    <li>
+      <input
+        class="control"
+        id="__search-installed"
+        type="checkbox"
+        bind:checked={searchFilterInstalled}
+      />
+      <label
+        class="control"
+        for="__search-installed"
+        aria-label="search installed add-ons"
+        title="search installed add-ons"
+      >
+        <SvgIcon icon={faFilter} />
+      </label>
+    </li>
+    <li>
+      <!-- Not type="search" because cursor jumps to end in Safari -->
+      <input
+        class="control search-control"
+        type="text"
+        placeholder="search"
+        bind:this={searchBox}
+        bind:value={searchTerms}
+        onkeydown={(e) => e.key === "Enter" && search()}
+      />
+    </li>
+  </menu>
+
+  {#if searchesInProgress > 0}
+    <Spinner />
+  {/if}
+{/snippet}
+
+{#snippet profileNavEnd()}
+  <menu class="control-set">
+    {#if activeView === View.Installed}
+      <li>
+        <button
+          class="control"
+          disabled={installedIsRefreshing}
+          onclick={() => refreshInstalled()}
+        >
+          refresh
+        </button>
+      </li>
+      <li>
+        <button
+          class="control"
+          disabled={installedAddonsBeingModified.length > 0 ||
+            installedIsRefreshing ||
+            !installedOutdatedCount}
+          onclick={() => updateAddons(true)}
+        >
+          {installedOutdatedCount ? `update ${installedOutdatedCount}` : "no updates"}
+        </button>
+      </li>
+    {:else}
+      <li>
+        <button
+          class="control search-options-control"
+          class:dirty={searchIsDirty}
+          aria-label="show search options"
+          onclick={showSearchOptionsModal}
+        >
+          <SvgIcon icon={faSlidersH} />
+        </button>
+      </li>
+    {/if}
+  </menu>
+{/snippet}
+
 {#if isActive}
   <div class="addon-list-wrapper">
-    {#snippet addonListNav(props)}
-      <div class="addon-list-nav-wrapper">
-        <AddonListNav
-          bind:activeView
-          bind:searchTerms
-          bind:searchFilterInstalled
-          {searchIsDirty}
-          {installedOutdatedCount}
-          isRefreshing={installedIsRefreshing}
-          isModifying={installedAddonsBeingModified.length > 0}
-          isSearching={searchesInProgress > 0}
-          onSearch={() => search()}
-          onShowSearchOptionsModal={() => showSearchOptionsModal()}
-          onRefresh={() => refreshInstalled()}
-          onUpdateAll={() => updateAddons(true)}
-          onCycleListFormat={() => cycleDisplayedListFormat()}
-          {...props}
-        />
-      </div>
-    {/snippet}
-
     <AddonContextMenu
       bind:this={addonContextMenu}
       onSelectItem={handleAddonContextMenuSelection}
@@ -607,11 +800,11 @@
     {/if}
 
     {#if activeView === View.Reconcile}
-      <Reconciler {addonListNav} {modifyAddons} />
+      <Reconciler {profileNav} onReconcile={reconcileAddons} />
     {:else if activeView === View.ReconcileInstalled}
-      <Rereconciler bind:activeView {addonListNav} {modifyAddons} />
+      <Rereconciler {profileNav} onRereconcile={rereconcileAddons} />
     {:else}
-      {@render addonListNav({})}
+      {@render profileNav(profileNavMiddle, profileNavEnd)}
 
       {#key activeView}
         <AddonList>
@@ -641,7 +834,13 @@
 {/if}
 
 <style lang="scss">
+  @use "sass:math";
+
   @use "scss/vars";
+
+  $line-height: 1.875em;
+  $middle-border-radius: math.div($line-height, 6);
+  $edge-border-radius: math.div($line-height, 4);
 
   .addon-list-wrapper {
     @extend %stretch-vertically;
@@ -651,7 +850,7 @@
     user-select: none;
   }
 
-  .addon-list-nav-wrapper {
+  .profile-nav-wrapper {
     @extend %blur-background;
     background-color: var(--base-color-tone-a-alpha-85);
     box-shadow: inset 0 -1px 0px 0 var(--base-color-tone-b);
@@ -659,5 +858,124 @@
     top: 0;
     z-index: 20;
     padding: 0 0.8em;
+  }
+
+  .profile-nav {
+    @extend %nav-grid;
+    grid-template-columns: repeat(3, 1fr);
+    height: 3rem;
+
+    > div {
+      display: flex;
+      align-items: center;
+    }
+  }
+
+  :global(.profile-nav menu) {
+    @extend %unstyle-list;
+    font-weight: 500;
+  }
+
+  :global(.profile-nav .control-set) {
+    display: flex;
+    align-items: center;
+    font-size: 0.85em;
+
+    li {
+      &:not(:first-child) {
+        margin-left: 4px;
+      }
+
+      &.segmented-control {
+        ~ .segmented-control {
+          margin-left: -1px;
+        }
+      }
+
+      &:first-child .control {
+        border-top-left-radius: $edge-border-radius;
+        border-bottom-left-radius: $edge-border-radius;
+      }
+
+      &:last-child .control {
+        border-top-right-radius: $edge-border-radius;
+        border-bottom-right-radius: $edge-border-radius;
+      }
+    }
+  }
+
+  :global(.profile-nav .control) {
+    display: block;
+    min-width: min-content;
+    border: 0;
+    transition: all 0.2s;
+    line-height: $line-height;
+    margin: 0;
+    padding: 0 0.7em;
+    border-radius: $middle-border-radius;
+    white-space: nowrap;
+
+    &:disabled {
+      opacity: 0.5;
+    }
+
+    &:hover:not(:disabled) {
+      background-color: var(--inverse-color-alpha-05);
+    }
+
+    &:focus {
+      background-color: var(--inverse-color-alpha-10);
+    }
+
+    &[type="checkbox"],
+    &[type="radio"] {
+      position: absolute;
+      opacity: 0;
+
+      &:checked + label {
+        background-color: var(--inverse-color-tone-b) !important;
+        color: var(--base-color);
+
+        :global(.icon) {
+          fill: var(--base-color);
+        }
+      }
+
+      &:disabled + label {
+        opacity: 0.5;
+      }
+
+      &:focus + label {
+        background-color: var(--inverse-color-alpha-10);
+      }
+    }
+
+    :global(.icon) {
+      height: 1rem;
+      width: 1rem;
+      vertical-align: text-bottom;
+      fill: var(--inverse-color-tone-b);
+    }
+
+    &.search-control {
+      border-top-right-radius: $edge-border-radius;
+      border-bottom-right-radius: $edge-border-radius;
+      box-shadow: inset 0 0 0 1px var(--inverse-color-alpha-10);
+      font-size: 1rem;
+
+      &,
+      &::-webkit-search-cancel-button {
+        -webkit-appearance: none;
+        appearance: none;
+      }
+
+      &:not(:focus) {
+        text-align: center;
+      }
+    }
+
+    &.search-options-control.dirty {
+      @include vars.striped-background(-45deg, rgba(salmon, 0.5));
+    }
   }
 </style>

@@ -10,7 +10,7 @@
   import type { Addon } from "../api";
   import { Strategy } from "../api";
   import { ListFormat } from "../constants";
-  import { API_KEY, type Api } from "../stores/api";
+  import { API_KEY, type Api } from "../stores/api.svelte";
   import ProgressIndicator from "./ProgressIndicator.svelte";
   import Icon from "./SvgIcon.svelte";
 

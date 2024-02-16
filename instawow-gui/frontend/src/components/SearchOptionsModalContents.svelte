@@ -3,7 +3,7 @@
   import { getContext } from "svelte";
   import type { Sources } from "../api";
   import { Flavour, Strategy } from "../api";
-  import type { SearchOptions } from "./ProfileView.svelte";
+  import type { SearchOptions } from "./Profile.svelte";
   import type { ModalHandle } from "./modal/Modal.svelte";
 
   let { flavour, sources, searchFilterInstalled, searchOptions, onRequestReset, onRequestSearch } =

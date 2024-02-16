@@ -2,7 +2,7 @@
   import { getContext } from "svelte";
   import { fade } from "svelte/transition";
   import { type Config } from "../api";
-  import { API_KEY, type Api } from "../stores/api";
+  import { API_KEY, type Api } from "../stores/api.svelte";
   import {
     ACTIVE_PROFILE_KEY,
     PROFILES_KEY,
@@ -11,7 +11,7 @@
   } from "../stores/profiles.svelte";
   import Alerts from "./Alerts.svelte";
   import ProfileSwitcher from "./ProfileSwitcher.svelte";
-  import ProfileView from "./ProfileView.svelte";
+  import Profile from "./Profile.svelte";
 
   // Nicked from Peacock
   const colourPalette = [
@@ -83,7 +83,7 @@
     </header>
     <main class="section main">
       {#each Object.keys(profilesRef.value) as profile (profile)}
-        <ProfileView bind:statusMessage {profile} isActive={profile === activeProfileRef.value} />
+        <Profile bind:statusMessage {profile} isActive={profile === activeProfileRef.value} />
       {/each}
     </main>
     <footer class="section statusbar">

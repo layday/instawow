@@ -1,103 +1,116 @@
 <script lang="ts">
   import { faQuestion } from "@fortawesome/free-solid-svg-icons";
-  import { getContext, type ComponentProps, type Snippet } from "svelte";
+  import { getContext, type Snippet } from "svelte";
   import { ReconciliationStage, type Addon } from "../api";
-  import { API_KEY, type Api } from "../stores/api";
+  import { API_KEY, type Api } from "../stores/api.svelte";
   import AddonList from "./AddonList.svelte";
-  import AddonListNav from "./AddonListNav.svelte";
   import AddonStub from "./AddonStub.svelte";
   import CentredPlaceholderText from "./CentredPlaceholderText.svelte";
   import SvgIcon from "./SvgIcon.svelte";
-
-  const reconciliationStages = Object.values(ReconciliationStage);
-  const [initialReconciliationStage] = reconciliationStages;
+  import Spinner from "./Spinner.svelte";
 
   const api = getContext<Api>(API_KEY);
 
-  let { modifyAddons, addonListNav } = $props<{
-    modifyAddons: (
-      method: "install" | "update" | "remove" | "pin",
-      addons: Addon[],
-      extraParams?: { [key: string]: unknown },
-    ) => Promise<void>;
-    addonListNav: Snippet<[Partial<ComponentProps<AddonListNav>>]>;
+  let { profileNav, onReconcile } = $props<{
+    profileNav: Snippet<[navMiddle: Snippet | undefined, navEnd: Snippet | undefined]>;
+    onReconcile: (
+      stage: ReconciliationStage,
+      selections: Addon[],
+      recursive?: boolean,
+    ) => Promise<ReconciliationStage | undefined>;
   }>();
 
-  let isInstalling = $state(false);
+  let isReconciling = $state(false);
 
   let reconciliationValues = $state({
-    stage: initialReconciliationStage,
+    stage: undefined as ReconciliationStage | undefined,
     selections: [] as Addon[],
   });
 
-  let addonListNavProps = $derived.by(() => ({
-    reconcileInstallationInProgress: isInstalling,
-    "bind:reconcileStage": reconciliationValues.stage,
-    canReconcile: reconciliationValues.selections.length > 0,
-    onInstallReconciled: installReconciled,
-    onAutomateReconciliation: () => installReconciled(reconciliationValues, true),
-  }));
-
   const prepareReconcile = async () => {
-    console.log(
-      "what the",
-      reconciliationValues.stage,
-      [...reconciliationStages].slice(reconciliationStages.indexOf(reconciliationValues.stage)),
-    );
+    const reconciliationStages = Object.values(ReconciliationStage);
 
     for (const [index, stage] of Array.from(reconciliationStages.entries()).slice(
-      reconciliationStages.indexOf(reconciliationValues.stage),
+      reconciliationValues.stage
+        ? reconciliationStages.indexOf(reconciliationValues.stage) + 1
+        : 0,
     )) {
       const results = await api.reconcile(stage);
       if (results.some((r) => r.matches.length) || !(index + 1 in reconciliationStages)) {
-        reconciliationValues = { stage, selections: [] }; // ???
+        reconciliationValues = {
+          stage,
+          selections: [],
+        };
+
         return results;
       }
     }
   };
 
-  const installReconciled = async (
+  const onReconcileWrapped = async (
     { stage, selections }: typeof reconciliationValues = reconciliationValues,
     recursive?: boolean,
   ) => {
-    isInstalling = true;
-
+    isReconciling = true;
     try {
-      await modifyAddons("install", selections.filter(Boolean), { replace: true });
-
-      const nextStage = reconciliationStages[reconciliationStages.indexOf(stage) + 1];
-      if (nextStage) {
-        if (recursive) {
-          const nextSelections = (await api.reconcile(stage))
-            .filter((r) => r.matches.length)
-            .map(({ matches: [addon] }) => addon);
-          await installReconciled(
-            {
-              stage: nextStage,
-              selections: nextSelections,
-            },
-            true,
-          );
-        } else {
-          reconciliationValues = {
-            stage: nextStage,
-            selections: [],
-          };
-        }
-      } else {
-        // We might be at `reconciliationStage[0]` if `installReconciled` was called recursively
+      const newStage = await onReconcile(stage!, selections, recursive);
+      if (newStage) {
         reconciliationValues = {
-          stage: reconciliationStages[reconciliationStages.indexOf(stage) || 0],
+          stage: newStage,
           selections: [],
         };
       }
     } finally {
-      isInstalling = false;
+      isReconciling = false;
     }
   };
 </script>
 
-{@render addonListNav(addonListNavProps)}
+{#snippet navMiddle()}
+  <menu class="control-set">
+    <li>
+      <select
+        class="control reconciliation-stage-control"
+        aria-label="reconciliation stage"
+        disabled={isReconciling}
+        bind:value={reconciliationValues.stage}
+      >
+        {#each Object.values(ReconciliationStage) as stage}
+          <option value={stage}>{stage}</option>
+        {/each}
+      </select>
+    </li>
+  </menu>
+{/snippet}
+
+{#snippet navEnd()}
+  {#if isReconciling}
+    <Spinner />
+  {/if}
+
+  <menu class="control-set">
+    <li>
+      <button
+        class="control"
+        disabled={isReconciling || !reconciliationValues.selections.length}
+        onclick={() => onReconcileWrapped()}
+      >
+        install
+      </button>
+    </li>
+    <li>
+      <button
+        class="control"
+        disabled={isReconciling}
+        onclick={() => onReconcileWrapped(reconciliationValues, true)}
+      >
+        automate
+      </button>
+    </li>
+  </menu>
+{/snippet}
+
+{@render profileNav(navMiddle, navEnd)}
 
 {#await prepareReconcile()}
   <CentredPlaceholderText>Loading…</CentredPlaceholderText>
@@ -155,5 +168,14 @@
       height: 3rem;
       fill: var(--inverse-color-tone-b);
     }
+  }
+
+  .reconciliation-stage-control {
+    width: 100%;
+    padding-right: 1.4rem;
+    background-image: var(--dropdown-arrow);
+    background-size: 10px;
+    background-repeat: no-repeat;
+    background-position: top calc(50% + 1px) right 7px;
   }
 </style>

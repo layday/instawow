@@ -2,7 +2,7 @@
   import { faChevronCircleDown, faChevronCircleUp } from "@fortawesome/free-solid-svg-icons";
   import { getContext } from "svelte";
   import { type Addon } from "../api";
-  import { API_KEY, type Api } from "../stores/api";
+  import { API_KEY, type Api } from "../stores/api.svelte";
   import Icon from "./SvgIcon.svelte";
 
   const api = getContext<Api>(API_KEY);
@@ -24,8 +24,7 @@
   let selectionIdx = $state(0);
 
   let selection = $derived(choices[selectionIdx]);
-
-  const getVersion = () => folders.find((f) => f.version)?.version || "";
+  let installedVersion = $derived(folders.find((f) => f.version)?.version || "");
 
   $effect(() => {
     selections[idx] = choices[selectionIdx];
@@ -54,7 +53,7 @@
       <summary>
         <div class="selection-grid">
           <div aria-label="installed version" class="defn-or-version">
-            {getVersion()}
+            {installedVersion}
           </div>
           <!-- prettier-ignore -->
           <div aria-label="selection" class="defn-or-version">

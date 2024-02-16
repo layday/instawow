@@ -1,7 +1,7 @@
 import { createRoot } from "svelte";
 import App from "./components/App.svelte";
 import { ALERTS_KEY, makeAlerts } from "./stores/alerts.svelte";
-import { API_KEY, makeApi } from "./stores/api";
+import { API_KEY, makeApi } from "./stores/api.svelte";
 import {
   ACTIVE_PROFILE_KEY,
   PROFILES_KEY,
