@@ -14,6 +14,7 @@ loadedFrame:SetScript("OnEvent", function(_, _, addonName)
         end
       end
     end
+
     if Plater and Plater.AddCompanionData and WeakAurasCompanionData and WeakAurasCompanionData.Plater then
       Plater.AddCompanionData(WeakAurasCompanionData.Plater)
     end

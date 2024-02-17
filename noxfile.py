@@ -79,7 +79,6 @@ def lint(session: nox.Session):
             diskcache == 5.6.3
             iso8601 == 1.0.2
             loguru == 0.7.2
-            mako == 1.2.4
             packaging == 23.0
             pluggy == 1.3.0
             prompt-toolkit == 3.0.29

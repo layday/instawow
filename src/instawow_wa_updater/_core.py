@@ -140,7 +140,7 @@ class WaCompanionBuilder:
         output_folder = self._manager_ctx.config.plugins_dir / __name__
         self.addon_zip_path = output_folder / 'WeakAurasCompanion.zip'
         self.changelog_path = output_folder / 'CHANGELOG.md'
-        self.version_txt_path = output_folder / 'version.txt'
+        self._version_txt_path = output_folder / 'version.txt'
 
     def _make_request_headers(self):
         access_token = self._manager_ctx.config.global_config.access_tokens.wago
@@ -229,107 +229,107 @@ class WaCompanionBuilder:
     def _generate_addon(self, auras: Iterable[tuple[type[_Auras], list[_Match]]]):
         from zipfile import ZipFile, ZipInfo
 
-        from mako.template import Template  # pyright: ignore[reportMissingTypeStubs]
-
         from . import _templates
-
-        def render_tpl(filename: str, ctx: dict[str, object]) -> str:
-            tpl = Template(read_resource_as_text(_templates, filename))
-            return tpl.render(  # pyright: ignore  # noqa: PGH003
-                **ctx,
-            )
 
         aura_dict = dict.fromkeys((WeakAuras, Plateroos), list[_Match]()) | dict(auras)
 
         self.addon_zip_path.parent.mkdir(exist_ok=True)
+
         with ZipFile(self.addon_zip_path, 'w') as file:
 
-            def write_tpl(filename: str, ctx: dict[str, object]):
+            def write_file(filename: str, content: str):
                 # Not using a plain string as the first argument to ``writestr``
                 # 'cause the timestamp would be set to the current time
-                # which would render the build unreproducible
-                zip_info = ZipInfo(filename=f'WeakAurasCompanion/{filename}')
-                output = render_tpl(filename, ctx)
-                file.writestr(zip_info, output)
-                return output
+                # which would render the build unreproducible.
+                file.writestr(
+                    ZipInfo(filename=f'WeakAurasCompanion/{filename}'),
+                    content,
+                )
+                return content
 
-            data_output = write_tpl(
+            def make_slug_entry(metadata: _WagoApiResponse, import_string: str):
+                return f"""\
+            [ [=[{metadata['slug']}]=] ] = {{
+                name = [=[{metadata['name']}]=],
+                author = [=[{metadata.get('username', '__unknown__')}]=],
+                encoded = [=[{import_string}]=],
+                wagoVersion = [=[{metadata['version']}]=],
+                wagoSemver = [=[{metadata['version']}]=],
+                versionNote = [=[{metadata['changelog'].get('text', '')}]=],
+                source = [=[Wago]=],
+            }},"""
+
+            NL = '\n'
+            data_output = write_file(
                 'data.lua',
-                {
-                    'addons': {
-                        c.addon_name: [
-                            (
-                                metadata['slug'],
-                                {
-                                    'name': metadata['name'],
-                                    'author': metadata.get('username', '__unknown__'),
-                                    'encoded': import_string,
-                                    'wagoVersion': metadata['version'],
-                                    # ``wagoSemver`` is supposed to be the ``versionString``
-                                    # from Wago but there is a bug where the ``version``
-                                    # is sometimes not appended to the semver.
-                                    # The Companion add-on's version is derived from its checksum
-                                    # so if ``wagoSemver`` were to change between requests
-                                    # we'd be triggering spurious updates in instawow.
-                                    'wagoSemver': metadata['version'],
-                                    'versionNote': metadata['changelog'].get('text', ''),
-                                    'source': 'Wago',
-                                },
-                            )
-                            for _, metadata, import_string in v
-                        ]
-                        for c, v in aura_dict.items()
-                    },
-                },
+                f'''\
+-- file generated automatically
+WeakAurasCompanionData = {{
+{NL.join(f"""
+    {c.addon_name} = {{
+        slugs = {{
+{NL.join(make_slug_entry(m, i) for _, m, i in v)}
+        }},
+        stash = {{
+        }},
+        stopmotionFiles = {{
+        }},
+    }},"""
+    for c, v in aura_dict.items()
+)}
+}}
+''',
             )
-            init_output = write_tpl('init.lua', {})
+
+            init_output = write_file('init.lua', read_resource_as_text(_templates, 'init.lua'))
 
             interface_version = self._manager_ctx.config.game_flavour.to_flavour_keyed_enum(
                 _TocNumber
             ).value
             addon_version = shasum(data_output, init_output, interface_version)[:7]
 
-            write_tpl(
+            toc_tpl = read_resource_as_text(_templates, 'WeakAurasCompanion.toc')
+            write_file(
                 'WeakAurasCompanion.toc',
-                {'interface': interface_version, 'version': addon_version},
+                toc_tpl.format(
+                    interface=self._manager_ctx.config.game_flavour.to_flavour_keyed_enum(
+                        _TocNumber
+                    ).value,
+                    version=addon_version,
+                ),
             )
 
+        changelog_tpl = read_resource_as_text(_templates, 'CHANGELOG.md')
         self.changelog_path.write_text(
-            render_tpl(
-                self.changelog_path.name,
-                {
-                    'changelog_entries': [
-                        (
-                            a.id,
-                            a.url.parent,
-                            metadata['version'],
-                            metadata['changelog'].get('text') or 'n/a',
-                        )
-                        for v in aura_dict.values()
-                        for existing_auras, metadata, _ in v
-                        for a in (
-                            next((i for i in existing_auras if not i.parent), existing_auras[0]),
-                        )
-                        if a.version != metadata['version']
-                    ]
-                },
+            '\n\n'.join(
+                changelog_tpl.format(
+                    name=a.id,
+                    url=a.url.parent,
+                    version=metadata['version'],
+                    changelog=metadata['changelog'].get('text') or 'n/a',
+                )
+                for v in aura_dict.values()
+                for existing_auras, metadata, _ in v
+                for a in (next((i for i in existing_auras if not i.parent), existing_auras[0]),)
+                if a.version != metadata['version']
             )
             or 'n/a',
             encoding='utf-8',
         )
 
-        self.version_txt_path.write_text(
+        self._version_txt_path.write_text(
             addon_version,
             encoding='utf-8',
         )
 
     async def build(self) -> None:
-        installed_auras = await t(list[_Auras])(self.extract_installed_auras())
-        installed_auras_by_type = _merge_auras(installed_auras)
-        aura_groups = await gather(
+        installed_auras_by_type = _merge_auras(
+            await t(list[_Auras])(self.extract_installed_auras()),
+        )
+        remote_auras = await gather(
             self.get_remote_auras(r) for r in installed_auras_by_type.values()
         )
-        await t(self._generate_addon)(zip(installed_auras_by_type, aura_groups))
+        await t(self._generate_addon)(zip(installed_auras_by_type, remote_auras))
 
     def get_version(self) -> str:
-        return self.version_txt_path.read_text(encoding='utf-8')
+        return self._version_txt_path.read_text(encoding='utf-8')
