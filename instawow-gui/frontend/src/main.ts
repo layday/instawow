@@ -1,4 +1,4 @@
-import { createRoot } from "svelte";
+import { mount } from "svelte";
 import App from "./components/App.svelte";
 import { ALERTS_KEY, makeAlerts } from "./stores/alerts.svelte";
 import { API_KEY, makeApi } from "./stores/api.svelte";
@@ -18,4 +18,4 @@ const defaultContext = {
 
 const context = new Map(Object.entries(defaultContext));
 
-export default createRoot(App, { context, target: document.getElementById("app")! });
+export default mount(App, { context, target: document.getElementById("app")! });
