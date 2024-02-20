@@ -113,7 +113,7 @@ async def iw_web_client(iw_config: Config):
 @pytest.fixture
 def iw_manager_ctx(iw_config: Config, iw_web_client: aiohttp.ClientSession):
     contextualise(web_client=iw_web_client)
-    return ManagerCtx.from_config(iw_config)
+    return ManagerCtx(iw_config)
 
 
 @pytest.fixture

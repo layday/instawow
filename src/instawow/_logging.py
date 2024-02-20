@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import multiprocessing
 import sys
 from pathlib import Path
 
@@ -40,10 +41,20 @@ def setup_logging(
     if intercept_logging_module_calls:
         _intercept_logging_module_calls(log_level)
 
+    context = None
+    if sys.platform == 'darwin' and 'fork' in multiprocessing.get_all_start_methods():
+        # Avoid the overhead of starting the "spawn" method's resource tracker.
+        # instawow doesn't use multi-processing at all and neither does loguru;
+        # it simply creates MP sync primitives to support applications that do.
+        # When `enqueue` is `True`, messages are logged in a sub-thread of the
+        # main process and not in a separate process.
+        context = multiprocessing.get_context('fork')
+
     handlers = [
         {
             'level': log_level,
             'enqueue': True,
+            'context': context,
             'sink': logging_dir / 'error.log',
             'rotation': '5 MB',
             'retention': 5,  # Number of log files to keep
@@ -54,6 +65,7 @@ def setup_logging(
             {
                 'level': log_level,
                 'enqueue': True,
+                'context': context,
                 'sink': sys.stderr,
                 'format': (
                     '<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | '

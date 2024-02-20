@@ -16,7 +16,6 @@ from shutil import move
 from tempfile import NamedTemporaryFile
 from typing import Concatenate, TypeVar
 
-import sqlalchemy as sa
 from attrs import asdict, evolve
 from loguru import logger
 from typing_extensions import Never, ParamSpec
@@ -81,7 +80,7 @@ async def _open_temp_writer_async():
         await run_in_thread(fh.close)()
 
 
-async def _download_pkg_archive(ctx: ManagerCtx, defn: Defn, pkg: pkg_models.Pkg):
+async def _download_pkg_archive(ctx: ManagerCtx, defn: Defn, pkg: pkg_models.Pkg) -> Path:
     if is_file_uri(pkg.download_url):
         return Path(file_uri_to_path(pkg.download_url))
 
@@ -110,37 +109,39 @@ async def _download_pkg_archive(ctx: ManagerCtx, defn: Defn, pkg: pkg_models.Pkg
         )
 
 
-def _insert_db_pkg(pkg: pkg_models.Pkg, transaction: sa.Connection):
+def _insert_db_pkg(pkg: pkg_models.Pkg, transaction: pkg_db.sa.Connection):
     values = asdict(pkg)
     source_and_id = {'pkg_source': values['source'], 'pkg_id': values['id']}
 
-    transaction.execute(sa.insert(pkg_db.pkg), [values])
+    transaction.execute(pkg_db.sa.insert(pkg_db.pkg), [values])
     transaction.execute(
-        sa.insert(pkg_db.pkg_folder), [{**f, **source_and_id} for f in values['folders']]
+        pkg_db.sa.insert(pkg_db.pkg_folder), [{**f, **source_and_id} for f in values['folders']]
     )
-    transaction.execute(sa.insert(pkg_db.pkg_options), [{**values['options'], **source_and_id}])
+    transaction.execute(
+        pkg_db.sa.insert(pkg_db.pkg_options), [{**values['options'], **source_and_id}]
+    )
     if values['deps']:
         transaction.execute(
-            sa.insert(pkg_db.pkg_dep), [{**d, **source_and_id} for d in values['deps']]
+            pkg_db.sa.insert(pkg_db.pkg_dep), [{**d, **source_and_id} for d in values['deps']]
         )
     transaction.execute(
-        sa.insert(pkg_db.pkg_version_log).prefix_with('OR IGNORE'),
+        pkg_db.sa.insert(pkg_db.pkg_version_log).prefix_with('OR IGNORE'),
         [{'version': values['version'], **source_and_id}],
     )
 
 
-def _delete_db_pkg(pkg: pkg_models.Pkg, transaction: sa.Connection):
-    transaction.execute(sa.delete(pkg_db.pkg).filter_by(source=pkg.source, id=pkg.id))
+def _delete_db_pkg(pkg: pkg_models.Pkg, transaction: pkg_db.sa.Connection):
+    transaction.execute(pkg_db.sa.delete(pkg_db.pkg).filter_by(source=pkg.source, id=pkg.id))
 
 
 @run_in_thread
 def _install_pkg(
-    ctx: ManagerCtx, pkg: pkg_models.Pkg, archive: Path, replace_folders: bool
+    ctx: ManagerCtx, pkg: pkg_models.Pkg, archive: Path, *, replace_folders: bool
 ) -> R.PkgInstalled:
     with ctx.resolvers.archive_opener_dict[pkg.source](archive) as (top_level_folders, extract):
         with ctx.database.connect() as connection:
             installed_conflicts = connection.execute(
-                sa.select(pkg_db.pkg)
+                pkg_db.sa.select(pkg_db.pkg)
                 .distinct()
                 .join(pkg_db.pkg_folder)
                 .where(pkg_db.pkg_folder.c.name.in_(top_level_folders))
@@ -180,7 +181,7 @@ def _update_pkg(
     ):
         with ctx.database.connect() as connection:
             installed_conflicts = connection.execute(
-                sa.select(pkg_db.pkg)
+                pkg_db.sa.select(pkg_db.pkg)
                 .distinct()
                 .join(pkg_db.pkg_folder)
                 .where(
@@ -216,7 +217,7 @@ def _update_pkg(
 
 
 @run_in_thread
-def _remove_pkg(ctx: ManagerCtx, pkg: pkg_models.Pkg, keep_folders: bool) -> R.PkgRemoved:
+def _remove_pkg(ctx: ManagerCtx, pkg: pkg_models.Pkg, *, keep_folders: bool) -> R.PkgRemoved:
     if not keep_folders:
         trash(
             (ctx.config.addon_dir / f.name for f in pkg.folders),
@@ -228,6 +229,11 @@ def _remove_pkg(ctx: ManagerCtx, pkg: pkg_models.Pkg, keep_folders: bool) -> R.P
         _delete_db_pkg(pkg, transaction)
 
     return R.PkgRemoved(pkg)
+
+
+@run_in_thread
+def _check_installed_pkg_integrity(ctx: ManagerCtx, pkg: pkg_models.Pkg):
+    return all((ctx.config.addon_dir / p.name).exists() for p in pkg.folders)
 
 
 @object.__new__
@@ -272,13 +278,16 @@ class PkgManager:
         with self.ctx.database.connect() as connection:
             return (
                 connection.execute(
-                    sa.select(sa.text('1'))
+                    pkg_db.sa.select(pkg_db.sa.text('1'))
                     .select_from(pkg_db.pkg)
                     .where(
                         pkg_db.pkg.c.source == defn.source,
                         (pkg_db.pkg.c.id == defn.alias)
                         | (pkg_db.pkg.c.id == defn.id)
-                        | (sa.func.lower(pkg_db.pkg.c.slug) == sa.func.lower(defn.alias)),
+                        | (
+                            pkg_db.sa.func.lower(pkg_db.pkg.c.slug)
+                            == pkg_db.sa.func.lower(defn.alias)
+                        ),
                     )
                 ).scalar()
                 == 1
@@ -289,11 +298,14 @@ class PkgManager:
         with self.ctx.database.connect() as connection:
             maybe_row_mapping = (
                 connection.execute(
-                    sa.select(pkg_db.pkg).where(
+                    pkg_db.sa.select(pkg_db.pkg).where(
                         pkg_db.pkg.c.source == defn.source,
                         (pkg_db.pkg.c.id == defn.alias)
                         | (pkg_db.pkg.c.id == defn.id)
-                        | (sa.func.lower(pkg_db.pkg.c.slug) == sa.func.lower(defn.alias)),
+                        | (
+                            pkg_db.sa.func.lower(pkg_db.pkg.c.slug)
+                            == pkg_db.sa.func.lower(defn.alias)
+                        ),
                     )
                 )
                 .mappings()
@@ -302,7 +314,7 @@ class PkgManager:
             if maybe_row_mapping is None and partial_match:
                 maybe_row_mapping = (
                     connection.execute(
-                        sa.select(pkg_db.pkg)
+                        pkg_db.sa.select(pkg_db.pkg)
                         .where(pkg_db.pkg.c.slug.contains(defn.alias))
                         .order_by(pkg_db.pkg.c.name)
                     )
@@ -313,29 +325,29 @@ class PkgManager:
                 return self.build_pkg_from_row_mapping(connection, maybe_row_mapping)
 
     def build_pkg_from_row_mapping(
-        self, connection: sa.Connection, row_mapping: sa.RowMapping
+        self, connection: pkg_db.sa.Connection, row_mapping: pkg_db.sa.RowMapping
     ) -> pkg_models.Pkg:
         source_and_id = {'pkg_source': row_mapping['source'], 'pkg_id': row_mapping['id']}
         return pkg_models.make_db_pkg_converter().structure(
             {
                 **row_mapping,
                 'options': connection.execute(
-                    sa.select(pkg_db.pkg_options).filter_by(**source_and_id)
+                    pkg_db.sa.select(pkg_db.pkg_options).filter_by(**source_and_id)
                 )
                 .mappings()
                 .one(),
                 'folders': connection.execute(
-                    sa.select(pkg_db.pkg_folder.c.name).filter_by(**source_and_id)
+                    pkg_db.sa.select(pkg_db.pkg_folder.c.name).filter_by(**source_and_id)
                 )
                 .mappings()
                 .all(),
                 'deps': connection.execute(
-                    sa.select(pkg_db.pkg_dep.c.id).filter_by(**source_and_id)
+                    pkg_db.sa.select(pkg_db.pkg_dep.c.id).filter_by(**source_and_id)
                 )
                 .mappings()
                 .all(),
                 'logged_versions': connection.execute(
-                    sa.select(pkg_db.pkg_version_log)
+                    pkg_db.sa.select(pkg_db.pkg_version_log)
                     .filter_by(**source_and_id)
                     .order_by(pkg_db.pkg_version_log.c.install_time.desc())
                     .limit(10)
@@ -481,15 +493,6 @@ class PkgManager:
         "Retrieve a changelog from a URI."
         return await self.ctx.resolvers.get(source, _DummyResolver).get_changelog(URL(uri))
 
-    @run_in_thread
-    def _check_installed_pkg_integrity(self, pkg: pkg_models.Pkg) -> bool:
-        return all((self.ctx.config.addon_dir / p.name).exists() for p in pkg.folders)
-
-    async def _should_update_pkg(self, old_pkg: pkg_models.Pkg, new_pkg: pkg_models.Pkg) -> bool:
-        return old_pkg.version != new_pkg.version or (
-            not await self._check_installed_pkg_integrity(old_pkg)
-        )
-
     @_with_lock(_MUTATE_PKGS_LOCK)
     async def install(
         self, defns: Sequence[Defn], *, replace_folders: bool, dry_run: bool = False
@@ -510,21 +513,18 @@ class PkgManager:
         if dry_run:
             return results | {d: R.PkgInstalled(p, dry_run=True) for d, p in new_pkgs.items()}
 
-        download_results = zip(
-            new_pkgs,
-            await gather(
-                (_download_pkg_archive(self.ctx, d, r) for d, r in new_pkgs.items()),
-                R.resultify_async_exc,
-            ),
+        download_results = await gather(
+            (_download_pkg_archive(self.ctx, d, r) for d, r in new_pkgs.items()),
+            R.resultify_async_exc,
         )
-        archive_paths, download_errors = bucketise_results(download_results)
+        archive_paths, download_errors = bucketise_results(zip(new_pkgs, download_results))
 
         return (
             results
             | download_errors
             | {
                 d: await R.resultify_async_exc(
-                    _install_pkg(self.ctx, new_pkgs[d], a, replace_folders)
+                    _install_pkg(self.ctx, new_pkgs[d], a, replace_folders=replace_folders)
                 )
                 for d, a in archive_paths.items()
             }
@@ -535,8 +535,8 @@ class PkgManager:
         self, defns: Sequence[Defn], *, dry_run: bool = False
     ) -> Mapping[Defn, R.AnyResult[R.PkgInstalled | R.PkgUpdated]]:
         """Update installed packages from a definition list."""
-
         defns_to_pkgs = {d: p for d in defns for p in (self.get_pkg(d),) if p}
+
         resolve_defns = {
             # Attach the source ID to each ``Defn`` from the
             # corresponding installed package.  Using the ID has the benefit
@@ -546,17 +546,22 @@ class PkgManager:
             for d, p in defns_to_pkgs.items()
         }
         resolve_results = await self.resolve(resolve_defns, with_deps=True)
-        # Discard the reconstructed ``Defn``s
-        orig_defn_resolve_results = (
-            (resolve_defns.get(d, d), r) for d, r in resolve_results.items()
+        pkgs, resolve_errors = bucketise_results(
+            # Discard the reconstructed ``Defn``s
+            (resolve_defns.get(d) or d, r)
+            for d, r in resolve_results.items()
         )
-        pkgs, resolve_errors = bucketise_results(orig_defn_resolve_results)
+
+        async def should_update_pkg(old_pkg: pkg_models.Pkg, new_pkg: pkg_models.Pkg):
+            return old_pkg.version != new_pkg.version or not await _check_installed_pkg_integrity(
+                self.ctx, old_pkg
+            )
 
         updatables = {
             d: (o, n)
             for d, n in pkgs.items()
             for o in (defns_to_pkgs.get(d),)
-            if not o or await self._should_update_pkg(o, n)
+            if not o or await should_update_pkg(o, n)
         }
 
         results = (
@@ -574,21 +579,20 @@ class PkgManager:
                 for d, (o, n) in updatables.items()
             }
 
-        download_results = zip(
-            updatables,
-            await gather(
-                (_download_pkg_archive(self.ctx, d, n) for d, (_, n) in updatables.items()),
-                R.resultify_async_exc,
-            ),
+        download_results = await gather(
+            (_download_pkg_archive(self.ctx, d, n) for d, (_, n) in updatables.items()),
+            R.resultify_async_exc,
         )
-        archive_paths, download_errors = bucketise_results(download_results)
+        archive_paths, download_errors = bucketise_results(zip(updatables, download_results))
 
         return (
             results
             | download_errors
             | {
                 d: await R.resultify_async_exc(
-                    _update_pkg(self.ctx, o, n, a) if o else _install_pkg(self.ctx, n, a, False)
+                    _update_pkg(self.ctx, o, n, a)
+                    if o
+                    else _install_pkg(self.ctx, n, a, replace_folders=False)
                 )
                 for d, a in archive_paths.items()
                 for o, n in (updatables[d],)
@@ -602,7 +606,7 @@ class PkgManager:
         "Remove packages by their definition."
         return {
             d: (
-                await R.resultify_async_exc(_remove_pkg(self.ctx, p, keep_folders))
+                await R.resultify_async_exc(_remove_pkg(self.ctx, p, keep_folders=keep_folders))
                 if p
                 else R.PkgNotInstalled()
             )
@@ -639,7 +643,7 @@ class PkgManager:
 
             with self.ctx.database.begin() as transaction:
                 transaction.execute(
-                    sa.update(pkg_db.pkg_options)
+                    pkg_db.sa.update(pkg_db.pkg_options)
                     .filter_by(pkg_source=pkg.source, pkg_id=pkg.id)
                     .values(version_eq=version is not None)
                 )

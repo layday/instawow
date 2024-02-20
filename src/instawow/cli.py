@@ -16,7 +16,8 @@ from attrs import asdict, evolve, fields, resolve_types
 from loguru import logger
 from typing_extensions import Self
 
-from . import __version__, manager_ctx, pkg_db, pkg_management, pkg_models
+from . import __version__, pkg_db, pkg_management, pkg_models
+from . import manager_ctx as _manager_ctx
 from . import results as R
 from ._logging import setup_logging
 from .common import ChangelogFormat, Defn, Flavour, SourceMetadata, Strategy
@@ -108,8 +109,7 @@ class CtxObjWrapper:
 
         setup_logging(config.logging_dir, *self._ctx.params['debug'])
 
-        ctx = manager_ctx.ManagerCtx.from_config(config)
-        return pkg_management.PkgManager(ctx)
+        return pkg_management.PkgManager(_manager_ctx.ManagerCtx(config))
 
     def run_with_progress(self, awaitable: Awaitable[_T]) -> _T:
         cache_dir = self.manager.ctx.config.global_config.http_cache_dir
@@ -119,7 +119,7 @@ class CtxObjWrapper:
 
             async def run():
                 async with init_web_client(cache_dir, no_cache=params['no_cache']) as web_client:
-                    manager_ctx.contextualise(web_client=web_client)
+                    _manager_ctx.contextualise(web_client=web_client)
                     return await awaitable
 
         else:
@@ -200,7 +200,7 @@ class CtxObjWrapper:
                     cancel_tickers(progress_bar) as tickers,
                 ):
                     async with init_cli_web_client(progress_bar, tickers) as web_client:
-                        manager_ctx.contextualise(web_client=web_client)
+                        _manager_ctx.contextualise(web_client=web_client)
                         return await awaitable
 
         return asyncio.run(run())
@@ -404,7 +404,6 @@ def update(
     dry_run: bool,
 ) -> None:
     "Update installed add-ons."
-    import sqlalchemy as sa
 
     def filter_results(result: R.Result):
         # Hide packages from output if they are up to date
@@ -419,7 +418,7 @@ def update(
         with mw.manager.ctx.database.connect() as connection:
             return [
                 mw.manager.build_pkg_from_row_mapping(connection, p).to_defn()
-                for p in connection.execute(sa.select(pkg_db.pkg)).mappings().all()
+                for p in connection.execute(pkg_db.sa.select(pkg_db.pkg)).mappings().all()
             ]
 
     results = mw.run_with_progress(
@@ -538,8 +537,6 @@ def reconcile(mw: CtxObjWrapper, auto: bool, rereconcile: bool, list_unreconcile
         if auto:
             raise click.UsageError('Cannot use "--auto" with "--installed"')
 
-        import sqlalchemy as sa
-
         def select_alternative_pkg(installed_pkg: pkg_models.Pkg, pkgs: Sequence[pkg_models.Pkg]):
             highlight_version = not all_eq(i.version for i in (installed_pkg, *pkgs))
             choices = [
@@ -554,7 +551,7 @@ def reconcile(mw: CtxObjWrapper, auto: bool, rereconcile: bool, list_unreconcile
             installed_pkgs = [
                 mw.manager.build_pkg_from_row_mapping(connection, p)
                 for p in connection.execute(
-                    sa.select(pkg_db.pkg).order_by(sa.func.lower(pkg_db.pkg.c.name))
+                    pkg_db.sa.select(pkg_db.pkg).order_by(pkg_db.sa.func.lower(pkg_db.pkg.c.name))
                 )
                 .mappings()
                 .all()
@@ -569,15 +566,22 @@ def reconcile(mw: CtxObjWrapper, auto: bool, rereconcile: bool, list_unreconcile
             if s
         ]
         if selections and ask(confirm('Install selected add-ons?')):
+
+            def install_selections(*, dry_run: bool):
+                return mw.run_with_progress(
+                    mw.manager.install(
+                        [s for _, s in selections], replace_folders=False, dry_run=dry_run
+                    )
+                )
+
+            install_selections(dry_run=True)  # Cache to guard against API errors before uninstall.
             Report(
                 mw.run_with_progress(
-                    mw.manager.remove([p.to_defn() for p, _ in selections], keep_folders=False),
-                ).items()
+                    mw.manager.remove([p.to_defn() for p, _ in selections], keep_folders=False)
+                ).items(),
             ).generate()
             Report(
-                mw.run_with_progress(
-                    mw.manager.install([s for _, s in selections], replace_folders=False),
-                ).items()
+                install_selections(dry_run=False).items(),
             ).generate_and_exit()
 
     else:
@@ -766,7 +770,6 @@ class _ListFormat(StrEnum):
 @click.pass_obj
 def list_installed(mw: CtxObjWrapper, addons: Sequence[Defn], output_format: _ListFormat) -> None:
     "List installed add-ons."
-    import sqlalchemy as sa
 
     with mw.manager.ctx.database.connect() as connection:
 
@@ -776,7 +779,7 @@ def list_installed(mw: CtxObjWrapper, addons: Sequence[Defn], output_format: _Li
                 for e in pkg.deps
                 for s in (
                     connection.execute(
-                        sa.select(pkg_db.pkg.c.slug).filter_by(source=pkg.source, id=e.id)
+                        pkg_db.sa.select(pkg_db.pkg.c.slug).filter_by(source=pkg.source, id=e.id)
                     ).scalar_one_or_none(),
                 )
             )
@@ -784,17 +787,20 @@ def list_installed(mw: CtxObjWrapper, addons: Sequence[Defn], output_format: _Li
         def row_mappings_to_pkgs():
             return map(mw.manager.build_pkg_from_row_mapping, repeat(connection), pkg_mappings)
 
-        pkg_select_query = sa.select(pkg_db.pkg)
+        pkg_select_query = pkg_db.sa.select(pkg_db.pkg)
         if addons:
             pkg_select_query = pkg_select_query.filter(
-                sa.or_(
+                pkg_db.sa.or_(
                     *(
                         pkg_db.pkg.c.slug.contains(d.alias)
                         if d.is_unsourced
                         else (pkg_db.pkg.c.source == d.source)
                         & (
                             (pkg_db.pkg.c.id == d.alias)
-                            | (sa.func.lower(pkg_db.pkg.c.slug) == sa.func.lower(d.alias))
+                            | (
+                                pkg_db.sa.func.lower(pkg_db.pkg.c.slug)
+                                == pkg_db.sa.func.lower(d.alias)
+                            )
                         )
                         for d in addons
                     )
@@ -802,7 +808,9 @@ def list_installed(mw: CtxObjWrapper, addons: Sequence[Defn], output_format: _Li
             )
         pkg_mappings = (
             connection.execute(
-                pkg_select_query.order_by(pkg_db.pkg.c.source, sa.func.lower(pkg_db.pkg.c.name))
+                pkg_select_query.order_by(
+                    pkg_db.pkg.c.source, pkg_db.sa.func.lower(pkg_db.pkg.c.name)
+                )
             )
             .mappings()
             .all()
@@ -958,20 +966,20 @@ def view_changelog(mw: CtxObjWrapper, addon: Defn | None, convert: bool) -> None
             Report([(addon, R.PkgNotInstalled())]).generate_and_exit()
 
     else:
-        import sqlalchemy as sa
-
         with mw.manager.ctx.database.connect() as connection:
             join_clause = (pkg_db.pkg.c.source == pkg_db.pkg_version_log.c.pkg_source) & (
                 pkg_db.pkg.c.id == pkg_db.pkg_version_log.c.pkg_id
             )
             last_installed_changelog_urls = connection.execute(
-                sa.select(pkg_db.pkg.c.source, pkg_db.pkg.c.slug, pkg_db.pkg.c.changelog_url)
+                pkg_db.sa.select(
+                    pkg_db.pkg.c.source, pkg_db.pkg.c.slug, pkg_db.pkg.c.changelog_url
+                )
                 .join(pkg_db.pkg_version_log, join_clause)
                 .filter(
                     pkg_db.pkg_version_log.c.install_time
-                    >= sa.select(
-                        sa.func.datetime(
-                            sa.func.max(pkg_db.pkg_version_log.c.install_time), '-1 minute'
+                    >= pkg_db.sa.select(
+                        pkg_db.sa.func.datetime(
+                            pkg_db.sa.func.max(pkg_db.pkg_version_log.c.install_time), '-1 minute'
                         )
                     )
                     .join(pkg_db.pkg, join_clause)
@@ -1015,6 +1023,7 @@ def list_sources(mw: CtxObjWrapper, output_format: _ListFormat) -> None:
     from cattrs.preconf.json import make_converter
 
     json_converter = make_converter()
+
     click.echo(
         json_converter.dumps(
             [r.metadata for r in mw.manager.ctx.resolvers.values()],
@@ -1284,7 +1293,7 @@ def generate_catalogue(start_date: datetime | None) -> None:
     from .catalogue.cataloguer import Catalogue, catalogue_converter
 
     catalogue = asyncio.run(
-        Catalogue.collate((r.catalogue for r in manager_ctx.ManagerCtx.RESOLVERS), start_date)
+        Catalogue.collate((r.catalogue for r in _manager_ctx.ManagerCtx.RESOLVERS), start_date)
     )
     catalogue_json = catalogue_converter.unstructure(catalogue)
 

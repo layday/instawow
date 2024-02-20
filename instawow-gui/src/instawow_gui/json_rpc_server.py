@@ -676,9 +676,7 @@ class _ManagersManager:
                 try:
                     manager = self._managers[profile]
                 except KeyError:
-                    manager_ctx = ManagerCtx.from_config(
-                        await _read_config(self.global_config, profile)
-                    )
+                    manager_ctx = ManagerCtx(await _read_config(self.global_config, profile))
                     manager = self._managers[profile] = PkgManager(manager_ctx)
 
         return await coro_fn(manager)

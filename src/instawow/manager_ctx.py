@@ -11,9 +11,6 @@ from functools import cached_property
 from itertools import chain
 from typing import TypeAlias
 
-import sqlalchemy as sa
-from typing_extensions import Self
-
 from . import http, pkg_db
 from ._sources.cfcore import CfCoreResolver
 from ._sources.github import GithubResolver
@@ -92,11 +89,7 @@ def contextualise(
 
 
 class ManagerCtx:
-    __slots__ = [
-        'config',
-        'database',
-        'resolvers',
-    ]
+    "The one true context."
 
     RESOLVERS: Sequence[type[Resolver]] = [
         GithubResolver,
@@ -111,10 +104,8 @@ class ManagerCtx:
     def __init__(
         self,
         config: Config,
-        database: sa.Engine,
     ) -> None:
         self.config: Config = config
-        self.database: sa.Engine = database
 
         builtin_resolver_classes = list(self.RESOLVERS)
 
@@ -131,10 +122,9 @@ class ManagerCtx:
         )
         self.resolvers: _Resolvers = _Resolvers((r.metadata.id, r(self)) for r in resolver_classes)
 
-    @classmethod
-    def from_config(cls, config: Config) -> Self:
-        "Instantiate the manager from a configuration object."
-        return cls(config, pkg_db.prepare_database(config.db_uri))
+    @cached_property
+    def database(self) -> pkg_db.sa.Engine:
+        return pkg_db.prepare_database(self.config.db_uri)
 
     @property
     def locks(self) -> LocksType:

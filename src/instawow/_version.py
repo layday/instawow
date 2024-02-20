@@ -1,8 +1,7 @@
 from __future__ import annotations
 
 from datetime import timedelta
-
-from typing_extensions import TypedDict
+from typing import TypedDict
 
 from . import config
 

@@ -8,10 +8,10 @@ import iso8601
 from typing_extensions import TypedDict
 from yarl import URL
 
+from .. import matchers
 from .. import results as R
 from ..common import ChangelogFormat, Defn, SourceMetadata, Strategy
 from ..http import make_generic_progress_ctx
-from ..matchers import AddonHashMethod
 from ..resolvers import BaseResolver, HeadersIntent, PkgCandidate, TFolderHashCandidate
 from ..utils import StrEnum, as_plain_text_data_url, run_in_thread
 
@@ -175,7 +175,7 @@ class WagoResolver(BaseResolver):
             'addons': [
                 {
                     'name': c.name,
-                    'hash': c.hash_contents(AddonHashMethod.Wowup),
+                    'hash': c.hash_contents(matchers.AddonHashMethod.Wowup),
                 }
                 for c in candidates
             ],

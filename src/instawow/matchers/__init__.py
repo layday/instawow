@@ -8,14 +8,12 @@ from itertools import chain, product
 from pathlib import Path
 from typing import Protocol
 
-import sqlalchemy as sa
 from attrs import field, frozen
 from typing_extensions import Self
 
-from .. import manager_ctx
+from .. import manager_ctx, pkg_db
 from ..catalogue import synchronise as synchronise_catalogue
 from ..common import Defn, Flavour
-from ..pkg_db import pkg_folder
 from ..utils import (
     TocReader,
     bucketise,
@@ -90,7 +88,9 @@ class AddonFolder:
 
 def _get_unreconciled_folders(manager_ctx: manager_ctx.ManagerCtx):
     with manager_ctx.database.connect() as connection:
-        pkg_folders = connection.execute(sa.select(pkg_folder.c.name)).scalars().all()
+        pkg_folders = (
+            connection.execute(pkg_db.sa.select(pkg_db.pkg_folder.c.name)).scalars().all()
+        )
 
     unreconciled_folder_paths = (
         p

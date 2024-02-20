@@ -26,7 +26,6 @@ async def search(
 ) -> list[cataloguer.ComputedCatalogueEntry]:
     "Search the catalogue for packages by name."
     import rapidfuzz
-    import sqlalchemy as sa
 
     catalogue = await synchronise_catalogue(manager_ctx)
 
@@ -46,7 +45,9 @@ async def search(
     def get_installed_pkg_keys():
         with manager_ctx.database.connect() as connection:
             return (
-                connection.execute(sa.select(pkg_db.pkg.c.source, pkg_db.pkg.c.id)).tuples().all()
+                connection.execute(pkg_db.sa.select(pkg_db.pkg.c.source, pkg_db.pkg.c.id))
+                .tuples()
+                .all()
             )
 
     def make_filter_fns() -> Iterator[Callable[[cataloguer.ComputedCatalogueEntry], bool]]:

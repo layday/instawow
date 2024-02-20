@@ -4,6 +4,7 @@ import sqlite3
 from datetime import datetime, timezone
 from enum import IntEnum
 
+import sqlalchemy as _sa
 from sqlalchemy import (
     Boolean,
     Column,
@@ -20,6 +21,9 @@ from sqlalchemy import (
 )
 from sqlalchemy.event import listen
 from sqlalchemy.exc import OperationalError
+
+sa = _sa
+
 
 DB_REVISION = '98716a7301f8'
 
