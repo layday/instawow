@@ -399,7 +399,6 @@ class CfCoreResolver(BaseResolver):
                 raise R.PkgFilesMissing
 
         return PkgCandidate(
-            source=self.metadata.id,
             id=str(metadata['id']),
             slug=metadata['slug'],
             name=metadata['name'],

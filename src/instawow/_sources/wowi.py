@@ -165,7 +165,6 @@ class WowiResolver(BaseResolver):
             raise R.PkgNonexistent
 
         return PkgCandidate(
-            source=self.metadata.id,
             id=metadata['UID'],
             slug=slugify(f'{metadata["UID"]} {metadata["UIName"]}'),
             name=metadata['UIName'],

@@ -399,7 +399,6 @@ class GithubResolver(BaseResolver):
             raise R.PkgFilesNotMatching(defn.strategies)
 
         return PkgCandidate(
-            source=self.metadata.id,
             id=str(project['id']),
             slug=project['full_name'].lower(),
             name=project['name'],

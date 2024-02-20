@@ -29,7 +29,6 @@ class MyResolver(BaseResolver):
 
     async def _resolve_one(self, defn: Defn, metadata: None) -> PkgCandidate:
         return PkgCandidate(
-            source=self.metadata.id,
             id='bar',
             slug='bar',
             name='Bar',

@@ -152,7 +152,6 @@ class WagoResolver(BaseResolver):
             file_date, file = matching_file
 
         return PkgCandidate(
-            source=self.metadata.id,
             id=addon_metadata['id'],
             slug=addon_metadata['slug'],
             name=addon_metadata['display_name'],

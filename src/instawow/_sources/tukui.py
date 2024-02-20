@@ -65,7 +65,6 @@ class TukuiResolver(BaseResolver):
             raise R.PkgFilesNotMatching(defn.strategies)
 
         return PkgCandidate(
-            source=self.metadata.id,
             id=str(ui_metadata['id']),
             slug=ui_metadata['slug'],
             name=ui_metadata['name'],

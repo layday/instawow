@@ -39,7 +39,6 @@ class InstawowResolver(BaseResolver):
             await builder.build()
 
         return PkgCandidate(
-            source=self.metadata.id,
             id=source_id,
             slug=slug,
             name='WeakAuras Companion',

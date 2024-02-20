@@ -88,7 +88,6 @@ class Resolver(Protocol):  # pragma: no cover
 class PkgCandidate(TypedDict):
     "A subset of the ``Pkg`` constructor's kwargs."
 
-    source: str
     id: str
     slug: str
     name: str
@@ -145,6 +144,7 @@ class BaseResolver(Resolver, Protocol):
         pkg_candidate = await self._resolve_one(defn, metadata)
         return pkg_models.Pkg(
             **pkg_candidate,
+            source=self.metadata.id,
             options=pkg_models.PkgOptions(
                 **attrs.asdict(defn.strategies, value_serializer=lambda t, a, v: bool(v))
             ),
