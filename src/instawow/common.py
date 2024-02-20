@@ -5,7 +5,7 @@ from collections.abc import Iterable
 from functools import partial
 from typing import Literal, Protocol, TypeVar
 
-from attrs import asdict, evolve, frozen
+import attrs
 from typing_extensions import Self
 from yarl import URL
 
@@ -80,7 +80,7 @@ class ChangelogFormat(StrEnum):
     Raw = 'raw'
 
 
-@frozen
+@attrs.frozen
 class SourceMetadata:
     id: str
     name: str
@@ -89,7 +89,7 @@ class SourceMetadata:
     addon_toc_key: str | None
 
 
-@frozen
+@attrs.frozen
 class StrategyValues:
     any_flavour: Literal[True, None] = None
     any_release_type: Literal[True, None] = None
@@ -99,10 +99,10 @@ class StrategyValues:
 
     @property
     def filled_strategies(self) -> dict[Strategy, object]:
-        return {Strategy(p): v for p, v in asdict(self).items() if v is not None}
+        return {Strategy(p): v for p, v in attrs.asdict(self).items() if v is not None}
 
 
-@frozen
+@attrs.frozen
 class _UninitialisedStrategyValues(StrategyValues):
     initialised = False
 
@@ -114,7 +114,7 @@ _STRATEGY_SEP = ','
 _STRATEGY_VALUE_SEP = '='
 
 
-@frozen(hash=True)
+@attrs.frozen(hash=True)
 class Defn:
     source: str
     alias: str
@@ -180,15 +180,15 @@ class Defn:
         return uri
 
     def with_default_strategy_set(self) -> Self:
-        return evolve(
+        return attrs.evolve(
             self,
             strategies=StrategyValues(),
         )
 
     def with_version(self, version: str) -> Self:
-        return evolve(
+        return attrs.evolve(
             self,
-            strategies=StrategyValues(**(asdict(self.strategies) | {'version_eq': version})),
+            strategies=StrategyValues(**(attrs.asdict(self.strategies) | {'version_eq': version})),
         )
 
     @property

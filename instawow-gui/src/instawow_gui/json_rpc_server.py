@@ -16,7 +16,9 @@ import aiohttp
 import aiohttp.typedefs
 import aiohttp.web
 import anyio.from_thread
+import attrs
 import cattrs
+import cattrs.preconf.json
 import click
 import iso8601
 import sqlalchemy as sa
@@ -24,8 +26,6 @@ from aiohttp_rpc import JsonRpcMethod
 from aiohttp_rpc import middlewares as rpc_middlewares
 from aiohttp_rpc.errors import InvalidParams, ServerError
 from aiohttp_rpc.server import WsJsonRpcServer
-from attrs import evolve, frozen
-from cattrs.preconf.json import configure_converter
 from loguru import logger
 from typing_extensions import ParamSpec, TypedDict
 from yarl import URL
@@ -75,7 +75,7 @@ _converter = cattrs.Converter(
         Set: sorted,
     }
 )
-configure_converter(_converter)
+cattrs.preconf.json.configure_converter(_converter)
 _converter.register_structure_hook(Path, lambda v, _: Path(v))
 _converter.register_structure_hook(datetime, lambda v, _: iso8601.parse_date(v))
 _converter.register_unstructure_hook(Path, str)
@@ -153,17 +153,17 @@ _methods: list[tuple[str, type[BaseParams]]] = []
 def _register_method(method: str):
     def inner(param_class: type[BaseParams]):
         _methods.append((method, param_class))
-        return frozen(slots=False)(param_class)
+        return attrs.frozen(slots=False)(param_class)
 
     return inner
 
 
-@frozen(slots=False)
+@attrs.frozen(slots=False)
 class _ProfileParamMixin:
     profile: str
 
 
-@frozen(slots=False)
+@attrs.frozen(slots=False)
 class _DefnParamMixin:
     defns: list[Defn]
 
@@ -201,7 +201,7 @@ class WriteProfileConfigParams(_ProfileParamMixin, BaseParams):
                     Config,
                 )
                 if self.infer_game_flavour:
-                    config = evolve(
+                    config = attrs.evolve(
                         config,
                         game_flavour=infer_flavour_from_addon_dir(config.addon_dir)
                         or Flavour.Retail,
@@ -243,9 +243,9 @@ class UpdateGlobalConfigParams(BaseParams):
 
     async def respond(self, managers: _ManagersManager) -> GlobalConfig:
         def update_global_config_cb(global_config: GlobalConfig):
-            return evolve(
+            return attrs.evolve(
                 global_config,
-                access_tokens=evolve(
+                access_tokens=attrs.evolve(
                     global_config.access_tokens,
                     **{k: t if t is None else SecretStr(t) for k, t in self.access_tokens.items()},
                 ),
@@ -348,7 +348,7 @@ class ResolveParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
                 match = manager.pair_uri(defn.alias)
                 if match:
                     source, alias = match
-                    defn = evolve(defn, source=source, alias=alias)
+                    defn = attrs.evolve(defn, source=source, alias=alias)
             return defn
 
         return await manager.resolve(list(map(extract_source, self.defns)))
@@ -705,9 +705,9 @@ class _ManagersManager:
                     )
 
                     def update_global_config_cb(global_config: GlobalConfig):
-                        return evolve(
+                        return attrs.evolve(
                             global_config,
-                            access_tokens=evolve(
+                            access_tokens=attrs.evolve(
                                 global_config.access_tokens, github=SecretStr(result)
                             ),
                         )

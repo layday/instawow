@@ -8,7 +8,7 @@ from itertools import chain, product
 from pathlib import Path
 from typing import Protocol
 
-from attrs import field, frozen
+import attrs
 from typing_extensions import Self
 
 from .. import manager_ctx, pkg_db
@@ -57,11 +57,11 @@ NORMALISED_FLAVOUR_TOC_SUFFIXES = {
 }
 
 
-@frozen(order=True, slots=False)
+@attrs.frozen(order=True, slots=False)
 class AddonFolder:
-    path: Path = field(eq=False, order=False)
-    toc_reader: TocReader = field(eq=False, order=False)
-    name: str = field(init=False)
+    path: Path = attrs.field(eq=False, order=False)
+    toc_reader: TocReader = attrs.field(eq=False, order=False)
+    name: str = attrs.field(init=False)
 
     def __attrs_post_init__(self) -> None:
         object.__setattr__(self, 'name', self.path.name)

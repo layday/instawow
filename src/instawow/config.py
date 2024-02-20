@@ -9,10 +9,10 @@ from pathlib import Path
 from tempfile import gettempdir
 from typing import Any, TypedDict, TypeVar
 
+import attrs
+import cattrs
+import cattrs.gen
 import cattrs.preconf.json
-from attrs import Attribute, field, fields, frozen, has
-from cattrs import AttributeValidationNote, Converter
-from cattrs.gen import make_dict_unstructure_fn, override
 from typing_extensions import Self
 
 from .common import Flavour
@@ -42,27 +42,27 @@ def _ensure_dirs(dirs: Iterable[Path]):
         dir_.mkdir(exist_ok=True, parents=True)
 
 
-def _enrich_validator_exc(validator: Callable[[object, Attribute[_T], _T], None]):
-    def wrapper(model: object, attr: Attribute[_T], value: _T):
+def _enrich_validator_exc(validator: Callable[[object, attrs.Attribute[_T], _T], None]):
+    def wrapper(model: object, attr: attrs.Attribute[_T], value: _T):
         try:
             validator(model, attr, value)
         except BaseException as exc:
             note = f'Structuring class {model.__class__.__name__} @ attribute {attr.name}'
-            add_exc_note(exc, AttributeValidationNote(note, attr.name, attr.type))
+            add_exc_note(exc, cattrs.AttributeValidationNote(note, attr.name, attr.type))
             raise
 
     return wrapper
 
 
 @_enrich_validator_exc
-def _validate_path_is_writable_dir(_model: object, _attr: Attribute[Path], value: Path):
+def _validate_path_is_writable_dir(_model: object, _attr: attrs.Attribute[Path], value: Path):
     if not _is_writable_dir(value):
         raise ValueError(f'"{value}" is not a writable directory')
 
 
 def _make_validate_min_length(min_length: int):
     @_enrich_validator_exc
-    def _validate_min_length(_model: object, _attr: Attribute[Sized], value: Sized):
+    def _validate_min_length(_model: object, _attr: attrs.Attribute[Sized], value: Sized):
         if len(value) < min_length:
             raise ValueError(f'Value must have a minimum length of {min_length}')
 
@@ -94,7 +94,7 @@ def _read_config(config_path: Path, missing_ok: bool = False) -> dict[str, Any]:
         raise
 
 
-def _compute_var(field_: Attribute[object], default: object):
+def _compute_var(field_: attrs.Attribute[object], default: object):
     if not field_.metadata.get('from_env'):
         return default
 
@@ -110,13 +110,13 @@ def _compute_var(field_: Attribute[object], default: object):
 def _read_env_vars(config_cls: Any, values: Mapping[str, object]):
     return {
         f.name: v
-        for f in fields(config_cls)
+        for f in attrs.fields(config_cls)
         for v in (_compute_var(f, values.get(f.name, _MISSING)),)
         if v is not _MISSING
     }
 
 
-def _make_attrs_instance_hook_factory(converter: Converter, type_: type[Any]):
+def _make_attrs_instance_hook_factory(converter: cattrs.Converter, type_: type[Any]):
     "Allow passing in a structured attrs instance to ``structure``."
     structure = converter.gen_structure_attrs_fromdict(type_)
 
@@ -127,7 +127,7 @@ def _make_attrs_instance_hook_factory(converter: Converter, type_: type[Any]):
 
 
 def make_config_converter():
-    converter = Converter()
+    converter = cattrs.Converter()
     cattrs.preconf.json.configure_converter(converter)
     converter.register_structure_hook(Path, lambda v, _: Path(v))
     converter.register_unstructure_hook(Path, str)
@@ -156,12 +156,12 @@ def _make_write_converter():
     for config_cls in [GlobalConfig, Config]:
         converter.register_unstructure_hook(
             config_cls,
-            make_dict_unstructure_fn(
+            cattrs.gen.make_dict_unstructure_fn(
                 config_cls,
                 converter,
                 **{  # pyright: ignore[reportArgumentType]  # See microsoft/pyright#5255
-                    f.name: override(omit=True)
-                    for f in fields(config_cls)
+                    f.name: cattrs.gen.override(omit=True)
+                    for f in attrs.fields(config_cls)
                     if not f.metadata.get('write_on_disk')
                 },
             ),
@@ -209,7 +209,7 @@ class _ConfigMetadata(TypedDict, total=False):
 _AccessToken = SecretStr | None
 
 
-@frozen
+@attrs.frozen
 class _AccessTokens:
     cfcore: _AccessToken = None
     github: _AccessToken = None
@@ -217,28 +217,28 @@ class _AccessTokens:
     wago_addons: _AccessToken = None
 
 
-@frozen
+@attrs.frozen
 class GlobalConfig:
-    config_dir: Path = field(
+    config_dir: Path = attrs.field(
         factory=_get_default_config_dir,
         converter=_expand_path,
         metadata=_ConfigMetadata(from_env=True),
     )
-    temp_dir: Path = field(
+    temp_dir: Path = attrs.field(
         factory=_get_default_temp_dir,
         converter=_expand_path,
         metadata=_ConfigMetadata(from_env=True),
     )
-    state_dir: Path = field(
+    state_dir: Path = attrs.field(
         factory=_get_default_state_dir,
         converter=_expand_path,
         metadata=_ConfigMetadata(from_env=True),
     )
-    auto_update_check: bool = field(
+    auto_update_check: bool = attrs.field(
         default=True,
         metadata=_ConfigMetadata(from_env=True, as_json=True, write_on_disk=True),
     )
-    access_tokens: _AccessTokens = field(
+    access_tokens: _AccessTokens = attrs.field(
         default=_AccessTokens(),
         metadata=_ConfigMetadata(from_env=True, as_json=True, write_on_disk=True),
     )
@@ -303,20 +303,22 @@ class GlobalConfig:
         return self.state_dir / 'profiles'
 
 
-@frozen
+@attrs.frozen
 class Config:
     global_config: GlobalConfig
-    profile: str = field(
+    profile: str = attrs.field(
         converter=str.strip,
         validator=_make_validate_min_length(1),
         metadata=_ConfigMetadata(from_env=True, write_on_disk=True),
     )
-    addon_dir: Path = field(
+    addon_dir: Path = attrs.field(
         converter=_expand_path,
         validator=_validate_path_is_writable_dir,
         metadata=_ConfigMetadata(from_env=True, write_on_disk=True),
     )
-    game_flavour: Flavour = field(metadata=_ConfigMetadata(from_env=True, write_on_disk=True))
+    game_flavour: Flavour = attrs.field(
+        metadata=_ConfigMetadata(from_env=True, write_on_disk=True)
+    )
 
     @classmethod
     def make_dummy_config(cls, **values: object) -> Config:
@@ -385,5 +387,5 @@ class Config:
 
 config_converter = make_config_converter()
 config_converter.register_structure_hook_factory(
-    has, partial(_make_attrs_instance_hook_factory, config_converter)
+    attrs.has, partial(_make_attrs_instance_hook_factory, config_converter)
 )

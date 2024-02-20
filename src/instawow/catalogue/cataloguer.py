@@ -5,9 +5,9 @@ from datetime import datetime
 from functools import cached_property
 from typing import Any, Protocol
 
-from attrs import field, frozen
-from cattrs import Converter
-from cattrs.preconf.json import configure_converter
+import attrs
+import cattrs
+import cattrs.preconf.json
 from typing_extensions import Self
 
 from .. import http
@@ -18,12 +18,12 @@ CATALOGUE_VERSION = 7
 COMPUTED_CATALOGUE_VERSION = 4
 
 
-catalogue_converter = Converter(
+catalogue_converter = cattrs.Converter(
     unstruct_collection_overrides={
         Set: sorted,
     }
 )
-configure_converter(catalogue_converter)
+cattrs.preconf.json.configure_converter(catalogue_converter)
 
 _normalise_name = normalise_names('')
 
@@ -33,13 +33,13 @@ class _CatalogueFn(Protocol):  # pragma: no cover
         ...
 
 
-@frozen(kw_only=True)
+@attrs.frozen(kw_only=True)
 class AddonKey:
     source: str
     id: str
 
 
-@frozen(kw_only=True)
+@attrs.frozen(kw_only=True)
 class CatalogueEntry(AddonKey):
     slug: str = ''
     name: str
@@ -47,17 +47,17 @@ class CatalogueEntry(AddonKey):
     game_flavours: frozenset[Flavour]
     download_count: int
     last_updated: datetime
-    folders: list[frozenset[str]] = field(factory=list)
-    same_as: list[AddonKey] = field(factory=list)
+    folders: list[frozenset[str]] = attrs.field(factory=list)
+    same_as: list[AddonKey] = attrs.field(factory=list)
 
 
-@frozen(kw_only=True)
+@attrs.frozen(kw_only=True)
 class ComputedCatalogueEntry(CatalogueEntry):
     normalised_name: str
     derived_download_score: float
 
 
-@frozen(kw_only=True)
+@attrs.frozen(kw_only=True)
 class Catalogue:
     version: int = CATALOGUE_VERSION
     entries: list[CatalogueEntry]
@@ -73,7 +73,7 @@ class Catalogue:
             return cls(entries=entries)
 
 
-@frozen(kw_only=True, slots=False)
+@attrs.frozen(kw_only=True, slots=False)
 class ComputedCatalogue:
     version: int = COMPUTED_CATALOGUE_VERSION
     entries: list[ComputedCatalogueEntry]

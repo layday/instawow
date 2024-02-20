@@ -7,8 +7,8 @@ from functools import reduce
 from itertools import chain, product
 from typing import Literal, TypeAlias, cast
 
-from attrs import frozen
-from cattrs import Converter
+import attrs
+import cattrs
 from loguru import logger
 from typing_extensions import NotRequired as N
 from typing_extensions import TypedDict
@@ -49,12 +49,12 @@ class _WagoApiResponse_Changelog(TypedDict):
 _CHECK_API_URL = URL('https://data.wago.io/api/check')
 _IMPORT_STRING_API_URL = URL('https://data.wago.io/api/raw/encoded')
 
-_aura_converter = Converter()
+_aura_converter = cattrs.Converter()
 _aura_converter.register_structure_hook(URL, lambda v, _: URL(v))
 _aura_converter.register_unstructure_hook(URL, str)
 
 
-@frozen(kw_only=True)
+@attrs.frozen(kw_only=True)
 class WeakAura:
     id: str
     uid: str
@@ -71,7 +71,7 @@ class WeakAura:
                 return weakaura
 
 
-@frozen(kw_only=True)
+@attrs.frozen(kw_only=True)
 class Plateroo(WeakAura):
     uid: str = ''
 
@@ -80,7 +80,7 @@ class Plateroo(WeakAura):
         return super().from_lua_table({**lua_table, 'id': lua_table['Name']})
 
 
-@frozen
+@attrs.frozen
 class WeakAuras:
     api_ep = 'weakauras'
     addon_name = 'WeakAuras'
@@ -95,7 +95,7 @@ class WeakAuras:
         return cls(bucketise(sorted_auras, key=lambda a: a.url.parts[1]))
 
 
-@frozen
+@attrs.frozen
 class Plateroos:
     api_ep = 'plater'
     addon_name = 'Plater'

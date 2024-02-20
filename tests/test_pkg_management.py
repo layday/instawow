@@ -2,10 +2,10 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import attrs
 import pytest
 from aiohttp import ClientError
 from aresponses import ResponsesMockServer
-from attrs import evolve
 
 from instawow import results as R
 from instawow.common import Defn, Strategy
@@ -191,7 +191,7 @@ async def test_install_recognises_renamed_pkg_from_id(
 
     async def resolve(defns, with_deps=False):
         result = await orig_resolve([old_defn])
-        pkg = evolve(result[old_defn], slug=new_defn.alias)
+        pkg = attrs.evolve(result[old_defn], slug=new_defn.alias)
         return {new_defn: pkg}
 
     orig_resolve = iw_manager.resolve

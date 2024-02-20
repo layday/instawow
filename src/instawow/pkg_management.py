@@ -16,7 +16,7 @@ from shutil import move
 from tempfile import NamedTemporaryFile
 from typing import Concatenate, TypeVar
 
-from attrs import asdict, evolve
+import attrs
 from loguru import logger
 from typing_extensions import Never, ParamSpec
 from yarl import URL
@@ -110,7 +110,7 @@ async def _download_pkg_archive(ctx: ManagerCtx, defn: Defn, pkg: pkg_models.Pkg
 
 
 def _insert_db_pkg(pkg: pkg_models.Pkg, transaction: pkg_db.sa.Connection):
-    values = asdict(pkg)
+    values = attrs.asdict(pkg)
     source_and_id = {'pkg_source': values['source'], 'pkg_id': values['id']}
 
     transaction.execute(pkg_db.sa.insert(pkg_db.pkg), [values])
@@ -164,7 +164,9 @@ def _install_pkg(
 
         extract(ctx.config.addon_dir)
 
-    pkg = evolve(pkg, folders=[pkg_models.PkgFolder(name=f) for f in sorted(top_level_folders)])
+    pkg = attrs.evolve(
+        pkg, folders=[pkg_models.PkgFolder(name=f) for f in sorted(top_level_folders)]
+    )
     with ctx.database.begin() as transaction:
         _insert_db_pkg(pkg, transaction)
 
@@ -206,7 +208,7 @@ def _update_pkg(
         )
         extract(ctx.config.addon_dir)
 
-    new_pkg = evolve(
+    new_pkg = attrs.evolve(
         new_pkg, folders=[pkg_models.PkgFolder(name=f) for f in sorted(top_level_folders)]
     )
     with ctx.database.begin() as transaction:
@@ -457,7 +459,7 @@ class PkgManager:
 
         deps = await self.resolve(list(starmap(Defn, dep_defns)))
         pretty_deps = {
-            evolve(d, alias=r.slug) if isinstance(r, pkg_models.Pkg) else d: r
+            attrs.evolve(d, alias=r.slug) if isinstance(r, pkg_models.Pkg) else d: r
             for d, r in deps.items()
         }
         return pretty_deps
@@ -542,7 +544,7 @@ class PkgManager:
             # corresponding installed package.  Using the ID has the benefit
             # of resolving installed-but-renamed packages - the slug is
             # transient but the ID isn't
-            evolve(d, id=p.id) if d.strategies.initialised else p.to_defn(): d
+            attrs.evolve(d, id=p.id) if d.strategies.initialised else p.to_defn(): d
             for d, p in defns_to_pkgs.items()
         }
         resolve_results = await self.resolve(resolve_defns, with_deps=True)
@@ -648,7 +650,9 @@ class PkgManager:
                     .values(version_eq=version is not None)
                 )
 
-            new_pkg = evolve(pkg, options=evolve(pkg.options, version_eq=version is not None))
+            new_pkg = attrs.evolve(
+                pkg, options=attrs.evolve(pkg.options, version_eq=version is not None)
+            )
             return R.PkgInstalled(new_pkg)
 
         return {d: await R.resultify_async_exc(pin(d)) for d in defns}

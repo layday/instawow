@@ -1,18 +1,18 @@
 from __future__ import annotations
 
 import asyncio
+import datetime as dt
 import enum
 import textwrap
 from collections.abc import Awaitable, Callable, Collection, Iterable, Mapping, Sequence
-from datetime import datetime, timezone
 from functools import cached_property, partial
 from itertools import chain, repeat
 from pathlib import Path
 from typing import Any, Generic, NoReturn, TypeVar, overload
 
+import attrs
 import click
 import click.types
-from attrs import asdict, evolve, fields, resolve_types
 from loguru import logger
 from typing_extensions import Self
 
@@ -351,7 +351,7 @@ def _parse_uri(
         match = manager.pair_uri(defn.alias)
         if match:
             source, alias = match
-            defn = evolve(defn, source=source, alias=alias)
+            defn = attrs.evolve(defn, source=source, alias=alias)
         elif raise_invalid and ':' not in defn.alias:
             raise click.BadParameter(value)
 
@@ -662,7 +662,7 @@ def _concat_search_terms(_: click.Context, __: click.Parameter, value: tuple[str
 
 def _parse_iso_date_into_datetime(_: click.Context, __: click.Parameter, value: str | None):
     if value is not None:
-        return datetime.strptime(value, '%Y-%m-%d').replace(tzinfo=timezone.utc)
+        return dt.datetime.strptime(value, '%Y-%m-%d').replace(tzinfo=dt.timezone.utc)
 
 
 @cli.command
@@ -704,7 +704,7 @@ def search(
     limit: int,
     sources: Sequence[str],
     prefer_source: str | None,
-    start_date: datetime | None,
+    start_date: dt.datetime | None,
     no_exclude_installed: bool,
 ) -> None:
     "Search for add-ons to install."
@@ -732,7 +732,7 @@ def search(
         choices = [
             PkgChoice(f'{p.name}  ({e.as_uri()}=={p.version})', e, pkg=p)
             for d, p in pkgs.items()
-            for e in (evolve(d, alias=p.slug, id=p.id),)
+            for e in (attrs.evolve(d, alias=p.slug, id=p.id),)
         ]
         selections: list[Defn] = ask(checkbox('Select add-ons to install', choices=choices))
         if selections:
@@ -846,7 +846,7 @@ def list_installed(mw: CtxObjWrapper, addons: Sequence[Defn], output_format: _Li
                                 (
                                     'options',
                                     '; '.join(
-                                        f'{s}={v!r}' for s, v in asdict(pkg.options).items()
+                                        f'{s}={v!r}' for s, v in attrs.asdict(pkg.options).items()
                                     ),
                                 ),
                             ]
@@ -1127,7 +1127,7 @@ def configure(
 
     config_values: dict[str, Any] | None = None
     try:
-        config_values = asdict(Config.read(existing_global_config, profile))
+        config_values = attrs.asdict(Config.read(existing_global_config, profile))
     except FileNotFoundError:
         pass
     except Exception:
@@ -1135,7 +1135,7 @@ def configure(
 
     is_new_profile = config_values is None
     if is_new_profile:
-        config_values = {'profile': profile, 'global_config': asdict(existing_global_config)}
+        config_values = {'profile': profile, 'global_config': attrs.asdict(existing_global_config)}
 
     editable_config_values = dict(editable_config_values)
     if not editable_config_values:
@@ -1202,7 +1202,7 @@ def configure(
                 'Add-on directory:',
                 only_directories=True,
                 validate=AttrsFieldValidator(
-                    fields(resolve_types(Config)).addon_dir,
+                    attrs.fields(attrs.resolve_types(Config)).addon_dir,
                     config_converter,
                 ),
             )
@@ -1286,7 +1286,7 @@ def _plugin_group() -> None:  # pyright: ignore[reportUnusedFunction]
     help='Omit results before this date.',
     metavar='YYYY-MM-DD',
 )
-def generate_catalogue(start_date: datetime | None) -> None:
+def generate_catalogue(start_date: dt.datetime | None) -> None:
     "Generate the master catalogue."
     import json
 

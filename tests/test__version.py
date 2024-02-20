@@ -1,8 +1,8 @@
 from __future__ import annotations
 
+import attrs
 import pytest
 from aresponses import ResponsesMockServer
-from attrs import evolve
 
 from instawow._version import is_outdated
 from instawow.config import GlobalConfig
@@ -26,7 +26,7 @@ async def test_is_outdated_works_in_variety_of_scenarios(
         assert await is_outdated(global_config) == (False, '')
 
     # Update check disabled, version not cached
-    assert await is_outdated(evolve(global_config, auto_update_check=False)) == (False, '')
+    assert await is_outdated(attrs.evolve(global_config, auto_update_check=False)) == (False, '')
 
     # Endpoint not responsive, version not cached
     with monkeypatch.context() as patcher:
@@ -56,7 +56,7 @@ async def test_is_outdated_works_in_variety_of_scenarios(
         assert await is_outdated(global_config) == (False, '')
 
     # Update check disabled, version cached
-    assert await is_outdated(evolve(global_config, auto_update_check=False)) == (False, '')
+    assert await is_outdated(attrs.evolve(global_config, auto_update_check=False)) == (False, '')
 
     # Endpoint not responsive, version cached
     with monkeypatch.context() as patcher:

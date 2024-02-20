@@ -6,8 +6,6 @@ import os
 import string
 import sys
 import time
-import urllib.parse
-from collections import defaultdict
 from collections.abc import (
     Awaitable,
     Callable,
@@ -19,7 +17,7 @@ from collections.abc import (
 from contextlib import contextmanager
 from functools import wraps
 from itertools import chain, groupby, islice, repeat
-from pathlib import Path, PurePath
+from pathlib import Path
 from shutil import move
 from tempfile import mkdtemp
 from types import ModuleType
@@ -79,10 +77,12 @@ def fill(it: Iterable[_T], fill: _T, length: int) -> Iterable[_T]:
 
 def bucketise(iterable: Iterable[_U], key: Callable[[_U], _T]) -> dict[_T, list[_U]]:
     "Place the elements of an iterable in a bucket according to ``key``."
-    bucket = defaultdict[_T, list[_U]](list)
+    bucket = dict[_T, list[_U]]()
+
     for value in iterable:
-        bucket[key(value)].append(value)
-    return dict(bucket)
+        bucket.setdefault(key(value), []).append(value)
+
+    return bucket
 
 
 def chain_dict(
@@ -173,7 +173,7 @@ def tabulate(rows: Sequence[tuple[object, ...]], *, max_col_width: int = 60) -> 
     return table
 
 
-def trash(paths: Iterable[PurePath], *, dest: PurePath, missing_ok: bool = False) -> None:
+def trash(paths: Iterable[Path], *, dest: Path, missing_ok: bool = False) -> None:
     paths_iter = iter(paths)
     first_path = next(paths_iter, None)
 
@@ -208,15 +208,17 @@ def file_uri_to_path(file_uri: str) -> str:
 
     unprefixed_path = unquote(file_uri.removeprefix('file://'))
     # A slash is prepended to the path even when there isn't one there
-    # on Windows.  The ``PurePath`` instance will inherit from either
+    # on Windows.  The ``Path`` instance will inherit from either
     # ``PurePosixPath`` or ``PureWindowsPath``; this will be a no-op on POSIX.
-    if PurePath(unprefixed_path[1:]).drive:
+    if Path(unprefixed_path[1:]).drive:
         unprefixed_path = unprefixed_path[1:]
     return unprefixed_path
 
 
 def as_plain_text_data_url(body: str = '') -> str:
-    return f'data:,{urllib.parse.quote(body)}'
+    from urllib.parse import quote
+
+    return f'data:,{quote(body)}'
 
 
 def extract_byte_range_offset(content_range: str):

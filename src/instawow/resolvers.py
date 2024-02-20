@@ -7,7 +7,7 @@ from collections.abc import AsyncIterator, Collection, Iterable, Sequence
 from pathlib import Path
 from typing import Any, ClassVar, Protocol, TypedDict, TypeVar
 
-from attrs import asdict
+import attrs
 from typing_extensions import NotRequired
 from yarl import URL
 
@@ -146,7 +146,7 @@ class BaseResolver(Resolver, Protocol):
         return pkg_models.Pkg(
             **pkg_candidate,
             options=pkg_models.PkgOptions(
-                **asdict(defn.strategies, value_serializer=lambda t, a, v: bool(v))
+                **attrs.asdict(defn.strategies, value_serializer=lambda t, a, v: bool(v))
             ),
         )
 

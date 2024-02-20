@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Awaitable, Collection, Set
 from typing import Any, Final, Protocol, TypeAlias, TypeVar
 
-from attrs import asdict
+import attrs
 from loguru import logger
 
 from . import pkg_models
@@ -55,8 +55,8 @@ class PkgUpdated(Result, _SuccessResult):
             message += f' with new slug {self.new_pkg.slug!r}'
 
         if self.old_pkg.options != self.new_pkg.options:
-            old_strategies = asdict(self.old_pkg.to_defn().strategies)
-            new_strategies = asdict(self.new_pkg.to_defn().strategies)
+            old_strategies = attrs.asdict(self.old_pkg.to_defn().strategies)
+            new_strategies = attrs.asdict(self.new_pkg.to_defn().strategies)
             message += ' with new strategies: '
             message += '; '.join(
                 f'{s}={v!r}' for s, v in new_strategies.items() - old_strategies.items()
@@ -138,7 +138,7 @@ class PkgFilesNotMatching(ManagerError):
     @property
     def message(self) -> str:
         return 'no files found for: ' + '; '.join(
-            f'{s}={v!r}' for s, v in asdict(self._strategy_values).items()
+            f'{s}={v!r}' for s, v in attrs.asdict(self._strategy_values).items()
         )
 
 
