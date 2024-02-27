@@ -9,7 +9,7 @@ import attrs
 from typing_extensions import Self
 from yarl import URL
 
-from .utils import StrEnum, fill
+from .utils import StrEnum, fauxfrozen, fill
 
 _TEnum = TypeVar('_TEnum', bound=enum.Enum)
 
@@ -80,7 +80,7 @@ class ChangelogFormat(StrEnum):
     Raw = 'raw'
 
 
-@attrs.frozen
+@fauxfrozen
 class SourceMetadata:
     id: str
     name: str
@@ -89,7 +89,7 @@ class SourceMetadata:
     addon_toc_key: str | None
 
 
-@attrs.frozen
+@fauxfrozen
 class StrategyValues:
     any_flavour: Literal[True, None] = None
     any_release_type: Literal[True, None] = None
@@ -102,7 +102,7 @@ class StrategyValues:
         return {Strategy(p): v for p, v in attrs.asdict(self).items() if v is not None}
 
 
-@attrs.frozen
+@fauxfrozen
 class _UninitialisedStrategyValues(StrategyValues):
     initialised = False
 
@@ -114,7 +114,7 @@ _STRATEGY_SEP = ','
 _STRATEGY_VALUE_SEP = '='
 
 
-@attrs.frozen(hash=True)
+@fauxfrozen
 class Defn:
     source: str
     alias: str

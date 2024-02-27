@@ -16,7 +16,7 @@ import cattrs.preconf.json
 from typing_extensions import Self
 
 from .common import Flavour
-from .utils import add_exc_note, trash
+from .utils import add_exc_note, fauxfrozen, trash
 
 _T = TypeVar('_T')
 
@@ -209,7 +209,7 @@ class _ConfigMetadata(TypedDict, total=False):
 _AccessToken = SecretStr | None
 
 
-@attrs.frozen
+@fauxfrozen
 class _AccessTokens:
     cfcore: _AccessToken = None
     github: _AccessToken = None
@@ -217,7 +217,7 @@ class _AccessTokens:
     wago_addons: _AccessToken = None
 
 
-@attrs.frozen
+@fauxfrozen
 class GlobalConfig:
     config_dir: Path = attrs.field(
         factory=_get_default_config_dir,
@@ -303,7 +303,7 @@ class GlobalConfig:
         return self.state_dir / 'profiles'
 
 
-@attrs.frozen
+@fauxfrozen
 class Config:
     global_config: GlobalConfig
     profile: str = attrs.field(

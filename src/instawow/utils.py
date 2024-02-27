@@ -15,15 +15,16 @@ from collections.abc import (
     Sequence,
 )
 from contextlib import contextmanager
-from functools import wraps
+from functools import partial, wraps
 from itertools import chain, groupby, islice, repeat
 from pathlib import Path
 from shutil import move
 from tempfile import mkdtemp
 from types import ModuleType
-from typing import Any, TypeVar, overload
+from typing import TYPE_CHECKING, Any, TypeVar, overload
 from weakref import WeakValueDictionary
 
+import attrs
 from typing_extensions import ParamSpec
 
 _T = TypeVar('_T')
@@ -41,6 +42,12 @@ else:
         @staticmethod
         def _generate_next_value_(name: str, start: int, count: int, last_values: list[object]):
             return name.lower()
+
+
+if TYPE_CHECKING:
+    fauxfrozen = attrs.frozen
+else:
+    fauxfrozen = partial(attrs.define, unsafe_hash=True)
 
 
 def read_resource_as_text(package: ModuleType, resource: str, encoding: str = 'utf-8') -> str:

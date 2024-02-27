@@ -12,7 +12,7 @@ from typing_extensions import Self
 
 from .. import http
 from ..config import Flavour
-from ..utils import bucketise, normalise_names
+from ..utils import bucketise, fauxfrozen, normalise_names
 
 CATALOGUE_VERSION = 7
 COMPUTED_CATALOGUE_VERSION = 4
@@ -33,13 +33,13 @@ class _CatalogueFn(Protocol):  # pragma: no cover
         ...
 
 
-@attrs.frozen(kw_only=True)
+@fauxfrozen(kw_only=True)
 class AddonKey:
     source: str
     id: str
 
 
-@attrs.frozen(kw_only=True)
+@fauxfrozen(kw_only=True)
 class CatalogueEntry(AddonKey):
     slug: str = ''
     name: str
@@ -51,13 +51,13 @@ class CatalogueEntry(AddonKey):
     same_as: list[AddonKey] = attrs.field(factory=list)
 
 
-@attrs.frozen(kw_only=True)
+@fauxfrozen(kw_only=True)
 class ComputedCatalogueEntry(CatalogueEntry):
     normalised_name: str
     derived_download_score: float
 
 
-@attrs.frozen(kw_only=True)
+@fauxfrozen(kw_only=True)
 class Catalogue:
     version: int = CATALOGUE_VERSION
     entries: list[CatalogueEntry]
@@ -73,7 +73,7 @@ class Catalogue:
             return cls(entries=entries)
 
 
-@attrs.frozen(kw_only=True, slots=False)
+@fauxfrozen(kw_only=True)
 class ComputedCatalogue:
     version: int = COMPUTED_CATALOGUE_VERSION
     entries: list[ComputedCatalogueEntry]

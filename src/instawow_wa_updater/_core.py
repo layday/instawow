@@ -7,7 +7,6 @@ from functools import reduce
 from itertools import chain, product
 from typing import Literal, TypeAlias, cast
 
-import attrs
 import cattrs
 from loguru import logger
 from typing_extensions import NotRequired as N
@@ -16,7 +15,15 @@ from yarl import URL
 
 from instawow.http import CACHE_INDEFINITELY, make_generic_progress_ctx
 from instawow.manager_ctx import ManagerCtx
-from instawow.utils import StrEnum, bucketise, gather, read_resource_as_text, shasum, time_op
+from instawow.utils import (
+    StrEnum,
+    bucketise,
+    fauxfrozen,
+    gather,
+    read_resource_as_text,
+    shasum,
+    time_op,
+)
 from instawow.utils import run_in_thread as t
 
 _LuaTable: TypeAlias = Mapping[str, '_LuaTable']
@@ -54,7 +61,7 @@ _aura_converter.register_structure_hook(URL, lambda v, _: URL(v))
 _aura_converter.register_unstructure_hook(URL, str)
 
 
-@attrs.frozen(kw_only=True)
+@fauxfrozen(kw_only=True)
 class WeakAura:
     id: str
     uid: str
@@ -71,7 +78,7 @@ class WeakAura:
                 return weakaura
 
 
-@attrs.frozen(kw_only=True)
+@fauxfrozen(kw_only=True)
 class Plateroo(WeakAura):
     uid: str = ''
 
@@ -80,7 +87,7 @@ class Plateroo(WeakAura):
         return super().from_lua_table({**lua_table, 'id': lua_table['Name']})
 
 
-@attrs.frozen
+@fauxfrozen
 class WeakAuras:
     api_ep = 'weakauras'
     addon_name = 'WeakAuras'
@@ -95,7 +102,7 @@ class WeakAuras:
         return cls(bucketise(sorted_auras, key=lambda a: a.url.parts[1]))
 
 
-@attrs.frozen
+@fauxfrozen
 class Plateroos:
     api_ep = 'plater'
     addon_name = 'Plater'

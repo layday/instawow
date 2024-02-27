@@ -17,6 +17,7 @@ from ..common import Defn, Flavour
 from ..utils import (
     TocReader,
     bucketise,
+    fauxfrozen,
     gather,
     merge_intersecting_sets,
     uniq,
@@ -57,7 +58,7 @@ NORMALISED_FLAVOUR_TOC_SUFFIXES = {
 }
 
 
-@attrs.frozen(order=True, slots=False)
+@fauxfrozen(order=True)
 class AddonFolder:
     path: Path = attrs.field(eq=False, order=False)
     toc_reader: TocReader = attrs.field(eq=False, order=False)
