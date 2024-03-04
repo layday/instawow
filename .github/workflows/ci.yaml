@@ -51,7 +51,7 @@ jobs:
           nox
           --error-on-missing-interpreters
           --force-python ${{ matrix.python-version }}
-          -s 'test-${{ matrix.python-version }}(latest)'
+          -s 'test-${{ matrix.python-version }}(minimum_versions=False)'
           -- '${{ steps.download-wheel.outputs.download-path }}/${{ needs.build-package.outputs.wheel-name }}'
       - name: Upload coverage data
         uses: actions/upload-artifact@v3
@@ -64,7 +64,7 @@ jobs:
           nox
           --error-on-missing-interpreters
           --force-python ${{ matrix.python-version }}
-          -s 'test-${{ matrix.python-version }}(minimum-versions)'
+          -s 'test-${{ matrix.python-version }}(minimum_versions=True)'
           -- '${{ steps.download-wheel.outputs.download-path }}/${{ needs.build-package.outputs.wheel-name }}'
   type-check:
     needs: build-package
