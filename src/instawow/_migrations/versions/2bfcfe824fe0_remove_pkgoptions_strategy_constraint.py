@@ -1,6 +1,7 @@
 """
 Remove ``PkgOptions`` strategy constraint.
 """
+
 from __future__ import annotations
 
 from alembic import op

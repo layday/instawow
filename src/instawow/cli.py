@@ -315,8 +315,7 @@ def _parse_uri(
     value: str,
     *,
     raise_invalid: bool = True,
-) -> Defn:
-    ...
+) -> Defn: ...
 
 
 @overload
@@ -325,8 +324,7 @@ def _parse_uri(
     value: list[str],
     *,
     raise_invalid: bool = True,
-) -> list[Defn]:
-    ...
+) -> list[Defn]: ...
 
 
 def _parse_uri(

@@ -1,6 +1,7 @@
 """
 Create the ``pkg_version_log`` table to track previously-installed package versions.
 """
+
 from __future__ import annotations
 
 import sqlalchemy as sa

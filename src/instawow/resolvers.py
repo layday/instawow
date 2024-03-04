@@ -21,11 +21,9 @@ from .utils import file_uri_to_path, gather, run_in_thread
 
 class FolderHashCandidate(Protocol):  # pragma: no cover
     @property
-    def name(self) -> str:
-        ...
+    def name(self) -> str: ...
 
-    def hash_contents(self, __method: matchers.AddonHashMethod) -> str:
-        ...
+    def hash_contents(self, __method: matchers.AddonHashMethod) -> str: ...
 
 
 TFolderHashCandidate = TypeVar('TFolderHashCandidate', bound=FolderHashCandidate)
@@ -45,8 +43,7 @@ class Resolver(Protocol):  # pragma: no cover
     archive_opener: ClassVar[archives.ArchiveOpener | None]
     'Alternative archive opener to use supporting e.g. non-standard archive formats or layouts.'
 
-    def __init__(self, manager_ctx: manager_ctx.ManagerCtx) -> None:
-        ...
+    def __init__(self, manager_ctx: manager_ctx.ManagerCtx) -> None: ...
 
     @classmethod
     def get_alias_from_url(cls, url: URL) -> str | None:

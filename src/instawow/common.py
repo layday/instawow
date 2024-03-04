@@ -15,8 +15,7 @@ _TEnum = TypeVar('_TEnum', bound=enum.Enum)
 
 
 class _FlavourKeyedEnumMeta(type(Protocol)):  # pragma: no cover
-    def __getitem__(self: type[_FlavourKeyedEnum[_TEnum]], __key: str) -> _TEnum:
-        ...
+    def __getitem__(self: type[_FlavourKeyedEnum[_TEnum]], __key: str) -> _TEnum: ...
 
 
 class _FlavourKeyedEnum(Protocol[_TEnum], metaclass=_FlavourKeyedEnumMeta):  # pragma: no cover

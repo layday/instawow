@@ -126,16 +126,14 @@ def merge_intersecting_sets(it: Iterable[frozenset[_T]]) -> Iterator[frozenset[_
 
 
 @overload
-async def gather(it: Iterable[Awaitable[_U]], wrapper: None = None) -> list[_U]:
-    ...
+async def gather(it: Iterable[Awaitable[_U]], wrapper: None = None) -> list[_U]: ...
 
 
 @overload
 async def gather(
     it: Iterable[Awaitable[_U]],
     wrapper: Callable[[Awaitable[_U]], Awaitable[_T]],
-) -> list[_T]:
-    ...
+) -> list[_T]: ...
 
 
 async def gather(

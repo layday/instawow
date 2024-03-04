@@ -6,6 +6,7 @@ Revises: 43aa3610e92a
 Create Date: 2020-09-08 14:39:34.957011
 
 """
+
 from __future__ import annotations
 
 from contextlib import suppress

@@ -34,9 +34,9 @@ class _DefnDownloadTraceRequestCtx(TypedDict):
     defn: common.Defn
 
 
-TraceRequestCtx: (
-    TypeAlias
-) = '_GenericDownloadTraceRequestCtx | _DefnDownloadTraceRequestCtx | None'
+TraceRequestCtx: TypeAlias = (
+    '_GenericDownloadTraceRequestCtx | _DefnDownloadTraceRequestCtx | None'
+)
 
 
 def make_generic_progress_ctx(label: str) -> _GenericDownloadTraceRequestCtx:

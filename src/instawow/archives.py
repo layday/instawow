@@ -9,8 +9,7 @@ from typing import NamedTuple, Protocol
 
 
 class ArchiveOpener(Protocol):  # pragma: no cover
-    def __call__(self, archive_path: Path) -> AbstractContextManager[Archive]:
-        ...
+    def __call__(self, archive_path: Path) -> AbstractContextManager[Archive]: ...
 
 
 class Archive(NamedTuple):

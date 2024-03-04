@@ -1,6 +1,7 @@
 """
 Rename the 'origin' column to 'source'.
 """
+
 from __future__ import annotations
 
 from functools import partial

@@ -28,8 +28,7 @@ from ._addon_hashing import generate_wowup_addon_hash
 class Matcher(Protocol):  # pragma: no cover
     def __call__(
         self, manager_ctx: manager_ctx.ManagerCtx, leftovers: frozenset[AddonFolder]
-    ) -> Awaitable[list[tuple[list[AddonFolder], list[Defn]]]]:
-        ...
+    ) -> Awaitable[list[tuple[list[AddonFolder], list[Defn]]]]: ...
 
 
 class AddonHashMethod(enum.Enum):

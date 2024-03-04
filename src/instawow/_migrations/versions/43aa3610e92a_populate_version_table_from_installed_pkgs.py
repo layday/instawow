@@ -1,6 +1,7 @@
 """
 Populate the version table from installed packages.
 """
+
 from __future__ import annotations
 
 from alembic import op

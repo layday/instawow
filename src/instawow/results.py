@@ -16,8 +16,7 @@ AnyResult: TypeAlias = '_T | ManagerError | InternalError'
 
 class Result(Protocol):  # pragma: no cover
     @property
-    def message(self) -> str:
-        ...
+    def message(self) -> str: ...
 
 
 class _SuccessResult:
