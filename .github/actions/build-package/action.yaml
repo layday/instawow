@@ -12,7 +12,7 @@ runs:
   using: composite
   steps:
     - name: Install nox
-      run: pipx install nox[uv]
+      run: pipx install nox uv
       shell: bash
     - name: Install Python ${{ inputs.python-version }}
       uses: actions/setup-python@v5
