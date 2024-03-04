@@ -38,9 +38,7 @@
     <hr />
   {:else}
     <button onclick={onSelectWrapped}>
-      {#if children}
-        {@render children()}
-      {/if}
+      {@render children?.()}
     </button>
   {/if}
 </li>

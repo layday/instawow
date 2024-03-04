@@ -685,15 +685,11 @@
       </div>
 
       <div>
-        {#if navMiddle}
-          {@render navMiddle()}
-        {/if}
+        {@render navMiddle?.()}
       </div>
 
       <div>
-        {#if navEnd}
-          {@render navEnd()}
-        {/if}
+        {@render navEnd?.()}
       </div>
     </nav>
   </div>
