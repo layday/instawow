@@ -32,7 +32,7 @@ from yarl import URL
 
 from instawow import __version__, matchers, pkg_db, pkg_models
 from instawow import results as R
-from instawow._version import is_outdated
+from instawow._version_check import is_outdated
 from instawow.catalogue.cataloguer import ComputedCatalogueEntry
 from instawow.catalogue.search import search
 from instawow.common import Defn, Flavour, SourceMetadata

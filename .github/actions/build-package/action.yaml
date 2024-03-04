@@ -12,7 +12,7 @@ runs:
   using: composite
   steps:
     - name: Install nox
-      run: pipx install nox
+      run: pipx install nox[uv]
       shell: bash
     - name: Install Python ${{ inputs.python-version }}
       uses: actions/setup-python@v5
@@ -35,10 +35,9 @@ runs:
     - name: Get wheel info
       id: get-wheel-info
       run: |
-        WHEEL_PATH=$(ls "$PWD"/dist/*.whl)
-        echo "wheel-path=$WHEEL_PATH" >> $GITHUB_OUTPUT
+        echo "wheel-path=$(realpath $(jq -r '."wheel-path"' dist/wheel-metadata.json))" >> $GITHUB_OUTPUT
         echo "wheel-name=$(basename "$WHEEL_PATH")" >> $GITHUB_OUTPUT
-        echo "wheel-version=$(nox -s extract_version -- "$WHEEL_PATH")" >> $GITHUB_OUTPUT
+        echo "wheel-version=$(jq -r '."wheel-version"' dist/wheel-metadata.json)" >> $GITHUB_OUTPUT
       shell: bash
     - name: Upload artifact
       uses: actions/upload-artifact@v2

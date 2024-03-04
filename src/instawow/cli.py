@@ -77,7 +77,7 @@ class Report:
         mw: CtxObjWrapper | None = click.get_current_context().obj
 
         if mw and mw.manager.ctx.config.global_config.auto_update_check:
-            from ._version import is_outdated
+            from ._version_check import is_outdated
 
             outdated, new_version = mw.run_with_progress(
                 is_outdated(mw.manager.ctx.config.global_config)

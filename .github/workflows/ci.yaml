@@ -107,7 +107,7 @@ jobs:
       - name: Clone the repo
         uses: actions/checkout@v4
       - name: Install nox
-        run: pipx install nox
+        run: pipx install nox[uv]
       - name: Install Node for Prettier
         uses: actions/setup-node@v4
         with:
@@ -126,7 +126,7 @@ jobs:
         with:
           name: coverage-data
       - name: Install nox
-        run: pipx install nox
+        run: pipx install nox[uv]
       - name: Produce coverage report
         run: |
           nox -s produce_coverage_report

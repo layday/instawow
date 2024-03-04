@@ -1,20 +1,14 @@
 from __future__ import annotations
 
+import json
 import os
+from importlib.metadata import Distribution
 from pathlib import Path
-from textwrap import dedent
 
 import nox
 
-nox.options.envdir = os.environ.get('NOX_ENVDIR')
-nox.options.sessions = ['format', 'lint', 'test', 'type_check']
-
-
-def mirror_repo(session: nox.Session):
-    if not os.environ.get('CI'):
-        repo_dir = f'{session.create_tmp()}/instawow'
-        session.run('git', 'clone', '.', repo_dir, external=True)
-        session.chdir(repo_dir)
+nox.options.default_venv_backend  = 'uv'  # fmt: skip
+nox.options.error_on_external_run = True
 
 
 def install_coverage_hook(session: nox.Session):
@@ -33,88 +27,70 @@ import sysconfig
     )
 
 
-@nox.session(name='format', reuse_venv=True)
-def format_(session: nox.Session):
+@nox.session(name='format')
+def format_code(session: nox.Session):
     "Format source code."
-    session.install('-U', 'ruff')
+
+    session.install('ruff')
 
     check = '--check' in session.posargs
-    session.run('ruff', '--select', 'I', *[] if check else ['--fix'], '.')
+
+    session.run('ruff', 'check', '--select', 'I', *[] if check else ['--fix'], '.')
     session.run('ruff', 'format', *['--check'] if check else [], '.')
 
     if '--skip-prettier' not in session.posargs:
         with session.chdir('instawow-gui/frontend'):
             session.run('npm', 'install', external=True)
-            session.run(
-                'npx',
-                'prettier',
-                '--check' if check else '--write',
-                '.',
-                external=True,
-            )
+            session.run('npx', 'prettier', '--check' if check else '--write', '.', external=True)
 
 
-@nox.session(reuse_venv=True)
+@nox.session
 def lint(session: nox.Session):
     "Lint source code."
-    session.install('-U', 'ruff')
-    session.run('ruff', '--output-format', 'full', *session.posargs, '.')
+    session.install('ruff')
+    session.run('ruff', 'check', '--output-format', 'full', *session.posargs, '.')
     session.notify('format', ['--check'])
 
 
-@nox.session(python='3.11')
-@nox.parametrize(
-    'constraints',
-    [
-        '',
-        dedent(
-            """\
-            aiohttp == 3.9.3
-            aiohttp-client-cache == 0.9.1
-            alembic == 1.12.0
-            anyio == 3.6.2
-            attrs == 23.1.0
-            cattrs == 23.1.2
-            click == 8.1.0
-            diskcache == 5.6.3
-            iso8601 == 1.0.2
-            loguru == 0.7.2
-            packaging == 23.0
-            pluggy == 1.3.0
-            prompt-toolkit == 3.0.29
-            questionary == 1.10.0
-            rapidfuzz == 3.3.0
-            sqlalchemy == 2.0.21
-            truststore == 0.7.0
-            typing-extensions == 4.3.0
-            yarl == 1.9.2
-            aiohttp-rpc == 1.0.0
-            """
-        ),
-    ],
-    [
-        'latest',
-        'minimum-versions',
-    ],
-)
-def test(session: nox.Session, constraints: str):
+@nox.session
+@nox.parametrize('minimum_versions', [False, True])
+def test(session: nox.Session, minimum_versions: bool):
     "Run the test suite."
-    mirror_repo(session)
 
-    constraints_txt = 'constraints.txt'
-    Path(constraints_txt).write_text(constraints)
+    if not os.environ.get('CI'):
+        session.create_tmp()
 
     if session.posargs:
         (package_path,) = session.posargs
     else:
-        package_path = '.'
+        build_dists(session)
 
-    session.install('-c', constraints_txt, f'{package_path}[gui, test]', './tests/plugin')
+        with Path('dist', 'wheel-metadata.json').open('rb') as wheel_metadata_json:
+            package_path = json.load(
+                wheel_metadata_json,
+            )['wheel-path']
+
+    install_requires = [
+        f'instawow[gui, test] @ {package_path}',
+        'instawow_test_plugin @ tests/plugin',
+    ]
+
+    if minimum_versions:
+        (package_metadata,) = Distribution.discover(name='instawow', path=[package_path])
+
+        session.install(
+            '--resolution', 'lowest-direct', *install_requires, *package_metadata.requires or ()
+        )
+    else:
+        session.install(*install_requires)
+
     install_coverage_hook(session)
 
     session.run(
         *'coverage run -m pytest -n auto'.split(),
-        env={'COVERAGE_PROCESS_START': 'pyproject.toml'},
+        env={
+            'COVERAGE_PROCESS_START': 'pyproject.toml',
+        },
     )
 
 
@@ -127,17 +103,21 @@ def produce_coverage_report(session: nox.Session):
     session.run('coverage', 'report', '-m')
 
 
-@nox.session(python='3.11')
+@nox.session
 def type_check(session: nox.Session):
     "Run Pyright."
-    mirror_repo(session)
 
     if session.posargs:
         (package_path,) = session.posargs
     else:
-        package_path = '.'
+        build_dists(session)
 
-    session.install(f'{package_path}[gui]')
+        with Path('dist', 'wheel-metadata.json').open('rb') as wheel_metadata_json:
+            package_path = json.load(
+                wheel_metadata_json,
+            )['wheel-path']
+
+    session.install(f'instawow[gui] @ {package_path}')
     session.run('npx', 'pyright', external=True)
 
 
@@ -151,12 +131,29 @@ def bundle_frontend(session: nox.Session):
         session.run('npm', 'run', 'build', external=True)
 
 
-@nox.session(python='3.11')
+@nox.session
 def build_dists(session: nox.Session):
     "Build an sdist and wheel."
+
     session.run('git', 'clean', '-fdX', 'dist', external=True)
-    session.install('build')
-    session.run('python', '-m', 'build')
+    session.install(
+        'build',
+        'pip',  # To avoid having to run ensurepip.
+    )
+    session.run('pyproject-build')
+
+    wheel_path = next(f.path for f in os.scandir('dist') if f.name.endswith('.whl'))
+    (wheel_metadata,) = Distribution.discover(name='instawow', path=[wheel_path])
+
+    Path('dist', 'wheel-metadata.json').write_text(
+        json.dumps(
+            {
+                'wheel-path': wheel_path,
+                'wheel-version': wheel_metadata.version,
+            }
+        ),
+        encoding='utf-8',
+    )
 
 
 @nox.session
@@ -216,14 +213,6 @@ def freeze_cli(session: nox.Session):
 
             print(to_path, end='')
             break
-
-
-@nox.session(python=False)
-def extract_version(session: nox.Session):
-    from importlib.metadata import Distribution
-
-    (instawow,) = Distribution.discover(name='instawow', path=list(session.posargs))
-    print(instawow.version, end='')
 
 
 @nox.session(python=False)

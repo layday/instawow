@@ -5,8 +5,6 @@ from typing import TypedDict
 
 from . import config
 
-__version__ = '0+dev'
-
 
 class _SimpleApiProject(TypedDict):
     versions: list[str]

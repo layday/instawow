@@ -4,7 +4,7 @@ import attrs
 import pytest
 from aresponses import ResponsesMockServer
 
-from instawow._version import is_outdated
+from instawow._version_check import is_outdated
 from instawow.config import GlobalConfig
 
 

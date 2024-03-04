@@ -122,7 +122,7 @@ jobs:
         with:
           python-version: ${{ matrix.build-env.python-version }}
       - name: Install nox
-        run: pipx install nox
+        run: pipx install nox[uv]
       - name: Patch in the wheel dependency
         run: >-
           nox -s patch_frontend_spec --

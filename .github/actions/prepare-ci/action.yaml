@@ -3,7 +3,7 @@ runs:
   using: composite
   steps:
     - name: Install nox
-      run: pipx install nox
+      run: pipx install nox[uv]
       shell: bash
     - name: Install Python ${{ matrix.python-version }}
       uses: actions/setup-python@v5
