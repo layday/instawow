@@ -35,7 +35,8 @@ runs:
     - name: Get wheel info
       id: get-wheel-info
       run: |
-        echo "wheel-path=$(realpath $(jq -r '."wheel-path"' dist/wheel-metadata.json))" >> $GITHUB_OUTPUT
+        WHEEL_PATH="$(realpath $(jq -r '."wheel-path"' dist/wheel-metadata.json))"
+        echo "wheel-path=$WHEEL_PATH" >> $GITHUB_OUTPUT
         echo "wheel-name=$(basename "$WHEEL_PATH")" >> $GITHUB_OUTPUT
         echo "wheel-version=$(jq -r '."wheel-version"' dist/wheel-metadata.json)" >> $GITHUB_OUTPUT
       shell: bash
