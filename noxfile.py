@@ -170,7 +170,7 @@ def freeze_cli(session: nox.Session):
     import shutil
     import tempfile
 
-    PYAPP_VERSION = 'v0.12.0'
+    PYAPP_VERSION = 'v0.15.1'
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--wheel-file', required=True)
