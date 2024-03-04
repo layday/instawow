@@ -53,7 +53,7 @@ def lint(session: nox.Session):
 
 
 @nox.session
-@nox.parametrize('minimum_versions', [False, True])
+@nox.parametrize('minimum_versions', [False, True], ['latest', 'minimum-versions'])
 def test(session: nox.Session, minimum_versions: bool):
     "Run the test suite."
 
