@@ -10,7 +10,7 @@ name = "instawow"
 requires-python = ">= 3.10"
 description = "World of Warcraft add-on manager"
 readme = "README.rst"
-license.file = "COPYING"
+license = "GPL-3.0-or-later"
 authors = [{ name = "layday", email = "layday@protonmail.com" }]
 urls."homepage" = "http://github.com/layday/instawow"
 
