@@ -31,7 +31,7 @@ dependencies = [
   "rapidfuzz >= 3.6.1",
   "sqlalchemy >= 2.0.21",
   "truststore >= 0.7.0",
-  "typing-extensions >= 4.3.0",
+  "typing-extensions >= 4.6.0",
   "yarl >= 1.9.2",
 ]
 optional-dependencies."gui" = [

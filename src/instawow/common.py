@@ -3,15 +3,15 @@ from __future__ import annotations
 import enum
 from collections.abc import Iterable
 from functools import partial
-from typing import Literal, Protocol, TypeVar
+from typing import Literal, Protocol
 
 import attrs
-from typing_extensions import Self
+from typing_extensions import Self, TypeVar
 from yarl import URL
 
 from .utils import StrEnum, fauxfrozen, fill
 
-_TEnum = TypeVar('_TEnum', bound=enum.Enum)
+_TEnum = TypeVar('_TEnum', bound=enum.Enum, infer_variance=True)
 
 
 class _FlavourKeyedEnumMeta(type(Protocol)):  # pragma: no cover
