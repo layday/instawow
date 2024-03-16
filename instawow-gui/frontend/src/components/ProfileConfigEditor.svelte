@@ -19,9 +19,11 @@
   const activeProfileRef = getContext<ActiveProfileRef>(ACTIVE_PROFILE_KEY);
   const api = getContext<Api>(API_KEY);
 
-  let { editing } = $props<{
+  let {
+    editing,
+  }: {
     editing: "new" | "existing" | false;
-  }>();
+  } = $props();
 
   let createNew = $derived(editing === "new");
 

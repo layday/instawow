@@ -16,11 +16,12 @@
 </script>
 
 <script lang="ts">
-  let { icon, ...props } = $props<
-    {
-      icon: IconDefinition;
-    } & SVGAttributes<SVGElement>
-  >();
+  let {
+    icon,
+    ...props
+  }: {
+    icon: IconDefinition;
+  } & SVGAttributes<SVGElement> = $props();
 
   let {
     icon: [width, height, , , iconPathData],

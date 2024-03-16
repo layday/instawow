@@ -29,7 +29,7 @@
     onRemove,
     onShowChangelogModal,
     onShowAddonContextMenu,
-  } = $props<{
+  }: {
     addon: Addon;
     otherAddon: Addon;
     isInstalled: boolean;
@@ -42,7 +42,7 @@
     onRemove: () => void;
     onShowChangelogModal: () => void;
     onShowAddonContextMenu: (mouseEvent: MouseEvent) => void;
-  }>();
+  } = $props();
 
   let dateTimePublished = $derived(DateTime.fromISO(otherAddon.date_published).toLocal());
   let isOutdated = $derived(addon.version !== otherAddon.version);

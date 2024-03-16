@@ -10,9 +10,11 @@
     supportsRollback: boolean;
   }
 
-  let { onSelectItem } = $props<{
+  let {
+    onSelectItem,
+  }: {
     onSelectItem: (item: { addon: Addon; action: AddonAction }) => void;
-  }>();
+  } = $props();
 
   let contextMenu = $state<ContextMenu>();
 

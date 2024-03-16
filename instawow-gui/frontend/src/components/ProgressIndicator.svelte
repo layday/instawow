@@ -1,9 +1,12 @@
 <!-- Adapted from https://css-tricks.com/building-progress-ring-quickly/ -->
 <script lang="ts">
-  let { diameter, progress } = $props<{
+  let {
+    diameter,
+    progress,
+  }: {
     diameter: number;
     progress: number;
-  }>();
+  } = $props();
 
   const STROKE = 2;
 

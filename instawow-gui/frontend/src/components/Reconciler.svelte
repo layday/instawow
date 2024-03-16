@@ -11,14 +11,17 @@
 
   const api = getContext<Api>(API_KEY);
 
-  let { profileNav, onReconcile } = $props<{
+  let {
+    profileNav,
+    onReconcile,
+  }: {
     profileNav: Snippet<[navMiddle: Snippet | undefined, navEnd: Snippet | undefined]>;
     onReconcile: (
       stage: ReconciliationStage,
       selections: Addon[],
       recursive?: boolean,
     ) => Promise<ReconciliationStage | undefined>;
-  }>();
+  } = $props();
 
   let isReconciling = $state(false);
 

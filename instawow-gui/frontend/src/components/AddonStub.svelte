@@ -13,13 +13,13 @@
     choices,
     idx,
     expanded = false,
-  } = $props<{
+  }: {
     selections: Addon[];
     folders: { name: string; version: string }[];
     choices: Addon[];
     idx: number;
     expanded?: boolean;
-  }>();
+  } = $props();
 
   let selectionIdx = $state(0);
 

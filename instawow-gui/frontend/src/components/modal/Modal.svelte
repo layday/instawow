@@ -8,10 +8,13 @@
   import { setContext, type Snippet } from "svelte";
   import { fade, scale } from "svelte/transition";
 
-  const { children, onHide } = $props<{
+  const {
+    children,
+    onHide,
+  }: {
     children: Snippet;
     onHide?: () => void;
-  }>();
+  } = $props();
 
   const hideOnEsc = (event: KeyboardEvent) => {
     if (event.key === "Escape") {

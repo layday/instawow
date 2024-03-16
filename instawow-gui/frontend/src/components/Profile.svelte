@@ -89,11 +89,15 @@
 </script>
 
 <script lang="ts">
-  let { profile, isActive, statusMessage } = $props<{
+  let {
+    profile,
+    isActive,
+    statusMessage,
+  }: {
     profile: string;
     isActive: boolean;
     statusMessage: string;
-  }>();
+  } = $props();
 
   const profilesRef = getContext<ProfilesRef>(PROFILES_KEY);
   const alertsRef = getContext<AlertsRef>(ALERTS_KEY);

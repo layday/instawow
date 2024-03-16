@@ -18,7 +18,13 @@
     "ul",
   ];
 
-  let { changelog, renderAsHtml } = $props<{ changelog: string; renderAsHtml: boolean }>();
+  let {
+    changelog,
+    renderAsHtml,
+  }: {
+    changelog: string;
+    renderAsHtml: boolean;
+  } = $props();
 </script>
 
 <div class="title-bar">changelog</div>

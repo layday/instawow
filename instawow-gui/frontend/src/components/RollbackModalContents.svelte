@@ -4,10 +4,13 @@
   import type { Addon } from "../api";
   import type { ModalHandle } from "./modal/Modal.svelte";
 
-  let { addon, onRequestRollback } = $props<{
+  let {
+    addon,
+    onRequestRollback,
+  }: {
     addon: Addon;
     onRequestRollback: (addon: Addon) => void;
-  }>();
+  } = $props();
 
   const { hide } = getContext<ModalHandle>("modal");
 

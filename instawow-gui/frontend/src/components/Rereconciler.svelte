@@ -10,10 +10,13 @@
 
   const api = getContext<Api>(API_KEY);
 
-  let { profileNav, onRereconcile } = $props<{
+  let {
+    profileNav,
+    onRereconcile,
+  }: {
     profileNav: Snippet<[navMiddle: Snippet | undefined, navEnd: Snippet | undefined]>;
     onRereconcile: (addonPairs: typeof addonsToRereconcile) => Promise<void>;
-  }>();
+  } = $props();
 
   let isRereconciling = $state(false);
 

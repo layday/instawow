@@ -8,20 +8,18 @@
     children,
     divider = false,
     onSelect,
-  } = $props<
-    (
-      | {
-          children?: never;
-          divider: true;
-        }
-      | {
-          children: Snippet;
-          divider?: never;
-        }
-    ) & {
-      onSelect?: () => void;
-    }
-  >();
+  }: (
+    | {
+        children?: never;
+        divider: true;
+      }
+    | {
+        children: Snippet;
+        divider?: false;
+      }
+  ) & {
+    onSelect?: () => void;
+  } = $props();
 
   const onSelectWrapped = (event: MouseEvent) => {
     event.stopPropagation();

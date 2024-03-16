@@ -6,15 +6,21 @@
   import type { SearchOptions } from "./Profile.svelte";
   import type { ModalHandle } from "./modal/Modal.svelte";
 
-  let { flavour, sources, searchFilterInstalled, searchOptions, onRequestReset, onRequestSearch } =
-    $props<{
-      flavour: Flavour;
-      sources: Sources;
-      searchFilterInstalled: boolean;
-      searchOptions: SearchOptions;
-      onRequestReset: () => void;
-      onRequestSearch: () => void;
-    }>();
+  let {
+    flavour,
+    sources,
+    searchFilterInstalled,
+    searchOptions,
+    onRequestReset,
+    onRequestSearch,
+  }: {
+    flavour: Flavour;
+    sources: Sources;
+    searchFilterInstalled: boolean;
+    searchOptions: SearchOptions;
+    onRequestReset: () => void;
+    onRequestSearch: () => void;
+  } = $props();
 
   const CHECKBOXES = [
     [Strategy.AnyFlavour, "any flavour"],

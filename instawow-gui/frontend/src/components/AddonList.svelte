@@ -2,9 +2,11 @@
   import type { Snippet } from "svelte";
   import { slide } from "svelte/transition";
 
-  let { children } = $props<{
+  let {
+    children,
+  }: {
     children: Snippet;
-  }>();
+  } = $props();
 </script>
 
 <ul class="addon-list" in:slide={{ duration: 250 }}>

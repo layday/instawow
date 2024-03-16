@@ -2,9 +2,11 @@
   import type { Snippet } from "svelte";
   import { fade } from "svelte/transition";
 
-  let { children } = $props<{
+  let {
+    children,
+  }: {
     children: Snippet;
-  }>();
+  } = $props();
 </script>
 
 <div class="placeholder" in:fade>

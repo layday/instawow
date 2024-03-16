@@ -12,10 +12,13 @@
 <script lang="ts">
   import { setContext, type Snippet } from "svelte";
 
-  let { children, onHide } = $props<{
+  let {
+    children,
+    onHide,
+  }: {
     children: Snippet;
     onHide?: () => void;
-  }>();
+  } = $props();
 
   let eventCoords = $state<EventCoords>();
 
