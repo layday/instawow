@@ -17,7 +17,6 @@ urls."homepage" = "http://github.com/layday/instawow"
 dependencies = [
   "aiohttp >= 3.9.3, < 4",
   "aiohttp-client-cache >= 0.9.1",
-  "alembic >= 1.12.0",
   "attrs >= 23.2.0",
   "cattrs >= 23.2.3",
   "click >= 8.1.6",
