@@ -1,54 +1,75 @@
-# pyright: basic
-
 from __future__ import annotations
 
+import asyncio
+import concurrent.futures
+import contextlib
+import contextvars
 import os
-from collections.abc import Set
+from collections.abc import Callable, Coroutine, Set
+from functools import wraps
+from typing import Any, TypeVar
 
 import diskcache
 from aiohttp_client_cache import BaseCache, ResponseOrKey
+from typing_extensions import ParamSpec
+
+_U = TypeVar('_U')
+_P = ParamSpec('_P')
 
 
-def make_disk_cache(cache_dir: os.PathLike[str]):
-    return _DiskCacheCache(
-        diskcache.Index(os.fspath(cache_dir)),
-    )
+@contextlib.contextmanager
+def make_cache(cache_dir: os.PathLike[str]):
+    with concurrent.futures.ThreadPoolExecutor(1, '_http_cache') as executor:
+        index = diskcache.Index(os.fspath(cache_dir))
+        with contextlib.closing(index.cache):
+            loop = asyncio.get_running_loop()
 
+            def run_in_thread2(fn: Callable[_P, _U]) -> Callable[_P, Coroutine[Any, Any, _U]]:
+                @wraps(fn)
+                async def wrapper(*args: _P.args, **kwargs: _P.kwargs):
+                    run = contextvars.copy_context().run
+                    return await loop.run_in_executor(executor, lambda: run(fn, *args, **kwargs))
 
-class _DiskCacheCache(BaseCache):
-    def __init__(self, cache: diskcache.Index, **kwargs):
-        super().__init__(**kwargs)
-        self.__cache = cache
+                return wrapper
 
-    async def bulk_delete(self, keys: Set[str]):
-        for key in keys:
-            await self.delete(key)
+            class Cache(BaseCache):
+                async def bulk_delete(self, keys: Set[str]):
+                    for key in keys:
+                        await self.delete(key)
 
-    async def clear(self):
-        return self.__cache.clear()
+                @run_in_thread2
+                def clear(self):
+                    return index.clear()
 
-    async def contains(self, key: str):
-        return key in self.__cache
+                @run_in_thread2
+                def contains(self, key: str):
+                    return key in index
 
-    async def delete(self, key: str):
-        try:
-            self.__cache[key]
-        except KeyError:
-            pass
+                @run_in_thread2
+                def delete(self, key: str):
+                    try:
+                        index[key]
+                    except KeyError:
+                        pass
 
-    async def keys(self):
-        for key in self.__cache.keys():
-            yield key
+                async def keys(self):
+                    for key in await run_in_thread2(index.keys)():
+                        yield key
 
-    async def read(self, key: str):
-        return self.__cache.get(key)
+                @run_in_thread2
+                def read(self, key: str):
+                    return index.get(key)
 
-    async def size(self):
-        return len(self.__cache)
+                @run_in_thread2
+                def size(self):
+                    return len(index)
 
-    async def values(self):
-        for value in self.__cache.values():
-            yield value
+                async def values(self):
+                    for value in await run_in_thread2(index.values)():
+                        yield value
 
-    async def write(self, key: str, item: ResponseOrKey):
-        self.__cache[key] = item
+                @run_in_thread2
+                def write(self, key: str, item: ResponseOrKey):
+                    index[key] = item
+
+            yield Cache()

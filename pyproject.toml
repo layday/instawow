@@ -45,6 +45,9 @@ optional-dependencies."test" = [
   "pytest-asyncio >= 0.23.5",
   "pytest-xdist >= 3.5.0",
 ]
+optional-dependencies."types" = [
+  "diskcache-stubs",
+]
 
 [project.entry-points."instawow.plugins"]
 "instawow_gui" = "instawow_gui._plugin"

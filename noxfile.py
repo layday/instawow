@@ -117,7 +117,7 @@ def type_check(session: nox.Session):
                 wheel_metadata_json,
             )['wheel-path']
 
-    session.install(f'instawow[gui] @ {package_path}')
+    session.install(f'instawow[gui, types] @ {package_path}')
     session.run('npx', 'pyright', external=True)
 
 

@@ -70,7 +70,7 @@ async def init_web_client(
         from aiohttp_client_cache import CacheBackend
         from aiohttp_client_cache.session import CachedSession
 
-        from ._cache import make_disk_cache
+        from ._cache import make_cache
 
         cache_backend = CacheBackend(
             allowed_codes=(200, 206),
@@ -78,12 +78,14 @@ async def init_web_client(
             expire_after=_DEFAULT_EXPIRE,
             include_headers=True,
         )
-        cache_backend.responses = cache_backend.redirects = make_disk_cache(cache_dir)
-        if no_cache:
-            cache_backend.disabled = True
+        with make_cache(cache_dir) as cache:
+            cache_backend.responses = cache_backend.redirects = cache
+            if no_cache:
+                cache_backend.disabled = True
 
-        async with CachedSession(cache=cache_backend, **kwargs) as client_session:
-            yield client_session
+            async with CachedSession(cache=cache_backend, **kwargs) as client_session:
+                yield client_session
+
     else:
         async with ClientSession(**kwargs) as client_session:
             yield client_session
