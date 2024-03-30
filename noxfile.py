@@ -136,11 +136,8 @@ def build_dists(session: nox.Session):
     "Build an sdist and wheel."
 
     session.run('git', 'clean', '-fdX', 'dist', external=True)
-    session.install(
-        'build',
-        'pip',  # To avoid having to run ensurepip.
-    )
-    session.run('pyproject-build')
+    session.install('build[uv]')
+    session.run('pyproject-build', '--installer', 'uv')
 
     wheel_path = next(f.path for f in os.scandir('dist') if f.name.endswith('.whl'))
     (wheel_metadata,) = Distribution.discover(name='instawow', path=[wheel_path])
