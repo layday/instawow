@@ -7,10 +7,10 @@ import contextvars
 import os
 from collections.abc import Callable, Coroutine, Set
 from functools import wraps
-from typing import Any, TypeVar
+from typing import Any, TypeVar, cast
 
+import aiohttp_client_cache
 import diskcache
-from aiohttp_client_cache import BaseCache, ResponseOrKey
 from typing_extensions import ParamSpec
 
 _U = TypeVar('_U')
@@ -19,57 +19,60 @@ _P = ParamSpec('_P')
 
 @contextlib.contextmanager
 def make_cache(cache_dir: os.PathLike[str]):
-    with concurrent.futures.ThreadPoolExecutor(1, '_http_cache') as executor:
-        index = diskcache.Index(os.fspath(cache_dir))
-        with contextlib.closing(index.cache):
-            loop = asyncio.get_running_loop()
+    with (
+        concurrent.futures.ThreadPoolExecutor(1, '_http_cache') as executor,
+        diskcache.Cache(os.fspath(cache_dir)) as cache,
+    ):
+        loop = asyncio.get_running_loop()
 
-            def run_in_thread2(fn: Callable[_P, _U]) -> Callable[_P, Coroutine[Any, Any, _U]]:
-                @wraps(fn)
-                async def wrapper(*args: _P.args, **kwargs: _P.kwargs):
-                    run = contextvars.copy_context().run
-                    return await loop.run_in_executor(executor, lambda: run(fn, *args, **kwargs))
+        def run_in_thread2(fn: Callable[_P, _U]) -> Callable[_P, Coroutine[Any, Any, _U]]:
+            @wraps(fn)
+            async def wrapper(*args: _P.args, **kwargs: _P.kwargs):
+                return await loop.run_in_executor(
+                    executor, lambda: contextvars.copy_context().run(fn, *args, **kwargs)
+                )
 
-                return wrapper
+            return wrapper
 
-            class Cache(BaseCache):
-                async def bulk_delete(self, keys: Set[str]):
-                    for key in keys:
-                        await self.delete(key)
+        class Cache(aiohttp_client_cache.BaseCache):
+            @run_in_thread2
+            def bulk_delete(self, keys: Set[str]):
+                for key in keys:
+                    cache.delete(key)
 
-                @run_in_thread2
-                def clear(self):
-                    return index.clear()
+            @run_in_thread2
+            def clear(self):
+                cache.clear()
 
-                @run_in_thread2
-                def contains(self, key: str):
-                    return key in index
+            @run_in_thread2
+            def contains(self, key: str):
+                return key in cache
 
-                @run_in_thread2
-                def delete(self, key: str):
-                    try:
-                        index[key]
-                    except KeyError:
-                        pass
+            @run_in_thread2
+            def delete(self, key: str):
+                cache.delete(key)
 
-                async def keys(self):
-                    for key in await run_in_thread2(index.keys)():
-                        yield key
+            async def keys(self):
+                with contextlib.suppress(StopIteration):
+                    iter_keys = iter(cache)
 
-                @run_in_thread2
-                def read(self, key: str):
-                    return index.get(key)
+                    while True:
+                        yield (await run_in_thread2(next)(iter_keys))
 
-                @run_in_thread2
-                def size(self):
-                    return len(index)
+            @run_in_thread2
+            def read(self, key: str):
+                return cache.get(key)
 
-                async def values(self):
-                    for value in await run_in_thread2(index.values)():
-                        yield value
+            @run_in_thread2
+            def size(self):
+                return len(cache)
 
-                @run_in_thread2
-                def write(self, key: str, item: ResponseOrKey):
-                    index[key] = item
+            async def values(self):
+                async for key in self.keys():
+                    yield cast(aiohttp_client_cache.ResponseOrKey, run_in_thread2(cache.get)(key))
 
-            yield Cache()
+            @run_in_thread2
+            def write(self, key: str, item: aiohttp_client_cache.ResponseOrKey):
+                cache[key] = item
+
+        yield Cache()
