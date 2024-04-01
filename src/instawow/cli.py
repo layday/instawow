@@ -771,39 +771,23 @@ def list_installed(mw: CtxObjWrapper, addons: Sequence[Defn], output_format: _Li
 
     with mw.manager.ctx.database.connect() as connection:
 
-        def format_deps(pkg: pkg_models.Pkg):
-            return (
-                Defn(pkg.source, s or e.id).as_uri()
-                for e in pkg.deps
-                for s in (
-                    connection.execute(
-                        pkg_db.sa.select(pkg_db.pkg.c.slug).filter_by(source=pkg.source, id=e.id)
-                    ).scalar_one_or_none(),
-                )
-            )
+        def make_addon_filter(defn: Defn):
+            if defn.is_unsourced:
+                return pkg_db.pkg.c.slug.contains(defn.alias)
 
-        def row_mappings_to_pkgs():
-            return map(mw.manager.build_pkg_from_row_mapping, repeat(connection), pkg_mappings)
+            query = pkg_db.pkg.c.source == defn.source
+            if defn.alias:
+                query &= (pkg_db.pkg.c.id == defn.alias) | (
+                    pkg_db.sa.func.lower(pkg_db.pkg.c.slug) == pkg_db.sa.func.lower(defn.alias)
+                )
+            return query
 
         pkg_select_query = pkg_db.sa.select(pkg_db.pkg)
         if addons:
             pkg_select_query = pkg_select_query.filter(
-                pkg_db.sa.or_(
-                    *(
-                        pkg_db.pkg.c.slug.contains(d.alias)
-                        if d.is_unsourced
-                        else (pkg_db.pkg.c.source == d.source)
-                        & (
-                            (pkg_db.pkg.c.id == d.alias)
-                            | (
-                                pkg_db.sa.func.lower(pkg_db.pkg.c.slug)
-                                == pkg_db.sa.func.lower(d.alias)
-                            )
-                        )
-                        for d in addons
-                    )
-                )
+                pkg_db.sa.or_(*(make_addon_filter(d) for d in addons))
             )
+
         pkg_mappings = (
             connection.execute(
                 pkg_select_query.order_by(
@@ -813,6 +797,9 @@ def list_installed(mw: CtxObjWrapper, addons: Sequence[Defn], output_format: _Li
             .mappings()
             .all()
         )
+
+        def row_mappings_to_pkgs():
+            return map(mw.manager.build_pkg_from_row_mapping, repeat(connection), pkg_mappings)
 
         match output_format:
             case _ListFormat.Json:
@@ -829,6 +816,19 @@ def list_installed(mw: CtxObjWrapper, addons: Sequence[Defn], output_format: _Li
 
             case _ListFormat.Detailed:
                 formatter = click.HelpFormatter(max_width=99)
+
+                def format_deps(pkg: pkg_models.Pkg):
+                    return (
+                        Defn(pkg.source, s or e.id).as_uri()
+                        for e in pkg.deps
+                        for s in (
+                            connection.execute(
+                                pkg_db.sa.select(pkg_db.pkg.c.slug).filter_by(
+                                    source=pkg.source, id=e.id
+                                )
+                            ).scalar_one_or_none(),
+                        )
+                    )
 
                 for pkg in row_mappings_to_pkgs():
                     with formatter.section(pkg.to_defn().as_uri()):

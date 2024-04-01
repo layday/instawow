@@ -11,6 +11,7 @@ CLI
 - Removed ``--retain-strategies`` flag from ``update`` command.
   Strategies are now always respected when present; to force an update with
   the default strategy set, append ``#=`` to the add-on definition.
+- Allow filtering installed add-ons by source using ``list source:``.
 
 v3.3.0
 ------
