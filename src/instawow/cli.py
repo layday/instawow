@@ -913,29 +913,22 @@ def view_changelog(mw: CtxObjWrapper, addon: Defn | None, convert: bool) -> None
             import subprocess
 
             def real_convert(source: str, changelog: str):
-                changelog_format = mw.manager.ctx.resolvers[source].metadata.changelog_format
-                if changelog_format not in {ChangelogFormat.Html, ChangelogFormat.Markdown}:
-                    return changelog
-                else:
-                    INPUT_FORMAT_CORRESPONDENCES = {
-                        ChangelogFormat.Html: 'html',
+                match mw.manager.ctx.resolvers[source].metadata.changelog_format:
+                    case ChangelogFormat.Html:
+                        pandoc_input_format = 'html'
+                    case ChangelogFormat.Markdown:
                         # The "markdown" format will treat a list without a preceding
                         # empty line as a paragraph, which breaks the changelog
                         # of at least one popular add-on.
-                        ChangelogFormat.Markdown: 'commonmark',
-                    }
+                        pandoc_input_format = 'commonmark'
+                    case _:
+                        return changelog
 
-                    return subprocess.check_output(
-                        [
-                            pandoc,
-                            '-f',
-                            INPUT_FORMAT_CORRESPONDENCES[changelog_format],
-                            '-t',
-                            'plain',
-                        ],
-                        input=changelog,
-                        text=True,
-                    )
+                return subprocess.check_output(
+                    [pandoc, '-f', pandoc_input_format, '-t', 'plain'],
+                    input=changelog,
+                    text=True,
+                )
 
             return real_convert
 
