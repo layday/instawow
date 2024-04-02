@@ -1127,6 +1127,7 @@ def configure(
     is_new_profile = config_values is None
     if is_new_profile:
         config_values = {'profile': profile, 'global_config': attrs.asdict(existing_global_config)}
+    assert config_values
 
     editable_config_values = dict(editable_config_values)
     if not editable_config_values:
@@ -1150,14 +1151,20 @@ def configure(
         and {_EditableConfigOptions.AddonDir, _EditableConfigOptions.GameFlavour}
         <= interactive_editable_config_keys
     ):
-        known_intallations = {
-            Config.read(existing_global_config, p).addon_dir.parent.parent
-            for p in existing_global_config.list_profiles()
-        }
+
+        def get_known_installations():
+            for profile in existing_global_config.list_profiles():
+                try:
+                    config = Config.read(existing_global_config, profile, env=False)
+                except Exception:
+                    continue
+                else:
+                    yield config.addon_dir.parent.parent
+
         available_installations = [
             (k, v)
             for k, v in find_installations()
-            if not any(d.samefile(k) for d in known_intallations)
+            if not any(d.samefile(k) for d in get_known_installations())
         ]
         if available_installations:
             selection: tuple[Path, Flavour | None] | tuple[()] = ask(

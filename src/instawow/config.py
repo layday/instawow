@@ -250,10 +250,10 @@ class GlobalConfig:
         return config_converter.structure(values, cls)
 
     @classmethod
-    def read(cls) -> Self:
-        env_only_config = cls.from_values(env=True)
-        config_values = _read_config(env_only_config.config_file, missing_ok=True)
-        return cls.from_values(config_values, env=True) if config_values else env_only_config
+    def read(cls, env: bool = True) -> Self:
+        unsaved_config = cls.from_values(env=env)
+        config_values = _read_config(unsaved_config.config_file, missing_ok=True)
+        return cls.from_values(config_values, env=env) if config_values else unsaved_config
 
     def list_profiles(self) -> list[str]:
         "Get the names of the profiles contained in ``config_dir``."
@@ -331,11 +331,10 @@ class Config:
         return config_converter.structure(values, cls)
 
     @classmethod
-    def read(cls, global_config: GlobalConfig, profile: str) -> Self:
+    def read(cls, global_config: GlobalConfig, profile: str, *, env: bool = True) -> Self:
         dummy_config = cls.make_dummy_config(global_config=global_config, profile=profile)
         return cls.from_values(
-            {**_read_config(dummy_config.config_file), 'global_config': global_config},
-            env=True,
+            {**_read_config(dummy_config.config_file), 'global_config': global_config}, env=env
         )
 
     def encode_for_display(self) -> str:
