@@ -30,11 +30,6 @@ _T = TypeVar('_T')
 _TStrEnum = TypeVar('_TStrEnum', bound=StrEnum)
 
 
-@logger.catch(reraise=True)
-def main(*args: Any, **kwargs: Any) -> None:
-    cli(*args, **kwargs)
-
-
 class Report:
     SUCCESS_SYMBOL = click.style('✓', fg='green')
     FAILURE_SYMBOL = click.style('✗', fg='red')
@@ -1304,3 +1299,6 @@ def generate_catalogue(start_date: dt.datetime | None) -> None:
         json.dumps(catalogue_json, separators=(',', ':')),
         encoding='utf-8',
     )
+
+
+main = cli
