@@ -344,7 +344,7 @@ class ErrorResult(TypedDict):
 class ResolveParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
     async def _resolve(self, manager: PkgManager):
         def extract_source(defn: Defn):
-            if defn.is_unsourced:
+            if not defn.source:
                 match = manager.pair_uri(defn.alias)
                 if match:
                     source, alias = match

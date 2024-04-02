@@ -345,7 +345,7 @@ def _parse_uri(
     except ValueError as exc:
         raise click.BadParameter(exc.args[0]) from None
 
-    if defn.is_unsourced:
+    if not defn.source:
         match = manager.pair_uri(defn.alias)
         if match:
             source, alias = match
@@ -772,7 +772,7 @@ def list_installed(mw: CtxObjWrapper, addons: Sequence[Defn], output_format: _Li
     with mw.manager.ctx.database.connect() as connection:
 
         def make_addon_filter(defn: Defn):
-            if defn.is_unsourced:
+            if not defn.source:
                 return pkg_db.pkg.c.slug.contains(defn.alias)
 
             query = pkg_db.pkg.c.source == defn.source

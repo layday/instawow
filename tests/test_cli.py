@@ -107,9 +107,9 @@ def test_invalid_source_lifecycle(
     run: C[[str], Result],
     alias: str,
 ):
-    assert run(f'install {alias}').output == f'✗ *:{alias}\n  package source is invalid\n'
-    assert run(f'update {alias}').output == f'✗ *:{alias}\n  package is not installed\n'
-    assert run(f'remove {alias}').output == f'✗ *:{alias}\n  package is not installed\n'
+    assert run(f'install {alias}').output == f'✗ :{alias}\n  package source is invalid\n'
+    assert run(f'update {alias}').output == f'✗ :{alias}\n  package is not installed\n'
+    assert run(f'remove {alias}').output == f'✗ :{alias}\n  package is not installed\n'
 
 
 def test_reconciled_folder_conflict_on_install(
