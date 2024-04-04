@@ -10,18 +10,17 @@ def __getattr__(name: str) -> object:
     Importing this in ``__init__`` will overwrite relative imports.
     """
     fullname = __spec__.parent + '.' + name
+
     try:
         return sys.modules[fullname]
     except KeyError:
         spec = importlib.util.find_spec(fullname)
-        if spec is None:
-            # ``AttributeError`` is converted to an ``ImportError`` by the import machinery
+        if spec is None or spec.loader is None:
+            # ``AttributeError`` is converted to an ``ImportError`` by the import machinery.
             raise AttributeError from None
 
+        spec.loader = loader = importlib.util.LazyLoader(spec.loader)
         sys.modules[fullname] = module = importlib.util.module_from_spec(spec)
-        if spec.loader is None:
-            raise AttributeError from None
+        loader.exec_module(module)
 
-        lazy_loader = importlib.util.LazyLoader(spec.loader)
-        lazy_loader.exec_module(module)
         return module
