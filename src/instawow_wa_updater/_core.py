@@ -133,9 +133,9 @@ def _merge_auras(auras: Iterable[_Auras]):
 
 
 class _TocNumber(StrEnum):
-    Retail = '100100'
-    VanillaClassic = '11403'
-    Classic = '30401'
+    Retail = '100206'
+    VanillaClassic = '11502'
+    Classic = '30403'
     CataclysmClassic = '40400'
 
 
