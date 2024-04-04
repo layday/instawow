@@ -9,9 +9,10 @@ from yarl import URL
 
 from .. import results as R
 from ..catalogue.cataloguer import CatalogueEntry
-from ..common import ChangelogFormat, Defn, Flavour, FlavourVersionRange, SourceMetadata
+from ..definitions import ChangelogFormat, Defn, SourceMetadata
 from ..http import ClientSessionType
 from ..resolvers import BaseResolver, PkgCandidate
+from ..wow_installations import Flavour, FlavourVersionRange
 
 
 class _TukuiAddon(TypedDict):
@@ -59,12 +60,10 @@ class TukuiResolver(BaseResolver):
 
             ui_metadata: _TukuiAddon = await response.json()
 
-        if not any(
-            Flavour.from_flavour_keyed_enum(r) is self._manager_ctx.config.game_flavour
-            for g in ui_metadata['patch']
-            for r in (FlavourVersionRange.from_version_string(g),)
-            if r
-        ):
+        wanted_version_range = self._manager_ctx.config.game_flavour.to_flavour_keyed_enum(
+            FlavourVersionRange
+        )
+        if not any(wanted_version_range.contains(p) for p in ui_metadata['patch']):
             raise R.PkgFilesNotMatching(defn.strategies)
 
         return PkgCandidate(
@@ -102,8 +101,7 @@ class TukuiResolver(BaseResolver):
                 game_flavours=frozenset(
                     Flavour.from_flavour_keyed_enum(r)
                     for g in item['patch']
-                    for r in (FlavourVersionRange.from_version_string(g),)
-                    if r
+                    if (r := FlavourVersionRange.from_version(g))
                 ),
                 download_count=1,
                 last_updated=datetime.fromisoformat(item['last_update']).replace(

@@ -10,7 +10,7 @@ from aiohttp import ClientWebSocketResponse, WSServerHandshakeError
 from aiohttp.test_utils import TestClient, TestServer
 from yarl import URL
 
-from instawow.config import Config, GlobalConfig, config_converter
+from instawow.config import GlobalConfig, ProfileConfig, config_converter
 
 try:
     from instawow_gui import json_rpc_server
@@ -78,8 +78,10 @@ async def test_write_config(
     rpc_response = await ws.receive_json()
     assert rpc_response['id'] == request.node.name
     assert config_converter.structure(
-        rpc_response['result'], Config
-    ) == config_converter.structure({'global_config': global_config, **config_values}, Config)
+        rpc_response['result'], ProfileConfig
+    ) == config_converter.structure(
+        {'global_config': global_config, **config_values}, ProfileConfig
+    )
 
 
 async def test_write_config_with_invalid_params(

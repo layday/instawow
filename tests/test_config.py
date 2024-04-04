@@ -7,8 +7,8 @@ from typing import Any
 import pytest
 from cattrs import AttributeValidationNote, ClassValidationError
 
-from instawow.common import Flavour
-from instawow.config import Config, GlobalConfig
+from instawow.config import GlobalConfig, ProfileConfig
+from instawow.wow_installations import Flavour
 
 
 def test_env_vars_always_take_precedence(
@@ -22,7 +22,7 @@ def test_env_vars_always_take_precedence(
     global_config = GlobalConfig.from_values(
         {**iw_global_config_values, 'auto_update_check': False}, env=True
     )
-    config = Config.from_values(
+    config = ProfileConfig.from_values(
         {'global_config': global_config, **iw_config_values, 'game_flavour': 'retail'}, env=True
     )
     assert global_config.auto_update_check is True
@@ -34,7 +34,7 @@ def test_read_profile_from_nonexistent_config_dir_raises(
 ):
     global_config = GlobalConfig(config_dir=iw_global_config_values['config_dir'])
     with pytest.raises(FileNotFoundError):
-        Config.read(global_config, '__default__')
+        ProfileConfig.read(global_config, '__default__')
 
 
 def test_init_with_nonexistent_addon_dir_raises(
@@ -42,8 +42,12 @@ def test_init_with_nonexistent_addon_dir_raises(
     iw_config_values: dict[str, Any],
 ):
     global_config = GlobalConfig.from_values(iw_global_config_values).write()
+
+    values = dict(iw_config_values)
+    del values['_installation_dir']
+
     with pytest.raises(ValueError, match='not a writable directory'):
-        Config(global_config=global_config, **{**iw_config_values, 'addon_dir': '#@$foo'})
+        ProfileConfig(**{'global_config': global_config, **values, 'addon_dir': '#@$foo'})
 
 
 def test_default_config_dir(
@@ -143,11 +147,23 @@ def test_can_list_profiles(
     iw_config_values: dict[str, Any],
 ):
     global_config = GlobalConfig.read()
-    assert global_config.list_profiles() == []
+    assert set(global_config.iter_profiles()) == set()
 
-    Config.from_values({'global_config': global_config, **iw_config_values}).write()
-    Config(global_config=global_config, **{**iw_config_values, 'profile': 'foo'}).write()
-    assert set(global_config.list_profiles()) == {'__default__', 'foo'}
+    ProfileConfig.from_values({'global_config': global_config, **iw_config_values}).write()
+    ProfileConfig.from_values(
+        {'global_config': global_config, **iw_config_values, 'profile': 'foo'}, env=False
+    ).write()
+    assert set(global_config.iter_profiles()) == {'__default__', 'foo'}
+
+
+def test_can_list_installations(
+    iw_config_values: dict[str, Any],
+):
+    global_config = GlobalConfig.read()
+    assert set(global_config.iter_installations()) == set()
+
+    ProfileConfig.from_values({'global_config': global_config, **iw_config_values}).write()
+    assert set(global_config.iter_installations()) == {iw_config_values['_installation_dir']}
 
 
 def test_profile_dirs_are_populated(
@@ -155,7 +171,9 @@ def test_profile_dirs_are_populated(
     iw_config_values: dict[str, Any],
 ):
     global_config = GlobalConfig.from_values(iw_global_config_values)
-    config = Config.from_values({'global_config': global_config, **iw_config_values}).write()
+    config = ProfileConfig.from_values(
+        {'global_config': global_config, **iw_config_values}
+    ).write()
     assert {i.name for i in config.config_dir.iterdir()} <= {'config.json'}
     assert {i.name for i in config.state_dir.iterdir()} <= {'logs', 'plugins'}
 
@@ -165,7 +183,9 @@ def test_can_delete_profile(
     iw_config_values: dict[str, Any],
 ):
     global_config = GlobalConfig.from_values(iw_global_config_values).write()
-    config = Config.from_values({'global_config': global_config, **iw_config_values}).write()
+    config = ProfileConfig.from_values(
+        {'global_config': global_config, **iw_config_values}
+    ).write()
     assert config.config_dir.exists()
     config.delete()
     assert not config.config_dir.exists()
@@ -178,13 +198,15 @@ def test_validate_profile_name(
     global_config = GlobalConfig.from_values(iw_global_config_values)
 
     with pytest.raises(ClassValidationError) as exc_info:
-        Config.from_values({'global_config': global_config, **iw_config_values, 'profile': ''})
+        ProfileConfig.from_values(
+            {'global_config': global_config, **iw_config_values, 'profile': ''}
+        )
 
     (value_error,) = exc_info.value.exceptions
     assert value_error.args == ('Value must have a minimum length of 1',)
 
     (note,) = value_error.__notes__
-    assert note == 'Structuring class Config @ attribute profile'
+    assert note == 'Structuring class ProfileConfig @ attribute profile'
     assert type(note) is AttributeValidationNote
     assert note.name == 'profile'
 
@@ -204,7 +226,7 @@ def test_validate_addon_dir(
     non_writeable_dir.mkdir(0o400)
 
     with pytest.raises(ClassValidationError) as exc_info:
-        Config.from_values(
+        ProfileConfig.from_values(
             {'global_config': global_config, **iw_config_values, 'addon_dir': non_writeable_dir}
         )
 
@@ -212,6 +234,6 @@ def test_validate_addon_dir(
     assert value_error.args == (f'"{non_writeable_dir}" is not a writable directory',)
 
     (note,) = value_error.__notes__
-    assert note == 'Structuring class Config @ attribute addon_dir'
+    assert note == 'Structuring class ProfileConfig @ attribute addon_dir'
     assert type(note) is AttributeValidationNote
     assert note.name == 'addon_dir'

@@ -35,12 +35,12 @@ from instawow import results as R
 from instawow._version_check import is_outdated
 from instawow.catalogue.cataloguer import ComputedCatalogueEntry
 from instawow.catalogue.search import search
-from instawow.common import Defn, Flavour, SourceMetadata
-from instawow.config import Config, GlobalConfig, SecretStr, config_converter
+from instawow.config import GlobalConfig, ProfileConfig, SecretStr, config_converter
+from instawow.definitions import Defn, SourceMetadata
 from instawow.github_auth import get_codes, poll_for_access_token
 from instawow.http import TraceRequestCtx, init_web_client
-from instawow.manager_ctx import LocksType, ManagerCtx, contextualise
-from instawow.pkg_management import PkgManager, bucketise_results
+from instawow.manager_ctx import ManagerCtx, contextualise
+from instawow.pkg_management import PkgDownloadTraceRequestCtx, PkgManager, bucketise_results
 from instawow.utils import (
     StrEnum,
     WeakValueDefaultDictionary,
@@ -49,7 +49,7 @@ from instawow.utils import (
     uniq,
 )
 from instawow.utils import run_in_thread as t
-from instawow.wow_installations import infer_flavour_from_addon_dir
+from instawow.wow_installations import Flavour, infer_flavour_from_addon_dir
 
 from . import frontend
 
@@ -142,9 +142,9 @@ def _read_global_config() -> GlobalConfig:
 
 
 @t
-def _read_config(global_config: GlobalConfig, profile: str) -> Config:
+def _read_config(global_config: GlobalConfig, profile: str) -> ProfileConfig:
     with _reraise_validation_errors(_ConfigError):
-        return Config.read(global_config, profile).ensure_dirs()
+        return ProfileConfig.read(global_config, profile).ensure_dirs()
 
 
 _methods: list[tuple[str, type[BaseParams]]] = []
@@ -188,7 +188,7 @@ class WriteProfileConfigParams(_ProfileParamMixin, BaseParams):
     game_flavour: Flavour
     infer_game_flavour: bool
 
-    async def respond(self, managers: _ManagersManager) -> Config:
+    async def respond(self, managers: _ManagersManager) -> ProfileConfig:
         async with managers.locks[_LOCK_PREFIX, _LockOperation.ModifyProfile, self.profile]:
             with _reraise_validation_errors(_ConfigError):
                 config = config_converter.structure(
@@ -198,7 +198,7 @@ class WriteProfileConfigParams(_ProfileParamMixin, BaseParams):
                         'addon_dir': self.addon_dir,
                         'game_flavour': self.game_flavour,
                     },
-                    Config,
+                    ProfileConfig,
                 )
                 if self.infer_game_flavour:
                     config = attrs.evolve(
@@ -217,7 +217,7 @@ class WriteProfileConfigParams(_ProfileParamMixin, BaseParams):
 
 @_register_method('config/read_profile')
 class ReadProfileConfigParams(_ProfileParamMixin, BaseParams):
-    async def respond(self, managers: _ManagersManager) -> Config:
+    async def respond(self, managers: _ManagersManager) -> ProfileConfig:
         return await _read_config(managers.global_config, self.profile)
 
 
@@ -234,7 +234,7 @@ class DeleteProfileConfigParams(_ProfileParamMixin, BaseParams):
 @_register_method('config/list_profiles')
 class ListProfilesParams(BaseParams):
     async def respond(self, managers: _ManagersManager) -> list[str]:
-        return await t(managers.global_config.list_profiles)()
+        return await t(list[str])(managers.global_config.iter_profiles())
 
 
 @_register_method('config/update_global')
@@ -570,7 +570,7 @@ class SelectFolderParams(BaseParams):
             return await main_window.select_folder_dialog('Select folder', self.initial_folder)
 
         try:
-            selection = portal.start_task_soon(select_folder).result()
+            selection = portal.call(select_folder)
         except ValueError:
             selection = None
         return {'selection': selection}
@@ -591,7 +591,7 @@ class ConfirmDialogueParams(BaseParams):
         async def confirm() -> bool:
             return await main_window.confirm_dialog(self.title, self.message)
 
-        return {'ok': portal.start_task_soon(confirm).result()}
+        return {'ok': portal.call(confirm)}
 
 
 def _init_json_rpc_web_client(cache_dir: Path):
@@ -600,7 +600,9 @@ def _init_json_rpc_web_client(cache_dir: Path):
         trace_config_ctx: Any,
         params: aiohttp.TraceRequestEndParams,
     ) -> None:
-        trace_request_ctx: TraceRequestCtx = trace_config_ctx.trace_request_ctx
+        trace_request_ctx: TraceRequestCtx[PkgDownloadTraceRequestCtx] = (
+            trace_config_ctx.trace_request_ctx
+        )
         if (
             trace_request_ctx
             and trace_request_ctx['report_progress'] == 'pkg_download'
@@ -630,7 +632,7 @@ class _ManagersManager:
     def __init__(self):
         self._exit_stack = AsyncExitStack()
 
-        self.locks: LocksType = WeakValueDefaultDictionary(asyncio.Lock)
+        self.locks = WeakValueDefaultDictionary[object, asyncio.Lock](asyncio.Lock)
 
         self._managers = dict[str, PkgManager]()
 

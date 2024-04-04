@@ -13,7 +13,7 @@ from typing_extensions import NotRequired as N
 from typing_extensions import TypedDict
 from yarl import URL
 
-from instawow.http import CACHE_INDEFINITELY, make_generic_progress_ctx
+from instawow.http import CACHE_INDEFINITELY, GenericDownloadTraceRequestCtx
 from instawow.manager_ctx import ManagerCtx
 from instawow.utils import (
     StrEnum,
@@ -136,6 +136,7 @@ class _TocNumber(StrEnum):
     Retail = '100100'
     VanillaClassic = '11403'
     Classic = '30401'
+    CataclysmClassic = '40400'
 
 
 class WaCompanionBuilder:
@@ -198,7 +199,9 @@ class WaCompanionBuilder:
             expire_after=timedelta(minutes=30),
             headers=self._make_request_headers(),
             json={'ids': list(aura_ids)},
-            trace_request_ctx=make_generic_progress_ctx('Fetching aura metadata'),
+            trace_request_ctx=GenericDownloadTraceRequestCtx(
+                report_progress='generic', label='Fetching aura metadata'
+            ),
         ) as response:
             metadata: list[_WagoApiResponse]
             if response.status == 404:
@@ -218,7 +221,9 @@ class WaCompanionBuilder:
             expire_after=CACHE_INDEFINITELY,
             headers=self._make_request_headers(),
             raise_for_status=True,
-            trace_request_ctx=make_generic_progress_ctx(f"Fetching aura '{remote_aura['slug']}'"),
+            trace_request_ctx=GenericDownloadTraceRequestCtx(
+                report_progress='generic', label=f"Fetching aura '{remote_aura['slug']}'"
+            ),
         ) as response:
             return await response.text()
 

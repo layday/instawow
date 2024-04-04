@@ -14,7 +14,7 @@ from itertools import filterfalse, product, repeat, starmap
 from pathlib import Path
 from shutil import move
 from tempfile import NamedTemporaryFile
-from typing import Concatenate, TypeVar
+from typing import Concatenate, Literal, TypeVar
 
 import attrs
 from loguru import logger
@@ -23,8 +23,8 @@ from yarl import URL
 
 from . import pkg_db, pkg_models
 from . import results as R
-from .common import Defn, Strategy
-from .http import CACHE_INDEFINITELY, make_defn_progress_ctx
+from .definitions import Defn, Strategy
+from .http import CACHE_INDEFINITELY, ProgressCtx
 from .manager_ctx import ManagerCtx
 from .resolvers import HeadersIntent
 from .utils import (
@@ -49,6 +49,11 @@ _move_async = run_in_thread(move)
 
 _MUTATE_PKGS_LOCK = '_MUTATE_PKGS_'
 _DOWNLOAD_PKG_LOCK = '_DOWNLOAD_PKG_'
+
+
+class PkgDownloadTraceRequestCtx(ProgressCtx[Literal['pkg_download']]):
+    profile: str
+    defn: Defn
 
 
 def bucketise_results(
@@ -88,7 +93,9 @@ async def _download_pkg_archive(ctx: ManagerCtx, defn: Defn, pkg: pkg_models.Pkg
         headers = await ctx.resolvers[pkg.source].make_request_headers(
             intent=HeadersIntent.Download
         )
-        trace_request_ctx = make_defn_progress_ctx(ctx.config.profile, defn)
+        trace_request_ctx = PkgDownloadTraceRequestCtx(
+            report_progress='pkg_download', profile=ctx.config.profile, defn=defn
+        )
 
         async with (
             ctx.web_client.get(
@@ -267,13 +274,15 @@ class PkgManager:
 
     def pair_uri(self, value: str) -> tuple[str, str] | None:
         "Attempt to extract a valid ``Defn`` source and alias from a URL."
-        aliases_from_url = (
-            (r.metadata.id, a)
-            for r in self.ctx.resolvers.values()
-            for a in (r.get_alias_from_url(URL(value)),)
-            if a
+        url = URL(value)
+        return next(
+            (
+                (r.metadata.id, a)
+                for r in self.ctx.resolvers.values()
+                if (a := r.get_alias_from_url(url))
+            ),
+            None,
         )
-        return next(aliases_from_url, None)
 
     def check_pkg_exists(self, defn: Defn) -> bool:
         "Check that a package exists in the database."

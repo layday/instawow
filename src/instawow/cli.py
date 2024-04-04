@@ -20,11 +20,12 @@ from . import __version__, pkg_db, pkg_management, pkg_models
 from . import manager_ctx as _manager_ctx
 from . import results as R
 from ._logging import setup_logging
-from .common import ChangelogFormat, Defn, Flavour, SourceMetadata, Strategy
-from .config import Config, GlobalConfig, config_converter
+from .config import GlobalConfig, ProfileConfig, config_converter
+from .definitions import ChangelogFormat, Defn, SourceMetadata, Strategy
 from .http import TraceRequestCtx, init_web_client
 from .plugins import get_plugin_commands
 from .utils import StrEnum, all_eq, gather, reveal_folder, tabulate, uniq
+from .wow_installations import Flavour
 
 _T = TypeVar('_T')
 _TStrEnum = TypeVar('_TStrEnum', bound=StrEnum)
@@ -98,7 +99,7 @@ class CtxObjWrapper:
     def manager(self) -> pkg_management.PkgManager:
         global_config = GlobalConfig.read().ensure_dirs()
         try:
-            config = Config.read(global_config, self._ctx.params['profile']).ensure_dirs()
+            config = ProfileConfig.read(global_config, self._ctx.params['profile']).ensure_dirs()
         except FileNotFoundError:
             config = self._ctx.invoke(configure)
 
@@ -133,7 +134,9 @@ class CtxObjWrapper:
                     trace_config_ctx: Any,
                     params: aiohttp.TraceRequestEndParams,
                 ):
-                    trace_request_ctx: TraceRequestCtx = trace_config_ctx.trace_request_ctx
+                    trace_request_ctx: TraceRequestCtx[
+                        pkg_management.PkgDownloadTraceRequestCtx
+                    ] = trace_config_ctx.trace_request_ctx
                     if trace_request_ctx:
                         response = params.response
                         label = (
@@ -1073,7 +1076,7 @@ class _EditableConfigOptions(StrEnum):
 def configure(
     ctx: click.Context,
     editable_config_values: Mapping[_EditableConfigOptions, Any],
-) -> Config:
+) -> ProfileConfig:
     """Configure instawow.
 
     You can pass configuration keys as arguments to reconfigure an existing
@@ -1107,7 +1110,7 @@ def configure(
 
     config_values: dict[str, Any] | None = None
     try:
-        config_values = attrs.asdict(Config.read(existing_global_config, profile))
+        config_values = attrs.asdict(ProfileConfig.read(existing_global_config, profile))
     except FileNotFoundError:
         pass
     except Exception:
@@ -1140,29 +1143,20 @@ def configure(
         and {_EditableConfigOptions.AddonDir, _EditableConfigOptions.GameFlavour}
         <= interactive_editable_config_keys
     ):
-
-        def get_known_installations():
-            for profile in existing_global_config.list_profiles():
-                try:
-                    config = Config.read(existing_global_config, profile, env=False)
-                except Exception:
-                    continue
-                else:
-                    yield config.addon_dir.parent.parent
-
-        available_installations = [
-            (k, v)
+        known_installations = list(existing_global_config.iter_installations())
+        unimported_installations = [
+            (k, v and v['flavour'])
             for k, v in find_installations()
-            if not any(d.samefile(k) for d in get_known_installations())
+            if not any(d.samefile(k) for d in known_installations)
         ]
-        if available_installations:
+        if unimported_installations:
             selection: tuple[Path, Flavour | None] | tuple[()] = ask(
                 select(
                     'Installation:',
                     choices=[
                         *(
                             Choice(title=f'{k}  [{v}]', value=(k, v))
-                            for k, v in available_installations
+                            for k, v in unimported_installations
                         ),
                         skip,
                     ],
@@ -1189,7 +1183,7 @@ def configure(
                 'Add-on directory:',
                 only_directories=True,
                 validate=AttrsFieldValidator(
-                    attrs.fields(attrs.resolve_types(Config)).addon_dir,
+                    attrs.fields(attrs.resolve_types(ProfileConfig)).addon_dir,
                     config_converter,
                 ),
             )
@@ -1249,7 +1243,7 @@ def configure(
             parent = parent[part]
         parent[key.path[-1]] = value
 
-    config = Config.from_values(config_values)
+    config = ProfileConfig.from_values(config_values)
     config.global_config.write()
     config.write()
 

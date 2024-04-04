@@ -16,8 +16,8 @@ from prompt_toolkit.output import DummyOutput
 
 from instawow import __version__
 from instawow.cli import cli
-from instawow.common import SourceMetadata
-from instawow.config import Config
+from instawow.config import ProfileConfig
+from instawow.definitions import SourceMetadata
 
 
 @pytest.fixture(autouse=True, scope='module')
@@ -37,7 +37,7 @@ def feed_pt():
 @pytest.fixture
 async def run(
     monkeypatch: pytest.MonkeyPatch,
-    iw_config: Config,
+    iw_config: ProfileConfig,
 ):
     import asyncio
 
@@ -57,7 +57,7 @@ def install_molinari_and_run(
 
 @pytest.fixture
 def pretend_install_molinari_and_run(
-    iw_config: Config,
+    iw_config: ProfileConfig,
     run: C[[str], Result],
 ):
     molinari = iw_config.addon_dir / 'Molinari'
@@ -124,7 +124,7 @@ def test_reconciled_folder_conflict_on_install(
 
 
 def test_unreconciled_folder_conflict_on_install(
-    iw_config: Config,
+    iw_config: ProfileConfig,
     run: C[[str], Result],
 ):
     iw_config.addon_dir.joinpath('Molinari').mkdir()
@@ -138,7 +138,7 @@ def test_unreconciled_folder_conflict_on_install(
 
 
 def test_keep_folders_on_remove(
-    iw_config: Config,
+    iw_config: ProfileConfig,
     install_molinari_and_run: C[[str], Result],
 ):
     assert (
@@ -244,7 +244,7 @@ def test_install_dry_run(
 
 
 def test_debug(
-    iw_config: Config,
+    iw_config: ProfileConfig,
     run: C[[str], Result],
 ):
     assert run('debug').output == iw_config.encode_for_display() + '\n'
@@ -254,7 +254,7 @@ def test_debug(
 def test_configure__create_new_profile(
     monkeypatch: pytest.MonkeyPatch,
     feed_pt: C[[str], None],
-    iw_config: Config,
+    iw_config: ProfileConfig,
     run: C[[str], Result],
     command: str,
 ):
@@ -274,7 +274,7 @@ def test_configure__create_new_profile(
 
 def test_configure__update_existing_profile_interactively(
     feed_pt: C[[str], None],
-    iw_config: Config,
+    iw_config: ProfileConfig,
     run: C[[str], Result],
 ):
     feed_pt('Y\r')
@@ -286,7 +286,7 @@ def test_configure__update_existing_profile_interactively(
 
 
 def test_configure__update_existing_profile_directly(
-    iw_config: Config,
+    iw_config: ProfileConfig,
     run: C[[str], Result],
 ):
     assert run('configure global_config.auto_update_check=0').output == (

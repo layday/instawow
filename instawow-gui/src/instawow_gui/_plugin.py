@@ -11,12 +11,12 @@ def _gui_command(ctx: click.Context) -> None:
     "Fire up the GUI."
     from instawow import __version__
     from instawow._logging import setup_logging
-    from instawow.config import Config, GlobalConfig
+    from instawow.config import GlobalConfig, ProfileConfig
 
     from .app import InstawowApp
 
     global_config = GlobalConfig.read().ensure_dirs()
-    dummy_jsonrpc_config = Config.make_dummy_config(
+    dummy_jsonrpc_config = ProfileConfig.make_dummy_config(
         global_config=global_config, profile='__jsonrpc__'
     ).ensure_dirs()
 

@@ -16,11 +16,12 @@ from yarl import URL
 from .. import pkg_models
 from .. import results as R
 from ..catalogue.cataloguer import CatalogueEntry
-from ..common import ChangelogFormat, Defn, Flavour, SourceMetadata, Strategy
 from ..config import GlobalConfig
-from ..http import CACHE_INDEFINITELY, ClientSessionType, make_generic_progress_ctx
+from ..definitions import ChangelogFormat, Defn, SourceMetadata, Strategy
+from ..http import CACHE_INDEFINITELY, ClientSessionType, GenericDownloadTraceRequestCtx
 from ..resolvers import BaseResolver, HeadersIntent, PkgCandidate
 from ..utils import gather, uniq
+from ..wow_installations import Flavour
 
 _T = TypeVar('_T')
 
@@ -350,8 +351,8 @@ class CfCoreResolver(BaseResolver):
                 expire_after=timedelta(hours=1),
                 headers=await self.make_request_headers(),
                 raise_for_status=True,
-                trace_request_ctx=make_generic_progress_ctx(
-                    f'Fetching metadata from {self.metadata.name}'
+                trace_request_ctx=GenericDownloadTraceRequestCtx(
+                    report_progress='generic', label=f'Fetching metadata from {self.metadata.name}'
                 ),
             ) as files_response:
                 files_response_json: _CfCoreFilesResponse = await files_response.json()

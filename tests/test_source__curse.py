@@ -7,11 +7,12 @@ from typing_extensions import assert_never
 from yarl import URL
 
 from instawow._sources.cfcore import CfCoreResolver
-from instawow.common import Defn, Flavour, Strategy, StrategyValues
+from instawow.definitions import Defn, Strategy, StrategyValues
 from instawow.manager_ctx import ManagerCtx
 from instawow.pkg_management import PkgManager
 from instawow.pkg_models import Pkg
 from instawow.results import PkgFilesNotMatching
+from instawow.wow_installations import Flavour
 
 CURSE_IDS = {
     'big-wigs': '2382',

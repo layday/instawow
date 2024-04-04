@@ -7,7 +7,7 @@ import attrs
 from loguru import logger
 
 from . import pkg_models
-from .common import Strategy, StrategyValues
+from .definitions import Strategy, StrategyValues
 
 _T = TypeVar('_T')
 

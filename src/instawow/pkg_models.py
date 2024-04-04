@@ -6,7 +6,7 @@ from functools import lru_cache
 import cattrs
 from attrs import field, frozen
 
-from .common import Defn, StrategyValues
+from .definitions import Defn, StrategyValues
 
 
 @lru_cache(1)

@@ -14,10 +14,11 @@ from yarl import URL
 from .. import pkg_models
 from .. import results as R
 from ..catalogue.cataloguer import CatalogueEntry
-from ..common import ChangelogFormat, Defn, Flavour, FlavourVersionRange, SourceMetadata
-from ..http import ClientSessionType, make_generic_progress_ctx
+from ..definitions import ChangelogFormat, Defn, SourceMetadata
+from ..http import ClientSessionType, GenericDownloadTraceRequestCtx
 from ..resolvers import BaseResolver, PkgCandidate
 from ..utils import as_plain_text_data_url, gather, slugify, uniq
+from ..wow_installations import Flavour, FlavourVersionRange
 
 _lock_prefix = object()
 
@@ -119,8 +120,9 @@ class WowiResolver(BaseResolver):
                 self.__list_api_url,
                 expire_after=timedelta(hours=1),
                 raise_for_status=True,
-                trace_request_ctx=make_generic_progress_ctx(
-                    f'Synchronising {self.metadata.name} catalogue'
+                trace_request_ctx=GenericDownloadTraceRequestCtx(
+                    report_progress='generic',
+                    label=f'Synchronising {self.metadata.name} catalogue',
                 ),
             ) as response:
                 list_items_by_id: dict[str, _WowiListApiItem] = {
@@ -198,9 +200,9 @@ class WowiResolver(BaseResolver):
                         game_flavours = (Flavour.Retail,)
                     else:
                         game_flavours = (
-                            Flavour.from_flavour_keyed_enum(f)
+                            Flavour.from_flavour_keyed_enum(r)
                             for c in compatibility
-                            if (f := FlavourVersionRange.from_version_string(c['version']))
+                            if (r := FlavourVersionRange.from_version(c['version']))
                         )
 
             yield CatalogueEntry(

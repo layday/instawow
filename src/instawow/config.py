@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import os
 import sys
-from collections.abc import Callable, Iterable, Mapping, Sized
+from collections.abc import Callable, Iterable, Iterator, Mapping, Sized
 from functools import lru_cache, partial
 from pathlib import Path
 from tempfile import gettempdir
@@ -15,8 +15,8 @@ import cattrs.gen
 import cattrs.preconf.json
 from typing_extensions import Self
 
-from .common import Flavour
 from .utils import add_exc_note, fauxfrozen, trash
+from .wow_installations import Flavour, get_installation_dir_from_addon_dir
 
 _T = TypeVar('_T')
 
@@ -141,7 +141,7 @@ def _make_display_converter():
 
     def convert_global_config(global_config: GlobalConfig):
         return converter.unstructure_attrs_asdict(global_config) | {
-            'profiles': global_config.list_profiles()
+            'profiles': list(global_config.iter_profiles())
         }
 
     converter = make_config_converter()
@@ -153,7 +153,7 @@ def _make_display_converter():
 @lru_cache(1)
 def _make_write_converter():
     converter = make_config_converter()
-    for config_cls in [GlobalConfig, Config]:
+    for config_cls in [GlobalConfig, ProfileConfig]:
         converter.register_unstructure_hook(
             config_cls,
             cattrs.gen.make_dict_unstructure_fn(
@@ -255,10 +255,21 @@ class GlobalConfig:
         config_values = _read_config(unsaved_config.config_file, missing_ok=True)
         return cls.from_values(config_values, env=env) if config_values else unsaved_config
 
-    def list_profiles(self) -> list[str]:
+    def iter_profiles(self) -> Iterator[str]:
         "Get the names of the profiles contained in ``config_dir``."
-        profiles = [c.parent.name for c in self.profiles_config_dir.glob('*/config.json')]
-        return profiles
+        yield from (c.parent.name for c in self.profiles_config_dir.glob('*/config.json'))
+
+    def iter_installations(self) -> Iterator[Path]:
+        """Get the installation directory of each profile, where one can be extracted.
+
+        *instawow* does not mandate that an add-on directory is tied to an installation
+        directory which allows to e.g. update add-ons out of band.
+        """
+        for config_json in self.profiles_config_dir.glob('*/config.json'):
+            addon_dir = _read_config(config_json)['addon_dir']
+            maybe_installation_dir = get_installation_dir_from_addon_dir(addon_dir)
+            if maybe_installation_dir:
+                yield maybe_installation_dir
 
     def ensure_dirs(self) -> Self:
         _ensure_dirs(
@@ -304,7 +315,7 @@ class GlobalConfig:
 
 
 @fauxfrozen
-class Config:
+class ProfileConfig:
     global_config: GlobalConfig
     profile: str = attrs.field(
         converter=str.strip,
@@ -317,11 +328,11 @@ class Config:
         metadata=_ConfigMetadata(from_env=True, write_on_disk=True),
     )
     game_flavour: Flavour = attrs.field(
-        metadata=_ConfigMetadata(from_env=True, write_on_disk=True)
+        metadata=_ConfigMetadata(from_env=True, write_on_disk=True),
     )
 
     @classmethod
-    def make_dummy_config(cls, **values: object) -> Config:
+    def make_dummy_config(cls, **values: object) -> ProfileConfig:
         return object.__new__(type(f'Dummy{cls.__name__}', (cls,), values))
 
     @classmethod

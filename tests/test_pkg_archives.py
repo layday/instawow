@@ -4,7 +4,7 @@ from itertools import product
 
 import pytest
 
-from instawow.archives import find_archive_addon_tocs, make_archive_member_filter_fn
+from instawow.pkg_archives import find_archive_addon_tocs, make_archive_member_filter_fn
 
 
 def test_find_archive_addon_tocs_can_find_explicit_dirs():

@@ -10,8 +10,8 @@ from yarl import URL
 
 from .. import matchers
 from .. import results as R
-from ..common import ChangelogFormat, Defn, SourceMetadata, Strategy
-from ..http import make_generic_progress_ctx
+from ..definitions import ChangelogFormat, Defn, SourceMetadata, Strategy
+from ..http import GenericDownloadTraceRequestCtx
 from ..resolvers import BaseResolver, HeadersIntent, PkgCandidate, TFolderHashCandidate
 from ..utils import StrEnum, as_plain_text_data_url, run_in_thread
 
@@ -189,7 +189,9 @@ class WagoResolver(BaseResolver):
             headers=await self.make_request_headers(),
             json=await self.__make_match_params(candidates),
             raise_for_status=True,
-            trace_request_ctx=make_generic_progress_ctx('Finding matching Wago add-ons'),
+            trace_request_ctx=GenericDownloadTraceRequestCtx(
+                report_progress='generic', label='Finding matching Wago add-ons'
+            ),
         ) as response:
             matches: _WagoMatches = await response.json()
 

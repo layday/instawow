@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from instawow.common import ChangelogFormat, Defn, SourceMetadata, Strategy, StrategyValues
+from instawow.definitions import ChangelogFormat, Defn, SourceMetadata, Strategy, StrategyValues
 from instawow.manager_ctx import ManagerCtx
 from instawow.resolvers import BaseResolver
 from instawow.results import PkgStrategiesUnsupported
@@ -19,6 +19,7 @@ async def test_unsupported_strategies_raise(
             changelog_format=ChangelogFormat.Raw,
             addon_toc_key=None,
         )
+        requires_access_token = None
 
         def _resolve_one(self, defn: Defn, metadata: Any):
             raise NotImplementedError

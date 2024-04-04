@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from instawow.common import Defn, Flavour
+from instawow.definitions import Defn
 from instawow.manager_ctx import ManagerCtx
 from instawow.matchers import (
     AddonFolder,
@@ -16,6 +16,7 @@ from instawow.matchers import (
     match_folder_name_subsets,
     match_toc_source_ids,
 )
+from instawow.wow_installations import Flavour
 
 MOLINARI_HASH = '2da096db5769138b5428a068343cddf3'
 

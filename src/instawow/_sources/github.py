@@ -12,10 +12,10 @@ from typing_extensions import TypedDict
 from yarl import URL
 
 from .. import results as R
-from ..archives import find_archive_addon_tocs
 from ..catalogue.cataloguer import AddonKey, CatalogueEntry
-from ..common import ChangelogFormat, Defn, Flavour, FlavourVersionRange, SourceMetadata, Strategy
+from ..definitions import ChangelogFormat, Defn, SourceMetadata, Strategy
 from ..http import CACHE_INDEFINITELY, ClientSessionType
+from ..pkg_archives import find_archive_addon_tocs
 from ..resolvers import BaseResolver, HeadersIntent, PkgCandidate
 from ..utils import (
     StrEnum,
@@ -23,6 +23,7 @@ from ..utils import (
     as_plain_text_data_url,
     extract_byte_range_offset,
 )
+from ..wow_installations import Flavour, FlavourVersionRange
 
 
 # Not exhaustive (as you might've guessed).  Reference:
@@ -265,7 +266,7 @@ class GithubResolver(BaseResolver):
             logger.debug(f'found interface version {interface_version!r} in {main_toc_filename}')
             if interface_version and self._manager_ctx.config.game_flavour.to_flavour_keyed_enum(
                 FlavourVersionRange
-            ).is_within_version(int(interface_version)):
+            ).contains(int(interface_version)):
                 matching_asset = candidate
                 break
 
@@ -290,10 +291,10 @@ class GithubResolver(BaseResolver):
         if not releases:
             return None
 
-        wanted_flavour = self._manager_ctx.config.game_flavour.to_flavour_keyed_enum(
+        wanted_release_json_flavor = self._manager_ctx.config.game_flavour.to_flavour_keyed_enum(
             _PackagerReleaseJsonFlavor
         )
-        wanted_flavour_version = self._manager_ctx.config.game_flavour.to_flavour_keyed_enum(
+        wanted_version_range = self._manager_ctx.config.game_flavour.to_flavour_keyed_enum(
             FlavourVersionRange
         )
 
@@ -302,13 +303,13 @@ class GithubResolver(BaseResolver):
                 return False
 
             for metadata in release['metadata']:
-                if metadata['flavor'] != wanted_flavour:
+                if metadata['flavor'] != wanted_release_json_flavor:
                     continue
 
                 interface_version = metadata['interface']
-                if not wanted_flavour_version.is_within_version(interface_version):
+                if not wanted_version_range.contains(interface_version):
                     logger.info(
-                        f'interface number "{interface_version}" and flavor "{wanted_flavour}" mismatch'
+                        f'interface number "{interface_version}" and flavor "{wanted_release_json_flavor}" mismatch'
                     )
                     continue
 

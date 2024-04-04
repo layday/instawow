@@ -6,7 +6,7 @@ from typing import final
 import click
 
 import instawow.plugins
-from instawow.common import ChangelogFormat, Defn, SourceMetadata
+from instawow.definitions import ChangelogFormat, Defn, SourceMetadata
 from instawow.resolvers import BaseResolver, PkgCandidate
 
 

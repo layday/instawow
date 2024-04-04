@@ -3,7 +3,7 @@ from __future__ import annotations
 import pytest
 from yarl import URL
 
-from instawow.common import Defn
+from instawow.definitions import Defn
 from instawow.manager_ctx import ManagerCtx
 from instawow.pkg_management import PkgManager
 from instawow.pkg_models import Pkg

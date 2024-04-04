@@ -13,7 +13,7 @@ from typing_extensions import Self
 
 from .. import manager_ctx, pkg_db
 from ..catalogue import synchronise as synchronise_catalogue
-from ..common import Defn, Flavour
+from ..definitions import Defn
 from ..utils import (
     TocReader,
     bucketise,
@@ -22,6 +22,7 @@ from ..utils import (
     merge_intersecting_sets,
     uniq,
 )
+from ..wow_installations import Flavour
 from ._addon_hashing import generate_wowup_addon_hash
 
 
@@ -46,6 +47,7 @@ FLAVOUR_TOC_IDS = {
         'Wrath',
         'WOTLKC',
     ),
+    Flavour.CataclysmClassic: ('Cata',),
 }
 
 FLAVOUR_TOC_SUFFIXES = {
@@ -182,6 +184,7 @@ async def match_folder_name_subsets(
         for m in (f & leftovers_by_name.keys(),)
         if m
     ]
+
     merged_folders_by_constituent_folder = {
         i: s for s in merge_intersecting_sets(f for f, _ in matches) for i in s
     }

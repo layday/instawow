@@ -12,10 +12,11 @@ from aresponses import ResponsesMockServer
 from yarl import URL
 
 from instawow._sources.github import GithubResolver
-from instawow.common import Defn, Flavour
+from instawow.definitions import Defn
 from instawow.manager_ctx import ManagerCtx
 from instawow.pkg_models import Pkg
 from instawow.results import PkgFilesMissing, PkgFilesNotMatching, PkgNonexistent
+from instawow.wow_installations import Flavour
 
 
 @pytest.fixture

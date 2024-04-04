@@ -3,11 +3,9 @@ from __future__ import annotations
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Literal, TypeAlias
+from typing import TYPE_CHECKING, Any, Generic, Literal, TypeAlias
 
-from typing_extensions import TypedDict
-
-from .. import common
+from typing_extensions import Never, TypedDict, TypeVar
 
 if TYPE_CHECKING:
     import aiohttp
@@ -23,26 +21,19 @@ _DEFAULT_EXPIRE = 0  # Do not cache by default.
 CACHE_INDEFINITELY = -1
 
 
-class _GenericDownloadTraceRequestCtx(TypedDict):
-    report_progress: Literal['generic']
+_TProgress = TypeVar('_TProgress', bound=str)
+_TProgressCtx = TypeVar('_TProgressCtx', bound='ProgressCtx[Any]', default=Never)
+
+
+class ProgressCtx(TypedDict, Generic[_TProgress]):
+    report_progress: _TProgress
+
+
+class GenericDownloadTraceRequestCtx(ProgressCtx[Literal['generic']]):
     label: str
 
 
-class _DefnDownloadTraceRequestCtx(TypedDict):
-    report_progress: Literal['pkg_download']
-    profile: str
-    defn: common.Defn
-
-
-TraceRequestCtx: TypeAlias = _GenericDownloadTraceRequestCtx | _DefnDownloadTraceRequestCtx | None
-
-
-def make_generic_progress_ctx(label: str) -> _GenericDownloadTraceRequestCtx:
-    return {'report_progress': 'generic', 'label': label}
-
-
-def make_defn_progress_ctx(profile: str, defn: common.Defn) -> _DefnDownloadTraceRequestCtx:
-    return {'report_progress': 'pkg_download', 'profile': profile, 'defn': defn}
+TraceRequestCtx: TypeAlias = GenericDownloadTraceRequestCtx | _TProgressCtx | None
 
 
 @asynccontextmanager

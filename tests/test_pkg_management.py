@@ -8,7 +8,7 @@ from aiohttp import ClientError
 from aresponses import ResponsesMockServer
 
 from instawow import results as R
-from instawow.common import Defn, Strategy
+from instawow.definitions import Defn, Strategy
 from instawow.pkg_management import PkgManager
 from instawow.pkg_models import Pkg
 

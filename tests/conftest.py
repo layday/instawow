@@ -11,11 +11,11 @@ from aresponses import ResponsesMockServer
 from aresponses.errors import NoRouteFoundError
 from loguru import logger
 
-from instawow.common import Flavour
-from instawow.config import Config, GlobalConfig
+from instawow.config import GlobalConfig, ProfileConfig
 from instawow.http import init_web_client
 from instawow.manager_ctx import ManagerCtx, contextualise
 from instawow.pkg_management import PkgManager
+from instawow.wow_installations import _DELECTABLE_DIR_NAMES, Flavour
 
 from .fixtures.http import ROUTES
 
@@ -83,15 +83,25 @@ def iw_global_config_values(request: pytest.FixtureRequest, tmp_path: Path):
 
 @pytest.fixture(params=[Flavour.Retail])
 def iw_config_values(request: pytest.FixtureRequest, tmp_path: Path):
-    addons = tmp_path / 'wow' / 'interface' / 'addons'
-    addons.mkdir(parents=True)
-    return {'profile': '__default__', 'addon_dir': addons, 'game_flavour': request.param}
+    installation_dir = (
+        tmp_path
+        / 'wow'
+        / next(k for k, v in _DELECTABLE_DIR_NAMES.items() if v['flavour'] is request.param)
+    )
+    addon_dir = installation_dir / 'interface' / 'addons'
+    addon_dir.mkdir(parents=True)
+    return {
+        'profile': '__default__',
+        'addon_dir': addon_dir,
+        'game_flavour': request.param,
+        '_installation_dir': installation_dir,
+    }
 
 
 @pytest.fixture
 def iw_config(iw_config_values: dict[str, Any], iw_global_config_values: dict[str, Any]):
     global_config = GlobalConfig.from_values(iw_global_config_values).write()
-    return Config.from_values({'global_config': global_config, **iw_config_values}).write()
+    return ProfileConfig.from_values({'global_config': global_config, **iw_config_values}).write()
 
 
 @pytest.fixture(autouse=True)
@@ -105,13 +115,13 @@ def _iw_global_config_defaults(
 
 
 @pytest.fixture
-async def iw_web_client(iw_config: Config):
+async def iw_web_client(iw_config: ProfileConfig):
     async with init_web_client(iw_config.global_config.cache_dir) as web_client:
         yield web_client
 
 
 @pytest.fixture
-def iw_manager_ctx(iw_config: Config, iw_web_client: aiohttp.ClientSession):
+def iw_manager_ctx(iw_config: ProfileConfig, iw_web_client: aiohttp.ClientSession):
     contextualise(web_client=iw_web_client)
     return ManagerCtx(iw_config)
 

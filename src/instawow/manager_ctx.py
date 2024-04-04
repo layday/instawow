@@ -18,8 +18,8 @@ from ._sources.instawow import InstawowResolver
 from ._sources.tukui import TukuiResolver
 from ._sources.wago import WagoResolver
 from ._sources.wowi import WowiResolver
-from .archives import ArchiveOpener, open_zip_archive
-from .config import Config
+from .config import ProfileConfig
+from .pkg_archives import ArchiveOpener, open_zip_archive
 from .plugins import get_plugin_resolvers
 from .resolvers import Resolver
 from .utils import WeakValueDefaultDictionary
@@ -69,23 +69,22 @@ class _ResolverPriorityDict(dict[str, float]):
         return float('inf')
 
 
+_Locks: TypeAlias = Mapping[object, AbstractAsyncContextManager[None]]
+
+_locks = cv.ContextVar[_Locks]('_locks', default=WeakValueDefaultDictionary(_DummyLock))
 _web_client = cv.ContextVar[http.ClientSessionType]('_web_client')
-
-LocksType: TypeAlias = Mapping[object, AbstractAsyncContextManager[None]]
-
-_locks = cv.ContextVar[LocksType]('_locks', default=WeakValueDefaultDictionary(_DummyLock))
 
 
 def contextualise(
     *,
+    locks: _Locks | None = None,
     web_client: http.ClientSessionType | None = None,
-    locks: LocksType | None = None,
 ) -> None:
     "Set variables for the current context."
-    if web_client is not None:
-        _web_client.set(web_client)
     if locks is not None:
         _locks.set(locks)
+    if web_client is not None:
+        _web_client.set(web_client)
 
 
 class ManagerCtx:
@@ -103,9 +102,9 @@ class ManagerCtx:
 
     def __init__(
         self,
-        config: Config,
+        config: ProfileConfig,
     ) -> None:
-        self.config: Config = config
+        self.config: ProfileConfig = config
 
         builtin_resolver_classes = list(self.RESOLVERS)
 
@@ -127,7 +126,7 @@ class ManagerCtx:
         return pkg_db.prepare_database(self.config.db_uri)
 
     @property
-    def locks(self) -> LocksType:
+    def locks(self) -> _Locks:
         "Lock factory used to synchronise async operations."
         return _locks.get()
 

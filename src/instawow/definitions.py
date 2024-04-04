@@ -1,71 +1,14 @@
 from __future__ import annotations
 
-import enum
 from collections.abc import Iterable
 from functools import partial
-from typing import Literal, Protocol
+from typing import Literal
 
 import attrs
-from typing_extensions import Self, TypeVar
+from typing_extensions import Self
 from yarl import URL
 
-from .utils import StrEnum, fauxfrozen, fill
-
-_TEnum = TypeVar('_TEnum', bound=enum.Enum, infer_variance=True)
-
-
-class _FlavourKeyedEnumMeta(type(Protocol)):  # pragma: no cover
-    def __getitem__(self: type[_FlavourKeyedEnum[_TEnum]], __key: str) -> _TEnum: ...
-
-
-class _FlavourKeyedEnum(Protocol[_TEnum], metaclass=_FlavourKeyedEnumMeta):  # pragma: no cover
-    Retail: _TEnum
-    VanillaClassic: _TEnum
-    Classic: _TEnum
-
-
-class Flavour(StrEnum):
-    # The latest Classic version is always aliased to "classic".
-    # The logic here is that should Classic not be discontinued
-    # it will continue to be updated in place so that new Classic versions
-    # will inherit the "_classic_" folder.  This means we won't have to
-    # migrate Classic profiles either automatically or by requiring user
-    # intervention for new Classic releases.
-    Retail = 'retail'
-    VanillaClassic = 'vanilla_classic'
-    Classic = 'classic'
-
-    @classmethod
-    def from_flavour_keyed_enum(cls, flavour_keyed_enum: enum.Enum) -> Self:
-        return cls[flavour_keyed_enum.name]
-
-    def to_flavour_keyed_enum(self, flavour_keyed_enum: type[_FlavourKeyedEnum[_TEnum]]) -> _TEnum:
-        return flavour_keyed_enum[self.name]
-
-
-class FlavourVersionRange(enum.Enum):
-    Retail = (
-        range(1_00_00, 1_13_00),
-        range(2_00_00, 2_05_00),
-        range(3_00_00, 3_04_00),
-        range(4_00_00, 4_04_00),
-        range(5_00_00, 12_00_00),
-    )
-    VanillaClassic = (range(1_13_00, 2_00_00),)
-    Classic = (range(3_04_00, 4_00_00),)
-
-    @classmethod
-    def from_version_string(cls, version_string: str) -> Self | None:
-        major, minor, patch = fill(map(int, version_string.split('.')), 0, 3)
-        version_number = major * 1_00_00 + minor * 1_00 + patch
-        return cls.from_version_number(version_number)
-
-    @classmethod
-    def from_version_number(cls, version_number: int) -> Self | None:
-        return next((f for f in cls if f.is_within_version(version_number)), None)
-
-    def is_within_version(self, version_number: int) -> bool:
-        return any(version_number in r for r in self.value)
+from .utils import StrEnum, fauxfrozen
 
 
 class Strategy(StrEnum):

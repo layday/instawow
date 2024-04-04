@@ -11,8 +11,8 @@ import cattrs.preconf.json
 from typing_extensions import Self
 
 from .. import http
-from ..config import Flavour
 from ..utils import bucketise, fauxfrozen, normalise_names
+from ..wow_installations import Flavour
 
 CATALOGUE_VERSION = 7
 COMPUTED_CATALOGUE_VERSION = 4

@@ -5,10 +5,11 @@ import datetime as dt
 import pytest
 
 from instawow.catalogue.search import search
-from instawow.common import Defn, Flavour
+from instawow.definitions import Defn
 from instawow.manager_ctx import ManagerCtx
 from instawow.pkg_management import PkgManager
 from instawow.results import PkgInstalled
+from instawow.wow_installations import Flavour
 
 
 async def test_basic_search(

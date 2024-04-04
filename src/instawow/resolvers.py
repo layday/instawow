@@ -11,11 +11,11 @@ import attrs
 from typing_extensions import NotRequired
 from yarl import URL
 
-from . import archives, http, manager_ctx, matchers, pkg_models
+from . import http, manager_ctx, matchers, pkg_archives, pkg_models
 from . import results as R
 from .catalogue.cataloguer import CatalogueEntry
-from .common import Defn, SourceMetadata
 from .config import GlobalConfig
+from .definitions import Defn, SourceMetadata
 from .utils import file_uri_to_path, gather, run_in_thread
 
 
@@ -40,7 +40,7 @@ class Resolver(Protocol):  # pragma: no cover
     requires_access_token: ClassVar[str | None]
     'Access token key or ``None``.'
 
-    archive_opener: ClassVar[archives.ArchiveOpener | None]
+    archive_opener: ClassVar[pkg_archives.ArchiveOpener | None]
     'Alternative archive opener to use supporting e.g. non-standard archive formats or layouts.'
 
     def __init__(self, manager_ctx: manager_ctx.ManagerCtx) -> None: ...

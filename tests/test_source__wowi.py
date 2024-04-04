@@ -4,7 +4,7 @@ import pytest
 from yarl import URL
 
 from instawow._sources.wowi import WowiResolver
-from instawow.common import Defn
+from instawow.definitions import Defn
 from instawow.manager_ctx import ManagerCtx
 from instawow.pkg_models import Pkg
 
