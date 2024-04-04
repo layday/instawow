@@ -1,8 +1,8 @@
 Changelog
 =========
 
-Next
-----
+v4.0.0
+------
 
 - Added support for the Classic Catalysm beta.
 
