@@ -1,10 +1,10 @@
 [
   {
-    "url": "https://api.github.com/repos/p3lim-wow/Molinari/releases/112282508",
-    "assets_url": "https://api.github.com/repos/p3lim-wow/Molinari/releases/112282508/assets",
-    "upload_url": "https://uploads.github.com/repos/p3lim-wow/Molinari/releases/112282508/assets{?name,label}",
-    "html_url": "https://github.com/p3lim-wow/Molinari/releases/tag/100105.109-Release",
-    "id": 112282508,
+    "url": "https://api.github.com/repos/p3lim-wow/Molinari/releases/140687148",
+    "assets_url": "https://api.github.com/repos/p3lim-wow/Molinari/releases/140687148/assets",
+    "upload_url": "https://uploads.github.com/repos/p3lim-wow/Molinari/releases/140687148/assets{?name,label}",
+    "html_url": "https://github.com/p3lim-wow/Molinari/releases/tag/100205.111-Release",
+    "id": 140687148,
     "author": {
       "login": "github-actions[bot]",
       "id": 41898282,
@@ -25,20 +25,20 @@
       "type": "Bot",
       "site_admin": false
     },
-    "node_id": "RE_kwDOAAXuPs4GsUuM",
-    "tag_name": "100105.109-Release",
+    "node_id": "RE_kwDOAAXuPs4IYrcs",
+    "tag_name": "100205.111-Release",
     "target_commitish": "master",
-    "name": "100105.109-Release",
+    "name": "100205.111-Release",
     "draft": false,
     "prerelease": false,
-    "created_at": "2023-07-14T17:29:40Z",
-    "published_at": "2023-07-14T17:30:44Z",
+    "created_at": "2024-02-08T19:59:17Z",
+    "published_at": "2024-02-08T20:00:12Z",
     "assets": [
       {
-        "url": "https://api.github.com/repos/p3lim-wow/Molinari/releases/assets/117032695",
-        "id": 117032695,
-        "node_id": "RA_kwDOAAXuPs4G-cb3",
-        "name": "Molinari-100105.109-Release.zip",
+        "url": "https://api.github.com/repos/p3lim-wow/Molinari/releases/assets/150579281",
+        "id": 150579281,
+        "node_id": "RA_kwDOAAXuPs4I-ahR",
+        "name": "Molinari-100205.111-Release.zip",
         "label": "",
         "uploader": {
           "login": "github-actions[bot]",
@@ -62,16 +62,16 @@
         },
         "content_type": "application/zip",
         "state": "uploaded",
-        "size": 182321,
-        "download_count": 10,
-        "created_at": "2023-07-14T17:30:45Z",
-        "updated_at": "2023-07-14T17:30:45Z",
-        "browser_download_url": "https://github.com/p3lim-wow/Molinari/releases/download/100105.109-Release/Molinari-100105.109-Release.zip"
+        "size": 186496,
+        "download_count": 16,
+        "created_at": "2024-02-08T20:00:13Z",
+        "updated_at": "2024-02-08T20:00:13Z",
+        "browser_download_url": "https://github.com/p3lim-wow/Molinari/releases/download/100205.111-Release/Molinari-100205.111-Release.zip"
       },
       {
-        "url": "https://api.github.com/repos/p3lim-wow/Molinari/releases/assets/117032696",
-        "id": 117032696,
-        "node_id": "RA_kwDOAAXuPs4G-cb4",
+        "url": "https://api.github.com/repos/p3lim-wow/Molinari/releases/assets/150579282",
+        "id": 150579282,
+        "node_id": "RA_kwDOAAXuPs4I-ahS",
         "name": "release.json",
         "label": "",
         "uploader": {
@@ -97,14 +97,14 @@
         "content_type": "application/json",
         "state": "uploaded",
         "size": 255,
-        "download_count": 377,
-        "created_at": "2023-07-14T17:30:46Z",
-        "updated_at": "2023-07-14T17:30:46Z",
-        "browser_download_url": "https://github.com/p3lim-wow/Molinari/releases/download/100105.109-Release/release.json"
+        "download_count": 1693,
+        "created_at": "2024-02-08T20:00:14Z",
+        "updated_at": "2024-02-08T20:00:14Z",
+        "browser_download_url": "https://github.com/p3lim-wow/Molinari/releases/download/100205.111-Release/release.json"
       }
     ],
-    "tarball_url": "https://api.github.com/repos/p3lim-wow/Molinari/tarball/100105.109-Release",
-    "zipball_url": "https://api.github.com/repos/p3lim-wow/Molinari/zipball/100105.109-Release",
-    "body": "### Changes in 100105.109-Release:\r\n\r\n- Changed: Update Interface version (retail)\r\n- Fixed: Not working with items in the reagent bag\r\n\r\n"
+    "tarball_url": "https://api.github.com/repos/p3lim-wow/Molinari/tarball/100205.111-Release",
+    "zipball_url": "https://api.github.com/repos/p3lim-wow/Molinari/zipball/100205.111-Release",
+    "body": "### Changes in 100205.111-Release:\r\n\r\n- Changed: Update Interface versions\r\n- Changed: Update item databases\r\n- Changed: Updated deDE translations\r\n- Fixed: Incorrect skill check for disenchanting on classic era\r\n- Fixed: Anchoring on weird bag addon slots (e.g. BetterBags)\r\n\r\n"
   }
 ]

@@ -13,22 +13,10 @@
       },
       "summary": "One-click Milling, Prospecting, Disenchanting and Lockpicking!",
       "status": 4,
-      "downloadCount": 1000795,
+      "downloadCount": 1071006,
       "isFeatured": false,
       "primaryCategoryId": 1015,
       "categories": [
-        {
-          "id": 1059,
-          "gameId": 1,
-          "name": "Inscription",
-          "slug": "inscription",
-          "url": "https://www.curseforge.com/wow/addons/professions/inscription",
-          "iconUrl": "https://media.forgecdn.net/avatars/54/501/636135209993347320.png",
-          "dateModified": "2016-10-31T19:29:59.333Z",
-          "isClass": false,
-          "classId": 1,
-          "parentCategoryId": 1015
-        },
         {
           "id": 1050,
           "gameId": 1,
@@ -40,6 +28,18 @@
           "isClass": false,
           "classId": 1,
           "parentCategoryId": 1015
+        },
+        {
+          "id": 1015,
+          "gameId": 1,
+          "name": "Professions",
+          "slug": "professions",
+          "url": "https://www.curseforge.com/wow/addons/professions",
+          "iconUrl": "https://media.forgecdn.net/avatars/54/451/636135209701693840.png",
+          "dateModified": "2016-10-31T19:29:30.187Z",
+          "isClass": false,
+          "classId": 1,
+          "parentCategoryId": 1
         },
         {
           "id": 1045,
@@ -66,16 +66,16 @@
           "parentCategoryId": 1020
         },
         {
-          "id": 1015,
+          "id": 1059,
           "gameId": 1,
-          "name": "Professions",
-          "slug": "professions",
-          "url": "https://www.curseforge.com/wow/addons/professions",
-          "iconUrl": "https://media.forgecdn.net/avatars/54/451/636135209701693840.png",
-          "dateModified": "2016-10-31T19:29:30.187Z",
+          "name": "Inscription",
+          "slug": "inscription",
+          "url": "https://www.curseforge.com/wow/addons/professions/inscription",
+          "iconUrl": "https://media.forgecdn.net/avatars/54/501/636135209993347320.png",
+          "dateModified": "2016-10-31T19:29:59.333Z",
           "isClass": false,
           "classId": 1,
-          "parentCategoryId": 1
+          "parentCategoryId": 1015
         }
       ],
       "classId": 1,
@@ -83,7 +83,7 @@
         {
           "id": 68336,
           "name": "p3lim",
-          "url": "https://www.curseforge.com/members/68336-p3lim?username=p3lim"
+          "url": "https://www.curseforge.com/members/p3lim"
         }
       ],
       "logo": {
@@ -104,7 +104,7 @@
           "url": "https://media.forgecdn.net/attachments/101/518/v2_curse.png"
         }
       ],
-      "mainFileId": 4644001,
+      "mainFileId": 5090686,
       "latestFiles": [
         {
           "id": 618477,
@@ -283,59 +283,59 @@
           ]
         },
         {
-          "id": 4644001,
+          "id": 5090686,
           "gameId": 1,
           "modId": 20338,
           "isAvailable": true,
-          "displayName": "100105.109-Release",
-          "fileName": "Molinari-100105.109-Release.zip",
+          "displayName": "100205.111-Release",
+          "fileName": "Molinari-100205.111-Release.zip",
           "releaseType": 1,
           "fileStatus": 4,
           "hashes": [
             {
-              "value": "44a8a6460f6a3fd0735942e05229f2de6152f2b9",
+              "value": "adccbdb79b46a3a0310b6a5c7322df39284e0d17",
               "algo": 1
             },
             {
-              "value": "fa0aeb39d3974abf77bc2451d350ad00",
+              "value": "b59b2132e3751d5c1cc936a8984c17c8",
               "algo": 2
             }
           ],
-          "fileDate": "2023-07-14T17:30:41.273Z",
-          "fileLength": 182321,
-          "downloadCount": 12455,
-          "downloadUrl": "https://edge.forgecdn.net/files/4644/1/Molinari-100105.109-Release.zip",
+          "fileDate": "2024-02-08T20:00:09.15Z",
+          "fileLength": 186496,
+          "downloadCount": 5764,
+          "downloadUrl": "https://edge.forgecdn.net/files/5090/686/Molinari-100205.111-Release.zip",
           "gameVersions": [
-            "10.1.5",
-            "3.4.2",
-            "1.14.3"
+            "1.15.1",
+            "3.4.3",
+            "10.2.5"
           ],
           "sortableGameVersions": [
             {
-              "gameVersionName": "10.1.5",
-              "gameVersionPadded": "0000000010.0000000001.0000000005",
-              "gameVersion": "10.1.5",
-              "gameVersionReleaseDate": "2023-05-14T00:00:00Z",
-              "gameVersionTypeId": 517
+              "gameVersionName": "1.15.1",
+              "gameVersionPadded": "0000000001.0000000015.0000000001",
+              "gameVersion": "1.15.1",
+              "gameVersionReleaseDate": "2024-01-31T00:00:00Z",
+              "gameVersionTypeId": 67408
             },
             {
-              "gameVersionName": "3.4.2",
-              "gameVersionPadded": "0000000003.0000000004.0000000002",
-              "gameVersion": "3.4.2",
-              "gameVersionReleaseDate": "2023-05-04T00:00:00Z",
+              "gameVersionName": "3.4.3",
+              "gameVersionPadded": "0000000003.0000000004.0000000003",
+              "gameVersion": "3.4.3",
+              "gameVersionReleaseDate": "2023-10-11T00:00:00Z",
               "gameVersionTypeId": 73713
             },
             {
-              "gameVersionName": "1.14.3",
-              "gameVersionPadded": "0000000001.0000000014.0000000003",
-              "gameVersion": "1.14.3",
-              "gameVersionReleaseDate": "2022-04-20T00:00:00Z",
-              "gameVersionTypeId": 67408
+              "gameVersionName": "10.2.5",
+              "gameVersionPadded": "0000000010.0000000002.0000000005",
+              "gameVersion": "10.2.5",
+              "gameVersionReleaseDate": "2023-11-28T00:00:00Z",
+              "gameVersionTypeId": 517
             }
           ],
           "dependencies": [
             {
-              "modId": 15049,
+              "modId": 14328,
               "relationType": 1
             },
             {
@@ -343,22 +343,57 @@
               "relationType": 1
             },
             {
-              "modId": 14328,
+              "modId": 15049,
               "relationType": 1
             }
           ],
           "alternateFileId": 0,
           "isServerPack": false,
-          "fileFingerprint": 3987520905,
+          "fileFingerprint": 2516019463,
           "modules": [
             {
               "name": "Molinari",
-              "fingerprint": 584608668
+              "fingerprint": 3098766656
             }
           ]
         }
       ],
       "latestFilesIndexes": [
+        {
+          "gameVersion": "3.4.3",
+          "fileId": 5090686,
+          "filename": "Molinari-100205.111-Release.zip",
+          "releaseType": 1,
+          "gameVersionTypeId": 73713
+        },
+        {
+          "gameVersion": "1.15.1",
+          "fileId": 5090686,
+          "filename": "Molinari-100205.111-Release.zip",
+          "releaseType": 1,
+          "gameVersionTypeId": 67408
+        },
+        {
+          "gameVersion": "10.2.5",
+          "fileId": 5090686,
+          "filename": "Molinari-100205.111-Release.zip",
+          "releaseType": 1,
+          "gameVersionTypeId": 517
+        },
+        {
+          "gameVersion": "1.14.4",
+          "fileId": 4884968,
+          "filename": "Molinari-100200.110-Release.zip",
+          "releaseType": 1,
+          "gameVersionTypeId": 67408
+        },
+        {
+          "gameVersion": "10.2.0",
+          "fileId": 4884968,
+          "filename": "Molinari-100200.110-Release.zip",
+          "releaseType": 1,
+          "gameVersionTypeId": 517
+        },
         {
           "gameVersion": "1.14.3",
           "fileId": 4644001,
@@ -747,10 +782,10 @@
       ],
       "latestEarlyAccessFilesIndexes": [],
       "dateCreated": "2009-08-08T17:47:01.43Z",
-      "dateModified": "2023-07-14T17:37:30.633Z",
-      "dateReleased": "2023-07-14T17:30:41.273Z",
+      "dateModified": "2024-02-08T20:10:52.917Z",
+      "dateReleased": "2024-02-08T20:00:09.15Z",
       "allowModDistribution": false,
-      "gamePopularityRank": 242,
+      "gamePopularityRank": 865,
       "isAvailable": true,
       "thumbsUpCount": 0
     }

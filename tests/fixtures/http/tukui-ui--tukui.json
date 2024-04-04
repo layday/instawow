@@ -3,8 +3,8 @@
   "slug": "tukui",
   "author": "Tukz",
   "name": "Tukui",
-  "url": "https://api.tukui.org/v1/download/tukui/i6o5gsuXbn4Jdt1V8P5GYoeRkowKfbg0iuyntXuVihoLtlke3e9P-J9rQuFN7XaXUBwkS32m3d8t4NA0GpGMMGXtUjNGwbZ43zs4bZLyOL3Ny0wxWj5WMr2WlFJhayml8p_JjPqsn9OQvjdNxyd4cUQgBZaFyPHNevE2yjKGFP4PKY5R4qPg_1-DhgGIGOyCcuaTj5ZAwjORh0DpjmyhKju_4yVORHtvuBWJDsO2npBN8A3Voun6K_PwluYUcMPCF0paC0T6OhrVwb8sIxvpzvNVXuAOD-8S1EWyXcTWKX6DQS_3wMMyDa7yOqk85akE76rdjyNsttV4rHCobMAYVA",
-  "version": "20.38",
+  "url": "https://api.tukui.org/v1/download/tukui/gl49C_EQHImDSR_qZCJNxcqHDqPzjjx5Sgx7BdgSHDH_qsZZKXGWMZNpqpkHJRYT9t2GgcJLt9L88__15dYlIEgKL-0r-985-zTKEiVvPej2JnUHri21GeXEibKG0d_GAR_R630I7j_eZbgvOL8O_EqYKYM4OS3Ag2iRCkP9RBIJ12gZRhzjr2KLPghVAZ04xH4jw2kuUAZsEY4WNWNeVqUbyEvE2w3H19mQWcm1eDF9BkNmNp8Foc0hse7ksfr4kdTA2MSpiEPmY291RvIqMNMvhNSZIqZ8xItzOmfD9jVjMKFlexhWmV281NRsKfTtj8MBeQocJJx66FEs4KkQBA",
+  "version": "20.41",
   "changelog_url": "https://api.tukui.org/v1/changelog/tukui",
   "ticket_url": "https://github.com/tukui-org/Tukui/issues",
   "git_url": "https://github.com/tukui-org/Tukui",
@@ -13,11 +13,18 @@
     "3.4.2",
     "1.14.3"
   ],
-  "last_update": "2023-07-27",
+  "last_update": "2023-11-10",
   "web_url": "https://tukui.org/tukui",
   "donate_url": "http://tukui.org/support",
   "small_desc": "Minimalistic and lightweight World of Warcraft user interface.",
-  "screenshot_url": "https://storage.tukui.org/tukui.jpg",
+  "screenshot_url": "https://storage.tukui.org/Tukui-1.jpg",
+  "gallery_url": [
+    "https://storage.tukui.org/Tukui-2.jpg",
+    "https://storage.tukui.org/Tukui-3.jpg",
+    "https://storage.tukui.org/Tukui-4.jpg"
+  ],
+  "logo_url": "https://storage.tukui.org/Tukui-Logo.png",
+  "logo_square_url": "https://storage.tukui.org/Tukui-Logo-Square.png",
   "directories": [
     "Tukui"
   ]

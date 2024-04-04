@@ -6,7 +6,7 @@ set -ex
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null 2>&1 && pwd)"
 
 
-echo '{"modIds": [2382, 20338, 23350, 288981, 322865, 2398, 326516, 333072, 402180]}' \
+echo '{"modIds": [2382, 20338, 23350, 288981, 13592, 2398, 326516, 333072, 402180]}' \
     | http post https://api.curseforge.com/v1/mods \
         x-api-key:$CFCORE_API_KEY -b \
     | jq -r \

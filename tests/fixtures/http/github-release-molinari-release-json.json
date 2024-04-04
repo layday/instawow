@@ -2,21 +2,21 @@
   "releases": [
     {
       "name": "Molinari",
-      "version": "100105.109-Release",
-      "filename": "Molinari-100105.109-Release.zip",
+      "version": "100205.111-Release",
+      "filename": "Molinari-100205.111-Release.zip",
       "nolib": false,
       "metadata": [
         {
           "flavor": "mainline",
-          "interface": 100105
+          "interface": 100205
         },
         {
           "flavor": "wrath",
-          "interface": 30402
+          "interface": 30403
         },
         {
           "flavor": "classic",
-          "interface": 11403
+          "interface": 11501
         }
       ]
     }

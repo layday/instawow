@@ -152,7 +152,7 @@ def test_version_strategy_lifecycle(
     run: C[[str], Result],
 ):
     assert run('install curse:molinari').output.startswith(
-        '✓ curse:molinari\n  installed 100105.109-Release'
+        '✓ curse:molinari\n  installed 100205.111-Release'
     )
     assert (
         run('install curse:molinari#version_eq=foo').output
@@ -162,7 +162,7 @@ def test_version_strategy_lifecycle(
     assert run('update curse:molinari#version_eq=100005.97-Release').output == dedent(
         """\
         ✓ curse:molinari
-          updated 100105.109-Release to 100005.97-Release with new strategies:
+          updated 100205.111-Release to 100005.97-Release with new strategies:
             version_eq='100005.97-Release'
         """
     )
@@ -182,7 +182,7 @@ def test_version_strategy_lifecycle(
     assert run('update curse:molinari#=').output == dedent(
         """\
         ✓ curse:molinari
-          updated 100005.97-Release to 100105.109-Release with new strategies:
+          updated 100005.97-Release to 100205.111-Release with new strategies:
             version_eq=None
         """
     )
@@ -195,7 +195,7 @@ def test_install_options(
     assert run('install curse:molinari#any_release_type,any_flavour').output == dedent(
         """\
         ✓ curse:molinari
-          installed 100105.109-Release
+          installed 100205.111-Release
         """
     )
 
@@ -216,7 +216,7 @@ def test_install_order_is_respected(
     ).output == dedent(
         f"""\
         ✓ curse:molinari
-          installed {'100105.109-Release' if step == 1 else '100005.97-Release'}
+          installed {'100205.111-Release' if step == 1 else '100005.97-Release'}
         ✗ curse:molinari
           package folders conflict with installed package Molinari
             (curse:20338)
@@ -238,7 +238,7 @@ def test_install_dry_run(
     assert run('install --dry-run curse:molinari').output == dedent(
         """\
         ✓ curse:molinari
-          would have installed 100105.109-Release
+          would have installed 100205.111-Release
         """
     )
 
@@ -339,7 +339,7 @@ def test_rollback__multiple_versions(
     assert run('rollback curse:molinari').output == dedent(
         """\
         ✓ curse:molinari
-          updated 100105.109-Release to 100005.97-Release with new strategies:
+          updated 100205.111-Release to 100005.97-Release with new strategies:
             version_eq='100005.97-Release'
         """
     )
@@ -358,13 +358,13 @@ def test_rollback__rollback_multiple_versions(
     assert run(f'rollback {options} curse:molinari').output == dedent(
         """\
         ✓ curse:molinari
-          updated 100005.97-Release to 100105.109-Release with new strategies:
+          updated 100005.97-Release to 100205.111-Release with new strategies:
             version_eq=None
         """
         if options == '--undo'
         else """\
         ✓ curse:molinari
-          updated 100005.97-Release to 100105.109-Release
+          updated 100005.97-Release to 100205.111-Release
         """
     )
 
@@ -402,7 +402,7 @@ def test_reconcile__auto_reconcile(
     assert pretend_install_molinari_and_run('reconcile --auto').output == dedent(
         """\
         ✓ github:p3lim-wow/molinari
-          installed 100105.109-Release
+          installed 100205.111-Release
         """
     )
 
@@ -424,7 +424,7 @@ def test_reconcile__complete_interactive_reconciliation(
         dedent(
             """\
             ✓ github:p3lim-wow/molinari
-              installed 100105.109-Release
+              installed 100205.111-Release
             """
         )
     )
@@ -446,7 +446,7 @@ def test_reconcile__rereconcile(
         ✓ curse:molinari
           removed
         ✓ github:p3lim-wow/molinari
-          installed 100105.109-Release
+          installed 100205.111-Release
         """
     )
 
@@ -491,7 +491,7 @@ def test_search__install_one(
     assert run('search molinari --source curse').output == dedent(
         """\
         ✓ curse:molinari
-          installed 100105.109-Release
+          installed 100205.111-Release
         """
     )
 
@@ -504,7 +504,7 @@ def test_search__install_multiple_conflicting(
     assert run('search molinari').output == dedent(
         """\
         ✓ github:p3lim-wow/molinari
-          installed 100105.109-Release
+          installed 100205.111-Release
         ✗ wowi:13188-molinari
           package folders conflict with installed package Molinari
             (github:388670)

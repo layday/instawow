@@ -3,21 +3,28 @@
   "slug": "elvui",
   "author": "Elv",
   "name": "ElvUI",
-  "url": "https://api.tukui.org/v1/download/elvui/G-rxI9kB1dxhE8S-jsY3bb7YZVtomZr9dIvFPO0pL24Rh7ucFHRGutpDSxkEuIVdBZN9Z6EiSRmiQDBcPcc8zWZh3rEj2_W2IOoGwcVKGLWYAfZTVBC0YERh62Z151kkiwwu8KfDEY5k6rQU5Xuy4BI5o-2JrtjKI342lAza3Y4nuSYnftb-Y43bKBesprFVLtdR9HQubV3lc9hGauhSR1GTom13hGWojM4tUaEgeXRjatKVNmmNCdWeX9Cp5v2TUwKoquo6y3RLnsE7tGGY60-4W3dvW5SNRx95GPNfFB2fxCSblmMTW04ae2PrkdVE2VP_jBJG2EGvE5LoM33Mhg",
-  "version": "13.38",
+  "url": "https://api.tukui.org/v1/download/elvui/YuwODlzwQyL_vjS9hyFOfkzV7QjTbiHYVOYUbulsoftJ-UpYcaQ9JQ75Xlk6Lxzo9VZVp57svhPFSe3TUZEj4OHmb5gONMn37PCXwnFxBHcQQjRL9FRTCkGESGl2ZSPJ0gdZ9M-YJc9Yv9OqFOD_sWORaqdMgHSPRxaUopSerEwUBZwNAIn8My7q6EdPwf4jX5IJMpJ95vlZTLKMXkdAJfkyns9VLoEbJ3Y5-X7GDiyqQwfq-B_lg28mr8OX93lZ8hjQb040UXkLFDws3VRS64xanEjQElZJiQ648RFBKPiPHRnFQbJBF7YPQSTGnK_5eGigew7fsSl1NQJrHG5a5w",
+  "version": "13.61",
   "changelog_url": "https://api.tukui.org/v1/changelog/elvui",
   "ticket_url": "https://github.com/tukui-org/ElvUI/issues",
   "git_url": "https://github.com/tukui-org/ElvUI",
   "patch": [
-    "10.1.5",
-    "3.4.2",
-    "1.14.3"
+    "10.2.6",
+    "3.4.3",
+    "1.15.2"
   ],
-  "last_update": "2023-07-13",
+  "last_update": "2024-04-03",
   "web_url": "https://tukui.org/elvui",
   "donate_url": "http://tukui.org/support",
   "small_desc": "A user interface designed around user-friendliness with extra features that are not included in the standard UI.",
-  "screenshot_url": "https://storage.tukui.org/elvui.jpg",
+  "screenshot_url": "https://storage.tukui.org/ElvUI-1.jpg",
+  "gallery_url": [
+    "https://storage.tukui.org/ElvUI-2.jpg",
+    "https://storage.tukui.org/ElvUI-3.jpg",
+    "https://storage.tukui.org/ElvUI-4.jpg"
+  ],
+  "logo_url": "https://storage.tukui.org/ElvUI-Logo.png",
+  "logo_square_url": "https://storage.tukui.org/ElvUI-Logo-Square.png",
   "directories": [
     "ElvUI",
     "ElvUI_Libraries",

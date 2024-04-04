@@ -40,4 +40,4 @@ async def test_changelog_url_format(
 
     result = await tukui_resolver.resolve_one(defn, None)
 
-    assert result.changelog_url == 'https://api.tukui.org/v1/changelog/tukui#20.38'
+    assert result.changelog_url == 'https://api.tukui.org/v1/changelog/tukui#20.41'

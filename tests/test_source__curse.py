@@ -18,7 +18,7 @@ CURSE_IDS = {
     'molinari': '20338',
     'adibags': '23350',
     'mythic-dungeon-tools': '288981',
-    'classiccastbars': '322865',
+    'masque': '13592',
     'elkbuffbars': '2398',
     'atlaslootclassic': '326516',
     'elvui-adibags': '333072',
@@ -41,7 +41,7 @@ def curse_resolver(
 async def test_resolve_flavourful_addon(
     curse_resolver: CfCoreResolver,
 ):
-    defn = Defn('curse', CURSE_IDS['classiccastbars'])
+    defn = Defn('curse', CURSE_IDS['masque'])
 
     result = (await curse_resolver.resolve([defn]))[defn]
     assert type(result) is Pkg
@@ -76,9 +76,7 @@ async def test_resolve_classic_only_addon(
 async def test_curse_any_flavour_strategy(
     curse_resolver: CfCoreResolver,
 ):
-    flavourful = Defn(
-        'curse', CURSE_IDS['classiccastbars'], strategies=StrategyValues(any_flavour=True)
-    )
+    flavourful = Defn('curse', CURSE_IDS['masque'], strategies=StrategyValues(any_flavour=True))
     classics_only = Defn(
         'curse', CURSE_IDS['atlaslootclassic'], strategies=StrategyValues(any_flavour=True)
     )
@@ -121,7 +119,7 @@ async def test_curse_deps_retrieved(
 async def test_changelog_url_format(
     curse_resolver: CfCoreResolver,
 ):
-    defn = Defn('curse', CURSE_IDS['classiccastbars'])
+    defn = Defn('curse', CURSE_IDS['masque'])
 
     result = (await curse_resolver.resolve([defn]))[defn]
     assert type(result) is Pkg
