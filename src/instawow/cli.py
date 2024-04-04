@@ -1019,10 +1019,13 @@ def list_sources(mw: CtxObjWrapper, output_format: _ListFormat) -> None:
     )
 
 
-def _show_active_config(ctx: click.Context, __: click.Parameter, value: bool):
-    if value:
-        click.echo(ctx.obj.manager.ctx.config.encode_for_display())
-        ctx.exit()
+@cli.command
+@click.pass_obj
+def debug(
+    mw: CtxObjWrapper,
+) -> None:
+    "Display debugging information."
+    click.echo(mw.manager.ctx.config.encode_for_display())
 
 
 async def _github_oauth_flow():
@@ -1056,15 +1059,6 @@ class _EditableConfigOptions(StrEnum):
 
 
 @cli.command
-@click.option(
-    '--show-active',
-    is_flag=True,
-    default=False,
-    expose_value=False,
-    is_eager=True,
-    callback=_show_active_config,
-    help='Show the active configuration and exit.',
-)
 @click.argument(
     'editable-config-values',
     nargs=-1,

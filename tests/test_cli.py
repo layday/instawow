@@ -243,11 +243,11 @@ def test_install_dry_run(
     )
 
 
-def test_configure__show_active_profile(
+def test_debug(
     iw_config: Config,
     run: C[[str], Result],
 ):
-    assert run('configure --show-active').output == iw_config.encode_for_display() + '\n'
+    assert run('debug').output == iw_config.encode_for_display() + '\n'
 
 
 @pytest.mark.parametrize('command', ['configure', 'list'], ids=['explicit', 'implicit'])

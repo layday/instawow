@@ -12,6 +12,7 @@ CLI
   Strategies are now always respected when present; to force an update with
   the default strategy set, append ``#=`` to the add-on definition.
 - Allow filtering installed add-ons by source using ``list source:``.
+- ``configure --show-active`` sub-flag reimagined as the ``debug`` command.
 
 v3.3.0
 ------
