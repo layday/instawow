@@ -11,8 +11,10 @@ CLI
 - Removed ``--retain-strategies`` flag from ``update`` command.
   Strategies are now always respected when present; to force an update with
   the default strategy set, append ``#=`` to the add-on definition.
-- Allow filtering installed add-ons by source using ``list source:``.
+- Global ``-d/--debug`` flag renamed to ``-v/--verbose``.
 - ``configure --show-active`` sub-flag reimagined as the ``debug`` command.
+- Allow filtering installed add-ons by source using ``list source:``, replacing
+  "source" with the source identifier.
 
 v3.3.0
 ------

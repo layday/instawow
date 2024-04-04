@@ -21,9 +21,9 @@ def _gui_command(ctx: click.Context) -> None:
     ).ensure_dirs()
 
     params = ctx.find_root().params
-    setup_logging(dummy_jsonrpc_config.logging_dir, *params['debug'])
+    setup_logging(dummy_jsonrpc_config.logging_dir, *params['verbose'])
 
-    InstawowApp(debug=any(params['debug']), version=__version__).main_loop()
+    InstawowApp(debug=any(params['verbose']), version=__version__).main_loop()
 
 
 @instawow.plugins.hookimpl

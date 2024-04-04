@@ -102,7 +102,7 @@ class CtxObjWrapper:
         except FileNotFoundError:
             config = self._ctx.invoke(configure)
 
-        setup_logging(config.logging_dir, *self._ctx.params['debug'])
+        setup_logging(config.logging_dir, *self._ctx.params['verbose'])
 
         return pkg_management.PkgManager(_manager_ctx.ManagerCtx(config))
 
@@ -110,7 +110,7 @@ class CtxObjWrapper:
         cache_dir = self.manager.ctx.config.global_config.http_cache_dir
         params = self._ctx.params
 
-        if any(params['debug']):
+        if any(params['verbose']):
 
             async def run():
                 async with init_web_client(cache_dir, no_cache=params['no_cache']) as web_client:
@@ -280,8 +280,8 @@ def _parse_debug_option(
 @click.group(context_settings={'help_option_names': ('-h', '--help')})
 @click.version_option(__version__, prog_name=__spec__.parent)
 @click.option(
-    '--debug',
-    '-d',
+    '--verbose',
+    '-v',
     count=True,
     help='Log incrementally more things.  Additive.',
     callback=_parse_debug_option,
