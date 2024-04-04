@@ -74,6 +74,7 @@ class _PackagerReleaseJsonFlavor(StrEnum):
     Retail = 'mainline'
     VanillaClassic = 'classic'
     Classic = 'wrath'
+    CataclysmClassic = 'cata'
 
 
 class GithubResolver(BaseResolver):

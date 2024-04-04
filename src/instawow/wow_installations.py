@@ -24,6 +24,7 @@ class _FlavourKeyedEnum(Protocol[_TEnum], metaclass=_FlavourKeyedEnumMeta):  # p
     Retail: _TEnum
     VanillaClassic: _TEnum
     Classic: _TEnum
+    CataclysmClassic: _TEnum
 
 
 class Flavour(StrEnum):
@@ -36,6 +37,15 @@ class Flavour(StrEnum):
     Retail = 'retail'
     VanillaClassic = 'vanilla_classic'
     Classic = 'classic'
+    CataclysmClassic = 'cataclysm_classic'
+
+    @classmethod
+    def _missing_(cls, value: object) -> Flavour | None:
+        match value:
+            # case 'cataclysm_classic':
+            #     return cls.Classic
+            case _:
+                return None
 
     @classmethod
     def from_flavour_keyed_enum(cls, flavour_keyed_enum: Enum) -> Self:
@@ -55,6 +65,7 @@ class FlavourVersionRange(Enum):
     )
     VanillaClassic = (range(1_13_00, 2_00_00),)
     Classic = (range(3_04_00, 4_00_00),)
+    CataclysmClassic = (range(4_04_00, 5_00_00),)
 
     @classmethod
     def _parse_version_string(cls, version_string: str) -> int:
@@ -105,6 +116,10 @@ _DELECTABLE_DIR_NAMES: dict[str, _Product] = {
         'code': 'wow_classic_era_ptr',
         'flavour': Flavour.VanillaClassic,
     },
+    # '_classic_era_beta_': {
+    #     'code': 'wow_classic_era_beta',
+    #     'flavour': Flavour.VanillaClassic,
+    # },
     '_classic_': {
         'code': 'wow_classic',
         'flavour': Flavour.Classic,
@@ -112,6 +127,10 @@ _DELECTABLE_DIR_NAMES: dict[str, _Product] = {
     '_classic_ptr_': {
         'code': 'wow_classic_ptr',
         'flavour': Flavour.Classic,
+    },
+    '_classic_beta_': {
+        'code': 'wow_classic_beta',
+        'flavour': Flavour.CataclysmClassic,
     },
 }
 

@@ -22,6 +22,7 @@ class _WagoGameVersion(StrEnum):
     Retail = 'retail'
     VanillaClassic = 'classic'
     Classic = 'wotlk'
+    CataclysmClassic = 'cata'
 
 
 class _WagoMatchRequest(TypedDict):

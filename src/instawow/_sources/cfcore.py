@@ -126,6 +126,7 @@ class _CfCoreSortableGameVersionTypeId(IntEnum):
     Retail = 517
     VanillaClassic = 67408
     Classic = 73713
+    CataclysmClassic = 77522
 
 
 class _CfCoreSortableGameVersion(TypedDict):

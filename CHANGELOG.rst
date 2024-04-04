@@ -4,6 +4,8 @@ Changelog
 Next
 ----
 
+- Added support for the Classic Catalysm beta.
+
 CLI
 ~~~
 

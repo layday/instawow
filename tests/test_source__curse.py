@@ -3,7 +3,6 @@ from __future__ import annotations
 import re
 
 import pytest
-from typing_extensions import assert_never
 from yarl import URL
 
 from instawow._sources.cfcore import CfCoreResolver
@@ -64,14 +63,12 @@ async def test_resolve_classic_only_addon(
     match iw_manager_ctx.config.game_flavour:
         case Flavour.VanillaClassic | Flavour.Classic:
             assert type(result) is Pkg
-        case Flavour.Retail:
+        case _:
             assert type(result) is PkgFilesNotMatching
             assert (
                 result.message
                 == f'no files found for: {Strategy.AnyFlavour}=None; {Strategy.AnyReleaseType}=None; {Strategy.VersionEq}=None'
             )
-        case _:
-            assert_never(iw_manager_ctx.config.game_flavour)
 
 
 async def test_curse_any_flavour_strategy(
