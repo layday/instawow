@@ -115,7 +115,7 @@ class GithubResolver(BaseResolver):
 
         return headers
 
-    async def __find_matching_asset_from_zip_contents(self, assets: list[_GithubRelease_Asset]):
+    async def __find_match_from_zip_contents(self, assets: list[_GithubRelease_Asset]):
         candidates = [
             a
             for a in assets
@@ -271,9 +271,10 @@ class GithubResolver(BaseResolver):
                 matching_asset = candidate
                 break
 
-        return matching_asset
+        if matching_asset:
+            return matching_asset['url'], None
 
-    async def __find_matching_asset_from_release_json(
+    async def __find_match_from_release_json(
         self, assets: list[_GithubRelease_Asset], release_json_asset: _GithubRelease_Asset
     ):
         download_headers = await self.make_request_headers(HeadersIntent.Download)
@@ -330,7 +331,8 @@ class GithubResolver(BaseResolver):
             ),
             None,
         )
-        return matching_asset
+        if matching_asset:
+            return matching_asset['url'], matching_release.get('version')
 
     async def _resolve_one(self, defn: Defn, metadata: None) -> PkgCandidate:
         github_headers = await self.make_request_headers()
@@ -377,24 +379,22 @@ class GithubResolver(BaseResolver):
         if not defn.strategies.any_release_type:
             releases = (r for r in releases if r['prerelease'] is False)
 
-        seen_release_json = False
         for release in releases:
             assets = release['assets']
-            matching_asset = None
 
             release_json = next(
                 (a for a in assets if a['name'] == 'release.json' and a['state'] == 'uploaded'),
                 None,
             )
-            if not seen_release_json and release_json is None:
-                matching_asset = await self.__find_matching_asset_from_zip_contents(assets)
-            elif release_json is not None:
-                seen_release_json = True
-                matching_asset = await self.__find_matching_asset_from_release_json(
-                    assets, release_json
-                )
+            if release_json:
+                match = await self.__find_match_from_release_json(assets, release_json)
+            else:
+                match = await self.__find_match_from_zip_contents(assets)
 
-            if matching_asset is not None:
+            if match:
+                download_url, version = match
+                if version is None:
+                    version = release['tag_name']
                 break
 
         else:
@@ -406,9 +406,9 @@ class GithubResolver(BaseResolver):
             name=project['name'],
             description=project['description'] or '',
             url=project['html_url'],
-            download_url=matching_asset['url'],
+            download_url=download_url,
             date_published=iso8601.parse_date(release['published_at']),
-            version=release['tag_name'],
+            version=version,
             changelog_url=as_plain_text_data_url(release['body']),
         )
 
