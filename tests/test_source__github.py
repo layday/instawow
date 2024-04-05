@@ -18,6 +18,8 @@ from instawow.pkg_models import Pkg
 from instawow.results import PkgFilesMissing, PkgFilesNotMatching, PkgNonexistent
 from instawow.wow_installations import Flavour
 
+from .fixtures.http import Route
+
 
 @pytest.fixture
 def github_resolver(
@@ -83,8 +85,8 @@ def package_json_less_addon(
     '_iw_mock_aiohttp_requests',
     [
         {
-            URL(f'//api.github.com/repos/{zip_defn.alias}'),
-            URL(f'//api.github.com/repos/{zip_defn.alias}/releases?per_page=10'),
+            f'//api.github.com/repos/{zip_defn.alias}',
+            f'//api.github.com/repos/{zip_defn.alias}/releases?per_page=10',
         }
     ],
     indirect=True,
@@ -109,11 +111,11 @@ async def test_extracting_flavour_from_zip_contents(
         return response
 
     iw_aresponses.add(
-        'api.github.com',
-        re.compile(r'^/repos(/[^/]*){2}/releases/assets/'),
-        'get',
-        handle_request,
-        repeat=iw_aresponses.INFINITY,
+        **Route(
+            '//api.github.com',
+            path_pattern=re.compile(r'^/repos(/[^/]*){2}/releases/assets/'),
+            response=handle_request,
+        ).to_aresponses_add_args()
     )
 
     addon, flavours = package_json_less_addon
@@ -190,18 +192,19 @@ async def test_mismatched_release_is_skipped_and_logged(
     interface: int,
 ):
     iw_aresponses.add(
-        'api.github.com',
-        re.compile(r'^/repos/nebularg/PackagerTest/releases/assets/'),
-        'GET',
-        {
-            'releases': [
-                {
-                    'filename': 'TestGit-v1.9.7.zip',
-                    'nolib': False,
-                    'metadata': [{'flavor': flavor, 'interface': interface}],
-                }
-            ]
-        },
+        **Route(
+            '//api.github.com',
+            path_pattern=re.compile(r'^/repos/nebularg/PackagerTest/releases/assets/'),
+            response={
+                'releases': [
+                    {
+                        'filename': 'TestGit-v1.9.7.zip',
+                        'nolib': False,
+                        'metadata': [{'flavor': flavor, 'interface': interface}],
+                    }
+                ]
+            },
+        ).to_aresponses_add_args()
     )
 
     defn = Defn('github', 'nebularg/PackagerTest')

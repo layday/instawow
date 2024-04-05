@@ -7,6 +7,8 @@ from aresponses import ResponsesMockServer
 from instawow._version_check import is_outdated
 from instawow.config import GlobalConfig
 
+from .fixtures.http import Route
+
 
 @pytest.mark.parametrize(
     '_iw_mock_aiohttp_requests',
@@ -32,10 +34,11 @@ async def test_is_outdated_works_in_variety_of_scenarios(
     with monkeypatch.context() as patcher:
         patcher.setattr('instawow.__version__', '0.1.0')
         iw_aresponses.add(
-            'pypi.org',
-            '/simple/instawow',
-            'get',
-            iw_aresponses.Response(status=500),
+            **Route(
+                '//pypi.org/simple/instawow',
+                iw_aresponses.Response(status=500),
+                repeat=1,
+            ).to_aresponses_add_args()
         )
         assert await is_outdated(global_config) == (False, '0.1.0')
 
@@ -43,10 +46,11 @@ async def test_is_outdated_works_in_variety_of_scenarios(
     with monkeypatch.context() as patcher:
         patcher.setattr('instawow.__version__', '0.1.0')
         iw_aresponses.add(
-            'pypi.org',
-            '/simple/instawow',
-            'get',
-            {'versions': ['1.0.0']},
+            **Route(
+                '//pypi.org/simple/instawow',
+                {'versions': ['1.0.0']},
+                repeat=1,
+            ).to_aresponses_add_args()
         )
         assert await is_outdated(global_config) == (True, '1.0.0')
 
@@ -62,10 +66,11 @@ async def test_is_outdated_works_in_variety_of_scenarios(
     with monkeypatch.context() as patcher:
         patcher.setattr('instawow.__version__', '0.1.0')
         iw_aresponses.add(
-            'pypi.org',
-            '/simple/instawow',
-            'get',
-            iw_aresponses.Response(status=500),
+            **Route(
+                '//pypi.org/simple/instawow',
+                iw_aresponses.Response(status=500),
+                repeat=1,
+            ).to_aresponses_add_args()
         )
         assert await is_outdated(global_config) == (True, '1.0.0')
 
@@ -73,10 +78,11 @@ async def test_is_outdated_works_in_variety_of_scenarios(
     with monkeypatch.context() as patcher:
         patcher.setattr('instawow.__version__', '0.1.0')
         iw_aresponses.add(
-            'pypi.org',
-            '/simple/instawow',
-            'get',
-            {'versions': ['1.0.0']},
+            **Route(
+                '//pypi.org/simple/instawow',
+                {'versions': ['1.0.0']},
+                repeat=1,
+            ).to_aresponses_add_args()
         )
         assert await is_outdated(global_config) == (True, '1.0.0')
 
@@ -84,9 +90,10 @@ async def test_is_outdated_works_in_variety_of_scenarios(
     with monkeypatch.context() as patcher:
         patcher.setattr('instawow.__version__', '1.0.0')
         iw_aresponses.add(
-            'pypi.org',
-            '/simple/instawow',
-            'get',
-            {'versions': ['1.0.0']},
+            **Route(
+                '//pypi.org/simple/instawow',
+                {'versions': ['1.0.0']},
+                repeat=1,
+            ).to_aresponses_add_args()
         )
         assert await is_outdated(global_config) == (False, '1.0.0')

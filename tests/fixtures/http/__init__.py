@@ -4,15 +4,15 @@ from __future__ import annotations
 
 import json
 import re
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
 from functools import cache
 from io import BytesIO
 from pathlib import Path
 from typing import Any
 from zipfile import ZipFile
 
-from aiohttp.web import Response
-from attr import frozen
+import attrs
+from aiohttp.web import Request, Response
 from yarl import URL
 
 from instawow import __version__
@@ -40,10 +40,16 @@ def _make_addon_zip(*folders: str):
     return buffer.getvalue()
 
 
-@frozen
+@attrs.frozen
 class Route:
-    url: URL
-    response: Callable[[], Response] | dict[str, Any] | str
+    url: URL = attrs.field(converter=URL)
+    response: (
+        Response
+        | Callable[[Request], Response]
+        | Callable[[Request], Awaitable[Response]]
+        | dict[str, Any]
+        | str
+    )
     path_pattern: re.Pattern[str] | None = None
     method: str = 'GET'
     body_pattern: re.Pattern[str] | None = None
@@ -68,7 +74,7 @@ class Route:
             'body_pattern': _match_any if self.body_pattern is None else self.body_pattern,
             'match_querystring': self.match_querystring,
             'repeat': self.repeat,
-            'response': self.response() if callable(self.response) else self.response,
+            'response': self.response,
         }
 
 
@@ -81,90 +87,88 @@ ROUTES = dict(
         _make_route_dict_entry,
         [
             Route(
-                URL('//pypi.org/pypi/instawow/json'),
+                '//pypi.org/pypi/instawow/json',
                 {'info': {'version': __version__}},
             ),
             Route(
-                URL(
-                    '//raw.githubusercontent.com/layday/instawow-data/data/base-catalogue-v7.compact.json'
-                ),
+                '//raw.githubusercontent.com/layday/instawow-data/data/base-catalogue-v7.compact.json',
                 _load_json_fixture('base-catalogue-v7.compact.json'),
             ),
             Route(
-                URL('//api.curseforge.com/v1/mods'),
+                '//api.curseforge.com/v1/mods',
                 _load_json_fixture('curse-addon--all.json'),
                 method='POST',
             ),
             Route(
-                URL('//api.curseforge.com/v1/mods/search?gameId=1&slug=molinari'),
+                '//api.curseforge.com/v1/mods/search?gameId=1&slug=molinari',
                 _load_json_fixture('curse-addon-slug-search.json'),
                 match_querystring=True,
             ),
             Route(
-                URL('//api.curseforge.com/v1/mods/20338/files'),
+                '//api.curseforge.com/v1/mods/20338/files',
                 _load_json_fixture('curse-addon-files.json'),
             ),
             Route(
-                URL('//api.curseforge.com/v1/mods/20338/files/{id}/changelog'),
+                '//api.curseforge.com/v1/mods/20338/files/{id}/changelog',
                 _load_json_fixture('curse-addon-changelog.json'),
                 path_pattern=re.compile(r'^/v1/mods/20338/files/(\d+)/changelog$'),
             ),
             Route(
-                URL('//edge.forgecdn.net'),
-                lambda: Response(body=_make_addon_zip('Molinari')),
+                '//edge.forgecdn.net',
+                lambda _: Response(body=_make_addon_zip('Molinari')),
                 path_pattern=_match_any,
             ),
             Route(
-                URL('//api.mmoui.com/v3/game/WOW/filelist.json'),
+                '//api.mmoui.com/v3/game/WOW/filelist.json',
                 _load_json_fixture('wowi-filelist.json'),
             ),
             Route(
-                URL('//api.mmoui.com/v3/game/WOW/filedetails/{id}.json'),
+                '//api.mmoui.com/v3/game/WOW/filedetails/{id}.json',
                 _load_json_fixture('wowi-filedetails.json'),
                 path_pattern=re.compile(r'^/v3/game/WOW/filedetails/(\d*)\.json$'),
             ),
             Route(
-                URL('//cdn.wowinterface.com'),
-                lambda: Response(body=_make_addon_zip('Molinari')),
+                '//cdn.wowinterface.com',
+                lambda _: Response(body=_make_addon_zip('Molinari')),
                 path_pattern=_match_any,
             ),
             Route(
-                URL('//api.tukui.org/v1/addon/tukui'),
+                '//api.tukui.org/v1/addon/tukui',
                 _load_json_fixture('tukui-ui--tukui.json'),
             ),
             Route(
-                URL('//api.tukui.org/v1/addon/elvui'),
+                '//api.tukui.org/v1/addon/elvui',
                 _load_json_fixture('tukui-ui--elvui.json'),
             ),
             Route(
-                URL('//api.tukui.org/v1/download/'),
-                lambda: Response(body=_make_addon_zip('Tukui')),
+                '//api.tukui.org/v1/download/',
+                lambda _: Response(body=_make_addon_zip('Tukui')),
                 path_pattern=re.compile(r'^/v1/download/'),
             ),
             Route(
-                URL('//api.github.com/repos/nebularg/PackagerTest'),
+                '//api.github.com/repos/nebularg/PackagerTest',
                 _load_json_fixture('github-repo-release-json.json'),
             ),
             Route(
-                URL('//api.github.com/repos/nebularg/PackagerTest/releases?per_page=10'),
+                '//api.github.com/repos/nebularg/PackagerTest/releases?per_page=10',
                 _load_json_fixture('github-release-release-json.json'),
                 match_querystring=True,
             ),
             Route(
-                URL('//api.github.com/repos/nebularg/PackagerTest/releases/assets/37156458'),
+                '//api.github.com/repos/nebularg/PackagerTest/releases/assets/37156458',
                 _load_json_fixture('github-release-release-json-release-json.json'),
             ),
             Route(
-                URL('//api.github.com/repositories/388670'),
+                '//api.github.com/repositories/388670',
                 _load_json_fixture('github-repo-molinari.json'),
             ),
             Route(
-                URL('//api.github.com/repos/p3lim-wow/Molinari'),
+                '//api.github.com/repos/p3lim-wow/Molinari',
                 _load_json_fixture('github-repo-molinari.json'),
                 case_insensitive=True,
             ),
             Route(
-                URL('//api.github.com/repos/p3lim-wow/Molinari/releases?per_page=10'),
+                '//api.github.com/repos/p3lim-wow/Molinari/releases?per_page=10',
                 _load_json_fixture('github-release-molinari.json'),
                 case_insensitive=True,
                 match_querystring=True,
@@ -181,48 +185,48 @@ ROUTES = dict(
                 case_insensitive=True,
             ),
             Route(
-                URL('//api.github.com/repos/AdiAddons/AdiBags'),
+                '//api.github.com/repos/AdiAddons/AdiBags',
                 _load_json_fixture('github-repo-no-releases.json'),
             ),
             Route(
-                URL('//api.github.com/repos/AdiAddons/AdiBags/releases?per_page=10'),
-                lambda: Response(body=b'', status=404),
+                '//api.github.com/repos/AdiAddons/AdiBags/releases?per_page=10',
+                lambda _: Response(body=b'', status=404),
                 match_querystring=True,
             ),
             Route(
-                URL('//api.github.com/repos/AdiAddons/AdiButtonAuras/releases/tags/2.0.19'),
+                '//api.github.com/repos/AdiAddons/AdiButtonAuras/releases/tags/2.0.19',
                 _load_json_fixture('github-release-no-assets.json'),
             ),
             Route(
-                URL('//api.github.com/repos/layday/foobar'),
-                lambda: Response(body=b'', status=404),
+                '//api.github.com/repos/layday/foobar',
+                lambda _: Response(body=b'', status=404),
             ),
             Route(
-                URL('//api.github.com/repos/{x}/{y}/releases/asssets/{z}'),
-                lambda: Response(body=_make_addon_zip('Molinari')),
+                '//api.github.com/repos/{x}/{y}/releases/asssets/{z}',
+                lambda _: Response(body=_make_addon_zip('Molinari')),
                 path_pattern=re.compile(r'^/repos(/[^/]*){2}/releases/assets/'),
             ),
             Route(
-                URL('//github.com/login/device/code'),
+                '//github.com/login/device/code',
                 _load_json_fixture('github-oauth-login-device-code.json'),
                 method='POST',
             ),
             Route(
-                URL('//github.com/login/oauth/access_token'),
+                '//github.com/login/oauth/access_token',
                 _load_json_fixture('github-oauth-login-access-token.json'),
                 method='POST',
             ),
             Route(
-                URL('//api.github.com/repos/28/NoteworthyII'),
+                '//api.github.com/repos/28/NoteworthyII',
                 _load_json_fixture('github-repo-no-release-json.json'),
             ),
             Route(
-                URL('//api.github.com/repos/28/NoteworthyII/releases?per_page=10'),
+                '//api.github.com/repos/28/NoteworthyII/releases?per_page=10',
                 _load_json_fixture('github-release-no-release-json.json'),
                 match_querystring=True,
             ),
             Route(
-                URL('//addons.wago.io/api/external/addons/_match'),
+                '//addons.wago.io/api/external/addons/_match',
                 _load_json_fixture('wago-match-addons.json'),
                 method='POST',
             ),

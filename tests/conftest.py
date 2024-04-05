@@ -10,6 +10,7 @@ import pytest
 from aresponses import ResponsesMockServer
 from aresponses.errors import NoRouteFoundError
 from loguru import logger
+from yarl import URL
 
 from instawow.config import GlobalConfig, ProfileConfig
 from instawow.http import init_web_client
@@ -139,10 +140,11 @@ def _iw_mock_aiohttp_requests(
     if request.param == 'all':
         routes = ROUTES.values()
     else:
-        if not request.param.issubset(ROUTES.keys()):
+        urls = set(map(URL, request.param))
+        if not urls.issubset(ROUTES.keys()):
             raise ValueError('Supplied routes must be subset of all routes')
 
-        routes = (ROUTES[k] for k in ROUTES.keys() & request.param)
+        routes = (ROUTES[k] for k in ROUTES.keys() & urls)
 
     for route in routes:
         iw_aresponses.add(**route.to_aresponses_add_args())

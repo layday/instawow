@@ -12,6 +12,8 @@ from instawow.definitions import Defn, Strategy
 from instawow.pkg_management import PkgManager
 from instawow.pkg_models import Pkg
 
+from .fixtures.http import Route
+
 
 def test_auth_bound_resolvers_are_not_unloaded_if_tokens_set(
     iw_manager: PkgManager,
@@ -171,10 +173,10 @@ async def test_install_recognises_renamed_pkg_from_id(
     iw_manager: PkgManager,
 ):
     iw_aresponses.add(
-        'api.github.com',
-        '/repos/p3lim-wow/molinarifico',
-        'get',
-        iw_aresponses.Response(status=404),
+        **Route(
+            '//api.github.com/repos/p3lim-wow/molinarifico',
+            iw_aresponses.Response(status=404),
+        ).to_aresponses_add_args()
     )
 
     old_defn = Defn('github', 'p3lim-wow/molinari')
