@@ -21,7 +21,7 @@ _match_any = re.compile(r'.*')
 
 
 def _load_fixture(filename: str):
-    return (importlib.resources.files() / filename).read_bytes()
+    return (importlib.resources.files(__spec__.parent) / filename).read_bytes()
 
 
 def _load_json_fixture(filename: str):

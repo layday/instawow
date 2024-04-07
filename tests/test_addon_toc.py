@@ -11,7 +11,7 @@ from instawow.matchers.addon_toc import TocReader
 @pytest.fixture
 def fake_addon_toc():
     with importlib.resources.as_file(
-        importlib.resources.files() / 'fixtures' / 'FakeAddon' / 'FakeAddon.toc'
+        importlib.resources.files(__spec__.parent) / 'fixtures' / 'FakeAddon' / 'FakeAddon.toc'
     ) as file:
         yield file
 
