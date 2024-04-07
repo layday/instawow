@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
+import importlib.resources
 import json
 import re
 from collections.abc import Awaitable, Callable
 from functools import cache
 from io import BytesIO
-from pathlib import Path
 from typing import Any
 from zipfile import ZipFile
 
@@ -17,13 +17,11 @@ from yarl import URL
 
 from instawow import __version__
 
-_HERE = Path(__file__).parent
-
 _match_any = re.compile(r'.*')
 
 
 def _load_fixture(filename: str):
-    return (_HERE / filename).read_bytes()
+    return (importlib.resources.files() / filename).read_bytes()
 
 
 def _load_json_fixture(filename: str):

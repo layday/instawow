@@ -15,7 +15,6 @@ from .. import manager_ctx, pkg_db
 from ..catalogue import synchronise as synchronise_catalogue
 from ..definitions import Defn
 from ..utils import (
-    TocReader,
     bucketise,
     fauxfrozen,
     gather,
@@ -24,6 +23,7 @@ from ..utils import (
 )
 from ..wow_installations import Flavour
 from ._addon_hashing import generate_wowup_addon_hash
+from .addon_toc import TocReader
 
 
 class Matcher(Protocol):  # pragma: no cover
@@ -81,11 +81,14 @@ class AddonFolder:
         return generate_wowup_addon_hash(self.path)
 
     def get_defns_from_toc_keys(self, keys_and_ids: Iterable[tuple[str, str]]) -> frozenset[Defn]:
-        return frozenset(Defn(s, i) for k, s in keys_and_ids for i in (self.toc_reader[k],) if i)
+        return frozenset(
+            Defn(s, i) for k, s in keys_and_ids for i in (self.toc_reader.get(k),) if i
+        )
 
     @cached_property
     def version(self) -> str:
-        return self.toc_reader['Version', 'X-Packaged-Version', 'X-Curse-Packaged-Version'] or ''
+        version_keys = ('Version', 'X-Packaged-Version', 'X-Curse-Packaged-Version')
+        return next(filter(None, map(self.toc_reader.get, version_keys)), '')
 
 
 def _get_unreconciled_folders(manager_ctx: manager_ctx.ManagerCtx):

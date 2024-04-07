@@ -13,6 +13,7 @@ from collections.abc import (
     Iterable,
     Iterator,
     Sequence,
+    Set,
 )
 from contextlib import contextmanager
 from functools import partial, wraps
@@ -52,29 +53,6 @@ else:
 
 def read_resource_as_text(package: ModuleType, resource: str, encoding: str = 'utf-8') -> str:
     return importlib.resources.files(package).joinpath(resource).read_text(encoding)
-
-
-class TocReader:
-    """Extracts key-value pairs from TOC files."""
-
-    def __init__(self, contents: str) -> None:
-        self.entries = {
-            k: v
-            for e in contents.splitlines()
-            if e.startswith('##')
-            for k, v in (map(str.strip, e.lstrip('#').partition(':')[::2]),)
-            if k
-        }
-
-    def __getitem__(self, key: str | tuple[str, ...]) -> str | None:
-        if isinstance(key, tuple):
-            return next(filter(None, map(self.entries.get, key)), None)
-        else:
-            return self.entries.get(key)
-
-    @classmethod
-    def from_path(cls, path: Path) -> TocReader:
-        return cls(path.read_text(encoding='utf-8-sig', errors='replace'))
 
 
 def fill(it: Iterable[_T], fill: _T, length: int) -> Iterable[_T]:

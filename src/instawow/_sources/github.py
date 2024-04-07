@@ -15,11 +15,11 @@ from .. import results as R
 from ..catalogue.cataloguer import AddonKey, CatalogueEntry
 from ..definitions import ChangelogFormat, Defn, SourceMetadata, Strategy
 from ..http import CACHE_INDEFINITELY, ClientSessionType
+from ..matchers.addon_toc import TocReader
 from ..pkg_archives import find_archive_addon_tocs
 from ..resolvers import BaseResolver, HeadersIntent, PkgCandidate
 from ..utils import (
     StrEnum,
-    TocReader,
     as_plain_text_data_url,
     extract_byte_range_offset,
 )
@@ -263,11 +263,15 @@ class GithubResolver(BaseResolver):
             toc_file_text = dynamic_addon_zip.read(main_toc_filename).decode('utf-8-sig')
             toc_reader = TocReader(toc_file_text)
 
-            interface_version = toc_reader['Interface']
-            logger.debug(f'found interface version {interface_version!r} in {main_toc_filename}')
-            if interface_version and self._manager_ctx.config.game_flavour.to_flavour_keyed_enum(
+            logger.debug(
+                f'found interface versions {toc_reader.interfaces!r} in {main_toc_filename}'
+            )
+            desired_version_range = self._manager_ctx.config.game_flavour.to_flavour_keyed_enum(
                 FlavourVersionRange
-            ).contains(int(interface_version)):
+            )
+            if toc_reader.interfaces and any(
+                desired_version_range.contains(i) for i in toc_reader.interfaces
+            ):
                 matching_asset = candidate
                 break
 
@@ -293,10 +297,10 @@ class GithubResolver(BaseResolver):
         if not releases:
             return None
 
-        wanted_release_json_flavor = self._manager_ctx.config.game_flavour.to_flavour_keyed_enum(
+        desired_release_json_flavor = self._manager_ctx.config.game_flavour.to_flavour_keyed_enum(
             _PackagerReleaseJsonFlavor
         )
-        wanted_version_range = self._manager_ctx.config.game_flavour.to_flavour_keyed_enum(
+        desired_version_range = self._manager_ctx.config.game_flavour.to_flavour_keyed_enum(
             FlavourVersionRange
         )
 
@@ -305,13 +309,13 @@ class GithubResolver(BaseResolver):
                 return False
 
             for metadata in release['metadata']:
-                if metadata['flavor'] != wanted_release_json_flavor:
+                if metadata['flavor'] != desired_release_json_flavor:
                     continue
 
                 interface_version = metadata['interface']
-                if not wanted_version_range.contains(interface_version):
+                if not desired_version_range.contains(interface_version):
                     logger.info(
-                        f'interface number "{interface_version}" and flavor "{wanted_release_json_flavor}" mismatch'
+                        f'interface number "{interface_version}" and flavor "{desired_release_json_flavor}" mismatch'
                     )
                     continue
 
