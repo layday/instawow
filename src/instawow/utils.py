@@ -110,9 +110,9 @@ def all_eq(it: Iterable[object]) -> bool:
     return next(groups, True) and not next(groups, False)
 
 
-def merge_intersecting_sets(it: Iterable[frozenset[_T]]) -> Iterator[frozenset[_T]]:
+def merge_intersecting_sets(it: Iterable[Set[_T]]) -> Iterator[frozenset[_T]]:
     "Recursively merge intersecting sets in a collection."
-    many_sets = list(it)
+    many_sets = list(map(frozenset, it))
     while many_sets:
         this_set = many_sets.pop(0)
         while True:
