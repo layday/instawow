@@ -2,16 +2,17 @@ from __future__ import annotations
 
 import json
 import shutil
-from collections.abc import Callable as C
+from collections.abc import Callable
 from functools import partial
 from textwrap import dedent
+from typing import TypeAlias
 from unittest import mock
 
 import pytest
 from cattrs.preconf.json import make_converter as make_json_converter
 from click.testing import CliRunner, Result
 from prompt_toolkit.application import create_app_session
-from prompt_toolkit.input import create_pipe_input
+from prompt_toolkit.input import PipeInput, create_pipe_input
 from prompt_toolkit.output import DummyOutput
 
 from instawow import __version__
@@ -19,9 +20,11 @@ from instawow.cli import cli
 from instawow.config import ProfileConfig
 from instawow.definitions import SourceMetadata
 
+Run: TypeAlias = Callable[[str], Result]
+
 
 @pytest.fixture(autouse=True, scope='module')
-def _iw_mock_pt_progress_bar():
+def _mock_pt_progress_bar():
     monkeypatch = pytest.MonkeyPatch()
     monkeypatch.setattr('prompt_toolkit.shortcuts.progress_bar.ProgressBar', mock.MagicMock())
     yield
@@ -29,9 +32,12 @@ def _iw_mock_pt_progress_bar():
 
 
 @pytest.fixture
-def feed_pt():
-    with create_pipe_input() as input_, create_app_session(input=input_, output=DummyOutput()):
-        yield input_.send_text
+def pt_input():
+    with (
+        create_pipe_input() as pipe_input,
+        create_app_session(input=pipe_input, output=DummyOutput()),
+    ):
+        yield pipe_input
 
 
 @pytest.fixture
@@ -49,7 +55,7 @@ async def run(
 
 @pytest.fixture
 def install_molinari_and_run(
-    run: C[[str], Result],
+    run: Run,
 ):
     run('install curse:molinari')
     return run
@@ -58,7 +64,7 @@ def install_molinari_and_run(
 @pytest.fixture
 def pretend_install_molinari_and_run(
     iw_config: ProfileConfig,
-    run: C[[str], Result],
+    run: Run,
 ):
     molinari = iw_config.addon_dir / 'Molinari'
     molinari.mkdir()
@@ -81,7 +87,7 @@ def pretend_install_molinari_and_run(
     ],
 )
 def test_valid_pkg_lifecycle(
-    run: C[[str], Result],
+    run: Run,
     alias: str,
 ):
     assert run(f'install {alias}').output.startswith(f'✓ {alias}\n  installed')
@@ -94,7 +100,7 @@ def test_valid_pkg_lifecycle(
 
 @pytest.mark.parametrize('alias', ['instawow:gargantuan-wigs'])
 def test_nonexistent_pkg_lifecycle(
-    run: C[[str], Result],
+    run: Run,
     alias: str,
 ):
     assert run(f'install {alias}').output == f'✗ {alias}\n  package does not exist\n'
@@ -104,7 +110,7 @@ def test_nonexistent_pkg_lifecycle(
 
 @pytest.mark.parametrize('alias', ['foo:bar'])
 def test_invalid_source_lifecycle(
-    run: C[[str], Result],
+    run: Run,
     alias: str,
 ):
     assert run(f'install {alias}').output == f'✗ :{alias}\n  package source is invalid\n'
@@ -113,7 +119,7 @@ def test_invalid_source_lifecycle(
 
 
 def test_reconciled_folder_conflict_on_install(
-    run: C[[str], Result],
+    run: Run,
 ):
     assert run('install curse:molinari').output.startswith('✓ curse:molinari\n  installed')
     assert run('install wowi:13188-molinari').output == (
@@ -125,7 +131,7 @@ def test_reconciled_folder_conflict_on_install(
 
 def test_unreconciled_folder_conflict_on_install(
     iw_config: ProfileConfig,
-    run: C[[str], Result],
+    run: Run,
 ):
     iw_config.addon_dir.joinpath('Molinari').mkdir()
     assert (
@@ -139,7 +145,7 @@ def test_unreconciled_folder_conflict_on_install(
 
 def test_keep_folders_on_remove(
     iw_config: ProfileConfig,
-    install_molinari_and_run: C[[str], Result],
+    install_molinari_and_run: Run,
 ):
     assert (
         install_molinari_and_run('remove --keep-folders curse:molinari').output
@@ -149,7 +155,7 @@ def test_keep_folders_on_remove(
 
 
 def test_version_strategy_lifecycle(
-    run: C[[str], Result],
+    run: Run,
 ):
     assert run('install curse:molinari').output.startswith(
         '✓ curse:molinari\n  installed 100205.111-Release'
@@ -190,7 +196,7 @@ def test_version_strategy_lifecycle(
 
 
 def test_install_options(
-    run: C[[str], Result],
+    run: Run,
 ):
     assert run('install curse:molinari#any_release_type,any_flavour').output == dedent(
         """\
@@ -202,7 +208,7 @@ def test_install_options(
 
 @pytest.mark.parametrize('step', [1, -1])
 def test_install_order_is_respected(
-    run: C[[str], Result],
+    run: Run,
     step: int,
 ):
     assert run(
@@ -225,7 +231,7 @@ def test_install_order_is_respected(
 
 
 def test_install_invalid_defn(
-    run: C[[str], Result],
+    run: Run,
 ):
     result = run('install foo')
     assert result.exit_code == 2
@@ -233,7 +239,7 @@ def test_install_invalid_defn(
 
 
 def test_install_dry_run(
-    run: C[[str], Result],
+    run: Run,
 ):
     assert run('install --dry-run curse:molinari').output == dedent(
         """\
@@ -245,7 +251,7 @@ def test_install_dry_run(
 
 def test_debug(
     iw_config: ProfileConfig,
-    run: C[[str], Result],
+    run: Run,
 ):
     assert run('debug').output == iw_config.encode_for_display() + '\n'
 
@@ -253,15 +259,15 @@ def test_debug(
 @pytest.mark.parametrize('command', ['configure', 'list'], ids=['explicit', 'implicit'])
 def test_configure__create_new_profile(
     monkeypatch: pytest.MonkeyPatch,
-    feed_pt: C[[str], None],
+    pt_input: PipeInput,
     iw_config: ProfileConfig,
-    run: C[[str], Result],
+    run: Run,
     command: str,
 ):
     # In case there is a WoW installation in the test environment.
     monkeypatch.setattr('instawow.wow_installations.find_installations', lambda: iter([]))
 
-    feed_pt(f'{iw_config.addon_dir}\r\rY\r')
+    pt_input.send_text(f'{iw_config.addon_dir}\r\rY\r')
     assert run(f'-p foo {command}').output == (
         'Navigate to https://github.com/login/device and paste the code below:\n'
         '  WDJB-MJHT\n'
@@ -273,11 +279,11 @@ def test_configure__create_new_profile(
 
 
 def test_configure__update_existing_profile_interactively(
-    feed_pt: C[[str], None],
+    pt_input: PipeInput,
     iw_config: ProfileConfig,
-    run: C[[str], Result],
+    run: Run,
 ):
-    feed_pt('Y\r')
+    pt_input.send_text('Y\r')
     assert run('configure global_config.auto_update_check').output == (
         'Configuration written to:\n'
         f'  {iw_config.global_config.config_dir / "config.json"}\n'
@@ -287,7 +293,7 @@ def test_configure__update_existing_profile_interactively(
 
 def test_configure__update_existing_profile_directly(
     iw_config: ProfileConfig,
-    run: C[[str], Result],
+    run: Run,
 ):
     assert run('configure global_config.auto_update_check=0').output == (
         'Configuration written to:\n'
@@ -298,7 +304,7 @@ def test_configure__update_existing_profile_directly(
 
 @pytest.mark.parametrize('options', ['', '--undo'])
 def test_rollback__pkg_not_installed(
-    run: C[[str], Result],
+    run: Run,
     options: str,
 ):
     assert (
@@ -309,7 +315,7 @@ def test_rollback__pkg_not_installed(
 
 @pytest.mark.parametrize('options', ['', '--undo'])
 def test_rollback__unsupported(
-    run: C[[str], Result],
+    run: Run,
     options: str,
 ):
     assert run('install wowi:13188-molinari').exit_code == 0
@@ -320,7 +326,7 @@ def test_rollback__unsupported(
 
 
 def test_rollback__single_version(
-    run: C[[str], Result],
+    run: Run,
 ):
     assert run('install curse:molinari').exit_code == 0
     assert (
@@ -329,13 +335,13 @@ def test_rollback__single_version(
 
 
 def test_rollback__multiple_versions(
-    feed_pt: C[[str], None],
-    run: C[[str], Result],
+    pt_input: PipeInput,
+    run: Run,
 ):
     assert run('install curse:molinari#version_eq=100005.97-Release').exit_code == 0
     assert run('remove curse:molinari').exit_code == 0
     assert run('install curse:molinari').exit_code == 0
-    feed_pt('\r\r')
+    pt_input.send_text('\r\r')
     assert run('rollback curse:molinari').output == dedent(
         """\
         ✓ curse:molinari
@@ -347,14 +353,14 @@ def test_rollback__multiple_versions(
 
 @pytest.mark.parametrize('options', ['', '--undo'])
 def test_rollback__rollback_multiple_versions(
-    feed_pt: C[[str], None],
-    run: C[[str], Result],
+    pt_input: PipeInput,
+    run: Run,
     options: str,
 ):
     assert run('install curse:molinari').exit_code == 0
     assert run('remove curse:molinari').exit_code == 0
     assert run('install curse:molinari#version_eq=100005.97-Release').exit_code == 0
-    feed_pt('\r\r')
+    pt_input.send_text('\r\r')
     assert run(f'rollback {options} curse:molinari').output == dedent(
         """\
         ✓ curse:molinari
@@ -370,7 +376,7 @@ def test_rollback__rollback_multiple_versions(
 
 
 def test_reconcile__list_unreconciled(
-    pretend_install_molinari_and_run: C[[str], Result],
+    pretend_install_molinari_and_run: Run,
 ):
     assert (
         pretend_install_molinari_and_run('reconcile --list-unreconciled').output
@@ -383,10 +389,10 @@ def test_reconcile__list_unreconciled(
 
 
 def test_reconcile_leftovers(
-    feed_pt: C[[str], None],
-    pretend_install_molinari_and_run: C[[str], Result],
+    pt_input: PipeInput,
+    pretend_install_molinari_and_run: Run,
 ):
-    feed_pt('sss')  # Skip
+    pt_input.send_text('sss')  # Skip
     assert pretend_install_molinari_and_run(
         'reconcile'
     ).output.endswith(
@@ -397,7 +403,7 @@ def test_reconcile_leftovers(
 
 
 def test_reconcile__auto_reconcile(
-    pretend_install_molinari_and_run: C[[str], Result],
+    pretend_install_molinari_and_run: Run,
 ):
     assert pretend_install_molinari_and_run('reconcile --auto').output == dedent(
         """\
@@ -408,18 +414,18 @@ def test_reconcile__auto_reconcile(
 
 
 def test_reconcile__abort_interactive_reconciliation(
-    feed_pt: C[[str], None],
-    pretend_install_molinari_and_run: C[[str], Result],
+    pt_input: PipeInput,
+    pretend_install_molinari_and_run: Run,
 ):
-    feed_pt('\x03')  # ^C
+    pt_input.send_text('\x03')  # ^C
     assert pretend_install_molinari_and_run('reconcile').output.endswith('Aborted!\n')
 
 
 def test_reconcile__complete_interactive_reconciliation(
-    feed_pt: C[[str], None],
-    pretend_install_molinari_and_run: C[[str], Result],
+    pt_input: PipeInput,
+    pretend_install_molinari_and_run: Run,
 ):
-    feed_pt('\r\r')
+    pt_input.send_text('\r\r')
     assert pretend_install_molinari_and_run('reconcile').output.endswith(
         dedent(
             """\
@@ -431,16 +437,16 @@ def test_reconcile__complete_interactive_reconciliation(
 
 
 def test_reconcile__reconciliation_complete(
-    run: C[[str], Result],
+    run: Run,
 ):
     assert run('reconcile').output == 'No add-ons left to reconcile.\n'
 
 
 def test_reconcile__rereconcile(
-    feed_pt: C[[str], None],
-    install_molinari_and_run: C[[str], Result],
+    pt_input: PipeInput,
+    install_molinari_and_run: Run,
 ):
-    feed_pt('\r\r')
+    pt_input.send_text('\r\r')
     assert install_molinari_and_run('reconcile --installed').output == dedent(
         """\
         ✓ curse:molinari
@@ -452,7 +458,7 @@ def test_reconcile__rereconcile(
 
 
 def test_reconcile__cannot_use_auto_with_installed(
-    run: C[[str], Result],
+    run: Run,
 ):
     result = run('reconcile --auto --installed')
     assert result.exit_code == 2
@@ -460,34 +466,34 @@ def test_reconcile__cannot_use_auto_with_installed(
 
 
 def test_search__no_results(
-    run: C[[str], Result],
+    run: Run,
 ):
     assert run('search ∅').output == 'No results found.\n'
 
 
 def test_search__exit_without_selecting(
-    feed_pt: C[[str], None],
-    run: C[[str], Result],
+    pt_input: PipeInput,
+    run: Run,
 ):
-    feed_pt('\r')  # enter
+    pt_input.send_text('\r')  # enter
     assert run('search molinari').output == (
         'Nothing was selected; select add-ons with <space> and confirm by pressing <enter>.\n'
     )
 
 
 def test_search__exit_after_selection(
-    feed_pt: C[[str], None],
-    run: C[[str], Result],
+    pt_input: PipeInput,
+    run: Run,
 ):
-    feed_pt(' \rn')  # space, enter, "n"
+    pt_input.send_text(' \rn')  # space, enter, "n"
     assert run('search molinari').output == ''
 
 
 def test_search__install_one(
-    feed_pt: C[[str], None],
-    run: C[[str], Result],
+    pt_input: PipeInput,
+    run: Run,
 ):
-    feed_pt(' \r\r')  # space, enter, enter
+    pt_input.send_text(' \r\r')  # space, enter, enter
     assert run('search molinari --source curse').output == dedent(
         """\
         ✓ curse:molinari
@@ -497,10 +503,10 @@ def test_search__install_one(
 
 
 def test_search__install_multiple_conflicting(
-    feed_pt: C[[str], None],
-    run: C[[str], Result],
+    pt_input: PipeInput,
+    run: Run,
 ):
-    feed_pt(' \x1b[B \r\r')  # space, arrow down, space, enter, enter
+    pt_input.send_text(' \x1b[B \r\r')  # space, arrow down, space, enter, enter
     assert run('search molinari').output == dedent(
         """\
         ✓ github:p3lim-wow/molinari
@@ -513,7 +519,7 @@ def test_search__install_multiple_conflicting(
 
 
 def test_changelog_output(
-    install_molinari_and_run: C[[str], Result],
+    install_molinari_and_run: Run,
 ):
     output = (
         'curse:molinari:\n  Changes in 90200.82-Release:'
@@ -524,7 +530,7 @@ def test_changelog_output(
 
 
 def test_changelog_output_no_convert(
-    install_molinari_and_run: C[[str], Result],
+    install_molinari_and_run: Run,
 ):
     assert install_molinari_and_run(
         'view-changelog --no-convert curse:molinari'
@@ -532,7 +538,7 @@ def test_changelog_output_no_convert(
 
 
 def test_argless_changelog_output(
-    install_molinari_and_run: C[[str], Result],
+    install_molinari_and_run: Run,
 ):
     output = (
         'curse:molinari:\n  Changes in 90200.82-Release:'
@@ -543,7 +549,7 @@ def test_argless_changelog_output(
 
 
 def test_argless_changelog_output_no_convert(
-    install_molinari_and_run: C[[str], Result],
+    install_molinari_and_run: Run,
 ):
     assert install_molinari_and_run('view-changelog --no-convert').output.startswith(
         'curse:molinari:\n  <h3>Changes in'
@@ -561,7 +567,7 @@ def test_argless_changelog_output_no_convert(
 )
 def test_exit_codes_with_substr_match(
     monkeypatch: pytest.MonkeyPatch,
-    install_molinari_and_run: C[[str], Result],
+    install_molinari_and_run: Run,
     command: str,
     exit_code: int,
 ):
@@ -570,7 +576,7 @@ def test_exit_codes_with_substr_match(
 
 
 def test_can_list_with_substr_match(
-    install_molinari_and_run: C[[str], Result],
+    install_molinari_and_run: Run,
 ):
     assert install_molinari_and_run('list mol').output == 'curse:molinari\n'
     assert install_molinari_and_run('list foo').output == ''
@@ -580,14 +586,14 @@ def test_can_list_with_substr_match(
 
 
 def test_json_export(
-    install_molinari_and_run: C[[str], Result],
+    install_molinari_and_run: Run,
 ):
     output = install_molinari_and_run('list -f json').output
     assert json.loads(output)[0]['name'] == 'Molinari'
 
 
 def test_list_sources(
-    run: C[[str], Result],
+    run: Run,
 ):
     json_converter = make_json_converter()
 
@@ -597,13 +603,13 @@ def test_list_sources(
 
 
 def test_show_version(
-    run: C[[str], Result],
+    run: Run,
 ):
     assert run('--version').output == f'instawow, version {__version__}\n'
 
 
 def test_plugin_hook_command_can_be_invoked(
-    run: C[[str], Result],
+    run: Run,
 ):
     pytest.importorskip('instawow_test_plugin')
     assert run('plugins foo').output == 'success!\n'
