@@ -275,8 +275,7 @@ class GithubResolver(BaseResolver):
                 matching_asset = candidate
                 break
 
-        if matching_asset:
-            return matching_asset['url'], None
+        return matching_asset
 
     async def __find_match_from_release_json(
         self, assets: list[_GithubRelease_Asset], release_json_asset: _GithubRelease_Asset
@@ -335,8 +334,7 @@ class GithubResolver(BaseResolver):
             ),
             None,
         )
-        if matching_asset:
-            return matching_asset['url'], matching_release.get('version')
+        return matching_asset
 
     async def _resolve_one(self, defn: Defn, metadata: None) -> PkgCandidate:
         github_headers = await self.make_request_headers()
@@ -396,9 +394,6 @@ class GithubResolver(BaseResolver):
                 match = await self.__find_match_from_zip_contents(assets)
 
             if match:
-                download_url, version = match
-                if version is None:
-                    version = release['tag_name']
                 break
 
         else:
@@ -410,9 +405,9 @@ class GithubResolver(BaseResolver):
             name=project['name'],
             description=project['description'] or '',
             url=project['html_url'],
-            download_url=download_url,
+            download_url=match['url'],
             date_published=iso8601.parse_date(release['published_at']),
-            version=version,
+            version=release['tag_name'],
             changelog_url=as_plain_text_data_url(release['body']),
         )
 

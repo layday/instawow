@@ -127,66 +127,6 @@ async def test_extracting_flavour_from_zip_contents(
         assert iw_manager_ctx.config.game_flavour in flavours
 
 
-packager_test_defn = Defn('github', 'nebularg/PackagerTest')
-
-
-@pytest.mark.parametrize(
-    '_iw_mock_aiohttp_requests',
-    [
-        {
-            f'//api.github.com/repos/{packager_test_defn.alias}',
-            f'//api.github.com/repos/{packager_test_defn.alias}/releases?per_page=10',
-        }
-    ],
-    indirect=True,
-)
-async def test_disparate_tag_name_and_release_json_version(
-    monkeypatch: pytest.MonkeyPatch,
-    iw_web_client: aiohttp.ClientSession,
-    iw_aresponses: ResponsesMockServer,
-    github_resolver: GithubResolver,
-):
-    monkeypatch.setattr(iw_web_client.cache, 'disabled', True)  # Disable cache for repeat hits.
-
-    iw_aresponses.add(
-        **Route(
-            '//api.github.com/repos/nebularg/PackagerTest/releases/assets/37156458',
-            {
-                'releases': [
-                    {
-                        'filename': 'TestGit-v1.9.7.zip',
-                        'nolib': False,
-                        'metadata': [{'flavor': 'mainline', 'interface': 90100}],
-                    },
-                ]
-            },
-            repeat=1,
-        ).to_aresponses_add_args()
-    )
-    result1 = await github_resolver.resolve_one(packager_test_defn, None)
-
-    iw_aresponses.add(
-        **Route(
-            '//api.github.com/repos/nebularg/PackagerTest/releases/assets/37156458',
-            {
-                'releases': [
-                    {
-                        'version': 'abc',
-                        'filename': 'TestGit-v1.9.7.zip',
-                        'nolib': False,
-                        'metadata': [{'flavor': 'mainline', 'interface': 90100}],
-                    },
-                ]
-            },
-            repeat=1,
-        ).to_aresponses_add_args()
-    )
-    result2 = await github_resolver.resolve_one(packager_test_defn, None)
-
-    assert result1.version != result2.version
-    assert result2.version == 'abc'
-
-
 async def test_repo_with_release_json_release(
     github_resolver: GithubResolver,
 ):
@@ -223,6 +163,9 @@ async def test_changelog_is_data_url(
 
     result = await github_resolver.resolve_one(defn, None)
     assert result.changelog_url.startswith('data:,')
+
+
+packager_test_defn = Defn('github', 'nebularg/PackagerTest')
 
 
 @pytest.mark.parametrize(
