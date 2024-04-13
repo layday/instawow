@@ -1017,7 +1017,9 @@ def debug(
     mw: CtxObjWrapper,
 ) -> None:
     "Display debugging information."
-    click.echo(mw.manager.ctx.config.encode_for_display())
+    import json
+
+    click.echo(json.dumps({'config': mw.manager.ctx.config.unstructure_for_display()}, indent=2))
 
 
 async def _github_oauth_flow():

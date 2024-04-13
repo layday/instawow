@@ -253,7 +253,10 @@ def test_debug(
     iw_config: ProfileConfig,
     run: Run,
 ):
-    assert run('debug').output == iw_config.encode_for_display() + '\n'
+    assert (
+        run('debug').output
+        == json.dumps({'config': iw_config.unstructure_for_display()}, indent=2) + '\n'
+    )
 
 
 @pytest.mark.parametrize('command', ['configure', 'list'], ids=['explicit', 'implicit'])

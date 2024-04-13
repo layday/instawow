@@ -7,7 +7,7 @@ from collections.abc import Callable, Iterable, Iterator, Mapping, Sized
 from functools import lru_cache, partial
 from pathlib import Path
 from tempfile import gettempdir
-from typing import Any, TypedDict, TypeVar
+from typing import Any, NewType, TypedDict, TypeVar
 
 import attrs
 import cattrs
@@ -20,13 +20,12 @@ from .wow_installations import Flavour, get_installation_dir_from_addon_dir
 
 _T = TypeVar('_T')
 
-_MISSING = object()
+_missing = object()
 
 _BOTTOM_DIR_NAME = 'instawow'
 
 
-class SecretStr(str):
-    pass
+SecretStr = NewType('SecretStr', str)
 
 
 def _expand_path(value: Path):
@@ -43,6 +42,8 @@ def _ensure_dirs(dirs: Iterable[Path]):
 
 
 def _enrich_validator_exc(validator: Callable[[object, attrs.Attribute[_T], _T], None]):
+    "Pretend validation error originates from cattrs for uniformity."
+
     def wrapper(model: object, attr: attrs.Attribute[_T], value: _T):
         try:
             validator(model, attr, value)
@@ -69,12 +70,9 @@ def _make_validate_min_length(min_length: int):
     return _validate_min_length
 
 
-def _encode_config_for_display(config: object):
+def _unstructure_config_for_display(config: object):
     converter = _make_display_converter()
-    return json.dumps(
-        converter.unstructure(config),
-        indent=2,
-    )
+    return converter.unstructure(config)
 
 
 def _write_config(config: object, config_path: Path):
@@ -111,8 +109,8 @@ def _read_env_vars(config_cls: Any, values: Mapping[str, object]):
     return {
         f.name: v
         for f in attrs.fields(config_cls)
-        for v in (_compute_var(f, values.get(f.name, _MISSING)),)
-        if v is not _MISSING
+        for v in (_compute_var(f, values.get(f.name, _missing)),)
+        if v is not _missing
     }
 
 
@@ -348,8 +346,8 @@ class ProfileConfig:
             {**_read_config(dummy_config.config_file), 'global_config': global_config}, env=env
         )
 
-    def encode_for_display(self) -> str:
-        return _encode_config_for_display(self)
+    def unstructure_for_display(self) -> str:
+        return _unstructure_config_for_display(self)
 
     def ensure_dirs(self) -> Self:
         _ensure_dirs(
