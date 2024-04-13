@@ -354,6 +354,21 @@ def _parse_uri(
     return defn
 
 
+def _make_multi_pkg_filter(defns: Sequence[Defn]):
+    def make_where_subclause(defn: Defn):
+        if not defn.source:
+            return pkg_db.pkg.c.slug.contains(defn.alias)
+
+        query = pkg_db.pkg.c.source == defn.source
+        if defn.alias:
+            query &= (pkg_db.pkg.c.id == defn.alias) | (
+                pkg_db.sa.func.lower(pkg_db.pkg.c.slug) == pkg_db.sa.func.lower(defn.alias)
+            )
+        return query
+
+    return pkg_db.sa.or_(*(make_where_subclause(d) for d in defns))
+
+
 @cli.command
 @click.argument('addons', nargs=-1, callback=_with_manager(_parse_uri))
 @click.option(
@@ -768,23 +783,9 @@ def list_installed(mw: CtxObjWrapper, addons: Sequence[Defn], output_format: _Li
     "List installed add-ons."
 
     with mw.manager.ctx.database.connect() as connection:
-
-        def make_addon_filter(defn: Defn):
-            if not defn.source:
-                return pkg_db.pkg.c.slug.contains(defn.alias)
-
-            query = pkg_db.pkg.c.source == defn.source
-            if defn.alias:
-                query &= (pkg_db.pkg.c.id == defn.alias) | (
-                    pkg_db.sa.func.lower(pkg_db.pkg.c.slug) == pkg_db.sa.func.lower(defn.alias)
-                )
-            return query
-
         pkg_select_query = pkg_db.sa.select(pkg_db.pkg)
         if addons:
-            pkg_select_query = pkg_select_query.filter(
-                pkg_db.sa.or_(*(make_addon_filter(d) for d in addons))
-            )
+            pkg_select_query = pkg_select_query.filter(_make_multi_pkg_filter(addons))
 
         pkg_mappings = (
             connection.execute(
@@ -879,20 +880,20 @@ def reveal(mw: CtxObjWrapper, addon: Defn) -> None:
 
 @cli.command
 @click.argument(
-    'addon', callback=_with_manager(partial(_parse_uri, raise_invalid=False)), required=False
+    'addons', nargs=-1, callback=_with_manager(partial(_parse_uri, raise_invalid=False))
 )
 @click.option(
     '--convert/--no-convert',
     default=True,
     show_default=True,
-    help='Convert HTML and Markdown changelogs to plain text using pandoc.',
+    help='Convert HTML and Markdown changelogs to plain text using pandoc. No-op if pandoc is not installed.',
 )
 @click.pass_obj
-def view_changelog(mw: CtxObjWrapper, addon: Defn | None, convert: bool) -> None:
+def view_changelog(mw: CtxObjWrapper, addons: Sequence[Defn], convert: bool) -> None:
     """View the changelog of an installed add-on.
 
-    If `addon` is not provided, displays the changelogs of all add-ons
-    to have been installed within one minute of the last add-on.
+    If `ADDONS` is not provided, displays the changelogs of all add-ons
+    to have been installed within one minute of the newest add-on.
     """
 
     MAX_LINES = 100
@@ -940,60 +941,48 @@ def view_changelog(mw: CtxObjWrapper, addon: Defn | None, convert: bool) -> None
         )
         return f'{Defn(source, slug).as_uri()}:\n{body}'
 
-    if addon:
-        pkg = mw.manager.get_pkg(addon, partial_match=True)
-        if pkg:
-            changelog = mw.run_with_progress(
-                mw.manager.get_changelog(pkg.source, pkg.changelog_url)
-            )
-            if convert:
-                changelog = make_converter()(pkg.source, changelog)
-
-            click.echo_via_pager(format_combined_changelog_entry(pkg.source, pkg.slug, changelog))
+    with mw.manager.ctx.database.connect() as connection:
+        query = pkg_db.sa.select(
+            pkg_db.pkg.c.source, pkg_db.pkg.c.slug, pkg_db.pkg.c.changelog_url
+        )
+        if addons:
+            query = query.filter(_make_multi_pkg_filter(addons))
 
         else:
-            Report([(addon, R.PkgNotInstalled())]).generate_and_exit()
-
-    else:
-        with mw.manager.ctx.database.connect() as connection:
             join_clause = (pkg_db.pkg.c.source == pkg_db.pkg_version_log.c.pkg_source) & (
                 pkg_db.pkg.c.id == pkg_db.pkg_version_log.c.pkg_id
             )
-            last_installed_changelog_urls = connection.execute(
-                pkg_db.sa.select(
-                    pkg_db.pkg.c.source, pkg_db.pkg.c.slug, pkg_db.pkg.c.changelog_url
-                )
-                .join(pkg_db.pkg_version_log, join_clause)
-                .filter(
-                    pkg_db.pkg_version_log.c.install_time
-                    >= pkg_db.sa.select(
-                        pkg_db.sa.func.datetime(
-                            pkg_db.sa.func.max(pkg_db.pkg_version_log.c.install_time), '-1 minute'
-                        )
+            query = query.join(pkg_db.pkg_version_log, join_clause).filter(
+                pkg_db.pkg_version_log.c.install_time
+                >= pkg_db.sa.select(
+                    pkg_db.sa.func.datetime(
+                        pkg_db.sa.func.max(pkg_db.pkg_version_log.c.install_time), '-1 minute'
                     )
-                    .join(pkg_db.pkg, join_clause)
-                    .scalar_subquery()
                 )
-            ).all()
-
-        changelogs = mw.run_with_progress(
-            gather(
-                mw.manager.get_changelog(m.source, m.changelog_url)
-                for m in last_installed_changelog_urls
-            )
-        )
-        if convert:
-            do_convert = make_converter()
-            changelogs = (
-                do_convert(m.source, c) for m, c in zip(last_installed_changelog_urls, changelogs)
+                .join(pkg_db.pkg, join_clause)
+                .scalar_subquery()
             )
 
-        click.echo_via_pager(
-            '\n\n'.join(
-                format_combined_changelog_entry(m.source, m.slug, c)
-                for m, c in zip(last_installed_changelog_urls, changelogs)
-            )
+        last_installed_changelog_urls = connection.execute(query).all()
+
+    changelogs = mw.run_with_progress(
+        gather(
+            mw.manager.get_changelog(m.source, m.changelog_url)
+            for m in last_installed_changelog_urls
         )
+    )
+    if convert:
+        do_convert = make_converter()
+        changelogs = (
+            do_convert(m.source, c) for m, c in zip(last_installed_changelog_urls, changelogs)
+        )
+
+    click.echo_via_pager(
+        '\n\n'.join(
+            format_combined_changelog_entry(m.source, m.slug, c)
+            for m, c in zip(last_installed_changelog_urls, changelogs)
+        )
+    )
 
 
 @cli.command
