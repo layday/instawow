@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import tempfile
 from importlib.metadata import Distribution
 from pathlib import Path
 
@@ -11,7 +12,7 @@ nox.options.default_venv_backend  = 'uv'  # fmt: skip
 nox.options.error_on_external_run = True
 
 
-def install_coverage_hook(session: nox.Session):
+def _install_coverage_hook(session: nox.Session):
     session.run(
         'python',
         '-c',
@@ -25,6 +26,28 @@ import sysconfig
 )
 """,
     )
+
+
+def _session_install_for_python313(session: nox.Session, install_args: list[str]):
+    with tempfile.TemporaryDirectory() as temp_dir:
+        constraints_txt = Path(temp_dir, 'python313-constraints.txt')
+        constraints_txt.write_text("""\
+sqlalchemy @ git+https://github.com/sqlalchemy/sqlalchemy ; python_version >= "3.13"
+truststore @ git+https://github.com/sethmlarson/truststore@support-for-python-313 ; python_version >= "3.13"
+""")
+
+        session.install(
+            '-c',
+            os.fspath(constraints_txt),
+            *install_args,
+            env={f'{p}_NO_EXTENSIONS': '1' for p in ['AIOHTTP', 'MULTIDICT', 'YARL']},
+        )
+
+
+@nox.session(reuse_venv=True)
+def dev_env(session: nox.Session):
+    _session_install_for_python313(session, ['-e', '.[gui, test, types]'])
+    print(session.virtualenv.bin, end='')
 
 
 @nox.session(name='format')
@@ -70,21 +93,25 @@ def test(session: nox.Session, minimum_versions: bool):
                 wheel_metadata_json,
             )['wheel-path']
 
-    install_requires = [
+    install_args = [
         f'instawow[gui, test] @ {package_path}',
         'instawow_test_plugin @ tests/plugin',
     ]
-
     if minimum_versions:
         (package_metadata,) = Distribution.discover(name='instawow', path=[package_path])
-
-        session.install(
-            '--resolution', 'lowest-direct', *install_requires, *package_metadata.requires or ()
+        _session_install_for_python313(
+            session,
+            [
+                '--resolution',
+                'lowest-direct',
+                *install_args,
+                *(package_metadata.requires or ()),
+            ],
         )
     else:
-        session.install(*install_requires)
+        _session_install_for_python313(session, install_args)
 
-    install_coverage_hook(session)
+    _install_coverage_hook(session)
 
     session.run(
         *'coverage run -m pytest -n auto'.split(),
@@ -117,7 +144,11 @@ def type_check(session: nox.Session):
                 wheel_metadata_json,
             )['wheel-path']
 
-    session.install(f'instawow[gui, types] @ {package_path}')
+    _session_install_for_python313(
+        session,
+        [f'instawow[gui, types] @ {package_path}'],
+    )
+
     session.run('npx', 'pyright', external=True)
 
 
@@ -165,7 +196,6 @@ def publish_dists(session: nox.Session):
 def freeze_cli(session: nox.Session):
     import argparse
     import shutil
-    import tempfile
 
     PYAPP_VERSION = 'v0.15.1'
 

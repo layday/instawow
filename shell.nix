@@ -1,33 +1,24 @@
 { pkgs ? import <nixpkgs> { } }:
 let
-  python = pkgs.python312;
-  venvDir = toString ./venvs + ("/" + python.pythonVersion);
+  python = pkgs.python313.override { enableGIL = false; enableOptimizations = true; };
 in
 pkgs.mkShell {
   buildInputs = [
-    pkgs.nixpkgs-fmt
-    pkgs.nodejs_20
     pkgs.nil
+    pkgs.nixpkgs-fmt
+    pkgs.nodejs_21
+    pkgs.python312.pkgs.nox
     pkgs.uv
     python
-    python.pkgs.venvShellHook
   ];
 
   SOURCE_DATE_EPOCH = "315532800"; # The year 1980
   PYTHONBREAKPOINT = "IPython.terminal.debugger.set_trace";
 
   shellHook = ''
-    if [ -d "${venvDir}" ]; then
-      echo "Skipping venv creation, '${venvDir}' already exists"
-    else
-      echo "Creating new venv environment in path: '${venvDir}'"
-      # Note that the module venv was only introduced in python 3, so for 2.7
-      # this needs to be replaced with a call to virtualenv
-      uv venv "${venvDir}"
-    fi
+    set -ex
 
-    source "${venvDir}/bin/activate"
-
-    AIOHTTP_NO_EXTENSIONS=1 MULTIDICT_NO_EXTENSIONS=1 CC=clang++ uv pip install nox -e ".[gui, test, types]"
+    VENV_BIN_DIR=$(nox -vv -s dev_env --force-python ${python.pythonVersion})
+    source "$VENV_BIN_DIR/activate"
   '';
 }
