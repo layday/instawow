@@ -8,8 +8,17 @@ from pathlib import Path
 
 import nox
 
-nox.options.default_venv_backend  = 'uv'  # fmt: skip
+nox.needs_version = '>= 2024.4.15'
+nox.options.default_venv_backend = 'uv|venv'
 nox.options.error_on_external_run = True
+
+
+_DEPENDENCY_GROUPS = {
+    'build': ['build[uv]'],
+    'format_or_lint': ['ruff'],
+    'publish': ['twine'],
+    'report_coverage': ['coverage[toml]'],
+}
 
 
 def _install_coverage_hook(session: nox.Session):
@@ -46,6 +55,8 @@ truststore @ git+https://github.com/sethmlarson/truststore@support-for-python-31
 
 @nox.session(reuse_venv=True)
 def dev_env(session: nox.Session):
+    "Bootstrap the dev env."
+
     _session_install_for_python313(session, ['-e', '.[gui, test, types]'])
     print(session.virtualenv.bin, end='')
 
@@ -54,14 +65,15 @@ def dev_env(session: nox.Session):
 def format_code(session: nox.Session):
     "Format source code."
 
-    session.install('ruff')
+    session.install(*_DEPENDENCY_GROUPS['format_or_lint'])
 
     check = '--check' in session.posargs
+    skip_prettier = '--skip-prettier' in session.posargs
 
     session.run('ruff', 'check', '--select', 'I', *[] if check else ['--fix'], '.')
     session.run('ruff', 'format', *['--check'] if check else [], '.')
 
-    if '--skip-prettier' not in session.posargs:
+    if not skip_prettier:
         with session.chdir('instawow-gui/frontend'):
             session.run('npm', 'install', external=True)
             session.run('npx', 'prettier', '--check' if check else '--write', '.', external=True)
@@ -70,7 +82,8 @@ def format_code(session: nox.Session):
 @nox.session
 def lint(session: nox.Session):
     "Lint source code."
-    session.install('ruff')
+
+    session.install(*_DEPENDENCY_GROUPS['format_or_lint'])
     session.run('ruff', 'check', '--output-format', 'full', *session.posargs, '.')
     session.notify('format', ['--check'])
 
@@ -79,6 +92,9 @@ def lint(session: nox.Session):
 @nox.parametrize('minimum_versions', [False, True], ['latest', 'minimum-versions'])
 def test(session: nox.Session, minimum_versions: bool):
     "Run the test suite."
+
+    if minimum_versions and session.venv_backend != 'uv':
+        session.error('`minimum_versions` only supported with uv')
 
     if not os.environ.get('CI'):
         session.create_tmp()
@@ -124,7 +140,8 @@ def test(session: nox.Session, minimum_versions: bool):
 @nox.session
 def produce_coverage_report(session: nox.Session):
     "Produce coverage report."
-    session.install('coverage[toml]')
+
+    session.install(*_DEPENDENCY_GROUPS['report_coverage'])
     session.run('coverage', 'combine')
     session.run('coverage', 'html', '--skip-empty')
     session.run('coverage', 'report', '-m')
@@ -155,6 +172,7 @@ def type_check(session: nox.Session):
 @nox.session(python=False)
 def bundle_frontend(session: nox.Session):
     "Bundle the frontend."
+
     with session.chdir('instawow-gui/frontend'):
         session.run('git', 'clean', '-fX', '../src/instawow_gui/frontend', external=True)
         session.run('npm', 'install', external=True)
@@ -167,7 +185,7 @@ def build_dists(session: nox.Session):
     "Build an sdist and wheel."
 
     session.run('git', 'clean', '-fdX', 'dist', external=True)
-    session.install('build[uv]')
+    session.install(*_DEPENDENCY_GROUPS['build'])
     session.run('pyproject-build', '--installer', 'uv')
 
     wheel_path = next(f.path for f in os.scandir('dist') if f.name.endswith('.whl'))
@@ -187,13 +205,16 @@ def build_dists(session: nox.Session):
 @nox.session
 def publish_dists(session: nox.Session):
     "Validate and upload dists to PyPI."
-    session.install('twine')
+
+    session.install(*_DEPENDENCY_GROUPS['publish'])
     session.run('twine', 'check', '--strict', 'dist/*')
     session.run('twine', 'upload', '--verbose', 'dist/*')
 
 
 @nox.session(python=False)
 def freeze_cli(session: nox.Session):
+    "Freeze the CLI with PyApp."
+
     import argparse
     import shutil
 
@@ -244,6 +265,8 @@ def freeze_cli(session: nox.Session):
 
 @nox.session(python=False)
 def patch_frontend_spec(session: nox.Session):
+    "Patch the wheel path and version in the frontend spec."
+
     import argparse
 
     parser = argparse.ArgumentParser()
