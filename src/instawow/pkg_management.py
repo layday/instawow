@@ -8,9 +8,9 @@ from collections.abc import (
     Mapping,
     Sequence,
 )
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, nullcontext
 from functools import wraps
-from itertools import filterfalse, product, repeat, starmap
+from itertools import compress, filterfalse, product, repeat, starmap
 from pathlib import Path
 from shutil import move
 from tempfile import NamedTemporaryFile
@@ -284,29 +284,46 @@ class PkgManager:
             None,
         )
 
-    def check_pkg_exists(self, defn: Defn) -> bool:
-        "Check that a package exists in the database."
-        with self.ctx.database.connect() as connection:
+    def _check_pkgs_exist(
+        self,
+        defns: Sequence[Defn],
+        *,
+        connection: pkg_db.sa.Connection | None = None,
+    ) -> Sequence[bool]:
+        "Check that packages exist in the database."
+        with nullcontext(connection) if connection else self.ctx.database.connect() as connection:
             return (
-                connection.execute(
-                    pkg_db.sa.select(pkg_db.sa.text('1'))
-                    .select_from(pkg_db.pkg)
-                    .where(
-                        pkg_db.pkg.c.source == defn.source,
-                        (pkg_db.pkg.c.id == defn.alias)
-                        | (pkg_db.pkg.c.id == defn.id)
-                        | (
-                            pkg_db.sa.func.lower(pkg_db.pkg.c.slug)
-                            == pkg_db.sa.func.lower(defn.alias)
-                        ),
-                    )
-                ).scalar()
-                == 1
+                connection.exec_driver_sql(
+                    f"""
+WITH defn (source, alias, id)
+AS (
+    VALUES {", ".join(("(?, ?, ?)",) * len(defns))}
+)
+SELECT NOT EXISTS (
+    SELECT 1
+    FROM pkg
+    WHERE pkg.source = defn.source AND (
+        pkg.id = defn.alias OR pkg.id = defn.id OR lower(pkg.slug) = lower(defn.alias)
+    )
+)
+FROM defn
+""",
+                    [tuple(i for d in defns for i in (d.source, d.alias, d.id))],
+                )
+                .scalars()
+                .all()
+                if defns
+                else []
             )
 
-    def get_pkg(self, defn: Defn) -> pkg_models.Pkg | None:
+    def get_pkg(
+        self,
+        defn: Defn,
+        *,
+        connection: pkg_db.sa.Connection | None = None,
+    ) -> pkg_models.Pkg | None:
         "Retrieve a package from the database."
-        with self.ctx.database.connect() as connection:
+        with nullcontext(connection) if connection else self.ctx.database.connect() as connection:
             maybe_row_mapping = (
                 connection.execute(
                     pkg_db.sa.select(pkg_db.pkg).where(
@@ -499,12 +516,14 @@ class PkgManager:
 
         # We'll weed out installed deps from the results after resolving -
         # doing it this way isn't particularly efficient but avoids having to
-        # deal with local state in ``resolve``
+        # deal with local state in ``resolve``.
         resolve_results = await self.resolve(
-            [d for d in defns if not self.check_pkg_exists(d)], with_deps=True
+            list(compress(defns, self._check_pkgs_exist(defns))), with_deps=True
         )
         pkgs, resolve_errors = bucketise_results(resolve_results.items())
-        new_pkgs = {d: p for d, p in pkgs.items() if not self.check_pkg_exists(p.to_defn())}
+        new_pkgs = dict(
+            compress(pkgs.items(), self._check_pkgs_exist([p.to_defn() for p in pkgs.values()]))
+        )
 
         results = dict.fromkeys(defns, R.PkgAlreadyInstalled()) | resolve_errors
 
