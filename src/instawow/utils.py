@@ -22,7 +22,7 @@ from pathlib import Path
 from shutil import move
 from tempfile import mkdtemp
 from types import ModuleType
-from typing import TYPE_CHECKING, Any, TypeVar, overload
+from typing import TYPE_CHECKING, Any, TypeVar
 from weakref import WeakValueDictionary
 
 import attrs
@@ -103,22 +103,7 @@ def merge_intersecting_sets(it: Iterable[Set[_T]]) -> Iterator[frozenset[_T]]:
         yield this_set
 
 
-@overload
-async def gather(it: Iterable[Awaitable[_U]], wrapper: None = None) -> list[_U]: ...
-
-
-@overload
-async def gather(
-    it: Iterable[Awaitable[_U]],
-    wrapper: Callable[[Awaitable[_U]], Awaitable[_T]],
-) -> list[_T]: ...
-
-
-async def gather(
-    it: Iterable[Awaitable[object]], wrapper: Callable[..., Awaitable[object]] | None = None
-) -> Sequence[object]:
-    if wrapper is not None:
-        it = map(wrapper, it)
+async def gather(it: Iterable[Awaitable[_U]]) -> list[_U]:
     return await asyncio.gather(*it)
 
 

@@ -130,7 +130,7 @@ class BaseResolver(Resolver, Protocol):
     async def resolve(
         self, defns: Sequence[Defn]
     ) -> dict[Defn, pkg_models.Pkg | R.ManagerError | R.InternalError]:
-        results = await gather((self.resolve_one(d, None) for d in defns), R.resultify_async_exc)
+        results = await gather(R.resultify_async_exc(self.resolve_one(d, None)) for d in defns)
         return dict(zip(defns, results))
 
     async def resolve_one(self, defn: Defn, metadata: Any) -> pkg_models.Pkg:

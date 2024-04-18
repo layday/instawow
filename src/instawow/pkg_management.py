@@ -472,11 +472,8 @@ class PkgManager:
 
         defns_by_source = bucketise(defns, key=lambda v: v.source)
         results = await gather(
-            (
-                self.ctx.resolvers.get(s, _DummyResolver).resolve(b)
-                for s, b in defns_by_source.items()
-            ),
-            R.resultify_async_exc,
+            R.resultify_async_exc(self.ctx.resolvers.get(s, _DummyResolver).resolve(b))
+            for s, b in defns_by_source.items()
         )
         results_by_defn = chain_dict(
             defns,
@@ -515,8 +512,8 @@ class PkgManager:
             return results | {d: R.PkgInstalled(p, dry_run=True) for d, p in new_pkgs.items()}
 
         download_results = await gather(
-            (_download_pkg_archive(self.ctx, d, r) for d, r in new_pkgs.items()),
-            R.resultify_async_exc,
+            R.resultify_async_exc(_download_pkg_archive(self.ctx, d, r))
+            for d, r in new_pkgs.items()
         )
         archive_paths, download_errors = bucketise_results(zip(new_pkgs, download_results))
 
@@ -581,8 +578,8 @@ class PkgManager:
             }
 
         download_results = await gather(
-            (_download_pkg_archive(self.ctx, d, n) for d, (_, n) in updatables.items()),
-            R.resultify_async_exc,
+            R.resultify_async_exc(_download_pkg_archive(self.ctx, d, n))
+            for d, (_, n) in updatables.items()
         )
         archive_paths, download_errors = bucketise_results(zip(updatables, download_results))
 

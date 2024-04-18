@@ -304,8 +304,8 @@ class CfCoreResolver(BaseResolver):
         addons_by_id = {str(r['id']): r for r in response_json['data']}
 
         results = await gather(
-            (self.resolve_one(d, addons_by_id.get(d.id or d.alias)) for d in defns),
-            R.resultify_async_exc,
+            R.resultify_async_exc(self.resolve_one(d, addons_by_id.get(d.id or d.alias)))
+            for d in defns
         )
         return dict(zip(defns, results))
 

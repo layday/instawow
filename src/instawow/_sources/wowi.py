@@ -153,12 +153,9 @@ class WowiResolver(BaseResolver):
             }
 
         results = await gather(
-            (
-                self.resolve_one(d, {**a, **b} if a and b else None)
-                for d, i in defns_to_ids.items()
-                for a, b in ((list_items_by_id.get(i), details_items_by_id.get(i)),)
-            ),
-            R.resultify_async_exc,
+            R.resultify_async_exc(self.resolve_one(d, {**a, **b} if a and b else None))
+            for d, i in defns_to_ids.items()
+            for a, b in ((list_items_by_id.get(i), details_items_by_id.get(i)),)
         )
         return dict(zip(defns, results))
 
