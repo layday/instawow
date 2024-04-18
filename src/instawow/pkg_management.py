@@ -304,7 +304,7 @@ class PkgManager:
                 == 1
             )
 
-    def get_pkg(self, defn: Defn, partial_match: bool = False) -> pkg_models.Pkg | None:
+    def get_pkg(self, defn: Defn) -> pkg_models.Pkg | None:
         "Retrieve a package from the database."
         with self.ctx.database.connect() as connection:
             maybe_row_mapping = (
@@ -322,16 +322,6 @@ class PkgManager:
                 .mappings()
                 .one_or_none()
             )
-            if maybe_row_mapping is None and partial_match:
-                maybe_row_mapping = (
-                    connection.execute(
-                        pkg_db.sa.select(pkg_db.pkg)
-                        .where(pkg_db.pkg.c.slug.contains(defn.alias))
-                        .order_by(pkg_db.pkg.c.name)
-                    )
-                    .mappings()
-                    .first()
-                )
             if maybe_row_mapping is not None:
                 return self.build_pkg_from_row_mapping(connection, maybe_row_mapping)
 

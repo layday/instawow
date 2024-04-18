@@ -871,9 +871,20 @@ def info(ctx: click.Context, addon: Defn) -> None:
 @click.pass_obj
 def reveal(mw: CtxObjWrapper, addon: Defn) -> None:
     "Bring an add-on up in your file manager."
-    pkg = mw.manager.get_pkg(addon, partial_match=True)
-    if pkg:
-        reveal_folder(mw.manager.ctx.config.addon_dir / pkg.folders[0].name)
+    with mw.manager.ctx.database.connect() as connection:
+        pkg_folder = (
+            connection.execute(
+                pkg_db.sa.select(pkg_db.pkg_folder.c.name)
+                .select_from(pkg_db.pkg)
+                .filter(_make_multi_pkg_filter([addon]))
+                .join(pkg_db.pkg_folder)
+            )
+            .scalars()
+            .first()
+        )
+
+    if pkg_folder:
+        reveal_folder(mw.manager.ctx.config.addon_dir / pkg_folder)
     else:
         Report([(addon, R.PkgNotInstalled())]).generate_and_exit()
 
