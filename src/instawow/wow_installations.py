@@ -126,7 +126,7 @@ _DELECTABLE_DIR_NAMES: dict[str, _Product] = {
     },
     '_classic_ptr_': {
         'code': 'wow_classic_ptr',
-        'flavour': Flavour.Classic,
+        'flavour': Flavour.CataclysmClassic,
     },
     '_classic_beta_': {
         'code': 'wow_classic_beta',
