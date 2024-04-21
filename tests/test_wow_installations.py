@@ -53,7 +53,7 @@ def test_can_extract_flavour_from_partial_version_string():
         ),
         (
             '/foo/bar/_classic_ptr_/Interface/AddOns',
-            Flavour.Classic,
+            Flavour.CataclysmClassic,
         ),
         (
             '_classic_era_/Interface/AddOns',
