@@ -11,7 +11,7 @@ import sqlalchemy.exc
 sa = sqlalchemy
 
 
-_VERSION = 0
+_VERSION = 1
 
 
 class _TZDateTime(sa.TypeDecorator[datetime]):
@@ -104,12 +104,23 @@ pkg_version_log = sa.Table(
     sa.Column('install_time', _TZDateTime, nullable=False, server_default=sa.func.now()),
     sa.Column('pkg_source', sa.String, primary_key=True),
     sa.Column('pkg_id', sa.String, primary_key=True),
+    sa.Index('pkg_version_log_faux_fk', 'pkg_source', 'pkg_id'),
 )
 
 
-def _get_version(engine: sa.Engine) -> int:
+def _get_version(engine: sa.Engine) -> int | None:
     with engine.connect() as connection:
-        return connection.execute(sa.text('PRAGMA user_version')).scalar_one()
+        return (
+            connection.execute(sa.text('PRAGMA user_version')).scalar_one()
+            if sa.inspect(connection).has_table(pkg.name)
+            else None
+        )
+
+
+def _create(engine: sa.Engine, current_version: int) -> None:
+    with engine.connect() as connection:
+        _metadata.create_all(connection)
+        connection.exec_driver_sql(f'PRAGMA user_version = {current_version}')
 
 
 def _migrate(engine: sa.Engine, current_version: int, new_version: int) -> None:
@@ -126,8 +137,13 @@ def _migrate(engine: sa.Engine, current_version: int, new_version: int) -> None:
         transaction.exec_driver_sql('PRAGMA foreign_keys = OFF')
         exit_stack.callback(lambda: transaction.exec_driver_sql('PRAGMA foreign_keys = ON'))
 
-        for intermediate_version in range(current_version + 1, new_version + 1):
-            MIGRATIONS[intermediate_version].upgrade(transaction)
+        if new_version > current_version:
+            for intermediate_version in range(current_version + 1, new_version + 1):
+                MIGRATIONS[intermediate_version]().upgrade(transaction)
+
+        else:
+            for intermediate_version in range(current_version, new_version, -1):
+                MIGRATIONS[intermediate_version]().downgrade(transaction)
 
         # Step 10.
         transaction.exec_driver_sql('PRAGMA foreign_key_check')
@@ -150,9 +166,9 @@ def prepare_database(uri: str) -> sa.Engine:
     sa.event.listen(engine, 'connect', _set_fk_pragma)
 
     current_version = _get_version(engine)
-    if current_version != _VERSION:
+    if current_version is not None and current_version != _VERSION:
         _migrate(engine, current_version, _VERSION)
     else:
-        _metadata.create_all(engine)
+        _create(engine, _VERSION)
 
     return engine
