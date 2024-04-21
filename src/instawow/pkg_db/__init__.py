@@ -67,6 +67,7 @@ pkg_options = sa.Table(
         name='fk_pkg_options_pkg_source_and_id',
         ondelete='CASCADE',
     ),
+    sa.Index('pkg_options_fk', 'pkg_source', 'pkg_id', unique=True),
 )
 
 pkg_folder = sa.Table(
@@ -81,6 +82,7 @@ pkg_folder = sa.Table(
         name='fk_pkg_folder_pkg_source_and_id',
         ondelete='CASCADE',
     ),
+    sa.Index('pkg_folder_fk', 'pkg_source', 'pkg_id'),
 )
 
 pkg_dep = sa.Table(
@@ -95,6 +97,7 @@ pkg_dep = sa.Table(
         name='fk_pkg_dep_pkg_source_and_id',
         ondelete='CASCADE',
     ),
+    sa.Index('pkg_dep_fk', 'pkg_source', 'pkg_id'),
 )
 
 pkg_version_log = sa.Table(
