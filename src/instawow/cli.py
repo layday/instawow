@@ -24,7 +24,7 @@ from .config import GlobalConfig, ProfileConfig, config_converter
 from .definitions import ChangelogFormat, Defn, Strategy
 from .http import TraceRequestCtx, init_web_client
 from .plugins import get_plugin_commands
-from .utils import StrEnum, all_eq, gather, reveal_folder, tabulate, uniq
+from .utils import StrEnum, all_eq, bucketise, gather, reveal_folder, tabulate, uniq
 from .wow_installations import Flavour
 
 _T = TypeVar('_T')
@@ -281,6 +281,21 @@ def _parse_debug_option(
     return (value > 0, value > 1, value > 2)
 
 
+class _SectionedHelpGroup(click.Group):
+    def format_commands(self, ctx: click.Context, formatter: click.HelpFormatter) -> None:
+        command_sections = bucketise(
+            ((s, c) for s, c in self.commands.items() if not c.hidden),
+            key=lambda c: 'Command groups' if isinstance(c[1], click.Group) else 'Commands',
+        )
+        if command_sections:
+            for section_name, commands in command_sections.items():
+                with formatter.section(section_name):
+                    limit = formatter.width - 6 - max(len(s) for s, _ in commands)
+                    formatter.write_dl(
+                        [(s, c.get_short_help_str(limit)) for s, c in commands],
+                    )
+
+
 @overload
 def _parse_uri(
     manager: pkg_management.PkgManager,
@@ -364,7 +379,7 @@ class _ListFormat(StrEnum):
     Json = enum.auto()
 
 
-@click.group(context_settings={'help_option_names': ('-h', '--help')})
+@click.group(context_settings={'help_option_names': ('-h', '--help')}, cls=_SectionedHelpGroup)
 @click.version_option(__version__, prog_name=__spec__.parent)
 @click.option(
     '--verbose',
