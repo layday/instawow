@@ -21,7 +21,7 @@ from . import manager_ctx as _manager_ctx
 from . import results as R
 from ._logging import setup_logging
 from .config import GlobalConfig, ProfileConfig, config_converter
-from .definitions import ChangelogFormat, Defn, SourceMetadata, Strategy
+from .definitions import ChangelogFormat, Defn, Strategy
 from .http import TraceRequestCtx, init_web_client
 from .plugins import get_plugin_commands
 from .utils import StrEnum, all_eq, gather, reveal_folder, tabulate, uniq
@@ -985,43 +985,6 @@ def view_changelog(mw: CtxObjWrapper, addons: Sequence[Defn], convert: bool) -> 
     )
 
 
-@cli.command
-@click.option(
-    '--format',
-    '-f',
-    'output_format',
-    type=click.Choice([_ListFormat.Json]),
-    default=_ListFormat.Json,
-    show_default=True,
-    help='Change the output format.',
-)
-@click.pass_obj
-def list_sources(mw: CtxObjWrapper, output_format: _ListFormat) -> None:
-    "Print source metadata."
-    from cattrs.preconf.json import make_converter
-
-    json_converter = make_converter()
-
-    click.echo(
-        json_converter.dumps(
-            [r.metadata for r in mw.manager.ctx.resolvers.values()],
-            list[SourceMetadata],
-            indent=2,
-        )
-    )
-
-
-@cli.command
-@click.pass_obj
-def debug(
-    mw: CtxObjWrapper,
-) -> None:
-    "Display debugging information."
-    import json
-
-    click.echo(json.dumps({'config': mw.manager.ctx.config.unstructure_for_display()}, indent=2))
-
-
 async def _github_oauth_flow():
     from .github_auth import get_codes, poll_for_access_token
 
@@ -1243,6 +1206,33 @@ def configure(
     click.echo(f'  {config.config_file}')
 
     return config
+
+
+@cli.group('debug')
+def _debug_group():
+    "Retrieve debugging information."
+
+
+@_debug_group.command('config')
+@click.pass_obj
+def debug_config(mw: CtxObjWrapper) -> None:
+    "Print the active configuration."
+    import json
+
+    click.echo(json.dumps(mw.manager.ctx.config.unstructure_for_display(), indent=2))
+
+
+@_debug_group.command('sources')
+@click.pass_obj
+def debug_sources(mw: CtxObjWrapper) -> None:
+    "Print active source metadata."
+    from cattrs.preconf.json import make_converter
+
+    json_converter = make_converter()
+
+    click.echo(
+        json_converter.dumps([r.metadata for r in mw.manager.ctx.resolvers.values()], indent=2)
+    )
 
 
 @_register_plugin_commands

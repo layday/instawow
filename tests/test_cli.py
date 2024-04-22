@@ -249,14 +249,24 @@ def test_install_dry_run(
     )
 
 
-def test_debug(
+def test_debug_config(
     iw_config: ProfileConfig,
     run: Run,
 ):
     assert (
-        run('debug').output
-        == json.dumps({'config': iw_config.unstructure_for_display()}, indent=2) + '\n'
+        run('debug config').output
+        == json.dumps(iw_config.unstructure_for_display(), indent=2) + '\n'
     )
+
+
+def test_debug_sources(
+    run: Run,
+):
+    json_converter = make_json_converter()
+
+    output = run('debug sources').output
+    source_metadata = json_converter.loads(output, list[SourceMetadata])
+    assert len(source_metadata) > 1
 
 
 @pytest.mark.parametrize('command', ['configure', 'list'], ids=['explicit', 'implicit'])
@@ -593,16 +603,6 @@ def test_json_export(
 ):
     output = install_molinari_and_run('list -f json').output
     assert json.loads(output)[0]['name'] == 'Molinari'
-
-
-def test_list_sources(
-    run: Run,
-):
-    json_converter = make_json_converter()
-
-    output = run('list-sources').output
-    source_metadata = json_converter.loads(output, list[SourceMetadata])
-    assert len(source_metadata) > 1
 
 
 def test_show_version(
