@@ -105,7 +105,8 @@ class CtxObjWrapper:
 
         setup_logging(config.logging_dir, *self._ctx.params['verbose'])
 
-        return pkg_management.PkgManager(_manager_ctx.ManagerCtx(config))
+        manager_ctx = self._ctx.with_resource(_manager_ctx.ManagerCtx(config))
+        return pkg_management.PkgManager(manager_ctx)
 
     def run_with_progress(self, awaitable: Awaitable[_T]) -> _T:
         cache_dir = self.manager.ctx.config.global_config.http_cache_dir

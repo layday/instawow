@@ -158,6 +158,13 @@ class DatabaseHandle:
 
         yield self._connection
 
+    def close(self) -> None:
+        if self._connection:
+            with _connection_lock_factory[self.path]:
+                if self._connection:
+                    self._connection.close()
+                    self._connection = None
+
     @classmethod
     @contextlib.contextmanager
     def transact(cls, connection: Connection) -> Iterator[sqlite3.Connection]:

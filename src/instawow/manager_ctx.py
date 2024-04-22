@@ -11,6 +11,8 @@ from functools import cached_property
 from itertools import chain
 from typing import TypeAlias
 
+from typing_extensions import Self
+
 from . import http, pkg_db
 from ._sources.cfcore import CfCoreResolver
 from ._sources.github import GithubResolver
@@ -122,6 +124,12 @@ class ManagerCtx:
         self.resolvers: _Resolvers = _Resolvers((r.metadata.id, r(self)) for r in resolver_classes)
 
         self.database: pkg_db.DatabaseHandle = pkg_db.DatabaseHandle(self.config.db_file)
+
+    def __enter__(self) -> Self:
+        return self
+
+    def __exit__(self, *args: object) -> None:
+        self.database.close()
 
     @property
     def locks(self) -> _Locks:
