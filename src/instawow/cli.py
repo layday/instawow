@@ -5,8 +5,8 @@ import datetime as dt
 import enum
 import textwrap
 from collections.abc import Awaitable, Callable, Collection, Iterable, Mapping, Sequence
-from functools import cached_property, partial
-from itertools import chain, repeat
+from functools import cached_property, partial, reduce
+from itertools import chain, count, repeat
 from pathlib import Path
 from typing import Any, Generic, NoReturn, TypeVar, overload
 
@@ -16,7 +16,7 @@ import click.types
 from loguru import logger
 from typing_extensions import Self
 
-from . import __version__, pkg_db, pkg_management, pkg_models
+from . import __version__, pkg_management, pkg_models
 from . import manager_ctx as _manager_ctx
 from . import results as R
 from ._logging import setup_logging
@@ -280,33 +280,6 @@ def _parse_debug_option(
     return (value > 0, value > 1, value > 2)
 
 
-@click.group(context_settings={'help_option_names': ('-h', '--help')})
-@click.version_option(__version__, prog_name=__spec__.parent)
-@click.option(
-    '--verbose',
-    '-v',
-    count=True,
-    help='Log incrementally more things.  Additive.',
-    callback=_parse_debug_option,
-)
-@click.option(
-    '--no-cache',
-    is_flag=True,
-    default=False,
-    help='Disable the HTTP cache.',
-)
-@click.option(
-    '--profile',
-    '-p',
-    default='__default__',
-    help='Activate the specified profile.',
-)
-@click.pass_context
-def cli(ctx: click.Context, **__: object) -> None:
-    "Add-on manager for World of Warcraft."
-    ctx.obj = CtxObjWrapper(ctx)
-
-
 @overload
 def _parse_uri(
     manager: pkg_management.PkgManager,
@@ -354,19 +327,67 @@ def _parse_uri(
     return defn
 
 
-def _make_multi_pkg_filter(defns: Sequence[Defn]):
-    def make_where_subclause(defn: Defn):
-        if not defn.source:
-            return pkg_db.pkg.c.slug.contains(defn.alias)
+def _make_pkg_where_clause_and_params(defns: Sequence[Defn]) -> tuple[str, dict[str, Any]]:
+    def make_inner():
+        iter_named_param = (f'where_param_{i}' for i in count())
+        for defn, source_param, alias_param in zip(defns, iter_named_param, iter_named_param):
+            if not defn.source:
+                yield (
+                    f"(pkg.slug LIKE '%' || :{alias_param} || '%')",
+                    {alias_param: defn.alias},
+                )
+            elif not defn.alias:
+                yield (
+                    f'pkg.source = :{source_param}',
+                    {source_param: defn.source},
+                )
+            else:
+                yield (
+                    f'pkg.source = :{source_param} AND (pkg.id = :{alias_param} OR lower(pkg.slug) = lower(:{alias_param}))',
+                    {source_param: defn.source, alias_param: defn.alias},
+                )
 
-        query = pkg_db.pkg.c.source == defn.source
-        if defn.alias:
-            query &= (pkg_db.pkg.c.id == defn.alias) | (
-                pkg_db.sa.func.lower(pkg_db.pkg.c.slug) == pkg_db.sa.func.lower(defn.alias)
-            )
-        return query
+    if defns:
+        where_clauses, where_params = zip(*make_inner())
+        return (
+            'WHERE\n  ' + '\n  OR '.join(where_clauses),
+            reduce(lambda a, b: a | b, where_params, {}),
+        )
+    else:
+        return ('', {})
 
-    return pkg_db.sa.or_(*(make_where_subclause(d) for d in defns))
+
+class _ListFormat(StrEnum):
+    Simple = enum.auto()
+    Detailed = enum.auto()
+    Json = enum.auto()
+
+
+@click.group(context_settings={'help_option_names': ('-h', '--help')})
+@click.version_option(__version__, prog_name=__spec__.parent)
+@click.option(
+    '--verbose',
+    '-v',
+    count=True,
+    help='Log incrementally more things.  Additive.',
+    callback=_parse_debug_option,
+)
+@click.option(
+    '--no-cache',
+    is_flag=True,
+    default=False,
+    help='Disable the HTTP cache.',
+)
+@click.option(
+    '--profile',
+    '-p',
+    default='__default__',
+    help='Activate the specified profile.',
+)
+@click.pass_context
+def cli(ctx: click.Context, **__: object) -> None:
+    "Add-on manager for World of Warcraft."
+    ctx.obj = CtxObjWrapper(ctx)
 
 
 @cli.command
@@ -417,24 +438,10 @@ def update(
     "Update installed add-ons."
 
     def filter_results(result: R.Result):
-        # Hide packages from output if they are up to date
-        # and ``update`` was invoked without args,
-        # provided that they are not pinned
-        if addons or not isinstance(result, R.PkgUpToDate):
-            return True
-        else:
-            return result.is_pinned
+        # Hide packages from output if they are up to date and not pinned.
+        return True if addons or not isinstance(result, R.PkgUpToDate) else result.is_pinned
 
-    def installed_pkgs_to_defns():
-        with mw.manager.ctx.database.connect() as connection:
-            return [
-                mw.manager.build_pkg_from_row_mapping(connection, p).to_defn()
-                for p in connection.execute(pkg_db.sa.select(pkg_db.pkg)).mappings().all()
-            ]
-
-    results = mw.run_with_progress(
-        mw.manager.update(addons or installed_pkgs_to_defns(), dry_run=dry_run)
-    )
+    results = mw.run_with_progress(mw.manager.update(addons or 'all', dry_run=dry_run))
     Report(results.items(), filter_results).generate_and_exit()
 
 
@@ -561,11 +568,7 @@ def reconcile(mw: CtxObjWrapper, auto: bool, rereconcile: bool, list_unreconcile
         with mw.manager.ctx.database.connect() as connection:
             installed_pkgs = [
                 mw.manager.build_pkg_from_row_mapping(connection, p)
-                for p in connection.execute(
-                    pkg_db.sa.select(pkg_db.pkg).order_by(pkg_db.sa.func.lower(pkg_db.pkg.c.name))
-                )
-                .mappings()
-                .all()
+                for p in connection.execute('SELECT * FROM pkg ORDER BY lower(name)').fetchall()
             ]
 
         groups = mw.run_with_progress(mw.manager.find_equivalent_pkg_defns(installed_pkgs))
@@ -759,12 +762,6 @@ def search(
         click.echo('No results found.')
 
 
-class _ListFormat(StrEnum):
-    Simple = enum.auto()
-    Detailed = enum.auto()
-    Json = enum.auto()
-
-
 @cli.command('list')
 @click.argument(
     'addons', nargs=-1, callback=_with_manager(partial(_parse_uri, raise_invalid=False))
@@ -783,19 +780,16 @@ def list_installed(mw: CtxObjWrapper, addons: Sequence[Defn], output_format: _Li
     "List installed add-ons."
 
     with mw.manager.ctx.database.connect() as connection:
-        pkg_select_query = pkg_db.sa.select(pkg_db.pkg)
-        if addons:
-            pkg_select_query = pkg_select_query.filter(_make_multi_pkg_filter(addons))
-
-        pkg_mappings = (
-            connection.execute(
-                pkg_select_query.order_by(
-                    pkg_db.pkg.c.source, pkg_db.sa.func.lower(pkg_db.pkg.c.name)
-                )
-            )
-            .mappings()
-            .all()
-        )
+        where_clause, where_params = _make_pkg_where_clause_and_params(addons)
+        pkg_mappings = connection.execute(
+            f"""
+                SELECT *
+                FROM pkg
+                {where_clause}
+                ORDER BY source, lower(name)
+            """,
+            where_params,
+        ).fetchall()
 
         def row_mappings_to_pkgs():
             return map(mw.manager.build_pkg_from_row_mapping, repeat(connection), pkg_mappings)
@@ -804,30 +798,25 @@ def list_installed(mw: CtxObjWrapper, addons: Sequence[Defn], output_format: _Li
             case _ListFormat.Json:
                 from cattrs.preconf.json import make_converter
 
-                json_converter = make_converter()
                 click.echo(
-                    json_converter.dumps(
-                        row_mappings_to_pkgs(),
-                        list[pkg_models.Pkg],
-                        indent=2,
-                    )
+                    make_converter().dumps(list(row_mappings_to_pkgs()), indent=2),
                 )
 
             case _ListFormat.Detailed:
-                formatter = click.HelpFormatter(max_width=99)
 
                 def format_deps(pkg: pkg_models.Pkg):
                     return (
                         Defn(pkg.source, s or e.id).as_uri()
                         for e in pkg.deps
-                        for s in (
+                        for (s,) in (
                             connection.execute(
-                                pkg_db.sa.select(pkg_db.pkg.c.slug).filter_by(
-                                    source=pkg.source, id=e.id
-                                )
-                            ).scalar_one_or_none(),
+                                'SELECT slug FROM pkg WHERE source = :source AND id = :id',
+                                {'source': pkg.source, 'id': pkg.id},
+                            ).fetchone(),
                         )
                     )
+
+                formatter = click.HelpFormatter(max_width=99)
 
                 for pkg in row_mappings_to_pkgs():
                     with formatter.section(pkg.to_defn().as_uri()):
@@ -872,21 +861,22 @@ def info(ctx: click.Context, addon: Defn) -> None:
 def reveal(mw: CtxObjWrapper, addon: Defn) -> None:
     "Bring an add-on up in your file manager."
     with mw.manager.ctx.database.connect() as connection:
-        pkg_folder = (
-            connection.execute(
-                pkg_db.sa.select(pkg_db.pkg_folder.c.name)
-                .select_from(pkg_db.pkg)
-                .filter(_make_multi_pkg_filter([addon]))
-                .join(pkg_db.pkg_folder)
-            )
-            .scalars()
-            .first()
-        )
+        where_clause, where_params = _make_pkg_where_clause_and_params([addon])
+        pkg_folder = connection.execute(
+            f"""
+                SELECT pkg_folder.name
+                FROM pkg
+                JOIN pkg_folder ON pkg.source = pkg_folder.pkg_source AND pkg.id = pkg_folder.pkg_id
+                {where_clause}
+                LIMIT 1
+                """,
+            where_params,
+        ).fetchone()
 
-    if pkg_folder:
-        reveal_folder(mw.manager.ctx.config.addon_dir / pkg_folder)
-    else:
-        Report([(addon, R.PkgNotInstalled())]).generate_and_exit()
+        if pkg_folder:
+            reveal_folder(mw.manager.ctx.config.addon_dir / pkg_folder['name'])
+        else:
+            Report([(addon, R.PkgNotInstalled())]).generate_and_exit()
 
 
 @cli.command
@@ -953,44 +943,42 @@ def view_changelog(mw: CtxObjWrapper, addons: Sequence[Defn], convert: bool) -> 
         return f'{Defn(source, slug).as_uri()}:\n{body}'
 
     with mw.manager.ctx.database.connect() as connection:
-        query = pkg_db.sa.select(
-            pkg_db.pkg.c.source, pkg_db.pkg.c.slug, pkg_db.pkg.c.changelog_url
-        )
+        query = """
+            SELECT pkg.source, pkg.slug, pkg.changelog_url
+            FROM pkg
+        """
         if addons:
-            query = query.filter(_make_multi_pkg_filter(addons))
+            where_clause, query_params = _make_pkg_where_clause_and_params(addons)
+            last_installed_changelog_urls = connection.execute(
+                query + where_clause, query_params
+            ).fetchall()
 
         else:
-            join_clause = (pkg_db.pkg.c.source == pkg_db.pkg_version_log.c.pkg_source) & (
-                pkg_db.pkg.c.id == pkg_db.pkg_version_log.c.pkg_id
-            )
-            query = query.join(pkg_db.pkg_version_log, join_clause).filter(
-                pkg_db.pkg_version_log.c.install_time
-                >= pkg_db.sa.select(
-                    pkg_db.sa.func.datetime(
-                        pkg_db.sa.func.max(pkg_db.pkg_version_log.c.install_time), '-1 minute'
-                    )
+            query += """
+                JOIN pkg_version_log ON pkg.source = pkg_version_log.pkg_source AND pkg.id = pkg_version_log.pkg_id
+                WHERE pkg_version_log.install_time >= (
+                    SELECT datetime(max(pkg_version_log.install_time), '-1 minute')
+                    FROM pkg_version_log
+                    JOIN pkg ON pkg.source = pkg_version_log.pkg_source AND pkg.id = pkg_version_log.pkg_id
                 )
-                .join(pkg_db.pkg, join_clause)
-                .scalar_subquery()
-            )
-
-        last_installed_changelog_urls = connection.execute(query).all()
+            """
+            last_installed_changelog_urls = connection.execute(query).fetchall()
 
     changelogs = mw.run_with_progress(
         gather(
-            mw.manager.get_changelog(m.source, m.changelog_url)
+            mw.manager.get_changelog(m['source'], m['changelog_url'])
             for m in last_installed_changelog_urls
         )
     )
     if convert:
         do_convert = make_converter()
         changelogs = (
-            do_convert(m.source, c) for m, c in zip(last_installed_changelog_urls, changelogs)
+            do_convert(m['source'], c) for m, c in zip(last_installed_changelog_urls, changelogs)
         )
 
     click.echo_via_pager(
         '\n\n'.join(
-            format_combined_changelog_entry(m.source, m.slug, c)
+            format_combined_changelog_entry(m['source'], m['slug'], c)
             for m, c in zip(last_installed_changelog_urls, changelogs)
         )
     )

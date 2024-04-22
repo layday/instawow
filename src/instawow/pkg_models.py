@@ -9,10 +9,22 @@ from attrs import field, frozen
 from .definitions import Defn, StrategyValues
 
 
+def _structure_datetime(value: str, value_type: type):
+    return dt.datetime.fromisoformat(value).replace(tzinfo=dt.timezone.utc)
+
+
+def _unstructure_datetime(value: dt.datetime):
+    if not value.tzinfo:
+        raise TypeError('`tzinfo` must be set')
+
+    return value.astimezone(dt.timezone.utc).replace(tzinfo=None).isoformat(' ')
+
+
 @lru_cache(1)
-def make_db_pkg_converter():
+def make_db_converter():
     converter = cattrs.Converter()
-    converter.register_structure_hook(dt.datetime, lambda d, _: d)
+    converter.register_structure_hook(dt.datetime, _structure_datetime)
+    converter.register_unstructure_hook(dt.datetime, _unstructure_datetime)
     return converter
 
 

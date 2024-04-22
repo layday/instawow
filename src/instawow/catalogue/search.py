@@ -4,7 +4,7 @@ from collections.abc import Callable, Iterator, Set
 from datetime import datetime
 from typing import Literal
 
-from .. import manager_ctx, pkg_db
+from .. import manager_ctx
 from ..utils import bucketise, normalise_names
 from . import cataloguer
 from . import synchronise as synchronise_catalogue
@@ -43,12 +43,11 @@ async def search(
         raise ValueError(f'Unknown preferred source: {prefer_source}')
 
     def get_installed_pkg_keys():
-        with manager_ctx.database.connect() as connection:
-            return (
-                connection.execute(pkg_db.sa.select(pkg_db.pkg.c.source, pkg_db.pkg.c.id))
-                .tuples()
-                .all()
-            )
+        with (
+            manager_ctx.database.connect() as connection,
+            manager_ctx.database.use_tuple_factory(connection) as cursor,
+        ):
+            return cursor.execute('SELECT source, id FROM pkg').fetchall()
 
     def make_filter_fns() -> Iterator[Callable[[cataloguer.ComputedCatalogueEntry], bool]]:
         yield lambda e: manager_ctx.config.game_flavour in e.game_flavours

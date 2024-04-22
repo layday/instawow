@@ -21,7 +21,6 @@ import cattrs
 import cattrs.preconf.json
 import click
 import iso8601
-import sqlalchemy as sa
 from aiohttp_rpc import JsonRpcMethod
 from aiohttp_rpc import middlewares as rpc_middlewares
 from aiohttp_rpc.errors import InvalidParams, ServerError
@@ -30,7 +29,7 @@ from loguru import logger
 from typing_extensions import ParamSpec, TypedDict
 from yarl import URL
 
-from instawow import __version__, matchers, pkg_db, pkg_models
+from instawow import __version__, matchers, pkg_models
 from instawow import results as R
 from instawow._version_check import is_outdated
 from instawow.catalogue.cataloguer import ComputedCatalogueEntry
@@ -300,14 +299,10 @@ class ListInstalledParams(_ProfileParamMixin, BaseParams):
         manager = await managers.get_manager(self.profile)
 
         with manager.ctx.database.connect() as connection:
-            installed_pkgs = (
-                connection.execute(
-                    sa.select(pkg_db.pkg).order_by(sa.func.lower(pkg_db.pkg.c.name))
-                )
-                .mappings()
-                .all()
-            )
-            return [manager.build_pkg_from_row_mapping(connection, p) for p in installed_pkgs]
+            return [
+                manager.build_pkg_from_row_mapping(connection, p)
+                for p in connection.execute('SELECT * FROM pkg ORDER BY lower(name)')
+            ]
 
 
 @_register_method('search')
@@ -487,11 +482,7 @@ class GetReconcileInstalledCandidatesParams(_ProfileParamMixin, BaseParams):
         with manager.ctx.database.connect() as connection:
             installed_pkgs = [
                 manager.build_pkg_from_row_mapping(connection, p)
-                for p in connection.execute(
-                    sa.select(pkg_db.pkg).order_by(sa.func.lower(pkg_db.pkg.c.name))
-                )
-                .mappings()
-                .all()
+                for p in connection.execute('SELECT * FROM pkg ORDER BY lower(name)')
             ]
 
         defn_groups = await managers.run(

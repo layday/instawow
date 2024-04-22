@@ -1,144 +1,114 @@
 from __future__ import annotations
 
 import contextlib
+import os
 import sqlite3
-from datetime import datetime, timezone
+import threading
+from collections.abc import Iterator
+from typing import TypeAlias
 
-import sqlalchemy
-import sqlalchemy.event
-import sqlalchemy.exc
+from ..utils import WeakValueDefaultDictionary
 
-sa = sqlalchemy
+Connection: TypeAlias = sqlite3.Connection
+Row: TypeAlias = sqlite3.Row
+
+
+_connection_lock_factory = WeakValueDefaultDictionary[object, threading.Lock](threading.Lock)
 
 
 _VERSION = 1
 
+_SCHEMA = f"""
+CREATE TABLE pkg (
+    source VARCHAR NOT NULL,
+    id VARCHAR NOT NULL,
+    slug VARCHAR NOT NULL,
+    name VARCHAR NOT NULL,
+    description VARCHAR NOT NULL,
+    url VARCHAR NOT NULL,
+    download_url VARCHAR NOT NULL,
+    date_published DATETIME NOT NULL,
+    version VARCHAR NOT NULL,
+    changelog_url VARCHAR NOT NULL,
+    PRIMARY KEY (source, id)
+);
 
-class _TZDateTime(sa.TypeDecorator[datetime]):
-    impl = sa.DateTime
-    cache_ok = True
+CREATE TABLE pkg_version_log (
+    version VARCHAR NOT NULL,
+    install_time DATETIME DEFAULT (CURRENT_TIMESTAMP) NOT NULL,
+    pkg_source VARCHAR NOT NULL,
+    pkg_id VARCHAR NOT NULL,
+    PRIMARY KEY (version, pkg_source, pkg_id)
+);
+CREATE INDEX pkg_version_log_faux_fk ON pkg_version_log (pkg_source, pkg_id);
 
-    def process_bind_param(self, value: datetime | None, dialect: object) -> datetime | None:
-        if value is not None:
-            if not value.tzinfo:
-                raise TypeError('tzinfo is required')
-            value = value.astimezone(timezone.utc).replace(tzinfo=None)
-        return value
+CREATE TABLE pkg_options (
+    any_flavour BOOLEAN NOT NULL,
+    any_release_type BOOLEAN NOT NULL,
+    version_eq BOOLEAN NOT NULL,
+    pkg_source VARCHAR NOT NULL,
+    pkg_id VARCHAR NOT NULL,
+    PRIMARY KEY (pkg_source, pkg_id),
+    CONSTRAINT fk_pkg_options_pkg_source_and_id
+        FOREIGN KEY (pkg_source, pkg_id)
+        REFERENCES pkg (source, id)
+        ON DELETE CASCADE
+);
+CREATE UNIQUE INDEX pkg_options_fk ON pkg_options (pkg_source, pkg_id);
 
-    def process_result_value(self, value: datetime | None, dialect: object) -> datetime | None:
-        if value is not None:
-            value = value.replace(tzinfo=timezone.utc)
-        return value
+CREATE TABLE pkg_folder (
+    name VARCHAR NOT NULL,
+    pkg_source VARCHAR NOT NULL,
+    pkg_id VARCHAR NOT NULL,
+    PRIMARY KEY (name),
+    CONSTRAINT fk_pkg_folder_pkg_source_and_id
+        FOREIGN KEY (pkg_source, pkg_id)
+        REFERENCES pkg (source, id)
+        ON DELETE CASCADE
+);
+CREATE INDEX pkg_folder_fk ON pkg_folder (pkg_source, pkg_id);
 
-    @property
-    def python_type(self) -> type[datetime]:
-        return datetime
+CREATE TABLE pkg_dep (
+    id VARCHAR NOT NULL,
+    pkg_source VARCHAR NOT NULL,
+    pkg_id VARCHAR NOT NULL,
+    PRIMARY KEY (id, pkg_source, pkg_id),
+    CONSTRAINT fk_pkg_dep_pkg_source_and_id
+        FOREIGN KEY (pkg_source, pkg_id)
+        REFERENCES pkg (source, id)
+        ON DELETE CASCADE
+);
+CREATE INDEX pkg_dep_fk ON pkg_dep (pkg_source, pkg_id);
 
-
-_metadata = sa.MetaData()
-
-
-pkg = sa.Table(
-    'pkg',
-    _metadata,
-    sa.Column('source', sa.String, primary_key=True),
-    sa.Column('id', sa.String, primary_key=True),
-    sa.Column('slug', sa.String, nullable=False),
-    sa.Column('name', sa.String, nullable=False),
-    sa.Column('description', sa.String, nullable=False),
-    sa.Column('url', sa.String, nullable=False),
-    sa.Column('download_url', sa.String, nullable=False),
-    sa.Column('date_published', _TZDateTime, nullable=False),
-    sa.Column('version', sa.String, nullable=False),
-    sa.Column('changelog_url', sa.String, nullable=False),
-)
-
-pkg_options = sa.Table(
-    'pkg_options',
-    _metadata,
-    sa.Column('any_flavour', sa.Boolean, nullable=False),
-    sa.Column('any_release_type', sa.Boolean, nullable=False),
-    sa.Column('version_eq', sa.Boolean, nullable=False),
-    sa.Column('pkg_source', sa.String, primary_key=True),
-    sa.Column('pkg_id', sa.String, primary_key=True),
-    sa.ForeignKeyConstraint(
-        ['pkg_source', 'pkg_id'],
-        ['pkg.source', 'pkg.id'],
-        name='fk_pkg_options_pkg_source_and_id',
-        ondelete='CASCADE',
-    ),
-    sa.Index('pkg_options_fk', 'pkg_source', 'pkg_id', unique=True),
-)
-
-pkg_folder = sa.Table(
-    'pkg_folder',
-    _metadata,
-    sa.Column('name', sa.String, primary_key=True),
-    sa.Column('pkg_source', sa.String, nullable=False),
-    sa.Column('pkg_id', sa.String, nullable=False),
-    sa.ForeignKeyConstraint(
-        ['pkg_source', 'pkg_id'],
-        ['pkg.source', 'pkg.id'],
-        name='fk_pkg_folder_pkg_source_and_id',
-        ondelete='CASCADE',
-    ),
-    sa.Index('pkg_folder_fk', 'pkg_source', 'pkg_id'),
-)
-
-pkg_dep = sa.Table(
-    'pkg_dep',
-    _metadata,
-    sa.Column('id', sa.String, primary_key=True),
-    sa.Column('pkg_source', sa.String, primary_key=True),
-    sa.Column('pkg_id', sa.String, primary_key=True),
-    sa.ForeignKeyConstraint(
-        ['pkg_source', 'pkg_id'],
-        ['pkg.source', 'pkg.id'],
-        name='fk_pkg_dep_pkg_source_and_id',
-        ondelete='CASCADE',
-    ),
-    sa.Index('pkg_dep_fk', 'pkg_source', 'pkg_id'),
-)
-
-pkg_version_log = sa.Table(
-    'pkg_version_log',
-    _metadata,
-    sa.Column('version', sa.String, primary_key=True),
-    sa.Column('install_time', _TZDateTime, nullable=False, server_default=sa.func.now()),
-    sa.Column('pkg_source', sa.String, primary_key=True),
-    sa.Column('pkg_id', sa.String, primary_key=True),
-    sa.Index('pkg_version_log_faux_fk', 'pkg_source', 'pkg_id'),
-)
+PRAGMA user_version = {_VERSION};
+"""
 
 
-def _get_version(engine: sa.Engine) -> int | None:
-    with engine.connect() as connection:
-        return (
-            connection.execute(sa.text('PRAGMA user_version')).scalar_one()
-            if sa.inspect(connection).has_table(pkg.name)
-            else None
-        )
+def _get_version(connection: Connection) -> int | None:
+    has_pkg_table = connection.execute('PRAGMA table_info("pkg")').fetchone()
+    if has_pkg_table:
+        (user_version,) = connection.execute('PRAGMA user_version').fetchone()
+        return user_version
 
 
-def _create(engine: sa.Engine, current_version: int) -> None:
-    with engine.connect() as connection:
-        _metadata.create_all(connection)
-        connection.exec_driver_sql(f'PRAGMA user_version = {current_version}')
+def _create(connection: Connection):
+    with connection as transaction:
+        transaction.executescript(_SCHEMA)
 
 
-def _migrate(engine: sa.Engine, current_version: int, new_version: int) -> None:
+def _migrate(connection: Connection, current_version: int, new_version: int):
     from ._migrations import MIGRATIONS
 
     # SQLite migration reference:
     # https://www.sqlite.org/lang_altertable.html#otheralter
 
     with (
-        engine.begin() as transaction,  # Steps 2 and 11.
+        connection as transaction,  # Steps 2 and 11.
         contextlib.ExitStack() as exit_stack,
     ):
         # Steps 1 and 12.
-        transaction.exec_driver_sql('PRAGMA foreign_keys = OFF')
-        exit_stack.callback(lambda: transaction.exec_driver_sql('PRAGMA foreign_keys = ON'))
+        transaction.execute('PRAGMA foreign_keys = OFF')
+        exit_stack.callback(lambda: transaction.execute('PRAGMA foreign_keys = ON'))
 
         if new_version > current_version:
             for intermediate_version in range(current_version + 1, new_version + 1):
@@ -149,29 +119,54 @@ def _migrate(engine: sa.Engine, current_version: int, new_version: int) -> None:
                 MIGRATIONS[intermediate_version]().downgrade(transaction)
 
         # Step 10.
-        transaction.exec_driver_sql('PRAGMA foreign_key_check')
+        transaction.execute('PRAGMA foreign_key_check')
 
         # Stamp database with new version.
-        transaction.exec_driver_sql(f'PRAGMA user_version = {new_version}')
+        transaction.execute(f'PRAGMA user_version = {new_version}')
 
 
-def _set_fk_pragma(dbapi_connection: sqlite3.Connection, connection_record: object):
-    with contextlib.closing(dbapi_connection.cursor()) as cursor:
-        cursor.execute('PRAGMA foreign_keys = ON')
+def _configure(connection: Connection):
+    connection.execute('PRAGMA foreign_keys = ON')
+    # connection.set_trace_callback(print)
 
 
-def prepare_database(uri: str) -> sa.Engine:
-    "Connect to and optionally create or migrate the database."
-    engine = sa.create_engine(
-        uri,
-        # echo=True,
-    )
-    sa.event.listen(engine, 'connect', _set_fk_pragma)
+def _prepare_database(path: os.PathLike[str]) -> sqlite3.Connection:
+    connection = sqlite3.connect(path, check_same_thread=False)
+    connection.row_factory = sqlite3.Row
+    _configure(connection)
 
-    current_version = _get_version(engine)
+    current_version = _get_version(connection)
     if current_version is not None and current_version != _VERSION:
-        _migrate(engine, current_version, _VERSION)
-    else:
-        _create(engine, _VERSION)
+        _migrate(connection, current_version, _VERSION)
+    elif current_version is None:
+        _create(connection)
 
-    return engine
+    return connection
+
+
+class DatabaseHandle:
+    def __init__(self, path: os.PathLike[str]) -> None:
+        self.path = path
+        self._connection = None
+
+    @contextlib.contextmanager
+    def connect(self) -> Iterator[sqlite3.Connection]:
+        if not self._connection:
+            with _connection_lock_factory[self.path]:
+                if not self._connection:
+                    self._connection = _prepare_database(self.path)
+
+        yield self._connection
+
+    @classmethod
+    @contextlib.contextmanager
+    def transact(cls, connection: Connection) -> Iterator[sqlite3.Connection]:
+        with connection:
+            yield connection
+
+    @classmethod
+    @contextlib.contextmanager
+    def use_tuple_factory(cls, connection: Connection) -> Iterator[sqlite3.Cursor]:
+        with contextlib.closing(connection.cursor()) as cursor:
+            cursor.row_factory = None
+            yield cursor

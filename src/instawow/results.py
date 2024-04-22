@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Awaitable, Collection, Set
+from collections.abc import Awaitable, Collection, Mapping, Set
 from typing import Any, Final, Protocol, TypeAlias, TypeVar
 
 import attrs
@@ -89,7 +89,7 @@ class PkgAlreadyInstalled(ManagerError):
 
 
 class PkgConflictsWithInstalled(ManagerError):
-    def __init__(self, conflicting_pkgs: Collection[Any]) -> None:
+    def __init__(self, conflicting_pkgs: Collection[Mapping[str, Any]]) -> None:
         super().__init__()
         self.conflicting_pkgs = conflicting_pkgs
 
@@ -98,7 +98,7 @@ class PkgConflictsWithInstalled(ManagerError):
         return (
             'package folders conflict with installed package'
             + ('s ' if len(self.conflicting_pkgs) > 1 else ' ')
-            + ', '.join(f'{c.name} ({c.source}:{c.id})' for c in self.conflicting_pkgs)
+            + ', '.join(f'{c["name"]} ({c["source"]}:{c["id"]})' for c in self.conflicting_pkgs)
         )
 
 

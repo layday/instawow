@@ -11,7 +11,7 @@ from typing import Protocol
 import attrs
 from typing_extensions import Self
 
-from .. import manager_ctx, pkg_db
+from .. import manager_ctx
 from ..catalogue import synchronise as synchronise_catalogue
 from ..definitions import Defn
 from ..utils import (
@@ -93,9 +93,7 @@ class AddonFolder:
 
 def _get_unreconciled_folders(manager_ctx: manager_ctx.ManagerCtx):
     with manager_ctx.database.connect() as connection:
-        pkg_folders = (
-            connection.execute(pkg_db.sa.select(pkg_db.pkg_folder.c.name)).scalars().all()
-        )
+        pkg_folders = [n for (n,) in connection.execute('SELECT name FROM pkg_folder').fetchall()]
 
     unreconciled_folder_paths = (
         p

@@ -116,43 +116,139 @@ async def _download_pkg_archive(ctx: ManagerCtx, defn: Defn, pkg: pkg_models.Pkg
         )
 
 
-def _insert_db_pkg(pkg: pkg_models.Pkg, transaction: pkg_db.sa.Connection):
-    values = attrs.asdict(pkg)
-    source_and_id = {'pkg_source': values['source'], 'pkg_id': values['id']}
+def _insert_db_pkg(pkg: pkg_models.Pkg, transaction: pkg_db.Connection):
+    pkg_values = pkg_models.make_db_converter().unstructure(pkg)
 
-    transaction.execute(pkg_db.sa.insert(pkg_db.pkg), [values])
     transaction.execute(
-        pkg_db.sa.insert(pkg_db.pkg_folder), [{**f, **source_and_id} for f in values['folders']]
+        """
+        INSERT INTO pkg (
+            source,
+            id,
+            slug,
+            name,
+            description,
+            url,
+            download_url,
+            date_published,
+            version,
+            changelog_url
+        )
+        VALUES (
+            :source,
+            :id,
+            :slug,
+            :name,
+            :description,
+            :url,
+            :download_url,
+            :date_published,
+            :version,
+            :changelog_url
+        )
+        """,
+        pkg_values,
     )
     transaction.execute(
-        pkg_db.sa.insert(pkg_db.pkg_options), [{**values['options'], **source_and_id}]
+        """
+        INSERT INTO pkg_options (
+            any_flavour,
+            any_release_type,
+            version_eq,
+            pkg_source,
+            pkg_id
+        )
+        VALUES (
+            :any_flavour,
+            :any_release_type,
+            :version_eq,
+            :pkg_source,
+            :pkg_id
+        )
+        """,
+        pkg_values['options'] | {'pkg_source': pkg_values['source'], 'pkg_id': pkg_values['id']},
     )
-    if values['deps']:
-        transaction.execute(
-            pkg_db.sa.insert(pkg_db.pkg_dep), [{**d, **source_and_id} for d in values['deps']]
+    transaction.executemany(
+        """
+        INSERT INTO pkg_folder (
+            name,
+            pkg_source,
+            pkg_id
+        )
+        VALUES (
+            :name,
+            :pkg_source,
+            :pkg_id
+        )
+        """,
+        [
+            f | {'pkg_source': pkg_values['source'], 'pkg_id': pkg_values['id']}
+            for f in pkg_values['folders']
+        ],
+    )
+    if pkg_values['deps']:
+        transaction.executemany(
+            """
+            INSERT INTO pkg_dep (
+                id,
+                pkg_source,
+                pkg_id
+            )
+            VALUES (
+                :id,
+                :pkg_source,
+                :pkg_id
+            )
+            """,
+            [
+                f | {'pkg_source': pkg_values['source'], 'pkg_id': pkg_values['id']}
+                for f in pkg_values['deps']
+            ],
         )
     transaction.execute(
-        pkg_db.sa.insert(pkg_db.pkg_version_log).prefix_with('OR IGNORE'),
-        [{'version': values['version'], **source_and_id}],
+        """
+        INSERT OR IGNORE INTO pkg_version_log (
+            version,
+            pkg_source,
+            pkg_id
+        )
+        VALUES (
+            :version,
+            :pkg_source,
+            :pkg_id
+        )
+        """,
+        {
+            'version': pkg_values['version'],
+            'pkg_source': pkg_values['source'],
+            'pkg_id': pkg_values['id'],
+        },
     )
 
 
-def _delete_db_pkg(pkg: pkg_models.Pkg, transaction: pkg_db.sa.Connection):
-    transaction.execute(pkg_db.sa.delete(pkg_db.pkg).filter_by(source=pkg.source, id=pkg.id))
+def _delete_db_pkg(pkg: pkg_models.Pkg, transaction: pkg_db.Connection):
+    transaction.execute(
+        'DELETE FROM pkg WHERE source = :source AND id = :id',
+        pkg_models.make_db_converter().unstructure(pkg),
+    )
 
 
 @run_in_thread
 def _install_pkg(
     ctx: ManagerCtx, pkg: pkg_models.Pkg, archive: Path, *, replace_folders: bool
 ) -> R.PkgInstalled:
-    with ctx.resolvers.archive_opener_dict[pkg.source](archive) as (top_level_folders, extract):
-        with ctx.database.connect() as connection:
-            installed_conflicts = connection.execute(
-                pkg_db.sa.select(pkg_db.pkg)
-                .distinct()
-                .join(pkg_db.pkg_folder)
-                .where(pkg_db.pkg_folder.c.name.in_(top_level_folders))
-            ).all()
+    with (
+        ctx.resolvers.archive_opener_dict[pkg.source](archive) as (top_level_folders, extract),
+        ctx.database.connect() as connection,
+    ):
+        installed_conflicts = connection.execute(
+            f"""
+            SELECT DISTINCT pkg.*
+            FROM pkg
+            JOIN pkg_folder ON pkg_folder.pkg_source = pkg.source AND pkg_folder.pkg_id = pkg.id
+            WHERE pkg_folder.name IN ({', '.join(('?',) * len(top_level_folders))})
+            """,
+            tuple(top_level_folders),
+        ).fetchall()
         if installed_conflicts:
             raise R.PkgConflictsWithInstalled(installed_conflicts)
 
@@ -171,11 +267,11 @@ def _install_pkg(
 
         extract(ctx.config.addon_dir)
 
-    pkg = attrs.evolve(
-        pkg, folders=[pkg_models.PkgFolder(name=f) for f in sorted(top_level_folders)]
-    )
-    with ctx.database.begin() as transaction:
-        _insert_db_pkg(pkg, transaction)
+        pkg = attrs.evolve(
+            pkg, folders=[pkg_models.PkgFolder(name=f) for f in sorted(top_level_folders)]
+        )
+        with ctx.database.transact(connection) as transaction:
+            _insert_db_pkg(pkg, transaction)
 
     return R.PkgInstalled(pkg)
 
@@ -184,21 +280,20 @@ def _install_pkg(
 def _update_pkg(
     ctx: ManagerCtx, old_pkg: pkg_models.Pkg, new_pkg: pkg_models.Pkg, archive: Path
 ) -> R.PkgUpdated:
-    with ctx.resolvers.archive_opener_dict[new_pkg.source](archive) as (
-        top_level_folders,
-        extract,
+    with (
+        ctx.resolvers.archive_opener_dict[new_pkg.source](archive) as (top_level_folders, extract),
+        ctx.database.connect() as connection,
     ):
-        with ctx.database.connect() as connection:
-            installed_conflicts = connection.execute(
-                pkg_db.sa.select(pkg_db.pkg)
-                .distinct()
-                .join(pkg_db.pkg_folder)
-                .where(
-                    pkg_db.pkg_folder.c.pkg_source != new_pkg.source,
-                    pkg_db.pkg_folder.c.pkg_id != new_pkg.id,
-                    pkg_db.pkg_folder.c.name.in_(top_level_folders),
-                )
-            ).all()
+        installed_conflicts = connection.execute(
+            f"""
+            SELECT DISTINCT pkg.*
+            FROM pkg
+            JOIN pkg_folder ON pkg_folder.pkg_source = pkg.source AND pkg_folder.pkg_id = pkg.id
+            WHERE (pkg_folder.pkg_source != ? AND pkg_folder.pkg_id != ?)
+                AND (pkg_folder.name IN ({', '.join(('?',) * len(top_level_folders))}))
+            """,
+            (new_pkg.source, new_pkg.id, *top_level_folders),
+        ).fetchall()
         if installed_conflicts:
             raise R.PkgConflictsWithInstalled(installed_conflicts)
 
@@ -215,12 +310,12 @@ def _update_pkg(
         )
         extract(ctx.config.addon_dir)
 
-    new_pkg = attrs.evolve(
-        new_pkg, folders=[pkg_models.PkgFolder(name=f) for f in sorted(top_level_folders)]
-    )
-    with ctx.database.begin() as transaction:
-        _delete_db_pkg(old_pkg, transaction)
-        _insert_db_pkg(new_pkg, transaction)
+        new_pkg = attrs.evolve(
+            new_pkg, folders=[pkg_models.PkgFolder(name=f) for f in sorted(top_level_folders)]
+        )
+        with ctx.database.transact(connection) as transaction:
+            _delete_db_pkg(old_pkg, transaction)
+            _insert_db_pkg(new_pkg, transaction)
 
     return R.PkgUpdated(old_pkg, new_pkg)
 
@@ -234,7 +329,7 @@ def _remove_pkg(ctx: ManagerCtx, pkg: pkg_models.Pkg, *, keep_folders: bool) -> 
             missing_ok=True,
         )
 
-    with ctx.database.begin() as transaction:
+    with ctx.database.connect() as connection, ctx.database.transact(connection) as transaction:
         _delete_db_pkg(pkg, transaction)
 
     return R.PkgRemoved(pkg)
@@ -284,94 +379,129 @@ class PkgManager:
             None,
         )
 
-    def _check_pkgs_exist(
+    def check_pkgs_exist(
         self,
         defns: Sequence[Defn],
         *,
-        connection: pkg_db.sa.Connection | None = None,
-    ) -> Sequence[bool]:
+        connection: pkg_db.Connection | None = None,
+    ) -> list[bool]:
         "Check that packages exist in the database."
-        with nullcontext(connection) if connection else self.ctx.database.connect() as connection:
-            return (
-                connection.exec_driver_sql(
+        if not defns:
+            return []
+
+        with (
+            nullcontext(connection) if connection else self.ctx.database.connect() as connection,
+            self.ctx.database.use_tuple_factory(connection) as cursor,
+        ):
+            return [
+                e
+                for (e,) in cursor.execute(
                     f"""
-WITH defn (source, alias, id)
-AS (
-    VALUES {", ".join(("(?, ?, ?)",) * len(defns))}
-)
-SELECT NOT EXISTS (
-    SELECT 1
-    FROM pkg
-    WHERE pkg.source = defn.source AND (
-        pkg.id = defn.alias OR pkg.id = defn.id OR lower(pkg.slug) = lower(defn.alias)
-    )
-)
-FROM defn
-""",
-                    [tuple(i for d in defns for i in (d.source, d.alias, d.id))],
-                )
-                .scalars()
-                .all()
-                if defns
-                else []
-            )
+                    WITH defn (source, alias, id)
+                    AS (
+                        VALUES {", ".join(("(?, ?, ?)",) * len(defns))}
+                    )
+                    SELECT NOT EXISTS (
+                        SELECT 1
+                        FROM pkg
+                        WHERE pkg.source = defn.source AND (
+                            pkg.id = defn.alias OR pkg.id = defn.id OR lower(pkg.slug) = lower(defn.alias)
+                        )
+                    )
+                    FROM defn
+                    """,
+                    tuple(i for d in defns for i in (d.source, d.alias, d.id)),
+                ).fetchall()
+            ]
+
+    def get_pkgs(
+        self,
+        defns: Sequence[Defn] | Literal['all'],
+        *,
+        connection: pkg_db.Connection | None = None,
+    ) -> list[pkg_models.Pkg | None]:
+        if defns != 'all' and not defns:
+            return []
+
+        with nullcontext(connection) if connection else self.ctx.database.connect() as connection:
+            if defns == 'all':
+                pkgs = connection.execute(
+                    """
+                    SELECT * FROM pkg
+                    """,
+                ).fetchall()
+            else:
+                pkgs = connection.execute(
+                    f"""
+                    WITH defn (source, alias, id)
+                    AS (
+                        VALUES {", ".join(("(?, ?, ?)",) * len(defns))}
+                    )
+                    SELECT pkg.*
+                    FROM defn
+                    LEFT JOIN pkg ON pkg.source = defn.source AND (
+                        pkg.id = defn.alias OR pkg.id = defn.id OR lower(pkg.slug) = lower(defn.alias)
+                    )
+                    """,
+                    tuple(i for d in defns for i in (d.source, d.alias, d.id)),
+                ).fetchall()
+
+            return [
+                self.build_pkg_from_row_mapping(connection, m) if m['source'] else None
+                for m in pkgs
+            ]
 
     def get_pkg(
         self,
         defn: Defn,
         *,
-        connection: pkg_db.sa.Connection | None = None,
+        connection: pkg_db.Connection | None = None,
     ) -> pkg_models.Pkg | None:
         "Retrieve a package from the database."
-        with nullcontext(connection) if connection else self.ctx.database.connect() as connection:
-            maybe_row_mapping = (
-                connection.execute(
-                    pkg_db.sa.select(pkg_db.pkg).where(
-                        pkg_db.pkg.c.source == defn.source,
-                        (pkg_db.pkg.c.id == defn.alias)
-                        | (pkg_db.pkg.c.id == defn.id)
-                        | (
-                            pkg_db.sa.func.lower(pkg_db.pkg.c.slug)
-                            == pkg_db.sa.func.lower(defn.alias)
-                        ),
-                    )
-                )
-                .mappings()
-                .one_or_none()
-            )
-            if maybe_row_mapping is not None:
-                return self.build_pkg_from_row_mapping(connection, maybe_row_mapping)
+        (pkg,) = self.get_pkgs([defn], connection=connection)
+        return pkg
 
     def build_pkg_from_row_mapping(
-        self, connection: pkg_db.sa.Connection, row_mapping: pkg_db.sa.RowMapping
+        self, connection: pkg_db.Connection, row_mapping: pkg_db.Row
     ) -> pkg_models.Pkg:
-        source_and_id = {'pkg_source': row_mapping['source'], 'pkg_id': row_mapping['id']}
-        return pkg_models.make_db_pkg_converter().structure(
+        fk = {'pkg_source': row_mapping['source'], 'pkg_id': row_mapping['id']}
+        return pkg_models.make_db_converter().structure(
             {
                 **row_mapping,
                 'options': connection.execute(
-                    pkg_db.sa.select(pkg_db.pkg_options).filter_by(**source_and_id)
-                )
-                .mappings()
-                .one(),
+                    """
+                    SELECT any_flavour, any_release_type, version_eq
+                    FROM pkg_options
+                    WHERE pkg_source = :pkg_source AND pkg_id = :pkg_id
+                    """,
+                    fk,
+                ).fetchone(),
                 'folders': connection.execute(
-                    pkg_db.sa.select(pkg_db.pkg_folder.c.name).filter_by(**source_and_id)
-                )
-                .mappings()
-                .all(),
+                    """
+                    SELECT name
+                    FROM pkg_folder
+                    WHERE pkg_source = :pkg_source AND pkg_id = :pkg_id
+                    """,
+                    fk,
+                ).fetchall(),
                 'deps': connection.execute(
-                    pkg_db.sa.select(pkg_db.pkg_dep.c.id).filter_by(**source_and_id)
-                )
-                .mappings()
-                .all(),
+                    """
+                    SELECT id
+                    FROM pkg_dep
+                    WHERE pkg_source = :pkg_source AND pkg_id = :pkg_id
+                    """,
+                    fk,
+                ).fetchall(),
                 'logged_versions': connection.execute(
-                    pkg_db.sa.select(pkg_db.pkg_version_log)
-                    .filter_by(**source_and_id)
-                    .order_by(pkg_db.pkg_version_log.c.install_time.desc())
-                    .limit(10)
-                )
-                .mappings()
-                .all(),
+                    """
+                    SELECT version, install_time
+                    FROM pkg_version_log
+                    WHERE pkg_source = :pkg_source AND pkg_id = :pkg_id
+                    ORDER BY install_time DESC
+                    LIMIT 10
+                    """,
+                    fk,
+                ).fetchall(),
             },
             pkg_models.Pkg,
         )
@@ -518,11 +648,11 @@ FROM defn
         # doing it this way isn't particularly efficient but avoids having to
         # deal with local state in ``resolve``.
         resolve_results = await self.resolve(
-            list(compress(defns, self._check_pkgs_exist(defns))), with_deps=True
+            list(compress(defns, self.check_pkgs_exist(defns))), with_deps=True
         )
         pkgs, resolve_errors = bucketise_results(resolve_results.items())
         new_pkgs = dict(
-            compress(pkgs.items(), self._check_pkgs_exist([p.to_defn() for p in pkgs.values()]))
+            compress(pkgs.items(), self.check_pkgs_exist([p.to_defn() for p in pkgs.values()]))
         )
 
         results = dict.fromkeys(defns, R.PkgAlreadyInstalled()) | resolve_errors
@@ -549,19 +679,28 @@ FROM defn
 
     @_with_lock(_MUTATE_PKGS_LOCK)
     async def update(
-        self, defns: Sequence[Defn], *, dry_run: bool = False
+        self, defns: Sequence[Defn] | Literal['all'], *, dry_run: bool = False
     ) -> Mapping[Defn, R.AnyResult[R.PkgInstalled | R.PkgUpdated]]:
-        """Update installed packages from a definition list."""
-        defns_to_pkgs = {d: p for d in defns for p in (self.get_pkg(d),) if p}
+        "Update installed packages from a definition list."
 
-        resolve_defns = {
-            # Attach the source ID to each ``Defn`` from the
-            # corresponding installed package.  Using the ID has the benefit
-            # of resolving installed-but-renamed packages - the slug is
-            # transient but the ID isn't
-            attrs.evolve(d, id=p.id) if d.strategies.initialised else p.to_defn(): d
-            for d, p in defns_to_pkgs.items()
-        }
+        if defns == 'all':
+            defns_to_pkgs = {p.to_defn(): p for p in self.get_pkgs(defns) if p}
+            defns = list(defns_to_pkgs)
+
+            resolve_defns = {d: d for d in defns_to_pkgs}
+
+        else:
+            defns_to_pkgs = {d: p for d, p in zip(defns, self.get_pkgs(defns)) if p}
+
+            resolve_defns = {
+                # Attach the source ID to each ``Defn`` from the
+                # corresponding installed package.  Using the ID has the benefit
+                # of resolving installed-but-renamed packages - the slug is
+                # transient but the ID isn't
+                attrs.evolve(d, id=p.id) if d.strategies.initialised else p.to_defn(): d
+                for d, p in defns_to_pkgs.items()
+            }
+
         resolve_results = await self.resolve(resolve_defns, with_deps=True)
         pkgs, resolve_errors = bucketise_results(
             # Discard the reconstructed ``Defn``s
@@ -627,8 +766,7 @@ FROM defn
                 if p
                 else R.PkgNotInstalled()
             )
-            for d in defns
-            for p in (self.get_pkg(d),)
+            for d, p in zip(defns, self.get_pkgs(defns))
         }
 
     @_with_lock(_MUTATE_PKGS_LOCK)
@@ -641,16 +779,13 @@ FROM defn
         had been reinstalled with the ``VersionEq`` strategy.
         """
 
-        @run_in_thread
-        def pin(defn: Defn) -> R.PkgInstalled:
+        async def pin(defn: Defn, pkg: pkg_models.Pkg | None) -> R.PkgInstalled:
             resolver = self.ctx.resolvers.get(defn.source)
             if resolver is None:
                 raise R.PkgSourceInvalid
-
-            if Strategy.VersionEq not in resolver.metadata.strategies:
+            elif Strategy.VersionEq not in resolver.metadata.strategies:
                 raise R.PkgStrategiesUnsupported({Strategy.VersionEq})
 
-            pkg = self.get_pkg(defn)
             if not pkg:
                 raise R.PkgNotInstalled
 
@@ -658,16 +793,29 @@ FROM defn
             if version and pkg.version != version:
                 R.PkgFilesNotMatching(defn.strategies)
 
-            with self.ctx.database.begin() as transaction:
+            version_eq = version is not None
+
+            with (
+                self.ctx.database.connect() as connection,
+                self.ctx.database.transact(connection) as transaction,
+            ):
                 transaction.execute(
-                    pkg_db.sa.update(pkg_db.pkg_options)
-                    .filter_by(pkg_source=pkg.source, pkg_id=pkg.id)
-                    .values(version_eq=version is not None)
+                    """
+                    UPDATE pkg_options
+                    SET version_eq = :version_eq
+                    WHERE pkg_source = :pkg_source AND pkg_id = :pkg_id
+                    """,
+                    {
+                        'pkg_source': pkg.source,
+                        'pkg_id': pkg.id,
+                        'version_eq': version_eq,
+                    },
                 )
 
-            new_pkg = attrs.evolve(
-                pkg, options=attrs.evolve(pkg.options, version_eq=version is not None)
+            return R.PkgInstalled(
+                attrs.evolve(pkg, options=attrs.evolve(pkg.options, version_eq=version_eq)),
             )
-            return R.PkgInstalled(new_pkg)
 
-        return {d: await R.resultify_async_exc(pin(d)) for d in defns}
+        return {
+            d: await R.resultify_async_exc(pin(d, p)) for d, p in zip(defns, self.get_pkgs(defns))
+        }

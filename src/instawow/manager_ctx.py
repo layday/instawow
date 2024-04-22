@@ -121,9 +121,7 @@ class ManagerCtx:
         )
         self.resolvers: _Resolvers = _Resolvers((r.metadata.id, r(self)) for r in resolver_classes)
 
-    @cached_property
-    def database(self) -> pkg_db.sa.Engine:
-        return pkg_db.prepare_database(self.config.db_uri)
+        self.database: pkg_db.DatabaseHandle = pkg_db.DatabaseHandle(self.config.db_file)
 
     @property
     def locks(self) -> _Locks:

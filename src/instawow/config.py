@@ -389,8 +389,8 @@ class ProfileConfig:
         return self.config_dir / 'config.json'
 
     @property
-    def db_uri(self) -> str:
-        return f"sqlite:///{self.config_dir / 'db.sqlite'}"
+    def db_file(self) -> Path:
+        return self.config_dir / 'db.sqlite'
 
 
 config_converter = make_config_converter()
