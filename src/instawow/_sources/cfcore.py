@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import AsyncIterator, Callable, Generator, Sequence
+from collections.abc import AsyncIterator, Callable, Iterator, Sequence
 from datetime import timedelta
 from enum import IntEnum
 from functools import partial
@@ -253,8 +253,8 @@ class CfCoreResolver(BaseResolver):
         name='CFCore',
         strategies=frozenset(
             {
-                Strategy.AnyReleaseType,
                 Strategy.AnyFlavour,
+                Strategy.AnyReleaseType,
                 Strategy.VersionEq,
             }
         ),
@@ -369,39 +369,51 @@ class CfCoreResolver(BaseResolver):
         if not files:
             raise R.PkgFilesMissing
 
-        def make_filter_fns() -> Generator[Callable[[_CfCoreFile], bool], None, None]:
-            yield lambda f: not f.get('exposeAsAlternative', False)
-
-            if not defn.strategies.any_flavour:
-                type_id = self._manager_ctx.config.game_flavour.to_flavour_keyed_enum(
-                    _CfCoreSortableGameVersionTypeId
-                )
-                yield lambda f: any(
-                    s['gameVersionTypeId'] == type_id for s in f['sortableGameVersions']
-                )
-
-            if not defn.strategies.any_release_type:
-                yield lambda f: f['releaseType'] == _CfCoreFileReleaseType.release
-
-            if defn.strategies.version_eq:
-                yield lambda f: f['displayName'] == defn.strategies.version_eq
-
-        filter_fns = list(make_filter_fns())
-
-        file = max(
-            (f for f in files if all(r(f) for r in filter_fns)),
-            # The ``id`` is just a counter so we don't have to go digging around dates
-            key=lambda f: f['id'],
-            default=None,
+        desired_flavour_groups = self._manager_ctx.config.game_flavour.get_flavour_groups(
+            bool(defn.strategies.any_flavour)
         )
-        if file is None:
+        for desired_flavours in desired_flavour_groups:
+
+            def make_filter_fns(
+                desired_flavours: Sequence[Flavour] | None,
+            ) -> Iterator[Callable[[_CfCoreFile], bool]]:
+                yield lambda f: not f.get('exposeAsAlternative', False)
+
+                if desired_flavours:
+                    type_ids = {
+                        f.to_flavour_keyed_enum(_CfCoreSortableGameVersionTypeId)
+                        for f in desired_flavours
+                    }
+                    yield lambda f: any(
+                        s['gameVersionTypeId'] in type_ids for s in f['sortableGameVersions']
+                    )
+
+                if not defn.strategies.any_release_type:
+                    yield lambda f: f['releaseType'] == _CfCoreFileReleaseType.release
+
+                if defn.strategies.version_eq:
+                    yield lambda f: f['displayName'] == defn.strategies.version_eq
+
+            filter_fns = list(make_filter_fns(desired_flavours))
+            try:
+                file = max(
+                    (f for f in files if all(r(f) for r in filter_fns)),
+                    # The ``id`` is just a counter so we don't have to go digging around dates
+                    key=lambda f: f['id'],
+                )
+            except ValueError:
+                continue
+            break
+
+        else:
             raise R.PkgFilesNotMatching(defn.strategies)
 
         if file['downloadUrl'] is None:
-            if metadata['allowModDistribution'] is False:
-                raise R.PkgFilesMissing('package distribution is forbidden')
-            else:
-                raise R.PkgFilesMissing
+            raise R.PkgFilesMissing(
+                'package distribution is forbidden'
+                if metadata['allowModDistribution'] is False
+                else None
+            )
 
         return PkgCandidate(
             id=str(metadata['id']),

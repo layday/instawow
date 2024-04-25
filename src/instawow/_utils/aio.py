@@ -19,3 +19,10 @@ def run_in_thread(fn: Callable[_P, _U]) -> Callable[_P, Awaitable[_U]]:
         return asyncio.to_thread(fn, *args, **kwargs)
 
     return wrapper
+
+
+async def cancel_tasks(tasks: Iterable[asyncio.Task[Any]]) -> None:
+    incomplete_tasks = [t for t in tasks if not t.done()]
+    for task in incomplete_tasks:
+        task.cancel()
+    await asyncio.gather(*incomplete_tasks, return_exceptions=True)

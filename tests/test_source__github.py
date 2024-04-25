@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import re
 from io import BytesIO
+from typing import Literal
 from zipfile import ZipFile
 
 import aiohttp.hdrs
@@ -12,11 +13,11 @@ from aresponses import ResponsesMockServer
 from yarl import URL
 
 from instawow._sources.github import GithubResolver
-from instawow.definitions import Defn
+from instawow.definitions import Defn, StrategyValues
 from instawow.manager_ctx import ManagerCtx
 from instawow.pkg_models import Pkg
 from instawow.results import PkgFilesMissing, PkgFilesNotMatching, PkgNonexistent
-from instawow.wow_installations import Flavour
+from instawow.wow_installations import Flavour, FlavourVersionRange
 
 from .fixtures.http import Route
 
@@ -30,6 +31,8 @@ def github_resolver(
 
 zip_defn = Defn('github', '28/NoteworthyII')
 zip_addon_name = URL(zip_defn.alias).name
+
+packager_test_defn = Defn('github', 'nebularg/PackagerTest')
 
 
 ZIPS = {
@@ -144,7 +147,7 @@ async def test_repo_without_releases(
     with pytest.raises(PkgFilesMissing) as exc_info:
         await github_resolver.resolve_one(defn, None)
 
-    assert exc_info.value.message == 'release not found'
+    assert exc_info.value.message == 'no releases found'
 
 
 async def test_nonexistent_repo(
@@ -156,6 +159,56 @@ async def test_nonexistent_repo(
         await github_resolver.resolve_one(defn, None)
 
 
+@pytest.mark.parametrize(
+    '_iw_mock_aiohttp_requests',
+    [
+        {
+            f'//api.github.com/repos/{packager_test_defn.alias}',
+            f'//api.github.com/repos/{packager_test_defn.alias}/releases?per_page=10',
+        }
+    ],
+    indirect=True,
+)
+@pytest.mark.parametrize('any_flavour', [True, None])
+async def test_any_flavour_strategy(
+    iw_aresponses: ResponsesMockServer,
+    iw_manager_ctx: ManagerCtx,
+    github_resolver: GithubResolver,
+    any_flavour: Literal[True, None],
+):
+    opposite_flavour = next(f for f in Flavour if f is not iw_manager_ctx.config.game_flavour)
+    opposite_interface = next(
+        n for r in opposite_flavour.to_flavour_keyed_enum(FlavourVersionRange).value for n in r
+    )
+
+    iw_aresponses.add(
+        **Route(
+            '//api.github.com',
+            path_pattern=re.compile(r'^/repos/nebularg/PackagerTest/releases/assets/'),
+            response={
+                'releases': [
+                    {
+                        'filename': 'TestGit-v1.9.7.zip',
+                        'nolib': False,
+                        'metadata': [
+                            {
+                                'flavor': opposite_flavour,
+                                'interface': opposite_interface,
+                            }
+                        ],
+                    }
+                ]
+            },
+        ).to_aresponses_add_args()
+    )
+    defn = Defn(
+        'github', 'nebularg/PackagerTest', strategies=StrategyValues(any_flavour=any_flavour)
+    )
+
+    results = await github_resolver.resolve([defn])
+    assert type(results[defn]) is (Pkg if any_flavour else PkgFilesNotMatching)
+
+
 async def test_changelog_is_data_url(
     github_resolver: GithubResolver,
 ):
@@ -163,9 +216,6 @@ async def test_changelog_is_data_url(
 
     result = await github_resolver.resolve_one(defn, None)
     assert result.changelog_url.startswith('data:,')
-
-
-packager_test_defn = Defn('github', 'nebularg/PackagerTest')
 
 
 @pytest.mark.parametrize(
@@ -190,6 +240,7 @@ packager_test_defn = Defn('github', 'nebularg/PackagerTest')
 async def test_mismatched_release_is_skipped_and_logged(
     caplog: pytest.LogCaptureFixture,
     iw_aresponses: ResponsesMockServer,
+    iw_manager_ctx: ManagerCtx,
     github_resolver: GithubResolver,
     flavor: str,
     interface: int,
@@ -213,12 +264,12 @@ async def test_mismatched_release_is_skipped_and_logged(
     with pytest.raises(PkgFilesNotMatching):
         await github_resolver.resolve_one(packager_test_defn, None)
 
-    (log_record,) = caplog.record_tuples
-    assert log_record == (
+    assert (
         'instawow._sources.github',
         logging.INFO,
-        f'interface number "{interface}" and flavor "{flavor}" mismatch',
-    )
+        f'flavor and interface mismatch: {interface} not found in '
+        f'{[iw_manager_ctx.config.game_flavour.to_flavour_keyed_enum(FlavourVersionRange).value]}',
+    ) in caplog.record_tuples
 
 
 @pytest.mark.parametrize(

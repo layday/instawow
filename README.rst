@@ -96,7 +96,7 @@ Install strategies
 
 Add-ons take a number of options which determine how they are resolved:
 
-- ``any_flavour`` to ignore game version compatibility
+- ``any_flavour`` to ignore game version compatibility by prioriting "affine" game versions
 - ``any_release_type`` to ignore add-on stability
 - ``version_eq=[VERSION]`` to install a specific add-on version
 

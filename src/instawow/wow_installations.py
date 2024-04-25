@@ -54,6 +54,15 @@ class Flavour(StrEnum):
     def to_flavour_keyed_enum(self, flavour_keyed_enum: type[_FlavourKeyedEnum[_TEnum]]) -> _TEnum:
         return flavour_keyed_enum[self.name]
 
+    def get_flavour_groups(self, affine: bool) -> list[tuple[Flavour, ...] | None]:
+        match (self, affine):
+            case (self.CataclysmClassic, True):
+                return [(self, self.Classic), None]
+            case (_, True):
+                return [(self,), None]
+            case _:
+                return [(self,)]
+
 
 class FlavourVersionRange(Enum):
     Retail = (

@@ -36,6 +36,19 @@ else:
             return name.lower()
 
 
+if sys.version_info >= (3, 12):
+    from itertools import batched as batched
+else:
+
+    def batched(iterable: Iterable[_T], n: int) -> Iterator[tuple[_T, ...]]:
+        # batched('ABCDEFG', 3) → ABC DEF G
+        if n < 1:
+            raise ValueError('n must be at least one')
+        it = iter(iterable)
+        while batch := tuple(islice(it, n)):
+            yield batch
+
+
 if TYPE_CHECKING:
     fauxfrozen = attrs.frozen
 else:

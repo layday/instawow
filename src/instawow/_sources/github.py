@@ -1,17 +1,19 @@
 from __future__ import annotations
 
-from collections.abc import AsyncIterator, Iterable
+import asyncio
+from collections.abc import AsyncIterator, Sequence
 from datetime import datetime, timedelta
-from itertools import tee, zip_longest
+from itertools import product, tee, zip_longest
 from typing import Any, Literal
 
 import iso8601
+from typing_extensions import Never, TypedDict
 from typing_extensions import NotRequired as N
-from typing_extensions import TypedDict
 from yarl import URL
 
 from .. import results as R
 from .._logging import logger
+from .._utils.aio import cancel_tasks
 from ..catalogue.cataloguer import AddonKey, CatalogueEntry
 from ..definitions import ChangelogFormat, Defn, SourceMetadata, Strategy
 from ..http import CACHE_INDEFINITELY, ClientSessionType
@@ -21,6 +23,7 @@ from ..resolvers import BaseResolver, HeadersIntent, PkgCandidate
 from ..utils import (
     StrEnum,
     as_plain_text_data_url,
+    batched,
     extract_byte_range_offset,
 )
 from ..wow_installations import Flavour, FlavourVersionRange
@@ -51,6 +54,7 @@ class _GithubRelease_Asset(TypedDict):
     name: str  # filename
     content_type: str  # mime type
     state: Literal['starter', 'uploaded']
+    browser_download_url: Never  # Fake type to prevent misuse; actually a string
 
 
 class _PackagerReleaseJson(TypedDict):
@@ -83,6 +87,7 @@ class GithubResolver(BaseResolver):
         name='GitHub',
         strategies=frozenset(
             {
+                Strategy.AnyFlavour,
                 Strategy.AnyReleaseType,
                 Strategy.VersionEq,
             }
@@ -115,7 +120,11 @@ class GithubResolver(BaseResolver):
 
         return headers
 
-    async def __find_match_from_zip_contents(self, assets: list[_GithubRelease_Asset]):
+    async def __find_match_from_zip_contents(
+        self,
+        assets: list[_GithubRelease_Asset],
+        desired_flavours: tuple[Flavour, ...] | None,
+    ):
         candidates = [
             a
             for a in assets
@@ -137,9 +146,24 @@ class GithubResolver(BaseResolver):
 
         download_headers = await self.make_request_headers(HeadersIntent.Download)
 
+        if desired_flavours is None:
+            desired_flavours = tuple(Flavour)
+
+        desired_version_ranges = {
+            f.to_flavour_keyed_enum(FlavourVersionRange) for f in desired_flavours
+        }
+        desired_toc_suffixes = tuple(
+            s for f in desired_flavours for s in NORMALISED_FLAVOUR_TOC_SUFFIXES[f]
+        )
+        all_flavourful_toc_suffixes = tuple(
+            i for s in NORMALISED_FLAVOUR_TOC_SUFFIXES.values() for i in s
+        )
+
         matching_asset = None
 
         for candidate in candidates:
+            logger.info(f'looking for match in zip file: {candidate["browser_download_url"]}')
+
             addon_zip_stream = BytesIO()
             dynamic_addon_zip = None
             is_zip_complete = False
@@ -212,10 +236,7 @@ class GithubResolver(BaseResolver):
                 continue
 
             game_flavour_from_toc_filename = any(
-                n.lower().endswith(
-                    NORMALISED_FLAVOUR_TOC_SUFFIXES[self._manager_ctx.config.game_flavour]
-                )
-                for n in toc_filenames
+                n.lower().endswith(desired_toc_suffixes) for n in toc_filenames
             )
             if game_flavour_from_toc_filename:
                 matching_asset = candidate
@@ -226,9 +247,7 @@ class GithubResolver(BaseResolver):
                     (
                         n
                         for n in toc_filenames
-                        if not n.lower().endswith(
-                            tuple(i for s in NORMALISED_FLAVOUR_TOC_SUFFIXES.values() for i in s)
-                        )
+                        if not n.lower().endswith(all_flavourful_toc_suffixes)
                     ),
                     key=len,
                 )
@@ -266,11 +285,8 @@ class GithubResolver(BaseResolver):
             logger.debug(
                 f'found interface versions {toc_reader.interfaces!r} in {main_toc_filename}'
             )
-            desired_version_range = self._manager_ctx.config.game_flavour.to_flavour_keyed_enum(
-                FlavourVersionRange
-            )
             if toc_reader.interfaces and any(
-                desired_version_range.contains(i) for i in toc_reader.interfaces
+                r.contains(i) for r, i in product(desired_version_ranges, toc_reader.interfaces)
             ):
                 matching_asset = candidate
                 break
@@ -278,8 +294,15 @@ class GithubResolver(BaseResolver):
         return matching_asset
 
     async def __find_match_from_release_json(
-        self, assets: list[_GithubRelease_Asset], release_json_asset: _GithubRelease_Asset
+        self,
+        assets: list[_GithubRelease_Asset],
+        release_json_asset: _GithubRelease_Asset,
+        desired_flavours: tuple[Flavour, ...] | None,
     ):
+        logger.info(
+            f'looking for match in release.json: {release_json_asset["browser_download_url"]}'
+        )
+
         download_headers = await self.make_request_headers(HeadersIntent.Download)
 
         async with self._manager_ctx.web_client.get(
@@ -292,37 +315,39 @@ class GithubResolver(BaseResolver):
                 content_type=None  # application/octet-stream
             )
 
-        releases = packager_metadata['releases']
-        if not releases:
+        subreleases = packager_metadata['releases']
+        if not subreleases:
             return None
 
-        desired_release_json_flavor = self._manager_ctx.config.game_flavour.to_flavour_keyed_enum(
-            _PackagerReleaseJsonFlavor
-        )
-        desired_version_range = self._manager_ctx.config.game_flavour.to_flavour_keyed_enum(
-            FlavourVersionRange
-        )
+        if desired_flavours:
+            desired_release_json_flavors = {
+                f.to_flavour_keyed_enum(_PackagerReleaseJsonFlavor) for f in desired_flavours
+            }
+            desired_version_ranges = {
+                f.to_flavour_keyed_enum(FlavourVersionRange) for f in desired_flavours
+            }
 
-        def is_compatible_release(release: _PackagerReleaseJson_Release):
-            if release['nolib']:
+            def is_compatible(release: _PackagerReleaseJson_Release):  # pyright: ignore[reportRedeclaration]
+                for metadata in release['metadata']:
+                    if metadata['flavor'] in desired_release_json_flavors:
+                        if any(r.contains(metadata['interface']) for r in desired_version_ranges):
+                            return True
+
+                        logger.info(
+                            f'flavor and interface mismatch: {metadata["interface"]} not found in '
+                            f'{[r.value for r in desired_version_ranges]}'
+                        )
+
                 return False
 
-            for metadata in release['metadata']:
-                if metadata['flavor'] != desired_release_json_flavor:
-                    continue
+        else:
 
-                interface_version = metadata['interface']
-                if not desired_version_range.contains(interface_version):
-                    logger.info(
-                        f'interface number "{interface_version}" and flavor "{desired_release_json_flavor}" mismatch'
-                    )
-                    continue
-
+            def is_compatible(release: _PackagerReleaseJson_Release):
                 return True
 
-            return False
-
-        matching_release = next(filter(is_compatible_release, releases), None)
+        matching_release = next(
+            (r for r in subreleases if not r['nolib'] and is_compatible(r)), None
+        )
         if matching_release is None:
             return None
 
@@ -335,6 +360,28 @@ class GithubResolver(BaseResolver):
             None,
         )
         return matching_asset
+
+    async def __find_match(
+        self,
+        release: _GithubRelease,
+        desired_flavour_groups: Sequence[tuple[Flavour, ...] | None],
+    ):
+        assets = release['assets']
+
+        release_json = next(
+            (a for a in assets if a['name'] == 'release.json' and a['state'] == 'uploaded'),
+            None,
+        )
+        for desired_flavours in desired_flavour_groups:
+            if release_json:
+                asset = await self.__find_match_from_release_json(
+                    assets, release_json, desired_flavours
+                )
+            else:
+                asset = await self.__find_match_from_zip_contents(assets, desired_flavours)
+
+            if asset:
+                return (release, asset)
 
     async def _resolve_one(self, defn: Defn, metadata: None) -> PkgCandidate:
         github_headers = await self.make_request_headers()
@@ -351,6 +398,7 @@ class GithubResolver(BaseResolver):
             if response.status == 404:
                 raise R.PkgNonexistent
             response.raise_for_status()
+
             project: _GithubRepo = await response.json()
 
         if defn.strategies.version_eq:
@@ -366,7 +414,7 @@ class GithubResolver(BaseResolver):
             release_url, expire_after=timedelta(minutes=5), headers=github_headers
         ) as response:
             if response.status == 404:
-                raise R.PkgFilesMissing('release not found')
+                raise R.PkgFilesMissing('no releases found')
             response.raise_for_status()
 
             release_json: _GithubRelease | list[_GithubRelease] = await response.json()
@@ -380,21 +428,44 @@ class GithubResolver(BaseResolver):
         if not defn.strategies.any_release_type:
             releases = (r for r in releases if r['prerelease'] is False)
 
-        for release in releases:
-            assets = release['assets']
+        first_release = next(releases, None)
+        if first_release is None:
+            raise R.PkgFilesNotMatching(defn.strategies)
 
-            release_json = next(
-                (a for a in assets if a['name'] == 'release.json' and a['state'] == 'uploaded'),
-                None,
-            )
-            if release_json:
-                match = await self.__find_match_from_release_json(assets, release_json)
-            else:
-                match = await self.__find_match_from_zip_contents(assets)
+        desired_flavour_groups = self._manager_ctx.config.game_flavour.get_flavour_groups(
+            bool(defn.strategies.any_flavour)
+        )
 
-            if match:
-                break
+        # We'll look for affine flavours > absolutely any flavour in every release
+        # if any_flavour is true.  This is less expensive than performing
+        # separate flavour passes across the whole release list for the common case.
+        match = await self.__find_match(first_release, desired_flavour_groups)
+        if not match:
+            logger.info('looking for match in older releases')
 
+            _remaining_tasks = []
+            try:
+                for release_task, _remaining_tasks in (
+                    (t, g[o:])
+                    # 3 groups of 3 run in parallel but processed in order
+                    for b in batched(releases, 3)
+                    for g in (
+                        [
+                            asyncio.create_task(self.__find_match(r, desired_flavour_groups))
+                            for r in b
+                        ],
+                    )
+                    for o, t in enumerate(g, start=1)
+                ):
+                    match = await release_task
+                    if match:
+                        break
+            finally:
+                if _remaining_tasks:
+                    await cancel_tasks(_remaining_tasks)
+
+        if match:
+            release, asset = match
         else:
             raise R.PkgFilesNotMatching(defn.strategies)
 
@@ -404,7 +475,7 @@ class GithubResolver(BaseResolver):
             name=project['name'],
             description=project['description'] or '',
             url=project['html_url'],
-            download_url=match['url'],
+            download_url=asset['url'],
             date_published=iso8601.parse_date(release['published_at']),
             version=release['tag_name'],
             changelog_url=as_plain_text_data_url(release['body']),

@@ -21,9 +21,26 @@ def test_can_convert_between_flavour_keyed_enum_and_flavour():
         Retail = 1
         VanillaClassic = 2
         Classic = 3
+        CataclysmClassic = 4
 
     assert Flavour.from_flavour_keyed_enum(Foo.Retail) is Flavour.Retail
     assert Flavour.Retail.to_flavour_keyed_enum(Foo) is Foo.Retail
+
+
+@pytest.mark.parametrize('flavour', list(Flavour))
+@pytest.mark.parametrize('affine', [True, False])
+def test_flavour_groups_vary_by_flavour_and_affinity(
+    flavour: Flavour,
+    affine: bool,
+):
+    flavour_groups = flavour.get_flavour_groups(affine)
+    if affine:
+        if flavour is Flavour.CataclysmClassic:
+            assert flavour_groups == [(flavour, Flavour.Classic), None]
+        else:
+            assert flavour_groups == [(flavour,), None]
+    else:
+        assert flavour_groups == [(flavour,)]
 
 
 def test_can_extract_flavour_from_version_number():
