@@ -3,11 +3,11 @@ from __future__ import annotations
 from collections.abc import AsyncIterator
 from datetime import datetime, timedelta, timezone
 
-from loguru import logger
 from typing_extensions import TypedDict
 from yarl import URL
 
 from .. import results as R
+from .._logging import logger
 from ..catalogue.cataloguer import CatalogueEntry
 from ..definitions import ChangelogFormat, Defn, SourceMetadata
 from ..http import ClientSessionType

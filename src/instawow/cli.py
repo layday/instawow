@@ -13,13 +13,11 @@ from typing import Any, Generic, NoReturn, TypeVar, overload
 import attrs
 import click
 import click.types
-from loguru import logger
 from typing_extensions import Self
 
-from . import __version__, pkg_management, pkg_models
+from . import __version__, _logging, pkg_management, pkg_models
 from . import manager_ctx as _manager_ctx
 from . import results as R
-from ._logging import setup_logging
 from .config import GlobalConfig, ProfileConfig, config_converter
 from .definitions import ChangelogFormat, Defn, Strategy
 from .http import TraceRequestCtx, init_web_client
@@ -103,7 +101,7 @@ class CtxObjWrapper:
         except FileNotFoundError:
             config = self._ctx.invoke(configure)
 
-        setup_logging(config.logging_dir, *self._ctx.params['verbose'])
+        _logging.setup_logging(config.logging_dir, *self._ctx.params['verbose'])
 
         manager_ctx = self._ctx.with_resource(_manager_ctx.ManagerCtx(config))
         return pkg_management.PkgManager(manager_ctx)
@@ -1083,7 +1081,7 @@ def configure(
     except FileNotFoundError:
         pass
     except Exception:
-        logger.exception('unable to read existing config')
+        _logging.logger.exception('unable to read existing config')
 
     is_new_profile = config_values is None
     if is_new_profile:

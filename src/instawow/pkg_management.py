@@ -17,12 +17,12 @@ from tempfile import NamedTemporaryFile
 from typing import Concatenate, Literal, TypeVar
 
 import attrs
-from loguru import logger
 from typing_extensions import Never, ParamSpec
 from yarl import URL
 
 from . import pkg_db, pkg_models
 from . import results as R
+from ._logging import logger
 from .definitions import Defn, Strategy
 from .http import CACHE_INDEFINITELY, ProgressCtx
 from .manager_ctx import ManagerCtx

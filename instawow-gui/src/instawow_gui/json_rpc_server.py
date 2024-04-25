@@ -25,12 +25,12 @@ from aiohttp_rpc import JsonRpcMethod
 from aiohttp_rpc import middlewares as rpc_middlewares
 from aiohttp_rpc.errors import InvalidParams, ServerError
 from aiohttp_rpc.server import WsJsonRpcServer
-from loguru import logger
 from typing_extensions import ParamSpec, TypedDict
 from yarl import URL
 
 from instawow import __version__, matchers, pkg_models
 from instawow import results as R
+from instawow._logging import logger
 from instawow._version_check import is_outdated
 from instawow.catalogue.cataloguer import ComputedCatalogueEntry
 from instawow.catalogue.search import search

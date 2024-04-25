@@ -8,13 +8,13 @@ from functools import partial
 from typing import Generic, TypeVar
 
 import iso8601
-from loguru import logger
 from typing_extensions import NotRequired as N
 from typing_extensions import TypedDict
 from yarl import URL
 
 from .. import pkg_models
 from .. import results as R
+from .._logging import logger
 from ..catalogue.cataloguer import CatalogueEntry
 from ..config import GlobalConfig
 from ..definitions import ChangelogFormat, Defn, SourceMetadata, Strategy

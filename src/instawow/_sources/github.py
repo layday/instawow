@@ -6,12 +6,12 @@ from itertools import tee, zip_longest
 from typing import Any, Literal
 
 import iso8601
-from loguru import logger
 from typing_extensions import NotRequired as N
 from typing_extensions import TypedDict
 from yarl import URL
 
 from .. import results as R
+from .._logging import logger
 from ..catalogue.cataloguer import AddonKey, CatalogueEntry
 from ..definitions import ChangelogFormat, Defn, SourceMetadata, Strategy
 from ..http import CACHE_INDEFINITELY, ClientSessionType

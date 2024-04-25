@@ -8,11 +8,11 @@ from itertools import chain, product
 from typing import Literal, TypeAlias, cast
 
 import cattrs
-from loguru import logger
 from typing_extensions import NotRequired as N
 from typing_extensions import TypedDict
 from yarl import URL
 
+from instawow._logging import logger
 from instawow.http import CACHE_INDEFINITELY, GenericDownloadTraceRequestCtx
 from instawow.manager_ctx import ManagerCtx
 from instawow.utils import (

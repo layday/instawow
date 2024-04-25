@@ -4,9 +4,9 @@ from collections.abc import Awaitable, Collection, Mapping, Set
 from typing import Any, Final, Protocol, TypeAlias, TypeVar
 
 import attrs
-from loguru import logger
 
 from . import pkg_models
+from ._logging import logger
 from .definitions import Strategy, StrategyValues
 
 _T = TypeVar('_T')

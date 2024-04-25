@@ -9,9 +9,9 @@ import aiohttp.web
 import pytest
 from aresponses import ResponsesMockServer
 from aresponses.errors import NoRouteFoundError
-from loguru import logger
 from yarl import URL
 
+from instawow._logging import logger
 from instawow.config import GlobalConfig, ProfileConfig
 from instawow.http import init_web_client
 from instawow.manager_ctx import ManagerCtx, contextualise

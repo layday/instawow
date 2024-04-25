@@ -12,8 +12,8 @@ import anyio.to_thread
 import toga
 import toga.constants
 import toga.style.pack
-from loguru import logger
 
+from instawow._logging import logger
 from instawow.utils import StrEnum
 
 from . import json_rpc_server

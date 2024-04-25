@@ -7,7 +7,7 @@ from collections.abc import Iterator
 from functools import lru_cache
 from pathlib import Path
 
-from loguru import logger
+from .._logging import logger
 
 _TOC_FILE_PATH_PATTERN = re.compile(
     r'^(?P<name>[^/]+)/(?P=name)(?:[-_](?:mainline|bcc|tbc|classic|vanilla|wrath|wotlkc))?\.toc$',

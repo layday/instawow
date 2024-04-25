@@ -4,9 +4,8 @@ import datetime as dt
 import json
 from functools import lru_cache
 
-from loguru import logger
-
 from .. import manager_ctx
+from .._logging import logger
 from ..http import GenericDownloadTraceRequestCtx
 from ..utils import time_op
 from . import cataloguer
