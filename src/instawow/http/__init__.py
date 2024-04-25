@@ -67,7 +67,7 @@ async def init_web_client(
             expire_after=_DEFAULT_EXPIRE,
             include_headers=True,
         )
-        with make_cache(cache_dir) as cache:
+        async with make_cache(cache_dir) as cache:
             cache_backend.responses = cache_backend.redirects = cache
             if no_cache:
                 cache_backend.disabled = True

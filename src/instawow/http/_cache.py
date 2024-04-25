@@ -17,12 +17,9 @@ _U = TypeVar('_U')
 _P = ParamSpec('_P')
 
 
-@contextlib.contextmanager
-def make_cache(cache_dir: os.PathLike[str]):
-    with (
-        concurrent.futures.ThreadPoolExecutor(1, '_http_cache') as executor,
-        diskcache.Cache(os.fspath(cache_dir)) as cache,
-    ):
+@contextlib.asynccontextmanager
+async def make_cache(cache_dir: os.PathLike[str]):
+    with concurrent.futures.ThreadPoolExecutor(1, '_http_cache') as executor:
         loop = asyncio.get_running_loop()
 
         def run_in_thread2(fn: Callable[_P, _U]) -> Callable[_P, Coroutine[Any, Any, _U]]:
@@ -33,6 +30,10 @@ def make_cache(cache_dir: os.PathLike[str]):
                 )
 
             return wrapper
+
+        # diskcache will only close the sqlite connection if it was initialised
+        # in the same thread.
+        cache = await run_in_thread2(diskcache.Cache)(os.fspath(cache_dir))
 
         class Cache(aiohttp_client_cache.BaseCache):
             @run_in_thread2
@@ -75,4 +76,7 @@ def make_cache(cache_dir: os.PathLike[str]):
             def write(self, key: str, item: aiohttp_client_cache.ResponseOrKey):
                 cache[key] = item
 
-        yield Cache()
+        try:
+            yield Cache()
+        finally:
+            await run_in_thread2(cache.close)()
