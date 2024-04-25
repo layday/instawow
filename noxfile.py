@@ -41,7 +41,7 @@ def _session_install_for_python313(session: nox.Session, install_args: list[str]
     with tempfile.TemporaryDirectory() as temp_dir:
         constraints_txt = Path(temp_dir, 'python313-constraints.txt')
         constraints_txt.write_text("""\
-truststore @ git+https://github.com/sethmlarson/truststore@support-for-python-313 ; python_version >= "3.13"
+truststore @ git+https://github.com/sethmlarson/truststore@9ed7880 ; python_version >= "3.13"
 """)
 
         session.install(
