@@ -342,12 +342,14 @@ class CfCoreResolver(BaseResolver):
                     [metadata] = mod_response_json['data']
 
         if defn.strategies.version_eq:
-            game_version_type_id = self._manager_ctx.config.game_flavour.to_flavour_keyed_enum(
-                _CfCoreSortableGameVersionTypeId
-            )
-            files_url = (self.__mod_api_url / str(metadata['id']) / 'files').with_query(
-                gameVersionTypeId=game_version_type_id, pageSize=999
-            )
+            files_url = self.__mod_api_url / str(metadata['id']) / 'files'
+            if not defn.strategies.any_flavour:
+                files_url = files_url.with_query(
+                    game_version_type_id=self._manager_ctx.config.game_flavour.to_flavour_keyed_enum(
+                        _CfCoreSortableGameVersionTypeId
+                    )
+                )
+
             async with self._manager_ctx.web_client.get(
                 files_url,
                 expire_after=timedelta(hours=1),
