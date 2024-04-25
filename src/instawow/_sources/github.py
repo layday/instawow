@@ -369,14 +369,13 @@ class GithubResolver(BaseResolver):
                 raise R.PkgFilesMissing('release not found')
             response.raise_for_status()
 
-            response_json = await response.json()
-            if defn.strategies.version_eq:
-                response_json = [response_json]
-            releases: Iterable[_GithubRelease] = response_json
+            release_json: _GithubRelease | list[_GithubRelease] = await response.json()
+            if not isinstance(release_json, list):
+                release_json = [release_json]
 
         # Only users with push access will get draft releases
         # but let's filter them out just in case.
-        releases = (r for r in releases if r['draft'] is False)
+        releases = (r for r in release_json if r['draft'] is False)
 
         if not defn.strategies.any_release_type:
             releases = (r for r in releases if r['prerelease'] is False)
