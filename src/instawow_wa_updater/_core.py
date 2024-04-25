@@ -13,18 +13,17 @@ from typing_extensions import TypedDict
 from yarl import URL
 
 from instawow._logging import logger
+from instawow._utils.aio import gather, run_in_thread
 from instawow.http import CACHE_INDEFINITELY, GenericDownloadTraceRequestCtx
 from instawow.manager_ctx import ManagerCtx
 from instawow.utils import (
     StrEnum,
     bucketise,
     fauxfrozen,
-    gather,
     read_resource_as_text,
     shasum,
     time_op,
 )
-from instawow.utils import run_in_thread as t
 
 _LuaTable: TypeAlias = Mapping[str, '_LuaTable']
 _Auras: TypeAlias = 'WeakAuras | Plateroos'
@@ -336,12 +335,12 @@ WeakAurasCompanionData = {{
 
     async def build(self) -> None:
         installed_auras_by_type = _merge_auras(
-            await t(list[_Auras])(self.extract_installed_auras()),
+            await run_in_thread(list[_Auras])(self.extract_installed_auras()),
         )
         remote_auras = await gather(
             self.get_remote_auras(r) for r in installed_auras_by_type.values()
         )
-        await t(self._generate_addon)(zip(installed_auras_by_type, remote_auras))
+        await run_in_thread(self._generate_addon)(zip(installed_auras_by_type, remote_auras))
 
     def get_version(self) -> str:
         return self._version_txt_path.read_text(encoding='utf-8')

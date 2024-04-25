@@ -4,11 +4,11 @@ from collections.abc import AsyncIterator
 from datetime import datetime, timezone
 
 from .. import results as R
+from .._utils.aio import run_in_thread
 from ..catalogue.cataloguer import CatalogueEntry
 from ..definitions import ChangelogFormat, Defn, SourceMetadata
 from ..http import ClientSessionType
 from ..resolvers import BaseResolver, PkgCandidate
-from ..utils import run_in_thread
 from ..wow_installations import Flavour
 
 _ADDONS = {

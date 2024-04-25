@@ -8,12 +8,12 @@ from pathlib import Path
 
 import pytest
 
+from instawow._utils.aio import run_in_thread
 from instawow.matchers.addon_toc import TocReader
 from instawow.utils import (
     bucketise,
     file_uri_to_path,
     merge_intersecting_sets,
-    run_in_thread,
     tabulate,
 )
 

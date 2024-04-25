@@ -22,7 +22,7 @@ from .config import GlobalConfig, ProfileConfig, config_converter
 from .definitions import ChangelogFormat, Defn, Strategy
 from .http import TraceRequestCtx, init_web_client
 from .plugins import get_plugin_commands
-from .utils import StrEnum, all_eq, bucketise, gather, reveal_folder, tabulate, uniq
+from .utils import StrEnum, all_eq, bucketise, reveal_folder, tabulate, uniq
 from .wow_installations import Flavour
 
 _T = TypeVar('_T')
@@ -910,6 +910,8 @@ def view_changelog(mw: CtxObjWrapper, addons: Sequence[Defn], convert: bool) -> 
     If `ADDONS` is not provided, displays the changelogs of all add-ons
     to have been installed within one minute of the newest add-on.
     """
+
+    from ._utils.aio import gather
 
     MAX_LINES = 100
 

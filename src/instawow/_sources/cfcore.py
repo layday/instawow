@@ -15,12 +15,13 @@ from yarl import URL
 from .. import pkg_models
 from .. import results as R
 from .._logging import logger
+from .._utils.aio import gather
 from ..catalogue.cataloguer import CatalogueEntry
 from ..config import GlobalConfig
 from ..definitions import ChangelogFormat, Defn, SourceMetadata, Strategy
 from ..http import CACHE_INDEFINITELY, ClientSessionType, GenericDownloadTraceRequestCtx
 from ..resolvers import BaseResolver, HeadersIntent, PkgCandidate
-from ..utils import gather, uniq
+from ..utils import uniq
 from ..wow_installations import Flavour
 
 _T = TypeVar('_T')

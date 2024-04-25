@@ -12,15 +12,10 @@ import attrs
 from typing_extensions import Self
 
 from .. import manager_ctx
+from .._utils.aio import gather
 from ..catalogue import synchronise as synchronise_catalogue
 from ..definitions import Defn
-from ..utils import (
-    bucketise,
-    fauxfrozen,
-    gather,
-    merge_intersecting_sets,
-    uniq,
-)
+from ..utils import bucketise, fauxfrozen, merge_intersecting_sets, uniq
 from ..wow_installations import Flavour
 from ._addon_hashing import generate_wowup_addon_hash
 from .addon_toc import TocReader
@@ -53,7 +48,6 @@ FLAVOUR_TOC_IDS = {
 FLAVOUR_TOC_SUFFIXES = {
     k: tuple(f'{s}{f}.toc' for s, f in product('-_', v)) for k, v in FLAVOUR_TOC_IDS.items()
 }
-
 NORMALISED_FLAVOUR_TOC_SUFFIXES = {
     k: tuple(i.lower() for i in v) for k, v in FLAVOUR_TOC_SUFFIXES.items()
 }

@@ -13,11 +13,12 @@ from yarl import URL
 from .. import pkg_models
 from .. import results as R
 from .._logging import logger
+from .._utils.aio import gather
 from ..catalogue.cataloguer import CatalogueEntry
 from ..definitions import ChangelogFormat, Defn, SourceMetadata
 from ..http import ClientSessionType, GenericDownloadTraceRequestCtx
 from ..resolvers import BaseResolver, PkgCandidate
-from ..utils import as_plain_text_data_url, gather, slugify, uniq
+from ..utils import as_plain_text_data_url, slugify, uniq
 from ..wow_installations import Flavour, FlavourVersionRange
 
 _lock_prefix = object()

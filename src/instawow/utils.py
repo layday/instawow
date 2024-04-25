@@ -1,22 +1,13 @@
 from __future__ import annotations
 
-import asyncio
 import importlib.resources
 import os
 import string
 import sys
 import time
-from collections.abc import (
-    Awaitable,
-    Callable,
-    Hashable,
-    Iterable,
-    Iterator,
-    Sequence,
-    Set,
-)
+from collections.abc import Callable, Hashable, Iterable, Iterator, Sequence, Set
 from contextlib import contextmanager
-from functools import partial, wraps
+from functools import partial
 from itertools import chain, groupby, islice, repeat
 from pathlib import Path
 from shutil import move
@@ -101,18 +92,6 @@ def merge_intersecting_sets(it: Iterable[Set[_T]]) -> Iterator[frozenset[_T]]:
             else:
                 break
         yield this_set
-
-
-async def gather(it: Iterable[Awaitable[_U]]) -> list[_U]:
-    return await asyncio.gather(*it)
-
-
-def run_in_thread(fn: Callable[_P, _U]) -> Callable[_P, Awaitable[_U]]:
-    @wraps(fn)
-    def wrapper(*args: _P.args, **kwargs: _P.kwargs):
-        return asyncio.to_thread(fn, *args, **kwargs)
-
-    return wrapper
 
 
 def tabulate(rows: Sequence[tuple[object, ...]], *, max_col_width: int = 60) -> str:

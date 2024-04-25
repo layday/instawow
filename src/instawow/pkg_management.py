@@ -23,6 +23,7 @@ from yarl import URL
 from . import pkg_db, pkg_models
 from . import results as R
 from ._logging import logger
+from ._utils.aio import gather, run_in_thread
 from .definitions import Defn, Strategy
 from .http import CACHE_INDEFINITELY, ProgressCtx
 from .manager_ctx import ManagerCtx
@@ -31,9 +32,7 @@ from .utils import (
     bucketise,
     chain_dict,
     file_uri_to_path,
-    gather,
     is_file_uri,
-    run_in_thread,
     shasum,
     time_op,
     trash,

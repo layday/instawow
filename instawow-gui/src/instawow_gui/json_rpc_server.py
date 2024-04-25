@@ -31,6 +31,7 @@ from yarl import URL
 from instawow import __version__, matchers, pkg_models
 from instawow import results as R
 from instawow._logging import logger
+from instawow._utils.aio import run_in_thread
 from instawow._version_check import is_outdated
 from instawow.catalogue.cataloguer import ComputedCatalogueEntry
 from instawow.catalogue.search import search
@@ -47,7 +48,6 @@ from instawow.utils import (
     reveal_folder,
     uniq,
 )
-from instawow.utils import run_in_thread as t
 from instawow.wow_installations import Flavour, infer_flavour_from_addon_dir
 
 from . import frontend
@@ -134,13 +134,13 @@ def _reraise_validation_errors(
         raise error_class(data=list(_transform_validation_errors(exc))) from exc
 
 
-@t
+@run_in_thread
 def _read_global_config() -> GlobalConfig:
     with _reraise_validation_errors(_ConfigError):
         return GlobalConfig.read().ensure_dirs()
 
 
-@t
+@run_in_thread
 def _read_config(global_config: GlobalConfig, profile: str) -> ProfileConfig:
     with _reraise_validation_errors(_ConfigError):
         return ProfileConfig.read(global_config, profile).ensure_dirs()
@@ -205,7 +205,7 @@ class WriteProfileConfigParams(_ProfileParamMixin, BaseParams):
                         game_flavour=infer_flavour_from_addon_dir(config.addon_dir)
                         or Flavour.Retail,
                     )
-                await t(config.write)()
+                await run_in_thread(config.write)()
 
             # Unload the corresponding ``Manager`` instance for the
             # config to be reloaded on the next request
@@ -224,7 +224,7 @@ class ReadProfileConfigParams(_ProfileParamMixin, BaseParams):
 class DeleteProfileConfigParams(_ProfileParamMixin, BaseParams):
     async def respond(self, managers: _ManagersManager) -> None:
         async def delete_profile(manager: PkgManager):
-            await t(manager.ctx.config.delete)()
+            await run_in_thread(manager.ctx.config.delete)()
             managers.unload_profile(self.profile)
 
         await managers.run(self.profile, delete_profile)
@@ -233,7 +233,7 @@ class DeleteProfileConfigParams(_ProfileParamMixin, BaseParams):
 @_register_method('config/list_profiles')
 class ListProfilesParams(BaseParams):
     async def respond(self, managers: _ManagersManager) -> list[str]:
-        return await t(list[str])(managers.global_config.iter_profiles())
+        return await run_in_thread(list[str])(managers.global_config.iter_profiles())
 
 
 @_register_method('config/update_global')
@@ -447,7 +447,7 @@ class ReconcileParams(_ProfileParamMixin, BaseParams):
     async def respond(self, managers: _ManagersManager) -> list[AddonMatch]:
         manager = await managers.get_manager(self.profile)
 
-        leftovers = await t(matchers.get_unreconciled_folders)(manager.ctx)
+        leftovers = await run_in_thread(matchers.get_unreconciled_folders)(manager.ctx)
 
         match_groups = await matchers.DEFAULT_MATCHERS[self.matcher](
             manager.ctx, leftovers=leftovers
@@ -655,7 +655,7 @@ class _ManagersManager:
         async with self.locks[_LOCK_PREFIX, _LockOperation.UpdateGlobalConfig]:
             with _reraise_validation_errors(_ConfigError):
                 self.global_config = update_cb(self.global_config)
-                await t(self.global_config.write)()
+                await run_in_thread(self.global_config.write)()
 
             self._unload_all_profiles()
 
