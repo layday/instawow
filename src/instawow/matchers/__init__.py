@@ -13,9 +13,10 @@ from typing_extensions import Self
 
 from .. import manager_ctx
 from .._utils.aio import gather
+from .._utils.compat import fauxfrozen
+from .._utils.iteration import bucketise, merge_intersecting_sets, uniq
 from ..catalogue import synchronise as synchronise_catalogue
 from ..definitions import Defn
-from ..utils import bucketise, fauxfrozen, merge_intersecting_sets, uniq
 from ..wow_installations import Flavour
 from ._addon_hashing import generate_wowup_addon_hash
 from .addon_toc import TocReader

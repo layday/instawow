@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import contextvars
+import importlib.resources
 import json
 import os
 from collections.abc import Awaitable, Callable, Iterator, Set
@@ -32,6 +33,9 @@ from instawow import __version__, matchers, pkg_models
 from instawow import results as R
 from instawow._logging import logger
 from instawow._utils.aio import run_in_thread
+from instawow._utils.compat import StrEnum
+from instawow._utils.file import reveal_folder
+from instawow._utils.iteration import WeakValueDefaultDictionary, uniq
 from instawow._version_check import is_outdated
 from instawow.catalogue.cataloguer import ComputedCatalogueEntry
 from instawow.catalogue.search import search
@@ -41,13 +45,6 @@ from instawow.github_auth import get_codes, poll_for_access_token
 from instawow.http import TraceRequestCtx, init_web_client
 from instawow.manager_ctx import ManagerCtx, contextualise
 from instawow.pkg_management import PkgDownloadTraceRequestCtx, PkgManager, bucketise_results
-from instawow.utils import (
-    StrEnum,
-    WeakValueDefaultDictionary,
-    read_resource_as_text,
-    reveal_folder,
-    uniq,
-)
 from instawow.wow_installations import Flavour, infer_flavour_from_addon_dir
 
 from . import frontend
@@ -734,6 +731,8 @@ async def create_app(toga_handle: tuple[Any, anyio.from_thread.BlockingPortal] |
     if toga_handle:
         _toga_handle.set(toga_handle)
 
+    frontend_resources = importlib.resources.files(frontend)
+
     managers = _ManagersManager()
 
     async def managers_listen(app: aiohttp.web.Application):
@@ -743,7 +742,7 @@ async def create_app(toga_handle: tuple[Any, anyio.from_thread.BlockingPortal] |
     async def get_index(request: aiohttp.web.Request):
         return aiohttp.web.Response(
             content_type='text/html',
-            text=read_resource_as_text(frontend, 'index.html'),
+            text=frontend_resources.joinpath('index.html').read_text(),
         )
 
     async def get_static_file(request: aiohttp.web.Request):
@@ -760,7 +759,7 @@ async def create_app(toga_handle: tuple[Any, anyio.from_thread.BlockingPortal] |
 
         return aiohttp.web.Response(
             content_type=content_type,
-            text=read_resource_as_text(frontend, filename),
+            text=frontend_resources.joinpath(filename).read_text(),
         )
 
     def json_serialize(value: dict[str, Any]):

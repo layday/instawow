@@ -14,11 +14,13 @@ from .. import pkg_models
 from .. import results as R
 from .._logging import logger
 from .._utils.aio import gather
+from .._utils.iteration import uniq
+from .._utils.text import slugify
+from .._utils.web import as_plain_text_data_url
 from ..catalogue.cataloguer import CatalogueEntry
 from ..definitions import ChangelogFormat, Defn, SourceMetadata
 from ..http import ClientSessionType, GenericDownloadTraceRequestCtx
 from ..resolvers import BaseResolver, PkgCandidate
-from ..utils import as_plain_text_data_url, slugify, uniq
 from ..wow_installations import Flavour, FlavourVersionRange
 
 _lock_prefix = object()

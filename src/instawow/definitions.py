@@ -8,7 +8,7 @@ import attrs
 from typing_extensions import Self
 from yarl import URL
 
-from .utils import StrEnum, fauxfrozen
+from ._utils.compat import StrEnum, fauxfrozen
 
 
 class Strategy(StrEnum):

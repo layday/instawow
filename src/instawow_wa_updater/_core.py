@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import importlib.resources
 import json
 from collections.abc import Iterable, Iterator, Mapping, Sequence
 from datetime import timedelta
@@ -14,16 +15,12 @@ from yarl import URL
 
 from instawow._logging import logger
 from instawow._utils.aio import gather, run_in_thread
+from instawow._utils.compat import StrEnum, fauxfrozen
+from instawow._utils.iteration import bucketise
+from instawow._utils.perf import time_op
+from instawow._utils.text import shasum
 from instawow.http import CACHE_INDEFINITELY, GenericDownloadTraceRequestCtx
 from instawow.manager_ctx import ManagerCtx
-from instawow.utils import (
-    StrEnum,
-    bucketise,
-    fauxfrozen,
-    read_resource_as_text,
-    shasum,
-    time_op,
-)
 
 _LuaTable: TypeAlias = Mapping[str, '_LuaTable']
 _Auras: TypeAlias = 'WeakAuras | Plateroos'
@@ -242,6 +239,8 @@ class WaCompanionBuilder:
 
         from . import _templates
 
+        template_resources = importlib.resources.files(_templates)
+
         aura_dict = dict.fromkeys((WeakAuras, Plateroos), list[_Match]()) | dict(auras)
 
         self.addon_zip_path.parent.mkdir(exist_ok=True)
@@ -292,14 +291,16 @@ WeakAurasCompanionData = {{
 ''',
             )
 
-            init_output = write_file('init.lua', read_resource_as_text(_templates, 'init.lua'))
+            init_output = write_file(
+                'init.lua', template_resources.joinpath('init.lua').read_text()
+            )
 
             interface_version = self._manager_ctx.config.game_flavour.to_flavour_keyed_enum(
                 _TocNumber
             ).value
             addon_version = shasum(data_output, init_output, interface_version)[:7]
 
-            toc_tpl = read_resource_as_text(_templates, 'WeakAurasCompanion.toc')
+            toc_tpl = template_resources.joinpath('WeakAurasCompanion.toc').read_text()
             write_file(
                 'WeakAurasCompanion.toc',
                 toc_tpl.format(
@@ -310,7 +311,7 @@ WeakAurasCompanionData = {{
                 ),
             )
 
-        changelog_tpl = read_resource_as_text(_templates, 'CHANGELOG.md')
+        changelog_tpl = template_resources.joinpath('CHANGELOG.md').read_text()
         self.changelog_path.write_text(
             '\n\n'.join(
                 changelog_tpl.format(

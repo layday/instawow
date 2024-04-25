@@ -16,12 +16,12 @@ from .. import pkg_models
 from .. import results as R
 from .._logging import logger
 from .._utils.aio import gather
+from .._utils.iteration import uniq
 from ..catalogue.cataloguer import CatalogueEntry
 from ..config import GlobalConfig
 from ..definitions import ChangelogFormat, Defn, SourceMetadata, Strategy
 from ..http import CACHE_INDEFINITELY, ClientSessionType, GenericDownloadTraceRequestCtx
 from ..resolvers import BaseResolver, HeadersIntent, PkgCandidate
-from ..utils import uniq
 from ..wow_installations import Flavour
 
 _T = TypeVar('_T')

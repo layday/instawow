@@ -14,7 +14,7 @@ import toga.constants
 import toga.style.pack
 
 from instawow._logging import logger
-from instawow.utils import StrEnum
+from instawow._utils.compat import StrEnum
 
 from . import json_rpc_server
 

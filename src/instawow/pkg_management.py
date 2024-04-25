@@ -24,24 +24,19 @@ from . import pkg_db, pkg_models
 from . import results as R
 from ._logging import logger
 from ._utils.aio import gather, run_in_thread
+from ._utils.file import trash
+from ._utils.iteration import bucketise, chain_dict, uniq
+from ._utils.perf import time_op
+from ._utils.text import shasum
+from ._utils.web import file_uri_to_path, is_file_uri
 from .definitions import Defn, Strategy
 from .http import CACHE_INDEFINITELY, ProgressCtx
 from .manager_ctx import ManagerCtx
 from .resolvers import HeadersIntent
-from .utils import (
-    bucketise,
-    chain_dict,
-    file_uri_to_path,
-    is_file_uri,
-    shasum,
-    time_op,
-    trash,
-    uniq,
-)
 
-_P = ParamSpec('_P')
 _T = TypeVar('_T')
 _TPkgManager = TypeVar('_TPkgManager', bound='PkgManager')
+_P = ParamSpec('_P')
 
 _AsyncNamedTemporaryFile = run_in_thread(NamedTemporaryFile)
 _move_async = run_in_thread(move)

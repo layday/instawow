@@ -584,7 +584,7 @@ def test_exit_codes_with_substr_match(
     command: str,
     exit_code: int,
 ):
-    monkeypatch.setattr('instawow.cli.reveal_folder', lambda *_, **__: ...)
+    monkeypatch.setattr('instawow._utils.file.reveal_folder', lambda *_, **__: ...)
     assert install_molinari_and_run(command).exit_code == exit_code
 
 

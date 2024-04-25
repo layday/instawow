@@ -23,7 +23,7 @@ def build_weakauras_companion(mw: cli.CtxObjWrapper) -> None:
 @click.pass_obj
 def list_installed_wago_auras(mw: cli.CtxObjWrapper) -> None:
     "List WeakAuras installed from Wago."
-    from instawow.utils import tabulate
+    from instawow._utils.text import tabulate
 
     from ._core import WaCompanionBuilder
 

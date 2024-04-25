@@ -6,8 +6,8 @@ from functools import lru_cache
 
 from .. import manager_ctx
 from .._logging import logger
+from .._utils.perf import time_op
 from ..http import GenericDownloadTraceRequestCtx
-from ..utils import time_op
 from . import cataloguer
 
 _LOAD_CATALOGUE_LOCK = '_LOAD_CATALOGUE_'

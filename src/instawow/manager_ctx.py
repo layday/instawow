@@ -20,11 +20,11 @@ from ._sources.instawow import InstawowResolver
 from ._sources.tukui import TukuiResolver
 from ._sources.wago import WagoResolver
 from ._sources.wowi import WowiResolver
+from ._utils.iteration import WeakValueDefaultDictionary
 from .config import ProfileConfig
 from .pkg_archives import ArchiveOpener, open_zip_archive
 from .plugins import get_plugin_resolvers
 from .resolvers import Resolver
-from .utils import WeakValueDefaultDictionary
 
 
 class _DummyLock:

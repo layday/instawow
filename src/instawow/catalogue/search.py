@@ -5,7 +5,8 @@ from datetime import datetime
 from typing import Literal
 
 from .. import manager_ctx
-from ..utils import bucketise, normalise_names
+from .._utils.iteration import bucketise
+from .._utils.text import normalise_names
 from . import cataloguer
 from . import synchronise as synchronise_catalogue
 

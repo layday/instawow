@@ -7,7 +7,7 @@ import threading
 from collections.abc import Iterator
 from typing import TypeAlias
 
-from ..utils import WeakValueDefaultDictionary
+from .._utils.iteration import WeakValueDefaultDictionary
 
 Connection: TypeAlias = sqlite3.Connection
 Row: TypeAlias = sqlite3.Row

@@ -18,11 +18,12 @@ from typing_extensions import Self
 from . import __version__, _logging, pkg_management, pkg_models
 from . import manager_ctx as _manager_ctx
 from . import results as R
+from ._utils.compat import StrEnum
+from ._utils.iteration import all_eq, bucketise, uniq
 from .config import GlobalConfig, ProfileConfig, config_converter
 from .definitions import ChangelogFormat, Defn, Strategy
 from .http import TraceRequestCtx, init_web_client
 from .plugins import get_plugin_commands
-from .utils import StrEnum, all_eq, bucketise, reveal_folder, tabulate, uniq
 from .wow_installations import Flavour
 
 _T = TypeVar('_T')
@@ -538,6 +539,7 @@ def rollback(mw: CtxObjWrapper, addon: Defn, undo: bool) -> None:
 def reconcile(mw: CtxObjWrapper, auto: bool, rereconcile: bool, list_unreconciled: bool) -> None:
     "Reconcile pre-installed add-ons."
     from ._cli_prompts import PkgChoice, ask, confirm, select, skip
+    from ._utils.text import tabulate
     from .matchers import DEFAULT_MATCHERS, AddonFolder, get_unreconciled_folders
 
     def construct_choice(pkg: pkg_models.Pkg, highlight_version: bool, disabled: bool):
@@ -874,6 +876,8 @@ def info(ctx: click.Context, addon: Defn) -> None:
 @click.pass_obj
 def reveal(mw: CtxObjWrapper, addon: Defn) -> None:
     "Bring an add-on up in your file manager."
+    from ._utils.file import reveal_folder
+
     with mw.manager.ctx.database.connect() as connection:
         where_clause, where_params = _make_pkg_where_clause_and_params([addon])
         pkg_folder = connection.execute(

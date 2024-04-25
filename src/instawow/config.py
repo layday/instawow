@@ -15,7 +15,8 @@ import cattrs.gen
 import cattrs.preconf.json
 from typing_extensions import Self
 
-from .utils import add_exc_note, fauxfrozen, trash
+from ._utils.compat import add_exc_note, fauxfrozen
+from ._utils.file import trash
 from .wow_installations import Flavour, get_installation_dir_from_addon_dir
 
 _T = TypeVar('_T')

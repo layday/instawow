@@ -11,10 +11,11 @@ from yarl import URL
 from .. import matchers
 from .. import results as R
 from .._utils.aio import run_in_thread
+from .._utils.compat import StrEnum
+from .._utils.web import as_plain_text_data_url
 from ..definitions import ChangelogFormat, Defn, SourceMetadata, Strategy
 from ..http import GenericDownloadTraceRequestCtx
 from ..resolvers import BaseResolver, HeadersIntent, PkgCandidate, TFolderHashCandidate
-from ..utils import StrEnum, as_plain_text_data_url
 
 _WagoStability = Literal['stable', 'beta', 'alpha']
 

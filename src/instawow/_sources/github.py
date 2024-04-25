@@ -14,18 +14,15 @@ from yarl import URL
 from .. import results as R
 from .._logging import logger
 from .._utils.aio import cancel_tasks
+from .._utils.compat import StrEnum
+from .._utils.iteration import batched
+from .._utils.web import as_plain_text_data_url, extract_byte_range_offset
 from ..catalogue.cataloguer import AddonKey, CatalogueEntry
 from ..definitions import ChangelogFormat, Defn, SourceMetadata, Strategy
 from ..http import CACHE_INDEFINITELY, ClientSessionType
 from ..matchers.addon_toc import TocReader
 from ..pkg_archives import find_archive_addon_tocs
 from ..resolvers import BaseResolver, HeadersIntent, PkgCandidate
-from ..utils import (
-    StrEnum,
-    as_plain_text_data_url,
-    batched,
-    extract_byte_range_offset,
-)
 from ..wow_installations import Flavour, FlavourVersionRange
 
 

@@ -11,7 +11,8 @@ from typing import Protocol, TypedDict
 
 from typing_extensions import Self, TypeVar
 
-from .utils import StrEnum, fill
+from ._utils.compat import StrEnum
+from ._utils.iteration import fill
 
 _TEnum = TypeVar('_TEnum', bound=Enum, infer_variance=True)
 

@@ -14,10 +14,10 @@ from yarl import URL
 from . import http, manager_ctx, matchers, pkg_archives, pkg_models
 from . import results as R
 from ._utils.aio import gather, run_in_thread
+from ._utils.web import file_uri_to_path
 from .catalogue.cataloguer import CatalogueEntry
 from .config import GlobalConfig
 from .definitions import Defn, SourceMetadata
-from .utils import file_uri_to_path
 
 
 class FolderHashCandidate(Protocol):  # pragma: no cover

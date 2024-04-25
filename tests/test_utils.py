@@ -9,13 +9,10 @@ from pathlib import Path
 import pytest
 
 from instawow._utils.aio import run_in_thread
+from instawow._utils.iteration import bucketise, merge_intersecting_sets
+from instawow._utils.text import tabulate
+from instawow._utils.web import file_uri_to_path
 from instawow.matchers.addon_toc import TocReader
-from instawow.utils import (
-    bucketise,
-    file_uri_to_path,
-    merge_intersecting_sets,
-    tabulate,
-)
 
 
 @pytest.fixture
