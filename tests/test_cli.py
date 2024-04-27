@@ -438,7 +438,7 @@ def test_reconcile__complete_interactive_reconciliation(
     pt_input: PipeInput,
     pretend_install_molinari_and_run: Run,
 ):
-    pt_input.send_text('\r\r')
+    pt_input.send_text('\ry')
     assert pretend_install_molinari_and_run('reconcile').output.endswith(
         dedent(
             """\
@@ -459,7 +459,7 @@ def test_reconcile__rereconcile(
     pt_input: PipeInput,
     install_molinari_and_run: Run,
 ):
-    pt_input.send_text('\r\r')
+    pt_input.send_text('\ry')
     assert install_molinari_and_run('reconcile --installed').output == dedent(
         """\
         ✓ curse:molinari
@@ -506,7 +506,7 @@ def test_search__install_one(
     pt_input: PipeInput,
     run: Run,
 ):
-    pt_input.send_text(' \r\r')  # space, enter, enter
+    pt_input.send_text(' \ry')  # space, enter, enter
     assert run('search molinari --source curse').output == dedent(
         """\
         ✓ curse:molinari
@@ -519,7 +519,7 @@ def test_search__install_multiple_conflicting(
     pt_input: PipeInput,
     run: Run,
 ):
-    pt_input.send_text(' \x1b[B \r\r')  # space, arrow down, space, enter, enter
+    pt_input.send_text(' \x1b[B \ry')  # space, arrow down, space, enter, enter
     assert run('search molinari').output == dedent(
         """\
         ✓ github:p3lim-wow/molinari

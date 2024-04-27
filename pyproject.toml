@@ -26,7 +26,6 @@ dependencies = [
   "packaging >= 23.2",
   "pluggy >= 1.4.0",
   "prompt-toolkit >= 3.0.29",
-  "questionary >= 2",
   "rapidfuzz >= 3.6.1",
   "truststore >= 0.7.0",
   "typing-extensions >= 4.6.0",

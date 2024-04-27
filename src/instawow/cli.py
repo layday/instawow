@@ -486,7 +486,7 @@ def remove(mw: CtxObjWrapper, addons: Sequence[Defn], keep_folders: bool) -> Non
 @click.pass_obj
 def rollback(mw: CtxObjWrapper, addon: Defn, undo: bool) -> None:
     "Roll an add-on back to an older version."
-    from ._cli_prompts import Choice, ask, select
+    from ._cli_prompts import Choice, select_one
 
     pkg = mw.manager.get_pkg(addon)
     if not pkg:
@@ -505,16 +505,11 @@ def rollback(mw: CtxObjWrapper, addon: Defn, undo: bool) -> None:
         Report([(addon, R.PkgFilesMissing('cannot find older versions'))]).generate_and_exit()
 
     choices = [
-        Choice(
-            [('', v.version)],
-            value=v.version,
-            disabled='installed version' if v.version == pkg.version else None,
-        )
-        for v in versions
+        Choice(v.version, value=v.version, disabled=v.version == pkg.version) for v in versions
     ]
-    selection = ask(
-        select(f'Select version of {reconstructed_defn.as_uri()} for rollback', choices)
-    )
+    selection = select_one(
+        f'Select version of {reconstructed_defn.as_uri()} for rollback', choices
+    ).prompt()
 
     Report(
         mw.run_with_progress(
@@ -538,19 +533,19 @@ def rollback(mw: CtxObjWrapper, addon: Defn, undo: bool) -> None:
 @click.pass_obj
 def reconcile(mw: CtxObjWrapper, auto: bool, rereconcile: bool, list_unreconciled: bool) -> None:
     "Reconcile pre-installed add-ons."
-    from ._cli_prompts import PkgChoice, ask, confirm, select, skip
+    from ._cli_prompts import SKIP, Choice, confirm, select_one
     from ._utils.text import tabulate
     from .matchers import DEFAULT_MATCHERS, AddonFolder, get_unreconciled_folders
 
     def construct_choice(pkg: pkg_models.Pkg, highlight_version: bool, disabled: bool):
         defn = pkg.to_defn()
-        return PkgChoice(
+        return Choice(
             [
                 ('', f'{defn.as_uri()}=='),
-                ('class:highlight-sub' if highlight_version else '', pkg.version),
+                ('class:attention' if highlight_version else '', pkg.version),
             ],
-            pkg=pkg,
-            value=defn,
+            defn,
+            browser_url=pkg.url,
             disabled=disabled,
         )
 
@@ -576,10 +571,9 @@ def reconcile(mw: CtxObjWrapper, auto: bool, rereconcile: bool, list_unreconcile
             choices = [
                 construct_choice(installed_pkg, highlight_version, True),
                 *(construct_choice(p, highlight_version, False) for p in pkgs),
-                skip,
             ]
-            selection = ask(select(installed_pkg.name, choices))
-            return selection or None
+            selection = select_one(installed_pkg.name, choices, can_skip=True).prompt()
+            return selection if selection is not SKIP else None
 
         with mw.manager.ctx.database.connect() as connection:
             installed_pkgs = [
@@ -595,7 +589,7 @@ def reconcile(mw: CtxObjWrapper, auto: bool, rereconcile: bool, list_unreconcile
             )
             if s
         ]
-        if selections and ask(confirm('Install selected add-ons?')):
+        if selections and confirm('Install selected add-ons?').prompt():
 
             def install_selections(*, dry_run: bool):
                 return mw.run_with_progress(
@@ -652,20 +646,19 @@ def reconcile(mw: CtxObjWrapper, auto: bool, rereconcile: bool, list_unreconcile
 
             # Highlight version if there's multiple of them
             highlight_version = not all_eq(i.version for i in chain(addons, pkgs))
-            choices = [
-                *(construct_choice(p, highlight_version, False) for p in pkgs),
-                skip,
-            ]
-            selection = ask(select(f'{combine_names()} [{addons[0].version or "?"}]', choices))
-            return selection or None
+
+            selection = select_one(
+                f'{combine_names()} [{addons[0].version or "?"}]',
+                [construct_choice(p, highlight_version, False) for p in pkgs],
+                can_skip=True,
+            ).prompt()
+            return selection if selection is not SKIP else None
 
         def pick_first_pkg(addons: Sequence[AddonFolder], pkgs: Sequence[pkg_models.Pkg]):
             return pkgs[0].to_defn()
 
         select_pkg_ = pick_first_pkg if auto else select_pkg
-        confirm_install = (
-            (lambda: True) if auto else (lambda: ask(confirm('Install selected add-ons?')))
-        )
+        confirm_install = (lambda: True) if auto else confirm('Install selected add-ons?').prompt
 
         for fn in DEFAULT_MATCHERS.values():
             groups = mw.run_with_progress(fn(mw.manager.ctx, leftovers))
@@ -738,7 +731,7 @@ def search(
     no_exclude_installed: bool,
 ) -> None:
     "Search for add-ons to install."
-    from ._cli_prompts import PkgChoice, ask, checkbox, confirm
+    from ._cli_prompts import Choice, confirm, select_multiple
     from .catalogue.search import search
 
     mw: CtxObjWrapper = ctx.obj
@@ -760,13 +753,13 @@ def search(
     pkgs, _ = pkg_management.bucketise_results(results.items())
     if pkgs:
         choices = [
-            PkgChoice(f'{p.name}  ({e.as_uri()}=={p.version})', e, pkg=p)
+            Choice(f'{p.name}  ({e.as_uri()}=={p.version})', e, browser_url=p.url)
             for d, p in pkgs.items()
             for e in (attrs.evolve(d, alias=p.slug, id=p.id),)
         ]
-        selections: list[Defn] = ask(checkbox('Select add-ons to install', choices=choices))
+        selections = select_multiple('Select add-ons to install', choices=choices).prompt()
         if selections:
-            if ask(confirm('Install selected add-ons?')):
+            if confirm('Install selected add-ons?').prompt():
                 ctx.invoke(install, addons=selections, replace_folders=False, dry_run=False)
         else:
             click.echo(
@@ -1061,15 +1054,16 @@ def configure(
     * ``configure "addon_dir=~/foo"` will set ``addon_dir``'s value
       to ``~/foo`` immediately
     """
+    import asyncio
+
     from ._cli_prompts import (
+        SKIP,
         AttrsFieldValidator,
         Choice,
-        ask,
         confirm,
         password,
         path,
-        select,
-        skip,
+        select_one,
     )
     from .wow_installations import (
         ADDON_DIR_PARTS,
@@ -1123,19 +1117,12 @@ def configure(
             if not any(d.samefile(k) for d in known_installations)
         ]
         if unimported_installations:
-            selection: tuple[Path, Flavour | None] | tuple[()] = ask(
-                select(
-                    'Installation:',
-                    choices=[
-                        *(
-                            Choice(title=f'{k}  [{v}]', value=(k, v))
-                            for k, v in unimported_installations
-                        ),
-                        skip,
-                    ],
-                )
-            )
-            if selection:
+            selection = select_one(
+                'Installation',
+                [Choice(f'{k}  [{v}]', (k, v)) for k, v in unimported_installations],
+                can_skip=True,
+            ).prompt()
+            if selection is not SKIP:
                 (installation_path, flavour) = selection
 
                 addon_dir = installation_path.joinpath(*ADDON_DIR_PARTS)
@@ -1151,37 +1138,34 @@ def configure(
         installation_configured == 0
         and _EditableConfigOptions.AddonDir in interactive_editable_config_keys
     ):
-        editable_config_values[_EditableConfigOptions.AddonDir] = ask(
-            path(
-                'Add-on directory:',
-                only_directories=True,
-                validate=AttrsFieldValidator(
-                    attrs.fields(attrs.resolve_types(ProfileConfig)).addon_dir,
-                    config_converter,
-                ),
-            )
-        )
+        editable_config_values[_EditableConfigOptions.AddonDir] = path(
+            'Add-on directory',
+            only_directories=True,
+            validator=AttrsFieldValidator(
+                attrs.fields(attrs.resolve_types(ProfileConfig)).addon_dir,
+                config_converter,
+            ),
+        ).prompt()
 
     if (
         installation_configured < 2
         and _EditableConfigOptions.GameFlavour in interactive_editable_config_keys
     ):
-        editable_config_values[_EditableConfigOptions.GameFlavour] = ask(
-            select(
-                'Game flavour:',
-                choices=list(Flavour),
-                initial_choice=config_values.get('addon_dir')
-                and infer_flavour_from_addon_dir(config_values['addon_dir']),
-            )
-        )
+        editable_config_values[_EditableConfigOptions.GameFlavour] = select_one(
+            'Game flavour',
+            list(map(Choice, Flavour, Flavour)),
+            initial_choice=config_values.get('addon_dir')
+            and infer_flavour_from_addon_dir(config_values['addon_dir']),
+        ).prompt()
 
     if _EditableConfigOptions.AutoUpdateCheck in interactive_editable_config_keys:
-        editable_config_values[_EditableConfigOptions.AutoUpdateCheck] = ask(
-            confirm('Periodically check for instawow updates?')
-        )
+        editable_config_values[_EditableConfigOptions.AutoUpdateCheck] = confirm(
+            'Periodically check for instawow updates?'
+        ).prompt()
 
-    if _EditableConfigOptions.GithubAccessToken in interactive_editable_config_keys and ask(
-        confirm('Set up GitHub authentication?')
+    if (
+        _EditableConfigOptions.GithubAccessToken in interactive_editable_config_keys
+        and confirm('Set up GitHub authentication?').prompt()
     ):
         editable_config_values[_EditableConfigOptions.GithubAccessToken] = asyncio.run(
             asyncio.wait_for(_github_oauth_flow(), timeout=60 * 5)
@@ -1195,7 +1179,7 @@ def configure(
             )
         )
         editable_config_values[_EditableConfigOptions.CfcoreAccessToken] = (
-            ask(password('CFCore access token:')) or None
+            password('CFCore access token:').prompt() or None
         )
 
     if _EditableConfigOptions.WagoAddonsAccessToken in interactive_editable_config_keys:
@@ -1207,7 +1191,7 @@ def configure(
             )
         )
         editable_config_values[_EditableConfigOptions.WagoAddonsAccessToken] = (
-            ask(password('Wago Addons access token:')) or None
+            password('Wago Addons access token:').prompt() or None
         )
 
     for key, value in editable_config_values.items():
@@ -1269,6 +1253,7 @@ def _plugin_group() -> None:  # pyright: ignore[reportUnusedFunction]
 )
 def generate_catalogue(start_date: dt.datetime | None) -> None:
     "Generate the master catalogue."
+    import asyncio
     import json
 
     from .catalogue.cataloguer import Catalogue, catalogue_converter

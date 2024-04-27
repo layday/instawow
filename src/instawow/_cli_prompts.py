@@ -2,29 +2,36 @@
 
 from __future__ import annotations
 
-import asyncio
+import enum
 from collections.abc import Sequence
-from functools import partial
-from typing import Any
+from typing import Any, Generic, Literal, TypeVar, overload
 
 import attrs
 import cattrs
 from prompt_toolkit.application import Application
+from prompt_toolkit.completion import PathCompleter
 from prompt_toolkit.document import Document
+from prompt_toolkit.filters import IsDone
+from prompt_toolkit.formatted_text import FormattedText, StyleAndTextTuples, to_formatted_text
 from prompt_toolkit.formatted_text.html import HTML
 from prompt_toolkit.key_binding import KeyBindings, KeyPressEvent
 from prompt_toolkit.keys import Keys
+from prompt_toolkit.layout import (
+    ConditionalContainer,
+    FormattedTextControl,
+    HSplit,
+    Layout,
+    Window,
+)
+from prompt_toolkit.shortcuts import PromptSession
 from prompt_toolkit.shortcuts.progress_bar import ProgressBar, ProgressBarCounter, formatters
 from prompt_toolkit.styles import Style
 from prompt_toolkit.validation import ValidationError, Validator
-from questionary import Choice
-from questionary import confirm as _confirm
-from questionary import password as _password
-from questionary import path as _path
-from questionary.prompts.common import InquirerControl, Separator, create_inquirer_layout
-from questionary.question import Question
+from prompt_toolkit.widgets import Label
 
-from . import pkg_models
+from ._utils.compat import fauxfrozen
+
+_T = TypeVar('_T')
 
 
 class AttrsFieldValidator(Validator):
@@ -62,204 +69,379 @@ class AttrsFieldValidator(Validator):
             ) from exc
 
 
-class PkgChoice(Choice):
-    def __init__(self, *args: Any, pkg: pkg_models.Pkg, **kwargs: Any) -> None:
-        super().__init__(*args, **kwargs)
-        self.pkg = pkg
+@fauxfrozen
+class Choice(Generic[_T]):
+    label: str | StyleAndTextTuples
+    value: _T
+    disabled: bool = False
+    browser_url: str | None = None
 
 
-qstyle = Style(
+class _FauxPromptSession(Generic[_T]):
+    def __init__(self, application: Application[_T]) -> None:
+        self.application = application
+
+    def prompt(self) -> _T:
+        return self.application.run()
+
+    async def prompt_async(self) -> _T:
+        return await self.application.run_async()
+
+
+_style = Style(
     [
-        ('qmark', 'fg:ansicyan'),
+        ('indicator', 'fg:ansicyan'),
         ('question', 'bold'),
-        ('answer', 'fg: nobold'),
-        ('skipped-answer', 'fg:ansiyellow'),
-        ('highlight-sub', 'fg:ansimagenta'),
+        ('skipped', 'fg:ansiyellow'),
+        ('attention', 'fg:ansimagenta'),
     ]
 )
 
 
-SKIP = ()
-skip = Choice([('underline', 's'), ('', 'kip')], SKIP)
-
-confirm = partial(_confirm, qmark='?', style=qstyle)
-path = partial(_path, qmark='>', style=qstyle)
-password = partial(_password, style=qstyle)
+class _Skip(enum.Enum):
+    Skip = enum.auto()
 
 
-def checkbox(message: str, choices: Sequence[Choice], **inquirer_kwargs: Any) -> Question:
-    def get_prompt_tokens():
-        tokens: list[tuple[str, str]] = [('class:question', message)]
-        if ic.is_answered:
-            tokens.append(('class:answer', '  done'))
-        else:
-            tokens.append(
-                (
-                    'class:instruction',
-                    '  (use arrow keys to move, <space> to select, <o> to open in browser'
-                    ' and <enter> to continue)',
-                )
-            )
-        return tokens
+SKIP = _Skip.Skip
+_skip_choice = Choice([('underline', 's'), ('', 'kip')], SKIP)
 
-    ic = InquirerControl(
-        choices,
-    )
+
+def confirm(message: str) -> PromptSession[bool]:
     bindings = KeyBindings()
 
-    @bindings.add(Keys.ControlQ, eager=True)
-    @bindings.add(Keys.ControlC, eager=True)
-    def abort(event: KeyPressEvent):
-        event.app.exit(exception=KeyboardInterrupt, style='class:aborting')
+    result = None
 
-    @bindings.add(' ', eager=True)
-    def toggle(event: KeyPressEvent):
-        pointed_choice = ic.get_pointed_at().value
-        if pointed_choice in ic.selected_options:
-            ic.selected_options.remove(pointed_choice)
-        else:
-            ic.selected_options.append(pointed_choice)
+    @bindings.add('y')
+    @bindings.add('Y')
+    def yes(event: KeyPressEvent) -> None:
+        nonlocal result
+        result = True
+        event.app.exit(result=result)
 
-    @bindings.add('i', eager=True)
-    def invert(event: KeyPressEvent):
-        inverted_selection = [
-            c.value
-            for c in ic.choices
-            if not isinstance(c, Separator)
-            and c.value not in ic.selected_options
-            and not c.disabled
+    @bindings.add('n')
+    @bindings.add('N')
+    def no(event: KeyPressEvent) -> None:
+        nonlocal result
+        result = False
+        event.app.exit(result=result)
+
+    @bindings.add(Keys.Enter)  # Override <enter> from the prompt session's base bindings
+    @bindings.add(Keys.Any)
+    def _(event: KeyPressEvent) -> None:
+        "Disallow inserting other text."
+
+    def get_messsage():
+        tokens = [
+            ('class:indicator', '?' if result is None else '✓' if result else '✗'),
+            ('', ' '),
+            ('class:question', message),
         ]
-        ic.selected_options = inverted_selection
+        if result is None:
+            tokens += [('', '  (Y/n)')]
+        return FormattedText(tokens)
 
-    @bindings.add(Keys.Down, eager=True)
-    @bindings.add('j', eager=True)
-    def move_cursor_down(event: KeyPressEvent):
-        ic.select_next()
-        while not ic.is_selection_valid():
-            ic.select_next()
-
-    @bindings.add(Keys.Up, eager=True)
-    @bindings.add('k', eager=True)
-    def move_cursor_up(event: KeyPressEvent):
-        ic.select_previous()
-        while not ic.is_selection_valid():
-            ic.select_previous()
-
-    @bindings.add(Keys.ControlM, eager=True)
-    def set_answer(event: KeyPressEvent):
-        ic.is_answered = True
-        event.app.exit(result=[c.value for c in ic.get_selected_values()])
-
-    @bindings.add('o', eager=True)
-    def open_url(event: KeyPressEvent):
-        choice = ic.get_pointed_at()
-        if isinstance(choice, PkgChoice):
-            import webbrowser
-
-            webbrowser.open(choice.pkg.url)
-
-    @bindings.add(Keys.Any)
-    def default(event: KeyPressEvent):
-        # Disallow inserting other text
-        pass
-
-    layout = create_inquirer_layout(ic, get_prompt_tokens, **inquirer_kwargs)
-    return Question(Application(layout=layout, key_bindings=bindings, style=qstyle))
-
-
-def select(
-    message: str,
-    choices: Sequence[str] | Sequence[Choice],
-    initial_choice: str | Choice | None = None,
-    **inquirer_kwargs: Any,
-) -> Question:
-    def get_prompt_tokens():
-        tokens: list[tuple[str, str]] = [('class:qmark', '- '), ('class:question', message)]
-        if ic.is_answered:
-            answer = ic.get_pointed_at()
-            title = answer.title
-            assert title
-            tokens.extend(
-                [
-                    ('', ' '),
-                    (
-                        'class:skipped-answer' if answer is skip else 'class:answer',
-                        ''.join(t[1] for t in title) if isinstance(title, list) else title,
-                    ),
-                ]
-            )
-        return tokens
-
-    ic = InquirerControl(
-        choices,
-        use_indicator=False,
-        initial_choice=initial_choice,
+    session = PromptSession[bool](
+        get_messsage,
+        key_bindings=bindings,
+        style=_style,
     )
+    return session
+
+
+def path(
+    message: str, *, only_directories: bool = False, validator: Validator | None = None
+) -> PromptSession[str]:
+    completer = PathCompleter(
+        expanduser=True,
+        only_directories=only_directories,
+    )
+    session = PromptSession[str](
+        FormattedText(
+            [('class:indicator', '>'), ('', ' '), ('class:question', message), ('', '  ')]
+        ),
+        completer=completer,
+        style=_style,
+        validator=validator,
+    )
+    return session
+
+
+def password(message: str) -> PromptSession[str]:
+    session = PromptSession[str](
+        FormattedText(
+            [('class:indicator', '>'), ('', ' '), ('class:question', message), ('', '  ')]
+        ),
+        is_password=True,
+        style=_style,
+    )
+    return session
+
+
+def select_multiple(
+    message: str,
+    choices: Sequence[Choice[_T]],
+) -> _FauxPromptSession[list[_T]]:
     bindings = KeyBindings()
 
-    @bindings.add(Keys.ControlQ, eager=True)
-    @bindings.add(Keys.ControlC, eager=True)
+    answered = False
+
+    position = 0
+    selected_indices = set[int]()
+
+    @bindings.add(Keys.ControlC)
+    @bindings.add(Keys.SIGINT)
     def abort(event: KeyPressEvent):
         event.app.exit(exception=KeyboardInterrupt, style='class:aborting')
 
-    @bindings.add(Keys.Down, eager=True)
-    @bindings.add('j', eager=True)
-    def move_cursor_down(event: KeyPressEvent):
-        ic.select_next()
-        while not ic.is_selection_valid():
-            ic.select_next()
+    @bindings.add(Keys.Up)
+    def previous_item(event: KeyPressEvent):
+        nonlocal position
+        position = max(0, position - 1)
 
-    @bindings.add(Keys.Up, eager=True)
-    @bindings.add('k', eager=True)
-    def move_cursor_up(event: KeyPressEvent):
-        ic.select_previous()
-        while not ic.is_selection_valid():
-            ic.select_previous()
+    @bindings.add(Keys.Down)
+    def next_item(event: KeyPressEvent):
+        nonlocal position
+        position = min(len(choices) - 1, position + 1)
 
-    @bindings.add(Keys.ControlM, eager=True)
-    def set_answer(event: KeyPressEvent):
-        ic.is_answered = True
-        event.app.exit(result=ic.get_pointed_at().value)
+    @bindings.add(' ')
+    def select_item(event: KeyPressEvent):
+        nonlocal selected_indices
+        selected_indices = selected_indices ^ {position}
 
-    @bindings.add('o', eager=True)
-    def open_url(event: KeyPressEvent):
-        choice = ic.get_pointed_at()
-        if isinstance(choice, PkgChoice):
+    @bindings.add('o')
+    @bindings.add('O')
+    def open_item_browser_url(event: KeyPressEvent):
+        choice_at_position = choices[position]
+        if choice_at_position.browser_url:
             import webbrowser
 
-            webbrowser.open(choice.pkg.url)
+            webbrowser.open(choice_at_position.browser_url)
 
-    if skip in ic.choices:
-
-        @bindings.add('s', eager=True)
-        def skip_question(event: KeyPressEvent):
-            ic.pointed_at = -1
-            set_answer(event)
+    @bindings.add(Keys.Enter)
+    def submit(event: KeyPressEvent):
+        nonlocal answered
+        answered = True
+        event.app.exit(result=[choices[i].value for i in selected_indices])
 
     @bindings.add(Keys.Any)
-    def default(event: KeyPressEvent):
-        # Disallow inserting other text
-        pass
+    def _(event: KeyPressEvent):
+        "Disallow inserting other text."
 
-    layout = create_inquirer_layout(ic, get_prompt_tokens, **inquirer_kwargs)
-    return Question(Application(layout=layout, key_bindings=bindings, style=qstyle))
+    def get_label_messsage():
+        tokens = [
+            ('class:indicator', '✓' if answered else '-'),
+            ('', ' '),
+            ('class:question', message),
+        ]
+        if not answered:
+            tokens += [
+                (
+                    '',
+                    '  (use arrow keys to move, <space> to select'
+                    + (', <o> to open in browser' if any(c.browser_url for c in choices) else '')
+                    + ' and <enter> to confirm)',
+                )
+            ]
+        return FormattedText(tokens)
+
+    def get_select_tokens():
+        tokens = list[StyleAndTextTuples]()
+
+        for i, choice in enumerate(choices):
+            focussed = i == position
+            if focussed:
+                tokens += [('[SetCursorPosition]', '')]
+
+            if choice.disabled:
+                tokens += [('', ' ')]
+            else:
+                selected = i in selected_indices
+                if selected:
+                    tokens += [('class:checkbox-selected', '■')]
+                else:
+                    tokens += [('', '□')]
+
+            tokens += [('', ' '), *to_formatted_text(choice.label), ('', '\n')]
+
+        return tokens[:-1]
+
+    app = Application[list[_T]](
+        key_bindings=bindings,
+        layout=Layout(
+            HSplit(
+                [
+                    Label(get_label_messsage),
+                    ConditionalContainer(
+                        Window(FormattedTextControl(get_select_tokens, focusable=True)),
+                        filter=~IsDone(),
+                    ),
+                ],
+            )
+        ),
+        style=_style,
+    )
+    return _FauxPromptSession(app)
 
 
-def ask(question: Question) -> Any:
-    return asyncio.run(question.application.run_async())
+@overload
+def select_one(
+    message: str,
+    choices: Sequence[Choice[_T]],
+    *,
+    can_skip: Literal[True],
+    initial_choice: _T | None = None,
+) -> _FauxPromptSession[_T | Literal[SKIP]]: ...
+@overload
+def select_one(
+    message: str,
+    choices: Sequence[Choice[_T]],
+    *,
+    can_skip: Literal[False] = False,
+    initial_choice: _T | None = None,
+) -> _FauxPromptSession[_T]: ...
 
 
-def _format_mb(value: int):
-    return f'{value / 2 ** 20:.1f}'
+def select_one(
+    message: str,
+    choices: Sequence[Choice[_T]],
+    *,
+    can_skip: bool = False,
+    initial_choice: _T | None = None,
+) -> _FauxPromptSession[Any]:
+    bindings = KeyBindings()
+
+    answered = False
+
+    combined_choices = [*choices, _skip_choice] if can_skip else choices
+    positions = [i for i, c in enumerate(combined_choices) if not c.disabled]
+    position = next(p for p in positions if initial_choice is None or choices[p] == initial_choice)
+
+    @bindings.add(Keys.ControlC)
+    @bindings.add(Keys.SIGINT)
+    def abort(event: KeyPressEvent):
+        event.app.exit(exception=KeyboardInterrupt, style='class:aborting')
+
+    @bindings.add(Keys.Up)
+    def previous_item(event: KeyPressEvent):
+        nonlocal position
+        try:
+            position = positions[positions.index(position) - 1]
+        except IndexError:
+            position = positions[-1]
+
+    @bindings.add(Keys.Down)
+    def next_item(event: KeyPressEvent):
+        nonlocal position
+        try:
+            position = positions[positions.index(position) + 1]
+        except IndexError:
+            position = positions[0]
+
+    @bindings.add('o')
+    @bindings.add('O')
+    def open_item_browser_url(event: KeyPressEvent):
+        choice_at_position = combined_choices[position]
+        if choice_at_position.browser_url:
+            import webbrowser
+
+            webbrowser.open(choice_at_position.browser_url)
+
+    @bindings.add(Keys.Enter)
+    def submit(event: KeyPressEvent):
+        nonlocal answered
+        answered = True
+        event.app.exit(result=combined_choices[position].value)
+
+    if can_skip:
+
+        @bindings.add('s')
+        def skip_question(event: KeyPressEvent):
+            nonlocal answered, position
+            answered = True
+            position = positions[-1]
+            event.app.exit(result=SKIP)
+
+    @bindings.add(Keys.Any)
+    def _(event: KeyPressEvent):
+        "Disallow inserting other text."
+
+    def get_label_messsage():
+        tokens = [
+            (
+                'class:indicator',
+                '✓' if answered and combined_choices[position] is not _skip_choice else '-',
+            ),
+            ('', ' '),
+            ('class:question', message),
+        ]
+        if answered and combined_choices[position] is _skip_choice:
+            tokens += [('class:skipped', '  (skipped)')]
+        elif not answered:
+            tokens += [
+                (
+                    '',
+                    '  (use arrow keys to move'
+                    + (
+                        ', <o> to open in browser'
+                        if any(c.browser_url for c in combined_choices)
+                        else ''
+                    )
+                    + ' and <enter> to select)',
+                )
+            ]
+        else:
+            tokens += [
+                ('', '  ('),
+                *to_formatted_text(combined_choices[position].label),
+                ('', ')'),
+            ]
+        return FormattedText(tokens)
+
+    def get_select_tokens():
+        tokens = list[StyleAndTextTuples]()
+
+        for i, choice in enumerate(combined_choices):
+            if choice.disabled:
+                tokens += [('', ' ')]
+            else:
+                focussed = i == position
+                if focussed:
+                    tokens += [('[SetCursorPosition]', ''), ('class:radio-selected', '●')]
+                else:
+                    tokens += [('', '○')]
+
+            tokens += [('', ' '), *to_formatted_text(choice.label), ('', '\n')]
+
+        return tokens[:-1]
+
+    app = Application[Any](
+        key_bindings=bindings,
+        layout=Layout(
+            HSplit(
+                [
+                    Label(get_label_messsage),
+                    ConditionalContainer(
+                        Window(FormattedTextControl(get_select_tokens, focusable=True)),
+                        filter=~IsDone(),
+                    ),
+                ],
+            )
+        ),
+        style=_style,
+    )
+    return _FauxPromptSession(app)
 
 
 class _DownloadProgress(formatters.Progress):
     template = '<current>{current:>3}</current>/<total>{total:>3}</total>MB'
 
     def format(self, progress_bar: ProgressBar, progress: ProgressBarCounter[object], width: int):
+        def format_mb(value: int):
+            return f'{value / 2 ** 20:.1f}'
+
         return HTML(self.template).format(
-            current=_format_mb(progress.items_completed),
-            total=_format_mb(progress.total) if progress.total is not None else '?',
+            current=format_mb(progress.items_completed),
+            total=format_mb(progress.total) if progress.total is not None else '?',
         )
 
 
