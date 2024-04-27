@@ -24,7 +24,8 @@ from prompt_toolkit.layout import (
     Window,
 )
 from prompt_toolkit.shortcuts import PromptSession
-from prompt_toolkit.shortcuts.progress_bar import ProgressBar, ProgressBarCounter, formatters
+from prompt_toolkit.shortcuts.progress_bar import ProgressBar, ProgressBarCounter
+from prompt_toolkit.shortcuts.progress_bar import formatters as pb_formatters
 from prompt_toolkit.styles import Style
 from prompt_toolkit.validation import ValidationError, Validator
 from prompt_toolkit.widgets import Label
@@ -432,7 +433,7 @@ def select_one(
     return _FauxPromptSession(app)
 
 
-class _DownloadProgress(formatters.Progress):
+class _DownloadProgress(pb_formatters.Progress):
     template = '<current>{current:>3}</current>/<total>{total:>3}</total>MB'
 
     def format(self, progress_bar: ProgressBar, progress: ProgressBarCounter[object], width: int):
@@ -449,17 +450,17 @@ def make_progress_bar() -> ProgressBar:
     "``ProgressBar`` with download progress expressed in megabytes."
     return ProgressBar(
         formatters=[
-            formatters.Label(),
-            formatters.Text(' '),
-            formatters.Percentage(),
-            formatters.Text(' '),
-            formatters.Bar(),
-            formatters.Text(' '),
+            pb_formatters.Label(),
+            pb_formatters.Text(' '),
+            pb_formatters.Percentage(),
+            pb_formatters.Text(' '),
+            pb_formatters.Bar(),
+            pb_formatters.Text(' '),
             _DownloadProgress(),
-            formatters.Text(' '),
-            formatters.Text('eta [', style='class:time-left'),
-            formatters.TimeLeft(),
-            formatters.Text(']', style='class:time-left'),
-            formatters.Text(' '),
+            pb_formatters.Text(' '),
+            pb_formatters.Text('eta [', style='class:time-left'),
+            pb_formatters.TimeLeft(),
+            pb_formatters.Text(']', style='class:time-left'),
+            pb_formatters.Text(' '),
         ],
     )
