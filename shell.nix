@@ -1,6 +1,7 @@
 { pkgs ? import <nixpkgs> { } }:
 let
-  python = pkgs.python313.override { enableGIL = false; enableOptimizations = true; };
+  python = pkgs.python312;
+  # python = pkgs.python313.override { enableGIL = false; enableOptimizations = true; };
 in
 pkgs.mkShell {
   buildInputs = [
