@@ -32,7 +32,7 @@ async def is_outdated(global_config: config.GlobalConfig) -> tuple[bool, str]:
     try:
         async with (
             init_web_client(
-                global_config.cache_dir,
+                global_config.http_cache_dir,
                 raise_for_status=True,
             ) as web_client,
             web_client.get(
