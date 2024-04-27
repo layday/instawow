@@ -7,7 +7,7 @@ v4.1.0
 - Extended support for the ``any_flavour`` strategy to GitHub add-ons.
 - Changed ``any_flavour`` logic to prioritise add-ons of the same or similar
   flavours.
-- Changed default flavour of the Classic PTR to Catalysm.
+- Changed default flavour of the Classic PTR to Cataclysm.
 - Added support for comma-separated interface versions in add-on TOC files.
 - Added support for Python 3.13.
 - Made various performance improvements.
@@ -21,7 +21,7 @@ CLI
 v4.0.0
 ------
 
-- Added support for the Classic Catalysm beta.
+- Added support for the Classic Cataclysm beta.
 
 CLI
 ~~~
