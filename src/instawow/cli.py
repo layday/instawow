@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import asyncio
 import datetime as dt
 import enum
 import textwrap
@@ -108,23 +107,27 @@ class CtxObjWrapper:
         return pkg_management.PkgManager(manager_ctx)
 
     def run_with_progress(self, awaitable: Awaitable[_T]) -> _T:
-        cache_dir = self.manager.ctx.config.global_config.http_cache_dir
-        params = self._ctx.params
+        import asyncio
 
-        if any(params['verbose']):
+        make_init_web_client = partial(
+            init_web_client,
+            self.manager.ctx.config.global_config.http_cache_dir,
+            no_cache=self._ctx.params['no_cache'],
+        )
+
+        if any(self._ctx.params['verbose']):
 
             async def run():
-                async with init_web_client(cache_dir, no_cache=params['no_cache']) as web_client:
+                async with make_init_web_client() as web_client:
                     _manager_ctx.contextualise(web_client=web_client)
                     return await awaitable
 
         else:
-            from contextlib import contextmanager
-
             import aiohttp
             from prompt_toolkit.shortcuts import ProgressBar, ProgressBarCounter
 
             from ._cli_prompts import make_progress_bar
+            from ._utils.aio import cancel_tasks
 
             def init_cli_web_client(progress_bar: ProgressBar, tickers: set[asyncio.Task[None]]):
                 TICK_INTERVAL = 0.1
@@ -178,28 +181,19 @@ class CtxObjWrapper:
                 trace_config = aiohttp.TraceConfig()
                 trace_config.on_request_end.append(do_on_request_end)
                 trace_config.freeze()
-                return init_web_client(
-                    cache_dir, no_cache=params['no_cache'], trace_configs=[trace_config]
-                )
-
-            @contextmanager
-            def cancel_tickers(progress_bar: ProgressBar):
-                tickers: set[asyncio.Task[None]] = set()
-                try:
-                    yield tickers
-                finally:
-                    for ticker in tickers:
-                        ticker.cancel()
-                    progress_bar.invalidate()
+                return make_init_web_client(trace_configs=[trace_config])
 
             async def run():
-                with (
-                    make_progress_bar() as progress_bar,
-                    cancel_tickers(progress_bar) as tickers,
-                ):
-                    async with init_cli_web_client(progress_bar, tickers) as web_client:
-                        _manager_ctx.contextualise(web_client=web_client)
-                        return await awaitable
+                with make_progress_bar() as progress_bar:
+                    tickers = set[asyncio.Task[None]]()
+
+                    try:
+                        async with init_cli_web_client(progress_bar, tickers) as web_client:
+                            _manager_ctx.contextualise(web_client=web_client)
+                            return await awaitable
+
+                    finally:
+                        await cancel_tasks(tickers)
 
         return asyncio.run(run())
 
