@@ -156,7 +156,6 @@ xfail_strict = true
 filterwarnings = [
   "error",
   'ignore:datetime\.datetime\.utcnow\(\) is deprecated:DeprecationWarning:aiohttp_client_cache',
-  'ignore:aresponses is asynchronous and explicitly requests the "event_loop" fixture:pytest.PytestDeprecationWarning:pytest_asyncio',
 ]
 asyncio_mode = "auto"
 addopts = ["-ra", "--strict-config", "--strict-markers"]
