@@ -1,6 +1,12 @@
 Changelog
 =========
 
+v4.1.1
+------
+
+- Relaxed ``aiohttp`` version constraint.
+- Fixed self-update check HTTP cache directory path.
+
 v4.1.0
 ------
 
