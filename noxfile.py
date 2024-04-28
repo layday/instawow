@@ -103,7 +103,7 @@ def test(session: nox.Session, minimum_versions: bool):
     else:
         build_dists(session)
 
-        with Path('dist', 'wheel-metadata.json').open('rb') as wheel_metadata_json:
+        with Path('dist', '.wheel-metadata.json').open('rb') as wheel_metadata_json:
             package_path = json.load(
                 wheel_metadata_json,
             )['wheel-path']
@@ -155,7 +155,7 @@ def type_check(session: nox.Session):
     else:
         build_dists(session)
 
-        with Path('dist', 'wheel-metadata.json').open('rb') as wheel_metadata_json:
+        with Path('dist', '.wheel-metadata.json').open('rb') as wheel_metadata_json:
             package_path = json.load(
                 wheel_metadata_json,
             )['wheel-path']
@@ -190,7 +190,7 @@ def build_dists(session: nox.Session):
     wheel_path = next(f.path for f in os.scandir('dist') if f.name.endswith('.whl'))
     (wheel_metadata,) = Distribution.discover(name='instawow', path=[wheel_path])
 
-    Path('dist', 'wheel-metadata.json').write_text(
+    Path('dist', '.wheel-metadata.json').write_text(
         json.dumps(
             {
                 'wheel-path': wheel_path,
