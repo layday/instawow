@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import os
-import subprocess
 import sys
 from collections.abc import Iterator
 from enum import Enum
@@ -149,6 +148,8 @@ _NORMALISED_ADDON_DIR_PARTS = tuple(map(str.casefold, ADDON_DIR_PARTS))
 
 
 def _find_mac_installations():
+    import subprocess
+
     try:
         possible_installations = subprocess.check_output(
             [
