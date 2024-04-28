@@ -7,7 +7,6 @@ from enum import IntEnum
 from functools import partial
 from typing import Generic, TypeVar
 
-import iso8601
 from typing_extensions import NotRequired as N
 from typing_extensions import TypedDict
 from yarl import URL
@@ -16,6 +15,7 @@ from .. import pkg_models
 from .. import results as R
 from .._logging import logger
 from .._utils.aio import gather
+from .._utils.datetime import datetime_fromisoformat
 from .._utils.iteration import uniq
 from ..catalogue.cataloguer import CatalogueEntry
 from ..config import GlobalConfig
@@ -422,7 +422,7 @@ class CfCoreResolver(BaseResolver):
             description=metadata['summary'],
             url=metadata['links']['websiteUrl'],
             download_url=file['downloadUrl'],
-            date_published=iso8601.parse_date(file['fileDate']),
+            date_published=datetime_fromisoformat(file['fileDate']),
             version=file['displayName'],
             changelog_url=str(
                 self.__mod_api_url / f'{metadata["id"]}/files/{file["id"]}/changelog'
@@ -509,6 +509,6 @@ class CfCoreResolver(BaseResolver):
                     url=item['links']['websiteUrl'],
                     game_flavours=frozenset(excise_flavours(item['latestFiles'])),
                     download_count=item['downloadCount'],
-                    last_updated=iso8601.parse_date(item['dateReleased']),
+                    last_updated=datetime_fromisoformat(item['dateReleased']),
                     folders=excise_folders(item['latestFiles']),
                 )

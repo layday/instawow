@@ -4,7 +4,6 @@ from collections.abc import Collection, Iterable
 from datetime import timedelta
 from typing import Literal, NoReturn
 
-import iso8601
 from typing_extensions import TypedDict
 from yarl import URL
 
@@ -12,6 +11,7 @@ from .. import matchers
 from .. import results as R
 from .._utils.aio import run_in_thread
 from .._utils.compat import StrEnum
+from .._utils.datetime import datetime_fromisoformat
 from .._utils.web import as_plain_text_data_url
 from ..definitions import ChangelogFormat, Defn, SourceMetadata, Strategy
 from ..http import GenericDownloadTraceRequestCtx
@@ -147,7 +147,7 @@ class WagoResolver(BaseResolver):
             files = recent_releases.values()
 
         matching_file = max(
-            ((iso8601.parse_date(f['created_at']), f) for f in files), default=None
+            ((datetime_fromisoformat(f['created_at']), f) for f in files), default=None
         )
         if matching_file is None:
             raise R.PkgFilesMissing

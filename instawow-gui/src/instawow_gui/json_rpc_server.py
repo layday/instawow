@@ -21,7 +21,6 @@ import attrs
 import cattrs
 import cattrs.preconf.json
 import click
-import iso8601
 from aiohttp_rpc import JsonRpcMethod
 from aiohttp_rpc import middlewares as rpc_middlewares
 from aiohttp_rpc.errors import InvalidParams, ServerError
@@ -34,6 +33,7 @@ from instawow import results as R
 from instawow._logging import logger
 from instawow._utils.aio import run_in_thread
 from instawow._utils.compat import StrEnum
+from instawow._utils.datetime import datetime_fromisoformat
 from instawow._utils.file import reveal_folder
 from instawow._utils.iteration import WeakValueDefaultDictionary, uniq
 from instawow._version_check import is_outdated
@@ -73,7 +73,7 @@ _converter = cattrs.Converter(
 )
 cattrs.preconf.json.configure_converter(_converter)
 _converter.register_structure_hook(Path, lambda v, _: Path(v))
-_converter.register_structure_hook(datetime, lambda v, _: iso8601.parse_date(v))
+_converter.register_structure_hook(datetime, lambda v, _: datetime_fromisoformat(v))
 _converter.register_unstructure_hook(Path, str)
 
 

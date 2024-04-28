@@ -6,7 +6,6 @@ from datetime import datetime, timedelta
 from itertools import product, tee, zip_longest
 from typing import Any, Literal
 
-import iso8601
 from typing_extensions import Never, TypedDict
 from typing_extensions import NotRequired as N
 from yarl import URL
@@ -15,6 +14,7 @@ from .. import results as R
 from .._logging import logger
 from .._utils.aio import cancel_tasks
 from .._utils.compat import StrEnum
+from .._utils.datetime import datetime_fromisoformat
 from .._utils.iteration import batched
 from .._utils.web import as_plain_text_data_url, extract_byte_range_offset
 from ..catalogue.cataloguer import AddonKey, CatalogueEntry
@@ -473,7 +473,7 @@ class GithubResolver(BaseResolver):
             description=project['description'] or '',
             url=project['html_url'],
             download_url=asset['url'],
-            date_published=iso8601.parse_date(release['published_at']),
+            date_published=datetime_fromisoformat(release['published_at']),
             version=release['tag_name'],
             changelog_url=as_plain_text_data_url(release['body']),
         )
