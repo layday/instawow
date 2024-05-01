@@ -38,18 +38,23 @@ import sysconfig
 
 
 def _session_install_for_python313(session: nox.Session, install_args: list[str]):
-    with tempfile.TemporaryDirectory() as temp_dir:
-        constraints_txt = Path(temp_dir, 'python313-constraints.txt')
-        constraints_txt.write_text("""\
-truststore @ git+https://github.com/sethmlarson/truststore@9ed7880 ; python_version >= "3.13"
-""")
+    is_python313 = session.run(
+        'python', '-c', 'import sys; print(int(sys.version_info >= (3, 13)), end=" ")'
+    )
+    if is_python313 == '1':
+        with tempfile.TemporaryDirectory() as temp_dir:
+            constraints_txt = Path(temp_dir, 'python313-constraints.txt')
+            constraints_txt.write_text("""\
+    """)
 
-        session.install(
-            '-c',
-            os.fspath(constraints_txt),
-            *install_args,
-            env={f'{p}_NO_EXTENSIONS': '1' for p in ['AIOHTTP', 'MULTIDICT', 'YARL']},
-        )
+            session.install(
+                '-c',
+                os.fspath(constraints_txt),
+                *install_args,
+                env={f'{p}_NO_EXTENSIONS': is_python313 for p in ['AIOHTTP', 'MULTIDICT', 'YARL']},
+            )
+    else:
+        session.install(*install_args)
 
 
 @nox.session(reuse_venv=True)

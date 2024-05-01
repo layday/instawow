@@ -27,7 +27,7 @@ dependencies = [
   "pluggy >= 1.4.0",
   "prompt-toolkit >= 3.0.29",
   "rapidfuzz >= 3.6.1",
-  "truststore >= 0.7.0",
+  "truststore >= 0.9.0",
   "typing-extensions >= 4.11.0",
   "yarl >= 1.9.2",
 ]
