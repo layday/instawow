@@ -7,7 +7,7 @@ from collections.abc import Awaitable, Callable, Collection, Iterable, Mapping, 
 from functools import cached_property, partial, reduce
 from itertools import chain, count, repeat
 from pathlib import Path
-from typing import Any, Generic, NoReturn, TypeVar, overload
+from typing import TYPE_CHECKING, Any, Generic, NoReturn, TypeVar, overload
 
 import attrs
 import click
@@ -67,13 +67,12 @@ class Report:
         )
 
     def generate(self) -> None:
-        mw: CtxObjWrapper | None = click.get_current_context().obj
-
-        if mw and mw.manager.ctx.config.global_config.auto_update_check:
+        manager: _ManagerProxy | None = click.get_current_context().obj
+        if manager and manager.ctx.config.global_config.auto_update_check:
             from ._version_check import is_outdated
 
-            outdated, new_version = mw.run_with_progress(
-                is_outdated(mw.manager.ctx.config.global_config)
+            outdated, new_version = run_with_progress(
+                is_outdated(manager.ctx.config.global_config)
             )
             if outdated:
                 click.echo(f'{self.WARNING_SYMBOL} instawow v{new_version} is available')
@@ -88,107 +87,123 @@ class Report:
         ctx.exit(self.exit_code)
 
 
-class CtxObjWrapper:
-    def __init__(self, ctx: click.Context) -> None:
-        self._ctx = ctx
+if TYPE_CHECKING:
+    _ManagerProxyBase = pkg_management.PkgManager
+else:
+    _ManagerProxyBase = object
 
-    @cached_property
-    def manager(self) -> pkg_management.PkgManager:
-        global_config = GlobalConfig.read().ensure_dirs()
-        try:
-            config = ProfileConfig.read(global_config, self._ctx.params['profile']).ensure_dirs()
-        except FileNotFoundError:
-            config = self._ctx.invoke(configure)
 
-        _logging.setup_logging(config.logging_dir, *self._ctx.params['verbose'])
+class _ManagerProxy(_ManagerProxyBase):
+    def __init__(self, context: click.Context) -> None:
+        self.__context = context
 
-        manager_ctx = self._ctx.with_resource(_manager_ctx.ManagerCtx(config))
-        return pkg_management.PkgManager(manager_ctx)
+    if not TYPE_CHECKING:
 
-    def run_with_progress(self, awaitable: Awaitable[_T]) -> _T:
-        import asyncio
+        @cached_property
+        def __manager(self):
+            global_config = GlobalConfig.read().ensure_dirs()
+            try:
+                config = ProfileConfig.read(
+                    global_config, self.__context.params['profile']
+                ).ensure_dirs()
+            except FileNotFoundError:
+                config = self.__context.invoke(configure)
 
-        from .http import init_web_client
+            _logging.setup_logging(config.logging_dir, *self.__context.params['verbose'])
 
-        make_init_web_client = partial(
-            init_web_client,
-            self.manager.ctx.config.global_config.http_cache_dir,
-            no_cache=self._ctx.params['no_cache'],
-        )
+            manager_ctx = self.__context.with_resource(_manager_ctx.ManagerCtx(config))
+            return pkg_management.PkgManager(manager_ctx)
 
-        if any(self._ctx.params['verbose']):
+        def __getattr__(self, name: str) -> Any:
+            return getattr(self.__manager, name)
 
-            async def run():
-                async with make_init_web_client() as web_client:
-                    _manager_ctx.contextualise(web_client=web_client)
-                    return await awaitable
 
-        else:
-            from ._cli_prompts import ProgressBar, make_progress_bar_group
-            from ._progress_reporting import make_progress_receiver
-            from ._utils.aio import cancel_tasks
+def run_with_progress(awaitable: Awaitable[_T], ctx: click.Context | None = None) -> _T:
+    import asyncio
 
-            async def run():
-                with (
-                    make_progress_receiver[pkg_management.PkgDownloadProgress]() as iter_progress,
-                    make_progress_bar_group() as progress_bar_group,
-                ):
+    from .http import init_web_client
 
-                    async def observe_progress():
-                        progress_bars = dict[int, ProgressBar]()
-                        progress_bar_group.counters = (
-                            progress_bars.values()  # pyright: ignore[reportAttributeAccessIssue]
-                        )
+    if ctx is None:
+        ctx = click.get_current_context()
+    ctx = ctx.find_root()
 
-                        try:
-                            async for progress_group in iter_progress:
-                                for progress_id in progress_bars.keys() - progress_group.keys():
-                                    del progress_bars[progress_id]
+    make_init_web_client = partial(
+        init_web_client,
+        ctx.obj.ctx.config.global_config.http_cache_dir,
+        no_cache=ctx.params['no_cache'],
+    )
 
-                                for progress_id, progress in (
-                                    (k, progress_group[k])
-                                    for k in progress_bars.keys() ^ progress_group.keys()
-                                ):
-                                    match progress:
-                                        case {'type_': 'pkg_download', 'defn': defn}:
-                                            label = f'Downloading {defn.as_uri()}'
-                                        case {'label': str(label)}:
-                                            pass
-                                        case _:
-                                            continue
+    if any(ctx.params['verbose']):
 
-                                    progress_bars[progress_id] = ProgressBar(
-                                        progress_bar=progress_bar_group,
-                                        label=label,
-                                        total=progress['total'],
-                                        is_download=progress.get('unit') == 'bytes',
-                                    )
+        async def run():
+            async with make_init_web_client() as web_client:
+                _manager_ctx.contextualise(web_client=web_client)
+                return await awaitable
 
-                                for progress_id, progress in progress_group.items():
-                                    progress_bars[progress_id].items_completed = progress[
-                                        'current'
-                                    ]
-                                    progress_bar_group.invalidate()
+    else:
+        from ._cli_prompts import ProgressBar, make_progress_bar_group
+        from ._progress_reporting import make_progress_receiver
+        from ._utils.aio import cancel_tasks
 
-                        finally:
-                            progress_bars.clear()
+        async def run():
+            with (
+                make_progress_receiver[pkg_management.PkgDownloadProgress]() as iter_progress,
+                make_progress_bar_group() as progress_bar_group,
+            ):
 
-                    observe_progress_task = asyncio.create_task(observe_progress())
+                async def observe_progress():
+                    progress_bars = dict[int, ProgressBar]()
+                    progress_bar_group.counters = (
+                        progress_bars.values()  # pyright: ignore[reportAttributeAccessIssue]
+                    )
 
                     try:
-                        async with make_init_web_client(with_progress=True) as web_client:
-                            _manager_ctx.contextualise(web_client=web_client)
-                            return await awaitable
+                        async for progress_group in iter_progress:
+                            for progress_id in progress_bars.keys() - progress_group.keys():
+                                del progress_bars[progress_id]
+
+                            for progress_id, progress in (
+                                (k, progress_group[k])
+                                for k in progress_bars.keys() ^ progress_group.keys()
+                            ):
+                                match progress:
+                                    case {'type_': 'pkg_download', 'defn': defn}:
+                                        label = f'Downloading {defn.as_uri()}'
+                                    case {'label': str(label)}:
+                                        pass
+                                    case _:
+                                        continue
+
+                                progress_bars[progress_id] = ProgressBar(
+                                    progress_bar=progress_bar_group,
+                                    label=label,
+                                    total=progress['total'],
+                                    is_download=progress.get('unit') == 'bytes',
+                                )
+
+                            for progress_id, progress in progress_group.items():
+                                progress_bars[progress_id].items_completed = progress['current']
+                                progress_bar_group.invalidate()
 
                     finally:
-                        await cancel_tasks([observe_progress_task])
+                        progress_bars.clear()
 
-        return asyncio.run(run())
+                observe_progress_task = asyncio.create_task(observe_progress())
+
+                try:
+                    async with make_init_web_client(with_progress=True) as web_client:
+                        _manager_ctx.contextualise(web_client=web_client)
+                        return await awaitable
+
+                finally:
+                    await cancel_tasks([observe_progress_task])
+
+    return asyncio.run(run())
 
 
-def _with_manager(fn: Callable[..., object]):
+def _with_obj(fn: Callable[..., object]):
     def wrapper(ctx: click.Context, __: click.Parameter, value: object):
-        return fn(ctx.obj.manager, value)
+        return fn(ctx.obj, value)
 
     return wrapper
 
@@ -384,11 +399,11 @@ class _ListFormat(StrEnum):
 @click.pass_context
 def cli(ctx: click.Context, **__: object) -> None:
     "Add-on manager for World of Warcraft."
-    ctx.obj = CtxObjWrapper(ctx)
+    ctx.obj = _ManagerProxy(ctx)
 
 
 @cli.command
-@click.argument('addons', nargs=-1, callback=_with_manager(_parse_uri))
+@click.argument('addons', nargs=-1, callback=_with_obj(_parse_uri))
 @click.option(
     '--replace',
     'replace_folders',
@@ -405,20 +420,20 @@ def cli(ctx: click.Context, **__: object) -> None:
 )
 @click.pass_obj
 def install(
-    mw: CtxObjWrapper,
+    manager: _ManagerProxy,
     addons: Sequence[Defn],
     replace_folders: bool,
     dry_run: bool,
 ) -> None:
     "Install add-ons."
-    results = mw.run_with_progress(
-        mw.manager.install(addons, replace_folders=replace_folders, dry_run=dry_run)
+    results = run_with_progress(
+        manager.install(addons, replace_folders=replace_folders, dry_run=dry_run)
     )
     Report(results.items()).generate_and_exit()
 
 
 @cli.command
-@click.argument('addons', nargs=-1, callback=_with_manager(_parse_uri))
+@click.argument('addons', nargs=-1, callback=_with_obj(_parse_uri))
 @click.option(
     '--dry-run',
     is_flag=True,
@@ -428,7 +443,7 @@ def install(
 )
 @click.pass_obj
 def update(
-    mw: CtxObjWrapper,
+    manager: _ManagerProxy,
     addons: Sequence[Defn],
     dry_run: bool,
 ) -> None:
@@ -438,12 +453,12 @@ def update(
         # Hide packages from output if they are up to date and not pinned.
         return True if addons or not isinstance(result, R.PkgUpToDate) else result.is_pinned
 
-    results = mw.run_with_progress(mw.manager.update(addons or 'all', dry_run=dry_run))
+    results = run_with_progress(manager.update(addons or 'all', dry_run=dry_run))
     Report(results.items(), filter_results).generate_and_exit()
 
 
 @cli.command
-@click.argument('addons', nargs=-1, required=True, callback=_with_manager(_parse_uri))
+@click.argument('addons', nargs=-1, required=True, callback=_with_obj(_parse_uri))
 @click.option(
     '--keep-folders',
     is_flag=True,
@@ -451,14 +466,14 @@ def update(
     help='Remove the add-on from the database but do not delete its folders.',
 )
 @click.pass_obj
-def remove(mw: CtxObjWrapper, addons: Sequence[Defn], keep_folders: bool) -> None:
+def remove(manager: _ManagerProxy, addons: Sequence[Defn], keep_folders: bool) -> None:
     "Remove add-ons."
-    results = mw.run_with_progress(mw.manager.remove(addons, keep_folders=keep_folders))
+    results = run_with_progress(manager.remove(addons, keep_folders=keep_folders))
     Report(results.items()).generate_and_exit()
 
 
 @cli.command
-@click.argument('addon', callback=_with_manager(_parse_uri))
+@click.argument('addon', callback=_with_obj(_parse_uri))
 @click.option(
     '--undo',
     is_flag=True,
@@ -466,18 +481,18 @@ def remove(mw: CtxObjWrapper, addons: Sequence[Defn], keep_folders: bool) -> Non
     help='Undo rollback by reinstalling an add-on using the default strategy.',
 )
 @click.pass_obj
-def rollback(mw: CtxObjWrapper, addon: Defn, undo: bool) -> None:
+def rollback(manager: _ManagerProxy, addon: Defn, undo: bool) -> None:
     "Roll an add-on back to an older version."
     from ._cli_prompts import Choice, select_one
 
-    pkg = mw.manager.get_pkg(addon)
+    pkg = manager.get_pkg(addon)
     if not pkg:
         Report([(addon, R.PkgNotInstalled())]).generate_and_exit()
-    elif Strategy.VersionEq not in mw.manager.ctx.resolvers[pkg.source].metadata.strategies:
+    elif Strategy.VersionEq not in manager.ctx.resolvers[pkg.source].metadata.strategies:
         Report([(addon, R.PkgStrategiesUnsupported({Strategy.VersionEq}))]).generate_and_exit()
     elif undo:
         Report(
-            mw.run_with_progress(mw.manager.update([addon.with_default_strategy_set()])).items()
+            run_with_progress(manager.update([addon.with_default_strategy_set()])).items()
         ).generate_and_exit()
 
     reconstructed_defn = pkg.to_defn()
@@ -494,9 +509,7 @@ def rollback(mw: CtxObjWrapper, addon: Defn, undo: bool) -> None:
     ).prompt()
 
     Report(
-        mw.run_with_progress(
-            mw.manager.update([reconstructed_defn.with_version(selection)])
-        ).items()
+        run_with_progress(manager.update([reconstructed_defn.with_version(selection)])).items()
     ).generate_and_exit()
 
 
@@ -513,7 +526,9 @@ def rollback(mw: CtxObjWrapper, addon: Defn, undo: bool) -> None:
     '--list-unreconciled', is_flag=True, default=False, help='List unreconciled add-ons and exit.'
 )
 @click.pass_obj
-def reconcile(mw: CtxObjWrapper, auto: bool, rereconcile: bool, list_unreconciled: bool) -> None:
+def reconcile(
+    manager: _ManagerProxy, auto: bool, rereconcile: bool, list_unreconciled: bool
+) -> None:
     "Reconcile pre-installed add-ons."
     from ._cli_prompts import SKIP, Choice, confirm, select_one
     from ._utils.text import tabulate
@@ -535,7 +550,7 @@ def reconcile(mw: CtxObjWrapper, auto: bool, rereconcile: bool, list_unreconcile
         groups: Collection[tuple[_T, Sequence[Defn]]],
         selector: Callable[[_T, Sequence[pkg_models.Pkg]], Defn | None],
     ):
-        results = mw.run_with_progress(mw.manager.resolve(uniq(d for _, b in groups for d in b)))
+        results = run_with_progress(manager.resolve(uniq(d for _, b in groups for d in b)))
         for addons_or_pkg, defns in groups:
             shortlist = [r for d in defns for r in (results[d],) if isinstance(r, pkg_models.Pkg)]
             if shortlist:
@@ -557,13 +572,13 @@ def reconcile(mw: CtxObjWrapper, auto: bool, rereconcile: bool, list_unreconcile
             selection = select_one(installed_pkg.name, choices, can_skip=True).prompt()
             return selection if selection is not SKIP else None
 
-        with mw.manager.ctx.database.connect() as connection:
+        with manager.ctx.database.connect() as connection:
             installed_pkgs = [
-                mw.manager.build_pkg_from_row_mapping(connection, p)
+                manager.build_pkg_from_row_mapping(connection, p)
                 for p in connection.execute('SELECT * FROM pkg ORDER BY lower(name)').fetchall()
             ]
 
-        groups = mw.run_with_progress(mw.manager.find_equivalent_pkg_defns(installed_pkgs))
+        groups = run_with_progress(manager.find_equivalent_pkg_defns(installed_pkgs))
         selections = [
             (p, s)
             for (p, _), s in zip(
@@ -574,16 +589,16 @@ def reconcile(mw: CtxObjWrapper, auto: bool, rereconcile: bool, list_unreconcile
         if selections and confirm('Install selected add-ons?').prompt():
 
             def install_selections(*, dry_run: bool):
-                return mw.run_with_progress(
-                    mw.manager.install(
+                return run_with_progress(
+                    manager.install(
                         [s for _, s in selections], replace_folders=False, dry_run=dry_run
                     )
                 )
 
             install_selections(dry_run=True)  # Cache to guard against API errors before uninstall.
             Report(
-                mw.run_with_progress(
-                    mw.manager.remove([p.to_defn() for p, _ in selections], keep_folders=False)
+                run_with_progress(
+                    manager.remove([p.to_defn() for p, _ in selections], keep_folders=False)
                 ).items(),
             ).generate()
             Report(
@@ -610,7 +625,7 @@ def reconcile(mw: CtxObjWrapper, auto: bool, rereconcile: bool, list_unreconcile
             """
         )
 
-        leftovers = get_unreconciled_folders(mw.manager.ctx)
+        leftovers = get_unreconciled_folders(manager.ctx)
         if list_unreconciled:
             table_rows = [('unreconciled',), *((f.name,) for f in sorted(leftovers))]
             click.echo(tabulate(table_rows))
@@ -643,15 +658,13 @@ def reconcile(mw: CtxObjWrapper, auto: bool, rereconcile: bool, list_unreconcile
         confirm_install = (lambda: True) if auto else confirm('Install selected add-ons?').prompt
 
         for fn in DEFAULT_MATCHERS.values():
-            groups = mw.run_with_progress(fn(mw.manager.ctx, leftovers))
+            groups = run_with_progress(fn(manager.ctx, leftovers))
             selections = [s for s in gather_selections(groups, select_pkg_) if s is not None]
             if selections and confirm_install():
-                results = mw.run_with_progress(
-                    mw.manager.install(selections, replace_folders=True)
-                )
+                results = run_with_progress(manager.install(selections, replace_folders=True))
                 Report(results.items()).generate()
 
-            leftovers = get_unreconciled_folders(mw.manager.ctx)
+            leftovers = get_unreconciled_folders(manager.ctx)
             if not leftovers:
                 break
 
@@ -716,21 +729,22 @@ def search(
     from ._cli_prompts import Choice, confirm, select_multiple
     from .catalogue.search import search
 
-    mw: CtxObjWrapper = ctx.obj
+    manager: _ManagerProxy = ctx.obj
 
-    catalogue_entries = mw.run_with_progress(
+    catalogue_entries = run_with_progress(
         search(
-            mw.manager.ctx,
+            manager.ctx,
             search_terms,
             limit=limit,
             sources=frozenset(sources),
             prefer_source=prefer_source,
             start_date=start_date,
             filter_installed='ident' if no_exclude_installed else 'exclude_from_all_sources',
-        )
+        ),
+        ctx,
     )
-    results = mw.run_with_progress(
-        mw.manager.resolve([Defn(e.source, e.id) for e in catalogue_entries])
+    results = run_with_progress(
+        manager.resolve([Defn(e.source, e.id) for e in catalogue_entries]), ctx
     )
     pkgs, _ = pkg_management.bucketise_results(results.items())
     if pkgs:
@@ -754,9 +768,7 @@ def search(
 
 
 @cli.command('list')
-@click.argument(
-    'addons', nargs=-1, callback=_with_manager(partial(_parse_uri, raise_invalid=False))
-)
+@click.argument('addons', nargs=-1, callback=_with_obj(partial(_parse_uri, raise_invalid=False)))
 @click.option(
     '--format',
     '-f',
@@ -767,10 +779,12 @@ def search(
     help='Change the output format.',
 )
 @click.pass_obj
-def list_installed(mw: CtxObjWrapper, addons: Sequence[Defn], output_format: _ListFormat) -> None:
+def list_installed(
+    manager: _ManagerProxy, addons: Sequence[Defn], output_format: _ListFormat
+) -> None:
     "List installed add-ons."
 
-    with mw.manager.ctx.database.connect() as connection:
+    with manager.ctx.database.connect() as connection:
         where_clause, where_params = _make_pkg_where_clause_and_params(addons)
         pkg_mappings = connection.execute(
             f"""
@@ -783,7 +797,7 @@ def list_installed(mw: CtxObjWrapper, addons: Sequence[Defn], output_format: _Li
         ).fetchall()
 
         def row_mappings_to_pkgs():
-            return map(mw.manager.build_pkg_from_row_mapping, repeat(connection), pkg_mappings)
+            return map(manager.build_pkg_from_row_mapping, repeat(connection), pkg_mappings)
 
         match output_format:
             case _ListFormat.Json:
@@ -839,7 +853,7 @@ def list_installed(mw: CtxObjWrapper, addons: Sequence[Defn], output_format: _Li
 
 
 @cli.command(hidden=True)
-@click.argument('addon', callback=_with_manager(partial(_parse_uri, raise_invalid=False)))
+@click.argument('addon', callback=_with_obj(partial(_parse_uri, raise_invalid=False)))
 @click.pass_context
 def info(ctx: click.Context, addon: Defn) -> None:
     "Alias of `list -f detailed`."
@@ -847,13 +861,13 @@ def info(ctx: click.Context, addon: Defn) -> None:
 
 
 @cli.command
-@click.argument('addon', callback=_with_manager(partial(_parse_uri, raise_invalid=False)))
+@click.argument('addon', callback=_with_obj(partial(_parse_uri, raise_invalid=False)))
 @click.pass_obj
-def reveal(mw: CtxObjWrapper, addon: Defn) -> None:
+def reveal(manager: _ManagerProxy, addon: Defn) -> None:
     "Bring an add-on up in your file manager."
     from ._utils.file import reveal_folder
 
-    with mw.manager.ctx.database.connect() as connection:
+    with manager.ctx.database.connect() as connection:
         where_clause, where_params = _make_pkg_where_clause_and_params([addon])
         pkg_folder = connection.execute(
             f"""
@@ -867,15 +881,13 @@ def reveal(mw: CtxObjWrapper, addon: Defn) -> None:
         ).fetchone()
 
         if pkg_folder:
-            reveal_folder(mw.manager.ctx.config.addon_dir / pkg_folder['name'])
+            reveal_folder(manager.ctx.config.addon_dir / pkg_folder['name'])
         else:
             Report([(addon, R.PkgNotInstalled())]).generate_and_exit()
 
 
 @cli.command
-@click.argument(
-    'addons', nargs=-1, callback=_with_manager(partial(_parse_uri, raise_invalid=False))
-)
+@click.argument('addons', nargs=-1, callback=_with_obj(partial(_parse_uri, raise_invalid=False)))
 @click.option(
     '--convert/--no-convert',
     default=True,
@@ -883,7 +895,7 @@ def reveal(mw: CtxObjWrapper, addon: Defn) -> None:
     help='Convert HTML and Markdown changelogs to plain text using pandoc. No-op if pandoc is not installed.',
 )
 @click.pass_obj
-def view_changelog(mw: CtxObjWrapper, addons: Sequence[Defn], convert: bool) -> None:
+def view_changelog(manager: _ManagerProxy, addons: Sequence[Defn], convert: bool) -> None:
     """View the changelog of an installed add-on.
 
     If `ADDONS` is not provided, displays the changelogs of all add-ons
@@ -908,7 +920,7 @@ def view_changelog(mw: CtxObjWrapper, addons: Sequence[Defn], convert: bool) -> 
             import subprocess
 
             def real_convert(source: str, changelog: str):
-                match mw.manager.ctx.resolvers[source].metadata.changelog_format:
+                match manager.ctx.resolvers[source].metadata.changelog_format:
                     case ChangelogFormat.Html:
                         pandoc_input_format = 'html'
                     case ChangelogFormat.Markdown:
@@ -937,7 +949,7 @@ def view_changelog(mw: CtxObjWrapper, addons: Sequence[Defn], convert: bool) -> 
         )
         return f'{Defn(source, slug).as_uri()}:\n{body}'
 
-    with mw.manager.ctx.database.connect() as connection:
+    with manager.ctx.database.connect() as connection:
         query = """
             SELECT pkg.source, pkg.slug, pkg.changelog_url
             FROM pkg
@@ -959,9 +971,9 @@ def view_changelog(mw: CtxObjWrapper, addons: Sequence[Defn], convert: bool) -> 
             """
             last_installed_changelog_urls = connection.execute(query).fetchall()
 
-    changelogs = mw.run_with_progress(
+    changelogs = run_with_progress(
         gather(
-            mw.manager.get_changelog(m['source'], m['changelog_url'])
+            manager.get_changelog(m['source'], m['changelog_url'])
             for m in last_installed_changelog_urls
         )
     )
@@ -1201,23 +1213,23 @@ def _debug_group():
 
 @_debug_group.command('config')
 @click.pass_obj
-def debug_config(mw: CtxObjWrapper) -> None:
+def debug_config(manager: _ManagerProxy) -> None:
     "Print the active configuration."
     import json
 
-    click.echo(json.dumps(mw.manager.ctx.config.unstructure_for_display(), indent=2))
+    click.echo(json.dumps(manager.ctx.config.unstructure_for_display(), indent=2))
 
 
 @_debug_group.command('sources')
 @click.pass_obj
-def debug_sources(mw: CtxObjWrapper) -> None:
+def debug_sources(manager: _ManagerProxy) -> None:
     "Print active source metadata."
     from cattrs.preconf.json import make_converter
 
     json_converter = make_converter()
 
     click.echo(
-        json_converter.dumps([r.metadata for r in mw.manager.ctx.resolvers.values()], indent=2)
+        json_converter.dumps([r.metadata for r in manager.ctx.resolvers.values()], indent=2)
     )
 
 
