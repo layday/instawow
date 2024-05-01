@@ -105,8 +105,8 @@ class Defn:
 
         return make_cls()
 
-    def as_uri(self, include_strategies: bool = False) -> str:
-        uri = f'{self.source}:{self.alias}'
+    def as_uri(self, *, alias_is_id: bool = False, include_strategies: bool = False) -> str:
+        uri = f'{self.source}:{self.id if alias_is_id else self.alias}'
 
         if include_strategies:
             filled_strategies = self.strategies.filled_strategies
