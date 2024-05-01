@@ -454,20 +454,16 @@ class ProgressBar(_ProgressBarCounter[Never]):
 
 
 class _DownloadProgress(pb_formatters.Progress):
-    template = '<current>{current:>3}</current>/<total>{total:>3}</total>MB'
+    template = '<current>{current:>3.1f}</current>/<total>{total:>3.1f}</total>MB'
 
     def format(
         self, progress_bar: _ProgressBar, progress: _ProgressBarCounter[object], width: int
     ):
         if isinstance(progress, ProgressBar) and not progress.is_download:
-            return ''
-
-        def format_mb(value: int):
-            return f'{value / 2 ** 20:.1f}'
+            return super().format(progress_bar, progress, width)
 
         return HTML(self.template).format(
-            current=format_mb(progress.items_completed),
-            total=format_mb(progress.total) if progress.total is not None else '?',
+            current=progress.items_completed / 2**20, total=(progress.total or 0) / 2**20
         )
 
 
