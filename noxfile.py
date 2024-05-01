@@ -39,7 +39,7 @@ import sysconfig
 
 def _session_install_for_python313(session: nox.Session, install_args: list[str]):
     is_python313 = session.run(
-        'python', '-c', 'import sys; print(int(sys.version_info >= (3, 13)), end=" ")'
+        'python', '-c', 'import sys; print(int(sys.version_info >= (3, 13)), end=" ")', silent=True
     )
     if is_python313 == '1':
         with tempfile.TemporaryDirectory() as temp_dir:
