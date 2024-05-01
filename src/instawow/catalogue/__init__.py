@@ -6,8 +6,8 @@ from functools import lru_cache
 
 from .. import manager_ctx
 from .._logging import logger
+from .._progress_reporting import make_default_progress
 from .._utils.perf import time_op
-from ..http import GenericDownloadTraceRequestCtx
 from . import cataloguer
 
 _LOAD_CATALOGUE_LOCK = '_LOAD_CATALOGUE_'
@@ -35,9 +35,11 @@ async def synchronise(manager_ctx: manager_ctx.ManagerCtx) -> cataloguer.Compute
             _base_catalogue_url,
             expire_after=_catalogue_ttl,
             raise_for_status=True,
-            trace_request_ctx=GenericDownloadTraceRequestCtx(
-                report_progress='generic', label='Synchronising catalogue'
-            ),
+            trace_request_ctx={
+                'progress': make_default_progress(
+                    type_='download', label='Synchronising catalogue'
+                )
+            },
         ) as response,
     ):
         raw_catalogue = await response.read()

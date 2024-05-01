@@ -31,7 +31,7 @@ _normalise_name = normalise_names('')
 
 
 class _CatalogueFn(Protocol):  # pragma: no cover
-    def __call__(self, web_client: http.ClientSessionType) -> AsyncIterator[CatalogueEntry]: ...
+    def __call__(self, web_client: http.ClientSession) -> AsyncIterator[CatalogueEntry]: ...
 
 
 @fauxfrozen(kw_only=True)

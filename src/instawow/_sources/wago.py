@@ -9,12 +9,12 @@ from yarl import URL
 
 from .. import matchers
 from .. import results as R
+from .._progress_reporting import make_default_progress
 from .._utils.aio import run_in_thread
 from .._utils.compat import StrEnum
 from .._utils.datetime import datetime_fromisoformat
 from .._utils.web import as_plain_text_data_url
 from ..definitions import ChangelogFormat, Defn, SourceMetadata, Strategy
-from ..http import GenericDownloadTraceRequestCtx
 from ..resolvers import BaseResolver, HeadersIntent, PkgCandidate, TFolderHashCandidate
 
 _WagoStability = Literal['stable', 'beta', 'alpha']
@@ -192,9 +192,11 @@ class WagoResolver(BaseResolver):
             headers=await self.make_request_headers(),
             json=await self.__make_match_params(candidates),
             raise_for_status=True,
-            trace_request_ctx=GenericDownloadTraceRequestCtx(
-                report_progress='generic', label='Finding matching Wago add-ons'
-            ),
+            trace_request_ctx={
+                'progress': make_default_progress(
+                    type_='download', label='Finding matching Wago add-ons'
+                )
+            },
         ) as response:
             matches: _WagoMatches = await response.json()
 

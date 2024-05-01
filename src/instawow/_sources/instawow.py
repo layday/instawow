@@ -3,11 +3,11 @@ from __future__ import annotations
 from collections.abc import AsyncIterator
 from datetime import datetime, timezone
 
+from .. import http
 from .. import results as R
 from .._utils.aio import run_in_thread
 from ..catalogue.cataloguer import CatalogueEntry
 from ..definitions import ChangelogFormat, Defn, SourceMetadata
-from ..http import ClientSessionType
 from ..resolvers import BaseResolver, PkgCandidate
 from ..wow_installations import Flavour
 
@@ -52,7 +52,7 @@ class InstawowResolver(BaseResolver):
         )
 
     @classmethod
-    async def catalogue(cls, web_client: ClientSessionType) -> AsyncIterator[CatalogueEntry]:
+    async def catalogue(cls, web_client: http.ClientSession) -> AsyncIterator[CatalogueEntry]:
         yield CatalogueEntry(
             source=cls.metadata.id,
             id='1',

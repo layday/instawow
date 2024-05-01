@@ -11,16 +11,16 @@ from typing_extensions import NotRequired as N
 from typing_extensions import TypedDict
 from yarl import URL
 
-from .. import pkg_models
+from .. import http, pkg_models
 from .. import results as R
 from .._logging import logger
+from .._progress_reporting import make_default_progress
 from .._utils.aio import gather
 from .._utils.datetime import datetime_fromisoformat
 from .._utils.iteration import uniq
 from ..catalogue.cataloguer import CatalogueEntry
 from ..config import GlobalConfig
 from ..definitions import ChangelogFormat, Defn, SourceMetadata, Strategy
-from ..http import CACHE_INDEFINITELY, ClientSessionType, GenericDownloadTraceRequestCtx
 from ..resolvers import BaseResolver, HeadersIntent, PkgCandidate
 from ..wow_installations import Flavour
 
@@ -355,9 +355,11 @@ class CfCoreResolver(BaseResolver):
                 expire_after=timedelta(hours=1),
                 headers=await self.make_request_headers(),
                 raise_for_status=True,
-                trace_request_ctx=GenericDownloadTraceRequestCtx(
-                    report_progress='generic', label=f'Fetching metadata from {self.metadata.name}'
-                ),
+                trace_request_ctx={
+                    'progress': make_default_progress(
+                        type_='download', label=f'Fetching metadata from {self.metadata.name}'
+                    )
+                },
             ) as files_response:
                 files_response_json: _CfCoreFilesResponse = await files_response.json()
 
@@ -437,7 +439,7 @@ class CfCoreResolver(BaseResolver):
     async def get_changelog(self, uri: URL) -> str:
         async with self._manager_ctx.web_client.get(
             uri,
-            expire_after=CACHE_INDEFINITELY,
+            expire_after=http.CACHE_INDEFINITELY,
             headers=await self.make_request_headers(),
             raise_for_status=True,
         ) as response:
@@ -445,7 +447,7 @@ class CfCoreResolver(BaseResolver):
             return response_json['data']
 
     @classmethod
-    async def catalogue(cls, web_client: ClientSessionType) -> AsyncIterator[CatalogueEntry]:
+    async def catalogue(cls, web_client: http.ClientSession) -> AsyncIterator[CatalogueEntry]:
         from aiohttp import ClientTimeout
 
         flavours_and_version_types = [

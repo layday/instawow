@@ -31,7 +31,8 @@ from yarl import URL
 from instawow import __version__, matchers, pkg_models
 from instawow import results as R
 from instawow._logging import logger
-from instawow._utils.aio import run_in_thread
+from instawow._progress_reporting import ReadOnlyProgressGroup, make_progress_receiver
+from instawow._utils.aio import cancel_tasks, run_in_thread
 from instawow._utils.compat import StrEnum
 from instawow._utils.datetime import datetime_fromisoformat
 from instawow._utils.file import reveal_folder
@@ -42,9 +43,9 @@ from instawow.catalogue.search import search
 from instawow.config import GlobalConfig, ProfileConfig, SecretStr, config_converter
 from instawow.definitions import Defn, SourceMetadata
 from instawow.github_auth import get_codes, poll_for_access_token
-from instawow.http import TraceRequestCtx, init_web_client
+from instawow.http import init_web_client
 from instawow.manager_ctx import ManagerCtx, contextualise
-from instawow.pkg_management import PkgDownloadTraceRequestCtx, PkgManager, bucketise_results
+from instawow.pkg_management import PkgDownloadProgress, PkgManager, bucketise_results
 from instawow.wow_installations import Flavour, infer_flavour_from_addon_dir
 
 from . import frontend
@@ -280,7 +281,7 @@ class QueryGithubAuthFlowStatusParams(BaseParams):
 @_register_method('config/cancel_github_auth_flow')
 class CancelGithubAuthFlowParams(BaseParams):
     async def respond(self, managers: _ManagersManager) -> None:
-        managers.cancel_github_auth_polling()
+        await managers.cancel_github_auth_polling()
 
 
 @_register_method('sources/list')
@@ -506,9 +507,13 @@ class DownloadProgressReport(TypedDict):
 @_register_method('get_download_progress')
 class GetDownloadProgressParams(_ProfileParamMixin, BaseParams):
     async def respond(self, managers: _ManagersManager) -> list[DownloadProgressReport]:
+        manager = await managers.get_manager(self.profile)
         return [
-            {'defn': d, 'progress': r}
-            for d, r in await managers.get_manager_download_progress(self.profile)
+            {'defn': p['defn'], 'progress': p['current'] / p['total']}
+            for p in managers.current_progress.values()
+            if p['type_'] == 'pkg_download'
+            and p['total']
+            and p['profile'] == manager.ctx.config.profile
         ]
 
 
@@ -582,40 +587,6 @@ class ConfirmDialogueParams(BaseParams):
         return {'ok': portal.call(confirm)}
 
 
-def _init_json_rpc_web_client(cache_dir: Path):
-    async def do_on_request_end(
-        client_session: aiohttp.ClientSession,
-        trace_config_ctx: Any,
-        params: aiohttp.TraceRequestEndParams,
-    ) -> None:
-        trace_request_ctx: TraceRequestCtx[PkgDownloadTraceRequestCtx] = (
-            trace_config_ctx.trace_request_ctx
-        )
-        if (
-            trace_request_ctx
-            and trace_request_ctx['report_progress'] == 'pkg_download'
-            and params.response.content_length
-            and aiohttp.hdrs.CONTENT_ENCODING not in params.response.headers
-        ):
-            content = params.response.content
-            content_length = params.response.content_length
-            entry = (
-                trace_request_ctx['profile'],
-                trace_request_ctx['defn'],
-                lambda: content.total_bytes / content_length,
-            )
-            progress_reporters.add(entry)
-            content.on_eof(lambda: progress_reporters.remove(entry))
-
-    progress_reporters: set[tuple[str, Defn, Callable[[], float]]] = set()
-
-    trace_config = aiohttp.TraceConfig()
-    trace_config.on_request_end.append(do_on_request_end)
-    trace_config.freeze()
-
-    return (init_web_client(cache_dir, trace_configs=[trace_config]), progress_reporters)
-
-
 class _ManagersManager:
     def __init__(self):
         self._exit_stack = AsyncExitStack()
@@ -624,19 +595,34 @@ class _ManagersManager:
 
         self._managers = dict[str, PkgManager]()
 
+        self.current_progress: ReadOnlyProgressGroup[PkgDownloadProgress] = {}
+
         self._github_auth_device_codes = None
         self._github_auth_flow_task = None
 
     async def __aenter__(self):
         self.global_config = await _read_global_config()
-        init_json_rpc_web_client, self._download_progress_reporters = _init_json_rpc_web_client(
-            self.global_config.http_cache_dir
+
+        self._web_client = await self._exit_stack.enter_async_context(
+            init_web_client(self.global_config.http_cache_dir, with_progress=True)
         )
-        self._web_client = await self._exit_stack.enter_async_context(init_json_rpc_web_client)
+
+        iter_progress = self._exit_stack.enter_context(
+            make_progress_receiver[PkgDownloadProgress]()
+        )
+
+        async def update_progress():
+            async for progress_group in iter_progress:
+                self.current_progress = progress_group
+
+        progress_updater = asyncio.create_task(update_progress())
+        self._exit_stack.push_async_callback(partial(cancel_tasks, [progress_updater]))
+
+        self._exit_stack.push_async_callback(self.cancel_github_auth_polling)
+
         contextualise(web_client=self._web_client, locks=self.locks)
 
     async def __aexit__(self, *args: object):
-        self.cancel_github_auth_polling()
         await self._exit_stack.aclose()
 
     def unload_profile(self, profile: str):
@@ -677,14 +663,6 @@ class _ManagersManager:
 
         return await self.run(profile, get_manager)
 
-    async def get_manager_download_progress(self, profile: str):
-        manager = await self.get_manager(profile)
-        return (
-            (d, r())
-            for m, d, r in self._download_progress_reporters
-            if m == manager.ctx.config.profile
-        )
-
     async def initiate_github_auth_flow(self):
         async with self.locks[_LOCK_PREFIX, _LockOperation.InitiateGithubAuthFlow]:
             if self._github_auth_device_codes is None:
@@ -722,9 +700,9 @@ class _ManagersManager:
                 return 'failure'
         return 'success'
 
-    def cancel_github_auth_polling(self):
-        if self._github_auth_flow_task is not None:
-            self._github_auth_flow_task.cancel()
+    async def cancel_github_auth_polling(self):
+        if self._github_auth_flow_task and not self._github_auth_flow_task.done():
+            await cancel_tasks([self._github_auth_flow_task])
 
 
 async def create_app(toga_handle: tuple[Any, anyio.from_thread.BlockingPortal] | None = None):

@@ -20,9 +20,10 @@ import attrs
 from typing_extensions import Never, ParamSpec
 from yarl import URL
 
-from . import pkg_db, pkg_models
+from . import http, pkg_db, pkg_models
 from . import results as R
 from ._logging import logger
+from ._progress_reporting import Progress, make_incrementing_progress_tracker
 from ._utils.aio import gather, run_in_thread
 from ._utils.file import trash
 from ._utils.iteration import bucketise, chain_dict, uniq
@@ -30,7 +31,6 @@ from ._utils.perf import time_op
 from ._utils.text import shasum
 from ._utils.web import file_uri_to_path, is_file_uri
 from .definitions import Defn, Strategy
-from .http import CACHE_INDEFINITELY, ProgressCtx
 from .manager_ctx import ManagerCtx
 from .resolvers import HeadersIntent
 
@@ -45,7 +45,7 @@ _MUTATE_PKGS_LOCK = '_MUTATE_PKGS_'
 _DOWNLOAD_PKG_LOCK = '_DOWNLOAD_PKG_'
 
 
-class PkgDownloadTraceRequestCtx(ProgressCtx[Literal['pkg_download']]):
+class PkgDownloadProgress(Progress[Literal['pkg_download'], Literal['bytes']]):
     profile: str
     defn: Defn
 
@@ -87,9 +87,16 @@ async def _download_pkg_archive(ctx: ManagerCtx, defn: Defn, pkg: pkg_models.Pkg
         headers = await ctx.resolvers[pkg.source].make_request_headers(
             intent=HeadersIntent.Download
         )
-        trace_request_ctx = PkgDownloadTraceRequestCtx(
-            report_progress='pkg_download', profile=ctx.config.profile, defn=defn
-        )
+        trace_request_ctx = {
+            'progress': PkgDownloadProgress(
+                type_='pkg_download',
+                unit='bytes',
+                current=0,
+                total=0,
+                profile=ctx.config.profile,
+                defn=defn,
+            )
+        }
 
         async with (
             ctx.web_client.get(
@@ -97,7 +104,7 @@ async def _download_pkg_archive(ctx: ManagerCtx, defn: Defn, pkg: pkg_models.Pkg
                 headers=headers,
                 raise_for_status=True,
                 trace_request_ctx=trace_request_ctx,
-                expire_after=CACHE_INDEFINITELY,
+                expire_after=http.CACHE_INDEFINITELY,
             ) as response,
             _open_temp_writer_async() as (temp_path, write),
         ):
@@ -612,8 +619,13 @@ class PkgManager:
             return {}
 
         defns_by_source = bucketise(defns, key=lambda v: v.source)
+
+        track_progress = make_incrementing_progress_tracker(len(defns_by_source), 'Resolving')
+
         results = await gather(
-            R.resultify_async_exc(self.ctx.resolvers.get(s, _DummyResolver).resolve(b))
+            track_progress(
+                R.resultify_async_exc(self.ctx.resolvers.get(s, _DummyResolver).resolve(b))
+            )
             for s, b in defns_by_source.items()
         )
         results_by_defn = chain_dict(
@@ -660,12 +672,16 @@ class PkgManager:
         )
         archive_paths, download_errors = bucketise_results(zip(new_pkgs, download_results))
 
+        track_progress = make_incrementing_progress_tracker(len(archive_paths), 'Installing')
+
         return (
             results
             | download_errors
             | {
-                d: await R.resultify_async_exc(
-                    _install_pkg(self.ctx, new_pkgs[d], a, replace_folders=replace_folders)
+                d: await track_progress(
+                    R.resultify_async_exc(
+                        _install_pkg(self.ctx, new_pkgs[d], a, replace_folders=replace_folders)
+                    )
                 )
                 for d, a in archive_paths.items()
             }
@@ -735,14 +751,18 @@ class PkgManager:
         )
         archive_paths, download_errors = bucketise_results(zip(updatables, download_results))
 
+        track_progress = make_incrementing_progress_tracker(len(archive_paths), 'Updating')
+
         return (
             results
             | download_errors
             | {
-                d: await R.resultify_async_exc(
-                    _update_pkg(self.ctx, o, n, a)
-                    if o
-                    else _install_pkg(self.ctx, n, a, replace_folders=False)
+                d: await track_progress(
+                    R.resultify_async_exc(
+                        _update_pkg(self.ctx, o, n, a)
+                        if o
+                        else _install_pkg(self.ctx, n, a, replace_folders=False)
+                    )
                 )
                 for d, a in archive_paths.items()
                 for o, n in (updatables[d],)

@@ -21,7 +21,6 @@ from ._utils.compat import StrEnum
 from ._utils.iteration import all_eq, bucketise, uniq
 from .config import GlobalConfig, ProfileConfig, config_converter
 from .definitions import ChangelogFormat, Defn, Strategy
-from .http import TraceRequestCtx, init_web_client
 from .plugins import get_plugin_commands
 from .wow_installations import Flavour
 
@@ -109,6 +108,8 @@ class CtxObjWrapper:
     def run_with_progress(self, awaitable: Awaitable[_T]) -> _T:
         import asyncio
 
+        from .http import init_web_client
+
         make_init_web_client = partial(
             init_web_client,
             self.manager.ctx.config.global_config.http_cache_dir,
@@ -123,77 +124,64 @@ class CtxObjWrapper:
                     return await awaitable
 
         else:
-            import aiohttp
-            from prompt_toolkit.shortcuts import ProgressBar, ProgressBarCounter
-
-            from ._cli_prompts import make_progress_bar
+            from ._cli_prompts import ProgressBar, make_progress_bar_group
+            from ._progress_reporting import make_progress_receiver
             from ._utils.aio import cancel_tasks
 
-            def init_cli_web_client(progress_bar: ProgressBar, tickers: set[asyncio.Task[None]]):
-                TICK_INTERVAL = 0.1
-
-                async def do_on_request_end(
-                    client_session: aiohttp.ClientSession,
-                    trace_config_ctx: Any,
-                    params: aiohttp.TraceRequestEndParams,
-                ):
-                    trace_request_ctx: TraceRequestCtx[
-                        pkg_management.PkgDownloadTraceRequestCtx
-                    ] = trace_config_ctx.trace_request_ctx
-                    if trace_request_ctx:
-                        response = params.response
-                        label = (
-                            'Downloading '
-                            + Defn(
-                                trace_request_ctx['defn'].source, trace_request_ctx['defn'].alias
-                            ).as_uri()
-                            if trace_request_ctx['report_progress'] == 'pkg_download'
-                            else trace_request_ctx['label']
-                        )
-                        # When the total is ``None`` the progress bar is
-                        # in an "indeterminate" state.
-                        # We cannot display progress for encoded responses because
-                        # the size before decoding is not exposed by the
-                        # aiohttp streaming API
-                        total = (
-                            None
-                            if aiohttp.hdrs.CONTENT_ENCODING in response.headers
-                            else response.content_length
-                        )
-
-                        counters = progress_bar.counters
-
-                        async def ticker():
-                            counter = ProgressBarCounter[object](
-                                progress_bar=progress_bar, label=label, total=total
-                            )
-                            counters.append(counter)
-                            try:
-                                while not response.content.is_eof():
-                                    counter.items_completed = response.content.total_bytes
-                                    progress_bar.invalidate()
-                                    await asyncio.sleep(TICK_INTERVAL)
-                            finally:
-                                counters.remove(counter)
-
-                        tickers.add(asyncio.create_task(ticker()))
-
-                trace_config = aiohttp.TraceConfig()
-                trace_config.on_request_end.append(do_on_request_end)
-                trace_config.freeze()
-                return make_init_web_client(trace_configs=[trace_config])
-
             async def run():
-                with make_progress_bar() as progress_bar:
-                    tickers = set[asyncio.Task[None]]()
+                with (
+                    make_progress_receiver[pkg_management.PkgDownloadProgress]() as iter_progress,
+                    make_progress_bar_group() as progress_bar_group,
+                ):
+
+                    async def observe_progress():
+                        progress_bars = dict[int, ProgressBar]()
+                        progress_bar_group.counters = (
+                            progress_bars.values()  # pyright: ignore[reportAttributeAccessIssue]
+                        )
+
+                        try:
+                            async for progress_group in iter_progress:
+                                for progress_id in progress_bars.keys() - progress_group.keys():
+                                    del progress_bars[progress_id]
+
+                                for progress_id, progress in (
+                                    (k, progress_group[k])
+                                    for k in progress_bars.keys() ^ progress_group.keys()
+                                ):
+                                    match progress:
+                                        case {'type_': 'pkg_download', 'defn': defn}:
+                                            label = f'Downloading {defn.as_uri()}'
+                                        case {'label': str(label)}:
+                                            pass
+                                        case _:
+                                            continue
+
+                                    progress_bars[progress_id] = ProgressBar(
+                                        progress_bar=progress_bar_group,
+                                        label=label,
+                                        total=progress['total'],
+                                        is_download=progress.get('unit') == 'bytes',
+                                    )
+
+                                for progress_id, progress in progress_group.items():
+                                    progress_bars[progress_id].items_completed = progress[
+                                        'current'
+                                    ]
+                                    progress_bar_group.invalidate()
+
+                        finally:
+                            progress_bars.clear()
+
+                    observe_progress_task = asyncio.create_task(observe_progress())
 
                     try:
-                        async with init_cli_web_client(progress_bar, tickers) as web_client:
+                        async with make_init_web_client(with_progress=True) as web_client:
                             _manager_ctx.contextualise(web_client=web_client)
                             return await awaitable
 
                     finally:
-                        await cancel_tasks(tickers)
+                        await cancel_tasks([observe_progress_task])
 
         return asyncio.run(run())
 
@@ -993,6 +981,7 @@ def view_changelog(mw: CtxObjWrapper, addons: Sequence[Defn], convert: bool) -> 
 
 async def _github_oauth_flow():
     from .github_auth import get_codes, poll_for_access_token
+    from .http import init_web_client
 
     async with init_web_client(None) as web_client:
         codes = await get_codes(web_client)

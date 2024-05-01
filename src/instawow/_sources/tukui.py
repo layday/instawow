@@ -6,11 +6,11 @@ from datetime import datetime, timedelta, timezone
 from typing_extensions import TypedDict
 from yarl import URL
 
+from .. import http
 from .. import results as R
 from .._logging import logger
 from ..catalogue.cataloguer import CatalogueEntry
 from ..definitions import ChangelogFormat, Defn, SourceMetadata
-from ..http import ClientSessionType
 from ..resolvers import BaseResolver, PkgCandidate
 from ..wow_installations import Flavour, FlavourVersionRange
 
@@ -84,7 +84,7 @@ class TukuiResolver(BaseResolver):
         )
 
     @classmethod
-    async def catalogue(cls, web_client: ClientSessionType) -> AsyncIterator[CatalogueEntry]:
+    async def catalogue(cls, web_client: http.ClientSession) -> AsyncIterator[CatalogueEntry]:
         url = cls.__api_url / 'addons'
         logger.debug(f'retrieving {url}')
 

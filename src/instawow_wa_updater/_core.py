@@ -13,13 +13,14 @@ from typing_extensions import NotRequired as N
 from typing_extensions import TypedDict
 from yarl import URL
 
+import instawow.http as http
 from instawow._logging import logger
+from instawow._progress_reporting import make_default_progress
 from instawow._utils.aio import gather, run_in_thread
 from instawow._utils.compat import StrEnum, fauxfrozen
 from instawow._utils.iteration import bucketise
 from instawow._utils.perf import time_op
 from instawow._utils.text import shasum
-from instawow.http import CACHE_INDEFINITELY, GenericDownloadTraceRequestCtx
 from instawow.manager_ctx import ManagerCtx
 
 _LuaTable: TypeAlias = Mapping[str, '_LuaTable']
@@ -195,9 +196,9 @@ class WaCompanionBuilder:
             expire_after=timedelta(minutes=30),
             headers=self._make_request_headers(),
             json={'ids': list(aura_ids)},
-            trace_request_ctx=GenericDownloadTraceRequestCtx(
-                report_progress='generic', label='Fetching aura metadata'
-            ),
+            trace_request_ctx={
+                'progress': make_default_progress(type_='download', label='Fetching aura metadata')
+            },
         ) as response:
             metadata: list[_WagoApiResponse]
             if response.status == 404:
@@ -214,12 +215,14 @@ class WaCompanionBuilder:
             _IMPORT_STRING_API_URL.with_query(id=remote_aura['_id']).with_fragment(
                 str(remote_aura['version'])
             ),
-            expire_after=CACHE_INDEFINITELY,
+            expire_after=http.CACHE_INDEFINITELY,
             headers=self._make_request_headers(),
             raise_for_status=True,
-            trace_request_ctx=GenericDownloadTraceRequestCtx(
-                report_progress='generic', label=f"Fetching aura '{remote_aura['slug']}'"
-            ),
+            trace_request_ctx={
+                'progress': make_default_progress(
+                    type_='download', label=f"Fetching aura '{remote_aura['slug']}'"
+                )
+            },
         ) as response:
             return await response.text()
 

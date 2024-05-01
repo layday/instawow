@@ -10,16 +10,16 @@ from typing_extensions import NotRequired as N
 from typing_extensions import TypedDict
 from yarl import URL
 
-from .. import pkg_models
+from .. import http, pkg_models
 from .. import results as R
 from .._logging import logger
+from .._progress_reporting import make_default_progress
 from .._utils.aio import gather
 from .._utils.iteration import uniq
 from .._utils.text import slugify
 from .._utils.web import as_plain_text_data_url
 from ..catalogue.cataloguer import CatalogueEntry
 from ..definitions import ChangelogFormat, Defn, SourceMetadata
-from ..http import ClientSessionType, GenericDownloadTraceRequestCtx
 from ..resolvers import BaseResolver, PkgCandidate
 from ..wow_installations import Flavour, FlavourVersionRange
 
@@ -123,10 +123,12 @@ class WowiResolver(BaseResolver):
                 self.__list_api_url,
                 expire_after=timedelta(hours=1),
                 raise_for_status=True,
-                trace_request_ctx=GenericDownloadTraceRequestCtx(
-                    report_progress='generic',
-                    label=f'Synchronising {self.metadata.name} catalogue',
-                ),
+                trace_request_ctx={
+                    'progress': make_default_progress(
+                        type_='download',
+                        label=f'Synchronising {self.metadata.name} catalogue',
+                    )
+                },
             ) as response:
                 list_items_by_id: dict[str, _WowiListApiItem] = {
                     i['UID']: i for i in await response.json()
@@ -179,7 +181,7 @@ class WowiResolver(BaseResolver):
         )
 
     @classmethod
-    async def catalogue(cls, web_client: ClientSessionType) -> AsyncIterator[CatalogueEntry]:
+    async def catalogue(cls, web_client: http.ClientSession) -> AsyncIterator[CatalogueEntry]:
         logger.debug(f'retrieving {cls.__list_api_url}')
 
         async with web_client.get(cls.__list_api_url, raise_for_status=True) as response:

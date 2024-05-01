@@ -74,13 +74,13 @@ class _ResolverPriorityDict(dict[str, float]):
 _Locks: TypeAlias = Mapping[object, AbstractAsyncContextManager[None]]
 
 _locks = cv.ContextVar[_Locks]('_locks', default=WeakValueDefaultDictionary(_DummyLock))
-_web_client = cv.ContextVar[http.ClientSessionType]('_web_client')
+_web_client = cv.ContextVar['http.ClientSession']('_web_client')
 
 
 def contextualise(
     *,
     locks: _Locks | None = None,
-    web_client: http.ClientSessionType | None = None,
+    web_client: http.ClientSession | None = None,
 ) -> None:
     "Set variables for the current context."
     if locks is not None:
@@ -137,5 +137,5 @@ class ManagerCtx:
         return _locks.get()
 
     @property
-    def web_client(self) -> http.ClientSessionType:
+    def web_client(self) -> http.ClientSession:
         return _web_client.get()

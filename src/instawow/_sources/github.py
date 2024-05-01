@@ -10,6 +10,7 @@ from typing_extensions import Never, TypedDict
 from typing_extensions import NotRequired as N
 from yarl import URL
 
+from .. import http
 from .. import results as R
 from .._logging import logger
 from .._utils.aio import cancel_tasks
@@ -19,7 +20,6 @@ from .._utils.iteration import batched
 from .._utils.web import as_plain_text_data_url, extract_byte_range_offset
 from ..catalogue.cataloguer import AddonKey, CatalogueEntry
 from ..definitions import ChangelogFormat, Defn, SourceMetadata, Strategy
-from ..http import CACHE_INDEFINITELY, ClientSessionType
 from ..matchers.addon_toc import TocReader
 from ..pkg_archives import find_archive_addon_tocs
 from ..resolvers import BaseResolver, HeadersIntent, PkgCandidate
@@ -176,7 +176,7 @@ class GithubResolver(BaseResolver):
 
                 async with self._manager_ctx.web_client.get(
                     download_url,
-                    expire_after=CACHE_INDEFINITELY,
+                    expire_after=http.CACHE_INDEFINITELY,
                     headers={
                         **download_headers,
                         hdrs.RANGE: f'bytes={directory_offset}',
@@ -187,7 +187,7 @@ class GithubResolver(BaseResolver):
                         if directory_range_response.status == 416:  # Range Not Satisfiable
                             async with self._manager_ctx.web_client.get(
                                 download_url,
-                                expire_after=CACHE_INDEFINITELY,
+                                expire_after=http.CACHE_INDEFINITELY,
                                 headers=download_headers,
                                 raise_for_status=True,
                             ) as addon_zip_response:
@@ -266,7 +266,7 @@ class GithubResolver(BaseResolver):
                 logger.debug(f'fetching {main_toc_filename} from {candidate["name"]}')
                 async with self._manager_ctx.web_client.get(
                     download_url,
-                    expire_after=CACHE_INDEFINITELY,
+                    expire_after=http.CACHE_INDEFINITELY,
                     headers={
                         **download_headers,
                         hdrs.RANGE: f'bytes={main_toc_file_offset}-{following_file_offset}',
@@ -479,7 +479,7 @@ class GithubResolver(BaseResolver):
         )
 
     @classmethod
-    async def catalogue(cls, web_client: ClientSessionType) -> AsyncIterator[CatalogueEntry]:
+    async def catalogue(cls, web_client: http.ClientSession) -> AsyncIterator[CatalogueEntry]:
         import csv
         from io import StringIO
 

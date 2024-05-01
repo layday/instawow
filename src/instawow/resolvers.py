@@ -78,7 +78,7 @@ class Resolver(Protocol):  # pragma: no cover
         ...
 
     @classmethod
-    def catalogue(cls, web_client: http.ClientSessionType) -> AsyncIterator[CatalogueEntry]:
+    def catalogue(cls, web_client: http.ClientSession) -> AsyncIterator[CatalogueEntry]:
         "Enumerate add-ons from the source."
         ...
 
@@ -180,7 +180,7 @@ class BaseResolver(Resolver, Protocol):
         return []
 
     @classmethod
-    async def catalogue(cls, web_client: http.ClientSessionType) -> AsyncIterator[CatalogueEntry]:
+    async def catalogue(cls, web_client: http.ClientSession) -> AsyncIterator[CatalogueEntry]:
         return
         yield
 

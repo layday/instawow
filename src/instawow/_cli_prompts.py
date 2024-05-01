@@ -12,7 +12,12 @@ from prompt_toolkit.application import Application
 from prompt_toolkit.completion import PathCompleter
 from prompt_toolkit.document import Document
 from prompt_toolkit.filters import IsDone
-from prompt_toolkit.formatted_text import FormattedText, StyleAndTextTuples, to_formatted_text
+from prompt_toolkit.formatted_text import (
+    AnyFormattedText,
+    FormattedText,
+    StyleAndTextTuples,
+    to_formatted_text,
+)
 from prompt_toolkit.formatted_text.html import HTML
 from prompt_toolkit.key_binding import KeyBindings, KeyPressEvent
 from prompt_toolkit.keys import Keys
@@ -24,11 +29,13 @@ from prompt_toolkit.layout import (
     Window,
 )
 from prompt_toolkit.shortcuts import PromptSession
-from prompt_toolkit.shortcuts.progress_bar import ProgressBar, ProgressBarCounter
+from prompt_toolkit.shortcuts.progress_bar import ProgressBar as _ProgressBar
+from prompt_toolkit.shortcuts.progress_bar import ProgressBarCounter as _ProgressBarCounter
 from prompt_toolkit.shortcuts.progress_bar import formatters as pb_formatters
 from prompt_toolkit.styles import Style
 from prompt_toolkit.validation import ValidationError, Validator
 from prompt_toolkit.widgets import Label
+from typing_extensions import Never
 
 from ._utils.compat import fauxfrozen
 
@@ -433,10 +440,28 @@ def select_one(
     return _FauxPromptSession(app)
 
 
+class ProgressBar(_ProgressBarCounter[Never]):
+    def __init__(
+        self,
+        *,
+        progress_bar: _ProgressBar,
+        is_download: bool,
+        label: AnyFormattedText = '',
+        total: int | None = None,
+    ) -> None:
+        super().__init__(progress_bar=progress_bar, label=label, total=total)
+        self.is_download = is_download
+
+
 class _DownloadProgress(pb_formatters.Progress):
     template = '<current>{current:>3}</current>/<total>{total:>3}</total>MB'
 
-    def format(self, progress_bar: ProgressBar, progress: ProgressBarCounter[object], width: int):
+    def format(
+        self, progress_bar: _ProgressBar, progress: _ProgressBarCounter[object], width: int
+    ):
+        if isinstance(progress, ProgressBar) and not progress.is_download:
+            return ''
+
         def format_mb(value: int):
             return f'{value / 2 ** 20:.1f}'
 
@@ -446,21 +471,16 @@ class _DownloadProgress(pb_formatters.Progress):
         )
 
 
-def make_progress_bar() -> ProgressBar:
+def make_progress_bar_group() -> _ProgressBar:
     "``ProgressBar`` with download progress expressed in megabytes."
-    return ProgressBar(
+    return _ProgressBar(
         formatters=[
             pb_formatters.Label(),
             pb_formatters.Text(' '),
             pb_formatters.Percentage(),
             pb_formatters.Text(' '),
-            pb_formatters.Bar(),
+            pb_formatters.Bar(sym_a='#', sym_b='#', sym_c='.'),
             pb_formatters.Text(' '),
             _DownloadProgress(),
-            pb_formatters.Text(' '),
-            pb_formatters.Text('eta [', style='class:time-left'),
-            pb_formatters.TimeLeft(),
-            pb_formatters.Text(']', style='class:time-left'),
-            pb_formatters.Text(' '),
         ],
     )
