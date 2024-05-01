@@ -516,162 +516,205 @@ def rollback(manager: _ManagerProxy, addon: Defn, undo: bool) -> None:
 @cli.command
 @click.option('--auto', '-a', is_flag=True, default=False, help='Do not ask for user input.')
 @click.option(
-    '--installed',
-    'rereconcile',
-    is_flag=True,
-    default=False,
-    help='Re-reconcile installed add-ons.',
-)
-@click.option(
     '--list-unreconciled', is_flag=True, default=False, help='List unreconciled add-ons and exit.'
 )
 @click.pass_obj
-def reconcile(
-    manager: _ManagerProxy, auto: bool, rereconcile: bool, list_unreconciled: bool
-) -> None:
+def reconcile(manager: _ManagerProxy, auto: bool, list_unreconciled: bool) -> None:
     "Reconcile pre-installed add-ons."
     from ._cli_prompts import SKIP, Choice, confirm, select_one
     from ._utils.text import tabulate
     from .matchers import DEFAULT_MATCHERS, AddonFolder, get_unreconciled_folders
 
-    def construct_choice(pkg: pkg_models.Pkg, highlight_version: bool, disabled: bool):
-        defn = pkg.to_defn()
-        return Choice(
-            [
-                ('', f'{defn.as_uri()}=='),
-                ('class:attention' if highlight_version else '', pkg.version),
-            ],
-            defn,
-            browser_url=pkg.url,
-            disabled=disabled,
-        )
+    leftovers = get_unreconciled_folders(manager.ctx)
+    if list_unreconciled:
+        table_rows = [('unreconciled',), *((f.name,) for f in sorted(leftovers))]
+        click.echo(tabulate(table_rows))
+        return
+    elif not leftovers:
+        click.echo('No add-ons left to reconcile.')
+        return
 
-    def gather_selections(
-        groups: Collection[tuple[_T, Sequence[Defn]]],
-        selector: Callable[[_T, Sequence[pkg_models.Pkg]], Defn | None],
-    ):
-        results = run_with_progress(manager.resolve(uniq(d for _, b in groups for d in b)))
-        for addons_or_pkg, defns in groups:
-            shortlist = [r for d in defns for r in (results[d],) if isinstance(r, pkg_models.Pkg)]
-            if shortlist:
-                selection = selector(addons_or_pkg, shortlist)
-                yield selection
-            else:
-                yield None
+    if not auto:
+        click.echo(
+            textwrap.dedent(
+                """\
+                Use the arrow keys to navigate, <o> to open an add-on in your browser,
+                enter to make a selection and <s> to skip to the next item.
 
-    if rereconcile:
-        if auto:
-            raise click.UsageError('Cannot use "--auto" with "--installed"')
+                Versions that differ from the installed version or differ between
+                choices are highlighted in purple.
 
-        def select_alternative_pkg(installed_pkg: pkg_models.Pkg, pkgs: Sequence[pkg_models.Pkg]):
-            highlight_version = not all_eq(i.version for i in (installed_pkg, *pkgs))
-            choices = [
-                construct_choice(installed_pkg, highlight_version, True),
-                *(construct_choice(p, highlight_version, False) for p in pkgs),
-            ]
-            selection = select_one(installed_pkg.name, choices, can_skip=True).prompt()
-            return selection if selection is not SKIP else None
+                instawow will perform three passes in decreasing order of accuracy,
+                looking to match source IDs and add-on names in TOC files, and folders.
 
-        with manager.ctx.database.connect() as connection:
-            installed_pkgs = [
-                manager.build_pkg_from_row_mapping(connection, p)
-                for p in connection.execute('SELECT * FROM pkg ORDER BY lower(name)').fetchall()
-            ]
+                Selected add-ons will be reinstalled.
 
-        groups = run_with_progress(manager.find_equivalent_pkg_defns(installed_pkgs))
-        selections = [
-            (p, s)
-            for (p, _), s in zip(
-                groups.items(), gather_selections(groups.items(), select_alternative_pkg)
+                You can also run `reconcile` in automatic mode by passing
+                the `--auto` flag.  In this mode, add-ons will be reconciled
+                without user input.
+                """
             )
-            if s
-        ]
-        if selections and confirm('Install selected add-ons?').prompt():
-
-            def install_selections(*, dry_run: bool):
-                return run_with_progress(
-                    manager.install(
-                        [s for _, s in selections], replace_folders=False, dry_run=dry_run
-                    )
-                )
-
-            install_selections(dry_run=True)  # Cache to guard against API errors before uninstall.
-            Report(
-                run_with_progress(
-                    manager.remove([p.to_defn() for p, _ in selections], keep_folders=False)
-                ).items(),
-            ).generate()
-            Report(
-                install_selections(dry_run=False).items(),
-            ).generate_and_exit()
-
-    else:
-        PREAMBLE = textwrap.dedent(
-            """\
-            Use the arrow keys to navigate, <o> to open an add-on in your browser,
-            enter to make a selection and <s> to skip to the next item.
-
-            Versions that differ from the installed version or differ between
-            choices are highlighted in purple.
-
-            instawow will perform three passes in decreasing order of accuracy,
-            looking to match source IDs and add-on names in TOC files, and folders.
-
-            Selected add-ons will be reinstalled.
-
-            You can also run `reconcile` in automatic mode by passing
-            the `--auto` flag.  In this mode, add-ons will be reconciled
-            without user input.
-            """
         )
 
-        leftovers = get_unreconciled_folders(manager.ctx)
-        if list_unreconciled:
-            table_rows = [('unreconciled',), *((f.name,) for f in sorted(leftovers))]
-            click.echo(tabulate(table_rows))
-            return
-        elif not leftovers:
-            click.echo('No add-ons left to reconcile.')
-            return
+    if auto:
 
-        if not auto:
-            click.echo(PREAMBLE)
+        def confirm_install() -> bool:
+            return True
+
+        def select_pkg(
+            addons: Sequence[AddonFolder], pkgs: Sequence[pkg_models.Pkg]
+        ) -> Defn | None:
+            return pkgs[0].to_defn()
+    else:
+
+        def confirm_install():
+            return confirm('Install selected add-ons?').prompt()
 
         def select_pkg(addons: Sequence[AddonFolder], pkgs: Sequence[pkg_models.Pkg]):
+            def construct_choice(pkg: pkg_models.Pkg, disabled: bool):
+                defn = pkg.to_defn()
+                return Choice(
+                    [
+                        ('', f'{defn.as_uri()}=='),
+                        ('class:attention' if highlight_version else '', pkg.version),
+                    ],
+                    defn,
+                    browser_url=pkg.url,
+                    disabled=disabled,
+                )
+
             def combine_names():
                 return textwrap.shorten(', '.join(a.name for a in addons), 60)
 
-            # Highlight version if there's multiple of them
+            # Highlight versions if they are disparate
             highlight_version = not all_eq(i.version for i in chain(addons, pkgs))
 
             selection = select_one(
                 f'{combine_names()} [{addons[0].version or "?"}]',
-                [construct_choice(p, highlight_version, False) for p in pkgs],
+                [construct_choice(p, False) for p in pkgs],
                 can_skip=True,
             ).prompt()
             return selection if selection is not SKIP else None
 
-        def pick_first_pkg(addons: Sequence[AddonFolder], pkgs: Sequence[pkg_models.Pkg]):
-            return pkgs[0].to_defn()
+    def gather_selections(
+        groups: Collection[tuple[Sequence[AddonFolder], Sequence[Defn]]],
+        pkgs: Mapping[Defn, pkg_models.Pkg],
+    ):
+        for addon_folder, defns in groups:
+            shortlist = [p for d in defns for p in (pkgs.get(d),) if p]
+            if shortlist:
+                selection = select_pkg(addon_folder, shortlist)
+                yield selection
+            else:
+                yield None
 
-        select_pkg_ = pick_first_pkg if auto else select_pkg
-        confirm_install = (lambda: True) if auto else confirm('Install selected add-ons?').prompt
+    for fn in DEFAULT_MATCHERS.values():
+        defn_groups = run_with_progress(fn(manager.ctx, leftovers))
+        resolve_results = run_with_progress(
+            manager.resolve(uniq(d for _, b in defn_groups for d in b))
+        )
+        pkgs, _ = pkg_management.bucketise_results(resolve_results.items())
 
-        for fn in DEFAULT_MATCHERS.values():
-            groups = run_with_progress(fn(manager.ctx, leftovers))
-            selections = [s for s in gather_selections(groups, select_pkg_) if s is not None]
-            if selections and confirm_install():
-                results = run_with_progress(manager.install(selections, replace_folders=True))
-                Report(results.items()).generate()
+        selections = [s for s in gather_selections(defn_groups, pkgs) if s]
+        if selections and confirm_install():
+            results = run_with_progress(manager.install(selections, replace_folders=True))
+            Report(results.items()).generate()
 
-            leftovers = get_unreconciled_folders(manager.ctx)
-            if not leftovers:
-                break
+        leftovers = get_unreconciled_folders(manager.ctx)
+        if not leftovers:
+            break
 
-        if leftovers:
-            click.echo()
-            table_rows = [('unreconciled',), *((f.name,) for f in sorted(leftovers))]
-            click.echo(tabulate(table_rows))
+    if leftovers:
+        click.echo()
+        table_rows = [('unreconciled',), *((f.name,) for f in sorted(leftovers))]
+        click.echo(tabulate(table_rows))
+
+
+@cli.command
+@click.argument('addons', nargs=-1, callback=_with_obj(partial(_parse_uri, raise_invalid=False)))
+@click.pass_obj
+def rereconcile(manager: _ManagerProxy, addons: Sequence[Defn]) -> None:
+    "Rereconcile installed add-ons."
+    from ._cli_prompts import SKIP, Choice, confirm, select_one
+
+    def select_alternative_pkg(pkg: pkg_models.Pkg, equivalent_pkg_defns: Sequence[Defn]):
+        def construct_choice(equivalent_pkg: pkg_models.Pkg, disabled: bool):
+            defn = equivalent_pkg.to_defn()
+            return Choice(
+                [
+                    ('', f'{defn.as_uri()}=='),
+                    ('class:attention' if highlight_version else '', equivalent_pkg.version),
+                ],
+                defn,
+                browser_url=equivalent_pkg.url,
+                disabled=disabled,
+            )
+
+        shortlisted_pkgs = [p for d in equivalent_pkg_defns for p in (pkgs.get(d),) if p]
+        if not shortlisted_pkgs:
+            return None
+
+        highlight_version = not all_eq(i.version for i in (pkg, *shortlisted_pkgs))
+
+        selection = select_one(
+            pkg.name,
+            [
+                construct_choice(pkg, True),
+                *(construct_choice(p, False) for p in shortlisted_pkgs),
+            ],
+            can_skip=True,
+        ).prompt()
+        return selection if selection is not SKIP else None
+
+    with manager.ctx.database.connect() as connection:
+        query = """
+            SELECT *
+            FROM pkg
+            {where_clause}
+            ORDER BY lower(name)
+        """
+        if addons:
+            where_clause, query_params = _make_pkg_where_clause_and_params(addons)
+            execute = partial(
+                connection.execute, query.format(where_clause=where_clause), query_params
+            )
+        else:
+            execute = partial(connection.execute, query.format(where_clause=''))
+
+        installed_pkgs = [
+            manager.build_pkg_from_row_mapping(connection, p) for p in execute().fetchall()
+        ]
+
+    equivalent_pkg_defn_groups = run_with_progress(
+        manager.find_equivalent_pkg_defns(installed_pkgs)
+    )
+    resolve_results = run_with_progress(
+        manager.resolve(uniq(d for b in equivalent_pkg_defn_groups.values() for d in b))
+    )
+    pkgs, _ = pkg_management.bucketise_results(resolve_results.items())
+
+    selections = [
+        (p, s)
+        for p, d in equivalent_pkg_defn_groups.items()
+        for s in (select_alternative_pkg(p, d),)
+        if s
+    ]
+    if selections and confirm('Install selected add-ons?').prompt():
+
+        def install_selections(*, dry_run: bool):
+            return run_with_progress(
+                manager.install([s for _, s in selections], replace_folders=False, dry_run=dry_run)
+            )
+
+        install_selections(dry_run=True)  # Cache to guard against API errors before uninstall.
+        Report(
+            run_with_progress(
+                manager.remove([p.to_defn() for p, _ in selections], keep_folders=False)
+            ).items(),
+        ).generate()
+        Report(
+            install_selections(dry_run=False).items(),
+        ).generate_and_exit()
 
 
 def _concat_search_terms(_: click.Context, __: click.Parameter, value: tuple[str, ...]):
@@ -956,9 +999,7 @@ def view_changelog(manager: _ManagerProxy, addons: Sequence[Defn], convert: bool
         """
         if addons:
             where_clause, query_params = _make_pkg_where_clause_and_params(addons)
-            last_installed_changelog_urls = connection.execute(
-                query + where_clause, query_params
-            ).fetchall()
+            execute = partial(connection.execute, query + where_clause, query_params)
 
         else:
             query += """
@@ -969,7 +1010,9 @@ def view_changelog(manager: _ManagerProxy, addons: Sequence[Defn], convert: bool
                     JOIN pkg ON pkg.source = pkg_version_log.pkg_source AND pkg.id = pkg_version_log.pkg_id
                 )
             """
-            last_installed_changelog_urls = connection.execute(query).fetchall()
+            execute = partial(connection.execute, query)
+
+        last_installed_changelog_urls = execute().fetchall()
 
     changelogs = run_with_progress(
         gather(

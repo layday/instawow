@@ -455,12 +455,12 @@ def test_reconcile__reconciliation_complete(
     assert run('reconcile').output == 'No add-ons left to reconcile.\n'
 
 
-def test_reconcile__rereconcile(
+def test_rereconcile(
     pt_input: PipeInput,
     install_molinari_and_run: Run,
 ):
     pt_input.send_text('\ry')
-    assert install_molinari_and_run('reconcile --installed').output == dedent(
+    assert install_molinari_and_run('rereconcile').output == dedent(
         """\
         ✓ curse:molinari
           removed
@@ -470,12 +470,22 @@ def test_reconcile__rereconcile(
     )
 
 
-def test_reconcile__cannot_use_auto_with_installed(
-    run: Run,
+def test_rereconcile_with_args(
+    pt_input: PipeInput,
+    install_molinari_and_run: Run,
 ):
-    result = run('reconcile --auto --installed')
-    assert result.exit_code == 2
-    assert 'Cannot use "--auto" with "--installed"' in result.output
+    pt_input.send_text('\ry')
+    assert install_molinari_and_run('rereconcile foo').output == ''
+
+    pt_input.send_text('\ry')
+    assert install_molinari_and_run('rereconcile molinari').output == dedent(
+        """\
+        ✓ curse:molinari
+          removed
+        ✓ github:p3lim-wow/molinari
+          installed 100205.111-Release
+        """
+    )
 
 
 def test_search__no_results(

@@ -324,7 +324,7 @@ class GithubResolver(BaseResolver):
                 f.to_flavour_keyed_enum(FlavourVersionRange) for f in desired_flavours
             }
 
-            def is_compatible(release: _PackagerReleaseJson_Release):  # pyright: ignore[reportRedeclaration]
+            def is_compatible(release: _PackagerReleaseJson_Release):
                 for metadata in release['metadata']:
                     if metadata['flavor'] in desired_release_json_flavors:
                         if any(r.contains(metadata['interface']) for r in desired_version_ranges):
@@ -339,7 +339,7 @@ class GithubResolver(BaseResolver):
 
         else:
 
-            def is_compatible(release: _PackagerReleaseJson_Release):
+            def is_compatible(release: _PackagerReleaseJson_Release) -> bool:
                 return True
 
         matching_release = next(
