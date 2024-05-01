@@ -13,7 +13,7 @@ from typing_extensions import NotRequired as N
 from typing_extensions import TypedDict
 from yarl import URL
 
-import instawow.http as http
+from instawow import http
 from instawow._logging import logger
 from instawow._progress_reporting import make_default_progress
 from instawow._utils.aio import gather, run_in_thread
