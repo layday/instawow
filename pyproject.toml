@@ -28,7 +28,7 @@ dependencies = [
   "prompt-toolkit >= 3.0.29",
   "rapidfuzz >= 3.6.1",
   "truststore >= 0.7.0",
-  "typing-extensions >= 4.6.0",
+  "typing-extensions >= 4.11.0",
   "yarl >= 1.9.2",
 ]
 optional-dependencies."gui" = [
