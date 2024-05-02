@@ -186,7 +186,7 @@ class WriteProfileConfigParams(_ProfileParamMixin, BaseParams):
     infer_game_flavour: bool
 
     async def respond(self, managers: _ManagersManager) -> ProfileConfig:
-        async with managers.locks[*_LockOperation.ModifyProfile, self.profile]:
+        async with managers.locks[(*_LockOperation.ModifyProfile, self.profile)]:
             with _reraise_validation_errors(_ConfigError):
                 config = config_converter.structure(
                     {
@@ -648,7 +648,7 @@ class _ManagersManager:
         try:
             manager = self._managers[profile]
         except KeyError:
-            async with self.locks[*_LockOperation.ModifyProfile, profile]:
+            async with self.locks[(*_LockOperation.ModifyProfile, profile)]:
                 try:
                     manager = self._managers[profile]
                 except KeyError:
