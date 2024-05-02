@@ -13,7 +13,7 @@
       },
       "summary": "Modular, lightweight, non-intrusive approach to boss timers and boss  warnings. The efficiently coded alternative to Deadly Boss Mods (DBM) for spell & ability timers.",
       "status": 4,
-      "downloadCount": 114402312,
+      "downloadCount": 115785824,
       "isFeatured": false,
       "primaryCategoryId": 1014,
       "categories": [
@@ -86,179 +86,52 @@
           "url": "https://media.forgecdn.net/attachments/89/2/bars.png"
         }
       ],
-      "mainFileId": 5196765,
+      "mainFileId": 5305935,
       "latestFiles": [
         {
-          "id": 5196765,
+          "id": 5305614,
           "gameId": 1,
           "modId": 2382,
           "isAvailable": true,
-          "displayName": "v325",
-          "fileName": "BigWigs-v325.zip",
-          "releaseType": 1,
-          "fileStatus": 4,
-          "hashes": [
-            {
-              "value": "b56766701eba01e53e6c802149c5f8cb07da274d",
-              "algo": 1
-            },
-            {
-              "value": "ff333d69d16fbb95cbb9966873e76403",
-              "algo": 2
-            }
-          ],
-          "fileDate": "2024-03-20T03:48:49.627Z",
-          "fileLength": 4034983,
-          "downloadCount": 352839,
-          "downloadUrl": "https://edge.forgecdn.net/files/5196/765/BigWigs-v325.zip",
-          "gameVersions": [
-            "1.15.1",
-            "10.2.6",
-            "3.4.3",
-            "2.5.4"
-          ],
-          "sortableGameVersions": [
-            {
-              "gameVersionName": "1.15.1",
-              "gameVersionPadded": "0000000001.0000000015.0000000001",
-              "gameVersion": "1.15.1",
-              "gameVersionReleaseDate": "2024-01-31T00:00:00Z",
-              "gameVersionTypeId": 67408
-            },
-            {
-              "gameVersionName": "10.2.6",
-              "gameVersionPadded": "0000000010.0000000002.0000000006",
-              "gameVersion": "10.2.6",
-              "gameVersionReleaseDate": "2024-01-31T00:00:00Z",
-              "gameVersionTypeId": 517
-            },
-            {
-              "gameVersionName": "3.4.3",
-              "gameVersionPadded": "0000000003.0000000004.0000000003",
-              "gameVersion": "3.4.3",
-              "gameVersionReleaseDate": "2023-10-11T00:00:00Z",
-              "gameVersionTypeId": 73713
-            },
-            {
-              "gameVersionName": "2.5.4",
-              "gameVersionPadded": "0000000002.0000000005.0000000004",
-              "gameVersion": "2.5.4",
-              "gameVersionReleaseDate": "2022-03-22T00:00:00Z",
-              "gameVersionTypeId": 73246
-            }
-          ],
-          "dependencies": [
-            {
-              "modId": 19651,
-              "relationType": 1
-            },
-            {
-              "modId": 615588,
-              "relationType": 1
-            },
-            {
-              "modId": 14324,
-              "relationType": 1
-            },
-            {
-              "modId": 27889,
-              "relationType": 1
-            },
-            {
-              "modId": 51580,
-              "relationType": 1
-            },
-            {
-              "modId": 18909,
-              "relationType": 1
-            },
-            {
-              "modId": 15552,
-              "relationType": 1
-            },
-            {
-              "modId": 13376,
-              "relationType": 1
-            },
-            {
-              "modId": 14320,
-              "relationType": 1
-            }
-          ],
-          "alternateFileId": 0,
-          "isServerPack": false,
-          "fileFingerprint": 268732576,
-          "modules": [
-            {
-              "name": "BigWigs_Core",
-              "fingerprint": 1310973006
-            },
-            {
-              "name": "BigWigs_Options",
-              "fingerprint": 1494562473
-            },
-            {
-              "name": "BigWigs_Plugins",
-              "fingerprint": 1745029218
-            },
-            {
-              "name": "BigWigs_VaultOfTheIncarnates",
-              "fingerprint": 2077607901
-            },
-            {
-              "name": "BigWigs_DragonIsles",
-              "fingerprint": 1206006989
-            },
-            {
-              "name": "BigWigs_Aberrus",
-              "fingerprint": 3342384492
-            },
-            {
-              "name": "BigWigs_Amirdrassil",
-              "fingerprint": 2196931151
-            },
-            {
-              "name": "BigWigs",
-              "fingerprint": 3861071562
-            }
-          ]
-        },
-        {
-          "id": 5213697,
-          "gameId": 1,
-          "modId": 2382,
-          "isAvailable": true,
-          "displayName": "v325-2-g8ea750d",
-          "fileName": "BigWigs-v325-2-g8ea750d.zip",
+          "displayName": "v328-3-gbded6d7",
+          "fileName": "BigWigs-v328-3-gbded6d7.zip",
           "releaseType": 3,
           "fileStatus": 4,
           "hashes": [
             {
-              "value": "1698a47f54e2855ffcfae281541e24c353f438ba",
+              "value": "5fcde93aa6c6657379fd08b25e8f22c45afd30d0",
               "algo": 1
             },
             {
-              "value": "a64efb4cf236c3b55755e0fbe658576d",
+              "value": "e551d0178ddaa1b4c85da2a3f73289ba",
               "algo": 2
             }
           ],
-          "fileDate": "2024-03-26T20:46:40.88Z",
-          "fileLength": 4035140,
+          "fileDate": "2024-05-01T02:37:43.353Z",
+          "fileLength": 4049412,
           "downloadCount": 0,
-          "downloadUrl": "https://edge.forgecdn.net/files/5213/697/BigWigs-v325-2-g8ea750d.zip",
+          "downloadUrl": "https://edge.forgecdn.net/files/5305/614/BigWigs-v328-3-gbded6d7.zip",
           "gameVersions": [
-            "1.15.1",
+            "1.15.2",
+            "4.4.0",
             "10.2.6",
             "3.4.3",
             "2.5.4"
           ],
           "sortableGameVersions": [
             {
-              "gameVersionName": "1.15.1",
-              "gameVersionPadded": "0000000001.0000000015.0000000001",
-              "gameVersion": "1.15.1",
-              "gameVersionReleaseDate": "2024-01-31T00:00:00Z",
+              "gameVersionName": "1.15.2",
+              "gameVersionPadded": "0000000001.0000000015.0000000002",
+              "gameVersion": "1.15.2",
+              "gameVersionReleaseDate": "2024-04-02T00:00:00Z",
               "gameVersionTypeId": 67408
+            },
+            {
+              "gameVersionName": "4.4.0",
+              "gameVersionPadded": "0000000004.0000000004.0000000000",
+              "gameVersion": "4.4.0",
+              "gameVersionReleaseDate": "2024-03-07T00:00:00Z",
+              "gameVersionTypeId": 77522
             },
             {
               "gameVersionName": "10.2.6",
@@ -288,19 +161,11 @@
               "relationType": 1
             },
             {
-              "modId": 19651,
+              "modId": 27889,
               "relationType": 1
             },
             {
-              "modId": 14324,
-              "relationType": 1
-            },
-            {
-              "modId": 15552,
-              "relationType": 1
-            },
-            {
-              "modId": 14320,
+              "modId": 13376,
               "relationType": 1
             },
             {
@@ -308,7 +173,7 @@
               "relationType": 1
             },
             {
-              "modId": 27889,
+              "modId": 15552,
               "relationType": 1
             },
             {
@@ -316,45 +181,220 @@
               "relationType": 1
             },
             {
-              "modId": 13376,
+              "modId": 14324,
+              "relationType": 1
+            },
+            {
+              "modId": 19651,
+              "relationType": 1
+            },
+            {
+              "modId": 14320,
               "relationType": 1
             }
           ],
           "alternateFileId": 0,
           "isServerPack": false,
-          "fileFingerprint": 2804702610,
+          "fileFingerprint": 1251396762,
           "modules": [
             {
               "name": "BigWigs_Core",
-              "fingerprint": 1029005013
+              "fingerprint": 4038888460
             },
             {
               "name": "BigWigs_Options",
-              "fingerprint": 825206312
+              "fingerprint": 774490453
             },
             {
               "name": "BigWigs_Plugins",
-              "fingerprint": 1552886100
+              "fingerprint": 3946595149
             },
             {
               "name": "BigWigs_VaultOfTheIncarnates",
-              "fingerprint": 1970116530
+              "fingerprint": 4206559767
             },
             {
               "name": "BigWigs_DragonIsles",
-              "fingerprint": 3367771791
+              "fingerprint": 2473508798
             },
             {
               "name": "BigWigs_Aberrus",
-              "fingerprint": 3792505112
+              "fingerprint": 1693880945
             },
             {
               "name": "BigWigs_Amirdrassil",
-              "fingerprint": 2245523129
+              "fingerprint": 2422438352
+            },
+            {
+              "name": "BigWigs_NerubarPalace",
+              "fingerprint": 3535684692
             },
             {
               "name": "BigWigs",
-              "fingerprint": 854813661
+              "fingerprint": 1080027050
+            }
+          ]
+        },
+        {
+          "id": 5305935,
+          "gameId": 1,
+          "modId": 2382,
+          "isAvailable": true,
+          "displayName": "v328.1",
+          "fileName": "BigWigs-v328.1.zip",
+          "releaseType": 1,
+          "fileStatus": 4,
+          "hashes": [
+            {
+              "value": "8302eb80b1c20608bcd24d17f361d5104f4deb01",
+              "algo": 1
+            },
+            {
+              "value": "71029891a832d5c8c9152ab3b1f1d574",
+              "algo": 2
+            }
+          ],
+          "fileDate": "2024-05-01T05:30:12.917Z",
+          "fileLength": 4049193,
+          "downloadCount": 213666,
+          "downloadUrl": "https://edge.forgecdn.net/files/5305/935/BigWigs-v328.1.zip",
+          "gameVersions": [
+            "1.15.2",
+            "4.4.0",
+            "10.2.6",
+            "3.4.3",
+            "2.5.4"
+          ],
+          "sortableGameVersions": [
+            {
+              "gameVersionName": "1.15.2",
+              "gameVersionPadded": "0000000001.0000000015.0000000002",
+              "gameVersion": "1.15.2",
+              "gameVersionReleaseDate": "2024-04-02T00:00:00Z",
+              "gameVersionTypeId": 67408
+            },
+            {
+              "gameVersionName": "4.4.0",
+              "gameVersionPadded": "0000000004.0000000004.0000000000",
+              "gameVersion": "4.4.0",
+              "gameVersionReleaseDate": "2024-03-07T00:00:00Z",
+              "gameVersionTypeId": 77522
+            },
+            {
+              "gameVersionName": "10.2.6",
+              "gameVersionPadded": "0000000010.0000000002.0000000006",
+              "gameVersion": "10.2.6",
+              "gameVersionReleaseDate": "2024-01-31T00:00:00Z",
+              "gameVersionTypeId": 517
+            },
+            {
+              "gameVersionName": "3.4.3",
+              "gameVersionPadded": "0000000003.0000000004.0000000003",
+              "gameVersion": "3.4.3",
+              "gameVersionReleaseDate": "2023-10-11T00:00:00Z",
+              "gameVersionTypeId": 73713
+            },
+            {
+              "gameVersionName": "2.5.4",
+              "gameVersionPadded": "0000000002.0000000005.0000000004",
+              "gameVersion": "2.5.4",
+              "gameVersionReleaseDate": "2022-03-22T00:00:00Z",
+              "gameVersionTypeId": 73246
+            }
+          ],
+          "dependencies": [
+            {
+              "modId": 50417,
+              "relationType": 3
+            },
+            {
+              "modId": 15552,
+              "relationType": 1
+            },
+            {
+              "modId": 50417,
+              "relationType": 3
+            },
+            {
+              "modId": 27889,
+              "relationType": 1
+            },
+            {
+              "modId": 14324,
+              "relationType": 1
+            },
+            {
+              "modId": 13376,
+              "relationType": 1
+            },
+            {
+              "modId": 45694,
+              "relationType": 3
+            },
+            {
+              "modId": 615588,
+              "relationType": 1
+            },
+            {
+              "modId": 51580,
+              "relationType": 1
+            },
+            {
+              "modId": 45694,
+              "relationType": 3
+            },
+            {
+              "modId": 19651,
+              "relationType": 1
+            },
+            {
+              "modId": 14320,
+              "relationType": 1
+            },
+            {
+              "modId": 18909,
+              "relationType": 1
+            }
+          ],
+          "alternateFileId": 0,
+          "isServerPack": false,
+          "fileFingerprint": 2173082641,
+          "modules": [
+            {
+              "name": "BigWigs_Core",
+              "fingerprint": 1010593457
+            },
+            {
+              "name": "BigWigs_Options",
+              "fingerprint": 1546087591
+            },
+            {
+              "name": "BigWigs_Plugins",
+              "fingerprint": 1646539627
+            },
+            {
+              "name": "BigWigs_VaultOfTheIncarnates",
+              "fingerprint": 1429901007
+            },
+            {
+              "name": "BigWigs_DragonIsles",
+              "fingerprint": 3514786654
+            },
+            {
+              "name": "BigWigs_Aberrus",
+              "fingerprint": 3942976259
+            },
+            {
+              "name": "BigWigs_Amirdrassil",
+              "fingerprint": 1013342141
+            },
+            {
+              "name": "BigWigs_NerubarPalace",
+              "fingerprint": 927123854
+            },
+            {
+              "name": "BigWigs",
+              "fingerprint": 2196249108
             }
           ]
         }
@@ -362,45 +402,80 @@
       "latestFilesIndexes": [
         {
           "gameVersion": "2.5.4",
-          "fileId": 5213697,
-          "filename": "BigWigs-v325-2-g8ea750d.zip",
-          "releaseType": 3,
+          "fileId": 5305935,
+          "filename": "BigWigs-v328.1.zip",
+          "releaseType": 1,
           "gameVersionTypeId": 73246
         },
         {
           "gameVersion": "3.4.3",
-          "fileId": 5213697,
-          "filename": "BigWigs-v325-2-g8ea750d.zip",
-          "releaseType": 3,
+          "fileId": 5305935,
+          "filename": "BigWigs-v328.1.zip",
+          "releaseType": 1,
           "gameVersionTypeId": 73713
         },
         {
-          "gameVersion": "1.15.1",
-          "fileId": 5213697,
-          "filename": "BigWigs-v325-2-g8ea750d.zip",
-          "releaseType": 3,
+          "gameVersion": "1.15.2",
+          "fileId": 5305935,
+          "filename": "BigWigs-v328.1.zip",
+          "releaseType": 1,
           "gameVersionTypeId": 67408
         },
         {
           "gameVersion": "10.2.6",
-          "fileId": 5213697,
-          "filename": "BigWigs-v325-2-g8ea750d.zip",
-          "releaseType": 3,
+          "fileId": 5305935,
+          "filename": "BigWigs-v328.1.zip",
+          "releaseType": 1,
           "gameVersionTypeId": 517
+        },
+        {
+          "gameVersion": "4.4.0",
+          "fileId": 5305935,
+          "filename": "BigWigs-v328.1.zip",
+          "releaseType": 1,
+          "gameVersionTypeId": 77522
         },
         {
           "gameVersion": "2.5.4",
-          "fileId": 5196765,
-          "filename": "BigWigs-v325.zip",
-          "releaseType": 1,
+          "fileId": 5305614,
+          "filename": "BigWigs-v328-3-gbded6d7.zip",
+          "releaseType": 3,
           "gameVersionTypeId": 73246
         },
         {
           "gameVersion": "3.4.3",
-          "fileId": 5196765,
-          "filename": "BigWigs-v325.zip",
-          "releaseType": 1,
+          "fileId": 5305614,
+          "filename": "BigWigs-v328-3-gbded6d7.zip",
+          "releaseType": 3,
           "gameVersionTypeId": 73713
+        },
+        {
+          "gameVersion": "1.15.2",
+          "fileId": 5305614,
+          "filename": "BigWigs-v328-3-gbded6d7.zip",
+          "releaseType": 3,
+          "gameVersionTypeId": 67408
+        },
+        {
+          "gameVersion": "10.2.6",
+          "fileId": 5305614,
+          "filename": "BigWigs-v328-3-gbded6d7.zip",
+          "releaseType": 3,
+          "gameVersionTypeId": 517
+        },
+        {
+          "gameVersion": "4.4.0",
+          "fileId": 5305614,
+          "filename": "BigWigs-v328-3-gbded6d7.zip",
+          "releaseType": 3,
+          "gameVersionTypeId": 77522
+        },
+        {
+          "gameVersion": "1.15.1",
+          "fileId": 5213697,
+          "filename": "BigWigs-v325-2-g8ea750d.zip",
+          "releaseType": 3,
+          "gameVersionTypeId": 67408
         },
         {
           "gameVersion": "1.15.1",
@@ -408,13 +483,6 @@
           "filename": "BigWigs-v325.zip",
           "releaseType": 1,
           "gameVersionTypeId": 67408
-        },
-        {
-          "gameVersion": "10.2.6",
-          "fileId": 5196765,
-          "filename": "BigWigs-v325.zip",
-          "releaseType": 1,
-          "gameVersionTypeId": 517
         },
         {
           "gameVersion": "10.2.5",
@@ -1602,10 +1670,10 @@
       ],
       "latestEarlyAccessFilesIndexes": [],
       "dateCreated": "2006-04-10T17:36:32Z",
-      "dateModified": "2024-03-26T20:48:00.313Z",
-      "dateReleased": "2024-03-26T20:46:40.88Z",
+      "dateModified": "2024-05-01T05:31:07.847Z",
+      "dateReleased": "2024-05-01T05:30:12.917Z",
       "allowModDistribution": true,
-      "gamePopularityRank": 9,
+      "gamePopularityRank": 11,
       "isAvailable": true,
       "thumbsUpCount": 1
     },
@@ -1622,7 +1690,7 @@
       },
       "summary": "One-click Milling, Prospecting, Disenchanting and Lockpicking!",
       "status": 4,
-      "downloadCount": 1071006,
+      "downloadCount": 1074171,
       "isFeatured": false,
       "primaryCategoryId": 1015,
       "categories": [
@@ -2411,7 +2479,7 @@
       },
       "summary": "Adirelle's bag addon.",
       "status": 4,
-      "downloadCount": 8851569,
+      "downloadCount": 8988209,
       "isFeatured": false,
       "primaryCategoryId": 1009,
       "categories": [
@@ -2454,7 +2522,7 @@
           "url": "https://media.forgecdn.net/attachments/600/829/adibags_gw.png"
         }
       ],
-      "mainFileId": 5196178,
+      "mainFileId": 5256915,
       "latestFiles": [
         {
           "id": 837644,
@@ -2719,28 +2787,28 @@
           ]
         },
         {
-          "id": 5196178,
+          "id": 5256915,
           "gameId": 1,
           "modId": 23350,
           "isAvailable": true,
-          "displayName": "v1.10.25",
-          "fileName": "AdiBags-v1.10.25.zip",
+          "displayName": "v1.10.26",
+          "fileName": "AdiBags-v1.10.26.zip",
           "releaseType": 1,
           "fileStatus": 4,
           "hashes": [
             {
-              "value": "f11f6eaec76027d62704ef8c87c1c890fe750398",
+              "value": "169c34e22e12c5f3fe54c5ced5bedba5335d5c6b",
               "algo": 1
             },
             {
-              "value": "a460c625746fa0c72b3298f02d8ea4a4",
+              "value": "4bdac3c47437665edbaa3cd89bdedb59",
               "algo": 2
             }
           ],
-          "fileDate": "2024-03-19T22:45:34.38Z",
-          "fileLength": 310494,
-          "downloadCount": 43946,
-          "downloadUrl": "https://edge.forgecdn.net/files/5196/178/AdiBags-v1.10.25.zip",
+          "fileDate": "2024-04-12T20:21:50.83Z",
+          "fileLength": 310587,
+          "downloadCount": 23949,
+          "downloadUrl": "https://edge.forgecdn.net/files/5256/915/AdiBags-v1.10.26.zip",
           "gameVersions": [
             "1.15.0",
             "10.2.6",
@@ -2779,15 +2847,15 @@
           ],
           "dependencies": [
             {
-              "modId": 13376,
-              "relationType": 1
-            },
-            {
               "modId": 13380,
               "relationType": 1
             },
             {
-              "modId": 14328,
+              "modId": 15049,
+              "relationType": 1
+            },
+            {
+              "modId": 13376,
               "relationType": 1
             },
             {
@@ -2795,47 +2863,47 @@
               "relationType": 1
             },
             {
-              "modId": 15049,
+              "modId": 14328,
               "relationType": 1
             }
           ],
-          "alternateFileId": 5196179,
+          "alternateFileId": 5256916,
           "isServerPack": false,
-          "fileFingerprint": 3337954657,
+          "fileFingerprint": 4022237084,
           "modules": [
             {
               "name": "AdiBags_Config",
-              "fingerprint": 191712243
+              "fingerprint": 1639229598
             },
             {
               "name": "AdiBags",
-              "fingerprint": 2805197123
+              "fingerprint": 4051751852
             }
           ]
         },
         {
-          "id": 5196179,
+          "id": 5256916,
           "gameId": 1,
           "modId": 23350,
           "isAvailable": true,
-          "displayName": "v1.10.25-nolib",
-          "fileName": "AdiBags-v1.10.25-nolib.zip",
+          "displayName": "v1.10.26-nolib",
+          "fileName": "AdiBags-v1.10.26-nolib.zip",
           "releaseType": 1,
           "fileStatus": 4,
           "hashes": [
             {
-              "value": "e138a8599da03c07228621a89c73c35461b1f25a",
+              "value": "0778e12d04501713c9af3ba24aec179fd52fe279",
               "algo": 1
             },
             {
-              "value": "fac6baefc095b7630fb4d48e04c86b4a",
+              "value": "b1259499b834d76b1684e85a78ac0c59",
               "algo": 2
             }
           ],
-          "fileDate": "2024-03-19T22:45:36.46Z",
-          "fileLength": 172228,
+          "fileDate": "2024-04-12T20:21:52.933Z",
+          "fileLength": 172320,
           "downloadCount": 0,
-          "downloadUrl": "https://edge.forgecdn.net/files/5196/179/AdiBags-v1.10.25-nolib.zip",
+          "downloadUrl": "https://edge.forgecdn.net/files/5256/916/AdiBags-v1.10.26-nolib.zip",
           "gameVersions": [
             "1.15.0",
             "10.2.6",
@@ -2874,18 +2942,18 @@
           ],
           "dependencies": [],
           "exposeAsAlternative": true,
-          "parentProjectFileId": 5196178,
+          "parentProjectFileId": 5256915,
           "alternateFileId": 0,
           "isServerPack": false,
-          "fileFingerprint": 153326430,
+          "fileFingerprint": 1585851812,
           "modules": [
             {
               "name": "AdiBags_Config",
-              "fingerprint": 2597317326
+              "fingerprint": 395968916
             },
             {
               "name": "AdiBags",
-              "fingerprint": 1433098819
+              "fingerprint": 1040633045
             }
           ]
         }
@@ -2893,29 +2961,29 @@
       "latestFilesIndexes": [
         {
           "gameVersion": "2.5.4",
-          "fileId": 5196178,
-          "filename": "AdiBags-v1.10.25.zip",
+          "fileId": 5256915,
+          "filename": "AdiBags-v1.10.26.zip",
           "releaseType": 1,
           "gameVersionTypeId": 73246
         },
         {
           "gameVersion": "3.4.1",
-          "fileId": 5196178,
-          "filename": "AdiBags-v1.10.25.zip",
+          "fileId": 5256915,
+          "filename": "AdiBags-v1.10.26.zip",
           "releaseType": 1,
           "gameVersionTypeId": 73713
         },
         {
           "gameVersion": "1.15.0",
-          "fileId": 5196178,
-          "filename": "AdiBags-v1.10.25.zip",
+          "fileId": 5256915,
+          "filename": "AdiBags-v1.10.26.zip",
           "releaseType": 1,
           "gameVersionTypeId": 67408
         },
         {
           "gameVersion": "10.2.6",
-          "fileId": 5196178,
-          "filename": "AdiBags-v1.10.25.zip",
+          "fileId": 5256915,
+          "filename": "AdiBags-v1.10.26.zip",
           "releaseType": 1,
           "gameVersionTypeId": 517
         },
@@ -3538,10 +3606,10 @@
       ],
       "latestEarlyAccessFilesIndexes": [],
       "dateCreated": "2010-05-07T18:48:16.793Z",
-      "dateModified": "2024-03-19T22:55:07.61Z",
-      "dateReleased": "2024-03-19T22:45:36.46Z",
+      "dateModified": "2024-04-12T20:38:09.017Z",
+      "dateReleased": "2024-04-12T20:21:52.933Z",
       "allowModDistribution": true,
-      "gamePopularityRank": 61,
+      "gamePopularityRank": 77,
       "isAvailable": true,
       "thumbsUpCount": 0
     },
@@ -3558,22 +3626,10 @@
       },
       "summary": "World of Warcraft AddOn for planning and optimizing Mythic+ dungeon runs",
       "status": 4,
-      "downloadCount": 62473538,
+      "downloadCount": 63571750,
       "isFeatured": false,
       "primaryCategoryId": 1011,
       "categories": [
-        {
-          "id": 1007,
-          "gameId": 1,
-          "name": "Data Export",
-          "slug": "data-export",
-          "url": "https://www.curseforge.com/wow/addons/data-export",
-          "iconUrl": "https://media.forgecdn.net/avatars/54/443/636135209651648632.png",
-          "dateModified": "2016-10-31T19:29:25.163Z",
-          "isClass": false,
-          "classId": 1,
-          "parentCategoryId": 1
-        },
         {
           "id": 1017,
           "gameId": 1,
@@ -3582,6 +3638,18 @@
           "url": "https://www.curseforge.com/wow/addons/miscellaneous",
           "iconUrl": "https://media.forgecdn.net/avatars/54/453/636135209712202362.png",
           "dateModified": "2016-10-31T19:29:31.22Z",
+          "isClass": false,
+          "classId": 1,
+          "parentCategoryId": 1
+        },
+        {
+          "id": 1007,
+          "gameId": 1,
+          "name": "Data Export",
+          "slug": "data-export",
+          "url": "https://www.curseforge.com/wow/addons/data-export",
+          "iconUrl": "https://media.forgecdn.net/avatars/54/443/636135209651648632.png",
+          "dateModified": "2016-10-31T19:29:25.163Z",
           "isClass": false,
           "classId": 1,
           "parentCategoryId": 1
@@ -3645,7 +3713,7 @@
           "url": "https://media.forgecdn.net/attachments/360/273/nnoggievideo_2021-05-01_10-26-24.jpg"
         }
       ],
-      "mainFileId": 5200887,
+      "mainFileId": 5299748,
       "latestFiles": [
         {
           "id": 2781420,
@@ -3769,28 +3837,28 @@
           ]
         },
         {
-          "id": 5200887,
+          "id": 5299748,
           "gameId": 1,
           "modId": 288981,
           "isAvailable": true,
-          "displayName": "v4.3.5.1",
-          "fileName": "MythicDungeonTools-v4.3.5.1.zip",
+          "displayName": "v4.4.0.5",
+          "fileName": "MythicDungeonTools-v4.4.0.5.zip",
           "releaseType": 1,
           "fileStatus": 4,
           "hashes": [
             {
-              "value": "f4c7cac83eb4f8c449ebb53697a0131d3a4297dc",
+              "value": "00ab3b4dbe610a77cc6676b95361ed32988f8b31",
               "algo": 1
             },
             {
-              "value": "d8d90714e4ec58e7cfa34d0f274692f3",
+              "value": "9267d0a4ee47d547fefee7e7570d8c61",
               "algo": 2
             }
           ],
-          "fileDate": "2024-03-21T16:59:03.61Z",
-          "fileLength": 33923074,
-          "downloadCount": 126527,
-          "downloadUrl": "https://edge.forgecdn.net/files/5200/887/MythicDungeonTools-v4.3.5.1.zip",
+          "fileDate": "2024-04-28T21:55:35.197Z",
+          "fileLength": 15636439,
+          "downloadCount": 154629,
+          "downloadUrl": "https://edge.forgecdn.net/files/5299/748/MythicDungeonTools-v4.4.0.5.zip",
           "gameVersions": [
             "10.2.6",
             "3.4.3"
@@ -3813,15 +3881,11 @@
           ],
           "dependencies": [
             {
-              "modId": 14273,
-              "relationType": 1
-            },
-            {
-              "modId": 14328,
-              "relationType": 1
-            },
-            {
               "modId": 15049,
+              "relationType": 1
+            },
+            {
+              "modId": 13376,
               "relationType": 1
             },
             {
@@ -3829,17 +3893,21 @@
               "relationType": 1
             },
             {
-              "modId": 13376,
+              "modId": 14273,
+              "relationType": 1
+            },
+            {
+              "modId": 14328,
               "relationType": 1
             }
           ],
           "alternateFileId": 0,
           "isServerPack": false,
-          "fileFingerprint": 1616986709,
+          "fileFingerprint": 753246704,
           "modules": [
             {
               "name": "MythicDungeonTools",
-              "fingerprint": 2530156164
+              "fingerprint": 3313121431
             }
           ]
         }
@@ -3847,15 +3915,15 @@
       "latestFilesIndexes": [
         {
           "gameVersion": "3.4.3",
-          "fileId": 5200887,
-          "filename": "MythicDungeonTools-v4.3.5.1.zip",
+          "fileId": 5299748,
+          "filename": "MythicDungeonTools-v4.4.0.5.zip",
           "releaseType": 1,
           "gameVersionTypeId": 73713
         },
         {
           "gameVersion": "10.2.6",
-          "fileId": 5200887,
-          "filename": "MythicDungeonTools-v4.3.5.1.zip",
+          "fileId": 5299748,
+          "filename": "MythicDungeonTools-v4.4.0.5.zip",
           "releaseType": 1,
           "gameVersionTypeId": 517
         },
@@ -4121,10 +4189,10 @@
       ],
       "latestEarlyAccessFilesIndexes": [],
       "dateCreated": "2018-02-24T03:29:30.783Z",
-      "dateModified": "2024-03-21T17:07:12.877Z",
-      "dateReleased": "2024-03-21T16:59:03.61Z",
+      "dateModified": "2024-04-28T22:10:35.327Z",
+      "dateReleased": "2024-04-28T21:55:35.197Z",
       "allowModDistribution": false,
-      "gamePopularityRank": 11,
+      "gamePopularityRank": 13,
       "isAvailable": true,
       "thumbsUpCount": 1
     },
@@ -4141,7 +4209,7 @@
       },
       "summary": "A skinning engine for button-based add-ons.",
       "status": 4,
-      "downloadCount": 7232102,
+      "downloadCount": 7267147,
       "isFeatured": false,
       "primaryCategoryId": 1010,
       "categories": [
@@ -4516,22 +4584,10 @@
       },
       "summary": "EBB adds groups of bars to your screen showing you which (de)buffs currently affect your toon or some other units.",
       "status": 4,
-      "downloadCount": 2016625,
+      "downloadCount": 2019202,
       "isFeatured": false,
       "primaryCategoryId": 1005,
       "categories": [
-        {
-          "id": 1066,
-          "gameId": 1,
-          "name": "Data Broker",
-          "slug": "data-broker",
-          "url": "https://www.curseforge.com/wow/addons/plugins/data-broker",
-          "iconUrl": "https://media.forgecdn.net/avatars/54/468/636135209804072555.png",
-          "dateModified": "2016-10-31T19:29:40.407Z",
-          "isClass": false,
-          "classId": 1,
-          "parentCategoryId": 1063
-        },
         {
           "id": 1019,
           "gameId": 1,
@@ -4567,6 +4623,18 @@
           "isClass": false,
           "classId": 1,
           "parentCategoryId": 1
+        },
+        {
+          "id": 1066,
+          "gameId": 1,
+          "name": "Data Broker",
+          "slug": "data-broker",
+          "url": "https://www.curseforge.com/wow/addons/plugins/data-broker",
+          "iconUrl": "https://media.forgecdn.net/avatars/54/468/636135209804072555.png",
+          "dateModified": "2016-10-31T19:29:40.407Z",
+          "isClass": false,
+          "classId": 1,
+          "parentCategoryId": 1063
         }
       ],
       "classId": 1,
@@ -5775,7 +5843,7 @@
       "dateModified": "2023-03-19T20:35:38.803Z",
       "dateReleased": "2023-03-08T21:09:25.103Z",
       "allowModDistribution": true,
-      "gamePopularityRank": 999,
+      "gamePopularityRank": 885,
       "isAvailable": true,
       "thumbsUpCount": 0
     },
@@ -5792,7 +5860,7 @@
       },
       "summary": "Shows the possible loot from the bosses",
       "status": 4,
-      "downloadCount": 36678954,
+      "downloadCount": 36792739,
       "isFeatured": false,
       "primaryCategoryId": 1014,
       "categories": [
@@ -6476,7 +6544,7 @@
       },
       "summary": "This is a modified version of AdiBags, which will skin it, so it looks like ElvUI again!",
       "status": 4,
-      "downloadCount": 605529,
+      "downloadCount": 606441,
       "isFeatured": false,
       "primaryCategoryId": 1009,
       "categories": [
@@ -6812,7 +6880,7 @@
       },
       "summary": "A plugin for BigWigs that will play Text-To-Speech sounds for boss abilities in Korean.",
       "status": 4,
-      "downloadCount": 217638,
+      "downloadCount": 224969,
       "isFeatured": false,
       "primaryCategoryId": 1014,
       "categories": [
@@ -6829,18 +6897,6 @@
           "parentCategoryId": 1
         },
         {
-          "id": 1063,
-          "gameId": 1,
-          "name": "Plugins",
-          "slug": "plugins",
-          "url": "https://www.curseforge.com/wow/addons/plugins",
-          "iconUrl": "https://media.forgecdn.net/avatars/54/461/636135209757560016.png",
-          "dateModified": "2016-10-31T19:29:35.77Z",
-          "isClass": false,
-          "classId": 1,
-          "parentCategoryId": 1
-        },
-        {
           "id": 1003,
           "gameId": 1,
           "name": "Audio & Video",
@@ -6848,6 +6904,18 @@
           "url": "https://www.curseforge.com/wow/addons/audio-video",
           "iconUrl": "https://media.forgecdn.net/avatars/54/439/636135209629718340.png",
           "dateModified": "2016-10-31T19:29:22.973Z",
+          "isClass": false,
+          "classId": 1,
+          "parentCategoryId": 1
+        },
+        {
+          "id": 1063,
+          "gameId": 1,
+          "name": "Plugins",
+          "slug": "plugins",
+          "url": "https://www.curseforge.com/wow/addons/plugins",
+          "iconUrl": "https://media.forgecdn.net/avatars/54/461/636135209757560016.png",
+          "dateModified": "2016-10-31T19:29:35.77Z",
           "isClass": false,
           "classId": 1,
           "parentCategoryId": 1
@@ -6879,7 +6947,7 @@
           "url": "https://media.forgecdn.net/attachments/763/485/.png"
         }
       ],
-      "mainFileId": 5198064,
+      "mainFileId": 5305365,
       "latestFiles": [
         {
           "id": 4638218,
@@ -6937,30 +7005,30 @@
           ]
         },
         {
-          "id": 5198064,
+          "id": 5305365,
           "gameId": 1,
           "modId": 402180,
           "isAvailable": true,
-          "displayName": "v10.2.6-1",
-          "fileName": "BigWigs_Voice_KRgeelong-v10.2.6-1.zip",
+          "displayName": "v10.2.7-1",
+          "fileName": "BigWigs_Voice_KRgeelong-v10.2.7-1.zip",
           "releaseType": 1,
           "fileStatus": 4,
           "hashes": [
             {
-              "value": "cb1931be3dbb82cefa347fc1f1ee027ffaae60bb",
+              "value": "963e40d727012f66646aee48ad0d479e2b780ce5",
               "algo": 1
             },
             {
-              "value": "2e1bdef778f8de0f4465fd717650b1fe",
+              "value": "75fd71400bb940c4fa187ca185bfc5df",
               "algo": 2
             }
           ],
-          "fileDate": "2024-03-20T15:37:26.657Z",
-          "fileLength": 28495874,
-          "downloadCount": 2110,
-          "downloadUrl": "https://edge.forgecdn.net/files/5198/64/BigWigs_Voice_KRgeelong-v10.2.6-1.zip",
+          "fileDate": "2024-05-01T00:11:45.53Z",
+          "fileLength": 28740030,
+          "downloadCount": 1991,
+          "downloadUrl": "https://edge.forgecdn.net/files/5305/365/BigWigs_Voice_KRgeelong-v10.2.7-1.zip",
           "gameVersions": [
-            "1.15.1",
+            "1.15.2",
             "4.4.0",
             "10.2.6",
             "3.4.3",
@@ -6968,10 +7036,10 @@
           ],
           "sortableGameVersions": [
             {
-              "gameVersionName": "1.15.1",
-              "gameVersionPadded": "0000000001.0000000015.0000000001",
-              "gameVersion": "1.15.1",
-              "gameVersionReleaseDate": "2024-01-31T00:00:00Z",
+              "gameVersionName": "1.15.2",
+              "gameVersionPadded": "0000000001.0000000015.0000000002",
+              "gameVersion": "1.15.2",
+              "gameVersionReleaseDate": "2024-04-02T00:00:00Z",
               "gameVersionTypeId": 67408
             },
             {
@@ -7011,11 +7079,11 @@
           ],
           "alternateFileId": 0,
           "isServerPack": false,
-          "fileFingerprint": 3591962752,
+          "fileFingerprint": 2307683969,
           "modules": [
             {
               "name": "BigWigs_Voice_KRgeelong",
-              "fingerprint": 461496597
+              "fingerprint": 1628521085
             }
           ]
         }
@@ -7023,17 +7091,38 @@
       "latestFilesIndexes": [
         {
           "gameVersion": "2.5.4",
-          "fileId": 5198064,
-          "filename": "BigWigs_Voice_KRgeelong-v10.2.6-1.zip",
+          "fileId": 5305365,
+          "filename": "BigWigs_Voice_KRgeelong-v10.2.7-1.zip",
           "releaseType": 1,
           "gameVersionTypeId": 73246
         },
         {
           "gameVersion": "3.4.3",
-          "fileId": 5198064,
-          "filename": "BigWigs_Voice_KRgeelong-v10.2.6-1.zip",
+          "fileId": 5305365,
+          "filename": "BigWigs_Voice_KRgeelong-v10.2.7-1.zip",
           "releaseType": 1,
           "gameVersionTypeId": 73713
+        },
+        {
+          "gameVersion": "4.4.0",
+          "fileId": 5305365,
+          "filename": "BigWigs_Voice_KRgeelong-v10.2.7-1.zip",
+          "releaseType": 1,
+          "gameVersionTypeId": 77522
+        },
+        {
+          "gameVersion": "10.2.6",
+          "fileId": 5305365,
+          "filename": "BigWigs_Voice_KRgeelong-v10.2.7-1.zip",
+          "releaseType": 1,
+          "gameVersionTypeId": 517
+        },
+        {
+          "gameVersion": "1.15.2",
+          "fileId": 5305365,
+          "filename": "BigWigs_Voice_KRgeelong-v10.2.7-1.zip",
+          "releaseType": 1,
+          "gameVersionTypeId": 67408
         },
         {
           "gameVersion": "1.15.1",
@@ -7041,20 +7130,6 @@
           "filename": "BigWigs_Voice_KRgeelong-v10.2.6-1.zip",
           "releaseType": 1,
           "gameVersionTypeId": 67408
-        },
-        {
-          "gameVersion": "4.4.0",
-          "fileId": 5198064,
-          "filename": "BigWigs_Voice_KRgeelong-v10.2.6-1.zip",
-          "releaseType": 1,
-          "gameVersionTypeId": 77522
-        },
-        {
-          "gameVersion": "10.2.6",
-          "fileId": 5198064,
-          "filename": "BigWigs_Voice_KRgeelong-v10.2.6-1.zip",
-          "releaseType": 1,
-          "gameVersionTypeId": 517
         },
         {
           "gameVersion": "10.2.5",
@@ -7164,10 +7239,10 @@
       ],
       "latestEarlyAccessFilesIndexes": [],
       "dateCreated": "2020-08-14T03:53:23.617Z",
-      "dateModified": "2024-03-20T15:44:13.857Z",
-      "dateReleased": "2024-03-20T15:37:26.657Z",
+      "dateModified": "2024-05-01T00:17:41.11Z",
+      "dateReleased": "2024-05-01T00:11:45.53Z",
       "allowModDistribution": true,
-      "gamePopularityRank": 531,
+      "gamePopularityRank": 571,
       "isAvailable": true,
       "thumbsUpCount": 0
     }

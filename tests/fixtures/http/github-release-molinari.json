@@ -63,7 +63,7 @@
         "content_type": "application/zip",
         "state": "uploaded",
         "size": 186496,
-        "download_count": 16,
+        "download_count": 28,
         "created_at": "2024-02-08T20:00:13Z",
         "updated_at": "2024-02-08T20:00:13Z",
         "browser_download_url": "https://github.com/p3lim-wow/Molinari/releases/download/100205.111-Release/Molinari-100205.111-Release.zip"
@@ -97,7 +97,7 @@
         "content_type": "application/json",
         "state": "uploaded",
         "size": 255,
-        "download_count": 1693,
+        "download_count": 2618,
         "created_at": "2024-02-08T20:00:14Z",
         "updated_at": "2024-02-08T20:00:14Z",
         "browser_download_url": "https://github.com/p3lim-wow/Molinari/releases/download/100205.111-Release/release.json"
