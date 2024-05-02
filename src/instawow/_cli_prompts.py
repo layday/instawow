@@ -322,7 +322,9 @@ def select_one(
 
     combined_choices = [*choices, _skip_choice] if can_skip else choices
     positions = [i for i, c in enumerate(combined_choices) if not c.disabled]
-    position = next(p for p in positions if initial_choice is None or choices[p] == initial_choice)
+    position = next(
+        p for p in positions if initial_value is None or choices[p].value == initial_value
+    )
 
     @bindings.add(Keys.ControlC)
     @bindings.add(Keys.SIGINT)
