@@ -1058,6 +1058,7 @@ class _EditableConfigOptions(StrEnum):
 
     def __new__(cls, value: str) -> Self:
         self = str.__new__(cls, value)
+        self._value_ = value
         self.path = tuple(value.split('.'))
         return self
 
@@ -1188,7 +1189,7 @@ def configure(
     ):
         editable_config_values[_EditableConfigOptions.GameFlavour] = select_one(
             'Game flavour',
-            list(map(Choice, Flavour, Flavour)),
+            [Choice(f, f) for f in Flavour if not f.is_retired],
             initial_value=config_values.get('addon_dir')
             and infer_flavour_from_addon_dir(config_values['addon_dir']),
         ).prompt()

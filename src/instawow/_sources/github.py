@@ -74,8 +74,8 @@ class _PackagerReleaseJson_Release_Metadata(TypedDict):
 class _PackagerReleaseJsonFlavor(StrEnum):
     Retail = 'mainline'
     VanillaClassic = 'classic'
-    Classic = 'wrath'
-    CataclysmClassic = 'cata'
+    Classic = 'cata'
+    WrathClassic = 'wrath'
 
 
 class GithubResolver(BaseResolver):

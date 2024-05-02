@@ -23,8 +23,8 @@ _WagoStability = Literal['stable', 'beta', 'alpha']
 class _WagoGameVersion(StrEnum):
     Retail = 'retail'
     VanillaClassic = 'classic'
-    Classic = 'wotlk'
-    CataclysmClassic = 'cata'
+    Classic = 'cata'
+    WrathClassic = 'wotlk'
 
 
 class _WagoMatchRequest(TypedDict):

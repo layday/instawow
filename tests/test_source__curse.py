@@ -61,7 +61,7 @@ async def test_resolve_classic_only_addon(
     result = (await curse_resolver.resolve([defn]))[defn]
 
     match iw_manager_ctx.config.game_flavour:
-        case Flavour.VanillaClassic | Flavour.Classic:
+        case Flavour.VanillaClassic | Flavour.WrathClassic:
             assert type(result) is Pkg
         case _:
             assert type(result) is PkgFilesNotMatching

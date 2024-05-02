@@ -87,7 +87,10 @@ def iw_config_values(request: pytest.FixtureRequest, tmp_path: Path):
     installation_dir = (
         tmp_path
         / 'wow'
-        / next(k for k, v in _DELECTABLE_DIR_NAMES.items() if v['flavour'] is request.param)
+        / next(
+            (k for k, v in _DELECTABLE_DIR_NAMES.items() if v['flavour'] is request.param),
+            '_unknown_',
+        )
     )
     addon_dir = installation_dir / 'interface' / 'addons'
     addon_dir.mkdir(parents=True)

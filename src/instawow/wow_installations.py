@@ -8,7 +8,7 @@ from functools import cache
 from pathlib import Path
 from typing import Protocol, TypedDict
 
-from typing_extensions import Self, TypeVar
+from typing_extensions import NotRequired, Self, TypeVar
 
 from ._utils.compat import StrEnum
 from ._utils.iteration import fill
@@ -24,7 +24,15 @@ class _FlavourKeyedEnum(Protocol[_TEnum], metaclass=_FlavourKeyedEnumMeta):  # p
     Retail: _TEnum
     VanillaClassic: _TEnum
     Classic: _TEnum
-    CataclysmClassic: _TEnum
+    WrathClassic: _TEnum
+
+
+class _FlavourMeta(TypedDict):
+    aliases: NotRequired[list[str]]
+    is_retired: NotRequired[bool]
+
+
+_DummyFlavourMeta = _FlavourMeta()
 
 
 class Flavour(StrEnum):
@@ -34,18 +42,20 @@ class Flavour(StrEnum):
     # will inherit the "_classic_" folder.  This means we won't have to
     # migrate Classic profiles either automatically or by requiring user
     # intervention for new Classic releases.
-    Retail = 'retail'
-    VanillaClassic = 'vanilla_classic'
-    Classic = 'classic'
-    CataclysmClassic = 'cataclysm_classic'
+    Retail = ('retail',)
+    VanillaClassic = ('vanilla_classic',)
+    Classic = ('classic', _FlavourMeta(aliases=['cataclysm_classic']))
+    WrathClassic = ('wrath_classic', _FlavourMeta(is_retired=True))
 
-    @classmethod
-    def _missing_(cls, value: object) -> Flavour | None:
-        match value:
-            # case 'cataclysm_classic':
-            #     return cls.Classic
-            case _:
-                return None
+    is_retired: bool
+
+    def __new__(cls, value: str, flavour_meta: _FlavourMeta = _DummyFlavourMeta) -> Self:
+        self = str.__new__(cls, value)
+        self._value_ = value
+        for alias in flavour_meta.get('aliases', []):
+            cls._value2member_map_.setdefault(alias, self)
+        self.is_retired = flavour_meta.get('is_retired', False)
+        return self
 
     @classmethod
     def from_flavour_keyed_enum(cls, flavour_keyed_enum: Enum) -> Self:
@@ -56,8 +66,8 @@ class Flavour(StrEnum):
 
     def get_flavour_groups(self, affine: bool) -> list[tuple[Flavour, ...] | None]:
         match (self, affine):
-            case (self.CataclysmClassic, True):
-                return [(self, self.Classic), None]
+            case (self.Classic, True):
+                return [(self, self.WrathClassic), None]
             case (_, True):
                 return [(self,), None]
             case _:
@@ -73,8 +83,8 @@ class FlavourVersionRange(Enum):
         range(5_00_00, 12_00_00),
     )
     VanillaClassic = (range(1_13_00, 2_00_00),)
-    Classic = (range(3_04_00, 4_00_00),)
-    CataclysmClassic = (range(4_04_00, 5_00_00),)
+    Classic = (range(4_04_00, 5_00_00),)
+    WrathClassic = (range(3_04_00, 4_00_00),)
 
     @classmethod
     def _parse_version_string(cls, version_string: str) -> int:
@@ -135,11 +145,11 @@ _DELECTABLE_DIR_NAMES: dict[str, _Product] = {
     },
     '_classic_ptr_': {
         'code': 'wow_classic_ptr',
-        'flavour': Flavour.CataclysmClassic,
+        'flavour': Flavour.Classic,
     },
     '_classic_beta_': {
         'code': 'wow_classic_beta',
-        'flavour': Flavour.CataclysmClassic,
+        'flavour': Flavour.Classic,
     },
 }
 

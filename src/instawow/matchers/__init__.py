@@ -39,11 +39,11 @@ FLAVOUR_TOC_IDS = {
         'Vanilla',
         'Classic',
     ),
-    Flavour.Classic: (
+    Flavour.Classic: ('Cata',),
+    Flavour.WrathClassic: (
         'Wrath',
         'WOTLKC',
     ),
-    Flavour.CataclysmClassic: ('Cata',),
 }
 
 FLAVOUR_TOC_SUFFIXES = {

@@ -38,20 +38,20 @@ packager_test_defn = Defn('github', 'nebularg/PackagerTest')
 ZIPS = {
     'flavoured-toc-only': {
         'toc_files': {
-            '_Wrath': b'',
+            '_Cata': b'',
         },
         'flavours': {Flavour.Classic},
     },
     'flavoured-and-unflavoured-toc-without-interface-version': {
         'toc_files': {
-            '_Wrath': b'',
+            '_Cata': b'',
             '': b'',
         },
         'flavours': {Flavour.Classic},
     },
     'flavoured-and-unflavoured-toc-with-interface-version': {
         'toc_files': {
-            '_Wrath': b'',
+            '_Cata': b'',
             '': b'## Interface: 11300\n',
         },
         'flavours': {Flavour.VanillaClassic, Flavour.Classic},
@@ -222,7 +222,7 @@ async def test_changelog_is_data_url(
     ('iw_config_values', 'flavor', 'interface'),
     [
         (Flavour.Retail, 'mainline', 30400),
-        (Flavour.Classic, 'wrath', 90207),
+        (Flavour.Classic, 'cata', 90207),
         (Flavour.VanillaClassic, 'classic', 90207),
     ],
     indirect=('iw_config_values',),
