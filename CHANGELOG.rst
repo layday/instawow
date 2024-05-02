@@ -1,6 +1,19 @@
 Changelog
 =========
 
+v4.2.0
+------
+
+- Rolled all versions of Classic over to Cataclysm.
+
+CLI
+~~~
+
+- Added overall install and update progress.
+- Split ``reconcile --installed`` out into a separate ``rereconcile`` command
+  which allows filtering add-ons to be re-reconciled.
+- Fixed changing an existing profile's flavour.
+
 v4.1.1
 ------
 
