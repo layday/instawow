@@ -583,14 +583,11 @@ def reconcile(manager: _ManagerProxy, auto: bool, list_unreconciled: bool) -> No
                     disabled=disabled,
                 )
 
-            def combine_names():
-                return textwrap.shorten(', '.join(a.name for a in addons), 60)
-
             # Highlight versions if they are disparate
             highlight_version = not all_eq(i.version for i in chain(addons, pkgs))
 
             selection = select_one(
-                f'{combine_names()} [{addons[0].version or "?"}]',
+                f'{textwrap.shorten(", ".join(a.name for a in addons), 60)} [{addons[0].version or "?"}]',
                 [construct_choice(p, False) for p in pkgs],
                 can_skip=True,
             ).prompt()
@@ -1192,7 +1189,7 @@ def configure(
         editable_config_values[_EditableConfigOptions.GameFlavour] = select_one(
             'Game flavour',
             list(map(Choice, Flavour, Flavour)),
-            initial_choice=config_values.get('addon_dir')
+            initial_value=config_values.get('addon_dir')
             and infer_flavour_from_addon_dir(config_values['addon_dir']),
         ).prompt()
 

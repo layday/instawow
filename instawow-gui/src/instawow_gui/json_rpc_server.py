@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import contextvars
+import enum
 import importlib.resources
 import json
 import os
@@ -20,7 +21,6 @@ import anyio.from_thread
 import attrs
 import cattrs
 import cattrs.preconf.json
-import click
 from aiohttp_rpc import JsonRpcMethod
 from aiohttp_rpc import middlewares as rpc_middlewares
 from aiohttp_rpc.errors import InvalidParams, ServerError
@@ -33,10 +33,10 @@ from instawow import results as R
 from instawow._logging import logger
 from instawow._progress_reporting import ReadOnlyProgressGroup, make_progress_receiver
 from instawow._utils.aio import cancel_tasks, run_in_thread
-from instawow._utils.compat import StrEnum
 from instawow._utils.datetime import datetime_fromisoformat
 from instawow._utils.file import reveal_folder
 from instawow._utils.iteration import WeakValueDefaultDictionary, uniq
+from instawow._utils.web import open_url
 from instawow._version_check import is_outdated
 from instawow.catalogue.cataloguer import ComputedCatalogueEntry
 from instawow.catalogue.search import search
@@ -59,10 +59,10 @@ _toga_handle = contextvars.ContextVar[tuple[Any, anyio.from_thread.BlockingPorta
 _LOCK_PREFIX = object()
 
 
-class _LockOperation(StrEnum):
-    ModifyProfile = '_MODIFY_PROFILE_'
-    UpdateGlobalConfig = '_UPDATE_GLOBAL_CONFIG'
-    InitiateGithubAuthFlow = '_INITIATE_GITHUB_AUTH_FLOW_'
+class _LockOperation(tuple[object, str], enum.Enum):
+    ModifyProfile = (_LOCK_PREFIX, '_MODIFY_PROFILE_')
+    UpdateGlobalConfig = (_LOCK_PREFIX, '_UPDATE_GLOBAL_CONFIG')
+    InitiateGithubAuthFlow = (_LOCK_PREFIX, '_INITIATE_GITHUB_AUTH_FLOW_')
 
 
 LOCALHOST = '127.0.0.1'
@@ -139,7 +139,7 @@ def _read_global_config() -> GlobalConfig:
 
 
 @run_in_thread
-def _read_config(global_config: GlobalConfig, profile: str) -> ProfileConfig:
+def _read_profile_config(global_config: GlobalConfig, profile: str) -> ProfileConfig:
     with _reraise_validation_errors(_ConfigError):
         return ProfileConfig.read(global_config, profile).ensure_dirs()
 
@@ -186,7 +186,7 @@ class WriteProfileConfigParams(_ProfileParamMixin, BaseParams):
     infer_game_flavour: bool
 
     async def respond(self, managers: _ManagersManager) -> ProfileConfig:
-        async with managers.locks[_LOCK_PREFIX, _LockOperation.ModifyProfile, self.profile]:
+        async with managers.locks[*_LockOperation.ModifyProfile, self.profile]:
             with _reraise_validation_errors(_ConfigError):
                 config = config_converter.structure(
                     {
@@ -215,7 +215,7 @@ class WriteProfileConfigParams(_ProfileParamMixin, BaseParams):
 @_register_method('config/read_profile')
 class ReadProfileConfigParams(_ProfileParamMixin, BaseParams):
     async def respond(self, managers: _ManagersManager) -> ProfileConfig:
-        return await _read_config(managers.global_config, self.profile)
+        return await _read_profile_config(managers.global_config, self.profile)
 
 
 @_register_method('config/delete_profile')
@@ -268,13 +268,13 @@ class InitiateGithubAuthFlowParams(BaseParams):
         return await managers.initiate_github_auth_flow()
 
 
-class GithubAuthFlowStatusReport(TypedDict):
+class GithubAuthFlowStatusResponse(TypedDict):
     status: Literal['success', 'failure']
 
 
 @_register_method('config/query_github_auth_flow_status')
 class QueryGithubAuthFlowStatusParams(BaseParams):
-    async def respond(self, managers: _ManagersManager) -> GithubAuthFlowStatusReport:
+    async def respond(self, managers: _ManagersManager) -> GithubAuthFlowStatusResponse:
         return {'status': await managers.wait_for_github_auth_completion()}
 
 
@@ -537,7 +537,7 @@ class OpenUrlParams(BaseParams):
     url: str
 
     async def respond(self, managers: _ManagersManager) -> None:
-        click.launch(self.url)
+        open_url(self.url)
 
 
 @_register_method('assist/reveal_folder')
@@ -635,7 +635,7 @@ class _ManagersManager:
     async def update_global_config(
         self, update_cb: Callable[[GlobalConfig], GlobalConfig]
     ) -> GlobalConfig:
-        async with self.locks[_LOCK_PREFIX, _LockOperation.UpdateGlobalConfig]:
+        async with self.locks[_LockOperation.UpdateGlobalConfig]:
             with _reraise_validation_errors(_ConfigError):
                 self.global_config = update_cb(self.global_config)
                 await run_in_thread(self.global_config.write)()
@@ -648,11 +648,13 @@ class _ManagersManager:
         try:
             manager = self._managers[profile]
         except KeyError:
-            async with self.locks[_LOCK_PREFIX, _LockOperation.ModifyProfile, profile]:
+            async with self.locks[*_LockOperation.ModifyProfile, profile]:
                 try:
                     manager = self._managers[profile]
                 except KeyError:
-                    manager_ctx = ManagerCtx(await _read_config(self.global_config, profile))
+                    manager_ctx = ManagerCtx(
+                        await _read_profile_config(self.global_config, profile)
+                    )
                     manager = self._managers[profile] = PkgManager(manager_ctx)
 
         return await coro_fn(manager)
@@ -664,7 +666,7 @@ class _ManagersManager:
         return await self.run(profile, get_manager)
 
     async def initiate_github_auth_flow(self):
-        async with self.locks[_LOCK_PREFIX, _LockOperation.InitiateGithubAuthFlow]:
+        async with self.locks[_LockOperation.InitiateGithubAuthFlow]:
             if self._github_auth_device_codes is None:
 
                 async def finalise_github_auth_flow():
@@ -701,7 +703,7 @@ class _ManagersManager:
         return 'success'
 
     async def cancel_github_auth_polling(self):
-        if self._github_auth_flow_task and not self._github_auth_flow_task.done():
+        if self._github_auth_flow_task:
             await cancel_tasks([self._github_auth_flow_task])
 
 

@@ -38,6 +38,7 @@ from prompt_toolkit.widgets import Label
 from typing_extensions import Never
 
 from ._utils.compat import fauxfrozen
+from ._utils.web import open_url
 
 _T = TypeVar('_T')
 
@@ -221,9 +222,7 @@ def select_multiple(
     def open_item_browser_url(event: KeyPressEvent):
         choice_at_position = choices[position]
         if choice_at_position.browser_url:
-            import webbrowser
-
-            webbrowser.open(choice_at_position.browser_url)
+            open_url(choice_at_position.browser_url)
 
     @bindings.add(Keys.Enter)
     def submit(event: KeyPressEvent):
@@ -297,7 +296,7 @@ def select_one(
     choices: Sequence[Choice[_T]],
     *,
     can_skip: Literal[True],
-    initial_choice: _T | None = None,
+    initial_value: _T | None = None,
 ) -> _FauxPromptSession[_T | Literal[SKIP]]: ...
 @overload
 def select_one(
@@ -305,7 +304,7 @@ def select_one(
     choices: Sequence[Choice[_T]],
     *,
     can_skip: Literal[False] = False,
-    initial_choice: _T | None = None,
+    initial_value: _T | None = None,
 ) -> _FauxPromptSession[_T]: ...
 
 
@@ -314,7 +313,7 @@ def select_one(
     choices: Sequence[Choice[_T]],
     *,
     can_skip: bool = False,
-    initial_choice: _T | None = None,
+    initial_value: _T | None = None,
 ) -> _FauxPromptSession[Any]:
     bindings = KeyBindings()
 
@@ -352,9 +351,7 @@ def select_one(
     def open_item_browser_url(event: KeyPressEvent):
         choice_at_position = combined_choices[position]
         if choice_at_position.browser_url:
-            import webbrowser
-
-            webbrowser.open(choice_at_position.browser_url)
+            open_url(choice_at_position.browser_url)
 
     @bindings.add(Keys.Enter)
     def submit(event: KeyPressEvent):

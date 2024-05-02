@@ -26,5 +26,11 @@ def as_plain_text_data_url(body: str = '') -> str:
     return f'data:,{quote(body)}'
 
 
-def extract_byte_range_offset(content_range: str):
+def extract_byte_range_offset(content_range: str) -> int:
     return int(content_range.replace('bytes ', '').partition('-')[0])
+
+
+def open_url(url: str) -> None:
+    import click
+
+    click.launch(url)
