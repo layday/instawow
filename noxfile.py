@@ -37,22 +37,17 @@ import sysconfig
     )
 
 
-def _session_install_for_python313(session: nox.Session, install_args: list[str]):
-    is_python313 = session.run(
+def _session_install_for_python_next(session: nox.Session, install_args: list[str]):
+    is_python_next = session.run(
         'python', '-c', 'import sys; print(int(sys.version_info >= (3, 13)), end=" ")', silent=True
     )
-    if is_python313 == '1':
+    if is_python_next == '1':
         with tempfile.TemporaryDirectory() as temp_dir:
-            constraints_txt = Path(temp_dir, 'python313-constraints.txt')
+            constraints_txt = Path(temp_dir, 'python-next-constraints.txt')
             constraints_txt.write_text("""\
     """)
 
-            session.install(
-                '-c',
-                os.fspath(constraints_txt),
-                *install_args,
-                env={f'{p}_NO_EXTENSIONS': is_python313 for p in ['AIOHTTP', 'MULTIDICT', 'YARL']},
-            )
+            session.install('-c', os.fspath(constraints_txt), *install_args)
     else:
         session.install(*install_args)
 
@@ -61,7 +56,7 @@ def _session_install_for_python313(session: nox.Session, install_args: list[str]
 def dev_env(session: nox.Session):
     "Bootstrap the dev env."
 
-    _session_install_for_python313(session, ['-e', '.[gui, test, types]'])
+    _session_install_for_python_next(session, ['-e', '.[gui, test, types]'])
     print(session.virtualenv.bin, end='')
 
 
@@ -119,7 +114,7 @@ def test(session: nox.Session, minimum_versions: bool):
     ]
     if minimum_versions:
         (package_metadata,) = Distribution.discover(name='instawow', path=[package_path])
-        _session_install_for_python313(
+        _session_install_for_python_next(
             session,
             [
                 '--resolution',
@@ -129,7 +124,7 @@ def test(session: nox.Session, minimum_versions: bool):
             ],
         )
     else:
-        _session_install_for_python313(session, install_args)
+        _session_install_for_python_next(session, install_args)
 
     _install_coverage_hook(session)
 
@@ -165,7 +160,7 @@ def type_check(session: nox.Session):
                 wheel_metadata_json,
             )['wheel-path']
 
-    _session_install_for_python313(
+    _session_install_for_python_next(
         session,
         [f'instawow[gui, types] @ {package_path}'],
     )

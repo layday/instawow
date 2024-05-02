@@ -29,7 +29,7 @@ dependencies = [
   "rapidfuzz >= 3.6.1",
   "truststore >= 0.9.0",
   "typing-extensions >= 4.11.0",
-  "yarl >= 1.9.2",
+  "yarl >= 1.9.3",
 ]
 optional-dependencies."gui" = [
   "aiohttp-rpc >= 1.0.0",
