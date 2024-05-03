@@ -782,15 +782,11 @@ def search(
         ),
         ctx,
     )
-    results = run_with_progress(
-        manager.resolve([Defn(e.source, e.id) for e in catalogue_entries]), ctx
-    )
-    pkgs, _ = pkg_management.bucketise_results(results.items())
-    if pkgs:
+    if catalogue_entries:
         choices = [
-            Choice(f'{p.name}  ({e.as_uri()}=={p.version})', e, browser_url=p.url)
-            for d, p in pkgs.items()
-            for e in (attrs.evolve(d, alias=p.slug, id=p.id),)
+            Choice(f'{e.name}  ({d.as_uri()})', d, browser_url=e.url)
+            for e in catalogue_entries
+            for d in (Defn(e.source, e.slug or e.id, e.id),)
         ]
         selections = select_multiple('Select add-ons to install', choices=choices).prompt()
         if selections:

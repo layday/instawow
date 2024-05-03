@@ -534,7 +534,7 @@ def test_search__install_multiple_conflicting(
         """\
         ✓ github:p3lim-wow/molinari
           installed 100205.111-Release
-        ✗ wowi:13188-molinari
+        ✗ wowi:13188
           package folders conflict with installed package Molinari
             (github:388670)
         """
