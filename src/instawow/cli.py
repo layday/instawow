@@ -153,9 +153,6 @@ def run_with_progress(awaitable: Awaitable[_T], ctx: click.Context | None = None
 
                 async def observe_progress():
                     progress_bars = dict[int, ProgressBar]()
-                    progress_bar_group.counters = (
-                        progress_bars.values()  # pyright: ignore[reportAttributeAccessIssue]
-                    )
 
                     try:
                         async for progress_group in iter_progress:
@@ -181,12 +178,14 @@ def run_with_progress(awaitable: Awaitable[_T], ctx: click.Context | None = None
                                     is_download=progress.get('unit') == 'bytes',
                                 )
 
+                            progress_bar_group.counters = list(progress_bars.values())
+
                             for progress_id, progress in progress_group.items():
                                 progress_bars[progress_id].items_completed = progress['current']
                                 progress_bar_group.invalidate()
 
                     finally:
-                        progress_bars.clear()
+                        progress_bar_group.counters = []
 
                 observe_progress_task = asyncio.create_task(observe_progress())
 
