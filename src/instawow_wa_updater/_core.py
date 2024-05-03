@@ -15,7 +15,7 @@ from yarl import URL
 
 from instawow import http
 from instawow._logging import logger
-from instawow._progress_reporting import make_default_progress
+from instawow._progress_reporting import make_default_progress, make_incrementing_progress_tracker
 from instawow._utils.aio import gather, run_in_thread
 from instawow._utils.compat import StrEnum, fauxfrozen
 from instawow._utils.iteration import bucketise
@@ -218,11 +218,6 @@ class WaCompanionBuilder:
             expire_after=http.CACHE_INDEFINITELY,
             headers=self._make_request_headers(),
             raise_for_status=True,
-            trace_request_ctx={
-                'progress': make_default_progress(
-                    type_='download', label=f"Fetching aura '{remote_aura['slug']}'"
-                )
-            },
         ) as response:
             return await response.text()
 
@@ -231,7 +226,14 @@ class WaCompanionBuilder:
             return []
 
         metadata = await self._fetch_wago_metadata(aura_group.api_ep, aura_group.root)
-        import_strings = await gather(self._fetch_wago_import_string(r) for r in metadata)
+
+        track_progress = make_incrementing_progress_tracker(
+            len(metadata), f'Fetching {aura_group.addon_name} import strings'
+        )
+
+        import_strings = await gather(
+            track_progress(self._fetch_wago_import_string(r)) for r in metadata
+        )
         return [
             (aura_group.root.get(r['slug']) or aura_group.root[r['_id']], r, i)
             for r, i in zip(metadata, import_strings)
