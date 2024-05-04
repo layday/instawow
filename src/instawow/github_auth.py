@@ -55,3 +55,15 @@ async def poll_for_access_token(
                     raise ValueError('Authorization failed', response_json)
             else:
                 return response_json['access_token']
+
+
+async def get_rate_limit_status(
+    web_client: http.ClientSession, access_token: str | None
+) -> dict[str, object]:
+    async with web_client.get(
+        'https://api.github.com/rate_limit',
+        headers={'Accept': 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28'}
+        | ({'Authorization': f'Bearer {access_token}'} if access_token else {}),
+        raise_for_status=True,
+    ) as response:
+        return await response.json()
