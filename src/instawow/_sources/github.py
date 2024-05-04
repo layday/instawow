@@ -389,38 +389,44 @@ class GithubResolver(BaseResolver):
         else:
             repo_url = self.__api_url / 'repos' / defn.alias
 
-        async with self._manager_ctx.web_client.get(
-            repo_url, expire_after=timedelta(hours=1), headers=github_headers
-        ) as response:
-            if response.status == 404:
-                raise R.PkgNonexistent
-            response.raise_for_status()
+        async def get_project():
+            async with self._manager_ctx.web_client.get(
+                repo_url, expire_after=timedelta(hours=1), headers=github_headers
+            ) as response:
+                if response.status == 404:
+                    raise R.PkgNonexistent
+                response.raise_for_status()
 
-            project: _GithubRepo = await response.json()
+                project: _GithubRepo = await response.json()
+                return project
 
         if defn.strategies.version_eq:
-            release_url = URL(project['url']) / 'releases/tags' / defn.strategies.version_eq
+            release_url = repo_url / 'releases/tags' / defn.strategies.version_eq
         else:
             # Includes pre-releases
-            release_url = (URL(project['url']) / 'releases').with_query(
+            release_url = (repo_url / 'releases').with_query(
                 # Default is 30 but we're more conservative
                 per_page='10'
             )
 
-        async with self._manager_ctx.web_client.get(
-            release_url, expire_after=timedelta(minutes=5), headers=github_headers
-        ) as response:
-            if response.status == 404:
-                raise R.PkgFilesMissing('no releases found')
-            response.raise_for_status()
+        async def get_releases():
+            async with self._manager_ctx.web_client.get(
+                release_url, expire_after=timedelta(minutes=5), headers=github_headers
+            ) as response:
+                if response.status == 404:
+                    raise R.PkgFilesMissing('no releases found')
+                response.raise_for_status()
 
-            release_json: _GithubRelease | list[_GithubRelease] = await response.json()
-            if not isinstance(release_json, list):
-                release_json = [release_json]
+                release_json: _GithubRelease | list[_GithubRelease] = await response.json()
+                if not isinstance(release_json, list):
+                    release_json = [release_json]
+                return release_json
+
+        project, releases = await asyncio.gather(get_project(), get_releases())
 
         # Only users with push access will get draft releases
         # but let's filter them out just in case.
-        releases = (r for r in release_json if r['draft'] is False)
+        releases = (r for r in releases if r['draft'] is False)
 
         if not defn.strategies.any_release_type:
             releases = (r for r in releases if r['prerelease'] is False)
