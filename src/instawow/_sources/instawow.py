@@ -45,10 +45,10 @@ class InstawowResolver(BaseResolver):
             name='WeakAuras Companion',
             description='A WeakAuras Companion clone.',
             url='https://github.com/layday/instawow',
-            download_url=builder.addon_zip_path.as_uri(),
+            download_url=builder.config.addon_zip_file.as_uri(),
             date_published=datetime.now(timezone.utc),
             version=await run_in_thread(builder.get_version)(),
-            changelog_url=builder.changelog_path.as_uri(),
+            changelog_url=builder.config.changelog_file.as_uri(),
         )
 
     @classmethod

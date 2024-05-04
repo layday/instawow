@@ -301,6 +301,10 @@ class GlobalConfig:
         return self.temp_dir / 'cache' / '_install'
 
     @property
+    def plugins_cache_dir(self) -> Path:
+        return self.temp_dir / 'cache' / 'plugins'
+
+    @property
     def config_file(self) -> Path:
         return self.config_dir / 'config.json'
 
@@ -309,8 +313,16 @@ class GlobalConfig:
         return self.config_dir / 'profiles'
 
     @property
+    def plugins_config_dir(self) -> Path:
+        return self.config_dir / 'plugins'
+
+    @property
     def profiles_state_dir(self) -> Path:
         return self.state_dir / 'profiles'
+
+    @property
+    def plugins_state_dir(self) -> Path:
+        return self.state_dir / 'plugins'
 
 
 @fauxfrozen
@@ -356,7 +368,6 @@ class ProfileConfig:
                 self.config_dir,
                 self.state_dir,
                 self.logging_dir,
-                self.plugins_dir,
             ]
         )
         return self
@@ -382,16 +393,35 @@ class ProfileConfig:
         return self.state_dir / 'logs'
 
     @property
-    def plugins_dir(self) -> Path:
-        return self.state_dir / 'plugins'
-
-    @property
     def config_file(self) -> Path:
         return self.config_dir / 'config.json'
 
     @property
     def db_file(self) -> Path:
         return self.config_dir / 'db.sqlite'
+
+
+@fauxfrozen
+class PluginConfig:
+    profile_config: ProfileConfig
+    plugin: str
+
+    def ensure_dirs(self) -> Self:
+        _ensure_dirs(
+            [
+                self.cache_dir,
+                self.profile_cache_dir,
+            ]
+        )
+        return self
+
+    @property
+    def cache_dir(self) -> Path:
+        return self.profile_config.global_config.plugins_cache_dir / self.plugin
+
+    @property
+    def profile_cache_dir(self) -> Path:
+        return self.cache_dir / 'profiles' / self.profile_config.profile
 
 
 config_converter = make_config_converter()

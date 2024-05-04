@@ -29,10 +29,12 @@ def list_installed_wago_auras(manager: pkg_management.PkgManager) -> None:
 
     from ._core import WaCompanionBuilder
 
-    aura_groups = WaCompanionBuilder(manager.ctx).extract_installed_auras()
+    builder = WaCompanionBuilder(manager.ctx)
+    builder.config.ensure_dirs()
+
     installed_auras = sorted(
         (g.addon_name, a.id, a.url)
-        for g in aura_groups
+        for g in builder.extract_installed_auras()
         for v in g.root.values()
         for a in v
         if not a.parent

@@ -35,7 +35,9 @@ WeakAurasSaved = {
 def builder(
     iw_manager_ctx: ManagerCtx,
 ):
-    return WaCompanionBuilder(iw_manager_ctx)
+    builder = WaCompanionBuilder(iw_manager_ctx)
+    builder.config.ensure_dirs()
+    return builder
 
 
 def test_can_parse_empty_displays_table(
@@ -153,7 +155,7 @@ def test_changelog_is_generated(
     builder: WaCompanionBuilder,
 ):
     builder._generate_addon([])
-    assert builder.changelog_path.read_text() == 'n/a'
+    assert builder.config.changelog_file.read_text() == 'n/a'
 
 
 async def test_can_resolve_wa_companion_pkg(

@@ -7,7 +7,7 @@ from typing import Any
 import pytest
 from cattrs import AttributeValidationNote, ClassValidationError
 
-from instawow.config import GlobalConfig, ProfileConfig
+from instawow.config import GlobalConfig, PluginConfig, ProfileConfig
 from instawow.wow_installations import Flavour
 
 
@@ -22,11 +22,11 @@ def test_env_vars_always_take_precedence(
     global_config = GlobalConfig.from_values(
         {**iw_global_config_values, 'auto_update_check': False}, env=True
     )
-    config = ProfileConfig.from_values(
+    profile_config = ProfileConfig.from_values(
         {'global_config': global_config, **iw_config_values, 'game_flavour': 'retail'}, env=True
     )
     assert global_config.auto_update_check is True
-    assert config.game_flavour is Flavour.Classic
+    assert profile_config.game_flavour is Flavour.Classic
 
 
 def test_read_profile_from_nonexistent_config_dir_raises(
@@ -87,8 +87,8 @@ def test_config_dir_xdg_env_var_is_respected_on_all_plats(
 ):
     config_parent_dir = tmp_path / 'instawow_config_parent_dir'
     monkeypatch.setenv('XDG_CONFIG_HOME', str(config_parent_dir))
-    config = GlobalConfig()
-    assert config.config_dir == config_parent_dir / 'instawow'
+    global_config = GlobalConfig()
+    assert global_config.config_dir == config_parent_dir / 'instawow'
 
 
 def test_config_dir_instawow_specific_env_var_takes_precedence(
@@ -99,8 +99,8 @@ def test_config_dir_instawow_specific_env_var_takes_precedence(
 
     config_dir = tmp_path / 'instawow_config_dir'
     monkeypatch.setenv('INSTAWOW_CONFIG_DIR', str(config_dir))
-    config = GlobalConfig.from_values(env=True)
-    assert config.config_dir == config_dir
+    global_config = GlobalConfig.from_values(env=True)
+    assert global_config.config_dir == config_dir
 
 
 def test_default_state_dir(
@@ -117,8 +117,8 @@ def test_default_state_dir(
         with monkeypatch.context() as patcher:
             patcher.setattr(sys, 'platform', platform)
 
-            config = GlobalConfig()
-            assert config.config_dir == config.state_dir
+            global_config = GlobalConfig()
+            assert global_config.config_dir == global_config.state_dir
 
 
 def test_state_dir_xdg_env_var_is_respected_on_all_plats(
@@ -127,8 +127,8 @@ def test_state_dir_xdg_env_var_is_respected_on_all_plats(
 ):
     state_parent_dir = tmp_path / 'instawow_state_parent_dir'
     monkeypatch.setenv('XDG_STATE_HOME', str(state_parent_dir))
-    config = GlobalConfig()
-    assert config.state_dir == state_parent_dir / 'instawow'
+    global_config = GlobalConfig()
+    assert global_config.state_dir == state_parent_dir / 'instawow'
 
 
 def test_state_dir_instawow_specific_env_var_takes_precedence(
@@ -139,8 +139,8 @@ def test_state_dir_instawow_specific_env_var_takes_precedence(
 
     state_dir = tmp_path / 'instawow_state_dir'
     monkeypatch.setenv('INSTAWOW_STATE_DIR', str(state_dir))
-    config = GlobalConfig.from_values(env=True)
-    assert config.state_dir == state_dir
+    global_config = GlobalConfig.from_values(env=True)
+    assert global_config.state_dir == state_dir
 
 
 def test_can_list_profiles(
@@ -171,11 +171,11 @@ def test_profile_dirs_are_populated(
     iw_config_values: dict[str, Any],
 ):
     global_config = GlobalConfig.from_values(iw_global_config_values)
-    config = ProfileConfig.from_values(
+    profile_config = ProfileConfig.from_values(
         {'global_config': global_config, **iw_config_values}
     ).write()
-    assert {i.name for i in config.config_dir.iterdir()} <= {'config.json'}
-    assert {i.name for i in config.state_dir.iterdir()} <= {'logs', 'plugins'}
+    assert {i.name for i in profile_config.config_dir.iterdir()} <= {'config.json'}
+    assert {i.name for i in profile_config.state_dir.iterdir()} <= {'logs', 'plugins'}
 
 
 def test_can_delete_profile(
@@ -183,12 +183,12 @@ def test_can_delete_profile(
     iw_config_values: dict[str, Any],
 ):
     global_config = GlobalConfig.from_values(iw_global_config_values).write()
-    config = ProfileConfig.from_values(
+    profile_config = ProfileConfig.from_values(
         {'global_config': global_config, **iw_config_values}
     ).write()
-    assert config.config_dir.exists()
-    config.delete()
-    assert not config.config_dir.exists()
+    assert profile_config.config_dir.exists()
+    profile_config.delete()
+    assert not profile_config.config_dir.exists()
 
 
 def test_validate_profile_name(
@@ -237,3 +237,19 @@ def test_validate_addon_dir(
     assert note == 'Structuring class ProfileConfig @ attribute addon_dir'
     assert type(note) is AttributeValidationNote
     assert note.name == 'addon_dir'
+
+
+def test_plugin_cache_dirs(
+    iw_global_config_values: dict[str, Any],
+    iw_config_values: dict[str, Any],
+):
+    global_config = GlobalConfig.from_values(iw_global_config_values)
+    profile_config = ProfileConfig.from_values(
+        {'global_config': global_config, **iw_config_values}
+    )
+    plugin_config = PluginConfig(profile_config=profile_config, plugin='test')
+    assert plugin_config.cache_dir == global_config.plugins_cache_dir / 'test'
+    assert (
+        plugin_config.profile_cache_dir
+        == global_config.plugins_cache_dir / 'test' / 'profiles' / profile_config.profile
+    )

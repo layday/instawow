@@ -22,6 +22,9 @@ from instawow._utils.iteration import bucketise
 from instawow._utils.perf import time_op
 from instawow._utils.text import shasum
 from instawow.manager_ctx import ManagerCtx
+from instawow.wow_installations import get_installation_dir_from_addon_dir
+
+from ._config import PluginConfig
 
 _LuaTable: TypeAlias = Mapping[str, '_LuaTable']
 _Auras: TypeAlias = 'WeakAuras | Plateroos'
@@ -141,14 +144,10 @@ class WaCompanionBuilder:
 
     def __init__(self, manager_ctx: ManagerCtx) -> None:
         self._manager_ctx = manager_ctx
-
-        output_folder = self._manager_ctx.config.plugins_dir / __name__
-        self.addon_zip_path = output_folder / 'WeakAurasCompanion.zip'
-        self.changelog_path = output_folder / 'CHANGELOG.md'
-        self._version_txt_path = output_folder / 'version.txt'
+        self.config = PluginConfig(self._manager_ctx.config, __spec__.parent)
 
     def _make_request_headers(self):
-        access_token = self._manager_ctx.config.global_config.access_tokens.wago
+        access_token = self.config.access_token
         if access_token:
             return {'api-key': access_token}
 
@@ -159,8 +158,13 @@ class WaCompanionBuilder:
         return model.from_lua_table(loads(f'{{{source}}}'))
 
     def extract_installed_auras(self) -> Iterator[_Auras]:
-        flavour_root = self._manager_ctx.config.addon_dir.parents[1]
-        saved_vars_by_account = flavour_root.glob('WTF/Account/*/SavedVariables')
+        installation_dir = get_installation_dir_from_addon_dir(self._manager_ctx.config.addon_dir)
+        if not installation_dir:
+            raise ValueError(
+                f'cannot extract installation folder from {self._manager_ctx.config.addon_dir}'
+            )
+
+        saved_vars_by_account = installation_dir.glob('WTF/Account/*/SavedVariables')
         for saved_vars, model in product(
             saved_vars_by_account,
             [WeakAuras, Plateroos],
@@ -170,9 +174,7 @@ class WaCompanionBuilder:
                 logger.info(f'{file} not found')
             else:
                 content = file.read_text(encoding='utf-8-sig', errors='replace')
-                aura_group_cache = self._manager_ctx.config.global_config.cache_dir / shasum(
-                    content
-                )
+                aura_group_cache = self.config.cache_dir / shasum(content)
                 if aura_group_cache.exists():
                     logger.info(f'loading {file} from cache at {aura_group_cache}')
                     aura_group_json = json.loads(aura_group_cache.read_bytes())
@@ -228,7 +230,7 @@ class WaCompanionBuilder:
         metadata = await self._fetch_wago_metadata(aura_group.api_ep, aura_group.root)
 
         track_progress = make_incrementing_progress_tracker(
-            len(metadata), f'Fetching {aura_group.addon_name} import strings'
+            len(metadata), f'Fetching import strings: {aura_group.addon_name}'
         )
 
         import_strings = await gather(
@@ -248,9 +250,7 @@ class WaCompanionBuilder:
 
         aura_dict = dict.fromkeys((WeakAuras, Plateroos), list[_Match]()) | dict(auras)
 
-        self.addon_zip_path.parent.mkdir(exist_ok=True)
-
-        with ZipFile(self.addon_zip_path, 'w') as file:
+        with ZipFile(self.config.addon_zip_file, 'w') as file:
 
             def write_file(filename: str, content: str):
                 # Not using a plain string as the first argument to ``writestr``
@@ -317,7 +317,7 @@ WeakAurasCompanionData = {{
             )
 
         changelog_tpl = template_resources.joinpath('CHANGELOG.md').read_text()
-        self.changelog_path.write_text(
+        self.config.changelog_file.write_text(
             '\n\n'.join(
                 changelog_tpl.format(
                     name=a.id,
@@ -334,12 +334,14 @@ WeakAurasCompanionData = {{
             encoding='utf-8',
         )
 
-        self._version_txt_path.write_text(
+        self.config.version_file.write_text(
             addon_version,
             encoding='utf-8',
         )
 
     async def build(self) -> None:
+        await run_in_thread(self.config.ensure_dirs)()
+
         installed_auras_by_type = _merge_auras(
             await run_in_thread(list[_Auras])(self.extract_installed_auras()),
         )
@@ -349,4 +351,4 @@ WeakAurasCompanionData = {{
         await run_in_thread(self._generate_addon)(zip(installed_auras_by_type, remote_auras))
 
     def get_version(self) -> str:
-        return self._version_txt_path.read_text(encoding='utf-8')
+        return self.config.version_file.read_text(encoding='utf-8')
