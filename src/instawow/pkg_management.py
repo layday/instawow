@@ -10,7 +10,7 @@ from collections.abc import (
 )
 from contextlib import asynccontextmanager, nullcontext
 from functools import wraps
-from itertools import compress, filterfalse, product, repeat, starmap
+from itertools import chain, compress, filterfalse, product, repeat, starmap
 from pathlib import Path
 from shutil import move
 from tempfile import NamedTemporaryFile
@@ -26,7 +26,7 @@ from ._logging import logger
 from ._progress_reporting import Progress, make_incrementing_progress_tracker
 from ._utils.aio import gather, run_in_thread
 from ._utils.file import trash
-from ._utils.iteration import bucketise, chain_dict, uniq
+from ._utils.iteration import bucketise, uniq
 from ._utils.perf import time_op
 from ._utils.text import shasum
 from ._utils.web import file_uri_to_path, is_file_uri
@@ -630,16 +630,18 @@ class PkgManager:
             )
             for s, b in defns_by_source.items()
         )
-        results_by_defn = chain_dict(
-            defns,
-            R.ManagerError(),
-            *(
-                r.items() if isinstance(r, dict) else zip(d, repeat(r))
-                for d, r in zip(defns_by_source.values(), results)
-            ),
+        results_by_defn = dict(
+            chain(
+                zip(defns, repeat(R.ManagerError())),
+                *(
+                    r.items() if isinstance(r, dict) else zip(d, repeat(r))
+                    for d, r in zip(defns_by_source.values(), results)
+                ),
+            )
         )
         if with_deps:
             results_by_defn.update(await self._resolve_deps(results_by_defn.values()))
+
         return results_by_defn
 
     async def get_changelog(self, source: str, uri: str) -> str:

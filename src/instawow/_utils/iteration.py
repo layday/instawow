@@ -52,13 +52,6 @@ def bucketise(iterable: Iterable[_U], key: Callable[[_U], _T]) -> dict[_T, list[
     return bucket
 
 
-def chain_dict(
-    keys: Iterable[_T], default: _U, *overrides: Iterable[tuple[_T, _U]]
-) -> dict[_T, _U]:
-    "Construct a dictionary from a series of two-tuple iterables with overlapping keys."
-    return dict(chain(zip(keys, repeat(default)), *overrides))
-
-
 def fill(it: Iterable[_T], fill: _T, length: int) -> Iterable[_T]:
     "Fill an iterable of specified length."
     return islice(chain(it, repeat(fill)), 0, length)
