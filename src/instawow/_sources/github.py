@@ -108,8 +108,12 @@ class GithubResolver(BaseResolver):
     async def make_request_headers(self, intent: HeadersIntent | None = None) -> dict[str, str]:
         headers = dict[str, str]()
 
+        headers['X-GitHub-Api-Version'] = '2022-11-28'
+
         if intent is HeadersIntent.Download:
             headers['Accept'] = 'application/octet-stream'
+        else:
+            headers['Accept'] = 'application/vnd.github+json'
 
         access_token = self._get_access_token(self._manager_ctx.config.global_config, 'github')
         if access_token:
