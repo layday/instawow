@@ -620,7 +620,9 @@ class PkgManager:
 
         defns_by_source = bucketise(defns, key=lambda v: v.source)
 
-        track_progress = make_incrementing_progress_tracker(len(defns_by_source), 'Resolving')
+        track_progress = make_incrementing_progress_tracker(
+            len(defns_by_source), 'Resolving add-ons'
+        )
 
         results = await gather(
             track_progress(

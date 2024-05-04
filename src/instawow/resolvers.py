@@ -131,7 +131,14 @@ class BaseResolver(Resolver, Protocol):
     async def resolve(
         self, defns: Sequence[Defn]
     ) -> dict[Defn, pkg_models.Pkg | R.ManagerError | R.InternalError]:
-        results = await gather(R.resultify_async_exc(self.resolve_one(d, None)) for d in defns)
+        from ._progress_reporting import make_incrementing_progress_tracker
+
+        track_progress = make_incrementing_progress_tracker(
+            len(defns), f'Resolving add-ons: {self.metadata.name}'
+        )
+        results = await gather(
+            track_progress(R.resultify_async_exc(self.resolve_one(d, None))) for d in defns
+        )
         return dict(zip(defns, results))
 
     async def resolve_one(self, defn: Defn, metadata: Any) -> pkg_models.Pkg:
