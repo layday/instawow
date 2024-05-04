@@ -166,6 +166,12 @@ ROUTES = dict(
                 case_insensitive=True,
             ),
             Route(
+                '//api.github.com/repositories/388670/releases?per_page=10',
+                _load_json_fixture('github-release-molinari.json'),
+                case_insensitive=True,
+                match_querystring=True,
+            ),
+            Route(
                 '//api.github.com/repos/p3lim-wow/Molinari/releases?per_page=10',
                 _load_json_fixture('github-release-molinari.json'),
                 case_insensitive=True,
