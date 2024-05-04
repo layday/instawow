@@ -67,12 +67,6 @@ def setup_logging(
                 'enqueue': True,
                 'context': context,
                 'sink': sys.stderr,
-                'format': (
-                    '<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | '
-                    '<level>{level: <8}</level> | '
-                    '<cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan>\n'
-                    '  <level>{message}</level>'
-                ),
             }
         ]
 
