@@ -10,7 +10,7 @@
     flavour,
     sources,
     searchFilterInstalled,
-    searchOptions,
+    searchOptions = $bindable(),
     onRequestReset,
     onRequestSearch,
   }: {

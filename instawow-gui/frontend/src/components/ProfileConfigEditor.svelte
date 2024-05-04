@@ -20,7 +20,7 @@
   const api = getContext<Api>(API_KEY);
 
   let {
-    editing,
+    editing = $bindable(),
   }: {
     editing: "new" | "existing" | false;
   } = $props();

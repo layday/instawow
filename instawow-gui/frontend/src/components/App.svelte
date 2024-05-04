@@ -65,8 +65,8 @@
 
 <div class="wrapper" style={pickRandomBorderColour()}>
   {#await performInitialSetup()}
-    <header class="section menubar" />
-    <main class="section main" />
+    <header class="section menubar"></header>
+    <main class="section main"></main>
     <footer class="section statusbar">
       <div class="status">loading…</div>
     </footer>

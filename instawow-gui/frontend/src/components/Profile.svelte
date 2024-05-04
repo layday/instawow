@@ -92,7 +92,7 @@
   let {
     profile,
     isActive,
-    statusMessage,
+    statusMessage = $bindable(),
   }: {
     profile: string;
     isActive: boolean;

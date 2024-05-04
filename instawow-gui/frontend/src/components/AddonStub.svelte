@@ -8,7 +8,7 @@
   const api = getContext<Api>(API_KEY);
 
   let {
-    selections,
+    selections = $bindable(),
     folders,
     choices,
     idx,

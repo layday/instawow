@@ -28,7 +28,7 @@
 </script>
 
 <div class="title-bar">config</div>
-<form class="content" on:submit|preventDefault>
+<form class="content" onsubmit={(e) => e.preventDefault()}>
   {#await api.readGlobalConfig()}
     <div class="row">Loading...</div>
   {:then { access_tokens }}
@@ -52,7 +52,10 @@
                 Navigate to
                 <button
                   role="link"
-                  on:click|preventDefault|stopPropagation={() => api.openUrl(verification_uri)}
+                  onclick={(e) => {
+                    e.preventDefault();
+                    api.openUrl(verification_uri);
+                  }}
                 >
                   {verification_uri}
                 </button>
@@ -79,7 +82,7 @@
           class="form-control"
           type="password"
           value={access_tokens.cfcore}
-          on:input={(e) => (newCfcoreAccessToken = e.currentTarget.value || null)}
+          oninput={(e) => (newCfcoreAccessToken = e.currentTarget.value || null)}
         />
         <button
           class="form-control primary"
@@ -90,8 +93,10 @@
           A CFCore access token is required to use CurseForge. Log in to
           <button
             role="link"
-            on:click|preventDefault|stopPropagation={() =>
-              api.openUrl("https://console.curseforge.com/")}
+            onclick={(e) => {
+              e.preventDefault();
+              api.openUrl("https://console.curseforge.com/");
+            }}
           >
             CFCore
           </button> to generate an access token.
@@ -104,7 +109,7 @@
           class="form-control"
           type="password"
           value={access_tokens.wago_addons}
-          on:input={(e) => (newWagoAccessToken = e.currentTarget.value || null)}
+          oninput={(e) => (newWagoAccessToken = e.currentTarget.value || null)}
         />
         <button
           class="form-control primary"
@@ -115,8 +120,10 @@
           An access token is required to use Wago Addons. Wago issues tokens to some
           <button
             role="link"
-            on:click|preventDefault|stopPropagation={() =>
-              api.openUrl("https://addons.wago.io/patreon")}
+            onclick={(e) => {
+              e.preventDefault();
+              api.openUrl("https://addons.wago.io/patreon");
+            }}
           >
             Patreon
           </button> subscribers.
