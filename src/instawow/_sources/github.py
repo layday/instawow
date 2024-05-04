@@ -426,11 +426,16 @@ class GithubResolver(BaseResolver):
                     release_json = [release_json]
                 return release_json
 
-        project, releases = await asyncio.gather(get_project(), get_releases())
+        releases_coro = asyncio.create_task(get_releases())
+        try:
+            project = await get_project()
+        except BaseException:
+            await cancel_tasks([releases_coro])
+            raise
 
         # Only users with push access will get draft releases
         # but let's filter them out just in case.
-        releases = (r for r in releases if r['draft'] is False)
+        releases = (r for r in await releases_coro if r['draft'] is False)
 
         if not defn.strategies.any_release_type:
             releases = (r for r in releases if r['prerelease'] is False)
