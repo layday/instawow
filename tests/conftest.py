@@ -83,7 +83,7 @@ def iw_global_config_values(request: pytest.FixtureRequest, tmp_path: Path):
 
 
 @pytest.fixture(params=[Flavour.Retail])
-def iw_config_values(request: pytest.FixtureRequest, tmp_path: Path):
+def iw_profile_config_values(request: pytest.FixtureRequest, tmp_path: Path):
     installation_dir = (
         tmp_path
         / 'wow'
@@ -103,9 +103,15 @@ def iw_config_values(request: pytest.FixtureRequest, tmp_path: Path):
 
 
 @pytest.fixture
-def iw_config(iw_config_values: dict[str, Any], iw_global_config_values: dict[str, Any]):
-    global_config = GlobalConfig.from_values(iw_global_config_values).write()
-    return ProfileConfig.from_values({'global_config': global_config, **iw_config_values}).write()
+def iw_global_config(iw_global_config_values: dict[str, Any]):
+    return GlobalConfig.from_values(iw_global_config_values).write()
+
+
+@pytest.fixture
+def iw_profile_config(iw_profile_config_values: dict[str, Any], iw_global_config: GlobalConfig):
+    return ProfileConfig.from_values(
+        {'global_config': iw_global_config, **iw_profile_config_values}
+    ).write()
 
 
 @pytest.fixture(autouse=True)
@@ -119,17 +125,17 @@ def _iw_global_config_defaults(
 
 
 @pytest.fixture
-async def iw_web_client(iw_config: ProfileConfig):
-    async with init_web_client(iw_config.global_config.cache_dir) as web_client:
+async def iw_web_client(iw_global_config: GlobalConfig):
+    async with init_web_client(iw_global_config.http_cache_dir) as web_client:
         yield web_client
 
 
 @pytest.fixture
 def iw_manager_ctx(
-    iw_config: ProfileConfig,
+    iw_profile_config: ProfileConfig,
     iw_web_client: aiohttp.ClientSession,
 ):
-    with ManagerCtx(iw_config) as ctx:
+    with ManagerCtx(iw_profile_config) as ctx:
         contextualise(web_client=iw_web_client)
         yield ctx
 

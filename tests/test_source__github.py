@@ -95,7 +95,7 @@ def package_json_less_addon(
     indirect=True,
 )
 @pytest.mark.parametrize(
-    'iw_config_values',
+    'iw_profile_config_values',
     Flavour,
     indirect=True,
 )
@@ -219,13 +219,13 @@ async def test_changelog_is_data_url(
 
 
 @pytest.mark.parametrize(
-    ('iw_config_values', 'flavor', 'interface'),
+    ('iw_profile_config_values', 'flavor', 'interface'),
     [
         (Flavour.Retail, 'mainline', 30400),
         (Flavour.Classic, 'cata', 90207),
         (Flavour.VanillaClassic, 'classic', 90207),
     ],
-    indirect=('iw_config_values',),
+    indirect=('iw_profile_config_values',),
 )
 @pytest.mark.parametrize(
     '_iw_mock_aiohttp_requests',

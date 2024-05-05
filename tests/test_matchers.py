@@ -125,7 +125,7 @@ async def test_reconcile_multiple_defns_per_addon_contained_in_results(
 
 
 @pytest.mark.parametrize(
-    ('iw_config_values', 'expected_defns'),
+    ('iw_profile_config_values', 'expected_defns'),
     [
         (
             Flavour.Retail,
@@ -155,7 +155,7 @@ async def test_reconcile_multiple_defns_per_addon_contained_in_results(
             },
         ),
     ],
-    indirect=['iw_config_values'],
+    indirect=['iw_profile_config_values'],
 )
 async def test_reconcile_results_vary_by_game_flavour(
     iw_manager_ctx: ManagerCtx,

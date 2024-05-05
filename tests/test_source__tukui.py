@@ -20,7 +20,7 @@ def tukui_resolver(
 
 
 @pytest.mark.parametrize(
-    'iw_config_values',
+    'iw_profile_config_values',
     Flavour,
     indirect=True,
 )

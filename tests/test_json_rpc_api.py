@@ -24,7 +24,7 @@ dumps = partial(json.dumps, default=str)
 
 
 @pytest.fixture
-async def ws_client(iw_config: object):
+async def ws_client(iw_profile_config: object):
     app = await json_rpc_server.create_app()
     server = TestServer(app)
     async with TestClient(server) as client:
@@ -63,11 +63,11 @@ async def test_disparate_origin_api_request_rejected(
 async def test_write_config(
     request: pytest.FixtureRequest,
     iw_global_config_values: dict[str, Any],
-    iw_config_values: dict[str, Any],
+    iw_profile_config_values: dict[str, Any],
     ws: ClientWebSocketResponse,
 ):
     global_config = config_converter.structure(iw_global_config_values, GlobalConfig).write()
-    config_values = {**iw_config_values, 'profile': request.node.name}
+    config_values = {**iw_profile_config_values, 'profile': request.node.name}
     rpc_request = {
         'jsonrpc': '2.0',
         'method': 'config/write_profile',
@@ -86,14 +86,14 @@ async def test_write_config(
 
 async def test_write_config_with_invalid_params(
     request: pytest.FixtureRequest,
-    iw_config_values: dict[str, Any],
+    iw_profile_config_values: dict[str, Any],
     ws: ClientWebSocketResponse,
 ):
     rpc_request = {
         'jsonrpc': '2.0',
         'method': 'config/write_profile',
         'params': {
-            **iw_config_values,
+            **iw_profile_config_values,
             'game_flavour': 'strawberry',
             'infer_game_flavour': False,
         },

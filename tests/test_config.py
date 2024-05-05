@@ -14,7 +14,7 @@ from instawow.wow_installations import Flavour
 def test_env_vars_always_take_precedence(
     monkeypatch: pytest.MonkeyPatch,
     iw_global_config_values: dict[str, Any],
-    iw_config_values: dict[str, Any],
+    iw_profile_config_values: dict[str, Any],
 ):
     monkeypatch.setenv('INSTAWOW_AUTO_UPDATE_CHECK', '1')
     monkeypatch.setenv('INSTAWOW_GAME_FLAVOUR', 'classic')
@@ -23,7 +23,8 @@ def test_env_vars_always_take_precedence(
         {**iw_global_config_values, 'auto_update_check': False}, env=True
     )
     profile_config = ProfileConfig.from_values(
-        {'global_config': global_config, **iw_config_values, 'game_flavour': 'retail'}, env=True
+        {'global_config': global_config, **iw_profile_config_values, 'game_flavour': 'retail'},
+        env=True,
     )
     assert global_config.auto_update_check is True
     assert profile_config.game_flavour is Flavour.Classic
@@ -39,11 +40,11 @@ def test_read_profile_from_nonexistent_config_dir_raises(
 
 def test_init_with_nonexistent_addon_dir_raises(
     iw_global_config_values: dict[str, Any],
-    iw_config_values: dict[str, Any],
+    iw_profile_config_values: dict[str, Any],
 ):
     global_config = GlobalConfig.from_values(iw_global_config_values).write()
 
-    values = dict(iw_config_values)
+    values = dict(iw_profile_config_values)
     del values['_installation_dir']
 
     with pytest.raises(ValueError, match='not a writable directory'):
@@ -144,35 +145,37 @@ def test_state_dir_instawow_specific_env_var_takes_precedence(
 
 
 def test_can_list_profiles(
-    iw_config_values: dict[str, Any],
+    iw_profile_config_values: dict[str, Any],
 ):
     global_config = GlobalConfig.read()
     assert set(global_config.iter_profiles()) == set()
 
-    ProfileConfig.from_values({'global_config': global_config, **iw_config_values}).write()
+    ProfileConfig.from_values({'global_config': global_config, **iw_profile_config_values}).write()
     ProfileConfig.from_values(
-        {'global_config': global_config, **iw_config_values, 'profile': 'foo'}, env=False
+        {'global_config': global_config, **iw_profile_config_values, 'profile': 'foo'}, env=False
     ).write()
     assert set(global_config.iter_profiles()) == {'__default__', 'foo'}
 
 
 def test_can_list_installations(
-    iw_config_values: dict[str, Any],
+    iw_profile_config_values: dict[str, Any],
 ):
     global_config = GlobalConfig.read()
     assert set(global_config.iter_installations()) == set()
 
-    ProfileConfig.from_values({'global_config': global_config, **iw_config_values}).write()
-    assert set(global_config.iter_installations()) == {iw_config_values['_installation_dir']}
+    ProfileConfig.from_values({'global_config': global_config, **iw_profile_config_values}).write()
+    assert set(global_config.iter_installations()) == {
+        iw_profile_config_values['_installation_dir']
+    }
 
 
 def test_profile_dirs_are_populated(
     iw_global_config_values: dict[str, Any],
-    iw_config_values: dict[str, Any],
+    iw_profile_config_values: dict[str, Any],
 ):
     global_config = GlobalConfig.from_values(iw_global_config_values)
     profile_config = ProfileConfig.from_values(
-        {'global_config': global_config, **iw_config_values}
+        {'global_config': global_config, **iw_profile_config_values}
     ).write()
     assert {i.name for i in profile_config.config_dir.iterdir()} <= {'config.json'}
     assert {i.name for i in profile_config.state_dir.iterdir()} <= {'logs', 'plugins'}
@@ -180,11 +183,11 @@ def test_profile_dirs_are_populated(
 
 def test_can_delete_profile(
     iw_global_config_values: dict[str, Any],
-    iw_config_values: dict[str, Any],
+    iw_profile_config_values: dict[str, Any],
 ):
     global_config = GlobalConfig.from_values(iw_global_config_values).write()
     profile_config = ProfileConfig.from_values(
-        {'global_config': global_config, **iw_config_values}
+        {'global_config': global_config, **iw_profile_config_values}
     ).write()
     assert profile_config.config_dir.exists()
     profile_config.delete()
@@ -193,13 +196,13 @@ def test_can_delete_profile(
 
 def test_validate_profile_name(
     iw_global_config_values: dict[str, Any],
-    iw_config_values: dict[str, Any],
+    iw_profile_config_values: dict[str, Any],
 ):
     global_config = GlobalConfig.from_values(iw_global_config_values)
 
     with pytest.raises(ClassValidationError) as exc_info:
         ProfileConfig.from_values(
-            {'global_config': global_config, **iw_config_values, 'profile': ''}
+            {'global_config': global_config, **iw_profile_config_values, 'profile': ''}
         )
 
     (value_error,) = exc_info.value.exceptions
@@ -218,7 +221,7 @@ def test_validate_profile_name(
 def test_validate_addon_dir(
     tmp_path: Path,
     iw_global_config_values: dict[str, Any],
-    iw_config_values: dict[str, Any],
+    iw_profile_config_values: dict[str, Any],
 ):
     global_config = GlobalConfig.from_values(iw_global_config_values)
 
@@ -227,7 +230,11 @@ def test_validate_addon_dir(
 
     with pytest.raises(ClassValidationError) as exc_info:
         ProfileConfig.from_values(
-            {'global_config': global_config, **iw_config_values, 'addon_dir': non_writeable_dir}
+            {
+                'global_config': global_config,
+                **iw_profile_config_values,
+                'addon_dir': non_writeable_dir,
+            }
         )
 
     (value_error,) = exc_info.value.exceptions
@@ -241,11 +248,11 @@ def test_validate_addon_dir(
 
 def test_plugin_cache_dirs(
     iw_global_config_values: dict[str, Any],
-    iw_config_values: dict[str, Any],
+    iw_profile_config_values: dict[str, Any],
 ):
     global_config = GlobalConfig.from_values(iw_global_config_values)
     profile_config = ProfileConfig.from_values(
-        {'global_config': global_config, **iw_config_values}
+        {'global_config': global_config, **iw_profile_config_values}
     )
     plugin_config = PluginConfig(profile_config=profile_config, plugin='test')
     assert plugin_config.cache_dir == global_config.plugins_cache_dir / 'test'

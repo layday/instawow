@@ -43,7 +43,7 @@ def pt_input():
 @pytest.fixture
 async def run(
     monkeypatch: pytest.MonkeyPatch,
-    iw_config: ProfileConfig,
+    iw_profile_config: ProfileConfig,
 ):
     import asyncio
 
@@ -63,10 +63,10 @@ def install_molinari_and_run(
 
 @pytest.fixture
 def pretend_install_molinari_and_run(
-    iw_config: ProfileConfig,
+    iw_profile_config: ProfileConfig,
     run: Run,
 ):
-    molinari = iw_config.addon_dir / 'Molinari'
+    molinari = iw_profile_config.addon_dir / 'Molinari'
     molinari.mkdir()
     (molinari / 'Molinari.toc').write_text(
         """\
@@ -130,10 +130,10 @@ def test_reconciled_folder_conflict_on_install(
 
 
 def test_unreconciled_folder_conflict_on_install(
-    iw_config: ProfileConfig,
+    iw_profile_config: ProfileConfig,
     run: Run,
 ):
-    iw_config.addon_dir.joinpath('Molinari').mkdir()
+    iw_profile_config.addon_dir.joinpath('Molinari').mkdir()
     assert (
         run('install curse:molinari').output
         == "✗ curse:molinari\n  package folders conflict with 'Molinari'\n"
@@ -144,14 +144,14 @@ def test_unreconciled_folder_conflict_on_install(
 
 
 def test_keep_folders_on_remove(
-    iw_config: ProfileConfig,
+    iw_profile_config: ProfileConfig,
     install_molinari_and_run: Run,
 ):
     assert (
         install_molinari_and_run('remove --keep-folders curse:molinari').output
         == '✓ curse:molinari\n  removed\n'
     )
-    assert iw_config.addon_dir.joinpath('Molinari').is_dir()
+    assert iw_profile_config.addon_dir.joinpath('Molinari').is_dir()
 
 
 def test_version_strategy_lifecycle(
@@ -250,12 +250,12 @@ def test_install_dry_run(
 
 
 def test_debug_config(
-    iw_config: ProfileConfig,
+    iw_profile_config: ProfileConfig,
     run: Run,
 ):
     assert (
         run('debug config').output
-        == json.dumps(iw_config.unstructure_for_display(), indent=2) + '\n'
+        == json.dumps(iw_profile_config.unstructure_for_display(), indent=2) + '\n'
     )
 
 
@@ -273,45 +273,45 @@ def test_debug_sources(
 def test_configure__create_new_profile(
     monkeypatch: pytest.MonkeyPatch,
     pt_input: PipeInput,
-    iw_config: ProfileConfig,
+    iw_profile_config: ProfileConfig,
     run: Run,
     command: str,
 ):
     # In case there is a WoW installation in the test environment.
     monkeypatch.setattr('instawow.wow_installations.find_installations', lambda: iter([]))
 
-    pt_input.send_text(f'{iw_config.addon_dir}\r\rY\r')
+    pt_input.send_text(f'{iw_profile_config.addon_dir}\r\rY\r')
     assert run(f'-p foo {command}').output == (
         'Navigate to https://github.com/login/device and paste the code below:\n'
         '  WDJB-MJHT\n'
         'Waiting...\n'
         'Configuration written to:\n'
-        f'  {iw_config.global_config.config_dir / "config.json"}\n'
-        f'  {iw_config.global_config.config_dir / "profiles/foo/config.json"}\n'
+        f'  {iw_profile_config.global_config.config_dir / "config.json"}\n'
+        f'  {iw_profile_config.global_config.config_dir / "profiles/foo/config.json"}\n'
     )
 
 
 def test_configure__update_existing_profile_interactively(
     pt_input: PipeInput,
-    iw_config: ProfileConfig,
+    iw_profile_config: ProfileConfig,
     run: Run,
 ):
     pt_input.send_text('Y\r')
     assert run('configure global_config.auto_update_check').output == (
         'Configuration written to:\n'
-        f'  {iw_config.global_config.config_dir / "config.json"}\n'
-        f'  {iw_config.global_config.config_dir / "profiles/__default__/config.json"}\n'
+        f'  {iw_profile_config.global_config.config_dir / "config.json"}\n'
+        f'  {iw_profile_config.global_config.config_dir / "profiles/__default__/config.json"}\n'
     )
 
 
 def test_configure__update_existing_profile_directly(
-    iw_config: ProfileConfig,
+    iw_profile_config: ProfileConfig,
     run: Run,
 ):
     assert run('configure global_config.auto_update_check=0').output == (
         'Configuration written to:\n'
-        f'  {iw_config.global_config.config_dir / "config.json"}\n'
-        f'  {iw_config.global_config.config_dir / "profiles/__default__/config.json"}\n'
+        f'  {iw_profile_config.global_config.config_dir / "config.json"}\n'
+        f'  {iw_profile_config.global_config.config_dir / "profiles/__default__/config.json"}\n'
     )
 
 
