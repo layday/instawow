@@ -929,12 +929,25 @@ def reveal(manager: _ManagerProxy, addon: Defn) -> None:
     show_default=True,
     help='Convert HTML and Markdown changelogs to plain text using pandoc. No-op if pandoc is not installed.',
 )
+@click.option(
+    '--remote',
+    is_flag=True,
+    default=False,
+    help='Fetch changelogs from sources.',
+)
 @click.pass_obj
-def view_changelog(manager: _ManagerProxy, addons: Sequence[Defn], convert: bool) -> None:
-    """View the changelog of an installed add-on.
+def view_changelog(
+    manager: _ManagerProxy, addons: Sequence[Defn], convert: bool, remote: bool
+) -> None:
+    """View installed and remote add-on changelogs.
 
-    If `ADDONS` is not provided, displays the changelogs of all add-ons
-    to have been installed within one minute of the newest add-on.
+    Invoked without arguments, it displays the changelogs of all add-ons
+    to have been installed within one minute of the last add-on.
+
+    By default, this command will only retrieve installed add-on changelogs.
+    You can reverse this behaviour by passing `--remote`.  With `--remote`,
+    you are also able to retrieve changelogs of older versions from sources
+    which support the `version_eq` strategy, e.g. `github:foo/bar#version_eq=v1`.
     """
 
     from ._utils.aio import gather
@@ -984,46 +997,47 @@ def view_changelog(manager: _ManagerProxy, addons: Sequence[Defn], convert: bool
         )
         return f'{Defn(source, slug).as_uri()}:\n{body}'
 
-    with manager.ctx.database.connect() as connection:
-        query = """
-            SELECT pkg.source, pkg.slug, pkg.changelog_url
-            FROM pkg
-        """
-        if addons:
-            where_clause, query_params = _make_pkg_where_clause_and_params(addons)
-            execute = partial(connection.execute, query + where_clause, query_params)
+    if remote:
+        pkgs, _ = pkg_management.bucketise_results(
+            run_with_progress(manager.resolve(addons)).items()
+        )
+        partial_pkgs = [pkg_models.make_db_converter().unstructure(p) for p in pkgs.values()]
 
-        else:
-            query += """
-                JOIN pkg_version_log ON pkg.source = pkg_version_log.pkg_source AND pkg.id = pkg_version_log.pkg_id
-                WHERE pkg_version_log.install_time >= (
-                    SELECT datetime(max(pkg_version_log.install_time), '-1 minute')
-                    FROM pkg_version_log
-                    JOIN pkg ON pkg.source = pkg_version_log.pkg_source AND pkg.id = pkg_version_log.pkg_id
-                )
+    else:
+        with manager.ctx.database.connect() as connection:
+            query = """
+                SELECT pkg.source, pkg.slug, pkg.changelog_url
+                FROM pkg
             """
-            execute = partial(connection.execute, query)
+            if addons:
+                where_clause, query_params = _make_pkg_where_clause_and_params(addons)
+                execute = partial(connection.execute, query + where_clause, query_params)
+            else:
+                query += """
+                    JOIN pkg_version_log ON pkg.source = pkg_version_log.pkg_source AND pkg.id = pkg_version_log.pkg_id
+                    WHERE pkg_version_log.install_time >= (
+                        SELECT datetime(max(pkg_version_log.install_time), '-1 minute')
+                        FROM pkg_version_log
+                        JOIN pkg ON pkg.source = pkg_version_log.pkg_source AND pkg.id = pkg_version_log.pkg_id
+                    )
+                """
+                execute = partial(connection.execute, query)
 
-        last_installed_changelog_urls = execute().fetchall()
+            partial_pkgs = execute().fetchall()
 
     changelogs = run_with_progress(
-        gather(
-            manager.get_changelog(m['source'], m['changelog_url'])
-            for m in last_installed_changelog_urls
-        )
+        gather(manager.get_changelog(m['source'], m['changelog_url']) for m in partial_pkgs)
     )
     if convert:
         do_convert = make_converter()
-        changelogs = (
-            do_convert(m['source'], c) for m, c in zip(last_installed_changelog_urls, changelogs)
-        )
+        changelogs = (do_convert(m['source'], c) for m, c in zip(partial_pkgs, changelogs))
 
-    click.echo_via_pager(
-        '\n\n'.join(
-            format_combined_changelog_entry(m['source'], m['slug'], c)
-            for m, c in zip(last_installed_changelog_urls, changelogs)
-        )
+    output = '\n\n'.join(
+        format_combined_changelog_entry(m['source'], m['slug'], c)
+        for m, c in zip(partial_pkgs, changelogs)
     )
+    if output:
+        click.echo_via_pager(output)
 
 
 async def _github_oauth_flow():

@@ -541,7 +541,7 @@ def test_search__install_multiple_conflicting(
     )
 
 
-def test_changelog_output(
+def test_changelog_output_installed_convert(
     install_molinari_and_run: Run,
 ):
     output = (
@@ -552,7 +552,7 @@ def test_changelog_output(
     assert install_molinari_and_run('view-changelog curse:molinari').output.startswith(output)
 
 
-def test_changelog_output_no_convert(
+def test_changelog_output_installed_no_convert(
     install_molinari_and_run: Run,
 ):
     assert install_molinari_and_run(
@@ -560,23 +560,22 @@ def test_changelog_output_no_convert(
     ).output.startswith('curse:molinari:\n  <h3>Changes in')
 
 
-def test_argless_changelog_output(
-    install_molinari_and_run: Run,
+def test_changelog_output_not_installed(
+    run: Run,
 ):
-    output = (
-        'curse:molinari:\n  Changes in 90200.82-Release:'
-        if shutil.which('pandoc')
-        else 'curse:molinari:\n  <h3>Changes in'
-    )
-    assert install_molinari_and_run('view-changelog').output.startswith(output)
+    assert run('view-changelog curse:molinari').output == ''
 
 
-def test_argless_changelog_output_no_convert(
+def test_changelog_output_argless(
     install_molinari_and_run: Run,
 ):
-    assert install_molinari_and_run('view-changelog --no-convert').output.startswith(
-        'curse:molinari:\n  <h3>Changes in'
-    )
+    assert install_molinari_and_run('view-changelog').output.startswith('curse:molinari:')
+
+
+def test_changelog_output_remote(
+    run: Run,
+):
+    assert run('view-changelog --remote curse:molinari').output.startswith('curse:molinari:')
 
 
 @pytest.mark.parametrize(
