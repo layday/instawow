@@ -87,15 +87,15 @@ jobs:
       matrix:
         build-env:
           - os: macos-12
-            python-version: "3.11"
+            python-version: "3.12"
             briefcase-build-opts: ""
             briefcase-package-opts: "--adhoc-sign"
-          - os: ubuntu-20.04
-            python-version: "3.11"
+          - os: ubuntu-22.04
+            python-version: "3.12"
             briefcase-build-opts: "linux appimage --no-docker"
             briefcase-package-opts: "linux appimage"
-          - os: windows-latest
-            python-version: "3.11"
+          - os: windows-2022
+            python-version: "3.12"
             briefcase-build-opts: ""
             briefcase-package-opts: ""
       fail-fast: false
@@ -114,9 +114,9 @@ jobs:
       - name: Install briefcase Linux dependencies
         run: sudo apt-get update --fix-missing && sudo apt-get install -y
           patchelf pkgconf
-          libgtk-3-dev libwebkit2gtk-4.0-dev
-          libgirepository1.0-dev gir1.2-javascriptcoregtk-4.0 gir1.2-webkit2-4.0
-        if: matrix.build-env.os == 'ubuntu-20.04'
+          libgtk-3-dev libwebkit2gtk-4.1-dev
+          libgirepository1.0-dev gir1.2-javascriptcoregtk-4.1 gir1.2-webkit2-4.1
+        if: startsWith(matrix.build-env.os, 'ubuntu-')
       - name: Install Python
         uses: actions/setup-python@v5
         with:

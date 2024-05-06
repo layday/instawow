@@ -85,13 +85,13 @@ gir_typelibdir="$("$PKG_CONFIG" --variable=typelibdir gobject-introspection-1.0)
 copy_tree "$gir_typelibdir" "$APPDIR/"
 
 echo "Installing WebKitGTK paraphernalia"
-webkit2gtk_libdir="$("$PKG_CONFIG" --variable=libdir webkit2gtk-4.0)"
-copy_tree "$webkit2gtk_libdir/webkit2gtk-4.0" "$APPDIR/"
+webkit2gtk_libdir="$("$PKG_CONFIG" --variable=libdir webkit2gtk-4.1)"
+copy_tree "$webkit2gtk_libdir/webkit2gtk-4.1" "$APPDIR/"
 
 echo "Modifying runner"
 proot_args=()
 proot_args+=( "-b \$APPDIR$gir_typelibdir:$gir_typelibdir" )
-proot_args+=( "-b \$APPDIR$webkit2gtk_libdir/webkit2gtk-4.0:$webkit2gtk_libdir/webkit2gtk-4.0" )
+proot_args+=( "-b \$APPDIR$webkit2gtk_libdir/webkit2gtk-4.1:$webkit2gtk_libdir/webkit2gtk-4.1" )
 for library in "$APPDIR/usr/lib/"*.so*
 do
     name=$(basename "$library")
