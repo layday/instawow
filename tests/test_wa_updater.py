@@ -4,18 +4,18 @@ import pytest
 from yarl import URL
 
 from instawow.definitions import Defn
-from instawow.manager_ctx import ManagerCtx
 from instawow.pkg_management import PkgManager
 from instawow.pkg_models import Pkg
+from instawow.shared_ctx import ConfigBoundCtx
 from instawow_wa_updater._core import WaCompanionBuilder, WeakAura, WeakAuras
 
 
 @pytest.fixture
 def _wa_saved_vars(
-    iw_manager_ctx: ManagerCtx,
+    iw_config_ctx: ConfigBoundCtx,
 ):
     saved_vars = (
-        iw_manager_ctx.config.addon_dir.parents[1] / 'WTF' / 'Account' / 'test' / 'SavedVariables'
+        iw_config_ctx.config.addon_dir.parents[1] / 'WTF' / 'Account' / 'test' / 'SavedVariables'
     )
     saved_vars.mkdir(parents=True)
     (saved_vars / WeakAuras.addon_name).with_suffix('.lua').write_text(
@@ -33,9 +33,9 @@ WeakAurasSaved = {
 
 @pytest.fixture
 def builder(
-    iw_manager_ctx: ManagerCtx,
+    iw_config_ctx: ConfigBoundCtx,
 ):
-    builder = WaCompanionBuilder(iw_manager_ctx)
+    builder = WaCompanionBuilder(iw_config_ctx.config)
     builder.config.ensure_dirs()
     return builder
 

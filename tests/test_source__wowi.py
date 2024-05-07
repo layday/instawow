@@ -5,17 +5,18 @@ from yarl import URL
 
 from instawow._sources.wowi import WowiResolver
 from instawow.definitions import Defn
-from instawow.manager_ctx import ManagerCtx
 from instawow.pkg_models import Pkg
+from instawow.shared_ctx import ConfigBoundCtx
 
 
 @pytest.fixture
 def wowi_resolver(
-    iw_manager_ctx: ManagerCtx,
+    iw_config_ctx: ConfigBoundCtx,
 ):
-    return WowiResolver(iw_manager_ctx)
+    return WowiResolver(iw_config_ctx.config)
 
 
+@pytest.mark.usefixtures('_iw_web_client_ctx')
 async def test_resolve_addon(
     wowi_resolver: WowiResolver,
 ):
@@ -25,6 +26,7 @@ async def test_resolve_addon(
     assert type(result) is Pkg
 
 
+@pytest.mark.usefixtures('_iw_web_client_ctx')
 async def test_changelog_url_format(
     wowi_resolver: WowiResolver,
 ):

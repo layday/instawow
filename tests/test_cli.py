@@ -43,7 +43,7 @@ def pt_input():
 @pytest.fixture
 async def run(
     monkeypatch: pytest.MonkeyPatch,
-    iw_profile_config: ProfileConfig,
+    iw_profile_config: ...,
 ):
     import asyncio
 

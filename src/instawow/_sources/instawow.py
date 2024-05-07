@@ -3,7 +3,6 @@ from __future__ import annotations
 from collections.abc import AsyncIterator
 from datetime import datetime, timezone
 
-from .. import http
 from .. import results as R
 from .._utils.aio import run_in_thread
 from ..catalogue.cataloguer import CatalogueEntry
@@ -35,7 +34,7 @@ class InstawowResolver(BaseResolver):
 
         from instawow_wa_updater._core import WaCompanionBuilder
 
-        builder = WaCompanionBuilder(self._manager_ctx)
+        builder = WaCompanionBuilder(self._config)
         if source_id == '1':
             await builder.build()
 
@@ -52,7 +51,7 @@ class InstawowResolver(BaseResolver):
         )
 
     @classmethod
-    async def catalogue(cls, web_client: http.ClientSession) -> AsyncIterator[CatalogueEntry]:
+    async def catalogue(cls) -> AsyncIterator[CatalogueEntry]:
         yield CatalogueEntry(
             source=cls.metadata.id,
             id='1',

@@ -3,13 +3,13 @@ from __future__ import annotations
 from typing import Any
 
 from instawow.definitions import ChangelogFormat, Defn, SourceMetadata, Strategy, StrategyValues
-from instawow.manager_ctx import ManagerCtx
 from instawow.resolvers import BaseResolver
 from instawow.results import PkgStrategiesUnsupported
+from instawow.shared_ctx import ConfigBoundCtx
 
 
 async def test_unsupported_strategies_raise(
-    iw_manager_ctx: ManagerCtx,
+    iw_config_ctx: ConfigBoundCtx,
 ):
     class Resolver(BaseResolver):
         metadata = SourceMetadata(
@@ -34,7 +34,7 @@ async def test_unsupported_strategies_raise(
         ),
     )
 
-    result = (await Resolver(iw_manager_ctx).resolve([defn]))[defn]
+    result = (await Resolver(iw_config_ctx.config).resolve([defn]))[defn]
 
     assert type(result) is PkgStrategiesUnsupported
     assert (

@@ -10,7 +10,7 @@ from typing_extensions import NotRequired as N
 from typing_extensions import TypedDict
 from yarl import URL
 
-from .. import http, pkg_models
+from .. import pkg_models, shared_ctx
 from .. import results as R
 from .._logging import logger
 from .._progress_reporting import make_default_progress
@@ -118,8 +118,8 @@ class WowiResolver(BaseResolver):
                 return match and match['id']
 
     async def __synchronise(self):
-        async with self._manager_ctx.locks[_lock_prefix, _LOAD_WOWI_CATALOGUE_LOCK]:
-            async with self._manager_ctx.web_client.get(
+        async with shared_ctx.locks[_lock_prefix, _LOAD_WOWI_CATALOGUE_LOCK]:
+            async with shared_ctx.web_client.get(
                 self.__list_api_url,
                 expire_after=timedelta(hours=1),
                 raise_for_status=True,
@@ -141,7 +141,7 @@ class WowiResolver(BaseResolver):
         list_items_by_id = await self.__synchronise()
 
         defns_to_ids = {d: ''.join(takewhile(str.isdigit, d.alias)) for d in defns}
-        async with self._manager_ctx.web_client.get(
+        async with shared_ctx.web_client.get(
             (
                 self.__details_api_url
                 / f'{",".join(uniq(i for i in defns_to_ids.values() if i))}.json'
@@ -181,10 +181,12 @@ class WowiResolver(BaseResolver):
         )
 
     @classmethod
-    async def catalogue(cls, web_client: http.ClientSession) -> AsyncIterator[CatalogueEntry]:
+    async def catalogue(cls) -> AsyncIterator[CatalogueEntry]:
         logger.debug(f'retrieving {cls.__list_api_url}')
 
-        async with web_client.get(cls.__list_api_url, raise_for_status=True) as response:
+        async with shared_ctx.web_client.get(
+            cls.__list_api_url, raise_for_status=True
+        ) as response:
             items: list[_WowiListApiItem] = await response.json()
 
         for item in items:

@@ -18,7 +18,7 @@ def build_weakauras_companion(manager: pkg_management.PkgManager) -> None:
 
     from ._core import WaCompanionBuilder
 
-    run_with_progress(WaCompanionBuilder(manager.ctx).build())
+    run_with_progress(WaCompanionBuilder(manager.ctx.config).build())
 
 
 @wa_updater_command_group.command('list')
@@ -29,7 +29,7 @@ def list_installed_wago_auras(manager: pkg_management.PkgManager) -> None:
 
     from ._core import WaCompanionBuilder
 
-    builder = WaCompanionBuilder(manager.ctx)
+    builder = WaCompanionBuilder(manager.ctx.config)
     builder.config.ensure_dirs()
 
     installed_auras = sorted(

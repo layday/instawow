@@ -5,36 +5,37 @@ from pathlib import Path
 import pytest
 
 from instawow.definitions import Defn
-from instawow.manager_ctx import ManagerCtx
 from instawow.matchers import (
     AddonFolder,
     AddonHashMethod,
     Matcher,
     get_unreconciled_folders,
+    hash_addon_contents,
     match_addon_names_with_folder_names,
     match_folder_hashes,
     match_folder_name_subsets,
     match_toc_source_ids,
 )
+from instawow.shared_ctx import ConfigBoundCtx
 from instawow.wow_installations import Flavour
 
 MOLINARI_HASH = '2da096db5769138b5428a068343cddf3'
 
 
 def write_addons(
-    iw_manager_ctx: ManagerCtx,
+    iw_config_ctx: ConfigBoundCtx,
     *addons: str,
 ):
     for addon in addons:
-        (iw_manager_ctx.config.addon_dir / addon).mkdir()
-        (iw_manager_ctx.config.addon_dir / addon / f'{addon}.toc').touch()
+        (iw_config_ctx.config.addon_dir / addon).mkdir()
+        (iw_config_ctx.config.addon_dir / addon / f'{addon}.toc').touch()
 
 
 @pytest.fixture
 def molinari(
-    iw_manager_ctx: ManagerCtx,
+    iw_config_ctx: ConfigBoundCtx,
 ):
-    molinari_folder = iw_manager_ctx.config.addon_dir / 'Molinari'
+    molinari_folder = iw_config_ctx.config.addon_dir / 'Molinari'
     molinari_folder.mkdir()
 
     with open(molinari_folder / 'Molinari.toc', 'w', newline='\n') as toc_file:
@@ -49,34 +50,35 @@ def molinari(
 
 
 def test_can_extract_defns_from_addon_folder_toc(
-    iw_manager_ctx: ManagerCtx,
+    iw_config_ctx: ConfigBoundCtx,
     molinari: Path,
 ):
-    addon_folder = AddonFolder.from_addon_path(iw_manager_ctx.config.game_flavour, molinari)
+    addon_folder = AddonFolder.from_addon_path(iw_config_ctx.config.game_flavour, molinari)
     assert addon_folder
     assert addon_folder.get_defns_from_toc_keys(
-        iw_manager_ctx.resolvers.addon_toc_key_and_id_pairs
+        iw_config_ctx.resolvers.addon_toc_key_and_id_pairs
     ) == {Defn('curse', '20338'), Defn('wowi', '13188')}
 
 
 def test_addon_folder_is_hashable(
-    iw_manager_ctx: ManagerCtx,
+    iw_config_ctx: ConfigBoundCtx,
     molinari: Path,
 ):
-    addon_folder = AddonFolder.from_addon_path(iw_manager_ctx.config.game_flavour, molinari)
+    addon_folder = AddonFolder.from_addon_path(iw_config_ctx.config.game_flavour, molinari)
     assert addon_folder
-    assert addon_folder.hash_contents(AddonHashMethod.Wowup) == MOLINARI_HASH
+    assert hash_addon_contents(addon_folder.path, AddonHashMethod.Wowup) == MOLINARI_HASH
 
 
+@pytest.mark.usefixtures('_iw_web_client_ctx')
 async def test_reconcile_invalid_addons_discarded(
-    iw_manager_ctx: ManagerCtx,
+    iw_config_ctx: ConfigBoundCtx,
 ):
-    iw_manager_ctx.config.addon_dir.joinpath('foo').mkdir()
-    iw_manager_ctx.config.addon_dir.joinpath('bar').touch()
-    folders = get_unreconciled_folders(iw_manager_ctx)
+    iw_config_ctx.config.addon_dir.joinpath('foo').mkdir()
+    iw_config_ctx.config.addon_dir.joinpath('bar').touch()
+    folders = get_unreconciled_folders(iw_config_ctx)
     assert folders == frozenset()
-    assert await match_toc_source_ids(iw_manager_ctx, folders) == []
-    assert await match_folder_name_subsets(iw_manager_ctx, folders) == []
+    assert await match_toc_source_ids(iw_config_ctx, folders) == []
+    assert await match_folder_name_subsets(iw_config_ctx, folders) == []
 
 
 @pytest.mark.parametrize(
@@ -114,13 +116,14 @@ async def test_reconcile_invalid_addons_discarded(
         ),
     ],
 )
+@pytest.mark.usefixtures('_iw_web_client_ctx')
 async def test_reconcile_multiple_defns_per_addon_contained_in_results(
-    iw_manager_ctx: ManagerCtx,
+    iw_config_ctx: ConfigBoundCtx,
     molinari: Path,
     test_func: Matcher,
     expected_defns: set[Defn],
 ):
-    ((_, matches),) = await test_func(iw_manager_ctx, get_unreconciled_folders(iw_manager_ctx))
+    ((_, matches),) = await test_func(iw_config_ctx, get_unreconciled_folders(iw_config_ctx))
     assert expected_defns == set(matches)
 
 
@@ -157,12 +160,13 @@ async def test_reconcile_multiple_defns_per_addon_contained_in_results(
     ],
     indirect=['iw_profile_config_values'],
 )
+@pytest.mark.usefixtures('_iw_web_client_ctx')
 async def test_reconcile_results_vary_by_game_flavour(
-    iw_manager_ctx: ManagerCtx,
+    iw_config_ctx: ConfigBoundCtx,
     expected_defns: set[Defn],
 ):
-    write_addons(iw_manager_ctx, 'AdiBags', 'AdiBags_Config')
+    write_addons(iw_config_ctx, 'AdiBags', 'AdiBags_Config')
     ((_, matches),) = await match_folder_name_subsets(
-        iw_manager_ctx, get_unreconciled_folders(iw_manager_ctx)
+        iw_config_ctx, get_unreconciled_folders(iw_config_ctx)
     )
     assert expected_defns == set(matches)

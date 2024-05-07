@@ -6,17 +6,19 @@ import pytest
 
 from instawow._sources.tukui import TukuiResolver
 from instawow.definitions import Defn
-from instawow.manager_ctx import ManagerCtx
 from instawow.pkg_models import Pkg
 from instawow.results import PkgFilesNotMatching
+from instawow.shared_ctx import ConfigBoundCtx
 from instawow.wow_installations import Flavour
+
+pytestmark = pytest.mark.anyio
 
 
 @pytest.fixture
 def tukui_resolver(
-    iw_manager_ctx: ManagerCtx,
+    iw_config_ctx: ConfigBoundCtx,
 ):
-    return TukuiResolver(iw_manager_ctx)
+    return TukuiResolver(iw_config_ctx.config)
 
 
 @pytest.mark.parametrize(
@@ -25,8 +27,9 @@ def tukui_resolver(
     indirect=True,
 )
 @pytest.mark.parametrize('alias', ['tukui', 'elvui'])
+@pytest.mark.usefixtures('_iw_web_client_ctx')
 async def test_resolve_addon(
-    iw_manager_ctx: ManagerCtx,
+    iw_config_ctx: ConfigBoundCtx,
     tukui_resolver: TukuiResolver,
     alias: str,
 ):
@@ -34,8 +37,8 @@ async def test_resolve_addon(
 
     with (
         pytest.raises(PkgFilesNotMatching)
-        if (alias == 'tukui' and iw_manager_ctx.config.game_flavour is Flavour.Classic)
-        or (alias == 'elvui' and iw_manager_ctx.config.game_flavour is Flavour.WrathClassic)
+        if (alias == 'tukui' and iw_config_ctx.config.game_flavour is Flavour.Classic)
+        or (alias == 'elvui' and iw_config_ctx.config.game_flavour is Flavour.WrathClassic)
         else nullcontext()
     ):
         result = await tukui_resolver.resolve_one(defn, None)
@@ -44,6 +47,7 @@ async def test_resolve_addon(
         assert result.slug == alias
 
 
+@pytest.mark.usefixtures('_iw_web_client_ctx')
 async def test_changelog_url_format(
     tukui_resolver: TukuiResolver,
 ):

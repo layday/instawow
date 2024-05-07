@@ -10,7 +10,7 @@ from typing_extensions import Never, TypedDict
 from typing_extensions import NotRequired as N
 from yarl import URL
 
-from .. import http
+from .. import http, shared_ctx
 from .. import results as R
 from .._logging import logger
 from .._utils.aio import cancel_tasks
@@ -115,7 +115,7 @@ class GithubResolver(BaseResolver):
         else:
             headers['Accept'] = 'application/vnd.github+json'
 
-        access_token = self._get_access_token(self._manager_ctx.config.global_config, 'github')
+        access_token = self._get_access_token(self._config.global_config, 'github')
         if access_token:
             headers['Authorization'] = f'token {access_token}'
 
@@ -178,7 +178,7 @@ class GithubResolver(BaseResolver):
             for _ in range(2):
                 logger.debug(f'fetching {directory_offset} bytes from {candidate["name"]}')
 
-                async with self._manager_ctx.web_client.get(
+                async with shared_ctx.web_client.get(
                     download_url,
                     expire_after=http.CACHE_INDEFINITELY,
                     headers={
@@ -189,7 +189,7 @@ class GithubResolver(BaseResolver):
                     if not directory_range_response.ok:
                         # File size under 25 KB.
                         if directory_range_response.status == 416:  # Range Not Satisfiable
-                            async with self._manager_ctx.web_client.get(
+                            async with shared_ctx.web_client.get(
                                 download_url,
                                 expire_after=http.CACHE_INDEFINITELY,
                                 headers=download_headers,
@@ -268,7 +268,7 @@ class GithubResolver(BaseResolver):
                 following_file_offset = following_file.header_offset if following_file else ''
 
                 logger.debug(f'fetching {main_toc_filename} from {candidate["name"]}')
-                async with self._manager_ctx.web_client.get(
+                async with shared_ctx.web_client.get(
                     download_url,
                     expire_after=http.CACHE_INDEFINITELY,
                     headers={
@@ -306,7 +306,7 @@ class GithubResolver(BaseResolver):
 
         download_headers = await self.make_request_headers(HeadersIntent.Download)
 
-        async with self._manager_ctx.web_client.get(
+        async with shared_ctx.web_client.get(
             release_json_asset['url'],
             expire_after=timedelta(days=1),
             headers=download_headers,
@@ -394,7 +394,7 @@ class GithubResolver(BaseResolver):
             repo_url = self.__api_url / 'repos' / defn.alias
 
         async def get_project():
-            async with self._manager_ctx.web_client.get(
+            async with shared_ctx.web_client.get(
                 repo_url, expire_after=timedelta(hours=1), headers=github_headers
             ) as response:
                 if response.status == 404:
@@ -414,7 +414,7 @@ class GithubResolver(BaseResolver):
             )
 
         async def get_releases():
-            async with self._manager_ctx.web_client.get(
+            async with shared_ctx.web_client.get(
                 release_url, expire_after=timedelta(minutes=5), headers=github_headers
             ) as response:
                 if response.status == 404:
@@ -444,7 +444,7 @@ class GithubResolver(BaseResolver):
         if first_release is None:
             raise R.PkgFilesNotMatching(defn.strategies)
 
-        desired_flavour_groups = self._manager_ctx.config.game_flavour.get_flavour_groups(
+        desired_flavour_groups = self._config.game_flavour.get_flavour_groups(
             bool(defn.strategies.any_flavour)
         )
 
@@ -494,13 +494,13 @@ class GithubResolver(BaseResolver):
         )
 
     @classmethod
-    async def catalogue(cls, web_client: http.ClientSession) -> AsyncIterator[CatalogueEntry]:
+    async def catalogue(cls) -> AsyncIterator[CatalogueEntry]:
         import csv
         from io import StringIO
 
         logger.debug(f'retrieving {cls.__generated_catalogue_csv_url}')
 
-        async with web_client.get(
+        async with shared_ctx.web_client.get(
             cls.__generated_catalogue_csv_url, raise_for_status=True
         ) as response:
             catalogue_csv = await response.text()

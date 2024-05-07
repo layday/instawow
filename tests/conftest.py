@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
@@ -11,11 +10,12 @@ from aresponses import ResponsesMockServer
 from aresponses.errors import NoRouteFoundError
 from yarl import URL
 
-from instawow._logging import logger
-from instawow.config import GlobalConfig, ProfileConfig
-from instawow.http import init_web_client
-from instawow.manager_ctx import ManagerCtx, contextualise
-from instawow.pkg_management import PkgManager
+import instawow._logging
+import instawow.config
+import instawow.http
+import instawow.pkg_management
+import instawow.shared_ctx
+from instawow.shared_ctx import ConfigBoundCtx
 from instawow.wow_installations import _DELECTABLE_DIR_NAMES, Flavour
 
 from .fixtures.http import ROUTES
@@ -25,24 +25,14 @@ def pytest_addoption(parser: pytest.Parser):
     parser.addoption('--iw-no-mock-http', action='store_true')
 
 
-def should_mock(fn: Callable[..., object]):
-    import inspect
-
-    def wrapper(request: pytest.FixtureRequest):
-        if request.config.getoption('--iw-no-mock-http'):
-            return None
-        elif any(m.name == 'iw_no_mock_http' for m in request.node.iter_markers()):
-            return None
-
-        args = (request.getfixturevalue(p) for p in inspect.signature(fn).parameters)
-        return fn(*args)
-
-    return wrapper
+@pytest.fixture(autouse=True)
+def anyio_backend():
+    return 'asyncio'
 
 
 @pytest.fixture
 def caplog(caplog: pytest.LogCaptureFixture):
-    handler_id = logger.add(
+    handler_id = instawow._logging.logger.add(
         caplog.handler,
         format='{message}',
         level=0,
@@ -50,7 +40,7 @@ def caplog(caplog: pytest.LogCaptureFixture):
         enqueue=False,  # Set to 'True' if your test is spawning child processes.
     )
     yield caplog
-    logger.remove(handler_id)
+    instawow._logging.logger.remove(handler_id)
 
 
 class _StrictResponsesMockServer(ResponsesMockServer):
@@ -104,12 +94,14 @@ def iw_profile_config_values(request: pytest.FixtureRequest, tmp_path: Path):
 
 @pytest.fixture
 def iw_global_config(iw_global_config_values: dict[str, Any]):
-    return GlobalConfig.from_values(iw_global_config_values).write()
+    return instawow.config.GlobalConfig.from_values(iw_global_config_values).write()
 
 
 @pytest.fixture
-def iw_profile_config(iw_profile_config_values: dict[str, Any], iw_global_config: GlobalConfig):
-    return ProfileConfig.from_values(
+def iw_profile_config(
+    iw_profile_config_values: dict[str, Any], iw_global_config: instawow.config.GlobalConfig
+):
+    return instawow.config.ProfileConfig.from_values(
         {'global_config': iw_global_config, **iw_profile_config_values}
     ).write()
 
@@ -125,31 +117,38 @@ def _iw_global_config_defaults(
 
 
 @pytest.fixture
-async def iw_web_client(iw_global_config: GlobalConfig):
-    async with init_web_client(iw_global_config.http_cache_dir) as web_client:
+async def iw_web_client(iw_global_config: instawow.config.GlobalConfig):
+    async with instawow.http.init_web_client(iw_global_config.http_cache_dir) as web_client:
+        instawow.shared_ctx.web_client_var.set(web_client)
         yield web_client
 
 
 @pytest.fixture
-def iw_manager_ctx(
-    iw_profile_config: ProfileConfig,
-    iw_web_client: aiohttp.ClientSession,
-):
-    with ManagerCtx(iw_profile_config) as ctx:
-        contextualise(web_client=iw_web_client)
-        yield ctx
+async def _iw_web_client_ctx(iw_web_client: instawow.http.ClientSession):
+    instawow.shared_ctx.web_client_var.set(iw_web_client)
 
 
 @pytest.fixture
-def iw_manager(iw_manager_ctx: ManagerCtx):
-    return PkgManager(iw_manager_ctx)
+def iw_config_ctx(iw_profile_config: instawow.config.ProfileConfig):
+    with ConfigBoundCtx(iw_profile_config) as config_ctx:
+        yield config_ctx
+
+
+@pytest.fixture
+def iw_manager(iw_config_ctx: ConfigBoundCtx):
+    return instawow.pkg_management.PkgManager(iw_config_ctx)
 
 
 @pytest.fixture(autouse=True, params=['all'])
-@should_mock
-def _iw_mock_aiohttp_requests(
-    request: pytest.FixtureRequest, iw_aresponses: _StrictResponsesMockServer
+async def _iw_mock_aiohttp_requests(
+    request: pytest.FixtureRequest, anyio_backend: ..., iw_aresponses: _StrictResponsesMockServer
 ):
+    if request.config.getoption('--iw-no-mock-http') or any(
+        m.name == 'iw_no_mock_http' for m in request.node.iter_markers()
+    ):
+        await iw_aresponses.__aexit__(*((None,) * 3))
+        return
+
     if request.param == 'all':
         routes = ROUTES.values()
     else:

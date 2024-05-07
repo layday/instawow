@@ -11,7 +11,7 @@ from typing import Protocol
 import attrs
 from typing_extensions import Self
 
-from .. import manager_ctx
+from .. import shared_ctx
 from .._utils.aio import gather
 from .._utils.compat import fauxfrozen
 from .._utils.iteration import bucketise, merge_intersecting_sets, uniq
@@ -24,7 +24,7 @@ from .addon_toc import TocReader
 
 class Matcher(Protocol):  # pragma: no cover
     def __call__(
-        self, manager_ctx: manager_ctx.ManagerCtx, leftovers: frozenset[AddonFolder]
+        self, config_ctx: shared_ctx.ConfigBoundCtx, leftovers: frozenset[AddonFolder]
     ) -> Awaitable[list[tuple[list[AddonFolder], list[Defn]]]]: ...
 
 
@@ -33,17 +33,12 @@ class AddonHashMethod(enum.Enum):
 
 
 # https://github.com/Stanzilla/WoWUIBugs/issues/68#issuecomment-830351390
+# https://warcraft.wiki.gg/wiki/TOC_format#Multiple_client_flavors
 FLAVOUR_TOC_IDS = {
     Flavour.Retail: ('Mainline',),
-    Flavour.VanillaClassic: (
-        'Vanilla',
-        'Classic',
-    ),
-    Flavour.Classic: ('Cata',),
-    Flavour.WrathClassic: (
-        'Wrath',
-        'WOTLKC',
-    ),
+    Flavour.VanillaClassic: ('Vanilla', 'Classic'),
+    Flavour.Classic: ('Cata', 'Classic'),
+    Flavour.WrathClassic: ('Wrath', 'WOTLKC', 'Classic'),
 }
 
 FLAVOUR_TOC_SUFFIXES = {
@@ -72,9 +67,6 @@ class AddonFolder:
             except FileNotFoundError:
                 pass
 
-    def hash_contents(self, __method: AddonHashMethod) -> str:
-        return generate_wowup_addon_hash(self.path)
-
     def get_defns_from_toc_keys(self, keys_and_ids: Iterable[tuple[str, str]]) -> frozenset[Defn]:
         return frozenset(
             Defn(s, i) for k, s in keys_and_ids for i in (self.toc_reader.get(k),) if i
@@ -86,41 +78,47 @@ class AddonFolder:
         return next(filter(None, map(self.toc_reader.get, version_keys)), '')
 
 
-def _get_unreconciled_folders(manager_ctx: manager_ctx.ManagerCtx):
-    with manager_ctx.database.connect() as connection:
+def hash_addon_contents(addon_path: Path, method: AddonHashMethod):
+    match method:
+        case AddonHashMethod.Wowup:
+            return generate_wowup_addon_hash(addon_path)
+
+
+def _get_unreconciled_folders(config_ctx: shared_ctx.ConfigBoundCtx):
+    with config_ctx.database.connect() as connection:
         pkg_folders = [n for (n,) in connection.execute('SELECT name FROM pkg_folder').fetchall()]
 
     unreconciled_folder_paths = (
         p
-        for p in manager_ctx.config.addon_dir.iterdir()
+        for p in config_ctx.config.addon_dir.iterdir()
         if p.name not in pkg_folders and p.is_dir() and not p.is_symlink()
     )
     for path in unreconciled_folder_paths:
-        addon_folder = AddonFolder.from_addon_path(manager_ctx.config.game_flavour, path)
+        addon_folder = AddonFolder.from_addon_path(config_ctx.config.game_flavour, path)
         if addon_folder:
             yield addon_folder
 
 
-def get_unreconciled_folders(manager_ctx: manager_ctx.ManagerCtx) -> frozenset[AddonFolder]:
-    return frozenset(_get_unreconciled_folders(manager_ctx))
+def get_unreconciled_folders(config_ctx: shared_ctx.ConfigBoundCtx) -> frozenset[AddonFolder]:
+    return frozenset(_get_unreconciled_folders(config_ctx))
 
 
 async def match_toc_source_ids(
-    manager_ctx: manager_ctx.ManagerCtx, leftovers: frozenset[AddonFolder]
+    config_ctx: shared_ctx.ConfigBoundCtx, leftovers: frozenset[AddonFolder]
 ):
-    catalogue = await synchronise_catalogue(manager_ctx)
+    catalogue = await synchronise_catalogue()
 
     def get_catalogue_defns(extracted_defns: Iterable[Defn]):
         for defn in extracted_defns:
             entry = catalogue.keyed_entries.get((defn.source, defn.alias))
             if entry:
                 for addon_key in entry.same_as:
-                    if addon_key.source in manager_ctx.resolvers:
+                    if addon_key.source in config_ctx.resolvers:
                         yield Defn(addon_key.source, addon_key.id)
 
     def get_addon_and_defn_pairs():
         for addon in sorted(leftovers):
-            defns = addon.get_defns_from_toc_keys(manager_ctx.resolvers.addon_toc_key_and_id_pairs)
+            defns = addon.get_defns_from_toc_keys(config_ctx.resolvers.addon_toc_key_and_id_pairs)
             if defns:
                 yield (addon, defns | frozenset(get_catalogue_defns(defns)))
 
@@ -135,17 +133,17 @@ async def match_toc_source_ids(
     return [
         (
             [n for n, _ in f],
-            sorted(b, key=lambda d: manager_ctx.resolvers.priority_dict[d.source]),
+            sorted(b, key=lambda d: config_ctx.resolvers.priority_dict[d.source]),
         )
         for b, f in folders_grouped_by_overlapping_defns.items()
     ]
 
 
 async def match_folder_hashes(
-    manager_ctx: manager_ctx.ManagerCtx, leftovers: frozenset[AddonFolder]
+    config_ctx: shared_ctx.ConfigBoundCtx, leftovers: frozenset[AddonFolder]
 ):
     matches = await gather(
-        r.get_folder_hash_matches(leftovers) for r in manager_ctx.resolvers.values()
+        r.get_folder_hash_matches(leftovers) for r in config_ctx.resolvers.values()
     )
     flattened_matches = [t for g in matches for t in g]
     merged_folders_by_constituent_folder = {
@@ -158,7 +156,7 @@ async def match_folder_hashes(
         (
             sorted(f),
             sorted(
-                uniq(d for d, _ in b), key=lambda d: manager_ctx.resolvers.priority_dict[d.source]
+                uniq(d for d, _ in b), key=lambda d: config_ctx.resolvers.priority_dict[d.source]
             ),
         )
         for f, b in matches_grouped_by_overlapping_folder_names.items()
@@ -166,16 +164,16 @@ async def match_folder_hashes(
 
 
 async def match_folder_name_subsets(
-    manager_ctx: manager_ctx.ManagerCtx, leftovers: frozenset[AddonFolder]
+    config_ctx: shared_ctx.ConfigBoundCtx, leftovers: frozenset[AddonFolder]
 ):
-    catalogue = await synchronise_catalogue(manager_ctx)
+    catalogue = await synchronise_catalogue()
 
     leftovers_by_name = {e.name: e for e in leftovers}
 
     matches = [
         (frozenset(leftovers_by_name[n] for n in m), Defn(i.source, i.id))
         for i in catalogue.entries
-        if manager_ctx.config.game_flavour in i.game_flavours
+        if config_ctx.config.game_flavour in i.game_flavours
         for f in i.folders
         for m in (f & leftovers_by_name.keys(),)
         if m
@@ -189,7 +187,7 @@ async def match_folder_name_subsets(
     )
 
     def sort_key(folders: frozenset[AddonFolder], defn: Defn):
-        return (-len(folders), manager_ctx.resolvers.priority_dict[defn.source])
+        return (-len(folders), config_ctx.resolvers.priority_dict[defn.source])
 
     return [
         (sorted(f), uniq(d for _, d in sorted(b, key=lambda v: sort_key(*v))))
@@ -198,12 +196,12 @@ async def match_folder_name_subsets(
 
 
 async def match_addon_names_with_folder_names(
-    manager_ctx: manager_ctx.ManagerCtx, leftovers: frozenset[AddonFolder]
+    config_ctx: shared_ctx.ConfigBoundCtx, leftovers: frozenset[AddonFolder]
 ):
     def normalise(value: str):
         return re.sub(r'[^0-9A-Za-z]', '', value.casefold())
 
-    catalogue = await synchronise_catalogue(manager_ctx)
+    catalogue = await synchronise_catalogue()
 
     addon_names_to_catalogue_entries = bucketise(
         catalogue.entries, key=lambda i: normalise(i.name)

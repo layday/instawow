@@ -7,10 +7,10 @@ from yarl import URL
 
 from instawow._sources.cfcore import CfCoreResolver
 from instawow.definitions import Defn, Strategy, StrategyValues
-from instawow.manager_ctx import ManagerCtx
 from instawow.pkg_management import PkgManager
 from instawow.pkg_models import Pkg
 from instawow.results import PkgFilesNotMatching
+from instawow.shared_ctx import ConfigBoundCtx
 from instawow.wow_installations import Flavour
 
 CURSE_IDS = {
@@ -28,9 +28,9 @@ CURSE_IDS = {
 
 @pytest.fixture
 def curse_resolver(
-    iw_manager_ctx: ManagerCtx,
+    iw_config_ctx: ConfigBoundCtx,
 ):
-    return CfCoreResolver(iw_manager_ctx)
+    return CfCoreResolver(iw_config_ctx.config)
 
 
 @pytest.mark.parametrize(
@@ -38,6 +38,7 @@ def curse_resolver(
     Flavour,
     indirect=True,
 )
+@pytest.mark.usefixtures('_iw_web_client_ctx')
 async def test_resolve_flavourful_addon(
     curse_resolver: CfCoreResolver,
 ):
@@ -52,15 +53,16 @@ async def test_resolve_flavourful_addon(
     Flavour,
     indirect=True,
 )
+@pytest.mark.usefixtures('_iw_web_client_ctx')
 async def test_resolve_classic_only_addon(
-    iw_manager_ctx: ManagerCtx,
+    iw_config_ctx: ConfigBoundCtx,
     curse_resolver: CfCoreResolver,
 ):
     defn = Defn('curse', CURSE_IDS['atlaslootclassic'])
 
     result = (await curse_resolver.resolve([defn]))[defn]
 
-    match iw_manager_ctx.config.game_flavour:
+    match iw_config_ctx.config.game_flavour:
         case Flavour.VanillaClassic | Flavour.WrathClassic:
             assert type(result) is Pkg
         case _:
@@ -71,6 +73,7 @@ async def test_resolve_classic_only_addon(
             )
 
 
+@pytest.mark.usefixtures('_iw_web_client_ctx')
 async def test_curse_any_flavour_strategy(
     curse_resolver: CfCoreResolver,
 ):
@@ -83,6 +86,7 @@ async def test_curse_any_flavour_strategy(
     assert all(type(r) is Pkg for r in results.values())
 
 
+@pytest.mark.usefixtures('_iw_web_client_ctx')
 async def test_curse_slug_match(
     curse_resolver: CfCoreResolver,
 ):
@@ -93,6 +97,7 @@ async def test_curse_slug_match(
     assert result.id == CURSE_IDS['molinari']
 
 
+@pytest.mark.usefixtures('_iw_web_client_ctx')
 async def test_curse_version_pinning(
     curse_resolver: CfCoreResolver,
 ):
@@ -104,6 +109,7 @@ async def test_curse_version_pinning(
     assert result.version == '100005.97-Release'
 
 
+@pytest.mark.usefixtures('_iw_web_client_ctx')
 async def test_curse_deps_retrieved(
     iw_manager: PkgManager,
 ):
@@ -114,6 +120,7 @@ async def test_curse_deps_retrieved(
     assert {'bigwigs-voice-korean', 'big-wigs'} == {p.slug for p in results.values()}
 
 
+@pytest.mark.usefixtures('_iw_web_client_ctx')
 async def test_changelog_url_format(
     curse_resolver: CfCoreResolver,
 ):

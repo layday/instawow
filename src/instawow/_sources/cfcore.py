@@ -11,7 +11,7 @@ from typing_extensions import NotRequired as N
 from typing_extensions import TypedDict
 from yarl import URL
 
-from .. import http, pkg_models
+from .. import http, pkg_models, shared_ctx
 from .. import results as R
 from .._logging import logger
 from .._progress_reporting import make_default_progress
@@ -281,7 +281,7 @@ class CfCoreResolver(BaseResolver):
         if intent is HeadersIntent.Download:
             return None
 
-        maybe_access_token = self._get_access_token(self._manager_ctx.config.global_config)
+        maybe_access_token = self._get_access_token(self._config.global_config)
         if maybe_access_token is None:
             raise ValueError(f'{self.metadata.name} access token is not configured')
         return {'x-api-key': maybe_access_token}
@@ -293,7 +293,7 @@ class CfCoreResolver(BaseResolver):
         if not numeric_ids:
             return await super().resolve(defns)  # Fast path.
 
-        async with self._manager_ctx.web_client.post(
+        async with shared_ctx.web_client.post(
             self.__mod_api_url,
             expire_after=timedelta(minutes=5),
             headers=await self.make_request_headers(),
@@ -313,7 +313,7 @@ class CfCoreResolver(BaseResolver):
     async def _resolve_one(self, defn: Defn, metadata: _CfCoreMod | None) -> PkgCandidate:
         if metadata is None:
             if defn.alias.isdigit():
-                async with self._manager_ctx.web_client.get(
+                async with shared_ctx.web_client.get(
                     self.__mod_api_url / defn.alias,
                     expire_after=timedelta(minutes=15),
                     headers=await self.make_request_headers(),
@@ -327,7 +327,7 @@ class CfCoreResolver(BaseResolver):
                     assert metadata
 
             else:
-                async with self._manager_ctx.web_client.get(
+                async with shared_ctx.web_client.get(
                     (self.__mod_api_url / 'search').with_query(
                         gameId=_CF_WOW_GAME_ID, slug=defn.alias
                     ),
@@ -345,12 +345,12 @@ class CfCoreResolver(BaseResolver):
             files_url = self.__mod_api_url / str(metadata['id']) / 'files'
             if not defn.strategies.any_flavour:
                 files_url = files_url.with_query(
-                    game_version_type_id=self._manager_ctx.config.game_flavour.to_flavour_keyed_enum(
+                    game_version_type_id=self._config.game_flavour.to_flavour_keyed_enum(
                         _CfCoreSortableGameVersionTypeId
                     )
                 )
 
-            async with self._manager_ctx.web_client.get(
+            async with shared_ctx.web_client.get(
                 files_url,
                 expire_after=timedelta(hours=1),
                 headers=await self.make_request_headers(),
@@ -371,7 +371,7 @@ class CfCoreResolver(BaseResolver):
         if not files:
             raise R.PkgFilesMissing
 
-        desired_flavour_groups = self._manager_ctx.config.game_flavour.get_flavour_groups(
+        desired_flavour_groups = self._config.game_flavour.get_flavour_groups(
             bool(defn.strategies.any_flavour)
         )
         for desired_flavours in desired_flavour_groups:
@@ -437,7 +437,7 @@ class CfCoreResolver(BaseResolver):
         )
 
     async def get_changelog(self, uri: URL) -> str:
-        async with self._manager_ctx.web_client.get(
+        async with shared_ctx.web_client.get(
             uri,
             expire_after=http.CACHE_INDEFINITELY,
             headers=await self.make_request_headers(),
@@ -447,7 +447,7 @@ class CfCoreResolver(BaseResolver):
             return response_json['data']
 
     @classmethod
-    async def catalogue(cls, web_client: http.ClientSession) -> AsyncIterator[CatalogueEntry]:
+    async def catalogue(cls) -> AsyncIterator[CatalogueEntry]:
         from aiohttp import ClientTimeout
 
         flavours_and_version_types = [
@@ -472,7 +472,7 @@ class CfCoreResolver(BaseResolver):
         MAX_OFFSET = 10_000  # The CF API craps out after 9,999 results
 
         get = partial(
-            web_client.get,
+            shared_ctx.web_client.get,
             headers={'x-api-key': cls._get_access_token(GlobalConfig.from_values(env=True))},
             raise_for_status=True,
             timeout=ClientTimeout(total=10),

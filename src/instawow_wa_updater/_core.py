@@ -13,7 +13,7 @@ from typing_extensions import NotRequired as N
 from typing_extensions import TypedDict
 from yarl import URL
 
-from instawow import http
+from instawow import http, shared_ctx
 from instawow._logging import logger
 from instawow._progress_reporting import make_default_progress, make_incrementing_progress_tracker
 from instawow._utils.aio import gather, run_in_thread
@@ -21,7 +21,7 @@ from instawow._utils.compat import StrEnum, fauxfrozen
 from instawow._utils.iteration import bucketise
 from instawow._utils.perf import time_op
 from instawow._utils.text import shasum
-from instawow.manager_ctx import ManagerCtx
+from instawow.config import ProfileConfig
 from instawow.wow_installations import get_installation_dir_from_addon_dir
 
 from ._config import PluginConfig
@@ -142,9 +142,9 @@ class _TocNumber(StrEnum):
 class WaCompanionBuilder:
     """A WeakAuras Companion port for shellfolk."""
 
-    def __init__(self, manager_ctx: ManagerCtx) -> None:
-        self._manager_ctx = manager_ctx
-        self.config = PluginConfig(self._manager_ctx.config, __spec__.parent)
+    def __init__(self, profile_config: ProfileConfig) -> None:
+        self._profile_config = profile_config
+        self.config = PluginConfig(self._profile_config, __spec__.parent)
 
     def _make_request_headers(self):
         access_token = self.config.access_token
@@ -158,10 +158,10 @@ class WaCompanionBuilder:
         return model.from_lua_table(loads(f'{{{source}}}'))
 
     def extract_installed_auras(self) -> Iterator[_Auras]:
-        installation_dir = get_installation_dir_from_addon_dir(self._manager_ctx.config.addon_dir)
+        installation_dir = get_installation_dir_from_addon_dir(self._profile_config.addon_dir)
         if not installation_dir:
             raise ValueError(
-                f'cannot extract installation folder from {self._manager_ctx.config.addon_dir}'
+                f'cannot extract installation folder from {self._profile_config.addon_dir}'
             )
 
         saved_vars_by_account = installation_dir.glob('WTF/Account/*/SavedVariables')
@@ -193,7 +193,7 @@ class WaCompanionBuilder:
                 yield aura_group
 
     async def _fetch_wago_metadata(self, api_ep: str, aura_ids: Iterable[str]):
-        async with self._manager_ctx.web_client.post(
+        async with shared_ctx.web_client.post(
             (_CHECK_API_URL / api_ep),
             expire_after=timedelta(minutes=30),
             headers=self._make_request_headers(),
@@ -213,7 +213,7 @@ class WaCompanionBuilder:
             return sorted(metadata, key=lambda r: r['slug'])
 
     async def _fetch_wago_import_string(self, remote_aura: _WagoApiResponse):
-        async with self._manager_ctx.web_client.get(
+        async with shared_ctx.web_client.get(
             _IMPORT_STRING_API_URL.with_query(id=remote_aura['_id']).with_fragment(
                 str(remote_aura['version'])
             ),
@@ -300,7 +300,7 @@ WeakAurasCompanionData = {{
                 'init.lua', template_resources.joinpath('init.lua').read_text()
             )
 
-            interface_version = self._manager_ctx.config.game_flavour.to_flavour_keyed_enum(
+            interface_version = self._profile_config.game_flavour.to_flavour_keyed_enum(
                 _TocNumber
             ).value
             addon_version = shasum(data_output, init_output, interface_version)[:7]
@@ -309,7 +309,7 @@ WeakAurasCompanionData = {{
             write_file(
                 'WeakAurasCompanion.toc',
                 toc_tpl.format(
-                    interface=self._manager_ctx.config.game_flavour.to_flavour_keyed_enum(
+                    interface=self._profile_config.game_flavour.to_flavour_keyed_enum(
                         _TocNumber
                     ).value,
                     version=addon_version,

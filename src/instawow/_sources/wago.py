@@ -1,13 +1,12 @@
 from __future__ import annotations
 
-from collections.abc import Collection, Iterable
+from collections.abc import Collection
 from datetime import timedelta
-from typing import Literal, NoReturn
 
-from typing_extensions import TypedDict
+from typing_extensions import Never, TypedDict
 from yarl import URL
 
-from .. import matchers
+from .. import matchers, shared_ctx
 from .. import results as R
 from .._progress_reporting import make_default_progress
 from .._utils.aio import run_in_thread
@@ -17,7 +16,13 @@ from .._utils.web import as_plain_text_data_url
 from ..definitions import ChangelogFormat, Defn, SourceMetadata, Strategy
 from ..resolvers import BaseResolver, HeadersIntent, PkgCandidate, TFolderHashCandidate
 
-_WagoStability = Literal['stable', 'beta', 'alpha']
+
+class _WagoStability(StrEnum):
+    "https://addons.wago.io/api/data/game"
+
+    Stable = 'stable'
+    Beta = 'beta'
+    Alpha = 'alpha'
 
 
 class _WagoGameVersion(StrEnum):
@@ -85,7 +90,7 @@ class _WagoAddon(TypedDict):
     authors: list[str]
     download_count: int
     website_url: str  # Page on Wago
-    recent_release: dict[_WagoStability, _WagoAddonRelease] | list[NoReturn]
+    recent_release: dict[_WagoStability, _WagoAddonRelease] | list[Never]
 
 
 class _WagoAddonRelease(TypedDict):
@@ -117,19 +122,15 @@ class WagoResolver(BaseResolver):
             return url.parts[2]
 
     async def make_request_headers(self, intent: HeadersIntent | None = None) -> dict[str, str]:
-        maybe_access_token = self._get_access_token(self._manager_ctx.config.global_config)
+        maybe_access_token = self._get_access_token(self._config.global_config)
         if maybe_access_token is None:
             raise ValueError(f'{self.metadata.name} access token is not configured')
         return {'Authorization': f'Bearer {maybe_access_token}'}
 
     async def _resolve_one(self, defn: Defn, metadata: None) -> PkgCandidate:
-        wago_game_version = self._manager_ctx.config.game_flavour.to_flavour_keyed_enum(
-            _WagoGameVersion
-        )
-
-        async with self._manager_ctx.web_client.get(
+        async with shared_ctx.web_client.get(
             (self.__wago_external_api_url / 'addons' / defn.alias).with_query(
-                game_version=wago_game_version.value,
+                game_version=self._config.game_flavour.to_flavour_keyed_enum(_WagoGameVersion)
             ),
             expire_after=timedelta(minutes=5),
             headers=await self.make_request_headers(),
@@ -142,17 +143,15 @@ class WagoResolver(BaseResolver):
 
         recent_releases = dict(addon_metadata['recent_release'])
         if not defn.strategies.any_release_type:
-            files = filter(None, (recent_releases.get('stable'),))
-        else:
-            files = recent_releases.values()
+            stable_release = recent_releases.get(_WagoStability.Stable)
+            recent_releases = {_WagoStability.Stable: stable_release} if stable_release else {}
 
-        matching_file = max(
-            ((datetime_fromisoformat(f['created_at']), f) for f in files), default=None
-        )
-        if matching_file is None:
-            raise R.PkgFilesMissing
-        else:
-            file_date, file = matching_file
+        try:
+            file_date, file = max(
+                (datetime_fromisoformat(f['created_at']), f) for f in recent_releases.values()
+            )
+        except ValueError:
+            raise R.PkgFilesNotMatching(defn.strategies)
 
         return PkgCandidate(
             id=addon_metadata['id'],
@@ -171,13 +170,11 @@ class WagoResolver(BaseResolver):
         self, candidates: Collection[TFolderHashCandidate]
     ) -> _WagoMatchRequest:
         return {
-            'game_version': self._manager_ctx.config.game_flavour.to_flavour_keyed_enum(
-                _WagoGameVersion
-            ),
+            'game_version': self._config.game_flavour.to_flavour_keyed_enum(_WagoGameVersion),
             'addons': [
                 {
                     'name': c.name,
-                    'hash': c.hash_contents(matchers.AddonHashMethod.Wowup),
+                    'hash': matchers.hash_addon_contents(c.path, matchers.AddonHashMethod.Wowup),
                 }
                 for c in candidates
             ],
@@ -185,8 +182,8 @@ class WagoResolver(BaseResolver):
 
     async def get_folder_hash_matches(
         self, candidates: Collection[TFolderHashCandidate]
-    ) -> Iterable[tuple[Defn, frozenset[TFolderHashCandidate]]]:
-        async with self._manager_ctx.web_client.post(
+    ) -> list[tuple[Defn, frozenset[TFolderHashCandidate]]]:
+        async with shared_ctx.web_client.post(
             self.__wago_external_api_url / 'addons/_match',
             expire_after=timedelta(minutes=15),
             headers=await self.make_request_headers(),

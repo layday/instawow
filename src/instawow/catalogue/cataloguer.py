@@ -10,7 +10,7 @@ import cattrs
 import cattrs.preconf.json
 from typing_extensions import Self
 
-from .. import http
+from .. import http, shared_ctx
 from .._utils.compat import fauxfrozen
 from .._utils.iteration import bucketise
 from .._utils.text import normalise_names
@@ -31,7 +31,7 @@ _normalise_name = normalise_names('')
 
 
 class _CatalogueFn(Protocol):  # pragma: no cover
-    def __call__(self, web_client: http.ClientSession) -> AsyncIterator[CatalogueEntry]: ...
+    def __call__(self) -> AsyncIterator[CatalogueEntry]: ...
 
 
 @fauxfrozen(kw_only=True)
@@ -68,7 +68,9 @@ class Catalogue:
         cls, catalogue_fns: Iterable[_CatalogueFn], start_date: datetime | None
     ) -> Self:
         async with http.init_web_client(None) as web_client:
-            entries = [e for r in catalogue_fns async for e in r(web_client)]
+            shared_ctx.web_client_var.set(web_client)
+
+            entries = [e for r in catalogue_fns async for e in r()]
             if start_date is not None:
                 entries = [e for e in entries if e.last_updated >= start_date]
             return cls(entries=entries)

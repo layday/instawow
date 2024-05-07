@@ -14,8 +14,7 @@ import click
 import click.types
 from typing_extensions import Self
 
-from . import __version__, _logging, pkg_management, pkg_models
-from . import manager_ctx as _manager_ctx
+from . import __version__, _logging, pkg_management, pkg_models, shared_ctx
 from . import results as R
 from ._utils.compat import StrEnum
 from ._utils.iteration import all_eq, bucketise, uniq
@@ -111,33 +110,35 @@ class _ManagerProxy(_ManagerProxyBase):
 
             _logging.setup_logging(config.logging_dir, *self.__context.params['verbose'])
 
-            manager_ctx = self.__context.with_resource(_manager_ctx.ManagerCtx(config))
-            return pkg_management.PkgManager(manager_ctx)
+            config_ctx = self.__context.with_resource(shared_ctx.ConfigBoundCtx(config))
+            return pkg_management.PkgManager(config_ctx)
 
         def __getattr__(self, name: str) -> Any:
             return getattr(self.__manager, name)
 
 
-def run_with_progress(awaitable: Awaitable[_T], ctx: click.Context | None = None) -> _T:
+def run_with_progress(awaitable: Awaitable[_T], click_ctx: click.Context | None = None) -> _T:
     import asyncio
 
     from .http import init_web_client
 
-    if ctx is None:
-        ctx = click.get_current_context()
-    ctx = ctx.find_root()
+    if click_ctx is None:
+        click_ctx = click.get_current_context()
+    click_ctx = click_ctx.find_root()
+
+    manager: _ManagerProxy = click_ctx.obj
 
     make_init_web_client = partial(
         init_web_client,
-        ctx.obj.ctx.config.global_config.http_cache_dir,
-        no_cache=ctx.params['no_cache'],
+        manager.ctx.config.global_config.http_cache_dir,
+        no_cache=click_ctx.params['no_cache'],
     )
 
-    if any(ctx.params['verbose']):
+    if any(click_ctx.params['verbose']):
 
         async def run():
             async with make_init_web_client() as web_client:
-                _manager_ctx.contextualise(web_client=web_client)
+                shared_ctx.web_client_var.set(web_client)
                 return await awaitable
 
     else:
@@ -191,7 +192,7 @@ def run_with_progress(awaitable: Awaitable[_T], ctx: click.Context | None = None
 
                 try:
                     async with make_init_web_client(with_progress=True) as web_client:
-                        _manager_ctx.contextualise(web_client=web_client)
+                        shared_ctx.web_client_var.set(web_client)
                         return await awaitable
 
                 finally:
@@ -1301,10 +1302,11 @@ def generate_catalogue(start_date: dt.datetime | None) -> None:
     import asyncio
     import json
 
+    from ._sources import DEFAULT_RESOLVERS
     from .catalogue.cataloguer import Catalogue, catalogue_converter
 
     catalogue = asyncio.run(
-        Catalogue.collate((r.catalogue for r in _manager_ctx.ManagerCtx.RESOLVERS), start_date)
+        Catalogue.collate((r.catalogue for r in DEFAULT_RESOLVERS), start_date)
     )
     catalogue_json = catalogue_converter.unstructure(catalogue)
 

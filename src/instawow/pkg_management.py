@@ -20,7 +20,7 @@ import attrs
 from typing_extensions import Never, ParamSpec
 from yarl import URL
 
-from . import http, pkg_db, pkg_models
+from . import http, pkg_db, pkg_models, shared_ctx
 from . import results as R
 from ._logging import logger
 from ._progress_reporting import Progress, make_incrementing_progress_tracker
@@ -31,7 +31,6 @@ from ._utils.perf import time_op
 from ._utils.text import shasum
 from ._utils.web import file_uri_to_path, is_file_uri
 from .definitions import Defn, Strategy
-from .manager_ctx import ManagerCtx
 from .resolvers import HeadersIntent
 
 _T = TypeVar('_T')
@@ -79,12 +78,14 @@ async def _open_temp_writer_async():
         await run_in_thread(fh.close)()
 
 
-async def _download_pkg_archive(ctx: ManagerCtx, defn: Defn, pkg: pkg_models.Pkg) -> Path:
+async def _download_pkg_archive(
+    config_ctx: shared_ctx.ConfigBoundCtx, defn: Defn, pkg: pkg_models.Pkg
+) -> Path:
     if is_file_uri(pkg.download_url):
         return Path(file_uri_to_path(pkg.download_url))
 
-    async with ctx.locks[_DOWNLOAD_PKG_LOCK, pkg.download_url]:
-        headers = await ctx.resolvers[pkg.source].make_request_headers(
+    async with shared_ctx.locks[_DOWNLOAD_PKG_LOCK, pkg.download_url]:
+        headers = await config_ctx.resolvers[pkg.source].make_request_headers(
             intent=HeadersIntent.Download
         )
         trace_request_ctx = {
@@ -93,13 +94,13 @@ async def _download_pkg_archive(ctx: ManagerCtx, defn: Defn, pkg: pkg_models.Pkg
                 unit='bytes',
                 current=0,
                 total=0,
-                profile=ctx.config.profile,
+                profile=config_ctx.config.profile,
                 defn=defn,
             )
         }
 
         async with (
-            ctx.web_client.get(
+            shared_ctx.web_client.get(
                 pkg.download_url,
                 headers=headers,
                 raise_for_status=True,
@@ -113,7 +114,7 @@ async def _download_pkg_archive(ctx: ManagerCtx, defn: Defn, pkg: pkg_models.Pkg
 
         return await _move_async(
             temp_path,
-            ctx.config.global_config.install_cache_dir / shasum(pkg.download_url),
+            config_ctx.config.global_config.install_cache_dir / shasum(pkg.download_url),
         )
 
 
@@ -235,11 +236,18 @@ def _delete_db_pkg(pkg: pkg_models.Pkg, transaction: pkg_db.Connection):
 
 @run_in_thread
 def _install_pkg(
-    ctx: ManagerCtx, pkg: pkg_models.Pkg, archive: Path, *, replace_folders: bool
+    config_ctx: shared_ctx.ConfigBoundCtx,
+    pkg: pkg_models.Pkg,
+    archive: Path,
+    *,
+    replace_folders: bool,
 ) -> R.PkgInstalled:
     with (
-        ctx.resolvers.archive_opener_dict[pkg.source](archive) as (top_level_folders, extract),
-        ctx.database.connect() as connection,
+        config_ctx.resolvers.archive_opener_dict[pkg.source](archive) as (
+            top_level_folders,
+            extract,
+        ),
+        config_ctx.database.connect() as connection,
     ):
         installed_conflicts = connection.execute(
             f"""
@@ -255,23 +263,23 @@ def _install_pkg(
 
         if replace_folders:
             trash(
-                (ctx.config.addon_dir / f for f in top_level_folders),
-                dest=ctx.config.global_config.temp_dir,
+                (config_ctx.config.addon_dir / f for f in top_level_folders),
+                dest=config_ctx.config.global_config.temp_dir,
                 missing_ok=True,
             )
         else:
             unreconciled_conflicts = top_level_folders & {
-                f.name for f in ctx.config.addon_dir.iterdir()
+                f.name for f in config_ctx.config.addon_dir.iterdir()
             }
             if unreconciled_conflicts:
                 raise R.PkgConflictsWithUnreconciled(unreconciled_conflicts)
 
-        extract(ctx.config.addon_dir)
+        extract(config_ctx.config.addon_dir)
 
         pkg = attrs.evolve(
             pkg, folders=[pkg_models.PkgFolder(name=f) for f in sorted(top_level_folders)]
         )
-        with ctx.database.transact(connection) as transaction:
+        with config_ctx.database.transact(connection) as transaction:
             _insert_db_pkg(pkg, transaction)
 
     return R.PkgInstalled(pkg)
@@ -279,11 +287,17 @@ def _install_pkg(
 
 @run_in_thread
 def _update_pkg(
-    ctx: ManagerCtx, old_pkg: pkg_models.Pkg, new_pkg: pkg_models.Pkg, archive: Path
+    config_ctx: shared_ctx.ConfigBoundCtx,
+    old_pkg: pkg_models.Pkg,
+    new_pkg: pkg_models.Pkg,
+    archive: Path,
 ) -> R.PkgUpdated:
     with (
-        ctx.resolvers.archive_opener_dict[new_pkg.source](archive) as (top_level_folders, extract),
-        ctx.database.connect() as connection,
+        config_ctx.resolvers.archive_opener_dict[new_pkg.source](archive) as (
+            top_level_folders,
+            extract,
+        ),
+        config_ctx.database.connect() as connection,
     ):
         installed_conflicts = connection.execute(
             f"""
@@ -299,22 +313,22 @@ def _update_pkg(
             raise R.PkgConflictsWithInstalled(installed_conflicts)
 
         unreconciled_conflicts = top_level_folders - {f.name for f in old_pkg.folders} & {
-            f.name for f in ctx.config.addon_dir.iterdir()
+            f.name for f in config_ctx.config.addon_dir.iterdir()
         }
         if unreconciled_conflicts:
             raise R.PkgConflictsWithUnreconciled(unreconciled_conflicts)
 
         trash(
-            (ctx.config.addon_dir / f.name for f in old_pkg.folders),
-            dest=ctx.config.global_config.temp_dir,
+            (config_ctx.config.addon_dir / f.name for f in old_pkg.folders),
+            dest=config_ctx.config.global_config.temp_dir,
             missing_ok=True,
         )
-        extract(ctx.config.addon_dir)
+        extract(config_ctx.config.addon_dir)
 
         new_pkg = attrs.evolve(
             new_pkg, folders=[pkg_models.PkgFolder(name=f) for f in sorted(top_level_folders)]
         )
-        with ctx.database.transact(connection) as transaction:
+        with config_ctx.database.transact(connection) as transaction:
             _delete_db_pkg(old_pkg, transaction)
             _insert_db_pkg(new_pkg, transaction)
 
@@ -322,23 +336,28 @@ def _update_pkg(
 
 
 @run_in_thread
-def _remove_pkg(ctx: ManagerCtx, pkg: pkg_models.Pkg, *, keep_folders: bool) -> R.PkgRemoved:
+def _remove_pkg(
+    config_ctx: shared_ctx.ConfigBoundCtx, pkg: pkg_models.Pkg, *, keep_folders: bool
+) -> R.PkgRemoved:
     if not keep_folders:
         trash(
-            (ctx.config.addon_dir / f.name for f in pkg.folders),
-            dest=ctx.config.global_config.temp_dir,
+            (config_ctx.config.addon_dir / f.name for f in pkg.folders),
+            dest=config_ctx.config.global_config.temp_dir,
             missing_ok=True,
         )
 
-    with ctx.database.connect() as connection, ctx.database.transact(connection) as transaction:
+    with (
+        config_ctx.database.connect() as connection,
+        config_ctx.database.transact(connection) as transaction,
+    ):
         _delete_db_pkg(pkg, transaction)
 
     return R.PkgRemoved(pkg)
 
 
 @run_in_thread
-def _check_installed_pkg_integrity(ctx: ManagerCtx, pkg: pkg_models.Pkg):
-    return all((ctx.config.addon_dir / p.name).exists() for p in pkg.folders)
+def _check_installed_pkg_integrity(config_ctx: shared_ctx.ConfigBoundCtx, pkg: pkg_models.Pkg):
+    return all((config_ctx.config.addon_dir / p.name).exists() for p in pkg.folders)
 
 
 @object.__new__
@@ -356,7 +375,7 @@ def _with_lock(lock_name: str):
     ) -> Callable[Concatenate[_TPkgManager, _P], Awaitable[_T]]:
         @wraps(coro_fn)
         async def inner(self: _TPkgManager, *args: _P.args, **kwargs: _P.kwargs) -> _T:
-            async with self.ctx.locks[lock_name, id(self)]:
+            async with shared_ctx.locks[lock_name, id(self)]:
                 return await coro_fn(self, *args, **kwargs)
 
         return inner
@@ -365,8 +384,8 @@ def _with_lock(lock_name: str):
 
 
 class PkgManager:
-    def __init__(self, ctx: ManagerCtx) -> None:
-        self.ctx = ctx
+    def __init__(self, config_ctx: shared_ctx.ConfigBoundCtx) -> None:
+        self.ctx = config_ctx
 
     def pair_uri(self, value: str) -> tuple[str, str] | None:
         "Attempt to extract a valid ``Defn`` source and alias from a URL."
@@ -514,7 +533,7 @@ class PkgManager:
         from .catalogue import synchronise as synchronise_catalogue
         from .matchers import AddonFolder
 
-        catalogue = await synchronise_catalogue(self.ctx)
+        catalogue = await synchronise_catalogue()
 
         @run_in_thread
         def collect_addon_folders():

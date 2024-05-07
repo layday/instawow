@@ -8,6 +8,7 @@ from aiohttp import ClientError
 from aresponses import ResponsesMockServer
 
 from instawow import results as R
+from instawow._sources import DEFAULT_RESOLVERS
 from instawow.definitions import Defn, Strategy
 from instawow.pkg_management import PkgManager
 from instawow.pkg_models import Pkg
@@ -19,7 +20,7 @@ def test_auth_bound_resolvers_are_not_unloaded_if_tokens_set(
     iw_manager: PkgManager,
 ):
     assert {
-        r.metadata.id for r in iw_manager.ctx.RESOLVERS if r.requires_access_token is not None
+        r.metadata.id for r in DEFAULT_RESOLVERS if r.requires_access_token is not None
     }.issubset(iw_manager.ctx.resolvers)
 
 
@@ -32,10 +33,11 @@ def test_auth_bound_resolvers_are_unloaded_if_tokens_unset(
     iw_manager: PkgManager,
 ):
     assert {
-        r.metadata.id for r in iw_manager.ctx.RESOLVERS if r.requires_access_token is not None
+        r.metadata.id for r in DEFAULT_RESOLVERS if r.requires_access_token is not None
     }.isdisjoint(iw_manager.ctx.resolvers)
 
 
+@pytest.mark.usefixtures('_iw_web_client_ctx')
 async def test_pinning_supported_pkg(
     iw_manager: PkgManager,
 ):
@@ -51,6 +53,7 @@ async def test_pinning_supported_pkg(
         assert install_result.pkg.version == pin_result.pkg.version
 
 
+@pytest.mark.usefixtures('_iw_web_client_ctx')
 async def test_pinning_unsupported_pkg(
     iw_manager: PkgManager,
 ):
@@ -84,6 +87,7 @@ async def test_pinning_unsupported_nonexistent_pkg(
 
 
 @pytest.mark.parametrize('exception', [ValueError('foo'), ClientError('bar')])
+@pytest.mark.usefixtures('_iw_web_client_ctx')
 async def test_resolve_rewraps_exception_appropriately_from_resolve(
     monkeypatch: pytest.MonkeyPatch,
     iw_manager: PkgManager,
@@ -101,6 +105,7 @@ async def test_resolve_rewraps_exception_appropriately_from_resolve(
 
 
 @pytest.mark.parametrize('exception', [ValueError('foo'), ClientError('bar')])
+@pytest.mark.usefixtures('_iw_web_client_ctx')
 async def test_resolve_rewraps_exception_appropriately_from_batch_resolve(
     monkeypatch: pytest.MonkeyPatch,
     iw_manager: PkgManager,
@@ -117,6 +122,7 @@ async def test_resolve_rewraps_exception_appropriately_from_batch_resolve(
     assert result.message == f'internal error: "{exception}"'
 
 
+@pytest.mark.usefixtures('_iw_web_client_ctx')
 async def test_resolve_invalid_source(
     iw_manager: PkgManager,
 ):
@@ -125,6 +131,7 @@ async def test_resolve_invalid_source(
     assert type(results[defn]) is R.PkgSourceInvalid
 
 
+@pytest.mark.usefixtures('_iw_web_client_ctx')
 async def test_resolve_plugin_hook_source(
     iw_manager: PkgManager,
 ):
@@ -134,6 +141,7 @@ async def test_resolve_plugin_hook_source(
     assert type(results[defn]) is Pkg
 
 
+@pytest.mark.usefixtures('_iw_web_client_ctx')
 async def test_install_can_replace_unreconciled_folders(
     iw_manager: PkgManager,
 ):
@@ -151,6 +159,7 @@ async def test_install_can_replace_unreconciled_folders(
     assert any(molinari.iterdir())
 
 
+@pytest.mark.usefixtures('_iw_web_client_ctx')
 async def test_install_cannot_replace_reconciled_folders(
     iw_manager: PkgManager,
 ):
@@ -167,6 +176,7 @@ async def test_install_cannot_replace_reconciled_folders(
     assert type(result[wowi_defn]) is R.PkgConflictsWithInstalled
 
 
+@pytest.mark.usefixtures('_iw_web_client_ctx')
 async def test_install_recognises_renamed_pkg_from_id(
     monkeypatch: pytest.MonkeyPatch,
     iw_aresponses: ResponsesMockServer,
@@ -203,6 +213,7 @@ async def test_install_recognises_renamed_pkg_from_id(
     assert type(result[new_defn]) is R.PkgAlreadyInstalled
 
 
+@pytest.mark.usefixtures('_iw_web_client_ctx')
 async def test_update_lifecycle_with_strategy_switch(
     iw_manager: PkgManager,
 ):
@@ -225,6 +236,7 @@ async def test_update_lifecycle_with_strategy_switch(
     assert result.is_pinned is True
 
 
+@pytest.mark.usefixtures('_iw_web_client_ctx')
 async def test_update_reinstalls_corrupted_pkgs(
     iw_manager: PkgManager,
 ):
@@ -245,6 +257,7 @@ async def test_update_reinstalls_corrupted_pkgs(
 
 
 @pytest.mark.parametrize('keep_folders', [True, False])
+@pytest.mark.usefixtures('_iw_web_client_ctx')
 async def test_deleting_and_retaining_folders_on_remove(
     iw_manager: PkgManager, keep_folders: bool
 ):
@@ -267,6 +280,7 @@ async def test_deleting_and_retaining_folders_on_remove(
 
 
 @pytest.mark.parametrize('keep_folders', [True, False])
+@pytest.mark.usefixtures('_iw_web_client_ctx')
 async def test_removing_pkg_with_missing_folders(
     iw_manager: PkgManager,
     keep_folders: bool,
@@ -313,6 +327,7 @@ async def test_get_changelog_from_file_uri(
     assert (await iw_manager.get_changelog('github', changelog.as_uri())) == 'test'
 
 
+@pytest.mark.usefixtures('_iw_web_client_ctx')
 async def test_get_changelog_from_web_url(
     iw_manager: PkgManager,
 ):

@@ -28,7 +28,7 @@ from aiohttp_rpc.server import WsJsonRpcServer
 from typing_extensions import ParamSpec, TypedDict
 from yarl import URL
 
-from instawow import __version__, matchers, pkg_models
+from instawow import __version__, matchers, pkg_models, shared_ctx
 from instawow import results as R
 from instawow._logging import logger
 from instawow._progress_reporting import ReadOnlyProgressGroup, make_progress_receiver
@@ -44,7 +44,6 @@ from instawow.config import GlobalConfig, ProfileConfig, SecretStr, config_conve
 from instawow.definitions import Defn, SourceMetadata
 from instawow.github_auth import get_codes, poll_for_access_token
 from instawow.http import init_web_client
-from instawow.manager_ctx import ManagerCtx, contextualise
 from instawow.pkg_management import PkgDownloadProgress, PkgManager, bucketise_results
 from instawow.wow_installations import Flavour, infer_flavour_from_addon_dir
 
@@ -620,7 +619,8 @@ class _ManagersManager:
 
         self._exit_stack.push_async_callback(self.cancel_github_auth_polling)
 
-        contextualise(web_client=self._web_client, locks=self.locks)
+        shared_ctx.locks_var.set(self.locks)
+        shared_ctx.web_client_var.set(self._web_client)
 
     async def __aexit__(self, *args: object):
         await self._exit_stack.aclose()
@@ -652,10 +652,10 @@ class _ManagersManager:
                 try:
                     manager = self._managers[profile]
                 except KeyError:
-                    manager_ctx = ManagerCtx(
+                    config_ctx = shared_ctx.ConfigBoundCtx(
                         await _read_profile_config(self.global_config, profile)
                     )
-                    manager = self._managers[profile] = PkgManager(manager_ctx)
+                    manager = self._managers[profile] = PkgManager(config_ctx)
 
         return await coro_fn(manager)
 
