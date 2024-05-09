@@ -28,7 +28,7 @@ async def test_pinning_supported_pkg(iw_config_ctx: ConfigBoundCtx):
     for new_defn in (defn.with_version(install_result.pkg.version), defn):
         pin_result = (await pkg_management.pin(iw_config_ctx, [new_defn]))[new_defn]
         assert type(pin_result) is R.PkgInstalled
-        assert pin_result.pkg.options.version_eq is bool(new_defn.strategies.version_eq)
+        assert pin_result.pkg.options.version_eq is bool(new_defn.strategies[Strategy.VersionEq])
         assert install_result.pkg.version == pin_result.pkg.version
 
 

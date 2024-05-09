@@ -8,7 +8,6 @@ from functools import cached_property
 from pathlib import Path
 from typing import Any, ClassVar, Protocol, TypedDict, TypeVar
 
-import attrs
 from typing_extensions import NotRequired, deprecated
 from yarl import URL
 
@@ -158,7 +157,7 @@ class BaseResolver(Resolver, Protocol):
         return dict(zip(defns, results))
 
     async def resolve_one(self, defn: Defn, metadata: Any) -> pkg_models.Pkg:
-        extraneous_strategies = defn.strategies.filled_strategies.keys() - self.metadata.strategies
+        extraneous_strategies = defn.strategies.filled.keys() - self.metadata.strategies
         if extraneous_strategies:
             raise R.PkgStrategiesUnsupported(extraneous_strategies)
 
@@ -166,9 +165,7 @@ class BaseResolver(Resolver, Protocol):
         return pkg_models.Pkg(
             **pkg_candidate,
             source=self.metadata.id,
-            options=pkg_models.PkgOptions(
-                **attrs.asdict(defn.strategies, value_serializer=lambda t, a, v: bool(v))
-            ),
+            options=pkg_models.PkgOptions(**{k: bool(v) for k, v in defn.strategies.items()}),
         )
 
     async def _resolve_one(self, defn: Defn, metadata: Any) -> PkgCandidate:

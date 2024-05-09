@@ -73,10 +73,10 @@ async def _open_temp_writer_async():
 
 @object.__new__
 class _DummyResolver:
-    async def resolve(self, defns: Sequence[Defn]) -> dict[Defn, R.AnyResult[pkg_models.Pkg]]:
+    async def resolve(self, defns: Sequence[Defn]):
         return dict.fromkeys(defns, R.PkgSourceInvalid())
 
-    async def get_changelog(self, uri: URL) -> str:
+    async def get_changelog(self, uri: URL):
         raise R.PkgSourceInvalid
 
 
@@ -719,7 +719,7 @@ async def pin(
         if not pkg:
             raise R.PkgNotInstalled
 
-        version = defn.strategies.version_eq
+        version = defn.strategies[Strategy.VersionEq]
         if version and pkg.version != version:
             R.PkgFilesNotMatching(defn.strategies)
 

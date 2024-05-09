@@ -341,9 +341,9 @@ class CfCoreResolver(BaseResolver):
 
                     [metadata] = mod_response_json['data']
 
-        if defn.strategies.version_eq:
+        if defn.strategies[Strategy.VersionEq]:
             files_url = self.__mod_api_url / str(metadata['id']) / 'files'
-            if not defn.strategies.any_flavour:
+            if not defn.strategies[Strategy.AnyFlavour]:
                 files_url = files_url.with_query(
                     game_version_type_id=self._config.game_flavour.to_flavour_keyed_enum(
                         _CfCoreSortableGameVersionTypeId
@@ -372,7 +372,7 @@ class CfCoreResolver(BaseResolver):
             raise R.PkgFilesMissing
 
         desired_flavour_groups = self._config.game_flavour.get_flavour_groups(
-            bool(defn.strategies.any_flavour)
+            bool(defn.strategies[Strategy.AnyFlavour])
         )
         for desired_flavours in desired_flavour_groups:
 
@@ -390,11 +390,12 @@ class CfCoreResolver(BaseResolver):
                         s['gameVersionTypeId'] in type_ids for s in f['sortableGameVersions']
                     )
 
-                if not defn.strategies.any_release_type:
+                if not defn.strategies[Strategy.AnyReleaseType]:
                     yield lambda f: f['releaseType'] == _CfCoreFileReleaseType.release
 
-                if defn.strategies.version_eq:
-                    yield lambda f: f['displayName'] == defn.strategies.version_eq
+                version_eq = defn.strategies[Strategy.VersionEq]
+                if version_eq:
+                    yield lambda f: f['displayName'] == version_eq
 
             filter_fns = list(make_filter_fns(desired_flavours))
             try:

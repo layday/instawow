@@ -142,7 +142,7 @@ class WagoResolver(BaseResolver):
             addon_metadata: _WagoAddon = await response.json()
 
         recent_releases = dict(addon_metadata['recent_release'])
-        if not defn.strategies.any_release_type:
+        if not defn.strategies[Strategy.AnyReleaseType]:
             stable_release = recent_releases.get(_WagoStability.Stable)
             recent_releases = {_WagoStability.Stable: stable_release} if stable_release else {}
 

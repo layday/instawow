@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from collections.abc import Iterable
+from collections.abc import Hashable, Iterable, Iterator, Mapping
 from functools import partial
-from typing import Literal
+from typing import Literal, overload
 
 import attrs
 from typing_extensions import Self
@@ -32,21 +32,38 @@ class SourceMetadata:
     addon_toc_key: str | None
 
 
-@fauxfrozen
-class StrategyValues:
-    any_flavour: Literal[True, None] = None
-    any_release_type: Literal[True, None] = None
-    version_eq: str | None = None
-
+class Strategies(Mapping[Strategy, object], Hashable):
     initialised = True
 
+    def __init__(self, entries: Mapping[Strategy, object] = {}) -> None:
+        self._entries = dict.fromkeys(Strategy) | dict(entries)
+
+    @overload
+    def __getitem__(self, key: Literal[Strategy.AnyFlavour], /) -> Literal[True] | None: ...
+    @overload
+    def __getitem__(self, key: Literal[Strategy.AnyReleaseType], /) -> Literal[True] | None: ...
+    @overload
+    def __getitem__(self, key: Literal[Strategy.VersionEq], /) -> str | None: ...
+    @overload
+    def __getitem__(self, key: Strategy, /) -> object: ...
+    def __getitem__(self, key: Strategy, /) -> object:
+        return self._entries[key]
+
+    def __hash__(self) -> int:
+        return hash(frozenset(self._entries.items()))
+
+    def __iter__(self) -> Iterator[Strategy]:
+        return iter(self._entries)
+
+    def __len__(self) -> int:
+        return len(self._entries)
+
     @property
-    def filled_strategies(self) -> dict[Strategy, object]:
-        return {Strategy(p): v for p, v in attrs.asdict(self).items() if v is not None}
+    def filled(self) -> dict[Strategy, object]:
+        return {s: v for s, v in self._entries.items() if v is not None}
 
 
-@fauxfrozen
-class _UninitialisedStrategyValues(StrategyValues):
+class _UninitialisedStrategies(Strategies):
     initialised = False
 
 
@@ -59,7 +76,7 @@ class Defn:
     source: str
     alias: str
     id: str | None = None
-    strategies: StrategyValues = _UninitialisedStrategyValues()
+    strategies: Strategies = _UninitialisedStrategies()
 
     @classmethod
     def from_uri(
@@ -81,7 +98,7 @@ class Defn:
             make_cls = partial(cls, source=url.scheme, alias=url.path)
 
         if url.fragment == _STRATEGY_VALUE_SEP:
-            make_cls = partial(make_cls, strategies=StrategyValues())
+            make_cls = partial(make_cls, strategies=Strategies())
         elif url.fragment:
             strategy_values = {
                 s: v
@@ -96,10 +113,13 @@ class Defn:
 
             make_cls = partial(
                 make_cls,
-                strategies=StrategyValues(
-                    any_flavour=Strategy.AnyFlavour in strategy_values or None,
-                    any_release_type=Strategy.AnyReleaseType in strategy_values or None,
-                    version_eq=strategy_values.get(Strategy.VersionEq),
+                strategies=Strategies(
+                    {
+                        Strategy.AnyFlavour: Strategy.AnyFlavour in strategy_values or None,
+                        Strategy.AnyReleaseType: Strategy.AnyReleaseType in strategy_values
+                        or None,
+                        Strategy.VersionEq: strategy_values.get(Strategy.VersionEq),
+                    }
                 ),
             )
 
@@ -109,10 +129,10 @@ class Defn:
         uri = f'{self.source}:{self.id if alias_is_id else self.alias}'
 
         if include_strategies:
-            filled_strategies = self.strategies.filled_strategies
-            if filled_strategies:
+            filled = self.strategies.filled
+            if filled:
                 uri += f"""#{_STRATEGY_SEP.join(
-                    s if v is True else f"{s}={v}" for s, v in filled_strategies.items()
+                    s if v is True else f"{s}={v}" for s, v in filled.items()
                 )}"""
 
         return uri
@@ -120,11 +140,11 @@ class Defn:
     def with_default_strategy_set(self) -> Self:
         return attrs.evolve(
             self,
-            strategies=StrategyValues(),
+            strategies=Strategies(),
         )
 
     def with_version(self, version: str) -> Self:
         return attrs.evolve(
             self,
-            strategies=StrategyValues(**(attrs.asdict(self.strategies) | {'version_eq': version})),
+            strategies=Strategies({**self.strategies, Strategy.VersionEq: version}),
         )

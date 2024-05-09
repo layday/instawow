@@ -4,9 +4,9 @@ import datetime as dt
 from functools import lru_cache
 
 import cattrs
-from attrs import field, frozen
+from attrs import asdict, field, frozen
 
-from ..definitions import Defn, StrategyValues
+from ..definitions import Defn, Strategies, Strategy
 
 
 def _structure_datetime(value: str, value_type: type):
@@ -73,9 +73,14 @@ class Pkg:
             source=self.source,
             alias=self.slug,
             id=self.id,
-            strategies=StrategyValues(
-                any_flavour=self.options.any_flavour or None,
-                any_release_type=self.options.any_release_type or None,
-                version_eq=self.version if self.options.version_eq else None,
+            strategies=Strategies(
+                dict[Strategy, object](
+                    **asdict(
+                        self.options,
+                        value_serializer=lambda _, a, v: self.version
+                        if a.name == Strategy.VersionEq and v is True
+                        else v or None,
+                    ),
+                )
             ),
         )

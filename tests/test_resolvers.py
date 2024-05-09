@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from instawow.definitions import ChangelogFormat, Defn, SourceMetadata, Strategy, StrategyValues
+from instawow.definitions import ChangelogFormat, Defn, SourceMetadata, Strategies, Strategy
 from instawow.resolvers import BaseResolver
 from instawow.results import PkgStrategiesUnsupported
 from instawow.shared_ctx import ConfigBoundCtx
@@ -27,10 +27,12 @@ async def test_unsupported_strategies_raise(
     defn = Defn(
         Resolver.metadata.id,
         'foo',
-        strategies=StrategyValues(
-            any_flavour=True,
-            any_release_type=True,
-            version_eq='0',
+        strategies=Strategies(
+            {
+                Strategy.AnyFlavour: True,
+                Strategy.AnyReleaseType: True,
+                Strategy.VersionEq: '0',
+            }
         ),
     )
 

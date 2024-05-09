@@ -41,7 +41,7 @@ from instawow._version_check import is_outdated
 from instawow.catalogue.cataloguer import ComputedCatalogueEntry
 from instawow.catalogue.search import search
 from instawow.config import GlobalConfig, ProfileConfig, SecretStr, config_converter
-from instawow.definitions import Defn, SourceMetadata
+from instawow.definitions import Defn, SourceMetadata, Strategies
 from instawow.github_auth import get_codes, poll_for_access_token
 from instawow.http import init_web_client
 from instawow.wow_installations import Flavour, infer_flavour_from_addon_dir
@@ -72,6 +72,7 @@ _converter = cattrs.Converter(
 cattrs.preconf.json.configure_converter(_converter)
 _converter.register_structure_hook(Path, lambda v, _: Path(v))
 _converter.register_structure_hook(datetime, lambda v, _: datetime_fromisoformat(v))
+_converter.register_structure_hook(Strategies, lambda v, _: Strategies(v))
 _converter.register_unstructure_hook(Path, str)
 
 

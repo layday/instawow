@@ -404,8 +404,9 @@ class GithubResolver(BaseResolver):
                 project: _GithubRepo = await response.json()
                 return project
 
-        if defn.strategies.version_eq:
-            release_url = repo_url / 'releases/tags' / defn.strategies.version_eq
+        version_eq = defn.strategies[Strategy.VersionEq]
+        if version_eq:
+            release_url = repo_url / 'releases/tags' / version_eq
         else:
             # Includes pre-releases
             release_url = (repo_url / 'releases').with_query(
@@ -437,7 +438,7 @@ class GithubResolver(BaseResolver):
         # but let's filter them out just in case.
         releases = (r for r in await releases_coro if r['draft'] is False)
 
-        if not defn.strategies.any_release_type:
+        if not defn.strategies[Strategy.AnyReleaseType]:
             releases = (r for r in releases if r['prerelease'] is False)
 
         first_release = next(releases, None)
@@ -445,11 +446,11 @@ class GithubResolver(BaseResolver):
             raise R.PkgFilesNotMatching(defn.strategies)
 
         desired_flavour_groups = self._config.game_flavour.get_flavour_groups(
-            bool(defn.strategies.any_flavour)
+            bool(defn.strategies[Strategy.AnyFlavour])
         )
 
         # We'll look for affine flavours > absolutely any flavour in every release
-        # if any_flavour is true.  This is less expensive than performing
+        # if ``Strategy.AnyFlavour`` is set.  This is less expensive than performing
         # separate flavour passes across the whole release list for the common case.
         match = await self.__find_match(first_release, desired_flavour_groups)
         if not match:

@@ -3,11 +3,9 @@ from __future__ import annotations
 from collections.abc import Awaitable, Collection, Mapping, Set
 from typing import Any, Final, Protocol, TypeAlias, TypeVar
 
-import attrs
-
 from . import pkg_models
 from ._logging import logger
-from .definitions import Strategy, StrategyValues
+from .definitions import Strategies, Strategy
 
 _T = TypeVar('_T')
 
@@ -54,8 +52,8 @@ class PkgUpdated(Result, _SuccessResult):
             message += f' with new slug {self.new_pkg.slug!r}'
 
         if self.old_pkg.options != self.new_pkg.options:
-            old_strategies = attrs.asdict(self.old_pkg.to_defn().strategies)
-            new_strategies = attrs.asdict(self.new_pkg.to_defn().strategies)
+            old_strategies = self.old_pkg.to_defn().strategies
+            new_strategies = self.new_pkg.to_defn().strategies
             message += ' with new strategies: '
             message += '; '.join(
                 f'{s}={v!r}' for s, v in new_strategies.items() - old_strategies.items()
@@ -130,15 +128,13 @@ class PkgFilesMissing(ManagerError):
 
 
 class PkgFilesNotMatching(ManagerError):
-    def __init__(self, strategy_values: StrategyValues) -> None:
+    def __init__(self, strategies: Strategies) -> None:
         super().__init__()
-        self._strategy_values = strategy_values
+        self.strategies = strategies
 
     @property
     def message(self) -> str:
-        return 'no files found for: ' + '; '.join(
-            f'{s}={v!r}' for s, v in attrs.asdict(self._strategy_values).items()
-        )
+        return 'no files found for: ' + '; '.join(f'{s}={v!r}' for s, v in self.strategies.items())
 
 
 class PkgNotInstalled(ManagerError):

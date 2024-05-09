@@ -7,7 +7,7 @@ from yarl import URL
 
 from instawow import pkg_management
 from instawow._sources.cfcore import CfCoreResolver
-from instawow.definitions import Defn, Strategy, StrategyValues
+from instawow.definitions import Defn, Strategies, Strategy
 from instawow.pkg_models import Pkg
 from instawow.results import PkgFilesNotMatching
 from instawow.shared_ctx import ConfigBoundCtx
@@ -77,9 +77,11 @@ async def test_resolve_classic_only_addon(
 async def test_curse_any_flavour_strategy(
     curse_resolver: CfCoreResolver,
 ):
-    flavourful = Defn('curse', CURSE_IDS['masque'], strategies=StrategyValues(any_flavour=True))
+    flavourful = Defn(
+        'curse', CURSE_IDS['masque'], strategies=Strategies({Strategy.AnyFlavour: True})
+    )
     classics_only = Defn(
-        'curse', CURSE_IDS['atlaslootclassic'], strategies=StrategyValues(any_flavour=True)
+        'curse', CURSE_IDS['atlaslootclassic'], strategies=Strategies({Strategy.AnyFlavour: True})
     )
 
     results = await curse_resolver.resolve([flavourful, classics_only])
@@ -101,7 +103,9 @@ async def test_curse_slug_match(
 async def test_curse_version_pinning(
     curse_resolver: CfCoreResolver,
 ):
-    defn = Defn('curse', 'molinari', strategies=StrategyValues(version_eq='100005.97-Release'))
+    defn = Defn(
+        'curse', 'molinari', strategies=Strategies({Strategy.VersionEq: '100005.97-Release'})
+    )
 
     result = (await curse_resolver.resolve([defn]))[defn]
     assert type(result) is Pkg

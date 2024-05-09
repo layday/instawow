@@ -13,7 +13,7 @@ from aresponses import ResponsesMockServer
 from yarl import URL
 
 from instawow._sources.github import GithubResolver
-from instawow.definitions import Defn, StrategyValues
+from instawow.definitions import Defn, Strategies, Strategy
 from instawow.pkg_models import Pkg
 from instawow.results import PkgFilesMissing, PkgFilesNotMatching, PkgNonexistent
 from instawow.shared_ctx import ConfigBoundCtx
@@ -207,7 +207,9 @@ async def test_any_flavour_strategy(
         ).to_aresponses_add_args()
     )
     defn = Defn(
-        'github', 'nebularg/PackagerTest', strategies=StrategyValues(any_flavour=any_flavour)
+        'github',
+        'nebularg/PackagerTest',
+        strategies=Strategies({Strategy.AnyFlavour: any_flavour}),
     )
 
     results = await github_resolver.resolve([defn])
