@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import datetime as dt
 import enum
-import urllib.parse
 from collections.abc import AsyncIterator, Collection, Sequence
 from functools import cached_property
 from pathlib import Path
@@ -173,20 +172,23 @@ class BaseResolver(Resolver, Protocol):
         ...
 
     async def get_changelog(self, uri: URL) -> str:
-        from . import http, shared_ctx
-        from ._utils.aio import run_in_thread
-        from ._utils.web import file_uri_to_path
-
         match uri.scheme:
             case 'data' if uri.raw_path.startswith(','):
+                import urllib.parse
+
                 return urllib.parse.unquote(uri.raw_path[1:])
 
             case 'file':
+                from ._utils.aio import run_in_thread
+                from ._utils.web import file_uri_to_path
+
                 return await run_in_thread(Path(file_uri_to_path(str(uri))).read_text)(
                     encoding='utf-8'
                 )
 
             case 'http' | 'https':
+                from . import http, shared_ctx
+
                 async with shared_ctx.web_client.get(
                     uri,
                     expire_after=http.CACHE_INDEFINITELY,
