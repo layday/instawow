@@ -28,7 +28,7 @@ dependencies = [
   "prompt-toolkit >= 3.0.29",
   "rapidfuzz >= 3.6.1",
   'truststore >= 0.7.0 ; python_version < "3.13"',
-  'truststore >= 0.9.0 ; python_version >= "3.13"',
+  'truststore >= 0.9.1 ; python_version >= "3.13"',
   "typing-extensions >= 4.11.0",
   "yarl >= 1.9.3",
 ]
