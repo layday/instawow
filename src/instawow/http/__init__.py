@@ -30,6 +30,7 @@ async def _setup_progress_tracker():
         _client_session: aiohttp.ClientSession,
         trace_config_ctx: Any,
         params: aiohttp.TraceRequestEndParams,
+        /,
     ):
         progress = (
             trace_config_ctx.trace_request_ctx and trace_config_ctx.trace_request_ctx['progress']
@@ -80,12 +81,10 @@ async def init_web_client(
 
     import truststore
 
-    connector = aiohttp.TCPConnector(
-        limit_per_host=10, ssl=truststore.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
-    )
-
     kwargs = {
-        'connector': connector,
+        'connector': aiohttp.TCPConnector(
+            limit_per_host=20, ssl=truststore.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+        ),
         'headers': {'User-Agent': _USER_AGENT},
         'trust_env': True,  # Respect the ``http(s)_proxy`` env var
         'timeout': aiohttp.ClientTimeout(connect=60, sock_connect=10, sock_read=20),
