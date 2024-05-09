@@ -1,6 +1,24 @@
 Changelog
 =========
 
+v4.3.0
+------
+
+CLI
+~~~
+
+- Added ``--remote`` option to ``view-changelog`` command to retrieve
+  remote add-on changelogs.
+- Improved ``search`` command responsiveness.
+- Improved install and update progress display.
+- Fixed issue with installed add-ons being removed prior to re-reconciled
+  add-ons being downloaded.
+
+GUI
+~~~
+
+- Fixed start-up command crashing spectacularly.
+
 v4.2.0
 ------
 
