@@ -24,7 +24,6 @@ from __future__ import annotations
 
 import re
 import string
-from collections.abc import Container
 from itertools import count, islice
 from operator import eq
 from typing import Any
@@ -37,53 +36,29 @@ WHITESPACE = frozenset(string.whitespace)
 WHITESPACE_OR_CLOSING_SQ_BR = WHITESPACE | frozenset(']')
 NEWLINE = frozenset('\r\n')
 
-match_bare_word = re.compile(r'^[a-z_]\w*$', flags=re.IGNORECASE)
+bare_word_pattern = re.compile(r'^[a-z_]\w*$', flags=re.IGNORECASE)
 
 
 class ParseError(Exception):
     pass
 
 
-class _Sentinel(str):
-    pass
-
-
-_sentinel = _Sentinel()
-
-
-class _SLPP:
+class _Parser:
     def __init__(self, text: str):
-        self._iter_text = iter(text)
-        self._next()
-
-    def _next(self):
-        self.c = next(self._iter_text, _sentinel)
-
-    def _next_eq(self, includes: Container[str]):
-        if self.c not in includes:
-            for c in self._iter_text:
-                if c in includes:
-                    self.c = c
-                    break
-            else:
-                self.c = _sentinel
-
-    def _next_not_eq(self, excludes: Container[str]):
-        if self.c in excludes:
-            for c in self._iter_text:
-                if c not in excludes:
-                    self.c = c
-                    break
-            else:
-                self.c = _sentinel
+        self.t = iter(text)
+        self.c = next(self.t, '')
 
     def _decode_table(self):
         table: dict[Any, Any] | list[Any] = {}
         idx = 0
 
-        self._next()
+        self.c = next(self.t)
         while True:
-            self._next_not_eq(WHITESPACE)
+            if self.c in WHITESPACE:
+                for c in self.t:
+                    if c not in WHITESPACE:
+                        self.c = c
+                        break
 
             if self.c == '}':
                 # Convert table to list if k(0) = 1 and k = k(n-1) + 1, ...
@@ -95,26 +70,31 @@ class _SLPP:
                 ):
                     table = list(table.values())
 
-                self._next()
+                self.c = next(self.t, '')
                 return table
 
             elif self.c == ',':
-                self._next()
+                self.c = next(self.t)
 
             else:
                 is_val_long_string_literal = False
 
                 if self.c == '[':
-                    self._next()
+                    self.c = next(self.t)
                     if self.c == '[':
                         is_val_long_string_literal = True
 
                 item = self.decode()
-                self._next_not_eq(WHITESPACE_OR_CLOSING_SQ_BR)
+
+                if self.c in WHITESPACE_OR_CLOSING_SQ_BR:
+                    for c in self.t:
+                        if c not in WHITESPACE_OR_CLOSING_SQ_BR:
+                            self.c = c
+                            break
 
                 c = self.c
                 if c and c in '=,':
-                    self._next()
+                    self.c = next(self.t)
 
                     if c == '=':
                         if is_val_long_string_literal:
@@ -146,13 +126,17 @@ class _SLPP:
         prev_was_slash = False
 
         if start == '[':
-            self._next_not_eq('[')
+            for c in self.t:
+                if c != '[':
+                    self.c = c
+                    break
+
             s += self.c
             end = ']'
         else:
             end = start
 
-        for c in self._iter_text:
+        for c in self.t:
             if prev_was_slash:
                 prev_was_slash = False
 
@@ -166,44 +150,48 @@ class _SLPP:
 
             s += c
 
-        self._next()
+        self.c = next(self.t, '')
         if start != end:
             # Strip multiple closing brackets
-            self._next_not_eq(end)
+            if self.c == end:
+                for c in self.t:
+                    if c != end:
+                        self.c = c
+                        break
 
         return s
 
     def _decode_bare_word(self):
         s = self.c
-        for c in self._iter_text:
+        for c in self.t:
             new_s = s + c
-            if match_bare_word.match(new_s):
+            if bare_word_pattern.match(new_s):
                 s = new_s
             else:
                 break
 
-        self._next()
+        self.c = next(self.t, '')
 
-        if s == 'true':
-            return True
-        elif s == 'false':
-            return False
-        elif s == 'nil':
-            return None
-        return s
+        match s:
+            case 'true':
+                return True
+            case 'false':
+                return False
+            case 'nil':
+                return None
+            case _:
+                return s
 
     def _decode_number(self):
         def get_digits():
             n = ''
 
-            for c in self._iter_text:
+            for c in self.t:
                 if c in DIGITS:
                     n += c
                 else:
                     self.c = c
                     break
-            else:
-                self.c = _sentinel
 
             return n
 
@@ -211,10 +199,14 @@ class _SLPP:
 
         if self.c == '-':
             c = self.c
-            self._next()
+            self.c = next(self.t)
             if self.c == '-':
                 # This is a comment - skip to the end of the line
-                self._next_eq(NEWLINE)
+                for c in self.t:
+                    if c in NEWLINE:
+                        self.c = c
+                        break
+
                 return None
 
             elif not self.c or self.c not in DIGITS:
@@ -226,14 +218,12 @@ class _SLPP:
         if n == '0' and self.c in HEXDELIMS:
             n += self.c
 
-            for c in self._iter_text:
+            for c in self.t:
                 if c in HEXDIGITS:
                     n += c
                 else:
                     self.c = c
                     break
-            else:
-                self.c = _sentinel
 
         else:
             if self.c == '.':
@@ -241,7 +231,7 @@ class _SLPP:
 
             if self.c in EXPONENTS:
                 n += self.c
-                self._next()  # +-
+                self.c = next(self.t)  # +-
                 n += self.c + get_digits()
 
         try:
@@ -250,10 +240,16 @@ class _SLPP:
             return float(n)
 
     def decode(self):
-        self._next_not_eq(WHITESPACE)
+        if self.c in WHITESPACE:
+            for c in self.t:
+                if c not in WHITESPACE:
+                    self.c = c
+                    break
+
         if not self.c:
             raise ParseError('input is empty')
-        elif self.c == '{':
+
+        if self.c == '{':
             return self._decode_table()
         elif self.c in '\'"[':
             return self._decode_string()
@@ -264,4 +260,4 @@ class _SLPP:
 
 
 def loads(s: str) -> Any:
-    return _SLPP(s).decode()
+    return _Parser(s).decode()
