@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Awaitable, Callable, Collection, Iterable, Mapping, Sequence
-from contextlib import asynccontextmanager, nullcontext
+from contextlib import asynccontextmanager
 from functools import wraps
 from itertools import chain, compress, filterfalse, product, repeat, starmap
 from pathlib import Path
@@ -13,7 +13,7 @@ import attrs
 from typing_extensions import Never, ParamSpec
 from yarl import URL
 
-from . import http, pkg_db, pkg_models, shared_ctx
+from . import http, pkg_models, shared_ctx
 from . import results as R
 from ._logging import logger
 from ._progress_reporting import Progress, make_incrementing_progress_tracker
@@ -112,17 +112,14 @@ def get_alias_from_url(
 
 
 def _check_pkgs_not_exist(
-    config_ctx: shared_ctx.ConfigBoundCtx,
-    defns: Collection[Defn],
-    *,
-    connection: pkg_db.Connection | None = None,
+    config_ctx: shared_ctx.ConfigBoundCtx, defns: Collection[Defn]
 ) -> list[bool]:
     "Check that packages exist in the database."
     if not defns:
         return []
 
     with (
-        nullcontext(connection) if connection else config_ctx.database.connect() as connection,
+        config_ctx.database.connect() as connection,
         config_ctx.database.use_tuple_factory(connection) as cursor,
     ):
         return [
@@ -148,15 +145,12 @@ def _check_pkgs_not_exist(
 
 
 def get_pkgs(
-    config_ctx: shared_ctx.ConfigBoundCtx,
-    defns: Collection[Defn] | Literal['all'],
-    *,
-    connection: pkg_db.Connection | None = None,
+    config_ctx: shared_ctx.ConfigBoundCtx, defns: Collection[Defn] | Literal['all']
 ) -> list[pkg_models.Pkg | None]:
     if defns != 'all' and not defns:
         return []
 
-    with nullcontext(connection) if connection else config_ctx.database.connect() as connection:
+    with config_ctx.database.connect() as connection:
         if defns == 'all':
             pkgs = connection.execute(
                 """
@@ -185,14 +179,9 @@ def get_pkgs(
         ]
 
 
-def get_pkg(
-    config_ctx: shared_ctx.ConfigBoundCtx,
-    defn: Defn,
-    *,
-    connection: pkg_db.Connection | None = None,
-) -> pkg_models.Pkg | None:
+def get_pkg(config_ctx: shared_ctx.ConfigBoundCtx, defn: Defn) -> pkg_models.Pkg | None:
     "Retrieve a package from the database."
-    (pkg,) = get_pkgs(config_ctx, [defn], connection=connection)
+    (pkg,) = get_pkgs(config_ctx, [defn])
     return pkg
 
 
