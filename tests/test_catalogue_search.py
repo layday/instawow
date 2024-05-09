@@ -4,14 +4,14 @@ import datetime as dt
 
 import pytest
 
+from instawow import pkg_management
 from instawow.catalogue.search import search
 from instawow.definitions import Defn
-from instawow.pkg_management import PkgManager
 from instawow.results import PkgInstalled
 from instawow.shared_ctx import ConfigBoundCtx
 from instawow.wow_installations import Flavour
 
-pytestmark = [pytest.mark.anyio, pytest.mark.usefixtures('_iw_web_client_ctx')]
+pytestmark = pytest.mark.usefixtures('_iw_web_client_ctx')
 
 
 async def test_basic_search(
@@ -69,14 +69,15 @@ async def test_search_unknown_source(
 
 async def test_search_filter_installed(
     iw_config_ctx: ConfigBoundCtx,
-    iw_manager: PkgManager,
 ):
     results = await search(iw_config_ctx, 'molinari', limit=5, filter_installed='include_only')
     assert not results
 
     defn = Defn('curse', 'molinari')
 
-    install_result = (await iw_manager.install([defn], replace_folders=False))[defn]
+    install_result = (await pkg_management.install(iw_config_ctx, [defn], replace_folders=False))[
+        defn
+    ]
     assert type(install_result) is PkgInstalled
 
     results = await search(iw_config_ctx, 'molinari', limit=5)

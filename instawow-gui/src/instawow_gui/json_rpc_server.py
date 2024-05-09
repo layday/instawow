@@ -6,13 +6,13 @@ import enum
 import importlib.resources
 import json
 import os
-from collections.abc import Awaitable, Callable, Iterator, Set
+from collections.abc import Callable, Iterator, Set
 from contextlib import AsyncExitStack, contextmanager
 from datetime import datetime
 from functools import partial
 from itertools import chain
 from pathlib import Path
-from typing import Any, Concatenate, Literal, TypeAlias, TypeVar
+from typing import Any, Literal, TypeVar
 
 import aiohttp
 import aiohttp.typedefs
@@ -28,11 +28,11 @@ from aiohttp_rpc.server import WsJsonRpcServer
 from typing_extensions import ParamSpec, TypedDict
 from yarl import URL
 
-from instawow import __version__, matchers, pkg_models, shared_ctx
+from instawow import __version__, matchers, pkg_management, pkg_models, shared_ctx
 from instawow import results as R
 from instawow._logging import logger
 from instawow._progress_reporting import ReadOnlyProgressGroup, make_progress_receiver
-from instawow._utils.aio import cancel_tasks, run_in_thread
+from instawow._utils.aio import cancel_tasks, gather, run_in_thread
 from instawow._utils.datetime import datetime_fromisoformat
 from instawow._utils.file import reveal_folder
 from instawow._utils.iteration import WeakValueDefaultDictionary, uniq
@@ -44,14 +44,12 @@ from instawow.config import GlobalConfig, ProfileConfig, SecretStr, config_conve
 from instawow.definitions import Defn, SourceMetadata
 from instawow.github_auth import get_codes, poll_for_access_token
 from instawow.http import init_web_client
-from instawow.pkg_management import PkgDownloadProgress, PkgManager, bucketise_results
 from instawow.wow_installations import Flavour, infer_flavour_from_addon_dir
 
 from . import frontend
 
 _T = TypeVar('_T')
 _P = ParamSpec('_P')
-_ManagerBoundCoroFn: TypeAlias = Callable[Concatenate[PkgManager, _P], Awaitable[_T]]
 
 _toga_handle = contextvars.ContextVar[tuple[Any, anyio.from_thread.BlockingPortal]]('_toga_handle')
 
@@ -166,15 +164,15 @@ class _DefnParamMixin:
 
 class BaseParams:
     @classmethod
-    def bind(cls, method: str, managers: _ManagersManager) -> JsonRpcMethod:
+    def bind(cls, method: str, config_ctxs: _ConfigBoundCtxCollection) -> JsonRpcMethod:
         async def respond(**kwargs: Any):
             with _reraise_validation_errors(InvalidParams, kwargs):
                 self = _converter.structure(kwargs, cls)
-            return await self.respond(managers)
+            return await self.respond(config_ctxs)
 
         return JsonRpcMethod(respond, name=method)
 
-    async def respond(self, managers: _ManagersManager) -> Any:
+    async def respond(self, config_ctxs: _ConfigBoundCtxCollection) -> Any:
         raise NotImplementedError
 
 
@@ -184,8 +182,8 @@ class WriteProfileConfigParams(_ProfileParamMixin, BaseParams):
     game_flavour: Flavour
     infer_game_flavour: bool
 
-    async def respond(self, managers: _ManagersManager) -> ProfileConfig:
-        async with managers.locks[(*_LockOperation.ModifyProfile, self.profile)]:
+    async def respond(self, config_ctxs: _ConfigBoundCtxCollection) -> ProfileConfig:
+        async with config_ctxs.locks[(*_LockOperation.ModifyProfile, self.profile)]:
             with _reraise_validation_errors(_ConfigError):
                 config = config_converter.structure(
                     {
@@ -206,38 +204,38 @@ class WriteProfileConfigParams(_ProfileParamMixin, BaseParams):
 
             # Unload the corresponding ``Manager`` instance for the
             # config to be reloaded on the next request
-            managers.unload_profile(config.profile)
+            await config_ctxs.unload(config.profile)
 
             return config
 
 
 @_register_method('config/read_profile')
 class ReadProfileConfigParams(_ProfileParamMixin, BaseParams):
-    async def respond(self, managers: _ManagersManager) -> ProfileConfig:
-        return await _read_profile_config(managers.global_config, self.profile)
+    async def respond(self, config_ctxs: _ConfigBoundCtxCollection) -> ProfileConfig:
+        return await _read_profile_config(config_ctxs.global_config, self.profile)
 
 
 @_register_method('config/delete_profile')
 class DeleteProfileConfigParams(_ProfileParamMixin, BaseParams):
-    async def respond(self, managers: _ManagersManager) -> None:
-        async def delete_profile(manager: PkgManager):
-            await run_in_thread(manager.ctx.config.delete)()
-            managers.unload_profile(self.profile)
+    async def respond(self, config_ctxs: _ConfigBoundCtxCollection) -> None:
+        config_ctx = await config_ctxs.load(self.profile)
 
-        await managers.run(self.profile, delete_profile)
+        async with config_ctxs.locks[(*_LockOperation.ModifyProfile, self.profile)]:
+            await run_in_thread(config_ctx.config.delete)()
+            await config_ctxs.unload(self.profile)
 
 
 @_register_method('config/list_profiles')
 class ListProfilesParams(BaseParams):
-    async def respond(self, managers: _ManagersManager) -> list[str]:
-        return await run_in_thread(list[str])(managers.global_config.iter_profiles())
+    async def respond(self, config_ctxs: _ConfigBoundCtxCollection) -> list[str]:
+        return await run_in_thread(list[str])(config_ctxs.global_config.iter_profiles())
 
 
 @_register_method('config/update_global')
 class UpdateGlobalConfigParams(BaseParams):
     access_tokens: dict[str, str | None]
 
-    async def respond(self, managers: _ManagersManager) -> GlobalConfig:
+    async def respond(self, config_ctxs: _ConfigBoundCtxCollection) -> GlobalConfig:
         def update_global_config_cb(global_config: GlobalConfig):
             return attrs.evolve(
                 global_config,
@@ -247,12 +245,12 @@ class UpdateGlobalConfigParams(BaseParams):
                 ),
             )
 
-        return await managers.update_global_config(update_global_config_cb)
+        return await config_ctxs.update_global_config(update_global_config_cb)
 
 
 @_register_method('config/read_global')
 class ReadGlobalConfigParams(BaseParams):
-    async def respond(self, managers: _ManagersManager) -> GlobalConfig:
+    async def respond(self, config_ctxs: _ConfigBoundCtxCollection) -> GlobalConfig:
         return await _read_global_config()
 
 
@@ -263,8 +261,8 @@ class GithubCodesResponse(TypedDict):
 
 @_register_method('config/initiate_github_auth_flow')
 class InitiateGithubAuthFlowParams(BaseParams):
-    async def respond(self, managers: _ManagersManager) -> GithubCodesResponse:
-        return await managers.initiate_github_auth_flow()
+    async def respond(self, config_ctxs: _ConfigBoundCtxCollection) -> GithubCodesResponse:
+        return await config_ctxs.initiate_github_auth_flow()
 
 
 class GithubAuthFlowStatusResponse(TypedDict):
@@ -273,31 +271,33 @@ class GithubAuthFlowStatusResponse(TypedDict):
 
 @_register_method('config/query_github_auth_flow_status')
 class QueryGithubAuthFlowStatusParams(BaseParams):
-    async def respond(self, managers: _ManagersManager) -> GithubAuthFlowStatusResponse:
-        return {'status': await managers.wait_for_github_auth_completion()}
+    async def respond(
+        self, config_ctxs: _ConfigBoundCtxCollection
+    ) -> GithubAuthFlowStatusResponse:
+        return {'status': await config_ctxs.wait_for_github_auth_completion()}
 
 
 @_register_method('config/cancel_github_auth_flow')
 class CancelGithubAuthFlowParams(BaseParams):
-    async def respond(self, managers: _ManagersManager) -> None:
-        await managers.cancel_github_auth_polling()
+    async def respond(self, config_ctxs: _ConfigBoundCtxCollection) -> None:
+        await config_ctxs.cancel_github_auth_polling()
 
 
 @_register_method('sources/list')
 class ListSourcesParams(_ProfileParamMixin, BaseParams):
-    async def respond(self, managers: _ManagersManager) -> dict[str, SourceMetadata]:
-        manager = await managers.get_manager(self.profile)
-        return {r.metadata.id: r.metadata for r in manager.ctx.resolvers.values()}
+    async def respond(self, config_ctxs: _ConfigBoundCtxCollection) -> dict[str, SourceMetadata]:
+        config_ctx = await config_ctxs.load(self.profile)
+        return {r.metadata.id: r.metadata for r in config_ctx.resolvers.values()}
 
 
 @_register_method('list')
 class ListInstalledParams(_ProfileParamMixin, BaseParams):
-    async def respond(self, managers: _ManagersManager) -> list[pkg_models.Pkg]:
-        manager = await managers.get_manager(self.profile)
+    async def respond(self, config_ctxs: _ConfigBoundCtxCollection) -> list[pkg_models.Pkg]:
+        config_ctx = await config_ctxs.load(self.profile)
 
-        with manager.ctx.database.connect() as connection:
+        with config_ctx.database.connect() as connection:
             return [
-                manager.build_pkg_from_row_mapping(connection, p)
+                pkg_models.build_pkg_from_row_mapping(connection, p)
                 for p in connection.execute('SELECT * FROM pkg ORDER BY lower(name)')
             ]
 
@@ -310,10 +310,13 @@ class SearchParams(_ProfileParamMixin, BaseParams):
     start_date: datetime | None
     installed_only: bool
 
-    async def respond(self, managers: _ManagersManager) -> list[ComputedCatalogueEntry]:
-        manager = await managers.get_manager(self.profile)
+    async def respond(
+        self, config_ctxs: _ConfigBoundCtxCollection
+    ) -> list[ComputedCatalogueEntry]:
+        config_ctx = await config_ctxs.load(self.profile)
+
         return await search(
-            manager.ctx,
+            config_ctx,
             self.search_terms,
             limit=self.limit,
             sources=self.sources,
@@ -334,19 +337,20 @@ class ErrorResult(TypedDict):
 
 @_register_method('resolve')
 class ResolveParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
-    async def _resolve(self, manager: PkgManager):
+    async def respond(
+        self, config_ctxs: _ConfigBoundCtxCollection
+    ) -> list[SuccessResult | ErrorResult]:
+        config_ctx = await config_ctxs.load(self.profile)
+
         def extract_source(defn: Defn):
             if not defn.source:
-                match = manager.pair_uri(defn.alias)
+                match = pkg_management.get_alias_from_url(config_ctx, defn.alias)
                 if match:
                     source, alias = match
                     defn = attrs.evolve(defn, source=source, alias=alias)
             return defn
 
-        return await manager.resolve(list(map(extract_source, self.defns)))
-
-    async def respond(self, managers: _ManagersManager) -> list[SuccessResult | ErrorResult]:
-        results = await managers.run(self.profile, self._resolve)
+        results = await pkg_management.resolve(config_ctx, list(map(extract_source, self.defns)))
         return [
             {'status': 'success', 'addon': r}
             if isinstance(r, pkg_models.Pkg)
@@ -359,10 +363,13 @@ class ResolveParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
 class InstallParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
     replace: bool
 
-    async def respond(self, managers: _ManagersManager) -> list[SuccessResult | ErrorResult]:
-        results = await managers.run(
-            self.profile,
-            partial(PkgManager.install, defns=self.defns, replace_folders=self.replace),
+    async def respond(
+        self, config_ctxs: _ConfigBoundCtxCollection
+    ) -> list[SuccessResult | ErrorResult]:
+        config_ctx = await config_ctxs.load(self.profile)
+
+        results = await pkg_management.install(
+            config_ctx, self.defns, replace_folders=self.replace
         )
         return [
             {'status': r.status, 'addon': r.pkg}
@@ -374,8 +381,12 @@ class InstallParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
 
 @_register_method('update')
 class UpdateParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
-    async def respond(self, managers: _ManagersManager) -> list[SuccessResult | ErrorResult]:
-        results = await managers.run(self.profile, partial(PkgManager.update, defns=self.defns))
+    async def respond(
+        self, config_ctxs: _ConfigBoundCtxCollection
+    ) -> list[SuccessResult | ErrorResult]:
+        config_ctx = await config_ctxs.load(self.profile)
+
+        results = await pkg_management.update(config_ctx, self.defns)
         return [
             {'status': r.status, 'addon': r.new_pkg}
             if isinstance(r, R.PkgUpdated)
@@ -390,10 +401,13 @@ class UpdateParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
 class RemoveParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
     keep_folders: bool
 
-    async def respond(self, managers: _ManagersManager) -> list[SuccessResult | ErrorResult]:
-        results = await managers.run(
-            self.profile,
-            partial(PkgManager.remove, defns=self.defns, keep_folders=self.keep_folders),
+    async def respond(
+        self, config_ctxs: _ConfigBoundCtxCollection
+    ) -> list[SuccessResult | ErrorResult]:
+        config_ctx = await config_ctxs.load(self.profile)
+
+        results = await pkg_management.remove(
+            config_ctx, self.defns, keep_folders=self.keep_folders
         )
         return [
             {'status': r.status, 'addon': r.old_pkg}
@@ -405,8 +419,12 @@ class RemoveParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
 
 @_register_method('pin')
 class PinParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
-    async def respond(self, managers: _ManagersManager) -> list[SuccessResult | ErrorResult]:
-        results = await managers.run(self.profile, partial(PkgManager.pin, defns=self.defns))
+    async def respond(
+        self, config_ctxs: _ConfigBoundCtxCollection
+    ) -> list[SuccessResult | ErrorResult]:
+        config_ctx = await config_ctxs.load(self.profile)
+
+        results = await pkg_management.pin(config_ctx, self.defns)
         return [
             {'status': r.status, 'addon': r.pkg}
             if isinstance(r, R.PkgInstalled)
@@ -420,10 +438,11 @@ class GetChangelogParams(_ProfileParamMixin, BaseParams):
     source: str
     changelog_url: str
 
-    async def respond(self, managers: _ManagersManager) -> str:
-        return await managers.run(
-            self.profile,
-            partial(PkgManager.get_changelog, source=self.source, uri=self.changelog_url),
+    async def respond(self, config_ctxs: _ConfigBoundCtxCollection) -> str:
+        config_ctx = await config_ctxs.load(self.profile)
+
+        return await pkg_management.get_changelog(
+            config_ctx, source=self.source, uri=self.changelog_url
         )
 
 
@@ -441,17 +460,19 @@ class AddonMatch_AddonFolder(TypedDict):
 class ReconcileParams(_ProfileParamMixin, BaseParams):
     matcher: str
 
-    async def respond(self, managers: _ManagersManager) -> list[AddonMatch]:
-        manager = await managers.get_manager(self.profile)
+    async def respond(self, config_ctxs: _ConfigBoundCtxCollection) -> list[AddonMatch]:
+        config_ctx = await config_ctxs.load(self.profile)
 
-        leftovers = await run_in_thread(matchers.get_unreconciled_folders)(manager.ctx)
+        leftovers = await run_in_thread(matchers.get_unreconciled_folders)(config_ctx)
 
         match_groups = await matchers.DEFAULT_MATCHERS[self.matcher](
-            manager.ctx, leftovers=leftovers
+            config_ctx, leftovers=leftovers
         )
 
-        resolved_defns = await manager.resolve(uniq(d for _, b in match_groups for d in b))
-        pkgs, _ = bucketise_results(resolved_defns.items())
+        resolved_defns = await pkg_management.resolve(
+            config_ctx, uniq(d for _, b in match_groups for d in b)
+        )
+        pkgs, _ = pkg_management.bucketise_results(resolved_defns.items())
 
         matched_folders = [
             (a, [i for i in (pkgs.get(d) for d in s) if i]) for a, s in match_groups
@@ -473,23 +494,22 @@ class ReconcileInstalledCandidate(TypedDict):
 
 @_register_method('get_reconcile_installed_candidates')
 class GetReconcileInstalledCandidatesParams(_ProfileParamMixin, BaseParams):
-    async def respond(self, managers: _ManagersManager) -> list[ReconcileInstalledCandidate]:
-        manager = await managers.get_manager(self.profile)
+    async def respond(
+        self, config_ctxs: _ConfigBoundCtxCollection
+    ) -> list[ReconcileInstalledCandidate]:
+        config_ctx = await config_ctxs.load(self.profile)
 
-        with manager.ctx.database.connect() as connection:
+        with config_ctx.database.connect() as connection:
             installed_pkgs = [
-                manager.build_pkg_from_row_mapping(connection, p)
+                pkg_models.build_pkg_from_row_mapping(connection, p)
                 for p in connection.execute('SELECT * FROM pkg ORDER BY lower(name)')
             ]
 
-        defn_groups = await managers.run(
-            self.profile, partial(PkgManager.find_equivalent_pkg_defns, pkgs=installed_pkgs)
+        defn_groups = await pkg_management.find_equivalent_pkg_defns(config_ctx, installed_pkgs)
+        resolved_defns = await pkg_management.resolve(
+            config_ctx, uniq(d for b in defn_groups.values() for d in b)
         )
-        resolved_defns = await managers.run(
-            self.profile,
-            partial(PkgManager.resolve, defns=uniq(d for b in defn_groups.values() for d in b)),
-        )
-        pkgs, _ = bucketise_results(resolved_defns.items())
+        pkgs, _ = pkg_management.bucketise_results(resolved_defns.items())
         return [
             {'installed_addon': p, 'alternative_addons': m}
             for p, s in defn_groups.items()
@@ -505,14 +525,17 @@ class DownloadProgressReport(TypedDict):
 
 @_register_method('get_download_progress')
 class GetDownloadProgressParams(_ProfileParamMixin, BaseParams):
-    async def respond(self, managers: _ManagersManager) -> list[DownloadProgressReport]:
-        manager = await managers.get_manager(self.profile)
+    async def respond(
+        self, config_ctxs: _ConfigBoundCtxCollection
+    ) -> list[DownloadProgressReport]:
+        config_ctx = await config_ctxs.load(self.profile)
+
         return [
             {'defn': p['defn'], 'progress': p['current'] / p['total']}
-            for p in managers.current_progress.values()
+            for p in config_ctxs.current_progress.values()
             if p['type_'] == 'pkg_download'
             and p['total']
-            and p['profile'] == manager.ctx.config.profile
+            and p['profile'] == config_ctx.config.profile
         ]
 
 
@@ -523,8 +546,8 @@ class GetVersionResult(TypedDict):
 
 @_register_method('meta/get_version')
 class GetVersionParams(BaseParams):
-    async def respond(self, managers: _ManagersManager) -> GetVersionResult:
-        outdated, new_version = await is_outdated(managers.global_config)
+    async def respond(self, config_ctxs: _ConfigBoundCtxCollection) -> GetVersionResult:
+        outdated, new_version = await is_outdated(config_ctxs.global_config)
         return {
             'installed_version': __version__,
             'new_version': new_version if outdated else None,
@@ -535,7 +558,7 @@ class GetVersionParams(BaseParams):
 class OpenUrlParams(BaseParams):
     url: str
 
-    async def respond(self, managers: _ManagersManager) -> None:
+    async def respond(self, config_ctxs: _ConfigBoundCtxCollection) -> None:
         open_url(self.url)
 
 
@@ -543,7 +566,7 @@ class OpenUrlParams(BaseParams):
 class RevealFolderParams(BaseParams):
     path_parts: list[str]
 
-    async def respond(self, managers: _ManagersManager) -> None:
+    async def respond(self, config_ctxs: _ConfigBoundCtxCollection) -> None:
         reveal_folder(os.path.join(*self.path_parts))
 
 
@@ -555,7 +578,7 @@ class SelectFolderResult(TypedDict):
 class SelectFolderParams(BaseParams):
     initial_folder: str | None
 
-    async def respond(self, managers: _ManagersManager) -> SelectFolderResult:
+    async def respond(self, config_ctxs: _ConfigBoundCtxCollection) -> SelectFolderResult:
         main_window, portal = _toga_handle.get()
 
         async def select_folder() -> Path | None:
@@ -577,7 +600,7 @@ class ConfirmDialogueParams(BaseParams):
     title: str
     message: str
 
-    async def respond(self, managers: _ManagersManager) -> ConfirmDialogueResult:
+    async def respond(self, config_ctxs: _ConfigBoundCtxCollection) -> ConfirmDialogueResult:
         main_window, portal = _toga_handle.get()
 
         async def confirm() -> bool:
@@ -586,20 +609,20 @@ class ConfirmDialogueParams(BaseParams):
         return {'ok': portal.call(confirm)}
 
 
-class _ManagersManager:
+class _ConfigBoundCtxCollection:
     def __init__(self):
-        self._exit_stack = AsyncExitStack()
-
         self.locks = WeakValueDefaultDictionary[object, asyncio.Lock](asyncio.Lock)
 
-        self._managers = dict[str, PkgManager]()
+        self._config_ctxs = dict[str, shared_ctx.ConfigBoundCtx]()
 
-        self.current_progress: ReadOnlyProgressGroup[PkgDownloadProgress] = {}
+        self.current_progress: ReadOnlyProgressGroup[pkg_management.PkgDownloadProgress] = {}
 
         self._github_auth_device_codes = None
         self._github_auth_flow_task = None
 
     async def __aenter__(self):
+        self._exit_stack = AsyncExitStack()
+
         self.global_config = await _read_global_config()
 
         self._web_client = await self._exit_stack.enter_async_context(
@@ -607,7 +630,7 @@ class _ManagersManager:
         )
 
         iter_progress = self._exit_stack.enter_context(
-            make_progress_receiver[PkgDownloadProgress]()
+            make_progress_receiver[pkg_management.PkgDownloadProgress]()
         )
 
         async def update_progress():
@@ -625,12 +648,28 @@ class _ManagersManager:
     async def __aexit__(self, *args: object):
         await self._exit_stack.aclose()
 
-    def unload_profile(self, profile: str):
-        if profile in self._managers:
-            del self._managers[profile]
+    async def load(self, profile: str) -> shared_ctx.ConfigBoundCtx:
+        try:
+            config_ctx = self._config_ctxs[profile]
+        except KeyError:
+            async with self.locks[(*_LockOperation.ModifyProfile, profile)]:
+                try:
+                    config_ctx = self._config_ctxs[profile]
+                except KeyError:
+                    config_ctx = self._config_ctxs[profile] = shared_ctx.ConfigBoundCtx(
+                        await _read_profile_config(self.global_config, profile)
+                    )
 
-    def _unload_all_profiles(self):
-        self._managers.clear()
+        return config_ctx
+
+    async def unload(self, profile: str) -> None:
+        if profile in self._config_ctxs:
+            config_ctx = self._config_ctxs[profile]
+            await run_in_thread(config_ctx.__exit__)(*((None,) * 3))
+            del self._config_ctxs[profile]
+
+    async def _unload_all(self):
+        await gather(self.unload(p) for p in self._config_ctxs)
 
     async def update_global_config(
         self, update_cb: Callable[[GlobalConfig], GlobalConfig]
@@ -640,30 +679,9 @@ class _ManagersManager:
                 self.global_config = update_cb(self.global_config)
                 await run_in_thread(self.global_config.write)()
 
-            self._unload_all_profiles()
+            await self._unload_all()
 
             return self.global_config
-
-    async def run(self, profile: str, coro_fn: _ManagerBoundCoroFn[..., _T]) -> _T:
-        try:
-            manager = self._managers[profile]
-        except KeyError:
-            async with self.locks[(*_LockOperation.ModifyProfile, profile)]:
-                try:
-                    manager = self._managers[profile]
-                except KeyError:
-                    config_ctx = shared_ctx.ConfigBoundCtx(
-                        await _read_profile_config(self.global_config, profile)
-                    )
-                    manager = self._managers[profile] = PkgManager(config_ctx)
-
-        return await coro_fn(manager)
-
-    async def get_manager(self, profile: str):
-        async def get_manager(manager: PkgManager):
-            return manager
-
-        return await self.run(profile, get_manager)
 
     async def initiate_github_auth_flow(self):
         async with self.locks[_LockOperation.InitiateGithubAuthFlow]:
@@ -713,10 +731,10 @@ async def create_app(toga_handle: tuple[Any, anyio.from_thread.BlockingPortal] |
 
     frontend_resources = importlib.resources.files(frontend)
 
-    managers = _ManagersManager()
+    config_ctxs = _ConfigBoundCtxCollection()
 
-    async def managers_listen(app: aiohttp.web.Application):
-        async with managers:
+    async def config_ctxs_listen(app: aiohttp.web.Application):
+        async with config_ctxs:
             yield
 
     async def get_index(request: aiohttp.web.Request):
@@ -750,7 +768,7 @@ async def create_app(toga_handle: tuple[Any, anyio.from_thread.BlockingPortal] |
         middlewares=rpc_middlewares.DEFAULT_MIDDLEWARES,  # pyright: ignore[reportUnknownMemberType]
     )
     rpc_server.add_methods(  # pyright: ignore[reportUnknownMemberType]
-        [m.bind(n, managers) for n, m in _methods]
+        [m.bind(n, config_ctxs) for n, m in _methods]
     )
 
     @aiohttp.web.middleware
@@ -786,7 +804,7 @@ async def create_app(toga_handle: tuple[Any, anyio.from_thread.BlockingPortal] |
             aiohttp.web.get('/api', rpc_server.handle_http_request),
         ]
     )
-    app.cleanup_ctx.append(managers_listen)
+    app.cleanup_ctx.append(config_ctxs_listen)
     app.freeze()
     return app
 

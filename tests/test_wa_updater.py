@@ -3,8 +3,8 @@ from __future__ import annotations
 import pytest
 from yarl import URL
 
+from instawow import pkg_management
 from instawow.definitions import Defn
-from instawow.pkg_management import PkgManager
 from instawow.pkg_models import Pkg
 from instawow.shared_ctx import ConfigBoundCtx
 from instawow_wa_updater._core import WaCompanionBuilder, WeakAura, WeakAuras
@@ -160,17 +160,17 @@ def test_changelog_is_generated(
 
 async def test_can_resolve_wa_companion_pkg(
     builder: WaCompanionBuilder,
-    iw_manager: PkgManager,
+    iw_config_ctx: ConfigBoundCtx,
 ):
     await builder.build()
     defn = Defn('instawow', 'weakauras-companion')
-    resolve_results = await iw_manager.resolve([defn])
+    resolve_results = await pkg_management.resolve(iw_config_ctx, [defn])
     assert type(resolve_results[defn]) is Pkg
 
 
 async def test_can_resolve_wa_companion_autoupdate_pkg(
-    iw_manager: PkgManager,
+    iw_config_ctx: ConfigBoundCtx,
 ):
     defn = Defn('instawow', 'weakauras-companion-autoupdate')
-    resolve_results = await iw_manager.resolve([defn])
+    resolve_results = await pkg_management.resolve(iw_config_ctx, [defn])
     assert type(resolve_results[defn]) is Pkg

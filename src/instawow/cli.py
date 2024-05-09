@@ -6,7 +6,6 @@ import textwrap
 from collections.abc import Awaitable, Callable, Collection, Iterable, Mapping, Sequence
 from functools import cached_property, partial, reduce
 from itertools import chain, count, repeat
-from pathlib import Path
 from typing import TYPE_CHECKING, Any, Generic, NoReturn, TypeVar, overload
 
 import attrs
@@ -15,13 +14,12 @@ import click.types
 from typing_extensions import Self
 
 from . import __version__, _logging, pkg_management, pkg_models, shared_ctx
+from . import config as _config
 from . import results as R
 from ._utils.compat import StrEnum
 from ._utils.iteration import all_eq, bucketise, uniq
-from .config import GlobalConfig, ProfileConfig, config_converter
 from .definitions import ChangelogFormat, Defn, Strategy
 from .plugins import get_plugin_commands
-from .wow_installations import Flavour
 
 _T = TypeVar('_T')
 _TStrEnum = TypeVar('_TStrEnum', bound=StrEnum)
@@ -66,13 +64,11 @@ class Report:
         )
 
     def generate(self) -> None:
-        manager: _ManagerProxy | None = click.get_current_context().obj
-        if manager and manager.ctx.config.global_config.auto_update_check:
+        config_ctx: ConfigBoundCtxProxy | None = click.get_current_context().obj
+        if config_ctx and config_ctx.config.global_config.auto_update_check:
             from ._version_check import is_outdated
 
-            outdated, new_version = run_with_progress(
-                is_outdated(manager.ctx.config.global_config)
-            )
+            outdated, new_version = run_with_progress(is_outdated(config_ctx.config.global_config))
             if outdated:
                 click.echo(f'{self.WARNING_SYMBOL} instawow v{new_version} is available')
 
@@ -87,34 +83,33 @@ class Report:
 
 
 if TYPE_CHECKING:
-    _ManagerProxyBase = pkg_management.PkgManager
+    ConfigBoundCtxProxyBase = shared_ctx.ConfigBoundCtx
 else:
-    _ManagerProxyBase = object
+    ConfigBoundCtxProxyBase = object
 
 
-class _ManagerProxy(_ManagerProxyBase):
-    def __init__(self, context: click.Context) -> None:
-        self.__context = context
+class ConfigBoundCtxProxy(ConfigBoundCtxProxyBase):
+    def __init__(self, click_ctx: click.Context) -> None:
+        self.__click_ctx = click_ctx
 
     if not TYPE_CHECKING:
 
         @cached_property
-        def __manager(self):
-            global_config = GlobalConfig.read().ensure_dirs()
+        def __config_ctx(self) -> shared_ctx.ConfigBoundCtx:
+            global_config = _config.GlobalConfig.read().ensure_dirs()
             try:
-                config = ProfileConfig.read(
-                    global_config, self.__context.params['profile']
+                config = _config.ProfileConfig.read(
+                    global_config, self.__click_ctx.params['profile']
                 ).ensure_dirs()
             except FileNotFoundError:
-                config = self.__context.invoke(configure)
+                config = self.__click_ctx.invoke(configure)
 
-            _logging.setup_logging(config.logging_dir, *self.__context.params['verbose'])
+            _logging.setup_logging(config.logging_dir, *self.__click_ctx.params['verbose'])
 
-            config_ctx = self.__context.with_resource(shared_ctx.ConfigBoundCtx(config))
-            return pkg_management.PkgManager(config_ctx)
+            return self.__click_ctx.with_resource(shared_ctx.ConfigBoundCtx(config))
 
         def __getattr__(self, name: str) -> Any:
-            return getattr(self.__manager, name)
+            return getattr(self.__config_ctx, name)
 
 
 def run_with_progress(awaitable: Awaitable[_T], click_ctx: click.Context | None = None) -> _T:
@@ -126,11 +121,11 @@ def run_with_progress(awaitable: Awaitable[_T], click_ctx: click.Context | None 
         click_ctx = click.get_current_context()
     click_ctx = click_ctx.find_root()
 
-    manager: _ManagerProxy = click_ctx.obj
+    config_ctx: ConfigBoundCtxProxy = click_ctx.obj
 
     make_init_web_client = partial(
         init_web_client,
-        manager.ctx.config.global_config.http_cache_dir,
+        config_ctx.config.global_config.http_cache_dir,
         no_cache=click_ctx.params['no_cache'],
     )
 
@@ -294,7 +289,7 @@ class _SectionedHelpGroup(click.Group):
 
 @overload
 def _parse_uri(
-    manager: pkg_management.PkgManager,
+    config_ctx: ConfigBoundCtxProxy,
     value: str,
     *,
     raise_invalid: bool = True,
@@ -303,7 +298,7 @@ def _parse_uri(
 
 @overload
 def _parse_uri(
-    manager: pkg_management.PkgManager,
+    config_ctx: ConfigBoundCtxProxy,
     value: list[str],
     *,
     raise_invalid: bool = True,
@@ -311,7 +306,7 @@ def _parse_uri(
 
 
 def _parse_uri(
-    manager: pkg_management.PkgManager,
+    config_ctx: ConfigBoundCtxProxy,
     value: str | list[str] | None,
     *,
     raise_invalid: bool = True,
@@ -320,16 +315,16 @@ def _parse_uri(
         return None
 
     if not isinstance(value, str):
-        defns = (_parse_uri(manager, v, raise_invalid=raise_invalid) for v in value)
+        defns = (_parse_uri(config_ctx, v, raise_invalid=raise_invalid) for v in value)
         return uniq(defns)
 
     try:
-        defn = Defn.from_uri(value, known_sources=manager.ctx.resolvers, allow_unsourced=True)
+        defn = Defn.from_uri(value, known_sources=config_ctx.resolvers, allow_unsourced=True)
     except ValueError as exc:
         raise click.BadParameter(exc.args[0]) from None
 
     if not defn.source:
-        match = manager.pair_uri(defn.alias)
+        match = pkg_management.get_alias_from_url(config_ctx, defn.alias)
         if match:
             source, alias = match
             defn = attrs.evolve(defn, source=source, alias=alias)
@@ -399,7 +394,7 @@ class _ListFormat(StrEnum):
 @click.pass_context
 def cli(ctx: click.Context, **__: object) -> None:
     "Add-on manager for World of Warcraft."
-    ctx.obj = _ManagerProxy(ctx)
+    ctx.obj = ConfigBoundCtxProxy(ctx)
 
 
 @cli.command
@@ -420,14 +415,16 @@ def cli(ctx: click.Context, **__: object) -> None:
 )
 @click.pass_obj
 def install(
-    manager: _ManagerProxy,
+    config_ctx: ConfigBoundCtxProxy,
     addons: Sequence[Defn],
     replace_folders: bool,
     dry_run: bool,
 ) -> None:
     "Install add-ons."
     results = run_with_progress(
-        manager.install(addons, replace_folders=replace_folders, dry_run=dry_run)
+        pkg_management.install(
+            config_ctx, addons, replace_folders=replace_folders, dry_run=dry_run
+        )
     )
     Report(results.items()).generate_and_exit()
 
@@ -443,7 +440,7 @@ def install(
 )
 @click.pass_obj
 def update(
-    manager: _ManagerProxy,
+    config_ctx: ConfigBoundCtxProxy,
     addons: Sequence[Defn],
     dry_run: bool,
 ) -> None:
@@ -453,7 +450,9 @@ def update(
         # Hide packages from output if they are up to date and not pinned.
         return True if addons or not isinstance(result, R.PkgUpToDate) else result.is_pinned
 
-    results = run_with_progress(manager.update(addons or 'all', dry_run=dry_run))
+    results = run_with_progress(
+        pkg_management.update(config_ctx, addons or 'all', dry_run=dry_run)
+    )
     Report(results.items(), filter_results).generate_and_exit()
 
 
@@ -466,9 +465,11 @@ def update(
     help='Remove the add-on from the database but do not delete its folders.',
 )
 @click.pass_obj
-def remove(manager: _ManagerProxy, addons: Sequence[Defn], keep_folders: bool) -> None:
+def remove(config_ctx: ConfigBoundCtxProxy, addons: Sequence[Defn], keep_folders: bool) -> None:
     "Remove add-ons."
-    results = run_with_progress(manager.remove(addons, keep_folders=keep_folders))
+    results = run_with_progress(
+        pkg_management.remove(config_ctx, addons, keep_folders=keep_folders)
+    )
     Report(results.items()).generate_and_exit()
 
 
@@ -481,18 +482,20 @@ def remove(manager: _ManagerProxy, addons: Sequence[Defn], keep_folders: bool) -
     help='Undo rollback by reinstalling an add-on using the default strategy.',
 )
 @click.pass_obj
-def rollback(manager: _ManagerProxy, addon: Defn, undo: bool) -> None:
+def rollback(config_ctx: ConfigBoundCtxProxy, addon: Defn, undo: bool) -> None:
     "Roll an add-on back to an older version."
     from ._cli_prompts import Choice, select_one
 
-    pkg = manager.get_pkg(addon)
+    pkg = pkg_management.get_pkg(config_ctx, addon)
     if not pkg:
         Report([(addon, R.PkgNotInstalled())]).generate_and_exit()
-    elif Strategy.VersionEq not in manager.ctx.resolvers[pkg.source].metadata.strategies:
+    elif Strategy.VersionEq not in config_ctx.resolvers[pkg.source].metadata.strategies:
         Report([(addon, R.PkgStrategiesUnsupported({Strategy.VersionEq}))]).generate_and_exit()
     elif undo:
         Report(
-            run_with_progress(manager.update([addon.with_default_strategy_set()])).items()
+            run_with_progress(
+                pkg_management.update(config_ctx, [addon.with_default_strategy_set()])
+            ).items()
         ).generate_and_exit()
 
     reconstructed_defn = pkg.to_defn()
@@ -509,7 +512,9 @@ def rollback(manager: _ManagerProxy, addon: Defn, undo: bool) -> None:
     ).prompt()
 
     Report(
-        run_with_progress(manager.update([reconstructed_defn.with_version(selection)])).items()
+        run_with_progress(
+            pkg_management.update(config_ctx, [reconstructed_defn.with_version(selection)])
+        ).items()
     ).generate_and_exit()
 
 
@@ -519,16 +524,15 @@ def rollback(manager: _ManagerProxy, addon: Defn, undo: bool) -> None:
     '--list-unreconciled', is_flag=True, default=False, help='List unreconciled add-ons and exit.'
 )
 @click.pass_obj
-def reconcile(manager: _ManagerProxy, auto: bool, list_unreconciled: bool) -> None:
+def reconcile(config_ctx: ConfigBoundCtxProxy, auto: bool, list_unreconciled: bool) -> None:
     "Reconcile pre-installed add-ons."
     from ._cli_prompts import SKIP, Choice, confirm, select_one
     from ._utils.text import tabulate
     from .matchers import DEFAULT_MATCHERS, AddonFolder, get_unreconciled_folders
 
-    leftovers = get_unreconciled_folders(manager.ctx)
-    if list_unreconciled:
-        table_rows = [('unreconciled',), *((f.name,) for f in sorted(leftovers))]
-        click.echo(tabulate(table_rows))
+    leftovers = get_unreconciled_folders(config_ctx)
+    if list_unreconciled and leftovers:
+        click.echo(tabulate([('unreconciled',), *((f.name,) for f in sorted(leftovers))]))
         return
     elif not leftovers:
         click.echo('No add-ons left to reconcile.')
@@ -606,18 +610,20 @@ def reconcile(manager: _ManagerProxy, auto: bool, list_unreconciled: bool) -> No
                 yield None
 
     for fn in DEFAULT_MATCHERS.values():
-        defn_groups = run_with_progress(fn(manager.ctx, leftovers))
+        defn_groups = run_with_progress(fn(config_ctx, leftovers))
         resolve_results = run_with_progress(
-            manager.resolve(uniq(d for _, b in defn_groups for d in b))
+            pkg_management.resolve(config_ctx, uniq(d for _, b in defn_groups for d in b))
         )
         pkgs, _ = pkg_management.bucketise_results(resolve_results.items())
 
         selections = [s for s in gather_selections(defn_groups, pkgs) if s]
         if selections and confirm_install():
-            results = run_with_progress(manager.install(selections, replace_folders=True))
+            results = run_with_progress(
+                pkg_management.install(config_ctx, selections, replace_folders=True)
+            )
             Report(results.items()).generate()
 
-        leftovers = get_unreconciled_folders(manager.ctx)
+        leftovers = get_unreconciled_folders(config_ctx)
         if not leftovers:
             break
 
@@ -630,7 +636,7 @@ def reconcile(manager: _ManagerProxy, auto: bool, list_unreconciled: bool) -> No
 @cli.command
 @click.argument('addons', nargs=-1, callback=_with_obj(partial(_parse_uri, raise_invalid=False)))
 @click.pass_obj
-def rereconcile(manager: _ManagerProxy, addons: Sequence[Defn]) -> None:
+def rereconcile(config_ctx: ConfigBoundCtxProxy, addons: Sequence[Defn]) -> None:
     "Rereconcile installed add-ons."
     from ._cli_prompts import SKIP, Choice, confirm, select_one
 
@@ -663,7 +669,7 @@ def rereconcile(manager: _ManagerProxy, addons: Sequence[Defn]) -> None:
         ).prompt()
         return selection if selection is not SKIP else None
 
-    with manager.ctx.database.connect() as connection:
+    with config_ctx.database.connect() as connection:
         query = """
             SELECT *
             FROM pkg
@@ -679,38 +685,29 @@ def rereconcile(manager: _ManagerProxy, addons: Sequence[Defn]) -> None:
             execute = partial(connection.execute, query.format(where_clause=''))
 
         installed_pkgs = [
-            manager.build_pkg_from_row_mapping(connection, p) for p in execute().fetchall()
+            pkg_models.build_pkg_from_row_mapping(connection, p) for p in execute().fetchall()
         ]
 
     equivalent_pkg_defn_groups = run_with_progress(
-        manager.find_equivalent_pkg_defns(installed_pkgs)
+        pkg_management.find_equivalent_pkg_defns(config_ctx, installed_pkgs)
     )
     resolve_results = run_with_progress(
-        manager.resolve(uniq(d for b in equivalent_pkg_defn_groups.values() for d in b))
+        pkg_management.resolve(
+            config_ctx, uniq(d for b in equivalent_pkg_defn_groups.values() for d in b)
+        )
     )
     pkgs, _ = pkg_management.bucketise_results(resolve_results.items())
 
-    selections = [
-        (p, s)
+    selections = {
+        p.to_defn(): s
         for p, d in equivalent_pkg_defn_groups.items()
         for s in (select_alternative_pkg(p, d),)
         if s
-    ]
+    }
+
     if selections and confirm('Install selected add-ons?').prompt():
-
-        def install_selections(*, dry_run: bool):
-            return run_with_progress(
-                manager.install([s for _, s in selections], replace_folders=False, dry_run=dry_run)
-            )
-
-        install_selections(dry_run=True)  # Cache to guard against API errors before uninstall.
         Report(
-            run_with_progress(
-                manager.remove([p.to_defn() for p, _ in selections], keep_folders=False)
-            ).items(),
-        ).generate()
-        Report(
-            install_selections(dry_run=False).items(),
+            run_with_progress(pkg_management.replace(config_ctx, selections)).items()
         ).generate_and_exit()
 
 
@@ -769,11 +766,9 @@ def search(
     from ._cli_prompts import Choice, confirm, select_multiple
     from .catalogue.search import search
 
-    manager: _ManagerProxy = ctx.obj
-
     catalogue_entries = run_with_progress(
         search(
-            manager.ctx,
+            ctx.obj,
             search_terms,
             limit=limit,
             sources=frozenset(sources),
@@ -816,11 +811,11 @@ def search(
 )
 @click.pass_obj
 def list_installed(
-    manager: _ManagerProxy, addons: Sequence[Defn], output_format: _ListFormat
+    config_ctx: ConfigBoundCtxProxy, addons: Sequence[Defn], output_format: _ListFormat
 ) -> None:
     "List installed add-ons."
 
-    with manager.ctx.database.connect() as connection:
+    with config_ctx.database.connect() as connection:
         where_clause, where_params = _make_pkg_where_clause_and_params(addons)
         pkg_mappings = connection.execute(
             f"""
@@ -833,7 +828,7 @@ def list_installed(
         ).fetchall()
 
         def row_mappings_to_pkgs():
-            return map(manager.build_pkg_from_row_mapping, repeat(connection), pkg_mappings)
+            return map(pkg_models.build_pkg_from_row_mapping, repeat(connection), pkg_mappings)
 
         match output_format:
             case _ListFormat.Json:
@@ -899,11 +894,11 @@ def info(ctx: click.Context, addon: Defn) -> None:
 @cli.command
 @click.argument('addon', callback=_with_obj(partial(_parse_uri, raise_invalid=False)))
 @click.pass_obj
-def reveal(manager: _ManagerProxy, addon: Defn) -> None:
+def reveal(config_ctx: ConfigBoundCtxProxy, addon: Defn) -> None:
     "Bring an add-on up in your file manager."
     from ._utils.file import reveal_folder
 
-    with manager.ctx.database.connect() as connection:
+    with config_ctx.database.connect() as connection:
         where_clause, where_params = _make_pkg_where_clause_and_params([addon])
         pkg_folder = connection.execute(
             f"""
@@ -917,7 +912,7 @@ def reveal(manager: _ManagerProxy, addon: Defn) -> None:
         ).fetchone()
 
         if pkg_folder:
-            reveal_folder(manager.ctx.config.addon_dir / pkg_folder['name'])
+            reveal_folder(config_ctx.config.addon_dir / pkg_folder['name'])
         else:
             Report([(addon, R.PkgNotInstalled())]).generate_and_exit()
 
@@ -938,7 +933,7 @@ def reveal(manager: _ManagerProxy, addon: Defn) -> None:
 )
 @click.pass_obj
 def view_changelog(
-    manager: _ManagerProxy, addons: Sequence[Defn], convert: bool, remote: bool
+    config_ctx: ConfigBoundCtxProxy, addons: Sequence[Defn], convert: bool, remote: bool
 ) -> None:
     """View installed and remote add-on changelogs.
 
@@ -969,7 +964,7 @@ def view_changelog(
             import subprocess
 
             def real_convert(source: str, changelog: str):
-                match manager.ctx.resolvers[source].metadata.changelog_format:
+                match config_ctx.resolvers[source].metadata.changelog_format:
                     case ChangelogFormat.Html:
                         pandoc_input_format = 'html'
                     case ChangelogFormat.Markdown:
@@ -1000,12 +995,12 @@ def view_changelog(
 
     if remote:
         pkgs, _ = pkg_management.bucketise_results(
-            run_with_progress(manager.resolve(addons)).items()
+            run_with_progress(pkg_management.resolve(config_ctx, addons)).items()
         )
         partial_pkgs = [pkg_models.make_db_converter().unstructure(p) for p in pkgs.values()]
 
     else:
-        with manager.ctx.database.connect() as connection:
+        with config_ctx.database.connect() as connection:
             query = """
                 SELECT pkg.source, pkg.slug, pkg.changelog_url
                 FROM pkg
@@ -1027,7 +1022,10 @@ def view_changelog(
             partial_pkgs = execute().fetchall()
 
     changelogs = run_with_progress(
-        gather(manager.get_changelog(m['source'], m['changelog_url']) for m in partial_pkgs)
+        gather(
+            pkg_management.get_changelog(config_ctx, m['source'], m['changelog_url'])
+            for m in partial_pkgs
+        )
     )
     if convert:
         do_convert = make_converter()
@@ -1088,7 +1086,7 @@ class _EditableConfigOptions(StrEnum):
 def configure(
     ctx: click.Context,
     editable_config_values: Mapping[_EditableConfigOptions, Any],
-) -> ProfileConfig:
+) -> _config.ProfileConfig:
     """Configure instawow.
 
     You can pass configuration keys as arguments to reconfigure an existing
@@ -1113,17 +1111,18 @@ def configure(
     )
     from .wow_installations import (
         ADDON_DIR_PARTS,
+        Flavour,
         find_installations,
         infer_flavour_from_addon_dir,
     )
 
     profile = ctx.find_root().params['profile']
 
-    existing_global_config = GlobalConfig.read()
+    existing_global_config = _config.GlobalConfig.read()
 
     config_values: dict[str, Any] | None = None
     try:
-        config_values = attrs.asdict(ProfileConfig.read(existing_global_config, profile))
+        config_values = attrs.asdict(_config.ProfileConfig.read(existing_global_config, profile))
     except FileNotFoundError:
         pass
     except Exception:
@@ -1188,8 +1187,8 @@ def configure(
             'Add-on directory',
             only_directories=True,
             validator=AttrsFieldValidator(
-                attrs.fields(attrs.resolve_types(ProfileConfig)).addon_dir,
-                config_converter,
+                attrs.fields(attrs.resolve_types(_config.ProfileConfig)).addon_dir,
+                _config.config_converter,
             ),
         ).prompt()
 
@@ -1246,7 +1245,7 @@ def configure(
             parent = parent[part]
         parent[key.path[-1]] = value
 
-    config = ProfileConfig.from_values(config_values)
+    config = _config.ProfileConfig.from_values(config_values)
     config.global_config.write()
     config.write()
 
@@ -1264,24 +1263,22 @@ def _debug_group():
 
 @_debug_group.command('config')
 @click.pass_obj
-def debug_config(manager: _ManagerProxy) -> None:
+def debug_config(config_ctx: ConfigBoundCtxProxy) -> None:
     "Print the active configuration."
     import json
 
-    click.echo(json.dumps(manager.ctx.config.unstructure_for_display(), indent=2))
+    click.echo(json.dumps(config_ctx.config.unstructure_for_display(), indent=2))
 
 
 @_debug_group.command('sources')
 @click.pass_obj
-def debug_sources(manager: _ManagerProxy) -> None:
+def debug_sources(config_ctx: ConfigBoundCtxProxy) -> None:
     "Print active source metadata."
     from cattrs.preconf.json import make_converter
 
     json_converter = make_converter()
 
-    click.echo(
-        json_converter.dumps([r.metadata for r in manager.ctx.resolvers.values()], indent=2)
-    )
+    click.echo(json_converter.dumps([r.metadata for r in config_ctx.resolvers.values()], indent=2))
 
 
 @_register_plugin_commands
@@ -1301,6 +1298,7 @@ def generate_catalogue(start_date: dt.datetime | None) -> None:
     "Generate the master catalogue."
     import asyncio
     import json
+    from pathlib import Path
 
     from ._sources import DEFAULT_RESOLVERS
     from .catalogue.cataloguer import Catalogue, catalogue_converter

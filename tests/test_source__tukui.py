@@ -11,8 +11,6 @@ from instawow.results import PkgFilesNotMatching
 from instawow.shared_ctx import ConfigBoundCtx
 from instawow.wow_installations import Flavour
 
-pytestmark = pytest.mark.anyio
-
 
 @pytest.fixture
 def tukui_resolver(

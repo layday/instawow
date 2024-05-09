@@ -13,7 +13,6 @@ from yarl import URL
 import instawow._logging
 import instawow.config
 import instawow.http
-import instawow.pkg_management
 import instawow.shared_ctx
 from instawow.shared_ctx import ConfigBoundCtx
 from instawow.wow_installations import _DELECTABLE_DIR_NAMES, Flavour
@@ -111,15 +110,13 @@ def _iw_global_config_defaults(
     monkeypatch: pytest.MonkeyPatch,
     iw_global_config_values: dict[str, Any],
 ):
-    monkeypatch.setenv('INSTAWOW_CONFIG_DIR', str(iw_global_config_values['config_dir']))
-    monkeypatch.setenv('INSTAWOW_TEMP_DIR', str(iw_global_config_values['temp_dir']))
-    monkeypatch.setenv('INSTAWOW_STATE_DIR', str(iw_global_config_values['state_dir']))
+    for key in 'config_dir', 'temp_dir', 'state_dir':
+        monkeypatch.setenv(f'INSTAWOW_{key.upper()}', str(iw_global_config_values[key]))
 
 
 @pytest.fixture
 async def iw_web_client(iw_global_config: instawow.config.GlobalConfig):
     async with instawow.http.init_web_client(iw_global_config.http_cache_dir) as web_client:
-        instawow.shared_ctx.web_client_var.set(web_client)
         yield web_client
 
 
@@ -134,14 +131,9 @@ def iw_config_ctx(iw_profile_config: instawow.config.ProfileConfig):
         yield config_ctx
 
 
-@pytest.fixture
-def iw_manager(iw_config_ctx: ConfigBoundCtx):
-    return instawow.pkg_management.PkgManager(iw_config_ctx)
-
-
 @pytest.fixture(autouse=True, params=['all'])
 async def _iw_mock_aiohttp_requests(
-    request: pytest.FixtureRequest, anyio_backend: ..., iw_aresponses: _StrictResponsesMockServer
+    request: pytest.FixtureRequest, iw_aresponses: _StrictResponsesMockServer
 ):
     if request.config.getoption('--iw-no-mock-http') or any(
         m.name == 'iw_no_mock_http' for m in request.node.iter_markers()

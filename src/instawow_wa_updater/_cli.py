@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import click
 
-from instawow import pkg_management
+from instawow import cli
 
 
 @click.group('weakauras-companion')
@@ -12,24 +12,23 @@ def wa_updater_command_group() -> None:
 
 @wa_updater_command_group.command('build')
 @click.pass_obj
-def build_weakauras_companion(manager: pkg_management.PkgManager) -> None:
+def build_weakauras_companion(config_ctx: cli.ConfigBoundCtxProxy) -> None:
     "Build the WeakAuras Companion add-on."
-    from instawow.cli import run_with_progress
 
     from ._core import WaCompanionBuilder
 
-    run_with_progress(WaCompanionBuilder(manager.ctx.config).build())
+    cli.run_with_progress(WaCompanionBuilder(config_ctx.config).build())
 
 
 @wa_updater_command_group.command('list')
 @click.pass_obj
-def list_installed_wago_auras(manager: pkg_management.PkgManager) -> None:
+def list_installed_wago_auras(config_ctx: cli.ConfigBoundCtxProxy) -> None:
     "List WeakAuras installed from Wago."
     from instawow._utils.text import tabulate
 
     from ._core import WaCompanionBuilder
 
-    builder = WaCompanionBuilder(manager.ctx.config)
+    builder = WaCompanionBuilder(config_ctx.config)
     builder.config.ensure_dirs()
 
     installed_auras = sorted(

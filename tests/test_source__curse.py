@@ -5,9 +5,9 @@ import re
 import pytest
 from yarl import URL
 
+from instawow import pkg_management
 from instawow._sources.cfcore import CfCoreResolver
 from instawow.definitions import Defn, Strategy, StrategyValues
-from instawow.pkg_management import PkgManager
 from instawow.pkg_models import Pkg
 from instawow.results import PkgFilesNotMatching
 from instawow.shared_ctx import ConfigBoundCtx
@@ -111,11 +111,11 @@ async def test_curse_version_pinning(
 
 @pytest.mark.usefixtures('_iw_web_client_ctx')
 async def test_curse_deps_retrieved(
-    iw_manager: PkgManager,
+    iw_config_ctx: ConfigBoundCtx,
 ):
     defn = Defn('curse', CURSE_IDS['bigwigs-voice-korean'])
 
-    results = await iw_manager.resolve([defn], with_deps=True)
+    results = await pkg_management.resolve(iw_config_ctx, [defn], with_deps=True)
     assert all(type(r) is Pkg for r in results.values())
     assert {'bigwigs-voice-korean', 'big-wigs'} == {p.slug for p in results.values()}
 
