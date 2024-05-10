@@ -34,5 +34,8 @@ class TocReader(Mapping[str, str]):
 
     @cached_property
     def interfaces(self) -> list[int]:
-        interface = self.get('Interface')
-        return list(map(int, interface.split(','))) if interface else []
+        return [int(i) for i in self.get('Interface', '').split(',') if i]
+
+    @cached_property
+    def version(self) -> str:
+        return self.get('Version', '')

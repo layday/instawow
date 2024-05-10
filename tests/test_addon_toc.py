@@ -40,6 +40,9 @@ def test_toc_entry_indexing(fake_addon_toc: Path):
 
 
 def test_toc_interfaces():
+    toc_reader = TocReader('')
+    assert toc_reader.interfaces == []
+
     toc_reader = TocReader('## Interface: 10100')
     assert toc_reader.interfaces == [10100]
 
@@ -48,3 +51,11 @@ def test_toc_interfaces():
 
     toc_reader = TocReader('## Interface:  10100 , 20200  ')
     assert toc_reader.interfaces == [10100, 20200]
+
+
+def test_toc_version():
+    toc_reader = TocReader('')
+    assert toc_reader.version == ''
+
+    toc_reader = TocReader('## Version: 1')
+    assert toc_reader.version == '1'

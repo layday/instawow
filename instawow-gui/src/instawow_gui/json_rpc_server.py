@@ -483,7 +483,10 @@ class ReconcileParams(_ProfileParamMixin, BaseParams):
             for a in sorted(leftovers - frozenset(i for a, _ in matched_folders for i in a))
         )
         return [
-            {'folders': [{'name': f.name, 'version': f.version} for f in a], 'matches': m}
+            {
+                'folders': [{'name': f.name, 'version': f.toc_reader.version} for f in a],
+                'matches': m,
+            }
             for a, m in chain(matched_folders, unmatched_folders)
         ]
 

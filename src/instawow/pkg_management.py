@@ -201,7 +201,7 @@ async def find_equivalent_pkg_defns(
                 a
                 for f in p.folders
                 for a in (
-                    AddonFolder.from_addon_path(
+                    AddonFolder.from_path(
                         config_ctx.config.game_flavour,
                         config_ctx.config.addon_dir / f.name,
                     ),

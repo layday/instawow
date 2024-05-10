@@ -3,7 +3,6 @@ from __future__ import annotations
 import enum
 import re
 from collections.abc import Awaitable, Iterable, Mapping
-from functools import cached_property
 from itertools import chain, product
 from pathlib import Path
 from typing import Protocol
@@ -59,7 +58,7 @@ class AddonFolder:
         object.__setattr__(self, 'name', self.path.name)
 
     @classmethod
-    def from_addon_path(cls, flavour: Flavour, path: Path) -> Self | None:
+    def from_path(cls, flavour: Flavour, path: Path) -> Self | None:
         for suffix in chain(FLAVOUR_TOC_SUFFIXES[flavour], ('.toc',)):
             try:
                 toc_reader = TocReader.from_path(path / (path.name + suffix))
@@ -71,11 +70,6 @@ class AddonFolder:
         return frozenset(
             Defn(s, i) for k, s in keys_and_ids for i in (self.toc_reader.get(k),) if i
         )
-
-    @cached_property
-    def version(self) -> str:
-        version_keys = ('Version', 'X-Packaged-Version', 'X-Curse-Packaged-Version')
-        return next(filter(None, map(self.toc_reader.get, version_keys)), '')
 
 
 def hash_addon_contents(addon_path: Path, method: AddonHashMethod):
@@ -94,7 +88,7 @@ def _get_unreconciled_folders(config_ctx: shared_ctx.ConfigBoundCtx):
         if p.name not in pkg_folders and p.is_dir() and not p.is_symlink()
     )
     for path in unreconciled_folder_paths:
-        addon_folder = AddonFolder.from_addon_path(config_ctx.config.game_flavour, path)
+        addon_folder = AddonFolder.from_path(config_ctx.config.game_flavour, path)
         if addon_folder:
             yield addon_folder
 

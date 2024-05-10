@@ -53,7 +53,7 @@ def test_can_extract_defns_from_addon_folder_toc(
     iw_config_ctx: ConfigBoundCtx,
     molinari: Path,
 ):
-    addon_folder = AddonFolder.from_addon_path(iw_config_ctx.config.game_flavour, molinari)
+    addon_folder = AddonFolder.from_path(iw_config_ctx.config.game_flavour, molinari)
     assert addon_folder
     assert addon_folder.get_defns_from_toc_keys(
         iw_config_ctx.resolvers.addon_toc_key_and_id_pairs
@@ -64,7 +64,7 @@ def test_addon_folder_is_hashable(
     iw_config_ctx: ConfigBoundCtx,
     molinari: Path,
 ):
-    addon_folder = AddonFolder.from_addon_path(iw_config_ctx.config.game_flavour, molinari)
+    addon_folder = AddonFolder.from_path(iw_config_ctx.config.game_flavour, molinari)
     assert addon_folder
     assert hash_addon_contents(addon_folder.path, AddonHashMethod.Wowup) == MOLINARI_HASH
 

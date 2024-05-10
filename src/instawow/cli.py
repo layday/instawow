@@ -588,10 +588,13 @@ def reconcile(config_ctx: ConfigBoundCtxProxy, auto: bool, list_unreconciled: bo
                 )
 
             # Highlight versions if they are disparate
-            highlight_version = not all_eq(i.version for i in chain(addons, pkgs))
+            highlight_version = not all_eq(
+                chain((a.toc_reader.version for a in addons), (p.version for p in pkgs))
+            )
 
             selection = select_one(
-                f'{textwrap.shorten(", ".join(a.name for a in addons), 60)} [{addons[0].version or "?"}]',
+                f'{textwrap.shorten(", ".join(a.name for a in addons), 60)}'
+                f' [{addons[0].toc_reader.version or "?"}]',
                 [construct_choice(p, False) for p in pkgs],
                 can_skip=True,
             ).prompt()
