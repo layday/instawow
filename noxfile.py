@@ -45,6 +45,7 @@ def _session_install_for_python_next(session: nox.Session, install_args: list[st
         with tempfile.TemporaryDirectory() as temp_dir:
             constraints_txt = Path(temp_dir, 'python-next-constraints.txt')
             constraints_txt.write_text("""\
+typing-extensions @ git+https://github.com/python/typing_extensions
     """)
 
             session.install('-c', os.fspath(constraints_txt), *install_args)
