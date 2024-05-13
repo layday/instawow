@@ -20,8 +20,6 @@ from .._utils.iteration import batched
 from .._utils.web import as_plain_text_data_url, extract_byte_range_offset
 from ..catalogue.cataloguer import AddonKey, CatalogueEntry
 from ..definitions import ChangelogFormat, Defn, SourceMetadata, Strategy
-from ..matchers.addon_toc import TocReader
-from ..pkg_archives import find_archive_addon_tocs
 from ..resolvers import BaseResolver, HeadersIntent, PkgCandidate
 from ..wow_installations import Flavour, FlavourVersionRange
 
@@ -126,6 +124,15 @@ class GithubResolver(BaseResolver):
         assets: list[_GithubRelease_Asset],
         desired_flavours: tuple[Flavour, ...] | None,
     ):
+        import zipfile
+        from io import BytesIO
+
+        from aiohttp import hdrs
+
+        from ..matchers import NORMALISED_FLAVOUR_TOC_SUFFIXES
+        from ..matchers.addon_toc import TocReader
+        from ..pkg_archives import find_archive_addon_tocs
+
         candidates = [
             a
             for a in assets
@@ -137,13 +144,6 @@ class GithubResolver(BaseResolver):
         ]
         if not candidates:
             return None
-
-        import zipfile
-        from io import BytesIO
-
-        from aiohttp import hdrs
-
-        from ..matchers import NORMALISED_FLAVOUR_TOC_SUFFIXES
 
         download_headers = await self.make_request_headers(HeadersIntent.Download)
 
@@ -181,10 +181,7 @@ class GithubResolver(BaseResolver):
                 async with shared_ctx.web_client.get(
                     download_url,
                     expire_after=http.CACHE_INDEFINITELY,
-                    headers={
-                        **download_headers,
-                        hdrs.RANGE: f'bytes={directory_offset}',
-                    },
+                    headers=download_headers | {hdrs.RANGE: f'bytes={directory_offset}'},
                 ) as directory_range_response:
                     if not directory_range_response.ok:
                         # File size under 25 KB.
@@ -271,10 +268,8 @@ class GithubResolver(BaseResolver):
                 async with shared_ctx.web_client.get(
                     download_url,
                     expire_after=http.CACHE_INDEFINITELY,
-                    headers={
-                        **download_headers,
-                        hdrs.RANGE: f'bytes={main_toc_file_offset}-{following_file_offset}',
-                    },
+                    headers=download_headers
+                    | {hdrs.RANGE: f'bytes={main_toc_file_offset}-{following_file_offset}'},
                     raise_for_status=True,
                 ) as toc_file_range_response:
                     addon_zip_stream.seek(main_toc_file_offset)
