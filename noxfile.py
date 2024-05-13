@@ -218,7 +218,7 @@ def freeze_cli(session: nox.Session):
     import argparse
     import shutil
 
-    PYAPP_VERSION = 'v0.15.1'
+    PYAPP_VERSION = 'v0.20.0'
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--wheel-file', required=True)
@@ -229,10 +229,12 @@ def freeze_cli(session: nox.Session):
     pyapp_configuration = {
         'PYAPP_PROJECT_PATH': os.fspath(Path(options.wheel_file).absolute()),
         'PYAPP_EXEC_MODULE': 'instawow',
-        'PYAPP_PYTHON_VERSION': '3.11',
+        'PYAPP_FULL_ISOLATION': '1',
+        'PYAPP_PYTHON_VERSION': '3.12',
         'PYAPP_DISTRIBUTION_EMBED': '1',
         'PYAPP_PIP_EXTERNAL': '1',
         'PYAPP_PIP_EXTRA_ARGS': '--only-binary :all:',
+        'PYAPP_UV_ENABLED': '1',
     }
 
     with tempfile.TemporaryDirectory() as app_temp_dir:
@@ -250,17 +252,20 @@ def freeze_cli(session: nox.Session):
             env=pyapp_configuration,
         )
 
-        for suffix in ['', '.exe']:
+        for suffix in '', '.exe':
             from_path = Path(app_temp_dir, 'bin', 'pyapp').with_suffix(suffix)
             if not from_path.exists():
                 continue
 
             to_path = Path(options.out_dir, 'instawow').with_suffix(suffix)
-            to_path.parent.mkdir(parents=True)
+            to_path.parent.mkdir(exist_ok=True, parents=True)
             shutil.copy(from_path, to_path)
 
             print(to_path, end='')
             break
+
+        else:
+            raise RuntimeError('built executable not found')
 
 
 @nox.session(python=False)
