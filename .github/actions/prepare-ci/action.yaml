@@ -9,7 +9,3 @@ runs:
       uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-install-version || matrix.python-version }}
-    - name: Install libgirepository
-      run: sudo apt-get install -y libgirepository1.0-dev
-      if: matrix.os == 'ubuntu-latest'
-      shell: bash

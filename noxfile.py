@@ -109,7 +109,7 @@ def test(session: nox.Session, minimum_versions: bool):
             )['wheel-path']
 
     install_args = [
-        f'instawow[gui, test] @ {package_path}',
+        f'instawow[skeletal-gui, test] @ {package_path}',
         'instawow_test_plugin @ tests/plugin',
     ]
     if minimum_versions:
@@ -162,7 +162,7 @@ def type_check(session: nox.Session):
 
     _session_install_for_python_next(
         session,
-        [f'instawow[gui, types] @ {package_path}'],
+        [f'instawow[skeletal-gui, types] @ {package_path}'],
     )
 
     session.run('npx', 'pyright', external=True)

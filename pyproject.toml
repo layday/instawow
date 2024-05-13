@@ -32,9 +32,13 @@ dependencies = [
   "typing-extensions >= 4.11.0",
   "yarl >= 1.9.3",
 ]
-optional-dependencies."gui" = [
+optional-dependencies."skeletal-gui" = [
   "aiohttp-rpc >= 1.0.0",
   "anyio >= 4.3.0",
+  "toga-core >= 0.4.2",
+]
+optional-dependencies."gui" = [
+  "instawow[skeletal-gui]",
   "toga >= 0.4.2",
 ]
 optional-dependencies."test" = [
