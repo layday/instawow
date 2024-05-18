@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 import asyncio
+import concurrent.futures
 import contextvars
 import enum
 import importlib.resources
 import json
 import os
 from collections.abc import Callable, Iterator, Set
-from contextlib import AsyncExitStack, contextmanager
+from contextlib import AsyncExitStack, asynccontextmanager, contextmanager
 from datetime import datetime
 from functools import partial
 from itertools import chain
@@ -17,10 +18,10 @@ from typing import Any, Literal, TypeVar
 import aiohttp
 import aiohttp.typedefs
 import aiohttp.web
-import anyio.from_thread
 import attrs
 import cattrs
 import cattrs.preconf.json
+import toga
 from aiohttp_rpc import JsonRpcMethod
 from aiohttp_rpc import middlewares as rpc_middlewares
 from aiohttp_rpc.errors import InvalidParams, ServerError
@@ -51,7 +52,7 @@ from . import frontend
 _T = TypeVar('_T')
 _P = ParamSpec('_P')
 
-_toga_handle = contextvars.ContextVar[tuple[Any, anyio.from_thread.BlockingPortal]]('_toga_handle')
+_toga_handle = contextvars.ContextVar[toga.App]('_toga_handle')
 
 _LOCK_PREFIX = object()
 
@@ -583,16 +584,24 @@ class SelectFolderParams(BaseParams):
     initial_folder: str | None
 
     async def respond(self, config_ctxs: _ConfigBoundCtxCollection) -> SelectFolderResult:
-        main_window, portal = _toga_handle.get()
+        app = _toga_handle.get()
 
-        async def select_folder() -> Path | None:
-            return await main_window.select_folder_dialog('Select folder', self.initial_folder)
+        future = concurrent.futures.Future[Path | None]()
 
-        try:
-            selection = portal.call(select_folder)
-        except ValueError:
-            selection = None
-        return {'selection': selection}
+        def select_folder():
+            async def inner() -> Path | None:
+                try:
+                    return await app.main_window.select_folder_dialog(  # pyright: ignore[reportUnknownMemberType]
+                        'Select folder', self.initial_folder
+                    )
+                except ValueError:
+                    return None
+
+            task = asyncio.create_task(inner())
+            task.add_done_callback(lambda t: future.set_result(t.result()))
+
+        app.loop.call_soon_threadsafe(select_folder)
+        return {'selection': future.result()}
 
 
 class ConfirmDialogueResult(TypedDict):
@@ -605,12 +614,19 @@ class ConfirmDialogueParams(BaseParams):
     message: str
 
     async def respond(self, config_ctxs: _ConfigBoundCtxCollection) -> ConfirmDialogueResult:
-        main_window, portal = _toga_handle.get()
+        app = _toga_handle.get()
 
-        async def confirm() -> bool:
-            return await main_window.confirm_dialog(self.title, self.message)
+        future = concurrent.futures.Future[bool]()
 
-        return {'ok': portal.call(confirm)}
+        def confirm():
+            async def inner():
+                return await app.main_window.confirm_dialog(self.title, self.message)
+
+            task = asyncio.create_task(inner())
+            task.add_done_callback(lambda t: future.set_result(t.result()))
+
+        app.loop.call_soon_threadsafe(confirm)
+        return {'ok': future.result()}
 
 
 class _ConfigBoundCtxCollection:
@@ -729,7 +745,7 @@ class _ConfigBoundCtxCollection:
             await cancel_tasks([self._github_auth_flow_task])
 
 
-async def create_app(toga_handle: tuple[Any, anyio.from_thread.BlockingPortal] | None = None):
+async def create_web_app(toga_handle: toga.App | None = None):
     if toga_handle:
         _toga_handle.set(toga_handle)
 
@@ -813,7 +829,8 @@ async def create_app(toga_handle: tuple[Any, anyio.from_thread.BlockingPortal] |
     return app
 
 
-async def run_app(app: aiohttp.web.Application):
+@asynccontextmanager
+async def run_web_app(app: aiohttp.web.Application):
     "Fire up the server."
     app_runner = aiohttp.web.AppRunner(app)
     await app_runner.setup()
@@ -823,14 +840,13 @@ async def run_app(app: aiohttp.web.Application):
     server = await asyncio.get_running_loop().create_server(app_runner.server, LOCALHOST)
     host, port = server.sockets[0].getsockname()
 
-    async def serve():
-        try:
-            # ``server_forever`` cleans up after the server when it's interrupted
-            await server.serve_forever()
-        finally:
-            await app_runner.cleanup()
+    try:
+        await server.start_serving()
 
-    return (
-        URL.build(scheme='http', host=host, port=port),
-        serve,
-    )
+        server_url = URL.build(scheme='http', host=host, port=port)
+        logger.debug(f'JSON-RPC server running on {server_url}')
+        yield server_url
+    finally:
+        # Fark knows how you're supposed to gracefully stop the server:
+        #   https://github.com/aio-libs/aiohttp/issues/2950
+        await app_runner.shutdown()

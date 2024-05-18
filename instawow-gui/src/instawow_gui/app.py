@@ -1,22 +1,22 @@
 from __future__ import annotations
 
 import asyncio
+import concurrent.futures
 import json
 import sys
-from contextlib import suppress
+import threading
+from collections.abc import Callable
 from functools import partial
-from typing import cast
 
-import anyio.from_thread
-import anyio.to_thread
 import toga
 import toga.constants
 import toga.style.pack
 
-from instawow._logging import logger
 from instawow._utils.compat import StrEnum
 
 from . import json_rpc_server
+
+_loop_factory = asyncio.DefaultEventLoopPolicy().new_event_loop
 
 
 class _TogaSimulateKeypressAction(StrEnum):
@@ -26,19 +26,40 @@ class _TogaSimulateKeypressAction(StrEnum):
     ActivateViewSearch = 'activateViewSearch'
 
 
-class InstawowApp(toga.App):
-    def __init__(self, debug: bool, **kwargs) -> None:
-        self.__debug = debug
+class _App(toga.App):
+    def __start_json_rpc_server(self, on_started: Callable[[str], None]):
+        def start_json_rpc_server():
+            async def main():
+                async with json_rpc_server.run_web_app(
+                    await json_rpc_server.create_web_app(self)
+                ) as server_url:
+                    server_url_future.set_result(str(server_url))
+                    await wait_future
 
-        super().__init__(
-            formal_name='instawow-gui',
-            app_id='org.instawow.instawow_gui',
-            app_name='instawow_gui',
-            icon='resources/instawow_gui',
-            **kwargs,
+            loop.run_until_complete(main())
+
+        def stop_json_rpc_server():
+            loop.call_soon_threadsafe(wait_future.set_result, None)
+            json_rpc_server_thread.join()
+            return True
+
+        loop = _loop_factory()
+        wait_future = loop.create_future()
+
+        server_url_future = concurrent.futures.Future[str]()
+        server_url_future.add_done_callback(lambda f: on_started(f.result()))
+
+        json_rpc_server_thread = threading.Thread(
+            target=start_json_rpc_server, name='_json_rpc_server'
         )
+        json_rpc_server_thread.start()
 
-    def startup(self, **kwargs) -> None:
+        def on_app_exit(app: toga.App, **kwargs):
+            return stop_json_rpc_server()
+
+        self.on_exit = on_app_exit
+
+    def startup(self) -> None:
         self.main_window = toga.MainWindow(title=self.formal_name, size=(800, 600))
 
         if sys.platform == 'win32':
@@ -46,25 +67,6 @@ class InstawowApp(toga.App):
 
             # Enable high DPI support.
             ctypes.windll.user32.SetProcessDPIAware()
-
-        self.main_window.content = web_view = toga.WebView(style=toga.style.pack.Pack(flex=1))
-
-        if self.__debug:
-            with suppress(AttributeError):
-                web_view._impl.native.configuration.preferences.setValue(
-                    True, forKey='developerExtrasEnabled'
-                )
-
-        if sys.platform == 'win32':
-            web_view_impl = web_view._impl
-
-            def configure_webview2(sender, event_args):
-                if event_args.IsSuccess:
-                    web_view_impl.native.CoreWebView2.Settings.AreBrowserAcceleratorKeysEnabled = (
-                        False
-                    )
-
-            web_view_impl.native.CoreWebView2InitializationCompleted += configure_webview2
 
         def dispatch_js_keyboard_event(command: toga.Command, **kwargs):
             event_args = json.dumps(
@@ -84,7 +86,7 @@ class InstawowApp(toga.App):
                 ),
                 text='Toggle Search Filter',
                 shortcut=toga.Key.MOD_1 + toga.Key.G,
-                group=cast(toga.Group, toga.Group.EDIT),
+                group=toga.Group.EDIT,
                 section=20,
                 order=10,
             ),
@@ -97,7 +99,7 @@ class InstawowApp(toga.App):
                 ),
                 text='Installed',
                 shortcut=toga.Key.MOD_1 + toga.Key.L,
-                group=cast(toga.Group, toga.Group.WINDOW),
+                group=toga.Group.WINDOW,
                 section=20,
                 order=10,
             ),
@@ -109,7 +111,7 @@ class InstawowApp(toga.App):
                     action=_TogaSimulateKeypressAction.ActivateViewReconcile,
                 ),
                 text='Unreconciled',
-                group=cast(toga.Group, toga.Group.WINDOW),
+                group=toga.Group.WINDOW,
                 section=20,
                 order=20,
             ),
@@ -122,39 +124,25 @@ class InstawowApp(toga.App):
                 ),
                 text='Search',
                 shortcut=toga.Key.MOD_1 + toga.Key.F,
-                group=cast(toga.Group, toga.Group.WINDOW),
+                group=toga.Group.WINDOW,
                 section=20,
                 order=30,
             ),
         )
 
-        async def startup():
-            async with anyio.from_thread.BlockingPortal() as portal:
+        web_view = toga.WebView(style=toga.style.pack.Pack(flex=1))
 
-                def run_json_rpc_server():
-                    async def run():
-                        web_app = await json_rpc_server.create_app((self.main_window, portal))
-                        server_url, serve_forever = await json_rpc_server.run_app(web_app)
+        self.__start_json_rpc_server(partial(setattr, web_view, 'url'))
 
-                        logger.debug(f'JSON-RPC server running on {server_url}')
-
-                        set_server_url = partial(setattr, web_view, 'url')
-                        portal.call(set_server_url, str(server_url))
-
-                        await serve_forever()
-
-                    # We don't want to inherit the parent thread's event loop policy,
-                    # i.e. the rubicon loop on macOS.
-                    policy = asyncio.DefaultEventLoopPolicy()
-                    policy.new_event_loop().run_until_complete(run())
-
-                await anyio.to_thread.run_sync(run_json_rpc_server)
-
-        main_task = self.loop.create_task(startup())
-
-        def on_exit(app: toga.App, **kwargs):
-            return main_task.cancel()
-
-        self.on_exit = on_exit
-
+        self.main_window.content = web_view
         self.main_window.show()
+
+
+def make_app(version: str) -> toga.App:
+    return _App(
+        formal_name='instawow-gui',
+        app_id='org.instawow.instawow_gui',
+        app_name='instawow_gui',
+        icon='resources/instawow_gui',
+        version=version,
+    )
