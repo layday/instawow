@@ -300,18 +300,14 @@ WeakAurasCompanionData = {{
                 'init.lua', template_resources.joinpath('init.lua').read_text()
             )
 
-            interface_version = self._profile_config.game_flavour.to_flavour_keyed_enum(
-                _TocNumber
-            ).value
+            interface_version = self._profile_config.game_flavour.to_flavour_keyed_enum(_TocNumber)
             addon_version = shasum(data_output, init_output, interface_version)[:7]
 
             toc_tpl = template_resources.joinpath('WeakAurasCompanion.toc').read_text()
             write_file(
                 'WeakAurasCompanion.toc',
                 toc_tpl.format(
-                    interface=self._profile_config.game_flavour.to_flavour_keyed_enum(
-                        _TocNumber
-                    ).value,
+                    interface=self._profile_config.game_flavour.to_flavour_keyed_enum(_TocNumber),
                     version=addon_version,
                 ),
             )

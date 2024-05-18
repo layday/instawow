@@ -6,25 +6,14 @@ from collections.abc import Iterator
 from enum import Enum
 from functools import cache
 from pathlib import Path
-from typing import Protocol, TypedDict
+from typing import TypedDict, TypeVar
 
-from typing_extensions import NotRequired, Self, TypeVar
+from typing_extensions import NotRequired, Self
 
 from ._utils.compat import StrEnum
 from ._utils.iteration import fill
 
-_TEnum = TypeVar('_TEnum', bound=Enum, infer_variance=True)
-
-
-class _FlavourKeyedEnumMeta(type(Protocol)):  # pragma: no cover
-    def __getitem__(self: type[_FlavourKeyedEnum[_TEnum]], __key: str) -> _TEnum: ...
-
-
-class _FlavourKeyedEnum(Protocol[_TEnum], metaclass=_FlavourKeyedEnumMeta):  # pragma: no cover
-    Retail: _TEnum
-    VanillaClassic: _TEnum
-    Classic: _TEnum
-    WrathClassic: _TEnum
+_TEnum = TypeVar('_TEnum', bound=Enum)
 
 
 class _FlavourMeta(TypedDict):
@@ -61,13 +50,13 @@ class Flavour(StrEnum):
     def from_flavour_keyed_enum(cls, flavour_keyed_enum: Enum) -> Self:
         return cls[flavour_keyed_enum.name]
 
-    def to_flavour_keyed_enum(self, flavour_keyed_enum: type[_FlavourKeyedEnum[_TEnum]]) -> _TEnum:
+    def to_flavour_keyed_enum(self, flavour_keyed_enum: type[_TEnum]) -> _TEnum:
         return flavour_keyed_enum[self.name]
 
     def get_flavour_groups(self, affine: bool) -> list[tuple[Flavour, ...] | None]:
         match (self, affine):
-            case (self.Classic, True):
-                return [(self, self.WrathClassic), None]
+            case (self.__class__.Classic, True):
+                return [(self, self.__class__.WrathClassic), None]
             case (_, True):
                 return [(self,), None]
             case _:

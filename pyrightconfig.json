@@ -1,9 +1,12 @@
 {
-  "include": ["src", "instawow-gui/src", "tests/plugin"],
-  "ignore": ["src/instawow/_migrations"],
+  "include": [
+    "src",
+    "instawow-gui/src",
+    "tests/plugin"
+  ],
   "strict": [
     "src",
-    "instawow-gui/src/instawow_gui/json_rpc_server.py",
+    "instawow-gui/src",
     "tests/plugin"
   ]
 }
