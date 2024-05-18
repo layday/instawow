@@ -39,7 +39,7 @@ jobs:
       - name: Clone the repo
         uses: actions/checkout@v4
       - name: Download pre-built wheel
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         id: download-wheel
         with:
           name: ${{ needs.build-package.outputs.wheel-name }}
@@ -54,7 +54,7 @@ jobs:
           -s 'test-${{ matrix.python-version }}(latest)'
           -- '${{ steps.download-wheel.outputs.download-path }}/${{ needs.build-package.outputs.wheel-name }}'
       - name: Upload coverage data
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: coverage-data
           path: .coverage.*
@@ -83,7 +83,7 @@ jobs:
       - name: Clone the repo
         uses: actions/checkout@v4
       - name: Download pre-built wheel
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         id: download-wheel
         with:
           name: ${{ needs.build-package.outputs.wheel-name }}
@@ -122,7 +122,7 @@ jobs:
       - name: Clone the repo
         uses: actions/checkout@v4
       - name: Download coverage data
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: coverage-data
       - name: Install nox
@@ -131,7 +131,7 @@ jobs:
         run: |
           nox -s produce_coverage_report
       - name: Upload HTML report
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: html-report
           path: htmlcov

@@ -41,7 +41,7 @@ runs:
         echo "wheel-version=$(jq -r '."wheel-version"' dist/.wheel-metadata.json)" >> $GITHUB_OUTPUT
       shell: bash
     - name: Upload artifact
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v4
       with:
         name: ${{ steps.get-wheel-info.outputs.wheel-name }}
         path: ${{ steps.get-wheel-info.outputs.wheel-path }}

@@ -45,12 +45,25 @@ def _session_install_for_python_next(session: nox.Session, install_args: list[st
         with tempfile.TemporaryDirectory() as temp_dir:
             constraints_txt = Path(temp_dir, 'python-next-constraints.txt')
             constraints_txt.write_text("""\
-typing-extensions @ git+https://github.com/python/typing_extensions
     """)
 
             session.install('-c', os.fspath(constraints_txt), *install_args)
     else:
         session.install(*install_args)
+
+
+def _locate_or_build_dist(session: nox.Session):
+    if session.posargs:
+        (package_path,) = session.posargs
+    else:
+        build_dists(session)
+
+        with Path('dist', '.wheel-metadata.json').open('rb') as wheel_metadata_json:
+            package_path = json.load(
+                wheel_metadata_json,
+            )['wheel-path']
+
+    return package_path
 
 
 @nox.session(reuse_venv=True)
@@ -99,15 +112,7 @@ def test(session: nox.Session, minimum_versions: bool):
     if not os.environ.get('CI'):
         session.create_tmp()
 
-    if session.posargs:
-        (package_path,) = session.posargs
-    else:
-        build_dists(session)
-
-        with Path('dist', '.wheel-metadata.json').open('rb') as wheel_metadata_json:
-            package_path = json.load(
-                wheel_metadata_json,
-            )['wheel-path']
+    package_path = _locate_or_build_dist(session)
 
     install_args = [
         f'instawow[skeletal-gui, test] @ {package_path}',
@@ -151,21 +156,12 @@ def produce_coverage_report(session: nox.Session):
 def type_check(session: nox.Session):
     "Run Pyright."
 
-    if session.posargs:
-        (package_path,) = session.posargs
-    else:
-        build_dists(session)
-
-        with Path('dist', '.wheel-metadata.json').open('rb') as wheel_metadata_json:
-            package_path = json.load(
-                wheel_metadata_json,
-            )['wheel-path']
+    package_path = _locate_or_build_dist(session)
 
     _session_install_for_python_next(
         session,
         [f'instawow[skeletal-gui, types] @ {package_path}'],
     )
-
     session.run('npx', 'pyright', external=True)
 
 
@@ -268,27 +264,45 @@ def freeze_cli(session: nox.Session):
             raise RuntimeError('built executable not found')
 
 
-@nox.session(python=False)
-def patch_frontend_spec(session: nox.Session):
-    "Patch the wheel path and version in the frontend spec."
+@nox.session
+def freeze_gui(session: nox.Session):
+    "Freeze the GUI with briefcase."
 
     import argparse
+    import sys
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--version')
-    parser.add_argument('--wheel-file')
+    parser.add_argument('--platform', default=sys.platform)
+    parser.add_argument('--release', action='store_true')
+    parser.add_argument('--wheel-file', required=True)
 
     options = parser.parse_args(session.posargs)
 
     spec_path = Path(__file__).parent.joinpath('instawow-gui', 'pyproject.toml')
     spec = spec_path.read_text(encoding='utf-8')
-
-    if options.version:
-        spec = spec.replace('version = "0.1.0"', f'version = "{options.version}"')
-
-    if options.wheel_file:
+    spec = spec.replace(
+        '"instawow[gui]"',
+        f'"instawow[gui] @ {Path(options.wheel_file).resolve().as_uri()}"',
+    )
+    if options.release:
+        (package_metadata,) = Distribution.discover(name='instawow', path=[options.wheel_file])
         spec = spec.replace(
-            '"instawow[gui]"', f'"instawow[gui] @ {Path(options.wheel_file).resolve().as_uri()}"'
+            'version = "0.1.0"',
+            f'version = "{package_metadata.version}"',
         )
-
     spec_path.write_text(spec, encoding='utf-8')
+
+    if options.platform == 'linux':
+        build_opts = package_opts = ['linux', 'flatpak']
+    elif options.platform == 'darwin':
+        build_opts = []
+        package_opts = ['--adhoc-sign']
+    else:
+        build_opts = []
+        package_opts = []
+
+    session.install('briefcase')
+
+    with session.chdir('instawow-gui'):
+        session.run('briefcase', 'build', *build_opts)
+        session.run('briefcase', 'package', *package_opts)

@@ -30,17 +30,17 @@ jobs:
       matrix:
         build-env:
           - os: macos-12
-            rust-target: aarch64-apple-darwin
+            target: aarch64-apple-darwin
           - os: macos-12
-            rust-target: x86_64-apple-darwin
+            target: x86_64-apple-darwin
           - os: ubuntu-22.04
-            rust-target: aarch64-unknown-linux-gnu
+            target: aarch64-unknown-linux-gnu
           - os: ubuntu-22.04
-            rust-target: x86_64-unknown-linux-gnu
+            target: x86_64-unknown-linux-gnu
           # - os: windows-2022
-          #   rust-target: aarch64-pc-windows-msvc
+          #   target: aarch64-pc-windows-msvc
           - os: windows-2022
-            rust-target: x86_64-pc-windows-msvc
+            target: x86_64-pc-windows-msvc
     runs-on: ${{ matrix.build-env.os }}
     steps:
       - name: Clone the repo
@@ -48,7 +48,7 @@ jobs:
         with:
           fetch-depth: 0
       - name: Download pre-built wheel
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         id: download-wheel
         with:
           name: ${{ needs.build-package.outputs.wheel-name }}
@@ -62,7 +62,7 @@ jobs:
       - name: Install cross-compilation toolchain
         uses: taiki-e/setup-cross-toolchain-action@v1
         with:
-          target: ${{ matrix.build-env.rust-target }}
+          target: ${{ matrix.build-env.target }}
       - name: Install cross
         uses: taiki-e/install-action@v2
         with:
@@ -75,73 +75,76 @@ jobs:
           --wheel-file '${{ steps.download-wheel.outputs.download-path }}/${{ needs.build-package.outputs.wheel-name }}'
           --out-dir ./dist-cli
         env:
-          CARGO_BUILD_TARGET: ${{ matrix.build-env.rust-target }}
+          CARGO_BUILD_TARGET: ${{ matrix.build-env.target }}
       - name: Upload artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: instawow-cli-${{ needs.build-package.outputs.wheel-version }}-${{ matrix.build-env.rust-target }}
+          name: instawow-cli-${{ needs.build-package.outputs.wheel-version }}-${{ matrix.build-env.target }}
           path: ./dist-cli/instawow*
   freeze-gui:
     needs: build-package
     strategy:
       matrix:
         build-env:
-          - os: macos-12
+          - os: macos-latest
+            target: universal2-apple-darwin
             python-version: "3.12"
-            briefcase-build-opts: ""
-            briefcase-package-opts: "--adhoc-sign"
-          - os: ubuntu-22.04
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
             python-version: "3.12"
-            briefcase-build-opts: "linux appimage --no-docker"
-            briefcase-package-opts: "linux appimage"
-          - os: windows-2022
+          # Won't work while GHA doesn't support ARM
+          # - os: ubuntu-latest
+          #   target: aarch64-unknown-linux-gnu
+          #   container:
+          #     image: quay.io/pypa/musllinux_1_2_aarch64
+          #     options: --privileged
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
             python-version: "3.12"
-            briefcase-build-opts: ""
-            briefcase-package-opts: ""
       fail-fast: false
     runs-on: ${{ matrix.build-env.os }}
+    container: ${{ matrix.build-env.container }}
     steps:
       - name: Clone the repo
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - name: Download pre-built wheel
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         id: download-wheel
         with:
           name: ${{ needs.build-package.outputs.wheel-name }}
           path: ./dist
       - name: Install briefcase Linux dependencies
-        run: sudo apt-get update --fix-missing && sudo apt-get install -y
-          patchelf pkgconf
-          libgtk-3-dev libwebkit2gtk-4.1-dev
-          libgirepository1.0-dev gir1.2-javascriptcoregtk-4.1 gir1.2-webkit2-4.1
-        if: startsWith(matrix.build-env.os, 'ubuntu-')
+        run: sudo apt-get update --fix-missing && sudo apt-get install -y flatpak-builder
+        if: matrix.build-env.python-version && startsWith(matrix.build-env.os, 'ubuntu-')
+      - name: Install briefcase Linux dependencies (Alpine)
+        run: apk add flatpak-builder
+        if: matrix.build-env.container
       - name: Install Python
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.build-env.python-version }}
+        if: matrix.build-env.python-version
       - name: Install nox
         run: pipx install nox uv
-      - name: Patch in the wheel dependency
+        if: matrix.build-env.python-version
+      - name: Install nox (Alpine)
+        run: /opt/python/cp312-cp312/bin/python -m pip install nox uv
+        if: matrix.build-env.container
+      - name: Freeze the GUI
         run: >-
-          nox -s patch_frontend_spec --
+          nox
+          --error-on-missing-interpreters
+          --force-python ${{ matrix.build-env.python-version }}
+          -s freeze_gui-${{ matrix.build-env.python-version }}
+          --
           --wheel-file '${{ steps.download-wheel.outputs.download-path }}/${{ needs.build-package.outputs.wheel-name }}'
-      - name: Patch in the version number
-        run: >-
-          nox -s patch_frontend_spec --
-          --version ${{ needs.build-package.outputs.wheel-version }}
-        if: startsWith(github.ref, 'refs/tags/')
-      - name: Install and run briefcase
-        run: |
-          python -m pip install 'briefcase @ git+https://github.com/layday/briefcase@instawow'
-          python -m briefcase build ${{ matrix.build-env.briefcase-build-opts }}
-          python -m briefcase package ${{ matrix.build-env.briefcase-package-opts }}
-        working-directory: instawow-gui
+          ${{ startsWith(github.ref, 'refs/tags/') && '--release' || '' }}
       - name: Upload artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: instawow-gui-${{ needs.build-package.outputs.wheel-version }}-${{ matrix.build-env.os }}
+          name: instawow-gui-${{ needs.build-package.outputs.wheel-version }}-${{ matrix.build-env.target }}
           path: |
             instawow-gui/dist/instawow-gui-*
           if-no-files-found: error
@@ -151,7 +154,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Download built artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           path: release-assets
       - name: Zip up CLI directories
