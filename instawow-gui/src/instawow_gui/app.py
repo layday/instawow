@@ -1,7 +1,5 @@
-# pyright: reportMissingParameterType = false
-# pyright: reportUnknownArgumentType  = false
-# pyright: reportUnknownParameterType = false
-# pyright: reportUnknownMemberType    = false
+# pyright: reportUnknownArgumentType = false
+# pyright: reportUnknownMemberType   = false
 
 from __future__ import annotations
 
@@ -46,7 +44,6 @@ class _App(toga.App):
         def stop_json_rpc_server():
             loop.call_soon_threadsafe(wait_future.set_result, None)
             json_rpc_server_thread.join()
-            return True
 
         loop = _loop_factory()
         wait_future = loop.create_future()
@@ -59,8 +56,9 @@ class _App(toga.App):
         )
         json_rpc_server_thread.start()
 
-        def on_app_exit(app: toga.App, **kwargs):
-            return stop_json_rpc_server()
+        def on_app_exit(app: toga.App, **kwargs: object):
+            stop_json_rpc_server()
+            return True
 
         self.on_exit = on_app_exit
 
@@ -73,7 +71,7 @@ class _App(toga.App):
             # Enable high DPI support.
             ctypes.windll.user32.SetProcessDPIAware()
 
-        def dispatch_js_keyboard_event(command: toga.Command, **kwargs):
+        def dispatch_js_keyboard_event(command: toga.Command, **kwargs: object):
             event_args = json.dumps(
                 {'detail': {'action': kwargs['action']}, 'bubbles': True, 'cancelable': True}
             )
