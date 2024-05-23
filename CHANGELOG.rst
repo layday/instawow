@@ -1,6 +1,19 @@
 Changelog
 =========
 
+v4.4.0
+------
+
+- Improved Lua parser performance by inlining loops.
+
+GUI
+~~~
+
+- Replaced Linux app images with flatpaks.
+  Currently, only x64 binaries are precompiled.
+- Added build configuration for system-native Linux packages.
+- Fixed hang on close on Linux.
+
 v4.3.0
 ------
 
