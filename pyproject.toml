@@ -29,7 +29,8 @@ dependencies = [
   "rapidfuzz >= 3.6.1",
   'truststore >= 0.7.0 ; python_version < "3.13"',
   'truststore >= 0.9.1 ; python_version >= "3.13"',
-  "typing-extensions >= 4.11.0",
+  'typing-extensions >= 4.11.0    ; python_version < "3.13"',
+  'typing-extensions >= 4.12.0rc1 ; python_version >= "3.13"',
   "yarl >= 1.9.3",
 ]
 optional-dependencies."skeletal-gui" = [
