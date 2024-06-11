@@ -214,7 +214,7 @@ def freeze_cli(session: nox.Session):
     import argparse
     import shutil
 
-    PYAPP_VERSION = 'v0.20.0'
+    PYAPP_VERSION = 'v0.22.0'
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--wheel-file', required=True)
