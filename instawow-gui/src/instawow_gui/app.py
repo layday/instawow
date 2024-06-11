@@ -1,6 +1,3 @@
-# pyright: reportUnknownArgumentType = false
-# pyright: reportUnknownMemberType   = false
-
 from __future__ import annotations
 
 import asyncio
@@ -63,8 +60,6 @@ class _App(toga.App):
         self.on_exit = on_app_exit
 
     def startup(self) -> None:
-        self.main_window = toga.MainWindow(title=self.formal_name, size=(800, 600))
-
         if sys.platform == 'win32':
             import ctypes
 
@@ -89,12 +84,10 @@ class _App(toga.App):
                 ),
                 text='Toggle Search Filter',
                 shortcut=toga.Key.MOD_1 + toga.Key.G,
-                group=toga.Group.EDIT,  # pyright: ignore[reportArgumentType]
+                group=toga.Group.EDIT,
                 section=20,
                 order=10,
             ),
-        )
-        self.commands.add(
             toga.Command(
                 partial(
                     dispatch_js_keyboard_event,
@@ -102,24 +95,20 @@ class _App(toga.App):
                 ),
                 text='Installed',
                 shortcut=toga.Key.MOD_1 + toga.Key.L,
-                group=toga.Group.WINDOW,  # pyright: ignore[reportArgumentType]
+                group=toga.Group.WINDOW,
                 section=20,
                 order=10,
             ),
-        )
-        self.commands.add(
             toga.Command(
                 partial(
                     dispatch_js_keyboard_event,
                     action=_TogaSimulateKeypressAction.ActivateViewReconcile,
                 ),
                 text='Unreconciled',
-                group=toga.Group.WINDOW,  # pyright: ignore[reportArgumentType]
+                group=toga.Group.WINDOW,
                 section=20,
                 order=20,
             ),
-        )
-        self.commands.add(
             toga.Command(
                 partial(
                     dispatch_js_keyboard_event,
@@ -127,7 +116,7 @@ class _App(toga.App):
                 ),
                 text='Search',
                 shortcut=toga.Key.MOD_1 + toga.Key.F,
-                group=toga.Group.WINDOW,  # pyright: ignore[reportArgumentType]
+                group=toga.Group.WINDOW,
                 section=20,
                 order=30,
             ),
@@ -137,7 +126,9 @@ class _App(toga.App):
 
         self.__start_json_rpc_server(partial(setattr, web_view, 'url'))
 
-        self.main_window.content = web_view
+        self.main_window = toga.MainWindow(
+            title=self.formal_name, size=(800, 600), content=web_view
+        )
         self.main_window.show()
 
 

@@ -592,7 +592,8 @@ class SelectFolderParams(BaseParams):
         def select_folder():
             async def inner() -> Path | None:
                 try:
-                    return await app.main_window.select_folder_dialog(  # pyright: ignore[reportUnknownMemberType]
+                    assert app.main_window
+                    return await app.main_window.select_folder_dialog(
                         'Select folder', self.initial_folder
                     )
                 except ValueError:
@@ -621,6 +622,7 @@ class ConfirmDialogueParams(BaseParams):
 
         def confirm():
             async def inner():
+                assert app.main_window
                 return await app.main_window.confirm_dialog(self.title, self.message)
 
             task = asyncio.create_task(inner())

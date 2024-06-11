@@ -6,7 +6,7 @@ def _patch_std_streams() -> None:
     import sys
 
     # These are ``None`` when pythonw is used.
-    if sys.stdout is None or sys.stderr is None:  # pyright: ignore[reportUnnecessaryComparison]
+    if sys.stdout is None or sys.stderr is None:
         sys.stdout = sys.stderr = io.StringIO()
 
 

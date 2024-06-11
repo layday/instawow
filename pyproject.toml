@@ -35,11 +35,11 @@ dependencies = [
 ]
 optional-dependencies."skeletal-gui" = [
   "aiohttp-rpc >= 1.0.0",
-  "toga-core >= 0.4.2",
+  "toga-core >= 0.4.5",
 ]
 optional-dependencies."gui" = [
   "instawow[skeletal-gui]",
-  "toga >= 0.4.2",
+  "toga >= 0.4.5",
 ]
 optional-dependencies."test" = [
   "anyio >= 4.3.0",
