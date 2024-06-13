@@ -2,11 +2,12 @@
   "include": [
     "src",
     "instawow-gui/src",
-    "tests/plugin"
+    "tests"
   ],
   "strict": [
     "src",
     "instawow-gui/src",
     "tests/plugin"
-  ]
+  ],
+  "enableExperimentalFeatures": true
 }

@@ -120,8 +120,9 @@ async def test_curse_deps_retrieved(
     defn = Defn('curse', CURSE_IDS['bigwigs-voice-korean'])
 
     results = await pkg_management.resolve(iw_config_ctx, [defn], with_deps=True)
-    assert all(type(r) is Pkg for r in results.values())
-    assert {'bigwigs-voice-korean', 'big-wigs'} == {p.slug for p in results.values()}
+    pkgs, errors = pkg_management.bucketise_results(results.items())
+    assert not errors
+    assert {'bigwigs-voice-korean', 'big-wigs'} == {p.slug for p in pkgs.values()}
 
 
 @pytest.mark.usefixtures('_iw_web_client_ctx')

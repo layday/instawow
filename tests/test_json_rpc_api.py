@@ -14,8 +14,8 @@ from instawow.config import GlobalConfig, ProfileConfig, config_converter
 
 try:
     from instawow_gui import json_rpc_server
-except ImportError:
-    pytestmark = pytest.mark.skip(reason='instawow_gui is not available')
+except ModuleNotFoundError:
+    pytest.skip(reason='instawow_gui is not available', allow_module_level=True)
 else:
     pytestmark = pytest.mark.iw_no_mock_http
 

@@ -207,7 +207,9 @@ async def test_update_reinstalls_corrupted_pkgs(
 ):
     defn = Defn('curse', 'molinari')
 
-    result = (await pkg_management.install(iw_config_ctx, [defn], replace_folders=False))[defn]
+    results = await pkg_management.install(iw_config_ctx, [defn], replace_folders=False)
+
+    result = results[defn]
     assert type(result) is R.PkgInstalled
 
     folders = [iw_config_ctx.config.addon_dir / f.name for f in result.pkg.folders]
@@ -216,8 +218,8 @@ async def test_update_reinstalls_corrupted_pkgs(
     first_folder.rename(first_folder.with_name('foo'))
     assert not all(f.is_dir() for f in folders)
 
-    result = await pkg_management.update(iw_config_ctx, [defn])
-    assert type(result[defn]) is R.PkgUpdated
+    results = await pkg_management.update(iw_config_ctx, [defn])
+    assert type(results[defn]) is R.PkgUpdated
     assert all(f.is_dir() for f in folders)
 
 
@@ -236,8 +238,8 @@ async def test_deleting_and_retaining_folders_on_remove(
     folders = [iw_config_ctx.config.addon_dir / f.name for f in pkg.folders]
     assert all(f.is_dir() for f in folders)
 
-    result = await pkg_management.remove(iw_config_ctx, [defn], keep_folders=keep_folders)
-    assert type(result[defn]) is R.PkgRemoved
+    results = await pkg_management.remove(iw_config_ctx, [defn], keep_folders=keep_folders)
+    assert type(results[defn]) is R.PkgRemoved
     assert not pkg_management.get_pkg(iw_config_ctx, defn)
     if keep_folders:
         assert all(f.is_dir() for f in folders)
@@ -253,15 +255,18 @@ async def test_removing_pkg_with_missing_folders(
 ):
     defn = Defn('curse', 'molinari')
 
-    result = await pkg_management.install(iw_config_ctx, [defn], replace_folders=False)
+    results = await pkg_management.install(iw_config_ctx, [defn], replace_folders=False)
 
-    folders = [iw_config_ctx.config.addon_dir / f.name for f in result[defn].pkg.folders]
+    result = results[defn]
+    assert type(result) is R.PkgInstalled
+
+    folders = [iw_config_ctx.config.addon_dir / f.name for f in result.pkg.folders]
     for folder in folders:
         folder.rename(folder.with_name(f'Not_{folder.name}'))
     assert not any(f.is_dir() for f in folders)
 
-    result = await pkg_management.remove(iw_config_ctx, [defn], keep_folders=keep_folders)
-    assert type(result[defn]) is R.PkgRemoved
+    results = await pkg_management.remove(iw_config_ctx, [defn], keep_folders=keep_folders)
+    assert type(results[defn]) is R.PkgRemoved
     assert not pkg_management.get_pkg(iw_config_ctx, defn)
 
 

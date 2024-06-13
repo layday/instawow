@@ -78,7 +78,17 @@ async def test_generator_in_run_in_thread_does_not_lock_up_loop():
         await asyncio.sleep(1)
         return ['bar']
 
-    assert [await a for a in asyncio.as_completed([run_in_thread(list)(foo()), bar()])] == [
+    assert [
+        await a
+        for a in asyncio.as_completed(
+            [
+                run_in_thread(list)(
+                    foo(),  # pyright: ignore[reportArgumentType]
+                ),
+                bar(),
+            ]
+        )
+    ] == [
         ['bar'],
         ['foo'],
     ]

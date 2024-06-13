@@ -160,7 +160,7 @@ def type_check(session: nox.Session):
 
     _session_install_for_python_next(
         session,
-        [f'instawow[skeletal-gui, types] @ {package_path}'],
+        [f'instawow[skeletal-gui, test, types] @ {package_path}'],
     )
     session.run('npx', 'pyright', external=True)
 
