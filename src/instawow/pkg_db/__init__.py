@@ -127,6 +127,8 @@ def _migrate(connection: Connection, current_version: int, new_version: int):
 
 def _configure(connection: Connection):
     connection.execute('PRAGMA foreign_keys = ON')
+    connection.execute('PRAGMA journal_mode = WAL')
+    connection.execute('PRAGMA synchronous = NORMAL')
     # connection.set_trace_callback(print)
 
 
