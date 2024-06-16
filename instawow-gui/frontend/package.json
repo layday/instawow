@@ -15,7 +15,7 @@
   },
   "devDependencies": {
     "@fortawesome/free-solid-svg-icons": "^6.5.2",
-    "@sveltejs/vite-plugin-svelte": "^3.1.1",
+    "@sveltejs/vite-plugin-svelte": "^4.0.0-next.3",
     "@tsconfig/svelte": "^5.0.4",
     "@types/commonmark": "^0.27.9",
     "@types/lodash-es": "^4.17.12",
@@ -23,17 +23,17 @@
     "@typescript-eslint/eslint-plugin": "^7.13.0",
     "@typescript-eslint/parser": "^7.13.0",
     "eslint": "^8.57.0",
-    "eslint-plugin-svelte": "^2.39.3",
+    "eslint-plugin-svelte": "^2.39.4",
     "events": "^3.3.0",
     "prettier": "^3.3.2",
     "prettier-plugin-svelte": "^3.2.4",
-    "sass": "^1.77.4",
-    "svelte": "^5.0.0-next.153",
+    "sass": "^1.77.5",
+    "svelte": "^5.0.0-next.155",
     "svelte-check": "^3.8.0",
-    "svelte-preprocess": "^5.1.4",
+    "svelte-preprocess": "^6.0.1",
     "tslib": "^2.6.3",
     "typescript": "^5.4.5",
-    "vite": "^5.2.13"
+    "vite": "^5.3.1"
   },
   "dependencies": {
     "@open-rpc/client-js": "^1.8.1",
