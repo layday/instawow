@@ -276,26 +276,21 @@
 
   const reconcileAddons = async (
     stage: ReconciliationStage,
+    stages: ReconciliationStage[],
     selections: Addon[],
     recursive?: boolean,
-  ) => {
-    const reconciliationStages = Object.values(ReconciliationStage);
-
+  ): Promise<ReconciliationStage | undefined> => {
     await installAddons(selections.filter(Boolean), true);
 
-    const nextStage = reconciliationStages[reconciliationStages.indexOf(stage) + 1];
+    const nextStage = stages[stages.indexOf(stage) + 1];
     if (nextStage) {
       if (recursive) {
         const nextSelections = (await api.reconcile(stage))
           .filter((r) => r.matches.length)
           .map(({ matches: [addon] }) => addon);
-        await reconcileAddons(nextStage, nextSelections, true);
-      } else {
-        return nextStage;
+        return await reconcileAddons(nextStage, stages, nextSelections, recursive);
       }
-    } else {
-      // We might be at `reconciliationStage[0]` if `reconcileAddons` was called recursively
-      return reconciliationStages[reconciliationStages.indexOf(stage) || 0];
+      return nextStage;
     }
   };
 

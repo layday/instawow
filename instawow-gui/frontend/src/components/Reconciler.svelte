@@ -11,6 +11,8 @@
 
   const api = getContext<Api>(API_KEY);
 
+  const reconciliationStages = Object.values(ReconciliationStage);
+
   let {
     profileNav,
     onReconcile,
@@ -18,55 +20,52 @@
     profileNav: Snippet<[navMiddle: Snippet | undefined, navEnd: Snippet | undefined]>;
     onReconcile: (
       stage: ReconciliationStage,
+      stages: ReconciliationStage[],
       selections: Addon[],
       recursive?: boolean,
     ) => Promise<ReconciliationStage | undefined>;
   } = $props();
 
+  let reconciliationStage = $state(reconciliationStages[0]);
+  let selections = $state([] as Addon[]);
+
   let isReconciling = $state(false);
 
-  let reconciliationValues = $state({
-    stage: undefined as ReconciliationStage | undefined,
-    selections: [] as Addon[],
-  });
-
   const prepareReconcile = async () => {
-    const reconciliationStages = Object.values(ReconciliationStage);
-
     for (const [index, stage] of Array.from(reconciliationStages.entries()).slice(
-      reconciliationValues.stage
-        ? reconciliationStages.indexOf(reconciliationValues.stage) + 1
-        : 0,
+      reconciliationStages.indexOf(reconciliationStage),
     )) {
       const results = await api.reconcile(stage);
       if (results.some((r) => r.matches.length) || !(index + 1 in reconciliationStages)) {
-        reconciliationValues = {
-          stage,
-          selections: [],
-        };
-
+        reconciliationStage = stage;
         return results;
       }
     }
   };
 
-  const onReconcileWrapped = async (
-    { stage, selections }: typeof reconciliationValues = reconciliationValues,
-    recursive?: boolean,
-  ) => {
+  const onReconcileWrapped = async (recursive?: boolean) => {
     isReconciling = true;
     try {
-      const newStage = await onReconcile(stage!, selections, recursive);
-      if (newStage) {
-        reconciliationValues = {
-          stage: newStage,
-          selections: [],
-        };
-      }
+      const nextStage = await onReconcile(
+        reconciliationStage,
+        reconciliationStages,
+        selections,
+        recursive,
+      );
+      reconciliationStage =
+        nextStage ??
+        reconciliationStages[reconciliationStages.indexOf(reconciliationStage) + 1] ??
+        reconciliationStages[0];
     } finally {
       isReconciling = false;
     }
   };
+
+  $effect.pre(() => {
+    reconciliationStage; // Trigger
+
+    selections = [];
+  });
 </script>
 
 {#snippet navMiddle()}
@@ -76,7 +75,7 @@
         class="control reconciliation-stage-control"
         aria-label="reconciliation stage"
         disabled={isReconciling}
-        bind:value={reconciliationValues.stage}
+        bind:value={reconciliationStage}
       >
         {#each Object.values(ReconciliationStage) as stage}
           <option value={stage}>{stage}</option>
@@ -95,18 +94,14 @@
     <li>
       <button
         class="control"
-        disabled={isReconciling || !reconciliationValues.selections.length}
+        disabled={isReconciling || !selections.length}
         onclick={() => onReconcileWrapped()}
       >
         install
       </button>
     </li>
     <li>
-      <button
-        class="control"
-        disabled={isReconciling}
-        onclick={() => onReconcileWrapped(reconciliationValues, true)}
-      >
+      <button class="control" disabled={isReconciling} onclick={() => onReconcileWrapped(true)}>
         automate
       </button>
     </li>
@@ -117,8 +112,8 @@
 
 {#await prepareReconcile()}
   <CentredPlaceholderText>Loading…</CentredPlaceholderText>
-{:then result}
-  {#if result?.length}
+{:then results}
+  {#if results?.length}
     <div class="preamble">
       <SvgIcon icon={faQuestion} />
       <p>
@@ -134,14 +129,9 @@
     </div>
 
     <AddonList>
-      {#each result as { folders, matches }, idx}
+      {#each results as { folders, matches }, idx}
         <li>
-          <AddonStub
-            bind:selections={reconciliationValues.selections}
-            {folders}
-            choices={matches}
-            {idx}
-          />
+          <AddonStub bind:selections {folders} choices={matches} {idx} />
         </li>
       {/each}
     </AddonList>
