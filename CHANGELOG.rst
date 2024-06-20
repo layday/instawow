@@ -1,6 +1,22 @@
 Changelog
 =========
 
+v4.4.1
+------
+
+- Tweaked database settings.
+
+CLI
+~~~
+
+- Fixed generic progress counter.
+
+GUI
+~~~
+
+- Granted full disk access to the Linux flatpak.
+- Fixed reconciliation skipping to the end.
+
 v4.4.0
 ------
 
