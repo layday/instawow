@@ -763,7 +763,7 @@ async def create_web_app(toga_handle: toga.App | None = None):
     async def get_index(request: aiohttp.web.Request):
         return aiohttp.web.Response(
             content_type='text/html',
-            text=frontend_resources.joinpath('index.html').read_text(),
+            body=frontend_resources.joinpath('index.html').read_bytes(),
         )
 
     async def get_static_file(request: aiohttp.web.Request):
@@ -780,7 +780,7 @@ async def create_web_app(toga_handle: toga.App | None = None):
 
         return aiohttp.web.Response(
             content_type=content_type,
-            text=frontend_resources.joinpath(filename).read_text(),
+            body=frontend_resources.joinpath(filename).read_bytes(),
         )
 
     def json_serialize(value: dict[str, Any]):

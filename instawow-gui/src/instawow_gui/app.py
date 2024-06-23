@@ -46,12 +46,14 @@ class _App(toga.App):
         wait_future = loop.create_future()
 
         server_url_future = concurrent.futures.Future[str]()
-        server_url_future.add_done_callback(lambda f: on_started(f.result()))
 
         json_rpc_server_thread = threading.Thread(
             target=start_json_rpc_server, name='_json_rpc_server'
         )
         json_rpc_server_thread.start()
+
+        server_url = server_url_future.result()
+        on_started(server_url)
 
         def on_app_exit(app: toga.App, **kwargs: object):
             stop_json_rpc_server()
