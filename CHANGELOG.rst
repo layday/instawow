@@ -1,6 +1,14 @@
 Changelog
 =========
 
+v4.4.2
+------
+
+GUI
+~~~
+
+- Fixed running the JSON-RPC server on Windows.
+
 v4.4.1
 ------
 
