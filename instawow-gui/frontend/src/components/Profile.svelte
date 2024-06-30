@@ -49,13 +49,11 @@
   };
 
   const defaultSearchOptions: {
-    fromAlias: boolean;
     limit: number;
     sources: string[];
     startDate: string | null;
     strategies: SearchStrategies;
   } = {
-    fromAlias: false,
     limit: 20,
     sources: [],
     startDate: null,
@@ -65,6 +63,7 @@
       [Strategy.VersionEq]: "",
     },
   };
+  const searchDiffFields = ["sources", "startDate", "strategies"] as const;
 
   export type SearchOptions = typeof defaultSearchOptions;
 
@@ -143,11 +142,13 @@
   let searchFilterInstalled = $state(false);
   let searchOptions = $state(ld.cloneDeep(defaultSearchOptions));
 
-  let searchIsDirty = $derived.by(() => {
-    const fields = ["sources", "startDate", "strategies"] as const;
-
-    return !ld.isEqual(ld.pick(searchOptions, fields), ld.pick(defaultSearchOptions, fields));
-  });
+  let searchIsDirty = $derived(
+    !ld.isEqual(
+      ld.pick(searchOptions, searchDiffFields),
+      ld.pick(defaultSearchOptions, searchDiffFields),
+    ),
+  );
+  let searchIsFromAlias = $derived(uriSchemes?.some((s) => searchTerms.startsWith(s)) ?? false);
 
   let installedIsRefreshing = $state(false);
   let searchesInProgress = $state(0);
@@ -314,8 +315,8 @@
           Object.entries(searchOptions.strategies).map(([k, v]) => [k, v || null]),
         ) as Strategies;
 
-        if (searchOptions.fromAlias) {
-          let source = "*",
+        if (searchIsFromAlias) {
+          let source = "",
             alias = searchTermsSnapshot;
 
           const colonIndex = searchTermsSnapshot.indexOf(":");
@@ -334,6 +335,17 @@
               strategies: condensedStrategies,
             },
           ]);
+          console.log(
+            "results",
+            [
+              {
+                source,
+                alias,
+                strategies: condensedStrategies,
+              },
+            ],
+            results,
+          );
         } else {
           const catalogueEntries = await api.search(
             searchTermsSnapshot,
@@ -474,7 +486,6 @@
       case AddonAction.Resolve: {
         searchOptions = {
           ...ld.cloneDeep(defaultSearchOptions),
-          fromAlias: true,
           strategies: {
             ...addon.options,
             [Strategy.VersionEq]: addon.options[Strategy.VersionEq] ? addon.version : "",
@@ -582,11 +593,6 @@
       console.debug(profile, "resetting `searchOptions.startDate`");
       searchOptions.startDate = null;
     }
-  });
-
-  $effect(() => {
-    console.debug(profile, "updating `searchOptions.fromAlias`");
-    searchOptions.fromAlias = uriSchemes?.some((s) => searchTerms.startsWith(s)) ?? false;
   });
 
   $effect(() => {
@@ -786,6 +792,7 @@
             flavour={config.game_flavour}
             {sources}
             {searchFilterInstalled}
+            {searchIsFromAlias}
             bind:searchOptions
             onRequestSearch={search}
             onRequestReset={resetSearchState}

@@ -10,6 +10,7 @@
     flavour,
     sources,
     searchFilterInstalled,
+    searchIsFromAlias,
     searchOptions = $bindable(),
     onRequestReset,
     onRequestSearch,
@@ -17,6 +18,7 @@
     flavour: Flavour;
     sources: Sources;
     searchFilterInstalled: boolean;
+    searchIsFromAlias: boolean;
     searchOptions: SearchOptions;
     onRequestReset: () => void;
     onRequestSearch: () => void;
@@ -52,7 +54,7 @@
     <select
       id="__search-limit"
       class="form-control"
-      disabled={searchOptions.fromAlias}
+      disabled={searchIsFromAlias}
       bind:value={searchOptions.limit}
     >
       <option value={20}>20</option>
@@ -64,7 +66,7 @@
       id="__search-source"
       class="form-control"
       multiple
-      disabled={searchOptions.fromAlias}
+      disabled={searchIsFromAlias}
       bind:value={searchOptions.sources}
     >
       {#each Object.entries(sources) as [source, { name }]}
@@ -77,17 +79,17 @@
       id="__search-start-date"
       class="form-control"
       placeholder="YYYY-MM-DD"
-      disabled={searchOptions.fromAlias}
+      disabled={searchIsFromAlias}
       bind:value={searchOptions.startDate}
     />
     <ul class="start-date-suggestions">
       {#each START_DATE_SUGGESTIONS as { date, label, flavour: suggestionFlavour }}
         {#if !suggestionFlavour || flavour === suggestionFlavour}
-          <li class:disabled={searchOptions.fromAlias}>
+          <li class:disabled={searchIsFromAlias}>
             <button
               type="button"
               onclick={() => {
-                if (!searchOptions.fromAlias) {
+                if (!searchIsFromAlias) {
                   searchOptions.startDate = date;
                 }
               }}
