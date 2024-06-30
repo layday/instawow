@@ -335,17 +335,6 @@
               strategies: condensedStrategies,
             },
           ]);
-          console.log(
-            "results",
-            [
-              {
-                source,
-                alias,
-                strategies: condensedStrategies,
-              },
-            ],
-            results,
-          );
         } else {
           const catalogueEntries = await api.search(
             searchTermsSnapshot,
