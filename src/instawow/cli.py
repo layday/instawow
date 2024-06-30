@@ -1211,13 +1211,17 @@ def configure(
             'Periodically check for instawow updates?'
         ).prompt()
 
-    if (
-        _EditableConfigOptions.GithubAccessToken in interactive_editable_config_keys
-        and confirm('Set up GitHub authentication?').prompt()
-    ):
-        editable_config_values[_EditableConfigOptions.GithubAccessToken] = asyncio.run(
-            asyncio.wait_for(_github_oauth_flow(), timeout=60 * 5)
+    if _EditableConfigOptions.GithubAccessToken in interactive_editable_config_keys:
+        click.echo(
+            textwrap.fill(
+                'Generating an access token for GitHub is recommended '
+                'to avoid being rate limited.'
+            )
         )
+        if confirm('Set up GitHub authentication?').prompt():
+            editable_config_values[_EditableConfigOptions.GithubAccessToken] = asyncio.run(
+                asyncio.wait_for(_github_oauth_flow(), timeout=60 * 5)
+            )
 
     if _EditableConfigOptions.CfcoreAccessToken in interactive_editable_config_keys:
         click.echo(
