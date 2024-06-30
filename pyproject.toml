@@ -95,20 +95,21 @@ quote-style = "single"
 
 [tool.ruff.lint]
 select = [
-  "B0",  # flake8-bugbear (without opinionated rules)
-  "C4",  # flake8-comprehensions
-  "DTZ", # flake8-datetimez
-  "E",   # pycodestyle
-  "F",   # pyflakes
-  "I",   # isort
-  "PGH", # pygrep-hooks
-  "PIE", # flake8-pie
-  "PT",  # flake8-pytest-style
-  "RUF", # ruff
-  "TRY", # tryceratops
-  "UP",  # pyupgrade
-  "W",   # pycodestyle
-  "YTT", # flake8-2020
+  "ASYNC", # flake8-async
+  "B0",    # flake8-bugbear (without opinionated rules)
+  "C4",    # flake8-comprehensions
+  "DTZ",   # flake8-datetimez
+  "E",     # pycodestyle
+  "F",     # pyflakes
+  "I",     # isort
+  "PGH",   # pygrep-hooks
+  "PIE",   # flake8-pie
+  "PT",    # flake8-pytest-style
+  "RUF",   # ruff
+  "TRY",   # tryceratops
+  "UP",    # pyupgrade
+  "W",     # pycodestyle
+  "YTT",   # flake8-2020
 ]
 ignore = [
   "E501",   # pycodestyle: line-too-long
