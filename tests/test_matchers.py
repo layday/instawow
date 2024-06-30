@@ -7,12 +7,9 @@ import pytest
 from instawow.definitions import Defn
 from instawow.matchers import (
     AddonFolder,
-    AddonHashMethod,
     Matcher,
     get_unreconciled_folders,
-    hash_addon_contents,
     match_addon_names_with_folder_names,
-    match_folder_hashes,
     match_folder_name_subsets,
     match_toc_source_ids,
 )
@@ -60,15 +57,6 @@ def test_can_extract_defns_from_addon_folder_toc(
     ) == {Defn('curse', '20338'), Defn('wowi', '13188')}
 
 
-def test_addon_folder_is_hashable(
-    iw_config_ctx: ConfigBoundCtx,
-    molinari: Path,
-):
-    addon_folder = AddonFolder.from_path(iw_config_ctx.config.game_flavour, molinari)
-    assert addon_folder
-    assert hash_addon_contents(addon_folder.path, AddonHashMethod.Wowup) == MOLINARI_HASH
-
-
 @pytest.mark.usefixtures('_iw_web_client_ctx')
 async def test_reconcile_invalid_addons_discarded(
     iw_config_ctx: ConfigBoundCtx,
@@ -90,12 +78,6 @@ async def test_reconcile_invalid_addons_discarded(
                 Defn('curse', '20338'),
                 Defn('wowi', '13188'),
                 Defn('github', '388670'),
-                Defn('wago', 'WqKQQEKx'),
-            },
-        ),
-        (
-            match_folder_hashes,
-            {
                 Defn('wago', 'WqKQQEKx'),
             },
         ),

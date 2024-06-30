@@ -5,7 +5,7 @@ import enum
 from collections.abc import AsyncIterator, Collection, Sequence
 from functools import cached_property
 from pathlib import Path
-from typing import Any, ClassVar, Protocol, TypedDict, TypeVar
+from typing import Any, ClassVar, Protocol, TypedDict
 
 from typing_extensions import NotRequired, deprecated
 from yarl import URL
@@ -15,16 +15,6 @@ from . import pkg_archives, pkg_models
 from . import results as R
 from .catalogue import cataloguer
 from .definitions import Defn, SourceMetadata
-
-
-class FolderHashCandidate(Protocol):  # pragma: no cover
-    @property
-    def name(self) -> str: ...
-    @property
-    def path(self) -> Path: ...
-
-
-TFolderHashCandidate = TypeVar('TFolderHashCandidate', bound=FolderHashCandidate)
 
 
 class HeadersIntent(enum.IntEnum):
@@ -66,12 +56,6 @@ class Resolver(Protocol):  # pragma: no cover
 
     async def get_changelog(self, uri: URL) -> str:
         "Retrieve a changelog from a URI."
-        ...
-
-    async def get_folder_hash_matches(
-        self, candidates: Collection[TFolderHashCandidate]
-    ) -> list[tuple[Defn, frozenset[TFolderHashCandidate]]]:
-        "Find ``Defn``s from folder fingerprint."
         ...
 
     @classmethod
@@ -199,11 +183,6 @@ class BaseResolver(Resolver, Protocol):
 
             case _:
                 raise ValueError('Unsupported URI with scheme', uri.scheme)
-
-    async def get_folder_hash_matches(
-        self, candidates: Collection[TFolderHashCandidate]
-    ) -> list[tuple[Defn, frozenset[TFolderHashCandidate]]]:
-        return []
 
     @classmethod
     async def catalogue(cls) -> AsyncIterator[cataloguer.CatalogueEntry]:

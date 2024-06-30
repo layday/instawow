@@ -1,20 +1,17 @@
 from __future__ import annotations
 
-from collections.abc import Collection
 from datetime import timedelta
 
 from typing_extensions import Never, TypedDict
 from yarl import URL
 
-from .. import matchers, shared_ctx
 from .. import results as R
-from .._progress_reporting import make_default_progress
-from .._utils.aio import run_in_thread
+from .. import shared_ctx
 from .._utils.compat import StrEnum
 from .._utils.datetime import datetime_fromisoformat
 from .._utils.web import as_plain_text_data_url
 from ..definitions import ChangelogFormat, Defn, SourceMetadata, Strategy
-from ..resolvers import BaseResolver, HeadersIntent, PkgCandidate, TFolderHashCandidate
+from ..resolvers import BaseResolver, HeadersIntent, PkgCandidate
 
 
 class _WagoStability(StrEnum):
@@ -30,50 +27,6 @@ class _WagoGameVersion(StrEnum):
     VanillaClassic = 'classic'
     Classic = 'cata'
     WrathClassic = 'wotlk'
-
-
-class _WagoMatchRequest(TypedDict):
-    "``/addons/_match``"
-
-    game_version: _WagoGameVersion
-    addons: list[_WagoMatchRequestAddon]
-
-
-class _WagoMatchRequestAddon(TypedDict):
-    name: str
-    hash: str
-
-
-class _WagoMatches(TypedDict):
-    "``/addons/_match``"
-
-    addons: list[_WagoMatchingAddon | None]
-
-
-class _WagoMatchingAddon(TypedDict):
-    id: str
-    name: str  # Eq to ``WagoAddon.display_name``
-    authors: list[str]
-    website_url: str  # Page on Wago
-    thumbnail: str | None
-    matched_release: _WagoRecentAddonRelease
-    modules: dict[str, _WagoAddonModule]  # Add-on folders
-    cf: str | None
-    wowi: str | None
-    wago: str  # Same as ``id``
-    recent_releases: dict[_WagoStability, _WagoRecentAddonRelease]
-
-
-class _WagoRecentAddonRelease(TypedDict):
-    id: str
-    label: str  # Version
-    patch: str  # e.g. "9.2.5"
-    created_at: str  # ISO date-time
-    link: str
-
-
-class _WagoAddonModule(TypedDict):
-    hash: str
 
 
 class _WagoAddon(TypedDict):
@@ -164,48 +117,3 @@ class WagoResolver(BaseResolver):
             version=file['label'],
             changelog_url=as_plain_text_data_url(file['changelog']),
         )
-
-    @run_in_thread
-    def __make_match_params(
-        self, candidates: Collection[TFolderHashCandidate]
-    ) -> _WagoMatchRequest:
-        return {
-            'game_version': self._config.game_flavour.to_flavour_keyed_enum(_WagoGameVersion),
-            'addons': [
-                {
-                    'name': c.name,
-                    'hash': matchers.hash_addon_contents(c.path, matchers.AddonHashMethod.Wowup),
-                }
-                for c in candidates
-            ],
-        }
-
-    async def get_folder_hash_matches(
-        self, candidates: Collection[TFolderHashCandidate]
-    ) -> list[tuple[Defn, frozenset[TFolderHashCandidate]]]:
-        async with shared_ctx.web_client.post(
-            self.__wago_external_api_url / 'addons/_match',
-            expire_after=timedelta(minutes=15),
-            headers=await self.make_request_headers(),
-            json=await self.__make_match_params(candidates),
-            raise_for_status=True,
-            trace_request_ctx={
-                'progress': make_default_progress(
-                    type_='download', label='Finding matching Wago add-ons'
-                )
-            },
-        ) as response:
-            matches: _WagoMatches = await response.json()
-
-        candidates_by_name = {c.name: c for c in candidates}
-
-        return [
-            (
-                Defn(self.metadata.id, a['id']),
-                # We are filtering out add-ons without same-flavour TOCs on our end,
-                # so the API might return modules which aren't in the candidate list.
-                frozenset(f for m in a['modules'] for f in (candidates_by_name.get(m),) if f),
-            )
-            for a in matches['addons']
-            if a
-        ]

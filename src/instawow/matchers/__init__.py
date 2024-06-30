@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import enum
 import re
 from collections.abc import Awaitable, Iterable, Mapping
 from itertools import chain, product
@@ -11,13 +10,11 @@ import attrs
 from typing_extensions import Self
 
 from .. import shared_ctx
-from .._utils.aio import gather
 from .._utils.compat import fauxfrozen
 from .._utils.iteration import bucketise, merge_intersecting_sets, uniq
 from ..catalogue import synchronise as synchronise_catalogue
 from ..definitions import Defn
 from ..wow_installations import Flavour
-from ._addon_hashing import generate_wowup_addon_hash
 from .addon_toc import TocReader
 
 
@@ -25,10 +22,6 @@ class Matcher(Protocol):  # pragma: no cover
     def __call__(
         self, config_ctx: shared_ctx.ConfigBoundCtx, leftovers: frozenset[AddonFolder]
     ) -> Awaitable[list[tuple[list[AddonFolder], list[Defn]]]]: ...
-
-
-class AddonHashMethod(enum.Enum):
-    Wowup = enum.auto()
 
 
 # https://github.com/Stanzilla/WoWUIBugs/issues/68#issuecomment-830351390
@@ -70,12 +63,6 @@ class AddonFolder:
         return frozenset(
             Defn(s, i) for k, s in keys_and_ids for i in (self.toc_reader.get(k),) if i
         )
-
-
-def hash_addon_contents(addon_path: Path, method: AddonHashMethod):
-    match method:
-        case AddonHashMethod.Wowup:
-            return generate_wowup_addon_hash(addon_path)
 
 
 def _get_unreconciled_folders(config_ctx: shared_ctx.ConfigBoundCtx):
@@ -133,30 +120,6 @@ async def match_toc_source_ids(
     ]
 
 
-async def match_folder_hashes(
-    config_ctx: shared_ctx.ConfigBoundCtx, leftovers: frozenset[AddonFolder]
-):
-    matches = await gather(
-        r.get_folder_hash_matches(leftovers) for r in config_ctx.resolvers.values()
-    )
-    flattened_matches = [t for g in matches for t in g]
-    merged_folders_by_constituent_folder = {
-        i: s for s in merge_intersecting_sets(f for _, f in flattened_matches) for i in s
-    }
-    matches_grouped_by_overlapping_folder_names = bucketise(
-        flattened_matches, lambda v: merged_folders_by_constituent_folder[next(iter(v[1]))]
-    )
-    return sorted(
-        (
-            sorted(f),
-            sorted(
-                uniq(d for d, _ in b), key=lambda d: config_ctx.resolvers.priority_dict[d.source]
-            ),
-        )
-        for f, b in matches_grouped_by_overlapping_folder_names.items()
-    )
-
-
 async def match_folder_name_subsets(
     config_ctx: shared_ctx.ConfigBoundCtx, leftovers: frozenset[AddonFolder]
 ):
@@ -210,6 +173,5 @@ async def match_addon_names_with_folder_names(
 DEFAULT_MATCHERS: Mapping[str, Matcher] = {
     'toc_source_ids': match_toc_source_ids,
     'folder_name_subsets': match_folder_name_subsets,
-    'folder_hashes': match_folder_hashes,
     'addon_names_with_folder_names': match_addon_names_with_folder_names,
 }

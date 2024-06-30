@@ -224,10 +224,5 @@ ROUTES = {
             _load_json_fixture('github-release-no-release-json.json'),
             match_querystring=True,
         ),
-        Route(
-            '//addons.wago.io/api/external/addons/_match',
-            _load_json_fixture('wago-match-addons.json'),
-            method='POST',
-        ),
     )
 }

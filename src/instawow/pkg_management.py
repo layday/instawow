@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Awaitable, Callable, Collection, Iterable, Mapping, Sequence
 from contextlib import asynccontextmanager
 from functools import wraps
-from itertools import chain, compress, filterfalse, product, repeat, starmap
+from itertools import chain, compress, filterfalse, repeat, starmap
 from pathlib import Path
 from shutil import move
 from tempfile import NamedTemporaryFile
@@ -15,12 +15,10 @@ from yarl import URL
 
 from . import http, pkg_models, shared_ctx
 from . import results as R
-from ._logging import logger
 from ._progress_reporting import Progress, make_incrementing_progress_tracker
 from ._utils.aio import gather, run_in_thread
 from ._utils.file import trash
 from ._utils.iteration import bucketise, uniq
-from ._utils.perf import time_op
 from ._utils.text import shasum
 from ._utils.web import file_uri_to_path, is_file_uri
 from .definitions import Defn, Strategy
@@ -211,26 +209,6 @@ async def find_equivalent_pkg_defns(
             for p in pkgs
         }
 
-    async def collect_hashed_folder_defns():
-        matches = [
-            m
-            for r in config_ctx.resolvers.values()
-            for m in await r.get_folder_hash_matches(
-                [a for p, f in folders_per_pkg.items() if p.source != r.metadata.id for a in f]
-            )
-        ]
-
-        defns_per_pkg: dict[pkg_models.Pkg, frozenset[Defn]] = {
-            p: frozenset() for p in folders_per_pkg
-        }
-        for (pkg, orig_folders), (defn, matched_folders) in product(
-            folders_per_pkg.items(), matches
-        ):
-            if orig_folders == matched_folders:
-                defns_per_pkg[pkg] |= frozenset((defn,))
-
-        return defns_per_pkg
-
     def get_catalogue_defns(pkg: pkg_models.Pkg) -> frozenset[Defn]:
         entry = catalogue.keyed_entries.get((pkg.source, pkg.id))
         if entry:
@@ -248,17 +226,10 @@ async def find_equivalent_pkg_defns(
 
     folders_per_pkg = await collect_addon_folders()
 
-    with time_op(lambda t: logger.debug(f'hashed folder matches found in {t:.3f}s')):
-        hashed_folder_defns = await collect_hashed_folder_defns()
-
     return {
         p: sorted(d, key=lambda d: config_ctx.resolvers.priority_dict[d.source])
         for p in pkgs
-        for d in (
-            get_catalogue_defns(p)
-            | get_addon_toc_defns(p.source, folders_per_pkg[p])
-            | hashed_folder_defns[p],
-        )
+        for d in (get_catalogue_defns(p) | get_addon_toc_defns(p.source, folders_per_pkg[p]),)
         if d
     }
 

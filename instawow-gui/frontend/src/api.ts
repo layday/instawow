@@ -130,7 +130,6 @@ export type AddonMatch = {
 
 export enum ReconciliationStage {
   toc_source_ids = "toc_source_ids",
-  folder_hashes = "folder_hashes",
   folder_name_subsets = "folder_name_subsets",
   addon_names_with_folder_names = "addon_names_with_folder_names",
 }
