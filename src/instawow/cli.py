@@ -1134,117 +1134,113 @@ def configure(
     is_new_profile = config_values is None
     if is_new_profile:
         config_values = {'profile': profile, 'global_config': attrs.asdict(existing_global_config)}
-    assert config_values
 
     editable_config_values = dict(editable_config_values)
     if not editable_config_values:
-        default_keys = {
-            _EditableConfigOptions.AddonDir,
-            _EditableConfigOptions.GameFlavour,
-        }
+        default_keys = {_EditableConfigOptions.AddonDir, _EditableConfigOptions.GameFlavour}
         if existing_global_config.access_tokens.github is None:
-            default_keys.add(_EditableConfigOptions.GithubAccessToken)
+            default_keys |= {_EditableConfigOptions.GithubAccessToken}
 
         editable_config_values = dict.fromkeys(default_keys)
 
     interactive_editable_config_keys = {k for k, v in editable_config_values.items() if v is None}
+    if interactive_editable_config_keys:
+        # 0 = Unconfigured
+        # 1 = `addon_dir` configured
+        # 2 = both `addon_dir` and `game_flavour` configured
+        installation_configured = 0
+        if (
+            is_new_profile
+            and {_EditableConfigOptions.AddonDir, _EditableConfigOptions.GameFlavour}
+            <= interactive_editable_config_keys
+        ):
+            known_installations = list(existing_global_config.iter_installations())
+            unimported_installations = [
+                (k, v and v['flavour'])
+                for k, v in find_installations()
+                if not any(d.samefile(k) for d in known_installations)
+            ]
+            if unimported_installations:
+                selection = select_one(
+                    'Installation',
+                    [Choice(f'{k}  [{v}]', (k, v)) for k, v in unimported_installations],
+                    can_skip=True,
+                ).prompt()
+                if selection is not SKIP:
+                    (installation_path, flavour) = selection
 
-    # 0 = Unconfigured
-    # 1 = `addon_dir` configured
-    # 2 = both `addon_dir` and `game_flavour` configured
-    installation_configured = 0
-    if (
-        is_new_profile
-        and {_EditableConfigOptions.AddonDir, _EditableConfigOptions.GameFlavour}
-        <= interactive_editable_config_keys
-    ):
-        known_installations = list(existing_global_config.iter_installations())
-        unimported_installations = [
-            (k, v and v['flavour'])
-            for k, v in find_installations()
-            if not any(d.samefile(k) for d in known_installations)
-        ]
-        if unimported_installations:
-            selection = select_one(
-                'Installation',
-                [Choice(f'{k}  [{v}]', (k, v)) for k, v in unimported_installations],
-                can_skip=True,
+                    addon_dir = installation_path.joinpath(*ADDON_DIR_PARTS)
+                    addon_dir.mkdir(exist_ok=True)
+
+                    editable_config_values |= {
+                        _EditableConfigOptions.AddonDir: addon_dir,
+                        _EditableConfigOptions.GameFlavour: flavour,
+                    }
+                    installation_configured = 2 if flavour else 1
+
+        if (
+            installation_configured == 0
+            and _EditableConfigOptions.AddonDir in interactive_editable_config_keys
+        ):
+            editable_config_values[_EditableConfigOptions.AddonDir] = path(
+                'Add-on directory',
+                only_directories=True,
+                validator=AttrsFieldValidator(
+                    attrs.fields(attrs.resolve_types(_config.ProfileConfig)).addon_dir,
+                    _config.config_converter,
+                ),
             ).prompt()
-            if selection is not SKIP:
-                (installation_path, flavour) = selection
 
-                addon_dir = installation_path.joinpath(*ADDON_DIR_PARTS)
-                addon_dir.mkdir(exist_ok=True)
+        if (
+            installation_configured < 2
+            and _EditableConfigOptions.GameFlavour in interactive_editable_config_keys
+        ):
+            editable_config_values[_EditableConfigOptions.GameFlavour] = select_one(
+                'Game flavour',
+                [Choice(f, f) for f in Flavour if not f.is_retired],
+                initial_value=config_values.get('addon_dir')
+                and infer_flavour_from_addon_dir(config_values['addon_dir']),
+            ).prompt()
 
-                editable_config_values |= {
-                    _EditableConfigOptions.AddonDir: addon_dir,
-                    _EditableConfigOptions.GameFlavour: flavour,
-                }
-                installation_configured = 2 if flavour else 1
+        if _EditableConfigOptions.AutoUpdateCheck in interactive_editable_config_keys:
+            editable_config_values[_EditableConfigOptions.AutoUpdateCheck] = confirm(
+                'Periodically check for instawow updates?'
+            ).prompt()
 
-    if (
-        installation_configured == 0
-        and _EditableConfigOptions.AddonDir in interactive_editable_config_keys
-    ):
-        editable_config_values[_EditableConfigOptions.AddonDir] = path(
-            'Add-on directory',
-            only_directories=True,
-            validator=AttrsFieldValidator(
-                attrs.fields(attrs.resolve_types(_config.ProfileConfig)).addon_dir,
-                _config.config_converter,
-            ),
-        ).prompt()
-
-    if (
-        installation_configured < 2
-        and _EditableConfigOptions.GameFlavour in interactive_editable_config_keys
-    ):
-        editable_config_values[_EditableConfigOptions.GameFlavour] = select_one(
-            'Game flavour',
-            [Choice(f, f) for f in Flavour if not f.is_retired],
-            initial_value=config_values.get('addon_dir')
-            and infer_flavour_from_addon_dir(config_values['addon_dir']),
-        ).prompt()
-
-    if _EditableConfigOptions.AutoUpdateCheck in interactive_editable_config_keys:
-        editable_config_values[_EditableConfigOptions.AutoUpdateCheck] = confirm(
-            'Periodically check for instawow updates?'
-        ).prompt()
-
-    if _EditableConfigOptions.GithubAccessToken in interactive_editable_config_keys:
-        click.echo(
-            textwrap.fill(
-                'Generating an access token for GitHub is recommended '
-                'to avoid being rate limited.'
+        if _EditableConfigOptions.GithubAccessToken in interactive_editable_config_keys:
+            click.echo(
+                textwrap.fill(
+                    'Generating an access token for GitHub is recommended '
+                    'to avoid being rate limited.'
+                )
             )
-        )
-        if confirm('Set up GitHub authentication?').prompt():
-            editable_config_values[_EditableConfigOptions.GithubAccessToken] = asyncio.run(
-                asyncio.wait_for(_github_oauth_flow(), timeout=60 * 5)
+            if confirm('Set up GitHub authentication?').prompt():
+                editable_config_values[_EditableConfigOptions.GithubAccessToken] = asyncio.run(
+                    asyncio.wait_for(_github_oauth_flow(), timeout=60 * 5)
+                )
+
+        if _EditableConfigOptions.CfcoreAccessToken in interactive_editable_config_keys:
+            click.echo(
+                textwrap.fill(
+                    'An access token is required to use CurseForge. '
+                    'Log in to https://console.curseforge.com/ to generate an access token.'
+                )
+            )
+            editable_config_values[_EditableConfigOptions.CfcoreAccessToken] = (
+                password('CFCore access token:').prompt() or None
             )
 
-    if _EditableConfigOptions.CfcoreAccessToken in interactive_editable_config_keys:
-        click.echo(
-            textwrap.fill(
-                'An access token is required to use CurseForge. '
-                'Log in to https://console.curseforge.com/ to generate an access token.'
+        if _EditableConfigOptions.WagoAddonsAccessToken in interactive_editable_config_keys:
+            click.echo(
+                textwrap.fill(
+                    'An access token is required to use Wago Addons. '
+                    'Wago issues tokens to Patreon subscribers above a certain tier. '
+                    'See https://addons.wago.io/patreon for more information.'
+                )
             )
-        )
-        editable_config_values[_EditableConfigOptions.CfcoreAccessToken] = (
-            password('CFCore access token:').prompt() or None
-        )
-
-    if _EditableConfigOptions.WagoAddonsAccessToken in interactive_editable_config_keys:
-        click.echo(
-            textwrap.fill(
-                'An access token is required to use Wago Addons. '
-                'Wago issues tokens to Patreon subscribers above a certain tier. '
-                'See https://addons.wago.io/patreon for more information.'
+            editable_config_values[_EditableConfigOptions.WagoAddonsAccessToken] = (
+                password('Wago Addons access token:').prompt() or None
             )
-        )
-        editable_config_values[_EditableConfigOptions.WagoAddonsAccessToken] = (
-            password('Wago Addons access token:').prompt() or None
-        )
 
     for key, value in editable_config_values.items():
         parent = config_values
