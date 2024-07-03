@@ -7,7 +7,7 @@ from functools import cached_property
 from pathlib import Path
 from typing import Any, ClassVar, Protocol, TypedDict
 
-from typing_extensions import NotRequired, deprecated
+from typing_extensions import NotRequired
 from yarl import URL
 
 from . import config as _config
@@ -93,20 +93,6 @@ class BaseResolver(Resolver, Protocol):
         # ``Protocol`` clobbers ``__init__`` on Python < 3.11.
         if cls.__init__ is _DummyResolver.__init__:
             cls.__init__ = cls.__orig_init
-
-    @property
-    @deprecated(
-        'Use ``self._config.game_flavour`` and ``instawow.shared_ctx.web_client`` instead.'
-    )
-    def _config_ctx(self) -> Any:
-        from types import SimpleNamespace
-
-        from . import shared_ctx
-
-        return SimpleNamespace(
-            config=self._config,
-            web_client=property(shared_ctx.web_client_var.get),
-        )
 
     @classmethod
     def _get_access_token(
