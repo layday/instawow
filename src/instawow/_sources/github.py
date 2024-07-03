@@ -22,6 +22,7 @@ from ..catalogue.cataloguer import AddonKey, CatalogueEntry
 from ..definitions import ChangelogFormat, Defn, SourceMetadata, Strategy
 from ..resolvers import BaseResolver, HeadersIntent, PkgCandidate
 from ..wow_installations import Flavour, FlavourVersionRange
+from ._access_tokens import AccessToken
 
 
 # Not exhaustive (as you might've guessed).  Reference:
@@ -90,10 +91,9 @@ class GithubResolver(BaseResolver):
         changelog_format=ChangelogFormat.Markdown,
         addon_toc_key=None,
     )
-    requires_access_token = None
+    access_token = AccessToken('github', False)
 
     __api_url = URL('https://api.github.com/')
-
     __generated_catalogue_csv_url = (
         'https://raw.githubusercontent.com/layday/github-wow-addon-catalogue/main/addons.csv'
     )
@@ -113,9 +113,9 @@ class GithubResolver(BaseResolver):
         else:
             headers['Accept'] = 'application/vnd.github+json'
 
-        access_token = self._get_access_token(self._config.global_config, 'github')
-        if access_token:
-            headers['Authorization'] = f'token {access_token}'
+        maybe_access_token = self.access_token.get()
+        if maybe_access_token:
+            headers['Authorization'] = f'token {maybe_access_token}'
 
         return headers
 

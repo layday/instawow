@@ -69,25 +69,7 @@ async def test_resolve_rewraps_exception_appropriately_from_resolve(
     async def resolve_one(self, defn, metadata):
         raise exception
 
-    monkeypatch.setattr('instawow._sources.cfcore.CfCoreResolver.resolve_one', resolve_one)
-
-    defn = Defn('curse', 'molinari')
-    result = (await pkg_management.resolve(iw_config_ctx, [defn]))[defn]
-    assert type(result) is R.InternalError
-    assert result.message == f'internal error: "{exception}"'
-
-
-@pytest.mark.parametrize('exception', [ValueError('foo'), ClientError('bar')])
-@pytest.mark.usefixtures('_iw_web_client_ctx')
-async def test_resolve_rewraps_exception_appropriately_from_batch_resolve(
-    monkeypatch: pytest.MonkeyPatch,
-    iw_config_ctx: ConfigBoundCtx,
-    exception: Exception,
-):
-    async def resolve(self, defns):
-        raise exception
-
-    monkeypatch.setattr('instawow._sources.cfcore.CfCoreResolver.resolve', resolve)
+    monkeypatch.setattr('instawow.resolvers.BaseResolver.resolve_one', resolve_one)
 
     defn = Defn('curse', 'molinari')
     result = (await pkg_management.resolve(iw_config_ctx, [defn]))[defn]

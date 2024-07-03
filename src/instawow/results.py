@@ -118,13 +118,13 @@ class PkgNonexistent(ManagerError):
 
 
 class PkgFilesMissing(ManagerError):
-    def __init__(self, custom_message: str | None = None) -> None:
+    def __init__(self, reason: str = 'no files are available for download') -> None:
         super().__init__()
-        self._custom_message = custom_message
+        self._reason = reason
 
     @property
     def message(self) -> str:
-        return self._custom_message or 'no files are available for download'
+        return self._reason
 
 
 class PkgFilesNotMatching(ManagerError):
@@ -147,6 +147,16 @@ class PkgSourceInvalid(ManagerError):
     @property
     def message(self) -> str:
         return 'package source is invalid'
+
+
+class PkgSourceDisabled(ManagerError):
+    def __init__(self, reason: str = 'package source is disabled') -> None:
+        super().__init__()
+        self._reason = reason
+
+    @property
+    def message(self) -> str:
+        return self._reason
 
 
 class PkgUpToDate(ManagerError):

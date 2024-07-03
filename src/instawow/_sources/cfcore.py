@@ -23,6 +23,7 @@ from ..config import GlobalConfig
 from ..definitions import ChangelogFormat, Defn, SourceMetadata, Strategy
 from ..resolvers import BaseResolver, HeadersIntent, PkgCandidate
 from ..wow_installations import Flavour
+from ._access_tokens import AccessToken
 
 _T = TypeVar('_T')
 
@@ -261,7 +262,7 @@ class CfCoreResolver(BaseResolver):
         changelog_format=ChangelogFormat.Html,
         addon_toc_key='X-Curse-Project-ID',
     )
-    requires_access_token = 'cfcore'
+    access_token = AccessToken('cfcore', True)
 
     # Ref: https://docs.curseforge.com/
     __mod_api_url = URL('https://api.curseforge.com/v1/mods')
@@ -280,11 +281,7 @@ class CfCoreResolver(BaseResolver):
     ) -> dict[str, str] | None:
         if intent is HeadersIntent.Download:
             return None
-
-        maybe_access_token = self._get_access_token(self._config.global_config)
-        if maybe_access_token is None:
-            raise ValueError(f'{self.metadata.name} access token is not configured')
-        return {'x-api-key': maybe_access_token}
+        return {'x-api-key': self.access_token.get()}
 
     async def resolve(
         self, defns: Sequence[Defn]
@@ -412,10 +409,10 @@ class CfCoreResolver(BaseResolver):
             raise R.PkgFilesNotMatching(defn.strategies)
 
         if file['downloadUrl'] is None:
-            raise R.PkgFilesMissing(
-                'package distribution is forbidden'
+            raise (
+                R.PkgFilesMissing('package distribution is forbidden')
                 if metadata['allowModDistribution'] is False
-                else None
+                else R.PkgFilesMissing
             )
 
         return PkgCandidate(
@@ -474,7 +471,7 @@ class CfCoreResolver(BaseResolver):
 
         get = partial(
             shared_ctx.web_client.get,
-            headers={'x-api-key': cls._get_access_token(GlobalConfig.from_values(env=True))},
+            headers={'x-api-key': cls.access_token.get(GlobalConfig.from_values(env=True))},
             raise_for_status=True,
             timeout=ClientTimeout(total=10),
         )

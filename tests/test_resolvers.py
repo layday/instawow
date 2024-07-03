@@ -19,7 +19,6 @@ async def test_unsupported_strategies_raise(
             changelog_format=ChangelogFormat.Raw,
             addon_toc_key=None,
         )
-        requires_access_token = None
 
         def _resolve_one(self, defn: Defn, metadata: Any):
             raise NotImplementedError

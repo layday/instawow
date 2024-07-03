@@ -69,15 +69,6 @@ async def _open_temp_writer_async():
         await run_in_thread(fh.close)()
 
 
-@object.__new__
-class _DummyResolver:
-    async def resolve(self, defns: Sequence[Defn]):
-        return dict.fromkeys(defns, R.PkgSourceInvalid())
-
-    async def get_changelog(self, uri: URL):
-        raise R.PkgSourceInvalid
-
-
 def _with_lock(lock_name: str):
     def outer(
         coro_fn: Callable[Concatenate[shared_ctx.ConfigBoundCtx, _P], Awaitable[_T]],
@@ -274,9 +265,7 @@ async def resolve(
     track_progress = make_incrementing_progress_tracker(len(defns_by_source), 'Resolving add-ons')
 
     results = await gather(
-        track_progress(
-            R.resultify_async_exc(config_ctx.resolvers.get(s, _DummyResolver).resolve(b))
-        )
+        track_progress(R.resultify_async_exc(config_ctx.resolvers.get_or_dummy(s).resolve(b)))
         for s, b in defns_by_source.items()
     )
     results_by_defn = dict(
@@ -289,14 +278,14 @@ async def resolve(
         )
     )
     if with_deps:
-        results_by_defn.update(await _resolve_deps(config_ctx, results_by_defn.values()))
+        results_by_defn |= await _resolve_deps(config_ctx, results_by_defn.values())
 
     return results_by_defn
 
 
 async def get_changelog(config_ctx: shared_ctx.ConfigBoundCtx, source: str, uri: str) -> str:
     "Retrieve a changelog from a URI."
-    return await config_ctx.resolvers.get(source, _DummyResolver).get_changelog(URL(uri))
+    return await config_ctx.resolvers.get_or_dummy(source).get_changelog(URL(uri))
 
 
 async def _download_pkg_archive(

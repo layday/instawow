@@ -45,7 +45,7 @@ class TukuiResolver(BaseResolver):
         changelog_format=ChangelogFormat.Markdown,
         addon_toc_key='X-Tukui-ProjectID',
     )
-    requires_access_token = None
+    access_token = None
 
     __api_url = URL('https://api.tukui.org/v1/')
 

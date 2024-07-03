@@ -12,6 +12,7 @@ from .._utils.datetime import datetime_fromisoformat
 from .._utils.web import as_plain_text_data_url
 from ..definitions import ChangelogFormat, Defn, SourceMetadata, Strategy
 from ..resolvers import BaseResolver, HeadersIntent, PkgCandidate
+from ._access_tokens import AccessToken
 
 
 class _WagoStability(StrEnum):
@@ -65,7 +66,8 @@ class WagoResolver(BaseResolver):
         changelog_format=ChangelogFormat.Markdown,
         addon_toc_key='X-Wago-ID',
     )
-    requires_access_token = 'wago_addons'
+
+    access_token = AccessToken('wago_addons', True)
 
     __wago_external_api_url = URL('https://addons.wago.io/api/external')
 
@@ -75,10 +77,7 @@ class WagoResolver(BaseResolver):
             return url.parts[2]
 
     async def make_request_headers(self, intent: HeadersIntent | None = None) -> dict[str, str]:
-        maybe_access_token = self._get_access_token(self._config.global_config)
-        if maybe_access_token is None:
-            raise ValueError(f'{self.metadata.name} access token is not configured')
-        return {'Authorization': f'Bearer {maybe_access_token}'}
+        return {'Authorization': f'Bearer {self.access_token.get()}'}
 
     async def _resolve_one(self, defn: Defn, metadata: None) -> PkgCandidate:
         async with shared_ctx.web_client.get(

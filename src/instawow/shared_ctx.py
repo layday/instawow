@@ -30,20 +30,21 @@ def _database_from_config(config: ProfileConfig):
 
 
 def _resolvers_from_config(config: ProfileConfig):
-    builtin_resolver_classes = list(_sources.DEFAULT_RESOLVERS)
-
-    for resolver, access_token in (
-        (r, getattr(config.global_config.access_tokens, r.requires_access_token, None))
-        for r in _sources.DEFAULT_RESOLVERS
-        if r.requires_access_token is not None
-    ):
-        if access_token is None:
-            builtin_resolver_classes.remove(resolver)
-
-    resolver_classes = chain(
-        (r for g in get_plugin_resolvers() for r in g), builtin_resolver_classes
+    return Resolvers(
+        {
+            r.metadata.id: r(config)
+            for r in chain(
+                (r for g in get_plugin_resolvers() for r in g), _sources.DEFAULT_RESOLVERS
+            )
+        },
+        {
+            r.metadata.id: 'access token is not configured'
+            for r in _sources.DEFAULT_RESOLVERS
+            if r.access_token
+            and r.access_token.required
+            and r.access_token.get(config.global_config, raise_if_missing=False) is None
+        },
     )
-    return Resolvers((r.metadata.id, r(config)) for r in resolver_classes)
 
 
 class ConfigBoundCtx(AbstractContextManager['ConfigBoundCtx']):

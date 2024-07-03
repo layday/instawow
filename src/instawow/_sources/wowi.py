@@ -86,7 +86,7 @@ class WowiResolver(BaseResolver):
         changelog_format=ChangelogFormat.Raw,
         addon_toc_key='X-WoWI-ID',
     )
-    requires_access_token = None
+    access_token = None
 
     # Reference: https://api.mmoui.com/v3/globalconfig.json
     # There's also a v4 API corresponding to the as yet unreleased Minion v4,

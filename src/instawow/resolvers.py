@@ -2,19 +2,25 @@ from __future__ import annotations
 
 import datetime as dt
 import enum
-from collections.abc import AsyncIterator, Collection, Sequence
+from collections.abc import AsyncIterator, Collection, Mapping, Sequence
 from functools import cached_property
 from pathlib import Path
 from typing import Any, ClassVar, Protocol, TypedDict
 
-from typing_extensions import NotRequired
+from typing_extensions import Never, NotRequired
 from yarl import URL
 
-from . import config as _config
-from . import pkg_archives, pkg_models
-from . import results as R
+from . import config, pkg_archives, pkg_models
 from .catalogue import cataloguer
 from .definitions import Defn, SourceMetadata
+from .results import (
+    InternalError,
+    ManagerError,
+    PkgSourceDisabled,
+    PkgSourceInvalid,
+    PkgStrategiesUnsupported,
+    resultify_async_exc,
+)
 
 
 class HeadersIntent(enum.IntEnum):
@@ -25,13 +31,10 @@ class Resolver(Protocol):  # pragma: no cover
     metadata: ClassVar[SourceMetadata]
     'Static source metadata.'
 
-    requires_access_token: ClassVar[str | None]
-    'Access token key or ``None``.'
-
     archive_opener: ClassVar[pkg_archives.ArchiveOpener | None]
     'Alternative archive opener to use supporting e.g. non-standard archive formats or layouts.'
 
-    def __init__(self, config: _config.ProfileConfig) -> None: ...
+    def __init__(self, config: config.ProfileConfig) -> None: ...
 
     @classmethod
     def get_alias_from_url(cls, url: URL) -> str | None:
@@ -46,7 +49,7 @@ class Resolver(Protocol):  # pragma: no cover
 
     async def resolve(
         self, defns: Sequence[Defn]
-    ) -> dict[Defn, pkg_models.Pkg | R.ManagerError | R.InternalError]:
+    ) -> dict[Defn, pkg_models.Pkg | ManagerError | InternalError]:
         "Resolve multiple ``Defn``s into packages."
         ...
 
@@ -80,27 +83,19 @@ class PkgCandidate(TypedDict):
 
 
 class BaseResolver(Resolver, Protocol):
+    _config: config.ProfileConfig
+
     archive_opener = None
 
-    _config: _config.ProfileConfig
-
-    def __init__(self, config: _config.ProfileConfig) -> None:
+    def __init__(self, config: config.ProfileConfig) -> None:
         self._config = config
 
     __orig_init = __init__
 
     def __init_subclass__(cls) -> None:
         # ``Protocol`` clobbers ``__init__`` on Python < 3.11.
-        if cls.__init__ is _DummyResolver.__init__:
+        if cls.__init__ is _ConcreteResolver.__init__:
             cls.__init__ = cls.__orig_init
-
-    @classmethod
-    def _get_access_token(
-        cls, global_config: _config.GlobalConfig, name: str | None = None
-    ) -> str | None:
-        name = name or cls.requires_access_token
-        if name is not None:
-            return getattr(global_config.access_tokens, name, None)
 
     @classmethod
     def get_alias_from_url(cls, url: URL) -> str | None:
@@ -113,7 +108,7 @@ class BaseResolver(Resolver, Protocol):
 
     async def resolve(
         self, defns: Sequence[Defn]
-    ) -> dict[Defn, pkg_models.Pkg | R.ManagerError | R.InternalError]:
+    ) -> dict[Defn, pkg_models.Pkg | ManagerError | InternalError]:
         from ._progress_reporting import make_incrementing_progress_tracker
         from ._utils.aio import gather
 
@@ -121,14 +116,14 @@ class BaseResolver(Resolver, Protocol):
             len(defns), f'Resolving add-ons: {self.metadata.name}'
         )
         results = await gather(
-            track_progress(R.resultify_async_exc(self.resolve_one(d, None))) for d in defns
+            track_progress(resultify_async_exc(self.resolve_one(d, None))) for d in defns
         )
         return dict(zip(defns, results))
 
     async def resolve_one(self, defn: Defn, metadata: Any) -> pkg_models.Pkg:
         extraneous_strategies = defn.strategies.filled.keys() - self.metadata.strategies
         if extraneous_strategies:
-            raise R.PkgStrategiesUnsupported(extraneous_strategies)
+            raise PkgStrategiesUnsupported(extraneous_strategies)
 
         pkg_candidate = await self._resolve_one(defn, metadata)
         return pkg_models.Pkg(
@@ -176,11 +171,37 @@ class BaseResolver(Resolver, Protocol):
         yield
 
 
-class _DummyResolver(Resolver):
+class _ConcreteResolver(Resolver):
     pass
 
 
 class Resolvers(dict[str, Resolver]):
+    def __init__(
+        self, resolvers: Mapping[str, Resolver], disabled_resolver_reasons: Mapping[str, str]
+    ):
+        super().__init__(resolvers)
+        self.disabled_resolver_reasons: Mapping[str, str] = disabled_resolver_reasons
+
+    def get_or_dummy(self, key: str) -> Resolver:
+        if key in self.disabled_resolver_reasons:
+            error = PkgSourceDisabled(self.disabled_resolver_reasons[key])
+        elif key in self:
+            return self[key]
+        else:
+            error = PkgSourceInvalid()
+
+        @object.__new__
+        class DummyResolver(Resolver):
+            async def resolve(
+                self, defns: Sequence[Defn]
+            ) -> dict[Defn, pkg_models.Pkg | ManagerError | InternalError]:
+                return dict.fromkeys(defns, error)
+
+            async def get_changelog(self, uri: URL) -> Never:
+                raise error
+
+        return DummyResolver
+
     @cached_property
     def archive_opener_dict(self) -> _ResolverArchiveOpenerDict:
         return _ResolverArchiveOpenerDict(self)
