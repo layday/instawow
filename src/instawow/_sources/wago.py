@@ -95,8 +95,10 @@ class WagoResolver(BaseResolver):
 
         recent_releases = dict(addon_metadata['recent_release'])
         if not defn.strategies[Strategy.AnyReleaseType]:
-            stable_release = recent_releases.get(_WagoStability.Stable)
-            recent_releases = {_WagoStability.Stable: stable_release} if stable_release else {}
+            try:
+                recent_releases = {_WagoStability.Stable: recent_releases[_WagoStability.Stable]}
+            except KeyError:
+                recent_releases = {}
 
         try:
             file_date, file = max(
