@@ -30,6 +30,7 @@ class _TukuiAddon(TypedDict):
     web_url: str
     donate_url: str
     small_desc: str
+    desc: str
     screenshort_url: str
     gallery_url: list[str]
     logo_url: str
