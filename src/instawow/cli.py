@@ -1042,21 +1042,6 @@ def view_changelog(
         click.echo_via_pager(output)
 
 
-async def _github_oauth_flow():
-    from .github_auth import get_codes, poll_for_access_token
-    from .http import init_web_client
-
-    async with init_web_client(None) as web_client:
-        codes = await get_codes(web_client)
-        click.echo(f'Navigate to {codes["verification_uri"]} and paste the code below:')
-        click.echo(f'  {codes["user_code"]}')
-        click.echo('Waiting...')
-        access_token = await poll_for_access_token(
-            web_client, codes['device_code'], codes['interval']
-        )
-        return access_token
-
-
 class _EditableConfigOptions(StrEnum):
     AddonDir = 'addon_dir'
     GameFlavour = 'game_flavour'
@@ -1211,31 +1196,49 @@ def configure(
             click.echo(
                 textwrap.fill(
                     'Generating an access token for GitHub is recommended '
-                    'to avoid being rate limited.'
+                    'to avoid being rate limited.  You may only perform 60 '
+                    'requests an hour without an access token.'
                 )
             )
             if confirm('Set up GitHub authentication?').prompt():
+                from .github_auth import get_codes, poll_for_access_token
+                from .http import init_web_client
+
+                async def github_oauth_flow():
+                    async with init_web_client(None) as web_client:
+                        codes = await get_codes(web_client)
+                        click.echo(
+                            f'Navigate to {codes["verification_uri"]} and paste the code below:'
+                        )
+                        click.echo(f'  {codes["user_code"]}')
+                        click.echo('Waiting...')
+                        access_token = await poll_for_access_token(
+                            web_client, codes['device_code'], codes['interval']
+                        )
+                        return access_token
+
                 editable_config_values[_EditableConfigOptions.GithubAccessToken] = asyncio.run(
-                    asyncio.wait_for(_github_oauth_flow(), timeout=60 * 5)
+                    asyncio.wait_for(github_oauth_flow(), timeout=60 * 5)
                 )
 
         if _EditableConfigOptions.CfcoreAccessToken in interactive_editable_config_keys:
             click.echo(
                 textwrap.fill(
-                    'An access token is required to use CurseForge. '
-                    'Log in to https://console.curseforge.com/ to generate an access token.'
+                    'An API key is required to use CurseForge. '
+                    'Log in to CurseForge for Studios <https://console.curseforge.com/> '
+                    'to generate a key.'
                 )
             )
             editable_config_values[_EditableConfigOptions.CfcoreAccessToken] = (
-                password('CFCore access token:').prompt() or None
+                password('CurseForge API key:').prompt() or None
             )
 
         if _EditableConfigOptions.WagoAddonsAccessToken in interactive_editable_config_keys:
             click.echo(
                 textwrap.fill(
                     'An access token is required to use Wago Addons. '
-                    'Wago issues tokens to Patreon subscribers above a certain tier. '
-                    'See https://addons.wago.io/patreon for more information.'
+                    'Wago issues tokens to Patreon <https://addons.wago.io/patreon> '
+                    'subscribers above a certain tier.'
                 )
             )
             editable_config_values[_EditableConfigOptions.WagoAddonsAccessToken] = (

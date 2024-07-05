@@ -71,11 +71,12 @@
               {/await}
             {/await}
           {:else}
-            Generate a GitHub access token to increase your hourly limit from 60 to 5,000 requests.
+            Generating an access token for GitHub is recommended to avoid being rate limited. You
+            may only perform 60 requests an hour without an access token.
           {/if}
         </div>
       </div>
-      <label for="__cfcore-input-box">CFCore:</label>
+      <label for="__cfcore-input-box">CurseForge:</label>
       <div class="value-rows">
         <input
           id="__cfcore-input-box"
@@ -90,7 +91,7 @@
           onclick={() => updateCfCoreAccessToken()}>update</button
         >
         <div class="description">
-          A CFCore access token is required to use CurseForge. Log in to
+          An API key is required to use CurseForge. Log in to
           <button
             role="link"
             onclick={(e) => {
@@ -98,8 +99,8 @@
               api.openUrl("https://console.curseforge.com/");
             }}
           >
-            CFCore
-          </button> to generate an access token.
+            CurseForge for Studios
+          </button> to generate a key.
         </div>
       </div>
       <label for="__wago-input-box">Wago:</label>
@@ -117,7 +118,7 @@
           onclick={() => updateWagoAccessToken()}>update</button
         >
         <div class="description">
-          An access token is required to use Wago Addons. Wago issues tokens to some
+          An access token is required to use Wago Addons. Wago issues tokens to
           <button
             role="link"
             onclick={(e) => {
@@ -126,7 +127,7 @@
             }}
           >
             Patreon
-          </button> subscribers.
+          </button> subscribers above a certain tier.
         </div>
       </div>
     </div>
