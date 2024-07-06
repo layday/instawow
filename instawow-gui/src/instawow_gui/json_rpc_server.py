@@ -75,7 +75,7 @@ _converter.register_structure_hook(Path, lambda v, _: Path(v))
 _converter.register_structure_hook(datetime, lambda v, _: datetime_fromisoformat(v))
 _converter.register_structure_hook(Strategies, lambda v, _: Strategies(v))
 _converter.register_unstructure_hook(Path, str)
-_converter.register_unstructure_hook(Strategies, Strategies)
+_converter.register_unstructure_hook(Strategies, dict)
 
 
 class _ConfigError(ServerError):
