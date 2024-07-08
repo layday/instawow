@@ -1,0 +1,40 @@
+---
+inputs:
+  python-version:
+    required: false
+    default: "3.12"
+outputs:
+  version:
+    value: ${{ steps.get-version.outputs.version }}
+runs:
+  using: composite
+  steps:
+    - name: Install nox
+      run: pipx install nox uv
+      shell: bash
+    - name: Install Python ${{ inputs.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ inputs.python-version }}
+    - name: Install Node
+      uses: actions/setup-node@v4
+      with:
+        node-version: "20"
+    - name: Build packages
+      run: >-
+        nox
+        --error-on-missing-interpreters
+        --force-python ${{ inputs.python-version }}
+        -s build_dists-${{ inputs.python-version }}
+      shell: bash
+    - name: Get version
+      id: get-version
+      run: |
+        echo "version=$(jq -r '."version"' dist/instawow/.wheel-metadata.json)" >> $GITHUB_OUTPUT
+      shell: bash
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: packages
+        path: ./dist
+        if-no-files-found: error

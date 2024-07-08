@@ -13,7 +13,7 @@ def _gui_command(ctx: click.Context) -> None:
     from instawow._logging import setup_logging
     from instawow.config import GlobalConfig, ProfileConfig
 
-    from .app import make_app
+    from ._app import make_app
 
     global_config = GlobalConfig.read().ensure_dirs()
     dummy_jsonrpc_config = ProfileConfig.make_dummy_config(

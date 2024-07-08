@@ -20,6 +20,8 @@ _DEPENDENCY_GROUPS = {
     'report_coverage': ['coverage[toml]'],
 }
 
+_ROOT = Path(__file__).parent
+
 
 def _install_coverage_hook(session: nox.Session):
     session.run(
@@ -37,40 +39,23 @@ import sysconfig
     )
 
 
-def _session_install_for_python_next(session: nox.Session, install_args: list[str]):
-    is_python_next = session.run(
-        'python', '-c', 'import sys; print(int(sys.version_info >= (3, 13)), end=" ")', silent=True
-    )
-    if is_python_next == '1':
-        with tempfile.TemporaryDirectory() as temp_dir:
-            constraints_txt = Path(temp_dir, 'python-next-constraints.txt')
-            constraints_txt.write_text("""\
-    """)
-
-            session.install('-c', os.fspath(constraints_txt), *install_args)
-    else:
-        session.install(*install_args)
-
-
-def _locate_or_build_dist(session: nox.Session):
-    if session.posargs:
-        (package_path,) = session.posargs
-    else:
+def _locate_or_build_packages(session: nox.Session):
+    wheels_metadata_json = {
+        d: _ROOT / 'dist' / d / '.wheel-metadata.json' for d in ['instawow', 'instawow-gui']
+    }
+    if not all(j.exists() for j in wheels_metadata_json.values()):
+        if os.environ.get('CI'):
+            raise RuntimeError('Packages are missing')
         build_dists(session)
 
-        with Path('dist', '.wheel-metadata.json').open('rb') as wheel_metadata_json:
-            package_path = json.load(
-                wheel_metadata_json,
-            )['wheel-path']
-
-    return package_path
+    return {d: json.loads(p.read_bytes()) for d, p in wheels_metadata_json.items()}
 
 
 @nox.session(reuse_venv=True)
 def dev_env(session: nox.Session):
     "Bootstrap the dev env."
 
-    _session_install_for_python_next(session, ['-e', '.[gui, test, types]'])
+    session.install('-e', '.[test, types]', '-e', './instawow-gui[full]')
     print(session.virtualenv.bin, end='')
 
 
@@ -112,25 +97,25 @@ def test(session: nox.Session, minimum_versions: bool):
     if not os.environ.get('CI'):
         session.create_tmp()
 
-    package_path = _locate_or_build_dist(session)
+    packages = _locate_or_build_packages(session)
 
     install_args = [
-        f'instawow[skeletal-gui, test] @ {package_path}',
+        f'instawow[test] @ {packages["instawow"]["wheel-path"]}',
+        f'instawow-gui[skeletal] @ {packages["instawow-gui"]["wheel-path"]}',
         'instawow_test_plugin @ tests/plugin',
     ]
     if minimum_versions:
-        (package_metadata,) = Distribution.discover(name='instawow', path=[package_path])
-        _session_install_for_python_next(
-            session,
-            [
-                '--resolution',
-                'lowest-direct',
-                *install_args,
-                *(package_metadata.requires or ()),
-            ],
+        (package_metadata,) = Distribution.discover(
+            name='instawow', path=[packages['instawow']['wheel-path']]
+        )
+        session.install(
+            '--resolution',
+            'lowest-direct',
+            *install_args,
+            *(package_metadata.requires or ()),
         )
     else:
-        _session_install_for_python_next(session, install_args)
+        session.install(*install_args)
 
     _install_coverage_hook(session)
 
@@ -156,11 +141,11 @@ def produce_coverage_report(session: nox.Session):
 def type_check(session: nox.Session):
     "Run Pyright."
 
-    package_path = _locate_or_build_dist(session)
+    packages = _locate_or_build_packages(session)
 
-    _session_install_for_python_next(
-        session,
-        [f'instawow[skeletal-gui, test, types] @ {package_path}'],
+    session.install(
+        f'instawow[test, types] @ {packages["instawow"]["wheel-path"]}',
+        f'instawow-gui[skeletal] @ {packages["instawow-gui"]["wheel-path"]}',
     )
     session.run('npx', 'pyright', external=True)
 
@@ -182,20 +167,25 @@ def build_dists(session: nox.Session):
 
     session.run('git', 'clean', '-fdX', 'dist', external=True)
     session.install(*_DEPENDENCY_GROUPS['build'])
-    session.run('pyproject-build', '--installer', 'uv')
 
-    wheel_path = next(f.path for f in os.scandir('dist') if f.name.endswith('.whl'))
-    (wheel_metadata,) = Distribution.discover(name='instawow', path=[wheel_path])
+    for name, source_dir in ('instawow', '.'), ('instawow-gui', 'instawow-gui'):
+        if name == 'instawow-gui':
+            bundle_frontend(session)
 
-    Path('dist', '.wheel-metadata.json').write_text(
-        json.dumps(
-            {
-                'wheel-path': wheel_path,
-                'wheel-version': wheel_metadata.version,
-            }
-        ),
-        encoding='utf-8',
-    )
+        out_dir = Path('dist', name)
+        session.run('pyproject-build', '--installer', 'uv', '--outdir', str(out_dir), source_dir)
+
+        wheel_path = next(f.path for f in os.scandir(out_dir) if f.name.endswith('.whl'))
+        (wheel_metadata,) = Distribution.discover(name=name, path=[wheel_path])
+        (out_dir / '.wheel-metadata.json').write_text(
+            json.dumps(
+                {
+                    'wheel-path': wheel_path,
+                    'version': wheel_metadata.version,
+                }
+            ),
+            encoding='utf-8',
+        )
 
 
 @nox.session
@@ -203,8 +193,8 @@ def publish_dists(session: nox.Session):
     "Validate and upload dists to PyPI."
 
     session.install(*_DEPENDENCY_GROUPS['publish'])
-    session.run('twine', 'check', '--strict', 'dist/*')
-    session.run('twine', 'upload', '--verbose', 'dist/*')
+    session.run('twine', 'check', '--strict', 'dist/instawow/*')
+    session.run('twine', 'upload', '--verbose', 'dist/instawow/*')
 
 
 @nox.session(python=False)
@@ -217,13 +207,13 @@ def freeze_cli(session: nox.Session):
     PYAPP_VERSION = 'v0.22.0'
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--wheel-file', required=True)
     parser.add_argument('--out-dir', required=True)
-
     options = parser.parse_args(session.posargs)
 
+    packages = _locate_or_build_packages(session)
+
     pyapp_configuration = {
-        'PYAPP_PROJECT_PATH': os.fspath(Path(options.wheel_file).absolute()),
+        'PYAPP_PROJECT_PATH': os.fspath(Path(packages['instawow']['wheel-path']).absolute()),
         'PYAPP_EXEC_MODULE': 'instawow',
         'PYAPP_FULL_ISOLATION': '1',
         'PYAPP_PYTHON_VERSION': '3.12',
@@ -257,7 +247,6 @@ def freeze_cli(session: nox.Session):
             to_path.parent.mkdir(exist_ok=True, parents=True)
             shutil.copy(from_path, to_path)
 
-            print(to_path, end='')
             break
 
         else:
@@ -274,18 +263,20 @@ def freeze_gui(session: nox.Session):
     parser = argparse.ArgumentParser()
     parser.add_argument('--platform', default=sys.platform)
     parser.add_argument('--release', action='store_true')
-    parser.add_argument('--wheel-file', required=True)
-
     options = parser.parse_args(session.posargs)
 
-    spec_path = Path(__file__).parent.joinpath('instawow-gui', 'pyproject.toml')
+    packages = _locate_or_build_packages(session)
+
+    spec_path = _ROOT / 'instawow-gui' / 'pyproject.toml'
     spec = spec_path.read_text(encoding='utf-8')
     spec = spec.replace(
-        '"instawow[gui]"',
-        f'"instawow[gui] @ {Path(options.wheel_file).resolve().as_uri()}"',
+        '"instawow-gui[full]"',
+        f'"instawow-gui[full] @ {Path(packages["instawow-gui"]["wheel-path"]).resolve().as_uri()}"',
     )
     if options.release:
-        (package_metadata,) = Distribution.discover(name='instawow', path=[options.wheel_file])
+        (package_metadata,) = Distribution.discover(
+            name='instawow-gui', path=[packages['instawow-gui']['wheel-path']]
+        )
         spec = spec.replace(
             'version = "0.1.0"',
             f'version = "{package_metadata.version}"',

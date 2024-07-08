@@ -13,7 +13,7 @@ from yarl import URL
 from instawow.config import GlobalConfig, ProfileConfig, config_converter
 
 try:
-    from instawow_gui import json_rpc_server
+    from instawow_gui import _json_rpc_server as json_rpc_server
 except ModuleNotFoundError:
     pytest.skip(reason='instawow_gui is not available', allow_module_level=True)
 else:

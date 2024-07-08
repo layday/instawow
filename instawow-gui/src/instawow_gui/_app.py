@@ -14,7 +14,7 @@ import toga.style.pack
 
 from instawow._utils.compat import StrEnum
 
-from . import json_rpc_server
+from . import _json_rpc_server
 
 _loop_factory = asyncio.DefaultEventLoopPolicy().new_event_loop
 
@@ -30,8 +30,8 @@ class _App(toga.App):
     def __start_json_rpc_server(self, on_started: Callable[[str], None]):
         def start_json_rpc_server():
             async def main():
-                async with json_rpc_server.run_web_app(
-                    await json_rpc_server.create_web_app(self)
+                async with _json_rpc_server.run_web_app(
+                    await _json_rpc_server.create_web_app(self)
                 ) as server_url:
                     server_url_future.set_result(str(server_url))
                     await wait_future

@@ -1,11 +1,54 @@
+[build-system]
+requires = ["hatchling", "hatch-vcs"]
+build-backend = "hatchling.build"
+
+[project]
+dynamic = [
+  "version",
+]
+name = "instawow-gui"
+requires-python = ">= 3.10"
+description = "World of Warcraft add-on manager GUI"
+license = "GPL-3.0-or-later"
+authors = [{ name = "layday", email = "layday@protonmail.com" }]
+urls."homepage" = "http://github.com/layday/instawow"
+
+dependencies = [
+  "instawow",
+]
+optional-dependencies."skeletal" = [
+  "aiohttp-rpc >= 1.0.0",
+  "toga-core >= 0.4.5",
+]
+optional-dependencies."full" = [
+  "instawow-gui[skeletal]",
+  "toga >= 0.4.5",
+]
+
+[project.entry-points."instawow.plugins"]
+"instawow_gui" = "instawow_gui._plugin"
+
+[tool.hatch.build.targets.sdist]
+only-include = [
+  "/src/instawow_gui",
+]
+exclude = [
+  ".gitignore",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = [
+  "/src/instawow_gui",
+]
+
+[tool.hatch.version]
+source = "vcs"
+raw-options.root = ".."
+
 [tool.briefcase]
 project_name = "instawow-gui"
 bundle = "org.instawow"
 version = "0.1.0"
-url = "https://github.com/layday/instawow"
-license = "GNU General Public License v3 (GPLv3)"
-author = "layday"
-author_email = "layday@protonmail.com"
 
 [tool.briefcase.app.instawow-gui-wrapper]
 formal_name = "instawow-gui"
@@ -13,7 +56,7 @@ description = "GUI for the World of Warcraft add-on manager instawow"
 icon = "src/instawow_gui/resources/instawow_gui"
 sources = ["src/instawow_gui_wrapper"]
 requires = [
-  "instawow[gui]",
+  "instawow-gui[full]",
 ]
 
 [tool.briefcase.app.instawow-gui-wrapper.macOS]

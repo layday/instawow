@@ -10,20 +10,17 @@ defaults:
   run:
     shell: bash
 jobs:
-  build-package:
+  build-packages:
     runs-on: ubuntu-latest
-    outputs:
-      wheel-name: ${{ steps.build-package.outputs.wheel-name }}
     steps:
       - name: Clone the repo
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Build package
-        id: build-package
-        uses: ./.github/actions/build-package
+      - name: Build packages
+        uses: ./.github/actions/build-packages
   test:
-    needs: build-package
+    needs: build-packages
     strategy:
       fail-fast: false
       matrix:
@@ -38,21 +35,24 @@ jobs:
     steps:
       - name: Clone the repo
         uses: actions/checkout@v4
-      - name: Download pre-built wheel
+      - name: Download pre-built packages
         uses: actions/download-artifact@v4
-        id: download-wheel
         with:
-          name: ${{ needs.build-package.outputs.wheel-name }}
+          name: packages
           path: ./dist
-      - name: Prepare environment
-        uses: ./.github/actions/prepare-ci
+      - name: Install nox
+        run: pipx install nox uv
+        shell: bash
+      - name: Install Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-install-version || matrix.python-version }}
       - name: Run tests (latest)
         run: >-
           nox
           --error-on-missing-interpreters
           --force-python ${{ matrix.python-version }}
           -s 'test-${{ matrix.python-version }}(latest)'
-          -- '${{ steps.download-wheel.outputs.download-path }}/${{ needs.build-package.outputs.wheel-name }}'
       - name: Upload coverage data
         uses: actions/upload-artifact@v4
         with:
@@ -65,9 +65,8 @@ jobs:
           --error-on-missing-interpreters
           --force-python ${{ matrix.python-version }}
           -s 'test-${{ matrix.python-version }}(minimum-versions)'
-          -- '${{ steps.download-wheel.outputs.download-path }}/${{ needs.build-package.outputs.wheel-name }}'
   type-check:
-    needs: build-package
+    needs: build-packages
     strategy:
       fail-fast: false
       matrix:
@@ -82,25 +81,28 @@ jobs:
     steps:
       - name: Clone the repo
         uses: actions/checkout@v4
-      - name: Download pre-built wheel
+      - name: Download pre-built packages
         uses: actions/download-artifact@v4
-        id: download-wheel
         with:
-          name: ${{ needs.build-package.outputs.wheel-name }}
+          name: packages
           path: ./dist
-      - name: Prepare environment
-        uses: ./.github/actions/prepare-ci
+      - name: Install nox
+        run: pipx install nox uv
+        shell: bash
+      - name: Install Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-install-version || matrix.python-version }}
       - name: Install Node for Pyright
         uses: actions/setup-node@v4
         with:
-          node-version: "18"
+          node-version: "20"
       - name: Type check
         run: >-
           nox
           --error-on-missing-interpreters
           --force-python ${{ matrix.python-version }}
           -s type_check
-          -- '${{ steps.download-wheel.outputs.download-path }}/${{ needs.build-package.outputs.wheel-name }}'
   lint:
     runs-on: ubuntu-latest
     steps:
@@ -111,7 +113,7 @@ jobs:
       - name: Install Node for Prettier
         uses: actions/setup-node@v4
         with:
-          node-version: "18"
+          node-version: "20"
       - name: Lint
         run: nox -s lint
   # Nicked from attrs.

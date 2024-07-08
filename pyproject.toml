@@ -33,14 +33,6 @@ dependencies = [
   'typing-extensions >= 4.12.0rc1 ; python_version >= "3.13"',
   "yarl >= 1.9.3",
 ]
-optional-dependencies."skeletal-gui" = [
-  "aiohttp-rpc >= 1.0.0",
-  "toga-core >= 0.4.5",
-]
-optional-dependencies."gui" = [
-  "instawow[skeletal-gui]",
-  "toga >= 0.4.5",
-]
 optional-dependencies."test" = [
   "anyio >= 4.3.0",
   "aresponses >= 3",
@@ -53,7 +45,6 @@ optional-dependencies."types" = [
 ]
 
 [project.entry-points."instawow.plugins"]
-"instawow_gui" = "instawow_gui._plugin"
 "instawow_wa_updater" = "instawow_wa_updater._plugin"
 
 [project.scripts]
@@ -61,7 +52,6 @@ optional-dependencies."types" = [
 
 [tool.hatch.build.targets.sdist]
 only-include = [
-  "/instawow-gui/src/instawow_gui",
   "/src",
   "/tests",
 ]
@@ -73,7 +63,6 @@ exclude = [
 packages = [
   "/src/instawow",
   "/src/instawow_wa_updater",
-  "/instawow-gui/src/instawow_gui",
 ]
 
 [tool.hatch.version]
