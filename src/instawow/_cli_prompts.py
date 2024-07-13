@@ -297,7 +297,7 @@ def select_one(
     *,
     can_skip: Literal[True],
     initial_value: _T | None = None,
-) -> _FauxPromptSession[_T | Literal[SKIP]]: ...
+) -> _FauxPromptSession[_T | Literal[_Skip.Skip]]: ...
 @overload
 def select_one(
     message: str,
