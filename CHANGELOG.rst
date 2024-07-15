@@ -1,6 +1,14 @@
 Changelog
 =========
 
+v4.5.0
+------
+
+- Added pre-release fallback when a GitHub, CurseForge or Wago add-on
+  has no stable releases.
+- Improved error message when an access token is mandatory and not set.
+- Stopped bundling the GUI as part of the *instawow* distribution.
+
 v4.4.2
 ------
 
