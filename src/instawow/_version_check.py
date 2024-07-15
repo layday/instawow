@@ -10,6 +10,15 @@ class _SimpleApiProject(TypedDict):
     versions: list[str]
 
 
+def get_version() -> str:
+    import importlib.metadata
+
+    try:
+        return importlib.metadata.version(__spec__.parent)
+    except importlib.metadata.PackageNotFoundError:
+        return '0+dev'
+
+
 async def is_outdated(global_config: config.GlobalConfig) -> tuple[bool, str]:
     """Check on PyPI to see if instawow is outdated.
 

@@ -68,14 +68,6 @@ packages = [
 [tool.hatch.version]
 source = "vcs"
 
-[tool.hatch.build.hooks.vcs]
-version-file = "src/instawow/_version.py"
-template = """\
-from __future__ import annotations
-
-__version__ = {version!r}
-"""
-
 [tool.ruff]
 line-length = 99
 
