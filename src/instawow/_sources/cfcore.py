@@ -338,6 +338,7 @@ class CfCoreResolver(BaseResolver):
 
                     [metadata] = mod_response_json['data']
 
+        version_eq = defn.strategies[Strategy.VersionEq]
         if defn.strategies[Strategy.VersionEq]:
             files_url = self.__mod_api_url / str(metadata['id']) / 'files'
             if not defn.strategies[Strategy.AnyFlavour]:
@@ -368,6 +369,13 @@ class CfCoreResolver(BaseResolver):
         if not files:
             raise R.PkgFilesMissing
 
+        # Allow pre-releases only if no stable releases exist or explicitly opted into.
+        any_release_type = True
+        if not defn.strategies[Strategy.AnyReleaseType]:
+            any_release_type = not any(
+                f['releaseType'] == _CfCoreFileReleaseType.release for f in files
+            )
+
         desired_flavour_groups = self._config.game_flavour.get_flavour_groups(
             bool(defn.strategies[Strategy.AnyFlavour])
         )
@@ -387,10 +395,9 @@ class CfCoreResolver(BaseResolver):
                         s['gameVersionTypeId'] in type_ids for s in f['sortableGameVersions']
                     )
 
-                if not defn.strategies[Strategy.AnyReleaseType]:
+                if not any_release_type:
                     yield lambda f: f['releaseType'] == _CfCoreFileReleaseType.release
 
-                version_eq = defn.strategies[Strategy.VersionEq]
                 if version_eq:
                     yield lambda f: f['displayName'] == version_eq
 

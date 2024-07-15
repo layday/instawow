@@ -7245,6 +7245,346 @@
       "gamePopularityRank": 571,
       "isAvailable": true,
       "thumbsUpCount": 0
+    },
+    {
+      "id": 989270,
+      "gameId": 1,
+      "name": "Dialogue UI",
+      "slug": "dialogueui",
+      "links": {
+        "websiteUrl": "https://www.curseforge.com/wow/addons/dialogueui",
+        "wikiUrl": "",
+        "issuesUrl": null,
+        "sourceUrl": null
+      },
+      "summary": "Quest Dialogue UI with built-in camera control and gamepad support.",
+      "status": 4,
+      "downloadCount": 94239,
+      "isFeatured": false,
+      "primaryCategoryId": 1013,
+      "categories": [
+        {
+          "id": 1013,
+          "gameId": 1,
+          "name": "Quests & Leveling",
+          "slug": "quests-leveling",
+          "url": "https://www.curseforge.com/wow/addons/quests-leveling",
+          "iconUrl": "https://media.forgecdn.net/avatars/54/449/636135209685443713.png",
+          "dateModified": "2016-10-31T19:29:28.543Z",
+          "isClass": false,
+          "classId": 1,
+          "parentCategoryId": 1
+        },
+        {
+          "id": 1006,
+          "gameId": 1,
+          "name": "Artwork",
+          "slug": "artwork",
+          "url": "https://www.curseforge.com/wow/addons/artwork",
+          "iconUrl": "https://media.forgecdn.net/avatars/54/442/636135209646924910.png",
+          "dateModified": "2016-10-31T19:29:24.693Z",
+          "isClass": false,
+          "classId": 1,
+          "parentCategoryId": 1
+        }
+      ],
+      "classId": 1,
+      "authors": [
+        {
+          "id": 52545420,
+          "name": "Peterodox",
+          "url": "https://www.curseforge.com/members/peterodox"
+        }
+      ],
+      "logo": {
+        "id": 966026,
+        "modId": 989270,
+        "title": "638465114365047028.png",
+        "description": "",
+        "thumbnailUrl": "https://media.forgecdn.net/avatars/thumbnails/966/26/256/256/638465114365047028.png",
+        "url": "https://media.forgecdn.net/avatars/966/26/638465114365047028.png"
+      },
+      "screenshots": [
+        {
+          "id": 844033,
+          "modId": 989270,
+          "title": "[TEMP] Pawn",
+          "description": "",
+          "thumbnailUrl": "https://media.forgecdn.net/attachments/thumbnails/844/33/310/172/pawnupgrade.jpg",
+          "url": "https://media.forgecdn.net/attachments/844/33/pawnupgrade.jpg"
+        },
+        {
+          "id": 865103,
+          "modId": 989270,
+          "title": "Texture Slice Change in 10.2.7",
+          "description": "",
+          "thumbnailUrl": "https://media.forgecdn.net/attachments/thumbnails/865/103/310/172/wowscrnshot_041124_134019.gif",
+          "url": "https://media.forgecdn.net/attachments/865/103/wowscrnshot_041124_134019.gif"
+        },
+        {
+          "id": 829473,
+          "modId": 989270,
+          "title": "Quest UI - Dark",
+          "description": "",
+          "thumbnailUrl": "https://media.forgecdn.net/attachments/thumbnails/829/473/310/172/wowscrnshot_032124_205644.jpg",
+          "url": "https://media.forgecdn.net/attachments/829/473/wowscrnshot_032124_205644.jpg"
+        },
+        {
+          "id": 829429,
+          "modId": 989270,
+          "title": "Quest UI - Brown",
+          "description": "",
+          "thumbnailUrl": "https://media.forgecdn.net/attachments/thumbnails/829/429/310/172/wowscrnshot_032124_205549.jpg",
+          "url": "https://media.forgecdn.net/attachments/829/429/wowscrnshot_032124_205549.jpg"
+        },
+        {
+          "id": 835851,
+          "modId": 989270,
+          "title": "[TEMP] Uncollected Appearance",
+          "description": "",
+          "thumbnailUrl": "https://media.forgecdn.net/attachments/thumbnails/835/851/310/172/bladewingstaff.jpg",
+          "url": "https://media.forgecdn.net/attachments/835/851/bladewingstaff.jpg"
+        },
+        {
+          "id": 837420,
+          "modId": 989270,
+          "title": "[TEMP] Duck Disguiser",
+          "description": "",
+          "thumbnailUrl": "https://media.forgecdn.net/attachments/thumbnails/837/420/310/172/wowscrnshot_040224_100806.jpg",
+          "url": "https://media.forgecdn.net/attachments/837/420/wowscrnshot_040224_100806.jpg"
+        },
+        {
+          "id": 834825,
+          "modId": 989270,
+          "title": "[TEMP] Item Comparison",
+          "description": "",
+          "thumbnailUrl": "https://media.forgecdn.net/attachments/thumbnails/834/825/310/172/itemcomparisonilvl.jpg",
+          "url": "https://media.forgecdn.net/attachments/834/825/itemcomparisonilvl.jpg"
+        },
+        {
+          "id": 838440,
+          "modId": 989270,
+          "title": "AddOn Compartment",
+          "description": "Access settings from addon compartment",
+          "thumbnailUrl": "https://media.forgecdn.net/attachments/thumbnails/838/440/310/172/addoncompartment.jpg",
+          "url": "https://media.forgecdn.net/attachments/838/440/addoncompartment.jpg"
+        }
+      ],
+      "mainFileId": 5519769,
+      "latestFiles": [
+        {
+          "id": 5215591,
+          "gameId": 1,
+          "modId": 989270,
+          "isAvailable": true,
+          "displayName": "0.2.2",
+          "fileName": "DialogueUI-0.2.2-Alpha.zip",
+          "releaseType": 3,
+          "fileStatus": 4,
+          "hashes": [
+            {
+              "value": "985cf3a0c14dd0c94d1dfb84af77085be90314cc",
+              "algo": 1
+            },
+            {
+              "value": "2621899282a6a700e03aa307281cc51f",
+              "algo": 2
+            }
+          ],
+          "fileDate": "2024-03-27T15:00:14.56Z",
+          "fileLength": 4590056,
+          "downloadCount": 0,
+          "downloadUrl": "https://edge.forgecdn.net/files/5215/591/DialogueUI-0.2.2-Alpha.zip",
+          "gameVersions": [
+            "1.15.1",
+            "10.2.6"
+          ],
+          "sortableGameVersions": [
+            {
+              "gameVersionName": "1.15.1",
+              "gameVersionPadded": "0000000001.0000000015.0000000001",
+              "gameVersion": "1.15.1",
+              "gameVersionReleaseDate": "2024-01-31T00:00:00Z",
+              "gameVersionTypeId": 67408
+            },
+            {
+              "gameVersionName": "10.2.6",
+              "gameVersionPadded": "0000000010.0000000002.0000000006",
+              "gameVersion": "10.2.6",
+              "gameVersionReleaseDate": "2024-01-31T00:00:00Z",
+              "gameVersionTypeId": 517
+            }
+          ],
+          "dependencies": [],
+          "alternateFileId": 0,
+          "isServerPack": false,
+          "fileFingerprint": 1775183282,
+          "modules": [
+            {
+              "name": "DialogueUI",
+              "fingerprint": 1918736938
+            }
+          ]
+        },
+        {
+          "id": 5519769,
+          "gameId": 1,
+          "modId": 989270,
+          "isAvailable": true,
+          "displayName": "0.3.3",
+          "fileName": "DialogueUI-0.3.3.zip",
+          "releaseType": 2,
+          "fileStatus": 4,
+          "hashes": [
+            {
+              "value": "4101d55b172f379d23c7ee7ba755b7c21ffb4787",
+              "algo": 1
+            },
+            {
+              "value": "b0a3048b1a9309b5599ee6ec6843b108",
+              "algo": 2
+            }
+          ],
+          "fileDate": "2024-07-10T10:06:27.167Z",
+          "fileLength": 5084808,
+          "downloadCount": 818,
+          "downloadUrl": "https://edge.forgecdn.net/files/5519/769/DialogueUI-0.3.3.zip",
+          "gameVersions": [
+            "1.15.3",
+            "4.4.0",
+            "10.2.7",
+            "11.0.2",
+            "11.0.0"
+          ],
+          "sortableGameVersions": [
+            {
+              "gameVersionName": "1.15.3",
+              "gameVersionPadded": "0000000001.0000000015.0000000003",
+              "gameVersion": "1.15.3",
+              "gameVersionReleaseDate": "2024-06-13T00:00:00Z",
+              "gameVersionTypeId": 67408
+            },
+            {
+              "gameVersionName": "4.4.0",
+              "gameVersionPadded": "0000000004.0000000004.0000000000",
+              "gameVersion": "4.4.0",
+              "gameVersionReleaseDate": "2024-03-07T00:00:00Z",
+              "gameVersionTypeId": 77522
+            },
+            {
+              "gameVersionName": "10.2.7",
+              "gameVersionPadded": "0000000010.0000000002.0000000007",
+              "gameVersion": "10.2.7",
+              "gameVersionReleaseDate": "2024-05-07T00:00:00Z",
+              "gameVersionTypeId": 517
+            },
+            {
+              "gameVersionName": "11.0.2",
+              "gameVersionPadded": "0000000011.0000000000.0000000002",
+              "gameVersion": "11.0.2",
+              "gameVersionReleaseDate": "2024-07-03T00:00:00Z",
+              "gameVersionTypeId": 517
+            },
+            {
+              "gameVersionName": "11.0.0",
+              "gameVersionPadded": "0000000011.0000000000.0000000000",
+              "gameVersion": "11.0.0",
+              "gameVersionReleaseDate": "2024-05-08T00:00:00Z",
+              "gameVersionTypeId": 517
+            }
+          ],
+          "dependencies": [],
+          "alternateFileId": 0,
+          "isServerPack": false,
+          "fileFingerprint": 1531361320,
+          "modules": [
+            {
+              "name": "DialogueUI",
+              "fingerprint": 765778526
+            }
+          ]
+        }
+      ],
+      "latestFilesIndexes": [
+        {
+          "gameVersion": "4.4.0",
+          "fileId": 5519769,
+          "filename": "DialogueUI-0.3.3.zip",
+          "releaseType": 2,
+          "gameVersionTypeId": 77522
+        },
+        {
+          "gameVersion": "10.2.7",
+          "fileId": 5519769,
+          "filename": "DialogueUI-0.3.3.zip",
+          "releaseType": 2,
+          "gameVersionTypeId": 517
+        },
+        {
+          "gameVersion": "11.0.0",
+          "fileId": 5519769,
+          "filename": "DialogueUI-0.3.3.zip",
+          "releaseType": 2,
+          "gameVersionTypeId": 517
+        },
+        {
+          "gameVersion": "1.15.3",
+          "fileId": 5519769,
+          "filename": "DialogueUI-0.3.3.zip",
+          "releaseType": 2,
+          "gameVersionTypeId": 67408
+        },
+        {
+          "gameVersion": "11.0.2",
+          "fileId": 5519769,
+          "filename": "DialogueUI-0.3.3.zip",
+          "releaseType": 2,
+          "gameVersionTypeId": 517
+        },
+        {
+          "gameVersion": "1.15.2",
+          "fileId": 5454073,
+          "filename": "DialogueUI-0.3.2.zip",
+          "releaseType": 2,
+          "gameVersionTypeId": 67408
+        },
+        {
+          "gameVersion": "10.2.6",
+          "fileId": 5303932,
+          "filename": "DialogueUI-0.2.9.zip",
+          "releaseType": 2,
+          "gameVersionTypeId": 517
+        },
+        {
+          "gameVersion": "1.15.1",
+          "fileId": 5222509,
+          "filename": "DialogueUI-0.2.3.zip",
+          "releaseType": 2,
+          "gameVersionTypeId": 67408
+        },
+        {
+          "gameVersion": "10.2.6",
+          "fileId": 5215591,
+          "filename": "DialogueUI-0.2.2-Alpha.zip",
+          "releaseType": 3,
+          "gameVersionTypeId": 517
+        },
+        {
+          "gameVersion": "1.15.1",
+          "fileId": 5215591,
+          "filename": "DialogueUI-0.2.2-Alpha.zip",
+          "releaseType": 3,
+          "gameVersionTypeId": 67408
+        }
+      ],
+      "latestEarlyAccessFilesIndexes": [],
+      "dateCreated": "2024-03-19T04:32:53.893Z",
+      "dateModified": "2024-07-10T13:15:31.89Z",
+      "dateReleased": "2024-07-10T10:06:27.167Z",
+      "allowModDistribution": true,
+      "gamePopularityRank": 274,
+      "isAvailable": true,
+      "thumbsUpCount": 0
     }
   ]
 }

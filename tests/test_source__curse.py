@@ -23,6 +23,7 @@ CURSE_IDS = {
     'atlaslootclassic': '326516',
     'elvui-adibags': '333072',
     'bigwigs-voice-korean': '402180',
+    'dialogueui': '989270',
 }
 
 
@@ -123,6 +124,16 @@ async def test_curse_deps_retrieved(
     pkgs, errors = pkg_management.bucketise_results(results.items())
     assert not errors
     assert {'bigwigs-voice-korean', 'big-wigs'} == {p.slug for p in pkgs.values()}
+
+
+@pytest.mark.usefixtures('_iw_web_client_ctx')
+async def test_curse_no_stable_release_falls_back_on_pre(
+    curse_resolver: CfCoreResolver,
+):
+    defn = Defn('curse', CURSE_IDS['dialogueui'])
+
+    results = await curse_resolver.resolve([defn])
+    assert type(results[defn]) is Pkg
 
 
 @pytest.mark.usefixtures('_iw_web_client_ctx')

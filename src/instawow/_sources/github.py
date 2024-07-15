@@ -431,11 +431,15 @@ class GithubResolver(BaseResolver):
 
         # Only users with push access will get draft releases
         # but let's filter them out just in case.
-        releases = (r for r in await releases_coro if r['draft'] is False)
+        releases = [r for r in await releases_coro if r['draft'] is False]
 
-        if not defn.strategies[Strategy.AnyReleaseType]:
+        # Allow pre-releases only if no stable releases exist or explicitly opted into.
+        if not defn.strategies[Strategy.AnyReleaseType] and any(
+            r['prerelease'] is False for r in releases
+        ):
             releases = (r for r in releases if r['prerelease'] is False)
 
+        releases = iter(releases)
         first_release = next(releases, None)
         if first_release is None:
             raise R.PkgFilesNotMatching(defn.strategies)

@@ -94,11 +94,10 @@ class WagoResolver(BaseResolver):
             addon_metadata: _WagoAddon = await response.json()
 
         recent_releases = dict(addon_metadata['recent_release'])
-        if not defn.strategies[Strategy.AnyReleaseType]:
-            try:
-                recent_releases = {_WagoStability.Stable: recent_releases[_WagoStability.Stable]}
-            except KeyError:
-                recent_releases = {}
+        if not defn.strategies[Strategy.AnyReleaseType] and (
+            stable_release := recent_releases.get(_WagoStability.Stable)
+        ):
+            recent_releases = {_WagoStability.Stable: stable_release}
 
         try:
             file_date, file = max(
