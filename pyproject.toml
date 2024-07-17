@@ -104,7 +104,6 @@ mark-parentheses = false
 [tool.ruff.lint.isort]
 known-first-party = [
   "instawow",
-  "instawow_gui",
   "instawow_wa_updater",
 ]
 required-imports = [
@@ -114,20 +113,18 @@ required-imports = [
 [tool.ruff.lint.pyupgrade]
 keep-runtime-typing = true
 
-
 [tool.coverage.run]
 source_pkgs = [
   "instawow",
-]
-omit = [
-  "**/instawow/_migrations/*",
+  "instawow_wa_updater",
 ]
 parallel = true
 branch = true
 dynamic_context = "test_function"
 
 [tool.coverage.paths]
-combine = ["src/instawow", "**/instawow"]
+instawow = ["src/instawow", "**/instawow"]
+instawow_wa_updater = ["src/instawow_wa_updater", "**/instawow_wa_updater"]
 
 [tool.coverage.report]
 exclude_also = [
