@@ -8,8 +8,8 @@ from zipfile import ZipFile
 
 import aiohttp.hdrs
 import aiohttp.web
+import aresponses
 import pytest
-from aresponses import ResponsesMockServer
 from yarl import URL
 
 from instawow._sources.github import GithubResolver
@@ -101,7 +101,7 @@ def package_json_less_addon(
 )
 @pytest.mark.usefixtures('_iw_web_client_ctx')
 async def test_extracting_flavour_from_zip_contents(
-    iw_aresponses: ResponsesMockServer,
+    iw_aresponses: aresponses.ResponsesMockServer,
     iw_config_ctx: ConfigBoundCtx,
     github_resolver: GithubResolver,
     package_json_less_addon: tuple[bytes, set[Flavour]],
@@ -176,7 +176,7 @@ async def test_nonexistent_repo(
 @pytest.mark.parametrize('any_flavour', [True, None])
 @pytest.mark.usefixtures('_iw_web_client_ctx')
 async def test_any_flavour_strategy(
-    iw_aresponses: ResponsesMockServer,
+    iw_aresponses: aresponses.ResponsesMockServer,
     iw_config_ctx: ConfigBoundCtx,
     github_resolver: GithubResolver,
     any_flavour: Literal[True, None],
@@ -248,7 +248,7 @@ async def test_changelog_is_data_url(
 @pytest.mark.usefixtures('_iw_web_client_ctx')
 async def test_mismatched_release_is_skipped_and_logged(
     caplog: pytest.LogCaptureFixture,
-    iw_aresponses: ResponsesMockServer,
+    iw_aresponses: aresponses.ResponsesMockServer,
     iw_config_ctx: ConfigBoundCtx,
     github_resolver: GithubResolver,
     flavor: str,

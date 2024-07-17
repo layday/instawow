@@ -4,8 +4,8 @@ import sys
 from pathlib import Path
 from typing import Any
 
+import cattrs
 import pytest
-from cattrs import AttributeValidationNote, ClassValidationError
 
 from instawow.config import GlobalConfig, PluginConfig, ProfileConfig
 from instawow.wow_installations import Flavour
@@ -200,7 +200,7 @@ def test_validate_profile_name(
 ):
     global_config = GlobalConfig.from_values(iw_global_config_values)
 
-    with pytest.raises(ClassValidationError) as exc_info:
+    with pytest.raises(cattrs.ClassValidationError) as exc_info:
         ProfileConfig.from_values(
             {'global_config': global_config, **iw_profile_config_values, 'profile': ''}
         )
@@ -210,7 +210,7 @@ def test_validate_profile_name(
 
     (note,) = value_error.__notes__
     assert note == 'Structuring class ProfileConfig @ attribute profile'
-    assert type(note) is AttributeValidationNote
+    assert type(note) is cattrs.AttributeValidationNote
     assert note.name == 'profile'
 
 
@@ -228,7 +228,7 @@ def test_validate_addon_dir(
     non_writeable_dir = tmp_path / 'non-writeable-dir'
     non_writeable_dir.mkdir(0o400)
 
-    with pytest.raises(ClassValidationError) as exc_info:
+    with pytest.raises(cattrs.ClassValidationError) as exc_info:
         ProfileConfig.from_values(
             {
                 'global_config': global_config,
@@ -242,7 +242,7 @@ def test_validate_addon_dir(
 
     (note,) = value_error.__notes__
     assert note == 'Structuring class ProfileConfig @ attribute addon_dir'
-    assert type(note) is AttributeValidationNote
+    assert type(note) is cattrs.AttributeValidationNote
     assert note.name == 'addon_dir'
 
 

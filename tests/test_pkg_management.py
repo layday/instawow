@@ -2,10 +2,10 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import aiohttp
+import aresponses
 import attrs
 import pytest
-from aiohttp import ClientError
-from aresponses import ResponsesMockServer
 
 from instawow import pkg_management
 from instawow import results as R
@@ -59,7 +59,7 @@ async def test_pinning_unsupported_nonexistent_pkg(iw_config_ctx: ConfigBoundCtx
     assert type(result[molinari_defn]) is R.PkgStrategiesUnsupported
 
 
-@pytest.mark.parametrize('exception', [ValueError('foo'), ClientError('bar')])
+@pytest.mark.parametrize('exception', [ValueError('foo'), aiohttp.ClientError('bar')])
 @pytest.mark.usefixtures('_iw_web_client_ctx')
 async def test_resolve_rewraps_exception_appropriately_from_resolve(
     monkeypatch: pytest.MonkeyPatch,
@@ -128,7 +128,7 @@ async def test_install_cannot_replace_reconciled_folders(iw_config_ctx: ConfigBo
 @pytest.mark.usefixtures('_iw_web_client_ctx')
 async def test_install_recognises_renamed_pkg_from_id(
     monkeypatch: pytest.MonkeyPatch,
-    iw_aresponses: ResponsesMockServer,
+    iw_aresponses: aresponses.ResponsesMockServer,
     iw_config_ctx: ConfigBoundCtx,
 ):
     iw_aresponses.add(

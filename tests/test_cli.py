@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import json
 import shutil
 from collections.abc import Callable
@@ -8,34 +9,35 @@ from textwrap import dedent
 from typing import TypeAlias
 from unittest import mock
 
+import click.testing
+import prompt_toolkit.application
+import prompt_toolkit.input
+import prompt_toolkit.output
 import pytest
-from cattrs.preconf.json import make_converter as make_json_converter
-from click.testing import CliRunner, Result
-from prompt_toolkit.application import create_app_session
-from prompt_toolkit.input import PipeInput, create_pipe_input
-from prompt_toolkit.output import DummyOutput
 
-from instawow import __version__
 from instawow.cli import cli
 from instawow.config import ProfileConfig
-from instawow.definitions import SourceMetadata
 
-Run: TypeAlias = Callable[[str], Result]
+Run: TypeAlias = Callable[[str], click.testing.Result]
 
 
 @pytest.fixture(autouse=True, scope='module')
 def _mock_pt_progress_bar():
-    monkeypatch = pytest.MonkeyPatch()
-    monkeypatch.setattr('prompt_toolkit.shortcuts.progress_bar.ProgressBar', mock.MagicMock())
-    yield
-    monkeypatch.undo()
+    with pytest.MonkeyPatch.context() as context:
+        context.setattr(
+            'prompt_toolkit.shortcuts.progress_bar.ProgressBar',
+            mock.MagicMock(),
+        )
+        yield
 
 
 @pytest.fixture
 def pt_input():
     with (
-        create_pipe_input() as pipe_input,
-        create_app_session(input=pipe_input, output=DummyOutput()),
+        prompt_toolkit.input.create_pipe_input() as pipe_input,
+        prompt_toolkit.application.create_app_session(
+            input=pipe_input, output=prompt_toolkit.output.DummyOutput()
+        ),
     ):
         yield pipe_input
 
@@ -43,14 +45,12 @@ def pt_input():
 @pytest.fixture
 async def run(
     monkeypatch: pytest.MonkeyPatch,
-    iw_profile_config: ...,
+    iw_profile_config: object,
 ):
-    import asyncio
-
     loop = asyncio.get_running_loop()
     monkeypatch.setattr('asyncio.run', loop.run_until_complete)
 
-    return partial(CliRunner().invoke, cli, catch_exceptions=False)
+    return partial(click.testing.CliRunner().invoke, cli, catch_exceptions=False)
 
 
 @pytest.fixture
@@ -262,7 +262,11 @@ def test_debug_config(
 def test_debug_sources(
     run: Run,
 ):
-    json_converter = make_json_converter()
+    import cattrs.preconf.json
+
+    from instawow.definitions import SourceMetadata
+
+    json_converter = cattrs.preconf.json.make_converter()
 
     output = run('debug sources').output
     source_metadata = json_converter.loads(output, list[SourceMetadata])
@@ -272,7 +276,7 @@ def test_debug_sources(
 @pytest.mark.parametrize('command', ['configure', 'list'], ids=['explicit', 'implicit'])
 def test_configure__create_new_profile(
     monkeypatch: pytest.MonkeyPatch,
-    pt_input: PipeInput,
+    pt_input: prompt_toolkit.input.PipeInput,
     iw_profile_config: ProfileConfig,
     run: Run,
     command: str,
@@ -295,7 +299,7 @@ def test_configure__create_new_profile(
 
 
 def test_configure__update_existing_profile_interactively(
-    pt_input: PipeInput,
+    pt_input: prompt_toolkit.input.PipeInput,
     iw_profile_config: ProfileConfig,
     run: Run,
 ):
@@ -351,7 +355,7 @@ def test_rollback__single_version(
 
 
 def test_rollback__multiple_versions(
-    pt_input: PipeInput,
+    pt_input: prompt_toolkit.input.PipeInput,
     run: Run,
 ):
     assert run('install curse:molinari#version_eq=100005.97-Release').exit_code == 0
@@ -369,7 +373,7 @@ def test_rollback__multiple_versions(
 
 @pytest.mark.parametrize('options', ['', '--undo'])
 def test_rollback__rollback_multiple_versions(
-    pt_input: PipeInput,
+    pt_input: prompt_toolkit.input.PipeInput,
     run: Run,
     options: str,
 ):
@@ -405,7 +409,7 @@ def test_reconcile__list_unreconciled(
 
 
 def test_reconcile_leftovers(
-    pt_input: PipeInput,
+    pt_input: prompt_toolkit.input.PipeInput,
     pretend_install_molinari_and_run: Run,
 ):
     pt_input.send_text('sss')  # Skip
@@ -430,7 +434,7 @@ def test_reconcile__auto_reconcile(
 
 
 def test_reconcile__abort_interactive_reconciliation(
-    pt_input: PipeInput,
+    pt_input: prompt_toolkit.input.PipeInput,
     pretend_install_molinari_and_run: Run,
 ):
     pt_input.send_text('\x03')  # ^C
@@ -438,7 +442,7 @@ def test_reconcile__abort_interactive_reconciliation(
 
 
 def test_reconcile__complete_interactive_reconciliation(
-    pt_input: PipeInput,
+    pt_input: prompt_toolkit.input.PipeInput,
     pretend_install_molinari_and_run: Run,
 ):
     pt_input.send_text('\ry')
@@ -459,7 +463,7 @@ def test_reconcile__reconciliation_complete(
 
 
 def test_rereconcile(
-    pt_input: PipeInput,
+    pt_input: prompt_toolkit.input.PipeInput,
     install_molinari_and_run: Run,
 ):
     pt_input.send_text('\ry')
@@ -474,7 +478,7 @@ def test_rereconcile(
 
 
 def test_rereconcile_with_args(
-    pt_input: PipeInput,
+    pt_input: prompt_toolkit.input.PipeInput,
     install_molinari_and_run: Run,
 ):
     pt_input.send_text('\ry')
@@ -498,7 +502,7 @@ def test_search__no_results(
 
 
 def test_search__exit_without_selecting(
-    pt_input: PipeInput,
+    pt_input: prompt_toolkit.input.PipeInput,
     run: Run,
 ):
     pt_input.send_text('\r')  # enter
@@ -508,7 +512,7 @@ def test_search__exit_without_selecting(
 
 
 def test_search__exit_after_selection(
-    pt_input: PipeInput,
+    pt_input: prompt_toolkit.input.PipeInput,
     run: Run,
 ):
     pt_input.send_text(' \rn')  # space, enter, "n"
@@ -516,7 +520,7 @@ def test_search__exit_after_selection(
 
 
 def test_search__install_one(
-    pt_input: PipeInput,
+    pt_input: prompt_toolkit.input.PipeInput,
     run: Run,
 ):
     pt_input.send_text(' \ry')  # space, enter, enter
@@ -529,7 +533,7 @@ def test_search__install_one(
 
 
 def test_search__install_multiple_conflicting(
-    pt_input: PipeInput,
+    pt_input: prompt_toolkit.input.PipeInput,
     run: Run,
 ):
     pt_input.send_text(' \x1b[B \ry')  # space, arrow down, space, enter, enter
@@ -620,6 +624,8 @@ def test_json_export(
 def test_show_version(
     run: Run,
 ):
+    from instawow import __version__
+
     assert run('--version').output == f'instawow, version {__version__}\n'
 
 
