@@ -29,7 +29,7 @@ from aiohttp_rpc.server import WsJsonRpcServer
 from typing_extensions import ParamSpec, TypedDict
 from yarl import URL
 
-from instawow import __version__, matchers, pkg_management, pkg_models, shared_ctx
+from instawow import _version_check, matchers, pkg_management, pkg_models, shared_ctx
 from instawow import results as R
 from instawow._logging import logger
 from instawow._progress_reporting import ReadOnlyProgressGroup, make_progress_receiver
@@ -38,7 +38,6 @@ from instawow._utils.datetime import datetime_fromisoformat
 from instawow._utils.file import reveal_folder
 from instawow._utils.iteration import WeakValueDefaultDictionary, uniq
 from instawow._utils.web import open_url
-from instawow._version_check import is_outdated
 from instawow.catalogue.cataloguer import ComputedCatalogueEntry
 from instawow.catalogue.search import search
 from instawow.config import GlobalConfig, ProfileConfig, SecretStr, config_converter
@@ -553,9 +552,9 @@ class GetVersionResult(TypedDict):
 @_register_method('meta/get_version')
 class GetVersionParams(BaseParams):
     async def respond(self, config_ctxs: _ConfigBoundCtxCollection) -> GetVersionResult:
-        outdated, new_version = await is_outdated(config_ctxs.global_config)
+        outdated, new_version = await _version_check.is_outdated(config_ctxs.global_config)
         return {
-            'installed_version': __version__,
+            'installed_version': _version_check.get_version(),
             'new_version': new_version if outdated else None,
         }
 

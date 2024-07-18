@@ -15,7 +15,7 @@ import attrs
 from aiohttp.web import Request, Response
 from yarl import URL
 
-from instawow import __version__
+from instawow._version_check import get_version
 
 _match_any = re.compile(r'.*')
 
@@ -81,7 +81,7 @@ ROUTES = {
     for r in (
         Route(
             '//pypi.org/pypi/instawow/json',
-            {'info': {'version': __version__}},
+            {'info': {'version': get_version()}},
         ),
         Route(
             '//raw.githubusercontent.com/layday/instawow-data/data/base-catalogue-v7.compact.json',

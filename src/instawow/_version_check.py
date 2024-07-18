@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from datetime import timedelta
 from typing import TypedDict
 
 from . import config
@@ -24,16 +23,17 @@ async def is_outdated(global_config: config.GlobalConfig) -> tuple[bool, str]:
 
     The response is cached for 24 hours.
     """
+    from datetime import timedelta
 
     from aiohttp import ClientError
     from packaging.version import Version
 
-    from . import __version__
     from .http import init_web_client
 
     if not global_config.auto_update_check:
         return (False, '')
 
+    __version__ = get_version()
     parsed_version = Version(__version__)
     if parsed_version.local:
         return (False, '')

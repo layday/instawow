@@ -13,7 +13,7 @@ import click
 import click.types
 from typing_extensions import Self
 
-from . import __version__, _logging, pkg_management, pkg_models, shared_ctx
+from . import _logging, pkg_management, pkg_models, shared_ctx
 from . import config as _config
 from . import results as R
 from ._utils.compat import StrEnum
@@ -266,6 +266,16 @@ def _register_plugin_commands(group: click.Group):
     return group
 
 
+def _print_version(ctx: click.Context, __: click.Parameter, value: bool):
+    if not value or ctx.resilient_parsing:
+        return
+
+    from ._version_check import get_version
+
+    click.echo(f'{__spec__.parent}, version {get_version()}')
+    ctx.exit()
+
+
 def _parse_debug_option(
     _: click.Context, __: click.Parameter, value: float
 ) -> tuple[bool, bool, bool]:
@@ -371,7 +381,14 @@ class _ListFormat(StrEnum):
 
 
 @click.group(context_settings={'help_option_names': ('-h', '--help')}, cls=_SectionedHelpGroup)
-@click.version_option(__version__, prog_name=__spec__.parent)
+@click.option(
+    '--version',
+    callback=_print_version,
+    is_flag=True,
+    expose_value=False,
+    is_eager=True,
+    help='Show the version and exit',
+)
 @click.option(
     '--verbose',
     '-v',

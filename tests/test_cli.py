@@ -624,9 +624,9 @@ def test_json_export(
 def test_show_version(
     run: Run,
 ):
-    from instawow import __version__
+    from instawow._version_check import get_version
 
-    assert run('--version').output == f'instawow, version {__version__}\n'
+    assert run('--version').output == f'instawow, version {get_version()}\n'
 
 
 def test_plugin_hook_command_can_be_invoked(

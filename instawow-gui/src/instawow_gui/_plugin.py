@@ -9,8 +9,8 @@ import instawow.plugins
 @click.pass_context
 def _gui_command(ctx: click.Context) -> None:
     "Fire up the GUI."
-    from instawow import __version__
     from instawow._logging import setup_logging
+    from instawow._version_check import get_version
     from instawow.config import GlobalConfig, ProfileConfig
 
     from ._app import make_app
@@ -23,7 +23,7 @@ def _gui_command(ctx: click.Context) -> None:
     params = ctx.find_root().params
     setup_logging(dummy_jsonrpc_config.logging_dir, *params['verbose'])
 
-    make_app(version=__version__).main_loop()
+    make_app(version=get_version()).main_loop()
 
 
 @instawow.plugins.hookimpl
