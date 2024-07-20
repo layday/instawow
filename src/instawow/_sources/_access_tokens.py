@@ -16,21 +16,11 @@ class _AccessToken(Protocol):
 
 
 class _AccessTokenOnInstance(_AccessToken, Protocol[_TTokenValue]):
-    @overload
-    def get(self, *, raise_if_missing: Literal[True] = True) -> _TTokenValue: ...
-    @overload
-    def get(self, *, raise_if_missing: Literal[False]) -> _TTokenValue | None: ...
+    def get(self) -> _TTokenValue: ...
 
 
 class _AccessTokenOnClass(_AccessToken, Protocol[_TTokenValue]):
-    @overload
-    def get(
-        self, global_config: config.GlobalConfig, *, raise_if_missing: Literal[True] = True
-    ) -> _TTokenValue: ...
-    @overload
-    def get(
-        self, global_config: config.GlobalConfig, *, raise_if_missing: Literal[False]
-    ) -> _TTokenValue | None: ...
+    def get(self, global_config: config.GlobalConfig) -> _TTokenValue: ...
 
 
 class AccessToken(Generic[_TTokenValue]):
@@ -53,9 +43,9 @@ class AccessToken(Generic[_TTokenValue]):
     ) -> _AccessTokenOnClass[_TTokenValue]: ...
 
     def __get__(self, instance: BaseResolver | None, owner: object = None):
-        def get(global_config: config.GlobalConfig, *, raise_if_missing: bool = True):
+        def get(global_config: config.GlobalConfig):
             access_token = getattr(global_config.access_tokens, self.name)
-            if raise_if_missing and self.required and access_token is None:
+            if self.required and access_token is None:
                 raise ValueError('access token is not configured')
             return access_token
 

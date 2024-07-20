@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import contextvars as cv
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from contextlib import AbstractAsyncContextManager, AbstractContextManager, ExitStack
 from functools import cached_property
 from itertools import chain
@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, TypeAlias
 
 from . import _sources, http, pkg_db
 from ._utils.iteration import WeakValueDefaultDictionary
-from .config import ProfileConfig
+from .config import GlobalConfig, ProfileConfig
 from .plugins import get_plugin_resolvers
 from .resolvers import Resolvers
 
@@ -30,6 +30,12 @@ def _database_from_config(config: ProfileConfig):
 
 
 def _resolvers_from_config(config: ProfileConfig):
+    def get_disabled_reason(cb: Callable[[GlobalConfig], str | None]):
+        try:
+            cb(config.global_config)
+        except ValueError as error:
+            return str(error)
+
     return Resolvers(
         {
             r.metadata.id: r(config)
@@ -38,11 +44,11 @@ def _resolvers_from_config(config: ProfileConfig):
             )
         },
         {
-            r.metadata.id: 'access token is not configured'
+            r.metadata.id: d
             for r in _sources.DEFAULT_RESOLVERS
             if r.access_token
             and r.access_token.required
-            and r.access_token.get(config.global_config, raise_if_missing=False) is None
+            and (d := get_disabled_reason(r.access_token.get))
         },
     )
 

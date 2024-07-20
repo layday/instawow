@@ -108,6 +108,17 @@ def test_nonexistent_pkg_lifecycle(
     assert run(f'remove {alias}').output == f'✗ {alias}\n  package is not installed\n'
 
 
+@pytest.mark.parametrize('iw_global_config_values', [None], indirect=True)
+@pytest.mark.parametrize('alias', ['curse:molinari'])
+def test_disabled_source_lifecycle(
+    run: Run,
+    alias: str,
+):
+    assert run(f'install {alias}').output == f'✗ {alias}\n  access token is not configured\n'
+    assert run(f'update {alias}').output == f'✗ {alias}\n  package is not installed\n'
+    assert run(f'remove {alias}').output == f'✗ {alias}\n  package is not installed\n'
+
+
 @pytest.mark.parametrize('alias', ['foo:bar'])
 def test_invalid_source_lifecycle(
     run: Run,
