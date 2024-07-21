@@ -132,7 +132,7 @@ class BaseResolver(Resolver, Protocol):
             options=pkg_models.PkgOptions(**{k: bool(v) for k, v in defn.strategies.items()}),
         )
 
-    async def _resolve_one(self, defn: Defn, metadata: Any) -> PkgCandidate:
+    async def _resolve_one(self, defn: Defn, metadata: Any) -> PkgCandidate:  # pragma: no cover
         "Resolve a ``Defn`` into a package."
         ...
 

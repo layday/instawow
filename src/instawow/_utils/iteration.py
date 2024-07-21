@@ -34,7 +34,7 @@ if sys.version_info >= (3, 12):
     from itertools import batched as batched
 else:
 
-    def batched(iterable: Iterable[_T], n: int) -> Iterator[tuple[_T, ...]]:
+    def batched(iterable: Iterable[_T], n: int) -> Iterator[tuple[_T, ...]]:  # pragma: no cover
         # batched('ABCDEFG', 3) → ABC DEF G
         if n < 1:
             raise ValueError('n must be at least one')

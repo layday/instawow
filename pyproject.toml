@@ -128,8 +128,9 @@ instawow_wa_updater = ["src/instawow_wa_updater", "**/instawow_wa_updater"]
 
 [tool.coverage.report]
 exclude_also = [
-  "raise NotImplementedError",
   "@overload",
+  "if TYPE_CHECKING:",
+  "raise NotImplementedError",
 ]
 
 [tool.pytest.ini_options]

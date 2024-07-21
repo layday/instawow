@@ -10,16 +10,16 @@ from ..resolvers import BaseResolver
 _TTokenValue = TypeVar('_TTokenValue', covariant=True)
 
 
-class _AccessToken(Protocol):
+class _AccessToken(Protocol):  # pragma: no cover
     name: str
     required: str
 
 
-class _AccessTokenOnInstance(_AccessToken, Protocol[_TTokenValue]):
+class _AccessTokenOnInstance(_AccessToken, Protocol[_TTokenValue]):  # pragma: no cover
     def get(self) -> _TTokenValue: ...
 
 
-class _AccessTokenOnClass(_AccessToken, Protocol[_TTokenValue]):
+class _AccessTokenOnClass(_AccessToken, Protocol[_TTokenValue]):  # pragma: no cover
     def get(self, global_config: config.GlobalConfig) -> _TTokenValue: ...
 
 
