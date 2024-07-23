@@ -103,7 +103,7 @@ class GithubResolver(BaseResolver):
         if url.host == 'github.com' and len(url.parts) > 2:
             return '/'.join(url.parts[1:3])
 
-    async def make_request_headers(self, intent: HeadersIntent | None = None) -> dict[str, str]:
+    def make_request_headers(self, intent: HeadersIntent | None = None) -> dict[str, str]:
         headers = dict[str, str]()
 
         headers['X-GitHub-Api-Version'] = '2022-11-28'
@@ -145,7 +145,7 @@ class GithubResolver(BaseResolver):
         if not candidates:
             return None
 
-        download_headers = await self.make_request_headers(HeadersIntent.Download)
+        download_headers = self.make_request_headers(HeadersIntent.Download)
 
         if desired_flavours is None:
             desired_flavours = tuple(Flavour)
@@ -299,7 +299,7 @@ class GithubResolver(BaseResolver):
             f'looking for match in release.json: {release_json_asset["browser_download_url"]}'
         )
 
-        download_headers = await self.make_request_headers(HeadersIntent.Download)
+        download_headers = self.make_request_headers(HeadersIntent.Download)
 
         async with shared_ctx.web_client.get(
             release_json_asset['url'],
@@ -380,7 +380,7 @@ class GithubResolver(BaseResolver):
                 return (release, asset)
 
     async def _resolve_one(self, defn: Defn, metadata: None) -> PkgCandidate:
-        github_headers = await self.make_request_headers()
+        github_headers = self.make_request_headers()
 
         id_or_alias = defn.id or defn.alias
         if id_or_alias.isdigit():

@@ -76,7 +76,7 @@ class WagoResolver(BaseResolver):
         if url.host == 'addons.wago.io' and len(url.parts) > 2 and url.parts[1] == 'addons':
             return url.parts[2]
 
-    async def make_request_headers(self, intent: HeadersIntent | None = None) -> dict[str, str]:
+    def make_request_headers(self, intent: HeadersIntent | None = None) -> dict[str, str]:
         return {'Authorization': f'Bearer {self.access_token.get()}'}
 
     async def _resolve_one(self, defn: Defn, metadata: None) -> PkgCandidate:
@@ -85,7 +85,7 @@ class WagoResolver(BaseResolver):
                 game_version=self._config.game_flavour.to_flavour_keyed_enum(_WagoGameVersion)
             ),
             expire_after=timedelta(minutes=5),
-            headers=await self.make_request_headers(),
+            headers=self.make_request_headers(),
         ) as response:
             if response.status == 404:
                 raise R.PkgNonexistent

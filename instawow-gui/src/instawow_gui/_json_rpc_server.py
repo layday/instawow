@@ -44,6 +44,7 @@ from instawow.config import GlobalConfig, ProfileConfig, SecretStr, config_conve
 from instawow.definitions import Defn, SourceMetadata, Strategies
 from instawow.github_auth import get_codes, poll_for_access_token
 from instawow.http import init_web_client
+from instawow.pkg_archives._download import PkgDownloadProgress
 from instawow.wow_installations import Flavour, infer_flavour_from_addon_dir
 
 from . import frontend
@@ -637,7 +638,7 @@ class _ConfigBoundCtxCollection:
 
         self._config_ctxs = dict[str, shared_ctx.ConfigBoundCtx]()
 
-        self.current_progress: ReadOnlyProgressGroup[pkg_management.PkgDownloadProgress] = {}
+        self.current_progress: ReadOnlyProgressGroup[PkgDownloadProgress] = {}
 
         self._github_auth_device_codes = None
         self._github_auth_flow_task = None
@@ -652,7 +653,7 @@ class _ConfigBoundCtxCollection:
         )
 
         iter_progress = self._exit_stack.enter_context(
-            make_progress_receiver[pkg_management.PkgDownloadProgress]()
+            make_progress_receiver[PkgDownloadProgress]()
         )
 
         async def update_progress():

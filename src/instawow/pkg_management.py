@@ -1,43 +1,29 @@
 from __future__ import annotations
 
 from collections.abc import Awaitable, Callable, Collection, Iterable, Mapping, Sequence
-from contextlib import asynccontextmanager
 from functools import wraps
 from itertools import chain, compress, filterfalse, repeat, starmap
 from pathlib import Path
-from shutil import move
-from tempfile import NamedTemporaryFile
 from typing import Concatenate, Literal, TypeVar
 
 import attrs
 from typing_extensions import Never, ParamSpec
 from yarl import URL
 
-from . import http, pkg_models, shared_ctx
+from . import pkg_models, shared_ctx
 from . import results as R
-from ._progress_reporting import Progress, make_incrementing_progress_tracker
+from ._progress_reporting import make_incrementing_progress_tracker
 from ._utils.aio import gather, run_in_thread
 from ._utils.file import trash
 from ._utils.iteration import bucketise, uniq
-from ._utils.text import shasum
-from ._utils.web import file_uri_to_path, is_file_uri
 from .definitions import Defn, Strategy
+from .pkg_archives._download import download_pkg_archive
 from .pkg_db import _ops as pkg_db_ops
-from .resolvers import HeadersIntent
 
 _T = TypeVar('_T')
 _P = ParamSpec('_P')
 
-_AsyncNamedTemporaryFile = run_in_thread(NamedTemporaryFile)
-_move_async = run_in_thread(move)
-
 _MUTATE_PKGS_LOCK = '_MUTATE_PKGS_'
-_DOWNLOAD_PKG_LOCK = '_DOWNLOAD_PKG_'
-
-
-class PkgDownloadProgress(Progress[Literal['pkg_download'], Literal['bytes']]):
-    profile: str
-    defn: Defn
 
 
 def bucketise_results(
@@ -53,20 +39,6 @@ def bucketise_results(
             ts[defn] = value
 
     return ts, errors
-
-
-@asynccontextmanager
-async def _open_temp_writer_async():
-    fh = await _AsyncNamedTemporaryFile(delete=False)
-    path = Path(fh.name)
-    try:
-        yield (path, run_in_thread(fh.write))
-    except BaseException:
-        await run_in_thread(fh.close)()
-        await run_in_thread(path.unlink)()
-        raise
-    else:
-        await run_in_thread(fh.close)()
 
 
 def _with_lock(lock_name: str):
@@ -288,46 +260,6 @@ async def get_changelog(config_ctx: shared_ctx.ConfigBoundCtx, source: str, uri:
     return await config_ctx.resolvers.get_or_dummy(source).get_changelog(URL(uri))
 
 
-async def _download_pkg_archive(
-    config_ctx: shared_ctx.ConfigBoundCtx, defn: Defn, pkg: pkg_models.Pkg
-) -> Path:
-    if is_file_uri(pkg.download_url):
-        return Path(file_uri_to_path(pkg.download_url))
-
-    async with shared_ctx.locks[_DOWNLOAD_PKG_LOCK, pkg.download_url]:
-        headers = await config_ctx.resolvers[pkg.source].make_request_headers(
-            intent=HeadersIntent.Download
-        )
-        trace_request_ctx = {
-            'progress': PkgDownloadProgress(
-                type_='pkg_download',
-                unit='bytes',
-                current=0,
-                total=0,
-                profile=config_ctx.config.profile,
-                defn=defn,
-            )
-        }
-
-        async with (
-            shared_ctx.web_client.get(
-                pkg.download_url,
-                headers=headers,
-                raise_for_status=True,
-                trace_request_ctx=trace_request_ctx,
-                expire_after=http.CACHE_INDEFINITELY,
-            ) as response,
-            _open_temp_writer_async() as (temp_path, write),
-        ):
-            async for chunk, _ in response.content.iter_chunks():
-                await write(chunk)
-
-        return await _move_async(
-            temp_path,
-            config_ctx.config.global_config.install_cache_dir / shasum(pkg.download_url),
-        )
-
-
 @run_in_thread
 def _install_pkg(
     config_ctx: shared_ctx.ConfigBoundCtx,
@@ -481,7 +413,8 @@ async def install(
         return results | {d: R.PkgInstalled(p, dry_run=True) for d, p in new_pkgs.items()}
 
     download_results = await gather(
-        R.resultify_async_exc(_download_pkg_archive(config_ctx, d, r)) for d, r in new_pkgs.items()
+        R.resultify_async_exc(download_pkg_archive(config_ctx, d, r.download_url))
+        for d, r in new_pkgs.items()
     )
     archive_paths, download_errors = bucketise_results(zip(new_pkgs, download_results))
 
@@ -537,7 +470,8 @@ async def replace(
     results = results | resolve_errors
 
     download_results = await gather(
-        R.resultify_async_exc(_download_pkg_archive(config_ctx, d, r)) for d, r in new_pkgs.items()
+        R.resultify_async_exc(download_pkg_archive(config_ctx, d, r.download_url))
+        for d, r in new_pkgs.items()
     )
     archive_paths, download_errors = bucketise_results(zip(new_pkgs, download_results))
 
@@ -618,7 +552,7 @@ async def update(
         }
 
     download_results = await gather(
-        R.resultify_async_exc(_download_pkg_archive(config_ctx, d, n))
+        R.resultify_async_exc(download_pkg_archive(config_ctx, d, n.download_url))
         for d, (_, n) in updatables.items()
     )
     archive_paths, download_errors = bucketise_results(zip(updatables, download_results))

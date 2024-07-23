@@ -41,9 +41,7 @@ class Resolver(Protocol):  # pragma: no cover
         "Attempt to extract a ``Defn`` alias from a given URL."
         ...
 
-    async def make_request_headers(
-        self, intent: HeadersIntent | None = None
-    ) -> dict[str, str] | None:
+    def make_request_headers(self, intent: HeadersIntent | None = None) -> dict[str, str] | None:
         "Create headers for resolver HTTP requests."
         ...
 
@@ -101,9 +99,7 @@ class BaseResolver(Resolver, Protocol):
     def get_alias_from_url(cls, url: URL) -> str | None:
         return None
 
-    async def make_request_headers(
-        self, intent: HeadersIntent | None = None
-    ) -> dict[str, str] | None:
+    def make_request_headers(self, intent: HeadersIntent | None = None) -> dict[str, str] | None:
         return None
 
     async def resolve(
@@ -157,7 +153,7 @@ class BaseResolver(Resolver, Protocol):
                 async with shared_ctx.web_client.get(
                     uri,
                     expire_after=http.CACHE_INDEFINITELY,
-                    headers=await self.make_request_headers(),
+                    headers=self.make_request_headers(),
                     raise_for_status=True,
                 ) as response:
                     return await response.text()

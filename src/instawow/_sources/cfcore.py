@@ -276,9 +276,7 @@ class CfCoreResolver(BaseResolver):
         ):
             return url.parts[3].lower()
 
-    async def make_request_headers(
-        self, intent: HeadersIntent | None = None
-    ) -> dict[str, str] | None:
+    def make_request_headers(self, intent: HeadersIntent | None = None) -> dict[str, str] | None:
         if intent is HeadersIntent.Download:
             return None
         return {'x-api-key': self.access_token.get()}
@@ -293,7 +291,7 @@ class CfCoreResolver(BaseResolver):
         async with shared_ctx.web_client.post(
             self.__mod_api_url,
             expire_after=timedelta(minutes=5),
-            headers=await self.make_request_headers(),
+            headers=self.make_request_headers(),
             json={'modIds': numeric_ids},
             raise_for_status=True,
         ) as response:
@@ -313,7 +311,7 @@ class CfCoreResolver(BaseResolver):
                 async with shared_ctx.web_client.get(
                     self.__mod_api_url / defn.alias,
                     expire_after=timedelta(minutes=15),
-                    headers=await self.make_request_headers(),
+                    headers=self.make_request_headers(),
                 ) as mod_response:
                     if mod_response.status == 404:
                         raise R.PkgNonexistent
@@ -329,7 +327,7 @@ class CfCoreResolver(BaseResolver):
                         gameId=_CF_WOW_GAME_ID, slug=defn.alias
                     ),
                     expire_after=timedelta(minutes=15),
-                    headers=await self.make_request_headers(),
+                    headers=self.make_request_headers(),
                     raise_for_status=True,
                 ) as mod_response:
                     mod_response_json: _CfCoreModsResponse = await mod_response.json()
@@ -351,7 +349,7 @@ class CfCoreResolver(BaseResolver):
             async with shared_ctx.web_client.get(
                 files_url,
                 expire_after=timedelta(hours=1),
-                headers=await self.make_request_headers(),
+                headers=self.make_request_headers(),
                 raise_for_status=True,
                 trace_request_ctx={
                     'progress': make_default_progress(
@@ -445,7 +443,7 @@ class CfCoreResolver(BaseResolver):
         async with shared_ctx.web_client.get(
             uri,
             expire_after=http.CACHE_INDEFINITELY,
-            headers=await self.make_request_headers(),
+            headers=self.make_request_headers(),
             raise_for_status=True,
         ) as response:
             response_json: _CfCoreStringDataResponse = await response.json()
