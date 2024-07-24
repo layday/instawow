@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import importlib.resources
 from pathlib import Path
 
 import pytest
@@ -9,11 +8,21 @@ from instawow.matchers.addon_toc import TocReader
 
 
 @pytest.fixture
-def fake_addon_toc():
-    with importlib.resources.as_file(
-        importlib.resources.files(__spec__.parent) / 'fixtures' / 'FakeAddon' / 'FakeAddon.toc'
-    ) as file:
-        yield file
+def fake_addon_toc(tmp_path: Path):
+    fake_addon_path = tmp_path / 'FakeAddon' / 'FakeAddon.toc'
+    fake_addon_path.parent.mkdir()
+    fake_addon_path.write_text(
+        """\
+## Normal: Normal entry
+##Compact:Compact entry
+ ## Indented: Indented entry
+# Comment:Not an entry
+
+fake_addon.lua
+""",
+        encoding='utf-8',
+    )
+    return fake_addon_path
 
 
 def test_loading_toc_from_path(fake_addon_toc: Path):

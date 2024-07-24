@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import asyncio
-import importlib.resources
 import sys
 import time
 from pathlib import Path
@@ -12,29 +11,22 @@ from instawow._utils.aio import run_in_thread
 from instawow._utils.iteration import bucketise, merge_intersecting_sets
 from instawow._utils.text import tabulate
 from instawow._utils.web import file_uri_to_path
-from instawow.matchers.addon_toc import TocReader
-
-
-@pytest.fixture
-def fake_addon_toc():
-    with importlib.resources.as_file(
-        importlib.resources.files(__spec__.parent) / 'fixtures' / 'FakeAddon' / 'FakeAddon.toc'
-    ) as file:
-        yield file
 
 
 def test_bucketise_bucketises_by_putting_things_in_a_bucketing_bucket():
     assert bucketise(iter([1, 1, 0, 1]), bool) == {True: [1, 1, 1], False: [0]}
 
 
-def test_tabulate_spits_out_ascii_table(fake_addon_toc: Path):
-    toc_reader = TocReader.from_path(fake_addon_toc)
-    data = [('key', 'value'), *toc_reader.items()]
-    assert tabulate(data) == (
-        '  key        value    \n'
-        '-------  -------------\n'
-        'Normal   Normal entry \n'
-        'Compact  Compact entry'
+def test_tabulate_spits_out_ascii_table():
+    data = [('key', 'value'), ('abc def', 'hhhdhhdhfhh'), ('dskfjsdfksdkf', 'huh')]
+    assert (
+        tabulate(data)
+        == """\
+     key          value   
+-------------  -----------
+abc def        hhhdhhdhfhh
+dskfjsdfksdkf  huh        \
+"""  # noqa: W291
     )
 
 

@@ -1,6 +1,0 @@
-## Normal: Normal entry
-##Compact:Compact entry
- ## Indented: Indented entry
-# Comment:Not an entry
-
-fake_addon.lua
