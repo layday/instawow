@@ -1,0 +1,77 @@
+{
+  "data": {
+    "id": 5090686,
+    "gameId": 1,
+    "modId": 20338,
+    "isAvailable": true,
+    "displayName": "100205.111-Release",
+    "fileName": "Molinari-100205.111-Release.zip",
+    "releaseType": 1,
+    "fileStatus": 4,
+    "hashes": [
+      {
+        "value": "adccbdb79b46a3a0310b6a5c7322df39284e0d17",
+        "algo": 1
+      },
+      {
+        "value": "b59b2132e3751d5c1cc936a8984c17c8",
+        "algo": 2
+      }
+    ],
+    "fileDate": "2024-02-08T20:00:09.15Z",
+    "fileLength": 186496,
+    "downloadCount": 5764,
+    "downloadUrl": "https://edge.forgecdn.net/files/5090/686/Molinari-100205.111-Release.zip",
+    "gameVersions": [
+      "1.15.1",
+      "3.4.3",
+      "10.2.5"
+    ],
+    "sortableGameVersions": [
+      {
+        "gameVersionName": "1.15.1",
+        "gameVersionPadded": "0000000001.0000000015.0000000001",
+        "gameVersion": "1.15.1",
+        "gameVersionReleaseDate": "2024-01-31T00:00:00Z",
+        "gameVersionTypeId": 67408
+      },
+      {
+        "gameVersionName": "3.4.3",
+        "gameVersionPadded": "0000000003.0000000004.0000000003",
+        "gameVersion": "3.4.3",
+        "gameVersionReleaseDate": "2023-10-11T00:00:00Z",
+        "gameVersionTypeId": 73713
+      },
+      {
+        "gameVersionName": "10.2.5",
+        "gameVersionPadded": "0000000010.0000000002.0000000005",
+        "gameVersion": "10.2.5",
+        "gameVersionReleaseDate": "2023-11-28T00:00:00Z",
+        "gameVersionTypeId": 517
+      }
+    ],
+    "dependencies": [
+      {
+        "modId": 14328,
+        "relationType": 1
+      },
+      {
+        "modId": 13376,
+        "relationType": 1
+      },
+      {
+        "modId": 15049,
+        "relationType": 1
+      }
+    ],
+    "alternateFileId": 0,
+    "isServerPack": false,
+    "fileFingerprint": 2516019463,
+    "modules": [
+      {
+        "name": "Molinari",
+        "fingerprint": 3098766656
+      }
+    ]
+  }
+}

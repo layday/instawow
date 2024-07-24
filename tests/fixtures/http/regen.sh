@@ -19,6 +19,14 @@ http get https://api.curseforge.com/v1/mods/20338/files \
         x-api-key:$CFCORE_API_KEY -b \
     | jq -r \
     > "$DIR"/curse-addon-files.json
+http get https://api.curseforge.com/v1/mods/20338/files/4419396 \
+        x-api-key:$CFCORE_API_KEY -b \
+    | jq -r \
+    > "$DIR"/curse-addon-file-4419396.json
+http get https://api.curseforge.com/v1/mods/20338/files/5090686 \
+        x-api-key:$CFCORE_API_KEY -b \
+    | jq -r \
+    > "$DIR"/curse-addon-file-5090686.json
 http get https://api.curseforge.com/v1/mods/20338/files/3657564/changelog \
         x-api-key:$CFCORE_API_KEY -b \
     | jq -r \

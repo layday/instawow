@@ -227,25 +227,16 @@ class _CfCoreResponsePagination(TypedDict):
     totalCount: int | None
 
 
-class _CfCorePaginatedResponse(TypedDict, Generic[_T]):
+class _CfCoreDataResponse(TypedDict, Generic[_T]):
+    data: _T
+
+
+class _CfCorePaginatedDataResponse(TypedDict, Generic[_T]):
     data: _T
     pagination: _CfCoreResponsePagination
 
 
-class _CfCoreStringDataResponse(TypedDict):
-    data: str
-
-
-class _CfCoreUnpaginatedModsResponse(TypedDict):
-    data: list[_CfCoreMod]
-
-
-class _CfCoreModsResponse(_CfCorePaginatedResponse['list[_CfCoreMod]']):
-    pass
-
-
-class _CfCoreFilesResponse(_CfCorePaginatedResponse['list[_CfCoreFile]']):
-    pass
+_VERSION_SEP = '_'
 
 
 class CfCoreResolver(BaseResolver):
@@ -295,7 +286,7 @@ class CfCoreResolver(BaseResolver):
             json={'modIds': numeric_ids},
             raise_for_status=True,
         ) as response:
-            response_json: _CfCoreUnpaginatedModsResponse = await response.json()
+            response_json: _CfCoreDataResponse[list[_CfCoreMod]] = await response.json()
 
         addons_by_id = {str(r['id']): r for r in response_json['data']}
 
@@ -330,21 +321,20 @@ class CfCoreResolver(BaseResolver):
                     headers=self.make_request_headers(),
                     raise_for_status=True,
                 ) as mod_response:
-                    mod_response_json: _CfCoreModsResponse = await mod_response.json()
+                    mod_response_json: _CfCorePaginatedDataResponse[
+                        list[_CfCoreMod]
+                    ] = await mod_response.json()
                     if not mod_response_json['data']:
                         raise R.PkgNonexistent
 
                     [metadata] = mod_response_json['data']
 
         version_eq = defn.strategies[Strategy.VersionEq]
-        if defn.strategies[Strategy.VersionEq]:
+        if version_eq:
+            _, file_sep, file_id = version_eq.rpartition(_VERSION_SEP)
             files_url = self.__mod_api_url / str(metadata['id']) / 'files'
-            if not defn.strategies[Strategy.AnyFlavour]:
-                files_url = files_url.with_query(
-                    game_version_type_id=self._config.game_flavour.to_flavour_keyed_enum(
-                        _CfCoreSortableGameVersionTypeId
-                    )
-                )
+            if file_sep:
+                files_url /= file_id
 
             async with shared_ctx.web_client.get(
                 files_url,
@@ -357,9 +347,17 @@ class CfCoreResolver(BaseResolver):
                     )
                 },
             ) as files_response:
-                files_response_json: _CfCoreFilesResponse = await files_response.json()
+                files_response_json: (
+                    _CfCoreDataResponse[_CfCoreFile] | _CfCoreDataResponse[list[_CfCoreFile]]
+                ) = await files_response.json()
 
             files = files_response_json['data']
+            if isinstance(files, list):
+                files = next(
+                    ([f] for f in files if f['displayName'] == version_eq), list[_CfCoreFile]()
+                )
+            else:
+                files = [files]
 
         else:
             files = metadata['latestFiles']
@@ -396,9 +394,6 @@ class CfCoreResolver(BaseResolver):
                 if not any_release_type:
                     yield lambda f: f['releaseType'] == _CfCoreFileReleaseType.release
 
-                if version_eq:
-                    yield lambda f: f['displayName'] == version_eq
-
             filter_fns = list(make_filter_fns(desired_flavours))
             try:
                 file = max(
@@ -428,7 +423,7 @@ class CfCoreResolver(BaseResolver):
             url=metadata['links']['websiteUrl'],
             download_url=file['downloadUrl'],
             date_published=datetime_fromisoformat(file['fileDate']),
-            version=file['displayName'],
+            version=f'{file["displayName"]}{_VERSION_SEP}{file["id"]}',
             changelog_url=str(
                 self.__mod_api_url / f'{metadata["id"]}/files/{file["id"]}/changelog'
             ),
@@ -446,7 +441,7 @@ class CfCoreResolver(BaseResolver):
             headers=self.make_request_headers(),
             raise_for_status=True,
         ) as response:
-            response_json: _CfCoreStringDataResponse = await response.json()
+            response_json: _CfCoreDataResponse[str] = await response.json()
             return response_json['data']
 
     @classmethod
@@ -494,7 +489,9 @@ class CfCoreResolver(BaseResolver):
             for attempt in range(3):
                 try:
                     async with get(url) as response:
-                        response_json: _CfCoreModsResponse = await response.json()
+                        response_json: _CfCorePaginatedDataResponse[
+                            list[_CfCoreMod]
+                        ] = await response.json()
                         break
                 except asyncio.TimeoutError:
                     logger.debug(f'request timed out; attempt {attempt + 1} of 3')

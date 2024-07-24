@@ -102,6 +102,14 @@ ROUTES = {
             _load_json_fixture('curse-addon-files.json'),
         ),
         Route(
+            '//api.curseforge.com/v1/mods/20338/files/4419396',
+            _load_json_fixture('curse-addon-file-4419396.json'),
+        ),
+        Route(
+            '//api.curseforge.com/v1/mods/20338/files/5090686',
+            _load_json_fixture('curse-addon-file-5090686.json'),
+        ),
+        Route(
             '//api.curseforge.com/v1/mods/20338/files/{id}/changelog',
             _load_json_fixture('curse-addon-changelog.json'),
             path_pattern=re.compile(r'^/v1/mods/20338/files/(\d+)/changelog$'),

@@ -169,7 +169,7 @@ def test_version_strategy_lifecycle(
     run: Run,
 ):
     assert run('install curse:molinari').output.startswith(
-        '✓ curse:molinari\n  installed 100205.111-Release'
+        '✓ curse:molinari\n  installed 100205.111-Release_5090686'
     )
     assert (
         run('install curse:molinari#version_eq=foo').output
@@ -179,28 +179,27 @@ def test_version_strategy_lifecycle(
     assert run('update curse:molinari#version_eq=100005.97-Release').output == dedent(
         """\
         ✓ curse:molinari
-          updated 100205.111-Release to 100005.97-Release with new strategies:
-            version_eq='100005.97-Release'
+          updated 100205.111-Release_5090686 to 100005.97-Release_4419396 with
+            new strategies: version_eq='100005.97-Release_4419396'
         """
     )
     assert run('remove curse:molinari').output == '✓ curse:molinari\n  removed\n'
     assert run('install curse:molinari#version_eq=foo').output == dedent(
         """\
         ✗ curse:molinari
-          no files found for: any_flavour=None; any_release_type=None;
-            version_eq='foo'
+          no files are available for download
         """
     )
     assert (
         run('install curse:molinari#version_eq=100005.97-Release').output
-        == '✓ curse:molinari\n  installed 100005.97-Release\n'
+        == '✓ curse:molinari\n  installed 100005.97-Release_4419396\n'
     )
     assert run('update').output == '✗ curse:molinari\n  package is pinned\n'
     assert run('update curse:molinari#=').output == dedent(
         """\
         ✓ curse:molinari
-          updated 100005.97-Release to 100205.111-Release with new strategies:
-            version_eq=None
+          updated 100005.97-Release_4419396 to 100205.111-Release_5090686 with
+            new strategies: version_eq=None
         """
     )
     assert run('remove curse:molinari').output == '✓ curse:molinari\n  removed\n'
@@ -212,7 +211,7 @@ def test_install_options(
     assert run('install curse:molinari#any_release_type,any_flavour').output == dedent(
         """\
         ✓ curse:molinari
-          installed 100205.111-Release
+          installed 100205.111-Release_5090686
         """
     )
 
@@ -233,7 +232,7 @@ def test_install_order_is_respected(
     ).output == dedent(
         f"""\
         ✓ curse:molinari
-          installed {'100205.111-Release' if step == 1 else '100005.97-Release'}
+          installed {'100205.111-Release_5090686' if step == 1 else '100005.97-Release_4419396'}
         ✗ curse:molinari
           package folders conflict with installed package Molinari
             (curse:20338)
@@ -255,7 +254,7 @@ def test_install_dry_run(
     assert run('install --dry-run curse:molinari').output == dedent(
         """\
         ✓ curse:molinari
-          would have installed 100205.111-Release
+          would have installed 100205.111-Release_5090686
         """
     )
 
@@ -376,8 +375,8 @@ def test_rollback__multiple_versions(
     assert run('rollback curse:molinari').output == dedent(
         """\
         ✓ curse:molinari
-          updated 100205.111-Release to 100005.97-Release with new strategies:
-            version_eq='100005.97-Release'
+          updated 100205.111-Release_5090686 to 100005.97-Release_4419396 with
+            new strategies: version_eq='100005.97-Release_4419396'
         """
     )
 
@@ -395,13 +394,13 @@ def test_rollback__rollback_multiple_versions(
     assert run(f'rollback {options} curse:molinari').output == dedent(
         """\
         ✓ curse:molinari
-          updated 100005.97-Release to 100205.111-Release with new strategies:
-            version_eq=None
+          updated 100005.97-Release_4419396 to 100205.111-Release_5090686 with
+            new strategies: version_eq=None
         """
         if options == '--undo'
         else """\
         ✓ curse:molinari
-          updated 100005.97-Release to 100205.111-Release
+          updated 100005.97-Release_4419396 to 100205.111-Release_5090686
         """
     )
 
@@ -538,7 +537,7 @@ def test_search__install_one(
     assert run('search molinari --source curse').output == dedent(
         """\
         ✓ curse:molinari
-          installed 100205.111-Release
+          installed 100205.111-Release_5090686
         """
     )
 

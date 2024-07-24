@@ -1,0 +1,85 @@
+{
+  "data": {
+    "id": 4419396,
+    "gameId": 1,
+    "modId": 20338,
+    "isAvailable": true,
+    "displayName": "100005.97-Release",
+    "fileName": "Molinari-100005.97-Release.zip",
+    "releaseType": 1,
+    "fileStatus": 4,
+    "hashes": [
+      {
+        "value": "b2c761f09affb240593df07b0c82202a7f0bf6b0",
+        "algo": 1
+      },
+      {
+        "value": "a3f2e3ae7870887c3aa920056a489473",
+        "algo": 2
+      }
+    ],
+    "fileDate": "2023-03-03T09:24:27.633Z",
+    "fileLength": 127767,
+    "downloadCount": 18381,
+    "downloadUrl": "https://edge.forgecdn.net/files/4419/396/Molinari-100005.97-Release.zip",
+    "gameVersions": [
+      "10.0.5",
+      "1.14.3",
+      "3.4.1",
+      "2.5.4"
+    ],
+    "sortableGameVersions": [
+      {
+        "gameVersionName": "10.0.5",
+        "gameVersionPadded": "0000000010.0000000000.0000000005",
+        "gameVersion": "10.0.5",
+        "gameVersionReleaseDate": "2023-01-17T00:00:00Z",
+        "gameVersionTypeId": 517
+      },
+      {
+        "gameVersionName": "1.14.3",
+        "gameVersionPadded": "0000000001.0000000014.0000000003",
+        "gameVersion": "1.14.3",
+        "gameVersionReleaseDate": "2022-04-20T00:00:00Z",
+        "gameVersionTypeId": 67408
+      },
+      {
+        "gameVersionName": "3.4.1",
+        "gameVersionPadded": "0000000003.0000000004.0000000001",
+        "gameVersion": "3.4.1",
+        "gameVersionReleaseDate": "2022-12-08T00:00:00Z",
+        "gameVersionTypeId": 73713
+      },
+      {
+        "gameVersionName": "2.5.4",
+        "gameVersionPadded": "0000000002.0000000005.0000000004",
+        "gameVersion": "2.5.4",
+        "gameVersionReleaseDate": "2022-03-22T00:00:00Z",
+        "gameVersionTypeId": 73246
+      }
+    ],
+    "dependencies": [
+      {
+        "modId": 14328,
+        "relationType": 1
+      },
+      {
+        "modId": 15049,
+        "relationType": 1
+      },
+      {
+        "modId": 13376,
+        "relationType": 1
+      }
+    ],
+    "alternateFileId": 0,
+    "isServerPack": false,
+    "fileFingerprint": 3692372046,
+    "modules": [
+      {
+        "name": "Molinari",
+        "fingerprint": 1359717709
+      }
+    ]
+  }
+}

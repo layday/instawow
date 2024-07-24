@@ -101,17 +101,19 @@ async def test_curse_slug_match(
 
 
 @pytest.mark.usefixtures('_iw_web_client_ctx')
+@pytest.mark.parametrize(
+    'version', ['100005.97-Release', '100005.97-Release_4419396', 'foo_4419396']
+)
 async def test_curse_version_pinning(
     curse_resolver: CfCoreResolver,
+    version: str,
 ):
-    defn = Defn(
-        'curse', 'molinari', strategies=Strategies({Strategy.VersionEq: '100005.97-Release'})
-    )
+    defn = Defn('curse', 'molinari', strategies=Strategies({Strategy.VersionEq: version}))
 
     result = (await curse_resolver.resolve([defn]))[defn]
     assert type(result) is Pkg
     assert result.options.version_eq is True
-    assert result.version == '100005.97-Release'
+    assert result.version == '100005.97-Release_4419396'
 
 
 @pytest.mark.usefixtures('_iw_web_client_ctx')
