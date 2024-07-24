@@ -1,6 +1,13 @@
 Changelog
 =========
 
+v4.6.0
+------
+
+- Distinguish between Curse add-on versions with the same display name.
+  This will trigger dummy updates for up-to-date add-ons, but the release
+  of the prepatch is as good a time as any to have that happen.
+
 v4.5.0
 ------
 
