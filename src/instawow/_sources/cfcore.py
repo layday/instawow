@@ -333,7 +333,7 @@ class CfCoreResolver(BaseResolver):
         if version_eq:
             _, file_sep, file_id = version_eq.rpartition(_VERSION_SEP)
             files_url = self.__mod_api_url / str(metadata['id']) / 'files'
-            if file_sep:
+            if file_sep and file_id:
                 files_url /= file_id
 
             async with shared_ctx.web_client.get(
