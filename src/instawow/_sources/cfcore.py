@@ -242,7 +242,7 @@ _VERSION_SEP = '_'
 class CfCoreResolver(BaseResolver):
     metadata = SourceMetadata(
         id='curse',
-        name='CFCore',
+        name='CurseForge',
         strategies=frozenset(
             {
                 Strategy.AnyFlavour,
