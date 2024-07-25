@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import os
 from collections.abc import AsyncIterator, Callable, Iterator, Sequence
 from datetime import timedelta
 from enum import IntEnum
@@ -236,6 +237,10 @@ class _CfCorePaginatedDataResponse(TypedDict, Generic[_T]):
     pagination: _CfCoreResponsePagination
 
 
+_ALTERNATIVE_API_URL_ENV_KEY = 'INSTAWOW_CF_API_URL'
+_alternative_api_url = os.environ.get(_ALTERNATIVE_API_URL_ENV_KEY)
+
+
 _VERSION_SEP = '_'
 
 
@@ -253,10 +258,10 @@ class CfCoreResolver(BaseResolver):
         changelog_format=ChangelogFormat.Html,
         addon_toc_key='X-Curse-Project-ID',
     )
-    access_token = AccessToken('cfcore', True)
+    access_token = AccessToken('cfcore', not _alternative_api_url)
 
     # Ref: https://docs.curseforge.com/
-    __mod_api_url = URL('https://api.curseforge.com/v1/mods')
+    __mod_api_url = URL(_alternative_api_url or 'https://api.curseforge.com/v1').joinpath('mods')
 
     @classmethod
     def get_alias_from_url(cls, url: URL) -> str | None:
@@ -268,9 +273,10 @@ class CfCoreResolver(BaseResolver):
             return url.parts[3].lower()
 
     def make_request_headers(self, intent: HeadersIntent | None = None) -> dict[str, str] | None:
-        if intent is HeadersIntent.Download:
-            return None
-        return {'x-api-key': self.access_token.get()}
+        if self.access_token.required and intent is not HeadersIntent.Download:
+            maybe_access_token = self.access_token.get()
+            if maybe_access_token:
+                return {'x-api-key': maybe_access_token}
 
     async def resolve(
         self, defns: Sequence[Defn]
