@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Hashable, Iterable, Iterator, Mapping
+from collections.abc import Collection, Hashable, Iterator, Mapping
 from functools import partial
 from typing import Literal, overload
 
@@ -83,16 +83,13 @@ class Defn:
         cls,
         uri: str,
         *,
-        known_sources: Iterable[str],
-        allow_unsourced: bool,
+        known_sources: Collection[str],
+        retain_unknown_source: bool,
     ) -> Self:
         """Construct a ``Defn`` from a URI."""
         url = URL(uri)
 
-        if url.scheme not in known_sources:
-            if not allow_unsourced:
-                raise ValueError(f'Unable to extract source from {uri}')
-
+        if not retain_unknown_source and url.scheme not in known_sources:
             make_cls = partial(cls, source='', alias=uri)
         else:
             make_cls = partial(cls, source=url.scheme, alias=url.path)

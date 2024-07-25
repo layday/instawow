@@ -303,6 +303,7 @@ def _parse_uri(
     config_ctx: ConfigBoundCtxProxy,
     value: str,
     *,
+    retain_unknown_source: bool = False,
     raise_invalid: bool = True,
 ) -> Defn: ...
 
@@ -312,6 +313,7 @@ def _parse_uri(
     config_ctx: ConfigBoundCtxProxy,
     value: list[str],
     *,
+    retain_unknown_source: bool = False,
     raise_invalid: bool = True,
 ) -> list[Defn]: ...
 
@@ -320,17 +322,28 @@ def _parse_uri(
     config_ctx: ConfigBoundCtxProxy,
     value: str | list[str] | None,
     *,
+    retain_unknown_source: bool = False,
     raise_invalid: bool = True,
 ) -> Defn | list[Defn] | None:
     if value is None:
         return None
 
     if not isinstance(value, str):
-        defns = (_parse_uri(config_ctx, v, raise_invalid=raise_invalid) for v in value)
+        defns = (
+            _parse_uri(
+                config_ctx,
+                v,
+                retain_unknown_source=retain_unknown_source,
+                raise_invalid=raise_invalid,
+            )
+            for v in value
+        )
         return uniq(defns)
 
     try:
-        defn = Defn.from_uri(value, known_sources=config_ctx.resolvers, allow_unsourced=True)
+        defn = Defn.from_uri(
+            value, known_sources=config_ctx.resolvers, retain_unknown_source=retain_unknown_source
+        )
     except ValueError as exc:
         raise click.BadParameter(exc.args[0]) from None
 
@@ -475,7 +488,12 @@ def update(
 
 
 @cli.command
-@click.argument('addons', nargs=-1, required=True, callback=_with_obj(_parse_uri))
+@click.argument(
+    'addons',
+    nargs=-1,
+    required=True,
+    callback=_with_obj(partial(_parse_uri, retain_unknown_source=True)),
+)
 @click.option(
     '--keep-folders',
     is_flag=True,
