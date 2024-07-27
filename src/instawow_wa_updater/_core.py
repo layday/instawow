@@ -17,12 +17,16 @@ from instawow import http, shared_ctx
 from instawow._logging import logger
 from instawow._progress_reporting import make_default_progress, make_incrementing_progress_tracker
 from instawow._utils.aio import gather, run_in_thread
-from instawow._utils.compat import StrEnum, fauxfrozen
+from instawow._utils.compat import fauxfrozen
 from instawow._utils.iteration import bucketise
 from instawow._utils.perf import time_op
 from instawow._utils.text import shasum
 from instawow.config import ProfileConfig
-from instawow.wow_installations import get_installation_dir_from_addon_dir
+from instawow.wow_installations import (
+    get_installation_dir_from_addon_dir,
+    get_installation_version_from_addon_dir,
+    parse_version_string,
+)
 
 from ._config import PluginConfig
 
@@ -130,13 +134,6 @@ def _merge_auras(auras: Iterable[_Auras]):
         t: t(reduce(lambda a, b: a | b, (i.root for i in a)))
         for t, a in bucketise(auras, key=type).items()
     }
-
-
-class _TocNumber(StrEnum):
-    Retail = '100206'
-    VanillaClassic = '11502'
-    Classic = '40400'
-    WrathClassic = '30403'
 
 
 class WaCompanionBuilder:
@@ -300,16 +297,18 @@ WeakAurasCompanionData = {{
                 'init.lua', template_resources.joinpath('init.lua').read_text()
             )
 
-            interface_version = self._profile_config.game_flavour.to_flavour_keyed_enum(_TocNumber)
+            interface_version_string = get_installation_version_from_addon_dir(
+                self.config.profile_config.addon_dir
+            )
+            interface_version = (
+                parse_version_string(interface_version_string) if interface_version_string else 0
+            )
             addon_version = shasum(data_output, init_output, interface_version)[:7]
 
             toc_tpl = template_resources.joinpath('WeakAurasCompanion.toc').read_text()
             write_file(
                 'WeakAurasCompanion.toc',
-                toc_tpl.format(
-                    interface=self._profile_config.game_flavour.to_flavour_keyed_enum(_TocNumber),
-                    version=addon_version,
-                ),
+                toc_tpl.format(interface=interface_version, version=addon_version),
             )
 
         changelog_tpl = template_resources.joinpath('CHANGELOG.md').read_text()

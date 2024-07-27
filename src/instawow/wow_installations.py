@@ -76,21 +76,12 @@ class FlavourVersionRange(Enum):
     WrathClassic = (range(3_04_00, 4_00_00),)
 
     @classmethod
-    def _parse_version_string(cls, version_string: str) -> int:
-        major, minor, patch = fill(map(int, version_string.split('.')), 0, 3)
-        return major * 1_00_00 + minor * 1_00 + patch
-
-    @classmethod
     def from_version(cls, version: int | str) -> Self | None:
-        version_number = (
-            version if isinstance(version, int) else cls._parse_version_string(version)
-        )
+        version_number = version if isinstance(version, int) else parse_version_string(version)
         return next((f for f in cls if f.contains(version_number)), None)
 
     def contains(self, version: int | str) -> bool:
-        version_number = (
-            version if isinstance(version, int) else self._parse_version_string(version)
-        )
+        version_number = version if isinstance(version, int) else parse_version_string(version)
         return any(version_number in r for r in self.value)
 
 
@@ -206,5 +197,13 @@ def get_installation_version_from_addon_dir(path: os.PathLike[str] | str) -> str
     if maybe_installation_dir:
         product = _DELECTABLE_DIR_NAMES.get(maybe_installation_dir.name)
         if product:
-            all_versions = _get_installed_versions(maybe_installation_dir.parent)
-            return all_versions[product['code']]
+            try:
+                all_versions = _get_installed_versions(maybe_installation_dir.parent)
+                return all_versions[product['code']]
+            except FileNotFoundError:
+                return None
+
+
+def parse_version_string(version_string: str) -> int:
+    major, minor, patch = fill(map(int, version_string.split('.')), 0, 3)
+    return major * 1_00_00 + minor * 1_00 + patch
