@@ -7,7 +7,7 @@ from collections.abc import Callable, Iterable, Iterator, Mapping, Sized
 from functools import lru_cache, partial
 from pathlib import Path
 from tempfile import gettempdir
-from typing import Any, NewType, TypedDict, TypeVar
+from typing import Any, NewType, TypeAlias, TypedDict, TypeVar
 
 import attrs
 import cattrs
@@ -84,23 +84,33 @@ def _write_config(config: object, config_path: Path):
     )
 
 
-def _read_config(config_path: Path, missing_ok: bool = False) -> dict[str, Any]:
+def _read_config(config_cls: type, config_path: Path, missing_ok: bool = False) -> dict[str, Any]:
     try:
-        return json.loads(config_path.read_bytes())
+        values = json.loads(config_path.read_bytes())
+        for field in attrs.fields(config_cls):
+            if attrs.has(field.type):
+                maybe_values = _read_config(
+                    field.type, config_path.with_stem(f'{config_path.stem}.{field.name}'), True
+                )
+                if maybe_values:
+                    values |= {field.name: maybe_values}
+
     except FileNotFoundError:
         if missing_ok:
             return {}
         raise
+    else:
+        return values
 
 
 def _compute_var(field_: attrs.Attribute[object], default: object):
-    if not field_.metadata.get('from_env'):
+    if not field_.metadata.get('env'):
         return default
 
     value = os.environ.get(f'instawow_{field_.name}'.upper())
     if value is None:
         return default
-    elif field_.metadata.get('as_json'):
+    elif field_.metadata.get('preparse_from_env'):
         return json.loads(value)
     else:
         return value
@@ -161,7 +171,7 @@ def _make_write_converter():
                 **{  # pyright: ignore[reportArgumentType]  # See microsoft/pyright#5255
                     f.name: cattrs.gen.override(omit=True)
                     for f in attrs.fields(config_cls)
-                    if not f.metadata.get('write_on_disk')
+                    if not f.metadata.get('store')
                 },
             ),
         )
@@ -199,13 +209,13 @@ def _get_default_state_dir():
     return Path(state_parent_dir, _BOTTOM_DIR_NAME)
 
 
-class _ConfigMetadata(TypedDict, total=False):
-    from_env: bool
-    as_json: bool
-    write_on_disk: bool
+class _FieldMetadata(TypedDict, total=False):
+    env: bool
+    preparse_from_env: bool
+    store: bool
 
 
-_AccessToken = SecretStr | None
+_AccessToken: TypeAlias = SecretStr | None
 
 
 @fauxfrozen
@@ -221,25 +231,25 @@ class GlobalConfig:
     config_dir: Path = attrs.field(
         factory=_get_default_config_dir,
         converter=_expand_path,
-        metadata=_ConfigMetadata(from_env=True),
+        metadata=_FieldMetadata(env=True),
     )
     temp_dir: Path = attrs.field(
         factory=_get_default_temp_dir,
         converter=_expand_path,
-        metadata=_ConfigMetadata(from_env=True),
+        metadata=_FieldMetadata(env=True),
     )
     state_dir: Path = attrs.field(
         factory=_get_default_state_dir,
         converter=_expand_path,
-        metadata=_ConfigMetadata(from_env=True),
+        metadata=_FieldMetadata(env=True),
     )
     auto_update_check: bool = attrs.field(
         default=True,
-        metadata=_ConfigMetadata(from_env=True, as_json=True, write_on_disk=True),
+        metadata=_FieldMetadata(env=True, preparse_from_env=True, store=True),
     )
     access_tokens: _AccessTokens = attrs.field(
         default=_AccessTokens(),
-        metadata=_ConfigMetadata(from_env=True, as_json=True, write_on_disk=True),
+        metadata=_FieldMetadata(env=True, preparse_from_env=True, store=True),
     )
 
     @classmethod
@@ -251,7 +261,7 @@ class GlobalConfig:
     @classmethod
     def read(cls, env: bool = True) -> Self:
         unsaved_config = cls.from_values(env=env)
-        config_values = _read_config(unsaved_config.config_file, missing_ok=True)
+        config_values = _read_config(cls, unsaved_config.config_file, missing_ok=True)
         return cls.from_values(config_values, env=env) if config_values else unsaved_config
 
     def iter_profiles(self) -> Iterator[str]:
@@ -265,7 +275,7 @@ class GlobalConfig:
         directory which allows to e.g. update add-ons out of band.
         """
         for config_json in self.profiles_config_dir.glob('*/config.json'):
-            addon_dir = _read_config(config_json)['addon_dir']
+            addon_dir = _read_config(ProfileConfig, config_json)['addon_dir']
             maybe_installation_dir = get_installation_dir_from_addon_dir(addon_dir)
             if maybe_installation_dir:
                 yield maybe_installation_dir
@@ -331,15 +341,15 @@ class ProfileConfig:
     profile: str = attrs.field(
         converter=str.strip,
         validator=_make_validate_min_length(1),
-        metadata=_ConfigMetadata(from_env=True, write_on_disk=True),
+        metadata=_FieldMetadata(env=True, store=True),
     )
     addon_dir: Path = attrs.field(
         converter=_expand_path,
         validator=_validate_path_is_writable_dir,
-        metadata=_ConfigMetadata(from_env=True, write_on_disk=True),
+        metadata=_FieldMetadata(env=True, store=True),
     )
     game_flavour: Flavour = attrs.field(
-        metadata=_ConfigMetadata(from_env=True, write_on_disk=True),
+        metadata=_FieldMetadata(env=True, store=True),
     )
 
     @classmethod
@@ -356,7 +366,8 @@ class ProfileConfig:
     def read(cls, global_config: GlobalConfig, profile: str, *, env: bool = True) -> Self:
         dummy_config = cls.make_dummy_config(global_config=global_config, profile=profile)
         return cls.from_values(
-            {**_read_config(dummy_config.config_file), 'global_config': global_config}, env=env
+            {**_read_config(cls, dummy_config.config_file), 'global_config': global_config},
+            env=env,
         )
 
     def unstructure_for_display(self) -> str:

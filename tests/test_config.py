@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import sys
 from pathlib import Path
 from typing import Any
@@ -142,6 +143,15 @@ def test_state_dir_instawow_specific_env_var_takes_precedence(
     monkeypatch.setenv('INSTAWOW_STATE_DIR', str(state_dir))
     global_config = GlobalConfig.from_values(env=True)
     assert global_config.state_dir == state_dir
+
+
+def test_access_tokens_file_takes_precedence():
+    global_config = GlobalConfig.read().write()
+    assert global_config.access_tokens.cfcore is None
+    global_config.config_dir.joinpath('config.access_tokens.json').write_text(
+        json.dumps({'cfcore': 'abc'})
+    )
+    assert GlobalConfig.read().access_tokens.cfcore == 'abc'
 
 
 def test_can_list_profiles(
