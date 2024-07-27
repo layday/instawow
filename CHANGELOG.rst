@@ -1,6 +1,23 @@
 Changelog
 =========
 
+v4.7.0
+------
+
+- Add env var to override the CurseForge API URL.
+- Read access tokens from separate configuration file if present.
+- Add workaround for version pinning for CurseForge
+  in the pathological case (where version contains an underscore).
+- Suppressed intermittent range error from GitHub.
+- Extract game version from WoW installation for WA updater.
+  The ``WeakAurasCompanion`` add-on's game version will always be up to date.
+
+CLI
+~~~
+
+- Allow uninstalling add-ons from unknown sources.
+  This can happen if e.g. the source's resolver was unregistered.
+
 v4.6.0
 ------
 
