@@ -185,7 +185,11 @@ class GithubResolver(BaseResolver):
                 ) as directory_range_response:
                     if not directory_range_response.ok:
                         # File size under 25 KB.
-                        if directory_range_response.status == 416:  # Range Not Satisfiable
+                        # The GH API incorrectly returns 501 instead of 416 Range Not Satisfiable.
+                        if directory_range_response.status == 416 or (
+                            directory_range_response.status == 501
+                            and directory_range_response.reason == 'Unsupported client range'
+                        ):
                             async with shared_ctx.web_client.get(
                                 download_url,
                                 expire_after=http.CACHE_INDEFINITELY,
