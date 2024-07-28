@@ -17,6 +17,8 @@ CLI
 
 - Allow uninstalling add-ons from unknown sources.
   This can happen if e.g. the source's resolver was unregistered.
+- Add ``configure`` command to WA updater for storing the Wago access token.
+  Access token migrated from top-level configuration.
 
 v4.6.0
 ------
