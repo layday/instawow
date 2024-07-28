@@ -3,6 +3,7 @@ from __future__ import annotations
 import click
 
 from instawow import cli
+from instawow.cli._helpers import ManyOptionalChoiceValueParam
 
 
 @click.group('weakauras-companion')
@@ -22,6 +23,36 @@ def build_weakauras_companion(config_ctx: cli.ConfigBoundCtxProxy) -> None:
         PluginConfig.read(config_ctx.config).ensure_dirs(),
     )
     cli.run_with_progress(builder.build())
+
+
+@wa_updater_command_group.command
+@click.argument(
+    'collapsed-editable-config-values',
+    nargs=-1,
+    type=ManyOptionalChoiceValueParam(click.Choice(('access_tokens.wago',))),
+)
+@click.pass_obj
+def configure(
+    config_ctx: cli.ConfigBoundCtxProxy, collapsed_editable_config_values: dict[str, object]
+) -> None:
+    "Configure the plug-in."
+
+    from instawow.cli._prompts import password
+
+    from ._config import PluginConfig
+
+    wago_access_token = collapsed_editable_config_values.get('access_tokens.wago')
+    if wago_access_token is None:
+        wago_access_token = password('Wago access token:').prompt()
+    if not wago_access_token:  # Convert to ``None`` if empty string.
+        wago_access_token = None
+
+    plugin_config = PluginConfig.from_values(
+        {'access_tokens': {'wago': wago_access_token}, 'profile_config': config_ctx.config}
+    ).write()
+
+    click.echo('Configuration written to:')
+    click.echo(f'  {plugin_config.config_file}')
 
 
 @wa_updater_command_group.command('list')

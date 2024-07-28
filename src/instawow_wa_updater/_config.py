@@ -8,7 +8,13 @@ from typing_extensions import Self
 
 from instawow._utils.compat import fauxfrozen
 from instawow.config import ProfileConfig, SecretStr, config_converter
-from instawow.config._helpers import FieldMetadata, ensure_dirs, read_config, read_env_vars
+from instawow.config._helpers import (
+    FieldMetadata,
+    ensure_dirs,
+    read_config,
+    read_env_vars,
+    write_config,
+)
 
 _plugin_name = __spec__.parent
 
@@ -56,6 +62,11 @@ class PluginConfig:
                 self.profile_cache_dir,
             ]
         )
+        return self
+
+    def write(self) -> Self:
+        self.ensure_dirs()
+        write_config(self, self.config_file)
         return self
 
     @property

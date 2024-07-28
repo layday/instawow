@@ -37,8 +37,8 @@ from prompt_toolkit.validation import ValidationError, Validator
 from prompt_toolkit.widgets import Label
 from typing_extensions import Never
 
-from ._utils.compat import fauxfrozen
-from ._utils.web import open_url
+from .._utils.compat import fauxfrozen
+from .._utils.web import open_url
 
 _T = TypeVar('_T')
 

@@ -6,23 +6,23 @@ import textwrap
 from collections.abc import Awaitable, Callable, Collection, Iterable, Mapping, Sequence
 from functools import cached_property, partial, reduce
 from itertools import chain, count, repeat
-from typing import TYPE_CHECKING, Any, Generic, NoReturn, TypeVar, overload
+from typing import TYPE_CHECKING, Any, NoReturn, TypeVar, overload
 
 import attrs
 import click
 import click.types
 from typing_extensions import Self
 
-from . import _logging, pkg_management, pkg_models, shared_ctx
-from . import config as _config
-from . import results as R
-from ._utils.compat import StrEnum
-from ._utils.iteration import all_eq, bucketise, uniq
-from .definitions import ChangelogFormat, Defn, Strategy
-from .plugins import get_plugin_commands
+from .. import _logging, pkg_management, pkg_models, shared_ctx
+from .. import config as _config
+from .. import results as R
+from .._utils.compat import StrEnum
+from .._utils.iteration import all_eq, uniq
+from ..definitions import ChangelogFormat, Defn, Strategy
+from ..plugins import get_plugin_commands
+from ._helpers import ManyOptionalChoiceValueParam, SectionedHelpGroup, StrEnumChoiceParam
 
 _T = TypeVar('_T')
-_TStrEnum = TypeVar('_TStrEnum', bound=StrEnum)
 
 
 class Report:
@@ -66,7 +66,7 @@ class Report:
     def generate(self) -> None:
         config_ctx: ConfigBoundCtxProxy | None = click.get_current_context().obj
         if config_ctx and config_ctx.config.global_config.auto_update_check:
-            from ._version_check import is_outdated
+            from .._version_check import is_outdated
 
             outdated, new_version = run_with_progress(is_outdated(config_ctx.config.global_config))
             if outdated:
@@ -115,7 +115,7 @@ class ConfigBoundCtxProxy(ConfigBoundCtxProxyBase):
 def run_with_progress(awaitable: Awaitable[_T], click_ctx: click.Context | None = None) -> _T:
     import asyncio
 
-    from .http import init_web_client
+    from ..http import init_web_client
 
     if click_ctx is None:
         click_ctx = click.get_current_context()
@@ -137,10 +137,10 @@ def run_with_progress(awaitable: Awaitable[_T], click_ctx: click.Context | None 
                 return await awaitable
 
     else:
-        from ._cli_prompts import ProgressBar, make_progress_bar_group
-        from ._progress_reporting import make_progress_receiver
-        from ._utils.aio import cancel_tasks
-        from .pkg_archives._download import PkgDownloadProgress
+        from .._progress_reporting import make_progress_receiver
+        from .._utils.aio import cancel_tasks
+        from ..pkg_archives._download import PkgDownloadProgress
+        from ._prompts import ProgressBar, make_progress_bar_group
 
         async def run():
             with (
@@ -204,62 +204,6 @@ def _with_obj(fn: Callable[..., object]):
     return wrapper
 
 
-class _StrEnumChoiceParam(Generic[_TStrEnum], click.Choice):
-    def __init__(
-        self,
-        choice_enum: type[_TStrEnum],
-        case_sensitive: bool = True,
-    ) -> None:
-        super().__init__(
-            choices=list(choice_enum),
-            case_sensitive=case_sensitive,
-        )
-        self.__choice_enum = choice_enum
-
-    def convert(
-        self, value: Any, param: click.Parameter | None, ctx: click.Context | None
-    ) -> _TStrEnum:
-        converted_value = super().convert(value, param, ctx)
-        return self.__choice_enum(converted_value)
-
-
-class _ManyOptionalChoiceValueParam(click.types.CompositeParamType):
-    name = 'optional-choice-value'
-
-    def __init__(
-        self,
-        choice_param: click.Choice,
-        *,
-        value_types: Mapping[str, click.types.ParamType] = {},
-    ) -> None:
-        super().__init__()
-        self.__choice_param = choice_param
-        self.__value_types = value_types
-
-    def __parse_value(self, value: tuple[str, ...]):
-        return (
-            (k, v, self.__choice_param, vc)
-            for r in value
-            for k, _, v in (r.partition('='),)
-            for vc in (self.__value_types.get(k),)
-        )
-
-    @property
-    def arity(self) -> int:
-        return -1
-
-    def convert(
-        self, value: tuple[str, ...], param: click.Parameter | None, ctx: click.Context | None
-    ) -> Any:
-        return {
-            kc.convert(k, param, ctx): vc.convert(v, param, ctx) if vc and v else (v or None)
-            for k, v, kc, vc in self.__parse_value(value)
-        }
-
-    def get_metavar(self, param: click.Parameter) -> str:
-        return f'{{{",".join(self.__choice_param.choices)}}}[=VALUE]'
-
-
 def _register_plugin_commands(group: click.Group):
     additional_commands = (c for g in get_plugin_commands() for c in g)
     for command in additional_commands:
@@ -271,9 +215,9 @@ def _print_version(ctx: click.Context, __: click.Parameter, value: bool):
     if not value or ctx.resilient_parsing:
         return
 
-    from ._version_check import get_version
+    from .._version_check import get_version
 
-    click.echo(f'{__spec__.parent}, version {get_version()}')
+    click.echo(f'instawow, version {get_version()}')
     ctx.exit()
 
 
@@ -281,21 +225,6 @@ def _parse_debug_option(
     _: click.Context, __: click.Parameter, value: float
 ) -> tuple[bool, bool, bool]:
     return (value > 0, value > 1, value > 2)
-
-
-class _SectionedHelpGroup(click.Group):
-    def format_commands(self, ctx: click.Context, formatter: click.HelpFormatter) -> None:
-        command_sections = bucketise(
-            ((s, c) for s, c in self.commands.items() if not c.hidden),
-            key=lambda c: 'Command groups' if isinstance(c[1], click.Group) else 'Commands',
-        )
-        if command_sections:
-            for section_name, commands in command_sections.items():
-                with formatter.section(section_name):
-                    limit = formatter.width - 6 - max(len(s) for s, _ in commands)
-                    formatter.write_dl(
-                        [(s, c.get_short_help_str(limit)) for s, c in commands],
-                    )
 
 
 @overload
@@ -394,7 +323,7 @@ class _ListFormat(StrEnum):
     Json = enum.auto()
 
 
-@click.group(context_settings={'help_option_names': ('-h', '--help')}, cls=_SectionedHelpGroup)
+@click.group(context_settings={'help_option_names': ('-h', '--help')}, cls=SectionedHelpGroup)
 @click.option(
     '--version',
     callback=_print_version,
@@ -520,7 +449,7 @@ def remove(config_ctx: ConfigBoundCtxProxy, addons: Sequence[Defn], keep_folders
 @click.pass_obj
 def rollback(config_ctx: ConfigBoundCtxProxy, addon: Defn, undo: bool) -> None:
     "Roll an add-on back to an older version."
-    from ._cli_prompts import Choice, select_one
+    from ._prompts import Choice, select_one
 
     pkg = pkg_management.get_pkg(config_ctx, addon)
     if not pkg:
@@ -562,9 +491,9 @@ def rollback(config_ctx: ConfigBoundCtxProxy, addon: Defn, undo: bool) -> None:
 @click.pass_obj
 def reconcile(config_ctx: ConfigBoundCtxProxy, auto: bool, list_unreconciled: bool) -> None:
     "Reconcile pre-installed add-ons."
-    from ._cli_prompts import SKIP, Choice, confirm, select_one
-    from ._utils.text import tabulate
-    from .matchers import DEFAULT_MATCHERS, AddonFolder, get_unreconciled_folders
+    from .._utils.text import tabulate
+    from ..matchers import DEFAULT_MATCHERS, AddonFolder, get_unreconciled_folders
+    from ._prompts import SKIP, Choice, confirm, select_one
 
     leftovers = get_unreconciled_folders(config_ctx)
     if list_unreconciled and leftovers:
@@ -677,7 +606,7 @@ def reconcile(config_ctx: ConfigBoundCtxProxy, auto: bool, list_unreconciled: bo
 @click.pass_obj
 def rereconcile(config_ctx: ConfigBoundCtxProxy, addons: Sequence[Defn]) -> None:
     "Rereconcile installed add-ons."
-    from ._cli_prompts import SKIP, Choice, confirm, select_one
+    from ._prompts import SKIP, Choice, confirm, select_one
 
     def select_alternative_pkg(pkg: pkg_models.Pkg, equivalent_pkg_defns: Sequence[Defn]):
         def construct_choice(equivalent_pkg: pkg_models.Pkg, disabled: bool):
@@ -802,8 +731,8 @@ def search(
     no_exclude_installed: bool,
 ) -> None:
     "Search for add-ons to install."
-    from ._cli_prompts import Choice, confirm, select_multiple
-    from .catalogue.search import search
+    from ..catalogue.search import search
+    from ._prompts import Choice, confirm, select_multiple
 
     catalogue_entries = run_with_progress(
         search(
@@ -843,7 +772,7 @@ def search(
     '--format',
     '-f',
     'output_format',
-    type=_StrEnumChoiceParam(_ListFormat),
+    type=StrEnumChoiceParam(_ListFormat),
     default=_ListFormat.Simple,
     show_default=True,
     help='Change the output format.',
@@ -935,7 +864,7 @@ def info(ctx: click.Context, addon: Defn) -> None:
 @click.pass_obj
 def reveal(config_ctx: ConfigBoundCtxProxy, addon: Defn) -> None:
     "Bring an add-on up in your file manager."
-    from ._utils.file import reveal_folder
+    from .._utils.file import reveal_folder
 
     with config_ctx.database.connect() as connection:
         where_clause, where_params = _make_pkg_where_clause_and_params([addon])
@@ -985,7 +914,7 @@ def view_changelog(
     which support the `version_eq` strategy, e.g. `github:foo/bar#version_eq=v1`.
     """
 
-    from ._utils.aio import gather
+    from .._utils.aio import gather
 
     MAX_LINES = 100
 
@@ -1099,10 +1028,10 @@ class _EditableConfigOptions(StrEnum):
 @click.argument(
     'editable-config-values',
     nargs=-1,
-    type=_ManyOptionalChoiceValueParam(
-        _StrEnumChoiceParam(_EditableConfigOptions),
+    type=ManyOptionalChoiceValueParam(
+        StrEnumChoiceParam(_EditableConfigOptions),
         value_types={
-            _EditableConfigOptions.AutoUpdateCheck: click.types.BoolParamType(),
+            _EditableConfigOptions.AutoUpdateCheck: click.types.BOOL,
         },
     ),
 )
@@ -1124,7 +1053,13 @@ def configure(
     """
     import asyncio
 
-    from ._cli_prompts import (
+    from ..wow_installations import (
+        ADDON_DIR_PARTS,
+        Flavour,
+        find_installations,
+        infer_flavour_from_addon_dir,
+    )
+    from ._prompts import (
         SKIP,
         AttrsFieldValidator,
         Choice,
@@ -1132,12 +1067,6 @@ def configure(
         password,
         path,
         select_one,
-    )
-    from .wow_installations import (
-        ADDON_DIR_PARTS,
-        Flavour,
-        find_installations,
-        infer_flavour_from_addon_dir,
     )
 
     profile = ctx.find_root().params['profile']
@@ -1237,8 +1166,8 @@ def configure(
                 )
             )
             if confirm('Set up GitHub authentication?').prompt():
-                from ._github_auth import get_codes, poll_for_access_token
-                from .http import init_web_client
+                from .._github_auth import get_codes, poll_for_access_token
+                from ..http import init_web_client
 
                 async def github_oauth_flow():
                     async with init_web_client(None) as web_client:
@@ -1342,8 +1271,8 @@ def generate_catalogue(start_date: dt.datetime | None) -> None:
     import json
     from pathlib import Path
 
-    from ._sources import DEFAULT_RESOLVERS
-    from .catalogue.cataloguer import Catalogue, catalogue_converter
+    from .._sources import DEFAULT_RESOLVERS
+    from ..catalogue.cataloguer import Catalogue, catalogue_converter
 
     catalogue = asyncio.run(
         Catalogue.collate((r.catalogue for r in DEFAULT_RESOLVERS), start_date)
