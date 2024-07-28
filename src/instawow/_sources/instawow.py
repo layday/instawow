@@ -11,8 +11,8 @@ from ..resolvers import BaseResolver, PkgCandidate
 from ..wow_installations import Flavour
 
 _ADDONS = {
-    ('0', 'weakauras-companion'),
-    ('1', 'weakauras-companion-autoupdate'),
+    ('0', 'weakauras-companion'): False,
+    ('1', 'weakauras-companion-autoupdate'): True,
 }
 
 
@@ -27,27 +27,32 @@ class InstawowResolver(BaseResolver):
     access_token = None
 
     async def _resolve_one(self, defn: Defn, metadata: None) -> PkgCandidate:
+        from instawow_wa_updater._config import PluginConfig
+        from instawow_wa_updater._core import WaCompanionBuilder
+
         try:
-            source_id, slug = next(p for p in _ADDONS if defn.alias in p)
+            (id_, slug), requires_build = next(
+                (p, v) for p, v in _ADDONS.items() if defn.alias in p
+            )
         except StopIteration:
             raise R.PkgNonexistent from None
 
-        from instawow_wa_updater._core import WaCompanionBuilder
-
-        builder = WaCompanionBuilder(self._config)
-        if source_id == '1':
+        builder_config = PluginConfig(self._config)
+        builder = WaCompanionBuilder(builder_config)
+        if requires_build:
+            await run_in_thread(builder_config.ensure_dirs)()
             await builder.build()
 
         return PkgCandidate(
-            id=source_id,
+            id=id_,
             slug=slug,
             name='WeakAuras Companion',
             description='A WeakAuras Companion clone.',
             url='https://github.com/layday/instawow',
-            download_url=builder.config.addon_zip_file.as_uri(),
+            download_url=builder.build_paths.archive.as_uri(),
             date_published=datetime.now(timezone.utc),
-            version=await run_in_thread(builder.get_version)(),
-            changelog_url=builder.config.changelog_file.as_uri(),
+            version=await run_in_thread(builder.build_paths.version.read_text)(encoding='utf-8'),
+            changelog_url=builder.build_paths.changelog.as_uri(),
         )
 
     @classmethod

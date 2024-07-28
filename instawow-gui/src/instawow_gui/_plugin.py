@@ -1,31 +1,10 @@
 from __future__ import annotations
 
-import click
-
 import instawow.plugins
 
-
-@click.command('gui')
-@click.pass_context
-def _gui_command(ctx: click.Context) -> None:
-    "Fire up the GUI."
-    from instawow._logging import setup_logging
-    from instawow._version_check import get_version
-    from instawow.config import GlobalConfig, ProfileConfig
-
-    from ._app import make_app
-
-    global_config = GlobalConfig.read().ensure_dirs()
-    dummy_jsonrpc_config = ProfileConfig.make_dummy_config(
-        global_config=global_config, profile='__jsonrpc__'
-    ).ensure_dirs()
-
-    params = ctx.find_root().params
-    setup_logging(dummy_jsonrpc_config.logging_dir, *params['verbose'])
-
-    make_app(version=get_version()).main_loop()
+from ._cli import gui as gui_command
 
 
 @instawow.plugins.hookimpl
 def instawow_add_commands():
-    return (_gui_command,)
+    return (gui_command,)

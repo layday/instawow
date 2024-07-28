@@ -8,7 +8,7 @@ from typing import Any
 import cattrs
 import pytest
 
-from instawow.config import GlobalConfig, PluginConfig, ProfileConfig
+from instawow.config import GlobalConfig, ProfileConfig
 from instawow.wow_installations import Flavour
 
 
@@ -254,19 +254,3 @@ def test_validate_addon_dir(
     assert note == 'Structuring class ProfileConfig @ attribute addon_dir'
     assert type(note) is cattrs.AttributeValidationNote
     assert note.name == 'addon_dir'
-
-
-def test_plugin_cache_dirs(
-    iw_global_config_values: dict[str, Any],
-    iw_profile_config_values: dict[str, Any],
-):
-    global_config = GlobalConfig.from_values(iw_global_config_values)
-    profile_config = ProfileConfig.from_values(
-        {'global_config': global_config, **iw_profile_config_values}
-    )
-    plugin_config = PluginConfig(profile_config=profile_config, plugin='test')
-    assert plugin_config.cache_dir == global_config.plugins_cache_dir / 'test'
-    assert (
-        plugin_config.profile_cache_dir
-        == global_config.plugins_cache_dir / 'test' / 'profiles' / profile_config.profile
-    )

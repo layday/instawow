@@ -9,6 +9,6 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 export default defineConfig({
   plugins: [svelte()],
   build: {
-    outDir: path.resolve(__dirname, "../src/instawow_gui/frontend"),
+    outDir: path.resolve(__dirname, "../src/instawow_gui/_frontend"),
   },
 });

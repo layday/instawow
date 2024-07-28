@@ -1,13 +1,12 @@
 from __future__ import annotations
 
-import json
 import os
 import sys
-from collections.abc import Callable, Iterable, Iterator, Mapping, Sized
-from functools import lru_cache, partial
+from collections.abc import Callable, Iterator, Mapping, Sized
+from functools import lru_cache
 from pathlib import Path
 from tempfile import gettempdir
-from typing import Any, NewType, TypeAlias, TypedDict, TypeVar
+from typing import NewType, TypeAlias, TypeVar
 
 import attrs
 import cattrs
@@ -15,13 +14,21 @@ import cattrs.gen
 import cattrs.preconf.json
 from typing_extensions import Self
 
-from ._utils.compat import add_exc_note, fauxfrozen
-from ._utils.file import trash
-from .wow_installations import Flavour, get_installation_dir_from_addon_dir
+from .._utils.compat import add_exc_note, fauxfrozen
+from .._utils.file import trash
+from ..wow_installations import Flavour, get_installation_dir_from_addon_dir
+from ._helpers import (
+    FieldMetadata,
+    ensure_dirs,
+    make_config_converter,
+    read_config,
+    read_env_vars,
+    write_config,
+)
+from ._helpers import config_converter as config_converter
 
 _T = TypeVar('_T')
 
-_missing = object()
 
 _BOTTOM_DIR_NAME = 'instawow'
 
@@ -35,11 +42,6 @@ def _expand_path(value: Path):
 
 def _is_writable_dir(value: Path):
     return value.is_dir() and os.access(value, os.W_OK)
-
-
-def _ensure_dirs(dirs: Iterable[Path]):
-    for dir_ in dirs:
-        dir_.mkdir(exist_ok=True, parents=True)
 
 
 def _enrich_validator_exc(validator: Callable[[object, attrs.Attribute[_T], _T], None]):
@@ -76,73 +78,6 @@ def _unstructure_config_for_display(config: object):
     return converter.unstructure(config)
 
 
-def _write_config(config: object, config_path: Path):
-    converter = _make_write_converter()
-    config_path.write_text(
-        json.dumps(converter.unstructure(config), indent=2),
-        encoding='utf-8',
-    )
-
-
-def _read_config(config_cls: type, config_path: Path, missing_ok: bool = False) -> dict[str, Any]:
-    try:
-        values = json.loads(config_path.read_bytes())
-        for field in attrs.fields(config_cls):
-            if attrs.has(field.type):
-                maybe_values = _read_config(
-                    field.type, config_path.with_stem(f'{config_path.stem}.{field.name}'), True
-                )
-                if maybe_values:
-                    values |= {field.name: maybe_values}
-
-    except FileNotFoundError:
-        if missing_ok:
-            return {}
-        raise
-    else:
-        return values
-
-
-def _compute_var(field_: attrs.Attribute[object], default: object):
-    if not field_.metadata.get('env'):
-        return default
-
-    value = os.environ.get(f'instawow_{field_.name}'.upper())
-    if value is None:
-        return default
-    elif field_.metadata.get('preparse_from_env'):
-        return json.loads(value)
-    else:
-        return value
-
-
-def _read_env_vars(config_cls: Any, values: Mapping[str, object]):
-    return {
-        f.name: v
-        for f in attrs.fields(config_cls)
-        for v in (_compute_var(f, values.get(f.name, _missing)),)
-        if v is not _missing
-    }
-
-
-def _make_attrs_instance_hook_factory(converter: cattrs.Converter, type_: type[Any]):
-    "Allow passing in a structured attrs instance to ``structure``."
-    structure = converter.gen_structure_attrs_fromdict(type_)
-
-    def structure_wrapper(value: Mapping[str, Any], type_: type[Any]):
-        return value if isinstance(value, type_) else structure(value, type_)
-
-    return structure_wrapper
-
-
-def make_config_converter():
-    converter = cattrs.Converter()
-    cattrs.preconf.json.configure_converter(converter)
-    converter.register_structure_hook(Path, lambda v, _: Path(v))
-    converter.register_unstructure_hook(Path, str)
-    return converter
-
-
 @lru_cache(1)
 def _make_display_converter():
     def convert_secret_string(value: str):
@@ -156,25 +91,6 @@ def _make_display_converter():
     converter = make_config_converter()
     converter.register_unstructure_hook(GlobalConfig, convert_global_config)
     converter.register_unstructure_hook(SecretStr, convert_secret_string)
-    return converter
-
-
-@lru_cache(1)
-def _make_write_converter():
-    converter = make_config_converter()
-    for config_cls in [GlobalConfig, ProfileConfig]:
-        converter.register_unstructure_hook(
-            config_cls,
-            cattrs.gen.make_dict_unstructure_fn(
-                config_cls,
-                converter,
-                **{  # pyright: ignore[reportArgumentType]  # See microsoft/pyright#5255
-                    f.name: cattrs.gen.override(omit=True)
-                    for f in attrs.fields(config_cls)
-                    if not f.metadata.get('store')
-                },
-            ),
-        )
     return converter
 
 
@@ -209,21 +125,23 @@ def _get_default_state_dir():
     return Path(state_parent_dir, _BOTTOM_DIR_NAME)
 
 
-class _FieldMetadata(TypedDict, total=False):
-    env: bool
-    preparse_from_env: bool
-    store: bool
-
-
 _AccessToken: TypeAlias = SecretStr | None
 
 
 @fauxfrozen
 class _AccessTokens:
-    cfcore: _AccessToken = None
-    github: _AccessToken = None
-    wago: _AccessToken = None
-    wago_addons: _AccessToken = None
+    cfcore: _AccessToken = attrs.field(
+        default=None,
+        metadata=FieldMetadata(store=True),
+    )
+    github: _AccessToken = attrs.field(
+        default=None,
+        metadata=FieldMetadata(store=True),
+    )
+    wago_addons: _AccessToken = attrs.field(
+        default=None,
+        metadata=FieldMetadata(store=True),
+    )
 
 
 @fauxfrozen
@@ -231,37 +149,37 @@ class GlobalConfig:
     config_dir: Path = attrs.field(
         factory=_get_default_config_dir,
         converter=_expand_path,
-        metadata=_FieldMetadata(env=True),
+        metadata=FieldMetadata(env=True),
     )
     temp_dir: Path = attrs.field(
         factory=_get_default_temp_dir,
         converter=_expand_path,
-        metadata=_FieldMetadata(env=True),
+        metadata=FieldMetadata(env=True),
     )
     state_dir: Path = attrs.field(
         factory=_get_default_state_dir,
         converter=_expand_path,
-        metadata=_FieldMetadata(env=True),
+        metadata=FieldMetadata(env=True),
     )
     auto_update_check: bool = attrs.field(
         default=True,
-        metadata=_FieldMetadata(env=True, preparse_from_env=True, store=True),
+        metadata=FieldMetadata(env=True, preparse_from_env=True, store=True),
     )
     access_tokens: _AccessTokens = attrs.field(
         default=_AccessTokens(),
-        metadata=_FieldMetadata(env=True, preparse_from_env=True, store=True),
+        metadata=FieldMetadata(env=True, preparse_from_env=True, store=True),
     )
 
     @classmethod
     def from_values(cls, values: Mapping[str, object] = {}, *, env: bool = False) -> Self:
         if env:
-            values = _read_env_vars(cls, values)
+            values = read_env_vars(cls, values)
         return config_converter.structure(values, cls)
 
     @classmethod
     def read(cls, env: bool = True) -> Self:
         unsaved_config = cls.from_values(env=env)
-        config_values = _read_config(cls, unsaved_config.config_file, missing_ok=True)
+        config_values = read_config(cls, unsaved_config.config_file, missing_ok=True)
         return cls.from_values(config_values, env=env) if config_values else unsaved_config
 
     def iter_profiles(self) -> Iterator[str]:
@@ -275,13 +193,13 @@ class GlobalConfig:
         directory which allows to e.g. update add-ons out of band.
         """
         for config_json in self.profiles_config_dir.glob('*/config.json'):
-            addon_dir = _read_config(ProfileConfig, config_json)['addon_dir']
+            addon_dir = read_config(ProfileConfig, config_json)['addon_dir']
             maybe_installation_dir = get_installation_dir_from_addon_dir(addon_dir)
             if maybe_installation_dir:
                 yield maybe_installation_dir
 
     def ensure_dirs(self) -> Self:
-        _ensure_dirs(
+        ensure_dirs(
             [
                 self.config_dir,
                 self.temp_dir,
@@ -295,7 +213,7 @@ class GlobalConfig:
 
     def write(self) -> Self:
         self.ensure_dirs()
-        _write_config(self, self.config_file)
+        write_config(self, self.config_file)
         return self
 
     @property
@@ -341,32 +259,34 @@ class ProfileConfig:
     profile: str = attrs.field(
         converter=str.strip,
         validator=_make_validate_min_length(1),
-        metadata=_FieldMetadata(env=True, store=True),
+        metadata=FieldMetadata(env=True, store=True),
     )
     addon_dir: Path = attrs.field(
         converter=_expand_path,
         validator=_validate_path_is_writable_dir,
-        metadata=_FieldMetadata(env=True, store=True),
+        metadata=FieldMetadata(env=True, store=True),
     )
     game_flavour: Flavour = attrs.field(
-        metadata=_FieldMetadata(env=True, store=True),
+        metadata=FieldMetadata(env=True, store=True),
     )
-
-    @classmethod
-    def make_dummy_config(cls, **values: object) -> ProfileConfig:
-        return object.__new__(type(f'Dummy{cls.__name__}', (cls,), values))
 
     @classmethod
     def from_values(cls, values: Mapping[str, object] = {}, *, env: bool = False) -> Self:
         if env:
-            values = _read_env_vars(cls, values)
+            values = read_env_vars(cls, values)
         return config_converter.structure(values, cls)
 
     @classmethod
     def read(cls, global_config: GlobalConfig, profile: str, *, env: bool = True) -> Self:
-        dummy_config = cls.make_dummy_config(global_config=global_config, profile=profile)
+        dummy_config = object.__new__(
+            type(
+                f'Dummy{cls.__name__}',
+                (cls,),
+                {'global_config': global_config, 'profile': profile},
+            )
+        )
         return cls.from_values(
-            {**_read_config(cls, dummy_config.config_file), 'global_config': global_config},
+            {**read_config(cls, dummy_config.config_file), 'global_config': global_config},
             env=env,
         )
 
@@ -374,7 +294,7 @@ class ProfileConfig:
         return _unstructure_config_for_display(self)
 
     def ensure_dirs(self) -> Self:
-        _ensure_dirs(
+        ensure_dirs(
             [
                 self.config_dir,
                 self.state_dir,
@@ -385,7 +305,7 @@ class ProfileConfig:
 
     def write(self) -> Self:
         self.ensure_dirs()
-        _write_config(self, self.config_file)
+        write_config(self, self.config_file)
         return self
 
     def delete(self) -> None:
@@ -410,32 +330,3 @@ class ProfileConfig:
     @property
     def db_file(self) -> Path:
         return self.config_dir / 'db.sqlite'
-
-
-@fauxfrozen
-class PluginConfig:
-    profile_config: ProfileConfig
-    plugin: str
-
-    def ensure_dirs(self) -> Self:
-        _ensure_dirs(
-            [
-                self.cache_dir,
-                self.profile_cache_dir,
-            ]
-        )
-        return self
-
-    @property
-    def cache_dir(self) -> Path:
-        return self.profile_config.global_config.plugins_cache_dir / self.plugin
-
-    @property
-    def profile_cache_dir(self) -> Path:
-        return self.cache_dir / 'profiles' / self.profile_config.profile
-
-
-config_converter = make_config_converter()
-config_converter.register_structure_hook_factory(
-    attrs.has, partial(_make_attrs_instance_hook_factory, config_converter)
-)

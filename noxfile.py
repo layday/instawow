@@ -155,7 +155,7 @@ def bundle_frontend(session: nox.Session):
     "Bundle the frontend."
 
     with session.chdir('instawow-gui/frontend'):
-        session.run('git', 'clean', '-fX', '../src/instawow_gui/frontend', external=True)
+        session.run('git', 'clean', '-fX', '../src/instawow_gui/_frontend', external=True)
         session.run('npm', 'install', external=True)
         session.run('npx', 'svelte-check', external=True)
         session.run('npm', 'run', 'build', external=True)

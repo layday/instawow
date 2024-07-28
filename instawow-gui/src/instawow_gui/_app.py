@@ -139,6 +139,6 @@ def make_app(version: str) -> toga.App:
         formal_name='instawow-gui',
         app_id='org.instawow.instawow_gui',
         app_name='instawow_gui',
-        icon='resources/instawow_gui',
+        icon='_resources/instawow_gui',
         version=version,
     )

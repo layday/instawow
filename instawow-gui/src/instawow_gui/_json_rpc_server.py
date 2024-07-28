@@ -47,8 +47,6 @@ from instawow.http import init_web_client
 from instawow.pkg_archives._download import PkgDownloadProgress
 from instawow.wow_installations import Flavour, infer_flavour_from_addon_dir
 
-from . import frontend
-
 _T = TypeVar('_T')
 _P = ParamSpec('_P')
 
@@ -749,10 +747,12 @@ class _ConfigBoundCtxCollection:
 
 
 async def create_web_app(toga_handle: toga.App | None = None):
+    from . import _frontend
+
     if toga_handle:
         _toga_handle.set(toga_handle)
 
-    frontend_resources = importlib.resources.files(frontend)
+    frontend_resources = importlib.resources.files(_frontend)
 
     config_ctxs = _ConfigBoundCtxCollection()
 

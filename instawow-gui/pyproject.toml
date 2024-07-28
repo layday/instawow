@@ -53,7 +53,7 @@ version = "0.1.0"
 [tool.briefcase.app.instawow-gui-wrapper]
 formal_name = "instawow-gui"
 description = "GUI for the World of Warcraft add-on manager instawow"
-icon = "src/instawow_gui/resources/instawow_gui"
+icon = "src/instawow_gui/_resources/instawow_gui"
 sources = ["src/instawow_gui_wrapper"]
 requires = [
   "instawow-gui[full]",
