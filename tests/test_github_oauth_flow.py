@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import aiohttp
 
-from instawow.github_auth import get_codes, poll_for_access_token
+from instawow._github_auth import get_codes, poll_for_access_token
 
 
 async def test_github_oauth_flow(

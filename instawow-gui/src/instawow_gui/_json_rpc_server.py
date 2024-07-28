@@ -31,6 +31,7 @@ from yarl import URL
 
 from instawow import _version_check, matchers, pkg_management, pkg_models, shared_ctx
 from instawow import results as R
+from instawow._github_auth import get_codes, poll_for_access_token
 from instawow._logging import logger
 from instawow._progress_reporting import ReadOnlyProgressGroup, make_progress_receiver
 from instawow._utils.aio import cancel_tasks, gather, run_in_thread
@@ -42,7 +43,6 @@ from instawow.catalogue.cataloguer import ComputedCatalogueEntry
 from instawow.catalogue.search import search
 from instawow.config import GlobalConfig, ProfileConfig, SecretStr, config_converter
 from instawow.definitions import Defn, SourceMetadata, Strategies
-from instawow.github_auth import get_codes, poll_for_access_token
 from instawow.http import init_web_client
 from instawow.pkg_archives._download import PkgDownloadProgress
 from instawow.wow_installations import Flavour, infer_flavour_from_addon_dir

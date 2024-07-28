@@ -1237,7 +1237,7 @@ def configure(
                 )
             )
             if confirm('Set up GitHub authentication?').prompt():
-                from .github_auth import get_codes, poll_for_access_token
+                from ._github_auth import get_codes, poll_for_access_token
                 from .http import init_web_client
 
                 async def github_oauth_flow():
