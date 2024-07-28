@@ -4,21 +4,19 @@ import datetime as dt
 import enum
 import textwrap
 from collections.abc import Awaitable, Callable, Collection, Iterable, Mapping, Sequence
+from contextlib import asynccontextmanager
 from functools import cached_property, partial, reduce
 from itertools import chain, count, repeat
 from typing import TYPE_CHECKING, Any, NoReturn, TypeVar, overload
 
 import attrs
 import click
-import click.types
-from typing_extensions import Self
 
 from .. import _logging, pkg_management, pkg_models, shared_ctx
 from .. import config as _config
 from .. import results as R
 from .._utils.compat import StrEnum
-from .._utils.iteration import all_eq, uniq
-from ..definitions import ChangelogFormat, Defn, Strategy
+from ..definitions import Defn
 from ..plugins import get_plugin_commands
 from ._helpers import ManyOptionalChoiceValueParam, SectionedHelpGroup, StrEnumChoiceParam
 
@@ -112,6 +110,65 @@ class ConfigBoundCtxProxy(ConfigBoundCtxProxyBase):
             return getattr(self.__config_ctx, name)
 
 
+@asynccontextmanager
+async def _observe_progress():
+    import asyncio
+
+    from .._progress_reporting import make_progress_receiver
+    from .._utils.aio import cancel_tasks
+    from ..pkg_archives._download import PkgDownloadProgress
+    from ._prompts import ProgressBar, make_progress_bar_group
+
+    with (
+        make_progress_receiver[PkgDownloadProgress]() as iter_progress,
+        make_progress_bar_group() as progress_bar_group,
+    ):
+
+        async def observe_progress():
+            progress_bars = dict[int, ProgressBar]()
+
+            try:
+                async for progress_group in iter_progress:
+                    for progress_id in progress_bars.keys() - progress_group.keys():
+                        del progress_bars[progress_id]
+
+                    for progress_id, progress in (
+                        (k, progress_group[k])
+                        for k in progress_bars.keys() ^ progress_group.keys()
+                    ):
+                        match progress:
+                            case {'type_': 'pkg_download', 'defn': defn}:
+                                label = f'Downloading {defn.as_uri()}'
+                            case {'label': str(label)}:
+                                pass
+                            case _:
+                                continue
+
+                        progress_bars[progress_id] = ProgressBar(
+                            progress_bar=progress_bar_group,
+                            label=label,
+                            total=progress['total'],
+                            is_download=progress.get('unit') == 'bytes',
+                        )
+
+                    progress_bar_group.counters = list(progress_bars.values())
+
+                    for progress_id, progress in progress_group.items():
+                        progress_bars[progress_id].items_completed = progress['current']
+                        progress_bar_group.invalidate()
+
+            finally:
+                progress_bar_group.counters = []
+
+        observe_progress_task = asyncio.create_task(observe_progress())
+
+        try:
+            yield
+
+        finally:
+            await cancel_tasks([observe_progress_task])
+
+
 def run_with_progress(awaitable: Awaitable[_T], click_ctx: click.Context | None = None) -> _T:
     import asyncio
 
@@ -137,67 +194,16 @@ def run_with_progress(awaitable: Awaitable[_T], click_ctx: click.Context | None 
                 return await awaitable
 
     else:
-        from .._progress_reporting import make_progress_receiver
-        from .._utils.aio import cancel_tasks
-        from ..pkg_archives._download import PkgDownloadProgress
-        from ._prompts import ProgressBar, make_progress_bar_group
 
         async def run():
-            with (
-                make_progress_receiver[PkgDownloadProgress]() as iter_progress,
-                make_progress_bar_group() as progress_bar_group,
-            ):
-
-                async def observe_progress():
-                    progress_bars = dict[int, ProgressBar]()
-
-                    try:
-                        async for progress_group in iter_progress:
-                            for progress_id in progress_bars.keys() - progress_group.keys():
-                                del progress_bars[progress_id]
-
-                            for progress_id, progress in (
-                                (k, progress_group[k])
-                                for k in progress_bars.keys() ^ progress_group.keys()
-                            ):
-                                match progress:
-                                    case {'type_': 'pkg_download', 'defn': defn}:
-                                        label = f'Downloading {defn.as_uri()}'
-                                    case {'label': str(label)}:
-                                        pass
-                                    case _:
-                                        continue
-
-                                progress_bars[progress_id] = ProgressBar(
-                                    progress_bar=progress_bar_group,
-                                    label=label,
-                                    total=progress['total'],
-                                    is_download=progress.get('unit') == 'bytes',
-                                )
-
-                            progress_bar_group.counters = list(progress_bars.values())
-
-                            for progress_id, progress in progress_group.items():
-                                progress_bars[progress_id].items_completed = progress['current']
-                                progress_bar_group.invalidate()
-
-                    finally:
-                        progress_bar_group.counters = []
-
-                observe_progress_task = asyncio.create_task(observe_progress())
-
-                try:
-                    async with make_init_web_client(with_progress=True) as web_client:
-                        shared_ctx.web_client_var.set(web_client)
-                        return await awaitable
-
-                finally:
-                    await cancel_tasks([observe_progress_task])
+            async with make_init_web_client(with_progress=True) as web_client, _observe_progress():
+                shared_ctx.web_client_var.set(web_client)
+                return await awaitable
 
     return asyncio.run(run())
 
 
-def _with_obj(fn: Callable[..., object]):
+def _with_config_ctx(fn: Callable[..., object]):
     def wrapper(ctx: click.Context, __: click.Parameter, value: object):
         return fn(ctx.obj, value)
 
@@ -254,6 +260,8 @@ def _parse_uri(
     retain_unknown_source: bool = False,
     raise_invalid: bool = True,
 ) -> Defn | list[Defn] | None:
+    from .._utils.iteration import uniq
+
     if value is None:
         return None
 
@@ -358,7 +366,7 @@ def cli(ctx: click.Context, **__: object) -> None:
 
 
 @cli.command
-@click.argument('addons', nargs=-1, callback=_with_obj(_parse_uri))
+@click.argument('addons', nargs=-1, callback=_with_config_ctx(_parse_uri))
 @click.option(
     '--replace',
     'replace_folders',
@@ -390,7 +398,7 @@ def install(
 
 
 @cli.command
-@click.argument('addons', nargs=-1, callback=_with_obj(_parse_uri))
+@click.argument('addons', nargs=-1, callback=_with_config_ctx(_parse_uri))
 @click.option(
     '--dry-run',
     is_flag=True,
@@ -421,7 +429,7 @@ def update(
     'addons',
     nargs=-1,
     required=True,
-    callback=_with_obj(partial(_parse_uri, retain_unknown_source=True)),
+    callback=_with_config_ctx(partial(_parse_uri, retain_unknown_source=True)),
 )
 @click.option(
     '--keep-folders',
@@ -439,7 +447,7 @@ def remove(config_ctx: ConfigBoundCtxProxy, addons: Sequence[Defn], keep_folders
 
 
 @cli.command
-@click.argument('addon', callback=_with_obj(_parse_uri))
+@click.argument('addon', callback=_with_config_ctx(_parse_uri))
 @click.option(
     '--undo',
     is_flag=True,
@@ -449,6 +457,7 @@ def remove(config_ctx: ConfigBoundCtxProxy, addons: Sequence[Defn], keep_folders
 @click.pass_obj
 def rollback(config_ctx: ConfigBoundCtxProxy, addon: Defn, undo: bool) -> None:
     "Roll an add-on back to an older version."
+    from ..definitions import Strategy
     from ._prompts import Choice, select_one
 
     pkg = pkg_management.get_pkg(config_ctx, addon)
@@ -491,6 +500,7 @@ def rollback(config_ctx: ConfigBoundCtxProxy, addon: Defn, undo: bool) -> None:
 @click.pass_obj
 def reconcile(config_ctx: ConfigBoundCtxProxy, auto: bool, list_unreconciled: bool) -> None:
     "Reconcile pre-installed add-ons."
+    from .._utils.iteration import all_eq, uniq
     from .._utils.text import tabulate
     from ..matchers import DEFAULT_MATCHERS, AddonFolder, get_unreconciled_folders
     from ._prompts import SKIP, Choice, confirm, select_one
@@ -602,10 +612,13 @@ def reconcile(config_ctx: ConfigBoundCtxProxy, auto: bool, list_unreconciled: bo
 
 
 @cli.command
-@click.argument('addons', nargs=-1, callback=_with_obj(partial(_parse_uri, raise_invalid=False)))
+@click.argument(
+    'addons', nargs=-1, callback=_with_config_ctx(partial(_parse_uri, raise_invalid=False))
+)
 @click.pass_obj
 def rereconcile(config_ctx: ConfigBoundCtxProxy, addons: Sequence[Defn]) -> None:
     "Rereconcile installed add-ons."
+    from .._utils.iteration import all_eq, uniq
     from ._prompts import SKIP, Choice, confirm, select_one
 
     def select_alternative_pkg(pkg: pkg_models.Pkg, equivalent_pkg_defns: Sequence[Defn]):
@@ -767,7 +780,9 @@ def search(
 
 
 @cli.command('list')
-@click.argument('addons', nargs=-1, callback=_with_obj(partial(_parse_uri, raise_invalid=False)))
+@click.argument(
+    'addons', nargs=-1, callback=_with_config_ctx(partial(_parse_uri, raise_invalid=False))
+)
 @click.option(
     '--format',
     '-f',
@@ -852,7 +867,7 @@ def list_installed(
 
 
 @cli.command(hidden=True)
-@click.argument('addon', callback=_with_obj(partial(_parse_uri, raise_invalid=False)))
+@click.argument('addon', callback=_with_config_ctx(partial(_parse_uri, raise_invalid=False)))
 @click.pass_context
 def info(ctx: click.Context, addon: Defn) -> None:
     "Alias of `list -f detailed`."
@@ -860,7 +875,7 @@ def info(ctx: click.Context, addon: Defn) -> None:
 
 
 @cli.command
-@click.argument('addon', callback=_with_obj(partial(_parse_uri, raise_invalid=False)))
+@click.argument('addon', callback=_with_config_ctx(partial(_parse_uri, raise_invalid=False)))
 @click.pass_obj
 def reveal(config_ctx: ConfigBoundCtxProxy, addon: Defn) -> None:
     "Bring an add-on up in your file manager."
@@ -886,7 +901,9 @@ def reveal(config_ctx: ConfigBoundCtxProxy, addon: Defn) -> None:
 
 
 @cli.command
-@click.argument('addons', nargs=-1, callback=_with_obj(partial(_parse_uri, raise_invalid=False)))
+@click.argument(
+    'addons', nargs=-1, callback=_with_config_ctx(partial(_parse_uri, raise_invalid=False))
+)
 @click.option(
     '--convert/--no-convert',
     default=True,
@@ -913,8 +930,8 @@ def view_changelog(
     you are also able to retrieve changelogs of older versions from sources
     which support the `version_eq` strategy, e.g. `github:foo/bar#version_eq=v1`.
     """
-
     from .._utils.aio import gather
+    from ..definitions import ChangelogFormat
 
     MAX_LINES = 100
 
@@ -1017,7 +1034,7 @@ class _EditableConfigOptions(StrEnum):
 
     path: tuple[str, ...]
 
-    def __new__(cls, value: str) -> Self:
+    def __new__(cls, value: str):
         self = str.__new__(cls, value)
         self._value_ = value
         self.path = tuple(value.split('.'))
@@ -1031,7 +1048,7 @@ class _EditableConfigOptions(StrEnum):
     type=ManyOptionalChoiceValueParam(
         StrEnumChoiceParam(_EditableConfigOptions),
         value_types={
-            _EditableConfigOptions.AutoUpdateCheck: click.types.BOOL,
+            _EditableConfigOptions.AutoUpdateCheck: click.BOOL,
         },
     ),
 )
