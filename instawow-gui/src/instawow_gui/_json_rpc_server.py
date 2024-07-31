@@ -828,6 +828,7 @@ async def create_web_app(toga_handle: toga.App | None = None):
         ]
     )
     app.cleanup_ctx.append(config_ctxs_listen)
+    app.on_shutdown.append(rpc_server.on_shutdown)
     app.freeze()
     return app
 
@@ -852,4 +853,4 @@ async def run_web_app(app: aiohttp.web.Application):
     finally:
         # Fark knows how you're supposed to gracefully stop the server:
         #   https://github.com/aio-libs/aiohttp/issues/2950
-        await app_runner.shutdown()
+        await app_runner.cleanup()
