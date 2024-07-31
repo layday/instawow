@@ -28,6 +28,7 @@ from ._helpers import (
 from ._helpers import config_converter as config_converter
 
 _T = TypeVar('_T')
+_TSized = TypeVar('_TSized', bound=Sized)
 
 
 _BOTTOM_DIR_NAME = 'instawow'
@@ -66,7 +67,7 @@ def _validate_path_is_writable_dir(_model: object, _attr: attrs.Attribute[Path],
 
 def _make_validate_min_length(min_length: int):
     @_enrich_validator_exc
-    def _validate_min_length(_model: object, _attr: attrs.Attribute[Sized], value: Sized):
+    def _validate_min_length(_model: object, _attr: attrs.Attribute[_TSized], value: _TSized):
         if len(value) < min_length:
             raise ValueError(f'Value must have a minimum length of {min_length}')
 
