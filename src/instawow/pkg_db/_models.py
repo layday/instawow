@@ -14,8 +14,8 @@ def _structure_datetime(value: str, value_type: type):
 
 
 def _unstructure_datetime(value: dt.datetime):
-    if not value.tzinfo:
-        raise TypeError('`tzinfo` must be set')
+    if value.tzinfo != dt.timezone.utc:
+        raise ValueError('``datetime`` must be in UTC')
 
     return value.astimezone(dt.timezone.utc).replace(tzinfo=None).isoformat(' ')
 
