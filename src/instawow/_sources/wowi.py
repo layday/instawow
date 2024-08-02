@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-from collections.abc import AsyncIterator, Sequence
+from collections.abc import AsyncIterator, Collection, Sequence
 from datetime import datetime, timedelta, timezone
 from itertools import takewhile
 from types import SimpleNamespace
@@ -24,9 +24,7 @@ from ..resolvers import BaseResolver, PkgCandidate
 from ..results import AnyResult, PkgNonexistent, aresultify
 from ..wow_installations import Flavour, FlavourVersionRange
 
-_lock_prefix = object()
-
-_LOAD_WOWI_CATALOGUE_LOCK = '_LOAD_WOWI_CATALOGUE_LOCK_'
+_LOAD_WOWI_CATALOGUE_LOCK = (object(), '_LOAD_WOWI_CATALOGUE_LOCK_')
 
 
 class _WowiCommonTerms(TypedDict):
@@ -118,8 +116,8 @@ class WowiResolver(BaseResolver):
                 match = re.match(r'^(?:download|info)(?P<id>\d+)', url.name)
                 return match and match['id']
 
-    async def __synchronise(self):
-        async with shared_ctx.locks[_lock_prefix, _LOAD_WOWI_CATALOGUE_LOCK]:
+    async def __get_addons(self):
+        async with shared_ctx.locks[_LOAD_WOWI_CATALOGUE_LOCK]:
             async with shared_ctx.web_client.get(
                 self.__list_api_url,
                 expire_after=timedelta(hours=1),
@@ -127,39 +125,46 @@ class WowiResolver(BaseResolver):
                 trace_request_ctx=SimpleNamespace(
                     progress=make_default_progress(
                         type_='download',
-                        label=f'Synchronising {self.metadata.name} catalogue',
+                        label=f'Fetching {self.metadata.name} catalogue',
                     )
                 ),
             ) as response:
-                list_items_by_id: dict[str, _WowiListApiItem] = {
-                    i['UID']: i for i in await response.json()
-                }
-                return list_items_by_id
+                return {i['UID']: i for i in await response.json()}
 
-    async def resolve(self, defns: Sequence[Defn]) -> dict[Defn, AnyResult[pkg_models.Pkg]]:
-        list_items_by_id = await self.__synchronise()
-
-        defns_to_ids = {d: ''.join(takewhile(str.isdigit, d.alias)) for d in defns}
+    async def __get_addons_details(self, ids: Collection[str]):
         async with shared_ctx.web_client.get(
-            (
-                self.__details_api_url
-                / f'{",".join(uniq(i for i in defns_to_ids.values() if i))}.json'
-            ),
+            (self.__details_api_url / f'{",".join(uniq(i for i in ids if i))}.json'),
             expire_after=timedelta(minutes=5),
+            trace_request_ctx=SimpleNamespace(
+                progress=make_default_progress(
+                    type_='download',
+                    label=f'Fetching {self.metadata.name} add-on details',
+                )
+            ),
         ) as response:
             if response.status == 404:
-                return await super().resolve(defns)
+                return None
 
             response.raise_for_status()
 
-            details_items_by_id: dict[str, _WowiDetailsApiItem] = {
-                i['UID']: i for i in await response.json()
-            }
+            return {i['UID']: i for i in await response.json()}
+
+    async def resolve(self, defns: Sequence[Defn]) -> dict[Defn, AnyResult[pkg_models.Pkg]]:
+        defns_to_ids = {d: ''.join(takewhile(str.isdigit, d.alias)) for d in defns}
+
+        addons = await self.__get_addons()
+        addons_details = await self.__get_addons_details(defns_to_ids.values())
+        if addons_details is None:
+            return await super().resolve(defns)
 
         results = await gather(
-            aresultify(self.resolve_one(d, {**a, **b} if a and b else None))
+            aresultify(
+                self.resolve_one(
+                    d,
+                    a | b if (a := addons.get(i)) and (b := addons_details.get(i)) else None,
+                )
+            )
             for d, i in defns_to_ids.items()
-            for a, b in ((list_items_by_id.get(i), details_items_by_id.get(i)),)
         )
         return dict(zip(defns, results))
 
