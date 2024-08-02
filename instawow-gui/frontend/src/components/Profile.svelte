@@ -1,7 +1,7 @@
 <script context="module" lang="ts">
   import * as commonmark from "commonmark";
   import ld from "lodash-es";
-  import type { ComponentProps } from "svelte";
+  import type { ComponentProps, Snippet } from "svelte";
   import { getContext, onMount, setContext } from "svelte";
   import { flip } from "svelte/animate";
   import { isSameAddon } from "../addon";
@@ -616,7 +616,7 @@
 
 <svelte:window ontogaSimulateKeypress={handleKeypress} />
 
-{#snippet profileNav(navMiddle, navEnd)}
+{#snippet profileNav(navMiddle?: Snippet, navEnd?: Snippet)}
   <div class="profile-nav-wrapper">
     <nav class="profile-nav">
       <div>
