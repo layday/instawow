@@ -3,6 +3,7 @@ from __future__ import annotations
 import datetime as dt
 import json
 from functools import lru_cache
+from types import SimpleNamespace
 
 from .. import shared_ctx
 from .._logging import logger
@@ -35,11 +36,9 @@ async def synchronise() -> cataloguer.ComputedCatalogue:
             _base_catalogue_url,
             expire_after=_catalogue_ttl,
             raise_for_status=True,
-            trace_request_ctx={
-                'progress': make_default_progress(
-                    type_='download', label='Synchronising catalogue'
-                )
-            },
+            trace_request_ctx=SimpleNamespace(
+                progress=make_default_progress(type_='download', label='Synchronising catalogue')
+            ),
         ) as response,
     ):
         raw_catalogue = await response.read()

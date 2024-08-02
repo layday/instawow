@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from shutil import move
 from tempfile import NamedTemporaryFile
+from types import SimpleNamespace
 from typing import Literal
 
 from .. import http, shared_ctx
@@ -50,8 +51,8 @@ async def download_pkg_archive(
         headers = config_ctx.resolvers[defn.source].make_request_headers(
             intent=HeadersIntent.Download
         )
-        trace_request_ctx = {
-            'progress': PkgDownloadProgress(
+        trace_request_ctx = SimpleNamespace(
+            progress=PkgDownloadProgress(
                 type_='pkg_download',
                 unit='bytes',
                 current=0,
@@ -59,7 +60,7 @@ async def download_pkg_archive(
                 profile=config_ctx.config.profile,
                 defn=defn,
             )
-        }
+        )
 
         async with (
             shared_ctx.web_client.get(

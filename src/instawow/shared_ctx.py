@@ -75,7 +75,7 @@ class ConfigBoundCtx(AbstractContextManager['ConfigBoundCtx']):
 
 if TYPE_CHECKING:
     locks: Locks
-    web_client: http.ClientSession
+    web_client: http.CachedSession
 else:
 
     def __getattr__(name: str):

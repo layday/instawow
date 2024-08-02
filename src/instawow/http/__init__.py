@@ -1,13 +1,17 @@
 from __future__ import annotations
 
 from collections.abc import AsyncIterator
-from contextlib import AsyncExitStack, asynccontextmanager
+from contextlib import AbstractAsyncContextManager, AsyncExitStack, asynccontextmanager
 from pathlib import Path
-from typing import Any, TypeAlias
+from typing import Any, TypeAlias, overload
 
 import aiohttp
+import aiohttp_client_cache
+import aiohttp_client_cache.session
 
 ClientSession: TypeAlias = aiohttp.ClientSession
+CachedSession: TypeAlias = aiohttp_client_cache.session.CachedSession
+
 
 _USER_AGENT = 'instawow (+https://github.com/layday/instawow)'
 
@@ -33,7 +37,7 @@ async def _setup_progress_tracker():
         /,
     ):
         progress = (
-            trace_config_ctx.trace_request_ctx and trace_config_ctx.trace_request_ctx['progress']
+            trace_config_ctx.trace_request_ctx and trace_config_ctx.trace_request_ctx.progress
         )
         if progress:
 
@@ -73,6 +77,16 @@ async def _setup_progress_tracker():
         await cancel_tasks(progress_tickers)
 
 
+@overload
+def init_web_client(
+    cache_dir: None, *, no_cache: bool = False, with_progress: bool = False, **kwargs: Any
+) -> AbstractAsyncContextManager[ClientSession]: ...
+@overload
+def init_web_client(
+    cache_dir: Path, *, no_cache: bool = False, with_progress: bool = False, **kwargs: Any
+) -> AbstractAsyncContextManager[CachedSession]: ...
+
+
 @asynccontextmanager
 async def init_web_client(
     cache_dir: Path | None, *, no_cache: bool = False, with_progress: bool = False, **kwargs: Any
@@ -99,12 +113,9 @@ async def init_web_client(
             kwargs['trace_configs'] = [*kwargs.get('trace_configs', []), progress_trace_config]
 
         if cache_dir is not None:
-            from aiohttp_client_cache import CacheBackend
-            from aiohttp_client_cache.session import CachedSession
-
             from ._cache import make_cache
 
-            cache_backend = CacheBackend(
+            cache_backend = aiohttp_client_cache.CacheBackend(
                 allowed_codes=(200, 206),
                 allowed_methods=('GET', 'POST'),
                 expire_after=_DEFAULT_EXPIRE,
@@ -117,7 +128,7 @@ async def init_web_client(
                 cache_backend.disabled = True
 
             client_session = await async_exit_stack.enter_async_context(
-                CachedSession(cache=cache_backend, **kwargs)
+                aiohttp_client_cache.session.CachedSession(cache=cache_backend, **kwargs)
             )
             yield client_session
 

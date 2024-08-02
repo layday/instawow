@@ -4,6 +4,7 @@ import re
 from collections.abc import AsyncIterator, Sequence
 from datetime import datetime, timedelta, timezone
 from itertools import takewhile
+from types import SimpleNamespace
 from typing import Literal
 
 from typing_extensions import NotRequired as N
@@ -123,12 +124,12 @@ class WowiResolver(BaseResolver):
                 self.__list_api_url,
                 expire_after=timedelta(hours=1),
                 raise_for_status=True,
-                trace_request_ctx={
-                    'progress': make_default_progress(
+                trace_request_ctx=SimpleNamespace(
+                    progress=make_default_progress(
                         type_='download',
                         label=f'Synchronising {self.metadata.name} catalogue',
                     )
-                },
+                ),
             ) as response:
                 list_items_by_id: dict[str, _WowiListApiItem] = {
                     i['UID']: i for i in await response.json()
