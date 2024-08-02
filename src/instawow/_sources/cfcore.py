@@ -14,7 +14,6 @@ from typing_extensions import TypedDict
 from yarl import URL
 
 from .. import http, pkg_models, shared_ctx
-from .. import results as R
 from .._logging import logger
 from .._progress_reporting import make_default_progress
 from .._utils.aio import gather
@@ -24,6 +23,7 @@ from ..catalogue.cataloguer import CatalogueEntry
 from ..config import GlobalConfig
 from ..definitions import ChangelogFormat, Defn, SourceMetadata, Strategy
 from ..resolvers import BaseResolver, HeadersIntent, PkgCandidate
+from ..results import AnyResult, PkgFilesMissing, PkgFilesNotMatching, PkgNonexistent, aresultify
 from ..wow_installations import Flavour
 from ._access_tokens import AccessToken
 
@@ -279,9 +279,7 @@ class CfCoreResolver(BaseResolver):
             if maybe_access_token:
                 return {'x-api-key': maybe_access_token}
 
-    async def resolve(
-        self, defns: Sequence[Defn]
-    ) -> dict[Defn, pkg_models.Pkg | R.ManagerError | R.InternalError]:
+    async def resolve(self, defns: Sequence[Defn]) -> dict[Defn, AnyResult[pkg_models.Pkg]]:
         numeric_ids = uniq(i for d in defns if (i := d.id or d.alias).isdigit())
         if not numeric_ids:
             return await super().resolve(defns)  # Fast path.
@@ -298,8 +296,7 @@ class CfCoreResolver(BaseResolver):
         addons_by_id = {str(r['id']): r for r in response_json['data']}
 
         results = await gather(
-            R.resultify_async_exc(self.resolve_one(d, addons_by_id.get(d.id or d.alias)))
-            for d in defns
+            aresultify(self.resolve_one(d, addons_by_id.get(d.id or d.alias))) for d in defns
         )
         return dict(zip(defns, results))
 
@@ -312,7 +309,7 @@ class CfCoreResolver(BaseResolver):
                     headers=self.make_request_headers(),
                 ) as mod_response:
                     if mod_response.status == 404:
-                        raise R.PkgNonexistent
+                        raise PkgNonexistent
 
                     mod_response.raise_for_status()
 
@@ -332,7 +329,7 @@ class CfCoreResolver(BaseResolver):
                         list[_CfCoreMod]
                     ] = await mod_response.json()
                     if not mod_response_json['data']:
-                        raise R.PkgNonexistent
+                        raise PkgNonexistent
 
                     [metadata] = mod_response_json['data']
 
@@ -370,7 +367,7 @@ class CfCoreResolver(BaseResolver):
             files = metadata['latestFiles']
 
         if not files:
-            raise R.PkgFilesMissing
+            raise PkgFilesMissing
 
         # Allow pre-releases only if no stable releases exist or explicitly opted into.
         any_release_type = True
@@ -413,13 +410,13 @@ class CfCoreResolver(BaseResolver):
             break
 
         else:
-            raise R.PkgFilesNotMatching(defn.strategies)
+            raise PkgFilesNotMatching(defn.strategies)
 
         if file['downloadUrl'] is None:
             raise (
-                R.PkgFilesMissing('package distribution is forbidden')
+                PkgFilesMissing('package distribution is forbidden')
                 if metadata['allowModDistribution'] is False
-                else R.PkgFilesMissing
+                else PkgFilesMissing
             )
 
         return PkgCandidate(

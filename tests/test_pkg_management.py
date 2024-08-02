@@ -8,9 +8,22 @@ import attrs
 import pytest
 
 from instawow import pkg_management
-from instawow import results as R
 from instawow.definitions import Defn, Strategy
 from instawow.pkg_models import Pkg
+from instawow.results import (
+    InternalError,
+    PkgAlreadyInstalled,
+    PkgConflictsWithInstalled,
+    PkgConflictsWithUnreconciled,
+    PkgInstalled,
+    PkgNonexistent,
+    PkgNotInstalled,
+    PkgRemoved,
+    PkgSourceInvalid,
+    PkgStrategiesUnsupported,
+    PkgUpdated,
+    PkgUpToDate,
+)
 from instawow.shared_ctx import ConfigBoundCtx
 
 from .fixtures.http import Route
@@ -23,11 +36,11 @@ async def test_pinning_supported_pkg(iw_config_ctx: ConfigBoundCtx):
     install_result = (await pkg_management.install(iw_config_ctx, [defn], replace_folders=False))[
         defn
     ]
-    assert type(install_result) is R.PkgInstalled
+    assert type(install_result) is PkgInstalled
 
     for new_defn in (defn.with_version(install_result.pkg.version), defn):
         pin_result = (await pkg_management.pin(iw_config_ctx, [new_defn]))[new_defn]
-        assert type(pin_result) is R.PkgInstalled
+        assert type(pin_result) is PkgInstalled
         assert pin_result.pkg.options.version_eq is bool(new_defn.strategies[Strategy.VersionEq])
         assert install_result.pkg.version == pin_result.pkg.version
 
@@ -42,7 +55,7 @@ async def test_pinning_unsupported_pkg(iw_config_ctx: ConfigBoundCtx):
     assert installed_pkg.options.version_eq is False
 
     result = (await pkg_management.pin(iw_config_ctx, [molinari_defn]))[molinari_defn]
-    assert type(result) is R.PkgStrategiesUnsupported
+    assert type(result) is PkgStrategiesUnsupported
     assert result.strategies == {Strategy.VersionEq}
     assert installed_pkg.options.version_eq is False
 
@@ -50,13 +63,13 @@ async def test_pinning_unsupported_pkg(iw_config_ctx: ConfigBoundCtx):
 async def test_pinning_nonexistent_pkg(iw_config_ctx: ConfigBoundCtx):
     molinari_defn = Defn('curse', 'molinari')
     result = await pkg_management.pin(iw_config_ctx, [molinari_defn])
-    assert type(result[molinari_defn]) is R.PkgNotInstalled
+    assert type(result[molinari_defn]) is PkgNotInstalled
 
 
 async def test_pinning_unsupported_nonexistent_pkg(iw_config_ctx: ConfigBoundCtx):
     molinari_defn = Defn('wowi', '13188')
     result = await pkg_management.pin(iw_config_ctx, [molinari_defn])
-    assert type(result[molinari_defn]) is R.PkgStrategiesUnsupported
+    assert type(result[molinari_defn]) is PkgStrategiesUnsupported
 
 
 @pytest.mark.parametrize('exception', [ValueError('foo'), aiohttp.ClientError('bar')])
@@ -73,7 +86,7 @@ async def test_resolve_rewraps_exception_appropriately_from_resolve(
 
     defn = Defn('curse', 'molinari')
     result = (await pkg_management.resolve(iw_config_ctx, [defn]))[defn]
-    assert type(result) is R.InternalError
+    assert type(result) is InternalError
     assert result.message == f'internal error: "{exception}"'
 
 
@@ -81,7 +94,7 @@ async def test_resolve_rewraps_exception_appropriately_from_resolve(
 async def test_resolve_invalid_source(iw_config_ctx: ConfigBoundCtx):
     defn = Defn('bar', 'baz')
     results = await pkg_management.resolve(iw_config_ctx, [defn])
-    assert type(results[defn]) is R.PkgSourceInvalid
+    assert type(results[defn]) is PkgSourceInvalid
 
 
 @pytest.mark.usefixtures('_iw_web_client_ctx')
@@ -102,11 +115,11 @@ async def test_install_can_replace_unreconciled_folders(
     defn = Defn('curse', 'molinari')
 
     result = await pkg_management.install(iw_config_ctx, [defn], replace_folders=False)
-    assert type(result[defn]) is R.PkgConflictsWithUnreconciled
+    assert type(result[defn]) is PkgConflictsWithUnreconciled
     assert not any(molinari.iterdir())
 
     result = await pkg_management.install(iw_config_ctx, [defn], replace_folders=True)
-    assert type(result[defn]) is R.PkgInstalled
+    assert type(result[defn]) is PkgInstalled
     assert any(molinari.iterdir())
 
 
@@ -116,13 +129,13 @@ async def test_install_cannot_replace_reconciled_folders(iw_config_ctx: ConfigBo
     wowi_defn = Defn('wowi', '13188-molinari')
 
     result = await pkg_management.install(iw_config_ctx, [curse_defn], replace_folders=False)
-    assert type(result[curse_defn]) is R.PkgInstalled
+    assert type(result[curse_defn]) is PkgInstalled
 
     result = await pkg_management.install(iw_config_ctx, [wowi_defn], replace_folders=False)
-    assert type(result[wowi_defn]) is R.PkgConflictsWithInstalled
+    assert type(result[wowi_defn]) is PkgConflictsWithInstalled
 
     result = await pkg_management.install(iw_config_ctx, [wowi_defn], replace_folders=True)
-    assert type(result[wowi_defn]) is R.PkgConflictsWithInstalled
+    assert type(result[wowi_defn]) is PkgConflictsWithInstalled
 
 
 @pytest.mark.usefixtures('_iw_web_client_ctx')
@@ -142,13 +155,13 @@ async def test_install_recognises_renamed_pkg_from_id(
     new_defn = Defn('github', 'p3lim-wow/molinarifico')
 
     result = await pkg_management.install(iw_config_ctx, [old_defn], replace_folders=False)
-    assert type(result[old_defn]) is R.PkgInstalled
+    assert type(result[old_defn]) is PkgInstalled
 
     result = await pkg_management.install(iw_config_ctx, [old_defn], replace_folders=False)
-    assert type(result[old_defn]) is R.PkgAlreadyInstalled
+    assert type(result[old_defn]) is PkgAlreadyInstalled
 
     result = await pkg_management.install(iw_config_ctx, [new_defn], replace_folders=False)
-    assert type(result[new_defn]) is R.PkgNonexistent
+    assert type(result[new_defn]) is PkgNonexistent
 
     async def resolve(config_ctx, defns, with_deps=False):
         result = await orig_resolve(config_ctx, [old_defn])
@@ -159,7 +172,7 @@ async def test_install_recognises_renamed_pkg_from_id(
     monkeypatch.setattr(pkg_management, 'resolve', resolve)
 
     result = await pkg_management.install(iw_config_ctx, [new_defn], replace_folders=False)
-    assert type(result[new_defn]) is R.PkgAlreadyInstalled
+    assert type(result[new_defn]) is PkgAlreadyInstalled
 
 
 @pytest.mark.usefixtures('_iw_web_client_ctx')
@@ -168,18 +181,18 @@ async def test_update_lifecycle_with_strategy_switch(iw_config_ctx: ConfigBoundC
     versioned_defn = defn.with_version('100005.97-Release')
 
     result = (await pkg_management.install(iw_config_ctx, [defn], replace_folders=False))[defn]
-    assert type(result) is R.PkgInstalled
+    assert type(result) is PkgInstalled
 
     result = (await pkg_management.update(iw_config_ctx, [defn]))[defn]
-    assert type(result) is R.PkgUpToDate
+    assert type(result) is PkgUpToDate
     assert result.is_pinned is False
 
     result = (await pkg_management.update(iw_config_ctx, [versioned_defn]))[versioned_defn]
-    assert type(result) is R.PkgUpdated
+    assert type(result) is PkgUpdated
     assert result.new_pkg.options.version_eq is True
 
     result = (await pkg_management.update(iw_config_ctx, [defn]))[defn]
-    assert type(result) is R.PkgUpToDate
+    assert type(result) is PkgUpToDate
     assert result.is_pinned is True
 
 
@@ -192,7 +205,7 @@ async def test_update_reinstalls_corrupted_pkgs(
     results = await pkg_management.install(iw_config_ctx, [defn], replace_folders=False)
 
     result = results[defn]
-    assert type(result) is R.PkgInstalled
+    assert type(result) is PkgInstalled
 
     folders = [iw_config_ctx.config.addon_dir / f.name for f in result.pkg.folders]
 
@@ -201,7 +214,7 @@ async def test_update_reinstalls_corrupted_pkgs(
     assert not all(f.is_dir() for f in folders)
 
     results = await pkg_management.update(iw_config_ctx, [defn])
-    assert type(results[defn]) is R.PkgUpdated
+    assert type(results[defn]) is PkgUpdated
     assert all(f.is_dir() for f in folders)
 
 
@@ -221,7 +234,7 @@ async def test_deleting_and_retaining_folders_on_remove(
     assert all(f.is_dir() for f in folders)
 
     results = await pkg_management.remove(iw_config_ctx, [defn], keep_folders=keep_folders)
-    assert type(results[defn]) is R.PkgRemoved
+    assert type(results[defn]) is PkgRemoved
     assert not pkg_management.get_pkg(iw_config_ctx, defn)
     if keep_folders:
         assert all(f.is_dir() for f in folders)
@@ -240,7 +253,7 @@ async def test_removing_pkg_with_missing_folders(
     results = await pkg_management.install(iw_config_ctx, [defn], replace_folders=False)
 
     result = results[defn]
-    assert type(result) is R.PkgInstalled
+    assert type(result) is PkgInstalled
 
     folders = [iw_config_ctx.config.addon_dir / f.name for f in result.pkg.folders]
     for folder in folders:
@@ -248,7 +261,7 @@ async def test_removing_pkg_with_missing_folders(
     assert not any(f.is_dir() for f in folders)
 
     results = await pkg_management.remove(iw_config_ctx, [defn], keep_folders=keep_folders)
-    assert type(results[defn]) is R.PkgRemoved
+    assert type(results[defn]) is PkgRemoved
     assert not pkg_management.get_pkg(iw_config_ctx, defn)
 
 
@@ -260,12 +273,12 @@ async def test_replace_pkg(
     new_defn = Defn('github', 'p3lim-wow/molinari')
 
     results = await pkg_management.install(iw_config_ctx, [old_defn], replace_folders=False)
-    assert type(results[old_defn]) is R.PkgInstalled
+    assert type(results[old_defn]) is PkgInstalled
 
     results = await pkg_management.replace(iw_config_ctx, {old_defn: new_defn})
     assert len(results) == 2
-    assert type(results[old_defn]) is R.PkgRemoved
-    assert type(results[new_defn]) is R.PkgInstalled
+    assert type(results[old_defn]) is PkgRemoved
+    assert type(results[new_defn]) is PkgInstalled
 
 
 async def test_get_changelog_from_empty_data_url(iw_config_ctx: ConfigBoundCtx):

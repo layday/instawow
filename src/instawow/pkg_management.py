@@ -11,7 +11,6 @@ from typing_extensions import Never, ParamSpec
 from yarl import URL
 
 from . import pkg_models, shared_ctx
-from . import results as R
 from ._progress_reporting import make_incrementing_progress_tracker
 from ._utils.aio import gather, run_in_thread
 from ._utils.file import trash
@@ -19,6 +18,23 @@ from ._utils.iteration import bucketise, uniq
 from .definitions import Defn, Strategy
 from .pkg_archives._download import download_pkg_archive
 from .pkg_db import _ops as pkg_db_ops
+from .results import (
+    AnyResult,
+    InternalError,
+    ManagerError,
+    PkgAlreadyInstalled,
+    PkgConflictsWithInstalled,
+    PkgConflictsWithUnreconciled,
+    PkgFilesNotMatching,
+    PkgInstalled,
+    PkgNotInstalled,
+    PkgRemoved,
+    PkgSourceInvalid,
+    PkgStrategiesUnsupported,
+    PkgUpdated,
+    PkgUpToDate,
+    aresultify,
+)
 
 _T = TypeVar('_T')
 _P = ParamSpec('_P')
@@ -27,13 +43,13 @@ _MUTATE_PKGS_LOCK = '_MUTATE_PKGS_'
 
 
 def bucketise_results(
-    values: Iterable[tuple[Defn, R.AnyResult[_T]]],
+    values: Iterable[tuple[Defn, AnyResult[_T]]],
 ):
     ts: dict[Defn, _T] = {}
-    errors: dict[Defn, R.AnyResult[Never]] = {}
+    errors: dict[Defn, AnyResult[Never]] = {}
 
     for defn, value in values:
-        if isinstance(value, R.ManagerError | R.InternalError):
+        if isinstance(value, ManagerError | InternalError):
             errors[defn] = value
         else:
             ts[defn] = value
@@ -198,8 +214,8 @@ async def find_equivalent_pkg_defns(
 
 
 async def _resolve_deps(
-    config_ctx: shared_ctx.ConfigBoundCtx, results: Collection[R.AnyResult[pkg_models.Pkg]]
-) -> Mapping[Defn, R.AnyResult[pkg_models.Pkg]]:
+    config_ctx: shared_ctx.ConfigBoundCtx, results: Collection[AnyResult[pkg_models.Pkg]]
+) -> Mapping[Defn, AnyResult[pkg_models.Pkg]]:
     """Resolve package dependencies.
 
     The resolver will not follow dependencies
@@ -227,7 +243,7 @@ async def _resolve_deps(
 
 async def resolve(
     config_ctx: shared_ctx.ConfigBoundCtx, defns: Collection[Defn], with_deps: bool = False
-) -> Mapping[Defn, R.AnyResult[pkg_models.Pkg]]:
+) -> Mapping[Defn, AnyResult[pkg_models.Pkg]]:
     "Resolve definitions into packages."
     if not defns:
         return {}
@@ -237,12 +253,12 @@ async def resolve(
     track_progress = make_incrementing_progress_tracker(len(defns_by_source), 'Resolving add-ons')
 
     results = await gather(
-        track_progress(R.resultify_async_exc(config_ctx.resolvers.get_or_dummy(s).resolve(b)))
+        track_progress(aresultify(config_ctx.resolvers.get_or_dummy(s).resolve(b)))
         for s, b in defns_by_source.items()
     )
     results_by_defn = dict(
         chain(
-            zip(defns, repeat(R.ManagerError())),
+            zip(defns, repeat(ManagerError())),
             *(
                 r.items() if isinstance(r, dict) else zip(d, repeat(r))
                 for d, r in zip(defns_by_source.values(), results)
@@ -285,7 +301,7 @@ def _install_pkg(
             tuple(top_level_folders),
         ).fetchall()
         if installed_conflicts:
-            raise R.PkgConflictsWithInstalled(installed_conflicts)
+            raise PkgConflictsWithInstalled(installed_conflicts)
 
         if replace_folders:
             trash(
@@ -298,7 +314,7 @@ def _install_pkg(
                 f.name for f in config_ctx.config.addon_dir.iterdir()
             }
             if unreconciled_conflicts:
-                raise R.PkgConflictsWithUnreconciled(unreconciled_conflicts)
+                raise PkgConflictsWithUnreconciled(unreconciled_conflicts)
 
         extract(config_ctx.config.addon_dir)
 
@@ -308,7 +324,7 @@ def _install_pkg(
         with config_ctx.database.transact(connection) as transaction:
             pkg_db_ops.insert_pkg(pkg, transaction)
 
-    return R.PkgInstalled(pkg)
+    return PkgInstalled(pkg)
 
 
 @run_in_thread
@@ -336,13 +352,13 @@ def _update_pkg(
             (new_pkg.source, new_pkg.id, *top_level_folders),
         ).fetchall()
         if installed_conflicts:
-            raise R.PkgConflictsWithInstalled(installed_conflicts)
+            raise PkgConflictsWithInstalled(installed_conflicts)
 
         unreconciled_conflicts = top_level_folders - {f.name for f in old_pkg.folders} & {
             f.name for f in config_ctx.config.addon_dir.iterdir()
         }
         if unreconciled_conflicts:
-            raise R.PkgConflictsWithUnreconciled(unreconciled_conflicts)
+            raise PkgConflictsWithUnreconciled(unreconciled_conflicts)
 
         trash(
             (config_ctx.config.addon_dir / f.name for f in old_pkg.folders),
@@ -358,7 +374,7 @@ def _update_pkg(
             pkg_db_ops.delete_pkg(old_pkg, transaction)
             pkg_db_ops.insert_pkg(new_pkg, transaction)
 
-    return R.PkgUpdated(old_pkg, new_pkg)
+    return PkgUpdated(old_pkg, new_pkg)
 
 
 @run_in_thread
@@ -376,7 +392,7 @@ def _remove_pkg(config_ctx: shared_ctx.ConfigBoundCtx, pkg: pkg_models.Pkg, *, k
     ):
         pkg_db_ops.delete_pkg(pkg, transaction)
 
-    return R.PkgRemoved(pkg)
+    return PkgRemoved(pkg)
 
 
 @run_in_thread
@@ -391,7 +407,7 @@ async def install(
     *,
     replace_folders: bool,
     dry_run: bool = False,
-) -> Mapping[Defn, R.AnyResult[R.PkgInstalled]]:
+) -> Mapping[Defn, AnyResult[PkgInstalled]]:
     "Install packages from a definition list."
 
     # We'll weed out installed deps from the results after resolving -
@@ -407,13 +423,13 @@ async def install(
         )
     )
 
-    results = dict.fromkeys(defns, R.PkgAlreadyInstalled()) | resolve_errors
+    results = dict.fromkeys(defns, PkgAlreadyInstalled()) | resolve_errors
 
     if dry_run:
-        return results | {d: R.PkgInstalled(p, dry_run=True) for d, p in new_pkgs.items()}
+        return results | {d: PkgInstalled(p, dry_run=True) for d, p in new_pkgs.items()}
 
     download_results = await gather(
-        R.resultify_async_exc(download_pkg_archive(config_ctx, d, r.download_url))
+        aresultify(download_pkg_archive(config_ctx, d, r.download_url))
         for d, r in new_pkgs.items()
     )
     archive_paths, download_errors = bucketise_results(zip(new_pkgs, download_results))
@@ -425,7 +441,7 @@ async def install(
         | download_errors
         | {
             d: await track_progress(
-                R.resultify_async_exc(
+                aresultify(
                     _install_pkg(config_ctx, new_pkgs[d], a, replace_folders=replace_folders)
                 )
             )
@@ -437,7 +453,7 @@ async def install(
 @_with_lock(_MUTATE_PKGS_LOCK)
 async def replace(
     config_ctx: shared_ctx.ConfigBoundCtx, defns: Mapping[Defn, Defn]
-) -> Mapping[Defn, R.AnyResult[R.PkgInstalled | R.PkgRemoved]]:
+) -> Mapping[Defn, AnyResult[PkgInstalled | PkgRemoved]]:
     "Replace installed packages with re-reconciled packages."
 
     inverse_defns = {v: k for k, v in defns.items()}
@@ -461,7 +477,7 @@ async def replace(
     results = dict(
         chain.from_iterable(
             zip(
-                ((d, R.PkgNotInstalled()) for d in defns),
+                ((d, PkgNotInstalled()) for d in defns),
                 ((d, None) for d in defns.values()),
                 strict=True,
             )
@@ -470,13 +486,13 @@ async def replace(
     results = results | resolve_errors
 
     download_results = await gather(
-        R.resultify_async_exc(download_pkg_archive(config_ctx, d, r.download_url))
+        aresultify(download_pkg_archive(config_ctx, d, r.download_url))
         for d, r in new_pkgs.items()
     )
     archive_paths, download_errors = bucketise_results(zip(new_pkgs, download_results))
 
     replace_coros = {
-        k: R.resultify_async_exc(c)
+        k: aresultify(c)
         for d, a in archive_paths.items()
         for o in (inverse_defns[d],)
         for k, c in (
@@ -499,7 +515,7 @@ async def update(
     defns: Sequence[Defn] | Literal['all'],
     *,
     dry_run: bool = False,
-) -> Mapping[Defn, R.AnyResult[R.PkgInstalled | R.PkgUpdated]]:
+) -> Mapping[Defn, AnyResult[PkgInstalled | PkgUpdated]]:
     "Update installed packages from a definition list."
 
     if defns == 'all':
@@ -537,22 +553,22 @@ async def update(
     }
 
     results = (
-        dict.fromkeys(defns, R.PkgNotInstalled())
+        dict.fromkeys(defns, PkgNotInstalled())
         | resolve_errors
         | {
-            d: R.PkgUpToDate(is_pinned=pkgs[d].options.version_eq)
+            d: PkgUpToDate(is_pinned=pkgs[d].options.version_eq)
             for d in pkgs.keys() - updatables.keys()
         }
     )
 
     if dry_run:
         return results | {
-            d: R.PkgUpdated(o, n, dry_run=True) if o else R.PkgInstalled(n, dry_run=True)
+            d: PkgUpdated(o, n, dry_run=True) if o else PkgInstalled(n, dry_run=True)
             for d, (o, n) in updatables.items()
         }
 
     download_results = await gather(
-        R.resultify_async_exc(download_pkg_archive(config_ctx, d, n.download_url))
+        aresultify(download_pkg_archive(config_ctx, d, n.download_url))
         for d, (_, n) in updatables.items()
     )
     archive_paths, download_errors = bucketise_results(zip(updatables, download_results))
@@ -564,7 +580,7 @@ async def update(
         | download_errors
         | {
             d: await track_progress(
-                R.resultify_async_exc(
+                aresultify(
                     _update_pkg(config_ctx, o, n, a)
                     if o
                     else _install_pkg(config_ctx, n, a, replace_folders=False)
@@ -579,13 +595,13 @@ async def update(
 @_with_lock(_MUTATE_PKGS_LOCK)
 async def remove(
     config_ctx: shared_ctx.ConfigBoundCtx, defns: Sequence[Defn], *, keep_folders: bool
-) -> Mapping[Defn, R.AnyResult[R.PkgRemoved]]:
+) -> Mapping[Defn, AnyResult[PkgRemoved]]:
     "Remove packages by their definition."
     return {
         d: (
-            await R.resultify_async_exc(_remove_pkg(config_ctx, p, keep_folders=keep_folders))
+            await aresultify(_remove_pkg(config_ctx, p, keep_folders=keep_folders))
             if p
-            else R.PkgNotInstalled()
+            else PkgNotInstalled()
         )
         for d, p in zip(defns, get_pkgs(config_ctx, defns))
     }
@@ -594,7 +610,7 @@ async def remove(
 @_with_lock(_MUTATE_PKGS_LOCK)
 async def pin(
     config_ctx: shared_ctx.ConfigBoundCtx, defns: Sequence[Defn]
-) -> Mapping[Defn, R.AnyResult[R.PkgInstalled]]:
+) -> Mapping[Defn, AnyResult[PkgInstalled]]:
     """Pin and unpin installed packages.
 
     instawow does not have true pinning.  This flips ``Strategy.VersionEq``
@@ -603,19 +619,19 @@ async def pin(
     had been reinstalled with the ``VersionEq`` strategy.
     """
 
-    async def pin(defn: Defn, pkg: pkg_models.Pkg | None) -> R.PkgInstalled:
+    async def pin(defn: Defn, pkg: pkg_models.Pkg | None) -> PkgInstalled:
         resolver = config_ctx.resolvers.get(defn.source)
         if resolver is None:
-            raise R.PkgSourceInvalid
+            raise PkgSourceInvalid
         elif Strategy.VersionEq not in resolver.metadata.strategies:
-            raise R.PkgStrategiesUnsupported({Strategy.VersionEq})
+            raise PkgStrategiesUnsupported({Strategy.VersionEq})
 
         if not pkg:
-            raise R.PkgNotInstalled
+            raise PkgNotInstalled
 
         version = defn.strategies[Strategy.VersionEq]
         if version and pkg.version != version:
-            R.PkgFilesNotMatching(defn.strategies)
+            PkgFilesNotMatching(defn.strategies)
 
         version_eq = version is not None
 
@@ -636,11 +652,8 @@ async def pin(
                 },
             )
 
-        return R.PkgInstalled(
+        return PkgInstalled(
             attrs.evolve(pkg, options=attrs.evolve(pkg.options, version_eq=version_eq)),
         )
 
-    return {
-        d: await R.resultify_async_exc(pin(d, p))
-        for d, p in zip(defns, get_pkgs(config_ctx, defns))
-    }
+    return {d: await aresultify(pin(d, p)) for d, p in zip(defns, get_pkgs(config_ctx, defns))}

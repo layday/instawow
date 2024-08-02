@@ -14,12 +14,11 @@ from . import config, pkg_archives, pkg_models
 from .catalogue import cataloguer
 from .definitions import Defn, SourceMetadata
 from .results import (
-    InternalError,
-    ManagerError,
+    AnyResult,
     PkgSourceDisabled,
     PkgSourceInvalid,
     PkgStrategiesUnsupported,
-    resultify_async_exc,
+    aresultify,
 )
 
 
@@ -45,9 +44,7 @@ class Resolver(Protocol):  # pragma: no cover
         "Create headers for resolver HTTP requests."
         ...
 
-    async def resolve(
-        self, defns: Sequence[Defn]
-    ) -> dict[Defn, pkg_models.Pkg | ManagerError | InternalError]:
+    async def resolve(self, defns: Sequence[Defn]) -> dict[Defn, AnyResult[pkg_models.Pkg]]:
         "Resolve multiple ``Defn``s into packages."
         ...
 
@@ -102,9 +99,7 @@ class BaseResolver(Resolver, Protocol):
     def make_request_headers(self, intent: HeadersIntent | None = None) -> dict[str, str] | None:
         return None
 
-    async def resolve(
-        self, defns: Sequence[Defn]
-    ) -> dict[Defn, pkg_models.Pkg | ManagerError | InternalError]:
+    async def resolve(self, defns: Sequence[Defn]) -> dict[Defn, AnyResult[pkg_models.Pkg]]:
         from ._progress_reporting import make_incrementing_progress_tracker
         from ._utils.aio import gather
 
@@ -112,7 +107,7 @@ class BaseResolver(Resolver, Protocol):
             len(defns), f'Resolving add-ons: {self.metadata.name}'
         )
         results = await gather(
-            track_progress(resultify_async_exc(self.resolve_one(d, None))) for d in defns
+            track_progress(aresultify(self.resolve_one(d, None))) for d in defns
         )
         return dict(zip(defns, results))
 
@@ -190,7 +185,7 @@ class Resolvers(dict[str, Resolver]):
         class DummyResolver(Resolver):
             async def resolve(
                 self, defns: Sequence[Defn]
-            ) -> dict[Defn, pkg_models.Pkg | ManagerError | InternalError]:
+            ) -> dict[Defn, AnyResult[pkg_models.Pkg]]:
                 return dict.fromkeys(defns, error)
 
             async def get_changelog(self, uri: URL) -> Never:

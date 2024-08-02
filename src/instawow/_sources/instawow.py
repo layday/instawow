@@ -3,11 +3,11 @@ from __future__ import annotations
 from collections.abc import AsyncIterator
 from datetime import datetime, timezone
 
-from .. import results as R
 from .._utils.aio import run_in_thread
 from ..catalogue.cataloguer import CatalogueEntry
 from ..definitions import ChangelogFormat, Defn, SourceMetadata
 from ..resolvers import BaseResolver, PkgCandidate
+from ..results import PkgNonexistent
 from ..wow_installations import Flavour
 
 _ADDONS = {
@@ -35,7 +35,7 @@ class InstawowResolver(BaseResolver):
                 (p, v) for p, v in _ADDONS.items() if defn.alias in p
             )
         except StopIteration:
-            raise R.PkgNonexistent from None
+            raise PkgNonexistent from None
 
         builder_config = PluginConfig(self._config)
         builder = WaCompanionBuilder(builder_config)

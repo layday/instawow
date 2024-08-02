@@ -6,12 +6,12 @@ from datetime import datetime, timedelta, timezone
 from typing_extensions import TypedDict
 from yarl import URL
 
-from .. import results as R
 from .. import shared_ctx
 from .._logging import logger
 from ..catalogue.cataloguer import CatalogueEntry
 from ..definitions import ChangelogFormat, Defn, SourceMetadata
 from ..resolvers import BaseResolver, PkgCandidate
+from ..results import PkgFilesNotMatching, PkgNonexistent
 from ..wow_installations import Flavour, FlavourVersionRange
 
 
@@ -56,14 +56,14 @@ class TukuiResolver(BaseResolver):
             expire_after=timedelta(minutes=5),
         ) as response:
             if response.status == 404:
-                raise R.PkgNonexistent
+                raise PkgNonexistent
             response.raise_for_status()
 
             ui_metadata: _TukuiAddon = await response.json()
 
         wanted_version_range = self._config.game_flavour.to_flavour_keyed_enum(FlavourVersionRange)
         if not any(wanted_version_range.contains(p) for p in ui_metadata['patch']):
-            raise R.PkgFilesNotMatching(defn.strategies)
+            raise PkgFilesNotMatching(defn.strategies)
 
         return PkgCandidate(
             id=str(ui_metadata['id']),

@@ -4,12 +4,9 @@ from collections.abc import Awaitable, Collection, Mapping, Set
 from typing import Any, Final, Protocol, TypeAlias, TypeVar
 
 from . import pkg_models
-from ._logging import logger
 from .definitions import Strategies, Strategy
 
 _T = TypeVar('_T')
-
-AnyResult: TypeAlias = '_T | ManagerError | InternalError'
 
 
 class Result(Protocol):  # pragma: no cover
@@ -187,14 +184,27 @@ class InternalError(Result, Exception):
         return f'internal error: "{self.args[0]}"'
 
 
-async def resultify_async_exc(
-    awaitable: Awaitable[_T],
-) -> AnyResult[_T]:
+AnyResult: TypeAlias = _T | ManagerError | InternalError
+
+
+async def aresultify(awaitable: Awaitable[_T]) -> AnyResult[_T]:
     "Capture and log an exception raised in a coroutine."
+
     try:
         return await awaitable
-    except (ManagerError, InternalError) as error:
-        return error
-    except BaseException as error:
-        logger.exception('unclassed error')
-        return InternalError(error)
+
+    except (ManagerError, InternalError) as exception:
+        return exception
+
+    except BaseException as exception:
+        from ._logging import logger
+
+        traceback = exception.__traceback__
+        if traceback is not None:
+            exception = exception.with_traceback(traceback.tb_next)
+
+        logger.opt(
+            exception=exception,
+        ).error('unclassed error')
+
+        return InternalError(exception)

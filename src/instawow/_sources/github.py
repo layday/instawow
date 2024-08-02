@@ -11,7 +11,6 @@ from typing_extensions import NotRequired as N
 from yarl import URL
 
 from .. import http, shared_ctx
-from .. import results as R
 from .._logging import logger
 from .._utils.aio import cancel_tasks
 from .._utils.compat import StrEnum
@@ -21,6 +20,7 @@ from .._utils.web import as_plain_text_data_url, extract_byte_range_offset
 from ..catalogue.cataloguer import AddonKey, CatalogueEntry
 from ..definitions import ChangelogFormat, Defn, SourceMetadata, Strategy
 from ..resolvers import BaseResolver, HeadersIntent, PkgCandidate
+from ..results import PkgFilesMissing, PkgFilesNotMatching, PkgNonexistent
 from ..wow_installations import Flavour, FlavourVersionRange
 from ._access_tokens import AccessToken
 
@@ -397,7 +397,7 @@ class GithubResolver(BaseResolver):
                 repo_url, expire_after=timedelta(hours=1), headers=github_headers
             ) as response:
                 if response.status == 404:
-                    raise R.PkgNonexistent
+                    raise PkgNonexistent
                 response.raise_for_status()
 
                 project: _GithubRepo = await response.json()
@@ -418,7 +418,7 @@ class GithubResolver(BaseResolver):
                 release_url, expire_after=timedelta(minutes=5), headers=github_headers
             ) as response:
                 if response.status == 404:
-                    raise R.PkgFilesMissing('no releases found')
+                    raise PkgFilesMissing('no releases found')
                 response.raise_for_status()
 
                 release_json: _GithubRelease | list[_GithubRelease] = await response.json()
@@ -446,7 +446,7 @@ class GithubResolver(BaseResolver):
         releases = iter(releases)
         first_release = next(releases, None)
         if first_release is None:
-            raise R.PkgFilesNotMatching(defn.strategies)
+            raise PkgFilesNotMatching(defn.strategies)
 
         desired_flavour_groups = self._config.game_flavour.get_flavour_groups(
             bool(defn.strategies[Strategy.AnyFlavour])
@@ -483,7 +483,7 @@ class GithubResolver(BaseResolver):
         if match:
             release, asset = match
         else:
-            raise R.PkgFilesNotMatching(defn.strategies)
+            raise PkgFilesNotMatching(defn.strategies)
 
         return PkgCandidate(
             id=str(project['id']),

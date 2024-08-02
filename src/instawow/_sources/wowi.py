@@ -12,7 +12,6 @@ from typing_extensions import TypedDict
 from yarl import URL
 
 from .. import pkg_models, shared_ctx
-from .. import results as R
 from .._logging import logger
 from .._progress_reporting import make_default_progress
 from .._utils.aio import gather
@@ -22,6 +21,7 @@ from .._utils.web import as_plain_text_data_url
 from ..catalogue.cataloguer import CatalogueEntry
 from ..definitions import ChangelogFormat, Defn, SourceMetadata
 from ..resolvers import BaseResolver, PkgCandidate
+from ..results import AnyResult, PkgNonexistent, aresultify
 from ..wow_installations import Flavour, FlavourVersionRange
 
 _lock_prefix = object()
@@ -136,9 +136,7 @@ class WowiResolver(BaseResolver):
                 }
                 return list_items_by_id
 
-    async def resolve(
-        self, defns: Sequence[Defn]
-    ) -> dict[Defn, pkg_models.Pkg | R.ManagerError | R.InternalError]:
+    async def resolve(self, defns: Sequence[Defn]) -> dict[Defn, AnyResult[pkg_models.Pkg]]:
         list_items_by_id = await self.__synchronise()
 
         defns_to_ids = {d: ''.join(takewhile(str.isdigit, d.alias)) for d in defns}
@@ -159,7 +157,7 @@ class WowiResolver(BaseResolver):
             }
 
         results = await gather(
-            R.resultify_async_exc(self.resolve_one(d, {**a, **b} if a and b else None))
+            aresultify(self.resolve_one(d, {**a, **b} if a and b else None))
             for d, i in defns_to_ids.items()
             for a, b in ((list_items_by_id.get(i), details_items_by_id.get(i)),)
         )
@@ -167,7 +165,7 @@ class WowiResolver(BaseResolver):
 
     async def _resolve_one(self, defn: Defn, metadata: _WowiCombinedItem | None) -> PkgCandidate:
         if metadata is None:
-            raise R.PkgNonexistent
+            raise PkgNonexistent
 
         return PkgCandidate(
             id=metadata['UID'],

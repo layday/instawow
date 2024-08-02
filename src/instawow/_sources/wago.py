@@ -5,13 +5,13 @@ from datetime import timedelta
 from typing_extensions import Never, TypedDict
 from yarl import URL
 
-from .. import results as R
 from .. import shared_ctx
 from .._utils.compat import StrEnum
 from .._utils.datetime import datetime_fromisoformat
 from .._utils.web import as_plain_text_data_url
 from ..definitions import ChangelogFormat, Defn, SourceMetadata, Strategy
 from ..resolvers import BaseResolver, HeadersIntent, PkgCandidate
+from ..results import PkgFilesNotMatching, PkgNonexistent
 from ._access_tokens import AccessToken
 
 
@@ -88,7 +88,7 @@ class WagoResolver(BaseResolver):
             headers=self.make_request_headers(),
         ) as response:
             if response.status == 404:
-                raise R.PkgNonexistent
+                raise PkgNonexistent
             response.raise_for_status()
 
             addon_metadata: _WagoAddon = await response.json()
@@ -104,7 +104,7 @@ class WagoResolver(BaseResolver):
                 (datetime_fromisoformat(f['created_at']), f) for f in recent_releases.values()
             )
         except ValueError:
-            raise R.PkgFilesNotMatching(defn.strategies)
+            raise PkgFilesNotMatching(defn.strategies)
 
         return PkgCandidate(
             id=addon_metadata['id'],
