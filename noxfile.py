@@ -218,7 +218,6 @@ def freeze_cli(session: nox.Session):
         'PYAPP_FULL_ISOLATION': '1',
         'PYAPP_PYTHON_VERSION': '3.12',
         'PYAPP_DISTRIBUTION_EMBED': '1',
-        'PYAPP_PIP_EXTERNAL': '1',
         'PYAPP_PIP_EXTRA_ARGS': '--only-binary :all:',
         'PYAPP_UV_ENABLED': '1',
     }
