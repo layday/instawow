@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import click
 
-from instawow import _logging, _version_check, config
+from instawow import _logging, _version, config
 
 
 @click.command
@@ -20,4 +20,4 @@ def gui(ctx: click.Context) -> None:
         *ctx.find_root().params['verbose'],
     )
 
-    make_app(version=_version_check.get_version()).main_loop()
+    make_app(version=_version.get_version()).main_loop()

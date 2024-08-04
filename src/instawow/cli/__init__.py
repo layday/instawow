@@ -64,7 +64,7 @@ class Report:
     def generate(self) -> None:
         config_ctx: ConfigBoundCtxProxy | None = click.get_current_context().obj
         if config_ctx and config_ctx.config.global_config.auto_update_check:
-            from .._version_check import is_outdated
+            from .._version import is_outdated
 
             outdated, new_version = run_with_progress(is_outdated(config_ctx.config.global_config))
             if outdated:
@@ -221,7 +221,7 @@ def _print_version(ctx: click.Context, __: click.Parameter, value: bool):
     if not value or ctx.resilient_parsing:
         return
 
-    from .._version_check import get_version
+    from .._version import get_version
 
     click.echo(f'instawow, version {get_version()}')
     ctx.exit()

@@ -29,7 +29,7 @@ from aiohttp_rpc.server import WsJsonRpcServer
 from typing_extensions import ParamSpec, TypedDict
 from yarl import URL
 
-from instawow import _version_check, matchers, pkg_management, pkg_models, shared_ctx
+from instawow import _version, matchers, pkg_management, pkg_models, shared_ctx
 from instawow import results as R
 from instawow._github_auth import get_codes, poll_for_access_token
 from instawow._logging import logger
@@ -551,9 +551,9 @@ class GetVersionResult(TypedDict):
 @_register_method('meta/get_version')
 class GetVersionParams(BaseParams):
     async def respond(self, config_ctxs: _ConfigBoundCtxCollection) -> GetVersionResult:
-        outdated, new_version = await _version_check.is_outdated(config_ctxs.global_config)
+        outdated, new_version = await _version.is_outdated(config_ctxs.global_config)
         return {
-            'installed_version': _version_check.get_version(),
+            'installed_version': _version.get_version(),
             'new_version': new_version if outdated else None,
         }
 

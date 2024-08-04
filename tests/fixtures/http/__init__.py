@@ -15,7 +15,7 @@ import attrs
 from aiohttp.web import Request, Response
 from yarl import URL
 
-from instawow._version_check import get_version
+from instawow._version import get_version
 
 _match_any = re.compile(r'.*')
 
