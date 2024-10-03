@@ -6,7 +6,6 @@ from collections.abc import AsyncIterator, Callable, Iterator, Sequence
 from datetime import timedelta
 from enum import IntEnum
 from functools import partial
-from types import SimpleNamespace
 from typing import Generic, TypeVar
 
 from typing_extensions import NotRequired as N
@@ -345,11 +344,11 @@ class CfCoreResolver(BaseResolver):
                 expire_after=timedelta(hours=1),
                 headers=self.make_request_headers(),
                 raise_for_status=True,
-                trace_request_ctx=SimpleNamespace(
-                    progress=make_default_progress(
+                trace_request_ctx={
+                    'progress': make_default_progress(
                         type_='download', label=f'Fetching metadata from {self.metadata.name}'
                     )
-                ),
+                },
             ) as files_response:
                 files_response_json: (
                     _CfCoreDataResponse[_CfCoreFile] | _CfCoreDataResponse[list[_CfCoreFile]]

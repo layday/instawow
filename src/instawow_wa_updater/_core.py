@@ -7,7 +7,6 @@ from datetime import timedelta
 from functools import cached_property, reduce
 from itertools import chain, product
 from pathlib import Path
-from types import SimpleNamespace
 from typing import Any, Literal, TypeAlias
 
 import cattrs
@@ -171,9 +170,9 @@ class WaCompanionBuilder:
             expire_after=timedelta(minutes=30),
             headers=self._make_request_headers(),
             json={'ids': list(aura_group.auras)},
-            trace_request_ctx=SimpleNamespace(
-                progress=make_default_progress(type_='download', label='Fetching aura metadata')
-            ),
+            trace_request_ctx={
+                'progress': make_default_progress(type_='download', label='Fetching aura metadata')
+            },
         )
         async with request as response:
             metadata: list[_WagoApiResponse]

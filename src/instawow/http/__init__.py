@@ -36,8 +36,8 @@ async def _setup_progress_tracker():
         params: aiohttp.TraceRequestEndParams,
         /,
     ):
-        progress = (
-            trace_config_ctx.trace_request_ctx and trace_config_ctx.trace_request_ctx.progress
+        progress = trace_config_ctx.trace_request_ctx and trace_config_ctx.trace_request_ctx.get(
+            'progress'
         )
         if progress:
 
