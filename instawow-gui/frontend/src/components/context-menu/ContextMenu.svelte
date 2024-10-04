@@ -1,4 +1,4 @@
-<script lang="ts" context="module">
+<script module lang="ts">
   export interface EventCoords {
     x: number;
     y: number;
@@ -24,7 +24,7 @@
 
   let menuWidth = $state(0);
   let menuHeight = $state(0);
-  let menuCoords = $state.frozen({ x: 0, y: 0 });
+  let menuCoords = $state.raw({ x: 0, y: 0 });
 
   export const show = (theseEventCoords: EventCoords) => {
     eventCoords = theseEventCoords;

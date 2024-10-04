@@ -16,7 +16,7 @@
     onSelectItem: (item: { addon: Addon; action: AddonAction }) => void;
   } = $props();
 
-  let contextMenu = $state<ContextMenu>();
+  let contextMenu = $state<ReturnType<typeof ContextMenu>>();
 
   let details = $state<Details>();
 

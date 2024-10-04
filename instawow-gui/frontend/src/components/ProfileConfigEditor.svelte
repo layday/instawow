@@ -1,7 +1,7 @@
 <script lang="ts">
   import { faFolderOpen, faTrashAlt } from "@fortawesome/free-solid-svg-icons";
   import { JSONRPCError } from "@open-rpc/client-js";
-  import ld from "lodash-es";
+  import * as ld from "lodash-es";
   import { getContext } from "svelte";
   import { fade } from "svelte/transition";
   import type { Config, ValidationError } from "../api";

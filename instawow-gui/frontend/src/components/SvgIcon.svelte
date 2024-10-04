@@ -1,4 +1,4 @@
-<script context="module" lang="ts">
+<script module lang="ts">
   import type { IconDefinition } from "@fortawesome/fontawesome-common-types";
   import type { SVGAttributes } from "svelte/elements";
 

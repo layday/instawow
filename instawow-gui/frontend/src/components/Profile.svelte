@@ -1,7 +1,7 @@
-<script context="module" lang="ts">
+<script module lang="ts">
   import * as commonmark from "commonmark";
-  import ld from "lodash-es";
-  import type { ComponentProps, Snippet } from "svelte";
+  import * as ld from "lodash-es";
+  import type { Snippet } from "svelte";
   import { getContext, onMount, setContext } from "svelte";
   import { flip } from "svelte/animate";
   import { isSameAddon } from "../addon";
@@ -105,7 +105,7 @@
 
   const config = $derived(profilesRef.value[profile]);
 
-  let sources = $state.frozen<{
+  let sources = $state.raw<{
     [source: string]: Source;
   }>({});
   let uriSchemes = $state<string[]>();
@@ -134,7 +134,7 @@
     ),
   );
 
-  let addonDownloadProgress = $state.frozen<{
+  let addonDownloadProgress = $state.raw<{
     [token: string]: number;
   }>({});
 
@@ -154,12 +154,26 @@
   let searchesInProgress = $state(0);
 
   let modal = $state<
-    | { id: "changelog"; dynamicProps: ComponentProps<ChangelogModalContents> }
-    | { id: "rollback"; dynamicProps: ComponentProps<RollbackModalContents> }
-    | { id: "searchOptions" }
+    | {
+        id: "changelog";
+        dynamicProps: {
+          changelog: string;
+          renderAsHtml: boolean;
+        };
+      }
+    | {
+        id: "rollback";
+        dynamicProps: {
+          addon: Addon;
+          onRequestRollback: (addon: Addon) => void;
+        };
+      }
+    | {
+        id: "searchOptions";
+      }
   >();
 
-  let addonContextMenu = $state<AddonContextMenu>();
+  let addonContextMenu = $state<ReturnType<typeof AddonContextMenu>>();
 
   const alertAddonOpFailed = (method: string, combinedResult: (readonly [Addon, AnyResult])[]) => {
     alertsRef.value[profile] = [
