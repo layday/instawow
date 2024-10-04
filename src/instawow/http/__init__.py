@@ -113,19 +113,20 @@ async def init_web_client(
             kwargs['trace_configs'] = [*kwargs.get('trace_configs', []), progress_trace_config]
 
         if cache_dir is not None:
-            from ._cache import make_cache
-
             cache_backend = aiohttp_client_cache.CacheBackend(
                 allowed_codes=(200, 206),
                 allowed_methods=('GET', 'POST'),
                 expire_after=_DEFAULT_EXPIRE,
                 include_headers=True,
             )
-
-            cache = await async_exit_stack.enter_async_context(make_cache(cache_dir))
-            cache_backend.responses = cache_backend.redirects = cache
             if no_cache:
                 cache_backend.disabled = True
+            else:
+                from ._cache import make_cache
+
+                cache_backend.responses = (
+                    cache_backend.redirects
+                ) = await async_exit_stack.enter_async_context(make_cache(cache_dir))
 
             client_session = await async_exit_stack.enter_async_context(
                 aiohttp_client_cache.session.CachedSession(cache=cache_backend, **kwargs)
