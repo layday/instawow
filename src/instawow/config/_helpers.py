@@ -2,15 +2,18 @@ from __future__ import annotations
 
 import json
 import os
-from collections.abc import Iterable, Mapping
+from collections.abc import Callable, Iterable, Mapping
 from functools import lru_cache, partial
 from pathlib import Path
-from typing import Any, TypedDict
+from typing import Any, TypedDict, TypeVar
 
 import attrs
 import cattrs
 import cattrs.gen
 import cattrs.preconf.json
+
+_T = TypeVar('_T')
+
 
 _missing = object()
 
@@ -37,18 +40,19 @@ def make_config_converter():
 @lru_cache(1)
 def _make_write_converter():
     converter = make_config_converter()
-    converter.register_unstructure_hook_factory(
-        attrs.has,
-        lambda c: cattrs.gen.make_dict_unstructure_fn(
-            c,
+
+    @converter.register_unstructure_hook_factory(attrs.has)
+    def exclude_no_store_fields(type_: type[_T]) -> Callable[[_T], dict[str, Any]]:  # pyright: ignore[reportUnusedFunction]
+        return cattrs.gen.make_dict_unstructure_fn(
+            type_,
             converter,
             **{  # pyright: ignore[reportArgumentType]  # See microsoft/pyright#5255
                 f.name: cattrs.gen.override(omit=True)
-                for f in attrs.fields(c)
+                for f in attrs.fields(type_)
                 if not f.metadata.get('store')
             },
-        ),
-    )
+        )
+
     return converter
 
 

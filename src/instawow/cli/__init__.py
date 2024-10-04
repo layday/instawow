@@ -319,7 +319,7 @@ def _make_pkg_where_clause_and_params(defns: Sequence[Defn]) -> tuple[str, dict[
         where_clauses, where_params = zip(*make_inner())
         return (
             'WHERE\n  ' + '\n  OR '.join(where_clauses),
-            reduce(lambda a, b: a | b, where_params, {}),
+            reduce(lambda a, b: a | b, where_params, dict[str, Any]()),
         )
     else:
         return ('', {})
@@ -815,7 +815,9 @@ def list_installed(
 
         match output_format:
             case _ListFormat.Json:
-                from cattrs.preconf.json import make_converter
+                from cattrs.preconf.json import (
+                    make_converter,  # pyright: ignore[reportUnknownVariableType]
+                )
 
                 click.echo(
                     make_converter().dumps(list(row_mappings_to_pkgs()), indent=2),
@@ -1262,7 +1264,7 @@ def debug_config(config_ctx: ConfigBoundCtxProxy) -> None:
 @click.pass_obj
 def debug_sources(config_ctx: ConfigBoundCtxProxy) -> None:
     "Print active source metadata."
-    from cattrs.preconf.json import make_converter
+    from cattrs.preconf.json import make_converter  # pyright: ignore[reportUnknownVariableType]
 
     json_converter = make_converter()
 

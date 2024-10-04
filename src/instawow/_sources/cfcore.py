@@ -472,9 +472,10 @@ class CfCoreResolver(BaseResolver):
         STEP = 50
         MAX_OFFSET = 10_000  # The CF API craps out after 9,999 results
 
-        request = partial(
-            shared_ctx.web_client.request,
-            headers={'x-api-key': cls.access_token.get(GlobalConfig.from_values(env=True))},
+        access_token = cls.access_token.get(GlobalConfig.from_values(env=True))
+        get = partial(
+            shared_ctx.web_client.get,
+            headers={'x-api-key': access_token} if access_token else None,
             raise_for_status=True,
             timeout=ClientTimeout(total=10),
         )
@@ -491,7 +492,7 @@ class CfCoreResolver(BaseResolver):
 
             for attempt in range(3):
                 try:
-                    async with request('GET', url) as response:
+                    async with get(url) as response:
                         response_json: _CfCorePaginatedDataResponse[
                             list[_CfCoreMod]
                         ] = await response.json()

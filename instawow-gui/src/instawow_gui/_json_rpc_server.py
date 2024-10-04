@@ -589,11 +589,14 @@ class SelectFolderParams(BaseParams):
 
         def select_folder():
             async def inner() -> Path | None:
+                import toga
+
                 try:
-                    assert app.main_window
-                    return await app.main_window.select_folder_dialog(
-                        'Select folder', self.initial_folder
+                    assert isinstance(app.main_window, toga.Window)
+                    return await app.main_window.dialog(  # pyright: ignore[reportReturnType, reportUnknownMemberType]
+                        toga.SelectFolderDialog('Select folder', self.initial_folder),
                     )
+
                 except ValueError:
                     return None
 
@@ -619,9 +622,11 @@ class ConfirmDialogueParams(BaseParams):
         future = concurrent.futures.Future[bool]()
 
         def confirm():
-            async def inner():
-                assert app.main_window
-                return await app.main_window.confirm_dialog(self.title, self.message)
+            async def inner() -> bool:
+                assert isinstance(app.main_window, toga.Window)
+                return await app.main_window.dialog(  # pyright: ignore[reportReturnType, reportUnknownMemberType]
+                    toga.ConfirmDialog(self.title, self.message),
+                )
 
             task = asyncio.create_task(inner())
             task.add_done_callback(lambda t: future.set_result(t.result()))

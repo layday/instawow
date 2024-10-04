@@ -55,11 +55,11 @@ class _App(toga.App):
         server_url = server_url_future.result()
         on_started(server_url)
 
-        def on_app_exit(app: toga.App, **kwargs: object):
+        def on_app_exit(app: toga.App, /, **kwargs: object):
             stop_json_rpc_server()
             return True
 
-        self.on_exit = on_app_exit
+        self.on_exit = on_app_exit  # pyright: ignore[reportAttributeAccessIssue]
 
     def startup(self) -> None:
         if sys.platform == 'win32':
@@ -128,10 +128,10 @@ class _App(toga.App):
 
         self.__start_json_rpc_server(partial(setattr, web_view, 'url'))
 
-        self.main_window = toga.MainWindow(
+        self.main_window = main_window = toga.MainWindow(
             title=self.formal_name, size=(800, 600), content=web_view
         )
-        self.main_window.show()
+        main_window.show()
 
 
 def make_app(version: str) -> toga.App:
