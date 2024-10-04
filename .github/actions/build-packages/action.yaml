@@ -38,3 +38,4 @@ runs:
         name: packages
         path: ./dist
         if-no-files-found: error
+        include-hidden-files: true

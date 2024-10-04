@@ -70,6 +70,7 @@ jobs:
           name: coverage-data-${{ matrix.os }}-${{ matrix.python-version }}${{ matrix.python-free-threaded && 't' || '' }}
           path: .coverage.*
           if-no-files-found: ignore
+          include-hidden-files: true
       - name: Run tests (minimum versions)
         run: >-
           nox
