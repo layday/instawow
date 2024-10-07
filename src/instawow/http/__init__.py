@@ -25,7 +25,7 @@ _PROGRESS_TICK_INTERVAL = 0.1
 async def _setup_progress_tracker():
     import asyncio
 
-    from .._progress_reporting import get_next_progress_id, update_progress
+    from .._progress_reporting import Progress, get_next_progress_id, update_progress
     from .._utils.aio import cancel_tasks
 
     progress_tickers = set[asyncio.Task[None]]()
@@ -36,8 +36,9 @@ async def _setup_progress_tracker():
         params: aiohttp.TraceRequestEndParams,
         /,
     ):
-        progress = trace_config_ctx.trace_request_ctx and trace_config_ctx.trace_request_ctx.get(
-            'progress'
+        progress: Progress[Any] | None = (
+            trace_config_ctx.trace_request_ctx
+            and trace_config_ctx.trace_request_ctx.get('progress')
         )
         if progress:
 

@@ -7,12 +7,12 @@ from contextlib import contextmanager
 from itertools import count
 from typing import Any, Generic, Literal, TypeAlias, cast
 
-from typing_extensions import Never, NotRequired, TypedDict, TypeVar
+from typing_extensions import LiteralString, Never, NotRequired, TypedDict, TypeVar
 
 _T = TypeVar('_T')
 
-_TProgressType = TypeVar('_TProgressType', bound=str)
-_TProgressUnit = TypeVar('_TProgressUnit', bound=str | None, default=None)
+_TProgressType = TypeVar('_TProgressType', bound=LiteralString)
+_TProgressUnit = TypeVar('_TProgressUnit', bound=LiteralString | None, default=None)
 
 
 class Progress(TypedDict, Generic[_TProgressType, _TProgressUnit]):
@@ -20,7 +20,7 @@ class Progress(TypedDict, Generic[_TProgressType, _TProgressUnit]):
     unit: NotRequired[_TProgressUnit]
     label: NotRequired[str]
     current: int
-    total: int
+    total: int | None
 
 
 class GenericProgress(Progress[Literal['generic']]):
