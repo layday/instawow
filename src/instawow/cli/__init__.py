@@ -1291,20 +1291,19 @@ def generate_catalogue(start_date: dt.datetime | None) -> None:
     from pathlib import Path
 
     from .._sources import DEFAULT_RESOLVERS
-    from ..catalogue.cataloguer import Catalogue, catalogue_converter
+    from ..catalogue.cataloguer import Catalogue
 
     catalogue = asyncio.run(
         Catalogue.collate((r.catalogue for r in DEFAULT_RESOLVERS), start_date)
     )
-    catalogue_json = catalogue_converter.unstructure(catalogue)
-
+    catalogue_json_dict = catalogue.to_json_dict()
     catalogue_path = Path(f'base-catalogue-v{catalogue.version}.json').resolve()
     catalogue_path.write_text(
-        json.dumps(catalogue_json, indent=2),
+        json.dumps(catalogue_json_dict, indent=2),
         encoding='utf-8',
     )
     catalogue_path.with_suffix(f'.compact{catalogue_path.suffix}').write_text(
-        json.dumps(catalogue_json, separators=(',', ':')),
+        json.dumps(catalogue_json_dict, separators=(',', ':')),
         encoding='utf-8',
     )
 

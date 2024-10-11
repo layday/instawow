@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import posixpath
 import zipfile
-from collections.abc import Callable, Iterable, Set
+from collections.abc import Callable, Iterable, Iterator, Set
 from contextlib import AbstractContextManager, contextmanager
 from pathlib import Path
 from typing import NamedTuple, Protocol
@@ -17,7 +17,7 @@ class Archive(NamedTuple):
     extract: Callable[[Path], None]
 
 
-def find_archive_addon_tocs(names: Iterable[str]):
+def find_archive_addon_tocs(names: Iterable[str]) -> Iterator[tuple[str, str]]:
     "Find top-level folders in a list of archive member paths."
     for name in names:
         if name.count(posixpath.sep) == 1:
@@ -26,7 +26,7 @@ def find_archive_addon_tocs(names: Iterable[str]):
                 yield (name, head)
 
 
-def make_archive_member_filter_fn(base_dirs: Set[str]):
+def make_archive_member_filter_fn(base_dirs: Set[str]) -> Callable[[str], bool]:
     "Filter out items which are not sub-paths of top-level folders in an archive."
 
     def is_subpath(name: str):

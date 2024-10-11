@@ -20,12 +20,12 @@ CATALOGUE_VERSION = 7
 COMPUTED_CATALOGUE_VERSION = 4
 
 
-catalogue_converter = cattrs.Converter(
+_catalogue_converter = cattrs.Converter(
     unstruct_collection_overrides={
         Set: sorted,
     }
 )
-cattrs.preconf.json.configure_converter(catalogue_converter)
+cattrs.preconf.json.configure_converter(_catalogue_converter)
 
 _normalise_name = normalise_names('')
 
@@ -75,6 +75,9 @@ class Catalogue:
                 entries = [e for e in entries if e.last_updated >= start_date]
             return cls(entries=entries)
 
+    def to_json_dict(self) -> Any:
+        return _catalogue_converter.unstructure(self)
+
 
 @fauxfrozen(kw_only=True)
 class ComputedCatalogue:
@@ -103,7 +106,7 @@ class ComputedCatalogue:
             for s in e['same_as']
         }
 
-        return catalogue_converter.structure(
+        return _catalogue_converter.structure(
             {
                 'entries': (
                     e

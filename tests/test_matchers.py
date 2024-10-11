@@ -8,10 +8,10 @@ from instawow.definitions import Defn
 from instawow.matchers import (
     AddonFolder,
     Matcher,
+    _match_addon_names_with_folder_names,
+    _match_folder_name_subsets,
+    _match_toc_source_ids,
     get_unreconciled_folders,
-    match_addon_names_with_folder_names,
-    match_folder_name_subsets,
-    match_toc_source_ids,
 )
 from instawow.shared_ctx import ConfigBoundCtx
 from instawow.wow_installations import Flavour
@@ -65,15 +65,15 @@ async def test_reconcile_invalid_addons_discarded(
     iw_config_ctx.config.addon_dir.joinpath('bar').touch()
     folders = get_unreconciled_folders(iw_config_ctx)
     assert folders == frozenset()
-    assert await match_toc_source_ids(iw_config_ctx, folders) == []
-    assert await match_folder_name_subsets(iw_config_ctx, folders) == []
+    assert await _match_toc_source_ids(iw_config_ctx, folders) == []
+    assert await _match_folder_name_subsets(iw_config_ctx, folders) == []
 
 
 @pytest.mark.parametrize(
     ('test_func', 'expected_defns'),
     [
         (
-            match_toc_source_ids,
+            _match_toc_source_ids,
             {
                 Defn('curse', '20338'),
                 Defn('wowi', '13188'),
@@ -82,14 +82,14 @@ async def test_reconcile_invalid_addons_discarded(
             },
         ),
         (
-            match_folder_name_subsets,
+            _match_folder_name_subsets,
             {
                 Defn('curse', '20338'),
                 Defn('wowi', '13188'),
             },
         ),
         (
-            match_addon_names_with_folder_names,
+            _match_addon_names_with_folder_names,
             {
                 Defn('curse', '20338'),
                 Defn('wowi', '13188'),
@@ -148,7 +148,7 @@ async def test_reconcile_results_vary_by_game_flavour(
     expected_defns: set[Defn],
 ):
     write_addons(iw_config_ctx, 'AdiBags', 'AdiBags_Config')
-    ((_, matches),) = await match_folder_name_subsets(
+    ((_, matches),) = await _match_folder_name_subsets(
         iw_config_ctx, get_unreconciled_folders(iw_config_ctx)
     )
     assert expected_defns == set(matches)

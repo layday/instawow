@@ -84,7 +84,7 @@ def get_unreconciled_folders(config_ctx: shared_ctx.ConfigBoundCtx) -> frozenset
     return frozenset(_get_unreconciled_folders(config_ctx))
 
 
-async def match_toc_source_ids(
+async def _match_toc_source_ids(
     config_ctx: shared_ctx.ConfigBoundCtx, leftovers: frozenset[AddonFolder]
 ):
     catalogue = await synchronise_catalogue()
@@ -120,7 +120,7 @@ async def match_toc_source_ids(
     ]
 
 
-async def match_folder_name_subsets(
+async def _match_folder_name_subsets(
     config_ctx: shared_ctx.ConfigBoundCtx, leftovers: frozenset[AddonFolder]
 ):
     catalogue = await synchronise_catalogue()
@@ -152,7 +152,7 @@ async def match_folder_name_subsets(
     ]
 
 
-async def match_addon_names_with_folder_names(
+async def _match_addon_names_with_folder_names(
     config_ctx: shared_ctx.ConfigBoundCtx, leftovers: frozenset[AddonFolder]
 ):
     def normalise(value: str):
@@ -171,7 +171,7 @@ async def match_addon_names_with_folder_names(
 
 # In order of increasing heuristicitivenessitude
 DEFAULT_MATCHERS: Mapping[str, Matcher] = {
-    'toc_source_ids': match_toc_source_ids,
-    'folder_name_subsets': match_folder_name_subsets,
-    'addon_names_with_folder_names': match_addon_names_with_folder_names,
+    'toc_source_ids': _match_toc_source_ids,
+    'folder_name_subsets': _match_folder_name_subsets,
+    'addon_names_with_folder_names': _match_addon_names_with_folder_names,
 }

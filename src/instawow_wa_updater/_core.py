@@ -135,7 +135,7 @@ def _extract_auras(model: type[_Auras], source: str):
 
 def _merge_auras(auras: Iterable[_Auras]):
     return {
-        t: t(reduce(lambda a, b: a | b, (i.auras for i in a)))
+        t: t(reduce(lambda a, b: {**a, **b}, (i.auras for i in a)))
         for t, a in bucketise(auras, key=type).items()
     }
 

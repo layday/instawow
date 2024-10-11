@@ -74,9 +74,7 @@ async def test_generator_in_run_in_thread_does_not_lock_up_loop():
         await a
         for a in asyncio.as_completed(
             [
-                run_in_thread(list)(
-                    foo(),  # pyright: ignore[reportArgumentType]
-                ),
+                run_in_thread(list)(foo()),
                 bar(),
             ]
         )

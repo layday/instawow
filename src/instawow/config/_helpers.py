@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 import os
-from collections.abc import Callable, Iterable, Mapping
+from collections.abc import Iterable, Mapping
 from functools import lru_cache, partial
 from pathlib import Path
 from typing import Any, TypedDict, TypeVar
@@ -24,12 +24,12 @@ class FieldMetadata(TypedDict, total=False):
     store: bool
 
 
-def ensure_dirs(dirs: Iterable[Path]):
+def ensure_dirs(dirs: Iterable[Path]) -> None:
     for dir_ in dirs:
         dir_.mkdir(exist_ok=True, parents=True)
 
 
-def make_config_converter():
+def make_config_converter() -> cattrs.Converter:
     converter = cattrs.Converter()
     cattrs.preconf.json.configure_converter(converter)
     converter.register_structure_hook(Path, lambda v, _: Path(v))
@@ -42,7 +42,7 @@ def _make_write_converter():
     converter = make_config_converter()
 
     @converter.register_unstructure_hook_factory(attrs.has)
-    def exclude_no_store_fields(type_: type[_T]) -> Callable[[_T], dict[str, Any]]:  # pyright: ignore[reportUnusedFunction]
+    def exclude_no_store_fields(type_: type[_T]):  # pyright: ignore[reportUnusedFunction]
         return cattrs.gen.make_dict_unstructure_fn(
             type_,
             converter,
