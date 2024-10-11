@@ -34,11 +34,11 @@ users can install the CLI binaries by running::
 
 If you'd prefer to install *instawow* from source, you are able to choose from:
 
-- `pipx <https://github.com/pipxproject/pipx>`__:
+- `pipx <https://github.com/pypa/pipx>`__:
   ``pipx install instawow``
-- Vanilla pip:
-  ``python -m pip install -U instawow``
-- `Nix or NixOS <https://nixos.org/>`__: the CLI-only version of *instawow*
+- `uv <https://docs.astral.sh/uv/guides/tools/#installing-tools>`__:
+  ``uv tool install instawow``
+- `Nix and NixOS <https://nixos.org/>`__: the CLI-only version of *instawow*
   is available as the ``instawow`` package
 
 CLI operation
