@@ -69,6 +69,23 @@ packages = [
 [tool.hatch.version]
 source = "vcs"
 
+[dependency-groups]
+format = [
+  "ruff",
+]
+freeze-gui = [
+  "briefcase",
+]
+lint = [
+  { include-group = "format" },
+]
+publish-dists = [
+  "twine",
+]
+report-coverage = [
+  "coverage[toml]",
+]
+
 [tool.ruff]
 line-length = 99
 

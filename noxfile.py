@@ -13,13 +13,24 @@ nox.options.default_venv_backend = 'uv'
 nox.options.error_on_external_run = True
 
 
-_DEPENDENCY_GROUPS = {
-    'format_or_lint': ['ruff'],
-    'publish': ['twine'],
-    'report_coverage': ['coverage[toml]'],
-}
+_root = Path(__file__).parent
 
-_ROOT = Path(__file__).parent
+
+def _parse_dependency_group(item: str | dict[str, str]):
+    match item:
+        case str():
+            yield item
+        case {'include-group': group_ref}:
+            yield from iter(_dependency_groups[group_ref])
+        case _:
+            raise ValueError(f'Invalid dependency group item: {item}')
+
+
+_dependency_groups = nox.project.load_toml(_root / 'pyproject.toml')['dependency-groups']
+_dependency_groups = {
+    n.replace('_', '-'): {u for i in g for u in _parse_dependency_group(i)}
+    for n, g in _dependency_groups.items()
+}
 
 
 def _install_coverage_hook(session: nox.Session):
@@ -40,7 +51,7 @@ import sysconfig
 
 def _locate_or_build_packages(session: nox.Session):
     wheels_metadata_json = {
-        d: _ROOT / 'dist' / d / '.wheel-metadata.json' for d in ['instawow', 'instawow-gui']
+        d: _root / 'dist' / d / '.wheel-metadata.json' for d in ['instawow', 'instawow-gui']
     }
     if not all(j.exists() for j in wheels_metadata_json.values()):
         if os.environ.get('CI'):
@@ -62,7 +73,7 @@ def dev_env(session: nox.Session):
 def format_code(session: nox.Session):
     "Format source code."
 
-    session.install(*_DEPENDENCY_GROUPS['format_or_lint'])
+    session.install(*_dependency_groups['format'])
 
     check = '--check' in session.posargs
     skip_prettier = '--skip-prettier' in session.posargs
@@ -80,7 +91,7 @@ def format_code(session: nox.Session):
 def lint(session: nox.Session):
     "Lint source code."
 
-    session.install(*_DEPENDENCY_GROUPS['format_or_lint'])
+    session.install(*_dependency_groups['lint'])
     session.run('ruff', 'check', '--output-format', 'full', *session.posargs, '.')
     session.notify('format', ['--check'])
 
@@ -91,7 +102,7 @@ def test(session: nox.Session, minimum_versions: bool):
     "Run the test suite."
 
     if minimum_versions and session.venv_backend != 'uv':
-        session.error('`minimum_versions` only supported with uv')
+        session.error('`minimum_versions` requires uv')
 
     if not os.environ.get('CI'):
         session.create_tmp()
@@ -127,10 +138,10 @@ def test(session: nox.Session, minimum_versions: bool):
 
 
 @nox.session
-def produce_coverage_report(session: nox.Session):
+def report_coverage(session: nox.Session):
     "Produce coverage report."
 
-    session.install(*_DEPENDENCY_GROUPS['report_coverage'])
+    session.install(*_dependency_groups['report-coverage'])
     session.run('coverage', 'combine')
     session.run('coverage', 'html', '--skip-empty')
     session.run('coverage', 'report', '-m')
@@ -171,7 +182,7 @@ def build_dists(session: nox.Session):
             bundle_frontend(session)
 
         out_dir = Path('dist', name)
-        session.run('pyproject-build', '--installer', 'uv', '--outdir', str(out_dir), source_dir)
+        session.run('uv', 'build', '--out-dir', str(out_dir), source_dir)
 
         wheel_path = next(f.path for f in os.scandir(out_dir) if f.name.endswith('.whl'))
         (wheel_metadata,) = Distribution.discover(name=name, path=[wheel_path])
@@ -190,7 +201,7 @@ def build_dists(session: nox.Session):
 def publish_dists(session: nox.Session):
     "Validate and upload dists to PyPI."
 
-    session.install(*_DEPENDENCY_GROUPS['publish'])
+    session.install(*_dependency_groups['publish-dists'])
     session.run('twine', 'check', '--strict', 'dist/instawow/*')
     session.run('twine', 'upload', '--verbose', 'dist/instawow/*')
 
@@ -264,7 +275,7 @@ def freeze_gui(session: nox.Session):
 
     packages = _locate_or_build_packages(session)
 
-    spec_path = _ROOT / 'instawow-gui' / 'pyproject.toml'
+    spec_path = _root / 'instawow-gui' / 'pyproject.toml'
     spec = spec_path.read_text(encoding='utf-8')
     spec = spec.replace(
         '"instawow-gui[full]"',
@@ -289,7 +300,7 @@ def freeze_gui(session: nox.Session):
         build_opts = []
         package_opts = []
 
-    session.install('briefcase')
+    session.install(*_dependency_groups['freeze-gui'])
 
     with session.chdir('instawow-gui'):
         session.run('briefcase', 'build', *build_opts)
