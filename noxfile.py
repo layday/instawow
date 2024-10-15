@@ -9,12 +9,11 @@ from pathlib import Path
 import nox
 
 nox.needs_version = '>= 2024.4.15'
-nox.options.default_venv_backend = 'uv|venv'
+nox.options.default_venv_backend = 'uv'
 nox.options.error_on_external_run = True
 
 
 _DEPENDENCY_GROUPS = {
-    'build': ['build[uv]'],
     'format_or_lint': ['ruff'],
     'publish': ['twine'],
     'report_coverage': ['coverage[toml]'],
@@ -166,7 +165,6 @@ def build_dists(session: nox.Session):
     "Build an sdist and wheel."
 
     session.run('git', 'clean', '-fdX', 'dist', external=True)
-    session.install(*_DEPENDENCY_GROUPS['build'])
 
     for name, source_dir in ('instawow', '.'), ('instawow-gui', 'instawow-gui'):
         if name == 'instawow-gui':
