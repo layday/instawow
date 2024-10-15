@@ -51,10 +51,10 @@ jobs:
         with:
           name: packages
           path: ./dist
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
       - name: Install Python 3.11
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
+        run: uv python install 3.11
       - name: Install Rust
         run: rustup update stable
       - name: Install cross-compilation toolchain
@@ -67,7 +67,7 @@ jobs:
           tool: cross
         if: startsWith(matrix.build-env.os, 'ubuntu-')
       - name: Install nox
-        run: pipx install nox uv
+        run: uv tool install nox
       - name: Freeze the CLI
         id: freeze-cli
         run: nox -s freeze_cli -- --out-dir ./cli
@@ -117,16 +117,16 @@ jobs:
       - name: Install briefcase Linux dependencies (Alpine)
         run: apk add flatpak-builder
         if: matrix.build-env.container
-      - name: Install Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.build-env.python-version }}
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+      - name: Install Python ${{ matrix.build-env.python-version }}
+        run: uv python install ${{ matrix.build-env.python-version }}
         if: matrix.build-env.python-version
       - name: Install nox
-        run: pipx install nox uv
+        run: uv tool install nox
         if: matrix.build-env.python-version
       - name: Install nox (Alpine)
-        run: /opt/python/cp312-cp312/bin/python -m pip install nox uv
+        run: /opt/python/cp312-cp312/bin/python -m pip install nox
         if: matrix.build-env.container
       - name: Freeze the GUI
         run: >-
