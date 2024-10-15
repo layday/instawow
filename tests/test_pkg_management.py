@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import aiohttp
-import aresponses
+import aiohttp.web
 import attrs
 import pytest
 
@@ -26,7 +26,7 @@ from instawow.results import (
 )
 from instawow.shared_ctx import ConfigBoundCtx
 
-from .fixtures.http import Route
+from .fixtures.http import ResponsesMockServer, Route
 
 
 @pytest.mark.usefixtures('_iw_web_client_ctx')
@@ -141,14 +141,14 @@ async def test_install_cannot_replace_reconciled_folders(iw_config_ctx: ConfigBo
 @pytest.mark.usefixtures('_iw_web_client_ctx')
 async def test_install_recognises_renamed_pkg_from_id(
     monkeypatch: pytest.MonkeyPatch,
-    iw_aresponses: aresponses.ResponsesMockServer,
+    iw_aresponses: ResponsesMockServer,
     iw_config_ctx: ConfigBoundCtx,
 ):
     iw_aresponses.add(
-        **Route(
-            '//api.github.com/repos/p3lim-wow/molinarifico',
-            iw_aresponses.Response(status=404),
-        ).to_aresponses_add_args()
+        Route(
+            r'//api\.github\.com/repos/p3lim-wow/molinarifico/?.*',
+            aiohttp.web.Response(status=404),
+        )
     )
 
     old_defn = Defn('github', 'p3lim-wow/molinari')

@@ -3,11 +3,8 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-import aiohttp
-import aiohttp.web
 import pytest
-from aresponses import ResponsesMockServer
-from aresponses.errors import NoRouteFoundError
+from _pytest.fixtures import SubRequest
 from yarl import URL
 
 import instawow._logging
@@ -17,7 +14,7 @@ import instawow.shared_ctx
 from instawow.shared_ctx import ConfigBoundCtx
 from instawow.wow_installations import _DELECTABLE_DIR_NAMES, Flavour
 
-from .fixtures.http import ROUTES
+from .fixtures.http import ROUTES, ResponsesMockServer
 
 
 def pytest_addoption(parser: pytest.Parser):
@@ -42,17 +39,13 @@ def caplog(caplog: pytest.LogCaptureFixture):
     instawow._logging.logger.remove(handler_id)
 
 
-class _StrictResponsesMockServer(ResponsesMockServer):
-    async def _find_response(self, request: aiohttp.web.Request):
-        response = await super()._find_response(request)
-        if response == (None, None):
-            raise NoRouteFoundError(f'No match found for <{request.method} {request.url}>')
-        return response
-
-
 @pytest.fixture
-async def iw_aresponses():
-    async with _StrictResponsesMockServer() as server:
+async def iw_aresponses(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    async with ResponsesMockServer() as server:
+        monkeypatch.setattr('aiohttp.TCPConnector', server.tcp_connector_class)
+        monkeypatch.setattr('aiohttp.ClientRequest.is_ssl', lambda _: False)
         yield server
 
 
@@ -115,7 +108,9 @@ def _iw_global_config_defaults(
 
 
 @pytest.fixture
-async def iw_web_client(iw_global_config: instawow.config.GlobalConfig):
+async def iw_web_client(
+    iw_global_config: instawow.config.GlobalConfig,
+):
     async with instawow.http.init_web_client(iw_global_config.http_cache_dir) as web_client:
         yield web_client
 
@@ -132,9 +127,7 @@ def iw_config_ctx(iw_profile_config: instawow.config.ProfileConfig):
 
 
 @pytest.fixture(autouse=True, params=['all'])
-async def _iw_mock_aiohttp_requests(
-    request: pytest.FixtureRequest, iw_aresponses: _StrictResponsesMockServer
-):
+async def _iw_mock_aiohttp_requests(request: SubRequest, iw_aresponses: ResponsesMockServer):
     if request.config.getoption('--iw-no-mock-http') or any(
         m.name == 'iw_no_mock_http' for m in request.node.iter_markers()
     ):
@@ -150,5 +143,4 @@ async def _iw_mock_aiohttp_requests(
 
         routes = (ROUTES[k] for k in ROUTES.keys() & urls)
 
-    for route in routes:
-        iw_aresponses.add(**route.to_aresponses_add_args())
+    iw_aresponses.add(*routes)

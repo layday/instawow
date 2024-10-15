@@ -36,7 +36,6 @@ dependencies = [
 ]
 optional-dependencies."test" = [
   "anyio >= 4.3.0",
-  "aresponses >= 3",
   "coverage[toml] >= 7.4.3",
   "pytest >= 8",
   "pytest-xdist >= 3.5.0",

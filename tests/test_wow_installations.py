@@ -3,6 +3,7 @@ from __future__ import annotations
 import sys
 from enum import Enum
 from pathlib import Path
+from unittest import mock
 
 import pytest
 
@@ -105,12 +106,7 @@ def test_can_find_mac_installations(
     monkeypatch: pytest.MonkeyPatch,
 ):
     with monkeypatch.context() as patcher:
-
-        def check_output_no_installation(*args, **kwargs):
-            return ''
-
-        patcher.setattr('subprocess.check_output', check_output_no_installation)
-
+        patcher.setattr('subprocess.check_output', mock.Mock(return_value=''))
         assert not list(find_installations())
 
     with monkeypatch.context() as patcher:
@@ -125,11 +121,10 @@ def test_can_find_mac_installations(
             },
         }
 
-        def check_output_has_installations(*args, **kwargs):
-            return '\n'.join(map(str, app_bundle_paths))
-
-        patcher.setattr('subprocess.check_output', check_output_has_installations)
-
+        patcher.setattr(
+            'subprocess.check_output',
+            mock.Mock(return_value='\n'.join(map(str, app_bundle_paths))),
+        )
         assert list(find_installations()) == [(p.parent, f) for p, f in app_bundle_paths.items()]
 
 

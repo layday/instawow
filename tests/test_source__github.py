@@ -1,14 +1,12 @@
 from __future__ import annotations
 
 import logging
-import re
 from io import BytesIO
 from typing import Literal
 from zipfile import ZipFile
 
 import aiohttp.hdrs
 import aiohttp.web
-import aresponses
 import pytest
 from yarl import URL
 
@@ -19,7 +17,7 @@ from instawow.results import PkgFilesMissing, PkgFilesNotMatching, PkgNonexisten
 from instawow.shared_ctx import ConfigBoundCtx
 from instawow.wow_installations import Flavour, FlavourVersionRange
 
-from .fixtures.http import Route
+from .fixtures.http import ResponsesMockServer, Route
 
 
 @pytest.fixture
@@ -60,7 +58,7 @@ ZIPS = {
         'toc_files': {
             '': b'',
         },
-        'flavours': set(),
+        'flavours': set[Flavour](),
     },
     'unflavoured-toc-only-with-interface-version': {
         'toc_files': {
@@ -88,8 +86,8 @@ def package_json_less_addon(
     '_iw_mock_aiohttp_requests',
     [
         {
-            f'//api.github.com/repos/{zip_defn.alias}',
-            f'//api.github.com/repos/{zip_defn.alias}/releases?per_page=10',
+            rf'//api\.github\.com/repos/{zip_defn.alias}',
+            rf'//api\.github\.com/repos/{zip_defn.alias}/releases\?per_page=10',
         }
     ],
     indirect=True,
@@ -101,12 +99,12 @@ def package_json_less_addon(
 )
 @pytest.mark.usefixtures('_iw_web_client_ctx')
 async def test_extracting_flavour_from_zip_contents(
-    iw_aresponses: aresponses.ResponsesMockServer,
+    iw_aresponses: ResponsesMockServer,
     iw_config_ctx: ConfigBoundCtx,
     github_resolver: GithubResolver,
     package_json_less_addon: tuple[bytes, set[Flavour]],
 ):
-    async def handle_request(request: aiohttp.web.Request):
+    async def handle_request(request: aiohttp.web.BaseRequest):
         if aiohttp.hdrs.RANGE in request.headers:
             raise aiohttp.web.HTTPRequestRangeNotSatisfiable
 
@@ -115,11 +113,10 @@ async def test_extracting_flavour_from_zip_contents(
         return response
 
     iw_aresponses.add(
-        **Route(
-            '//api.github.com',
-            path_pattern=re.compile(r'^/repos(/[^/]*){2}/releases/assets/'),
-            response=handle_request,
-        ).to_aresponses_add_args()
+        Route(
+            r'//api\.github\.com/repos(/[^/]*){2}/releases/assets/.*',
+            handle_request,
+        )
     )
 
     addon, flavours = package_json_less_addon
@@ -167,8 +164,8 @@ async def test_nonexistent_repo(
     '_iw_mock_aiohttp_requests',
     [
         {
-            f'//api.github.com/repos/{packager_test_defn.alias}',
-            f'//api.github.com/repos/{packager_test_defn.alias}/releases?per_page=10',
+            rf'//api\.github\.com/repos/{packager_test_defn.alias}',
+            rf'//api\.github\.com/repos/{packager_test_defn.alias}/releases\?per_page=10',
         }
     ],
     indirect=True,
@@ -176,7 +173,7 @@ async def test_nonexistent_repo(
 @pytest.mark.parametrize('any_flavour', [True, None])
 @pytest.mark.usefixtures('_iw_web_client_ctx')
 async def test_any_flavour_strategy(
-    iw_aresponses: aresponses.ResponsesMockServer,
+    iw_aresponses: ResponsesMockServer,
     iw_config_ctx: ConfigBoundCtx,
     github_resolver: GithubResolver,
     any_flavour: Literal[True, None],
@@ -187,10 +184,9 @@ async def test_any_flavour_strategy(
     )
 
     iw_aresponses.add(
-        **Route(
-            '//api.github.com',
-            path_pattern=re.compile(r'^/repos/nebularg/PackagerTest/releases/assets/'),
-            response={
+        Route(
+            r'//api\.github\.com/repos/nebularg/PackagerTest/releases/assets/.*',
+            {
                 'releases': [
                     {
                         'filename': 'TestGit-v1.9.7.zip',
@@ -204,7 +200,7 @@ async def test_any_flavour_strategy(
                     }
                 ]
             },
-        ).to_aresponses_add_args()
+        )
     )
     defn = Defn(
         'github',
@@ -239,8 +235,8 @@ async def test_changelog_is_data_url(
     '_iw_mock_aiohttp_requests',
     [
         {
-            f'//api.github.com/repos/{packager_test_defn.alias}',
-            f'//api.github.com/repos/{packager_test_defn.alias}/releases?per_page=10',
+            rf'//api\.github\.com/repos/{packager_test_defn.alias}',
+            rf'//api\.github\.com/repos/{packager_test_defn.alias}/releases\?per_page=10',
         }
     ],
     indirect=True,
@@ -248,17 +244,16 @@ async def test_changelog_is_data_url(
 @pytest.mark.usefixtures('_iw_web_client_ctx')
 async def test_mismatched_release_is_skipped_and_logged(
     caplog: pytest.LogCaptureFixture,
-    iw_aresponses: aresponses.ResponsesMockServer,
+    iw_aresponses: ResponsesMockServer,
     iw_config_ctx: ConfigBoundCtx,
     github_resolver: GithubResolver,
     flavor: str,
     interface: int,
 ):
     iw_aresponses.add(
-        **Route(
-            '//api.github.com',
-            path_pattern=re.compile(r'^/repos/nebularg/PackagerTest/releases/assets/'),
-            response={
+        Route(
+            r'//api\.github\.com/repos/nebularg/PackagerTest/releases/assets/.*',
+            {
                 'releases': [
                     {
                         'filename': 'TestGit-v1.9.7.zip',
@@ -267,7 +262,7 @@ async def test_mismatched_release_is_skipped_and_logged(
                     }
                 ]
             },
-        ).to_aresponses_add_args()
+        )
     )
 
     with pytest.raises(PkgFilesNotMatching):

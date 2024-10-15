@@ -49,7 +49,7 @@ def test_init_with_nonexistent_addon_dir_raises(
     del values['_installation_dir']
 
     with pytest.raises(ValueError, match='not a writable directory'):
-        ProfileConfig(**{'global_config': global_config, **values, 'addon_dir': '#@$foo'})
+        ProfileConfig(**{**values, 'global_config': global_config, 'addon_dir': '#@$foo'})
 
 
 def test_default_config_dir(
