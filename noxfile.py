@@ -199,11 +199,8 @@ def build_dists(session: nox.Session):
 
 @nox.session
 def publish_dists(session: nox.Session):
-    "Validate and upload dists to PyPI."
-
-    session.install(*_dependency_groups['publish-dists'])
-    session.run('twine', 'check', '--strict', 'dist/instawow/*')
-    session.run('twine', 'upload', '--verbose', 'dist/instawow/*')
+    "Upload dists to PyPI."
+    session.run('uv', 'publish', 'dist/instawow/*.tar.gz', 'dist/instawow/*.whl')
 
 
 @nox.session(python=False)

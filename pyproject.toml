@@ -78,9 +78,6 @@ freeze-gui = [
 lint = [
   { include-group = "format" },
 ]
-publish-dists = [
-  "twine",
-]
 report-coverage = [
   "coverage[toml]",
 ]
