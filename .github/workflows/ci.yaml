@@ -26,15 +26,13 @@ jobs:
       matrix:
         os: [macos-latest, ubuntu-latest, windows-latest]
         python:
-          - version: "3.11"
-          - version: "3.12"
-          - version: "3.13"
-          - version: "3.13"
-            install-version: 3.13t
+          - "3.11"
+          - "3.12"
+          - "3.13"
+          - "3.13t"
         include:
           -  os: ubuntu-latest
-             python:
-              version: "3.10"
+             python: "3.10"
     runs-on: ${{ matrix.os }}
     steps:
       - name: Clone the repo
@@ -46,20 +44,20 @@ jobs:
           path: ./dist
       - name: Install uv
         uses: astral-sh/setup-uv@v3
-      - name: Install Python ${{ matrix.python.install-version || matrix.python.version }}
-        run: uv python install ${{ matrix.python.install-version || matrix.python.version }}
+      - name: Install Python ${{ matrix.python }}
+        run: uv python install ${{ matrix.python }}
       - name: Install nox
         run: uv tool install nox
       - name: Run tests (latest)
         run: >-
           nox
           --error-on-missing-interpreters
-          --force-python ${{ matrix.python.version }}
-          -s 'test-${{ matrix.python.version }}(latest)'
+          --force-python ${{ matrix.python }}
+          -s 'test-${{ matrix.python }}(latest)'
       - name: Upload coverage data
         uses: actions/upload-artifact@v4
         with:
-          name: coverage-data-${{ matrix.os }}-${{ matrix.python.install-version || matrix.python.version }}
+          name: coverage-data-${{ matrix.os }}-${{ matrix.python }}
           path: .coverage.*
           if-no-files-found: ignore
           include-hidden-files: true
@@ -67,8 +65,8 @@ jobs:
         run: >-
           nox
           --error-on-missing-interpreters
-          --force-python ${{ matrix.python.version }}
-          -s 'test-${{ matrix.python.version }}(minimum-versions)'
+          --force-python ${{ matrix.python }}
+          -s 'test-${{ matrix.python }}(minimum-versions)'
   type-check:
     needs: build-packages
     strategy:
@@ -76,13 +74,12 @@ jobs:
       matrix:
         os: [macos-latest, ubuntu-latest, windows-latest]
         python:
-          - version: "3.11"
-          - version: "3.12"
-          - version: "3.13"
+          - "3.11"
+          - "3.12"
+          - "3.13"
         include:
           -  os: ubuntu-latest
-             python:
-              - version: "3.10"
+             python: "3.10"
     runs-on: ${{ matrix.os }}
     steps:
       - name: Clone the repo
@@ -94,8 +91,8 @@ jobs:
           path: ./dist
       - name: Install uv
         uses: astral-sh/setup-uv@v3
-      - name: Install Python ${{ matrix.python.install-version }}
-        run: uv python install ${{ matrix.python.install-version }}
+      - name: Install Python ${{ matrix.python }}
+        run: uv python install ${{ matrix.python }}
       - name: Install nox
         run: uv tool install nox
       - name: Install Node for Pyright
@@ -106,7 +103,7 @@ jobs:
         run: >-
           nox
           --error-on-missing-interpreters
-          --force-python ${{ matrix.python.version }}
+          --force-python ${{ matrix.python }}
           -s type_check
   lint:
     runs-on: ubuntu-latest
