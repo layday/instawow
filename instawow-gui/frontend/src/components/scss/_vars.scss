@@ -1,11 +1,13 @@
+@use "sass:color";
+@use "sass:string";
 @use "sass:math";
 
 $mono-font-stack: Menlo, Monaco, Consolas, monospace;
 
 $base-color-light: rgb(236, 236, 236);
-$inverse-color-light: invert($base-color-light);
-$base-color-dark: rgb(51, 54, 55);
-$inverse-color-dark: invert($base-color-dark);
+$inverse-color-light: color.invert($base-color-light);
+$base-color-dark: rgb(84, 85, 85);
+$inverse-color-dark: color.invert($base-color-dark);
 
 $action-button-bg-color: rgb(24, 136, 255);
 $action-button-focus-bg-color: rgb(0, 104, 217);
@@ -66,6 +68,6 @@ $modal-edge-border-radius: math.div($modal-form-el-line-height, 4);
 }
 
 @function generate-dropdown-arrow($hex-fill) {
-  $fill: "%23" + str-slice(#{$hex-fill}, 2);
+  $fill: "%23" + string.slice(#{$hex-fill}, 2);
   @return url('data:image/svg+xml;utf-8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path fill="#{$fill}" d="M224 416c-8.188 0-16.38-3.125-22.62-9.375l-192-192c-12.5-12.5-12.5-32.75 0-45.25s32.75-12.5 45.25 0L224 338.8l169.4-169.4c12.5-12.5 32.75-12.5 45.25 0s12.5 32.75 0 45.25l-192 192C240.4 412.9 232.2 416 224 416z"></path></svg>');
 }
