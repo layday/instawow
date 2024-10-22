@@ -7,9 +7,6 @@ outputs:
   version:
     value: ${{ steps.get-version.outputs.version }}
 runs:
-  env:
-    UV_PYTHON_DOWNLOADS: never
-    UV_PYTHON_PREFERENCE: only-managed
   using: composite
   steps:
     - name: Install uv
@@ -20,6 +17,9 @@ runs:
     - name: Install nox
       run: uv tool install nox
       shell: bash
+      env:
+        UV_PYTHON_DOWNLOADS: manual
+        UV_PYTHON_PREFERENCE: only-managed
     - name: Install Node
       uses: actions/setup-node@v4
       with:
