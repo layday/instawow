@@ -7,6 +7,9 @@ outputs:
   version:
     value: ${{ steps.get-version.outputs.version }}
 runs:
+  env:
+    UV_PYTHON_DOWNLOADS: never
+    UV_PYTHON_PREFERENCE: only-managed
   using: composite
   steps:
     - name: Install uv

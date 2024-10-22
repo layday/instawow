@@ -6,6 +6,8 @@ concurrency:
   cancel-in-progress: true
 env:
   FORCE_COLOR: "1"
+  UV_PYTHON_DOWNLOADS: never
+  UV_PYTHON_PREFERENCE: only-managed
 defaults:
   run:
     shell: bash
@@ -53,8 +55,10 @@ jobs:
           path: ./dist
       - name: Install uv
         uses: astral-sh/setup-uv@v3
-      - name: Install Python 3.11
-        run: uv python install 3.11
+      - name: Install Python 3.12
+        run: uv python install 3.12
+      - name: Install nox
+        run: uv tool install nox
       - name: Install Rust
         run: rustup update stable
       - name: Install cross-compilation toolchain
@@ -66,8 +70,6 @@ jobs:
         with:
           tool: cross
         if: startsWith(matrix.build-env.os, 'ubuntu-')
-      - name: Install nox
-        run: uv tool install nox
       - name: Freeze the CLI
         id: freeze-cli
         run: nox -s freeze_cli -- --out-dir ./cli
@@ -85,22 +87,12 @@ jobs:
         build-env:
           - os: macos-latest
             target: universal2-apple-darwin
-            python-version: "3.12"
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
-            python-version: "3.12"
-          # Won't work while GHA doesn't support ARM
-          # - os: ubuntu-latest
-          #   target: aarch64-unknown-linux-gnu
-          #   container:
-          #     image: quay.io/pypa/musllinux_1_2_aarch64
-          #     options: --privileged
           - os: windows-latest
             target: x86_64-pc-windows-msvc
-            python-version: "3.12"
       fail-fast: false
     runs-on: ${{ matrix.build-env.os }}
-    container: ${{ matrix.build-env.container }}
     steps:
       - name: Clone the repo
         uses: actions/checkout@v4
@@ -113,27 +105,19 @@ jobs:
           path: ./dist
       - name: Install briefcase Linux dependencies
         run: sudo apt-get update --fix-missing && sudo apt-get install -y flatpak-builder
-        if: matrix.build-env.python-version && startsWith(matrix.build-env.os, 'ubuntu-')
-      - name: Install briefcase Linux dependencies (Alpine)
-        run: apk add flatpak-builder
-        if: matrix.build-env.container
+        if: startsWith(matrix.build-env.os, 'ubuntu-')
       - name: Install uv
         uses: astral-sh/setup-uv@v3
-      - name: Install Python ${{ matrix.build-env.python-version }}
-        run: uv python install ${{ matrix.build-env.python-version }}
-        if: matrix.build-env.python-version
+      - name: Install Python 3.12
+        run: uv python install 3.12
       - name: Install nox
         run: uv tool install nox
-        if: matrix.build-env.python-version
-      - name: Install nox (Alpine)
-        run: /opt/python/cp312-cp312/bin/python -m pip install nox
-        if: matrix.build-env.container
       - name: Freeze the GUI
         run: >-
           nox
           --error-on-missing-interpreters
-          --force-python ${{ matrix.build-env.python-version }}
-          -s freeze_gui-${{ matrix.build-env.python-version }}
+          --force-python 3.12
+          -s freeze_gui-3.12
           --
           ${{ startsWith(github.ref, 'refs/tags/') && '--release' || '' }}
       - name: Upload artifact

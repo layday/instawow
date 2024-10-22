@@ -6,6 +6,8 @@ concurrency:
   cancel-in-progress: true
 env:
   FORCE_COLOR: "1"
+  UV_PYTHON_DOWNLOADS: never
+  UV_PYTHON_PREFERENCE: only-managed
 defaults:
   run:
     shell: bash
