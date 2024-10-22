@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from contextlib import asynccontextmanager
+from contextvars import ContextVar
+from functools import partial
 from pathlib import Path
 from shutil import move
 from tempfile import NamedTemporaryFile
@@ -24,6 +26,9 @@ _DOWNLOAD_PKG_LOCK = '_DOWNLOAD_PKG_'
 
 _AsyncNamedTemporaryFile = run_in_thread(NamedTemporaryFile)
 _move_async = run_in_thread(move)
+
+_use_alt_ssl_context = ContextVar('_use_alt_ssl_context', default=False)
+_alt_ssl_context = http.get_ssl_context(cloudflare_compat=True)
 
 
 @asynccontextmanager
@@ -61,16 +66,32 @@ async def download_pkg_archive(
             )
         }
 
+        make_request = partial(
+            shared_ctx.web_client.get,
+            download_url,
+            headers=headers,
+            trace_request_ctx=trace_request_ctx,
+            expire_after=http.CACHE_INDEFINITELY,
+        )
+        if _use_alt_ssl_context.get():
+            make_request = partial(make_request, ssl=_alt_ssl_context)
+
         async with (
-            shared_ctx.web_client.get(
-                download_url,
-                headers=headers,
-                raise_for_status=True,
-                trace_request_ctx=trace_request_ctx,
-                expire_after=http.CACHE_INDEFINITELY,
-            ) as response,
+            make_request() as response,
             _open_temp_writer_async() as (temp_path, write),
         ):
+            # CloudFlare seems to think the default combination of TLS 1.2 and 1.3
+            # is unacceptable: https://github.com/aio-libs/aiohttp/discussions/9300#discussioncomment-10775829
+            if (
+                not _use_alt_ssl_context.get()
+                and response.status == 403
+                and 'CF-RAY' in response.headers
+            ):
+                _use_alt_ssl_context.set(True)
+                return await download_pkg_archive(config_ctx, defn, download_url)
+
+            response.raise_for_status()
+
             async for chunk, _ in response.content.iter_chunks():
                 await write(chunk)
 

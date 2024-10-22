@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import ssl
 from collections.abc import AsyncIterator
 from contextlib import AbstractAsyncContextManager, AsyncExitStack, asynccontextmanager
 from pathlib import Path
@@ -78,6 +79,16 @@ async def _setup_progress_tracker():
         await cancel_tasks(progress_tickers)
 
 
+def get_ssl_context(cloudflare_compat: bool = False) -> ssl.SSLContext:
+    import truststore
+
+    ssl_context = truststore.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+    if cloudflare_compat:
+        ssl_context.minimum_version = ssl.TLSVersion.TLSv1_3
+
+    return ssl_context
+
+
 @overload
 def init_web_client(
     cache_dir: None, *, no_cache: bool = False, with_progress: bool = False, **kwargs: Any
@@ -92,14 +103,8 @@ def init_web_client(
 async def init_web_client(
     cache_dir: Path | None, *, no_cache: bool = False, with_progress: bool = False, **kwargs: Any
 ) -> AsyncIterator[ClientSession]:
-    import ssl
-
-    import truststore
-
     kwargs = {
-        'connector': aiohttp.TCPConnector(
-            limit_per_host=20, ssl=truststore.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
-        ),
+        'connector': aiohttp.TCPConnector(limit_per_host=20, ssl=get_ssl_context()),
         'headers': {'User-Agent': _USER_AGENT},
         'trust_env': True,  # Respect the ``http(s)_proxy`` env var
         'timeout': aiohttp.ClientTimeout(connect=60, sock_connect=10, sock_read=20),
