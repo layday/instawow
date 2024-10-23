@@ -49,7 +49,7 @@ jobs:
       - name: Install Python ${{ matrix.python }}
         run: uv python install ${{ matrix.python }}
       - name: Install nox
-        run: uv tool install nox
+        run: uv tool install -p ${{ matrix.python }} nox
       - name: Run tests (latest)
         run: >-
           nox
@@ -96,7 +96,7 @@ jobs:
       - name: Install Python ${{ matrix.python }}
         run: uv python install ${{ matrix.python }}
       - name: Install nox
-        run: uv tool install nox
+        run: uv tool install -p ${{ matrix.python }} nox
       - name: Install Node for Pyright
         uses: actions/setup-node@v4
         with:
