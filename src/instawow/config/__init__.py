@@ -5,8 +5,7 @@ import sys
 from collections.abc import Callable, Iterator, Mapping, Sized
 from functools import lru_cache
 from pathlib import Path
-from tempfile import gettempdir
-from typing import NewType, TypeAlias, TypeVar
+from typing import NewType, TypeVar
 
 import attrs
 import cattrs
@@ -96,50 +95,58 @@ def _make_display_converter():
 
 
 def _get_default_config_dir():
-    config_parent_dir = os.environ.get('XDG_CONFIG_HOME')
+    parent_dir = os.environ.get('XDG_CONFIG_HOME')
 
-    if not config_parent_dir:
+    if not parent_dir:
         if sys.platform == 'darwin':
-            config_parent_dir = Path.home() / 'Library' / 'Application Support'
+            parent_dir = Path.home() / 'Library' / 'Application Support'
         elif sys.platform == 'win32':
-            config_parent_dir = os.environ.get('APPDATA')
+            parent_dir = os.environ.get('APPDATA')
 
-    if not config_parent_dir:
-        config_parent_dir = Path.home() / '.config'
+    if not parent_dir:
+        parent_dir = Path.home() / '.config'
 
-    return Path(config_parent_dir, _BOTTOM_DIR_NAME)
+    return Path(parent_dir, _BOTTOM_DIR_NAME)
 
 
-def _get_default_temp_dir():
-    return Path(gettempdir(), f'{_BOTTOM_DIR_NAME}t')
+def _get_default_cache_dir():
+    parent_dir = os.environ.get('XDG_CACHE_HOME')
+
+    if not parent_dir:
+        if sys.platform == 'darwin':
+            parent_dir = Path.home() / 'Library' / 'Caches'
+        elif sys.platform == 'win32':
+            parent_dir = os.environ.get('LOCALAPPDATA')
+
+    if not parent_dir:
+        parent_dir = Path.home() / '.cache'
+
+    return Path(parent_dir, _BOTTOM_DIR_NAME)
 
 
 def _get_default_state_dir():
-    state_parent_dir = os.environ.get('XDG_STATE_HOME')
+    parent_dir = os.environ.get('XDG_STATE_HOME')
 
-    if not state_parent_dir and sys.platform not in {'darwin', 'win32'}:
-        state_parent_dir = Path.home() / '.local' / 'state'
+    if not parent_dir and sys.platform not in {'darwin', 'win32'}:
+        parent_dir = Path.home() / '.local' / 'state'
 
-    if not state_parent_dir:
+    if not parent_dir:
         return _get_default_config_dir()
 
-    return Path(state_parent_dir, _BOTTOM_DIR_NAME)
-
-
-_AccessToken: TypeAlias = SecretStr | None
+    return Path(parent_dir, _BOTTOM_DIR_NAME)
 
 
 @fauxfrozen
 class _AccessTokens:
-    cfcore: _AccessToken = attrs.field(
+    cfcore: SecretStr | None = attrs.field(
         default=None,
         metadata=FieldMetadata(store=True),
     )
-    github: _AccessToken = attrs.field(
+    github: SecretStr | None = attrs.field(
         default=None,
         metadata=FieldMetadata(store=True),
     )
-    wago_addons: _AccessToken = attrs.field(
+    wago_addons: SecretStr | None = attrs.field(
         default=None,
         metadata=FieldMetadata(store=True),
     )
@@ -152,8 +159,8 @@ class GlobalConfig:
         converter=_expand_path,
         metadata=FieldMetadata(env=True),
     )
-    temp_dir: Path = attrs.field(
-        factory=_get_default_temp_dir,
+    cache_dir: Path = attrs.field(
+        factory=_get_default_cache_dir,
         converter=_expand_path,
         metadata=FieldMetadata(env=True),
     )
@@ -203,9 +210,8 @@ class GlobalConfig:
         ensure_dirs(
             [
                 self.config_dir,
-                self.temp_dir,
-                self.state_dir,
                 self.cache_dir,
+                self.state_dir,
                 self.http_cache_dir,
                 self.install_cache_dir,
             ]
@@ -218,20 +224,16 @@ class GlobalConfig:
         return self
 
     @property
-    def cache_dir(self) -> Path:
-        return self.temp_dir / 'cache'
-
-    @property
     def http_cache_dir(self) -> Path:
-        return self.temp_dir / 'cache' / '_http'
+        return self.cache_dir / '_http'
 
     @property
     def install_cache_dir(self) -> Path:
-        return self.temp_dir / 'cache' / '_install'
+        return self.cache_dir / '_install'
 
     @property
     def plugins_cache_dir(self) -> Path:
-        return self.temp_dir / 'cache' / 'plugins'
+        return self.cache_dir / 'plugins'
 
     @property
     def config_file(self) -> Path:
@@ -310,7 +312,7 @@ class ProfileConfig:
         return self
 
     def delete(self) -> None:
-        trash((self.config_dir,), dest=self.global_config.temp_dir, missing_ok=True)
+        trash((self.config_dir,), dest=self.global_config.cache_dir, missing_ok=True)
 
     @property
     def config_dir(self) -> Path:

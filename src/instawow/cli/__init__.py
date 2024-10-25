@@ -1246,9 +1246,23 @@ def configure(
     return config
 
 
+@cli.group('cache')
+def _cache_group():
+    "Manage the cache."
+
+
+@_cache_group.command('clear')
+@click.pass_obj
+def cache_clear(config_ctx: ConfigBoundCtxProxy):
+    "Clear the instawow cache."
+    import shutil
+
+    shutil.rmtree(config_ctx.config.global_config.cache_dir)
+
+
 @cli.group('debug')
 def _debug_group():
-    "Retrieve debugging information."
+    "Debug instawow."
 
 
 @_debug_group.command('config')

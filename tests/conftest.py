@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 from typing import Any
+from unittest import mock
 
 import pytest
 from _pytest.fixtures import SubRequest
@@ -45,7 +46,7 @@ async def iw_aresponses(
 ):
     async with ResponsesMockServer() as server:
         monkeypatch.setattr('aiohttp.TCPConnector', server.tcp_connector_class)
-        monkeypatch.setattr('aiohttp.ClientRequest.is_ssl', lambda _: False)
+        monkeypatch.setattr('aiohttp.ClientRequest.is_ssl', mock.Mock(return_value=False))
         yield server
 
 
@@ -53,7 +54,7 @@ async def iw_aresponses(
 def iw_global_config_values(request: pytest.FixtureRequest, tmp_path: Path):
     return {
         'config_dir': tmp_path / '__config__' / 'config',
-        'temp_dir': tmp_path / '__config__' / 'temp',
+        'cache_dir': tmp_path / '__config__' / 'cache',
         'state_dir': tmp_path / '__config__' / 'state',
         'access_tokens': {
             'cfcore': request.param,
@@ -103,7 +104,7 @@ def _iw_global_config_defaults(
     monkeypatch: pytest.MonkeyPatch,
     iw_global_config_values: dict[str, Any],
 ):
-    for key in 'config_dir', 'temp_dir', 'state_dir':
+    for key in 'config_dir', 'cache_dir', 'state_dir':
         monkeypatch.setenv(f'INSTAWOW_{key.upper()}', str(iw_global_config_values[key]))
 
 

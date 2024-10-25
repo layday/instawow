@@ -38,7 +38,7 @@ export type Profiles = Profile[];
 export type GlobalConfig = {
   config_dir: string;
   auto_update_check: boolean;
-  temp_dir: string;
+  cache_dir: string;
   access_tokens: {
     cfcore: string | null;
     github: string | null;

@@ -306,7 +306,7 @@ def _install_pkg(
         if replace_folders:
             trash(
                 (config_ctx.config.addon_dir / f for f in top_level_folders),
-                dest=config_ctx.config.global_config.temp_dir,
+                dest=config_ctx.config.global_config.cache_dir,
                 missing_ok=True,
             )
         else:
@@ -362,7 +362,7 @@ def _update_pkg(
 
         trash(
             (config_ctx.config.addon_dir / f.name for f in old_pkg.folders),
-            dest=config_ctx.config.global_config.temp_dir,
+            dest=config_ctx.config.global_config.cache_dir,
             missing_ok=True,
         )
         extract(config_ctx.config.addon_dir)
@@ -382,7 +382,7 @@ def _remove_pkg(config_ctx: shared_ctx.ConfigBoundCtx, pkg: pkg_models.Pkg, *, k
     if not keep_folders:
         trash(
             (config_ctx.config.addon_dir / f.name for f in pkg.folders),
-            dest=config_ctx.config.global_config.temp_dir,
+            dest=config_ctx.config.global_config.cache_dir,
             missing_ok=True,
         )
 

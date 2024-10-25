@@ -16,7 +16,7 @@ import prompt_toolkit.output
 import pytest
 
 from instawow.cli import cli
-from instawow.config import ProfileConfig
+from instawow.config import GlobalConfig, ProfileConfig
 
 Run: TypeAlias = Callable[[str], click.testing.Result]
 
@@ -610,7 +610,7 @@ def test_exit_codes_with_substr_match(
     command: str,
     exit_code: int,
 ):
-    monkeypatch.setattr('instawow._utils.file.reveal_folder', lambda *_, **__: ...)
+    monkeypatch.setattr('instawow._utils.file.reveal_folder', mock.MagicMock())
     assert install_molinari_and_run(command).exit_code == exit_code
 
 
@@ -644,3 +644,12 @@ def test_plugin_hook_command_can_be_invoked(
 ):
     pytest.importorskip('instawow_test_plugin')
     assert run('plugins foo').output == 'success!\n'
+
+
+def test_clear_cache(
+    iw_global_config: GlobalConfig,
+    run: Run,
+):
+    assert iw_global_config.cache_dir.is_dir()
+    assert run('cache clear').exit_code == 0
+    assert not iw_global_config.cache_dir.is_dir()
