@@ -1,6 +1,17 @@
 Changelog
 =========
 
+v4.8.0
+------
+
+- Work around WoWI TLS sniffing causing download errors.
+- Drop $TMPDIR in preference of the XDG cache dir.
+
+CLI
+~~~
+
+- Add new ``cache clear`` command.
+
 v4.7.0
 ------
 
