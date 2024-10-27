@@ -4,16 +4,19 @@
 
 :root {
   --base-color: #{vars.$base-color-light};
-  --base-color-tone-a: #{color.adjust(vars.$base-color-light, $lightness: 5%)};
-  --base-color-tone-a-alpha-85: #{rgba(color.adjust(vars.$base-color-light, $lightness: 5%), 0.85)};
+  --base-color-tone-a: #{color.adjust(vars.$base-color-light, $lightness: 5%, $space: hsl)};
+  --base-color-tone-a-alpha-85: #{rgba(
+      color.adjust(vars.$base-color-light, $lightness: 5%, $space: hsl),
+      0.85
+    )};
   --base-color-tone-b: #{rgba(vars.$inverse-color-light, 0.1)};
   --base-color-alpha-65: #{rgba(vars.$base-color-light, 0.65)};
   --inverse-color: #{vars.$inverse-color-light};
   --inverse-color-alpha-05: #{rgba(vars.$inverse-color-light, 0.05)};
   --inverse-color-alpha-10: #{rgba(vars.$inverse-color-light, 0.1)};
   --inverse-color-alpha-20: #{rgba(vars.$inverse-color-light, 0.2)};
-  --inverse-color-tone-a: #{color.adjust(vars.$inverse-color-light, $lightness: 10%)};
-  --inverse-color-tone-b: #{color.adjust(vars.$inverse-color-light, $lightness: 20%)};
+  --inverse-color-tone-a: #{color.adjust(vars.$inverse-color-light, $lightness: 10%, $space: hsl)};
+  --inverse-color-tone-b: #{color.adjust(vars.$inverse-color-light, $lightness: 20%, $space: hsl)};
   --dropdown-arrow: #{vars.generate-dropdown-arrow(vars.$inverse-color-light)};
   --alert-background-color: #{rgba(salmon, 0.5)};
 }
@@ -21,7 +24,7 @@
 @media (prefers-color-scheme: dark) {
   :root {
     --base-color: #{vars.$base-color-dark};
-    --base-color-tone-a: #{color.adjust(vars.$base-color-dark, $lightness: -2%)};
+    --base-color-tone-a: #{color.adjust(vars.$base-color-dark, $lightness: -3%)};
     --base-color-tone-a-alpha-85: #{rgba(
         color.adjust(vars.$base-color-dark, $lightness: -2%),
         0.85

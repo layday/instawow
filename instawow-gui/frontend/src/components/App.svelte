@@ -101,6 +101,7 @@
     display: flex;
     flex-direction: column;
     height: 100vh;
+    background-color: var(--base-color-tone-a);
   }
 
   .menubar {
@@ -124,7 +125,6 @@
     @extend %stretch-vertically;
     padding: 0;
     z-index: 5;
-    background-color: var(--base-color-tone-a);
     border-top: 4px solid var(--random-border-color);
   }
 
