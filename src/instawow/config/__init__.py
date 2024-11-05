@@ -13,6 +13,7 @@ import cattrs.gen
 import cattrs.preconf.json
 from typing_extensions import Self
 
+from .. import NAME
 from .._utils.compat import add_exc_note, fauxfrozen
 from .._utils.file import trash
 from ..wow_installations import Flavour, get_installation_dir_from_addon_dir
@@ -28,9 +29,6 @@ from ._helpers import config_converter as config_converter
 
 _T = TypeVar('_T')
 _TSized = TypeVar('_TSized', bound=Sized)
-
-
-_BOTTOM_DIR_NAME = 'instawow'
 
 
 SecretStr = NewType('SecretStr', str)
@@ -106,7 +104,7 @@ def _get_default_config_dir():
     if not parent_dir:
         parent_dir = Path.home() / '.config'
 
-    return Path(parent_dir, _BOTTOM_DIR_NAME)
+    return Path(parent_dir, NAME)
 
 
 def _get_default_cache_dir():
@@ -121,7 +119,7 @@ def _get_default_cache_dir():
     if not parent_dir:
         parent_dir = Path.home() / '.cache'
 
-    return Path(parent_dir, _BOTTOM_DIR_NAME)
+    return Path(parent_dir, NAME)
 
 
 def _get_default_state_dir():
@@ -133,7 +131,7 @@ def _get_default_state_dir():
     if not parent_dir:
         return _get_default_config_dir()
 
-    return Path(parent_dir, _BOTTOM_DIR_NAME)
+    return Path(parent_dir, NAME)
 
 
 @fauxfrozen

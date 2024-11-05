@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import TypedDict
 
-from . import config
+from . import NAME, config
 
 
 class _SimpleApiProject(TypedDict):
@@ -13,7 +13,7 @@ def get_version() -> str:
     import importlib.metadata
 
     try:
-        return importlib.metadata.version(__spec__.parent)
+        return importlib.metadata.version(NAME)
     except importlib.metadata.PackageNotFoundError:
         return '0+dev'
 

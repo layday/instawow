@@ -2,4 +2,6 @@ from __future__ import annotations
 
 from . import _import_wrapper
 
-__getattr__ = _import_wrapper.__getattr__
+NAME = __spec__.parent
+
+__getattr__ = _import_wrapper.make_getattr(NAME)

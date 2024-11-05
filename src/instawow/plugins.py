@@ -7,13 +7,12 @@ from typing import Protocol
 import click
 import pluggy
 
-from . import resolvers
+from . import NAME, resolvers
 
-_project_name = __spec__.parent
-_entry_point = f'{_project_name}.plugins'
+_entry_point = f'{NAME}.plugins'
 
-hookspec = pluggy.HookspecMarker(_project_name)
-hookimpl = pluggy.HookimplMarker(_project_name)
+hookspec = pluggy.HookspecMarker(NAME)
+hookimpl = pluggy.HookimplMarker(NAME)
 
 
 class InstawowPlugin(Protocol):  # pragma: no cover
@@ -32,7 +31,7 @@ class InstawowPlugin(Protocol):  # pragma: no cover
 
 @lru_cache(1)
 def _load_plugins():
-    plugin_manager = pluggy.PluginManager(_project_name)
+    plugin_manager = pluggy.PluginManager(NAME)
     plugin_manager.add_hookspecs(InstawowPlugin)
     plugin_manager.load_setuptools_entrypoints(_entry_point)
     return plugin_manager.hook

@@ -16,7 +16,7 @@ from instawow.config._helpers import (
     write_config,
 )
 
-_plugin_name = __spec__.parent
+from . import NAME
 
 
 @fauxfrozen
@@ -32,7 +32,7 @@ class PluginConfig:
     profile_config: ProfileConfig
     access_tokens: _AccessTokens = attrs.field(
         default=_AccessTokens(),
-        metadata=FieldMetadata(env=_plugin_name, preparse_from_env=True, store=True),
+        metadata=FieldMetadata(env=NAME, preparse_from_env=True, store=True),
     )
 
     @classmethod
@@ -71,11 +71,11 @@ class PluginConfig:
 
     @property
     def cache_dir(self) -> Path:
-        return self.profile_config.global_config.plugins_cache_dir / _plugin_name
+        return self.profile_config.global_config.plugins_cache_dir / NAME
 
     @property
     def config_dir(self) -> Path:
-        return self.profile_config.global_config.plugins_config_dir / _plugin_name
+        return self.profile_config.global_config.plugins_config_dir / NAME
 
     @property
     def profile_cache_dir(self) -> Path:
