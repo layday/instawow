@@ -144,6 +144,7 @@ exclude_also = [
 ]
 
 [tool.pytest.ini_options]
+testpaths = ["tests"]
 markers = [
   "iw_no_mock_http",
 ]
@@ -153,3 +154,4 @@ filterwarnings = [
   'ignore:datetime\.datetime\.utcnow\(\) is deprecated:DeprecationWarning:aiohttp_client_cache',
 ]
 addopts = ["-ra", "--strict-config", "--strict-markers"]
+log_cli_level = "INFO"
