@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-from collections.abc import AsyncIterator, Collection, Sequence
+from collections.abc import Collection, Sequence
 from datetime import datetime, timedelta, timezone
 from itertools import takewhile
 from typing import Literal
@@ -10,7 +10,7 @@ from typing_extensions import NotRequired as N
 from typing_extensions import TypedDict
 from yarl import URL
 
-from .. import pkg_models, shared_ctx
+from .. import shared_ctx
 from .._logging import logger
 from .._progress_reporting import make_default_progress
 from .._utils.aio import gather
@@ -20,7 +20,7 @@ from .._utils.web import as_plain_text_data_url
 from ..catalogue.cataloguer import CatalogueEntry
 from ..definitions import ChangelogFormat, Defn, SourceMetadata
 from ..resolvers import BaseResolver, PkgCandidate
-from ..results import AnyResult, PkgNonexistent, aresultify
+from ..results import PkgNonexistent, aresultify
 from ..wow_installations import Flavour, FlavourVersionRange
 
 _LOAD_WOWI_CATALOGUE_LOCK = (object(), '_LOAD_WOWI_CATALOGUE_LOCK_')
@@ -101,7 +101,7 @@ class WowiResolver(BaseResolver):
     __details_api_url = URL('https://api.mmoui.com/v3/game/WOW/filedetails/')
 
     @classmethod
-    def get_alias_from_url(cls, url: URL) -> str | None:
+    def get_alias_from_url(cls, url: URL):
         if (
             url.host in {'wowinterface.com', 'www.wowinterface.com'}
             and len(url.parts) == 3
@@ -148,7 +148,7 @@ class WowiResolver(BaseResolver):
 
             return {i['UID']: i for i in await response.json()}
 
-    async def resolve(self, defns: Sequence[Defn]) -> dict[Defn, AnyResult[pkg_models.Pkg]]:
+    async def resolve(self, defns: Sequence[Defn]):
         defns_to_ids = {d: ''.join(takewhile(str.isdigit, d.alias)) for d in defns}
 
         addons = await self.__get_addons()
@@ -167,7 +167,7 @@ class WowiResolver(BaseResolver):
         )
         return dict(zip(defns, results))
 
-    async def _resolve_one(self, defn: Defn, metadata: _WowiCombinedItem | None) -> PkgCandidate:
+    async def _resolve_one(self, defn: Defn, metadata: _WowiCombinedItem | None):
         if metadata is None:
             raise PkgNonexistent
 
@@ -184,7 +184,7 @@ class WowiResolver(BaseResolver):
         )
 
     @classmethod
-    async def catalogue(cls) -> AsyncIterator[CatalogueEntry]:
+    async def catalogue(cls):
         logger.debug(f'retrieving {cls.__list_api_url}')
 
         async with shared_ctx.web_client.get(

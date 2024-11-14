@@ -72,14 +72,14 @@ class WagoResolver(BaseResolver):
     __wago_external_api_url = URL('https://addons.wago.io/api/external')
 
     @classmethod
-    def get_alias_from_url(cls, url: URL) -> str | None:
+    def get_alias_from_url(cls, url: URL):
         if url.host == 'addons.wago.io' and len(url.parts) > 2 and url.parts[1] == 'addons':
             return url.parts[2]
 
-    def make_request_headers(self, intent: HeadersIntent | None = None) -> dict[str, str]:
+    def make_request_headers(self, intent: HeadersIntent | None = None):
         return {'Authorization': f'Bearer {self.access_token.get()}'}
 
-    async def _resolve_one(self, defn: Defn, metadata: None) -> PkgCandidate:
+    async def _resolve_one(self, defn: Defn, metadata: None):
         async with shared_ctx.web_client.get(
             (self.__wago_external_api_url / 'addons' / defn.alias).with_query(
                 game_version=self._config.game_flavour.to_flavour_keyed_enum(_WagoGameVersion)

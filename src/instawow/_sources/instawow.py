@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from collections.abc import AsyncIterator
 from datetime import datetime, timezone
 
 from .._utils.aio import run_in_thread
@@ -26,7 +25,7 @@ class InstawowResolver(BaseResolver):
     )
     access_token = None
 
-    async def _resolve_one(self, defn: Defn, metadata: None) -> PkgCandidate:
+    async def _resolve_one(self, defn: Defn, metadata: None):
         from instawow_wa_updater._config import PluginConfig
         from instawow_wa_updater._core import WaCompanionBuilder
 
@@ -56,7 +55,7 @@ class InstawowResolver(BaseResolver):
         )
 
     @classmethod
-    async def catalogue(cls) -> AsyncIterator[CatalogueEntry]:
+    async def catalogue(cls):
         yield CatalogueEntry(
             source=cls.metadata.id,
             id='1',

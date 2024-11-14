@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import os
-from collections.abc import AsyncIterator, Callable, Iterator, Sequence
+from collections.abc import Callable, Iterator, Sequence
 from datetime import timedelta
 from enum import IntEnum
 from functools import partial
@@ -22,7 +22,7 @@ from ..catalogue.cataloguer import CatalogueEntry
 from ..config import GlobalConfig
 from ..definitions import ChangelogFormat, Defn, SourceMetadata, Strategy
 from ..resolvers import BaseResolver, HeadersIntent, PkgCandidate
-from ..results import AnyResult, PkgFilesMissing, PkgFilesNotMatching, PkgNonexistent, aresultify
+from ..results import PkgFilesMissing, PkgFilesNotMatching, PkgNonexistent, aresultify
 from ..wow_installations import Flavour
 from ._access_tokens import AccessToken
 
@@ -268,7 +268,7 @@ class CfCoreResolver(BaseResolver):
     __mod_api_url = URL(_alternative_api_url or 'https://api.curseforge.com/v1').joinpath('mods')
 
     @classmethod
-    def get_alias_from_url(cls, url: URL) -> str | None:
+    def get_alias_from_url(cls, url: URL):
         if (
             url.host == 'www.curseforge.com'
             and len(url.parts) > 3
@@ -276,13 +276,13 @@ class CfCoreResolver(BaseResolver):
         ):
             return url.parts[3].lower()
 
-    def make_request_headers(self, intent: HeadersIntent | None = None) -> dict[str, str] | None:
+    def make_request_headers(self, intent: HeadersIntent | None = None):
         if self.access_token.required and intent is not HeadersIntent.Download:
             maybe_access_token = self.access_token.get()
             if maybe_access_token:
                 return {'x-api-key': maybe_access_token}
 
-    async def resolve(self, defns: Sequence[Defn]) -> dict[Defn, AnyResult[pkg_models.Pkg]]:
+    async def resolve(self, defns: Sequence[Defn]):
         numeric_ids = uniq(i for d in defns if (i := d.id or d.alias).isdigit())
         if not numeric_ids:
             return await super().resolve(defns)  # Fast path.
@@ -303,7 +303,7 @@ class CfCoreResolver(BaseResolver):
         )
         return dict(zip(defns, results))
 
-    async def _resolve_one(self, defn: Defn, metadata: _CfCoreMod | None) -> PkgCandidate:
+    async def _resolve_one(self, defn: Defn, metadata: _CfCoreMod | None):
         if metadata is None:
             if defn.alias.isdigit():
                 async with shared_ctx.web_client.get(
@@ -441,7 +441,7 @@ class CfCoreResolver(BaseResolver):
             ],
         )
 
-    async def get_changelog(self, uri: URL) -> str:
+    async def get_changelog(self, uri: URL):
         async with shared_ctx.web_client.get(
             uri,
             expire_after=http.CACHE_INDEFINITELY,
@@ -452,7 +452,7 @@ class CfCoreResolver(BaseResolver):
             return response_json['data']
 
     @classmethod
-    async def catalogue(cls) -> AsyncIterator[CatalogueEntry]:
+    async def catalogue(cls):
         from aiohttp import ClientTimeout
 
         flavours_and_version_types = [

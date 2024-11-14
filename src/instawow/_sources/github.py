@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import AsyncIterator, Sequence
+from collections.abc import Sequence
 from datetime import datetime, timedelta
 from itertools import product, tee, zip_longest
 from typing import Any, Literal
@@ -99,11 +99,11 @@ class GithubResolver(BaseResolver):
     )
 
     @classmethod
-    def get_alias_from_url(cls, url: URL) -> str | None:
+    def get_alias_from_url(cls, url: URL):
         if url.host == 'github.com' and len(url.parts) > 2:
             return '/'.join(url.parts[1:3])
 
-    def make_request_headers(self, intent: HeadersIntent | None = None) -> dict[str, str]:
+    def make_request_headers(self, intent: HeadersIntent | None = None):
         headers = dict[str, str]()
 
         headers['X-GitHub-Api-Version'] = '2022-11-28'
@@ -383,7 +383,7 @@ class GithubResolver(BaseResolver):
             if asset:
                 return (release, asset)
 
-    async def _resolve_one(self, defn: Defn, metadata: None) -> PkgCandidate:
+    async def _resolve_one(self, defn: Defn, metadata: None):
         github_headers = self.make_request_headers()
 
         id_or_alias = defn.id or defn.alias
@@ -498,7 +498,7 @@ class GithubResolver(BaseResolver):
         )
 
     @classmethod
-    async def catalogue(cls) -> AsyncIterator[CatalogueEntry]:
+    async def catalogue(cls):
         import csv
         from io import StringIO
 

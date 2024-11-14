@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from collections.abc import AsyncIterator
 from datetime import datetime, timedelta, timezone
 
 from typing_extensions import TypedDict
@@ -50,7 +49,7 @@ class TukuiResolver(BaseResolver):
 
     __api_url = URL('https://api.tukui.org/v1/')
 
-    async def _resolve_one(self, defn: Defn, metadata: None) -> PkgCandidate:
+    async def _resolve_one(self, defn: Defn, metadata: None):
         async with shared_ctx.web_client.get(
             self.__api_url / 'addon' / defn.alias,
             expire_after=timedelta(minutes=5),
@@ -83,7 +82,7 @@ class TukuiResolver(BaseResolver):
         )
 
     @classmethod
-    async def catalogue(cls) -> AsyncIterator[CatalogueEntry]:
+    async def catalogue(cls):
         url = cls.__api_url / 'addons'
         logger.debug(f'retrieving {url}')
 
