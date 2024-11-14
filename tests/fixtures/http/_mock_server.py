@@ -93,7 +93,7 @@ class ResponsesMockServer(RawTestServer):
                     {
                         'hostname': host,
                         'host': '127.0.0.1',
-                        'port': self.port,  # pyright: ignore[reportUnknownMemberType]
+                        'port': self.port,
                         'family': _self._family,
                         'proto': 0,
                         'flags': 0,
