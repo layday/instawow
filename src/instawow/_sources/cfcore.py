@@ -40,16 +40,16 @@ class _CfCoreModLinks(TypedDict):
 
 
 class _CfCoreModStatus(IntEnum):
-    new = 1
-    changed_required = 2
-    under_soft_review = 3
-    approved = 4
-    rejected = 5
-    changes_made = 6
-    inactive = 7
-    abandoned = 8
-    deleted = 9
-    under_review = 10
+    New = 1
+    ChangesRequired = 2
+    UnderSoftReview = 3
+    Approved = 4
+    Rejected = 5
+    ChangesMade = 6
+    Inactive = 7
+    Abandoned = 8
+    Deleted = 9
+    UnderReview = 10
 
 
 class _CfCoreCategory(TypedDict):
@@ -90,32 +90,32 @@ class _CfCoreFileIndex(TypedDict):
 
 
 class _CfCoreFileStatus(IntEnum):
-    processing = 1
-    changes_required = 2
-    under_review = 3
-    approved = 4
-    rejected = 5
-    malware_detected = 6
-    deleted = 7
-    archived = 8
-    testing = 9
-    released = 10
-    ready_for_review = 11
-    deprecated = 12
-    baking = 13
-    awaiting_publishing = 14
-    failed_publishing = 15
+    Processing = 1
+    ChangesRequired = 2
+    UnderReview = 3
+    Approved = 4
+    Rejected = 5
+    MalwareDetected = 6
+    Deleted = 7
+    Archived = 8
+    Testing = 9
+    Released = 10
+    ReadyForReview = 11
+    Deprecated = 12
+    Baking = 13
+    AwaitingPublishing = 14
+    FailedPublishing = 15
 
 
 class _CfCoreFileReleaseType(IntEnum):
-    release = 1
-    beta = 2
-    alpha = 3
+    Release = 1
+    Beta = 2
+    Alpha = 3
 
 
 class _CfCoreHashAlgo(IntEnum):
-    sha1 = 1
-    md5 = 2
+    Sha1 = 1
+    Md5 = 2
 
 
 class _CfCoreFileHash(TypedDict):
@@ -141,12 +141,12 @@ class _CfCoreSortableGameVersion(TypedDict):
 
 
 class _CfCoreFileRelationType(IntEnum):
-    embedded_library = 1
-    optional_dependency = 2
-    required_dependency = 3
-    tool = 4
-    incompatible = 5
-    include = 6
+    EmbeddedLibrary = 1
+    OptionalDependency = 2
+    RequiredDependency = 3
+    Tool = 4
+    Incompatible = 5
+    Include = 6
 
 
 class _CfCoreFileDependency(TypedDict):
@@ -211,14 +211,18 @@ class _CfCoreMod(TypedDict):
 
 
 class _CfCoreModsSearchSortField(IntEnum):
-    featured = 1
-    popularity = 2
-    last_updated = 3
-    name_ = 4
-    author = 5
-    total_downloads = 6
-    category = 7
-    game_version = 8
+    Featured = 1
+    Popularity = 2
+    LastUpdated = 3
+    Name = 4
+    Author = 5
+    TotalDownloads = 6
+    Category = 7
+    GameVersion = 8
+    EarlyAccess = 9
+    FeaturedReleased = 10
+    ReleasedDate = 11
+    Rating = 12
 
 
 class _CfCoreResponsePagination(TypedDict):
@@ -372,7 +376,7 @@ class CfCoreResolver(BaseResolver):
         any_release_type = True
         if not defn.strategies[Strategy.AnyReleaseType]:
             any_release_type = not any(
-                f['releaseType'] == _CfCoreFileReleaseType.release for f in files
+                f['releaseType'] == _CfCoreFileReleaseType.Release for f in files
             )
 
         desired_flavour_groups = self._config.game_flavour.get_flavour_groups(
@@ -395,7 +399,7 @@ class CfCoreResolver(BaseResolver):
                     )
 
                 if not any_release_type:
-                    yield lambda f: f['releaseType'] == _CfCoreFileReleaseType.release
+                    yield lambda f: f['releaseType'] == _CfCoreFileReleaseType.Release
 
             filter_fns = list(make_filter_fns(desired_flavours))
             try:
@@ -433,7 +437,7 @@ class CfCoreResolver(BaseResolver):
             deps=[
                 pkg_models.PkgDep(id=str(d['modId']))
                 for d in file['dependencies']
-                if d['relationType'] == _CfCoreFileRelationType.required_dependency
+                if d['relationType'] == _CfCoreFileRelationType.RequiredDependency
             ],
         )
 
@@ -483,7 +487,7 @@ class CfCoreResolver(BaseResolver):
         for offset in range(0, MAX_OFFSET, STEP):
             url = (cls.__mod_api_url / 'search').with_query(
                 gameId=_CF_WOW_GAME_ID,
-                sortField=_CfCoreModsSearchSortField.last_updated,
+                sortField=_CfCoreModsSearchSortField.LastUpdated,
                 sortOrder='desc',
                 pageSize=STEP,
                 index=offset,
