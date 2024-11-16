@@ -28,13 +28,14 @@ jobs:
       matrix:
         os: [macos-latest, ubuntu-latest, windows-latest]
         python:
-          - "3.11"
           - "3.12"
           - "3.13"
           # - "3.13t"
         include:
           - os: ubuntu-latest
             python: "3.10"
+          - os: ubuntu-latest
+            python: "3.11"
     runs-on: ${{ matrix.os }}
     steps:
       - name: Clone the repo
@@ -76,12 +77,13 @@ jobs:
       matrix:
         os: [macos-latest, ubuntu-latest, windows-latest]
         python:
-          - "3.11"
           - "3.12"
           - "3.13"
         include:
           - os: ubuntu-latest
             python: "3.10"
+          - os: ubuntu-latest
+            python: "3.11"
     runs-on: ${{ matrix.os }}
     steps:
       - name: Clone the repo
