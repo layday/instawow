@@ -117,13 +117,14 @@ jobs:
       - name: Install Python 3.12
         run: uv python install 3.12
       - name: Install nox
-        run: uv tool install nox
+        run: uv tool install -p 3.12 nox
       - name: Install Node for Prettier
         uses: actions/setup-node@v4
         with:
           node-version: "20"
       - name: Lint
         run: nox -s lint
+
   # Nicked from attrs.
   coverage:
     runs-on: ubuntu-latest
@@ -141,7 +142,7 @@ jobs:
       - name: Install Python 3.12
         run: uv python install 3.12
       - name: Install nox
-        run: uv tool install nox
+        run: uv tool install -p 3.12 nox
       - name: Produce coverage report
         run: |
           nox -s report_coverage

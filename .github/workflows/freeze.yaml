@@ -58,7 +58,7 @@ jobs:
       - name: Install Python 3.12
         run: uv python install 3.12
       - name: Install nox
-        run: uv tool install nox
+        run: uv tool install -p 3.12 nox
       - name: Install Rust
         run: rustup update stable
       - name: Install cross-compilation toolchain
@@ -111,7 +111,7 @@ jobs:
       - name: Install Python 3.12
         run: uv python install 3.12
       - name: Install nox
-        run: uv tool install nox
+        run: uv tool install -p 3.12 nox
       - name: Freeze the GUI
         run: >-
           nox

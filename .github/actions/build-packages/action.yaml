@@ -15,7 +15,7 @@ runs:
       run: uv python install ${{ inputs.python-version }}
       shell: bash
     - name: Install nox
-      run: uv tool install nox
+      run: uv tool install -p ${{ inputs.python-version }} nox
       shell: bash
       env:
         UV_PYTHON_DOWNLOADS: manual
