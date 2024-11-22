@@ -53,10 +53,9 @@ def make_default_progress(*, type_: Literal['generic', 'download'], label: str, 
 _TProgress = TypeVar('_TProgress', bound=Progress[Any, Any], default=Never)
 ReadOnlyProgressGroup: TypeAlias = Mapping[int, DownloadProgress | GenericProgress | _TProgress]
 
-progress_notifiers = contextvars.ContextVar(
-    'progress_notifiers',
-    default=set[Callable[[int, Progress[Any, Any] | Literal['unset']], None]](),
-)
+progress_notifiers = contextvars.ContextVar[
+    frozenset[Callable[[int, Progress[Any, Any] | Literal['unset']], None]]
+]('progress_notifiers', default=frozenset())
 
 _progress_id_gen = count()
 
