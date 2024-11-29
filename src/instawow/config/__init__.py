@@ -5,16 +5,15 @@ import sys
 from collections.abc import Callable, Iterator, Mapping, Sized
 from functools import lru_cache
 from pathlib import Path
-from typing import NewType, TypeVar
+from typing import NewType, Self, TypeVar
 
 import attrs
 import cattrs
 import cattrs.gen
 import cattrs.preconf.json
-from typing_extensions import Self
 
 from .. import NAME
-from .._utils.compat import add_exc_note, fauxfrozen
+from .._utils.attrs import fauxfrozen
 from .._utils.file import trash
 from ..wow_installations import Flavour, get_installation_dir_from_addon_dir
 from ._helpers import (
@@ -50,7 +49,7 @@ def _enrich_validator_exc(validator: Callable[[object, attrs.Attribute[_T], _T],
             validator(model, attr, value)
         except BaseException as exc:
             note = f'Structuring class {model.__class__.__name__} @ attribute {attr.name}'
-            add_exc_note(exc, cattrs.AttributeValidationNote(note, attr.name, attr.type))
+            exc.add_note(cattrs.AttributeValidationNote(note, attr.name, attr.type))
             raise
 
     return wrapper

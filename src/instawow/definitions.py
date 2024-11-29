@@ -1,14 +1,14 @@
 from __future__ import annotations
 
 from collections.abc import Collection, Hashable, Iterator, Mapping
+from enum import StrEnum
 from functools import partial
-from typing import Literal, overload
+from typing import Literal, Self, overload
 
 import attrs
-from typing_extensions import Self
 from yarl import URL
 
-from ._utils.compat import StrEnum, fauxfrozen
+from ._utils.attrs import fauxfrozen
 
 
 class Strategy(StrEnum):

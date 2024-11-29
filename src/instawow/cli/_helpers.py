@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+from enum import StrEnum
 from typing import Any, Generic, TypeVar
 
 import click
 import click.types
 
-from .._utils.compat import StrEnum
 from .._utils.iteration import bucketise
 
 _TStrEnum = TypeVar('_TStrEnum', bound=StrEnum)

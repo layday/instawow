@@ -2,11 +2,11 @@ from __future__ import annotations
 
 import re
 from collections.abc import Collection, Sequence
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from itertools import takewhile
 from typing import Literal
+from typing import NotRequired as N
 
-from typing_extensions import NotRequired as N
 from typing_extensions import TypedDict
 from yarl import URL
 
@@ -73,7 +73,7 @@ class _WowiCombinedItem(_WowiListApiItem, _WowiDetailsApiItem):
 
 
 def _timestamp_to_datetime(timestamp: int):
-    return datetime.fromtimestamp(timestamp / 1000, timezone.utc)
+    return datetime.fromtimestamp(timestamp / 1000, UTC)
 
 
 class WowiResolver(BaseResolver):

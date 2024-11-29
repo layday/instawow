@@ -5,9 +5,9 @@ import contextvars
 from collections.abc import Awaitable, Callable, Mapping
 from contextlib import contextmanager
 from itertools import count
-from typing import Any, Generic, Literal, TypeAlias, cast
+from typing import Any, Generic, Literal, LiteralString, Never, NotRequired, TypeAlias, cast
 
-from typing_extensions import LiteralString, Never, NotRequired, TypedDict, TypeVar
+from typing_extensions import TypedDict, TypeVar
 
 _T = TypeVar('_T')
 

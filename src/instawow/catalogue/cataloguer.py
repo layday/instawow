@@ -3,15 +3,14 @@ from __future__ import annotations
 from collections.abc import AsyncIterator, Iterable, Set
 from datetime import datetime
 from functools import cached_property
-from typing import Any, Protocol
+from typing import Any, Protocol, Self
 
 import attrs
 import cattrs
 import cattrs.preconf.json
-from typing_extensions import Self
 
 from .. import http, shared_ctx
-from .._utils.compat import fauxfrozen
+from .._utils.attrs import fauxfrozen
 from .._utils.iteration import bucketise
 from .._utils.text import normalise_names
 from ..wow_installations import Flavour

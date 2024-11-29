@@ -10,14 +10,14 @@ from ..definitions import Defn, Strategies, Strategy
 
 
 def _structure_datetime(value: str, value_type: type):
-    return dt.datetime.fromisoformat(value).replace(tzinfo=dt.timezone.utc)
+    return dt.datetime.fromisoformat(value).replace(tzinfo=dt.UTC)
 
 
 def _unstructure_datetime(value: dt.datetime):
-    if value.tzinfo != dt.timezone.utc:
+    if value.tzinfo != dt.UTC:
         raise ValueError('``datetime`` must be in UTC')
 
-    return value.astimezone(dt.timezone.utc).replace(tzinfo=None).isoformat(' ')
+    return value.astimezone(dt.UTC).replace(tzinfo=None).isoformat(' ')
 
 
 @lru_cache(1)

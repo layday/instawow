@@ -3,14 +3,11 @@ from __future__ import annotations
 import os
 import sys
 from collections.abc import Iterator
-from enum import Enum
+from enum import Enum, StrEnum
 from functools import cache
 from pathlib import Path
-from typing import TypedDict, TypeVar
+from typing import NotRequired, Self, TypedDict, TypeVar
 
-from typing_extensions import NotRequired, Self
-
-from ._utils.compat import StrEnum
 from ._utils.iteration import fill
 
 _TEnum = TypeVar('_TEnum', bound=Enum)

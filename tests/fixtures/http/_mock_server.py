@@ -8,7 +8,7 @@ import asyncio
 import re
 from collections.abc import Awaitable, Callable, Sequence
 from copy import copy
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Self
 
 import attrs
 from aiohttp.connector import TCPConnector
@@ -17,7 +17,6 @@ from aiohttp.tracing import Trace
 from aiohttp.web import Response
 from aiohttp.web_request import BaseRequest
 from aiohttp.web_response import json_response
-from typing_extensions import Self
 from yarl import URL
 
 _Response = (

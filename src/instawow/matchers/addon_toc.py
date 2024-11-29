@@ -3,8 +3,7 @@ from __future__ import annotations
 from collections.abc import Iterator, Mapping
 from functools import cached_property
 from pathlib import Path
-
-from typing_extensions import Self
+from typing import Self
 
 
 class TocReader(Mapping[str, str]):

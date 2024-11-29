@@ -33,8 +33,6 @@ jobs:
           # - "3.13t"
         include:
           - os: ubuntu-latest
-            python: "3.10"
-          - os: ubuntu-latest
             python: "3.11"
     runs-on: ${{ matrix.os }}
     steps:
@@ -80,8 +78,6 @@ jobs:
           - "3.12"
           - "3.13"
         include:
-          - os: ubuntu-latest
-            python: "3.10"
           - os: ubuntu-latest
             python: "3.11"
     runs-on: ${{ matrix.os }}

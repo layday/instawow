@@ -5,9 +5,8 @@ import enum
 from collections.abc import AsyncIterator, Collection, Mapping, Sequence
 from functools import cached_property
 from pathlib import Path
-from typing import Any, ClassVar, Protocol, TypedDict
+from typing import Any, ClassVar, Never, NotRequired, Protocol, TypedDict
 
-from typing_extensions import Never, NotRequired
 from yarl import URL
 
 from . import config, pkg_archives, pkg_models

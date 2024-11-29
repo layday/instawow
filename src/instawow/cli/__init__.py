@@ -5,6 +5,7 @@ import enum
 import textwrap
 from collections.abc import Awaitable, Callable, Collection, Iterable, Mapping, Sequence
 from contextlib import asynccontextmanager
+from enum import StrEnum
 from functools import cached_property, partial, reduce
 from itertools import chain, count, repeat
 from typing import TYPE_CHECKING, Any, NoReturn, TypeVar, overload
@@ -15,7 +16,6 @@ import click
 from .. import _logging, pkg_management, pkg_models, shared_ctx
 from .. import config as _config
 from .. import results as R
-from .._utils.compat import StrEnum
 from ..definitions import Defn
 from ..plugins import get_plugin_commands
 from ._helpers import ManyOptionalChoiceValueParam, SectionedHelpGroup, StrEnumChoiceParam
@@ -698,7 +698,7 @@ def _concat_search_terms(_: click.Context, __: click.Parameter, value: tuple[str
 
 def _parse_iso_date_into_datetime(_: click.Context, __: click.Parameter, value: str | None):
     if value is not None:
-        return dt.datetime.strptime(value, '%Y-%m-%d').replace(tzinfo=dt.timezone.utc)
+        return dt.datetime.strptime(value, '%Y-%m-%d').replace(tzinfo=dt.UTC)
 
 
 @cli.command

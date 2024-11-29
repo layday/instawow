@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from .._utils.aio import run_in_thread
 from ..catalogue.cataloguer import CatalogueEntry
@@ -49,7 +49,7 @@ class InstawowResolver(BaseResolver):
             description='A WeakAuras Companion clone.',
             url='https://github.com/layday/instawow',
             download_url=builder.build_paths.archive.as_uri(),
-            date_published=datetime.now(timezone.utc),
+            date_published=datetime.now(UTC),
             version=await run_in_thread(builder.build_paths.version.read_text)(encoding='utf-8'),
             changelog_url=builder.build_paths.changelog.as_uri(),
         )
@@ -64,7 +64,7 @@ class InstawowResolver(BaseResolver):
             url='https://github.com/layday/instawow',
             game_flavours=frozenset(Flavour),
             download_count=1,
-            last_updated=datetime.now(timezone.utc),
+            last_updated=datetime.now(UTC),
             folders=[
                 frozenset({'WeakAurasCompanion'}),
             ],

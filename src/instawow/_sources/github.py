@@ -3,18 +3,18 @@ from __future__ import annotations
 import asyncio
 from collections.abc import Sequence
 from datetime import datetime, timedelta
+from enum import StrEnum
+from functools import partial
 from itertools import product, tee, zip_longest
-from typing import Any, Literal
+from typing import Any, Literal, Never
+from typing import NotRequired as N
 
-from typing_extensions import Never, TypedDict
-from typing_extensions import NotRequired as N
+from typing_extensions import TypedDict
 from yarl import URL
 
 from .. import http, shared_ctx
 from .._logging import logger
 from .._utils.aio import cancel_tasks
-from .._utils.compat import StrEnum
-from .._utils.datetime import datetime_fromisoformat
 from .._utils.iteration import batched
 from .._utils.web import as_plain_text_data_url, extract_byte_range_offset
 from ..catalogue.cataloguer import AddonKey, CatalogueEntry
@@ -367,19 +367,17 @@ class GithubResolver(BaseResolver):
         desired_flavour_groups: Sequence[tuple[Flavour, ...] | None],
     ):
         assets = release['assets']
-
         release_json = next(
             (a for a in assets if a['name'] == 'release.json' and a['state'] == 'uploaded'),
             None,
         )
+        matcher = (
+            partial(self.__find_match_from_release_json, assets, release_json)
+            if release_json
+            else partial(self.__find_match_from_zip_contents, assets)
+        )
         for desired_flavours in desired_flavour_groups:
-            if release_json:
-                asset = await self.__find_match_from_release_json(
-                    assets, release_json, desired_flavours
-                )
-            else:
-                asset = await self.__find_match_from_zip_contents(assets, desired_flavours)
-
+            asset = await matcher(desired_flavours)
             if asset:
                 return (release, asset)
 
@@ -492,7 +490,7 @@ class GithubResolver(BaseResolver):
             description=project['description'] or '',
             url=project['html_url'],
             download_url=asset['url'],
-            date_published=datetime_fromisoformat(release['published_at']),
+            date_published=datetime.fromisoformat(release['published_at']),
             version=release['tag_name'],
             changelog_url=as_plain_text_data_url(release['body']),
         )

@@ -8,9 +8,9 @@ from functools import cached_property, reduce
 from itertools import chain, product
 from pathlib import Path
 from typing import Any, Literal, TypeAlias
+from typing import NotRequired as N
 
 import cattrs
-from typing_extensions import NotRequired as N
 from typing_extensions import TypedDict
 from yarl import URL
 
@@ -18,7 +18,7 @@ from instawow import http, shared_ctx
 from instawow._logging import logger
 from instawow._progress_reporting import make_default_progress, make_incrementing_progress_tracker
 from instawow._utils.aio import gather, run_in_thread
-from instawow._utils.compat import fauxfrozen
+from instawow._utils.attrs import fauxfrozen
 from instawow._utils.iteration import bucketise
 from instawow._utils.perf import time_op
 from instawow._utils.text import shasum
@@ -222,7 +222,7 @@ class WaCompanionBuilder:
 
         template_resources = importlib.resources.files(_templates)
 
-        aura_dict = dict.fromkeys((WeakAuras, Plateroos), list[_Match]()) | dict(auras)
+        aura_dict = dict.fromkeys((WeakAuras, Plateroos), ()) | dict(auras)
 
         with ZipFile(self.build_paths.archive, 'w') as file:
 

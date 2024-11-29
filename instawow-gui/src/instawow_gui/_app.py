@@ -6,13 +6,12 @@ import json
 import sys
 import threading
 from collections.abc import Callable
+from enum import StrEnum
 from functools import partial
 
 import toga
 import toga.constants
 import toga.style.pack
-
-from instawow._utils.compat import StrEnum
 
 from . import _json_rpc_server
 

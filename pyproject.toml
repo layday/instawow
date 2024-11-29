@@ -7,7 +7,7 @@ dynamic = [
   "version",
 ]
 name = "instawow"
-requires-python = ">= 3.10"
+requires-python = ">= 3.11"
 description = "World of Warcraft add-on manager"
 readme = "README.rst"
 license = "GPL-3.0-or-later"
@@ -22,7 +22,6 @@ dependencies = [
   "cattrs >= 24.1.0",
   "click >= 8.1.6",
   "diskcache >= 5.6.3",
-  'iso8601 >= 1.0.2 ; python_version < "3.11"',
   "loguru >= 0.7.2",
   "packaging >= 23.2",
   "pluggy >= 1.4.0",

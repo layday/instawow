@@ -55,7 +55,7 @@ async def test_search_source_filtering(
 async def test_search_date_filtering(
     iw_config_ctx: ConfigBoundCtx,
 ):
-    start_date = dt.datetime.now(tz=dt.timezone.utc) - dt.timedelta(days=365)
+    start_date = dt.datetime.now(tz=dt.UTC) - dt.timedelta(days=365)
     results = await search(iw_config_ctx, 'molinari', limit=5, start_date=start_date)
     assert all(e.last_updated > start_date for e in results)
 

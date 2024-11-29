@@ -1,13 +1,13 @@
 from __future__ import annotations
 
-from datetime import timedelta
+from datetime import datetime, timedelta
+from enum import StrEnum
+from typing import Never
 
-from typing_extensions import Never, TypedDict
+from typing_extensions import TypedDict
 from yarl import URL
 
 from .. import shared_ctx
-from .._utils.compat import StrEnum
-from .._utils.datetime import datetime_fromisoformat
 from .._utils.web import as_plain_text_data_url
 from ..definitions import ChangelogFormat, Defn, SourceMetadata, Strategy
 from ..resolvers import BaseResolver, HeadersIntent, PkgCandidate
@@ -101,7 +101,7 @@ class WagoResolver(BaseResolver):
 
         try:
             file_date, file = max(
-                (datetime_fromisoformat(f['created_at']), f) for f in recent_releases.values()
+                (datetime.fromisoformat(f['created_at']), f) for f in recent_releases.values()
             )
         except ValueError:
             raise PkgFilesNotMatching(defn.strategies)

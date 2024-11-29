@@ -2,11 +2,11 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from pathlib import Path
+from typing import Self
 
 import attrs
-from typing_extensions import Self
 
-from instawow._utils.compat import fauxfrozen
+from instawow._utils.attrs import fauxfrozen
 from instawow.config import ProfileConfig, SecretStr, config_converter
 from instawow.config._helpers import (
     FieldMetadata,

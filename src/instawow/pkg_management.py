@@ -4,10 +4,10 @@ from collections.abc import Awaitable, Callable, Collection, Iterable, Mapping, 
 from functools import wraps
 from itertools import chain, compress, filterfalse, repeat, starmap
 from pathlib import Path
-from typing import Concatenate, Literal, TypeVar
+from typing import Concatenate, Literal, Never, TypeVar
 
 import attrs
-from typing_extensions import Never, ParamSpec
+from typing_extensions import ParamSpec
 from yarl import URL
 
 from . import pkg_models, shared_ctx

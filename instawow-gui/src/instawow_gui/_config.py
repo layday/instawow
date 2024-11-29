@@ -1,10 +1,9 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Self
 
-from typing_extensions import Self
-
-from instawow._utils.compat import fauxfrozen
+from instawow._utils.attrs import fauxfrozen
 from instawow.config import GlobalConfig
 from instawow.config._helpers import ensure_dirs
 

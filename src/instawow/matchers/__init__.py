@@ -4,13 +4,12 @@ import re
 from collections.abc import Awaitable, Iterable, Mapping
 from itertools import chain, product
 from pathlib import Path
-from typing import Protocol
+from typing import Protocol, Self
 
 import attrs
-from typing_extensions import Self
 
 from .. import shared_ctx
-from .._utils.compat import fauxfrozen
+from .._utils.attrs import fauxfrozen
 from .._utils.iteration import bucketise, merge_intersecting_sets, uniq
 from ..catalogue import synchronise as synchronise_catalogue
 from ..definitions import Defn

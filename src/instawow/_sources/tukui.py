@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from typing_extensions import TypedDict
 from yarl import URL
@@ -71,9 +71,7 @@ class TukuiResolver(BaseResolver):
             description=ui_metadata['small_desc'],
             url=ui_metadata['web_url'],
             download_url=ui_metadata['url'],
-            date_published=datetime.fromisoformat(ui_metadata['last_update']).replace(
-                tzinfo=timezone.utc
-            ),
+            date_published=datetime.fromisoformat(ui_metadata['last_update']).replace(tzinfo=UTC),
             version=ui_metadata['version'],
             changelog_url=(
                 # The changelog URL is not versioned - add fragment to allow caching.
@@ -102,8 +100,6 @@ class TukuiResolver(BaseResolver):
                     if (r := FlavourVersionRange.from_version(g))
                 ),
                 download_count=1,
-                last_updated=datetime.fromisoformat(item['last_update']).replace(
-                    tzinfo=timezone.utc
-                ),
+                last_updated=datetime.fromisoformat(item['last_update']).replace(tzinfo=UTC),
                 folders=[frozenset(item['directories'])],
             )

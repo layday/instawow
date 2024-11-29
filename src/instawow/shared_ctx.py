@@ -21,7 +21,7 @@ class _DummyLock(AbstractAsyncContextManager[None]):
 
 Locks: TypeAlias = Mapping[object, AbstractAsyncContextManager[None]]
 
-locks_var = cv.ContextVar[Locks]('locks_var', default=WeakValueDefaultDictionary(_DummyLock))
+locks_var = cv.ContextVar[Locks]('locks_var', default=WeakValueDefaultDictionary(_DummyLock))  # noqa: B039
 web_client_var = cv.ContextVar['http.ClientSession']('web_client_var')
 
 

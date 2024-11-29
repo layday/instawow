@@ -35,7 +35,6 @@ from instawow._github_auth import get_codes, poll_for_access_token
 from instawow._logging import logger
 from instawow._progress_reporting import ReadOnlyProgressGroup, make_progress_receiver
 from instawow._utils.aio import cancel_tasks, gather, run_in_thread
-from instawow._utils.datetime import datetime_fromisoformat
 from instawow._utils.file import reveal_folder
 from instawow._utils.iteration import WeakValueDefaultDictionary, uniq
 from instawow._utils.web import open_url
@@ -70,7 +69,7 @@ _converter = cattrs.Converter(
 )
 cattrs.preconf.json.configure_converter(_converter)
 _converter.register_structure_hook(Path, lambda v, _: Path(v))
-_converter.register_structure_hook(datetime, lambda v, _: datetime_fromisoformat(v))
+_converter.register_structure_hook(datetime, lambda v, _: datetime.fromisoformat(v))
 _converter.register_structure_hook(Strategies, lambda v, _: Strategies(v))
 _converter.register_unstructure_hook(Path, str)
 _converter.register_unstructure_hook(Strategies, dict)
