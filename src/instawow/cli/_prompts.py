@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import enum
 from collections.abc import Sequence
+from inspect import signature
 from typing import Any, Generic, Literal, Never, TypeVar, overload
 
 import attrs
@@ -42,39 +43,37 @@ from .._utils.web import open_url
 _T = TypeVar('_T')
 
 
-class AttrsFieldValidator(Validator):
-    "One-off validators for attrs fields."
+def make_attrs_field_validator(
+    attrs_cls: type[attrs.AttrsInstance], attribute_name: str, converter: cattrs.Converter
+):
+    "Construct a one-off validator for an attrs field."
 
-    def __init__(self, attribute: attrs.Attribute[object], converter: cattrs.Converter) -> None:
-        self._field_name = attribute.name
-        self._FieldWrapper = attrs.make_class(
-            '_FieldWrapper',
-            {
-                self._field_name: attrs.field(
-                    default=attribute.default,
-                    validator=attribute.validator,
-                    repr=attribute.repr,
-                    hash=attribute.hash,
-                    init=attribute.init,
-                    metadata=attribute.metadata,
-                    type=attribute.type,
-                    converter=attribute.converter,
-                    kw_only=attribute.kw_only,
-                    eq=attribute.eq,
-                    order=attribute.order,
-                    on_setattr=attribute.on_setattr,
-                )
-            },
-        )
-        self._converter = converter
+    fields = attrs.fields(attrs.resolve_types(attrs_cls))
+    attribute = getattr(fields, attribute_name)
 
-    def validate(self, document: Document) -> None:
-        try:
-            self._converter.structure({self._field_name: document.text}, self._FieldWrapper)
-        except Exception as exc:
-            raise ValidationError(
-                0, '\n'.join(cattrs.transform_error(exc, format_exception=lambda e, _: str(e)))
-            ) from exc
+    field_wrapper = attrs.make_class(
+        'field_wrapper',
+        {
+            attribute_name: attrs.field(
+                **{
+                    p: getattr(attribute, p)
+                    for p in signature(attrs.field).parameters
+                    if hasattr(attribute, p)
+                }
+            )
+        },
+    )
+
+    class AttrsFieldValidator(Validator):
+        def validate(self, document: Document):
+            try:
+                converter.structure({attribute_name: document.text}, field_wrapper)
+            except Exception as exc:
+                raise ValidationError(
+                    0, '\n'.join(cattrs.transform_error(exc, format_exception=lambda e, _: str(e)))
+                ) from exc
+
+    return AttrsFieldValidator()
 
 
 @fauxfrozen

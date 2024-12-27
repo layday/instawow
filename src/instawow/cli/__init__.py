@@ -1080,9 +1080,9 @@ def configure(
     )
     from ._prompts import (
         SKIP,
-        AttrsFieldValidator,
         Choice,
         confirm,
+        make_attrs_field_validator,
         password,
         path,
         select_one,
@@ -1154,9 +1154,8 @@ def configure(
             editable_config_values[_EditableConfigOptions.AddonDir] = path(
                 'Add-on directory',
                 only_directories=True,
-                validator=AttrsFieldValidator(
-                    attrs.fields(attrs.resolve_types(_config.ProfileConfig)).addon_dir,
-                    _config.config_converter,
+                validator=make_attrs_field_validator(
+                    _config.ProfileConfig, 'addon_dir', _config.config_converter
                 ),
             ).prompt()
 
