@@ -70,4 +70,4 @@ def setup_logging(
             }
         ]
 
-    logger.configure(handlers=handlers)
+    logger.configure(handlers=handlers)  # pyright: ignore[reportArgumentType]
