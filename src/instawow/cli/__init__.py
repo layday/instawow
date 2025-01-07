@@ -113,60 +113,39 @@ class ConfigBoundCtxProxy(ConfigBoundCtxProxyBase):
 @asynccontextmanager
 async def _observe_progress():
     import asyncio
+    from contextlib import AsyncExitStack
 
     from .._progress_reporting import make_progress_receiver
     from .._utils.aio import cancel_tasks
     from ..pkg_archives._download import PkgDownloadProgress
-    from ._prompts import ProgressBar, make_progress_bar_group
+    from ._prompts import make_progress_bar_group
 
-    with (
-        make_progress_receiver[PkgDownloadProgress]() as iter_progress,
-        make_progress_bar_group() as progress_bar_group,
-    ):
+    async with AsyncExitStack() as exit_stack:
 
         async def observe_progress():
-            progress_bars = dict[int, ProgressBar]()
+            async for progress_group in iter_progress:
+                update_progress(
+                    {
+                        i: {
+                            'label': f'Downloading {p["defn"].as_uri()}'
+                            if p['type_'] == 'pkg_download'
+                            else p['label'],
+                            'current': p['current'],
+                            'total': p['total'],
+                            'is_download': p.get('unit') == 'bytes',
+                        }
+                        for i, p in progress_group.items()
+                        if 'label' in p
+                    }
+                )
 
-            try:
-                async for progress_group in iter_progress:
-                    for progress_id in progress_bars.keys() - progress_group.keys():
-                        del progress_bars[progress_id]
+        iter_progress = exit_stack.enter_context(make_progress_receiver[PkgDownloadProgress]())
+        update_progress = exit_stack.enter_context(make_progress_bar_group())
+        exit_stack.push_async_callback(
+            partial(cancel_tasks, [asyncio.create_task(observe_progress())])
+        )
 
-                    for progress_id, progress in (
-                        (k, progress_group[k])
-                        for k in progress_bars.keys() ^ progress_group.keys()
-                    ):
-                        match progress:
-                            case {'type_': 'pkg_download', 'defn': defn}:
-                                label = f'Downloading {defn.as_uri()}'
-                            case {'label': str(label)}:
-                                pass
-                            case _:
-                                continue
-
-                        progress_bars[progress_id] = ProgressBar(
-                            progress_bar=progress_bar_group,
-                            label=label,
-                            total=progress['total'],
-                            is_download=progress.get('unit') == 'bytes',
-                        )
-
-                    progress_bar_group.counters = list(progress_bars.values())
-
-                    for progress_id, progress in progress_group.items():
-                        progress_bars[progress_id].items_completed = progress['current']
-                        progress_bar_group.invalidate()
-
-            finally:
-                progress_bar_group.counters = []
-
-        observe_progress_task = asyncio.create_task(observe_progress())
-
-        try:
-            yield
-
-        finally:
-            await cancel_tasks([observe_progress_task])
+        yield
 
 
 def run_with_progress(awaitable: Awaitable[_T], click_ctx: click.Context | None = None) -> _T:

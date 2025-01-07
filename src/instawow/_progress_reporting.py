@@ -106,27 +106,27 @@ def update_progress(progress_id: int, progress: Progress[Any, Any] | Literal['un
 
 
 def make_incrementing_progress_tracker(total: int, label: str):
+    if total < 1:
+
+        def track_ident(awaitable: Awaitable[_T]) -> Awaitable[_T]:
+            return awaitable
+
+        return track_ident
+
     progress_id = get_next_progress_id()
     progress = make_default_progress(type_='generic', total=total, label=label)
 
-    def do_update_progress():
-        update_progress(
-            progress_id,
-            (
-                'unset'
-                if progress['total'] == 0 or progress['current'] == progress['total']
-                else progress
-            ),
-        )
-
     def on_done(_task: asyncio.Task[object]):
         progress['current'] += 1
-        do_update_progress()
+        update_progress(
+            progress_id,
+            'unset' if progress['current'] == progress['total'] else progress,
+        )
 
     def track(awaitable: Awaitable[_T]) -> Awaitable[_T]:
         future = asyncio.ensure_future(awaitable)
         future.add_done_callback(on_done)
         return future
 
-    do_update_progress()
+    update_progress(progress_id, progress)
     return track

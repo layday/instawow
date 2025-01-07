@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 import enum
-from collections.abc import Sequence
+from collections.abc import Hashable, Mapping, Sequence
+from contextlib import contextmanager
 from inspect import signature
-from typing import Any, Generic, Literal, Never, TypeVar, overload
+from typing import Any, Generic, Literal, Never, Self, TypedDict, TypeVar, overload
 
 import attrs
 import cattrs
@@ -30,8 +31,7 @@ from prompt_toolkit.layout import (
     Window,
 )
 from prompt_toolkit.shortcuts import PromptSession
-from prompt_toolkit.shortcuts.progress_bar import ProgressBar as _ProgressBar
-from prompt_toolkit.shortcuts.progress_bar import ProgressBarCounter as _ProgressBarCounter
+from prompt_toolkit.shortcuts.progress_bar import ProgressBar, ProgressBarCounter
 from prompt_toolkit.shortcuts.progress_bar import formatters as pb_formatters
 from prompt_toolkit.styles import Style
 from prompt_toolkit.validation import ValidationError, Validator
@@ -437,26 +437,29 @@ def select_one(
     return _FauxPromptSession(app)
 
 
-class ProgressBar(_ProgressBarCounter[Never]):
+class _ProgressBarCounter(ProgressBarCounter[Never]):
     def __init__(
         self,
         *,
-        progress_bar: _ProgressBar,
+        progress_bar: ProgressBar,
         is_download: bool,
         label: AnyFormattedText = '',
+        current: int = 0,
         total: int | None = None,
     ) -> None:
         super().__init__(progress_bar=progress_bar, label=label, total=total)
         self.is_download = is_download
 
+    def with_progress(self, progress: int) -> Self:
+        self.items_completed = progress
+        return self
+
 
 class _DownloadProgress(pb_formatters.Progress):
     template = HTML('<current>{current:>3.1f}</current>/<total>{total:>3.1f}</total>MB')
 
-    def format(
-        self, progress_bar: _ProgressBar, progress: _ProgressBarCounter[object], width: int
-    ):
-        if isinstance(progress, ProgressBar) and not progress.is_download:
+    def format(self, progress_bar: ProgressBar, progress: ProgressBarCounter[object], width: int):
+        if isinstance(progress, _ProgressBarCounter) and not progress.is_download:
             return super().format(progress_bar, progress, width)
 
         return self.template.format(
@@ -464,9 +467,18 @@ class _DownloadProgress(pb_formatters.Progress):
         )
 
 
-def make_progress_bar_group() -> _ProgressBar:
+class _ProgressStatus(TypedDict):
+    label: str
+    current: int
+    total: int | None
+    is_download: bool
+
+
+@contextmanager
+def make_progress_bar_group():
     "``ProgressBar`` with download progress expressed in megabytes."
-    return _ProgressBar(
+
+    progress_bar = ProgressBar(
         formatters=[
             pb_formatters.Label(),
             pb_formatters.Text(' '),
@@ -477,3 +489,27 @@ def make_progress_bar_group() -> _ProgressBar:
             _DownloadProgress(),
         ],
     )
+
+    progress_bars = dict[Hashable, _ProgressBarCounter]()
+
+    def update_progress(progress_statuses: Mapping[Hashable, _ProgressStatus]):
+        nonlocal progress_bars
+
+        progress_bars = {
+            k: (e or _ProgressBarCounter(progress_bar=progress_bar, **p)).with_progress(
+                p['current']
+            )
+            for (k, p), e in zip(
+                progress_statuses.items(), (progress_bars.get(k) for k in progress_statuses)
+            )
+        }
+
+        progress_bar.counters = list(progress_bars.values())
+        progress_bar.invalidate()
+
+    with progress_bar:
+        try:
+            yield update_progress
+
+        finally:
+            update_progress({})

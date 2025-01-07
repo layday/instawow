@@ -45,29 +45,30 @@ async def _setup_progress_tracker():
 
             async def do_update_progress():
                 response = params.response
-
                 progress_id = get_next_progress_id()
-                progress['total'] = (
+                progress['total'] = total = (
                     None
                     if aiohttp.hdrs.CONTENT_ENCODING in response.headers
                     else response.content_length
                 )
-
                 update_progress(progress_id, progress)
 
                 try:
-                    while not response.content.is_eof():
-                        progress['current'] = response.content.total_bytes
-                        update_progress(progress_id, progress)
+                    if total is None:
+                        await response.content.wait_eof()
+                    else:
+                        while not response.content.is_eof():
+                            progress['current'] = response.content.total_bytes
+                            update_progress(progress_id, progress)
 
-                        await asyncio.sleep(_PROGRESS_TICK_INTERVAL)
+                            await asyncio.sleep(_PROGRESS_TICK_INTERVAL)
 
                 finally:
                     update_progress(progress_id, 'unset')
 
             task = asyncio.create_task(do_update_progress())
-            task.add_done_callback(progress_tickers.remove)
             progress_tickers.add(task)
+            task.add_done_callback(progress_tickers.remove)
 
     trace_config = aiohttp.TraceConfig()
     trace_config.on_request_end.append(do_on_request_end)
