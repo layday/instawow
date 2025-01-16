@@ -408,13 +408,10 @@ def test_rollback__rollback_multiple_versions(
 def test_reconcile__list_unreconciled(
     pretend_install_molinari_and_run: Run,
 ):
-    assert (
-        pretend_install_molinari_and_run('reconcile --list-unreconciled').output
-        == (
-            'unreconciled\n'  # fmt: skip
-            '------------\n'
-            'Molinari    \n'
-        )
+    assert pretend_install_molinari_and_run('reconcile --list-unreconciled').output == (
+        'unreconciled\n'  # fmt: skip
+        '------------\n'
+        'Molinari    \n'
     )
 
 
@@ -423,9 +420,7 @@ def test_reconcile_leftovers(
     pretend_install_molinari_and_run: Run,
 ):
     pt_input.send_text('sss')  # Skip
-    assert pretend_install_molinari_and_run(
-        'reconcile'
-    ).output.endswith(
+    assert pretend_install_molinari_and_run('reconcile').output.endswith(
         'unreconciled\n'  # fmt: skip
         '------------\n'
         'Molinari    \n'

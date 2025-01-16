@@ -105,7 +105,7 @@ def _check_pkgs_not_exist(
                 f"""
                 WITH defn (source, alias, id)
                 AS (
-                    VALUES {", ".join(("(?, ?, ?)",) * len(defns))}
+                    VALUES {', '.join(('(?, ?, ?)',) * len(defns))}
                 )
                 SELECT NOT EXISTS (
                     SELECT 1
@@ -139,7 +139,7 @@ def get_pkgs(
                 f"""
                 WITH defn (source, alias, id)
                 AS (
-                    VALUES {", ".join(("(?, ?, ?)",) * len(defns))}
+                    VALUES {', '.join(('(?, ?, ?)',) * len(defns))}
                 )
                 SELECT pkg.*
                 FROM defn

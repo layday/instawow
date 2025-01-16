@@ -128,9 +128,9 @@ class Defn:
         if include_strategies:
             filled = self.strategies.filled
             if filled:
-                uri += f"""#{_STRATEGY_SEP.join(
-                    s if v is True else f"{s}={v}" for s, v in filled.items()
-                )}"""
+                uri += f"""#{
+                    _STRATEGY_SEP.join(s if v is True else f'{s}={v}' for s, v in filled.items())
+                }"""
 
         return uri
 

@@ -251,10 +251,12 @@ class WaCompanionBuilder:
             NL = '\n'
             data_output = write_file(
                 'data.lua',
-                f'''\
+                f"""\
 -- file generated automatically
 WeakAurasCompanionData = {{
-{NL.join(f"""
+{
+                    NL.join(
+                        f'''
     {c.addon_name} = {{
         slugs = {{
 {NL.join(make_slug_entry(m, i) for _, m, i in v)}
@@ -263,11 +265,12 @@ WeakAurasCompanionData = {{
         }},
         stopmotionFiles = {{
         }},
-    }},"""
-    for c, v in aura_dict.items()
-)}
+    }},'''
+                        for c, v in aura_dict.items()
+                    )
+                }
 }}
-''',
+""",
             )
 
             init_output = write_file(
