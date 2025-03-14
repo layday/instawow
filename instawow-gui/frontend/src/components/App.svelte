@@ -45,14 +45,8 @@
   const performInitialSetup = async () => {
     ({ installed_version: installedVersion, new_version: newVersion } = await api.getVersion());
 
-    const profileNames = await api.listProfiles();
-    const profileConfigs = await Promise.allSettled(profileNames.map((p) => api.readProfile(p)));
-
-    profilesRef.value = Object.fromEntries(
-      profileConfigs
-        .filter((r): r is PromiseFulfilledResult<Config> => r.status === "fulfilled")
-        .map(({ value }) => [value.profile, value]),
-    );
+    const profiles = await api.listProfiles();
+    profilesRef.value = profiles;
     [activeProfileRef.value] = Object.keys(profilesRef.value);
   };
 </script>

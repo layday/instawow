@@ -11,18 +11,16 @@ from typing import NotRequired as N
 from typing_extensions import TypedDict
 from yarl import URL
 
-from .. import http, pkg_models, shared_ctx
+from .. import config_ctx, http, http_ctx
 from .._logging import logger
 from .._progress_reporting import make_default_progress
 from .._utils.aio import gather
 from .._utils.iteration import uniq
 from ..catalogue.cataloguer import CatalogueEntry
-from ..config import GlobalConfig
 from ..definitions import ChangelogFormat, Defn, SourceMetadata, Strategy
-from ..resolvers import BaseResolver, HeadersIntent, PkgCandidate
+from ..resolvers import AccessToken, BaseResolver, HeadersIntent, PkgCandidate
 from ..results import PkgFilesMissing, PkgFilesNotMatching, PkgNonexistent, aresultify
 from ..wow_installations import Flavour
-from ._access_tokens import AccessToken
 
 _T = TypeVar('_T')
 
@@ -260,10 +258,13 @@ class CfCoreResolver(BaseResolver):
         changelog_format=ChangelogFormat.Html,
         addon_toc_key='X-Curse-Project-ID',
     )
-    access_token = AccessToken('cfcore', not _alternative_api_url)
 
     # Ref: https://docs.curseforge.com/
     __mod_api_url = URL(_alternative_api_url or 'https://api.curseforge.com/v1').joinpath('mods')
+
+    @AccessToken
+    def access_token():
+        return config_ctx.config().global_config.access_tokens.cfcore, not _alternative_api_url
 
     @classmethod
     def get_alias_from_url(cls, url: URL):
@@ -275,7 +276,7 @@ class CfCoreResolver(BaseResolver):
             return url.parts[3].lower()
 
     def make_request_headers(self, intent: HeadersIntent | None = None):
-        if self.access_token.required and intent is not HeadersIntent.Download:
+        if not _alternative_api_url and intent is not HeadersIntent.Download:
             maybe_access_token = self.access_token.get()
             if maybe_access_token:
                 return {'x-api-key': maybe_access_token}
@@ -285,7 +286,7 @@ class CfCoreResolver(BaseResolver):
         if not numeric_ids:
             return await super().resolve(defns)  # Fast path.
 
-        async with shared_ctx.web_client.post(
+        async with http_ctx.web_client().post(
             self.__mod_api_url,
             expire_after=timedelta(minutes=5),
             headers=self.make_request_headers(),
@@ -301,10 +302,10 @@ class CfCoreResolver(BaseResolver):
         )
         return dict(zip(defns, results))
 
-    async def _resolve_one(self, defn: Defn, metadata: _CfCoreMod | None):
+    async def resolve_one(self, defn: Defn, metadata: _CfCoreMod | None):
         if metadata is None:
             if defn.alias.isdigit():
-                async with shared_ctx.web_client.get(
+                async with http_ctx.web_client().get(
                     self.__mod_api_url / defn.alias,
                     expire_after=timedelta(minutes=15),
                     headers=self.make_request_headers(),
@@ -318,7 +319,7 @@ class CfCoreResolver(BaseResolver):
                     assert metadata
 
             else:
-                async with shared_ctx.web_client.get(
+                async with http_ctx.web_client().get(
                     (self.__mod_api_url / 'search').with_query(
                         gameId=_CF_WOW_GAME_ID, slug=defn.alias
                     ),
@@ -341,7 +342,7 @@ class CfCoreResolver(BaseResolver):
             if file_sep and file_id:
                 files_url /= file_id
 
-            async with shared_ctx.web_client.get(
+            async with http_ctx.web_client().get(
                 files_url,
                 expire_after=timedelta(hours=1),
                 headers=self.make_request_headers(),
@@ -377,7 +378,7 @@ class CfCoreResolver(BaseResolver):
                 f['releaseType'] == _CfCoreFileReleaseType.Release for f in files
             )
 
-        desired_flavour_groups = self._config.game_flavour.get_flavour_groups(
+        desired_flavour_groups = config_ctx.config().game_flavour.get_flavour_groups(
             bool(defn.strategies[Strategy.AnyFlavour])
         )
         for desired_flavours in desired_flavour_groups:
@@ -433,14 +434,14 @@ class CfCoreResolver(BaseResolver):
                 self.__mod_api_url / f'{metadata["id"]}/files/{file["id"]}/changelog'
             ),
             deps=[
-                pkg_models.PkgDep(id=str(d['modId']))
+                {'id': str(d['modId'])}
                 for d in file['dependencies']
                 if d['relationType'] == _CfCoreFileRelationType.RequiredDependency
             ],
         )
 
     async def get_changelog(self, uri: URL):
-        async with shared_ctx.web_client.get(
+        async with http_ctx.web_client().get(
             uri,
             expire_after=http.CACHE_INDEFINITELY,
             headers=self.make_request_headers(),
@@ -474,13 +475,14 @@ class CfCoreResolver(BaseResolver):
         STEP = 50
         MAX_OFFSET = 10_000  # The CF API craps out after 9,999 results
 
-        access_token = cls.access_token.get(GlobalConfig.from_values(env=True))
         get = partial(
-            shared_ctx.web_client.get,
-            headers={'x-api-key': access_token} if access_token else None,
+            http_ctx.web_client().get,
             raise_for_status=True,
             timeout=ClientTimeout(total=10),
         )
+        access_token = cls.access_token.get()
+        if access_token:
+            get = partial(get, headers={'x-api-key': access_token})
 
         for offset in range(0, MAX_OFFSET, STEP):
             url = (cls.__mod_api_url / 'search').with_query(

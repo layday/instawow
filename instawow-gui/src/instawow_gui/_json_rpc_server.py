@@ -1,55 +1,59 @@
 from __future__ import annotations
 
 import asyncio
-import concurrent.futures
 import contextvars
 import enum
 import importlib.resources
 import json
 import os
-from collections.abc import Callable, Iterator, Set
-from contextlib import AsyncExitStack, asynccontextmanager, contextmanager
+from collections.abc import Awaitable, Callable, Iterator, Set
+from contextlib import AbstractAsyncContextManager, AsyncExitStack, asynccontextmanager
 from datetime import datetime
 from functools import partial
+from inspect import get_annotations
 from itertools import chain
 from pathlib import Path
-from typing import Any, Literal, TypeVar
+from typing import Any, Generic, Literal, NotRequired, Union, cast
 
 import aiohttp
 import aiohttp.typedefs
 import aiohttp.web
+import aiohttp.web_ws
 import attrs
 import cattrs
 import cattrs.preconf.json
+import cattrs.strategies
 import toga
-from aiohttp_rpc import JsonRpcMethod
-from aiohttp_rpc import middlewares as rpc_middlewares
-from aiohttp_rpc.errors import InvalidParams, ServerError
-from aiohttp_rpc.server import WsJsonRpcServer
-from typing_extensions import ParamSpec, TypedDict
+from typing_extensions import TypedDict, TypeVar
 from yarl import URL
 
-from instawow import _version, matchers, pkg_management, pkg_models, shared_ctx
+from instawow import config_ctx, http_ctx, matchers, pkg_management, sync_ctx
 from instawow import results as R
 from instawow._github_auth import get_codes, poll_for_access_token
 from instawow._logging import logger
 from instawow._progress_reporting import ReadOnlyProgressGroup, make_progress_receiver
-from instawow._utils.aio import cancel_tasks, gather, run_in_thread
-from instawow._utils.file import reveal_folder
+from instawow._utils.aio import cancel_tasks, run_in_thread
 from instawow._utils.iteration import WeakValueDefaultDictionary, uniq
-from instawow._utils.web import open_url
 from instawow.catalogue.cataloguer import ComputedCatalogueEntry
-from instawow.catalogue.search import search
+from instawow.catalogue.search import search as search_catalogue
 from instawow.config import GlobalConfig, ProfileConfig, SecretStr, config_converter
 from instawow.definitions import Defn, SourceMetadata, Strategies
 from instawow.http import init_web_client
 from instawow.pkg_archives._download import PkgDownloadProgress
+from instawow.pkg_db import models as pkg_models
 from instawow.wow_installations import Flavour, infer_flavour_from_addon_dir
 
 _T = TypeVar('_T')
-_P = ParamSpec('_P')
 
-_toga_handle = contextvars.ContextVar[toga.App]('_toga_handle')
+_toga_handle_var = contextvars.ContextVar[toga.App]('_toga_handle_var')
+_current_progress_var = contextvars.ContextVar[ReadOnlyProgressGroup[PkgDownloadProgress]](
+    '_current_progress_var'
+)
+_config_parties_var = contextvars.ContextVar[dict[str, config_ctx.ConfigParty]](
+    '_config_parties_var'
+)
+_github_auth_manager = contextvars.ContextVar['_GitHubAuthManager']('_github_auth_manager')
+
 
 _LOCK_PREFIX = object()
 
@@ -57,320 +61,226 @@ _LOCK_PREFIX = object()
 class _LockOperation(tuple[object, str], enum.Enum):
     ModifyProfile = (_LOCK_PREFIX, '_MODIFY_PROFILE_')
     UpdateGlobalConfig = (_LOCK_PREFIX, '_UPDATE_GLOBAL_CONFIG')
-    InitiateGithubAuthFlow = (_LOCK_PREFIX, '_INITIATE_GITHUB_AUTH_FLOW_')
+    InitiateGitHubAuthFlow = (_LOCK_PREFIX, '_INITIATE_GITHUB_AUTH_FLOW_')
 
 
 LOCALHOST = '127.0.0.1'
 
-_converter = cattrs.Converter(
-    unstruct_collection_overrides={
-        Set: sorted,
-    }
-)
-cattrs.preconf.json.configure_converter(_converter)
-_converter.register_structure_hook(Path, lambda v, _: Path(v))
-_converter.register_structure_hook(datetime, lambda v, _: datetime.fromisoformat(v))
-_converter.register_structure_hook(Strategies, lambda v, _: Strategies(v))
-_converter.register_unstructure_hook(Path, str)
-_converter.register_unstructure_hook(Strategies, dict)
+
+_TJsonRpcMethod = TypeVar('_TJsonRpcMethod', bound=str)
+_TJsonRpcParams = TypeVar('_TJsonRpcParams')
 
 
-class _ConfigError(ServerError):
-    code = -32001
-    message = 'invalid configuration parameters'
+class _JsonRpcRequest(TypedDict, Generic[_TJsonRpcMethod, _TJsonRpcParams]):
+    jsonrpc: Literal['2.0']
+    method: _TJsonRpcMethod
+    params: _TJsonRpcParams
+    id: int | str
 
 
-class _ValidationErrorResponse(TypedDict):
-    path: tuple[str | int, ...]
+class _JsonRpcSuccessResponse(TypedDict):
+    jsonrpc: Literal['2.0']
+    result: Any
+    id: int | str
+
+
+class _JsonRpcErrorResponse(TypedDict):
+    jsonrpc: Literal['2.0']
+    error: _JsonRpcError
+    id: int | str | None
+
+
+class _JsonRpcError(TypedDict):
+    code: int
     message: str
+    data: NotRequired[list[Any]]
 
 
-def _transform_validation_errors(
-    exc: cattrs.ClassValidationError | cattrs.IterableValidationError | BaseException,
-    path: tuple[str | int, ...] = (),
-) -> Iterator[_ValidationErrorResponse]:
-    match exc:
-        case cattrs.IterableValidationError():
-            with_notes, _ = exc.group_exceptions()
-            for exc, note in with_notes:
-                assert isinstance(note.index, str | int)  # Dummy assert for type checking.
-                new_path = (*path, note.index)
-                if isinstance(exc, cattrs.ClassValidationError | cattrs.IterableValidationError):
-                    yield from _transform_validation_errors(exc, new_path)
-                else:
-                    yield {
-                        'path': new_path,
-                        'message': str(exc),
-                    }
-        case cattrs.ClassValidationError():
-            with_notes, _ = exc.group_exceptions()
-            for exc, note in with_notes:
-                new_path = (*path, note.name)
-                if isinstance(exc, cattrs.ClassValidationError | cattrs.IterableValidationError):
-                    yield from _transform_validation_errors(exc, new_path)
-                else:
-                    yield {
-                        'path': new_path,
-                        'message': str(exc),
-                    }
-        case _:
-            pass
+_MethodResponder = Callable[..., Awaitable[object]]
+_TMethodResponder = TypeVar('_TMethodResponder', bound=_MethodResponder)
 
-
-@contextmanager
-def _reraise_validation_errors(
-    error_class: type[ServerError | InvalidParams] = ServerError,
-    values: dict[Any, Any] | None = None,
-) -> Iterator[None]:
-    try:
-        yield
-    except BaseException as exc:
-        logger.info(f'invalid request: {(values, exc)}')
-        raise error_class(data=list(_transform_validation_errors(exc))) from exc
-
-
-@run_in_thread
-def _read_global_config() -> GlobalConfig:
-    with _reraise_validation_errors(_ConfigError):
-        return GlobalConfig.read().ensure_dirs()
-
-
-@run_in_thread
-def _read_profile_config(global_config: GlobalConfig, profile: str) -> ProfileConfig:
-    with _reraise_validation_errors(_ConfigError):
-        return ProfileConfig.read(global_config, profile).ensure_dirs()
-
-
-_methods: list[tuple[str, type[BaseParams]]] = []
+_methods = dict[str, tuple[_JsonRpcRequest[str, Any], _MethodResponder]]()
 
 
 def _register_method(method: str):
-    def inner(param_class: type[BaseParams]):
-        _methods.append((method, param_class))
-        return attrs.frozen(slots=False)(param_class)
+    def wrapper(method_responder: _TMethodResponder) -> _TMethodResponder:
+        params = get_annotations(method_responder)
+        params.pop('return', None)
 
-    return inner
+        request_type = _JsonRpcRequest[
+            Literal[method],  # pyright: ignore[reportInvalidTypeArguments]
+            TypedDict('params', params) if params else NotRequired[Any],  # pyright: ignore[reportArgumentType]
+        ]
+        request_type.__name__ = method
 
+        _methods[method] = (request_type, method_responder)  # pyright: ignore[reportArgumentType]
+        return method_responder
 
-@attrs.frozen(slots=False)
-class _ProfileParamMixin:
-    profile: str
-
-
-@attrs.frozen(slots=False)
-class _DefnParamMixin:
-    defns: list[Defn]
-
-
-class BaseParams:
-    @classmethod
-    def bind(cls, method: str, config_ctxs: _ConfigBoundCtxCollection) -> JsonRpcMethod:
-        async def respond(**kwargs: Any):
-            with _reraise_validation_errors(InvalidParams, kwargs):
-                self = _converter.structure(kwargs, cls)
-            return await self.respond(config_ctxs)
-
-        return JsonRpcMethod(respond, name=method)
-
-    async def respond(self, config_ctxs: _ConfigBoundCtxCollection) -> Any:
-        raise NotImplementedError
+    return wrapper
 
 
-@_register_method('config/write_profile')
-class WriteProfileConfigParams(_ProfileParamMixin, BaseParams):
-    addon_dir: Path
-    game_flavour: Flavour
-    infer_game_flavour: bool
-
-    async def respond(self, config_ctxs: _ConfigBoundCtxCollection) -> ProfileConfig:
-        async with config_ctxs.locks[(*_LockOperation.ModifyProfile, self.profile)]:
-            with _reraise_validation_errors(_ConfigError):
-                config = config_converter.structure(
-                    {
-                        'global_config': await _read_global_config(),
-                        'profile': self.profile,
-                        'addon_dir': self.addon_dir,
-                        'game_flavour': self.game_flavour,
-                    },
-                    ProfileConfig,
-                )
-                if self.infer_game_flavour:
-                    config = attrs.evolve(
-                        config,
-                        game_flavour=infer_flavour_from_addon_dir(config.addon_dir)
-                        or Flavour.Retail,
-                    )
-                await run_in_thread(config.write)()
-
-            # Unload the corresponding ``Manager`` instance for the
-            # config to be reloaded on the next request
-            await config_ctxs.unload(config.profile)
-
-            return config
-
-
-@_register_method('config/read_profile')
-class ReadProfileConfigParams(_ProfileParamMixin, BaseParams):
-    async def respond(self, config_ctxs: _ConfigBoundCtxCollection) -> ProfileConfig:
-        return await _read_profile_config(config_ctxs.global_config, self.profile)
-
-
-@_register_method('config/delete_profile')
-class DeleteProfileConfigParams(_ProfileParamMixin, BaseParams):
-    async def respond(self, config_ctxs: _ConfigBoundCtxCollection) -> None:
-        config_ctx = await config_ctxs.load(self.profile)
-
-        async with config_ctxs.locks[(*_LockOperation.ModifyProfile, self.profile)]:
-            await run_in_thread(config_ctx.config.delete)()
-            await config_ctxs.unload(self.profile)
-
-
-@_register_method('config/list_profiles')
-class ListProfilesParams(BaseParams):
-    async def respond(self, config_ctxs: _ConfigBoundCtxCollection) -> list[str]:
-        return await run_in_thread(list[str])(config_ctxs.global_config.iter_profiles())
-
-
-@_register_method('config/update_global')
-class UpdateGlobalConfigParams(BaseParams):
-    access_tokens: dict[str, str | None]
-
-    async def respond(self, config_ctxs: _ConfigBoundCtxCollection) -> GlobalConfig:
-        def update_global_config_cb(global_config: GlobalConfig):
-            return attrs.evolve(
-                global_config,
-                access_tokens=attrs.evolve(
-                    global_config.access_tokens,
-                    **{k: t if t is None else SecretStr(t) for k, t in self.access_tokens.items()},
-                ),
-            )
-
-        return await config_ctxs.update_global_config(update_global_config_cb)
-
-
-@_register_method('config/read_global')
-class ReadGlobalConfigParams(BaseParams):
-    async def respond(self, config_ctxs: _ConfigBoundCtxCollection) -> GlobalConfig:
-        return await _read_global_config()
-
-
-class GithubCodesResponse(TypedDict):
-    user_code: str
-    verification_uri: str
-
-
-@_register_method('config/initiate_github_auth_flow')
-class InitiateGithubAuthFlowParams(BaseParams):
-    async def respond(self, config_ctxs: _ConfigBoundCtxCollection) -> GithubCodesResponse:
-        return await config_ctxs.initiate_github_auth_flow()
-
-
-class GithubAuthFlowStatusResponse(TypedDict):
-    status: Literal['success', 'failure']
-
-
-@_register_method('config/query_github_auth_flow_status')
-class QueryGithubAuthFlowStatusParams(BaseParams):
-    async def respond(
-        self, config_ctxs: _ConfigBoundCtxCollection
-    ) -> GithubAuthFlowStatusResponse:
-        return {'status': await config_ctxs.wait_for_github_auth_completion()}
-
-
-@_register_method('config/cancel_github_auth_flow')
-class CancelGithubAuthFlowParams(BaseParams):
-    async def respond(self, config_ctxs: _ConfigBoundCtxCollection) -> None:
-        await config_ctxs.cancel_github_auth_polling()
-
-
-@_register_method('sources/list')
-class ListSourcesParams(_ProfileParamMixin, BaseParams):
-    async def respond(self, config_ctxs: _ConfigBoundCtxCollection) -> dict[str, SourceMetadata]:
-        config_ctx = await config_ctxs.load(self.profile)
-        return {r.metadata.id: r.metadata for r in config_ctx.resolvers.values()}
-
-
-@_register_method('list')
-class ListInstalledParams(_ProfileParamMixin, BaseParams):
-    async def respond(self, config_ctxs: _ConfigBoundCtxCollection) -> list[pkg_models.Pkg]:
-        config_ctx = await config_ctxs.load(self.profile)
-
-        with config_ctx.database.connect() as connection:
-            return [
-                pkg_models.build_pkg_from_row_mapping(connection, p)
-                for p in connection.execute('SELECT * FROM pkg ORDER BY lower(name)')
-            ]
-
-
-@_register_method('search')
-class SearchParams(_ProfileParamMixin, BaseParams):
-    search_terms: str
-    limit: int
-    sources: set[str]
-    start_date: datetime | None
-    installed_only: bool
-
-    async def respond(
-        self, config_ctxs: _ConfigBoundCtxCollection
-    ) -> list[ComputedCatalogueEntry]:
-        config_ctx = await config_ctxs.load(self.profile)
-
-        return await search(
-            config_ctx,
-            self.search_terms,
-            limit=self.limit,
-            sources=self.sources,
-            start_date=self.start_date,
-            filter_installed='include_only' if self.installed_only else 'ident',
-        )
-
-
-class SuccessResult(TypedDict):
+class _SuccessResult(TypedDict, Generic[_T]):
     status: Literal['success']
-    addon: pkg_models.Pkg
+    addon: _T
 
 
-class ErrorResult(TypedDict):
+class _ErrorResult(TypedDict):
     status: Literal['failure', 'error']
     message: str
 
 
+@_register_method('config/list_profiles')
+async def list_profiles() -> dict[str, ProfileConfig]:
+    global_config = await _read_global_config()
+    profiles = await run_in_thread(list[str])(global_config.iter_profiles())
+
+    async def get_profile_configs():
+        for profile in profiles:
+            try:
+                profile_config = await _read_profile_config(global_config, profile)
+            except Exception:
+                continue
+            else:
+                yield (profile, profile_config)
+
+    return {p: c async for p, c in get_profile_configs()}
+
+
+@_register_method('config/write_profile')
+async def write_profile_config(
+    profile: str, addon_dir: Path, game_flavour: Flavour, infer_game_flavour: bool
+) -> ProfileConfig:
+    async with sync_ctx.locks()[*_LockOperation.ModifyProfile, profile]:
+        config = config_converter.structure(
+            {
+                'global_config': await _read_global_config(),
+                'profile': profile,
+                'addon_dir': addon_dir,
+                'game_flavour': game_flavour,
+            },
+            ProfileConfig,
+        )
+        if infer_game_flavour:
+            config = attrs.evolve(
+                config,
+                game_flavour=infer_flavour_from_addon_dir(config.addon_dir) or Flavour.Retail,
+            )
+        await run_in_thread(config.write)()
+
+        # Profile will be reloaded on the next request.
+        _unload_profiles(config.profile)
+
+        return config
+
+
+@_register_method('config/delete_profile')
+async def delete_profile(profile: str) -> None:
+    async with _load_profile(profile) as config_party:
+        async with sync_ctx.locks()[*_LockOperation.ModifyProfile, profile]:
+            await run_in_thread(config_party.config.delete)()
+            _unload_profiles(profile)
+
+
+@_register_method('config/read_global')
+async def read_global_config() -> GlobalConfig:
+    return await _read_global_config()
+
+
+@_register_method('config/update_global')
+async def update_global_config(access_tokens: dict[str, str | None]) -> GlobalConfig:
+    return await _update_global_config(
+        lambda g: attrs.evolve(
+            g,
+            access_tokens=attrs.evolve(
+                g.access_tokens,
+                **{k: t if t is None else SecretStr(t) for k, t in access_tokens.items()},
+            ),
+        )
+    )
+
+
+@_register_method('config/initiate_github_auth_flow')
+async def initiate_github_auth_flow() -> TypedDict[{'user_code': str, 'verification_uri': str}]:
+    return await _github_auth_manager.get().initiate_auth_flow()
+
+
+@_register_method('config/query_github_auth_flow_status')
+async def query_github_auth_flow_status() -> TypedDict[{'status': Literal['success', 'failure']}]:
+    return {'status': await _github_auth_manager.get().await_auth_completion()}
+
+
+@_register_method('config/cancel_github_auth_flow')
+async def cancel_github_auth_flow() -> None:
+    await _github_auth_manager.get().cancel_auth_completion()
+
+
+@_register_method('sources/list')
+async def list_sources(profile: str) -> dict[str, SourceMetadata]:
+    async with _load_profile(profile) as config_party:
+        return {r.metadata.id: r.metadata for r in config_party.resolvers.values()}
+
+
+@_register_method('list')
+async def list_installed_pkgs(profile: str) -> list[pkg_models.Pkg]:
+    async with _load_profile(profile) as config_party:
+        with config_party.database as connection:
+            return [
+                pkg_models.build_pkg_from_row_mapping(connection, r)
+                for r in connection.execute('SELECT * FROM pkg ORDER BY lower(name)')
+            ]
+
+
+@_register_method('search')
+async def search_pkgs(
+    profile: str,
+    search_terms: str,
+    limit: int,
+    sources: set[str],
+    start_date: datetime | None,
+    installed_only: bool,
+) -> list[ComputedCatalogueEntry]:
+    async with _load_profile(profile):
+        return await search_catalogue(
+            search_terms,
+            limit=limit,
+            sources=sources,
+            start_date=start_date,
+            filter_installed='include_only' if installed_only else 'ident',
+        )
+
+
 @_register_method('resolve')
-class ResolveParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
-    async def respond(
-        self, config_ctxs: _ConfigBoundCtxCollection
-    ) -> list[SuccessResult | ErrorResult]:
-        config_ctx = await config_ctxs.load(self.profile)
+async def resolve_pkgs(
+    profile: str, defns: list[Defn]
+) -> list[_SuccessResult[pkg_models.Pkg] | _ErrorResult]:
+    async with _load_profile(profile):
 
         def extract_source(defn: Defn):
             if not defn.source:
-                match = pkg_management.get_alias_from_url(config_ctx, defn.alias)
+                match = pkg_management.get_alias_from_url(defn.alias)
                 if match:
                     source, alias = match
                     defn = attrs.evolve(defn, source=source, alias=alias)
             return defn
 
-        results = await pkg_management.resolve(config_ctx, list(map(extract_source, self.defns)))
+        results = await pkg_management.resolve(list(map(extract_source, defns)))
         return [
-            {'status': 'success', 'addon': r}
-            if isinstance(r, pkg_models.Pkg)
+            {
+                'status': 'success',
+                'addon': pkg_models.build_pkg_from_pkg_candidate(d, r, folders=[]),
+            }
+            if isinstance(r, dict)
             else {'status': r.status, 'message': r.message}
-            for r in results.values()
+            for d, r in results.items()
         ]
 
 
 @_register_method('install')
-class InstallParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
-    replace: bool
-
-    async def respond(
-        self, config_ctxs: _ConfigBoundCtxCollection
-    ) -> list[SuccessResult | ErrorResult]:
-        config_ctx = await config_ctxs.load(self.profile)
-
-        results = await pkg_management.install(
-            config_ctx, self.defns, replace_folders=self.replace
-        )
+async def install_pkgs(
+    profile: str, defns: list[Defn], replace: bool
+) -> list[_SuccessResult[pkg_models.Pkg] | _ErrorResult]:
+    async with _load_profile(profile):
+        results = await pkg_management.install(defns, replace_folders=replace)
         return [
             {'status': r.status, 'addon': r.pkg}
             if isinstance(r, R.PkgInstalled)
@@ -380,13 +290,11 @@ class InstallParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
 
 
 @_register_method('update')
-class UpdateParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
-    async def respond(
-        self, config_ctxs: _ConfigBoundCtxCollection
-    ) -> list[SuccessResult | ErrorResult]:
-        config_ctx = await config_ctxs.load(self.profile)
-
-        results = await pkg_management.update(config_ctx, self.defns)
+async def update_pkgs(
+    profile: str, defns: list[Defn]
+) -> list[_SuccessResult[pkg_models.Pkg] | _ErrorResult]:
+    async with _load_profile(profile):
+        results = await pkg_management.update(defns)
         return [
             {'status': r.status, 'addon': r.new_pkg}
             if isinstance(r, R.PkgUpdated)
@@ -398,17 +306,11 @@ class UpdateParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
 
 
 @_register_method('remove')
-class RemoveParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
-    keep_folders: bool
-
-    async def respond(
-        self, config_ctxs: _ConfigBoundCtxCollection
-    ) -> list[SuccessResult | ErrorResult]:
-        config_ctx = await config_ctxs.load(self.profile)
-
-        results = await pkg_management.remove(
-            config_ctx, self.defns, keep_folders=self.keep_folders
-        )
+async def remove_pkgs(
+    profile: str, defns: list[Defn], keep_folders: bool
+) -> list[_SuccessResult[pkg_models.Pkg] | _ErrorResult]:
+    async with _load_profile(profile):
+        results = await pkg_management.remove(defns, keep_folders=keep_folders)
         return [
             {'status': r.status, 'addon': r.old_pkg}
             if isinstance(r, R.PkgRemoved)
@@ -418,13 +320,11 @@ class RemoveParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
 
 
 @_register_method('pin')
-class PinParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
-    async def respond(
-        self, config_ctxs: _ConfigBoundCtxCollection
-    ) -> list[SuccessResult | ErrorResult]:
-        config_ctx = await config_ctxs.load(self.profile)
-
-        results = await pkg_management.pin(config_ctx, self.defns)
+async def pin_pkgs(
+    profile: str, defns: list[Defn]
+) -> list[_SuccessResult[pkg_models.Pkg] | _ErrorResult]:
+    async with _load_profile(profile):
+        results = await pkg_management.pin(defns)
         return [
             {'status': r.status, 'addon': r.pkg}
             if isinstance(r, R.PkgInstalled)
@@ -434,49 +334,42 @@ class PinParams(_ProfileParamMixin, _DefnParamMixin, BaseParams):
 
 
 @_register_method('get_changelog')
-class GetChangelogParams(_ProfileParamMixin, BaseParams):
-    source: str
-    changelog_url: str
-
-    async def respond(self, config_ctxs: _ConfigBoundCtxCollection) -> str:
-        config_ctx = await config_ctxs.load(self.profile)
-
-        return await pkg_management.get_changelog(
-            config_ctx, source=self.source, uri=self.changelog_url
-        )
-
-
-class AddonMatch(TypedDict):
-    folders: list[AddonMatch_AddonFolder]
-    matches: list[pkg_models.Pkg]
-
-
-class AddonMatch_AddonFolder(TypedDict):
-    name: str
-    version: str
+async def get_pkg_changelog(profile: str, source: str, changelog_url: str) -> str:
+    async with _load_profile(profile):
+        return await pkg_management.get_changelog(source=source, uri=changelog_url)
 
 
 @_register_method('reconcile')
-class ReconcileParams(_ProfileParamMixin, BaseParams):
-    matcher: str
+async def reconcile_pkgs(
+    profile: str, matcher: str
+) -> list[
+    TypedDict[
+        {
+            'folders': list[TypedDict[{'name': str, 'version': str}]],
+            'matches': list[pkg_models.Pkg],
+        }
+    ]
+]:
+    async with _load_profile(profile):
+        leftovers = await run_in_thread(matchers.get_unreconciled_folders)()
 
-    async def respond(self, config_ctxs: _ConfigBoundCtxCollection) -> list[AddonMatch]:
-        config_ctx = await config_ctxs.load(self.profile)
+        match_groups = await matchers.DEFAULT_MATCHERS[matcher](leftovers)
 
-        leftovers = await run_in_thread(matchers.get_unreconciled_folders)(config_ctx)
+        resolved_defns = await pkg_management.resolve(uniq(d for _, b in match_groups for d in b))
+        pkg_candidates, _ = pkg_management.bucketise_results(resolved_defns.items())
 
-        match_groups = await matchers.DEFAULT_MATCHERS[self.matcher](
-            config_ctx, leftovers=leftovers
+        matched_folders = (
+            (
+                g,
+                [
+                    pkg_models.build_pkg_from_pkg_candidate(d, i, folders=[])
+                    for d in s
+                    for i in (pkg_candidates.get(d),)
+                    if i
+                ],
+            )
+            for g, s in match_groups
         )
-
-        resolved_defns = await pkg_management.resolve(
-            config_ctx, uniq(d for _, b in match_groups for d in b)
-        )
-        pkgs, _ = pkg_management.bucketise_results(resolved_defns.items())
-
-        matched_folders = [
-            (a, [i for i in (pkgs.get(d) for d in s) if i]) for a, s in match_groups
-        ]
         unmatched_folders = (
             ([a], list[pkg_models.Pkg]())
             for a in sorted(leftovers - frozenset(i for a, _ in matched_folders for i in a))
@@ -490,278 +383,299 @@ class ReconcileParams(_ProfileParamMixin, BaseParams):
         ]
 
 
-class ReconcileInstalledCandidate(TypedDict):
-    installed_addon: pkg_models.Pkg
-    alternative_addons: list[pkg_models.Pkg]
-
-
 @_register_method('get_reconcile_installed_candidates')
-class GetReconcileInstalledCandidatesParams(_ProfileParamMixin, BaseParams):
-    async def respond(
-        self, config_ctxs: _ConfigBoundCtxCollection
-    ) -> list[ReconcileInstalledCandidate]:
-        config_ctx = await config_ctxs.load(self.profile)
-
-        with config_ctx.database.connect() as connection:
+async def get_reconcile_installed_pkg_candidates(
+    profile: str,
+) -> list[
+    TypedDict[{'installed_addon': pkg_models.Pkg, 'alternative_addons': list[pkg_models.Pkg]}]
+]:
+    async with _load_profile(profile) as config_party:
+        with config_party.database as connection:
             installed_pkgs = [
                 pkg_models.build_pkg_from_row_mapping(connection, p)
                 for p in connection.execute('SELECT * FROM pkg ORDER BY lower(name)')
             ]
 
-        defn_groups = await pkg_management.find_equivalent_pkg_defns(config_ctx, installed_pkgs)
+        defn_groups = await pkg_management.find_equivalent_pkg_defns(installed_pkgs)
+
         resolved_defns = await pkg_management.resolve(
-            config_ctx, uniq(d for b in defn_groups.values() for d in b)
+            uniq(d for b in defn_groups.values() for d in b)
         )
-        pkgs, _ = pkg_management.bucketise_results(resolved_defns.items())
+        pkg_candidates, _ = pkg_management.bucketise_results(resolved_defns.items())
+
         return [
             {'installed_addon': p, 'alternative_addons': m}
             for p, s in defn_groups.items()
-            for m in ([i for i in (pkgs.get(d) for d in s) if i],)
+            for m in (
+                [
+                    pkg_models.build_pkg_from_pkg_candidate(d, i, folders=[])
+                    for d in s
+                    for i in (pkg_candidates.get(d),)
+                    if i
+                ],
+            )
             if m
         ]
 
 
-class DownloadProgressReport(TypedDict):
-    defn: Defn
-    progress: float
-
-
 @_register_method('get_download_progress')
-class GetDownloadProgressParams(_ProfileParamMixin, BaseParams):
-    async def respond(
-        self, config_ctxs: _ConfigBoundCtxCollection
-    ) -> list[DownloadProgressReport]:
-        config_ctx = await config_ctxs.load(self.profile)
-
+async def respond(profile: str) -> list[TypedDict[{'defn': Defn, 'progress': float}]]:
+    async with _load_profile(profile) as config_party:
         return [
             {'defn': p['defn'], 'progress': p['current'] / p['total']}
-            for p in config_ctxs.current_progress.values()
+            for p in _current_progress_var.get().values()
             if p['type_'] == 'pkg_download'
             and p['total']
-            and p['profile'] == config_ctx.config.profile
+            and p['profile'] == config_party.config.profile
         ]
 
 
-class GetVersionResult(TypedDict):
-    installed_version: str
-    new_version: str | None
-
-
 @_register_method('meta/get_version')
-class GetVersionParams(BaseParams):
-    async def respond(self, config_ctxs: _ConfigBoundCtxCollection) -> GetVersionResult:
-        outdated, new_version = await _version.is_outdated(config_ctxs.global_config)
-        return {
-            'installed_version': _version.get_version(),
-            'new_version': new_version if outdated else None,
-        }
+async def get_instawow_version() -> TypedDict[
+    {'installed_version': str, 'new_version': str | None}
+]:
+    from instawow import _version
+
+    outdated, new_version = await _version.is_outdated(await _read_global_config())
+    return {
+        'installed_version': _version.get_version(),
+        'new_version': new_version if outdated else None,
+    }
 
 
 @_register_method('assist/open_url')
-class OpenUrlParams(BaseParams):
-    url: str
+@run_in_thread
+def open_url(url: str) -> None:
+    from instawow._utils.web import open_url
 
-    async def respond(self, config_ctxs: _ConfigBoundCtxCollection) -> None:
-        open_url(self.url)
+    open_url(url)
 
 
 @_register_method('assist/reveal_folder')
-class RevealFolderParams(BaseParams):
-    path_parts: list[str]
+@run_in_thread
+def reveal_folder(path_parts: list[str]) -> None:
+    from instawow._utils.file import reveal_folder
 
-    async def respond(self, config_ctxs: _ConfigBoundCtxCollection) -> None:
-        reveal_folder(os.path.join(*self.path_parts))
-
-
-class SelectFolderResult(TypedDict):
-    selection: Path | None
+    reveal_folder(os.path.join(*path_parts))
 
 
 @_register_method('assist/select_folder')
-class SelectFolderParams(BaseParams):
-    initial_folder: str | None
+@run_in_thread
+def select_folder(initial_folder: str | None) -> TypedDict[{'selection': Path | None}]:
+    app = _toga_handle_var.get()
 
-    async def respond(self, config_ctxs: _ConfigBoundCtxCollection) -> SelectFolderResult:
-        app = _toga_handle.get()
+    async def select_folder():
+        try:
+            assert isinstance(app.main_window, toga.Window)
+            return await app.main_window.dialog(
+                toga.SelectFolderDialog('Select folder', initial_folder),
+            )
+        except ValueError:
+            return None
 
-        future = concurrent.futures.Future[Path | None]()
-
-        def select_folder():
-            async def inner() -> Path | None:
-                import toga
-
-                try:
-                    assert isinstance(app.main_window, toga.Window)
-                    return await app.main_window.dialog(  # pyright: ignore[reportReturnType, reportUnknownMemberType]
-                        toga.SelectFolderDialog('Select folder', self.initial_folder),
-                    )
-
-                except ValueError:
-                    return None
-
-            task = asyncio.create_task(inner())
-            task.add_done_callback(lambda t: future.set_result(t.result()))
-
-        app.loop.call_soon_threadsafe(select_folder)
-        return {'selection': future.result()}
-
-
-class ConfirmDialogueResult(TypedDict):
-    ok: bool
+    future = asyncio.run_coroutine_threadsafe(select_folder(), app.loop)
+    return {'selection': future.result()}
 
 
 @_register_method('assist/confirm')
-class ConfirmDialogueParams(BaseParams):
-    title: str
-    message: str
+@run_in_thread
+def prompt_confirm(title: str, message: str) -> TypedDict[{'ok': bool}]:
+    app = _toga_handle_var.get()
 
-    async def respond(self, config_ctxs: _ConfigBoundCtxCollection) -> ConfirmDialogueResult:
-        app = _toga_handle.get()
+    async def confirm():
+        assert isinstance(app.main_window, toga.Window)
+        return await app.main_window.dialog(
+            toga.ConfirmDialog(title, message),
+        )
 
-        future = concurrent.futures.Future[bool]()
-
-        def confirm():
-            async def inner() -> bool:
-                assert isinstance(app.main_window, toga.Window)
-                return await app.main_window.dialog(  # pyright: ignore[reportReturnType, reportUnknownMemberType]
-                    toga.ConfirmDialog(self.title, self.message),
-                )
-
-            task = asyncio.create_task(inner())
-            task.add_done_callback(lambda t: future.set_result(t.result()))
-
-        app.loop.call_soon_threadsafe(confirm)
-        return {'ok': future.result()}
+    future = asyncio.run_coroutine_threadsafe(confirm(), app.loop)
+    return {'ok': future.result()}
 
 
-class _ConfigBoundCtxCollection:
+class _GitHubAuthManager(AbstractAsyncContextManager['_GitHubAuthManager']):
     def __init__(self):
-        self.locks = WeakValueDefaultDictionary[object, asyncio.Lock](asyncio.Lock)
-
-        self._config_ctxs = dict[str, shared_ctx.ConfigBoundCtx]()
-
-        self.current_progress: ReadOnlyProgressGroup[PkgDownloadProgress] = {}
-
-        self._github_auth_device_codes = None
-        self._github_auth_flow_task = None
-
-    async def __aenter__(self):
-        self._exit_stack = AsyncExitStack()
-
-        self.global_config = await _read_global_config()
-
-        self._web_client = await self._exit_stack.enter_async_context(
-            init_web_client(self.global_config.http_cache_dir, with_progress=True)
-        )
-
-        iter_progress = self._exit_stack.enter_context(
-            make_progress_receiver[PkgDownloadProgress]()
-        )
-
-        async def update_progress():
-            async for progress_group in iter_progress:
-                self.current_progress = progress_group
-
-        progress_updater = asyncio.create_task(update_progress())
-        self._exit_stack.push_async_callback(partial(cancel_tasks, [progress_updater]))
-
-        self._exit_stack.push_async_callback(self.cancel_github_auth_polling)
-
-        shared_ctx.locks_var.set(self.locks)
-        shared_ctx.web_client_var.set(self._web_client)
+        self._device_codes = None
+        self._finalise_task = None
 
     async def __aexit__(self, *args: object):
-        await self._exit_stack.aclose()
+        await self.cancel_auth_completion()
 
-    async def load(self, profile: str) -> shared_ctx.ConfigBoundCtx:
-        try:
-            config_ctx = self._config_ctxs[profile]
-        except KeyError:
-            async with self.locks[(*_LockOperation.ModifyProfile, profile)]:
-                try:
-                    config_ctx = self._config_ctxs[profile]
-                except KeyError:
-                    config_ctx = self._config_ctxs[profile] = shared_ctx.ConfigBoundCtx(
-                        await _read_profile_config(self.global_config, profile)
-                    )
-
-        return config_ctx
-
-    async def unload(self, profile: str) -> None:
-        if profile in self._config_ctxs:
-            config_ctx = self._config_ctxs[profile]
-            await run_in_thread(config_ctx.__exit__)(*((None,) * 3))
-            del self._config_ctxs[profile]
-
-    async def _unload_all(self):
-        await gather(self.unload(p) for p in self._config_ctxs)
-
-    async def update_global_config(
-        self, update_cb: Callable[[GlobalConfig], GlobalConfig]
-    ) -> GlobalConfig:
-        async with self.locks[_LockOperation.UpdateGlobalConfig]:
-            with _reraise_validation_errors(_ConfigError):
-                self.global_config = update_cb(self.global_config)
-                await run_in_thread(self.global_config.write)()
-
-            await self._unload_all()
-
-            return self.global_config
-
-    async def initiate_github_auth_flow(self):
-        async with self.locks[_LockOperation.InitiateGithubAuthFlow]:
-            if self._github_auth_device_codes is None:
+    async def initiate_auth_flow(self):
+        async with sync_ctx.locks()[_LockOperation.InitiateGitHubAuthFlow]:
+            if self._device_codes is None:
+                self._device_codes = device_codes = await get_codes(http_ctx.web_client())
 
                 async def finalise_github_auth_flow():
                     result = await poll_for_access_token(
-                        self._web_client, codes['device_code'], codes['interval']
+                        http_ctx.web_client(),
+                        device_codes['device_code'],
+                        device_codes['interval'],
+                    )
+                    await _update_global_config(
+                        lambda g: attrs.evolve(
+                            g,
+                            access_tokens=attrs.evolve(g.access_tokens, github=SecretStr(result)),
+                        )
                     )
 
-                    def update_global_config_cb(global_config: GlobalConfig):
-                        return attrs.evolve(
-                            global_config,
-                            access_tokens=attrs.evolve(
-                                global_config.access_tokens, github=SecretStr(result)
-                            ),
-                        )
+                self._finalise_task = finalise_task = asyncio.create_task(
+                    finalise_github_auth_flow()
+                )
 
-                    await self.update_global_config(update_global_config_cb)
+                @finalise_task.add_done_callback
+                def _(task: asyncio.Task[object]):
+                    self._device_codes = None
+                    self._finalise_task = None
 
-                def on_task_complete(task: object):
-                    self._github_auth_flow_task = None
-                    self._github_auth_device_codes = None
+        return self._device_codes
 
-                self._github_auth_device_codes = codes = await get_codes(self._web_client)
-                self._github_auth_flow_task = asyncio.create_task(finalise_github_auth_flow())
-                self._github_auth_flow_task.add_done_callback(on_task_complete)
-
-        return self._github_auth_device_codes
-
-    async def wait_for_github_auth_completion(self):
-        if self._github_auth_flow_task is not None:
+    async def await_auth_completion(self):
+        if self._finalise_task is not None:
             try:
-                await self._github_auth_flow_task
+                await self._finalise_task
             except BaseException:
                 return 'failure'
         return 'success'
 
-    async def cancel_github_auth_polling(self):
-        if self._github_auth_flow_task:
-            await cancel_tasks([self._github_auth_flow_task])
+    async def cancel_auth_completion(self):
+        if self._finalise_task:
+            await cancel_tasks([self._finalise_task])
+
+
+@run_in_thread
+def _read_global_config() -> GlobalConfig:
+    return GlobalConfig.read().ensure_dirs()
+
+
+@run_in_thread
+def _read_profile_config(global_config: GlobalConfig, profile: str) -> ProfileConfig:
+    return ProfileConfig.read(global_config, profile).ensure_dirs()
+
+
+@asynccontextmanager
+async def _load_profile(profile: str):
+    config_parties = _config_parties_var.get()
+
+    try:
+        config_party = config_parties[profile]
+    except KeyError:
+        async with sync_ctx.locks()[*_LockOperation.ModifyProfile, profile]:
+            try:
+                config_party = config_parties[profile]
+            except KeyError:
+                config_party = config_parties[profile] = config_ctx.ConfigParty.from_config(
+                    await _read_profile_config(await _read_global_config(), profile)
+                )
+
+    config_ctx.config.set(config_party)
+    yield config_party
+
+
+def _unload_profiles(*profiles: str):
+    config_parties = _config_parties_var.get()
+    for profile in profiles or config_parties:
+        if profile in config_parties:
+            del config_parties[profile]
+
+
+async def _update_global_config(update: Callable[[GlobalConfig], GlobalConfig]):
+    async with sync_ctx.locks()[_LockOperation.UpdateGlobalConfig]:
+        global_config = update(await _read_global_config())
+        await run_in_thread(global_config.write)()
+
+        _unload_profiles()
+
+        return global_config
+
+
+_converter = cattrs.Converter(
+    unstruct_collection_overrides={
+        Set: sorted,
+    },
+)
+cattrs.preconf.json.configure_converter(_converter)
+_converter.register_structure_hook(Path, lambda v, t: Path(v))
+_converter.register_structure_hook(Strategies, lambda v, t: Strategies(v))
+_converter.register_unstructure_hook(Path, str)
+_converter.register_unstructure_hook(Strategies, dict)
+
+_method_union = cast(type[_JsonRpcRequest[str, Any]], Union[*(t for t, _ in _methods.values())])
+
+_method_converter = _converter.copy()  # pyright: ignore[reportUnknownMemberType]
+cattrs.strategies.configure_tagged_union(  # pyright: ignore[reportUnknownMemberType]
+    _method_union, _method_converter, tag_name='method'
+)
+
+
+def _transform_validation_errors(
+    exc: cattrs.ClassValidationError | cattrs.IterableValidationError | BaseException,
+    path: tuple[str | int, ...] = (),
+) -> Iterator[TypedDict[{'path': tuple[str | int, ...], 'message': str}]]:
+    match exc:
+        case cattrs.IterableValidationError():
+            excs_with_notes, excs_without_notes = exc.group_exceptions()
+            for exc, new_path in chain(
+                ((e, (*path, n.index)) for e, n in excs_with_notes),
+                ((e, path) for e in excs_without_notes),
+            ):
+                yield from _transform_validation_errors(exc, new_path)
+
+        case cattrs.ClassValidationError():
+            excs_with_notes, excs_without_notes = exc.group_exceptions()
+            for exc, new_path in chain(
+                ((e, (*path, n.name)) for e, n in excs_with_notes),
+                ((e, path) for e in excs_without_notes),
+            ):
+                yield from _transform_validation_errors(exc, new_path)
+
+        case exc:
+            yield {
+                'path': path,
+                'message': repr(exc),
+            }
 
 
 async def create_web_app(toga_handle: toga.App | None = None):
     from . import _frontend
 
-    if toga_handle:
-        _toga_handle.set(toga_handle)
-
     frontend_resources = importlib.resources.files(_frontend)
 
-    config_ctxs = _ConfigBoundCtxCollection()
+    websockets = set[aiohttp.web.WebSocketResponse]()
 
-    async def config_ctxs_listen(app: aiohttp.web.Application):
-        async with config_ctxs:
+    async def close_websockets(app: aiohttp.web.Application):
+        for websocket in websockets:
+            await websocket.close(code=aiohttp.WSCloseCode.GOING_AWAY, message=b'server shutdown')
+
+    async def ctxify(app: aiohttp.web.Application):
+        async with AsyncExitStack() as exit_stack:
+            sync_ctx.locks.set(
+                WeakValueDefaultDictionary[object, asyncio.Lock](asyncio.Lock),
+            )
+
+            global_config = await _read_global_config()
+
+            web_client = await exit_stack.enter_async_context(
+                init_web_client(global_config.http_cache_dir, with_progress=True)
+            )
+            http_ctx.web_client.set(web_client)
+
+            async def update_progress():
+                async for progress in iter_progress:
+                    _current_progress_var.set(progress)
+
+            iter_progress = exit_stack.enter_context(make_progress_receiver[PkgDownloadProgress]())
+            exit_stack.push_async_callback(
+                partial(cancel_tasks, [asyncio.create_task(update_progress())])
+            )
+
+            _config_parties_var.set({})
+
+            github_auth_manager = await exit_stack.enter_async_context(_GitHubAuthManager())
+            _github_auth_manager.set(github_auth_manager)
+
+            if toga_handle:
+                _toga_handle_var.set(toga_handle)
+
             yield
 
     async def get_index(request: aiohttp.web.Request):
@@ -787,16 +701,88 @@ async def create_web_app(toga_handle: toga.App | None = None):
             body=frontend_resources.joinpath(filename).read_bytes(),
         )
 
-    def json_serialize(value: dict[str, Any]):
-        return json.dumps(_converter.unstructure(value))
+    async def serve_json_rpc_api(request: aiohttp.web.Request):
+        async def handle_json_rpc_request(msg: Any):
+            try:
+                json_rpc_request_json = msg.json()
+            except json.JSONDecodeError:
+                response = _JsonRpcErrorResponse(
+                    jsonrpc='2.0',
+                    error=_JsonRpcError(code=-32700, message='parse error'),
+                    id=None,
+                )
+                return await websocket.send_json(response)
 
-    rpc_server = WsJsonRpcServer(
-        json_serialize=json_serialize,
-        middlewares=rpc_middlewares.DEFAULT_MIDDLEWARES,  # pyright: ignore[reportUnknownMemberType]
-    )
-    rpc_server.add_methods(  # pyright: ignore[reportUnknownMemberType]
-        [m.bind(n, config_ctxs) for n, m in _methods]
-    )
+            try:
+                json_rpc_request = _converter.structure(
+                    json_rpc_request_json, _JsonRpcRequest[str, Any]
+                )
+            except cattrs.BaseValidationError as error:
+                validation_errors = list(_transform_validation_errors(error))
+                response = _JsonRpcErrorResponse(
+                    jsonrpc='2.0',
+                    error=_JsonRpcError(
+                        code=-32600, message='invalid request', data=validation_errors
+                    ),
+                    id=json_rpc_request_json.get('id'),
+                )
+                return await websocket.send_json(response)
+
+            try:
+                qualified_json_rpc_request = _method_converter.structure(
+                    json_rpc_request, _method_union
+                )
+            except cattrs.BaseValidationError as error:
+                validation_errors = list(_transform_validation_errors(error))
+                response = _JsonRpcErrorResponse(
+                    jsonrpc='2.0',
+                    error=_JsonRpcError(
+                        code=-32602, message='invalid params', data=validation_errors
+                    ),
+                    id=json_rpc_request_json['id'],
+                )
+                return await websocket.send_json(response)
+
+            _, respond = _methods[qualified_json_rpc_request['method']]
+            try:
+                result = await respond(
+                    # Our JSON-RPC client returns an empty array when params aren't specified.
+                    **dict(qualified_json_rpc_request.get('params', []))
+                )
+            except BaseException as error:
+                import traceback
+
+                response = _JsonRpcErrorResponse(
+                    jsonrpc='2.0',
+                    error=_JsonRpcError(
+                        code=-32603,
+                        message='internal error',
+                        data=traceback.format_exception(error),
+                    ),
+                    id=qualified_json_rpc_request['id'],
+                )
+                return await websocket.send_json(response)
+
+            response = _JsonRpcSuccessResponse(
+                jsonrpc='2.0',
+                result=_converter.unstructure(result),
+                id=json_rpc_request['id'],
+            )
+            await websocket.send_json(response)
+
+        websocket = aiohttp.web.WebSocketResponse()
+        await websocket.prepare(request)
+        websockets.add(websocket)
+
+        tasks = set[asyncio.Task[object]]()  # To avoid tasks getting lost in the aether.
+
+        async for msg in websocket:
+            if msg.type == aiohttp.WSMsgType.TEXT:
+                task = asyncio.create_task(handle_json_rpc_request(msg))
+                tasks.add(task)
+                task.add_done_callback(tasks.remove)
+
+        return websocket
 
     @aiohttp.web.middleware
     async def enforce_same_origin(
@@ -828,11 +814,11 @@ async def create_web_app(toga_handle: toga.App | None = None):
             aiohttp.web.get(
                 r'/assets/{name}{extension:(?:\.css|\.js(?:\.map)?)}', get_static_file
             ),
-            aiohttp.web.get('/api', rpc_server.handle_http_request),
+            aiohttp.web.get('/api', serve_json_rpc_api),
         ]
     )
-    app.cleanup_ctx.append(config_ctxs_listen)
-    app.on_shutdown.append(rpc_server.on_shutdown)
+    app.cleanup_ctx.append(ctxify)
+    app.on_shutdown.append(close_websockets)
     app.freeze()
     return app
 

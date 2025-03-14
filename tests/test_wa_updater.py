@@ -3,41 +3,18 @@ from __future__ import annotations
 import pytest
 from yarl import URL
 
-from instawow import pkg_management
+from instawow import config_ctx, pkg_management
 from instawow.definitions import Defn
-from instawow.pkg_models import Pkg
-from instawow.shared_ctx import ConfigBoundCtx
 from instawow_wa_updater._config import PluginConfig
 from instawow_wa_updater._core import WaCompanionBuilder, WeakAura, WeakAuras, _extract_auras
 
-
-@pytest.fixture
-def _wa_saved_vars(
-    iw_config_ctx: ConfigBoundCtx,
-):
-    saved_vars = (
-        iw_config_ctx.config.addon_dir.parents[1] / 'WTF' / 'Account' / 'test' / 'SavedVariables'
-    )
-    saved_vars.mkdir(parents=True)
-    (saved_vars / WeakAuras.addon_name).with_suffix('.lua').write_text(
-        """\
-WeakAurasSaved = {
-    ["displays"] = {
-        ["Foo"] = {
-            ["bar"] = "baz",
-        },
-    },
-}
-"""
-    )
+pytestmark = pytest.mark.usefixtures('_iw_config_ctx')
 
 
 @pytest.fixture
-def builder(
-    iw_config_ctx: ConfigBoundCtx,
-):
+async def builder():
     return WaCompanionBuilder(
-        PluginConfig(iw_config_ctx.config).ensure_dirs(),
+        PluginConfig(config_ctx.config()).ensure_dirs(),
     )
 
 
@@ -128,10 +105,25 @@ def test_can_build_addon_with_empty_seq(
     builder._generate_addon([])
 
 
-@pytest.mark.usefixtures('_wa_saved_vars')
 async def test_can_build_addon_with_mock_saved_vars(
     builder: WaCompanionBuilder,
 ):
+    saved_vars = (
+        config_ctx.config().addon_dir.parents[1] / 'WTF' / 'Account' / 'test' / 'SavedVariables'
+    )
+    saved_vars.mkdir(parents=True)
+    (saved_vars / WeakAuras.addon_name).with_suffix('.lua').write_text(
+        """\
+WeakAurasSaved = {
+    ["displays"] = {
+        ["Foo"] = {
+            ["bar"] = "baz",
+        },
+    },
+}
+"""
+    )
+
     await builder.build()
 
 
@@ -153,17 +145,14 @@ def test_changelog_is_generated(
 
 async def test_can_resolve_wa_companion_pkg(
     builder: WaCompanionBuilder,
-    iw_config_ctx: ConfigBoundCtx,
 ):
     await builder.build()
     defn = Defn('instawow', 'weakauras-companion')
-    resolve_results = await pkg_management.resolve(iw_config_ctx, [defn])
-    assert type(resolve_results[defn]) is Pkg
+    resolve_results = await pkg_management.resolve([defn])
+    assert type(resolve_results[defn]) is dict
 
 
-async def test_can_resolve_wa_companion_autoupdate_pkg(
-    iw_config_ctx: ConfigBoundCtx,
-):
+async def test_can_resolve_wa_companion_autoupdate_pkg():
     defn = Defn('instawow', 'weakauras-companion-autoupdate')
-    resolve_results = await pkg_management.resolve(iw_config_ctx, [defn])
-    assert type(resolve_results[defn]) is Pkg
+    resolve_results = await pkg_management.resolve([defn])
+    assert type(resolve_results[defn]) is dict

@@ -1,19 +1,13 @@
 from __future__ import annotations
 
-import contextlib
 import os
 import sqlite3
-import threading
 from collections.abc import Iterator
+from contextlib import ExitStack, closing, contextmanager
 from typing import TypeAlias
-
-from .._utils.iteration import WeakValueDefaultDictionary
 
 Connection: TypeAlias = sqlite3.Connection
 Row: TypeAlias = sqlite3.Row
-
-
-_connection_lock_factory = WeakValueDefaultDictionary[object, threading.Lock](threading.Lock)
 
 
 _VERSION = 1
@@ -104,7 +98,7 @@ def _migrate(connection: Connection, current_version: int, new_version: int):
 
     with (
         connection as transaction,  # Steps 2 and 11.
-        contextlib.ExitStack() as exit_stack,
+        ExitStack() as exit_stack,
     ):
         # Steps 1 and 12.
         transaction.execute('PRAGMA foreign_keys = OFF')
@@ -132,7 +126,7 @@ def _configure(connection: Connection):
     # connection.set_trace_callback(print)
 
 
-def _prepare_database(path: os.PathLike[str]) -> sqlite3.Connection:
+def prepare_database(path: os.PathLike[str]) -> Connection:
     connection = sqlite3.connect(path, check_same_thread=False)
     connection.row_factory = sqlite3.Row
     _configure(connection)
@@ -146,36 +140,14 @@ def _prepare_database(path: os.PathLike[str]) -> sqlite3.Connection:
     return connection
 
 
-class DatabaseHandle:
-    def __init__(self, path: os.PathLike[str]) -> None:
-        self.path = path
-        self._connection = None
+@contextmanager
+def transact(connection: sqlite3.Connection) -> Iterator[sqlite3.Connection]:
+    with connection:
+        yield connection
 
-    @contextlib.contextmanager
-    def connect(self) -> Iterator[sqlite3.Connection]:
-        if not self._connection:
-            with _connection_lock_factory[self.path]:
-                if not self._connection:
-                    self._connection = _prepare_database(self.path)
 
-        yield self._connection
-
-    def close(self) -> None:
-        if self._connection:
-            with _connection_lock_factory[self.path]:
-                if self._connection:
-                    self._connection.close()
-                    self._connection = None
-
-    @classmethod
-    @contextlib.contextmanager
-    def transact(cls, connection: Connection) -> Iterator[sqlite3.Connection]:
-        with connection:
-            yield connection
-
-    @classmethod
-    @contextlib.contextmanager
-    def use_tuple_factory(cls, connection: Connection) -> Iterator[sqlite3.Cursor]:
-        with contextlib.closing(connection.cursor()) as cursor:
-            cursor.row_factory = None
-            yield cursor
+@contextmanager
+def use_tuple_factory(connection: sqlite3.Connection) -> Iterator[sqlite3.Cursor]:
+    with closing(connection.cursor()) as cursor:
+        cursor.row_factory = None
+        yield cursor

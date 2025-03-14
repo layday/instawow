@@ -10,7 +10,7 @@ from typing import NotRequired as N
 from typing_extensions import TypedDict
 from yarl import URL
 
-from .. import shared_ctx
+from .. import http_ctx, sync_ctx
 from .._logging import logger
 from .._progress_reporting import make_default_progress
 from .._utils.aio import gather
@@ -84,7 +84,6 @@ class WowiResolver(BaseResolver):
         changelog_format=ChangelogFormat.Raw,
         addon_toc_key='X-WoWI-ID',
     )
-    access_token = None
 
     # Reference: https://api.mmoui.com/v3/globalconfig.json
     # There's also a v4 API corresponding to the as yet unreleased Minion v4,
@@ -116,8 +115,8 @@ class WowiResolver(BaseResolver):
                 return match and match['id']
 
     async def __get_addons(self):
-        async with shared_ctx.locks[_LOAD_WOWI_CATALOGUE_LOCK]:
-            async with shared_ctx.web_client.get(
+        async with sync_ctx.locks()[_LOAD_WOWI_CATALOGUE_LOCK]:
+            async with http_ctx.web_client().get(
                 self.__list_api_url,
                 expire_after=timedelta(hours=1),
                 raise_for_status=True,
@@ -131,7 +130,7 @@ class WowiResolver(BaseResolver):
                 return {i['UID']: i for i in await response.json()}
 
     async def __get_addons_details(self, ids: Collection[str]):
-        async with shared_ctx.web_client.get(
+        async with http_ctx.web_client().get(
             (self.__details_api_url / f'{",".join(uniq(i for i in ids if i))}.json'),
             expire_after=timedelta(minutes=5),
             trace_request_ctx={
@@ -167,7 +166,7 @@ class WowiResolver(BaseResolver):
         )
         return dict(zip(defns, results))
 
-    async def _resolve_one(self, defn: Defn, metadata: _WowiCombinedItem | None):
+    async def resolve_one(self, defn: Defn, metadata: _WowiCombinedItem | None):
         if metadata is None:
             raise PkgNonexistent
 
@@ -187,7 +186,7 @@ class WowiResolver(BaseResolver):
     async def catalogue(cls):
         logger.debug(f'retrieving {cls.__list_api_url}')
 
-        async with shared_ctx.web_client.get(
+        async with http_ctx.web_client().get(
             cls.__list_api_url, raise_for_status=True
         ) as response:
             items: list[_WowiListApiItem] = await response.json()

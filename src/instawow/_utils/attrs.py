@@ -5,7 +5,4 @@ from typing import TYPE_CHECKING
 
 import attrs
 
-if TYPE_CHECKING:
-    fauxfrozen = attrs.frozen
-else:
-    fauxfrozen = partial(attrs.define, unsafe_hash=True)
+fauxfrozen = attrs.frozen if TYPE_CHECKING else partial(attrs.define, unsafe_hash=True)

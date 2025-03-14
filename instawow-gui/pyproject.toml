@@ -17,11 +17,9 @@ dependencies = [
   "instawow",
 ]
 optional-dependencies."skeletal" = [
-  "aiohttp-rpc >= 1.0.0",
   "toga-core >= 0.4.5",
 ]
 optional-dependencies."full" = [
-  "instawow-gui[skeletal]",
   "toga >= 0.4.5",
 ]
 

@@ -3,8 +3,8 @@ from __future__ import annotations
 from collections.abc import Awaitable, Collection, Mapping, Set
 from typing import Any, Final, Protocol, TypeAlias, TypeVar
 
-from . import pkg_models
 from .definitions import Strategies, Strategy
+from .pkg_db import models as pkg_models
 
 _T = TypeVar('_T')
 
@@ -147,13 +147,13 @@ class PkgSourceInvalid(ManagerError):
 
 
 class PkgSourceDisabled(ManagerError):
-    def __init__(self, reason: str = 'package source is disabled') -> None:
+    def __init__(self, reason: str | None = None) -> None:
         super().__init__()
         self._reason = reason
 
     @property
     def message(self) -> str:
-        return self._reason
+        return f'package source is disabled{f": {self._reason}" if self._reason else ""}'
 
 
 class PkgUpToDate(ManagerError):

@@ -4,7 +4,7 @@ from collections.abc import Callable, Iterator, Set
 from datetime import datetime
 from typing import Literal
 
-from .. import shared_ctx
+from .. import config_ctx
 from .._utils.iteration import bucketise
 from .._utils.text import normalise_names
 from . import cataloguer
@@ -14,7 +14,6 @@ _normalise_search_terms = normalise_names('')
 
 
 async def search(
-    config_ctx: shared_ctx.ConfigBoundCtx,
     search_terms: str,
     *,
     limit: int,
@@ -28,6 +27,7 @@ async def search(
     "Search the catalogue for packages by name."
     import rapidfuzz
 
+    resolvers = config_ctx.resolvers()
     catalogue = await synchronise_catalogue()
 
     ew = 0.5
@@ -36,22 +36,25 @@ async def search(
     threshold = 0 if search_terms == '*' else 70
 
     if sources:
-        unknown_sources = sources - config_ctx.resolvers.keys()
+        unknown_sources = sources - resolvers.keys()
         if unknown_sources:
             raise ValueError(f'Unknown sources: {", ".join(unknown_sources)}')
 
-    if prefer_source and prefer_source not in config_ctx.resolvers:
+    if prefer_source and prefer_source not in resolvers:
         raise ValueError(f'Unknown preferred source: {prefer_source}')
 
     def get_installed_pkg_keys():
+        from ..pkg_db import use_tuple_factory
+
         with (
-            config_ctx.database.connect() as connection,
-            config_ctx.database.use_tuple_factory(connection) as cursor,
+            config_ctx.database() as connection,
+            use_tuple_factory(connection) as cursor,
         ):
             return cursor.execute('SELECT source, id FROM pkg').fetchall()
 
     def make_filter_fns() -> Iterator[Callable[[cataloguer.ComputedCatalogueEntry], bool]]:
-        yield lambda e: config_ctx.config.game_flavour in e.game_flavours
+        game_flavour = config_ctx.config().game_flavour
+        yield lambda e: game_flavour in e.game_flavours
 
         if sources:
             yield lambda e: e.source in sources

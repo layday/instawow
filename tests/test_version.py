@@ -7,7 +7,7 @@ import pytest
 from instawow import _version
 from instawow.config import GlobalConfig
 
-from .fixtures.http import ResponsesMockServer, Route
+from ._fixtures.http import ResponsesMockServer, Route
 
 
 @pytest.mark.parametrize(

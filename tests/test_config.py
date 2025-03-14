@@ -8,7 +8,7 @@ from typing import Any
 import cattrs
 import pytest
 
-from instawow.config import GlobalConfig, ProfileConfig
+from instawow.config import GlobalConfig, ProfileConfig, UninitialisedConfigError
 from instawow.wow_installations import Flavour
 
 
@@ -35,7 +35,7 @@ def test_read_profile_from_nonexistent_config_dir_raises(
     iw_global_config_values: dict[str, Any],
 ):
     global_config = GlobalConfig(config_dir=iw_global_config_values['config_dir'])
-    with pytest.raises(FileNotFoundError):
+    with pytest.raises(UninitialisedConfigError):
         ProfileConfig.read(global_config, '__default__')
 
 

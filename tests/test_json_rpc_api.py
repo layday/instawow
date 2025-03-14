@@ -68,6 +68,7 @@ async def test_write_config(
 ):
     global_config = config_converter.structure(iw_global_config_values, GlobalConfig).write()
     config_values = {**iw_profile_config_values, 'profile': request.node.name}
+    config_values.pop('_installation_dir')
     rpc_request = {
         'jsonrpc': '2.0',
         'method': 'config/write_profile',
@@ -89,14 +90,16 @@ async def test_write_config_with_invalid_params(
     iw_profile_config_values: dict[str, Any],
     ws: ClientWebSocketResponse,
 ):
+    config_values = {
+        **iw_profile_config_values,
+        'game_flavour': 'strawberry',
+        'infer_game_flavour': False,
+    }
+    config_values.pop('_installation_dir')
     rpc_request = {
         'jsonrpc': '2.0',
         'method': 'config/write_profile',
-        'params': {
-            **iw_profile_config_values,
-            'game_flavour': 'strawberry',
-            'infer_game_flavour': False,
-        },
+        'params': config_values,
         'id': request.node.name,
     }
     await ws.send_json(rpc_request, dumps=dumps)
@@ -104,11 +107,11 @@ async def test_write_config_with_invalid_params(
     assert rpc_response['id'] == request.node.name
     assert rpc_response['error']
     assert rpc_response['error']['code'] == -32602
-    assert rpc_response['error']['message'] == 'Invalid method parameter(s).'
+    assert rpc_response['error']['message'] == 'invalid params'
     assert rpc_response['error']['data'] == [
         {
-            'path': ['game_flavour'],
-            'message': "'strawberry' is not a valid Flavour",
+            'path': ['params', 'game_flavour'],
+            'message': 'ValueError("\'strawberry\' is not a valid Flavour")',
         }
     ]
 
@@ -127,24 +130,3 @@ async def test_install_with_invalid_params(
     rpc_response = await ws.receive_json()
     assert rpc_response['error']
     assert rpc_response['error']['code'] == -32602
-
-
-async def test_install_with_uninitialised_profile(
-    request: pytest.FixtureRequest,
-    ws: ClientWebSocketResponse,
-):
-    rpc_request = {
-        'jsonrpc': '2.0',
-        'method': 'install',
-        'params': {
-            'profile': request.node.name,
-            'defns': [{'source': 'curse', 'alias': 'molinari'}],
-            'replace': False,
-        },
-        'id': request.node.name,
-    }
-    await ws.send_json(rpc_request, dumps=dumps)
-    rpc_response = await ws.receive_json()
-    assert rpc_response['error']
-    assert rpc_response['error']['code'] == -32001
-    assert rpc_response['error']['message'] == 'invalid configuration parameters'

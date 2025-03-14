@@ -2,14 +2,26 @@ from __future__ import annotations
 
 import datetime as dt
 import enum
-from collections.abc import AsyncIterator, Collection, Mapping, Sequence
-from functools import cached_property
+from collections.abc import AsyncIterator, Callable, Collection, Iterable, Mapping, Sequence
+from functools import cached_property, partial, wraps
 from pathlib import Path
-from typing import Any, ClassVar, Never, NotRequired, Protocol, TypedDict
+from typing import (
+    Any,
+    ClassVar,
+    Generic,
+    Literal,
+    Never,
+    NotRequired,
+    Protocol,
+    Self,
+    TypedDict,
+    overload,
+)
 
+from typing_extensions import TypeVar
 from yarl import URL
 
-from . import config, pkg_archives, pkg_models
+from . import pkg_archives
 from .catalogue import cataloguer
 from .definitions import Defn, SourceMetadata
 from .results import (
@@ -20,45 +32,46 @@ from .results import (
     aresultify,
 )
 
+_TTokenValue = TypeVar('_TTokenValue', default=Never)
+
+
+class AccessTokenMissingError(ValueError):
+    def __str__(self) -> str:
+        return 'access token missing'
+
+
+class AccessToken(Generic[_TTokenValue]):
+    @overload
+    def __init__(
+        self: AccessToken[str],
+        getter: Callable[[], tuple[str | None, Literal[True]]],
+    ) -> None: ...
+    @overload
+    def __init__(
+        self: AccessToken[str | None],
+        getter: Callable[[], tuple[str | None, bool]],
+    ) -> None: ...
+    def __init__(
+        self,
+        getter: Callable[[], tuple[str | None, bool]],
+    ):
+        self._getter = getter
+
+    def get(self) -> _TTokenValue:
+        access_token, required = self._getter()
+        if required and access_token is None:
+            raise AccessTokenMissingError
+        return access_token  # pyright: ignore[reportReturnType]
+
+    @property
+    def missing_reason(self) -> str | None:
+        access_token, required = self._getter()
+        if required and access_token is None:
+            return str(AccessTokenMissingError())
+
 
 class HeadersIntent(enum.IntEnum):
     Download = enum.auto()
-
-
-class Resolver(Protocol):  # pragma: no cover
-    metadata: ClassVar[SourceMetadata]
-    'Static source metadata.'
-
-    archive_opener: ClassVar[pkg_archives.ArchiveOpener | None]
-    'Alternative archive opener to use supporting e.g. non-standard archive formats or layouts.'
-
-    def __init__(self, config: config.ProfileConfig) -> None: ...
-
-    @classmethod
-    def get_alias_from_url(cls, url: URL) -> str | None:
-        "Attempt to extract a ``Defn`` alias from a given URL."
-        ...
-
-    def make_request_headers(self, intent: HeadersIntent | None = None) -> dict[str, str] | None:
-        "Create headers for resolver HTTP requests."
-        ...
-
-    async def resolve(self, defns: Sequence[Defn]) -> dict[Defn, AnyResult[pkg_models.Pkg]]:
-        "Resolve multiple ``Defn``s into packages."
-        ...
-
-    async def resolve_one(self, defn: Defn, metadata: Any) -> pkg_models.Pkg:
-        "Resolve a ``Defn`` into a package."
-        ...
-
-    async def get_changelog(self, uri: URL) -> str:
-        "Retrieve a changelog from a URI."
-        ...
-
-    @classmethod
-    def catalogue(cls) -> AsyncIterator[cataloguer.CatalogueEntry]:
-        "Enumerate add-ons from the source."
-        ...
 
 
 class PkgCandidate(TypedDict):
@@ -73,23 +86,64 @@ class PkgCandidate(TypedDict):
     date_published: dt.datetime
     version: str
     changelog_url: str
-    deps: NotRequired[list[pkg_models.PkgDep]]
+    deps: NotRequired[list[TypedDict[{'id': str}]]]
+
+
+class Resolver(Protocol):  # pragma: no cover
+    metadata: ClassVar[SourceMetadata]
+    'Static source metadata.'
+
+    access_token: ClassVar[AccessToken | None]
+    'Access token retriever.'
+
+    archive_opener: ClassVar[pkg_archives.ArchiveOpener | None]
+    'Alternative archive opener to use supporting e.g. non-standard archive formats or layouts.'
+
+    @classmethod
+    def get_alias_from_url(cls, url: URL) -> str | None:
+        "Attempt to extract a ``Defn`` alias from a given URL."
+        ...
+
+    def make_request_headers(self, intent: HeadersIntent | None = None) -> dict[str, str] | None:
+        "Create headers for resolver HTTP requests."
+        ...
+
+    async def resolve(self, defns: Sequence[Defn]) -> dict[Defn, AnyResult[PkgCandidate]]:
+        "Resolve multiple ``Defn``s into packages."
+        ...
+
+    async def resolve_one(self, defn: Defn, metadata: Any) -> PkgCandidate:
+        "Resolve a ``Defn`` into a package."
+        ...
+
+    async def get_changelog(self, uri: URL) -> str:
+        "Retrieve a changelog from a URI."
+        ...
+
+    @classmethod
+    def catalogue(cls) -> AsyncIterator[cataloguer.CatalogueEntry]:
+        "Enumerate add-ons from the source."
+        ...
 
 
 class BaseResolver(Resolver, Protocol):
-    _config: config.ProfileConfig
-
+    access_token = None
     archive_opener = None
 
-    def __init__(self, config: config.ProfileConfig) -> None:
-        self._config = config
-
-    __orig_init = __init__
-
     def __init_subclass__(cls) -> None:
-        # ``Protocol`` clobbers ``__init__`` on Python < 3.11.
-        if cls.__init__ is _ConcreteResolver.__init__:
-            cls.__init__ = cls.__orig_init
+        super().__init_subclass__()
+
+        old_resolve_one = cls.resolve_one
+        reassign_resolve_one = partial(setattr, cls, 'resolve_one')
+
+        @reassign_resolve_one
+        @wraps(old_resolve_one)
+        async def _(self: Self, defn: Defn, metadata: Any):
+            extraneous_strategies = defn.strategies.filled.keys() - self.metadata.strategies
+            if extraneous_strategies:
+                raise PkgStrategiesUnsupported(extraneous_strategies)
+
+            return await old_resolve_one(self, defn, metadata)
 
     @classmethod
     def get_alias_from_url(cls, url: URL) -> str | None:
@@ -98,7 +152,7 @@ class BaseResolver(Resolver, Protocol):
     def make_request_headers(self, intent: HeadersIntent | None = None) -> dict[str, str] | None:
         return None
 
-    async def resolve(self, defns: Sequence[Defn]) -> dict[Defn, AnyResult[pkg_models.Pkg]]:
+    async def resolve(self, defns: Sequence[Defn]) -> dict[Defn, AnyResult[PkgCandidate]]:
         from ._progress_reporting import make_incrementing_progress_tracker
         from ._utils.aio import gather
 
@@ -109,22 +163,6 @@ class BaseResolver(Resolver, Protocol):
             track_progress(aresultify(self.resolve_one(d, None))) for d in defns
         )
         return dict(zip(defns, results))
-
-    async def resolve_one(self, defn: Defn, metadata: Any) -> pkg_models.Pkg:
-        extraneous_strategies = defn.strategies.filled.keys() - self.metadata.strategies
-        if extraneous_strategies:
-            raise PkgStrategiesUnsupported(extraneous_strategies)
-
-        pkg_candidate = await self._resolve_one(defn, metadata)
-        return pkg_models.Pkg(
-            **pkg_candidate,
-            source=self.metadata.id,
-            options=pkg_models.PkgOptions(**{k: bool(v) for k, v in defn.strategies.items()}),
-        )
-
-    async def _resolve_one(self, defn: Defn, metadata: Any) -> PkgCandidate:  # pragma: no cover
-        "Resolve a ``Defn`` into a package."
-        ...
 
     async def get_changelog(self, uri: URL) -> str:
         match uri.scheme:
@@ -142,9 +180,9 @@ class BaseResolver(Resolver, Protocol):
                 )
 
             case 'http' | 'https':
-                from . import http, shared_ctx
+                from . import http, http_ctx
 
-                async with shared_ctx.web_client.get(
+                async with http_ctx.web_client().get(
                     uri,
                     expire_after=http.CACHE_INDEFINITELY,
                     headers=self.make_request_headers(),
@@ -161,16 +199,9 @@ class BaseResolver(Resolver, Protocol):
         yield
 
 
-class _ConcreteResolver(Resolver):
-    pass
-
-
 class Resolvers(dict[str, Resolver]):
-    def __init__(
-        self, resolvers: Mapping[str, Resolver], disabled_resolver_reasons: Mapping[str, str]
-    ):
-        super().__init__(resolvers)
-        self.disabled_resolver_reasons: Mapping[str, str] = disabled_resolver_reasons
+    def __init__(self, resolvers: Iterable[type[Resolver]]):
+        super().__init__((r.metadata.id, r()) for r in resolvers)
 
     def get_or_dummy(self, key: str) -> Resolver:
         if key in self.disabled_resolver_reasons:
@@ -182,9 +213,7 @@ class Resolvers(dict[str, Resolver]):
 
         @object.__new__
         class DummyResolver(Resolver):
-            async def resolve(
-                self, defns: Sequence[Defn]
-            ) -> dict[Defn, AnyResult[pkg_models.Pkg]]:
+            async def resolve(self, defns: Sequence[Defn]) -> dict[Defn, AnyResult[PkgCandidate]]:
                 return dict.fromkeys(defns, error)
 
             async def get_changelog(self, uri: URL) -> Never:
@@ -193,20 +222,30 @@ class Resolvers(dict[str, Resolver]):
         return DummyResolver
 
     @cached_property
-    def archive_opener_dict(self) -> _ResolverArchiveOpenerDict:
-        return _ResolverArchiveOpenerDict(self)
-
-    @cached_property
-    def priority_dict(self) -> _ResolverPriorityDict:
-        return _ResolverPriorityDict(self)
-
-    @cached_property
     def addon_toc_key_and_id_pairs(self) -> Collection[tuple[str, str]]:
         return [
             (r.metadata.addon_toc_key, r.metadata.id)
             for r in self.values()
             if r.metadata.addon_toc_key
         ]
+
+    @cached_property
+    def archive_opener_dict(self) -> _ResolverArchiveOpenerDict:
+        return _ResolverArchiveOpenerDict(self)
+
+    @cached_property
+    def disabled_resolver_reasons(self) -> Mapping[str, str]:
+        return {
+            r.metadata.id: d
+            for r in self.values()
+            if r.access_token
+            for d in (r.access_token.missing_reason,)
+            if d
+        }
+
+    @cached_property
+    def priority_dict(self) -> _ResolverPriorityDict:
+        return _ResolverPriorityDict(self)
 
 
 class _ResolverArchiveOpenerDict(dict[str, pkg_archives.ArchiveOpener]):

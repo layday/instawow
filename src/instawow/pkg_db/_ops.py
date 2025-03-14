@@ -1,51 +1,7 @@
 from __future__ import annotations
 
-from . import Connection, Row
-from ._models import Pkg, make_db_converter
-
-
-def build_pkg_from_row_mapping(connection: Connection, row_mapping: Row) -> Pkg:
-    fk = {'pkg_source': row_mapping['source'], 'pkg_id': row_mapping['id']}
-    return make_db_converter().structure(
-        {
-            **row_mapping,
-            'options': connection.execute(
-                """
-                SELECT any_flavour, any_release_type, version_eq
-                FROM pkg_options
-                WHERE pkg_source = :pkg_source AND pkg_id = :pkg_id
-                """,
-                fk,
-            ).fetchone(),
-            'folders': connection.execute(
-                """
-                SELECT name
-                FROM pkg_folder
-                WHERE pkg_source = :pkg_source AND pkg_id = :pkg_id
-                """,
-                fk,
-            ).fetchall(),
-            'deps': connection.execute(
-                """
-                SELECT id
-                FROM pkg_dep
-                WHERE pkg_source = :pkg_source AND pkg_id = :pkg_id
-                """,
-                fk,
-            ).fetchall(),
-            'logged_versions': connection.execute(
-                """
-                SELECT version, install_time
-                FROM pkg_version_log
-                WHERE pkg_source = :pkg_source AND pkg_id = :pkg_id
-                ORDER BY install_time DESC
-                LIMIT 10
-                """,
-                fk,
-            ).fetchall(),
-        },
-        Pkg,
-    )
+from . import Connection
+from .models import Pkg, make_db_converter
 
 
 def insert_pkg(pkg: Pkg, transaction: Connection) -> None:

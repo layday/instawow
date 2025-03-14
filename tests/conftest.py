@@ -5,17 +5,16 @@ from typing import Any
 from unittest import mock
 
 import pytest
-from _pytest.fixtures import SubRequest
 from yarl import URL
 
 import instawow._logging
 import instawow.config
+import instawow.config_ctx
 import instawow.http
-import instawow.shared_ctx
-from instawow.shared_ctx import ConfigBoundCtx
+import instawow.http_ctx
 from instawow.wow_installations import _DELECTABLE_DIR_NAMES, Flavour
 
-from .fixtures.http import ROUTES, ResponsesMockServer
+from ._fixtures.http import ROUTES, ResponsesMockServer
 
 
 def pytest_addoption(parser: pytest.Parser):
@@ -53,9 +52,9 @@ async def iw_aresponses(
 @pytest.fixture(params=['foo'])
 def iw_global_config_values(request: pytest.FixtureRequest, tmp_path: Path):
     return {
-        'config_dir': tmp_path / '__config__' / 'config',
-        'cache_dir': tmp_path / '__config__' / 'cache',
-        'state_dir': tmp_path / '__config__' / 'state',
+        'config_dir': tmp_path / '__config__',
+        'cache_dir': tmp_path / '__cache__',
+        'state_dir': tmp_path / '__state__',
         'access_tokens': {
             'cfcore': request.param,
             'github': None,
@@ -68,7 +67,7 @@ def iw_global_config_values(request: pytest.FixtureRequest, tmp_path: Path):
 def iw_profile_config_values(request: pytest.FixtureRequest, tmp_path: Path):
     installation_dir = (
         tmp_path
-        / 'wow'
+        / '__game__'
         / next(
             (k for k, v in _DELECTABLE_DIR_NAMES.items() if v['flavour'] is request.param),
             '_unknown_',
@@ -103,8 +102,18 @@ def _iw_global_config_defaults(
     monkeypatch: pytest.MonkeyPatch,
     iw_global_config_values: dict[str, Any],
 ):
-    for key in 'config_dir', 'cache_dir', 'state_dir':
+    for key in ('config_dir', 'cache_dir', 'state_dir'):
         monkeypatch.setenv(f'INSTAWOW_{key.upper()}', str(iw_global_config_values[key]))
+
+
+@pytest.fixture
+async def _iw_config_ctx(iw_profile_config: instawow.config.ProfileConfig):
+    @instawow.config_ctx.config.set
+    def token():
+        return iw_profile_config
+
+    yield
+    instawow.config_ctx.config.reset(token)
 
 
 @pytest.fixture
@@ -116,18 +125,16 @@ async def iw_web_client(
 
 
 @pytest.fixture
-async def _iw_web_client_ctx(iw_web_client: instawow.http.ClientSession):
-    instawow.shared_ctx.web_client_var.set(iw_web_client)
-
-
-@pytest.fixture
-def iw_config_ctx(iw_profile_config: instawow.config.ProfileConfig):
-    with ConfigBoundCtx(iw_profile_config) as config_ctx:
-        yield config_ctx
+async def _iw_web_client_ctx(iw_web_client: instawow.http.CachedSession):
+    token = instawow.http_ctx.web_client.set(iw_web_client)
+    yield
+    instawow.http_ctx.web_client.reset(token)
 
 
 @pytest.fixture(autouse=True, params=['all'])
-async def _iw_mock_aiohttp_requests(request: SubRequest, iw_aresponses: ResponsesMockServer):
+async def _iw_mock_aiohttp_requests(
+    request: pytest.FixtureRequest, iw_aresponses: ResponsesMockServer
+):
     if request.config.getoption('--iw-no-mock-http') or any(
         m.name == 'iw_no_mock_http' for m in request.node.iter_markers()
     ):

@@ -130,6 +130,9 @@ source_pkgs = [
 parallel = true
 branch = true
 dynamic_context = "test_function"
+disable_warnings = [
+  "no-sysmon",
+]
 
 [tool.coverage.paths]
 instawow = ["src/instawow", "**/instawow"]

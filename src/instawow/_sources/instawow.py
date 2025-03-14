@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
+from .. import config_ctx
 from .._utils.aio import run_in_thread
 from ..catalogue.cataloguer import CatalogueEntry
 from ..definitions import ChangelogFormat, Defn, SourceMetadata
@@ -23,9 +24,8 @@ class InstawowResolver(BaseResolver):
         changelog_format=ChangelogFormat.Markdown,
         addon_toc_key=None,
     )
-    access_token = None
 
-    async def _resolve_one(self, defn: Defn, metadata: None):
+    async def resolve_one(self, defn: Defn, metadata: None):
         from instawow_wa_updater._config import PluginConfig
         from instawow_wa_updater._core import WaCompanionBuilder
 
@@ -36,7 +36,7 @@ class InstawowResolver(BaseResolver):
         except StopIteration:
             raise PkgNonexistent from None
 
-        builder_config = PluginConfig(self._config)
+        builder_config = PluginConfig(config_ctx.config())
         builder = WaCompanionBuilder(builder_config)
         if requires_build:
             await run_in_thread(builder_config.ensure_dirs)()

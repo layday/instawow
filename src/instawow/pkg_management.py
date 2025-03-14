@@ -4,20 +4,23 @@ from collections.abc import Awaitable, Callable, Collection, Iterable, Mapping, 
 from functools import wraps
 from itertools import chain, compress, filterfalse, repeat, starmap
 from pathlib import Path
-from typing import Concatenate, Literal, Never, TypeVar
+from typing import Literal, Never, TypeVar
 
 import attrs
 from typing_extensions import ParamSpec
 from yarl import URL
 
-from . import pkg_models, shared_ctx
+from . import config_ctx, sync_ctx
 from ._progress_reporting import make_incrementing_progress_tracker
 from ._utils.aio import gather, run_in_thread
 from ._utils.file import trash
 from ._utils.iteration import bucketise, uniq
 from .definitions import Defn, Strategy
 from .pkg_archives._download import download_pkg_archive
-from .pkg_db import _ops as pkg_db_ops
+from .pkg_db import transact, use_tuple_factory
+from .pkg_db._ops import delete_pkg, insert_pkg
+from .pkg_db.models import Pkg, build_pkg_from_pkg_candidate, build_pkg_from_row_mapping
+from .resolvers import PkgCandidate
 from .results import (
     AnyResult,
     InternalError,
@@ -42,6 +45,17 @@ _P = ParamSpec('_P')
 _MUTATE_PKGS_LOCK = '_MUTATE_PKGS_'
 
 
+def _with_mutate_lock(
+    coro_fn: Callable[_P, Awaitable[_T]],
+) -> Callable[_P, Awaitable[_T]]:
+    @wraps(coro_fn)
+    async def inner(*args: _P.args, **kwargs: _P.kwargs) -> _T:
+        async with sync_ctx.locks()[_MUTATE_PKGS_LOCK, config_ctx.config().profile]:
+            return await coro_fn(*args, **kwargs)
+
+    return inner
+
+
 def bucketise_results(
     values: Iterable[tuple[Defn, AnyResult[_T]]],
 ):
@@ -57,48 +71,22 @@ def bucketise_results(
     return ts, errors
 
 
-def _with_lock(lock_name: str):
-    def outer(
-        coro_fn: Callable[Concatenate[shared_ctx.ConfigBoundCtx, _P], Awaitable[_T]],
-    ) -> Callable[Concatenate[shared_ctx.ConfigBoundCtx, _P], Awaitable[_T]]:
-        @wraps(coro_fn)
-        async def inner(
-            config_ctx: shared_ctx.ConfigBoundCtx, *args: _P.args, **kwargs: _P.kwargs
-        ) -> _T:
-            async with shared_ctx.locks[lock_name, config_ctx.config.profile]:
-                return await coro_fn(config_ctx, *args, **kwargs)
-
-        return inner
-
-    return outer
-
-
-def get_alias_from_url(
-    config_ctx: shared_ctx.ConfigBoundCtx, value: str
-) -> tuple[str, str] | None:
+def get_alias_from_url(value: str) -> tuple[str, str] | None:
     "Attempt to extract a valid ``Defn`` source and alias from a URL."
+    resolvers = config_ctx.resolvers()
     url = URL(value)
     return next(
-        (
-            (r.metadata.id, a)
-            for r in config_ctx.resolvers.values()
-            if (a := r.get_alias_from_url(url))
-        ),
+        ((r.metadata.id, a) for r in resolvers.values() if (a := r.get_alias_from_url(url))),
         None,
     )
 
 
-def _check_pkgs_not_exist(
-    config_ctx: shared_ctx.ConfigBoundCtx, defns: Collection[Defn]
-) -> list[bool]:
+def _check_pkgs_not_exist(defns: Collection[Defn]) -> list[bool]:
     "Check that packages exist in the database."
     if not defns:
         return []
 
-    with (
-        config_ctx.database.connect() as connection,
-        config_ctx.database.use_tuple_factory(connection) as cursor,
-    ):
+    with config_ctx.database() as connection, use_tuple_factory(connection) as cursor:
         return [
             e
             for (e,) in cursor.execute(
@@ -121,13 +109,11 @@ def _check_pkgs_not_exist(
         ]
 
 
-def get_pkgs(
-    config_ctx: shared_ctx.ConfigBoundCtx, defns: Collection[Defn] | Literal['all']
-) -> list[pkg_models.Pkg | None]:
+def get_pkgs(defns: Collection[Defn] | Literal['all']) -> list[Pkg | None]:
     if defns != 'all' and not defns:
         return []
 
-    with config_ctx.database.connect() as connection:
+    with config_ctx.database() as connection:
         if defns == 'all':
             pkgs = connection.execute(
                 """
@@ -150,25 +136,24 @@ def get_pkgs(
                 tuple(i for d in defns for i in (d.source, d.alias, d.id)),
             ).fetchall()
 
-        return [
-            pkg_models.build_pkg_from_row_mapping(connection, m) if m['source'] else None
-            for m in pkgs
-        ]
+        return [build_pkg_from_row_mapping(connection, m) if m['source'] else None for m in pkgs]
 
 
-def get_pkg(config_ctx: shared_ctx.ConfigBoundCtx, defn: Defn) -> pkg_models.Pkg | None:
+def get_pkg(defn: Defn) -> Pkg | None:
     "Retrieve a package from the database."
-    (pkg,) = get_pkgs(config_ctx, [defn])
+    (pkg,) = get_pkgs([defn])
     return pkg
 
 
 async def find_equivalent_pkg_defns(
-    config_ctx: shared_ctx.ConfigBoundCtx, pkgs: Collection[pkg_models.Pkg]
-) -> dict[pkg_models.Pkg, list[Defn]]:
+    pkgs: Collection[Pkg],
+) -> dict[Pkg, list[Defn]]:
     "Given a list of packages, find ``Defn``s of each package from other sources."
     from .catalogue import synchronise as synchronise_catalogue
     from .matchers import AddonFolder
 
+    config = config_ctx.config()
+    resolvers = config_ctx.resolvers()
     catalogue = await synchronise_catalogue()
 
     @run_in_thread
@@ -179,8 +164,8 @@ async def find_equivalent_pkg_defns(
                 for f in p.folders
                 for a in (
                     AddonFolder.from_path(
-                        config_ctx.config.game_flavour,
-                        config_ctx.config.addon_dir / f.name,
+                        config.game_flavour,
+                        config.addon_dir / f.name,
                     ),
                 )
                 if a
@@ -188,7 +173,7 @@ async def find_equivalent_pkg_defns(
             for p in pkgs
         }
 
-    def get_catalogue_defns(pkg: pkg_models.Pkg) -> frozenset[Defn]:
+    def get_catalogue_defns(pkg: Pkg) -> frozenset[Defn]:
         entry = catalogue.keyed_entries.get((pkg.source, pkg.id))
         if entry:
             return frozenset(Defn(s.source, s.id) for s in entry.same_as)
@@ -199,14 +184,14 @@ async def find_equivalent_pkg_defns(
         return frozenset(
             d
             for a in addon_folders
-            for d in a.get_defns_from_toc_keys(config_ctx.resolvers.addon_toc_key_and_id_pairs)
+            for d in a.get_defns_from_toc_keys(resolvers.addon_toc_key_and_id_pairs)
             if d.source != pkg_source
         )
 
     folders_per_pkg = await collect_addon_folders()
 
     return {
-        p: sorted(d, key=lambda d: config_ctx.resolvers.priority_dict[d.source])
+        p: sorted(d, key=lambda d: resolvers.priority_dict[d.source])
         for p in pkgs
         for d in (get_catalogue_defns(p) | get_addon_toc_defns(p.source, folders_per_pkg[p]),)
         if d
@@ -214,8 +199,8 @@ async def find_equivalent_pkg_defns(
 
 
 async def _resolve_deps(
-    config_ctx: shared_ctx.ConfigBoundCtx, results: Collection[AnyResult[pkg_models.Pkg]]
-) -> Mapping[Defn, AnyResult[pkg_models.Pkg]]:
+    results: Mapping[Defn, AnyResult[PkgCandidate]],
+) -> Mapping[Defn, AnyResult[PkgCandidate]]:
     """Resolve package dependencies.
 
     The resolver will not follow dependencies
@@ -223,37 +208,45 @@ async def _resolve_deps(
     complexity for something that I would never expect to
     encounter in the wild.
     """
-    pkgs = [r for r in results if isinstance(r, pkg_models.Pkg)]
+    pkg_candidates, _ = bucketise_results(results.items())
     dep_defns = uniq(
         filterfalse(
-            {(p.source, p.id) for p in pkgs}.__contains__,
-            ((p.source, d.id) for p in pkgs for d in p.deps),
+            {(d.source, p['id']) for d, p in pkg_candidates.items()}.__contains__,
+            (
+                (d.source, e['id'])
+                for d, p in pkg_candidates.items()
+                if 'deps' in p
+                for e in p['deps']
+            ),
         )
     )
     if not dep_defns:
         return {}
 
-    deps = await resolve(config_ctx, list(starmap(Defn, dep_defns)))
+    # Map the ID both to the `alias` and the `id` fields of the `Defn` so that
+    # it's not lost if we humanise the alias later.
+    deps = await resolve(list(starmap(Defn, *zip((s, i, i) for s, i in dep_defns))))
     pretty_deps = {
-        attrs.evolve(d, alias=r.slug) if isinstance(r, pkg_models.Pkg) else d: r
-        for d, r in deps.items()
+        attrs.evolve(d, alias=r['slug']) if isinstance(r, dict) else d: r for d, r in deps.items()
     }
     return pretty_deps
 
 
 async def resolve(
-    config_ctx: shared_ctx.ConfigBoundCtx, defns: Collection[Defn], with_deps: bool = False
-) -> Mapping[Defn, AnyResult[pkg_models.Pkg]]:
+    defns: Collection[Defn], with_deps: bool = False
+) -> Mapping[Defn, AnyResult[PkgCandidate]]:
     "Resolve definitions into packages."
     if not defns:
         return {}
+
+    resolvers = config_ctx.resolvers()
 
     defns_by_source = bucketise(defns, key=lambda v: v.source)
 
     track_progress = make_incrementing_progress_tracker(len(defns_by_source), 'Resolving add-ons')
 
     results = await gather(
-        track_progress(aresultify(config_ctx.resolvers.get_or_dummy(s).resolve(b)))
+        track_progress(aresultify(resolvers.get_or_dummy(s).resolve(b)))
         for s, b in defns_by_source.items()
     )
     results_by_defn = dict(
@@ -266,30 +259,32 @@ async def resolve(
         )
     )
     if with_deps:
-        results_by_defn |= await _resolve_deps(config_ctx, results_by_defn.values())
+        results_by_defn |= await _resolve_deps(results_by_defn)
 
     return results_by_defn
 
 
-async def get_changelog(config_ctx: shared_ctx.ConfigBoundCtx, source: str, uri: str) -> str:
+async def get_changelog(source: str, uri: str) -> str:
     "Retrieve a changelog from a URI."
-    return await config_ctx.resolvers.get_or_dummy(source).get_changelog(URL(uri))
+    return await config_ctx.resolvers().get_or_dummy(source).get_changelog(URL(uri))
 
 
 @run_in_thread
 def _install_pkg(
-    config_ctx: shared_ctx.ConfigBoundCtx,
-    pkg: pkg_models.Pkg,
+    defn: Defn,
+    pkg_candidate: PkgCandidate,
     archive: Path,
     *,
     replace_folders: bool,
 ):
+    config = config_ctx.config()
+
     with (
-        config_ctx.resolvers.archive_opener_dict[pkg.source](archive) as (
+        config_ctx.resolvers().archive_opener_dict[defn.source](archive) as (
             top_level_folders,
             extract,
         ),
-        config_ctx.database.connect() as connection,
+        config_ctx.database() as connection,
     ):
         installed_conflicts = connection.execute(
             f"""
@@ -304,42 +299,40 @@ def _install_pkg(
             raise PkgConflictsWithInstalled(installed_conflicts)
 
         if replace_folders:
-            trash(
-                (config_ctx.config.addon_dir / f for f in top_level_folders),
-                dest=config_ctx.config.global_config.cache_dir,
-                missing_ok=True,
-            )
+            trash(config.addon_dir / f for f in top_level_folders)
         else:
             unreconciled_conflicts = top_level_folders & {
-                f.name for f in config_ctx.config.addon_dir.iterdir()
+                f.name for f in config.addon_dir.iterdir()
             }
             if unreconciled_conflicts:
                 raise PkgConflictsWithUnreconciled(unreconciled_conflicts)
 
-        extract(config_ctx.config.addon_dir)
+        extract(config.addon_dir)
 
-        pkg = attrs.evolve(
-            pkg, folders=[pkg_models.PkgFolder(name=f) for f in sorted(top_level_folders)]
+        pkg = build_pkg_from_pkg_candidate(
+            defn, pkg_candidate, folders=[{'name': f} for f in sorted(top_level_folders)]
         )
-        with config_ctx.database.transact(connection) as transaction:
-            pkg_db_ops.insert_pkg(pkg, transaction)
+        with transact(connection) as transaction:
+            insert_pkg(pkg, transaction)
 
     return PkgInstalled(pkg)
 
 
 @run_in_thread
 def _update_pkg(
-    config_ctx: shared_ctx.ConfigBoundCtx,
-    old_pkg: pkg_models.Pkg,
-    new_pkg: pkg_models.Pkg,
+    defn: Defn,
+    old_pkg: Pkg,
+    pkg_candidate: PkgCandidate,
     archive: Path,
 ):
+    config = config_ctx.config()
+
     with (
-        config_ctx.resolvers.archive_opener_dict[new_pkg.source](archive) as (
+        config_ctx.resolvers().archive_opener_dict[defn.source](archive) as (
             top_level_folders,
             extract,
         ),
-        config_ctx.database.connect() as connection,
+        config_ctx.database() as connection,
     ):
         installed_conflicts = connection.execute(
             f"""
@@ -349,60 +342,52 @@ def _update_pkg(
             WHERE (pkg_folder.pkg_source != ? AND pkg_folder.pkg_id != ?)
                 AND (pkg_folder.name IN ({', '.join(('?',) * len(top_level_folders))}))
             """,
-            (new_pkg.source, new_pkg.id, *top_level_folders),
+            (defn.source, pkg_candidate['id'], *top_level_folders),
         ).fetchall()
         if installed_conflicts:
             raise PkgConflictsWithInstalled(installed_conflicts)
 
         unreconciled_conflicts = top_level_folders - {f.name for f in old_pkg.folders} & {
-            f.name for f in config_ctx.config.addon_dir.iterdir()
+            f.name for f in config.addon_dir.iterdir()
         }
         if unreconciled_conflicts:
             raise PkgConflictsWithUnreconciled(unreconciled_conflicts)
 
-        trash(
-            (config_ctx.config.addon_dir / f.name for f in old_pkg.folders),
-            dest=config_ctx.config.global_config.cache_dir,
-            missing_ok=True,
-        )
-        extract(config_ctx.config.addon_dir)
+        trash(config.addon_dir / f.name for f in old_pkg.folders)
+        extract(config.addon_dir)
 
-        new_pkg = attrs.evolve(
-            new_pkg, folders=[pkg_models.PkgFolder(name=f) for f in sorted(top_level_folders)]
+        new_pkg = build_pkg_from_pkg_candidate(
+            defn, pkg_candidate, folders=[{'name': f} for f in sorted(top_level_folders)]
         )
-        with config_ctx.database.transact(connection) as transaction:
-            pkg_db_ops.delete_pkg(old_pkg, transaction)
-            pkg_db_ops.insert_pkg(new_pkg, transaction)
+        with transact(connection) as transaction:
+            delete_pkg(old_pkg, transaction)
+            insert_pkg(new_pkg, transaction)
 
     return PkgUpdated(old_pkg, new_pkg)
 
 
 @run_in_thread
-def _remove_pkg(config_ctx: shared_ctx.ConfigBoundCtx, pkg: pkg_models.Pkg, *, keep_folders: bool):
+def _remove_pkg(pkg: Pkg, *, keep_folders: bool):
     if not keep_folders:
-        trash(
-            (config_ctx.config.addon_dir / f.name for f in pkg.folders),
-            dest=config_ctx.config.global_config.cache_dir,
-            missing_ok=True,
-        )
+        config = config_ctx.config()
+        trash(config.addon_dir / f.name for f in pkg.folders)
 
     with (
-        config_ctx.database.connect() as connection,
-        config_ctx.database.transact(connection) as transaction,
+        config_ctx.database() as connection,
+        transact(connection) as transaction,
     ):
-        pkg_db_ops.delete_pkg(pkg, transaction)
+        delete_pkg(pkg, transaction)
 
     return PkgRemoved(pkg)
 
 
 @run_in_thread
-def _check_installed_pkg_integrity(config_ctx: shared_ctx.ConfigBoundCtx, pkg: pkg_models.Pkg):
-    return all((config_ctx.config.addon_dir / p.name).exists() for p in pkg.folders)
+def _check_installed_pkg_integrity(addon_dir: Path, pkg: Pkg):
+    return all((addon_dir / p.name).exists() for p in pkg.folders)
 
 
-@_with_lock(_MUTATE_PKGS_LOCK)
+@_with_mutate_lock
 async def install(
-    config_ctx: shared_ctx.ConfigBoundCtx,
     defns: Sequence[Defn],
     *,
     replace_folders: bool,
@@ -414,25 +399,30 @@ async def install(
     # doing it this way isn't particularly efficient but avoids having to
     # deal with local state in ``resolve``.
     resolve_results = await resolve(
-        config_ctx, list(compress(defns, _check_pkgs_not_exist(config_ctx, defns))), with_deps=True
+        list(compress(defns, _check_pkgs_not_exist(defns))), with_deps=True
     )
-    pkgs, resolve_errors = bucketise_results(resolve_results.items())
-    new_pkgs = dict(
+    pkg_candidates, resolve_errors = bucketise_results(resolve_results.items())
+    pkg_candidates = dict(
         compress(
-            pkgs.items(), _check_pkgs_not_exist(config_ctx, [p.to_defn() for p in pkgs.values()])
+            pkg_candidates.items(),
+            _check_pkgs_not_exist(
+                [attrs.evolve(d, id=c['id']) for d, c in pkg_candidates.items()]
+            ),
         )
     )
 
     results = dict.fromkeys(defns, PkgAlreadyInstalled()) | resolve_errors
 
     if dry_run:
-        return results | {d: PkgInstalled(p, dry_run=True) for d, p in new_pkgs.items()}
+        return results | {
+            d: PkgInstalled(build_pkg_from_pkg_candidate(d, p, folders=[]), dry_run=True)
+            for d, p in pkg_candidates.items()
+        }
 
     download_results = await gather(
-        aresultify(download_pkg_archive(config_ctx, d, r.download_url))
-        for d, r in new_pkgs.items()
+        aresultify(download_pkg_archive(d, r['download_url'])) for d, r in pkg_candidates.items()
     )
-    archive_paths, download_errors = bucketise_results(zip(new_pkgs, download_results))
+    archive_paths, download_errors = bucketise_results(zip(pkg_candidates, download_results))
 
     track_progress = make_incrementing_progress_tracker(len(archive_paths), 'Installing')
 
@@ -441,18 +431,16 @@ async def install(
         | download_errors
         | {
             d: await track_progress(
-                aresultify(
-                    _install_pkg(config_ctx, new_pkgs[d], a, replace_folders=replace_folders)
-                )
+                aresultify(_install_pkg(d, pkg_candidates[d], a, replace_folders=replace_folders))
             )
             for d, a in archive_paths.items()
         }
     )
 
 
-@_with_lock(_MUTATE_PKGS_LOCK)
+@_with_mutate_lock
 async def replace(
-    config_ctx: shared_ctx.ConfigBoundCtx, defns: Mapping[Defn, Defn]
+    defns: Mapping[Defn, Defn],
 ) -> Mapping[Defn, AnyResult[PkgInstalled | PkgRemoved]]:
     "Replace installed packages with re-reconciled packages."
 
@@ -460,17 +448,19 @@ async def replace(
     if len(inverse_defns) != len(defns):
         raise ValueError('``defns`` must be unique')
 
-    old_pkgs = {d: p for d, p in zip(defns, get_pkgs(config_ctx, defns)) if p}
+    old_pkgs = {d: p for d, p in zip(defns, get_pkgs(defns)) if p}
 
     resolve_results = await resolve(
-        config_ctx,
-        list(compress(defns.values(), _check_pkgs_not_exist(config_ctx, defns.values()))),
+        list(compress(defns.values(), _check_pkgs_not_exist(defns.values()))),
         with_deps=True,
     )
-    pkgs, resolve_errors = bucketise_results(resolve_results.items())
-    new_pkgs = dict(
+    pkg_candidates, resolve_errors = bucketise_results(resolve_results.items())
+    pkg_candidates = dict(
         compress(
-            pkgs.items(), _check_pkgs_not_exist(config_ctx, [p.to_defn() for p in pkgs.values()])
+            pkg_candidates.items(),
+            _check_pkgs_not_exist(
+                [attrs.evolve(d, id=c['id']) for d, c in pkg_candidates.items()]
+            ),
         )
     )
 
@@ -486,18 +476,17 @@ async def replace(
     results = results | resolve_errors
 
     download_results = await gather(
-        aresultify(download_pkg_archive(config_ctx, d, r.download_url))
-        for d, r in new_pkgs.items()
+        aresultify(download_pkg_archive(d, r['download_url'])) for d, r in pkg_candidates.items()
     )
-    archive_paths, download_errors = bucketise_results(zip(new_pkgs, download_results))
+    archive_paths, download_errors = bucketise_results(zip(pkg_candidates, download_results))
 
     replace_coros = {
         k: aresultify(c)
         for d, a in archive_paths.items()
         for o in (inverse_defns[d],)
         for k, c in (
-            (o, _remove_pkg(config_ctx, old_pkgs[o], keep_folders=False)),
-            (d, _install_pkg(config_ctx, new_pkgs[d], a, replace_folders=False)),
+            (o, _remove_pkg(old_pkgs[o], keep_folders=False)),
+            (d, _install_pkg(d, pkg_candidates[d], a, replace_folders=False)),
         )
     }
 
@@ -509,24 +498,23 @@ async def replace(
     return {k: v for k, v in results.items() if v is not None}
 
 
-@_with_lock(_MUTATE_PKGS_LOCK)
+@_with_mutate_lock
 async def update(
-    config_ctx: shared_ctx.ConfigBoundCtx,
     defns: Sequence[Defn] | Literal['all'],
     *,
     dry_run: bool = False,
 ) -> Mapping[Defn, AnyResult[PkgInstalled | PkgUpdated]]:
     "Update installed packages from a definition list."
 
-    if defns == 'all':
-        defns_to_pkgs = {p.to_defn(): p for p in get_pkgs(config_ctx, defns) if p}
-        defns = list(defns_to_pkgs)
+    config = config_ctx.config()
 
+    if defns == 'all':
+        defns_to_pkgs = {p.to_defn(): p for p in get_pkgs(defns) if p}
+        defns = list(defns_to_pkgs)
         resolve_defns = {d: d for d in defns_to_pkgs}
 
     else:
-        defns_to_pkgs = {d: p for d, p in zip(defns, get_pkgs(config_ctx, defns)) if p}
-
+        defns_to_pkgs = {d: p for d, p in zip(defns, get_pkgs(defns)) if p}
         resolve_defns = {
             # Attach the source ID to each ``Defn`` from the
             # corresponding installed package.  Using the ID has the benefit
@@ -536,8 +524,8 @@ async def update(
             for d, p in defns_to_pkgs.items()
         }
 
-    resolve_results = await resolve(config_ctx, resolve_defns, with_deps=True)
-    pkgs, resolve_errors = bucketise_results(
+    resolve_results = await resolve(resolve_defns, with_deps=True)
+    pkg_candidates, resolve_errors = bucketise_results(
         # Discard the reconstructed ``Defn``s
         (resolve_defns.get(d) or d, r)
         for d, r in resolve_results.items()
@@ -545,31 +533,32 @@ async def update(
 
     updatables = {
         d: (o, n)
-        for d, n in pkgs.items()
+        for d, n in pkg_candidates.items()
         for o in (defns_to_pkgs.get(d),)
         if not o
-        or o.version != n.version
-        or not await _check_installed_pkg_integrity(config_ctx, o)
+        or o.version != n['version']
+        or not await _check_installed_pkg_integrity(config.addon_dir, o)
     }
 
     results = (
         dict.fromkeys(defns, PkgNotInstalled())
         | resolve_errors
         | {
-            d: PkgUpToDate(is_pinned=pkgs[d].options.version_eq)
-            for d in pkgs.keys() - updatables.keys()
+            d: PkgUpToDate(is_pinned=bool(defns_to_pkgs[d].options.version_eq))
+            for d in pkg_candidates.keys() - updatables.keys()
         }
     )
 
     if dry_run:
         return results | {
-            d: PkgUpdated(o, n, dry_run=True) if o else PkgInstalled(n, dry_run=True)
+            d: PkgUpdated(o, build_pkg_from_pkg_candidate(d, n, folders=[]), dry_run=True)
+            if o
+            else PkgInstalled(build_pkg_from_pkg_candidate(d, n, folders=[]), dry_run=True)
             for d, (o, n) in updatables.items()
         }
 
     download_results = await gather(
-        aresultify(download_pkg_archive(config_ctx, d, n.download_url))
-        for d, (_, n) in updatables.items()
+        aresultify(download_pkg_archive(d, n['download_url'])) for d, (_, n) in updatables.items()
     )
     archive_paths, download_errors = bucketise_results(zip(updatables, download_results))
 
@@ -581,9 +570,7 @@ async def update(
         | {
             d: await track_progress(
                 aresultify(
-                    _update_pkg(config_ctx, o, n, a)
-                    if o
-                    else _install_pkg(config_ctx, n, a, replace_folders=False)
+                    _update_pkg(d, o, n, a) if o else _install_pkg(d, n, a, replace_folders=False)
                 )
             )
             for d, a in archive_paths.items()
@@ -592,25 +579,19 @@ async def update(
     )
 
 
-@_with_lock(_MUTATE_PKGS_LOCK)
+@_with_mutate_lock
 async def remove(
-    config_ctx: shared_ctx.ConfigBoundCtx, defns: Sequence[Defn], *, keep_folders: bool
+    defns: Sequence[Defn], *, keep_folders: bool
 ) -> Mapping[Defn, AnyResult[PkgRemoved]]:
     "Remove packages by their definition."
     return {
-        d: (
-            await aresultify(_remove_pkg(config_ctx, p, keep_folders=keep_folders))
-            if p
-            else PkgNotInstalled()
-        )
-        for d, p in zip(defns, get_pkgs(config_ctx, defns))
+        d: await aresultify(_remove_pkg(p, keep_folders=keep_folders)) if p else PkgNotInstalled()
+        for d, p in zip(defns, get_pkgs(defns))
     }
 
 
-@_with_lock(_MUTATE_PKGS_LOCK)
-async def pin(
-    config_ctx: shared_ctx.ConfigBoundCtx, defns: Sequence[Defn]
-) -> Mapping[Defn, AnyResult[PkgInstalled]]:
+@_with_mutate_lock
+async def pin(defns: Sequence[Defn]) -> Mapping[Defn, AnyResult[PkgInstalled]]:
     """Pin and unpin installed packages.
 
     instawow does not have true pinning.  This flips ``Strategy.VersionEq``
@@ -619,8 +600,10 @@ async def pin(
     had been reinstalled with the ``VersionEq`` strategy.
     """
 
-    async def pin(defn: Defn, pkg: pkg_models.Pkg | None) -> PkgInstalled:
-        resolver = config_ctx.resolvers.get(defn.source)
+    resolvers = config_ctx.resolvers()
+
+    async def pin(defn: Defn, pkg: Pkg | None) -> PkgInstalled:
+        resolver = resolvers.get(defn.source)
         if resolver is None:
             raise PkgSourceInvalid
         elif Strategy.VersionEq not in resolver.metadata.strategies:
@@ -636,8 +619,8 @@ async def pin(
         version_eq = version is not None
 
         with (
-            config_ctx.database.connect() as connection,
-            config_ctx.database.transact(connection) as transaction,
+            config_ctx.database() as connection,
+            transact(connection) as transaction,
         ):
             transaction.execute(
                 """
@@ -656,4 +639,4 @@ async def pin(
             attrs.evolve(pkg, options=attrs.evolve(pkg.options, version_eq=version_eq)),
         )
 
-    return {d: await aresultify(pin(d, p)) for d, p in zip(defns, get_pkgs(config_ctx, defns))}
+    return {d: await aresultify(pin(d, p)) for d, p in zip(defns, get_pkgs(defns))}

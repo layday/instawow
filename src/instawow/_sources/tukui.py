@@ -5,7 +5,7 @@ from datetime import UTC, datetime, timedelta
 from typing_extensions import TypedDict
 from yarl import URL
 
-from .. import shared_ctx
+from .. import config_ctx, http_ctx
 from .._logging import logger
 from ..catalogue.cataloguer import CatalogueEntry
 from ..definitions import ChangelogFormat, Defn, SourceMetadata
@@ -45,12 +45,11 @@ class TukuiResolver(BaseResolver):
         changelog_format=ChangelogFormat.Markdown,
         addon_toc_key='X-Tukui-ProjectID',
     )
-    access_token = None
 
     __api_url = URL('https://api.tukui.org/v1/')
 
-    async def _resolve_one(self, defn: Defn, metadata: None):
-        async with shared_ctx.web_client.get(
+    async def resolve_one(self, defn: Defn, metadata: None):
+        async with http_ctx.web_client().get(
             self.__api_url / 'addon' / defn.alias,
             expire_after=timedelta(minutes=5),
         ) as response:
@@ -60,7 +59,9 @@ class TukuiResolver(BaseResolver):
 
             ui_metadata: _TukuiAddon = await response.json()
 
-        wanted_version_range = self._config.game_flavour.to_flavour_keyed_enum(FlavourVersionRange)
+        wanted_version_range = config_ctx.config().game_flavour.to_flavour_keyed_enum(
+            FlavourVersionRange
+        )
         if not any(wanted_version_range.contains(p) for p in ui_metadata['patch']):
             raise PkgFilesNotMatching(defn.strategies)
 
@@ -84,7 +85,7 @@ class TukuiResolver(BaseResolver):
         url = cls.__api_url / 'addons'
         logger.debug(f'retrieving {url}')
 
-        async with shared_ctx.web_client.get(url, raise_for_status=True) as response:
+        async with http_ctx.web_client().get(url, raise_for_status=True) as response:
             items: list[_TukuiAddon] = await response.json()
 
         for item in items:

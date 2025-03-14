@@ -33,7 +33,7 @@ export enum ChangelogFormat {
 
 export type Profile = string;
 
-export type Profiles = Profile[];
+export type Profiles = { [profile: Profile]: Config };
 
 export type GlobalConfig = {
   config_dir: string;
@@ -176,8 +176,8 @@ export class Api {
     return await client.request(requestObject, 0);
   }
 
-  async readProfile(profile: string): Promise<Config> {
-    return await this.request({ method: "config/read_profile", params: { profile } });
+  async listProfiles(): Promise<Profiles> {
+    return await this.request({ method: "config/list_profiles" });
   }
 
   async writeProfile(
@@ -199,10 +199,6 @@ export class Api {
 
   async deleteProfile(profile: string): Promise<void> {
     return await this.request({ method: "config/delete_profile", params: { profile } });
-  }
-
-  async listProfiles(): Promise<Profiles> {
-    return await this.request({ method: "config/list_profiles" });
   }
 
   async updateGlobalConfig(accessTokens: Record<string, string | null>): Promise<void> {

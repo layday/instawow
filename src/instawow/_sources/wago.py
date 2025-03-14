@@ -7,12 +7,11 @@ from typing import Never
 from typing_extensions import TypedDict
 from yarl import URL
 
-from .. import shared_ctx
+from .. import config_ctx, http_ctx
 from .._utils.web import as_plain_text_data_url
 from ..definitions import ChangelogFormat, Defn, SourceMetadata, Strategy
-from ..resolvers import BaseResolver, HeadersIntent, PkgCandidate
+from ..resolvers import AccessToken, BaseResolver, HeadersIntent, PkgCandidate
 from ..results import PkgFilesNotMatching, PkgNonexistent
-from ._access_tokens import AccessToken
 
 
 class _WagoStability(StrEnum):
@@ -67,9 +66,11 @@ class WagoResolver(BaseResolver):
         addon_toc_key='X-Wago-ID',
     )
 
-    access_token = AccessToken('wago_addons', True)
-
     __wago_external_api_url = URL('https://addons.wago.io/api/external')
+
+    @AccessToken
+    def access_token():
+        return config_ctx.config().global_config.access_tokens.wago_addons, True
 
     @classmethod
     def get_alias_from_url(cls, url: URL):
@@ -79,10 +80,12 @@ class WagoResolver(BaseResolver):
     def make_request_headers(self, intent: HeadersIntent | None = None):
         return {'Authorization': f'Bearer {self.access_token.get()}'}
 
-    async def _resolve_one(self, defn: Defn, metadata: None):
-        async with shared_ctx.web_client.get(
+    async def resolve_one(self, defn: Defn, metadata: None):
+        async with http_ctx.web_client().get(
             (self.__wago_external_api_url / 'addons' / defn.alias).with_query(
-                game_version=self._config.game_flavour.to_flavour_keyed_enum(_WagoGameVersion)
+                game_version=config_ctx.config().game_flavour.to_flavour_keyed_enum(
+                    _WagoGameVersion
+                )
             ),
             expire_after=timedelta(minutes=5),
             headers=self.make_request_headers(),

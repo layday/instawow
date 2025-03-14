@@ -26,7 +26,7 @@ class MyResolver(BaseResolver):
         addon_toc_key=None,
     )
 
-    async def _resolve_one(self, defn: Defn, metadata: None) -> PkgCandidate:
+    async def resolve_one(self, defn: Defn, metadata: None) -> PkgCandidate:
         return PkgCandidate(
             id='bar',
             slug='bar',

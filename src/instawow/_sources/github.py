@@ -12,17 +12,16 @@ from typing import NotRequired as N
 from typing_extensions import TypedDict
 from yarl import URL
 
-from .. import http, shared_ctx
+from .. import config_ctx, http, http_ctx
 from .._logging import logger
 from .._utils.aio import cancel_tasks
 from .._utils.iteration import batched
 from .._utils.web import as_plain_text_data_url, extract_byte_range_offset
 from ..catalogue.cataloguer import AddonKey, CatalogueEntry
 from ..definitions import ChangelogFormat, Defn, SourceMetadata, Strategy
-from ..resolvers import BaseResolver, HeadersIntent, PkgCandidate
+from ..resolvers import AccessToken, BaseResolver, HeadersIntent, PkgCandidate
 from ..results import PkgFilesMissing, PkgFilesNotMatching, PkgNonexistent
 from ..wow_installations import Flavour, FlavourVersionRange
-from ._access_tokens import AccessToken
 
 
 # Not exhaustive (as you might've guessed).  Reference:
@@ -91,12 +90,15 @@ class GithubResolver(BaseResolver):
         changelog_format=ChangelogFormat.Markdown,
         addon_toc_key=None,
     )
-    access_token = AccessToken('github', False)
 
     __api_url = URL('https://api.github.com/')
     __generated_catalogue_csv_url = (
         'https://raw.githubusercontent.com/layday/github-wow-addon-catalogue/main/addons.csv'
     )
+
+    @AccessToken
+    def access_token():
+        return config_ctx.config().global_config.access_tokens.github, False
 
     @classmethod
     def get_alias_from_url(cls, url: URL):
@@ -178,7 +180,7 @@ class GithubResolver(BaseResolver):
             for _ in range(2):
                 logger.debug(f'fetching {directory_offset} bytes from {candidate["name"]}')
 
-                async with shared_ctx.web_client.get(
+                async with http_ctx.web_client().get(
                     download_url,
                     expire_after=http.CACHE_INDEFINITELY,
                     headers=download_headers | {hdrs.RANGE: f'bytes={directory_offset}'},
@@ -190,7 +192,7 @@ class GithubResolver(BaseResolver):
                             directory_range_response.status == 501
                             and directory_range_response.reason == 'Unsupported client range'
                         ):
-                            async with shared_ctx.web_client.get(
+                            async with http_ctx.web_client().get(
                                 download_url,
                                 expire_after=http.CACHE_INDEFINITELY,
                                 headers=download_headers,
@@ -269,7 +271,7 @@ class GithubResolver(BaseResolver):
                 following_file_offset = following_file.header_offset if following_file else ''
 
                 logger.debug(f'fetching {main_toc_filename} from {candidate["name"]}')
-                async with shared_ctx.web_client.get(
+                async with http_ctx.web_client().get(
                     download_url,
                     expire_after=http.CACHE_INDEFINITELY,
                     headers=download_headers
@@ -305,7 +307,7 @@ class GithubResolver(BaseResolver):
 
         download_headers = self.make_request_headers(HeadersIntent.Download)
 
-        async with shared_ctx.web_client.get(
+        async with http_ctx.web_client().get(
             release_json_asset['url'],
             expire_after=timedelta(days=1),
             headers=download_headers,
@@ -381,7 +383,7 @@ class GithubResolver(BaseResolver):
             if asset:
                 return (release, asset)
 
-    async def _resolve_one(self, defn: Defn, metadata: None):
+    async def resolve_one(self, defn: Defn, metadata: None):
         github_headers = self.make_request_headers()
 
         id_or_alias = defn.id or defn.alias
@@ -391,7 +393,7 @@ class GithubResolver(BaseResolver):
             repo_url = self.__api_url / 'repos' / defn.alias
 
         async def get_project():
-            async with shared_ctx.web_client.get(
+            async with http_ctx.web_client().get(
                 repo_url, expire_after=timedelta(hours=1), headers=github_headers
             ) as response:
                 if response.status == 404:
@@ -412,7 +414,7 @@ class GithubResolver(BaseResolver):
             )
 
         async def get_releases():
-            async with shared_ctx.web_client.get(
+            async with http_ctx.web_client().get(
                 release_url, expire_after=timedelta(minutes=5), headers=github_headers
             ) as response:
                 if response.status == 404:
@@ -446,7 +448,7 @@ class GithubResolver(BaseResolver):
         if first_release is None:
             raise PkgFilesNotMatching(defn.strategies)
 
-        desired_flavour_groups = self._config.game_flavour.get_flavour_groups(
+        desired_flavour_groups = config_ctx.config().game_flavour.get_flavour_groups(
             bool(defn.strategies[Strategy.AnyFlavour])
         )
 
@@ -502,7 +504,7 @@ class GithubResolver(BaseResolver):
 
         logger.debug(f'retrieving {cls.__generated_catalogue_csv_url}')
 
-        async with shared_ctx.web_client.get(
+        async with http_ctx.web_client().get(
             cls.__generated_catalogue_csv_url, raise_for_status=True
         ) as response:
             catalogue_csv = await response.text()

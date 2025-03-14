@@ -10,21 +10,20 @@ import aiohttp.web
 import pytest
 from yarl import URL
 
+from instawow import config_ctx
 from instawow._sources.github import GithubResolver
 from instawow.definitions import Defn, Strategies, Strategy
-from instawow.pkg_models import Pkg
 from instawow.results import PkgFilesMissing, PkgFilesNotMatching, PkgNonexistent
-from instawow.shared_ctx import ConfigBoundCtx
 from instawow.wow_installations import Flavour, FlavourVersionRange
 
-from .fixtures.http import ResponsesMockServer, Route
+from ._fixtures.http import ResponsesMockServer, Route
+
+pytestmark = pytest.mark.usefixtures('_iw_config_ctx', '_iw_web_client_ctx')
 
 
 @pytest.fixture
-def github_resolver(
-    iw_config_ctx: ConfigBoundCtx,
-):
-    return GithubResolver(iw_config_ctx.config)
+def github_resolver():
+    return GithubResolver()
 
 
 zip_defn = Defn('github', '28/NoteworthyII')
@@ -97,10 +96,8 @@ def package_json_less_addon(
     Flavour,
     indirect=True,
 )
-@pytest.mark.usefixtures('_iw_web_client_ctx')
 async def test_extracting_flavour_from_zip_contents(
     iw_aresponses: ResponsesMockServer,
-    iw_config_ctx: ConfigBoundCtx,
     github_resolver: GithubResolver,
     package_json_less_addon: tuple[bytes, set[Flavour]],
 ):
@@ -123,22 +120,20 @@ async def test_extracting_flavour_from_zip_contents(
     try:
         await github_resolver.resolve_one(zip_defn, None)
     except PkgFilesNotMatching:
-        assert iw_config_ctx.config.game_flavour not in flavours
+        assert config_ctx.config().game_flavour not in flavours
     else:
-        assert iw_config_ctx.config.game_flavour in flavours
+        assert config_ctx.config().game_flavour in flavours
 
 
-@pytest.mark.usefixtures('_iw_web_client_ctx')
 async def test_repo_with_release_json_release(
     github_resolver: GithubResolver,
 ):
     defn = Defn('github', 'nebularg/PackagerTest')
 
     result = await github_resolver.resolve_one(defn, None)
-    assert type(result) is Pkg
+    assert type(result) is dict
 
 
-@pytest.mark.usefixtures('_iw_web_client_ctx')
 async def test_repo_without_releases(
     github_resolver: GithubResolver,
 ):
@@ -150,7 +145,6 @@ async def test_repo_without_releases(
     assert exc_info.value.message == 'no releases found'
 
 
-@pytest.mark.usefixtures('_iw_web_client_ctx')
 async def test_nonexistent_repo(
     github_resolver: GithubResolver,
 ):
@@ -171,14 +165,12 @@ async def test_nonexistent_repo(
     indirect=True,
 )
 @pytest.mark.parametrize('any_flavour', [True, None])
-@pytest.mark.usefixtures('_iw_web_client_ctx')
 async def test_any_flavour_strategy(
     iw_aresponses: ResponsesMockServer,
-    iw_config_ctx: ConfigBoundCtx,
     github_resolver: GithubResolver,
     any_flavour: Literal[True, None],
 ):
-    opposite_flavour = next(f for f in Flavour if f is not iw_config_ctx.config.game_flavour)
+    opposite_flavour = next(f for f in Flavour if f is not config_ctx.config().game_flavour)
     opposite_interface = next(
         n for r in opposite_flavour.to_flavour_keyed_enum(FlavourVersionRange).value for n in r
     )
@@ -209,17 +201,16 @@ async def test_any_flavour_strategy(
     )
 
     results = await github_resolver.resolve([defn])
-    assert type(results[defn]) is (Pkg if any_flavour else PkgFilesNotMatching)
+    assert type(results[defn]) is (dict if any_flavour else PkgFilesNotMatching)
 
 
-@pytest.mark.usefixtures('_iw_web_client_ctx')
 async def test_changelog_is_data_url(
     github_resolver: GithubResolver,
 ):
     defn = Defn('github', 'p3lim-wow/Molinari')
 
     result = await github_resolver.resolve_one(defn, None)
-    assert result.changelog_url.startswith('data:,')
+    assert result['changelog_url'].startswith('data:,')
 
 
 @pytest.mark.parametrize(
@@ -241,11 +232,9 @@ async def test_changelog_is_data_url(
     ],
     indirect=True,
 )
-@pytest.mark.usefixtures('_iw_web_client_ctx')
 async def test_mismatched_release_is_skipped_and_logged(
     caplog: pytest.LogCaptureFixture,
     iw_aresponses: ResponsesMockServer,
-    iw_config_ctx: ConfigBoundCtx,
     github_resolver: GithubResolver,
     flavor: str,
     interface: int,
@@ -272,7 +261,7 @@ async def test_mismatched_release_is_skipped_and_logged(
         'instawow._sources.github',
         logging.INFO,
         f'flavor and interface mismatch: {interface} not found in '
-        f'{[iw_config_ctx.config.game_flavour.to_flavour_keyed_enum(FlavourVersionRange).value]}',
+        f'{[config_ctx.config().game_flavour.to_flavour_keyed_enum(FlavourVersionRange).value]}',
     ) in caplog.record_tuples
 
 

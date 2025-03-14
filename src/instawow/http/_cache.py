@@ -5,9 +5,8 @@ import concurrent.futures
 import contextlib
 import contextvars
 import os
-from collections.abc import Callable, Coroutine, Set
-from functools import wraps
-from typing import Any, TypeVar, cast
+from collections.abc import Callable, Set
+from typing import TypeVar, cast
 
 import aiohttp_client_cache
 import diskcache
@@ -22,8 +21,7 @@ async def make_cache(cache_dir: os.PathLike[str]):
     with concurrent.futures.ThreadPoolExecutor(1, '_http_cache') as executor:
         loop = asyncio.get_running_loop()
 
-        def run_in_thread2(fn: Callable[_P, _U]) -> Callable[_P, Coroutine[Any, Any, _U]]:
-            @wraps(fn)
+        def run_in_thread2(fn: Callable[_P, _U]):
             async def wrapper(*args: _P.args, **kwargs: _P.kwargs):
                 return await loop.run_in_executor(
                     executor, lambda: contextvars.copy_context().run(fn, *args, **kwargs)

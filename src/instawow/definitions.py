@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Collection, Hashable, Iterator, Mapping
+from collections.abc import Collection, Hashable, Iterable, Iterator, Mapping
 from enum import StrEnum
 from functools import partial
 from typing import Literal, Self, overload
@@ -35,7 +35,9 @@ class SourceMetadata:
 class Strategies(Mapping[Strategy, object], Hashable):
     initialised = True
 
-    def __init__(self, entries: Mapping[Strategy, object] = {}) -> None:
+    def __init__(
+        self, entries: Mapping[Strategy, object] | Iterable[tuple[Strategy, object]] = ()
+    ) -> None:
         self._entries = dict.fromkeys(Strategy) | dict(entries)
 
     @overload

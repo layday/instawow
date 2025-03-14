@@ -24,6 +24,10 @@ class FieldMetadata(TypedDict, total=False):
     store: bool
 
 
+class UninitialisedConfigError(Exception):
+    pass
+
+
 def ensure_dirs(dirs: Iterable[Path]) -> None:
     for dir_ in dirs:
         dir_.mkdir(exist_ok=True, parents=True)
@@ -42,7 +46,7 @@ def _make_write_converter():
     converter = make_config_converter()
 
     @converter.register_unstructure_hook_factory(attrs.has)
-    def exclude_no_store_fields(type_: type[_T]):  # pyright: ignore[reportUnusedFunction]
+    def _(type_: type[_T]):
         return cattrs.gen.make_dict_unstructure_fn(
             type_,
             converter,
@@ -78,7 +82,7 @@ def read_config(config_cls: type, config_path: Path, missing_ok: bool = False) -
     except FileNotFoundError:
         if missing_ok:
             return {}
-        raise
+        raise UninitialisedConfigError from None
     else:
         return values
 

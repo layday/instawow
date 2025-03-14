@@ -24,6 +24,7 @@ from ._helpers import (
     read_env_vars,
     write_config,
 )
+from ._helpers import UninitialisedConfigError as UninitialisedConfigError
 from ._helpers import config_converter as config_converter
 
 _T = TypeVar('_T')
@@ -33,8 +34,8 @@ _TSized = TypeVar('_TSized', bound=Sized)
 SecretStr = NewType('SecretStr', str)
 
 
-def _expand_path(value: Path):
-    return Path(os.path.abspath(os.path.expanduser(value)))
+def _expand_path(value: os.PathLike[str]):
+    return Path(value).resolve()
 
 
 def _is_writable_dir(value: Path):
@@ -209,6 +210,7 @@ class GlobalConfig:
                 self.config_dir,
                 self.cache_dir,
                 self.state_dir,
+                self.logging_dir,
                 self.http_cache_dir,
                 self.install_cache_dir,
             ]
@@ -219,6 +221,10 @@ class GlobalConfig:
         self.ensure_dirs()
         write_config(self, self.config_file)
         return self
+
+    @property
+    def logging_dir(self) -> Path:
+        return self.state_dir / 'logs'
 
     @property
     def http_cache_dir(self) -> Path:
@@ -254,13 +260,33 @@ class GlobalConfig:
 
 
 @fauxfrozen
-class ProfileConfig:
+class _ProfileConfigStub:
     global_config: GlobalConfig
     profile: str = attrs.field(
         converter=str.strip,
         validator=_make_validate_min_length(1),
         metadata=FieldMetadata(env=True, store=True),
     )
+
+    @property
+    def config_dir(self) -> Path:
+        return self.global_config.profiles_config_dir / self.profile
+
+    @property
+    def state_dir(self) -> Path:
+        return self.global_config.profiles_state_dir / self.profile
+
+    @property
+    def config_file(self) -> Path:
+        return self.config_dir / 'config.json'
+
+    @property
+    def db_file(self) -> Path:
+        return self.config_dir / 'db.sqlite'
+
+
+@fauxfrozen
+class ProfileConfig(_ProfileConfigStub):
     addon_dir: Path = attrs.field(
         converter=_expand_path,
         validator=_validate_path_is_writable_dir,
@@ -278,15 +304,11 @@ class ProfileConfig:
 
     @classmethod
     def read(cls, global_config: GlobalConfig, profile: str, *, env: bool = True) -> Self:
-        dummy_config = object.__new__(
-            type(
-                f'Dummy{cls.__name__}',
-                (cls,),
-                {'global_config': global_config, 'profile': profile},
-            )
-        )
         return cls.from_values(
-            {**read_config(cls, dummy_config.config_file), 'global_config': global_config},
+            {
+                **read_config(cls, _ProfileConfigStub(global_config, profile).config_file),
+                'global_config': global_config,
+            },
             env=env,
         )
 
@@ -298,7 +320,6 @@ class ProfileConfig:
             [
                 self.config_dir,
                 self.state_dir,
-                self.logging_dir,
             ]
         )
         return self
@@ -309,24 +330,4 @@ class ProfileConfig:
         return self
 
     def delete(self) -> None:
-        trash((self.config_dir,), dest=self.global_config.cache_dir, missing_ok=True)
-
-    @property
-    def config_dir(self) -> Path:
-        return self.global_config.profiles_config_dir / self.profile
-
-    @property
-    def state_dir(self) -> Path:
-        return self.global_config.profiles_state_dir / self.profile
-
-    @property
-    def logging_dir(self) -> Path:
-        return self.state_dir / 'logs'
-
-    @property
-    def config_file(self) -> Path:
-        return self.config_dir / 'config.json'
-
-    @property
-    def db_file(self) -> Path:
-        return self.config_dir / 'db.sqlite'
+        trash((self.config_dir,))

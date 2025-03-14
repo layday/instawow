@@ -14,7 +14,7 @@ import cattrs
 from typing_extensions import TypedDict
 from yarl import URL
 
-from instawow import http, shared_ctx
+from instawow import http, http_ctx
 from instawow._logging import logger
 from instawow._progress_reporting import make_default_progress, make_incrementing_progress_tracker
 from instawow._utils.aio import gather, run_in_thread
@@ -165,7 +165,7 @@ class WaCompanionBuilder:
             return {'api-key': access_token}
 
     async def _fetch_wago_metadata(self, aura_group: _Auras):
-        request = shared_ctx.web_client.post(
+        request = http_ctx.web_client().post(
             (_base_url / 'check' / aura_group.api_ep),
             expire_after=timedelta(minutes=30),
             headers=self._make_request_headers(),
@@ -186,7 +186,7 @@ class WaCompanionBuilder:
             return sorted(metadata, key=lambda r: r['slug'])
 
     async def _fetch_wago_import_string(self, remote_aura: _WagoApiResponse):
-        request = shared_ctx.web_client.get(
+        request = http_ctx.web_client().get(
             (_base_url / 'raw' / 'encoded')
             .with_query(id=remote_aura['_id'])
             .with_fragment(str(remote_aura['version'])),

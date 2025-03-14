@@ -8,7 +8,7 @@ from shutil import move
 from tempfile import NamedTemporaryFile
 from typing import Literal
 
-from .. import http, shared_ctx
+from .. import config_ctx, http, http_ctx, sync_ctx
 from .._progress_reporting import Progress
 from .._utils.aio import run_in_thread
 from .._utils.text import shasum
@@ -45,14 +45,12 @@ async def _open_temp_writer_async():
         await run_in_thread(fh.close)()
 
 
-async def download_pkg_archive(
-    config_ctx: shared_ctx.ConfigBoundCtx, defn: Defn, download_url: str
-) -> Path:
+async def download_pkg_archive(defn: Defn, download_url: str) -> Path:
     if is_file_uri(download_url):
         return Path(file_uri_to_path(download_url))
 
-    async with shared_ctx.locks[_DOWNLOAD_PKG_LOCK, download_url]:
-        headers = config_ctx.resolvers[defn.source].make_request_headers(
+    async with sync_ctx.locks()[_DOWNLOAD_PKG_LOCK, download_url]:
+        headers = config_ctx.resolvers()[defn.source].make_request_headers(
             intent=HeadersIntent.Download
         )
         trace_request_ctx = {
@@ -61,13 +59,13 @@ async def download_pkg_archive(
                 unit='bytes',
                 current=0,
                 total=0,
-                profile=config_ctx.config.profile,
+                profile=config_ctx.config().profile,
                 defn=defn,
             )
         }
 
         make_request = partial(
-            shared_ctx.web_client.get,
+            http_ctx.web_client().get,
             download_url,
             headers=headers,
             trace_request_ctx=trace_request_ctx,
@@ -88,7 +86,7 @@ async def download_pkg_archive(
                 and 'CF-RAY' in response.headers
             ):
                 _use_alt_ssl_context.set(True)
-                return await download_pkg_archive(config_ctx, defn, download_url)
+                return await download_pkg_archive(defn, download_url)
 
             response.raise_for_status()
 
@@ -96,5 +94,6 @@ async def download_pkg_archive(
                 await write(chunk)
 
         return await _move_async(
-            temp_path, config_ctx.config.global_config.install_cache_dir / shasum(download_url)
+            temp_path,
+            config_ctx.config().global_config.install_cache_dir / shasum(download_url),
         )

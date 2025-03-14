@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import click
 
-from instawow import cli
+from instawow import config_ctx
 from instawow.cli._helpers import ManyOptionalChoiceValueParam
 
 
@@ -12,17 +12,18 @@ def wa_updater_command_group() -> None:
 
 
 @wa_updater_command_group.command('build')
-@click.pass_obj
-def build_weakauras_companion(config_ctx: cli.ConfigBoundCtxProxy) -> None:
+def build_weakauras_companion() -> None:
     "Build the WeakAuras Companion add-on."
+
+    from instawow.cli import run_with_progress
 
     from ._config import PluginConfig
     from ._core import WaCompanionBuilder
 
     builder = WaCompanionBuilder(
-        PluginConfig.read(config_ctx.config).ensure_dirs(),
+        PluginConfig.read(config_ctx.config()).ensure_dirs(),
     )
-    cli.run_with_progress(builder.build())
+    run_with_progress(builder.build())
 
 
 @wa_updater_command_group.command
@@ -31,10 +32,7 @@ def build_weakauras_companion(config_ctx: cli.ConfigBoundCtxProxy) -> None:
     nargs=-1,
     type=ManyOptionalChoiceValueParam(click.Choice(('access_tokens.wago',))),
 )
-@click.pass_obj
-def configure(
-    config_ctx: cli.ConfigBoundCtxProxy, collapsed_editable_config_values: dict[str, object]
-) -> None:
+def configure(collapsed_editable_config_values: dict[str, object]) -> None:
     "Configure the plug-in."
 
     from instawow.cli._prompts import password
@@ -48,7 +46,7 @@ def configure(
         wago_access_token = None
 
     plugin_config = PluginConfig.from_values(
-        {'access_tokens': {'wago': wago_access_token}, 'profile_config': config_ctx.config}
+        {'access_tokens': {'wago': wago_access_token}, 'profile_config': config_ctx.config()}
     ).write()
 
     click.echo('Configuration written to:')
@@ -56,8 +54,7 @@ def configure(
 
 
 @wa_updater_command_group.command('list')
-@click.pass_obj
-def list_installed_wago_auras(config_ctx: cli.ConfigBoundCtxProxy) -> None:
+def list_installed_wago_auras() -> None:
     "List WeakAuras installed from Wago."
     from instawow._utils.text import tabulate
 
@@ -65,7 +62,7 @@ def list_installed_wago_auras(config_ctx: cli.ConfigBoundCtxProxy) -> None:
     from ._core import WaCompanionBuilder
 
     builder = WaCompanionBuilder(
-        PluginConfig.read(config_ctx.config).ensure_dirs(),
+        PluginConfig.read(config_ctx.config()).ensure_dirs(),
     )
 
     installed_auras = sorted(

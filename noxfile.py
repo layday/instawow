@@ -8,29 +8,13 @@ from pathlib import Path
 
 import nox
 
-nox.needs_version = '>= 2024.4.15'
+# nox.needs_version = '>= 2025.02.09'
 nox.options.default_venv_backend = 'uv'
 nox.options.error_on_external_run = True
 
 
 _root = Path(__file__).parent
-
-
-def _parse_dependency_group(item: str | dict[str, str]):
-    match item:
-        case str():
-            yield item
-        case {'include-group': group_ref}:
-            yield from iter(_dependency_groups[group_ref])
-        case _:
-            raise ValueError(f'Invalid dependency group item: {item}')
-
-
-_dependency_groups = nox.project.load_toml(_root / 'pyproject.toml')['dependency-groups']
-_dependency_groups = {
-    n.replace('_', '-'): {u for i in g for u in _parse_dependency_group(i)}
-    for n, g in _dependency_groups.items()
-}
+_pyproject = nox.project.load_toml(_root / 'pyproject.toml')
 
 
 def _install_coverage_hook(session: nox.Session):
@@ -73,7 +57,7 @@ def dev_env(session: nox.Session):
 def format_code(session: nox.Session):
     "Format source code."
 
-    session.install(*_dependency_groups['format'])
+    session.install(*nox.project.dependency_groups(_pyproject, 'format'))
 
     check = '--check' in session.posargs
     skip_prettier = '--skip-prettier' in session.posargs
@@ -91,7 +75,7 @@ def format_code(session: nox.Session):
 def lint(session: nox.Session):
     "Lint source code."
 
-    session.install(*_dependency_groups['lint'])
+    session.install(*nox.project.dependency_groups(_pyproject, 'lint'))
     session.run('ruff', 'check', '--output-format', 'full', *session.posargs, '.')
     session.notify('format', ['--check'])
 
@@ -127,11 +111,12 @@ def test(session: nox.Session, minimum_versions: bool):
     else:
         session.install(*install_args)
 
-    _install_coverage_hook(session)
+    # _install_coverage_hook(session)
 
     session.run(
         *'coverage run -m pytest -n auto'.split(),
         env={
+            'COVERAGE_CORE': 'sysmon',
             'COVERAGE_PROCESS_START': 'pyproject.toml',
         },
     )
@@ -141,7 +126,7 @@ def test(session: nox.Session, minimum_versions: bool):
 def report_coverage(session: nox.Session):
     "Produce coverage report."
 
-    session.install(*_dependency_groups['report-coverage'])
+    session.install(*nox.project.dependency_groups(_pyproject, 'report-coverage'))
     session.run('coverage', 'combine')
     session.run('coverage', 'html', '--skip-empty')
     session.run('coverage', 'report', '-m')
@@ -297,7 +282,7 @@ def freeze_gui(session: nox.Session):
         build_opts = []
         package_opts = []
 
-    session.install(*_dependency_groups['freeze-gui'])
+    session.install(*nox.project.dependency_groups(_pyproject, 'freeze-gui'))
 
     with session.chdir('instawow-gui'):
         session.run('briefcase', 'build', *build_opts)

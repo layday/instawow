@@ -1,15 +1,16 @@
 from __future__ import annotations
 
-from collections.abc import AsyncIterator, Iterable, Set
+from collections.abc import Set
 from datetime import datetime
 from functools import cached_property
-from typing import Any, Protocol, Self
+from types import SimpleNamespace
+from typing import Any, Self
 
 import attrs
 import cattrs
 import cattrs.preconf.json
 
-from .. import http, shared_ctx
+from .. import config, config_ctx, http, http_ctx
 from .._utils.attrs import fauxfrozen
 from .._utils.iteration import bucketise
 from .._utils.text import normalise_names
@@ -27,10 +28,6 @@ _catalogue_converter = cattrs.Converter(
 cattrs.preconf.json.configure_converter(_catalogue_converter)
 
 _normalise_name = normalise_names('')
-
-
-class _CatalogueFn(Protocol):  # pragma: no cover
-    def __call__(self) -> AsyncIterator[CatalogueEntry]: ...
 
 
 @fauxfrozen(kw_only=True)
@@ -63,13 +60,17 @@ class Catalogue:
     entries: list[CatalogueEntry]
 
     @classmethod
-    async def collate(
-        cls, catalogue_fns: Iterable[_CatalogueFn], start_date: datetime | None
-    ) -> Self:
-        async with http.init_web_client(None) as web_client:
-            shared_ctx.web_client_var.set(web_client)
+    async def collate(cls, start_date: datetime | None) -> Self:
+        config_ctx.config.set(
+            SimpleNamespace(global_config=config.GlobalConfig.from_values(env=True)),  # pyright: ignore[reportArgumentType]
+        )
 
-            entries = [e for r in catalogue_fns async for e in r()]
+        async with http.init_web_client(
+            config_ctx.config().global_config.http_cache_dir
+        ) as web_client:
+            http_ctx.web_client.set(web_client)
+
+            entries = [e for r in config_ctx.resolvers().values() async for e in r.catalogue()]
             if start_date is not None:
                 entries = [e for e in entries if e.last_updated >= start_date]
             return cls(entries=entries)

@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import multiprocessing
+import os
 import sys
 from pathlib import Path
+from typing import Any
 
 from loguru import logger
 
@@ -34,7 +36,12 @@ def _intercept_logging_module_calls(log_level: str):  # pragma: no cover
 
 
 def setup_logging(
-    logging_dir: Path, log_to_stderr: bool, debug: bool, intercept_logging_module_calls: bool
+    logging_dir: os.PathLike[str],
+    log_to_stderr: bool,
+    debug: bool,
+    intercept_logging_module_calls: bool,
+    /,
+    **extra: Any,
 ) -> None:
     log_level = 'DEBUG' if debug else 'INFO'
 
@@ -53,9 +60,16 @@ def setup_logging(
     handlers = [
         {
             'level': log_level,
+            'format': (
+                '<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | '
+                '<level>{level: <8}</level> | '
+                '{extra[profile]: <10} | '
+                '<cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> | '
+                '<level>{message}</level>'
+            ),
             'enqueue': True,
             'context': context,
-            'sink': logging_dir / 'error.log',
+            'sink': Path(logging_dir) / 'error.log',
             'rotation': '5 MB',
             'retention': 5,  # Number of log files to keep
         },
@@ -64,10 +78,14 @@ def setup_logging(
         handlers += [
             {
                 'level': log_level,
+                'format': '<level>{level: <8}</level>  {message}',
                 'enqueue': True,
                 'context': context,
                 'sink': sys.stderr,
             }
         ]
 
-    logger.configure(handlers=handlers)  # pyright: ignore[reportArgumentType]
+    logger.configure(
+        extra=extra,
+        handlers=handlers,  # pyright: ignore[reportArgumentType]
+    )
