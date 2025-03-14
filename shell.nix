@@ -6,7 +6,7 @@ pkgs.mkShell {
   buildInputs = [
     pkgs.nil
     pkgs.nixpkgs-fmt
-    pkgs.nodejs_22
+    pkgs.nodejs
     pkgs.python312.pkgs.nox
     pkgs.uv
     python
