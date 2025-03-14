@@ -34,7 +34,7 @@ jobs:
             target: aarch64-apple-darwin
           - os: macos-latest
             target: x86_64-apple-darwin
-          - os: ubuntu-22.04
+          - os: ubuntu-22.04-arm
             target: aarch64-unknown-linux-gnu
           - os: ubuntu-22.04
             target: x86_64-unknown-linux-gnu
@@ -61,15 +61,6 @@ jobs:
         run: uv tool install -p 3.12 nox
       - name: Install Rust
         run: rustup update stable
-      - name: Install cross-compilation toolchain
-        uses: taiki-e/setup-cross-toolchain-action@v1
-        with:
-          target: ${{ matrix.build-env.target }}
-      - name: Install cross
-        uses: taiki-e/install-action@v2
-        with:
-          tool: cross
-        if: startsWith(matrix.build-env.os, 'ubuntu-')
       - name: Freeze the CLI
         id: freeze-cli
         run: nox -s freeze_cli -- --out-dir ./cli
@@ -87,6 +78,8 @@ jobs:
         build-env:
           - os: macos-latest
             target: universal2-apple-darwin
+          - os: ubuntu-24.04-arm
+            target: aarch64-unknown-linux-gnu
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
           - os: windows-latest
