@@ -578,6 +578,9 @@ def test_plugin_hook_command_can_be_invoked():
     assert run('plugins foo').output == 'success!\n'
 
 
+# Skip loading the `_iw_web_client_ctx` fixture
+# to allow deleting the cache on Windows.
+@pytest.mark.parametrize('_iw_web_client_ctx', [None])
 def test_clear_cache(
     iw_profile_config: ProfileConfig,
 ):
