@@ -35,7 +35,7 @@ SecretStr = NewType('SecretStr', str)
 
 
 def _expand_path(value: os.PathLike[str]):
-    return Path(value).resolve()
+    return Path(value).expanduser().resolve()
 
 
 def _is_writable_dir(value: Path):
