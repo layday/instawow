@@ -1,6 +1,23 @@
 Changelog
 =========
 
+v5.0.0
+------
+
+- Hard links and symbolic links are now resolved in configuration paths.
+
+API
+~~~
+
+- Access tokens can now be sourced by third-party resolvers using the 
+  ``instawow.resolvers.AccessToken`` decorator.
+- ``_resolve_one`` has once again been renamed to ``resolve_one`` on the
+  ``instawow.resolvers.Resolver`` interface.
+- The active configuration is no longer stored on ``Resolver`` instances;
+  it must be retrieved from ``instawow.config_ctx.config`` on demand.
+- The active configuration is no longer stored in the ``click`` context object;
+  it must be retrieved from ``instawow.config_ctx.config`` on demand.
+
 v4.8.0
 ------
 
