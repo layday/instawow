@@ -15,8 +15,7 @@ authors = [{ name = "layday", email = "layday@protonmail.com" }]
 urls."homepage" = "http://github.com/layday/instawow"
 
 dependencies = [
-  'aiohttp >= 3.9.3,  < 4 ; python_version <  "3.13"',
-  'aiohttp >= 3.10.5, < 4 ; python_version >= "3.13"',
+  "aiohttp >= 3.10.5, < 4",
   "aiohttp-client-cache >= 0.9.1, != 0.12.0, != 0.12.1, != 0.12.2",
   "attrs >= 23.2.0",
   "cattrs >= 24.1.0",
@@ -27,10 +26,8 @@ dependencies = [
   "pluggy >= 1.4.0",
   "prompt-toolkit >= 3.0.44",
   "rapidfuzz >= 3.9.6",
-  'truststore >= 0.7.0 ; python_version <  "3.13"',
-  'truststore >= 0.9.1 ; python_version >= "3.13"',
-  'typing-extensions >= 4.11.0 ; python_version <  "3.13"',
-  'typing-extensions >= 4.12.0 ; python_version >= "3.13"',
+  "truststore >= 0.9.1",
+  "typing-extensions >= 4.12.0",
   "yarl >= 1.9.5",
 ]
 optional-dependencies."test" = [
