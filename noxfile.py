@@ -8,7 +8,7 @@ from pathlib import Path
 
 import nox
 
-# nox.needs_version = '>= 2025.02.09'
+nox.needs_version = '>= 2025.02.09'
 nox.options.default_venv_backend = 'uv'
 nox.options.error_on_external_run = True
 
