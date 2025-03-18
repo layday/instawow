@@ -111,7 +111,7 @@ def test(session: nox.Session, minimum_versions: bool):
     else:
         session.install(*install_args)
 
-    # _install_coverage_hook(session)
+    _install_coverage_hook(session)
 
     session.run(
         *'coverage run -m pytest -n auto'.split(),
