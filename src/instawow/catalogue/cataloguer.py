@@ -61,13 +61,13 @@ class Catalogue:
 
     @classmethod
     async def collate(cls, start_date: datetime | None) -> Self:
-        config_ctx.config.set(
-            SimpleNamespace(global_config=config.GlobalConfig.from_values(env=True)),  # pyright: ignore[reportArgumentType]
-        )
+        global_config = config.GlobalConfig.from_values(env=True)
 
-        async with http.init_web_client(
-            config_ctx.config().global_config.http_cache_dir
-        ) as web_client:
+        @config_ctx.config.set  # pyright: ignore[reportArgumentType]
+        def _():
+            return SimpleNamespace(config=SimpleNamespace(global_config=global_config))
+
+        async with http.init_web_client(global_config.http_cache_dir) as web_client:
             http_ctx.web_client.set(web_client)
 
             entries = [e for r in config_ctx.resolvers().values() async for e in r.catalogue()]
