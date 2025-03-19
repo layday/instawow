@@ -65,7 +65,7 @@ class Catalogue:
 
         @config_ctx.config.set  # pyright: ignore[reportArgumentType]
         def _():
-            return SimpleNamespace(config=SimpleNamespace(global_config=global_config))
+            return SimpleNamespace(global_config=global_config)
 
         async with http.init_web_client(global_config.http_cache_dir) as web_client:
             http_ctx.web_client.set(web_client)
