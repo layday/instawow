@@ -195,7 +195,7 @@ def freeze_cli(session: nox.Session):
     import argparse
     import shutil
 
-    PYAPP_VERSION = 'v0.24.0'
+    PYAPP_VERSION = 'v0.27.0'
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--out-dir', required=True)
