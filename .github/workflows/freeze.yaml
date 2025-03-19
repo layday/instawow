@@ -61,6 +61,8 @@ jobs:
         run: uv tool install -p 3.12 nox
       - name: Install Rust
         run: rustup update stable
+      - name: Add build target
+        run: rustup target add ${{ matrix.build-env.target }}
       - name: Freeze the CLI
         id: freeze-cli
         run: nox -s freeze_cli -- --out-dir ./cli
