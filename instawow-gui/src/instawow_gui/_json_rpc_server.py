@@ -568,7 +568,9 @@ async def _load_profile(profile: str):
                 )
 
     config_ctx.config.set(config_party)
-    yield config_party
+
+    with logger.contextualize(profile=config_party.config.profile):
+        yield config_party
 
 
 def _unload_profiles(*profiles: str):
