@@ -7,7 +7,6 @@ pkgs.mkShell {
     pkgs.nil
     pkgs.nixpkgs-fmt
     pkgs.nodejs
-    pkgs.python312.pkgs.nox
     pkgs.uv
     python
   ];
@@ -18,7 +17,7 @@ pkgs.mkShell {
   shellHook = ''
     set -ex
 
-    VENV_BIN_DIR=$(nox -vv -s dev_env --force-python ${python.pythonVersion})
+    VENV_BIN_DIR=$(uvx nox -vv -s dev_env --force-python ${python.pythonVersion})
     source "$VENV_BIN_DIR/activate"
   '';
 }
