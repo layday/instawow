@@ -99,7 +99,7 @@ class _JsonRpcError(TypedDict):
 _MethodResponder = Callable[..., Awaitable[object]]
 _TMethodResponder = TypeVar('_TMethodResponder', bound=_MethodResponder)
 
-_methods = dict[str, tuple[_JsonRpcRequest[str, Any], _MethodResponder]]()
+_methods = dict[str, tuple[type[_JsonRpcRequest[Any, Any]], _MethodResponder]]()
 
 
 def _register_method(method: str):
@@ -113,7 +113,7 @@ def _register_method(method: str):
         ]
         request_type.__name__ = method
 
-        _methods[method] = (request_type, method_responder)  # pyright: ignore[reportArgumentType]
+        _methods[method] = (request_type, method_responder)
         return method_responder
 
     return wrapper
