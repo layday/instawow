@@ -753,6 +753,8 @@ async def create_web_app(toga_handle: toga.App | None = None):
             except BaseException as error:
                 import traceback
 
+                logger.exception('internal error')
+
                 response = _JsonRpcErrorResponse(
                     jsonrpc='2.0',
                     error=_JsonRpcError(
