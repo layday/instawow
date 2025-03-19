@@ -30,9 +30,9 @@ jobs:
       fail-fast: false
       matrix:
         build-env:
-          - os: macos-12
+          - os: macos-latest
             target: aarch64-apple-darwin
-          - os: macos-12
+          - os: macos-latest
             target: x86_64-apple-darwin
           - os: ubuntu-22.04
             target: aarch64-unknown-linux-gnu
