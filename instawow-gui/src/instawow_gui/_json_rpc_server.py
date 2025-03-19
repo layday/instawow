@@ -18,7 +18,6 @@ from typing import Any, Generic, Literal, NotRequired, Union, cast
 import aiohttp
 import aiohttp.typedefs
 import aiohttp.web
-import aiohttp.web_ws
 import attrs
 import cattrs
 import cattrs.preconf.json

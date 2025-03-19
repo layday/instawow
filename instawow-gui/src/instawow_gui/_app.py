@@ -10,7 +10,6 @@ from enum import StrEnum
 from functools import partial
 
 import toga
-import toga.constants
 import toga.style.pack
 
 from . import _json_rpc_server

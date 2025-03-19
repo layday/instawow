@@ -9,8 +9,6 @@ from typing import NewType, Self, TypeVar
 
 import attrs
 import cattrs
-import cattrs.gen
-import cattrs.preconf.json
 
 from .. import NAME
 from .._utils.attrs import fauxfrozen
