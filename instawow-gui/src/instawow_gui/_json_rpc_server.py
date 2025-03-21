@@ -9,7 +9,6 @@ import os
 from collections.abc import Awaitable, Callable, Iterator, Set
 from contextlib import AbstractAsyncContextManager, AsyncExitStack, asynccontextmanager
 from datetime import datetime
-from functools import partial
 from inspect import get_annotations
 from itertools import chain
 from pathlib import Path
@@ -45,9 +44,9 @@ from instawow.wow_installations import Flavour, infer_flavour_from_addon_dir
 _T = TypeVar('_T')
 
 _toga_handle_var = contextvars.ContextVar[toga.App]('_toga_handle_var')
-_current_progress_var = contextvars.ContextVar[ReadOnlyProgressGroup[PkgDownloadProgress]](
-    '_current_progress_var'
-)
+_get_progress_var = contextvars.ContextVar[
+    Callable[[], ReadOnlyProgressGroup[PkgDownloadProgress]]
+]('_get_progress_var')
 _config_parties_var = contextvars.ContextVar[dict[str, config_ctx.ConfigParty]](
     '_config_parties_var'
 )
@@ -420,9 +419,10 @@ async def get_reconcile_installed_pkg_candidates(
 @_register_method('get_download_progress')
 async def respond(profile: str) -> list[TypedDict[{'defn': Defn, 'progress': float}]]:
     async with _load_profile(profile) as config_party:
+        get_progress = _get_progress_var.get()
         return [
             {'defn': p['defn'], 'progress': p['current'] / p['total']}
-            for p in _current_progress_var.get().values()
+            for p in get_progress().values()
             if p['type_'] == 'pkg_download'
             and p['total']
             and p['profile'] == config_party.config.profile
@@ -660,14 +660,10 @@ async def create_web_app(toga_handle: toga.App | None = None):
             )
             http_ctx.web_client.set(web_client)
 
-            async def update_progress():
-                async for progress in iter_progress:
-                    _current_progress_var.set(progress)
-
-            iter_progress = exit_stack.enter_context(make_progress_receiver[PkgDownloadProgress]())
-            exit_stack.push_async_callback(
-                partial(cancel_tasks, [asyncio.create_task(update_progress())])
+            get_progress, _ = exit_stack.enter_context(
+                make_progress_receiver[PkgDownloadProgress]()
             )
+            _get_progress_var.set(get_progress)
 
             _config_parties_var.set({})
 

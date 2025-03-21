@@ -110,13 +110,13 @@ def run_with_progress(awaitable: Awaitable[_T]) -> _T:
             from ._prompts import make_progress_bar_group
 
             async with AsyncExitStack() as exit_stack:
-                iter_progress = exit_stack.enter_context(
+                _, make_iter_progress = exit_stack.enter_context(
                     make_progress_receiver[PkgDownloadProgress]()
                 )
                 update_progress = exit_stack.enter_context(make_progress_bar_group())
 
                 async def observe_progress():
-                    async for progress_group in iter_progress:
+                    async for progress_group in make_iter_progress():
                         update_progress(
                             {
                                 i: {
@@ -133,7 +133,7 @@ def run_with_progress(awaitable: Awaitable[_T]) -> _T:
                         )
 
                 exit_stack.push_async_callback(
-                    partial(cancel_tasks, [asyncio.create_task(observe_progress())])
+                    cancel_tasks, [asyncio.create_task(observe_progress())]
                 )
 
                 http_ctx.web_client.set(

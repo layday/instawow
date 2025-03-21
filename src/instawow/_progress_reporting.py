@@ -5,7 +5,7 @@ import contextvars
 from collections.abc import Awaitable, Callable, Mapping
 from contextlib import contextmanager
 from itertools import count
-from typing import Any, Generic, Literal, LiteralString, Never, NotRequired, TypeAlias, cast
+from typing import Any, Generic, Literal, LiteralString, Never, NotRequired, TypeAlias
 
 from typing_extensions import TypedDict, TypeVar
 
@@ -71,7 +71,7 @@ class make_progress_receiver(Generic[_TProgress]):
 
         emit_event = asyncio.Event()
 
-        progress_group: dict[int, Progress[Any, Any]] = {}
+        progress_group: ReadOnlyProgressGroup[_TProgress] = {}
 
         def waken(progress_id: int, progress: Progress[Any, Any] | Literal['unset']):
             if progress == 'unset':
@@ -88,13 +88,16 @@ class make_progress_receiver(Generic[_TProgress]):
 
         try:
 
-            async def receive():
+            def get_once():
+                return progress_group
+
+            async def make_iter():
                 while True:
                     await emit_event.wait()
-                    yield cast(ReadOnlyProgressGroup[_TProgress], progress_group)
+                    yield progress_group
                     emit_event.clear()
 
-            yield receive()
+            yield (get_once, make_iter)
 
         finally:
             progress_notifiers.set(progress_notifiers.get() - {waken})
