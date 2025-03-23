@@ -32,7 +32,7 @@ from .results import (
     aresultify,
 )
 
-_TTokenValue = TypeVar('_TTokenValue', default=Never)
+_TTokenRequired = TypeVar('_TTokenRequired', Literal[True], bool)
 
 
 class AccessTokenMissingError(ValueError):
@@ -40,28 +40,19 @@ class AccessTokenMissingError(ValueError):
         return 'access token missing'
 
 
-class AccessToken(Generic[_TTokenValue]):
-    @overload
-    def __init__(
-        self: AccessToken[str],
-        getter: Callable[[], tuple[str | None, Literal[True]]],
-    ) -> None: ...
-    @overload
-    def __init__(
-        self: AccessToken[str | None],
-        getter: Callable[[], tuple[str | None, bool]],
-    ) -> None: ...
-    def __init__(
-        self,
-        getter: Callable[[], tuple[str | None, bool]],
-    ):
+class AccessToken(Generic[_TTokenRequired]):
+    def __init__(self, getter: Callable[[], tuple[str | None, _TTokenRequired]]):
         self._getter = getter
 
-    def get(self) -> _TTokenValue:
+    @overload
+    def get(self: AccessToken[Literal[True]]) -> str: ...
+    @overload
+    def get(self: AccessToken[bool]) -> str | None: ...
+    def get(self) -> str | None:
         access_token, required = self._getter()
         if required and access_token is None:
             raise AccessTokenMissingError
-        return access_token  # pyright: ignore[reportReturnType]
+        return access_token
 
     @property
     def missing_reason(self) -> str | None:
@@ -93,7 +84,7 @@ class Resolver(Protocol):  # pragma: no cover
     metadata: ClassVar[SourceMetadata]
     'Static source metadata.'
 
-    access_token: ClassVar[AccessToken | None]
+    access_token: ClassVar[AccessToken[bool] | None]
     'Access token retriever.'
 
     archive_opener: ClassVar[pkg_archives.ArchiveOpener | None]
