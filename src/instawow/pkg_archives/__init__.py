@@ -37,7 +37,7 @@ def make_archive_member_filter_fn(base_dirs: Set[str]) -> Callable[[str], bool]:
 
 
 @contextmanager
-def open_zip_archive(archive_path: Path):
+def open_zip_archive(archive_path: Path) -> Iterator[Archive]:
     with zipfile.ZipFile(archive_path) as archive:
         names = archive.namelist()
         top_level_folders = {h for _, h in find_archive_addon_tocs(names)}

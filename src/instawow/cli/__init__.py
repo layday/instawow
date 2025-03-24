@@ -11,8 +11,8 @@ from typing import Any, Never, TypeVar, overload
 
 import click
 
-from .. import _logging, config_ctx, definitions, pkg_management
 from .. import config as _config
+from .. import config_ctx, definitions, pkg_management
 from .. import results as _results
 from ._helpers import ManyOptionalChoiceValueParam, SectionedHelpGroup, StrEnumChoiceParam
 
@@ -91,7 +91,7 @@ def run_with_progress(awaitable: Awaitable[_T]) -> _T:
         no_cache=click_ctx.params['no_cache'],
     )
 
-    if any(click_ctx.params['verbosity']):
+    if click_ctx.params['verbosity']:
 
         async def run():
             async with make_init_web_client() as web_client:
@@ -165,14 +165,8 @@ def _print_version_option(click_ctx: click.Context, _click_param: click.Paramete
     click_ctx.exit()
 
 
-def _parse_debug_option(
-    _click_ctx: click.Context, _click_param: click.Parameter, value: float
-) -> tuple[bool, bool, bool]:
-    return (value > 0, value > 1, value > 2)
-
-
 @overload
-def _parse_uri_option(
+def _parse_defn_uri_option(
     _click_ctx: click.Context,
     _click_param: click.Parameter,
     value: str,
@@ -183,7 +177,7 @@ def _parse_uri_option(
 
 
 @overload
-def _parse_uri_option(
+def _parse_defn_uri_option(
     _click_ctx: click.Context,
     _click_param: click.Parameter,
     value: list[str],
@@ -193,7 +187,7 @@ def _parse_uri_option(
 ) -> list[definitions.Defn]: ...
 
 
-def _parse_uri_option(
+def _parse_defn_uri_option(
     _click_ctx: click.Context,
     _click_param: click.Parameter,
     value: str | list[str],
@@ -207,7 +201,7 @@ def _parse_uri_option(
 
     if not isinstance(value, str):
         defns = (
-            _parse_uri_option(
+            _parse_defn_uri_option(
                 _click_ctx,
                 _click_param,
                 v,
@@ -304,7 +298,6 @@ class _ListFormat(enum.StrEnum):
     'verbosity',
     count=True,
     help='Log incrementally more things.  Additive.',
-    callback=_parse_debug_option,
 )
 @click.option(
     '--no-cache',
@@ -318,11 +311,15 @@ class _ListFormat(enum.StrEnum):
     default='__default__',
     help='Activate the specified profile.',
 )
-def cli(verbosity: tuple[bool, bool, bool], no_cache: bool, profile: str):
+def cli(verbosity: int, no_cache: bool, profile: str):
     "Add-on manager for World of Warcraft."
 
+    from .._logging import setup_logging
+
     global_config = _config.GlobalConfig.read().ensure_dirs()
-    _logging.setup_logging(global_config.logging_dir, *verbosity, profile=profile)
+    setup_logging(
+        global_config.logging_dir, verbosity > 0, verbosity > 1, verbosity > 2, profile=profile
+    )
 
     @config_ctx.config.set
     def _():
@@ -333,7 +330,7 @@ def cli(verbosity: tuple[bool, bool, bool], no_cache: bool, profile: str):
 
 
 @cli.command
-@click.argument('addons', nargs=-1, callback=_parse_uri_option)
+@click.argument('addons', nargs=-1, callback=_parse_defn_uri_option)
 @click.option(
     '--replace',
     'replace_folders',
@@ -358,7 +355,7 @@ def install(addons: Sequence[definitions.Defn], replace_folders: bool, dry_run: 
 
 
 @cli.command
-@click.argument('addons', nargs=-1, callback=_parse_uri_option)
+@click.argument('addons', nargs=-1, callback=_parse_defn_uri_option)
 @click.option(
     '--dry-run',
     is_flag=True,
@@ -382,7 +379,7 @@ def update(addons: Sequence[definitions.Defn], dry_run: bool):
     'addons',
     nargs=-1,
     required=True,
-    callback=partial(_parse_uri_option, retain_unknown_source=True),
+    callback=partial(_parse_defn_uri_option, retain_unknown_source=True),
 )
 @click.option(
     '--keep-folders',
@@ -397,7 +394,7 @@ def remove(addons: Sequence[definitions.Defn], keep_folders: bool):
 
 
 @cli.command
-@click.argument('addon', callback=_parse_uri_option)
+@click.argument('addon', callback=_parse_defn_uri_option)
 @click.option(
     '--undo',
     is_flag=True,
@@ -570,7 +567,7 @@ def reconcile(auto: bool, list_unreconciled: bool):
 
 
 @cli.command
-@click.argument('addons', nargs=-1, callback=partial(_parse_uri_option, raise_invalid=False))
+@click.argument('addons', nargs=-1, callback=partial(_parse_defn_uri_option, raise_invalid=False))
 def rereconcile(addons: Sequence[definitions.Defn]):
     "Rereconcile installed add-ons."
 
@@ -731,7 +728,7 @@ def search(
 
 
 @cli.command('list')
-@click.argument('addons', nargs=-1, callback=partial(_parse_uri_option, raise_invalid=False))
+@click.argument('addons', nargs=-1, callback=partial(_parse_defn_uri_option, raise_invalid=False))
 @click.option(
     '--format',
     '-f',
@@ -820,7 +817,7 @@ def list_installed(addons: Sequence[definitions.Defn], output_format: _ListForma
 
 
 @cli.command(hidden=True)
-@click.argument('addon', callback=partial(_parse_uri_option, raise_invalid=False))
+@click.argument('addon', callback=partial(_parse_defn_uri_option, raise_invalid=False))
 def info(addon: definitions.Defn):
     "Alias of `list -f detailed`."
     click.get_current_context().invoke(
@@ -829,7 +826,7 @@ def info(addon: definitions.Defn):
 
 
 @cli.command
-@click.argument('addon', callback=partial(_parse_uri_option, raise_invalid=False))
+@click.argument('addon', callback=partial(_parse_defn_uri_option, raise_invalid=False))
 def reveal(addon: definitions.Defn):
     "Bring an add-on up in your file manager."
     from .._utils.file import reveal_folder
@@ -854,7 +851,7 @@ def reveal(addon: definitions.Defn):
 
 
 @cli.command
-@click.argument('addons', nargs=-1, callback=partial(_parse_uri_option, raise_invalid=False))
+@click.argument('addons', nargs=-1, callback=partial(_parse_defn_uri_option, raise_invalid=False))
 @click.option(
     '--convert/--no-convert',
     default=True,
@@ -1016,6 +1013,7 @@ def configure(editable_config_values: Mapping[_EditableConfigOptions, Any]):
 
     import attrs
 
+    from .._logging import logger
     from ..wow_installations import (
         ADDON_DIR_PARTS,
         Flavour,
@@ -1043,7 +1041,7 @@ def configure(editable_config_values: Mapping[_EditableConfigOptions, Any]):
     except _config.UninitialisedConfigError:
         pass
     except Exception:
-        _logging.logger.exception('unable to read existing config')
+        logger.exception('unable to read existing config')
 
     is_new_profile = config_values is None
     if is_new_profile:

@@ -23,25 +23,27 @@ class Progress(TypedDict, Generic[_TProgressType, _TProgressUnit]):
     total: int | None
 
 
-class GenericProgress(Progress[Literal['generic']]):
+class _GenericProgress(Progress[Literal['generic']]):
     pass
 
 
-class DownloadProgress(Progress[Literal['download'], Literal['bytes']]):
+class _DownloadProgress(Progress[Literal['download'], Literal['bytes']]):
     pass
 
 
-def make_default_progress(*, type_: Literal['generic', 'download'], label: str, total: int = 0):
+def make_default_progress(
+    *, type_: Literal['generic', 'download'], label: str, total: int = 0
+) -> _GenericProgress | _DownloadProgress:
     match type_:
         case 'generic':
-            return GenericProgress(
+            return _GenericProgress(
                 type_='generic',
                 label=label,
                 current=0,
                 total=total,
             )
         case 'download':
-            return DownloadProgress(
+            return _DownloadProgress(
                 type_='download',
                 unit='bytes',
                 label=label,
@@ -51,11 +53,11 @@ def make_default_progress(*, type_: Literal['generic', 'download'], label: str, 
 
 
 _TProgress = TypeVar('_TProgress', bound=Progress[Any, Any], default=Never)
-ReadOnlyProgressGroup: TypeAlias = Mapping[int, DownloadProgress | GenericProgress | _TProgress]
+ReadOnlyProgressGroup: TypeAlias = Mapping[int, _DownloadProgress | _GenericProgress | _TProgress]
 
-progress_notifiers = contextvars.ContextVar[
+_progress_notifiers_var = contextvars.ContextVar[
     frozenset[Callable[[int, Progress[Any, Any] | Literal['unset']], None]]
-]('progress_notifiers', default=frozenset())
+]('_progress_notifiers_var', default=frozenset())
 
 _progress_id_gen = count()
 
@@ -84,7 +86,7 @@ class make_progress_receiver(Generic[_TProgress]):
 
             emit_event.set()
 
-        progress_notifiers.set(progress_notifiers.get() | {waken})
+        _progress_notifiers_var.set(_progress_notifiers_var.get() | {waken})
 
         try:
 
@@ -100,11 +102,11 @@ class make_progress_receiver(Generic[_TProgress]):
             yield (get_once, make_iter)
 
         finally:
-            progress_notifiers.set(progress_notifiers.get() - {waken})
+            _progress_notifiers_var.set(_progress_notifiers_var.get() - {waken})
 
 
 def update_progress(progress_id: int, progress: Progress[Any, Any] | Literal['unset']) -> None:
-    for notify in progress_notifiers.get():
+    for notify in _progress_notifiers_var.get():
         notify(progress_id, progress)
 
 
