@@ -21,7 +21,7 @@ from instawow._utils.attrs import fauxfrozen
 from instawow._utils.iteration import bucketise
 from instawow._utils.perf import time_op
 from instawow._utils.text import shasum
-from instawow.progress_reporting import make_default_progress, make_incrementing_progress_tracker
+from instawow.progress_reporting import make_download_progress, make_incrementing_progress_tracker
 from instawow.wow_installations import (
     get_installation_dir_from_addon_dir,
     get_installation_version_from_addon_dir,
@@ -170,9 +170,7 @@ class WaCompanionBuilder:
             expire_after=timedelta(minutes=30),
             headers=self._make_request_headers(),
             json={'ids': list(aura_group.auras)},
-            trace_request_ctx={
-                'progress': make_default_progress(type_='download', label='Fetching aura metadata')
-            },
+            trace_request_ctx={'progress': make_download_progress(label='Fetching aura metadata')},
         )
         async with request as response:
             metadata: list[_WagoApiResponse]

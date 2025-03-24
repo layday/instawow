@@ -7,7 +7,7 @@ from functools import lru_cache
 from .. import http_ctx, sync_ctx
 from .._logging import logger
 from .._utils.perf import time_op
-from ..progress_reporting import make_default_progress
+from ..progress_reporting import make_download_progress
 from . import cataloguer
 
 _LOAD_CATALOGUE_LOCK = '_LOAD_CATALOGUE_'
@@ -36,9 +36,7 @@ async def synchronise() -> cataloguer.ComputedCatalogue:
             expire_after=_catalogue_ttl,
             raise_for_status=True,
             trace_request_ctx={
-                'progress': make_default_progress(
-                    type_='download', label='Synchronising catalogue'
-                )
+                'progress': make_download_progress(label='Synchronising catalogue')
             },
         ) as response,
     ):

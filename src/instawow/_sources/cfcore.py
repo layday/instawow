@@ -17,7 +17,7 @@ from .._utils.aio import gather
 from .._utils.iteration import uniq
 from ..catalogue.cataloguer import CatalogueEntry
 from ..definitions import ChangelogFormat, Defn, SourceMetadata, Strategy
-from ..progress_reporting import make_default_progress
+from ..progress_reporting import make_download_progress
 from ..resolvers import AccessToken, BaseResolver, HeadersIntent, PkgCandidate
 from ..results import PkgFilesMissing, PkgFilesNotMatching, PkgNonexistent, aresultify
 from ..wow_installations import Flavour
@@ -348,8 +348,8 @@ class CfCoreResolver(BaseResolver):
                 headers=self.make_request_headers(),
                 raise_for_status=True,
                 trace_request_ctx={
-                    'progress': make_default_progress(
-                        type_='download', label=f'Fetching metadata from {self.metadata.name}'
+                    'progress': make_download_progress(
+                        label=f'Fetching metadata from {self.metadata.name}'
                     )
                 },
             ) as files_response:

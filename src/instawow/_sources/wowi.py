@@ -18,7 +18,7 @@ from .._utils.text import slugify
 from .._utils.web import as_plain_text_data_url
 from ..catalogue.cataloguer import CatalogueEntry
 from ..definitions import ChangelogFormat, Defn, SourceMetadata
-from ..progress_reporting import make_default_progress
+from ..progress_reporting import make_download_progress
 from ..resolvers import BaseResolver, PkgCandidate
 from ..results import PkgNonexistent, aresultify
 from ..wow_installations import Flavour, FlavourVersionRange
@@ -121,9 +121,8 @@ class WowiResolver(BaseResolver):
                 expire_after=timedelta(hours=1),
                 raise_for_status=True,
                 trace_request_ctx={
-                    'progress': make_default_progress(
-                        type_='download',
-                        label=f'Fetching {self.metadata.name} catalogue',
+                    'progress': make_download_progress(
+                        label=f'Fetching {self.metadata.name} catalogue'
                     )
                 },
             ) as response:
@@ -134,9 +133,8 @@ class WowiResolver(BaseResolver):
             (self.__details_api_url / f'{",".join(uniq(i for i in ids if i))}.json'),
             expire_after=timedelta(minutes=5),
             trace_request_ctx={
-                'progress': make_default_progress(
-                    type_='download',
-                    label=f'Fetching {self.metadata.name} add-on details',
+                'progress': make_download_progress(
+                    label=f'Fetching {self.metadata.name} add-on details'
                 )
             },
         ) as response:

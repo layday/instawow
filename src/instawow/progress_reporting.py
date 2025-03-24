@@ -4,6 +4,7 @@ import asyncio
 import contextvars
 from collections.abc import AsyncGenerator, Awaitable, Callable, Iterator, Mapping
 from contextlib import contextmanager
+from functools import partial
 from itertools import count
 from typing import Any, Generic, Literal, LiteralString, Never, NotRequired, TypeAlias
 
@@ -31,25 +32,10 @@ class _DownloadProgress(Progress[Literal['download'], Literal['bytes']]):
     pass
 
 
-def make_default_progress(
-    *, type_: Literal['generic', 'download'], label: str, total: int = 0
-) -> _GenericProgress | _DownloadProgress:
-    match type_:
-        case 'generic':
-            return _GenericProgress(
-                type_='generic',
-                label=label,
-                current=0,
-                total=total,
-            )
-        case 'download':
-            return _DownloadProgress(
-                type_='download',
-                unit='bytes',
-                label=label,
-                current=0,
-                total=total,
-            )
+make_generic_progress = partial(_GenericProgress, type_='generic', current=0, total=0)
+make_download_progress = partial(
+    _DownloadProgress, type_='download', unit='bytes', current=0, total=0
+)
 
 
 _TProgress = TypeVar('_TProgress', bound=Progress[Any, Any], default=Never)
@@ -132,13 +118,13 @@ def make_incrementing_progress_tracker(
         return track_ident
 
     progress_id = get_next_progress_id()
-    progress = make_default_progress(type_='generic', total=total, label=label)
+    progress = make_generic_progress(total=total, label=label)
 
     def track(awaitable: Awaitable[_T]):
         future = asyncio.ensure_future(awaitable)
 
         @future.add_done_callback
-        def _(task: asyncio.Task[object]):
+        def _(task: asyncio.Task[_T]):
             progress['current'] += 1
             update_progress(
                 progress_id,
