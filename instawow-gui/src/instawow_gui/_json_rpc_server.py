@@ -29,7 +29,6 @@ from instawow import config_ctx, http_ctx, matchers, pkg_management, sync_ctx
 from instawow import results as R
 from instawow._github_auth import get_codes, poll_for_access_token
 from instawow._logging import logger
-from instawow._progress_reporting import ReadOnlyProgressGroup, make_progress_receiver
 from instawow._utils.aio import cancel_tasks, run_in_thread
 from instawow._utils.iteration import WeakValueDefaultDictionary, uniq
 from instawow.catalogue.cataloguer import ComputedCatalogueEntry
@@ -39,6 +38,7 @@ from instawow.definitions import Defn, SourceMetadata, Strategies
 from instawow.http import init_web_client
 from instawow.pkg_archives._download import PkgDownloadProgress
 from instawow.pkg_db import models as pkg_models
+from instawow.progress_reporting import ReadOnlyProgressGroup, make_progress_receiver
 from instawow.wow_installations import Flavour, infer_flavour_from_addon_dir
 
 _T = TypeVar('_T')

@@ -11,7 +11,6 @@ from typing_extensions import ParamSpec
 from yarl import URL
 
 from . import config_ctx, sync_ctx
-from ._progress_reporting import make_incrementing_progress_tracker
 from ._utils.aio import gather, run_in_thread
 from ._utils.file import trash
 from ._utils.iteration import bucketise, uniq
@@ -20,6 +19,7 @@ from .pkg_archives._download import download_pkg_archive
 from .pkg_db import transact, use_tuple_factory
 from .pkg_db._ops import delete_pkg, insert_pkg
 from .pkg_db.models import Pkg, build_pkg_from_pkg_candidate, build_pkg_from_row_mapping
+from .progress_reporting import make_incrementing_progress_tracker
 from .resolvers import PkgCandidate
 from .results import (
     AnyResult,

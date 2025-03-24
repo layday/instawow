@@ -9,11 +9,11 @@ from tempfile import NamedTemporaryFile
 from typing import Literal
 
 from .. import config_ctx, http, http_ctx, sync_ctx
-from .._progress_reporting import Progress
 from .._utils.aio import run_in_thread
 from .._utils.text import shasum
 from .._utils.web import file_uri_to_path, is_file_uri
 from ..definitions import Defn
+from ..progress_reporting import Progress
 from ..resolvers import HeadersIntent
 
 

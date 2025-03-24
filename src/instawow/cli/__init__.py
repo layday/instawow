@@ -104,9 +104,9 @@ def run_with_progress(awaitable: Awaitable[_T]) -> _T:
         async def run():
             from contextlib import AsyncExitStack
 
-            from .._progress_reporting import make_progress_receiver
             from .._utils.aio import cancel_tasks
             from ..pkg_archives._download import PkgDownloadProgress
+            from ..progress_reporting import make_progress_receiver
             from ._prompts import make_progress_bar_group
 
             async with AsyncExitStack() as exit_stack:

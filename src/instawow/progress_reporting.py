@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import contextvars
-from collections.abc import Awaitable, Callable, Mapping
+from collections.abc import AsyncGenerator, Awaitable, Callable, Iterator, Mapping
 from contextlib import contextmanager
 from itertools import count
 from typing import Any, Generic, Literal, LiteralString, Never, NotRequired, TypeAlias
@@ -67,8 +67,17 @@ def get_next_progress_id() -> int:
 
 
 class make_progress_receiver(Generic[_TProgress]):
+    "Observe progress within the current context."
+
     @contextmanager
-    def __new__(cls):
+    def __new__(
+        cls,
+    ) -> Iterator[
+        tuple[
+            Callable[[], ReadOnlyProgressGroup[_TProgress]],
+            Callable[[], AsyncGenerator[ReadOnlyProgressGroup[_TProgress]]],
+        ]
+    ]:
         asyncio.get_running_loop()  # Raise if constructed outside async context.
 
         emit_event = asyncio.Event()
@@ -106,14 +115,18 @@ class make_progress_receiver(Generic[_TProgress]):
 
 
 def update_progress(progress_id: int, progress: Progress[Any, Any] | Literal['unset']) -> None:
+    "Trigger a manual progress update."
     for notify in _progress_notifiers_var.get():
         notify(progress_id, progress)
 
 
-def make_incrementing_progress_tracker(total: int, label: str):
+def make_incrementing_progress_tracker(
+    total: int, label: str
+) -> Callable[[Awaitable[_T]], Awaitable[_T]]:
+    "Track the progress a finite-length collection of awaitables."
     if total < 1:
 
-        def track_ident(awaitable: Awaitable[_T]) -> Awaitable[_T]:
+        def track_ident(awaitable: Awaitable[_T]):
             return awaitable
 
         return track_ident
@@ -121,16 +134,17 @@ def make_incrementing_progress_tracker(total: int, label: str):
     progress_id = get_next_progress_id()
     progress = make_default_progress(type_='generic', total=total, label=label)
 
-    def on_done(_task: asyncio.Task[object]):
-        progress['current'] += 1
-        update_progress(
-            progress_id,
-            'unset' if progress['current'] == progress['total'] else progress,
-        )
-
-    def track(awaitable: Awaitable[_T]) -> Awaitable[_T]:
+    def track(awaitable: Awaitable[_T]):
         future = asyncio.ensure_future(awaitable)
-        future.add_done_callback(on_done)
+
+        @future.add_done_callback
+        def _(task: asyncio.Task[object]):
+            progress['current'] += 1
+            update_progress(
+                progress_id,
+                'unset' if progress['current'] == progress['total'] else progress,
+            )
+
         return future
 
     update_progress(progress_id, progress)

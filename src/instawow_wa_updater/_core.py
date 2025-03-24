@@ -16,12 +16,12 @@ from yarl import URL
 
 from instawow import http, http_ctx
 from instawow._logging import logger
-from instawow._progress_reporting import make_default_progress, make_incrementing_progress_tracker
 from instawow._utils.aio import gather, run_in_thread
 from instawow._utils.attrs import fauxfrozen
 from instawow._utils.iteration import bucketise
 from instawow._utils.perf import time_op
 from instawow._utils.text import shasum
+from instawow.progress_reporting import make_default_progress, make_incrementing_progress_tracker
 from instawow.wow_installations import (
     get_installation_dir_from_addon_dir,
     get_installation_version_from_addon_dir,

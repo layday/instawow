@@ -6,8 +6,8 @@ from functools import lru_cache
 
 from .. import http_ctx, sync_ctx
 from .._logging import logger
-from .._progress_reporting import make_default_progress
 from .._utils.perf import time_op
+from ..progress_reporting import make_default_progress
 from . import cataloguer
 
 _LOAD_CATALOGUE_LOCK = '_LOAD_CATALOGUE_'

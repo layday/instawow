@@ -12,13 +12,13 @@ from yarl import URL
 
 from .. import http_ctx, sync_ctx
 from .._logging import logger
-from .._progress_reporting import make_default_progress
 from .._utils.aio import gather
 from .._utils.iteration import uniq
 from .._utils.text import slugify
 from .._utils.web import as_plain_text_data_url
 from ..catalogue.cataloguer import CatalogueEntry
 from ..definitions import ChangelogFormat, Defn, SourceMetadata
+from ..progress_reporting import make_default_progress
 from ..resolvers import BaseResolver, PkgCandidate
 from ..results import PkgNonexistent, aresultify
 from ..wow_installations import Flavour, FlavourVersionRange

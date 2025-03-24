@@ -13,11 +13,11 @@ from yarl import URL
 
 from .. import config_ctx, http, http_ctx
 from .._logging import logger
-from .._progress_reporting import make_default_progress
 from .._utils.aio import gather
 from .._utils.iteration import uniq
 from ..catalogue.cataloguer import CatalogueEntry
 from ..definitions import ChangelogFormat, Defn, SourceMetadata, Strategy
+from ..progress_reporting import make_default_progress
 from ..resolvers import AccessToken, BaseResolver, HeadersIntent, PkgCandidate
 from ..results import PkgFilesMissing, PkgFilesNotMatching, PkgNonexistent, aresultify
 from ..wow_installations import Flavour

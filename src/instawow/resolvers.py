@@ -144,8 +144,8 @@ class BaseResolver(Resolver, Protocol):
         return None
 
     async def resolve(self, defns: Sequence[Defn]) -> dict[Defn, AnyResult[PkgCandidate]]:
-        from ._progress_reporting import make_incrementing_progress_tracker
         from ._utils.aio import gather
+        from .progress_reporting import make_incrementing_progress_tracker
 
         track_progress = make_incrementing_progress_tracker(
             len(defns), f'Resolving add-ons: {self.metadata.name}'
