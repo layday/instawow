@@ -142,7 +142,7 @@ async def test_repo_without_releases(
     with pytest.raises(PkgFilesMissing) as exc_info:
         await github_resolver.resolve_one(defn, None)
 
-    assert exc_info.value.message == 'no releases found'
+    assert str(exc_info.value) == 'no releases found'
 
 
 async def test_nonexistent_repo(

@@ -1,35 +1,37 @@
 from __future__ import annotations
 
 from collections.abc import Awaitable, Collection, Mapping, Set
-from typing import Any, Final, Protocol, TypeAlias, TypeVar
+from typing import Any, Literal, LiteralString, Protocol, TypeAlias
+
+from typing_extensions import TypeVar
 
 from .definitions import Strategies, Strategy
 from .pkg_db import models as pkg_models
 
-_T = TypeVar('_T')
+_TStatus = TypeVar('_TStatus', bound=LiteralString, default=Any)
 
 
-class Result(Protocol):  # pragma: no cover
-    @property
-    def message(self) -> str: ...
+class Result(Protocol[_TStatus]):  # pragma: no cover
+    status: _TStatus
+
+    def __str__(self) -> str: ...
 
 
-class _SuccessResult:
-    status: Final = 'success'
+class _SuccessResult(Result[Literal['success']]):
+    status = 'success'
 
 
-class PkgInstalled(Result, _SuccessResult):
+class PkgInstalled(_SuccessResult):
     def __init__(self, pkg: pkg_models.Pkg, *, dry_run: bool = False) -> None:
         super().__init__()
         self.pkg = pkg
         self.dry_run = dry_run
 
-    @property
-    def message(self) -> str:
+    def __str__(self) -> str:
         return f'{"would have installed" if self.dry_run else "installed"} {self.pkg.version}'
 
 
-class PkgUpdated(Result, _SuccessResult):
+class PkgUpdated(_SuccessResult):
     def __init__(
         self, old_pkg: pkg_models.Pkg, new_pkg: pkg_models.Pkg, *, dry_run: bool = False
     ) -> None:
@@ -38,8 +40,7 @@ class PkgUpdated(Result, _SuccessResult):
         self.new_pkg = new_pkg
         self.dry_run = dry_run
 
-    @property
-    def message(self) -> str:
+    def __str__(self) -> str:
         message = (
             f'{"would have updated" if self.dry_run else "updated"}'
             f' {self.old_pkg.version} to {self.new_pkg.version}'
@@ -59,27 +60,24 @@ class PkgUpdated(Result, _SuccessResult):
         return message
 
 
-class PkgRemoved(Result, _SuccessResult):
+class PkgRemoved(_SuccessResult):
     def __init__(self, old_pkg: pkg_models.Pkg) -> None:
         super().__init__()
         self.old_pkg = old_pkg
 
-    @property
-    def message(self) -> str:
+    def __str__(self) -> str:
         return 'removed'
 
 
-class ManagerError(Result, Exception):
-    status: Final = 'failure'
+class ManagerError(Result[Literal['failure']], Exception):
+    status = 'failure'
 
-    @property
-    def message(self) -> str:
+    def __str__(self) -> str:
         raise NotImplementedError
 
 
 class PkgAlreadyInstalled(ManagerError):
-    @property
-    def message(self) -> str:
+    def __str__(self) -> str:
         return 'package already installed'
 
 
@@ -88,8 +86,7 @@ class PkgConflictsWithInstalled(ManagerError):
         super().__init__()
         self.conflicting_pkgs = conflicting_pkgs
 
-    @property
-    def message(self) -> str:
+    def __str__(self) -> str:
         return (
             'package folders conflict with installed package'
             + ('s ' if len(self.conflicting_pkgs) > 1 else ' ')
@@ -102,15 +99,13 @@ class PkgConflictsWithUnreconciled(ManagerError):
         super().__init__()
         self.folders = folders
 
-    @property
-    def message(self) -> str:
+    def __str__(self) -> str:
         folders = ', '.join(f"'{f}'" for f in self.folders)
         return f'package folders conflict with {folders}'
 
 
 class PkgNonexistent(ManagerError):
-    @property
-    def message(self) -> str:
+    def __str__(self) -> str:
         return 'package does not exist'
 
 
@@ -119,8 +114,7 @@ class PkgFilesMissing(ManagerError):
         super().__init__()
         self._reason = reason
 
-    @property
-    def message(self) -> str:
+    def __str__(self) -> str:
         return self._reason
 
 
@@ -129,20 +123,17 @@ class PkgFilesNotMatching(ManagerError):
         super().__init__()
         self.strategies = strategies
 
-    @property
-    def message(self) -> str:
+    def __str__(self) -> str:
         return 'no files found for: ' + '; '.join(f'{s}={v!r}' for s, v in self.strategies.items())
 
 
 class PkgNotInstalled(ManagerError):
-    @property
-    def message(self) -> str:
+    def __str__(self) -> str:
         return 'package is not installed'
 
 
 class PkgSourceInvalid(ManagerError):
-    @property
-    def message(self) -> str:
+    def __str__(self) -> str:
         return 'package source is invalid'
 
 
@@ -151,8 +142,7 @@ class PkgSourceDisabled(ManagerError):
         super().__init__()
         self._reason = reason
 
-    @property
-    def message(self) -> str:
+    def __str__(self) -> str:
         return f'package source is disabled{f": {self._reason}" if self._reason else ""}'
 
 
@@ -161,8 +151,7 @@ class PkgUpToDate(ManagerError):
         super().__init__()
         self.is_pinned = is_pinned
 
-    @property
-    def message(self) -> str:
+    def __str__(self) -> str:
         return f'package is {"pinned" if self.is_pinned else "up to date"}'
 
 
@@ -171,18 +160,18 @@ class PkgStrategiesUnsupported(ManagerError):
         super().__init__()
         self.strategies = strategies
 
-    @property
-    def message(self) -> str:
+    def __str__(self) -> str:
         return f'strategies are not valid for source: {", ".join(sorted(self.strategies))}'
 
 
-class InternalError(Result, Exception):
-    status: Final = 'error'
+class InternalError(Result[Literal['error']], Exception):
+    status = 'error'
 
-    @property
-    def message(self) -> str:
+    def __str__(self) -> str:
         return f'internal error: "{self.args[0]}"'
 
+
+_T = TypeVar('_T')
 
 AnyResult: TypeAlias = _T | ManagerError | InternalError
 

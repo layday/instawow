@@ -52,7 +52,7 @@ class Report:
     def __str__(self) -> str:
         return '\n'.join(
             f'{self._result_type_to_symbol(r)} {click.style(a.as_uri(), bold=True)}\n'
-            f'{textwrap.fill(r.message, initial_indent=" " * 2, subsequent_indent=" " * 4)}'
+            f'{textwrap.fill(str(r), initial_indent=" " * 2, subsequent_indent=" " * 4)}'
             for a, r in self.results
             if self.filter_fn(r)
         )

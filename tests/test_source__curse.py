@@ -65,7 +65,7 @@ async def test_resolve_classic_only_addon(
         case _:
             assert type(result) is PkgFilesNotMatching
             assert (
-                result.message
+                str(result)
                 == f'no files found for: {Strategy.AnyFlavour}=None; {Strategy.AnyReleaseType}=None; {Strategy.VersionEq}=None'
             )
 

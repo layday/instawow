@@ -81,7 +81,7 @@ async def test_resolve_rewraps_exception_from_resolve(
     defn = Defn('curse', 'molinari')
     result = (await pkg_management.resolve([defn]))[defn]
     assert type(result) is InternalError
-    assert result.message == f'internal error: "{exception}"'
+    assert str(result) == f'internal error: "{exception}"'
 
 
 async def test_resolve_invalid_source():

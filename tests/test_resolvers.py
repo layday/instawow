@@ -58,6 +58,6 @@ async def test_unsupported_strategies_raise():
 
     assert type(result) is PkgStrategiesUnsupported
     assert (
-        result.message
+        str(result)
         == f'strategies are not valid for source: {Strategy.AnyFlavour}, {Strategy.AnyReleaseType}, {Strategy.VersionEq}'
     )

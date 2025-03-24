@@ -268,7 +268,7 @@ async def resolve_pkgs(
                 'addon': pkg_models.build_pkg_from_pkg_candidate(d, r, folders=[]),
             }
             if isinstance(r, dict)
-            else {'status': r.status, 'message': r.message}
+            else {'status': r.status, 'message': str(r)}
             for d, r in results.items()
         ]
 
@@ -282,7 +282,7 @@ async def install_pkgs(
         return [
             {'status': r.status, 'addon': r.pkg}
             if isinstance(r, R.PkgInstalled)
-            else {'status': r.status, 'message': r.message}
+            else {'status': r.status, 'message': str(r)}
             for r in results.values()
         ]
 
@@ -298,7 +298,7 @@ async def update_pkgs(
             if isinstance(r, R.PkgUpdated)
             else {'status': r.status, 'addon': r.pkg}
             if isinstance(r, R.PkgInstalled)
-            else {'status': r.status, 'message': r.message}
+            else {'status': r.status, 'message': str(r)}
             for r in results.values()
         ]
 
@@ -312,7 +312,7 @@ async def remove_pkgs(
         return [
             {'status': r.status, 'addon': r.old_pkg}
             if isinstance(r, R.PkgRemoved)
-            else {'status': r.status, 'message': r.message}
+            else {'status': r.status, 'message': str(r)}
             for r in results.values()
         ]
 
@@ -326,7 +326,7 @@ async def pin_pkgs(
         return [
             {'status': r.status, 'addon': r.pkg}
             if isinstance(r, R.PkgInstalled)
-            else {'status': r.status, 'message': r.message}
+            else {'status': r.status, 'message': str(r)}
             for r in results.values()
         ]
 
