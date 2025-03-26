@@ -6,12 +6,12 @@ from itertools import chain, compress, filterfalse, repeat, starmap
 from pathlib import Path
 from typing import Literal, Never, TypeVar
 
-import attrs
 from typing_extensions import ParamSpec
 from yarl import URL
 
 from . import config_ctx, sync_ctx
 from ._utils.aio import gather, run_in_thread
+from ._utils.attrs import evolve
 from ._utils.file import trash
 from ._utils.iteration import bucketise, uniq
 from .definitions import Defn, Strategy
@@ -227,7 +227,7 @@ async def _resolve_deps(
     # it's not lost if we humanise the alias later.
     deps = await resolve(list(starmap(Defn, *zip((s, i, i) for s, i in dep_defns))))
     pretty_deps = {
-        attrs.evolve(d, alias=r['slug']) if isinstance(r, dict) else d: r for d, r in deps.items()
+        evolve(d, {'alias': r['slug']}) if isinstance(r, dict) else d: r for d, r in deps.items()
     }
     return pretty_deps
 
@@ -405,9 +405,7 @@ async def install(
     pkg_candidates = dict(
         compress(
             pkg_candidates.items(),
-            _check_pkgs_not_exist(
-                [attrs.evolve(d, id=c['id']) for d, c in pkg_candidates.items()]
-            ),
+            _check_pkgs_not_exist([evolve(d, {'id': c['id']}) for d, c in pkg_candidates.items()]),
         )
     )
 
@@ -458,9 +456,7 @@ async def replace(
     pkg_candidates = dict(
         compress(
             pkg_candidates.items(),
-            _check_pkgs_not_exist(
-                [attrs.evolve(d, id=c['id']) for d, c in pkg_candidates.items()]
-            ),
+            _check_pkgs_not_exist([evolve(d, {'id': c['id']}) for d, c in pkg_candidates.items()]),
         )
     )
 
@@ -520,7 +516,7 @@ async def update(
             # corresponding installed package.  Using the ID has the benefit
             # of resolving installed-but-renamed packages - the slug is
             # transient but the ID isn't
-            attrs.evolve(d, id=p.id) if d.strategies.initialised else p.to_defn(): d
+            evolve(d, {'id': p.id}) if d.strategies.initialised else p.to_defn(): d
             for d, p in defns_to_pkgs.items()
         }
 
@@ -636,7 +632,7 @@ async def pin(defns: Sequence[Defn]) -> Mapping[Defn, AnyResult[PkgInstalled]]:
             )
 
         return PkgInstalled(
-            attrs.evolve(pkg, options=attrs.evolve(pkg.options, version_eq=version_eq)),
+            evolve(pkg, {'options': {'version_eq': bool(version_eq)}}),
         )
 
     return {d: await aresultify(pin(d, p)) for d, p in zip(defns, get_pkgs(defns))}

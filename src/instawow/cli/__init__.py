@@ -195,8 +195,7 @@ def _parse_defn_uri_option(
     retain_unknown_source: bool = False,
     raise_invalid: bool = True,
 ):
-    import attrs
-
+    from .._utils.attrs import evolve
     from .._utils.iteration import uniq
 
     if not isinstance(value, str):
@@ -225,7 +224,7 @@ def _parse_defn_uri_option(
         match = pkg_management.get_alias_from_url(defn.alias)
         if match:
             source, alias = match
-            defn = attrs.evolve(defn, source=source, alias=alias)
+            defn = evolve(defn, {'source': source, 'alias': alias})
         elif raise_invalid and ':' not in defn.alias:
             raise click.BadParameter(value)
 

@@ -5,10 +5,9 @@ from enum import StrEnum
 from functools import partial
 from typing import Literal, Self, overload
 
-import attrs
 from yarl import URL
 
-from ._utils.attrs import fauxfrozen
+from ._utils.attrs import EvolveIdent, evolve, fauxfrozen
 
 
 class Strategy(StrEnum):
@@ -137,13 +136,17 @@ class Defn:
         return uri
 
     def with_default_strategy_set(self) -> Self:
-        return attrs.evolve(
+        return evolve(
             self,
-            strategies=Strategies(),
+            {'strategies': EvolveIdent(Strategies())},
         )
 
     def with_version(self, version: str) -> Self:
-        return attrs.evolve(
+        return evolve(
             self,
-            strategies=Strategies({**self.strategies, Strategy.VersionEq: version}),
+            {
+                'strategies': EvolveIdent(
+                    Strategies({**self.strategies, Strategy.VersionEq: version})
+                )
+            },
         )

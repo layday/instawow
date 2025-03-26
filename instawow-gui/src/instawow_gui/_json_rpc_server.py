@@ -17,7 +17,6 @@ from typing import Any, Generic, Literal, NotRequired, Union, cast
 import aiohttp
 import aiohttp.typedefs
 import aiohttp.web
-import attrs
 import cattrs
 import cattrs.preconf.json
 import cattrs.strategies
@@ -30,6 +29,7 @@ from instawow import results as R
 from instawow._github_auth import get_codes, poll_for_access_token
 from instawow._logging import logger
 from instawow._utils.aio import cancel_tasks, run_in_thread
+from instawow._utils.attrs import evolve
 from instawow._utils.iteration import WeakValueDefaultDictionary, uniq
 from instawow.catalogue.cataloguer import ComputedCatalogueEntry
 from instawow.catalogue.search import search as search_catalogue
@@ -159,9 +159,9 @@ async def write_profile_config(
             ProfileConfig,
         )
         if infer_game_flavour:
-            config = attrs.evolve(
+            config = evolve(
                 config,
-                game_flavour=infer_flavour_from_addon_dir(config.addon_dir) or Flavour.Retail,
+                {'game_flavour': infer_flavour_from_addon_dir(config.addon_dir) or Flavour.Retail},
             )
         await run_in_thread(config.write)()
 
@@ -187,12 +187,13 @@ async def read_global_config() -> GlobalConfig:
 @_register_method('config/update_global')
 async def update_global_config(access_tokens: dict[str, str | None]) -> GlobalConfig:
     return await _update_global_config(
-        lambda g: attrs.evolve(
+        lambda g: evolve(
             g,
-            access_tokens=attrs.evolve(
-                g.access_tokens,
-                **{k: t if t is None else SecretStr(t) for k, t in access_tokens.items()},
-            ),
+            {
+                'access_tokens': {
+                    k: t if t is None else SecretStr(t) for k, t in access_tokens.items()
+                },
+            },
         )
     )
 
@@ -258,7 +259,7 @@ async def resolve_pkgs(
                 match = pkg_management.get_alias_from_url(defn.alias)
                 if match:
                     source, alias = match
-                    defn = attrs.evolve(defn, source=source, alias=alias)
+                    defn = evolve(defn, {'source': source, 'alias': alias})
             return defn
 
         results = await pkg_management.resolve(list(map(extract_source, defns)))
@@ -511,9 +512,9 @@ class _GitHubAuthManager(AbstractAsyncContextManager['_GitHubAuthManager']):
                         device_codes['interval'],
                     )
                     await _update_global_config(
-                        lambda g: attrs.evolve(
+                        lambda g: evolve(
                             g,
-                            access_tokens=attrs.evolve(g.access_tokens, github=SecretStr(result)),
+                            {'access_tokens': {'github': SecretStr(result)}},
                         )
                     )
 
