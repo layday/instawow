@@ -6,7 +6,7 @@ from yarl import URL
 from instawow import config_ctx, pkg_management
 from instawow.definitions import Defn
 from instawow_wa_updater._config import PluginConfig
-from instawow_wa_updater._core import WaCompanionBuilder, WeakAura, WeakAuras, _extract_auras
+from instawow_wa_updater._core import Aura, WaCompanionBuilder, WeakAuras, _extract_auras
 
 pytestmark = pytest.mark.usefixtures('_iw_config_ctx')
 
@@ -52,7 +52,7 @@ WeakAurasSaved = {
 
 
 def test_can_parse_minimal_wago_display():
-    aura = WeakAura(
+    aura = Aura(
         id='foo',
         uid='foo',
         parent=None,

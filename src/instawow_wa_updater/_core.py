@@ -7,7 +7,7 @@ from datetime import timedelta
 from functools import cached_property, reduce
 from itertools import chain, product
 from pathlib import Path
-from typing import Any, Literal, TypeAlias
+from typing import Any, ClassVar, Literal, Self
 from typing import NotRequired as N
 
 import cattrs
@@ -60,84 +60,61 @@ class _WagoApiResponse_Changelog(TypedDict):
 
 
 @fauxfrozen(kw_only=True)
-class WeakAura:
+class Aura:
     id: str
     uid: str
     parent: str | None = None
     url: URL
     version: int
 
-    @classmethod
-    def from_lua_table(cls, lua_table: Mapping[str, Any]):
-        url_string = lua_table.get('url')
-        if url_string is not None:
-            weakaura = _aura_converter.structure(lua_table, cls)
-            if weakaura.url.host == 'wago.io':
-                return weakaura
 
+@fauxfrozen
+class AuraGroup:
+    api_ep: ClassVar[str]
+    addon_name: ClassVar[str]
 
-@fauxfrozen(kw_only=True)
-class Plateroo(WeakAura):
-    uid: str = ''
+    auras: dict[str, list[Aura]]
 
     @classmethod
-    def from_lua_table(cls, lua_table: Mapping[str, Any]):
-        return super().from_lua_table({**lua_table, 'id': lua_table['Name']})
+    def from_lua_table(cls, lua_table: Mapping[str, Any]) -> Self:
+        raise NotImplementedError
 
 
 @fauxfrozen
-class WeakAuras:
+class WeakAuras(AuraGroup):
     api_ep = 'weakauras'
     addon_name = 'WeakAuras'
-
-    auras: dict[str, list[WeakAura]]
 
     @classmethod
     def from_lua_table(cls, lua_table: Mapping[str, Any]):
         raw_auras = lua_table['WeakAurasSaved']['displays']
-        auras = (WeakAura.from_lua_table(t) for t in raw_auras.values())
-        sorted_auras = sorted(filter(None, auras), key=lambda a: a.id)
+        prepared_auras = (t for t in raw_auras.values() if t.get('url'))
+        auras = _aura_converter.structure(prepared_auras, list[Aura])
+        sorted_auras = sorted(filter(lambda a: a.url.host == 'wago.io', auras), key=lambda a: a.id)
         return cls(bucketise(sorted_auras, key=lambda a: a.url.parts[1]))
 
 
 @fauxfrozen
-class Plateroos:
+class Plateroos(AuraGroup):
     api_ep = 'plater'
     addon_name = 'Plater'
-
-    auras: dict[str, list[Plateroo]]
 
     @classmethod
     def from_lua_table(cls, lua_table: Mapping[str, Any]):
         raw_auras = lua_table['PlaterDB']['profiles']
-        auras = (
-            Plateroo.from_lua_table(t)
+        prepared_auras = (
+            t | {'id': t['Name'], 'uid': ''}
             for n, p in raw_auras.items()
             for t in chain(
                 [{**p, 'Name': f'__profile_{n}__'}],
                 p.get('script_data') or [],
                 p.get('hook_data') or [],
             )
+            if t.get('url')
         )
-        sorted_auras = sorted(filter(None, auras), key=lambda a: a.id)
+        auras = _aura_converter.structure(prepared_auras, list[Aura])
+        sorted_auras = sorted(filter(lambda a: a.url.host == 'wago.io', auras), key=lambda a: a.id)
         return cls({a.url.parts[1]: [a] for a in sorted_auras})
-
-
-_Auras: TypeAlias = WeakAuras | Plateroos
-_Match: TypeAlias = tuple[Sequence[WeakAura | Plateroo], _WagoApiResponse, str]
-
-
-def _extract_auras(model: type[_Auras], source: str):
-    from ._custom_slpp import loads
-
-    return model.from_lua_table(loads(f'{{{source}}}'))
-
-
-def _merge_auras(auras: Iterable[_Auras]):
-    return {
-        t: t(reduce(lambda a, b: {**a, **b}, (i.auras for i in a)))
-        for t, a in bucketise(auras, key=type).items()
-    }
 
 
 @fauxfrozen
@@ -145,6 +122,12 @@ class _BuildPaths:
     archive: Path
     changelog: Path
     version: Path
+
+
+def _extract_auras(model: type[AuraGroup], source: str):
+    from ._custom_slpp import loads
+
+    return model.from_lua_table(loads(f'{{{source}}}'))
 
 
 class WaCompanionBuilder:
@@ -164,7 +147,7 @@ class WaCompanionBuilder:
         if access_token:
             return {'api-key': access_token}
 
-    async def _fetch_wago_metadata(self, aura_group: _Auras):
+    async def _fetch_wago_metadata(self, aura_group: AuraGroup):
         request = http_ctx.web_client().post(
             (_base_url / 'check' / aura_group.api_ep),
             expire_after=timedelta(minutes=30),
@@ -195,7 +178,9 @@ class WaCompanionBuilder:
         async with request as response:
             return await response.text()
 
-    async def _get_remote_auras(self, aura_group: _Auras) -> list[_Match]:
+    async def _get_remote_auras(
+        self, aura_group: AuraGroup
+    ) -> list[tuple[Sequence[Aura], _WagoApiResponse, str]]:
         if not aura_group.auras:
             return []
 
@@ -213,7 +198,12 @@ class WaCompanionBuilder:
             for r, i in zip(metadata, import_strings)
         ]
 
-    def _generate_addon(self, auras: Iterable[tuple[type[_Auras], list[_Match]]]):
+    def _generate_addon(
+        self,
+        auras: Iterable[
+            tuple[type[AuraGroup], list[tuple[Sequence[Aura], _WagoApiResponse, str]]]
+        ],
+    ):
         from zipfile import ZipFile, ZipInfo
 
         from . import _templates
@@ -312,7 +302,7 @@ WeakAurasCompanionData = {{
             encoding='utf-8',
         )
 
-    def extract_installed_auras(self) -> Iterator[_Auras]:
+    def extract_installed_auras(self) -> Iterator[AuraGroup]:
         installation_dir = get_installation_dir_from_addon_dir(
             self._config.profile_config.addon_dir
         )
@@ -352,9 +342,11 @@ WeakAurasCompanionData = {{
                 yield aura_group
 
     async def build(self) -> None:
-        installed_auras_by_type = _merge_auras(
-            await run_in_thread(list[_Auras])(self.extract_installed_auras()),
-        )
+        installed_auras = await run_in_thread(list)(self.extract_installed_auras())
+        installed_auras_by_type = {
+            t: t(reduce(lambda a, b: a | b, (i.auras for i in a)))
+            for t, a in bucketise(installed_auras, key=type).items()
+        }
         remote_auras = await gather(
             self._get_remote_auras(r) for r in installed_auras_by_type.values()
         )

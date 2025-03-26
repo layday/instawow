@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import asyncio
 import json
 import shutil
 from functools import partial
@@ -8,40 +7,15 @@ from textwrap import dedent
 from unittest import mock
 
 import click.testing
-import prompt_toolkit.application
 import prompt_toolkit.input
-import prompt_toolkit.output
 import pytest
 
 from instawow.cli import cli
 from instawow.config import ProfileConfig
 
-pytestmark = pytest.mark.usefixtures('_iw_config_ctx', '_iw_web_client_ctx')
-
-
-@pytest.fixture(autouse=True, scope='module')
-def _mock_pt_progress_bar():
-    with pytest.MonkeyPatch.context() as context:
-        context.setattr('prompt_toolkit.shortcuts.progress_bar.ProgressBar', mock.MagicMock())
-        yield
-
-
-@pytest.fixture(autouse=True)
-async def _mock_sayncio_run(
-    monkeypatch: pytest.MonkeyPatch,
-):
-    monkeypatch.setattr('asyncio.run', asyncio.get_running_loop().run_until_complete)
-
-
-@pytest.fixture
-def pt_input():
-    with (
-        prompt_toolkit.input.create_pipe_input() as pipe_input,
-        prompt_toolkit.application.create_app_session(
-            input=pipe_input, output=prompt_toolkit.output.DummyOutput()
-        ),
-    ):
-        yield pipe_input
+pytestmark = pytest.mark.usefixtures(
+    '_iw_config_ctx', '_iw_web_client_ctx', '_iw_mock_pt_progress_bar', '_iw_mock_asyncio_run'
+)
 
 
 _runner = click.testing.CliRunner()
@@ -249,14 +223,14 @@ def test_debug_sources():
 @pytest.mark.parametrize('command', ['configure', 'list'], ids=['explicit', 'implicit'])
 def test_configure__create_new_profile(
     monkeypatch: pytest.MonkeyPatch,
-    pt_input: prompt_toolkit.input.PipeInput,
+    iw_pt_input: prompt_toolkit.input.PipeInput,
     iw_profile_config: ProfileConfig,
     command: str,
 ):
     # In case there is a WoW installation in the test environment.
     monkeypatch.setattr('instawow.wow_installations.find_installations', lambda: iter([]))
 
-    pt_input.send_text(f'{iw_profile_config.addon_dir}\r\rY\r')
+    iw_pt_input.send_text(f'{iw_profile_config.addon_dir}\r\rY\r')
     assert run(f'-p foo {command}').output == (
         'Generating an access token for GitHub is recommended to avoid being\n'
         'rate limited.  You may only perform 60 requests an hour without an\n'
@@ -271,10 +245,10 @@ def test_configure__create_new_profile(
 
 
 def test_configure__update_existing_profile_interactively(
-    pt_input: prompt_toolkit.input.PipeInput,
+    iw_pt_input: prompt_toolkit.input.PipeInput,
     iw_profile_config: ProfileConfig,
 ):
-    pt_input.send_text('Y\r')
+    iw_pt_input.send_text('Y\r')
     assert run('configure global_config.auto_update_check').output == (
         'Configuration written to:\n'
         f'  {iw_profile_config.global_config.config_dir / "config.json"}\n'
@@ -321,12 +295,12 @@ def test_rollback__single_version():
 
 
 def test_rollback__multiple_versions(
-    pt_input: prompt_toolkit.input.PipeInput,
+    iw_pt_input: prompt_toolkit.input.PipeInput,
 ):
     assert run('install curse:molinari#version_eq=100005.97-Release').exit_code == 0
     assert run('remove curse:molinari').exit_code == 0
     assert run('install curse:molinari').exit_code == 0
-    pt_input.send_text('\r\r')
+    iw_pt_input.send_text('\r\r')
     assert run('rollback curse:molinari').output == dedent(
         """\
         ✓ curse:molinari
@@ -338,13 +312,13 @@ def test_rollback__multiple_versions(
 
 @pytest.mark.parametrize('options', ['', '--undo'])
 def test_rollback__rollback_multiple_versions(
-    pt_input: prompt_toolkit.input.PipeInput,
+    iw_pt_input: prompt_toolkit.input.PipeInput,
     options: str,
 ):
     assert run('install curse:molinari').exit_code == 0
     assert run('remove curse:molinari').exit_code == 0
     assert run('install curse:molinari#version_eq=100005.97-Release').exit_code == 0
-    pt_input.send_text('\r\r')
+    iw_pt_input.send_text('\r\r')
     assert run(f'rollback {options} curse:molinari').output == dedent(
         """\
         ✓ curse:molinari
@@ -371,11 +345,11 @@ def test_reconcile__list_unreconciled(
 
 
 def test_reconcile_leftovers(
-    pt_input: prompt_toolkit.input.PipeInput,
+    iw_pt_input: prompt_toolkit.input.PipeInput,
     iw_profile_config: ProfileConfig,
 ):
     pretend_install_molinari(iw_profile_config)
-    pt_input.send_text('sss')  # Skip
+    iw_pt_input.send_text('sss')  # Skip
     assert run('reconcile').output.endswith(
         'unreconciled\n'  # fmt: skip
         '------------\n'
@@ -394,20 +368,20 @@ def test_reconcile__auto_reconcile(iw_profile_config):
 
 
 def test_reconcile__abort_interactive_reconciliation(
-    pt_input: prompt_toolkit.input.PipeInput,
+    iw_pt_input: prompt_toolkit.input.PipeInput,
     iw_profile_config: ProfileConfig,
 ):
     pretend_install_molinari(iw_profile_config)
-    pt_input.send_text('\x03')  # ^C
+    iw_pt_input.send_text('\x03')  # ^C
     assert run('reconcile').output.endswith('Aborted!\n')
 
 
 def test_reconcile__complete_interactive_reconciliation(
-    pt_input: prompt_toolkit.input.PipeInput,
+    iw_pt_input: prompt_toolkit.input.PipeInput,
     iw_profile_config: ProfileConfig,
 ):
     pretend_install_molinari(iw_profile_config)
-    pt_input.send_text('\ry')
+    iw_pt_input.send_text('\ry')
     assert run('reconcile').output.endswith(
         dedent(
             """\
@@ -423,10 +397,10 @@ def test_reconcile__reconciliation_complete():
 
 
 def test_rereconcile(
-    pt_input: prompt_toolkit.input.PipeInput,
+    iw_pt_input: prompt_toolkit.input.PipeInput,
 ):
     install_molinari()
-    pt_input.send_text('\ry')
+    iw_pt_input.send_text('\ry')
     assert run('rereconcile').output == dedent(
         """\
         ✓ curse:molinari
@@ -438,14 +412,14 @@ def test_rereconcile(
 
 
 def test_rereconcile_with_args(
-    pt_input: prompt_toolkit.input.PipeInput,
+    iw_pt_input: prompt_toolkit.input.PipeInput,
 ):
     install_molinari()
 
-    pt_input.send_text('\ry')
+    iw_pt_input.send_text('\ry')
     assert run('rereconcile foo').output == ''
 
-    pt_input.send_text('\ry')
+    iw_pt_input.send_text('\ry')
     assert run('rereconcile molinari').output == dedent(
         """\
         ✓ curse:molinari
@@ -461,25 +435,25 @@ def test_search__no_results():
 
 
 def test_search__exit_without_selecting(
-    pt_input: prompt_toolkit.input.PipeInput,
+    iw_pt_input: prompt_toolkit.input.PipeInput,
 ):
-    pt_input.send_text('\r')  # enter
+    iw_pt_input.send_text('\r')  # enter
     assert run('search molinari').output == (
         'Nothing was selected; select add-ons with <space> and confirm by pressing <enter>.\n'
     )
 
 
 def test_search__exit_after_selection(
-    pt_input: prompt_toolkit.input.PipeInput,
+    iw_pt_input: prompt_toolkit.input.PipeInput,
 ):
-    pt_input.send_text(' \rn')  # space, enter, "n"
+    iw_pt_input.send_text(' \rn')  # space, enter, "n"
     assert run('search molinari').output == ''
 
 
 def test_search__install_one(
-    pt_input: prompt_toolkit.input.PipeInput,
+    iw_pt_input: prompt_toolkit.input.PipeInput,
 ):
-    pt_input.send_text(' \ry')  # space, enter, enter
+    iw_pt_input.send_text(' \ry')  # space, enter, enter
     assert run('search molinari --source curse').output == dedent(
         """\
         ✓ curse:molinari
@@ -489,9 +463,9 @@ def test_search__install_one(
 
 
 def test_search__install_multiple_conflicting(
-    pt_input: prompt_toolkit.input.PipeInput,
+    iw_pt_input: prompt_toolkit.input.PipeInput,
 ):
-    pt_input.send_text(' \x1b[B \ry')  # space, arrow down, space, enter, enter
+    iw_pt_input.send_text(' \x1b[B \ry')  # space, arrow down, space, enter, enter
     assert run('search molinari').output == dedent(
         """\
         ✓ github:p3lim-wow/molinari

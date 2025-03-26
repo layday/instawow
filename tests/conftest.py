@@ -1,9 +1,13 @@
 from __future__ import annotations
 
+import asyncio
 from pathlib import Path
 from typing import Any
 from unittest import mock
 
+import prompt_toolkit.application
+import prompt_toolkit.input
+import prompt_toolkit.output
 import pytest
 from yarl import URL
 
@@ -151,3 +155,28 @@ async def _iw_mock_aiohttp_requests(
         routes = (ROUTES[k] for k in ROUTES.keys() & urls)
 
     iw_aresponses.add(*routes)
+
+
+@pytest.fixture(scope='module')
+def _iw_mock_pt_progress_bar():
+    with pytest.MonkeyPatch.context() as context:
+        context.setattr('prompt_toolkit.shortcuts.progress_bar.ProgressBar', mock.MagicMock())
+        yield
+
+
+@pytest.fixture
+async def _iw_mock_asyncio_run(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    monkeypatch.setattr('asyncio.run', asyncio.get_running_loop().run_until_complete)
+
+
+@pytest.fixture
+def iw_pt_input():
+    with (
+        prompt_toolkit.input.create_pipe_input() as pipe_input,
+        prompt_toolkit.application.create_app_session(
+            input=pipe_input, output=prompt_toolkit.output.DummyOutput()
+        ),
+    ):
+        yield pipe_input
