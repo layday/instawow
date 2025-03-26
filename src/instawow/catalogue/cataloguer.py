@@ -4,7 +4,7 @@ from collections.abc import Set
 from datetime import datetime
 from functools import cached_property
 from types import SimpleNamespace
-from typing import Any, Self
+from typing import Any, Self, cast
 
 import attrs
 import cattrs
@@ -63,9 +63,12 @@ class Catalogue:
     async def collate(cls, start_date: datetime | None) -> Self:
         global_config = config.GlobalConfig.from_values(env=True)
 
-        @config_ctx.config.set  # pyright: ignore[reportArgumentType]
+        @config_ctx.config.set
         def _():
-            return SimpleNamespace(global_config=global_config)
+            return cast(
+                'config.ProfileConfig',
+                SimpleNamespace(global_config=global_config),
+            )
 
         async with http.init_web_client(global_config.http_cache_dir) as web_client:
             http_ctx.web_client.set(web_client)
