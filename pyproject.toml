@@ -105,6 +105,7 @@ select = [
 ignore = [
   "E501",   # pycodestyle: line-too-long
   "TRY003", # tryceratops: raise-vanilla-args
+  "UP038",  # pyupgrade: non-pep604-isinstance - DEPRECATED
 ]
 
 [tool.ruff.lint.isort]
