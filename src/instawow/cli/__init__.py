@@ -35,7 +35,7 @@ class Report:
     @property
     def exit_code(self) -> int:
         return any(
-            isinstance(r, _results.ManagerError | _results.InternalError) and self.filter_fn(r)
+            isinstance(r, (_results.ManagerError, _results.InternalError)) and self.filter_fn(r)
             for _, r in self.results
         )
 

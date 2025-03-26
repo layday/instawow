@@ -63,7 +63,7 @@ def bucketise_results(
     errors: dict[Defn, AnyResult[Never]] = {}
 
     for defn, value in values:
-        if isinstance(value, ManagerError | InternalError):
+        if isinstance(value, (ManagerError, InternalError)):
             errors[defn] = value
         else:
             ts[defn] = value
