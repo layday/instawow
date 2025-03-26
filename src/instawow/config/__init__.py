@@ -2,16 +2,15 @@ from __future__ import annotations
 
 import os
 import sys
-from collections.abc import Callable, Iterator, Mapping, Sized
+from collections.abc import Iterator, Mapping, Sized
 from functools import lru_cache
 from pathlib import Path
 from typing import NewType, Self, TypeVar
 
 import attrs
-import cattrs
 
 from .. import NAME
-from .._utils.attrs import fauxfrozen
+from .._utils.attrs import enrich_validator_exc, fauxfrozen
 from .._utils.file import trash
 from ..wow_installations import Flavour, get_installation_dir_from_addon_dir
 from ._helpers import (
@@ -40,28 +39,14 @@ def _is_writable_dir(value: Path):
     return value.is_dir() and os.access(value, os.W_OK)
 
 
-def _enrich_validator_exc(validator: Callable[[object, attrs.Attribute[_T], _T], None]):
-    "Pretend validation error originates from cattrs for uniformity."
-
-    def wrapper(model: object, attr: attrs.Attribute[_T], value: _T):
-        try:
-            validator(model, attr, value)
-        except BaseException as exc:
-            note = f'Structuring class {model.__class__.__name__} @ attribute {attr.name}'
-            exc.add_note(cattrs.AttributeValidationNote(note, attr.name, attr.type))
-            raise
-
-    return wrapper
-
-
-@_enrich_validator_exc
+@enrich_validator_exc
 def _validate_path_is_writable_dir(_model: object, _attr: attrs.Attribute[Path], value: Path):
     if not _is_writable_dir(value):
         raise ValueError(f'"{value}" is not a writable directory')
 
 
 def _make_validate_min_length(min_length: int):
-    @_enrich_validator_exc
+    @enrich_validator_exc
     def _validate_min_length(_model: object, _attr: attrs.Attribute[_TSized], value: _TSized):
         if len(value) < min_length:
             raise ValueError(f'Value must have a minimum length of {min_length}')
