@@ -36,13 +36,16 @@ from .results import (
     PkgStrategiesUnsupported,
     PkgUpdated,
     PkgUpToDate,
-    aresultify,
+    resultify,
 )
 
 _T = TypeVar('_T')
 _P = ParamSpec('_P')
 
 _MUTATE_PKGS_LOCK = '_MUTATE_PKGS_'
+
+
+_download_pkg_archive = resultify(download_pkg_archive)
 
 
 def _with_mutate_lock(
@@ -246,7 +249,7 @@ async def resolve(
     track_progress = make_incrementing_progress_tracker(len(defns_by_source), 'Resolving add-ons')
 
     results = await gather(
-        track_progress(aresultify(resolvers.get_or_dummy(s).resolve(b)))
+        track_progress(resultify(resolvers.get_or_dummy(s).resolve)(b))
         for s, b in defns_by_source.items()
     )
     results_by_defn = dict(
@@ -269,6 +272,7 @@ async def get_changelog(source: str, uri: str) -> str:
     return await config_ctx.resolvers().get_or_dummy(source).get_changelog(URL(uri))
 
 
+@resultify
 @run_in_thread
 def _install_pkg(
     defn: Defn,
@@ -318,6 +322,7 @@ def _install_pkg(
     return PkgInstalled(pkg)
 
 
+@resultify
 @run_in_thread
 def _update_pkg(
     defn: Defn,
@@ -366,6 +371,7 @@ def _update_pkg(
     return PkgUpdated(old_pkg, new_pkg)
 
 
+@resultify
 @run_in_thread
 def _remove_pkg(pkg: Pkg, *, keep_folders: bool):
     if not keep_folders:
@@ -418,7 +424,7 @@ async def install(
         }
 
     download_results = await gather(
-        aresultify(download_pkg_archive(d, r['download_url'])) for d, r in pkg_candidates.items()
+        _download_pkg_archive(d, r['download_url']) for d, r in pkg_candidates.items()
     )
     archive_paths, download_errors = bucketise_results(zip(pkg_candidates, download_results))
 
@@ -429,7 +435,7 @@ async def install(
         | download_errors
         | {
             d: await track_progress(
-                aresultify(_install_pkg(d, pkg_candidates[d], a, replace_folders=replace_folders))
+                _install_pkg(d, pkg_candidates[d], a, replace_folders=replace_folders)
             )
             for d, a in archive_paths.items()
         }
@@ -472,16 +478,16 @@ async def replace(
     results = results | resolve_errors
 
     download_results = await gather(
-        aresultify(download_pkg_archive(d, r['download_url'])) for d, r in pkg_candidates.items()
+        _download_pkg_archive(d, r['download_url']) for d, r in pkg_candidates.items()
     )
     archive_paths, download_errors = bucketise_results(zip(pkg_candidates, download_results))
 
     replace_coros = {
-        k: aresultify(c)
+        k: c
         for d, a in archive_paths.items()
         for o in (inverse_defns[d],)
         for k, c in (
-            (o, _remove_pkg(old_pkgs[o], keep_folders=False)),
+            (o, _remove_pkg(d, old_pkgs[o], keep_folders=False)),
             (d, _install_pkg(d, pkg_candidates[d], a, replace_folders=False)),
         )
     }
@@ -554,7 +560,7 @@ async def update(
         }
 
     download_results = await gather(
-        aresultify(download_pkg_archive(d, n['download_url'])) for d, (_, n) in updatables.items()
+        _download_pkg_archive(d, n['download_url']) for d, (_, n) in updatables.items()
     )
     archive_paths, download_errors = bucketise_results(zip(updatables, download_results))
 
@@ -565,9 +571,7 @@ async def update(
         | download_errors
         | {
             d: await track_progress(
-                aresultify(
-                    _update_pkg(d, o, n, a) if o else _install_pkg(d, n, a, replace_folders=False)
-                )
+                _update_pkg(d, o, n, a) if o else _install_pkg(d, n, a, replace_folders=False)
             )
             for d, a in archive_paths.items()
             for o, n in (updatables[d],)
@@ -581,7 +585,7 @@ async def remove(
 ) -> Mapping[Defn, AnyResult[PkgRemoved]]:
     "Remove packages by their definition."
     return {
-        d: await aresultify(_remove_pkg(p, keep_folders=keep_folders)) if p else PkgNotInstalled()
+        d: await _remove_pkg(d, p, keep_folders=keep_folders) if p else PkgNotInstalled()
         for d, p in zip(defns, get_pkgs(defns))
     }
 

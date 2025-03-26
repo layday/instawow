@@ -1,7 +1,9 @@
 from __future__ import annotations
 
-from collections.abc import Awaitable, Collection, Mapping, Set
-from typing import Any, Literal, LiteralString, Protocol, TypeAlias
+import inspect
+from collections.abc import Awaitable, Callable, Collection, Mapping, Set
+from functools import wraps
+from typing import Any, Literal, LiteralString, ParamSpec, Protocol, TypeAlias, overload
 
 from typing_extensions import TypeVar
 
@@ -172,28 +174,60 @@ class InternalError(Result[Literal['error']], Exception):
 
 
 _T = TypeVar('_T')
+_P = ParamSpec('_P')
 
 AnyResult: TypeAlias = _T | ManagerError | InternalError
 
 
-async def aresultify(awaitable: Awaitable[_T]) -> AnyResult[_T]:
-    "Capture and log an exception raised in a coroutine."
+def _handle_internal_error(error: BaseException):
+    from ._logging import logger
 
-    try:
-        return await awaitable
+    traceback = error.__traceback__
+    if traceback is not None:
+        error = error.with_traceback(traceback.tb_next)
 
-    except (ManagerError, InternalError) as exception:
-        return exception
+    logger.opt(
+        exception=error,
+    ).error('unclassed error')
 
-    except BaseException as exception:
-        from ._logging import logger
+    return InternalError(error)
 
-        traceback = exception.__traceback__
-        if traceback is not None:
-            exception = exception.with_traceback(traceback.tb_next)
 
-        logger.opt(
-            exception=exception,
-        ).error('unclassed error')
+@overload
+def resultify(fn: Callable[_P, Awaitable[_T]]) -> Callable[_P, Awaitable[AnyResult[_T]]]: ...
+@overload
+def resultify(fn: Callable[_P, _T]) -> Callable[_P, AnyResult[_T]]: ...
 
-        return InternalError(exception)
+
+def resultify(fn: Callable[..., object]):  # pyright: ignore[reportInconsistentOverload]
+    "Capture raw errors and wrap them around ``InternalError``."
+
+    if inspect.iscoroutinefunction(fn):
+
+        @wraps(fn)
+        async def async_wrapper(*args: _P.args, **kwargs: _P.kwargs):
+            try:
+                return await fn(*args, **kwargs)
+
+            except (ManagerError, InternalError) as exception:
+                return exception
+
+            except BaseException as error:
+                return _handle_internal_error(error)
+
+        return async_wrapper
+
+    else:
+
+        @wraps(fn)
+        def sync_wrapper(*args: _P.args, **kwargs: _P.kwargs):
+            try:
+                return fn(*args, **kwargs)
+
+            except (ManagerError, InternalError) as exception:
+                return exception
+
+            except BaseException as error:
+                return _handle_internal_error(error)
+
+        return sync_wrapper

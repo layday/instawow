@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import Awaitable, Callable, Iterable
-from functools import wraps
+from functools import partial, update_wrapper
 from typing import Any, ParamSpec, TypeVar
 
 _U = TypeVar('_U')
@@ -14,11 +14,7 @@ async def gather(it: Iterable[Awaitable[_U]]) -> list[_U]:
 
 
 def run_in_thread(fn: Callable[_P, _U]) -> Callable[_P, Awaitable[_U]]:
-    @wraps(fn)
-    def wrapper(*args: _P.args, **kwargs: _P.kwargs):
-        return asyncio.to_thread(fn, *args, **kwargs)
-
-    return wrapper
+    return update_wrapper(partial(asyncio.to_thread, fn), fn)
 
 
 async def cancel_tasks(tasks: Iterable[asyncio.Task[Any]]) -> None:

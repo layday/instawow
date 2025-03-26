@@ -10,7 +10,6 @@ from typing import (
     ClassVar,
     Generic,
     Literal,
-    Never,
     NotRequired,
     Protocol,
     Self,
@@ -29,7 +28,7 @@ from .results import (
     PkgSourceDisabled,
     PkgSourceInvalid,
     PkgStrategiesUnsupported,
-    aresultify,
+    resultify,
 )
 
 _TTokenRequired = TypeVar('_TTokenRequired', Literal[True], bool)
@@ -150,9 +149,8 @@ class BaseResolver(Resolver, Protocol):
         track_progress = make_incrementing_progress_tracker(
             len(defns), f'Resolving add-ons: {self.metadata.name}'
         )
-        results = await gather(
-            track_progress(aresultify(self.resolve_one(d, None))) for d in defns
-        )
+        resolve_one = resultify(self.resolve_one)
+        results = await gather(track_progress(resolve_one(d, None)) for d in defns)
         return dict(zip(defns, results))
 
     async def get_changelog(self, uri: URL) -> str:

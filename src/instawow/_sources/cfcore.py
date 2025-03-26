@@ -19,7 +19,7 @@ from ..catalogue.cataloguer import CatalogueEntry
 from ..definitions import ChangelogFormat, Defn, SourceMetadata, Strategy
 from ..progress_reporting import make_download_progress
 from ..resolvers import AccessToken, BaseResolver, HeadersIntent, PkgCandidate
-from ..results import PkgFilesMissing, PkgFilesNotMatching, PkgNonexistent, aresultify
+from ..results import PkgFilesMissing, PkgFilesNotMatching, PkgNonexistent, resultify
 from ..wow_installations import Flavour
 
 _T = TypeVar('_T')
@@ -297,9 +297,8 @@ class CfCoreResolver(BaseResolver):
 
         addons_by_id = {str(r['id']): r for r in response_json['data']}
 
-        results = await gather(
-            aresultify(self.resolve_one(d, addons_by_id.get(d.id or d.alias))) for d in defns
-        )
+        resolve_one = resultify(self.resolve_one)
+        results = await gather(resolve_one(d, addons_by_id.get(d.id or d.alias)) for d in defns)
         return dict(zip(defns, results))
 
     async def resolve_one(self, defn: Defn, metadata: _CfCoreMod | None):

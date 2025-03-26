@@ -20,7 +20,7 @@ from ..catalogue.cataloguer import CatalogueEntry
 from ..definitions import ChangelogFormat, Defn, SourceMetadata
 from ..progress_reporting import make_download_progress
 from ..resolvers import BaseResolver, PkgCandidate
-from ..results import PkgNonexistent, aresultify
+from ..results import PkgNonexistent, resultify
 from ..wow_installations import Flavour, FlavourVersionRange
 
 _LOAD_WOWI_CATALOGUE_LOCK = (object(), '_LOAD_WOWI_CATALOGUE_LOCK_')
@@ -153,12 +153,11 @@ class WowiResolver(BaseResolver):
         if addons_details is None:
             return await super().resolve(defns)
 
+        resolve_one = resultify(self.resolve_one)
         results = await gather(
-            aresultify(
-                self.resolve_one(
-                    d,
-                    a | b if (a := addons.get(i)) and (b := addons_details.get(i)) else None,
-                )
+            resolve_one(
+                d,
+                a | b if (a := addons.get(i)) and (b := addons_details.get(i)) else None,
             )
             for d, i in defns_to_ids.items()
         )
