@@ -17,6 +17,8 @@ API
   it must be retrieved from ``instawow.config_ctx.config`` on demand.
 - The active configuration is no longer stored in the ``click`` context object;
   it must be retrieved from ``instawow.config_ctx.config`` on demand.
+- The ``instawow.progress_reporting`` module has been made public and can be used
+  by plug-ins.
 
 v4.8.0
 ------
