@@ -205,7 +205,10 @@ class Resolvers(dict[str, Resolver]):
             async def resolve(self, defns: Sequence[Defn]) -> dict[Defn, AnyResult[PkgCandidate]]:
                 return dict.fromkeys(defns, error)
 
-            async def get_changelog(self, uri: URL) -> Never:
+            async def get_changelog(self, uri: URL):
+                raise error
+
+            def __getattr__(self, name: str):
                 raise error
 
         return DummyResolver

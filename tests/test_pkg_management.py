@@ -45,7 +45,7 @@ async def test_pinning_unsupported_pkg():
     molinari_defn = Defn('wowi', '13188')
 
     await pkg_management.install([molinari_defn], replace_folders=False)
-    installed_pkg = pkg_management.get_pkg(molinari_defn)
+    [installed_pkg] = pkg_management.get_pkgs([molinari_defn])
     assert installed_pkg is not None
     assert installed_pkg.options.version_eq is False
 
@@ -209,7 +209,7 @@ async def test_deleting_and_retaining_folders_on_remove(
     defn = Defn('curse', 'molinari')
 
     await pkg_management.install([defn], replace_folders=False)
-    pkg = pkg_management.get_pkg(defn)
+    [pkg] = pkg_management.get_pkgs([defn])
     assert pkg
 
     folders = [config_ctx.config().addon_dir / f.name for f in pkg.folders]
@@ -217,7 +217,8 @@ async def test_deleting_and_retaining_folders_on_remove(
 
     results = await pkg_management.remove([defn], keep_folders=keep_folders)
     assert type(results[defn]) is PkgRemoved
-    assert not pkg_management.get_pkg(defn)
+    [pkg] = pkg_management.get_pkgs([defn])
+    assert not pkg
     if keep_folders:
         assert all(f.is_dir() for f in folders)
     else:
@@ -242,7 +243,8 @@ async def test_removing_pkg_with_missing_folders(
 
     results = await pkg_management.remove([defn], keep_folders=keep_folders)
     assert type(results[defn]) is PkgRemoved
-    assert not pkg_management.get_pkg(defn)
+    [pkg] = pkg_management.get_pkgs([defn])
+    assert not pkg
 
 
 async def test_replace_pkg():

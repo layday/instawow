@@ -402,41 +402,36 @@ def remove(addons: Sequence[definitions.Defn], keep_folders: bool):
 )
 def rollback(addon: definitions.Defn, undo: bool):
     "Roll an add-on back to an older version."
-    from ..definitions import Strategy
     from ._prompts import Choice, select_one
 
-    pkg = pkg_management.get_pkg(addon)
-    if not pkg:
-        Report([(addon, _results.PkgNotInstalled())]).generate_and_exit()
-    elif Strategy.VersionEq not in config_ctx.resolvers()[pkg.source].metadata.strategies:
-        Report(
-            [(addon, _results.PkgStrategiesUnsupported({Strategy.VersionEq}))]
-        ).generate_and_exit()
-    elif undo:
-        Report(
-            run_with_progress(pkg_management.update([addon.with_default_strategy_set()])).items()
-        ).generate_and_exit()
+    [maybe_pkg] = pkg_management.get_pinnable_pkgs([addon], for_rollback=True)
+    match maybe_pkg:
+        case _results.InternalError() | _results.ManagerError() as error:
+            Report([(addon, error)]).generate_and_exit()
 
-    reconstructed_defn = pkg.to_defn()
+        case pkg:
+            if undo:
+                Report(
+                    run_with_progress(
+                        pkg_management.update([addon.with_default_strategy_set()])
+                    ).items()
+                ).generate_and_exit()
 
-    versions = pkg.logged_versions
-    if len(versions) <= 1:
-        Report(
-            [(addon, _results.PkgFilesMissing('cannot find older versions'))]
-        ).generate_and_exit()
+            reconstructed_defn = pkg.to_defn()
 
-    choices = [
-        Choice(v.version, value=v.version, disabled=v.version == pkg.version) for v in versions
-    ]
-    selection = select_one(
-        f'Select version of {reconstructed_defn.as_uri()} for rollback', choices
-    ).prompt()
+            choices = [
+                Choice(v.version, value=v.version, disabled=v.version == pkg.version)
+                for v in pkg.logged_versions
+            ]
+            selection = select_one(
+                f'Select version of {reconstructed_defn.as_uri()} for rollback', choices
+            ).prompt()
 
-    Report(
-        run_with_progress(
-            pkg_management.update([reconstructed_defn.with_version(selection)])
-        ).items()
-    ).generate_and_exit()
+            Report(
+                run_with_progress(
+                    pkg_management.update([reconstructed_defn.with_version(selection)])
+                ).items()
+            ).generate_and_exit()
 
 
 @cli.command

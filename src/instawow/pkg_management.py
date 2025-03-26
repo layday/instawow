@@ -16,9 +16,13 @@ from ._utils.file import trash
 from ._utils.iteration import bucketise, uniq
 from .definitions import Defn, Strategy
 from .pkg_archives._download import download_pkg_archive
-from .pkg_db import transact, use_tuple_factory
-from .pkg_db._ops import delete_pkg, insert_pkg
-from .pkg_db.models import Pkg, build_pkg_from_pkg_candidate, build_pkg_from_row_mapping
+from .pkg_db import Connection, transact, use_tuple_factory
+from .pkg_db.models import (
+    Pkg,
+    build_pkg_from_pkg_candidate,
+    build_pkg_from_row_mapping,
+    make_db_converter,
+)
 from .progress_reporting import make_incrementing_progress_tracker
 from .resolvers import PkgCandidate
 from .results import (
@@ -28,11 +32,11 @@ from .results import (
     PkgAlreadyInstalled,
     PkgConflictsWithInstalled,
     PkgConflictsWithUnreconciled,
+    PkgFilesMissing,
     PkgFilesNotMatching,
     PkgInstalled,
     PkgNotInstalled,
     PkgRemoved,
-    PkgSourceInvalid,
     PkgStrategiesUnsupported,
     PkgUpdated,
     PkgUpToDate,
@@ -82,6 +86,11 @@ def get_alias_from_url(value: str) -> tuple[str, str] | None:
         ((r.metadata.id, a) for r in resolvers.values() if (a := r.get_alias_from_url(url))),
         None,
     )
+
+
+async def get_changelog(source: str, uri: str) -> str:
+    "Retrieve a changelog from a URI."
+    return await config_ctx.resolvers().get_or_dummy(source).get_changelog(URL(uri))
 
 
 def _check_pkgs_not_exist(defns: Collection[Defn]) -> list[bool]:
@@ -142,10 +151,152 @@ def get_pkgs(defns: Collection[Defn] | Literal['all']) -> list[Pkg | None]:
         return [build_pkg_from_row_mapping(connection, m) if m['source'] else None for m in pkgs]
 
 
-def get_pkg(defn: Defn) -> Pkg | None:
-    "Retrieve a package from the database."
-    (pkg,) = get_pkgs([defn])
-    return pkg
+def get_pinnable_pkgs(
+    defns: Collection[Defn],
+    *,
+    for_rollback: bool,
+) -> list[AnyResult[Pkg]]:
+    resolvers = config_ctx.resolvers()
+
+    @resultify
+    def validate_pkg(defn: Defn, pkg: Pkg | None):
+        if Strategy.VersionEq not in resolvers.get_or_dummy(defn.source).metadata.strategies:
+            raise PkgStrategiesUnsupported({Strategy.VersionEq})
+
+        if not pkg:
+            raise PkgNotInstalled()
+
+        if for_rollback:
+            if len(pkg.logged_versions) <= 1:
+                raise PkgFilesMissing('cannot find older versions')
+
+        else:
+            version = defn.strategies[Strategy.VersionEq]
+            if version and pkg.version != version:
+                raise PkgFilesNotMatching(defn.strategies)
+
+        return pkg
+
+    return list(map(validate_pkg, defns, get_pkgs(defns)))
+
+
+def _insert_pkg(pkg: Pkg, transaction: Connection) -> None:
+    pkg_values = make_db_converter().unstructure(pkg)
+
+    transaction.execute(
+        """
+        INSERT INTO pkg (
+            source,
+            id,
+            slug,
+            name,
+            description,
+            url,
+            download_url,
+            date_published,
+            version,
+            changelog_url
+        )
+        VALUES (
+            :source,
+            :id,
+            :slug,
+            :name,
+            :description,
+            :url,
+            :download_url,
+            :date_published,
+            :version,
+            :changelog_url
+        )
+        """,
+        pkg_values,
+    )
+    transaction.execute(
+        """
+        INSERT INTO pkg_options (
+            any_flavour,
+            any_release_type,
+            version_eq,
+            pkg_source,
+            pkg_id
+        )
+        VALUES (
+            :any_flavour,
+            :any_release_type,
+            :version_eq,
+            :pkg_source,
+            :pkg_id
+        )
+        """,
+        pkg_values['options'] | {'pkg_source': pkg_values['source'], 'pkg_id': pkg_values['id']},
+    )
+    transaction.executemany(
+        """
+        INSERT INTO pkg_folder (
+            name,
+            pkg_source,
+            pkg_id
+        )
+        VALUES (
+            :name,
+            :pkg_source,
+            :pkg_id
+        )
+        """,
+        [
+            f | {'pkg_source': pkg_values['source'], 'pkg_id': pkg_values['id']}
+            for f in pkg_values['folders']
+        ],
+    )
+    if pkg_values['deps']:
+        transaction.executemany(
+            """
+            INSERT INTO pkg_dep (
+                id,
+                pkg_source,
+                pkg_id
+            )
+            VALUES (
+                :id,
+                :pkg_source,
+                :pkg_id
+            )
+            """,
+            [
+                f | {'pkg_source': pkg_values['source'], 'pkg_id': pkg_values['id']}
+                for f in pkg_values['deps']
+            ],
+        )
+    transaction.execute(
+        """
+        INSERT OR IGNORE INTO pkg_version_log (
+            version,
+            pkg_source,
+            pkg_id
+        )
+        VALUES (
+            :version,
+            :pkg_source,
+            :pkg_id
+        )
+        """,
+        {
+            'version': pkg_values['version'],
+            'pkg_source': pkg_values['source'],
+            'pkg_id': pkg_values['id'],
+        },
+    )
+
+
+def _delete_pkg(pkg: Pkg, transaction: Connection) -> None:
+    transaction.execute(
+        'DELETE FROM pkg WHERE source = :source AND id = :id',
+        {
+            'source': pkg.source,
+            'id': pkg.id,
+        },
+    )
 
 
 async def find_equivalent_pkg_defns(
@@ -178,10 +329,7 @@ async def find_equivalent_pkg_defns(
 
     def get_catalogue_defns(pkg: Pkg) -> frozenset[Defn]:
         entry = catalogue.keyed_entries.get((pkg.source, pkg.id))
-        if entry:
-            return frozenset(Defn(s.source, s.id) for s in entry.same_as)
-        else:
-            return frozenset()
+        return frozenset(Defn(s.source, s.id) for s in entry.same_as) if entry else frozenset()
 
     def get_addon_toc_defns(pkg_source: str, addon_folders: Collection[AddonFolder]):
         return frozenset(
@@ -267,27 +415,15 @@ async def resolve(
     return results_by_defn
 
 
-async def get_changelog(source: str, uri: str) -> str:
-    "Retrieve a changelog from a URI."
-    return await config_ctx.resolvers().get_or_dummy(source).get_changelog(URL(uri))
-
-
 @resultify
 @run_in_thread
-def _install_pkg(
-    defn: Defn,
-    pkg_candidate: PkgCandidate,
-    archive: Path,
-    *,
-    replace_folders: bool,
+def _mutate_install(
+    defn: Defn, pkg_candidate: PkgCandidate, archive: Path, *, replace_folders: bool
 ):
-    config = config_ctx.config()
-
     with (
-        config_ctx.resolvers().archive_opener_dict[defn.source](archive) as (
-            top_level_folders,
-            extract,
-        ),
+        config_ctx.resolvers().archive_opener_dict[defn.source](
+            archive,
+        ) as (top_level_folders, extract),
         config_ctx.database() as connection,
     ):
         installed_conflicts = connection.execute(
@@ -301,6 +437,8 @@ def _install_pkg(
         ).fetchall()
         if installed_conflicts:
             raise PkgConflictsWithInstalled(installed_conflicts)
+
+        config = config_ctx.config()
 
         if replace_folders:
             trash(config.addon_dir / f for f in top_level_folders)
@@ -317,26 +455,18 @@ def _install_pkg(
             defn, pkg_candidate, folders=[{'name': f} for f in sorted(top_level_folders)]
         )
         with transact(connection) as transaction:
-            insert_pkg(pkg, transaction)
+            _insert_pkg(pkg, transaction)
 
     return PkgInstalled(pkg)
 
 
 @resultify
 @run_in_thread
-def _update_pkg(
-    defn: Defn,
-    old_pkg: Pkg,
-    pkg_candidate: PkgCandidate,
-    archive: Path,
-):
-    config = config_ctx.config()
-
+def _mutate_update(defn: Defn, old_pkg: Pkg, pkg_candidate: PkgCandidate, archive: Path):
     with (
-        config_ctx.resolvers().archive_opener_dict[defn.source](archive) as (
-            top_level_folders,
-            extract,
-        ),
+        config_ctx.resolvers().archive_opener_dict[defn.source](
+            archive,
+        ) as (top_level_folders, extract),
         config_ctx.database() as connection,
     ):
         installed_conflicts = connection.execute(
@@ -352,6 +482,8 @@ def _update_pkg(
         if installed_conflicts:
             raise PkgConflictsWithInstalled(installed_conflicts)
 
+        config = config_ctx.config()
+
         unreconciled_conflicts = top_level_folders - {f.name for f in old_pkg.folders} & {
             f.name for f in config.addon_dir.iterdir()
         }
@@ -365,26 +497,45 @@ def _update_pkg(
             defn, pkg_candidate, folders=[{'name': f} for f in sorted(top_level_folders)]
         )
         with transact(connection) as transaction:
-            delete_pkg(old_pkg, transaction)
-            insert_pkg(new_pkg, transaction)
+            _delete_pkg(old_pkg, transaction)
+            _insert_pkg(new_pkg, transaction)
 
     return PkgUpdated(old_pkg, new_pkg)
 
 
 @resultify
 @run_in_thread
-def _remove_pkg(pkg: Pkg, *, keep_folders: bool):
+def _mutate_remove(defn: Defn, pkg: Pkg, *, keep_folders: bool):
     if not keep_folders:
         config = config_ctx.config()
         trash(config.addon_dir / f.name for f in pkg.folders)
 
-    with (
-        config_ctx.database() as connection,
-        transact(connection) as transaction,
-    ):
-        delete_pkg(pkg, transaction)
+    with config_ctx.database() as connection, transact(connection) as transaction:
+        _delete_pkg(pkg, transaction)
 
     return PkgRemoved(pkg)
+
+
+@resultify
+def _mutate_pin(defn: Defn, pkg: Pkg):
+    with config_ctx.database() as connection, transact(connection) as transaction:
+        (version_eq,) = transaction.execute(
+            """
+            UPDATE pkg_options
+            SET version_eq = :version_eq
+            WHERE pkg_source = :pkg_source AND pkg_id = :pkg_id
+            RETURNING version_eq
+            """,
+            {
+                'pkg_source': pkg.source,
+                'pkg_id': pkg.id,
+                'version_eq': defn.strategies[Strategy.VersionEq] is not None,
+            },
+        ).fetchone()
+
+    return PkgInstalled(
+        evolve(pkg, {'options': {'version_eq': bool(version_eq)}}),
+    )
 
 
 @run_in_thread
@@ -435,7 +586,7 @@ async def install(
         | download_errors
         | {
             d: await track_progress(
-                _install_pkg(d, pkg_candidates[d], a, replace_folders=replace_folders)
+                _mutate_install(d, pkg_candidates[d], a, replace_folders=replace_folders)
             )
             for d, a in archive_paths.items()
         }
@@ -487,8 +638,8 @@ async def replace(
         for d, a in archive_paths.items()
         for o in (inverse_defns[d],)
         for k, c in (
-            (o, _remove_pkg(d, old_pkgs[o], keep_folders=False)),
-            (d, _install_pkg(d, pkg_candidates[d], a, replace_folders=False)),
+            (o, _mutate_remove(d, old_pkgs[o], keep_folders=False)),
+            (d, _mutate_install(d, pkg_candidates[d], a, replace_folders=False)),
         )
     }
 
@@ -571,7 +722,9 @@ async def update(
         | download_errors
         | {
             d: await track_progress(
-                _update_pkg(d, o, n, a) if o else _install_pkg(d, n, a, replace_folders=False)
+                _mutate_update(d, o, n, a)
+                if o
+                else _mutate_install(d, n, a, replace_folders=False)
             )
             for d, a in archive_paths.items()
             for o, n in (updatables[d],)
@@ -585,7 +738,7 @@ async def remove(
 ) -> Mapping[Defn, AnyResult[PkgRemoved]]:
     "Remove packages by their definition."
     return {
-        d: await _remove_pkg(d, p, keep_folders=keep_folders) if p else PkgNotInstalled()
+        d: await _mutate_remove(d, p, keep_folders=keep_folders) if p else PkgNotInstalled()
         for d, p in zip(defns, get_pkgs(defns))
     }
 
@@ -599,44 +752,7 @@ async def pin(defns: Sequence[Defn]) -> Mapping[Defn, AnyResult[PkgInstalled]]:
     The net effect is the same as if the package
     had been reinstalled with the ``VersionEq`` strategy.
     """
-
-    resolvers = config_ctx.resolvers()
-
-    async def pin(defn: Defn, pkg: Pkg | None) -> PkgInstalled:
-        resolver = resolvers.get(defn.source)
-        if resolver is None:
-            raise PkgSourceInvalid
-        elif Strategy.VersionEq not in resolver.metadata.strategies:
-            raise PkgStrategiesUnsupported({Strategy.VersionEq})
-
-        if not pkg:
-            raise PkgNotInstalled
-
-        version = defn.strategies[Strategy.VersionEq]
-        if version and pkg.version != version:
-            PkgFilesNotMatching(defn.strategies)
-
-        version_eq = version is not None
-
-        with (
-            config_ctx.database() as connection,
-            transact(connection) as transaction,
-        ):
-            transaction.execute(
-                """
-                UPDATE pkg_options
-                SET version_eq = :version_eq
-                WHERE pkg_source = :pkg_source AND pkg_id = :pkg_id
-                """,
-                {
-                    'pkg_source': pkg.source,
-                    'pkg_id': pkg.id,
-                    'version_eq': version_eq,
-                },
-            )
-
-        return PkgInstalled(
-            evolve(pkg, {'options': {'version_eq': bool(version_eq)}}),
-        )
-
-    return {d: await aresultify(pin(d, p)) for d, p in zip(defns, get_pkgs(defns))}
+    return {
+        d: r if isinstance(r, (ManagerError, InternalError)) else _mutate_pin(d, r)
+        for d, r in zip(defns, get_pinnable_pkgs(defns, for_rollback=False))
+    }
