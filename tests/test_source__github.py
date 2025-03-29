@@ -260,7 +260,7 @@ async def test_mismatched_release_is_skipped_and_logged(
     assert (
         'instawow._sources.github',
         logging.INFO,
-        f'flavor and interface mismatch: {interface} not found in '
+        f'Flavor and interface mismatch: {interface} not found in '
         f'{[config_ctx.config().game_flavour.to_flavour_keyed_enum(FlavourVersionRange).value]}',
     ) in caplog.record_tuples
 
