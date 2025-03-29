@@ -151,7 +151,6 @@ markers = [
 xfail_strict = true
 filterwarnings = [
   "error",
-  'ignore:datetime\.datetime\.utcnow\(\) is deprecated:DeprecationWarning:aiohttp_client_cache',
 ]
 addopts = ["-ra", "--strict-config", "--strict-markers"]
 log_cli_level = "INFO"
