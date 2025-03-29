@@ -14,8 +14,6 @@ import toga.style.pack
 
 from . import _json_rpc_server
 
-_loop_factory = asyncio.DefaultEventLoopPolicy().new_event_loop
-
 
 class _TogaSimulateKeypressAction(StrEnum):
     ToggleSearchFilter = 'toggleSearchFilter'
@@ -40,7 +38,10 @@ class _App(toga.App):
             loop.call_soon_threadsafe(wait_future.set_result, None)
             json_rpc_server_thread.join()
 
-        loop = _loop_factory()
+        loop_factory = (
+            asyncio.ProactorEventLoop if sys.platform == 'win32' else asyncio.SelectorEventLoop
+        )
+        loop = loop_factory()
         wait_future = loop.create_future()
 
         server_url_future = concurrent.futures.Future[str]()
