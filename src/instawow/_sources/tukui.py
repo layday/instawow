@@ -83,7 +83,7 @@ class TukuiResolver(BaseResolver):
     @classmethod
     async def catalogue(cls):
         url = cls.__api_url / 'addons'
-        logger.debug(f'retrieving {url}')
+        logger.debug(f'Retrieving {url}')
 
         async with http_ctx.web_client().get(url, raise_for_status=True) as response:
             items: list[_TukuiAddon] = await response.json()

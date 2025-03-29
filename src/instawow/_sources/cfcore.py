@@ -491,7 +491,7 @@ class CfCoreResolver(BaseResolver):
                 pageSize=STEP,
                 index=offset,
             )
-            logger.debug(f'retrieving {url}')
+            logger.debug(f'Retrieving {url}')
 
             for attempt in range(3):
                 try:
@@ -501,9 +501,9 @@ class CfCoreResolver(BaseResolver):
                         ] = await response.json()
                         break
                 except TimeoutError:
-                    logger.debug(f'request timed out; attempt {attempt + 1} of 3')
+                    logger.debug(f'Request timed out; attempt {attempt + 1} of 3')
             else:
-                raise RuntimeError('maximum number of attempts exceeded')
+                raise RuntimeError('Maximum number of attempts exceeded')
 
             items = response_json['data']
             if not items:

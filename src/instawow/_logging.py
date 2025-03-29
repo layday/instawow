@@ -30,7 +30,9 @@ def _intercept_logging_module_calls(log_level: str):  # pragma: no cover
                 frame = frame.f_back
                 depth += 1
 
-            logger.opt(depth=depth, exception=record.exc_info).log(level, record.getMessage())
+            logger.bind(source='logging').opt(depth=depth, exception=record.exc_info).log(
+                level, record.getMessage()
+            )
 
     logging.basicConfig(handlers=[InterceptHandler()], level=log_level, force=True)
 
@@ -61,11 +63,11 @@ def setup_logging(
         {
             'level': log_level,
             'format': (
-                '<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | '
-                '<level>{level: <8}</level> | '
+                '<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</> | '
+                '<level>{level: <8}</> | '
                 '{extra[profile]: <10} | '
-                '<cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> | '
-                '<level>{message}</level>'
+                '<cyan>{name}</>:<cyan>{function}</>:<cyan>{line}</> | '
+                '<level>{message}</>'
             ),
             'enqueue': True,
             'context': context,
@@ -78,7 +80,7 @@ def setup_logging(
         handlers += [
             {
                 'level': log_level,
-                'format': '<level>{level: <8}</level>  {message}',
+                'format': '<level>{level: <8}</> {name}:{line}\n<dim>{message}</>',
                 'enqueue': True,
                 'context': context,
                 'sink': sys.stderr,
@@ -86,6 +88,6 @@ def setup_logging(
         ]
 
     logger.configure(
-        extra=extra,
+        extra={'profile': None} | extra,
         handlers=handlers,  # pyright: ignore[reportArgumentType]
     )

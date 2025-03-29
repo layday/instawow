@@ -21,7 +21,7 @@ _catalogue_ttl = dt.timedelta(hours=4)
 
 @lru_cache(1)
 def _parse_catalogue(raw_catalogue: bytes):
-    with time_op(lambda t: logger.debug(f'parsed catalogue in {t:.3f}s')):
+    with time_op(lambda t: logger.debug(f'Parsed catalogue in {t:.3f}s')):
         return cataloguer.ComputedCatalogue.from_base_catalogue(
             json.loads(raw_catalogue),
         )

@@ -388,6 +388,7 @@ def update(addons: Sequence[definitions.Defn], dry_run: bool):
 )
 def remove(addons: Sequence[definitions.Defn], keep_folders: bool):
     "Remove add-ons."
+
     results = run_with_progress(pkg_management.remove(addons, keep_folders=keep_folders))
     Report(results.items()).generate_and_exit()
 
@@ -402,6 +403,7 @@ def remove(addons: Sequence[definitions.Defn], keep_folders: bool):
 )
 def rollback(addon: definitions.Defn, undo: bool):
     "Roll an add-on back to an older version."
+
     from ._prompts import Choice, select_one
 
     [maybe_pkg] = pkg_management.get_pinnable_pkgs([addon], for_rollback=True)
@@ -441,6 +443,7 @@ def rollback(addon: definitions.Defn, undo: bool):
 )
 def reconcile(auto: bool, list_unreconciled: bool):
     "Reconcile pre-installed add-ons."
+
     from .._utils.iteration import all_eq, uniq
     from .._utils.text import tabulate
     from ..matchers import DEFAULT_MATCHERS, AddonFolder, get_unreconciled_folders
@@ -686,6 +689,7 @@ def search(
     no_exclude_installed: bool,
 ):
     "Search for add-ons to install."
+
     from ..catalogue.search import search
     from ._prompts import Choice, confirm, select_multiple
 
@@ -734,6 +738,7 @@ def search(
 )
 def list_installed(addons: Sequence[definitions.Defn], output_format: _ListFormat):
     "List installed add-ons."
+
     from ..pkg_db.models import Pkg, build_pkg_from_row_mapping
 
     with config_ctx.database() as connection:
@@ -823,6 +828,7 @@ def info(addon: definitions.Defn):
 @click.argument('addon', callback=partial(_parse_defn_uri_option, raise_invalid=False))
 def reveal(addon: definitions.Defn):
     "Bring an add-on up in your file manager."
+
     from .._utils.file import reveal_folder
 
     with config_ctx.database() as connection:
@@ -1003,6 +1009,7 @@ def configure(editable_config_values: Mapping[_EditableConfigOptions, Any]):
     * ``configure "addon_dir=~/foo"` will set ``addon_dir``'s value
       to ``~/foo`` immediately
     """
+
     import asyncio
 
     import attrs
@@ -1035,7 +1042,7 @@ def configure(editable_config_values: Mapping[_EditableConfigOptions, Any]):
     except _config.UninitialisedConfigError:
         pass
     except Exception:
-        logger.exception('unable to read existing config')
+        logger.exception('Unable to read existing config')
 
     is_new_profile = config_values is None
     if is_new_profile:
@@ -1190,6 +1197,7 @@ def _cache_group():
 @_cache_group.command('clear')
 def cache_clear():
     "Clear the instawow cache."
+
     import shutil
 
     shutil.rmtree(config_ctx.config().global_config.cache_dir)
@@ -1203,6 +1211,7 @@ def _debug_group():
 @_debug_group.command('config')
 def debug_config():
     "Print the active configuration."
+
     import json
 
     click.echo(json.dumps(config_ctx.config().unstructure_for_display(), indent=2))
@@ -1211,6 +1220,7 @@ def debug_config():
 @_debug_group.command('sources')
 def debug_sources():
     "Print active source metadata."
+
     from cattrs.preconf.json import make_converter  # pyright: ignore[reportUnknownVariableType]
 
     json_converter = make_converter()
@@ -1235,6 +1245,7 @@ def _plugin_group():  # pyright: ignore[reportUnusedFunction]
 )
 def generate_catalogue(start_date: dt.datetime | None):
     "Generate the master catalogue."
+
     import asyncio
     import json
     from pathlib import Path

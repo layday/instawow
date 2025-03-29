@@ -188,7 +188,7 @@ def _handle_internal_error(error: BaseException):
 
     logger.opt(
         exception=error,
-    ).error('unclassed error')
+    ).error('Unclassed error')
 
     return InternalError(error)
 
@@ -199,7 +199,7 @@ def resultify(fn: Callable[_P, Awaitable[_T]]) -> Callable[_P, Awaitable[AnyResu
 def resultify(fn: Callable[_P, _T]) -> Callable[_P, AnyResult[_T]]: ...
 
 
-def resultify(fn: Callable[..., object]):  # pyright: ignore[reportInconsistentOverload]
+def resultify(fn: Callable[_P, object]):  # pyright: ignore[reportInconsistentOverload]
     "Capture raw errors and wrap them around ``InternalError``."
 
     if inspect.iscoroutinefunction(fn):

@@ -181,7 +181,7 @@ class WowiResolver(BaseResolver):
 
     @classmethod
     async def catalogue(cls):
-        logger.debug(f'retrieving {cls.__list_api_url}')
+        logger.debug(f'Retrieving {cls.__list_api_url}')
 
         async with http_ctx.web_client().get(
             cls.__list_api_url, raise_for_status=True

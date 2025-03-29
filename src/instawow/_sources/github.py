@@ -165,7 +165,7 @@ class GithubResolver(BaseResolver):
         matching_asset = None
 
         for candidate in candidates:
-            logger.info(f'looking for match in zip file: {candidate["browser_download_url"]}')
+            logger.debug(f'Looking for match in zip file: {candidate["browser_download_url"]}')
 
             addon_zip_stream = BytesIO()
             dynamic_addon_zip = None
@@ -178,7 +178,7 @@ class GithubResolver(BaseResolver):
             directory_offset = str(-25_000)
 
             for _ in range(2):
-                logger.debug(f'fetching {directory_offset} bytes from {candidate["name"]}')
+                logger.debug(f'Fetching {directory_offset} bytes from {candidate["name"]}')
 
                 async with http_ctx.web_client().get(
                     download_url,
@@ -228,7 +228,7 @@ class GithubResolver(BaseResolver):
                             break
 
             if dynamic_addon_zip is None:
-                logger.warning('directory marker not found')
+                logger.warning('Directory marker not found')
                 continue
 
             toc_filenames = {
@@ -270,7 +270,7 @@ class GithubResolver(BaseResolver):
                 # we could detect where the zip directory starts.
                 following_file_offset = following_file.header_offset if following_file else ''
 
-                logger.debug(f'fetching {main_toc_filename} from {candidate["name"]}')
+                logger.debug(f'Fetching {main_toc_filename} from {candidate["name"]}')
                 async with http_ctx.web_client().get(
                     download_url,
                     expire_after=http.CACHE_INDEFINITELY,
@@ -285,7 +285,7 @@ class GithubResolver(BaseResolver):
             toc_reader = TocReader(toc_file_text)
 
             logger.debug(
-                f'found interface versions {toc_reader.interfaces!r} in {main_toc_filename}'
+                f'Found interface versions {toc_reader.interfaces!r} in {main_toc_filename}'
             )
             if toc_reader.interfaces and any(
                 r.contains(i) for r, i in product(desired_version_ranges, toc_reader.interfaces)
@@ -301,8 +301,8 @@ class GithubResolver(BaseResolver):
         release_json_asset: _GithubRelease_Asset,
         desired_flavours: tuple[Flavour, ...] | None,
     ):
-        logger.info(
-            f'looking for match in release.json: {release_json_asset["browser_download_url"]}'
+        logger.debug(
+            f'Looking for match in release.json: {release_json_asset["browser_download_url"]}'
         )
 
         download_headers = self.make_request_headers(HeadersIntent.Download)
@@ -336,7 +336,7 @@ class GithubResolver(BaseResolver):
                             return True
 
                         logger.info(
-                            f'flavor and interface mismatch: {metadata["interface"]} not found in '
+                            f'Flavor and interface mismatch: {metadata["interface"]} not found in '
                             f'{[r.value for r in desired_version_ranges]}'
                         )
 
@@ -457,7 +457,7 @@ class GithubResolver(BaseResolver):
         # separate flavour passes across the whole release list for the common case.
         match = await self.__find_match(first_release, desired_flavour_groups)
         if not match:
-            logger.info('looking for match in older releases')
+            logger.info('Looking for match in older releases')
 
             _remaining_tasks = []
             try:
@@ -502,7 +502,7 @@ class GithubResolver(BaseResolver):
         import csv
         from io import StringIO
 
-        logger.debug(f'retrieving {cls.__generated_catalogue_csv_url}')
+        logger.debug(f'Retrieving {cls.__generated_catalogue_csv_url}')
 
         async with http_ctx.web_client().get(
             cls.__generated_catalogue_csv_url, raise_for_status=True

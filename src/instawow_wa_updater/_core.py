@@ -324,13 +324,13 @@ WeakAurasCompanionData = {{
                 content = file.read_text(encoding='utf-8-sig', errors='replace')
                 aura_group_cache = (self._config.cache_dir / shasum(content)).with_suffix('.json')
                 if aura_group_cache.exists():
-                    logger.info(f'loading {file} from cache at {aura_group_cache}')
+                    logger.info(f'Loading {file} from cache at {aura_group_cache}')
                     aura_group_json = json.loads(aura_group_cache.read_bytes())
                     aura_group = _aura_converter.structure({'auras': aura_group_json}, model)
                 else:
                     with time_op(
                         lambda t: logger.debug(
-                            f'extracted {model.__name__} in {t:.3f}s'  # noqa: B023
+                            f'Extracted {model.__name__} in {t:.3f}s'  # noqa: B023
                         )
                     ):
                         aura_group = _extract_auras(model, content)
