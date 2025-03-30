@@ -4,7 +4,7 @@ Changelog
 v5.0.0
 ------
 
-- Hard links and symbolic links are now resolved in configuration paths.
+- Hard links and symbolic links are now expanded in configuration paths.
 
 API
 ~~~
@@ -19,6 +19,11 @@ API
   it must be retrieved from ``instawow.config_ctx.config`` on demand.
 - The ``instawow.progress_reporting`` module has been made public and can be used
   by plug-ins.
+
+GUI
+~~~
+
+- Linux ARM builds are now available.
 
 v4.8.0
 ------
