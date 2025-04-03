@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from typing import TypedDict
 
 from .. import config_ctx
 from .._utils.aio import run_in_thread
@@ -10,9 +11,14 @@ from ..resolvers import BaseResolver, PkgCandidate
 from ..results import PkgNonexistent
 from ..wow_installations import Flavour
 
+
+class _ResolveMetadata(TypedDict):
+    requires_build: bool
+
+
 _ADDONS = {
-    ('0', 'weakauras-companion'): False,
-    ('1', 'weakauras-companion-autoupdate'): True,
+    ('0', 'weakauras-companion'): _ResolveMetadata(requires_build=False),
+    ('1', 'weakauras-companion-autoupdate'): _ResolveMetadata(requires_build=True),
 }
 
 
@@ -25,20 +31,18 @@ class InstawowResolver(BaseResolver):
         addon_toc_key=None,
     )
 
-    async def resolve_one(self, defn: Defn, metadata: None):
+    async def resolve_one(self, defn: Defn, metadata: _ResolveMetadata | None):
         from instawow_wa_updater._config import PluginConfig
         from instawow_wa_updater._core import WaCompanionBuilder
 
         try:
-            (id_, slug), requires_build = next(
-                (p, v) for p, v in _ADDONS.items() if defn.alias in p
-            )
+            (id_, slug), metadata = next((p, v) for p, v in _ADDONS.items() if defn.alias in p)
         except StopIteration:
             raise PkgNonexistent from None
 
         builder_config = PluginConfig(config_ctx.config())
         builder = WaCompanionBuilder(builder_config)
-        if requires_build:
+        if metadata['requires_build']:
             await run_in_thread(builder_config.ensure_dirs)()
             await builder.build()
 
