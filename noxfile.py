@@ -7,35 +7,18 @@ from importlib.metadata import Distribution
 from pathlib import Path
 
 import nox
+import nox.project
+
+HERE = Path(__file__).parent
 
 nox.needs_version = '>= 2025.02.09'
 nox.options.default_venv_backend = 'uv'
 nox.options.error_on_external_run = True
 
 
-_root = Path(__file__).parent
-_pyproject = nox.project.load_toml(_root / 'pyproject.toml')
-
-
-def _install_coverage_hook(session: nox.Session):
-    session.run(
-        'python',
-        '-c',
-        """\
-from pathlib import Path
-import sysconfig
-
-(Path(sysconfig.get_path('purelib')) / 'coverage.pth').write_text(
-    'import coverage; coverage.process_startup()',
-    encoding='utf-8',
-)
-""",
-    )
-
-
 def _locate_or_build_packages(session: nox.Session):
     wheels_metadata_json = {
-        d: _root / 'dist' / d / '.wheel-metadata.json' for d in ['instawow', 'instawow-gui']
+        d: HERE / 'dist' / d / '.wheel-metadata.json' for d in ['instawow', 'instawow-gui']
     }
     if not all(j.exists() for j in wheels_metadata_json.values()):
         if os.environ.get('CI'):
@@ -49,7 +32,17 @@ def _locate_or_build_packages(session: nox.Session):
 def dev_env(session: nox.Session):
     "Bootstrap the dev env."
 
-    session.install('-e', '.[test, types]', '-e', './instawow-gui[full]')
+    session.install(
+        '--group',
+        'test',
+        '--group',
+        'typing',
+        '-e',
+        '.',
+        '-e',
+        './instawow-gui[full]',
+        stderr=None,
+    )
     print(session.virtualenv.bin, end='')
 
 
@@ -57,7 +50,7 @@ def dev_env(session: nox.Session):
 def format_code(session: nox.Session):
     "Format source code."
 
-    session.install(*nox.project.dependency_groups(_pyproject, 'format'))
+    session.install('--group', 'format')
 
     check = '--check' in session.posargs
     skip_prettier = '--skip-prettier' in session.posargs
@@ -75,7 +68,7 @@ def format_code(session: nox.Session):
 def lint(session: nox.Session):
     "Lint source code."
 
-    session.install(*nox.project.dependency_groups(_pyproject, 'lint'))
+    session.install('--group', 'lint')
     session.run('ruff', 'check', '--output-format', 'full', *session.posargs, '.')
     session.notify('format', ['--check'])
 
@@ -93,8 +86,10 @@ def test(session: nox.Session, minimum_versions: bool):
 
     packages = _locate_or_build_packages(session)
 
+    session.install('--group', 'test')
+
     install_args = [
-        f'instawow[test] @ {packages["instawow"]["wheel-path"]}',
+        f'instawow @ {packages["instawow"]["wheel-path"]}',
         f'instawow-gui[skeletal] @ {packages["instawow-gui"]["wheel-path"]}',
         'instawow_test_plugin @ tests/plugin',
     ]
@@ -111,7 +106,19 @@ def test(session: nox.Session, minimum_versions: bool):
     else:
         session.install(*install_args)
 
-    _install_coverage_hook(session)
+    session.run(
+        'python',
+        '-c',
+        """\
+from pathlib import Path
+import sysconfig
+
+(Path(sysconfig.get_path('purelib')) / '_instawow_coverage.pth').write_text(
+    'import coverage; coverage.process_startup()',
+    encoding='utf-8',
+)
+""",
+    )
 
     session.run(
         *'coverage run -m pytest -n auto'.split(),
@@ -126,7 +133,7 @@ def test(session: nox.Session, minimum_versions: bool):
 def report_coverage(session: nox.Session):
     "Produce coverage report."
 
-    session.install(*nox.project.dependency_groups(_pyproject, 'report-coverage'))
+    session.install('--group', 'test')
     session.run('coverage', 'combine')
     session.run('coverage', 'html', '--skip-empty')
     session.run('coverage', 'report', '-m')
@@ -138,8 +145,9 @@ def type_check(session: nox.Session):
 
     packages = _locate_or_build_packages(session)
 
+    session.install('--group', 'test', '--group', 'typing')
     session.install(
-        f'instawow[test, types] @ {packages["instawow"]["wheel-path"]}',
+        f'instawow @ {packages["instawow"]["wheel-path"]}',
         f'instawow-gui[skeletal] @ {packages["instawow-gui"]["wheel-path"]}',
     )
     session.run('npx', 'pyright', external=True)
@@ -162,15 +170,18 @@ def build_dists(session: nox.Session):
 
     session.run('git', 'clean', '-fdX', 'dist', external=True)
 
-    for name, source_dir in ('instawow', '.'), ('instawow-gui', 'instawow-gui'):
-        if name == 'instawow-gui':
+    for source_dir in '.', 'instawow-gui':
+        pyproject_toml = nox.project.load_toml(HERE / source_dir / 'pyproject.toml')
+        project_name = pyproject_toml['project']['name']
+
+        if project_name == 'instawow-gui':
             bundle_frontend(session)
 
-        out_dir = Path('dist', name)
+        out_dir = Path('dist', project_name)
         session.run('uv', 'build', '--out-dir', str(out_dir), source_dir)
 
         wheel_path = next(f.path for f in os.scandir(out_dir) if f.name.endswith('.whl'))
-        (wheel_metadata,) = Distribution.discover(name=name, path=[wheel_path])
+        (wheel_metadata,) = Distribution.discover(name=project_name, path=[wheel_path])
         (out_dir / '.wheel-metadata.json').write_text(
             json.dumps(
                 {
@@ -240,7 +251,7 @@ def freeze_cli(session: nox.Session):
             break
 
         else:
-            raise RuntimeError('built executable not found')
+            raise RuntimeError('Built executable not found')
 
 
 @nox.session
@@ -257,7 +268,7 @@ def freeze_gui(session: nox.Session):
 
     packages = _locate_or_build_packages(session)
 
-    spec_path = _root / 'instawow-gui' / 'pyproject.toml'
+    spec_path = HERE / 'instawow-gui' / 'pyproject.toml'
     spec = spec_path.read_text(encoding='utf-8')
     spec = spec.replace(
         '"instawow-gui[full]"',
@@ -282,7 +293,7 @@ def freeze_gui(session: nox.Session):
         build_opts = []
         package_opts = []
 
-    session.install(*nox.project.dependency_groups(_pyproject, 'freeze-gui'))
+    session.install('--group', 'freeze-gui')
 
     with session.chdir('instawow-gui'):
         session.run('briefcase', 'build', *build_opts)

@@ -30,15 +30,6 @@ dependencies = [
   "typing-extensions >= 4.12.0",
   "yarl >= 1.9.5",
 ]
-optional-dependencies."test" = [
-  "anyio >= 4.3.0",
-  "coverage[toml] >= 7.4.3",
-  "pytest >= 8",
-  "pytest-xdist >= 3.5.0",
-]
-optional-dependencies."types" = [
-  "diskcache-stubs",
-]
 
 [project.entry-points."instawow.plugins"]
 "instawow_wa_updater" = "instawow_wa_updater._plugin"
@@ -74,8 +65,14 @@ freeze-gui = [
 lint = [
   { include-group = "format" },
 ]
-report-coverage = [
+test = [
+  "anyio",
   "coverage[toml]",
+  "pytest",
+  "pytest-xdist",
+]
+typing = [
+  "diskcache-stubs",
 ]
 
 [tool.ruff]
