@@ -2,24 +2,22 @@ from __future__ import annotations
 
 from collections.abc import Callable, Mapping
 from functools import partial
-from typing import TYPE_CHECKING, Any, TypeAlias, TypeVar
+from typing import TYPE_CHECKING
 
 import attrs
 
-_T = TypeVar('_T')
-
-_Validator: TypeAlias = Callable[[object, 'attrs.Attribute[_T]', _T], None]
+type _Validator[T] = Callable[[object, 'attrs.Attribute[T]', T], None]
 
 
 fauxfrozen = attrs.frozen if TYPE_CHECKING else partial(attrs.define, unsafe_hash=True)
 
 
-def enrich_validator_exc(validator: _Validator[_T]) -> _Validator[_T]:
+def enrich_validator_exc[T](validator: _Validator[T]) -> _Validator[T]:
     "Pretend validation error originates from cattrs for uniformity with structural errors."
 
     import cattrs
 
-    def wrapper(model: object, attr: attrs.Attribute[_T], value: _T):
+    def wrapper(model: object, attr: attrs.Attribute[T], value: T):
         try:
             validator(model, attr, value)
         except BaseException as exc:
@@ -32,10 +30,10 @@ def enrich_validator_exc(validator: _Validator[_T]) -> _Validator[_T]:
 
 @fauxfrozen
 class EvolveIdent:
-    value: Mapping[Any, Any]
+    value: object
 
 
-def evolve(attrs_instance: _T, changes: Mapping[str, Any | EvolveIdent]) -> _T:
+def evolve[T](attrs_instance: T, changes: Mapping[str, object | EvolveIdent]) -> T:
     return attrs.evolve(
         attrs_instance,
         **{

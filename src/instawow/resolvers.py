@@ -5,18 +5,8 @@ import enum
 from collections.abc import AsyncIterator, Callable, Collection, Iterable, Mapping, Sequence
 from functools import cached_property, partial, wraps
 from pathlib import Path
-from typing import (
-    Any,
-    Generic,
-    Literal,
-    NotRequired,
-    Protocol,
-    Self,
-    TypedDict,
-    overload,
-)
+from typing import Any, Literal, NotRequired, Protocol, Self, TypedDict, overload
 
-from typing_extensions import TypeVar
 from yarl import URL
 
 from . import pkg_archives
@@ -30,16 +20,14 @@ from .results import (
     resultify,
 )
 
-_TTokenRequired = TypeVar('_TTokenRequired', Literal[True], bool)
-
 
 class AccessTokenMissingError(ValueError):
     def __str__(self) -> str:
         return 'access token missing'
 
 
-class AccessToken(Generic[_TTokenRequired]):
-    def __init__(self, getter: Callable[[], tuple[str | None, _TTokenRequired]]):
+class AccessToken[RequiredT: (Literal[True], bool)]:
+    def __init__(self, getter: Callable[[], tuple[str | None, RequiredT]]):
         self._getter = getter
 
     @overload

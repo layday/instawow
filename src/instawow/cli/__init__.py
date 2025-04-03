@@ -7,7 +7,7 @@ import textwrap
 from collections.abc import Awaitable, Callable, Collection, Iterable, Mapping, Sequence
 from functools import partial, reduce
 from itertools import chain, count, repeat
-from typing import Any, Never, TypeVar, overload
+from typing import Any, Never, overload
 
 import click
 
@@ -15,8 +15,6 @@ from .. import config as _config
 from .. import config_ctx, definitions, pkg_management
 from .. import results as _results
 from ._helpers import ManyOptionalChoiceValueParam, SectionedHelpGroup, StrEnumChoiceParam
-
-_T = TypeVar('_T')
 
 
 class Report:
@@ -77,7 +75,7 @@ class Report:
         )
 
 
-def run_with_progress(awaitable: Awaitable[_T]) -> _T:
+def run_with_progress[T](awaitable: Awaitable[T]) -> T:
     import asyncio
 
     from .. import http_ctx

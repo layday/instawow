@@ -6,19 +6,17 @@ from collections.abc import AsyncGenerator, Awaitable, Callable, Iterator, Mappi
 from contextlib import contextmanager
 from functools import partial
 from itertools import count
-from typing import Any, Generic, Literal, LiteralString, Never, NotRequired, TypeAlias
+from typing import Any, Generic, Literal, LiteralString, Never, NotRequired
 
 from typing_extensions import TypedDict, TypeVar
 
-_T = TypeVar('_T')
-
-_TProgressType = TypeVar('_TProgressType', bound=LiteralString)
-_TProgressUnit = TypeVar('_TProgressUnit', bound=LiteralString | None, default=None)
+_ProgressTypeT = TypeVar('_ProgressTypeT', bound=LiteralString)
+_ProgressUnitT = TypeVar('_ProgressUnitT', bound=LiteralString | None, default=None)
 
 
-class Progress(TypedDict, Generic[_TProgressType, _TProgressUnit]):
-    type_: _TProgressType
-    unit: NotRequired[_TProgressUnit]
+class Progress(TypedDict, Generic[_ProgressTypeT, _ProgressUnitT]):
+    type_: _ProgressTypeT
+    unit: NotRequired[_ProgressUnitT]
     label: NotRequired[str]
     current: int
     total: int | None
@@ -37,9 +35,11 @@ make_download_progress = partial(
     _DownloadProgress, type_='download', unit='bytes', current=0, total=0
 )
 
+_ProgressT = TypeVar('_ProgressT', bound=Progress[Any, Any], default=Never)
 
-_TProgress = TypeVar('_TProgress', bound=Progress[Any, Any], default=Never)
-ReadOnlyProgressGroup: TypeAlias = Mapping[int, _DownloadProgress | _GenericProgress | _TProgress]
+type ReadOnlyProgressGroup[_ProgressT] = Mapping[
+    int, _DownloadProgress | _GenericProgress | _ProgressT
+]
 
 _progress_notifiers_var = contextvars.ContextVar[
     frozenset[Callable[[int, Progress[Any, Any] | Literal['unset']], None]]
@@ -52,7 +52,7 @@ def get_next_progress_id() -> int:
     return next(_progress_id_gen)
 
 
-class make_progress_receiver(Generic[_TProgress]):
+class make_progress_receiver(Generic[_ProgressT]):
     "Observe progress within the current context."
 
     @contextmanager
@@ -60,15 +60,15 @@ class make_progress_receiver(Generic[_TProgress]):
         cls,
     ) -> Iterator[
         tuple[
-            Callable[[], ReadOnlyProgressGroup[_TProgress]],
-            Callable[[], AsyncGenerator[ReadOnlyProgressGroup[_TProgress]]],
+            Callable[[], ReadOnlyProgressGroup[_ProgressT]],
+            Callable[[], AsyncGenerator[ReadOnlyProgressGroup[_ProgressT]]],
         ]
     ]:
         asyncio.get_running_loop()  # Raise if constructed outside async context.
 
         emit_event = asyncio.Event()
 
-        progress_group: ReadOnlyProgressGroup[_TProgress] = {}
+        progress_group: ReadOnlyProgressGroup[_ProgressT] = {}
 
         def waken(progress_id: int, progress: Progress[Any, Any] | Literal['unset']):
             if progress == 'unset':
@@ -106,13 +106,13 @@ def update_progress(progress_id: int, progress: Progress[Any, Any] | Literal['un
         notify(progress_id, progress)
 
 
-def make_incrementing_progress_tracker(
+def make_incrementing_progress_tracker[T](
     total: int, label: str
-) -> Callable[[Awaitable[_T]], Awaitable[_T]]:
+) -> Callable[[Awaitable[T]], Awaitable[T]]:
     "Track the progress a finite-length collection of awaitables."
     if total < 1:
 
-        def track_ident(awaitable: Awaitable[_T]):
+        def track_ident(awaitable: Awaitable[T]):
             return awaitable
 
         return track_ident
@@ -120,11 +120,11 @@ def make_incrementing_progress_tracker(
     progress_id = get_next_progress_id()
     progress = make_generic_progress(total=total, label=label)
 
-    def track(awaitable: Awaitable[_T]):
+    def track(awaitable: Awaitable[T]):
         future = asyncio.ensure_future(awaitable)
 
         @future.add_done_callback
-        def _(task: asyncio.Task[_T]):
+        def _(task: asyncio.Task[T]):
             progress['current'] += 1
             update_progress(
                 progress_id,

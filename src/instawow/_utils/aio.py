@@ -3,17 +3,14 @@ from __future__ import annotations
 import asyncio
 from collections.abc import Awaitable, Callable, Iterable
 from functools import partial, update_wrapper
-from typing import Any, ParamSpec, TypeVar
-
-_U = TypeVar('_U')
-_P = ParamSpec('_P')
+from typing import Any
 
 
-async def gather(it: Iterable[Awaitable[_U]]) -> list[_U]:
+async def gather[T](it: Iterable[Awaitable[T]]) -> list[T]:
     return await asyncio.gather(*it)
 
 
-def run_in_thread(fn: Callable[_P, _U]) -> Callable[_P, Awaitable[_U]]:
+def run_in_thread[**P, T](fn: Callable[P, T]) -> Callable[P, Awaitable[T]]:
     return update_wrapper(partial(asyncio.to_thread, fn), fn)
 
 

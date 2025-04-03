@@ -4,14 +4,14 @@ import ssl
 from collections.abc import AsyncIterator
 from contextlib import AbstractAsyncContextManager, AsyncExitStack, asynccontextmanager
 from pathlib import Path
-from typing import Any, TypeAlias, overload
+from typing import Any, overload
 
 import aiohttp
 import aiohttp_client_cache
 import aiohttp_client_cache.session
 
-ClientSession: TypeAlias = aiohttp.ClientSession
-CachedSession: TypeAlias = aiohttp_client_cache.session.CachedSession
+type ClientSession = aiohttp.ClientSession
+type CachedSession = aiohttp_client_cache.session.CachedSession
 
 
 _USER_AGENT = 'instawow (+https://github.com/layday/instawow)'

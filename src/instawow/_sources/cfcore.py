@@ -5,7 +5,6 @@ from collections.abc import Callable, Iterator, Sequence
 from datetime import datetime, timedelta
 from enum import IntEnum
 from functools import partial
-from typing import Generic, TypeVar
 from typing import NotRequired as N
 
 from typing_extensions import TypedDict
@@ -21,9 +20,6 @@ from ..progress_reporting import make_download_progress
 from ..resolvers import AccessToken, BaseResolver, HeadersIntent, PkgCandidate
 from ..results import PkgFilesMissing, PkgFilesNotMatching, PkgNonexistent, resultify
 from ..wow_installations import Flavour
-
-_T = TypeVar('_T')
-
 
 _CF_WOW_GAME_ID = 1
 
@@ -228,12 +224,12 @@ class _CfCoreResponsePagination(TypedDict):
     totalCount: int | None
 
 
-class _CfCoreDataResponse(TypedDict, Generic[_T]):
-    data: _T
+class _CfCoreDataResponse[T](TypedDict):
+    data: T
 
 
-class _CfCorePaginatedDataResponse(TypedDict, Generic[_T]):
-    data: _T
+class _CfCorePaginatedDataResponse[T](TypedDict):
+    data: T
     pagination: _CfCoreResponsePagination
 
 

@@ -2,20 +2,18 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from enum import StrEnum
-from typing import Any, Generic, TypeVar
+from typing import Any
 
 import click
 import click.types
 
 from .._utils.iteration import bucketise
 
-_TStrEnum = TypeVar('_TStrEnum', bound=StrEnum)
 
-
-class StrEnumChoiceParam(Generic[_TStrEnum], click.Choice):
+class StrEnumChoiceParam[StrEnumT: StrEnum](click.Choice):
     def __init__(
         self,
-        choice_enum: type[_TStrEnum],
+        choice_enum: type[StrEnumT],
         case_sensitive: bool = True,
     ) -> None:
         super().__init__(
@@ -26,7 +24,7 @@ class StrEnumChoiceParam(Generic[_TStrEnum], click.Choice):
 
     def convert(
         self, value: Any, param: click.Parameter | None, ctx: click.Context | None
-    ) -> _TStrEnum:
+    ) -> StrEnumT:
         converted_value = super().convert(value, param, ctx)
         return self.__choice_enum(converted_value)
 

@@ -3,9 +3,8 @@ from __future__ import annotations
 import contextvars as cv
 from collections.abc import Mapping
 from contextlib import AbstractAsyncContextManager
-from typing import TypeAlias
 
-Locks: TypeAlias = Mapping[object, AbstractAsyncContextManager[None]]
+type Locks = Mapping[object, AbstractAsyncContextManager[None]]
 
 
 @object.__new__

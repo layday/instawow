@@ -4,9 +4,8 @@ from collections.abc import Awaitable, Callable, Collection, Iterable, Mapping, 
 from functools import wraps
 from itertools import chain, compress, filterfalse, repeat, starmap
 from pathlib import Path
-from typing import Literal, Never, TypeVar
+from typing import Literal, Never
 
-from typing_extensions import ParamSpec
 from yarl import URL
 
 from . import config_ctx, sync_ctx
@@ -43,30 +42,27 @@ from .results import (
     resultify,
 )
 
-_T = TypeVar('_T')
-_P = ParamSpec('_P')
-
 _MUTATE_PKGS_LOCK = '_MUTATE_PKGS_'
 
 
 _download_pkg_archive = resultify(download_pkg_archive)
 
 
-def _with_mutate_lock(
-    coro_fn: Callable[_P, Awaitable[_T]],
-) -> Callable[_P, Awaitable[_T]]:
+def _with_mutate_lock[**P, T](
+    coro_fn: Callable[P, Awaitable[T]],
+) -> Callable[P, Awaitable[T]]:
     @wraps(coro_fn)
-    async def inner(*args: _P.args, **kwargs: _P.kwargs) -> _T:
+    async def inner(*args: P.args, **kwargs: P.kwargs) -> T:
         async with sync_ctx.locks()[_MUTATE_PKGS_LOCK, config_ctx.config().profile]:
             return await coro_fn(*args, **kwargs)
 
     return inner
 
 
-def bucketise_results(
-    values: Iterable[tuple[Defn, AnyResult[_T]]],
+def bucketise_results[T](
+    values: Iterable[tuple[Defn, AnyResult[T]]],
 ):
-    ts: dict[Defn, _T] = {}
+    ts: dict[Defn, T] = {}
     errors: dict[Defn, AnyResult[Never]] = {}
 
     for defn, value in values:

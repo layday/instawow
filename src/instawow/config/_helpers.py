@@ -5,15 +5,12 @@ import os
 from collections.abc import Iterable, Mapping
 from functools import lru_cache
 from pathlib import Path
-from typing import Any, TypedDict, TypeVar
+from typing import Any, TypedDict
 
 import attrs
 import cattrs
 import cattrs.gen
 import cattrs.preconf.json
-
-_T = TypeVar('_T')
-
 
 _missing = object()
 
@@ -46,7 +43,7 @@ def _make_write_converter():
     converter = make_config_converter()
 
     @converter.register_unstructure_hook_factory(attrs.has)
-    def _(type_: type[_T]):
+    def _[T](type_: type[T]):
         return cattrs.gen.make_dict_unstructure_fn(
             type_,
             converter,

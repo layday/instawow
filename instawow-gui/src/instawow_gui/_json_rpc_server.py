@@ -12,7 +12,7 @@ from datetime import datetime
 from inspect import get_annotations
 from itertools import chain
 from pathlib import Path
-from typing import Any, Generic, Literal, NotRequired, Union, cast
+from typing import Any, Literal, NotRequired, Union, cast
 
 import aiohttp
 import aiohttp.typedefs
@@ -21,7 +21,7 @@ import cattrs
 import cattrs.preconf.json
 import cattrs.strategies
 import toga
-from typing_extensions import TypedDict, TypeVar
+from typing_extensions import TypedDict
 from yarl import URL
 
 from instawow import config_ctx, http_ctx, matchers, pkg_management, sync_ctx
@@ -40,8 +40,6 @@ from instawow.pkg_archives._download import PkgDownloadProgress
 from instawow.pkg_db import models as pkg_models
 from instawow.progress_reporting import ReadOnlyProgressGroup, make_progress_receiver
 from instawow.wow_installations import Flavour, infer_flavour_from_addon_dir
-
-_T = TypeVar('_T')
 
 _toga_handle_var = contextvars.ContextVar[toga.App]('_toga_handle_var')
 _get_progress_var = contextvars.ContextVar[
@@ -65,14 +63,10 @@ class _LockOperation(tuple[object, str], enum.Enum):
 LOCALHOST = '127.0.0.1'
 
 
-_TJsonRpcMethod = TypeVar('_TJsonRpcMethod', bound=str)
-_TJsonRpcParams = TypeVar('_TJsonRpcParams')
-
-
-class _JsonRpcRequest(TypedDict, Generic[_TJsonRpcMethod, _TJsonRpcParams]):
+class _JsonRpcRequest[MethodT: str, ParamsT](TypedDict):
     jsonrpc: Literal['2.0']
-    method: _TJsonRpcMethod
-    params: _TJsonRpcParams
+    method: MethodT
+    params: ParamsT
     id: int | str
 
 
@@ -94,14 +88,15 @@ class _JsonRpcError(TypedDict):
     data: NotRequired[list[Any]]
 
 
-_MethodResponder = Callable[..., Awaitable[object]]
-_TMethodResponder = TypeVar('_TMethodResponder', bound=_MethodResponder)
+type _MethodResponder = Callable[..., Awaitable[object]]
 
 _methods = dict[str, tuple[type[_JsonRpcRequest[Any, Any]], _MethodResponder]]()
 
 
 def _register_method(method: str):
-    def wrapper(method_responder: _TMethodResponder) -> _TMethodResponder:
+    def wrapper[MethodResponderT: Callable[..., Awaitable[object]]](
+        method_responder: MethodResponderT,
+    ) -> MethodResponderT:
         params = get_annotations(method_responder)
         params.pop('return', None)
 
@@ -117,9 +112,9 @@ def _register_method(method: str):
     return wrapper
 
 
-class _SuccessResult(TypedDict, Generic[_T]):
+class _SuccessResult[T](TypedDict):
     status: Literal['success']
-    addon: _T
+    addon: T
 
 
 class _ErrorResult(TypedDict):

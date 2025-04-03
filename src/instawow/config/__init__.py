@@ -5,7 +5,7 @@ import sys
 from collections.abc import Iterator, Mapping, Sized
 from functools import lru_cache, partial
 from pathlib import Path
-from typing import NewType, Self, TypeVar
+from typing import NewType, Self
 
 import attrs
 
@@ -23,9 +23,6 @@ from ._helpers import (
 )
 from ._helpers import UninitialisedConfigError as UninitialisedConfigError
 from ._helpers import config_converter as config_converter
-
-_TSized = TypeVar('_TSized', bound=Sized)
-
 
 SecretStr = NewType('SecretStr', str)
 
@@ -46,7 +43,9 @@ def _validate_path_is_writable_dir(_model: object, _attr: attrs.Attribute[Path],
 
 def _make_validate_min_length(min_length: int):
     @enrich_validator_exc
-    def _validate_min_length(_model: object, _attr: attrs.Attribute[_TSized], value: _TSized):
+    def _validate_min_length[SizedT: Sized](
+        _model: object, _attr: attrs.Attribute[SizedT], value: SizedT
+    ):
         if len(value) < min_length:
             raise ValueError(f'Value must have a minimum length of {min_length}')
 

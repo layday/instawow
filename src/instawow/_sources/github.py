@@ -5,7 +5,7 @@ from collections.abc import Sequence
 from datetime import datetime, timedelta
 from enum import StrEnum
 from functools import partial
-from itertools import product, tee, zip_longest
+from itertools import batched, product, tee, zip_longest
 from typing import Any, Literal, Never
 from typing import NotRequired as N
 
@@ -15,7 +15,6 @@ from yarl import URL
 from .. import config_ctx, http, http_ctx
 from .._logging import logger
 from .._utils.aio import cancel_tasks
-from .._utils.iteration import batched
 from .._utils.web import as_plain_text_data_url, extract_byte_range_offset
 from ..catalogue.cataloguer import AddonKey, CatalogueEntry
 from ..definitions import ChangelogFormat, Defn, SourceMetadata, Strategy

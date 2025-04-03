@@ -3,18 +3,18 @@ from __future__ import annotations
 import inspect
 from collections.abc import Awaitable, Callable, Collection, Mapping, Set
 from functools import wraps
-from typing import Any, Literal, LiteralString, ParamSpec, Protocol, TypeAlias, overload
+from typing import Any, Literal, LiteralString, Protocol, overload
 
 from typing_extensions import TypeVar
 
 from .definitions import Strategies, Strategy
 from .pkg_db import models as pkg_models
 
-_TStatus = TypeVar('_TStatus', bound=LiteralString, default=Any)
+_StatusT = TypeVar('_StatusT', bound=LiteralString, default=Any)
 
 
-class Result(Protocol[_TStatus]):  # pragma: no cover
-    status: _TStatus
+class Result(Protocol[_StatusT]):  # pragma: no cover
+    status: _StatusT
 
     def __str__(self) -> str: ...
 
@@ -173,10 +173,7 @@ class InternalError(Result[Literal['error']], Exception):
         return f'internal error: "{self.args[0]}"'
 
 
-_T = TypeVar('_T')
-_P = ParamSpec('_P')
-
-AnyResult: TypeAlias = _T | ManagerError | InternalError
+type AnyResult[T] = T | ManagerError | InternalError
 
 
 def _handle_internal_error(error: BaseException):
@@ -194,18 +191,18 @@ def _handle_internal_error(error: BaseException):
 
 
 @overload
-def resultify(fn: Callable[_P, Awaitable[_T]]) -> Callable[_P, Awaitable[AnyResult[_T]]]: ...
+def resultify[**P, T](fn: Callable[P, Awaitable[T]]) -> Callable[P, Awaitable[AnyResult[T]]]: ...
 @overload
-def resultify(fn: Callable[_P, _T]) -> Callable[_P, AnyResult[_T]]: ...
+def resultify[**P, T](fn: Callable[P, T]) -> Callable[P, AnyResult[T]]: ...
 
 
-def resultify(fn: Callable[_P, object]):  # pyright: ignore[reportInconsistentOverload]
+def resultify[**P](fn: Callable[P, object]):  # pyright: ignore[reportInconsistentOverload]
     "Capture raw errors and wrap them around ``InternalError``."
 
     if inspect.iscoroutinefunction(fn):
 
         @wraps(fn)
-        async def async_wrapper(*args: _P.args, **kwargs: _P.kwargs):
+        async def async_wrapper(*args: P.args, **kwargs: P.kwargs):
             try:
                 return await fn(*args, **kwargs)
 
@@ -220,7 +217,7 @@ def resultify(fn: Callable[_P, object]):  # pyright: ignore[reportInconsistentOv
     else:
 
         @wraps(fn)
-        def sync_wrapper(*args: _P.args, **kwargs: _P.kwargs):
+        def sync_wrapper(*args: P.args, **kwargs: P.kwargs):
             try:
                 return fn(*args, **kwargs)
 

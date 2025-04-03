@@ -6,11 +6,9 @@ from collections.abc import Iterator
 from enum import Enum, StrEnum
 from functools import cache
 from pathlib import Path
-from typing import NotRequired, Self, TypedDict, TypeVar
+from typing import NotRequired, Self, TypedDict
 
 from ._utils.iteration import fill
-
-_TEnum = TypeVar('_TEnum', bound=Enum)
 
 
 class _FlavourMeta(TypedDict):
@@ -47,7 +45,7 @@ class Flavour(StrEnum):
     def from_flavour_keyed_enum(cls, flavour_keyed_enum: Enum) -> Self:
         return cls[flavour_keyed_enum.name]
 
-    def to_flavour_keyed_enum(self, flavour_keyed_enum: type[_TEnum]) -> _TEnum:
+    def to_flavour_keyed_enum[EnumT: Enum](self, flavour_keyed_enum: type[EnumT]) -> EnumT:
         return flavour_keyed_enum[self.name]
 
     def get_flavour_groups(self, affine: bool) -> list[tuple[Flavour, ...] | None]:

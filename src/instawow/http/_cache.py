@@ -6,14 +6,10 @@ import contextlib
 import contextvars
 import os
 from collections.abc import Callable, Set
-from typing import TypeVar, cast
+from typing import cast
 
 import aiohttp_client_cache
 import diskcache
-from typing_extensions import ParamSpec
-
-_U = TypeVar('_U')
-_P = ParamSpec('_P')
 
 
 @contextlib.asynccontextmanager
@@ -21,8 +17,8 @@ async def make_cache(cache_dir: os.PathLike[str]):
     with concurrent.futures.ThreadPoolExecutor(1, '_http_cache') as executor:
         loop = asyncio.get_running_loop()
 
-        def run_in_thread2(fn: Callable[_P, _U]):
-            async def wrapper(*args: _P.args, **kwargs: _P.kwargs):
+        def run_in_thread2[**P, T](fn: Callable[P, T]):
+            async def wrapper(*args: P.args, **kwargs: P.kwargs):
                 return await loop.run_in_executor(
                     executor, lambda: contextvars.copy_context().run(fn, *args, **kwargs)
                 )

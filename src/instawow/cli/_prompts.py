@@ -6,7 +6,7 @@ import enum
 from collections.abc import Hashable, Mapping, Sequence
 from contextlib import contextmanager
 from inspect import signature
-from typing import Any, Generic, Literal, Never, Self, TypedDict, TypeVar, overload
+from typing import Any, Literal, Never, Self, TypedDict, overload
 
 import attrs
 import cattrs
@@ -39,8 +39,6 @@ from prompt_toolkit.widgets import Label
 
 from .._utils.attrs import fauxfrozen
 from .._utils.web import open_url
-
-_T = TypeVar('_T')
 
 
 def make_attrs_field_validator(
@@ -77,21 +75,21 @@ def make_attrs_field_validator(
 
 
 @fauxfrozen
-class Choice(Generic[_T]):
+class Choice[T]:
     label: str | StyleAndTextTuples
-    value: _T
+    value: T
     disabled: bool = False
     browser_url: str | None = None
 
 
-class _FauxPromptSession(Generic[_T]):
-    def __init__(self, application: Application[_T]) -> None:
+class _FauxPromptSession[T]:
+    def __init__(self, application: Application[T]) -> None:
         self.application = application
 
-    def prompt(self) -> _T:
+    def prompt(self) -> T:
         return self.application.run()
 
-    async def prompt_async(self) -> _T:
+    async def prompt_async(self) -> T:
         return await self.application.run_async()
 
 
@@ -184,10 +182,10 @@ def password(message: str) -> PromptSession[str]:
     return session
 
 
-def select_multiple(
+def select_multiple[T](
     message: str,
-    choices: Sequence[Choice[_T]],
-) -> _FauxPromptSession[list[_T]]:
+    choices: Sequence[Choice[T]],
+) -> _FauxPromptSession[list[T]]:
     bindings = KeyBindings()
 
     answered = False
@@ -270,7 +268,7 @@ def select_multiple(
 
         return tokens[:-1]
 
-    app = Application[list[_T]](
+    app = Application[list[T]](
         key_bindings=bindings,
         layout=Layout(
             HSplit(
@@ -289,29 +287,29 @@ def select_multiple(
 
 
 @overload
-def select_one(
+def select_one[T](
     message: str,
-    choices: Sequence[Choice[_T]],
+    choices: Sequence[Choice[T]],
     *,
     can_skip: Literal[True],
-    initial_value: _T | None = None,
-) -> _FauxPromptSession[_T | Literal[_Skip.Skip]]: ...
+    initial_value: T | None = None,
+) -> _FauxPromptSession[T | Literal[_Skip.Skip]]: ...
 @overload
-def select_one(
+def select_one[T](
     message: str,
-    choices: Sequence[Choice[_T]],
+    choices: Sequence[Choice[T]],
     *,
     can_skip: Literal[False] = False,
-    initial_value: _T | None = None,
-) -> _FauxPromptSession[_T]: ...
+    initial_value: T | None = None,
+) -> _FauxPromptSession[T]: ...
 
 
-def select_one(
+def select_one[T](
     message: str,
-    choices: Sequence[Choice[_T]],
+    choices: Sequence[Choice[T]],
     *,
     can_skip: bool = False,
-    initial_value: _T | None = None,
+    initial_value: T | None = None,
 ) -> _FauxPromptSession[Any]:
     bindings = KeyBindings()
 

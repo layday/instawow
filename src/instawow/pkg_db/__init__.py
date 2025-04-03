@@ -4,10 +4,9 @@ import os
 import sqlite3
 from collections.abc import Iterator
 from contextlib import ExitStack, closing, contextmanager
-from typing import TypeAlias
 
-Connection: TypeAlias = sqlite3.Connection
-Row: TypeAlias = sqlite3.Row
+type Connection = sqlite3.Connection
+type Row = sqlite3.Row
 
 
 _VERSION = 1
