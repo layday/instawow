@@ -28,28 +28,8 @@ class _AccessTokens:
 
 
 @fauxfrozen
-class _PluginConfigStub:
+class PluginConfig:
     profile_config: ProfileConfig
-
-    @property
-    def cache_dir(self) -> Path:
-        return self.profile_config.global_config.plugins_cache_dir / NAME
-
-    @property
-    def config_dir(self) -> Path:
-        return self.profile_config.global_config.plugins_config_dir / NAME
-
-    @property
-    def profile_cache_dir(self) -> Path:
-        return self.cache_dir / 'profiles' / self.profile_config.profile
-
-    @property
-    def config_file(self) -> Path:
-        return self.config_dir / 'config.json'
-
-
-@fauxfrozen
-class PluginConfig(_PluginConfigStub):
     access_tokens: _AccessTokens = attrs.field(
         default=_AccessTokens(),
         metadata=FieldMetadata(env=NAME, preparse_from_env=True, store=True),
@@ -65,7 +45,7 @@ class PluginConfig(_PluginConfigStub):
     def read(cls, profile_config: ProfileConfig, *, env: bool = True) -> Self:
         return cls.from_values(
             {
-                **read_config(cls, _PluginConfigStub(profile_config).config_file, missing_ok=True),
+                **read_config(cls, cls(profile_config).config_file, missing_ok=True),
                 'profile_config': profile_config,
             },
             env=env,
@@ -85,3 +65,19 @@ class PluginConfig(_PluginConfigStub):
         self.ensure_dirs()
         write_config(self, self.config_file)
         return self
+
+    @property
+    def cache_dir(self) -> Path:
+        return self.profile_config.global_config.plugins_cache_dir / NAME
+
+    @property
+    def config_dir(self) -> Path:
+        return self.profile_config.global_config.plugins_config_dir / NAME
+
+    @property
+    def profile_cache_dir(self) -> Path:
+        return self.cache_dir / 'profiles' / self.profile_config.profile
+
+    @property
+    def config_file(self) -> Path:
+        return self.config_dir / 'config.json'
