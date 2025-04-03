@@ -100,8 +100,7 @@ class GithubResolver(BaseResolver):
     def access_token():
         return config_ctx.config().global_config.access_tokens.github, False
 
-    @classmethod
-    def get_alias_from_url(cls, url: URL):
+    def get_alias_from_url(self, url: URL):
         if url.host == 'github.com' and len(url.parts) > 2:
             return '/'.join(url.parts[1:3])
 
@@ -497,15 +496,14 @@ class GithubResolver(BaseResolver):
             changelog_url=as_plain_text_data_url(release['body']),
         )
 
-    @classmethod
-    async def catalogue(cls):
+    async def catalogue(self):
         import csv
         from io import StringIO
 
-        logger.debug(f'Retrieving {cls.__generated_catalogue_csv_url}')
+        logger.debug(f'Retrieving {self.__generated_catalogue_csv_url}')
 
         async with http_ctx.web_client().get(
-            cls.__generated_catalogue_csv_url, raise_for_status=True
+            self.__generated_catalogue_csv_url, raise_for_status=True
         ) as response:
             catalogue_csv = await response.text()
 
@@ -526,7 +524,7 @@ class GithubResolver(BaseResolver):
 
         for entry in dict_reader:
             yield CatalogueEntry(
-                source=cls.metadata.id,
+                source=self.metadata.id,
                 id=entry['id'],
                 slug=entry['full_name'].lower(),
                 name=entry['name'],

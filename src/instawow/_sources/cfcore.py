@@ -266,8 +266,7 @@ class CfCoreResolver(BaseResolver):
     def access_token():
         return config_ctx.config().global_config.access_tokens.cfcore, not _alternative_api_url
 
-    @classmethod
-    def get_alias_from_url(cls, url: URL):
+    def get_alias_from_url(self, url: URL):
         if (
             url.host == 'www.curseforge.com'
             and len(url.parts) > 3
@@ -449,8 +448,7 @@ class CfCoreResolver(BaseResolver):
             response_json: _CfCoreDataResponse[str] = await response.json()
             return response_json['data']
 
-    @classmethod
-    async def catalogue(cls):
+    async def catalogue(self):
         from aiohttp import ClientTimeout
 
         flavours_and_version_types = [
@@ -479,12 +477,12 @@ class CfCoreResolver(BaseResolver):
             raise_for_status=True,
             timeout=ClientTimeout(total=10),
         )
-        access_token = cls.access_token.get()
+        access_token = self.access_token.get()
         if access_token:
             get = partial(get, headers={'x-api-key': access_token})
 
         for offset in range(0, MAX_OFFSET, STEP):
-            url = (cls.__mod_api_url / 'search').with_query(
+            url = (self.__mod_api_url / 'search').with_query(
                 gameId=_CF_WOW_GAME_ID,
                 sortField=_CfCoreModsSearchSortField.LastUpdated,
                 sortOrder='desc',
@@ -511,7 +509,7 @@ class CfCoreResolver(BaseResolver):
 
             for item in items:
                 yield CatalogueEntry(
-                    source=cls.metadata.id,
+                    source=self.metadata.id,
                     id=str(item['id']),
                     slug=item['slug'],
                     name=item['name'],

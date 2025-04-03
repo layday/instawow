@@ -99,8 +99,7 @@ class WowiResolver(BaseResolver):
     __list_api_url = 'https://api.mmoui.com/v3/game/WOW/filelist.json'
     __details_api_url = URL('https://api.mmoui.com/v3/game/WOW/filedetails/')
 
-    @classmethod
-    def get_alias_from_url(cls, url: URL):
+    def get_alias_from_url(self, url: URL):
         if (
             url.host in {'wowinterface.com', 'www.wowinterface.com'}
             and len(url.parts) == 3
@@ -179,12 +178,11 @@ class WowiResolver(BaseResolver):
             changelog_url=as_plain_text_data_url(metadata['UIChangeLog']),
         )
 
-    @classmethod
-    async def catalogue(cls):
-        logger.debug(f'Retrieving {cls.__list_api_url}')
+    async def catalogue(self):
+        logger.debug(f'Retrieving {self.__list_api_url}')
 
         async with http_ctx.web_client().get(
-            cls.__list_api_url, raise_for_status=True
+            self.__list_api_url, raise_for_status=True
         ) as response:
             items: list[_WowiListApiItem] = await response.json()
 
@@ -209,7 +207,7 @@ class WowiResolver(BaseResolver):
                         )
 
             yield CatalogueEntry(
-                source=cls.metadata.id,
+                source=self.metadata.id,
                 id=item['UID'],
                 name=item['UIName'],
                 url=item['UIFileInfoURL'],

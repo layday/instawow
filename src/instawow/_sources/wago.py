@@ -72,8 +72,7 @@ class WagoResolver(BaseResolver):
     def access_token():
         return config_ctx.config().global_config.access_tokens.wago_addons, True
 
-    @classmethod
-    def get_alias_from_url(cls, url: URL):
+    def get_alias_from_url(self, url: URL):
         if url.host == 'addons.wago.io' and len(url.parts) > 2 and url.parts[1] == 'addons':
             return url.parts[2]
 

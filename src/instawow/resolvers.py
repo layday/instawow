@@ -7,7 +7,6 @@ from functools import cached_property, partial, wraps
 from pathlib import Path
 from typing import (
     Any,
-    ClassVar,
     Generic,
     Literal,
     NotRequired,
@@ -80,17 +79,16 @@ class PkgCandidate(TypedDict):
 
 
 class Resolver(Protocol):  # pragma: no cover
-    metadata: ClassVar[SourceMetadata]
+    metadata: SourceMetadata
     'Static source metadata.'
 
-    access_token: ClassVar[AccessToken[bool] | None]
+    access_token: AccessToken[bool] | None
     'Access token retriever.'
 
-    archive_opener: ClassVar[pkg_archives.ArchiveOpener | None]
+    archive_opener: pkg_archives.ArchiveOpener | None
     'Alternative archive opener to use supporting e.g. non-standard archive formats or layouts.'
 
-    @classmethod
-    def get_alias_from_url(cls, url: URL) -> str | None:
+    def get_alias_from_url(self, url: URL) -> str | None:
         "Attempt to extract a ``Defn`` alias from a given URL."
         ...
 
@@ -110,8 +108,7 @@ class Resolver(Protocol):  # pragma: no cover
         "Retrieve a changelog from a URI."
         ...
 
-    @classmethod
-    def catalogue(cls) -> AsyncIterator[cataloguer.CatalogueEntry]:
+    def catalogue(self) -> AsyncIterator[cataloguer.CatalogueEntry]:
         "Enumerate add-ons from the source."
         ...
 
@@ -135,8 +132,7 @@ class BaseResolver(Resolver, Protocol):
 
             return await old_resolve_one(self, defn, metadata)
 
-    @classmethod
-    def get_alias_from_url(cls, url: URL) -> str | None:
+    def get_alias_from_url(self, url: URL) -> str | None:
         return None
 
     def make_request_headers(self, intent: HeadersIntent | None = None) -> dict[str, str] | None:
@@ -182,8 +178,7 @@ class BaseResolver(Resolver, Protocol):
             case _:
                 raise ValueError('Unsupported URI with scheme', uri.scheme)
 
-    @classmethod
-    async def catalogue(cls) -> AsyncIterator[cataloguer.CatalogueEntry]:
+    async def catalogue(self) -> AsyncIterator[cataloguer.CatalogueEntry]:
         return
         yield
 

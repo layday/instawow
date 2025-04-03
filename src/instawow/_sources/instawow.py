@@ -54,10 +54,9 @@ class InstawowResolver(BaseResolver):
             changelog_url=builder.build_paths.changelog.as_uri(),
         )
 
-    @classmethod
-    async def catalogue(cls):
+    async def catalogue(self):
         yield CatalogueEntry(
-            source=cls.metadata.id,
+            source=self.metadata.id,
             id='1',
             slug='weakauras-companion-autoupdate',
             name='WeakAuras Companion',

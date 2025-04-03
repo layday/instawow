@@ -80,9 +80,8 @@ class TukuiResolver(BaseResolver):
             ),
         )
 
-    @classmethod
-    async def catalogue(cls):
-        url = cls.__api_url / 'addons'
+    async def catalogue(self):
+        url = self.__api_url / 'addons'
         logger.debug(f'Retrieving {url}')
 
         async with http_ctx.web_client().get(url, raise_for_status=True) as response:
@@ -90,7 +89,7 @@ class TukuiResolver(BaseResolver):
 
         for item in items:
             yield CatalogueEntry(
-                source=cls.metadata.id,
+                source=self.metadata.id,
                 id=str(item['id']),
                 slug=item['slug'],
                 name=item['name'],
