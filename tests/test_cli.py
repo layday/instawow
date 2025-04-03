@@ -99,7 +99,9 @@ def test_reconciled_folder_conflict_on_install():
     )
 
 
-def test_unreconciled_folder_conflict_on_install(iw_profile_config):
+def test_unreconciled_folder_conflict_on_install(
+    iw_profile_config: ProfileConfig,
+):
     iw_profile_config.addon_dir.joinpath('Molinari').mkdir()
     assert (
         run('install curse:molinari').output
@@ -110,7 +112,9 @@ def test_unreconciled_folder_conflict_on_install(iw_profile_config):
     )
 
 
-def test_keep_folders_on_remove(iw_profile_config):
+def test_keep_folders_on_remove(
+    iw_profile_config: ProfileConfig,
+):
     install_molinari()
     assert run('remove --keep-folders curse:molinari').output == '✓ curse:molinari\n  removed\n'
     assert iw_profile_config.addon_dir.joinpath('Molinari').is_dir()
@@ -201,7 +205,9 @@ def test_install_dry_run():
     )
 
 
-def test_debug_config(iw_profile_config):
+def test_debug_config(
+    iw_profile_config: ProfileConfig,
+):
     assert (
         run('debug config').output
         == json.dumps(iw_profile_config.unstructure_for_display(), indent=2) + '\n'
@@ -357,7 +363,9 @@ def test_reconcile_leftovers(
     )
 
 
-def test_reconcile__auto_reconcile(iw_profile_config):
+def test_reconcile__auto_reconcile(
+    iw_profile_config: ProfileConfig,
+):
     pretend_install_molinari(iw_profile_config)
     assert run('reconcile --auto').output == dedent(
         """\
