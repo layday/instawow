@@ -1,4 +1,5 @@
 {
+  "typeCheckingMode": "standard",
   "include": [
     "src",
     "instawow-gui/src",
