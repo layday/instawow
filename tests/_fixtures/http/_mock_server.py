@@ -4,7 +4,7 @@ Trimmed down version of aresponses.
 
 from __future__ import annotations
 
-import asyncio
+import inspect
 import re
 from collections.abc import Awaitable, Callable, Sequence
 from copy import copy
@@ -69,7 +69,7 @@ class ResponsesMockServer(RawTestServer):
 
             match route.response:
                 case Callable() as fn:
-                    return await fn(request) if asyncio.iscoroutinefunction(fn) else fn(request)  # pyright: ignore[reportReturnType]
+                    return await fn(request) if inspect.iscoroutinefunction(fn) else fn(request)  # pyright: ignore[reportReturnType]
                 case str() as text:
                     return Response(body=text)
                 case (dict() | list()) as json:
