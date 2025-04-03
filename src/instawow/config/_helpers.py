@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import os
 from collections.abc import Iterable, Mapping
-from functools import lru_cache, partial
+from functools import lru_cache
 from pathlib import Path
 from typing import Any, TypedDict, TypeVar
 
@@ -19,7 +19,7 @@ _missing = object()
 
 
 class FieldMetadata(TypedDict, total=False):
-    env: bool
+    env: str
     preparse_from_env: bool
     store: bool
 
@@ -92,7 +92,7 @@ def _compute_var(field: attrs.Attribute[object], default: object):
     if not env:
         return default
 
-    value = os.environ.get(f'{"instawow" if env is True else env}_{field.name}'.upper())
+    value = os.environ.get(f'{env}_{field.name}'.upper())
     if value is None:
         return default
     elif field.metadata.get('preparse_from_env'):
@@ -110,17 +110,15 @@ def read_env_vars(config_cls: type, values: Mapping[str, object]) -> dict[str, o
     }
 
 
-def _make_attrs_instance_hook_factory(converter: cattrs.Converter, type_: type[Any]):
+config_converter = make_config_converter()
+
+
+@config_converter.register_structure_hook_factory(attrs.has)
+def _(type_: type[Any]):
     "Allow passing in a structured attrs instance to ``structure``."
-    structure = converter.gen_structure_attrs_fromdict(type_)
+    structure = config_converter.gen_structure_attrs_fromdict(type_)
 
     def structure_wrapper(value: Mapping[str, Any], type_: type[Any]):
         return value if isinstance(value, type_) else structure(value, type_)
 
     return structure_wrapper
-
-
-config_converter = make_config_converter()
-config_converter.register_structure_hook_factory(
-    attrs.has, partial(_make_attrs_instance_hook_factory, config_converter)
-)

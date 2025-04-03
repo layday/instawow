@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 import sys
 from collections.abc import Iterator, Mapping, Sized
-from functools import lru_cache
+from functools import lru_cache, partial
 from pathlib import Path
 from typing import NewType, Self, TypeVar
 
@@ -24,7 +24,6 @@ from ._helpers import (
 from ._helpers import UninitialisedConfigError as UninitialisedConfigError
 from ._helpers import config_converter as config_converter
 
-_T = TypeVar('_T')
 _TSized = TypeVar('_TSized', bound=Sized)
 
 
@@ -54,24 +53,20 @@ def _make_validate_min_length(min_length: int):
     return _validate_min_length
 
 
-def _unstructure_config_for_display(config: object):
-    converter = _make_display_converter()
-    return converter.unstructure(config)
-
-
 @lru_cache(1)
 def _make_display_converter():
-    def convert_secret_string(value: str):
-        return '**********'
+    converter = make_config_converter()
 
-    def convert_global_config(global_config: GlobalConfig):
+    @partial(converter.register_unstructure_hook, GlobalConfig)
+    def _(global_config: GlobalConfig):
         return converter.unstructure_attrs_asdict(global_config) | {
             'profiles': list(global_config.iter_profiles())
         }
 
-    converter = make_config_converter()
-    converter.register_unstructure_hook(GlobalConfig, convert_global_config)
-    converter.register_unstructure_hook(SecretStr, convert_secret_string)
+    @partial(converter.register_unstructure_hook, SecretStr)
+    def _(value: str):
+        return '*' * 10
+
     return converter
 
 
@@ -138,25 +133,25 @@ class GlobalConfig:
     config_dir: Path = attrs.field(
         factory=_get_default_config_dir,
         converter=_expand_path,
-        metadata=FieldMetadata(env=True),
+        metadata=FieldMetadata(env=NAME),
     )
     cache_dir: Path = attrs.field(
         factory=_get_default_cache_dir,
         converter=_expand_path,
-        metadata=FieldMetadata(env=True),
+        metadata=FieldMetadata(env=NAME),
     )
     state_dir: Path = attrs.field(
         factory=_get_default_state_dir,
         converter=_expand_path,
-        metadata=FieldMetadata(env=True),
+        metadata=FieldMetadata(env=NAME),
     )
     auto_update_check: bool = attrs.field(
         default=True,
-        metadata=FieldMetadata(env=True, preparse_from_env=True, store=True),
+        metadata=FieldMetadata(env=NAME, preparse_from_env=True, store=True),
     )
     access_tokens: _AccessTokens = attrs.field(
         default=_AccessTokens(),
-        metadata=FieldMetadata(env=True, preparse_from_env=True, store=True),
+        metadata=FieldMetadata(env=NAME, preparse_from_env=True, store=True),
     )
 
     @classmethod
@@ -226,20 +221,20 @@ class GlobalConfig:
         return self.config_dir / 'config.json'
 
     @property
-    def profiles_config_dir(self) -> Path:
-        return self.config_dir / 'profiles'
-
-    @property
     def plugins_config_dir(self) -> Path:
         return self.config_dir / 'plugins'
 
     @property
-    def profiles_state_dir(self) -> Path:
-        return self.state_dir / 'profiles'
-
-    @property
     def plugins_state_dir(self) -> Path:
         return self.state_dir / 'plugins'
+
+    @property
+    def profiles_config_dir(self) -> Path:
+        return self.config_dir / 'profiles'
+
+    @property
+    def profiles_state_dir(self) -> Path:
+        return self.state_dir / 'profiles'
 
 
 @fauxfrozen
@@ -248,7 +243,7 @@ class _ProfileConfigStub:
     profile: str = attrs.field(
         converter=str.strip,
         validator=_make_validate_min_length(1),
-        metadata=FieldMetadata(env=True, store=True),
+        metadata=FieldMetadata(env=NAME, store=True),
     )
 
     @property
@@ -273,10 +268,10 @@ class ProfileConfig(_ProfileConfigStub):
     addon_dir: Path = attrs.field(
         converter=_expand_path,
         validator=_validate_path_is_writable_dir,
-        metadata=FieldMetadata(env=True, store=True),
+        metadata=FieldMetadata(env=NAME, store=True),
     )
     game_flavour: Flavour = attrs.field(
-        metadata=FieldMetadata(env=True, store=True),
+        metadata=FieldMetadata(env=NAME, store=True),
     )
 
     @classmethod
@@ -296,7 +291,7 @@ class ProfileConfig(_ProfileConfigStub):
         )
 
     def unstructure_for_display(self) -> str:
-        return _unstructure_config_for_display(self)
+        return _make_display_converter().unstructure(self)
 
     def ensure_dirs(self) -> Self:
         ensure_dirs(
