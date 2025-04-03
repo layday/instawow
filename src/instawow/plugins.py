@@ -8,8 +8,7 @@ import click
 import pluggy
 
 from . import NAME, resolvers
-
-_entry_point = f'{NAME}.plugins'
+from ._utils.plugins import iter_entry_point_plugins
 
 hookspec = pluggy.HookspecMarker(NAME)
 hookimpl = pluggy.HookimplMarker(NAME)
@@ -33,7 +32,10 @@ class InstawowPlugin(Protocol):  # pragma: no cover
 def _load_plugins():
     plugin_manager = pluggy.PluginManager(NAME)
     plugin_manager.add_hookspecs(InstawowPlugin)
-    plugin_manager.load_setuptools_entrypoints(_entry_point)
+
+    for name, load_plugin in iter_entry_point_plugins(f'{NAME}.plugins'):
+        plugin_manager.register(load_plugin(), name=name)
+
     return plugin_manager.hook
 
 
