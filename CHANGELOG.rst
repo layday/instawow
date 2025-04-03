@@ -1,6 +1,12 @@
 Changelog
 =========
 
+
+v6.0.0
+------
+
+- Wago has been removed as a default add-on source.
+
 v5.0.0
 ------
 

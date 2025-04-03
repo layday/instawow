@@ -42,7 +42,6 @@ export type GlobalConfig = {
   access_tokens: {
     cfcore: string | null;
     github: string | null;
-    wago_addons: string | null;
   };
 };
 

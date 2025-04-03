@@ -122,10 +122,6 @@ class _AccessTokens:
         default=None,
         metadata=FieldMetadata(store=True),
     )
-    wago_addons: SecretStr | None = attrs.field(
-        default=None,
-        metadata=FieldMetadata(store=True),
-    )
 
 
 @fauxfrozen

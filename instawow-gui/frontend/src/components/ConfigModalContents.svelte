@@ -6,14 +6,9 @@
 
   let githubAuthFlowShouldStart = $state(false);
   let newCfcoreAccessToken = $state<string | null>(null);
-  let newWagoAccessToken = $state<string | null>(null);
 
   const updateCfCoreAccessToken = async () => {
     await api.updateGlobalConfig({ cfcore: newCfcoreAccessToken });
-  };
-
-  const updateWagoAccessToken = async () => {
-    await api.updateGlobalConfig({ wago_addons: newWagoAccessToken });
   };
 
   const queryGithubAuthFlowStatus = async () => {
@@ -101,33 +96,6 @@
           >
             CurseForge for Studios
           </button> to generate a key.
-        </div>
-      </div>
-      <label for="__wago-input-box">Wago:</label>
-      <div class="value-rows">
-        <input
-          id="__wago-input-box"
-          class="form-control"
-          type="password"
-          value={access_tokens.wago_addons}
-          oninput={(e) => (newWagoAccessToken = e.currentTarget.value || null)}
-        />
-        <button
-          class="form-control primary"
-          disabled={newWagoAccessToken === undefined}
-          onclick={() => updateWagoAccessToken()}>update</button
-        >
-        <div class="description">
-          An access token is required to use Wago Addons. Wago issues tokens to
-          <button
-            role="link"
-            onclick={(e) => {
-              e.preventDefault();
-              api.openUrl("https://addons.wago.io/patreon");
-            }}
-          >
-            Patreon
-          </button> subscribers above a certain tier.
         </div>
       </div>
     </div>

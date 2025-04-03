@@ -74,7 +74,6 @@ async def test_reconcile_invalid_addons_discarded():
                 Defn('curse', '20338'),
                 Defn('wowi', '13188'),
                 Defn('github', '388670'),
-                Defn('wago', 'WqKQQEKx'),
             },
         ),
         (
