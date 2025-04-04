@@ -236,7 +236,7 @@ class Resolvers(dict[str, Resolver]):
         return _ResolverPriorityDict(self)
 
 
-class _ResolverArchiveOpenerDict(dict[str, pkg_archives.ArchiveOpener]):
+class _ResolverArchiveOpenerDict(dict[str, 'pkg_archives.ArchiveOpener']):
     def __init__(self, resolvers: Resolvers) -> None:
         super().__init__(
             (r.metadata.id, r.archive_opener) for r in resolvers.values() if r.archive_opener
