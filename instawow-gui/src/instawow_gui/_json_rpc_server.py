@@ -42,6 +42,8 @@ from instawow.progress_reporting import ReadOnlyProgressGroup, make_progress_rec
 from instawow.wow_installations import Flavour, infer_flavour_from_addon_dir
 
 _toga_handle_var = contextvars.ContextVar[toga.App]('_toga_handle_var')
+
+_global_config_var = contextvars.ContextVar[GlobalConfig]('_global_config_var')
 _get_progress_var = contextvars.ContextVar[
     Callable[[], ReadOnlyProgressGroup[PkgDownloadProgress]]
 ]('_get_progress_var')
@@ -124,7 +126,7 @@ class _ErrorResult(TypedDict):
 
 @_register_method('config/list_profiles')
 async def list_profiles() -> dict[str, ProfileConfig]:
-    global_config = await _read_global_config()
+    global_config = _global_config_var.get()
     profiles = await run_in_thread(list[str])(global_config.iter_profiles())
 
     async def get_profile_configs():
@@ -146,7 +148,7 @@ async def write_profile_config(
     async with sync_ctx.locks()[*_LockOperation.ModifyProfile, profile]:
         config = config_converter.structure(
             {
-                'global_config': await _read_global_config(),
+                'global_config': _global_config_var.get(),
                 'profile': profile,
                 'addon_dir': addon_dir,
                 'game_flavour': game_flavour,
@@ -176,7 +178,7 @@ async def delete_profile(profile: str) -> None:
 
 @_register_method('config/read_global')
 async def read_global_config() -> GlobalConfig:
-    return await _read_global_config()
+    return _global_config_var.get()
 
 
 @_register_method('config/update_global')
@@ -429,13 +431,18 @@ async def respond(profile: str) -> list[TypedDict[{'defn': Defn, 'progress': flo
 async def get_instawow_version() -> TypedDict[
     {'installed_version': str, 'new_version': str | None}
 ]:
-    from instawow import _version
+    from instawow._version import get_version, is_outdated
 
-    outdated, new_version = await _version.is_outdated(await _read_global_config())
-    return {
-        'installed_version': _version.get_version(),
-        'new_version': new_version if outdated else None,
-    }
+    installed_version = get_version()
+    new_version = None
+
+    global_config = _global_config_var.get()
+    if global_config.auto_update_check:
+        outdated, maybe_new_version = await is_outdated(installed_version)
+        if outdated:
+            new_version = maybe_new_version
+
+    return {'installed_version': installed_version, 'new_version': new_version}
 
 
 @_register_method('assist/open_url')
@@ -559,7 +566,7 @@ async def _load_profile(profile: str):
                 config_party = config_parties[profile]
             except KeyError:
                 config_party = config_parties[profile] = config_ctx.ConfigParty.from_config(
-                    await _read_profile_config(await _read_global_config(), profile)
+                    await _read_profile_config(_global_config_var.get(), profile)
                 )
 
     config_ctx.config.set(config_party)
@@ -580,6 +587,7 @@ async def _update_global_config(update: Callable[[GlobalConfig], GlobalConfig]):
         global_config = update(await _read_global_config())
         await run_in_thread(global_config.write)()
 
+        _global_config_var.set(global_config)
         _unload_profiles()
 
         return global_config
@@ -650,6 +658,7 @@ async def create_web_app(toga_handle: toga.App | None = None):
             )
 
             global_config = await _read_global_config()
+            _global_config_var.set(global_config)
 
             web_client = await exit_stack.enter_async_context(
                 init_web_client(global_config.http_cache_dir, with_progress=True)

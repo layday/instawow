@@ -58,9 +58,22 @@ class Report:
     def generate(self) -> None:
         config = config_ctx.config()
         if config.global_config.auto_update_check:
-            from .._version import is_outdated
+            click_ctx = click.get_current_context().find_root()
 
-            outdated, new_version = run_with_progress(is_outdated(config.global_config))
+            async def run_is_outdated():
+                from .. import http_ctx
+                from .._version import is_outdated
+                from ..http import init_web_client
+
+                async with init_web_client(
+                    config_ctx.config().global_config.http_cache_dir,
+                    no_cache=click_ctx.params['no_cache'],
+                ) as web_client:
+                    http_ctx.web_client.set(web_client)
+
+                    return await is_outdated()
+
+            outdated, new_version = run_with_progress(run_is_outdated())
             if outdated:
                 click.echo(f'{self.WARNING_SYMBOL} instawow v{new_version} is available')
 

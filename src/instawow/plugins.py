@@ -8,7 +8,7 @@ import click
 import pluggy
 
 from . import NAME, resolvers
-from ._utils.plugins import iter_entry_point_plugins
+from ._utils.dist_metadata import iter_entry_point_plugins
 
 hookspec = pluggy.HookspecMarker(NAME)
 hookimpl = pluggy.HookimplMarker(NAME)
