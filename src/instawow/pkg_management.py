@@ -669,7 +669,7 @@ async def update(
             # corresponding installed package.  Using the ID has the benefit
             # of resolving installed-but-renamed packages - the slug is
             # transient but the ID isn't
-            evolve(d, {'id': p.id}) if d.strategies.initialised else p.to_defn(): d
+            evolve(d, {'id': p.id}) if d.strategies else p.to_defn(): d
             for d, p in defns_to_pkgs.items()
         }
 

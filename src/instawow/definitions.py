@@ -32,8 +32,6 @@ class SourceMetadata:
 
 
 class Strategies(Mapping[Strategy, object], Hashable):
-    initialised = True
-
     def __init__(
         self, entries: Mapping[Strategy, object] | Iterable[tuple[Strategy, object]] = ()
     ) -> None:
@@ -65,7 +63,8 @@ class Strategies(Mapping[Strategy, object], Hashable):
 
 
 class _UninitialisedStrategies(Strategies):
-    initialised = False
+    def __bool__(self):
+        return False
 
 
 _STRATEGY_SEP = ','
