@@ -31,7 +31,7 @@ from instawow._logging import logger
 from instawow._utils.aio import cancel_tasks, run_in_thread
 from instawow._utils.attrs import evolve
 from instawow._utils.iteration import WeakValueDefaultDictionary, uniq
-from instawow.catalogue.cataloguer import ComputedCatalogueEntry
+from instawow.catalogue.cataloguer import CatalogueEntry
 from instawow.catalogue.search import search as search_catalogue
 from instawow.config import GlobalConfig, ProfileConfig, SecretStr, config_converter
 from instawow.definitions import Defn, SourceMetadata, Strategies
@@ -232,7 +232,7 @@ async def search_pkgs(
     sources: set[str],
     start_date: datetime | None,
     installed_only: bool,
-) -> list[ComputedCatalogueEntry]:
+) -> list[CatalogueEntry]:
     async with _load_profile(profile):
         return await search_catalogue(
             search_terms,

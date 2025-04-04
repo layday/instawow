@@ -5,9 +5,8 @@ from typing import TypedDict
 
 from .. import config_ctx
 from .._utils.aio import run_in_thread
-from ..catalogue.cataloguer import CatalogueEntry
 from ..definitions import ChangelogFormat, Defn, SourceMetadata
-from ..resolvers import BaseResolver, PkgCandidate
+from ..resolvers import BaseResolver, CatalogueEntryCandidate, PkgCandidate
 from ..results import PkgNonexistent
 from ..wow_installations import Flavour
 
@@ -59,8 +58,7 @@ class InstawowResolver(BaseResolver):
         )
 
     async def catalogue(self):
-        yield CatalogueEntry(
-            source=self.metadata.id,
+        yield CatalogueEntryCandidate(
             id='1',
             slug='weakauras-companion-autoupdate',
             name='WeakAuras Companion',

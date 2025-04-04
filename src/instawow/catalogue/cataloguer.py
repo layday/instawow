@@ -3,14 +3,12 @@ from __future__ import annotations
 from collections.abc import Set
 from datetime import datetime
 from functools import cached_property
-from types import SimpleNamespace
-from typing import Any, Self, cast
+from typing import Any, Self
 
-import attrs
 import cattrs
 import cattrs.preconf.json
 
-from .. import config, config_ctx, http, http_ctx
+from .. import config_ctx
 from .._utils.attrs import fauxfrozen
 from .._utils.iteration import bucketise
 from .._utils.text import normalise_names
@@ -38,54 +36,42 @@ class AddonKey:
 
 @fauxfrozen(kw_only=True)
 class CatalogueEntry(AddonKey):
-    slug: str = ''
+    slug: str
     name: str
     url: str
     game_flavours: frozenset[Flavour]
     download_count: int
     last_updated: datetime
-    folders: list[frozenset[str]] = attrs.field(factory=list)
-    same_as: list[AddonKey] = attrs.field(factory=list)
-
-
-@fauxfrozen(kw_only=True)
-class ComputedCatalogueEntry(CatalogueEntry):
+    folders: list[frozenset[str]]
+    same_as: list[AddonKey]
     normalised_name: str
     derived_download_score: float
 
 
-@fauxfrozen(kw_only=True)
-class Catalogue:
-    version: int = CATALOGUE_VERSION
-    entries: list[CatalogueEntry]
-
-    @classmethod
-    async def collate(cls, start_date: datetime | None) -> Self:
-        global_config = config.GlobalConfig.from_values(env=True)
-
-        @config_ctx.config.set
-        def _():
-            return cast(
-                'config.ProfileConfig',
-                SimpleNamespace(global_config=global_config),
-            )
-
-        async with http.init_web_client(global_config.http_cache_dir) as web_client:
-            http_ctx.web_client.set(web_client)
-
-            entries = [e for r in config_ctx.resolvers().values() async for e in r.catalogue()]
-            if start_date is not None:
-                entries = [e for e in entries if e.last_updated >= start_date]
-            return cls(entries=entries)
-
-    def to_json_dict(self) -> Any:
-        return _catalogue_converter.unstructure(self)
+async def collate(start_date: datetime | None) -> dict[str, Any]:
+    return _catalogue_converter.unstructure(
+        {
+            'version': CATALOGUE_VERSION,
+            'entries': [
+                {
+                    'source': r.metadata.id,
+                    'slug': '',
+                    'folders': [],
+                    'same_as': [],
+                }
+                | e
+                for r in config_ctx.resolvers().values()
+                async for e in r.catalogue()
+                if not start_date or e['last_updated'] >= start_date
+            ],
+        }
+    )
 
 
 @fauxfrozen(kw_only=True)
 class ComputedCatalogue:
     version: int = COMPUTED_CATALOGUE_VERSION
-    entries: list[ComputedCatalogueEntry]
+    entries: list[CatalogueEntry]
 
     @classmethod
     def from_base_catalogue(cls, unstructured_base_catalogue: dict[str, Any]) -> Self:
@@ -128,5 +114,5 @@ class ComputedCatalogue:
         )
 
     @cached_property
-    def keyed_entries(self) -> dict[tuple[str, str], ComputedCatalogueEntry]:
+    def keyed_entries(self) -> dict[tuple[str, str], CatalogueEntry]:
         return {(e.source, e.id): e for e in self.entries}

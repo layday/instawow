@@ -16,10 +16,9 @@ from .._utils.aio import gather
 from .._utils.iteration import uniq
 from .._utils.text import slugify
 from .._utils.web import as_plain_text_data_url
-from ..catalogue.cataloguer import CatalogueEntry
 from ..definitions import ChangelogFormat, Defn, SourceMetadata
 from ..progress_reporting import make_download_progress
-from ..resolvers import BaseResolver, PkgCandidate
+from ..resolvers import BaseResolver, CatalogueEntryCandidate, PkgCandidate
 from ..results import PkgNonexistent, resultify
 from ..wow_installations import Flavour, FlavourVersionRange
 
@@ -206,8 +205,7 @@ class WowiResolver(BaseResolver):
                             if (r := FlavourVersionRange.from_version(c['version']))
                         )
 
-            yield CatalogueEntry(
-                source=self.metadata.id,
+            yield CatalogueEntryCandidate(
                 id=item['UID'],
                 name=item['UIName'],
                 url=item['UIFileInfoURL'],

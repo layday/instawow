@@ -9,8 +9,7 @@ from typing import Any, Literal, NotRequired, Protocol, Self, TypedDict, overloa
 
 from yarl import URL
 
-from . import pkg_archives
-from .catalogue import cataloguer
+from . import pkg_archives, wow_installations
 from .definitions import Defn, SourceMetadata
 from .results import (
     AnyResult,
@@ -66,6 +65,20 @@ class PkgCandidate(TypedDict):
     deps: NotRequired[list[TypedDict[{'id': str}]]]
 
 
+class CatalogueEntryCandidate(TypedDict):
+    "A subset of the ``CatalogueEntry`` constructor's kwargs."
+
+    id: str
+    slug: NotRequired[str]
+    name: str
+    url: str
+    game_flavours: frozenset[wow_installations.Flavour]
+    download_count: int
+    last_updated: dt.datetime
+    folders: NotRequired[list[frozenset[str]]]
+    same_as: NotRequired[list[TypedDict[{'source': str, 'id': str}]]]
+
+
 class Resolver(Protocol):  # pragma: no cover
     metadata: SourceMetadata
     'Static source metadata.'
@@ -96,7 +109,7 @@ class Resolver(Protocol):  # pragma: no cover
         "Retrieve a changelog from a URI."
         ...
 
-    def catalogue(self) -> AsyncIterator[cataloguer.CatalogueEntry]:
+    def catalogue(self) -> AsyncIterator[CatalogueEntryCandidate]:
         "Enumerate add-ons from the source."
         ...
 
@@ -166,7 +179,7 @@ class BaseResolver(Resolver, Protocol):
             case _:
                 raise ValueError('Unsupported URI with scheme', uri.scheme)
 
-    async def catalogue(self) -> AsyncIterator[cataloguer.CatalogueEntry]:
+    async def catalogue(self) -> AsyncIterator[CatalogueEntryCandidate]:
         return
         yield
 

@@ -7,7 +7,7 @@ import textwrap
 from collections.abc import Awaitable, Callable, Collection, Iterable, Mapping, Sequence
 from functools import partial, reduce
 from itertools import chain, count, repeat
-from typing import Any, Never, overload
+from typing import Any, Never, cast, overload
 
 import click
 
@@ -1234,18 +1234,32 @@ def generate_catalogue(start_date: dt.datetime | None):
     import asyncio
     import json
     from pathlib import Path
+    from types import SimpleNamespace
 
-    from ..catalogue.cataloguer import Catalogue
+    from .. import http_ctx
+    from ..catalogue.cataloguer import collate
+    from ..http import init_web_client
 
-    catalogue = asyncio.run(Catalogue.collate(start_date))
-    catalogue_json_dict = catalogue.to_json_dict()
-    catalogue_path = Path(f'base-catalogue-v{catalogue.version}.json').resolve()
+    async def run_collate():
+        global_config = _config.GlobalConfig.from_values(env=True)
+
+        @config_ctx.config.set
+        def _():
+            return cast('_config.ProfileConfig', SimpleNamespace(global_config=global_config))
+
+        async with init_web_client(global_config.http_cache_dir) as web_client:
+            http_ctx.web_client.set(web_client)
+
+            return await collate(start_date)
+
+    catalogue_dict = asyncio.run(run_collate())
+    catalogue_path = Path(f'base-catalogue-v{catalogue_dict["version"]}.json').resolve()
     catalogue_path.write_text(
-        json.dumps(catalogue_json_dict, indent=2),
+        json.dumps(catalogue_dict, indent=2),
         encoding='utf-8',
     )
     catalogue_path.with_suffix(f'.compact{catalogue_path.suffix}').write_text(
-        json.dumps(catalogue_json_dict, separators=(',', ':')),
+        json.dumps(catalogue_dict, separators=(',', ':')),
         encoding='utf-8',
     )
 

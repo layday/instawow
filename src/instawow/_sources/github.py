@@ -16,9 +16,14 @@ from .. import config_ctx, http, http_ctx
 from .._logging import logger
 from .._utils.aio import cancel_tasks
 from .._utils.web import as_plain_text_data_url, extract_byte_range_offset
-from ..catalogue.cataloguer import AddonKey, CatalogueEntry
 from ..definitions import ChangelogFormat, Defn, SourceMetadata, Strategy
-from ..resolvers import AccessToken, BaseResolver, HeadersIntent, PkgCandidate
+from ..resolvers import (
+    AccessToken,
+    BaseResolver,
+    CatalogueEntryCandidate,
+    HeadersIntent,
+    PkgCandidate,
+)
 from ..results import PkgFilesMissing, PkgFilesNotMatching, PkgNonexistent
 from ..wow_installations import Flavour, FlavourVersionRange
 
@@ -522,8 +527,7 @@ class GithubResolver(BaseResolver):
                     yield Flavour.from_flavour_keyed_enum(release_json_flavor)
 
         for entry in dict_reader:
-            yield CatalogueEntry(
-                source=self.metadata.id,
+            yield CatalogueEntryCandidate(
                 id=entry['id'],
                 slug=entry['full_name'].lower(),
                 name=entry['name'],
@@ -531,5 +535,5 @@ class GithubResolver(BaseResolver):
                 game_flavours=frozenset(extract_flavours(entry['flavors'])),
                 download_count=1,
                 last_updated=datetime.fromisoformat(entry['last_updated']),
-                same_as=[AddonKey(source=s, id=i) for k, s in id_keys for i in (entry[k],) if i],
+                same_as=[{'source': s, 'id': i} for k, s in id_keys for i in (entry[k],) if i],
             )

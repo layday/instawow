@@ -7,9 +7,8 @@ from yarl import URL
 
 from .. import config_ctx, http_ctx
 from .._logging import logger
-from ..catalogue.cataloguer import CatalogueEntry
 from ..definitions import ChangelogFormat, Defn, SourceMetadata
-from ..resolvers import BaseResolver, PkgCandidate
+from ..resolvers import BaseResolver, CatalogueEntryCandidate, PkgCandidate
 from ..results import PkgFilesNotMatching, PkgNonexistent
 from ..wow_installations import Flavour, FlavourVersionRange
 
@@ -88,8 +87,7 @@ class TukuiResolver(BaseResolver):
             items: list[_TukuiAddon] = await response.json()
 
         for item in items:
-            yield CatalogueEntry(
-                source=self.metadata.id,
+            yield CatalogueEntryCandidate(
                 id=str(item['id']),
                 slug=item['slug'],
                 name=item['name'],

@@ -14,10 +14,15 @@ from .. import config_ctx, http, http_ctx
 from .._logging import logger
 from .._utils.aio import gather
 from .._utils.iteration import uniq
-from ..catalogue.cataloguer import CatalogueEntry
 from ..definitions import ChangelogFormat, Defn, SourceMetadata, Strategy
 from ..progress_reporting import make_download_progress
-from ..resolvers import AccessToken, BaseResolver, HeadersIntent, PkgCandidate
+from ..resolvers import (
+    AccessToken,
+    BaseResolver,
+    CatalogueEntryCandidate,
+    HeadersIntent,
+    PkgCandidate,
+)
 from ..results import PkgFilesMissing, PkgFilesNotMatching, PkgNonexistent, resultify
 from ..wow_installations import Flavour
 
@@ -504,8 +509,7 @@ class CfCoreResolver(BaseResolver):
                 break
 
             for item in items:
-                yield CatalogueEntry(
-                    source=self.metadata.id,
+                yield CatalogueEntryCandidate(
                     id=str(item['id']),
                     slug=item['slug'],
                     name=item['name'],

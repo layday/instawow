@@ -7,8 +7,8 @@ from typing import Literal
 from .. import config_ctx
 from .._utils.iteration import bucketise
 from .._utils.text import normalise_names
-from . import cataloguer
 from . import synchronise as synchronise_catalogue
+from .cataloguer import CatalogueEntry
 
 _normalise_search_terms = normalise_names('')
 
@@ -23,7 +23,7 @@ async def search(
     filter_installed: Literal[
         'ident', 'include_only', 'exclude', 'exclude_from_all_sources'
     ] = 'ident',
-) -> list[cataloguer.ComputedCatalogueEntry]:
+) -> list[CatalogueEntry]:
     "Search the catalogue for packages by name."
     import rapidfuzz
 
@@ -52,7 +52,7 @@ async def search(
         ):
             return cursor.execute('SELECT source, id FROM pkg').fetchall()
 
-    def make_filter_fns() -> Iterator[Callable[[cataloguer.ComputedCatalogueEntry], bool]]:
+    def make_filter_fns() -> Iterator[Callable[[CatalogueEntry], bool]]:
         game_flavour = config_ctx.config().game_flavour
         yield lambda e: game_flavour in e.game_flavours
 
