@@ -67,6 +67,8 @@ class ManyOptionalChoiceValueParam(click.types.CompositeParamType):
 
 
 class SectionedHelpGroup(click.Group):
+    group_class = type
+
     def format_commands(self, ctx: click.Context, formatter: click.HelpFormatter) -> None:
         command_sections = bucketise(
             ((s, c) for s, c in self.commands.items() if not c.hidden),
