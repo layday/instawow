@@ -23,7 +23,7 @@ class AccessTokenResponse(TypedDict):
     scope: str
 
 
-async def get_codes(web_client: http.ClientSession) -> DeviceCodeResponse:
+async def get_codes(web_client: http.CachedSession) -> DeviceCodeResponse:
     async with web_client.post(
         'https://github.com/login/device/code',
         headers={'Accept': 'application/json'},
@@ -34,7 +34,7 @@ async def get_codes(web_client: http.ClientSession) -> DeviceCodeResponse:
 
 
 async def poll_for_access_token(
-    web_client: http.ClientSession, device_code: str, polling_interval: int = 5
+    web_client: http.CachedSession, device_code: str, polling_interval: int = 5
 ) -> str:
     while True:
         async with web_client.post(
@@ -58,7 +58,7 @@ async def poll_for_access_token(
 
 
 async def get_rate_limit_status(
-    web_client: http.ClientSession, access_token: str | None
+    web_client: http.CachedSession, access_token: str | None
 ) -> dict[str, object]:
     async with web_client.get(
         'https://api.github.com/rate_limit',

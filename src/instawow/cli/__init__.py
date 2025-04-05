@@ -45,7 +45,7 @@ def report_results(
 
                 return await is_outdated()
 
-        outdated, new_version = run_with_progress(run_is_outdated(), suppress_progress=True)
+        outdated, new_version = run_with_progress(run_is_outdated(), with_progress=False)
         if outdated:
             click.echo(f'{_WARNING_SYMBOL} instawow v{new_version} is available')
 
@@ -73,21 +73,26 @@ def report_results(
         )
 
 
-def run_with_progress[T](awaitable: Awaitable[T], *, suppress_progress: bool = False) -> T:
+def run_with_progress[T](awaitable: Awaitable[T], **params: Any) -> T:
     import asyncio
 
     from .. import http_ctx
     from ..http import init_web_client
 
     click_ctx = click.get_current_context().find_root()
+    params = click_ctx.params | params
 
-    make_init_web_client = partial(
-        init_web_client,
-        config_ctx.config().global_config.http_cache_dir,
-        no_cache=click_ctx.params['no_cache'],
-    )
+    with_progress = params['verbosity'] > 0
+    make_init_web_client = partial(init_web_client, with_progress=with_progress)
 
-    if suppress_progress or click_ctx.params['verbosity']:
+    if params['no_cache']:
+        make_init_web_client = partial(make_init_web_client, None)
+    else:
+        make_init_web_client = partial(
+            make_init_web_client, config_ctx.config().global_config.http_cache_dir
+        )
+
+    if with_progress:
 
         async def run():
             async with make_init_web_client() as web_client:
@@ -1144,7 +1149,8 @@ def configure(editable_config_values: Mapping[_EditableConfigOptions, Any]):
                 editable_config_values[_EditableConfigOptions.GithubAccessToken] = (
                     run_with_progress(
                         asyncio.wait_for(github_oauth_flow(), timeout=60 * 5),
-                        suppress_progress=True,
+                        no_cache=True,
+                        with_progress=False,
                     )
                 )
 
@@ -1247,7 +1253,7 @@ def generate_catalogue(start_date: dt.datetime | None):
 
         return await collate(start_date)
 
-    catalogue_dict = run_with_progress(run_collate(), suppress_progress=True)
+    catalogue_dict = run_with_progress(run_collate(), with_progress=False)
     catalogue_path = Path(f'base-catalogue-v{catalogue_dict["version"]}.json').resolve()
     catalogue_path.write_text(
         json.dumps(catalogue_dict, indent=2),

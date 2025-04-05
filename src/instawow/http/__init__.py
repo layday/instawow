@@ -2,15 +2,14 @@ from __future__ import annotations
 
 import ssl
 from collections.abc import AsyncIterator
-from contextlib import AbstractAsyncContextManager, AsyncExitStack, asynccontextmanager
+from contextlib import AsyncExitStack, asynccontextmanager
 from pathlib import Path
-from typing import Any, overload
+from typing import Any
 
 import aiohttp
 import aiohttp_client_cache
 import aiohttp_client_cache.session
 
-type ClientSession = aiohttp.ClientSession
 type CachedSession = aiohttp_client_cache.session.CachedSession
 
 
@@ -90,20 +89,10 @@ def get_ssl_context(cloudflare_compat: bool = False) -> ssl.SSLContext:
     return ssl_context
 
 
-@overload
-def init_web_client(
-    cache_dir: None, *, no_cache: bool = False, with_progress: bool = False, **kwargs: Any
-) -> AbstractAsyncContextManager[ClientSession]: ...
-@overload
-def init_web_client(
-    cache_dir: Path, *, no_cache: bool = False, with_progress: bool = False, **kwargs: Any
-) -> AbstractAsyncContextManager[CachedSession]: ...
-
-
 @asynccontextmanager
 async def init_web_client(
-    cache_dir: Path | None, *, no_cache: bool = False, with_progress: bool = False, **kwargs: Any
-) -> AsyncIterator[ClientSession]:
+    cache_dir: Path | None, *, with_progress: bool = False, **kwargs: Any
+) -> AsyncIterator[CachedSession]:
     kwargs = {
         'connector': aiohttp.TCPConnector(limit_per_host=20, ssl=get_ssl_context()),
         'headers': {'User-Agent': _USER_AGENT},
@@ -119,29 +108,22 @@ async def init_web_client(
             )
             kwargs['trace_configs'] = [*kwargs.get('trace_configs', []), progress_trace_config]
 
-        if cache_dir is not None:
-            cache_backend = aiohttp_client_cache.CacheBackend(
-                allowed_codes=(200, 206),
-                allowed_methods=('GET', 'POST'),
-                expire_after=_DEFAULT_EXPIRE,
-                include_headers=True,
-            )
-            if no_cache:
-                cache_backend.disabled = True
-            else:
-                from ._cache import make_cache
-
-                cache_backend.responses = (
-                    cache_backend.redirects
-                ) = await async_exit_stack.enter_async_context(make_cache(cache_dir))
-
-            client_session = await async_exit_stack.enter_async_context(
-                aiohttp_client_cache.session.CachedSession(cache=cache_backend, **kwargs)
-            )
-            yield client_session
-
+        cache_backend = aiohttp_client_cache.CacheBackend(
+            allowed_codes=(200, 206),
+            allowed_methods=('GET', 'POST'),
+            expire_after=_DEFAULT_EXPIRE,
+            include_headers=True,
+        )
+        if cache_dir is None:
+            cache_backend.disabled = True
         else:
-            client_session = await async_exit_stack.enter_async_context(
-                aiohttp.ClientSession(**kwargs)
-            )
-            yield client_session
+            from ._cache import make_cache
+
+            cache_backend.responses = (
+                cache_backend.redirects
+            ) = await async_exit_stack.enter_async_context(make_cache(cache_dir))
+
+        client_session = await async_exit_stack.enter_async_context(
+            aiohttp_client_cache.session.CachedSession(cache=cache_backend, **kwargs)
+        )
+        yield client_session
