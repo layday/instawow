@@ -35,7 +35,7 @@ def build_weakauras_companion() -> None:
 def configure(collapsed_editable_config_values: dict[str, object]) -> None:
     "Configure the plug-in."
 
-    from instawow.cli._prompts import password
+    from instawow.cli.prompts import password
 
     from ._config import PluginConfig
 

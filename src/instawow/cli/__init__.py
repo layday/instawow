@@ -108,7 +108,7 @@ def run_with_progress[T](awaitable: Awaitable[T], **params: Any) -> T:
             from .._utils.aio import cancel_tasks
             from ..pkg_archives._download import PkgDownloadProgress
             from ..progress_reporting import make_progress_receiver
-            from ._prompts import make_progress_bar_group
+            from .prompts import make_progress_bar_group
 
             async with AsyncExitStack() as exit_stack:
                 _, make_iter_progress = exit_stack.enter_context(
@@ -407,7 +407,7 @@ def remove(addons: Sequence[definitions.Defn], keep_folders: bool):
 def rollback(addon: definitions.Defn, undo: bool):
     "Roll an add-on back to an older version."
 
-    from ._prompts import Choice, select_one
+    from .prompts import Choice, select_one
 
     [maybe_pkg] = pkg_management.get_pinnable_pkgs([addon], for_rollback=True)
     if _results.is_error_result(maybe_pkg):
@@ -452,7 +452,7 @@ def reconcile(auto: bool, list_unreconciled: bool):
     from .._utils.text import tabulate
     from ..matchers import DEFAULT_MATCHERS, AddonFolder, get_unreconciled_folders
     from ..resolvers import PkgCandidate
-    from ._prompts import SKIP, Choice, confirm, select_one
+    from .prompts import SKIP, Choice, confirm, select_one
 
     leftovers = get_unreconciled_folders()
     if list_unreconciled and leftovers:
@@ -574,7 +574,7 @@ def rereconcile(addons: Sequence[definitions.Defn]):
 
     from .._utils.iteration import all_eq, uniq
     from ..pkg_db.models import Pkg, build_pkg_from_row_mapping
-    from ._prompts import SKIP, Choice, confirm, select_one
+    from .prompts import SKIP, Choice, confirm, select_one
 
     with config_ctx.database() as connection:
         query = """
@@ -695,7 +695,7 @@ def search(
     "Search for add-ons to install."
 
     from ..catalogue.search import search
-    from ._prompts import Choice, confirm, select_multiple
+    from .prompts import Choice, confirm, select_multiple
 
     catalogue_entries = run_with_progress(
         search(
@@ -1024,7 +1024,7 @@ def configure(editable_config_values: Mapping[_EditableConfigOptions, Any]):
         find_installations,
         infer_flavour_from_addon_dir,
     )
-    from ._prompts import (
+    from .prompts import (
         SKIP,
         Choice,
         confirm,
