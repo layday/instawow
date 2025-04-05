@@ -2,32 +2,28 @@ from __future__ import annotations
 
 import string
 from collections.abc import Callable, Sequence
+from functools import partial
+from textwrap import fill
 
 
 def tabulate(rows: Sequence[tuple[object, ...]], *, max_col_width: int = 60) -> str:
     "Produce an ASCII table from equal-length elements in a sequence."
-    from textwrap import fill
 
-    def apply_max_col_width(value: object):
-        return fill(str(value), width=max_col_width, max_lines=1)
+    from wcwidth import wcswidth  # pyright: ignore  # noqa: PGH003
 
-    def calc_resultant_col_widths(rows: Sequence[tuple[str, ...]]):
-        cols = zip(*rows)
-        return [max(map(len, c)) for c in cols]
+    truncate = partial(fill, width=max_col_width, max_lines=1)
 
-    norm_rows = [tuple(apply_max_col_width(i) for i in r) for r in rows]
-    head, *tail = norm_rows
+    def make_col_cells():
+        for col in zip(*rows):
+            col_cells = [(v, wcswidth(v)) for e in col for v in (truncate(str(e)),)]
+            max_width = max(w for _, w in col_cells)
+            yield [
+                *((v, max_width - w) for v, w in col_cells[:1]),
+                ('-' * max_width, 0),
+                *((v, max_width - w) for v, w in col_cells[1:]),
+            ]
 
-    base_template = '  '.join(f'{{{{{{0}}{w}}}}}' for w in calc_resultant_col_widths(norm_rows))
-    row_template = base_template.format(':<')
-    table = '\n'.join(
-        (
-            base_template.format(':^').format(*head),
-            base_template.format('0:-<').format(''),
-            *(row_template.format(*r) for r in tail),
-        )
-    )
-    return table
+    return '\n'.join('  '.join(f'{v}{" " * w}' for v, w in r) for r in zip(*make_col_cells()))
 
 
 def normalise_names(replace_delim: str) -> Callable[[str], str]:

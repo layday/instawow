@@ -28,6 +28,7 @@ dependencies = [
   "rapidfuzz >= 3.9.6",
   "truststore >= 0.9.1",
   "typing-extensions >= 4.12.0",
+  "wcwidth >= 0.2.13",
   "yarl >= 1.9.5",
 ]
 
