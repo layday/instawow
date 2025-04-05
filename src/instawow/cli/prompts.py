@@ -5,6 +5,7 @@ from __future__ import annotations
 import enum
 from collections.abc import Hashable, Mapping, Sequence
 from contextlib import contextmanager
+from functools import partial
 from inspect import signature
 from typing import Any, Literal, Never, Self, TypedDict, overload
 
@@ -171,15 +172,18 @@ def path(
     return session
 
 
-def password(message: str) -> PromptSession[str]:
+def text(message: str, *, is_password: bool = False) -> PromptSession[str]:
     session = PromptSession[str](
         FormattedText(
             [('class:indicator', '>'), ('', ' '), ('class:question', message), ('', '  ')]
         ),
-        is_password=True,
+        is_password=is_password,
         style=_style,
     )
     return session
+
+
+password = partial(text, is_password=True)
 
 
 def select_multiple[T](

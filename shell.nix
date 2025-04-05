@@ -1,6 +1,6 @@
 { pkgs ? import <nixpkgs> { } }:
 let
-  python = pkgs.python313;
+  python = pkgs.python314;
 in
 pkgs.mkShell {
   buildInputs = [
