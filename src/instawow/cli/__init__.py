@@ -7,7 +7,7 @@ import textwrap
 from collections.abc import Awaitable, Collection, Iterable, Mapping, Sequence
 from functools import partial, reduce
 from itertools import chain, count, repeat
-from typing import Any, cast, overload
+from typing import Any, overload
 
 import click
 
@@ -45,7 +45,7 @@ def report_results(
 
                 return await is_outdated()
 
-        outdated, new_version = run_with_progress(run_is_outdated())
+        outdated, new_version = run_with_progress(run_is_outdated(), suppress_progress=True)
         if outdated:
             click.echo(f'{_WARNING_SYMBOL} instawow v{new_version} is available')
 
@@ -73,7 +73,7 @@ def report_results(
         )
 
 
-def run_with_progress[T](awaitable: Awaitable[T]) -> T:
+def run_with_progress[T](awaitable: Awaitable[T], *, suppress_progress: bool = False) -> T:
     import asyncio
 
     from .. import http_ctx
@@ -87,7 +87,7 @@ def run_with_progress[T](awaitable: Awaitable[T]) -> T:
         no_cache=click_ctx.params['no_cache'],
     )
 
-    if click_ctx.params['verbosity']:
+    if suppress_progress or click_ctx.params['verbosity']:
 
         async def run():
             async with make_init_web_client() as web_client:
@@ -1127,23 +1127,25 @@ def configure(editable_config_values: Mapping[_EditableConfigOptions, Any]):
             )
             if confirm('Set up GitHub authentication?').prompt():
                 from .._github_auth import get_codes, poll_for_access_token
-                from ..http import init_web_client
+                from ..http_ctx import web_client
 
                 async def github_oauth_flow():
-                    async with init_web_client(None) as web_client:
-                        codes = await get_codes(web_client)
-                        click.echo(
-                            f'Navigate to {codes["verification_uri"]} and paste the code below:'
-                        )
-                        click.echo(f'  {codes["user_code"]}')
-                        click.echo('Waiting...')
-                        access_token = await poll_for_access_token(
-                            web_client, codes['device_code'], codes['interval']
-                        )
-                        return access_token
+                    codes = await get_codes(web_client())
+                    click.echo(
+                        f'Navigate to {codes["verification_uri"]} and paste the code below:'
+                    )
+                    click.echo(f'  {codes["user_code"]}')
+                    click.echo('Waiting...')
+                    access_token = await poll_for_access_token(
+                        web_client(), codes['device_code'], codes['interval']
+                    )
+                    return access_token
 
-                editable_config_values[_EditableConfigOptions.GithubAccessToken] = asyncio.run(
-                    asyncio.wait_for(github_oauth_flow(), timeout=60 * 5)
+                editable_config_values[_EditableConfigOptions.GithubAccessToken] = (
+                    run_with_progress(
+                        asyncio.wait_for(github_oauth_flow(), timeout=60 * 5),
+                        suppress_progress=True,
+                    )
                 )
 
         if _EditableConfigOptions.CfcoreAccessToken in interactive_editable_config_keys:
@@ -1232,28 +1234,20 @@ def _plugin_group():  # pyright: ignore[reportUnusedFunction]
 def generate_catalogue(start_date: dt.datetime | None):
     "Generate the master catalogue."
 
-    import asyncio
     import json
     from pathlib import Path
     from types import SimpleNamespace
 
-    from .. import http_ctx
     from ..catalogue.cataloguer import collate
-    from ..http import init_web_client
 
     async def run_collate():
-        global_config = _config.GlobalConfig.from_values(env=True)
-
-        @config_ctx.config.set
+        @config_ctx.config.set  # pyright: ignore[reportArgumentType]
         def _():
-            return cast('_config.ProfileConfig', SimpleNamespace(global_config=global_config))
+            return SimpleNamespace(global_config=_config.GlobalConfig.from_values(env=True))
 
-        async with init_web_client(global_config.http_cache_dir) as web_client:
-            http_ctx.web_client.set(web_client)
+        return await collate(start_date)
 
-            return await collate(start_date)
-
-    catalogue_dict = asyncio.run(run_collate())
+    catalogue_dict = run_with_progress(run_collate(), suppress_progress=True)
     catalogue_path = Path(f'base-catalogue-v{catalogue_dict["version"]}.json').resolve()
     catalogue_path.write_text(
         json.dumps(catalogue_dict, indent=2),
