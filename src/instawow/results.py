@@ -5,7 +5,7 @@ from collections.abc import Awaitable, Callable, Collection, Mapping, Set
 from functools import wraps
 from typing import Any, Literal, LiteralString, Protocol, overload
 
-from typing_extensions import TypeVar
+from typing_extensions import TypeIs, TypeVar
 
 from .definitions import Strategies, Strategy
 from .pkg_db import models as pkg_models
@@ -228,3 +228,7 @@ def resultify[**P](fn: Callable[P, object]):  # pyright: ignore[reportInconsiste
                 return _handle_internal_error(error)
 
         return sync_wrapper
+
+
+def is_error_result(result: AnyResult[object]) -> TypeIs[ManagerError | InternalError]:
+    return isinstance(result, (ManagerError, InternalError))

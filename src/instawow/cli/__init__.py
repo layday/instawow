@@ -4,10 +4,10 @@ import contextvars
 import datetime as dt
 import enum
 import textwrap
-from collections.abc import Awaitable, Callable, Collection, Iterable, Mapping, Sequence
+from collections.abc import Awaitable, Collection, Iterable, Mapping, Sequence
 from functools import partial, reduce
 from itertools import chain, count, repeat
-from typing import Any, Never, cast, overload
+from typing import Any, cast, overload
 
 import click
 
@@ -16,75 +16,60 @@ from .. import config_ctx, definitions, pkg_management
 from .. import results as _results
 from ._helpers import ManyOptionalChoiceValueParam, SectionedHelpGroup, StrEnumChoiceParam
 
+_SUCCESS_SYMBOL = click.style('✓', fg='green')
+_FAILURE_SYMBOL = click.style('✗', fg='red')
+_WARNING_SYMBOL = click.style('!', fg='blue')
 
-class Report:
-    SUCCESS_SYMBOL = click.style('✓', fg='green')
-    FAILURE_SYMBOL = click.style('✗', fg='red')
-    WARNING_SYMBOL = click.style('!', fg='blue')
 
-    def __init__(
-        self,
-        results: Iterable[tuple[definitions.Defn, _results.Result]],
-        filter_fn: Callable[[_results.Result], bool] = lambda _: True,
-    ) -> None:
-        self.results = list(results)
-        self.filter_fn = filter_fn
+def report_results(
+    results: Iterable[tuple[definitions.Defn, _results.Result]],
+    *,
+    exit: bool = False,
+) -> None:
+    results = list(results)
 
-    @property
-    def exit_code(self) -> int:
-        return any(
-            isinstance(r, (_results.ManagerError, _results.InternalError)) and self.filter_fn(r)
-            for _, r in self.results
-        )
+    config = config_ctx.config()
+    if config.global_config.auto_update_check:
+        click_ctx = click.get_current_context().find_root()
 
-    @classmethod
-    def _result_type_to_symbol(cls, result: _results.Result) -> str:
+        async def run_is_outdated():
+            from .. import http_ctx
+            from .._version import is_outdated
+            from ..http import init_web_client
+
+            async with init_web_client(
+                config_ctx.config().global_config.http_cache_dir,
+                no_cache=click_ctx.params['no_cache'],
+            ) as web_client:
+                http_ctx.web_client.set(web_client)
+
+                return await is_outdated()
+
+        outdated, new_version = run_with_progress(run_is_outdated())
+        if outdated:
+            click.echo(f'{_WARNING_SYMBOL} instawow v{new_version} is available')
+
+    def result_to_symbol(result: _results.Result):
         match result:
             case _results.InternalError():
-                return cls.WARNING_SYMBOL
+                return _WARNING_SYMBOL
             case _results.ManagerError():
-                return cls.FAILURE_SYMBOL
+                return _FAILURE_SYMBOL
             case _:
-                return cls.SUCCESS_SYMBOL
+                return _SUCCESS_SYMBOL
 
-    def __str__(self) -> str:
-        return '\n'.join(
-            f'{self._result_type_to_symbol(r)} {click.style(a.as_uri(), bold=True)}\n'
-            f'{textwrap.fill(str(r), initial_indent=" " * 2, subsequent_indent=" " * 4)}'
-            for a, r in self.results
-            if self.filter_fn(r)
-        )
+    report = '\n'.join(
+        f'{result_to_symbol(r)} {click.style(a.as_uri(), bold=True)}\n'
+        f'{textwrap.fill(str(r), initial_indent=" " * 2, subsequent_indent=" " * 4)}'
+        for a, r in results
+    )
+    if report:
+        click.echo(report)
 
-    def generate(self) -> None:
-        config = config_ctx.config()
-        if config.global_config.auto_update_check:
-            click_ctx = click.get_current_context().find_root()
-
-            async def run_is_outdated():
-                from .. import http_ctx
-                from .._version import is_outdated
-                from ..http import init_web_client
-
-                async with init_web_client(
-                    config_ctx.config().global_config.http_cache_dir,
-                    no_cache=click_ctx.params['no_cache'],
-                ) as web_client:
-                    http_ctx.web_client.set(web_client)
-
-                    return await is_outdated()
-
-            outdated, new_version = run_with_progress(run_is_outdated())
-            if outdated:
-                click.echo(f'{self.WARNING_SYMBOL} instawow v{new_version} is available')
-
-        report = str(self)
-        if report:
-            click.echo(report)
-
-    def generate_and_exit(self) -> Never:
-        self.generate()
+    if exit:
+        exit_code = any(_results.is_error_result(r) for _, r in results)
         click.get_current_context().exit(
-            self.exit_code,
+            exit_code,
         )
 
 
@@ -361,7 +346,7 @@ def install(addons: Sequence[definitions.Defn], replace_folders: bool, dry_run: 
     results = run_with_progress(
         pkg_management.install(addons, replace_folders=replace_folders, dry_run=dry_run)
     )
-    Report(results.items()).generate_and_exit()
+    report_results(results.items(), exit=True)
 
 
 @cli.command
@@ -376,12 +361,14 @@ def install(addons: Sequence[definitions.Defn], replace_folders: bool, dry_run: 
 def update(addons: Sequence[definitions.Defn], dry_run: bool):
     "Update installed add-ons."
 
-    def filter_results(result: _results.Result):
-        # Hide packages from output if they are up to date and not pinned.
-        return True if addons or not isinstance(result, _results.PkgUpToDate) else result.is_pinned
-
-    results = run_with_progress(pkg_management.update(addons or 'all', dry_run=dry_run))
-    Report(results.items(), filter_results).generate_and_exit()
+    results = run_with_progress(
+        pkg_management.update(addons or 'all', dry_run=dry_run),
+    ).items()
+    if not addons:
+        results = (
+            (d, r) for d, r in results if not isinstance(r, _results.PkgUpToDate) or r.is_pinned
+        )
+    report_results(results, exit=True)
 
 
 @cli.command
@@ -401,7 +388,7 @@ def remove(addons: Sequence[definitions.Defn], keep_folders: bool):
     "Remove add-ons."
 
     results = run_with_progress(pkg_management.remove(addons, keep_folders=keep_folders))
-    Report(results.items()).generate_and_exit()
+    report_results(results.items(), exit=True)
 
 
 @cli.command
@@ -418,33 +405,34 @@ def rollback(addon: definitions.Defn, undo: bool):
     from ._prompts import Choice, select_one
 
     [maybe_pkg] = pkg_management.get_pinnable_pkgs([addon], for_rollback=True)
-    match maybe_pkg:
-        case _results.InternalError() | _results.ManagerError() as error:
-            Report([(addon, error)]).generate_and_exit()
-
-        case pkg:
-            if undo:
-                Report(
-                    run_with_progress(
-                        pkg_management.update([addon.with_default_strategy_set()])
-                    ).items()
-                ).generate_and_exit()
-
-            reconstructed_defn = pkg.to_defn()
-
-            choices = [
-                Choice(v.version, value=v.version, disabled=v.version == pkg.version)
-                for v in pkg.logged_versions
-            ]
-            selection = select_one(
-                f'Select version of {reconstructed_defn.as_uri()} for rollback', choices
-            ).prompt()
-
-            Report(
+    if _results.is_error_result(maybe_pkg):
+        report_results([(addon, maybe_pkg)], exit=True)
+    else:
+        if undo:
+            report_results(
                 run_with_progress(
-                    pkg_management.update([reconstructed_defn.with_version(selection)])
-                ).items()
-            ).generate_and_exit()
+                    pkg_management.update([addon.with_default_strategy_set()])
+                ).items(),
+                exit=True,
+            )
+
+        pkg = maybe_pkg
+        reconstructed_defn = pkg.to_defn()
+
+        choices = [
+            Choice(v.version, value=v.version, disabled=v.version == pkg.version)
+            for v in pkg.logged_versions
+        ]
+        selection = select_one(
+            f'Select version of {reconstructed_defn.as_uri()} for rollback', choices
+        ).prompt()
+
+        report_results(
+            run_with_progress(
+                pkg_management.update([reconstructed_defn.with_version(selection)])
+            ).items(),
+            exit=True,
+        )
 
 
 @cli.command
@@ -557,12 +545,12 @@ def reconcile(auto: bool, list_unreconciled: bool):
         resolve_results = run_with_progress(
             pkg_management.resolve(uniq(d for _, b in defn_groups for d in b))
         )
-        pkg_candidates, _ = pkg_management.bucketise_results(resolve_results.items())
+        pkg_candidates, _ = pkg_management.split_results(resolve_results.items())
 
         selections = [s for s in gather_selections(defn_groups, pkg_candidates) if s]
         if selections and confirm_install():
             results = run_with_progress(pkg_management.install(selections, replace_folders=True))
-            Report(results.items()).generate()
+            report_results(results.items())
 
         leftovers = get_unreconciled_folders()
         if not leftovers:
@@ -608,7 +596,7 @@ def rereconcile(addons: Sequence[definitions.Defn]):
     resolve_results = run_with_progress(
         pkg_management.resolve(uniq(d for b in equivalent_pkg_defn_groups.values() for d in b))
     )
-    pkg_candidates, _ = pkg_management.bucketise_results(resolve_results.items())
+    pkg_candidates, _ = pkg_management.split_results(resolve_results.items())
 
     def select_alternative_pkg(pkg: Pkg, equivalent_defns: Sequence[definitions.Defn]):
         shortlisted_pkg_candidates = {
@@ -656,7 +644,7 @@ def rereconcile(addons: Sequence[definitions.Defn]):
     }
 
     if selections and confirm('Install selected add-ons?').prompt():
-        Report(run_with_progress(pkg_management.replace(selections)).items()).generate_and_exit()
+        report_results(run_with_progress(pkg_management.replace(selections)).items(), exit=True)
 
 
 @cli.command
@@ -858,7 +846,7 @@ def reveal(addon: definitions.Defn):
         if pkg_folder:
             reveal_folder(config_ctx.config().addon_dir / pkg_folder['name'])
         else:
-            Report([(addon, _results.PkgNotInstalled())]).generate_and_exit()
+            report_results([(addon, _results.PkgNotInstalled())], exit=True)
 
 
 @cli.command
@@ -936,7 +924,7 @@ def view_changelog(addons: Sequence[definitions.Defn], convert: bool, remote: bo
         return f'{definitions.Defn(source, slug).as_uri()}:\n{body}'
 
     if remote:
-        pkg_candidates, _ = pkg_management.bucketise_results(
+        pkg_candidates, _ = pkg_management.split_results(
             run_with_progress(pkg_management.resolve(addons)).items()
         )
         partial_pkgs: list[dict[str, Any]] = [

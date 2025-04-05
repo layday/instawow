@@ -112,7 +112,7 @@ async def test_curse_deps_retrieved():
     defn = Defn('curse', CURSE_IDS['bigwigs-voice-korean'])
 
     results = await pkg_management.resolve([defn], with_deps=True)
-    pkg_candidates, errors = pkg_management.bucketise_results(results.items())
+    pkg_candidates, errors = pkg_management.split_results(results.items())
     assert not errors
     assert {'bigwigs-voice-korean', 'big-wigs'} == {p['slug'] for p in pkg_candidates.values()}
 

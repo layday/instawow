@@ -352,7 +352,7 @@ async def reconcile_pkgs(
         match_groups = await matchers.DEFAULT_MATCHERS[matcher](leftovers)
 
         resolved_defns = await pkg_management.resolve(uniq(d for _, b in match_groups for d in b))
-        pkg_candidates, _ = pkg_management.bucketise_results(resolved_defns.items())
+        pkg_candidates, _ = pkg_management.split_results(resolved_defns.items())
 
         matched_folders = (
             (
@@ -397,7 +397,7 @@ async def get_reconcile_installed_pkg_candidates(
         resolved_defns = await pkg_management.resolve(
             uniq(d for b in defn_groups.values() for d in b)
         )
-        pkg_candidates, _ = pkg_management.bucketise_results(resolved_defns.items())
+        pkg_candidates, _ = pkg_management.split_results(resolved_defns.items())
 
         return [
             {'installed_addon': p, 'alternative_addons': m}

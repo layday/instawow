@@ -26,7 +26,6 @@ from .progress_reporting import make_incrementing_progress_tracker
 from .resolvers import PkgCandidate
 from .results import (
     AnyResult,
-    InternalError,
     ManagerError,
     PkgAlreadyInstalled,
     PkgConflictsWithInstalled,
@@ -39,6 +38,7 @@ from .results import (
     PkgStrategiesUnsupported,
     PkgUpdated,
     PkgUpToDate,
+    is_error_result,
     resultify,
 )
 
@@ -59,14 +59,14 @@ def _with_mutate_lock[**P, T](
     return inner
 
 
-def bucketise_results[T](
+def split_results[T](
     values: Iterable[tuple[Defn, AnyResult[T]]],
-):
+) -> tuple[dict[Defn, T], dict[Defn, AnyResult[Never]]]:
     ts: dict[Defn, T] = {}
     errors: dict[Defn, AnyResult[Never]] = {}
 
     for defn, value in values:
-        if isinstance(value, (ManagerError, InternalError)):
+        if is_error_result(value):
             errors[defn] = value
         else:
             ts[defn] = value
@@ -355,7 +355,7 @@ async def _resolve_deps(
     complexity for something that I would never expect to
     encounter in the wild.
     """
-    pkg_candidates, _ = bucketise_results(results.items())
+    pkg_candidates, _ = split_results(results.items())
     dep_defns = uniq(
         filterfalse(
             {(d.source, p['id']) for d, p in pkg_candidates.items()}.__contains__,
@@ -554,7 +554,7 @@ async def install(
     resolve_results = await resolve(
         list(compress(defns, _check_pkgs_not_exist(defns))), with_deps=True
     )
-    pkg_candidates, resolve_errors = bucketise_results(resolve_results.items())
+    pkg_candidates, resolve_errors = split_results(resolve_results.items())
     pkg_candidates = dict(
         compress(
             pkg_candidates.items(),
@@ -573,7 +573,7 @@ async def install(
     download_results = await gather(
         _download_pkg_archive(d, r['download_url']) for d, r in pkg_candidates.items()
     )
-    archive_paths, download_errors = bucketise_results(zip(pkg_candidates, download_results))
+    archive_paths, download_errors = split_results(zip(pkg_candidates, download_results))
 
     track_progress = make_incrementing_progress_tracker(len(archive_paths), 'Installing')
 
@@ -605,7 +605,7 @@ async def replace(
         list(compress(defns.values(), _check_pkgs_not_exist(defns.values()))),
         with_deps=True,
     )
-    pkg_candidates, resolve_errors = bucketise_results(resolve_results.items())
+    pkg_candidates, resolve_errors = split_results(resolve_results.items())
     pkg_candidates = dict(
         compress(
             pkg_candidates.items(),
@@ -627,7 +627,7 @@ async def replace(
     download_results = await gather(
         _download_pkg_archive(d, r['download_url']) for d, r in pkg_candidates.items()
     )
-    archive_paths, download_errors = bucketise_results(zip(pkg_candidates, download_results))
+    archive_paths, download_errors = split_results(zip(pkg_candidates, download_results))
 
     replace_coros = {
         k: c
@@ -674,7 +674,7 @@ async def update(
         }
 
     resolve_results = await resolve(resolve_defns, with_deps=True)
-    pkg_candidates, resolve_errors = bucketise_results(
+    pkg_candidates, resolve_errors = split_results(
         # Discard the reconstructed ``Defn``s
         (resolve_defns.get(d) or d, r)
         for d, r in resolve_results.items()
@@ -709,7 +709,7 @@ async def update(
     download_results = await gather(
         _download_pkg_archive(d, n['download_url']) for d, (_, n) in updatables.items()
     )
-    archive_paths, download_errors = bucketise_results(zip(updatables, download_results))
+    archive_paths, download_errors = split_results(zip(updatables, download_results))
 
     track_progress = make_incrementing_progress_tracker(len(archive_paths), 'Updating')
 
@@ -749,6 +749,6 @@ async def pin(defns: Sequence[Defn]) -> Mapping[Defn, AnyResult[PkgInstalled]]:
     had been reinstalled with the ``VersionEq`` strategy.
     """
     return {
-        d: r if isinstance(r, (ManagerError, InternalError)) else _mutate_pin(d, r)
+        d: r if is_error_result(r) else _mutate_pin(d, r)
         for d, r in zip(defns, get_pinnable_pkgs(defns, for_rollback=False))
     }
