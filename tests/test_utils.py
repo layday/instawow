@@ -29,7 +29,7 @@ def test_tabulate_spits_out_ascii_table():
     assert (
         tabulate(data)
         == """\
-     key          value   \
+key            value      \
 
 -------------  -----------
 abc def        hhhdhhdhfhh
