@@ -34,9 +34,7 @@ def dev_env(session: nox.Session):
 
     session.install(
         '--group',
-        'test',
-        '--group',
-        'typing',
+        'dev',
         '-e',
         '.',
         '-e',

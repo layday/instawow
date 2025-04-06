@@ -57,6 +57,11 @@ packages = [
 source = "vcs"
 
 [dependency-groups]
+dev = [
+  "basedpyright",
+  { include-group = "test" },
+  { include-group = "typing" },
+]
 format = [
   "ruff",
 ]
