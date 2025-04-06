@@ -1246,14 +1246,11 @@ def generate_catalogue(start_date: dt.datetime | None):
 
     from ..catalogue.cataloguer import collate
 
-    async def run_collate():
-        @config_ctx.config.set  # pyright: ignore[reportArgumentType]
-        def _():
-            return SimpleNamespace(global_config=_config.GlobalConfig.from_values(env=True))
+    @config_ctx.config.set  # pyright: ignore[reportArgumentType]
+    def _():
+        return SimpleNamespace(global_config=_config.GlobalConfig.from_values(env=True))
 
-        return await collate(start_date)
-
-    catalogue_dict = run_with_progress(run_collate(), with_progress=False)
+    catalogue_dict = run_with_progress(collate(start_date), with_progress=False)
     catalogue_path = Path(f'base-catalogue-v{catalogue_dict["version"]}.json').resolve()
     catalogue_path.write_text(
         json.dumps(catalogue_dict, indent=2),
