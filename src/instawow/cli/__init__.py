@@ -121,15 +121,18 @@ def run_with_progress[T](awaitable: Awaitable[T], **params: Any) -> T:
                         update_progress(
                             {
                                 i: {
-                                    'label': f'Downloading {p["defn"].as_uri()}'
-                                    if p['type_'] == 'pkg_download'
-                                    else p['label'],
+                                    'label': label,
                                     'current': p['current'],
                                     'total': p['total'],
                                     'is_download': p.get('unit') == 'bytes',
                                 }
                                 for i, p in progress_group.items()
-                                if 'label' in p
+                                for label in (
+                                    f'Downloading {p["defn"].as_uri()}'
+                                    if p['type_'] == 'pkg_download'
+                                    else p.get('label'),
+                                )
+                                if label
                             }
                         )
 
