@@ -30,20 +30,8 @@ def report_results(
 
     config = config_ctx.config()
     if config.global_config.auto_update_check:
-        click_ctx = click.get_current_context().find_root()
+        from .._version import is_outdated
 
-        async def run_is_outdated():
-            from .. import http_ctx
-            from .._version import is_outdated
-            from ..http import init_web_client
-
-            async with init_web_client(
-                config_ctx.config().global_config.http_cache_dir,
-                no_cache=click_ctx.params['no_cache'],
-            ) as web_client:
-                http_ctx.web_client.set(web_client)
-
-                return await is_outdated()
 
         outdated, new_version = run_with_progress(run_is_outdated(), with_progress=False)
         if outdated:
