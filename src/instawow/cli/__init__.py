@@ -32,8 +32,7 @@ def report_results(
     if config.global_config.auto_update_check:
         from .._version import is_outdated
 
-
-        outdated, new_version = run_with_progress(run_is_outdated(), with_progress=False)
+        outdated, new_version = run_with_progress(is_outdated(), verbosity=1)
         if outdated:
             click.echo(f'{_WARNING_SYMBOL} instawow v{new_version} is available')
 
@@ -70,8 +69,8 @@ def run_with_progress[T](awaitable: Awaitable[T], **params: Any) -> T:
     click_ctx = click.get_current_context().find_root()
     params = click_ctx.params | params
 
-    with_progress = params['verbosity'] > 0
-    make_init_web_client = partial(init_web_client, with_progress=with_progress)
+    suppress_progress = params['verbosity'] > 0
+    make_init_web_client = partial(init_web_client, with_progress=not suppress_progress)
 
     if params['no_cache']:
         make_init_web_client = partial(make_init_web_client, None)
@@ -80,7 +79,7 @@ def run_with_progress[T](awaitable: Awaitable[T], **params: Any) -> T:
             make_init_web_client, config_ctx.config().global_config.http_cache_dir
         )
 
-    if with_progress:
+    if suppress_progress:
 
         async def run():
             async with make_init_web_client() as web_client:
@@ -1141,7 +1140,7 @@ def configure(editable_config_values: Mapping[_EditableConfigOptions, Any]):
                     run_with_progress(
                         asyncio.wait_for(github_oauth_flow(), timeout=60 * 5),
                         no_cache=True,
-                        with_progress=False,
+                        verbosity=1,
                     )
                 )
 
@@ -1241,7 +1240,7 @@ def generate_catalogue(start_date: dt.datetime | None):
     def _():
         return SimpleNamespace(global_config=_config.GlobalConfig.from_values(env=True))
 
-    catalogue_dict = run_with_progress(collate(start_date), with_progress=False)
+    catalogue_dict = run_with_progress(collate(start_date), verbosity=1)
     catalogue_path = Path(f'base-catalogue-v{catalogue_dict["version"]}.json').resolve()
     catalogue_path.write_text(
         json.dumps(catalogue_dict, indent=2),
