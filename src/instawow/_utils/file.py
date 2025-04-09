@@ -1,15 +1,9 @@
 from __future__ import annotations
 
 import os
+import shutil
 import sys
 from collections.abc import Iterable
-from functools import lru_cache
-from itertools import chain
-from pathlib import Path
-from shutil import move
-from tempfile import gettempdir, mkdtemp
-
-_instawowt = Path(gettempdir(), 'instawowt')
 
 
 def reveal_folder(path: str | os.PathLike[str]) -> None:
@@ -21,25 +15,53 @@ def reveal_folder(path: str | os.PathLike[str]) -> None:
         click.launch(os.fspath(path), locate=True)
 
 
-@lru_cache(1)
-def _make_instawowt():
-    _instawowt.mkdir(exist_ok=True)
+trash = None
 
+if sys.platform == 'darwin':
+    _maybe_trash_bin = shutil.which('/usr/bin/trash')  # Added in macOS 14.
+    if _maybe_trash_bin:
+        _trash_bin = _maybe_trash_bin
 
-def trash(paths: Iterable[os.PathLike[str]], *, missing_ok: bool = True) -> None:
-    paths_iter = iter(paths)
-    first_path = next(paths_iter, None)
+        def _trash_darwin(paths: Iterable[os.PathLike[str]]) -> None:
+            import subprocess
 
-    if first_path is None:
-        return
+            try:
+                subprocess.run(
+                    [_trash_bin, *(os.fspath(p) for p in paths)], capture_output=True, check=True
+                )
+            except subprocess.CalledProcessError as error:
+                if error.returncode != 5:  # Not file not found
+                    error.add_note(error.stderr.decode())
+                    raise
 
-    _make_instawowt()
-    parent_folder = mkdtemp(dir=_instawowt, prefix=f'deleted-{Path(first_path).name}-')
+        trash = _trash_darwin
 
-    exc_classes = FileNotFoundError if missing_ok else ()
+if trash is None:
+    from functools import lru_cache
+    from itertools import chain
+    from pathlib import Path
+    from tempfile import gettempdir, mkdtemp
 
-    for path in chain((first_path,), paths_iter):
-        try:
-            move(path, parent_folder)
-        except exc_classes:
-            pass
+    _instawowt = Path(gettempdir(), 'instawowt')
+
+    @lru_cache(1)
+    def _make_instawowt():
+        _instawowt.mkdir(exist_ok=True)
+
+    def _trash_default(paths: Iterable[os.PathLike[str]]) -> None:
+        paths_iter = iter(paths)
+        first_path = next(paths_iter, None)
+
+        if first_path is None:
+            return
+
+        _make_instawowt()
+        parent_folder = mkdtemp(dir=_instawowt, prefix=f'deleted-{Path(first_path).name}-')
+
+        for path in chain((first_path,), paths_iter):
+            try:
+                shutil.move(path, parent_folder)
+            except FileNotFoundError:
+                pass
+
+    trash = _trash_default
