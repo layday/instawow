@@ -399,7 +399,7 @@ def rollback(addon: definitions.Defn, undo: bool):
 
     from .prompts import Choice, select_one
 
-    [maybe_pkg] = pkg_management.get_pinnable_pkgs([addon], for_rollback=True)
+    [maybe_pkg] = pkg_management.get_pinnable_pkgs([addon])
     if _results.is_error_result(maybe_pkg):
         report_results([(addon, maybe_pkg)], exit=True)
     else:
@@ -412,11 +412,17 @@ def rollback(addon: definitions.Defn, undo: bool):
             )
 
         pkg = maybe_pkg
+        logged_versions = pkg_management.get_pkg_logged_versions(pkg)
+        if len(logged_versions) <= 1:
+            report_results(
+                [(addon, _results.PkgFilesMissing('cannot find older versions'))], exit=True
+            )
+
         reconstructed_defn = pkg.to_defn()
 
         choices = [
             Choice(v.version, value=v.version, disabled=v.version == pkg.version)
-            for v in pkg.logged_versions
+            for v in logged_versions
         ]
         selection = select_one(
             f'Select version of {reconstructed_defn.as_uri()} for rollback', choices

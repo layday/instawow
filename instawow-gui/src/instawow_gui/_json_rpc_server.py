@@ -335,6 +335,13 @@ async def get_pkg_changelog(profile: str, source: str, changelog_url: str) -> st
         return await pkg_management.get_changelog(source=source, uri=changelog_url)
 
 
+@_register_method('get_logged_versions')
+async def get_pkg_logged_versions(profile: str, defn: Defn) -> list[pkg_models.PkgLoggedVersion]:
+    async with _load_profile(profile):
+        (pkg,) = pkg_management.get_pkgs((defn,))
+        return pkg_management.get_pkg_logged_versions(pkg) if pkg else []
+
+
 @_register_method('reconcile')
 async def reconcile_pkgs(
     profile: str, matcher: str

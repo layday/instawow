@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Awaitable, Callable, Collection, Iterable, Mapping, Sequence
-from functools import wraps
+from functools import partial, wraps
 from itertools import chain, compress, filterfalse, repeat, starmap
 from pathlib import Path
 from typing import Literal, Never
@@ -18,6 +18,7 @@ from .pkg_archives._download import download_pkg_archive
 from .pkg_db import Connection, transact, use_tuple_factory
 from .pkg_db.models import (
     Pkg,
+    PkgLoggedVersion,
     build_pkg_from_pkg_candidate,
     build_pkg_from_row_mapping,
     make_db_converter,
@@ -30,7 +31,6 @@ from .results import (
     PkgAlreadyInstalled,
     PkgConflictsWithInstalled,
     PkgConflictsWithUnreconciled,
-    PkgFilesMissing,
     PkgFilesNotMatching,
     PkgInstalled,
     PkgNotInstalled,
@@ -149,8 +149,6 @@ def get_pkgs(defns: Collection[Defn] | Literal['all']) -> list[Pkg | None]:
 
 def get_pinnable_pkgs(
     defns: Collection[Defn],
-    *,
-    for_rollback: bool,
 ) -> list[AnyResult[Pkg]]:
     resolvers = config_ctx.resolvers()
 
@@ -162,10 +160,6 @@ def get_pinnable_pkgs(
         if not pkg:
             raise PkgNotInstalled()
 
-        if for_rollback:
-            if len(pkg.logged_versions) <= 1:
-                raise PkgFilesMissing('cannot find older versions')
-
         else:
             version = defn.strategies[Strategy.VersionEq]
             if version and pkg.version != version:
@@ -174,6 +168,25 @@ def get_pinnable_pkgs(
         return pkg
 
     return list(map(validate_pkg, defns, get_pkgs(defns)))
+
+
+def get_pkg_logged_versions(pkg: Pkg) -> list[PkgLoggedVersion]:
+    convert = partial(make_db_converter().structure, cl=PkgLoggedVersion)
+
+    with config_ctx.database() as connection:
+        return [
+            convert(v)
+            for v in connection.execute(
+                """
+                SELECT version, install_time
+                FROM pkg_version_log
+                WHERE pkg_source = :pkg_source AND pkg_id = :pkg_id
+                ORDER BY install_time DESC
+                LIMIT 10
+                """,
+                {'pkg_source': pkg.source, 'pkg_id': pkg.id},
+            ).fetchall()
+        ]
 
 
 def _insert_pkg(pkg: Pkg, transaction: Connection) -> None:
@@ -750,5 +763,5 @@ async def pin(defns: Sequence[Defn]) -> Mapping[Defn, AnyResult[PkgInstalled]]:
     """
     return {
         d: r if is_error_result(r) else _mutate_pin(d, r)
-        for d, r in zip(defns, get_pinnable_pkgs(defns, for_rollback=False))
+        for d, r in zip(defns, get_pinnable_pkgs(defns))
     }

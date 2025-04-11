@@ -88,7 +88,11 @@ export type Addon = {
     [Strategy.VersionEq]: boolean;
   };
   deps: { id: string }[];
-  logged_versions: { version: string; install_time: string }[];
+};
+
+export type AddonVersion = {
+  version: string;
+  install_time: string;
 };
 
 export type ListResult = Addon[];
@@ -237,6 +241,12 @@ export class Api {
     });
   }
 
+  async getLoggedVersions(defn: Defn): Promise<AddonVersion[]> {
+    return await this.request({
+      method: "get_logged_versions",
+      params: { profile: this.profile, defn },
+    });
+  }
   async search(
     searchTerms: string,
     limit: number,

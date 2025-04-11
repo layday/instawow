@@ -4,7 +4,7 @@ import datetime as dt
 from functools import lru_cache
 
 import cattrs
-from attrs import asdict, field, frozen
+from attrs import asdict, frozen
 from typing_extensions import TypedDict
 
 from .. import resolvers
@@ -73,9 +73,8 @@ class Pkg:
     version: str
     changelog_url: str
     options: PkgOptions  # pkg_options
-    folders: list[PkgFolder] = field(factory=list)  # pkg_folder
-    deps: list[PkgDep] = field(factory=list)  # pkg_dep
-    logged_versions: list[PkgLoggedVersion] = field(factory=list)  # pkg_version_log
+    folders: list[PkgFolder]  # pkg_folder
+    deps: list[PkgDep]  # pkg_dep
 
     def to_defn(self) -> Defn:
         return Defn(
@@ -100,7 +99,10 @@ def build_pkg_from_pkg_candidate(
     folders: list[TypedDict[{'name': str}]],
 ) -> Pkg:
     return make_db_converter().structure(
-        pkg_candidate
+        {
+            'deps': [],
+        }
+        | pkg_candidate
         | {
             'source': defn.source,
             'options': {k: bool(v) for k, v in defn.strategies.items()},
@@ -136,16 +138,6 @@ def build_pkg_from_row_mapping(connection: Connection, row_mapping: Row) -> Pkg:
                 SELECT id
                 FROM pkg_dep
                 WHERE pkg_source = :pkg_source AND pkg_id = :pkg_id
-                """,
-                fk,
-            ).fetchall(),
-            'logged_versions': connection.execute(
-                """
-                SELECT version, install_time
-                FROM pkg_version_log
-                WHERE pkg_source = :pkg_source AND pkg_id = :pkg_id
-                ORDER BY install_time DESC
-                LIMIT 10
                 """,
                 fk,
             ).fetchall(),

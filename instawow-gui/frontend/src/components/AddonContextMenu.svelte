@@ -51,11 +51,9 @@
     >
     <ContextMenuItem divider />
     {#if details.supportsRollback}
-      {#if details.addon.logged_versions.length > 1}
-        <ContextMenuItem onSelect={makeOnSelectHandler(details, AddonAction.Rollback)}
-          >Rollback</ContextMenuItem
-        >
-      {/if}
+      <ContextMenuItem onSelect={makeOnSelectHandler(details, AddonAction.Rollback)}
+        >Rollback</ContextMenuItem
+      >
       {#if details.addon.options.version_eq}
         <ContextMenuItem onSelect={makeOnSelectHandler(details, AddonAction.Unpin)}
           >Unpin</ContextMenuItem

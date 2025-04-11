@@ -8,6 +8,7 @@
   import {
     ReconciliationStage,
     type Addon,
+    type AddonVersion,
     type AnyResult,
     type CatalogueEntry,
     type Defn,
@@ -165,6 +166,7 @@
         id: "rollback";
         dynamicProps: {
           addon: Addon;
+          loggedVersions: AddonVersion[];
           onRequestRollback: (addon: Addon) => void;
         };
       }
@@ -429,10 +431,11 @@
     };
   };
 
-  const showRollbackModal = (addon: Addon) => {
+  const showRollbackModal = async (addon: Addon) => {
+    const loggedVersions = await api.getLoggedVersions(addonToDefn(addon));
     modal = {
       id: "rollback",
-      dynamicProps: { addon, onRequestRollback: (addon) => updateAddons([addon]) },
+      dynamicProps: { addon, loggedVersions, onRequestRollback: (addon) => updateAddons([addon]) },
     };
   };
 
