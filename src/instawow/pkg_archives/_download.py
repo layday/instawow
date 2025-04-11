@@ -95,5 +95,5 @@ async def download_pkg_archive(defn: Defn, download_url: str) -> Path:
 
         return await _move_async(
             temp_path,
-            config_ctx.config().global_config.install_cache_dir / shasum(download_url),
+            config_ctx.config().global_config.install_cache_path / shasum(download_url),
         )

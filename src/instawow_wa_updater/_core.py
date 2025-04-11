@@ -132,18 +132,18 @@ def _extract_auras(model: type[AuraGroup], source: str):
 
 class WaCompanionBuilder:
     def __init__(self, config: PluginConfig) -> None:
-        self._config = config
+        self._plugin_config = config
 
     @cached_property
     def build_paths(self) -> _BuildPaths:
         return _BuildPaths(
-            self._config.profile_cache_dir / 'WeakAurasCompanion.zip',
-            self._config.profile_cache_dir / 'CHANGELOG.md',
-            self._config.profile_cache_dir / 'version.txt',
+            self._plugin_config.profile_cache_path / 'WeakAurasCompanion.zip',
+            self._plugin_config.profile_cache_path / 'CHANGELOG.md',
+            self._plugin_config.profile_cache_path / 'version.txt',
         )
 
     def _make_request_headers(self):
-        access_token = self._config.access_tokens.wago
+        access_token = self._plugin_config.access_tokens.wago
         if access_token:
             return {'api-key': access_token}
 
@@ -266,7 +266,7 @@ WeakAurasCompanionData = {{
             )
 
             interface_version_string = get_installation_version_from_addon_dir(
-                self._config.profile_config.addon_dir
+                self._plugin_config.profile_config.addon_dir
             )
             interface_version = (
                 parse_version_string(interface_version_string) if interface_version_string else 0
@@ -304,11 +304,11 @@ WeakAurasCompanionData = {{
 
     def extract_installed_auras(self) -> Iterator[AuraGroup]:
         installation_dir = get_installation_dir_from_addon_dir(
-            self._config.profile_config.addon_dir
+            self._plugin_config.profile_config.addon_dir
         )
         if not installation_dir:
             raise ValueError(
-                f'cannot extract installation folder from {self._config.profile_config.addon_dir}'
+                f'Cannot extract installation folder from {self._plugin_config.profile_config.addon_dir}'
             )
 
         saved_vars_by_account = installation_dir.glob('WTF/Account/*/SavedVariables')
@@ -322,7 +322,9 @@ WeakAurasCompanionData = {{
 
             else:
                 content = file.read_text(encoding='utf-8-sig', errors='replace')
-                aura_group_cache = (self._config.cache_dir / shasum(content)).with_suffix('.json')
+                aura_group_cache = (self._plugin_config.dirs.cache / shasum(content)).with_suffix(
+                    '.json'
+                )
                 if aura_group_cache.exists():
                     logger.info(f'Loading {file} from cache at {aura_group_cache}')
                     aura_group_json = json.loads(aura_group_cache.read_bytes())

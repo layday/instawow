@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 
 import attrs
 
-type _Validator[T] = Callable[[object, 'attrs.Attribute[T]', T], None]
+type _Validator[T] = Callable[[object, attrs.Attribute[T], T], None]
 
 
 fauxfrozen = attrs.frozen if TYPE_CHECKING else partial(attrs.define, unsafe_hash=True)

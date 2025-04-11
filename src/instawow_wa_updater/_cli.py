@@ -3,6 +3,7 @@ from __future__ import annotations
 import click
 
 from instawow import config_ctx
+from instawow.cli import run_with_progress
 from instawow.cli._helpers import ManyOptionalChoiceValueParam
 
 
@@ -14,8 +15,6 @@ def wa_updater_command_group() -> None:
 @wa_updater_command_group.command('build')
 def build_weakauras_companion() -> None:
     "Build the WeakAuras Companion add-on."
-
-    from instawow.cli import run_with_progress
 
     from ._config import PluginConfig
     from ._core import WaCompanionBuilder
@@ -50,12 +49,13 @@ def configure(collapsed_editable_config_values: dict[str, object]) -> None:
     ).write()
 
     click.echo('Configuration written to:')
-    click.echo(f'  {plugin_config.config_file}')
+    click.echo(f'  {plugin_config.config_file_path}')
 
 
 @wa_updater_command_group.command('list')
 def list_installed_wago_auras() -> None:
     "List WeakAuras installed from Wago."
+
     from instawow._utils.text import tabulate
 
     from ._config import PluginConfig

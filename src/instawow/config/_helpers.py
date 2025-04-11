@@ -2,30 +2,33 @@ from __future__ import annotations
 
 import json
 import os
-from collections.abc import Iterable, Mapping
-from functools import lru_cache
+from collections.abc import Mapping
+from functools import lru_cache, partial
 from pathlib import Path
-from typing import Any, TypedDict
+from typing import Any, Literal, NewType, TypedDict
 
 import attrs
 import cattrs
 import cattrs.gen
 import cattrs.preconf.json
 
-_missing = object()
+type _FieldEnvPrefix = str | Literal[True]
+type _FieldStore = Literal[True, 'independently']
 
 
 class FieldMetadata(TypedDict, total=False):
-    env: str
-    preparse_from_env: bool
-    store: bool
+    env_prefix: _FieldEnvPrefix
+    store: _FieldStore
+
+
+SecretStr = NewType('SecretStr', str)
 
 
 class UninitialisedConfigError(Exception):
     pass
 
 
-def ensure_dirs(dirs: Iterable[Path]) -> None:
+def ensure_dirs(*dirs: Path) -> None:
     for dir_ in dirs:
         dir_.mkdir(exist_ok=True, parents=True)
 
@@ -35,6 +38,23 @@ def make_config_converter() -> cattrs.Converter:
     cattrs.preconf.json.configure_converter(converter)
     converter.register_structure_hook(Path, lambda v, _: Path(v))
     converter.register_unstructure_hook(Path, str)
+    return converter
+
+
+@lru_cache(1)
+def make_display_converter():
+    import cattrs.gen
+
+    converter = make_config_converter()
+
+    @partial(converter.register_unstructure_hook, SecretStr)
+    def _(value: SecretStr):
+        return '*' * 10
+
+    @converter.register_unstructure_hook_factory(attrs.has)
+    def _(cls: Any, converter: cattrs.Converter):
+        return cattrs.gen.make_dict_unstructure_fn(cls, converter, _cattrs_include_init_false=True)
+
     return converter
 
 
@@ -65,11 +85,15 @@ def write_config(config: object, config_path: Path) -> None:
     )
 
 
-def read_config(config_cls: type, config_path: Path, missing_ok: bool = False) -> dict[str, Any]:
+def read_config(attrs_cls: type, config_path: Path, missing_ok: bool = False) -> dict[str, Any]:
     try:
         values = json.loads(config_path.read_bytes())
-        for field in attrs.fields(config_cls):
-            if attrs.has(field.type):
+        for field in attrs.fields(attrs_cls):
+            if not field.init:
+                continue
+
+            store: _FieldStore = field.metadata.get('store')
+            if store == 'independently':
                 maybe_values = read_config(
                     field.type, config_path.with_stem(f'{config_path.stem}.{field.name}'), True
                 )
@@ -84,27 +108,36 @@ def read_config(config_cls: type, config_path: Path, missing_ok: bool = False) -
         return values
 
 
-def _compute_var(field: attrs.Attribute[object], default: object):
-    env = field.metadata.get('env')
-    if not env:
-        return default
-
-    value = os.environ.get(f'{env}_{field.name}'.upper())
-    if value is None:
-        return default
-    elif field.metadata.get('preparse_from_env'):
-        return json.loads(value)
-    else:
-        return value
+def _parse_env_var(field: attrs.Attribute[object], value: str):
+    if field.type is bool:
+        return attrs.converters.to_bool(value)
+    return value
 
 
-def read_env_vars(config_cls: type, values: Mapping[str, object]) -> dict[str, object]:
-    return {
-        f.name: v
-        for f in attrs.fields(config_cls)
-        for v in (_compute_var(f, values.get(f.name, _missing)),)
-        if v is not _missing
-    }
+def read_env_vars(
+    attrs_cls: type, values: Mapping[str, Any], parent_env_prefix: str | None = None
+) -> dict[str, Any]:
+    def iter_read():
+        for field in attrs.fields(attrs_cls):
+            if not field.init:
+                continue
+
+            value = values.get(field.name, attrs.NOTHING)
+
+            env_prefix: _FieldEnvPrefix = field.metadata.get('env_prefix')
+            if env_prefix:
+                if value is not attrs.NOTHING and attrs.has(field.type):
+                    value = read_env_vars(field.type, value, f'{env_prefix}_{field.name}')
+                else:
+                    env_key = f'{parent_env_prefix if env_prefix is True else env_prefix}_{field.name}'.upper()
+                    env_value = os.environ.get(env_key, attrs.NOTHING)
+                    if env_value is not attrs.NOTHING:
+                        value = _parse_env_var(field, env_value)
+
+            if value is not attrs.NOTHING:
+                yield field.name, value
+
+    return dict(iter_read())
 
 
 config_converter = make_config_converter()

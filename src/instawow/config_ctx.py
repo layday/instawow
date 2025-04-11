@@ -34,7 +34,7 @@ class _ReentrantDatabaseHandle(AbstractContextManager['pkg_db.Connection']):
 
     def __enter__(self) -> pkg_db.Connection:
         if self._connection is None:
-            self._connection = pkg_db.prepare_database(config().db_file)
+            self._connection = pkg_db.prepare_database(config().db_file_path)
         self._referent_count += 1
         return self._connection
 

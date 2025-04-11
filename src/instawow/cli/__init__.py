@@ -76,7 +76,7 @@ def run_with_progress[T](awaitable: Awaitable[T], **params: Any) -> T:
         make_init_web_client = partial(make_init_web_client, None)
     else:
         make_init_web_client = partial(
-            make_init_web_client, config_ctx.config().global_config.http_cache_dir
+            make_init_web_client, config_ctx.config().global_config.http_cache_path
         )
 
     if suppress_progress:
@@ -308,7 +308,7 @@ def cli(verbosity: int, no_cache: bool, profile: str):
 
     global_config = _config.GlobalConfig.read().ensure_dirs()
     setup_logging(
-        global_config.logging_dir, verbosity > 0, verbosity > 1, verbosity > 2, profile=profile
+        global_config.logging_path, verbosity > 0, verbosity > 1, verbosity > 2, profile=profile
     )
 
     @config_ctx.config.set
@@ -1027,7 +1027,7 @@ def configure(editable_config_values: Mapping[_EditableConfigOptions, Any]):
     click_ctx = click.get_current_context().find_root()
     profile = click_ctx.params['profile']
 
-    global_config = _config.GlobalConfig.read()
+    global_config = _config.GlobalConfig.read(env=False)
 
     config_values: dict[str, Any] | None = None
     try:
@@ -1060,7 +1060,9 @@ def configure(editable_config_values: Mapping[_EditableConfigOptions, Any]):
             and {_EditableConfigOptions.AddonDir, _EditableConfigOptions.GameFlavour}
             <= interactive_editable_config_keys
         ):
-            known_installations = list(global_config.iter_installations())
+            known_installations = list(
+                _config.ProfileConfig.iter_profile_installations(global_config)
+            )
             unimported_installations = [
                 (k, v and v['flavour'])
                 for k, v in find_installations()
@@ -1167,8 +1169,8 @@ def configure(editable_config_values: Mapping[_EditableConfigOptions, Any]):
     config.write()
 
     click.echo('Configuration written to:')
-    click.echo(f'  {config.global_config.config_file}')
-    click.echo(f'  {config.config_file}')
+    click.echo(f'  {config.global_config.config_file_path}')
+    click.echo(f'  {config.config_file_path}')
 
     return config
 
@@ -1184,7 +1186,7 @@ def cache_clear():
 
     import shutil
 
-    shutil.rmtree(config_ctx.config().global_config.cache_dir)
+    shutil.rmtree(config_ctx.config().global_config.dirs.cache)
 
 
 @cli.group('debug')
@@ -1198,7 +1200,14 @@ def debug_config():
 
     import json
 
-    click.echo(json.dumps(config_ctx.config().unstructure_for_display(), indent=2))
+    from ..config._helpers import make_display_converter
+
+    click.echo(
+        json.dumps(
+            make_display_converter().unstructure(config_ctx.config()),
+            indent=2,
+        )
+    )
 
 
 @_debug_group.command('sources')

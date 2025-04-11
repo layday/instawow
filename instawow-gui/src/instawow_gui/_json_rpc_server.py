@@ -127,7 +127,7 @@ class _ErrorResult(TypedDict):
 @_register_method('config/list_profiles')
 async def list_profiles() -> dict[str, ProfileConfig]:
     global_config = _global_config_var.get()
-    profiles = await run_in_thread(list[str])(global_config.iter_profiles())
+    profiles = await run_in_thread(list[str])(ProfileConfig.iter_profiles(global_config))
 
     async def get_profile_configs():
         for profile in profiles:
@@ -661,7 +661,7 @@ async def create_web_app(toga_handle: toga.App | None = None):
             _global_config_var.set(global_config)
 
             web_client = await exit_stack.enter_async_context(
-                init_web_client(global_config.http_cache_dir, with_progress=True)
+                init_web_client(global_config.http_cache_path, with_progress=True)
             )
             http_ctx.web_client.set(web_client)
 

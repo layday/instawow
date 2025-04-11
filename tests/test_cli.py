@@ -12,6 +12,7 @@ import pytest
 
 from instawow.cli import cli
 from instawow.config import ProfileConfig
+from instawow.config._helpers import make_display_converter
 
 pytestmark = pytest.mark.usefixtures(
     '_iw_config_ctx', '_iw_web_client_ctx', '_iw_mock_pt_progress_bar', '_iw_mock_asyncio_run'
@@ -210,7 +211,7 @@ def test_debug_config(
 ):
     assert (
         run('debug config').output
-        == json.dumps(iw_profile_config.unstructure_for_display(), indent=2) + '\n'
+        == json.dumps(make_display_converter().unstructure(iw_profile_config), indent=2) + '\n'
     )
 
 
@@ -245,8 +246,8 @@ def test_configure__create_new_profile(
         '  WDJB-MJHT\n'
         'Waiting...\n'
         'Configuration written to:\n'
-        f'  {iw_profile_config.global_config.config_dir / "config.json"}\n'
-        f'  {iw_profile_config.global_config.config_dir / "profiles/foo/config.json"}\n'
+        f'  {iw_profile_config.global_config.dirs.config / "config.json"}\n'
+        f'  {iw_profile_config.global_config.dirs.config / "profiles/foo/config.json"}\n'
     )
 
 
@@ -257,8 +258,8 @@ def test_configure__update_existing_profile_interactively(
     iw_pt_input.send_text('Y\r')
     assert run('configure global_config.auto_update_check').output == (
         'Configuration written to:\n'
-        f'  {iw_profile_config.global_config.config_dir / "config.json"}\n'
-        f'  {iw_profile_config.global_config.config_dir / "profiles/__default__/config.json"}\n'
+        f'  {iw_profile_config.global_config.dirs.config / "config.json"}\n'
+        f'  {iw_profile_config.global_config.dirs.config / "profiles/__default__/config.json"}\n'
     )
 
 
@@ -267,8 +268,8 @@ def test_configure__update_existing_profile_directly(
 ):
     assert run('configure global_config.auto_update_check=0').output == (
         'Configuration written to:\n'
-        f'  {iw_profile_config.global_config.config_dir / "config.json"}\n'
-        f'  {iw_profile_config.global_config.config_dir / "profiles/__default__/config.json"}\n'
+        f'  {iw_profile_config.global_config.dirs.config / "config.json"}\n'
+        f'  {iw_profile_config.global_config.dirs.config / "profiles/__default__/config.json"}\n'
     )
 
 
@@ -566,6 +567,6 @@ def test_plugin_hook_command_can_be_invoked():
 def test_clear_cache(
     iw_profile_config: ProfileConfig,
 ):
-    assert iw_profile_config.global_config.cache_dir.is_dir()
+    assert iw_profile_config.global_config.dirs.cache.is_dir()
     assert run('cache clear').exit_code == 0
-    assert not iw_profile_config.global_config.cache_dir.is_dir()
+    assert not iw_profile_config.global_config.dirs.cache.is_dir()

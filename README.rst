@@ -169,6 +169,23 @@ Plug-ins
 for arbitrary hosts and add new commands to the CLI.  You will find a sample
 plug-in in ``tests/plugin``.
 
+Configuration directories
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+*instawow* conforms to the XDG base directory standard and will respect
+XDG environment variables on all platforms, if set. The following
+directories are used by *instawow*:
+
+- ``{cache-home }/instawow``, corresponding to ``$XDG_CACHE_HOME``
+- ``{config-home}/instawow``, corresponding to ``$XDG_CONFIG_HOME``
+- ``{state-home }/instawow``, corresponding to ``$XDG_STATE_HOME``
+- ``{temp-home  }/instawowt``
+
+On macOS and Windows, the configuration and state directories are combined if XDG is not in use.
+
+The active directory paths are printed by ``instawow debug config``
+and the cache can be purged with ``instawow cache clear``.
+
 Metadata sourcing
 -----------------
 

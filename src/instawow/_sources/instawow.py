@@ -39,7 +39,7 @@ class InstawowResolver(BaseResolver):
         except StopIteration:
             raise PkgNonexistent from None
 
-        builder_config = PluginConfig(config_ctx.config())
+        builder_config = PluginConfig(profile_config=config_ctx.config())
         builder = WaCompanionBuilder(builder_config)
         if metadata['requires_build']:
             await run_in_thread(builder_config.ensure_dirs)()

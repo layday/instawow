@@ -14,7 +14,7 @@ pytestmark = pytest.mark.usefixtures('_iw_config_ctx')
 @pytest.fixture
 async def builder():
     return WaCompanionBuilder(
-        PluginConfig(config_ctx.config()).ensure_dirs(),
+        PluginConfig(profile_config=config_ctx.config()).ensure_dirs(),
     )
 
 
