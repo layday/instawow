@@ -68,19 +68,32 @@ You can ``update`` add-ons and ``remove`` them just as you'd install them.
 If ``update`` is invoked without arguments, it will update all of your
 installed add-ons.  You can ``list`` add-ons and view detailed information about
 them using ``list --format detailed``.
-For ``list`` and similarly non-destructive commands, the source can be omitted
+For ``list`` and other similarly non-destructive commands, the source can be omitted
 and the alias can be shortened, e.g. ``instawow reveal moli``
 will bring up the Molinari add-on folder in your file manager.
 
 Add-on reconciliation
 ~~~~~~~~~~~~~~~~~~~~~
 
-Add-on reconciliation is not automatic – *instawow* makes a point
-of not automatically assuming ownership of your add-ons.
-However, you can automate reconciliation with ``reconcile --auto``
-and *instawow* will prioritise add-ons from CurseForge.
-Reconciled add-ons are reinstalled because the installed version cannot be
-extracted reliably.
+*instawow* will not automatically take ownership of your add-ons.
+To start receiving add-on updates for pre-installed add-ons, you must run ``instawow reconcile``.
+For each add-on you have installed,
+``reconcile`` will ask you to select a remote add-on from a list of candidates.
+This process can be *automated* with ``reconcile --auto``.
+Any add-on which is reconciled is reinstalled because the installed version cannot be
+reliably extracted from installed add-on metadata.
+
+Add-on re-reconciliation
+~~~~~~~~~~~~~~~~~~~~~
+
+*instawow* is able to suggest alternative sources for any add-on
+you have installed via ``instawow rereconcile``.  ``rereconcile``
+takes any number of add-on definitions as arguments.  All of the following are valid::
+
+    instawow rereconcile
+    instawow rereconcile curse:
+    instawow rereconcile curse:molinari
+    instawow rereconcile curse:molinari github:layday/some-addon wowi:
 
 Add-on search
 ~~~~~~~~~~~~~
@@ -100,10 +113,11 @@ Add-ons take a number of options which determine how they are resolved:
 - ``any_release_type`` to ignore add-on stability
 - ``version_eq=[VERSION]`` to install a specific add-on version
 
-In the CLI, you can pass strategies in the fragment portion of the add-on URI,
+The default strategy set is empty.
+In the CLI, you can define strategies in the fragment portion of the add-on URI,
 separated by a comma, e.g. ``instawow install curse:molinari#any_release_type,any_flavour``.
 Strategies are respected by ``install`` and ``update``.  To reset an add-on's strategies on update,
-you can pass a ``=`` fragment, e.g. ``instawow update curse:molinari#=``.
+you can specify a null fragment, e.g. ``instawow update curse:molinari#=``.
 
 Reverting add-on updates
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -119,18 +133,18 @@ the ``default`` strategy.
 Profiles
 ~~~~~~~~
 
-*instawow* supports multiple game versions by means of profiles.
+Multi-flavour management is accomplished using profiles.
 Assuming your default profile is configured for retail,
 you can create a pristine profile for classic with::
 
     instawow -p classic configure
 
 "``classic``" is simply the name of the profile; you will be asked to select
-the game flavour that it corresponds to.  You can have several profiles
-of the same flavour (think alpha, beta and PTR).
+the installation folder, or to provide the add-on folder and game flavour if
+an installation cannot be found.
 
-``-p`` is a global option. You can prefix any *instawow* command with ``-p``.
-For instance, to update your Classic add-ons, you would run::
+``-p`` is a global option. You can prefix any *instawow* command with ``-p``,
+e.g. to update your new profile's add-ons, you would run::
 
     instawow -p classic update
 
@@ -142,7 +156,7 @@ Migrating Classic profiles
 With the exception of "Classic Era" profiles
 (``vanilla_classic`` in *instawow* parlance), classic profiles will start
 receiving updates for the latest Classic release once it is supported by
-*instawow*.  No user intervention is necessary, save for updating *instawow*.
+*instawow*.  You do not need to change the profile's flavour.
 
 WeakAura updater
 ~~~~~~~~~~~~~~~~
@@ -154,13 +168,13 @@ and provided that you have WeakAuras installed::
     instawow plugins weakauras-companion build
     instawow install instawow:weakauras-companion
 
-You will have to rebuild the companion add-on prior to updating
+You will have to rebuild the companion add-on before invoking ``instawow update``
 to receive aura updates.  If you would like to check for updates on
-every invocation of ``instawow update``, install the
-``instawow:weakauras-companion-autoupdate`` variant::
+every ``instawow update``, install the
+``instawow:weakauras-companion-autoupdate`` variant, omitting
+the build step::
 
     instawow install instawow:weakauras-companion-autoupdate
-    instawow update
 
 Plug-ins
 ~~~~~~~~
