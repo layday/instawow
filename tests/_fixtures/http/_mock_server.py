@@ -7,26 +7,32 @@ from __future__ import annotations
 import inspect
 import re
 from collections.abc import Awaitable, Callable, Sequence
-from copy import copy
-from typing import TYPE_CHECKING, Any, Self
+from functools import partial
+from typing import Protocol
+from unittest import mock
 
 import attrs
+import pytest
+from aiohttp.abc import ResolveResult
 from aiohttp.connector import TCPConnector
-from aiohttp.test_utils import RawTestServer
+from aiohttp.test_utils import BaseTestServer, RawTestServer
 from aiohttp.tracing import Trace
-from aiohttp.web import Response
+from aiohttp.web import Response as Response
 from aiohttp.web_request import BaseRequest
 from aiohttp.web_response import json_response
 from yarl import URL
 
-_Response = (
-    Response
-    | Callable[[BaseRequest], Response]
+type _Response = (
+    Callable[[], Response]
     | Callable[[BaseRequest], Awaitable[Response]]
-    | dict[str, Any]
-    | list[Any]
+    | dict[str, object]
+    | list[object]
     | str
 )
+
+
+class AddRoutes(Protocol):
+    def __call__(self, *routes: Route) -> None: ...
 
 
 class NoRouteFoundError(AssertionError):
@@ -54,53 +60,51 @@ class Route:
         return True
 
 
-class ResponsesMockServer(RawTestServer):
-    def __init__(self, **kwargs: Any):
-        super().__init__(handler=self.__find_response, **kwargs)
-        self.__routes = list[Route]()
-
-    async def __find_response(self, request: BaseRequest) -> Response:
-        for i, route in enumerate(self.__routes):
+def prepare_mock_server_router():
+    async def match_route(request: BaseRequest) -> Response:
+        for i, route in enumerate(routes):
             if not route.matches(request):
                 continue
 
             if route.single_use:
-                del self.__routes[i]
+                del routes[i]
 
             match route.response:
                 case Callable() as fn:
-                    return await fn(request) if inspect.iscoroutinefunction(fn) else fn(request)  # pyright: ignore[reportReturnType]
+                    return await fn(request) if inspect.iscoroutinefunction(fn) else fn()  # pyright: ignore  # noqa: PGH003
                 case str() as text:
                     return Response(body=text)
                 case (dict() | list()) as json:
                     return json_response(data=json)
-                case prepared_response:
-                    return copy(prepared_response)
+                case _:
+                    raise ValueError(f'Unsupported response type: {type(route.response)}')
+
         else:
             raise NoRouteFoundError(f'No match found for <{request.method} {request.url}>')
 
-    def add(self, *routes: Route) -> None:
-        self.__routes.extend(routes)
+    routes = list[Route]()
 
-    @property
-    def tcp_connector_class(self) -> type[TCPConnector]:
-        class _TCPConnector(TCPConnector):
-            async def _resolve_host(
-                _self: TCPConnector, host: str, port: int, traces: Sequence[Trace] | None = None
-            ) -> Any:
-                return [
-                    {
-                        'hostname': host,
-                        'host': '127.0.0.1',
-                        'port': self.port,
-                        'family': _self._family,
-                        'proto': 0,
-                        'flags': 0,
-                    }
-                ]
+    def add_routes(*routes_: Route) -> None:
+        routes.extend(routes_)
 
-        return _TCPConnector
+    return partial(RawTestServer, handler=match_route), add_routes
 
-    if TYPE_CHECKING:
-        # Parent class returns "BaseTestServer".
-        async def __aenter__(self) -> Self: ...
+
+def patch_aiohttp(patcher: pytest.MonkeyPatch, mock_server: BaseTestServer):
+    class MockTCPConnector(TCPConnector):
+        async def _resolve_host(
+            _self: TCPConnector, host: str, port: int, traces: Sequence[Trace] | None = None
+        ) -> list[ResolveResult]:
+            return [
+                {
+                    'hostname': host,
+                    'host': '127.0.0.1',
+                    'port': mock_server.port,  # pyright: ignore[reportReturnType]
+                    'family': _self._family,
+                    'proto': 0,
+                    'flags': 0,
+                }
+            ]
+
+    patcher.setattr('aiohttp.TCPConnector', MockTCPConnector)
+    patcher.setattr('aiohttp.ClientRequest.is_ssl', mock.Mock(return_value=False))

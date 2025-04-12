@@ -18,13 +18,12 @@ import instawow.http
 import instawow.http_ctx
 from instawow.wow_installations import _DELECTABLE_DIR_NAMES, Flavour
 
-from ._fixtures.http import ROUTES, ResponsesMockServer
-
-
-def pytest_addoption(
-    parser: pytest.Parser,
-):
-    parser.addoption('--iw-no-mock-http', action='store_true')
+from ._fixtures.http import (
+    ROUTES,
+    AddRoutes,
+    patch_aiohttp,
+    prepare_mock_server_router,
+)
 
 
 @pytest.fixture(autouse=True)
@@ -140,26 +139,20 @@ async def _iw_web_client_ctx(
 
 
 @pytest.fixture
-async def iw_aresponses(
+async def iw_add_routes(
     monkeypatch: pytest.MonkeyPatch,
 ):
-    async with ResponsesMockServer() as server:
-        monkeypatch.setattr('aiohttp.TCPConnector', server.tcp_connector_class)
-        monkeypatch.setattr('aiohttp.ClientRequest.is_ssl', mock.Mock(return_value=False))
-        yield server
+    make_server, add_route = prepare_mock_server_router()
+    async with make_server() as server:
+        patch_aiohttp(monkeypatch, server)
+        yield add_route
 
 
 @pytest.fixture(autouse=True, params=['all'])
 async def _iw_mock_aiohttp_requests(
     request: pytest.FixtureRequest,
-    iw_aresponses: ResponsesMockServer,
+    iw_add_routes: AddRoutes,
 ):
-    if request.config.getoption('--iw-no-mock-http') or any(
-        m.name == 'iw_no_mock_http' for m in request.node.iter_markers()
-    ):
-        await iw_aresponses.__aexit__(*((None,) * 3))
-        return
-
     if request.param == 'all':
         routes = ROUTES.values()
     else:
@@ -169,7 +162,7 @@ async def _iw_mock_aiohttp_requests(
 
         routes = (ROUTES[k] for k in ROUTES.keys() & urls)
 
-    iw_aresponses.add(*routes)
+    iw_add_routes(*routes)
 
 
 @pytest.fixture(scope='module')

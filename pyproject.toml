@@ -149,9 +149,6 @@ exclude_also = [
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-markers = [
-  "iw_no_mock_http",
-]
 xfail_strict = true
 filterwarnings = [
   "error",

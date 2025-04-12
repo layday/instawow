@@ -16,7 +16,7 @@ from instawow.definitions import Defn, Strategies, Strategy
 from instawow.results import PkgFilesMissing, PkgFilesNotMatching, PkgNonexistent
 from instawow.wow_installations import Flavour, FlavourVersionRange
 
-from ._fixtures.http import ResponsesMockServer, Route
+from ._fixtures.http import AddRoutes, Route
 
 pytestmark = pytest.mark.usefixtures('_iw_config_ctx', '_iw_web_client_ctx')
 
@@ -97,7 +97,7 @@ def package_json_less_addon(
     indirect=True,
 )
 async def test_extracting_flavour_from_zip_contents(
-    iw_aresponses: ResponsesMockServer,
+    iw_add_routes: AddRoutes,
     github_resolver: GithubResolver,
     package_json_less_addon: tuple[bytes, set[Flavour]],
 ):
@@ -109,7 +109,7 @@ async def test_extracting_flavour_from_zip_contents(
         await response.prepare(request)
         return response
 
-    iw_aresponses.add(
+    iw_add_routes(
         Route(
             r'//api\.github\.com/repos(/[^/]*){2}/releases/assets/.*',
             handle_request,
@@ -166,7 +166,7 @@ async def test_nonexistent_repo(
 )
 @pytest.mark.parametrize('any_flavour', [True, None])
 async def test_any_flavour_strategy(
-    iw_aresponses: ResponsesMockServer,
+    iw_add_routes: AddRoutes,
     github_resolver: GithubResolver,
     any_flavour: Literal[True, None],
 ):
@@ -175,7 +175,7 @@ async def test_any_flavour_strategy(
         n for r in opposite_flavour.to_flavour_keyed_enum(FlavourVersionRange).value for n in r
     )
 
-    iw_aresponses.add(
+    iw_add_routes(
         Route(
             r'//api\.github\.com/repos/nebularg/PackagerTest/releases/assets/.*',
             {
@@ -184,10 +184,7 @@ async def test_any_flavour_strategy(
                         'filename': 'TestGit-v1.9.7.zip',
                         'nolib': False,
                         'metadata': [
-                            {
-                                'flavor': opposite_flavour,
-                                'interface': opposite_interface,
-                            }
+                            {'flavor': opposite_flavour, 'interface': opposite_interface}
                         ],
                     }
                 ]
@@ -234,12 +231,12 @@ async def test_changelog_is_data_url(
 )
 async def test_mismatched_release_is_skipped_and_logged(
     caplog: pytest.LogCaptureFixture,
-    iw_aresponses: ResponsesMockServer,
+    iw_add_routes: AddRoutes,
     github_resolver: GithubResolver,
     flavor: str,
     interface: int,
 ):
-    iw_aresponses.add(
+    iw_add_routes(
         Route(
             r'//api\.github\.com/repos/nebularg/PackagerTest/releases/assets/.*',
             {

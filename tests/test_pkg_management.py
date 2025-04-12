@@ -23,7 +23,7 @@ from instawow.results import (
     PkgUpToDate,
 )
 
-from ._fixtures.http import ResponsesMockServer, Route
+from ._fixtures.http import AddRoutes, Route
 
 pytestmark = pytest.mark.usefixtures('_iw_config_ctx', '_iw_web_client_ctx')
 
@@ -128,12 +128,12 @@ async def test_install_cannot_replace_reconciled_folders():
 
 async def test_install_recognises_renamed_pkg_from_id(
     monkeypatch: pytest.MonkeyPatch,
-    iw_aresponses: ResponsesMockServer,
+    iw_add_routes: AddRoutes,
 ):
-    iw_aresponses.add(
+    iw_add_routes(
         Route(
             r'//api\.github\.com/repos/p3lim-wow/molinarifico/?.*',
-            aiohttp.web.Response(status=404),
+            lambda: aiohttp.web.Response(status=404),
         )
     )
 

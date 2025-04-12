@@ -9,8 +9,11 @@ from zipfile import ZipFile
 
 from instawow._version import get_version
 
-from ._mock_server import Response, Route
-from ._mock_server import ResponsesMockServer as ResponsesMockServer
+from ._mock_server import AddRoutes as AddRoutes
+from ._mock_server import Response
+from ._mock_server import Route as Route
+from ._mock_server import patch_aiohttp as patch_aiohttp
+from ._mock_server import prepare_mock_server_router as prepare_mock_server_router
 
 
 def _load_fixture(filename: str):
@@ -69,7 +72,7 @@ ROUTES = {
         ),
         Route(
             r'//edge\.forgecdn\.net/.*',
-            lambda _: Response(body=_make_addon_zip('Molinari')),
+            lambda: Response(body=_make_addon_zip('Molinari')),
         ),
         Route(
             r'//api\.mmoui\.com/v3/game/WOW/filelist\.json',
@@ -81,7 +84,7 @@ ROUTES = {
         ),
         Route(
             r'//cdn\.wowinterface\.com/.*',
-            lambda _: Response(body=_make_addon_zip('Molinari')),
+            lambda: Response(body=_make_addon_zip('Molinari')),
         ),
         Route(
             r'//api\.tukui\.org/v1/addon/tukui',
@@ -93,7 +96,7 @@ ROUTES = {
         ),
         Route(
             r'//api\.tukui\.org/v1/download/.*',
-            lambda _: Response(body=_make_addon_zip('Tukui')),
+            lambda: Response(body=_make_addon_zip('Tukui')),
         ),
         Route(
             r'//api\.github\.com/repos/nebularg/PackagerTest',
@@ -139,7 +142,7 @@ ROUTES = {
         ),
         Route(
             r'//api\.github\.com/repos/AdiAddons/AdiBags/releases\?per_page=10',
-            lambda _: Response(body=b'', status=404),
+            lambda: Response(body=b'', status=404),
         ),
         Route(
             r'//api\.github\.com/repos/AdiAddons/AdiButtonAuras/releases/tags/2\.0\.19',
@@ -147,11 +150,11 @@ ROUTES = {
         ),
         Route(
             r'//api\.github\.com/repos/layday/foobar',
-            lambda _: Response(body=b'', status=404),
+            lambda: Response(body=b'', status=404),
         ),
         Route(
             r'//api\.github\.com/repos(/[^/]*){2}/releases/assets/.*',
-            lambda _: Response(body=_make_addon_zip('Molinari')),
+            lambda: Response(body=_make_addon_zip('Molinari')),
         ),
         Route(
             r'//github\.com/login/device/code',

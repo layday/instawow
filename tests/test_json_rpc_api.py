@@ -16,11 +16,14 @@ try:
     from instawow_gui import _json_rpc_server as json_rpc_server
 except ModuleNotFoundError:
     pytest.skip(reason='instawow_gui is not available', allow_module_level=True)
-else:
-    pytestmark = pytest.mark.iw_no_mock_http
 
 
 dumps = partial(json.dumps, default=str)
+
+
+@pytest.fixture
+def _iw_mock_aiohttp_requests():
+    pass
 
 
 @pytest.fixture

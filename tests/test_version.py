@@ -7,7 +7,7 @@ import pytest
 
 from instawow._version import get_version, is_outdated
 
-from ._fixtures.http import ResponsesMockServer, Route
+from ._fixtures.http import AddRoutes, Route
 
 
 def test_get_version_same_as_importlib():
@@ -29,14 +29,16 @@ def test_get_dummy_version_when_metadata_missing(
 @pytest.mark.usefixtures('_iw_web_client_ctx')
 async def test_is_outdated_works_in_variety_of_scenarios(
     monkeypatch: pytest.MonkeyPatch,
-    iw_aresponses: ResponsesMockServer,
+    iw_add_routes: AddRoutes,
 ):
     # Endpoint not responsive, version not cached
     with monkeypatch.context() as patcher:
         patcher.setattr('instawow._version.get_version', lambda: '0.1.0')
-        iw_aresponses.add(
+        iw_add_routes(
             Route(
-                r'//pypi\.org/simple/instawow', aiohttp.web.Response(status=500), single_use=True
+                r'//pypi\.org/simple/instawow',
+                lambda: aiohttp.web.Response(status=500),
+                single_use=True,
             )
         )
         assert await is_outdated() == (False, '0.1.0')
@@ -44,7 +46,7 @@ async def test_is_outdated_works_in_variety_of_scenarios(
     # Endpoint responsive, version not cached and version different
     with monkeypatch.context() as patcher:
         patcher.setattr('instawow._version.get_version', lambda: '0.1.0')
-        iw_aresponses.add(
+        iw_add_routes(
             Route(r'//pypi\.org/simple/instawow', {'versions': ['1.0.0']}, single_use=True)
         )
         assert await is_outdated() == (True, '1.0.0')
@@ -57,9 +59,11 @@ async def test_is_outdated_works_in_variety_of_scenarios(
     # Endpoint not responsive, version cached
     with monkeypatch.context() as patcher:
         patcher.setattr('instawow._version.get_version', lambda: '0.1.0')
-        iw_aresponses.add(
+        iw_add_routes(
             Route(
-                r'//pypi\.org/simple/instawow', aiohttp.web.Response(status=500), single_use=True
+                r'//pypi\.org/simple/instawow',
+                lambda: aiohttp.web.Response(status=500),
+                single_use=True,
             )
         )
         assert await is_outdated() == (True, '1.0.0')
@@ -67,7 +71,7 @@ async def test_is_outdated_works_in_variety_of_scenarios(
     # Endpoint responsive, version cached and version same
     with monkeypatch.context() as patcher:
         patcher.setattr('instawow._version.get_version', lambda: '0.1.0')
-        iw_aresponses.add(
+        iw_add_routes(
             Route(r'//pypi\.org/simple/instawow', {'versions': ['1.0.0']}, single_use=True)
         )
         assert await is_outdated() == (True, '1.0.0')
@@ -75,7 +79,7 @@ async def test_is_outdated_works_in_variety_of_scenarios(
     # Endpoint responsive, version cached and version different
     with monkeypatch.context() as patcher:
         patcher.setattr('instawow._version.get_version', lambda: '1.0.0')
-        iw_aresponses.add(
+        iw_add_routes(
             Route(r'//pypi\.org/simple/instawow', {'versions': ['1.0.0']}, single_use=True)
         )
         assert await is_outdated() == (False, '1.0.0')
