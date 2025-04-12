@@ -52,7 +52,7 @@ def make_display_converter():
         return '*' * 10
 
     @converter.register_unstructure_hook_factory(attrs.has)
-    def _(cls: Any, converter: cattrs.Converter):
+    def _[T](cls: type[T], converter: cattrs.Converter):
         return cattrs.gen.make_dict_unstructure_fn(cls, converter, _cattrs_include_init_false=True)
 
     return converter
@@ -153,11 +153,11 @@ config_converter = make_config_converter()
 
 
 @config_converter.register_structure_hook_factory(attrs.has)
-def _(type_: type[Any]):
+def _[T](type_: type[T]):
     "Allow passing in a structured attrs instance to ``structure``."
     structure = config_converter.gen_structure_attrs_fromdict(type_)
 
-    def structure_wrapper(value: Mapping[str, Any], type_: type[Any]):
+    def structure_wrapper(value: Mapping[str, object], type_: type):
         return value if isinstance(value, type_) else structure(value, type_)
 
     return structure_wrapper

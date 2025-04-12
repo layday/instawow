@@ -245,7 +245,7 @@ _alternative_api_url = os.environ.get(_ALTERNATIVE_API_URL_ENV_KEY)
 _VERSION_SEP = '_'
 
 
-class CfCoreResolver(BaseResolver):
+class CfCoreResolver(BaseResolver[_CfCoreMod]):
     metadata = SourceMetadata(
         id='curse',
         name='CurseForge',

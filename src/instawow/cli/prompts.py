@@ -314,7 +314,7 @@ def select_one[T](
     *,
     can_skip: bool = False,
     initial_value: T | None = None,
-) -> _FauxPromptSession[Any]:
+):
     bindings = KeyBindings()
 
     answered = False

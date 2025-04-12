@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import inspect
-from collections.abc import Awaitable, Callable, Collection, Mapping, Set
+from collections.abc import Awaitable, Callable, Collection, Set
 from functools import wraps
-from typing import Any, Literal, LiteralString, Protocol, overload
+from typing import Any, Literal, LiteralString, Protocol, TypedDict, overload
 
 from typing_extensions import TypeIs, TypeVar
 
@@ -84,7 +84,9 @@ class PkgAlreadyInstalled(ManagerError):
 
 
 class PkgConflictsWithInstalled(ManagerError):
-    def __init__(self, conflicting_pkgs: Collection[Mapping[str, Any]]) -> None:
+    def __init__(
+        self, conflicting_pkgs: Collection[TypedDict[{'source': str, 'id': str, 'name': str}]]
+    ) -> None:
         super().__init__()
         self.conflicting_pkgs = conflicting_pkgs
 

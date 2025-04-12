@@ -72,9 +72,9 @@ class _JsonRpcRequest[MethodT: str, ParamsT](TypedDict):
     id: int | str
 
 
-class _JsonRpcSuccessResponse(TypedDict):
+class _JsonRpcSuccessResponse[ResultT](TypedDict):
     jsonrpc: Literal['2.0']
-    result: Any
+    result: ResultT
     id: int | str
 
 
@@ -104,7 +104,7 @@ def _register_method(method: str):
 
         request_type = _JsonRpcRequest[
             Literal[method],  # pyright: ignore[reportInvalidTypeArguments]
-            TypedDict('params', params) if params else NotRequired[Any],  # pyright: ignore[reportArgumentType]
+            TypedDict('params', params) if params else NotRequired[object],  # pyright: ignore[reportArgumentType]
         ]
         request_type.__name__ = method
 
@@ -711,7 +711,7 @@ async def create_web_app(toga_handle: toga.App | None = None):
         )
 
     async def serve_json_rpc_api(request: aiohttp.web.Request):
-        async def handle_json_rpc_request(msg: Any):
+        async def handle_json_rpc_request(msg: aiohttp.WSMessage):
             try:
                 json_rpc_request_json = msg.json()
             except json.JSONDecodeError:

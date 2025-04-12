@@ -4,7 +4,7 @@ import ssl
 from collections.abc import AsyncIterator
 from contextlib import AsyncExitStack, asynccontextmanager
 from pathlib import Path
-from typing import Any
+from typing import Any, NotRequired, Protocol, TypedDict
 
 import aiohttp
 import aiohttp_client_cache
@@ -19,6 +19,10 @@ _DEFAULT_EXPIRE = 0  # Do not cache by default.
 CACHE_INDEFINITELY = -1
 
 _PROGRESS_TICK_INTERVAL = 0.1
+
+
+class _TraceConfigCtx[TraceRequestCtxT](Protocol):
+    trace_request_ctx: TraceRequestCtxT | None
 
 
 @asynccontextmanager
@@ -36,10 +40,10 @@ async def _setup_progress_tracker():
         params: aiohttp.TraceRequestEndParams,
         /,
     ):
-        progress: Progress[Any] | None = (
-            trace_config_ctx.trace_request_ctx
-            and trace_config_ctx.trace_request_ctx.get('progress')
+        trace_config_ctx_: _TraceConfigCtx[TypedDict[{'progress': NotRequired[Progress[Any]]}]] = (
+            trace_config_ctx
         )
+        progress = (trace_config_ctx_.trace_request_ctx or {}).get('progress')
         if progress:
 
             async def do_update_progress():

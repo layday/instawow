@@ -30,18 +30,18 @@ class InstawowResolver(BaseResolver):
         addon_toc_key=None,
     )
 
-    async def resolve_one(self, defn: Defn, metadata: _ResolveMetadata | None):
+    async def resolve_one(self, defn: Defn, metadata: None):
         from instawow_wa_updater._config import PluginConfig
         from instawow_wa_updater._core import WaCompanionBuilder
 
         try:
-            (id_, slug), metadata = next((p, v) for p, v in _ADDONS.items() if defn.alias in p)
+            (id_, slug), metadata_ = next((p, v) for p, v in _ADDONS.items() if defn.alias in p)
         except StopIteration:
             raise PkgNonexistent from None
 
         builder_config = PluginConfig(profile_config=config_ctx.config())
         builder = WaCompanionBuilder(builder_config)
-        if metadata['requires_build']:
+        if metadata_['requires_build']:
             await run_in_thread(builder_config.ensure_dirs)()
             await builder.build()
 

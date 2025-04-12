@@ -75,7 +75,7 @@ def _timestamp_to_datetime(timestamp: int):
     return datetime.fromtimestamp(timestamp / 1000, UTC)
 
 
-class WowiResolver(BaseResolver):
+class WowiResolver(BaseResolver[_WowiCombinedItem]):
     metadata = SourceMetadata(
         id='wowi',
         name='WoWInterface',

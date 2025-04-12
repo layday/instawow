@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from enum import StrEnum
-from typing import Any
 
 import click
 import click.types
@@ -15,16 +14,14 @@ class StrEnumChoiceParam[StrEnumT: StrEnum](click.Choice):
         self,
         choice_enum: type[StrEnumT],
         case_sensitive: bool = True,
-    ) -> None:
+    ):
         super().__init__(
             choices=list(choice_enum),
             case_sensitive=case_sensitive,
         )
         self.__choice_enum = choice_enum
 
-    def convert(
-        self, value: Any, param: click.Parameter | None, ctx: click.Context | None
-    ) -> StrEnumT:
+    def convert(self, value: object, param: click.Parameter | None, ctx: click.Context | None):
         converted_value = super().convert(value, param, ctx)
         return self.__choice_enum(converted_value)
 
@@ -37,7 +34,7 @@ class ManyOptionalChoiceValueParam(click.types.CompositeParamType):
         choice_param: click.Choice,
         *,
         value_types: Mapping[str, click.types.ParamType] = {},
-    ) -> None:
+    ):
         super().__init__()
         self.__choice_param = choice_param
         self.__value_types = value_types
@@ -51,25 +48,25 @@ class ManyOptionalChoiceValueParam(click.types.CompositeParamType):
         )
 
     @property
-    def arity(self) -> int:
+    def arity(self):
         return -1
 
     def convert(
         self, value: tuple[str, ...], param: click.Parameter | None, ctx: click.Context | None
-    ) -> Any:
+    ):
         return {
             kc.convert(k, param, ctx): vc.convert(v, param, ctx) if vc and v else v
             for k, v, kc, vc in self.__parse_value(value)
         }
 
-    def get_metavar(self, param: click.Parameter) -> str:
+    def get_metavar(self, param: click.Parameter):
         return f'{{{",".join(self.__choice_param.choices)}}}[=VALUE]'
 
 
 class SectionedHelpGroup(click.Group):
     group_class = type
 
-    def format_commands(self, ctx: click.Context, formatter: click.HelpFormatter) -> None:
+    def format_commands(self, ctx: click.Context, formatter: click.HelpFormatter):
         command_sections = bucketise(
             ((s, c) for s, c in self.commands.items() if not c.hidden),
             key=lambda c: 'Command groups' if isinstance(c[1], click.Group) else 'Commands',

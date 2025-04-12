@@ -5,8 +5,9 @@ import enum
 from collections.abc import AsyncIterator, Callable, Collection, Iterable, Mapping, Sequence
 from functools import cached_property, partial, wraps
 from pathlib import Path
-from typing import Any, Literal, NotRequired, Protocol, Self, TypedDict, overload
+from typing import Literal, Never, NotRequired, Protocol, Self, TypedDict, overload
 
+from typing_extensions import TypeVar
 from yarl import URL
 
 from . import pkg_archives, wow_installations
@@ -18,6 +19,8 @@ from .results import (
     PkgStrategiesUnsupported,
     resultify,
 )
+
+_ResolveMetadataT = TypeVar('_ResolveMetadataT', contravariant=True, default=Never)
 
 
 class AccessTokenMissingError(ValueError):
@@ -79,7 +82,7 @@ class CatalogueEntryCandidate(TypedDict):
     same_as: NotRequired[list[TypedDict[{'source': str, 'id': str}]]]
 
 
-class Resolver(Protocol):  # pragma: no cover
+class Resolver(Protocol[_ResolveMetadataT]):  # pragma: no cover
     metadata: SourceMetadata
     'Static source metadata.'
 
@@ -101,7 +104,7 @@ class Resolver(Protocol):  # pragma: no cover
         "Resolve multiple ``Defn``s into packages."
         ...
 
-    async def resolve_one(self, defn: Defn, metadata: Any) -> PkgCandidate:
+    async def resolve_one(self, defn: Defn, metadata: _ResolveMetadataT | None) -> PkgCandidate:
         "Resolve a ``Defn`` into a package."
         ...
 
@@ -114,7 +117,7 @@ class Resolver(Protocol):  # pragma: no cover
         ...
 
 
-class BaseResolver(Resolver, Protocol):
+class BaseResolver(Resolver[_ResolveMetadataT], Protocol):
     access_token = None
     archive_opener = None
 
@@ -126,7 +129,7 @@ class BaseResolver(Resolver, Protocol):
 
         @reassign_resolve_one
         @wraps(old_resolve_one)
-        async def _(self: Self, defn: Defn, metadata: Any):
+        async def _(self: Self, defn: Defn, metadata: _ResolveMetadataT | None):
             extraneous_strategies = defn.strategies.filled.keys() - self.metadata.strategies
             if extraneous_strategies:
                 raise PkgStrategiesUnsupported(extraneous_strategies)

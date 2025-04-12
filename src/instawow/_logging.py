@@ -4,7 +4,6 @@ import multiprocessing
 import os
 import sys
 from pathlib import Path
-from typing import Any
 
 from loguru import logger
 
@@ -43,7 +42,7 @@ def setup_logging(
     debug: bool,
     intercept_logging_module_calls: bool,
     /,
-    **extra: Any,
+    **extra: object,
 ) -> None:
     log_level = 'DEBUG' if debug else 'INFO'
 
