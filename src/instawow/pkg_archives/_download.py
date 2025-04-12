@@ -93,7 +93,9 @@ async def download_pkg_archive(defn: Defn, download_url: str) -> Path:
             async for chunk, _ in response.content.iter_chunks():
                 await write(chunk)
 
-        return await _move_async(
-            temp_path,
-            config_ctx.config().global_config.install_cache_path / shasum(download_url),
+        return Path(
+            await _move_async(
+                temp_path,
+                config_ctx.config().global_config.install_cache_path / shasum(download_url),
+            )
         )
