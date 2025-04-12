@@ -3,9 +3,9 @@ from __future__ import annotations
 import asyncio
 import concurrent.futures
 import contextlib
-import contextvars
 import os
 from collections.abc import Callable, Set
+from functools import partial
 from typing import cast
 
 import aiohttp_client_cache
@@ -19,9 +19,7 @@ async def make_cache(cache_dir: os.PathLike[str]):
 
         def run_in_thread2[**P, T](fn: Callable[P, T]):
             async def wrapper(*args: P.args, **kwargs: P.kwargs):
-                return await loop.run_in_executor(
-                    executor, lambda: contextvars.copy_context().run(fn, *args, **kwargs)
-                )
+                return await loop.run_in_executor(executor, partial(fn, *args, **kwargs))
 
             return wrapper
 
