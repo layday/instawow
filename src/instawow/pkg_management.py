@@ -4,7 +4,7 @@ from collections.abc import Awaitable, Callable, Collection, Iterable, Mapping, 
 from functools import partial, wraps
 from itertools import chain, compress, filterfalse, repeat, starmap
 from pathlib import Path
-from typing import Literal, Never
+from typing import Literal, Never, TypedDict
 
 from yarl import URL
 
@@ -15,14 +15,8 @@ from ._utils.file import trash
 from ._utils.iteration import bucketise, uniq
 from .definitions import Defn, Strategy
 from .pkg_archives._download import download_pkg_archive
-from .pkg_db import Connection, transact, use_tuple_factory
-from .pkg_db.models import (
-    Pkg,
-    PkgLoggedVersion,
-    build_pkg_from_pkg_candidate,
-    build_pkg_from_row_mapping,
-    make_db_converter,
-)
+from .pkg_db import Connection, Row, transact, use_tuple_factory
+from .pkg_db.models import Pkg, PkgLoggedVersion, make_db_converter
 from .progress_reporting import make_incrementing_progress_tracker
 from .resolvers import PkgCandidate
 from .results import (
@@ -87,6 +81,60 @@ def get_alias_from_url(value: str) -> tuple[str, str] | None:
 async def get_changelog(source: str, uri: str) -> str:
     "Retrieve a changelog from a URI."
     return await config_ctx.resolvers().get_or_dummy(source).get_changelog(URL(uri))
+
+
+def build_pkg_from_pkg_candidate(
+    defn: Defn,
+    pkg_candidate: PkgCandidate,
+    *,
+    folders: list[TypedDict[{'name': str}]],
+) -> Pkg:
+    return make_db_converter().structure(
+        {
+            'deps': [],
+        }
+        | pkg_candidate
+        | {
+            'source': defn.source,
+            'options': {k: bool(v) for k, v in defn.strategies.items()},
+            'folders': folders,
+        },
+        Pkg,
+    )
+
+
+def build_pkg_from_row_mapping(connection: Connection, row_mapping: Row) -> Pkg:
+    fk = {'pkg_source': row_mapping['source'], 'pkg_id': row_mapping['id']}
+    return make_db_converter().structure(
+        {
+            **row_mapping,
+            'options': connection.execute(
+                """
+                SELECT any_flavour, any_release_type, version_eq
+                FROM pkg_options
+                WHERE pkg_source = :pkg_source AND pkg_id = :pkg_id
+                """,
+                fk,
+            ).fetchone(),
+            'folders': connection.execute(
+                """
+                SELECT name
+                FROM pkg_folder
+                WHERE pkg_source = :pkg_source AND pkg_id = :pkg_id
+                """,
+                fk,
+            ).fetchall(),
+            'deps': connection.execute(
+                """
+                SELECT id
+                FROM pkg_dep
+                WHERE pkg_source = :pkg_source AND pkg_id = :pkg_id
+                """,
+                fk,
+            ).fetchall(),
+        },
+        Pkg,
+    )
 
 
 def _check_pkgs_not_exist(defns: Collection[Defn]) -> list[bool]:

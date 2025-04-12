@@ -5,11 +5,8 @@ from functools import lru_cache
 
 import cattrs
 from attrs import asdict, frozen
-from typing_extensions import TypedDict
 
-from .. import resolvers
 from ..definitions import Defn, Strategies, Strategy
-from . import Connection, Row
 
 
 def _structure_datetime(value: str | dt.datetime, value_type: type):
@@ -90,57 +87,3 @@ class Pkg:
                 )
             ),
         )
-
-
-def build_pkg_from_pkg_candidate(
-    defn: Defn,
-    pkg_candidate: resolvers.PkgCandidate,
-    *,
-    folders: list[TypedDict[{'name': str}]],
-) -> Pkg:
-    return make_db_converter().structure(
-        {
-            'deps': [],
-        }
-        | pkg_candidate
-        | {
-            'source': defn.source,
-            'options': {k: bool(v) for k, v in defn.strategies.items()},
-            'folders': folders,
-        },
-        Pkg,
-    )
-
-
-def build_pkg_from_row_mapping(connection: Connection, row_mapping: Row) -> Pkg:
-    fk = {'pkg_source': row_mapping['source'], 'pkg_id': row_mapping['id']}
-    return make_db_converter().structure(
-        {
-            **row_mapping,
-            'options': connection.execute(
-                """
-                SELECT any_flavour, any_release_type, version_eq
-                FROM pkg_options
-                WHERE pkg_source = :pkg_source AND pkg_id = :pkg_id
-                """,
-                fk,
-            ).fetchone(),
-            'folders': connection.execute(
-                """
-                SELECT name
-                FROM pkg_folder
-                WHERE pkg_source = :pkg_source AND pkg_id = :pkg_id
-                """,
-                fk,
-            ).fetchall(),
-            'deps': connection.execute(
-                """
-                SELECT id
-                FROM pkg_dep
-                WHERE pkg_source = :pkg_source AND pkg_id = :pkg_id
-                """,
-                fk,
-            ).fetchall(),
-        },
-        Pkg,
-    )

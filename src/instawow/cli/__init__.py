@@ -569,7 +569,7 @@ def rereconcile(addons: Sequence[definitions.Defn]):
     "Rereconcile installed add-ons."
 
     from .._utils.iteration import all_eq, uniq
-    from ..pkg_db.models import Pkg, build_pkg_from_row_mapping
+    from ..pkg_db.models import Pkg
     from .prompts import SKIP, Choice, confirm, select_one
 
     with config_ctx.database() as connection:
@@ -588,7 +588,8 @@ def rereconcile(addons: Sequence[definitions.Defn]):
             execute_query = partial(connection.execute, query.format(where_clause=''))
 
         installed_pkgs = [
-            build_pkg_from_row_mapping(connection, p) for p in execute_query().fetchall()
+            pkg_management.build_pkg_from_row_mapping(connection, p)
+            for p in execute_query().fetchall()
         ]
 
     equivalent_pkg_defn_groups = run_with_progress(
@@ -739,7 +740,7 @@ def search(
 def list_installed(addons: Sequence[definitions.Defn], output_format: _ListFormat):
     "List installed add-ons."
 
-    from ..pkg_db.models import Pkg, build_pkg_from_row_mapping
+    from ..pkg_db.models import Pkg
 
     with config_ctx.database() as connection:
         where_clause, where_params = _make_pkg_where_clause_and_params(addons)
@@ -754,7 +755,7 @@ def list_installed(addons: Sequence[definitions.Defn], output_format: _ListForma
         ).fetchall()
 
         def row_mappings_to_pkgs():
-            return map(build_pkg_from_row_mapping, repeat(connection), pkg_mappings)
+            return map(pkg_management.build_pkg_from_row_mapping, repeat(connection), pkg_mappings)
 
         match output_format:
             case _ListFormat.Json:

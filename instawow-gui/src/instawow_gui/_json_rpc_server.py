@@ -221,7 +221,7 @@ async def list_installed_pkgs(profile: str) -> list[pkg_models.Pkg]:
     async with _load_profile(profile) as config_party:
         with config_party.database as connection:
             return [
-                pkg_models.build_pkg_from_row_mapping(connection, r)
+                pkg_management.build_pkg_from_row_mapping(connection, r)
                 for r in connection.execute('SELECT * FROM pkg ORDER BY lower(name)')
             ]
 
@@ -263,7 +263,7 @@ async def resolve_pkgs(
         return [
             {
                 'status': 'success',
-                'addon': pkg_models.build_pkg_from_pkg_candidate(d, r, folders=[]),
+                'addon': pkg_management.build_pkg_from_pkg_candidate(d, r, folders=[]),
             }
             if isinstance(r, dict)
             else {'status': r.status, 'message': str(r)}
@@ -365,7 +365,7 @@ async def reconcile_pkgs(
             (
                 g,
                 [
-                    pkg_models.build_pkg_from_pkg_candidate(d, i, folders=[])
+                    pkg_management.build_pkg_from_pkg_candidate(d, i, folders=[])
                     for d in s
                     for i in (pkg_candidates.get(d),)
                     if i
@@ -395,7 +395,7 @@ async def get_reconcile_installed_pkg_candidates(
     async with _load_profile(profile) as config_party:
         with config_party.database as connection:
             installed_pkgs = [
-                pkg_models.build_pkg_from_row_mapping(connection, p)
+                pkg_management.build_pkg_from_row_mapping(connection, p)
                 for p in connection.execute('SELECT * FROM pkg ORDER BY lower(name)')
             ]
 
@@ -411,7 +411,7 @@ async def get_reconcile_installed_pkg_candidates(
             for p, s in defn_groups.items()
             for m in (
                 [
-                    pkg_models.build_pkg_from_pkg_candidate(d, i, folders=[])
+                    pkg_management.build_pkg_from_pkg_candidate(d, i, folders=[])
                     for d in s
                     for i in (pkg_candidates.get(d),)
                     if i
