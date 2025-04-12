@@ -11,12 +11,40 @@ import pytest
 from instawow.config import GlobalConfig, ProfileConfig, UninitialisedConfigError, make_plugin_dirs
 
 
-def test_env_vars_take_precedence(
+def test_top_level_env_vars_take_precedence(
     monkeypatch: pytest.MonkeyPatch,
 ):
     monkeypatch.setenv('INSTAWOW_AUTO_UPDATE_CHECK', '1')
     global_config = GlobalConfig.from_values({'auto_update_check': False}, env=True)
     assert global_config.auto_update_check is True
+
+
+def test_nested_env_vars_take_precedence(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    override = 'utter nonsense'
+    monkeypatch.setenv('INSTAWOW_ACCESS_TOKENS_GITHUB', override)
+    global_config = GlobalConfig.from_values({'access_tokens': {'github': 'true story'}}, env=True)
+    assert global_config.access_tokens.github == override
+
+
+def test_nested_env_var_objs_take_precedence(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    override = 'utter nonsense'
+    monkeypatch.setenv('INSTAWOW_ACCESS_TOKENS', json.dumps({'github': override}))
+    monkeypatch.setenv('INSTAWOW_ACCESS_TOKENS_GITHUB', 'true story')
+    global_config = GlobalConfig.from_values(env=True)
+    assert global_config.access_tokens.github == override
+
+
+def test_nested_env_vars_loaded_when_values_absent(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    override = 'utter nonsense'
+    monkeypatch.setenv('INSTAWOW_ACCESS_TOKENS_GITHUB', override)
+    global_config = GlobalConfig.from_values(env=True)
+    assert global_config.access_tokens.github == override
 
 
 def test_read_profile_from_nonexistent_config_dir_raises():

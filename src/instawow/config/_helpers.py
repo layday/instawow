@@ -88,7 +88,9 @@ def write_config(config: object, config_path: Path) -> None:
 def read_config(attrs_cls: type, config_path: Path, missing_ok: bool = False) -> dict[str, Any]:
     try:
         values = json.loads(config_path.read_bytes())
-        for field in attrs.fields(attrs_cls):
+        for field in attrs.fields(
+            attrs.resolve_types(attrs_cls),
+        ):
             if not field.init:
                 continue
 
@@ -108,8 +110,10 @@ def read_config(attrs_cls: type, config_path: Path, missing_ok: bool = False) ->
         return values
 
 
-def _parse_env_var(field: attrs.Attribute[object], value: str):
-    if field.type is bool:
+def _parse_env_var(field_type: type, value: str):
+    if attrs.has(field_type):
+        return json.loads(value)
+    elif field_type is bool:
         return attrs.converters.to_bool(value)
     return value
 
@@ -118,7 +122,9 @@ def read_env_vars(
     attrs_cls: type, values: Mapping[str, Any], parent_env_prefix: str | None = None
 ) -> dict[str, Any]:
     def iter_read():
-        for field in attrs.fields(attrs_cls):
+        for field in attrs.fields(
+            attrs.resolve_types(attrs_cls),
+        ):
             if not field.init:
                 continue
 
@@ -126,13 +132,16 @@ def read_env_vars(
 
             env_prefix: _FieldEnvPrefix = field.metadata.get('env_prefix')
             if env_prefix:
-                if value is not attrs.NOTHING and attrs.has(field.type):
-                    value = read_env_vars(field.type, value, f'{env_prefix}_{field.name}')
-                else:
-                    env_key = f'{parent_env_prefix if env_prefix is True else env_prefix}_{field.name}'.upper()
-                    env_value = os.environ.get(env_key, attrs.NOTHING)
-                    if env_value is not attrs.NOTHING:
-                        value = _parse_env_var(field, env_value)
+                env_key = f'{parent_env_prefix if env_prefix is True else env_prefix}_{field.name}'.upper()
+                env_value = os.environ.get(env_key, attrs.NOTHING)
+                if env_value is not attrs.NOTHING:
+                    value = _parse_env_var(field.type, env_value)
+                elif attrs.has(field.type):
+                    value = read_env_vars(
+                        field.type,
+                        value if value is not attrs.NOTHING else {},
+                        f'{env_prefix}_{field.name}',
+                    )
 
             if value is not attrs.NOTHING:
                 yield field.name, value
