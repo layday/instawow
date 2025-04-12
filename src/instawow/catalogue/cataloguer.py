@@ -15,7 +15,6 @@ from .._utils.text import normalise_names
 from ..wow_installations import Flavour
 
 CATALOGUE_VERSION = 7
-COMPUTED_CATALOGUE_VERSION = 4
 
 
 _catalogue_converter = cattrs.Converter(
@@ -70,7 +69,6 @@ async def collate(start_date: datetime | None) -> dict[str, Any]:
 
 @fauxfrozen(kw_only=True)
 class ComputedCatalogue:
-    version: int = COMPUTED_CATALOGUE_VERSION
     entries: list[CatalogueEntry]
 
     @classmethod
