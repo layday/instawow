@@ -6,7 +6,7 @@ import contextlib
 import os
 from collections.abc import Callable, Set
 from functools import partial
-from typing import cast
+from typing import Never
 
 import aiohttp_client_cache
 import diskcache
@@ -27,48 +27,48 @@ async def make_cache(cache_dir: os.PathLike[str]):
         # in the same thread.
         cache = await run_in_thread2(diskcache.Cache)(os.fspath(cache_dir))
 
-        class Cache(aiohttp_client_cache.BaseCache):
-            @run_in_thread2
-            def bulk_delete(self, keys: Set[str]):
-                for key in keys:
-                    cache.delete(key)
+        def make_cache_wrapper(prefix: str):
+            class Cache(aiohttp_client_cache.BaseCache):
+                @run_in_thread2
+                def bulk_delete(self, keys: Set[str]):
+                    for key in keys:
+                        cache.delete((prefix, key))
 
-            @run_in_thread2
-            def clear(self):
-                cache.clear()
+                @run_in_thread2
+                def contains(self, key: str):
+                    return (prefix, key) in cache
 
-            @run_in_thread2
-            def contains(self, key: str):
-                return key in cache
+                @run_in_thread2
+                def delete(self, key: str):
+                    cache.delete((prefix, key))
 
-            @run_in_thread2
-            def delete(self, key: str):
-                cache.delete(key)
+                @run_in_thread2
+                def read(self, key: str):
+                    return cache.get((prefix, key))
 
-            async def keys(self):
-                with contextlib.suppress(StopIteration):
-                    iter_keys = iter(cache)
+                @run_in_thread2
+                def write(self, key: str, item: aiohttp_client_cache.ResponseOrKey):
+                    cache[prefix, key] = item
 
-                    while True:
-                        yield (await run_in_thread2(next)(iter_keys))
+                async def clear(self) -> Never:
+                    raise NotImplementedError
 
-            @run_in_thread2
-            def read(self, key: str):
-                return cache.get(key)
+                async def keys(self):
+                    if False:
+                        yield
+                    raise NotImplementedError
 
-            @run_in_thread2
-            def size(self):
-                return len(cache)
+                async def values(self):
+                    if False:
+                        yield
+                    raise NotImplementedError
 
-            async def values(self):
-                async for key in self.keys():
-                    yield cast(aiohttp_client_cache.ResponseOrKey, run_in_thread2(cache.get)(key))
+                async def size(self) -> Never:
+                    raise NotImplementedError
 
-            @run_in_thread2
-            def write(self, key: str, item: aiohttp_client_cache.ResponseOrKey):
-                cache[key] = item
+            return Cache()
 
         try:
-            yield Cache()
+            yield make_cache_wrapper('responses'), make_cache_wrapper('redirects')
         finally:
             await run_in_thread2(cache.close)()

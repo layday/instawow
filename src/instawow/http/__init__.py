@@ -127,8 +127,9 @@ async def init_web_client(
         else:
             from ._cache import make_cache
 
-            cache_backend.responses = (
-                cache_backend.redirects
+            (
+                cache_backend.responses,
+                cache_backend.redirects,
             ) = await async_exit_stack.enter_async_context(make_cache(cache_dir))
 
         client_session = await async_exit_stack.enter_async_context(
