@@ -14,7 +14,7 @@ from .. import http_ctx, sync_ctx
 from .._logging import logger
 from .._utils.aio import gather
 from .._utils.iteration import uniq
-from .._utils.text import slugify
+from .._utils.text import normalise_names
 from .._utils.web import as_plain_text_data_url
 from ..definitions import ChangelogFormat, Defn, SourceMetadata
 from ..progress_reporting import make_download_progress
@@ -23,6 +23,8 @@ from ..results import PkgNonexistent, resultify
 from ..wow_installations import Flavour, FlavourVersionRange
 
 _LOAD_WOWI_CATALOGUE_LOCK = (object(), '_LOAD_WOWI_CATALOGUE_LOCK_')
+
+_slugify = normalise_names('-')
 
 
 class _WowiCommonTerms(TypedDict):
@@ -167,7 +169,7 @@ class WowiResolver(BaseResolver[_WowiCombinedItem]):
 
         return PkgCandidate(
             id=metadata['UID'],
-            slug=slugify(f'{metadata["UID"]} {metadata["UIName"]}'),
+            slug=_slugify(f'{metadata["UID"]} {metadata["UIName"]}'),
             name=metadata['UIName'],
             description=metadata['UIDescription'],
             url=metadata['UIFileInfoURL'],

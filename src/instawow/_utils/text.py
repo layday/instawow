@@ -1,15 +1,15 @@
 from __future__ import annotations
 
-import string
 from collections.abc import Callable, Sequence
-from functools import partial
-from textwrap import fill
 
 
 def tabulate(rows: Sequence[tuple[object, ...]], *, max_col_width: int = 60) -> str:
     "Produce an ASCII table from equal-length elements in a sequence."
 
-    from wcwidth import wcswidth  # pyright: ignore  # noqa: PGH003
+    from functools import partial
+    from textwrap import fill
+
+    from wcwidth import wcswidth
 
     truncate = partial(fill, width=max_col_width, max_lines=1)
 
@@ -27,15 +27,14 @@ def tabulate(rows: Sequence[tuple[object, ...]], *, max_col_width: int = 60) -> 
 
 
 def normalise_names(replace_delim: str) -> Callable[[str], str]:
+    import string
+
     trans_table = str.maketrans(dict.fromkeys(string.punctuation, ' '))
 
     def normalise(value: str):
         return replace_delim.join(value.casefold().translate(trans_table).split())
 
     return normalise
-
-
-slugify = normalise_names('-')
 
 
 def shasum(*values: object) -> str:
