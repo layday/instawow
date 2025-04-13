@@ -104,7 +104,7 @@ def _register_method(method: str):
 
         request_type = _JsonRpcRequest[
             Literal[method],  # pyright: ignore[reportInvalidTypeArguments]
-            TypedDict('params', params) if params else NotRequired[object],  # pyright: ignore[reportArgumentType]
+            TypedDict('params', params) if params else NotRequired[Any],  # pyright: ignore[reportArgumentType]
         ]
         request_type.__name__ = method
 
