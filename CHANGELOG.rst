@@ -5,7 +5,20 @@ Changelog
 v6.0.0
 ------
 
-- Wago has been removed as a default add-on source.
+- Discontinued support for Wago Addons.
+- Dropped support for Python 3.11 and added preliminary support for Python 3.14.
+- Fixed HTTP redirect caching.
+
+API
+~~~
+
+- Made the ``instawow.cli.prompts`` module public for use by plug-ins.
+
+CLI
+~~~
+
+- Fixed column alignment for tables containing CJK characters.
+
 
 v5.0.0
 ------
@@ -15,7 +28,7 @@ v5.0.0
 API
 ~~~
 
-- Access tokens can now be sourced by third-party resolvers using the 
+- Access tokens can now be sourced by third-party resolvers using the
   ``instawow.resolvers.AccessToken`` decorator.
 - ``_resolve_one`` has once again been renamed to ``resolve_one`` on the
   ``instawow.resolvers.Resolver`` interface.
@@ -31,6 +44,7 @@ GUI
 
 - Linux ARM builds are now available.
 
+
 v4.8.0
 ------
 
@@ -41,6 +55,7 @@ CLI
 ~~~
 
 - Add new ``cache clear`` command.
+
 
 v4.7.0
 ------
@@ -61,12 +76,14 @@ CLI
 - Add ``configure`` command to WA updater for storing the Wago access token.
   Access token migrated from top-level configuration.
 
+
 v4.6.0
 ------
 
 - Distinguish between Curse add-on versions with the same display name.
   This will trigger dummy updates for up-to-date add-ons, but the release
   of the prepatch is as good a time as any to have that happen.
+
 
 v4.5.0
 ------
@@ -76,6 +93,7 @@ v4.5.0
 - Improved error message when an access token is mandatory and not set.
 - Stopped bundling the GUI as part of the *instawow* distribution.
 
+
 v4.4.2
 ------
 
@@ -83,6 +101,7 @@ GUI
 ~~~
 
 - Fixed running the JSON-RPC server on Windows.
+
 
 v4.4.1
 ------
@@ -100,6 +119,7 @@ GUI
 - Granted full disk access to the Linux flatpak.
 - Fixed reconciliation skipping to the end.
 
+
 v4.4.0
 ------
 
@@ -112,6 +132,7 @@ GUI
   Currently, only x64 binaries are precompiled.
 - Added build configuration for system-native Linux packages.
 - Fixed hang on close on Linux.
+
 
 v4.3.0
 ------
@@ -131,6 +152,7 @@ GUI
 
 - Fixed start-up command crashing spectacularly.
 
+
 v4.2.0
 ------
 
@@ -144,11 +166,13 @@ CLI
   which allows filtering add-ons to be re-reconciled.
 - Fixed changing an existing profile's flavour.
 
+
 v4.1.1
 ------
 
 - Relaxed ``aiohttp`` version constraint.
 - Fixed self-update check HTTP cache directory path.
+
 
 v4.1.0
 ------
@@ -167,6 +191,7 @@ CLI
 - Added ``debug config`` and ``debug sources`` sub-commands.
 - Added ability to filter add-ons by source in ``view-changelog`` output.
 
+
 v4.0.0
 ------
 
@@ -184,6 +209,7 @@ CLI
 - Allow filtering installed add-ons by source using ``list source:``, replacing
   "source" with the source identifier.
 
+
 v3.3.0
 ------
 
@@ -194,6 +220,7 @@ CLI
 ~~~
 
 - Extended ``--no-cache`` flag to add-on downloads.
+
 
 v3.2.0
 ------
@@ -213,6 +240,7 @@ GUI
 - Fixed creating non-standard configuration directories.
 - Stopped bundling Mozilla's root certificate store.
 
+
 v3.1.0
 ------
 
@@ -221,6 +249,7 @@ v3.1.0
   it will be preferred over the platform-native configuration directory.
   This is a behaviour change on macOS and Windows.
 - Logs and plug-in data are stored under `$XDG_STATE_HOME` on Linuxes by default.
+
 
 v3.0.1
 ------
@@ -234,6 +263,7 @@ GUI
 ~~~
 
 - Fixed add-on alias and URL search.
+
 
 v3.0.0
 ------
