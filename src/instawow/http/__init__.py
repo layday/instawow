@@ -113,7 +113,11 @@ async def init_web_client(
             kwargs['trace_configs'] = [*kwargs.get('trace_configs', []), progress_trace_config]
 
         cache_backend = aiohttp_client_cache.CacheBackend(
-            allowed_codes=(200, 206),
+            allowed_codes=(
+                200,
+                206,  # Partial Content - returned for successful range requests
+                501,  # Not Implemented - returned by GH when a range is out of bounds
+            ),
             allowed_methods=('GET', 'POST'),
             expire_after=_DEFAULT_EXPIRE,
             include_headers=True,
