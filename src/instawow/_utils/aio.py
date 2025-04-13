@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Awaitable, Callable, Iterable
+from collections.abc import Awaitable, Callable, Collection, Iterable
 from functools import partial, update_wrapper
 
 
@@ -13,8 +13,8 @@ def run_in_thread[**P, T](fn: Callable[P, T]) -> Callable[P, Awaitable[T]]:
     return update_wrapper(partial(asyncio.to_thread, fn), fn)
 
 
-async def cancel_tasks(tasks: Iterable[asyncio.Task[object]]) -> None:
-    incomplete_tasks = [t for t in tasks if not t.done()]
-    for task in incomplete_tasks:
-        task.cancel()
-    await asyncio.gather(*incomplete_tasks, return_exceptions=True)
+async def cancel_tasks(tasks: Collection[asyncio.Task[object]]) -> None:
+    for task in tasks:
+        if not task.done():
+            task.cancel()
+    await asyncio.gather(*tasks, return_exceptions=True)
