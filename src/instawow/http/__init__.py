@@ -3,6 +3,7 @@ from __future__ import annotations
 import ssl
 from collections.abc import AsyncIterator
 from contextlib import AsyncExitStack, asynccontextmanager
+from functools import partial
 from pathlib import Path
 from typing import Any, NotRequired, Protocol, TypedDict
 
@@ -95,22 +96,24 @@ def get_ssl_context(cloudflare_compat: bool = False) -> ssl.SSLContext:
 
 @asynccontextmanager
 async def init_web_client(
-    cache_dir: Path | None, *, with_progress: bool = False, **kwargs: Any
+    cache_dir: Path | None, *, with_progress: bool = False
 ) -> AsyncIterator[CachedSession]:
-    kwargs = {
-        'connector': aiohttp.TCPConnector(limit_per_host=20, ssl=get_ssl_context()),
-        'headers': {'User-Agent': _USER_AGENT},
-        'trust_env': True,  # Respect the ``http(s)_proxy`` env var
-        'timeout': aiohttp.ClientTimeout(connect=60, sock_connect=10, sock_read=20),
-        **kwargs,
-    }
+    make_client_session = partial(
+        aiohttp_client_cache.session.CachedSession,
+        connector=aiohttp.TCPConnector(limit_per_host=20, ssl=get_ssl_context()),
+        headers={'User-Agent': _USER_AGENT},
+        timeout=aiohttp.ClientTimeout(connect=60, sock_connect=10, sock_read=20),
+        trust_env=True,  # Respect the ``http(s)_proxy`` env var
+    )
 
     async with AsyncExitStack() as async_exit_stack:
         if with_progress:
             progress_trace_config = await async_exit_stack.enter_async_context(
                 _setup_progress_tracker()
             )
-            kwargs['trace_configs'] = [*kwargs.get('trace_configs', []), progress_trace_config]
+            make_client_session = partial(
+                make_client_session, trace_configs=[progress_trace_config]
+            )
 
         cache_backend = aiohttp_client_cache.CacheBackend(
             allowed_codes=(
@@ -133,6 +136,6 @@ async def init_web_client(
             ) = await async_exit_stack.enter_async_context(make_cache(cache_dir))
 
         client_session = await async_exit_stack.enter_async_context(
-            aiohttp_client_cache.session.CachedSession(cache=cache_backend, **kwargs)
+            make_client_session(cache=cache_backend)
         )
         yield client_session
