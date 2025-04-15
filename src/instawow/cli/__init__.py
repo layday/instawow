@@ -237,7 +237,7 @@ def _parse_iso_date_into_datetime_option(
 
 def _make_pkg_where_clause_and_params(
     defns: Sequence[definitions.Defn],
-) -> tuple[str, dict[str, Any]]:
+) -> tuple[str, dict[str, object]]:
     def make_inner():
         iter_named_param = (f'where_param_{i}' for i in count())
         for defn, source_param, alias_param in zip(defns, iter_named_param, iter_named_param):
@@ -261,7 +261,7 @@ def _make_pkg_where_clause_and_params(
         where_clauses, where_params = zip(*make_inner())
         return (
             'WHERE\n  ' + '\n  OR '.join(where_clauses),
-            reduce(lambda a, b: a | b, where_params, dict[str, Any]()),
+            reduce(lambda a, b: a | b, where_params, dict[str, object]()),
         )
     else:
         return ('', {})
