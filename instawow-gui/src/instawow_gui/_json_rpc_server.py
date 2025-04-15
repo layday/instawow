@@ -668,7 +668,7 @@ async def create_web_app(toga_handle: toga.App | None = None):
             _global_config_var.set(global_config)
 
             web_client = await exit_stack.enter_async_context(
-                init_web_client(global_config.http_cache_path, with_progress=True)
+                init_web_client(global_config.dirs.cache, with_progress=True)
             )
             http_ctx.web_client.set(web_client)
 

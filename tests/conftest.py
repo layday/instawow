@@ -125,7 +125,7 @@ async def _iw_config_ctx(
 async def iw_web_client(
     iw_global_config: instawow.config.GlobalConfig,
 ):
-    async with instawow.http.init_web_client(iw_global_config.http_cache_path) as web_client:
+    async with instawow.http.init_web_client(iw_global_config.dirs.cache) as web_client:
         yield web_client
 
 

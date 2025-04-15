@@ -11,9 +11,11 @@ from typing import Never
 import aiohttp_client_cache
 import diskcache
 
+_http_cache_name = '_http_v1'
+
 
 @contextlib.asynccontextmanager
-async def make_cache(cache_dir: os.PathLike[str]):
+async def make_cache(parent_dir: os.PathLike[str]):
     with concurrent.futures.ThreadPoolExecutor(1, '_http_cache') as executor:
         loop = asyncio.get_running_loop()
 
@@ -25,7 +27,7 @@ async def make_cache(cache_dir: os.PathLike[str]):
 
         # diskcache will only close the sqlite connection if it was initialised
         # in the same thread.
-        cache = await run_in_thread2(diskcache.Cache)(os.fspath(cache_dir))
+        cache = await run_in_thread2(diskcache.Cache)(os.path.join(parent_dir, _http_cache_name))
 
         def make_cache_wrapper(prefix: str):
             class Cache(aiohttp_client_cache.BaseCache):

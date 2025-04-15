@@ -3,9 +3,10 @@ from __future__ import annotations
 import multiprocessing
 import os
 import sys
-from pathlib import Path
 
 from loguru import logger
+
+_logs_state_name = '_logs_v1'
 
 
 def _intercept_logging_module_calls(log_level: str):  # pragma: no cover
@@ -37,7 +38,7 @@ def _intercept_logging_module_calls(log_level: str):  # pragma: no cover
 
 
 def setup_logging(
-    logging_dir: os.PathLike[str],
+    parent_dir: os.PathLike[str],
     log_to_stderr: bool,
     debug: bool,
     intercept_logging_module_calls: bool,
@@ -70,7 +71,7 @@ def setup_logging(
             ),
             'enqueue': True,
             'context': context,
-            'sink': Path(logging_dir) / 'error.log',
+            'sink': os.path.join(parent_dir, _logs_state_name, 'debug.log'),
             'rotation': '5 MB',
             'retention': 5,  # Number of log files to keep
         },

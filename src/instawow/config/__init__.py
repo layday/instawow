@@ -97,40 +97,19 @@ class GlobalConfig:
         return config_converter.structure(values, cls)
 
     @classmethod
-    def read(cls, env: bool = True) -> Self:
+    def read(cls, *, env: bool = True) -> Self:
         env_config = cls.from_values(env=env)
         disk_config_values = read_config(cls, env_config.config_file_path, missing_ok=True)
         return cls.from_values(disk_config_values, env=env) if disk_config_values else env_config
 
     def ensure_dirs(self) -> Self:
-        ensure_dirs(
-            *attrs.astuple(self.dirs),
-            self.logging_path,
-            self.http_cache_path,
-            self.install_cache_path,
-        )
+        ensure_dirs(*attrs.astuple(self.dirs))
         return self
 
     def write(self) -> Self:
         self.ensure_dirs()
         write_config(self, self.config_file_path)
         return self
-
-    @property
-    def logging_path(self) -> Path:
-        return self.dirs.state / 'logs'
-
-    @property
-    def http_cache_path(self) -> Path:
-        return self.dirs.cache / '_http'
-
-    @property
-    def install_cache_path(self) -> Path:
-        return self.dirs.cache / '_install'
-
-    @property
-    def profiles_config_path(self) -> Path:
-        return self.dirs.config / 'profiles'
 
     @property
     def config_file_path(self) -> Path:
@@ -151,15 +130,19 @@ class ProfileConfig:
     game_flavour: Flavour = field(metadata=FieldMetadata(store=True))
 
     @classmethod
+    def _make_config_file_path(cls, global_config: GlobalConfig, profile: str):
+        return global_config.dirs.config / 'profiles' / profile / 'config.json'
+
+    @classmethod
     def from_values(cls, values: Mapping[str, object] = {}, env: bool = False) -> Self:
         if env:
             values = read_env_vars(cls, values)
         return config_converter.structure(values, cls)
 
     @classmethod
-    def read(cls, global_config: GlobalConfig, profile: str, env: bool = True) -> Self:
+    def read(cls, global_config: GlobalConfig, profile: str, *, env: bool = True) -> Self:
         return cls.from_values(
-            read_config(cls, global_config.profiles_config_path / profile / 'config.json')
+            read_config(cls, cls._make_config_file_path(global_config, profile))
             | {'global_config': global_config},
             env=env,
         )
@@ -167,12 +150,12 @@ class ProfileConfig:
     @classmethod
     def iter_profiles(cls, global_config: GlobalConfig) -> Iterator[str]:
         yield from (
-            c.parent.name for c in global_config.profiles_config_path.glob('*/config.json')
+            c.parent.name for c in global_config.dirs.config.glob('profiles/*/config.json')
         )
 
     @classmethod
     def iter_profile_installations(cls, global_config: GlobalConfig) -> Iterator[Path]:
-        for config_json in global_config.profiles_config_path.glob('*/config.json'):
+        for config_json in global_config.dirs.config.glob('profiles/*/config.json'):
             addon_dir = read_config(cls, config_json)['addon_dir']
             maybe_installation_dir = get_installation_dir_from_addon_dir(addon_dir)
             if maybe_installation_dir:
@@ -194,11 +177,11 @@ class ProfileConfig:
 
     @property
     def config_path(self) -> Path:
-        return self.global_config.profiles_config_path / self.profile
+        return self.config_file_path.parent
 
     @property
     def config_file_path(self) -> Path:
-        return self.config_path / 'config.json'
+        return self._make_config_file_path(self.global_config, self.profile)
 
     @property
     def db_file_path(self) -> Path:

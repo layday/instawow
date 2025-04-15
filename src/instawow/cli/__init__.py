@@ -76,7 +76,7 @@ def run_with_progress[T](awaitable: Awaitable[T], **params: Any) -> T:
         make_init_web_client = partial(make_init_web_client, None)
     else:
         make_init_web_client = partial(
-            make_init_web_client, config_ctx.config().global_config.http_cache_path
+            make_init_web_client, config_ctx.config().global_config.dirs.cache
         )
 
     if suppress_progress:
@@ -308,7 +308,7 @@ def cli(verbosity: int, no_cache: bool, profile: str):
 
     global_config = _config.GlobalConfig.read().ensure_dirs()
     setup_logging(
-        global_config.logging_path, verbosity > 0, verbosity > 1, verbosity > 2, profile=profile
+        global_config.dirs.state, verbosity > 0, verbosity > 1, verbosity > 2, profile=profile
     )
 
     @config_ctx.config.set

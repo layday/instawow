@@ -96,7 +96,7 @@ def get_ssl_context(cloudflare_compat: bool = False) -> ssl.SSLContext:
 
 @asynccontextmanager
 async def init_web_client(
-    cache_dir: Path | None, *, with_progress: bool = False
+    parent_dir: Path | None, *, with_progress: bool = False
 ) -> AsyncIterator[CachedSession]:
     make_client_session = partial(
         aiohttp_client_cache.session.CachedSession,
@@ -125,7 +125,7 @@ async def init_web_client(
             expire_after=_DEFAULT_EXPIRE,
             include_headers=True,
         )
-        if cache_dir is None:
+        if parent_dir is None:
             cache_backend.disabled = True
         else:
             from ._cache import make_cache
@@ -133,7 +133,7 @@ async def init_web_client(
             (
                 cache_backend.responses,
                 cache_backend.redirects,
-            ) = await async_exit_stack.enter_async_context(make_cache(cache_dir))
+            ) = await async_exit_stack.enter_async_context(make_cache(parent_dir))
 
         client_session = await async_exit_stack.enter_async_context(
             make_client_session(cache=cache_backend)
