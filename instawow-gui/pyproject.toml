@@ -17,10 +17,10 @@ dependencies = [
   "instawow",
 ]
 optional-dependencies."skeletal" = [
-  "toga-core >= 0.4.5",
+  "toga-core >= 0.5.0",
 ]
 optional-dependencies."full" = [
-  "toga >= 0.4.5",
+  "toga >= 0.5.0",
 ]
 
 [project.entry-points."instawow.plugins"]
