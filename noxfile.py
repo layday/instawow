@@ -89,7 +89,7 @@ def test(session: nox.Session, minimum_versions: bool):
     install_args = [
         f'instawow @ {packages["instawow"]["wheel-path"]}',
         f'instawow-gui[skeletal] @ {packages["instawow-gui"]["wheel-path"]}',
-        'instawow_test_plugin @ tests/plugin',
+        'instawow_test_plugin @ tests/_plugin',
     ]
     if minimum_versions:
         (package_metadata,) = Distribution.discover(
