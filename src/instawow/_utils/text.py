@@ -35,10 +35,3 @@ def normalise_names(replace_delim: str) -> Callable[[str], str]:
         return replace_delim.join(value.casefold().translate(trans_table).split())
 
     return normalise
-
-
-def shasum(*values: object) -> str:
-    "Base-16-encode a string using SHA-256 truncated to 32 characters."
-    from hashlib import sha256
-
-    return sha256(''.join(map(str, filter(None, values))).encode()).hexdigest()[:32]

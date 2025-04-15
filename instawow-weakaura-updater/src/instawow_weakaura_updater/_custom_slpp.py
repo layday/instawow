@@ -98,11 +98,11 @@ class _Parser:
 
                     if c == '=':
                         if is_val_long_string_literal:
-                            raise ParseError('malformed key', item)
+                            raise ParseError('Malformed key', item)
 
                         # nil key produces a runtime error in Lua
                         if item is None:
-                            raise ParseError('table keys cannot be nil')
+                            raise ParseError('Table keys cannot be nil')
 
                         # Item is a key
                         value = self.decode()
@@ -210,7 +210,7 @@ class _Parser:
                 return None
 
             elif not self.c or self.c not in DIGITS:
-                raise ParseError('malformed number (no digits after minus sign)', c + self.c)
+                raise ParseError('Malformed number (no digits after minus sign)', c + self.c)
 
             n += c
 
@@ -247,7 +247,7 @@ class _Parser:
                     break
 
         if not self.c:
-            raise ParseError('input is empty')
+            raise ParseError('Input is empty')
 
         if self.c == '{':
             return self._decode_table()

@@ -22,7 +22,7 @@ from ..resolvers import BaseResolver, CatalogueEntryCandidate, PkgCandidate
 from ..results import PkgNonexistent, resultify
 from ..wow_installations import Flavour, FlavourVersionRange
 
-_LOAD_WOWI_CATALOGUE_LOCK = (object(), '_LOAD_WOWI_CATALOGUE_LOCK_')
+_LOAD_WOWI_CATALOGUE_LOCK = (object(), '_LOAD_WOWI_CATALOGUE_')
 
 _slugify = normalise_names('-')
 

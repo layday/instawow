@@ -8,24 +8,22 @@ from instawow.cli._helpers import ManyOptionalChoiceValueParam
 
 
 @click.group('weakauras-companion')
-def wa_updater_command_group() -> None:
+def weakaura_updater_command_group() -> None:
     "Manage your WeakAuras."
 
 
-@wa_updater_command_group.command('build')
+@weakaura_updater_command_group.command('build')
 def build_weakauras_companion() -> None:
     "Build the WeakAuras Companion add-on."
 
-    from ._config import PluginConfig
-    from ._core import WaCompanionBuilder
+    from .builder import build_addon
+    from .config import PluginConfig
 
-    builder = WaCompanionBuilder(
-        PluginConfig.read(config_ctx.config()).ensure_dirs(),
-    )
-    run_with_progress(builder.build())
+    plugin_config = PluginConfig.read(config_ctx.config()).ensure_dirs()
+    run_with_progress(build_addon(plugin_config))
 
 
-@wa_updater_command_group.command
+@weakaura_updater_command_group.command
 @click.argument(
     'collapsed-editable-config-values',
     nargs=-1,
@@ -36,7 +34,7 @@ def configure(collapsed_editable_config_values: dict[str, object]) -> None:
 
     from instawow.cli.prompts import password
 
-    from ._config import PluginConfig
+    from .config import PluginConfig
 
     wago_access_token = collapsed_editable_config_values.get('access_tokens.wago')
     if wago_access_token is None:
@@ -52,24 +50,22 @@ def configure(collapsed_editable_config_values: dict[str, object]) -> None:
     click.echo(f'  {plugin_config.config_file_path}')
 
 
-@wa_updater_command_group.command('list')
+@weakaura_updater_command_group.command('list')
 def list_installed_wago_auras() -> None:
     "List WeakAuras installed from Wago."
 
     from instawow._utils.text import tabulate
 
-    from ._config import PluginConfig
-    from ._core import WaCompanionBuilder
+    from .builder import extract_installed_auras
+    from .config import PluginConfig
 
-    builder = WaCompanionBuilder(
-        PluginConfig.read(config_ctx.config()).ensure_dirs(),
-    )
+    plugin_config = PluginConfig.read(config_ctx.config()).ensure_dirs()
 
     installed_auras = sorted(
-        (g.addon_name, a.id, a.url)
-        for g in builder.extract_installed_auras()
-        for v in g.auras.values()
+        (account, addon.name, a.id, a.url.parent)
+        for account, addon, auras in extract_installed_auras(plugin_config)
+        for v in auras.values()
         for a in v
         if not a.parent
     )
-    click.echo(tabulate([('type', 'name', 'URL'), *installed_auras]))
+    click.echo(tabulate([('account', 'add-on', 'aura name', 'aura URL'), *installed_auras]))

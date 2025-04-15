@@ -24,7 +24,7 @@ from __future__ import annotations
 
 import pytest
 
-from instawow_wa_updater._custom_slpp import ParseError, loads
+from instawow_weakaura_updater._custom_slpp import ParseError, loads
 
 
 def test_numbers():

@@ -3,12 +3,14 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from typing import TypedDict
 
-from .. import config_ctx
+from .. import config_ctx, sync_ctx
 from .._utils.aio import run_in_thread
 from ..definitions import ChangelogFormat, Defn, SourceMetadata
 from ..resolvers import BaseResolver, CatalogueEntryCandidate, PkgCandidate
 from ..results import PkgNonexistent
 from ..wow_installations import Flavour
+
+_READ_PLUGIN_CONFIG_LOCK = (object(), '_READ_PLUGIN_CONFIG_')
 
 
 class _ResolveMetadata(TypedDict):
@@ -30,20 +32,29 @@ class InstawowResolver(BaseResolver):
         addon_toc_key=None,
     )
 
+    __plugin_config = None
+
     async def resolve_one(self, defn: Defn, metadata: None):
-        from instawow_wa_updater._config import PluginConfig
-        from instawow_wa_updater._core import WaCompanionBuilder
+        from instawow_weakaura_updater import builder
+        from instawow_weakaura_updater.config import PluginConfig
 
         try:
             (id_, slug), metadata_ = next((p, v) for p, v in _ADDONS.items() if defn.alias in p)
         except StopIteration:
             raise PkgNonexistent from None
 
-        builder_config = PluginConfig(profile_config=config_ctx.config())
-        builder = WaCompanionBuilder(builder_config)
-        if metadata_['requires_build']:
-            await run_in_thread(builder_config.ensure_dirs)()
-            await builder.build()
+        async with sync_ctx.locks()[_READ_PLUGIN_CONFIG_LOCK]:
+            plugin_config = self.__plugin_config
+            if plugin_config is None:
+                plugin_config = self.__plugin_config = await run_in_thread(PluginConfig.read)(
+                    config_ctx.config()
+                )
+
+        build_paths = (
+            await builder.build_addon(plugin_config)
+            if metadata_['requires_build']
+            else builder.get_build_paths(plugin_config)
+        )
 
         return PkgCandidate(
             id=id_,
@@ -51,10 +62,10 @@ class InstawowResolver(BaseResolver):
             name='WeakAuras Companion',
             description='A WeakAuras Companion clone.',
             url='https://github.com/layday/instawow',
-            download_url=builder.build_paths.archive.as_uri(),
+            download_url=build_paths.archive.as_uri(),
             date_published=datetime.now(UTC),
-            version=await run_in_thread(builder.build_paths.version.read_text)(encoding='utf-8'),
-            changelog_url=builder.build_paths.changelog.as_uri(),
+            version=await run_in_thread(build_paths.version.read_text)(encoding='utf-8'),
+            changelog_url=build_paths.changelog.as_uri(),
         )
 
     async def catalogue(self):

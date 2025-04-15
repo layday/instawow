@@ -1,7 +1,17 @@
 {
   "typeCheckingMode": "standard",
-  "include": ["src", "instawow-gui/src", "tests"],
-  "strict": ["src", "instawow-gui/src", "tests/plugin"],
+  "include": [
+    "src",
+    "instawow-gui/src",
+    "instawow-weakaura-updater/src",
+    "tests"
+  ],
+  "strict": [
+    "src",
+    "instawow-gui/src",
+    "instawow-weakaura-updater/src",
+    "tests/plugin"
+  ],
   "stubPath": "type-stubs",
   "enableExperimentalFeatures": true
 }

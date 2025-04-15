@@ -34,7 +34,7 @@ dependencies = [
 ]
 
 [project.entry-points."instawow.plugins"]
-"instawow_wa_updater" = "instawow_wa_updater._plugin"
+"instawow-weakaura-updater" = "instawow_weakaura_updater._plugin"
 
 [project.scripts]
 "instawow" = "instawow.cli:main"
@@ -42,6 +42,7 @@ dependencies = [
 [tool.hatch.build.targets.sdist]
 only-include = [
   "/src",
+  "/instawow-weakaura-updater/src",
   "/tests",
 ]
 exclude = [
@@ -51,7 +52,7 @@ exclude = [
 [tool.hatch.build.targets.wheel]
 packages = [
   "/src/instawow",
-  "/src/instawow_wa_updater",
+  "/instawow-weakaura-updater/src/instawow_weakaura_updater",
 ]
 
 [tool.hatch.version]
@@ -115,7 +116,7 @@ ignore = [
 [tool.ruff.lint.isort]
 known-first-party = [
   "instawow",
-  "instawow_wa_updater",
+  "instawow_weakaura_updater",
 ]
 required-imports = [
   "from __future__ import annotations",
@@ -127,7 +128,7 @@ keep-runtime-typing = true
 [tool.coverage.run]
 source_pkgs = [
   "instawow",
-  "instawow_wa_updater",
+  "instawow_weakaura_updater",
 ]
 parallel = true
 branch = true
@@ -137,8 +138,11 @@ disable_warnings = [
 ]
 
 [tool.coverage.paths]
-instawow = ["src/instawow", "**/instawow"]
-instawow_wa_updater = ["src/instawow_wa_updater", "**/instawow_wa_updater"]
+"instawow" = ["src/instawow", "**/instawow"]
+"instawow_weakaura_updater" = [
+  "instawow-weakaura-updater/src/instawow_weakaura_updater",
+  "**/instawow_weakaura_updater",
+]
 
 [tool.coverage.report]
 exclude_also = [
