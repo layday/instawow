@@ -56,12 +56,12 @@ async def make_cache(parent_dir: os.PathLike[str]):
                     raise NotImplementedError
 
                 async def keys(self):
-                    if False:
+                    if False:  # pragma: no cover
                         yield
                     raise NotImplementedError
 
                 async def values(self):
-                    if False:
+                    if False:  # pragma: no cover
                         yield
                     raise NotImplementedError
 

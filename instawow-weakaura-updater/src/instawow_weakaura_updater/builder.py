@@ -79,7 +79,7 @@ class _Aura:
 type _AuraGroup = dict[str, list[_Aura]]
 
 
-class _AuraAddon(Protocol):
+class _AuraAddon(Protocol):  # pragma: no cover
     name: str
     api_endpoint: str
 
