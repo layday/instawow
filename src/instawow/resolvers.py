@@ -188,8 +188,8 @@ class BaseResolver(Resolver[_ResolveMetadataT], Protocol):
 
 
 class Resolvers(dict[str, Resolver]):
-    def __init__(self, resolvers: Iterable[type[Resolver]]):
-        super().__init__((r.metadata.id, r()) for r in resolvers)
+    def __init__(self, resolvers: Iterable[Resolver]):
+        super().__init__((r.metadata.id, r) for r in resolvers)
 
     def get_or_dummy(self, key: str) -> Resolver:
         if key in self.disabled_resolver_reasons:

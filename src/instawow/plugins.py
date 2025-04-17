@@ -23,7 +23,7 @@ class InstawowPlugin(Protocol):  # pragma: no cover
         ...
 
     @hookspec
-    def instawow_add_resolvers(self) -> Iterable[type[resolvers.Resolver]]:
+    def instawow_add_resolvers(self) -> Iterable[resolvers.Resolver]:
         "Additional resolvers to load."
         ...
 
@@ -44,6 +44,6 @@ def get_plugin_commands() -> Iterable[Iterable[click.Command]]:
     return plugin_hook.instawow_add_commands()
 
 
-def get_plugin_resolvers() -> Iterable[Iterable[type[resolvers.Resolver]]]:
+def get_plugin_resolvers() -> Iterable[Iterable[resolvers.Resolver]]:
     plugin_hook = _load_plugins()
     return plugin_hook.instawow_add_resolvers()

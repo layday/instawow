@@ -47,7 +47,8 @@ class _ReentrantDatabaseHandle(AbstractContextManager['pkg_db.Connection']):
 
 def _make_resolvers():
     return _resolvers.Resolvers(
-        chain(
+        r() if callable(r) else r
+        for r in chain(
             (r for g in plugins.get_plugin_resolvers() for r in g),
             _sources.DEFAULT_RESOLVERS,
         )
