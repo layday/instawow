@@ -10,19 +10,22 @@ import pluggy
 from . import NAME, resolvers
 from ._utils.dist_metadata import iter_entry_point_plugins
 
-hookspec = pluggy.HookspecMarker(NAME)
-hookimpl = pluggy.HookimplMarker(NAME)
+_hookspec = pluggy.HookspecMarker(NAME)
+_hookimpl = pluggy.HookimplMarker(NAME)
+
+# Keep "hookimpl" for back-ompat.
+hook = hookimpl = _hookimpl
 
 
 class InstawowPlugin(Protocol):  # pragma: no cover
     "The plug-in interface."
 
-    @hookspec
+    @_hookspec
     def instawow_add_commands(self) -> Iterable[click.Command]:
         "Additional commands to register with ``click``."
         ...
 
-    @hookspec
+    @_hookspec
     def instawow_add_resolvers(self) -> Iterable[resolvers.Resolver]:
         "Additional resolvers to load."
         ...
