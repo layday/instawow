@@ -66,7 +66,7 @@ def iw_global_config_values(
     request: pytest.FixtureRequest,
 ):
     return {
-        'access_tokens': {'cfcore': request.param, 'github': None},
+        'access_tokens': {'cfcore': request.param, 'github': None, 'wago_addons': request.param},
     }
 
 

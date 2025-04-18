@@ -1,14 +1,23 @@
 <script lang="ts">
   import { getContext, onDestroy } from "svelte";
   import { API_KEY, type Api } from "../stores/api.svelte";
+  import type { GlobalConfig } from "../api";
 
   const api = getContext<Api>(API_KEY);
 
+  let accessTokens = $state<GlobalConfig["access_tokens"]>({
+    cfcore: null,
+    github: null,
+    wago_addons: null,
+  });
   let githubAuthFlowShouldStart = $state(false);
-  let newCfcoreAccessToken = $state<string | null>(null);
 
-  const updateCfCoreAccessToken = async () => {
-    await api.updateGlobalConfig({ cfcore: newCfcoreAccessToken });
+  const load = async () => {
+    ({ access_tokens: accessTokens } = await api.readGlobalConfig());
+  };
+
+  const updateAccessToken = async (name: keyof typeof accessTokens) => {
+    await api.updateAccessTokens({ [name]: accessTokens[name] || null });
   };
 
   const queryGithubAuthFlowStatus = async () => {
@@ -24,9 +33,9 @@
 
 <div class="title-bar">config</div>
 <form class="content" onsubmit={(e) => e.preventDefault()}>
-  {#await api.readGlobalConfig()}
+  {#await load()}
     <div class="row">Loading...</div>
-  {:then { access_tokens }}
+  {:then}
     <div class="section-header">access tokens</div>
     <div class="row form-grid">
       <div class="label-like">GitHub:</div>
@@ -36,7 +45,7 @@
           disabled={githubAuthFlowShouldStart}
           onclick={() => (githubAuthFlowShouldStart = true)}
         >
-          {access_tokens.github === null ? "generate" : "regenerate"}
+          {accessTokens.github === null ? "generate" : "regenerate"}
         </button>
         <div class="description">
           {#if githubAuthFlowShouldStart}
@@ -71,19 +80,17 @@
           {/if}
         </div>
       </div>
+
       <label for="__cfcore-input-box">CurseForge:</label>
       <div class="value-rows">
         <input
           id="__cfcore-input-box"
           class="form-control"
           type="password"
-          value={access_tokens.cfcore}
-          oninput={(e) => (newCfcoreAccessToken = e.currentTarget.value || null)}
+          bind:value={accessTokens.cfcore}
         />
-        <button
-          class="form-control primary"
-          disabled={newCfcoreAccessToken === undefined}
-          onclick={() => updateCfCoreAccessToken()}>update</button
+        <button class="form-control primary" onclick={() => updateAccessToken("cfcore")}
+          >update</button
         >
         <div class="description">
           An API key is required to use CurseForge. Log in to
@@ -96,6 +103,35 @@
           >
             CurseForge for Studios
           </button> to generate a key.
+        </div>
+      </div>
+
+      <label for="__wago-input-box">Wago:</label>
+      <div class="value-rows">
+        <input
+          id="__wago-input-box"
+          class="form-control"
+          type="password"
+          bind:value={accessTokens.wago_addons}
+        />
+
+        <button class="form-control primary" onclick={() => updateAccessToken("wago_addons")}
+          >update</button
+        >
+
+        <div class="description">
+          An access token is required to use Wago Addons. Wago issues tokens to
+
+          <button
+            role="link"
+            onclick={(e) => {
+              e.preventDefault();
+
+              api.openUrl("https://addons.wago.io/patreon");
+            }}
+          >
+            Patreon
+          </button> subscribers above a certain tier.
         </div>
       </div>
     </div>

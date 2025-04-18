@@ -976,6 +976,7 @@ class _EditableConfigOptions(enum.StrEnum):
     AutoUpdateCheck = 'global_config.auto_update_check'
     GithubAccessToken = 'global_config.access_tokens.github'
     CfcoreAccessToken = 'global_config.access_tokens.cfcore'
+    WagoAddonsAccessToken = 'global_config.access_tokens.wago_addons'
 
     path: tuple[str, ...]
 
@@ -1163,6 +1164,18 @@ def configure(editable_config_values: Mapping[_EditableConfigOptions, Any]):
             )
             editable_config_values[_EditableConfigOptions.CfcoreAccessToken] = (
                 password('CurseForge API key:').prompt() or None
+            )
+
+        if _EditableConfigOptions.WagoAddonsAccessToken in interactive_editable_config_keys:
+            click.echo(
+                textwrap.fill(
+                    'An access token is required to use Wago Addons. '
+                    'Wago issues tokens to Patreon <https://addons.wago.io/patreon> '
+                    'subscribers above a certain tier.'
+                )
+            )
+            editable_config_values[_EditableConfigOptions.WagoAddonsAccessToken] = (
+                password('Wago Addons access token:').prompt() or None
             )
 
     for key, value in editable_config_values.items():

@@ -17,6 +17,7 @@ from typing import Any, Literal, NotRequired, Union, cast
 import aiohttp
 import aiohttp.typedefs
 import aiohttp.web
+import attrs
 import cattrs
 import cattrs.preconf.json
 import cattrs.strategies
@@ -43,14 +44,16 @@ from instawow.wow_installations import Flavour, infer_flavour_from_addon_dir
 
 _toga_handle_var = contextvars.ContextVar[toga.App]('_toga_handle_var')
 
-_global_config_var = contextvars.ContextVar[GlobalConfig]('_global_config_var')
-_get_progress_var = contextvars.ContextVar[
-    Callable[[], ReadOnlyProgressGroup[PkgDownloadProgress]]
-]('_get_progress_var')
-_config_parties_var = contextvars.ContextVar[dict[str, config_ctx.ConfigParty]](
-    '_config_parties_var'
-)
-_github_auth_manager = contextvars.ContextVar['_GitHubAuthManager']('_github_auth_manager')
+
+@attrs.define(kw_only=True)
+class _GlobalCtx:
+    global_config: GlobalConfig
+    profiles: dict[str, config_ctx.ConfigParty]
+    get_progress: Callable[[], ReadOnlyProgressGroup[PkgDownloadProgress]]
+    github_auth_manager: _GitHubAuthManager
+
+
+_global_ctx_var = contextvars.ContextVar[_GlobalCtx]('_global_ctx_var')
 
 
 _LOCK_PREFIX = object()
@@ -126,13 +129,16 @@ class _ErrorResult(TypedDict):
 
 @_register_method('config/list_profiles')
 async def list_profiles() -> dict[str, ProfileConfig]:
-    global_config = _global_config_var.get()
-    profiles = await run_in_thread(list[str])(ProfileConfig.iter_profiles(global_config))
+    global_ctx = _global_ctx_var.get()
+
+    profiles = await run_in_thread(list[str])(
+        ProfileConfig.iter_profiles(global_ctx.global_config)
+    )
 
     async def get_profile_configs():
         for profile in profiles:
             try:
-                profile_config = await _read_profile_config(global_config, profile)
+                profile_config = await _read_profile_config(global_ctx.global_config, profile)
             except Exception:
                 continue
             else:
@@ -148,7 +154,7 @@ async def write_profile_config(
     async with sync_ctx.locks()[*_LockOperation.ModifyProfile, profile]:
         config = config_converter.structure(
             {
-                'global_config': _global_config_var.get(),
+                'global_config': _global_ctx_var.get().global_config,
                 'profile': profile,
                 'addon_dir': addon_dir,
                 'game_flavour': game_flavour,
@@ -178,7 +184,7 @@ async def delete_profile(profile: str) -> None:
 
 @_register_method('config/read_global')
 async def read_global_config() -> GlobalConfig:
-    return _global_config_var.get()
+    return _global_ctx_var.get().global_config
 
 
 @_register_method('config/update_global')
@@ -197,17 +203,17 @@ async def update_global_config(access_tokens: dict[str, str | None]) -> GlobalCo
 
 @_register_method('config/initiate_github_auth_flow')
 async def initiate_github_auth_flow() -> TypedDict[{'user_code': str, 'verification_uri': str}]:
-    return await _github_auth_manager.get().initiate_auth_flow()
+    return await _global_ctx_var.get().github_auth_manager.initiate_auth_flow()
 
 
 @_register_method('config/query_github_auth_flow_status')
 async def query_github_auth_flow_status() -> TypedDict[{'status': Literal['success', 'failure']}]:
-    return {'status': await _github_auth_manager.get().await_auth_completion()}
+    return {'status': await _global_ctx_var.get().github_auth_manager.await_auth_completion()}
 
 
 @_register_method('config/cancel_github_auth_flow')
 async def cancel_github_auth_flow() -> None:
-    await _github_auth_manager.get().cancel_auth_completion()
+    await _global_ctx_var.get().github_auth_manager.cancel_auth_completion()
 
 
 @_register_method('sources/list')
@@ -424,10 +430,10 @@ async def get_reconcile_installed_pkg_candidates(
 @_register_method('get_download_progress')
 async def respond(profile: str) -> list[TypedDict[{'defn': Defn, 'progress': float}]]:
     async with _load_profile(profile) as config_party:
-        get_progress = _get_progress_var.get()
+        global_ctx = _global_ctx_var.get()
         return [
             {'defn': p['defn'], 'progress': p['current'] / p['total']}
-            for p in get_progress().values()
+            for p in global_ctx.get_progress().values()
             if p['type_'] == 'pkg_download'
             and p['total']
             and p['profile'] == config_party.config.profile
@@ -443,8 +449,8 @@ async def get_instawow_version() -> TypedDict[
     installed_version = get_version()
     new_version = None
 
-    global_config = _global_config_var.get()
-    if global_config.auto_update_check:
+    global_ctx = _global_ctx_var.get()
+    if global_ctx.global_config.auto_update_check:
         outdated, maybe_new_version = await is_outdated(installed_version)
         if outdated:
             new_version = maybe_new_version
@@ -563,17 +569,17 @@ def _read_profile_config(global_config: GlobalConfig, profile: str) -> ProfileCo
 
 @asynccontextmanager
 async def _load_profile(profile: str):
-    config_parties = _config_parties_var.get()
+    global_ctx = _global_ctx_var.get()
 
     try:
-        config_party = config_parties[profile]
+        config_party = global_ctx.profiles[profile]
     except KeyError:
         async with sync_ctx.locks()[*_LockOperation.ModifyProfile, profile]:
             try:
-                config_party = config_parties[profile]
+                config_party = global_ctx.profiles[profile]
             except KeyError:
-                config_party = config_parties[profile] = config_ctx.ConfigParty.from_config(
-                    await _read_profile_config(_global_config_var.get(), profile)
+                config_party = global_ctx.profiles[profile] = config_ctx.ConfigParty.from_config(
+                    await _read_profile_config(global_ctx.global_config, profile)
                 )
 
     config_ctx.config.set(config_party)
@@ -583,10 +589,10 @@ async def _load_profile(profile: str):
 
 
 def _unload_profiles(*profiles: str):
-    config_parties = _config_parties_var.get()
-    for profile in profiles or config_parties:
-        if profile in config_parties:
-            del config_parties[profile]
+    global_ctx = _global_ctx_var.get()
+    for profile in profiles or list(global_ctx.profiles):
+        if profile in global_ctx.profiles:
+            del global_ctx.profiles[profile]
 
 
 async def _update_global_config(update: Callable[[GlobalConfig], GlobalConfig]):
@@ -594,7 +600,8 @@ async def _update_global_config(update: Callable[[GlobalConfig], GlobalConfig]):
         global_config = update(await _read_global_config())
         await run_in_thread(global_config.write)()
 
-        _global_config_var.set(global_config)
+        global_ctx = _global_ctx_var.get()
+        global_ctx.global_config = global_config
         _unload_profiles()
 
         return global_config
@@ -665,7 +672,6 @@ async def create_web_app(toga_handle: toga.App | None = None):
             )
 
             global_config = await _read_global_config()
-            _global_config_var.set(global_config)
 
             web_client = await exit_stack.enter_async_context(
                 init_web_client(global_config.dirs.cache, with_progress=True)
@@ -675,15 +681,20 @@ async def create_web_app(toga_handle: toga.App | None = None):
             get_progress, _ = exit_stack.enter_context(
                 make_progress_receiver[PkgDownloadProgress]()
             )
-            _get_progress_var.set(get_progress)
-
-            _config_parties_var.set({})
 
             github_auth_manager = await exit_stack.enter_async_context(_GitHubAuthManager())
-            _github_auth_manager.set(github_auth_manager)
 
             if toga_handle:
                 _toga_handle_var.set(toga_handle)
+
+            _global_ctx_var.set(
+                _GlobalCtx(
+                    global_config=global_config,
+                    profiles={},
+                    get_progress=get_progress,
+                    github_auth_manager=github_auth_manager,
+                )
+            )
 
             yield
 

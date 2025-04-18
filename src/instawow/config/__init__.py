@@ -60,6 +60,10 @@ class _AccessTokens:
         default=None,
         metadata=FieldMetadata(env_prefix=True, store=True),
     )
+    wago_addons: SecretStr | None = field(
+        default=None,
+        metadata=FieldMetadata(env_prefix=True, store=True),
+    )
 
 
 @fauxfrozen(kw_only=True)

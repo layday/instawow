@@ -5,7 +5,6 @@ Changelog
 v6.0.0
 ------
 
-- Discontinued support for Wago Addons.
 - Dropped support for Python 3.11 and added preliminary support for Python 3.14.
 - Fixed HTTP redirect caching.
 

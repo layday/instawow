@@ -7,7 +7,7 @@
 
 *instawow* is an add-on manager for World of Warcraft.
 It can be used to install, update and remove add-ons from GitHub,
-CurseForge, WoWInterface and Tukui.
+CurseForge, WoWInterface, Tukui and Wago Addons.
 *instawow* has an interoperable CLI and GUI, fuzzy search with download scoring
 and several other goodies.
 

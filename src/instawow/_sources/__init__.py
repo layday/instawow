@@ -4,6 +4,7 @@ from .cfcore import CfCoreResolver
 from .github import GithubResolver
 from .instawow import InstawowResolver
 from .tukui import TukuiResolver
+from .wago_addons import WagoAddonsResolver
 from .wowi import WowiResolver
 
 DEFAULT_RESOLVERS = [
@@ -12,4 +13,5 @@ DEFAULT_RESOLVERS = [
     WowiResolver,
     TukuiResolver,
     InstawowResolver,
+    WagoAddonsResolver,
 ]

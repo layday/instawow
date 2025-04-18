@@ -42,6 +42,7 @@ export type GlobalConfig = {
   access_tokens: {
     cfcore: string | null;
     github: string | null;
+    wago_addons: string | null;
   };
 };
 
@@ -204,7 +205,7 @@ export class Api {
     return await this.request({ method: "config/delete_profile", params: { profile } });
   }
 
-  async updateGlobalConfig(accessTokens: Record<string, string | null>): Promise<void> {
+  async updateAccessTokens(accessTokens: Record<string, string | null>): Promise<void> {
     return await this.request({
       method: "config/update_global",
       params: { access_tokens: accessTokens },
