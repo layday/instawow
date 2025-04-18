@@ -20,7 +20,6 @@ from instawow.progress_reporting import make_download_progress, make_incrementin
 from instawow.wow_installations import (
     get_installation_dir_from_addon_dir,
     get_installation_version_from_addon_dir,
-    parse_version_string,
 )
 
 from ._utils import get_checksum
@@ -264,11 +263,8 @@ end)
 """,
         )
 
-        interface_version_string = get_installation_version_from_addon_dir(
-            plugin_config.profile_config.addon_dir
-        )
         interface_version = (
-            parse_version_string(interface_version_string) if interface_version_string else 0
+            get_installation_version_from_addon_dir(plugin_config.profile_config.addon_dir) or 0
         )
         addon_version = get_checksum(data_output, init_output, interface_version)[:7]
 

@@ -135,4 +135,4 @@ def test_installation_version_extraction_from_addon_dir(
 Version!STRING:0|Product!STRING:0
 10.9.8.7|wow
 """)
-    assert get_installation_version_from_addon_dir(iw_profile_config.addon_dir) == '10.9.8.7'
+    assert get_installation_version_from_addon_dir(iw_profile_config.addon_dir) == 100908

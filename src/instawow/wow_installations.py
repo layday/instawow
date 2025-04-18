@@ -72,11 +72,11 @@ class FlavourVersionRange(Enum):
 
     @classmethod
     def from_version(cls, version: int | str) -> Self | None:
-        version_number = version if isinstance(version, int) else parse_version_string(version)
+        version_number = version if isinstance(version, int) else _parse_version_string(version)
         return next((f for f in cls if f.contains(version_number)), None)
 
     def contains(self, version: int | str) -> bool:
-        version_number = version if isinstance(version, int) else parse_version_string(version)
+        version_number = version if isinstance(version, int) else _parse_version_string(version)
         return any(version_number in r for r in self.value)
 
 
@@ -157,6 +157,11 @@ def find_installations() -> Iterator[tuple[Path, _Product | None]]:
         yield from _find_mac_installations()
 
 
+def _parse_version_string(version_string: str) -> int:
+    major, minor, patch = fill(map(int, version_string.split('.')), 0, 3)
+    return major * 1_00_00 + minor * 1_00 + patch
+
+
 def _read_info(info_path: Path):
     with open(info_path, encoding='utf-8') as info:
         header = next(info)
@@ -165,10 +170,23 @@ def _read_info(info_path: Path):
 
 
 @cache
-def _get_installed_versions(outer_installation_path: Path):
+def _get_installed_versions_from_build_info(outer_installation_path: Path):
     return {
-        e['Product']: e['Version'] for e in _read_info(outer_installation_path / '.build.info')
+        e['Product']: _parse_version_string(e['Version'])
+        for e in _read_info(outer_installation_path / '.build.info')
     }
+
+
+@cache
+def _get_installed_version_from_config_wtf(installation_path: Path):
+    with open(installation_path.joinpath('WTF', 'Config.wtf'), 'rb') as config_wtf:
+        version_prefix = b'SET lastAddonVersion'
+        for line in config_wtf:
+            if line.startswith(version_prefix):
+                byte_version = line.replace(version_prefix, b'').strip().strip(b'"')
+                if byte_version:
+                    return int(byte_version)
+                break
 
 
 def get_installation_dir_from_addon_dir(path_like: os.PathLike[str] | str) -> Path | None:
@@ -187,18 +205,23 @@ def infer_flavour_from_addon_dir(path: os.PathLike[str] | str) -> Flavour | None
             return None
 
 
-def get_installation_version_from_addon_dir(path: os.PathLike[str] | str) -> str | None:
+def get_installation_version_from_addon_dir(path: os.PathLike[str] | str) -> int | None:
     maybe_installation_dir = get_installation_dir_from_addon_dir(path)
     if maybe_installation_dir:
         product = _DELECTABLE_DIR_NAMES.get(maybe_installation_dir.name)
         if product:
             try:
-                all_versions = _get_installed_versions(maybe_installation_dir.parent)
-                return all_versions[product['code']]
+                all_versions = _get_installed_versions_from_build_info(
+                    maybe_installation_dir.parent
+                )
             except FileNotFoundError:
-                return None
+                pass
+            else:
+                version = all_versions.get(product['code'])
+                if version:
+                    return version
 
-
-def parse_version_string(version_string: str) -> int:
-    major, minor, patch = fill(map(int, version_string.split('.')), 0, 3)
-    return major * 1_00_00 + minor * 1_00 + patch
+        try:
+            return _get_installed_version_from_config_wtf(maybe_installation_dir)
+        except FileNotFoundError:
+            return None
