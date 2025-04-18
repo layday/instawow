@@ -274,7 +274,7 @@ end)
 
         write_file(
             'WeakAurasCompanion.toc',
-            f"""
+            f"""\
 ## Interface: {interface_version}
 ## Title: WeakAuras Companion
 ## Author: The WeakAuras Team
