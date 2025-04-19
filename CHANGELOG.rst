@@ -5,12 +5,31 @@ Changelog
 v6.0.0
 ------
 
+- Added game version extraction fallback.
+
+  - The ``WeakAurasCompanion`` builder will no longer error
+    if it is unable to read the game version from ``.build.info``.
+
+- Added support for the ``trash`` command on macOS.
+
+  - Removed add-on folder will now be trashed.
+
+- Improved reading configuration values from environment variables.
+
+  - Configuration objects will now respect nested environment overrides,
+    e.g. ``INSTAWOW_ACCESS_TOKENS_GITHUB``
+    will map to ``global_config.access_tokens.github``.
+
+- Fixed caching redirects and failed range requests.
 - Dropped support for Python 3.11 and added preliminary support for Python 3.14.
-- Fixed HTTP redirect caching.
 
 API
 ~~~
 
+- Removed plug-in accessors from the ``GlobalConfig``.
+  This is a breaking change.
+- Added ``instawow.config.make_plugin_dirs`` utility function, returning
+  a named plug-in's configuration, cache and state directories.
 - Made the ``instawow.cli.prompts`` module public for use by plug-ins.
 
 CLI
