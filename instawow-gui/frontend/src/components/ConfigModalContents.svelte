@@ -1,98 +1,112 @@
 <script lang="ts">
-  import { getContext, onDestroy } from "svelte";
+  import { getContext } from "svelte";
   import { API_KEY, type Api } from "../stores/api.svelte";
-  import type { GlobalConfig } from "../api";
+  import type { GithubAuthFlowStatusReport, GithubCodesResponse, GlobalConfig } from "../api";
+  import { makeDuplicativeState } from "../helpers/duplicative-state.svelte";
 
   const api = getContext<Api>(API_KEY);
 
-  let accessTokens = $state<GlobalConfig["access_tokens"]>({
+  let accessTokens = makeDuplicativeState<GlobalConfig["access_tokens"]>({
     cfcore: null,
     github: null,
     wago_addons: null,
   });
-  let githubAuthFlowShouldStart = $state(false);
 
-  const load = async () => {
-    ({ access_tokens: accessTokens } = await api.readGlobalConfig());
+  let githubAuthFlow = $state<
+    | { step: "starting" }
+    | ({ step: "started" } & GithubCodesResponse)
+    | ({ step: "completed" } & GithubAuthFlowStatusReport)
+  >();
+
+  const loadAccessTokens = async () => {
+    const { access_tokens } = await api.readGlobalConfig();
+    accessTokens.reset(access_tokens);
   };
 
-  const updateAccessToken = async (name: keyof typeof accessTokens) => {
-    await api.updateAccessTokens({ [name]: accessTokens[name] || null });
+  const updateAccessTokens = async (...names: (keyof GlobalConfig["access_tokens"])[]) => {
+    const { access_tokens } = await api.updateGlobalConfig({
+      access_tokens: Object.fromEntries(names.map((n) => [n, accessTokens.current[n] || null])),
+    });
+    accessTokens.reset(access_tokens);
   };
 
-  const queryGithubAuthFlowStatus = async () => {
+  const startGithubAuthFlow = async () => {
+    githubAuthFlow = { step: "starting" };
+
+    const codes = await api.initiateGithubAuthFlow();
+    githubAuthFlow = { step: "started", ...codes };
+
     const { status } = await api.queryGithubAuthFlowStatus();
-    githubAuthFlowShouldStart = false;
-    return status;
+    if (status === "success") {
+      const { access_tokens } = await api.readGlobalConfig();
+      accessTokens.reset(access_tokens);
+    }
+    githubAuthFlow = { step: "completed", status };
   };
-
-  onDestroy(() => {
-    api.cancelGithubAuthFlow();
-  });
 </script>
 
 <div class="title-bar">config</div>
 <form class="content" onsubmit={(e) => e.preventDefault()}>
-  {#await load()}
+  {#await loadAccessTokens()}
     <div class="row">Loading...</div>
   {:then}
     <div class="section-header">access tokens</div>
     <div class="row form-grid">
       <div class="label-like">GitHub:</div>
-      <div class="value-rows">
+      <div>
         <button
           class="form-control"
-          disabled={githubAuthFlowShouldStart}
-          onclick={() => (githubAuthFlowShouldStart = true)}
+          disabled={githubAuthFlow && githubAuthFlow.step !== "completed"}
+          onclick={() => startGithubAuthFlow()}
         >
-          {accessTokens.github === null ? "generate" : "regenerate"}
+          {accessTokens.initial.github === null ? "generate" : "regenerate"}
         </button>
-        <div class="description">
-          {#if githubAuthFlowShouldStart}
-            {#await api.initiateGithubAuthFlow()}
-              Initiating authorisation flow...
-            {:then { verification_uri, user_code }}
-              {#await queryGithubAuthFlowStatus()}
-                Navigate to
-                <button
-                  role="link"
-                  onclick={(e) => {
-                    e.preventDefault();
-                    api.openUrl(verification_uri);
-                  }}
-                >
-                  {verification_uri}
-                </button>
-                and insert the following code to authenticate with instawow: "<code
-                  >{user_code}</code
-                >".
-              {:then status}
-                {#if status === "success"}
-                  Authenticated.
-                {:else if status === "failure"}
-                  Authentication failed.
-                {/if}
-              {/await}
-            {/await}
+        <p class="description">
+          {#if githubAuthFlow?.step === "starting"}
+            Initiating authorisation flow...
+          {:else if githubAuthFlow?.step === "started"}
+            {@const { verification_uri, user_code } = githubAuthFlow}
+            Navigate to
+            <button
+              role="link"
+              onclick={(e) => {
+                e.preventDefault();
+                api.openUrl(verification_uri);
+              }}
+            >
+              {verification_uri}
+            </button>
+            and insert the following code to authenticate with instawow: "<code>{user_code}</code
+            >".
+          {:else if githubAuthFlow?.step === "completed"}
+            {#if githubAuthFlow.status === "success"}
+              Authenticated.
+            {:else if githubAuthFlow.status === "failure"}
+              Authentication failed.
+            {/if}
           {:else}
-            Generating an access token for GitHub is recommended to avoid being rate limited. You
-            may only perform 60 requests an hour without an access token.
+            Generate an access token for GitHub to avoid being rate limited. You are only allowed
+            to perform 60 requests an hour without one.
           {/if}
-        </div>
+        </p>
       </div>
 
       <label for="__cfcore-input-box">CurseForge:</label>
-      <div class="value-rows">
-        <input
-          id="__cfcore-input-box"
-          class="form-control"
-          type="password"
-          bind:value={accessTokens.cfcore}
-        />
-        <button class="form-control primary" onclick={() => updateAccessToken("cfcore")}
-          >update</button
-        >
-        <div class="description">
+      <div>
+        <div class="input-array">
+          <input
+            id="__cfcore-input-box"
+            class="form-control"
+            type="password"
+            bind:value={accessTokens.current.cfcore}
+          />
+          <button
+            class="form-control primary"
+            disabled={accessTokens.initial.cfcore === accessTokens.current.cfcore}
+            onclick={() => updateAccessTokens("cfcore")}>update</button
+          >
+        </div>
+        <p class="description">
           An API key is required to use CurseForge. Log in to
           <button
             role="link"
@@ -103,25 +117,27 @@
           >
             CurseForge for Studios
           </button> to generate a key.
-        </div>
+        </p>
       </div>
 
-      <label for="__wago-input-box">Wago:</label>
-      <div class="value-rows">
-        <input
-          id="__wago-input-box"
-          class="form-control"
-          type="password"
-          bind:value={accessTokens.wago_addons}
-        />
+      <label for="__wago-input-box">Wago Addons:</label>
+      <div>
+        <div class="input-array">
+          <input
+            id="__wago-input-box"
+            class="form-control"
+            type="password"
+            bind:value={accessTokens.current.wago_addons}
+          />
 
-        <button class="form-control primary" onclick={() => updateAccessToken("wago_addons")}
-          >update</button
-        >
-
-        <div class="description">
+          <button
+            class="form-control primary"
+            disabled={accessTokens.initial.wago_addons === accessTokens.current.wago_addons}
+            onclick={() => updateAccessTokens("wago_addons")}>update</button
+          >
+        </div>
+        <p class="description">
           An access token is required to use Wago Addons. Wago issues tokens to
-
           <button
             role="link"
             onclick={(e) => {
@@ -132,7 +148,7 @@
           >
             Patreon
           </button> subscribers above a certain tier.
-        </div>
+        </p>
       </div>
     </div>
   {/await}
@@ -167,13 +183,8 @@
     text-align: center;
   }
 
-  .value-rows {
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-  }
-
   .description {
+    margin: 0.25rem;
     font-size: 0.875em;
     color: var(--inverse-color-tone-b);
   }

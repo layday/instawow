@@ -1125,9 +1125,8 @@ def configure(editable_config_values: Mapping[_EditableConfigOptions, Any]):
         if _EditableConfigOptions.GithubAccessToken in interactive_editable_config_keys:
             click.echo(
                 textwrap.fill(
-                    'Generating an access token for GitHub is recommended '
-                    'to avoid being rate limited.  You may only perform 60 '
-                    'requests an hour without an access token.'
+                    'Generate an access token for GitHub to avoid being rate limited.'
+                    ' You are only allowed to perform 60 requests an hour without one.'
                 )
             )
             if confirm('Set up GitHub authentication?').prompt():

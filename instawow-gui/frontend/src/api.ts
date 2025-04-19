@@ -205,10 +205,14 @@ export class Api {
     return await this.request({ method: "config/delete_profile", params: { profile } });
   }
 
-  async updateAccessTokens(accessTokens: Record<string, string | null>): Promise<void> {
+  async updateGlobalConfig({
+    access_tokens,
+  }: {
+    access_tokens: Partial<GlobalConfig["access_tokens"]>;
+  }): Promise<GlobalConfig> {
     return await this.request({
       method: "config/update_global",
-      params: { access_tokens: accessTokens },
+      params: { access_tokens },
     });
   }
 
@@ -222,10 +226,6 @@ export class Api {
 
   async queryGithubAuthFlowStatus(): Promise<GithubAuthFlowStatusReport> {
     return await this.request({ method: "config/query_github_auth_flow_status" });
-  }
-
-  async cancelGithubAuthFlow(): Promise<void> {
-    return await this.request({ method: "config/cancel_github_auth_flow" });
   }
 
   async listSources(): Promise<Sources> {

@@ -239,9 +239,8 @@ def test_configure__create_new_profile(
 
     iw_pt_input.send_text(f'{iw_profile_config.addon_dir}\r\rY\r')
     assert run(f'-p foo {command}').output == (
-        'Generating an access token for GitHub is recommended to avoid being\n'
-        'rate limited.  You may only perform 60 requests an hour without an\n'
-        'access token.\n'
+        'Generate an access token for GitHub to avoid being rate limited. You\n'
+        'are only allowed to perform 60 requests an hour without one.\n'
         'Navigate to https://github.com/login/device and paste the code below:\n'
         '  WDJB-MJHT\n'
         'Waiting...\n'

@@ -211,11 +211,6 @@ async def query_github_auth_flow_status() -> TypedDict[{'status': Literal['succe
     return {'status': await _global_ctx_var.get().github_auth_manager.await_auth_completion()}
 
 
-@_register_method('config/cancel_github_auth_flow')
-async def cancel_github_auth_flow() -> None:
-    await _global_ctx_var.get().github_auth_manager.cancel_auth_completion()
-
-
 @_register_method('sources/list')
 async def list_sources(profile: str) -> dict[str, SourceMetadata]:
     async with _load_profile(profile) as config_party:
@@ -513,7 +508,8 @@ class _GitHubAuthManager(AbstractAsyncContextManager['_GitHubAuthManager']):
         self._finalise_task = None
 
     async def __aexit__(self, *args: object):
-        await self.cancel_auth_completion()
+        if self._finalise_task:
+            await cancel_tasks([self._finalise_task])
 
     async def initiate_auth_flow(self):
         async with sync_ctx.locks()[_LockOperation.InitiateGitHubAuthFlow]:
@@ -527,14 +523,11 @@ class _GitHubAuthManager(AbstractAsyncContextManager['_GitHubAuthManager']):
                         device_codes['interval'],
                     )
                     await _update_global_config(
-                        lambda g: evolve(
-                            g,
-                            {'access_tokens': {'github': SecretStr(result)}},
-                        )
+                        lambda g: evolve(g, {'access_tokens': {'github': SecretStr(result)}})
                     )
 
                 self._finalise_task = finalise_task = asyncio.create_task(
-                    finalise_github_auth_flow()
+                    asyncio.wait_for(finalise_github_auth_flow(), timeout=5 * 60),
                 )
 
                 @finalise_task.add_done_callback
@@ -551,10 +544,6 @@ class _GitHubAuthManager(AbstractAsyncContextManager['_GitHubAuthManager']):
             except BaseException:
                 return 'failure'
         return 'success'
-
-    async def cancel_auth_completion(self):
-        if self._finalise_task:
-            await cancel_tasks([self._finalise_task])
 
 
 @run_in_thread
