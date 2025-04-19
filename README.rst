@@ -84,7 +84,7 @@ Any add-on which is reconciled is reinstalled because the installed version cann
 reliably extracted from installed add-on metadata.
 
 Add-on re-reconciliation
-~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~
 
 *instawow* is able to suggest alternative sources for any add-on
 you have installed via ``instawow rereconcile``.  ``rereconcile``
