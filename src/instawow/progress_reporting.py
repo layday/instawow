@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import asyncio
 import contextvars
 from collections.abc import AsyncGenerator, Awaitable, Callable, Iterator, Mapping
 from contextlib import contextmanager
@@ -64,6 +63,8 @@ class make_progress_receiver(Generic[_ProgressT]):
             Callable[[], AsyncGenerator[ReadOnlyProgressGroup[_ProgressT]]],
         ]
     ]:
+        import asyncio
+
         asyncio.get_running_loop()  # Raise if constructed outside async context.
 
         emit_event = asyncio.Event()
@@ -110,6 +111,8 @@ def make_incrementing_progress_tracker[T](
     total: int, label: str
 ) -> Callable[[Awaitable[T]], Awaitable[T]]:
     "Track the progress a finite-length collection of awaitables."
+    import asyncio
+
     if total < 1:
 
         def track_ident(awaitable: Awaitable[T]):
