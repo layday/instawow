@@ -1,8 +1,7 @@
 from __future__ import annotations
 
 import asyncio
-
-from typing_extensions import TypedDict
+from typing import TypedDict
 
 from . import http
 
