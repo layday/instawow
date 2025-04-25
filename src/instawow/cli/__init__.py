@@ -895,8 +895,10 @@ def view_changelog(addons: Sequence[definitions.Defn], convert: bool, remote: bo
         else:
             import subprocess
 
+            resolvers = config_ctx.resolvers()
+
             def real_convert(source: str, changelog: str):
-                match config_ctx.resolvers()[source].metadata.changelog_format:
+                match resolvers[source].metadata.changelog_format:
                     case ChangelogFormat.Html:
                         pandoc_input_format = 'html'
                     case ChangelogFormat.Markdown:
