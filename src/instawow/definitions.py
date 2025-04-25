@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Collection, Hashable, Iterable, Iterator, Mapping
+from collections.abc import Collection, Hashable, Mapping
 from enum import StrEnum
 from functools import partial
 from typing import Literal, Self, overload
@@ -33,7 +33,8 @@ class SourceMetadata:
 
 class Strategies(Mapping[Strategy, object], Hashable):
     def __init__(
-        self, entries: Mapping[Strategy, object] | Iterable[tuple[Strategy, object]] = ()
+        self,
+        entries: Mapping[Strategy, object] = {},
     ) -> None:
         self._entries = dict.fromkeys(Strategy) | dict(entries)
 
@@ -45,16 +46,16 @@ class Strategies(Mapping[Strategy, object], Hashable):
     def __getitem__(self, key: Literal[Strategy.VersionEq], /) -> str | None: ...
     @overload
     def __getitem__(self, key: Strategy, /) -> object: ...
-    def __getitem__(self, key: Strategy, /) -> object:
+    def __getitem__(self, key: Strategy, /):
         return self._entries[key]
 
-    def __hash__(self) -> int:
+    def __hash__(self):
         return hash(frozenset(self._entries.items()))
 
-    def __iter__(self) -> Iterator[Strategy]:
+    def __iter__(self):
         return iter(self._entries)
 
-    def __len__(self) -> int:
+    def __len__(self):
         return len(self._entries)
 
     @property
