@@ -284,8 +284,8 @@ class GithubResolver(BaseResolver):
                     addon_zip_stream.seek(main_toc_file_offset)
                     addon_zip_stream.write(await toc_file_range_response.read())
 
-            toc_file_text = dynamic_addon_zip.read(main_toc_filename).decode('utf-8-sig')
-            toc_reader = TocReader(toc_file_text)
+            toc_content = dynamic_addon_zip.read(main_toc_filename)
+            toc_reader = TocReader.from_bytes(toc_content)
 
             logger.debug(
                 f'Found interface versions {toc_reader.interfaces!r} in {main_toc_filename}'

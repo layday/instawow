@@ -28,8 +28,12 @@ class TocReader(Mapping[str, str]):
         return len(self._entries)
 
     @classmethod
+    def from_bytes(cls, content: bytes) -> Self:
+        return cls(content.decode(encoding='utf-8-sig', errors='replace'))
+
+    @classmethod
     def from_path(cls, path: Path) -> Self:
-        return cls(path.read_text(encoding='utf-8-sig', errors='replace'))
+        return cls.from_bytes(path.read_bytes())
 
     @cached_property
     def interfaces(self) -> list[int]:
