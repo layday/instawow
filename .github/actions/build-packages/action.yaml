@@ -1,29 +1,31 @@
 ---
+name: Package builder
+description: Build instawow packages.
 inputs:
   python-version:
     required: false
-    default: "3.12"
+    default: "3.13"
+    description: The Python version to use.
 outputs:
   version:
     value: ${{ steps.get-version.outputs.version }}
+    description: instawow version.
 runs:
   using: composite
   steps:
-    - name: Install uv
-      uses: astral-sh/setup-uv@v3
-    - name: Install Python ${{ inputs.python-version }}
-      run: uv python install ${{ inputs.python-version }}
-      shell: bash
+    - name: Install uv for Python ${{ inputs.python-version }}
+      uses: astral-sh/setup-uv@v6
+      with:
+        python-version: ${{ inputs.python-version }}
     - name: Install nox
       run: uv tool install -p ${{ inputs.python-version }} nox
       shell: bash
       env:
-        UV_PYTHON_DOWNLOADS: manual
-        UV_PYTHON_PREFERENCE: only-managed
+        UV_MANAGED_PYTHON: "1"
     - name: Install Node
       uses: actions/setup-node@v4
       with:
-        node-version: "20"
+        node-version: "22"
     - name: Build packages
       run: >-
         nox

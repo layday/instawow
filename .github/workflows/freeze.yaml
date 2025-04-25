@@ -1,13 +1,12 @@
 ---
 name: Create instawow executables
-on: [push, workflow_dispatch]
+on: [workflow_dispatch]
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 env:
   FORCE_COLOR: "1"
-  UV_PYTHON_DOWNLOADS: manual
-  UV_PYTHON_PREFERENCE: only-managed
+  UV_MANAGED_PYTHON: "1"
 defaults:
   run:
     shell: bash
@@ -24,6 +23,7 @@ jobs:
       - name: Build packages
         id: build-packages
         uses: ./.github/actions/build-packages
+
   freeze-cli:
     needs: build-packages
     strategy:
@@ -53,12 +53,12 @@ jobs:
         with:
           name: packages
           path: ./dist
-      - name: Install uv
-        uses: astral-sh/setup-uv@v3
-      - name: Install Python 3.12
-        run: uv python install 3.12
+      - name: Install uv for Python 3.13
+        uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.13"
       - name: Install nox
-        run: uv tool install -p 3.12 nox
+        run: uv tool install -p 3.13 nox
       - name: Install Rust
         run: rustup update stable
       - name: Add build target
@@ -73,6 +73,7 @@ jobs:
         with:
           name: instawow-cli-${{ needs.build-packages.outputs.version }}-${{ matrix.build-env.target }}
           path: ./cli/instawow*
+
   freeze-gui:
     needs: build-packages
     strategy:
@@ -101,18 +102,18 @@ jobs:
       - name: Install briefcase Linux dependencies
         run: sudo apt-get update --fix-missing && sudo apt-get install -y flatpak-builder
         if: startsWith(matrix.build-env.os, 'ubuntu-')
-      - name: Install uv
-        uses: astral-sh/setup-uv@v3
-      - name: Install Python 3.12
-        run: uv python install 3.12
+      - name: Install uv for Python 3.13
+        uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.13"
       - name: Install nox
-        run: uv tool install -p 3.12 nox
+        run: uv tool install -p 3.13 nox
       - name: Freeze the GUI
         run: >-
           nox
           --error-on-missing-interpreters
-          --force-python 3.12
-          -s freeze_gui-3.12
+          --force-python 3.13
+          -s freeze_gui-3.13
           --
           ${{ startsWith(github.ref, 'refs/tags/') && '--release' || '' }}
       - name: Upload artifact
@@ -122,6 +123,7 @@ jobs:
           path: |
             instawow-gui/dist/instawow-gui-*
           if-no-files-found: error
+
   create-release:
     if: startsWith(github.ref, 'refs/tags/')
     needs: [freeze-cli, freeze-gui]

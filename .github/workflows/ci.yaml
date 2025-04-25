@@ -6,8 +6,7 @@ concurrency:
   cancel-in-progress: true
 env:
   FORCE_COLOR: "1"
-  UV_PYTHON_DOWNLOADS: manual
-  UV_PYTHON_PREFERENCE: only-managed
+  UV_MANAGED_PYTHON: "1"
 defaults:
   run:
     shell: bash
@@ -21,6 +20,7 @@ jobs:
           fetch-depth: 0
       - name: Build packages
         uses: ./.github/actions/build-packages
+
   test:
     needs: build-packages
     strategy:
@@ -43,10 +43,10 @@ jobs:
         with:
           name: packages
           path: ./dist
-      - name: Install uv
-        uses: astral-sh/setup-uv@v3
-      - name: Install Python ${{ matrix.python }}
-        run: uv python install ${{ matrix.python }}
+      - name: Install uv for Python ${{ matrix.python }}
+        uses: astral-sh/setup-uv@v6
+        with:
+          python-version: ${{ matrix.python }}
       - name: Install nox
         run: uv tool install -p ${{ matrix.python }} nox
       - name: Run tests (latest)
@@ -68,6 +68,7 @@ jobs:
           --error-on-missing-interpreters
           --force-python ${{ matrix.python }}
           -s 'test-${{ matrix.python }}(minimum-versions)'
+
   type-check:
     needs: build-packages
     strategy:
@@ -89,37 +90,38 @@ jobs:
         with:
           name: packages
           path: ./dist
-      - name: Install uv
-        uses: astral-sh/setup-uv@v3
-      - name: Install Python ${{ matrix.python }}
-        run: uv python install ${{ matrix.python }}
+      - name: Install uv for Python ${{ matrix.python }}
+        uses: astral-sh/setup-uv@v6
+        with:
+          python-version: ${{ matrix.python }}
       - name: Install nox
         run: uv tool install -p ${{ matrix.python }} nox
       - name: Install Node for Pyright
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
       - name: Type check
         run: >-
           nox
           --error-on-missing-interpreters
           --force-python ${{ matrix.python }}
           -s type_check
+
   lint:
     runs-on: ubuntu-latest
     steps:
       - name: Clone the repo
         uses: actions/checkout@v4
-      - name: Install uv
-        uses: astral-sh/setup-uv@v3
-      - name: Install Python 3.12
-        run: uv python install 3.12
+      - name: Install uv for Python 3.13
+        uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.13"
       - name: Install nox
-        run: uv tool install -p 3.12 nox
+        run: uv tool install -p 3.13 nox
       - name: Install Node for Prettier
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
       - name: Lint
         run: nox -s lint
 
@@ -135,12 +137,12 @@ jobs:
         with:
           pattern: coverage-data-*
           merge-multiple: true
-      - name: Install uv
-        uses: astral-sh/setup-uv@v3
-      - name: Install Python 3.12
-        run: uv python install 3.12
+      - name: Install uv for Python 3.13
+        uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.13"
       - name: Install nox
-        run: uv tool install -p 3.12 nox
+        run: uv tool install -p 3.13 nox
       - name: Produce coverage report
         run: |
           nox -s report_coverage
