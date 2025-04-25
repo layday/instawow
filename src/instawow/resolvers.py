@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import datetime as dt
 import enum
-from collections.abc import AsyncIterator, Callable, Collection, Iterable, Mapping, Sequence
+from collections.abc import AsyncIterator, Collection, Iterable, Mapping, Sequence
 from functools import cached_property, partial, wraps
 from pathlib import Path
 from typing import Literal, Never, NotRequired, Protocol, Self, TypedDict, overload
@@ -11,6 +11,7 @@ from typing_extensions import TypeVar
 from yarl import URL
 
 from . import pkg_archives, wow_installations
+from ._utils.attrs import fauxfrozen
 from .definitions import Defn, SourceMetadata
 from .results import (
     AnyResult,
@@ -23,28 +24,32 @@ from .results import (
 _ResolveMetadataT = TypeVar('_ResolveMetadataT', contravariant=True, default=Never)
 
 
+class _AccessTokenGetter[R](Protocol):
+    def __call__(self) -> tuple[str | None, R]: ...
+
+
 class AccessTokenMissingError(ValueError):
     def __str__(self) -> str:
         return 'access token missing'
 
 
+@fauxfrozen
 class AccessToken[RequiredT: (Literal[True], bool)]:
-    def __init__(self, getter: Callable[[], tuple[str | None, RequiredT]]):
-        self._getter = getter
+    getter: _AccessTokenGetter[RequiredT]
 
     @overload
     def get(self: AccessToken[Literal[True]]) -> str: ...
     @overload
     def get(self: AccessToken[bool]) -> str | None: ...
     def get(self) -> str | None:
-        access_token, required = self._getter()
+        access_token, required = self.getter()
         if required and access_token is None:
             raise AccessTokenMissingError
         return access_token
 
     @property
     def missing_reason(self) -> str | None:
-        access_token, required = self._getter()
+        access_token, required = self.getter()
         if required and access_token is None:
             return str(AccessTokenMissingError())
 

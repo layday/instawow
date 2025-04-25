@@ -83,9 +83,9 @@ class Choice[T]:
     browser_url: str | None = None
 
 
+@fauxfrozen
 class _FauxPromptSession[T]:
-    def __init__(self, application: Application[T]) -> None:
-        self.application = application
+    application: Application[T]
 
     def prompt(self) -> T:
         return self.application.run()
