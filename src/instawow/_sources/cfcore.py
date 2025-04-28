@@ -282,7 +282,8 @@ class CfCoreResolver(BaseResolver[_CfCoreMod]):
                 return {'x-api-key': maybe_access_token}
 
     async def resolve(self, defns: Sequence[Defn]):
-        numeric_ids = uniq(i for d in defns if (i := d.id or d.alias).isdigit())
+        defn_ids = {d: d.id or d.alias for d in defns}
+        numeric_ids = uniq(i for i in defn_ids.values() if i.isdigit())
         if not numeric_ids:
             return await super().resolve(defns)  # Fast path.
 
@@ -298,7 +299,7 @@ class CfCoreResolver(BaseResolver[_CfCoreMod]):
         addons_by_id = {str(r['id']): r for r in response_json['data']}
 
         resolve_one = resultify(self.resolve_one)
-        results = await gather(resolve_one(d, addons_by_id.get(d.id or d.alias)) for d in defns)
+        results = await gather(resolve_one(d, addons_by_id.get(i)) for d, i in defn_ids.items())
         return dict(zip(defns, results))
 
     async def resolve_one(self, defn: Defn, metadata: _CfCoreMod | None):
