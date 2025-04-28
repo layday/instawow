@@ -13,7 +13,7 @@ from ._utils.dist_metadata import iter_entry_point_plugins
 _hookspec = pluggy.HookspecMarker(NAME)
 _hookimpl = pluggy.HookimplMarker(NAME)
 
-# Keep "hookimpl" for back-ompat.
+# Keep "hookimpl" for back-compat.
 hook = hookimpl = _hookimpl
 
 
