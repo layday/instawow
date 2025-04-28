@@ -3,18 +3,16 @@ from __future__ import annotations
 import inspect
 from collections.abc import Awaitable, Callable, Collection, Set
 from functools import wraps
-from typing import Any, Literal, LiteralString, Protocol, TypedDict, overload
+from typing import Literal, LiteralString, Protocol, TypedDict, overload
 
-from typing_extensions import TypeIs, TypeVar
+from typing_extensions import TypeIs
 
 from .definitions import Strategies, Strategy
 from .pkg_db import models as pkg_models
 
-_StatusT = TypeVar('_StatusT', bound=LiteralString, default=Any)
 
-
-class Result(Protocol[_StatusT]):  # pragma: no cover
-    status: _StatusT
+class Result[StatusT: LiteralString](Protocol):  # pragma: no cover
+    status: StatusT
 
     def __str__(self) -> str: ...
 

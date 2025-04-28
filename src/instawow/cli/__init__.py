@@ -22,7 +22,7 @@ _WARNING_SYMBOL = click.style('!', fg='blue')
 
 
 def report_results(
-    results: Iterable[tuple[definitions.Defn, _results.Result]],
+    results: Iterable[tuple[definitions.Defn, _results.Result[Any]]],
     *,
     exit: bool = False,
 ) -> None:
@@ -36,7 +36,7 @@ def report_results(
         if outdated:
             click.echo(f'{_WARNING_SYMBOL} instawow v{new_version} is available')
 
-    def result_to_symbol(result: _results.Result):
+    def result_to_symbol(result: _results.Result[Any]):
         match result:
             case _results.InternalError():
                 return _WARNING_SYMBOL
