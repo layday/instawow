@@ -157,30 +157,20 @@ class WowiResolver(BaseResolver[_WowiDetailsApiItem]):
 
         for item in items:
             match item:
-                case {'UICATID': '160'}:
-                    game_flavours = (Flavour.VanillaClassic,)
-                case {'UICATID': '161'}:
-                    # TBC Classic
-                    continue
-                case {'UICATID': '162'}:
-                    game_flavours = (Flavour.Classic,)
-                case _:
-                    compatibility = item['UICompatibility']
-                    if compatibility is None or len(compatibility) < 2:
-                        game_flavours = (Flavour.Retail,)
-                    else:
-                        game_flavours = (
+                case {'UICompatibility': list(compatibility)}:
+                    yield CatalogueEntryCandidate(
+                        id=item['UID'],
+                        name=item['UIName'],
+                        url=item['UIFileInfoURL'],
+                        game_flavours=frozenset(
                             Flavour.from_flavour_keyed_enum(r)
                             for c in compatibility
                             if (r := FlavourVersionRange.from_version(c['version']))
-                        )
+                        ),
+                        download_count=int(item['UIDownloadTotal']),
+                        last_updated=_timestamp_to_datetime(item['UIDate']),
+                        folders=[frozenset(item['UIDir'])],
+                    )
 
-            yield CatalogueEntryCandidate(
-                id=item['UID'],
-                name=item['UIName'],
-                url=item['UIFileInfoURL'],
-                game_flavours=frozenset(game_flavours),
-                download_count=int(item['UIDownloadTotal']),
-                last_updated=_timestamp_to_datetime(item['UIDate']),
-                folders=[frozenset(item['UIDir'])],
-            )
+                case _:
+                    continue
