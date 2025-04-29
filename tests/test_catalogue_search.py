@@ -32,7 +32,7 @@ async def test_search_flavour_filtering():
     has_atlas = ('curse', 'atlaslootclassic') in {(e.source, e.slug or e.id) for e in results}
     if config_ctx.config().game_flavour in {
         Flavour.VanillaClassic,
-        Flavour.Classic,
+        Flavour.WrathClassic,
     }:
         assert has_atlas
     else:

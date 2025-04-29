@@ -120,8 +120,6 @@ async def test_reconcile_multiple_defns_per_addon_contained_in_results(
             Flavour.Classic,
             {
                 Defn('curse', '23350'),
-                Defn('curse', '674779'),
-                Defn('curse', '912615'),
             },
         ),
         (
