@@ -928,12 +928,16 @@ def view_changelog(addons: Sequence[definitions.Defn], convert: bool, remote: bo
         return f'{definitions.Defn(source, slug).as_uri()}:\n{body}'
 
     if remote:
-        pkg_candidates, _ = pkg_management.split_results(
+        pkg_candidates, resolve_errors = pkg_management.split_results(
             run_with_progress(pkg_management.resolve(addons)).items()
         )
         partial_pkgs: list[dict[str, Any]] = [
             {'source': d.source} | c for d, c in pkg_candidates.items()
         ]
+
+        report_results(
+            resolve_errors.items(),
+        )
 
     else:
         with config_ctx.database() as connection:
