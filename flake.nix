@@ -29,6 +29,7 @@
 
           SOURCE_DATE_EPOCH = "315532800"; # The year 1980
           PYTHONBREAKPOINT = "IPython.terminal.debugger.set_trace";
+          UV_NO_MANAGED_PYTHON = "1";
 
           shellHook = ''
             set -ex
