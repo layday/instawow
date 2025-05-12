@@ -14,7 +14,7 @@ import click
 from .. import config as _config
 from .. import config_ctx, definitions, pkg_management
 from .. import results as _results
-from ._helpers import ManyOptionalChoiceValueParam, SectionedHelpGroup, StrEnumChoiceParam
+from ._helpers import EnumValueChoiceParam, ManyOptionalChoiceValueParam, SectionedHelpGroup
 
 _SUCCESS_SYMBOL = click.style('✓', fg='green')
 _FAILURE_SYMBOL = click.style('✗', fg='red')
@@ -732,7 +732,7 @@ def search(
     '--format',
     '-f',
     'output_format',
-    type=StrEnumChoiceParam(_ListFormat),
+    type=EnumValueChoiceParam(_ListFormat),
     default=_ListFormat.Simple,
     show_default=True,
     help='Change the output format.',
@@ -998,9 +998,9 @@ class _EditableConfigOptions(enum.StrEnum):
     'editable-config-values',
     nargs=-1,
     type=ManyOptionalChoiceValueParam(
-        StrEnumChoiceParam(_EditableConfigOptions),
+        EnumValueChoiceParam(_EditableConfigOptions),
         value_types={
-            _EditableConfigOptions.AutoUpdateCheck: click.BOOL,
+            _EditableConfigOptions.AutoUpdateCheck: bool,
         },
     ),
 )

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from enum import StrEnum
+from enum import Enum
 
 import click
 import click.types
@@ -9,43 +9,30 @@ import click.types
 from .._utils.iteration import bucketise
 
 
-class StrEnumChoiceParam[StrEnumT: StrEnum](click.Choice):
+class EnumValueChoiceParam[EnumT: Enum](click.Choice[EnumT]):
     def __init__(
         self,
-        choice_enum: type[StrEnumT],
-        case_sensitive: bool = True,
+        choice_enum: type[EnumT],
     ):
-        super().__init__(
-            choices=list(choice_enum),
-            case_sensitive=case_sensitive,
-        )
+        super().__init__(choices=list(choice_enum))
         self.__choice_enum = choice_enum
 
-    def convert(self, value: object, param: click.Parameter | None, ctx: click.Context | None):
-        converted_value = super().convert(value, param, ctx)
-        return self.__choice_enum(converted_value)
+    def normalize_choice(self, choice: EnumT, ctx: click.Context | None) -> str:
+        return super().normalize_choice(self.__choice_enum(choice), ctx)
 
 
-class ManyOptionalChoiceValueParam(click.types.CompositeParamType):
+class ManyOptionalChoiceValueParam[ParamT](click.types.CompositeParamType):
     name = 'optional-choice-value'
 
     def __init__(
         self,
-        choice_param: click.Choice,
+        choice_param: click.Choice[ParamT],
         *,
-        value_types: Mapping[str, click.types.ParamType] = {},
+        value_types: Mapping[str, type] = {},
     ):
         super().__init__()
         self.__choice_param = choice_param
-        self.__value_types = value_types
-
-    def __parse_value(self, value: tuple[str, ...]):
-        return (
-            (k, v if s else None, self.__choice_param, vc)
-            for r in value
-            for k, s, v in (r.partition('='),)
-            for vc in (self.__value_types.get(k),)
-        )
+        self.__value_types = {k: click.types.convert_type(v) for k, v in value_types.items()}
 
     @property
     def arity(self):
@@ -54,13 +41,22 @@ class ManyOptionalChoiceValueParam(click.types.CompositeParamType):
     def convert(
         self, value: tuple[str, ...], param: click.Parameter | None, ctx: click.Context | None
     ):
-        return {
-            kc.convert(k, param, ctx): vc.convert(v, param, ctx) if vc and v else v
-            for k, v, kc, vc in self.__parse_value(value)
-        }
+        def do_convert(raw_entries: tuple[str, ...]):
+            converter = self.__choice_param
+            value_types = self.__value_types
+            for raw_entry in raw_entries:
+                key, sep, value = raw_entry.partition('=')
+                value_type = value_types.get(key)
+                value = value if sep else None
+                yield (
+                    converter.convert(key, param, ctx),
+                    value_type.convert(value, param, ctx) if value_type and value else value,
+                )
 
-    def get_metavar(self, param: click.Parameter):
-        return f'{{{",".join(self.__choice_param.choices)}}}[=VALUE]'
+        return dict(do_convert(value))
+
+    def get_metavar(self, param: click.Parameter, ctx: click.Context):
+        return f'{{{",".join(map(str, self.__choice_param.choices))}}}[=VALUE]'
 
 
 class SectionedHelpGroup(click.Group):
