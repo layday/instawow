@@ -390,7 +390,7 @@ class CfCoreResolver(BaseResolver[_CfCoreMod]):
 
                 if desired_flavours:
                     type_ids = {
-                        f.to_flavour_keyed_enum(_CfCoreSortableGameVersionTypeId)
+                        f.to_flavourful_enum(_CfCoreSortableGameVersionTypeId)
                         for f in desired_flavours
                     }
                     yield lambda f: any(
@@ -454,7 +454,7 @@ class CfCoreResolver(BaseResolver[_CfCoreMod]):
         from aiohttp import ClientTimeout
 
         flavours_and_version_types = [
-            (f, f.to_flavour_keyed_enum(_CfCoreSortableGameVersionTypeId)) for f in Flavour
+            (f, f.to_flavourful_enum(_CfCoreSortableGameVersionTypeId)) for f in Flavour
         ]
 
         def excise_flavours(files: list[_CfCoreFile]):

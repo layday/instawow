@@ -58,7 +58,7 @@ class TukuiResolver(BaseResolver):
 
             ui_metadata: _TukuiAddon = await response.json()
 
-        wanted_version_range = config_ctx.config().game_flavour.to_flavour_keyed_enum(
+        wanted_version_range = config_ctx.config().game_flavour.to_flavourful_enum(
             FlavourVersionRange
         )
         if not any(wanted_version_range.contains(p) for p in ui_metadata['patch']):
@@ -93,7 +93,7 @@ class TukuiResolver(BaseResolver):
                 name=item['name'],
                 url=item['web_url'],
                 game_flavours=frozenset(
-                    Flavour.from_flavour_keyed_enum(r)
+                    Flavour.from_flavourful_enum(r)
                     for g in item['patch']
                     if (r := FlavourVersionRange.from_version(g))
                 ),

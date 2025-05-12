@@ -24,8 +24,8 @@ def test_can_convert_between_flavour_keyed_enum_and_flavour():
         Classic = 3
         WrathClassic = 4
 
-    assert Flavour.from_flavour_keyed_enum(Foo.Retail) is Flavour.Retail
-    assert Flavour.Retail.to_flavour_keyed_enum(Foo) is Foo.Retail
+    assert Flavour.from_flavourful_enum(Foo.Retail) is Flavour.Retail
+    assert Flavour.Retail.to_flavourful_enum(Foo) is Foo.Retail
 
 
 @pytest.mark.parametrize('flavour', list(Flavour))

@@ -172,7 +172,7 @@ async def test_any_flavour_strategy(
 ):
     opposite_flavour = next(f for f in Flavour if f is not config_ctx.config().game_flavour)
     opposite_interface = next(
-        n for r in opposite_flavour.to_flavour_keyed_enum(FlavourVersionRange).value for n in r
+        n for r in opposite_flavour.to_flavourful_enum(FlavourVersionRange).value for n in r
     )
 
     iw_add_routes(
@@ -258,7 +258,7 @@ async def test_mismatched_release_is_skipped_and_logged(
         'instawow._sources.github',
         logging.INFO,
         f'Flavor and interface mismatch: {interface} not found in '
-        f'{[config_ctx.config().game_flavour.to_flavour_keyed_enum(FlavourVersionRange).value]}',
+        f'{[config_ctx.config().game_flavour.to_flavourful_enum(FlavourVersionRange).value]}',
     ) in caplog.record_tuples
 
 

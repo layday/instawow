@@ -1117,7 +1117,7 @@ def configure(editable_config_values: Mapping[_EditableConfigOptions, Any]):
         ):
             editable_config_values[_EditableConfigOptions.GameFlavour] = select_one(
                 'Game flavour',
-                [Choice(f, f) for f in Flavour if not f.is_retired],
+                [Choice(f, f) for f in Flavour.iter_supported()],
                 initial_value=config_values.get('addon_dir')
                 and infer_flavour_from_addon_dir(config_values['addon_dir']),
             ).prompt()

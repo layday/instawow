@@ -163,7 +163,7 @@ class WowiResolver(BaseResolver[_WowiDetailsApiItem]):
                         name=item['UIName'],
                         url=item['UIFileInfoURL'],
                         game_flavours=frozenset(
-                            Flavour.from_flavour_keyed_enum(r)
+                            Flavour.from_flavourful_enum(r)
                             for c in compatibility
                             if (r := FlavourVersionRange.from_version(c['version']))
                         ),

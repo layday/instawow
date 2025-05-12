@@ -87,9 +87,7 @@ class WagoAddonsResolver(BaseResolver):
     async def resolve_one(self, defn: Defn, metadata: None):
         async with http_ctx.web_client().get(
             (self.__wago_external_api_url / 'addons' / defn.alias).with_query(
-                game_version=config_ctx.config().game_flavour.to_flavour_keyed_enum(
-                    _WagoGameVersion
-                )
+                game_version=config_ctx.config().game_flavour.to_flavourful_enum(_WagoGameVersion)
             ),
             expire_after=timedelta(minutes=5),
             headers=self.make_request_headers(),

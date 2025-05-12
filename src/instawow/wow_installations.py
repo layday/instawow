@@ -1,22 +1,15 @@
 from __future__ import annotations
 
+import enum
 import os
 import sys
 from collections.abc import Iterator
 from enum import Enum, StrEnum
 from functools import cache
 from pathlib import Path
-from typing import NotRequired, Self, TypedDict
+from typing import Self, TypedDict
 
 from ._utils.iteration import fill
-
-
-class _FlavourMeta(TypedDict):
-    aliases: NotRequired[list[str]]
-    is_retired: NotRequired[bool]
-
-
-_DummyFlavourMeta = _FlavourMeta()
 
 
 class Flavour(StrEnum):
@@ -26,26 +19,22 @@ class Flavour(StrEnum):
     # will inherit the "_classic_" folder.  This means we won't have to
     # migrate Classic profiles either automatically or by requiring user
     # intervention for new Classic releases.
-    Retail = ('retail',)
-    VanillaClassic = ('vanilla_classic',)
-    Classic = ('classic', _FlavourMeta(aliases=['cataclysm_classic']))
-    WrathClassic = ('wrath_classic', _FlavourMeta(is_retired=True))
+    Retail = 'retail'
+    VanillaClassic = 'vanilla_classic'
+    Classic = 'classic'
+    WrathClassic = 'wrath_classic'
 
-    is_retired: bool
-
-    def __new__(cls, value: str, flavour_meta: _FlavourMeta = _DummyFlavourMeta) -> Self:
-        self = str.__new__(cls, value)
-        self._value_ = value
-        for alias in flavour_meta.get('aliases', []):
-            cls._value2member_map_.setdefault(alias, self)
-        self.is_retired = flavour_meta.get('is_retired', False)
-        return self
+    _RETIRED = enum.nonmember((WrathClassic,))
 
     @classmethod
-    def from_flavour_keyed_enum(cls, flavour_keyed_enum: Enum) -> Self:
+    def iter_supported(cls) -> Iterator[Self]:
+        return (m for m in cls if m not in cls._RETIRED)
+
+    @classmethod
+    def from_flavourful_enum(cls, flavour_keyed_enum: Enum) -> Self:
         return cls[flavour_keyed_enum.name]
 
-    def to_flavour_keyed_enum[EnumT: Enum](self, flavour_keyed_enum: type[EnumT]) -> EnumT:
+    def to_flavourful_enum[EnumT: Enum](self, flavour_keyed_enum: type[EnumT]) -> EnumT:
         return flavour_keyed_enum[self.name]
 
     def get_flavour_groups(self, affine: bool) -> list[tuple[Flavour, ...] | None]:

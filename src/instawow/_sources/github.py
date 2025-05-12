@@ -155,9 +155,7 @@ class GithubResolver(BaseResolver):
         if desired_flavours is None:
             desired_flavours = tuple(Flavour)
 
-        desired_version_ranges = {
-            f.to_flavour_keyed_enum(FlavourVersionRange) for f in desired_flavours
-        }
+        desired_version_ranges = {FlavourVersionRange[f.name] for f in desired_flavours}
         desired_toc_suffixes = tuple(
             s for f in desired_flavours for s in NORMALISED_FLAVOUR_TOC_SUFFIXES[f]
         )
@@ -326,10 +324,10 @@ class GithubResolver(BaseResolver):
 
         if desired_flavours:
             desired_release_json_flavors = {
-                f.to_flavour_keyed_enum(_PackagerReleaseJsonFlavor) for f in desired_flavours
+                f.to_flavourful_enum(_PackagerReleaseJsonFlavor) for f in desired_flavours
             }
             desired_version_ranges = {
-                f.to_flavour_keyed_enum(FlavourVersionRange) for f in desired_flavours
+                f.to_flavourful_enum(FlavourVersionRange) for f in desired_flavours
             }
 
             def is_compatible(release: _PackagerReleaseJson_Release):
@@ -524,7 +522,7 @@ class GithubResolver(BaseResolver):
                 except ValueError:
                     continue
                 else:
-                    yield Flavour.from_flavour_keyed_enum(release_json_flavor)
+                    yield Flavour.from_flavourful_enum(release_json_flavor)
 
         for entry in dict_reader:
             yield CatalogueEntryCandidate(
