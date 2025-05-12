@@ -886,13 +886,7 @@ def view_changelog(addons: Sequence[definitions.Defn], convert: bool, remote: bo
         import shutil
 
         pandoc = shutil.which('pandoc')
-        if pandoc is None:
-
-            def noop_convert(source: str, changelog: str):
-                return changelog
-
-            return noop_convert
-        else:
+        if pandoc:
             import subprocess
 
             resolvers = config_ctx.resolvers()
@@ -931,8 +925,9 @@ def view_changelog(addons: Sequence[definitions.Defn], convert: bool, remote: bo
         pkg_candidates, resolve_errors = pkg_management.split_results(
             run_with_progress(pkg_management.resolve(addons)).items()
         )
-        partial_pkgs: list[dict[str, Any]] = [
-            {'source': d.source} | c for d, c in pkg_candidates.items()
+        partial_pkgs = [
+            {'source': d.source, 'slug': c['slug'], 'changelog_url': c['changelog_url']}
+            for d, c in pkg_candidates.items()
         ]
 
         report_results(
@@ -965,8 +960,14 @@ def view_changelog(addons: Sequence[definitions.Defn], convert: bool, remote: bo
         gather(pkg_management.get_changelog(m['source'], m['changelog_url']) for m in partial_pkgs)
     )
     if convert:
-        do_convert = make_converter()
-        changelogs = (do_convert(m['source'], c) for m, c in zip(partial_pkgs, changelogs))
+        converter = make_converter()
+        if converter:
+            changelogs = (converter(m['source'], c) for m, c in zip(partial_pkgs, changelogs))
+        else:
+            click.echo(
+                f'{_WARNING_SYMBOL} pandoc is not installed; changelogs will not be converted',
+                err=True,
+            )
 
     output = '\n\n'.join(
         format_combined_changelog_entry(m['source'], m['slug'], c)
