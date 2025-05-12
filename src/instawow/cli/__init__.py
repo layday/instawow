@@ -4,7 +4,7 @@ import contextvars
 import datetime as dt
 import enum
 import textwrap
-from collections.abc import Awaitable, Collection, Iterable, Mapping, Sequence
+from collections.abc import Awaitable, Collection, Mapping, Sequence
 from functools import partial, reduce
 from itertools import chain, count, repeat
 from typing import Any, overload
@@ -22,12 +22,10 @@ _WARNING_SYMBOL = click.style('!', fg='blue')
 
 
 def report_results(
-    results: Iterable[tuple[definitions.Defn, _results.Result[Any]]],
+    results: Collection[tuple[definitions.Defn, _results.Result[Any]]],
     *,
     exit: bool = False,
 ) -> None:
-    results = list(results)
-
     config = config_ctx.config()
     if config.global_config.auto_update_check:
         from .._version import is_outdated
@@ -360,9 +358,9 @@ def update(addons: Sequence[definitions.Defn], dry_run: bool):
         pkg_management.update(addons or 'all', dry_run=dry_run),
     ).items()
     if not addons:
-        results = (
+        results = [
             (d, r) for d, r in results if not isinstance(r, _results.PkgUpToDate) or r.is_pinned
-        )
+        ]
     report_results(results, exit=True)
 
 
