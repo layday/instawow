@@ -25,9 +25,8 @@ import toga
 from typing_extensions import TypedDict
 from yarl import URL
 
-from instawow import config_ctx, http_ctx, matchers, pkg_management, sync_ctx
+from instawow import _github_auth, config_ctx, http_ctx, matchers, pkg_management, sync_ctx
 from instawow import results as R
-from instawow._github_auth import get_codes, poll_for_access_token
 from instawow._logging import logger
 from instawow._utils.aio import cancel_tasks, run_in_thread
 from instawow._utils.attrs import evolve
@@ -505,20 +504,21 @@ def prompt_confirm(title: str, message: str) -> TypedDict[{'ok': bool}]:
 class _GitHubAuthManager(AbstractAsyncContextManager['_GitHubAuthManager']):
     def __init__(self):
         self._device_codes = None
-        self._finalise_task = None
+        self._finalisation_task = asyncio.create_task(asyncio.sleep(0))
 
     async def __aexit__(self, *args: object):
-        if self._finalise_task:
-            await cancel_tasks([self._finalise_task])
+        await cancel_tasks([self._finalisation_task])
 
     async def initiate_auth_flow(self):
         async with sync_ctx.locks()[_LockOperation.InitiateGitHubAuthFlow]:
             if self._device_codes is None:
-                self._device_codes = device_codes = await get_codes(http_ctx.web_client())
+                web_client = http_ctx.web_client()
+
+                self._device_codes = device_codes = await _github_auth.get_codes(web_client)
 
                 async def finalise_github_auth_flow():
-                    result = await poll_for_access_token(
-                        http_ctx.web_client(),
+                    result = await _github_auth.poll_for_access_token(
+                        web_client,
                         device_codes['device_code'],
                         device_codes['interval'],
                     )
@@ -526,24 +526,25 @@ class _GitHubAuthManager(AbstractAsyncContextManager['_GitHubAuthManager']):
                         lambda g: evolve(g, {'access_tokens': {'github': SecretStr(result)}})
                     )
 
-                self._finalise_task = finalise_task = asyncio.create_task(
+                finalisation_task = asyncio.create_task(
                     asyncio.wait_for(finalise_github_auth_flow(), timeout=5 * 60),
                 )
 
-                @finalise_task.add_done_callback
-                def _(task: asyncio.Task[object]):
+                @finalisation_task.add_done_callback
+                def _(task: asyncio.Task[None]):
                     self._device_codes = None
-                    self._finalise_task = None
+
+                self._finalisation_task = finalisation_task
 
         return self._device_codes
 
     async def await_auth_completion(self):
-        if self._finalise_task is not None:
-            try:
-                await self._finalise_task
-            except BaseException:
-                return 'failure'
-        return 'success'
+        try:
+            await self._finalisation_task
+        except BaseException:
+            return 'failure'
+        else:
+            return 'success'
 
 
 @run_in_thread
@@ -636,7 +637,7 @@ def _transform_validation_errors(
             ):
                 yield from _transform_validation_errors(exc, new_path)
 
-        case exc:
+        case _:
             yield {
                 'path': path,
                 'message': repr(exc),
