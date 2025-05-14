@@ -24,7 +24,7 @@ from .results import (
 _ResolveMetadataT = TypeVar('_ResolveMetadataT', contravariant=True, default=Never)
 
 
-class _AccessTokenGetter[R](Protocol):
+class _AccessTokenGetter[R](Protocol):  # pragma: no cover
     def __call__(self) -> tuple[str | None, R]: ...
 
 
