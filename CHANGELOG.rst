@@ -2,6 +2,26 @@ Changelog
 =========
 
 
+v6.1.0
+------
+
+CLI
+~~~
+
+- Improved output of ``view-changelog``.
+
+  - The command will warn when attempting to convert changelogs
+    without *pandoc* being installed.
+  - Resolution errors are printed to the terminal.
+
+- Made compatible with click v8.2.
+
+GUI
+~~~
+
+- Fixed an edge case with GitHub auth.
+
+
 v6.0.0
 ------
 
