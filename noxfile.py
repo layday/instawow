@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-import json
 import os
-import tempfile
 from importlib.metadata import Distribution
 from pathlib import Path
 
@@ -16,7 +14,19 @@ nox.options.default_venv_backend = 'uv'
 nox.options.error_on_external_run = True
 
 
+def _inject_coverage_hook():
+    import sysconfig
+    from pathlib import Path
+
+    Path(sysconfig.get_path('purelib')).joinpath('_coverage_.pth').write_text(
+        'import coverage; coverage.process_startup()',
+        encoding='utf-8',
+    )
+
+
 def _locate_or_build_packages(session: nox.Session):
+    import json
+
     wheels_metadata_json = {
         d: HERE / 'dist' / d / '.wheel-metadata.json' for d in ['instawow', 'instawow-gui']
     }
@@ -31,14 +41,8 @@ def _locate_or_build_packages(session: nox.Session):
 @nox.session(reuse_venv=True)
 def dev_env(session: nox.Session):
     "Bootstrap the dev env."
-
     session.install(
-        '--group',
-        'dev',
-        '-e',
-        '.',
-        '-e',
-        './instawow-gui[full]',
+        *('--group', 'dev', '-e', '.', '-e', './instawow-gui[full]'),
         stderr=None,
     )
     print(session.virtualenv.bin, end='')
@@ -47,7 +51,6 @@ def dev_env(session: nox.Session):
 @nox.session(name='format')
 def format_code(session: nox.Session):
     "Format source code."
-
     session.install('--group', 'format')
 
     check = '--check' in session.posargs
@@ -65,7 +68,6 @@ def format_code(session: nox.Session):
 @nox.session
 def lint(session: nox.Session):
     "Lint source code."
-
     session.install('--group', 'lint')
     session.run('ruff', 'check', '--output-format', 'full', *session.posargs, '.')
     session.notify('format', ['--check'])
@@ -75,6 +77,7 @@ def lint(session: nox.Session):
 @nox.parametrize('minimum_versions', [False, True], ['latest', 'minimum-versions'])
 def test(session: nox.Session, minimum_versions: bool):
     "Run the test suite."
+    import inspect
 
     if minimum_versions and session.venv_backend != 'uv':
         session.error('`minimum_versions` requires uv')
@@ -107,19 +110,13 @@ def test(session: nox.Session, minimum_versions: bool):
     session.run(
         'python',
         '-c',
-        """\
-from pathlib import Path
-import sysconfig
-
-(Path(sysconfig.get_path('purelib')) / '_instawow_coverage.pth').write_text(
-    'import coverage; coverage.process_startup()',
-    encoding='utf-8',
-)
-""",
+        f"""\
+{inspect.getsource(_inject_coverage_hook)}
+_inject_coverage_hook()
+        """,
     )
-
     session.run(
-        *'coverage run -m pytest -n auto'.split(),
+        *('coverage', 'run', '-m', 'pytest', '-n', 'auto'),
         env={
             'COVERAGE_CORE': 'sysmon',
             'COVERAGE_PROCESS_START': 'pyproject.toml',
@@ -130,7 +127,6 @@ import sysconfig
 @nox.session
 def report_coverage(session: nox.Session):
     "Produce coverage report."
-
     session.install('--group', 'test')
     session.run('coverage', 'combine')
     session.run('coverage', 'html', '--skip-empty')
@@ -140,7 +136,6 @@ def report_coverage(session: nox.Session):
 @nox.session
 def type_check(session: nox.Session):
     "Run Pyright."
-
     packages = _locate_or_build_packages(session)
 
     session.install('--group', 'test', '--group', 'typing')
@@ -154,7 +149,6 @@ def type_check(session: nox.Session):
 @nox.session(python=False)
 def bundle_frontend(session: nox.Session):
     "Bundle the frontend."
-
     with session.chdir('instawow-gui/frontend'):
         session.run('git', 'clean', '-fX', '../src/instawow_gui/_frontend', external=True)
         session.run('npm', 'install', external=True)
@@ -165,6 +159,7 @@ def bundle_frontend(session: nox.Session):
 @nox.session
 def build_dists(session: nox.Session):
     "Build an sdist and wheel."
+    import json
 
     session.run('git', 'clean', '-fdX', 'dist', external=True)
 
@@ -200,9 +195,9 @@ def publish_dists(session: nox.Session):
 @nox.session(python=False)
 def freeze_cli(session: nox.Session):
     "Freeze the CLI with PyApp."
-
     import argparse
     import shutil
+    import tempfile
 
     PYAPP_VERSION = 'v0.27.0'
 
@@ -255,7 +250,6 @@ def freeze_cli(session: nox.Session):
 @nox.session
 def freeze_gui(session: nox.Session):
     "Freeze the GUI with briefcase."
-
     import argparse
     import sys
 
