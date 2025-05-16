@@ -172,7 +172,7 @@ def test_access_tokens_file_takes_precedence_over_config():
     global_config = GlobalConfig.read().write()
     assert global_config.access_tokens.cfcore is None
     global_config.dirs.config.joinpath('config.access_tokens.json').write_text(
-        json.dumps({'cfcore': 'abc'})
+        json.dumps({'cfcore': 'abc'}), encoding='utf-8'
     )
     assert GlobalConfig.read().access_tokens.cfcore == 'abc'
 

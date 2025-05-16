@@ -36,7 +36,8 @@ def pretend_install_molinari(
         """\
 ## X-Curse-Project-ID: 20338
 ## X-WoWI-ID: 13188
-"""
+""",
+        encoding='utf-8',
     )
 
 

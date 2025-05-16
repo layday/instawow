@@ -158,7 +158,8 @@ WeakAurasSaved = {
         },
     },
 }
-"""
+""",
+        encoding='utf-8',
     )
 
     await build_addon(plugin_config)
@@ -174,7 +175,7 @@ def test_generate_reproducible(
 def test_generate_emits_changelog(
     plugin_config: PluginConfig,
 ):
-    assert _generate_addon(plugin_config, {}).changelog.read_text() == 'n/a'
+    assert _generate_addon(plugin_config, {}).changelog.read_text(encoding='utf-8') == 'n/a'
 
 
 async def test_resolve_weakauras_companion_pkg(

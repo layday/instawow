@@ -905,6 +905,7 @@ def view_changelog(addons: Sequence[definitions.Defn], convert: bool, remote: bo
                     [pandoc, '-f', pandoc_input_format, '-t', 'plain'],
                     input=changelog,
                     text=True,
+                    encoding='locale',
                 )
 
             return real_convert

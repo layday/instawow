@@ -277,7 +277,7 @@ async def test_get_changelog_from_file_uri(
     tmp_path: Path,
 ):
     changelog = tmp_path / 'changelog.txt'
-    changelog.write_text('test')
+    changelog.write_text('test', encoding='utf-8')
     assert (await pkg_management.get_changelog('github', changelog.as_uri())) == 'test'
 
 

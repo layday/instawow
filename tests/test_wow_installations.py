@@ -131,7 +131,7 @@ def test_can_find_mac_installations(
 def test_installation_version_extraction_from_addon_dir(
     iw_profile_config: ProfileConfig,
 ):
-    iw_profile_config.addon_dir.parents[2].joinpath('.build.info').write_text("""\
+    iw_profile_config.addon_dir.parents[2].joinpath('.build.info').write_bytes(b"""\
 Version!STRING:0|Product!STRING:0
 10.9.8.7|wow
 """)

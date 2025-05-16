@@ -120,6 +120,7 @@ _inject_coverage_hook()
         env={
             'COVERAGE_CORE': 'sysmon',
             'COVERAGE_PROCESS_START': 'pyproject.toml',
+            'PYTHONWARNDEFAULTENCODING': '1',
         },
     )
 

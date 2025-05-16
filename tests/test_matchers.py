@@ -31,18 +31,16 @@ def write_addons(
 
 
 def write_molinari_addon():
-    molinari_folder = config_ctx.config().addon_dir / 'Molinari'
-    molinari_folder.mkdir()
-
-    with open(molinari_folder / 'Molinari.toc', 'w', newline='\n') as toc_file:
-        toc_file.write(
-            """\
+    molinari = config_ctx.config().addon_dir / 'Molinari'
+    molinari.mkdir()
+    (molinari / 'Molinari.toc').write_text(
+        """\
 ## X-Curse-Project-ID: 20338
 ## X-WoWI-ID: 13188
 """,
-        )
-
-    return molinari_folder
+        encoding='utf-8',
+    )
+    return molinari
 
 
 async def test_can_extract_defns_from_addon_folder_toc():
