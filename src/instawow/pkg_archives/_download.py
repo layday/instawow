@@ -50,8 +50,6 @@ async def download_pkg_archive(defn: Defn, download_url: str) -> Path:
     if is_file_uri(download_url):
         return Path(file_uri_to_path(download_url))
 
-    config = config_ctx.config()
-
     async with sync_ctx.locks()[_DOWNLOAD_PKG_LOCK, download_url]:
         make_request = partial(
             http_ctx.web_client().get,
@@ -66,7 +64,7 @@ async def download_pkg_archive(defn: Defn, download_url: str) -> Path:
                     unit='bytes',
                     current=0,
                     total=0,
-                    profile=config.profile,
+                    profile=config_ctx.config().profile,
                     defn=defn,
                 )
             },
