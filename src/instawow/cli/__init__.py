@@ -314,7 +314,7 @@ def cli(verbosity: int, no_cache: bool, profile: str):
         try:
             return _config.ProfileConfig.read(global_config, profile).ensure_dirs()
         except _config.UninitialisedConfigError:
-            return click.get_current_context().invoke(configure)
+            return click.get_current_context().invoke(configure_profile)
 
 
 @cli.command
@@ -976,6 +976,65 @@ def view_changelog(addons: Sequence[definitions.Defn], convert: bool, remote: bo
         click.echo_via_pager(output)
 
 
+@cli.group('cache')
+def _cache_group():
+    "Manage the cache."
+
+
+@_cache_group.command('clear')
+def cache_clear():
+    "Clear the instawow cache."
+
+    import shutil
+
+    shutil.rmtree(config_ctx.config().global_config.dirs.cache)
+
+
+@cli.group('debug')
+def _debug_group():
+    "Debug instawow."
+
+
+@_debug_group.command('config')
+def debug_config():
+    "Print the active configuration."
+
+    import json
+
+    from ..config._helpers import make_display_converter
+
+    click.echo(
+        json.dumps(
+            make_display_converter().unstructure(config_ctx.config()),
+            indent=2,
+        )
+    )
+
+
+@_debug_group.command('sources')
+def debug_sources():
+    "Print active source metadata."
+
+    from cattrs.preconf.json import make_converter  # pyright: ignore[reportUnknownVariableType]
+
+    json_converter = make_converter()
+
+    click.echo(
+        json_converter.dumps([r.metadata for r in config_ctx.resolvers().values()], indent=2)
+    )
+
+
+@_register_plugin_commands
+@cli.group('plugins')
+def _plugin_group():  # pyright: ignore[reportUnusedFunction]
+    "Registered plug-ins."
+
+
+@cli.group('profile')
+def _profile_group():
+    "Profile management."
+
+
 class _EditableConfigOptions(enum.StrEnum):
     AddonDir = 'addon_dir'
     GameFlavour = 'game_flavour'
@@ -993,7 +1052,7 @@ class _EditableConfigOptions(enum.StrEnum):
         return self
 
 
-@cli.command
+@_profile_group.command('configure')
 @click.argument(
     'editable-config-values',
     nargs=-1,
@@ -1004,17 +1063,16 @@ class _EditableConfigOptions(enum.StrEnum):
         },
     ),
 )
-def configure(editable_config_values: Mapping[_EditableConfigOptions, Any]):
-    """Configure instawow.
+def configure_profile(editable_config_values: Mapping[_EditableConfigOptions, Any]):
+    """Configure the currently-active profile.
 
     You can pass configuration keys as arguments to reconfigure an existing
     profile.  Pass a value to suppress the interactive prompt.  For example:
 
     \b
     * ``configure addon_dir`` will initiate an interactive session
-      with autocompletion
     * ``configure "addon_dir=~/foo"` will set ``addon_dir``'s value
-      to ``~/foo`` immediately
+      to ``~/foo`` without prompting
     """
 
     import asyncio
@@ -1201,58 +1259,18 @@ def configure(editable_config_values: Mapping[_EditableConfigOptions, Any]):
     return config
 
 
-@cli.group('cache')
-def _cache_group():
-    "Manage the cache."
+cli.add_command(configure_profile, 'configure')
 
 
-@_cache_group.command('clear')
-def cache_clear():
-    "Clear the instawow cache."
+@_profile_group.command('erase')
+def erase_profile():
+    "Erase the currently-active profile."
 
-    import shutil
+    from .prompts import confirm
 
-    shutil.rmtree(config_ctx.config().global_config.dirs.cache)
-
-
-@cli.group('debug')
-def _debug_group():
-    "Debug instawow."
-
-
-@_debug_group.command('config')
-def debug_config():
-    "Print the active configuration."
-
-    import json
-
-    from ..config._helpers import make_display_converter
-
-    click.echo(
-        json.dumps(
-            make_display_converter().unstructure(config_ctx.config()),
-            indent=2,
-        )
-    )
-
-
-@_debug_group.command('sources')
-def debug_sources():
-    "Print active source metadata."
-
-    from cattrs.preconf.json import make_converter  # pyright: ignore[reportUnknownVariableType]
-
-    json_converter = make_converter()
-
-    click.echo(
-        json_converter.dumps([r.metadata for r in config_ctx.resolvers().values()], indent=2)
-    )
-
-
-@_register_plugin_commands
-@cli.group('plugins')
-def _plugin_group():  # pyright: ignore[reportUnusedFunction]
-    "Registered plug-ins."
+    if confirm('Erase profile?').prompt():
+        config_ctx.config().delete()
+        click.echo('Profile erased.')
 
 
 @cli.command(hidden=True)

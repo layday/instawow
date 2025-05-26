@@ -273,6 +273,16 @@ def test_configure__update_existing_profile_directly(
     )
 
 
+def test_erase_profile(
+    iw_profile_config: ProfileConfig,
+    iw_pt_input: prompt_toolkit.input.PipeInput,
+):
+    assert iw_profile_config.config_path.exists()
+    iw_pt_input.send_text('Y\r')
+    assert run('profile erase').stdout == 'Profile erased.\n'
+    assert not iw_profile_config.config_path.exists()
+
+
 @pytest.mark.parametrize('options', ['', '--undo'])
 def test_rollback__pkg_not_installed(
     options: str,
