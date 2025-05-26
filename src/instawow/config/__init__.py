@@ -11,7 +11,7 @@ from attrs import field
 
 from .. import NAME
 from .._utils.attrs import enrich_validator_exc, fauxfrozen
-from .._utils.file import trash
+from .._utils.file import expand_path, trash
 from ..wow_installations import Flavour, get_installation_dir_from_addon_dir
 from ._dirs import get_cache_dir, get_config_dir, get_state_dir
 from ._helpers import (
@@ -25,12 +25,7 @@ from ._helpers import (
 from ._helpers import UninitialisedConfigError as UninitialisedConfigError
 from ._helpers import config_converter as config_converter
 
-
-def _expand_path(value: os.PathLike[str]):
-    return Path(value).expanduser().resolve()
-
-
-_path_field = partial(field, converter=_expand_path)
+_path_field = partial(field, converter=expand_path)
 
 
 @enrich_validator_exc

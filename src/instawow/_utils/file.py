@@ -9,6 +9,10 @@ from itertools import chain
 from pathlib import Path
 
 
+def expand_path(value: os.PathLike[str]) -> Path:
+    return Path(value).expanduser().resolve()
+
+
 def reveal_folder(path: str | os.PathLike[str]) -> None:
     if sys.platform == 'win32':
         os.startfile(path, 'explore')

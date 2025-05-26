@@ -6,7 +6,7 @@ import enum
 import textwrap
 from collections.abc import Awaitable, Collection, Mapping, Sequence
 from functools import partial, reduce
-from itertools import chain, count, repeat
+from itertools import chain, count, product, repeat
 from typing import Any, overload
 
 import click
@@ -1022,6 +1022,7 @@ def configure(editable_config_values: Mapping[_EditableConfigOptions, Any]):
     import attrs
 
     from .._logging import logger
+    from .._utils.file import expand_path
     from ..wow_installations import (
         ADDON_DIR_PARTS,
         Flavour,
@@ -1080,7 +1081,7 @@ def configure(editable_config_values: Mapping[_EditableConfigOptions, Any]):
             unimported_installations = [
                 (k, v and v['flavour'])
                 for k, v in find_installations()
-                if not any(d.samefile(k) for d in known_installations)
+                if not any(a == b for a, b in product(known_installations, (expand_path(k),)))
             ]
             if unimported_installations:
                 selection = select_one(
