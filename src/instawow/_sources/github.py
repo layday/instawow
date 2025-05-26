@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 from enum import StrEnum
 from functools import partial
 from itertools import batched, product, tee, zip_longest
-from typing import Any, Literal, Never
+from typing import Any, Literal
 from typing import NotRequired as N
 
 from typing_extensions import TypedDict
@@ -53,7 +53,6 @@ class _GithubRelease_Asset(TypedDict):
     name: str  # filename
     content_type: str  # mime type
     state: Literal['starter', 'uploaded']
-    browser_download_url: Never  # Fake type to prevent misuse; actually a string
 
 
 class _PackagerReleaseJson(TypedDict):
@@ -166,7 +165,7 @@ class GithubResolver(BaseResolver):
         matching_asset = None
 
         for candidate in candidates:
-            logger.debug(f'Looking for match in zip file: {candidate["browser_download_url"]}')
+            logger.debug(f'Looking for match in zip file: {candidate["url"]}')
 
             addon_zip_stream = BytesIO()
             dynamic_addon_zip = None
@@ -302,9 +301,7 @@ class GithubResolver(BaseResolver):
         release_json_asset: _GithubRelease_Asset,
         desired_flavours: tuple[Flavour, ...] | None,
     ):
-        logger.debug(
-            f'Looking for match in release.json: {release_json_asset["browser_download_url"]}'
-        )
+        logger.debug(f'Looking for match in release.json: {release_json_asset["url"]}')
 
         download_headers = self.make_request_headers(HeadersIntent.Download)
 
