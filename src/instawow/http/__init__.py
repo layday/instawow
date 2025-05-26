@@ -22,7 +22,7 @@ CACHE_INDEFINITELY = -1
 _PROGRESS_TICK_INTERVAL = 0.1
 
 
-class _TraceConfigCtx[TraceRequestCtxT](Protocol):
+class _TraceConfigCtx[TraceRequestCtxT](Protocol):  # pragma: no cover
     trace_request_ctx: TraceRequestCtxT | None
 
 
