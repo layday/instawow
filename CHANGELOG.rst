@@ -2,6 +2,22 @@ Changelog
 =========
 
 
+v6.2.0
+------
+
+- Added support for the Classic Mists of Pandaria beta.
+- Dropped support for Classic Wrath of the Lich King.
+
+CLI
+~~~
+
+- Added ``debug profiles`` command.
+- Added ``profile erase`` command.
+- Fixed game installation detection edge case where
+  a configured profile's add-on directory
+  residing inside a valid installation path was missing.
+
+
 v6.1.0
 ------
 
