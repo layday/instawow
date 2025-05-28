@@ -125,8 +125,9 @@ class _CfCoreSortableGameVersionTypeId(IntEnum):
 
     Retail = 517
     VanillaClassic = 67408
-    Classic = 77522
-    WrathClassic = 73713
+    CataClassic = 77522
+    MistsClassic = 79434
+    Classic = CataClassic
 
 
 class _CfCoreSortableGameVersion(TypedDict):

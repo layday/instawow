@@ -24,19 +24,13 @@ async def test_basic_search():
 
 @pytest.mark.parametrize(
     'iw_profile_config_values',
-    Flavour,
+    Flavour.iter_supported(),
     indirect=True,
 )
 async def test_search_flavour_filtering():
     results = await search('atlas loot classic', limit=10)
     has_atlas = ('curse', 'atlaslootclassic') in {(e.source, e.slug or e.id) for e in results}
-    if config_ctx.config().game_flavour in {
-        Flavour.VanillaClassic,
-        Flavour.WrathClassic,
-    }:
-        assert has_atlas
-    else:
-        assert not has_atlas
+    assert has_atlas == (config_ctx.config().game_flavour is Flavour.VanillaClassic)
 
 
 async def test_search_source_filtering():

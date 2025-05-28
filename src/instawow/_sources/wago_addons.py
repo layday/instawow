@@ -30,8 +30,9 @@ class _WagoStability(StrEnum):
 class _WagoGameVersion(StrEnum):
     Retail = 'retail'
     VanillaClassic = 'classic'
-    Classic = 'cata'
-    WrathClassic = 'wotlk'
+    CataClassic = 'cata'
+    MistsClassic = 'mop'
+    Classic = CataClassic
 
 
 class _WagoAddon(TypedDict):

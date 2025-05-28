@@ -22,13 +22,13 @@ def test_can_convert_between_flavour_keyed_enum_and_flavour():
         Retail = 1
         VanillaClassic = 2
         Classic = 3
-        WrathClassic = 4
+        MistsClassic = 4
 
     assert Flavour.from_flavourful_enum(Foo.Retail) is Flavour.Retail
     assert Flavour.Retail.to_flavourful_enum(Foo) is Foo.Retail
 
 
-@pytest.mark.parametrize('flavour', list(Flavour))
+@pytest.mark.parametrize('flavour', Flavour.iter_supported())
 @pytest.mark.parametrize('affine', [True, False])
 def test_flavour_groups_vary_by_flavour_and_affinity(
     flavour: Flavour,
@@ -36,32 +36,34 @@ def test_flavour_groups_vary_by_flavour_and_affinity(
 ):
     flavour_groups = flavour.get_flavour_groups(affine)
     if affine:
-        if flavour is Flavour.Classic:
-            assert flavour_groups == [(flavour, Flavour.WrathClassic), None]
-        else:
-            assert flavour_groups == [(flavour,), None]
+        assert flavour_groups == (
+            # [(flavour, Flavour.CataClassic), None]
+            # if flavour is Flavour.Classic
+            # else
+            [(flavour,), None]
+        )
     else:
         assert flavour_groups == [(flavour,)]
 
 
 def test_can_extract_flavour_from_version_number():
-    assert FlavourVersionRange.from_version(95000) is FlavourVersionRange.Retail
-    assert FlavourVersionRange.from_version(44000) is FlavourVersionRange.Classic
-    assert FlavourVersionRange.from_version(34000) is FlavourVersionRange.WrathClassic
-    assert FlavourVersionRange.from_version(12300) is FlavourVersionRange.VanillaClassic
+    assert FlavourVersionRange.from_version(9_50_00) is FlavourVersionRange.Retail
+    assert FlavourVersionRange.from_version(4_04_00) is FlavourVersionRange.Classic
+    assert FlavourVersionRange.from_version(5_05_00) is FlavourVersionRange.MistsClassic
+    assert FlavourVersionRange.from_version(1_23_00) is FlavourVersionRange.VanillaClassic
 
 
 def test_can_extract_flavour_from_version_string():
     assert FlavourVersionRange.from_version('9.50.0') is FlavourVersionRange.Retail
     assert FlavourVersionRange.from_version('4.4.0') is FlavourVersionRange.Classic
-    assert FlavourVersionRange.from_version('3.4.0') is FlavourVersionRange.WrathClassic
+    assert FlavourVersionRange.from_version('5.5.0') is FlavourVersionRange.MistsClassic
     assert FlavourVersionRange.from_version('1.23.0') is FlavourVersionRange.VanillaClassic
 
 
 def test_can_extract_flavour_from_partial_version_string():
     assert FlavourVersionRange.from_version('9.2') is FlavourVersionRange.Retail
     assert FlavourVersionRange.from_version('4.4') is FlavourVersionRange.Classic
-    assert FlavourVersionRange.from_version('3.4') is FlavourVersionRange.WrathClassic
+    assert FlavourVersionRange.from_version('5.5') is FlavourVersionRange.MistsClassic
     assert FlavourVersionRange.from_version('3') is FlavourVersionRange.Retail
 
 

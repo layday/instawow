@@ -20,7 +20,7 @@ def tukui_resolver():
 
 @pytest.mark.parametrize(
     'iw_profile_config_values',
-    Flavour,
+    Flavour.iter_supported(),
     indirect=True,
 )
 @pytest.mark.parametrize('alias', ['tukui', 'elvui'])
@@ -33,7 +33,6 @@ async def test_resolve_addon(
     with (
         pytest.raises(PkgFilesNotMatching)
         if (alias == 'tukui' and config_ctx.config().game_flavour is Flavour.Classic)
-        or (alias == 'elvui' and config_ctx.config().game_flavour is Flavour.WrathClassic)
         else nullcontext()
     ):
         result = await tukui_resolver.resolve_one(defn, None)

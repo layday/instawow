@@ -93,7 +93,7 @@ def package_json_less_addon(
 )
 @pytest.mark.parametrize(
     'iw_profile_config_values',
-    Flavour,
+    Flavour.iter_supported(),
     indirect=True,
 )
 async def test_extracting_flavour_from_zip_contents(

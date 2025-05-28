@@ -13,7 +13,7 @@ from .._utils.attrs import fauxfrozen
 from .._utils.iteration import bucketise, merge_intersecting_sets, uniq
 from ..catalogue import synchronise as synchronise_catalogue
 from ..definitions import Defn
-from ..wow_installations import Flavour
+from ..wow_installations import Flavour, FlavourTocSuffixes
 from .addon_toc import TocReader
 
 
@@ -23,17 +23,9 @@ class Matcher(Protocol):  # pragma: no cover
     ) -> Awaitable[list[tuple[list[AddonFolder], list[Defn]]]]: ...
 
 
-# https://github.com/Stanzilla/WoWUIBugs/issues/68#issuecomment-830351390
-# https://warcraft.wiki.gg/wiki/TOC_format#Multiple_client_flavors
-FLAVOUR_TOC_IDS = {
-    Flavour.Retail: ('Mainline',),
-    Flavour.VanillaClassic: ('Vanilla', 'Classic'),
-    Flavour.Classic: ('Cata', 'Classic'),
-    Flavour.WrathClassic: ('Wrath', 'WOTLKC', 'Classic'),
-}
-
 FLAVOUR_TOC_SUFFIXES = {
-    k: tuple(f'{s}{f}.toc' for s, f in product('-_', v)) for k, v in FLAVOUR_TOC_IDS.items()
+    Flavour.from_flavourful_enum(s): tuple(f'{s}{f}.toc' for s, f in product('-_', s.value))
+    for s in FlavourTocSuffixes
 }
 NORMALISED_FLAVOUR_TOC_SUFFIXES = {
     k: tuple(i.lower() for i in v) for k, v in FLAVOUR_TOC_SUFFIXES.items()

@@ -35,7 +35,7 @@ def curse_resolver():
 
 @pytest.mark.parametrize(
     'iw_profile_config_values',
-    Flavour,
+    Flavour.iter_supported(),
     indirect=True,
 )
 async def test_resolve_flavourful_addon(
@@ -49,7 +49,7 @@ async def test_resolve_flavourful_addon(
 
 @pytest.mark.parametrize(
     'iw_profile_config_values',
-    Flavour,
+    Flavour.iter_supported(),
     indirect=True,
 )
 async def test_resolve_classic_only_addon(
@@ -60,7 +60,7 @@ async def test_resolve_classic_only_addon(
     result = (await curse_resolver.resolve([defn]))[defn]
 
     match config_ctx.config().game_flavour:
-        case Flavour.VanillaClassic | Flavour.WrathClassic:
+        case Flavour.VanillaClassic:
             assert type(result) is dict
         case _:
             assert type(result) is PkgFilesNotMatching

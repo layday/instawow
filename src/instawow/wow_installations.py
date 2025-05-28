@@ -21,14 +21,21 @@ class Flavour(StrEnum):
     # intervention for new Classic releases.
     Retail = 'retail'
     VanillaClassic = 'vanilla_classic'
-    Classic = 'classic'
     WrathClassic = 'wrath_classic'
+    MistsClassic = 'mists_classic'
+    Classic = 'classic'
+    CataClassic = Classic
 
-    _RETIRED = enum.nonmember((WrathClassic,))
+    _UNSUPPORTED = enum.nonmember(
+        (
+            WrathClassic,
+            MistsClassic,
+        )
+    )
 
     @classmethod
     def iter_supported(cls) -> Iterator[Self]:
-        return (m for m in cls if m not in cls._RETIRED)
+        return (m for m in cls if m not in cls._UNSUPPORTED)
 
     @classmethod
     def from_flavourful_enum(cls, flavour_keyed_enum: Enum) -> Self:
@@ -39,8 +46,8 @@ class Flavour(StrEnum):
 
     def get_flavour_groups(self, affine: bool) -> list[tuple[Flavour, ...] | None]:
         match (self, affine):
-            case (self.__class__.Classic, True):
-                return [(self, self.__class__.WrathClassic), None]
+            # case (self.__class__.Classic, True):
+            #     return [(self, self.__class__.CataClassic), None]
             case (_, True):
                 return [(self,), None]
             case _:
@@ -53,11 +60,13 @@ class FlavourVersionRange(Enum):
         range(2_00_00, 2_05_00),
         range(3_00_00, 3_04_00),
         range(4_00_00, 4_04_00),
-        range(5_00_00, 12_00_00),
+        range(6_00_00, 12_00_00),
     )
     VanillaClassic = (range(1_13_00, 2_00_00),)
-    Classic = (range(4_04_00, 5_00_00),)
     WrathClassic = (range(3_04_00, 4_00_00),)
+    CataClassic = (range(4_04_00, 5_00_00),)
+    MistsClassic = (range(5_05_00, 6_00_00),)
+    Classic = CataClassic
 
     @classmethod
     def from_version(cls, version: int | str) -> Self | None:
@@ -67,6 +76,17 @@ class FlavourVersionRange(Enum):
     def contains(self, version: int | str) -> bool:
         version_number = version if isinstance(version, int) else _parse_version_string(version)
         return any(version_number in r for r in self.value)
+
+
+class FlavourTocSuffixes(Enum):
+    # https://github.com/Stanzilla/WoWUIBugs/issues/68#issuecomment-830351390
+    # https://warcraft.wiki.gg/wiki/TOC_format#Multiple_client_flavors
+    Retail = ('Mainline',)
+    VanillaClassic = ('Vanilla', 'Classic')
+    WrathClassic = ('Wrath', 'WOTLKC', 'Classic')
+    CataClassic = ('Cata', 'Classic')
+    MistsClassic = ('Mists', 'Classic')
+    Classic = CataClassic
 
 
 class _Product(TypedDict):
@@ -113,7 +133,7 @@ _DELECTABLE_DIR_NAMES: dict[str, _Product] = {
     },
     '_classic_beta_': {
         'code': 'wow_classic_beta',
-        'flavour': Flavour.Classic,
+        'flavour': Flavour.MistsClassic,
     },
 }
 
