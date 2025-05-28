@@ -216,6 +216,21 @@ def test_debug_config(
     )
 
 
+def test_debug_profile(
+    iw_profile_config: ProfileConfig,
+):
+    assert (
+        run('debug profiles').stdout
+        == json.dumps(
+            make_display_converter().unstructure(
+                iw_profile_config.iter_profiles(iw_profile_config.global_config), list[str]
+            ),
+            indent=2,
+        )
+        + '\n'
+    )
+
+
 def test_debug_sources():
     import cattrs.preconf.json
 

@@ -1011,6 +1011,23 @@ def debug_config():
     )
 
 
+@_debug_group.command('profiles')
+def debug_profiles():
+    "Print the names of all profiles."
+
+    import json
+
+    from ..config._helpers import make_display_converter
+
+    profiles = _config.ProfileConfig.iter_profiles(_config.GlobalConfig())
+    click.echo(
+        json.dumps(
+            make_display_converter().unstructure(profiles, list[str]),
+            indent=2,
+        )
+    )
+
+
 @_debug_group.command('sources')
 def debug_sources():
     "Print active source metadata."
