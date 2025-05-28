@@ -134,7 +134,7 @@ class GithubResolver(BaseResolver):
 
         from aiohttp import hdrs
 
-        from ..matchers import NORMALISED_FLAVOUR_TOC_SUFFIXES
+        from ..matchers import NORMALISED_FLAVOUR_TOC_EXTENSIONS
         from ..matchers.addon_toc import TocReader
         from ..pkg_archives import find_archive_addon_tocs
 
@@ -157,10 +157,10 @@ class GithubResolver(BaseResolver):
 
         desired_version_ranges = {FlavourVersionRange[f.name] for f in desired_flavours}
         desired_toc_suffixes = tuple(
-            s for f in desired_flavours for s in NORMALISED_FLAVOUR_TOC_SUFFIXES[f]
+            s for f in desired_flavours for s in NORMALISED_FLAVOUR_TOC_EXTENSIONS[f]
         )
         all_flavourful_toc_suffixes = tuple(
-            i for s in NORMALISED_FLAVOUR_TOC_SUFFIXES.values() for i in s
+            i for s in NORMALISED_FLAVOUR_TOC_EXTENSIONS.values() for i in s
         )
 
         matching_asset = None

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import re
 from collections.abc import Awaitable, Iterable, Mapping
 from itertools import chain, product
@@ -23,12 +24,12 @@ class Matcher(Protocol):  # pragma: no cover
     ) -> Awaitable[list[tuple[list[AddonFolder], list[Defn]]]]: ...
 
 
-FLAVOUR_TOC_SUFFIXES = {
+_FLAVOUR_TOC_EXTENSIONS = {
     Flavour.from_flavourful_enum(s): tuple(f'{s}{f}.toc' for s, f in product('-_', s.value))
     for s in FlavourTocSuffixes
 }
-NORMALISED_FLAVOUR_TOC_SUFFIXES = {
-    k: tuple(i.lower() for i in v) for k, v in FLAVOUR_TOC_SUFFIXES.items()
+NORMALISED_FLAVOUR_TOC_EXTENSIONS = {
+    k: tuple(i.lower() for i in v) for k, v in _FLAVOUR_TOC_EXTENSIONS.items()
 }
 
 
@@ -42,13 +43,18 @@ class AddonFolder:
         object.__setattr__(self, 'name', self.path.name)
 
     @classmethod
-    def from_path(cls, flavour: Flavour, path: Path) -> Self | None:
-        for suffix in chain(FLAVOUR_TOC_SUFFIXES[flavour], ('.toc',)):
-            try:
-                toc_reader = TocReader.from_path(path / (path.name + suffix))
-                return cls(path, toc_reader)
-            except FileNotFoundError:
-                pass
+    def from_path(cls, flavour: Flavour, parent_path: Path) -> Self | None:
+        suffixes = tuple(chain(NORMALISED_FLAVOUR_TOC_EXTENSIONS[flavour], ('.toc',)))
+
+        with os.scandir(parent_path) as iter_parent_dir:
+            match = next(
+                (c for c in iter_parent_dir if c.name.lower().endswith(suffixes)),
+                None,
+            )
+
+        if match is not None:
+            toc_reader = TocReader.from_path(Path(match))
+            return cls(parent_path, toc_reader)
 
     def get_defns_from_toc_keys(self, keys_and_ids: Iterable[tuple[str, str]]) -> frozenset[Defn]:
         return frozenset(
