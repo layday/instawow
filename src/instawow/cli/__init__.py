@@ -757,9 +757,7 @@ def list_installed(addons: Sequence[definitions.Defn], output_format: _ListForma
 
         match output_format:
             case _ListFormat.Json:
-                from cattrs.preconf.json import (
-                    make_converter,  # pyright: ignore[reportUnknownVariableType]
-                )
+                from cattrs.preconf.json import make_converter
 
                 click.echo(
                     make_converter().dumps(list(row_mappings_to_pkgs()), indent=2),
@@ -1032,7 +1030,7 @@ def debug_profiles():
 def debug_sources():
     "Print active source metadata."
 
-    from cattrs.preconf.json import make_converter  # pyright: ignore[reportUnknownVariableType]
+    from cattrs.preconf.json import make_converter
 
     json_converter = make_converter()
 

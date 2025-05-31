@@ -610,10 +610,8 @@ _converter.register_unstructure_hook(Strategies, dict)
 
 _method_union = cast(type[_JsonRpcRequest[str, Any]], Union[*(t for t, _ in _methods.values())])
 
-_method_converter = _converter.copy()  # pyright: ignore[reportUnknownMemberType]
-cattrs.strategies.configure_tagged_union(  # pyright: ignore[reportUnknownMemberType]
-    _method_union, _method_converter, tag_name='method'
-)
+_method_converter = _converter.copy()
+cattrs.strategies.configure_tagged_union(_method_union, _method_converter, tag_name='method')
 
 
 def _transform_validation_errors(
