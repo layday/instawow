@@ -40,11 +40,11 @@ class MyResolver(BaseResolver):
         )
 
 
-@instawow.plugins.hookimpl
+@instawow.plugins.hook
 def instawow_add_commands():
     return (foo,)
 
 
-@instawow.plugins.hookimpl
+@instawow.plugins.hook
 def instawow_add_resolvers():
     return (MyResolver,)
