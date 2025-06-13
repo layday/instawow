@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Mapping
-from functools import partial
+from functools import lru_cache, partial
 from typing import TYPE_CHECKING
 
 import attrs
@@ -48,3 +48,10 @@ def evolve[T](attrs_instance: T, changes: Mapping[str, object | EvolveIdent]) ->
             for k, v in changes.items()
         },
     )
+
+
+@lru_cache(1)
+def simple_converter():
+    from cattrs import Converter
+
+    return Converter()

@@ -75,6 +75,7 @@ class _PackagerReleaseJson_Release_Metadata(TypedDict):
 class _PackagerReleaseJsonFlavor(StrEnum):
     Retail = 'mainline'
     VanillaClassic = 'classic'
+    TbcClassic = 'bcc'
     WrathClassic = 'wrath'
     CataClassic = 'cata'
     MistsClassic = 'mists'
@@ -303,6 +304,8 @@ class GithubResolver(BaseResolver):
         release_json_asset: _GithubRelease_Asset,
         desired_flavours: tuple[Flavour, ...] | None,
     ):
+        from .._utils.attrs import simple_converter
+
         logger.debug(f'Looking for match in release.json: {release_json_asset["url"]}')
 
         download_headers = self.make_request_headers(HeadersIntent.Download)
@@ -313,9 +316,13 @@ class GithubResolver(BaseResolver):
             headers=download_headers,
             raise_for_status=True,
         ) as response:
-            packager_metadata: _PackagerReleaseJson = await response.json(
+            packager_metadata_dict = await response.json(
                 content_type=None  # application/octet-stream
             )
+
+        packager_metadata = simple_converter().structure(
+            packager_metadata_dict, _PackagerReleaseJson
+        )
 
         subreleases = packager_metadata['releases']
         if not subreleases:
