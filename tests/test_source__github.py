@@ -11,10 +11,10 @@ import pytest
 from yarl import URL
 
 from instawow import config_ctx
-from instawow._sources.github import GithubResolver
+from instawow._sources.github import GithubResolver, _PackagerReleaseJsonFlavor
 from instawow.definitions import Defn, Strategies, Strategy
 from instawow.results import PkgFilesMissing, PkgFilesNotMatching, PkgNonexistent
-from instawow.wow_installations import Flavour, FlavourVersionRange
+from instawow.wow_installations import Flavour
 
 from ._fixtures.http import AddRoutes, Route
 
@@ -170,10 +170,10 @@ async def test_any_flavour_strategy(
     github_resolver: GithubResolver,
     any_flavour: Literal[True, None],
 ):
-    opposite_flavour = next(f for f in Flavour if f is not config_ctx.config().game_flavour)
-    opposite_interface = next(
-        n for r in opposite_flavour.to_flavourful_enum(FlavourVersionRange).value for n in r
+    wrong_flavour = next(
+        f for f in Flavour.iter_supported() if f is not config_ctx.config().game_flavour
     )
+    wrong_interface = next(n for r in wrong_flavour.versions for n in r)
 
     iw_add_routes(
         Route(
@@ -184,7 +184,12 @@ async def test_any_flavour_strategy(
                         'filename': 'TestGit-v1.9.7.zip',
                         'nolib': False,
                         'metadata': [
-                            {'flavor': opposite_flavour, 'interface': opposite_interface}
+                            {
+                                'flavor': wrong_flavour.to_flavourful_enum(
+                                    _PackagerReleaseJsonFlavor
+                                ),
+                                'interface': wrong_interface,
+                            }
                         ],
                     }
                 ]
@@ -258,7 +263,7 @@ async def test_mismatched_release_is_skipped_and_logged(
         'instawow._sources.github',
         logging.INFO,
         f'Flavor and interface mismatch: {interface} not found in '
-        f'{[config_ctx.config().game_flavour.to_flavourful_enum(FlavourVersionRange).value]}',
+        f'{(config_ctx.config().game_flavour,)}',
     ) in caplog.record_tuples
 
 

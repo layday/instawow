@@ -7,7 +7,6 @@ from enum import StrEnum
 from functools import partial
 from itertools import batched, product, tee, zip_longest
 from typing import Any, Literal
-from typing import NotRequired as N
 
 from typing_extensions import TypedDict
 from yarl import URL
@@ -25,7 +24,7 @@ from ..resolvers import (
     PkgCandidate,
 )
 from ..results import PkgFilesMissing, PkgFilesNotMatching, PkgNonexistent
-from ..wow_installations import Flavour, FlavourVersionRange
+from ..wow_installations import Flavour
 
 
 # Not exhaustive (as you might've guessed).  Reference:
@@ -60,8 +59,8 @@ class _PackagerReleaseJson(TypedDict):
 
 
 class _PackagerReleaseJson_Release(TypedDict):
-    name: N[str]  # Added in https://github.com/BigWigsMods/packager/commit/7812bcd
-    version: N[str]  # As above
+    # name: NotRequired[str]  # Added in https://github.com/BigWigsMods/packager/commit/7812bcd
+    # version: NotRequired[str]  # As above
     filename: str
     nolib: bool
     metadata: list[_PackagerReleaseJson_Release_Metadata]
@@ -157,7 +156,6 @@ class GithubResolver(BaseResolver):
         if desired_flavours is None:
             desired_flavours = tuple(Flavour)
 
-        desired_version_ranges = {FlavourVersionRange[f.name] for f in desired_flavours}
         desired_toc_suffixes = tuple(
             s for f in desired_flavours for s in NORMALISED_FLAVOUR_TOC_EXTENSIONS[f]
         )
@@ -291,7 +289,8 @@ class GithubResolver(BaseResolver):
                 f'Found interface versions {toc_reader.interfaces!r} in {main_toc_filename}'
             )
             if toc_reader.interfaces and any(
-                r.contains(i) for r, i in product(desired_version_ranges, toc_reader.interfaces)
+                Flavour.from_version_number(i) is f
+                for f, i in product(desired_flavours, toc_reader.interfaces)
             ):
                 matching_asset = candidate
                 break
@@ -332,19 +331,15 @@ class GithubResolver(BaseResolver):
             desired_release_json_flavors = {
                 f.to_flavourful_enum(_PackagerReleaseJsonFlavor) for f in desired_flavours
             }
-            desired_version_ranges = {
-                f.to_flavourful_enum(FlavourVersionRange) for f in desired_flavours
-            }
 
             def is_compatible(release: _PackagerReleaseJson_Release):
                 for metadata in release['metadata']:
                     if metadata['flavor'] in desired_release_json_flavors:
-                        if any(r.contains(metadata['interface']) for r in desired_version_ranges):
+                        if Flavour.from_version_number(metadata['interface']) in desired_flavours:
                             return True
 
                         logger.info(
-                            f'Flavor and interface mismatch: {metadata["interface"]} not found in '
-                            f'{[r.value for r in desired_version_ranges]}'
+                            f'Flavor and interface mismatch: {metadata["interface"]} not found in {desired_flavours}'
                         )
 
                 return False

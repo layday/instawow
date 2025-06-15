@@ -10,7 +10,6 @@ import pytest
 from instawow.config import ProfileConfig
 from instawow.wow_installations import (
     Flavour,
-    FlavourVersionRange,
     find_installations,
     get_installation_version_from_addon_dir,
     infer_flavour_from_addon_dir,
@@ -47,24 +46,24 @@ def test_flavour_groups_vary_by_flavour_and_affinity(
 
 
 def test_can_extract_flavour_from_version_number():
-    assert FlavourVersionRange.from_version(9_50_00) is FlavourVersionRange.Retail
-    assert FlavourVersionRange.from_version(4_04_00) is FlavourVersionRange.Classic
-    assert FlavourVersionRange.from_version(5_05_00) is FlavourVersionRange.MistsClassic
-    assert FlavourVersionRange.from_version(1_23_00) is FlavourVersionRange.VanillaClassic
+    assert Flavour.from_version_number(9_50_00) is Flavour.Retail
+    assert Flavour.from_version_number(4_04_00) is Flavour.Classic
+    assert Flavour.from_version_number(5_05_00) is Flavour.MistsClassic
+    assert Flavour.from_version_number(1_23_00) is Flavour.VanillaClassic
 
 
 def test_can_extract_flavour_from_version_string():
-    assert FlavourVersionRange.from_version('9.50.0') is FlavourVersionRange.Retail
-    assert FlavourVersionRange.from_version('4.4.0') is FlavourVersionRange.Classic
-    assert FlavourVersionRange.from_version('5.5.0') is FlavourVersionRange.MistsClassic
-    assert FlavourVersionRange.from_version('1.23.0') is FlavourVersionRange.VanillaClassic
+    assert Flavour.from_version_string('9.50.0') is Flavour.Retail
+    assert Flavour.from_version_string('4.4.0') is Flavour.Classic
+    assert Flavour.from_version_string('5.5.0') is Flavour.MistsClassic
+    assert Flavour.from_version_string('1.23.0') is Flavour.VanillaClassic
 
 
 def test_can_extract_flavour_from_partial_version_string():
-    assert FlavourVersionRange.from_version('9.2') is FlavourVersionRange.Retail
-    assert FlavourVersionRange.from_version('4.4') is FlavourVersionRange.Classic
-    assert FlavourVersionRange.from_version('5.5') is FlavourVersionRange.MistsClassic
-    assert FlavourVersionRange.from_version('3') is FlavourVersionRange.Retail
+    assert Flavour.from_version_string('9.2') is Flavour.Retail
+    assert Flavour.from_version_string('4.4') is Flavour.Classic
+    assert Flavour.from_version_string('5.5') is Flavour.MistsClassic
+    assert Flavour.from_version_string('3') is Flavour.Retail
 
 
 @pytest.mark.parametrize(

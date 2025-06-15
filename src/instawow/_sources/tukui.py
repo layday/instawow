@@ -10,7 +10,7 @@ from .._logging import logger
 from ..definitions import ChangelogFormat, Defn, SourceMetadata
 from ..resolvers import BaseResolver, CatalogueEntryCandidate, PkgCandidate
 from ..results import PkgFilesNotMatching, PkgNonexistent
-from ..wow_installations import Flavour, FlavourVersionRange
+from ..wow_installations import Flavour
 
 
 class _TukuiAddon(TypedDict):
@@ -58,10 +58,8 @@ class TukuiResolver(BaseResolver):
 
             ui_metadata: _TukuiAddon = await response.json()
 
-        wanted_version_range = config_ctx.config().game_flavour.to_flavourful_enum(
-            FlavourVersionRange
-        )
-        if not any(wanted_version_range.contains(p) for p in ui_metadata['patch']):
+        game_flavour = config_ctx.config().game_flavour
+        if not any(Flavour.from_version_string(p) is game_flavour for p in ui_metadata['patch']):
             raise PkgFilesNotMatching(defn.strategies)
 
         return PkgCandidate(
@@ -93,9 +91,7 @@ class TukuiResolver(BaseResolver):
                 name=item['name'],
                 url=item['web_url'],
                 game_flavours=frozenset(
-                    Flavour.from_flavourful_enum(r)
-                    for g in item['patch']
-                    if (r := FlavourVersionRange.from_version(g))
+                    f for p in item['patch'] for f in (Flavour.from_version_string(p),) if f
                 ),
                 download_count=1,
                 last_updated=datetime.fromisoformat(item['last_update']).replace(tzinfo=UTC),

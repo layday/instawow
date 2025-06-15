@@ -19,7 +19,7 @@ from .._utils.web import as_plain_text_data_url
 from ..definitions import ChangelogFormat, Defn, SourceMetadata
 from ..resolvers import BaseResolver, CatalogueEntryCandidate, PkgCandidate
 from ..results import PkgNonexistent, resultify
-from ..wow_installations import Flavour, FlavourVersionRange
+from ..wow_installations import Flavour
 
 _slugify = normalise_names('-')
 
@@ -163,9 +163,10 @@ class WowiResolver(BaseResolver[_WowiDetailsApiItem]):
                         name=item['UIName'],
                         url=item['UIFileInfoURL'],
                         game_flavours=frozenset(
-                            Flavour.from_flavourful_enum(r)
+                            f
                             for c in compatibility
-                            if (r := FlavourVersionRange.from_version(c['version']))
+                            for f in (Flavour.from_version_string(c['version']),)
+                            if f
                         ),
                         download_count=int(item['UIDownloadTotal']),
                         last_updated=_timestamp_to_datetime(item['UIDate']),

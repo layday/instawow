@@ -9,6 +9,8 @@ from functools import cache
 from pathlib import Path
 from typing import Self, TypedDict
 
+from multidict import MultiDict
+
 from ._utils.iteration import fill
 
 
@@ -21,62 +23,72 @@ class Flavour(StrEnum):
     # intervention for new Classic releases.
     Retail = 'retail'
     VanillaClassic = 'vanilla_classic'
+    TbcClassic = 'tbc_classic'
     WrathClassic = 'wrath_classic'
     MistsClassic = 'mists_classic'
     Classic = 'classic'
     CataClassic = Classic
 
-    _UNSUPPORTED = enum.nonmember(
+    _UNSUPPORTED_FLAVOURS = enum.nonmember(
         (
+            TbcClassic,
             WrathClassic,
             MistsClassic,
         )
     )
 
+    _VERSION_RANGES_TO_FLAVOURS = enum.nonmember(
+        MultiDict(
+            (f, r)
+            for r, f in [
+                (range(1_00_00, 1_13_00), Retail),
+                (range(1_13_00, 2_00_00), VanillaClassic),
+                (range(2_00_00, 2_05_00), Retail),
+                (range(2_05_00, 3_00_00), TbcClassic),
+                (range(3_00_00, 3_04_00), Retail),
+                (range(3_04_00, 4_00_00), WrathClassic),
+                (range(4_00_00, 4_04_00), Retail),
+                (range(4_04_00, 5_00_00), CataClassic),
+                (range(5_00_00, 5_05_00), Retail),
+                (range(5_05_00, 6_00_00), MistsClassic),
+                (range(6_00_00, 12_00_00), Retail),
+            ]
+        )
+    )
+
     @classmethod
     def iter_supported(cls) -> Iterator[Self]:
-        return (m for m in cls if m not in cls._UNSUPPORTED)
+        return (m for m in cls if m not in cls._UNSUPPORTED_FLAVOURS)
 
     @classmethod
     def from_flavourful_enum(cls, flavour_keyed_enum: Enum) -> Self:
         return cls[flavour_keyed_enum.name]
+
+    @classmethod
+    def from_version_number(cls, version: int) -> Self | None:
+        return next(
+            (cls(f) for f, r in cls._VERSION_RANGES_TO_FLAVOURS.items() if version in r), None
+        )
+
+    @classmethod
+    def from_version_string(cls, version: str) -> Self | None:
+        return cls.from_version_number(_parse_version_string(version))
 
     def to_flavourful_enum[EnumT: Enum](self, flavour_keyed_enum: type[EnumT]) -> EnumT:
         return flavour_keyed_enum[self.name]
 
     def get_flavour_groups(self, affine: bool) -> list[tuple[Flavour, ...] | None]:
         match (self, affine):
-            # case (self.__class__.Classic, True):
-            #     return [(self, self.__class__.CataClassic), None]
+            case (self.MistsClassic, True):
+                return [(self, self.CataClassic), None]
             case (_, True):
                 return [(self,), None]
             case _:
                 return [(self,)]
 
-
-class FlavourVersionRange(Enum):
-    Retail = (
-        range(1_00_00, 1_13_00),
-        range(2_00_00, 2_05_00),
-        range(3_00_00, 3_04_00),
-        range(4_00_00, 4_04_00),
-        range(5_00_00, 5_05_00),
-        range(6_00_00, 12_00_00),
-    )
-    VanillaClassic = (range(1_13_00, 2_00_00),)
-    WrathClassic = (range(3_04_00, 4_00_00),)
-    CataClassic = (range(4_04_00, 5_00_00),)
-    MistsClassic = (range(5_05_00, 6_00_00),)
-    Classic = CataClassic
-
-    @classmethod
-    def from_version(cls, version: int | str) -> Self | None:
-        version_number = version if isinstance(version, int) else _parse_version_string(version)
-        return next((f for f in cls if f.contains(version_number)), None)
-
-    def contains(self, version: int | str) -> bool:
-        version_number = version if isinstance(version, int) else _parse_version_string(version)
-        return any(version_number in r for r in self.value)
+    @property
+    def versions(self) -> list[range]:
+        return self._VERSION_RANGES_TO_FLAVOURS.getall(self)
 
 
 class FlavourTocSuffixes(Enum):
