@@ -43,10 +43,8 @@ def _load_plugins():
 
 
 def get_plugin_commands() -> Iterable[Iterable[click.Command]]:
-    plugin_hook = _load_plugins()
-    return plugin_hook.instawow_add_commands()
+    return _load_plugins().instawow_add_commands()
 
 
 def get_plugin_resolvers() -> Iterable[Iterable[resolvers.Resolver]]:
-    plugin_hook = _load_plugins()
-    return plugin_hook.instawow_add_resolvers()
+    return _load_plugins().instawow_add_resolvers()

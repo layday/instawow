@@ -23,13 +23,13 @@ class DistNotFoundError(Exception):
 
 
 @contextmanager
-def _iter_dist_infos(path: list[str]):
+def _iter_dist_infos(paths: list[str]):
     with ExitStack() as exit_stack:
         yield (
             p
-            for e in path
-            if Path(e).is_dir()
-            for p in exit_stack.enter_context(os.scandir(e))
+            for e in map(Path, paths)
+            if e.is_dir()
+            for p in exit_stack.enter_context(os.scandir(e or '.'))
             if p.name.endswith('.dist-info')
         )
 
