@@ -81,6 +81,7 @@ test = [
 ]
 typing = [
   "diskcache-stubs",
+  "wcwidth-stubs",
 ]
 
 [tool.ruff]
