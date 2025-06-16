@@ -12,7 +12,7 @@ from attrs import field
 from .. import NAME
 from .._utils.attrs import enrich_validator_exc, fauxfrozen
 from .._utils.file import expand_path, trash
-from ..wow_installations import Flavour, get_installation_dir_from_addon_dir
+from ..wow_installations import Flavour, extract_installation_dir_from_addon_dir
 from ._dirs import get_cache_dir, get_config_dir, get_state_dir
 from ._helpers import (
     FieldMetadata,
@@ -156,7 +156,7 @@ class ProfileConfig:
     def iter_profile_installations(cls, global_config: GlobalConfig) -> Iterator[Path]:
         for config_json in global_config.dirs.config.glob('profiles/*/config.json'):
             addon_dir = read_config(cls, config_json)['addon_dir']
-            maybe_installation_dir = get_installation_dir_from_addon_dir(addon_dir)
+            maybe_installation_dir = extract_installation_dir_from_addon_dir(addon_dir)
             if maybe_installation_dir:
                 yield maybe_installation_dir
 

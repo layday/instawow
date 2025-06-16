@@ -1097,9 +1097,9 @@ def configure_profile(editable_config_values: Mapping[_EditableConfigOptions, An
     from .._logging import logger
     from .._utils.file import expand_path
     from ..wow_installations import (
-        ADDON_DIR_PARTS,
         Flavour,
         find_installations,
+        get_addon_dir_from_installation_dir,
         infer_flavour_from_addon_dir,
     )
     from .prompts import (
@@ -1165,7 +1165,7 @@ def configure_profile(editable_config_values: Mapping[_EditableConfigOptions, An
                 if selection is not SKIP:
                     (installation_path, flavour) = selection
 
-                    addon_dir = installation_path.joinpath(*ADDON_DIR_PARTS)
+                    addon_dir = get_addon_dir_from_installation_dir(installation_path)
                     addon_dir.mkdir(exist_ok=True)
 
                     editable_config_values |= {
@@ -1192,7 +1192,7 @@ def configure_profile(editable_config_values: Mapping[_EditableConfigOptions, An
         ):
             editable_config_values[_EditableConfigOptions.GameFlavour] = select_one(
                 'Game flavour',
-                [Choice(f, f) for f in Flavour.iter_supported()],
+                [Choice(f, f) for f in Flavour],
                 initial_value=config_values.get('addon_dir')
                 and infer_flavour_from_addon_dir(config_values['addon_dir']),
             ).prompt()

@@ -155,6 +155,8 @@ class WowiResolver(BaseResolver[_WowiDetailsApiItem]):
         ) as response:
             items: list[_WowiListApiItem] = await response.json()
 
+        supported_flavours = frozenset(Flavour)
+
         for item in items:
             match item:
                 case {'UICompatibility': list(compatibility)}:
@@ -162,7 +164,7 @@ class WowiResolver(BaseResolver[_WowiDetailsApiItem]):
                         id=item['UID'],
                         name=item['UIName'],
                         url=item['UIFileInfoURL'],
-                        game_flavours=frozenset(
+                        game_flavours=supported_flavours.intersection(
                             f
                             for c in compatibility
                             for f in (Flavour.from_version_string(c['version']),)

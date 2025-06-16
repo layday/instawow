@@ -24,7 +24,7 @@ from ..resolvers import (
     PkgCandidate,
 )
 from ..results import PkgFilesMissing, PkgFilesNotMatching, PkgNonexistent, resultify
-from ..wow_installations import Flavour
+from ..wow_installations import Flavour, to_flavourful_enum
 
 _CF_WOW_GAME_ID = 1
 
@@ -392,7 +392,7 @@ class CfCoreResolver(BaseResolver[_CfCoreMod]):
 
                 if desired_flavours:
                     type_ids = {
-                        f.to_flavourful_enum(_CfCoreSortableGameVersionTypeId)
+                        to_flavourful_enum(f, _CfCoreSortableGameVersionTypeId)
                         for f in desired_flavours
                     }
                     yield lambda f: any(
@@ -455,12 +455,12 @@ class CfCoreResolver(BaseResolver[_CfCoreMod]):
     async def catalogue(self):
         from aiohttp import ClientTimeout
 
-        flavours_and_version_types = [
-            (f, f.to_flavourful_enum(_CfCoreSortableGameVersionTypeId)) for f in Flavour
+        supported_flavours = [
+            (f, to_flavourful_enum(f, _CfCoreSortableGameVersionTypeId)) for f in Flavour
         ]
 
         def excise_flavours(files: list[_CfCoreFile]):
-            for flavour, version_type in flavours_and_version_types:
+            for flavour, version_type in supported_flavours:
                 if any(
                     not f.get('exposeAsAlternative', False)
                     and any(

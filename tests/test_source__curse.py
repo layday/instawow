@@ -35,7 +35,7 @@ def curse_resolver():
 
 @pytest.mark.parametrize(
     'iw_profile_config_values',
-    Flavour.iter_supported(),
+    Flavour,
     indirect=True,
 )
 async def test_resolve_flavourful_addon(
@@ -49,7 +49,7 @@ async def test_resolve_flavourful_addon(
 
 @pytest.mark.parametrize(
     'iw_profile_config_values',
-    Flavour.iter_supported(),
+    Flavour,
     indirect=True,
 )
 async def test_resolve_classic_only_addon(

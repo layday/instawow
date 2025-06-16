@@ -14,7 +14,16 @@ from multidict import MultiDict
 from ._utils.iteration import fill
 
 
-class Flavour(StrEnum):
+class _FlavourEnumType(enum.EnumType):
+    def __iter__(self) -> Iterator[Flavour]:
+        return (
+            m
+            for m in super().__iter__()
+            if m not in self._UNSUPPORTED_FLAVOURS  # pyright: ignore  # noqa: PGH003
+        )
+
+
+class Flavour(StrEnum, metaclass=_FlavourEnumType):
     # The current Classic version is always aliased to "classic".
     # The assumption here is that should Classic not be discontinued
     # it will continue to be updated in place so that new Classic versions
@@ -37,7 +46,7 @@ class Flavour(StrEnum):
         )
     )
 
-    _VERSION_RANGES_TO_FLAVOURS = enum.nonmember(
+    _FLAVOURS_TO_VERSIONS = enum.nonmember(
         MultiDict(
             (f, r)
             for r, f in [
@@ -57,25 +66,15 @@ class Flavour(StrEnum):
     )
 
     @classmethod
-    def iter_supported(cls) -> Iterator[Self]:
-        return (m for m in cls if m not in cls._UNSUPPORTED_FLAVOURS)
-
-    @classmethod
-    def from_flavourful_enum(cls, flavour_keyed_enum: Enum) -> Self:
-        return cls[flavour_keyed_enum.name]
-
-    @classmethod
     def from_version_number(cls, version: int) -> Self | None:
         return next(
-            (cls(f) for f, r in cls._VERSION_RANGES_TO_FLAVOURS.items() if version in r), None
+            (cls(f) for f, r in cls._FLAVOURS_TO_VERSIONS.items() if version in r),
+            None,
         )
 
     @classmethod
     def from_version_string(cls, version: str) -> Self | None:
         return cls.from_version_number(_parse_version_string(version))
-
-    def to_flavourful_enum[EnumT: Enum](self, flavour_keyed_enum: type[EnumT]) -> EnumT:
-        return flavour_keyed_enum[self.name]
 
     def get_flavour_groups(self, affine: bool) -> list[tuple[Flavour, ...] | None]:
         match (self, affine):
@@ -87,8 +86,12 @@ class Flavour(StrEnum):
                 return [(self,)]
 
     @property
+    def is_supported(self) -> bool:
+        return self not in self._UNSUPPORTED_FLAVOURS
+
+    @property
     def versions(self) -> list[range]:
-        return self._VERSION_RANGES_TO_FLAVOURS.getall(self)
+        return self._FLAVOURS_TO_VERSIONS.getall(self)
 
 
 class FlavourTocSuffixes(Enum):
@@ -96,10 +99,17 @@ class FlavourTocSuffixes(Enum):
     # https://warcraft.wiki.gg/wiki/TOC_format#Multiple_client_flavors
     Retail = ('Mainline',)
     VanillaClassic = ('Vanilla', 'Classic')
+    TbcClassic = ('TBC', 'BCC', 'Classic')
     WrathClassic = ('Wrath', 'WOTLKC', 'Classic')
     CataClassic = ('Cata', 'Classic')
     MistsClassic = ('Mists', 'Classic')
     Classic = CataClassic
+
+
+def to_flavourful_enum[TargetEnumT: Enum](
+    source_enum: Enum, target_enum_type: type[TargetEnumT]
+) -> TargetEnumT:
+    return target_enum_type[source_enum.name]
 
 
 class _Product(TypedDict):
@@ -150,8 +160,8 @@ _DELECTABLE_DIR_NAMES: dict[str, _Product] = {
     },
 }
 
-ADDON_DIR_PARTS = ('Interface', 'AddOns')
-_NORMALISED_ADDON_DIR_PARTS = tuple(map(str.casefold, ADDON_DIR_PARTS))
+_ADDON_DIR_PARTS = ('Interface', 'AddOns')
+_NORMALISED_ADDON_DIR_PARTS = tuple(map(str.casefold, _ADDON_DIR_PARTS))
 
 
 def _find_mac_installations():
@@ -192,7 +202,7 @@ def _read_info(info_path: Path):
 
 
 @cache
-def _get_installed_versions_from_build_info(outer_installation_path: Path):
+def _extract_installed_versions_from_build_info(outer_installation_path: Path):
     return {
         e['Product']: _parse_version_string(e['Version'])
         for e in _read_info(outer_installation_path / '.build.info')
@@ -200,7 +210,7 @@ def _get_installed_versions_from_build_info(outer_installation_path: Path):
 
 
 @cache
-def _get_installed_version_from_config_wtf(installation_path: Path):
+def _extract_installed_version_from_config_wtf(installation_path: Path):
     with open(installation_path.joinpath('WTF', 'Config.wtf'), 'rb') as config_wtf:
         version_prefix = b'SET lastAddonVersion'
         for line in config_wtf:
@@ -211,29 +221,20 @@ def _get_installed_version_from_config_wtf(installation_path: Path):
                 break
 
 
-def get_installation_dir_from_addon_dir(path_like: os.PathLike[str] | str) -> Path | None:
+def extract_installation_dir_from_addon_dir(path_like: os.PathLike[str] | str) -> Path | None:
     path = Path(path_like)
     tail = tuple(map(str.casefold, path.parts[-3:]))
     if len(tail) == 3 and tail[1:] == _NORMALISED_ADDON_DIR_PARTS:
         return path.parents[1]
 
 
-def infer_flavour_from_addon_dir(path: os.PathLike[str] | str) -> Flavour | None:
-    maybe_installation_dir = get_installation_dir_from_addon_dir(path)
-    if maybe_installation_dir:
-        try:
-            return _DELECTABLE_DIR_NAMES[maybe_installation_dir.name]['flavour']
-        except KeyError:
-            return None
-
-
-def get_installation_version_from_addon_dir(path: os.PathLike[str] | str) -> int | None:
-    maybe_installation_dir = get_installation_dir_from_addon_dir(path)
+def extract_installation_version_from_addon_dir(path: os.PathLike[str] | str) -> int | None:
+    maybe_installation_dir = extract_installation_dir_from_addon_dir(path)
     if maybe_installation_dir:
         product = _DELECTABLE_DIR_NAMES.get(maybe_installation_dir.name)
         if product:
             try:
-                all_versions = _get_installed_versions_from_build_info(
+                all_versions = _extract_installed_versions_from_build_info(
                     maybe_installation_dir.parent
                 )
             except FileNotFoundError:
@@ -244,6 +245,19 @@ def get_installation_version_from_addon_dir(path: os.PathLike[str] | str) -> int
                     return version
 
         try:
-            return _get_installed_version_from_config_wtf(maybe_installation_dir)
+            return _extract_installed_version_from_config_wtf(maybe_installation_dir)
         except FileNotFoundError:
+            return None
+
+
+def get_addon_dir_from_installation_dir(path_like: os.PathLike[str]) -> Path:
+    return Path(path_like, *_ADDON_DIR_PARTS)
+
+
+def infer_flavour_from_addon_dir(path: os.PathLike[str] | str) -> Flavour | None:
+    maybe_installation_dir = extract_installation_dir_from_addon_dir(path)
+    if maybe_installation_dir:
+        try:
+            return _DELECTABLE_DIR_NAMES[maybe_installation_dir.name]['flavour']
+        except KeyError:
             return None

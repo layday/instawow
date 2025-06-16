@@ -20,7 +20,7 @@ def tukui_resolver():
 
 @pytest.mark.parametrize(
     'iw_profile_config_values',
-    Flavour.iter_supported(),
+    Flavour,
     indirect=True,
 )
 @pytest.mark.parametrize('alias', ['tukui', 'elvui'])

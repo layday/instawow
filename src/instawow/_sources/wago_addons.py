@@ -7,6 +7,8 @@ from typing import Never
 from typing_extensions import TypedDict
 from yarl import URL
 
+from instawow.wow_installations import to_flavourful_enum
+
 from .. import config_ctx, http_ctx
 from .._utils.web import as_plain_text_data_url
 from ..definitions import ChangelogFormat, Defn, SourceMetadata, Strategy
@@ -89,7 +91,7 @@ class WagoAddonsResolver(BaseResolver):
     async def resolve_one(self, defn: Defn, metadata: None):
         async with http_ctx.web_client().get(
             (self.__wago_external_api_url / 'addons' / defn.alias).with_query(
-                game_version=config_ctx.config().game_flavour.to_flavourful_enum(_WagoGameVersion)
+                game_version=to_flavourful_enum(config_ctx.config().game_flavour, _WagoGameVersion)
             ),
             expire_after=timedelta(minutes=5),
             headers=self.make_request_headers(),

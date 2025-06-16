@@ -18,8 +18,8 @@ from instawow._utils.iteration import bucketise, uniq
 from instawow._utils.perf import time_op
 from instawow.progress_reporting import make_download_progress, make_incrementing_progress_tracker
 from instawow.wow_installations import (
-    get_installation_dir_from_addon_dir,
-    get_installation_version_from_addon_dir,
+    extract_installation_dir_from_addon_dir,
+    extract_installation_version_from_addon_dir,
 )
 
 from ._utils import get_checksum
@@ -264,7 +264,8 @@ end)
         )
 
         interface_version = (
-            get_installation_version_from_addon_dir(plugin_config.profile_config.addon_dir) or 0
+            extract_installation_version_from_addon_dir(plugin_config.profile_config.addon_dir)
+            or 0
         )
         addon_version = get_checksum(data_output, init_output, interface_version)[:7]
 
@@ -329,7 +330,9 @@ def extract_installed_auras(
 ) -> Iterator[tuple[str, _AuraAddon, _AuraGroup]]:
     import diskcache
 
-    installation_dir = get_installation_dir_from_addon_dir(plugin_config.profile_config.addon_dir)
+    installation_dir = extract_installation_dir_from_addon_dir(
+        plugin_config.profile_config.addon_dir
+    )
     if not installation_dir:
         raise ValueError(
             f'Cannot determine installation folder from {plugin_config.profile_config.addon_dir}'

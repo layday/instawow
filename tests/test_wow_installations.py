@@ -10,10 +10,15 @@ import pytest
 from instawow.config import ProfileConfig
 from instawow.wow_installations import (
     Flavour,
+    extract_installation_version_from_addon_dir,
     find_installations,
-    get_installation_version_from_addon_dir,
     infer_flavour_from_addon_dir,
+    to_flavourful_enum,
 )
+
+
+def test_class_iter_only_returns_supported_flavours():
+    assert list(Flavour) == [Flavour.Retail, Flavour.VanillaClassic, Flavour.Classic]
 
 
 def test_can_convert_between_flavour_keyed_enum_and_flavour():
@@ -23,11 +28,11 @@ def test_can_convert_between_flavour_keyed_enum_and_flavour():
         Classic = 3
         MistsClassic = 4
 
-    assert Flavour.from_flavourful_enum(Foo.Retail) is Flavour.Retail
-    assert Flavour.Retail.to_flavourful_enum(Foo) is Foo.Retail
+    assert to_flavourful_enum(Foo.Retail, Flavour) is Flavour.Retail
+    assert to_flavourful_enum(Flavour.Retail, Foo) is Foo.Retail
 
 
-@pytest.mark.parametrize('flavour', Flavour.iter_supported())
+@pytest.mark.parametrize('flavour', Flavour)
 @pytest.mark.parametrize('affine', [True, False])
 def test_flavour_groups_vary_by_flavour_and_affinity(
     flavour: Flavour,
@@ -136,4 +141,4 @@ def test_installation_version_extraction_from_addon_dir(
 Version!STRING:0|Product!STRING:0
 10.9.8.7|wow
 """)
-    assert get_installation_version_from_addon_dir(iw_profile_config.addon_dir) == 100908
+    assert extract_installation_version_from_addon_dir(iw_profile_config.addon_dir) == 100908

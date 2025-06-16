@@ -24,7 +24,7 @@ from ..resolvers import (
     PkgCandidate,
 )
 from ..results import PkgFilesMissing, PkgFilesNotMatching, PkgNonexistent
-from ..wow_installations import Flavour
+from ..wow_installations import Flavour, to_flavourful_enum
 
 
 # Not exhaustive (as you might've guessed).  Reference:
@@ -329,7 +329,7 @@ class GithubResolver(BaseResolver):
 
         if desired_flavours:
             desired_release_json_flavors = {
-                f.to_flavourful_enum(_PackagerReleaseJsonFlavor) for f in desired_flavours
+                to_flavourful_enum(f, _PackagerReleaseJsonFlavor) for f in desired_flavours
             }
 
             def is_compatible(release: _PackagerReleaseJson_Release):
@@ -503,6 +503,10 @@ class GithubResolver(BaseResolver):
         import csv
         from io import StringIO
 
+        supported_flavours = {
+            to_flavourful_enum(f, _PackagerReleaseJsonFlavor): f for f in Flavour
+        }
+
         logger.debug(f'Retrieving {self.__generated_catalogue_csv_url}')
 
         async with http_ctx.web_client().get(
@@ -523,7 +527,8 @@ class GithubResolver(BaseResolver):
                 except ValueError:
                     continue
                 else:
-                    yield Flavour.from_flavourful_enum(release_json_flavor)
+                    if release_json_flavor in supported_flavours:
+                        yield supported_flavours[release_json_flavor]
 
         for entry in dict_reader:
             yield CatalogueEntryCandidate(

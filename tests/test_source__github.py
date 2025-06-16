@@ -14,7 +14,7 @@ from instawow import config_ctx
 from instawow._sources.github import GithubResolver, _PackagerReleaseJsonFlavor
 from instawow.definitions import Defn, Strategies, Strategy
 from instawow.results import PkgFilesMissing, PkgFilesNotMatching, PkgNonexistent
-from instawow.wow_installations import Flavour
+from instawow.wow_installations import Flavour, to_flavourful_enum
 
 from ._fixtures.http import AddRoutes, Route
 
@@ -93,7 +93,7 @@ def package_json_less_addon(
 )
 @pytest.mark.parametrize(
     'iw_profile_config_values',
-    Flavour.iter_supported(),
+    Flavour,
     indirect=True,
 )
 async def test_extracting_flavour_from_zip_contents(
@@ -170,9 +170,7 @@ async def test_any_flavour_strategy(
     github_resolver: GithubResolver,
     any_flavour: Literal[True, None],
 ):
-    wrong_flavour = next(
-        f for f in Flavour.iter_supported() if f is not config_ctx.config().game_flavour
-    )
+    wrong_flavour = next(f for f in Flavour if f is not config_ctx.config().game_flavour)
     wrong_interface = next(n for r in wrong_flavour.versions for n in r)
 
     iw_add_routes(
@@ -185,8 +183,8 @@ async def test_any_flavour_strategy(
                         'nolib': False,
                         'metadata': [
                             {
-                                'flavor': wrong_flavour.to_flavourful_enum(
-                                    _PackagerReleaseJsonFlavor
+                                'flavor': to_flavourful_enum(
+                                    wrong_flavour, _PackagerReleaseJsonFlavor
                                 ),
                                 'interface': wrong_interface,
                             }

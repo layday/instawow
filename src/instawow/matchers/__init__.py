@@ -14,7 +14,7 @@ from .._utils.attrs import fauxfrozen
 from .._utils.iteration import bucketise, merge_intersecting_sets, uniq
 from ..catalogue import synchronise as synchronise_catalogue
 from ..definitions import Defn
-from ..wow_installations import Flavour, FlavourTocSuffixes
+from ..wow_installations import Flavour, FlavourTocSuffixes, to_flavourful_enum
 from .addon_toc import TocReader
 
 
@@ -25,7 +25,7 @@ class Matcher(Protocol):  # pragma: no cover
 
 
 _FLAVOUR_TOC_EXTENSIONS = {
-    Flavour.from_flavourful_enum(s): tuple(f'{s}{f}.toc' for s, f in product('-_', s.value))
+    to_flavourful_enum(s, Flavour): tuple(f'{s}{f}.toc' for s, f in product('-_', s.value))
     for s in FlavourTocSuffixes
 }
 NORMALISED_FLAVOUR_TOC_EXTENSIONS = {

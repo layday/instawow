@@ -24,7 +24,7 @@ async def test_basic_search():
 
 @pytest.mark.parametrize(
     'iw_profile_config_values',
-    Flavour.iter_supported(),
+    Flavour,
     indirect=True,
 )
 async def test_search_flavour_filtering():

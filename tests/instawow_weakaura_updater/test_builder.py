@@ -7,7 +7,7 @@ from yarl import URL
 
 from instawow import config_ctx, pkg_management
 from instawow.definitions import Defn
-from instawow.wow_installations import get_installation_dir_from_addon_dir
+from instawow.wow_installations import extract_installation_dir_from_addon_dir
 from instawow_weakaura_updater.builder import (
     _Aura,
     _generate_addon,
@@ -27,7 +27,7 @@ async def plugin_config():
 
 @pytest.fixture
 async def saved_vars_path():
-    installation_path = get_installation_dir_from_addon_dir(
+    installation_path = extract_installation_dir_from_addon_dir(
         config_ctx.config().addon_dir,
     )
     assert installation_path
