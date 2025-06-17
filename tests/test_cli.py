@@ -369,10 +369,13 @@ def test_reconcile__list_unreconciled(
     iw_profile_config: ProfileConfig,
 ):
     pretend_install_molinari(iw_profile_config)
-    assert run('reconcile --list-unreconciled').stdout == (
-        'unreconciled\n'  # fmt: skip
-        '------------\n'
-        'Molinari    \n'
+    assert run('reconcile --list-unreconciled').stdout == dedent(
+        """\
+        unreconciled
+        ------------
+        Molinari    \
+
+        """
     )
 
 
@@ -383,9 +386,14 @@ def test_reconcile_leftovers(
     pretend_install_molinari(iw_profile_config)
     iw_pt_input.send_text('sss')  # Skip
     assert run('reconcile').stdout.endswith(
-        'unreconciled\n'  # fmt: skip
-        '------------\n'
-        'Molinari    \n'
+        dedent(
+            """\
+            unreconciled
+            ------------
+            Molinari    \
+
+            """
+        )
     )
 
 
