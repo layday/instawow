@@ -12,6 +12,5 @@
     "instawow-weakaura-updater/src",
     "tests/plugin"
   ],
-  "stubPath": "type-stubs",
   "enableExperimentalFeatures": true
 }
