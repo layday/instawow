@@ -30,10 +30,10 @@ jobs:
         python:
           - "3.12"
           - "3.13"
-          # - "3.13t"
-        include:
-          - os: ubuntu-latest
-            python: "3.14"
+          - "3.14"
+        # include:
+        #   - os: ubuntu-latest
+        #     python: "3.14t"
     runs-on: ${{ matrix.os }}
     steps:
       - name: Clone the repo
@@ -78,9 +78,10 @@ jobs:
         python:
           - "3.12"
           - "3.13"
-        include:
-          - os: ubuntu-latest
-            python: "3.14"
+          - "3.14"
+        # include:
+        #   - os: ubuntu-latest
+        #     python: "3.14t"
     runs-on: ${{ matrix.os }}
     steps:
       - name: Clone the repo
