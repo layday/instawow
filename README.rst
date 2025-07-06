@@ -140,7 +140,7 @@ you can create a pristine profile for classic with::
     instawow -p classic configure
 
 "``classic``" is simply the name of the profile; you will be asked to select
-the installation folder, or to provide the add-on folder and game flavour if
+the installation folder, or to provide the add-on folder and game track if
 an installation cannot be found.
 
 ``-p`` is a global option. You can prefix any *instawow* command with ``-p``,
@@ -156,7 +156,7 @@ Migrating Classic profiles
 With the exception of "Classic Era" profiles
 (``vanilla_classic`` in *instawow* parlance), classic profiles will start
 receiving updates for the latest Classic release once it is supported by
-*instawow*.  You do not need to change the profile's flavour.
+*instawow*.  You do not need to change the profile's flavour or track.
 
 WeakAura updater
 ~~~~~~~~~~~~~~~~

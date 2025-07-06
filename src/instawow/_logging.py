@@ -4,7 +4,7 @@ import multiprocessing
 import os
 import sys
 
-from loguru import logger
+from loguru import logger as logger
 
 _logs_state_name = '_logs_v1'
 
@@ -42,8 +42,8 @@ def setup_logging(
     log_to_stderr: bool,
     debug: bool,
     intercept_logging_module_calls: bool,
-    /,
-    **extra: object,
+    *,
+    profile: str,
 ) -> None:
     log_level = 'DEBUG' if debug else 'INFO'
 
@@ -84,10 +84,10 @@ def setup_logging(
                 'enqueue': True,
                 'context': context,
                 'sink': sys.stderr,
-            }
+            },
         ]
 
     logger.configure(
-        extra={'profile': None} | extra,
+        extra={'profile': profile},
         handlers=handlers,  # pyright: ignore[reportArgumentType]
     )
