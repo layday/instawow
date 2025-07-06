@@ -1,11 +1,10 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Sequence
 from datetime import datetime, timedelta
 from enum import StrEnum
 from functools import partial
-from itertools import batched, product, tee, zip_longest
+from itertools import batched, tee, zip_longest
 from typing import Any, Literal
 
 from typing_extensions import TypedDict
@@ -24,7 +23,13 @@ from ..resolvers import (
     PkgCandidate,
 )
 from ..results import PkgFilesMissing, PkgFilesNotMatching, PkgNonexistent
-from ..wow_installations import Flavour, to_flavourful_enum
+from ..wow_installations import (
+    Flavour,
+    FlavourVersions,
+    get_compatible_flavours,
+    to_flavour_versions,
+    to_flavourful_enum,
+)
 
 
 # Not exhaustive (as you might've guessed).  Reference:
@@ -78,7 +83,6 @@ class _PackagerReleaseJsonFlavor(StrEnum):
     WrathClassic = 'wrath'
     CataClassic = 'cata'
     MistsClassic = 'mists'
-    Classic = CataClassic
 
 
 class GithubResolver(BaseResolver):
@@ -128,7 +132,7 @@ class GithubResolver(BaseResolver):
     async def __find_match_from_zip_contents(
         self,
         assets: list[_GithubRelease_Asset],
-        desired_flavours: tuple[Flavour, ...] | None,
+        desired_flavour: Flavour | None,
     ):
         import zipfile
         from io import BytesIO
@@ -153,14 +157,13 @@ class GithubResolver(BaseResolver):
 
         download_headers = self.make_request_headers(HeadersIntent.Download)
 
-        if desired_flavours is None:
-            desired_flavours = tuple(Flavour)
-
-        desired_toc_suffixes = tuple(
-            s for f in desired_flavours for s in NORMALISED_FLAVOUR_TOC_EXTENSIONS[f]
-        )
-        all_flavourful_toc_suffixes = tuple(
+        all_toc_extensions = tuple(
             i for s in NORMALISED_FLAVOUR_TOC_EXTENSIONS.values() for i in s
+        )
+        desired_toc_extensions = (
+            NORMALISED_FLAVOUR_TOC_EXTENSIONS[desired_flavour]
+            if desired_flavour
+            else all_toc_extensions
         )
 
         matching_asset = None
@@ -240,20 +243,20 @@ class GithubResolver(BaseResolver):
             if not toc_filenames:
                 continue
 
-            game_flavour_from_toc_filename = any(
-                n.lower().endswith(desired_toc_suffixes) for n in toc_filenames
+            if desired_flavour is None:
+                matching_asset = candidate
+                break
+
+            flavour_from_toc_filename = any(
+                n.lower().endswith(desired_toc_extensions) for n in toc_filenames
             )
-            if game_flavour_from_toc_filename:
+            if flavour_from_toc_filename:
                 matching_asset = candidate
                 break
 
             try:
                 main_toc_filename = min(
-                    (
-                        n
-                        for n in toc_filenames
-                        if not n.lower().endswith(all_flavourful_toc_suffixes)
-                    ),
+                    (n for n in toc_filenames if not n.lower().endswith(all_toc_extensions)),
                     key=len,
                 )
             except ValueError:
@@ -288,9 +291,10 @@ class GithubResolver(BaseResolver):
             logger.debug(
                 f'Found interface versions {toc_reader.interfaces!r} in {main_toc_filename}'
             )
+            desired_flavour_versions = to_flavour_versions(desired_flavour)
             if toc_reader.interfaces and any(
-                Flavour.from_version_number(i) is f
-                for f, i in product(desired_flavours, toc_reader.interfaces)
+                FlavourVersions.from_version_number(i) is desired_flavour_versions
+                for i in toc_reader.interfaces
             ):
                 matching_asset = candidate
                 break
@@ -301,7 +305,7 @@ class GithubResolver(BaseResolver):
         self,
         assets: list[_GithubRelease_Asset],
         release_json_asset: _GithubRelease_Asset,
-        desired_flavours: tuple[Flavour, ...] | None,
+        desired_flavour: Flavour | None,
     ):
         from .._utils.attrs import simple_converter
 
@@ -327,19 +331,23 @@ class GithubResolver(BaseResolver):
         if not subreleases:
             return None
 
-        if desired_flavours:
-            desired_release_json_flavors = {
-                to_flavourful_enum(f, _PackagerReleaseJsonFlavor) for f in desired_flavours
-            }
+        if desired_flavour:
+            desired_flavour_versions = to_flavour_versions(desired_flavour)
+            desired_release_json_flavor = to_flavourful_enum(
+                desired_flavour, _PackagerReleaseJsonFlavor
+            )
 
             def is_compatible(release: _PackagerReleaseJson_Release):
                 for metadata in release['metadata']:
-                    if metadata['flavor'] in desired_release_json_flavors:
-                        if Flavour.from_version_number(metadata['interface']) in desired_flavours:
+                    if metadata['flavor'] == desired_release_json_flavor:
+                        if (
+                            FlavourVersions.from_version_number(metadata['interface'])
+                            is desired_flavour_versions
+                        ):
                             return True
 
                         logger.info(
-                            f'Flavor and interface mismatch: {metadata["interface"]} not found in {desired_flavours}'
+                            f'Flavor and interface mismatch: {(metadata["interface"], desired_flavour)}'
                         )
 
                 return False
@@ -368,7 +376,7 @@ class GithubResolver(BaseResolver):
     async def __find_match(
         self,
         release: _GithubRelease,
-        desired_flavour_groups: Sequence[tuple[Flavour, ...] | None],
+        desired_flavours: tuple[Flavour, ...] | tuple[*tuple[Flavour, ...], None],
     ):
         assets = release['assets']
         release_json = next(
@@ -380,8 +388,8 @@ class GithubResolver(BaseResolver):
             if release_json
             else partial(self.__find_match_from_zip_contents, assets)
         )
-        for desired_flavours in desired_flavour_groups:
-            asset = await matcher(desired_flavours)
+        for desired_flavour in desired_flavours:
+            asset = await matcher(desired_flavour)
             if asset:
                 return (release, asset)
 
@@ -450,14 +458,14 @@ class GithubResolver(BaseResolver):
         if first_release is None:
             raise PkgFilesNotMatching(defn.strategies)
 
-        desired_flavour_groups = config_ctx.config().game_flavour.get_flavour_groups(
-            bool(defn.strategies[Strategy.AnyFlavour])
+        desired_flavours = get_compatible_flavours(
+            config_ctx.config().track, defn.strategies[Strategy.AnyFlavour]
         )
 
         # We'll look for affine flavours > absolutely any flavour in every release
         # if ``Strategy.AnyFlavour`` is set.  This is less expensive than performing
         # separate flavour passes across the whole release list for the common case.
-        match = await self.__find_match(first_release, desired_flavour_groups)
+        match = await self.__find_match(first_release, desired_flavours)
         if not match:
             logger.info('Looking for match in older releases')
 
@@ -468,10 +476,7 @@ class GithubResolver(BaseResolver):
                     # 3 groups of 3 run in parallel but processed in order
                     for b in batched(releases, 3)
                     for g in (
-                        [
-                            asyncio.create_task(self.__find_match(r, desired_flavour_groups))
-                            for r in b
-                        ],
+                        [asyncio.create_task(self.__find_match(r, desired_flavours)) for r in b],
                     )
                     for o, t in enumerate(g, start=1)
                 ):
@@ -537,7 +542,7 @@ class GithubResolver(BaseResolver):
                 name=entry['name'],
                 url=entry['url'],
                 game_flavours=frozenset(extract_flavours(entry['flavors'])),
-                download_count=1,
+                download_count=0,
                 last_updated=datetime.fromisoformat(entry['last_updated']),
                 same_as=[{'source': s, 'id': i} for k, s in id_keys for i in (entry[k],) if i],
             )

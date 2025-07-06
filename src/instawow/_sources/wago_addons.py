@@ -35,7 +35,6 @@ class _WagoGameVersion(StrEnum):
     WrathClassic = 'wotlk'
     CataClassic = 'cata'
     MistsClassic = 'mop'
-    Classic = CataClassic
 
 
 class _WagoAddon(TypedDict):
@@ -91,7 +90,7 @@ class WagoAddonsResolver(BaseResolver):
     async def resolve_one(self, defn: Defn, metadata: None):
         async with http_ctx.web_client().get(
             (self.__wago_external_api_url / 'addons' / defn.alias).with_query(
-                game_version=to_flavourful_enum(config_ctx.config().game_flavour, _WagoGameVersion)
+                game_version=to_flavourful_enum(config_ctx.config().track, _WagoGameVersion)
             ),
             expire_after=timedelta(minutes=5),
             headers=self.make_request_headers(),

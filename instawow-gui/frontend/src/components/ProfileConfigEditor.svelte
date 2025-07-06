@@ -5,7 +5,7 @@
   import { getContext } from "svelte";
   import { fade } from "svelte/transition";
   import type { Config, ValidationError } from "../api";
-  import { Flavour } from "../api";
+  import { Track } from "../api";
   import { API_KEY, type Api } from "../stores/api.svelte";
   import {
     ACTIVE_PROFILE_KEY,
@@ -31,7 +31,7 @@
     {} as {
       profile: string;
       addonDir: string;
-      gameFlavour: Flavour;
+      track: Track;
     },
   );
 
@@ -39,12 +39,12 @@
 
   $effect.pre(() => {
     if (createNew) {
-      profileConfig.gameFlavour = Flavour.Retail;
+      profileConfig.track = Track.Retail;
     } else {
       ({
         profile: profileConfig.profile,
         addon_dir: profileConfig.addonDir,
-        game_flavour: profileConfig.gameFlavour,
+        track: profileConfig.track,
       } = profilesRef.value[activeProfileRef.value as string]);
     }
   });
@@ -76,7 +76,7 @@
       result = await api.writeProfile(
         profileConfig.profile,
         profileConfig.addonDir,
-        profileConfig.gameFlavour,
+        profileConfig.track,
         createNew,
       );
     } catch (error) {
@@ -180,17 +180,17 @@ will be lost.`,
       </button>
     </div>
     {#if !createNew}
-      {#if errors.has("game_flavour")}
-        <div class="row error-text">{errors.get("game_flavour")}</div>
+      {#if errors.has("track")}
+        <div class="row error-text">{errors.get("track")}</div>
       {/if}
       <select
-        aria-label="game flavour"
+        aria-label="game track"
         class="row form-control"
-        class:error={errors.has("game_flavour")}
-        bind:value={profileConfig.gameFlavour}
+        class:error={errors.has("track")}
+        bind:value={profileConfig.track}
       >
-        {#each Object.values(Flavour) as flavour}
-          <option value={flavour}>{flavour}</option>
+        {#each Object.values(Track) as track}
+          <option value={track}>{track}</option>
         {/each}
       </select>
     {/if}

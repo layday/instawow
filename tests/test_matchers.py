@@ -12,12 +12,9 @@ from instawow.matchers import (
     _match_toc_source_ids,
     get_unreconciled_folders,
 )
-from instawow.wow_installations import Flavour
+from instawow.wow_installations import Track, to_flavour
 
 pytestmark = pytest.mark.usefixtures('_iw_config_ctx', '_iw_web_client_ctx')
-
-
-MOLINARI_HASH = '2da096db5769138b5428a068343cddf3'
 
 
 def write_addons(
@@ -30,25 +27,27 @@ def write_addons(
         (config.addon_dir / addon / f'{addon}.toc').touch()
 
 
-def write_molinari_addon():
-    molinari = config_ctx.config().addon_dir / 'Molinari'
-    molinari.mkdir()
-    (molinari / 'Molinari.toc').write_text(
+def write_masque_addon():
+    masque = config_ctx.config().addon_dir / 'Masque'
+    masque.mkdir()
+    (masque / 'Masque.toc').write_text(
         """\
-## X-Curse-Project-ID: 20338
-## X-WoWI-ID: 13188
+## X-Curse-Project-ID: 13592
+## X-WoWI-ID: 12097
 """,
         encoding='utf-8',
     )
-    return molinari
+    return masque
 
 
 async def test_can_extract_defns_from_addon_folder_toc():
-    addon_folder = AddonFolder.from_path(config_ctx.config().game_flavour, write_molinari_addon())
+    addon_folder = AddonFolder.from_path(
+        to_flavour(config_ctx.config().track), write_masque_addon()
+    )
     assert addon_folder
     assert addon_folder.get_defns_from_toc_keys(
         config_ctx.resolvers().addon_toc_key_and_id_pairs
-    ) == {Defn('curse', '20338'), Defn('wowi', '13188')}
+    ) == {Defn('curse', '13592'), Defn('wowi', '12097')}
 
 
 async def test_reconcile_invalid_addons_discarded():
@@ -69,25 +68,25 @@ async def test_reconcile_invalid_addons_discarded():
         (
             _match_toc_source_ids,
             {
-                Defn('curse', '20338'),
-                Defn('wowi', '13188'),
-                Defn('github', '388670'),
-                Defn('wago', 'WqKQQEKx'),
+                Defn('curse', '13592'),
+                Defn('wowi', '12097'),
+                Defn('github', '44074003'),
+                Defn('wago', 'kRNLgpGo'),
             },
         ),
         (
             _match_folder_name_subsets,
             {
-                Defn('curse', '20338'),
-                Defn('wowi', '13188'),
+                Defn('curse', '13592'),
+                Defn('wowi', '12097'),
             },
         ),
         (
             _match_addon_names_with_folder_names,
             {
-                Defn('curse', '20338'),
-                Defn('wowi', '13188'),
-                Defn('github', '388670'),
+                Defn('curse', '13592'),
+                Defn('wowi', '12097'),
+                Defn('github', '44074003'),
             },
         ),
     ],
@@ -96,7 +95,7 @@ async def test_reconcile_multiple_defns_per_addon_contained_in_results(
     test_func: Matcher,
     expected_defns: set[Defn],
 ):
-    write_molinari_addon()
+    write_masque_addon()
     ((_, matches),) = await test_func(get_unreconciled_folders())
     assert expected_defns == set(matches)
 
@@ -105,28 +104,23 @@ async def test_reconcile_multiple_defns_per_addon_contained_in_results(
     ('iw_profile_config_values', 'expected_defns'),
     [
         (
-            Flavour.Retail,
+            Track.Retail,
             {
-                Defn('curse', '23350'),
-                Defn('curse', '333072'),
-                Defn('curse', '431557'),
-                Defn('curse', '674779'),
-                Defn('curse', '912615'),
+                Defn('wowi', '12097'),
+                Defn('curse', '13592'),
             },
         ),
         (
-            Flavour.Classic,
+            Track.Classic,
             {
-                Defn('curse', '23350'),
+                Defn('curse', '13592'),
             },
         ),
         (
-            Flavour.VanillaClassic,
+            Track.VanillaClassic,
             {
-                Defn('curse', '23350'),
-                Defn('curse', '333072'),
-                Defn('curse', '674779'),
-                Defn('curse', '912615'),
+                Defn('wowi', '12097'),
+                Defn('curse', '13592'),
             },
         ),
     ],
@@ -135,6 +129,6 @@ async def test_reconcile_multiple_defns_per_addon_contained_in_results(
 async def test_reconcile_results_vary_by_game_flavour(
     expected_defns: set[Defn],
 ):
-    write_addons('AdiBags', 'AdiBags_Config')
+    write_addons('Masque')
     ((_, matches),) = await _match_folder_name_subsets(get_unreconciled_folders())
     assert expected_defns == set(matches)

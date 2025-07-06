@@ -362,9 +362,12 @@ async def find_equivalent_pkg_defns(
     "Given a list of packages, find ``Defn``s of each package from other sources."
     from .catalogue import synchronise as synchronise_catalogue
     from .matchers import AddonFolder
+    from .wow_installations import to_flavour
 
     config = config_ctx.config()
     resolvers = config_ctx.resolvers()
+    flavour = to_flavour(config.track)
+
     catalogue = await synchronise_catalogue()
 
     @run_in_thread
@@ -373,12 +376,7 @@ async def find_equivalent_pkg_defns(
             p: frozenset(
                 a
                 for f in p.folders
-                for a in (
-                    AddonFolder.from_path(
-                        config.game_flavour,
-                        config.addon_dir / f.name,
-                    ),
-                )
+                for a in (AddonFolder.from_path(flavour, config.addon_dir / f.name),)
                 if a
             )
             for p in pkgs

@@ -23,6 +23,7 @@
       "events_url": "https://api.github.com/users/github-actions%5Bbot%5D/events{/privacy}",
       "received_events_url": "https://api.github.com/users/github-actions%5Bbot%5D/received_events",
       "type": "Bot",
+      "user_view_type": "public",
       "site_admin": false
     },
     "node_id": "MDc6UmVsZWFzZTQzMTg3NjYz",
@@ -58,12 +59,14 @@
           "events_url": "https://api.github.com/users/github-actions%5Bbot%5D/events{/privacy}",
           "received_events_url": "https://api.github.com/users/github-actions%5Bbot%5D/received_events",
           "type": "Bot",
+          "user_view_type": "public",
           "site_admin": false
         },
         "content_type": "application/json",
         "state": "uploaded",
         "size": 224,
-        "download_count": 33,
+        "digest": null,
+        "download_count": 44,
         "created_at": "2021-05-19T04:19:00Z",
         "updated_at": "2021-05-19T04:19:00Z",
         "browser_download_url": "https://github.com/nebularg/PackagerTest/releases/download/v1.9.7/release.json"
@@ -92,12 +95,14 @@
           "events_url": "https://api.github.com/users/github-actions%5Bbot%5D/events{/privacy}",
           "received_events_url": "https://api.github.com/users/github-actions%5Bbot%5D/received_events",
           "type": "Bot",
+          "user_view_type": "public",
           "site_admin": false
         },
         "content_type": "application/zip",
         "state": "uploaded",
         "size": 81363,
-        "download_count": 3,
+        "digest": null,
+        "download_count": 6,
         "created_at": "2021-05-19T04:18:49Z",
         "updated_at": "2021-05-19T04:18:50Z",
         "browser_download_url": "https://github.com/nebularg/PackagerTest/releases/download/v1.9.7/TestGit-v1.9.7-classic.zip"
@@ -126,12 +131,14 @@
           "events_url": "https://api.github.com/users/github-actions%5Bbot%5D/events{/privacy}",
           "received_events_url": "https://api.github.com/users/github-actions%5Bbot%5D/received_events",
           "type": "Bot",
+          "user_view_type": "public",
           "site_admin": false
         },
         "content_type": "application/zip",
         "state": "uploaded",
         "size": 58790,
-        "download_count": 4,
+        "digest": null,
+        "download_count": 7,
         "created_at": "2021-05-19T04:18:58Z",
         "updated_at": "2021-05-19T04:18:58Z",
         "browser_download_url": "https://github.com/nebularg/PackagerTest/releases/download/v1.9.7/TestGit-v1.9.7.zip"

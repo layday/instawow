@@ -1,23 +1,31 @@
 [
   {
-    "UID": "13188",
-    "UICATID": "40",
-    "UIVersion": "100205.111-Release",
-    "UIDate": 1707422410000,
-    "UIName": "Molinari",
-    "UIAuthorName": "p3lim",
-    "UIFileInfoURL": "https://www.wowinterface.com/downloads/info13188-Molinari.html",
-    "UIDownloadTotal": "65330",
-    "UIDownloadMonthly": "85",
-    "UIFavoriteTotal": "420",
+    "UID": "12097",
+    "UICATID": "17",
+    "UIVersion": "11.1.7-Beta-2",
+    "UIDate": 1751552800000,
+    "UIName": "Masque",
+    "UIAuthorName": "StormFX",
+    "UIFileInfoURL": "https://www.wowinterface.com/downloads/info12097-Masque.html",
+    "UIDownloadTotal": "356063",
+    "UIDownloadMonthly": "351",
+    "UIFavoriteTotal": "1514",
     "UICompatibility": [
       {
-        "version": "1.15.1",
+        "version": "11.1.7",
+        "name": "Nightfall Patch"
+      },
+      {
+        "version": "1.15.7",
         "name": "Classic"
       },
       {
-        "version": "10.2.5",
-        "name": "Seeds of Renewal"
+        "version": "4.4.2",
+        "name": "Cataclysm Classic"
+      },
+      {
+        "version": "4.4.2",
+        "name": "Cataclysm Classic"
       },
       {
         "version": "3.4.3",
@@ -25,15 +33,31 @@
       }
     ],
     "UIDir": [
-      "Molinari"
+      "Masque"
     ],
     "UIIMG_Thumbs": [
-      "https://cdn-wow.mmoui.com/preview/tiny/pvw63234.png"
+      "https://cdn-wow.mmoui.com/preview/tiny/pvw75669.png",
+      "https://cdn-wow.mmoui.com/preview/tiny/pvw71926.jpg",
+      "https://cdn-wow.mmoui.com/preview/tiny/pvw71928.jpg",
+      "https://cdn-wow.mmoui.com/preview/tiny/pvw71929.jpg",
+      "https://cdn-wow.mmoui.com/preview/tiny/pvw71931.jpg",
+      "https://cdn-wow.mmoui.com/preview/tiny/pvw71932.jpg",
+      "https://cdn-wow.mmoui.com/preview/tiny/pvw71934.jpg",
+      "https://cdn-wow.mmoui.com/preview/tiny/pvw71935.jpg",
+      "https://cdn-wow.mmoui.com/preview/tiny/pvw71936.jpg"
     ],
     "UIIMGs": [
-      "https://cdn-wow.mmoui.com/preview/pvw63234.png"
+      "https://cdn-wow.mmoui.com/preview/pvw75669.png",
+      "https://cdn-wow.mmoui.com/preview/pvw71926.jpg",
+      "https://cdn-wow.mmoui.com/preview/pvw71928.jpg",
+      "https://cdn-wow.mmoui.com/preview/pvw71929.jpg",
+      "https://cdn-wow.mmoui.com/preview/pvw71931.jpg",
+      "https://cdn-wow.mmoui.com/preview/pvw71932.jpg",
+      "https://cdn-wow.mmoui.com/preview/pvw71934.jpg",
+      "https://cdn-wow.mmoui.com/preview/pvw71935.jpg",
+      "https://cdn-wow.mmoui.com/preview/pvw71936.jpg"
     ],
     "UISiblings": null,
-    "UIDonationLink": "https://www.wowinterface.com/downloads/info13188#donate"
+    "UIDonationLink": null
   }
 ]

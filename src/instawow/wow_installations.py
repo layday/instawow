@@ -1,97 +1,54 @@
 from __future__ import annotations
 
-import enum
 import os
 import sys
 from collections.abc import Iterator
 from enum import Enum, StrEnum
-from functools import cache
+from functools import cache, partial
 from pathlib import Path
 from typing import Self, TypedDict
-
-from multidict import MultiDict
 
 from ._utils.iteration import fill
 
 
-class _FlavourEnumType(enum.EnumType):
-    def __iter__(self) -> Iterator[Flavour]:
-        return (
-            m
-            for m in super().__iter__()
-            if m not in self._UNSUPPORTED_FLAVOURS  # pyright: ignore  # noqa: PGH003
-        )
+class Track(StrEnum):
+    Retail = 'retail'
+    VanillaClassic = 'vanilla_classic'
+    MistsClassic = 'classic'
+    Classic = MistsClassic
 
 
-class Flavour(StrEnum, metaclass=_FlavourEnumType):
-    # The current Classic version is always aliased to "classic".
-    # The assumption here is that should Classic not be discontinued
-    # it will continue to be updated in place so that new Classic versions
-    # will inherit the "_classic_" folder.  This means we won't have to
-    # migrate Classic profiles either automatically or by requiring user
-    # intervention for new Classic releases.
+class Flavour(StrEnum):
     Retail = 'retail'
     VanillaClassic = 'vanilla_classic'
     TbcClassic = 'tbc_classic'
     WrathClassic = 'wrath_classic'
+    CataClassic = 'cata_classic'
     MistsClassic = 'mists_classic'
-    Classic = 'classic'
-    CataClassic = Classic
 
-    _UNSUPPORTED_FLAVOURS = enum.nonmember(
-        (
-            TbcClassic,
-            WrathClassic,
-            MistsClassic,
-        )
-    )
 
-    _FLAVOURS_TO_VERSIONS = enum.nonmember(
-        MultiDict(
-            (f, r)
-            for r, f in [
-                (range(1_00_00, 1_13_00), Retail),
-                (range(1_13_00, 2_00_00), VanillaClassic),
-                (range(2_00_00, 2_05_00), Retail),
-                (range(2_05_00, 3_00_00), TbcClassic),
-                (range(3_00_00, 3_04_00), Retail),
-                (range(3_04_00, 4_00_00), WrathClassic),
-                (range(4_00_00, 4_04_00), Retail),
-                (range(4_04_00, 5_00_00), CataClassic),
-                (range(5_00_00, 5_05_00), Retail),
-                (range(5_05_00, 6_00_00), MistsClassic),
-                (range(6_00_00, 12_00_00), Retail),
-            ]
-        )
+class FlavourVersions(Enum):
+    Retail = (
+        range(1_00_00, 1_13_00),
+        range(2_00_00, 2_05_00),
+        range(3_00_00, 3_04_00),
+        range(4_00_00, 4_04_00),
+        range(5_00_00, 5_05_00),
+        range(6_00_00, 12_00_00),
     )
+    VanillaClassic = (range(1_13_00, 2_00_00),)
+    TbcClassic = (range(2_05_00, 3_00_00),)
+    WrathClassic = (range(3_04_00, 4_00_00),)
+    CataClassic = (range(4_04_00, 5_00_00),)
+    MistsClassic = (range(5_05_00, 6_00_00),)
 
     @classmethod
     def from_version_number(cls, version: int) -> Self | None:
-        return next(
-            (cls(f) for f, r in cls._FLAVOURS_TO_VERSIONS.items() if version in r),
-            None,
-        )
+        return next((f for f in cls for r in f.value if version in r), None)
 
     @classmethod
     def from_version_string(cls, version: str) -> Self | None:
         return cls.from_version_number(_parse_version_string(version))
-
-    def get_flavour_groups(self, affine: bool) -> list[tuple[Flavour, ...] | None]:
-        match (self, affine):
-            case (self.MistsClassic, True):
-                return [(self, self.CataClassic), None]
-            case (_, True):
-                return [(self,), None]
-            case _:
-                return [(self,)]
-
-    @property
-    def is_supported(self) -> bool:
-        return self not in self._UNSUPPORTED_FLAVOURS
-
-    @property
-    def versions(self) -> list[range]:
-        return self._FLAVOURS_TO_VERSIONS.getall(self)
 
 
 class FlavourTocSuffixes(Enum):
@@ -103,13 +60,29 @@ class FlavourTocSuffixes(Enum):
     WrathClassic = ('Wrath', 'WOTLKC', 'Classic')
     CataClassic = ('Cata', 'Classic')
     MistsClassic = ('Mists', 'Classic')
-    Classic = CataClassic
+
+
+def get_compatible_flavours(
+    track: Track, affine: bool | None = None
+) -> tuple[Flavour, ...] | tuple[*tuple[Flavour, ...], None]:
+    match (track, affine):
+        case (_, True):
+            return (to_flavour(track), None)
+        case (Track.Classic, _):
+            return (Flavour.MistsClassic, Flavour.CataClassic)
+        case _:
+            return (to_flavour(track),)
 
 
 def to_flavourful_enum[TargetEnumT: Enum](
     source_enum: Enum, target_enum_type: type[TargetEnumT]
 ) -> TargetEnumT:
     return target_enum_type[source_enum.name]
+
+
+to_flavour = partial(to_flavourful_enum, target_enum_type=Flavour)
+to_flavour_versions = partial(to_flavourful_enum, target_enum_type=FlavourVersions)
+to_flavour_toc_suffixes = partial(to_flavourful_enum, target_enum_type=FlavourTocSuffixes)
 
 
 class _Product(TypedDict):
@@ -148,11 +121,11 @@ _DELECTABLE_DIR_NAMES: dict[str, _Product] = {
     # },
     '_classic_': {
         'code': 'wow_classic',
-        'flavour': Flavour.Classic,
+        'flavour': Flavour.MistsClassic,
     },
     '_classic_ptr_': {
         'code': 'wow_classic_ptr',
-        'flavour': Flavour.Classic,
+        'flavour': Flavour.MistsClassic,
     },
     '_classic_beta_': {
         'code': 'wow_classic_beta',

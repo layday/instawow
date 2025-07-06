@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 import os
-from collections.abc import Callable, Iterator, Sequence
+from collections.abc import Sequence
 from datetime import datetime, timedelta
 from enum import IntEnum
 from functools import partial
-from typing import NotRequired as N
+from typing import NotRequired
 
 from typing_extensions import TypedDict
 from yarl import URL
@@ -24,7 +24,7 @@ from ..resolvers import (
     PkgCandidate,
 )
 from ..results import PkgFilesMissing, PkgFilesNotMatching, PkgNonexistent, resultify
-from ..wow_installations import Flavour, to_flavourful_enum
+from ..wow_installations import Flavour, get_compatible_flavours, to_flavourful_enum
 
 _CF_WOW_GAME_ID = 1
 
@@ -125,10 +125,10 @@ class _CfCoreSortableGameVersionTypeId(IntEnum):
 
     Retail = 517
     VanillaClassic = 67408
+    TbcClassic = 73246
     WrathClassic = 73713
     CataClassic = 77522
     MistsClassic = 79434
-    Classic = CataClassic
 
 
 class _CfCoreSortableGameVersion(TypedDict):
@@ -176,11 +176,11 @@ class _CfCoreFile(TypedDict):
     gameVersions: list[str]
     sortableGameVersions: list[_CfCoreSortableGameVersion]
     dependencies: list[_CfCoreFileDependency]
-    exposeAsAlternative: N[bool]
-    parentProjectFileId: N[int]
+    exposeAsAlternative: NotRequired[bool]
+    parentProjectFileId: NotRequired[int]
     alternateFileId: int
     isServerPack: bool
-    serverPackFileId: N[int]
+    serverPackFileId: NotRequired[int]
     fileFingerprint: int
     modules: list[_CfCoreFileModule]
 
@@ -373,39 +373,31 @@ class CfCoreResolver(BaseResolver[_CfCoreMod]):
         if not files:
             raise PkgFilesMissing
 
+        files = [f for f in files if not f.get('exposeAsAlternative')]
+
         # Allow pre-releases only if no stable releases exist or explicitly opted into.
-        any_release_type = True
-        if not defn.strategies[Strategy.AnyReleaseType]:
-            any_release_type = not any(
-                f['releaseType'] == _CfCoreFileReleaseType.Release for f in files
-            )
+        if not defn.strategies[Strategy.AnyReleaseType] and any(
+            f['releaseType'] == _CfCoreFileReleaseType.Release for f in files
+        ):
+            files = [f for f in files if f['releaseType'] == _CfCoreFileReleaseType.Release]
 
-        desired_flavour_groups = config_ctx.config().game_flavour.get_flavour_groups(
-            bool(defn.strategies[Strategy.AnyFlavour])
+        desired_flavours = get_compatible_flavours(
+            config_ctx.config().track, defn.strategies[Strategy.AnyFlavour]
         )
-        for desired_flavours in desired_flavour_groups:
+        for desired_flavour in desired_flavours:
+            if desired_flavour:
+                type_id = to_flavourful_enum(desired_flavour, _CfCoreSortableGameVersionTypeId)
+                shortlisted_files = (
+                    f
+                    for f in files
+                    if any(s['gameVersionTypeId'] == type_id for s in f['sortableGameVersions'])
+                )
+            else:
+                shortlisted_files = files
 
-            def make_filter_fns(
-                desired_flavours: Sequence[Flavour] | None,
-            ) -> Iterator[Callable[[_CfCoreFile], bool]]:
-                yield lambda f: not f.get('exposeAsAlternative', False)
-
-                if desired_flavours:
-                    type_ids = {
-                        to_flavourful_enum(f, _CfCoreSortableGameVersionTypeId)
-                        for f in desired_flavours
-                    }
-                    yield lambda f: any(
-                        s['gameVersionTypeId'] in type_ids for s in f['sortableGameVersions']
-                    )
-
-                if not any_release_type:
-                    yield lambda f: f['releaseType'] == _CfCoreFileReleaseType.Release
-
-            filter_fns = list(make_filter_fns(desired_flavours))
             try:
                 file = max(
-                    (f for f in files if all(r(f) for r in filter_fns)),
+                    shortlisted_files,
                     # The ``id`` is just a counter so we don't have to go digging around dates
                     key=lambda f: f['id'],
                 )

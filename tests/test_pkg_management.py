@@ -29,7 +29,7 @@ pytestmark = pytest.mark.usefixtures('_iw_config_ctx', '_iw_web_client_ctx')
 
 
 async def test_pinning_supported_pkg():
-    defn = Defn('curse', 'molinari')
+    defn = Defn('curse', 'masque')
 
     install_result = (await pkg_management.install([defn], replace_folders=False))[defn]
     assert type(install_result) is PkgInstalled
@@ -42,29 +42,29 @@ async def test_pinning_supported_pkg():
 
 
 async def test_pinning_unsupported_pkg():
-    molinari_defn = Defn('wowi', '13188')
+    defn = Defn('wowi', '12097')
 
-    await pkg_management.install([molinari_defn], replace_folders=False)
-    [installed_pkg] = pkg_management.get_pkgs([molinari_defn])
+    await pkg_management.install([defn], replace_folders=False)
+    [installed_pkg] = pkg_management.get_pkgs([defn])
     assert installed_pkg is not None
     assert installed_pkg.options.version_eq is False
 
-    result = (await pkg_management.pin([molinari_defn]))[molinari_defn]
+    result = (await pkg_management.pin([defn]))[defn]
     assert type(result) is PkgStrategiesUnsupported
     assert result.strategies == {Strategy.VersionEq}
     assert installed_pkg.options.version_eq is False
 
 
 async def test_pinning_nonexistent_pkg():
-    molinari_defn = Defn('curse', 'molinari')
-    result = await pkg_management.pin([molinari_defn])
-    assert type(result[molinari_defn]) is PkgNotInstalled
+    defn = Defn('curse', 'masque')
+    result = await pkg_management.pin([defn])
+    assert type(result[defn]) is PkgNotInstalled
 
 
 async def test_pinning_unsupported_nonexistent_pkg():
-    molinari_defn = Defn('wowi', '13188')
-    result = await pkg_management.pin([molinari_defn])
-    assert type(result[molinari_defn]) is PkgStrategiesUnsupported
+    defn = Defn('wowi', '12097')
+    result = await pkg_management.pin([defn])
+    assert type(result[defn]) is PkgStrategiesUnsupported
 
 
 @pytest.mark.parametrize('exception', [ValueError('foo'), aiohttp.ClientError('bar')])
@@ -78,7 +78,7 @@ async def test_resolve_rewraps_exception_from_resolve(
     resolvers = config_ctx.resolvers()
     monkeypatch.setattr(resolvers['curse'], 'resolve_one', resolve_one)
 
-    defn = Defn('curse', 'molinari')
+    defn = Defn('curse', 'masque')
     result = (await pkg_management.resolve([defn]))[defn]
     assert type(result) is InternalError
     assert str(result) == f'internal error: "{exception}"'
@@ -98,23 +98,23 @@ async def test_resolve_plugin_hook_source():
 
 
 async def test_install_can_replace_unreconciled_folders():
-    molinari = config_ctx.config().addon_dir / 'Molinari'
-    molinari.mkdir()
+    masque = config_ctx.config().addon_dir / 'Masque'
+    masque.mkdir()
 
-    defn = Defn('curse', 'molinari')
+    defn = Defn('curse', 'masque')
 
     result = await pkg_management.install([defn], replace_folders=False)
     assert type(result[defn]) is PkgConflictsWithUnreconciled
-    assert not any(molinari.iterdir())
+    assert not any(masque.iterdir())
 
     result = await pkg_management.install([defn], replace_folders=True)
     assert type(result[defn]) is PkgInstalled
-    assert any(molinari.iterdir())
+    assert any(masque.iterdir())
 
 
 async def test_install_cannot_replace_reconciled_folders():
-    curse_defn = Defn('curse', 'molinari')
-    wowi_defn = Defn('wowi', '13188-molinari')
+    curse_defn = Defn('curse', 'masque')
+    wowi_defn = Defn('wowi', '12097-masque')
 
     result = await pkg_management.install([curse_defn], replace_folders=False)
     assert type(result[curse_defn]) is PkgInstalled
@@ -132,13 +132,13 @@ async def test_install_recognises_renamed_pkg_from_id(
 ):
     iw_add_routes(
         Route(
-            r'//api\.github\.com/repos/p3lim-wow/molinarifico/?.*',
+            r'//api\.github\.com/repos/sfx-wow/masquelicious/?.*',
             lambda: aiohttp.web.Response(status=404),
         )
     )
 
-    old_defn = Defn('github', 'p3lim-wow/molinari')
-    new_defn = Defn('github', 'p3lim-wow/molinarifico')
+    old_defn = Defn('github', 'sfx-wow/masque')
+    new_defn = Defn('github', 'sfx-wow/masquelicious')
 
     result = await pkg_management.install([old_defn], replace_folders=False)
     assert type(result[old_defn]) is PkgInstalled
@@ -164,8 +164,8 @@ async def test_install_recognises_renamed_pkg_from_id(
 
 
 async def test_update_lifecycle_with_strategy_switch():
-    defn = Defn('curse', 'molinari')
-    versioned_defn = defn.with_version('100005.97-Release')
+    defn = Defn('curse', 'masque')
+    versioned_defn = defn.with_version('11.0.2')
 
     result = (await pkg_management.install([defn], replace_folders=False))[defn]
     assert type(result) is PkgInstalled
@@ -184,7 +184,7 @@ async def test_update_lifecycle_with_strategy_switch():
 
 
 async def test_update_reinstalls_corrupted_pkgs():
-    defn = Defn('curse', 'molinari')
+    defn = Defn('curse', 'masque')
 
     results = await pkg_management.install([defn], replace_folders=False)
 
@@ -206,7 +206,7 @@ async def test_update_reinstalls_corrupted_pkgs():
 async def test_deleting_and_retaining_folders_on_remove(
     keep_folders: bool,
 ):
-    defn = Defn('curse', 'molinari')
+    defn = Defn('curse', 'masque')
 
     await pkg_management.install([defn], replace_folders=False)
     [pkg] = pkg_management.get_pkgs([defn])
@@ -229,7 +229,7 @@ async def test_deleting_and_retaining_folders_on_remove(
 async def test_removing_pkg_with_missing_folders(
     keep_folders: bool,
 ):
-    defn = Defn('curse', 'molinari')
+    defn = Defn('curse', 'masque')
 
     results = await pkg_management.install([defn], replace_folders=False)
 
@@ -248,8 +248,8 @@ async def test_removing_pkg_with_missing_folders(
 
 
 async def test_replace_pkg():
-    old_defn = Defn('curse', 'molinari')
-    new_defn = Defn('github', 'p3lim-wow/molinari')
+    old_defn = Defn('curse', 'masque')
+    new_defn = Defn('github', 'sfx-wow/masque')
 
     results = await pkg_management.install([old_defn], replace_folders=False)
     assert type(results[old_defn]) is PkgInstalled
@@ -285,6 +285,6 @@ async def test_get_changelog_from_web_url():
     assert (
         await pkg_management.get_changelog(
             'curse',
-            'https://api.curseforge.com/v1/mods/20338/files/3657564/changelog',
+            'https://api.curseforge.com/v1/mods/13592/files/6454541/changelog',
         )
-    ).startswith('<h3>Changes in')
+    ).startswith('<h2>11.1.5</h2>')

@@ -1,6 +1,6 @@
 import type { RClient, RequestObject } from "./ipc";
 
-export enum Flavour {
+export enum Track {
   Retail = "retail",
   VanillaClassic = "vanilla_classic",
   Classic = "classic",
@@ -49,7 +49,7 @@ export type GlobalConfig = {
 export type Config = {
   profile: string;
   addon_dir: string;
-  game_flavour: Flavour;
+  track: Track;
 };
 
 export type GithubCodesResponse = {
@@ -117,7 +117,7 @@ export type CatalogueEntry = {
   id: string;
   slug: string;
   name: string;
-  game_flavours: Flavour[];
+  game_flavours: string[];
   download_count: number;
   last_updated: string;
   folders: string[][];
@@ -187,16 +187,16 @@ export class Api {
   async writeProfile(
     profile: string,
     addonDir: string,
-    gameFlavour: Flavour,
-    inferGameFlavour: boolean,
+    track: Track,
+    inferTrack: boolean,
   ): Promise<Config> {
     return await this.request({
       method: "config/write_profile",
       params: {
         profile,
         addon_dir: addonDir,
-        game_flavour: gameFlavour,
-        infer_game_flavour: inferGameFlavour,
+        track: track,
+        infer_track: inferTrack,
       },
     });
   }

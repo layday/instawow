@@ -91,20 +91,20 @@ def prepare_mock_server_router():
 
 
 def patch_aiohttp(patcher: pytest.MonkeyPatch, mock_server: BaseTestServer):
-    class MockTCPConnector(TCPConnector):
+    @partial(patcher.setattr, 'aiohttp.TCPConnector')
+    class _(TCPConnector):
         async def _resolve_host(
-            _self: TCPConnector, host: str, port: int, traces: Sequence[Trace] | None = None
+            self, host: str, port: int, traces: Sequence[Trace] | None = None
         ) -> list[ResolveResult]:
             return [
                 {
                     'hostname': host,
                     'host': '127.0.0.1',
                     'port': mock_server.port,  # pyright: ignore[reportReturnType]
-                    'family': _self._family,
+                    'family': self._family,
                     'proto': 0,
                     'flags': 0,
                 }
             ]
 
-    patcher.setattr('aiohttp.TCPConnector', MockTCPConnector)
     patcher.setattr('aiohttp.ClientRequest.is_ssl', mock.Mock(return_value=False))

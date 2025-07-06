@@ -17,7 +17,7 @@ def wowi_resolver():
 async def test_resolve_addon(
     wowi_resolver: WowiResolver,
 ):
-    defn = Defn('wowi', '13188-molinari')
+    defn = Defn('wowi', '12097-masque')
 
     result = (await wowi_resolver.resolve([defn]))[defn]
     assert type(result) is dict
@@ -26,7 +26,7 @@ async def test_resolve_addon(
 async def test_changelog_url_format(
     wowi_resolver: WowiResolver,
 ):
-    defn = Defn('wowi', '13188-molinari')
+    defn = Defn('wowi', '12097-masque')
 
     result = (await wowi_resolver.resolve([defn]))[defn]
     assert type(result) is dict
@@ -37,44 +37,44 @@ async def test_changelog_url_format(
     ('url', 'extracted_alias'),
     [
         (
-            'https://www.wowinterface.com/downloads/landing.php?fileid=13188',
-            '13188',
+            'https://www.wowinterface.com/downloads/landing.php?fileid=12097',
+            '12097',
         ),
         (
-            'https://wowinterface.com/downloads/landing.php?fileid=13188',
-            '13188',
+            'https://wowinterface.com/downloads/landing.php?fileid=12097',
+            '12097',
         ),
         (
-            'https://www.wowinterface.com/downloads/fileinfo.php?id=13188',
-            '13188',
+            'https://www.wowinterface.com/downloads/fileinfo.php?id=12097',
+            '12097',
         ),
         (
-            'https://wowinterface.com/downloads/fileinfo.php?id=13188',
-            '13188',
+            'https://wowinterface.com/downloads/fileinfo.php?id=12097',
+            '12097',
         ),
         (
-            'https://www.wowinterface.com/downloads/download13188-Molinari',
-            '13188',
+            'https://www.wowinterface.com/downloads/download12097-Masque',
+            '12097',
         ),
         (
-            'https://wowinterface.com/downloads/download13188-Molinari',
-            '13188',
+            'https://wowinterface.com/downloads/download12097-Masque',
+            '12097',
         ),
         (
-            'https://www.wowinterface.com/downloads/info13188-Molinari.html',
-            '13188',
+            'https://www.wowinterface.com/downloads/info12097-Masque.html',
+            '12097',
         ),
         (
-            'https://wowinterface.com/downloads/info13188-Molinari.html',
-            '13188',
+            'https://wowinterface.com/downloads/info12097-Masque.html',
+            '12097',
         ),
         (
-            'https://www.wowinterface.com/downloads/info13188',
-            '13188',
+            'https://www.wowinterface.com/downloads/info12097',
+            '12097',
         ),
         (
-            'https://wowinterface.com/downloads/info13188',
-            '13188',
+            'https://wowinterface.com/downloads/info12097',
+            '12097',
         ),
     ],
 )

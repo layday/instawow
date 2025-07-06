@@ -10,65 +10,60 @@ import pytest
 from instawow.config import ProfileConfig
 from instawow.wow_installations import (
     Flavour,
+    FlavourVersions,
+    Track,
     extract_installation_version_from_addon_dir,
     find_installations,
+    get_compatible_flavours,
     infer_flavour_from_addon_dir,
     to_flavourful_enum,
 )
 
 
-def test_class_iter_only_returns_supported_flavours():
-    assert list(Flavour) == [Flavour.Retail, Flavour.VanillaClassic, Flavour.Classic]
-
-
 def test_can_convert_between_flavour_keyed_enum_and_flavour():
     class Foo(Enum):
         Retail = 1
-        VanillaClassic = 2
-        Classic = 3
-        MistsClassic = 4
 
     assert to_flavourful_enum(Foo.Retail, Flavour) is Flavour.Retail
     assert to_flavourful_enum(Flavour.Retail, Foo) is Foo.Retail
 
 
-@pytest.mark.parametrize('flavour', Flavour)
-@pytest.mark.parametrize('affine', [True, False])
-def test_flavour_groups_vary_by_flavour_and_affinity(
-    flavour: Flavour,
-    affine: bool,
+@pytest.mark.parametrize(
+    ('track', 'affine', 'expected_flavours'),
+    [
+        (Track.Retail, False, (Flavour.Retail,)),
+        (Track.Retail, True, (Flavour.Retail, None)),
+        (Track.VanillaClassic, False, (Flavour.VanillaClassic,)),
+        (Track.VanillaClassic, True, (Flavour.VanillaClassic, None)),
+        (Track.Classic, False, (Flavour.MistsClassic, Flavour.CataClassic)),
+        (Track.Classic, True, (Flavour.MistsClassic, None)),
+    ],
+)
+def test_compatible_flavours_vary_by_track_and_affinity(
+    track: Track, affine: bool, expected_flavours: tuple[Flavour | None, ...]
 ):
-    flavour_groups = flavour.get_flavour_groups(affine)
-    if affine:
-        assert flavour_groups == (
-            # [(flavour, Flavour.CataClassic), None]
-            # if flavour is Flavour.Classic
-            # else
-            [(flavour,), None]
-        )
-    else:
-        assert flavour_groups == [(flavour,)]
+    assert get_compatible_flavours(track, affine) == expected_flavours
 
 
 def test_can_extract_flavour_from_version_number():
-    assert Flavour.from_version_number(9_50_00) is Flavour.Retail
-    assert Flavour.from_version_number(4_04_00) is Flavour.Classic
-    assert Flavour.from_version_number(5_05_00) is Flavour.MistsClassic
-    assert Flavour.from_version_number(1_23_00) is Flavour.VanillaClassic
+    assert FlavourVersions.from_version_number(9_50_00) is FlavourVersions.Retail
+    assert FlavourVersions.from_version_number(4_04_00) is FlavourVersions.CataClassic
+    assert FlavourVersions.from_version_number(5_05_00) is FlavourVersions.MistsClassic
+    assert FlavourVersions.from_version_number(1_23_00) is FlavourVersions.VanillaClassic
 
 
 def test_can_extract_flavour_from_version_string():
-    assert Flavour.from_version_string('9.50.0') is Flavour.Retail
-    assert Flavour.from_version_string('4.4.0') is Flavour.Classic
-    assert Flavour.from_version_string('5.5.0') is Flavour.MistsClassic
-    assert Flavour.from_version_string('1.23.0') is Flavour.VanillaClassic
+    assert FlavourVersions.from_version_string('9.50.0') is FlavourVersions.Retail
+    assert FlavourVersions.from_version_string('4.4.0') is FlavourVersions.CataClassic
+    assert FlavourVersions.from_version_string('5.5.0') is FlavourVersions.MistsClassic
+    assert FlavourVersions.from_version_string('1.23.0') is FlavourVersions.VanillaClassic
 
 
 def test_can_extract_flavour_from_partial_version_string():
-    assert Flavour.from_version_string('9.2') is Flavour.Retail
-    assert Flavour.from_version_string('4.4') is Flavour.Classic
-    assert Flavour.from_version_string('5.5') is Flavour.MistsClassic
-    assert Flavour.from_version_string('3') is Flavour.Retail
+    assert FlavourVersions.from_version_string('9.2') is FlavourVersions.Retail
+    assert FlavourVersions.from_version_string('4.4') is FlavourVersions.CataClassic
+    assert FlavourVersions.from_version_string('5.5') is FlavourVersions.MistsClassic
+    assert FlavourVersions.from_version_string('3') is FlavourVersions.Retail
 
 
 @pytest.mark.parametrize(
@@ -76,11 +71,11 @@ def test_can_extract_flavour_from_partial_version_string():
     [
         (
             'wowzerz/_classic_/Interface/AddOns',
-            Flavour.Classic,
+            Flavour.MistsClassic,
         ),
         (
             '/foo/bar/_classic_ptr_/Interface/AddOns',
-            Flavour.Classic,
+            Flavour.MistsClassic,
         ),
         (
             '_classic_era_/Interface/AddOns',
@@ -123,7 +118,7 @@ def test_can_find_mac_installations(
             },
             Path('/Applications/World of Warcraft/_classic_/World of Warcraft Classic.app'): {
                 'code': 'wow_classic',
-                'flavour': Flavour.Classic,
+                'flavour': Flavour.MistsClassic,
             },
         }
 

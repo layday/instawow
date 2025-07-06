@@ -23,19 +23,19 @@ _runner = click.testing.CliRunner()
 run = partial(_runner.invoke, cli, catch_exceptions=False)
 
 
-def install_molinari():
-    run('install curse:molinari')
+def install_masque():
+    run('install curse:masque')
 
 
-def pretend_install_molinari(
+def pretend_install_masque(
     iw_profile_config: ProfileConfig,
 ):
-    molinari = iw_profile_config.addon_dir / 'Molinari'
-    molinari.mkdir()
-    (molinari / 'Molinari.toc').write_text(
+    masque = iw_profile_config.addon_dir / 'Masque'
+    masque.mkdir()
+    (masque / 'Masque.toc').write_text(
         """\
-## X-Curse-Project-ID: 20338
-## X-WoWI-ID: 13188
+## X-Curse-Project-ID: 13592
+## X-WoWI-ID: 12097
 """,
         encoding='utf-8',
     )
@@ -44,10 +44,10 @@ def pretend_install_molinari(
 @pytest.mark.parametrize(
     'alias',
     [
-        'curse:molinari',
-        'wowi:13188-molinari',
+        'curse:masque',
+        'wowi:12097-masque',
         'tukui:tukui',
-        'github:p3lim-wow/Molinari',
+        'github:sfx-wow/masque',
     ],
 )
 def test_valid_pkg_lifecycle(
@@ -71,7 +71,7 @@ def test_nonexistent_pkg_lifecycle(
 
 
 @pytest.mark.parametrize('iw_global_config_values', [None], indirect=True)
-@pytest.mark.parametrize('alias', ['curse:molinari'])
+@pytest.mark.parametrize('alias', ['curse:masque'])
 def test_disabled_source_lifecycle(
     alias: str,
 ):
@@ -93,78 +93,75 @@ def test_invalid_source_lifecycle(
 
 
 def test_reconciled_folder_conflict_on_install():
-    assert run('install curse:molinari').stdout.startswith('✓ curse:molinari\n  installed')
-    assert run('install wowi:13188-molinari').stdout == (
-        '✗ wowi:13188-molinari\n'
-        '  package folders conflict with installed package Molinari\n'
-        '    (curse:20338)\n'
+    assert run('install curse:masque').stdout.startswith('✓ curse:masque\n  installed')
+    assert run('install wowi:12097-masque').stdout == (
+        '✗ wowi:12097-masque\n'
+        '  package folders conflict with installed package Masque (curse:13592)\n'
     )
 
 
 def test_unreconciled_folder_conflict_on_install(
     iw_profile_config: ProfileConfig,
 ):
-    iw_profile_config.addon_dir.joinpath('Molinari').mkdir()
+    iw_profile_config.addon_dir.joinpath('Masque').mkdir()
     assert (
-        run('install curse:molinari').stdout
-        == "✗ curse:molinari\n  package folders conflict with 'Molinari'\n"
+        run('install curse:masque').stdout
+        == "✗ curse:masque\n  package folders conflict with 'Masque'\n"
     )
-    assert run('install --replace curse:molinari').stdout.startswith(
-        '✓ curse:molinari\n  installed'
-    )
+    assert run('install --replace curse:masque').stdout.startswith('✓ curse:masque\n  installed')
 
 
 def test_keep_folders_on_remove(
     iw_profile_config: ProfileConfig,
 ):
-    install_molinari()
-    assert run('remove --keep-folders curse:molinari').stdout == '✓ curse:molinari\n  removed\n'
-    assert iw_profile_config.addon_dir.joinpath('Molinari').is_dir()
+    install_masque()
+    assert run('remove --keep-folders curse:masque').stdout == '✓ curse:masque\n  removed\n'
+    assert iw_profile_config.addon_dir.joinpath('Masque').is_dir()
 
 
 def test_version_strategy_lifecycle():
-    assert run('install curse:molinari').stdout.startswith(
-        '✓ curse:molinari\n  installed 100205.111-Release_5090686'
+    assert run('install curse:masque').stdout.startswith(
+        '✓ curse:masque\n  installed 11.1.5_6454541'
     )
     assert (
-        run('install curse:molinari#version_eq=foo').stdout
-        == '✗ curse:molinari\n  package already installed\n'
+        run('install curse:masque#version_eq=foo').stdout
+        == '✗ curse:masque\n  package already installed\n'
     )
-    assert run('update curse:molinari').stdout == '✗ curse:molinari\n  package is up to date\n'
-    assert run('update curse:molinari#version_eq=100005.97-Release').stdout == dedent(
+    assert run('update curse:masque').stdout == '✗ curse:masque\n  package is up to date\n'
+    assert run('update curse:masque#version_eq=11.0.2').stdout == dedent(
         """\
-        ✓ curse:molinari
-          updated 100205.111-Release_5090686 to 100005.97-Release_4419396 with
-            new strategies: version_eq='100005.97-Release_4419396'
+        ✓ curse:masque
+          updated 11.1.5_6454541 to 11.0.2_5810397 with new strategies:
+            version_eq='11.0.2_5810397'
         """
     )
-    assert run('remove curse:molinari').stdout == '✓ curse:molinari\n  removed\n'
-    assert run('install curse:molinari#version_eq=foo').stdout == dedent(
+    assert run('remove curse:masque').stdout == '✓ curse:masque\n  removed\n'
+    assert run('install curse:masque#version_eq=foo').stdout == dedent(
         """\
-        ✗ curse:molinari
+        ✗ curse:masque
           no files are available for download
         """
     )
     assert (
-        run('install curse:molinari#version_eq=100005.97-Release').stdout
-        == '✓ curse:molinari\n  installed 100005.97-Release_4419396\n'
+        run('install curse:masque#version_eq=11.0.2').stdout
+        == '✓ curse:masque\n  installed 11.0.2_5810397\n'
     )
-    assert run('update').stdout == '✗ curse:molinari\n  package is pinned\n'
-    assert run('update curse:molinari#=').stdout == dedent(
+    assert run('update').stdout == '✗ curse:masque\n  package is pinned\n'
+    assert run('update curse:masque#=').stdout == dedent(
         """\
-        ✓ curse:molinari
-          updated 100005.97-Release_4419396 to 100205.111-Release_5090686 with
-            new strategies: version_eq=None
+        ✓ curse:masque
+          updated 11.0.2_5810397 to 11.1.5_6454541 with new strategies:
+            version_eq=None
         """
     )
-    assert run('remove curse:molinari').stdout == '✓ curse:molinari\n  removed\n'
+    assert run('remove curse:masque').stdout == '✓ curse:masque\n  removed\n'
 
 
 def test_install_options():
-    assert run('install curse:molinari#any_release_type,any_flavour').stdout == dedent(
+    assert run('install curse:masque#any_release_type,any_flavour').stdout == dedent(
         """\
-        ✓ curse:molinari
-          installed 100205.111-Release_5090686
+        ✓ curse:masque
+          installed 11.1.7-Beta-2_6725716
         """
     )
 
@@ -177,17 +174,16 @@ def test_install_order_is_respected(
         'install '
         + ' '.join(
             [
-                'curse:molinari',
-                'curse:molinari#version_eq=100005.97-Release',
+                'curse:masque',
+                'curse:masque#version_eq=11.0.2',
             ][::step]
         )
     ).stdout == dedent(
         f"""\
-        ✓ curse:molinari
-          installed {'100205.111-Release_5090686' if step == 1 else '100005.97-Release_4419396'}
-        ✗ curse:molinari
-          package folders conflict with installed package Molinari
-            (curse:20338)
+        ✓ curse:masque
+          installed {'11.1.5_6454541' if step == 1 else '11.0.2_5810397'}
+        ✗ curse:masque
+          package folders conflict with installed package Masque (curse:13592)
         """
     )
 
@@ -199,10 +195,10 @@ def test_install_invalid_defn():
 
 
 def test_install_dry_run():
-    assert run('install --dry-run curse:molinari').stdout == dedent(
+    assert run('install --dry-run curse:masque').stdout == dedent(
         """\
-        ✓ curse:molinari
-          would have installed 100205.111-Release_5090686
+        ✓ curse:masque
+          would have installed 11.1.5_6454541
         """
     )
 
@@ -303,8 +299,8 @@ def test_rollback__pkg_not_installed(
     options: str,
 ):
     assert (
-        run(f'rollback {options} curse:molinari').stdout
-        == '✗ curse:molinari\n  package is not installed\n'
+        run(f'rollback {options} curse:masque').stdout
+        == '✗ curse:masque\n  package is not installed\n'
     )
 
 
@@ -312,32 +308,30 @@ def test_rollback__pkg_not_installed(
 def test_rollback__unsupported(
     options: str,
 ):
-    assert run('install wowi:13188-molinari').exit_code == 0
+    assert run('install wowi:12097-masque').exit_code == 0
     assert (
-        run(f'rollback {options} wowi:13188-molinari').stdout
-        == '✗ wowi:13188-molinari\n  strategies are not valid for source: version_eq\n'
+        run(f'rollback {options} wowi:12097-masque').stdout
+        == '✗ wowi:12097-masque\n  strategies are not valid for source: version_eq\n'
     )
 
 
 def test_rollback__single_version():
-    assert run('install curse:molinari').exit_code == 0
-    assert (
-        run('rollback curse:molinari').stdout == '✗ curse:molinari\n  cannot find older versions\n'
-    )
+    assert run('install curse:masque').exit_code == 0
+    assert run('rollback curse:masque').stdout == '✗ curse:masque\n  cannot find older versions\n'
 
 
 def test_rollback__multiple_versions(
     iw_pt_input: prompt_toolkit.input.PipeInput,
 ):
-    assert run('install curse:molinari#version_eq=100005.97-Release').exit_code == 0
-    assert run('remove curse:molinari').exit_code == 0
-    assert run('install curse:molinari').exit_code == 0
+    assert run('install curse:masque#version_eq=11.0.2').exit_code == 0
+    assert run('remove curse:masque').exit_code == 0
+    assert run('install curse:masque').exit_code == 0
     iw_pt_input.send_text('\r\r')
-    assert run('rollback curse:molinari').stdout == dedent(
+    assert run('rollback curse:masque').stdout == dedent(
         """\
-        ✓ curse:molinari
-          updated 100205.111-Release_5090686 to 100005.97-Release_4419396 with
-            new strategies: version_eq='100005.97-Release_4419396'
+        ✓ curse:masque
+          updated 11.1.5_6454541 to 11.0.2_5810397 with new strategies:
+            version_eq='11.0.2_5810397'
         """
     )
 
@@ -347,20 +341,20 @@ def test_rollback__rollback_multiple_versions(
     iw_pt_input: prompt_toolkit.input.PipeInput,
     options: str,
 ):
-    assert run('install curse:molinari').exit_code == 0
-    assert run('remove curse:molinari').exit_code == 0
-    assert run('install curse:molinari#version_eq=100005.97-Release').exit_code == 0
+    assert run('install curse:masque').exit_code == 0
+    assert run('remove curse:masque').exit_code == 0
+    assert run('install curse:masque#version_eq=11.0.2').exit_code == 0
     iw_pt_input.send_text('\r\r')
-    assert run(f'rollback {options} curse:molinari').stdout == dedent(
+    assert run(f'rollback {options} curse:masque').stdout == dedent(
         """\
-        ✓ curse:molinari
-          updated 100005.97-Release_4419396 to 100205.111-Release_5090686 with
-            new strategies: version_eq=None
+        ✓ curse:masque
+          updated 11.0.2_5810397 to 11.1.5_6454541 with new strategies:
+            version_eq=None
         """
         if options == '--undo'
         else """\
-        ✓ curse:molinari
-          updated 100005.97-Release_4419396 to 100205.111-Release_5090686
+        ✓ curse:masque
+          updated 11.0.2_5810397 to 11.1.5_6454541
         """
     )
 
@@ -368,12 +362,12 @@ def test_rollback__rollback_multiple_versions(
 def test_reconcile__list_unreconciled(
     iw_profile_config: ProfileConfig,
 ):
-    pretend_install_molinari(iw_profile_config)
+    pretend_install_masque(iw_profile_config)
     assert run('reconcile --list-unreconciled').stdout == dedent(
         """\
         unreconciled
         ------------
-        Molinari    \
+        Masque      \
 
         """
     )
@@ -383,14 +377,14 @@ def test_reconcile_leftovers(
     iw_pt_input: prompt_toolkit.input.PipeInput,
     iw_profile_config: ProfileConfig,
 ):
-    pretend_install_molinari(iw_profile_config)
+    pretend_install_masque(iw_profile_config)
     iw_pt_input.send_text('sss')  # Skip
     assert run('reconcile').stdout.endswith(
         dedent(
             """\
             unreconciled
             ------------
-            Molinari    \
+            Masque      \
 
             """
         )
@@ -400,11 +394,11 @@ def test_reconcile_leftovers(
 def test_reconcile__auto_reconcile(
     iw_profile_config: ProfileConfig,
 ):
-    pretend_install_molinari(iw_profile_config)
+    pretend_install_masque(iw_profile_config)
     assert run('reconcile --auto').stdout == dedent(
         """\
-        ✓ github:p3lim-wow/molinari
-          installed 100205.111-Release
+        ✓ github:sfx-wow/masque
+          installed 11.1.5
         """
     )
 
@@ -413,7 +407,7 @@ def test_reconcile__abort_interactive_reconciliation(
     iw_pt_input: prompt_toolkit.input.PipeInput,
     iw_profile_config: ProfileConfig,
 ):
-    pretend_install_molinari(iw_profile_config)
+    pretend_install_masque(iw_profile_config)
     iw_pt_input.send_text('\x03')  # ^C
     assert run('reconcile').stderr.endswith('Aborted!\n')
 
@@ -422,13 +416,13 @@ def test_reconcile__complete_interactive_reconciliation(
     iw_pt_input: prompt_toolkit.input.PipeInput,
     iw_profile_config: ProfileConfig,
 ):
-    pretend_install_molinari(iw_profile_config)
+    pretend_install_masque(iw_profile_config)
     iw_pt_input.send_text('\ry')
     assert run('reconcile').stdout.endswith(
         dedent(
             """\
-            ✓ github:p3lim-wow/molinari
-              installed 100205.111-Release
+            ✓ github:sfx-wow/masque
+              installed 11.1.5
             """
         )
     )
@@ -441,14 +435,14 @@ def test_reconcile__reconciliation_complete():
 def test_rereconcile(
     iw_pt_input: prompt_toolkit.input.PipeInput,
 ):
-    install_molinari()
+    install_masque()
     iw_pt_input.send_text('\ry')
     assert run('rereconcile').stdout == dedent(
         """\
-        ✓ curse:molinari
+        ✓ curse:masque
           removed
-        ✓ github:p3lim-wow/molinari
-          installed 100205.111-Release
+        ✓ github:sfx-wow/masque
+          installed 11.1.5
         """
     )
 
@@ -456,18 +450,18 @@ def test_rereconcile(
 def test_rereconcile_with_args(
     iw_pt_input: prompt_toolkit.input.PipeInput,
 ):
-    install_molinari()
+    install_masque()
 
     iw_pt_input.send_text('\ry')
     assert run('rereconcile foo').stdout == ''
 
     iw_pt_input.send_text('\ry')
-    assert run('rereconcile molinari').stdout == dedent(
+    assert run('rereconcile masque').stdout == dedent(
         """\
-        ✓ curse:molinari
+        ✓ curse:masque
           removed
-        ✓ github:p3lim-wow/molinari
-          installed 100205.111-Release
+        ✓ github:sfx-wow/masque
+          installed 11.1.5
         """
     )
 
@@ -480,7 +474,7 @@ def test_search__exit_without_selecting(
     iw_pt_input: prompt_toolkit.input.PipeInput,
 ):
     iw_pt_input.send_text('\r')  # enter
-    assert run('search molinari').stdout == (
+    assert run('search masque').stdout == (
         'Nothing was selected; select add-ons with <space> and confirm by pressing <enter>.\n'
     )
 
@@ -489,17 +483,17 @@ def test_search__exit_after_selection(
     iw_pt_input: prompt_toolkit.input.PipeInput,
 ):
     iw_pt_input.send_text(' \rn')  # space, enter, "n"
-    assert run('search molinari').stdout == ''
+    assert run('search masque').stdout == ''
 
 
 def test_search__install_one(
     iw_pt_input: prompt_toolkit.input.PipeInput,
 ):
     iw_pt_input.send_text(' \ry')  # space, enter, enter
-    assert run('search molinari --source curse').stdout == dedent(
+    assert run('search masque --source curse').stdout == dedent(
         """\
-        ✓ curse:molinari
-          installed 100205.111-Release_5090686
+        ✓ curse:masque
+          installed 11.1.5_6454541
         """
     )
 
@@ -508,45 +502,42 @@ def test_search__install_multiple_conflicting(
     iw_pt_input: prompt_toolkit.input.PipeInput,
 ):
     iw_pt_input.send_text(' \x1b[B \ry')  # space, arrow down, space, enter, enter
-    assert run('search molinari').stdout == dedent(
+    assert run('search masque').stdout == dedent(
         """\
-        ✓ github:p3lim-wow/molinari
-          installed 100205.111-Release
-        ✗ wowi:13188
-          package folders conflict with installed package Molinari
-            (github:388670)
+        ✓ wowi:12097
+          installed 11.1.7-Beta-2
+        ✗ curse:masque
+          package folders conflict with installed package Masque (wowi:12097)
         """
     )
 
 
 def test_changelog_output_installed_convert():
-    install_molinari()
+    install_masque()
     stdout = (
-        'curse:molinari:\n  Changes in'
-        if shutil.which('pandoc')
-        else 'curse:molinari:\n  <h3>Changes in'
+        'curse:masque:\n  11.1.5' if shutil.which('pandoc') else 'curse:masque:\n  <h2>11.1.5</h2>'
     )
-    assert run('view-changelog curse:molinari').stdout.startswith(stdout)
+    assert run('view-changelog curse:masque').stdout.startswith(stdout)
 
 
 def test_changelog_output_installed_no_convert():
-    install_molinari()
-    assert run('view-changelog --no-convert curse:molinari').stdout.startswith(
-        'curse:molinari:\n  <h3>Changes in'
+    install_masque()
+    assert run('view-changelog --no-convert curse:masque').stdout.startswith(
+        'curse:masque:\n  <h2>11.1.5</h2>'
     )
 
 
 def test_changelog_output_not_installed():
-    assert run('view-changelog curse:molinari').stdout == ''
+    assert run('view-changelog curse:masque').stdout == ''
 
 
 def test_changelog_output_argless():
-    install_molinari()
-    assert run('view-changelog').stdout.startswith('curse:molinari:')
+    install_masque()
+    assert run('view-changelog').stdout.startswith('curse:masque:')
 
 
 def test_changelog_output_remote():
-    assert run('view-changelog --remote curse:molinari').stdout.startswith('curse:molinari:')
+    assert run('view-changelog --remote curse:masque').stdout.startswith('curse:masque:')
 
 
 def test_changelog_warning_if_no_pandoc():
@@ -555,15 +546,15 @@ def test_changelog_warning_if_no_pandoc():
         if shutil.which('pandoc')
         else '! pandoc is not installed; changelogs will not be converted\n'
     )
-    assert run('view-changelog curse:molinari').stderr == stderr
+    assert run('view-changelog curse:masque').stderr == stderr
 
 
 @pytest.mark.parametrize(
     ('command', 'exit_code'),
     [
-        ('list mol', 0),
+        ('list mas', 0),
         ('info foo', 0),
-        ('reveal mol', 0),
+        ('reveal mas', 0),
         ('reveal foo', 1),
     ],
 )
@@ -572,24 +563,24 @@ def test_exit_codes_with_substr_match(
     command: str,
     exit_code: int,
 ):
-    install_molinari()
+    install_masque()
     monkeypatch.setattr('instawow._utils.file.reveal_folder', mock.MagicMock())
     assert run(command).exit_code == exit_code
 
 
 def test_can_list_with_substr_match():
-    install_molinari()
-    assert run('list mol').stdout == 'curse:molinari\n'
+    install_masque()
+    assert run('list mas').stdout == 'curse:masque\n'
     assert run('list foo').stdout == ''
-    assert run('list -f detailed mol').stdout.startswith('curse:molinari')
-    (molinari,) = json.loads(run('list -f json mol').stdout)
-    assert (molinari['source'], molinari['slug']) == ('curse', 'molinari')
+    assert run('list -f detailed mas').stdout.startswith('curse:masque')
+    (masque,) = json.loads(run('list -f json mas').stdout)
+    assert (masque['source'], masque['slug']) == ('curse', 'masque')
 
 
 def test_json_export():
-    install_molinari()
+    install_masque()
     output = run('list -f json').stdout
-    assert json.loads(output)[0]['name'] == 'Molinari'
+    assert json.loads(output)[0]['name'] == 'Masque'
 
 
 def test_show_version():

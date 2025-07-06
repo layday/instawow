@@ -1052,7 +1052,7 @@ def _profile_group():
 
 class _EditableConfigOptions(enum.StrEnum):
     AddonDir = 'addon_dir'
-    GameFlavour = 'game_flavour'
+    Track = 'track'
     AutoUpdateCheck = 'global_config.auto_update_check'
     GithubAccessToken = 'global_config.access_tokens.github'
     CfcoreAccessToken = 'global_config.access_tokens.cfcore'
@@ -1098,9 +1098,11 @@ def configure_profile(editable_config_values: Mapping[_EditableConfigOptions, An
     from .._utils.file import expand_path
     from ..wow_installations import (
         Flavour,
+        Track,
         find_installations,
         get_addon_dir_from_installation_dir,
         infer_flavour_from_addon_dir,
+        to_flavourful_enum,
     )
     from .prompts import (
         SKIP,
@@ -1131,7 +1133,7 @@ def configure_profile(editable_config_values: Mapping[_EditableConfigOptions, An
 
     editable_config_values = dict(editable_config_values)
     if not editable_config_values:
-        default_keys = {_EditableConfigOptions.AddonDir, _EditableConfigOptions.GameFlavour}
+        default_keys = {_EditableConfigOptions.AddonDir, _EditableConfigOptions.Track}
         if global_config.access_tokens.github is None:
             default_keys |= {_EditableConfigOptions.GithubAccessToken}
 
@@ -1141,11 +1143,11 @@ def configure_profile(editable_config_values: Mapping[_EditableConfigOptions, An
     if interactive_editable_config_keys:
         # 0 = Unconfigured
         # 1 = `addon_dir` configured
-        # 2 = both `addon_dir` and `game_flavour` configured
+        # 2 = both `addon_dir` and `track` configured
         installation_configured = 0
         if (
             is_new_profile
-            and {_EditableConfigOptions.AddonDir, _EditableConfigOptions.GameFlavour}
+            and {_EditableConfigOptions.AddonDir, _EditableConfigOptions.Track}
             <= interactive_editable_config_keys
         ):
             known_installations = list(
@@ -1170,7 +1172,8 @@ def configure_profile(editable_config_values: Mapping[_EditableConfigOptions, An
 
                     editable_config_values |= {
                         _EditableConfigOptions.AddonDir: addon_dir,
-                        _EditableConfigOptions.GameFlavour: flavour,
+                        _EditableConfigOptions.Track: flavour
+                        and to_flavourful_enum(flavour, Track),
                     }
                     installation_configured = 2 if flavour else 1
 
@@ -1188,13 +1191,19 @@ def configure_profile(editable_config_values: Mapping[_EditableConfigOptions, An
 
         if (
             installation_configured < 2
-            and _EditableConfigOptions.GameFlavour in interactive_editable_config_keys
+            and _EditableConfigOptions.Track in interactive_editable_config_keys
         ):
-            editable_config_values[_EditableConfigOptions.GameFlavour] = select_one(
-                'Game flavour',
-                [Choice(f, f) for f in Flavour],
-                initial_value=config_values.get('addon_dir')
-                and infer_flavour_from_addon_dir(config_values['addon_dir']),
+            initial_track = None
+            addon_dir = config_values.get('addon_dir')
+            if addon_dir:
+                initial_track = to_flavourful_enum(
+                    infer_flavour_from_addon_dir(addon_dir) or Flavour.Retail, Track
+                )
+
+            editable_config_values[_EditableConfigOptions.Track] = select_one(
+                'Game track',
+                [Choice(f, f) for f in Track],
+                initial_value=initial_track,
             ).prompt()
 
         if _EditableConfigOptions.AutoUpdateCheck in interactive_editable_config_keys:

@@ -7,6 +7,7 @@ from typing import Literal
 from .. import config_ctx
 from .._utils.iteration import bucketise
 from .._utils.text import normalise_names
+from ..wow_installations import to_flavour
 from . import synchronise as synchronise_catalogue
 from .cataloguer import CatalogueEntry
 
@@ -53,8 +54,8 @@ async def search(
             return cursor.execute('SELECT source, id FROM pkg').fetchall()
 
     def make_filter_fns() -> Iterator[Callable[[CatalogueEntry], bool]]:
-        game_flavour = config_ctx.config().game_flavour
-        yield lambda e: game_flavour in e.game_flavours
+        flavour = to_flavour(config_ctx.config().track)
+        yield lambda e: flavour in e.game_flavours
 
         if sources:
             yield lambda e: e.source in sources

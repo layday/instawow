@@ -39,7 +39,12 @@ from instawow.http import init_web_client
 from instawow.pkg_archives._download import PkgDownloadProgress
 from instawow.pkg_db import models as pkg_models
 from instawow.progress_reporting import ReadOnlyProgressGroup, make_progress_receiver
-from instawow.wow_installations import Flavour, infer_flavour_from_addon_dir
+from instawow.wow_installations import (
+    FlavourVersions,
+    Track,
+    infer_flavour_from_addon_dir,
+    to_flavourful_enum,
+)
 
 _toga_handle_var = contextvars.ContextVar[toga.App]('_toga_handle_var')
 
@@ -148,7 +153,7 @@ async def list_profiles() -> dict[str, ProfileConfig]:
 
 @_register_method('config/write_profile')
 async def write_profile_config(
-    profile: str, addon_dir: Path, game_flavour: Flavour, infer_game_flavour: bool
+    profile: str, addon_dir: Path, track: Track, infer_track: bool
 ) -> ProfileConfig:
     async with sync_ctx.locks()[*_LockOperation.ModifyProfile, profile]:
         config = config_converter.structure(
@@ -156,14 +161,19 @@ async def write_profile_config(
                 'global_config': _global_ctx_var.get().global_config,
                 'profile': profile,
                 'addon_dir': addon_dir,
-                'game_flavour': game_flavour,
+                'track': track,
             },
             ProfileConfig,
         )
-        if infer_game_flavour:
+        if infer_track:
             config = evolve(
                 config,
-                {'game_flavour': infer_flavour_from_addon_dir(config.addon_dir) or Flavour.Retail},
+                {
+                    'track': to_flavourful_enum(
+                        infer_flavour_from_addon_dir(config.addon_dir) or FlavourVersions.Retail,
+                        Track,
+                    )
+                },
             )
         await run_in_thread(config.write)()
 

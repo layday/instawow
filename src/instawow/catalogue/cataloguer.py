@@ -14,7 +14,7 @@ from .._utils.iteration import bucketise
 from .._utils.text import normalise_names
 from ..wow_installations import Flavour
 
-CATALOGUE_VERSION = 7
+CATALOGUE_VERSION = 8
 
 
 _catalogue_converter = cattrs.Converter(
@@ -80,7 +80,7 @@ class ComputedCatalogue:
         base_entries = unstructured_base_catalogue['entries']
 
         most_downloads_per_source = {
-            s: max(e['download_count'] for e in i)
+            s: max(e['download_count'] for e in i) or 1
             for s, i in bucketise(base_entries, key=lambda e: e['source']).items()
         }
         same_as_from_github = {

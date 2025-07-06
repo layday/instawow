@@ -2,7 +2,7 @@
   import { DateTime } from "luxon";
   import { getContext } from "svelte";
   import type { Sources } from "../api";
-  import { Flavour, Strategy } from "../api";
+  import { Track, Strategy } from "../api";
   import type { SearchOptions } from "./Profile.svelte";
   import type { ModalHandle } from "./modal/Modal.svelte";
 
@@ -15,7 +15,7 @@
     onRequestReset,
     onRequestSearch,
   }: {
-    flavour: Flavour;
+    flavour: Track;
     sources: Sources;
     searchFilterInstalled: boolean;
     searchIsFromAlias: boolean;
@@ -30,7 +30,7 @@
   ] as const;
 
   const START_DATE_SUGGESTIONS = [
-    { date: "2024-01-16", label: "10.2.5", flavour: Flavour.Retail },
+    { date: "2024-01-16", label: "10.2.5", flavour: Track.Retail },
     {
       date: DateTime.now().minus({ days: 1 }).toISODate(),
       label: "yesterday",

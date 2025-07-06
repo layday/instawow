@@ -1,0 +1,110 @@
+{
+  "data": {
+    "id": 5810397,
+    "gameId": 1,
+    "modId": 13592,
+    "isAvailable": true,
+    "displayName": "11.0.2",
+    "fileName": "Masque-11.0.2.zip",
+    "releaseType": 1,
+    "fileStatus": 4,
+    "hashes": [
+      {
+        "value": "a7b9464ddc58310dd60247baeb9b829e3ff5ba40",
+        "algo": 1
+      },
+      {
+        "value": "c5245a19ffc6791f7febf06031c720c4",
+        "algo": 2
+      }
+    ],
+    "fileDate": "2024-10-14T01:22:09.337Z",
+    "fileLength": 1559522,
+    "downloadCount": 185608,
+    "fileSizeOnDisk": 7292932,
+    "downloadUrl": "https://edge.forgecdn.net/files/5810/397/Masque-11.0.2.zip",
+    "gameVersions": [
+      "11.0.5",
+      "1.15.4",
+      "4.4.0",
+      "4.4.1",
+      "11.0.2"
+    ],
+    "sortableGameVersions": [
+      {
+        "gameVersionName": "11.0.5",
+        "gameVersionPadded": "0000000011.0000000000.0000000005",
+        "gameVersion": "11.0.5",
+        "gameVersionReleaseDate": "2024-09-07T00:00:00Z",
+        "gameVersionTypeId": 517
+      },
+      {
+        "gameVersionName": "1.15.4",
+        "gameVersionPadded": "0000000001.0000000015.0000000004",
+        "gameVersion": "1.15.4",
+        "gameVersionReleaseDate": "2024-08-30T00:00:00Z",
+        "gameVersionTypeId": 67408
+      },
+      {
+        "gameVersionName": "4.4.0",
+        "gameVersionPadded": "0000000004.0000000004.0000000000",
+        "gameVersion": "4.4.0",
+        "gameVersionReleaseDate": "2024-03-07T00:00:00Z",
+        "gameVersionTypeId": 77522
+      },
+      {
+        "gameVersionName": "4.4.1",
+        "gameVersionPadded": "0000000004.0000000004.0000000001",
+        "gameVersion": "4.4.1",
+        "gameVersionReleaseDate": "2024-09-07T00:00:00Z",
+        "gameVersionTypeId": 77522
+      },
+      {
+        "gameVersionName": "11.0.2",
+        "gameVersionPadded": "0000000011.0000000000.0000000002",
+        "gameVersion": "11.0.2",
+        "gameVersionReleaseDate": "2024-07-03T00:00:00Z",
+        "gameVersionTypeId": 517
+      }
+    ],
+    "dependencies": [
+      {
+        "modId": 340803,
+        "relationType": 1
+      },
+      {
+        "modId": 15049,
+        "relationType": 1
+      },
+      {
+        "modId": 20113,
+        "relationType": 1
+      },
+      {
+        "modId": 19651,
+        "relationType": 1
+      },
+      {
+        "modId": 15552,
+        "relationType": 1
+      },
+      {
+        "modId": 14328,
+        "relationType": 1
+      },
+      {
+        "modId": 13376,
+        "relationType": 1
+      }
+    ],
+    "alternateFileId": 0,
+    "isServerPack": false,
+    "fileFingerprint": 3527626732,
+    "modules": [
+      {
+        "name": "Masque",
+        "fingerprint": 1407628498
+      }
+    ]
+  }
+}

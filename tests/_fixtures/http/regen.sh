@@ -6,37 +6,37 @@ set -ex
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null 2>&1 && pwd)"
 
 
-echo '{"modIds": [2382, 20338, 23350, 288981, 13592, 2398, 326516, 333072, 402180, 989270]}' \
+echo '{"modIds": [2382, 13592, 326516, 402180, 1299675]}' \
     | http post https://api.curseforge.com/v1/mods \
-        x-api-key:$CFCORE_API_KEY -b \
+        x-api-key:$INSTAWOW_ACCESS_TOKENS_CFCORE -b \
     | jq -r \
     > "$DIR"/curse-addon--all.json
-http get 'https://api.curseforge.com/v1/mods/search?gameId=1&slug=molinari' \
-        x-api-key:$CFCORE_API_KEY -b \
+http get 'https://api.curseforge.com/v1/mods/search?gameId=1&slug=masque' \
+        x-api-key:$INSTAWOW_ACCESS_TOKENS_CFCORE -b \
     | jq -r \
     > "$DIR"/curse-addon-slug-search.json
-http get https://api.curseforge.com/v1/mods/20338/files \
-        x-api-key:$CFCORE_API_KEY -b \
+http get https://api.curseforge.com/v1/mods/13592/files \
+        x-api-key:$INSTAWOW_ACCESS_TOKENS_CFCORE -b \
     | jq -r \
     > "$DIR"/curse-addon-files.json
-http get https://api.curseforge.com/v1/mods/20338/files/4419396 \
-        x-api-key:$CFCORE_API_KEY -b \
+http get https://api.curseforge.com/v1/mods/13592/files/6454541 \
+        x-api-key:$INSTAWOW_ACCESS_TOKENS_CFCORE -b \
     | jq -r \
-    > "$DIR"/curse-addon-file-4419396.json
-http get https://api.curseforge.com/v1/mods/20338/files/5090686 \
-        x-api-key:$CFCORE_API_KEY -b \
+    > "$DIR"/curse-addon-file-6454541.json
+http get https://api.curseforge.com/v1/mods/13592/files/5810397 \
+        x-api-key:$INSTAWOW_ACCESS_TOKENS_CFCORE -b \
     | jq -r \
-    > "$DIR"/curse-addon-file-5090686.json
-http get https://api.curseforge.com/v1/mods/20338/files/3657564/changelog \
-        x-api-key:$CFCORE_API_KEY -b \
+    > "$DIR"/curse-addon-file-5810397.json
+http get https://api.curseforge.com/v1/mods/13592/files/6454541/changelog \
+        x-api-key:$INSTAWOW_ACCESS_TOKENS_CFCORE -b \
     | jq -r \
     > "$DIR"/curse-addon-changelog.json
 
 
 http get https://api.mmoui.com/v3/game/WOW/filelist.json -b \
-    | jq -r '.[] | select(.UID == "13188") | [.]' \
+    | jq -r '.[] | select(.UID == "12097") | [.]' \
     > "$DIR"/wowi-filelist.json
-http get https://api.mmoui.com/v3/game/WOW/filedetails/13188.json -b \
+http get https://api.mmoui.com/v3/game/WOW/filedetails/12097.json -b \
     | jq -r \
     > "$DIR"/wowi-filedetails.json
 
@@ -58,19 +58,19 @@ http get 'https://api.github.com/repos/nebularg/PackagerTest/releases?per_page=1
 http --follow get 'https://github.com/nebularg/PackagerTest/releases/download/v1.9.7/release.json' -b \
     | jq -r \
     > "$DIR"/github-release-release-json-release-json.json
-http get 'https://api.github.com/repos/p3lim-wow/Molinari' -b \
+http get 'https://api.github.com/repos/sfx-wow/masque' -b \
     | jq -r \
-    > "$DIR"/github-repo-molinari.json
-http get 'https://api.github.com/repos/p3lim-wow/Molinari/releases?per_page=1' -b \
+    > "$DIR"/github-repo-masque.json
+http get 'https://api.github.com/repos/sfx-wow/masque/releases?per_page=10' -b \
     | jq -r \
-    > "$DIR"/github-release-molinari.json
+    > "$DIR"/github-release-masque.json
 http --follow get $(
     jq -r \
-        '.[].assets[] | select(.name == "release.json") | .browser_download_url' \
-        "$DIR"/github-release-molinari.json
+        '.[] | select(.prerelease == false) | .assets[] | select(.name == "release.json") | .browser_download_url' \
+        "$DIR"/github-release-masque.json
 ) -b \
     | jq -r \
-    > "$DIR"/github-release-molinari-release-json.json
+    > "$DIR"/github-release-masque-release-json.json
 http get 'https://api.github.com/repos/28/NoteworthyII' -b \
     | jq -r \
     > "$DIR"/github-repo-no-release-json.json
@@ -85,9 +85,9 @@ http get 'https://api.github.com/repos/AdiAddons/AdiButtonAuras/releases/tags/2.
     > "$DIR"/github-release-no-assets.json
 
 
-http get https://raw.githubusercontent.com/layday/instawow-data/data/base-catalogue-v7.compact.json -b \
+http get https://raw.githubusercontent.com/layday/instawow-data/data/base-catalogue-v8.compact.json -b \
     | jq -r \
-    > "$DIR"/base-catalogue-v7.compact.json
+    > "$DIR"/base-catalogue-v8.compact.json
 
 
 echo '{

@@ -16,14 +16,9 @@ import instawow.config
 import instawow.config_ctx
 import instawow.http
 import instawow.http_ctx
-from instawow.wow_installations import _DELECTABLE_DIR_NAMES, Flavour
+from instawow.wow_installations import _DELECTABLE_DIR_NAMES, Track, to_flavour
 
-from ._fixtures.http import (
-    ROUTES,
-    AddRoutes,
-    patch_aiohttp,
-    prepare_mock_server_router,
-)
+from ._fixtures.http import ROUTES, AddRoutes, patch_aiohttp, prepare_mock_server_router
 
 
 @pytest.fixture(autouse=True)
@@ -70,7 +65,7 @@ def iw_global_config_values(
     }
 
 
-@pytest.fixture(params=[Flavour.Retail])
+@pytest.fixture(params=[Track.Retail])
 def iw_profile_config_values(
     request: pytest.FixtureRequest,
     tmp_path: Path,
@@ -79,7 +74,11 @@ def iw_profile_config_values(
         tmp_path
         / '__game__'
         / next(
-            (k for k, v in _DELECTABLE_DIR_NAMES.items() if v['flavour'] is request.param),
+            (
+                k
+                for k, v in _DELECTABLE_DIR_NAMES.items()
+                if v['flavour'] is to_flavour(request.param)
+            ),
             '_unknown_',
         )
     )
@@ -88,7 +87,7 @@ def iw_profile_config_values(
     return {
         'profile': '__default__',
         'addon_dir': addon_dir,
-        'game_flavour': request.param,
+        'track': request.param,
         '_installation_dir': installation_dir,
     }
 

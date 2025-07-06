@@ -14,7 +14,7 @@ from .._utils.attrs import fauxfrozen
 from .._utils.iteration import bucketise, merge_intersecting_sets, uniq
 from ..catalogue import synchronise as synchronise_catalogue
 from ..definitions import Defn
-from ..wow_installations import Flavour, FlavourTocSuffixes, to_flavourful_enum
+from ..wow_installations import Flavour, FlavourTocSuffixes, to_flavour
 from .addon_toc import TocReader
 
 
@@ -25,7 +25,7 @@ class Matcher(Protocol):  # pragma: no cover
 
 
 _FLAVOUR_TOC_EXTENSIONS = {
-    to_flavourful_enum(s, Flavour): tuple(f'{s}{f}.toc' for s, f in product('-_', s.value))
+    to_flavour(s): tuple(f'{s}{f}.toc' for s, f in product('-_', s.value))
     for s in FlavourTocSuffixes
 }
 NORMALISED_FLAVOUR_TOC_EXTENSIONS = {
@@ -64,6 +64,7 @@ class AddonFolder:
 
 def _get_unreconciled_folders():
     config = config_ctx.config()
+    flavour = to_flavour(config.track)
 
     with config_ctx.database() as connection:
         pkg_folders = [n for (n,) in connection.execute('SELECT name FROM pkg_folder').fetchall()]
@@ -74,7 +75,7 @@ def _get_unreconciled_folders():
         if p.name not in pkg_folders and p.is_dir() and not p.is_symlink()
     )
     for path in unreconciled_folder_paths:
-        addon_folder = AddonFolder.from_path(config.game_flavour, path)
+        addon_folder = AddonFolder.from_path(flavour, path)
         if addon_folder:
             yield addon_folder
 
@@ -119,7 +120,7 @@ async def _match_toc_source_ids(leftovers: frozenset[AddonFolder]):
 
 
 async def _match_folder_name_subsets(leftovers: frozenset[AddonFolder]):
-    config = config_ctx.config()
+    flavour = to_flavour(config_ctx.config().track)
     resolvers = config_ctx.resolvers()
     catalogue = await synchronise_catalogue()
 
@@ -128,7 +129,7 @@ async def _match_folder_name_subsets(leftovers: frozenset[AddonFolder]):
     matches = [
         (frozenset(leftovers_by_name[n] for n in m), Defn(i.source, i.id))
         for i in catalogue.entries
-        if config.game_flavour in i.game_flavours
+        if flavour in i.game_flavours
         for f in i.folders
         for m in (f & leftovers_by_name.keys(),)
         if m

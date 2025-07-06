@@ -1,0 +1,94 @@
+{
+  "data": {
+    "id": 6454541,
+    "gameId": 1,
+    "modId": 13592,
+    "isAvailable": true,
+    "displayName": "11.1.5",
+    "fileName": "Masque-11.1.5.zip",
+    "releaseType": 1,
+    "fileStatus": 4,
+    "hashes": [
+      {
+        "value": "05cf54babddde279a9d27e7dfd42ed9ab4d507ba",
+        "algo": 1
+      },
+      {
+        "value": "86ddab55ad1a9bcba3b4dbc82e796b6c",
+        "algo": 2
+      }
+    ],
+    "fileDate": "2025-04-23T03:22:00.43Z",
+    "fileLength": 1559805,
+    "downloadCount": 122949,
+    "fileSizeOnDisk": 7293462,
+    "downloadUrl": "https://edge.forgecdn.net/files/6454/541/Masque-11.1.5.zip",
+    "gameVersions": [
+      "4.4.2",
+      "1.15.7",
+      "11.1.5"
+    ],
+    "sortableGameVersions": [
+      {
+        "gameVersionName": "4.4.2",
+        "gameVersionPadded": "0000000004.0000000004.0000000002",
+        "gameVersion": "4.4.2",
+        "gameVersionReleaseDate": "2025-01-08T00:00:00Z",
+        "gameVersionTypeId": 77522
+      },
+      {
+        "gameVersionName": "1.15.7",
+        "gameVersionPadded": "0000000001.0000000015.0000000007",
+        "gameVersion": "1.15.7",
+        "gameVersionReleaseDate": "2025-03-22T00:00:00Z",
+        "gameVersionTypeId": 67408
+      },
+      {
+        "gameVersionName": "11.1.5",
+        "gameVersionPadded": "0000000011.0000000001.0000000005",
+        "gameVersion": "11.1.5",
+        "gameVersionReleaseDate": "2025-03-22T00:00:00Z",
+        "gameVersionTypeId": 517
+      }
+    ],
+    "dependencies": [
+      {
+        "modId": 20113,
+        "relationType": 1
+      },
+      {
+        "modId": 15552,
+        "relationType": 1
+      },
+      {
+        "modId": 14328,
+        "relationType": 1
+      },
+      {
+        "modId": 13376,
+        "relationType": 1
+      },
+      {
+        "modId": 15049,
+        "relationType": 1
+      },
+      {
+        "modId": 340803,
+        "relationType": 1
+      },
+      {
+        "modId": 19651,
+        "relationType": 1
+      }
+    ],
+    "alternateFileId": 0,
+    "isServerPack": false,
+    "fileFingerprint": 2642651369,
+    "modules": [
+      {
+        "name": "Masque",
+        "fingerprint": 2875115870
+      }
+    ]
+  }
+}

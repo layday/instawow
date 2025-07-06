@@ -3,17 +3,17 @@
   "slug": "tukui",
   "author": "Tukz",
   "name": "Tukui",
-  "url": "https://api.tukui.org/v1/download/tukui/m3WZVLJ8FaIBoEHAQk_sNo7h7WBjUiDuxCjCYONQzQ1kEwUdXULryEEi9Zt9h0zMexX1lO7Sr_F8qpP2CwNPtIpBZj5sQyMYg4ne0qVCjP_rISETzHFop_Z-cKlh42cG5XgnjQfBEn0Drgc6RcsZ07Gkakz7nhk--QNG_sGlfbfcl7m-n8IPTOnxiw05LIe4Ktc6s7KC7asxv1nRruhsTko3ZHfQMxm5vVnEBFxsk9WtzUmvYjOzactbYX9cD0JXUzy-ee3tJ0R7tbNO_CL0M7devWQU__pg8yYuOKiriQwo83HXSu__pLUkIDQrB4EcETgW6X_V6h6faw57GwS9AA",
-  "version": "20.41",
+  "url": "https://api.tukui.org/v1/download/tukui/Aeob6rsZCTU2UhO-wREdIND_eZ0O7yGuJ2QM0VmIqviLVjgXs3GWqznLIaAgG2XGYSoDmRikjTfC-L3eAr_1RIXp9DFwGR3J9sEiJrSp0jmbpDyQvMnI7gAQy10TAhguTHjyXD-FmZzFeVQ0fsqh4I6xMh_D-XtL_EwYB-SLo9a5PJ-5Zh2oJBdO5oS9_9rJ22Z9Q_mPBxnVaxamXo_wcZAJ3r7lsvhh3oPI7wDkZ0lK1HWDRnCp5g7j758Q-RhfU8pBz2YfAmaYqLWYhCn-rOW8kTpZKTaW74G-4-3HFLP72p_ki7uGjed-PAA9m6n5eFtdMq6aOb3EXnviq7d2yQ",
+  "version": "20.461",
   "changelog_url": "https://api.tukui.org/v1/changelog/tukui",
   "ticket_url": "https://github.com/tukui-org/Tukui/issues",
   "git_url": "https://github.com/tukui-org/Tukui",
   "patch": [
-    "10.1.5",
-    "3.4.2",
-    "1.14.3"
+    "11.1.7",
+    "5.5.0",
+    "1.15.7"
   ],
-  "last_update": "2023-11-10",
+  "last_update": "2025-07-01",
   "web_url": "https://tukui.org/tukui",
   "donate_url": "http://tukui.org/support",
   "small_desc": "Minimalistic and lightweight World of Warcraft user interface.",

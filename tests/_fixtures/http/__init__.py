@@ -42,8 +42,8 @@ ROUTES = {
             {'info': {'version': get_version()}},
         ),
         Route(
-            r'//raw\.githubusercontent\.com/layday/instawow-data/data/base-catalogue-v7\.compact\.json',
-            _load_json_fixture('base-catalogue-v7.compact.json'),
+            r'//raw\.githubusercontent\.com/layday/instawow-data/data/base-catalogue-v8\.compact\.json',
+            _load_json_fixture('base-catalogue-v8.compact.json'),
         ),
         Route(
             r'//api\.curseforge\.com/v1/mods',
@@ -51,28 +51,28 @@ ROUTES = {
             method='POST',
         ),
         Route(
-            r'//api\.curseforge\.com/v1/mods/search\?gameId=1&slug=molinari',
+            r'//api\.curseforge\.com/v1/mods/search\?gameId=1&slug=masque',
             _load_json_fixture('curse-addon-slug-search.json'),
         ),
         Route(
-            r'//api\.curseforge\.com/v1/mods/20338/files',
+            r'//api\.curseforge\.com/v1/mods/13592/files',
             _load_json_fixture('curse-addon-files.json'),
         ),
         Route(
-            r'//api\.curseforge\.com/v1/mods/20338/files/4419396',
-            _load_json_fixture('curse-addon-file-4419396.json'),
+            r'//api\.curseforge\.com/v1/mods/13592/files/6454541',
+            _load_json_fixture('curse-addon-file-6454541.json'),
         ),
         Route(
-            r'//api\.curseforge\.com/v1/mods/20338/files/5090686',
-            _load_json_fixture('curse-addon-file-5090686.json'),
+            r'//api\.curseforge\.com/v1/mods/13592/files/5810397',
+            _load_json_fixture('curse-addon-file-5810397.json'),
         ),
         Route(
-            r'//api\.curseforge\.com/v1/mods/20338/files/(\d+)/changelog',
+            r'//api\.curseforge\.com/v1/mods/13592/files/(\d+)/changelog',
             _load_json_fixture('curse-addon-changelog.json'),
         ),
         Route(
             r'//edge\.forgecdn\.net/.*',
-            lambda: Response(body=_make_addon_zip('Molinari')),
+            lambda: Response(body=_make_addon_zip('Masque')),
         ),
         Route(
             r'//api\.mmoui\.com/v3/game/WOW/filelist\.json',
@@ -84,7 +84,7 @@ ROUTES = {
         ),
         Route(
             r'//cdn\.wowinterface\.com/.*',
-            lambda: Response(body=_make_addon_zip('Molinari')),
+            lambda: Response(body=_make_addon_zip('Masque')),
         ),
         Route(
             r'//api\.tukui\.org/v1/addon/tukui',
@@ -111,30 +111,32 @@ ROUTES = {
             _load_json_fixture('github-release-release-json-release-json.json'),
         ),
         Route(
-            r'//api\.github\.com/repositories/388670',
-            _load_json_fixture('github-repo-molinari.json'),
+            r'//api\.github\.com/repositories/44074003',
+            _load_json_fixture('github-repo-masque.json'),
         ),
         Route(
-            r'//api\.github\.com/repos/p3lim-wow/Molinari',
-            _load_json_fixture('github-repo-molinari.json'),
+            r'//api\.github\.com/repos/SFX-WoW/Masque',
+            _load_json_fixture('github-repo-masque.json'),
         ),
         Route(
-            r'//api\.github\.com/repositories/388670/releases\?per_page=10',
-            _load_json_fixture('github-release-molinari.json'),
+            r'//api\.github\.com/repositories/44074003/releases\?per_page=10',
+            _load_json_fixture('github-release-masque.json'),
         ),
         Route(
-            r'//api\.github\.com/repos/p3lim-wow/Molinari/releases\?per_page=10',
-            _load_json_fixture('github-release-molinari.json'),
+            r'//api\.github\.com/repos/SFX-WoW/Masque/releases\?per_page=10',
+            _load_json_fixture('github-release-masque.json'),
         ),
         Route(
             re.escape(
                 next(
                     a['url']
-                    for a in _load_json_fixture('github-release-molinari.json')[0]['assets']
+                    for r in _load_json_fixture('github-release-masque.json')
+                    if not r['prerelease']
+                    for a in r['assets']
                     if a['name'] == 'release.json'
                 )
             ),
-            _load_json_fixture('github-release-molinari-release-json.json'),
+            _load_json_fixture('github-release-masque-release-json.json'),
         ),
         Route(
             r'//api\.github\.com/repos/AdiAddons/AdiBags',
@@ -154,7 +156,7 @@ ROUTES = {
         ),
         Route(
             r'//api\.github\.com/repos(/[^/]*){2}/releases/assets/.*',
-            lambda: Response(body=_make_addon_zip('Molinari')),
+            lambda: Response(body=_make_addon_zip('Masque')),
         ),
         Route(
             r'//github\.com/login/device/code',

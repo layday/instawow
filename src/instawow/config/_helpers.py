@@ -12,13 +12,11 @@ import cattrs
 import cattrs.gen
 import cattrs.preconf.json
 
-type _FieldEnvPrefix = str | Literal[True]
-type _FieldStore = Literal[True, 'independently']
-
 
 class FieldMetadata(TypedDict, total=False):
-    env_prefix: _FieldEnvPrefix
-    store: _FieldStore
+    env_prefix: str | Literal[True]
+    store: Literal[True, 'independently']
+    store_alias: str
 
 
 SecretStr = NewType('SecretStr', str)
@@ -94,13 +92,18 @@ def read_config(attrs_cls: type, config_path: Path, missing_ok: bool = False) ->
             if not field.init:
                 continue
 
-            store: _FieldStore = field.metadata.get('store')
+            metadata: FieldMetadata = field.metadata
+            store = metadata.get('store')
+            name = metadata.get('store_alias') or field.name
+
             if store == 'independently':
                 maybe_values = read_config(
-                    field.type, config_path.with_stem(f'{config_path.stem}.{field.name}'), True
+                    field.type, config_path.with_stem(f'{config_path.stem}.{name}'), True
                 )
                 if maybe_values:
                     values |= {field.name: maybe_values}
+            elif name != field.name and name in values:
+                values[field.name] = values[name]
 
     except FileNotFoundError:
         if missing_ok:
@@ -130,7 +133,9 @@ def read_env_vars(
 
             value = values.get(field.name, attrs.NOTHING)
 
-            env_prefix: _FieldEnvPrefix = field.metadata.get('env_prefix')
+            metadata: FieldMetadata = field.metadata
+            env_prefix = metadata.get('env_prefix')
+
             if env_prefix:
                 env_key = f'{parent_env_prefix if env_prefix is True else env_prefix}_{field.name}'.upper()
                 env_value = os.environ.get(env_key, attrs.NOTHING)

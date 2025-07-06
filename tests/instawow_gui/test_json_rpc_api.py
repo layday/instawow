@@ -75,7 +75,7 @@ async def test_write_config(
     rpc_request = {
         'jsonrpc': '2.0',
         'method': 'config/write_profile',
-        'params': {**config_values, 'infer_game_flavour': False},
+        'params': {**config_values, 'infer_track': False},
         'id': request.node.name,
     }
     await ws.send_json(rpc_request, dumps=dumps)
@@ -95,8 +95,8 @@ async def test_write_config_with_invalid_params(
 ):
     config_values = {
         **iw_profile_config_values,
-        'game_flavour': 'strawberry',
-        'infer_game_flavour': False,
+        'track': 'strawberry',
+        'infer_track': False,
     }
     config_values.pop('_installation_dir')
     rpc_request = {
@@ -113,8 +113,8 @@ async def test_write_config_with_invalid_params(
     assert rpc_response['error']['message'] == 'invalid params'
     assert rpc_response['error']['data'] == [
         {
-            'path': ['params', 'game_flavour'],
-            'message': 'ValueError("\'strawberry\' is not a valid Flavour")',
+            'path': ['params', 'track'],
+            'message': 'ValueError("\'strawberry\' is not a valid Track")',
         }
     ]
 

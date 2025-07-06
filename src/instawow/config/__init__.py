@@ -12,7 +12,7 @@ from attrs import field
 from .. import NAME
 from .._utils.attrs import enrich_validator_exc, fauxfrozen
 from .._utils.file import expand_path, trash
-from ..wow_installations import Flavour, extract_installation_dir_from_addon_dir
+from ..wow_installations import Track, extract_installation_dir_from_addon_dir
 from ._dirs import get_cache_dir, get_config_dir, get_state_dir
 from ._helpers import (
     FieldMetadata,
@@ -126,7 +126,12 @@ class ProfileConfig:
     addon_dir: Path = _path_field(
         validator=_validate_path_is_writable_dir, metadata=FieldMetadata(store=True)
     )
-    game_flavour: Flavour = field(metadata=FieldMetadata(store=True))
+    track: Track = field(
+        metadata=FieldMetadata(
+            store=True,
+            store_alias='game_flavour',  # For backward compatibility.
+        )
+    )
 
     @classmethod
     def _make_config_file_path(cls, global_config: GlobalConfig, profile: str):

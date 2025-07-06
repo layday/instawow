@@ -1,0 +1,24 @@
+{
+  "releases": [
+    {
+      "name": "Masque",
+      "version": "11.1.5",
+      "filename": "Masque-11.1.5.zip",
+      "nolib": false,
+      "metadata": [
+        {
+          "flavor": "mainline",
+          "interface": 110105
+        },
+        {
+          "flavor": "cata",
+          "interface": 40402
+        },
+        {
+          "flavor": "classic",
+          "interface": 11507
+        }
+      ]
+    }
+  ]
+}

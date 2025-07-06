@@ -14,7 +14,13 @@ from instawow import config_ctx
 from instawow._sources.github import GithubResolver, _PackagerReleaseJsonFlavor
 from instawow.definitions import Defn, Strategies, Strategy
 from instawow.results import PkgFilesMissing, PkgFilesNotMatching, PkgNonexistent
-from instawow.wow_installations import Flavour, to_flavourful_enum
+from instawow.wow_installations import (
+    FlavourVersions,
+    Track,
+    to_flavour,
+    to_flavour_versions,
+    to_flavourful_enum,
+)
 
 from ._fixtures.http import AddRoutes, Route
 
@@ -37,33 +43,33 @@ ZIPS = {
         'toc_files': {
             '_Cata': b'',
         },
-        'flavours': {Flavour.Classic},
+        'tracks': {Track.Classic},
     },
     'flavoured-and-unflavoured-toc-without-interface-version': {
         'toc_files': {
             '_Cata': b'',
             '': b'',
         },
-        'flavours': {Flavour.Classic},
+        'tracks': {Track.Classic},
     },
     'flavoured-and-unflavoured-toc-with-interface-version': {
         'toc_files': {
             '_Cata': b'',
             '': b'## Interface: 11300\n',
         },
-        'flavours': {Flavour.VanillaClassic, Flavour.Classic},
+        'tracks': {Track.VanillaClassic, Track.Classic},
     },
     'unflavoured-toc-only-without-interface-version': {
         'toc_files': {
             '': b'',
         },
-        'flavours': set[Flavour](),
+        'tracks': set[Track](),
     },
     'unflavoured-toc-only-with-interface-version': {
         'toc_files': {
             '': b'## Interface: 11300\n',
         },
-        'flavours': {Flavour.VanillaClassic},
+        'tracks': {Track.VanillaClassic},
     },
 }
 
@@ -78,7 +84,7 @@ def package_json_less_addon(
         for flavour_suffix, content in request.param['toc_files'].items():
             file.writestr(f'{zip_addon_name}/{zip_addon_name}{flavour_suffix}.toc', content)
 
-    return (addon.getvalue(), request.param['flavours'])
+    return (addon.getvalue(), request.param['tracks'])
 
 
 @pytest.mark.parametrize(
@@ -93,13 +99,13 @@ def package_json_less_addon(
 )
 @pytest.mark.parametrize(
     'iw_profile_config_values',
-    Flavour,
+    Track,
     indirect=True,
 )
 async def test_extracting_flavour_from_zip_contents(
     iw_add_routes: AddRoutes,
     github_resolver: GithubResolver,
-    package_json_less_addon: tuple[bytes, set[Flavour]],
+    package_json_less_addon: tuple[bytes, set[Track]],
 ):
     async def handle_request(request: aiohttp.web.BaseRequest):
         if aiohttp.hdrs.RANGE in request.headers:
@@ -116,13 +122,13 @@ async def test_extracting_flavour_from_zip_contents(
         )
     )
 
-    addon, flavours = package_json_less_addon
+    addon, tracks = package_json_less_addon
     try:
         await github_resolver.resolve_one(zip_defn, None)
     except PkgFilesNotMatching:
-        assert config_ctx.config().game_flavour not in flavours
+        assert config_ctx.config().track not in tracks
     else:
-        assert config_ctx.config().game_flavour in flavours
+        assert config_ctx.config().track in tracks
 
 
 async def test_repo_with_release_json_release(
@@ -170,8 +176,10 @@ async def test_any_flavour_strategy(
     github_resolver: GithubResolver,
     any_flavour: Literal[True, None],
 ):
-    wrong_flavour = next(f for f in Flavour if f is not config_ctx.config().game_flavour)
-    wrong_interface = next(n for r in wrong_flavour.versions for n in r)
+    wrong_flavour = next(
+        f for f in FlavourVersions if f is not to_flavour_versions(config_ctx.config().track)
+    )
+    wrong_interface = next(n for r in wrong_flavour.value for n in r)
 
     iw_add_routes(
         Route(
@@ -207,7 +215,7 @@ async def test_any_flavour_strategy(
 async def test_changelog_is_data_url(
     github_resolver: GithubResolver,
 ):
-    defn = Defn('github', 'p3lim-wow/Molinari')
+    defn = Defn('github', 'sfx-wow/masque')
 
     result = await github_resolver.resolve_one(defn, None)
     assert result['changelog_url'].startswith('data:,')
@@ -216,9 +224,9 @@ async def test_changelog_is_data_url(
 @pytest.mark.parametrize(
     ('iw_profile_config_values', 'flavor', 'interface'),
     [
-        (Flavour.Retail, 'mainline', 30400),
-        (Flavour.Classic, 'cata', 90207),
-        (Flavour.VanillaClassic, 'classic', 90207),
+        (Track.Retail, 'mainline', 30400),
+        (Track.Classic, 'mists', 90207),
+        (Track.VanillaClassic, 'classic', 90207),
     ],
     indirect=('iw_profile_config_values',),
 )
@@ -260,8 +268,7 @@ async def test_mismatched_release_is_skipped_and_logged(
     assert (
         'instawow._sources.github',
         logging.INFO,
-        f'Flavor and interface mismatch: {interface} not found in '
-        f'{(config_ctx.config().game_flavour,)}',
+        f'Flavor and interface mismatch: {(interface, to_flavour(config_ctx.config().track))}',
     ) in caplog.record_tuples
 
 

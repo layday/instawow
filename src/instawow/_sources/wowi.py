@@ -4,8 +4,7 @@ import re
 from collections.abc import Sequence
 from datetime import UTC, datetime, timedelta
 from itertools import takewhile
-from typing import Literal
-from typing import NotRequired as N
+from typing import Literal, NotRequired
 
 from typing_extensions import TypedDict
 from yarl import URL
@@ -19,7 +18,7 @@ from .._utils.web import as_plain_text_data_url
 from ..definitions import ChangelogFormat, Defn, SourceMetadata
 from ..resolvers import BaseResolver, CatalogueEntryCandidate, PkgCandidate
 from ..results import PkgNonexistent, resultify
-from ..wow_installations import Flavour
+from ..wow_installations import Flavour, FlavourVersions, to_flavour
 
 _slugify = normalise_names('-')
 
@@ -47,7 +46,7 @@ class _WowiListApiItem(_WowiCommonTerms):
     # dependencies (probably not) but it's so underused as to be worthless.
     # ``null`` if would be empty
     UISiblings: list[str] | None
-    UIDonationLink: N[str | None]  # Absent from the first item on the list (!)
+    UIDonationLink: NotRequired[str | None]  # Absent from the first item on the list (!)
 
 
 class _WowiListApiItem_CompatibilityEntry(TypedDict):
@@ -165,9 +164,9 @@ class WowiResolver(BaseResolver[_WowiDetailsApiItem]):
                         name=item['UIName'],
                         url=item['UIFileInfoURL'],
                         game_flavours=supported_flavours.intersection(
-                            f
+                            to_flavour(f)
                             for c in compatibility
-                            for f in (Flavour.from_version_string(c['version']),)
+                            for f in (FlavourVersions.from_version_string(c['version']),)
                             if f
                         ),
                         download_count=int(item['UIDownloadTotal']),

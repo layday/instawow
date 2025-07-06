@@ -795,7 +795,7 @@
           <RollbackModalContents {...modal.dynamicProps} />
         {:else if modal.id === "searchOptions"}
           <SearchOptionsModalContents
-            flavour={config.game_flavour}
+            flavour={config.track}
             {sources}
             {searchFilterInstalled}
             {searchIsFromAlias}
