@@ -15,8 +15,7 @@ authors = [{ name = "layday", email = "layday@protonmail.com" }]
 urls."homepage" = "http://github.com/layday/instawow"
 
 dependencies = [
-  "aiohttp >= 3.11.11, < 4",
-  "aiohttp >= 3.11.16 ; python_version >= '3.14'",
+  "aiohttp >= 3.11.16",
   "aiohttp-client-cache >= 0.12.4",
   "attrs >= 24.2.0",
   "cattrs >= 24.1.0",

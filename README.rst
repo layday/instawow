@@ -52,25 +52,25 @@ to register previously-installed add-ons with *instawow*
 (or ``instawow reconcile --auto`` to do the same without user input).
 To install add-ons, you can search for them using the ``search`` command::
 
-    instawow search molinari
+    instawow search masque
 
 In addition, *instawow* is able to interpret add-on URLs and *instawow*-specific
 URIs of slugs and host IDs.
-All of the following will install Molinari::
+All of the following will install Masque::
 
-    instawow install https://www.curseforge.com/wow/addons/molinari
-    instawow install curse:molinari
-    instawow install curse:20338
-    instawow install https://github.com/p3lim-wow/Molinari
-    instawow install github:p3lim-wow/molinari
+    instawow install https://www.curseforge.com/wow/addons/masque
+    instawow install curse:masque
+    instawow install curse:13592
+    instawow install https://github.com/SFX-WoW/Masque
+    instawow install github:sfx-wow/masque
 
 You can ``update`` add-ons and ``remove`` them just as you'd install them.
 If ``update`` is invoked without arguments, it will update all of your
 installed add-ons.  You can ``list`` add-ons and view detailed information about
 them using ``list --format detailed``.
 For ``list`` and other similarly non-destructive commands, the source can be omitted
-and the alias can be shortened, e.g. ``instawow reveal moli``
-will bring up the Molinari add-on folder in your file manager.
+and the alias can be shortened, e.g. ``instawow reveal masq``
+will bring up the Masque add-on folder in your file manager.
 
 Add-on reconciliation
 ~~~~~~~~~~~~~~~~~~~~~
@@ -92,8 +92,8 @@ takes any number of add-on definitions as arguments.  All of the following are v
 
     instawow rereconcile
     instawow rereconcile curse:
-    instawow rereconcile curse:molinari
-    instawow rereconcile curse:molinari github:layday/some-addon wowi:
+    instawow rereconcile curse:masque
+    instawow rereconcile curse:masque github:layday/some-addon wowi:
 
 Add-on search
 ~~~~~~~~~~~~~
@@ -115,9 +115,9 @@ Add-ons take a number of options which determine how they are resolved:
 
 The default strategy set is empty.
 In the CLI, you can define strategies in the fragment portion of the add-on URI,
-separated by a comma, e.g. ``instawow install curse:molinari#any_release_type,any_flavour``.
+separated by a comma, e.g. ``instawow install curse:masque#any_release_type,any_flavour``.
 Strategies are respected by ``install`` and ``update``.  To reset an add-on's strategies on update,
-you can specify a null fragment, e.g. ``instawow update curse:molinari#=``.
+you can specify a null fragment, e.g. ``instawow update curse:masque#=``.
 
 Reverting add-on updates
 ~~~~~~~~~~~~~~~~~~~~~~~~
