@@ -2,6 +2,12 @@ Changelog
 =========
 
 
+v6.3.1
+------
+
+- Fix ``Track`` enum conversion.
+
+
 v6.3.0
 ------
 
