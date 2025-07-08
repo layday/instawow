@@ -14,8 +14,8 @@ from ._utils.iteration import fill
 class Track(StrEnum):
     Retail = 'retail'
     VanillaClassic = 'vanilla_classic'
-    Classic = 'classic'
-    MistsClassic = Classic
+    MistsClassic = 'classic'
+    Classic = MistsClassic
 
 
 class Flavour(StrEnum):
