@@ -2,6 +2,13 @@ Changelog
 =========
 
 
+v6.3.0
+------
+
+- Split ``flavour`` between ``track`` and ``flavour``.
+- Changed the ``classic`` track flavour to Mists Classic.
+
+
 v6.2.0
 ------
 
