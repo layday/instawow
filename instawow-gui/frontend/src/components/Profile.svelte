@@ -602,13 +602,13 @@
   });
 
   $effect(() => {
-    addonsByView[View.Installed], filteredCatalogueEntries;
+    (addonsByView[View.Installed], filteredCatalogueEntries);
 
     addonsByView[View.FilterInstalled] = regenerateFilteredAddons();
   });
 
   $effect(() => {
-    addonsByView[View.Installed], addonsFromSearch;
+    (addonsByView[View.Installed], addonsFromSearch);
 
     addonsByView[View.Search] = regenerateSearchAddons();
   });
