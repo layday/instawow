@@ -15,7 +15,6 @@ from .._logging import logger
 from .._utils.aio import gather
 from .._utils.iteration import uniq
 from ..definitions import ChangelogFormat, Defn, SourceMetadata, Strategy
-from ..progress_reporting import make_download_progress
 from ..resolvers import (
     AccessToken,
     BaseResolver,
@@ -283,6 +282,76 @@ class CfCoreResolver(BaseResolver[_CfCoreMod]):
             if maybe_access_token:
                 return {'x-api-key': maybe_access_token}
 
+    def __build_version_from_file(self, file: _CfCoreFile):
+        return f'{file["displayName"]}{_VERSION_SEP}{file["id"]}'
+
+    async def __get_mod(self, defn: Defn):
+        if defn.alias.isdigit():
+            async with http_ctx.web_client().get(
+                self.__mod_api_url / defn.alias,
+                expire_after=timedelta(minutes=15),
+                headers=self.make_request_headers(),
+            ) as mod_response:
+                if mod_response.status == 404:
+                    raise PkgNonexistent
+
+                mod_response.raise_for_status()
+
+                mod_response_json: _CfCoreDataResponse[_CfCoreMod] = await mod_response.json()
+                return mod_response_json['data']
+
+        else:
+            async with http_ctx.web_client().get(
+                (self.__mod_api_url / 'search').with_query(
+                    gameId=_CF_WOW_GAME_ID, slug=defn.alias
+                ),
+                expire_after=timedelta(minutes=15),
+                headers=self.make_request_headers(),
+                raise_for_status=True,
+            ) as mod_response:
+                mods_response_json: _CfCorePaginatedDataResponse[
+                    list[_CfCoreMod]
+                ] = await mod_response.json()
+
+                match mods_response_json:
+                    case {'data': [metadata]}:
+                        return metadata
+                    case _:
+                        raise PkgNonexistent
+
+    async def __get_files(self, defn: Defn, metadata: _CfCoreMod):
+        files_url = self.__mod_api_url.joinpath(str(metadata['id']), 'files')
+
+        version_eq = defn.strategies[Strategy.VersionEq]
+        if version_eq:
+            _, file_sep, file_id = version_eq.rpartition(_VERSION_SEP)
+            if file_sep and file_id:
+                file_id_no = int(file_id)
+                file = next((f for f in metadata['latestFiles'] if f['id'] == file_id_no), None)
+                if file is not None:
+                    return [file]
+
+                files_url /= file_id
+
+        async with http_ctx.web_client().get(
+            files_url,
+            expire_after=timedelta(hours=1),
+            headers=self.make_request_headers(),
+            raise_for_status=True,
+        ) as files_response:
+            files_response_json: (
+                _CfCoreDataResponse[_CfCoreFile] | _CfCoreDataResponse[list[_CfCoreFile]]
+            ) = await files_response.json()
+
+        files = files_response_json['data']
+        if not isinstance(files, list):
+            files = [files]
+        elif version_eq:
+            files = next(
+                ([f] for f in files if f['displayName'] == version_eq), list[_CfCoreFile]()
+            )
+        return files
+
     async def resolve(self, defns: Sequence[Defn]):
         defn_ids = {d: d.id or d.alias for d in defns}
         numeric_ids = uniq(i for i in defn_ids.values() if i.isdigit())
@@ -306,67 +375,10 @@ class CfCoreResolver(BaseResolver[_CfCoreMod]):
 
     async def resolve_one(self, defn: Defn, metadata: _CfCoreMod | None):
         if metadata is None:
-            if defn.alias.isdigit():
-                async with http_ctx.web_client().get(
-                    self.__mod_api_url / defn.alias,
-                    expire_after=timedelta(minutes=15),
-                    headers=self.make_request_headers(),
-                ) as mod_response:
-                    if mod_response.status == 404:
-                        raise PkgNonexistent
+            metadata = await self.__get_mod(defn)
 
-                    mod_response.raise_for_status()
-
-                    metadata = await mod_response.json()
-                    assert metadata
-
-            else:
-                async with http_ctx.web_client().get(
-                    (self.__mod_api_url / 'search').with_query(
-                        gameId=_CF_WOW_GAME_ID, slug=defn.alias
-                    ),
-                    expire_after=timedelta(minutes=15),
-                    headers=self.make_request_headers(),
-                    raise_for_status=True,
-                ) as mod_response:
-                    mod_response_json: _CfCorePaginatedDataResponse[
-                        list[_CfCoreMod]
-                    ] = await mod_response.json()
-                    if not mod_response_json['data']:
-                        raise PkgNonexistent
-
-                    [metadata] = mod_response_json['data']
-
-        version_eq = defn.strategies[Strategy.VersionEq]
-        if version_eq:
-            _, file_sep, file_id = version_eq.rpartition(_VERSION_SEP)
-            files_url = self.__mod_api_url / str(metadata['id']) / 'files'
-            if file_sep and file_id:
-                files_url /= file_id
-
-            async with http_ctx.web_client().get(
-                files_url,
-                expire_after=timedelta(hours=1),
-                headers=self.make_request_headers(),
-                raise_for_status=True,
-                trace_request_ctx={
-                    'progress': make_download_progress(
-                        label=f'Fetching metadata from {self.metadata.name}'
-                    )
-                },
-            ) as files_response:
-                files_response_json: (
-                    _CfCoreDataResponse[_CfCoreFile] | _CfCoreDataResponse[list[_CfCoreFile]]
-                ) = await files_response.json()
-
-            files = files_response_json['data']
-            if isinstance(files, list):
-                files = next(
-                    ([f] for f in files if f['displayName'] == version_eq), list[_CfCoreFile]()
-                )
-            else:
-                files = [files]
-
+        if defn.strategies[Strategy.VersionEq]:
+            files = await self.__get_files(defn, metadata)
         else:
             files = metadata['latestFiles']
 
@@ -423,7 +435,7 @@ class CfCoreResolver(BaseResolver[_CfCoreMod]):
             url=metadata['links']['websiteUrl'],
             download_url=file['downloadUrl'],
             date_published=datetime.fromisoformat(file['fileDate']),
-            version=f'{file["displayName"]}{_VERSION_SEP}{file["id"]}',
+            version=self.__build_version_from_file(file),
             changelog_url=str(
                 self.__mod_api_url / f'{metadata["id"]}/files/{file["id"]}/changelog'
             ),
