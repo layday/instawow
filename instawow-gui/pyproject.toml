@@ -94,7 +94,7 @@ linuxdeploy_plugins = [
 [tool.briefcase.app.instawow-gui-wrapper.linux.flatpak]
 finish_arg."filesystem=host" = true
 flatpak_runtime = "org.gnome.Platform"
-flatpak_runtime_version = "47"
+flatpak_runtime_version = "48"
 flatpak_sdk = "org.gnome.Sdk"
 
 [tool.briefcase.app.instawow-gui-wrapper.linux.system.debian]

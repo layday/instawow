@@ -12,7 +12,7 @@ from functools import partial
 import toga
 import toga.style.pack
 
-from . import _json_rpc_server
+from . import NAME, _json_rpc_server
 
 
 class _TogaSimulateKeypressAction(StrEnum):
@@ -133,11 +133,11 @@ class _App(toga.App):
         main_window.show()
 
 
-def make_app(version: str) -> toga.App:
+def make_app(*, app_name: str, version: str) -> toga.App:
     return _App(
         formal_name='instawow-gui',
-        app_id='org.instawow.instawow_gui',
-        app_name='instawow_gui',
+        app_name=app_name,
+        app_id='org.instawow.instawow-gui' if app_name == NAME else None,
         icon='_resources/instawow_gui',
         version=version,
     )

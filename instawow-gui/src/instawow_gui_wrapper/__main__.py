@@ -25,7 +25,7 @@ def main() -> None:
     # presumably something to do with spooling.
     print()
 
-    instawow.cli.main(sys.argv[1:] or ['plugins', 'gui'])
+    instawow.cli.main(sys.argv[1:] or ['plugins', 'gui', '--app-name', __spec__.parent])
 
 
 if __name__ == '__main__':
