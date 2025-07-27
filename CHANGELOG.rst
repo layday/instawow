@@ -2,6 +2,19 @@ Changelog
 =========
 
 
+v6.4.0
+------
+
+- Added fast path for resolving CurseForge add-ons
+  with the ``version_eq`` strategy.
+- Fixed fetching CurseForge add-ons from a numeric alias.
+
+GUI
+~~~
+
+- Fixed Flatpak builds on KDE.
+
+
 v6.3.1
 ------
 
