@@ -75,7 +75,7 @@ lint = [
 ]
 test = [
   "anyio",
-  "coverage[toml]",
+  "coverage >= 7.10.1",
   "pytest",
   "pytest-xdist",
 ]
@@ -134,6 +134,8 @@ source_pkgs = [
 parallel = true
 branch = true
 dynamic_context = "test_function"
+core = "sysmon"
+patch = ["subprocess"]
 disable_warnings = [
   "no-sysmon",
 ]

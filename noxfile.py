@@ -117,8 +117,6 @@ _inject_coverage_hook()
     session.run(
         *('coverage', 'run', '-m', 'pytest', '-n', 'auto'),
         env={
-            'COVERAGE_CORE': 'sysmon',
-            'COVERAGE_PROCESS_START': 'pyproject.toml',
             'PYTHONWARNDEFAULTENCODING': '1',
         },
     )
