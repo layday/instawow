@@ -2,6 +2,12 @@ Changelog
 =========
 
 
+v6.4.1
+------
+
+- Fix resolving multiple dependencies.
+
+
 v6.4.0
 ------
 
