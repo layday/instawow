@@ -431,7 +431,7 @@ async def _resolve_deps(
 
     # Map the ID both to the `alias` and the `id` fields of the `Defn` so that
     # it's not lost if we humanise the alias later.
-    deps = await resolve(list(starmap(Defn, *zip((s, i, i) for s, i in dep_defns))))
+    deps = await resolve([Defn(s, i, i) for s, i in dep_defns])
     pretty_deps = {
         evolve(d, {'alias': r['slug']}) if isinstance(r, dict) else d: r for d, r in deps.items()
     }
