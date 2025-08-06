@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Awaitable, Callable, Collection, Iterable, Mapping, Sequence
 from functools import partial, wraps
-from itertools import chain, compress, filterfalse, repeat, starmap
+from itertools import chain, compress, filterfalse, repeat
 from pathlib import Path
 from typing import Literal, Never, TypedDict
 
