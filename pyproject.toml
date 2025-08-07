@@ -159,7 +159,8 @@ testpaths = ["tests"]
 xfail_strict = true
 filterwarnings = [
   "error",
-  "ignore:'_UnionGenericAlias' is deprecated and slated for removal in Python 3.17",
+  "ignore:'encoding' argument not specified:EncodingWarning:toga",
+  "ignore:'_UnionGenericAlias' is deprecated and slated for removal in Python 3.17:DeprecationWarning:cattrs._compat",
 ]
 addopts = ["-ra", "--strict-config", "--strict-markers"]
 log_cli_level = "INFO"
