@@ -13,16 +13,6 @@ nox.options.default_venv_backend = 'uv'
 nox.options.error_on_external_run = True
 
 
-def _inject_coverage_hook():
-    import sysconfig
-    from pathlib import Path
-
-    Path(sysconfig.get_path('purelib')).joinpath('_coverage_.pth').write_text(
-        'import coverage; coverage.process_startup()',
-        encoding='utf-8',
-    )
-
-
 def _locate_or_build_packages(session: nox.Session):
     import json
 
@@ -76,8 +66,6 @@ def lint(session: nox.Session):
 @nox.parametrize('minimum_versions', [False, True], ['latest', 'minimum-versions'])
 def test(session: nox.Session, minimum_versions: bool):
     "Run the test suite."
-    import inspect
-
     if minimum_versions and session.venv_backend != 'uv':
         session.error('`minimum_versions` requires uv')
 
@@ -106,14 +94,6 @@ def test(session: nox.Session, minimum_versions: bool):
     else:
         session.install(*install_args)
 
-    session.run(
-        'python',
-        '-c',
-        f"""\
-{inspect.getsource(_inject_coverage_hook)}
-_inject_coverage_hook()
-        """,
-    )
     session.run(
         *('coverage', 'run', '-m', 'pytest', '-n', 'auto'),
         env={
