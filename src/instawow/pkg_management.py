@@ -14,7 +14,6 @@ from ._utils.attrs import evolve
 from ._utils.file import trash
 from ._utils.iteration import bucketise, uniq
 from .definitions import Defn, Strategy
-from .pkg_archives._download import download_pkg_archive
 from .pkg_db import Connection, Row, transact, use_tuple_factory
 from .pkg_db.models import Pkg, PkgLoggedVersion, make_db_converter
 from .progress_reporting import make_incrementing_progress_tracker
@@ -37,9 +36,6 @@ from .results import (
 )
 
 _MUTATE_PKGS_LOCK = '_MUTATE_PKGS_'
-
-
-_download_pkg_archive = resultify(download_pkg_archive)
 
 
 def _with_mutate_lock[**P, T](
@@ -397,7 +393,7 @@ async def find_equivalent_pkg_defns(
     folders_per_pkg = await collect_addon_folders()
 
     return {
-        p: sorted(d, key=lambda d: resolvers.priority_dict[d.source])
+        p: sorted(d, key=lambda d: resolvers.priorities[d.source])
         for p in pkgs
         for d in (get_catalogue_defns(p) | get_addon_toc_defns(p.source, folders_per_pkg[p]),)
         if d
@@ -476,7 +472,7 @@ def _mutate_install(
     defn: Defn, pkg_candidate: PkgCandidate, archive: Path, *, replace_folders: bool
 ):
     with (
-        config_ctx.resolvers().archive_opener_dict[defn.source](
+        config_ctx.resolvers()[defn.source].open_pkg_archive(
             archive,
         ) as (top_level_folders, extract),
         config_ctx.database() as connection,
@@ -519,7 +515,7 @@ def _mutate_install(
 @run_in_thread
 def _mutate_update(defn: Defn, old_pkg: Pkg, pkg_candidate: PkgCandidate, archive: Path):
     with (
-        config_ctx.resolvers().archive_opener_dict[defn.source](
+        config_ctx.resolvers()[defn.source].open_pkg_archive(
             archive,
         ) as (top_level_folders, extract),
         config_ctx.database() as connection,
@@ -607,6 +603,8 @@ async def install(
 ) -> Mapping[Defn, AnyResult[PkgInstalled]]:
     "Install packages from a definition list."
 
+    resolvers = config_ctx.resolvers()
+
     # We'll weed out installed deps from the results after resolving -
     # doing it this way isn't particularly efficient but avoids having to
     # deal with local state in ``resolve``.
@@ -630,7 +628,8 @@ async def install(
         }
 
     download_results = await gather(
-        _download_pkg_archive(d, r['download_url']) for d, r in pkg_candidates.items()
+        resolvers.pkg_downloaders[d.source](d, r['download_url'])
+        for d, r in pkg_candidates.items()
     )
     archive_paths, download_errors = split_results(zip(pkg_candidates, download_results))
 
@@ -653,6 +652,8 @@ async def replace(
     defns: Mapping[Defn, Defn],
 ) -> Mapping[Defn, AnyResult[PkgInstalled | PkgRemoved]]:
     "Replace installed packages with re-reconciled packages."
+
+    resolvers = config_ctx.resolvers()
 
     inverse_defns = {v: k for k, v in defns.items()}
     if len(inverse_defns) != len(defns):
@@ -684,7 +685,8 @@ async def replace(
     results = results | resolve_errors
 
     download_results = await gather(
-        _download_pkg_archive(d, r['download_url']) for d, r in pkg_candidates.items()
+        resolvers.pkg_downloaders[d.source](d, r['download_url'])
+        for d, r in pkg_candidates.items()
     )
     archive_paths, download_errors = split_results(zip(pkg_candidates, download_results))
 
@@ -715,6 +717,7 @@ async def update(
     "Update installed packages from a definition list."
 
     config = config_ctx.config()
+    resolvers = config_ctx.resolvers()
 
     if defns == 'all':
         defns_to_pkgs = {p.to_defn(): p for p in get_pkgs(defns) if p}
@@ -766,7 +769,8 @@ async def update(
         }
 
     download_results = await gather(
-        _download_pkg_archive(d, n['download_url']) for d, (_, n) in updatables.items()
+        resolvers.pkg_downloaders[d.source](d, n['download_url'])
+        for d, (_, n) in updatables.items()
     )
     archive_paths, download_errors = split_results(zip(updatables, download_results))
 

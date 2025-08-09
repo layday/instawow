@@ -3,13 +3,9 @@ from __future__ import annotations
 import posixpath
 import zipfile
 from collections.abc import Callable, Iterable, Iterator, Set
-from contextlib import AbstractContextManager, contextmanager
+from contextlib import contextmanager
 from pathlib import Path
-from typing import NamedTuple, Protocol
-
-
-class ArchiveOpener(Protocol):  # pragma: no cover
-    def __call__(self, archive_path: Path) -> AbstractContextManager[Archive]: ...
+from typing import NamedTuple
 
 
 class Archive(NamedTuple):

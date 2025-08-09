@@ -113,7 +113,7 @@ async def _match_toc_source_ids(leftovers: frozenset[AddonFolder]):
     return [
         (
             [n for n, _ in f],
-            sorted(b, key=lambda d: resolvers.priority_dict[d.source]),
+            sorted(b, key=lambda d: resolvers.priorities[d.source]),
         )
         for b, f in folders_grouped_by_overlapping_defns.items()
     ]
@@ -143,7 +143,7 @@ async def _match_folder_name_subsets(leftovers: frozenset[AddonFolder]):
     )
 
     def sort_key(folders: frozenset[AddonFolder], defn: Defn):
-        return (-len(folders), resolvers.priority_dict[defn.source])
+        return (-len(folders), resolvers.priorities[defn.source])
 
     return [
         (sorted(f), uniq(d for _, d in sorted(b, key=lambda v: sort_key(*v))))

@@ -2,7 +2,16 @@ from __future__ import annotations
 
 import datetime as dt
 import enum
-from collections.abc import AsyncIterator, Collection, Iterable, Mapping, Sequence
+from collections.abc import (
+    AsyncIterator,
+    Awaitable,
+    Callable,
+    Collection,
+    Iterable,
+    Mapping,
+    Sequence,
+)
+from contextlib import AbstractContextManager
 from functools import cached_property, partial, wraps
 from pathlib import Path
 from typing import Literal, Never, NotRequired, Protocol, Self, TypedDict, overload
@@ -47,12 +56,6 @@ class AccessToken[RequiredT: (Literal[True], bool)]:
             raise AccessTokenMissingError
         return access_token
 
-    @property
-    def missing_reason(self) -> str | None:
-        access_token, required = self.getter()
-        if required and access_token is None:
-            return str(AccessTokenMissingError())
-
 
 class HeadersIntent(enum.IntEnum):
     Download = enum.auto()
@@ -91,11 +94,17 @@ class Resolver(Protocol[_ResolveMetadataT]):  # pragma: no cover
     metadata: SourceMetadata
     'Static source metadata.'
 
-    access_token: AccessToken[bool] | None
-    'Access token retriever.'
+    def get_disabled_reason(self) -> str | None:
+        "Reason the resolver might be disabled."
+        ...
 
-    archive_opener: pkg_archives.ArchiveOpener | None
-    'Alternative archive opener to use supporting e.g. non-standard archive formats or layouts.'
+    async def download_pkg_archive(self, defn: Defn, download_url: str) -> Path:
+        "Package archive downloader."
+        ...
+
+    def open_pkg_archive(self, archive_path: Path) -> AbstractContextManager[pkg_archives.Archive]:
+        "Package archive opener."
+        ...
 
     def get_alias_from_url(self, url: URL) -> str | None:
         "Attempt to extract a ``Defn`` alias from a given URL."
@@ -123,8 +132,8 @@ class Resolver(Protocol[_ResolveMetadataT]):  # pragma: no cover
 
 
 class BaseResolver(Resolver[_ResolveMetadataT], Protocol):
-    access_token = None
-    archive_opener = None
+    access_token: AccessToken[bool] | None = None
+    'Access token retriever.'
 
     def __init_subclass__(cls) -> None:
         super().__init_subclass__()
@@ -140,6 +149,20 @@ class BaseResolver(Resolver[_ResolveMetadataT], Protocol):
                 raise PkgStrategiesUnsupported(extraneous_strategies)
 
             return await old_resolve_one(self, defn, metadata)
+
+    def get_disabled_reason(self) -> str | None:
+        if self.access_token:
+            access_token, required = self.access_token.getter()
+            if required and access_token is None:
+                return str(AccessTokenMissingError())
+
+    async def download_pkg_archive(self, defn: Defn, download_url: str) -> Path:
+        from .pkg_archives._download import download_pkg_archive
+
+        return await download_pkg_archive(defn, download_url)
+
+    def open_pkg_archive(self, archive_path: Path) -> AbstractContextManager[pkg_archives.Archive]:
+        return pkg_archives.open_zip_archive(archive_path)
 
     def get_alias_from_url(self, url: URL) -> str | None:
         return None
@@ -226,35 +249,28 @@ class Resolvers(dict[str, Resolver]):
         ]
 
     @cached_property
-    def archive_opener_dict(self) -> _ResolverArchiveOpenerDict:
-        return _ResolverArchiveOpenerDict(self)
-
-    @cached_property
     def disabled_resolver_reasons(self) -> Mapping[str, str]:
-        return {
-            r.metadata.id: d
-            for r in self.values()
-            if r.access_token
-            for d in (r.access_token.missing_reason,)
-            if d
-        }
+        return {r.metadata.id: d for r in self.values() for d in (r.get_disabled_reason(),) if d}
 
     @cached_property
-    def priority_dict(self) -> _ResolverPriorityDict:
-        return _ResolverPriorityDict(self)
+    def pkg_downloaders(self) -> _ResolverPkgDownloaders:
+        return _ResolverPkgDownloaders(self)
+
+    @cached_property
+    def priorities(self) -> _ResolverPriorities:
+        return _ResolverPriorities(self)
 
 
-class _ResolverArchiveOpenerDict(dict[str, 'pkg_archives.ArchiveOpener']):
+class _ResolverPkgDownloaders(dict[str, Callable[[Defn, str], Awaitable[AnyResult[Path]]]]):
     def __init__(self, resolvers: Resolvers) -> None:
-        super().__init__(
-            (r.metadata.id, r.archive_opener) for r in resolvers.values() if r.archive_opener
-        )
+        self.__resolvers = resolvers
 
-    def __missing__(self, key: str) -> pkg_archives.ArchiveOpener:
-        return pkg_archives.open_zip_archive
+    def __missing__(self, key: str):
+        downloader = self[key] = resultify(self.__resolvers[key].download_pkg_archive)
+        return downloader
 
 
-class _ResolverPriorityDict(dict[str, float]):
+class _ResolverPriorities(dict[str, float]):
     def __init__(self, resolvers: Resolvers) -> None:
         super().__init__((n, i) for i, n in enumerate(resolvers))
 
