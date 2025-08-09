@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import os
 from pathlib import Path
 from typing import Any
 from unittest import mock
@@ -49,10 +50,12 @@ def iw_home(
 
 
 @pytest.fixture(autouse=True)
-def _iw_home_override(
+def _iw_env_override(
     monkeypatch: pytest.MonkeyPatch,
     iw_home: Path,
 ):
+    for key in (k for k in os.environ if k.startswith('INSTAWOW_')):
+        monkeypatch.delenv(key)
     monkeypatch.setenv('INSTAWOW_HOME', str(iw_home))
 
 
