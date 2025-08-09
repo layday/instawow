@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import pytest
-from yarl import URL
 
 from instawow._sources.wowi import WowiResolver
 from instawow.definitions import Defn
@@ -83,4 +82,4 @@ def test_can_extract_alias_from_url(
     url: str,
     extracted_alias: str,
 ):
-    assert wowi_resolver.get_alias_from_url(URL(url)) == extracted_alias
+    assert wowi_resolver.get_alias_from_url(url) == extracted_alias

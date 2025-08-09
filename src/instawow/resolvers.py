@@ -98,7 +98,7 @@ class Resolver(Protocol[_ResolveMetadataT]):  # pragma: no cover
         "Reason the resolver might be disabled."
         ...
 
-    async def download_pkg_archive(self, defn: Defn, download_url: str) -> Path:
+    async def download_pkg_archive(self, defn: Defn, url: str) -> Path:
         "Package archive downloader."
         ...
 
@@ -106,7 +106,7 @@ class Resolver(Protocol[_ResolveMetadataT]):  # pragma: no cover
         "Package archive opener."
         ...
 
-    def get_alias_from_url(self, url: URL) -> str | None:
+    def get_alias_from_url(self, url: str) -> str | None:
         "Attempt to extract a ``Defn`` alias from a given URL."
         ...
 
@@ -122,7 +122,7 @@ class Resolver(Protocol[_ResolveMetadataT]):  # pragma: no cover
         "Resolve a ``Defn`` into a package."
         ...
 
-    async def get_changelog(self, uri: URL) -> str:
+    async def get_changelog(self, url: str) -> str:
         "Retrieve a changelog from a URI."
         ...
 
@@ -156,15 +156,15 @@ class BaseResolver(Resolver[_ResolveMetadataT], Protocol):
             if required and access_token is None:
                 return str(AccessTokenMissingError())
 
-    async def download_pkg_archive(self, defn: Defn, download_url: str) -> Path:
+    async def download_pkg_archive(self, defn: Defn, url: str) -> Path:
         from .pkg_archives._download import download_pkg_archive
 
-        return await download_pkg_archive(defn, download_url)
+        return await download_pkg_archive(defn, url)
 
     def open_pkg_archive(self, archive_path: Path) -> AbstractContextManager[pkg_archives.Archive]:
         return pkg_archives.open_zip_archive(archive_path)
 
-    def get_alias_from_url(self, url: URL) -> str | None:
+    def get_alias_from_url(self, url: str) -> str | None:
         return None
 
     def make_request_headers(self, intent: HeadersIntent | None = None) -> dict[str, str] | None:
@@ -181,34 +181,34 @@ class BaseResolver(Resolver[_ResolveMetadataT], Protocol):
         results = await gather(track_progress(resolve_one(d, None)) for d in defns)
         return dict(zip(defns, results))
 
-    async def get_changelog(self, uri: URL) -> str:
-        match uri.scheme:
-            case 'data' if uri.raw_path.startswith(','):
+    async def get_changelog(self, url: str) -> str:
+        match URL(url):
+            case URL(scheme='data') as urly if urly.raw_path.startswith(','):
                 import urllib.parse
 
-                return urllib.parse.unquote(uri.raw_path[1:])
+                return urllib.parse.unquote(urly.raw_path[1:])
 
-            case 'file':
+            case URL(scheme='file'):
                 from ._utils.aio import run_in_thread
                 from ._utils.web import file_uri_to_path
 
-                return await run_in_thread(Path(file_uri_to_path(str(uri))).read_text)(
+                return await run_in_thread(Path(file_uri_to_path(str(url))).read_text)(
                     encoding='utf-8'
                 )
 
-            case 'http' | 'https':
+            case URL(scheme='http' | 'https'):
                 from . import http, http_ctx
 
                 async with http_ctx.web_client().get(
-                    uri,
+                    url,
                     expire_after=http.CACHE_INDEFINITELY,
                     headers=self.make_request_headers(),
                     raise_for_status=True,
                 ) as response:
                     return await response.text()
 
-            case _:
-                raise ValueError('Unsupported URI with scheme', uri.scheme)
+            case URL() as urly:
+                raise ValueError('Unsupported URL with scheme', urly.scheme)
 
     async def catalogue(self) -> AsyncIterator[CatalogueEntryCandidate]:
         return
@@ -232,7 +232,7 @@ class Resolvers(dict[str, Resolver]):
             async def resolve(self, defns: Sequence[Defn]) -> dict[Defn, AnyResult[PkgCandidate]]:
                 return dict.fromkeys(defns, error)
 
-            async def get_changelog(self, uri: URL):
+            async def get_changelog(self, url: str):
                 raise error
 
             def __getattr__(self, name: str):

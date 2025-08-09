@@ -109,9 +109,10 @@ class GithubResolver(BaseResolver):
     def access_token():
         return config_ctx.config().global_config.access_tokens.github, False
 
-    def get_alias_from_url(self, url: URL):
-        if url.host == 'github.com' and len(url.parts) > 2:
-            return '/'.join(url.parts[1:3])
+    def get_alias_from_url(self, url: str):
+        urly = URL(url)
+        if urly.host == 'github.com' and len(urly.parts) > 2:
+            return '/'.join(urly.parts[1:3])
 
     def make_request_headers(self, intent: HeadersIntent | None = None):
         headers = dict[str, str]()

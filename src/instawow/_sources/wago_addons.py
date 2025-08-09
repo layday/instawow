@@ -78,11 +78,12 @@ class WagoAddonsResolver(BaseResolver):
 
     @AccessToken
     def access_token():
-        return config_ctx.config().global_config.access_tokens.wago_addons, True
+        return config_ctx.config().global_config.access_tokens.wago_addons, False
 
-    def get_alias_from_url(self, url: URL):
-        if url.host == 'addons.wago.io' and len(url.parts) > 2 and url.parts[1] == 'addons':
-            return url.parts[2]
+    def get_alias_from_url(self, url: str):
+        urly = URL(url)
+        if urly.host == 'addons.wago.io' and len(urly.parts) > 2 and urly.parts[1] == 'addons':
+            return urly.parts[2]
 
     def make_request_headers(self, intent: HeadersIntent | None = None):
         return {'Authorization': f'Bearer {self.access_token.get()}'}

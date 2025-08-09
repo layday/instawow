@@ -6,8 +6,6 @@ from itertools import chain, compress, filterfalse, repeat
 from pathlib import Path
 from typing import Literal, Never, TypedDict
 
-from yarl import URL
-
 from . import config_ctx, sync_ctx
 from ._utils.aio import gather, run_in_thread
 from ._utils.attrs import evolve
@@ -64,19 +62,18 @@ def split_results[T](
     return ts, errors
 
 
-def get_alias_from_url(value: str) -> tuple[str, str] | None:
+def get_alias_from_url(url: str) -> tuple[str, str] | None:
     "Attempt to extract a valid ``Defn`` source and alias from a URL."
     resolvers = config_ctx.resolvers()
-    url = URL(value)
     return next(
         ((r.metadata.id, a) for r in resolvers.values() if (a := r.get_alias_from_url(url))),
         None,
     )
 
 
-async def get_changelog(source: str, uri: str) -> str:
+async def get_changelog(source: str, url: str) -> str:
     "Retrieve a changelog from a URI."
-    return await config_ctx.resolvers().get_or_dummy(source).get_changelog(URL(uri))
+    return await config_ctx.resolvers().get_or_dummy(source).get_changelog(url)
 
 
 def build_pkg_from_pkg_candidate(

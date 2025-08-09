@@ -342,7 +342,7 @@ async def pin_pkgs(
 @_register_method('get_changelog')
 async def get_pkg_changelog(profile: str, source: str, changelog_url: str) -> str:
     async with _load_profile(profile):
-        return await pkg_management.get_changelog(source=source, uri=changelog_url)
+        return await pkg_management.get_changelog(source=source, url=changelog_url)
 
 
 @_register_method('get_logged_versions')

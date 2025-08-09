@@ -290,4 +290,4 @@ def test_can_extract_alias_from_url(
     url: str,
     extracted_alias: str,
 ):
-    assert github_resolver.get_alias_from_url(URL(url)) == extracted_alias
+    assert github_resolver.get_alias_from_url(url) == extracted_alias

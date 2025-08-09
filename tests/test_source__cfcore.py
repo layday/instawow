@@ -3,7 +3,6 @@ from __future__ import annotations
 import re
 
 import pytest
-from yarl import URL
 
 from instawow import config_ctx, pkg_management
 from instawow._sources.cfcore import CfCoreResolver
@@ -155,4 +154,4 @@ def test_can_extract_alias_from_url(
     url: str,
     extracted_alias: str,
 ):
-    assert curse_resolver.get_alias_from_url(URL(url)) == extracted_alias
+    assert curse_resolver.get_alias_from_url(url) == extracted_alias

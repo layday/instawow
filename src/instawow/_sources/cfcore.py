@@ -268,13 +268,14 @@ class CfCoreResolver(BaseResolver[_CfCoreMod]):
     def access_token():
         return config_ctx.config().global_config.access_tokens.cfcore, not _alternative_api_url
 
-    def get_alias_from_url(self, url: URL):
+    def get_alias_from_url(self, url: str):
+        urly = URL(url)
         if (
-            url.host == 'www.curseforge.com'
-            and len(url.parts) > 3
-            and url.parts[1:3] == ('wow', 'addons')
+            urly.host == 'www.curseforge.com'
+            and len(urly.parts) > 3
+            and urly.parts[1:3] == ('wow', 'addons')
         ):
-            return url.parts[3].lower()
+            return urly.parts[3].lower()
 
     def make_request_headers(self, intent: HeadersIntent | None = None):
         if not _alternative_api_url and intent is not HeadersIntent.Download:
@@ -446,9 +447,9 @@ class CfCoreResolver(BaseResolver[_CfCoreMod]):
             ],
         )
 
-    async def get_changelog(self, uri: URL):
+    async def get_changelog(self, url: str):
         async with http_ctx.web_client().get(
-            uri,
+            url,
             expire_after=http.CACHE_INDEFINITELY,
             headers=self.make_request_headers(),
             raise_for_status=True,

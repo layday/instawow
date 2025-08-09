@@ -98,18 +98,19 @@ class WowiResolver(BaseResolver[_WowiDetailsApiItem]):
     __list_api_url = 'https://api.mmoui.com/v3/game/WOW/filelist.json'
     __details_api_url = URL('https://api.mmoui.com/v3/game/WOW/filedetails/')
 
-    def get_alias_from_url(self, url: URL):
+    def get_alias_from_url(self, url: str):
+        urly = URL(url)
         if (
-            url.host in {'wowinterface.com', 'www.wowinterface.com'}
-            and len(url.parts) == 3
-            and url.parts[1] == 'downloads'
+            urly.host in {'wowinterface.com', 'www.wowinterface.com'}
+            and len(urly.parts) == 3
+            and urly.parts[1] == 'downloads'
         ):
-            if url.name == 'landing.php':
-                return url.query.get('fileid')
-            elif url.name == 'fileinfo.php':
-                return url.query.get('id')
+            if urly.name == 'landing.php':
+                return urly.query.get('fileid')
+            elif urly.name == 'fileinfo.php':
+                return urly.query.get('id')
             else:
-                match = re.match(r'^(?:download|info)(?P<id>\d+)', url.name)
+                match = re.match(r'^(?:download|info)(?P<id>\d+)', urly.name)
                 return match and match['id']
 
     async def resolve(self, defns: Sequence[Defn]):
