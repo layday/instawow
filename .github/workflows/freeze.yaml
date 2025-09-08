@@ -17,7 +17,7 @@ jobs:
       version: ${{ steps.build-packages.outputs.version }}
     steps:
       - name: Clone the repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
       - name: Build packages
@@ -45,11 +45,11 @@ jobs:
     runs-on: ${{ matrix.build-env.os }}
     steps:
       - name: Clone the repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
       - name: Download pre-built packages
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: packages
           path: ./dist
@@ -91,11 +91,11 @@ jobs:
     runs-on: ${{ matrix.build-env.os }}
     steps:
       - name: Clone the repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
       - name: Download pre-built packages
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: packages
           path: ./dist
@@ -130,7 +130,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Download built artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           path: release-assets
       - name: Zip up CLI directories
