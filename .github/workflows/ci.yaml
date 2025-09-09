@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Clone the repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
       - name: Build packages
@@ -37,9 +37,9 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - name: Clone the repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: Download pre-built packages
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: packages
           path: ./dist
@@ -85,9 +85,9 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - name: Clone the repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: Download pre-built packages
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: packages
           path: ./dist
@@ -98,7 +98,7 @@ jobs:
       - name: Install nox
         run: uv tool install -p ${{ matrix.python }} nox
       - name: Install Node for Pyright
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: "22"
       - name: Type check
@@ -112,7 +112,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Clone the repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: Install uv for Python 3.13
         uses: astral-sh/setup-uv@v6
         with:
@@ -120,7 +120,7 @@ jobs:
       - name: Install nox
         run: uv tool install -p 3.13 nox
       - name: Install Node for Prettier
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: "22"
       - name: Lint
@@ -132,9 +132,9 @@ jobs:
     needs: test
     steps:
       - name: Clone the repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: Download coverage data
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           pattern: coverage-data-*
           merge-multiple: true
