@@ -44,7 +44,7 @@ jobs:
           name: packages
           path: ./dist
       - name: Install uv for Python ${{ matrix.python }}
-        uses: astral-sh/setup-uv@v6
+        uses: astral-sh/setup-uv@v7
         with:
           python-version: ${{ matrix.python }}
       - name: Install nox
@@ -92,13 +92,13 @@ jobs:
           name: packages
           path: ./dist
       - name: Install uv for Python ${{ matrix.python }}
-        uses: astral-sh/setup-uv@v6
+        uses: astral-sh/setup-uv@v7
         with:
           python-version: ${{ matrix.python }}
       - name: Install nox
         run: uv tool install -p ${{ matrix.python }} nox
       - name: Install Node for Pyright
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@v6
         with:
           node-version: "22"
       - name: Type check
@@ -114,13 +114,13 @@ jobs:
       - name: Clone the repo
         uses: actions/checkout@v5
       - name: Install uv for Python 3.13
-        uses: astral-sh/setup-uv@v6
+        uses: astral-sh/setup-uv@v7
         with:
           python-version: "3.13"
       - name: Install nox
         run: uv tool install -p 3.13 nox
       - name: Install Node for Prettier
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@v6
         with:
           node-version: "22"
       - name: Lint
@@ -139,7 +139,7 @@ jobs:
           pattern: coverage-data-*
           merge-multiple: true
       - name: Install uv for Python 3.13
-        uses: astral-sh/setup-uv@v6
+        uses: astral-sh/setup-uv@v7
         with:
           python-version: "3.13"
       - name: Install nox
