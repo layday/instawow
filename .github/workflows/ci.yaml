@@ -39,7 +39,7 @@ jobs:
       - name: Clone the repo
         uses: actions/checkout@v5
       - name: Download pre-built packages
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v6
         with:
           name: packages
           path: ./dist
@@ -56,7 +56,7 @@ jobs:
           --force-python ${{ matrix.python }}
           -s 'test-${{ matrix.python }}(latest)'
       - name: Upload coverage data
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: coverage-data-${{ matrix.os }}-${{ matrix.python }}
           path: .coverage.*
@@ -87,7 +87,7 @@ jobs:
       - name: Clone the repo
         uses: actions/checkout@v5
       - name: Download pre-built packages
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v6
         with:
           name: packages
           path: ./dist
@@ -134,7 +134,7 @@ jobs:
       - name: Clone the repo
         uses: actions/checkout@v5
       - name: Download coverage data
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v6
         with:
           pattern: coverage-data-*
           merge-multiple: true
@@ -148,7 +148,7 @@ jobs:
         run: |
           nox -s report_coverage
       - name: Upload HTML report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: html-report
           path: htmlcov
