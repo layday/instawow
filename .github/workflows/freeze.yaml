@@ -49,7 +49,7 @@ jobs:
         with:
           fetch-depth: 0
       - name: Download pre-built packages
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v6
         with:
           name: packages
           path: ./dist
@@ -69,7 +69,7 @@ jobs:
         env:
           CARGO_BUILD_TARGET: ${{ matrix.build-env.target }}
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: instawow-cli-${{ needs.build-packages.outputs.version }}-${{ matrix.build-env.target }}
           path: ./cli/instawow*
@@ -95,7 +95,7 @@ jobs:
         with:
           fetch-depth: 0
       - name: Download pre-built packages
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v6
         with:
           name: packages
           path: ./dist
@@ -117,7 +117,7 @@ jobs:
           --
           ${{ startsWith(github.ref, 'refs/tags/') && '--release' || '' }}
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: instawow-gui-${{ needs.build-packages.outputs.version }}-${{ matrix.build-env.target }}
           path: |
@@ -130,7 +130,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Download built artifacts
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v6
         with:
           path: release-assets
       - name: Zip up CLI directories
