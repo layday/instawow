@@ -76,7 +76,7 @@ lint = [
 test = [
   "anyio",
   "coverage >= 7.10.1",
-  "pytest",
+  "pytest >= 9",
   "pytest-xdist",
 ]
 typing = [
@@ -154,13 +154,13 @@ exclude_also = [
   "raise NotImplementedError",
 ]
 
-[tool.pytest.ini_options]
+[tool.pytest]
 testpaths = ["tests"]
-xfail_strict = true
+strict = true
 filterwarnings = [
   "error",
   "ignore:'encoding' argument not specified:EncodingWarning:toga",
   "ignore:'_UnionGenericAlias' is deprecated and slated for removal in Python 3.17:DeprecationWarning:cattrs._compat",
 ]
-addopts = ["-ra", "--strict-config", "--strict-markers"]
+addopts = ["-ra"]
 log_cli_level = "INFO"

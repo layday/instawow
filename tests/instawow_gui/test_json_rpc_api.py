@@ -53,6 +53,11 @@ async def test_no_origin_api_request_rejected(ws_client: TestClient):
         lambda u: u.with_host('example.com'),
         lambda u: u.with_port(21),
     ],
+    ids=[
+        'custom-scheme',
+        'custom-host',
+        'custom-port',
+    ],
 )
 async def test_disparate_origin_api_request_rejected(
     ws_client: TestClient,
