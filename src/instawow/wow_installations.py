@@ -23,6 +23,7 @@ class Flavour(StrEnum):
     VanillaClassic = 'vanilla_classic'
     TbcClassic = 'tbc_classic'
     WrathClassic = 'wrath_classic'
+    TitanClassic = 'titan_classic'
     CataClassic = 'cata_classic'
     MistsClassic = 'mists_classic'
 
@@ -38,7 +39,8 @@ class FlavourVersions(Enum):
     )
     VanillaClassic = (range(1_13_00, 2_00_00),)
     TbcClassic = (range(2_05_00, 3_00_00),)
-    WrathClassic = (range(3_04_00, 4_00_00),)
+    WrathClassic = (range(3_04_00, 3_08_00),)
+    TitanClassic = (range(3_08_00, 4_00_00),)
     CataClassic = (range(4_04_00, 5_00_00),)
     MistsClassic = (range(5_05_00, 6_00_00),)
 
@@ -58,6 +60,7 @@ class FlavourTocSuffixes(Enum):
     VanillaClassic = ('Vanilla', 'Classic')
     TbcClassic = ('TBC', 'BCC', 'Classic')
     WrathClassic = ('Wrath', 'WOTLKC', 'Classic')
+    TitanClassic = WrathClassic
     CataClassic = ('Cata', 'Classic')
     MistsClassic = ('Mists', 'Classic')
 

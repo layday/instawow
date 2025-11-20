@@ -126,6 +126,7 @@ class _CfCoreSortableGameVersionTypeId(IntEnum):
     VanillaClassic = 67408
     TbcClassic = 73246
     WrathClassic = 73713
+    TitanClassic = 81212
     CataClassic = 77522
     MistsClassic = 79434
 

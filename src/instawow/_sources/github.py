@@ -81,6 +81,7 @@ class _PackagerReleaseJsonFlavor(StrEnum):
     VanillaClassic = 'classic'
     TbcClassic = 'bcc'
     WrathClassic = 'wrath'
+    TitanClassic = 'titan'
     CataClassic = 'cata'
     MistsClassic = 'mists'
 
