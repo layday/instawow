@@ -5,11 +5,12 @@ import ssl
 from collections.abc import AsyncIterator
 from contextlib import AsyncExitStack, asynccontextmanager
 from functools import partial
-from typing import Any, NotRequired, Protocol, TypedDict
+from typing import Any, NotRequired, Protocol
 
 import aiohttp
 import aiohttp_client_cache
 import aiohttp_client_cache.session
+from typing_extensions import TypedDict
 
 type CachedSession = aiohttp_client_cache.session.CachedSession
 
