@@ -2,6 +2,14 @@ Changelog
 =========
 
 
+v6.5.0
+------
+
+- Added support for Titan Reforged.
+- Refactored the ``Resolver`` interface, adding support for replacing
+  the default downloader and providing a custom disabled reason.
+
+
 v6.4.1
 ------
 
