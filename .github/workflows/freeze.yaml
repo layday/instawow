@@ -17,7 +17,7 @@ jobs:
       version: ${{ steps.build-packages.outputs.version }}
     steps:
       - name: Clone the repo
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
       - name: Build packages
@@ -45,7 +45,7 @@ jobs:
     runs-on: ${{ matrix.build-env.os }}
     steps:
       - name: Clone the repo
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
       - name: Download pre-built packages
@@ -91,7 +91,7 @@ jobs:
     runs-on: ${{ matrix.build-env.os }}
     steps:
       - name: Clone the repo
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
       - name: Download pre-built packages
