@@ -35,7 +35,7 @@ class FlavourVersions(Enum):
         range(3_00_00, 3_04_00),
         range(4_00_00, 4_04_00),
         range(5_00_00, 5_05_00),
-        range(6_00_00, 12_00_00),
+        range(6_00_00, 13_00_00),
     )
     VanillaClassic = (range(1_13_00, 2_00_00),)
     TbcClassic = (range(2_05_00, 3_00_00),)
