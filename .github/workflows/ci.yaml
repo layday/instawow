@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Clone the repo
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
       - name: Build packages
@@ -37,7 +37,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - name: Clone the repo
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
       - name: Download pre-built packages
         uses: actions/download-artifact@v6
         with:
@@ -85,7 +85,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - name: Clone the repo
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
       - name: Download pre-built packages
         uses: actions/download-artifact@v6
         with:
@@ -112,7 +112,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Clone the repo
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
       - name: Install uv for Python 3.13
         uses: astral-sh/setup-uv@v7
         with:
@@ -132,7 +132,7 @@ jobs:
     needs: test
     steps:
       - name: Clone the repo
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
       - name: Download coverage data
         uses: actions/download-artifact@v6
         with:
