@@ -17,7 +17,7 @@ jobs:
       version: ${{ steps.build-packages.outputs.version }}
     steps:
       - name: Clone the repo
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
       - name: Build packages
@@ -45,11 +45,11 @@ jobs:
     runs-on: ${{ matrix.build-env.os }}
     steps:
       - name: Clone the repo
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
       - name: Download pre-built packages
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v7
         with:
           name: packages
           path: ./dist
@@ -69,7 +69,7 @@ jobs:
         env:
           CARGO_BUILD_TARGET: ${{ matrix.build-env.target }}
       - name: Upload artifact
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: instawow-cli-${{ needs.build-packages.outputs.version }}-${{ matrix.build-env.target }}
           path: ./cli/instawow*
@@ -91,11 +91,11 @@ jobs:
     runs-on: ${{ matrix.build-env.os }}
     steps:
       - name: Clone the repo
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
       - name: Download pre-built packages
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v7
         with:
           name: packages
           path: ./dist
@@ -117,7 +117,7 @@ jobs:
           --
           ${{ startsWith(github.ref, 'refs/tags/') && '--release' || '' }}
       - name: Upload artifact
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: instawow-gui-${{ needs.build-packages.outputs.version }}-${{ matrix.build-env.target }}
           path: |
@@ -130,7 +130,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Download built artifacts
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v7
         with:
           path: release-assets
       - name: Zip up CLI directories
