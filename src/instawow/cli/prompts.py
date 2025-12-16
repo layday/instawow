@@ -252,7 +252,7 @@ def select_multiple[T](
         return FormattedText(tokens)
 
     def get_select_tokens():
-        tokens = list[StyleAndTextTuples]()
+        tokens: StyleAndTextTuples = []
 
         for i, choice in enumerate(choices):
             focussed = i == position
@@ -405,7 +405,7 @@ def select_one[T](
         return FormattedText(tokens)
 
     def get_select_tokens():
-        tokens = list[StyleAndTextTuples]()
+        tokens: StyleAndTextTuples = []
 
         for i, choice in enumerate(combined_choices):
             if choice.disabled:
