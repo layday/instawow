@@ -17,7 +17,7 @@ from .._utils.text import normalise_names
 from .._utils.web import as_plain_text_data_url
 from ..definitions import ChangelogFormat, Defn, SourceMetadata
 from ..resolvers import BaseResolver, CatalogueEntryCandidate, PkgCandidate
-from ..results import PkgNonexistent, resultify
+from ..results import PkgFilesMissing, PkgNonexistent, resultify
 from ..wow_installations import Flavour, FlavourVersions, to_flavour
 
 _slugify = normalise_names('-')
@@ -134,6 +134,9 @@ class WowiResolver(BaseResolver[_WowiDetailsApiItem]):
     async def resolve_one(self, defn: Defn, metadata: _WowiDetailsApiItem | None):
         if metadata is None:
             raise PkgNonexistent
+
+        if metadata['UIPending'] == '1':
+            raise PkgFilesMissing('file awaiting approval')
 
         return PkgCandidate(
             id=metadata['UID'],
