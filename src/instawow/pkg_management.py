@@ -4,7 +4,7 @@ from collections.abc import Awaitable, Callable, Collection, Iterable, Mapping, 
 from functools import partial, wraps
 from itertools import chain, compress, filterfalse, repeat
 from pathlib import Path
-from typing import Literal, Never, TypedDict
+from typing import Literal, Never
 
 from . import config_ctx, sync_ctx
 from ._utils.aio import gather, run_in_thread
@@ -80,7 +80,7 @@ def build_pkg_from_pkg_candidate(
     defn: Defn,
     pkg_candidate: PkgCandidate,
     *,
-    folders: list[TypedDict[{'name': str}]],
+    folders: list[str],
 ) -> Pkg:
     return make_db_converter().structure(
         {
@@ -90,7 +90,7 @@ def build_pkg_from_pkg_candidate(
         | {
             'source': defn.source,
             'options': {k: bool(v) for k, v in defn.strategies.items()},
-            'folders': folders,
+            'folders': [{'name': f} for f in folders],
         },
         Pkg,
     )
@@ -355,11 +355,10 @@ async def find_equivalent_pkg_defns(
     "Given a list of packages, find ``Defn``s of each package from other sources."
     from .catalogue import synchronise as synchronise_catalogue
     from .matchers import AddonFolder
-    from .wow_installations import to_flavour
 
     config = config_ctx.config()
     resolvers = config_ctx.resolvers()
-    flavour = to_flavour(config.track)
+    flavour = config.product['flavour']
 
     catalogue = await synchronise_catalogue()
 
@@ -499,9 +498,7 @@ def _mutate_install(
 
         extract(config.addon_dir)
 
-        pkg = build_pkg_from_pkg_candidate(
-            defn, pkg_candidate, folders=[{'name': f} for f in sorted(top_level_folders)]
-        )
+        pkg = build_pkg_from_pkg_candidate(defn, pkg_candidate, folders=sorted(top_level_folders))
         with transact(connection) as transaction:
             _insert_pkg(pkg, transaction)
 
@@ -542,7 +539,7 @@ def _mutate_update(defn: Defn, old_pkg: Pkg, pkg_candidate: PkgCandidate, archiv
         extract(config.addon_dir)
 
         new_pkg = build_pkg_from_pkg_candidate(
-            defn, pkg_candidate, folders=[{'name': f} for f in sorted(top_level_folders)]
+            defn, pkg_candidate, folders=sorted(top_level_folders)
         )
         with transact(connection) as transaction:
             _delete_pkg(old_pkg, transaction)

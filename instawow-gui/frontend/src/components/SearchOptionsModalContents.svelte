@@ -1,13 +1,11 @@
 <script lang="ts">
-  import { DateTime } from "luxon";
   import { getContext } from "svelte";
   import type { Sources } from "../api";
-  import { Track, Strategy } from "../api";
+  import { Strategy } from "../api";
   import type { SearchOptions } from "./Profile.svelte";
   import type { ModalHandle } from "./modal/Modal.svelte";
 
   let {
-    flavour,
     sources,
     searchFilterInstalled,
     searchIsFromAlias,
@@ -15,7 +13,6 @@
     onRequestReset,
     onRequestSearch,
   }: {
-    flavour: Track;
     sources: Sources;
     searchFilterInstalled: boolean;
     searchIsFromAlias: boolean;
@@ -28,15 +25,6 @@
     [Strategy.AnyFlavour, "any flavour"],
     [Strategy.AnyReleaseType, "any release type"],
   ] as const;
-
-  const START_DATE_SUGGESTIONS = [
-    { date: "2024-01-16", label: "10.2.5", flavour: Track.Retail },
-    {
-      date: DateTime.now().minus({ days: 1 }).toISODate(),
-      label: "yesterday",
-      flavour: null,
-    },
-  ];
 
   const { hide } = getContext<ModalHandle>("modal");
 
@@ -82,24 +70,6 @@
       disabled={searchIsFromAlias}
       bind:value={searchOptions.startDate}
     />
-    <ul class="start-date-suggestions">
-      {#each START_DATE_SUGGESTIONS as { date, label, flavour: suggestionFlavour }}
-        {#if !suggestionFlavour || flavour === suggestionFlavour}
-          <li class:disabled={searchIsFromAlias}>
-            <button
-              type="button"
-              onclick={() => {
-                if (!searchIsFromAlias) {
-                  searchOptions.startDate = date;
-                }
-              }}
-            >
-              {label}
-            </button>
-          </li>
-        {/if}
-      {/each}
-    </ul>
     {#each CHECKBOXES as [strategy, label]}
       <label class="control" for="__{strategy}-control">{label}:</label>
       <div class="form-control checkbox-container">
@@ -143,43 +113,6 @@
       line-height: vars.$modal-form-el-line-height;
       color: var(--inverse-color-tone-a);
       text-align: right;
-    }
-
-    .start-date-suggestions {
-      @extend %unstyle-list;
-      display: inline-flex;
-      gap: 0.2rem;
-      grid-column-start: 2;
-      margin-top: -0.3em;
-      font-size: 0.8em;
-      font-weight: 600;
-
-      li {
-        button {
-          cursor: pointer;
-          margin: 0;
-          padding: 0.2rem 0.4rem;
-          border: 0;
-          border-radius: vars.$modal-middle-border-radius;
-          background-color: var(--inverse-color-tone-b);
-          color: var(--base-color);
-        }
-
-        &.disabled button {
-          cursor: default;
-          opacity: 0.5;
-        }
-
-        &:first-child button {
-          border-top-left-radius: vars.$modal-edge-border-radius;
-          border-bottom-left-radius: vars.$modal-edge-border-radius;
-        }
-
-        &:last-child button {
-          border-top-right-radius: vars.$modal-edge-border-radius;
-          border-bottom-right-radius: vars.$modal-edge-border-radius;
-        }
-      }
     }
   }
 

@@ -2,7 +2,14 @@ Changelog
 =========
 
 
-v6.5.0
+v7.0.0
+------
+
+- Redesigned game version detection.
+- Added full support for Titan Refoged and Anniversary editions.
+
+
+v6.6.0
 ------
 
 - Updated the allowable WoW TOC version range to include Midnight.

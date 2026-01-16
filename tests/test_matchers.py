@@ -12,7 +12,7 @@ from instawow.matchers import (
     _match_toc_source_ids,
     get_unreconciled_folders,
 )
-from instawow.wow_installations import Track, to_flavour
+from instawow.wow_installations import Flavour
 
 pytestmark = pytest.mark.usefixtures('_iw_config_ctx', '_iw_web_client_ctx')
 
@@ -42,7 +42,7 @@ def write_masque_addon():
 
 async def test_can_extract_defns_from_addon_folder_toc():
     addon_folder = AddonFolder.from_path(
-        to_flavour(config_ctx.config().track), write_masque_addon()
+        config_ctx.config().product['flavour'], write_masque_addon()
     )
     assert addon_folder
     assert addon_folder.get_defns_from_toc_keys(
@@ -104,20 +104,20 @@ async def test_reconcile_multiple_defns_per_addon_contained_in_results(
     ('iw_profile_config_values', 'expected_defns'),
     [
         (
-            Track.Retail,
+            Flavour.Mainline,
             {
                 Defn('wowi', '12097'),
                 Defn('curse', '13592'),
             },
         ),
         (
-            Track.Classic,
+            Flavour.Classic,
             {
                 Defn('curse', '13592'),
             },
         ),
         (
-            Track.VanillaClassic,
+            Flavour.VanillaClassic,
             {
                 Defn('wowi', '12097'),
                 Defn('curse', '13592'),

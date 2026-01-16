@@ -4,7 +4,7 @@ import pytest
 
 from instawow._sources.tukui import TukuiResolver
 from instawow.definitions import Defn
-from instawow.wow_installations import Track
+from instawow.wow_installations import Flavour
 
 pytestmark = pytest.mark.usefixtures('_iw_config_ctx', '_iw_web_client_ctx')
 
@@ -16,7 +16,7 @@ def tukui_resolver():
 
 @pytest.mark.parametrize(
     'iw_profile_config_values',
-    Track,
+    [Flavour.Mainline, Flavour.Classic, Flavour.VanillaClassic],
     indirect=True,
 )
 @pytest.mark.parametrize('alias', ['tukui', 'elvui'])
@@ -39,4 +39,4 @@ async def test_changelog_url_format(
 
     result = await tukui_resolver.resolve_one(defn, None)
 
-    assert result['changelog_url'] == 'https://api.tukui.org/v1/changelog/tukui#20.461'
+    assert result['changelog_url'] == 'https://api.tukui.org/v1/changelog/tukui#20.463'

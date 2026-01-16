@@ -30,7 +30,7 @@ class _WagoStability(StrEnum):
 
 
 class _WagoGameVersion(StrEnum):
-    Retail = 'retail'
+    Mainline = 'retail'
     VanillaClassic = 'classic'
     WrathClassic = 'wotlk'
     CataClassic = 'cata'
@@ -91,7 +91,9 @@ class WagoAddonsResolver(BaseResolver):
     async def resolve_one(self, defn: Defn, metadata: None):
         async with http_ctx.web_client().get(
             (self.__wago_external_api_url / 'addons' / defn.alias).with_query(
-                game_version=to_flavourful_enum(config_ctx.config().track, _WagoGameVersion)
+                game_version=to_flavourful_enum(
+                    config_ctx.config().product['flavour'], _WagoGameVersion
+                )
             ),
             expire_after=timedelta(minutes=5),
             headers=self.make_request_headers(),

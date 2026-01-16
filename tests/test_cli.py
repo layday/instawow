@@ -121,18 +121,18 @@ def test_keep_folders_on_remove(
 
 def test_version_strategy_lifecycle():
     assert run('install curse:masque').stdout.startswith(
-        '✓ curse:masque\n  installed 11.1.5_6454541'
+        '✓ curse:masque\n  installed 11.2.10_7398127'
     )
     assert (
         run('install curse:masque#version_eq=foo').stdout
         == '✗ curse:masque\n  package already installed\n'
     )
     assert run('update curse:masque').stdout == '✗ curse:masque\n  package is up to date\n'
-    assert run('update curse:masque#version_eq=11.0.2').stdout == dedent(
+    assert run('update curse:masque#version_eq=11.2.9').stdout == dedent(
         """\
         ✓ curse:masque
-          updated 11.1.5_6454541 to 11.0.2_5810397 with new strategies:
-            version_eq='11.0.2_5810397'
+          updated 11.2.10_7398127 to 11.2.9_7373575 with new strategies:
+            version_eq='11.2.9_7373575'
         """
     )
     assert run('remove curse:masque').stdout == '✓ curse:masque\n  removed\n'
@@ -143,14 +143,14 @@ def test_version_strategy_lifecycle():
         """
     )
     assert (
-        run('install curse:masque#version_eq=11.0.2').stdout
-        == '✓ curse:masque\n  installed 11.0.2_5810397\n'
+        run('install curse:masque#version_eq=11.2.9').stdout
+        == '✓ curse:masque\n  installed 11.2.9_7373575\n'
     )
     assert run('update').stdout == '✗ curse:masque\n  package is pinned\n'
     assert run('update curse:masque#=').stdout == dedent(
         """\
         ✓ curse:masque
-          updated 11.0.2_5810397 to 11.1.5_6454541 with new strategies:
+          updated 11.2.9_7373575 to 11.2.10_7398127 with new strategies:
             version_eq=None
         """
     )
@@ -161,7 +161,7 @@ def test_install_options():
     assert run('install curse:masque#any_release_type,any_flavour').stdout == dedent(
         """\
         ✓ curse:masque
-          installed 11.1.7-Beta-2_6725716
+          installed 11.2.10_7398127
         """
     )
 
@@ -175,13 +175,13 @@ def test_install_order_is_respected(
         + ' '.join(
             [
                 'curse:masque',
-                'curse:masque#version_eq=11.0.2',
+                'curse:masque#version_eq=11.2.9',
             ][::step]
         )
     ).stdout == dedent(
         f"""\
         ✓ curse:masque
-          installed {'11.1.5_6454541' if step == 1 else '11.0.2_5810397'}
+          installed {'11.2.10_7398127' if step == 1 else '11.2.9_7373575'}
         ✗ curse:masque
           package folders conflict with installed package Masque (curse:13592)
         """
@@ -198,7 +198,7 @@ def test_install_dry_run():
     assert run('install --dry-run curse:masque').stdout == dedent(
         """\
         ✓ curse:masque
-          would have installed 11.1.5_6454541
+          would have installed 11.2.10_7398127
         """
     )
 
@@ -323,15 +323,15 @@ def test_rollback__single_version():
 def test_rollback__multiple_versions(
     iw_pt_input: prompt_toolkit.input.PipeInput,
 ):
-    assert run('install curse:masque#version_eq=11.0.2').exit_code == 0
+    assert run('install curse:masque#version_eq=11.2.9').exit_code == 0
     assert run('remove curse:masque').exit_code == 0
     assert run('install curse:masque').exit_code == 0
     iw_pt_input.send_text('\r\r')
     assert run('rollback curse:masque').stdout == dedent(
         """\
         ✓ curse:masque
-          updated 11.1.5_6454541 to 11.0.2_5810397 with new strategies:
-            version_eq='11.0.2_5810397'
+          updated 11.2.10_7398127 to 11.2.9_7373575 with new strategies:
+            version_eq='11.2.9_7373575'
         """
     )
 
@@ -343,18 +343,18 @@ def test_rollback__rollback_multiple_versions(
 ):
     assert run('install curse:masque').exit_code == 0
     assert run('remove curse:masque').exit_code == 0
-    assert run('install curse:masque#version_eq=11.0.2').exit_code == 0
+    assert run('install curse:masque#version_eq=11.2.9').exit_code == 0
     iw_pt_input.send_text('\r\r')
     assert run(f'rollback {options} curse:masque').stdout == dedent(
         """\
         ✓ curse:masque
-          updated 11.0.2_5810397 to 11.1.5_6454541 with new strategies:
+          updated 11.2.9_7373575 to 11.2.10_7398127 with new strategies:
             version_eq=None
         """
         if options == '--undo'
         else """\
         ✓ curse:masque
-          updated 11.0.2_5810397 to 11.1.5_6454541
+          updated 11.2.9_7373575 to 11.2.10_7398127
         """
     )
 
@@ -398,7 +398,7 @@ def test_reconcile__auto_reconcile(
     assert run('reconcile --auto').stdout == dedent(
         """\
         ✓ github:sfx-wow/masque
-          installed 11.1.5
+          installed 11.2.10
         """
     )
 
@@ -422,7 +422,7 @@ def test_reconcile__complete_interactive_reconciliation(
         dedent(
             """\
             ✓ github:sfx-wow/masque
-              installed 11.1.5
+              installed 11.2.10
             """
         )
     )
@@ -442,7 +442,7 @@ def test_rereconcile(
         ✓ curse:masque
           removed
         ✓ github:sfx-wow/masque
-          installed 11.1.5
+          installed 11.2.10
         """
     )
 
@@ -461,7 +461,7 @@ def test_rereconcile_with_args(
         ✓ curse:masque
           removed
         ✓ github:sfx-wow/masque
-          installed 11.1.5
+          installed 11.2.10
         """
     )
 
@@ -493,7 +493,7 @@ def test_search__install_one(
     assert run('search masque --source curse').stdout == dedent(
         """\
         ✓ curse:masque
-          installed 11.1.5_6454541
+          installed 11.2.10_7398127
         """
     )
 
@@ -505,7 +505,7 @@ def test_search__install_multiple_conflicting(
     assert run('search masque').stdout == dedent(
         """\
         ✓ wowi:12097
-          installed 11.1.7-Beta-2
+          installed 11.2.10
         ✗ curse:masque
           package folders conflict with installed package Masque (wowi:12097)
         """
@@ -515,7 +515,9 @@ def test_search__install_multiple_conflicting(
 def test_changelog_output_installed_convert():
     install_masque()
     stdout = (
-        'curse:masque:\n  11.1.5' if shutil.which('pandoc') else 'curse:masque:\n  <h2>11.1.5</h2>'
+        'curse:masque:\n  11.2.10'
+        if shutil.which('pandoc')
+        else 'curse:masque:\n  <h2>11.2.10</h2>'
     )
     assert run('view-changelog curse:masque').stdout.startswith(stdout)
 
@@ -523,7 +525,7 @@ def test_changelog_output_installed_convert():
 def test_changelog_output_installed_no_convert():
     install_masque()
     assert run('view-changelog --no-convert curse:masque').stdout.startswith(
-        'curse:masque:\n  <h2>11.1.5</h2>'
+        'curse:masque:\n  <h2>11.2.10</h2>'
     )
 
 

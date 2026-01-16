@@ -165,7 +165,7 @@ async def test_install_recognises_renamed_pkg_from_id(
 
 async def test_update_lifecycle_with_strategy_switch():
     defn = Defn('curse', 'masque')
-    versioned_defn = defn.with_version('11.0.2')
+    versioned_defn = defn.with_version('11.2.9')
 
     result = (await pkg_management.install([defn], replace_folders=False))[defn]
     assert type(result) is PkgInstalled
@@ -287,4 +287,4 @@ async def test_get_changelog_from_web_url():
             'curse',
             'https://api.curseforge.com/v1/mods/13592/files/6454541/changelog',
         )
-    ).startswith('<h2>11.1.5</h2>')
+    ).startswith('<h2>11.2.10</h2>')

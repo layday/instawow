@@ -2,33 +2,19 @@ from __future__ import annotations
 
 import datetime as dt
 import enum
-from collections.abc import (
-    AsyncIterator,
-    Awaitable,
-    Callable,
-    Collection,
-    Iterable,
-    Mapping,
-    Sequence,
-)
+from collections.abc import AsyncIterator, Sequence
 from contextlib import AbstractContextManager
-from functools import cached_property, partial, wraps
+from functools import partial, wraps
 from pathlib import Path
-from typing import Literal, Never, NotRequired, Protocol, Self, TypedDict, overload
+from typing import Literal, Never, NotRequired, Protocol, Self, overload
 
-from typing_extensions import TypeVar
+from typing_extensions import TypedDict, TypeVar
 from yarl import URL
 
 from . import pkg_archives, wow_installations
 from ._utils.attrs import fauxfrozen
 from .definitions import Defn, SourceMetadata
-from .results import (
-    AnyResult,
-    PkgSourceDisabled,
-    PkgSourceInvalid,
-    PkgStrategiesUnsupported,
-    resultify,
-)
+from .results import AnyResult, PkgStrategiesUnsupported, resultify
 
 _ResolveMetadataT = TypeVar('_ResolveMetadataT', contravariant=True, default=Never)
 
@@ -73,7 +59,11 @@ class PkgCandidate(TypedDict):
     date_published: dt.datetime
     version: str
     changelog_url: str
-    deps: NotRequired[list[TypedDict[{'id': str}]]]
+    deps: NotRequired[list[_PkgCandidate_Dep]]
+
+
+class _PkgCandidate_Dep(TypedDict):
+    id: str
 
 
 class CatalogueEntryCandidate(TypedDict):
@@ -87,7 +77,12 @@ class CatalogueEntryCandidate(TypedDict):
     download_count: int
     last_updated: dt.datetime
     folders: NotRequired[list[frozenset[str]]]
-    same_as: NotRequired[list[TypedDict[{'source': str, 'id': str}]]]
+    same_as: NotRequired[list[_CatalogueEntryCandidate_SameAs]]
+
+
+class _CatalogueEntryCandidate_SameAs:
+    source: str
+    id: str
 
 
 class Resolver(Protocol[_ResolveMetadataT]):  # pragma: no cover
@@ -213,66 +208,3 @@ class BaseResolver(Resolver[_ResolveMetadataT], Protocol):
     async def catalogue(self) -> AsyncIterator[CatalogueEntryCandidate]:
         return
         yield
-
-
-class Resolvers(dict[str, Resolver]):
-    def __init__(self, resolvers: Iterable[Resolver]):
-        super().__init__((r.metadata.id, r) for r in resolvers)
-
-    def get_or_dummy(self, key: str) -> Resolver:
-        if key in self.disabled_resolver_reasons:
-            error = PkgSourceDisabled(self.disabled_resolver_reasons[key])
-        elif key in self:
-            return self[key]
-        else:
-            error = PkgSourceInvalid()
-
-        @object.__new__
-        class DummyResolver(Resolver):
-            async def resolve(self, defns: Sequence[Defn]) -> dict[Defn, AnyResult[PkgCandidate]]:
-                return dict.fromkeys(defns, error)
-
-            async def get_changelog(self, url: str):
-                raise error
-
-            def __getattr__(self, name: str):
-                raise error
-
-        return DummyResolver
-
-    @cached_property
-    def addon_toc_key_and_id_pairs(self) -> Collection[tuple[str, str]]:
-        return [
-            (r.metadata.addon_toc_key, r.metadata.id)
-            for r in self.values()
-            if r.metadata.addon_toc_key
-        ]
-
-    @cached_property
-    def disabled_resolver_reasons(self) -> Mapping[str, str]:
-        return {r.metadata.id: d for r in self.values() for d in (r.get_disabled_reason(),) if d}
-
-    @cached_property
-    def pkg_downloaders(self) -> _ResolverPkgDownloaders:
-        return _ResolverPkgDownloaders(self)
-
-    @cached_property
-    def priorities(self) -> _ResolverPriorities:
-        return _ResolverPriorities(self)
-
-
-class _ResolverPkgDownloaders(dict[str, Callable[[Defn, str], Awaitable[AnyResult[Path]]]]):
-    def __init__(self, resolvers: Resolvers) -> None:
-        self.__resolvers = resolvers
-
-    def __missing__(self, key: str):
-        downloader = self[key] = resultify(self.__resolvers[key].download_pkg_archive)
-        return downloader
-
-
-class _ResolverPriorities(dict[str, float]):
-    def __init__(self, resolvers: Resolvers) -> None:
-        super().__init__((n, i) for i, n in enumerate(resolvers))
-
-    def __missing__(self, key: str) -> float:
-        return float('inf')

@@ -12,7 +12,13 @@ from attrs import field
 from .. import NAME
 from .._utils.attrs import enrich_validator_exc, fauxfrozen
 from .._utils.file import expand_path, trash
-from ..wow_installations import Track, extract_installation_dir_from_addon_dir
+from ..wow_installations import (
+    Flavour,
+    Product,
+    extract_installation_dir_from_addon_dir,
+    infer_product_from_addon_dir,
+    make_null_product,
+)
 from ._dirs import get_cache_dir, get_config_dir, get_state_dir
 from ._helpers import (
     FieldMetadata,
@@ -24,6 +30,12 @@ from ._helpers import (
 )
 from ._helpers import UninitialisedConfigError as UninitialisedConfigError
 from ._helpers import config_converter as config_converter
+
+
+class NoFlavourError(Exception):
+    def __str__(self) -> str:
+        return 'game flavour cannot be detected'
+
 
 _path_field = partial(field, converter=expand_path)
 
@@ -126,12 +138,20 @@ class ProfileConfig:
     addon_dir: Path = _path_field(
         validator=_validate_path_is_writable_dir, metadata=FieldMetadata(store=True)
     )
-    track: Track = field(
-        metadata=FieldMetadata(
-            store=True,
-            store_alias='game_flavour',  # For backward compatibility.
-        )
+    flavour_override: Flavour | None = field(
+        default=None,
+        metadata=FieldMetadata(store=True),
     )
+    product: Product = field(init=False)
+
+    def __attrs_post_init__(self) -> None:
+        if self.flavour_override:
+            product = make_null_product(self.flavour_override)
+        else:
+            product = infer_product_from_addon_dir(self.addon_dir)
+            if not product:
+                raise NoFlavourError
+        object.__setattr__(self, 'product', product)
 
     @classmethod
     def _make_config_file_path(cls, global_config: GlobalConfig, profile: str):

@@ -5,7 +5,6 @@
   import { getContext } from "svelte";
   import { fade } from "svelte/transition";
   import type { Config, ValidationError } from "../api";
-  import { Track } from "../api";
   import { API_KEY, type Api } from "../stores/api.svelte";
   import {
     ACTIVE_PROFILE_KEY,
@@ -27,25 +26,14 @@
 
   let createNew = $derived(editing === "new");
 
-  let profileConfig = $state(
-    {} as {
-      profile: string;
-      addonDir: string;
-      track: Track;
-    },
-  );
+  let profileConfig = $state({} as { profile: string; addonDir: string });
 
   let errors = $state(new Map<string, string>());
 
   $effect.pre(() => {
-    if (createNew) {
-      profileConfig.track = Track.Retail;
-    } else {
-      ({
-        profile: profileConfig.profile,
-        addon_dir: profileConfig.addonDir,
-        track: profileConfig.track,
-      } = profilesRef.value[activeProfileRef.value as string]);
+    if (!createNew) {
+      ({ profile: profileConfig.profile, addon_dir: profileConfig.addonDir } =
+        profilesRef.value[activeProfileRef.value as string]);
     }
   });
 
@@ -73,12 +61,7 @@
 
     let result: Config;
     try {
-      result = await api.writeProfile(
-        profileConfig.profile,
-        profileConfig.addonDir,
-        profileConfig.track,
-        createNew,
-      );
+      result = await api.writeProfile(profileConfig.profile, profileConfig.addonDir);
     } catch (error) {
       if (error instanceof JSONRPCError) {
         console.log(error);
@@ -179,21 +162,6 @@ will be lost.`,
         <Icon icon={faFolderOpen} />
       </button>
     </div>
-    {#if !createNew}
-      {#if errors.has("track")}
-        <div class="row error-text">{errors.get("track")}</div>
-      {/if}
-      <select
-        aria-label="game track"
-        class="row form-control"
-        class:error={errors.has("track")}
-        bind:value={profileConfig.track}
-      >
-        {#each Object.values(Track) as track}
-          <option value={track}>{track}</option>
-        {/each}
-      </select>
-    {/if}
     <div class="row input-array">
       <button class="form-control" type="submit">save</button>
       {#if !createNew}

@@ -39,12 +39,6 @@ from instawow.http import init_web_client
 from instawow.pkg_archives._download import PkgDownloadProgress
 from instawow.pkg_db import models as pkg_models
 from instawow.progress_reporting import ReadOnlyProgressGroup, make_progress_receiver
-from instawow.wow_installations import (
-    FlavourVersions,
-    Track,
-    infer_flavour_from_addon_dir,
-    to_flavourful_enum,
-)
 
 _toga_handle_var = contextvars.ContextVar[toga.App]('_toga_handle_var')
 
@@ -152,29 +146,16 @@ async def list_profiles() -> dict[str, ProfileConfig]:
 
 
 @_register_method('config/write_profile')
-async def write_profile_config(
-    profile: str, addon_dir: Path, track: Track, infer_track: bool
-) -> ProfileConfig:
+async def write_profile_config(profile: str, addon_dir: Path) -> ProfileConfig:
     async with sync_ctx.locks()[*_LockOperation.ModifyProfile, profile]:
         config = config_converter.structure(
             {
                 'global_config': _global_ctx_var.get().global_config,
                 'profile': profile,
                 'addon_dir': addon_dir,
-                'track': track,
             },
             ProfileConfig,
         )
-        if infer_track:
-            config = evolve(
-                config,
-                {
-                    'track': to_flavourful_enum(
-                        infer_flavour_from_addon_dir(config.addon_dir) or FlavourVersions.Retail,
-                        Track,
-                    )
-                },
-            )
         await run_in_thread(config.write)()
 
         # Profile will be reloaded on the next request.

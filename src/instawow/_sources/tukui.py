@@ -58,7 +58,7 @@ class TukuiResolver(BaseResolver):
 
             ui_metadata: _TukuiAddon = await response.json()
 
-        flavour_versions = to_flavour_versions(config_ctx.config().track)
+        flavour_versions = to_flavour_versions(config_ctx.config().product['flavour'])
         if not any(
             FlavourVersions.from_version_string(p) is flavour_versions
             for p in ui_metadata['patch']

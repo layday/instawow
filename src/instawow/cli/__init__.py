@@ -6,7 +6,7 @@ import enum
 import textwrap
 from collections.abc import Awaitable, Collection, Mapping, Sequence
 from functools import partial, reduce
-from itertools import chain, count, product, repeat
+from itertools import chain, count, repeat
 from typing import Any, overload
 
 import click
@@ -446,7 +446,7 @@ def reconcile(auto: bool, list_unreconciled: bool):
     from .._utils.text import tabulate
     from ..matchers import DEFAULT_MATCHERS, AddonFolder, get_unreconciled_folders
     from ..resolvers import PkgCandidate
-    from .prompts import SKIP, Choice, confirm, select_one
+    from .prompts import Choice, confirm, select_one
 
     leftovers = get_unreconciled_folders()
     if list_unreconciled and leftovers:
@@ -504,7 +504,7 @@ def reconcile(auto: bool, list_unreconciled: bool):
                 )
             )
 
-            selection = select_one(
+            return select_one(
                 f'{textwrap.shorten(", ".join(a.name for a in addons), 60)}'
                 f' [{addons[0].toc_reader.version or "?"}]',
                 [
@@ -518,9 +518,8 @@ def reconcile(auto: bool, list_unreconciled: bool):
                     )
                     for d, p in pkg_candidates.items()
                 ],
-                can_skip=True,
+                on_skip=None,
             ).prompt()
-            return selection if selection is not SKIP else None
 
     def gather_selections(
         groups: Collection[tuple[Sequence[AddonFolder], Sequence[definitions.Defn]]],
@@ -568,7 +567,7 @@ def rereconcile(addons: Sequence[definitions.Defn]):
 
     from .._utils.iteration import all_eq, uniq
     from ..pkg_db.models import Pkg
-    from .prompts import SKIP, Choice, confirm, select_one
+    from .prompts import Choice, confirm, select_one
 
     with config_ctx.database() as connection:
         query = """
@@ -612,7 +611,7 @@ def rereconcile(addons: Sequence[definitions.Defn]):
             chain((pkg.version,), (p['version'] for p in shortlisted_pkg_candidates.values()))
         )
 
-        selection = select_one(
+        return select_one(
             pkg.name,
             [
                 Choice(
@@ -632,9 +631,8 @@ def rereconcile(addons: Sequence[definitions.Defn]):
                     ),
                 )
             ],
-            can_skip=True,
+            on_skip=None,
         ).prompt()
-        return selection if selection is not SKIP else None
 
     selections = {
         p.to_defn(): s
@@ -1052,7 +1050,7 @@ def _profile_group():
 
 class _EditableConfigOptions(enum.StrEnum):
     AddonDir = 'addon_dir'
-    Track = 'track'
+    FlavourOverride = 'flavour_override'
     AutoUpdateCheck = 'global_config.auto_update_check'
     GithubAccessToken = 'global_config.access_tokens.github'
     CfcoreAccessToken = 'global_config.access_tokens.cfcore'
@@ -1098,14 +1096,11 @@ def configure_profile(editable_config_values: Mapping[_EditableConfigOptions, An
     from .._utils.file import expand_path
     from ..wow_installations import (
         Flavour,
-        Track,
         find_installations,
         get_addon_dir_from_installation_dir,
-        infer_flavour_from_addon_dir,
-        to_flavourful_enum,
+        infer_product_from_addon_dir,
     )
     from .prompts import (
-        SKIP,
         Choice,
         confirm,
         make_attrs_field_validator,
@@ -1133,7 +1128,7 @@ def configure_profile(editable_config_values: Mapping[_EditableConfigOptions, An
 
     editable_config_values = dict(editable_config_values)
     if not editable_config_values:
-        default_keys = {_EditableConfigOptions.AddonDir, _EditableConfigOptions.Track}
+        default_keys = {_EditableConfigOptions.AddonDir}
         if global_config.access_tokens.github is None:
             default_keys |= {_EditableConfigOptions.GithubAccessToken}
 
@@ -1141,69 +1136,56 @@ def configure_profile(editable_config_values: Mapping[_EditableConfigOptions, An
 
     interactive_editable_config_keys = {k for k, v in editable_config_values.items() if v is None}
     if interactive_editable_config_keys:
-        # 0 = Unconfigured
-        # 1 = `addon_dir` configured
-        # 2 = both `addon_dir` and `track` configured
-        installation_configured = 0
-        if (
-            is_new_profile
-            and {_EditableConfigOptions.AddonDir, _EditableConfigOptions.Track}
-            <= interactive_editable_config_keys
-        ):
-            known_installations = list(
-                _config.ProfileConfig.iter_profile_installations(global_config)
-            )
-            unimported_installations = [
-                (k, v and v['flavour'])
-                for k, v in find_installations()
-                if not any(a == b for a, b in product(known_installations, (expand_path(k),)))
-            ]
-            if unimported_installations:
-                selection = select_one(
-                    'Installation',
-                    [Choice(f'{k}  [{v}]', (k, v)) for k, v in unimported_installations],
-                    can_skip=True,
-                ).prompt()
-                if selection is not SKIP:
-                    (installation_path, flavour) = selection
+        addon_dir = None
+        product = None
 
-                    addon_dir = get_addon_dir_from_installation_dir(installation_path)
-                    addon_dir.mkdir(exist_ok=True)
-
-                    editable_config_values |= {
-                        _EditableConfigOptions.AddonDir: addon_dir,
-                        _EditableConfigOptions.Track: flavour
-                        and to_flavourful_enum(flavour, Track),
-                    }
-                    installation_configured = 2 if flavour else 1
-
-        if (
-            installation_configured == 0
-            and _EditableConfigOptions.AddonDir in interactive_editable_config_keys
-        ):
-            editable_config_values[_EditableConfigOptions.AddonDir] = path(
-                'Add-on directory',
-                only_directories=True,
-                validator=make_attrs_field_validator(
-                    _config.ProfileConfig, 'addon_dir', _config.config_converter
-                ),
-            ).prompt()
-
-        if (
-            installation_configured < 2
-            and _EditableConfigOptions.Track in interactive_editable_config_keys
-        ):
-            initial_track = None
-            addon_dir = config_values.get('addon_dir')
-            if addon_dir:
-                initial_track = to_flavourful_enum(
-                    infer_flavour_from_addon_dir(addon_dir) or Flavour.Retail, Track
+        if _EditableConfigOptions.AddonDir in interactive_editable_config_keys:
+            if is_new_profile:
+                known_installations = frozenset(
+                    _config.ProfileConfig.iter_profile_installations(global_config)
                 )
+                unimported_installations = [
+                    (p, f)
+                    for p, f in find_installations()
+                    if expand_path(p) not in known_installations
+                ]
+                if unimported_installations:
+                    installation_dir, product = select_one(
+                        'Installation',
+                        [
+                            Choice(f'{p}  [{f["flavour"] if f else "?"}]', (p, f))
+                            for p, f in unimported_installations
+                        ],
+                        on_skip=(None, None),
+                    ).prompt()
+                    if installation_dir:
+                        editable_config_values[_EditableConfigOptions.AddonDir] = addon_dir = (
+                            get_addon_dir_from_installation_dir(installation_dir)
+                        )
+                        addon_dir.mkdir(exist_ok=True, parents=True)
 
-            editable_config_values[_EditableConfigOptions.Track] = select_one(
-                'Game track',
-                [Choice(f, f) for f in Track],
-                initial_value=initial_track,
+            if not addon_dir:
+                editable_config_values[_EditableConfigOptions.AddonDir] = addon_dir = path(
+                    'Add-on directory',
+                    only_directories=True,
+                    validator=make_attrs_field_validator(
+                        _config.ProfileConfig, 'addon_dir', _config.config_converter
+                    ),
+                ).prompt()
+
+        if (
+            addon_dir and not product
+        ) or _EditableConfigOptions.FlavourOverride in interactive_editable_config_keys:
+            initial_flavour = None
+            if not addon_dir:
+                addon_dir = config_values.get('addon_dir')
+                if addon_dir:
+                    product = infer_product_from_addon_dir(addon_dir)
+                    if product:
+                        initial_flavour = product['flavour']
+
+            editable_config_values[_EditableConfigOptions.FlavourOverride] = select_one(
+                'Game flavour', [Choice(f, f) for f in Flavour], initial_value=initial_flavour
             ).prompt()
 
         if _EditableConfigOptions.AutoUpdateCheck in interactive_editable_config_keys:

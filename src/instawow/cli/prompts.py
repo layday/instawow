@@ -108,8 +108,8 @@ class _Skip(enum.Enum):
     Skip = enum.auto()
 
 
-SKIP = _Skip.Skip
-_skip_choice = Choice([('underline', 's'), ('', 'kip')], SKIP)
+def _make_skip_choice(value: object):
+    return Choice([('underline', 's'), ('', 'kip')], value)
 
 
 def confirm(message: str) -> PromptSession[bool]:
@@ -291,35 +291,39 @@ def select_multiple[T](
 
 
 @overload
-def select_one[T](
+def select_one[T, U](
     message: str,
     choices: Sequence[Choice[T]],
     *,
-    can_skip: Literal[True],
+    on_skip: U,
     initial_value: T | None = None,
-) -> _FauxPromptSession[T | Literal[_Skip.Skip]]: ...
+) -> _FauxPromptSession[T | U]: ...
 @overload
 def select_one[T](
     message: str,
     choices: Sequence[Choice[T]],
     *,
-    can_skip: Literal[False] = False,
+    on_skip: Literal[_Skip.Skip] = _Skip.Skip,
     initial_value: T | None = None,
 ) -> _FauxPromptSession[T]: ...
 
 
-def select_one[T](
+def select_one[T, U](
     message: str,
     choices: Sequence[Choice[T]],
     *,
-    can_skip: bool = False,
+    on_skip: U | Literal[_Skip.Skip] = _Skip.Skip,
     initial_value: T | None = None,
-):
+) -> _FauxPromptSession[T | U]:
     bindings = KeyBindings()
 
     answered = False
 
-    combined_choices = [*choices, _skip_choice] if can_skip else choices
+    skip_choice = None
+    if on_skip is not _Skip.Skip:
+        skip_choice = _make_skip_choice(on_skip)
+
+    combined_choices = [*choices, skip_choice] if skip_choice else choices
     positions = [i for i, c in enumerate(combined_choices) if not c.disabled]
     position = next(
         p for p in positions if initial_value is None or choices[p].value == initial_value
@@ -359,14 +363,14 @@ def select_one[T](
         answered = True
         event.app.exit(result=combined_choices[position].value)
 
-    if can_skip:
+    if on_skip is not _Skip.Skip:
 
         @bindings.add('s')
         def skip_question(event: KeyPressEvent):
             nonlocal answered, position
             answered = True
             position = positions[-1]
-            event.app.exit(result=SKIP)
+            event.app.exit(result=on_skip)
 
     @bindings.add(Keys.Any)
     def _(event: KeyPressEvent):
@@ -376,12 +380,12 @@ def select_one[T](
         tokens = [
             (
                 'class:indicator',
-                '✓' if answered and combined_choices[position] is not _skip_choice else '-',
+                '✓' if answered and combined_choices[position] is not skip_choice else '-',
             ),
             ('', ' '),
             ('class:question', message),
         ]
-        if answered and combined_choices[position] is _skip_choice:
+        if answered and combined_choices[position] is skip_choice:
             tokens += [('class:skipped', '  (skipped)')]
         elif not answered:
             tokens += [

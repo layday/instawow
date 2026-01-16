@@ -8,7 +8,7 @@ from instawow import config_ctx, pkg_management
 from instawow._sources.cfcore import CfCoreResolver
 from instawow.definitions import Defn, Strategies, Strategy
 from instawow.results import PkgFilesNotMatching
-from instawow.wow_installations import Track
+from instawow.wow_installations import Flavour
 
 pytestmark = pytest.mark.usefixtures('_iw_config_ctx', '_iw_web_client_ctx')
 
@@ -29,7 +29,7 @@ def curse_resolver():
 
 @pytest.mark.parametrize(
     'iw_profile_config_values',
-    Track,
+    [Flavour.Mainline, Flavour.VanillaClassic, Flavour.Classic],
     indirect=True,
 )
 async def test_resolve_flavourful_addon(
@@ -43,7 +43,7 @@ async def test_resolve_flavourful_addon(
 
 @pytest.mark.parametrize(
     'iw_profile_config_values',
-    Track,
+    [Flavour.Mainline, Flavour.VanillaClassic, Flavour.Classic],
     indirect=True,
 )
 async def test_resolve_flavoursome_addon(
@@ -53,8 +53,8 @@ async def test_resolve_flavoursome_addon(
 
     result = (await curse_resolver.resolve([defn]))[defn]
 
-    match config_ctx.config().track:
-        case Track.VanillaClassic:
+    match config_ctx.config().product['flavour']:
+        case Flavour.VanillaClassic:
             assert type(result) is dict
         case _:
             assert type(result) is PkgFilesNotMatching
@@ -71,7 +71,9 @@ async def test_curse_any_flavour_strategy(
         'curse', CURSE_IDS['masque'], strategies=Strategies({Strategy.AnyFlavour: True})
     )
     flavoursome = Defn(
-        'curse', CURSE_IDS['atlaslootclassic'], strategies=Strategies({Strategy.AnyFlavour: True})
+        'curse',
+        CURSE_IDS['atlaslootclassic'],
+        strategies=Strategies({Strategy.AnyFlavour: True}),
     )
 
     results = await curse_resolver.resolve([flavourful, flavoursome])
@@ -88,7 +90,7 @@ async def test_curse_slug_match(
     assert result['id'] == CURSE_IDS['masque']
 
 
-@pytest.mark.parametrize('version', ['11.0.2', '11.0.2_5810397', 'foo_5810397'])
+@pytest.mark.parametrize('version', ['11.2.9', '11.2.9_7373575', 'foo_7373575'])
 async def test_curse_version_pinning(
     curse_resolver: CfCoreResolver,
     version: str,
@@ -97,7 +99,7 @@ async def test_curse_version_pinning(
 
     result = (await curse_resolver.resolve([defn]))[defn]
     assert type(result) is dict
-    assert result['version'] == '11.0.2_5810397'
+    assert result['version'] == '11.2.9_7373575'
 
 
 async def test_curse_deps_retrieved():
@@ -111,7 +113,7 @@ async def test_curse_deps_retrieved():
 
 @pytest.mark.parametrize(
     'iw_profile_config_values',
-    [Track.VanillaClassic],
+    [Flavour.VanillaClassic],
     indirect=True,
 )
 async def test_curse_no_stable_release_falls_back_on_pre(

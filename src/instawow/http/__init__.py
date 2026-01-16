@@ -34,6 +34,9 @@ async def _setup_progress_tracker():
     from .._utils.aio import cancel_tasks
     from ..progress_reporting import Progress, get_next_progress_id, update_progress
 
+    class _ProgressRequestCtx(TypedDict):  # pragma: no cover
+        progress: NotRequired[Progress[Any]]
+
     progress_tickers = set[asyncio.Task[None]]()
 
     async def do_on_request_end(
@@ -42,9 +45,7 @@ async def _setup_progress_tracker():
         params: aiohttp.TraceRequestEndParams,
         /,
     ):
-        trace_config_ctx_: _TraceConfigCtx[TypedDict[{'progress': NotRequired[Progress[Any]]}]] = (
-            trace_config_ctx
-        )
+        trace_config_ctx_: _TraceConfigCtx[_ProgressRequestCtx] = trace_config_ctx
         progress = (trace_config_ctx_.trace_request_ctx or {}).get('progress')
         if progress:
 

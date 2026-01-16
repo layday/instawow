@@ -23,7 +23,7 @@ from ..resolvers import (
     PkgCandidate,
 )
 from ..results import PkgFilesMissing, PkgFilesNotMatching, PkgNonexistent, resultify
-from ..wow_installations import Flavour, get_compatible_flavours, to_flavourful_enum
+from ..wow_installations import Flavour, to_flavourful_enum
 
 _CF_WOW_GAME_ID = 1
 
@@ -122,7 +122,7 @@ class _CfCoreFileHash(TypedDict):
 class _CfCoreSortableGameVersionTypeId(IntEnum):
     "Extracted from https://api.curseforge.com/v1/games/1/version-types."
 
-    Retail = 517
+    Mainline = 517
     VanillaClassic = 67408
     TbcClassic = 73246
     WrathClassic = 73713
@@ -395,9 +395,10 @@ class CfCoreResolver(BaseResolver[_CfCoreMod]):
         ):
             files = [f for f in files if f['releaseType'] == _CfCoreFileReleaseType.Release]
 
-        desired_flavours = get_compatible_flavours(
-            config_ctx.config().track, defn.strategies[Strategy.AnyFlavour]
-        )
+        desired_flavours = (config_ctx.config().product['flavour'],)
+        if defn.strategies[Strategy.AnyFlavour]:
+            desired_flavours += (None,)
+
         for desired_flavour in desired_flavours:
             if desired_flavour:
                 type_id = to_flavourful_enum(desired_flavour, _CfCoreSortableGameVersionTypeId)

@@ -1,11 +1,5 @@
 import type { RClient, RequestObject } from "./ipc";
 
-export enum Track {
-  Retail = "retail",
-  VanillaClassic = "vanilla_classic",
-  Classic = "classic",
-}
-
 export enum Strategy {
   AnyFlavour = "any_flavour",
   AnyReleaseType = "any_release_type",
@@ -49,7 +43,6 @@ export type GlobalConfig = {
 export type Config = {
   profile: string;
   addon_dir: string;
-  track: Track;
 };
 
 export type GithubCodesResponse = {
@@ -184,19 +177,12 @@ export class Api {
     return await this.request({ method: "config/list_profiles" });
   }
 
-  async writeProfile(
-    profile: string,
-    addonDir: string,
-    track: Track,
-    inferTrack: boolean,
-  ): Promise<Config> {
+  async writeProfile(profile: string, addonDir: string): Promise<Config> {
     return await this.request({
       method: "config/write_profile",
       params: {
         profile,
         addon_dir: addonDir,
-        track: track,
-        infer_track: inferTrack,
       },
     });
   }

@@ -26,7 +26,6 @@ from ..results import PkgFilesMissing, PkgFilesNotMatching, PkgNonexistent
 from ..wow_installations import (
     Flavour,
     FlavourVersions,
-    get_compatible_flavours,
     to_flavour_versions,
     to_flavourful_enum,
 )
@@ -77,7 +76,7 @@ class _PackagerReleaseJson_Release_Metadata(TypedDict):
 
 
 class _PackagerReleaseJsonFlavor(StrEnum):
-    Retail = 'mainline'
+    Mainline = 'mainline'
     VanillaClassic = 'classic'
     TbcClassic = 'bcc'
     WrathClassic = 'wrath'
@@ -460,9 +459,9 @@ class GithubResolver(BaseResolver):
         if first_release is None:
             raise PkgFilesNotMatching(defn.strategies)
 
-        desired_flavours = get_compatible_flavours(
-            config_ctx.config().track, defn.strategies[Strategy.AnyFlavour]
-        )
+        desired_flavours = (config_ctx.config().product['flavour'],)
+        if defn.strategies[Strategy.AnyFlavour]:
+            desired_flavours += (None,)
 
         # We'll look for affine flavours > absolutely any flavour in every release
         # if ``Strategy.AnyFlavour`` is set.  This is less expensive than performing

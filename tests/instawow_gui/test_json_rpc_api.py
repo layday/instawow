@@ -80,7 +80,7 @@ async def test_write_config(
     rpc_request = {
         'jsonrpc': '2.0',
         'method': 'config/write_profile',
-        'params': {**config_values, 'infer_track': False},
+        'params': config_values,
         'id': request.node.name,
     }
     await ws.send_json(rpc_request, dumps=dumps)
@@ -91,37 +91,6 @@ async def test_write_config(
     ) == config_converter.structure(
         {'global_config': global_config, **config_values}, ProfileConfig
     )
-
-
-async def test_write_config_with_invalid_params(
-    request: pytest.FixtureRequest,
-    iw_profile_config_values: dict[str, Any],
-    ws: ClientWebSocketResponse,
-):
-    config_values = {
-        **iw_profile_config_values,
-        'track': 'strawberry',
-        'infer_track': False,
-    }
-    config_values.pop('_installation_dir')
-    rpc_request = {
-        'jsonrpc': '2.0',
-        'method': 'config/write_profile',
-        'params': config_values,
-        'id': request.node.name,
-    }
-    await ws.send_json(rpc_request, dumps=dumps)
-    rpc_response = await ws.receive_json()
-    assert rpc_response['id'] == request.node.name
-    assert rpc_response['error']
-    assert rpc_response['error']['code'] == -32602
-    assert rpc_response['error']['message'] == 'invalid params'
-    assert rpc_response['error']['data'] == [
-        {
-            'path': ['params', 'track'],
-            'message': 'ValueError("\'strawberry\' is not a valid Track")',
-        }
-    ]
 
 
 async def test_install_with_invalid_params(

@@ -3,7 +3,7 @@ from __future__ import annotations
 import inspect
 from collections.abc import Awaitable, Callable, Collection, Set
 from functools import wraps
-from typing import Literal, LiteralString, Protocol, TypedDict, overload
+from typing import Any, Literal, LiteralString, Protocol, overload
 
 from typing_extensions import TypeIs
 
@@ -82,9 +82,7 @@ class PkgAlreadyInstalled(ManagerError):
 
 
 class PkgConflictsWithInstalled(ManagerError):
-    def __init__(
-        self, conflicting_pkgs: Collection[TypedDict[{'source': str, 'id': str, 'name': str}]]
-    ) -> None:
+    def __init__(self, conflicting_pkgs: Collection[Any]) -> None:
         super().__init__()
         self.conflicting_pkgs = conflicting_pkgs
 

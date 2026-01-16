@@ -64,7 +64,7 @@ class AddonFolder:
 
 def _get_unreconciled_folders():
     config = config_ctx.config()
-    flavour = to_flavour(config.track)
+    flavour = config.product['flavour']
 
     with config_ctx.database() as connection:
         pkg_folders = [n for (n,) in connection.execute('SELECT name FROM pkg_folder').fetchall()]
@@ -120,7 +120,7 @@ async def _match_toc_source_ids(leftovers: frozenset[AddonFolder]):
 
 
 async def _match_folder_name_subsets(leftovers: frozenset[AddonFolder]):
-    flavour = to_flavour(config_ctx.config().track)
+    flavour = config_ctx.config().product['flavour']
     resolvers = config_ctx.resolvers()
     catalogue = await synchronise_catalogue()
 
