@@ -21,24 +21,12 @@
         "issuesUrl": "https://github.com/BigWigsMods/BigWigs/issues",
         "sourceUrl": "https://github.com/BigWigsMods/BigWigs"
       },
-      "summary": "Modular and lightweight approach to providing you with the tools you need to beat any boss encounter. The efficiently coded alternative to Deadly Boss Mods (DBM) for spell & ability timers.",
+      "summary": "A modular and extremely lightweight addon designed to provide you with the tools you need to beat any boss encounter.",
       "status": 4,
-      "downloadCount": 159869569,
+      "downloadCount": 175744180,
       "isFeatured": false,
       "primaryCategoryId": 1014,
       "categories": [
-        {
-          "id": 1019,
-          "gameId": 1,
-          "name": "Combat",
-          "slug": "combat",
-          "url": "https://www.curseforge.com/wow/addons/combat",
-          "iconUrl": "https://media.forgecdn.net/avatars/54/455/636135209724699753.png",
-          "dateModified": "2016-10-31T19:29:32.47Z",
-          "isClass": false,
-          "classId": 1,
-          "parentCategoryId": 1
-        },
         {
           "id": 1014,
           "gameId": 1,
@@ -50,6 +38,18 @@
           "isClass": false,
           "classId": 1,
           "parentCategoryId": 1
+        },
+        {
+          "id": 1019,
+          "gameId": 1,
+          "name": "Combat",
+          "slug": "combat",
+          "url": "https://www.curseforge.com/wow/addons/combat",
+          "iconUrl": "https://media.forgecdn.net/avatars/54/455/636135209724699753.png",
+          "dateModified": "2016-10-31T19:29:32.47Z",
+          "isClass": false,
+          "classId": 1,
+          "parentCategoryId": 1
         }
       ],
       "classId": 1,
@@ -58,19 +58,25 @@
           "id": 25,
           "name": "Funkeh",
           "url": "https://www.curseforge.com/members/funkeh",
-          "avatarUrl": null
-        },
-        {
-          "id": 2651126,
-          "name": "justw8",
-          "url": "https://www.curseforge.com/members/justw8",
-          "avatarUrl": null
+          "avatarUrl": "https://static-cdn.jtvnw.net/user-default-pictures-uv/75305d54-c7cc-40d1-bb9c-91fbe85943c7-profile_image-150x150.png"
         },
         {
           "id": 237712,
           "name": "nebula169",
           "url": "https://www.curseforge.com/members/nebula169",
-          "avatarUrl": null
+          "avatarUrl": "https://static-cdn.jtvnw.net/jtv_user_pictures/nebula169-profile_image-8e3d2fa86af441c7-150x150.jpeg"
+        },
+        {
+          "id": 7970755,
+          "name": "dekallo",
+          "url": "https://www.curseforge.com/members/dekallo",
+          "avatarUrl": "https://static-cdn.jtvnw.net/jtv_user_pictures/29106637-ea9f-4ce7-9a7c-3f0d0b9f0dce-profile_image-150x150.png"
+        },
+        {
+          "id": 2651126,
+          "name": "justw8",
+          "url": "https://www.curseforge.com/members/justw8",
+          "avatarUrl": "https://static-cdn.jtvnw.net/jtv_user_pictures/b254ee39d63db889-profile_image-150x150.png"
         }
       ],
       "logo": {
@@ -81,52 +87,46 @@
         "thumbnailUrl": "https://media.forgecdn.net/avatars/thumbnails/854/443/256/256/638258509870810560.jpeg",
         "url": "https://media.forgecdn.net/avatars/854/443/638258509870810560.jpeg"
       },
-      "mainFileId": 6699910,
+      "mainFileId": 7269417,
       "latestFiles": [
         {
-          "id": 6699910,
+          "id": 7269417,
           "gameId": 1,
           "modId": 2382,
           "isAvailable": true,
-          "displayName": "v390.3",
-          "fileName": "BigWigs-v390.3.zip",
+          "displayName": "v402.1",
+          "fileName": "BigWigs-v402.1.zip",
           "releaseType": 1,
           "fileStatus": 4,
           "hashes": [
             {
-              "value": "3860b0eb40cc43e94bc4974ca66b1213e77d21be",
+              "value": "be1ac1c3695bc5a07eacb7f52bc87883cbda5eac",
               "algo": 1
             },
             {
-              "value": "fbd72eac1df2384110dedf347c548700",
+              "value": "86eabe5e26ae02d6eff784b94b1b6ca9",
               "algo": 2
             }
           ],
-          "fileDate": "2025-06-27T01:39:18.737Z",
-          "fileLength": 4149032,
-          "downloadCount": 463657,
-          "fileSizeOnDisk": 7554182,
-          "downloadUrl": "https://edge.forgecdn.net/files/6699/910/BigWigs-v390.3.zip",
+          "fileDate": "2025-11-27T23:01:07.677Z",
+          "fileLength": 4570192,
+          "downloadCount": 707938,
+          "fileSizeOnDisk": 8554794,
+          "downloadUrl": "https://edge.forgecdn.net/files/7269/417/BigWigs-v402.1.zip",
           "gameVersions": [
-            "11.2.0",
             "4.4.2",
-            "5.5.0",
-            "4.4.1",
-            "1.15.6",
-            "11.1.7",
+            "11.2.5",
+            "3.4.5",
             "1.15.7",
-            "3.4.4",
-            "11.1.5",
-            "2.5.4"
+            "12.0.0",
+            "11.2.7",
+            "1.15.8",
+            "5.5.2",
+            "5.5.3",
+            "3.80.0",
+            "2.5.5"
           ],
           "sortableGameVersions": [
-            {
-              "gameVersionName": "11.2.0",
-              "gameVersionPadded": "0000000011.0000000002.0000000000",
-              "gameVersion": "11.2.0",
-              "gameVersionReleaseDate": "2025-06-18T00:00:00Z",
-              "gameVersionTypeId": 517
-            },
             {
               "gameVersionName": "4.4.2",
               "gameVersionPadded": "0000000004.0000000004.0000000002",
@@ -135,32 +135,18 @@
               "gameVersionTypeId": 77522
             },
             {
-              "gameVersionName": "5.5.0",
-              "gameVersionPadded": "0000000005.0000000005.0000000000",
-              "gameVersion": "5.5.0",
-              "gameVersionReleaseDate": "2025-04-01T00:00:00Z",
-              "gameVersionTypeId": 79434
-            },
-            {
-              "gameVersionName": "4.4.1",
-              "gameVersionPadded": "0000000004.0000000004.0000000001",
-              "gameVersion": "4.4.1",
-              "gameVersionReleaseDate": "2024-09-07T00:00:00Z",
-              "gameVersionTypeId": 77522
-            },
-            {
-              "gameVersionName": "1.15.6",
-              "gameVersionPadded": "0000000001.0000000015.0000000006",
-              "gameVersion": "1.15.6",
-              "gameVersionReleaseDate": "2024-12-19T00:00:00Z",
-              "gameVersionTypeId": 67408
-            },
-            {
-              "gameVersionName": "11.1.7",
-              "gameVersionPadded": "0000000011.0000000001.0000000007",
-              "gameVersion": "11.1.7",
-              "gameVersionReleaseDate": "2025-04-27T00:00:00Z",
+              "gameVersionName": "11.2.5",
+              "gameVersionPadded": "0000000011.0000000002.0000000005",
+              "gameVersion": "11.2.5",
+              "gameVersionReleaseDate": "2025-08-16T00:00:00Z",
               "gameVersionTypeId": 517
+            },
+            {
+              "gameVersionName": "3.4.5",
+              "gameVersionPadded": "0000000003.0000000004.0000000005",
+              "gameVersion": "3.4.5",
+              "gameVersionReleaseDate": "2025-07-10T00:00:00Z",
+              "gameVersionTypeId": 73713
             },
             {
               "gameVersionName": "1.15.7",
@@ -170,34 +156,62 @@
               "gameVersionTypeId": 67408
             },
             {
-              "gameVersionName": "3.4.4",
-              "gameVersionPadded": "0000000003.0000000004.0000000004",
-              "gameVersion": "3.4.4",
-              "gameVersionReleaseDate": "2025-03-21T00:00:00Z",
-              "gameVersionTypeId": 73713
-            },
-            {
-              "gameVersionName": "11.1.5",
-              "gameVersionPadded": "0000000011.0000000001.0000000005",
-              "gameVersion": "11.1.5",
-              "gameVersionReleaseDate": "2025-03-22T00:00:00Z",
+              "gameVersionName": "12.0.0",
+              "gameVersionPadded": "0000000012.0000000000.0000000000",
+              "gameVersion": "12.0.0",
+              "gameVersionReleaseDate": "2025-09-30T00:00:00Z",
               "gameVersionTypeId": 517
             },
             {
-              "gameVersionName": "2.5.4",
-              "gameVersionPadded": "0000000002.0000000005.0000000004",
-              "gameVersion": "2.5.4",
-              "gameVersionReleaseDate": "2022-03-22T00:00:00Z",
+              "gameVersionName": "11.2.7",
+              "gameVersionPadded": "0000000011.0000000002.0000000007",
+              "gameVersion": "11.2.7",
+              "gameVersionReleaseDate": "2025-10-13T00:00:00Z",
+              "gameVersionTypeId": 517
+            },
+            {
+              "gameVersionName": "1.15.8",
+              "gameVersionPadded": "0000000001.0000000015.0000000008",
+              "gameVersion": "1.15.8",
+              "gameVersionReleaseDate": "2025-10-14T00:00:00Z",
+              "gameVersionTypeId": 67408
+            },
+            {
+              "gameVersionName": "5.5.2",
+              "gameVersionPadded": "0000000005.0000000005.0000000002",
+              "gameVersion": "5.5.2",
+              "gameVersionReleaseDate": "2025-10-17T00:00:00Z",
+              "gameVersionTypeId": 79434
+            },
+            {
+              "gameVersionName": "5.5.3",
+              "gameVersionPadded": "0000000005.0000000005.0000000003",
+              "gameVersion": "5.5.3",
+              "gameVersionReleaseDate": "2025-10-31T00:00:00Z",
+              "gameVersionTypeId": 79434
+            },
+            {
+              "gameVersionName": "3.80.0",
+              "gameVersionPadded": "0000000003.0000000080.0000000000",
+              "gameVersion": "3.80.0",
+              "gameVersionReleaseDate": "2025-11-11T00:00:00Z",
+              "gameVersionTypeId": 81212
+            },
+            {
+              "gameVersionName": "2.5.5",
+              "gameVersionPadded": "0000000002.0000000005.0000000005",
+              "gameVersion": "2.5.5",
+              "gameVersionReleaseDate": "2025-11-20T00:00:00Z",
               "gameVersionTypeId": 73246
             }
           ],
           "dependencies": [
             {
-              "modId": 19651,
+              "modId": 51580,
               "relationType": 1
             },
             {
-              "modId": 51580,
+              "modId": 14320,
               "relationType": 1
             },
             {
@@ -205,7 +219,7 @@
               "relationType": 1
             },
             {
-              "modId": 13376,
+              "modId": 19651,
               "relationType": 1
             },
             {
@@ -213,11 +227,7 @@
               "relationType": 1
             },
             {
-              "modId": 615588,
-              "relationType": 1
-            },
-            {
-              "modId": 95078,
+              "modId": 14324,
               "relationType": 1
             },
             {
@@ -229,100 +239,102 @@
               "relationType": 1
             },
             {
-              "modId": 14320,
+              "modId": 13376,
+              "relationType": 1
+            },
+            {
+              "modId": 95078,
+              "relationType": 1
+            },
+            {
+              "modId": 615588,
               "relationType": 1
             },
             {
               "modId": 1285016,
               "relationType": 1
-            },
-            {
-              "modId": 14324,
-              "relationType": 1
             }
           ],
           "alternateFileId": 0,
           "isServerPack": false,
-          "fileFingerprint": 283699393,
+          "fileFingerprint": 1914516383,
           "modules": [
             {
               "name": "BigWigs",
-              "fingerprint": 2674218723
+              "fingerprint": 40849892
             },
             {
               "name": "BigWigs_Core",
-              "fingerprint": 2136092282
+              "fingerprint": 699121422
             },
             {
               "name": "BigWigs_Options",
-              "fingerprint": 2590072592
+              "fingerprint": 1341239960
             },
             {
               "name": "BigWigs_Plugins",
-              "fingerprint": 1382324787
+              "fingerprint": 34574612
             },
             {
               "name": "BigWigs_NerubarPalace",
-              "fingerprint": 3610288474
+              "fingerprint": 2813379940
             },
             {
               "name": "BigWigs_KhazAlgar",
-              "fingerprint": 2903947033
+              "fingerprint": 2053863810
             },
             {
               "name": "BigWigs_LiberationOfUndermine",
-              "fingerprint": 1820270178
+              "fingerprint": 2826965810
             },
             {
               "name": "BigWigs_ManaforgeOmega",
-              "fingerprint": 2915039488
+              "fingerprint": 3793485027
+            },
+            {
+              "name": "BigWigs_MarchOnQuelDanas",
+              "fingerprint": 885531654
             }
           ]
         },
         {
-          "id": 6735222,
+          "id": 7464414,
           "gameId": 1,
           "modId": 2382,
           "isAvailable": true,
-          "displayName": "v390.3-10-g891995f",
-          "fileName": "BigWigs-v390.3-10-g891995f.zip",
+          "displayName": "v402.1-6-ga651f74",
+          "fileName": "BigWigs-v402.1-6-ga651f74.zip",
           "releaseType": 3,
           "fileStatus": 4,
           "hashes": [
             {
-              "value": "a3b89466df9407a96e3c06962a0c09af8c224dd3",
+              "value": "f0df617615a395c665c956f07d89fbeb4bd81c86",
               "algo": 1
             },
             {
-              "value": "7e47a166512b4f11c9c56203c0b12fec",
+              "value": "f288c07dd2da09a9d2ec6ba7cb24ba25",
               "algo": 2
             }
           ],
-          "fileDate": "2025-07-06T00:36:07.677Z",
-          "fileLength": 4148199,
+          "fileDate": "2026-01-15T17:38:40.77Z",
+          "fileLength": 4571679,
           "downloadCount": 0,
-          "fileSizeOnDisk": 7550692,
-          "downloadUrl": "https://edge.forgecdn.net/files/6735/222/BigWigs-v390.3-10-g891995f.zip",
+          "fileSizeOnDisk": 8562132,
+          "downloadUrl": "https://edge.forgecdn.net/files/7464/414/BigWigs-v402.1-6-ga651f74.zip",
           "gameVersions": [
-            "11.2.0",
             "4.4.2",
-            "5.5.0",
-            "4.4.1",
-            "1.15.6",
-            "11.1.7",
+            "11.2.5",
+            "3.4.5",
             "1.15.7",
-            "3.4.4",
-            "11.1.5",
-            "2.5.4"
+            "12.0.0",
+            "11.2.7",
+            "1.15.8",
+            "5.5.2",
+            "5.5.3",
+            "3.80.0",
+            "2.5.5"
           ],
           "sortableGameVersions": [
-            {
-              "gameVersionName": "11.2.0",
-              "gameVersionPadded": "0000000011.0000000002.0000000000",
-              "gameVersion": "11.2.0",
-              "gameVersionReleaseDate": "2025-06-18T00:00:00Z",
-              "gameVersionTypeId": 517
-            },
             {
               "gameVersionName": "4.4.2",
               "gameVersionPadded": "0000000004.0000000004.0000000002",
@@ -331,32 +343,18 @@
               "gameVersionTypeId": 77522
             },
             {
-              "gameVersionName": "5.5.0",
-              "gameVersionPadded": "0000000005.0000000005.0000000000",
-              "gameVersion": "5.5.0",
-              "gameVersionReleaseDate": "2025-04-01T00:00:00Z",
-              "gameVersionTypeId": 79434
-            },
-            {
-              "gameVersionName": "4.4.1",
-              "gameVersionPadded": "0000000004.0000000004.0000000001",
-              "gameVersion": "4.4.1",
-              "gameVersionReleaseDate": "2024-09-07T00:00:00Z",
-              "gameVersionTypeId": 77522
-            },
-            {
-              "gameVersionName": "1.15.6",
-              "gameVersionPadded": "0000000001.0000000015.0000000006",
-              "gameVersion": "1.15.6",
-              "gameVersionReleaseDate": "2024-12-19T00:00:00Z",
-              "gameVersionTypeId": 67408
-            },
-            {
-              "gameVersionName": "11.1.7",
-              "gameVersionPadded": "0000000011.0000000001.0000000007",
-              "gameVersion": "11.1.7",
-              "gameVersionReleaseDate": "2025-04-27T00:00:00Z",
+              "gameVersionName": "11.2.5",
+              "gameVersionPadded": "0000000011.0000000002.0000000005",
+              "gameVersion": "11.2.5",
+              "gameVersionReleaseDate": "2025-08-16T00:00:00Z",
               "gameVersionTypeId": 517
+            },
+            {
+              "gameVersionName": "3.4.5",
+              "gameVersionPadded": "0000000003.0000000004.0000000005",
+              "gameVersion": "3.4.5",
+              "gameVersionReleaseDate": "2025-07-10T00:00:00Z",
+              "gameVersionTypeId": 73713
             },
             {
               "gameVersionName": "1.15.7",
@@ -366,50 +364,58 @@
               "gameVersionTypeId": 67408
             },
             {
-              "gameVersionName": "3.4.4",
-              "gameVersionPadded": "0000000003.0000000004.0000000004",
-              "gameVersion": "3.4.4",
-              "gameVersionReleaseDate": "2025-03-21T00:00:00Z",
-              "gameVersionTypeId": 73713
-            },
-            {
-              "gameVersionName": "11.1.5",
-              "gameVersionPadded": "0000000011.0000000001.0000000005",
-              "gameVersion": "11.1.5",
-              "gameVersionReleaseDate": "2025-03-22T00:00:00Z",
+              "gameVersionName": "12.0.0",
+              "gameVersionPadded": "0000000012.0000000000.0000000000",
+              "gameVersion": "12.0.0",
+              "gameVersionReleaseDate": "2025-09-30T00:00:00Z",
               "gameVersionTypeId": 517
             },
             {
-              "gameVersionName": "2.5.4",
-              "gameVersionPadded": "0000000002.0000000005.0000000004",
-              "gameVersion": "2.5.4",
-              "gameVersionReleaseDate": "2022-03-22T00:00:00Z",
+              "gameVersionName": "11.2.7",
+              "gameVersionPadded": "0000000011.0000000002.0000000007",
+              "gameVersion": "11.2.7",
+              "gameVersionReleaseDate": "2025-10-13T00:00:00Z",
+              "gameVersionTypeId": 517
+            },
+            {
+              "gameVersionName": "1.15.8",
+              "gameVersionPadded": "0000000001.0000000015.0000000008",
+              "gameVersion": "1.15.8",
+              "gameVersionReleaseDate": "2025-10-14T00:00:00Z",
+              "gameVersionTypeId": 67408
+            },
+            {
+              "gameVersionName": "5.5.2",
+              "gameVersionPadded": "0000000005.0000000005.0000000002",
+              "gameVersion": "5.5.2",
+              "gameVersionReleaseDate": "2025-10-17T00:00:00Z",
+              "gameVersionTypeId": 79434
+            },
+            {
+              "gameVersionName": "5.5.3",
+              "gameVersionPadded": "0000000005.0000000005.0000000003",
+              "gameVersion": "5.5.3",
+              "gameVersionReleaseDate": "2025-10-31T00:00:00Z",
+              "gameVersionTypeId": 79434
+            },
+            {
+              "gameVersionName": "3.80.0",
+              "gameVersionPadded": "0000000003.0000000080.0000000000",
+              "gameVersion": "3.80.0",
+              "gameVersionReleaseDate": "2025-11-11T00:00:00Z",
+              "gameVersionTypeId": 81212
+            },
+            {
+              "gameVersionName": "2.5.5",
+              "gameVersionPadded": "0000000002.0000000005.0000000005",
+              "gameVersion": "2.5.5",
+              "gameVersionReleaseDate": "2025-11-20T00:00:00Z",
               "gameVersionTypeId": 73246
             }
           ],
           "dependencies": [
             {
-              "modId": 1285016,
-              "relationType": 1
-            },
-            {
-              "modId": 94595,
-              "relationType": 1
-            },
-            {
-              "modId": 19651,
-              "relationType": 1
-            },
-            {
-              "modId": 15552,
-              "relationType": 1
-            },
-            {
-              "modId": 27889,
-              "relationType": 1
-            },
-            {
-              "modId": 95078,
+              "modId": 13376,
               "relationType": 1
             },
             {
@@ -417,15 +423,15 @@
               "relationType": 1
             },
             {
+              "modId": 15552,
+              "relationType": 1
+            },
+            {
+              "modId": 94595,
+              "relationType": 1
+            },
+            {
               "modId": 51580,
-              "relationType": 1
-            },
-            {
-              "modId": 14320,
-              "relationType": 1
-            },
-            {
-              "modId": 13376,
               "relationType": 1
             },
             {
@@ -433,45 +439,69 @@
               "relationType": 1
             },
             {
+              "modId": 95078,
+              "relationType": 1
+            },
+            {
+              "modId": 14320,
+              "relationType": 1
+            },
+            {
+              "modId": 19651,
+              "relationType": 1
+            },
+            {
+              "modId": 27889,
+              "relationType": 1
+            },
+            {
               "modId": 615588,
+              "relationType": 1
+            },
+            {
+              "modId": 1285016,
               "relationType": 1
             }
           ],
           "alternateFileId": 0,
           "isServerPack": false,
-          "fileFingerprint": 2345133186,
+          "fileFingerprint": 982924202,
           "modules": [
             {
               "name": "BigWigs",
-              "fingerprint": 2930691261
+              "fingerprint": 2055367223
             },
             {
               "name": "BigWigs_Core",
-              "fingerprint": 2496898315
+              "fingerprint": 2930356972
             },
             {
               "name": "BigWigs_Options",
-              "fingerprint": 2264158328
+              "fingerprint": 535648951
             },
             {
               "name": "BigWigs_Plugins",
-              "fingerprint": 904845179
+              "fingerprint": 3593595672
             },
             {
               "name": "BigWigs_NerubarPalace",
-              "fingerprint": 3412286041
+              "fingerprint": 3610623247
             },
             {
               "name": "BigWigs_KhazAlgar",
-              "fingerprint": 2850908725
+              "fingerprint": 1617558572
             },
             {
               "name": "BigWigs_LiberationOfUndermine",
-              "fingerprint": 105384719
+              "fingerprint": 3074067957
             },
             {
               "name": "BigWigs_ManaforgeOmega",
-              "fingerprint": 332347287
+              "fingerprint": 2873726740
+            },
+            {
+              "name": "BigWigs_MarchOnQuelDanas",
+              "fingerprint": 2060927943
             }
           ]
         }
@@ -479,143 +509,283 @@
       "latestFilesIndexes": [
         {
           "gameVersion": "4.4.2",
-          "fileId": 6735222,
-          "filename": "BigWigs-v390.3-10-g891995f.zip",
+          "fileId": 7464414,
+          "filename": "BigWigs-v402.1-6-ga651f74.zip",
           "releaseType": 3,
           "gameVersionTypeId": 77522
-        },
-        {
-          "gameVersion": "4.4.1",
-          "fileId": 6735222,
-          "filename": "BigWigs-v390.3-10-g891995f.zip",
-          "releaseType": 3,
-          "gameVersionTypeId": 77522
-        },
-        {
-          "gameVersion": "1.15.6",
-          "fileId": 6735222,
-          "filename": "BigWigs-v390.3-10-g891995f.zip",
-          "releaseType": 3,
-          "gameVersionTypeId": 67408
         },
         {
           "gameVersion": "1.15.7",
-          "fileId": 6735222,
-          "filename": "BigWigs-v390.3-10-g891995f.zip",
+          "fileId": 7464414,
+          "filename": "BigWigs-v402.1-6-ga651f74.zip",
           "releaseType": 3,
           "gameVersionTypeId": 67408
         },
         {
-          "gameVersion": "3.4.4",
-          "fileId": 6735222,
-          "filename": "BigWigs-v390.3-10-g891995f.zip",
+          "gameVersion": "3.4.5",
+          "fileId": 7464414,
+          "filename": "BigWigs-v402.1-6-ga651f74.zip",
           "releaseType": 3,
           "gameVersionTypeId": 73713
         },
         {
-          "gameVersion": "11.1.5",
-          "fileId": 6735222,
-          "filename": "BigWigs-v390.3-10-g891995f.zip",
+          "gameVersion": "11.2.5",
+          "fileId": 7464414,
+          "filename": "BigWigs-v402.1-6-ga651f74.zip",
           "releaseType": 3,
           "gameVersionTypeId": 517
         },
         {
-          "gameVersion": "2.5.4",
-          "fileId": 6735222,
-          "filename": "BigWigs-v390.3-10-g891995f.zip",
+          "gameVersion": "12.0.0",
+          "fileId": 7464414,
+          "filename": "BigWigs-v402.1-6-ga651f74.zip",
           "releaseType": 3,
-          "gameVersionTypeId": 73246
+          "gameVersionTypeId": 517
         },
         {
-          "gameVersion": "5.5.0",
-          "fileId": 6735222,
-          "filename": "BigWigs-v390.3-10-g891995f.zip",
+          "gameVersion": "11.2.7",
+          "fileId": 7464414,
+          "filename": "BigWigs-v402.1-6-ga651f74.zip",
+          "releaseType": 3,
+          "gameVersionTypeId": 517
+        },
+        {
+          "gameVersion": "1.15.8",
+          "fileId": 7464414,
+          "filename": "BigWigs-v402.1-6-ga651f74.zip",
+          "releaseType": 3,
+          "gameVersionTypeId": 67408
+        },
+        {
+          "gameVersion": "5.5.2",
+          "fileId": 7464414,
+          "filename": "BigWigs-v402.1-6-ga651f74.zip",
           "releaseType": 3,
           "gameVersionTypeId": 79434
         },
         {
-          "gameVersion": "11.1.7",
-          "fileId": 6735222,
-          "filename": "BigWigs-v390.3-10-g891995f.zip",
+          "gameVersion": "5.5.3",
+          "fileId": 7464414,
+          "filename": "BigWigs-v402.1-6-ga651f74.zip",
           "releaseType": 3,
-          "gameVersionTypeId": 517
+          "gameVersionTypeId": 79434
         },
         {
-          "gameVersion": "11.2.0",
-          "fileId": 6735222,
-          "filename": "BigWigs-v390.3-10-g891995f.zip",
+          "gameVersion": "3.80.0",
+          "fileId": 7464414,
+          "filename": "BigWigs-v402.1-6-ga651f74.zip",
           "releaseType": 3,
-          "gameVersionTypeId": 517
+          "gameVersionTypeId": 81212
+        },
+        {
+          "gameVersion": "2.5.5",
+          "fileId": 7464414,
+          "filename": "BigWigs-v402.1-6-ga651f74.zip",
+          "releaseType": 3,
+          "gameVersionTypeId": 73246
         },
         {
           "gameVersion": "4.4.2",
-          "fileId": 6699910,
-          "filename": "BigWigs-v390.3.zip",
+          "fileId": 7269417,
+          "filename": "BigWigs-v402.1.zip",
+          "releaseType": 1,
+          "gameVersionTypeId": 77522
+        },
+        {
+          "gameVersion": "1.15.7",
+          "fileId": 7269417,
+          "filename": "BigWigs-v402.1.zip",
+          "releaseType": 1,
+          "gameVersionTypeId": 67408
+        },
+        {
+          "gameVersion": "3.4.5",
+          "fileId": 7269417,
+          "filename": "BigWigs-v402.1.zip",
+          "releaseType": 1,
+          "gameVersionTypeId": 73713
+        },
+        {
+          "gameVersion": "11.2.5",
+          "fileId": 7269417,
+          "filename": "BigWigs-v402.1.zip",
+          "releaseType": 1,
+          "gameVersionTypeId": 517
+        },
+        {
+          "gameVersion": "12.0.0",
+          "fileId": 7269417,
+          "filename": "BigWigs-v402.1.zip",
+          "releaseType": 1,
+          "gameVersionTypeId": 517
+        },
+        {
+          "gameVersion": "11.2.7",
+          "fileId": 7269417,
+          "filename": "BigWigs-v402.1.zip",
+          "releaseType": 1,
+          "gameVersionTypeId": 517
+        },
+        {
+          "gameVersion": "1.15.8",
+          "fileId": 7269417,
+          "filename": "BigWigs-v402.1.zip",
+          "releaseType": 1,
+          "gameVersionTypeId": 67408
+        },
+        {
+          "gameVersion": "5.5.2",
+          "fileId": 7269417,
+          "filename": "BigWigs-v402.1.zip",
+          "releaseType": 1,
+          "gameVersionTypeId": 79434
+        },
+        {
+          "gameVersion": "5.5.3",
+          "fileId": 7269417,
+          "filename": "BigWigs-v402.1.zip",
+          "releaseType": 1,
+          "gameVersionTypeId": 79434
+        },
+        {
+          "gameVersion": "3.80.0",
+          "fileId": 7269417,
+          "filename": "BigWigs-v402.1.zip",
+          "releaseType": 1,
+          "gameVersionTypeId": 81212
+        },
+        {
+          "gameVersion": "2.5.5",
+          "fileId": 7269417,
+          "filename": "BigWigs-v402.1.zip",
+          "releaseType": 1,
+          "gameVersionTypeId": 73246
+        },
+        {
+          "gameVersion": "2.5.4",
+          "fileId": 7269337,
+          "filename": "BigWigs-v402-1-g5fb59fe.zip",
+          "releaseType": 3,
+          "gameVersionTypeId": 73246
+        },
+        {
+          "gameVersion": "2.5.4",
+          "fileId": 7239826,
+          "filename": "BigWigs-v402.zip",
+          "releaseType": 1,
+          "gameVersionTypeId": 73246
+        },
+        {
+          "gameVersion": "5.5.1",
+          "fileId": 7168747,
+          "filename": "BigWigs-v401.4.zip",
+          "releaseType": 1,
+          "gameVersionTypeId": 79434
+        },
+        {
+          "gameVersion": "5.5.1",
+          "fileId": 7168734,
+          "filename": "BigWigs-v401.3-7-g34b582e.zip",
+          "releaseType": 3,
+          "gameVersionTypeId": 79434
+        },
+        {
+          "gameVersion": "5.5.0",
+          "fileId": 7137960,
+          "filename": "BigWigs-v401-7-g0965fe1.zip",
+          "releaseType": 3,
+          "gameVersionTypeId": 79434
+        },
+        {
+          "gameVersion": "1.15.6",
+          "fileId": 7107968,
+          "filename": "BigWigs-v401.zip",
+          "releaseType": 1,
+          "gameVersionTypeId": 67408
+        },
+        {
+          "gameVersion": "5.5.0",
+          "fileId": 7107968,
+          "filename": "BigWigs-v401.zip",
+          "releaseType": 1,
+          "gameVersionTypeId": 79434
+        },
+        {
+          "gameVersion": "1.15.6",
+          "fileId": 7107937,
+          "filename": "BigWigs-v400.1-10-g64f76eb.zip",
+          "releaseType": 3,
+          "gameVersionTypeId": 67408
+        },
+        {
+          "gameVersion": "11.1.7",
+          "fileId": 7087364,
+          "filename": "BigWigs-v400.1.zip",
+          "releaseType": 1,
+          "gameVersionTypeId": 517
+        },
+        {
+          "gameVersion": "11.1.7",
+          "fileId": 7087343,
+          "filename": "BigWigs-v400-11-gc06ad1c.zip",
+          "releaseType": 3,
+          "gameVersionTypeId": 517
+        },
+        {
+          "gameVersion": "11.2.0",
+          "fileId": 7065896,
+          "filename": "BigWigs-v399.8-8-gf490373.zip",
+          "releaseType": 3,
+          "gameVersionTypeId": 517
+        },
+        {
+          "gameVersion": "11.2.0",
+          "fileId": 7032615,
+          "filename": "BigWigs-v399.8.zip",
+          "releaseType": 1,
+          "gameVersionTypeId": 517
+        },
+        {
+          "gameVersion": "4.4.1",
+          "fileId": 6957370,
+          "filename": "BigWigs-v398.1.zip",
           "releaseType": 1,
           "gameVersionTypeId": 77522
         },
         {
           "gameVersion": "4.4.1",
-          "fileId": 6699910,
-          "filename": "BigWigs-v390.3.zip",
-          "releaseType": 1,
+          "fileId": 6957351,
+          "filename": "BigWigs-v398-3-g4395f6a.zip",
+          "releaseType": 3,
           "gameVersionTypeId": 77522
         },
         {
-          "gameVersion": "1.15.6",
-          "fileId": 6699910,
-          "filename": "BigWigs-v390.3.zip",
-          "releaseType": 1,
-          "gameVersionTypeId": 67408
+          "gameVersion": "11.1.5",
+          "fileId": 6902285,
+          "filename": "BigWigs-v395.2-2-g1c24072.zip",
+          "releaseType": 3,
+          "gameVersionTypeId": 517
         },
         {
-          "gameVersion": "1.15.7",
-          "fileId": 6699910,
-          "filename": "BigWigs-v390.3.zip",
+          "gameVersion": "11.1.5",
+          "fileId": 6901576,
+          "filename": "BigWigs-v395.2.zip",
           "releaseType": 1,
-          "gameVersionTypeId": 67408
+          "gameVersionTypeId": 517
         },
         {
           "gameVersion": "3.4.4",
-          "fileId": 6699910,
-          "filename": "BigWigs-v390.3.zip",
+          "fileId": 6743033,
+          "filename": "BigWigs-v391.zip",
           "releaseType": 1,
           "gameVersionTypeId": 73713
         },
         {
-          "gameVersion": "11.1.5",
-          "fileId": 6699910,
-          "filename": "BigWigs-v390.3.zip",
-          "releaseType": 1,
-          "gameVersionTypeId": 517
-        },
-        {
-          "gameVersion": "2.5.4",
-          "fileId": 6699910,
-          "filename": "BigWigs-v390.3.zip",
-          "releaseType": 1,
-          "gameVersionTypeId": 73246
-        },
-        {
-          "gameVersion": "5.5.0",
-          "fileId": 6699910,
-          "filename": "BigWigs-v390.3.zip",
-          "releaseType": 1,
-          "gameVersionTypeId": 79434
-        },
-        {
-          "gameVersion": "11.1.7",
-          "fileId": 6699910,
-          "filename": "BigWigs-v390.3.zip",
-          "releaseType": 1,
-          "gameVersionTypeId": 517
-        },
-        {
-          "gameVersion": "11.2.0",
-          "fileId": 6699910,
-          "filename": "BigWigs-v390.3.zip",
-          "releaseType": 1,
-          "gameVersionTypeId": 517
+          "gameVersion": "3.4.4",
+          "fileId": 6743009,
+          "filename": "BigWigs-v390.3-24-g872dbbc.zip",
+          "releaseType": 3,
+          "gameVersionTypeId": 73713
         },
         {
           "gameVersion": "11.0.7",
@@ -1999,13 +2169,27 @@
       ],
       "latestEarlyAccessFilesIndexes": [],
       "dateCreated": "2006-04-10T17:36:32Z",
-      "dateModified": "2025-07-06T00:38:17.3Z",
-      "dateReleased": "2025-07-06T00:36:07.677Z",
+      "dateModified": "2026-01-15T17:42:28.533Z",
+      "dateReleased": "2026-01-15T17:38:40.77Z",
       "allowModDistribution": true,
-      "gamePopularityRank": 8,
+      "gamePopularityRank": 26,
       "isAvailable": true,
       "hasCommentsEnabled": false,
       "thumbsUpCount": 1,
+      "socialLinks": [
+        {
+          "type": 5,
+          "url": "https://x.com/BigWigsWoW"
+        },
+        {
+          "type": 2,
+          "url": "https://discord.gg/jGveg85"
+        },
+        {
+          "type": 13,
+          "url": "https://github.com/BigWigsMods/BigWigs"
+        }
+      ],
       "featuredProjectTag": 0
     },
     {
@@ -2119,7 +2303,7 @@
       },
       "summary": "A skinning engine for button-based add-ons.",
       "status": 4,
-      "downloadCount": 8247293,
+      "downloadCount": 8916674,
       "isFeatured": false,
       "primaryCategoryId": 1010,
       "categories": [
@@ -2131,6 +2315,18 @@
           "url": "https://www.curseforge.com/wow/addons/bags-inventory",
           "iconUrl": "https://media.forgecdn.net/avatars/54/445/636135209663914354.png",
           "dateModified": "2016-10-31T19:29:26.39Z",
+          "isClass": false,
+          "classId": 1,
+          "parentCategoryId": 1
+        },
+        {
+          "id": 1018,
+          "gameId": 1,
+          "name": "Action Bars",
+          "slug": "action-bars",
+          "url": "https://www.curseforge.com/wow/addons/action-bars",
+          "iconUrl": "https://media.forgecdn.net/avatars/54/454/636135209718137182.png",
+          "dateModified": "2016-10-31T19:29:31.813Z",
           "isClass": false,
           "classId": 1,
           "parentCategoryId": 1
@@ -2148,18 +2344,6 @@
           "parentCategoryId": 1
         },
         {
-          "id": 1005,
-          "gameId": 1,
-          "name": "Buffs & Debuffs",
-          "slug": "buffs-debuffs",
-          "url": "https://www.curseforge.com/wow/addons/buffs-debuffs",
-          "iconUrl": "https://media.forgecdn.net/avatars/54/441/636135209641593518.png",
-          "dateModified": "2016-10-31T19:29:24.207Z",
-          "isClass": false,
-          "classId": 1,
-          "parentCategoryId": 1
-        },
-        {
           "id": 1006,
           "gameId": 1,
           "name": "Artwork",
@@ -2172,13 +2356,13 @@
           "parentCategoryId": 1
         },
         {
-          "id": 1018,
+          "id": 1005,
           "gameId": 1,
-          "name": "Action Bars",
-          "slug": "action-bars",
-          "url": "https://www.curseforge.com/wow/addons/action-bars",
-          "iconUrl": "https://media.forgecdn.net/avatars/54/454/636135209718137182.png",
-          "dateModified": "2016-10-31T19:29:31.813Z",
+          "name": "Buffs & Debuffs",
+          "slug": "buffs-debuffs",
+          "url": "https://www.curseforge.com/wow/addons/buffs-debuffs",
+          "iconUrl": "https://media.forgecdn.net/avatars/54/441/636135209641593518.png",
+          "dateModified": "2016-10-31T19:29:24.207Z",
           "isClass": false,
           "classId": 1,
           "parentCategoryId": 1
@@ -2190,7 +2374,7 @@
           "id": 488800,
           "name": "StormFX",
           "url": "https://www.curseforge.com/members/stormfx",
-          "avatarUrl": null
+          "avatarUrl": "https://static-cdn.jtvnw.net/jtv_user_pictures/e35e0e96-5eda-4569-aa32-0e76eb88094b-profile_image-150x150.png"
         }
       ],
       "logo": {
@@ -2201,36 +2385,43 @@
         "thumbnailUrl": "https://media.forgecdn.net/avatars/thumbnails/809/624/256/256/638180657164269105.png",
         "url": "https://media.forgecdn.net/avatars/809/624/638180657164269105.png"
       },
-      "mainFileId": 6454541,
+      "mainFileId": 7398127,
       "latestFiles": [
         {
-          "id": 6454541,
+          "id": 7398127,
           "gameId": 1,
           "modId": 13592,
           "isAvailable": true,
-          "displayName": "11.1.5",
-          "fileName": "Masque-11.1.5.zip",
+          "displayName": "11.2.10",
+          "fileName": "Masque-11.2.10.zip",
           "releaseType": 1,
           "fileStatus": 4,
           "hashes": [
             {
-              "value": "05cf54babddde279a9d27e7dfd42ed9ab4d507ba",
+              "value": "c839e03381046ac5e2202113fbbacaa277b11f40",
               "algo": 1
             },
             {
-              "value": "86ddab55ad1a9bcba3b4dbc82e796b6c",
+              "value": "a3236e815c26c7f26044bba2c9f3d4d2",
               "algo": 2
             }
           ],
-          "fileDate": "2025-04-23T03:22:00.43Z",
-          "fileLength": 1559805,
-          "downloadCount": 122949,
-          "fileSizeOnDisk": 7293462,
-          "downloadUrl": "https://edge.forgecdn.net/files/6454/541/Masque-11.1.5.zip",
+          "fileDate": "2025-12-30T22:45:13.987Z",
+          "fileLength": 3025503,
+          "downloadCount": 21156,
+          "fileSizeOnDisk": 17202310,
+          "downloadUrl": "https://edge.forgecdn.net/files/7398/127/Masque-11.2.10.zip",
           "gameVersions": [
             "4.4.2",
-            "1.15.7",
-            "11.1.5"
+            "3.4.5",
+            "2.5.4",
+            "12.0.0",
+            "11.2.7",
+            "1.15.8",
+            "5.5.3",
+            "3.80.0",
+            "2.5.5",
+            "12.0.1"
           ],
           "sortableGameVersions": [
             {
@@ -2241,135 +2432,72 @@
               "gameVersionTypeId": 77522
             },
             {
-              "gameVersionName": "1.15.7",
-              "gameVersionPadded": "0000000001.0000000015.0000000007",
-              "gameVersion": "1.15.7",
-              "gameVersionReleaseDate": "2025-03-22T00:00:00Z",
+              "gameVersionName": "3.4.5",
+              "gameVersionPadded": "0000000003.0000000004.0000000005",
+              "gameVersion": "3.4.5",
+              "gameVersionReleaseDate": "2025-07-10T00:00:00Z",
+              "gameVersionTypeId": 73713
+            },
+            {
+              "gameVersionName": "2.5.4",
+              "gameVersionPadded": "0000000002.0000000005.0000000004",
+              "gameVersion": "2.5.4",
+              "gameVersionReleaseDate": "2022-03-22T00:00:00Z",
+              "gameVersionTypeId": 73246
+            },
+            {
+              "gameVersionName": "12.0.0",
+              "gameVersionPadded": "0000000012.0000000000.0000000000",
+              "gameVersion": "12.0.0",
+              "gameVersionReleaseDate": "2025-09-30T00:00:00Z",
+              "gameVersionTypeId": 517
+            },
+            {
+              "gameVersionName": "11.2.7",
+              "gameVersionPadded": "0000000011.0000000002.0000000007",
+              "gameVersion": "11.2.7",
+              "gameVersionReleaseDate": "2025-10-13T00:00:00Z",
+              "gameVersionTypeId": 517
+            },
+            {
+              "gameVersionName": "1.15.8",
+              "gameVersionPadded": "0000000001.0000000015.0000000008",
+              "gameVersion": "1.15.8",
+              "gameVersionReleaseDate": "2025-10-14T00:00:00Z",
               "gameVersionTypeId": 67408
             },
             {
-              "gameVersionName": "11.1.5",
-              "gameVersionPadded": "0000000011.0000000001.0000000005",
-              "gameVersion": "11.1.5",
-              "gameVersionReleaseDate": "2025-03-22T00:00:00Z",
-              "gameVersionTypeId": 517
-            }
-          ],
-          "dependencies": [
-            {
-              "modId": 20113,
-              "relationType": 1
-            },
-            {
-              "modId": 15552,
-              "relationType": 1
-            },
-            {
-              "modId": 14328,
-              "relationType": 1
-            },
-            {
-              "modId": 13376,
-              "relationType": 1
-            },
-            {
-              "modId": 15049,
-              "relationType": 1
-            },
-            {
-              "modId": 340803,
-              "relationType": 1
-            },
-            {
-              "modId": 19651,
-              "relationType": 1
-            }
-          ],
-          "alternateFileId": 0,
-          "isServerPack": false,
-          "fileFingerprint": 2642651369,
-          "modules": [
-            {
-              "name": "Masque",
-              "fingerprint": 2875115870
-            }
-          ]
-        },
-        {
-          "id": 6725716,
-          "gameId": 1,
-          "modId": 13592,
-          "isAvailable": true,
-          "displayName": "11.1.7-Beta-2",
-          "fileName": "Masque-11.1.7-Beta-2.zip",
-          "releaseType": 2,
-          "fileStatus": 4,
-          "hashes": [
-            {
-              "value": "7e21c0999277b7fd77b15dc98ee06eaf7b580704",
-              "algo": 1
-            },
-            {
-              "value": "c0ea7ce5032c8c156d35ccb88f117dc9",
-              "algo": 2
-            }
-          ],
-          "fileDate": "2025-07-03T14:26:39.383Z",
-          "fileLength": 1560028,
-          "downloadCount": 0,
-          "fileSizeOnDisk": 7293872,
-          "downloadUrl": "https://edge.forgecdn.net/files/6725/716/Masque-11.1.7-Beta-2.zip",
-          "gameVersions": [
-            "4.4.2",
-            "5.5.0",
-            "11.1.7",
-            "1.15.7",
-            "3.4.4"
-          ],
-          "sortableGameVersions": [
-            {
-              "gameVersionName": "4.4.2",
-              "gameVersionPadded": "0000000004.0000000004.0000000002",
-              "gameVersion": "4.4.2",
-              "gameVersionReleaseDate": "2025-01-08T00:00:00Z",
-              "gameVersionTypeId": 77522
-            },
-            {
-              "gameVersionName": "5.5.0",
-              "gameVersionPadded": "0000000005.0000000005.0000000000",
-              "gameVersion": "5.5.0",
-              "gameVersionReleaseDate": "2025-04-01T00:00:00Z",
+              "gameVersionName": "5.5.3",
+              "gameVersionPadded": "0000000005.0000000005.0000000003",
+              "gameVersion": "5.5.3",
+              "gameVersionReleaseDate": "2025-10-31T00:00:00Z",
               "gameVersionTypeId": 79434
             },
             {
-              "gameVersionName": "11.1.7",
-              "gameVersionPadded": "0000000011.0000000001.0000000007",
-              "gameVersion": "11.1.7",
-              "gameVersionReleaseDate": "2025-04-27T00:00:00Z",
+              "gameVersionName": "3.80.0",
+              "gameVersionPadded": "0000000003.0000000080.0000000000",
+              "gameVersion": "3.80.0",
+              "gameVersionReleaseDate": "2025-11-11T00:00:00Z",
+              "gameVersionTypeId": 81212
+            },
+            {
+              "gameVersionName": "2.5.5",
+              "gameVersionPadded": "0000000002.0000000005.0000000005",
+              "gameVersion": "2.5.5",
+              "gameVersionReleaseDate": "2025-11-20T00:00:00Z",
+              "gameVersionTypeId": 73246
+            },
+            {
+              "gameVersionName": "12.0.1",
+              "gameVersionPadded": "0000000012.0000000000.0000000001",
+              "gameVersion": "12.0.1",
+              "gameVersionReleaseDate": "2025-12-12T00:00:00Z",
               "gameVersionTypeId": 517
-            },
-            {
-              "gameVersionName": "1.15.7",
-              "gameVersionPadded": "0000000001.0000000015.0000000007",
-              "gameVersion": "1.15.7",
-              "gameVersionReleaseDate": "2025-03-22T00:00:00Z",
-              "gameVersionTypeId": 67408
-            },
-            {
-              "gameVersionName": "3.4.4",
-              "gameVersionPadded": "0000000003.0000000004.0000000004",
-              "gameVersion": "3.4.4",
-              "gameVersionReleaseDate": "2025-03-21T00:00:00Z",
-              "gameVersionTypeId": 73713
             }
           ],
           "dependencies": [
             {
-              "modId": 15049,
-              "relationType": 1
-            },
-            {
-              "modId": 19651,
+              "modId": 13376,
               "relationType": 1
             },
             {
@@ -2377,7 +2505,7 @@
               "relationType": 1
             },
             {
-              "modId": 13376,
+              "modId": 19651,
               "relationType": 1
             },
             {
@@ -2389,17 +2517,21 @@
               "relationType": 1
             },
             {
+              "modId": 15049,
+              "relationType": 1
+            },
+            {
               "modId": 15552,
               "relationType": 1
             }
           ],
           "alternateFileId": 0,
           "isServerPack": false,
-          "fileFingerprint": 210101254,
+          "fileFingerprint": 1673943536,
           "modules": [
             {
               "name": "Masque",
-              "fingerprint": 3381344235
+              "fingerprint": 2526772833
             }
           ]
         }
@@ -2407,119 +2539,102 @@
       "latestFilesIndexes": [
         {
           "gameVersion": "4.4.2",
-          "fileId": 6725716,
-          "filename": "Masque-11.1.7-Beta-2.zip",
-          "releaseType": 2,
+          "fileId": 7398127,
+          "filename": "Masque-11.2.10.zip",
+          "releaseType": 1,
           "gameVersionTypeId": 77522
         },
         {
-          "gameVersion": "5.5.0",
-          "fileId": 6725716,
-          "filename": "Masque-11.1.7-Beta-2.zip",
-          "releaseType": 2,
-          "gameVersionTypeId": 79434
-        },
-        {
-          "gameVersion": "11.1.7",
-          "fileId": 6725716,
-          "filename": "Masque-11.1.7-Beta-2.zip",
-          "releaseType": 2,
-          "gameVersionTypeId": 517
-        },
-        {
-          "gameVersion": "1.15.7",
-          "fileId": 6725716,
-          "filename": "Masque-11.1.7-Beta-2.zip",
-          "releaseType": 2,
-          "gameVersionTypeId": 67408
-        },
-        {
-          "gameVersion": "3.4.4",
-          "fileId": 6725716,
-          "filename": "Masque-11.1.7-Beta-2.zip",
-          "releaseType": 2,
+          "gameVersion": "3.4.5",
+          "fileId": 7398127,
+          "filename": "Masque-11.2.10.zip",
+          "releaseType": 1,
           "gameVersionTypeId": 73713
         },
         {
-          "gameVersion": "4.4.2",
-          "fileId": 6454541,
-          "filename": "Masque-11.1.5.zip",
+          "gameVersion": "2.5.4",
+          "fileId": 7398127,
+          "filename": "Masque-11.2.10.zip",
           "releaseType": 1,
-          "gameVersionTypeId": 77522
+          "gameVersionTypeId": 73246
         },
         {
-          "gameVersion": "1.15.7",
-          "fileId": 6454541,
-          "filename": "Masque-11.1.5.zip",
-          "releaseType": 1,
-          "gameVersionTypeId": 67408
-        },
-        {
-          "gameVersion": "11.1.5",
-          "fileId": 6454541,
-          "filename": "Masque-11.1.5.zip",
+          "gameVersion": "12.0.0",
+          "fileId": 7398127,
+          "filename": "Masque-11.2.10.zip",
           "releaseType": 1,
           "gameVersionTypeId": 517
         },
         {
-          "gameVersion": "1.15.6",
-          "fileId": 6240377,
-          "filename": "Masque-11.1.1.zip",
-          "releaseType": 1,
-          "gameVersionTypeId": 67408
-        },
-        {
-          "gameVersion": "11.1.0",
-          "fileId": 6240377,
-          "filename": "Masque-11.1.1.zip",
+          "gameVersion": "11.2.7",
+          "fileId": 7398127,
+          "filename": "Masque-11.2.10.zip",
           "releaseType": 1,
           "gameVersionTypeId": 517
         },
         {
-          "gameVersion": "11.0.5",
-          "fileId": 5810397,
-          "filename": "Masque-11.0.2.zip",
-          "releaseType": 1,
-          "gameVersionTypeId": 517
-        },
-        {
-          "gameVersion": "1.15.4",
-          "fileId": 5810397,
-          "filename": "Masque-11.0.2.zip",
+          "gameVersion": "1.15.8",
+          "fileId": 7398127,
+          "filename": "Masque-11.2.10.zip",
           "releaseType": 1,
           "gameVersionTypeId": 67408
         },
         {
-          "gameVersion": "4.4.0",
-          "fileId": 5810397,
-          "filename": "Masque-11.0.2.zip",
+          "gameVersion": "5.5.3",
+          "fileId": 7398127,
+          "filename": "Masque-11.2.10.zip",
           "releaseType": 1,
-          "gameVersionTypeId": 77522
+          "gameVersionTypeId": 79434
         },
         {
-          "gameVersion": "4.4.1",
-          "fileId": 5810397,
-          "filename": "Masque-11.0.2.zip",
+          "gameVersion": "3.80.0",
+          "fileId": 7398127,
+          "filename": "Masque-11.2.10.zip",
           "releaseType": 1,
-          "gameVersionTypeId": 77522
+          "gameVersionTypeId": 81212
         },
         {
-          "gameVersion": "11.0.2",
-          "fileId": 5810397,
-          "filename": "Masque-11.0.2.zip",
+          "gameVersion": "2.5.5",
+          "fileId": 7398127,
+          "filename": "Masque-11.2.10.zip",
+          "releaseType": 1,
+          "gameVersionTypeId": 73246
+        },
+        {
+          "gameVersion": "12.0.1",
+          "fileId": 7398127,
+          "filename": "Masque-11.2.10.zip",
           "releaseType": 1,
           "gameVersionTypeId": 517
         }
       ],
       "latestEarlyAccessFilesIndexes": [],
       "dateCreated": "2008-09-16T02:43:08Z",
-      "dateModified": "2025-07-03T14:34:22.317Z",
-      "dateReleased": "2025-07-03T14:26:39.383Z",
+      "dateModified": "2025-12-31T01:17:40.393Z",
+      "dateReleased": "2025-12-30T22:45:13.987Z",
       "allowModDistribution": true,
-      "gamePopularityRank": 233,
+      "gamePopularityRank": 94,
       "isAvailable": true,
       "hasCommentsEnabled": false,
       "thumbsUpCount": 0,
+      "socialLinks": [
+        {
+          "type": 13,
+          "url": "https://github.com/SFX-WoW/Masque"
+        },
+        {
+          "type": 2,
+          "url": "https://discord.gg/7MTWRgDzz8"
+        },
+        {
+          "type": 5,
+          "url": "https://x.com/stormfxi"
+        },
+        {
+          "type": 3,
+          "url": "https://github.com/SFX-WoW/Masque"
+        }
+      ],
       "featuredProjectTag": 0
     },
     {
@@ -2577,10 +2692,22 @@
       },
       "summary": "Shows the possible loot from the bosses",
       "status": 4,
-      "downloadCount": 37900864,
+      "downloadCount": 38367183,
       "isFeatured": false,
       "primaryCategoryId": 1014,
       "categories": [
+        {
+          "id": 1011,
+          "gameId": 1,
+          "name": "Map & Minimap",
+          "slug": "map-minimap",
+          "url": "https://www.curseforge.com/wow/addons/map-minimap",
+          "iconUrl": "https://media.forgecdn.net/avatars/54/447/636135209673867865.png",
+          "dateModified": "2016-10-31T19:29:27.403Z",
+          "isClass": false,
+          "classId": 1,
+          "parentCategoryId": 1
+        },
         {
           "id": 1014,
           "gameId": 1,
@@ -2613,18 +2740,6 @@
           "url": "https://www.curseforge.com/wow/addons/professions",
           "iconUrl": "https://media.forgecdn.net/avatars/54/451/636135209701693840.png",
           "dateModified": "2016-10-31T19:29:30.187Z",
-          "isClass": false,
-          "classId": 1,
-          "parentCategoryId": 1
-        },
-        {
-          "id": 1011,
-          "gameId": 1,
-          "name": "Map & Minimap",
-          "slug": "map-minimap",
-          "url": "https://www.curseforge.com/wow/addons/map-minimap",
-          "iconUrl": "https://media.forgecdn.net/avatars/54/447/636135209673867865.png",
-          "dateModified": "2016-10-31T19:29:27.403Z",
           "isClass": false,
           "classId": 1,
           "parentCategoryId": 1
@@ -2670,7 +2785,7 @@
           ],
           "fileDate": "2021-03-16T15:39:28.683Z",
           "fileLength": 722417,
-          "downloadCount": 574,
+          "downloadCount": 643,
           "downloadUrl": "https://edge.forgecdn.net/files/3241/401/AtlasLootClassic-v1.5.8-7-gd24fe0a-classic.zip",
           "gameVersions": [
             "1.13.6"
@@ -2769,7 +2884,7 @@
           ],
           "fileDate": "2022-09-08T18:21:32.503Z",
           "fileLength": 1130762,
-          "downloadCount": 40742,
+          "downloadCount": 40795,
           "downloadUrl": "https://edge.forgecdn.net/files/3973/864/AtlasLootClassic-v3.0.0-beta6.zip",
           "gameVersions": [
             "1.14.3",
@@ -2884,7 +2999,7 @@
           ],
           "fileDate": "2023-10-22T14:37:20.84Z",
           "fileLength": 1199740,
-          "downloadCount": 2546549,
+          "downloadCount": 3271309,
           "downloadUrl": "https://edge.forgecdn.net/files/4811/104/AtlasLootClassic-v3.2.0.zip",
           "gameVersions": [
             "1.14.4",
@@ -3037,18 +3152,18 @@
           "gameVersionTypeId": 67408
         },
         {
-          "gameVersion": "3.4.0",
-          "fileId": 3973864,
-          "filename": "AtlasLootClassic-v3.0.0-beta6.zip",
-          "releaseType": 2,
-          "gameVersionTypeId": 73713
-        },
-        {
           "gameVersion": "2.5.4",
           "fileId": 3973864,
           "filename": "AtlasLootClassic-v3.0.0-beta6.zip",
           "releaseType": 2,
           "gameVersionTypeId": 73246
+        },
+        {
+          "gameVersion": "3.4.0",
+          "fileId": 3973864,
+          "filename": "AtlasLootClassic-v3.0.0-beta6.zip",
+          "releaseType": 2,
+          "gameVersionTypeId": 73713
         },
         {
           "gameVersion": "2.5.3",
@@ -3199,11 +3314,11 @@
         }
       ],
       "latestEarlyAccessFilesIndexes": [],
-      "dateCreated": "2019-07-07T09:34:57.023Z",
+      "dateCreated": "2019-07-08T05:35:45.42Z",
       "dateModified": "2023-10-22T14:39:44.733Z",
       "dateReleased": "2023-10-22T14:37:20.84Z",
       "allowModDistribution": true,
-      "gamePopularityRank": 144,
+      "gamePopularityRank": 224,
       "isAvailable": true,
       "hasCommentsEnabled": false,
       "thumbsUpCount": 0,
@@ -3232,22 +3347,10 @@
       },
       "summary": "A plugin for BigWigs that will play Text-To-Speech sounds for boss abilities in Korean.",
       "status": 4,
-      "downloadCount": 338638,
+      "downloadCount": 360609,
       "isFeatured": false,
       "primaryCategoryId": 1014,
       "categories": [
-        {
-          "id": 1063,
-          "gameId": 1,
-          "name": "Plugins",
-          "slug": "plugins",
-          "url": "https://www.curseforge.com/wow/addons/plugins",
-          "iconUrl": "https://media.forgecdn.net/avatars/54/461/636135209757560016.png",
-          "dateModified": "2016-10-31T19:29:35.77Z",
-          "isClass": false,
-          "classId": 1,
-          "parentCategoryId": 1
-        },
         {
           "id": 1014,
           "gameId": 1,
@@ -3256,6 +3359,18 @@
           "url": "https://www.curseforge.com/wow/addons/boss-encounters",
           "iconUrl": "https://media.forgecdn.net/avatars/54/450/636135209695287536.png",
           "dateModified": "2016-10-31T19:29:29.53Z",
+          "isClass": false,
+          "classId": 1,
+          "parentCategoryId": 1
+        },
+        {
+          "id": 1063,
+          "gameId": 1,
+          "name": "Plugins",
+          "slug": "plugins",
+          "url": "https://www.curseforge.com/wow/addons/plugins",
+          "iconUrl": "https://media.forgecdn.net/avatars/54/461/636135209757560016.png",
+          "dateModified": "2016-10-31T19:29:35.77Z",
           "isClass": false,
           "classId": 1,
           "parentCategoryId": 1
@@ -3290,7 +3405,7 @@
         "thumbnailUrl": "https://media.forgecdn.net/avatars/thumbnails/293/559/256/256/637329740036480589.png",
         "url": "https://media.forgecdn.net/avatars/293/559/637329740036480589.png"
       },
-      "mainFileId": 6588285,
+      "mainFileId": 7111795,
       "latestFiles": [
         {
           "id": 4638218,
@@ -3348,37 +3463,49 @@
           ]
         },
         {
-          "id": 6458149,
+          "id": 7111795,
           "gameId": 1,
           "modId": 402180,
           "isAvailable": true,
-          "displayName": "v11.1.5-1",
-          "fileName": "BigWigs_Voice_KRgeelong-v11.1.5-1.zip",
+          "displayName": "v11.2.5-1",
+          "fileName": "BigWigs_Voice_KRgeelong-v11.2.5-1.zip",
           "releaseType": 1,
           "fileStatus": 4,
           "hashes": [
             {
-              "value": "a484c34bc96fe09469a3773937948d78e90b2231",
+              "value": "113713fa7e1a6d7f499586a1cd34ce0b6a3abf18",
               "algo": 1
             },
             {
-              "value": "2f15508140b7e8d4a315c66160f46ac4",
+              "value": "34afde2a4e54b5398450de60d571beb7",
               "algo": 2
             }
           ],
-          "fileDate": "2025-04-24T02:43:36.647Z",
-          "fileLength": 41887337,
-          "downloadCount": 5357,
-          "fileSizeOnDisk": 44470030,
-          "downloadUrl": "https://edge.forgecdn.net/files/6458/149/BigWigs_Voice_KRgeelong-v11.1.5-1.zip",
+          "fileDate": "2025-10-16T00:47:31.243Z",
+          "fileLength": 42335759,
+          "downloadCount": 1866,
+          "fileSizeOnDisk": 44961058,
+          "downloadUrl": "https://edge.forgecdn.net/files/7111/795/BigWigs_Voice_KRgeelong-v11.2.5-1.zip",
           "gameVersions": [
+            "12.0.0",
             "4.4.2",
+            "5.5.0",
+            "3.4.5",
+            "11.2.5",
+            "1.15.6",
+            "5.5.1",
+            "11.1.7",
             "1.15.7",
-            "3.4.4",
-            "11.1.5",
             "2.5.4"
           ],
           "sortableGameVersions": [
+            {
+              "gameVersionName": "12.0.0",
+              "gameVersionPadded": "0000000012.0000000000.0000000000",
+              "gameVersion": "12.0.0",
+              "gameVersionReleaseDate": "2025-09-30T00:00:00Z",
+              "gameVersionTypeId": 517
+            },
             {
               "gameVersionName": "4.4.2",
               "gameVersionPadded": "0000000004.0000000004.0000000002",
@@ -3387,25 +3514,53 @@
               "gameVersionTypeId": 77522
             },
             {
+              "gameVersionName": "5.5.0",
+              "gameVersionPadded": "0000000005.0000000005.0000000000",
+              "gameVersion": "5.5.0",
+              "gameVersionReleaseDate": "2025-04-01T00:00:00Z",
+              "gameVersionTypeId": 79434
+            },
+            {
+              "gameVersionName": "3.4.5",
+              "gameVersionPadded": "0000000003.0000000004.0000000005",
+              "gameVersion": "3.4.5",
+              "gameVersionReleaseDate": "2025-07-10T00:00:00Z",
+              "gameVersionTypeId": 73713
+            },
+            {
+              "gameVersionName": "11.2.5",
+              "gameVersionPadded": "0000000011.0000000002.0000000005",
+              "gameVersion": "11.2.5",
+              "gameVersionReleaseDate": "2025-08-16T00:00:00Z",
+              "gameVersionTypeId": 517
+            },
+            {
+              "gameVersionName": "1.15.6",
+              "gameVersionPadded": "0000000001.0000000015.0000000006",
+              "gameVersion": "1.15.6",
+              "gameVersionReleaseDate": "2024-12-19T00:00:00Z",
+              "gameVersionTypeId": 67408
+            },
+            {
+              "gameVersionName": "5.5.1",
+              "gameVersionPadded": "0000000005.0000000005.0000000001",
+              "gameVersion": "5.5.1",
+              "gameVersionReleaseDate": "2025-09-03T00:00:00Z",
+              "gameVersionTypeId": 79434
+            },
+            {
+              "gameVersionName": "11.1.7",
+              "gameVersionPadded": "0000000011.0000000001.0000000007",
+              "gameVersion": "11.1.7",
+              "gameVersionReleaseDate": "2025-04-27T00:00:00Z",
+              "gameVersionTypeId": 517
+            },
+            {
               "gameVersionName": "1.15.7",
               "gameVersionPadded": "0000000001.0000000015.0000000007",
               "gameVersion": "1.15.7",
               "gameVersionReleaseDate": "2025-03-22T00:00:00Z",
               "gameVersionTypeId": 67408
-            },
-            {
-              "gameVersionName": "3.4.4",
-              "gameVersionPadded": "0000000003.0000000004.0000000004",
-              "gameVersion": "3.4.4",
-              "gameVersionReleaseDate": "2025-03-21T00:00:00Z",
-              "gameVersionTypeId": 73713
-            },
-            {
-              "gameVersionName": "11.1.5",
-              "gameVersionPadded": "0000000011.0000000001.0000000005",
-              "gameVersion": "11.1.5",
-              "gameVersionReleaseDate": "2025-03-22T00:00:00Z",
-              "gameVersionTypeId": 517
             },
             {
               "gameVersionName": "2.5.4",
@@ -3423,105 +3578,106 @@
           ],
           "alternateFileId": 0,
           "isServerPack": false,
-          "fileFingerprint": 839600466,
+          "fileFingerprint": 3852846910,
           "modules": [
             {
               "name": "BigWigs_Voice_KRgeelong",
-              "fingerprint": 3726833571
-            }
-          ]
-        },
-        {
-          "id": 6588285,
-          "gameId": 1,
-          "modId": 402180,
-          "isAvailable": true,
-          "displayName": "v11.1.5-2",
-          "fileName": "BigWigs_Voice_KRgeelong-v11.1.5-2.zip",
-          "releaseType": 1,
-          "fileStatus": 4,
-          "hashes": [
-            {
-              "value": "a07c7a3b0f57233e275e55cfa93c21017aef5d22",
-              "algo": 1
-            },
-            {
-              "value": "869f89c6c14e3a35333770705483f4f7",
-              "algo": 2
-            }
-          ],
-          "fileDate": "2025-05-29T00:29:43.207Z",
-          "fileLength": 39847524,
-          "downloadCount": 1916,
-          "fileSizeOnDisk": 42332534,
-          "downloadUrl": "https://edge.forgecdn.net/files/6588/285/BigWigs_Voice_KRgeelong-v11.1.5-2.zip",
-          "gameVersions": [
-            "4.4.2",
-            "1.15.7",
-            "3.4.4",
-            "11.1.5"
-          ],
-          "sortableGameVersions": [
-            {
-              "gameVersionName": "4.4.2",
-              "gameVersionPadded": "0000000004.0000000004.0000000002",
-              "gameVersion": "4.4.2",
-              "gameVersionReleaseDate": "2025-01-08T00:00:00Z",
-              "gameVersionTypeId": 77522
-            },
-            {
-              "gameVersionName": "1.15.7",
-              "gameVersionPadded": "0000000001.0000000015.0000000007",
-              "gameVersion": "1.15.7",
-              "gameVersionReleaseDate": "2025-03-22T00:00:00Z",
-              "gameVersionTypeId": 67408
-            },
-            {
-              "gameVersionName": "3.4.4",
-              "gameVersionPadded": "0000000003.0000000004.0000000004",
-              "gameVersion": "3.4.4",
-              "gameVersionReleaseDate": "2025-03-21T00:00:00Z",
-              "gameVersionTypeId": 73713
-            },
-            {
-              "gameVersionName": "11.1.5",
-              "gameVersionPadded": "0000000011.0000000001.0000000005",
-              "gameVersion": "11.1.5",
-              "gameVersionReleaseDate": "2025-03-22T00:00:00Z",
-              "gameVersionTypeId": 517
-            }
-          ],
-          "dependencies": [
-            {
-              "modId": 2382,
-              "relationType": 3
-            }
-          ],
-          "alternateFileId": 0,
-          "isServerPack": false,
-          "fileFingerprint": 2544249031,
-          "modules": [
-            {
-              "name": "BigWigs_Voice_KRgeelong",
-              "fingerprint": 1367214235
+              "fingerprint": 1387097608
             }
           ]
         }
       ],
       "latestFilesIndexes": [
         {
+          "gameVersion": "2.5.4",
+          "fileId": 7111795,
+          "filename": "BigWigs_Voice_KRgeelong-v11.2.5-1.zip",
+          "releaseType": 1,
+          "gameVersionTypeId": 73246
+        },
+        {
           "gameVersion": "4.4.2",
-          "fileId": 6588285,
-          "filename": "BigWigs_Voice_KRgeelong-v11.1.5-2.zip",
+          "fileId": 7111795,
+          "filename": "BigWigs_Voice_KRgeelong-v11.2.5-1.zip",
           "releaseType": 1,
           "gameVersionTypeId": 77522
         },
         {
-          "gameVersion": "1.15.7",
-          "fileId": 6588285,
-          "filename": "BigWigs_Voice_KRgeelong-v11.1.5-2.zip",
+          "gameVersion": "5.5.0",
+          "fileId": 7111795,
+          "filename": "BigWigs_Voice_KRgeelong-v11.2.5-1.zip",
+          "releaseType": 1,
+          "gameVersionTypeId": 79434
+        },
+        {
+          "gameVersion": "3.4.5",
+          "fileId": 7111795,
+          "filename": "BigWigs_Voice_KRgeelong-v11.2.5-1.zip",
+          "releaseType": 1,
+          "gameVersionTypeId": 73713
+        },
+        {
+          "gameVersion": "1.15.6",
+          "fileId": 7111795,
+          "filename": "BigWigs_Voice_KRgeelong-v11.2.5-1.zip",
           "releaseType": 1,
           "gameVersionTypeId": 67408
+        },
+        {
+          "gameVersion": "11.1.7",
+          "fileId": 7111795,
+          "filename": "BigWigs_Voice_KRgeelong-v11.2.5-1.zip",
+          "releaseType": 1,
+          "gameVersionTypeId": 517
+        },
+        {
+          "gameVersion": "1.15.7",
+          "fileId": 7111795,
+          "filename": "BigWigs_Voice_KRgeelong-v11.2.5-1.zip",
+          "releaseType": 1,
+          "gameVersionTypeId": 67408
+        },
+        {
+          "gameVersion": "12.0.0",
+          "fileId": 7111795,
+          "filename": "BigWigs_Voice_KRgeelong-v11.2.5-1.zip",
+          "releaseType": 1,
+          "gameVersionTypeId": 517
+        },
+        {
+          "gameVersion": "11.2.5",
+          "fileId": 7111795,
+          "filename": "BigWigs_Voice_KRgeelong-v11.2.5-1.zip",
+          "releaseType": 1,
+          "gameVersionTypeId": 517
+        },
+        {
+          "gameVersion": "5.5.1",
+          "fileId": 7111795,
+          "filename": "BigWigs_Voice_KRgeelong-v11.2.5-1.zip",
+          "releaseType": 1,
+          "gameVersionTypeId": 79434
+        },
+        {
+          "gameVersion": "4.4.1",
+          "fileId": 6939378,
+          "filename": "BigWigs_Voice_KRgeelong-v11.2.0-2.zip",
+          "releaseType": 1,
+          "gameVersionTypeId": 77522
+        },
+        {
+          "gameVersion": "11.2.0",
+          "fileId": 6939378,
+          "filename": "BigWigs_Voice_KRgeelong-v11.2.0-2.zip",
+          "releaseType": 1,
+          "gameVersionTypeId": 517
+        },
+        {
+          "gameVersion": "11.1.5",
+          "fileId": 6939378,
+          "filename": "BigWigs_Voice_KRgeelong-v11.2.0-2.zip",
+          "releaseType": 1,
+          "gameVersionTypeId": 517
         },
         {
           "gameVersion": "3.4.4",
@@ -3531,20 +3687,6 @@
           "gameVersionTypeId": 73713
         },
         {
-          "gameVersion": "11.1.5",
-          "fileId": 6588285,
-          "filename": "BigWigs_Voice_KRgeelong-v11.1.5-2.zip",
-          "releaseType": 1,
-          "gameVersionTypeId": 517
-        },
-        {
-          "gameVersion": "2.5.4",
-          "fileId": 6458149,
-          "filename": "BigWigs_Voice_KRgeelong-v11.1.5-1.zip",
-          "releaseType": 1,
-          "gameVersionTypeId": 73246
-        },
-        {
           "gameVersion": "3.4.3",
           "fileId": 6377101,
           "filename": "BigWigs_Voice_KRgeelong-v11.1.0-5.zip",
@@ -3552,25 +3694,11 @@
           "gameVersionTypeId": 73713
         },
         {
-          "gameVersion": "1.15.6",
-          "fileId": 6377101,
-          "filename": "BigWigs_Voice_KRgeelong-v11.1.0-5.zip",
-          "releaseType": 1,
-          "gameVersionTypeId": 67408
-        },
-        {
           "gameVersion": "11.1.0",
           "fileId": 6377101,
           "filename": "BigWigs_Voice_KRgeelong-v11.1.0-5.zip",
           "releaseType": 1,
           "gameVersionTypeId": 517
-        },
-        {
-          "gameVersion": "4.4.1",
-          "fileId": 6241788,
-          "filename": "BigWigs_Voice_KRgeelong-v11.1.0-1.zip",
-          "releaseType": 1,
-          "gameVersionTypeId": 77522
         },
         {
           "gameVersion": "11.0.7",
@@ -3756,18 +3884,59 @@
         }
       ],
       "latestEarlyAccessFilesIndexes": [],
-      "dateCreated": "2020-08-14T03:53:23.617Z",
-      "dateModified": "2025-05-29T00:39:22.467Z",
-      "dateReleased": "2025-05-29T00:29:43.207Z",
+      "dateCreated": "2020-08-14T21:21:03.77Z",
+      "dateModified": "2025-10-16T01:06:11.99Z",
+      "dateReleased": "2025-10-16T00:47:31.243Z",
       "allowModDistribution": true,
-      "gamePopularityRank": 682,
+      "gamePopularityRank": 1081,
       "isAvailable": true,
       "hasCommentsEnabled": true,
       "thumbsUpCount": 0,
       "featuredProjectTag": 0
     },
     {
-      "screenshots": [],
+      "screenshots": [
+        {
+          "id": 1243960,
+          "modId": 1299675,
+          "title": "Keybinding Option",
+          "description": "",
+          "thumbnailUrl": "https://media.forgecdn.net/attachments/thumbnails/1243/960/310/172/2025-07-06_20-57-32.png",
+          "url": "https://media.forgecdn.net/attachments/1243/960/2025-07-06_20-57-32.png"
+        },
+        {
+          "id": 1243959,
+          "modId": 1299675,
+          "title": "Chat Invisible",
+          "description": "",
+          "thumbnailUrl": "https://media.forgecdn.net/attachments/thumbnails/1243/959/310/172/wowscrnshot_070625_205805.jpg",
+          "url": "https://media.forgecdn.net/attachments/1243/959/wowscrnshot_070625_205805.jpg"
+        },
+        {
+          "id": 1243957,
+          "modId": 1299675,
+          "title": "Chat Visbile",
+          "description": "",
+          "thumbnailUrl": "https://media.forgecdn.net/attachments/thumbnails/1243/957/310/172/wowscrnshot_070625_205758.jpg",
+          "url": "https://media.forgecdn.net/attachments/1243/957/wowscrnshot_070625_205758.jpg"
+        },
+        {
+          "id": 1243956,
+          "modId": 1299675,
+          "title": "Help Text",
+          "description": "",
+          "thumbnailUrl": "https://media.forgecdn.net/attachments/thumbnails/1243/956/310/172/2025-07-06_20-57-20.png",
+          "url": "https://media.forgecdn.net/attachments/1243/956/2025-07-06_20-57-20.png"
+        },
+        {
+          "id": 1243955,
+          "modId": 1299675,
+          "title": "Login Message",
+          "description": "",
+          "thumbnailUrl": "https://media.forgecdn.net/attachments/thumbnails/1243/955/310/172/2025-07-06_20-57-01.png",
+          "url": "https://media.forgecdn.net/attachments/1243/955/2025-07-06_20-57-01.png"
+        }
+      ],
       "id": 1299675,
       "gameId": 1,
       "name": "Toggle Chat Visibility",
@@ -3780,7 +3949,7 @@
       },
       "summary": "A simple addon that allows you to toggle the visibility of chat windows using a keybinding or slash commands.",
       "status": 4,
-      "downloadCount": 6,
+      "downloadCount": 22,
       "isFeatured": false,
       "primaryCategoryId": 1001,
       "categories": [
@@ -3816,6 +3985,53 @@
       },
       "mainFileId": 6727795,
       "latestFiles": [
+        {
+          "id": 6727678,
+          "gameId": 1,
+          "modId": 1299675,
+          "isAvailable": true,
+          "displayName": "ToggleChatVisibility-1.0.0.zip",
+          "fileName": "ToggleChatVisibility-1.0.0.zip",
+          "releaseType": 2,
+          "fileStatus": 4,
+          "hashes": [
+            {
+              "value": "9f5f873a030c903e514436a0fb42061e67046ae3",
+              "algo": 1
+            },
+            {
+              "value": "bfc29ef34a1a59363788dced0023c4fd",
+              "algo": 2
+            }
+          ],
+          "fileDate": "2025-07-04T00:12:49.98Z",
+          "fileLength": 2141,
+          "downloadCount": 0,
+          "fileSizeOnDisk": 4145,
+          "downloadUrl": "https://edge.forgecdn.net/files/6727/678/ToggleChatVisibility-1.0.0.zip",
+          "gameVersions": [
+            "1.15.7"
+          ],
+          "sortableGameVersions": [
+            {
+              "gameVersionName": "1.15.7",
+              "gameVersionPadded": "0000000001.0000000015.0000000007",
+              "gameVersion": "1.15.7",
+              "gameVersionReleaseDate": "2025-03-22T00:00:00Z",
+              "gameVersionTypeId": 67408
+            }
+          ],
+          "dependencies": [],
+          "alternateFileId": 0,
+          "isServerPack": false,
+          "fileFingerprint": 1291967797,
+          "modules": [
+            {
+              "name": "ToggleChatVisibility",
+              "fingerprint": 1727775899
+            }
+          ]
+        },
         {
           "id": 6727732,
           "gameId": 1,
@@ -3870,7 +4086,7 @@
           "isAvailable": true,
           "displayName": "ToggleChatVisibility-1.0.2.zip",
           "fileName": "ToggleChatVisibility-1.0.2.zip",
-          "releaseType": 2,
+          "releaseType": 1,
           "fileStatus": 4,
           "hashes": [
             {
@@ -3884,7 +4100,7 @@
           ],
           "fileDate": "2025-07-04T01:04:27.263Z",
           "fileLength": 2612,
-          "downloadCount": 2,
+          "downloadCount": 3,
           "fileSizeOnDisk": 6751,
           "downloadUrl": "https://edge.forgecdn.net/files/6727/795/ToggleChatVisibility-1.0.2.zip",
           "gameVersions": [
@@ -3916,7 +4132,7 @@
           "gameVersion": "1.15.7",
           "fileId": 6727795,
           "filename": "ToggleChatVisibility-1.0.2.zip",
-          "releaseType": 2,
+          "releaseType": 1,
           "gameVersionTypeId": 67408
         },
         {
@@ -3925,14 +4141,21 @@
           "filename": "ToggleChatVisibility-1.0.1.zip",
           "releaseType": 3,
           "gameVersionTypeId": 67408
+        },
+        {
+          "gameVersion": "1.15.7",
+          "fileId": 6727678,
+          "filename": "ToggleChatVisibility-1.0.0.zip",
+          "releaseType": 2,
+          "gameVersionTypeId": 67408
         }
       ],
       "latestEarlyAccessFilesIndexes": [],
-      "dateCreated": "2025-07-04T00:10:55.69Z",
-      "dateModified": "2025-07-06T12:09:02.667Z",
+      "dateCreated": "2025-07-06T12:06:13.67Z",
+      "dateModified": "2025-07-16T05:38:04.033Z",
       "dateReleased": "2025-07-04T01:04:27.263Z",
       "allowModDistribution": true,
-      "gamePopularityRank": 28857,
+      "gamePopularityRank": 15179,
       "isAvailable": true,
       "hasCommentsEnabled": true,
       "thumbsUpCount": 0,

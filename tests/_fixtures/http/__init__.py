@@ -59,12 +59,12 @@ ROUTES = {
             _load_json_fixture('curse-addon-files.json'),
         ),
         Route(
-            r'//api\.curseforge\.com/v1/mods/13592/files/6454541',
-            _load_json_fixture('curse-addon-file-6454541.json'),
+            r'//api\.curseforge\.com/v1/mods/13592/files/7373575',
+            _load_json_fixture('curse-addon-file-7373575.json'),
         ),
         Route(
-            r'//api\.curseforge\.com/v1/mods/13592/files/5810397',
-            _load_json_fixture('curse-addon-file-5810397.json'),
+            r'//api\.curseforge\.com/v1/mods/13592/files/7398127',
+            _load_json_fixture('curse-addon-file-7398127.json'),
         ),
         Route(
             r'//api\.curseforge\.com/v1/mods/13592/files/(\d+)/changelog',

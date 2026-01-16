@@ -1,0 +1,150 @@
+{
+  "data": {
+    "id": 7373575,
+    "gameId": 1,
+    "modId": 13592,
+    "isAvailable": true,
+    "displayName": "11.2.9",
+    "fileName": "Masque-11.2.9.zip",
+    "releaseType": 1,
+    "fileStatus": 4,
+    "hashes": [
+      {
+        "value": "b0d26478ce33f887853174a5402c0a113ef56364",
+        "algo": 1
+      },
+      {
+        "value": "86485273b834f18fa7aa8fa5abfb114a",
+        "algo": 2
+      }
+    ],
+    "fileDate": "2025-12-24T15:44:18.62Z",
+    "fileLength": 3024767,
+    "downloadCount": 19217,
+    "fileSizeOnDisk": 17201041,
+    "downloadUrl": "https://edge.forgecdn.net/files/7373/575/Masque-11.2.9.zip",
+    "gameVersions": [
+      "4.4.2",
+      "3.4.5",
+      "2.5.4",
+      "12.0.0",
+      "11.2.7",
+      "1.15.8",
+      "5.5.3",
+      "3.80.0",
+      "2.5.5",
+      "12.0.1"
+    ],
+    "sortableGameVersions": [
+      {
+        "gameVersionName": "4.4.2",
+        "gameVersionPadded": "0000000004.0000000004.0000000002",
+        "gameVersion": "4.4.2",
+        "gameVersionReleaseDate": "2025-01-08T00:00:00Z",
+        "gameVersionTypeId": 77522
+      },
+      {
+        "gameVersionName": "3.4.5",
+        "gameVersionPadded": "0000000003.0000000004.0000000005",
+        "gameVersion": "3.4.5",
+        "gameVersionReleaseDate": "2025-07-10T00:00:00Z",
+        "gameVersionTypeId": 73713
+      },
+      {
+        "gameVersionName": "2.5.4",
+        "gameVersionPadded": "0000000002.0000000005.0000000004",
+        "gameVersion": "2.5.4",
+        "gameVersionReleaseDate": "2022-03-22T00:00:00Z",
+        "gameVersionTypeId": 73246
+      },
+      {
+        "gameVersionName": "12.0.0",
+        "gameVersionPadded": "0000000012.0000000000.0000000000",
+        "gameVersion": "12.0.0",
+        "gameVersionReleaseDate": "2025-09-30T00:00:00Z",
+        "gameVersionTypeId": 517
+      },
+      {
+        "gameVersionName": "11.2.7",
+        "gameVersionPadded": "0000000011.0000000002.0000000007",
+        "gameVersion": "11.2.7",
+        "gameVersionReleaseDate": "2025-10-13T00:00:00Z",
+        "gameVersionTypeId": 517
+      },
+      {
+        "gameVersionName": "1.15.8",
+        "gameVersionPadded": "0000000001.0000000015.0000000008",
+        "gameVersion": "1.15.8",
+        "gameVersionReleaseDate": "2025-10-14T00:00:00Z",
+        "gameVersionTypeId": 67408
+      },
+      {
+        "gameVersionName": "5.5.3",
+        "gameVersionPadded": "0000000005.0000000005.0000000003",
+        "gameVersion": "5.5.3",
+        "gameVersionReleaseDate": "2025-10-31T00:00:00Z",
+        "gameVersionTypeId": 79434
+      },
+      {
+        "gameVersionName": "3.80.0",
+        "gameVersionPadded": "0000000003.0000000080.0000000000",
+        "gameVersion": "3.80.0",
+        "gameVersionReleaseDate": "2025-11-11T00:00:00Z",
+        "gameVersionTypeId": 81212
+      },
+      {
+        "gameVersionName": "2.5.5",
+        "gameVersionPadded": "0000000002.0000000005.0000000005",
+        "gameVersion": "2.5.5",
+        "gameVersionReleaseDate": "2025-11-20T00:00:00Z",
+        "gameVersionTypeId": 73246
+      },
+      {
+        "gameVersionName": "12.0.1",
+        "gameVersionPadded": "0000000012.0000000000.0000000001",
+        "gameVersion": "12.0.1",
+        "gameVersionReleaseDate": "2025-12-12T00:00:00Z",
+        "gameVersionTypeId": 517
+      }
+    ],
+    "dependencies": [
+      {
+        "modId": 15049,
+        "relationType": 1
+      },
+      {
+        "modId": 13376,
+        "relationType": 1
+      },
+      {
+        "modId": 19651,
+        "relationType": 1
+      },
+      {
+        "modId": 14328,
+        "relationType": 1
+      },
+      {
+        "modId": 340803,
+        "relationType": 1
+      },
+      {
+        "modId": 20113,
+        "relationType": 1
+      },
+      {
+        "modId": 15552,
+        "relationType": 1
+      }
+    ],
+    "alternateFileId": 0,
+    "isServerPack": false,
+    "fileFingerprint": 1753994693,
+    "modules": [
+      {
+        "name": "Masque",
+        "fingerprint": 558400855
+      }
+    ]
+  }
+}

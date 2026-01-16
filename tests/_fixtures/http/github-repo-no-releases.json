@@ -66,7 +66,7 @@
   "releases_url": "https://api.github.com/repos/AdiAddons/AdiBags/releases{/id}",
   "deployments_url": "https://api.github.com/repos/AdiAddons/AdiBags/deployments",
   "created_at": "2010-04-29T22:58:42Z",
-  "updated_at": "2025-07-04T15:45:05Z",
+  "updated_at": "2026-01-14T09:07:06Z",
   "pushed_at": "2024-09-08T02:20:00Z",
   "git_url": "git://github.com/AdiAddons/AdiBags.git",
   "ssh_url": "git@github.com:AdiAddons/AdiBags.git",
@@ -74,8 +74,8 @@
   "svn_url": "https://github.com/AdiAddons/AdiBags",
   "homepage": "https://wowace.com/projects/adibags",
   "size": 1740,
-  "stargazers_count": 158,
-  "watchers_count": 158,
+  "stargazers_count": 156,
+  "watchers_count": 156,
   "language": "Lua",
   "has_issues": true,
   "has_projects": true,
@@ -83,7 +83,7 @@
   "has_wiki": true,
   "has_pages": false,
   "has_discussions": true,
-  "forks_count": 110,
+  "forks_count": 111,
   "mirror_url": null,
   "archived": false,
   "disabled": false,
@@ -107,9 +107,9 @@
     "world-of-warcraft"
   ],
   "visibility": "public",
-  "forks": 110,
+  "forks": 111,
   "open_issues": 17,
-  "watchers": 158,
+  "watchers": 156,
   "default_branch": "master",
   "temp_clone_token": null,
   "custom_properties": {},
@@ -134,6 +134,6 @@
     "user_view_type": "public",
     "site_admin": false
   },
-  "network_count": 110,
-  "subscribers_count": 14
+  "network_count": 111,
+  "subscribers_count": 12
 }

@@ -2,13 +2,33 @@
   "releases": [
     {
       "name": "Masque",
-      "version": "11.1.5",
-      "filename": "Masque-11.1.5.zip",
+      "version": "11.2.10",
+      "filename": "Masque-11.2.10.zip",
       "nolib": false,
       "metadata": [
         {
+          "flavor": "mists",
+          "interface": 50503
+        },
+        {
+          "flavor": "titan",
+          "interface": 38000
+        },
+        {
           "flavor": "mainline",
-          "interface": 110105
+          "interface": 110207
+        },
+        {
+          "flavor": "mainline",
+          "interface": 120000
+        },
+        {
+          "flavor": "mainline",
+          "interface": 120001
+        },
+        {
+          "flavor": "wrath",
+          "interface": 30405
         },
         {
           "flavor": "cata",
@@ -16,7 +36,15 @@
         },
         {
           "flavor": "classic",
-          "interface": 11507
+          "interface": 11508
+        },
+        {
+          "flavor": "bcc",
+          "interface": 20504
+        },
+        {
+          "flavor": "bcc",
+          "interface": 20505
         }
       ]
     }

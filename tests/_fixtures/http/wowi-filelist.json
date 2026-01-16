@@ -2,18 +2,18 @@
   {
     "UID": "12097",
     "UICATID": "17",
-    "UIVersion": "11.1.7-Beta-2",
-    "UIDate": 1751552800000,
+    "UIVersion": "11.2.10",
+    "UIDate": 1767134715000,
     "UIName": "Masque",
     "UIAuthorName": "StormFX",
     "UIFileInfoURL": "https://www.wowinterface.com/downloads/info12097-Masque.html",
-    "UIDownloadTotal": "356063",
-    "UIDownloadMonthly": "351",
-    "UIFavoriteTotal": "1514",
+    "UIDownloadTotal": "357803",
+    "UIDownloadMonthly": "468",
+    "UIFavoriteTotal": "1513",
     "UICompatibility": [
       {
-        "version": "11.1.7",
-        "name": "Nightfall Patch"
+        "version": "11.2.7",
+        "name": "War Within Patch"
       },
       {
         "version": "1.15.7",
@@ -30,6 +30,10 @@
       {
         "version": "3.4.3",
         "name": "WOTLK Patch"
+      },
+      {
+        "version": "2.5.4",
+        "name": "TBC Patch"
       }
     ],
     "UIDir": [

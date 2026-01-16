@@ -111,7 +111,7 @@
       },
       "summary": "A skinning engine for button-based add-ons.",
       "status": 4,
-      "downloadCount": 8247293,
+      "downloadCount": 8916674,
       "isFeatured": false,
       "primaryCategoryId": 1010,
       "categories": [
@@ -123,6 +123,18 @@
           "url": "https://www.curseforge.com/wow/addons/bags-inventory",
           "iconUrl": "https://media.forgecdn.net/avatars/54/445/636135209663914354.png",
           "dateModified": "2016-10-31T19:29:26.39Z",
+          "isClass": false,
+          "classId": 1,
+          "parentCategoryId": 1
+        },
+        {
+          "id": 1018,
+          "gameId": 1,
+          "name": "Action Bars",
+          "slug": "action-bars",
+          "url": "https://www.curseforge.com/wow/addons/action-bars",
+          "iconUrl": "https://media.forgecdn.net/avatars/54/454/636135209718137182.png",
+          "dateModified": "2016-10-31T19:29:31.813Z",
           "isClass": false,
           "classId": 1,
           "parentCategoryId": 1
@@ -140,18 +152,6 @@
           "parentCategoryId": 1
         },
         {
-          "id": 1005,
-          "gameId": 1,
-          "name": "Buffs & Debuffs",
-          "slug": "buffs-debuffs",
-          "url": "https://www.curseforge.com/wow/addons/buffs-debuffs",
-          "iconUrl": "https://media.forgecdn.net/avatars/54/441/636135209641593518.png",
-          "dateModified": "2016-10-31T19:29:24.207Z",
-          "isClass": false,
-          "classId": 1,
-          "parentCategoryId": 1
-        },
-        {
           "id": 1006,
           "gameId": 1,
           "name": "Artwork",
@@ -164,13 +164,13 @@
           "parentCategoryId": 1
         },
         {
-          "id": 1018,
+          "id": 1005,
           "gameId": 1,
-          "name": "Action Bars",
-          "slug": "action-bars",
-          "url": "https://www.curseforge.com/wow/addons/action-bars",
-          "iconUrl": "https://media.forgecdn.net/avatars/54/454/636135209718137182.png",
-          "dateModified": "2016-10-31T19:29:31.813Z",
+          "name": "Buffs & Debuffs",
+          "slug": "buffs-debuffs",
+          "url": "https://www.curseforge.com/wow/addons/buffs-debuffs",
+          "iconUrl": "https://media.forgecdn.net/avatars/54/441/636135209641593518.png",
+          "dateModified": "2016-10-31T19:29:24.207Z",
           "isClass": false,
           "classId": 1,
           "parentCategoryId": 1
@@ -182,7 +182,7 @@
           "id": 488800,
           "name": "StormFX",
           "url": "https://www.curseforge.com/members/stormfx",
-          "avatarUrl": null
+          "avatarUrl": "https://static-cdn.jtvnw.net/jtv_user_pictures/e35e0e96-5eda-4569-aa32-0e76eb88094b-profile_image-150x150.png"
         }
       ],
       "logo": {
@@ -193,36 +193,43 @@
         "thumbnailUrl": "https://media.forgecdn.net/avatars/thumbnails/809/624/256/256/638180657164269105.png",
         "url": "https://media.forgecdn.net/avatars/809/624/638180657164269105.png"
       },
-      "mainFileId": 6454541,
+      "mainFileId": 7398127,
       "latestFiles": [
         {
-          "id": 6454541,
+          "id": 7398127,
           "gameId": 1,
           "modId": 13592,
           "isAvailable": true,
-          "displayName": "11.1.5",
-          "fileName": "Masque-11.1.5.zip",
+          "displayName": "11.2.10",
+          "fileName": "Masque-11.2.10.zip",
           "releaseType": 1,
           "fileStatus": 4,
           "hashes": [
             {
-              "value": "05cf54babddde279a9d27e7dfd42ed9ab4d507ba",
+              "value": "c839e03381046ac5e2202113fbbacaa277b11f40",
               "algo": 1
             },
             {
-              "value": "86ddab55ad1a9bcba3b4dbc82e796b6c",
+              "value": "a3236e815c26c7f26044bba2c9f3d4d2",
               "algo": 2
             }
           ],
-          "fileDate": "2025-04-23T03:22:00.43Z",
-          "fileLength": 1559805,
-          "downloadCount": 122949,
-          "fileSizeOnDisk": 7293462,
-          "downloadUrl": "https://edge.forgecdn.net/files/6454/541/Masque-11.1.5.zip",
+          "fileDate": "2025-12-30T22:45:13.987Z",
+          "fileLength": 3025503,
+          "downloadCount": 21156,
+          "fileSizeOnDisk": 17202310,
+          "downloadUrl": "https://edge.forgecdn.net/files/7398/127/Masque-11.2.10.zip",
           "gameVersions": [
             "4.4.2",
-            "1.15.7",
-            "11.1.5"
+            "3.4.5",
+            "2.5.4",
+            "12.0.0",
+            "11.2.7",
+            "1.15.8",
+            "5.5.3",
+            "3.80.0",
+            "2.5.5",
+            "12.0.1"
           ],
           "sortableGameVersions": [
             {
@@ -233,135 +240,72 @@
               "gameVersionTypeId": 77522
             },
             {
-              "gameVersionName": "1.15.7",
-              "gameVersionPadded": "0000000001.0000000015.0000000007",
-              "gameVersion": "1.15.7",
-              "gameVersionReleaseDate": "2025-03-22T00:00:00Z",
+              "gameVersionName": "3.4.5",
+              "gameVersionPadded": "0000000003.0000000004.0000000005",
+              "gameVersion": "3.4.5",
+              "gameVersionReleaseDate": "2025-07-10T00:00:00Z",
+              "gameVersionTypeId": 73713
+            },
+            {
+              "gameVersionName": "2.5.4",
+              "gameVersionPadded": "0000000002.0000000005.0000000004",
+              "gameVersion": "2.5.4",
+              "gameVersionReleaseDate": "2022-03-22T00:00:00Z",
+              "gameVersionTypeId": 73246
+            },
+            {
+              "gameVersionName": "12.0.0",
+              "gameVersionPadded": "0000000012.0000000000.0000000000",
+              "gameVersion": "12.0.0",
+              "gameVersionReleaseDate": "2025-09-30T00:00:00Z",
+              "gameVersionTypeId": 517
+            },
+            {
+              "gameVersionName": "11.2.7",
+              "gameVersionPadded": "0000000011.0000000002.0000000007",
+              "gameVersion": "11.2.7",
+              "gameVersionReleaseDate": "2025-10-13T00:00:00Z",
+              "gameVersionTypeId": 517
+            },
+            {
+              "gameVersionName": "1.15.8",
+              "gameVersionPadded": "0000000001.0000000015.0000000008",
+              "gameVersion": "1.15.8",
+              "gameVersionReleaseDate": "2025-10-14T00:00:00Z",
               "gameVersionTypeId": 67408
             },
             {
-              "gameVersionName": "11.1.5",
-              "gameVersionPadded": "0000000011.0000000001.0000000005",
-              "gameVersion": "11.1.5",
-              "gameVersionReleaseDate": "2025-03-22T00:00:00Z",
-              "gameVersionTypeId": 517
-            }
-          ],
-          "dependencies": [
-            {
-              "modId": 20113,
-              "relationType": 1
-            },
-            {
-              "modId": 15552,
-              "relationType": 1
-            },
-            {
-              "modId": 14328,
-              "relationType": 1
-            },
-            {
-              "modId": 13376,
-              "relationType": 1
-            },
-            {
-              "modId": 15049,
-              "relationType": 1
-            },
-            {
-              "modId": 340803,
-              "relationType": 1
-            },
-            {
-              "modId": 19651,
-              "relationType": 1
-            }
-          ],
-          "alternateFileId": 0,
-          "isServerPack": false,
-          "fileFingerprint": 2642651369,
-          "modules": [
-            {
-              "name": "Masque",
-              "fingerprint": 2875115870
-            }
-          ]
-        },
-        {
-          "id": 6725716,
-          "gameId": 1,
-          "modId": 13592,
-          "isAvailable": true,
-          "displayName": "11.1.7-Beta-2",
-          "fileName": "Masque-11.1.7-Beta-2.zip",
-          "releaseType": 2,
-          "fileStatus": 4,
-          "hashes": [
-            {
-              "value": "7e21c0999277b7fd77b15dc98ee06eaf7b580704",
-              "algo": 1
-            },
-            {
-              "value": "c0ea7ce5032c8c156d35ccb88f117dc9",
-              "algo": 2
-            }
-          ],
-          "fileDate": "2025-07-03T14:26:39.383Z",
-          "fileLength": 1560028,
-          "downloadCount": 0,
-          "fileSizeOnDisk": 7293872,
-          "downloadUrl": "https://edge.forgecdn.net/files/6725/716/Masque-11.1.7-Beta-2.zip",
-          "gameVersions": [
-            "4.4.2",
-            "5.5.0",
-            "11.1.7",
-            "1.15.7",
-            "3.4.4"
-          ],
-          "sortableGameVersions": [
-            {
-              "gameVersionName": "4.4.2",
-              "gameVersionPadded": "0000000004.0000000004.0000000002",
-              "gameVersion": "4.4.2",
-              "gameVersionReleaseDate": "2025-01-08T00:00:00Z",
-              "gameVersionTypeId": 77522
-            },
-            {
-              "gameVersionName": "5.5.0",
-              "gameVersionPadded": "0000000005.0000000005.0000000000",
-              "gameVersion": "5.5.0",
-              "gameVersionReleaseDate": "2025-04-01T00:00:00Z",
+              "gameVersionName": "5.5.3",
+              "gameVersionPadded": "0000000005.0000000005.0000000003",
+              "gameVersion": "5.5.3",
+              "gameVersionReleaseDate": "2025-10-31T00:00:00Z",
               "gameVersionTypeId": 79434
             },
             {
-              "gameVersionName": "11.1.7",
-              "gameVersionPadded": "0000000011.0000000001.0000000007",
-              "gameVersion": "11.1.7",
-              "gameVersionReleaseDate": "2025-04-27T00:00:00Z",
+              "gameVersionName": "3.80.0",
+              "gameVersionPadded": "0000000003.0000000080.0000000000",
+              "gameVersion": "3.80.0",
+              "gameVersionReleaseDate": "2025-11-11T00:00:00Z",
+              "gameVersionTypeId": 81212
+            },
+            {
+              "gameVersionName": "2.5.5",
+              "gameVersionPadded": "0000000002.0000000005.0000000005",
+              "gameVersion": "2.5.5",
+              "gameVersionReleaseDate": "2025-11-20T00:00:00Z",
+              "gameVersionTypeId": 73246
+            },
+            {
+              "gameVersionName": "12.0.1",
+              "gameVersionPadded": "0000000012.0000000000.0000000001",
+              "gameVersion": "12.0.1",
+              "gameVersionReleaseDate": "2025-12-12T00:00:00Z",
               "gameVersionTypeId": 517
-            },
-            {
-              "gameVersionName": "1.15.7",
-              "gameVersionPadded": "0000000001.0000000015.0000000007",
-              "gameVersion": "1.15.7",
-              "gameVersionReleaseDate": "2025-03-22T00:00:00Z",
-              "gameVersionTypeId": 67408
-            },
-            {
-              "gameVersionName": "3.4.4",
-              "gameVersionPadded": "0000000003.0000000004.0000000004",
-              "gameVersion": "3.4.4",
-              "gameVersionReleaseDate": "2025-03-21T00:00:00Z",
-              "gameVersionTypeId": 73713
             }
           ],
           "dependencies": [
             {
-              "modId": 15049,
-              "relationType": 1
-            },
-            {
-              "modId": 19651,
+              "modId": 13376,
               "relationType": 1
             },
             {
@@ -369,7 +313,7 @@
               "relationType": 1
             },
             {
-              "modId": 13376,
+              "modId": 19651,
               "relationType": 1
             },
             {
@@ -381,17 +325,21 @@
               "relationType": 1
             },
             {
+              "modId": 15049,
+              "relationType": 1
+            },
+            {
               "modId": 15552,
               "relationType": 1
             }
           ],
           "alternateFileId": 0,
           "isServerPack": false,
-          "fileFingerprint": 210101254,
+          "fileFingerprint": 1673943536,
           "modules": [
             {
               "name": "Masque",
-              "fingerprint": 3381344235
+              "fingerprint": 2526772833
             }
           ]
         }
@@ -399,118 +347,102 @@
       "latestFilesIndexes": [
         {
           "gameVersion": "4.4.2",
-          "fileId": 6725716,
-          "filename": "Masque-11.1.7-Beta-2.zip",
-          "releaseType": 2,
+          "fileId": 7398127,
+          "filename": "Masque-11.2.10.zip",
+          "releaseType": 1,
           "gameVersionTypeId": 77522
         },
         {
-          "gameVersion": "5.5.0",
-          "fileId": 6725716,
-          "filename": "Masque-11.1.7-Beta-2.zip",
-          "releaseType": 2,
-          "gameVersionTypeId": 79434
-        },
-        {
-          "gameVersion": "11.1.7",
-          "fileId": 6725716,
-          "filename": "Masque-11.1.7-Beta-2.zip",
-          "releaseType": 2,
-          "gameVersionTypeId": 517
-        },
-        {
-          "gameVersion": "1.15.7",
-          "fileId": 6725716,
-          "filename": "Masque-11.1.7-Beta-2.zip",
-          "releaseType": 2,
-          "gameVersionTypeId": 67408
-        },
-        {
-          "gameVersion": "3.4.4",
-          "fileId": 6725716,
-          "filename": "Masque-11.1.7-Beta-2.zip",
-          "releaseType": 2,
+          "gameVersion": "3.4.5",
+          "fileId": 7398127,
+          "filename": "Masque-11.2.10.zip",
+          "releaseType": 1,
           "gameVersionTypeId": 73713
         },
         {
-          "gameVersion": "4.4.2",
-          "fileId": 6454541,
-          "filename": "Masque-11.1.5.zip",
+          "gameVersion": "2.5.4",
+          "fileId": 7398127,
+          "filename": "Masque-11.2.10.zip",
           "releaseType": 1,
-          "gameVersionTypeId": 77522
+          "gameVersionTypeId": 73246
         },
         {
-          "gameVersion": "1.15.7",
-          "fileId": 6454541,
-          "filename": "Masque-11.1.5.zip",
-          "releaseType": 1,
-          "gameVersionTypeId": 67408
-        },
-        {
-          "gameVersion": "11.1.5",
-          "fileId": 6454541,
-          "filename": "Masque-11.1.5.zip",
+          "gameVersion": "12.0.0",
+          "fileId": 7398127,
+          "filename": "Masque-11.2.10.zip",
           "releaseType": 1,
           "gameVersionTypeId": 517
         },
         {
-          "gameVersion": "1.15.6",
-          "fileId": 6240377,
-          "filename": "Masque-11.1.1.zip",
-          "releaseType": 1,
-          "gameVersionTypeId": 67408
-        },
-        {
-          "gameVersion": "11.1.0",
-          "fileId": 6240377,
-          "filename": "Masque-11.1.1.zip",
+          "gameVersion": "11.2.7",
+          "fileId": 7398127,
+          "filename": "Masque-11.2.10.zip",
           "releaseType": 1,
           "gameVersionTypeId": 517
         },
         {
-          "gameVersion": "11.0.5",
-          "fileId": 5810397,
-          "filename": "Masque-11.0.2.zip",
-          "releaseType": 1,
-          "gameVersionTypeId": 517
-        },
-        {
-          "gameVersion": "1.15.4",
-          "fileId": 5810397,
-          "filename": "Masque-11.0.2.zip",
+          "gameVersion": "1.15.8",
+          "fileId": 7398127,
+          "filename": "Masque-11.2.10.zip",
           "releaseType": 1,
           "gameVersionTypeId": 67408
         },
         {
-          "gameVersion": "4.4.0",
-          "fileId": 5810397,
-          "filename": "Masque-11.0.2.zip",
+          "gameVersion": "5.5.3",
+          "fileId": 7398127,
+          "filename": "Masque-11.2.10.zip",
           "releaseType": 1,
-          "gameVersionTypeId": 77522
+          "gameVersionTypeId": 79434
         },
         {
-          "gameVersion": "4.4.1",
-          "fileId": 5810397,
-          "filename": "Masque-11.0.2.zip",
+          "gameVersion": "3.80.0",
+          "fileId": 7398127,
+          "filename": "Masque-11.2.10.zip",
           "releaseType": 1,
-          "gameVersionTypeId": 77522
+          "gameVersionTypeId": 81212
         },
         {
-          "gameVersion": "11.0.2",
-          "fileId": 5810397,
-          "filename": "Masque-11.0.2.zip",
+          "gameVersion": "2.5.5",
+          "fileId": 7398127,
+          "filename": "Masque-11.2.10.zip",
+          "releaseType": 1,
+          "gameVersionTypeId": 73246
+        },
+        {
+          "gameVersion": "12.0.1",
+          "fileId": 7398127,
+          "filename": "Masque-11.2.10.zip",
           "releaseType": 1,
           "gameVersionTypeId": 517
         }
       ],
       "latestEarlyAccessFilesIndexes": [],
       "dateCreated": "2008-09-16T02:43:08Z",
-      "dateModified": "2025-07-03T14:34:22.317Z",
-      "dateReleased": "2025-07-03T14:26:39.383Z",
+      "dateModified": "2025-12-31T01:17:40.393Z",
+      "dateReleased": "2025-12-30T22:45:13.987Z",
       "allowModDistribution": true,
-      "gamePopularityRank": 233,
+      "gamePopularityRank": 94,
       "isAvailable": true,
+      "hasCommentsEnabled": false,
       "thumbsUpCount": 0,
+      "socialLinks": [
+        {
+          "type": 13,
+          "url": "https://github.com/SFX-WoW/Masque"
+        },
+        {
+          "type": 2,
+          "url": "https://discord.gg/7MTWRgDzz8"
+        },
+        {
+          "type": 5,
+          "url": "https://x.com/stormfxi"
+        },
+        {
+          "type": 3,
+          "url": "https://github.com/SFX-WoW/Masque"
+        }
+      ],
       "featuredProjectTag": 0
     }
   ],

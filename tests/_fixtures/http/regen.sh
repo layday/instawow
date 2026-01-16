@@ -19,15 +19,15 @@ http get https://api.curseforge.com/v1/mods/13592/files \
         x-api-key:$INSTAWOW_ACCESS_TOKENS_CFCORE -b \
     | jq -r \
     > "$DIR"/curse-addon-files.json
-http get https://api.curseforge.com/v1/mods/13592/files/6454541 \
+http get https://api.curseforge.com/v1/mods/13592/files/7373575 \
         x-api-key:$INSTAWOW_ACCESS_TOKENS_CFCORE -b \
     | jq -r \
-    > "$DIR"/curse-addon-file-6454541.json
-http get https://api.curseforge.com/v1/mods/13592/files/5810397 \
-        x-api-key:$INSTAWOW_ACCESS_TOKENS_CFCORE -b \
+    > "$DIR"/curse-addon-file-7373575.json
+    http get https://api.curseforge.com/v1/mods/13592/files/7398127 \
+            x-api-key:$INSTAWOW_ACCESS_TOKENS_CFCORE -b \
     | jq -r \
-    > "$DIR"/curse-addon-file-5810397.json
-http get https://api.curseforge.com/v1/mods/13592/files/6454541/changelog \
+    > "$DIR"/curse-addon-file-7398127.json
+http get https://api.curseforge.com/v1/mods/13592/files/7398127/changelog \
         x-api-key:$INSTAWOW_ACCESS_TOKENS_CFCORE -b \
     | jq -r \
     > "$DIR"/curse-addon-changelog.json

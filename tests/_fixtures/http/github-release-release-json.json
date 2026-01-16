@@ -31,8 +31,10 @@
     "target_commitish": "master",
     "name": "v1.9.7",
     "draft": false,
+    "immutable": false,
     "prerelease": false,
     "created_at": "2021-05-19T03:29:41Z",
+    "updated_at": "2021-05-19T04:18:48Z",
     "published_at": "2021-05-19T04:18:48Z",
     "assets": [
       {
@@ -66,7 +68,7 @@
         "state": "uploaded",
         "size": 224,
         "digest": null,
-        "download_count": 44,
+        "download_count": 46,
         "created_at": "2021-05-19T04:19:00Z",
         "updated_at": "2021-05-19T04:19:00Z",
         "browser_download_url": "https://github.com/nebularg/PackagerTest/releases/download/v1.9.7/release.json"
