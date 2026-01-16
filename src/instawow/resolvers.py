@@ -80,7 +80,7 @@ class CatalogueEntryCandidate(TypedDict):
     same_as: NotRequired[list[_CatalogueEntryCandidate_SameAs]]
 
 
-class _CatalogueEntryCandidate_SameAs:
+class _CatalogueEntryCandidate_SameAs(TypedDict):
     source: str
     id: str
 
