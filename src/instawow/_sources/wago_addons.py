@@ -78,7 +78,7 @@ class WagoAddonsResolver(BaseResolver):
 
     @AccessToken
     def access_token():
-        return config_ctx.config().global_config.access_tokens.wago_addons, False
+        return config_ctx.config().global_config.access_tokens.wago_addons, True
 
     def get_alias_from_url(self, url: str):
         urly = URL(url)

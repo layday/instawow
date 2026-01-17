@@ -29,7 +29,7 @@ class AccessTokenMissingError(ValueError):
 
 
 @fauxfrozen
-class AccessToken[RequiredT: (Literal[True], bool)]:
+class AccessToken[RequiredT: bool]:
     getter: _AccessTokenGetter[RequiredT]
 
     @overload
