@@ -69,7 +69,7 @@ format = [
   "ruff",
 ]
 freeze-gui = [
-  "briefcase",
+  "briefcase == 0.3.25",
 ]
 lint = [
   { include-group = "format" },
