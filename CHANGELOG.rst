@@ -9,7 +9,7 @@ v7.0.0
 - Added full support for Titan Refoged and Anniversary editions.
 
 
-v6.6.0
+v6.5.1
 ------
 
 - Updated the allowable WoW TOC version range to include Midnight.
