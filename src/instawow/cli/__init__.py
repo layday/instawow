@@ -1172,20 +1172,14 @@ def configure_profile(editable_config_values: Mapping[_EditableConfigOptions, An
                         _config.ProfileConfig, 'addon_dir', _config.config_converter
                     ),
                 ).prompt()
+                product = infer_product_from_addon_dir(addon_dir)
 
         if (
             addon_dir and not product
         ) or _EditableConfigOptions.FlavourOverride in interactive_editable_config_keys:
-            initial_flavour = None
-            if not addon_dir:
-                addon_dir = config_values.get('addon_dir')
-                if addon_dir:
-                    product = infer_product_from_addon_dir(addon_dir)
-                    if product:
-                        initial_flavour = product['flavour']
-
             editable_config_values[_EditableConfigOptions.FlavourOverride] = select_one(
-                'Game flavour', [Choice(f, f) for f in Flavour], initial_value=initial_flavour
+                'Game flavour',
+                [*(Choice[Flavour | None](f, f) for f in Flavour), Choice('unset', None)],
             ).prompt()
 
         if _EditableConfigOptions.AutoUpdateCheck in interactive_editable_config_keys:
