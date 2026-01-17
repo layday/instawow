@@ -61,6 +61,7 @@ source = "vcs"
 [dependency-groups]
 dev = [
   "basedpyright",
+  "esbonio",
   { include-group = "test" },
   { include-group = "typing" },
 ]
