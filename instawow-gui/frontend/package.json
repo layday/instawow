@@ -38,7 +38,7 @@
   "dependencies": {
     "@open-rpc/client-js": "^2.0.0",
     "commonmark": "^0.31.2",
-    "lodash-es": "^4.17.21",
+    "lodash-es": "^4.17.23",
     "luxon": "^3.7.2",
     "semaphore-async-await": "^1.5.1",
     "string-strip-html": "^13.5.0"
