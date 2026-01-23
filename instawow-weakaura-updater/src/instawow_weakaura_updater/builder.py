@@ -281,8 +281,7 @@ end)
 ## Notes: Keep your WeakAuras updated!
 ## DefaultState: Enabled
 ## LoadOnDemand: 0
-## Dependencies: WeakAuras
-## OptionalDeps: {','.join(a.name for a in aura_groups if a.name != 'WeakAuras')}
+## OptionalDeps: {','.join(a.name for a in aura_groups)}
 
 data.lua
 init.lua
