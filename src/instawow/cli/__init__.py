@@ -330,7 +330,7 @@ def cli(verbosity: int, no_cache: bool, profile: str):
     '--dry-run',
     is_flag=True,
     default=False,
-    help='Pretend to install add-ons.  Add-on archives will not be download and the '
+    help='Pretend to install add-ons.  Add-on archives will not be downloaded and the '
     'database will not be modified.',
 )
 def install(addons: Sequence[definitions.Defn], replace_folders: bool, dry_run: bool):
@@ -348,7 +348,7 @@ def install(addons: Sequence[definitions.Defn], replace_folders: bool, dry_run: 
     '--dry-run',
     is_flag=True,
     default=False,
-    help='Pretend to update add-ons.  Add-on archives will not be download and the '
+    help='Pretend to update add-ons.  Add-on archives will not be downloaded and the '
     'database will not be modified.  Use this option to check for updates.',
 )
 def update(addons: Sequence[definitions.Defn], dry_run: bool):
