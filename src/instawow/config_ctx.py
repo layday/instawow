@@ -86,7 +86,7 @@ class _ResolverPriorities(dict[str, float]):
         return float('inf')
 
 
-def _make_resolvers():
+def make_resolvers():
     return _Resolvers(
         r() if callable(r) else r
         for r in chain(
@@ -122,7 +122,7 @@ class ConfigParty:
 
     @classmethod
     def from_config(cls, config: _config.ProfileConfig) -> Self:
-        return cls(config, _ReentrantDatabaseHandle(), _make_resolvers())
+        return cls(config, _ReentrantDatabaseHandle(), make_resolvers())
 
 
 def _get_config_party():

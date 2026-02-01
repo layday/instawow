@@ -16,6 +16,9 @@ from .. import config_ctx, definitions, pkg_management
 from .. import results as _results
 from ._helpers import EnumValueChoiceParam, ManyOptionalChoiceValueParam, SectionedHelpGroup
 
+_BYPASS_CONFIG_INIT_META_KEY_ = 'bypass_config_init'
+
+
 _SUCCESS_SYMBOL = click.style('✓', fg='green')
 _FAILURE_SYMBOL = click.style('✗', fg='red')
 _WARNING_SYMBOL = click.style('!', fg='blue')
@@ -314,7 +317,10 @@ def cli(verbosity: int, no_cache: bool, profile: str):
         try:
             return _config.ProfileConfig.read(global_config, profile).ensure_dirs()
         except _config.UninitialisedConfigError:
-            return click.get_current_context().invoke(configure_profile)
+            click_ctx = click.get_current_context()
+            if click_ctx.meta.get(_BYPASS_CONFIG_INIT_META_KEY_):
+                raise
+            return click_ctx.invoke(configure_profile)
 
 
 @cli.command
@@ -986,57 +992,6 @@ def cache_clear():
     shutil.rmtree(config_ctx.config().global_config.dirs.cache)
 
 
-@cli.group('debug')
-def _debug_group():
-    "Debug instawow."
-
-
-@_debug_group.command('config')
-def debug_config():
-    "Print the active configuration."
-
-    import json
-
-    from ..config._helpers import make_display_converter
-
-    click.echo(
-        json.dumps(
-            make_display_converter().unstructure(config_ctx.config()),
-            indent=2,
-        )
-    )
-
-
-@_debug_group.command('profiles')
-def debug_profiles():
-    "Print the names of all profiles."
-
-    import json
-
-    from ..config._helpers import make_display_converter
-
-    profiles = _config.ProfileConfig.iter_profiles(_config.GlobalConfig())
-    click.echo(
-        json.dumps(
-            make_display_converter().unstructure(profiles, list[str]),
-            indent=2,
-        )
-    )
-
-
-@_debug_group.command('sources')
-def debug_sources():
-    "Print active source metadata."
-
-    from cattrs.preconf.json import make_converter
-
-    json_converter = make_converter()
-
-    click.echo(
-        json_converter.dumps([r.metadata for r in config_ctx.resolvers().values()], indent=2)
-    )
-
-
 @_register_plugin_commands
 @cli.group('plugins')
 def _plugin_group():  # pyright: ignore[reportUnusedFunction]
@@ -1271,6 +1226,41 @@ def erase_profile():
     if confirm('Erase profile?').prompt():
         config_ctx.config().delete()
         click.echo('Profile erased.')
+
+
+@cli.command
+def debug():
+    "Print debugging information."
+
+    import json
+
+    from ..config import UninitialisedConfigError
+    from ..config._helpers import make_display_converter
+
+    click_ctx = click.get_current_context()
+    click_ctx.meta[_BYPASS_CONFIG_INIT_META_KEY_] = True
+
+    try:
+        active_profile_config = config_ctx.config()
+        global_config = active_profile_config.global_config
+        resolvers = config_ctx.resolvers()
+    except UninitialisedConfigError:
+        active_profile_config = None
+        global_config = _config.GlobalConfig.read()
+        resolvers = config_ctx.make_resolvers()
+
+    click.echo(
+        json.dumps(
+            make_display_converter().unstructure(
+                {
+                    'active_profile_config': active_profile_config,
+                    'profiles': list(_config.ProfileConfig.iter_profiles(global_config)),
+                    'sources': [r.metadata for r in resolvers.values()],
+                }
+            ),
+            indent=2,
+        )
+    )
 
 
 @cli.command(hidden=True)

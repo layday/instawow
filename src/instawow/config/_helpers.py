@@ -32,8 +32,7 @@ def ensure_dirs(*dirs: Path) -> None:
 
 
 def make_config_converter() -> cattrs.Converter:
-    converter = cattrs.Converter()
-    cattrs.preconf.json.configure_converter(converter)
+    converter = cattrs.preconf.json.make_converter()
     converter.register_structure_hook(Path, lambda v, _: Path(v))
     converter.register_unstructure_hook(Path, str)
     return converter
