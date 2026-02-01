@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import datetime as dt
-from collections.abc import Iterator, Mapping, Sequence
+from collections.abc import Iterator, Mapping, Sequence, Set
 from itertools import chain, product
 from operator import itemgetter
 from pathlib import Path
@@ -18,6 +18,7 @@ from instawow._utils.iteration import bucketise, uniq
 from instawow._utils.perf import time_op
 from instawow.progress_reporting import make_download_progress, make_incrementing_progress_tracker
 from instawow.wow_installations import (
+    Flavour,
     extract_installation_dir_from_addon_dir,
     extract_installation_version_from_addon_dir,
 )
@@ -42,12 +43,17 @@ class _WagoApiResponse(TypedDict):
     slug: str
     'Slug if it has one; otherwise same as ``_id``'
     url: str
+    'Canonical URL'
     created: str
     'ISO datetime'
     modified: str
     'ISO datetime'
+    type: str
+    'Type of aura'
     game: str
     'Xpac name, e.g. "bfa"'
+    thumbnail: str
+    'Thumbnail URL'
     username: NotRequired[str]
     'Author username'
     version: int
@@ -55,10 +61,13 @@ class _WagoApiResponse(TypedDict):
     versionString: str
     'Semver auto-generated from ``version`` - for presentation only'
     changelog: _WagoApiResponse_Changelog
+    'Latest version changelog'
     forkOf: NotRequired[str]
     'Only present on forks'
     regionType: NotRequired[str]
     'Only present on WAs'
+    encrypted: NotRequired[bool]
+    'Whether the aura is encrypted, presumably only present on private auras'
 
 
 class _WagoApiResponse_Changelog(TypedDict):
@@ -81,6 +90,7 @@ type _AuraGroup = dict[str, list[_Aura]]
 class _AuraAddon(Protocol):  # pragma: no cover
     name: str
     api_endpoint: str
+    unsupported_flavours: Set[Flavour] = frozenset()
 
     def extract_auras(self, lua_table: Any) -> _AuraGroup: ...
 
@@ -89,6 +99,7 @@ class _AuraAddon(Protocol):  # pragma: no cover
 class _WeakAuras(_AuraAddon):
     name = 'WeakAuras'
     api_endpoint = 'weakauras'
+    unsupported_flavours = frozenset((Flavour.Mainline,))
 
     def extract_auras(self, lua_table: Any):
         raw_auras = lua_table['WeakAurasSaved']['displays']
@@ -343,6 +354,9 @@ def extract_installed_auras(
         for account_sv_path, addon in product(
             installation_dir.glob('WTF/Account/*/SavedVariables'), (_WeakAuras, _Plateroos)
         ):
+            if plugin_config.profile_config.product['flavour'] in addon.unsupported_flavours:
+                continue
+
             sv_path = (account_sv_path / addon.name).with_suffix('.lua')
             if not sv_path.exists():
                 continue
