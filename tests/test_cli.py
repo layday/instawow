@@ -203,40 +203,27 @@ def test_install_dry_run():
     )
 
 
-def test_debug_config(
+def test_debug(
     iw_profile_config: ProfileConfig,
 ):
-    assert (
-        run('debug config').stdout
-        == json.dumps(make_display_converter().unstructure(iw_profile_config), indent=2) + '\n'
-    )
+    from instawow.config_ctx import make_resolvers
 
-
-def test_debug_profile(
-    iw_profile_config: ProfileConfig,
-):
     assert (
-        run('debug profiles').stdout
+        run('debug').stdout
         == json.dumps(
             make_display_converter().unstructure(
-                iw_profile_config.iter_profiles(iw_profile_config.global_config), list[str]
+                {
+                    'active_profile_config': (iw_profile_config),
+                    'profiles': list(
+                        iw_profile_config.iter_profiles(iw_profile_config.global_config)
+                    ),
+                    'sources': [r.metadata for r in make_resolvers().values()],
+                }
             ),
             indent=2,
         )
         + '\n'
     )
-
-
-def test_debug_sources():
-    import cattrs.preconf.json
-
-    from instawow.definitions import SourceMetadata
-
-    json_converter = cattrs.preconf.json.make_converter()
-
-    output = run('debug sources').stdout
-    source_metadata = json_converter.loads(output, list[SourceMetadata])
-    assert len(source_metadata) > 1
 
 
 @pytest.mark.parametrize('command', ['configure', 'list'], ids=['explicit', 'implicit'])

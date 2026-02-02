@@ -20,6 +20,11 @@ from instawow_weakaura_updater.config import PluginConfig
 pytestmark = pytest.mark.usefixtures('_iw_config_ctx')
 
 
+@pytest.fixture(autouse=True)
+def _force_wa_in_retail(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setattr(_WeakAuras, 'unsupported_flavours', frozenset())
+
+
 @pytest.fixture
 async def plugin_config():
     return PluginConfig(profile_config=config_ctx.config()).ensure_dirs()
