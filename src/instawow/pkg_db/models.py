@@ -81,9 +81,9 @@ class Pkg:
             strategies=Strategies(
                 asdict(  # pyright: ignore[reportArgumentType]
                     self.options,
-                    value_serializer=lambda _, a, v: self.version
-                    if a.name == Strategy.VersionEq and v is True
-                    else v or None,
+                    value_serializer=lambda _, a, v: (
+                        self.version if a.name == Strategy.VersionEq and v is True else v or None
+                    ),
                 )
             ),
         )
